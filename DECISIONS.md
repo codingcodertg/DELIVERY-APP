@@ -49293,7 +49293,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador.
 
-## D-NEXT · Clientes: la edición de vendedor y gerente es una solicitud que revisa el admin, con antes → después y nota; todo queda en el historial del cliente
+## D-780 · Clientes: la edición de vendedor y gerente es una solicitud que revisa el admin, con antes → después y nota; todo queda en el historial del cliente
 
 **Fecha:** 2026-10-30 · **Migración 221** (`221_clientes_edicion_como_solicitud.sql`) · Hecho directo por el orquestador en `feat/clientes-edicion-como-solicitud`.
 

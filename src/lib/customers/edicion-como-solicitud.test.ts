@@ -8,7 +8,7 @@ import { solicitudDeLaBase } from "./solicitud-de-cliente";
 import { almacenDemoNuevo } from "./demo";
 import type { Cliente } from "./reglas";
 
-/** La edición de un cliente por vendedor o gerente es una solicitud que revisa el admin; todo queda en el historial (D-NEXT, 221). */
+/** La edición de un cliente por vendedor o gerente es una solicitud que revisa el admin; todo queda en el historial (D-780, 221). */
 
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

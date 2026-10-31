@@ -12,7 +12,7 @@ const cuando = (iso: string): string => {
 };
 
 /**
- * D-NEXT (221): el historial del cliente, plegado al pie de la ficha. Se carga al abrirlo. Cada fila: cuándo, quién, qué
+ * D-780 (221): el historial del cliente, plegado al pie de la ficha. Se carga al abrirlo. Cada fila: cuándo, quién, qué
  * clase de cambio, cada campo con antes → después, la nota de quien pidió y la decisión del admin.
  */
 export function HistorialDelCliente({ clienteId, almacen, t }: { clienteId: number; almacen: AlmacenDeClientes; t: T }) {

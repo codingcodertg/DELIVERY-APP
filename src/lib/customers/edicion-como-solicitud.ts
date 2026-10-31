@@ -1,6 +1,6 @@
 /**
  * La EDICIÓN de un cliente por vendedor o gerente es una SOLICITUD que revisa el admin, y todo cambio queda en el
- * historial del cliente (D-NEXT, 2026-10-30; migración 221).
+ * historial del cliente (D-780, 2026-10-30; migración 221).
  *
  * El dueño: «el botón de edit también es request to edit y cuando alguien haga una edit y el admin lo revise deberá
  * poder ver el valor anterior con el de ahora y hasta una opción de nota por qué se hizo la edición y que todo eso

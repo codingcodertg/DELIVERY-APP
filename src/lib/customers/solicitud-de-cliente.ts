@@ -18,7 +18,7 @@ export type EstadoDeSolicitud = "pending" | "approved" | "rejected";
 
 export interface SolicitudDeCliente {
   id: number;
-  /** D-NEXT (221): 'alta' (216) o 'edicion' de una fila (`customer_id`): `payload` solo con lo que cambia, `before` con lo que había, `note` el porqué. */
+  /** D-780 (221): 'alta' (216) o 'edicion' de una fila (`customer_id`): `payload` solo con lo que cambia, `before` con lo que había, `note` el porqué. */
   kind: "alta" | "edicion";
   customer_id: number | null;
   before: Record<string, unknown> | null;

@@ -650,7 +650,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   miTienda?: string | null;
   /** D-743 (216): el alta no crea: manda una solicitud que aprueba el admin, y se avisa a quien llama. */
   altaComoSolicitud?: boolean;
-  /** D-NEXT (221): la edición no guarda: manda una solicitud con lo que cambia, lo que había y el porqué; el admin la revisa. */
+  /** D-780 (221): la edición no guarda: manda una solicitud con lo que cambia, lo que había y el porqué; el admin la revisa. */
   edicionComoSolicitud?: boolean;
   onSolicitado?: (s: SolicitudDeCliente) => void;
   /** El idioma de quien mira, para el aviso al admin (la ficha no monta `usePrefs`: se prueba sin proveedor). */
@@ -720,7 +720,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const hayObvia = coinciden.some((c) => c.obvia);
   const [deTodasFormas, setDeTodasFormas] = useState(false);
   useEffect(() => { setDeTodasFormas(false); }, [coinciden]);
-  // D-NEXT (221): el porqué de la edición pedida (opcional); se escribe junto a «Enviar solicitud».
+  // D-780 (221): el porqué de la edición pedida (opcional); se escribe junto a «Enviar solicitud».
   const [notaDeEdicion, setNotaDeEdicion] = useState("");
   useEffect(() => { setNotaDeEdicion(""); }, [cliente, editando]);
 
@@ -792,7 +792,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     onSolicitado?.(r.valor);
   };
 
-  // D-NEXT (221): la edición del vendedor y del gerente no escribe la fila: guarda una solicitud con SOLO lo que cambia
+  // D-780 (221): la edición del vendedor y del gerente no escribe la fila: guarda una solicitud con SOLO lo que cambia
   // (y lo que había), avisa al admin por ayuda, y la ficha vuelve a modo ver tal como estaba.
   const solicitarLaEdicion = async () => {
     if (nuevo) return;
@@ -1038,7 +1038,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
             </div>
           )}
           <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} contactoElegido={contactoElegido} onEligeContacto={setContactoElegido} redes={redes} onRedes={setRedes} vendedores={vendedores} almacen={almacen} puedeEditar={puedeEditar} esVendedor={esVendedor} puedePedirVendedor={puedePedirVendedor} t={t} />
-          {/* D-NEXT (221): el historial del cliente, plegado, al pie de las tarjetas. El vendedor no lo ve (lleva crédito
+          {/* D-780 (221): el historial del cliente, plegado, al pie de las tarjetas. El vendedor no lo ve (lleva crédito
               y campos que D-728 le esconde). */}
           {cliente && !editando && !esVendedor && <HistorialDelCliente clienteId={cliente.id} almacen={almacen} t={t} />}
         </div>

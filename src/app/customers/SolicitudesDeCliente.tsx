@@ -16,7 +16,7 @@ const ESTADO: Record<SolicitudDeCliente["status"], { en: string; es: string; cls
 };
 
 /**
- * Las solicitudes de cliente: de alta (D-743, 216) y, desde D-NEXT (221), de EDICIÓN. El admin aprueba o rechaza, con
+ * Las solicitudes de cliente: de alta (D-743, 216) y, desde D-780 (221), de EDICIÓN. El admin aprueba o rechaza, con
  * nota; vendedor y gerente ven las suyas y en qué quedaron. En una edición se ve cada campo con lo que había y lo que
  * se pide, y la nota de quien pidió. Cada decisión la escribe la base con su función; aquí solo se pinta lo que vuelve.
  */

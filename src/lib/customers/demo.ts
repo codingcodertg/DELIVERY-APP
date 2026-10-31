@@ -76,7 +76,7 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
   // D-743 (216): las solicitudes de cliente nuevo, en memoria.
   let solicitudes: SolicitudDeCliente[] = [];
   let solicitudNueva = 0;
-  // D-NEXT (221): el historial, en memoria; lo escribe `guardar` (como el disparador) y las decisiones de edición.
+  // D-780 (221): el historial, en memoria; lo escribe `guardar` (como el disparador) y las decisiones de edición.
   let historial: HistorialDeCliente[] = [];
   let historialNuevo = 0;
   const apunta = (h: Omit<HistorialDeCliente, "id" | "at" | "by" | "by_name" | "requested_name"> & Partial<Pick<HistorialDeCliente, "requested_name">>) => {

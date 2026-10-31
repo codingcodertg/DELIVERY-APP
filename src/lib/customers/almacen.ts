@@ -62,7 +62,7 @@ export interface AlmacenDeClientes {
   solicitudes(): Promise<Res<SolicitudDeCliente[]>>;
   aprobarSolicitud(id: number): Promise<Res<number[]>>;
   rechazarSolicitud(id: number, nota: string): Promise<Res<null>>;
-  /** D-NEXT (221): la edición de vendedor y gerente es una solicitud (solo lo que cambia, con lo que había y el porqué). */
+  /** D-780 (221): la edición de vendedor y gerente es una solicitud (solo lo que cambia, con lo que había y el porqué). */
   solicitarEdicion(cliente: Cliente, parche: Parche, nota: string): Promise<Res<SolicitudDeCliente>>;
   /** El admin aplica la edición pedida (`erp.aprueba_edicion_de_cliente`), con nota opcional. */
   aprobarEdicion(id: number, nota: string): Promise<Res<null>>;
