@@ -300,7 +300,8 @@ describe("la página del Gestor", () => {
     expect(pagina).toContain("const deOrdenes = useMemo(() => ({ catalogo: ORDER_COLUMNS, ctx: ctxDeOrdenes }), [ctxDeOrdenes]);");
     // D-423: con las ciudades conocidas, las mismas que la celda.
     // Nota D-548: con las tiendas y la llegada de la orden, para las columnas de paradas que estas tablas pintan ahora.
-    expect(pagina).toContain("(clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen, { tiendas: settings.stores ?? [], llegada: llegadaDeLaOrden }),");
+    // D-782: y las reglas de los tipos, para que una recogida libre diga la ciudad de su dirección.
+    expect(pagina).toContain("(clave: string, d: Delivery) => valorDelGestor(clave, d, deOrdenes, ciudadesQueSeConocen, { tiendas: settings.stores ?? [], reglas: settings.order_type_rules, llegada: llegadaDeLaOrden }),");
     expect(pagina).toContain("etiqueta: etiquetaDelGestor(c.key, deOrdenes)");
     expect(pagina).toContain("const celdaDeOrdenes = (clave: string, d: Delivery) => columnaDeOrdenes(clave, ORDER_COLUMNS)?.cell(d, ctxDeOrdenes);");
     expect(pagina).toContain('const clasePastillas = (clave: string) => (columnaDeOrdenes(clave, ORDER_COLUMNS)?.pastillas ? "td-pastillas" : undefined);');
