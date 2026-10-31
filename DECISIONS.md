@@ -49344,3 +49344,16 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/recogida-libre-con-punto.test.ts` (regla, punto, desplegable, FV594 para el chofer y la ciudad, revisión al guardar, motor, parada y trazo, ficha y pantallas, la 223); al día `columnas-de-la-lista`, `prioridad-en-el-plan`, `requisitos-en-el-plan`. tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador; la 223 se ensayó con ROLLBACK, la aplica el dueño.
+## D-NEXT · Entregas: una orden ya entregada se queda en el día real de la entrega aunque le cambien la fecha después (migración 222)
+
+**Fecha:** 2026-10-31 · **Migración 222** (`222_entregada_se_queda_en_su_dia.sql`: la función de la 219 con un segundo caso) · Hecho directo por el orquestador en `feat/entregada-se-queda-en-su-dia`.
+
+**Pedido (el dueño, 2026-10-30/31, con la orden 1268 / FV532 en el Gestor de Rutas del 31):** «¿Por qué me sale esa orden de hoy entregada ahí? […] si esa orden ya se entregó, que se pase a la ruta de ese día y que no me aparezca en la del 31» y «¿por qué no la puedo ni quitar?».
+
+**Qué pasó (medido en el historial de la orden):** Ernesto la recogió y la entregó el 2026-10-28; el 29 un vendedor le cambió la fecha de entrega al 31 (quería programar la reposición de un material dañado). La 219 solo fija la fecha al **pasar** a entregada, así que el cambio posterior pasó, y la orden entregada apareció en la ruta del 31, donde una parada entregada no se puede quitar (la ✕ solo sale en las «Listo»). La orden se devolvió al 28 con un comando del dueño.
+
+**Qué cambia:** si la orden ya está entregada y un UPDATE trae otra `delivery_date`, la fecha vuelve al día real (el de `pod_delivered_at`, en hora de Texas) y queda la nota «La fecha se queda en 2026-10-28 (ya entregada); no se aplicó 2026-10-31» en el historial. Sin prueba de entrega no se sabe el día y se deja pasar. La reposición de un material se programa como orden nueva, no moviendo la entregada. Nada cambia en pantalla.
+
+**Pruebas:** `src/lib/entregada-se-queda-en-su-dia.test.ts`; la de la 219 sigue igual. tsc limpio.
+
+**No verificado:** la 222 se ensayó con ROLLBACK; la aplica el dueño.
