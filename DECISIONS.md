@@ -49281,3 +49281,14 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/customers/archivar-solo-admin.test.ts`. tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador. La base no impide que un no-admin escriba `archived_at` por otra vía: la regla es de pantalla, como la de editar.
+## D-779 · Clientes: fuera la ventana «Asignar vendedores» por iniciales
+
+**Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/clientes-sin-asignar-vendedores`.
+
+**Pedido (el dueño, 2026-10-30, con captura de la ventana):** «Quita eso de asignar vendedores. Eso es algo que solo te pedí para ti [la carga inicial]. Entonces eso quítalo, no lo ocupo».
+
+**Qué cambia:** desaparecen el botón «👤 Asignar vendedores» de la lista y la ventana por iniciales de QuickBooks (D-684): se borra `AsignarVendedores.tsx` y su estado en `Clientes.tsx`. El vendedor se sigue asignando donde ya se hacía: en la ficha (el admin) y en la barra de selección en lote (D-685). `gruposPorIniciales` e `idsParaAsignar` quedan en `lib/customers/vendedores.ts` con sus pruebas, por si la carga vuelve a hacer falta. Reemplaza la parte de pantalla de D-684.
+
+**Pruebas:** `vendedores.test.ts` al día (comprueba que el fichero y el botón no existen). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador.

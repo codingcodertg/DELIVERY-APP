@@ -19,7 +19,6 @@ import { ANCHO_MINIMO, ANCHO_POR_DEFECTO, anchoDePartida, claveDeAncho, llaveDeA
 import { almacenDeLaBase, type AlmacenDeClientes } from "@/lib/customers/almacen";
 import { almacenDemo } from "@/lib/customers/demo";
 import { FichaEnVentana, selCls } from "./FichaDeCliente";
-import { AsignarVendedores } from "./AsignarVendedores";
 import { PedirVendedor } from "./PedirVendedor";
 import { SolicitudesDeCliente } from "./SolicitudesDeCliente";
 import { pendientes, type SolicitudDeCliente } from "@/lib/customers/solicitud-de-cliente";
@@ -67,8 +66,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, puedeArchivar = f
   const [prefCols, setPrefCols] = useState<PreferenciaDeColumnas>(PREFERENCIA_INICIAL);
   const [cuantos, setCuantos] = useState(TANDA);
   const [ficha, setFicha] = useState<Ficha | null>(null);
-  // D-684: «Asignar vendedores» de golpe, solo el admin.
-  const [asignando, setAsignando] = useState(false);
+  // D-779: la ventana «Asignar vendedores» por iniciales (D-684) se quitó: el dueño la pidió solo para la carga inicial.
   // D-685: elegir varios clientes (filas de la base, todas las tiendas de cada empresa marcada) y hacerles lo mismo.
   const [elegidos, setElegidos] = useState<Set<number>>(() => new Set());
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
@@ -213,10 +211,6 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, puedeArchivar = f
     const conNombre = "rep_id" in parche ? { rep_name: vendedores.find((v) => v.id === parche.rep_id)?.full_name ?? null } : {};
     setLista((l) => l.map((c) => (set.has(c.id) ? ({ ...c, ...(parche as Partial<Cliente>), ...conNombre } as Cliente) : c)));
   };
-  const alAsignar = (ids: number[], v: { id: string; full_name: string } | null) => {
-    const set = new Set(ids);
-    setLista((l) => l.map((c) => (set.has(c.id) ? { ...c, rep_id: v?.id ?? null, rep_name: v?.full_name ?? null } : c)));
-  };
   const alGuardar = (c: Cliente, creados: Cliente[] = []) => {
     const nuevas = [c, ...creados.filter((x) => x.id !== c.id)];
     setLista((l) => nuevas.reduce((acc, n) => (acc.some((x) => x.id === n.id) ? acc.map((x) => (x.id === n.id ? n : x)) : [...acc, n]), l));
@@ -253,7 +247,6 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, puedeArchivar = f
             }}
           />
           )}
-          {esAdmin && <Button variant="outline" onClick={() => setAsignando(true)} data-abrir-asignar-vendedores>👤 {t("Assign sales reps", "Asignar vendedores")}</Button>}
           {(esAdmin || altaComoSolicitud) && (
             <Button variant="outline" onClick={() => setVerSolicitudes(true)} data-abrir-solicitudes>
               📝 {t("Requests", "Solicitudes")} {solicitudesPendientes > 0 && <span className="ml-1 rounded-full bg-amber-100 px-1.5 text-xs text-amber-800" data-solicitudes-pendientes>{solicitudesPendientes}</span>}
@@ -574,7 +567,6 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, puedeArchivar = f
         <SolicitudesDeCliente solicitudes={solicitudes} esAdmin={esAdmin} almacen={almacen} onDecidida={() => { void cargar(); void cargaSolicitudes(); }} onClose={() => setVerSolicitudes(false)} t={t} />
       )}
       {pidiendo && <PedirVendedor cliente={pidiendo} vendedores={vendedores} onClose={() => setPidiendo(null)} t={t} />}
-      {esAdmin && asignando && <AsignarVendedores lista={lista} almacen={almacen} onAsignados={alAsignar} onClose={() => setAsignando(false)} t={t} />}
     </main>
   );
 }

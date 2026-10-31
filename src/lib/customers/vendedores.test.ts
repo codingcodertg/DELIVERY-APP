@@ -1,14 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { FichaEnVentana } from "@/app/customers/FichaDeCliente";
 import { almacenDeLaBase, COLUMNAS, COLUMNAS_DE_LA_198, COLUMNAS_SIN_198, leeConRespaldo } from "./almacen";
 import { almacenDemo, CLIENTES_DEMO, VENDEDORES_DEMO } from "./demo";
 import { filasDeLaEmpresa } from "./empresas";
 import { CAMPOS, celda, clienteDeLaBase, COLUMNAS as COLUMNAS_DE_LA_LISTA, COLUMNAS_INICIALES, puedeEditar, textoDeCampo, valorDeColumna, type Cliente } from "./reglas";
 import { conVendedores, gruposPorIniciales, idsParaAsignar, inicialesDe, nombresDeVendedores, vendedoresEnOrden } from "./vendedores";
-import { AsignarVendedores } from "@/app/customers/AsignarVendedores";
 
 /* D-683 (198). El dueño, 2026-10-25: «the customer app has a sales rep assigned to each customer. Right now, they just
  * have initials […] they will only be able to see their own source customers and the customer assigned to them, and the
@@ -172,15 +171,14 @@ describe("D-684: asignar vendedores de golpe (solo admin)", () => {
     expect(llamadas.find((x) => x[0] === "update")![1]).toEqual({ rep_id: "u-ana" });
     expect(r.ok && r.valor).toBe(6);
   });
-  it("la ventana: una fila por iniciales con su desplegable y su botón; y el botón de abrirla solo para el admin", () => {
-    const html = renderToStaticMarkup(createElement(AsignarVendedores, { lista, almacen: almacenDemo(), onAsignados: () => {}, onClose: () => {}, t }));
-    expect([...html.matchAll(/data-grupo-de-iniciales="(\w+)"/g)].map((m) => m[1])).toEqual(["IM", "YG"]);
-    expect(html).toMatch(/<button[^>]*data-asignar="IM"[^>]*>Asignar 2<\/button>/);
-    expect(html).toContain('data-vendedor-para="YG"');
+  it("D-779: la ventana «Asignar vendedores» por iniciales ya no existe ni se abre desde la lista", () => {
+    expect(existsSync("src/app/customers/AsignarVendedores.tsx")).toBe(false);
     const clientes = leer("src/app/customers/Clientes.tsx");
-    expect(clientes).toContain("{esAdmin && <Button variant=\"outline\" onClick={() => setAsignando(true)} data-abrir-asignar-vendedores>");
-    expect(clientes).toContain("{esAdmin && asignando && <AsignarVendedores");
-    // D-728: también el gerente asigna (dentro de su tienda, que es lo único que la 210 le deja ver).
+    expect(clientes).not.toContain("<AsignarVendedores");
+    expect(clientes).not.toContain("from \"./AsignarVendedores\"");
+    expect(clientes).not.toContain("data-abrir-asignar-vendedores");
+    expect(clientes).not.toContain("setAsignando");
+    // El admin sigue siendo quien asigna vendedor (en la ficha y en la barra de selección).
     expect(leer("src/app/customers/page.tsx")).toContain("esAdmin={puedeAsignarVendedores(role)}");
   });
 });
