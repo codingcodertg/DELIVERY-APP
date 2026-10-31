@@ -6,6 +6,7 @@ import { sugerenciaDeLaBase, type Sugerencia } from "./empresas";
 import { clienteDeLaBase, type Cliente, type Parche } from "./reglas";
 import { clienteDeBusqueda } from "./vendedor-por-tienda";
 import { cuerpoDeSolicitud, solicitudDeLaBase, type SolicitudDeCliente } from "./solicitud-de-cliente";
+import { cuerpoDeEdicion, historialDeLaBase, type HistorialDeCliente } from "./edicion-como-solicitud";
 import { conVendedores, nombresDeVendedores, type Vendedor } from "./vendedores";
 
 /**
@@ -61,6 +62,12 @@ export interface AlmacenDeClientes {
   solicitudes(): Promise<Res<SolicitudDeCliente[]>>;
   aprobarSolicitud(id: number): Promise<Res<number[]>>;
   rechazarSolicitud(id: number, nota: string): Promise<Res<null>>;
+  /** D-NEXT (221): la edición de vendedor y gerente es una solicitud (solo lo que cambia, con lo que había y el porqué). */
+  solicitarEdicion(cliente: Cliente, parche: Parche, nota: string): Promise<Res<SolicitudDeCliente>>;
+  /** El admin aplica la edición pedida (`erp.aprueba_edicion_de_cliente`), con nota opcional. */
+  aprobarEdicion(id: number, nota: string): Promise<Res<null>>;
+  /** El historial de una fila (`erp.customer_history`), lo más nuevo primero. Sin la 221, `sinTabla`. */
+  historial(clienteId: number): Promise<Res<HistorialDeCliente[]>>;
 }
 
 /** ¿Es «la 180 no está aplicada»? PGRST205 (tabla) de PostgREST; 42P01 de Postgres. Solo esos. */
@@ -125,8 +132,11 @@ export async function leeConRespaldo<T>(consulta: (columnas: string) => PromiseL
   return r;
 }
 
-/** Las columnas de una solicitud de cliente (216). */
-export const COLUMNAS_DE_SOLICITUD = "id, requested_by, stores, payload, status, created_at, decided_at, decision_note, created_ids";
+/** Las columnas de una solicitud de cliente (216) y, desde la 221, su clase, la fila, lo que había y la nota. */
+export const COLUMNAS_DE_SOLICITUD_216 = "id, requested_by, stores, payload, status, created_at, decided_at, decision_note, created_ids";
+export const COLUMNAS_DE_SOLICITUD = COLUMNAS_DE_SOLICITUD_216 + ", kind, customer_id, before, note";
+/** Las columnas del historial (221). */
+export const COLUMNAS_DE_HISTORIAL = "id, customer_id, at, by, kind, before, after, note, request_id, requested_by, decision_note";
 
 /** PostgREST corta en 1.000 filas por petición: se pagina hasta que una página venga corta. */
 export const PAGINA = 1000;
@@ -174,7 +184,11 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
       return { ok: true, valor: solicitudDeLaBase(data as unknown as Record<string, unknown>) };
     },
     async solicitudes() {
-      const { data, error } = await sb.from("customer_requests").select(COLUMNAS_DE_SOLICITUD).order("status").order("created_at", { ascending: false }).range(0, 499);
+      // Sin la 221 (el código llega antes que la migración), las columnas de la 216.
+      const consulta = (cols: string) => sb.from("customer_requests").select(cols).order("status").order("created_at", { ascending: false }).range(0, 499);
+      let r = await consulta(COLUMNAS_DE_SOLICITUD);
+      if (r.error && faltaLa182(r.error)) r = await consulta(COLUMNAS_DE_SOLICITUD_216);
+      const { data, error } = r;
       if (error) return fallo(error);
       const filas = ((data ?? []) as unknown as Record<string, unknown>[]).map(solicitudDeLaBase);
       // El nombre de quien pidió: los perfiles son de `public`; si no se pueden leer, sale el id recortado.
@@ -197,6 +211,31 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
       const { error } = await sb.rpc("rechaza_solicitud_de_cliente", { p_id: id, p_nota: nota || null });
       if (error) return fallo(error);
       return { ok: true, valor: null };
+    },
+    async solicitarEdicion(cliente, parche, nota) {
+      const { data, error } = await sb.from("customer_requests").insert(cuerpoDeEdicion(cliente, parche, nota)).select(COLUMNAS_DE_SOLICITUD).maybeSingle();
+      if (error) return fallo(error);
+      if (!data) return sinFila();
+      return { ok: true, valor: solicitudDeLaBase(data as unknown as Record<string, unknown>) };
+    },
+    async aprobarEdicion(id, nota) {
+      const { error } = await sb.rpc("aprueba_edicion_de_cliente", { p_id: id, p_nota: nota || null });
+      if (error) return fallo(error);
+      return { ok: true, valor: null };
+    },
+    async historial(clienteId) {
+      const { data, error } = await sb.from("customer_history").select(COLUMNAS_DE_HISTORIAL).eq("customer_id", clienteId).order("at", { ascending: false }).range(0, 199);
+      if (error) return fallo(error);
+      const filas = ((data ?? []) as unknown as Record<string, unknown>[]).map(historialDeLaBase);
+      const ids = [...new Set(filas.flatMap((f) => [f.by, f.requested_by]).filter((x): x is string => !!x))];
+      if (ids.length) {
+        try {
+          const { data: perfiles } = await sb.schema("public").from("profiles").select("id, full_name").in("id", ids);
+          const nombre = new Map(((perfiles ?? []) as { id: string; full_name: string | null }[]).map((p) => [p.id, p.full_name]));
+          for (const f of filas) { f.by_name = f.by ? nombre.get(f.by) ?? null : null; f.requested_name = f.requested_by ? nombre.get(f.requested_by) ?? null : null; }
+        } catch { /* sin nombres */ }
+      }
+      return { ok: true, valor: filas };
     },
     async guardar(id, parche) {
       const { data, error } = await leeConRespaldo((cols) => sb.from("customers").update(parche).eq("id", id).select(cols).maybeSingle());

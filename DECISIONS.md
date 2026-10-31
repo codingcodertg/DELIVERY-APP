@@ -49292,3 +49292,20 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `vendedores.test.ts` al día (comprueba que el fichero y el botón no existen). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador.
+
+## D-NEXT · Clientes: la edición de vendedor y gerente es una solicitud que revisa el admin, con antes → después y nota; todo queda en el historial del cliente
+
+**Fecha:** 2026-10-30 · **Migración 221** (`221_clientes_edicion_como_solicitud.sql`) · Hecho directo por el orquestador en `feat/clientes-edicion-como-solicitud`.
+
+**Pedido (el dueño, 2026-10-30):** «el botón de edit también es request to edit y cuando alguien haga una edit y el admin lo revise deberá poder ver el valor anterior con el de ahora y hasta una opción de nota por qué se hizo la edición y que todo eso quede guardado en el historial del cliente».
+
+**Qué cambia:**
+- Para vendedor y gerente (`edicionEsSolicitud`) el botón de la ficha dice «✏️ Solicitar edición». Editan el mismo formulario; al pie hay «¿Por qué el cambio? (opcional)» y el botón dice «Enviar solicitud». No se escribe la fila: se guarda en `erp.customer_requests` con `kind = 'edicion'`, `payload` = SOLO los campos que cambian, `before` = los mismos con lo que había, `note` = el porqué (`cuerpoDeEdicion`). Se avisa al admin por el canal de ayuda, como el alta (D-743). La ficha vuelve a modo ver tal como estaba.
+- El admin, en «Solicitudes» (ahora «Solicitudes de cliente», altas y ediciones): cada campo con antes → después, la nota de quien pidió, una nota suya opcional, «Aprobar» (`erp.aprueba_edicion_de_cliente` aplica el parche sobre la fila) o «Rechazar».
+- **Historial del cliente** (`erp.customer_history`): lo escribe la base. Un disparador en `erp.customers` deja, en cada cambio, quién, cuándo, la clase (creado, editado, archivado, desarchivado, solicitud aprobada o rechazada) y cada columna con antes y después; las funciones de solicitud añaden el número, quien pidió, su nota y la decisión. Se ve plegado («📜 Historial») al pie de la ficha; el vendedor no lo ve (lleva crédito y campos que D-728 le esconde).
+- En la base, escribir `erp.customers` por la tabla queda SOLO para el admin (`customers update (admin)` reemplaza a la de la 198): vendedor y gerente ya no pueden editar directo ni por otra vía. Insertar sigue igual (en pantalla solo el admin crea; el alta de los demás es solicitud desde D-743).
+- Sin la 221 aplicada, «Solicitudes» sigue leyendo las columnas de la 216 y el historial dice que aún no está disponible.
+
+**Pruebas:** `src/lib/customers/edicion-como-solicitud.test.ts` (reglas, cuerpo, cambios, historial, flujo completo en el demo, la 221 y las pantallas). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador; la 221 se ensayó con ROLLBACK, la aplica el dueño.

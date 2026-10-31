@@ -6,6 +6,7 @@ import { claveDeEmpresa, juntaEnMemoria, motivoDeLaCola, sospechosos } from "./d
 import type { Sugerencia } from "./empresas";
 import type { Cliente, Parche } from "./reglas";
 import { cuerpoDeSolicitud, solicitudDeLaBase, type SolicitudDeCliente } from "./solicitud-de-cliente";
+import { cuerpoDeEdicion, historialDeLaBase, type HistorialDeCliente } from "./edicion-como-solicitud";
 
 /**
  * Clientes INVENTADOS para el modo demo (`NEXT_PUBLIC_LOCAL_MODE`), que no tiene base. Ni un dato real: los nombres
@@ -75,6 +76,21 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
   // D-743 (216): las solicitudes de cliente nuevo, en memoria.
   let solicitudes: SolicitudDeCliente[] = [];
   let solicitudNueva = 0;
+  // D-NEXT (221): el historial, en memoria; lo escribe `guardar` (como el disparador) y las decisiones de edición.
+  let historial: HistorialDeCliente[] = [];
+  let historialNuevo = 0;
+  const apunta = (h: Omit<HistorialDeCliente, "id" | "at" | "by" | "by_name" | "requested_name"> & Partial<Pick<HistorialDeCliente, "requested_name">>) => {
+    historial = [historialDeLaBase({ ...h, id: ++historialNuevo, at: new Date().toISOString(), by: "demo", by_name: "Demo", requested_name: h.requested_name ?? null }), ...historial];
+  };
+  const diff = (antes: Cliente, despues: Cliente) => {
+    const before: Record<string, unknown> = {};
+    const after: Record<string, unknown> = {};
+    for (const k of Object.keys(despues) as (keyof Cliente)[]) {
+      if (k === "updated_at" || k === "updated_by" || k === "rep_name") continue;
+      if (JSON.stringify(antes[k] ?? null) !== JSON.stringify(despues[k] ?? null)) { before[k] = antes[k] ?? null; after[k] = despues[k] ?? null; }
+    }
+    return { before, after };
+  };
   let archivoNuevo = 0;
   const enlaces = new Map<number, string>();
   const sinFila = { ok: false as const, sinTabla: false, sinPermiso: true, duplicado: false, error: "not saved: no row came back" };
@@ -88,6 +104,26 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
       return { ok: true, valor: { ...s } };
     },
     async solicitudes() { return { ok: true, valor: solicitudes.map((s) => ({ ...s })) }; },
+    async solicitarEdicion(cliente, parche, nota) {
+      const c = cuerpoDeEdicion(cliente, parche, nota);
+      if (!Object.keys(c.payload).length) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "nothing changed" };
+      const s = solicitudDeLaBase({ id: ++solicitudNueva, requested_by: "demo", requested_name: "Demo", status: "pending", created_at: new Date().toISOString(), ...c });
+      solicitudes = [s, ...solicitudes];
+      return { ok: true, valor: { ...s } };
+    },
+    async aprobarEdicion(id, nota) {
+      const s = solicitudes.find((x) => x.id === id);
+      if (!s || s.status !== "pending" || s.kind !== "edicion" || s.customer_id === null) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not pending" };
+      const antes = lista.find((c) => c.id === s.customer_id);
+      if (!antes) return sinFila;
+      const r = await almacen.guardar(s.customer_id, s.payload as Parche);
+      if (!r.ok) return r;
+      // La fila que dejó `guardar` ('edit') se reescribe como 'approved', con la solicitud y las notas (como hace el disparador).
+      historial = historial.map((h, i) => (i === 0 && h.customer_id === s.customer_id ? { ...h, kind: "approved", note: s.note, request_id: id, requested_by: s.requested_by, requested_name: s.requested_name, decision_note: nota.trim() || null } : h));
+      solicitudes = solicitudes.map((x) => (x.id === id ? { ...x, status: "approved", decided_at: new Date().toISOString(), decision_note: nota.trim() || null } : x));
+      return { ok: true, valor: null };
+    },
+    async historial(clienteId) { return { ok: true, valor: historial.filter((h) => h.customer_id === clienteId).map((h) => ({ ...h })) }; },
     async aprobarSolicitud(id) {
       const s = solicitudes.find((x) => x.id === id);
       if (!s || s.status !== "pending") return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not pending" };
@@ -101,6 +137,7 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
       const s = solicitudes.find((x) => x.id === id);
       if (!s || s.status !== "pending") return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not pending" };
       solicitudes = solicitudes.map((x) => (x.id === id ? { ...x, status: "rejected", decided_at: new Date().toISOString(), decision_note: nota.trim() || null } : x));
+      if (s.kind === "edicion" && s.customer_id !== null) apunta({ customer_id: s.customer_id, kind: "rejected", before: s.before, after: s.payload, note: s.note, request_id: id, requested_by: s.requested_by, requested_name: s.requested_name, decision_note: nota.trim() || null });
       return { ok: true, valor: null };
     },
     async buscarEnTodaLaEmpresa(q) {
@@ -123,6 +160,10 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
       const i = lista.findIndex((c) => c.id === id);
       if (i < 0) return sinFila;
       const nuevo = conVendedores([{ ...lista[i], ...(parche as Partial<Cliente>), updated_at: new Date().toISOString() } as Cliente], NOMBRES_DEMO)[0];
+      {
+        const d = diff(lista[i], nuevo);
+        if (Object.keys(d.after).length) apunta({ customer_id: id, kind: lista[i].archived_at === null && nuevo.archived_at !== null ? "archive" : lista[i].archived_at !== null && nuevo.archived_at === null ? "restore" : "edit", before: d.before, after: d.after, note: null, request_id: null, requested_by: null, decision_note: null });
+      }
       lista = lista.map((c, j) => (j === i ? nuevo : c));
       return { ok: true, valor: { ...nuevo } };
     },
