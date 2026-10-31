@@ -437,6 +437,11 @@ export function puedeAsignarVendedores(role: UserRole | null | undefined): boole
   return role === "admin";
 }
 
+/** D-NEXT: archiva y desarchiva un cliente SOLO el admin (el dueño, 2026-10-30: «solamente los admin pueden hacer eso»). */
+export function puedeArchivar(role: UserRole | null | undefined): boolean {
+  return role === "admin";
+}
+
 /**
  * D-728: al vendedor se le esconden «Archivos», «Campos ocultos» y «Crédito y términos». El dueño: «When a salesperson
  * opens a customer profile, hide these sections completely — they must not see them».

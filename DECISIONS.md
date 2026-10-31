@@ -49269,3 +49269,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/encuestas/dominio-propio.test.ts`. tsc y eslint limpios.
 
 **No verificado:** no se abrió la pestaña Encuestas en un navegador; el sitio de la encuesta en sí no cambia.
+
+## D-NEXT · Clientes: «Archivar» es un botón bajo «Editar», con «¿seguro?», y solo del admin
+
+**Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/clientes-archivar-solo-admin`.
+
+**Pedido (el dueño, 2026-10-30, con captura de la ficha):** «la opción de archivar que está abajo del botón de editar, y sea uno como si debe archivar, diga seguro y sea un botón también. Y solamente así. Y solamente los admin pueden hacer eso».
+
+**Qué cambia:** en la ficha del cliente (modo ver), debajo de «✏️ Editar» hay un botón «🗄️ Archivar» (o «↩️ Desarchivar» si ya está archivado). Pulsarlo pregunta «¿Seguro que quieres archivar <cuenta>? Desaparece de la lista; se puede desarchivar.» y, con sí, archiva sin pedir motivo. Desaparecen el «Archivar…» del pie y el panel del motivo (181). Lo ven y lo pueden usar solo los admin: `puedeArchivar(role)` en `reglas.ts` (como `puedeAsignarVendedores`), pasado de `page.tsx` a `Clientes` y a `FichaEnVentana`; los handlers también lo comprueban. El archivo en lote de la barra de selección ya era solo del admin (D-728/742) y no cambia.
+
+**Pruebas:** `src/lib/customers/archivar-solo-admin.test.ts`. tsc y eslint limpios.
+
+**No verificado:** no se abrió en un navegador. La base no impide que un no-admin escriba `archived_at` por otra vía: la regla es de pantalla, como la de editar.
