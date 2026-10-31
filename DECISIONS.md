@@ -49258,7 +49258,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** no se abrió en un navegador; la tasa 6.25 % es la que dijo el dueño, no se contrastó con el comptroller.
 
-## D-NEXT · Encuestas: la encuesta vive en `survey.rdztilegroup.com`
+## D-777 · Encuestas: la encuesta vive en `survey.rdztilegroup.com`
 
 **Fecha:** 2026-10-30 · Sin migración · Hecho directo por el orquestador en `feat/encuesta-dominio-propio`.
 

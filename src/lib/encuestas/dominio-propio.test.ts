@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ENLACE_DE_LA_ENCUESTA, ENLACE_VIEJO_DE_LA_ENCUESTA, enlaceDeTienda } from "./qr";
 
-/** La encuesta vive en el dominio propio (D-NEXT): ningún enlace nuevo dice «vercel». */
+/** La encuesta vive en el dominio propio (D-777): ningún enlace nuevo dice «vercel». */
 
 describe("el enlace de la encuesta", () => {
   it("es el dominio propio, con https y sin barra final", () => {

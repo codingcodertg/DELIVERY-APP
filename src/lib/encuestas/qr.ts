@@ -7,7 +7,7 @@
  */
 
 /**
- * El enlace público de la encuesta (D-449: sitio aparte, `rtg-encuesta` en Vercel). D-NEXT: con dominio propio,
+ * El enlace público de la encuesta (D-449: sitio aparte, `rtg-encuesta` en Vercel). D-777: con dominio propio,
  * `survey.rdztilegroup.com` (CNAME a Vercel, dado de alta el 2026-10-30; el dueño: «que no diga vercel en el url»).
  * La dirección vieja `rtg-encuesta.vercel.app` sigue viva: el QR general ya impreso (D-496) no cambia.
  */
