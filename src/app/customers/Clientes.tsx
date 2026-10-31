@@ -52,7 +52,7 @@ const TANDA = 100;
 // D-728: `esAdmin` es «puede asignar vendedores» (admin y gerente, `puedeAsignarVendedores`); `esVendedor` esconde tarjetas de la ficha.
 // D-742: `puedePedirVendedor` es el gerente: no asigna, lo pide al admin; y ve solo su tienda, sin pastillas de tiendas.
 // D-743 (216): `altaComoSolicitud` (vendedor, gerente): el alta se manda como solicitud y la aprueba el admin.
-export function Clientes({ demo, puedeEditar, esAdmin = false, puedeArchivar = false, esVendedor = false, puedePedirVendedor = false, altaComoSolicitud = false, userId, miTienda = null }: { demo: boolean; puedeEditar: boolean; esAdmin?: boolean; /** D-778: archiva solo el admin. */ puedeArchivar?: boolean; esVendedor?: boolean; puedePedirVendedor?: boolean; altaComoSolicitud?: boolean; userId: string; /** D-767: la tienda de quien mira (`profiles.store`): el alta la deja marcada. */ miTienda?: string | null }) {
+export function Clientes({ demo, puedeEditar, esAdmin = false, puedeArchivar = false, esVendedor = false, puedePedirVendedor = false, altaComoSolicitud = false, edicionComoSolicitud = false, userId, miTienda = null }: { demo: boolean; puedeEditar: boolean; esAdmin?: boolean; /** D-778: archiva solo el admin. */ puedeArchivar?: boolean; esVendedor?: boolean; puedePedirVendedor?: boolean; altaComoSolicitud?: boolean; /** D-780 (221): la edición del vendedor y del gerente es una solicitud que revisa el admin. */ edicionComoSolicitud?: boolean; userId: string; /** D-767: la tienda de quien mira (`profiles.store`): el alta la deja marcada. */ miTienda?: string | null }) {
   const { t, lang } = usePrefs();
   const almacen: AlmacenDeClientes = useMemo(() => (demo ? almacenDemo() : almacenDeLaBase(createClient())), [demo]);
 
@@ -97,10 +97,10 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, puedeArchivar = f
   const [verSolicitudes, setVerSolicitudes] = useState(false);
   const [avisoDeSolicitud, setAvisoDeSolicitud] = useState<string | null>(null);
   const cargaSolicitudes = useCallback(async () => {
-    if (!esAdmin && !altaComoSolicitud) return;
+    if (!esAdmin && !altaComoSolicitud && !edicionComoSolicitud) return;
     const r = await almacen.solicitudes();
     if (r.ok) setSolicitudes(r.valor);
-  }, [almacen, esAdmin, altaComoSolicitud]);
+  }, [almacen, esAdmin, altaComoSolicitud, edicionComoSolicitud]);
   useEffect(() => { void cargaSolicitudes(); }, [cargaSolicitudes]);
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("solicitudes")) setVerSolicitudes(true);
@@ -247,7 +247,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, puedeArchivar = f
             }}
           />
           )}
-          {(esAdmin || altaComoSolicitud) && (
+          {(esAdmin || altaComoSolicitud || edicionComoSolicitud) && (
             <Button variant="outline" onClick={() => setVerSolicitudes(true)} data-abrir-solicitudes>
               📝 {t("Requests", "Solicitudes")} {solicitudesPendientes > 0 && <span className="ml-1 rounded-full bg-amber-100 px-1.5 text-xs text-amber-800" data-solicitudes-pendientes>{solicitudesPendientes}</span>}
             </Button>
@@ -554,6 +554,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, puedeArchivar = f
           yo={userId}
           miTienda={miTienda}
           altaComoSolicitud={altaComoSolicitud}
+          edicionComoSolicitud={edicionComoSolicitud}
           lang={lang}
           onSolicitado={(s) => { setFicha(null); setAvisoDeSolicitud(t(`Request #${s.id} sent to the admin ✓ You'll see it under Requests.`, `Solicitud #${s.id} enviada al admin ✓ La verás en «Solicitudes».`)); void cargaSolicitudes(); }}
           almacen={almacen}

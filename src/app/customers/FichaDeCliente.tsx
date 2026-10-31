@@ -18,6 +18,8 @@ import {
 import { hayRedes, NOMBRE_DE_RED, parcheDeRedes, REDES, redesDe, redesEnEdicion, textoDeRed, urlDeRed, type Redes, type RedesEnEdicion } from "@/lib/customers/redes";
 import { vendedoresEnOrden, type Vendedor } from "@/lib/customers/vendedores";
 import { mensajeDeAltaPendiente, PAGINA_DE_SOLICITUDES, type SolicitudDeCliente } from "@/lib/customers/solicitud-de-cliente";
+import { mensajeDeEdicionPendiente } from "@/lib/customers/edicion-como-solicitud";
+import { HistorialDelCliente } from "./HistorialDelCliente";
 import { APP_VERSIONS } from "@/lib/app-versions";
 import { enviaSolicitudDeAyuda, pideContactoDeAyuda, rolDeQuienEscribe } from "@/lib/help-send";
 import { claveDeEmpresa } from "@/lib/customers/duplicados";
@@ -628,7 +630,7 @@ function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, a
  * `cliente` null = alta. En el alta la tienda son CASILLAS (D-664): una por tienda y «Todas»; se crea una fila por tienda
  * marcada, todas de la misma empresa nueva, y al terminar la ventana enseña la de la primera tienda con sus pastillas.
  */
-export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, puedeArchivar = false, esVendedor = false, puedePedirVendedor = false, onPedirVendedor, yo, miTienda = null, altaComoSolicitud = false, onSolicitado, lang = "es", almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
+export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, puedeArchivar = false, esVendedor = false, puedePedirVendedor = false, onPedirVendedor, yo, miTienda = null, altaComoSolicitud = false, edicionComoSolicitud = false, onSolicitado, lang = "es", almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
   cliente: Cliente | null;
   /** La lista que la pantalla ya tiene cargada: contra ella se busca el duplicado mientras se escribe (D-665). */
   lista?: readonly Cliente[];
@@ -648,6 +650,8 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   miTienda?: string | null;
   /** D-743 (216): el alta no crea: manda una solicitud que aprueba el admin, y se avisa a quien llama. */
   altaComoSolicitud?: boolean;
+  /** D-780 (221): la edición no guarda: manda una solicitud con lo que cambia, lo que había y el porqué; el admin la revisa. */
+  edicionComoSolicitud?: boolean;
   onSolicitado?: (s: SolicitudDeCliente) => void;
   /** El idioma de quien mira, para el aviso al admin (la ficha no monta `usePrefs`: se prueba sin proveedor). */
   lang?: "en" | "es";
@@ -716,6 +720,9 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const hayObvia = coinciden.some((c) => c.obvia);
   const [deTodasFormas, setDeTodasFormas] = useState(false);
   useEffect(() => { setDeTodasFormas(false); }, [coinciden]);
+  // D-780 (221): el porqué de la edición pedida (opcional); se escribe junto a «Enviar solicitud».
+  const [notaDeEdicion, setNotaDeEdicion] = useState("");
+  useEffect(() => { setNotaDeEdicion(""); }, [cliente, editando]);
 
   // Archivar (181) se escribe por el mismo almacén que todo lo demás: la fila vuelve de la base y es lo que se pinta.
   // D-778: ya no se pide el motivo en un panel; es un botón bajo «Editar», solo del admin, con un «¿seguro?».
@@ -785,6 +792,33 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     onSolicitado?.(r.valor);
   };
 
+  // D-780 (221): la edición del vendedor y del gerente no escribe la fila: guarda una solicitud con SOLO lo que cambia
+  // (y lo que había), avisa al admin por ayuda, y la ficha vuelve a modo ver tal como estaba.
+  const solicitarLaEdicion = async () => {
+    if (nuevo) return;
+    setOcupado(true);
+    setAviso(null);
+    const r = await almacen.solicitarEdicion(cliente, parche, notaDeEdicion);
+    if (!r.ok) { setOcupado(false); setAviso({ tono: "rojo", texto: textoDelFallo(r, false) }); return; }
+    try {
+      const quien = await pideContactoDeAyuda();
+      if (quien) {
+        await enviaSolicitudDeAyuda({
+          userId: quien.id, message: mensajeDeEdicionPendiente(r.valor, lang), ficheros: [], page: PAGINA_DE_SOLICITUDES,
+          senderName: quien.nombre, role: rolDeQuienEscribe(quien.rol, lang), appVersion: APP_VERSIONS.customers, lang,
+        });
+      }
+    } catch { /* la solicitud ya está guardada; el aviso es un extra */ }
+    setOcupado(false);
+    setForm(original);
+    setContactos(enEdicion(contactosOriginales));
+    setRedes(redesEnEdicion(redesOriginales));
+    setContactoElegido(0);
+    setEditando(false);
+    setAviso({ tono: "verde", texto: t("Edit request sent to the admin ✓", "Solicitud de edición enviada al admin ✓") });
+    onSolicitado?.(r.valor);
+  };
+
   const crearEnLasTiendas = async () => {
     setOcupado(true);
     setAviso(null);
@@ -813,6 +847,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     }
     if (nuevo && altaComoSolicitud) { await solicitarEnLasTiendas(); return; }
     if (nuevo) { await crearEnLasTiendas(); return; }
+    if (edicionComoSolicitud) { await solicitarLaEdicion(); return; }
     if (await aplicar(() => almacen.guardar(cliente.id, parche), t("Saved ✓", "Guardado ✓"))) setEditando(false);
   };
   const cancelar = () => {
@@ -928,7 +963,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
           {puedeEditar && !editando && (
             // D-778: «Editar» y, debajo, «Archivar» (o «Desarchivar»), este solo para el admin y con un «¿seguro?».
             <div className="flex flex-col items-stretch gap-1.5">
-              <Button size="sm" onClick={() => { setEditando(true); setAviso(null); }} data-editar-en-la-ventana>✏️ {t("Edit", "Editar")}</Button>
+              <Button size="sm" onClick={() => { setEditando(true); setAviso(null); }} data-editar-en-la-ventana>✏️ {edicionComoSolicitud && !nuevo ? t("Request edit", "Solicitar edición") : t("Edit", "Editar")}</Button>
               {puedeArchivar && !nuevo && (archivado ? (
                 <Button size="sm" variant="outline" onClick={desarchivar} disabled={ocupado} data-desarchivar>↩️ {t("Restore", "Desarchivar")}</Button>
               ) : (
@@ -1003,6 +1038,9 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
             </div>
           )}
           <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} contactoElegido={contactoElegido} onEligeContacto={setContactoElegido} redes={redes} onRedes={setRedes} vendedores={vendedores} almacen={almacen} puedeEditar={puedeEditar} esVendedor={esVendedor} puedePedirVendedor={puedePedirVendedor} t={t} />
+          {/* D-780 (221): el historial del cliente, plegado, al pie de las tarjetas. El vendedor no lo ve (lleva crédito
+              y campos que D-728 le esconde). */}
+          {cliente && !editando && !esVendedor && <HistorialDelCliente clienteId={cliente.id} almacen={almacen} t={t} />}
         </div>
 
         {(editando || aviso) && (
@@ -1010,9 +1048,12 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
             {aviso && <span className={cn("text-sm", aviso.tono === "verde" ? "text-emerald-600" : aviso.tono === "ambar" ? "text-amber-700" : "text-red-600")} role="status">{aviso.texto}</span>}
             {editando && (
               <>
+                {!nuevo && edicionComoSolicitud && (
+                  <Input value={notaDeEdicion} onChange={(e) => setNotaDeEdicion(e.target.value)} placeholder={t("Why this change? (optional)", "¿Por qué el cambio? (opcional)")} aria-label={t("Reason for the edit", "Motivo de la edición")} className="h-9 min-w-60 flex-1" data-nota-de-edicion />
+                )}
                 <Button variant="outline" onClick={cancelar} disabled={ocupado}>{t("Cancel", "Cancelar")}</Button>
                 <Button onClick={guardar} disabled={ocupado || !cambiado} data-guardar-ficha>
-                  {ocupado ? t("Saving…", "Guardando…") : deTodasFormas ? t("Save anyway", "Guardar de todas formas") : nuevo ? (altaComoSolicitud ? t("Send request", "Enviar solicitud") : t("Create", "Crear")) : t("Save", "Guardar")}
+                  {ocupado ? t("Saving…", "Guardando…") : deTodasFormas ? t("Save anyway", "Guardar de todas formas") : nuevo ? (altaComoSolicitud ? t("Send request", "Enviar solicitud") : t("Create", "Crear")) : edicionComoSolicitud ? t("Send request", "Enviar solicitud") : t("Save", "Guardar")}
                 </Button>
               </>
             )}

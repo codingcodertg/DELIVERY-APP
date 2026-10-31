@@ -18,6 +18,11 @@ export type EstadoDeSolicitud = "pending" | "approved" | "rejected";
 
 export interface SolicitudDeCliente {
   id: number;
+  /** D-780 (221): 'alta' (216) o 'edicion' de una fila (`customer_id`): `payload` solo con lo que cambia, `before` con lo que había, `note` el porqué. */
+  kind: "alta" | "edicion";
+  customer_id: number | null;
+  before: Record<string, unknown> | null;
+  note: string | null;
   requested_by: string;
   /** El nombre de quien pidió, si el almacén lo pudo poner. */
   requested_name: string | null;
@@ -51,6 +56,10 @@ export function solicitudDeLaBase(f: Record<string, unknown>): SolicitudDeClient
   const estado = f.status === "approved" || f.status === "rejected" ? f.status : "pending";
   return {
     id: Number(f.id),
+    kind: f.kind === "edicion" ? "edicion" : "alta",
+    customer_id: numero(f.customer_id),
+    before: f.before && typeof f.before === "object" && !Array.isArray(f.before) ? (f.before as Record<string, unknown>) : null,
+    note: texto(f.note),
     requested_by: String(f.requested_by ?? ""),
     requested_name: texto(f.requested_name),
     stores: Array.isArray(f.stores) ? f.stores.filter((s): s is string => typeof s === "string") : [],

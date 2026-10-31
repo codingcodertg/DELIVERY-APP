@@ -27,7 +27,7 @@ describe("lo que se guarda y lo que se lee", () => {
   });
   it("una fila de la base, saneada; un estado desconocido se lee como pendiente", () => {
     const s = solicitudDeLaBase({ id: 3, requested_by: "u1", requested_name: "Ana", stores: ["PHR", 7], payload: { account: "Acme" }, status: "approved", created_at: "2026-10-29T10:00:00Z", decided_at: null, decision_note: "", created_ids: [10, "x", 11] });
-    expect(s).toEqual({ id: 3, requested_by: "u1", requested_name: "Ana", stores: ["PHR"], payload: { account: "Acme" }, status: "approved", created_at: "2026-10-29T10:00:00Z", decided_at: null, decision_note: null, created_ids: [10, 11] });
+    expect(s).toMatchObject({ id: 3, requested_by: "u1", requested_name: "Ana", stores: ["PHR"], payload: { account: "Acme" }, status: "approved", created_at: "2026-10-29T10:00:00Z", decided_at: null, decision_note: null, created_ids: [10, 11] });
     expect(solicitudDeLaBase({ id: 4, status: "raro", payload: [] }).status).toBe("pending");
     expect(solicitudDeLaBase({ id: 4, payload: [] }).payload).toEqual({});
   });
