@@ -27,6 +27,14 @@
  *
  * Nada se descarta en silencio: lo que no entra sale en `avisos`, y la pantalla de subida se los
  * enseña al admin antes de confirmar la ronda.
+ *
+ * **Segunda forma, la «de pivote» (D-781, libro `ker promo` de 2026-10-31):** una tabla dinámica
+ * de un solo proveedor. El proveedor va en una celda suelta arriba (`Supplier` | `KERTILES, LLC`),
+ * los encabezados están en la fila 4 (`Unified Code`, `Size`, `Unified Description`, las tiendas,
+ * `Grand Total`, `demand`), y no hay NOTES, MO, COST, PRICE ni DIFF. Se reconoce por sus tres
+ * encabezados en cualquiera de las diez primeras filas, cuando la forma completa no encaja; las
+ * existencias son `Grand Total` (o la suma de las tiendas si no viene), y lo que el libro no trae
+ * es ausente, no cero. La fila `Grand Total` del pie, si la hay, se avisa y no entra.
  */
 
 // ---------------------------------------------------------------------------
@@ -164,12 +172,20 @@ const DESPUES_DE_LAS_TIENDAS = ["COST", "PRICE", "DIFF"] as const;
 
 /** Dónde está cada cosa en una hoja de productos. Los índices son de columna, desde 0. */
 export interface DisposicionDeHoja {
-  /** Índices de las ocho fijas de la izquierda, en el orden de `ANTES_DE_LAS_TIENDAS`. */
+  /** `completa` es el libro de siempre (fila 2, con costo y precio); `pivote`, la tabla dinámica de un proveedor (D-781). */
+  forma: "completa" | "pivote";
+  /** Índice (desde 0) de la fila de encabezados; los productos empiezan en la siguiente. */
+  filaDeCabecera: number;
+  /** Índices de las ocho fijas de la izquierda, en el orden de `ANTES_DE_LAS_TIENDAS`. En `pivote`, −1 las que no hay. */
   izquierda: number[];
   /** Una por columna de tienda: su nombre según el encabezado, y su índice. */
   tiendas: { nombre: string; indice: number }[];
-  /** Índices de COST, PRICE y DIFF. */
+  /** Índices de COST, PRICE y DIFF. En `pivote`, vacío. */
   derecha: number[];
+  /** Solo `pivote`: el proveedor de la celda suelta de arriba, para todas las filas. */
+  supplierDeLaHoja: string | null;
+  /** Solo `pivote`: la columna `Grand Total`, si la hay. */
+  indiceDelTotal: number | null;
 }
 
 /**
@@ -178,6 +194,50 @@ export interface DisposicionDeHoja {
  * llama lo anota; no es un error, es una hoja que no es de esto.
  */
 export function disposicionDe(filas: Celda[][]): DisposicionDeHoja | null {
+  return disposicionCompleta(filas) ?? disposicionDePivote(filas);
+}
+
+const textosDe = (fila: Celda[] | undefined) => (fila ?? []).map((c) => { const t = texto(c); return t === null ? "" : normaliza(t); });
+
+/**
+ * La forma «de pivote»: una tabla dinámica de un solo proveedor. Los encabezados pueden estar en
+ * cualquiera de las diez primeras filas (en el libro real, la 4), y son `UNIFIED CODE`, `SIZE` y
+ * `UNIFIED DESCRIPTION`; las tiendas van desde ahí hasta `GRAND TOTAL` (o hasta `DEMAND`, o hasta
+ * el final). El proveedor es la celda a la derecha de una que diga `SUPPLIER`, en las filas de encima.
+ */
+function disposicionDePivote(filas: Celda[][]): DisposicionDeHoja | null {
+  for (let f = 0; f < Math.min(filas.length, 10); f++) {
+    const cab = textosDe(filas[f]);
+    const iCode = cab.indexOf("UNIFIED CODE");
+    if (iCode < 0) continue;
+    const iSize = cab.indexOf("SIZE", iCode + 1);
+    const iDesc = cab.indexOf("UNIFIED DESCRIPTION", iCode + 1);
+    if (iSize < 0 || iDesc < 0) return null;
+    const desde = Math.max(iSize, iDesc) + 1;
+    const iTotal = cab.indexOf("GRAND TOTAL", desde);
+    const iDemand = cab.indexOf("DEMAND", desde);
+    const fin = iTotal >= 0 ? iTotal : iDemand >= 0 ? iDemand : cab.length;
+    const tiendas: { nombre: string; indice: number }[] = [];
+    for (let i = desde; i < fin; i++) if (cab[i] !== "") tiendas.push({ nombre: cab[i], indice: i });
+    if (tiendas.length === 0) return null;
+    let supplier: string | null = null;
+    for (let r = 0; r < f && supplier === null; r++) {
+      const fila = filas[r] ?? [];
+      for (let i = 0; i < fila.length; i++) {
+        if (normaliza(texto(fila[i]) ?? "") === "SUPPLIER") { supplier = texto(fila[i + 1]); break; }
+      }
+    }
+    return {
+      forma: "pivote", filaDeCabecera: f,
+      izquierda: [-1, iSize, iCode, iDesc, -1, -1, iDemand, -1],
+      tiendas, derecha: [],
+      supplierDeLaHoja: supplier, indiceDelTotal: iTotal >= 0 ? iTotal : null,
+    };
+  }
+  return null;
+}
+
+function disposicionCompleta(filas: Celda[][]): DisposicionDeHoja | null {
   const cabecera = (filas[1] ?? []).map((c) => {
     const t = texto(c);
     return t === null ? "" : normaliza(t);
@@ -203,7 +263,7 @@ export function disposicionDe(filas: Celda[][]): DisposicionDeHoja | null {
   }
   // Sin ninguna columna entre MO y COST no es esta hoja: sería otro libro con los mismos rótulos.
   if (tiendas.length === 0) return null;
-  return { izquierda, tiendas, derecha };
+  return { forma: "completa", filaDeCabecera: 1, izquierda, tiendas, derecha, supplierDeLaHoja: null, indiceDelTotal: null };
 }
 
 // ---------------------------------------------------------------------------
@@ -216,6 +276,18 @@ function productoDeFila(fila: Celda[], d: DisposicionDeHoja, hoja: string, rowNo
   if (code === null) return null;
   const qohByStore: Record<string, number | null> = {};
   for (const t of d.tiendas) qohByStore[t.nombre] = numero(fila[t.indice]);
+  if (d.forma === "pivote") {
+    // Sin columna QOH: las existencias son «Grand Total», o la suma de las tiendas si no viene.
+    // Si ninguna tienda trae número, ausente — sumar nulos como ceros inventaría un cero.
+    const conNumero = Object.values(qohByStore).filter((n): n is number => n !== null);
+    const suma = conNumero.length ? conNumero.reduce((a, b) => a + b, 0) : null;
+    const total = d.indiceDelTotal !== null ? numero(fila[d.indiceDelTotal]) : null;
+    return {
+      code, supplier: d.supplierDeLaHoja, size: texto(fila[iSize]), description: texto(fila[iDesc]), notes: null,
+      qoh: total ?? suma, demand: iDemand >= 0 ? numero(fila[iDemand]) : null, monthsOfStock: null,
+      qohByStore, cost: null, price: null, diff: null, sourceSheet: hoja, rowNo,
+    };
+  }
   return {
     code,
     supplier: texto(fila[iSup]),
@@ -267,7 +339,7 @@ export function leePromo(hojas: readonly HojaCruda[], gruposConocidos: readonly 
   for (const hoja of hojas) {
     const d = disposicionDe(hoja.filas);
     if (!d) {
-      avisos.push({ tipo: "hoja-ignorada", hoja: hoja.nombre, detalle: "su fila 2 no son los encabezados de una hoja de productos" });
+      avisos.push({ tipo: "hoja-ignorada", hoja: hoja.nombre, detalle: "ni su fila 2 ni sus diez primeras filas son los encabezados de una hoja de productos" });
       continue;
     }
     const grupo = grupoDe.get(normaliza(hoja.nombre)) ?? null;
@@ -277,10 +349,15 @@ export function leePromo(hojas: readonly HojaCruda[], gruposConocidos: readonly 
 
   const filasDe = (hoja: HojaCruda, d: DisposicionDeHoja) => {
     const out: { p: ProductoPromo; rowNo: number }[] = [];
-    for (let i = 2; i < hoja.filas.length; i++) {
+    for (let i = d.filaDeCabecera + 1; i < hoja.filas.length; i++) {
       const fila = hoja.filas[i] ?? [];
       const rowNo = i + 1;
       if (vacia(fila)) continue;
+      // El pie de una tabla dinámica («Grand Total» en la columna del código) no es un producto.
+      if (d.forma === "pivote" && normaliza(texto(fila[d.izquierda[2]]) ?? "") === "GRAND TOTAL") {
+        avisos.push({ tipo: "fila-sin-codigo", hoja: hoja.nombre, fila: rowNo, detalle: "es la fila «Grand Total» del pie, no un producto" });
+        continue;
+      }
       const p = productoDeFila(fila, d, hoja.nombre, rowNo);
       if (p === null) {
         avisos.push({
