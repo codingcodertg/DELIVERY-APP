@@ -49309,3 +49309,19 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/customers/edicion-como-solicitud.test.ts` (reglas, cuerpo, cambios, historial, flujo completo en el demo, la 221 y las pantallas). Suite entera en verde (salvo los 3 ficheros ya rotos en main). tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador; la 221 se ensayó con ROLLBACK, la aplica el dueño.
+
+## D-781 · Promos: el lector acepta la tabla dinámica de un proveedor (libro «de pivote»); ronda «Promo Noviembre»
+
+**Fecha:** 2026-10-31 · **Versión:** promos 0.15.0 (repo 1.637.0) · Sin migración · Hecho directo por el orquestador en `promo-noviembre`.
+
+**Pedido del dueño**, literal: *«"C:UsersandreDownloadsker promo.xlsx" vas a gregar estas promo al promo tab como promo noviembre en un neuvo tab dentro de promo»*.
+
+**Qué fallaba.** El lector de D-366 solo conocía UNA forma de libro: encabezados en la fila 2 con NOTES, QOH, DEMAND, MO, tiendas, COST, PRICE y DIFF. El libro de Kertiles es una tabla dinámica: `Supplier | KERTILES, LLC` en A1, encabezados en la fila 4 (`Unified Code`, `Size`, `Unified Description`, BRO, EDG, MCA, MIS, PHR, WES, `Grand Total`, `demand`) y sin costo ni precio. `cargar.mjs` lo rechazaba con `SIN_PRODUCTOS`.
+
+**Qué cambia.** `disposicionDe` prueba primero la forma completa y, si no encaja, la «de pivote»: las tres cabeceras en cualquiera de las diez primeras filas, las tiendas desde ahí hasta `Grand Total` (o `demand`, o el final), el proveedor de la celda a la derecha de `Supplier` en las filas de arriba. Existencias = `Grand Total`, o la suma de las tiendas si no viene; lo que el libro no trae (notas, MO, costo, precio, diff) queda **ausente, no cero**. El pie `Grand Total`, si lo hay, se avisa como `fila-sin-codigo` y no entra. En la tabla, Costo y Precio salen vacíos para esta ronda. Una «pestaña» en Promos es una ronda (D-375: el selector dentro de la tabla), así que lo pedido es una ronda nueva con la etiqueta «Promo Noviembre», cargada con `scripts/promos/cargar.mjs`.
+
+**Medido** con el libro real: 66 productos, 6 columnas de tienda (BRO, EDG, MCA, MIS, PHR, WES), 0 avisos, huella `3e179cf6`. Cinco celdas de `demand` son fórmulas sin calcular (SUMIFS a un libro externo) y entran como ausentes.
+
+**Pruebas:** `excel.test.ts`, describe «la forma «de pivote» (D-781)…»: se reconoce con la cabecera en la fila 4 y la completa sigue mandando; proveedor de arriba, QOH = Grand Total (72 ≠ 70 a propósito), costo y precio nulos, el pie avisado; sin Grand Total, suma; sin números, ausente. Mutantes 3 de 3 (sin la segunda forma; QOH = suma siempre; el pie entra), cada uno cae con una prueba con nombre.
+
+**No verificado:** en navegador.

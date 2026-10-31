@@ -127,3 +127,13 @@ Una línea `promo_round_uploaded` con la etiqueta, cuántos productos y sugerenc
 id de la ronda. `actor_id` va **nulo**: quien corre el script no tiene sesión de la app, y esa
 columna solo admite un usuario de verdad. Si esa línea no se puede escribir, el script **avisa pero
 no deshace nada**: una línea que falta es un problema más pequeño que una ronda a medio cargar.
+
+## Las dos formas de libro que lee (D-781)
+
+1. **La completa** (`9.25.26 Promo`): encabezados en la fila 2, con NOTES, QOH, DEMAND, MO, las tiendas, COST, PRICE y DIFF.
+2. **La de pivote** (`ker promo`, 2026-10-31): la tabla dinámica de UN proveedor. `Supplier` en una celda suelta arriba,
+   encabezados en cualquiera de las diez primeras filas (`Unified Code`, `Size`, `Unified Description`, las tiendas,
+   `Grand Total`, `demand`). No trae costo ni precio: esas columnas salen vacías en la tabla, no en cero. Las
+   existencias son `Grand Total`.
+
+Si un libro no encaja en ninguna, el script lo dice con `hoja-ignorada` y no escribe nada.

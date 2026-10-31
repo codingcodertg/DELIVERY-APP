@@ -250,3 +250,56 @@ describe("leer el libro entero", () => {
     expect(r.avisos.map((a) => a.tipo)).toEqual(["hoja-ignorada", "fila-sin-codigo"]);
   });
 });
+
+// ===========================================================================
+describe("la forma «de pivote» (D-781): la tabla dinámica de un proveedor", () => {
+  // Medida en el libro «ker promo» del 2026-10-31; los valores son inventados.
+  const PIVOTE: Celda[][] = [
+    ["Supplier", "PROVEEDOR, LLC"],
+    [],
+    ["Sum of QOH", null, null, "Store"],
+    ["Unified Code", "Size", "Unified Description", "AA1", "BB2", "CC3", "Grand Total", "demand"],
+    // El total NO coincide con la suma (72 ≠ 70) a propósito: así se mide que manda «Grand Total», no la suma.
+    ["X1", "12X36", "UNO", null, 0, 70, 72, 2.5],
+    ["X2", "16X48", "DOS", 95, 0, null, 95, { formula: "SUMIFS(...)" }],
+    ["Grand Total", null, null, 95, 0, 70, 165, null],
+  ];
+
+  it("se reconoce aunque los encabezados no estén en la fila 2, y la forma completa sigue mandando", () => {
+    const d = disposicionDe(PIVOTE)!;
+    expect(d.forma).toBe("pivote");
+    expect(d.filaDeCabecera).toBe(3);
+    expect(d.tiendas.map((t) => t.nombre)).toEqual(["AA1", "BB2", "CC3"]);
+    expect(d.supplierDeLaHoja).toBe("PROVEEDOR, LLC");
+    expect(disposicionDe([FILA_1, FILA_2, fila("X1")])!.forma).toBe("completa");
+    // Sin las tres cabeceras no es este libro.
+    expect(disposicionDe([["Unified Code", "AA1"]])).toBeNull();
+  });
+
+  it("lee los productos con el proveedor de arriba, QOH = Grand Total y lo que no trae AUSENTE", () => {
+    const r = leePromo([{ nombre: "Sheet1", filas: PIVOTE }]);
+    expect(r.productos.map((p) => p.code)).toEqual(["X1", "X2"]);
+    const [x1, x2] = r.productos;
+    expect(x1.supplier).toBe("PROVEEDOR, LLC");
+    expect(x1.qoh).toBe(72);
+    expect(x1.qohByStore).toEqual({ AA1: null, BB2: 0, CC3: 70 });
+    expect(x1.demand).toBe(2.5);
+    expect(x2.demand).toBeNull(); // fórmula sin calcular: ausente
+    expect(x1.cost).toBeNull();
+    expect(x1.price).toBeNull();
+    expect(x1.rowNo).toBe(5);
+    // El pie «Grand Total» no entra, y se dice.
+    expect(r.avisos).toEqual([expect.objectContaining({ tipo: "fila-sin-codigo", fila: 7 })]);
+  });
+
+  it("sin «Grand Total», QOH es la suma de las tiendas; sin ninguna tienda con número, ausente", () => {
+    const sinTotal: Celda[][] = [
+      ["Unified Code", "Size", "Unified Description", "AA1", "BB2"],
+      ["X1", "8X48", "UNO", 3, 4],
+      ["X2", "8X48", "DOS", null, ""],
+    ];
+    const r = leePromo([{ nombre: "H", filas: sinTotal }]);
+    expect(r.productos[0].qoh).toBe(7);
+    expect(r.productos[1].qoh).toBeNull();
+  });
+});
