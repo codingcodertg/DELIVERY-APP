@@ -18,7 +18,7 @@ const leer = (p: string) => readFileSync(p, "utf8");
 describe("el vendedor en el modelo", () => {
   const nombres = nombresDeVendedores(VENDEDORES_DEMO);
   it("`rep_id` es columna de la lista, campo de la tarjeta «Cuenta» (desplegable), y entra en las columnas de entrada", () => {
-    expect(COLUMNAS_DE_LA_LISTA.find((c) => c.key === "rep_id")).toEqual({ key: "rep_id", en: "Sales rep", es: "Vendedor" });
+    expect(COLUMNAS_DE_LA_LISTA.find((c) => c.key === "rep_id")).toEqual({ key: "rep_id", en: "Commission rep", es: "Vendedor de comisión" });
     expect(CAMPOS.find((c) => c.key === "rep_id")).toMatchObject({ tipo: "vendedor", grupo: "cuenta" });
     expect(COLUMNAS_INICIALES.indexOf("rep_id")).toBeGreaterThan(-1);
     expect(COLUMNAS_INICIALES.indexOf("rep_id")).toBeLessThan(COLUMNAS_INICIALES.indexOf("rep_store"));
@@ -112,8 +112,8 @@ describe("la ficha", () => {
   const tarjeta = (html: string, g: string) => { const i = html.indexOf(`data-grupo="${g}"`); const j = html.indexOf("data-grupo=", i + 1); return html.slice(i, j < 0 ? undefined : j); };
   const conVendedor = { ...CLIENTES_DEMO[0], rep_id: "demo-ana", rep_name: "Ana Demo" };
   it("leyendo, el nombre del vendedor en «Cuenta»; sin vendedor, «—»", () => {
-    expect(tarjeta(pinta(conVendedor), "cuenta")).toMatch(/data-campo="rep_id"><span[^>]*>Vendedor<\/span><span[^>]*>Ana Demo<\/span>/);
-    expect(tarjeta(pinta({ ...conVendedor, rep_id: null, rep_name: null }), "cuenta")).toMatch(/data-campo="rep_id"><span[^>]*>Vendedor<\/span><span[^>]*>Sin asignar<\/span>/);
+    expect(tarjeta(pinta(conVendedor), "cuenta")).toMatch(/data-campo="rep_id"><span[^>]*>Vendedor de comisión<\/span><span[^>]*>Ana Demo<\/span>/);
+    expect(tarjeta(pinta({ ...conVendedor, rep_id: null, rep_name: null }), "cuenta")).toMatch(/data-campo="rep_id"><span[^>]*>Vendedor de comisión<\/span><span[^>]*>Sin asignar<\/span>/);
   });
   it("editando y en un alta, un desplegable con los vendedores (los carga del almacén) y «—» para dejarlo libre", () => {
     const cuenta = tarjeta(pinta(conVendedor, true), "cuenta");
