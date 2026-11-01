@@ -168,7 +168,7 @@ export const FLECHAS: Flecha[] = [
     de: "leads", a: "quote-builder", conectada: true,
     evidencia: "conectada (2026-10-15): el botón de la tarjeta del lead, src/app/leads/Leads.tsx:543 «data-crear-cotizacion», " +
       "solo para quien puede, src/lib/leads/cotizar.ts:34 «export function puedeCotizarLead»; el Quote Builder lee el lead " +
-      "y rellena el borrador, src/app/estimator/Estimador.tsx:375 «borradorDesdeLead(que.lead»; la cotización nueva guarda " +
+      "y rellena el borrador, src/app/estimator/Estimador.tsx:402 «borradorDesdeLead(que.lead»; la cotización nueva guarda " +
       "su lead, src/lib/estimator/almacen.ts:226 «export function filaNueva», en la columna " +
       "supabase/migrations/175_cotizacion_de_lead.sql:32 «add column if not exists lead_id»; la cotización dice de qué lead " +
       "sale, src/app/estimator/Estimador.tsx:549 «data-de-lead=», y el lead cuenta sus cotizaciones, " +
