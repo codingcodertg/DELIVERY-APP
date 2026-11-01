@@ -141,7 +141,9 @@ describe("el formulario del chofer", () => {
     const html = renderToStaticMarkup(createElement(FormularioDeInspeccion));
     expect(html).toContain("data-inspeccion-hecha");
     expect(html).toContain("Hecha a las");
-    expect(html).toContain("7:41");
+    // 12:41Z es 7:41 en horario de verano y 6:41 en el de invierno: la prueba corre con la fecha real (HOY) y no debe
+    // caer el primer domingo de noviembre (cayó el 2026-11-01).
+    expect(html).toMatch(/[67]:41/);
     expect(html).toContain("No es seguro salir");
     expect(html).toContain("Llantas infladas (ninguna baja ni ponchada)");
     expect(html).toContain("trasera baja");

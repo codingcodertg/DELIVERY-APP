@@ -49357,3 +49357,17 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/entregada-se-queda-en-su-dia.test.ts`; la de la 219 sigue igual. tsc limpio.
 
 **No verificado:** la 222 se ensayó con ROLLBACK; la aplica el dueño.
+
+## D-784 · Promos: «Demanda» sin decimales; Quote Builder: elegir un cliente existente del vendedor
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/promos-demanda-y-clientes-en-cotizador`. Sin migración.
+
+**Pedidos (Roberto, admin, desde el botón de comentarios):** «demand on promos to have no decimal places» (captura: 58.0833…, 46.41666…, cortadas con puntos) y «Quote builder should also be able to choose from that reps existing customers» (captura del bloque «Customer (internal)»).
+
+**Promos:** `textoDeDemanda` en `src/lib/promos/tabla.ts` (entero redondeado; «—» sin dato) y la celda `demand` de `TablaDeRonda.tsx` lo usa. Ordenar y filtrar siguen con el número exacto, como el precio (D-387).
+
+**Quote Builder:** encima de los campos del cliente, «Elegir uno de tus clientes» (`data-busca-cliente`): con dos letras o más pregunta a `erp.customers` por cuenta o nombre de contacto (`COLUMNAS_PARA_COTIZAR`, sin archivados, 300 ms de respiro), afina con `elegibles` (el vendedor, solo los suyos: `rep_id` o `created_by` = él, como `puedeAbrirCliente` de D-740; el admin, cualquiera) y ofrece hasta 8 (`data-cliente-opcion`, «cuenta · contacto · tienda»). Al elegir, `relleno` pone contacto → nombre completo, cuenta → empresa y el primer teléfono (el de la ficha de contactos manda sobre `phone`) con el formato de la casa; lo que la ficha no tiene queda vacío. Los campos siguen editables. En demo, una lista fija (`CLIENTES_DEMO`). Librería: `src/lib/estimator/clientes-para-cotizar.ts`.
+
+**Pruebas:** `src/lib/promos/tabla.test.ts` (demanda), `src/lib/estimator/clientes-para-cotizar.test.ts` (quién elige qué, búsqueda, relleno y anclas de la pantalla). tsc limpio.
+
+**No verificado:** ninguna de las dos pantallas en navegador; la búsqueda contra la base real no se probó (la política de la 215 es la que decide qué filas llegan al vendedor).

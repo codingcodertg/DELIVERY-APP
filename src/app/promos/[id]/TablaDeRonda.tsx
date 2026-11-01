@@ -13,7 +13,7 @@ import { ANCHO_MINIMO, anchosDeUnRol, CLAVE_DE_COLUMNAS_DE_PROMOS, guardaColumna
 import type { UserRole } from "@/lib/types";
 import {
   cambioEnBloque, clavesDeTiendaDe, columnasDePromos, columnasDePromosPorDefecto, columnasVisiblesDePromos,
-  COLOR_DE_ESTADO, COLUMNA_PRIMERA, COLUMNAS_FIJAS, cuentaPorEstado, filasDePromo, filtraPorTienda, textoDePrecio,
+  COLOR_DE_ESTADO, COLUMNA_PRIMERA, COLUMNAS_FIJAS, cuentaPorEstado, filasDePromo, filtraPorTienda, textoDeDemanda, textoDePrecio,
   MINIMO_EN_LA_TIENDA, motivoParaNoDecidir, mueveColumnaDePromos, ordenDeColumnasDePromos, puedeDecidir,
   valorParaFiltrar, type DecisionDeGrupo, type EstadoDeDecision, type ProductoDeCatalogo,
 } from "@/lib/promos/tabla";
@@ -290,6 +290,7 @@ export function TablaDeRonda({
     if (clave.startsWith("qoh_")) { const v = fila.porTienda[clave.slice(4)]; return v == null ? "—" : String(v); }
     if (clave === "estado") return t(ETIQUETA_ESTADO[fila.estado].en, ETIQUETA_ESTADO[fila.estado].es);
     if (clave === "price") return textoDePrecio(fila.price);
+    if (clave === "demand") return textoDeDemanda(fila.demand);
     const v = (fila as unknown as Record<string, unknown>)[clave];
     return v === null || v === undefined || v === "" ? "—" : String(v);
   };

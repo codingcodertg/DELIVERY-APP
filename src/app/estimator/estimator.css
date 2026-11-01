@@ -13,6 +13,12 @@
 :root[data-theme="dark"] .est-aviso.verde { background: #173a2c; }
 :root[data-theme="dark"] .est-aviso.ambar { background: #3a2f1a; }
 .est-ve-cliente { font-size: 12px; color: var(--gray); margin-top: 4px; }
+/* D-784: el buscador de clientes y su lista de opciones, debajo del campo. */
+.est-elige-cliente { position: relative; margin-bottom: 12px; }
+.est-opciones-cliente { position: absolute; left: 0; right: 0; z-index: 5; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.12); overflow: hidden; }
+.est-opcion-cliente { display: block; width: 100%; text-align: left; padding: 8px 12px; font-size: 13px; background: transparent; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); cursor: pointer; }
+.est-opcion-cliente:last-child { border-bottom: 0; }
+.est-opcion-cliente:hover, .est-opcion-cliente:focus { background: var(--line); }
 .est-ve-cliente b { color: var(--ink); }
 
 .est-linea { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; background: var(--paper); }
