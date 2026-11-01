@@ -16,13 +16,13 @@ describe("las columnas de la ficha", () => {
     expect(COLUMNAS_DE_LA_FICHA).toEqual([["cuenta", "estado"], ["contacto"], ["credito", "otros"]]);
     expect([...COLUMNAS_DE_LA_FICHA.flat()].sort()).toEqual(GRUPOS.map((g) => g.key).sort());
   });
-  it("D-NEXT: al VER, «Otros» baja debajo de «Contacto»; al crear o editar, sigue a la derecha", () => {
+  it("D-786: al VER, «Otros» baja debajo de «Contacto»; al crear o editar, sigue a la derecha", () => {
     expect(COLUMNAS_DE_LA_FICHA_AL_VER).toEqual([["cuenta", "estado"], ["contacto", "otros"], ["credito"]]);
     expect([...COLUMNAS_DE_LA_FICHA_AL_VER.flat()].sort()).toEqual(GRUPOS.map((g) => g.key).sort());
     expect(columnasDeLaFicha(false)).toBe(COLUMNAS_DE_LA_FICHA_AL_VER);
     expect(columnasDeLaFicha(true)).toBe(COLUMNAS_DE_LA_FICHA);
   });
-  it("D-NEXT: al VER, «Otros» baja debajo de «Contacto»; al crear o editar, sigue a la derecha", () => {
+  it("D-786: al VER, «Otros» baja debajo de «Contacto»; al crear o editar, sigue a la derecha", () => {
     expect(COLUMNAS_DE_LA_FICHA_AL_VER).toEqual([["cuenta", "estado"], ["contacto", "otros"], ["credito"]]);
     expect([...COLUMNAS_DE_LA_FICHA_AL_VER.flat()].sort()).toEqual(GRUPOS.map((g) => g.key).sort());
     expect(columnasDeLaFicha(false)).toBe(COLUMNAS_DE_LA_FICHA_AL_VER);

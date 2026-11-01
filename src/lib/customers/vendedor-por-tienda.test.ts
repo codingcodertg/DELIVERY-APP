@@ -17,7 +17,7 @@ describe("las columnas del vendedor", () => {
     expect(columnasDelVendedor().map((c) => c.key)).toEqual(["account", "store_count", "status_store", "rep_id"]);
     expect(COLUMNAS_DEL_VENDEDOR.every((k) => COLUMNAS.some((c) => c.key === k))).toBe(true);
   });
-  it("D-NEXT: rep_store es «Sales rep (QB)» y rep_id «Commission rep» en la tabla y en la ficha (D-740 lo llamaba «Commission rep (QB)»)", () => {
+  it("D-786: rep_store es «Sales rep (QB)» y rep_id «Commission rep» en la tabla y en la ficha (D-740 lo llamaba «Commission rep (QB)»)", () => {
     expect(COLUMNAS.find((c) => c.key === "rep_store")).toMatchObject({ en: "Sales rep (QB)", es: "Vendedor (QB)" });
     expect(CAMPOS.find((c) => c.key === "rep_store")).toMatchObject({ en: "Sales rep (QB)", es: "Vendedor (QB)" });
     expect(CAMPOS.find((c) => c.key === "rep_id")).toMatchObject({ en: "Commission rep", es: "Vendedor de comisión", grupo: "cuenta" });

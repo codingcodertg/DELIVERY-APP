@@ -49384,7 +49384,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** en navegador.
 
-## D-NEXT · Clientes: dos vendedores en la ficha («Commission rep» y «Sales rep (QB)»), la dirección vuelve a «Contacto» y «Otros» baja al medio al ver
+## D-786 · Clientes: dos vendedores en la ficha («Commission rep» y «Sales rep (QB)»), la dirección vuelve a «Contacto» y «Otros» baja al medio al ver
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/ficha-dos-vendedores-direccion-y-otros`. Sin migración.
 

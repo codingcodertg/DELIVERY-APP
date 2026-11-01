@@ -116,7 +116,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
           Otros + ocultos. Cada tarjeta mide lo suyo (`items-start`, lo que pedía D-745) y ninguna cambia de columna según
           lo alta que sea la de al lado (eso hacían las columnas que fluyen de D-745). En el teléfono, una sola columna. */}
       <div className="grid gap-4 items-start md:grid-cols-3" data-tarjetas-de-la-ficha>
-        {/* D-NEXT: al ver, «Otros» va debajo de «Contacto» (`columnasDeLaFicha`). */}
+        {/* D-786: al ver, «Otros» va debajo de «Contacto» (`columnasDeLaFicha`). */}
         {columnasDeLaFicha(editando).map((claves, i) => (
         <div key={i} className="space-y-4" data-columna={i + 1}>
         {filasPorGrupo().filter(({ grupo }) => claves.includes(grupo.key) && (!esVendedor || !GRUPOS_QUE_NO_VE_EL_VENDEDOR.includes(grupo.key))).map(({ grupo, filas }) => (
