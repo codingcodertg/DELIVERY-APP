@@ -179,7 +179,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const set = <K extends keyof QuoteDraft>(k: K, v: QuoteDraft[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const setCliente = (patch: Partial<QuoteDraft["customer"]>) => setDraft((d) => ({ ...d, customer: { ...d.customer, ...patch } }));
 
-  // ---- elegir un cliente ya existente (D-NEXT) ---------------------------------------------------
+  // ---- elegir un cliente ya existente (D-784) ---------------------------------------------------
   // Con dos letras o más se pregunta a la base (cuenta o contacto, lo que la política deje ver) y se afina a los que
   // esta persona puede elegir (el vendedor, los suyos; el admin, todos). En demo, una lista fija.
   const [buscaCliente, setBuscaCliente] = useState("");
@@ -628,7 +628,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
       {/* 1. Cliente */}
       <div className="card">
         <h2>👤 {t("Customer (internal)", "Cliente (interno)")}</h2>
-        {/* D-NEXT: elegir uno de los clientes del vendedor; rellena los campos de abajo, que siguen siendo editables. */}
+        {/* D-784: elegir uno de los clientes del vendedor; rellena los campos de abajo, que siguen siendo editables. */}
         <div className="field est-elige-cliente">
           <label htmlFor="est-busca-cliente">{me?.admin ? t("Pick an existing customer", "Elegir un cliente existente") : t("Pick one of your customers", "Elegir uno de tus clientes")}</label>
           <input id="est-busca-cliente" data-busca-cliente value={buscaCliente} autoComplete="off"

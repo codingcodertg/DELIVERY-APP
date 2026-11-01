@@ -49358,7 +49358,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** la 222 se ensayó con ROLLBACK; la aplica el dueño.
 
-## D-NEXT · Promos: «Demanda» sin decimales; Quote Builder: elegir un cliente existente del vendedor
+## D-784 · Promos: «Demanda» sin decimales; Quote Builder: elegir un cliente existente del vendedor
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/promos-demanda-y-clientes-en-cotizador`. Sin migración.
 

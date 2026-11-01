@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CLIENTES_DEMO, clienteParaCotizar, coincidencias, elegibles, relleno, rotulo, seBusca } from "./clientes-para-cotizar";
 
-/** El Quote Builder elige un cliente ya existente del vendedor (D-NEXT). */
+/** El Quote Builder elige un cliente ya existente del vendedor (D-784). */
 
 describe("quién puede elegir qué", () => {
   it("el vendedor, solo los suyos (por vendedor o por quien lo creó) y sin archivados; el admin, todos los vivos", () => {

@@ -1,5 +1,5 @@
 /**
- * Elegir un cliente YA EXISTENTE en el Quote Builder (D-NEXT, 2026-11-01).
+ * Elegir un cliente YA EXISTENTE en el Quote Builder (D-784, 2026-11-01).
  *
  * Roberto (admin): «Quote builder should also be able to choose from that reps existing customers». Hasta ahora el
  * bloque «Cliente (interno)» se escribía a mano cada vez, aunque el cliente estuviera en Clientes con su nombre de

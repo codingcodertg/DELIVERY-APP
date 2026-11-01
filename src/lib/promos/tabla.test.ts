@@ -789,7 +789,7 @@ describe("el precio lleva su signo de dólar (D-387)", () => {
   });
 });
 
-describe("la demanda se pinta sin decimales (D-NEXT)", () => {
+describe("la demanda se pinta sin decimales (D-784)", () => {
   it("redondea al entero; sin demanda, «—»; lo que no es número se deja", () => {
     expect(textoDeDemanda(58.0833)).toBe("58");
     expect(textoDeDemanda(46.5)).toBe("47");
