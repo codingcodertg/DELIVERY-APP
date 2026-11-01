@@ -1,5 +1,5 @@
 -- 222: Entregas — una orden ya entregada se queda en el dia real de la entrega aunque alguien le cambie la fecha
--- despues (D-781, 2026-10-31). Amplia la 219 (D-761).
+-- despues (D-783, 2026-10-31). Amplia la 219 (D-761).
 --
 -- El dueño, con la orden 1268 (FV532): entregada el 2026-10-28 por el chofer; al dia siguiente un vendedor le cambio la
 -- fecha de entrega al 2026-10-31 (queria programar la reposicion del material) y la orden aparecio, ya entregada, en la
@@ -57,4 +57,4 @@ end $chk$;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('222_entregada_se_queda_en_su_dia.sql', '498048524dd5f9555ac013310511e9c029d4af92b94a362191e321ca9571f585') on conflict (name) do nothing;
+  values ('222_entregada_se_queda_en_su_dia.sql', '5cf18e77c0913cabbda71c52bfceef2db313e3ae39d87cf88f8b7d87e15f707f') on conflict (name) do nothing;
