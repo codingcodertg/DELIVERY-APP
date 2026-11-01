@@ -49371,3 +49371,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/promos/tabla.test.ts` (demanda), `src/lib/estimator/clientes-para-cotizar.test.ts` (quién elige qué, búsqueda, relleno y anclas de la pantalla). tsc limpio.
 
 **No verificado:** ninguna de las dos pantallas en navegador; la búsqueda contra la base real no se probó (la política de la 215 es la que decide qué filas llegan al vendedor).
+
+## D-NEXT · Panel: «Requiere atención» nace plegado, solo un botón con la cuenta
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/requiere-atencion-plegado`. Sin migración.
+
+**Pedido (el dueño, con captura del Panel y el bloque abierto con 233 avisos):** «esto que esté oculto por default y que solo se vea un botón que diga requiere atención y en la misma posición donde está, ocultar sin que afecte mucho la página».
+
+**Qué cambia (`src/components/AttentionPanel.tsx`):** el bloque arranca cerrado. En su sitio queda un botón pequeño «⚠ Requiere atención 233» (`data-abrir-atencion`) que lo abre; «Ocultar» (`data-ocultar-atencion`) lo vuelve a plegar en vez de quitarlo hasta recargar, como hacía antes. Sin avisos no hay ni botón. No se recuerda entre cargas.
+
+**Pruebas:** `src/lib/requiere-atencion-plegado.test.ts`. tsc limpio.
+
+**No verificado:** en navegador.
