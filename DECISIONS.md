@@ -49344,7 +49344,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/recogida-libre-con-punto.test.ts` (regla, punto, desplegable, FV594 para el chofer y la ciudad, revisión al guardar, motor, parada y trazo, ficha y pantallas, la 223); al día `columnas-de-la-lista`, `prioridad-en-el-plan`, `requisitos-en-el-plan`. tsc y eslint limpios.
 
 **No verificado:** no se abrió en un navegador; la 223 se ensayó con ROLLBACK, la aplica el dueño.
-## D-NEXT · Entregas: una orden ya entregada se queda en el día real de la entrega aunque le cambien la fecha después (migración 222)
+## D-783 · Entregas: una orden ya entregada se queda en el día real de la entrega aunque le cambien la fecha después (migración 222)
 
 **Fecha:** 2026-10-31 · **Migración 222** (`222_entregada_se_queda_en_su_dia.sql`: la función de la 219 con un segundo caso) · Hecho directo por el orquestador en `feat/entregada-se-queda-en-su-dia`.
 

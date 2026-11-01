@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** Una orden ya entregada se queda en el día real de la entrega aunque le cambien la fecha después (D-NEXT, migración 222). */
+/** Una orden ya entregada se queda en el día real de la entrega aunque le cambien la fecha después (D-783, migración 222). */
 
 const sql = readFileSync(join(process.cwd(), "supabase/migrations/222_entregada_se_queda_en_su_dia.sql"), "utf8").split("\r\n").join("\n");
 const cuerpo = sql.slice(sql.indexOf("create or replace function public.entregada_fija_fecha()"), sql.indexOf("$$;") + 3);
