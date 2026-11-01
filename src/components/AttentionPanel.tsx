@@ -33,7 +33,10 @@ const STYLE: Record<AttentionKind, { icon: string; color: string; bg: string }> 
 export function AttentionPanel({ deliveries, onOpen }: { deliveries: Delivery[]; onOpen?: (d: Delivery) => void }) {
   const { settings } = useData();
   const { t } = usePrefs();
-  const [dismissed, setDismissed] = useState(false);
+  // D-785: nace PLEGADO (el dueño: «que esté oculto por default y que solo se vea un botón que diga requiere
+  // atención, en la misma posición […] sin que afecte mucho la página»). Un botón con la cuenta abre el detalle;
+  // «Ocultar» lo vuelve a plegar. No se recuerda entre cargas: cada vez que se entra, plegado.
+  const [abierto, setAbierto] = useState(false);
 
   // Missing proof is only a fault when proof was asked for. With both
   // switches off it is exactly what the settings say should happen.
@@ -60,7 +63,17 @@ export function AttentionPanel({ deliveries, onOpen }: { deliveries: Delivery[];
     },
   };
 
-  if (!items.length || dismissed) return null;
+  if (!items.length) return null;
+
+  if (!abierto) {
+    return (
+      <div style={{ marginBottom: 12 }}>
+        <button className="btn btn-ghost btn-sm" data-abrir-atencion onClick={() => setAbierto(true)} style={{ borderColor: "var(--amber)" }}>
+          ⚠ {t("Needs attention", "Requiere atención")} <span className="count-tag">{items.length}</span>
+        </button>
+      </div>
+    );
+  }
 
   const groups = (["overdue_unassigned", "no_fee", "no_pin", "no_proof"] as AttentionKind[])
     .map((kind) => ({ kind, rows: items.filter((i) => i.kind === kind).map((i) => i.delivery) }))
@@ -72,7 +85,7 @@ export function AttentionPanel({ deliveries, onOpen }: { deliveries: Delivery[];
         <h2 style={{ margin: 0 }}>⚠ {t("Needs attention", "Requiere atención")}</h2>
         <span className="count-tag">{items.length}</span>
         <span style={{ flex: 1 }} />
-        <button className="btn btn-ghost btn-sm" onClick={() => setDismissed(true)}>
+        <button className="btn btn-ghost btn-sm" data-ocultar-atencion onClick={() => setAbierto(false)}>
           {t("Hide", "Ocultar")}
         </button>
       </div>
