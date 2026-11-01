@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** «Requiere atención» del Panel nace plegado: solo un botón con la cuenta; «Ocultar» lo vuelve a plegar (D-NEXT). */
+/** «Requiere atención» del Panel nace plegado: solo un botón con la cuenta; «Ocultar» lo vuelve a plegar (D-785). */
 const fuente = readFileSync(join(process.cwd(), "src/components/AttentionPanel.tsx"), "utf8").split("\r\n").join("\n");
 
 describe("requiere atención plegado", () => {

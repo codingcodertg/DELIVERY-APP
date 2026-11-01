@@ -49372,7 +49372,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** ninguna de las dos pantallas en navegador; la búsqueda contra la base real no se probó (la política de la 215 es la que decide qué filas llegan al vendedor).
 
-## D-NEXT · Panel: «Requiere atención» nace plegado, solo un botón con la cuenta
+## D-785 · Panel: «Requiere atención» nace plegado, solo un botón con la cuenta
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/requiere-atencion-plegado`. Sin migración.
 

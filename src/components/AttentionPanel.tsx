@@ -33,7 +33,7 @@ const STYLE: Record<AttentionKind, { icon: string; color: string; bg: string }> 
 export function AttentionPanel({ deliveries, onOpen }: { deliveries: Delivery[]; onOpen?: (d: Delivery) => void }) {
   const { settings } = useData();
   const { t } = usePrefs();
-  // D-NEXT: nace PLEGADO (el dueño: «que esté oculto por default y que solo se vea un botón que diga requiere
+  // D-785: nace PLEGADO (el dueño: «que esté oculto por default y que solo se vea un botón que diga requiere
   // atención, en la misma posición […] sin que afecte mucho la página»). Un botón con la cuenta abre el detalle;
   // «Ocultar» lo vuelve a plegar. No se recuerda entre cargas: cada vez que se entra, plegado.
   const [abierto, setAbierto] = useState(false);
