@@ -74,7 +74,8 @@ describe("qué se exige", () => {
 describe("la ficha", () => {
   const modal = leer("src/components/OrderModal.tsx").replace(/\/\*[\s\S]*?\*\//g, "");
   it("la fila de «Vendido desde» (las dos veces) va tras la condición de transferencia, y nada más", () => {
-    expect(modal.split("{!sinVenta && (").length - 1).toBe(2);
+    // D-782 suma la segunda condición: con recogida libre (Otro, Proveedor) y tienda ya puesta, «Vendido desde» no se pinta.
+    expect(modal.split("{!sinVenta && !(recogidaLibreDelTipo && !!d.store) && (").length - 1).toBe(2);
     expect(modal).toContain("const sinVenta = esTransferenciaSinVenta(reglaDelTipo);");
     expect(modal).not.toContain("{false && (");
   });

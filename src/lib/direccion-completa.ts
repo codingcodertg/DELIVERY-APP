@@ -131,7 +131,7 @@ export function direccionesARevisar(
     const vale = tienePunto && (fila.delivery_pin_source === "manual" || mismaQueAntes);
     out.push({ que: "entrega", texto: entrega, punto: vale ? { lat: lat as number, lng: lng as number } : null, geocodificar: !vale });
   }
-  const recogida = recogidaParaElChofer(fila, tiendas);
+  const recogida = recogidaParaElChofer(fila, tiendas, reglas);
   if (!recogida.enTienda && recogida.direccion) {
     // La recogida no guarda punto: se busca al guardar, y solo si es nueva o cambió (una llamada por dirección nueva).
     const mismaQueAntes = !!anterior && norm(anterior.pickup_address) === norm(recogida.direccion);

@@ -16,7 +16,7 @@ export interface PuntoDelTrazo { id: string; lat: number; lng: number }
 
 export function puntosDelTrazoPublicado(
   paradas: readonly { kind: "P" | "D"; order_ref: string; seq: number; place?: string | null }[],
-  ordenes: readonly { id: string; delivery_lat?: number | null; delivery_lng?: number | null }[],
+  ordenes: readonly { id: string; delivery_lat?: number | null; delivery_lng?: number | null; pickup_point_lat?: number | null; pickup_point_lng?: number | null }[],
   tiendas: readonly { name: string; lat?: number | null; lng?: number | null }[],
 ): PuntoDelTrazo[] {
   const porId = new Map(ordenes.map((o) => [o.id, o]));
@@ -26,7 +26,10 @@ export function puntosDelTrazoPublicado(
   for (const p of [...paradas].sort((a, b) => a.seq - b.seq)) {
     if (p.kind === "P") {
       const s = tienda(p.place);
-      if (s?.lat != null && s.lng != null) out.push({ id: `P:${p.seq}`, lat: s.lat, lng: s.lng });
+      if (s?.lat != null && s.lng != null) { out.push({ id: `P:${p.seq}`, lat: s.lat, lng: s.lng }); continue; }
+      // D-782 (223): una recogida LIBRE no es tienda: su punto es el de la orden.
+      const o = porId.get(ordenDeLaParte(p.order_ref));
+      if (o?.pickup_point_lat != null && o.pickup_point_lng != null) out.push({ id: `P:${p.seq}`, lat: o.pickup_point_lat, lng: o.pickup_point_lng });
       continue;
     }
     const o = porId.get(ordenDeLaParte(p.order_ref));

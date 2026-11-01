@@ -1,6 +1,7 @@
 import { parseWindow } from "@/lib/dispatch";
 import { serviceMin } from "@/lib/trip-timing";
 import { isStoreToStore, type OrderTypeRules } from "@/lib/required";
+import { puntoDeRecogidaLibre, recogidaLibreDeLaOrden } from "@/lib/recogida-libre";
 import { tipoDeClienteDeLaOrden } from "@/lib/customer-type";
 import { choferParaElMotor, COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER, esVentanaDura, opcionesDeReparto, pesosDeRuta, topeDeRetrasoMin, type ChoferParaElMotor } from "@/lib/route-settings";
 import { prioridadDe } from "@/lib/prioridad";
@@ -33,11 +34,15 @@ import { palletsDeLaOrden } from "../pallets";
 
 export const puntoDeTienda = (nombre: string): Punto => `tienda:${nombre.trim().toLowerCase()}`;
 export const puntoDeOrden = (id: string): Punto => `orden:${id}`;
+/** D-782 (223): el origen de una orden con recogida LIBRE: su propio punto, no el de una tienda. */
+export const puntoDeRecogida = (id: string): Punto => `recogida:${id}`;
 
 type OrdenDeLaBase = Pick<Delivery,
   "id" | "stage" | "order_code" | "order_type" | "store" | "pickup_name" | "delivery_name" | "delivery_lat" | "delivery_lng" |
   "delivery_windows" | "est_pallets" | "actual_pallets" | "pickup_duration" | "delivery_duration" | "assigned_driver" |
   "input_date" | "input_time" | "account" | "customer_type" | "is_training" | "updated_at"> & { invoice_num?: string | null;
+  /** D-782 (223): la dirección y el punto de la recogida libre. Opcionales: una base sin la 223 no los trae. */
+  pickup_address?: string | null; pickup_point_lat?: number | null; pickup_point_lng?: number | null;
   /** D-421: de ella sale la zona (la ciudad). Opcional para quien construye la fila a mano; la consulta la pide siempre. */
   delivery_address?: Delivery["delivery_address"];
   /** D-412. Puede no venir: una base sin la 147 no tiene la columna, y entonces la consulta no la pide. */
@@ -71,10 +76,10 @@ export interface DatosDelDia {
 /** Las columnas de una orden que lee «Planificar el día». `priority` (147) y `requirements` (151) no están: las añade
  *  `leeOrdenesDelDia` solo si la base las tiene. */
 export const COLUMNAS_DE_ORDEN =
-  "id, stage, order_code, order_type, store, pickup_name, delivery_name, delivery_address, delivery_lat, delivery_lng, delivery_windows, est_pallets, actual_pallets, pickup_duration, delivery_duration, assigned_driver, input_date, input_time, account, customer_type, is_training, updated_at, invoice_num";
+  "id, stage, order_code, order_type, store, pickup_name, pickup_address, delivery_name, delivery_address, delivery_lat, delivery_lng, delivery_windows, est_pallets, actual_pallets, pickup_duration, delivery_duration, assigned_driver, input_date, input_time, account, customer_type, is_training, updated_at, invoice_num";
 
 /** Las que se piden si la base las tiene, en este orden. */
-export const COLUMNAS_OPCIONALES_DE_ORDEN = ["priority", "requirements", "plan_rank"] as const;
+export const COLUMNAS_OPCIONALES_DE_ORDEN = ["priority", "requirements", "plan_rank", "pickup_point_lat", "pickup_point_lng"] as const;
 
 type Lectura = LecturaConError<unknown[] | null>;
 export { leeConOpcionales };
@@ -181,9 +186,21 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     if (loPusoUnaPersona && (!choferFijado || !ruteables.has(choferFijado))) { fuera.push({ id: d.id, motivo: "chofer_no_rutea" }); continue; }
 
     const entreTiendas = isStoreToStore(d.order_type, reglas);
-    const origen = tiendaConPunto(d.pickup_name) ?? tiendaConPunto(d.store);
-    // La zona de la recogida (D-427): la ciudad de la dirección de la tienda de origen —la misma de arriba—.
-    const zonaRecogida = hayZonas ? zonaDeLaRecogida(d, tiendas, zonasConocidas) : "";
+    // D-782 (223): una recogida LIBRE (Otro, Proveedor) no sale de una tienda: su origen es el punto de la dirección
+    // tecleada (geocodificado al guardar). Sin punto, la orden queda sin origen y el motor la saca «sin punto», en vez
+    // de mandar al chofer a la tienda que casualmente lleva ese nombre (FV594: «Pickup is in harlingen but it put weslaco»).
+    const recogidaLibre = recogidaLibreDeLaOrden(d, reglas);
+    let origen: Punto | null;
+    if (recogidaLibre) {
+      const p = puntoDeRecogidaLibre(d);
+      origen = p ? puntoDeRecogida(d.id) : null;
+      if (origen && p) puntos[origen] = p;
+    } else {
+      origen = tiendaConPunto(d.pickup_name) ?? tiendaConPunto(d.store);
+    }
+    // La zona de la recogida (D-427): la ciudad de la dirección de la tienda de origen —la misma de arriba— o, en una
+    // recogida libre, la de su dirección.
+    const zonaRecogida = hayZonas ? zonaDeLaRecogida(d, tiendas, zonasConocidas, reglas) : "";
     let destino: Punto | null = null;
     if (d.delivery_lat != null && d.delivery_lng != null) {
       destino = puntoDeOrden(d.id);
@@ -195,6 +212,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
       id: d.id, codigo: d.order_code ?? null,
       entrada: d.input_date ? `${d.input_date} ${(d.input_time ?? "").padStart(4, "0")}` : null,
       origen, destino, pallets: Number.isFinite(pallets) && pallets > 0 ? pallets : 0,
+      ...(recogidaLibre && (d.pickup_name ?? "").trim() ? { nombreDeRecogida: (d.pickup_name ?? "").trim() } : {}),
       ventana: parseWindow(d.delivery_windows), estrecha: esVentanaDura(d.delivery_windows, settings),
       builder: tipoDeClienteDeLaOrden(d, reglas) === "builder",
       servicioRecogidaMin: serviceMin(d.pickup_duration), servicioEntregaMin: serviceMin(d.delivery_duration),
@@ -235,13 +253,16 @@ export interface FilaDeParada {
 export function filasDeParadas(plan: Pick<Plan, "rutas">, entrada: Pick<Entrada, "ordenes" | "choferes">, puntos: Readonly<Record<Punto, LatLng>>, tiendas: readonly NamedLocation[]): FilaDeParada[] {
   const ordenDe = new Map(entrada.ordenes.map((o) => [o.id, o]));
   const nombreDe = new Map(entrada.choferes.map((c) => [c.id, c.nombre]));
-  const lugar = (p: Punto): string | null => (p.startsWith("tienda:") ? tiendas.find((s) => puntoDeTienda(s.name) === p)?.name ?? null : null);
+  // El sitio de la parada: la tienda del punto; en una recogida libre (223), el nombre tecleado en la orden.
+  const lugar = (p: Punto, o: { nombreDeRecogida?: string | null } | undefined): string | null =>
+    p.startsWith("tienda:") ? tiendas.find((s) => puntoDeTienda(s.name) === p)?.name ?? null
+      : p.startsWith("recogida:") ? o?.nombreDeRecogida ?? null : null;
   return plan.rutas.flatMap((r) => r.paradas.map((p, seq): FilaDeParada => {
     const o = ordenDe.get(ordenDeLaParte(p.orden));
     const ventana = p.tipo === "D" ? o?.ventana ?? null : null;
     return {
       driver_id: r.chofer, driver_name: nombreDe.get(r.chofer) ?? "", seq, kind: p.tipo, delivery_id: ordenDeLaParte(p.orden), order_ref: p.orden,
-      label: p.etiqueta, visit: p.visita, place: lugar(p.punto), lat: puntos[p.punto]?.lat ?? null, lng: puntos[p.punto]?.lng ?? null,
+      label: p.etiqueta, visit: p.visita, place: lugar(p.punto, o), lat: puntos[p.punto]?.lat ?? null, lng: puntos[p.punto]?.lng ?? null,
       window_start: ventana?.[0] ?? null, window_end: ventana?.[1] ?? null, is_hard: p.tipo === "D" && !!o?.estrecha,
       eta: p.llegada, etd: p.salida, wait_min: p.esperaMin, service_min: p.servicioMin, late_min: p.tardeMin, load_after: p.cargaAlSalir,
       leg_minutes: p.tramoMin, leg_miles: p.tramoMillas, pinned: p.fijada,

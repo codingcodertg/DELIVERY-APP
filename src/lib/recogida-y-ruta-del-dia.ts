@@ -1,6 +1,8 @@
 import type { ParadaFisica } from "@/lib/gestor/paradas-numeradas";
 import type { ParadaDeLaLista } from "@/lib/lista-unica";
 import { ETAPAS_FIJAS } from "@/lib/mover-parada";
+import { recogidaLibreDeLaOrden } from "@/lib/recogida-libre";
+import type { OrderTypeRules } from "@/lib/required";
 
 // ============================================================
 // D-584 · Dos pedidos del dueño para el chofer (2026-10-18, «for drivers in delivery app»):
@@ -28,9 +30,14 @@ export type RecogidaParaElChofer =
  * espacios de más, como `puntosDelTrazoPublicado`). Una orden sin ningún nombre de recogida no está en tienda.
  */
 export function recogidaParaElChofer(
-  d: { pickup_name?: string | null; pickup_address?: string | null; store?: string | null },
+  d: { pickup_name?: string | null; pickup_address?: string | null; store?: string | null; order_type?: string | null },
   tiendas: readonly { name: string }[],
+  /** D-782 (223): con las reglas, una recogida LIBRE (Otro, Proveedor) nunca es tienda, diga lo que diga el nombre. */
+  reglas?: OrderTypeRules,
 ): RecogidaParaElChofer {
+  if (reglas && recogidaLibreDeLaOrden(d, reglas)) {
+    return { enTienda: false, nombre: (d.pickup_name ?? "").trim() || null, direccion: (d.pickup_address ?? "").trim() || null };
+  }
   const nombre = (d.pickup_name ?? "").trim() || (d.store ?? "").trim() || null;
   const tienda = nombre ? tiendas.find((s) => normaliza(s.name) === normaliza(nombre)) : undefined;
   if (tienda) return { enTienda: true, tienda: tienda.name };

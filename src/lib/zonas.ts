@@ -17,6 +17,8 @@
 import { claveDeZona } from "@/lib/route-engine";
 import { ciudadDeEntrega, ciudadesConocidas } from "@/lib/ciudad-de-entrega";
 import type { Delivery, DriverSettings, NamedLocation, Profile } from "./types";
+import { recogidaLibreDeLaOrden } from "./recogida-libre";
+import type { OrderTypeRules } from "./required";
 
 export { claveDeZona };
 
@@ -58,10 +60,13 @@ export function zonaDeLaOrden(d: Pick<Partial<Delivery>, "delivery_address"> | n
  * ya te dije que ahi esta maximo» — recoger en la tienda de la zona de otro chofer también es entrar en su zona.
  */
 export function zonaDeLaRecogida(
-  d: Pick<Partial<Delivery>, "pickup_name" | "store"> | null | undefined,
+  d: Pick<Partial<Delivery>, "pickup_name" | "store" | "order_type" | "pickup_address"> | null | undefined,
   tiendas: readonly Pick<NamedLocation, "name" | "address" | "lat" | "lng">[],
   conocidas: Iterable<string> = [],
+  /** D-782 (223): con las reglas, una recogida LIBRE toma la ciudad de su dirección tecleada, no la de una tienda. */
+  reglas?: OrderTypeRules,
 ): string {
+  if (d && reglas && recogidaLibreDeLaOrden(d, reglas)) return ciudadDeEntrega(d.pickup_address ?? "", conocidas);
   const conPunto = (nombre: string | null | undefined) => {
     const n = String(nombre ?? "").trim().toLowerCase();
     return tiendas.find((t) => t.name.trim().toLowerCase() === n && t.lat != null && t.lng != null);

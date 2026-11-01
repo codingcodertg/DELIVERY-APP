@@ -44,7 +44,9 @@ describe("el contacto vuelve a ser lo que era", () => {
     // prueba en verde; lo cazó un mutante). Ahora la única condición admitida es la de la transferencia, y se exige que
     // el comentario, esa condición y la fila sean líneas seguidas, sin nada en medio.
     const SALTO = String.fromCharCode(10);
-    expect(modal).toContain('{/* ---- Store (Sold From) + its address ---- */}' + SALTO + '            {!sinVenta && (' + SALTO + '            <div className="grid g2">');
+    // D-782 suma la segunda condición admitida: con recogida libre (Otro, Proveedor) y tienda ya puesta, «Vendido desde» no
+    // aplica (Roberto: «the store sold from does not apply») y no se pinta. Siguen siendo líneas seguidas, sin nada en medio.
+    expect(modal).toContain('{/* ---- Store (Sold From) + its address ---- */}' + SALTO + '            {!sinVenta && !(recogidaLibreDelTipo && !!d.store) && (' + SALTO + '            <div className="grid g2">');
     expect(modal).not.toContain("{false && (");
     const fila = modal.slice(modal.indexOf('{/* ---- Store (Sold From) + its address ---- */}'), modal.indexOf("{/* ---- Pickup ---- */}"));
     // La etiqueta es condicional desde D-312 —en un tipo que recibe dice «¿A qué tienda se lo

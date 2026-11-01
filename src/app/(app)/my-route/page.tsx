@@ -313,7 +313,7 @@ export default function MyRoutePage() {
    *  tienda de Ajustes. Se decide por la primera orden de la parada: todas salen del mismo sitio. */
   const recogidaEnLaFila = (ordenes: readonly string[], lugar: string | null) => {
     const d = porId.get(ordenes[0]);
-    const r = d ? recogidaParaElChofer(d, settings.stores ?? []) : null;
+    const r = d ? recogidaParaElChofer(d, settings.stores ?? [], settings.order_type_rules) : null;
     if (r?.enTienda) return (
       <span style={{ fontWeight: 700, display: "block" }}>
         {t("Pick up at", "Recoger en")}{" "}

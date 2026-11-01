@@ -17,6 +17,7 @@
 import { fmtDate, orderLabel } from "@/lib/utils";
 import { columnaDeOrdenes } from "@/lib/routes-columns";
 import { ciudadDeEntrega } from "@/lib/ciudad-de-entrega";
+import type { OrderTypeRules } from "@/lib/required";
 import { horaReal } from "@/lib/hechas-del-gestor";
 import { ETAPAS_HECHAS } from "@/lib/mover-parada";
 import { zonaDeLaRecogida } from "@/lib/zonas";
@@ -44,6 +45,8 @@ export function textoQueAbreLaOrden(d: Pick<Delivery, "invoice_num" | "order_cod
  *  recogida) y la llegada que pinta la celda (`llegadaEnLasOrdenes`). */
 export interface ExtraDeParadas {
   tiendas?: readonly Pick<NamedLocation, "name" | "address" | "lat" | "lng">[];
+  /** D-782 (223): las reglas de los tipos, para que una recogida libre diga la ciudad de su dirección. */
+  reglas?: OrderTypeRules;
   llegada?: (d: Delivery) => string | null;
 }
 
@@ -79,7 +82,7 @@ export function valorDelGestor<C>(clave: string, d: Delivery, ordenes?: DeOrdene
     // Las de la tabla de paradas (D-548), que desde ahora pintan también «Sin asignar» y «Todas». Ordenan y filtran por
     // lo que se ve en su celda: el tipo, la ciudad de la tienda donde se recoge, la ciudad de entrega, la llegada y las ventanas.
     case "p_type": return d.order_type ?? null;
-    case "p_ciudad_recogida": return zonaDeLaRecogida(d, extra?.tiendas ?? [], ciudadesConocidas) || null;
+    case "p_ciudad_recogida": return zonaDeLaRecogida(d, extra?.tiendas ?? [], ciudadesConocidas, extra?.reglas) || null;
     case "p_address": return ciudadDeEntrega(d.delivery_address, ciudadesConocidas) || null;
     case "p_eta": return extra?.llegada?.(d) ?? null;
     case "p_windows": return d.delivery_windows ?? null;
