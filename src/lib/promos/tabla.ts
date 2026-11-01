@@ -215,6 +215,17 @@ export function textoDePrecio(v: unknown): string {
 }
 
 /**
+ * La demanda como se pinta: un entero (D-NEXT; Roberto: «demand on promos to have no decimal places»). El Excel la
+ * trae como media mensual con cola decimal (58.0833…), y en una columna de 90 px eso se cortaba con puntos. Sin
+ * demanda, «—». Solo pinta: ordenar y filtrar siguen usando el número exacto.
+ */
+export function textoDeDemanda(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = Number(v);
+  return Number.isFinite(n) ? String(Math.round(n)) : String(v);
+}
+
+/**
  * Las de partida que existen de verdad para quien mira (una privada no entra si no puede verla),
  * **más las seis de existencias por tienda** (D-375).
  *

@@ -7,7 +7,7 @@ import {
   cambioEnBloque, clavesDeTiendaDe, columnasDePromos, columnasDePromosPorDefecto, COLUMNAS_FIJAS,
   COLOR_DE_ESTADO, columnasVisiblesDePromos, cuentaPorEstado, esDecisorDePromos, puedeVerPrivadasDePromos, filaDePromo, filasDePromo, grupoDeLaTienda, LARGO_DE_NOTA,
   motivoParaNoDecidir, puedeDecidir, ordenDeColumnasDePromos, mueveColumnaDePromos, COLUMNA_PRIMERA, filtraPorTienda, MINIMO_EN_LA_TIENDA,
-  valorDeColumna, valorParaFiltrar, textoDePrecio, COLUMNAS_DE_PROMOS_POR_DEFECTO, type DecisionDeGrupo, type ProductoDeCatalogo,
+  valorDeColumna, valorParaFiltrar, textoDeDemanda, textoDePrecio, COLUMNAS_DE_PROMOS_POR_DEFECTO, type DecisionDeGrupo, type ProductoDeCatalogo,
 } from "./tabla";
 
 /**
@@ -786,6 +786,22 @@ describe("el precio lleva su signo de dólar (D-387)", () => {
   it("y la PANTALLA lo usa para pintar la celda del precio", () => {
     const tabla = readFileSync(join(process.cwd(), "src/app/promos/[id]/TablaDeRonda.tsx"), "utf8");
     expect(tabla).toContain("if (clave === \"price\") return textoDePrecio(fila.price);");
+  });
+});
+
+describe("la demanda se pinta sin decimales (D-NEXT)", () => {
+  it("redondea al entero; sin demanda, «—»; lo que no es número se deja", () => {
+    expect(textoDeDemanda(58.0833)).toBe("58");
+    expect(textoDeDemanda(46.5)).toBe("47");
+    expect(textoDeDemanda(80)).toBe("80");
+    expect(textoDeDemanda("79.857")).toBe("80");
+    expect(textoDeDemanda(null)).toBe("—");
+    expect(textoDeDemanda(undefined)).toBe("—");
+    expect(textoDeDemanda("")).toBe("—");
+  });
+  it("y la PANTALLA lo usa para pintar la celda de demanda (el valor de la fila sigue exacto para ordenar)", () => {
+    const tabla = readFileSync(join(process.cwd(), "src/app/promos/[id]/TablaDeRonda.tsx"), "utf8");
+    expect(tabla).toContain("if (clave === \"demand\") return textoDeDemanda(fila.demand);");
   });
 
   it("«Proveedor» entra al arranque para todos", () => {

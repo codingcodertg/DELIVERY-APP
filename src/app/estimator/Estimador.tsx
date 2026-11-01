@@ -13,6 +13,10 @@ import {
   type DisplayLevel, type QuoteDraft, type QuoteLine, type Salutation,
 } from "@/lib/estimator/modelo";
 import { tiendaDePartida, type AjustesDeEntrega } from "@/lib/estimator/entrega";
+import {
+  CLIENTES_DEMO, clienteParaCotizar, coincidencias, COLUMNAS_PARA_COTIZAR, elegibles, relleno, RETARDO_MS, rotulo, seBusca,
+  type ClienteParaCotizar,
+} from "@/lib/estimator/clientes-para-cotizar";
 import { hojaDelCliente, NOTA_DE_CAJAS, NOTA_DE_CAJAS_ES, notaDeCajas, tiendaDeLaHoja } from "@/lib/estimator/hoja";
 import {
   estadoDelEstimado, trasComprobar, lineasCortas, loQueFalta, puedeGuardar, puedeTrabajar, TEXTO_DE_FALTA, type EstimadoHallado,
@@ -174,6 +178,29 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
 
   const set = <K extends keyof QuoteDraft>(k: K, v: QuoteDraft[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const setCliente = (patch: Partial<QuoteDraft["customer"]>) => setDraft((d) => ({ ...d, customer: { ...d.customer, ...patch } }));
+
+  // ---- elegir un cliente ya existente (D-NEXT) ---------------------------------------------------
+  // Con dos letras o más se pregunta a la base (cuenta o contacto, lo que la política deje ver) y se afina a los que
+  // esta persona puede elegir (el vendedor, los suyos; el admin, todos). En demo, una lista fija.
+  const [buscaCliente, setBuscaCliente] = useState("");
+  const [opcionesDeCliente, setOpcionesDeCliente] = useState<ClienteParaCotizar[]>([]);
+  useEffect(() => {
+    if (!seBusca(buscaCliente) || !me) { setOpcionesDeCliente([]); return; }
+    let vivo = true;
+    const yo = { id: me.id, admin: me.admin };
+    const tarea = setTimeout(async () => {
+      if (demo) { if (vivo) setOpcionesDeCliente(coincidencias(elegibles(CLIENTES_DEMO, yo), buscaCliente)); return; }
+      if (!erp) return;
+      const q = buscaCliente.trim().replace(/[%_,]/g, " ");
+      const { data } = await erp.from("customers").select(COLUMNAS_PARA_COTIZAR)
+        .or(`account.ilike.%${q}%,contact_name.ilike.%${q}%`).is("archived_at", null).order("account").limit(60);
+      if (!vivo) return;
+      const filas = ((data ?? []) as unknown as Record<string, unknown>[]).map(clienteParaCotizar);
+      setOpcionesDeCliente(coincidencias(elegibles(filas, yo), buscaCliente));
+    }, RETARDO_MS);
+    return () => { vivo = false; clearTimeout(tarea); };
+  }, [buscaCliente, demo, erp, me]);
+  const eligeCliente = (c: ClienteParaCotizar) => { setCliente(relleno(c)); setBuscaCliente(""); setOpcionesDeCliente([]); };
   const setEntrega = (patch: Partial<QuoteDraft["delivery"]>) => setDraft((d) => ({ ...d, delivery: { ...d.delivery, ...patch } }));
   const ponEntrega = (delivery: QuoteDraft["delivery"]) => setDraft((d) => ({ ...d, delivery }));
   const setLinea = (id: string, patch: Partial<QuoteLine>) =>
@@ -601,6 +628,24 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
       {/* 1. Cliente */}
       <div className="card">
         <h2>👤 {t("Customer (internal)", "Cliente (interno)")}</h2>
+        {/* D-NEXT: elegir uno de los clientes del vendedor; rellena los campos de abajo, que siguen siendo editables. */}
+        <div className="field est-elige-cliente">
+          <label htmlFor="est-busca-cliente">{me?.admin ? t("Pick an existing customer", "Elegir un cliente existente") : t("Pick one of your customers", "Elegir uno de tus clientes")}</label>
+          <input id="est-busca-cliente" data-busca-cliente value={buscaCliente} autoComplete="off"
+            placeholder={t("Type 2+ letters of the account or contact…", "Escribe 2+ letras de la cuenta o del contacto…")}
+            onChange={(e) => setBuscaCliente(e.target.value)} />
+          {opcionesDeCliente.length > 0 && (
+            <div className="est-opciones-cliente" role="listbox">
+              {opcionesDeCliente.map((c) => (
+                <button key={c.id} type="button" className="est-opcion-cliente" data-cliente-opcion={c.id} role="option" aria-selected={false}
+                  onClick={() => eligeCliente(c)}>{rotulo(c)}</button>
+              ))}
+            </div>
+          )}
+          {seBusca(buscaCliente) && opcionesDeCliente.length === 0 && (
+            <span className="hint" data-sin-clientes>{t("No matching customer of yours; fill the fields below.", "Ningún cliente tuyo coincide; rellena los campos de abajo.")}</span>
+          )}
+        </div>
         <div className="grid g4">
           <div className="field">
             <label htmlFor="est-trat">{t("Title", "Tratamiento")}</label>
