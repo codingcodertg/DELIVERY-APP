@@ -363,7 +363,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     // la tarjeta «Contacto» sigue, sin líneas: la llenan los contactos.
     // D-NEXT: debajo de los contactos, la dirección de la cuenta (volvió de «Campos ocultos»).
     expect(filasPorGrupo().find((g) => g.grupo.key === "contacto")!.filas.map((f) => f.key)).toEqual(["address"]);
-    expect(filasOcultas().map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate", "website", "address"]);
+    expect(filasOcultas().map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate", "rep_qb", "rep_history", "website"]); // D-NEXT
     const todas = filasPorGrupo().flatMap((g) => g.filas.map((f) => f.key));
     expect(todas.filter((k) => k === "account")).toHaveLength(1);
     expect(todas).not.toContain("store");
