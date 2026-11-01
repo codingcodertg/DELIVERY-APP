@@ -35,4 +35,4 @@ end $chk$;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('223_recogida_libre_con_punto.sql', '7c749e2ae9e05f7c8b537bc835af7f4c4388000062e57bf0c778260421d2dc40') on conflict (name) do nothing;
+  values ('223_recogida_libre_con_punto.sql', 'ace140707c5545177ed6fec27838c1e8aeaef538e92eec9ccf2d5fd5b2cb073a') on conflict (name) do nothing;
