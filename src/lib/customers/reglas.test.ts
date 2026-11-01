@@ -351,7 +351,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     expect(GRUPOS.at(-1)).toEqual({ key: "otros", en: "Other", es: "Otros" });
     const cuenta = filasPorGrupo()[0];
     expect(cuenta.grupo.key).toBe("cuenta");
-    expect(cuenta.filas.map((f) => [f.key, f.campo === null])).toEqual([["account", true], ["unified_account", false], ["rep_id", false], ["rep_store", false], ["rep_qb", false], ["rep_history", false]]);
+    expect(cuenta.filas.map((f) => [f.key, f.campo === null])).toEqual([["account", true], ["unified_account", false], ["rep_id", false], ["rep_store", false]]); // D-NEXT: dos vendedores
     // Los rótulos de «Estado e historial» de la plantilla.
     expect(filasPorGrupo().find((g) => g.grupo.key === "estado")!.filas.map((f) => f.en)).toEqual(
       ["Current Status (store)", "Current Status (group)", "Historical Type (store)", "Historical Type (group)", "QuickBooks Status"]);
@@ -361,7 +361,8 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     expect(credito.at(-1)?.campo?.tipo).toBe("impuesto");
     // D-697: el sitio web y la dirección de la cuenta salen de «Contacto» (son de cada contacto) y van a «Campos ocultos»;
     // la tarjeta «Contacto» sigue, sin líneas: la llenan los contactos.
-    expect(filasPorGrupo().find((g) => g.grupo.key === "contacto")!.filas).toEqual([]);
+    // D-NEXT: debajo de los contactos, la dirección de la cuenta (volvió de «Campos ocultos»).
+    expect(filasPorGrupo().find((g) => g.grupo.key === "contacto")!.filas.map((f) => f.key)).toEqual(["address"]);
     expect(filasOcultas().map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate", "website", "address"]);
     const todas = filasPorGrupo().flatMap((g) => g.filas.map((f) => f.key));
     expect(todas.filter((k) => k === "account")).toHaveLength(1);
@@ -383,7 +384,8 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     const ocultas = filasOcultas();
     // D-669: sin la actividad (D-662 la ponía detrás): es el «Type» de «Credit & terms».
     // D-697: detrás, el sitio web y la dirección de la cuenta (venían de «Contacto»).
-    expect(ocultas.map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate", "website", "address"]);
+    // D-NEXT: la dirección vuelve a «Contacto» y entran las dos iniciales QB que salieron de «Cuenta».
+    expect(ocultas.map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate", "rep_qb", "rep_history", "website"]);
     expect(ocultas.filter((f) => f.campo === null).map((f) => f.key)).toEqual(["house_no", "concatenate"]);
     // «Añadido (tanda)» se sigue corrigiendo: lleva SU campo.
     expect(ocultas[0].campo?.key).toBe("added_batch");

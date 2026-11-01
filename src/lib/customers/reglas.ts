@@ -180,9 +180,12 @@ export const COLUMNAS: readonly Columna[] = [
   { key: "activity_status", en: "Type", es: "Tipo" },
   { key: "unified_account", en: "Unified account", es: "Cuenta unificada" },
   // D-683: el vendedor de verdad (perfil del hub), antes de las iniciales de QuickBooks.
-  { key: "rep_id", en: "Sales rep", es: "Vendedor" },
-  // D-740 (el dueño, 2026-10-29): «store rep change name to comission rep».
-  { key: "rep_store", en: "Commission rep (QB)", es: "Vendedor de comisión (QB)" },
+  // D-NEXT (Roberto, 2026-11-01): «2 columns for reps. The "Commission Rep" column and the "Sales Rep (QB)" column». El
+  // del hub (rep_id) es el de comisión; las iniciales de QuickBooks de la tienda (rep_store) son el vendedor QB. Las otras
+  // dos iniciales (rep_qb, rep_history) salen de la tarjeta «Cuenta» y pasan a «Campos ocultos»; en la lista siguen
+  // siendo elegibles (todas las del Excel lo son) pero no entran por defecto. (D-740 había llamado «Commission rep (QB)» a rep_store.)
+  { key: "rep_id", en: "Commission rep", es: "Vendedor de comisión" },
+  { key: "rep_store", en: "Sales rep (QB)", es: "Vendedor (QB)" },
   { key: "rep_qb", en: "Group rep (QB)", es: "Vendedor grupo (QB)" },
   { key: "rep_history", en: "Group rep (history)", es: "Vendedor grupo (historial)" },
   { key: "contact_name", en: "Contact", es: "Contacto" },
@@ -477,17 +480,20 @@ export const CAMPOS: readonly Campo[] = [
   // D-662: vuelve a la tarjeta «Cuenta», la primera (en D-654 había ido a «Otros» al quitar esa tarjeta).
   { key: "unified_account", tipo: "text", en: "Unified account", es: "Cuenta unificada", grupo: "cuenta" },
   // D-683: el vendedor (198): un desplegable con los perfiles de vendedor; «—» lo deja libre (lo ven todos).
-  { key: "rep_id", tipo: "vendedor", en: "Sales rep", es: "Vendedor", grupo: "cuenta" },
-  { key: "rep_store", tipo: "text", en: "Commission rep (QB)", es: "Vendedor de comisión (QB)", grupo: "cuenta" },
-  { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "cuenta" },
-  { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "cuenta" },
+  // D-NEXT: dos vendedores en «Cuenta» (comisión = el del hub; QB = las iniciales de la tienda); las otras dos iniciales
+  // de QuickBooks pasan a «Campos ocultos».
+  { key: "rep_id", tipo: "vendedor", en: "Commission rep", es: "Vendedor de comisión", grupo: "cuenta" },
+  { key: "rep_store", tipo: "text", en: "Sales rep (QB)", es: "Vendedor (QB)", grupo: "cuenta" },
+  { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "ocultos" },
+  { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "ocultos" },
   // D-668: contacto, cargo, teléfono y correo ya no son campos sueltos: son la lista de contactos (`contacts`, 193), que
   // la tarjeta «Contacto» pinta y edita aparte (`contactos.ts`). Las cuatro columnas quedan como espejo del primero.
   // D-672: Roberto, «need to add Website under contact». D-697: «This should be under each contact and not to apply to
   // all contacts»: cada contacto lleva ya su sitio web y su dirección (`contacts`); las columnas de la cuenta siguen en la
   // base (la orden y la búsqueda leen `address`) y se ven y corrigen en «Campos ocultos».
   { key: "website", tipo: "text", en: "Website", es: "Sitio web", grupo: "ocultos" },
-  { key: "address", tipo: "textarea", en: "Address", es: "Dirección", grupo: "ocultos" },
+  // D-NEXT: la dirección de la cuenta vuelve a «Contacto», debajo de los contactos (Roberto: «Missing address now»).
+  { key: "address", tipo: "textarea", en: "Address", es: "Dirección", grupo: "contacto" },
   { key: "terms", tipo: "text", en: "Terms", es: "Términos", grupo: "credito" },
   { key: "credit_limit", tipo: "num", en: "Credit limit", es: "Límite de crédito", grupo: "credito" },
   { key: "euler_limit", tipo: "num", en: "Euler limit", es: "Límite Euler", grupo: "credito" },
@@ -532,6 +538,13 @@ export const GRUPO_OCULTO = { key: "ocultos", en: "Hidden fields", es: "Campos o
  * edición, que son la misma tarjeta.
  */
 export const COLUMNAS_DE_LA_FICHA: readonly (readonly (typeof GRUPOS)[number]["key"][])[] = [["cuenta", "estado"], ["contacto"], ["credito", "otros"]];
+/**
+ * D-NEXT: al VER, «Otros» baja a la columna del medio, debajo de «Contacto», que al leer es corta y dejaba un hueco
+ * (Roberto: «Move other here. It's just moved to the right when you're creating the customer but not when viewing it, for
+ * aesthetic reasons»). Al crear o editar, «Contacto» es alta (los contactos se editan ahí) y «Otros» sigue a la derecha.
+ */
+export const COLUMNAS_DE_LA_FICHA_AL_VER: readonly (readonly (typeof GRUPOS)[number]["key"][])[] = [["cuenta", "estado"], ["contacto", "otros"], ["credito"]];
+export const columnasDeLaFicha = (editando: boolean) => (editando ? COLUMNAS_DE_LA_FICHA : COLUMNAS_DE_LA_FICHA_AL_VER);
 
 /**
  * Una línea de una tarjeta de la ficha: un campo que se edita (`campo`), o uno que solo se lee (`campo: null`): House #

@@ -33,7 +33,7 @@ describe("clientes por rol", () => {
   it("la ficha esconde al vendedor crédito, campos ocultos y archivos; el contacto lleva etiqueta a la izquierda", () => {
     const ficha = leer("src/app/customers/FichaDeCliente.tsx");
     expect(ficha).toContain("filasPorGrupo().filter(({ grupo }) => claves.includes(grupo.key) && (!esVendedor || !GRUPOS_QUE_NO_VE_EL_VENDEDOR.includes(grupo.key)))");
-    expect(ficha).toContain("{!esVendedor && i === COLUMNAS_DE_LA_FICHA.length - 1 && (\n        <div className=\"space-y-4\" data-solo-no-vendedor>");
+    expect(ficha).toContain("{!esVendedor && i === columnasDeLaFicha(editando).length - 1 && (\n        <div className=\"space-y-4\" data-solo-no-vendedor>");
     expect(ficha).toContain("esVendedor={esVendedor} puedePedirVendedor={puedePedirVendedor} t={t} />");
     for (const campo of ["contact_name", "contact_title", "phone", "email"]) {
       expect(ficha).toContain(`<div className={FILA_DE_CONTACTO} data-campo="${campo}">`);

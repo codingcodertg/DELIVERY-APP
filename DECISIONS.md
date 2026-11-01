@@ -49383,3 +49383,19 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/requiere-atencion-plegado.test.ts`. tsc limpio.
 
 **No verificado:** en navegador.
+
+## D-NEXT · Clientes: dos vendedores en la ficha («Commission rep» y «Sales rep (QB)»), la dirección vuelve a «Contacto» y «Otros» baja al medio al ver
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/ficha-dos-vendedores-direccion-y-otros`. Sin migración.
+
+**Pedidos (Roberto, admin, desde el botón de comentarios en /customers, con captura de la ficha):** «1) It's "Commission Rep" first and the 2nd one is "Store Rep (QB)"», luego afinado: «Lets do 2 columns for reps. The "Commission Rep" column and the "Sales Rep (QB)" column»; «2) Missing address now for some reason»; «3) Move other here. It's just moved to the right when you're creating the customer but not when viewing it for aesthetic reasons».
+
+**Qué cambia (`src/lib/customers/reglas.ts`):**
+- `rep_id` (el vendedor del hub) se llama **Commission rep / Vendedor de comisión**; `rep_store` (iniciales QB de la tienda) **Sales rep (QB) / Vendedor (QB)**. D-740 llamaba «Commission rep (QB)» a `rep_store`; queda sin efecto en el nombre.
+- `rep_qb` y `rep_history` salen de la tarjeta «Cuenta» y pasan a «Campos ocultos» (siguen en la base, en la búsqueda y elegibles en la lista: todas las del Excel lo son).
+- `address` (la dirección de la cuenta) vuelve de «Campos ocultos» a «Contacto», debajo de los contactos. D-697 la había escondido porque cada contacto lleva la suya; la de la cuenta es la que lee la orden, y Roberto la echó en falta.
+- Al VER la ficha, «Otros» va en la columna del medio debajo de «Contacto» (`COLUMNAS_DE_LA_FICHA_AL_VER`, `columnasDeLaFicha(editando)`); al crear o editar sigue a la derecha (`COLUMNAS_DE_LA_FICHA`, D-766), porque ahí «Contacto» es alta.
+
+**Pruebas:** las de Clientes actualizadas (`ficha-sin-huecos`, `por-rol`, `reglas`, `vendedor-por-tienda`, `vendedores`, `ventana`). tsc limpio.
+
+**No verificado:** en navegador.
