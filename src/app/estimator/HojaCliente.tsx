@@ -13,23 +13,23 @@ import type { HojaDelCliente } from "@/lib/estimator/hoja";
  */
 export function HojaCliente({ hoja }: { hoja: HojaDelCliente }) {
   return (
-    <div className="hoja-cliente" data-hoja-cliente>
+    <div className="hoja-cliente" data-hoja-cliente lang={hoja.idioma}>
       <div className="hc-encabezado">
         <div className="hc-empresa">{hoja.encabezado}</div>
         <div className="hc-subtitulo">{hoja.subtitulo}</div>
       </div>
 
       <div className="hc-datos">
-        <div><span>Prepared for:</span> {hoja.preparadoPara}</div>
-        <div><span>Quote Reference:</span> {hoja.referencia}</div>
+        <div><span>{hoja.rotulos.preparadoPara}</span> {hoja.preparadoPara}</div>
+        <div><span>{hoja.rotulos.referencia}</span> {hoja.referencia}</div>
         {/* Sin «Valid through» aquí (D-451): la validez sale una sola vez, «QUOTE VALID THROUGH …» junto al total. */}
-        {hoja.tienda && <div data-tienda-hoja><span>Store:</span> {hoja.tienda}</div>}
-        <div><span>Sales Representative:</span> {hoja.representante}</div>
+        {hoja.tienda && <div data-tienda-hoja><span>{hoja.rotulos.tienda}</span> {hoja.tienda}</div>}
+        <div><span>{hoja.rotulos.representante}</span> {hoja.representante}</div>
       </div>
 
       {hoja.resumen && (
         <div className="hc-resumen">
-          <div className="hc-titulo-seccion">PROJECT SUMMARY</div>
+          <div className="hc-titulo-seccion">{hoja.rotulos.resumen}</div>
           <div>{hoja.resumen}</div>
         </div>
       )}
@@ -37,9 +37,9 @@ export function HojaCliente({ hoja }: { hoja: HojaDelCliente }) {
       <table className="hc-tabla">
         <thead>
           <tr>
-            <th>Description</th>
-            <th>Quantity</th>
-            <th className="hc-num">Amount</th>
+            <th>{hoja.rotulos.descripcion}</th>
+            <th>{hoja.rotulos.cantidad}</th>
+            <th className="hc-num">{hoja.rotulos.importe}</th>
           </tr>
         </thead>
         <tbody>

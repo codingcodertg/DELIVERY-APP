@@ -18,7 +18,7 @@ import {
   CLIENTES_DEMO, clienteParaCotizar, coincidencias, COLUMNAS_PARA_COTIZAR, elegibles, relleno, RETARDO_MS, rotulo, seBusca,
   type ClienteParaCotizar,
 } from "@/lib/estimator/clientes-para-cotizar";
-import { hojaDelCliente, NOTA_DE_CAJAS, NOTA_DE_CAJAS_ES, notaDeCajas, tiendaDeLaHoja } from "@/lib/estimator/hoja";
+import { hojaDelCliente, type IdiomaDeLaHoja, NOTA_DE_CAJAS, NOTA_DE_CAJAS_ES, notaDeCajas, tiendaDeLaHoja } from "@/lib/estimator/hoja";
 import {
   estadoDelEstimado, trasComprobar, lineasCortas, loQueFalta, puedeGuardar, puedeTrabajar, TEXTO_DE_FALTA, type EstimadoHallado,
 } from "@/lib/estimator/validar";
@@ -29,7 +29,7 @@ import { almacenDeCompetenciaDemo, almacenDeLecturasDemo, almacenDemo, buscarEnC
 import { almacenDeCompetenciaDeLaBase, type AlmacenDeCompetencia } from "@/lib/estimator/competencia";
 import { almacenDeLecturasDeLaBase, lineasPropias, type AlmacenDeLecturas } from "@/lib/estimator/lectura";
 import {
-  POLITICA_CASILLA, POLITICA_PARRAFOS, POLITICA_PARRAFOS_ES, POLITICA_TITULO, sePuedeGenerar, sePuedePedirLaCopia,
+  POLITICA_CASILLA, POLITICA_CASILLA_ES, POLITICA_PARRAFOS, POLITICA_PARRAFOS_ES, POLITICA_TITULO, POLITICA_TITULO_ES, sePuedeGenerar, sePuedePedirLaCopia,
 } from "@/lib/estimator/politica";
 import { puedeVerLista, puedeVerTodas, type Pestana } from "@/lib/estimator/lista-admin";
 import { alternarPriceMatch, etiquetaPriceMatch, ponCompetidor, tienePriceMatch } from "@/lib/estimator/price-match";
@@ -466,7 +466,10 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
 
   // La tienda donde se creó (D-451): la de la cotización guardada; si es nueva, la del perfil de quien la prepara.
   const tiendaHoja = tiendaDeLaHoja(tiendaGuardada, me?.store);
-  const hoja = useMemo(() => hojaDelCliente(draft, tiendaHoja), [draft, tiendaHoja]);
+  // D-796: el idioma de la hoja. De entrada, el del usuario; se cambia en la vista previa, con la hoja a la vista.
+  const [idiomaElegido, setIdiomaElegido] = useState<IdiomaDeLaHoja | null>(null);
+  const idiomaDeLaHoja: IdiomaDeLaHoja = idiomaElegido ?? (lang === "es" ? "es" : "en");
+  const hoja = useMemo(() => hojaDelCliente(draft, tiendaHoja, idiomaDeLaHoja), [draft, tiendaHoja, idiomaDeLaHoja]);
   // Las líneas propias, para ponerlas al lado de las del competidor que el vendedor empareje. Nunca van a la hoja.
   const propias = useMemo(() => lineasPropias(draft.lines), [draft.lines]);
 
@@ -941,13 +944,14 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
       {politicaAbierta && (
         <div className="overlay" onClick={() => setPoliticaAbierta(false)}>
           <div className="modal est-politica" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()} data-politica>
-            <h3>{POLITICA_TITULO}</h3>
-            {POLITICA_PARRAFOS.map((p, i) => (
-              <p key={i}>{p}{lang === "es" && <><br /><span className="hint">{POLITICA_PARRAFOS_ES[i]}</span></>}</p>
+            {/* D-796: la política en el idioma del usuario, solo en ese idioma. */}
+            <h3>{lang === "es" ? POLITICA_TITULO_ES : POLITICA_TITULO}</h3>
+            {(lang === "es" ? POLITICA_PARRAFOS_ES : POLITICA_PARRAFOS).map((p, i) => (
+              <p key={i}>{p}</p>
             ))}
             <label className="check">
               <input type="checkbox" data-casilla checked={politicaMarcada} onChange={(e) => setPoliticaMarcada(e.target.checked)} />
-              <span>{POLITICA_CASILLA}</span>
+              <span>{lang === "es" ? POLITICA_CASILLA_ES : POLITICA_CASILLA}</span>
             </label>
             <div className="modal-actions">
               <button className="btn btn-ghost" onClick={() => setPoliticaAbierta(false)}>{t("Cancel", "Cancelar")}</button>
@@ -979,6 +983,15 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
               <label key={k}><input type="radio" name="nivel" data-nivel={k} checked={draft.display_level === k} onChange={() => set("display_level", k)} /> {txt}</label>
             ))}
           </div>
+          </div>
+          {/* D-796: el idioma de la hoja, aquí mismo, en vivo. Al imprimir no sale (solo `.hoja-cliente` es visible). */}
+          <div className="est-barra est-nivel">
+            <span className="est-nivel-rotulo">{t("Quote language", "Idioma de la cotización")}</span>
+            <div className="est-radios" data-idioma-de-la-hoja>
+              {([["en", "English"], ["es", "Español"]] as [IdiomaDeLaHoja, string][]).map(([k, txt]) => (
+                <label key={k}><input type="radio" name="idioma-hoja" data-idioma={k} checked={idiomaDeLaHoja === k} onChange={() => setIdiomaElegido(k)} /> {txt}</label>
+              ))}
+            </div>
           </div>
           <HojaCliente hoja={hoja} />
         </div>

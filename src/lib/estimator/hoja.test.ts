@@ -106,8 +106,8 @@ describe("la hoja del cliente NO lleva nada interno", () => {
   it("las claves de la hoja son las de la plantilla: ninguna del borrador interno", () => {
     const claves = Object.keys(hojaDelCliente(borrador())).sort();
     expect(claves).toEqual([
-      "avisoJuntoAlTotal", "encabezado", "entrega", "filas", "notaDeCajas", "preparadoPara", "referencia", "representante",
-      "resumen", "subtitulo", "textoAhorro", "textoImpuesto", "textoSubtotal", "textoTotal", "tienda", "total", "validezConspicua",
+      "avisoJuntoAlTotal", "encabezado", "entrega", "filas", "idioma", "notaDeCajas", "preparadoPara", "referencia", "representante",
+      "resumen", "rotulos", "subtitulo", "textoAhorro", "textoImpuesto", "textoSubtotal", "textoTotal", "tienda", "total", "validezConspicua",
     ]);
     for (const f of hojaDelCliente(borrador()).filas) expect(Object.keys(f).sort()).toEqual(["cantidad", "descripcion", "importe", "precioConDescuento"]);
   });
@@ -187,7 +187,7 @@ describe("la pantalla imprime ESTA hoja y nada más", () => {
   const pantalla = leer("src/app/estimator/Estimador.tsx");
   const componente = leer("src/app/estimator/HojaCliente.tsx");
   it("la hoja se construye con hojaDelCliente(draft) y es lo único que recibe HojaCliente", () => {
-    expect(pantalla).toContain("const hoja = useMemo(() => hojaDelCliente(draft, tiendaHoja), [draft, tiendaHoja]);");
+    expect(pantalla).toContain("const hoja = useMemo(() => hojaDelCliente(draft, tiendaHoja, idiomaDeLaHoja), [draft, tiendaHoja, idiomaDeLaHoja]);");
     expect(pantalla).toContain("<HojaCliente hoja={hoja} />");
     expect(pantalla.match(/<HojaCliente /g) ?? []).toHaveLength(1);
   });

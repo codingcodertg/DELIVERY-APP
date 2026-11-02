@@ -49542,3 +49542,21 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/estimator/linea-en-rojo.test.ts`. tsc y eslint limpios.
 
 **No verificado:** en navegador.
+
+## D-796 · Quote Builder: la hoja del cliente en español o en inglés (interruptor en la vista previa), y la política en el idioma del usuario
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/cotizacion-en-dos-idiomas`. Sin migración.
+
+**Pedidos (el dueño):** «lo del policy debería cambiar también idioma al idioma que tiene el user» y «debería haber un language toggle switch para hacer el quote en español o en inglés».
+
+**Qué había:** la hoja del cliente salía siempre en inglés (rótulos en `HojaCliente.tsx` y textos en `hoja.ts`), y la ventana de la política enseñaba el inglés y, si el usuario estaba en español, la traducción debajo en gris.
+
+**Qué cambia:**
+
+1. **`src/lib/estimator/hoja.ts`:** `IdiomaDeLaHoja` («en» | «es») y `TEXTOS_DE_LA_HOJA` con todo lo que la hoja escribe en palabras en los dos idiomas: subtítulo, aviso junto al total, texto de entrega, nota de cajas, «Área pedida», «Cantidad», caja/cajas, SF/caja, «Lote», «Descuento», subtotal/ahorro/impuesto/total, «COTIZACIÓN VÁLIDA HASTA EL», y los rótulos del encabezado y de la tabla. `hojaDelCliente(q, tienda, idioma = "en")` y las funciones de línea reciben el idioma; la fecha larga en español (`fechaLargaEs`: «1 de noviembre de 2026»). Los números y el dinero no cambian. La hoja lleva `idioma` y `rotulos`: `HojaCliente.tsx` ya no tiene ni una palabra en inglés propia, pinta los rótulos de la hoja (y `lang=` en la raíz).
+2. **`Estimador.tsx`:** el idioma de la hoja nace del idioma del usuario y se cambia en la vista previa, bajo el nivel de detalle, con la hoja a la vista y en vivo (`data-idioma-de-la-hoja`, radios English / Español). No se guarda con la cotización: es cómo se imprime esta vez.
+3. **Política:** solo el idioma del usuario. `politica.ts`: `POLITICA_TITULO_ES` y `POLITICA_CASILLA_ES`; en español salen el título, los párrafos (`POLITICA_PARRAFOS_ES`, que ya existían) y la casilla en español; en inglés, como siempre.
+
+**Pruebas:** `src/lib/estimator/hoja-en-dos-idiomas.test.ts` (nueva); `hoja.test.ts`, `nivel-en-vista-previa.test.ts`, `tienda-solo-admin.test.ts` (la llamada a `hojaDelCliente` y las claves de la hoja). `mapa-de-apps.ts`: cita de línea de `Estimador.tsx` recalculada. tsc y eslint limpios.
+
+**No verificado:** en navegador; la traducción de los textos legales de la hoja la escribió el orquestador (revisar «aviso junto al total» si se quiere otro tono).

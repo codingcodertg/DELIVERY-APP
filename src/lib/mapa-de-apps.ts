@@ -171,7 +171,7 @@ export const FLECHAS: Flecha[] = [
       "y rellena el borrador, src/app/estimator/Estimador.tsx:404 «borradorDesdeLead(que.lead»; la cotización nueva guarda " +
       "su lead, src/lib/estimator/almacen.ts:226 «export function filaNueva», en la columna " +
       "supabase/migrations/175_cotizacion_de_lead.sql:32 «add column if not exists lead_id»; la cotización dice de qué lead " +
-      "sale, src/app/estimator/Estimador.tsx:580 «data-de-lead=», y el lead cuenta sus cotizaciones, " +
+      "sale, src/app/estimator/Estimador.tsx:583 «data-de-lead=», y el lead cuenta sus cotizaciones, " +
       "src/app/leads/Leads.tsx:528 «data-cotizaciones=».",
     pendiente: "el enlace guardado (cotización ↔ lead) espera la migración 175; hasta entonces se rellena y se guarda sin enlace",
   },
