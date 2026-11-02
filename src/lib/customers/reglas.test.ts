@@ -351,7 +351,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     expect(GRUPOS.at(-1)).toEqual({ key: "otros", en: "Other", es: "Otros" });
     const cuenta = filasPorGrupo()[0];
     expect(cuenta.grupo.key).toBe("cuenta");
-    expect(cuenta.filas.map((f) => [f.key, f.campo === null])).toEqual([["account", true], ["unified_account", false], ["rep_id", false], ["rep_store", false], ["rep_qb", false], ["rep_history", false]]); // D-786: dos vendedores; D-NEXT: los de grupo vuelven
+    expect(cuenta.filas.map((f) => [f.key, f.campo === null])).toEqual([["account", true], ["unified_account", false], ["rep_id", false], ["rep_store", false], ["rep_qb", false], ["rep_history", false]]); // D-786: dos vendedores; D-791: los de grupo vuelven
     // Los rótulos de «Estado e historial» de la plantilla.
     expect(filasPorGrupo().find((g) => g.grupo.key === "estado")!.filas.map((f) => f.en)).toEqual(
       ["Current Status (store)", "Current Status (group)", "Historical Type (store)", "Historical Type (group)", "QuickBooks Status"]);
@@ -363,7 +363,7 @@ describe("todas las columnas del Excel (182), y el orden por persona", async () 
     // la tarjeta «Contacto» sigue, sin líneas: la llenan los contactos.
     // D-786: debajo de los contactos, la dirección de la cuenta (volvió de «Campos ocultos»).
     expect(filasPorGrupo().find((g) => g.grupo.key === "contacto")!.filas.map((f) => f.key)).toEqual(["address"]);
-    expect(filasOcultas().map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate", "website"]); // D-NEXT: rep_qb y rep_history vuelven a «Cuenta»
+    expect(filasOcultas().map((f) => f.key)).toEqual(["added_batch", "house_no", "concatenate", "website"]); // D-791: rep_qb y rep_history vuelven a «Cuenta»
     const todas = filasPorGrupo().flatMap((g) => g.filas.map((f) => f.key));
     expect(todas.filter((k) => k === "account")).toHaveLength(1);
     expect(todas).not.toContain("store");

@@ -21,8 +21,8 @@ describe("las columnas del vendedor", () => {
     expect(COLUMNAS.find((c) => c.key === "rep_store")).toMatchObject({ en: "Sales rep (QB)", es: "Vendedor (QB)" });
     expect(CAMPOS.find((c) => c.key === "rep_store")).toMatchObject({ en: "Sales rep (QB)", es: "Vendedor (QB)" });
     expect(CAMPOS.find((c) => c.key === "rep_id")).toMatchObject({ en: "Commission rep", es: "Vendedor de comisión", grupo: "cuenta" });
-    expect(CAMPOS.filter((c) => c.grupo === "cuenta").map((c) => c.key)).toEqual(["unified_account", "rep_id", "rep_store", "rep_qb", "rep_history"]); // D-NEXT: los de grupo vuelven
-    expect(CAMPOS.find((c) => c.key === "rep_qb")).toMatchObject({ grupo: "cuenta" }); // D-NEXT: de vuelta en «Cuenta»
+    expect(CAMPOS.filter((c) => c.grupo === "cuenta").map((c) => c.key)).toEqual(["unified_account", "rep_id", "rep_store", "rep_qb", "rep_history"]); // D-791: los de grupo vuelven
+    expect(CAMPOS.find((c) => c.key === "rep_qb")).toMatchObject({ grupo: "cuenta" }); // D-791: de vuelta en «Cuenta»
     expect(CAMPOS.find((c) => c.key === "rep_history")).toMatchObject({ grupo: "cuenta" });
     expect(CAMPOS.find((c) => c.key === "address")).toMatchObject({ grupo: "contacto" });
   });

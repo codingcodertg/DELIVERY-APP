@@ -484,7 +484,7 @@ export const CAMPOS: readonly Campo[] = [
   // de QuickBooks pasan a «Campos ocultos».
   { key: "rep_id", tipo: "vendedor", en: "Commission rep", es: "Vendedor de comisión", grupo: "cuenta" },
   { key: "rep_store", tipo: "text", en: "Sales rep (QB)", es: "Vendedor (QB)", grupo: "cuenta" },
-  // D-NEXT (el dueño): «group rep for QB y group rep for history me lo quitaste del customer, entonces vuélvelo a poner
+  // D-791 (el dueño): «group rep for QB y group rep for history me lo quitaste del customer, entonces vuélvelo a poner
   // ahí» — D-787 los había mandado a «Campos ocultos»; vuelven a «Cuenta», detrás de los dos vendedores.
   { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "cuenta" },
   { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "cuenta" },

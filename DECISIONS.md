@@ -49465,7 +49465,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué cambia:** se quita el aviso de `src/app/promos/[id]/TablaDeRonda.tsx` (y su prop `tiendasSinGrupo` en `page.tsx` y `RondaDemo.tsx`) y la función `tiendasSinGrupoDePromos` de `src/lib/promos/entrada.ts` con sus pruebas. Una tienda sin grupo sigue sin poder aprobar; el grupo se ve y se pone en Datos → Tiendas. (La casilla «Bodega, no tienda» de D-787 sigue valiendo para el QR de Encuestas.)
 
 **Pruebas:** `src/lib/promos/entrada.test.ts` (el aviso no está ni en la tabla ni en la raíz). tsc limpio.
-## D-NEXT · Clientes: «Archivar» al lado de «Editar», y los dos «Group rep» vuelven a «Cuenta»
+## D-791 · Clientes: «Archivar» al lado de «Editar», y los dos «Group rep» vuelven a «Cuenta»
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/clientes-archivar-en-fila`. Sin migración.
 

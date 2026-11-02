@@ -962,7 +962,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
             )}
           </div>
           {puedeEditar && !editando && (
-            // D-778: «Editar» y «Archivar» (o «Desarchivar»), este solo para el admin y con un «¿seguro?». D-NEXT (el dueño,
+            // D-778: «Editar» y «Archivar» (o «Desarchivar»), este solo para el admin y con un «¿seguro?». D-791 (el dueño,
             // con captura): «archive va a ser en el mismo row de edit: edit y al lado archive» — en una fila, no debajo.
             <div className="flex flex-row items-center gap-1.5" data-acciones-de-la-ficha>
               <Button size="sm" onClick={() => { setEditando(true); setAviso(null); }} data-editar-en-la-ventana>✏️ {edicionComoSolicitud && !nuevo ? t("Request edit", "Solicitar edición") : t("Edit", "Editar")}</Button>
