@@ -49666,3 +49666,20 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/leads/orden-a-z.test.ts`. `mapa-de-apps.ts`: citas de `Leads.tsx` recalculadas. tsc limpio.
 
 **No verificado:** en navegador.
+
+## D-NEXT · El modo enseñanza lo enciende cualquiera (chofer incluido), y la app se recarga sola al volver a ella
+
+**Fecha:** 2026-11-02 · Hecho directo por el orquestador en `feat/ensenanza-para-todos-y-recarga-al-volver`. Sin migración.
+
+**Pedido (Roberto Rodriguez Jr, por el dueño):** «Ernesto isn't able to go to teaching mode» y «He skipped the Edinburg stop because "it didn't show on the app" and that he had to refresh it».
+
+**Qué había:** 1) la opción «Modo enseñanza» de la burbuja salía solo al admin real (D-623), así que un chofer no podía practicar. 2) El canal de realtime se suscribe sin mirar su estado; con el teléfono dormido muere en silencio y una parada asignada mientras tanto no aparecía hasta recargar a mano. Al volver a la app solo se vaciaba la cola de escrituras pendientes (`flushOutbox`), no se releía nada.
+
+**Qué cambia:**
+
+1. `src/lib/boton-general.ts`: «Modo enseñanza» sale a todos; «Cambiar usuario» y «Vista móvil» siguen siendo del admin real. Es seguro: en Entregas es el entorno de práctica y en las demás apps ninguna escritura llega a la base (D-626).
+2. `src/lib/data-provider.tsx`: al volver a la app (`visibilitychange` a visible, `focus`, `online`) se recarga todo (`reloadAll`), como mucho una vez cada 20 s (`RECARGA_AL_VOLVER_MS`). El irse no cuenta.
+
+**Pruebas:** `src/lib/boton-general.test.ts`, `src/lib/recarga-al-volver.test.ts` (nueva). tsc limpio.
+
+**No verificado:** en el teléfono de un chofer; que la parada de Edinburg faltara por el canal muerto es la causa más probable, no medida (no hay registro del canal).
