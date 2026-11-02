@@ -395,7 +395,7 @@ describe("11 · la pantalla usa las reglas probadas", () => {
   it("el banco se pinta filtrado y ordenado por las funciones, con «libres» y «sirve» de entrada, y en el pool de su tienda", () => {
     expect(p).toContain("ordenar(filtrar(delBanco, { pool: poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra }), orden)");
     expect(p).toContain('useState<Vista>("libres")');
-    expect(p).toContain('useState<FiltroCategoria>("utiles")');
+    expect(p).toContain('useState<FiltroCategoria>("todas")'); // D-798: todas por defecto
     // D-491: nace ordenado por pies², de mayor a menor.
     expect(p).toContain("useState<Orden>(ORDEN_INICIAL)");
     expect(p).toContain('<option value="pies">');

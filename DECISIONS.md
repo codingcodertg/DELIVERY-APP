@@ -49571,5 +49571,14 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 2. `FichaDeCliente.tsx`: en el alta de quien la pide como solicitud (vendedor, gerente: `altaComoSolicitud`) no salen las casillas de tienda; va la suya (D-767). Si su perfil no tiene tienda, las casillas vuelven. El admin sigue eligiendo.
 
 **Pruebas:** `src/lib/customers/vendedor-por-tienda.test.ts`, `src/lib/customers/alta-sin-tiendas-para-vendedor.test.ts` (nueva). tsc limpio.
+## D-798 · Leads: «Todas las categorías» por defecto y botón «Quitar filtros»
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/leads-categoria-todas-y-reset`. Sin migración.
+
+**Pedido (el dueño, con captura del GOV Pool):** «todas las categorías que sea default, y un botón de reset filters para que muestre todo».
+
+**Qué cambia (`src/app/leads/Leads.tsx`):** el filtro de categoría arranca en «Todas las categorías» (antes «Sirve + podría servir»). `limpiaFiltros` deja todo como al entrar (vista «Libres», categoría «todas», sin situación, tipo, ciudad, búsqueda ni «coinciden»; el orden se queda) y lo llaman tanto el cambio de pestaña (D-792) como el botón nuevo «✕ Quitar filtros» (`data-quitar-filtros`), al final de la fila de filtros.
+
+**Pruebas:** `src/lib/leads/filtros-al-cambiar-de-pool.test.ts`, `reglas.test.ts`. tsc limpio.
 
 **No verificado:** en navegador.

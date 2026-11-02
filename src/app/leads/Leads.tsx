@@ -62,7 +62,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   // Mientras nadie elige a mano, la entrada se recalcula: el alcance y los leads llegan después del primer pintado (D-631).
   const [poolAMano, setPoolAMano] = useState(false);
   const [vista, setVista] = useState<Vista>("libres");
-  const [categoria, setCategoria] = useState<FiltroCategoria>("utiles");
+  // D-798 (el dueño): «todas las categorías que sea default». Antes, «Sirve + podría servir».
+  const [categoria, setCategoria] = useState<FiltroCategoria>("todas");
   const [situacion, setSituacion] = useState<Situacion | "">("");
   const [tipo, setTipo] = useState("");
   const [ciudad, setCiudad] = useState("");
@@ -121,9 +122,14 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [coinciden, setCoinciden] = useState(false);
   // D-792 (el dueño): «cuando pongo un filter en STXP Pool y cambio a GOV me lleva ese filtro y me sale en blanco; si
   // cambio de pool los filtros obviamente se deben de resetear». Cambiar de pestaña deja los filtros como al entrar.
+  // D-798: los filtros como al entrar; también con el botón «Quitar filtros» (el dueño: «un botón de reset filters para
+  // que muestre todo»). El orden no es un filtro y se queda.
+  const limpiaFiltros = () => {
+    setVista("libres"); setCategoria("todas"); setSituacion(""); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false);
+  };
   const cambiaPestana = (p: Pestana) => {
     setPestana(p);
-    setVista("libres"); setCategoria("utiles"); setSituacion(""); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false);
+    limpiaFiltros();
   };
   const delBanco = useMemo(() => (pestana === "privado" ? privados : leadsDelBanco(leads, alcance)), [leads, alcance, pestana, privados]);
   const pools = useMemo(() => poolsDe(delBanco), [delBanco]);
@@ -357,6 +363,9 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                       <option value="fecha">{t("Registered (newest first)", "Registro (lo más nuevo)")}</option>
                     </select>
                   </label>
+                  <button type="button" className="btn btn-ghost btn-sm" data-quitar-filtros onClick={limpiaFiltros}>
+                    ✕ {t("Reset filters", "Quitar filtros")}
+                  </button>
                 </div>
                 <input
                   type="search" data-busca value={busca} onChange={(e) => setBusca(e.target.value)}
