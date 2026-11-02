@@ -35,6 +35,7 @@ import { tiendasDeAlmacen } from "@/lib/almacen";
 import { orderTypeRule } from "@/lib/required";
 import { resumenSinFactura } from "@/lib/factura-obligatoria";
 import type { Delivery, Stage, UserRole } from "@/lib/types";
+import { todasLasMiasAutoAprueban } from "@/lib/auto-aprueban-las-mias";
 import { presetInicialDe, type PresetDeFechas } from "@/lib/preset-inicial";
 import { COLUMNAS_DE_MANANA_PARA_VENTAS, mananaDeTodosParaVentas } from "@/lib/manana-de-ventas";
 import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
@@ -88,7 +89,8 @@ export default function OrdersPage() {
 
   // Every store auto-approves → nothing ever sits in "Pending Approval", so
   // that stage's filter chip is dropped and manager/sales land on Programmed.
-  const autoApproveAll = settings.stores.length > 0 && settings.stores.every((s) => s.auto_approve);
+  // D-NEXT: las tiendas que VE quien entra (un vendedor de Pharr, que auto-aprueba, entraba en «Pendiente» vacío).
+  const autoApproveAll = todasLasMiasAutoAprueban(settings.stores, me);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [filter, setFilter] = useState<string>("all");

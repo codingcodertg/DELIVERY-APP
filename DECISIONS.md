@@ -49615,3 +49615,16 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/customers/solicitud-de-cliente.test.ts` (roles, cableado de la pantalla y la 226). Ensayo de la 226 en seco contra producción: limpio. tsc limpio.
 
 **No verificado:** en navegador; la 226 en producción hasta que el dueño la aplique (sin ella, la oficina ve el botón pero la base rechaza la solicitud).
+## D-NEXT · Órdenes: el chip de entrada del vendedor y del gerente mira las tiendas que ÉL ve, no todas
+
+**Fecha:** 2026-11-02 · Hecho directo por el orquestador en `fix/ventas-chip-de-entrada-por-tienda`. Sin migración.
+
+**Pedido (el dueño):** «Melecio no puede ver nada en órdenes, le aparece vacío, puedes revisar».
+
+**Qué pasaba (medido en la base):** Melecio es vendedor de RDZ Pharr y ve solo esa tienda (`visible_stores`). Pharr auto-aprueba, así que no tiene órdenes pendientes nunca (249 órdenes en 60 días; 0 en «Pendiente»). La base le devuelve sus órdenes; la pantalla, no: gerente y vendedor entran en el chip «Pendiente» salvo que TODAS las tiendas de Ajustes auto-aprueben (`autoApproveAll`), y McAllen no auto-aprueba. Resultado: lista vacía al entrar, con «Programadas» a un clic que nadie da.
+
+**Qué cambia:** `src/lib/auto-aprueban-las-mias.ts`: `todasLasMiasAutoAprueban(stores, yo)` mira las tiendas que ve quien entra (`visible_stores`; si no, su `store`; admin, chofer y almacén, todas), con la misma regla que `tiendas_visibles()`. `src/app/(app)/page.tsx` lo usa para el chip de entrada («Programadas» si sus tiendas auto-aprueban) y para esconder el chip «Pendiente» (`todasAprueban`). Para el admin no cambia nada.
+
+**Pruebas:** `src/lib/auto-aprueban-las-mias.test.ts`. tsc limpio.
+
+**No verificado:** en navegador con la cuenta de Melecio. Si tras recargar sigue vacío con «Programadas» puesto, el siguiente sospechoso es un filtro guardado en su navegador (ninguno en la base: solo anchos de columnas).
