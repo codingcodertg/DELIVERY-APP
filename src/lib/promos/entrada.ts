@@ -55,7 +55,8 @@ export function rondaDeEntrada(rondas: readonly RondaParaEntrar[]): RondaParaEnt
  */
 export function tiendasSinGrupoDePromos(tiendas: readonly NamedLocation[]): string[] {
   return tiendas
-    .filter((t) => ((t.promo_group ?? "").trim() === ""))
+    // D-787: una bodega no decide promociones; no le falta nada.
+    .filter((t) => !t.bodega && ((t.promo_group ?? "").trim() === ""))
     .map((t) => (t.name ?? "").trim())
     .filter((n) => n !== "");
 }

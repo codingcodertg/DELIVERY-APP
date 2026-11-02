@@ -28,13 +28,14 @@ export function archivoDelQr(tienda: string | null): string {
   return `RTG-encuesta-QR-${limpio || "tienda"}.png`;
 }
 
-/** Los nombres de las tiendas de Ajustes, recortados, sin vacíos ni repetidos, en su orden. */
-export function nombresDeTiendas(tiendas: readonly { name?: string | null }[] | null | undefined): string[] {
+/** Los nombres de las tiendas de Ajustes, recortados, sin vacíos ni repetidos, en su orden. Una bodega (D-787) no es
+ * una tienda: no lleva QR propio. */
+export function nombresDeTiendas(tiendas: readonly { name?: string | null; bodega?: boolean }[] | null | undefined): string[] {
   const vistos = new Set<string>();
   const salida: string[] = [];
   for (const t of tiendas ?? []) {
     const n = (t?.name ?? "").trim();
-    if (!n || vistos.has(n)) continue;
+    if (!n || vistos.has(n) || t?.bodega) continue;
     vistos.add(n);
     salida.push(n);
   }

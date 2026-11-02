@@ -49399,3 +49399,20 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** las de Clientes actualizadas (`ficha-sin-huecos`, `por-rol`, `reglas`, `vendedor-por-tienda`, `vendedores`, `ventana`). tsc limpio.
 
 **No verificado:** en navegador.
+
+## D-787 · Promos: una ronda cerrada solo la ve el admin; y una tienda puede marcarse «bodega» para quedar fuera de las listas de tiendas
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/promos-cerradas-solo-admin`. Migración **224** (la aplica el dueño).
+
+**Pedido (el dueño):** «older promos should be locked and only admin can see all promos but right now every time there is a promo we activate and deactivate it for everybody so everybody can only see November, just admin can see all». Y, de Roberto Rodriguez Jr: quitar la bodega (la entrada de Ajustes que no es tienda) de la vista.
+
+**Qué había:** cerrar una ronda (`promo_set_round_closed`, 140) la congelaba, pero la seguían viendo todos los que tienen el módulo y el selector de rondas la ofrecía a cada vendedor. Y la bodega es una tienda más en `settings.stores` (vende y es punto de recolección), así que salía en el aviso del admin de Promos («estas tiendas no tienen grupo de promociones») y con QR propio en Encuestas.
+
+**Qué cambia:**
+
+1. **Base (224):** las cuatro políticas de select de promos (`promo_rounds`, `promo_products`, `promo_suggestions`, `promo_decisions`) piden el módulo Y que la ronda esté abierta (`closed_at` nulo), salvo para el admin, que ve todas. Nuevo helper `promo_round_visible(uuid)` (definer, admin o ronda abierta) para las tres tablas con `round_id`. Las políticas de escritura no cambian. Así «activar» una ronda es abrirla (el script de carga la sube cerrada y la abre al final) y «desactivarla» es cerrarla: el resto deja de verla y el admin la conserva en el selector. La pantalla no filtra nada: a quien no es admin la consulta ya no le trae la cerrada, y `/promos/<id>` de una cerrada le da «no encontrada».
+2. **Bodega, no tienda:** `NamedLocation.bodega?: boolean` (`src/lib/types.ts`); casilla «Bodega, no tienda» en Datos → Tiendas (`data-es-bodega`, se guarda por `registroDeLugar`, la clave solo existe cuando es verdad) y etiqueta «Bodega» en la lista (`data-bodega-en-la-lista`). `tiendasSinGrupoDePromos` (Promos) y `nombresDeTiendas` (QR de Encuestas) la saltan. **El dueño tiene que marcar la casilla en la bodega** en Datos → Tiendas; hasta entonces sale como antes.
+
+**Pruebas:** `src/lib/promos/rondas-cerradas-solo-admin.test.ts` (lee la 224), `src/lib/promos/entrada.test.ts`, `src/lib/encuestas/qr-por-tienda.test.ts`, `src/lib/named-location.test.ts`. tsc limpio. Ensayo de la 224 en seco contra producción: limpio.
+
+**No verificado:** en navegador; la 224 en producción hasta que el dueño la aplique (sin ella, todo sigue como hoy: la pantalla no depende de la migración).

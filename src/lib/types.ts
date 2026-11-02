@@ -363,6 +363,9 @@ export interface NamedLocation {
   /** Stores only: when true, orders sold from this store skip manager approval
    * and are created already Approved. Undefined/false = normal approval flow. */
   auto_approve?: boolean;
+  /** Stores only (D-787): true = this entry is a WAREHOUSE, not a store. It still sells and is a pickup point, but
+   * the screens that list «the stores» (the promos warning, the survey QR per store) leave it out. Absent = store. */
+  bodega?: boolean;
   /** Confirmed geocoded pinpoint, saved when an admin taps "Verify" and the
    * address is found. Its presence means the address is verified; routing can
    * use this exact point instead of re-geocoding. Cleared when the address is
