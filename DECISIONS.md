@@ -49683,7 +49683,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/boton-general.test.ts`, `src/lib/recarga-al-volver.test.ts` (nueva). tsc limpio.
 
 **No verificado:** en el teléfono de un chofer; que la parada de Edinburg faltara por el canal muerto es la causa más probable, no medida (no hay registro del canal).
-## D-NEXT · RR. HH.: amonestaciones en el expediente, las dan el admin y el gerente de RR. HH.
+## D-806 · RR. HH.: amonestaciones en el expediente, las dan el admin y el gerente de RR. HH.
 
 **Fecha:** 2026-11-02 · Hecho directo por el orquestador en `feat/rrhh-amonestaciones`. Migración **227** (la aplica el dueño).
 

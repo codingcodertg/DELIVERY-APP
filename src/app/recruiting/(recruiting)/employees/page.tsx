@@ -75,7 +75,7 @@ export default function EmployeeFilesPage() {
   const [estado, setEstado] = useState<FiltroEstado>("activos");
   const [baja, setBaja] = useState<string | null>(null);
   const [reactivar, setReactivar] = useState<string | null>(null);
-  // D-NEXT (227): la amonestación, desde la ficha; la da el admin o el gerente de RR. HH.
+  // D-806 (227): la amonestación, desde la ficha; la da el admin o el gerente de RR. HH.
   const [amonestar, setAmonestar] = useState<string | null>(null);
   const amonestarFila = amonestar ? rows.find((r) => r.id === amonestar) ?? null : null;
   const [agregando, setAgregando] = useState(false);
@@ -622,7 +622,7 @@ function Ficha({
               🔑 {t("Permissions", "Permisos")}
             </button>
           )}
-          {/* D-NEXT (227): amonestar lo hacen el admin y el gerente de RR. HH. (los que ven la ficha). */}
+          {/* D-806 (227): amonestar lo hacen el admin y el gerente de RR. HH. (los que ven la ficha). */}
           {!deBaja && (
             <button className="btn btn-ghost btn-sm" data-accion="amonestar" onClick={onAmonestar}
               title={t("Register a warning in this person's file history", "Registrar una amonestación en el historial del expediente")}>

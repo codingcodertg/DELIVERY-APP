@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { etiquetaDeHistorial, esDeEmpleado, KINDS, motivoDeAmonestacionValido } from "./historial";
 
-/** D-NEXT (227): amonestaciones en el expediente, las dan el admin y el gerente de RR. HH. */
+/** D-806 (227): amonestaciones en el expediente, las dan el admin y el gerente de RR. HH. */
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").replace(/\r\n/g, "\n");
 
 describe("la amonestación", () => {

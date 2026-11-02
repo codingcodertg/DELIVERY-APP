@@ -132,7 +132,7 @@ export function BajaDialog({
 // ---------------------------------------------------------------------------------------------
 
 /**
- * D-NEXT (227): registrar una amonestación. Motivo obligatorio, nota opcional; queda en el historial del expediente con
+ * D-806 (227): registrar una amonestación. Motivo obligatorio, nota opcional; queda en el historial del expediente con
  * quién la dio y cuándo. Roberto: «we can start giving warnings when they don't do their job right».
  */
 export function AmonestarDialog({ persona, onDone, onClose }: {

@@ -486,7 +486,7 @@ async function liberaActivosDeLaBaja(supabase: Awaited<ReturnType<typeof createC
  * trabajar aquí; que vuelva a entrar al hub, con los permisos que tenía, es otra decisión y se toma aparte.
  */
 /**
- * D-NEXT (227): registrar una amonestación en el expediente. Admin y gerente de RR. HH. (`PUEDE`), como el resto del
+ * D-806 (227): registrar una amonestación en el expediente. Admin y gerente de RR. HH. (`PUEDE`), como el resto del
  * expediente; la fila va al historial (`employee_warning`) con quién la da, cuándo, el motivo y la nota. Aquí sí hunde
  * si no se escribe: la amonestación ES la fila; sin ella no hay nada que registrar.
  */

@@ -1,4 +1,4 @@
--- 227: RR. HH. — amonestaciones en el expediente (D-NEXT, 2026-11-02).
+-- 227: RR. HH. — amonestaciones en el expediente (D-806, 2026-11-02).
 --
 -- El dueño, tras Roberto Rodriguez Jr («we can start giving warnings when they don't do their job right»): «let's have
 -- the option to admin and manager to give and register warnings in their expedients».
