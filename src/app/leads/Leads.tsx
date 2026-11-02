@@ -120,7 +120,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     return c ? [c.account, c.rep_name, c.contact_name].filter(Boolean).join(" · ") : "";
   }, [clientes]);
   const [coinciden, setCoinciden] = useState(false);
-  // D-NEXT (225): lo cruzado con un cliente de MI tienda también se ve y se toma, aunque su pool sea otra tienda.
+  // D-799 (225): lo cruzado con un cliente de MI tienda también se ve y se toma, aunque su pool sea otra tienda.
   const miCodigo = codigoDeTiendaDelPerfil(yo?.store);
   const cruzadoDeMiTienda = useCallback((l: Lead) => esCruzadoDeMiTienda(l, clientes, miCodigo), [clientes, miCodigo]);
   const privados = useMemo(

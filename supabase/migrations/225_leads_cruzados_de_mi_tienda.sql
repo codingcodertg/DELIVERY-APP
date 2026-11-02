@@ -1,5 +1,5 @@
 -- 225: Leads — un lead cruzado con un cliente de MI tienda lo veo y lo puedo tomar, aunque su pool sea otra tienda
--- (D-NEXT, 2026-11-01).
+-- (D-799, 2026-11-01).
 --
 -- El dueño, con captura del STXP Pool como Melecio (Pharr) y un lead de Pharr cruzado con CANTU CONSTRUCTION (MCA): «in
 -- this case you see a Pharr client matched with a McAllen client, so in this situation you can also show the McAllen

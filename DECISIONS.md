@@ -49582,7 +49582,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/leads/filtros-al-cambiar-de-pool.test.ts`, `reglas.test.ts`. tsc limpio.
 
 **No verificado:** en navegador.
-## D-NEXT · Leads: un lead cruzado con un cliente de MI tienda se ve y se toma, aunque su pool sea otra tienda
+## D-799 · Leads: un lead cruzado con un cliente de MI tienda se ve y se toma, aunque su pool sea otra tienda
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/leads-cruzados-de-mi-tienda`. Migración **225** (la aplica el dueño).
 

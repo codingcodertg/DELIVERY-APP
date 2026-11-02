@@ -70,7 +70,7 @@ export function privadosVisibles<L extends Pick<Lead, "pool" | "status" | "holde
 }
 
 /**
- * D-NEXT (225): un lead cruzado con un cliente de MI tienda se ve (y se toma) aunque su pool sea otra tienda. El dueño,
+ * D-799 (225): un lead cruzado con un cliente de MI tienda se ve (y se toma) aunque su pool sea otra tienda. El dueño,
  * con un lead de Pharr cruzado con un cliente de McAllen: «you can also show the McAllen sales people this cliente, and
  * do this throughout the stores». La base lo decide (`leads_cruce_en_mi_tienda`); esto es su gemelo para la lista.
  */

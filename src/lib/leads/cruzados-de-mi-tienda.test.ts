@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { codigoDeTiendaDelPerfil, conCruzadosDeMiTienda, esCruzadoDeMiTienda } from "./alcance";
 
-/** D-NEXT (225): un lead cruzado con un cliente de MI tienda se ve y se toma aunque su pool sea otra tienda. */
+/** D-799 (225): un lead cruzado con un cliente de MI tienda se ve y se toma aunque su pool sea otra tienda. */
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").replace(/\r\n/g, "\n");
 
 describe("el gemelo del cruce por tienda", () => {
