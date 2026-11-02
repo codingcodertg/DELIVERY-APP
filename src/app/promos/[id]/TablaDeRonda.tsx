@@ -352,15 +352,22 @@ export function TablaDeRonda({
       {error && <div className="card" style={{ borderColor: "var(--red)", marginTop: 10 }}>{error}</div>}
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "12px 0" }}>
-        {(["pending", "approved", "rejected"] as const).map((e) => (
-          <button
-            key={e}
-            className={orden.filtros.estado?.has(e) ? "primary" : ""}
-            onClick={() => (orden.filtros.estado?.has(e) ? orden.limpiar("estado") : orden.aplicar("estado", new Set([e])))}
-          >
-            {t(ETIQUETA_ESTADO[e].en, ETIQUETA_ESTADO[e].es)} · {cuenta[e]}
-          </button>
-        ))}
+        {/* D-NEXT (el dueño, con captura): «pendiente aprobado rechazado son botones pero no aparecen botones; quiero el
+            estilo de tablas como deliveries». Chips como los de estado de la tabla de Órdenes (`.chip`, `.on`, `.cnt`):
+            se ven como botón, y el encendido se ve encendido. */}
+        <div className="ld-vistas" role="group" aria-label={t("Decision", "Decisión")} data-chips-de-estado>
+          {(["pending", "approved", "rejected"] as const).map((e) => (
+            <button
+              key={e}
+              type="button"
+              className={`chip${orden.filtros.estado?.has(e) ? " on" : ""}`}
+              data-estado-chip={e}
+              onClick={() => (orden.filtros.estado?.has(e) ? orden.limpiar("estado") : orden.aplicar("estado", new Set([e])))}
+            >
+              {t(ETIQUETA_ESTADO[e].en, ETIQUETA_ESTADO[e].es)} <span className="cnt">{cuenta[e]}</span>
+            </button>
+          ))}
+        </div>
         {/* El filtro de tienda (D-385). Hasta aquí NO existía: lo único con «tienda» era el menú de
             cabecera de cada columna de existencias, que filtra por VALOR exacto —una casilla por
             cada número distinto— y así quitar «menos de 10» era desmarcar los números uno a uno. */}

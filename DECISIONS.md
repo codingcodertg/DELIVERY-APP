@@ -49513,5 +49513,18 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 3. **Qué apps enseñan clientes hoy:** Clientes (la base, 217), el Quote Builder (ahora por `veLaFila`) y Leads, que solo lee el cliente ya cruzado de un lead (`customer_match_id`), no una lista para elegir. Cualquier pantalla nueva que ofrezca clientes pasa por `veLaFila`.
 
 **Pruebas:** `src/lib/customers/visibilidad.test.ts` (casos del gemelo; lee la 217 y comprueba las tres cláusulas; el Quote Builder importa y no reescribe), `clientes-para-cotizar.test.ts` (reescrita con `role`). `mapa-de-apps.ts`: citas de `Estimador.tsx` recalculadas. tsc y eslint limpios.
+## D-NEXT · Promos: chips de estado como en Órdenes, columnas «BRO QOH», y fuera el aviso «Solo el Gerente de Oficina…»
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/promos-chips-de-estado`. Sin migración.
+
+**Pedidos (el dueño, tres capturas de la ronda «Promo Noviembre»):** «pendiente aprobado rechazado son botones pero no aparecen botones, quiero que me hagas el estilo de tablas como deliveries, acuérdate»; «quita ese mensaje» (el aviso «Solo el Gerente de Oficina o la Oficina de la tienda decide»); «en vez de Existencias cámbialo a EDG QOH, que sería Edinburg quantity on hand».
+
+**Qué cambia:**
+
+1. `src/app/promos/[id]/TablaDeRonda.tsx`: los tres contadores Pendiente/Aprobado/Rechazado pasan de `<button>` sin clase (texto suelto) a los chips de la tabla de Órdenes: `.chip`, `.on` cuando el filtro está puesto, la cuenta en `.cnt` (`data-chips-de-estado`, `data-estado-chip`). Mismo comportamiento: pulsar filtra por esa decisión, volver a pulsar quita el filtro. Regla permanente del dueño (2026-10-28): toda tabla y filtro, con el formato de la tabla de Órdenes.
+2. `src/lib/promos/tabla.ts`: `motivoParaNoDecidir` ya no devuelve nada cuando quien mira no es decisor: ve la tabla sin botones de decidir y sin aviso. Los otros dos motivos (ronda cerrada; tienda sin grupo) se quedan.
+3. `src/lib/promos/tabla.ts`: las columnas de existencias por tienda pasan de «QOH BRO» / «Existencias BRO» a «BRO QOH» en los dos idiomas; la total, «QOH» en los dos.
+
+**Pruebas:** `src/lib/promos/chips-de-estado.test.ts` (nueva), `tabla.test.ts` (el no decisor no recibe aviso). tsc limpio.
 
 **No verificado:** en navegador.

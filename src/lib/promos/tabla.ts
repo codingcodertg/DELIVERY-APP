@@ -161,14 +161,16 @@ export function columnasDePromos(clavesDeTienda: readonly string[], puedeVerPriv
     { key: "description", en: "Description", es: "Descripción", ancho: 280 },
     { key: "supplier", en: "Supplier", es: "Proveedor", ancho: 160 },
     { key: "size", en: "Size", es: "Tamaño", ancho: 80 },
-    { key: "qoh", en: "QOH", es: "Existencias", ancho: 80, numero: true },
+    { key: "qoh", en: "QOH", es: "QOH", ancho: 80, numero: true },
   ];
   for (const t of clavesDeTienda) {
     // 64 y no 76 (D-375): desde que salen por defecto son seis columnas más en la pantalla de
     // todo el mundo, y lo que llevan son números de tres o cuatro cifras. Lo que se estrecha es el
     // hueco, no el dato. La cabecera corta con puntos, como el resto de la tabla, y el nombre
     // entero sigue en ⚙ Columnas y en el menú de la propia cabecera.
-    out.push({ key: `qoh_${t}`, en: `QOH ${t}`, es: `Existencias ${t}`, ancho: 64, numero: true, tienda: t });
+    // D-NEXT (el dueño): «en vez de Existencias cámbialo a EDG QOH, que sería Edinburg quantity on hand»: la tienda delante,
+    // y QOH también en español.
+    out.push({ key: `qoh_${t}`, en: `${t} QOH`, es: `${t} QOH`, ancho: 64, numero: true, tienda: t });
   }
   out.push({ key: "price", en: "Price", es: "Precio", ancho: 84, numero: true });
   if (puedeVerPrivadas) {
@@ -507,9 +509,9 @@ export function motivoParaNoDecidir(opts: { esDecisor: boolean; grupo: string | 
   if (opts.rondaCerrada) {
     return { en: "This round is closed. An admin can reopen it.", es: "Esta ronda está cerrada. Un administrador puede reabrirla." };
   }
-  if (!opts.esDecisor) {
-    return { en: "Only the store's Office Manager or Office decides.", es: "Solo el Gerente de Oficina o la Oficina de la tienda decide." };
-  }
+  // D-NEXT (el dueño, con captura del aviso «Solo el Gerente de Oficina o la Oficina de la tienda decide»): «quita ese
+  // mensaje». Quien no decide ve la tabla sin botones de decidir y sin aviso.
+  if (!opts.esDecisor) return null;
   return {
     en: "Your store has no promo group yet. An admin sets it in Data → Stores.",
     es: "Tu tienda todavía no tiene grupo de promociones. Un administrador lo pone en Datos → Tiendas.",
