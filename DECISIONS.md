@@ -49497,3 +49497,21 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/leads/filtros-al-cambiar-de-pool.test.ts` (nueva). El guion de cruce ensayado en seco antes y después del cambio (mismo resultado). tsc y eslint limpios.
 
 **No verificado:** en navegador; el importador del GOV Pool con un fichero real (solo que carga y que el cruce corre en su misma transacción).
+
+## D-793 · Quién ve qué cliente: una sola regla (la de Clientes, 217) que las demás apps importan; el Quote Builder, la primera
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/clientes-regla-unica`. Sin migración.
+
+**Pedido (el dueño):** «el quote builder la regla de customer debe ir totalmente ligada al customer app, y así en todas las apps». **Regla permanente.**
+
+**Qué había:** D-789 había escrito en el Quote Builder su propia versión de la regla (`codigoDeMiTienda` + condición en `elegibles`), parecida a la de Clientes pero suya: la próxima vez que cambiara la 217, el Quote Builder se quedaría atrás sin que nada avisara.
+
+**Qué cambia:**
+
+1. **`src/lib/customers/visibilidad.ts` (nuevo):** `veLaFila(fila, quienMira)`, el gemelo en TypeScript de `erp.customers_ve_la_fila` (217): admin todo; los demás, los de SU tienda (el nombre del perfil contra el código de la fila, `codigoDeTiendaDelPerfil`, el mismo mapa que `erp.customers_codigo_de_tienda`); el vendedor, además, los suyos por `rep_id` o `created_by`. `filasQueVe` filtra listas. La base sigue decidiendo con la sesión real; el gemelo cuenta cuando la sesión no es la de quien mira (un admin «como» un vendedor) y para que ninguna pantalla reescriba la regla.
+2. **Quote Builder:** `elegibles` importa `veLaFila`; `codigoDeMiTienda` se va. `Yo` lleva el `role` del perfil (en `page.tsx` y en el demo) y el buscador pasa `{ id, role, store }`.
+3. **Qué apps enseñan clientes hoy:** Clientes (la base, 217), el Quote Builder (ahora por `veLaFila`) y Leads, que solo lee el cliente ya cruzado de un lead (`customer_match_id`), no una lista para elegir. Cualquier pantalla nueva que ofrezca clientes pasa por `veLaFila`.
+
+**Pruebas:** `src/lib/customers/visibilidad.test.ts` (casos del gemelo; lee la 217 y comprueba las tres cláusulas; el Quote Builder importa y no reescribe), `clientes-para-cotizar.test.ts` (reescrita con `role`). `mapa-de-apps.ts`: citas de `Estimador.tsx` recalculadas. tsc y eslint limpios.
+
+**No verificado:** en navegador.

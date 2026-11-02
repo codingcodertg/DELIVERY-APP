@@ -1,27 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { CLIENTES_DEMO, clienteParaCotizar, codigoDeMiTienda, coincidencias, elegibles, relleno, rotulo, seBusca } from "./clientes-para-cotizar";
+import { CLIENTES_DEMO, clienteParaCotizar, coincidencias, elegibles, relleno, rotulo, seBusca } from "./clientes-para-cotizar";
 
 /** El Quote Builder elige un cliente ya existente del vendedor (D-784). */
 
 describe("quién puede elegir qué", () => {
-  it("el vendedor, solo los suyos (por vendedor o por quien lo creó) y sin archivados; el admin, todos los vivos", () => {
-    const mios = elegibles(CLIENTES_DEMO, { id: "u-sales", admin: false }).map((c) => c.id);
-    expect(mios).toEqual([1, 2]);
-    const creado = elegibles([{ ...CLIENTES_DEMO[2], rep_id: null, created_by: "u-sales" }], { id: "u-sales", admin: false });
-    expect(creado).toHaveLength(1);
-    expect(elegibles(CLIENTES_DEMO, { id: "u-admin", admin: true }).map((c) => c.id)).toEqual([1, 2, 3]);
-  });
-  it("quien no es admin ve además los de SU tienda, por el nombre del perfil (D-789, la regla de Clientes, 217)", () => {
-    // De McAllen: el 3 (MCA) aunque sea de otro vendedor; de Brownsville: 1 y 2, que ya eran suyos.
-    expect(elegibles(CLIENTES_DEMO, { id: "u-otro", admin: false, store: "RDZ McAllen" }).map((c) => c.id)).toEqual([3]);
-    expect(elegibles(CLIENTES_DEMO, { id: "u-otro", admin: false, store: "RDZ Brownsville" }).map((c) => c.id)).toEqual([1, 2]);
-    expect(elegibles(CLIENTES_DEMO, { id: "u-otro", admin: false, store: null }).map((c) => c.id)).toEqual([]);
-    expect(elegibles(CLIENTES_DEMO, { id: "u-sales", admin: false, store: "RDZ McAllen" }).map((c) => c.id)).toEqual([1, 2, 3]);
-    expect(codigoDeMiTienda("RDZ Pharr")).toBe("PHR");
-    expect(codigoDeMiTienda(" mca ")).toBe("MCA");
-    expect(codigoDeMiTienda("")).toBe("");
+  // La regla es la de Clientes (`veLaFila`, 217); aquí solo que se aplica y que los archivados nunca entran.
+  it("el vendedor: los suyos y los de su tienda, sin archivados; el admin, todos los vivos", () => {
+    expect(elegibles(CLIENTES_DEMO, { id: "u-sales", role: "sales", store: null }).map((c) => c.id)).toEqual([1, 2]);
+    expect(elegibles(CLIENTES_DEMO, { id: "u-otro", role: "sales", store: "RDZ McAllen" }).map((c) => c.id)).toEqual([3]);
+    expect(elegibles(CLIENTES_DEMO, { id: "u-admin", role: "admin", store: null }).map((c) => c.id)).toEqual([1, 2, 3]);
+    expect(elegibles([{ ...CLIENTES_DEMO[0], archived_at: "2026-01-01" }], { id: "u-admin", role: "admin", store: null })).toEqual([]);
   });
 });
 

@@ -12,7 +12,7 @@
  * (`rep_id` = él, o los que creó él); el admin, cualquiera. Lo archivado no se ofrece.
  */
 import { telefonoAlEscribir } from "./modelo";
-import { TIENDAS } from "@/lib/customers/reglas";
+import { type QuienMira, veLaFila } from "@/lib/customers/visibilidad";
 
 /** Lo que se pide a la base: pocas columnas, las que rellenan el bloque. */
 export const COLUMNAS_PARA_COTIZAR = "id, store, account, contact_name, phone, contacts, rep_id, created_by, archived_at";
@@ -54,27 +54,13 @@ export function clienteParaCotizar(f: Record<string, unknown>): ClienteParaCotiz
 /** ¿Se pregunta a la base con esto escrito? */
 export const seBusca = (q: string): boolean => q.trim().length >= MIN_LETRAS;
 
-/** El código (BRO, MCA…) de la tienda del perfil, que es un NOMBRE («RDZ Brownsville»); el mismo mapa que la 217. */
-export function codigoDeMiTienda(store: string | null | undefined): string {
-  const s = (store ?? "").trim().toLowerCase();
-  if (!s) return "";
-  return TIENDAS.find((t) => t.code.toLowerCase() === s || t.nombre.toLowerCase() === s)?.code ?? s.toUpperCase();
-}
-
 /**
- * Los que esta persona puede elegir: sin archivados; el admin, todos. Quien no es admin, **los de su tienda** y los
- * suyos (por vendedor o por quien lo creó): la misma regla con la que Clientes le enseña filas (217). D-789 (el dueño):
- * «en el quote builder la misma regla del customer: si el salespeople solo puede ver los customers de su tienda, en el
- * quote builder también». La base ya lo aplica con la sesión real; esto hace falta cuando un admin entra «como» un
- * vendedor, que consulta con la sesión del admin.
+ * Los que esta persona puede elegir: sin archivados y, de esos, los que VE según la regla de Clientes (`veLaFila`, el
+ * gemelo de la 217, en `src/lib/customers/visibilidad.ts`). D-793 (el dueño): «la regla de customer debe ir totalmente
+ * ligada al customer app, y así en todas las apps» — aquí no se reescribe nada: se importa.
  */
-export function elegibles(filas: readonly ClienteParaCotizar[], yo: { id: string; admin: boolean; store?: string | null }): ClienteParaCotizar[] {
-  const mia = codigoDeMiTienda(yo.store);
-  return filas.filter((c) => c.archived_at === null && (
-    yo.admin
-    || (!!mia && c.store.trim().toUpperCase() === mia)
-    || (!!c.rep_id && c.rep_id === yo.id)
-    || (!!c.created_by && c.created_by === yo.id)));
+export function elegibles(filas: readonly ClienteParaCotizar[], yo: QuienMira): ClienteParaCotizar[] {
+  return filas.filter((c) => c.archived_at === null && veLaFila(c, yo));
 }
 
 /** Las que casan con lo escrito (cuenta o contacto, sin mayúsculas), por cuenta y tienda, como mucho `max`. */

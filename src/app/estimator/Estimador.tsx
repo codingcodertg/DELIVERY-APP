@@ -1,5 +1,6 @@
 "use client";
 
+import type { UserRole } from "@/lib/types";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
@@ -47,7 +48,7 @@ const claveDeExtension = (id: string) => `rtg_estimator_ext_${id}`;
 /** La pausa tras la última tecla del # de estimado antes de comprobarlo solo (D-432: sin botón «Search»). */
 const ESPERA_COMPROBACION_MS = 600;
 
-type Yo = { id: string; name: string; admin: boolean; store?: string | null };
+type Yo = { id: string; name: string; admin: boolean; /** D-793: el rol, para la regla de Clientes (`veLaFila`). */ role?: UserRole | null; store?: string | null };
 type Aviso = { tipo: "verde" | "ambar" | "rojo"; texto: string } | null;
 
 /**
@@ -80,7 +81,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
         const crudo = localStorage.getItem(ME_DEMO);
         const m = crudo ? JSON.parse(crudo) : null;
         setMe(m && typeof m.id === "string"
-          ? { id: m.id, name: typeof m.full_name === "string" ? m.full_name : m.id, admin: m.role === "admin", store: typeof m.store === "string" ? m.store : null }
+          ? { id: m.id, name: typeof m.full_name === "string" ? m.full_name : m.id, admin: m.role === "admin", role: typeof m.role === "string" ? (m.role as UserRole) : null, store: typeof m.store === "string" ? m.store : null }
           : { id: "u-admin", name: "You (Admin)", admin: true });
       } catch { setMe({ id: "u-admin", name: "You (Admin)", admin: true }); }
     };
@@ -187,8 +188,8 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   useEffect(() => {
     if (!seBusca(buscaCliente) || !me) { setOpcionesDeCliente([]); return; }
     let vivo = true;
-    // D-789: con la tienda del perfil, para que un vendedor (o un admin «como» él) vea solo los de su tienda y los suyos.
-    const yo = { id: me.id, admin: me.admin, store: me.store ?? null };
+    // D-789/D-793: la regla de Clientes (`veLaFila`): rol y tienda del perfil, también cuando un admin entra «como» otro.
+    const yo = { id: me.id, role: me.role ?? (me.admin ? "admin" : null), store: me.store ?? null };
     const tarea = setTimeout(async () => {
       if (demo) { if (vivo) setOpcionesDeCliente(coincidencias(elegibles(CLIENTES_DEMO, yo), buscaCliente)); return; }
       if (!erp) return;

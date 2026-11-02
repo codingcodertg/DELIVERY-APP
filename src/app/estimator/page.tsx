@@ -1,3 +1,4 @@
+import type { UserRole } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { demoSettings } from "@/lib/demo-data";
@@ -77,7 +78,7 @@ export default async function EstimatorPage() {
     : { data: null };
 
   const me = perfil
-    ? { id: perfil.id as string, name: (perfil.full_name as string | null) ?? "", admin: perfil.role === "admin", store: (perfil.store as string | null) ?? null }
+    ? { id: perfil.id as string, name: (perfil.full_name as string | null) ?? "", admin: perfil.role === "admin", role: (perfil.role as UserRole | null) ?? null, store: (perfil.store as string | null) ?? null }
     : null;
   const [extension, ajustes] = await Promise.all([me ? extensionDelExpediente(me.id) : null, ajustesDeEntrega()]);
   return <Estimador me={me} demo={false} extension={extension} ajustes={ajustes} />;
