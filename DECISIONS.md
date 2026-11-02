@@ -49416,3 +49416,21 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/promos/rondas-cerradas-solo-admin.test.ts` (lee la 224), `src/lib/promos/entrada.test.ts`, `src/lib/encuestas/qr-por-tienda.test.ts`, `src/lib/named-location.test.ts`. tsc limpio. Ensayo de la 224 en seco contra producción: limpio.
 
 **No verificado:** en navegador; la 224 en producción hasta que el dueño la aplique (sin ella, todo sigue como hoy: la pantalla no depende de la migración).
+## D-NEXT · Los campos perdían el borde tras pasar por Clientes: el preflight de Tailwind queda acotado al ERP
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `fix/preflight-solo-erp`. Sin migración.
+
+**Pedido (el dueño, con captura de «Nueva orden de entrega» con los campos sin línea):** «mira eso no se miran la línea de las boxes revisa bien qué pasa, a Roberto le pasa mucho y también en Quote Builder».
+
+**Qué pasaba (medido en el demo con Chrome por CDP):** `erp.css` importaba `tailwindcss` entero, preflight incluido, con la premisa de D-090 de que Next solo carga esa hoja en /erp y /customers. Es verdad al abrir la página, pero **al navegar dentro de la app la hoja ya cargada no se descarga**: quien pasa por Clientes y va luego a Entregas o al Quote Builder sigue con el preflight puesto, y su `* { border: 0 solid }` (capa `base`, por encima de la capa `app` de globals.css) gana a `input, select, textarea { border: 1px solid var(--line); border-radius: 8px }`. Medición: `select` en `/` con borde 1px y radio 8px → tras `/customers` en la misma pestaña, 0px y radio 0 en `/` y en `/estimator`. Roberto y el dueño lo veían «mucho» porque viven en Clientes. La clase `.invalid` (fondo rosa) seguía saliendo porque no está en capa, y por eso los campos obligatorios se veían rosas y sin borde rojo.
+
+**Qué cambia:**
+
+1. `src/app/erp/erp.css`: en vez de `@import "tailwindcss"`, las tres piezas por separado: tema (`layer(theme)`), **preflight acotado** y utilidades (`layer(utilities)`), con la misma declaración de orden de capas que Tailwind emite.
+2. `src/app/erp/preflight-erp.css` (**generado**, no editar): el `preflight.css` real de Tailwind 4.3.3, palabra por palabra, anidado bajo `[data-app="erp"]` dentro de `@layer base`. La regla `html, :host` pasa a `&, :host`: el interlineado y la tipografía que Tailwind pone en `html` los hereda el árbol del ERP desde su raíz, y nada fuera. Lo genera `scripts/css/genera-preflight-erp.mjs` desde node_modules; al subir Tailwind se vuelve a correr y la prueba avisa si discrepan. No se aproxima nada a mano (D-090 ya pagó un preflight «aproximado»).
+
+**Medido tras el arreglo (demo, misma pestaña / → /customers → / → /estimator):** borde 1px y radio 8px en los cuatro pasos. En `/customers`, dentro de `[data-app="erp"]` todo igual que antes (raíz, h1, h2, enlaces, input, select, botón, tabla, lista, párrafo); las únicas diferencias son fuera del ERP: `html` ya no lleva la tipografía ni el interlineado 1,5 de Tailwind y `body` queda con interlineado normal, que es como están en todas las demás pantallas. Inventario (/erp) no abre en el demo: no medido, pero su marcado vive entero dentro del mismo ancla que Clientes.
+
+**Pruebas:** `src/lib/preflight-solo-erp.test.ts` (erp.css ya no importa tailwindcss entero; el generado es exactamente lo que sale del generador con el preflight instalado; `html,` no aparece y el reset universal queda dentro del ancla). `src/lib/un-solo-tema.test.ts` sigue verde.
+
+**No verificado:** en producción en navegador real; /erp en navegador.
