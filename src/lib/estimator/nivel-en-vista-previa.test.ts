@@ -22,7 +22,7 @@ describe("el nivel de detalle", () => {
   });
   it("cambia el borrador (set display_level), del que sale la hoja: cambia en vivo", () => {
     expect(e).toContain('onChange={() => set("display_level", k)}');
-    expect(e).toContain("const hoja = useMemo(() => hojaDelCliente(draft, tiendaHoja), [draft, tiendaHoja]);");
+    expect(e).toContain("const hoja = useMemo(() => hojaDelCliente(draft, tiendaHoja, idiomaDeLaHoja), [draft, tiendaHoja, idiomaDeLaHoja]);");
   });
   it("al imprimir no sale: solo la hoja es visible", () => {
     const css = leer("src/app/estimator/estimator.css");

@@ -15,6 +15,6 @@ describe("el campo de la tienda", () => {
     const antes = e.slice(e.lastIndexOf("{me.admin && (", i), i);
     expect(antes).toContain("{me.admin && (");
     expect(antes).not.toContain(")}");
-    expect(e).toContain("const hoja = useMemo(() => hojaDelCliente(draft, tiendaHoja), [draft, tiendaHoja]);");
+    expect(e).toContain("const hoja = useMemo(() => hojaDelCliente(draft, tiendaHoja, idiomaDeLaHoja), [draft, tiendaHoja, idiomaDeLaHoja]);");
   });
 });

@@ -13,6 +13,10 @@ export const POLITICA_PARRAFOS: readonly string[] = [
   "Do not create competing quotes. Search the estimate number first. If another sales representative owns the estimate, obtain their approval before proceeding.",
 ];
 export const POLITICA_CASILLA = "I have reviewed and will follow the Customer Quote Policy.";
+// D-NEXT (el dueño): «lo del policy debería cambiar también idioma al idioma que tiene el user»: en español se enseña SOLO
+// la traducción (antes salían las dos, el inglés y debajo la traducción en gris).
+export const POLITICA_TITULO_ES = "POLÍTICA DE COTIZACIONES AL CLIENTE";
+export const POLITICA_CASILLA_ES = "He leído y seguiré la Política de Cotizaciones al Cliente.";
 
 export const POLITICA_PARRAFOS_ES: readonly string[] = [
   "No imprimir por defecto. Revisa los precios con el cliente y anímalo a volver por el mejor precio disponible cuando esté listo para comprar.",

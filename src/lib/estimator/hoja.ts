@@ -46,18 +46,65 @@ export const NOTA_DE_CAJAS_ES =
   "Algunos artículos se redondean hacia arriba a la caja completa; no se venden por pieza ni por los pies cuadrados exactos pedidos.";
 
 /**
+ * D-NEXT (el dueño): «debería haber un language toggle switch para hacer el quote en español o en inglés». La hoja sale
+ * en el idioma que se elige en la vista previa (de entrada, el del usuario). Todo lo que la hoja escribe en palabras
+ * pasa por aquí; los números y el dinero se quedan como están (formato de EE. UU.).
+ */
+export type IdiomaDeLaHoja = "en" | "es";
+export const TEXTOS_DE_LA_HOJA = {
+  en: {
+    subtitulo: SUBTITULO,
+    aviso: AVISO_JUNTO_AL_TOTAL,
+    entrega: TEXTO_DE_ENTREGA,
+    notaDeCajas: NOTA_DE_CAJAS,
+    areaPedida: "Requested Area",
+    cantidad: "Quantity",
+    caja: "Box", cajas: "Boxes", sfPorCaja: "SF/Box", lote: "Lot",
+    descuento: "Discount",
+    subtotal: "Subtotal", ahorro: "Savings", impuesto: "Tax", total: "Estimated Material Total",
+    validaHasta: "QUOTE VALID THROUGH",
+    ext: "Ext.",
+    rotulos: { preparadoPara: "Prepared for:", referencia: "Quote Reference:", tienda: "Store:", representante: "Sales Representative:", resumen: "PROJECT SUMMARY", descripcion: "Description", cantidad: "Quantity", importe: "Amount" },
+  },
+  es: {
+    subtitulo: "Resumen de precios del proyecto — Referencia para el cliente",
+    aviso: "Los precios y la disponibilidad están sujetos a verificación al momento de la compra. Algunos productos cotizados pueden ser de liquidación, promocionales o de venta final. Las condiciones de venta final aplicables se confirmarán antes de la compra.",
+    entrega: "Entrega: disponible a solicitud. El costo de entrega se confirmará según el calendario de entregas.",
+    notaDeCajas: NOTA_DE_CAJAS_ES,
+    areaPedida: "Área pedida",
+    cantidad: "Cantidad",
+    caja: "caja", cajas: "cajas", sfPorCaja: "SF/caja", lote: "Lote",
+    descuento: "Descuento",
+    subtotal: "Subtotal", ahorro: "Ahorro", impuesto: "Impuesto", total: "Total estimado de materiales",
+    validaHasta: "COTIZACIÓN VÁLIDA HASTA EL",
+    ext: "Ext.",
+    rotulos: { preparadoPara: "Preparada para:", referencia: "Referencia de cotización:", tienda: "Tienda:", representante: "Representante de ventas:", resumen: "RESUMEN DEL PROYECTO", descripcion: "Descripción", cantidad: "Cantidad", importe: "Importe" },
+  },
+} as const;
+export type RotulosDeLaHoja = { readonly [K in keyof (typeof TEXTOS_DE_LA_HOJA)["en"]["rotulos"]]: string };
+
+const MESES_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+/** «1 de noviembre de 2026»; vacío si la fecha no es AAAA-MM-DD. */
+export function fechaLargaEs(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return "";
+  const mes = MESES_ES[Number(m[2]) - 1];
+  return mes ? `${Number(m[3])} de ${mes} de ${m[1]}` : "";
+}
+
+/**
  * Si alguna línea por SF se lleva más de lo pedido —sus cajas (las escritas o las de por defecto, `cajasDeLinea`) cubren
  * más SF que `requested_sf`— devuelve la nota; si no, null y no se imprime nada. Una línea por unidad, una sin SF pedidos,
  * sin SF/caja o sin cajas no cuenta: no hay redondeo que explicar. Si las cajas cubren exactamente lo pedido (100 SF a 25
  * SF/caja = 4 cajas) tampoco: el cliente se lleva lo que pidió.
  */
-export function notaDeCajas(lineas: readonly QuoteLine[]): string | null {
+export function notaDeCajas(lineas: readonly QuoteLine[], idioma: IdiomaDeLaHoja = "en"): string | null {
   const redondea = lineas.some((l) => {
     if (l.kind !== "sf" || l.requested_sf === null || l.requested_sf <= 0) return false;
     const real = sfReal(l);
     return real !== null && real > l.requested_sf;
   });
-  return redondea ? NOTA_DE_CAJAS : null;
+  return redondea ? TEXTOS_DE_LA_HOJA[idioma].notaDeCajas : null;
 }
 
 export interface FilaDelCliente {
@@ -99,13 +146,16 @@ export interface HojaDelCliente {
   avisoJuntoAlTotal: string;
   /** Lo último que se imprime, si es entrega. Detrás no va nada. */
   entrega: string | null;
+  /** D-NEXT: el idioma de la hoja y sus rótulos (la pantalla no traduce nada por su cuenta). */
+  idioma: IdiomaDeLaHoja;
+  rotulos: RotulosDeLaHoja;
 }
 
 /** «24x48 Tile — Main Floor», y en Detailed «· 23.80 SF/Box». Nunca el código ni la descripción interna. */
-export function descripcionParaElCliente(l: QuoteLine, nivel: DisplayLevel): string {
+export function descripcionParaElCliente(l: QuoteLine, nivel: DisplayLevel, idioma: IdiomaDeLaHoja = "en"): string {
   const base = [l.customer_category.trim(), l.customer_note.trim()].filter(Boolean).join(" — ");
   if (l.kind === "sf" && nivel === "detailed" && l.sf_per_box !== null && l.sf_per_box > 0) {
-    return `${base} · ${numero(l.sf_per_box, 2)} SF/Box`;
+    return `${base} · ${numero(l.sf_per_box, 2)} ${TEXTOS_DE_LA_HOJA[idioma].sfPorCaja}`;
   }
   return base;
 }
@@ -114,15 +164,16 @@ export function descripcionParaElCliente(l: QuoteLine, nivel: DisplayLevel): str
  * La columna de cantidad. **Siempre «Requested Area», nunca «Square Feet»**: en Basic, «1,250 SF» a
  * secas haría creer que se entregan exactamente 1,250 SF, y con cajas completas se entregan más.
  */
-export function cantidadParaElCliente(l: QuoteLine, nivel: DisplayLevel): string[] {
+export function cantidadParaElCliente(l: QuoteLine, nivel: DisplayLevel, idioma: IdiomaDeLaHoja = "en"): string[] {
+  const T = TEXTOS_DE_LA_HOJA[idioma];
   if (l.kind === "unit") {
-    return l.quantity !== null ? [`${numero(l.quantity)} ${l.unit.trim() || "Lot"}`] : [];
+    return l.quantity !== null ? [`${numero(l.quantity)} ${l.unit.trim() || T.lote}`] : [];
   }
   const out: string[] = [];
-  if (l.requested_sf !== null) out.push(`Requested Area: ${numero(l.requested_sf)} SF`);
+  if (l.requested_sf !== null) out.push(`${T.areaPedida}: ${numero(l.requested_sf)} SF`);
   if (nivel !== "basic") {
     const cajas = cajasDeLinea(l);
-    if (cajas !== null) out.push(`Quantity: ${numero(cajas)} ${cajas === 1 ? "Box" : "Boxes"}`);
+    if (cajas !== null) out.push(`${T.cantidad}: ${numero(cajas)} ${cajas === 1 ? T.caja : T.cajas}`);
   }
   return out;
 }
@@ -132,10 +183,10 @@ export function cantidadParaElCliente(l: QuoteLine, nivel: DisplayLevel): string
  * si la línea no tiene un precio con descuento que valga (vacío, igual o mayor que el regular, o sin regular). El
  * porcentaje es el mismo que ve el vendedor en la pantalla (`porcentajeDeDescuento`, a un decimal).
  */
-export function precioConDescuentoParaElCliente(l: QuoteLine): string | null {
+export function precioConDescuentoParaElCliente(l: QuoteLine, idioma: IdiomaDeLaHoja = "en"): string | null {
   const { regular, bajo } = preciosDeLinea(l);
   const pct = porcentajeDeDescuento(regular, bajo);
-  return pct === null ? null : `Discount: ${numero(pct, 0)}%`;
+  return pct === null ? null : `${TEXTOS_DE_LA_HOJA[idioma].descuento}: ${numero(pct, 0)}%`;
 }
 
 /**
@@ -146,34 +197,37 @@ export function tiendaDeLaHoja(guardada: string | null | undefined, mia: string 
   return guardada?.trim() || mia?.trim() || null;
 }
 
-export function hojaDelCliente(q: QuoteDraft, tienda: string | null = null): HojaDelCliente {
+export function hojaDelCliente(q: QuoteDraft, tienda: string | null = null, idioma: IdiomaDeLaHoja = "en"): HojaDelCliente {
+  const T = TEXTOS_DE_LA_HOJA[idioma];
   const filas: FilaDelCliente[] = q.lines.map((l) => ({
-    descripcion: descripcionParaElCliente(l, q.display_level),
-    cantidad: cantidadParaElCliente(l, q.display_level),
+    descripcion: descripcionParaElCliente(l, q.display_level, idioma),
+    cantidad: cantidadParaElCliente(l, q.display_level, idioma),
     importe: totalRegularDeLinea(l) ?? 0,
-    precioConDescuento: precioConDescuentoParaElCliente(l),
+    precioConDescuento: precioConDescuentoParaElCliente(l, idioma),
   }));
   // Subtotal regular → ahorro → impuesto → total (D-442). Solo con las líneas: la entrega no entra (D-413).
   const r = resumenDeTotales(q.lines, tasaDeImpuesto(tienda));
   const total = r.total;
-  const fecha = fechaLarga(q.valid_through);
+  const fecha = idioma === "es" ? fechaLargaEs(q.valid_through) : fechaLarga(q.valid_through);
   return {
     encabezado: ENCABEZADO,
-    subtitulo: SUBTITULO,
+    subtitulo: T.subtitulo,
     preparadoPara: paraQuienSeImprime(q.customer),
     referencia: q.estimate_num.trim(),
     tienda: tienda?.trim() || null,
-    representante: q.sales_ext.trim() ? `Ext. ${q.sales_ext.trim()}` : "",
+    representante: q.sales_ext.trim() ? `${T.ext} ${q.sales_ext.trim()}` : "",
     resumen: q.project_summary.trim() || null,
     filas,
-    notaDeCajas: notaDeCajas(q.lines),
-    textoSubtotal: `Subtotal: ${dinero(r.subtotal)}`,
-    textoAhorro: r.ahorro > 0 ? `Savings: −${dinero(r.ahorro)}` : null,
-    textoImpuesto: `Tax ${numero(r.tasa)}%: ${dinero(r.impuesto)}`,
+    notaDeCajas: notaDeCajas(q.lines, idioma),
+    textoSubtotal: `${T.subtotal}: ${dinero(r.subtotal)}`,
+    textoAhorro: r.ahorro > 0 ? `${T.ahorro}: −${dinero(r.ahorro)}` : null,
+    textoImpuesto: `${T.impuesto} ${numero(r.tasa)}%: ${dinero(r.impuesto)}`,
     total,
-    textoTotal: `Estimated Material Total: ${dinero(total)}`,
-    validezConspicua: `QUOTE VALID THROUGH ${fecha.toUpperCase()}`,
-    avisoJuntoAlTotal: AVISO_JUNTO_AL_TOTAL,
-    entrega: q.delivery.mode === "delivery" ? TEXTO_DE_ENTREGA : null,
+    textoTotal: `${T.total}: ${dinero(total)}`,
+    validezConspicua: `${T.validaHasta} ${fecha.toUpperCase()}`,
+    avisoJuntoAlTotal: T.aviso,
+    entrega: q.delivery.mode === "delivery" ? T.entrega : null,
+    idioma,
+    rotulos: T.rotulos,
   };
 }
