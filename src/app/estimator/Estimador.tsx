@@ -32,7 +32,7 @@ import {
   POLITICA_CASILLA, POLITICA_CASILLA_ES, POLITICA_PARRAFOS, POLITICA_PARRAFOS_ES, POLITICA_TITULO, POLITICA_TITULO_ES, sePuedeGenerar, sePuedePedirLaCopia,
 } from "@/lib/estimator/politica";
 import { puedeVerLista, puedeVerTodas, type Pestana } from "@/lib/estimator/lista-admin";
-import { alternarPriceMatch, etiquetaPriceMatch, ponCompetidor, tienePriceMatch } from "@/lib/estimator/price-match";
+import { alternarPriceMatch, etiquetaPriceMatch, igualaPrecio, ponCompetidor, ponPrecioCompetidor, sePuedeIgualar, tienePriceMatch } from "@/lib/estimator/price-match";
 import { borradorDesdeLead, decidirRelleno, idDeParametro, nombreDeLead, vinculoDeLead } from "@/lib/leads/cotizar";
 import { enlaceDeLaBase, enlaceDemo, type AlmacenDelEnlace } from "@/lib/leads/enlace";
 import type { Lead } from "@/lib/leads/reglas";
@@ -621,7 +621,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
         {me.admin && (
         <div className="grid g3">
           <div className="field">
-            <label htmlFor="est-ext">{t("Your extension (customer sees “Ext. NNN”)", "Tu extensión (el cliente ve «Ext. NNN»)")}</label>
+            <label htmlFor="est-ext">{t("Your extension (customer sees “Reference No. NNN”)", "Tu extensión (el cliente ve «N.º de referencia NNN»)")}</label>
             <input id="est-ext" value={draft.sales_ext} className={inv(!draft.sales_ext.trim())}
               onChange={(e) => {
                 set("sales_ext", e.target.value);
@@ -847,6 +847,15 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                   <input value={l.price_match_competitor ?? ""} data-price-match-competidor list="est-pm-competidores" maxLength={120}
                     placeholder={t("Competitor (optional)", "Competidor (opcional)")} style={{ maxWidth: 240 }}
                     onChange={(e) => cambiaLinea(l.id, (x) => ponCompetidor(x, e.target.value))} />
+                  {/* D-802: el precio del competidor y «Igualar», que lo copia al precio con descuento de la línea. */}
+                  <CampoDecimal value={l.price_match_price ?? null} data-price-match-precio style={{ maxWidth: 140 }}
+                    placeholder={l.kind === "sf" ? t("Competitor $/SF", "Competidor $/SF") : t("Competitor unit price", "Precio unitario del competidor")}
+                    onValor={(n) => cambiaLinea(l.id, (x) => ponPrecioCompetidor(x, n))} />
+                  <button type="button" className="btn btn-primary btn-sm" data-igualar-precio disabled={!sePuedeIgualar(l)}
+                    title={t("Copies the competitor's price to this line's discount price.", "Copia el precio del competidor al precio con descuento de la línea.")}
+                    onClick={() => cambiaLinea(l.id, igualaPrecio)}>
+                    {t("Match price", "Igualar precio")}
+                  </button>
                   <span className="hint">{t("Internal: not printed on the customer sheet.", "Interno: no sale en la hoja del cliente.")}</span>
                 </div>
               )}
