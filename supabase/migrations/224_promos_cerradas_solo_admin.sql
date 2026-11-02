@@ -1,4 +1,4 @@
--- 224: Promos — una ronda CERRADA solo la ve el admin (D-NEXT, 2026-11-01).
+-- 224: Promos — una ronda CERRADA solo la ve el admin (D-787, 2026-11-01).
 --
 -- El dueño: «older promos should be locked and only admin can see all promos but right now every time there is a
 -- promo we activate and deactivate it for everybody so everybody can only see November, just admin can see all».

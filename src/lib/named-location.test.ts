@@ -31,7 +31,7 @@ describe("lo que el formulario sí enseña se guarda como antes", () => {
     expect(registroDeLugar(prev, { ...prev, name: "Otra" }, { autoApprove: true }).auto_approve).toBe(true);
   });
 
-  it("«bodega» se guarda solo cuando es verdad, y se quita al desmarcar (D-NEXT)", () => {
+  it("«bodega» se guarda solo cuando es verdad, y se quita al desmarcar (D-787)", () => {
     const prev = tienda({ bodega: true });
     expect(registroDeLugar(prev, { ...prev, bodega: false }, { directoryCode: true })).not.toHaveProperty("bodega");
     expect(registroDeLugar(undefined, { ...prev, bodega: true }, { directoryCode: true }).bodega).toBe(true);

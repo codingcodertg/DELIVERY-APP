@@ -49400,7 +49400,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** en navegador.
 
-## D-NEXT · Promos: una ronda cerrada solo la ve el admin; y una tienda puede marcarse «bodega» para quedar fuera de las listas de tiendas
+## D-787 · Promos: una ronda cerrada solo la ve el admin; y una tienda puede marcarse «bodega» para quedar fuera de las listas de tiendas
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/promos-cerradas-solo-admin`. Migración **224** (la aplica el dueño).
 

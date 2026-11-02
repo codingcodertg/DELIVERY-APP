@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * D-NEXT: una ronda cerrada solo la ve el admin. Lo decide la base (224): las cuatro políticas de select miran la
+ * D-787: una ronda cerrada solo la ve el admin. Lo decide la base (224): las cuatro políticas de select miran la
  * ronda además del módulo. La pantalla no filtra nada: a quien no es admin, la consulta ya no le trae la cerrada.
  */
 const sql = readFileSync(join(process.cwd(), "supabase/migrations/224_promos_cerradas_solo_admin.sql"), "utf8").replace(/\r\n/g, "\n");

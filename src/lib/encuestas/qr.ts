@@ -28,7 +28,7 @@ export function archivoDelQr(tienda: string | null): string {
   return `RTG-encuesta-QR-${limpio || "tienda"}.png`;
 }
 
-/** Los nombres de las tiendas de Ajustes, recortados, sin vacíos ni repetidos, en su orden. Una bodega (D-NEXT) no es
+/** Los nombres de las tiendas de Ajustes, recortados, sin vacíos ni repetidos, en su orden. Una bodega (D-787) no es
  * una tienda: no lleva QR propio. */
 export function nombresDeTiendas(tiendas: readonly { name?: string | null; bodega?: boolean }[] | null | undefined): string[] {
   const vistos = new Set<string>();
