@@ -44,4 +44,4 @@ end $chk$;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('226_clientes_oficina_solicita.sql', '69e0976741f68e1014bfc0632da2ad8a05fc24df02106b67235b1ba3a0962fd7') on conflict (name) do nothing;
+  values ('226_clientes_oficina_solicita.sql', '455f151904f13e82cc608eb04de831b10cf5659c60c4a2a6cb44e9166b57cac9') on conflict (name) do nothing;

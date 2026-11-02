@@ -150,4 +150,4 @@ end $chk$;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('225_leads_cruzados_de_mi_tienda.sql', '0cca2d74306e970f34a61db62d632f2d42101df078a3ecf5387c33de76f42d34') on conflict (name) do nothing;
+  values ('225_leads_cruzados_de_mi_tienda.sql', '6f4ed85e3b273193c096731c85931f28798407fc498c821d98d8db087cf1e4f8') on conflict (name) do nothing;
