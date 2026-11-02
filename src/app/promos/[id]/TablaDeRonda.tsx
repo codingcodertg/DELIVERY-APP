@@ -352,7 +352,7 @@ export function TablaDeRonda({
       {error && <div className="card" style={{ borderColor: "var(--red)", marginTop: 10 }}>{error}</div>}
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "12px 0" }}>
-        {/* D-NEXT (el dueño, con captura): «pendiente aprobado rechazado son botones pero no aparecen botones; quiero el
+        {/* D-794 (el dueño, con captura): «pendiente aprobado rechazado son botones pero no aparecen botones; quiero el
             estilo de tablas como deliveries». Chips como los de estado de la tabla de Órdenes (`.chip`, `.on`, `.cnt`):
             se ven como botón, y el encendido se ve encendido. */}
         <div className="ld-vistas" role="group" aria-label={t("Decision", "Decisión")} data-chips-de-estado>

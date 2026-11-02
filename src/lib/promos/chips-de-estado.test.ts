@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { columnasDePromos } from "./tabla";
 
-/** D-NEXT: Pendiente/Aprobado/Rechazado como chips de la tabla de Órdenes; «BRO QOH» en vez de «Existencias BRO». */
+/** D-794: Pendiente/Aprobado/Rechazado como chips de la tabla de Órdenes; «BRO QOH» en vez de «Existencias BRO». */
 const tabla = readFileSync(join(process.cwd(), "src/app/promos/[id]/TablaDeRonda.tsx"), "utf8").replace(/\r\n/g, "\n");
 
 describe("los chips de estado", () => {

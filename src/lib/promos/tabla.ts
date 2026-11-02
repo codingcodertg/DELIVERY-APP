@@ -168,7 +168,7 @@ export function columnasDePromos(clavesDeTienda: readonly string[], puedeVerPriv
     // todo el mundo, y lo que llevan son números de tres o cuatro cifras. Lo que se estrecha es el
     // hueco, no el dato. La cabecera corta con puntos, como el resto de la tabla, y el nombre
     // entero sigue en ⚙ Columnas y en el menú de la propia cabecera.
-    // D-NEXT (el dueño): «en vez de Existencias cámbialo a EDG QOH, que sería Edinburg quantity on hand»: la tienda delante,
+    // D-794 (el dueño): «en vez de Existencias cámbialo a EDG QOH, que sería Edinburg quantity on hand»: la tienda delante,
     // y QOH también en español.
     out.push({ key: `qoh_${t}`, en: `${t} QOH`, es: `${t} QOH`, ancho: 64, numero: true, tienda: t });
   }
@@ -509,7 +509,7 @@ export function motivoParaNoDecidir(opts: { esDecisor: boolean; grupo: string | 
   if (opts.rondaCerrada) {
     return { en: "This round is closed. An admin can reopen it.", es: "Esta ronda está cerrada. Un administrador puede reabrirla." };
   }
-  // D-NEXT (el dueño, con captura del aviso «Solo el Gerente de Oficina o la Oficina de la tienda decide»): «quita ese
+  // D-794 (el dueño, con captura del aviso «Solo el Gerente de Oficina o la Oficina de la tienda decide»): «quita ese
   // mensaje». Quien no decide ve la tabla sin botones de decidir y sin aviso.
   if (!opts.esDecisor) return null;
   return {

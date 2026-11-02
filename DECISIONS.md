@@ -49513,7 +49513,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 3. **Qué apps enseñan clientes hoy:** Clientes (la base, 217), el Quote Builder (ahora por `veLaFila`) y Leads, que solo lee el cliente ya cruzado de un lead (`customer_match_id`), no una lista para elegir. Cualquier pantalla nueva que ofrezca clientes pasa por `veLaFila`.
 
 **Pruebas:** `src/lib/customers/visibilidad.test.ts` (casos del gemelo; lee la 217 y comprueba las tres cláusulas; el Quote Builder importa y no reescribe), `clientes-para-cotizar.test.ts` (reescrita con `role`). `mapa-de-apps.ts`: citas de `Estimador.tsx` recalculadas. tsc y eslint limpios.
-## D-NEXT · Promos: chips de estado como en Órdenes, columnas «BRO QOH», y fuera el aviso «Solo el Gerente de Oficina…»
+## D-794 · Promos: chips de estado como en Órdenes, columnas «BRO QOH», y fuera el aviso «Solo el Gerente de Oficina…»
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/promos-chips-de-estado`. Sin migración.
 
