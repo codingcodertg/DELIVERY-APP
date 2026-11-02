@@ -99,7 +99,7 @@ describe("la base y la pantalla", () => {
     expect(p).toContain('data-pestana="privado"');
     // D-770: la pestaña la ve quien tiene la casilla (veStxp), no solo el admin.
     expect(p).toContain('{(pestana === "banco" || (pestana === "privado" && veStxp)) && (');
-    expect(p).toContain('const delBanco = useMemo(() => (pestana === "privado" ? privados : leadsDelBanco(leads, alcance)), [leads, alcance, pestana, privados]);');
+    expect(p).toContain('() => (pestana === "privado" ? privados : conCruzadosDeMiTienda(leadsDelBanco(leads, alcance)');
     expect(p).toContain("data-coinciden");
     expect(p).toContain('data-cliente={l.customer_match_id ?? ""}');
     expect(p).toContain('t("Contractor", "Contratista")');

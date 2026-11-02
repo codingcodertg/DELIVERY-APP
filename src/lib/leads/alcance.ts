@@ -1,4 +1,5 @@
 import type { Lead } from "./reglas";
+import { TIENDAS } from "@/lib/customers/reglas";
 
 /**
  * «Leads», quién ve los leads de qué tienda (migración 163).
@@ -66,6 +67,31 @@ export function privadosVisibles<L extends Pick<Lead, "pool" | "status" | "holde
   if (yo.admin || yo.role === "admin") return privados;
   const pools = poolsPrivadosVisibles(privados, yo.store);
   return privados.filter((l) => l.holder === yo.id || pools.includes(l.pool));
+}
+
+/**
+ * D-NEXT (225): un lead cruzado con un cliente de MI tienda se ve (y se toma) aunque su pool sea otra tienda. El dueño,
+ * con un lead de Pharr cruzado con un cliente de McAllen: «you can also show the McAllen sales people this cliente, and
+ * do this throughout the stores». La base lo decide (`leads_cruce_en_mi_tienda`); esto es su gemelo para la lista.
+ */
+export function codigoDeTiendaDelPerfil(store: string | null | undefined): string {
+  const s = (store ?? "").trim().toLowerCase();
+  if (!s) return "";
+  return TIENDAS.find((t) => t.code.toLowerCase() === s || t.nombre.toLowerCase() === s)?.code ?? s.toUpperCase();
+}
+export function esCruzadoDeMiTienda(
+  l: Pick<Lead, "customer_match_id">, clientes: ReadonlyMap<number, { store: string | null | undefined }>, miCodigo: string,
+): boolean {
+  if (!miCodigo || l.customer_match_id == null) return false;
+  const c = clientes.get(l.customer_match_id);
+  return !!c && (c.store ?? "").trim().toUpperCase() === miCodigo;
+}
+/** Los visibles de siempre más los candidatos cruzados con mi tienda que faltaban, en su orden, sin repetir. */
+export function conCruzadosDeMiTienda<L extends Pick<Lead, "id" | "customer_match_id">>(
+  visibles: readonly L[], candidatos: readonly L[], esCruzado: (l: L) => boolean,
+): L[] {
+  const ids = new Set(visibles.map((l) => l.id));
+  return [...visibles, ...candidatos.filter((l) => !ids.has(l.id) && esCruzado(l))];
 }
 
 /** Lo mínimo de una persona para saber qué alcanza. */

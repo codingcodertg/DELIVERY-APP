@@ -49582,3 +49582,19 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/leads/filtros-al-cambiar-de-pool.test.ts`, `reglas.test.ts`. tsc limpio.
 
 **No verificado:** en navegador.
+## D-NEXT · Leads: un lead cruzado con un cliente de MI tienda se ve y se toma, aunque su pool sea otra tienda
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/leads-cruzados-de-mi-tienda`. Migración **225** (la aplica el dueño).
+
+**Pedido (el dueño, con captura del STXP Pool como Melecio, de Pharr, y un lead de Pharr cruzado con CANTU CONSTRUCTION (MCA)):** «in this case you see a Pharr client matched with a McAllen client, so in this situation you can also show the McAllen sales people this cliente, and do this throughout the stores».
+
+**Qué había:** un lead se ve por su pool (163: el banco de tu tienda; 220: tus pools del STXP Pool) y por quien lo tiene. El cruce con Clientes (218) no contaba para quién lo ve.
+
+**Qué cambia:**
+
+1. **Base (225):** `leads_cruce_en_mi_tienda(p_customer)`: ¿el cliente cruzado es de la tienda de quien pregunta? (código de la fila de `erp.customers` contra el nombre de tienda del perfil, por `erp.customers_codigo_de_tienda`, como la 217). Se suma con OR a las dos ramas de «leads select» (GOV Pool y STXP Pool; en el STXP sigue haciendo falta la casilla) y abre la excepción LD005 de `lead_take`: ese lead también se toma. «lead_events select» pasa a mirar solo si se ve el lead.
+2. **Pantalla** (`src/lib/leads/alcance.ts`, `Leads.tsx`): el gemelo. `esCruzadoDeMiTienda` (con los clientes cruzados ya cargados, D-762) y `conCruzadosDeMiTienda` suman esos leads a lo visible del GOV Pool y del STXP Pool, y pasan el filtro de pool aunque su pool sea otro. La tarjeta ya decía «Cliente: … (MCA)».
+
+**Pruebas:** `src/lib/leads/cruzados-de-mi-tienda.test.ts` (nueva; lee la 225); `alcance.test.ts`, `pool-privado.test.ts` (la línea de `delBanco`). `mapa-de-apps.ts`: citas de `Leads.tsx` recalculadas. Ensayo de la 225 en seco contra producción: limpio. tsc y eslint limpios.
+
+**No verificado:** en navegador; la 225 en producción hasta que el dueño la aplique (sin ella, la pantalla suma el lead a la lista pero la base no lo devolvería a quien no lo alcanza: no se ve nada nuevo hasta aplicarla).
