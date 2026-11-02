@@ -49683,3 +49683,18 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/boton-general.test.ts`, `src/lib/recarga-al-volver.test.ts` (nueva). tsc limpio.
 
 **No verificado:** en el teléfono de un chofer; que la parada de Edinburg faltara por el canal muerto es la causa más probable, no medida (no hay registro del canal).
+## D-806 · RR. HH.: amonestaciones en el expediente, las dan el admin y el gerente de RR. HH.
+
+**Fecha:** 2026-11-02 · Hecho directo por el orquestador en `feat/rrhh-amonestaciones`. Migración **227** (la aplica el dueño).
+
+**Pedido:** Roberto Rodriguez Jr (help request con una orden entregada «todo el día» y la vendedora culpando a otros): «We can start giving warnings when they don't do their job right». El dueño: «let's have the option to admin and manager to give and register warnings in their expedients».
+
+**Qué cambia:**
+
+1. **Base (227):** `recruiting.hr_history` (el historial de RR. HH., 212) acepta el tipo `employee_warning`. Las políticas de la 212 ya dejan insertar y leer al admin y al gerente de RR. HH. (`current_recruiting_role`), que es justo lo pedido; nadie edita ni borra una fila del historial.
+2. **Acción** (`src/app/recruiting/actions/hr.ts`, `registerWarning`): admin y gerente de RR. HH. (`PUEDE`); motivo obligatorio (`motivoDeAmonestacionValido`, 5 letras); escribe la fila con quién la da, cuándo, el motivo (`reason`) y la nota (`detail`). Si la 227 no está, lo dice.
+3. **Pantalla:** en la ficha del empleado (activo), botón «⚠️ Amonestar» (`data-accion="amonestar"`) y el diálogo `AmonestarDialog` (motivo obligatorio, nota opcional; avisa de que queda en el historial y no se borra). La amonestación sale en el historial del expediente como «Amonestación» / «Warning», con su motivo.
+
+**Pruebas:** `src/lib/recruiting/amonestaciones.test.ts` (nueva); `historial.test.ts` (el check vigente es el de la 227). Ensayo de la 227 en seco contra producción: limpio. tsc y eslint limpios.
+
+**No verificado:** en navegador; la 227 en producción hasta que el dueño la aplique (sin ella, el botón sale y al registrar avisa «Migration 227 pending»).

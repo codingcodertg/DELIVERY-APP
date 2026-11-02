@@ -12,8 +12,9 @@ const entrada = (p: Partial<EntradaDeHistorial>): EntradaDeHistorial => ({
 });
 
 describe("historial de RR. HH. (D-734)", () => {
-  it("cada kind de la librería está en el check de la migración 212, y al revés", () => {
-    const sql = readFileSync(join(process.cwd(), "supabase/migrations/212_historial_de_rrhh.sql"), "utf8");
+  it("cada kind de la librería está en el check de la migración que lo define (212, y la 227 que suma la amonestación), y al revés", () => {
+    // D-806 (227): el check vigente es el de la 227, que repite la lista de la 212 y suma employee_warning.
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/227_rrhh_amonestaciones.sql"), "utf8");
     const enSql = [...sql.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).filter((k) => (KINDS as readonly string[]).includes(k) || k.includes("_"));
     for (const k of KINDS) expect(enSql, k).toContain(k);
     const check = sql.slice(sql.indexOf("kind in ("), sql.indexOf("))", sql.indexOf("kind in (")));

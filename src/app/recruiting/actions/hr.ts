@@ -1,5 +1,6 @@
 "use server";
 
+import { motivoDeAmonestacionValido } from "@/lib/recruiting/historial";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSyntheticEmail } from "@/lib/username";
@@ -484,6 +485,30 @@ async function liberaActivosDeLaBaja(supabase: Awaited<ReturnType<typeof createC
  * apagada sigue apagada hasta que alguien pulse «Devolver acceso». Reactivar a alguien es decir que vuelve a
  * trabajar aquí; que vuelva a entrar al hub, con los permisos que tenía, es otra decisión y se toma aparte.
  */
+/**
+ * D-806 (227): registrar una amonestación en el expediente. Admin y gerente de RR. HH. (`PUEDE`), como el resto del
+ * expediente; la fila va al historial (`employee_warning`) con quién la da, cuándo, el motivo y la nota. Aquí sí hunde
+ * si no se escribe: la amonestación ES la fila; sin ella no hay nada que registrar.
+ */
+export async function registerWarning(fileId: string, datos: { motivo: string; nota?: string | null }): Promise<{ ok: boolean; message?: string }> {
+  const supabase = await createClient();
+  const yo = await tier(supabase);
+  if (!yo) return { ok: false, message: "Not signed in." };
+  if (!PUEDE.includes(yo.role)) return { ok: false, message: "Only HR admins and managers can register a warning." };
+  if (!motivoDeAmonestacionValido(datos.motivo)) return { ok: false, message: "Write the reason for the warning." };
+  const { data: file, error: leer } = await supabase.schema("recruiting").from("employee_files").select("id, full_name").eq("id", fileId).maybeSingle();
+  if (leer) return { ok: false, message: leer.message };
+  if (!file) return { ok: false, message: "No such employee file." };
+  const { data: actor } = await supabase.from("profiles").select("full_name").eq("id", yo.userId).maybeSingle();
+  const { error } = await supabase.schema("recruiting").from("hr_history").insert({
+    kind: "employee_warning", employee_id: fileId, employee_name: file.full_name ?? null,
+    actor_id: yo.userId, actor_name: actor?.full_name ?? null,
+    reason: datos.motivo.trim(), detail: (datos.nota ?? "").trim() || null, data: {},
+  });
+  if (error) return { ok: false, message: error.code === "23514" ? "Migration 227 pending: the history does not accept warnings yet." : error.message };
+  return { ok: true };
+}
+
 export async function reactivateEmployee(fileId: string): Promise<{ ok: boolean; message?: string; tieneCuenta?: boolean }> {
   const acceso = await comoAdminDeHr();
   if (!acceso.ok) return acceso;

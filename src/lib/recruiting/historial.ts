@@ -13,6 +13,8 @@ export const KINDS = [
   "hub_access_removed", "hub_access_restored",
   "asset_created", "asset_edited", "asset_deleted", "asset_assigned", "asset_released", "asset_released_on_leaving",
   "asset_backed_up", "asset_status_changed",
+  // D-806 (227): la amonestación, dada por el admin o el gerente de RR. HH.; el motivo va en `reason`, la nota en `detail`.
+  "employee_warning",
 ] as const;
 export type TipoDeHistorial = (typeof KINDS)[number];
 
@@ -56,7 +58,14 @@ const ETIQUETAS: Record<TipoDeHistorial, { en: string; es: string }> = {
   asset_released_on_leaving: { en: "Released (deactivation)", es: "Liberado (baja)" },
   asset_backed_up: { en: "Backed up", es: "Respaldado" },
   asset_status_changed: { en: "Status changed", es: "Estado cambiado" },
+  employee_warning: { en: "Warning", es: "Amonestación" },
 };
+
+/** D-806: una amonestación necesita motivo (sin él no se registra); la nota es opcional. */
+export const MIN_LETRAS_DE_MOTIVO = 5;
+export function motivoDeAmonestacionValido(motivo: string | null | undefined): boolean {
+  return (motivo ?? "").trim().length >= MIN_LETRAS_DE_MOTIVO;
+}
 
 export function etiquetaDeHistorial(kind: TipoDeHistorial, lang: "en" | "es"): string {
   return ETIQUETAS[kind][lang];
