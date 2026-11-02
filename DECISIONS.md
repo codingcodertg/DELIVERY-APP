@@ -49571,7 +49571,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 2. `FichaDeCliente.tsx`: en el alta de quien la pide como solicitud (vendedor, gerente: `altaComoSolicitud`) no salen las casillas de tienda; va la suya (D-767). Si su perfil no tiene tienda, las casillas vuelven. El admin sigue eligiendo.
 
 **Pruebas:** `src/lib/customers/vendedor-por-tienda.test.ts`, `src/lib/customers/alta-sin-tiendas-para-vendedor.test.ts` (nueva). tsc limpio.
-## D-NEXT · Leads: «Todas las categorías» por defecto y botón «Quitar filtros»
+## D-798 · Leads: «Todas las categorías» por defecto y botón «Quitar filtros»
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/leads-categoria-todas-y-reset`. Sin migración.
 

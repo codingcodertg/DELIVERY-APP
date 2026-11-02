@@ -17,7 +17,7 @@ describe("los filtros se resetean al cambiar de pool", () => {
     const j = p.indexOf("const cambiaPestana = ");
     expect(p.slice(j, p.indexOf("};", j))).toContain("limpiaFiltros();");
   });
-  it("el botón «Quitar filtros» (D-NEXT) llama a lo mismo", () => {
+  it("el botón «Quitar filtros» (D-798) llama a lo mismo", () => {
     expect(p).toContain("data-quitar-filtros onClick={limpiaFiltros}");
   });
 });

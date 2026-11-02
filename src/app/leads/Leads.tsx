@@ -62,7 +62,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   // Mientras nadie elige a mano, la entrada se recalcula: el alcance y los leads llegan después del primer pintado (D-631).
   const [poolAMano, setPoolAMano] = useState(false);
   const [vista, setVista] = useState<Vista>("libres");
-  // D-NEXT (el dueño): «todas las categorías que sea default». Antes, «Sirve + podría servir».
+  // D-798 (el dueño): «todas las categorías que sea default». Antes, «Sirve + podría servir».
   const [categoria, setCategoria] = useState<FiltroCategoria>("todas");
   const [situacion, setSituacion] = useState<Situacion | "">("");
   const [tipo, setTipo] = useState("");
@@ -122,7 +122,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [coinciden, setCoinciden] = useState(false);
   // D-792 (el dueño): «cuando pongo un filter en STXP Pool y cambio a GOV me lleva ese filtro y me sale en blanco; si
   // cambio de pool los filtros obviamente se deben de resetear». Cambiar de pestaña deja los filtros como al entrar.
-  // D-NEXT: los filtros como al entrar; también con el botón «Quitar filtros» (el dueño: «un botón de reset filters para
+  // D-798: los filtros como al entrar; también con el botón «Quitar filtros» (el dueño: «un botón de reset filters para
   // que muestre todo»). El orden no es un filtro y se queda.
   const limpiaFiltros = () => {
     setVista("libres"); setCategoria("todas"); setSituacion(""); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false);
