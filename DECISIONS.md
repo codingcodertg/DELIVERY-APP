@@ -49641,7 +49641,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 2. **Price Match** (`src/lib/estimator/price-match.ts`, `Estimador.tsx`): la marca gana `price_match_price` (el precio del competidor, por SF o por unidad según la línea) con su campo en la fila de Price Match, y el botón «Igualar precio» (`data-igualar-precio`) copia ese precio al precio con descuento de la línea (`lower_price_per_sf` / `lower_unit_price`). Solo se activa con marca, precio válido y menor que el regular (`sePuedeIgualar`); desmarcar quita las tres claves. Sigue siendo interno: no sale en la hoja.
 
 **Pruebas:** `src/lib/estimator/igualar-precio.test.ts` (nueva); `hoja.test.ts`, `hoja-en-dos-idiomas.test.ts` (rótulo, sin subtítulo, sin «Sales Representative»). tsc y eslint limpios.
-## D-NEXT · Órdenes: ventas, con «Todas» pulsado, ve hasta tres días atrás
+## D-803 · Órdenes: ventas, con «Todas» pulsado, ve hasta tres días atrás
 
 **Fecha:** 2026-11-02 · Hecho directo por el orquestador en `feat/ventas-tres-dias-atras`. Sin migración.
 

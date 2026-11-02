@@ -3,7 +3,7 @@ import { DIAS_ATRAS_DE_VENTAS_EN_TODAS, enLaVentanaDeOrdenes, pasaLaVentana, typ
 import { shiftDateISO, todayISO } from "./utils";
 import type { Delivery } from "./types";
 
-/** D-NEXT: ventas con «Todas» ve hasta tres días atrás; con «Hoy»/«Mañana», el corte de ayer de siempre. */
+/** D-803: ventas con «Todas» ve hasta tres días atrás; con «Hoy»/«Mañana», el corte de ayer de siempre. */
 const HOY = "2026-10-12";
 const orden = (fecha: string) => ({ delivery_date: fecha, stage: "delivered" }) as unknown as Delivery;
 const ctx = (chip: string, role = "sales"): ContextoDeLista => ({

@@ -144,7 +144,7 @@ export function leTocaPorRol(d: Delivery, ctx: ContextoDeLista): boolean {
 export function enLaVentanaDeOrdenes(
   d: { delivery_date?: string | null; stage?: string | null },
   hoy: string = todayISO(),
-  /** D-NEXT: cuántos días atrás llega el suelo para lo que no es borrador; sin él, el de siempre (ayer). */
+  /** D-803: cuántos días atrás llega el suelo para lo que no es borrador; sin él, el de siempre (ayer). */
   diasAtras: number | null = null,
 ): boolean {
   if (!d.delivery_date) return true;
@@ -157,7 +157,7 @@ export function enLaVentanaDeOrdenes(
 }
 
 /**
- * D-NEXT (Roberto Rodriguez Jr): «Allow reps to also see their deliveries for yesterday, the day before, and the day
+ * D-803 (Roberto Rodriguez Jr): «Allow reps to also see their deliveries for yesterday, the day before, and the day
  * before that when they click All on deliveries tab. They want to see some history». Solo ventas y solo con «Todas»
  * pulsado: tres días atrás en vez de ayer. «Hoy» y «Mañana» no cambian; lo suyo y su tienda, tampoco.
  */
