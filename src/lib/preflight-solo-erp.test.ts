@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { generaPreflightErp, ORIGEN, versionInstalada } from "../../scripts/css/genera-preflight-erp.mjs";
 
 /**
- * D-NEXT: el preflight de Tailwind solo viste al ERP y a Clientes, aunque su hoja siga cargada al navegar a otra
+ * D-788: el preflight de Tailwind solo viste al ERP y a Clientes, aunque su hoja siga cargada al navegar a otra
  * pantalla. Medido en el demo antes del arreglo: `input` en `/` con borde 1px; tras pasar por `/customers` en la
  * misma pestaña, 0px y radio 0 en `/` y en `/estimator`.
  */

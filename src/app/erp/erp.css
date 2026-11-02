@@ -11,7 +11,7 @@
    only the root chunk. So preflight — a global reset — never reaches the
    deliveries, recruiting or timetracker screens ON A FRESH LOAD.
 
-   PERO LA HOJA NO SE DESCARGA AL NAVEGAR (D-NEXT, 2026-11-01). Quien abre Clientes y
+   PERO LA HOJA NO SE DESCARGA AL NAVEGAR (D-788, 2026-11-01). Quien abre Clientes y
    luego va a Entregas o al Quote Builder por el menú sigue con esta hoja cargada, y el
    `* { border: 0 }` del preflight (capa `base`, por encima de la capa `app` de
    globals.css) dejaba todos los campos sin borde ni esquinas. Medido en el demo:

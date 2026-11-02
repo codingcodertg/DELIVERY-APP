@@ -49416,7 +49416,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/promos/rondas-cerradas-solo-admin.test.ts` (lee la 224), `src/lib/promos/entrada.test.ts`, `src/lib/encuestas/qr-por-tienda.test.ts`, `src/lib/named-location.test.ts`. tsc limpio. Ensayo de la 224 en seco contra producción: limpio.
 
 **No verificado:** en navegador; la 224 en producción hasta que el dueño la aplique (sin ella, todo sigue como hoy: la pantalla no depende de la migración).
-## D-NEXT · Los campos perdían el borde tras pasar por Clientes: el preflight de Tailwind queda acotado al ERP
+## D-788 · Los campos perdían el borde tras pasar por Clientes: el preflight de Tailwind queda acotado al ERP
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `fix/preflight-solo-erp`. Sin migración.
 

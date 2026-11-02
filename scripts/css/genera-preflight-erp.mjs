@@ -1,5 +1,5 @@
 // Genera `src/app/erp/preflight-erp.css`: el preflight REAL de Tailwind, palabra por palabra, acotado a
-// `[data-app="erp"]` (D-NEXT, 2026-11-01).
+// `[data-app="erp"]` (D-788, 2026-11-01).
 //
 //   node scripts/css/genera-preflight-erp.mjs          → escribe el fichero
 //   (la prueba `src/lib/preflight-solo-erp.test.ts` comprueba que lo escrito es lo que sale de aquí)
@@ -27,7 +27,7 @@ export function generaPreflightErp(preflight, version) {
   const lf = preflight.replace(/\r\n/g, "\n");
   const cabecera = `/* GENERADO por scripts/css/genera-preflight-erp.mjs desde node_modules/tailwindcss/preflight.css (${version}).
    NO EDITAR A MANO: es el preflight de Tailwind tal cual, anidado bajo ${ANCLA} para que solo vista al ERP y a
-   Clientes aunque la hoja siga cargada al navegar a otra pantalla (D-NEXT). */
+   Clientes aunque la hoja siga cargada al navegar a otra pantalla (D-788). */
 @layer base {
   ${ANCLA} {
 `;
