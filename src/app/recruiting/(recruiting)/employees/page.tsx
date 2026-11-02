@@ -18,6 +18,7 @@ import {
 import { UsuariosPorCrear } from "@/components/recruiting/UsuariosPorCrear";
 import { cuentaPorCuenta, filtraPorCuenta, tieneUsuario, type FiltroCuenta } from "@/lib/recruiting/usuarios-rrhh";
 import { AgregarDialog, AmonestarDialog, BajaDialog, ReactivarDialog, faltaMigracion } from "./acciones";
+import type { AccionDisciplinaria } from "@/lib/recruiting/historial";
 import { BloqueTimeTracker } from "./time-tracker";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto } from "@/components/CabeceraConMenu";
@@ -76,8 +77,9 @@ export default function EmployeeFilesPage() {
   const [baja, setBaja] = useState<string | null>(null);
   const [reactivar, setReactivar] = useState<string | null>(null);
   // D-806 (227): la amonestación, desde la ficha; la da el admin o el gerente de RR. HH.
-  const [amonestar, setAmonestar] = useState<string | null>(null);
-  const amonestarFila = amonestar ? rows.find((r) => r.id === amonestar) ?? null : null;
+  // D-807 (228): «Acciones del empleado» → amonestación o reprimenda; `amonestar` guarda a quién y cuál.
+  const [amonestar, setAmonestar] = useState<{ id: string; tipo: AccionDisciplinaria } | null>(null);
+  const amonestarFila = amonestar ? rows.find((r) => r.id === amonestar.id) ?? null : null;
   const [agregando, setAgregando] = useState(false);
   // «User created» (D-694): quién tiene ya cuenta del hub y quién no.
   const [filtroCuenta, setFiltroCuenta] = useState<FiltroCuenta>("todos");
@@ -337,7 +339,7 @@ export default function EmployeeFilesPage() {
       {abiertaFila && (
         <Ficha key={abiertaFila.id} persona={abiertaFila} con159={con159} con207={con207} puedeBaja={puedeBaja}
           onSaved={load} onClose={() => setAbierto(null)}
-          onBaja={() => setBaja(abiertaFila.id)} onReactivar={() => setReactivar(abiertaFila.id)} onAmonestar={() => setAmonestar(abiertaFila.id)} />
+          onBaja={() => setBaja(abiertaFila.id)} onReactivar={() => setReactivar(abiertaFila.id)} onAmonestar={(tipo) => setAmonestar({ id: abiertaFila.id, tipo })} />
       )}
       {/* Las ventanas de acción van DESPUÉS de la ficha: se abren también desde dentro de ella y
           tienen que quedar encima. */}
@@ -351,7 +353,7 @@ export default function EmployeeFilesPage() {
           onDone={() => { setBaja(null); void load(); }} onClose={() => setBaja(null)} />
       )}
       {amonestarFila && (
-        <AmonestarDialog key={"w" + amonestarFila.id} persona={amonestarFila}
+        <AmonestarDialog key={"w" + amonestarFila.id + amonestar?.tipo} persona={amonestarFila} tipo={amonestar?.tipo}
           onDone={(m) => { setAmonestar(null); notify(m); void load(); }} onClose={() => setAmonestar(null)} />
       )}
       {reactivarFila && (
@@ -384,7 +386,7 @@ function Ficha({
   persona, con159, con207, puedeBaja, onSaved, onClose, onBaja, onReactivar, onAmonestar,
 }: {
   persona: Fila; con159: boolean; con207: boolean; puedeBaja: boolean;
-  onSaved: () => void; onClose: () => void; onBaja: () => void; onReactivar: () => void; onAmonestar: () => void;
+  onSaved: () => void; onClose: () => void; onBaja: () => void; onReactivar: () => void; onAmonestar: (tipo: AccionDisciplinaria) => void;
 }) {
   const { t, lang } = usePrefs();
   const { notify, settings, me, hub, roles: puestosDeAjustes } = useData();
@@ -622,12 +624,21 @@ function Ficha({
               🔑 {t("Permissions", "Permisos")}
             </button>
           )}
-          {/* D-806 (227): amonestar lo hacen el admin y el gerente de RR. HH. (los que ven la ficha). */}
+          {/* D-806 (227) / D-807 (228): «Acciones del empleado» → amonestación o reprimenda (Roberto: «a button that says
+              employee actions, and when pressed will say give warning or reprimand»). Las dan el admin y el gerente de
+              RR. HH. (los que ven la ficha) y quedan en el historial del expediente. */}
           {!deBaja && (
-            <button className="btn btn-ghost btn-sm" data-accion="amonestar" onClick={onAmonestar}
-              title={t("Register a warning in this person's file history", "Registrar una amonestación en el historial del expediente")}>
-              ⚠️ {t("Warning", "Amonestar")}
-            </button>
+            <details className="menu-acciones" data-accion="acciones-empleado" style={{ display: "inline-block", position: "relative" }}>
+              <summary className="btn btn-ghost btn-sm" style={{ listStyle: "none", cursor: "pointer" }}>⚠️ {t("Employee actions", "Acciones del empleado")} ▾</summary>
+              <div className="card" style={{ position: "absolute", zIndex: 5, marginTop: 4, padding: 6, minWidth: 220, display: "flex", flexDirection: "column", gap: 4 }}>
+                <button type="button" className="btn btn-ghost btn-sm" data-accion="amonestar" onClick={(e) => { (e.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open"); onAmonestar("employee_warning"); }}>
+                  ⚠️ {t("Give a warning", "Dar amonestación")}
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" data-accion="reprimenda" onClick={(e) => { (e.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open"); onAmonestar("employee_reprimand"); }}>
+                  ⛔ {t("Reprimand", "Reprimenda")}
+                </button>
+              </div>
+            </details>
           )}
           {deBaja ? (
             <button className="btn btn-danger btn-sm" data-accion="reactivar" disabled={!puedeBaja}
