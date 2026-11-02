@@ -982,7 +982,10 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
         {/* Las tiendas de la empresa (189): cada pestaña es la fila de esa tienda, con su contacto, su vendedor y su CRM. Con
             una sola, su pastilla: es donde se ve la tienda. Editando, la de esta fila es su desplegable. */}
         <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 py-2" role="tablist" aria-label={t("Stores of this company", "Tiendas de esta empresa")} data-tiendas={tiendas.length}>
-          {nuevo && editando && casillasDelAlta}
+          {/* D-797 (el dueño, con captura del alta del vendedor): «quita esto de las stores porque ya automáticamente se va a
+              poner la store de él». Quien pide el alta (no admin) no elige tienda: va la suya (D-767). Si su perfil no tiene
+              tienda, las casillas vuelven a salir, que si no no podría crear nada. */}
+          {nuevo && editando && (!altaComoSolicitud || !tiendaPre) && casillasDelAlta}
           {!nuevo && tiendas.map((h) => {
             const repetida = tiendas.filter((x) => x.store === h.store).length > 1;
             if (h.id === cliente.id && editando) return <span key={h.id}>{selectorDeTienda}</span>;
