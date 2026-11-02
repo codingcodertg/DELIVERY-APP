@@ -49434,3 +49434,25 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/preflight-solo-erp.test.ts` (erp.css ya no importa tailwindcss entero; el generado es exactamente lo que sale del generador con el preflight instalado; `html,` no aparece y el reset universal queda dentro del ancla). `src/lib/un-solo-tema.test.ts` sigue verde.
 
 **No verificado:** en producción en navegador real; /erp en navegador.
+
+## D-789 · Quote Builder: la impresión sin cabecera del navegador ni páginas en blanco; validez pasada no bloquea; extensión y vendedor original fuera de la vista del vendedor; clientes solo de su tienda
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `fix/impresion-cotizacion`. Sin migración.
+
+**Pedidos (cuatro, todos del Quote Builder, el mismo día):**
+
+1. El dueño, con el PDF de una cotización: «REMOVE» sobre la cabecera (fecha, «RTG QUOTE BUILDER») y el pie (URL, «1/5»), y «it made it 5 pages long, 1 is good, it had 4 pages empty».
+2. Roberto Rodriguez Jr (help request): «Allow quote generation even if valid through date is in the past».
+3. Melecio Rodriguez (vendedor, help request): «Dont need to show extension, itll just show when quote is generated. The simpler the better for reps» y «Dont need to see original creator unless im getting quote from another rep».
+4. El dueño: «en el quote builder la misma regla del customer: si el salespeople solo puede ver los customers de su tienda, en el quote builder también debe de ser, porque ahorita pueden ver todos los clientes».
+
+**Qué cambia:**
+
+1. **Impresión** (`src/app/estimator/estimator.css`, bloque `@media print`): `@page { margin: 0 }` (con margen de página el navegador pinta su cabecera y su pie; sin él, no) y el margen de 16 mm lo lleva `.hoja-cliente`. Las 4 páginas vacías: lo que no era la hoja se escondía con `visibility: hidden`, que **sigue ocupando sitio**, así que el formulario entero salía como páginas en blanco detrás de la hoja. Ahora lo que no es la hoja, ni está dentro, ni la envuelve, se quita del flujo (`display: none`, con `:has`), y la hoja deja de flotar (`position: static`). Medido en el demo con Chrome por CDP, cotización abierta y copia generada: **1 página**.
+2. **Validez pasada** (`src/lib/estimator/validar.ts`): `loQueFalta` ya no devuelve `validez-pasada`; sin fecha sigue faltando («Set the valid-through date»). El parámetro `hoy` se queda por los llamadores.
+3. **Pantalla del vendedor** (`src/app/estimator/Estimador.tsx`): el campo «Tu extensión» solo lo ve el admin, como la tienda (D-771); la extensión sigue saliendo en la hoja (la del expediente de RR. HH. o la recordada en el navegador) y, si falta, el aviso de «Generar» lo dice. «Vendedor original» solo aparece cuando el estimado hallado es de OTRO (`hallado.owner_id !== me.id`) o mientras se comprueba; si es tuyo o nuevo, «Preparada por» ya lo dice.
+4. **Clientes por tienda** (`src/lib/estimator/clientes-para-cotizar.ts`): `elegibles` recibe `store` (el nombre del perfil) y aplica la regla de Clientes (217): admin todo; los demás, los de su tienda (código por `codigoDeMiTienda`, el mismo mapa que `erp.customers_codigo_de_tienda`) y los suyos por vendedor o creador. La base ya lo hace con la sesión real; este filtro cuenta cuando un admin entra «como» un vendedor, que consulta con la sesión del admin y por eso veía todos.
+
+**Pruebas:** `src/lib/estimator/impresion-limpia.test.ts` (nueva), `validar.test.ts` (validez pasada permitida; extensión bajo `me.admin`; vendedor original condicional), `clientes-para-cotizar.test.ts` (tienda del perfil → código; otro vendedor de McAllen ve el 3 y no el 1 ni el 2). `mapa-de-apps.ts`: citas de línea de `Estimador.tsx` recalculadas (403 y 579). tsc y eslint limpios.
+
+**No verificado:** en navegador real; la cabecera y el pie del navegador no se ven en `printToPDF` (solo se midió el número de páginas y que la hoja ocupa el flujo); la regla de tienda contra la base real.
