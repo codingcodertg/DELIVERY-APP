@@ -49558,7 +49558,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** en navegador; la traducción de los textos legales de la hoja la escribió el orquestador (revisar «aviso junto al total» si se quiere otro tono).
 
-## D-NEXT · Clientes: la vista del vendedor lleva también «Vendedor (QB)», y el alta del vendedor no pregunta la tienda
+## D-797 · Clientes: la vista del vendedor lleva también «Vendedor (QB)», y el alta del vendedor no pregunta la tienda
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/clientes-vendedor-qb-en-vista-ventas`. Sin migración.
 

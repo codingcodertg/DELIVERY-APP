@@ -16,7 +16,7 @@
  */
 import { COLUMNAS, type Cliente, type Columna } from "./reglas";
 
-// D-NEXT (el dueño, con captura de la lista del vendedor): «agrega la columna vendedor QB en el view de sales».
+// D-797 (el dueño, con captura de la lista del vendedor): «agrega la columna vendedor QB en el view de sales».
 export const COLUMNAS_DEL_VENDEDOR: readonly string[] = ["account", "store_count", "status_store", "rep_id", "rep_store"];
 export const MIN_LETRAS_DE_BUSQUEDA = 2;
 /** Un respiro entre teclas antes de preguntar a la base. */

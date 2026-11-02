@@ -6,7 +6,7 @@ import { almacenDemo, CLIENTES_DEMO } from "./demo";
 import { TIENDAS } from "./reglas";
 
 /**
- * D-NEXT: quien pide el alta (vendedor, gerente: `altaComoSolicitud`) no elige tienda, va la suya (D-767). El dueño, con
+ * D-797: quien pide el alta (vendedor, gerente: `altaComoSolicitud`) no elige tienda, va la suya (D-767). El dueño, con
  * captura del alta como Roberto Contreras: «quita esto de las stores porque ya automáticamente se va a poner la store de
  * él, no need to see that». El admin sigue eligiendo; y sin tienda en el perfil, las casillas vuelven a salir.
  */
