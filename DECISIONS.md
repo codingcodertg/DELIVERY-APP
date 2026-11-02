@@ -49456,3 +49456,14 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/estimator/impresion-limpia.test.ts` (nueva), `validar.test.ts` (validez pasada permitida; extensión bajo `me.admin`; vendedor original condicional), `clientes-para-cotizar.test.ts` (tienda del perfil → código; otro vendedor de McAllen ve el 3 y no el 1 ni el 2). `mapa-de-apps.ts`: citas de línea de `Estimador.tsx` recalculadas (403 y 579). tsc y eslint limpios.
 
 **No verificado:** en navegador real; la cabecera y el pie del navegador no se ven en `printToPDF` (solo se midió el número de páginas y que la hoja ocupa el flujo); la regla de tienda contra la base real.
+## D-NEXT · Promos: fuera el aviso «These stores have no promo group…»
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `fix/promos-sin-aviso-de-grupo`. Sin migración.
+
+**Pedido (el dueño, con captura de la ronda «Promo Noviembre» y el aviso ámbar «These stores have no promo group, so nobody there can approve: Bodega Azul. Set it in Data → Stores»):** «quita ese mensaje».
+
+**Qué cambia:** se quita el aviso de `src/app/promos/[id]/TablaDeRonda.tsx` (y su prop `tiendasSinGrupo` en `page.tsx` y `RondaDemo.tsx`) y la función `tiendasSinGrupoDePromos` de `src/lib/promos/entrada.ts` con sus pruebas. Una tienda sin grupo sigue sin poder aprobar; el grupo se ve y se pone en Datos → Tiendas. (La casilla «Bodega, no tienda» de D-787 sigue valiendo para el QR de Encuestas.)
+
+**Pruebas:** `src/lib/promos/entrada.test.ts` (el aviso no está ni en la tabla ni en la raíz). tsc limpio.
+
+**No verificado:** en navegador.

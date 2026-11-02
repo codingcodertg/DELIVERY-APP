@@ -41,7 +41,7 @@ const claveDelOrdenDePromos = (rol: string) => `rtg_promos_orden_${rol}`;
  * filas y PostgREST responde limpio: sin `.select()`, «guardado» sería una suposición.
  */
 export function TablaDeRonda({
-  ronda, productos, decisiones, rol, userId, grupo, esDecisor, esAdmin, gruposDelLibro, rondas, tiendasSinGrupo,
+  ronda, productos, decisiones, rol, userId, grupo, esDecisor, esAdmin, gruposDelLibro, rondas,
 }: {
   ronda: { id: string; label: string; closed_at: string | null };
   productos: ProductoDeCatalogo[];
@@ -55,7 +55,6 @@ export function TablaDeRonda({
   /** Todas las rondas, para el selector que sustituye a la lista que se quitó (D-375). */
   rondas: readonly { id: string; label: string; uploaded_at: string; closed_at: string | null }[];
   /** Tiendas a las que les falta el grupo de promociones. Vacío = no hay nada que avisar. */
-  tiendasSinGrupo: readonly string[];
 }) {
   const { lang, t } = usePrefs();
   const router = useRouter();
@@ -337,17 +336,8 @@ export function TablaDeRonda({
         )}
       </div>
 
-      {/* El aviso de los grupos de tienda: SOLO al admin y SOLO si falta alguno, y diciendo cual.
-          Antes se ensenaba siempre, en la pantalla que ya no existe; un aviso permanente sobre algo
-          que ya esta hecho deja de leerse, y entonces tampoco se lee el dia que si falta. */}
-      {esAdmin && tiendasSinGrupo.length > 0 && (
-        <div className="card" style={{ borderColor: "var(--amber)", marginTop: 10 }}>
-          {t(
-            `These stores have no promo group, so nobody there can approve: ${tiendasSinGrupo.join(", ")}. Set it in Data → Stores.`,
-            `Estas tiendas no tienen grupo de promociones, así que nadie de ellas puede aprobar: ${tiendasSinGrupo.join(", ")}. Se pone en Datos → Tiendas.`,
-          )}
-        </div>
-      )}
+      {/* D-NEXT: aquí estaba el aviso ámbar de las tiendas sin grupo de promociones. El dueño, con la
+          captura: «quita ese mensaje». Una tienda sin grupo sigue sin poder aprobar; se ve en Datos → Tiendas. */}
 
       {esAdmin && gruposDelLibro.length > 0 && (
         <div className="field" style={{ maxWidth: 260, marginTop: 10 }}>
