@@ -72,4 +72,4 @@ end $chk$;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('224_promos_cerradas_solo_admin.sql', '56428baf97e59f34f61ea3881bd70f837ad5811201b97fef870b73ce636e938a') on conflict (name) do nothing;
+  values ('224_promos_cerradas_solo_admin.sql', 'c4072437d67441c7be807103de57e91b1d408c230b1d3db509e1a000173b3ed6') on conflict (name) do nothing;
