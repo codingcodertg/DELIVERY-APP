@@ -372,6 +372,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                       <option value="distancia">{t("Distance (nearest first)", "Distancia (lo más cerca)")}</option>
                       <option value="costo">{t("Estimated cost (highest first)", "Costo estimado (lo más alto)")}</option>
                       <option value="fecha">{t("Registered (newest first)", "Registro (lo más nuevo)")}</option>
+                      <option value="nombre">{t("Builder / customer (A–Z)", "Constructor / cliente (A–Z)")}</option>
                     </select>
                   </label>
                   <button type="button" className="btn btn-ghost btn-sm" data-quitar-filtros onClick={limpiaFiltros}>

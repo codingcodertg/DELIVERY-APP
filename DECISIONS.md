@@ -49654,3 +49654,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/ventas-tres-dias-atras.test.ts` (nueva); `dias-viejos-en-ordenes.test.ts` (el cuerpo de `pasaLaVentana`). tsc limpio; suite de `src/lib` completa en verde.
 
 **No verificado:** en navegador.
+
+## D-NEXT · Leads: orden A–Z por constructor / cliente
+
+**Fecha:** 2026-11-02 · Hecho directo por el orquestador en `feat/leads-orden-a-z`. Sin migración.
+
+**Pedido (Everto Prado, help request con captura del selector «Sort by» del STXP Pool):** «Can we add A–Z sorting on builder / customer».
+
+**Qué cambia:** `Orden` gana «nombre» (`src/lib/leads/reglas.ts`): `ordenar` ordena A–Z por `nombreParaOrdenar` (el constructor/contratista, `owner_name`; si no hay, el propietario, `tenant_name`), sin mayúsculas, los sin nombre al final y a igualdad por TABS. «Ordenar por» ofrece «Constructor / cliente (A–Z)» (`Leads.tsx`). El orden de entrada sigue siendo pies².
+
+**Pruebas:** `src/lib/leads/orden-a-z.test.ts`. `mapa-de-apps.ts`: citas de `Leads.tsx` recalculadas. tsc limpio.
+
+**No verificado:** en navegador.
