@@ -78,8 +78,9 @@ describe("lo que falta antes de generar la copia", () => {
     expect(Object.keys(TEXTO_DE_FALTA)).not.toContain("apellido");
     expect(loQueFalta(completo({ lines: [] }), "nueva", "2026-09-08")).toEqual(["lineas"]);
   });
-  it("una validez ya pasada no se imprime; la de hoy sí", () => {
-    expect(loQueFalta(completo({ valid_through: "2026-09-07" }), "nueva", "2026-09-08")).toEqual(["validez-pasada"]);
+  it("una validez ya pasada SÍ se imprime (D-NEXT, Roberto: «Allow quote generation even if valid through date is in the past»); sin fecha, no", () => {
+    expect(loQueFalta(completo({ valid_through: "2026-09-07" }), "nueva", "2026-09-08")).toEqual([]);
+    expect(Object.keys(TEXTO_DE_FALTA)).not.toContain("validez-pasada");
     expect(loQueFalta(completo({ valid_through: "" }), "nueva", "2026-09-08")).toEqual(["validez"]);
   });
   it("guardar pide menos: número y permiso, y con base", () => {
@@ -207,9 +208,12 @@ describe("la pantalla usa estas reglas, no una copia", () => {
     expect(p).toContain("if (claveDeEstimado(draftRef.current.estimate_num) !== clave) return { ok: false };");
     expect(p).toContain('} else if (que === "abrir" && h) {\n      await abrirGuardada(h.quote_id);');
   });
-  it("«Original sales rep» sin comprobar dice quién prepara, no «Search the estimate first»", () => {
+  it("«Original sales rep» solo cuando el estimado es de otro (D-NEXT, Melecio); la extensión solo la ve el admin", () => {
     expect(p).not.toContain("Search the estimate first");
-    expect(p).toContain(': buscado || !draft.estimate_num.trim() ? `${me.name} (${t("you", "tú")})`');
+    expect(p).toContain('{(hallado ? hallado.owner_id !== me.id : estado !== "sin-base" && !buscado && draft.estimate_num.trim() !== "") && (');
+    expect(p).not.toContain('(${t("you", "tú")})');
+    const ext = p.indexOf('htmlFor="est-ext"');
+    expect(p.lastIndexOf("{me.admin && (", ext)).toBeGreaterThan(p.lastIndexOf("</h2>", ext));
   });
   it("sin campo de apellido; la línea «Customer sees only» sale del nombre", () => {
     expect(p).not.toContain("est-apellido");

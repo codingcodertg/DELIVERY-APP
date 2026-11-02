@@ -62,7 +62,7 @@ export function puedeTrabajar(e: EstadoDelEstimado): boolean {
 
 export type Falta =
   | "estimado" | "buscar" | "permiso" | "extension" | "nombre" | "lineas" | "linea-incompleta"
-  | "categoria" | "direccion" | "validez" | "validez-pasada";
+  | "categoria" | "direccion" | "validez";
 
 /** Lo que falta para generar la copia del cliente. Vacío = se puede. */
 export function loQueFalta(q: QuoteDraft, estado: EstadoDelEstimado, hoy: string = hoyLocal()): Falta[] {
@@ -78,7 +78,10 @@ export function loQueFalta(q: QuoteDraft, estado: EstadoDelEstimado, hoy: string
   if (q.lines.some((l) => !l.customer_category.trim())) f.push("categoria");
   if (q.delivery.mode === "delivery" && !direccionCompleta(q)) f.push("direccion");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(q.valid_through)) f.push("validez");
-  else if (q.valid_through < hoy) f.push("validez-pasada");
+  // D-NEXT (Roberto Rodriguez Jr): «Allow quote generation even if valid through date is in the past». Una validez
+  // pasada ya no impide generar: el vendedor sabe lo que imprime y la hoja dice la fecha. `hoy` queda por los
+  // llamadores que lo pasan; ya no decide nada.
+  void hoy;
   return f;
 }
 
@@ -170,5 +173,4 @@ export const TEXTO_DE_FALTA: Record<Falta, { en: string; es: string }> = {
   categoria: { en: "Every line needs a customer category", es: "Cada línea necesita su categoría para el cliente" },
   direccion: { en: "Delivery needs the complete address", es: "La entrega necesita la dirección completa" },
   validez: { en: "Set the valid-through date", es: "Pon la fecha de validez" },
-  "validez-pasada": { en: "The valid-through date is in the past", es: "La fecha de validez ya pasó" },
 };

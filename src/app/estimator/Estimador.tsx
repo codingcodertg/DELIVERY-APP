@@ -187,7 +187,8 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   useEffect(() => {
     if (!seBusca(buscaCliente) || !me) { setOpcionesDeCliente([]); return; }
     let vivo = true;
-    const yo = { id: me.id, admin: me.admin };
+    // D-NEXT: con la tienda del perfil, para que un vendedor (o un admin «como» él) vea solo los de su tienda y los suyos.
+    const yo = { id: me.id, admin: me.admin, store: me.store ?? null };
     const tarea = setTimeout(async () => {
       if (demo) { if (vivo) setOpcionesDeCliente(coincidencias(elegibles(CLIENTES_DEMO, yo), buscaCliente)); return; }
       if (!erp) return;
@@ -549,15 +550,17 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
               onBlur={comprobarYa}
               onKeyDown={(e) => { if (e.key === "Enter") comprobarYa(); }} />
           </div>
+          {/* D-NEXT (Melecio Rodriguez, vendedor): «Dont need to see original creator unless im getting quote from another
+              rep». El campo solo sale cuando el estimado es de OTRO vendedor, o mientras se comprueba; si es tuyo (o nuevo),
+              «Preparada por» ya lo dice. */}
+          {(hallado ? hallado.owner_id !== me.id : estado !== "sin-base" && !buscado && draft.estimate_num.trim() !== "") && (
           <div className="field">
             <label>{t("Original sales rep", "Vendedor original")}</label>
             <div data-dueno style={{ padding: "8px 0", fontWeight: 600 }}>
-              {estado === "sin-base" ? t("Cannot be checked", "No se puede comprobar")
-                : hallado ? (hallado.owner_name ?? "?")
-                : buscado || !draft.estimate_num.trim() ? `${me.name} (${t("you", "tú")})`
-                : <span className="hint" data-comprobando>{t("Checking…", "Comprobando…")}</span>}
+              {hallado ? (hallado.owner_name ?? "?") : <span className="hint" data-comprobando>{t("Checking…", "Comprobando…")}</span>}
             </div>
           </div>
+          )}
           <div className="field">
             <label>{t("Prepared by", "Preparada por")}</label>
             <div style={{ padding: "8px 0", fontWeight: 600 }}>{me.name}</div>
@@ -608,6 +611,10 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
             </button>
           </div>
         )}
+        {/* D-NEXT (Melecio): «Dont need to show extension, itll just show when quote is generated. The simpler the better for
+            reps». El campo solo lo ve el admin, como la tienda (D-771); la extensión sigue saliendo en la hoja (la del
+            expediente de RR. HH. o la recordada en este navegador). Si falta, el aviso de «Generar» lo dice. */}
+        {me.admin && (
         <div className="grid g3">
           <div className="field">
             <label htmlFor="est-ext">{t("Your extension (customer sees “Ext. NNN”)", "Tu extensión (el cliente ve «Ext. NNN»)")}</label>
@@ -623,6 +630,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
             </span>
           </div>
         </div>
+        )}
       </div>
 
       {/* 1. Cliente */}

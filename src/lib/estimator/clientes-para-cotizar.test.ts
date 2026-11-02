@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { CLIENTES_DEMO, clienteParaCotizar, coincidencias, elegibles, relleno, rotulo, seBusca } from "./clientes-para-cotizar";
+import { CLIENTES_DEMO, clienteParaCotizar, codigoDeMiTienda, coincidencias, elegibles, relleno, rotulo, seBusca } from "./clientes-para-cotizar";
 
 /** El Quote Builder elige un cliente ya existente del vendedor (D-784). */
 
@@ -12,6 +12,16 @@ describe("quién puede elegir qué", () => {
     const creado = elegibles([{ ...CLIENTES_DEMO[2], rep_id: null, created_by: "u-sales" }], { id: "u-sales", admin: false });
     expect(creado).toHaveLength(1);
     expect(elegibles(CLIENTES_DEMO, { id: "u-admin", admin: true }).map((c) => c.id)).toEqual([1, 2, 3]);
+  });
+  it("quien no es admin ve además los de SU tienda, por el nombre del perfil (D-NEXT, la regla de Clientes, 217)", () => {
+    // De McAllen: el 3 (MCA) aunque sea de otro vendedor; de Brownsville: 1 y 2, que ya eran suyos.
+    expect(elegibles(CLIENTES_DEMO, { id: "u-otro", admin: false, store: "RDZ McAllen" }).map((c) => c.id)).toEqual([3]);
+    expect(elegibles(CLIENTES_DEMO, { id: "u-otro", admin: false, store: "RDZ Brownsville" }).map((c) => c.id)).toEqual([1, 2]);
+    expect(elegibles(CLIENTES_DEMO, { id: "u-otro", admin: false, store: null }).map((c) => c.id)).toEqual([]);
+    expect(elegibles(CLIENTES_DEMO, { id: "u-sales", admin: false, store: "RDZ McAllen" }).map((c) => c.id)).toEqual([1, 2, 3]);
+    expect(codigoDeMiTienda("RDZ Pharr")).toBe("PHR");
+    expect(codigoDeMiTienda(" mca ")).toBe("MCA");
+    expect(codigoDeMiTienda("")).toBe("");
   });
 });
 
