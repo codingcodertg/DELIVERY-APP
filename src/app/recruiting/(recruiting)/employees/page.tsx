@@ -17,7 +17,7 @@ import {
 } from "@/lib/recruiting/employee-file";
 import { UsuariosPorCrear } from "@/components/recruiting/UsuariosPorCrear";
 import { cuentaPorCuenta, filtraPorCuenta, tieneUsuario, type FiltroCuenta } from "@/lib/recruiting/usuarios-rrhh";
-import { AgregarDialog, BajaDialog, ReactivarDialog, faltaMigracion } from "./acciones";
+import { AgregarDialog, AmonestarDialog, BajaDialog, ReactivarDialog, faltaMigracion } from "./acciones";
 import { BloqueTimeTracker } from "./time-tracker";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto } from "@/components/CabeceraConMenu";
@@ -75,6 +75,9 @@ export default function EmployeeFilesPage() {
   const [estado, setEstado] = useState<FiltroEstado>("activos");
   const [baja, setBaja] = useState<string | null>(null);
   const [reactivar, setReactivar] = useState<string | null>(null);
+  // D-NEXT (227): la amonestación, desde la ficha; la da el admin o el gerente de RR. HH.
+  const [amonestar, setAmonestar] = useState<string | null>(null);
+  const amonestarFila = amonestar ? rows.find((r) => r.id === amonestar) ?? null : null;
   const [agregando, setAgregando] = useState(false);
   // «User created» (D-694): quién tiene ya cuenta del hub y quién no.
   const [filtroCuenta, setFiltroCuenta] = useState<FiltroCuenta>("todos");
@@ -334,7 +337,7 @@ export default function EmployeeFilesPage() {
       {abiertaFila && (
         <Ficha key={abiertaFila.id} persona={abiertaFila} con159={con159} con207={con207} puedeBaja={puedeBaja}
           onSaved={load} onClose={() => setAbierto(null)}
-          onBaja={() => setBaja(abiertaFila.id)} onReactivar={() => setReactivar(abiertaFila.id)} />
+          onBaja={() => setBaja(abiertaFila.id)} onReactivar={() => setReactivar(abiertaFila.id)} onAmonestar={() => setAmonestar(abiertaFila.id)} />
       )}
       {/* Las ventanas de acción van DESPUÉS de la ficha: se abren también desde dentro de ella y
           tienen que quedar encima. */}
@@ -346,6 +349,10 @@ export default function EmployeeFilesPage() {
       {bajaFila && (
         <BajaDialog key={"b" + bajaFila.id} persona={bajaFila} con159={con159}
           onDone={() => { setBaja(null); void load(); }} onClose={() => setBaja(null)} />
+      )}
+      {amonestarFila && (
+        <AmonestarDialog key={"w" + amonestarFila.id} persona={amonestarFila}
+          onDone={(m) => { setAmonestar(null); notify(m); void load(); }} onClose={() => setAmonestar(null)} />
       )}
       {reactivarFila && (
         <ReactivarDialog key={"r" + reactivarFila.id} persona={reactivarFila}
@@ -374,10 +381,10 @@ export default function EmployeeFilesPage() {
  * cada categoría es un `<details>`: DATOS abierto, lo demás plegado.
  */
 function Ficha({
-  persona, con159, con207, puedeBaja, onSaved, onClose, onBaja, onReactivar,
+  persona, con159, con207, puedeBaja, onSaved, onClose, onBaja, onReactivar, onAmonestar,
 }: {
   persona: Fila; con159: boolean; con207: boolean; puedeBaja: boolean;
-  onSaved: () => void; onClose: () => void; onBaja: () => void; onReactivar: () => void;
+  onSaved: () => void; onClose: () => void; onBaja: () => void; onReactivar: () => void; onAmonestar: () => void;
 }) {
   const { t, lang } = usePrefs();
   const { notify, settings, me, hub, roles: puestosDeAjustes } = useData();
@@ -613,6 +620,13 @@ function Ficha({
                 ? t("Role, store and apps of this person's hub account", "Rol, tienda y apps de la cuenta del hub de esta persona")
                 : t("Create this person's hub account", "Crear la cuenta del hub de esta persona")}>
               🔑 {t("Permissions", "Permisos")}
+            </button>
+          )}
+          {/* D-NEXT (227): amonestar lo hacen el admin y el gerente de RR. HH. (los que ven la ficha). */}
+          {!deBaja && (
+            <button className="btn btn-ghost btn-sm" data-accion="amonestar" onClick={onAmonestar}
+              title={t("Register a warning in this person's file history", "Registrar una amonestación en el historial del expediente")}>
+              ⚠️ {t("Warning", "Amonestar")}
             </button>
           )}
           {deBaja ? (

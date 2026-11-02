@@ -1,12 +1,13 @@
 "use client";
 
+import { motivoDeAmonestacionValido } from "@/lib/recruiting/historial";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
 import { nombreDeDepartamento } from "@/lib/departamentos";
 import { useData } from "@/lib/recruiting-data-provider";
 import {
-  createEmployeeFile, deactivateEmployee, listStoreNames, reactivateEmployee,
+  createEmployeeFile, deactivateEmployee, listStoreNames, reactivateEmployee, registerWarning,
   type EmployeeFile,
 } from "@/app/recruiting/actions/hr";
 import {
@@ -129,6 +130,54 @@ export function BajaDialog({
 // ---------------------------------------------------------------------------------------------
 // Reactivar
 // ---------------------------------------------------------------------------------------------
+
+/**
+ * D-NEXT (227): registrar una amonestación. Motivo obligatorio, nota opcional; queda en el historial del expediente con
+ * quién la dio y cuándo. Roberto: «we can start giving warnings when they don't do their job right».
+ */
+export function AmonestarDialog({ persona, onDone, onClose }: {
+  persona: { id: string; full_name: string };
+  onDone: (mensaje: string) => void;
+  onClose: () => void;
+}) {
+  const { t } = usePrefs();
+  const [motivo, setMotivo] = useState("");
+  const [nota, setNota] = useState("");
+  const [busy, setBusy] = useState(false);
+  const listo = motivoDeAmonestacionValido(motivo);
+  const confirmar = async () => {
+    if (!listo) return;
+    setBusy(true);
+    const r = await registerWarning(persona.id, { motivo, nota });
+    setBusy(false);
+    if (!r.ok) { alert(r.message ?? t("Could not register the warning", "No se pudo registrar la amonestación")); return; }
+    onDone(t("Warning registered ✓", "Amonestación registrada ✓"));
+  };
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }} data-dialogo="amonestar">
+        <h3>⚠️ {t("Register a warning", "Registrar amonestación")} — {persona.full_name}</h3>
+        <p className="hint">{t("It goes in the employee's file history, with your name and today's date. It cannot be deleted.", "Queda en el historial del expediente, con tu nombre y la fecha de hoy. No se borra.")}</p>
+        <div className="field">
+          <label>{t("Reason", "Motivo")} *</label>
+          <textarea value={motivo} rows={3} data-motivo-amonestacion onChange={(e) => setMotivo(e.target.value)}
+            placeholder={t("What happened and what was expected", "Qué pasó y qué se esperaba")} />
+        </div>
+        <div className="field">
+          <label>{t("Note (optional)", "Nota (opcional)")}</label>
+          <textarea value={nota} rows={2} data-nota-amonestacion onChange={(e) => setNota(e.target.value)}
+            placeholder={t("Customer, order, date, what was agreed…", "Cliente, orden, fecha, qué se acordó…")} />
+        </div>
+        <div className="modal-actions">
+          <button className="btn btn-ghost" onClick={onClose}>{t("Cancel", "Cancelar")}</button>
+          <button className="btn btn-danger" data-confirmar-amonestacion disabled={!listo || busy} onClick={() => void confirmar()}>
+            {t("Register warning", "Registrar amonestación")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function ReactivarDialog({
   persona, onDone, onClose,
