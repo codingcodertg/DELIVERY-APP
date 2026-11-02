@@ -49529,7 +49529,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** en navegador.
 
-## D-NEXT · Quote Builder: los campos obligatorios de cada línea se pintan en rojo, como en el formulario de Órdenes
+## D-795 · Quote Builder: los campos obligatorios de cada línea se pintan en rojo, como en el formulario de Órdenes
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `fix/cotizador-linea-en-rojo`. Sin migración.
 

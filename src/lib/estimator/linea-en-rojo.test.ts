@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * D-NEXT: los campos obligatorios de una línea se pintan en rojo (`.invalid`, como en Órdenes) mientras falten: SF pedidos
+ * D-795: los campos obligatorios de una línea se pintan en rojo (`.invalid`, como en Órdenes) mientras falten: SF pedidos
  * o Cajas, SF / caja y $/SF regular; en la línea por unidad, Cantidad y Precio unitario regular.
  */
 const p = readFileSync(join(process.cwd(), "src/app/estimator/Estimador.tsx"), "utf8").replace(/\r\n/g, "\n");

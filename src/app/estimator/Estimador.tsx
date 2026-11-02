@@ -753,7 +753,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                   <>
                     <div className="field">
                       <label>{t("Requested SF", "SF pedidos")}</label>
-                      {/* D-NEXT (Roberto Contreras, help request; el dueño: «cajas y square ft per box así como en el deliveries
+                      {/* D-795 (Roberto Contreras, help request; el dueño: «cajas y square ft per box así como en el deliveries
                           form»): lo que hace falta para la línea se pinta en rojo como en Órdenes. SF pedidos o Cajas (uno de
                           los dos), SF / caja y $/SF regular. */}
                       <CampoDecimal value={l.requested_sf} data-requested className={inv(cajasDeLinea(l) === null)}
