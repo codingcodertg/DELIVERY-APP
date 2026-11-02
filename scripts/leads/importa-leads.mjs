@@ -19,6 +19,7 @@
 // ============================================================================
 import { existsSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { cruzaSinCruce } from "./importa-leads-privado.mjs";
 
 /** La cabecera que identifica la hoja de leads y la fila de cabeceras. */
 export const CABECERA_CLAVE = "TABS Project #";
@@ -112,6 +113,9 @@ async function main() {
     await c.query("begin");
     const r = await c.query("select public.leads_import_rows($1::jsonb, null) as r", [JSON.stringify(filas)]);
     console.log("\nResultado de la base:", JSON.stringify(r.rows[0].r, null, 2));
+    // D-792: los recién cargados (y cualquier otro sin cruce) se cruzan con Clientes, como los del pool privado.
+    const cr = await cruzaSinCruce(c);
+    console.log(`Cruce con Clientes: ${cr.cruzados} de ${cr.sinCruce} sin cruce · ${JSON.stringify(cr.porFuente)}`);
     if (aplicar) { await c.query("commit"); console.log("COMMIT: cargado."); }
     else { await c.query("rollback"); console.log("ROLLBACK: no quedó nada (era un ensayo)."); }
   } catch (e) {

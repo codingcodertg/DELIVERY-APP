@@ -49479,3 +49479,21 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/customers/archivar-junto-a-editar.test.ts` (nueva); `reglas.test.ts`, `vendedor-por-tienda.test.ts` (filas de «Cuenta» y de «Campos ocultos»). tsc limpio.
 
 **No verificado:** en navegador.
+## D-792 · Leads: el GOV Pool también cruza con Clientes, y cambiar de pool resetea los filtros
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/leads-cruce-gov-y-filtros`. Sin migración. Datos: cruce aplicado en producción (32 leads del GOV Pool).
+
+**Pedidos (el dueño):** «lo mismo que haces de recognize en el STXP pool de los clientes, aplícame eso en el pool del government»; y «cuando pongo un filter en STXP Pool y cambio a GOV me lleva ese filtro al del GOV y me sale en blanco; si cambio de pool los filtros obviamente se deben de resetear».
+
+**Qué había:** el cruce con Clientes (`customer_match_id`, D-760/218: mismo teléfono de 10 dígitos que un cliente o uno de sus contactos; si no, mismo nombre clave) lo hacía solo el importador del pool privado. Los 566 leads del GOV Pool (fuente `tdlr`) tenían 0 cruces, y el chip «🤝 Coinciden con clientes» no salía allí. Y los filtros (categoría, situación, tipo, ciudad, búsqueda, «coinciden», vista) eran estado compartido entre pestañas.
+
+**Qué cambia:**
+
+1. `scripts/leads/importa-leads-privado.mjs`: `leadParaCruzar` (del lead: `owner_phone`, `tenant_phone`; `owner_name`, `tenant_name`, `owner_contact`) y `cruzaSinCruce(c)`: cruza, dentro de la transacción de quien llama, todos los leads con `customer_match_id` nulo, de cualquier fuente; lo ya cruzado no se recalcula. `digitos`, `telBonito` y `variantes` pasan a exportarse.
+2. `scripts/leads/importa-leads.mjs` (GOV Pool): tras `leads_import_rows` llama a `cruzaSinCruce`, así cada carga nueva queda cruzada.
+3. `scripts/leads/cruza-con-clientes.mjs` (nuevo): el cruce a mano (`--escribe`), p. ej. tras importar clientes. **Aplicado hoy en producción:** 748 sin cruce → 32 cruzados, todos `tdlr` (teléfono o nombre: AAP Design and Construction, City of McAllen, Herencia, Housing Authority of Mission…). El chip «Coinciden con clientes» ya sale en el GOV Pool.
+4. `src/app/leads/Leads.tsx`: `cambiaPestana` sustituye a `setPestana` en las cuatro pestañas y deja los filtros como al entrar (vista «libres», categoría «útiles», sin situación, tipo, ciudad ni búsqueda, «coinciden» apagado). El pool elegido a mano no se toca.
+
+**Pruebas:** `src/lib/leads/filtros-al-cambiar-de-pool.test.ts` (nueva). El guion de cruce ensayado en seco antes y después del cambio (mismo resultado). tsc y eslint limpios.
+
+**No verificado:** en navegador; el importador del GOV Pool con un fichero real (solo que carga y que el cruce corre en su misma transacción).
