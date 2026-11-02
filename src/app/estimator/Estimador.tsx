@@ -753,23 +753,26 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                   <>
                     <div className="field">
                       <label>{t("Requested SF", "SF pedidos")}</label>
-                      <CampoDecimal value={l.requested_sf} data-requested
+                      {/* D-NEXT (Roberto Contreras, help request; el dueño: «cajas y square ft per box así como en el deliveries
+                          form»): lo que hace falta para la línea se pinta en rojo como en Órdenes. SF pedidos o Cajas (uno de
+                          los dos), SF / caja y $/SF regular. */}
+                      <CampoDecimal value={l.requested_sf} data-requested className={inv(cajasDeLinea(l) === null)}
                         onValor={(n) => setLinea(l.id, { requested_sf: n })} />
                     </div>
                     <div className="field">
                       <label>{t("SF / box", "SF / caja")}</label>
-                      <CampoDecimal value={l.sf_per_box} data-sfcaja
+                      <CampoDecimal value={l.sf_per_box} data-sfcaja className={inv(!(l.sf_per_box !== null && l.sf_per_box > 0))}
                         onValor={(n) => setLinea(l.id, { sf_per_box: n })} />
                     </div>
                     <div className="field">
                       <label>{t("Boxes", "Cajas")}</label>
-                      <CampoDecimal inputMode="numeric" value={l.boxes} data-cajas
+                      <CampoDecimal inputMode="numeric" value={l.boxes} data-cajas className={inv(cajasDeLinea(l) === null)}
                         placeholder={String(cajasPorDefecto(l.requested_sf, l.sf_per_box) ?? "")}
                         onValor={(n) => setLinea(l.id, { boxes: n })} />
                     </div>
                     <div className="field">
                       <label>{t("Regular $/SF", "$/SF regular")}</label>
-                      <CampoDecimal value={l.price_per_sf} data-precio
+                      <CampoDecimal value={l.price_per_sf} data-precio className={inv(!(l.price_per_sf !== null && l.price_per_sf >= 0))}
                         onValor={(n) => setLinea(l.id, { price_per_sf: n })} />
                     </div>
                     {/* D-674: el precio por CAJA, si es el que se tiene a mano: pone el $/SF (caja ÷ SF por caja). Lo que se guarda
@@ -790,7 +793,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                   <>
                     <div className="field">
                       <label>{t("Quantity", "Cantidad")}</label>
-                      <CampoDecimal value={l.quantity} onValor={(n) => setLinea(l.id, { quantity: n })} />
+                      <CampoDecimal value={l.quantity} data-cantidad className={inv(!(l.quantity !== null && l.quantity > 0))} onValor={(n) => setLinea(l.id, { quantity: n })} />
                     </div>
                     <div className="field">
                       <label>{t("Unit", "Unidad")}</label>
@@ -798,7 +801,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                     </div>
                     <div className="field">
                       <label>{t("Regular unit price", "Precio unitario regular")}</label>
-                      <CampoDecimal value={l.unit_price} data-precio-unidad onValor={(n) => setLinea(l.id, { unit_price: n })} />
+                      <CampoDecimal value={l.unit_price} data-precio-unidad className={inv(!(l.unit_price !== null && l.unit_price >= 0))} onValor={(n) => setLinea(l.id, { unit_price: n })} />
                     </div>
                     <div className="field">
                       <label>{t("Discount unit price (optional)", "Precio unitario con descuento (opcional)")}</label>
