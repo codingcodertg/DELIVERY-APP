@@ -49655,7 +49655,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** en navegador.
 
-## D-NEXT · Leads: orden A–Z por constructor / cliente
+## D-804 · Leads: orden A–Z por constructor / cliente
 
 **Fecha:** 2026-11-02 · Hecho directo por el orquestador en `feat/leads-orden-a-z`. Sin migración.
 

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { nombreParaOrdenar, ordenar, type Lead } from "./reglas";
 
-/** D-NEXT: orden A–Z por constructor / cliente en Leads (Everto Prado, help request con captura del selector «Sort by»). */
+/** D-804: orden A–Z por constructor / cliente en Leads (Everto Prado, help request con captura del selector «Sort by»). */
 const lead = (id: string, owner_name: string | null, tenant_name: string | null = null) =>
   ({ id, tabs_project: id, owner_name, tenant_name, square_footage: null, distance_miles: null, estimated_cost: null, registered_date: null }) as unknown as Lead;
 

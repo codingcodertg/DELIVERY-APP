@@ -375,7 +375,7 @@ export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
 
 export type Orden = "pies" | "distancia" | "costo" | "fecha" | "nombre";
 
-/** D-NEXT: el nombre por el que se ordena A–Z: el constructor/contratista (`owner_name`), si no el propietario; vacío al final. */
+/** D-804: el nombre por el que se ordena A–Z: el constructor/contratista (`owner_name`), si no el propietario; vacío al final. */
 export function nombreParaOrdenar(l: Pick<Lead, "owner_name" | "tenant_name">): string {
   return ((l.owner_name ?? "").trim() || (l.tenant_name ?? "").trim()).toLowerCase();
 }
@@ -389,7 +389,7 @@ export const ORDEN_INICIAL: Orden = "pies";
  * igualdad, por TABS (estable).
  */
 export function ordenar(leads: readonly Lead[], orden: Orden): Lead[] {
-  // D-NEXT (Everto Prado: «can we add A-Z sorting on builder / customer»): por nombre, A–Z; sin nombre, al final.
+  // D-804 (Everto Prado: «can we add A-Z sorting on builder / customer»): por nombre, A–Z; sin nombre, al final.
   if (orden === "nombre") {
     return [...leads].sort((a, b) => {
       const x = nombreParaOrdenar(a), y = nombreParaOrdenar(b);
