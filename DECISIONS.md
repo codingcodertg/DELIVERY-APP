@@ -49699,7 +49699,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** en navegador; la 227 en producción hasta que el dueño la aplique (sin ella, el botón sale y al registrar avisa «Migration 227 pending»).
 
-## D-NEXT · RR. HH.: «Acciones del empleado» → amonestación o reprimenda, las dos al expediente
+## D-807 · RR. HH.: «Acciones del empleado» → amonestación o reprimenda, las dos al expediente
 
 **Fecha:** 2026-11-02 · Hecho directo por el orquestador en `feat/rrhh-acciones-del-empleado`. Migración **228** (la aplica el dueño; con la 227 si aún no está).
 

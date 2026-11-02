@@ -491,7 +491,7 @@ async function liberaActivosDeLaBaja(supabase: Awaited<ReturnType<typeof createC
  * si no se escribe: la amonestación ES la fila; sin ella no hay nada que registrar.
  */
 export async function registerWarning(fileId: string, datos: { motivo: string; nota?: string | null; tipo?: AccionDisciplinaria }): Promise<{ ok: boolean; message?: string }> {
-  // D-NEXT (228): amonestación o reprimenda; sin `tipo`, amonestación (lo que ya llamaba la 806).
+  // D-807 (228): amonestación o reprimenda; sin `tipo`, amonestación (lo que ya llamaba la 806).
   const kind: AccionDisciplinaria = esAccionDisciplinaria(datos.tipo) ? datos.tipo : "employee_warning";
   const supabase = await createClient();
   const yo = await tier(supabase);

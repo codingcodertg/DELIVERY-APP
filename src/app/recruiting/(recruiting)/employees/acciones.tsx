@@ -137,7 +137,7 @@ export function BajaDialog({
  */
 export function AmonestarDialog({ persona, tipo = "employee_warning", onDone, onClose }: {
   persona: { id: string; full_name: string };
-  /** D-NEXT (228): amonestación o reprimenda. */
+  /** D-807 (228): amonestación o reprimenda. */
   tipo?: AccionDisciplinaria;
   onDone: (mensaje: string) => void;
   onClose: () => void;

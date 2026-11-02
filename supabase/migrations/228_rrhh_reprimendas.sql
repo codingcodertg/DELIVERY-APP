@@ -1,4 +1,4 @@
--- 228: RR. HH. — reprimendas en el expediente, junto a las amonestaciones (D-NEXT, 2026-11-02).
+-- 228: RR. HH. — reprimendas en el expediente, junto a las amonestaciones (D-807, 2026-11-02).
 --
 -- Roberto Rodriguez Jr, sobre la 227: «there will be a button that says employee actions, and when pressed will say give
 -- warning or reprimand an employee, that will go into their expediente». Dos grados: amonestacion (warning) y reprimenda

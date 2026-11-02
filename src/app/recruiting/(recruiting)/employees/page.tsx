@@ -77,7 +77,7 @@ export default function EmployeeFilesPage() {
   const [baja, setBaja] = useState<string | null>(null);
   const [reactivar, setReactivar] = useState<string | null>(null);
   // D-806 (227): la amonestación, desde la ficha; la da el admin o el gerente de RR. HH.
-  // D-NEXT (228): «Acciones del empleado» → amonestación o reprimenda; `amonestar` guarda a quién y cuál.
+  // D-807 (228): «Acciones del empleado» → amonestación o reprimenda; `amonestar` guarda a quién y cuál.
   const [amonestar, setAmonestar] = useState<{ id: string; tipo: AccionDisciplinaria } | null>(null);
   const amonestarFila = amonestar ? rows.find((r) => r.id === amonestar.id) ?? null : null;
   const [agregando, setAgregando] = useState(false);
@@ -624,7 +624,7 @@ function Ficha({
               🔑 {t("Permissions", "Permisos")}
             </button>
           )}
-          {/* D-806 (227) / D-NEXT (228): «Acciones del empleado» → amonestación o reprimenda (Roberto: «a button that says
+          {/* D-806 (227) / D-807 (228): «Acciones del empleado» → amonestación o reprimenda (Roberto: «a button that says
               employee actions, and when pressed will say give warning or reprimand»). Las dan el admin y el gerente de
               RR. HH. (los que ven la ficha) y quedan en el historial del expediente. */}
           {!deBaja && (
