@@ -49667,7 +49667,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** en navegador.
 
-## D-NEXT · El modo enseñanza lo enciende cualquiera (chofer incluido), y la app se recarga sola al volver a ella
+## D-805 · El modo enseñanza lo enciende cualquiera (chofer incluido), y la app se recarga sola al volver a ella
 
 **Fecha:** 2026-11-02 · Hecho directo por el orquestador en `feat/ensenanza-para-todos-y-recarga-al-volver`. Sin migración.
 

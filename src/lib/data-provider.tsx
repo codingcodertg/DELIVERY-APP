@@ -315,7 +315,7 @@ const EVENTS_WINDOW = 1000;
  * that need it (`ensureDeliveriesSince`), never by this provider on its own.
  */
 export const DELIVERIES_WINDOW_DAYS = 120;
-/** D-NEXT: cuánto espera, como mínimo, entre dos recargas por volver a la app. */
+/** D-805: cuánto espera, como mínimo, entre dos recargas por volver a la app. */
 export const RECARGA_AL_VOLVER_MS = 20_000;
 /** Stages that are finished: an order in any other stage stays loaded no matter how old. */
 const OPEN_STAGES_FILTER = "stage.not.in.(delivered,canceled)";
@@ -511,7 +511,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     }
   }, [supabase, notify, lang]);
 
-  // D-NEXT (Roberto: el chofer «skipped the Edinburg stop because it didn't show on the app and he had to refresh
+  // D-805 (Roberto: el chofer «skipped the Edinburg stop because it didn't show on the app and he had to refresh
   // it»): al VOLVER a la app (la pestaña vuelve a verse, la ventana recupera el foco, vuelve la red) se recarga todo,
   // como mucho una vez cada 20 s. El canal de realtime no avisa cuando muere con el teléfono dormido (`subscribe()`
   // sin estado), y hasta aquí una parada asignada mientras tanto no aparecía hasta recargar a mano.

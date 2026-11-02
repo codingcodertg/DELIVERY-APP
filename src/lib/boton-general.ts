@@ -22,7 +22,7 @@ export type OpcionGeneral = "ayuda" | "chat" | "usuario" | "movil" | "ensenanza"
 
 /** De abajo arriba: la primera queda pegada al botón. */
 export function opcionesDelBotonGeneral(a: { adminReal: boolean; switchHabilitado: boolean }): OpcionGeneral[] {
-  // D-NEXT (Roberto: «Ernesto isn't able to go to teaching mode»): el modo enseñanza lo enciende cualquiera, chofer
+  // D-805 (Roberto: «Ernesto isn't able to go to teaching mode»): el modo enseñanza lo enciende cualquiera, chofer
   // incluido. Es seguro para todos: en Entregas es el entorno de práctica y en las demás apps ninguna escritura llega a la
   // base (D-626). «Cambiar usuario» y «Vista móvil» siguen siendo del admin real.
   const out: OpcionGeneral[] = ["ayuda", "chat"];
