@@ -39,8 +39,8 @@ const POOL_POR_CIUDAD = {
 
 const limpio = (v) => { const s = v === null || v === undefined ? "" : String(v).trim(); return !s || /^unk\.?$/i.test(s) || s === "-" ? null : s; };
 const numero = (v) => { const s = limpio(v); if (s === null) return null; const n = Number(String(s).replace(/[$,\s]/g, "")); return Number.isFinite(n) ? n : null; };
-const digitos = (v) => { const s = limpio(v); if (!s) return null; let d = String(s).replace(/\D/g, ""); if (d.length === 11 && d.startsWith("1")) d = d.slice(1); return d.length === 10 ? d : null; };
-const telBonito = (d) => (d ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : null);
+export const digitos = (v) => { const s = limpio(v); if (!s) return null; let d = String(s).replace(/\D/g, ""); if (d.length === 11 && d.startsWith("1")) d = d.slice(1); return d.length === 10 ? d : null; };
+export const telBonito = (d) => (d ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : null);
 export const poolDeCiudad = (ciudad) => POOL_POR_CIUDAD[(limpio(ciudad) ?? "").toLowerCase()] ?? "No store";
 /** Un nombre comparable: minúsculas, sin acentos, sin «llc/inc/co/corp/ltd», sin puntuación, sin «the», espacios de uno. */
 export const nombreClave = (v) => {
@@ -49,7 +49,7 @@ export const nombreClave = (v) => {
   return s.length >= 4 ? s : "";
 };
 /** «Apellido, Nombre» y «Nombre Apellido» son la misma persona. */
-const variantes = (nombre) => { const k = nombreClave(nombre); if (!k) return []; const coma = (limpio(nombre) ?? "").indexOf(","); if (coma > 0) { const [a, b] = (limpio(nombre) ?? "").split(",", 2); return [k, nombreClave(`${b} ${a}`)].filter(Boolean); } return [k]; };
+export const variantes = (nombre) => { const k = nombreClave(nombre); if (!k) return []; const coma = (limpio(nombre) ?? "").indexOf(","); if (coma > 0) { const [a, b] = (limpio(nombre) ?? "").split(",", 2); return [k, nombreClave(`${b} ${a}`)].filter(Boolean); } return [k]; };
 
 export function leadDeFila(f, sufijo) {
   const permiso = limpio(f["Permit #"]);
@@ -107,6 +107,34 @@ export function cruza(lead, idx) {
   for (const t of lead._tels) { const c = idx.porTel.get(t); if (c) return { id: c.id, nota: `Teléfono ${telBonito(t)} = ${c.account} (${c.store})` }; }
   for (const n of lead._nombres) { const c = idx.porNombre.get(n); if (c) return { id: c.id, nota: `Nombre «${n}» = ${c.account} (${c.store})` }; }
   return null;
+}
+
+/** Un lead de la base (cualquier fuente) con lo que mira `cruza`: teléfonos del dueño y del inquilino; nombres del dueño,
+ *  del inquilino y del contacto del dueño. */
+export function leadParaCruzar(l) {
+  return {
+    ...l,
+    _tels: [digitos(l.owner_phone), digitos(l.tenant_phone)].filter(Boolean),
+    _nombres: [...variantes(l.owner_name), ...variantes(l.tenant_name), ...variantes(l.owner_contact)],
+  };
+}
+
+/** D-NEXT: cruza con Clientes los leads SIN cruce, de cualquier fuente (el GOV Pool incluido), dentro de la transacción de
+ *  quien llama. El dueño: «lo mismo que haces de recognize en el STXP pool, aplícamelo en el pool del government». Lo ya
+ *  cruzado no se recalcula. Devuelve cuántos, por fuente, y ejemplos. */
+export async function cruzaSinCruce(c, maxEjemplos = 15) {
+  const { rows: clientes } = await c.query("select id, store, account, unified_account, phone, contact_name, contacts, archived_at from erp.customers");
+  const idx = indiceDeClientes(clientes);
+  const { rows: leads } = await c.query("select id, source, tabs_project, owner_name, owner_phone, tenant_name, tenant_phone, owner_contact from public.leads where customer_match_id is null");
+  let n = 0; const porFuente = {}; const ejemplos = [];
+  for (const l of leads) {
+    const m = cruza(leadParaCruzar(l), idx);
+    if (!m) continue;
+    n++; porFuente[l.source] = (porFuente[l.source] ?? 0) + 1;
+    if (ejemplos.length < maxEjemplos) ejemplos.push(`${l.source} · ${l.tabs_project}: ${l.owner_name ?? l.tenant_name} → ${m.nota}`);
+    await c.query("update public.leads set customer_match_id = $2, customer_match_note = $3, customer_matched_at = now(), updated_at = now() where id = $1", [l.id, m.id, m.nota]);
+  }
+  return { sinCruce: leads.length, cruzados: n, porFuente, ejemplos };
 }
 
 const esPrincipal = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, "/").split("/").pop());

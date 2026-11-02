@@ -119,6 +119,12 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     return c ? [c.account, c.rep_name, c.contact_name].filter(Boolean).join(" · ") : "";
   }, [clientes]);
   const [coinciden, setCoinciden] = useState(false);
+  // D-NEXT (el dueño): «cuando pongo un filter en STXP Pool y cambio a GOV me lleva ese filtro y me sale en blanco; si
+  // cambio de pool los filtros obviamente se deben de resetear». Cambiar de pestaña deja los filtros como al entrar.
+  const cambiaPestana = (p: Pestana) => {
+    setPestana(p);
+    setVista("libres"); setCategoria("utiles"); setSituacion(""); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false);
+  };
   const delBanco = useMemo(() => (pestana === "privado" ? privados : leadsDelBanco(leads, alcance)), [leads, alcance, pestana, privados]);
   const pools = useMemo(() => poolsDe(delBanco), [delBanco]);
   const elige = eligeTienda(alcance);
@@ -230,19 +236,19 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
       {estado.tipo === "listo" && (
         <>
           <div className="ld-pestanas" role="tablist">
-            <button type="button" role="tab" aria-selected={pestana === "banco"} className={`chip${pestana === "banco" ? " on" : ""}`} data-pestana="banco" onClick={() => setPestana("banco")}>
+            <button type="button" role="tab" aria-selected={pestana === "banco"} className={`chip${pestana === "banco" ? " on" : ""}`} data-pestana="banco" onClick={() => cambiaPestana("banco")}>
               🏦 {t("GOV Pool", "GOV Pool")}
             </button>
-            <button type="button" role="tab" aria-selected={pestana === "mio"} className={`chip${pestana === "mio" ? " on" : ""}`} data-pestana="mio" onClick={() => setPestana("mio")}>
+            <button type="button" role="tab" aria-selected={pestana === "mio"} className={`chip${pestana === "mio" ? " on" : ""}`} data-pestana="mio" onClick={() => cambiaPestana("mio")}>
               ⭐ {t("My pool", "Mi pool")} <span className="cnt" data-mi-cuenta>{mios.length}/{tope}</span>
             </button>
             {yo.admin && (
-              <button type="button" role="tab" aria-selected={pestana === "admin"} className={`chip${pestana === "admin" ? " on" : ""}`} data-pestana="admin" onClick={() => setPestana("admin")}>
+              <button type="button" role="tab" aria-selected={pestana === "admin"} className={`chip${pestana === "admin" ? " on" : ""}`} data-pestana="admin" onClick={() => cambiaPestana("admin")}>
                 🛠 Admin{colaDeRevision(leads).length > 0 ? <span className="cnt">{colaDeRevision(leads).length}</span> : null}
               </button>
             )}
             {veStxp && (
-              <button type="button" role="tab" aria-selected={pestana === "privado"} className={`chip${pestana === "privado" ? " on" : ""}`} data-pestana="privado" onClick={() => setPestana("privado")}>
+              <button type="button" role="tab" aria-selected={pestana === "privado"} className={`chip${pestana === "privado" ? " on" : ""}`} data-pestana="privado" onClick={() => cambiaPestana("privado")}>
                 🔒 {t("STXP Pool", "STXP Pool")} <span className="cnt" data-privados>{privados.length}</span>
               </button>
             )}
