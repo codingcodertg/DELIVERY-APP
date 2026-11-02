@@ -49641,5 +49641,16 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 2. **Price Match** (`src/lib/estimator/price-match.ts`, `Estimador.tsx`): la marca gana `price_match_price` (el precio del competidor, por SF o por unidad según la línea) con su campo en la fila de Price Match, y el botón «Igualar precio» (`data-igualar-precio`) copia ese precio al precio con descuento de la línea (`lower_price_per_sf` / `lower_unit_price`). Solo se activa con marca, precio válido y menor que el regular (`sePuedeIgualar`); desmarcar quita las tres claves. Sigue siendo interno: no sale en la hoja.
 
 **Pruebas:** `src/lib/estimator/igualar-precio.test.ts` (nueva); `hoja.test.ts`, `hoja-en-dos-idiomas.test.ts` (rótulo, sin subtítulo, sin «Sales Representative»). tsc y eslint limpios.
+## D-NEXT · Órdenes: ventas, con «Todas» pulsado, ve hasta tres días atrás
+
+**Fecha:** 2026-11-02 · Hecho directo por el orquestador en `feat/ventas-tres-dias-atras`. Sin migración.
+
+**Pedido (Roberto Rodriguez Jr, por el dueño):** «Allow reps to also see their deliveries for yesterday, the day before, and the day before that when they click All on deliveries tab. They want to see some history though I think they can search it too».
+
+**Qué había:** la ventana de Órdenes para quien no ve el historial entero es «ayer, hoy y lo que viene» (`enLaVentanaDeOrdenes`, D-392), navegando y buscando, con «Todas», «Hoy» o «Mañana».
+
+**Qué cambia (`src/lib/ordenes-visibles.ts`):** `enLaVentanaDeOrdenes` acepta `diasAtras`; `pasaLaVentana` lo usa con `DIAS_ATRAS_DE_VENTAS_EN_TODAS = 3` **solo para ventas y solo con el chip «Todas»**: anteayer y el día anterior entran. «Hoy» y «Mañana» no cambian; el alcance (lo suyo, su tienda) tampoco; el borrador sigue con sus 7 días. El proveedor ya carga 120 días, así que las filas están.
+
+**Pruebas:** `src/lib/ventas-tres-dias-atras.test.ts` (nueva); `dias-viejos-en-ordenes.test.ts` (el cuerpo de `pasaLaVentana`). tsc limpio; suite de `src/lib` completa en verde.
 
 **No verificado:** en navegador.

@@ -199,7 +199,7 @@ describe("la pantalla usa todo esto", () => {
   it("`pasaLaVentana` corta con `enLaVentanaDeOrdenes`, navegando y buscando", () => {
     const lib = plano(leer("src/lib/ordenes-visibles.ts"));
     // Hasta D-407 llevaba delante la exención de D-313 (`pendientesEntran`); ya no existe.
-    expect(lib).toContain("if (teaching || veTodoElHistorial) return true; return enLaVentanaDeOrdenes(d); }");
+    expect(lib).toContain("if (teaching || veTodoElHistorial) return true; if (ctx.me?.role === \"sales\" && ctx.chip === \"all\") return enLaVentanaDeOrdenes(d, todayISO(), DIAS_ATRAS_DE_VENTAS_EN_TODAS); return enLaVentanaDeOrdenes(d); }"); // D-NEXT
     expect(lib).not.toContain("pendientesEntran &&");
   });
 });

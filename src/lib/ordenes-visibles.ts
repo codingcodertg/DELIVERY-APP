@@ -144,6 +144,8 @@ export function leTocaPorRol(d: Delivery, ctx: ContextoDeLista): boolean {
 export function enLaVentanaDeOrdenes(
   d: { delivery_date?: string | null; stage?: string | null },
   hoy: string = todayISO(),
+  /** D-NEXT: cuántos días atrás llega el suelo para lo que no es borrador; sin él, el de siempre (ayer). */
+  diasAtras: number | null = null,
 ): boolean {
   if (!d.delivery_date) return true;
   // Un BORRADOR dura 7 días, no «ayer, hoy y mañana» (D-531). El dueño, 2026-10-12: «draft quedan hata 7 dias es lo
@@ -151,8 +153,15 @@ export function enLaVentanaDeOrdenes(
   // borrador con fecha del sábado; el lunes ya no la veía y la volvió a capturar (duplicada). Se cuenta desde la
   // fecha de entrega del borrador (lo único que la ventana mira; sin fecha, siempre).
   if (d.stage === "draft") return d.delivery_date.slice(0, 10) >= shiftDateISO(hoy, -DIAS_DE_BORRADOR);
-  return d.delivery_date.slice(0, 10) >= retentionFloorISO(hoy);
+  return d.delivery_date.slice(0, 10) >= (diasAtras === null ? retentionFloorISO(hoy) : shiftDateISO(hoy, -diasAtras));
 }
+
+/**
+ * D-NEXT (Roberto Rodriguez Jr): «Allow reps to also see their deliveries for yesterday, the day before, and the day
+ * before that when they click All on deliveries tab. They want to see some history». Solo ventas y solo con «Todas»
+ * pulsado: tres días atrás en vez de ayer. «Hoy» y «Mañana» no cambian; lo suyo y su tienda, tampoco.
+ */
+export const DIAS_ATRAS_DE_VENTAS_EN_TODAS = 3;
 
 /** Cuántos días atrás sigue viéndose un borrador en Órdenes (D-531): «draft quedan hata 7 dias». */
 export const DIAS_DE_BORRADOR = 7;
@@ -172,6 +181,7 @@ export const DIAS_DE_BORRADOR = 7;
 export function pasaLaVentana(d: Delivery, ctx: ContextoDeLista): boolean {
   const { teaching, veTodoElHistorial } = ctx;
   if (teaching || veTodoElHistorial) return true;
+  if (ctx.me?.role === "sales" && ctx.chip === "all") return enLaVentanaDeOrdenes(d, todayISO(), DIAS_ATRAS_DE_VENTAS_EN_TODAS);
   return enLaVentanaDeOrdenes(d);
 }
 
