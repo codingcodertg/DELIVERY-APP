@@ -37,11 +37,11 @@ export interface SolicitudDeCliente {
 }
 
 export function altaEsSolicitud(role: UserRole | null | undefined): boolean {
-  return role === "sales" || role === "manager" || role === "accounting"; // D-NEXT (226): la oficina también pide
+  return role === "sales" || role === "manager" || role === "accounting"; // D-800 (226): la oficina también pide
 }
 
 /**
- * D-NEXT (226): quién ve el botón «Nuevo cliente» / «Solicitar cliente nuevo»: quien edita (admin, gerente, vendedor) y
+ * D-800 (226): quién ve el botón «Nuevo cliente» / «Solicitar cliente nuevo»: quien edita (admin, gerente, vendedor) y
  * la oficina, que NO edita pero sí pide el alta (el dueño: «solo dale la opción de add new customer»). Espejo de
  * erp.customers_can_request().
  */

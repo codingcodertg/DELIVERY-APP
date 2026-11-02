@@ -17,10 +17,10 @@ describe("quién solicita", () => {
     expect(altaEsSolicitud("sales")).toBe(true);
     expect(altaEsSolicitud("manager")).toBe(true);
     expect(altaEsSolicitud("admin")).toBe(false);
-    expect(altaEsSolicitud("accounting")).toBe(true); // D-NEXT (226): la oficina pide, como ventas
+    expect(altaEsSolicitud("accounting")).toBe(true); // D-800 (226): la oficina pide, como ventas
     expect(altaEsSolicitud("warehouse")).toBe(false);
   });
-  it("D-NEXT (226): la oficina ve el botón de alta sin poder editar; la pantalla lo cablea", () => {
+  it("D-800 (226): la oficina ve el botón de alta sin poder editar; la pantalla lo cablea", () => {
     expect(puedeDarDeAlta("accounting")).toBe(true);
     expect(puedeDarDeAlta("sales")).toBe(true);
     expect(puedeDarDeAlta("warehouse")).toBe(false);

@@ -49599,7 +49599,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** en navegador; la 225 en producción hasta que el dueño la aplique (sin ella, la pantalla suma el lead a la lista pero la base no lo devolvería a quien no lo alcanza: no se ve nada nuevo hasta aplicarla).
 
-## D-NEXT · Clientes: la oficina pide altas («Solicitar cliente nuevo»), sin editar
+## D-800 · Clientes: la oficina pide altas («Solicitar cliente nuevo»), sin editar
 
 **Fecha:** 2026-11-02 · Hecho directo por el orquestador en `feat/clientes-oficina-pide-alta`. Migración **226** (la aplica el dueño).
 

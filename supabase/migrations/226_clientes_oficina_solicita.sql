@@ -1,4 +1,4 @@
--- 226: Clientes — la oficina (accounting) tambien pide ALTAS, como ventas; editar no (D-NEXT, 2026-11-02).
+-- 226: Clientes — la oficina (accounting) tambien pide ALTAS, como ventas; editar no (D-800, 2026-11-02).
 --
 -- El dueño: «dale la opción de request new client así como sales a los de office, así como Carlos Fuentes»; y luego:
 -- «Carlos Fuentes déjalo como estaba, solo dale la opción de add new customer».
