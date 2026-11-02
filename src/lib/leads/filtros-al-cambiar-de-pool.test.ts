@@ -10,9 +10,14 @@ describe("los filtros se resetean al cambiar de pool", () => {
     for (const k of ["banco", "mio", "admin", "privado"]) expect(p).toContain(`data-pestana="${k}" onClick={() => cambiaPestana("${k}")}>`);
     expect(p.match(/onClick=\{\(\) => setPestana\(/g)).toBeNull();
   });
-  it("y cambiaPestana vacía todos los filtros: vista, categoría, situación, tipo, ciudad, búsqueda y «coinciden»", () => {
-    const i = p.indexOf("const cambiaPestana = ");
+  it("y cambiaPestana llama a limpiaFiltros, que vacía todo: vista, categoría («todas»), situación, tipo, ciudad, búsqueda y «coinciden»", () => {
+    const i = p.indexOf("const limpiaFiltros = ");
     const cuerpo = p.slice(i, p.indexOf("};", i));
-    for (const s of ['setVista("libres")', 'setCategoria("utiles")', 'setSituacion("")', 'setTipo("")', 'setCiudad("")', 'setBusca("")', "setCoinciden(false)"]) expect(cuerpo).toContain(s);
+    for (const s of ['setVista("libres")', 'setCategoria("todas")', 'setSituacion("")', 'setTipo("")', 'setCiudad("")', 'setBusca("")', "setCoinciden(false)"]) expect(cuerpo).toContain(s);
+    const j = p.indexOf("const cambiaPestana = ");
+    expect(p.slice(j, p.indexOf("};", j))).toContain("limpiaFiltros();");
+  });
+  it("el botón «Quitar filtros» (D-NEXT) llama a lo mismo", () => {
+    expect(p).toContain("data-quitar-filtros onClick={limpiaFiltros}");
   });
 });
