@@ -187,7 +187,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   useEffect(() => {
     if (!seBusca(buscaCliente) || !me) { setOpcionesDeCliente([]); return; }
     let vivo = true;
-    // D-NEXT: con la tienda del perfil, para que un vendedor (o un admin «como» él) vea solo los de su tienda y los suyos.
+    // D-789: con la tienda del perfil, para que un vendedor (o un admin «como» él) vea solo los de su tienda y los suyos.
     const yo = { id: me.id, admin: me.admin, store: me.store ?? null };
     const tarea = setTimeout(async () => {
       if (demo) { if (vivo) setOpcionesDeCliente(coincidencias(elegibles(CLIENTES_DEMO, yo), buscaCliente)); return; }
@@ -550,7 +550,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
               onBlur={comprobarYa}
               onKeyDown={(e) => { if (e.key === "Enter") comprobarYa(); }} />
           </div>
-          {/* D-NEXT (Melecio Rodriguez, vendedor): «Dont need to see original creator unless im getting quote from another
+          {/* D-789 (Melecio Rodriguez, vendedor): «Dont need to see original creator unless im getting quote from another
               rep». El campo solo sale cuando el estimado es de OTRO vendedor, o mientras se comprueba; si es tuyo (o nuevo),
               «Preparada por» ya lo dice. */}
           {(hallado ? hallado.owner_id !== me.id : estado !== "sin-base" && !buscado && draft.estimate_num.trim() !== "") && (
@@ -611,7 +611,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
             </button>
           </div>
         )}
-        {/* D-NEXT (Melecio): «Dont need to show extension, itll just show when quote is generated. The simpler the better for
+        {/* D-789 (Melecio): «Dont need to show extension, itll just show when quote is generated. The simpler the better for
             reps». El campo solo lo ve el admin, como la tienda (D-771); la extensión sigue saliendo en la hoja (la del
             expediente de RR. HH. o la recordada en este navegador). Si falta, el aviso de «Generar» lo dice. */}
         {me.admin && (

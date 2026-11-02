@@ -13,7 +13,7 @@ describe("quién puede elegir qué", () => {
     expect(creado).toHaveLength(1);
     expect(elegibles(CLIENTES_DEMO, { id: "u-admin", admin: true }).map((c) => c.id)).toEqual([1, 2, 3]);
   });
-  it("quien no es admin ve además los de SU tienda, por el nombre del perfil (D-NEXT, la regla de Clientes, 217)", () => {
+  it("quien no es admin ve además los de SU tienda, por el nombre del perfil (D-789, la regla de Clientes, 217)", () => {
     // De McAllen: el 3 (MCA) aunque sea de otro vendedor; de Brownsville: 1 y 2, que ya eran suyos.
     expect(elegibles(CLIENTES_DEMO, { id: "u-otro", admin: false, store: "RDZ McAllen" }).map((c) => c.id)).toEqual([3]);
     expect(elegibles(CLIENTES_DEMO, { id: "u-otro", admin: false, store: "RDZ Brownsville" }).map((c) => c.id)).toEqual([1, 2]);

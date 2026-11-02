@@ -49435,7 +49435,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** en producción en navegador real; /erp en navegador.
 
-## D-NEXT · Quote Builder: la impresión sin cabecera del navegador ni páginas en blanco; validez pasada no bloquea; extensión y vendedor original fuera de la vista del vendedor; clientes solo de su tienda
+## D-789 · Quote Builder: la impresión sin cabecera del navegador ni páginas en blanco; validez pasada no bloquea; extensión y vendedor original fuera de la vista del vendedor; clientes solo de su tienda
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `fix/impresion-cotizacion`. Sin migración.
 

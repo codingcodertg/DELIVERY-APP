@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * D-NEXT: la cotización impresa sin cabecera ni pie del navegador (fecha, título, URL, «1/5») y sin páginas en
+ * D-789: la cotización impresa sin cabecera ni pie del navegador (fecha, título, URL, «1/5») y sin páginas en
  * blanco detrás. El dueño, con el PDF: «REMOVE» en las dos cosas.
  */
 const css = readFileSync(join(process.cwd(), "src/app/estimator/estimator.css"), "utf8").replace(/\r\n/g, "\n");

@@ -110,7 +110,7 @@
 @media print {
   body * { visibility: hidden !important; }
   .hoja-cliente, .hoja-cliente * { visibility: visible !important; }
-  /* D-NEXT (el dueño, con el PDF de una cotización de 5 páginas, 4 en blanco: «REMOVE»): lo que no es la hoja, ni
+  /* D-789 (el dueño, con el PDF de una cotización de 5 páginas, 4 en blanco: «REMOVE»): lo que no es la hoja, ni
      está dentro, ni la envuelve, se QUITA del flujo, no solo se esconde. Escondido seguía ocupando su sitio y el
      formulario entero salía como páginas vacías detrás de la hoja. */
   body *:not(.hoja-cliente):not(.hoja-cliente *):not(:has(.hoja-cliente)) { display: none !important; }

@@ -78,7 +78,7 @@ export function loQueFalta(q: QuoteDraft, estado: EstadoDelEstimado, hoy: string
   if (q.lines.some((l) => !l.customer_category.trim())) f.push("categoria");
   if (q.delivery.mode === "delivery" && !direccionCompleta(q)) f.push("direccion");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(q.valid_through)) f.push("validez");
-  // D-NEXT (Roberto Rodriguez Jr): «Allow quote generation even if valid through date is in the past». Una validez
+  // D-789 (Roberto Rodriguez Jr): «Allow quote generation even if valid through date is in the past». Una validez
   // pasada ya no impide generar: el vendedor sabe lo que imprime y la hoja dice la fecha. `hoy` queda por los
   // llamadores que lo pasan; ya no decide nada.
   void hoy;

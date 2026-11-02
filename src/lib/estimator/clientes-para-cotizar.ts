@@ -63,7 +63,7 @@ export function codigoDeMiTienda(store: string | null | undefined): string {
 
 /**
  * Los que esta persona puede elegir: sin archivados; el admin, todos. Quien no es admin, **los de su tienda** y los
- * suyos (por vendedor o por quien lo creó): la misma regla con la que Clientes le enseña filas (217). D-NEXT (el dueño):
+ * suyos (por vendedor o por quien lo creó): la misma regla con la que Clientes le enseña filas (217). D-789 (el dueño):
  * «en el quote builder la misma regla del customer: si el salespeople solo puede ver los customers de su tienda, en el
  * quote builder también». La base ya lo aplica con la sesión real; esto hace falta cuando un admin entra «como» un
  * vendedor, que consulta con la sesión del admin.

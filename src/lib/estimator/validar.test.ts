@@ -78,7 +78,7 @@ describe("lo que falta antes de generar la copia", () => {
     expect(Object.keys(TEXTO_DE_FALTA)).not.toContain("apellido");
     expect(loQueFalta(completo({ lines: [] }), "nueva", "2026-09-08")).toEqual(["lineas"]);
   });
-  it("una validez ya pasada SÍ se imprime (D-NEXT, Roberto: «Allow quote generation even if valid through date is in the past»); sin fecha, no", () => {
+  it("una validez ya pasada SÍ se imprime (D-789, Roberto: «Allow quote generation even if valid through date is in the past»); sin fecha, no", () => {
     expect(loQueFalta(completo({ valid_through: "2026-09-07" }), "nueva", "2026-09-08")).toEqual([]);
     expect(Object.keys(TEXTO_DE_FALTA)).not.toContain("validez-pasada");
     expect(loQueFalta(completo({ valid_through: "" }), "nueva", "2026-09-08")).toEqual(["validez"]);
@@ -208,7 +208,7 @@ describe("la pantalla usa estas reglas, no una copia", () => {
     expect(p).toContain("if (claveDeEstimado(draftRef.current.estimate_num) !== clave) return { ok: false };");
     expect(p).toContain('} else if (que === "abrir" && h) {\n      await abrirGuardada(h.quote_id);');
   });
-  it("«Original sales rep» solo cuando el estimado es de otro (D-NEXT, Melecio); la extensión solo la ve el admin", () => {
+  it("«Original sales rep» solo cuando el estimado es de otro (D-789, Melecio); la extensión solo la ve el admin", () => {
     expect(p).not.toContain("Search the estimate first");
     expect(p).toContain('{(hallado ? hallado.owner_id !== me.id : estado !== "sin-base" && !buscado && draft.estimate_num.trim() !== "") && (');
     expect(p).not.toContain('(${t("you", "tú")})');
