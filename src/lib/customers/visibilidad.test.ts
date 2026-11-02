@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { codigoDeTiendaDelPerfil, filasQueVe, veLaFila } from "./visibilidad";
 
 /**
- * D-NEXT: la regla de «quién ve qué cliente» vive en un solo sitio y es el gemelo de la 217. Las demás apps (el Quote
+ * D-793: la regla de «quién ve qué cliente» vive en un solo sitio y es el gemelo de la 217. Las demás apps (el Quote
  * Builder la primera) la importan; ninguna escribe la suya.
  */
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").replace(/\r\n/g, "\n");

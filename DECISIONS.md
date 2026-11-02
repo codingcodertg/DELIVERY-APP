@@ -49498,7 +49498,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** en navegador; el importador del GOV Pool con un fichero real (solo que carga y que el cruce corre en su misma transacción).
 
-## D-NEXT · Quién ve qué cliente: una sola regla (la de Clientes, 217) que las demás apps importan; el Quote Builder, la primera
+## D-793 · Quién ve qué cliente: una sola regla (la de Clientes, 217) que las demás apps importan; el Quote Builder, la primera
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/clientes-regla-unica`. Sin migración.
 

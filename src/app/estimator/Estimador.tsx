@@ -48,7 +48,7 @@ const claveDeExtension = (id: string) => `rtg_estimator_ext_${id}`;
 /** La pausa tras la última tecla del # de estimado antes de comprobarlo solo (D-432: sin botón «Search»). */
 const ESPERA_COMPROBACION_MS = 600;
 
-type Yo = { id: string; name: string; admin: boolean; /** D-NEXT: el rol, para la regla de Clientes (`veLaFila`). */ role?: UserRole | null; store?: string | null };
+type Yo = { id: string; name: string; admin: boolean; /** D-793: el rol, para la regla de Clientes (`veLaFila`). */ role?: UserRole | null; store?: string | null };
 type Aviso = { tipo: "verde" | "ambar" | "rojo"; texto: string } | null;
 
 /**
@@ -188,7 +188,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   useEffect(() => {
     if (!seBusca(buscaCliente) || !me) { setOpcionesDeCliente([]); return; }
     let vivo = true;
-    // D-789/D-NEXT: la regla de Clientes (`veLaFila`): rol y tienda del perfil, también cuando un admin entra «como» otro.
+    // D-789/D-793: la regla de Clientes (`veLaFila`): rol y tienda del perfil, también cuando un admin entra «como» otro.
     const yo = { id: me.id, role: me.role ?? (me.admin ? "admin" : null), store: me.store ?? null };
     const tarea = setTimeout(async () => {
       if (demo) { if (vivo) setOpcionesDeCliente(coincidencias(elegibles(CLIENTES_DEMO, yo), buscaCliente)); return; }

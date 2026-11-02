@@ -56,7 +56,7 @@ export const seBusca = (q: string): boolean => q.trim().length >= MIN_LETRAS;
 
 /**
  * Los que esta persona puede elegir: sin archivados y, de esos, los que VE según la regla de Clientes (`veLaFila`, el
- * gemelo de la 217, en `src/lib/customers/visibilidad.ts`). D-NEXT (el dueño): «la regla de customer debe ir totalmente
+ * gemelo de la 217, en `src/lib/customers/visibilidad.ts`). D-793 (el dueño): «la regla de customer debe ir totalmente
  * ligada al customer app, y así en todas las apps» — aquí no se reescribe nada: se importa.
  */
 export function elegibles(filas: readonly ClienteParaCotizar[], yo: QuienMira): ClienteParaCotizar[] {

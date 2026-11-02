@@ -2,7 +2,7 @@ import type { UserRole } from "@/lib/types";
 import { TIENDAS } from "./reglas";
 
 /**
- * QUIÉN VE QUÉ CLIENTE: la regla de la app de Clientes, en un solo sitio (D-NEXT, 2026-11-01).
+ * QUIÉN VE QUÉ CLIENTE: la regla de la app de Clientes, en un solo sitio (D-793, 2026-11-01).
  *
  * El dueño: «el quote builder la regla de customer debe ir totalmente ligada al customer app, y así en todas las apps».
  * La regla la decide la base —`erp.customers_ve_la_fila(rep_id, created_by, store)`, migración 217— con la sesión real.
