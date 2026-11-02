@@ -89,7 +89,7 @@ export default function OrdersPage() {
 
   // Every store auto-approves → nothing ever sits in "Pending Approval", so
   // that stage's filter chip is dropped and manager/sales land on Programmed.
-  // D-NEXT: las tiendas que VE quien entra (un vendedor de Pharr, que auto-aprueba, entraba en «Pendiente» vacío).
+  // D-801: las tiendas que VE quien entra (un vendedor de Pharr, que auto-aprueba, entraba en «Pendiente» vacío).
   const autoApproveAll = todasLasMiasAutoAprueban(settings.stores, me);
   const router = useRouter();
   const searchParams = useSearchParams();

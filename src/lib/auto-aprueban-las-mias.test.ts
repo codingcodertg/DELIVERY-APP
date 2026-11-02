@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { tiendasQueVe, todasLasMiasAutoAprueban } from "./auto-aprueban-las-mias";
 
-/** D-NEXT: el chip de entrada de Órdenes mira las tiendas que ve quien entra, no todas las de Ajustes. */
+/** D-801: el chip de entrada de Órdenes mira las tiendas que ve quien entra, no todas las de Ajustes. */
 const stores = [
   { name: "Tienda A", auto_approve: true },
   { name: "Tienda B", auto_approve: false },

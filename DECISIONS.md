@@ -49615,7 +49615,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/customers/solicitud-de-cliente.test.ts` (roles, cableado de la pantalla y la 226). Ensayo de la 226 en seco contra producción: limpio. tsc limpio.
 
 **No verificado:** en navegador; la 226 en producción hasta que el dueño la aplique (sin ella, la oficina ve el botón pero la base rechaza la solicitud).
-## D-NEXT · Órdenes: el chip de entrada del vendedor y del gerente mira las tiendas que ÉL ve, no todas
+## D-801 · Órdenes: el chip de entrada del vendedor y del gerente mira las tiendas que ÉL ve, no todas
 
 **Fecha:** 2026-11-02 · Hecho directo por el orquestador en `fix/ventas-chip-de-entrada-por-tienda`. Sin migración.
 

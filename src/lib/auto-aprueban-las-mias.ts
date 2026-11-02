@@ -1,7 +1,7 @@
 import type { NamedLocation } from "./types";
 
 /**
- * D-NEXT (2026-11-02): ¿auto-aprueban TODAS las tiendas que esta persona ve? Decide el chip de entrada de Órdenes para
+ * D-801 (2026-11-02): ¿auto-aprueban TODAS las tiendas que esta persona ve? Decide el chip de entrada de Órdenes para
  * gerente y vendedor («Pendiente» o «Programadas») y si el chip «Pendiente» se enseña.
  *
  * Antes se miraban TODAS las tiendas de Ajustes: con una sola que no auto-aprueba (McAllen), un vendedor de Pharr
