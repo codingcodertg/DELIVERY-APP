@@ -303,9 +303,9 @@ describe("quién puede decidir, y por qué no", () => {
     expect(motivoParaNoDecidir({ esDecisor: false, grupo: null, rondaCerrada: true })!.es).toMatch(/cerrada/);
   });
 
-  it("un vendedor no decide, y se le dice quién", () => {
+  it("un vendedor no decide, y NO se le dice nada (D-794: «quita ese mensaje»)", () => {
     expect(puedeDecidir({ ...base, esDecisor: false })).toBe(false);
-    expect(motivoParaNoDecidir({ ...base, esDecisor: false })!.es).toMatch(/Gerente de Oficina/);
+    expect(motivoParaNoDecidir({ ...base, esDecisor: false })).toBeNull();
   });
 
   it("sin grupo no se decide, y se dice dónde se pone", () => {
