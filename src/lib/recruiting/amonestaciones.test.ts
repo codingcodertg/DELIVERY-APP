@@ -16,8 +16,9 @@ describe("la amonestación", () => {
     expect(motivoDeAmonestacionValido("mal")).toBe(false);
     expect(motivoDeAmonestacionValido(null)).toBe(false);
   });
-  it("la 227 suma el tipo sin perder los de la 212", () => {
-    const sql = leer("supabase/migrations/227_rrhh_amonestaciones.sql");
+  it("la 228 suma la reprimenda sin perder los de la 212 ni la 227", () => {
+    const sql = leer("supabase/migrations/228_rrhh_reprimendas.sql");
+    expect(sql).toContain("'employee_reprimand'");
     for (const k of KINDS) expect(sql, k).toContain(`'${k}'`);
   });
   it("la acción la dan admin y gerente (PUEDE), exige motivo y escribe la fila con quién y por qué", () => {
@@ -27,12 +28,15 @@ describe("la amonestación", () => {
     const cuerpo = hr.slice(i, hr.indexOf("\n}\n", i));
     expect(cuerpo).toContain("if (!PUEDE.includes(yo.role))");
     expect(cuerpo).toContain("if (!motivoDeAmonestacionValido(datos.motivo))");
-    expect(cuerpo).toContain('kind: "employee_warning"');
+    expect(cuerpo).toContain('esAccionDisciplinaria(datos.tipo) ? datos.tipo : "employee_warning"');
     expect(cuerpo).toContain("actor_id: yo.userId");
   });
   it("la ficha tiene el botón «Amonestar» y el diálogo con motivo obligatorio", () => {
     const p = leer("src/app/recruiting/(recruiting)/employees/page.tsx");
-    expect(p).toContain('data-accion="amonestar" onClick={onAmonestar}');
+    expect(p).toContain('data-accion="acciones-empleado"');
+    expect(p).toContain('data-accion="amonestar"');
+    expect(p).toContain('data-accion="reprimenda"');
+    expect(p).toContain('onAmonestar("employee_reprimand")');
     expect(p).toContain("<AmonestarDialog");
     const a = leer("src/app/recruiting/(recruiting)/employees/acciones.tsx");
     expect(a).toContain('data-dialogo="amonestar"');

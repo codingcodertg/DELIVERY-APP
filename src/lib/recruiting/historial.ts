@@ -15,7 +15,16 @@ export const KINDS = [
   "asset_backed_up", "asset_status_changed",
   // D-806 (227): la amonestación, dada por el admin o el gerente de RR. HH.; el motivo va en `reason`, la nota en `detail`.
   "employee_warning",
+  // D-NEXT (228): la reprimenda, el grado siguiente; mismo sitio, mismos permisos.
+  "employee_reprimand",
 ] as const;
+
+/** D-NEXT: las dos acciones disciplinarias del menú «Acciones del empleado» (Roberto: «give warning or reprimand»). */
+export const ACCIONES_DISCIPLINARIAS = ["employee_warning", "employee_reprimand"] as const;
+export type AccionDisciplinaria = (typeof ACCIONES_DISCIPLINARIAS)[number];
+export function esAccionDisciplinaria(k: unknown): k is AccionDisciplinaria {
+  return k === "employee_warning" || k === "employee_reprimand";
+}
 export type TipoDeHistorial = (typeof KINDS)[number];
 
 export interface EntradaDeHistorial {
@@ -59,6 +68,7 @@ const ETIQUETAS: Record<TipoDeHistorial, { en: string; es: string }> = {
   asset_backed_up: { en: "Backed up", es: "Respaldado" },
   asset_status_changed: { en: "Status changed", es: "Estado cambiado" },
   employee_warning: { en: "Warning", es: "Amonestación" },
+  employee_reprimand: { en: "Reprimand", es: "Reprimenda" },
 };
 
 /** D-806: una amonestación necesita motivo (sin él no se registra); la nota es opcional. */

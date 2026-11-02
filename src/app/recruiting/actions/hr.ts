@@ -1,6 +1,6 @@
 "use server";
 
-import { motivoDeAmonestacionValido } from "@/lib/recruiting/historial";
+import { type AccionDisciplinaria, esAccionDisciplinaria, motivoDeAmonestacionValido } from "@/lib/recruiting/historial";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSyntheticEmail } from "@/lib/username";
@@ -490,7 +490,9 @@ async function liberaActivosDeLaBaja(supabase: Awaited<ReturnType<typeof createC
  * expediente; la fila va al historial (`employee_warning`) con quién la da, cuándo, el motivo y la nota. Aquí sí hunde
  * si no se escribe: la amonestación ES la fila; sin ella no hay nada que registrar.
  */
-export async function registerWarning(fileId: string, datos: { motivo: string; nota?: string | null }): Promise<{ ok: boolean; message?: string }> {
+export async function registerWarning(fileId: string, datos: { motivo: string; nota?: string | null; tipo?: AccionDisciplinaria }): Promise<{ ok: boolean; message?: string }> {
+  // D-NEXT (228): amonestación o reprimenda; sin `tipo`, amonestación (lo que ya llamaba la 806).
+  const kind: AccionDisciplinaria = esAccionDisciplinaria(datos.tipo) ? datos.tipo : "employee_warning";
   const supabase = await createClient();
   const yo = await tier(supabase);
   if (!yo) return { ok: false, message: "Not signed in." };
@@ -501,11 +503,11 @@ export async function registerWarning(fileId: string, datos: { motivo: string; n
   if (!file) return { ok: false, message: "No such employee file." };
   const { data: actor } = await supabase.from("profiles").select("full_name").eq("id", yo.userId).maybeSingle();
   const { error } = await supabase.schema("recruiting").from("hr_history").insert({
-    kind: "employee_warning", employee_id: fileId, employee_name: file.full_name ?? null,
+    kind, employee_id: fileId, employee_name: file.full_name ?? null,
     actor_id: yo.userId, actor_name: actor?.full_name ?? null,
     reason: datos.motivo.trim(), detail: (datos.nota ?? "").trim() || null, data: {},
   });
-  if (error) return { ok: false, message: error.code === "23514" ? "Migration 227 pending: the history does not accept warnings yet." : error.message };
+  if (error) return { ok: false, message: error.code === "23514" ? "Migration 227/228 pending: the history does not accept this action yet." : error.message };
   return { ok: true };
 }
 

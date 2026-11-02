@@ -49698,3 +49698,19 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/recruiting/amonestaciones.test.ts` (nueva); `historial.test.ts` (el check vigente es el de la 227). Ensayo de la 227 en seco contra producción: limpio. tsc y eslint limpios.
 
 **No verificado:** en navegador; la 227 en producción hasta que el dueño la aplique (sin ella, el botón sale y al registrar avisa «Migration 227 pending»).
+
+## D-NEXT · RR. HH.: «Acciones del empleado» → amonestación o reprimenda, las dos al expediente
+
+**Fecha:** 2026-11-02 · Hecho directo por el orquestador en `feat/rrhh-acciones-del-empleado`. Migración **228** (la aplica el dueño; con la 227 si aún no está).
+
+**Pedido (Roberto Rodriguez Jr, sobre D-806):** «there will be a button that says employee actions, and when pressed will say give warning or reprimand an employee, that will go into their expediente».
+
+**Qué cambia:**
+
+1. **Base (228):** el check de `recruiting.hr_history` acepta también `employee_reprimand` (y conserva `employee_warning` de la 227 y los de la 212). Mismos permisos que la 212: insertan y leen el admin y el gerente de RR. HH.; nadie edita ni borra.
+2. **Pantalla:** el botón «Amonestar» de D-806 pasa a un menú «⚠️ Acciones del empleado ▾» (`data-accion="acciones-empleado"`) con «Dar amonestación» (`data-accion="amonestar"`) y «Reprimenda» (`data-accion="reprimenda"`). El mismo diálogo (`AmonestarDialog`, con `tipo`) pide motivo obligatorio y nota opcional, y cambia título, botón y aviso según el grado.
+3. **Acción** (`registerWarning`): recibe `tipo` (`AccionDisciplinaria`: amonestación o reprimenda; sin él, amonestación) y escribe la fila con quién, cuándo, motivo y nota. En el historial del expediente salen como «Amonestación» / «Reprimenda».
+
+**Pruebas:** `src/lib/recruiting/amonestaciones.test.ts`, `historial.test.ts` (el check vigente es el de la 228). Ensayo de la 228 en seco contra producción: limpio. tsc y eslint limpios.
+
+**No verificado:** en navegador; la 227 y la 228 en producción hasta que el dueño las aplique (sin ellas, el menú sale y al registrar avisa «Migration 227/228 pending»).
