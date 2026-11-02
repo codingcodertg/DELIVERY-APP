@@ -31,4 +31,4 @@ end $chk$;
 
 -- @ledger-below
 insert into public.schema_migrations (name, checksum)
-  values ('228_rrhh_reprimendas.sql', 'e039eacde09f92b4dc9a30a6d1b99f29ac8c69694dcdb6a6a4cd9102055558a7') on conflict (name) do nothing;
+  values ('228_rrhh_reprimendas.sql', '983180996d591dc33ced4210e5e99c2893d86231abd73f5863ec0ca9e38cd66b') on conflict (name) do nothing;
