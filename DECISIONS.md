@@ -49528,3 +49528,17 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/promos/chips-de-estado.test.ts` (nueva), `tabla.test.ts` (el no decisor no recibe aviso). tsc limpio.
 
 **No verificado:** en navegador.
+
+## D-795 · Quote Builder: los campos obligatorios de cada línea se pintan en rojo, como en el formulario de Órdenes
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `fix/cotizador-linea-en-rojo`. Sin migración.
+
+**Pedido:** Roberto Contreras (vendedor, help request con captura de «SF / caja»): «this one says its required but it doesnt show red like the others». El dueño: «cajas y square ft per box así como en el deliveries form, así quiero».
+
+**Qué había:** «# de estimado», «Nombre completo» y «Categoría para el cliente» salían en rojo (`.invalid`) mientras faltaban, pero los números de la línea no, aunque `loQueFalta` los exige («A una línea le falta cantidad, SF/caja o precio»).
+
+**Qué cambia (`src/app/estimator/Estimador.tsx`):** `CampoDecimal` recibe `className={inv(...)}` con la misma condición que usa el total de la línea (`totalDeLinea`): en la línea por pie cuadrado, «SF pedidos» y «Cajas» en rojo mientras `cajasDeLinea` sea nulo (basta rellenar uno de los dos), «SF / caja» mientras no sea > 0, «$/SF regular» mientras no sea ≥ 0; en la línea por unidad, «Cantidad» (> 0) y «Precio unitario regular» (≥ 0). Los opcionales («$/caja», descuentos, nota) no cambian.
+
+**Pruebas:** `src/lib/estimator/linea-en-rojo.test.ts`. tsc y eslint limpios.
+
+**No verificado:** en navegador.
