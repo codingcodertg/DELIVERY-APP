@@ -52,7 +52,7 @@ const TANDA = 100;
 // D-728: `esAdmin` es «puede asignar vendedores» (admin y gerente, `puedeAsignarVendedores`); `esVendedor` esconde tarjetas de la ficha.
 // D-742: `puedePedirVendedor` es el gerente: no asigna, lo pide al admin; y ve solo su tienda, sin pastillas de tiendas.
 // D-743 (216): `altaComoSolicitud` (vendedor, gerente): el alta se manda como solicitud y la aprueba el admin.
-export function Clientes({ demo, puedeEditar, esAdmin = false, puedeArchivar = false, esVendedor = false, puedePedirVendedor = false, altaComoSolicitud = false, edicionComoSolicitud = false, userId, miTienda = null }: { demo: boolean; puedeEditar: boolean; esAdmin?: boolean; /** D-778: archiva solo el admin. */ puedeArchivar?: boolean; esVendedor?: boolean; puedePedirVendedor?: boolean; altaComoSolicitud?: boolean; /** D-780 (221): la edición del vendedor y del gerente es una solicitud que revisa el admin. */ edicionComoSolicitud?: boolean; userId: string; /** D-767: la tienda de quien mira (`profiles.store`): el alta la deja marcada. */ miTienda?: string | null }) {
+export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = false, puedeArchivar = false, esVendedor = false, puedePedirVendedor = false, altaComoSolicitud = false, edicionComoSolicitud = false, userId, miTienda = null }: { demo: boolean; puedeEditar: boolean; /** D-NEXT (226): la oficina pide altas sin editar. */ puedeDarDeAlta?: boolean; esAdmin?: boolean; /** D-778: archiva solo el admin. */ puedeArchivar?: boolean; esVendedor?: boolean; puedePedirVendedor?: boolean; altaComoSolicitud?: boolean; /** D-780 (221): la edición del vendedor y del gerente es una solicitud que revisa el admin. */ edicionComoSolicitud?: boolean; userId: string; /** D-767: la tienda de quien mira (`profiles.store`): el alta la deja marcada. */ miTienda?: string | null }) {
   const { t, lang } = usePrefs();
   const almacen: AlmacenDeClientes = useMemo(() => (demo ? almacenDemo() : almacenDeLaBase(createClient())), [demo]);
 
@@ -252,7 +252,8 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, puedeArchivar = f
               📝 {t("Requests", "Solicitudes")} {solicitudesPendientes > 0 && <span className="ml-1 rounded-full bg-amber-100 px-1.5 text-xs text-amber-800" data-solicitudes-pendientes>{solicitudesPendientes}</span>}
             </Button>
           )}
-          {puedeEditar && <Button onClick={() => setFicha({ tipo: "nuevo" })}>+ {altaComoSolicitud ? t("Request new customer", "Solicitar cliente nuevo") : t("New customer", "Nuevo cliente")}</Button>}
+          {/* D-NEXT (226): la oficina no edita pero sí pide el alta (`puedeDarDeAlta`). */}
+          {(puedeEditar || puedeDarDeAlta) && <Button onClick={() => setFicha({ tipo: "nuevo" })}>+ {altaComoSolicitud ? t("Request new customer", "Solicitar cliente nuevo") : t("New customer", "Nuevo cliente")}</Button>}
         </div>
       </div>
 
@@ -546,7 +547,7 @@ export function Clientes({ demo, puedeEditar, esAdmin = false, puedeArchivar = f
           hermanas={ficha.tipo === "ver" ? filasDeLaEmpresa(lista, lista.find((x) => x.id === ficha.cliente.id) ?? ficha.cliente) : []}
           lista={lista}
           onCambia={(c) => setFicha({ tipo: "ver", cliente: c })}
-          puedeEditar={puedeEditar}
+          puedeEditar={puedeEditar || (ficha.tipo === "nuevo" && puedeDarDeAlta)}
           puedeArchivar={puedeArchivar}
           esVendedor={esVendedor}
           puedePedirVendedor={puedePedirVendedor}

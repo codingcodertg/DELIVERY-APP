@@ -12,6 +12,7 @@
  *   `created_by` = quien pidió) con `erp.aprueba_solicitud_de_cliente`.
  */
 import type { UserRole } from "@/lib/types";
+import { puedeEditar } from "./reglas";
 import type { Parche } from "./reglas";
 
 export type EstadoDeSolicitud = "pending" | "approved" | "rejected";
@@ -36,7 +37,16 @@ export interface SolicitudDeCliente {
 }
 
 export function altaEsSolicitud(role: UserRole | null | undefined): boolean {
-  return role === "sales" || role === "manager";
+  return role === "sales" || role === "manager" || role === "accounting"; // D-NEXT (226): la oficina también pide
+}
+
+/**
+ * D-NEXT (226): quién ve el botón «Nuevo cliente» / «Solicitar cliente nuevo»: quien edita (admin, gerente, vendedor) y
+ * la oficina, que NO edita pero sí pide el alta (el dueño: «solo dale la opción de add new customer»). Espejo de
+ * erp.customers_can_request().
+ */
+export function puedeDarDeAlta(role: UserRole | null | undefined): boolean {
+  return puedeEditar(role) || role === "accounting";
 }
 
 /** Lo que se escribe en la base: las tiendas marcadas y los campos del formulario (la fila, sin tienda ni empresa). */

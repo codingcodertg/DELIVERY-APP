@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  altaEsSolicitud, cuerpoDeSolicitud, mensajeDeAltaPendiente, PAGINA_DE_SOLICITUDES, pendientes, resumenDeSolicitud, solicitudDeLaBase,
+  altaEsSolicitud, cuerpoDeSolicitud, puedeDarDeAlta, mensajeDeAltaPendiente, PAGINA_DE_SOLICITUDES, pendientes, resumenDeSolicitud, solicitudDeLaBase,
 } from "./solicitud-de-cliente";
 import { almacenDemoNuevo } from "./demo";
+import { puedeEditar } from "./reglas";
 
 /** El alta de un cliente por vendedor o gerente es una solicitud que aprueba el admin (D-743, migración 216). */
 
@@ -16,7 +17,21 @@ describe("quién solicita", () => {
     expect(altaEsSolicitud("sales")).toBe(true);
     expect(altaEsSolicitud("manager")).toBe(true);
     expect(altaEsSolicitud("admin")).toBe(false);
-    expect(altaEsSolicitud("accounting")).toBe(false);
+    expect(altaEsSolicitud("accounting")).toBe(true); // D-NEXT (226): la oficina pide, como ventas
+    expect(altaEsSolicitud("warehouse")).toBe(false);
+  });
+  it("D-NEXT (226): la oficina ve el botón de alta sin poder editar; la pantalla lo cablea", () => {
+    expect(puedeDarDeAlta("accounting")).toBe(true);
+    expect(puedeDarDeAlta("sales")).toBe(true);
+    expect(puedeDarDeAlta("warehouse")).toBe(false);
+    expect(puedeEditar("accounting")).toBe(false);
+    expect(leer("src/app/customers/page.tsx")).toContain("puedeDarDeAlta={puedeDarDeAlta(role)}");
+    const cl = leer("src/app/customers/Clientes.tsx");
+    expect(cl).toContain('{(puedeEditar || puedeDarDeAlta) && <Button onClick={() => setFicha({ tipo: "nuevo" })}>');
+    expect(cl).toContain('puedeEditar={puedeEditar || (ficha.tipo === "nuevo" && puedeDarDeAlta)}');
+    const sql = leer("supabase/migrations/226_clientes_oficina_solicita.sql");
+    expect(sql).toContain("create or replace function erp.customers_can_request()");
+    expect(sql).toContain("with check (requested_by = (select auth.uid()) and status = 'pending' and (select erp.customers_can_request()));");
   });
 });
 

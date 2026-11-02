@@ -49598,3 +49598,20 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/leads/cruzados-de-mi-tienda.test.ts` (nueva; lee la 225); `alcance.test.ts`, `pool-privado.test.ts` (la línea de `delBanco`). `mapa-de-apps.ts`: citas de `Leads.tsx` recalculadas. Ensayo de la 225 en seco contra producción: limpio. tsc y eslint limpios.
 
 **No verificado:** en navegador; la 225 en producción hasta que el dueño la aplique (sin ella, la pantalla suma el lead a la lista pero la base no lo devolvería a quien no lo alcanza: no se ve nada nuevo hasta aplicarla).
+
+## D-NEXT · Clientes: la oficina pide altas («Solicitar cliente nuevo»), sin editar
+
+**Fecha:** 2026-11-02 · Hecho directo por el orquestador en `feat/clientes-oficina-pide-alta`. Migración **226** (la aplica el dueño).
+
+**Pedido (el dueño):** «dale la opción de request new client así como sales a los de office, así como Carlos Fuentes y ellos»; y después: «Carlos Fuentes déjalo como estaba, solo dale la opción de add new customer».
+
+**Qué había:** el botón «Nuevo cliente» / «Solicitar cliente nuevo» salía solo a quien edita (`puedeEditar`: admin, gerente, vendedor), y la base dejaba insertar solicitudes solo a esos (`customers_can_write`, 198/216). La oficina (rol `accounting`) no tenía cómo pedir un alta.
+
+**Qué cambia:**
+
+1. **Base (226):** `erp.customers_can_request()` = `customers_can_write()` o oficina con el módulo; la política de insertar solicitudes (216) pasa a mirarla. `customers_can_write()` no cambia: la oficina sigue sin editar ni pedir ediciones.
+2. **Pantalla:** `altaEsSolicitud` incluye `accounting` (su alta es una solicitud que revisa el admin, como la de ventas) y `puedeDarDeAlta` (quien edita, o la oficina) decide el botón. `Clientes.tsx` recibe `puedeDarDeAlta` y abre el alta con el formulario editable solo para la ficha nueva; «Editar» sigue sin salirle a la oficina.
+
+**Pruebas:** `src/lib/customers/solicitud-de-cliente.test.ts` (roles, cableado de la pantalla y la 226). Ensayo de la 226 en seco contra producción: limpio. tsc limpio.
+
+**No verificado:** en navegador; la 226 en producción hasta que el dueño la aplique (sin ella, la oficina ve el botón pero la base rechaza la solicitud).
