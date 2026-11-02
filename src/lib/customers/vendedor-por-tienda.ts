@@ -16,12 +16,13 @@
  */
 import { COLUMNAS, type Cliente, type Columna } from "./reglas";
 
-export const COLUMNAS_DEL_VENDEDOR: readonly string[] = ["account", "store_count", "status_store", "rep_id"];
+// D-797 (el dueño, con captura de la lista del vendedor): «agrega la columna vendedor QB en el view de sales».
+export const COLUMNAS_DEL_VENDEDOR: readonly string[] = ["account", "store_count", "status_store", "rep_id", "rep_store"];
 export const MIN_LETRAS_DE_BUSQUEDA = 2;
 /** Un respiro entre teclas antes de preguntar a la base. */
 export const RETARDO_DE_BUSQUEDA_MS = 300;
 
-/** Las cuatro, en el orden canónico de `COLUMNAS`; ignora cualquier preferencia guardada. */
+/** Las cinco, en el orden canónico de `COLUMNAS`; ignora cualquier preferencia guardada. */
 export function columnasDelVendedor(): Columna[] {
   return COLUMNAS.filter((c) => COLUMNAS_DEL_VENDEDOR.includes(c.key as string));
 }
