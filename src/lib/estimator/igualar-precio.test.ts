@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { igualaPrecio, marcaDeFila, ponPrecioCompetidor, sePuedeIgualar } from "./price-match";
 import { lineaSfVacia, lineaUnidadVacia } from "./modelo";
 
-/** D-NEXT: «Price Match» funcional (Roberto): precio del competidor + «Igualar precio» → precio con descuento. */
+/** D-802: «Price Match» funcional (Roberto): precio del competidor + «Igualar precio» → precio con descuento. */
 const sf = () => { const l = lineaSfVacia(); l.price_per_sf = 3; l.price_match = true; return l; };
 const unidad = () => { const l = lineaUnidadVacia(); l.unit_price = 20; l.price_match = true; return l; };
 

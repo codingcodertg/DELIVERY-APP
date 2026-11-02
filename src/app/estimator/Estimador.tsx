@@ -847,7 +847,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                   <input value={l.price_match_competitor ?? ""} data-price-match-competidor list="est-pm-competidores" maxLength={120}
                     placeholder={t("Competitor (optional)", "Competidor (opcional)")} style={{ maxWidth: 240 }}
                     onChange={(e) => cambiaLinea(l.id, (x) => ponCompetidor(x, e.target.value))} />
-                  {/* D-NEXT: el precio del competidor y «Igualar», que lo copia al precio con descuento de la línea. */}
+                  {/* D-802: el precio del competidor y «Igualar», que lo copia al precio con descuento de la línea. */}
                   <CampoDecimal value={l.price_match_price ?? null} data-price-match-precio style={{ maxWidth: 140 }}
                     placeholder={l.kind === "sf" ? t("Competitor $/SF", "Competidor $/SF") : t("Competitor unit price", "Precio unitario del competidor")}
                     onValor={(n) => cambiaLinea(l.id, (x) => ponPrecioCompetidor(x, n))} />

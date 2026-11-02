@@ -22,7 +22,7 @@ export interface MarcaPriceMatch {
   price_match?: boolean;
   /** El competidor que cotiza más bajo. Opcional; solo tiene sentido con `price_match`. */
   price_match_competitor?: string;
-  /** D-NEXT: el precio del competidor, opcional; solo con `price_match`. */
+  /** D-802: el precio del competidor, opcional; solo con `price_match`. */
   price_match_price?: number;
 }
 
@@ -89,7 +89,7 @@ export function ponCompetidor<L extends QuoteLine>(l: L, texto: string): L {
   return copia;
 }
 
-/** D-NEXT: escribir el precio del competidor. Sin la marca, nada; vacío o inválido quita la clave. */
+/** D-802: escribir el precio del competidor. Sin la marca, nada; vacío o inválido quita la clave. */
 export function ponPrecioCompetidor<L extends QuoteLine>(l: L, n: number | null): L {
   if (!tienePriceMatch(l)) return l;
   const precio = precioDeCompetidorLimpio(n);
@@ -100,7 +100,7 @@ export function ponPrecioCompetidor<L extends QuoteLine>(l: L, n: number | null)
 }
 
 /**
- * D-NEXT (Roberto Rodriguez Jr: «a functional price match button»): «Igualar» copia el precio del competidor al precio
+ * D-802 (Roberto Rodriguez Jr: «a functional price match button»): «Igualar» copia el precio del competidor al precio
  * con descuento de la línea (`lower_price_per_sf` o `lower_unit_price`). Solo si hay marca y precio; si el precio del
  * competidor no es menor que el regular, no hay nada que igualar y la línea no cambia (`sePuedeIgualar`).
  */

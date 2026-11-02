@@ -87,7 +87,7 @@ describe("la hoja del cliente NO lleva nada interno", () => {
       // Y sí lo que debe estar.
       expect(html).toContain("Ms. Zubizarreta");
       expect(html).toContain("104582");
-      expect(html).toContain("Reference No.:</span> 214"); // D-NEXT: sin «Ext.» ni «Sales Representative»
+      expect(html).toContain("Reference No.:</span> 214"); // D-802: sin «Ext.» ni «Sales Representative»
       expect(html).not.toContain("Sales Representative");
       expect(html).not.toContain("Project Price Summary");
     });

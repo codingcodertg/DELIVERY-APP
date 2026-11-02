@@ -208,7 +208,7 @@ export function hojaDelCliente(q: QuoteDraft, tienda: string | null = null, idio
     preparadoPara: paraQuienSeImprime(q.customer),
     referencia: q.estimate_num.trim(),
     tienda: tienda?.trim() || null,
-    // D-NEXT (el dueño y Roberto: que la hoja no delate al vendedor): solo el número, bajo «Reference No.».
+    // D-802 (el dueño y Roberto: que la hoja no delate al vendedor): solo el número, bajo «Reference No.».
     representante: q.sales_ext.trim(),
     resumen: q.project_summary.trim() || null,
     filas,

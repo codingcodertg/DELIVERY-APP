@@ -49629,7 +49629,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** en navegador con la cuenta de Melecio. Si tras recargar sigue vacío con «Programadas» puesto, el siguiente sospechoso es un filtro guardado en su navegador (ninguno en la base: solo anchos de columnas).
 
-## D-NEXT · Quote Builder: la hoja no delata al vendedor («Reference No.» en vez de «Sales Representative: Ext.»), sin subtítulo, y «Price Match» funcional («Igualar precio»)
+## D-802 · Quote Builder: la hoja no delata al vendedor («Reference No.» en vez de «Sales Representative: Ext.»), sin subtítulo, y «Price Match» funcional («Igualar precio»)
 
 **Fecha:** 2026-11-02 · Hecho directo por el orquestador en `feat/cotizacion-referencia-y-price-match`. Sin migración (el precio del competidor va en el `jsonb` de la línea, como la marca).
 
