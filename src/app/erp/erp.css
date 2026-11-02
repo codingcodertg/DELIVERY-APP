@@ -9,8 +9,18 @@
    routes under that layout. Verified in .next/app-build-manifest.json: /erp/layout
    has its own `static/css/app/erp/layout.css`, and `/` and `/login` reference
    only the root chunk. So preflight — a global reset — never reaches the
-   deliveries, recruiting or timetracker screens, because their pages never load
-   this stylesheet at all.
+   deliveries, recruiting or timetracker screens ON A FRESH LOAD.
+
+   PERO LA HOJA NO SE DESCARGA AL NAVEGAR (D-788, 2026-11-01). Quien abre Clientes y
+   luego va a Entregas o al Quote Builder por el menú sigue con esta hoja cargada, y el
+   `* { border: 0 }` del preflight (capa `base`, por encima de la capa `app` de
+   globals.css) dejaba todos los campos sin borde ni esquinas. Medido en el demo:
+   `input` en `/` con borde 1px → tras pasar por `/customers`, 0px y radio 0. El dueño
+   y Roberto lo veían «mucho» justo porque viven en Clientes. Por eso el preflight ya no
+   entra entero: va ANIDADO bajo `[data-app="erp"]` en `preflight-erp.css`, que es el
+   fichero REAL de Tailwind generado por `scripts/css/genera-preflight-erp.mjs` (no una
+   aproximación a mano, que es lo que falló en D-090). Tema y utilidades siguen enteros:
+   solo visten clases, y no se filtran a nadie.
 
    An earlier version of this file imported theme + utilities only and hand-wrote
    a "scoped preflight" under [data-app="erp"], on the assumption that a global
@@ -24,10 +34,13 @@
    so preflight wins where they overlap. That is what we want there: those pages
    render ERP markup, not deliveries markup.
 
-   Keep the import below as plain `@import "tailwindcss"`. Splitting it back into
-   theme/utilities to "be safe" is what caused the broken layout. */
+   Estas tres líneas son lo que `@import "tailwindcss"` hace por dentro, con el preflight
+   acotado. No volver a `@import "tailwindcss"` entero: se filtra al navegar. */
 
-@import "tailwindcss";
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "./preflight-erp.css";
+@import "tailwindcss/utilities.css" layer(utilities);
 
 /* Tailwind 4 scans for class names; be explicit rather than relying on
    auto-detection, so a class used only in an ERP component still gets emitted. */
