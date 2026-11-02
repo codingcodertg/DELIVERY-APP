@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { esDecisorDePromos, grupoDeLaTienda, type DecisionDeGrupo, type ProductoDeCatalogo } from "@/lib/promos/tabla";
-import { tiendasSinGrupoDePromos } from "@/lib/promos/entrada";
 import type { NamedLocation } from "@/lib/types";
 import { RONDAS_DEMO } from "@/lib/promos/demo";
 import { RondaDemo } from "./RondaDemo";
@@ -99,7 +98,6 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
         esAdmin={rol === "admin"}
         gruposDelLibro={gruposDelLibro}
         rondas={(todasLasRondas ?? []) as { id: string; label: string; uploaded_at: string; closed_at: string | null }[]}
-        tiendasSinGrupo={tiendasSinGrupoDePromos(tiendas)}
       />
     </div>
   );

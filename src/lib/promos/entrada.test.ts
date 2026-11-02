@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { rondaDeEntrada, tiendasSinGrupoDePromos } from "./entrada";
+import { rondaDeEntrada } from "./entrada";
 import type { NamedLocation } from "@/lib/types";
 
 /**
@@ -39,23 +39,6 @@ describe("a qué ronda se entra", () => {
   });
 });
 
-describe("el aviso de los grupos de tienda", () => {
-  const tienda = (name: string, promo_group?: string) => ({ name, address: "", promo_group }) as unknown as NamedLocation;
-  it("no dice nada cuando están todos puestos, que es el caso de hoy", () => {
-    expect(tiendasSinGrupoDePromos([tienda("McAllen", "RGV"), tienda("Pharr", "RGV")])).toEqual([]);
-  });
-  it("nombra las que faltan, que es lo que hace falta para arreglarlo", () => {
-    expect(tiendasSinGrupoDePromos([tienda("McAllen", "RGV"), tienda("Pharr"), tienda("Mission", "  ")]))
-      .toEqual(["Pharr", "Mission"]);
-  });
-  it("una bodega sin grupo no se avisa: no decide promociones (D-787)", () => {
-    const bodega = { name: "Bodega", address: "", bodega: true } as unknown as NamedLocation;
-    expect(tiendasSinGrupoDePromos([tienda("McAllen", "RGV"), bodega, tienda("Pharr")])).toEqual(["Pharr"]);
-  });
-  it("una tienda sin nombre no se cuenta: no se podría ir a arreglarla", () => {
-    expect(tiendasSinGrupoDePromos([tienda(""), tienda("  ")])).toEqual([]);
-  });
-});
 
 describe("la pantalla: /promos es una puerta, no una lista", () => {
   const indice = leer("src/app/promos/page.tsx");
@@ -109,10 +92,12 @@ describe("la pantalla: el selector de ronda vive dentro de la tabla", () => {
   });
 });
 
-describe("la pantalla: el aviso de grupos solo cuando hace falta", () => {
+describe("la pantalla: sin aviso de grupos (D-790, el dueño: «quita ese mensaje»)", () => {
   const tabla = leer("src/app/promos/[id]/TablaDeRonda.tsx");
-  it("solo al admin y solo si falta alguno", () => {
-    expect(plano(tabla)).toContain("{esAdmin && tiendasSinGrupo.length > 0 && (");
+  it("ni en la tabla ni en la raíz", () => {
+    expect(plano(tabla)).not.toContain("tiendasSinGrupo");
+    expect(tabla).not.toContain("have no promo group");
+    expect(leer("src/app/promos/[id]/page.tsx")).not.toContain("tiendasSinGrupoDePromos");
   });
   it("ya no está en la raíz, que era donde se enseñaba siempre", () => {
     expect(leer("src/app/promos/page.tsx")).not.toContain("promo group");

@@ -42,21 +42,3 @@ export function rondaDeEntrada(rondas: readonly RondaParaEntrar[]): RondaParaEnt
   return porFecha.find((r) => r.closed_at === null) ?? porFecha[0];
 }
 
-/**
- * Las tiendas a las que les falta el grupo de promociones.
- *
- * El aviso de «pon el grupo de cada tienda en Datos» se enseñaba **siempre** al admin, en la
- * pantalla que ahora desaparece. Un aviso permanente sobre algo que ya está hecho —los seis grupos
- * llevan puestos desde que se estrenó el módulo— deja de leerse a las dos semanas, y entonces
- * tampoco se lee el día que sí falta uno. Así que ahora se enseña **solo si falta alguno**, y
- * diciendo **cuáles**, que es lo que hace falta para arreglarlo.
- *
- * Una tienda sin grupo no es un detalle de configuración: nadie de esa tienda puede aprobar nada.
- */
-export function tiendasSinGrupoDePromos(tiendas: readonly NamedLocation[]): string[] {
-  return tiendas
-    // D-787: una bodega no decide promociones; no le falta nada.
-    .filter((t) => !t.bodega && ((t.promo_group ?? "").trim() === ""))
-    .map((t) => (t.name ?? "").trim())
-    .filter((n) => n !== "");
-}
