@@ -49628,3 +49628,18 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/auto-aprueban-las-mias.test.ts`. tsc limpio.
 
 **No verificado:** en navegador con la cuenta de Melecio. Si tras recargar sigue vacío con «Programadas» puesto, el siguiente sospechoso es un filtro guardado en su navegador (ninguno en la base: solo anchos de columnas).
+
+## D-NEXT · Quote Builder: la hoja no delata al vendedor («Reference No.» en vez de «Sales Representative: Ext.»), sin subtítulo, y «Price Match» funcional («Igualar precio»)
+
+**Fecha:** 2026-11-02 · Hecho directo por el orquestador en `feat/cotizacion-referencia-y-price-match`. Sin migración (el precio del competidor va en el `jsonb` de la línea, como la marca).
+
+**Pedido (el dueño, de una reunión con Roberto Rodriguez Jr):** sustituir los rótulos «sales rep» / «extension» por algo como «reference number» para que la competencia no saque al vendedor de la hoja; quitar la línea «Project Price Summary — Customer Reference»; y «a functional price match button».
+
+**Qué cambia:**
+
+1. **Hoja** (`src/lib/estimator/hoja.ts`, `HojaCliente.tsx`): «Sales Representative: Ext. 902» pasa a «Reference No.: 902» («N.º de referencia:» en español); el subtítulo desaparece (y con él `SUBTITULO` y el campo `subtitulo`). El campo del vendedor en pantalla dice ahora «Tu extensión (el cliente ve «N.º de referencia NNN»)».
+2. **Price Match** (`src/lib/estimator/price-match.ts`, `Estimador.tsx`): la marca gana `price_match_price` (el precio del competidor, por SF o por unidad según la línea) con su campo en la fila de Price Match, y el botón «Igualar precio» (`data-igualar-precio`) copia ese precio al precio con descuento de la línea (`lower_price_per_sf` / `lower_unit_price`). Solo se activa con marca, precio válido y menor que el regular (`sePuedeIgualar`); desmarcar quita las tres claves. Sigue siendo interno: no sale en la hoja.
+
+**Pruebas:** `src/lib/estimator/igualar-precio.test.ts` (nueva); `hoja.test.ts`, `hoja-en-dos-idiomas.test.ts` (rótulo, sin subtítulo, sin «Sales Representative»). tsc y eslint limpios.
+
+**No verificado:** en navegador.

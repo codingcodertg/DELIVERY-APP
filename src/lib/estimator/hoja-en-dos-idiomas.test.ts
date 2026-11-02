@@ -27,9 +27,9 @@ describe("la hoja en español", () => {
   const en = hojaDelCliente(borrador(), "Edinburg", "en");
   it("todo lo escrito en palabras cambia; los números y el dinero no", () => {
     expect(es.idioma).toBe("es");
-    expect(es.subtitulo).toBe(TEXTOS_DE_LA_HOJA.es.subtitulo);
     expect(es.rotulos.preparadoPara).toBe("Preparada para:");
-    expect(es.representante).toBe("Ext. 902");
+    expect(es.representante).toBe("902");
+    expect(es.rotulos.representante).toBe("N.º de referencia:");
     expect(es.filas[0].descripcion).toBe("8X36 Wood — Living · 19.38 SF/caja");
     expect(es.filas[0].cantidad).toEqual(["Área pedida: 2,000 SF", "Cantidad: 104 cajas"]);
     expect(es.filas[1].cantidad).toEqual(["3 Bags"]);

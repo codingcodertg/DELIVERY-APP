@@ -90,6 +90,8 @@ export interface SfLine {
   price_match?: boolean;
   /** El competidor de la marca, opcional. */
   price_match_competitor?: string;
+  /** D-NEXT: el precio del competidor (por SF o por unidad, según la línea), opcional; «Igualar» lo copia al descuento. */
+  price_match_price?: number;
 }
 
 /** Una línea sin superficie: «Installation Materials, 1 Lot, $385». */
@@ -113,6 +115,8 @@ export interface UnitLine {
   price_match?: boolean;
   /** El competidor de la marca, opcional. */
   price_match_competitor?: string;
+  /** D-NEXT: el precio del competidor (por SF o por unidad, según la línea), opcional; «Igualar» lo copia al descuento. */
+  price_match_price?: number;
 }
 
 export type QuoteLine = SfLine | UnitLine;

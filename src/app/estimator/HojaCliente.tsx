@@ -15,8 +15,8 @@ export function HojaCliente({ hoja }: { hoja: HojaDelCliente }) {
   return (
     <div className="hoja-cliente" data-hoja-cliente lang={hoja.idioma}>
       <div className="hc-encabezado">
+        {/* D-NEXT: sin el subtítulo «Project Price Summary — Customer Reference» (Roberto: quitarlo). */}
         <div className="hc-empresa">{hoja.encabezado}</div>
-        <div className="hc-subtitulo">{hoja.subtitulo}</div>
       </div>
 
       <div className="hc-datos">

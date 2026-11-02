@@ -28,7 +28,6 @@ import {
 
 /** El encabezado tecleado: la hoja NO debe parecer un documento oficial de venta. */
 export const ENCABEZADO = "RODRIGUEZ TILE GROUP";
-export const SUBTITULO = "Project Price Summary — Customer Reference";
 
 export const AVISO_JUNTO_AL_TOTAL =
   "Pricing and availability are subject to verification at time of purchase. Certain quoted products may be clearance, promotional, or otherwise designated Final Sale. Applicable Final Sale conditions will be confirmed before purchase.";
@@ -53,7 +52,6 @@ export const NOTA_DE_CAJAS_ES =
 export type IdiomaDeLaHoja = "en" | "es";
 export const TEXTOS_DE_LA_HOJA = {
   en: {
-    subtitulo: SUBTITULO,
     aviso: AVISO_JUNTO_AL_TOTAL,
     entrega: TEXTO_DE_ENTREGA,
     notaDeCajas: NOTA_DE_CAJAS,
@@ -63,11 +61,9 @@ export const TEXTOS_DE_LA_HOJA = {
     descuento: "Discount",
     subtotal: "Subtotal", ahorro: "Savings", impuesto: "Tax", total: "Estimated Material Total",
     validaHasta: "QUOTE VALID THROUGH",
-    ext: "Ext.",
-    rotulos: { preparadoPara: "Prepared for:", referencia: "Quote Reference:", tienda: "Store:", representante: "Sales Representative:", resumen: "PROJECT SUMMARY", descripcion: "Description", cantidad: "Quantity", importe: "Amount" },
+    rotulos: { preparadoPara: "Prepared for:", referencia: "Quote Reference:", tienda: "Store:", representante: "Reference No.:", resumen: "PROJECT SUMMARY", descripcion: "Description", cantidad: "Quantity", importe: "Amount" },
   },
   es: {
-    subtitulo: "Resumen de precios del proyecto — Referencia para el cliente",
     aviso: "Los precios y la disponibilidad están sujetos a verificación al momento de la compra. Algunos productos cotizados pueden ser de liquidación, promocionales o de venta final. Las condiciones de venta final aplicables se confirmarán antes de la compra.",
     entrega: "Entrega: disponible a solicitud. El costo de entrega se confirmará según el calendario de entregas.",
     notaDeCajas: NOTA_DE_CAJAS_ES,
@@ -77,8 +73,7 @@ export const TEXTOS_DE_LA_HOJA = {
     descuento: "Descuento",
     subtotal: "Subtotal", ahorro: "Ahorro", impuesto: "Impuesto", total: "Total estimado de materiales",
     validaHasta: "COTIZACIÓN VÁLIDA HASTA EL",
-    ext: "Ext.",
-    rotulos: { preparadoPara: "Preparada para:", referencia: "Referencia de cotización:", tienda: "Tienda:", representante: "Representante de ventas:", resumen: "RESUMEN DEL PROYECTO", descripcion: "Descripción", cantidad: "Cantidad", importe: "Importe" },
+    rotulos: { preparadoPara: "Preparada para:", referencia: "Referencia de cotización:", tienda: "Tienda:", representante: "N.º de referencia:", resumen: "RESUMEN DEL PROYECTO", descripcion: "Descripción", cantidad: "Cantidad", importe: "Importe" },
   },
 } as const;
 export type RotulosDeLaHoja = { readonly [K in keyof (typeof TEXTOS_DE_LA_HOJA)["en"]["rotulos"]]: string };
@@ -123,7 +118,6 @@ export interface FilaDelCliente {
 
 export interface HojaDelCliente {
   encabezado: string;
-  subtitulo: string;
   preparadoPara: string;
   referencia: string;
   /** La tienda donde se creó la cotización (D-451), o null si no se sabe: entonces la línea no sale. */
@@ -211,11 +205,11 @@ export function hojaDelCliente(q: QuoteDraft, tienda: string | null = null, idio
   const fecha = idioma === "es" ? fechaLargaEs(q.valid_through) : fechaLarga(q.valid_through);
   return {
     encabezado: ENCABEZADO,
-    subtitulo: T.subtitulo,
     preparadoPara: paraQuienSeImprime(q.customer),
     referencia: q.estimate_num.trim(),
     tienda: tienda?.trim() || null,
-    representante: q.sales_ext.trim() ? `${T.ext} ${q.sales_ext.trim()}` : "",
+    // D-NEXT (el dueño y Roberto: que la hoja no delate al vendedor): solo el número, bajo «Reference No.».
+    representante: q.sales_ext.trim(),
     resumen: q.project_summary.trim() || null,
     filas,
     notaDeCajas: notaDeCajas(q.lines, idioma),

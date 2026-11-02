@@ -22,6 +22,8 @@ export interface MarcaPriceMatch {
   price_match?: boolean;
   /** El competidor que cotiza más bajo. Opcional; solo tiene sentido con `price_match`. */
   price_match_competitor?: string;
+  /** D-NEXT: el precio del competidor, opcional; solo con `price_match`. */
+  price_match_price?: number;
 }
 
 /** ¿La línea lleva la marca? Solo el booleano `true`: un `"true"` o un `1` tocados a mano en la base no cuentan. */
@@ -42,7 +44,13 @@ export function competidorLimpio(texto: unknown): string {
 export function marcaDeFila(cruda: Record<string, unknown>): MarcaPriceMatch {
   if (cruda.price_match !== true) return {};
   const competidor = competidorLimpio(cruda.price_match_competitor);
-  return competidor ? { price_match: true, price_match_competitor: competidor } : { price_match: true };
+  const precio = precioDeCompetidorLimpio(cruda.price_match_price);
+  return { price_match: true, ...(competidor ? { price_match_competitor: competidor } : {}), ...(precio !== null ? { price_match_price: precio } : {}) };
+}
+
+/** El precio del competidor como número positivo, o null (texto, cero, negativo, NaN). */
+export function precioDeCompetidorLimpio(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null;
 }
 
 /** La línea sin las dos claves: desmarcar las QUITA (no deja un `false` en el `jsonb`). */
@@ -50,6 +58,7 @@ function sinMarca<L extends QuoteLine>(l: L): L {
   const copia = { ...l };
   delete copia.price_match;
   delete copia.price_match_competitor;
+  delete copia.price_match_price;
   return copia;
 }
 
@@ -78,6 +87,34 @@ export function ponCompetidor<L extends QuoteLine>(l: L, texto: string): L {
   const copia = { ...l };
   delete copia.price_match_competitor;
   return copia;
+}
+
+/** D-NEXT: escribir el precio del competidor. Sin la marca, nada; vacío o inválido quita la clave. */
+export function ponPrecioCompetidor<L extends QuoteLine>(l: L, n: number | null): L {
+  if (!tienePriceMatch(l)) return l;
+  const precio = precioDeCompetidorLimpio(n);
+  if (precio !== null) return { ...l, price_match_price: precio };
+  const copia = { ...l };
+  delete copia.price_match_price;
+  return copia;
+}
+
+/**
+ * D-NEXT (Roberto Rodriguez Jr: «a functional price match button»): «Igualar» copia el precio del competidor al precio
+ * con descuento de la línea (`lower_price_per_sf` o `lower_unit_price`). Solo si hay marca y precio; si el precio del
+ * competidor no es menor que el regular, no hay nada que igualar y la línea no cambia (`sePuedeIgualar`).
+ */
+export function sePuedeIgualar(l: QuoteLine): boolean {
+  if (!tienePriceMatch(l)) return false;
+  const precio = precioDeCompetidorLimpio(l.price_match_price);
+  if (precio === null) return false;
+  const regular = l.kind === "sf" ? l.price_per_sf : l.unit_price;
+  return regular !== null && regular > precio;
+}
+export function igualaPrecio<L extends QuoteLine>(l: L): L {
+  if (!sePuedeIgualar(l)) return l;
+  const precio = l.price_match_price as number;
+  return l.kind === "sf" ? { ...l, lower_price_per_sf: precio } : { ...l, lower_unit_price: precio };
 }
 
 /** La etiqueta que se pinta junto al precio: «Price Match» o «Price Match · vs Floor & Decor». Null sin la marca. */

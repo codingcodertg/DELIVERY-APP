@@ -4,7 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { HojaCliente } from "@/app/estimator/HojaCliente";
 import {
-  AVISO_JUNTO_AL_TOTAL, ENCABEZADO, NOTA_DE_CAJAS, NOTA_DE_CAJAS_ES, SUBTITULO, TEXTO_DE_ENTREGA,
+  AVISO_JUNTO_AL_TOTAL, ENCABEZADO, NOTA_DE_CAJAS, NOTA_DE_CAJAS_ES, TEXTO_DE_ENTREGA,
   cantidadParaElCliente, descripcionParaElCliente, hojaDelCliente, notaDeCajas, tiendaDeLaHoja,
 } from "./hoja";
 import {
@@ -87,7 +87,9 @@ describe("la hoja del cliente NO lleva nada interno", () => {
       // Y sí lo que debe estar.
       expect(html).toContain("Ms. Zubizarreta");
       expect(html).toContain("104582");
-      expect(html).toContain("Ext. 214");
+      expect(html).toContain("Reference No.:</span> 214"); // D-NEXT: sin «Ext.» ni «Sales Representative»
+      expect(html).not.toContain("Sales Representative");
+      expect(html).not.toContain("Project Price Summary");
     });
   }
 
@@ -107,7 +109,7 @@ describe("la hoja del cliente NO lleva nada interno", () => {
     const claves = Object.keys(hojaDelCliente(borrador())).sort();
     expect(claves).toEqual([
       "avisoJuntoAlTotal", "encabezado", "entrega", "filas", "idioma", "notaDeCajas", "preparadoPara", "referencia", "representante",
-      "resumen", "rotulos", "subtitulo", "textoAhorro", "textoImpuesto", "textoSubtotal", "textoTotal", "tienda", "total", "validezConspicua",
+      "resumen", "rotulos", "textoAhorro", "textoImpuesto", "textoSubtotal", "textoTotal", "tienda", "total", "validezConspicua",
     ]);
     for (const f of hojaDelCliente(borrador()).filas) expect(Object.keys(f).sort()).toEqual(["cantidad", "descripcion", "importe", "precioConDescuento"]);
   });
@@ -175,7 +177,6 @@ describe("validez y descargos, literales del documento", () => {
   it("el encabezado tecleado", () => {
     const html = renderToStaticMarkup(createElement(HojaCliente, { hoja: hojaDelCliente(borrador()) }));
     expect(html).toContain(ENCABEZADO);
-    expect(html).toContain(SUBTITULO);
     expect(html).not.toContain("PROJECT SUMMARY"); // el resumen solo sale si se escribe
     const conResumen = renderToStaticMarkup(createElement(HojaCliente, { hoja: hojaDelCliente(borrador({ project_summary: "Main living areas" })) }));
     expect(conResumen).toContain("PROJECT SUMMARY");
