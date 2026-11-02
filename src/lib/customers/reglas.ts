@@ -484,8 +484,10 @@ export const CAMPOS: readonly Campo[] = [
   // de QuickBooks pasan a «Campos ocultos».
   { key: "rep_id", tipo: "vendedor", en: "Commission rep", es: "Vendedor de comisión", grupo: "cuenta" },
   { key: "rep_store", tipo: "text", en: "Sales rep (QB)", es: "Vendedor (QB)", grupo: "cuenta" },
-  { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "ocultos" },
-  { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "ocultos" },
+  // D-791 (el dueño): «group rep for QB y group rep for history me lo quitaste del customer, entonces vuélvelo a poner
+  // ahí» — D-787 los había mandado a «Campos ocultos»; vuelven a «Cuenta», detrás de los dos vendedores.
+  { key: "rep_qb", tipo: "text", en: "Group rep (QB)", es: "Vendedor grupo (QB)", grupo: "cuenta" },
+  { key: "rep_history", tipo: "text", en: "Group rep (history)", es: "Vendedor grupo (historial)", grupo: "cuenta" },
   // D-668: contacto, cargo, teléfono y correo ya no son campos sueltos: son la lista de contactos (`contacts`, 193), que
   // la tarjeta «Contacto» pinta y edita aparte (`contactos.ts`). Las cuatro columnas quedan como espejo del primero.
   // D-672: Roberto, «need to add Website under contact». D-697: «This should be under each contact and not to apply to

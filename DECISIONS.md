@@ -49465,5 +49465,17 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué cambia:** se quita el aviso de `src/app/promos/[id]/TablaDeRonda.tsx` (y su prop `tiendasSinGrupo` en `page.tsx` y `RondaDemo.tsx`) y la función `tiendasSinGrupoDePromos` de `src/lib/promos/entrada.ts` con sus pruebas. Una tienda sin grupo sigue sin poder aprobar; el grupo se ve y se pone en Datos → Tiendas. (La casilla «Bodega, no tienda» de D-787 sigue valiendo para el QR de Encuestas.)
 
 **Pruebas:** `src/lib/promos/entrada.test.ts` (el aviso no está ni en la tabla ni en la raíz). tsc limpio.
+## D-791 · Clientes: «Archivar» al lado de «Editar», y los dos «Group rep» vuelven a «Cuenta»
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/clientes-archivar-en-fila`. Sin migración.
+
+**Pedidos (el dueño):** con captura de la ficha, «archive va a ser en el mismo row de edit: edit y al lado archive»; y «group rep for QB y group rep for history me lo quitaste del customer, entonces vuélvelo a poner ahí».
+
+**Qué cambia:**
+
+1. `src/app/customers/FichaDeCliente.tsx`: el bloque de «Editar» y «Archivar»/«Desarchivar» pasa de columna (`flex-col`, D-778) a fila (`flex-row`, `data-acciones-de-la-ficha`).
+2. `src/lib/customers/reglas.ts` (CAMPOS): `rep_qb` («Group rep (QB)») y `rep_history` («Group rep (history)») vuelven del grupo «ocultos» (D-787) al grupo «cuenta», detrás de «Commission rep» y «Sales rep (QB)». En la lista no cambia nada.
+
+**Pruebas:** `src/lib/customers/archivar-junto-a-editar.test.ts` (nueva); `reglas.test.ts`, `vendedor-por-tienda.test.ts` (filas de «Cuenta» y de «Campos ocultos»). tsc limpio.
 
 **No verificado:** en navegador.
