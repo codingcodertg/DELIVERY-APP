@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-/** D-NEXT: cambiar de pestaña (GOV Pool, Mi pool, STXP Pool, admin) deja los filtros como al entrar. */
+/** D-792: cambiar de pestaña (GOV Pool, Mi pool, STXP Pool, admin) deja los filtros como al entrar. */
 const p = readFileSync(join(process.cwd(), "src/app/leads/Leads.tsx"), "utf8").replace(/\r\n/g, "\n");
 
 describe("los filtros se resetean al cambiar de pool", () => {

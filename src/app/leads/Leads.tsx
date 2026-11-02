@@ -119,7 +119,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     return c ? [c.account, c.rep_name, c.contact_name].filter(Boolean).join(" · ") : "";
   }, [clientes]);
   const [coinciden, setCoinciden] = useState(false);
-  // D-NEXT (el dueño): «cuando pongo un filter en STXP Pool y cambio a GOV me lleva ese filtro y me sale en blanco; si
+  // D-792 (el dueño): «cuando pongo un filter en STXP Pool y cambio a GOV me lleva ese filtro y me sale en blanco; si
   // cambio de pool los filtros obviamente se deben de resetear». Cambiar de pestaña deja los filtros como al entrar.
   const cambiaPestana = (p: Pestana) => {
     setPestana(p);

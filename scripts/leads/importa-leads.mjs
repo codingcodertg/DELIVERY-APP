@@ -113,7 +113,7 @@ async function main() {
     await c.query("begin");
     const r = await c.query("select public.leads_import_rows($1::jsonb, null) as r", [JSON.stringify(filas)]);
     console.log("\nResultado de la base:", JSON.stringify(r.rows[0].r, null, 2));
-    // D-NEXT: los recién cargados (y cualquier otro sin cruce) se cruzan con Clientes, como los del pool privado.
+    // D-792: los recién cargados (y cualquier otro sin cruce) se cruzan con Clientes, como los del pool privado.
     const cr = await cruzaSinCruce(c);
     console.log(`Cruce con Clientes: ${cr.cruzados} de ${cr.sinCruce} sin cruce · ${JSON.stringify(cr.porFuente)}`);
     if (aplicar) { await c.query("commit"); console.log("COMMIT: cargado."); }

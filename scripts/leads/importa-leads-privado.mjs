@@ -119,7 +119,7 @@ export function leadParaCruzar(l) {
   };
 }
 
-/** D-NEXT: cruza con Clientes los leads SIN cruce, de cualquier fuente (el GOV Pool incluido), dentro de la transacción de
+/** D-792: cruza con Clientes los leads SIN cruce, de cualquier fuente (el GOV Pool incluido), dentro de la transacción de
  *  quien llama. El dueño: «lo mismo que haces de recognize en el STXP pool, aplícamelo en el pool del government». Lo ya
  *  cruzado no se recalcula. Devuelve cuántos, por fuente, y ejemplos. */
 export async function cruzaSinCruce(c, maxEjemplos = 15) {

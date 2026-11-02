@@ -49479,7 +49479,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/customers/archivar-junto-a-editar.test.ts` (nueva); `reglas.test.ts`, `vendedor-por-tienda.test.ts` (filas de «Cuenta» y de «Campos ocultos»). tsc limpio.
 
 **No verificado:** en navegador.
-## D-NEXT · Leads: el GOV Pool también cruza con Clientes, y cambiar de pool resetea los filtros
+## D-792 · Leads: el GOV Pool también cruza con Clientes, y cambiar de pool resetea los filtros
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/leads-cruce-gov-y-filtros`. Sin migración. Datos: cruce aplicado en producción (32 leads del GOV Pool).
 

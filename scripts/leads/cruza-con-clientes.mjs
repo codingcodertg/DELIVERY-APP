@@ -1,4 +1,4 @@
-// Cruza con Clientes los leads que aun no tienen cruce, de CUALQUIER fuente (D-NEXT, 2026-11-01). El dueno: «lo mismo que
+// Cruza con Clientes los leads que aun no tienen cruce, de CUALQUIER fuente (D-792, 2026-11-01). El dueno: «lo mismo que
 // haces de recognize en el STXP pool de los clientes, aplicamelo en el pool del government».
 //
 //   node --env-file=.env.local scripts/leads/cruza-con-clientes.mjs            → ensayo (ROLLBACK), cuenta y ejemplos
