@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { type ClienteCruzado, almacenDeLaBase, type AlmacenDeLeads, type Res } from "@/lib/leads/almacen";
-import { ALCANCE_SIN_REGLA, eligeTienda, leadsDelBanco, privadosVisibles, veElPoolPrivado, type Alcance } from "@/lib/leads/alcance";
+import { ALCANCE_SIN_REGLA, codigoDeTiendaDelPerfil, conCruzadosDeMiTienda, eligeTienda, esCruzadoDeMiTienda, leadsDelBanco, privadosVisibles, veElPoolPrivado, type Alcance } from "@/lib/leads/alcance";
 import { almacenDemo, PERSONAS_DEMO } from "@/lib/leads/demo";
 import {
   abiertosDe, bloqueado, colaDeRevision, consecuencia, cuentaPorSituacion, delExcel, dinero, enlaceSeguro, estadoLabel, eventoLabel, fecha, filtrar,
@@ -104,7 +104,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   // se los manda a nadie más. Reusa los mismos filtros, orden y tarjetas que el Pool General.
   // D-770 (220): el STXP Pool lo ve quien tiene la casilla (y el admin), y de él su tienda y, agotada, la más cercana.
   const veStxp = !!yo && veElPoolPrivado(yo);
-  const privados = useMemo(() => (yo ? privadosVisibles(leads, yo) : []), [leads, yo]);
+  const privadosBase = useMemo(() => (yo ? privadosVisibles(leads, yo) : []), [leads, yo]);
   // D-762: de los cruzados, el cliente (enlace a su ficha) y el vendedor que lo lleva. Una lectura por tanda de ids.
   const [clientes, setClientes] = useState<Map<number, ClienteCruzado>>(() => new Map());
   const idsCruzados = useMemo(() => leads.map((l) => l.customer_match_id).filter((n): n is number => n != null).sort().join(","), [leads]);
@@ -120,6 +120,13 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     return c ? [c.account, c.rep_name, c.contact_name].filter(Boolean).join(" · ") : "";
   }, [clientes]);
   const [coinciden, setCoinciden] = useState(false);
+  // D-799 (225): lo cruzado con un cliente de MI tienda también se ve y se toma, aunque su pool sea otra tienda.
+  const miCodigo = codigoDeTiendaDelPerfil(yo?.store);
+  const cruzadoDeMiTienda = useCallback((l: Lead) => esCruzadoDeMiTienda(l, clientes, miCodigo), [clientes, miCodigo]);
+  const privados = useMemo(
+    () => (veStxp ? conCruzadosDeMiTienda(privadosBase, leads.filter((l) => l.source === "privado"), cruzadoDeMiTienda) : privadosBase),
+    [privadosBase, leads, cruzadoDeMiTienda, veStxp],
+  );
   // D-792 (el dueño): «cuando pongo un filter en STXP Pool y cambio a GOV me lleva ese filtro y me sale en blanco; si
   // cambio de pool los filtros obviamente se deben de resetear». Cambiar de pestaña deja los filtros como al entrar.
   // D-798: los filtros como al entrar; también con el botón «Quitar filtros» (el dueño: «un botón de reset filters para
@@ -131,7 +138,10 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     setPestana(p);
     limpiaFiltros();
   };
-  const delBanco = useMemo(() => (pestana === "privado" ? privados : leadsDelBanco(leads, alcance)), [leads, alcance, pestana, privados]);
+  const delBanco = useMemo(
+    () => (pestana === "privado" ? privados : conCruzadosDeMiTienda(leadsDelBanco(leads, alcance), leads.filter((l) => l.source !== "privado"), cruzadoDeMiTienda)),
+    [leads, alcance, pestana, privados, cruzadoDeMiTienda],
+  );
   const pools = useMemo(() => poolsDe(delBanco), [delBanco]);
   const elige = eligeTienda(alcance);
   // Se entra en el pool de SU tienda; cambiar de persona en el demo vuelve a elegirlo.
@@ -145,7 +155,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 
   // D-770: en el STXP Pool de quien no elige tienda, el pool no filtra: ve su tienda y la cercana que le tocó.
   const poolFiltro = pestana === "privado" && !elige ? null : filtroDePool(pool);
-  const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro), [delBanco, poolFiltro]);
+  // 225: el cruzado con mi tienda pasa el filtro de pool aunque su pool sea otro.
+  const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro || cruzadoDeMiTienda(l)), [delBanco, poolFiltro, cruzadoDeMiTienda]);
   const porSituacion = useMemo(() => cuentaPorSituacion(delPool), [delPool]);
   const visibles = useMemo(
     () => ordenar(filtrar(delBanco, { pool: poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra }), orden),

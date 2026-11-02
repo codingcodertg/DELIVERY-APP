@@ -231,10 +231,10 @@ describe("5 · la pantalla pinta lo que el alcance dice", () => {
   });
   it("el banco, sus contadores y sus filtros salen de leadsDelBanco, no de todos los leads leídos", () => {
     // D-760: el Pool privado reusa el mismo camino; fuera de esa pestaña, sigue saliendo de leadsDelBanco.
-    expect(p).toContain('const delBanco = useMemo(() => (pestana === "privado" ? privados : leadsDelBanco(leads, alcance)), [leads, alcance, pestana, privados]);');
+    expect(p).toContain('() => (pestana === "privado" ? privados : conCruzadosDeMiTienda(leadsDelBanco(leads, alcance)');
     expect(p).toContain("const pools = useMemo(() => poolsDe(delBanco), [delBanco]);");
     // D-770: en el STXP Pool de quien no elige tienda, el pool no filtra (`poolFiltro`).
-    expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro), [delBanco, poolFiltro]);");
+    expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro || cruzadoDeMiTienda(l)), [delBanco, poolFiltro, cruzadoDeMiTienda]);");
     expect(p).toContain("ordenar(filtrar(delBanco, { pool: poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra }), orden)");
   });
   it("el selector de tienda solo se dibuja si eligeTienda; si no, su tienda fija y sin los otros bancos", () => {

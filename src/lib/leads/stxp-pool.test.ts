@@ -96,7 +96,7 @@ describe("la pantalla y la base", () => {
   it("la pestaña y sus filtros los ve quien tiene la casilla; en el STXP Pool de quien no elige tienda, el pool no filtra", () => {
     const p = sinComentarios(leer("src/app/leads/Leads.tsx"));
     expect(p).toContain("const veStxp = !!yo && veElPoolPrivado(yo);");
-    expect(p).toContain("const privados = useMemo(() => (yo ? privadosVisibles(leads, yo) : []), [leads, yo]);");
+    expect(p).toContain("const privadosBase = useMemo(() => (yo ? privadosVisibles(leads, yo) : []), [leads, yo]);");
     expect(p).toContain('const poolFiltro = pestana === "privado" && !elige ? null : filtroDePool(pool);');
     expect(p).toContain('data-pool-stxp');
     expect(p).toContain('t("STXP Pool", "STXP Pool")');

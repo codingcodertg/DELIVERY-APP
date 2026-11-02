@@ -406,7 +406,7 @@ describe("11 · la pantalla usa las reglas probadas", () => {
     expect(p).toContain("setPool((p) => (poolAMano && p && ");
     expect(p).toContain("onChange={(e) => { setPool(e.target.value); setPoolAMano(true); }}");
     expect(p).toContain("<option value={POOL_TODAS}>");
-    expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro), [delBanco, poolFiltro]);");
+    expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro || cruzadoDeMiTienda(l)), [delBanco, poolFiltro, cruzadoDeMiTienda]);");
     expect(p).toContain("const tienda = yo?.store ?? null;");
   });
   it("mi pool son mis abiertos y mis ventas, y la cuenta de la pestaña es abiertos/tope", () => {
