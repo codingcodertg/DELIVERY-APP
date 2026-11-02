@@ -92,7 +92,7 @@ describe("la pantalla: el selector de ronda vive dentro de la tabla", () => {
   });
 });
 
-describe("la pantalla: sin aviso de grupos (D-NEXT, el dueño: «quita ese mensaje»)", () => {
+describe("la pantalla: sin aviso de grupos (D-790, el dueño: «quita ese mensaje»)", () => {
   const tabla = leer("src/app/promos/[id]/TablaDeRonda.tsx");
   it("ni en la tabla ni en la raíz", () => {
     expect(plano(tabla)).not.toContain("tiendasSinGrupo");

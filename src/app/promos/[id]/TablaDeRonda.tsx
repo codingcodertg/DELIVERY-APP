@@ -336,7 +336,7 @@ export function TablaDeRonda({
         )}
       </div>
 
-      {/* D-NEXT: aquí estaba el aviso ámbar de las tiendas sin grupo de promociones. El dueño, con la
+      {/* D-790: aquí estaba el aviso ámbar de las tiendas sin grupo de promociones. El dueño, con la
           captura: «quita ese mensaje». Una tienda sin grupo sigue sin poder aprobar; se ve en Datos → Tiendas. */}
 
       {esAdmin && gruposDelLibro.length > 0 && (
