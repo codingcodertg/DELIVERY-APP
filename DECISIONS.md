@@ -49526,9 +49526,6 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 3. `src/lib/promos/tabla.ts`: las columnas de existencias por tienda pasan de «QOH BRO» / «Existencias BRO» a «BRO QOH» en los dos idiomas; la total, «QOH» en los dos.
 
 **Pruebas:** `src/lib/promos/chips-de-estado.test.ts` (nueva), `tabla.test.ts` (el no decisor no recibe aviso). tsc limpio.
-
-**No verificado:** en navegador.
-
 ## D-795 · Quote Builder: los campos obligatorios de cada línea se pintan en rojo, como en el formulario de Órdenes
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `fix/cotizador-linea-en-rojo`. Sin migración.
@@ -49560,3 +49557,19 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/estimator/hoja-en-dos-idiomas.test.ts` (nueva); `hoja.test.ts`, `nivel-en-vista-previa.test.ts`, `tienda-solo-admin.test.ts` (la llamada a `hojaDelCliente` y las claves de la hoja). `mapa-de-apps.ts`: cita de línea de `Estimador.tsx` recalculada. tsc y eslint limpios.
 
 **No verificado:** en navegador; la traducción de los textos legales de la hoja la escribió el orquestador (revisar «aviso junto al total» si se quiere otro tono).
+
+## D-NEXT · Clientes: la vista del vendedor lleva también «Vendedor (QB)», y el alta del vendedor no pregunta la tienda
+
+**Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/clientes-vendedor-qb-en-vista-ventas`. Sin migración.
+
+**Pedido (el dueño, con captura de la lista como Roberto Contreras):** «ahí agrega la columna vendedor QB en el view de sales». Y, con captura del alta: «quita esto de las stores porque ya automáticamente se va a poner la store de él, no need to see that».
+
+**Qué cambia:**
+
+1. `COLUMNAS_DEL_VENDEDOR` (`src/lib/customers/vendedor-por-tienda.ts`) pasa de cuatro a cinco: cuenta, n.º de tiendas, estado (tienda), vendedor de comisión y **Vendedor (QB)** (`rep_store`, las iniciales de QuickBooks de la tienda). La vista del vendedor sigue siendo fija (sin selector de columnas).
+
+2. `FichaDeCliente.tsx`: en el alta de quien la pide como solicitud (vendedor, gerente: `altaComoSolicitud`) no salen las casillas de tienda; va la suya (D-767). Si su perfil no tiene tienda, las casillas vuelven. El admin sigue eligiendo.
+
+**Pruebas:** `src/lib/customers/vendedor-por-tienda.test.ts`, `src/lib/customers/alta-sin-tiendas-para-vendedor.test.ts` (nueva). tsc limpio.
+
+**No verificado:** en navegador.

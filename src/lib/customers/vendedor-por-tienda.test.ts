@@ -14,7 +14,7 @@ const sinComentarios = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, "").replace
 
 describe("las columnas del vendedor", () => {
   it("cuenta, N.º tiendas, estado (tienda) y vendedor, en el orden canónico, y nada más", () => {
-    expect(columnasDelVendedor().map((c) => c.key)).toEqual(["account", "store_count", "status_store", "rep_id"]);
+    expect(columnasDelVendedor().map((c) => c.key)).toEqual(["account", "store_count", "status_store", "rep_id", "rep_store"]); // D-NEXT: + Vendedor (QB)
     expect(COLUMNAS_DEL_VENDEDOR.every((k) => COLUMNAS.some((c) => c.key === k))).toBe(true);
   });
   it("D-786: rep_store es «Sales rep (QB)» y rep_id «Commission rep» en la tabla y en la ficha (D-740 lo llamaba «Commission rep (QB)»)", () => {
