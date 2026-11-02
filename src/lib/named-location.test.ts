@@ -31,6 +31,13 @@ describe("lo que el formulario sí enseña se guarda como antes", () => {
     expect(registroDeLugar(prev, { ...prev, name: "Otra" }, { autoApprove: true }).auto_approve).toBe(true);
   });
 
+  it("«bodega» se guarda solo cuando es verdad, y se quita al desmarcar (D-NEXT)", () => {
+    const prev = tienda({ bodega: true });
+    expect(registroDeLugar(prev, { ...prev, bodega: false }, { directoryCode: true })).not.toHaveProperty("bodega");
+    expect(registroDeLugar(undefined, { ...prev, bodega: true }, { directoryCode: true }).bodega).toBe(true);
+    // El formulario sin campos de tienda (puntos de recolección) no toca la clave.
+    expect(registroDeLugar(prev, { ...prev, bodega: false }, {}).bodega).toBe(true);
+  });
   it("el pin verificado se conserva si la dirección no cambia", () => {
     const prev = tienda({ lat: 26.1, lng: -97.5 });
     const rec = registroDeLugar(prev, { ...prev, name: "Otra" }, {});

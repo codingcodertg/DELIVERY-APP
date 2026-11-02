@@ -48,6 +48,10 @@ describe("el aviso de los grupos de tienda", () => {
     expect(tiendasSinGrupoDePromos([tienda("McAllen", "RGV"), tienda("Pharr"), tienda("Mission", "  ")]))
       .toEqual(["Pharr", "Mission"]);
   });
+  it("una bodega sin grupo no se avisa: no decide promociones (D-NEXT)", () => {
+    const bodega = { name: "Bodega", address: "", bodega: true } as unknown as NamedLocation;
+    expect(tiendasSinGrupoDePromos([tienda("McAllen", "RGV"), bodega, tienda("Pharr")])).toEqual(["Pharr"]);
+  });
   it("una tienda sin nombre no se cuenta: no se podría ir a arreglarla", () => {
     expect(tiendasSinGrupoDePromos([tienda(""), tienda("  ")])).toEqual([]);
   });

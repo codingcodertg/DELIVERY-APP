@@ -568,6 +568,18 @@ function LocationTable({
               )}
             </div>
           </div>
+          <label className="perm-opt" style={{ gridColumn: "1 / -1" }}>
+            <input type="checkbox" data-es-bodega checked={!!draft.bodega} onChange={(e) => setDraft({ ...draft, bodega: e.target.checked })} />
+            <span>
+              <b>{t("Warehouse, not a store", "Bodega, no tienda")}</b>
+              <span className="hint" style={{ display: "block" }}>
+                {t(
+                  "It still sells and is a pickup point, but it is left out where the app lists the stores: the promos warning and the survey QR per store.",
+                  "Sigue vendiendo y siendo punto de recolección, pero queda fuera donde la app lista las tiendas: el aviso de promociones y el QR de encuesta por tienda.",
+                )}
+              </span>
+            </span>
+          </label>
           <div className="field" style={{ gridColumn: "1 / -1" }}>
             <label>{t("Dedicated drivers", "Choferes dedicados")}</label>
             <input
@@ -653,6 +665,9 @@ function LocationTable({
                 )}
                 {directoryCode && (it.choferes_dedicados?.length ?? 0) > 0 && (
                   <span className="hint" data-dedicados-de-la-tienda style={{ marginLeft: 6 }}>· {t("Dedicated drivers", "Choferes dedicados")}: {it.choferes_dedicados!.join(", ")}</span>
+                )}
+                {directoryCode && it.bodega && (
+                  <span className="hint" data-bodega-en-la-lista style={{ marginLeft: 6 }}>· {t("Warehouse", "Bodega")}</span>
                 )}
                 {directoryCode && it.tarifa_minima_ventas != null && (
                   <span className="hint" data-tarifa-minima-de-la-tienda style={{ marginLeft: 6 }}>· {t("Sales min. fee", "Tarifa mín. ventas")}: ${it.tarifa_minima_ventas}</span>

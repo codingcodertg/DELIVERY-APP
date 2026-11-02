@@ -62,6 +62,9 @@ export function registroDeLugar(
     const minima = leeTarifaMinima(draft.tarifa_minima_ventas);
     if (minima != null) rec.tarifa_minima_ventas = minima;
     else delete rec.tarifa_minima_ventas;
+    // Bodega, no tienda (D-NEXT): misma regla, la clave solo existe cuando es verdad.
+    if (draft.bodega) rec.bodega = true;
+    else delete rec.bodega;
   }
 
   return rec;

@@ -29,6 +29,9 @@ describe("el enlace y el QR de cada tienda", () => {
     expect(nombresDeTiendas([{ name: " A " }, { name: "" }, { name: "B" }, { name: "A" }, { name: null }, {}])).toEqual(["A", "B"]);
     expect(nombresDeTiendas(null)).toEqual([]);
   });
+  it("una bodega no es una tienda: sin QR propio (D-NEXT)", () => {
+    expect(nombresDeTiendas([{ name: "A" }, { name: "Bodega", bodega: true }, { name: "B", bodega: false }])).toEqual(["A", "B"]);
+  });
 });
 
 describe("la tienda en el panel", () => {
