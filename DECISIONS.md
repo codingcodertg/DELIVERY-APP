@@ -49543,7 +49543,7 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 
 **No verificado:** en navegador.
 
-## D-NEXT · Quote Builder: la hoja del cliente en español o en inglés (interruptor en la vista previa), y la política en el idioma del usuario
+## D-796 · Quote Builder: la hoja del cliente en español o en inglés (interruptor en la vista previa), y la política en el idioma del usuario
 
 **Fecha:** 2026-11-01 · Hecho directo por el orquestador en `feat/cotizacion-en-dos-idiomas`. Sin migración.
 

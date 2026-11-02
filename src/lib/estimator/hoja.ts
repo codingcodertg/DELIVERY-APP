@@ -46,7 +46,7 @@ export const NOTA_DE_CAJAS_ES =
   "Algunos artículos se redondean hacia arriba a la caja completa; no se venden por pieza ni por los pies cuadrados exactos pedidos.";
 
 /**
- * D-NEXT (el dueño): «debería haber un language toggle switch para hacer el quote en español o en inglés». La hoja sale
+ * D-796 (el dueño): «debería haber un language toggle switch para hacer el quote en español o en inglés». La hoja sale
  * en el idioma que se elige en la vista previa (de entrada, el del usuario). Todo lo que la hoja escribe en palabras
  * pasa por aquí; los números y el dinero se quedan como están (formato de EE. UU.).
  */
@@ -146,7 +146,7 @@ export interface HojaDelCliente {
   avisoJuntoAlTotal: string;
   /** Lo último que se imprime, si es entrega. Detrás no va nada. */
   entrega: string | null;
-  /** D-NEXT: el idioma de la hoja y sus rótulos (la pantalla no traduce nada por su cuenta). */
+  /** D-796: el idioma de la hoja y sus rótulos (la pantalla no traduce nada por su cuenta). */
   idioma: IdiomaDeLaHoja;
   rotulos: RotulosDeLaHoja;
 }

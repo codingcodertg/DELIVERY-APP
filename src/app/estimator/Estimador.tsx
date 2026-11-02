@@ -466,7 +466,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
 
   // La tienda donde se creó (D-451): la de la cotización guardada; si es nueva, la del perfil de quien la prepara.
   const tiendaHoja = tiendaDeLaHoja(tiendaGuardada, me?.store);
-  // D-NEXT: el idioma de la hoja. De entrada, el del usuario; se cambia en la vista previa, con la hoja a la vista.
+  // D-796: el idioma de la hoja. De entrada, el del usuario; se cambia en la vista previa, con la hoja a la vista.
   const [idiomaElegido, setIdiomaElegido] = useState<IdiomaDeLaHoja | null>(null);
   const idiomaDeLaHoja: IdiomaDeLaHoja = idiomaElegido ?? (lang === "es" ? "es" : "en");
   const hoja = useMemo(() => hojaDelCliente(draft, tiendaHoja, idiomaDeLaHoja), [draft, tiendaHoja, idiomaDeLaHoja]);
@@ -944,7 +944,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
       {politicaAbierta && (
         <div className="overlay" onClick={() => setPoliticaAbierta(false)}>
           <div className="modal est-politica" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()} data-politica>
-            {/* D-NEXT: la política en el idioma del usuario, solo en ese idioma. */}
+            {/* D-796: la política en el idioma del usuario, solo en ese idioma. */}
             <h3>{lang === "es" ? POLITICA_TITULO_ES : POLITICA_TITULO}</h3>
             {(lang === "es" ? POLITICA_PARRAFOS_ES : POLITICA_PARRAFOS).map((p, i) => (
               <p key={i}>{p}</p>
@@ -984,7 +984,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
             ))}
           </div>
           </div>
-          {/* D-NEXT: el idioma de la hoja, aquí mismo, en vivo. Al imprimir no sale (solo `.hoja-cliente` es visible). */}
+          {/* D-796: el idioma de la hoja, aquí mismo, en vivo. Al imprimir no sale (solo `.hoja-cliente` es visible). */}
           <div className="est-barra est-nivel">
             <span className="est-nivel-rotulo">{t("Quote language", "Idioma de la cotización")}</span>
             <div className="est-radios" data-idioma-de-la-hoja>

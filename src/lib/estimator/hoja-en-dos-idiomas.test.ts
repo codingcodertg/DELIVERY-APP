@@ -5,7 +5,7 @@ import { fechaLargaEs, hojaDelCliente, TEXTOS_DE_LA_HOJA } from "./hoja";
 import { borradorVacio, lineaSfVacia, lineaUnidadVacia } from "./modelo";
 
 /**
- * D-NEXT: la hoja del cliente en español o en inglés (el dueño: «debería haber un language toggle switch para hacer el
+ * D-796: la hoja del cliente en español o en inglés (el dueño: «debería haber un language toggle switch para hacer el
  * quote en español o en inglés»), y la política en el idioma del usuario.
  */
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").replace(/\r\n/g, "\n");
