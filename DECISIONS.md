@@ -49990,3 +49990,19 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué cambia:** la página lee `left_at` y pasa los perfiles por `soloActivos` (la regla de baja de D-707: nula = activo; una fecha futura sigue activa hasta ese día, en hora de Brownsville). Un dado de baja ya no aparece en Usuarios; sus dispositivos y su rastro en «Dentro ahora» o «Bloqueados» siguen saliendo si entró. Sello `security` 0.9.2; repo 1.680.0.
 
 **Pruebas:** `version-de-app.test.ts`.
+
+## D-826 · Excepciones a la web bloqueada: personas que sí entran por la web (migración 235)
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/security-excepciones-web` (laptop nueva). **Migración 235.**
+
+**Pedido (el dueño):** «Nick y Francis tampoco los bloquees, agrégalo a exception».
+
+**Qué cambia:**
+- **Base (235):** `security_policy.web_exempt uuid[]` (nace vacía); `security_gate` devuelve `web_exempt` = si quien llama está en la lista.
+- **La regla:** `decideWeb` pasa a quien está exento, en navegador y en teléfono; `appsEnElTelefono` no lo limita. La regla por dispositivo (D-811) no mira esta lista: es otra regla.
+- **Security:** dentro de la tarjeta «WEB BLOQUEADA», la fila «Excepciones (sí pueden usar la web)»: chips con ✕ para quitar y «Añadir persona…» (solo roles bloqueados y activos). `cambiaExcepcionesWeb(ids)`. Y desde la terminal, `security-policy.mjs --exempt-add "Nick"` / `--exempt-remove` (por nombre; exige una sola coincidencia).
+- Sello `security` 0.10.0; repo 1.681.0.
+
+**Pruebas:** `reglas.test.ts` (la regla con exento, la 235 y el cableado).
+
+**No verificado:** la 235 en producción (la aplica el orquestador); quiénes son «Nick» y «Francis» exactamente (se añaden por nombre con el script, que avisa si hay más de una coincidencia).

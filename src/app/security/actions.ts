@@ -58,6 +58,19 @@ export async function borraDispositivo(id: string): Promise<R> {
 }
 
 /** El interruptor. Encender es lo que activa la regla para todo el mundo; se deja quién y cuándo. */
+/** D-826: la lista de excepciones de la web bloqueada (235): personas que entran por la web aunque su rol esté bloqueado. */
+export async function cambiaExcepcionesWeb(ids: string[]): Promise<R> {
+  const a = await admin();
+  if (!a.ok) return a;
+  const limpias = [...new Set(ids.filter((x) => /^[0-9a-f-]{36}$/i.test(x)))];
+  const { error, data } = await a.supabase.from("security_policy")
+    .update({ web_exempt: limpias, changed_by: a.user.id, changed_at: new Date().toISOString() }).eq("id", 1).select("id");
+  if (error) return { ok: false, message: error.message };
+  if (!data?.length) return { ok: false, message: "The database refused the change (is migration 235 applied?)." };
+  revalidatePath("/security");
+  return { ok: true };
+}
+
 /** D-816: el interruptor de la web bloqueada (231). */
 export async function cambiaPoliticaWeb(web_blocked: boolean): Promise<R> {
   const a = await admin();

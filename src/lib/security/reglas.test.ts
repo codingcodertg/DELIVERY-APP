@@ -231,3 +231,24 @@ describe("D-820: Security en tiempo real", () => {
     expect(panel).toContain('data-en-vivo={vivo ? "si" : "no"}');
   });
 });
+
+describe("D-826: excepciones a la web bloqueada", () => {
+  it("una persona exenta entra por la web aunque su rol esté bloqueado; en el teléfono ve sus apps normales", () => {
+    expect(decideWeb("/leads", web({ role: "manager", web_exempt: true }), CHROME)).toEqual({ kind: "next" });
+    expect(decideWeb("/leads", web({ role: "manager", web_exempt: false }), CHROME).kind).toBe("redirect");
+    expect(decideWeb("/leads", web({ role: "sales", web_exempt: true }), IPHONE)).toEqual({ kind: "next" });
+    expect(appsEnElTelefono(web({ role: "sales", web_exempt: true }), IPHONE)).toBeNull();
+  });
+  it("la 235: la lista en la política, security_gate dice si quien llama está en ella; Security la edita; el script por nombre", () => {
+    const sql = leer("supabase/migrations/235_security_excepciones_web.sql");
+    expect(sql).toContain("add column if not exists web_exempt uuid[] not null default '{}'");
+    expect(sql).toContain("auth.uid() = any (p.web_exempt)");
+    expect(sql).toContain("web_blocked boolean, web_exempt boolean)");
+    expect(sql).not.toMatch(/(^|\s)(begin|commit);/);
+    expect(leer("src/app/security/page.tsx")).toContain("web_blocked, web_exempt");
+    const panel = leer("src/app/security/PanelDeSeguridad.tsx");
+    expect(panel).toContain('data-bloque="excepciones-web"');
+    expect(panel).toContain("cambiaExcepcionesWeb([...exentos, nuevoExento])");
+    expect(leer("scripts/db/security-policy.mjs")).toContain("--exempt-add");
+  });
+});
