@@ -44,6 +44,6 @@ describe("entradas desde un sitio nuevo", () => {
     expect(panel).toContain('<TablaDeSecurity id="usuarios"');
     expect(panel).toContain('data-bloque="sitios-nuevos"');
     expect(panel.match(/key: "lugar"/g)?.length).toBe(4);
-    expect(leer("src/app/security/page.tsx")).toContain('from("profiles").select("id, full_name, role, store, username")');
+    expect(leer("src/app/security/page.tsx")).toContain('from("profiles").select("id, full_name, role, store, username, left_at")');
   });
 });
