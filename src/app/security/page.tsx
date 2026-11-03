@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { CABECERA_DISPOSITIVO, dispositivoDeLaPeticion } from "@/lib/security/reglas";
 import { PanelDeSeguridad, type BloqueoFila, type DispositivoFila, type UsoFila, type UsuarioFila } from "./PanelDeSeguridad";
 import { rangoDeApp } from "@/lib/security/version-de-app";
+import { soloActivos } from "@/lib/baja";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function SecurityPage() {
     // D-818 (232): a quién se le cerró la web, últimos 7 días. Sin la 232 viene error y la lista queda vacía: no rompe la pantalla.
     supabase.from("security_web_blocks").select("id, user_id, device_id, user_agent, path, at, ip, place").gte("at", desde).order("at", { ascending: false }).limit(500),
     // D-822: TODOS los usuarios creados, tengan o no dispositivo: para ver quién ya tiene la app nueva y quién nunca entró.
-    supabase.from("profiles").select("id, full_name, role, store, username").order("full_name"),
+    supabase.from("profiles").select("id, full_name, role, store, username, left_at").order("full_name"),
   ]);
   const error = e1?.message ?? e2?.message ?? e3?.message ?? null;
 
@@ -54,7 +55,8 @@ export default async function SecurityPage() {
     dispositivo: (devices ?? []).find((d) => d.id === b.device_id) ?? null,
   }));
   // D-822: cada usuario con su último dispositivo (el de la última vez que se le vio).
-  const usuarios: UsuarioFila[] = (todos ?? []).map((p) => {
+  // D-825: solo los que siguen en la empresa (`left_at`, la regla de D-707): un dado de baja no es un usuario que vigilar.
+  const usuarios: UsuarioFila[] = soloActivos(todos ?? []).map((p) => {
     const suyos = uso.filter((u) => u.user_id === p.id).sort((a, b) => Date.parse(b.last_seen_at) - Date.parse(a.last_seen_at));
     const ultimo = suyos[0] ?? null;
     // D-824: «¿tiene la app?» = su MEJOR dispositivo (la app nueva gana a un Chrome visto después); «último» sigue siendo el último.
