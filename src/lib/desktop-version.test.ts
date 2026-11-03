@@ -13,6 +13,8 @@ describe("qué versión de escritorio es", () => {
   it("la del agente de la app; un navegador no es ninguna", () => {
     expect(versionDeEscritorio(`${CHROME} RTGHub/1.1.1`)).toBe("1.1.1");
     expect(versionDeEscritorio(`${CHROME} RTGHub/1.2.1 Electron/33.4.11`)).toBe("1.2.1");
+    // D-827: la app original se llamaba RDZ Hub; su 1.0.0 también es «la app de escritorio» y va por detrás.
+    expect(versionDeEscritorio(`${CHROME} rdz-hub-desktop/1.0.0 Electron/33.4.11 Safari/537.36 RDZHub/1.0.0`)).toBe("1.0.0");
     expect(versionDeEscritorio(CHROME)).toBeNull();
     expect(versionDeEscritorio(null)).toBeNull();
   });
@@ -29,6 +31,7 @@ describe("a quién se le enseña el aviso", () => {
     expect(escritorioDesactualizado(`${CHROME} RTGHub/1.1.1`)).toBe(true);
     expect(escritorioDesactualizado(`${CHROME} RTGHub/${ESCRITORIO_MINIMO}`)).toBe(false);
     expect(escritorioDesactualizado(`${CHROME} RTGHub/9.0.0`)).toBe(false);
+    expect(escritorioDesactualizado(`${CHROME} RDZHub/1.0.0`)).toBe(true);
     expect(escritorioDesactualizado(CHROME)).toBe(false);
     expect(escritorioDesactualizado(`${CHROME} RTGHub/1.1.1`, "1.1.1")).toBe(false);
   });

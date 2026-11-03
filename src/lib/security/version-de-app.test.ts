@@ -11,6 +11,8 @@ describe("qué app y qué versión", () => {
   it("la app de escritorio: su versión, y si va por detrás de la mínima", () => {
     expect(versionDeApp(`${CHROME} RTGHub/1.1.1`)).toMatchObject({ app: "desktop", texto: "RTG Hub 1.1.1", actualizar: true, minima: ESCRITORIO_MINIMO });
     expect(versionDeApp(`${CHROME} RTGHub/${ESCRITORIO_MINIMO}`)).toMatchObject({ app: "desktop", actualizar: false, minima: null });
+    // D-827: la RDZ Hub 1.0.0 original también es escritorio y necesita actualizar.
+    expect(versionDeApp(`${CHROME} RDZHub/1.0.0`)).toMatchObject({ app: "desktop", texto: "RTG Hub 1.0.0", actualizar: true, minima: ESCRITORIO_MINIMO });
   });
   it("la app Android del Time Tracker: su versionCode, y si va por detrás de la última", () => {
     expect(versionDeApp(`Mozilla/5.0 (Linux; Android 13) Chrome/120 Mobile RDZDeliveries/${LATEST_APK_VERSION_CODE - 1}`)).toMatchObject({ app: "android", actualizar: true, minima: `v${LATEST_APK_VERSION_CODE}` });
