@@ -49819,3 +49819,19 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/desktop-version.test.ts` (la versión del agente, comparar números, a quién se enseña, la mínima = la compilada, el aviso en el layout y la ruta con `?d=`). Al día `desktop-dispositivo.test`. tsc y eslint limpios.
 
 **No verificado:** en una PC con la 1.1.1 de verdad (el flujo navegador → Descargas → abrir); que Chrome no marque el instalador sin firma como sospechoso (si lo hace, «Conservar» y seguir; la 1.1.1 se instaló igual).
+
+## D-814 · La app de escritorio vieja no se usa hasta actualizar: pantalla completa con un solo botón
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/escritorio-bloqueo-actualiza` (laptop nueva). Sin migración.
+
+**Pedido (el dueño):** «quiero hacerlo lo más fácil posible… que el user solo apriete ok, ahora sin ese update que el app no se pueda utilizar y que sea lo más anti tonto posible, que aprieten otra cosa y que ya no siga funcionando».
+
+**Qué había:** D-813 puso una barra arriba con «Actualizar» en la app vieja; se podía ignorar y seguir trabajando con la 1.1.1, que nunca se actualizará sola.
+
+**Qué cambia:** `AvisoDeEscritorio` pasa de barra a **pantalla completa que tapa todo** (`position: fixed`, `z-index` por encima de cualquier cosa, sin botón de cerrar) en cuanto el agente es `RTGHub/x.y.z` menor que `ESCRITORIO_MINIMO`, también en el login: con la app vieja no hay nada que pulsar salvo **«Actualizar ahora»**. Debajo, los cuatro pasos en palabras llanas (pulsa el botón; pulsa el archivo descargado, «Conservar» si pregunta; «Sí» si Windows pregunta; espera, se abre sola) y «si algo sale mal, vuelve a pulsar el botón verde». Un navegador o un teléfono no la ven nunca.
+
+**Lo que sigue siendo verdad:** la 1.1.1 no puede ejecutar nada por sí misma (ventana sellada), así que el clic en la descarga lo da la persona; es UNA vez. La 1.2.1 (D-811) busca actualizaciones sola a los 15 s y cada 4 h, las baja sin preguntar y solo pide «Reiniciar ahora».
+
+**Pruebas:** `src/lib/desktop-version.test.ts` al día (pantalla completa, sin cierre, un botón). Sello `security` 0.3.0; repo 1.670.0.
+
+**No verificado:** en una PC con la 1.1.1 real.
