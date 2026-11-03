@@ -49714,3 +49714,17 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/recruiting/amonestaciones.test.ts`, `historial.test.ts` (el check vigente es el de la 228). Ensayo de la 228 en seco contra producción: limpio. tsc y eslint limpios.
 
 **No verificado:** en navegador; la 227 y la 228 en producción hasta que el dueño las aplique (sin ellas, el menú sale y al registrar avisa «Migration 227/228 pending»).
+
+## D-808 · Gestor de Rutas: la fila P de una recogida libre dice la ciudad de su dirección, no el nombre que parece tienda
+
+**Fecha:** 2026-11-02 · Hecho directo por el orquestador en `fix/recogida-libre-en-la-p` (laptop nueva). Sin migración.
+
+**Pedido (el dueño, con la captura de la ruta de Maximo Garza):** «porque esta ruta dice weslaco y luego dice harlingen corrige eso que es un error». FV594 (CRR, tipo Otro): la P3 decía «RDZ Weslaco» en «Ciudad de recogida» y su D3 «Harlingen».
+
+**Qué había:** desde D-782 la recogida de Otro/Proveedor es LIBRE: no es una tienda, su ciudad es la de la dirección tecleada (`zonaDeLaRecogida` con las reglas). La fila D ya lo leía así (Harlingen, la buena). La fila P pintaba `f.lugar`, el NOMBRE de la parada, que en una recogida libre es el nombre tecleado; en FV594 ese nombre es «RDZ Weslaco» (elegido del desplegable antes de D-782), y parecía nuestra tienda.
+
+**Qué cambia:** en la tabla de paradas de cada chofer, la celda de la P de una recogida libre pinta la ciudad de su dirección (`zonaDeLaRecogida`, la misma de la D), y el nombre tecleado queda de título (al pasar el ratón). Las P de tienda no cambian (D-447).
+
+**Pruebas:** `src/lib/recogida-libre-con-punto.test.ts` (la P usa la misma regla que la D; FV594 → Harlingen en las dos). tsc limpio.
+
+**No verificado:** en navegador. El dato de FV594 sigue diciendo «RDZ Weslaco» como nombre de recogida (lo ve también el chofer en «Mi ruta» junto a la dirección de Harlingen): se corrige editando la orden; no se tocó producción.
