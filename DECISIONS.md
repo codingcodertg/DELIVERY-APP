@@ -49903,3 +49903,19 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué pasaba:** el botón es un POST a `/auth/signout`. El middleware pasa cada navegación por `decideWeb` (D-816) antes del guard, y `/auth/signout` no estaba en la lista de lo permitido en un navegador bloqueado: rebotaba a /web-blocked sin cerrar nada. `decideAcceso` (D-811) tenía el mismo agujero, aún sin estrenar.
 
 **Qué cambia:** `FUERA_DE_LAS_REGLAS` = `/auth`, `/login`, `/reset-password`: ninguna de las dos reglas las mira. Sello `security` 0.6.1; repo 1.675.0. Prueba en `reglas.test.ts` para las dos reglas y los dos tipos de agente.
+
+## D-820 · Security en tiempo real (migración 233)
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/security-en-vivo` (laptop nueva). **Migración 233.**
+
+**Pedido (el dueño):** «la parte de security quiero que esté en tiempo real».
+
+**Qué cambia:**
+- **Base (233):** `security_devices`, `security_device_users`, `security_policy` y `security_web_blocks` entran en la publicación `supabase_realtime` (como `chat_messages`, 184). La RLS solo-admin filtra también lo que la suscripción entrega.
+- **Panel:** `useEnVivo` se suscribe a las cuatro tablas (`postgres_changes`, cualquier evento) y con cualquier cambio pide la página otra vez (`router.refresh()`, agrupando los cambios de un mismo segundo). Red de seguridad: un refresco de fondo cada minuto aunque la suscripción se caiga. Arriba, «● en vivo» en verde o «● conectando…» en ámbar.
+- Qué dispara un cambio: alguien entra o dice «sigo aquí» (cada 10 min por dispositivo), un dispositivo nuevo, una solicitud, un bloqueo en la web, un interruptor. Lo que NO: la hora que pasa (la columna «última vez» es la del último evento).
+- Sello `security` 0.7.0; repo 1.676.0.
+
+**Pruebas:** `reglas.test.ts` (la 233 y la suscripción).
+
+**No verificado:** la 233 en producción (la aplica el orquestador); en navegador con dos sesiones.

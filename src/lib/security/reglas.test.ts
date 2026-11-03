@@ -217,3 +217,17 @@ describe("D-819: salir y entrar no se bloquean nunca", () => {
     }
   });
 });
+
+describe("D-820: Security en tiempo real", () => {
+  it("la 233 mete las cuatro tablas en la publicación; el panel se suscribe a las cuatro y refresca, con red de fondo", () => {
+    const sql = leer("supabase/migrations/233_security_tiempo_real.sql");
+    for (const tabla of ["security_devices", "security_device_users", "security_policy", "security_web_blocks"]) expect(sql).toContain(`'${tabla}'`);
+    expect(sql).toContain("alter publication supabase_realtime add table public.%I");
+    expect(sql).not.toMatch(/(^|\s)(begin|commit);/);
+    const panel = leer("src/app/security/PanelDeSeguridad.tsx");
+    expect(panel).toContain('canal.on("postgres_changes", { event: "*", schema: "public", table }, refresca)');
+    expect(panel).toContain("router.refresh()");
+    expect(panel).toContain("removeChannel(canal)");
+    expect(panel).toContain('data-en-vivo={vivo ? "si" : "no"}');
+  });
+});

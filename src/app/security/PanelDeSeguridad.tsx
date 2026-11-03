@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
+import { createClient } from "@/lib/supabase/client";
 import { nombrePorAgente, type EstadoDeDispositivo, type TipoDeDispositivo } from "@/lib/security/reglas";
 import { versionDeApp } from "@/lib/security/version-de-app";
 import { borraDispositivo, cambiaEstadoDeDispositivo, cambiaPolitica, cambiaPoliticaWeb, renombraDispositivo } from "./actions";
@@ -24,6 +26,39 @@ export interface BloqueoFila {
   id: number; user_id: string; device_id: string | null; user_agent: string | null; path: string | null; at: string;
   persona: string; rol: string; tienda: string | null;
   dispositivo: { id: string; label: string | null; kind: string; status: string; user_agent: string | null } | null;
+}
+
+/** D-820: las tablas que, al cambiar, refrescan el panel. Están en la publicación de tiempo real desde la 233. */
+export const TABLAS_EN_VIVO = ["security_devices", "security_device_users", "security_policy", "security_web_blocks"] as const;
+/** Por si la suscripción se cae sin avisar: un refresco de fondo cada minuto, como red de seguridad. */
+const REFRESCO_DE_FONDO_MS = 60 * 1000;
+
+/**
+ * D-820: el panel en tiempo real. Se suscribe a las cuatro tablas y, con cualquier cambio, pide al servidor la página
+ * otra vez (`router.refresh()`, que vuelve a correr `page.tsx` con la sesión del admin). Se agrupan los cambios de un
+ * mismo segundo en un solo refresco. Devuelve si la suscripción está viva, para el puntito.
+ */
+function useEnVivo(): boolean {
+  const router = useRouter();
+  const [vivo, setVivo] = useState(false);
+  const pendiente = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const supabase = createClient();
+    const refresca = () => {
+      if (pendiente.current) return;
+      pendiente.current = setTimeout(() => { pendiente.current = null; router.refresh(); }, 800);
+    };
+    let canal = supabase.channel("security-en-vivo");
+    for (const table of TABLAS_EN_VIVO) canal = canal.on("postgres_changes", { event: "*", schema: "public", table }, refresca);
+    canal.subscribe((estado) => setVivo(estado === "SUBSCRIBED"));
+    const fondo = setInterval(() => router.refresh(), REFRESCO_DE_FONDO_MS);
+    return () => {
+      clearInterval(fondo);
+      if (pendiente.current) clearTimeout(pendiente.current);
+      void supabase.removeChannel(canal);
+    };
+  }, [router]);
+  return vivo;
 }
 
 /** «Activo» = visto en la última hora: lo que el dueño llama «cuántos users están activos». */
@@ -56,6 +91,7 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
   enforced: boolean; webBloqueada: boolean; cambiadaEn: string | null; dispositivos: DispositivoFila[]; uso: UsoFila[]; bloqueados?: BloqueoFila[]; esteDispositivo: string | null; error: string | null;
 }) {
   const { t, lang } = usePrefs();
+  const vivo = useEnVivo();
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<"todos" | "actualizar" | EstadoDeDispositivo>("todos");
@@ -81,7 +117,13 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
 
   return (
     <div className="container" style={{ padding: "16px 20px", maxWidth: 1200 }}>
-      <h1 style={{ margin: "0 0 4px" }}>🔐 {t("Security", "Seguridad")}</h1>
+      <h1 style={{ margin: "0 0 4px" }}>
+        🔐 {t("Security", "Seguridad")}{" "}
+        <span className="hint" data-en-vivo={vivo ? "si" : "no"} title={vivo ? t("Updates by itself when anything changes", "Se actualiza solo cuando algo cambia") : t("Connecting… refreshes every minute meanwhile", "Conectando… mientras tanto se refresca cada minuto")}
+          style={{ fontSize: 13, fontWeight: 400, color: vivo ? "var(--green)" : "var(--amber)" }}>
+          ● {vivo ? t("live", "en vivo") : t("connecting…", "conectando…")}
+        </span>
+      </h1>
       <p className="hint" style={{ marginTop: 0 }}>
         {t("Registered devices, who signs in from where, and the device rule switch.", "Dispositivos registrados, quién entra desde dónde, y el interruptor de la regla por dispositivo.")}
       </p>
