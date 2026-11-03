@@ -43,7 +43,7 @@ export const APP_VERSIONS = {
   // Clientes (D-569): la primera, como leads.
   customers: "0.39.0",
   // Security (D-811): la primera, como las demás apps nuevas.
-  security: "0.1.0",
+  security: "0.2.0",
 } as const;
 
 export type AppKey = keyof typeof APP_VERSIONS;

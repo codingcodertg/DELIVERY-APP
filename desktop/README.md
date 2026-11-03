@@ -89,8 +89,11 @@ para que nadie crea que es un virus y lo borre.
 El sitio se actualiza solo. **Desde la 1.2.0 (D-811) la cáscara también**: `electron-updater`
 pregunta a `https://rtg-hub.vercel.app/api/desktop-update/latest.yml` a los 15 s de abrir y cada
 4 horas; si hay una versión más nueva la baja en silencio y la instala al cerrar (o ya, si la
-persona acepta «Reiniciar ahora»). La 1.1.1 y anteriores no lo llevan: esas se reinstalan una vez
-a mano, y a partir de ahí ya no.
+persona acepta «Reiniciar ahora»). La 1.1.1 y anteriores no lo llevan, pero sí cargan la web: la web
+les enseña «RTG Hub tiene versión nueva · Actualizar» (D-813, `AvisoDeEscritorio`), el botón abre el
+instalador en el navegador del sistema (con `?d=<id del dispositivo>`, porque ese navegador no tiene
+la sesión), y el instalador es de un clic (`oneClick`, `runAfterFinish`): al abrirlo se instala solo
+encima de la vieja y abre la nueva. Nadie va a la tienda; quien esté allí pulsa dos veces.
 
 Publicar una versión nueva:
 

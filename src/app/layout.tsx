@@ -9,6 +9,7 @@ import { ChatFlotante } from "@/components/ChatFlotante";
 import { BotonGeneral } from "@/components/BotonGeneral";
 import { AvisoDeEnsenanza } from "@/components/AvisoDeEnsenanza";
 import { IdentidadDelDispositivo } from "@/components/IdentidadDelDispositivo";
+import { AvisoDeEscritorio } from "@/components/AvisoDeEscritorio";
 import { GUION_DE_TEMA } from "@/lib/tema";
 
 // Runs before paint to apply the saved theme immediately (no flash). The
@@ -72,6 +73,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {/* La huella del dispositivo (D-811): una vez, aquí, porque es el único layout por el que pasan todas las apps.
               No pinta ni bloquea nada; registra el dispositivo y la hora para la app Security. */}
           <IdentidadDelDispositivo />
+          {/* «Tu app de escritorio tiene versión nueva» (D-813): solo lo ve la app vieja (la 1.1.1 no se actualiza sola). */}
+          <AvisoDeEscritorio />
           <AvisoDeEnsenanza />
           {children}
           {/* El aviso del cierre de las 18:30 (D-248), aquí por lo mismo que `VersionStamp`:

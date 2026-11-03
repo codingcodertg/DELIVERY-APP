@@ -39,7 +39,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ file: string }>
   const fuente = FICHEROS[file] ?? (ES_INSTALADOR.test(file) ? { blob: "apps/RTG-Hub-Setup.exe", tipo: "application/octet-stream" } : null);
   if (!fuente) return NextResponse.json({ error: "unknown file" }, { status: 404 });
 
-  const cabecera = req.headers.get(CABECERA_DISPOSITIVO);
+  // D-813: el aviso de «versión nueva» abre el instalador en el navegador del sistema, que no tiene la sesión ni la
+  // cabecera; lleva el id del dispositivo en `?d=`. Vale lo mismo que la cabecera: no es un secreto, es lo que hace que
+  // la URL no sirva pegada en un chat de fuera (D-170).
+  const cabecera = req.headers.get(CABECERA_DISPOSITIVO) ?? new URL(req.url).searchParams.get("d");
   if (!idDeDispositivoValido(cabecera)) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
