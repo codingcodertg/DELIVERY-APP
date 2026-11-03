@@ -20,7 +20,10 @@ import type { ClienteDePrefs } from "@/lib/user-prefs";
 
 /** Reached by someone with 2+ modules, OR with a hub tool visible to them
  * (D-056) — see src/app/home/page.tsx for the exact gate. */
-export function HomeSelector({ me, suplantando = false, cuenta }: { me: Profile; suplantando?: boolean; cuenta?: { correo: string | null; usuario: string | null } }) {
+export function HomeSelector({ me, suplantando = false, cuenta, soloApps = null }: { me: Profile; suplantando?: boolean; cuenta?: { correo: string | null; usuario: string | null };
+  /** D-811: en un teléfono aprobado con la regla encendida, solo estas apps; `null` = sin límite. Lo decide el servidor. */
+  soloApps?: string[] | null;
+}) {
   const { lang, t } = usePrefs();
   // D-765: Mi perfil y Personalizar se abren como tarjeta encima del hub, no en otra pantalla (el dueño,
   // 2026-10-30: «que esto simplemente sea un pop-up … como hemos manejado siempre las cards»). El enlace conserva
@@ -34,7 +37,10 @@ export function HomeSelector({ me, suplantando = false, cuenta }: { me: Profile;
     return () => window.removeEventListener("keydown", esc);
   }, [tarjeta]);
   // D-759: con Clientes «solo admins», la tarjeta no se enseña a quien la puerta del servidor va a rebotar.
-  const available = accessibleModules(me.module_access).filter((m) => m.key !== "customers" || puedeEntrarAClientes(me));
+  const available = accessibleModules(me.module_access)
+    .filter((m) => m.key !== "customers" || puedeEntrarAClientes(me))
+    // D-811: lo que el middleware va a rebotar no se ofrece.
+    .filter((m) => soloApps === null || soloApps.includes(m.key));
   // `suplantando` lo decide el servidor (home/page.tsx) y solo lo miran las herramientas del admin real.
   const tools = HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando }));
   // The deliveries card's own href is a placeholder ("/") — it's the same

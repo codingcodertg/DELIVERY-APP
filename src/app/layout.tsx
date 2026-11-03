@@ -8,6 +8,7 @@ import { HelpButton } from "@/components/HelpButton";
 import { ChatFlotante } from "@/components/ChatFlotante";
 import { BotonGeneral } from "@/components/BotonGeneral";
 import { AvisoDeEnsenanza } from "@/components/AvisoDeEnsenanza";
+import { IdentidadDelDispositivo } from "@/components/IdentidadDelDispositivo";
 import { GUION_DE_TEMA } from "@/lib/tema";
 
 // Runs before paint to apply the saved theme immediately (no flash). The
@@ -68,6 +69,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PrefsProvider>
           {/* El aviso del modo enseñanza (D-626), encima de todo en las apps que no tienen el suyo: el mismo interruptor
               de la burbuja vale para todas. Dentro de `PrefsProvider` porque habla en el idioma de la persona. */}
+          {/* La huella del dispositivo (D-811): una vez, aquí, porque es el único layout por el que pasan todas las apps.
+              No pinta ni bloquea nada; registra el dispositivo y la hora para la app Security. */}
+          <IdentidadDelDispositivo />
           <AvisoDeEnsenanza />
           {children}
           {/* El aviso del cierre de las 18:30 (D-248), aquí por lo mismo que `VersionStamp`:

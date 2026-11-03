@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
 import { accessibleModules, canReachHub, HUB_TOOLS, landingRoute } from "@/lib/constants";
@@ -8,6 +8,7 @@ import type { Profile } from "@/lib/types";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import { identidadVisible } from "@/lib/profile-identity";
+import { CABECERA_DISPOSITIVO, appsEnElTelefono, dispositivoDeLaPeticion, type PuertaDeDispositivo } from "@/lib/security/reglas";
 
 // The hub. Landing here automatically vs. being ALLOWED to visit are two
 // different questions now (D-056) — they used to be the same one.
@@ -71,5 +72,11 @@ export default async function HomePage({
 
   // D-765: Mi perfil y Personalizar se abren como tarjeta encima del hub; lo que Mi perfil enseña se lee aquí.
   const cuenta = identidadVisible({ email: user.email, username: me.username });
-  return <HomeSelector me={me} suplantando={suplantando} cuenta={cuenta} />;
+  // D-811: en un teléfono aprobado con la regla encendida, el hub solo ofrece lo que el middleware deja pasar. La misma
+  // puerta que mira él; si no se puede leer, sin límite (la dirección segura).
+  const h = await headers();
+  const dispositivo = dispositivoDeLaPeticion({ cabecera: h.get(CABECERA_DISPOSITIVO), cookie: h.get("cookie") })?.id ?? "";
+  const { data: puerta } = await supabase.rpc("security_gate", { p_device: dispositivo }).single<PuertaDeDispositivo>();
+  const soloApps = appsEnElTelefono(puerta ?? null);
+  return <HomeSelector me={me} suplantando={suplantando} cuenta={cuenta} soloApps={soloApps} />;
 }

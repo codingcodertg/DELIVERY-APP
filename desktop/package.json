@@ -1,12 +1,15 @@
 {
   "name": "rtg-hub-desktop",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "private": true,
   "description": "Ventana de escritorio para Windows que abre el hub de RTG. Carga el sitio en vivo; no lo empaqueta.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win --publish never"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "electron": "^33.2.0",
@@ -15,9 +18,16 @@
   "build": {
     "appId": "net.rdztilegroup.hub",
     "productName": "RTG Hub",
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://rtg-hub.vercel.app/api/desktop-update"
+      }
+    ],
     "files": [
       "main.js",
       "origenes.js",
+      "dispositivo.js",
       "build/icon.ico"
     ],
     "win": {

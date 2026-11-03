@@ -28,6 +28,8 @@ const BY_PREFIX: ReadonlyArray<readonly [string, AppKey]> = [
   // Y con Leads (migración 162).
   ["/leads", "leads"],
   ["/customers", "customers"],
+  // Y Security (D-811).
+  ["/security", "security"],
 ];
 
 export function appForPath(pathname: string | null): AppKey {

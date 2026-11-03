@@ -50,6 +50,8 @@ export function isPublicPath(path: string): boolean {
     || path === "/auth" || path.startsWith("/auth/")
     || path === "/reset-password" || path.startsWith("/reset-password/")
     || path === "/no-access"
+    // D-811: donde aterriza quien SÍ entró pero desde un dispositivo no autorizado; al login sería un bucle.
+    || path === "/device-blocked"
     || path === "/track" || path.startsWith("/track/")
     || path === "/unsubscribe" || path.startsWith("/unsubscribe/")
     || path.startsWith("/_next")

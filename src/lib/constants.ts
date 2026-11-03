@@ -607,6 +607,19 @@ export const soloAdminReal = (me: { role: UserRole; suplantando?: boolean }): bo
 
 export const HUB_TOOLS: HubTool[] = [
   {
+    // Security (D-811): dispositivos registrados, quién entra desde dónde, y el interruptor de la regla. Solo el admin,
+    // como «Usuarios · permisos»; la base dice lo mismo (229: solo `security_is_admin()` lee y edita).
+    key: "security",
+    href: "/security",
+    emoji: "🔐",
+    label_en: "Security",
+    label_es: "Seguridad",
+    desc_en: "Registered devices, who signs in from where, and the device rule",
+    desc_es: "Dispositivos registrados, quién entra desde dónde, y la regla por dispositivo",
+    // Del admin REAL: dentro de «entrar como» no se enseña, como las demás herramientas de seguridad.
+    visible: (me) => soloAdminReal(me),
+  },
+  {
     key: "users",
     // A los empleados de RRHH, no a la lista vieja de /home/users (D-739): desde D-720 la cuenta y los
     // permisos de cada persona se dan desde su expediente, y el dueño: «esta tab de usuario normal que

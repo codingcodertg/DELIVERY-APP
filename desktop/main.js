@@ -30,6 +30,13 @@ const { app, BrowserWindow, shell, Menu, dialog } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { crearConfianza } = require("./origenes.js");
+// La actualización automática (D-811): `electron-updater` pregunta a nuestro sitio (`/api/desktop-update/latest.yml`)
+// si hay una versión más nueva, la baja en silencio y la instala al cerrar —o ya, si la persona acepta—. Es lo que hace
+// que esta app NO haya que reinstalarla a mano tienda por tienda a partir de la 1.2.0. La 1.1.1 no la lleva: esa sí
+// se reinstala una vez.
+const { autoUpdater } = require("electron-updater");
+const { CABECERA, idDeMaquina, salNueva, machineGuidDe } = require("./dispositivo.js");
+const { execFileSync } = require("node:child_process");
 
 const SITIO = "https://rtg-hub.vercel.app";
 const INICIO = `${SITIO}/home`;
@@ -38,6 +45,27 @@ const ORIGEN = new URL(SITIO).origin;
 // Dónde se recuerda el tamaño de la ventana. En la carpeta de datos del usuario, que es la
 // única que Windows garantiza escribible (junto a Program Files no lo es).
 const ESTADO = () => path.join(app.getPath("userData"), "ventana.json");
+// Y dónde vive la sal de la identidad de esta instalación (D-811). Nace la primera vez y no se toca.
+const SAL = () => path.join(app.getPath("userData"), "dispositivo.json");
+
+/**
+ * El id de ESTA instalación en ESTA máquina (D-811): sha256 del MachineGuid de Windows más una sal propia. Va en la
+ * cabecera `x-rtg-device` de cada petición a nuestro sitio, y es lo que Security registra como «app de escritorio».
+ * Copiar la app a otra PC da otro id. Si el registro no se deja leer, se usa solo la sal (ver `dispositivo.js`).
+ */
+function idDeEstaInstalacion() {
+  let sal = null;
+  try { sal = JSON.parse(fs.readFileSync(SAL(), "utf8")).sal || null; } catch { /* primera vez */ }
+  if (!sal) {
+    sal = salNueva();
+    try { fs.writeFileSync(SAL(), JSON.stringify({ sal, creada: new Date().toISOString() })); } catch { /* sin carpeta: el id cambia en cada arranque, y Security lo verá como otro dispositivo */ }
+  }
+  let guid = null;
+  try {
+    guid = machineGuidDe(execFileSync("reg", ["query", "HKLM\SOFTWARE\Microsoft\Cryptography", "/v", "MachineGuid"], { encoding: "utf8", windowsHide: true }));
+  } catch { /* sin registro (no es Windows, o sin permiso): solo la sal */ }
+  return idDeMaquina(guid, sal);
+}
 
 function leeEstado() {
   try {
@@ -162,6 +190,15 @@ function crearVentana() {
   const confianza = crearConfianza(ORIGEN);
   const esNuestro = (u) => confianza.esNuestro(u);
 
+  // La identidad de la instalación (D-811), en una cabecera que SOLO esta ventana pone, y solo hacia nuestro sitio.
+  // Un navegador no puede ponerla; por eso Security la cree y no cree al agente de usuario.
+  const idInstalacion = idDeEstaInstalacion();
+  win.webContents.session.webRequest.onBeforeSendHeaders((detalles, callback) => {
+    const requestHeaders = { ...detalles.requestHeaders };
+    if (esNuestro(detalles.url)) requestHeaders[CABECERA] = idInstalacion;
+    callback({ requestHeaders });
+  });
+
   // La primera carga la inicia esta app hacia su propia URL de inicio, así que si termina en otro
   // origen es porque **nuestro** dominio redirigió allí. Se aprende una sola vez: ver en
   // `origenes.js` por qué la regla general («confía en cualquier redirección desde un origen de
@@ -227,6 +264,31 @@ function crearVentana() {
     if (k === "f5" || (input.control && k === "r")) { win.webContents.reload(); e.preventDefault(); }
     if (input.control && input.shift && k === "i") { win.webContents.toggleDevTools(); e.preventDefault(); }
   });
+
+  // ---------------------------------------------------------------------------
+  // Actualizarse sola (D-811)
+  // ---------------------------------------------------------------------------
+  // Se comprueba a los 15 s de abrir y cada 4 horas. La descarga va con la misma cabecera de identidad que el resto,
+  // que es lo que la ruta del sitio pide para servir el instalador sin sesión (la app no tiene las cookies del hub en
+  // el proceso principal). Si no hay red o la ruta no contesta, no pasa nada: se vuelve a intentar a las 4 horas.
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.requestHeaders = { [CABECERA]: idInstalacion };
+  autoUpdater.on("error", (e) => console.log(`[RTG Hub] actualización: ${e && e.message ? e.message : e}`));
+  autoUpdater.on("update-downloaded", (info) => {
+    dialog.showMessageBox(win, {
+      type: "info",
+      title: "Actualización lista",
+      message: `RTG Hub ${info.version} está lista.`,
+      detail: "Se instala al cerrar la app. ¿Reiniciar ahora?",
+      buttons: ["Reiniciar ahora", "Luego"],
+      defaultId: 0,
+      cancelId: 1,
+    }).then(({ response }) => { if (response === 0) autoUpdater.quitAndInstall(); });
+  });
+  const buscaActualizacion = () => autoUpdater.checkForUpdates().catch(() => undefined);
+  setTimeout(buscaActualizacion, 15_000);
+  setInterval(buscaActualizacion, 4 * 60 * 60 * 1000);
 
   win.on("close", () => guardaEstado(win));
   win.on("resized", () => guardaEstado(win));
