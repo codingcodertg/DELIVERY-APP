@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
-  COOKIE_DISPOSITIVO, ROLES_SIN_LIMITE, RUTA_BLOQUEADO, appsEnElTelefono, decideAcceso, idDeDispositivoValido,
+  COOKIE_DISPOSITIVO, ROLES_SIN_LIMITE, ROLES_SOLO_ESCRITORIO, RUTA_BLOQUEADO, RUTA_SOLO_ESCRITORIO, appsEnElTelefono, decideAcceso, decideWeb, idDeDispositivoValido,
   nombrePorAgente, tipoPorAgente, type PuertaDeDispositivo,
 } from "./reglas";
 import { isPublicPath } from "@/lib/route-guard";
@@ -131,5 +131,62 @@ describe("dónde está enchufado", () => {
     expect(sql).toContain("revoke execute on function public.security_touch_device(text, text, text, boolean) from public, anon");
     expect(sql).toContain("t.employee_id = auth.uid() and t.ended_at is null");
     expect(sql).not.toMatch(/^\s*(begin|commit);/m);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D-816: la web bloqueada para manager, sales y logistics (231)
+// ---------------------------------------------------------------------------
+const CHROME = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
+const APP = `${CHROME} RTGHub/1.1.1`;
+const IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
+const web = (extra: Partial<PuertaDeDispositivo> = {}): PuertaDeDispositivo => puerta({ enforced: false, device_status: "none", device_kind: null, web_blocked: true, ...extra });
+
+describe("D-816: la web bloqueada", () => {
+  it("apagada, o sin puerta, o sin el campo (la 229 sola): pasa todo el mundo", () => {
+    expect(decideWeb("/leads", web({ web_blocked: false }), CHROME)).toEqual({ kind: "next" });
+    expect(decideWeb("/leads", null, CHROME)).toEqual({ kind: "next" });
+    expect(decideWeb("/leads", puerta({ enforced: false }), CHROME)).toEqual({ kind: "next" });
+  });
+  it("los roles: manager, sales y logistics; accounting, admin, warehouse y driver no", () => {
+    expect([...ROLES_SOLO_ESCRITORIO]).toEqual(["manager", "sales", "logistics"]);
+    for (const role of ROLES_SOLO_ESCRITORIO) expect(decideWeb("/leads", web({ role }), CHROME)).toEqual({ kind: "redirect", to: RUTA_SOLO_ESCRITORIO, motivo: "solo_escritorio" });
+    for (const role of ["admin", "warehouse", "driver", "accounting"]) expect(decideWeb("/leads", web({ role }), CHROME)).toEqual({ kind: "next" });
+  });
+  it("la app de escritorio pasa a todo, también la 1.1.1 (la pantalla de D-814 la obliga a actualizar); esté o no aprobado el dispositivo", () => {
+    expect(decideWeb("/leads", web(), APP)).toEqual({ kind: "next" });
+    expect(decideWeb("/leads", web({ device_status: "revoked" }), APP)).toEqual({ kind: "next" });
+  });
+  it("un navegador de computadora: fuera, salvo la pantalla del bloqueo y lo de la cuenta", () => {
+    expect(decideWeb("/", web(), CHROME)).toEqual({ kind: "redirect", to: RUTA_SOLO_ESCRITORIO, motivo: "solo_escritorio" });
+    expect(decideWeb("/timetracker", web(), CHROME).kind).toBe("redirect");
+    expect(decideWeb("/home", web(), CHROME).kind).toBe("redirect");
+    for (const p of [RUTA_SOLO_ESCRITORIO, RUTA_BLOQUEADO, "/change-password", "/no-access"]) expect(decideWeb(p, web(), CHROME)).toEqual({ kind: "next" });
+    expect(isPublicPath(RUTA_SOLO_ESCRITORIO)).toBe(true);
+  });
+  it("un teléfono: solo Time Tracker, el hub y la cuenta; Quote Builder con visita abierta; lo demás a /timetracker", () => {
+    expect(decideWeb("/timetracker/punch", web(), IPHONE)).toEqual({ kind: "next" });
+    expect(decideWeb("/home", web(), IPHONE)).toEqual({ kind: "next" });
+    expect(decideWeb("/leads", web(), IPHONE)).toEqual({ kind: "redirect", to: "/timetracker", motivo: "solo_telefono" });
+    expect(decideWeb("/estimator", web(), IPHONE)).toEqual({ kind: "redirect", to: "/timetracker", motivo: "solo_telefono" });
+    expect(decideWeb("/estimator", web({ visit_open: true }), IPHONE)).toEqual({ kind: "next" });
+    expect(appsEnElTelefono(web(), IPHONE)).toEqual(["timetracker"]);
+    expect(appsEnElTelefono(web({ visit_open: true }), IPHONE)).toEqual(["timetracker", "estimator"]);
+    expect(appsEnElTelefono(web(), CHROME)).toBeNull();
+    expect(appsEnElTelefono(web({ role: "admin" }), IPHONE)).toBeNull();
+  });
+  it("la 231: el campo nace en false, security_gate lo devuelve; el middleware la aplica tras la regla por dispositivo; el interruptor en Security y en el script", () => {
+    const sql = leer("supabase/migrations/231_security_web_bloqueada.sql");
+    expect(sql).toContain("add column if not exists web_blocked boolean not null default false");
+    expect(sql).toContain("visit_open boolean, web_blocked boolean)");
+    expect(sql).toContain("grant  execute on function public.security_gate(text) to authenticated");
+    expect(sql).not.toMatch(/(^|\s)(begin|commit);/);
+    const mw = leer("src/lib/supabase/middleware.ts");
+    expect(mw).toContain(`decideWeb(path, puertaDeDispositivo, request.headers.get("user-agent"))`);
+    expect(leer("src/app/security/PanelDeSeguridad.tsx")).toContain("cambiaPoliticaWeb(!webBloqueada)");
+    expect(leer("scripts/db/security-policy.mjs")).toContain("--web-on");
+    const pantalla = leer("src/app/web-blocked/BloqueadoEnWeb.tsx");
+    expect(pantalla).toContain("La web app ya no está disponible");
+    expect(pantalla).toContain("/api/desktop-update/");
   });
 });

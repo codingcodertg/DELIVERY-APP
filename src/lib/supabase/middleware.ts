@@ -5,7 +5,7 @@ import { impersonacionCaducada } from "@/lib/impersonation";
 import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
 import { debeCerrarSesion } from "@/lib/session-cutoff";
 import { debeCambiarContrasena, decideCambioObligatorio } from "@/lib/cambio-obligatorio";
-import { CABECERA_DISPOSITIVO, decideAcceso, dispositivoDeLaPeticion, type PuertaDeDispositivo } from "@/lib/security/reglas";
+import { CABECERA_DISPOSITIVO, decideAcceso, decideWeb, dispositivoDeLaPeticion, type PuertaDeDispositivo } from "@/lib/security/reglas";
 
 // La lista de públicas vive ahora en lib/route-guard.ts; se reexporta para quien la importaba
 // de aquí (public-paths.test.ts, D-156).
@@ -238,7 +238,9 @@ export async function updateSession(
   if (hasUser && !vuelta) {
     const leer = deps.dispositivo ?? leerDispositivo;
     const puertaDeDispositivo = leer ? await leer(request).catch(() => null) : null;
-    const acceso = decideAcceso(path, puertaDeDispositivo);
+    // D-816: la web bloqueada para manager, sales y logistics (navegador de computadora → /web-blocked). Misma puerta.
+    const porDispositivo = decideAcceso(path, puertaDeDispositivo);
+    const acceso = porDispositivo.kind === "redirect" ? porDispositivo : decideWeb(path, puertaDeDispositivo, request.headers.get("user-agent"));
     if (acceso.kind === "redirect") {
       const salto = NextResponse.redirect(new URL(`${acceso.to}?motivo=${acceso.motivo}`, request.nextUrl.origin));
       for (const c of response.cookies.getAll()) salto.cookies.set(c);

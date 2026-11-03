@@ -33,7 +33,7 @@ export function AvisoDeEscritorio() {
   );
   return (
     <div role="dialog" aria-modal="true" data-bloqueo-escritorio
-      style={{ position: "fixed", inset: 0, zIndex: 100000, background: "var(--bg, #fff)", color: "var(--fg, #111)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      style={{ position: "fixed", inset: 0, zIndex: 10000, background: "var(--bg, #fff)", color: "var(--fg, #111)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ maxWidth: 520, textAlign: "center" }}>
         <div style={{ fontSize: 48 }}>⬆️</div>
         <h1 style={{ fontSize: 24, margin: "8px 0" }}>{t("RTG Hub needs to update", "RTG Hub tiene que actualizarse")}</h1>

@@ -49835,3 +49835,37 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/desktop-version.test.ts` al día (pantalla completa, sin cierre, un botón). Sello `security` 0.3.0; repo 1.670.0.
 
 **No verificado:** en una PC con la 1.1.1 real.
+
+## D-815 · Security dice con qué app y qué versión entra cada dispositivo, y quién tiene que actualizar
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/security-versiones` (laptop nueva). Sin migración.
+
+**Pedido (el dueño):** «quiero también ver en el security los que están login, y quiero ver qué app version usan y si hace falta que actualicen».
+
+**Qué cambia:**
+- `lib/security/version-de-app.ts`, `versionDeApp(userAgent)`: la app de escritorio (`RTGHub/x.y.z`, mínima `ESCRITORIO_MINIMO` de D-813), la app Android del Time Tracker (`RDZDeliveries/<n>`, última `LATEST_APK_VERSION_CODE`) o el navegador («Chrome 130», «Safari 17»). `actualizar` solo para nuestras apps que van por detrás; un navegador nunca.
+- **Panel:** columna «App / versión» en «Dentro ahora (vistos en la última hora)» —la lista de los que están dentro, renombrada para que se entienda— y en «Dispositivos»: «RTG Hub 1.1.1 → 1.2.1» en rojo con ⚠️ si toca actualizar, «RTG Hub 1.2.1 ✓» si no. Arriba, una tarjeta roja «N dispositivo(s) con app vieja» con nombre, versión, último usuario y última vez. Y el filtro «⚠️ Por actualizar» junto a los de estado.
+- El agente se refresca en cada «sigo aquí» (`security_touch_device`, 229), así que la versión es la de la última vez que se vio.
+
+**Pruebas:** `src/lib/security/version-de-app.test.ts`.
+
+## D-816 · La web bloqueada para manager, sales y logistics: solo la app de escritorio RTG Hub (migración 231)
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/security-versiones` (laptop nueva). **Migración 231.**
+
+**Pedido (el dueño):** «quiero que cuidadosamente bloquees el web app para office manager y sales people, ellos solo podrán usar el app desde el rtg hub desktop app y que pongas el mensaje "web app ya no está disponible, utiliza el desktop rtg hub app" y si la están usando que les aparezca eso porque es obligatorio ahora».
+
+**Qué había:** la regla por dispositivo (D-811) mira si la computadora está APROBADA y nace apagada; no existía una regla de «con qué entras» que se pudiera encender hoy sin aprobar nada antes.
+
+**Qué cambia:**
+- **Base (231):** `security_policy.web_blocked` (nace en false) y `security_gate` devuelve también ese valor (borrar y crear: cambia lo que devuelve). Lo demás de la 229 no se toca.
+- **La regla** (`decideWeb` en `lib/security/reglas.ts`, en el middleware justo tras `decideAcceso`, misma puerta y misma dirección segura: sin puerta o sin el campo, pasa). Roles `ROLES_SOLO_ESCRITORIO` = manager, sales, logistics («office» es logistics; **accounting no está**: nadie lo pidió). Con la web bloqueada: la app de escritorio (agente `RTGHub/`, también la 1.1.1, que D-814 obliga a actualizar) pasa a todo; un teléfono solo al Time Tracker, el hub y la cuenta (+ Quote Builder con visita abierta), lo demás rebota a /timetracker; un navegador de computadora va a **/web-blocked** salvo en lo de la propia cuenta. Admin, warehouse, driver y accounting no se miran. Un admin en «entrar como» tampoco. Si ya estaban dentro, la siguiente navegación los lleva ahí: «si la están usando que les aparezca».
+- **La pantalla** (`/web-blocked`, pública en `route-guard`): «La web app ya no está disponible. Usa la app de escritorio RTG Hub en la computadora de tu tienda. Es obligatorio desde ahora.», el botón «Descargar la app RTG Hub» (la ruta de D-811 acepta la sesión), los tres pasos de D-814, «desde el teléfono solo abre el Time Tracker» y cerrar sesión.
+- **El interruptor:** segunda tarjeta en Security, «WEB BLOQUEADA / WEB ABIERTA», con confirmación; y `scripts/db/security-policy.mjs --web-on | --web-off`. El hub en el teléfono (`appsEnElTelefono`) también lo respeta.
+- Sello `security` 0.5.0; repo 1.672.0.
+
+**Cómo se enciende:** publicar, aplicar la 231, `--web-on`. Apagar es el mismo botón: nadie se queda fuera más de un clic.
+
+**Pruebas:** `src/lib/security/reglas.test.ts` (apagada, roles, la app, el navegador, el teléfono, la 231 y el cableado). Al día `barra-igual`. tsc y eslint limpios.
+
+**No verificado:** en navegador con una cuenta de ventas; la 231 en producción (la aplica el orquestador con la regla de permisos del dueño).

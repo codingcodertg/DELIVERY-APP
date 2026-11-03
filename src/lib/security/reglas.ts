@@ -33,6 +33,15 @@ export function dispositivoDeLaPeticion(p: { cabecera: string | null | undefined
 /** Los roles que entran desde cualquier dispositivo, con la regla encendida. */
 export const ROLES_SIN_LIMITE: readonly UserRole[] = ["admin", "warehouse", "driver"];
 
+/**
+ * D-816: los roles que NO entran desde un navegador de computadora: solo desde la app RTG Hub (y desde el teléfono,
+ * al Time Tracker). El dueño: «office manager y sales people»; «office» aquí es logistics. Accounting NO está: nadie
+ * lo pidió, y bloquear a quien lleva los números desde fuera es una decisión del dueño, no del orquestador.
+ */
+export const ROLES_SOLO_ESCRITORIO: readonly UserRole[] = ["manager", "sales", "logistics"];
+/** Adónde va quien entra por la web con un rol que ya no puede. Pública en `route-guard`. */
+export const RUTA_SOLO_ESCRITORIO = "/web-blocked";
+
 export type TipoDeDispositivo = "desktop" | "phone" | "browser";
 export type EstadoDeDispositivo = "none" | "pending" | "approved" | "revoked";
 
@@ -43,6 +52,8 @@ export interface PuertaDeDispositivo {
   device_status: string | null;
   device_kind: string | null;
   visit_open: boolean;
+  /** D-816 (231): la web bloqueada para `ROLES_SOLO_ESCRITORIO`. Opcional: la 229 sola no lo devuelve. */
+  web_blocked?: boolean | null;
 }
 
 /** Adónde va quien no puede estar donde está. Pública en `route-guard`: mandar aquí a quien ya entró no es un bucle. */
@@ -62,7 +73,9 @@ export function idDeDispositivoValido(id: string | null | undefined): id is stri
 }
 
 /** Lo que un teléfono aprobado puede abrir: el Time Tracker entero, el hub y lo de la propia cuenta. */
-const SIEMPRE_EN_TELEFONO = ["/timetracker", "/home", "/change-password", "/no-access", RUTA_BLOQUEADO] as const;
+const SIEMPRE_EN_TELEFONO = ["/timetracker", "/home", "/change-password", "/no-access", RUTA_BLOQUEADO, RUTA_SOLO_ESCRITORIO] as const;
+/** D-816: lo que un navegador de computadora bloqueado aún puede abrir: la pantalla del bloqueo y lo de la cuenta. */
+const EN_WEB_BLOQUEADA = [RUTA_SOLO_ESCRITORIO, RUTA_BLOQUEADO, "/change-password", "/no-access"] as const;
 /** Y Quote Builder, solo mientras hay una visita a cliente abierta. */
 const CON_VISITA = ["/estimator"] as const;
 
@@ -70,7 +83,7 @@ const bajo = (path: string, prefijo: string) => path === prefijo || path.startsW
 
 export type DecisionDeDispositivo =
   | { kind: "next" }
-  | { kind: "redirect"; to: string; motivo: "no_autorizado" | "solo_telefono" };
+  | { kind: "redirect"; to: string; motivo: "no_autorizado" | "solo_telefono" | "solo_escritorio" };
 
 /**
  * La decisión para una navegación. `puerta` null = no se pudo leer: pasa.
@@ -92,10 +105,41 @@ export function decideAcceso(path: string, puerta: PuertaDeDispositivo | null | 
   return { kind: "redirect", to: "/timetracker", motivo: "solo_telefono" };
 }
 
+/**
+ * D-816: la web bloqueada, como función pura. Mira solo CON QUÉ entra la persona (su agente de usuario), no si el
+ * dispositivo está aprobado: eso es la otra regla. `puerta` null o `web_blocked` falso → pasa.
+ *
+ *  · rol que no es de `ROLES_SOLO_ESCRITORIO` → pasa (admin, warehouse, driver, accounting).
+ *  · la app de escritorio (agente `RTGHub/`) → pasa a todo. La 1.1.1 también: la pantalla de D-814 ya la obliga a
+ *    actualizar, y aquí no se la deja fuera para no dejar sin salida a quien está actualizando.
+ *  · un teléfono → solo Time Tracker (+ Quote Builder con visita abierta); lo demás rebota a /timetracker.
+ *  · un navegador de computadora → /web-blocked, salvo en las pantallas de la propia cuenta.
+ * Un admin dentro de «entrar como» no pasa por aquí (el middleware lo salta, como en D-811).
+ */
+export function decideWeb(path: string, puerta: PuertaDeDispositivo | null | undefined, userAgent: string | null | undefined): DecisionDeDispositivo {
+  if (!puerta || !puerta.web_blocked) return { kind: "next" };
+  if (!ROLES_SOLO_ESCRITORIO.includes((puerta.role ?? "") as UserRole)) return { kind: "next" };
+  const tipo = tipoPorAgente(userAgent);
+  if (tipo === "desktop") return { kind: "next" };
+  if (tipo === "phone") {
+    if (SIEMPRE_EN_TELEFONO.some((p) => bajo(path, p))) return { kind: "next" };
+    if (puerta.visit_open && CON_VISITA.some((p) => bajo(path, p))) return { kind: "next" };
+    return { kind: "redirect", to: "/timetracker", motivo: "solo_telefono" };
+  }
+  if (EN_WEB_BLOQUEADA.some((p) => bajo(path, p))) return { kind: "next" };
+  return { kind: "redirect", to: RUTA_SOLO_ESCRITORIO, motivo: "solo_escritorio" };
+}
+
 /** Las apps que el hub le enseña a quien está limitado al teléfono; `null` = sin límite, las suyas. */
-export function appsEnElTelefono(puerta: PuertaDeDispositivo | null | undefined): string[] | null {
-  if (!puerta || !puerta.enforced) return null;
-  if (ROLES_SIN_LIMITE.includes((puerta.role ?? "") as UserRole)) return null;
+export function appsEnElTelefono(puerta: PuertaDeDispositivo | null | undefined, userAgent?: string | null): string[] | null {
+  if (!puerta) return null;
+  const role = (puerta.role ?? "") as UserRole;
+  // D-816: con la web bloqueada, un teléfono de esos roles solo ve el Time Tracker, esté o no aprobado el dispositivo.
+  if (puerta.web_blocked && ROLES_SOLO_ESCRITORIO.includes(role) && tipoPorAgente(userAgent) === "phone") {
+    return puerta.visit_open ? ["timetracker", "estimator"] : ["timetracker"];
+  }
+  if (!puerta.enforced) return null;
+  if (ROLES_SIN_LIMITE.includes(role)) return null;
   if (puerta.device_status !== "approved" || puerta.device_kind !== "phone") return null;
   return puerta.visit_open ? ["timetracker", "estimator"] : ["timetracker"];
 }

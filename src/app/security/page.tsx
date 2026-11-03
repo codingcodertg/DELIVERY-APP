@@ -13,7 +13,7 @@ export default async function SecurityPage() {
   const supabase = await createClient();
   
   const [{ data: policy, error: e1 }, { data: devices, error: e2 }, { data: usos, error: e3 }] = await Promise.all([
-    supabase.from("security_policy").select("enforced, changed_at, changed_by").eq("id", 1).maybeSingle(),
+    supabase.from("security_policy").select("enforced, changed_at, changed_by, web_blocked").eq("id", 1).maybeSingle(),
     supabase.from("security_devices").select("id, label, kind, status, user_agent, first_seen_at, last_seen_at, first_user_id, last_user_id, approved_at, revoked_at, notes, bound, requested_at, requested_by, request_note").order("last_seen_at", { ascending: false }).limit(500),
     supabase.from("security_device_users").select("device_id, user_id, first_seen_at, last_seen_at, seen_count").order("last_seen_at", { ascending: false }).limit(2000),
   ]);
@@ -42,5 +42,5 @@ export default async function SecurityPage() {
   const h = await headers();
   const esteDispositivo = dispositivoDeLaPeticion({ cabecera: h.get(CABECERA_DISPOSITIVO), cookie: h.get("cookie") })?.id ?? null;
 
-  return <PanelDeSeguridad enforced={!!policy?.enforced} cambiadaEn={policy?.changed_at ?? null} dispositivos={filas} uso={uso} esteDispositivo={esteDispositivo} error={error} />;
+  return <PanelDeSeguridad enforced={!!policy?.enforced} webBloqueada={!!policy?.web_blocked} cambiadaEn={policy?.changed_at ?? null} dispositivos={filas} uso={uso} esteDispositivo={esteDispositivo} error={error} />;
 }
