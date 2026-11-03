@@ -80,6 +80,12 @@ const EN_WEB_BLOQUEADA = [RUTA_SOLO_ESCRITORIO, RUTA_BLOQUEADO, "/change-passwor
 const CON_VISITA = ["/estimator"] as const;
 
 const bajo = (path: string, prefijo: string) => path === prefijo || path.startsWith(prefijo + "/");
+/**
+ * D-819: lo que NINGUNA de las dos reglas toca: salir (`/auth/signout`, el POST del botón «Cerrar sesión»), entrar y lo
+ * de la cuenta sin sesión. El dueño: «le doy cerrar sesión y no me saca»: el rebote a /web-blocked se tragaba el POST.
+ */
+const FUERA_DE_LAS_REGLAS = ["/auth", "/login", "/reset-password"] as const;
+const fueraDeLasReglas = (path: string) => FUERA_DE_LAS_REGLAS.some((p) => bajo(path, p));
 
 export type DecisionDeDispositivo =
   | { kind: "next" }
@@ -95,7 +101,7 @@ export type DecisionDeDispositivo =
  */
 export function decideAcceso(path: string, puerta: PuertaDeDispositivo | null | undefined): DecisionDeDispositivo {
   if (!puerta || !puerta.enforced) return { kind: "next" };
-  if (bajo(path, RUTA_BLOQUEADO)) return { kind: "next" };
+  if (bajo(path, RUTA_BLOQUEADO) || fueraDeLasReglas(path)) return { kind: "next" };
   const role = (puerta.role ?? "") as UserRole;
   if (ROLES_SIN_LIMITE.includes(role)) return { kind: "next" };
   if (puerta.device_status !== "approved") return { kind: "redirect", to: RUTA_BLOQUEADO, motivo: "no_autorizado" };
@@ -118,6 +124,7 @@ export function decideAcceso(path: string, puerta: PuertaDeDispositivo | null | 
  */
 export function decideWeb(path: string, puerta: PuertaDeDispositivo | null | undefined, userAgent: string | null | undefined): DecisionDeDispositivo {
   if (!puerta || !puerta.web_blocked) return { kind: "next" };
+  if (fueraDeLasReglas(path)) return { kind: "next" };
   if (!ROLES_SOLO_ESCRITORIO.includes((puerta.role ?? "") as UserRole)) return { kind: "next" };
   const tipo = tipoPorAgente(userAgent);
   if (tipo === "desktop") return { kind: "next" };

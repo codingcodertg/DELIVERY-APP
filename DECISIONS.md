@@ -49893,3 +49893,13 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/security/reglas.test.ts` (la 232 y el cableado). `ensenanza-general` con la función en la lista de escritura.
 
 **No verificado:** la 232 en producción (la aplica el orquestador); en navegador.
+
+## D-819 · «Cerrar sesión» en la pantalla de bloqueo no sacaba: salir y entrar quedan fuera de las dos reglas
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/security-salir` (laptop nueva). Sin migración.
+
+**Pedido (el dueño, con captura de /web-blocked):** «le doy cerrar sesión y no me saca».
+
+**Qué pasaba:** el botón es un POST a `/auth/signout`. El middleware pasa cada navegación por `decideWeb` (D-816) antes del guard, y `/auth/signout` no estaba en la lista de lo permitido en un navegador bloqueado: rebotaba a /web-blocked sin cerrar nada. `decideAcceso` (D-811) tenía el mismo agujero, aún sin estrenar.
+
+**Qué cambia:** `FUERA_DE_LAS_REGLAS` = `/auth`, `/login`, `/reset-password`: ninguna de las dos reglas las mira. Sello `security` 0.6.1; repo 1.675.0. Prueba en `reglas.test.ts` para las dos reglas y los dos tipos de agente.

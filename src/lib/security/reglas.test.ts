@@ -206,3 +206,14 @@ describe("D-818: a quién se le cerró la web", () => {
     expect(leer("src/app/security/PanelDeSeguridad.tsx")).toContain(`data-tabla="bloqueados-web"`);
   });
 });
+
+describe("D-819: salir y entrar no se bloquean nunca", () => {
+  it("el POST de «Cerrar sesión» (/auth/signout) y el login pasan con las dos reglas encendidas", () => {
+    for (const p of ["/auth/signout", "/auth/callback", "/login", "/reset-password"]) {
+      expect(decideWeb(p, web(), CHROME)).toEqual({ kind: "next" });
+      expect(decideWeb(p, web(), IPHONE)).toEqual({ kind: "next" });
+      expect(decideAcceso(p, puerta({ device_status: "revoked" }))).toEqual({ kind: "next" });
+      expect(decideAcceso(p, puerta({ device_kind: "phone" }))).toEqual({ kind: "next" });
+    }
+  });
+});
