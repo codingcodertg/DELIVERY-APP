@@ -5,6 +5,7 @@ import { impersonacionCaducada } from "@/lib/impersonation";
 import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
 import { debeCerrarSesion } from "@/lib/session-cutoff";
 import { debeCambiarContrasena, decideCambioObligatorio } from "@/lib/cambio-obligatorio";
+import { CABECERA_DISPOSITIVO, decideAcceso, dispositivoDeLaPeticion, type PuertaDeDispositivo } from "@/lib/security/reglas";
 
 // La lista de públicas vive ahora en lib/route-guard.ts; se reexporta para quien la importaba
 // de aquí (public-paths.test.ts, D-156).
@@ -77,6 +78,8 @@ export async function updateSession(
     ahora?: Date;
     /** Solo pruebas: si el usuario de `getUser` lleva la marca de cambiar la contraseña. */
     debeCambiar?: boolean;
+    /** Solo pruebas: la puerta de dispositivo (D-811) con una respuesta fija. */
+    dispositivo?: (req: NextRequest) => Promise<PuertaDeDispositivo | null>;
   } = {},
 ) {
   // Local demo mode: skip all auth — the app has no backend.
@@ -134,6 +137,7 @@ export async function updateSession(
   // ninguna ida más al servidor.
   let debeCambiar = false;
   let leerPuerta: (() => Promise<PuertaDeSesion | null>) | null = null;
+  let leerDispositivo: (() => Promise<PuertaDeDispositivo | null>) | null = null;
   if (deps.getUser) {
     const v = await deps.getUser(request);
     hasUser = v === true;
@@ -169,6 +173,14 @@ export async function updateSession(
       // Cualquier fallo —la función no existe todavía, la red, un permiso— vale `null`, y
       // `null` significa «no cerrar». Es la dirección segura y además resuelve el orden de
       // despliegue: hasta que la 107 esté aplicada, la regla simplemente no aplica.
+      return error ? null : data;
+    };
+    // La puerta de dispositivo (D-811, 229), con la misma dirección segura: cualquier fallo vale `null` = sin regla.
+    // Solo se pregunta cuando hay sesión; la cookie la pone `IdentidadDelDispositivo` y sin ella el estado es «none».
+    if (user) leerDispositivo = async () => {
+      // La cabecera de la app de escritorio manda sobre la cookie: es la que no se puede copiar.
+      const dispositivo = dispositivoDeLaPeticion({ cabecera: request.headers.get(CABECERA_DISPOSITIVO), cookie: request.headers.get("cookie") })?.id ?? "";
+      const { data, error } = await supabase.rpc("security_gate", { p_device: dispositivo }).single<PuertaDeDispositivo>();
       return error ? null : data;
     };
   }
@@ -218,6 +230,22 @@ export async function updateSession(
   // sesión de la otra persona todavía viva. Tiene salida —el login— así que no es una trampa,
   // pero es justo lo que esta rama promete que no pasa.
   const barrer = barrerHuerfana || (!!cruda && sinUsuarioConfirmado);
+
+  // La regla de acceso por dispositivo (D-811). Aquí por lo mismo que el cierre de las 18:30: es el único punto por el
+  // que pasa cada navegación de todas las apps. Nace apagada (`security.policy.enforced = false`) y con ella apagada
+  // `decideAcceso` pasa siempre; y si la puerta no se pudo leer, también. Un admin dentro de «entrar como» no se mira:
+  // el rol de la sesión es el del suplantado y bloquearle sería dejar al admin sin su propia cuenta.
+  if (hasUser && !vuelta) {
+    const leer = deps.dispositivo ?? leerDispositivo;
+    const puertaDeDispositivo = leer ? await leer(request).catch(() => null) : null;
+    const acceso = decideAcceso(path, puertaDeDispositivo);
+    if (acceso.kind === "redirect") {
+      const salto = NextResponse.redirect(new URL(`${acceso.to}?motivo=${acceso.motivo}`, request.nextUrl.origin));
+      for (const c of response.cookies.getAll()) salto.cookies.set(c);
+      if (barrer) salto.cookies.delete(COOKIE_RETORNO);
+      return salto;
+    }
+  }
 
   // Cambiar la contraseña temporal (D-486). Aquí por lo mismo que el cierre de las 18:30: es el
   // único punto por el que pasa cada navegación de todas las apps, así que no hay URL que lo salte.

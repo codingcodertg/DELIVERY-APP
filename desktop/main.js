@@ -30,6 +30,8 @@ const { app, BrowserWindow, shell, Menu, dialog } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { crearConfianza } = require("./origenes.js");
+const { CABECERA, idDeMaquina, salNueva, machineGuidDe } = require("./dispositivo.js");
+const { execFileSync } = require("node:child_process");
 
 const SITIO = "https://rtg-hub.vercel.app";
 const INICIO = `${SITIO}/home`;
@@ -38,6 +40,27 @@ const ORIGEN = new URL(SITIO).origin;
 // Dónde se recuerda el tamaño de la ventana. En la carpeta de datos del usuario, que es la
 // única que Windows garantiza escribible (junto a Program Files no lo es).
 const ESTADO = () => path.join(app.getPath("userData"), "ventana.json");
+// Y dónde vive la sal de la identidad de esta instalación (D-811). Nace la primera vez y no se toca.
+const SAL = () => path.join(app.getPath("userData"), "dispositivo.json");
+
+/**
+ * El id de ESTA instalación en ESTA máquina (D-811): sha256 del MachineGuid de Windows más una sal propia. Va en la
+ * cabecera `x-rtg-device` de cada petición a nuestro sitio, y es lo que Security registra como «app de escritorio».
+ * Copiar la app a otra PC da otro id. Si el registro no se deja leer, se usa solo la sal (ver `dispositivo.js`).
+ */
+function idDeEstaInstalacion() {
+  let sal = null;
+  try { sal = JSON.parse(fs.readFileSync(SAL(), "utf8")).sal || null; } catch { /* primera vez */ }
+  if (!sal) {
+    sal = salNueva();
+    try { fs.writeFileSync(SAL(), JSON.stringify({ sal, creada: new Date().toISOString() })); } catch { /* sin carpeta: el id cambia en cada arranque, y Security lo verá como otro dispositivo */ }
+  }
+  let guid = null;
+  try {
+    guid = machineGuidDe(execFileSync("reg", ["query", "HKLM\SOFTWARE\Microsoft\Cryptography", "/v", "MachineGuid"], { encoding: "utf8", windowsHide: true }));
+  } catch { /* sin registro (no es Windows, o sin permiso): solo la sal */ }
+  return idDeMaquina(guid, sal);
+}
 
 function leeEstado() {
   try {
@@ -161,6 +184,15 @@ function crearVentana() {
   // pruebas.
   const confianza = crearConfianza(ORIGEN);
   const esNuestro = (u) => confianza.esNuestro(u);
+
+  // La identidad de la instalación (D-811), en una cabecera que SOLO esta ventana pone, y solo hacia nuestro sitio.
+  // Un navegador no puede ponerla; por eso Security la cree y no cree al agente de usuario.
+  const idInstalacion = idDeEstaInstalacion();
+  win.webContents.session.webRequest.onBeforeSendHeaders((detalles, callback) => {
+    const requestHeaders = { ...detalles.requestHeaders };
+    if (esNuestro(detalles.url)) requestHeaders[CABECERA] = idInstalacion;
+    callback({ requestHeaders });
+  });
 
   // La primera carga la inicia esta app hacia su propia URL de inicio, así que si termina en otro
   // origen es porque **nuestro** dominio redirigió allí. Se aprende una sola vez: ver en

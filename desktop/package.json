@@ -1,6 +1,6 @@
 {
   "name": "rtg-hub-desktop",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "private": true,
   "description": "Ventana de escritorio para Windows que abre el hub de RTG. Carga el sitio en vivo; no lo empaqueta.",
   "main": "main.js",
@@ -18,6 +18,7 @@
     "files": [
       "main.js",
       "origenes.js",
+      "dispositivo.js",
       "build/icon.ico"
     ],
     "win": {

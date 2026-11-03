@@ -561,6 +561,12 @@ export function PunchPanel() {
               {t("emp.visit.hint", { n: viaje.stops.length })}
               {!seCierraDeUnToque(viaje.trip) && <> {t("emp.visit.endBelow")}</>}
             </div>
+            {/* D-811: con la visita abierta, Quote Builder desde aquí mismo. Es lo único de fuera del Time Tracker que
+                un teléfono aprobado puede abrir, y solo mientras dura la visita; el dueño: «les va a dar acceso ahí
+                mismo en el time tracker a abrir el quote builder para que puedan hacer cosas a los clientes». */}
+            <a className="btn btn-sm" href="/estimator" data-accion="abrir-quote-builder" style={{ marginTop: 8, display: "inline-block" }}>
+              🧮 Quote Builder
+            </a>
           </div>
         )}
 
