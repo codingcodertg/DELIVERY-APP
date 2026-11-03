@@ -203,7 +203,7 @@ describe("D-818: a quién se le cerró la web", () => {
     expect(leer("src/app/api/security/blocked/route.ts")).toContain(`rpc("security_note_web_block"`);
     expect(leer("src/lib/supabase/middleware.ts")).toContain("&de=$" + "{encodeURIComponent(path)}");
     expect(leer("src/app/security/page.tsx")).toContain(`from("security_web_blocks")`);
-    expect(leer("src/app/security/PanelDeSeguridad.tsx")).toContain(`data-tabla="bloqueados-web"`);
+    expect(leer("src/app/security/PanelDeSeguridad.tsx")).toContain(`id="bloqueados-web"`);
   });
 });
 
