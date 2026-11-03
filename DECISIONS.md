@@ -49799,3 +49799,23 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/promos/precio-por-grupo.test.ts` (tamaño, la hoja de Brownsville entera, qué productos, las filas, lo que se ve, la 230). Al día `tabla.test`. tsc y eslint limpios.
 
 **No verificado:** en navegador; la 230 en producción (la aplica el dueño; sin ella, la página falla al pedir `price`: aplicar ANTES de publicar o junto). Los precios de Brownsville no se cargaron: se cargan con el dueño después de la 230.
+
+## D-813 · La app de escritorio vieja se actualiza desde la web: aviso «versión nueva» e instalador de un clic (escritorio 1.2.1)
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/escritorio-aviso-actualiza` (laptop nueva). Sin migración.
+
+**Pedido (el dueño):** «te dije que no puedo volver a cada dispositivo a instalarlo» · «haz una actualización sin necesidad de ir» · «busca la manera de que mismo sistema se actualice solo».
+
+**Qué había:** D-811 dejó la app 1.2.0 con `electron-updater`, pero la que está instalada en las tiendas es la 1.1.1, que no lo lleva y no tiene ningún canal por el que mandarle nada: es una ventana sellada (sin Node, con sandbox) que solo carga la web. Lo único que llega a esa máquina es lo que la web pinta y lo que la persona pulsa.
+
+**Qué cambia:**
+- **El aviso** (`components/AvisoDeEscritorio.tsx`, en el layout raíz junto a `IdentidadDelDispositivo`): si el agente dice `RTGHub/x.y.z` y es menor que `ESCRITORIO_MINIMO` (`lib/desktop-version.ts`, hoy 1.2.1), una barra arriba: «RTG Hub tiene versión nueva. Pulsa Actualizar: se baja el instalador, ábrelo y se instala solo…». Un navegador o un teléfono no la ven nunca. Subir `ESCRITORIO_MINIMO` vuelve a enseñarla a todo lo anterior; una prueba exige que coincida con `desktop/package.json`.
+- **La descarga:** el botón abre `/api/desktop-update/RTG-Hub-Setup-1.2.1.exe?d=<id>` con `target=_blank`; la app vieja manda eso al navegador del sistema (D-225), que lo baja a Descargas. La ruta acepta el id del dispositivo en `?d=` igual que en la cabecera (ese navegador no tiene ni la sesión ni la cabecera; D-170 solo pedía que la URL no sirva pegada en un chat de fuera).
+- **El instalador de un clic:** `desktop/package.json` 1.2.1 con `nsis.oneClick: true` y `runAfterFinish: true`: al abrirlo no hay asistente; se instala encima de la vieja y abre la nueva, que ya se actualiza sola (D-811). Lo mismo le sirve a `electron-updater` en adelante.
+- Sello `security` 0.2.0 (es la app que lleva lo del dispositivo y el escritorio); repo 1.669.0.
+
+**Lo que no se puede:** que la 1.1.1 se actualice sin que nadie toque nada. No hay forma; lo más cerca es esto: dos clics de quien esté en la tienda («Actualizar» y abrir la descarga), ninguno del dueño.
+
+**Pruebas:** `src/lib/desktop-version.test.ts` (la versión del agente, comparar números, a quién se enseña, la mínima = la compilada, el aviso en el layout y la ruta con `?d=`). Al día `desktop-dispositivo.test`. tsc y eslint limpios.
+
+**No verificado:** en una PC con la 1.1.1 de verdad (el flujo navegador → Descargas → abrir); que Chrome no marque el instalador sin firma como sospechoso (si lo hace, «Conservar» y seguir; la 1.1.1 se instaló igual).

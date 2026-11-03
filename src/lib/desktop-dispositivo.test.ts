@@ -44,11 +44,11 @@ describe("la cabecera", () => {
     expect(CABECERA).toBe(CABECERA_DISPOSITIVO);
     expect(CABECERA).toBe("x-rtg-device");
   });
-  it("la app la pone solo hacia nuestro sitio, y la versión sube a 1.2.0 (hay que reinstalar)", () => {
+  it("la app la pone solo hacia nuestro sitio, y la versión sube a 1.2.1 (D-813: la vieja la baja desde el aviso de la web)", () => {
     const main = leer("desktop/main.js");
     expect(main).toContain("if (esNuestro(detalles.url)) requestHeaders[CABECERA] = idInstalacion;");
     expect(main).toContain("webRequest.onBeforeSendHeaders(");
-    expect(JSON.parse(leer("desktop/package.json")).version).toBe("1.2.0");
+    expect(JSON.parse(leer("desktop/package.json")).version).toBe("1.2.1");
   });
   it("sin cabecera, la cookie (no ligada); sin nada, null; basura, null", () => {
     expect(dispositivoDeLaPeticion({ cabecera: null, cookie: "a=1; rtg_device=5b2c0d4e-1f2a-4b3c-9d8e-7f6a5b4c3d2e; b=2" })).toEqual({ id: "5b2c0d4e-1f2a-4b3c-9d8e-7f6a5b4c3d2e", ligado: false });
