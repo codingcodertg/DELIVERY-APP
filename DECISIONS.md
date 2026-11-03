@@ -49781,3 +49781,21 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/security/reglas.test.ts` (la regla como tabla, apagada/encendida, roles, teléfono, la 229), `src/lib/desktop-dispositivo.test.ts` (el id ligado, la cabecera, la solicitud). Al día `hub-herramientas-de-admin`, `desktop-origins`. tsc y eslint limpios.
 
 **No verificado:** en navegador; la 229 en producción (la aplica el dueño; sin ella todo sigue igual: el registro falla en silencio y la puerta pasa); la app de escritorio 1.2.0 no se compiló aquí (`desktop/`: `npm run dist`); con la app vieja (1.1.1) una PC de tienda se registra como «navegador» con nombre «RTG Hub · Windows» y se puede aprobar igual, pero su id es la cookie (copiable) hasta reinstalar.
+
+## D-812 · Promos: precio por grupo de tiendas, cargado por tamaño (migración 230)
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/promos-precio-por-tienda` (laptop nueva). **Migración 230** (la aplica el dueño).
+
+**Pedido (el dueño, con su hoja de nueve tamaños y precios):** «in brownsville promo add this prices for the items names containing that sizes» y, preguntado si el precio era de la ronda o de la tienda: «en este caso este precio solo aplica para brownsville».
+
+**Qué había:** el precio de un producto en una ronda era UNO (`promo_products.price`, del libro) y lo veían todos los grupos; cada grupo solo aprobaba o rechazaba. No había dónde poner «el precio de Brownsville».
+
+**Qué cambia:**
+- **Base (230):** `promo_decisions.price` (no negativo; nulo = el del libro). Misma clave y mismos permisos que la decisión: lo escribe quien decide por ese grupo o el admin; la ronda cerrada lo para el mismo disparador. Una fila puede nacer solo con precio y seguir «pending».
+- **Tabla:** la celda PRICE pinta el precio del grupo que se mira y, si no lo tiene, el del libro (`precioDelGrupo ?? price`). Con varios grupos marcados (D-810), el de grupo solo si todos coinciden.
+- **Carga por tamaño:** con UN grupo marcado, botón «💲 Precios por tamaño para BRO» → se pega la hoja tal cual («10X64 $ 2.09», una línea por tamaño; `parsePreciosPorTamano` acepta $, coma o punto y devuelve lo que no entendió), vista previa de cuántos productos por tamaño (`preciosPorTamano`: por la columna `size` o, si falta, el NNxNN de la descripción), y «Aplicar». Se escribe SOLO el precio (`filasDePrecio`): PostgREST actualiza las columnas que viajan, así que una decisión ya tomada conserva su estado.
+- **Desde la terminal:** `scripts/promos-precios-por-tamano.mjs "<ronda>" <grupo> <fichero> [--escribe]` hace lo mismo con `!` (ensayo por defecto).
+
+**Pruebas:** `src/lib/promos/precio-por-grupo.test.ts` (tamaño, la hoja de Brownsville entera, qué productos, las filas, lo que se ve, la 230). Al día `tabla.test`. tsc y eslint limpios.
+
+**No verificado:** en navegador; la 230 en producción (la aplica el dueño; sin ella, la página falla al pedir `price`: aplicar ANTES de publicar o junto). Los precios de Brownsville no se cargaron: se cargan con el dueño después de la 230.

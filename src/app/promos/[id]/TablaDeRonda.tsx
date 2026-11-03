@@ -12,7 +12,7 @@ import { BarraSuperior } from "@/components/BarraSuperior";
 import { ANCHO_MINIMO, anchosDeUnRol, CLAVE_DE_COLUMNAS_DE_PROMOS, guardaColumnas, hayQueSembrar, leeColumnas, type AnchosPorRol, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
 import type { UserRole } from "@/lib/types";
 import {
-  cambioEnBloqueDeGrupos, clavesDeTiendaDe, columnasDePromos, columnasDePromosPorDefecto, columnasVisiblesDePromos,
+  cambioEnBloqueDeGrupos, clavesDeTiendaDe, filasDePrecio, parsePreciosPorTamano, preciosPorTamano, columnasDePromos, columnasDePromosPorDefecto, columnasVisiblesDePromos,
   COLOR_DE_ESTADO, COLUMNA_PRIMERA, COLUMNAS_FIJAS, cuentaPorEstado, filasDePromoDeGrupos, filtraPorTienda, textoDeDemanda, textoDePrecio,
   MINIMO_EN_LA_TIENDA, motivoParaNoDecidir, mueveColumnaDePromos, ordenDeColumnasDePromos, puedeDecidir,
   valorParaFiltrar, type DecisionDeGrupo, type EstadoDeDecision, type ProductoDeCatalogo,
@@ -290,6 +290,32 @@ export function TablaDeRonda({
     setOcupado(false);
   };
 
+  // D-812: precios por tamaño para el grupo que se mira (uno solo). Lo que el dueño pega de su hoja → una fila de precio por
+  // producto cuyo tamaño coincida. Solo el precio viaja: el estado de lo ya decidido no se toca.
+  const [panelDePrecios, setPanelDePrecios] = useState(false);
+  const [textoDePrecios, setTextoDePrecios] = useState("");
+  const vistaPrevia = useMemo(() => {
+    const { precios, malas } = parsePreciosPorTamano(textoDePrecios);
+    const filas = preciosPorTamano(productos, precios);
+    const porTamano = new Map<string, number>();
+    for (const f of filas) porTamano.set(f.tamano, (porTamano.get(f.tamano) ?? 0) + 1);
+    return { precios, malas, filas, porTamano };
+  }, [textoDePrecios, productos]);
+  const guardaPrecios = async () => {
+    if (!sePuede || gruposActivos.length !== 1 || vistaPrevia.filas.length === 0) return;
+    setOcupado(true); setError(null);
+    const filasAEscribir = filasDePrecio({ roundId: ronda.id, grupo: gruposActivos[0], precios: vistaPrevia.filas });
+    const { data, error: err } = await supabase
+      .from("promo_decisions")
+      .upsert(filasAEscribir, { onConflict: "round_id,code,group_code" })
+      .select("code");
+    if (err) setError(err.message);
+    else if ((data ?? []).length !== filasAEscribir.length) {
+      setError(t(`Saved ${(data ?? []).length} of ${filasAEscribir.length}. The database refused the rest.`, `Se guardaron ${(data ?? []).length} de ${filasAEscribir.length}. La base rechazó el resto.`));
+    } else { setPanelDePrecios(false); setTextoDePrecios(""); router.refresh(); }
+    setOcupado(false);
+  };
+
   const cierraOReabre = async (cerrar: boolean) => {
     setOcupado(true); setError(null);
     const { error: err } = await supabase.rpc("promo_set_round_closed", { p_round: ronda.id, p_closed: cerrar });
@@ -302,7 +328,8 @@ export function TablaDeRonda({
   const textoDeCelda = (fila: (typeof filas)[number], clave: string) => {
     if (clave.startsWith("qoh_")) { const v = fila.porTienda[clave.slice(4)]; return v == null ? "—" : String(v); }
     if (clave === "estado") return t(ETIQUETA_ESTADO[fila.estado].en, ETIQUETA_ESTADO[fila.estado].es);
-    if (clave === "price") return textoDePrecio(fila.price);
+    // D-812: el precio del grupo que se mira manda sobre el del libro.
+    if (clave === "price") return textoDePrecio(fila.precioDelGrupo ?? fila.price);
     if (clave === "demand") return textoDeDemanda(fila.demand);
     const v = (fila as unknown as Record<string, unknown>)[clave];
     return v === null || v === undefined || v === "" ? "—" : String(v);
@@ -382,6 +409,42 @@ export function TablaDeRonda({
             <span className="hint" style={{ marginTop: 4 }}>
               {t(`Each decision is saved in the ${gruposActivos.length} groups.`, `Cada decisión se guarda en los ${gruposActivos.length} grupos.`)}
             </span>
+          )}
+        </div>
+      )}
+
+      {/* D-812: precios por tamaño para el grupo que se mira. Solo con UN grupo marcado: el precio es de ese grupo. */}
+      {sePuede && gruposActivos.length === 1 && (
+        <div style={{ marginTop: 10 }}>
+          <button type="button" className="btn btn-ghost btn-sm" data-accion="precios-por-tamano" onClick={() => setPanelDePrecios((v) => !v)}>
+            💲 {t(`Prices by size for ${gruposActivos[0]}`, `Precios por tamaño para ${gruposActivos[0]}`)}
+          </button>
+          {panelDePrecios && (
+            <div className="card" data-bloque="precios-por-tamano" style={{ marginTop: 8, maxWidth: 560 }}>
+              <div className="hint" style={{ marginTop: 0 }}>
+                {t("One size per line, with its price, as in your sheet: «10X64 $ 2.09». Every product of this round with that size gets that price, for this group only.",
+                  "Un tamaño por línea con su precio, como en tu hoja: «10X64 $ 2.09». Cada producto de esta ronda con ese tamaño recibe ese precio, solo para este grupo.")}
+              </div>
+              <textarea rows={6} value={textoDePrecios} onChange={(e) => setTextoDePrecios(e.target.value)} placeholder={"10X64 $ 2.09\n12X36 $ 1.59"} style={{ width: "100%", marginTop: 6, fontFamily: "monospace" }} />
+              {vistaPrevia.malas.length > 0 && (
+                <div className="hint" style={{ color: "var(--red)" }}>{t("Not understood:", "No se entendió:")} {vistaPrevia.malas.join(" · ")}</div>
+              )}
+              {Object.keys(vistaPrevia.precios).length > 0 && (
+                <div style={{ marginTop: 6 }} data-vista-previa>
+                  {Object.entries(vistaPrevia.precios).map(([tam, precio]) => (
+                    <span key={tam} className="chip" style={{ marginRight: 6, marginBottom: 4 }} data-tamano={tam}>
+                      {tam} → {textoDePrecio(precio)} <span className="cnt">{vistaPrevia.porTamano.get(tam) ?? 0}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button type="button" className="btn btn-green" disabled={ocupado || vistaPrevia.filas.length === 0} data-accion="aplicar-precios" onClick={() => void guardaPrecios()}>
+                  {t(`Apply to ${vistaPrevia.filas.length} products`, `Aplicar a ${vistaPrevia.filas.length} productos`)}
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={() => setPanelDePrecios(false)}>{t("Cancel", "Cancelar")}</button>
+              </div>
+            </div>
           )}
         </div>
       )}

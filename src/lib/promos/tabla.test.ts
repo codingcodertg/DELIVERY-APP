@@ -786,7 +786,7 @@ describe("el precio lleva su signo de dólar (D-387)", () => {
 
   it("y la PANTALLA lo usa para pintar la celda del precio", () => {
     const tabla = readFileSync(join(process.cwd(), "src/app/promos/[id]/TablaDeRonda.tsx"), "utf8");
-    expect(tabla).toContain("if (clave === \"price\") return textoDePrecio(fila.price);");
+    expect(tabla).toContain("if (clave === \"price\") return textoDePrecio(fila.precioDelGrupo ?? fila.price);");
   });
 });
 
