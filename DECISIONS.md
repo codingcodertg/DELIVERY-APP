@@ -49877,3 +49877,19 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pedido (el dueño), preguntado a propósito en D-816 si accounting entraba:** «sí también accounting».
 
 **Qué cambia:** `ROLES_SOLO_ESCRITORIO` = manager, sales, logistics, **accounting**. Los textos del interruptor en Security y del script lo dicen. Sello `security` 0.5.1; repo 1.673.0. Pruebas al día en `reglas.test.ts`.
+
+## D-818 · Security enseña a quién se le cerró la web (migración 232)
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/security-bloqueados-web` (laptop nueva). **Migración 232.**
+
+**Pedido (el dueño):** «enséñame también en security a los que se le bloqueó el app en la web». Y, sobre la pantalla: «al momento en el web app que salga cerrar sesión, salga otra vez al login, no quiero que bloquee el acceso si algún otro user quiere intentar» (ya era así: `/auth/signout` manda a `/login`, que es pública; se deja dicho).
+
+**Qué cambia:**
+- **Base (232):** `public.security_web_blocks` (quién, dispositivo, agente, adónde iba, cuándo), RLS solo admin, y `security_note_web_block(p_device, p_path, p_user_agent)` security definer: lo anota la propia sesión bloqueada, solo de sí misma, y a lo sumo una fila por minuto por persona (recargar la pantalla no la llena).
+- **La pantalla** `/web-blocked` lo anota al abrirse (`POST /api/security/blocked`); el middleware le dice adónde iba (`&de=<ruta>` en el rebote). Si falla, nada: la pantalla es la misma.
+- **Security:** sección «🚫 Bloqueados en la web (últimos 7 días)», una fila por persona: persona, rol, tienda, navegador y versión, adónde iba, última vez y cuántas veces. Se enseña con la web bloqueada o si hay filas.
+- Sello `security` 0.6.0; repo 1.674.0.
+
+**Pruebas:** `src/lib/security/reglas.test.ts` (la 232 y el cableado). `ensenanza-general` con la función en la lista de escritura.
+
+**No verificado:** la 232 en producción (la aplica el orquestador); en navegador.

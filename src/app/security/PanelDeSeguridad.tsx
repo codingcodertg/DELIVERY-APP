@@ -19,6 +19,13 @@ export interface UsoFila {
   dispositivo: { id: string; label: string | null; kind: string; status: string; user_agent: string | null } | null;
 }
 
+/** D-818: a quién se le cerró la web (232). */
+export interface BloqueoFila {
+  id: number; user_id: string; device_id: string | null; user_agent: string | null; path: string | null; at: string;
+  persona: string; rol: string; tienda: string | null;
+  dispositivo: { id: string; label: string | null; kind: string; status: string; user_agent: string | null } | null;
+}
+
 /** «Activo» = visto en la última hora: lo que el dueño llama «cuántos users están activos». */
 const ACTIVO_MS = 60 * 60 * 1000;
 
@@ -45,8 +52,8 @@ function Version({ ua }: { ua: string | null }) {
   return <span data-version={v.version ?? ""} data-actualizar="no" style={{ whiteSpace: "nowrap" }}>{v.app === "browser" ? v.texto : <>{v.texto} <span style={{ color: "var(--green)" }}>✓</span></>}</span>;
 }
 
-export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositivos, uso, esteDispositivo, error }: {
-  enforced: boolean; webBloqueada: boolean; cambiadaEn: string | null; dispositivos: DispositivoFila[]; uso: UsoFila[]; esteDispositivo: string | null; error: string | null;
+export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositivos, uso, bloqueados = [], esteDispositivo, error }: {
+  enforced: boolean; webBloqueada: boolean; cambiadaEn: string | null; dispositivos: DispositivoFila[]; uso: UsoFila[]; bloqueados?: BloqueoFila[]; esteDispositivo: string | null; error: string | null;
 }) {
   const { t, lang } = usePrefs();
   const [ocupado, setOcupado] = useState(false);
@@ -160,6 +167,33 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
           </ul>
         </div>
       )}
+
+      {/* D-818: a quién se le cerró la web, últimos 7 días; una fila por persona con la última vez y cuántas */}
+      {(webBloqueada || bloqueados.length > 0) && (() => {
+        const porPersona = new Map<string, { ultima: BloqueoFila; veces: number }>();
+        for (const b of bloqueados) { const p = porPersona.get(b.user_id); if (p) p.veces++; else porPersona.set(b.user_id, { ultima: b, veces: 1 }); }
+        return (
+          <>
+            <h2 style={{ margin: "18px 0 6px" }}>🚫 {t("Blocked on the web (last 7 days)", "Bloqueados en la web (últimos 7 días)")} <span className="cnt">{porPersona.size}</span></h2>
+            <div style={{ overflowX: "auto" }}>
+              <table className="tabla" data-tabla="bloqueados-web">
+                <thead><tr><th>{t("Person", "Persona")}</th><th>{t("Role", "Rol")}</th><th>{t("Store", "Tienda")}</th><th>{t("Browser", "Navegador")}</th><th>{t("Was going to", "Iba a")}</th><th>{t("Last time", "Última vez")}</th><th>{t("Times", "Veces")}</th></tr></thead>
+                <tbody>
+                  {porPersona.size === 0 && <tr><td colSpan={7} className="hint">{t("Nobody has been blocked yet.", "Todavía no se le cerró la web a nadie.")}</td></tr>}
+                  {[...porPersona.values()].map(({ ultima: b, veces }) => (
+                    <tr key={b.user_id} data-bloqueado={b.user_id}>
+                      <td><b>{b.persona}</b></td><td>{b.rol}</td><td>{b.tienda ?? "—"}</td>
+                      <td title={b.user_agent ?? undefined}>{b.dispositivo ? nombreDe(b.dispositivo) : nombrePorAgente(b.user_agent)} · <Version ua={b.user_agent} /></td>
+                      <td style={{ fontFamily: "monospace" }}>{b.path || "—"}</td>
+                      <td>{fecha(b.at)}</td><td>{veces}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        );
+      })()}
 
       {/* Dentro ahora: visto en la última hora */}
       <h2 style={{ margin: "18px 0 6px" }}>{t("Signed in now (seen in the last hour)", "Dentro ahora (vistos en la última hora)")} <span className="cnt">{activosPorPersona.size}</span></h2>
