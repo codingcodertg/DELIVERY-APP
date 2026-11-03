@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
 import { dispositivoDeLaPeticion } from "@/lib/security/reglas";
+import { lugarDeLaPeticion } from "@/lib/security/lugar";
 
 export const runtime = "nodejs";
 
@@ -14,7 +15,8 @@ export async function POST(req: Request) {
   const d = dispositivoDeLaPeticion({ cabecera: req.headers.get("x-rtg-device"), cookie: req.headers.get("cookie") });
   let path = "";
   try { const b = await req.json(); if (typeof b?.path === "string") path = b.path; } catch { /* sin ruta */ }
-  const { data, error } = await auth.supabase.rpc("security_note_web_block", { p_device: d?.id ?? null, p_path: path, p_user_agent: req.headers.get("user-agent") ?? "" });
+  const { ip, lugar } = lugarDeLaPeticion(req.headers);
+  const { data, error } = await auth.supabase.rpc("security_note_web_block", { p_device: d?.id ?? null, p_path: path, p_user_agent: req.headers.get("user-agent") ?? "", p_ip: ip, p_place: lugar });
   if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 200 });
   return NextResponse.json({ ok: data === true });
 }

@@ -6,6 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { nombrePorAgente, type EstadoDeDispositivo, type TipoDeDispositivo } from "@/lib/security/reglas";
 import { versionDeApp } from "@/lib/security/version-de-app";
+import { entradasDesdeSitioNuevo } from "@/lib/security/lugar";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import type { ValorDeCelda } from "@/lib/orden-y-filtro";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
@@ -18,18 +19,26 @@ export interface DispositivoFila {
   first_seen_at: string; last_seen_at: string; first_user_id: string | null; last_user_id: string | null;
   approved_at: string | null; revoked_at: string | null; notes: string | null;
   bound: boolean; requested_at: string | null; requested_by: string | null; request_note: string | null;
+  last_ip?: string | null; last_place?: string | null;
   primero: string; ultimo: string; personas: number; solicitante: string;
 }
 export interface UsoFila {
   device_id: string; user_id: string; first_seen_at: string; last_seen_at: string; seen_count: number;
+  last_ip?: string | null; last_place?: string | null;
   persona: string; rol: string; tienda: string | null;
   dispositivo: { id: string; label: string | null; kind: string; status: string; user_agent: string | null } | null;
 }
 /** D-818: a quién se le cerró la web (232). */
 export interface BloqueoFila {
   id: number; user_id: string; device_id: string | null; user_agent: string | null; path: string | null; at: string;
+  ip?: string | null; place?: string | null;
   persona: string; rol: string; tienda: string | null;
   dispositivo: { id: string; label: string | null; kind: string; status: string; user_agent: string | null } | null;
+}
+
+/** D-822: cada usuario creado, con su último dispositivo (o ninguno). */
+export interface UsuarioFila {
+  id: string; persona: string; usuario: string | null; rol: string; tienda: string | null; dispositivos: number; ultimo: UsoFila | null;
 }
 
 /** D-820: las tablas que, al cambiar, refrescan el panel. Están en la publicación de tiempo real desde la 233. */
@@ -90,6 +99,17 @@ function Version({ ua }: { ua: string | null }) {
   }
   return <span data-version={v.version ?? ""} data-actualizar="no" style={{ whiteSpace: "nowrap" }}>{v.app === "browser" ? v.texto : <>{v.texto} <span style={{ color: "var(--green)" }}>✓</span></>}</span>;
 }
+/** D-822: «Brownsville, TX, US · 192.0.2.1»; sin nada, «—». */
+const lugarTexto = (place: string | null | undefined, ip: string | null | undefined) => [place, ip].filter(Boolean).join(" · ") || "—";
+/** D-822: tiene la app nueva / vieja / navegador / teléfono / nunca entró, como texto para ordenar y filtrar. */
+function estadoDeApp(u: UsoFila | null, t: T): string {
+  if (!u?.dispositivo) return t("Never signed in", "Nunca entró");
+  const v = versionDeApp(u.dispositivo.user_agent);
+  if (v.app === "desktop") return v.actualizar ? t("⚠️ Old app", "⚠️ App vieja") : t("✓ New app", "✓ App nueva");
+  if (v.app === "android") return v.actualizar ? t("⚠️ Old Time Tracker", "⚠️ Time Tracker viejo") : t("✓ Time Tracker", "✓ Time Tracker");
+  return u.dispositivo.kind === "phone" ? t("📱 Phone browser", "📱 Navegador del teléfono") : t("🌐 Browser (no app)", "🌐 Navegador (sin app)");
+}
+
 /** El texto plano de la versión, para ordenar y filtrar por esa columna. */
 const textoDeVersion = (ua: string | null) => { const v = versionDeApp(ua); return v.actualizar ? `⚠️ ${v.texto}` : v.texto; };
 
@@ -180,8 +200,8 @@ function FilaDoble({ clave, estado, celdas, acciones, extra, ancho }: { clave: s
   );
 }
 
-export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositivos, uso, bloqueados = [], esteDispositivo, error }: {
-  enforced: boolean; webBloqueada: boolean; cambiadaEn: string | null; dispositivos: DispositivoFila[]; uso: UsoFila[]; bloqueados?: BloqueoFila[]; esteDispositivo: string | null; error: string | null;
+export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositivos, uso, bloqueados = [], usuarios = [], esteDispositivo, error }: {
+  enforced: boolean; webBloqueada: boolean; cambiadaEn: string | null; dispositivos: DispositivoFila[]; uso: UsoFila[]; bloqueados?: BloqueoFila[]; usuarios?: UsuarioFila[]; esteDispositivo: string | null; error: string | null;
 }) {
   const { t, lang } = usePrefs();
   const vivo = useEnVivo();
@@ -215,6 +235,7 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
     { key: "estado", en: "Status", es: "Estado", ancho: 110 },
     { key: "primera", en: "First seen", es: "Primera vez", ancho: 150, etiqueta: fechaOTexto },
     { key: "ultima", en: "Last seen", es: "Última vez", ancho: 150, etiqueta: fechaOTexto },
+    { key: "lugar", en: "From where", es: "Desde dónde", ancho: 200 },
     { key: "ultimo", en: "Last user", es: "Último usuario", ancho: 160 },
     { key: "personas", en: "People", es: "Personas", ancho: 90 },
     { key: "codigo", en: "Code", es: "Código", ancho: 100 },
@@ -227,13 +248,14 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
       case "estado": return estadoTexto(d.status);
       case "primera": return d.first_seen_at;
       case "ultima": return d.last_seen_at;
+      case "lugar": return lugarTexto(d.last_place, d.last_ip);
       case "ultimo": return d.ultimo;
       case "personas": return d.personas;
       case "codigo": return d.id.slice(0, 8).toUpperCase();
       default: return null;
     }
   }, [tipoTexto, estadoTexto]);
-  const textoDispositivo = useCallback((d: DispositivoFila) => [nombreDe(d), d.kind, d.status, d.primero, d.ultimo, d.id, d.user_agent ?? "", d.notes ?? ""].join(" "), []);
+  const textoDispositivo = useCallback((d: DispositivoFila) => [nombreDe(d), d.kind, d.status, d.primero, d.ultimo, d.id, d.user_agent ?? "", d.notes ?? "", d.last_place ?? "", d.last_ip ?? ""].join(" "), []);
   const celdaDispositivo = (clave: string, d: DispositivoFila): ReactNode => {
     const esEste = d.id === esteDispositivo;
     switch (clave) {
@@ -243,6 +265,7 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
       case "estado": { const e = ESTADO[d.status] ?? ESTADO.pending; return <span className="sema" style={{ background: e.color, color: "#fff" }}>{t(e.en, e.es)}</span>; }
       case "primera": return <>{fecha(d.first_seen_at)}<div className="hint" style={{ margin: 0 }}>{d.primero}</div></>;
       case "ultima": return fecha(d.last_seen_at);
+      case "lugar": return <span title={d.last_ip ?? undefined}>{d.last_place ?? d.last_ip ?? "—"}</span>;
       case "ultimo": return d.ultimo;
       case "personas": return d.personas;
       case "codigo": return <span style={{ fontFamily: "monospace" }}>{d.id.slice(0, 8).toUpperCase()}</span>;
@@ -263,6 +286,7 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
     { key: "dispositivo", en: "Device", es: "Dispositivo", ancho: 200 },
     { key: "version", en: "App / version", es: "App / versión", ancho: 170 },
     { key: "estado", en: "Status", es: "Estado", ancho: 110 },
+    { key: "lugar", en: "From where", es: "Desde dónde", ancho: 200 },
     { key: "ultima", en: "Last seen", es: "Última vez", ancho: 150, etiqueta: fechaOTexto },
   ], [fechaOTexto]);
   const valorDentro = useCallback((clave: string, u: UsoFila): ValorDeCelda => {
@@ -273,16 +297,18 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
       case "dispositivo": return u.dispositivo ? `${TIPO[u.dispositivo.kind]?.icono ?? ""} ${nombreDe(u.dispositivo)}` : null;
       case "version": return u.dispositivo ? textoDeVersion(u.dispositivo.user_agent) : null;
       case "estado": return u.dispositivo ? estadoTexto(u.dispositivo.status) : null;
+      case "lugar": return lugarTexto(u.last_place, u.last_ip);
       case "ultima": return u.last_seen_at;
       default: return null;
     }
   }, [estadoTexto]);
-  const textoDentro = useCallback((u: UsoFila) => [u.persona, u.rol, u.tienda ?? "", u.dispositivo ? nombreDe(u.dispositivo) : "", u.dispositivo?.user_agent ?? ""].join(" "), []);
+  const textoDentro = useCallback((u: UsoFila) => [u.persona, u.rol, u.tienda ?? "", u.dispositivo ? nombreDe(u.dispositivo) : "", u.dispositivo?.user_agent ?? "", u.last_place ?? "", u.last_ip ?? ""].join(" "), []);
   const celdaDentro = (clave: string, u: UsoFila): ReactNode => {
     switch (clave) {
       case "persona": return <b>{u.persona}</b>;
       case "version": return u.dispositivo ? <Version ua={u.dispositivo.user_agent} /> : "—";
       case "estado": return u.dispositivo ? <span style={{ color: ESTADO[u.dispositivo.status]?.color, fontWeight: 600 }}>{estadoTexto(u.dispositivo.status)}</span> : "—";
+      case "lugar": return <span title={u.last_ip ?? undefined}>{u.last_place ?? u.last_ip ?? "—"}</span>;
       case "ultima": return fecha(u.last_seen_at);
       default: return valorDentro(clave, u) ?? "—";
     }
@@ -300,6 +326,7 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
     { key: "rol", en: "Role", es: "Rol", ancho: 110 },
     { key: "tienda", en: "Store", es: "Tienda", ancho: 120 },
     { key: "navegador", en: "Browser", es: "Navegador", ancho: 220 },
+    { key: "lugar", en: "From where", es: "Desde dónde", ancho: 200 },
     { key: "iba", en: "Was going to", es: "Iba a", ancho: 160 },
     { key: "ultima", en: "Last time", es: "Última vez", ancho: 150, etiqueta: fechaOTexto },
     { key: "veces", en: "Times", es: "Veces", ancho: 80 },
@@ -310,22 +337,68 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
       case "rol": return b.rol;
       case "tienda": return b.tienda;
       case "navegador": return `${b.dispositivo ? nombreDe(b.dispositivo) : nombrePorAgente(b.user_agent)} · ${textoDeVersion(b.user_agent)}`;
+      case "lugar": return lugarTexto(b.place, b.ip);
       case "iba": return b.path || null;
       case "ultima": return b.at;
       case "veces": return b.veces;
       default: return null;
     }
   }, []);
-  const textoBloqueado = useCallback((b: BloqueoConVeces) => [b.persona, b.rol, b.tienda ?? "", b.user_agent ?? "", b.path ?? ""].join(" "), []);
+  const textoBloqueado = useCallback((b: BloqueoConVeces) => [b.persona, b.rol, b.tienda ?? "", b.user_agent ?? "", b.path ?? "", b.place ?? "", b.ip ?? ""].join(" "), []);
   const celdaBloqueado = (clave: string, b: BloqueoConVeces): ReactNode => {
     switch (clave) {
       case "persona": return <b>{b.persona}</b>;
       case "navegador": return <span title={b.user_agent ?? undefined}>{b.dispositivo ? nombreDe(b.dispositivo) : nombrePorAgente(b.user_agent)} · <Version ua={b.user_agent} /></span>;
+      case "lugar": return <span title={b.ip ?? undefined}>{b.place ?? b.ip ?? "—"}</span>;
       case "iba": return <span style={{ fontFamily: "monospace" }}>{b.path || "—"}</span>;
       case "ultima": return fecha(b.at);
       default: return valorBloqueado(clave, b) ?? "—";
     }
   };
+
+  // --- Usuarios (D-822) --------------------------------------------------------------------------------------------------
+  const colsUsuarios: Columna[] = useMemo(() => [
+    { key: "persona", en: "Person", es: "Persona", ancho: 180 },
+    { key: "usuario", en: "Signs in as", es: "Entra con", ancho: 150 },
+    { key: "rol", en: "Role", es: "Rol", ancho: 110 },
+    { key: "tienda", en: "Store", es: "Tienda", ancho: 120 },
+    { key: "app", en: "Has the new app?", es: "¿Tiene la app nueva?", ancho: 180 },
+    { key: "version", en: "App / version", es: "App / versión", ancho: 170 },
+    { key: "dispositivo", en: "Last device", es: "Último dispositivo", ancho: 200 },
+    { key: "lugar", en: "From where", es: "Desde dónde", ancho: 200 },
+    { key: "dispositivos", en: "Devices", es: "Dispositivos", ancho: 100 },
+    { key: "ultima", en: "Last seen", es: "Última vez", ancho: 150, etiqueta: fechaOTexto },
+  ], [fechaOTexto]);
+  const valorUsuario = useCallback((clave: string, p: UsuarioFila): ValorDeCelda => {
+    switch (clave) {
+      case "persona": return p.persona;
+      case "usuario": return p.usuario;
+      case "rol": return p.rol;
+      case "tienda": return p.tienda;
+      case "app": return estadoDeApp(p.ultimo, t);
+      case "version": return p.ultimo?.dispositivo ? textoDeVersion(p.ultimo.dispositivo.user_agent) : null;
+      case "dispositivo": return p.ultimo?.dispositivo ? `${TIPO[p.ultimo.dispositivo.kind]?.icono ?? ""} ${nombreDe(p.ultimo.dispositivo)}` : null;
+      case "lugar": return p.ultimo ? lugarTexto(p.ultimo.last_place, p.ultimo.last_ip) : null;
+      case "dispositivos": return p.dispositivos;
+      case "ultima": return p.ultimo?.last_seen_at ?? null;
+      default: return null;
+    }
+  }, [t]);
+  const textoUsuario = useCallback((p: UsuarioFila) => [p.persona, p.usuario ?? "", p.rol, p.tienda ?? "", p.ultimo?.dispositivo?.user_agent ?? "", p.ultimo?.last_place ?? ""].join(" "), []);
+  const celdaUsuario = (clave: string, p: UsuarioFila): ReactNode => {
+    switch (clave) {
+      case "persona": return <b>{p.persona}</b>;
+      case "app": { const s = estadoDeApp(p.ultimo, t); return <span style={{ fontWeight: 600, color: s.startsWith("✓") ? "var(--green)" : s.startsWith("⚠️") ? "var(--red)" : undefined }}>{s}</span>; }
+      case "version": return p.ultimo?.dispositivo ? <Version ua={p.ultimo.dispositivo.user_agent} /> : "—";
+      case "lugar": return p.ultimo ? <span title={p.ultimo.last_ip ?? undefined}>{p.ultimo.last_place ?? p.ultimo.last_ip ?? "—"}</span> : "—";
+      case "ultima": return p.ultimo ? fecha(p.ultimo.last_seen_at) : "—";
+      default: return valorUsuario(clave, p) ?? "—";
+    }
+  };
+  const conAppNueva = usuarios.filter((p) => estadoDeApp(p.ultimo, t).startsWith("✓")).length;
+
+  // --- Entradas desde un sitio nuevo (D-822) --------------------------------------------------------------------------------
+  const sitiosNuevos = useMemo(() => entradasDesdeSitioNuevo(uso, ahora), [uso, ahora]);
 
   return (
     <div className="container" style={{ padding: "16px 20px", maxWidth: 1400 }}>
@@ -423,6 +496,33 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
           </ul>
         </div>
       )}
+
+      {/* D-822: «avísame si ellos quieren ingresar desde otro lado» */}
+      {sitiosNuevos.length > 0 && (
+        <div className="card" data-bloque="sitios-nuevos" style={{ borderColor: "var(--red)", marginTop: 12 }}>
+          <b>🚨 {t(`${sitiosNuevos.length} sign-in(s) from a new device in the last 7 days`, `${sitiosNuevos.length} entrada(s) desde un dispositivo nuevo en los últimos 7 días`)}</b>
+          <span className="hint" style={{ marginLeft: 6 }}>
+            {t("People who already had a device and showed up on another one. Check the place: if it is not the store, revoke it.", "Gente que ya tenía un dispositivo y apareció en otro. Mira el lugar: si no es la tienda, revócalo.")}
+          </span>
+          <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+            {sitiosNuevos.slice(0, 20).map((u) => (
+              <li key={`${u.device_id}:${u.user_id}`} data-sitio-nuevo={u.user_id}>
+                <b>{u.persona}</b> ({u.rol}{u.tienda ? ` · ${u.tienda}` : ""}) · {u.dispositivo ? `${TIPO[u.dispositivo.kind]?.icono ?? ""} ${nombreDe(u.dispositivo)}` : "—"}
+                {u.dispositivo && <> · <Version ua={u.dispositivo.user_agent} /></>} · 📍 {u.last_place ?? u.last_ip ?? t("unknown place", "lugar desconocido")} · {fecha(u.first_seen_at)}
+                {u.dispositivo && u.dispositivo.status === "approved" && (
+                  <button className="btn btn-sm btn-danger" style={{ marginLeft: 8 }} disabled={ocupado} data-accion="revocar-sitio-nuevo" onClick={() => void corre(() => cambiaEstadoDeDispositivo(u.device_id, "revoked"))}>✕ {t("Revoke", "Revocar")}</button>
+                )}
+              </li>
+            ))}
+            {sitiosNuevos.length > 20 && <li className="hint">… {sitiosNuevos.length - 20} {t("more", "más")}</li>}
+          </ul>
+        </div>
+      )}
+
+      {/* D-822: todos los usuarios creados */}
+      <h2 style={{ margin: "18px 0 6px" }}>👥 {t("Users", "Usuarios")} <span className="cnt">{usuarios.length}</span> <span className="hint" style={{ fontWeight: 400, fontSize: 13 }}>· {t(`${conAppNueva} with the new app`, `${conAppNueva} con la app nueva`)}</span></h2>
+      <TablaDeSecurity id="usuarios" filas={usuarios} columnas={colsUsuarios} valorDe={valorUsuario} textoDe={textoUsuario} claveDe={(p) => p.id}
+        celda={celdaUsuario} vacio={t("No users.", "No hay usuarios.")} lang={lang} t={t} />
 
       {/* Dentro ahora: visto en la última hora */}
       <h2 style={{ margin: "18px 0 6px" }}>{t("Signed in now (seen in the last hour)", "Dentro ahora (vistos en la última hora)")} <span className="cnt">{dentro.length}</span></h2>
