@@ -49919,3 +49919,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `reglas.test.ts` (la 233 y la suscripción).
 
 **No verificado:** la 233 en producción (la aplica el orquestador); en navegador con dos sesiones.
+
+## D-821 · Security con la tabla de Deliveries: buscador, ordenar y filtrar por columna, anchos, mismo estilo
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/security-tabla` (laptop nueva). Sin migración.
+
+**Pedido (el dueño):** «usa el mismo estilo de tabla de deliveries con todos sus features para que esté bien organizado y estilizado».
+
+**Qué cambia:** `TablaDeSecurity` (en `PanelDeSeguridad.tsx`), una sola pieza para las tres listas (Dentro ahora, Bloqueados en la web, Dispositivos), hecha con lo mismo que Órdenes (D-275) y el Gestor de Rutas (D-360): `BuscadorConBorrar`, `useOrdenYFiltro` con `CabeceraConMenu` (el nombre y el ▾ abren el menú de ordenar y filtrar; las fechas se enseñan como fechas en el menú), `FiltrosPuestos` como chips, `MenuDeColumnaAbierto` en portal, `useColWidthMap` con tiradores que se recuerdan por tabla (`security-<id>-anchos`), y las clases `orders tbl-resize` / `tbl-scroll tbl-fit tbl-caja`. «N / total» junto al buscador. Los chips de estado de Dispositivos van en la misma línea que el buscador; las acciones (aprobar, revocar, editar, borrar) en la última columna; la edición se abre debajo de la fila con «Guardar» y «Cancelar». Los dos interruptores, lado a lado. Sello `security` 0.8.0; repo 1.677.0.
+
+**Pruebas:** `version-de-app.test.ts` (las tres tablas con todas las piezas); `reglas.test` al día.
+
+**No verificado:** en navegador.

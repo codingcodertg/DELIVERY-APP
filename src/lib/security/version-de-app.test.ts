@@ -29,3 +29,14 @@ describe("qué app y qué versión", () => {
     expect(panel).toContain(`"actualizar"] as const`);
   });
 });
+
+describe("D-821: las tres listas con la tabla de Deliveries", () => {
+  it("buscador, menú por columna, filtros puestos, anchos ajustables y las clases de Órdenes, en las tres", () => {
+    const panel = readFileSync("src/app/security/PanelDeSeguridad.tsx", "utf8");
+    for (const id of ["activos", "bloqueados-web", "dispositivos"]) expect(panel).toContain(`<TablaDeSecurity id="${id}"`);
+    for (const pieza of ["<BuscadorConBorrar", "<CabeceraConMenu", "<FiltrosPuestos", "<MenuDeColumnaAbierto", "useColWidthMap(", 'className="col-resizer"', 'className="orders tbl-resize"', 'className="tbl-scroll tbl-fit tbl-caja"']) {
+      expect(panel, pieza).toContain(pieza);
+    }
+    expect(panel).toContain("useOrdenYFiltro(buscadas, valorDe)");
+  });
+});
