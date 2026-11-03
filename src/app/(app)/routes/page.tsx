@@ -124,6 +124,7 @@ import { alRepartir, cargaDe, etiquetaDeCarga, hermanasDe, laOtraCarga, restoPro
 import { useRequisitosDelCamion } from "@/lib/usa-requisitos";
 import { useZonasDeChofer } from "@/lib/usa-zonas";
 import { esDeSuZona, zonaDeLaRecogida } from "@/lib/zonas";
+import { recogidaLibreDeLaOrden } from "@/lib/recogida-libre";
 import { fraseDeFaltan } from "@/lib/requisitos";
 import { CANDADOS_SIN_LEER, cargaCandados, dondeViveElCandado, estaBloqueada, pulsaCandado, quienBloqueo, type ClienteDeCandados, type EstadoDeCandados, type OpcionesDeCandados } from "@/lib/rutas-bloqueadas";
 import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, type AvisoDelGestor } from "@/lib/avisos-ocultos";
@@ -3649,9 +3650,16 @@ export default function RoutesPage() {
                         const motivoP: MotivoSinLlegada | null = !paradaP || paradaP.tipo !== "P" ? null : !coordsDeTienda(paradaP.tienda) ? "sin_tienda" : "sin_base";
                         const llegadaP = textoDeLaLlegada(etaP, f.indice != null ? medida : "sin_pedir", motivoP, lang === "es");
                         // La TIENDA donde se recoge, sin «Recoger en» (D-447): va en la columna Ciudad de recogida.
+                        // D-808: una recogida LIBRE (Otro, Proveedor; D-782) no es una tienda aunque su nombre tecleado lo parezca: la
+                        // columna dice la CIUDAD de su dirección, la misma que la fila D (`zonaDeLaRecogida`). FV594: la P decía
+                        // «RDZ Weslaco» (el nombre elegido) y su D «Harlingen» (la dirección, la buena).
+                        const ciudadLibre = o && recogidaLibreDeLaOrden(o, settings.order_type_rules)
+                          ? zonaDeLaRecogida(o, settings.stores ?? [], ciudadesQueSeConocen, settings.order_type_rules) : "";
                         const dondeRecoge = (
                           <>
-                            <b>{f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")}</b>
+                            {ciudadLibre
+                              ? <b title={f.lugar ?? undefined}>{ciudadLibre}</b>
+                              : <b>{f.lugar ?? t("(no store on the order)", "(la orden no dice la tienda)")}</b>}
                             {!movible && <span className="hint" style={{ margin: 0 }}> · {t("another load of the same order", "otra carga de la misma orden")}</span>}
                           </>
                         );

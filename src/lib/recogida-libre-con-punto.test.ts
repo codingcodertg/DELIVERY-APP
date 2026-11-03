@@ -123,3 +123,15 @@ describe("la ficha y las pantallas", () => {
     expect(sql).not.toContain("'PENDIENTE'");
   });
 });
+
+describe("D-808: la fila P del Gestor dice la ciudad de la recogida libre, no el nombre que parece tienda", () => {
+  const src = leer("src/app/(app)/routes/page.tsx").replace(/\s+/g, " ");
+  it("con recogida libre, la P pinta `zonaDeLaRecogida` (la misma que la D) y el nombre tecleado va solo de título", () => {
+    expect(src).toContain("const ciudadLibre = o && recogidaLibreDeLaOrden(o, settings.order_type_rules) ? zonaDeLaRecogida(o, settings.stores ?? [], ciudadesQueSeConocen, settings.order_type_rules) : \"\";");
+    expect(src).toContain("{ciudadLibre ? <b title={f.lugar ?? undefined}>{ciudadLibre}</b> : <b>{f.lugar ??");
+  });
+  it("FV594: la P y la D dicen lo mismo, Harlingen", () => {
+    expect(recogidaLibreDeLaOrden(FV594, REGLAS)).toBe(true);
+    expect(zonaDeLaRecogida(FV594, TIENDAS, ["Harlingen", "Weslaco"], REGLAS)).toBe("Harlingen");
+  });
+});
