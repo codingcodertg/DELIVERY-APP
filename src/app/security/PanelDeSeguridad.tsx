@@ -12,7 +12,8 @@ import type { ValorDeCelda } from "@/lib/orden-y-filtro";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
-import { borraDispositivo, cambiaEstadoDeDispositivo, cambiaPolitica, cambiaPoliticaWeb, renombraDispositivo } from "./actions";
+import { borraDispositivo, cambiaEstadoDeDispositivo, cambiaExcepcionesWeb, cambiaPolitica, cambiaPoliticaWeb, renombraDispositivo } from "./actions";
+import { ROLES_SOLO_ESCRITORIO } from "@/lib/security/reglas";
 
 export interface DispositivoFila {
   id: string; label: string | null; kind: string; status: string; user_agent: string | null;
@@ -202,8 +203,8 @@ function FilaDoble({ clave, estado, celdas, acciones, extra, ancho }: { clave: s
   );
 }
 
-export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositivos, uso, bloqueados = [], usuarios = [], esteDispositivo, error }: {
-  enforced: boolean; webBloqueada: boolean; cambiadaEn: string | null; dispositivos: DispositivoFila[]; uso: UsoFila[]; bloqueados?: BloqueoFila[]; usuarios?: UsuarioFila[]; esteDispositivo: string | null; error: string | null;
+export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiadaEn, dispositivos, uso, bloqueados = [], usuarios = [], esteDispositivo, error }: {
+  enforced: boolean; webBloqueada: boolean; exentos?: string[]; cambiadaEn: string | null; dispositivos: DispositivoFila[]; uso: UsoFila[]; bloqueados?: BloqueoFila[]; usuarios?: UsuarioFila[]; esteDispositivo: string | null; error: string | null;
 }) {
   const { t, lang } = usePrefs();
   const vivo = useEnVivo();
@@ -213,6 +214,10 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
   const [editando, setEditando] = useState<string | null>(null);
   const [confirmaInterruptor, setConfirmaInterruptor] = useState(false);
   const [confirmaWeb, setConfirmaWeb] = useState(false);
+  // D-826: a quién añadir a las excepciones de la web (solo roles bloqueados que aún no están).
+  const [nuevoExento, setNuevoExento] = useState("");
+  const exentosConNombre = exentos.map((id) => ({ id, persona: usuarios.find((u) => u.id === id)?.persona ?? id.slice(0, 8) }));
+  const candidatosAExento = usuarios.filter((u) => (ROLES_SOLO_ESCRITORIO as readonly string[]).includes(u.rol) && !exentos.includes(u.id));
   const fecha = useCallback((s: string | null) => s ? new Date(s).toLocaleString(lang === "es" ? "es-MX" : "en-US", { dateStyle: "short", timeStyle: "short" }) : "—", [lang]);
   const fechaOTexto = useCallback((v: ValorDeCelda) => typeof v === "string" && ES_FECHA.test(v) ? fecha(v) : String(v ?? "—"), [fecha]);
   const ahora = Date.now();
@@ -463,6 +468,24 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
               <button className="btn btn-sm btn-ghost" onClick={() => setConfirmaWeb(false)}>{t("No", "No")}</button>
             </span>
           )}
+          {/* D-826: las excepciones: personas que entran por la web aunque su rol esté bloqueado */}
+          <div data-bloque="excepciones-web" style={{ flexBasis: "100%", display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--line)", paddingTop: 8 }}>
+            <span className="hint" style={{ margin: 0 }}>{t("Exceptions (they can use the web):", "Excepciones (sí pueden usar la web):")}</span>
+            {exentosConNombre.length === 0 && <span className="hint" style={{ margin: 0 }}>—</span>}
+            {exentosConNombre.map((e) => (
+              <span key={e.id} className="chip on" data-exento={e.id}>
+                {e.persona}
+                <button type="button" className="btn btn-sm btn-ghost" style={{ padding: "0 4px", marginLeft: 4 }} disabled={ocupado} title={t("Remove", "Quitar")} data-accion="quitar-exento"
+                  onClick={() => void corre(() => cambiaExcepcionesWeb(exentos.filter((x) => x !== e.id)))}>✕</button>
+              </span>
+            ))}
+            <select value={nuevoExento} onChange={(e) => setNuevoExento(e.target.value)} data-campo="nuevo-exento" style={{ maxWidth: 240 }}>
+              <option value="">{t("Add person…", "Añadir persona…")}</option>
+              {candidatosAExento.map((u) => <option key={u.id} value={u.id}>{u.persona} · {u.rol}</option>)}
+            </select>
+            <button type="button" className="btn btn-sm" disabled={ocupado || !nuevoExento} data-accion="anadir-exento"
+              onClick={() => { void corre(() => cambiaExcepcionesWeb([...exentos, nuevoExento])); setNuevoExento(""); }}>+ {t("Add", "Añadir")}</button>
+          </div>
         </div>
       </div>
 

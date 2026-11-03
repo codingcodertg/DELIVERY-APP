@@ -16,7 +16,7 @@ export default async function SecurityPage() {
   
   const desde = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
   const [{ data: policy, error: e1 }, { data: devices, error: e2 }, { data: usos, error: e3 }, { data: bloqueos }, { data: todos }] = await Promise.all([
-    supabase.from("security_policy").select("enforced, changed_at, changed_by, web_blocked").eq("id", 1).maybeSingle(),
+    supabase.from("security_policy").select("enforced, changed_at, changed_by, web_blocked, web_exempt").eq("id", 1).maybeSingle(),
     supabase.from("security_devices").select("id, label, kind, status, user_agent, first_seen_at, last_seen_at, first_user_id, last_user_id, approved_at, revoked_at, notes, bound, requested_at, requested_by, request_note, last_ip, last_place").order("last_seen_at", { ascending: false }).limit(500),
     supabase.from("security_device_users").select("device_id, user_id, first_seen_at, last_seen_at, seen_count, last_ip, last_place").order("last_seen_at", { ascending: false }).limit(2000),
     // D-818 (232): a quién se le cerró la web, últimos 7 días. Sin la 232 viene error y la lista queda vacía: no rompe la pantalla.
@@ -66,5 +66,5 @@ export default async function SecurityPage() {
   const h = await headers();
   const esteDispositivo = dispositivoDeLaPeticion({ cabecera: h.get(CABECERA_DISPOSITIVO), cookie: h.get("cookie") })?.id ?? null;
 
-  return <PanelDeSeguridad enforced={!!policy?.enforced} webBloqueada={!!policy?.web_blocked} cambiadaEn={policy?.changed_at ?? null} dispositivos={filas} uso={uso} bloqueados={bloqueados} usuarios={usuarios} esteDispositivo={esteDispositivo} error={error} />;
+  return <PanelDeSeguridad enforced={!!policy?.enforced} webBloqueada={!!policy?.web_blocked} exentos={(policy?.web_exempt as string[] | null) ?? []} cambiadaEn={policy?.changed_at ?? null} dispositivos={filas} uso={uso} bloqueados={bloqueados} usuarios={usuarios} esteDispositivo={esteDispositivo} error={error} />;
 }

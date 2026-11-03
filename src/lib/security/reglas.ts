@@ -54,6 +54,8 @@ export interface PuertaDeDispositivo {
   visit_open: boolean;
   /** D-816 (231): la web bloqueada para `ROLES_SOLO_ESCRITORIO`. Opcional: la 229 sola no lo devuelve. */
   web_blocked?: boolean | null;
+  /** D-826 (235): quien llama está en la lista de excepciones de la web bloqueada. */
+  web_exempt?: boolean | null;
 }
 
 /** Adónde va quien no puede estar donde está. Pública en `route-guard`: mandar aquí a quien ya entró no es un bucle. */
@@ -126,6 +128,8 @@ export function decideWeb(path: string, puerta: PuertaDeDispositivo | null | und
   if (!puerta || !puerta.web_blocked) return { kind: "next" };
   if (fueraDeLasReglas(path)) return { kind: "next" };
   if (!ROLES_SOLO_ESCRITORIO.includes((puerta.role ?? "") as UserRole)) return { kind: "next" };
+  // D-826: la excepción por persona («Nick y Francis tampoco los bloquees»).
+  if (puerta.web_exempt) return { kind: "next" };
   const tipo = tipoPorAgente(userAgent);
   if (tipo === "desktop") return { kind: "next" };
   if (tipo === "phone") {
@@ -142,7 +146,7 @@ export function appsEnElTelefono(puerta: PuertaDeDispositivo | null | undefined,
   if (!puerta) return null;
   const role = (puerta.role ?? "") as UserRole;
   // D-816: con la web bloqueada, un teléfono de esos roles solo ve el Time Tracker, esté o no aprobado el dispositivo.
-  if (puerta.web_blocked && ROLES_SOLO_ESCRITORIO.includes(role) && tipoPorAgente(userAgent) === "phone") {
+  if (puerta.web_blocked && !puerta.web_exempt && ROLES_SOLO_ESCRITORIO.includes(role) && tipoPorAgente(userAgent) === "phone") {
     return puerta.visit_open ? ["timetracker", "estimator"] : ["timetracker"];
   }
   if (!puerta.enforced) return null;
