@@ -24,7 +24,7 @@ try {
   if (quiereWeb !== null) {
     await c.query("update public.security_policy set web_blocked = $1, changed_at = now(), changed_by = null where id = 1", [quiereWeb]);
     const d = await c.query("select web_blocked from public.security_policy where id = 1");
-    console.log(`Queda: web ${d.rows[0].web_blocked ? "BLOQUEADA para manager, sales y logistics" : "abierta"}`);
+    console.log(`Queda: web ${d.rows[0].web_blocked ? "BLOQUEADA para manager, sales, logistics y accounting" : "abierta"}`);
     process.exit(0);
   }
   if (quiere === null) {

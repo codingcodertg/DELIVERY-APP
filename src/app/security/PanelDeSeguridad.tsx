@@ -112,8 +112,8 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
         </span>
         <span style={{ flex: 1, minWidth: 260 }}>
           {webBloqueada
-            ? t("Managers, sales and logistics only get in from the RTG Hub desktop app (and from a phone, Time Tracker only). In a browser they see «The web app is no longer available».", "Managers, ventas y logística solo entran desde la app de escritorio RTG Hub (y desde el teléfono, solo Time Tracker). En un navegador ven «La web app ya no está disponible».")
-            : t("Managers, sales and logistics can still use the hub from any browser.", "Managers, ventas y logística todavía pueden usar el hub desde cualquier navegador.")}
+            ? t("Managers, sales, logistics and accounting only get in from the RTG Hub desktop app (and from a phone, Time Tracker only). In a browser they see «The web app is no longer available».", "Managers, ventas, logística y contabilidad solo entran desde la app de escritorio RTG Hub (y desde el teléfono, solo Time Tracker). En un navegador ven «La web app ya no está disponible».")
+            : t("Managers, sales, logistics and accounting can still use the hub from any browser.", "Managers, ventas, logística y contabilidad todavía pueden usar el hub desde cualquier navegador.")}
         </span>
         {!confirmaWeb ? (
           <button className={webBloqueada ? "btn btn-danger" : "btn btn-green"} disabled={ocupado || !!error} data-accion="web" onClick={() => setConfirmaWeb(true)}>
@@ -121,7 +121,7 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
           </button>
         ) : (
           <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <b>{webBloqueada ? t("Open the web app again for everyone?", "¿Abrir la web otra vez para todos?") : t("Block the web for managers, sales and logistics now?", "¿Bloquear la web para managers, ventas y logística ahora?")}</b>
+            <b>{webBloqueada ? t("Open the web app again for everyone?", "¿Abrir la web otra vez para todos?") : t("Block the web for managers, sales, logistics and accounting now?", "¿Bloquear la web para managers, ventas, logística y contabilidad ahora?")}</b>
             <button className="btn btn-sm btn-green" disabled={ocupado} data-accion="web-confirma" onClick={() => { void corre(() => cambiaPoliticaWeb(!webBloqueada)); setConfirmaWeb(false); }}>{t("Yes", "Sí")}</button>
             <button className="btn btn-sm btn-ghost" onClick={() => setConfirmaWeb(false)}>{t("No", "No")}</button>
           </span>
