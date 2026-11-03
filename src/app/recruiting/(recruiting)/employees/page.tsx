@@ -910,6 +910,12 @@ function Ficha({
           </span>
         ) : (
           <>
+            {/* D-809: con qué entra: su usuario o su correo, lo que teclea en la pantalla de acceso. */}
+            {hechos?.inicio && (
+              <span data-dato="inicio-de-sesion">
+                {cuenta.acceso === "usuario" ? t("Username", "Usuario") : t("Email", "Correo")}: <b>{hechos.inicio}</b>
+              </span>
+            )}
             <span className="badge" data-insignia="acceso"
               style={cuenta.deshabilitada
                 ? { background: "var(--tint-red-strong)", color: "var(--red)" }

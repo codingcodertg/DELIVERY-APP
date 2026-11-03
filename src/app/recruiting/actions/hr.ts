@@ -10,7 +10,7 @@ import {
   normalizaMotivoBaja, parcheAlta, parcheAltaCompleto, parcheBaja, parcheBajaCompleto, puedeDarDeBaja,
   puedeEditarGrupoDirectorio, sin159, telefonoDeFicha, tiene159,
   COLUMNAS_207, NUMERICAS_207, normaliza1Password, numeroDeFicha, tiene207,
-  correoDeFicha, nombreDeFicha,
+  correoDeFicha, nombreDeFicha, conQueEntra,
 } from "@/lib/recruiting/employee-file";
 import type { HechosDeCuenta } from "@/lib/recruiting/employee-file";
 import { parcheLiberar, type TipoDeActivo } from "@/lib/recruiting/activos";
@@ -593,6 +593,7 @@ export async function accountFactsFor(profileIds: string[]): Promise<
       acceso: email ? (isSyntheticEmail(email) ? "usuario" : "correo") : null,
       last_sign_in_at: u.last_sign_in_at ?? null,
       deshabilitada: !!hasta && new Date(hasta).getTime() > Date.now(),
+      inicio: conQueEntra(email),
     };
   }));
   return { ok: true, facts };
