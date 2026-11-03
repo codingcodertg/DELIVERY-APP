@@ -49757,6 +49757,8 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 - **Leer** (`filasDePromoDeGrupos`): si todos los grupos marcados dicen lo mismo, ese estado; si no, la pastilla dice «Mixto» (ámbar) con el detalle por grupo al pasar el ratón, y cuenta como pendiente. Nunca se enseña el estado de un grupo cualquiera.
 - Quien no es admin sigue decidiendo solo por el grupo de su tienda (la RLS no cambia).
 
+- **Lo decidido sale de la lista** (el dueño, con captura de dos «Rejected» entre las pendientes: «Once rejected, please remove from the list»): la tabla nace filtrada en «Pendiente» (`useOrdenYFiltro` acepta filtros iniciales); lo aprobado o rechazado queda bajo su chip.
+
 **Pruebas:** `src/lib/promos/varios-grupos.test.ts`. tsc y eslint limpios.
 
 **No verificado:** en navegador.

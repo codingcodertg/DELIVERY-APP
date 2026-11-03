@@ -55,3 +55,10 @@ describe("la pantalla", () => {
     expect(src).toContain("const gruposActivos: string[] = esAdmin ? gruposElegidos : grupo ? [grupo] : [];");
   });
 });
+
+describe("lo decidido sale de la lista (el dueño: «Once rejected, please remove from the list»)", () => {
+  it("la tabla nace filtrada en «Pendiente»", () => {
+    const src = leer("src/app/promos/[id]/TablaDeRonda.tsx");
+    expect(src).toContain('useOrdenYFiltro(filas, valorParaFiltrar, undefined, { estado: new Set(["pending"]) })');
+  });
+});

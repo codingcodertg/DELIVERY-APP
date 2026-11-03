@@ -18,10 +18,12 @@ import { filtraFilas, opcionesDeFiltro, ordenaFilas, type FiltrosPorColumna, typ
 export function useOrdenYFiltro<T>(
   filas: readonly T[], valorDe: (clave: string, fila: T) => ValorDeCelda,
   inicial?: { clave: string; direccion: "asc" | "desc" },
+  /** D-810: con qué filtros arranca (Promos nace en «Pendiente»: lo ya decidido sale de la lista). */
+  filtrosIniciales?: FiltrosPorColumna,
 ) {
   const [claveDeOrden, setClaveDeOrden] = useState<string | null>(inicial?.clave ?? null);
   const [direccion, setDireccion] = useState<"asc" | "desc" | null>(inicial?.direccion ?? null);
-  const [filtros, setFiltros] = useState<FiltrosPorColumna>({});
+  const [filtros, setFiltros] = useState<FiltrosPorColumna>(filtrosIniciales ?? {});
   const [abierta, setAbierta] = useState<string | null>(null);
   // El menú se pinta en un portal (como en Órdenes: un `.tbl-scroll` con barra horizontal recorta lo que
   // sobresale en vertical, y el menú quedaba escondido), así que hace falta dónde está la celda en pantalla.

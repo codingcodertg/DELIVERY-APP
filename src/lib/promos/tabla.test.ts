@@ -767,7 +767,8 @@ describe("el filtro de tienda: fuera lo que tiene menos de 10 en ELLA (D-385)", 
   it("la pantalla filtra con la función, y ANTES de contar: los chips hablan de la lista filtrada", () => {
     const tabla = sinComentarios(readFileSync(join(process.cwd(), "src/app/promos/[id]/TablaDeRonda.tsx"), "utf8"));
     expect(tabla).toContain("() => filtraPorTienda(todasLasFilas, tiendaFiltro, clavesDeTienda),");
-    expect(tabla).toContain("const orden = useOrdenYFiltro(filas, valorParaFiltrar);");
+    // D-810: nace filtrada en «Pendiente» (el filtro inicial), sobre las MISMAS filas ya filtradas por tienda.
+    expect(tabla).toContain('const orden = useOrdenYFiltro(filas, valorParaFiltrar, undefined, { estado: new Set(["pending"]) });');
     expect(tabla).toContain("const cuenta = cuentaPorEstado(filas);");
     // Y dice cuántos esconde y por qué, en vez de dejar una tabla más corta sin explicación.
     expect(tabla).toContain("ocultos: menos de ${MINIMO_EN_LA_TIENDA} en ${tiendaFiltro}");

@@ -254,7 +254,10 @@ export function TablaDeRonda({
     () => filtraPorTienda(todasLasFilas, tiendaFiltro, clavesDeTienda),
     [todasLasFilas, tiendaFiltro, clavesDeTienda],
   );
-  const orden = useOrdenYFiltro(filas, valorParaFiltrar);
+  // D-810 (el dueño, con captura de dos filas «Rejected» entre las pendientes): «Once rejected, please remove from the
+  // list». La tabla nace filtrada en «Pendiente»: lo que se aprueba o rechaza desaparece de la lista y queda bajo su
+  // chip. Los chips siguen mandando: pulsar «Rechazado» enseña las rechazadas, pulsar el encendido quita el filtro.
+  const orden = useOrdenYFiltro(filas, valorParaFiltrar, undefined, { estado: new Set(["pending"]) });
   const cuenta = cuentaPorEstado(filas);
 
   const columnasConMenu: ColumnaConMenu[] = columnasPintadas.map((c) => ({ key: c.key, en: c.en, es: c.es }));
