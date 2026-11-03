@@ -119,6 +119,10 @@ export interface FilaDePromo {
   rowNo: number | null;
   estado: EstadoDeDecision;
   nota: string | null;
+  /** D-810: decidiendo por VARIOS grupos, cómo está en cada uno. Solo existe con dos o más. */
+  porGrupo?: Record<string, EstadoDeDecision>;
+  /** D-810: los grupos no dicen lo mismo. Entonces `estado` es «pending» (no está decidido para todos). */
+  mezclado?: boolean;
 }
 
 export interface ColumnaDePromos {
@@ -440,6 +444,28 @@ export function filasDePromo(
   return productos.map((p) => filaDePromo(p, porCodigo.get(p.code)));
 }
 
+/**
+ * D-810: las filas decidiendo por VARIOS grupos a la vez (el admin, «que se pueda elegir múltiple y aprobar o negar por
+ * ese mismo grupo»). Con uno, lo de siempre. Con varios: si todos dicen lo mismo, ese estado; si no, «pending» con
+ * `mezclado` y el detalle por grupo en `porGrupo` — nunca el de un grupo cualquiera.
+ */
+export function filasDePromoDeGrupos(
+  productos: readonly ProductoDeCatalogo[],
+  decisiones: readonly DecisionDeGrupo[],
+  grupos: readonly string[],
+): FilaDePromo[] {
+  const unicos = [...new Set(grupos)];
+  if (unicos.length <= 1) return filasDePromo(productos, decisiones, unicos[0] ?? null);
+  const porGrupo = unicos.map((g) => filasDePromo(productos, decisiones, g));
+  return porGrupo[0].map((base, i) => {
+    const estados: Record<string, EstadoDeDecision> = {};
+    unicos.forEach((g, k) => { estados[g] = porGrupo[k][i].estado; });
+    const distintos = new Set(Object.values(estados));
+    const mezclado = distintos.size > 1;
+    return { ...base, estado: mezclado ? "pending" : base.estado, nota: mezclado ? null : base.nota, porGrupo: estados, mezclado };
+  });
+}
+
 /** Lo que una columna saca de una fila para ordenar y filtrar (`orden-y-filtro`, D-360). */
 export function valorDeColumna(fila: FilaDePromo, clave: string): ValorDeCelda {
   if (clave.startsWith("qoh_")) return fila.porTienda[clave.slice(4)] ?? null;
@@ -580,6 +606,16 @@ export function cambioEnBloque(opts: {
     out.push(fila);
   }
   return out;
+}
+
+/** D-810: la misma decisión escrita en CADA grupo elegido: una fila por (código, grupo). */
+export function cambioEnBloqueDeGrupos(opts: {
+  roundId: string;
+  grupos: readonly string[];
+  codigos: readonly string[];
+  estado: EstadoDeDecision;
+}): FilaDeDecision[] {
+  return [...new Set(opts.grupos)].flatMap((grupo) => cambioEnBloque({ roundId: opts.roundId, grupo, codigos: opts.codigos, estado: opts.estado }));
 }
 
 /** El tope de la nota, copiado de `promo_decisions_nota_tamano` (140). */
