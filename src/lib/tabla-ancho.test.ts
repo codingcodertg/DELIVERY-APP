@@ -78,6 +78,7 @@ describe("a quién le pasaba y quién se beneficia", () => {
     // **Seis** otra vez desde D-376: la pestaña «Programadas» del Gestor de Rutas se quitó, y su tabla con ella.
     // **Siete** con D-706: la tabla de Empleados de RR. HH., como la de Órdenes.
     // **Ocho** con D-730: la tabla de «Company assets» de RR. HH.
-    expect(marcos).toBe(8);
+    // **Nueve** con D-821: las listas de Security (una sola pieza, `TablaDeSecurity`, con su marco).
+    expect(marcos).toBe(9);
   });
 });

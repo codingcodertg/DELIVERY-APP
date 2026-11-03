@@ -39,6 +39,8 @@ export interface BloqueoFila {
 /** D-822: cada usuario creado, con su último dispositivo (o ninguno). */
 export interface UsuarioFila {
   id: string; persona: string; usuario: string | null; rol: string; tienda: string | null; dispositivos: number; ultimo: UsoFila | null;
+  /** D-824: el mejor equipado de sus dispositivos (la app nueva antes que un navegador visto después). */
+  mejor?: UsoFila | null;
 }
 
 /** D-820: las tablas que, al cambiar, refrescan el panel. Están en la publicación de tiempo real desde la 233. */
@@ -375,8 +377,8 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
       case "usuario": return p.usuario;
       case "rol": return p.rol;
       case "tienda": return p.tienda;
-      case "app": return estadoDeApp(p.ultimo, t);
-      case "version": return p.ultimo?.dispositivo ? textoDeVersion(p.ultimo.dispositivo.user_agent) : null;
+      case "app": return estadoDeApp(p.mejor ?? p.ultimo, t);
+      case "version": { const m = p.mejor ?? p.ultimo; return m?.dispositivo ? textoDeVersion(m.dispositivo.user_agent) : null; }
       case "dispositivo": return p.ultimo?.dispositivo ? `${TIPO[p.ultimo.dispositivo.kind]?.icono ?? ""} ${nombreDe(p.ultimo.dispositivo)}` : null;
       case "lugar": return p.ultimo ? lugarTexto(p.ultimo.last_place, p.ultimo.last_ip) : null;
       case "dispositivos": return p.dispositivos;
@@ -388,14 +390,14 @@ export function PanelDeSeguridad({ enforced, webBloqueada, cambiadaEn, dispositi
   const celdaUsuario = (clave: string, p: UsuarioFila): ReactNode => {
     switch (clave) {
       case "persona": return <b>{p.persona}</b>;
-      case "app": { const s = estadoDeApp(p.ultimo, t); return <span style={{ fontWeight: 600, color: s.startsWith("✓") ? "var(--green)" : s.startsWith("⚠️") ? "var(--red)" : undefined }}>{s}</span>; }
-      case "version": return p.ultimo?.dispositivo ? <Version ua={p.ultimo.dispositivo.user_agent} /> : "—";
+      case "app": { const s = estadoDeApp(p.mejor ?? p.ultimo, t); return <span style={{ fontWeight: 600, color: s.startsWith("✓") ? "var(--green)" : s.startsWith("⚠️") ? "var(--red)" : undefined }}>{s}</span>; }
+      case "version": { const m = p.mejor ?? p.ultimo; return m?.dispositivo ? <Version ua={m.dispositivo.user_agent} /> : "—"; }
       case "lugar": return p.ultimo ? <span title={p.ultimo.last_ip ?? undefined}>{p.ultimo.last_place ?? p.ultimo.last_ip ?? "—"}</span> : "—";
       case "ultima": return p.ultimo ? fecha(p.ultimo.last_seen_at) : "—";
       default: return valorUsuario(clave, p) ?? "—";
     }
   };
-  const conAppNueva = usuarios.filter((p) => estadoDeApp(p.ultimo, t).startsWith("✓")).length;
+  const conAppNueva = usuarios.filter((p) => estadoDeApp(p.mejor ?? p.ultimo, t).startsWith("✓")).length;
 
   // --- Entradas desde un sitio nuevo (D-822) --------------------------------------------------------------------------------
   const sitiosNuevos = useMemo(() => entradasDesdeSitioNuevo(uso, ahora), [uso, ahora]);

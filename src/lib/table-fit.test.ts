@@ -96,8 +96,9 @@ describe("quién lleva la clase", () => {
     // Sube a seis con D-706: la tabla de Empleados de RR. HH. se arrastra como la de Órdenes.
     const { conResize, conFit, fitSinResize } = contenedores();
     // Sube a siete con D-730: la tabla de «Company assets» de RR. HH.
-    expect(conResize).toBe(7);
-    expect(conFit).toBe(7);
+    // Sube a ocho con D-821: `TablaDeSecurity` (una pieza para las listas de Security).
+    expect(conResize).toBe(8);
+    expect(conFit).toBe(8);
     expect(fitSinResize, "un `tbl-fit` sobre una tabla que no es `tbl-resize`").toEqual([]);
   });
   it("los demás `.tbl-scroll` del repo se quedan como estaban", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { versionDeApp } from "./version-de-app";
+import { rangoDeApp, versionDeApp } from "./version-de-app";
 import { ESCRITORIO_MINIMO } from "@/lib/desktop-version";
 import { LATEST_APK_VERSION_CODE } from "@/lib/app-update";
 
@@ -38,5 +38,23 @@ describe("D-821: las tres listas con la tabla de Deliveries", () => {
       expect(panel, pieza).toContain(pieza);
     }
     expect(panel).toContain("useOrdenYFiltro(buscadas, valorDe)");
+  });
+});
+
+describe("D-824: el mejor dispositivo de la persona manda en «¿tiene la app?»", () => {
+  it("la app nueva > la app vieja > Time Tracker al día > viejo > navegador del teléfono > navegador", () => {
+    const ordenados = [
+      rangoDeApp(`${CHROME} RTGHub/${ESCRITORIO_MINIMO}`, "desktop"), rangoDeApp(`${CHROME} RTGHub/1.1.1`, "browser"),
+      rangoDeApp(`Android RDZDeliveries/${LATEST_APK_VERSION_CODE}`, "phone"), rangoDeApp(`Android RDZDeliveries/${LATEST_APK_VERSION_CODE - 1}`, "phone"),
+      rangoDeApp("Mozilla/5.0 (iPhone) Safari", "phone"), rangoDeApp(CHROME, "browser"),
+    ];
+    expect([...ordenados].sort((a, b) => b - a)).toEqual(ordenados);
+    expect(new Set(ordenados).size).toBe(6);
+  });
+  it("la página elige el mejor y el panel lo usa para «¿Tiene la app nueva?»; el último visto sigue siendo el último", () => {
+    expect(readFileSync("src/app/security/page.tsx", "utf8")).toContain("rangoDeApp(u.dispositivo?.user_agent, u.dispositivo?.kind) > rangoDeApp(m.dispositivo?.user_agent, m.dispositivo?.kind)");
+    const panel = readFileSync("src/app/security/PanelDeSeguridad.tsx", "utf8");
+    expect(panel).toContain("estadoDeApp(p.mejor ?? p.ultimo, t)");
+    expect(panel).toContain('case "ultima": return p.ultimo ? fecha(p.ultimo.last_seen_at) : "—";');
   });
 });
