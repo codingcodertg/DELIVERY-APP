@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
 import { dispositivoDeLaPeticion, tipoPorAgente } from "@/lib/security/reglas";
+import { lugarDeLaPeticion } from "@/lib/security/lugar";
 
 export const runtime = "nodejs";
 
@@ -20,7 +21,9 @@ export async function POST(req: Request) {
   if (!d) return NextResponse.json({ error: "No device id." }, { status: 400 });
   const ua = req.headers.get("user-agent") ?? "";
   const kind = d.ligado ? "desktop" : tipoPorAgente(ua) === "phone" ? "phone" : "browser";
-  const { error } = await auth.supabase.rpc("security_touch_device", { p_device: d.id, p_user_agent: ua, p_kind: kind, p_bound: d.ligado });
+  // D-822 (234): y desde dónde: la IP y la ciudad que Vercel deduce de ella.
+  const { ip, lugar } = lugarDeLaPeticion(req.headers);
+  const { error } = await auth.supabase.rpc("security_touch_device", { p_device: d.id, p_user_agent: ua, p_kind: kind, p_bound: d.ligado, p_ip: ip, p_place: lugar });
   // Sin la 229 aplicada la función no existe: no es un fallo de quien navega.
   if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 200 });
   return NextResponse.json({ ok: true });

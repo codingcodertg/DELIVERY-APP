@@ -49931,3 +49931,22 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `version-de-app.test.ts` (las tres tablas con todas las piezas); `reglas.test` al día.
 
 **No verificado:** en navegador.
+
+## D-822 · Security: todos los usuarios y si tienen la app nueva; desde dónde entra cada uno (IP y lugar); aviso de entrada desde un sitio nuevo (migración 234)
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/security-usuarios-lugar` (laptop nueva). **Migración 234.**
+
+**Pedido (el dueño):** «una lista de todos los users que están creados y ver si ya tienen el app nueva»; «en los devices donde se login consígueme el address para saber también, y avísame si ellos quieren ingresar desde otro lado». El porqué: «para evitar robo de información sensible de las app, office people solo pueden ver info de los clientes y eso solo desde el rtg desktop app… evitar que se logeen desde otros dispositivos fuera de los aprobados que están dentro de la tienda».
+
+**Qué cambia:**
+- **Base (234):** `last_ip` / `last_place` en `security_devices` y `security_device_users`; `ip` / `place` en `security_web_blocks`. `security_touch_device` y `security_note_web_block` reciben los dos (se borran y se crean de nuevo; las viejas desaparecen). «Lugar» = ciudad, región y país que Vercel deduce de la IP (`x-vercel-ip-*`, `lib/security/lugar.ts`): no es GPS, es la ciudad de la conexión, que para «¿tienda o casa?» basta.
+- **Usuarios** (sección nueva, tabla de D-821): TODOS los perfiles, tengan o no dispositivo: persona, con qué entra, rol, tienda, **¿Tiene la app nueva?** (✓ App nueva / ⚠️ App vieja / ✓ Time Tracker / 🌐 Navegador (sin app) / 📱 Navegador del teléfono / Nunca entró), versión, último dispositivo, desde dónde, cuántos dispositivos, última vez. Arriba, «N con la app nueva».
+- **Desde dónde** en Dentro ahora, Bloqueados en la web y Dispositivos (la ciudad; la IP en el título al pasar el ratón; las dos se buscan y filtran).
+- **🚨 Entradas desde un dispositivo nuevo (7 días):** `entradasDesdeSitioNuevo`: la pareja persona-dispositivo nació hace menos de 7 días Y la persona ya tenía otro antes (su primer dispositivo nunca es alarma). Persona, dispositivo, versión, 📍 lugar, cuándo, y «Revocar» si está aprobado. El panel es en tiempo real (D-820), así que aparece al momento.
+- Sello `security` 0.9.0; repo 1.678.0.
+
+**Lo que esto NO hace aún** (y se le dijo al dueño): impedir la entrada. La web bloqueada (D-816) mira el agente, que un navegador puede imitar; lo que de verdad cierra a los no aprobados es la **regla por dispositivo (D-811), que sigue apagada**. El orden: aprobar las computadoras de tienda en Dispositivos → encender.
+
+**Pruebas:** `src/lib/security/lugar.test.ts` (la IP y el lugar, los sitios nuevos, la 234 y el cableado).
+
+**No verificado:** la 234 en producción (la aplica el orquestador); en navegador.
