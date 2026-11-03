@@ -35,10 +35,10 @@ export const ROLES_SIN_LIMITE: readonly UserRole[] = ["admin", "warehouse", "dri
 
 /**
  * D-816: los roles que NO entran desde un navegador de computadora: solo desde la app RTG Hub (y desde el teléfono,
- * al Time Tracker). El dueño: «office manager y sales people»; «office» aquí es logistics. Accounting NO está: nadie
- * lo pidió, y bloquear a quien lleva los números desde fuera es una decisión del dueño, no del orquestador.
+ * al Time Tracker). El dueño: «office manager y sales people»; «office» aquí es logistics. Accounting entró después,
+ * preguntado a propósito (D-817): «sí también accounting».
  */
-export const ROLES_SOLO_ESCRITORIO: readonly UserRole[] = ["manager", "sales", "logistics"];
+export const ROLES_SOLO_ESCRITORIO: readonly UserRole[] = ["manager", "sales", "logistics", "accounting"];
 /** Adónde va quien entra por la web con un rol que ya no puede. Pública en `route-guard`. */
 export const RUTA_SOLO_ESCRITORIO = "/web-blocked";
 

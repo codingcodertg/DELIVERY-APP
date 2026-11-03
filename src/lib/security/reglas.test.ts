@@ -148,10 +148,10 @@ describe("D-816: la web bloqueada", () => {
     expect(decideWeb("/leads", null, CHROME)).toEqual({ kind: "next" });
     expect(decideWeb("/leads", puerta({ enforced: false }), CHROME)).toEqual({ kind: "next" });
   });
-  it("los roles: manager, sales y logistics; accounting, admin, warehouse y driver no", () => {
-    expect([...ROLES_SOLO_ESCRITORIO]).toEqual(["manager", "sales", "logistics"]);
+  it("los roles: manager, sales, logistics y accounting (D-817); admin, warehouse y driver no", () => {
+    expect([...ROLES_SOLO_ESCRITORIO]).toEqual(["manager", "sales", "logistics", "accounting"]);
     for (const role of ROLES_SOLO_ESCRITORIO) expect(decideWeb("/leads", web({ role }), CHROME)).toEqual({ kind: "redirect", to: RUTA_SOLO_ESCRITORIO, motivo: "solo_escritorio" });
-    for (const role of ["admin", "warehouse", "driver", "accounting"]) expect(decideWeb("/leads", web({ role }), CHROME)).toEqual({ kind: "next" });
+    for (const role of ["admin", "warehouse", "driver"]) expect(decideWeb("/leads", web({ role }), CHROME)).toEqual({ kind: "next" });
   });
   it("la app de escritorio pasa a todo, también la 1.1.1 (la pantalla de D-814 la obliga a actualizar); esté o no aprobado el dispositivo", () => {
     expect(decideWeb("/leads", web(), APP)).toEqual({ kind: "next" });

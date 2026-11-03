@@ -49869,3 +49869,11 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/security/reglas.test.ts` (apagada, roles, la app, el navegador, el teléfono, la 231 y el cableado). Al día `barra-igual`. tsc y eslint limpios.
 
 **No verificado:** en navegador con una cuenta de ventas; la 231 en producción (la aplica el orquestador con la regla de permisos del dueño).
+
+## D-817 · La web bloqueada también para accounting
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/security-web-accounting` (laptop nueva). Sin migración.
+
+**Pedido (el dueño), preguntado a propósito en D-816 si accounting entraba:** «sí también accounting».
+
+**Qué cambia:** `ROLES_SOLO_ESCRITORIO` = manager, sales, logistics, **accounting**. Los textos del interruptor en Security y del script lo dicen. Sello `security` 0.5.1; repo 1.673.0. Pruebas al día en `reglas.test.ts`.
