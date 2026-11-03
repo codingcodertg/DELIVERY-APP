@@ -49950,3 +49950,31 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/security/lugar.test.ts` (la IP y el lugar, los sitios nuevos, la 234 y el cableado).
 
 **No verificado:** la 234 en producción (la aplica el orquestador); en navegador.
+
+## D-823 · Una Intertienda nace con fecha: hoy antes de las 12 en Texas, mañana desde las 12
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/intertienda-fecha-manana` (laptop nueva). Sin migración.
+
+**Pedido (Roberto, admin, desde /routes):** «if anyone programs intertienda past 12pm then the default date should be tomorrow, not same date».
+
+**Qué había:** una orden nueva nacía sin fecha de entrega y el selector del navegador caía en hoy; una Intertienda tecleada por la tarde quedaba para hoy, con el camión ya fuera, y aparecía en «Sin asignar» del día.
+
+**Qué cambia:** `lib/fecha-de-intertienda.ts`, `fechaPorDefectoDeIntertienda(ahora)`: la hora de Texas (`BUSINESS_TZ`, no el reloj del aparato); antes de las 12, hoy; desde las 12, mañana. `aplicaTipo` la pone al entrar en un tipo tienda-a-tienda **solo si no hay fecha** (al abrir una Intertienda nueva —office y accounting nacen en Intertienda— y al cambiar el tipo a Intertienda). Una orden de cliente sigue naciendo sin fecha; una fecha ya puesta no se pisa; una orden abierta no se toca. `ContextoDelUsuario.ahora` existe para fijar la hora en las pruebas. Sello `deliveries` 1.518.0; repo 1.679.0.
+
+**Pruebas:** `src/lib/fecha-de-intertienda.test.ts` (las horas, la zona horaria, el formulario). `intertienda-recepcion.test` al día.
+
+**No verificado:** en navegador.
+
+## D-824 · Security · Usuarios: «¿Tiene la app nueva?» mira el mejor dispositivo de la persona, no el último visto
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/intertienda-fecha-manana` (laptop nueva), junto con D-823. Sin migración.
+
+**Pedido (el dueño, con captura de Usuarios):** «revisa Melecio y Roberto Contreras porque me aparece que siguen desde el browser pero abajo ya sale que actualizaron».
+
+**Qué pasaba:** la fila de cada usuario tomaba su ÚLTIMO dispositivo visto. Los dos tenían la app nueva y, después, un Chrome (abrir la web, aunque sea para ver la pantalla de bloqueo, también cuenta como «visto»): ganaba el Chrome y la columna decía «Navegador (sin app)».
+
+**Qué cambia:** `rangoDeApp` (`lib/security/version-de-app.ts`): app nueva > app vieja > Time Tracker al día > viejo > navegador del teléfono > navegador. La página elige el **mejor** dispositivo de cada persona para «¿Tiene la app nueva?» y «App / versión»; «Último dispositivo», «Desde dónde» y «Última vez» siguen siendo los del último visto. Sello `security` 0.9.1.
+
+**De paso:** las cuentas de `tabla-ancho.test` y `table-fit.test` suben una por `TablaDeSecurity` (D-821); `fecha-de-intertienda` usa el formateador cacheado como pide `formateador.test`.
+
+**Pruebas:** `version-de-app.test.ts` (el orden del rango y el cableado).

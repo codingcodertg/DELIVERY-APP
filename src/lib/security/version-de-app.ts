@@ -32,6 +32,19 @@ const NAVEGADORES: [RegExp, string][] = [
   [/\bVersion\/(\d+)[\d.]*.*\bSafari\//, "Safari"],
 ];
 
+/**
+ * D-824: qué tan «bien equipada» está una persona por un dispositivo suyo, para elegir el mejor entre varios. El dueño,
+ * con Melecio y Roberto Contreras: «me aparece que siguen desde el browser pero abajo ya sale que actualizaron». Tenían
+ * la app nueva Y un Chrome visto después (la pantalla de bloqueo también cuenta como «visto»); el último visto no es
+ * la respuesta a «¿ya tiene la app?». Mayor = mejor.
+ */
+export function rangoDeApp(userAgent: string | null | undefined, kind?: string | null): number {
+  const v = versionDeApp(userAgent);
+  if (v.app === "desktop") return v.actualizar ? 4 : 5;
+  if (v.app === "android") return v.actualizar ? 2 : 3;
+  return kind === "phone" ? 1 : 0;
+}
+
 export function versionDeApp(userAgent: string | null | undefined): VersionDeApp {
   const ua = userAgent ?? "";
   const escritorio = versionDeEscritorio(ua);

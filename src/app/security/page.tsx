@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { CABECERA_DISPOSITIVO, dispositivoDeLaPeticion } from "@/lib/security/reglas";
 import { PanelDeSeguridad, type BloqueoFila, type DispositivoFila, type UsoFila, type UsuarioFila } from "./PanelDeSeguridad";
+import { rangoDeApp } from "@/lib/security/version-de-app";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,9 @@ export default async function SecurityPage() {
   const usuarios: UsuarioFila[] = (todos ?? []).map((p) => {
     const suyos = uso.filter((u) => u.user_id === p.id).sort((a, b) => Date.parse(b.last_seen_at) - Date.parse(a.last_seen_at));
     const ultimo = suyos[0] ?? null;
-    return { id: p.id, persona: p.full_name, usuario: p.username ?? null, rol: p.role, tienda: p.store ?? null, dispositivos: suyos.length, ultimo };
+    // D-824: «¿tiene la app?» = su MEJOR dispositivo (la app nueva gana a un Chrome visto después); «último» sigue siendo el último.
+    const mejor = suyos.reduce<UsoFila | null>((m, u) => !m || rangoDeApp(u.dispositivo?.user_agent, u.dispositivo?.kind) > rangoDeApp(m.dispositivo?.user_agent, m.dispositivo?.kind) ? u : m, null);
+    return { id: p.id, persona: p.full_name, usuario: p.username ?? null, rol: p.role, tienda: p.store ?? null, dispositivos: suyos.length, ultimo, mejor };
   });
   const h = await headers();
   const esteDispositivo = dispositivoDeLaPeticion({ cabecera: h.get(CABECERA_DISPOSITIVO), cookie: h.get("cookie") })?.id ?? null;

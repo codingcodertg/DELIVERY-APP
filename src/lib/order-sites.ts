@@ -1,3 +1,4 @@
+import { fechaPorDefectoDeIntertienda } from "@/lib/fecha-de-intertienda";
 import type { Delivery, NamedLocation, Stage } from "./types";
 import { conflictosDeSitio, isStoreToStore, orderTypeRule, type MissingField, type OrderTypeRules } from "./required";
 import { normalizaLugar, origenEsDestino } from "./order-endpoints";
@@ -25,6 +26,8 @@ type Borrador = Partial<Delivery>;
 /** Lo que el modal sabe de quién crea la orden y de Ajustes. */
 export type ContextoDelUsuario = {
   rol: string;
+  /** D-823: «ahora», para la fecha con la que nace una Intertienda. Solo las pruebas lo fijan. */
+  ahora?: Date;
   miTienda: string | null | undefined;
   tipos: string[];
   tiendas: NamedLocation[];
@@ -84,6 +87,8 @@ export function aplicaTipo(p: Borrador, tipo: string, c: ContextoDelUsuario): Bo
     next.account = "";
     next.contact = "";
     next.delivery_phone = "";
+    // D-823: una Intertienda nace con fecha: hoy antes de las 12 en Texas, mañana desde las 12. Solo si no hay fecha.
+    if (!next.delivery_date) next.delivery_date = fechaPorDefectoDeIntertienda(c.ahora);
   }
   // Y al SALIR de un tipo tienda-a-tienda se suelta la cuenta, porque la escribió la máquina con el
   // nombre de una tienda (D-312): dejarla dentro de una orden de cliente diría que una tienda es el
