@@ -77,6 +77,6 @@ export default async function HomePage({
   const h = await headers();
   const dispositivo = dispositivoDeLaPeticion({ cabecera: h.get(CABECERA_DISPOSITIVO), cookie: h.get("cookie") })?.id ?? "";
   const { data: puerta } = await supabase.rpc("security_gate", { p_device: dispositivo }).single<PuertaDeDispositivo>();
-  const soloApps = appsEnElTelefono(puerta ?? null);
+  const soloApps = appsEnElTelefono(puerta ?? null, h.get("user-agent"));
   return <HomeSelector me={me} suplantando={suplantando} cuenta={cuenta} soloApps={soloApps} />;
 }

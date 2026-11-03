@@ -42,6 +42,7 @@ const NO_SON_APPS: Record<string, string> = {
   auth: "rutas de servidor (salir, callback)",
   login: "antes de entrar no hay hub al que volver",
   "change-password": "pantalla de cuenta fuera de las apps",
+  "web-blocked": "D-816: donde aterriza quien entró por la web con un rol que solo entra por la app de escritorio",
   "reset-password": "pantalla de cuenta fuera de las apps",
   "no-access": "quien llega aquí no tiene ninguna app",
   security: "herramienta del hub solo admin (D-811): lleva la barra sencilla, pero no es un módulo de module_access",

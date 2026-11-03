@@ -52,6 +52,8 @@ export function isPublicPath(path: string): boolean {
     || path === "/no-access"
     // D-811: donde aterriza quien SÍ entró pero desde un dispositivo no autorizado; al login sería un bucle.
     || path === "/device-blocked"
+    // D-816: donde aterriza quien entró por la web con un rol que ya solo entra por la app de escritorio.
+    || path === "/web-blocked"
     || path === "/track" || path.startsWith("/track/")
     || path === "/unsubscribe" || path.startsWith("/unsubscribe/")
     || path.startsWith("/_next")
