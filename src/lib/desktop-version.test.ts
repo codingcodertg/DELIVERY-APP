@@ -46,6 +46,10 @@ describe("a quién se le enseña el aviso", () => {
     expect(aviso).toContain('target="_blank"');
     expect(aviso).toContain("?d=${encodeURIComponent(id)}");
     expect(aviso).toContain("if (!escritorioDesactualizado(ua)) return;");
+    // D-814: tapa toda la pantalla, no se cierra, y el único botón es «Actualizar ahora».
+    expect(aviso).toContain(`position: "fixed", inset: 0`);
+    expect(aviso).not.toContain("setEstado(null)");
+    expect(aviso.match(/<button/g) ?? []).toHaveLength(0);
     expect(leer("src/app/api/desktop-update/[file]/route.ts")).toContain('req.headers.get(CABECERA_DISPOSITIVO) ?? new URL(req.url).searchParams.get("d")');
   });
 });
