@@ -12,8 +12,8 @@ import { BarraSuperior } from "@/components/BarraSuperior";
 import { ANCHO_MINIMO, anchosDeUnRol, CLAVE_DE_COLUMNAS_DE_PROMOS, guardaColumnas, hayQueSembrar, leeColumnas, type AnchosPorRol, type ClienteDePrefs, type ColumnasPorRol } from "@/lib/user-prefs";
 import type { UserRole } from "@/lib/types";
 import {
-  cambioEnBloque, clavesDeTiendaDe, columnasDePromos, columnasDePromosPorDefecto, columnasVisiblesDePromos,
-  COLOR_DE_ESTADO, COLUMNA_PRIMERA, COLUMNAS_FIJAS, cuentaPorEstado, filasDePromo, filtraPorTienda, textoDeDemanda, textoDePrecio,
+  cambioEnBloqueDeGrupos, clavesDeTiendaDe, columnasDePromos, columnasDePromosPorDefecto, columnasVisiblesDePromos,
+  COLOR_DE_ESTADO, COLUMNA_PRIMERA, COLUMNAS_FIJAS, cuentaPorEstado, filasDePromoDeGrupos, filtraPorTienda, textoDeDemanda, textoDePrecio,
   MINIMO_EN_LA_TIENDA, motivoParaNoDecidir, mueveColumnaDePromos, ordenDeColumnasDePromos, puedeDecidir,
   valorParaFiltrar, type DecisionDeGrupo, type EstadoDeDecision, type ProductoDeCatalogo,
 } from "@/lib/promos/tabla";
@@ -62,8 +62,17 @@ export function TablaDeRonda({
 
   // El admin no tiene tienda propia, así que elige de qué grupo mira y decide. Los demás miran el
   // suyo y no hay selector: la RLS solo les deja escribir ahí.
-  const [grupoElegido, setGrupoElegido] = useState<string | null>(grupo ?? gruposDelLibro[0] ?? null);
-  const grupoActivo = esAdmin ? grupoElegido : grupo;
+  // D-810: el admin puede elegir VARIOS grupos y decidir por todos a la vez. Siempre queda al menos uno.
+  const [gruposElegidos, setGruposElegidos] = useState<string[]>(() => {
+    const primero = grupo ?? gruposDelLibro[0] ?? null;
+    return primero ? [primero] : [];
+  });
+  const gruposActivos: string[] = esAdmin ? gruposElegidos : grupo ? [grupo] : [];
+  const grupoActivo = gruposActivos[0] ?? null;
+  const alternaGrupo = (g: string) => {
+    setGruposElegidos((gs) => (gs.includes(g) ? (gs.length > 1 ? gs.filter((x) => x !== g) : gs) : [...gs, g]));
+    setSeleccion(new Set());
+  };
 
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [ocupado, setOcupado] = useState(false);
@@ -238,12 +247,17 @@ export function TablaDeRonda({
   // hablan de la lista ya filtrada — un chip que dijera «Pendiente · 60» sobre una tabla de 22
   // mentiría justo en el número que se mira para saber cuánto falta.
   const [tiendaFiltro, setTiendaFiltro] = useState<string>("");
-  const todasLasFilas = useMemo(() => filasDePromo(productos, decisiones, grupoActivo), [productos, decisiones, grupoActivo]);
+  const clavesDeGrupos = gruposActivos.join("|");
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `clavesDeGrupos` es `gruposActivos` en texto: cambia solo si cambian
+  const todasLasFilas = useMemo(() => filasDePromoDeGrupos(productos, decisiones, gruposActivos), [productos, decisiones, clavesDeGrupos]);
   const filas = useMemo(
     () => filtraPorTienda(todasLasFilas, tiendaFiltro, clavesDeTienda),
     [todasLasFilas, tiendaFiltro, clavesDeTienda],
   );
-  const orden = useOrdenYFiltro(filas, valorParaFiltrar);
+  // D-810 (el dueño, con captura de dos filas «Rejected» entre las pendientes): «Once rejected, please remove from the
+  // list». La tabla nace filtrada en «Pendiente»: lo que se aprueba o rechaza desaparece de la lista y queda bajo su
+  // chip. Los chips siguen mandando: pulsar «Rechazado» enseña las rechazadas, pulsar el encendido quita el filtro.
+  const orden = useOrdenYFiltro(filas, valorParaFiltrar, undefined, { estado: new Set(["pending"]) });
   const cuenta = cuentaPorEstado(filas);
 
   const columnasConMenu: ColumnaConMenu[] = columnasPintadas.map((c) => ({ key: c.key, en: c.en, es: c.es }));
@@ -254,9 +268,9 @@ export function TablaDeRonda({
 
   // Sin nota (D-387): la tabla ya no la enseña ni la edita, así que ninguna escritura la toca.
   const guarda = async (codigos: string[], estado: EstadoDeDecision) => {
-    if (!sePuede || !grupoActivo || codigos.length === 0) return;
+    if (!sePuede || gruposActivos.length === 0 || codigos.length === 0) return;
     setOcupado(true); setError(null);
-    const filasAEscribir = cambioEnBloque({ roundId: ronda.id, grupo: grupoActivo, codigos, estado });
+    const filasAEscribir = cambioEnBloqueDeGrupos({ roundId: ronda.id, grupos: gruposActivos, codigos, estado });
     const { data, error: err } = await supabase
       .from("promo_decisions")
       .upsert(filasAEscribir, { onConflict: "round_id,code,group_code" })
@@ -301,6 +315,11 @@ export function TablaDeRonda({
     // texto plano era la diferencia que más se veía al poner las dos tablas al lado, y el dueño
     // pidió «the style of the order table in deliveries». El color sale de la paleta de las etapas,
     // no de aquí.
+    // D-810: con varios grupos que no dicen lo mismo, «Mixto» y el detalle por grupo al pasar el ratón.
+    if (fila.mezclado && fila.porGrupo) {
+      const detalle = Object.entries(fila.porGrupo).map(([g, e]) => `${g}: ${t(ETIQUETA_ESTADO[e].en, ETIQUETA_ESTADO[e].es)}`).join(" · ");
+      return <span className="sema" data-estado-mezclado title={detalle} style={{ background: "var(--amber)", color: "#fff" }}>{t("Mixed", "Mixto")}</span>;
+    }
     return (
       <span className="sema" title={texto} style={{ background: COLOR_DE_ESTADO[fila.estado], color: "#fff" }}>{texto}</span>
     );
@@ -340,11 +359,30 @@ export function TablaDeRonda({
           captura: «quita ese mensaje». Una tienda sin grupo sigue sin poder aprobar; se ve en Datos → Tiendas. */}
 
       {esAdmin && gruposDelLibro.length > 0 && (
-        <div className="field" style={{ maxWidth: 260, marginTop: 10 }}>
+        <div className="field" style={{ maxWidth: 260, marginTop: 10, position: "relative" }}>
           <label>{t("Deciding for", "Decidiendo por")}</label>
-          <select value={grupoActivo ?? ""} onChange={(e) => { setGrupoElegido(e.target.value || null); setSeleccion(new Set()); }}>
-            {gruposDelLibro.map((g) => <option key={g} value={g}>{g}</option>)}
-          </select>
+          {/* D-810: varios a la vez. Lo que se aprueba o rechaza se escribe en CADA grupo marcado. */}
+          <details className="menu-de-grupos" data-grupos-elegidos={gruposActivos.join(",")}>
+            <summary style={{ cursor: "pointer", padding: "8px 12px", border: "1px solid var(--line)", borderRadius: 8, background: "var(--card)", listStyle: "none" }}>
+              {gruposActivos.join(", ") || "—"} ▾
+            </summary>
+            <div style={{ position: "absolute", zIndex: 20, background: "var(--card)", border: "1px solid var(--line)", borderRadius: 8, padding: 8, marginTop: 4, minWidth: 180, boxShadow: "0 4px 14px rgba(0,0,0,.12)" }}>
+              <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setGruposElegidos([...gruposDelLibro]); setSeleccion(new Set()); }}>{t("All", "Todos")}</button>
+              </div>
+              {gruposDelLibro.map((g) => (
+                <label key={g} style={{ display: "flex", gap: 8, alignItems: "center", padding: "3px 2px", cursor: "pointer", textTransform: "none", fontWeight: 400 }}>
+                  <input type="checkbox" data-grupo={g} checked={gruposActivos.includes(g)} onChange={() => alternaGrupo(g)} style={{ width: 15, height: 15 }} />
+                  {g}
+                </label>
+              ))}
+            </div>
+          </details>
+          {gruposActivos.length > 1 && (
+            <span className="hint" style={{ marginTop: 4 }}>
+              {t(`Each decision is saved in the ${gruposActivos.length} groups.`, `Cada decisión se guarda en los ${gruposActivos.length} grupos.`)}
+            </span>
+          )}
         </div>
       )}
 

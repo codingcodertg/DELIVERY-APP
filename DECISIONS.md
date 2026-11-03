@@ -49742,3 +49742,23 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/recruiting/usuario-en-cuenta-del-hub.test.ts`. tsc limpio.
 
 **No verificado:** en navegador.
+
+## D-810 · Promos: el admin decide por VARIOS grupos a la vez
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/promos-varios-grupos` (laptop nueva). Sin migración.
+
+**Pedido (el dueño, con la captura de «Deciding for: WES» en Promo Noviembre):** «que se pueda elegir múltiple y aprobar o negar por ese mismo grupo así».
+
+**Qué había:** «Decidiendo por» era un `select` de UN grupo; ✓/✕ (por fila y en bloque) escribían en ese grupo.
+
+**Qué cambia:**
+- **Selector:** un desplegable con una casilla por grupo del libro y «Todos». Siempre queda al menos uno. Con dos o más, aviso: «Cada decisión se guarda en los N grupos».
+- **Escribir** (`cambioEnBloqueDeGrupos`, `lib/promos/tabla.ts`): la misma decisión en CADA grupo marcado, una fila por (código, grupo), en un solo upsert; el control de «se guardaron X de Y» sigue igual.
+- **Leer** (`filasDePromoDeGrupos`): si todos los grupos marcados dicen lo mismo, ese estado; si no, la pastilla dice «Mixto» (ámbar) con el detalle por grupo al pasar el ratón, y cuenta como pendiente. Nunca se enseña el estado de un grupo cualquiera.
+- Quien no es admin sigue decidiendo solo por el grupo de su tienda (la RLS no cambia).
+
+- **Lo decidido sale de la lista** (el dueño, con captura de dos «Rejected» entre las pendientes: «Once rejected, please remove from the list»): la tabla nace filtrada en «Pendiente» (`useOrdenYFiltro` acepta filtros iniciales); lo aprobado o rechazado queda bajo su chip.
+
+**Pruebas:** `src/lib/promos/varios-grupos.test.ts`. tsc y eslint limpios.
+
+**No verificado:** en navegador.
