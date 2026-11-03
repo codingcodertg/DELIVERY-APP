@@ -242,7 +242,8 @@ export async function updateSession(
     const porDispositivo = decideAcceso(path, puertaDeDispositivo);
     const acceso = porDispositivo.kind === "redirect" ? porDispositivo : decideWeb(path, puertaDeDispositivo, request.headers.get("user-agent"));
     if (acceso.kind === "redirect") {
-      const salto = NextResponse.redirect(new URL(`${acceso.to}?motivo=${acceso.motivo}`, request.nextUrl.origin));
+      // D-818: `de` = adónde iba, para que el registro del bloqueo lo diga.
+      const salto = NextResponse.redirect(new URL(`${acceso.to}?motivo=${acceso.motivo}&de=${encodeURIComponent(path)}`, request.nextUrl.origin));
       for (const c of response.cookies.getAll()) salto.cookies.set(c);
       if (barrer) salto.cookies.delete(COOKIE_RETORNO);
       return salto;

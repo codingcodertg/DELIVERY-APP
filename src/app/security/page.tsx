@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { CABECERA_DISPOSITIVO, dispositivoDeLaPeticion } from "@/lib/security/reglas";
-import { PanelDeSeguridad, type DispositivoFila, type UsoFila } from "./PanelDeSeguridad";
+import { PanelDeSeguridad, type BloqueoFila, type DispositivoFila, type UsoFila } from "./PanelDeSeguridad";
 
 export const dynamic = "force-dynamic";
 
@@ -12,15 +12,18 @@ export const dynamic = "force-dynamic";
 export default async function SecurityPage() {
   const supabase = await createClient();
   
-  const [{ data: policy, error: e1 }, { data: devices, error: e2 }, { data: usos, error: e3 }] = await Promise.all([
+  const desde = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+  const [{ data: policy, error: e1 }, { data: devices, error: e2 }, { data: usos, error: e3 }, { data: bloqueos }] = await Promise.all([
     supabase.from("security_policy").select("enforced, changed_at, changed_by, web_blocked").eq("id", 1).maybeSingle(),
     supabase.from("security_devices").select("id, label, kind, status, user_agent, first_seen_at, last_seen_at, first_user_id, last_user_id, approved_at, revoked_at, notes, bound, requested_at, requested_by, request_note").order("last_seen_at", { ascending: false }).limit(500),
     supabase.from("security_device_users").select("device_id, user_id, first_seen_at, last_seen_at, seen_count").order("last_seen_at", { ascending: false }).limit(2000),
+    // D-818 (232): a quién se le cerró la web, últimos 7 días. Sin la 232 viene error y la lista queda vacía: no rompe la pantalla.
+    supabase.from("security_web_blocks").select("id, user_id, device_id, user_agent, path, at").gte("at", desde).order("at", { ascending: false }).limit(500),
   ]);
   const error = e1?.message ?? e2?.message ?? e3?.message ?? null;
 
   // Los nombres y roles de todos los que aparecen, en una consulta.
-  const ids = [...new Set([...(devices ?? []).flatMap((d) => [d.first_user_id, d.last_user_id]), ...(usos ?? []).map((u) => u.user_id)].filter((x): x is string => !!x))];
+  const ids = [...new Set([...(devices ?? []).flatMap((d) => [d.first_user_id, d.last_user_id]), ...(usos ?? []).map((u) => u.user_id), ...(bloqueos ?? []).map((b) => b.user_id)].filter((x): x is string => !!x))];
   const { data: perfiles } = ids.length ? await supabase.from("profiles").select("id, full_name, role, store").in("id", ids) : { data: [] as { id: string; full_name: string; role: string; store: string | null }[] };
   const porId = new Map((perfiles ?? []).map((p) => [p.id, p]));
   const nombre = (id: string | null) => (id && porId.get(id)?.full_name) || "—";
@@ -39,8 +42,15 @@ export default async function SecurityPage() {
     tienda: porId.get(u.user_id)?.store ?? null,
     dispositivo: (devices ?? []).find((d) => d.id === u.device_id) ?? null,
   }));
+  const bloqueados: BloqueoFila[] = (bloqueos ?? []).map((b) => ({
+    ...b,
+    persona: nombre(b.user_id),
+    rol: porId.get(b.user_id)?.role ?? "",
+    tienda: porId.get(b.user_id)?.store ?? null,
+    dispositivo: (devices ?? []).find((d) => d.id === b.device_id) ?? null,
+  }));
   const h = await headers();
   const esteDispositivo = dispositivoDeLaPeticion({ cabecera: h.get(CABECERA_DISPOSITIVO), cookie: h.get("cookie") })?.id ?? null;
 
-  return <PanelDeSeguridad enforced={!!policy?.enforced} webBloqueada={!!policy?.web_blocked} cambiadaEn={policy?.changed_at ?? null} dispositivos={filas} uso={uso} esteDispositivo={esteDispositivo} error={error} />;
+  return <PanelDeSeguridad enforced={!!policy?.enforced} webBloqueada={!!policy?.web_blocked} cambiadaEn={policy?.changed_at ?? null} dispositivos={filas} uso={uso} bloqueados={bloqueados} esteDispositivo={esteDispositivo} error={error} />;
 }

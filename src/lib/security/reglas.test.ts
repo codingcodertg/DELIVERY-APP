@@ -190,3 +190,19 @@ describe("D-816: la web bloqueada", () => {
     expect(pantalla).toContain("/api/desktop-update/");
   });
 });
+
+describe("D-818: a quién se le cerró la web", () => {
+  it("la 232: la tabla solo admin, la función solo de la propia sesión y como mucho una fila por minuto; la pantalla lo anota; Security lo lee", () => {
+    const sql = leer("supabase/migrations/232_security_bloqueos_web.sql");
+    expect(sql).toContain("create policy web_blocks_admin on public.security_web_blocks for all to authenticated");
+    expect(sql).toContain("if auth.uid() is null then return false; end if;");
+    expect(sql).toContain("interval '1 minute'");
+    expect(sql).toContain("grant  execute on function public.security_note_web_block(text, text, text) to authenticated");
+    expect(sql).not.toMatch(/(^|\s)(begin|commit);/);
+    expect(leer("src/app/web-blocked/BloqueadoEnWeb.tsx")).toContain(`fetch("/api/security/blocked"`);
+    expect(leer("src/app/api/security/blocked/route.ts")).toContain(`rpc("security_note_web_block"`);
+    expect(leer("src/lib/supabase/middleware.ts")).toContain("&de=$" + "{encodeURIComponent(path)}");
+    expect(leer("src/app/security/page.tsx")).toContain(`from("security_web_blocks")`);
+    expect(leer("src/app/security/PanelDeSeguridad.tsx")).toContain(`data-tabla="bloqueados-web"`);
+  });
+});

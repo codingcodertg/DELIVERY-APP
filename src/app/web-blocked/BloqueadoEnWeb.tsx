@@ -1,10 +1,15 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { INSTALADOR_ESCRITORIO } from "@/lib/desktop-version";
 
-export function BloqueadoEnWeb() {
+export function BloqueadoEnWeb({ de = "" }: { de?: string }) {
   const { t } = usePrefs();
+  // D-818: se anota el bloqueo (quién, desde dónde, adónde iba) para que el admin lo vea en Security. Si falla, nada.
+  useEffect(() => {
+    void fetch("/api/security/blocked", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: de }), keepalive: true }).catch(() => undefined);
+  }, [de]);
   return (
     <main style={{ minHeight: "100dvh", display: "grid", placeItems: "center", padding: 24 }}>
       <div className="card" style={{ maxWidth: 480, textAlign: "center" }} data-pantalla="web-bloqueada">
