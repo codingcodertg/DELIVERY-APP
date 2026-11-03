@@ -49978,3 +49978,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **De paso:** las cuentas de `tabla-ancho.test` y `table-fit.test` suben una por `TablaDeSecurity` (D-821); `fecha-de-intertienda` usa el formateador cacheado como pide `formateador.test`.
 
 **Pruebas:** `version-de-app.test.ts` (el orden del rango y el cableado).
+
+## D-825 · Security · Usuarios: solo los activos
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/security-usuarios-activos` (laptop nueva). Sin migración.
+
+**Pedido (el dueño):** «los usuarios que están en security coinciden con los usuarios aún live, ¿verdad? porque si no, están dados de baja».
+
+**Qué pasaba:** la lista de Usuarios (D-822) sacaba TODOS los perfiles, con los dados de baja dentro.
+
+**Qué cambia:** la página lee `left_at` y pasa los perfiles por `soloActivos` (la regla de baja de D-707: nula = activo; una fecha futura sigue activa hasta ese día, en hora de Brownsville). Un dado de baja ya no aparece en Usuarios; sus dispositivos y su rastro en «Dentro ahora» o «Bloqueados» siguen saliendo si entró. Sello `security` 0.9.2; repo 1.680.0.
+
+**Pruebas:** `version-de-app.test.ts`.

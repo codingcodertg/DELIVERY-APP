@@ -58,3 +58,11 @@ describe("D-824: el mejor dispositivo de la persona manda en «¿tiene la app?»
     expect(panel).toContain('case "ultima": return p.ultimo ? fecha(p.ultimo.last_seen_at) : "—";');
   });
 });
+
+describe("D-825: Usuarios son solo los activos", () => {
+  it("la página lee left_at y pasa los perfiles por soloActivos (la regla de baja de D-707)", () => {
+    const pagina = readFileSync("src/app/security/page.tsx", "utf8");
+    expect(pagina).toContain('select("id, full_name, role, store, username, left_at")');
+    expect(pagina).toContain("soloActivos(todos ?? []).map((p) => {");
+  });
+});
