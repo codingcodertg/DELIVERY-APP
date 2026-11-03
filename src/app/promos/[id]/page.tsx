@@ -71,7 +71,7 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
 
   const { data: decisiones } = await supabase
     .from("promo_decisions")
-    .select("round_id, code, group_code, status, note")
+    .select("round_id, code, group_code, status, note, price")
     .eq("round_id", id)
     .limit(20000);
 

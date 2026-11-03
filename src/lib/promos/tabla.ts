@@ -99,6 +99,8 @@ export interface DecisionDeGrupo {
   group_code: string;
   status: EstadoDeDecision;
   note: string | null;
+  /** D-812 (230): el precio de ESTE grupo para el producto; nulo = el del libro. */
+  price?: number | null;
 }
 
 export interface FilaDePromo {
@@ -119,6 +121,8 @@ export interface FilaDePromo {
   rowNo: number | null;
   estado: EstadoDeDecision;
   nota: string | null;
+  /** D-812: el precio del grupo que se mira (o el común a todos los marcados); nulo = se enseña `price`, el del libro. */
+  precioDelGrupo: number | null;
   /** D-810: decidiendo por VARIOS grupos, cómo está en cada uno. Solo existe con dos o más. */
   porGrupo?: Record<string, EstadoDeDecision>;
   /** D-810: los grupos no dicen lo mismo. Entonces `estado` es «pending» (no está decidido para todos). */
@@ -426,6 +430,7 @@ export function filaDePromo(p: ProductoDeCatalogo, decision: DecisionDeGrupo | u
     rowNo: p.row_no,
     estado: decision?.status ?? "pending",
     nota: decision?.note ?? null,
+    precioDelGrupo: decision?.price == null ? null : redondeaDinero(Number(decision.price)),
   };
 }
 
@@ -462,7 +467,10 @@ export function filasDePromoDeGrupos(
     unicos.forEach((g, k) => { estados[g] = porGrupo[k][i].estado; });
     const distintos = new Set(Object.values(estados));
     const mezclado = distintos.size > 1;
-    return { ...base, estado: mezclado ? "pending" : base.estado, nota: mezclado ? null : base.nota, porGrupo: estados, mezclado };
+    // D-812: el precio de grupo solo se enseña si todos los marcados tienen el mismo; si no, el del libro.
+    const precios = new Set(porGrupo.map((g) => g[i].precioDelGrupo));
+    const precioDelGrupo = precios.size === 1 ? porGrupo[0][i].precioDelGrupo : null;
+    return { ...base, estado: mezclado ? "pending" : base.estado, nota: mezclado ? null : base.nota, precioDelGrupo, porGrupo: estados, mezclado };
   });
 }
 
@@ -620,3 +628,63 @@ export function cambioEnBloqueDeGrupos(opts: {
 
 /** El tope de la nota, copiado de `promo_decisions_nota_tamano` (140). */
 export const LARGO_DE_NOTA = 500;
+
+// ---------------------------------------------------------------------------
+// D-812: precio por grupo, cargado por tamaño
+// ---------------------------------------------------------------------------
+
+/** El tamaño de un producto: la columna `size` y, si viene vacía, el primer «NNxNN» de la descripción. En mayúsculas, sin espacios. */
+export function tamanoDelProducto(p: Pick<ProductoDeCatalogo, "size" | "description">): string | null {
+  const s = (p.size ?? "").toUpperCase().replace(/\s+/g, "");
+  if (/^\d{1,3}X\d{1,3}$/.test(s)) return s;
+  const m = /\b(\d{1,3})\s*X\s*(\d{1,3})\b/i.exec(p.description ?? "");
+  return m ? `${m[1]}X${m[2]}`.toUpperCase() : null;
+}
+
+/**
+ * Lo que el dueño pega de su hoja: una línea por tamaño («10X64 $ 2.09», «8x48 1.59», «24X24, 1.19»). Devuelve el
+ * mapa tamaño → precio y las líneas que no se entendieron, para enseñarlas en vez de callarlas.
+ */
+export function parsePreciosPorTamano(texto: string): { precios: Record<string, number>; malas: string[] } {
+  const precios: Record<string, number> = {};
+  const malas: string[] = [];
+  for (const cruda of texto.split(/\r?\n/)) {
+    const linea = cruda.trim();
+    if (!linea) continue;
+    const m = /^(\d{1,3})\s*[xX]\s*(\d{1,3})[\s,;:\t]*\$?\s*(\d+(?:[.,]\d{1,2})?)\s*$/.exec(linea);
+    if (!m) { malas.push(linea); continue; }
+    precios[`${m[1]}X${m[2]}`] = redondeaDinero(Number(m[3].replace(",", ".")));
+  }
+  return { precios, malas };
+}
+
+/** Qué productos de la ronda reciben qué precio, por su tamaño. Un producto sin tamaño conocido no entra. */
+export function preciosPorTamano(
+  productos: readonly Pick<ProductoDeCatalogo, "code" | "size" | "description">[],
+  precios: Record<string, number>,
+): { code: string; tamano: string; price: number }[] {
+  const out: { code: string; tamano: string; price: number }[] = [];
+  const vistos = new Set<string>();
+  for (const p of productos) {
+    if (vistos.has(p.code)) continue;
+    vistos.add(p.code);
+    const t = tamanoDelProducto(p);
+    if (t && t in precios) out.push({ code: p.code, tamano: t, price: precios[t] });
+  }
+  return out;
+}
+
+export interface FilaDePrecio { round_id: string; code: string; group_code: string; price: number | null }
+
+/** Las filas a escribir: SOLO el precio (y la clave). Al chocar, PostgREST actualiza solo las columnas que viajan, así que el
+ *  estado y la nota de una decisión ya tomada no se tocan; una fila nueva nace «pending» por el default de la 140. */
+export function filasDePrecio(opts: { roundId: string; grupo: string; precios: readonly { code: string; price: number | null }[] }): FilaDePrecio[] {
+  const vistos = new Set<string>();
+  const out: FilaDePrecio[] = [];
+  for (const p of opts.precios) {
+    if (vistos.has(p.code)) continue;
+    vistos.add(p.code);
+    out.push({ round_id: opts.roundId, code: p.code, group_code: opts.grupo, price: p.price });
+  }
+  return out;
+}
