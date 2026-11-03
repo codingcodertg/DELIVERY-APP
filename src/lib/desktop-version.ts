@@ -14,9 +14,13 @@ export const ESCRITORIO_MINIMO = "1.2.1";
 /** El fichero que se baja. El nombre lleva la versión para que el navegador no reuse una descarga vieja. */
 export const INSTALADOR_ESCRITORIO = `RTG-Hub-Setup-${ESCRITORIO_MINIMO}.exe`;
 
-/** La versión que dice el agente, o null si no es la app de escritorio. */
+/**
+ * La versión que dice el agente, o null si no es la app de escritorio. Vale también `RDZHub/x.y.z`, el nombre de la
+ * app ORIGINAL (1.0.0, de antes del cambio a RTG): D-827, el dueño en la PC de Roberto Contreras: «la app de él está
+ * funcionando con normalidad, ¡¿qué pasó?! no se ha actualizado». Esa app pasaba por navegador y no veía el aviso.
+ */
 export function versionDeEscritorio(userAgent: string | null | undefined): string | null {
-  const m = /\bRTGHub\/(\d+\.\d+\.\d+)\b/.exec(userAgent ?? "");
+  const m = /\b(?:RTGHub|RDZHub)\/(\d+\.\d+\.\d+)\b/.exec(userAgent ?? "");
   return m ? m[1] : null;
 }
 

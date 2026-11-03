@@ -50006,3 +50006,15 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `reglas.test.ts` (la regla con exento, la 235 y el cableado).
 
 **No verificado:** la 235 en producción (la aplica el orquestador); quiénes son «Nick» y «Francis» exactamente (se añaden por nombre con el script, que avisa si hay más de una coincidencia).
+
+## D-827 · Escritorio · La RDZ Hub 1.0.0 original también tiene que actualizarse
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/escritorio-rdzhub` (laptop nueva). Sin migración.
+
+**Pedido (el dueño, en la PC de Roberto Contreras):** «la app de él está funcionando con normalidad, ¡¿qué pasó?! no se ha actualizado».
+
+**Qué pasaba:** esa PC corre la app ORIGINAL, `RDZHub/1.0.0` (de antes del cambio de nombre a RTG, D-225). `tipoPorAgente` ya la aceptaba como escritorio (por eso la web bloqueada la dejaba pasar), pero `versionDeEscritorio` solo leía `RTGHub/x.y.z`: para el aviso de D-813/D-814 y para Security (D-815) era «un navegador», sin versión y sin nada que actualizar. En Security salía como Chrome 130 y la app seguía funcionando sin pedir nada.
+
+**Qué cambia:** `versionDeEscritorio` lee también `RDZHub/x.y.z`. Con eso 1.0.0 < 1.2.1: la pantalla de «Actualizar ahora» tapa esa app, Security la enseña como «RTG Hub 1.0.0 · ⚠️ por actualizar», y `rangoDeApp` la cuenta como escritorio atrasado. Sello `security` 0.10.1; repo 1.682.0.
+
+**Pruebas:** `desktop-version.test.ts`, `version-de-app.test.ts`.
