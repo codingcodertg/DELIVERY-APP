@@ -264,7 +264,8 @@ describe("el acceso es el del hub de antes", () => {
 
   it("«Otras apps»: RTG PROMOS, y las herramientas del admin real que el mapa no dibuja", () => {
     expect(otrasApps(al("sales", ["deliveries", "promos"])).map((o) => o.key)).toEqual(["promos"]);
-    expect(otrasApps(al("admin", ["deliveries"])).map((o) => o.key)).toEqual(["my-help", "vista-movil", "switch-user"]);
+    // D-811: Security es del admin real, y el mapa no la dibuja.
+    expect(otrasApps(al("admin", ["deliveries"])).map((o) => o.key)).toEqual(["security", "my-help", "vista-movil", "switch-user"]);
     expect(otrasApps(al("admin", ["deliveries"], true)).map((o) => o.key)).toEqual(["my-help"]);
     expect(otrasApps(al("sales", ["deliveries"]))).toEqual([]);
   });

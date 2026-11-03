@@ -21,18 +21,19 @@ const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace
 const NUEVAS = ["vista-movil", "switch-user"] as const;
 // «my-help» llegó después (ayuda-chat): «Mis solicitudes», para todos. No es de esta decisión, pero la
 // lista se afirma entera para que ninguna herramienta aparezca o desaparezca sin que una prueba lo diga.
-// D-811: Security va la primera, solo admin.
-const VIEJAS = ["security", "users", "directory", "tutorials", "my-help", "help-requests"] as const;
+const VIEJAS = ["users", "directory", "tutorials", "my-help", "help-requests"] as const;
+// D-811: Security va la primera y es del admin REAL, como las nuevas.
+const SEGURIDAD = ["security"] as const;
 
 describe("las dos herramientas nuevas del hub", () => {
   it("existen, con su ruta, y son las únicas nuevas", () => {
-    expect(HUB_TOOLS.map((t) => t.key)).toEqual([...VIEJAS, ...NUEVAS]);
+    expect(HUB_TOOLS.map((t) => t.key)).toEqual([...SEGURIDAD, ...VIEJAS, ...NUEVAS]);
     expect(HUB_TOOLS.find((t) => t.key === "vista-movil")?.href).toBe("/home/vista-movil");
     expect(HUB_TOOLS.find((t) => t.key === "switch-user")?.href).toBe("/home/switch-user");
   });
 
   it("las ve el admin real, rol por rol", () => {
-    for (const key of NUEVAS) {
+    for (const key of [...NUEVAS, ...SEGURIDAD]) {
       const tool = HUB_TOOLS.find((t) => t.key === key)!;
       for (const role of ROLE_ORDER) {
         expect([key, role, tool.visible({ role })]).toEqual([key, role, role === "admin"]);

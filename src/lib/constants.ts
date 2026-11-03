@@ -616,7 +616,8 @@ export const HUB_TOOLS: HubTool[] = [
     label_es: "Seguridad",
     desc_en: "Registered devices, who signs in from where, and the device rule",
     desc_es: "Dispositivos registrados, quién entra desde dónde, y la regla por dispositivo",
-    visible: (me) => me.role === "admin",
+    // Del admin REAL: dentro de «entrar como» no se enseña, como las demás herramientas de seguridad.
+    visible: (me) => soloAdminReal(me),
   },
   {
     key: "users",

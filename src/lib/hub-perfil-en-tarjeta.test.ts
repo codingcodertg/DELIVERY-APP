@@ -25,7 +25,7 @@ describe("el hub", () => {
     const p = sinComentarios(leer("src/app/home/page.tsx"));
     expect(p).toContain('.select("id, full_name, role, module_access, username")');
     expect(p).toContain("const cuenta = identidadVisible({ email: user.email, username: me.username });");
-    expect(p).toContain("<HomeSelector me={me} suplantando={suplantando} cuenta={cuenta} />");
+    expect(p).toContain("<HomeSelector me={me} suplantando={suplantando} cuenta={cuenta} soloApps={soloApps} />");
   });
 });
 
