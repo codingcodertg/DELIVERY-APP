@@ -82,6 +82,16 @@ export interface HechosDeCuenta {
   last_sign_in_at: string | null;
   /** Deshabilitada en Auth (baneada). Es lo que hace «desactivado» en vez de borrado. */
   deshabilitada: boolean;
+  /** D-809: lo que la persona TECLEA para entrar: su usuario (sin el dominio sintético) o su correo. */
+  inicio?: string | null;
+}
+
+/** D-809: lo que se teclea para entrar al hub. Con usuario, el correo sintético es maquinaria: se enseña solo el
+ *  usuario (`maximo@users.rdztilegroup.net` → `maximo`); con correo, el correo. */
+export function conQueEntra(emailDeAcceso: string | null | undefined): string | null {
+  const e = (emailDeAcceso ?? "").trim().toLowerCase();
+  if (!e) return null;
+  return isSyntheticEmail(e) ? e.slice(0, e.lastIndexOf("@")) : e;
 }
 
 /** Con qué entra alguien, mirando su dirección de acceso. Un correo derivado de un

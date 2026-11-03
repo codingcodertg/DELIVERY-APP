@@ -49728,3 +49728,17 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Pruebas:** `src/lib/recogida-libre-con-punto.test.ts` (la P usa la misma regla que la D; FV594 → Harlingen en las dos). tsc limpio.
 
 **No verificado:** en navegador. El dato de FV594 sigue diciendo «RDZ Weslaco» como nombre de recogida (lo ve también el chofer en «Mi ruta» junto a la dirección de Harlingen): se corrige editando la orden; no se tocó producción.
+
+## D-809 · RR. HH.: «Cuenta del hub» dice con qué entra la persona, su usuario o su correo
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/usuario-en-cuenta-del-hub` (laptop nueva). Sin migración.
+
+**Pedido (el dueño):** «en hr en cuenta del hub si el usuario tiene user quiero que ahí aparezca».
+
+**Qué había:** la sección «Cuenta del hub» del expediente decía si la cuenta puede entrar (o tiene el acceso quitado), pero no con qué se entra. `accountFactsFor` ya leía el correo de Auth para saber si era usuario (correo sintético `…@users.rdztilegroup.net`) o correo, y lo tiraba.
+
+**Qué cambia:** `conQueEntra` (`employee-file.ts`) da lo que la persona teclea: el usuario sin el dominio sintético, o su correo en minúsculas. `accountFactsFor` lo manda como `inicio` (solo admin y gerente de RR. HH., como el resto de los hechos), y la ficha lo pinta delante de «puede entrar»: «Usuario: maximo» o «Correo: ana@…».
+
+**Pruebas:** `src/lib/recruiting/usuario-en-cuenta-del-hub.test.ts`. tsc limpio.
+
+**No verificado:** en navegador.
