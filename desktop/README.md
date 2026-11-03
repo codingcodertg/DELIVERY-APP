@@ -86,6 +86,19 @@ para que nadie crea que es un virus y lo borre.
 
 ## Actualizar la app (no el sitio)
 
-El sitio se actualiza solo. Esta cáscara no tiene auto-actualización: si algún día cambia,
-hay que repartir un instalador nuevo. Se dejó fuera a propósito — auto-actualizar exige un
-servidor de publicación y firma, y es bastante trabajo para una ventana que apenas cambia.
+El sitio se actualiza solo. **Desde la 1.2.0 (D-811) la cáscara también**: `electron-updater`
+pregunta a `https://rtg-hub.vercel.app/api/desktop-update/latest.yml` a los 15 s de abrir y cada
+4 horas; si hay una versión más nueva la baja en silencio y la instala al cerrar (o ya, si la
+persona acepta «Reiniciar ahora»). La 1.1.1 y anteriores no lo llevan: esas se reinstalan una vez
+a mano, y a partir de ahí ya no.
+
+Publicar una versión nueva:
+
+```
+cd desktop && npm install && npm run dist && cd ..
+node --env-file=.env.local scripts/publica-desktop.mjs
+```
+
+Sube `latest.yml` y el instalador al almacén privado de Blob (los mismos de `/api/download/hub`),
+con nombre estable. Siempre los dos juntos: el sha512 del yml tiene que ser el del exe que se
+sirve, o la app descarta la descarga.

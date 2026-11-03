@@ -72,3 +72,30 @@ describe("la cabecera", () => {
     expect(leer("src/app/security/PanelDeSeguridad.tsx")).toContain('data-bloque="solicitudes"');
   });
 });
+
+describe("se actualiza sola (el dueño: «que se instale como un update normal»)", () => {
+  it("la app lleva electron-updater apuntando a nuestro sitio, baja sola e instala al cerrar o al aceptar", () => {
+    const pkg = JSON.parse(leer("desktop/package.json"));
+    expect(pkg.dependencies["electron-updater"]).toBeTruthy();
+    expect(pkg.build.publish).toEqual([{ provider: "generic", url: "https://rtg-hub.vercel.app/api/desktop-update" }]);
+    const main = leer("desktop/main.js");
+    expect(main).toContain("autoUpdater.autoDownload = true;");
+    expect(main).toContain("autoUpdater.autoInstallOnAppQuit = true;");
+    expect(main).toContain("autoUpdater.requestHeaders = { [CABECERA]: idInstalacion };");
+    expect(main).toContain("autoUpdater.quitAndInstall()");
+  });
+  it("la ruta sirve latest.yml y el instalador desde Blob, con la cabecera de la app o con sesión; nada más", () => {
+    const ruta = leer("src/app/api/desktop-update/[file]/route.ts");
+    expect(ruta).toContain('"latest.yml": { blob: "apps/latest.yml"');
+    expect(ruta).toContain('{ blob: "apps/RTG-Hub-Setup.exe"');
+    expect(ruta).toContain("idDeDispositivoValido(cabecera)");
+    expect(ruta).toContain('return NextResponse.json({ error: "Not signed in." }, { status: 401 });');
+    expect(ruta).toContain("access: \"private\"");
+  });
+  it("publicar sube los dos ficheros juntos y con nombre estable", () => {
+    const s = leer("scripts/publica-desktop.mjs");
+    expect(s).toContain('["apps/RTG-Hub-Setup.exe"');
+    expect(s).toContain('["apps/latest.yml"');
+    expect(s).toContain("latest.yml no nombra");
+  });
+});

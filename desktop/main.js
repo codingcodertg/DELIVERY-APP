@@ -30,6 +30,11 @@ const { app, BrowserWindow, shell, Menu, dialog } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { crearConfianza } = require("./origenes.js");
+// La actualización automática (D-811): `electron-updater` pregunta a nuestro sitio (`/api/desktop-update/latest.yml`)
+// si hay una versión más nueva, la baja en silencio y la instala al cerrar —o ya, si la persona acepta—. Es lo que hace
+// que esta app NO haya que reinstalarla a mano tienda por tienda a partir de la 1.2.0. La 1.1.1 no la lleva: esa sí
+// se reinstala una vez.
+const { autoUpdater } = require("electron-updater");
 const { CABECERA, idDeMaquina, salNueva, machineGuidDe } = require("./dispositivo.js");
 const { execFileSync } = require("node:child_process");
 
@@ -259,6 +264,31 @@ function crearVentana() {
     if (k === "f5" || (input.control && k === "r")) { win.webContents.reload(); e.preventDefault(); }
     if (input.control && input.shift && k === "i") { win.webContents.toggleDevTools(); e.preventDefault(); }
   });
+
+  // ---------------------------------------------------------------------------
+  // Actualizarse sola (D-811)
+  // ---------------------------------------------------------------------------
+  // Se comprueba a los 15 s de abrir y cada 4 horas. La descarga va con la misma cabecera de identidad que el resto,
+  // que es lo que la ruta del sitio pide para servir el instalador sin sesión (la app no tiene las cookies del hub en
+  // el proceso principal). Si no hay red o la ruta no contesta, no pasa nada: se vuelve a intentar a las 4 horas.
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.requestHeaders = { [CABECERA]: idInstalacion };
+  autoUpdater.on("error", (e) => console.log(`[RTG Hub] actualización: ${e && e.message ? e.message : e}`));
+  autoUpdater.on("update-downloaded", (info) => {
+    dialog.showMessageBox(win, {
+      type: "info",
+      title: "Actualización lista",
+      message: `RTG Hub ${info.version} está lista.`,
+      detail: "Se instala al cerrar la app. ¿Reiniciar ahora?",
+      buttons: ["Reiniciar ahora", "Luego"],
+      defaultId: 0,
+      cancelId: 1,
+    }).then(({ response }) => { if (response === 0) autoUpdater.quitAndInstall(); });
+  });
+  const buscaActualizacion = () => autoUpdater.checkForUpdates().catch(() => undefined);
+  setTimeout(buscaActualizacion, 15_000);
+  setInterval(buscaActualizacion, 4 * 60 * 60 * 1000);
 
   win.on("close", () => guardaEstado(win));
   win.on("resized", () => guardaEstado(win));
