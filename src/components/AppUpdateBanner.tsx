@@ -8,6 +8,8 @@ import {
   APK_DOWNLOAD_URL,
   installedApkVersion,
   markSoftReload,
+  recargaObligatoria,
+  ESPERA_MAXIMA_OBLIGATORIA_MS,
   pickSoftReloadJitter,
   safeToReload,
   shouldSoftReload,
@@ -63,6 +65,8 @@ export function AppUpdateBanner({ app }: { app: AppKey }) {
   // When this page first saw itself stale, and its random share of the spread.
   // Picked once per page; a deploy that goes back to our version clears it.
   const [detectedAt, setDetectedAt] = useState<number | null>(null);
+  // D-836: la versión que corre está por debajo de la obligatoria: se recarga ya.
+  const [forzada, setForzada] = useState(false);
   const jitterRef = useRef(0);
   const lastInputRef = useRef(Date.now());
   // The reload attempt, reachable from the pathname effect below.
@@ -82,6 +86,8 @@ export function AppUpdateBanner({ app }: { app: AppKey }) {
       if (!stale) jitterRef.current = 0;
       else if (jitterRef.current === 0) jitterRef.current = pickSoftReloadJitter();
       setDetectedAt((prev) => (!stale ? null : prev ?? Date.now()));
+      // Sin bucle: si ya se recargó hacia esta misma versión y sigue igual, se queda el botón de siempre.
+      setForzada(stale && recargaObligatoria(APP_VERSIONS[app], info.obligatoria?.[app]) && !softReloadTried(servedForThisApp ?? ""));
       // The APK is the driver shell, which loads deliveries specifically —
       // not a fourth app of its own (see the comment on /api/version) — so
       // it's only ever relevant on the deliveries banner.
@@ -148,6 +154,20 @@ export function AppUpdateBanner({ app }: { app: AppKey }) {
   }, [webStale, detectedAt, served]);
 
   // A route navigation is a page change the person asked for: the safe moment.
+  // D-836: recarga obligatoria. Ya, salvo que haya un formulario o una ventana abierta; eso espera 3 minutos como mucho.
+  useEffect(() => {
+    if (!forzada || !served) return;
+    const desde = Date.now();
+    const intenta = () => {
+      if (!safeToReload(document) && Date.now() - desde < ESPERA_MAXIMA_OBLIGATORIA_MS) return;
+      markSoftReload(served);
+      reloadNow();
+    };
+    intenta();
+    const id = setInterval(intenta, 10_000);
+    return () => clearInterval(id);
+  }, [forzada, served]);
+
   useEffect(() => {
     if (prevPathRef.current === pathname) return;
     prevPathRef.current = pathname;
@@ -164,6 +184,15 @@ export function AppUpdateBanner({ app }: { app: AppKey }) {
         <span>⬆ {t("A new version of the app is available.", "Hay una nueva versión de la app.")}</span>
         <a href={APK_DOWNLOAD_URL} style={pill}>{t("Update", "Actualizar")}</a>
         <Dismiss onClick={() => setDismissed(true)} label={t("Later", "Después")} />
+      </Bar>
+    );
+  }
+
+  if (forzada) {
+    return (
+      <Bar>
+        <span>⏳ {t("Updating the app…", "Actualizando la app…")}</span>
+        <button onClick={reloadNow} style={{ ...pill, border: "none", cursor: "pointer" }}>{t("Now", "Ahora")}</button>
       </Bar>
     );
   }

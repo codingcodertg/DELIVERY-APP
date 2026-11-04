@@ -50161,3 +50161,20 @@ Las posiciones ya perdidas hoy no se recuperan. Los choferes toman el código nu
 Sello `deliveries` 1.523.0; repo 1.690.0.
 
 **Pruebas:** `gps-rafaga.test.ts`; `location-filter.test.ts`.
+
+## D-836 · Recarga obligatoria para los cambios que tienen que llegar ya; cada teléfono dice su versión
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho directo por el orquestador en `feat/recarga-forzada` (laptop nueva).
+
+**Pedido (el dueño, tras D-835):** «haz que ellos tengan que reiniciar el app o mándales un refresh para que tome efecto».
+
+**Qué había:** la recarga suave (D-195): con versión nueva, la página espera hasta 5 min al azar y recarga al cambiar de pantalla o al volver a la app; si nadie la toca, a la hora. Nunca con un formulario abierto. Bien para lo normal; lento para un arreglo del GPS que tiene que estar en los teléfonos hoy. Y no había forma de saber qué versión corre cada teléfono.
+
+**Qué cambia:**
+- **`RECARGA_OBLIGATORIA`** (`app-versions.ts`, hoy `deliveries: 1.524.0`): `/api/version` la anuncia (`obligatoria`); una página por debajo se recarga en cuanto lo sabe (al abrir la app, al volver a ella o en el sondeo de 5 min), con el aviso «⏳ Actualizando la app…». Con un formulario o ventana abierta espera hasta 3 min y luego recarga igual. Sin bucle: si ya se recargó hacia esa versión y sigue igual, queda el botón de siempre. Se sube a mano solo cuando hace falta.
+- **Cada teléfono dice su versión:** al escribir el estado del GPS de su turno escribe también `app` = «apk/N · web X.Y.Z». El Recorrido lo enseña en la tarjeta de cada chofer y lo pone en rojo («versión vieja: cerrar y abrir la app») si va por debajo de la obligatoria.
+- **Límite:** un teléfono que ya corre código de antes de hoy no conoce la recarga obligatoria: se pone al día con la recarga suave (al volver a la app, como mucho 5 min después) o cerrando y abriendo la app. A partir de esta versión, todo lo que se marque obligatorio llega solo.
+
+Sello `deliveries` 1.524.0; repo 1.691.0.
+
+**Pruebas:** `recarga-obligatoria.test.ts`; `gps-del-turno.test.ts` puesta al día.

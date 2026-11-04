@@ -13,6 +13,8 @@ import { centralWallToUtc } from "@/lib/clockin/tz";
 import { nameStop, summarizeTrack, type Fix, type TrackSummary } from "@/lib/track-history";
 import { PausasDelDia } from "@/components/PausasDelDia";
 import { tramos } from "@/lib/tramos-del-recorrido";
+import { RECARGA_OBLIGATORIA } from "@/lib/app-versions";
+import { recargaObligatoria } from "@/lib/app-update";
 import { colorDeChofer } from "@/lib/map-legend";
 import { choferesEnVivo, etiquetaEnVivo, MINUTOS_EN_VIVO } from "@/lib/choferes-en-vivo";
 
@@ -38,7 +40,7 @@ const FIXES_POR_DIA = 20_000;
 /** D-833: «todos los choferes» en el selector. */
 const TODOS = "todos";
 
-type Turno = { driver_id: string; started_at: string; ended_at: string | null; note: string | null };
+type Turno = { driver_id: string; started_at: string; ended_at: string | null; note: string | null; app?: string | null };
 type Hito = { id: string; driver_id: string; kind: "picked_up" | "delivered"; at: string; delivery_id: string };
 type DiaDeChofer = { fixes: Fix[]; turnos: Turno[]; hitos: Hito[] };
 const DIA_VACIO: DiaDeChofer = { fixes: [], turnos: [], hitos: [] };
@@ -106,7 +108,7 @@ export default function TrackPage() {
       const [{ data, error }, t1, h1] = await Promise.all([
         supabase.from("driver_locations").select("driver_id, lat, lng, accuracy_m, recorded_at").in("driver_id", idsDelDia)
           .gte("recorded_at", from).lt("recorded_at", to).order("recorded_at", { ascending: true }).limit(FIXES_POR_DIA * Math.max(1, idsDelDia.length)),
-        supabase.from("driver_shifts").select("driver_id, started_at, ended_at, note").in("driver_id", idsDelDia)
+        supabase.from("driver_shifts").select("driver_id, started_at, ended_at, note, app").in("driver_id", idsDelDia)
           .gte("started_at", from).lt("started_at", to).order("started_at", { ascending: true }),
         supabase.from("order_events").select("id, kind, created_at, delivery_id, created_by").in("created_by", idsDelDia)
           .in("kind", ["picked_up", "delivered"]).gte("created_at", from).lt("created_at", to).order("created_at", { ascending: true }),
@@ -375,6 +377,14 @@ export default function TrackPage() {
               <div className="hint" style={{ marginTop: 2 }}>
                 🛣 {c.millas} mi · ▲ {c.cargas} · ✓ {c.entregas}
               </div>
+              {/* D-836: la versión de la app en su teléfono (la reporta el propio teléfono con su turno). */}
+              {(() => {
+                const app = [...c.turnos].reverse().find((s) => s.app)?.app ?? null;
+                if (!app) return null;
+                const web = /web (\d+\.\d+\.\d+)/.exec(app)?.[1] ?? null;
+                const vieja = !web || recargaObligatoria(web, RECARGA_OBLIGATORIA.deliveries);
+                return <div className="hint" data-version-app style={{ marginTop: 2, color: vieja ? "var(--red)" : undefined }}>📱 {app}{vieja ? " · " + t("old version: close and reopen the app", "versión vieja: cerrar y abrir la app") : ""}</div>;
+              })()}
             </button>
           );
         })}
