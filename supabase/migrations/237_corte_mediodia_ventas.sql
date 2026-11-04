@@ -1,4 +1,4 @@
--- 237: Ventas no agenda para HOY despues de las 12 del mediodia, hora de Texas (D-NEXT).
+-- 237: Ventas no agenda para HOY despues de las 12 del mediodia, hora de Texas (D-845).
 --
 -- El dueño, 2026-11-04: «recuerda la regla, sales no pueden ingresar una orden para el mismo dia despues de las 12, tiene
 -- que ser para el dia siguiente».
