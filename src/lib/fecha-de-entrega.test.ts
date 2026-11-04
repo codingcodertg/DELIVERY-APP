@@ -57,7 +57,8 @@ describe("todos los sitios que escriben delivery_date usan la regla", () => {
     expect(modal.split("await passesChecks(payload").length - 1).toBe(2);
   });
   it("la ficha: los dos selectores de fecha empiezan en hoy, y Txt pasa `min` al input", () => {
-    expect(modal.split("min={minFechaDeEntrega()}").length - 1).toBe(2);
+    // Desde el corte de mediodía de ventas, el `min` es el del rol: hoy para todos, mañana para ventas desde las 12 (corte-de-ventas).
+    expect(modal.split("min={minFechaParaRol(me.role)}").length - 1).toBe(2);
     expect(modal).toMatch(/function Txt\(\{ label, val, on, type = "text", disabled, placeholder, invalid, min, max, inputMode \}/);
     expect(modal).toContain("placeholder={placeholder} min={min}");
   });
@@ -72,7 +73,7 @@ describe("todos los sitios que escriben delivery_date usan la regla", () => {
   });
   it("«Reprogramar» ya lo tenía (D-500) y sigue", () => {
     expect(leer("src/lib/reprogramar-orden.ts")).toContain("if (nueva < hoy) return false;");
-    expect(leer("src/components/ReprogramarOrden.tsx")).toContain("min={hoy}");
+    expect(leer("src/components/ReprogramarOrden.tsx")).toContain("min={minFechaParaRol(rol)}"); // hoy, o mañana para ventas desde las 12
   });
   it("el aviso dice qué elegir", () => {
     expect(AVISO_FECHA_PASADA.es).toBe("La fecha de entrega no puede ser un día pasado. Elige hoy o un día posterior.");

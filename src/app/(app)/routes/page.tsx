@@ -24,6 +24,7 @@ import { printRouteManifest } from "@/lib/manifest";
 import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, nombresPorId, orderLabel, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
 import { agendaEnDiaPasado, AVISO_FECHA_PASADA, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
 import { maxFechaDeEntrega, problemaAlAgendar, textoDelProblema } from "@/lib/dia-de-entrega";
+import { AVISO_CORTE_VENTAS, cortaPorMediodia } from "@/lib/corte-de-ventas";
 import { colorDeChofer } from "@/lib/map-legend";
 import { antecedentesDeRutas } from "@/lib/route-plan/historia";
 import { useRutasDelDia } from "@/lib/usa-rutas-del-dia";
@@ -699,6 +700,8 @@ export default function RoutesPage() {
     // Un día pasado no se agenda (D-532): «que no se pueda agendar orden a dias pasados».
     const actual = deliveries.find((d) => d.id === id)?.delivery_date;
     if (agendaEnDiaPasado(delivery_date, actual)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
+    // Ventas con el Gestor por permiso suelto: pasadas las 12 en Texas, no para hoy (`corte-de-ventas`).
+    if (cortaPorMediodia(delivery_date, actual, { rol: me?.role })) { notify(t(AVISO_CORTE_VENTAS.en, AVISO_CORTE_VENTAS.es)); return; }
     // Ni domingo ni un año imposible (D-658). La celda no tiene la casilla del caso especial: el aviso dice dónde está.
     const problemaDeLaFecha = problemaAlAgendar(delivery_date, actual, { rol: me?.role });
     if (problemaDeLaFecha) { const m = textoDelProblema(problemaDeLaFecha, me?.role, { sinCasilla: true }); notify(t(m.en, m.es)); return; }

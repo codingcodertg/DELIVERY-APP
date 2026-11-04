@@ -50304,3 +50304,21 @@ Sello `recruiting` 0.74.0; repo 1.698.0.
 Sello `deliveries` 1.529.0; repo 1.699.0.
 
 **Pruebas:** `ayuda-para-claude.test.ts`.
+
+## D-845 · Ventas no agenda para hoy después de las 12 del mediodía (hora de Texas)
+
+**Fecha:** 2026-11-04 · Migración 237 (escrita; se aplica aparte tras ensayarla por rol) · Hecho por un agente en `fix/corte-mediodia-ventas`, revisado y fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño):** «recuerda la regla, sales no pueden ingresar una orden para el mismo día después de las 12, tiene que ser para el día siguiente».
+
+**Qué había:** nada que lo impidiera. D-823 solo pone mañana POR DEFECTO a una Intertienda desde las 12; D-639 manda a aprobación desde las 4:30 pm; D-532 y D-658 (sin pasado, sin domingo) son solo del navegador. Ningún disparador miraba `delivery_date`.
+
+**Qué cambia:**
+- **Una sola regla (`corte-de-ventas.ts`):** desde las 12:00 de America/Chicago, el rol `sales` agenda desde mañana (mañana de calendario, no +24 h, por el cambio de horario). Los demás roles, igual que antes.
+- **Todos los caminos de ventas:** crear, guardar, enviar un borrador, reenviar una rechazada, editar solo la fecha (D-480), duplicar (nace en el primer día válido) y 📅 Reprogramar (`reprogramarOrden`). Aviso en rojo bajo la fecha: «Después de las 12:00 del mediodía, las órdenes de ventas son para mañana».
+- **Base (237):** disparador aparte `deliveries_guard_corte_ventas` que rechaza lo mismo para ventas cuando la orden queda en pending/approved/fulfilling/ready. La llave de servicio y los crons no se tocan. Hasta aplicarla, solo el navegador lo impide.
+- «📅 Pedir para hoy» (D-560) sigue dejando a ventas PEDIR hoy: lo decide logística o admin.
+
+Sello `deliveries` 1.530.0; repo 1.700.0.
+
+**Pruebas:** `corte-de-ventas.test.ts`; `fecha-de-entrega`, `dia-de-entrega` y `borrador-y-duplicar` puestas al día.

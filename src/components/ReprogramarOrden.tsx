@@ -4,6 +4,7 @@ import { useState } from "react";
 import { fechaPropuesta, reprogramacionValida } from "@/lib/reprogramar-orden";
 import { maxFechaDeEntrega, problemaAlAgendar, SIN_CASO_ESPECIAL, type CasoEspecial } from "@/lib/dia-de-entrega";
 import { AvisoDeFecha } from "@/components/AvisoDeFecha";
+import { cortaPorMediodia, minFechaParaRol } from "@/lib/corte-de-ventas";
 import { orderLabel, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
@@ -30,7 +31,9 @@ export function ReprogramarOrden({ pedido, rol, lang, t, reprogramarOrden, notif
   const [guardando, setGuardando] = useState(false);
   const [caso, setCaso] = useState<CasoEspecial>(SIN_CASO_ESPECIAL);
   // Ni domingo sin el caso especial ni un año imposible (D-658): el botón no se enciende, y el aviso dice por qué.
-  const valida = reprogramacionValida(fecha, pedido.delivery_date, hoy, nota) && !problemaAlAgendar(fecha, pedido.delivery_date, { rol, caso, hoy });
+  // Y ventas, pasadas las 12 en Texas, no reprograma para hoy (`corte-de-ventas`): el aviso lo dice `AvisoDeFecha`.
+  const valida = reprogramacionValida(fecha, pedido.delivery_date, hoy, nota) && !cortaPorMediodia(fecha, pedido.delivery_date, { rol })
+    && !problemaAlAgendar(fecha, pedido.delivery_date, { rol, caso, hoy });
 
   const abrir = () => { setFecha(fechaPropuesta(pedido.delivery_date, hoy)); setNota(""); setCaso(SIN_CASO_ESPECIAL); setAbierto(true); };
   const guardar = async () => {
@@ -66,7 +69,7 @@ export function ReprogramarOrden({ pedido, rol, lang, t, reprogramarOrden, notif
             <h3 style={{ marginTop: 0 }}>📅 {t("Reschedule", "Reprogramar")} · {pedido.invoice_num || `#${orderLabel(pedido)}`}</h3>
             <div className="field">
               <label>{t("New date", "Nueva fecha")}</label>
-              <input type="date" data-nueva-fecha value={fecha} min={hoy} max={maxFechaDeEntrega(hoy)} onChange={(e) => setFecha(e.target.value)} />
+              <input type="date" data-nueva-fecha value={fecha} min={minFechaParaRol(rol)} max={maxFechaDeEntrega(hoy)} onChange={(e) => setFecha(e.target.value)} />
             </div>
             <AvisoDeFecha fecha={fecha} actual={pedido.delivery_date} rol={rol} caso={caso} onCaso={setCaso} t={t} />
             <div className="field">

@@ -216,9 +216,10 @@ describe("todos los sitios que escriben delivery_date usan la regla", () => {
     expect(modal).toContain("if (ok) await anotaDomingo(existing!.id, d.delivery_date, existing!.delivery_date);");
   });
   it("la ficha: los dos selectores llevan `max` y el aviso con la casilla; duplicar no nace en domingo", () => {
-    expect(modal.split("min={minFechaDeEntrega()} max={maxFechaDeEntrega()} />").length - 1).toBe(2);
+    // El `min` es el del rol desde el corte de mediodía de ventas (corte-de-ventas): hoy, o mañana para ventas desde las 12.
+    expect(modal.split("min={minFechaParaRol(me.role)} max={maxFechaDeEntrega()} />").length - 1).toBe(2);
     expect(modal.split("<AvisoDeFecha fecha={d.delivery_date} actual={existing?.delivery_date} rol={me.role} caso={casoDomingo} onCaso={setCasoDomingo} t={t} />").length - 1).toBe(2);
-    expect(modal).toContain("borradorDuplicado(existing, saltaDomingo(todayISO()))");
+    expect(modal).toContain("borradorDuplicado(existing, saltaDomingo(minFechaParaRol(me.role)))");
   });
   it("«📅 Reprogramar»: el cuadro no se enciende con domingo sin caso especial y manda la casilla", () => {
     const cuadro = leer("src/components/ReprogramarOrden.tsx");
