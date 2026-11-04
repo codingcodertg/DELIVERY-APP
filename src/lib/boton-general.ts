@@ -23,7 +23,7 @@ export type OpcionGeneral = "ayuda" | "chat" | "usuario" | "movil" | "ensenanza"
 /**
  * De abajo arriba: la primera queda pegada al botón.
  *
- * `suplantando` (D-NEXT): dentro de «Entrar como» la sesión es la de la otra persona y el servidor contesta
+ * `suplantando` (D-859): dentro de «Entrar como» la sesión es la de la otra persona y el servidor contesta
  * `adminReal: false`; aun así salen «Cambiar usuario» (saltar a otra persona, D-307) y «Vista móvil» (D-516), que
  * hasta ahora vivían en la franja de arriba y ahora viven aquí. «Cambiar usuario» sale aunque la función esté apagada,
  * como salía en la franja: el panel pide su lista al pulsarlo y, si la ruta dice que no, se cierra.

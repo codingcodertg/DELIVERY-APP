@@ -50536,3 +50536,19 @@ Sello `customers` 0.43.0; repo 1.712.0.
 Sello `customers` 0.44.0; repo 1.713.0.
 
 **Pruebas:** `customers/alta-del-vendedor.test.ts` (2 de 10 fallaban con el código de main); `por-rol`, `obligatorios` y `ficha-sin-huecos` puestas al día. Probado en el demo como Vendedor: «Solicitud #1 enviada al admin ✓».
+
+## D-859 · Entrar como: sin barra arriba; la burbuja se pone naranja y encima, «Volver a mi usuario»
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `feat/burbuja-al-suplantar`, fusionado por el orquestador (laptop nueva). Cambia dónde vive el aviso de D-243/D-253/D-483/D-516; su intención (siempre a la vista, no se cierra, en todas las apps) se conserva.
+
+**Pedido (el dueño):** «esa tag verde en la parte de arriba estorba y agarra mucho espacio… cuando cambie de usuario esa burbuja se va a poner anaranjada… arriba de la anaranjada otro botón rojo, volver a mi usuario… si vuelvo a tocar la burbuja anaranjada me sale la opción para seguir cambiando a otro usuario o vista móvil».
+
+**Qué cambia:**
+- **Fuera `ImpersonationBanner`** del layout raíz y su variable `--banner-impersonacion` (Time Tracker, barra de RR. HH. e inspección vuelven a `top: 0`). La barra superior sube 84 px en el teléfono y 36 px en la computadora.
+- **Burbuja naranja** (`--amber`) con «👤 Estás como {nombre}» a la vista, sin pasar el ratón; 🔑 si la persona tiene contraseña temporal. Al tocarla, el menú de siempre: Cambiar usuario, Vista móvil, Ayuda, Chat, Enseñanza.
+- **Botón rojo «↩ Volver a mi usuario»** encima (≥44 px), con el MISMO camino que la barra (`volverAMiCuenta()`: POST a `/api/impersonate/return`, recarga a la app); la vuelta automática a los 60 min usa la misma función.
+- Entrando como alguien, la burbuja sale también donde Ayuda no sale (p. ej. `/no-access`), solo con Cambiar usuario y Vista móvil. `--hueco-de-ayuda` crece mientras está el botón rojo. API, cookie, middleware, registro de seguridad y permisos, igual. Sin entrar como nadie, la burbuja es la de siempre.
+
+Sello `deliveries` 1.536.0; repo 1.714.0.
+
+**Pruebas:** `suplantacion-en-burbuja.test.ts`; `impersonation-banner`, `aviso-de-suplantacion`, `banner-corto`, `banner-panel-providers`, `impersonation-switch-ui` reescritas; varias más ajustadas.

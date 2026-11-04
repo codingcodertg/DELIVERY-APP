@@ -156,7 +156,7 @@ describe("el coste de /api/impersonate/state", () => {
     const burbuja = readFileSync("src/components/BotonGeneral.tsx", "utf8");
     expect(burbuja.split('fetch("/api/impersonate/candidates")').length - 1).toBe(1);
     expect(burbuja).not.toContain("ask=switch");
-    // D-NEXT: el banner se fue; quien pregunta en cada carga es `useSuplantacion` (la burbuja), sin `?ask=switch`.
+    // D-859: el banner se fue; quien pregunta en cada carga es `useSuplantacion` (la burbuja), sin `?ask=switch`.
     const sup = readFileSync("src/components/SuplantacionEnBurbuja.tsx", "utf8");
     expect(sup).toContain("fetch(RUTA_DEL_ESTADO)");
     expect(readFileSync("src/lib/suplantacion-en-burbuja.ts", "utf8")).toContain('export const RUTA_DEL_ESTADO = "/api/impersonate/state";');

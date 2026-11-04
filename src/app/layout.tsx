@@ -59,7 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        {/* Aquí iba la franja de «Entrar como» (`ImpersonationBanner`, D-243). Desde D-NEXT no hay franja: el aviso
+        {/* Aquí iba la franja de «Entrar como» (`ImpersonationBanner`, D-243). Desde D-859 no hay franja: el aviso
             («Estás como…», burbuja naranja) y la vuelta (botón rojo) viven en la burbuja general, abajo. El dueño:
             «ya no quiero esa línea de arriba cuando cambio de usuario; es ineficiente». */}
         <PrefsProvider>

@@ -8,7 +8,7 @@ import { opcionesDelBotonGeneral } from "@/lib/boton-general";
 import { IMPERSONACION_MINUTOS } from "@/lib/impersonation";
 
 /**
- * D-NEXT (2026-11-04). El dueño: «cuando haces el switch user, el tag verde de arriba estorba y quita mucho espacio
+ * D-859 (2026-11-04). El dueño: «cuando haces el switch user, el tag verde de arriba estorba y quita mucho espacio
  * […] la burbuja simplemente se pone naranja y le dice "oye, estás en otro usuario". Encima de la burbuja naranja hay
  * otro botón rojo que dice "volver a mi usuario". Si vuelvo a pulsar la burbuja naranja, me salen las opciones de
  * seguir cambiando a otro usuario o a la vista móvil».

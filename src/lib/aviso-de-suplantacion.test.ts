@@ -19,7 +19,7 @@ import type { Suplantacion } from "@/lib/suplantacion-en-burbuja";
  * the language is set to ENG». Y, con la vista móvil abierta: «EN ESE MISMO AMARILLO QUIERO QUE ESTE PARA
  * CMABIAR DE DESKTOP VIEW A MOBILE VIEW».
  *
- * Desde D-NEXT el aviso no es una franja arriba: es la burbuja naranja («Estás como…») con el botón rojo encima, y
+ * Desde D-859 el aviso no es una franja arriba: es la burbuja naranja («Estás como…») con el botón rojo encima, y
  * «Cambiar usuario» y la vista van en su menú. Se PINTAN sus piezas sin estado en los dos idiomas: una prueba de texto
  * sobre el fuente pasaría igual con los textos fijos en español, que es justo el fallo que D-516 arregló.
  */

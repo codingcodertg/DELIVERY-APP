@@ -5,7 +5,7 @@ import { impersonacionCaducada } from "./impersonation";
 import type { Idioma } from "./idioma";
 
 /**
- * «Entrar como» se avisa en la burbuja, no en una franja arriba (D-NEXT).
+ * «Entrar como» se avisa en la burbuja, no en una franja arriba (D-859).
  *
  * El dueño, 2026-11-04: «cuando haces el switch user, el tag verde de arriba estorba y quita mucho espacio. El botón
  * de ayuda ya tiene las opciones de cambiar de usuario y de vista móvil, así que eso va ahí. Cuando cambias de

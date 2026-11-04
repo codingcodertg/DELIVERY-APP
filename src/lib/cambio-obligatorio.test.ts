@@ -173,7 +173,7 @@ describe("la pantalla, el formulario y el banner usan esto mismo", () => {
     expect(f).toContain("window.location.href = destino");
   });
   it("la burbuja de «Entrar como» enseña el aviso cuando el estado lo dice", () => {
-    // D-NEXT: la franja se fue; el estado lo lee `suplantacionDelEstado` y la frase la pinta la burbuja, entre el menú y
+    // D-859: la franja se fue; el estado lo lee `suplantacionDelEstado` y la frase la pinta la burbuja, entre el menú y
     // el botón rojo, con una 🔑 en la propia burbuja. El render en los dos idiomas, en `suplantacion-en-burbuja.test.ts`.
     expect(src("src/lib/suplantacion-en-burbuja.ts")).toContain("cambiaContrasena: r.cambiaContrasena === true,");
     expect(src("src/components/BotonGeneral.tsx")).toMatch(/\{textos\?\.contrasena && <div className="fab-nota"/);

@@ -27,7 +27,7 @@ const SIN_SERVIDOR: Servidor = { adminReal: false, habilitado: false, users: [],
  * (`HelpButton`, `ChatFlotante`, montados sin burbuja propia): aquí solo se les pide abrirse con un evento. Cambiar
  * usuario, Vista móvil y Modo enseñanza salen solo al admin real, según diga `/api/impersonate/candidates`.
  *
- * Dentro de «Entrar como» (D-NEXT) la burbuja se pone NARANJA y dice «Estás como Ernesto», con un botón ROJO encima
+ * Dentro de «Entrar como» (D-859) la burbuja se pone NARANJA y dice «Estás como Ernesto», con un botón ROJO encima
  * para volver a la cuenta propia; ya no hay franja arriba. Pulsarla abre el mismo menú, con «Cambiar usuario» (saltar a
  * otra persona) y «Vista móvil». Lo que la suplantación hace por debajo, en `useSuplantacion`; esas piezas hablan el
  * idioma del admin (D-516), no el de la persona en la que se entró.
@@ -203,7 +203,7 @@ export function BotonGeneral() {
           {textos?.contrasena && <div className="fab-nota" role="note" data-aviso="cambio-contrasena">{textos.contrasena}</div>}
         </>
       )}
-      {/* D-NEXT: el botón rojo, justo encima de la burbuja naranja. Es la vuelta de siempre (`volverAMiCuenta`). */}
+      {/* D-859: el botón rojo, justo encima de la burbuja naranja. Es la vuelta de siempre (`volverAMiCuenta`). */}
       {sup.estado && <BotonVolverAMiUsuario suplantacion={sup.estado} volviendo={sup.volviendo} onVolver={() => void sup.volver("manual")} />}
       <button
         type="button"

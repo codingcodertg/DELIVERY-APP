@@ -2,7 +2,7 @@
    Solo tokens del tema (var(--…)): se ve igual en claro y en oscuro. Todo lleva el prefijo `insp-`. */
 
 .insp-progreso {
-  /* Pegada arriba. Hasta D-NEXT iba debajo de la franja de «Entrar como» (con su alto); la franja ya no existe. */
+  /* Pegada arriba. Hasta D-859 iba debajo de la franja de «Entrar como» (con su alto); la franja ya no existe. */
   position: sticky; top: 0; z-index: 4;
   background: var(--card); border: 1px solid var(--line); border-radius: 12px;
   padding: 10px 14px; margin-bottom: 12px;

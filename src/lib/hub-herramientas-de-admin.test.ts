@@ -109,7 +109,7 @@ describe("D-623 (2026-10-21): el switch y la vista móvil salen de la barra y va
     expect(plana).toContain('<SwitchUserPanel users={servidor.users} tiendas={servidor.stores} onClose={() => setCambiando(false)} destino={destinoDeLaApp(pathname)} />');
     expect(plana).toContain('⇄</span> {t("Switch user", "Cambiar usuario")}');
     expect(plana).toContain('href={enlaceAVistaMovil(pathname || "/")}');
-    // Dos montajes del MISMO panel desde D-NEXT: el del admin real (entrar) y el de dentro de una suplantación (saltar),
+    // Dos montajes del MISMO panel desde D-859: el del admin real (entrar) y el de dentro de una suplantación (saltar),
     // que vivía en la franja de arriba.
     expect(burbuja.split("<SwitchUserPanel").length - 1).toBe(2);
     expect(burbuja.split('modo="saltar"').length - 1).toBe(1);
@@ -139,7 +139,7 @@ describe("D-623 (2026-10-21): el switch y la vista móvil salen de la barra y va
     }
   });
 
-  it("el aviso de suplantación y «Volver a mi usuario» siguen en la raíz, para todas las apps (en la burbuja desde D-NEXT)", () => {
+  it("el aviso de suplantación y «Volver a mi usuario» siguen en la raíz, para todas las apps (en la burbuja desde D-859)", () => {
     expect(leer("src/app/layout.tsx")).toContain("<BotonGeneral />");
     expect(leer("src/lib/suplantacion-en-burbuja.ts")).toContain('export const RUTA_DE_VUELTA = "/api/impersonate/return";');
     expect(leer("src/components/BotonGeneral.tsx")).toContain("<BotonVolverAMiUsuario ");

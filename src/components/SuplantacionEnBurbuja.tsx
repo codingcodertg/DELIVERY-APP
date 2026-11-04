@@ -9,7 +9,7 @@ import {
 import type { NamedLocation, Profile } from "@/lib/types";
 
 /**
- * «Entrar como», dentro de la burbuja general (D-NEXT). Hasta ahora lo llevaba la franja `ImpersonationBanner`, pegada
+ * «Entrar como», dentro de la burbuja general (D-859). Hasta ahora lo llevaba la franja `ImpersonationBanner`, pegada
  * arriba en todas las pantallas; el dueño pidió quitarla («ya no quiero esa línea de arriba cuando cambio de usuario; es
  * ineficiente») y que la burbuja se ponga naranja, con un botón rojo encima para volver.
  *

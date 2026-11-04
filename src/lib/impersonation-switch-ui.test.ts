@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 
 /**
- * Dónde se ve «Cambiar a otro usuario» (D-307): dentro de la burbuja naranja (D-NEXT; hasta entonces en el aviso
+ * Dónde se ve «Cambiar a otro usuario» (D-307): dentro de la burbuja naranja (D-859; hasta entonces en el aviso
  * naranja de arriba), con «Volver a mi usuario» encima, en todas las apps, y montando el MISMO panel de D-247/D-306 por props.
  *
  * Lo que decide algo —a quién se puede saltar, qué hace la ruta— se prueba importado en
@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-// D-NEXT: la franja se fue; «Cambiar usuario» dentro de una suplantación vive en la burbuja general (naranja), con su
+// D-859: la franja se fue; «Cambiar usuario» dentro de una suplantación vive en la burbuja general (naranja), con su
 // estado en `useSuplantacion`.
 const burbuja = sinComentarios(leer("src/components/BotonGeneral.tsx"));
 const sup = sinComentarios(leer("src/components/SuplantacionEnBurbuja.tsx"));

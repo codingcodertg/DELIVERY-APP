@@ -7,7 +7,7 @@ import { join } from "node:path";
 // (la cabecera de Time Tracker, la barra de acciones de RR. HH., el progreso de la inspección). Esta prueba fijaba esa
 // forma y recorría todo `src` buscando lo que se pegara al borde de arriba sin contar con la franja.
 //
-// D-NEXT (2026-11-04) quita la franja entera. El dueño: «ya no quiero esa línea de arriba cuando cambio de usuario; es
+// D-859 (2026-11-04) quita la franja entera. El dueño: «ya no quiero esa línea de arriba cuando cambio de usuario; es
 // ineficiente». El aviso y la vuelta pasan a la burbuja general (abajo a la derecha): ver
 // `suplantacion-en-burbuja.test.ts`. Aquí se fija que el espacio se recupera de verdad: no queda franja, ni su medida,
 // ni nadie que la reste. Con la franja fuera, pegarse a `top: 0` vuelve a ser seguro, y el recorrido de exentos sobra.
@@ -28,7 +28,7 @@ const ficheros = (raiz: string, exts: string[]) => {
   return out;
 };
 
-describe("la franja de «entrar como» ya no existe (D-NEXT)", () => {
+describe("la franja de «entrar como» ya no existe (D-859)", () => {
   it("el componente se borró y el layout raíz no monta nada arriba del contenido", () => {
     expect(existsSync(join(process.cwd(), "src/components/ImpersonationBanner.tsx"))).toBe(false);
     const raiz = leer("src/app/layout.tsx");

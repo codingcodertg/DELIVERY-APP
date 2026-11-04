@@ -1962,7 +1962,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 }
 
 /* ---------------------------------------------------------------------------
-   «Entrar como» en la burbuja (D-NEXT, 2026-11-04). Ya no hay franja arriba: mientras se está dentro de otra
+   «Entrar como» en la burbuja (D-859, 2026-11-04). Ya no hay franja arriba: mientras se está dentro de otra
    persona la burbuja se pone NARANJA y dice «Estás como Ernesto» (se lee sin pasar el ratón, también en el
    teléfono), y encima lleva el botón ROJO «↩ Volver a mi usuario». Texto `--ink` sobre `--amber`: `--ink` es
    oscuro en los dos temas, y el blanco sobre ese ámbar no se leería.

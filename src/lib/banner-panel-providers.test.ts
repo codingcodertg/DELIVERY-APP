@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
-// D-NEXT: la franja se fue y el panel de saltar se monta en la burbuja general (dentro de `PrefsProvider`). El examen es
+// D-859: la franja se fue y el panel de saltar se monta en la burbuja general (dentro de `PrefsProvider`). El examen es
 // el mismo: el panel de saltar lleva encima `PrefsConIdioma` (el idioma del ADMIN, D-516: el `PrefsProvider` de arriba
 // habla el de la persona en la que se entró) y `ConfirmProvider`.
 const panel = sinComentarios(leer("src/components/SwitchUserPanel.tsx"));
@@ -90,7 +90,7 @@ describe("el panel montado en la barra de Entregas también tiene encima lo que 
     }
   });
 
-  it("dos entradas al MISMO panel, y nada más: el hub y la burbuja general (que monta también el de saltar desde D-NEXT)", () => {
+  it("dos entradas al MISMO panel, y nada más: el hub y la burbuja general (que monta también el de saltar desde D-859)", () => {
     const { readdirSync, statSync } = require("node:fs") as typeof import("node:fs");
     const tsx: string[] = [];
     const recorre = (d: string) => { for (const f of readdirSync(d)) { const r = `${d}/${f}`; if (statSync(r).isDirectory()) recorre(r); else if (f.endsWith(".tsx")) tsx.push(r); } };

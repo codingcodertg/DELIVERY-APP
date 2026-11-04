@@ -4,12 +4,12 @@ import { readFileSync } from "node:fs";
 // D-483. El dueño, 2026-10-06: «lo único que salga ahí es, ok, estás login como Robert y ya. Pero no quiero ese timeout y
 // esa cosa porque quita mucho espacio».
 //
-// D-NEXT (2026-11-04) va más lejos: ni franja. El aviso es la burbuja naranja («Estás como Robert») y la vuelta, el
+// D-859 (2026-11-04) va más lejos: ni franja. El aviso es la burbuja naranja («Estás como Robert») y la vuelta, el
 // botón rojo de encima. Lo que D-483 pedía sigue: una frase corta, sin los minutos, y la vuelta sola a la hora intacta.
 const lib = readFileSync("src/lib/suplantacion-en-burbuja.ts", "utf8");
 const sup = readFileSync("src/components/SuplantacionEnBurbuja.tsx", "utf8");
 
-describe("el aviso de «Estás como…» es corto, sin los minutos (D-483, en la burbuja desde D-NEXT)", () => {
+describe("el aviso de «Estás como…» es corto, sin los minutos (D-483, en la burbuja desde D-859)", () => {
   it("dice solo con quién estás, en el idioma del admin (D-516)", () => {
     expect(lib).toContain("etiqueta: t(`You're viewing as ${a.como}`, `Estás como ${a.como}`),");
     expect(lib).not.toContain("You are signed in as");
