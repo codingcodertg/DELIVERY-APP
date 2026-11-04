@@ -138,7 +138,16 @@ export function costeTotal(d: Omit<Desglose, "total">, pesos: Pesos): number {
     // Las puntas fuera de zona: la entrega al peso `zona`; la recogida (D-479), al suyo, que por defecto es más caro.
     // `recogidasFueraDeZona` es parte de `fueraDeZona`, nunca más: se resta para no cobrarla dos veces.
     + 100 * enMilesimas(pesos.zona ?? PESO_DE_ZONA_POR_DEFECTO) * ((d.fueraDeZona ?? 0) - (d.recogidasFueraDeZona ?? 0))
-    + 100 * enMilesimas(pesoDeRecogida(pesos)) * (d.recogidasFueraDeZona ?? 0);
+    + 100 * enMilesimas(pesoDeRecogida(pesos)) * (d.recogidasFueraDeZona ?? 0)
+    // D-834: lo aprendido. historiaMil va en milésimas de orden.
+    + Math.round(enMilesimas(pesos.historia ?? 0) * (d.historiaMil ?? 0) / 10);
+}
+
+/** D-834: lo que cuesta (en milésimas de orden) que este chofer lleve esta orden según lo aprendido; 0 sin afinidad. */
+export function desconocidoMil(chofer: Pick<ChoferEntrada, "nombre">, o: Pick<OrdenEntrada, "afinidad">): number {
+  if (!o.afinidad) return 0;
+  const p = o.afinidad[String(chofer.nombre ?? "").trim().replace(/\s+/g, " ").toLowerCase()] ?? 0;
+  return Math.round(1000 * (1 - Math.max(0, Math.min(1, p))));
 }
 
 /** El peso de la recogida fuera de zona vigente: el guardado, o el de por defecto; con 0, el mismo que la entrega (`zona`):
@@ -160,6 +169,7 @@ export function restaDesglose(a: Desglose, b: Desglose): Desglose {
     // Solo si alguno de los dos lo trae: sin zonas, la diferencia es la de antes, sin la clave.
     ...(a.fueraDeZona !== undefined || b.fueraDeZona !== undefined ? { fueraDeZona: (a.fueraDeZona ?? 0) - (b.fueraDeZona ?? 0) } : {}),
     ...(a.recogidasFueraDeZona !== undefined || b.recogidasFueraDeZona !== undefined ? { recogidasFueraDeZona: (a.recogidasFueraDeZona ?? 0) - (b.recogidasFueraDeZona ?? 0) } : {}),
+    ...(a.historiaMil !== undefined || b.historiaMil !== undefined ? { historiaMil: (a.historiaMil ?? 0) - (b.historiaMil ?? 0) } : {}),
     total: a.total - b.total,
   };
 }
@@ -200,7 +210,7 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
 
   let reloj = chofer.entrada;
   let sitio = chofer.base;
-  let manejo = 0, centiMi = 0, tarde = 0, builder = 0, fueraDeZona = 0, recogidasFueraDeZona = 0;
+  let manejo = 0, centiMi = 0, tarde = 0, builder = 0, fueraDeZona = 0, recogidasFueraDeZona = 0, historiaMil = 0, conHistoria = false;
   const conZonas = !!chofer.zonas?.length;
   let visita = 0;
   let etiquetaSiguiente = 1;
@@ -263,6 +273,7 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
         fueraDeZona += entregaFueraDeZona(chofer, o, ctx.zonasReclamadas) + recogida;
         recogidasFueraDeZona += recogida;
       }
+      if (o.afinidad) { conHistoria = true; historiaMil += desconocidoMil(chofer, o); }
       carga -= aCentesimas(o.pallets);
       entregadas.add(o.id);
       // Una orden recogida antes de hoy no tuvo su P aquí: se numera al entregarla.
@@ -300,6 +311,7 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
     duracionMin: evaluadas.length > 0 ? fin - chofer.entrada : 0,
     manejoMin: manejo, millas: deCentesimas(centiMi), tardeMin: tarde, builderMin: builder,
     ...(conZonas ? { fueraDeZona, recogidasFueraDeZona } : {}),
+    ...(conHistoria ? { historiaMil } : {}),
     violaciones,
   };
 }
@@ -340,14 +352,15 @@ const entregasDe = (r: RutaEvaluada): number => r.paradas.filter((p) => p.tipo =
 export function costeDeRutas(rutas: readonly RutaEvaluada[], pesos: Pesos, balancePor: BalancePor = "tiempo"): Desglose {
   let builder = 0, manejoMin = 0, centiMi = 0, tardeMin = 0, max = 0, min = Infinity;
   // Las entregas fuera de zona, solo si alguna ruta las cuenta (algún chofer con zonas): sin eso, el desglose de antes.
-  let fueraDeZona: number | undefined, recogidasFueraDeZona: number | undefined;
+  let fueraDeZona: number | undefined, recogidasFueraDeZona: number | undefined, historiaMil: number | undefined;
   for (const r of rutas) {
+    if (r.historiaMil !== undefined) historiaMil = (historiaMil ?? 0) + r.historiaMil;
     if (r.fueraDeZona !== undefined) { fueraDeZona = (fueraDeZona ?? 0) + r.fueraDeZona; recogidasFueraDeZona = (recogidasFueraDeZona ?? 0) + (r.recogidasFueraDeZona ?? 0); }
     builder += r.builderMin; manejoMin += r.manejoMin; centiMi += aCentesimas(r.millas); tardeMin += r.tardeMin;
     const carga = balancePor === "ordenes" ? entregasDe(r) * MINUTOS_POR_ORDEN_EN_BALANCE : r.duracionMin;
     max = Math.max(max, carga); min = Math.min(min, carga);
   }
-  const d = { builder, manejoMin, millas: deCentesimas(centiMi), tardeMin, balanceMin: rutas.length > 1 ? max - min : 0, ...(fueraDeZona !== undefined ? { fueraDeZona, recogidasFueraDeZona } : {}) };
+  const d = { builder, manejoMin, millas: deCentesimas(centiMi), tardeMin, balanceMin: rutas.length > 1 ? max - min : 0, ...(fueraDeZona !== undefined ? { fueraDeZona, recogidasFueraDeZona } : {}), ...(historiaMil !== undefined ? { historiaMil } : {}) };
   return { ...d, total: costeTotal(d, pesos) };
 }
 

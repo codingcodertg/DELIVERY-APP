@@ -40,7 +40,7 @@ import type {
  *  `motor-1`: la misma huella). `motor-3` (D-418): requisitos del camión — una orden solo va con un chofer que tenga lo que pide. `motor-2` (D-415):
  *  prioridad por orden y opciones de reparto. Sin requisitos, con todo en normal y las opciones sin tocar, planifica
  *  exactamente lo mismo que `motor-1` — lo fija una prueba con un plan grabado. */
-export const VERSION_DEL_MOTOR = "motor-9";
+export const VERSION_DEL_MOTOR = "motor-10";
 
 /** El puesto de una prioridad: lo de número más bajo se coloca antes. Sin prioridad, o una que no existe, normal. */
 const RANGO: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3 };
@@ -120,7 +120,19 @@ const mejorQue = (a: Nota, b: Nota) => { for (let k = 0; k < a.length; k++) if (
  * búsqueda sobre 3.000 días inventados encontró al menos 10 así; es el día 1794 de las pruebas). Cuesta planificar dos
  * veces, solo con la opción puesta.
  */
+/**
+ * D-834: lo aprendido de las rutas publicadas es preferencia, como las zonas: se planifica con ello y, si deja alguna orden
+ * fuera, también sin ello, y se queda la de menos órdenes fuera; a igualdad, la de la historia. Medido en 21 días reales:
+ * sin esta vuelta, la historia dejaba 2 órdenes más fuera.
+ */
 export function planifica(entrada: Entrada, parametros: Parametros = PARAMETROS_POR_DEFECTO): Plan {
+  const plan = planificaConZonas(entrada, parametros);
+  if (!plan.sinAsignar.length || !((parametros.pesos.historia ?? 0) > 0) || !entrada.ordenes.some((o) => o.afinidad)) return plan;
+  const sinHistoria = planificaConZonas(entrada, { ...parametros, pesos: { ...parametros.pesos, historia: 0 } });
+  return sinHistoria.sinAsignar.length < plan.sinAsignar.length ? sinHistoria : plan;
+}
+
+function planificaConZonas(entrada: Entrada, parametros: Parametros): Plan {
   const plan = planificaConOpciones(entrada, parametros);
   // Zonas preferidas (D-421): «Preferencia, no regla», dijo el dueño. El peso ya hace que una entrega vaya a otro chofer
   // cuando el suyo no puede; pero repartir por zonas cambia lo que la construcción coloca primero y lo que la mejora prueba

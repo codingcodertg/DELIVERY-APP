@@ -34,7 +34,7 @@ const recogeEn = (plan: Plan, entrada: Entrada): Record<string, string[]> => {
 
 describe("el día de la queja: 2026-10-06, real y anonimizado", () => {
   it("con motor-8, a la tienda de C (Brownsville) solo va C; A solo carga en la suya; y no queda nada fuera ni roto", () => {
-    expect(VERSION_DEL_MOTOR).toBe("motor-9");
+    expect(VERSION_DEL_MOTOR).toBe("motor-10"); // D-834: motor-10 aprende de las rutas publicadas
     const plan = planifica(DIA.entrada, ARMAR);
     const r = recogeEn(plan, DIA.entrada);
     expect(plan.sinAsignar).toEqual([]);

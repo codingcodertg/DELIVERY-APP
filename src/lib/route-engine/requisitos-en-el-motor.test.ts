@@ -72,7 +72,7 @@ describe("sin requisitos, el motor planifica EXACTAMENTE lo mismo que antes", ()
   });
 
   it("la versión pasó a motor-3 con los requisitos, a motor-4 con las zonas (D-421), a motor-5 con el umbral de zona (D-423) a motor-6 con la zona de la recogida (D-427), a motor-7 con «lo que está de paso» (D-464), a motor-8 con la recogida como punta cara (D-479) y a motor-9 con el arranque numerado (D-722)", () => {
-    expect(VERSION_DEL_MOTOR).toBe("motor-9");
+    expect(VERSION_DEL_MOTOR).toBe("motor-10"); // D-834: motor-10 aprende de las rutas publicadas
   });
 });
 

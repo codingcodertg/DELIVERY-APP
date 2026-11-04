@@ -47,6 +47,8 @@ export function pesosDeRuta(settings: Pick<Settings, "route_weights">): RouteWei
   if (numeroValido(guardados.zonaMillas)) r.zonaMillas = guardados.zonaMillas;
   // Y el de la recogida en la tienda de la zona de otro (D-479), igual.
   if (numeroValido(guardados.zonaRecogida)) r.zonaRecogida = guardados.zonaRecogida;
+  // Y el de la historia (D-834): solo si está guardado. Sin él, el de por defecto lo pone la entrada del día.
+  if (numeroValido(guardados.historia)) r.historia = guardados.historia;
   return r;
 }
 

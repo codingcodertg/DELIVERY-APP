@@ -25,6 +25,7 @@ import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, nombresP
 import { agendaEnDiaPasado, AVISO_FECHA_PASADA, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
 import { maxFechaDeEntrega, problemaAlAgendar, textoDelProblema } from "@/lib/dia-de-entrega";
 import { colorDeChofer } from "@/lib/map-legend";
+import { antecedentesDeRutas } from "@/lib/route-plan/historia";
 import { useRutasDelDia } from "@/lib/usa-rutas-del-dia";
 import { rangoDeRutasDelDia } from "@/lib/rutas-del-dia";
 import { ordenesDeRutaDeHoy, ordenLegible } from "@/lib/gestor/ordenes-de-ruta-de-hoy";
@@ -1915,6 +1916,8 @@ export default function RoutesPage() {
       choferes: drivers, ajustesDeChofer: ajustesConBaseDelPerfil(ajustesDeChofer, drivers), settings,
       // De qué tienda sale y en cuál termina cada uno ESE día (166), como en «Armar rutas».
       basesDelDia: basesDelDia.bases,
+      // D-834: lo aprendido de las rutas hechas antes de este día (lo que el Gestor tiene cargado).
+      historia: { fecha: date, antecedentes: antecedentesDeRutas(deliveries.filter((d) => (d.delivery_date ?? "") < date && (d.stage === "delivered" || d.stage === "picked_up"))) },
     });
   }, [deliveries, date, seleccionDelReparto, drivers, ajustesDeChofer, settings, basesDelDia.bases]);
   /** Con quién se puede repartir: los que entran al motor y no tienen la ruta bloqueada 🔒; los demás, apagados con su porqué. */

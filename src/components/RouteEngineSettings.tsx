@@ -7,6 +7,7 @@ import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { DELIVERY_WINDOW_PRESETS } from "@/lib/constants";
 import { MINUTOS_POR_ORDEN_EN_BALANCE } from "@/lib/route-engine";
+import { PESO_DE_HISTORIA_POR_DEFECTO } from "@/lib/route-engine/afinidad";
 import {
   COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER, TURNO_POR_DEFECTO, choferParaElMotor, erroresDeAjustesDeChofer, laBaseTieneAjustesDeRuta,
   conFilaGuardada, opcionesDeReparto, pesoDeZona, pesoDeZonaRecogida, pesosDeRuta, routeWeightsAlGuardar, topeDeRetrasoMin, umbralDeZonaMi, ventanasDuras,
@@ -30,7 +31,7 @@ import { alternaRequisito, anadeAlCatalogo, catalogoDeRequisitos, habilidadesDel
  * no hace falta que cada pantalla de Entregas cargue una tabla que solo mira Ajustes.
  */
 
-const PESOS: { key: Exclude<keyof RouteWeights, "zona" | "zonaRecogida" | "zonaMillas">; en: string; es: string }[] = [
+const PESOS: { key: Exclude<keyof RouteWeights, "zona" | "zonaRecogida" | "zonaMillas" | "historia">; en: string; es: string }[] = [
   { key: "builder", en: "1 · Builder early (per minute until a builder is delivered)", es: "1 · Builder temprano (por minuto hasta entregar a un builder)" },
   { key: "manejo", en: "2 · Short route — per driving minute", es: "2 · Ruta corta — por minuto de manejo" },
   { key: "millas", en: "2 · Short route — per mile", es: "2 · Ruta corta — por milla" },
@@ -132,6 +133,8 @@ export function RouteEngineSettings() {
   const zona = pesoDeZona(settings);
   const zonaRecogida = pesoDeZonaRecogida(settings);
   const zonaMillas = umbralDeZonaMi(settings);
+  // D-834: el peso de lo aprendido de las rutas publicadas.
+  const historia = settings.route_weights?.historia ?? PESO_DE_HISTORIA_POR_DEFECTO;
 
   const guardaChofer = async (id: string) => {
     const f = filaDe(id);
@@ -186,6 +189,9 @@ export function RouteEngineSettings() {
         <NumeroConGuardado
           label={t("5 · Zone first, unless it costs this many extra miles", "5 · La zona primero, salvo que cueste estas millas de más")}
           value={zonaMillas} paso="1" disabled={!hayColumnas} onSave={(v) => guardaPeso("zonaMillas", v)} />
+        <NumeroConGuardado
+          label={t("6 · Learned from past routes (per order a driver never took; 0 = off)", "6 · Aprendido de las rutas hechas (por orden que ese chofer nunca llevó; 0 = apagado)")}
+          value={historia} paso="20" disabled={!hayColumnas} onSave={(v) => guardaPeso("historia", v)} />
         <NumeroConGuardado
           label={t("Latest a wide window may run (minutes)", "Retraso máximo en una ventana ancha (minutos)")}
           value={tope} paso="5" disabled={!hayColumnas}
