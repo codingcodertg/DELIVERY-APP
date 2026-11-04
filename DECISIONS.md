@@ -50488,3 +50488,15 @@ Sellos `customers` 0.42.0 y `leads` 0.18.0; repo 1.709.0.
 Sello `deliveries` 1.534.0; repo 1.710.0.
 
 **Pruebas:** las que leen los ficheros tocados, más `inline-colors`, `botones-vivos`, `botones-apagados`, `map-legend` y `formateador`, en verde.
+
+## D-856 · Fuera el satélite de la barra superior
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `fix/quitar-satelite`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño, con captura del «📡 1» y su globo «1 driver(s) on shift aren't reporting their location»):** «remove this satellite thing».
+
+**Qué cambia:** `TopBar.tsx` deja de pintar el contador de D-714 (choferes en turno sin posición) y de leer `users`, `shifts` y `driverLocations` para él. No había consulta propia: era `trackingGaps` sobre datos que el proveedor ya carga. El estado del GPS de cada chofer sigue donde sirve: el aviso del Gestor de Rutas (`trackingGaps`, D-400), el Recorrido, Almacén y la tarjeta del propio chofer.
+
+Sello `deliveries` 1.535.0; repo 1.711.0.
+
+**Pruebas:** `gps-del-turno.test.ts` (la barra ya no lo lleva; el Gestor sí).
