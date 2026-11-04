@@ -58,6 +58,6 @@ export default async function CustomersLayout({ children }: { children: React.Re
     redirect(landingRoute({ role, module_access: profile?.module_access }));
   }
 
-  // D-NEXT: el diálogo de la app (`useConfirm`) para «¿Borrar el borrador?», como en Entregas; antes Clientes no lo montaba.
+  // D-857: el diálogo de la app (`useConfirm`) para «¿Borrar el borrador?», como en Entregas; antes Clientes no lo montaba.
   return <ConfirmProvider>{cascaron}</ConfirmProvider>;
 }

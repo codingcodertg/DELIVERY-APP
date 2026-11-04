@@ -9,7 +9,7 @@ import { MAX_BORRADORES, nombreDelBorrador, resumenDelBorrador, type BorradorGua
 type T = (en: string, es: string) => string;
 
 /**
- * La lista «💾 Borradores» de Clientes (D-NEXT). Roberto Rodriguez Jr (admin), 2026-11-04: «show the list of the drafts
+ * La lista «💾 Borradores» de Clientes (D-857). Roberto Rodriguez Jr (admin), 2026-11-04: «show the list of the drafts
  * separately so you can have many». Los borradores del alta de quien mira, el más reciente primero, en la misma ventana que
  * «Solicitudes» (`SolicitudesDeCliente`): nombre de la cuenta, cuándo se guardó (hora de Texas) y una línea con el primer
  * contacto y las tiendas. «Abrir» abre «Nuevo cliente» con ese borrador; «Borrar» pregunta antes, con el diálogo de la app.

@@ -686,9 +686,9 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   /** D-742: el gerente no asigna vendedor: lo pide al admin con un botón que abre la ventana de quien llama. */
   puedePedirVendedor?: boolean;
   onPedirVendedor?: () => void;
-  /** D-NEXT: el borrador elegido en la lista «💾 Borradores»: el alta abre con él, y «Guardar borrador» lo actualiza. */
+  /** D-857: el borrador elegido en la lista «💾 Borradores»: el alta abre con él, y «Guardar borrador» lo actualiza. */
   borradorAlAbrir?: BorradorGuardado | null;
-  /** D-NEXT: la lista de borradores cambió (se guardó o se borró uno): quien llama la vuelve a leer. */
+  /** D-857: la lista de borradores cambió (se guardó o se borró uno): quien llama la vuelve a leer. */
   onBorradores?: () => void;
   t: T;
 }) {
@@ -748,7 +748,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const cambiado = Object.keys(parche).length > 0;
 
   // Solicitud 3914768b («need a save draft»): el alta se puede guardar a medias en este navegador, por persona.
-  // D-NEXT («show the list of the drafts separately so you can have many»): VARIOS borradores, en la lista «💾 Borradores»
+  // D-857 («show the list of the drafts separately so you can have many»): VARIOS borradores, en la lista «💾 Borradores»
   // de la pantalla (`borradores-del-alta.ts`). Abierta desde uno, «Guardar borrador» actualiza ESE; si no, crea otro. Al
   // crear el cliente (o mandar la solicitud) se borra solo ese. Ya no hay aviso de «Recuperar borrador»: se retoma desde la lista.
   const conBorrador = nuevo && Boolean(yo);

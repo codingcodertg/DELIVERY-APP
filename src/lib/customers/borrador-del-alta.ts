@@ -14,7 +14,7 @@ import { BUSINESS_TZ } from "@/lib/utils";
  * claves cerrada en la base (136) y un tope de 8 KB, así que guardarlo allí sería una migración. Consecuencia que se dice:
  * el borrador no viaja a otra computadora ni a otro navegador.
  *
- * D-NEXT (Roberto Rodriguez Jr, el mismo día: «show the list of the drafts separately so you can have many»): ya no hay UN
+ * D-857 (Roberto Rodriguez Jr, el mismo día: «show the list of the drafts separately so you can have many»): ya no hay UN
  * borrador por persona sino una LISTA (`borradores-del-alta.ts`, clave `rtg_customers_new_drafts_<id>`). Aquí queda la
  * forma de un borrador, su limpieza y la clave VIEJA (`rtg_customers_new_draft_<id>`), que solo se lee para pasarla a la
  * lista una vez; nadie escribe ya en ella.

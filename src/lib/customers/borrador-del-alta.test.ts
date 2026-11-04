@@ -78,7 +78,7 @@ describe("borrador del alta: la ventana", () => {
     expect(ficha.indexOf("data-guardar-borrador")).toBeLessThan(ficha.indexOf('{t("Cancel", "Cancelar")}</Button>'));
     expect(ficha).toContain("const conBorrador = nuevo && Boolean(yo);");
   });
-  it("D-NEXT: sin aviso de «Recuperar borrador» (se retoma desde la lista); al crear o pedir el alta, se borra solo ese borrador", () => {
+  it("D-857: sin aviso de «Recuperar borrador» (se retoma desde la lista); al crear o pedir el alta, se borra solo ese borrador", () => {
     expect(ficha).not.toContain("data-recuperar-borrador");
     expect(ficha).not.toContain("data-descartar-borrador");
     expect(ficha.match(/olvidarBorrador\(\);/g)?.length).toBe(2);

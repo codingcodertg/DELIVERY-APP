@@ -10,7 +10,7 @@ import {
 } from "./borradores-del-alta";
 
 /**
- * D-NEXT: Roberto Rodriguez Jr (admin), 2026-11-04, tras D-847: «show the list of the drafts separately so you can have
+ * D-857: Roberto Rodriguez Jr (admin), 2026-11-04, tras D-847: «show the list of the drafts separately so you can have
  * many». Varios borradores por persona, en una lista aparte, en este navegador.
  */
 const memoria = () => {
