@@ -14,6 +14,8 @@ import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
 import { borraDispositivo, cambiaEstadoDeDispositivo, cambiaExcepcionesWeb, cambiaPolitica, cambiaPoliticaWeb, cierraSesionesDe, renombraDispositivo } from "./actions";
 import { ROLES_SOLO_ESCRITORIO } from "@/lib/security/reglas";
+import { APP_VERSIONS } from "@/lib/app-versions";
+import { ESCRITORIO_MINIMO } from "@/lib/desktop-version";
 
 export interface DispositivoFila {
   id: string; label: string | null; kind: string; status: string; user_agent: string | null;
@@ -416,6 +418,19 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
   // --- Entradas desde un sitio nuevo (D-822) --------------------------------------------------------------------------------
   const sitiosNuevos = useMemo(() => entradasDesdeSitioNuevo(uso, ahora), [uso, ahora]);
 
+  // --- Salud del sistema (D-830): los números que el dueño quiere ver de un vistazo, sacados de lo que ya está en pantalla.
+  const salud = useMemo(() => {
+    const dia = ahora - 24 * 3600_000, semana = ahora - 7 * 24 * 3600_000;
+    const escritorios = dispositivos.filter((d) => versionDeApp(d.user_agent).app === "desktop" && d.status !== "revoked");
+    return {
+      escritoriosAlDia: escritorios.filter((d) => !versionDeApp(d.user_agent).actualizar).length,
+      escritoriosAtras: escritorios.filter((d) => versionDeApp(d.user_agent).actualizar).length,
+      sinEntrar7d: usuarios.filter((p) => !p.ultimo || Date.parse(p.ultimo.last_seen_at) < semana).length,
+      pendientes: dispositivos.filter((d) => d.status === "pending").length,
+      bloqueos24h: bloqueados.filter((b) => Date.parse(b.at) > dia).length,
+    };
+  }, [dispositivos, usuarios, bloqueados, ahora]);
+
   return (
     <div className="container" style={{ padding: "16px 20px", maxWidth: 1400 }}>
       <h1 style={{ margin: "0 0 4px" }}>
@@ -428,6 +443,29 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
       <p className="hint" style={{ marginTop: 0 }}>
         {t("Registered devices, who signs in from where, and the device rule switch.", "Dispositivos registrados, quién entra desde dónde, y el interruptor de la regla por dispositivo.")}
       </p>
+      {/* D-830: salud del sistema de un vistazo. Rojo = hay algo que hacer. */}
+      <div className="kpi-grid" data-bloque="salud" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
+        <div className="kpi" data-kpi="version" title={Object.entries(APP_VERSIONS).map(([k, v]) => `${k} ${v}`).join(" · ")}>
+          <b style={{ fontSize: 18 }}>{APP_VERSIONS.deliveries}</b><span>{t("Deliveries published", "Deliveries publicada")} · Security {APP_VERSIONS.security}</span>
+        </div>
+        <div className="kpi" data-kpi="escritorio" style={salud.escritoriosAtras ? { borderColor: "var(--red)" } : undefined}>
+          <b style={salud.escritoriosAtras ? { color: "var(--red)" } : { color: "var(--green)" }}>{salud.escritoriosAlDia}<span style={{ fontSize: 14, color: "var(--gray)" }}> / {salud.escritoriosAlDia + salud.escritoriosAtras}</span></b>
+          <span>{t(`Desktop apps on ${ESCRITORIO_MINIMO}`, `Apps de escritorio en ${ESCRITORIO_MINIMO}`)}{salud.escritoriosAtras ? ` · ${salud.escritoriosAtras} ${t("behind", "atrás")}` : ""}</span>
+        </div>
+        <div className="kpi" data-kpi="dentro"><b>{dentro.length}</b><span>{t("Signed in (last hour)", "Dentro (última hora)")}</span></div>
+        <div className="kpi" data-kpi="sin-entrar" style={salud.sinEntrar7d ? { borderColor: "var(--amber)" } : undefined}>
+          <b>{salud.sinEntrar7d}</b><span>{t("Users with no sign-in in 7 days", "Usuarios sin entrar en 7 días")}</span>
+        </div>
+        <div className="kpi" data-kpi="pendientes" style={salud.pendientes ? { borderColor: "var(--amber)" } : undefined}>
+          <b>{salud.pendientes}</b><span>{t("Devices pending approval", "Dispositivos por aprobar")}</span>
+        </div>
+        <div className="kpi" data-kpi="bloqueos" style={salud.bloqueos24h ? { borderColor: "var(--red)" } : undefined}>
+          <b>{salud.bloqueos24h}</b><span>{t("Web blocks (24 h)", "Bloqueos web (24 h)")}</span>
+        </div>
+        <div className="kpi" data-kpi="sitios-nuevos" style={sitiosNuevos.length ? { borderColor: "var(--red)" } : undefined}>
+          <b style={sitiosNuevos.length ? { color: "var(--red)" } : undefined}>{sitiosNuevos.length}</b><span>{t("New-device sign-ins (7 d)", "Entradas desde sitio nuevo (7 d)")}</span>
+        </div>
+      </div>
       {error && <div className="card" style={{ borderColor: "var(--red)" }}>{t("Could not read the security tables (is migration 229 applied?):", "No se pudieron leer las tablas de seguridad (¿está aplicada la 229?):")} {error}</div>}
       {aviso && <div className="card" style={{ borderColor: "var(--red)" }}>{aviso}</div>}
 
