@@ -50322,3 +50322,21 @@ Sello `deliveries` 1.529.0; repo 1.699.0.
 Sello `deliveries` 1.530.0; repo 1.700.0.
 
 **Pruebas:** `corte-de-ventas.test.ts`; `fecha-de-entrega`, `dia-de-entrega` y `borrador-y-duplicar` puestas al día.
+
+## D-846 · Mapa del Gestor: un camión por chofer, y lo manejado contra la ruta planeada
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `fix/mapa-un-camion-y-recorrido`, revisado y fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño, con captura de la ruta de Julio):** «¿por qué se miran 3 bubbles de Julio? Solo debería ser 1, que sea el driver en ese momento. Ahora quiero que la ruta que lleva el driver esté en otro color al de su ruta, para comparar si de verdad está siguiendo la ruta».
+
+**Causa medida:** no eran tres camiones en vivo. Las órdenes recogidas y aún sin entregar se pintaban como pin con la insignia «🚚» (D-459) en la dirección de entrega: Julio llevaba tres (1388, 1406, 1401) a 1102 W Expressway 83, Weslaco, abanicadas por D-367. Su camión en vivo era uno solo y estaba bien.
+
+**Qué cambia:**
+- **Pines (`recogida-y-ruta-del-dia.ts`, `mapa-de-rutas.ts`):** la orden recogida en camino lleva su número de parada («▲» sin número); el 🚚 queda solo para el camión en vivo. Las ya hechas en la misma parada y dirección son una burbuja con todas en la etiqueta.
+- **Un camión por chofer (`recorrido-contra-plan.ts`):** red de seguridad en `choferesEnVivo`, `GoogleMapView` y `LeafletMap`; el más nuevo gana. Sin parpadeo (D-837): `setPosition` y `setPath`.
+- **Planeado contra manejado:** la ruta planeada en el color del chofer, ensanchada a corredor; lo manejado (posiciones del día de `driver_locations` más las en vivo, `useRecorridoDelDia`) como línea oscura con borde blanco encima. Si sigue la ruta, la línea va dentro del corredor; si se sale, se ve fuera. Tramos sin GPS, punteados grises como en D-835. En el Gestor, «Ruta de hoy» y «Mi ruta». Ventas no lo carga.
+- Sin leyenda bajo el mapa, como pidió D-520.
+
+Sello `deliveries` 1.531.0; repo 1.701.0.
+
+**Pruebas:** `recorrido-contra-plan.test.ts`; `numeros-del-dia` y `recogida-y-ruta-del-dia` puestas al día.

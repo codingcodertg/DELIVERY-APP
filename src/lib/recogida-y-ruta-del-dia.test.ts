@@ -47,11 +47,13 @@ describe("1 · de dónde recoge el chofer: la tienda, o la dirección si no es t
 });
 
 describe("2 · el pin de lo entregado: su número, apagado", () => {
-  it("entregada con número: el número; sin número: el ✓ de antes; recogida y en camino: 🚚", () => {
+  it("entregada con número: el número; sin número: el ✓ de antes; recogida y en camino: su número, o ▲ sin él", () => {
     expect(marcaDeLaHecha(true, 5)).toBe("5");
     expect(marcaDeLaHecha(true, null)).toBe("✓");
     expect(marcaDeLaHecha(true, undefined)).toBe("✓");
-    expect(marcaDeLaHecha(false, 5)).toBe("🚚");
+    // **Puesto al día por D-846**: era «🚚», y en el mapa se confundía con el camión en vivo (el mapa de Julio, 3 camiones).
+    expect(marcaDeLaHecha(false, 5)).toBe("5");
+    expect(marcaDeLaHecha(false, null)).toBe("▲");
   });
 });
 

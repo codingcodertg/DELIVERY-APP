@@ -213,10 +213,11 @@ describe("el mapa numera con las paradas del día", () => {
     expect(de("__parada__Ana__1")!.label).toBe("Stop 1 — pick up P1, P2 · INV-E, INV-A — Ana · RDZ Pharr");
   });
   // Puesto al día por D-584: la entregada lleva su NÚMERO apagado en el pin, no un ✓ («keep the numbers and fade them»).
-  it("lo entregado lleva su número (apagado) y lo que va en camino 🚚; los dos conservan el número en el rótulo", () => {
+  it("lo entregado lleva su número (apagado) y lo que va en camino también su número, encendido; los dos lo dicen en el rótulo", () => {
     expect(de("__hecha__e")).toMatchObject({ badge: "2", dimmed: true });
     expect(de("__hecha__e")!.label).toContain("(Stop 2 · Delivered ");
-    expect(de("__hecha__b")).toMatchObject({ badge: "🚚" });
+    // **Puesto al día por D-846**: era «🚚», y en el mapa se leía como otro camión del chofer (el mapa de Julio).
+    expect(de("__hecha__b")).toMatchObject({ badge: "7", dimmed: false });
     expect(de("__hecha__b")!.label).toContain("(Stop 7 · On its way)");
   });
 });

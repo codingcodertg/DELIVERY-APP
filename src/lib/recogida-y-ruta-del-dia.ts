@@ -73,9 +73,14 @@ export function listaDelDia(paradas: readonly ParadaFisica[]): ParadaDeLaLista[]
 /**
  * La marca del pin de una parada ya hecha en el mapa. Entregada: su NÚMERO de parada del día, y el pin apagado (la opacidad
  * la pone `dimmed`); hasta aquí era un «✓» apagado (D-459) y el dueño: «keep the numbers and fade them instead of replacing
- * them with a faded checkmark». Sin número (una entregada que nadie ordenó), el «✓» de siempre. Recogida y en camino: «🚚».
+ * them with a faded checkmark». Sin número (una entregada que nadie ordenó), el «✓» de siempre.
+ *
+ * Recogida y en camino: también su NÚMERO (sin apagar: aún falta entregarla); sin número, «▲», la marca de «Cargada» del
+ * Recorrido. Hasta D-846 era «🚚», y en el mapa se leía como el camión: con tres órdenes cargadas para la misma dirección
+ * salían tres camioncitos más el camión en vivo. El dueño, 2026-11-04, con el mapa de Julio: «¿por qué se miran 3 bubbles
+ * de Julio? Solo debería ser 1, que sea el driver en ese momento». El 🚚 queda para el camión en vivo, y en la tabla.
  */
 export function marcaDeLaHecha(entregada: boolean, numero: number | null | undefined): string {
-  if (!entregada) return "🚚";
-  return numero != null ? String(numero) : "✓";
+  if (numero != null) return String(numero);
+  return entregada ? "✓" : "▲";
 }

@@ -131,6 +131,8 @@ import { fraseDeFaltan } from "@/lib/requisitos";
 import { CANDADOS_SIN_LEER, cargaCandados, dondeViveElCandado, estaBloqueada, pulsaCandado, quienBloqueo, type ClienteDeCandados, type EstadoDeCandados, type OpcionesDeCandados } from "@/lib/rutas-bloqueadas";
 import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, type AvisoDelGestor } from "@/lib/avisos-ocultos";
 import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
+import { lineasDelRecorridoReal, planContraRecorrido } from "@/lib/recorrido-contra-plan";
+import { useRecorridoDelDia } from "@/lib/useRecorridoDelDia";
 
 // ============================================================
 // Logistics Manager tool: assign the day's approved-but-undelivered orders
@@ -792,6 +794,11 @@ export default function RoutesPage() {
   const filtroChofer = useMemo(() => marcadosVigentes(selected, lanes.map((l) => l.key)), [selected, lanes]);
   const pasaFiltro = (ruta: string | null | undefined) => pasaElFiltro(filtroChofer, ruta);
   const lanesDelFiltro = lanes.filter((l) => pasaFiltro(l.key));
+  // D-846: lo que cada chofer MANEJÓ ese día (su GPS), para pintarlo encima de su ruta planeada. Solo los choferes de
+  // verdad (no las rutas temporales ni las huérfanas) y quien ve camiones (`veCamiones`); la base decide qué filas ve cada
+  // rol (121). El dueño: «quiero que la ruta que lleva el driver esté en otro color al de su ruta, para comparar».
+  const choferesDelRecorrido = useMemo(() => lanes.filter((l) => !l.isBucket && !l.id.startsWith("orphan:") && !l.id.startsWith("bucket:")).map((l) => ({ id: l.id, nombre: l.driver })), [lanes]);
+  const recorridoDelDia = useRecorridoDelDia(choferesDelRecorrido, date, veCamiones, driverLocations, date === todayISO());
 
   // Desde qué puesto se numera la ruta de un chofer al moverla a mano: tras lo que ya recogió o entregó en esas fechas, que
   // el Gestor no enseña pero «Mi ruta» sí (D-433, `inicioDeLaSecuencia`).
@@ -2266,9 +2273,11 @@ export default function RoutesPage() {
         }
       }
     }
-    return out;
+    // D-846: lo manejado encima de lo planeado (lib/recorrido-contra-plan): la ruta en el color del chofer, más ancha; lo
+    // manejado, fino y oscuro con borde blanco; los huecos sin GPS, punteados y grises (D-835).
+    return planContraRecorrido(out, lineasDelRecorridoReal(recorridoDelDia, { pasaFiltro, atenuada: isDim }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeLines, trazosDelPlan, byDriver, rutasPublicadas, deliveries, selected, settings.driver_colors, selectedOrders, selRouteCache, selPickup, selColorById, dayOrders, filtroChofer]);
+  }, [routeLines, trazosDelPlan, byDriver, rutasPublicadas, deliveries, selected, settings.driver_colors, selectedOrders, selRouteCache, selPickup, selColorById, dayOrders, filtroChofer, recorridoDelDia]);
 
   const onLineClick = (id: string) => {
     const ruta = rutaDeLaLinea(id);

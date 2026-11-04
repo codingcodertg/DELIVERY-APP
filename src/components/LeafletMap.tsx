@@ -6,6 +6,7 @@ import type { Map as LeafletMapInstance, Marker, Polyline, Polygon as LeafletPol
 import { colorZona, ESTILO_ZONA } from "@/lib/delivery-zone";
 import { centroInicial, encuadreFinal } from "@/lib/encuadre-del-mapa";
 import { casaDeTienda, dibujoTienda, estiloTienda, TIENDA_CLASICA, Z_CASITA_DESPACHO, type PapelTienda } from "@/lib/store-pins";
+import { unCamionPorChofer } from "@/lib/recorrido-contra-plan";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type L = any;
@@ -100,6 +101,12 @@ export interface MapLine {
   dimmed?: boolean;
   /** Sideways pixel offset, so parallel routes on one road sit side by side. */
   offset?: number;
+  /** Ancho en píxeles; sin él, 6 (4 atenuada). D-846: la ruta planeada se ensancha bajo lo manejado. */
+  weight?: number;
+  /** Un borde de este color por debajo (2 px a cada lado), para que la línea se lea encima de otra (D-846). */
+  borde?: string;
+  /** Por encima de las rutas planeadas: lo manejado por el chofer (D-846, `recorrido-contra-plan`). */
+  encima?: boolean;
 }
 
 export function LeafletMap({
@@ -279,7 +286,9 @@ export function LeafletMap({
       linesRef.current.forEach((l) => l.remove());
       linesRef.current = [];
       offsetLinesRef.current = [];
-      const ordered = [...lines].sort((a, b) => Number(!!b.dimmed) - Number(!!a.dimmed));
+      // Leaflet apila por orden de dibujo: lo atenuado, lo planeado y, encima, lo manejado por el chofer (D-846).
+      const capa = (l: MapLine) => (l.encima ? 2 : l.dimmed ? 0 : 1);
+      const ordered = [...lines].sort((a, b) => capa(a) - capa(b));
       for (const line of ordered) {
         if (line.positions.length < 2) continue;
         const off = line.offset ?? 0;
@@ -287,9 +296,15 @@ export function LeafletMap({
         // A fat invisible line under each makes routes easy to click even
         // where they're thin or overlapping.
         const hit = L.polyline(ll, { color: line.color, weight: 20, opacity: 0 }).addTo(mapRef.current!);
+        const ancho = line.weight ?? (line.dimmed ? 4 : 6);
+        if (line.borde && !line.dashed) {
+          const borde = L.polyline(ll, { color: line.borde, weight: ancho + 4, opacity: line.dimmed ? 0.3 : 0.9, interactive: false }).addTo(mapRef.current!);
+          linesRef.current.push(borde);
+          offsetLinesRef.current.push({ poly: borde, hit: borde, base: line.positions, offset: off });
+        }
         const poly = L.polyline(ll, {
           color: line.color,
-          weight: line.dimmed ? 4 : 6,
+          weight: ancho,
           opacity: line.dimmed ? 0.3 : 0.95,
           dashArray: line.dashed ? "3 9" : undefined,
         }).addTo(mapRef.current!);
@@ -411,7 +426,8 @@ export function LeafletMap({
       if (cancelled || !mapRef.current) return;
       liveLayerRef.current.forEach((m) => m.remove());
       liveLayerRef.current = [];
-      for (const d of liveDrivers) {
+      // D-846: UNA marca por chofer, la de su posición más nueva (la misma regla que el mapa de Google).
+      for (const d of unCamionPorChofer(liveDrivers)) {
         if (d.lat == null || d.lng == null) continue;
         // Grey once the fix goes stale: this is where the truck WAS, not where
         // it is. Matches the Google map so the two never disagree.
