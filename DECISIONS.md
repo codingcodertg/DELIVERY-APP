@@ -50340,3 +50340,19 @@ Sello `deliveries` 1.530.0; repo 1.700.0.
 Sello `deliveries` 1.531.0; repo 1.701.0.
 
 **Pruebas:** `recorrido-contra-plan.test.ts`; `numeros-del-dia` y `recogida-y-ruta-del-dia` puestas al día.
+
+## D-847 · Clientes: «Guardar borrador» en el alta y una sola casilla de dirección
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `feat/clientes-borrador-y-direccion`, revisado y fusionado por el orquestador (laptop nueva).
+
+**Pedido (Roberto Rodriguez Jr, admin, solicitud `3914768b`, en /customers):** «1) need a save draft 2) address box should not repeat». La captura marca un hueco junto a Cancelar y una segunda casilla «ADDRESS» vacía bajo Redes, debajo de la dirección del contacto.
+
+**Causa de la dirección doble:** D-697 dio dirección a cada contacto y D-772 la pide al contacto 1 en el alta; D-786 devolvió la dirección de la cuenta debajo de los contactos. Al crear o editar salían dos.
+
+**Qué cambia:**
+- **Guardar borrador (`borrador-del-alta.ts`):** «💾 Guardar borrador» junto a Cancelar en Cliente nuevo. Guarda formulario, contactos, redes y tiendas en este navegador, uno por usuario (`rtg_customers_new_draft_<id>`). Al volver a abrir Cliente nuevo: «Tienes un borrador guardado…» con Restaurar y Descartar. Se borra al crear o mandar la solicitud. Lo que el formulario pone solo (el vendedor, la tienda fija) gana al borrador. No sigue a otra computadora: haría falta una migración en `user_prefs`.
+- **Una sola dirección (`direccion-unica.ts`):** la del contacto 1 es también la de la cuenta (la que leen órdenes y búsqueda). Al crear o editar solo se ve esa casilla, con la nota «También es la dirección de la cuenta». Si el contacto 1 no tiene y la cuenta sí (filas del Excel), la casilla nace con la de la cuenta. Al guardar, la de la cuenta sigue a la del contacto solo si esa casilla cambió. Filas que ya tienen dos direcciones distintas siguen enseñando las dos.
+
+Sello `customers` 0.40.0; repo 1.702.0.
+
+**Pruebas:** `customers/borrador-del-alta.test.ts`; `customers/direccion-unica.test.ts`.
