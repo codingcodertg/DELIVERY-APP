@@ -3,6 +3,8 @@ import { resendFrom } from "@/lib/email";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CUBO_DE_ADJUNTOS, LIMITES_DE_ADJUNTOS, VALIDEZ_DEL_ENLACE, esMiRuta, lineasDeAdjuntos } from "@/lib/help-attachments";
 import { destinoDeAyuda, type ContactoDeAyuda } from "@/lib/ayuda-flotante";
+import { enlaceParaCopiar, htmlDelCorreoDeAyuda } from "@/lib/ayuda-para-claude";
+import { origenPublico } from "@/lib/avisos-cliente-envio";
 
 import { requireUser } from "@/lib/api-auth";
 
@@ -155,19 +157,29 @@ export async function POST(req: Request) {
   };
 
   const subject = `Help request from ${who}${roleLabel}`;
-  const text = [
-    message,
-    "",
-    "———",
+  // «📋 Copy for Claude» (D-NEXT): la pantalla del hub que deja la solicitud lista para pegarla en Claude —texto e
+  // imagen de una vez— y baja la captura sola. Absoluto, con el dominio de producción: el correo se abre fuera de la app.
+  const copiar = fila?.id ? enlaceParaCopiar(origenPublico(req.url), String(fila.id)) : null;
+  const contexto = [
     `From: ${who}${senderEmail ? ` <${senderEmail}>` : ""}${roleLabel}`,
     body.page ? `Page: ${body.page}` : null,
     body.appVersion ? `App version: ${body.appVersion}` : null,
     body.lang ? `Language: ${body.lang}` : null,
     `Sent: ${new Date().toISOString()}`,
+  ].filter((l): l is string => !!l);
+  const text = [
+    message,
+    "",
+    copiar ? `📋 Copy for Claude: ${copiar}` : null,
+    "———",
+    ...contexto,
     ...lineasDeAdjuntos(adjuntos),
   ]
     .filter(Boolean)
     .join("\n");
+  // Lo mismo en HTML, con el botón arriba y las fotos adjuntas pintadas dentro (el mismo enlace firmado de 30 días).
+  // El texto sigue yendo: es lo que lee un cliente sin HTML.
+  const html = htmlDelCorreoDeAyuda({ mensaje: message, contexto, adjuntos, enlaceParaCopiar: copiar });
 
   const key = process.env.RESEND_API_KEY;
   const from = resendFrom();
@@ -188,6 +200,7 @@ export async function POST(req: Request) {
         to,
         subject,
         text,
+        html,
         ...(EMAIL_RE.test(senderEmail) ? { reply_to: senderEmail } : {}),
       }),
     });

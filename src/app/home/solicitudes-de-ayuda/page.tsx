@@ -10,6 +10,7 @@ import {
 } from "@/lib/help-requests";
 import { noLeidosPorSolicitud, type MensajeDeAyuda } from "@/lib/help-thread";
 import { HiloDeAyuda } from "@/components/HiloDeAyuda";
+import { rutaParaCopiar } from "@/lib/ayuda-para-claude";
 
 /**
  * Las solicitudes de ayuda, en el hub y solo para el admin (D-285).
@@ -145,6 +146,8 @@ export default function SolicitudesDeAyudaPage() {
             <span className="sema" style={{ background: "var(--red)", color: "#fff" }}>💬 {sinLeer.get(s.id)}</span>
           )}
           <span style={{ flex: 1 }} />
+          {/* «Copiar para Claude» (D-NEXT): la misma pantalla a la que lleva el botón del correo. */}
+          <Link href={rutaParaCopiar(s.id)} className="btn btn-ghost btn-sm" data-copiar-para-claude>📋 {t("Copy for Claude", "Copiar para Claude")}</Link>
           <button className="btn btn-ghost btn-sm" onClick={() => { setAbierta(abiertaEsta ? null : s.id); if (!abiertaEsta) setSinLeer((m) => { const c = new Map(m); c.delete(s.id); return c; }); }}>
             {abiertaEsta ? t("Hide", "Ocultar") : t("Open", "Abrir")}
           </button>
