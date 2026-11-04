@@ -50252,3 +50252,23 @@ Sello `promos` 0.22.0; repo 1.695.0.
 Sello `deliveries` 1.528.0; repo 1.696.0.
 
 **Pruebas:** `app-update.test.ts`.
+
+## D-842 · RR. HH.: cambiar el usuario del hub desde la ficha del empleado
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `feat/hr-editar-usuario`, revisado y fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño):** «déjame poder editar el usuario del hub a los usuarios en el HR».
+
+**Qué había:** desde D-721, «Permisos» abierto desde la ficha esconde el campo Usuario porque «vive en la ficha», pero la ficha nunca tuvo con qué cambiarlo.
+
+**Qué cambia:**
+- **Ficha del empleado, «Cuenta del hub»:** botón «✏️ Cambiar usuario» (o «Poner usuario»), solo para el admin del hub, junto a «Poner contraseña nueva». Comprueba el formato al teclear y dice qué pasará: con cuenta de usuario, entra con el nuevo y la misma contraseña, y el viejo deja de servir; con cuenta de correo, sigue entrando con su correo.
+- **Una sola ruta (`/api/user-identity`), con tres reglas nuevas (`cambio-de-usuario.ts`) que valen también en Usuarios:**
+  - Un usuario ya tomado se rechaza ANTES de mover el correo de acceso.
+  - Quitar el usuario a quien entra con él se rechaza: el viejo seguiría abriendo la puerta. Para quitar el acceso está dar de baja.
+  - Una cuenta con alias de baja (D-709) a la que se le da usuario pasa a entrar con él, para que un reactivado pueda entrar.
+- Un correo de verdad nunca se reescribe por renombrar. El cambio queda en el registro de seguridad (`username_changed`), no en el Historial de RR. HH.
+
+Sello `recruiting` 0.73.0; repo 1.697.0.
+
+**Pruebas:** `cambio-de-usuario.test.ts`.

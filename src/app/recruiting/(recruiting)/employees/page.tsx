@@ -31,6 +31,8 @@ import { PermisosDelEmpleado } from "@/components/recruiting/PermisosDelEmpleado
 import { ActivosDelEmpleado } from "@/components/recruiting/ActivosDelEmpleado";
 import { HistorialDeRrhh } from "@/components/recruiting/HistorialDeRrhh";
 import { ConfirmarConMotivo } from "@/components/recruiting/ConfirmarConMotivo";
+import { revisaUsuarioNuevo } from "@/lib/cambio-de-usuario";
+import { esAliasDeBaja } from "@/lib/credenciales-liberadas";
 import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
 import { nombreDeDepartamento } from "@/lib/departamentos";
 import { PLANES_DE_CORREO, tooltipDelPlan } from "@/lib/recruiting/planes-de-correo";
@@ -496,6 +498,27 @@ function Ficha({
     if (r.ok) void cargaCuenta();
   }
 
+  // El usuario del hub (`profiles.username`) se cambia aquí, con la misma ruta que Usuarios (`/api/user-identity`,
+  // solo admin del hub, comprobado en el servidor). Si entra con usuario, la ruta mueve también su correo de acceso:
+  // entra con el nuevo y el viejo deja de servir. `null` = el editor está cerrado.
+  const puedeUsuario = hub?.role === "admin" && !!persona.profile_id;
+  const [usuarioNuevo, setUsuarioNuevo] = useState<string | null>(null);
+  const revisionUsuario = revisaUsuarioNuevo(usuarioNuevo, hechos?.usuario);
+  // Entra con el usuario: su correo es el derivado, o el alias de una baja (al darle usuario, pasa a entrar con él).
+  const entraConUsuario = cuenta.acceso === "usuario" || esAliasDeBaja(hechos?.inicio);
+  async function guardaUsuario() {
+    if (!persona.profile_id || !revisionUsuario.ok) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/user-identity", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: persona.profile_id, username: revisionUsuario.usuario }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { notify("Error: " + (data.error || res.statusText)); return; }
+      notify(t(`Username changed to «${revisionUsuario.usuario}» ✓`, `Usuario cambiado a «${revisionUsuario.usuario}» ✓`));
+      setUsuarioNuevo(null);
+      void cargaCuenta();
+    } finally { setBusy(false); }
+  }
+
   const cargaDocs = useCallback(async () => {
     const r = await getEmployeeDocs(persona.id);
     // Si falla se deja la lista VACÍA, no en null: null significa "cargando", y dejarlo
@@ -949,9 +972,47 @@ function Ficha({
                 🔒 {t("Set a new password", "Poner contraseña nueva")}
               </button>
             )}
+            {/* Con correo, el usuario no es lo que teclea: se enseña aparte para saber qué se está cambiando. */}
+            {!entraConUsuario && hechos?.usuario && (
+              <span data-dato="usuario-del-hub">{t("Username", "Usuario")}: <b>{hechos.usuario}</b></span>
+            )}
+            {puedeUsuario && usuarioNuevo === null && (
+              <button className="btn btn-ghost btn-sm" data-accion="cambiar-usuario" disabled={busy}
+                onClick={() => setUsuarioNuevo(hechos?.usuario ?? "")}>
+                ✏️ {hechos?.usuario ? t("Change username", "Cambiar usuario") : t("Set a username", "Poner usuario")}
+              </button>
+            )}
           </>
         )}
       </div>
+      {puedeUsuario && cuenta.tieneCuenta && usuarioNuevo !== null && (
+        <div className="card" data-editor="usuario-del-hub" style={{ margin: "10px 0 0" }}>
+          <div className="field">
+            <label>{t("New hub username", "Usuario nuevo del hub")}</label>
+            <input value={usuarioNuevo} autoFocus autoCapitalize="none" autoCorrect="off" spellCheck={false} maxLength={30}
+              placeholder={hechos?.usuario ?? "maximo.garza"}
+              onChange={(e) => setUsuarioNuevo(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") void guardaUsuario(); if (e.key === "Escape") setUsuarioNuevo(null); }} />
+          </div>
+          <div className="hint">
+            {!revisionUsuario.ok && revisionUsuario.motivo === "formato"
+              ? t("3–30 characters: letters, numbers, dot, dash or underscore, starting with a letter or number.",
+                  "De 3 a 30 caracteres: letras, números, punto, guion o guion bajo; empieza con letra o número.")
+              : entraConUsuario
+                ? t(`They will sign in as «${revisionUsuario.ok ? revisionUsuario.usuario : "…"}» with the same password.${hechos?.usuario ? ` «${hechos.usuario}» stops working right away.` : ""}`,
+                    `Entrará como «${revisionUsuario.ok ? revisionUsuario.usuario : "…"}» con la misma contraseña.${hechos?.usuario ? ` «${hechos.usuario}» deja de servir de inmediato.` : ""}`)
+                : t("They sign in with their email and keep doing so: this only changes their hub username.",
+                    "Entra con su correo y lo seguirá haciendo: esto solo cambia su usuario del hub.")}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button className="btn btn-primary btn-sm" data-accion="guardar-usuario" disabled={busy || !revisionUsuario.ok}
+              onClick={() => void guardaUsuario()}>
+              {t("Save username", "Guardar usuario")}
+            </button>
+            <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setUsuarioNuevo(null)}>{t("Cancel", "Cancelar")}</button>
+          </div>
+        </div>
+      )}
       {contrasenaNueva && (
         <div className="card" data-contrasena-nueva style={{ margin: "10px 0 0", background: "var(--accent-soft)", borderColor: "var(--accent)" }}>
           <div><b>{t("New password", "Contraseña nueva")}:</b> <span style={{ fontFamily: "monospace", fontSize: 17 }}>{contrasenaNueva}</span></div>

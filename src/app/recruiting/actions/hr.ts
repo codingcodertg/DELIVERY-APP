@@ -582,6 +582,9 @@ export async function accountFactsFor(profileIds: string[]): Promise<
   try { admin = createAdminClient(); }
   catch { return { ok: false, message: "Server not configured: SUPABASE_SERVICE_ROLE_KEY is missing." }; }
 
+  // El usuario vive en `profiles`, no en Auth: una sola lectura para todas las cuentas.
+  const { data: perfiles } = await admin.from("profiles").select("id, username").in("id", ids);
+  const usuarioDe = new Map((perfiles ?? []).map((p) => [p.id as string, (p.username as string | null) ?? null]));
   const facts = await Promise.all(ids.map(async (id): Promise<HechosDeCuenta> => {
     const { data } = await admin.auth.admin.getUserById(id);
     const u = data?.user;
@@ -597,6 +600,7 @@ export async function accountFactsFor(profileIds: string[]): Promise<
       last_sign_in_at: u.last_sign_in_at ?? null,
       deshabilitada: !!hasta && new Date(hasta).getTime() > Date.now(),
       inicio: conQueEntra(email),
+      usuario: usuarioDe.get(id) ?? null,
     };
   }));
   return { ok: true, facts };

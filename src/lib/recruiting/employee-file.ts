@@ -84,6 +84,8 @@ export interface HechosDeCuenta {
   deshabilitada: boolean;
   /** D-809: lo que la persona TECLEA para entrar: su usuario (sin el dominio sintético) o su correo. */
   inicio?: string | null;
+  /** El usuario del hub (`profiles.username`), aunque entre con correo. Es lo que «Cambiar usuario» edita. */
+  usuario?: string | null;
 }
 
 /** D-809: lo que se teclea para entrar al hub. Con usuario, el correo sintético es maquinaria: se enseña solo el
