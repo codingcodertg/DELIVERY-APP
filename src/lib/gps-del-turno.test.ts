@@ -69,12 +69,19 @@ describe("la migración 206 y quién escribe", () => {
     // D-836: con el estado, la versión web que corre el teléfono.
     expect(provider).toContain('.update({ gps, gps_at: new Date().toISOString(), app: ');
   });
-  it("el rastreador ya no tira el estado y la barra enseña el aviso 📡", () => {
+  it("el rastreador ya no tira el estado", () => {
     const tracker = lee("src/components/LocationTracker.tsx");
     expect(tracker).toContain("const { status, native } = useLiveLocation(track);");
     expect(tracker).toContain("avisoDeGps({");
+  });
+  // El «📡 N» de la barra (D-714) se quitó a pedido del dueño: «remove this satellite thing». Los choferes que no
+  // reportan siguen en el aviso del Gestor de rutas (`trackingGaps` en routes/page.tsx); la barra ya no los cuenta.
+  it("la barra de Entregas ya no enseña el aviso 📡 de choferes sin GPS", () => {
     const barra = lee("src/components/TopBar.tsx");
-    expect(barra).toContain("trackingGaps(users, shifts, driverLocations)");
-    expect(barra).toContain('data-aviso-gps');
+    expect(barra).not.toContain("data-aviso-gps");
+    expect(barra).not.toContain("trackingGaps");
+    expect(barra).not.toContain("📡");
+    expect(barra).not.toContain("aren't reporting their location");
+    expect(lee("src/app/(app)/routes/page.tsx")).toContain("trackingGaps(users, shifts, driverLocations)");
   });
 });
