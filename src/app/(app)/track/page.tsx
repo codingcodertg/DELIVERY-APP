@@ -534,7 +534,7 @@ export default function TrackPage() {
                   <tr key={h.id}>
                     <td style={{ fontVariantNumeric: "tabular-nums" }}>{clock(h.at, lang)}</td>
                     {!unSolo && <td><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: color(h.chofer), marginRight: 6 }} />{h.chofer}</td>}
-                    <td>{h.kind === "delivered" ? <b style={{ color: "var(--green)" }}>✓ {t("Delivered", "Entregada")}</b> : <b style={{ color: "#2456c9" }}>▲ {t("Picked up", "Cargada")}</b>}</td>
+                    <td>{h.kind === "delivered" ? <b style={{ color: "var(--green)" }}>✓ {t("Delivered", "Entregada")}</b> : <b style={{ color: "var(--accent)" }}>▲ {t("Picked up", "Cargada")}</b>}</td>
                     <td className="ordno">{h.etiqueta}</td>
                     <td>{h.direccion ?? "—"}</td>
                   </tr>
