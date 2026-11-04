@@ -21,7 +21,7 @@
 // bajar nada (D-029/D-087) y se queda con codigo viejo sin que nadie lo note.
 // Ver "Flujo de ramas" en CLAUDE.md y docs/WORKFLOW-PARALELO.md.
 export const APP_VERSIONS = {
-  deliveries: "1.531.0",
+  deliveries: "1.532.0",
   recruiting: "0.74.0",
   timetracker: "1.15.2",
   clockin: "0.45.0",
@@ -53,4 +53,4 @@ export type AppKey = keyof typeof APP_VERSIONS;
  * para los cambios que tienen que llegar a los teléfonos de los choferes (el GPS de D-835). Se sube a mano solo cuando
  * hace falta; lo normal es la recarga suave. Una página con un formulario abierto espera hasta 3 minutos.
  */
-export const RECARGA_OBLIGATORIA: Partial<Record<AppKey, string>> = { deliveries: "1.524.0" };
+export const RECARGA_OBLIGATORIA: Partial<Record<AppKey, string>> = { deliveries: "1.532.0" };
