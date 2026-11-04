@@ -50435,3 +50435,19 @@ Sello `promos` 0.23.1; repo 1.706.0.
 Sellos `deliveries` 1.533.0, `recruiting` 0.75.0, `timetracker` 1.15.3, `estimator` 0.28.0, `leads` 0.17.0, `surveys` 0.9.0; repo 1.707.0.
 
 **Pruebas:** `telefono-unico.test.ts` (todos los ayudantes iguales y barrido contra el formato viejo); D-432, activos, historial, tabla de empleados, buscador, estimador y leads puestas al día.
+
+## D-853 · Clientes: se filtra y se ordena por lo que se ve
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `fix/clientes-sin-ocultas`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño):** «Customers: eso que están ocultas no me gusta porque afecta los filtros y el sorting, arregla eso».
+
+**Qué eran las ocultas (dos cosas, `lo-que-se-ve.ts`):**
+- **Columnas ocultas:** un filtro o un nivel de orden puesto en una columna que luego se escondía con ⚙ Columnas seguía mandando: faltaban filas sin un ▾ a la vista para quitarlo, y la lista seguía ordenada por algo invisible (demo: Términos = «Net 30» y esconder Términos dejaba 1 empresa de 7). Ahora se ignoran mientras la columna está escondida, como en Órdenes (D-360), y vuelven si se enseña. «Filtrado por», «Ordenado por» y los números de nivel dicen solo lo que manda.
+- **La tienda escondida en «+N» (D-673):** el filtro de Tienda casaba con cualquier tienda de la empresa, pero la línea enseñaba otra con sus datos (demo: Tienda = Pharr enseñaba «RDZ McAllen +1» con el estado y el vendedor de McAllen). Ahora, con el filtro de Tienda puesto, la línea de cada empresa es su fila de una tienda elegida, y los demás filtros, el orden y las opciones usan esa fila. El «tienda +N» compacto de D-673 queda igual; no se añade ni se quita ninguna empresa.
+
+**Descartado:** el buscador, QB y las pastillas de tienda ya elegían la fila que coincide; «Ver más» ordena y filtra todo antes de paginar; los archivados no cuentan sin su chip.
+
+Sello `customers` 0.41.0; repo 1.708.0.
+
+**Pruebas:** `customers/lo-que-se-ve.test.ts` (7 de 9 fallaban con el comportamiento viejo).
