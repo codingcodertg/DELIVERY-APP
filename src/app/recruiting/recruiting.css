@@ -354,3 +354,16 @@
 .recruiting-module details.seccion[open] > summary .sec-title::before { content: "▾ "; }
 .recruiting-module fieldset.ficha-campos { border: 0; padding: 0; margin: 0; min-width: 0; }
 .recruiting-module fieldset.ficha-campos:disabled input, .recruiting-module fieldset.ficha-campos:disabled select, .recruiting-module fieldset.ficha-campos:disabled textarea { background: transparent; border-style: dashed; color: var(--ink); cursor: default; }
+
+/* El buscador de la barra (GlobalSearch): candidatos y empleados en dos grupos, y que se note cuál es cuál sin leer.
+   Candidato = azul de la app (--accent); empleado = verde y avatar cuadrado. Solo tokens: los dos temas los mueven. */
+.recruiting-module .gs-grupo + .gs-grupo { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 2px; }
+.recruiting-module .gs-cabecera { display: flex; align-items: center; gap: 6px; padding: 8px 10px 4px; font-size: 11px; font-weight: 800; color: var(--ink-soft); }
+.recruiting-module .gs-nombre { display: flex; align-items: center; gap: 6px; min-width: 0; font-weight: 700; font-size: 13px; }
+.recruiting-module .gs-nombre-texto { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recruiting-module .gs-detalle { font-size: 11px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recruiting-module .gs-tipo { flex: 0 0 auto; display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; }
+.recruiting-module .gs-tipo[data-tipo="candidato"] { background: var(--accent-soft); color: var(--accent); }
+.recruiting-module .gs-tipo[data-tipo="empleado"] { background: var(--tint-green); color: var(--green-deep); }
+.recruiting-module .avatar.gs-avatar-empleado { width: 30px; height: 30px; flex: 0 0 30px; font-size: 12px; border-radius: 8px; background: var(--tint-green); color: var(--green-deep); }
+.recruiting-module .gs-buscando { padding: 6px 10px; font-size: 11px; color: var(--gray); }
