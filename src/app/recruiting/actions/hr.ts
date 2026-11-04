@@ -368,6 +368,9 @@ async function ponAcceso(profileId: string, encendida: boolean): Promise<{ ok: b
   catch { return { ok: false, message: "SUPABASE_SERVICE_ROLE_KEY is missing." }; }
   const { error } = await admin.auth.admin.updateUserById(profileId, { ban_duration: encendida ? "none" : BAN_INDEFINIDO });
   if (error) return { ok: false, message: error.message };
+  // D-828: apagar la cuenta también cierra lo que tuviera abierto. El ban ya impide renovar la sesión, pero sin esto
+  // quedaban sesiones «vivas» en Auth (Melissa Garza: 23). Si la RPC falta (236 sin aplicar) la baja no se detiene.
+  if (!encendida) await admin.rpc("security_sign_out_user", { p_user: profileId });
   return { ok: true };
 }
 

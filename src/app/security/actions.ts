@@ -57,6 +57,20 @@ export async function borraDispositivo(id: string): Promise<R> {
   return { ok: true };
 }
 
+/**
+ * D-828: cerrar TODAS las sesiones de una persona («perdió el teléfono», «sospecho de esa cuenta»). La RPC de la 236
+ * borra sus filas de auth.sessions (los refresh tokens caen en cascada) y deja rastro en security_events. En cualquier
+ * app que tuviera abierta, la siguiente petición la manda al login. Devuelve cuántas cerró.
+ */
+export async function cierraSesionesDe(userId: string): Promise<{ ok: true; cerradas: number } | { ok: false; message: string }> {
+  const a = await admin();
+  if (!a.ok) return a;
+  const { data, error } = await a.supabase.rpc("security_sign_out_user", { p_user: userId });
+  if (error) return { ok: false, message: error.message };
+  revalidatePath("/security");
+  return { ok: true, cerradas: Number(data ?? 0) };
+}
+
 /** El interruptor. Encender es lo que activa la regla para todo el mundo; se deja quién y cuándo. */
 /** D-826: la lista de excepciones de la web bloqueada (235): personas que entran por la web aunque su rol esté bloqueado. */
 export async function cambiaExcepcionesWeb(ids: string[]): Promise<R> {
