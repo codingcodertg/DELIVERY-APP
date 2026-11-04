@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PrefsProvider } from "@/lib/prefs";
 import { VersionStamp } from "@/components/VersionStamp";
-import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { CierreDiario } from "@/components/CierreDiario";
 import { HelpButton } from "@/components/HelpButton";
 import { ChatFlotante } from "@/components/ChatFlotante";
@@ -60,13 +59,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        {/* Antes que nada, y FUERA de `PrefsProvider` a propósito: no usa `usePrefs` porque quien
-            lee esto necesita entenderlo aunque la preferencia de idioma cargada sea la de la
-            persona en la que se entró, no la suya (D-243). Desde D-516 habla el idioma del
-            admin que entró, que le dice `/api/impersonate/state` (D-483 lo había dejado en
-            español fijo). Que uno de los dos avisos vaya fuera y el otro dentro no es descuido:
-            es que preguntan cosas distintas. */}
-        <ImpersonationBanner />
+        {/* Aquí iba la franja de «Entrar como» (`ImpersonationBanner`, D-243). Desde D-NEXT no hay franja: el aviso
+            («Estás como…», burbuja naranja) y la vuelta (botón rojo) viven en la burbuja general, abajo. El dueño:
+            «ya no quiero esa línea de arriba cuando cambio de usuario; es ineficiente». */}
         <PrefsProvider>
           {/* El aviso del modo enseñanza (D-626), encima de todo en las apps que no tienen el suyo: el mismo interruptor
               de la burbuja vale para todas. Dentro de `PrefsProvider` porque habla en el idioma de la persona. */}

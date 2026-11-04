@@ -79,7 +79,7 @@ describe("el aviso fijo", () => {
   it("va encima de la barra, en la misma cabecera pegada arriba", () => {
     expect(barra).toMatch(/<div className="tt-cabecera">\n\s*<AvisoDeCapacitacion \/>\n\s*<BarraDeApp /);
     const css = leer("src/app/timetracker/timetracker.css");
-    expect(css).toContain(".timetracker-module .tt-cabecera{position:sticky;top:var(--banner-impersonacion, 0px);z-index:20;margin-bottom:6px}");
+    expect(css).toContain(".timetracker-module .tt-cabecera{position:sticky;top:0;z-index:20;margin-bottom:6px}");
     expect(css).toContain(".timetracker-module .tt-cabecera .topbar{position:static;margin-bottom:0}");
   });
   it("solo se ve encendida, dice que nada se guarda y deja salir", () => {

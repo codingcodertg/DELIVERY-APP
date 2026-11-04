@@ -109,7 +109,10 @@ describe("D-623 (2026-10-21): el switch y la vista móvil salen de la barra y va
     expect(plana).toContain('<SwitchUserPanel users={servidor.users} tiendas={servidor.stores} onClose={() => setCambiando(false)} destino={destinoDeLaApp(pathname)} />');
     expect(plana).toContain('⇄</span> {t("Switch user", "Cambiar usuario")}');
     expect(plana).toContain('href={enlaceAVistaMovil(pathname || "/")}');
-    expect(burbuja.split("<SwitchUserPanel").length - 1).toBe(1);
+    // Dos montajes del MISMO panel desde D-NEXT: el del admin real (entrar) y el de dentro de una suplantación (saltar),
+    // que vivía en la franja de arriba.
+    expect(burbuja.split("<SwitchUserPanel").length - 1).toBe(2);
+    expect(burbuja.split('modo="saltar"').length - 1).toBe(1);
   });
 
   it("se lo pregunta al servidor UNA vez, a /api/impersonate/candidates, y por defecto no ofrece nada de admin", () => {
@@ -120,7 +123,7 @@ describe("D-623 (2026-10-21): el switch y la vista móvil salen de la barra y va
     expect(plana).toContain("habilitado: d.habilitado === true,");
   });
 
-  it("SUPLANTANDO no sale: la ruta contesta sin admin real en cuanto hay cookie de retorno, y en el banner manda su propio botón", () => {
+  it("SUPLANTANDO no sale como admin real: la ruta contesta sin admin real en cuanto hay cookie de retorno (la burbuja naranja pone las suyas)", () => {
     const ruta = sinComentarios(leer("src/app/api/impersonate/candidates/route.ts")).replace(/\s+/g, " ");
     expect(ruta).toContain("if (guardado) return NextResponse.json(nada);");
     expect(ruta).toContain("if (!esAdmin(perfil?.role)) return NextResponse.json(nada);");
@@ -136,9 +139,10 @@ describe("D-623 (2026-10-21): el switch y la vista móvil salen de la barra y va
     }
   });
 
-  it("el aviso de suplantación y «Volver a mi cuenta» siguen en la raíz, para todas las apps", () => {
-    expect(leer("src/app/layout.tsx")).toContain("<ImpersonationBanner />");
-    expect(leer("src/components/ImpersonationBanner.tsx")).toContain('fetch("/api/impersonate/return"');
+  it("el aviso de suplantación y «Volver a mi usuario» siguen en la raíz, para todas las apps (en la burbuja desde D-NEXT)", () => {
+    expect(leer("src/app/layout.tsx")).toContain("<BotonGeneral />");
+    expect(leer("src/lib/suplantacion-en-burbuja.ts")).toContain('export const RUTA_DE_VUELTA = "/api/impersonate/return";');
+    expect(leer("src/components/BotonGeneral.tsx")).toContain("<BotonVolverAMiUsuario ");
   });
 
   it("desde Entregas, la casa lleva al lobby en un clic con la misma regla de siempre", () => {

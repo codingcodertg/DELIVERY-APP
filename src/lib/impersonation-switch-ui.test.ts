@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 
 /**
- * Dónde se ve «Cambiar a otro usuario» (D-307): dentro del aviso naranja, junto a «Volver a mi
- * cuenta», en todas las apps, y montando el MISMO panel de D-247/D-306 por props.
+ * Dónde se ve «Cambiar a otro usuario» (D-307): dentro de la burbuja naranja (D-NEXT; hasta entonces en el aviso
+ * naranja de arriba), con «Volver a mi usuario» encima, en todas las apps, y montando el MISMO panel de D-247/D-306 por props.
  *
  * Lo que decide algo —a quién se puede saltar, qué hace la ruta— se prueba importado en
  * `impersonation-switch.test.ts` y `impersonation-candidates.test.ts`. Aquí, el cableado: que el botón
@@ -13,32 +13,35 @@ import { readFileSync } from "node:fs";
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-const banner = sinComentarios(leer("src/components/ImpersonationBanner.tsx"));
+// D-NEXT: la franja se fue; «Cambiar usuario» dentro de una suplantación vive en la burbuja general (naranja), con su
+// estado en `useSuplantacion`.
+const burbuja = sinComentarios(leer("src/components/BotonGeneral.tsx"));
+const sup = sinComentarios(leer("src/components/SuplantacionEnBurbuja.tsx"));
 const panel = sinComentarios(leer("src/components/SwitchUserPanel.tsx"));
 
-describe("el aviso naranja", () => {
-  it("tiene el botón junto a «Volver a mi cuenta», y sigue en el layout raíz para las cinco apps", () => {
-    // Textos acortados por D-483 (el aviso ocupaba demasiado): mismo orden, mismos dos botones.
-    expect(banner).toContain("⇄ Cambiar usuario");
-    expect(banner.indexOf("↩ Volver a mi cuenta")).toBeLessThan(banner.indexOf("⇄ Cambiar usuario"));
-    expect(leer("src/app/layout.tsx")).toContain("<ImpersonationBanner />");
+describe("la burbuja naranja (antes, el aviso naranja de arriba)", () => {
+  it("dentro de una suplantación ofrece «Cambiar usuario», y la burbuja sigue en el layout raíz para todas las apps", () => {
+    expect(burbuja).toContain('{tAdmin("Switch user", "Cambiar usuario")}');
+    expect(leer("src/app/layout.tsx")).toContain("<BotonGeneral />");
   });
 
   it("pide los candidatos al pulsar, no al montar: una carga normal sigue costando una petición", () => {
-    const montaje = banner.slice(banner.indexOf("useEffect(() => {"), banner.indexOf("const volver = useCallback"));
-    expect(montaje).toContain('fetch("/api/impersonate/state")');
+    const montaje = sup.slice(sup.indexOf("useEffect(() => {"), sup.indexOf("const volver = useCallback"));
+    expect(montaje).toContain("fetch(RUTA_DEL_ESTADO)");
     expect(montaje).not.toContain("candidates");
-    const abrir = banner.slice(banner.indexOf("const abrirSalto = useCallback"), banner.indexOf("const volver = useCallback"));
+    const abrir = sup.slice(sup.indexOf("const pideCandidatos = useCallback"), sup.indexOf("const cambiarDeVista = useCallback"));
     expect(abrir).toContain('fetch("/api/impersonate/switch/candidates")');
-    expect(abrir).toContain("if (candidatos) return;");
+    expect(abrir).toContain("if (candidatos) return true;");
   });
 
   it("monta el mismo panel, por props y en modo «saltar»", () => {
-    expect(banner).toContain('import { SwitchUserPanel } from "@/components/SwitchUserPanel";');
-    expect(banner).toContain('<SwitchUserPanel users={candidatos.users} tiendas={candidatos.stores} modo="saltar" onClose={() => setSaltando(false)} destino={destinoDeLaApp(pathname)} />');
-    // Sin proveedor de datos: el banner no monta `DataProvider` ni lee `useData`.
-    expect(banner).not.toContain("DataProvider");
-    expect(banner).not.toContain("useData");
+    expect(burbuja).toContain('import { SwitchUserPanel } from "@/components/SwitchUserPanel";');
+    expect(burbuja).toContain('<SwitchUserPanel users={sup.candidatos.users} tiendas={sup.candidatos.stores} modo="saltar" onClose={() => setCambiando(false)} destino={destinoDeLaApp(pathname)} />');
+    // Sin proveedor de datos: la burbuja vive en el layout raíz, sin `DataProvider`.
+    for (const f of [burbuja, sup]) {
+      expect(f).not.toContain("DataProvider");
+      expect(f).not.toContain("useData");
+    }
   });
 });
 

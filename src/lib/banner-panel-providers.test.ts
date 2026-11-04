@@ -11,54 +11,47 @@ import { readFileSync } from "node:fs";
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
+// D-NEXT: la franja se fue y el panel de saltar se monta en la burbuja general (dentro de `PrefsProvider`). El examen es
+// el mismo: el panel de saltar lleva encima `PrefsConIdioma` (el idioma del ADMIN, D-516: el `PrefsProvider` de arriba
+// habla el de la persona en la que se entró) y `ConfirmProvider`.
 const panel = sinComentarios(leer("src/components/SwitchUserPanel.tsx"));
-const banner = sinComentarios(leer("src/components/ImpersonationBanner.tsx"));
+const burbujaGeneral = sinComentarios(leer("src/components/BotonGeneral.tsx"));
 const raiz = sinComentarios(leer("src/app/layout.tsx"));
+// El panel de SALTAR es el que va en modo «saltar»; el otro (`modo` por defecto) es el del admin real.
+const iSaltar = burbujaGeneral.indexOf('modo="saltar"');
+const banner = burbujaGeneral;
 
 /** Los hooks que lanzan si no tienen su proveedor encima, y el proveedor que piden. */
 const HOOKS: Record<string, string> = { usePrefs: "PrefsProvider", useConfirm: "ConfirmProvider", useData: "DataProvider" };
-/**
- * En el banner, `usePrefs` lo sirve `PrefsConIdioma` (D-516): el MISMO contexto, con el idioma del aviso puesto y
- * sin leer ni guardar nada. Un `PrefsProvider` ahí cargaría el idioma de la persona en la que se entró. Que el
- * panel funcione de verdad debajo de él se comprueba pintándolo, en `aviso-de-suplantacion.test.ts`.
- */
+/** En el panel de saltar, `usePrefs` lo sirve `PrefsConIdioma` (D-516): el MISMO contexto, con el idioma del admin. */
 const EN_EL_BANNER: Record<string, string> = { ...HOOKS, usePrefs: "PrefsConIdioma" };
 
-describe("el panel que se monta dentro del banner tiene encima lo que necesita", () => {
-  it("control: el banner sigue fuera de PrefsProvider en el layout raíz (si entra, esta prueba sobra)", () => {
-    expect(raiz.indexOf("<ImpersonationBanner")).toBeGreaterThan(-1);
-    expect(raiz.indexOf("<ImpersonationBanner")).toBeLessThan(raiz.indexOf("<PrefsProvider"));
+describe("el panel de saltar (dentro de una suplantación) tiene encima lo que necesita", () => {
+  it("control: ya no hay franja en el layout raíz, y la burbuja va dentro de PrefsProvider", () => {
+    expect(raiz).not.toContain("<ImpersonationBanner");
+    expect(raiz.indexOf("<BotonGeneral />")).toBeGreaterThan(raiz.indexOf("<PrefsProvider"));
   });
 
   it("control: el panel usa hooks que exigen proveedor", () => {
     expect(Object.keys(HOOKS).filter((h) => new RegExp(`\\b${h}\\(`).test(panel)).sort()).toEqual(["useConfirm", "usePrefs"]);
   });
 
-  it("y el banner le pone alrededor CADA proveedor que esos hooks piden", () => {
-    const i = banner.indexOf("<SwitchUserPanel");
+  it("y la burbuja le pone alrededor CADA proveedor que esos hooks piden", () => {
+    const i = iSaltar;
     expect(i).toBeGreaterThan(-1);
     for (const hook of Object.keys(HOOKS).filter((h) => new RegExp(`\\b${h}\\(`).test(panel))) {
       const prov = EN_EL_BANNER[hook];
-      // `<Prov` y no `<Prov>`: `PrefsConIdioma` lleva el idioma como atributo.
       const abre = banner.lastIndexOf(`<${prov}`, i), cierra = banner.indexOf(`</${prov}>`, i);
       expect(abre, `${prov} abre antes del panel (lo pide ${hook})`).toBeGreaterThan(-1);
       expect(cierra, `${prov} cierra después del panel`).toBeGreaterThan(i);
-      // y no se cerró antes de llegar al panel
       expect(banner.slice(abre, i)).not.toContain(`</${prov}>`);
     }
   });
 
-  it("ConfirmProvider va DENTRO de PrefsConIdioma: él mismo usa usePrefs", () => {
-    const i = banner.indexOf("<SwitchUserPanel");
-    // Hasta D-516 era `<PrefsProvider>`. El banner ya no lo monta: si volviera, el panel hablaría el idioma de la
-    // persona en la que se entró, no el del admin.
-    expect(banner).not.toContain("<PrefsProvider");
-    expect(banner.lastIndexOf("<PrefsConIdioma lang={estado.idioma}>", i)).toBeGreaterThan(-1);
-    expect(banner.lastIndexOf("<PrefsConIdioma lang={estado.idioma}>", i)).toBeLessThan(banner.lastIndexOf("<ConfirmProvider>", i));
-  });
-
-  it("el propio banner no usa ninguno de esos hooks: por eso puede vivir fuera", () => {
-    for (const hook of Object.keys(HOOKS)) expect(new RegExp(`\\b${hook}\\(`).test(banner), hook).toBe(false);
+  it("ConfirmProvider va DENTRO de PrefsConIdioma, con el idioma del admin: él mismo usa usePrefs", () => {
+    const i = iSaltar;
+    expect(banner.lastIndexOf("<PrefsConIdioma lang={sup.estado.idioma}>", i)).toBeGreaterThan(-1);
+    expect(banner.lastIndexOf("<PrefsConIdioma lang={sup.estado.idioma}>", i)).toBeLessThan(banner.lastIndexOf("<ConfirmProvider>", i));
   });
 });
 
@@ -97,12 +90,12 @@ describe("el panel montado en la barra de Entregas también tiene encima lo que 
     }
   });
 
-  it("tres entradas al MISMO panel, y nada más: el hub, la burbuja general y el banner (que es la de dentro)", () => {
+  it("dos entradas al MISMO panel, y nada más: el hub y la burbuja general (que monta también el de saltar desde D-NEXT)", () => {
     const { readdirSync, statSync } = require("node:fs") as typeof import("node:fs");
     const tsx: string[] = [];
     const recorre = (d: string) => { for (const f of readdirSync(d)) { const r = `${d}/${f}`; if (statSync(r).isDirectory()) recorre(r); else if (f.endsWith(".tsx")) tsx.push(r); } };
     recorre("src");
     expect(tsx.filter((f) => sinComentarios(leer(f)).includes("<SwitchUserPanel")).sort()).toEqual(
-      ["src/app/home/switch-user/page.tsx", "src/components/BotonGeneral.tsx", "src/components/ImpersonationBanner.tsx"]);
+      ["src/app/home/switch-user/page.tsx", "src/components/BotonGeneral.tsx"]);
   });
 });

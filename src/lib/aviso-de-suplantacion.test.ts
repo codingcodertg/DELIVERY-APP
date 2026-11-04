@@ -4,36 +4,39 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { empaquetar } from "@/lib/impersonation-cookie";
 import { idiomaDelAviso, traduce } from "@/lib/aviso-de-suplantacion";
-import { AvisoDeSuplantacion } from "@/components/ImpersonationBanner";
+import { BotonVolverAMiUsuario, EtiquetaDeSuplantacion } from "@/components/SuplantacionEnBurbuja";
 import { SwitchUserPanel } from "@/components/SwitchUserPanel";
 import { PrefsConIdioma } from "@/lib/prefs";
 import { ConfirmProvider } from "@/lib/confirm";
 import type { Idioma } from "@/lib/idioma";
 import type { Profile } from "@/lib/types";
+import type { Suplantacion } from "@/lib/suplantacion-en-burbuja";
 
 /**
- * El aviso amarillo de «Entrar como» (D-243) habla el idioma del admin y lleva el botón de vista (D-516).
+ * El aviso de «Entrar como» (D-243) habla el idioma del admin y lleva el botón de vista (D-516).
  *
  * El dueño, 2026-10-11: «For some reason when i switch users the switch back language is spanish even though
  * the language is set to ENG». Y, con la vista móvil abierta: «EN ESE MISMO AMARILLO QUIERO QUE ESTE PARA
  * CMABIAR DE DESKTOP VIEW A MOBILE VIEW».
  *
- * Se PINTA el aviso (su parte sin estado) en los dos idiomas: una prueba de texto sobre el fuente pasaría
- * igual con los textos fijos en español, que es justo el fallo que se arregla.
+ * Desde D-NEXT el aviso no es una franja arriba: es la burbuja naranja («Estás como…») con el botón rojo encima, y
+ * «Cambiar usuario» y la vista van en su menú. Se PINTAN sus piezas sin estado en los dos idiomas: una prueba de texto
+ * sobre el fuente pasaría igual con los textos fijos en español, que es justo el fallo que D-516 arregló.
  */
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
-const banner = leer("src/components/ImpersonationBanner.tsx");
+const burbuja = leer("src/components/BotonGeneral.tsx");
+const sup = leer("src/components/SuplantacionEnBurbuja.tsx");
 
-const pinta = (o: Partial<Parameters<typeof AvisoDeSuplantacion>[0]> = {}) =>
-  renderToStaticMarkup(createElement(AvisoDeSuplantacion, {
-    como: "Ernesto Castillo", idioma: "en", cambiaContrasena: false, volviendo: false,
-    onVolver: () => {}, saltando: false, onSalto: () => {}, vista: "movil", onVista: () => {},
-    ...o,
-  }));
+const ernesto = (o: Partial<Suplantacion> = {}): Suplantacion =>
+  ({ como: "Ernesto Castillo", inicio: Date.now(), cambiaContrasena: false, idioma: "en", ...o });
+const pinta = (o: Partial<Suplantacion> = {}, volviendo = false) =>
+  renderToStaticMarkup(createElement("div", null,
+    createElement(EtiquetaDeSuplantacion, { suplantacion: ernesto(o) }),
+    createElement(BotonVolverAMiUsuario, { suplantacion: ernesto(o), volviendo, onVolver: () => {} })));
 
-const INGLES = ["👤 Signed in as", "↩ Back to my account", "⇄ Switch user"];
-const ESPANOL = ["👤 Estás como", "↩ Volver a mi cuenta", "⇄ Cambiar usuario"];
+const INGLES = ["You're viewing as", "↩ Back to my user"];
+const ESPANOL = ["Estás como", "↩ Volver a mi usuario"];
 
 describe("en qué idioma habla el aviso", () => {
   it("el del admin que entró, si lo eligió: aunque la pantalla de este equipo diga otro", () => {
@@ -53,66 +56,53 @@ describe("en qué idioma habla el aviso", () => {
   });
 });
 
-describe("el aviso pintado, en los dos idiomas", () => {
+describe("la burbuja naranja y el botón rojo, pintados en los dos idiomas", () => {
   it("en inglés, todo en inglés: nada en español", () => {
     const html = pinta({ idioma: "en" });
-    for (const s of INGLES) expect(html, s).toContain(s);
+    for (const s of INGLES) expect(html, s).toContain(s.replace("'", "&#x27;"));
     expect(html).toContain("Ernesto Castillo");
-    expect(html).toContain('aria-label="Mobile view"');
-    expect(html).toContain('<span class="aviso-vista-texto" aria-hidden="true"> Mobile view</span>');
-    for (const s of [...ESPANOL, "Vista móvil"]) expect(html, s).not.toContain(s);
+    for (const s of ESPANOL) expect(html, s).not.toContain(s);
   });
 
   it("en español, todo en español: nada en inglés", () => {
     const html = pinta({ idioma: "es" });
     for (const s of ESPANOL) expect(html, s).toContain(s);
-    expect(html).toContain('aria-label="Vista móvil"');
-    expect(html).toContain('<span class="aviso-vista-texto" aria-hidden="true"> Vista móvil</span>');
-    for (const s of [...INGLES, "Mobile view"]) expect(html, s).not.toContain(s);
+    for (const s of INGLES) expect(html, s).not.toContain(s.replace("'", "&#x27;"));
   });
 
-  it("la frase de la contraseña temporal (D-486) y el «volviendo», también", () => {
-    expect(pinta({ idioma: "en", cambiaContrasena: true })).toContain("🔑 Temporary password");
-    expect(pinta({ idioma: "es", cambiaContrasena: true })).toContain("🔑 Contraseña temporal");
-    expect(pinta({ idioma: "en", cambiaContrasena: false })).not.toContain("🔑");
-    expect(pinta({ idioma: "en", volviendo: true })).toContain("Going back…");
-    expect(pinta({ idioma: "es", volviendo: true })).toContain("Volviendo…");
+  it("la contraseña temporal (D-486) pone una 🔑 en la burbuja; y el «volviendo» desactiva el botón rojo", () => {
+    expect(pinta({ cambiaContrasena: true })).toContain("🔑");
+    expect(pinta({ cambiaContrasena: false })).not.toContain("🔑");
+    expect(pinta({ idioma: "en" }, true)).toContain("Going back…");
+    expect(pinta({ idioma: "es" }, true)).toContain("Volviendo…");
+    expect(pinta({}, true)).toMatch(/<button[^>]*disabled=""/);
+    expect(pinta({}, false)).not.toMatch(/disabled=""/);
+  });
+
+  it("el botón rojo es el de peligro de la app, del alto de un dedo (clase `.fab-volver`)", () => {
+    const html = pinta();
+    expect(html.match(/<button/g)).toHaveLength(1);
+    expect(html).toContain('class="btn btn-danger fab-volver"');
+    expect(leer("src/app/globals.css")).toMatch(/\.fab-volver \{\n\s*min-height: 44px;/);
   });
 });
 
-describe("el botón de vista: «Vista móvil» fuera del marco, «Vista de escritorio» dentro", () => {
-  it("fuera del marco ofrece la vista móvil", () => {
-    const html = pinta({ vista: "movil" });
-    expect(html).toContain('data-cambia-vista="movil"');
-    expect(html).toContain('<span aria-hidden="true">📱</span>');
-    expect(html).toContain('aria-label="Mobile view"');
-    expect(html).not.toContain("Desktop view");
-    expect(html).not.toContain("🖥");
-  });
-
-  it("dentro ofrece salir a tamaño normal, en los dos idiomas", () => {
-    const en = pinta({ vista: "escritorio", idioma: "en" });
-    expect(en).toContain('data-cambia-vista="escritorio"');
+describe("el botón de vista: «Vista móvil» fuera del marco, «Vista de escritorio» dentro (en el menú de la burbuja)", () => {
+  it("dentro de una suplantación, el texto lo decide `botonDeVista` con el marco, y habla el idioma del admin", () => {
+    expect(burbuja).toContain('const escritorio = botonDeVista({ enMarco: sup.enMarco, pathname: pathname || "/" }).vista === "escritorio";');
+    expect(burbuja).toContain('{escritorio ? tAdmin("Desktop view", "Vista de escritorio") : tAdmin("Mobile view", "Vista móvil")}');
     // Con el selector de variante (U+FE0F), como «🖥️» en Ayuda: sin él, Chrome lo pinta como glifo de texto.
-    expect(en).toContain('<span aria-hidden="true">🖥️</span>');
-    expect(en).toContain('aria-label="Desktop view"');
-    expect(en).not.toContain("Mobile view");
-    expect(en).not.toContain("📱");
-    expect(pinta({ vista: "escritorio", idioma: "es" })).toContain('aria-label="Vista de escritorio"');
+    expect(burbuja).toContain('{escritorio ? "🖥️" : "📱"}');
+    expect(burbuja).toContain("onClick={() => { cierra(); sup.cambiarDeVista(); }}");
   });
 
-  it("en un ancho de teléfono (y en el marco) solo el icono: el texto se esconde por CSS, el nombre queda en aria-label", () => {
-    // Medido en el demo a 390 px: con el texto, el aviso pasaba de 71 a 113 px (de dos filas a tres).
-    expect(leer("src/app/globals.css")).toContain("@media (max-width: 640px) { .aviso-vista-texto { display: none; } }");
-    const html = pinta({ vista: "escritorio" });
-    expect(html.match(/class="aviso-vista-texto"/g)).toHaveLength(1);
-  });
-
-  it("cuatro cosas cortas y nada más: tres botones pequeños en la misma fila que el nombre (D-483)", () => {
-    const html = pinta();
-    expect(html.match(/<button/g)).toHaveLength(3);
-    expect(html.match(/class="btn[^"]*btn-sm"/g)).toHaveLength(3);
-    expect(html).toContain("flex-wrap:wrap");
+  it("al pulsar se decide de nuevo con la ruta de ese momento y se navega la pestaña de arriba", () => {
+    expect(sup).toContain("setEnMarco(estaEnUnMarco(window));");
+    const pulsar = sup.slice(sup.indexOf("const cambiarDeVista = useCallback"), sup.indexOf("return { estado"));
+    expect(pulsar).toContain("enMarco: estaEnUnMarco(window),");
+    expect(pulsar).toContain("rutaDelMarco: rutaDelMarcoAbierto(),");
+    expect(pulsar).toContain("irArriba(b.destino);");
+    expect(sup).toContain("(window.top ?? window).location.assign(destino);");
   });
 });
 
@@ -138,24 +128,12 @@ describe("el panel de «Cambiar usuario» que se abre desde el aviso habla el id
   });
 });
 
-describe("el banner le pasa al aviso lo que toca (el cableado)", () => {
+describe("la burbuja le pasa a sus piezas lo que toca (el cableado)", () => {
   it("el idioma sale de lo que dice el servidor del admin, con la copia de pantalla de respaldo", () => {
-    expect(banner).toContain("idioma: idiomaDelAviso({ delAdmin: d.idioma, copiaLocal: leeCopiaLocal() }),");
-    expect(banner).toContain("idioma={estado.idioma}");
-    expect(banner).toContain("<PrefsConIdioma lang={estado.idioma}>");
-    // El aviso traduce con el idioma que recibe, no con uno puesto.
-    expect(banner).toContain("const t = traduce(p.idioma);");
-  });
-
-  it("el botón: el texto según el marco y la ruta; al pulsar, se decide de nuevo y se navega la pestaña de arriba", () => {
-    expect(banner).toContain("setEnMarco(estaEnUnMarco(window));");
-    expect(banner).toContain('vista={botonDeVista({ enMarco, pathname: pathname || "/" }).vista}');
-    const pulsar = banner.slice(banner.indexOf("const cambiarDeVista = useCallback"), banner.indexOf("if (!estado) return null;"));
-    expect(pulsar).toContain("enMarco: estaEnUnMarco(window),");
-    expect(pulsar).toContain("rutaDelMarco: rutaDelMarcoAbierto(),");
-    expect(pulsar).toContain("irArriba(b.destino);");
-    expect(banner).toContain("(window.top ?? window).location.assign(destino);");
-    expect(banner).toContain("onVista={cambiarDeVista}");
+    expect(sup).toContain("setEstado(suplantacionDelEstado(d, leeCopiaLocal()));");
+    expect(leer("src/lib/suplantacion-en-burbuja.ts")).toContain("idioma: idiomaDelAviso({ delAdmin: r.idioma, copiaLocal }),");
+    expect(burbuja).toContain("<PrefsConIdioma lang={sup.estado.idioma}>");
+    expect(burbuja).toContain("const tAdmin = sup.estado ? traduce(sup.estado.idioma) : t;");
   });
 });
 

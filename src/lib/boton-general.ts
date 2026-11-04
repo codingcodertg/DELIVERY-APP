@@ -20,8 +20,20 @@ import { olvidaPractica } from "@/lib/practica/fetch-de-practica";
 
 export type OpcionGeneral = "ayuda" | "chat" | "usuario" | "movil" | "ensenanza";
 
-/** De abajo arriba: la primera queda pegada al botón. */
-export function opcionesDelBotonGeneral(a: { adminReal: boolean; switchHabilitado: boolean }): OpcionGeneral[] {
+/**
+ * De abajo arriba: la primera queda pegada al botón.
+ *
+ * `suplantando` (D-NEXT): dentro de «Entrar como» la sesión es la de la otra persona y el servidor contesta
+ * `adminReal: false`; aun así salen «Cambiar usuario» (saltar a otra persona, D-307) y «Vista móvil» (D-516), que
+ * hasta ahora vivían en la franja de arriba y ahora viven aquí. «Cambiar usuario» sale aunque la función esté apagada,
+ * como salía en la franja: el panel pide su lista al pulsarlo y, si la ruta dice que no, se cierra.
+ * `ayudaAqui: false` es una pantalla sin Ayuda (el login, `/no-access`…) en la que la burbuja sale solo porque se está
+ * dentro de otra persona: ahí no hay Ayuda, Chat ni Modo enseñanza, solo las dos de la suplantación.
+ */
+export function opcionesDelBotonGeneral(a: { adminReal: boolean; switchHabilitado: boolean; suplantando?: boolean; ayudaAqui?: boolean }): OpcionGeneral[] {
+  if (a.suplantando) {
+    return a.ayudaAqui === false ? ["usuario", "movil"] : ["ayuda", "chat", "usuario", "movil", "ensenanza"];
+  }
   // D-805 (Roberto: «Ernesto isn't able to go to teaching mode»): el modo enseñanza lo enciende cualquiera, chofer
   // incluido. Es seguro para todos: en Entregas es el entorno de práctica y en las demás apps ninguna escritura llega a la
   // base (D-626). «Cambiar usuario» y «Vista móvil» siguen siendo del admin real.

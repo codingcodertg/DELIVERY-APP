@@ -143,7 +143,7 @@ describe("el coste de /api/impersonate/state", () => {
     expect(codigo.indexOf("impersonacionActiva()")).toBeLessThan(codigo.indexOf("auth.getUser()"));
   });
 
-  it("piden el dato caro las DOS entradas al panel —la página del hub y la burbuja general (D-623)—, y el banner no", () => {
+  it("piden el dato caro las DOS entradas al panel —la página del hub y la burbuja general (D-623)—, y la pregunta de cada carga no", () => {
     // D-306 llevó el panel al hub y la barra dejó de preguntar. D-333 devuelve el botón a la barra como duplicado,
     // así que vuelve a preguntar — una vez, y solo si el rol es admin. El banner sigue sin hacerlo, que es lo que
     // fijaba D-247: él se llama en cada carga de las cinco apps, para todo el mundo.
@@ -156,9 +156,11 @@ describe("el coste de /api/impersonate/state", () => {
     const burbuja = readFileSync("src/components/BotonGeneral.tsx", "utf8");
     expect(burbuja.split('fetch("/api/impersonate/candidates")').length - 1).toBe(1);
     expect(burbuja).not.toContain("ask=switch");
-    const banner = readFileSync("src/components/ImpersonationBanner.tsx", "utf8");
-    expect(banner).toContain('fetch("/api/impersonate/state")');
-    expect(banner).not.toContain("ask=switch");
+    // D-NEXT: el banner se fue; quien pregunta en cada carga es `useSuplantacion` (la burbuja), sin `?ask=switch`.
+    const sup = readFileSync("src/components/SuplantacionEnBurbuja.tsx", "utf8");
+    expect(sup).toContain("fetch(RUTA_DEL_ESTADO)");
+    expect(readFileSync("src/lib/suplantacion-en-burbuja.ts", "utf8")).toContain('export const RUTA_DEL_ESTADO = "/api/impersonate/state";');
+    expect(sup).not.toContain("ask=switch");
   });
 });
 
