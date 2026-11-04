@@ -109,6 +109,16 @@ describe("filaACliente", () => {
     expect(c.terms).toBe("Net 30");
     expect(claveDe(c)).toBe(claveDe(filaACliente({ store: "PHR", account: "DURGA PROPERTIES" })));
   });
+  it("los terminos entran como las tres opciones de la ficha; uno que no es ninguna se guarda tal cual", () => {
+    const de = (terms) => filaACliente({ store: "MCA", account: "A", terms }).terms;
+    expect(de("NET 30")).toBe("Net 30");
+    expect(de("net15")).toBe("Net 15");
+    expect(de("DUE ON RECEIPT")).toBe("Due on receipt");
+    expect(de("COD")).toBe("Due on receipt");
+    expect(de("25 Days")).toBe("25 Days");
+    expect(de("NET 6")).toBe("NET 6");
+    expect(de("CASH")).toBe("CASH");
+  });
   it("un HOUSE 0 si vale: es numerico y no es «sin dato»", () => {
     expect(filaACliente({ store: "BRO", account: "X", house_no: 0 }).house_no).toBe(0);
   });

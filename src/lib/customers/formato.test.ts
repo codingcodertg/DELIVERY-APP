@@ -64,7 +64,8 @@ describe("al guardar desde el cajón (parcheDe)", () => {
     const sinFormato = { ...base, store: "PHR", account: "Acme", phone: "956-340-5910" };
     expect(parcheDe({ ...sinFormato }, sinFormato).parche).toEqual({});
     // Tocar otro campo no reescribe los que no se tocaron (no se reenvía lo leído).
-    expect(parcheDe({ ...sinFormato, terms: "NET 30" }, sinFormato).parche).toEqual({ terms: "NET 30" });
+    // (Los términos se guardan como su opción: «NET 30» → «Net 30», `terminos.ts`.)
+    expect(parcheDe({ ...sinFormato, terms: "NET 30" }, sinFormato).parche).toEqual({ terms: "Net 30" });
   });
   it("la ficha (su ventana, D-654) usa el molde del teléfono de Entregas y pone los nombres en mayúsculas al escribir", () => {
     const ficha = readFileSync("src/app/customers/FichaDeCliente.tsx", "utf8");

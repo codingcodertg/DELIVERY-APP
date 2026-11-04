@@ -50451,3 +50451,22 @@ Sellos `deliveries` 1.533.0, `recruiting` 0.75.0, `timetracker` 1.15.3, `estimat
 Sello `customers` 0.41.0; repo 1.708.0.
 
 **Pruebas:** `customers/lo-que-se-ve.test.ts` (7 de 9 fallaban con el comportamiento viejo).
+
+## D-854 · Clientes: Términos en una lista (Al recibir / 15 días / 30 días)
+
+**Fecha:** 2026-11-04 · Migración 239 (escrita; se aplica aparte con el visto bueno del dueño) · Hecho por un agente en `feat/clientes-terminos-lista`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño):** «terms in customer can a dropdown that says due on receipt / 15 days / 30 days».
+
+**Qué había:** `erp.customers.terms`, texto libre del Excel (180). Medido el 2026-11-04: 797 de 1.353 filas con términos; 588 ya en «Due on receipt», «Net 30» o «Net 15» exactos; 141 con otra grafía («NET 30», «DUE ON RECEIPT», «NET 15», «15 Days»); 68 con otros valores (25 Days, NET 6, net 7, CASH, CREDIT, 45 days., Net 60, NET 60 DAYS).
+
+**Qué cambia (`customers/terminos.ts`):**
+- **Lista** en la ficha y en Cliente nuevo, con las etiquetas del dueño por `t(en, es)`; se guarda el texto legible («Due on receipt», «Net 15», «Net 30»), que es lo que ya leen Leads, el historial y las solicitudes.
+- **Sinónimos al leer** (sin mayúsculas, acentos ni puntuación): «NET 30», «30», «N30», «30 days» → 30 días; igual con 15; «COD», «Upon receipt», «Al recibir» → Al recibir. CASH y CREDIT no se adivinan.
+- **Valores viejos** que no casan: se ven tal cual en la lista y, en la ficha, como cuarta opción apagada «… (valor anterior)»; guardar sin tocar Términos no los cambia.
+- **Al guardar:** solo las tres, vacío o el valor viejo sin tocar. La columna y el filtro enseñan la etiqueta; el importador del Excel mapea sinónimos. Los permisos no cambian (Crédito y términos sigue fuera de la vista del vendedor).
+- **239, sin aplicar:** normaliza las 141 filas de otra grafía y añade el disparador `customers_terminos` (la única barrera del servidor: hoy el admin escribe directo y las solicitudes pasan por 216/221). Deja pasar el valor que la fila ya tenía, uno que ya tenga otra fila (la junta de clientes copia términos) y los scripts sin sesión.
+
+Sellos `customers` 0.42.0 y `leads` 0.18.0; repo 1.709.0.
+
+**Pruebas:** `customers/terminos.test.ts`; `formato.test.ts` y el test del importador puestos al día.

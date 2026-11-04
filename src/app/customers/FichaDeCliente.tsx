@@ -7,6 +7,7 @@ import { Input } from "@/components/erp/ui/input";
 import { cn } from "@/lib/erp/utils";
 import { avisoDeNoCreadas, filaQueSeEnsena, filasDelAlta, tiendaPreelegida, tiendasDelAlta } from "@/lib/customers/alta";
 import { faltanEnElAlta } from "@/lib/customers/obligatorios";
+import { opcionesDeTermino, terminoDeFicha } from "@/lib/customers/terminos";
 import type { AlmacenDeClientes, Res } from "@/lib/customers/almacen";
 import { CLASES_DE_ARCHIVO, claseDeArchivoLabel, faltaElFormulario, MAX_BYTES_DE_ARCHIVO, tamanoLegible, type ArchivoDeCliente, type ClaseDeArchivo } from "@/lib/customers/archivos";
 import { coincidenciasDe, motivoDeCoincidenciaLabel, type Borrador } from "@/lib/customers/coincidencias";
@@ -208,6 +209,15 @@ function ControlDeCampo({ campo: f, valor, mal, onCambia, vendedores = [], bloqu
       <select className={cn(selCls, "w-full")} value={valor} onChange={(e) => onCambia(e.target.value)} data-impuestos>
         <option value="">—</option>
         {IMPUESTOS.map((x) => <option key={x} value={x}>{impuestoLabel(x, t)}</option>)}
+      </select>
+    );
+  }
+  if (f.tipo === "terminos") {
+    // Los términos (`terminos.ts`): tres opciones; lo guardado que no es ninguna sale como cuarta, apagada, para no perderlo.
+    const v = terminoDeFicha(valor);
+    return (
+      <select className={cn(selCls, "w-full", marca)} value={v} onChange={(e) => onCambia(e.target.value)} data-terminos>
+        {opcionesDeTermino(v, t).map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
       </select>
     );
   }

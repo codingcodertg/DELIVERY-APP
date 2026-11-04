@@ -24,6 +24,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { estandarizaCliente } from "../src/lib/customers/formato.ts";
+import { terminoDeFicha } from "../src/lib/customers/terminos.ts";
 
 /** Las cabeceras del Excel (normalizadas: mayusculas, sin puntos, un solo espacio) -> columna de erp.customers. */
 export const MAPA = {
@@ -137,6 +138,9 @@ export function filaACliente(o) {
   // «(956) 340-5910», correo en minusculas). Tambien hace que la clave natural de un Excel nuevo case con la fila ya
   // guardada en formato: «DURGA  PROPERTIES» y «DURGA PROPERTIES» son la misma.
   Object.assign(c, estandarizaCliente(c));
+  // Los terminos como las tres opciones de la ficha (src/lib/customers/terminos.ts): «NET 30» -> «Net 30», «COD» ->
+  // «Due on receipt». Lo que no es ninguna («25 Days», «NET 6») se guarda tal cual: nunca se pierde.
+  if (c.terms !== null) c.terms = terminoDeFicha(c.terms) || null;
   return c;
 }
 
