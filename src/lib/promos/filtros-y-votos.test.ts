@@ -60,3 +60,23 @@ describe("quién votó qué", () => {
     expect(leer("src/app/promos/[id]/TablaDeRonda.tsx")).toContain("onClick={(e) => { e.stopPropagation(); setVotosDe(fila.code); }}");
   });
 });
+
+describe("hallazgos del revisor de UI (D-850) en el filtro y el panel de votos", () => {
+  it("la condición se escribe en el idioma elegido, no en el del navegador", () => {
+    const s = filtroDeCondiciones([{ op: "gt", valor: 1000 }]);
+    expect(textoDeCondiciones(s, "and", "or", "en-US")).toBe("> 1,000");
+    expect(textoDeCondiciones(s, "y", "o", "es-MX")).toBe("> 1,000");
+    expect(textoDeCondiciones(s, "y", "o", "de-DE")).toBe("> 1.000");
+    expect(leer("src/components/CabeceraConMenu.tsx")).toContain('t("or", "o"), lang === "es" ? "es-MX" : "en-US");');
+  });
+  it("el panel enseña la hora de Texas, y su ✕ tiene hueco para el dedo", () => {
+    const tabla = leer("src/app/promos/[id]/TablaDeRonda.tsx");
+    expect(tabla).toContain('formateadorDeFecha(lang === "es" ? "es-MX" : "en-US", { timeZone: BUSINESS_TZ, dateStyle: "medium", timeStyle: "short" })');
+    expect(tabla).not.toContain("new Date(iso).toLocaleString(");
+    expect(tabla).toContain('className="notif-clear btn-cerrar-panel" onClick={onCerrar}');
+    const css = leer("src/app/globals.css");
+    expect(css).toMatch(/\.btn-cerrar-panel \{ min-width: 38px; min-height: 38px;/);
+    expect(css).toContain("@media (min-width: 641px) { .col-menu-numero-fila select, .col-menu-numero-fila input { font-size: 12.5px; } }");
+    expect(css).not.toMatch(/^\.col-menu-numero-fila (select|input) \{[^}]*font-size/m);
+  });
+});
