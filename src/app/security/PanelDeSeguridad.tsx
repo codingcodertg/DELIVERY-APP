@@ -12,7 +12,7 @@ import type { ValorDeCelda } from "@/lib/orden-y-filtro";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
-import { borraDispositivo, cambiaEstadoDeDispositivo, cambiaExcepcionesWeb, cambiaPolitica, cambiaPoliticaWeb, renombraDispositivo } from "./actions";
+import { borraDispositivo, cambiaEstadoDeDispositivo, cambiaExcepcionesWeb, cambiaPolitica, cambiaPoliticaWeb, cierraSesionesDe, renombraDispositivo } from "./actions";
 import { ROLES_SOLO_ESCRITORIO } from "@/lib/security/reglas";
 
 export interface DispositivoFila {
@@ -209,6 +209,15 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
   const { t, lang } = usePrefs();
   const vivo = useEnVivo();
   const [ocupado, setOcupado] = useState(false);
+  const [cerradas, setCerradas] = useState<{ id: string; n: number } | null>(null);
+  // D-828: cerrar todas las sesiones de una persona, con confirmación (saca a esa persona de todo ahora mismo).
+  const cierraSesiones = async (p: UsuarioFila) => {
+    if (!window.confirm(t(`Sign ${p.persona} out of every device and app right now?`, `¿Cerrar todas las sesiones de ${p.persona} en todos sus dispositivos ahora mismo?`))) return;
+    setOcupado(true); setAviso(null);
+    const r = await cierraSesionesDe(p.id);
+    if (!r.ok) setAviso(r.message); else setCerradas({ id: p.id, n: r.cerradas });
+    setOcupado(false);
+  };
   const [aviso, setAviso] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<"todos" | "actualizar" | EstadoDeDispositivo>("todos");
   const [editando, setEditando] = useState<string | null>(null);
@@ -547,7 +556,13 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
       {/* D-822: todos los usuarios creados */}
       <h2 style={{ margin: "18px 0 6px" }}>👥 {t("Users", "Usuarios")} <span className="cnt">{usuarios.length}</span> <span className="hint" style={{ fontWeight: 400, fontSize: 13 }}>· {t(`${conAppNueva} with the new app`, `${conAppNueva} con la app nueva`)}</span></h2>
       <TablaDeSecurity id="usuarios" filas={usuarios} columnas={colsUsuarios} valorDe={valorUsuario} textoDe={textoUsuario} claveDe={(p) => p.id}
-        celda={celdaUsuario} vacio={t("No users.", "No hay usuarios.")} lang={lang} t={t} />
+        celda={celdaUsuario} vacio={t("No users.", "No hay usuarios.")} lang={lang} t={t} anchoDeAcciones={150}
+        acciones={(p) => (
+          <button className="btn btn-sm btn-ghost" disabled={ocupado} data-accion="cerrar-sesiones" title={t("Signs them out of every device and app", "Lo saca de todos sus dispositivos y apps")}
+            onClick={() => void cierraSesiones(p)}>
+            {cerradas?.id === p.id ? t(`✓ ${cerradas.n} closed`, `✓ ${cerradas.n} cerradas`) : t("⏏ Sign out all", "⏏ Cerrar sesiones")}
+          </button>
+        )} />
 
       {/* Dentro ahora: visto en la última hora */}
       <h2 style={{ margin: "18px 0 6px" }}>{t("Signed in now (seen in the last hour)", "Dentro ahora (vistos en la última hora)")} <span className="cnt">{dentro.length}</span></h2>

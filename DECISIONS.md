@@ -50018,3 +50018,20 @@ vacía; dos mutantes (quitar la regla del teléfono personal y la del motivo de 
 **Qué cambia:** `versionDeEscritorio` lee también `RDZHub/x.y.z`. Con eso 1.0.0 < 1.2.1: la pantalla de «Actualizar ahora» tapa esa app, Security la enseña como «RTG Hub 1.0.0 · ⚠️ por actualizar», y `rangoDeApp` la cuenta como escritorio atrasado. Sello `security` 0.10.1; repo 1.682.0.
 
 **Pruebas:** `desktop-version.test.ts`, `version-de-app.test.ts`.
+
+## D-828 · Security · Cerrar todas las sesiones de una persona; la baja lo hace sola
+
+**Fecha:** 2026-11-03 · Hecho directo por el orquestador en `feat/security-cierra-sesiones` (laptop nueva). Migración 236.
+
+**Pedido (el dueño):** de la lista de sugerencias, la 1 («caducar sesiones al dar de baja») y la 2 («botón cerrar todas las sesiones por usuario en Security»). Origen: la baja de Melissa Garza dejó 23 sesiones vivas en Auth con la cuenta apagada; el ban las volvía inútiles, pero lo limpio es borrarlas.
+
+**Qué cambia:**
+- **Base (236):** `security_sign_out_user(p_user)`, security definer: borra `auth.sessions` de esa persona (refresh tokens en cascada), anota `security_events` (`sessions_closed`), devuelve cuántas. Solo admin del hub o la llave de servicio.
+- **La baja (D-709):** `ponAcceso` apagando llama a la RPC con la llave de servicio. Si la 236 no está, la baja sigue igual.
+- **Security → Usuarios:** botón «⏏ Cerrar sesiones» por persona, con confirmación; al terminar enseña «✓ N cerradas». `cierraSesionesDe(id)`.
+
+Sello `security` 0.11.0; repo 1.683.0.
+
+**Pruebas:** `cierra-sesiones.test.ts`.
+
+**No verificado:** la 236 en producción (la aplica el orquestador).
