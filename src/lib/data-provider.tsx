@@ -29,6 +29,7 @@ import { EVENTO_FUERA_DE_REGION, NOTA_FUERA_DE_REGION, avisoFueraDeLaRegion, pun
 import { nextOrderCode, codeBand } from "@/lib/order-code";
 import { applyOutbox, isOfflineError, loadOutbox, pendingIds, saveOutbox, type OutboxItem } from "@/lib/outbox";
 import { pedirAvisoEnCamino } from "@/lib/avisos-cliente";
+import { APP_VERSIONS } from "@/lib/app-versions";
 import { enqueueFix, flushFixes, loadGpsOutbox, saveGpsOutbox, type QueuedFix } from "@/lib/gps-outbox";
 import { appDelTurno } from "@/lib/gps-del-turno";
 import { isNativeApp } from "@/lib/native-bridge";
@@ -2222,7 +2223,8 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const marcaGpsDelTurno = useCallback<DataState["marcaGpsDelTurno"]>(async (shiftId, gps) => {
     // Un turno que solo existe en la cola (`local-…`) aún no tiene fila; el estado se vuelve a escribir al cambiar.
     if (teaching || shiftId.startsWith("local-")) return;
-    try { await supabase.from("driver_shifts").update({ gps, gps_at: new Date().toISOString() }).eq("id", shiftId); }
+    // D-836: y la versión web que corre este teléfono, para saber si ya tomó lo último.
+    try { await supabase.from("driver_shifts").update({ gps, gps_at: new Date().toISOString(), app: `${appActual()} · web ${APP_VERSIONS.deliveries}` }).eq("id", shiftId); }
     catch { /* sin red: el siguiente cambio de estado lo vuelve a intentar */ }
   }, [supabase, teaching]);
 

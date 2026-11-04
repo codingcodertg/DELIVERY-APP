@@ -58,7 +58,17 @@ export function updateAvailable(
 
 /** Answer from /api/version. `versions` is per-app (D-087) — a client
  * compares only its own key, never the other two. */
-export interface VersionInfo { versions: Record<AppKey, string>; apk: number }
+export interface VersionInfo { versions: Record<AppKey, string>; apk: number; obligatoria?: Partial<Record<AppKey, string>> }
+
+/** D-836: ¿tiene esta página que recargarse YA? Solo si va por debajo de la mínima obligatoria, comparando número a número. */
+export function recargaObligatoria(corriendo: string | null | undefined, minima: string | null | undefined): boolean {
+  if (!corriendo || !minima) return false;
+  const a = corriendo.split(".").map(Number), b = minima.split(".").map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) { const x = a[i] ?? 0, y = b[i] ?? 0; if (x !== y) return x < y; }
+  return false;
+}
+/** Una página con algo a medio guardar espera esto como mucho antes de la recarga obligatoria. */
+export const ESPERA_MAXIMA_OBLIGATORIA_MS = 3 * 60_000;
 
 /**
  * Is the running page older than what the server is serving?

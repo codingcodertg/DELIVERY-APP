@@ -66,7 +66,8 @@ describe("la migración 206 y quién escribe", () => {
     const provider = lee("src/lib/data-provider.tsx");
     // Las dos entradas —la directa y la de la cola sin red— llevan `app`; el rastreador escribe `gps`.
     expect(provider.match(/from\("driver_shifts"\)\.insert\(\{[^}]*\bapp\b/g) ?? []).toHaveLength(2);
-    expect(provider).toContain('.update({ gps, gps_at: new Date().toISOString() })');
+    // D-836: con el estado, la versión web que corre el teléfono.
+    expect(provider).toContain('.update({ gps, gps_at: new Date().toISOString(), app: ');
   });
   it("el rastreador ya no tira el estado y la barra enseña el aviso 📡", () => {
     const tracker = lee("src/components/LocationTracker.tsx");

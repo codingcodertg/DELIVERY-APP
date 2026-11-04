@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { APP_VERSIONS } from "@/lib/app-versions";
+import { APP_VERSIONS, RECARGA_OBLIGATORIA } from "@/lib/app-versions";
 import { LATEST_APK_VERSION_CODE } from "@/lib/app-update";
 
 // ============================================================
@@ -31,7 +31,7 @@ export const revalidate = 0;
 
 export function GET() {
   return NextResponse.json(
-    { versions: APP_VERSIONS, apk: LATEST_APK_VERSION_CODE },
+    { versions: APP_VERSIONS, apk: LATEST_APK_VERSION_CODE, obligatoria: RECARGA_OBLIGATORIA },
     { headers: { "Cache-Control": "no-store, max-age=0, must-revalidate" } },
   );
 }
