@@ -50392,3 +50392,15 @@ Sello `deliveries` 1.532.0; repo 1.703.0.
 Sello `promos` 0.23.0; repo 1.704.0.
 
 **Pruebas:** `src/lib/promos/*` y `inline-colors` sin cambios, en verde.
+
+## D-850 · Revisor de diseño: `revisor-ui-rtg`, el subagente que mira la interfaz junto al auditor
+
+**Fecha:** 2026-11-04 · Sin migración · Recomendado por el análisis del plugin oficial `claude-code-setup` y aprobado por el dueño («haz el design reviewer»). Hecho por un agente en `chore/revisor-ui-rtg`, fusionado por el orquestador.
+
+**Qué es:** `.claude/agents/revisor-ui-rtg.md`, de solo lectura, para cada rama que toque `.tsx` o `.css`, al lado de `auditor-rtg` (no repite sus nueve puntos). Nueve reglas con su fuente: R1 colores y tema (`inline-colors`, D-211/D-226), R2 botón disponible vivo y bloqueado apagado (D-489/D-749), R3 bilingüe con acentos (`t(en, es)`, D-266), R4 mayúsculas solo las de diseño, R5 toda tabla es la de Órdenes, R6 formatos de teléfono, correo y nombre con el ayudante de cada app, R7 fechas de Texas (`BUSINESS_TZ`, D-744), R8 teléfono a 390 px (36 px, 16 px en campos, hueco de Ayuda D-530), R9 mapas sin leyenda (D-520). Un barrido del diff por regla y una orden con las pruebas de interfaz; salida `archivo:línea` con must/should y «No verificado».
+
+**Probado** sobre D-840 y D-845: encontró en D-840 la hora de los votos sin zona de Texas, el zoom de iOS en el filtro de número y un ✕ pequeño. Se arreglan aparte.
+
+**Pendiente del dueño:** hay dos formatos de teléfono en la app (`956-555-0123` en RR. HH., D-432; `(956) 340-5910` en Entregas, Clientes y candidatos, D-610/D-630).
+
+Repo 1.705.0 (sin sello de app: no cambia ninguna pantalla).
