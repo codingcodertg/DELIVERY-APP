@@ -216,7 +216,7 @@ describe("el mapa numera con las paradas del día", () => {
   it("lo entregado lleva su número (apagado) y lo que va en camino también su número, encendido; los dos lo dicen en el rótulo", () => {
     expect(de("__hecha__e")).toMatchObject({ badge: "2", dimmed: true });
     expect(de("__hecha__e")!.label).toContain("(Stop 2 · Delivered ");
-    // **Puesto al día por D-NEXT**: era «🚚», y en el mapa se leía como otro camión del chofer (el mapa de Julio).
+    // **Puesto al día por D-846**: era «🚚», y en el mapa se leía como otro camión del chofer (el mapa de Julio).
     expect(de("__hecha__b")).toMatchObject({ badge: "7", dimmed: false });
     expect(de("__hecha__b")!.label).toContain("(Stop 7 · On its way)");
   });

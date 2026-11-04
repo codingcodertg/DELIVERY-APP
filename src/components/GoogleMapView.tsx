@@ -278,7 +278,7 @@ export function GoogleMapView({
       previa?.poly.setMap(null);
       previa?.borde?.setMap(null);
       const ancho = line.weight ?? (line.dimmed ? 4 : 6);
-      // D-NEXT: lo manejado va ENCIMA de la ruta planeada (z 4, su borde z 3); lo planeado, debajo, como siempre.
+      // D-846: lo manejado va ENCIMA de la ruta planeada (z 4, su borde z 3); lo planeado, debajo, como siempre.
       const z = line.encima ? 4 : line.dimmed ? 1 : 2;
       const borde = line.borde && !line.dashed ? new maps.Polyline({
         map,
@@ -369,7 +369,7 @@ export function GoogleMapView({
     // D-837: cada camión se MUEVE (setPosition) en vez de borrarse y crearse: así no parpadea a cada posición nueva.
     const vistos = new Set<string>();
     liveRef.current = [];
-    // D-NEXT: UNA marca por chofer, la de su posición más nueva, aunque la lista traiga dos posiciones suyas.
+    // D-846: UNA marca por chofer, la de su posición más nueva, aunque la lista traiga dos posiciones suyas.
     for (const d of unCamionPorChofer(liveDrivers)) {
       if (d.lat == null || d.lng == null) continue;
       const stale = (d.ageMin ?? 0) > 10;

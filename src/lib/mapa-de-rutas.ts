@@ -281,9 +281,9 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
   }
   // Lo ya hecho sigue en el mapa (D-459), como hecho: la entregada apagada y con su NÚMERO de parada del día (D-584; hasta
   // ahí, un «✓» apagado: el dueño, «keep the numbers and fade them instead of replacing them with a faded checkmark»); la
-  // recogida y aún en camino, también con su número, sin apagar (D-NEXT; antes un 🚚 que se confundía con el camión). No
+  // recogida y aún en camino, también con su número, sin apagar (D-846; antes un 🚚 que se confundía con el camión). No
   // es una parada que se pueda marcar ni mover: su id no es el de la orden, y pulsarla no hace nada. El rótulo dice el número (D-529), el de la tabla: «(Parada 5 · Entregada 10:42)».
-  // D-NEXT: varias hechas de la MISMA parada (tres órdenes cargadas para la misma dirección) son UNA burbuja, con su número,
+  // D-846: varias hechas de la MISMA parada (tres órdenes cargadas para la misma dirección) son UNA burbuja, con su número,
   // como las pendientes (D-485); su rótulo las nombra a todas, y se apaga solo si ya se entregaron todas. Antes salía una
   // por orden, abiertas en abanico.
   const hechaDeLaParada = new Map<string, MapPoint>();

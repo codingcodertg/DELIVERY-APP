@@ -4,7 +4,7 @@ import { tramos } from "./tramos-del-recorrido";
 import { driverOf } from "./route-lanes";
 
 /**
- * D-NEXT: la ruta PLANEADA y lo que el chofer MANEJÓ, en el mismo mapa y en estilos que no se confunden.
+ * D-846: la ruta PLANEADA y lo que el chofer MANEJÓ, en el mismo mapa y en estilos que no se confunden.
  *
  * El dueño, 2026-11-04, con la captura del mapa de Julio: «¿por qué se miran 3 bubbles de Julio? Solo debería ser 1, que
  * sea el driver en ese momento. Ahora quiero que la ruta que lleva el driver esté en otro color al de su ruta, para

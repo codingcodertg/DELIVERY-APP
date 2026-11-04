@@ -101,11 +101,11 @@ export interface MapLine {
   dimmed?: boolean;
   /** Sideways pixel offset, so parallel routes on one road sit side by side. */
   offset?: number;
-  /** Ancho en píxeles; sin él, 6 (4 atenuada). D-NEXT: la ruta planeada se ensancha bajo lo manejado. */
+  /** Ancho en píxeles; sin él, 6 (4 atenuada). D-846: la ruta planeada se ensancha bajo lo manejado. */
   weight?: number;
-  /** Un borde de este color por debajo (2 px a cada lado), para que la línea se lea encima de otra (D-NEXT). */
+  /** Un borde de este color por debajo (2 px a cada lado), para que la línea se lea encima de otra (D-846). */
   borde?: string;
-  /** Por encima de las rutas planeadas: lo manejado por el chofer (D-NEXT, `recorrido-contra-plan`). */
+  /** Por encima de las rutas planeadas: lo manejado por el chofer (D-846, `recorrido-contra-plan`). */
   encima?: boolean;
 }
 
@@ -286,7 +286,7 @@ export function LeafletMap({
       linesRef.current.forEach((l) => l.remove());
       linesRef.current = [];
       offsetLinesRef.current = [];
-      // Leaflet apila por orden de dibujo: lo atenuado, lo planeado y, encima, lo manejado por el chofer (D-NEXT).
+      // Leaflet apila por orden de dibujo: lo atenuado, lo planeado y, encima, lo manejado por el chofer (D-846).
       const capa = (l: MapLine) => (l.encima ? 2 : l.dimmed ? 0 : 1);
       const ordered = [...lines].sort((a, b) => capa(a) - capa(b));
       for (const line of ordered) {
@@ -426,7 +426,7 @@ export function LeafletMap({
       if (cancelled || !mapRef.current) return;
       liveLayerRef.current.forEach((m) => m.remove());
       liveLayerRef.current = [];
-      // D-NEXT: UNA marca por chofer, la de su posición más nueva (la misma regla que el mapa de Google).
+      // D-846: UNA marca por chofer, la de su posición más nueva (la misma regla que el mapa de Google).
       for (const d of unCamionPorChofer(liveDrivers)) {
         if (d.lat == null || d.lng == null) continue;
         // Grey once the fix goes stale: this is where the truck WAS, not where

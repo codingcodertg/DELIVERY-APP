@@ -51,7 +51,7 @@ describe("2 · el pin de lo entregado: su número, apagado", () => {
     expect(marcaDeLaHecha(true, 5)).toBe("5");
     expect(marcaDeLaHecha(true, null)).toBe("✓");
     expect(marcaDeLaHecha(true, undefined)).toBe("✓");
-    // **Puesto al día por D-NEXT**: era «🚚», y en el mapa se confundía con el camión en vivo (el mapa de Julio, 3 camiones).
+    // **Puesto al día por D-846**: era «🚚», y en el mapa se confundía con el camión en vivo (el mapa de Julio, 3 camiones).
     expect(marcaDeLaHecha(false, 5)).toBe("5");
     expect(marcaDeLaHecha(false, null)).toBe("▲");
   });

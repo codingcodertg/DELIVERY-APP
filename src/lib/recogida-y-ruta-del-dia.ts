@@ -76,7 +76,7 @@ export function listaDelDia(paradas: readonly ParadaFisica[]): ParadaDeLaLista[]
  * them with a faded checkmark». Sin número (una entregada que nadie ordenó), el «✓» de siempre.
  *
  * Recogida y en camino: también su NÚMERO (sin apagar: aún falta entregarla); sin número, «▲», la marca de «Cargada» del
- * Recorrido. Hasta D-NEXT era «🚚», y en el mapa se leía como el camión: con tres órdenes cargadas para la misma dirección
+ * Recorrido. Hasta D-846 era «🚚», y en el mapa se leía como el camión: con tres órdenes cargadas para la misma dirección
  * salían tres camioncitos más el camión en vivo. El dueño, 2026-11-04, con el mapa de Julio: «¿por qué se miran 3 bubbles
  * de Julio? Solo debería ser 1, que sea el driver en ese momento». El 🚚 queda para el camión en vivo, y en la tabla.
  */

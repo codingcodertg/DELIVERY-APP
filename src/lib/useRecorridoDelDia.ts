@@ -8,7 +8,7 @@ import type { Fix } from "@/lib/track-history";
 import type { DriverLocation } from "@/lib/types";
 
 /**
- * D-NEXT: lo que cada chofer MANEJÓ ese día, para pintarlo encima de su ruta planeada (`recorrido-contra-plan`).
+ * D-846: lo que cada chofer MANEJÓ ese día, para pintarlo encima de su ruta planeada (`recorrido-contra-plan`).
  *
  * Se lee el día una vez (como el Recorrido, `track/page.tsx`), y lo que llega en vivo por el proveedor (`driverLocations`,
  * la última de cada chofer) se cuelga al final si es más nuevo: la línea crece sola, sin volver a leer.
