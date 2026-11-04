@@ -159,8 +159,9 @@ describe("la pantalla usa todo esto", () => {
     expect(pantalla).not.toContain("Todos los estados");
   });
   it("lo que se ve pasa por el filtro de columna y por los niveles; Mayús añade nivel; el arrastre guarda donde «⚙ Columnas»", () => {
-    expect(pantalla).toContain("ordenarEmpresas(filtraEmpresas(empresas, filtrosCol), ordenes)");
-    expect(pantalla).toContain("onClick={(e) => setOrdenes((o) => alPulsarCabecera(o, c.key, e.shiftKey))}");
+    // Desde «lo que se ve» (2026-11-04), por las columnas que se ven: `lo-que-se-ve.test.ts`.
+    expect(pantalla).toContain("empresasQueSeVen(empresas, filtrosVistos, ordenesVistas, clavesVistas)");
+    expect(pantalla).toContain("onClick={(e) => setOrdenes((o) => alPulsarCabecera(enVista(o), c.key, e.shiftKey))}");
     expect(pantalla).toContain("cambiaColumnas((p) => colocaColumnaDeClientes(p, arrastrada, destino))");
     expect(pantalla).toContain("onDrop={(e) => { e.preventDefault(); suelta(c.key); }}");
   });

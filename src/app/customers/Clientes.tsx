@@ -27,8 +27,9 @@ import { alternaEmpresa, empresasElegidas, estaMarcada, marcaTodas } from "@/lib
 import { vendedoresEnOrden, type Vendedor } from "@/lib/customers/vendedores";
 import { columnasDelVendedor, conLosEncontrados, puedeAbrirCliente, RETARDO_DE_BUSQUEDA_MS, seBuscaEnTodaLaEmpresa } from "@/lib/customers/vendedor-por-tienda";
 import type { Parche } from "@/lib/customers/reglas";
-import { agrupaEnEmpresas, empresasPorTienda, filasDeLaEmpresa, ordenarEmpresas, tiendasDeLaEmpresa } from "@/lib/customers/empresas";
-import { alPulsarCabecera, esOrdenInicial, filtraEmpresas, MAX_NIVELES, nivelDeOrden, opcionesDeColumna, ordenDesdeMenu, ORDENES_INICIALES } from "@/lib/customers/cabeceras";
+import { agrupaEnEmpresas, empresasPorTienda, filasDeLaEmpresa, tiendasDeLaEmpresa } from "@/lib/customers/empresas";
+import { alPulsarCabecera, esOrdenInicial, MAX_NIVELES, nivelDeOrden, opcionesDeColumna, ordenDesdeMenu, ORDENES_INICIALES } from "@/lib/customers/cabeceras";
+import { conLaTiendaFiltrada, empresasQueSeVen, filtrosQueSeVen, ordenesQueSeVen } from "@/lib/customers/lo-que-se-ve";
 import {
   alternaColumna, celda, claveDeColumnasDeClientes, CLAVE_HEREDADA_DE_COLUMNAS, colocaColumnaDeClientes, columnasAPintar, columnasDelSelector,
   estadoClase, estadoLabel, estaArchivado, FILTRO_INICIAL, motivoLabel, mueveColumnaDeClientes, nombreDeTienda,
@@ -156,20 +157,27 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
   // UNA fila por EMPRESA (189): las filas de la misma compañía en varias tiendas se pintan juntas, con sus tiendas en
   // pastillas; con una tienda elegida sale toda empresa con fila allí, enseñando la fila de esa tienda.
   const empresas = useMemo(() => agrupaEnEmpresas(listaConEncontrados, filtro), [listaConEncontrados, filtro]);
-  const visibles = useMemo(() => ordenarEmpresas(filtraEmpresas(empresas, filtrosCol), ordenes), [empresas, filtrosCol, ordenes]);
-  useEffect(() => { setCuantos(TANDA); }, [filtro, filtrosCol, ordenes]);
+  // D-740: el vendedor ve cuatro columnas fijas (cuenta, N.º tiendas, estado, vendedor), sin selector ni arrastre.
+  const colsVisibles = vistaAcotada ? columnasDelVendedor() : columnasAPintar(prefCols);
+  // Solo filtran y ordenan las columnas que se VEN (como Órdenes, D-360): el filtro o el orden de una columna escondida
+  // con «⚙ Columnas» no manda a escondidas, y vuelve si se vuelve a enseñar. Con «Tienda» filtrada, cada empresa enseña
+  // la fila de una tienda marcada, no otra con la marcada dentro del «+N» (`lo-que-se-ve`).
+  const claveDeVistas = colsVisibles.map((c) => c.key).join("|");
+  const clavesVistas = useMemo(() => claveDeVistas.split("|"), [claveDeVistas]);
+  const filtrosVistos = useMemo(() => filtrosQueSeVen(filtrosCol, clavesVistas), [filtrosCol, clavesVistas]);
+  const ordenesVistas = useMemo(() => ordenesQueSeVen(ordenes, clavesVistas), [ordenes, clavesVistas]);
+  const enVista = (o: Orden[]) => ordenesQueSeVen(o, clavesVistas);
+  const visibles = useMemo(() => empresasQueSeVen(empresas, filtrosVistos, ordenesVistas, clavesVistas), [empresas, filtrosVistos, ordenesVistas, clavesVistas]);
+  useEffect(() => { setCuantos(TANDA); }, [filtro, filtrosVistos, ordenesVistas]);
   // Los archivados (181) se esconden por defecto: las cuentas de las tiendas y el «N clientes» son de lo que se está viendo
   // (vivos, o archivados con el chip), no de la tabla entera. Y cuentan EMPRESAS, no filas.
   const vista = useMemo(() => agrupaEnEmpresas(lista, { ...FILTRO_INICIAL, archivados: filtro.archivados }), [lista, filtro.archivados]);
   const archivados = useMemo(() => agrupaEnEmpresas(lista, { ...FILTRO_INICIAL, archivados: true }).length, [lista]);
   const porTienda = useMemo(() => empresasPorTienda(vista), [vista]);
-  // D-740: el vendedor ve cuatro columnas fijas (cuenta, N.º tiendas, estado, vendedor), sin selector ni arrastre.
-  const colsVisibles = vistaAcotada ? columnasDelVendedor() : columnasAPintar(prefCols);
   // D-673: anchos que se arrastran, como en Órdenes (`tbl-resize`): nada salta de línea y lo que no cabe se corta con «…».
   const colw = useColWidthMap(llaveDeAnchos(userId), ANCHO_POR_DEFECTO, { minimo: ANCHO_MINIMO });
   const ancho = (k: string) => colw.widthOf(claveDeAncho(k), anchoDePartida(k));
-  const todasLasClaves = columnasDelSelector(prefCols).map((c) => c.key as string);
-  const filtradas = columnasFiltradas(filtrosCol, todasLasClaves);
+  const filtradas = columnasFiltradas(filtrosVistos, clavesVistas);
   const nombreDe = (k: string) => { const c = columnasDelSelector(prefCols).find((x) => x.key === k); return c ? t(c.en, c.es) : k; };
 
   // El menú de la columna (el de Órdenes, D-275), en un portal: la caja de la tabla se desplaza y lo recortaría.
@@ -310,17 +318,17 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
 
       {/* Qué columnas filtran y por qué columnas se ordena, dicho con palabras: un filtro que se olvida puesto esconde
           clientes (D-297), y el orden en niveles no se lee de un vistazo en las flechas. */}
-      {(filtradas.length > 0 || !esOrdenInicial(ordenes)) && (
+      {(filtradas.length > 0 || !esOrdenInicial(ordenesVistas)) && (
         <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
           {filtradas.length > 0 && (
             <span data-filtrado-por>
               🔎 <b>{t("Filtered by", "Filtrado por")}:</b> {textoDeColumnas(filtradas.map(nombreDe), t("and", "y"), (n) => t(`${n} more`, `${n} más`))}
             </span>
           )}
-          {!esOrdenInicial(ordenes) && (
+          {!esOrdenInicial(ordenesVistas) && (
             <span className="inline-flex flex-wrap items-center gap-1" data-ordenado-por>
               <b>{t("Sorted by", "Ordenado por")}:</b>
-              {ordenes.map((o, i) => (
+              {ordenesVistas.map((o, i) => (
                 <span key={o.por} className="rounded-full border border-clay-200 bg-clay-50 px-2 py-0.5 text-xs text-clay-700">
                   {i + 1} · {nombreDe(o.por)} {o.desc ? "↓" : "↑"}
                 </span>
@@ -363,7 +371,7 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
                 {colsVisibles.map((c) => {
                   // D-650: el nombre ordena (Mayús+clic añade un nivel), el ▾ abre el menú de la columna, y la cabecera
                   // entera se arrastra para cambiarla de sitio.
-                  const nivel = nivelDeOrden(ordenes, c.key);
+                  const nivel = nivelDeOrden(ordenesVistas, c.key);
                   const hayFiltro = (filtrosCol[c.key]?.size ?? 0) > 0;
                   return (
                     <th
@@ -386,7 +394,7 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
                         <button
                           type="button"
                           className="cursor-grab hover:text-clay-700"
-                          onClick={(e) => setOrdenes((o) => alPulsarCabecera(o, c.key, e.shiftKey))}
+                          onClick={(e) => setOrdenes((o) => alPulsarCabecera(enVista(o), c.key, e.shiftKey))}
                           title={t("Click: sort by this · Shift+click: add as next sort level · Drag: move the column", "Clic: ordenar por esta · Mayús+clic: añadirla como siguiente orden · Arrastrar: mover la columna")}
                         >
                           {t(c.en, c.es)}
@@ -497,8 +505,8 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
         (() => {
           const col = colsVisibles.find((c) => c.key === abierta);
           if (!col) return null;
-          const opciones = opcionesDeColumna(empresas, filtrosCol, abierta, t);
-          const nivel = nivelDeOrden(ordenes, abierta);
+          const opciones = opcionesDeColumna(conLaTiendaFiltrada(empresas, filtrosVistos), filtrosVistos, abierta, t);
+          const nivel = nivelDeOrden(ordenesVistas, abierta);
           return (
             <ColumnFilterMenu
               key={abierta}
@@ -507,19 +515,19 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
               options={opciones}
               active={filtrosCol[abierta]}
               orden={nivel ? (nivel.desc ? "desc" : "asc") : null}
-              onOrdenar={(dir) => { setOrdenes((o) => ordenDesdeMenu(o, abierta, dir)); setAbierta(null); }}
+              onOrdenar={(dir) => { setOrdenes((o) => ordenDesdeMenu(enVista(o), abierta, dir)); setAbierta(null); }}
               masOrden={!nivel && (
                 // En una línea: el menú mide 320 px y con dos líneas «Limpiar» y «Aplicar» quedaban cortados (medido a 1440).
                 <button
                   type="button"
                   className="col-opt col-orden"
                   data-anade-nivel
-                  onClick={() => { setOrdenes((o) => alPulsarCabecera(o, abierta, true)); setAbierta(null); }}
-                  title={ordenes.length < MAX_NIVELES
+                  onClick={() => { setOrdenes((o) => alPulsarCabecera(enVista(o), abierta, true)); setAbierta(null); }}
+                  title={ordenesVistas.length < MAX_NIVELES
                     ? t("Add as the next sort: it breaks ties of the levels above", "Añadir como siguiente orden: desempata a los niveles de arriba")
                     : t(`Replaces level ${MAX_NIVELES}, the last one to break ties`, `Sustituye al nivel ${MAX_NIVELES}, el último en desempatar`)}
                 >
-                  + {t(`Then by this (level ${Math.min(ordenes.length + 1, MAX_NIVELES)})`, `Añadir como nivel ${Math.min(ordenes.length + 1, MAX_NIVELES)}`)}
+                  + {t(`Then by this (level ${Math.min(ordenesVistas.length + 1, MAX_NIVELES)})`, `Añadir como nivel ${Math.min(ordenesVistas.length + 1, MAX_NIVELES)}`)}
                 </button>
               )}
               lang={lang}
