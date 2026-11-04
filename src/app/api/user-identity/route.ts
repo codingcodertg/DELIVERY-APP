@@ -5,6 +5,7 @@ import { logSecurity } from "@/lib/security-log-server";
 import { change } from "@/lib/security-log";
 import { esAliasDeBaja, type CredencialesLiberadas } from "@/lib/credenciales-liberadas";
 import { emailForUsername, isSyntheticEmail, isValidUsername, normalizeUsername } from "@/lib/username";
+import { correoTrasCambioDeUsuario, patronDeUsuario, quitarUsuarioDejaElViejo } from "@/lib/cambio-de-usuario";
 
 // ============================================================
 // Change how a person signs in: their username, their email, or both.
@@ -102,6 +103,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
   }
 
+  // Clearing the username of someone who signs in with it would keep the old
+  // one working: the derived address stays. Refused - removing access is what
+  // deactivating is for.
+  if (wantsUsername && username === null && !wantsEmail && quitarUsuarioDejaElViejo(currentEmail)) {
+    return NextResponse.json({
+      error: "This person signs in with their username - give them an email first, or change the username instead of removing it.",
+    }, { status: 400 });
+  }
+
+  // Taken by someone else? Checked BEFORE the sign-in address moves: otherwise
+  // the address could move and the profile then refuse the name, leaving a
+  // person who signs in as one name and shows as another.
+  if (wantsUsername && username) {
+    // ilike keeps the case-folding of the unique index (051); the pattern escapes `_`, a LIKE wildcard.
+    const { data: dueno } = await admin.from("profiles").select("id").ilike("username", patronDeUsuario(username)).neq("id", id).limit(1);
+    if (dueno && dueno.length > 0) return NextResponse.json({ error: "That username is already taken." }, { status: 409 });
+  }
+
   // Whose username applies after this call - the one being set, or the one
   // already on file.
   const { data: profile } = await admin.from("profiles").select("username").eq("id", id).maybeSingle();
@@ -127,7 +146,9 @@ export async function POST(req: Request) {
   let nextEmail: string | null = null;
   if (wantsEmail) nextEmail = email;
   else if (clearingEmail) nextEmail = emailForUsername(effectiveUsername!);
-  else if (wantsUsername && username && isSyntheticEmail(currentEmail)) nextEmail = emailForUsername(username);
+  // A rename moves a derived (or archived, D-709) address with it, so the new
+  // name signs in and the old one stops; a real address is never rewritten.
+  else if (wantsUsername) nextEmail = correoTrasCambioDeUsuario(currentEmail, username);
 
   if (nextEmail && nextEmail !== currentEmail.toLowerCase()) {
     const { error } = await admin.auth.admin.updateUserById(id, { email: nextEmail, email_confirm: true });
