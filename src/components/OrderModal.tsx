@@ -1869,7 +1869,7 @@ export function OrderModal({
     <div className="overlay"
       onMouseDown={(e) => { overlayDownRef.current = e.target === e.currentTarget; }}
       onClick={(e) => { if (e.target === e.currentTarget && overlayDownRef.current && !isNew && !editing) requestClose(); }}>
-      <div className="modal ficha-orden" data-ficha-modo={isNew ? "nueva" : editing ? "editando" : "viendo"} ref={fichaRef}>
+      <div className="modal" ref={fichaRef}>
         {/* DOS filas, y solo dos (D-152).
             -------------------------------------------------------------------
             La primera es el número de orden y la ✕. La segunda es TODO lo demás
