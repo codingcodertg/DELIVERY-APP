@@ -50194,3 +50194,23 @@ Sello `deliveries` 1.524.0; repo 1.691.0.
 Sello `deliveries` 1.525.0; repo 1.692.0. No se marca como recarga obligatoria (D-836): es de quien mira el mapa, no de los teléfonos de los choferes.
 
 **Pruebas:** `recorrido-sin-parpadeo.test.ts`.
+
+## D-838 · APK 7: Android sube las posiciones solo, aunque el teléfono esté bloqueado
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho directo por el orquestador en `feat/gps-nativo` (laptop nueva, con el SDK de Android instalado).
+
+**Pedido (el dueño, tras D-835/D-837):** «se mira mejor pero aun así muy lento, ¿cómo podemos hacer para que funcione mejor?». Luego: «dale, instala el SDK y haz la app nueva».
+
+**Causa medida (2026-11-04):** con el teléfono bloqueado Android congela la página de la app. El GPS nativo seguía tomando puntos (Ernesto: 136 en 53 min), pero quien los subía era la página, y llegaban con una mediana de 23 minutos de retraso.
+
+**Qué cambia:**
+- **Llave del turno (`gps-token.ts`, `/api/gps/token`):** un chofer con sesión pide una llave firmada (HMAC, 18 h) que solo deja escribir posiciones de él mismo.
+- **Ingesta (`/api/gps/ingest`):** recibe lotes con esa llave, sin sesión. Tira coordenadas imposibles, más de 65 m de error, horas del futuro o de hace más de 3 días; como mucho 500 por envío; el chofer sale siempre de la llave. Fallo nuestro = 503 (la app reintenta), nunca 400.
+- **APK 7 (`EnvioDeGps.java`, `BatteryGuardPlugin.startDirectUpload`):** Android sube él mismo cada 5 s o 10 m (latido de 60 s), sin puntos de más de 65 m, desde un hilo propio que el servicio en primer plano mantiene vivo. Cola guardada en el teléfono (hasta 2 000) para cuando no hay señal; un 401 deja la cola hasta la llave nueva, que la página pide al volver al frente.
+- **La página (`useLiveLocation`):** si la APK sabe subir sola, la página ya no sube nada (no duplica filas) y solo enseña el estado. Con la APK 6 o el navegador, todo sigue como antes.
+
+APK 7: versionCode 7, versionName 1.12.0, agente `RDZDeliveries/7`, firmada con la llave de siempre (SHA-256 del certificado `585d3306…4928f`). Los números de la APK 7 (`build.gradle`, `capacitor.config.ts`) y `LATEST_APK_VERSION_CODE` = 7 van en un cambio aparte, cuando la APK 7 ya esté en el almacén: antes, el aviso «Hay una nueva versión» bajaría otra vez la 6.
+
+Sello `deliveries` 1.526.0; repo 1.693.0. No es recarga obligatoria: solo sirve con la APK 7, que carga la página nueva al instalarse.
+
+**Pruebas:** `gps-nativo.test.ts`.

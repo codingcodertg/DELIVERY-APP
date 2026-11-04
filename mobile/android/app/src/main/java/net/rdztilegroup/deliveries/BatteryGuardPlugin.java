@@ -10,7 +10,15 @@ import android.os.PowerManager;
 import android.provider.Settings;
 
 import android.location.Location;
+import android.os.BatteryManager;
 import android.os.Looper;
+
+import org.json.JSONObject;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
 
 import androidx.core.content.ContextCompat;
 
@@ -236,9 +244,140 @@ public class BatteryGuardPlugin extends Plugin {
         timedCallback = null;
     }
 
+    // ---- D-838 (APK 7): subida DIRECTA desde Android --------------------------
+    //
+    // Con el teléfono bloqueado, la página está congelada y lo que tenía que subir llegaba 20+ minutos tarde. Esto pide
+    // posiciones de alta precisión cada 5 s y las sube EL MISMO (EnvioDeGps), con la llave del turno que le da la página.
+    // Solo manda un punto si el camión se movió 10 m o pasó un minuto (un camión parado sigue viéndose vivo), y nunca uno
+    // de más de 65 m de error (D-835). La página recibe cada punto como evento solo para enseñar el estado.
+
+    private EnvioDeGps envio;
+    private LocationCallback directCallback;
+    private Location ultimoEnviado;
+    private long ultimoEnviadoMs = 0;
+
+    @PluginMethod
+    public void startDirectUpload(PluginCall call) {
+        String url = call.getString("url");
+        String token = call.getString("token");
+        if (url == null || token == null) { call.reject("url and token are required"); return; }
+        if (!granted(Manifest.permission.ACCESS_FINE_LOCATION) && !granted(Manifest.permission.ACCESS_COARSE_LOCATION)) {
+            call.reject("Location permission not granted");
+            return;
+        }
+        if (envio == null) envio = new EnvioDeGps(getContext());
+        // Otra llamada con la subida ya en marcha solo renueva la llave (la página lo hace al volver al frente).
+        envio.configura(url, token);
+        envio.reintenta();
+        if (directCallback != null) { call.resolve(new JSObject().put("started", true).put("renewed", true)); return; }
+        long interval = call.getLong("intervalMs", 5000L);
+        try {
+            if (fused == null) fused = LocationServices.getFusedLocationProviderClient(getContext());
+            LocationRequest req = LocationRequest.create();
+            req.setInterval(interval);
+            req.setFastestInterval(Math.max(1000L, interval / 2));
+            req.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+            req.setSmallestDisplacement(0f);
+            directCallback = new LocationCallback() {
+                @Override
+                public void onLocationResult(LocationResult result) {
+                    if (result == null) return;
+                    for (Location loc : result.getLocations()) alPunto(loc);
+                }
+            };
+            fused.requestLocationUpdates(req, directCallback, Looper.getMainLooper());
+            call.resolve(new JSObject().put("started", true));
+        } catch (SecurityException e) {
+            directCallback = null;
+            call.reject("Location permission refused by the system");
+        } catch (Exception e) {
+            directCallback = null;
+            call.reject(e.getMessage() == null ? "Could not start direct upload" : e.getMessage());
+        }
+    }
+
+    private void alPunto(Location loc) {
+        if (loc == null || envio == null) return;
+        if (loc.hasAccuracy() && loc.getAccuracy() > 65f) return;
+        long t = loc.getTime();
+        if (ultimoEnviado != null) {
+            if (t - ultimoEnviadoMs < 4000L) return;
+            boolean movido = loc.distanceTo(ultimoEnviado) >= 10f;
+            if (!movido && t - ultimoEnviadoMs < 60000L) return;
+        }
+        ultimoEnviado = loc;
+        ultimoEnviadoMs = t;
+        try {
+            JSONObject f = new JSONObject();
+            f.put("lat", loc.getLatitude());
+            f.put("lng", loc.getLongitude());
+            if (loc.hasAccuracy()) f.put("accuracy_m", (double) loc.getAccuracy());
+            if (loc.hasSpeed()) f.put("speed_mps", (double) loc.getSpeed());
+            if (loc.hasBearing()) f.put("heading", (double) loc.getBearing());
+            int bat = bateria();
+            if (bat >= 0) f.put("battery_pct", bat);
+            f.put("recorded_at", iso(t));
+            envio.agrega(f);
+        } catch (Exception ignored) {
+            return;
+        }
+        JSObject js = new JSObject();
+        js.put("lat", loc.getLatitude());
+        js.put("lng", loc.getLongitude());
+        js.put("accuracy", loc.hasAccuracy() ? loc.getAccuracy() : null);
+        js.put("time", t);
+        js.put("pending", envio.pendientes());
+        // false: con la página congelada no se apilan eventos; la subida ya la hizo Android.
+        notifyListeners("directFix", js, false);
+    }
+
+    @PluginMethod
+    public void stopDirectUpload(PluginCall call) {
+        stopDirect();
+        call.resolve(new JSObject().put("stopped", true));
+    }
+
+    @PluginMethod
+    public void directUploadState(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("active", directCallback != null);
+        ret.put("pending", envio == null ? 0 : envio.pendientes());
+        ret.put("lastOkAt", envio == null ? 0 : envio.ultimoOk);
+        ret.put("lastError", envio == null ? null : envio.ultimoError);
+        call.resolve(ret);
+    }
+
+    private void stopDirect() {
+        try {
+            if (fused != null && directCallback != null) fused.removeLocationUpdates(directCallback);
+        } catch (Exception ignored) {
+            // Ya no estaba.
+        }
+        directCallback = null;
+        ultimoEnviado = null;
+        // Lo que quede en la cola sale igual en cuanto haya red.
+        if (envio != null) envio.reintenta();
+    }
+
+    private int bateria() {
+        try {
+            BatteryManager bm = (BatteryManager) getContext().getSystemService(Context.BATTERY_SERVICE);
+            return bm == null ? -1 : bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    private static String iso(long ms) {
+        SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+        f.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return f.format(new Date(ms));
+    }
+
     @Override
     protected void handleOnDestroy() {
         stopTimed();
+        stopDirect();
         super.handleOnDestroy();
     }
 

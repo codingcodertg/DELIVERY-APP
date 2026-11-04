@@ -77,7 +77,11 @@ export interface TimedFix {
 interface BatteryGuardPlugin {
   startTimedPositions?(opts: { intervalMs: number }): Promise<{ started: boolean }>;
   stopTimedPositions?(): Promise<{ stopped: boolean }>;
-  addListener?(event: "timedPosition", cb: (f: TimedFix) => void): Promise<{ remove: () => void }>;
+  addListener?(event: "timedPosition" | "directFix", cb: (f: TimedFix) => void): Promise<{ remove: () => void }>;
+  /** D-838 (APK 7): Android sube las posiciones solo. Otra llamada con la subida en marcha solo renueva la llave. */
+  startDirectUpload?(opts: { url: string; token: string; intervalMs: number }): Promise<{ started: boolean; renewed?: boolean }>;
+  stopDirectUpload?(): Promise<{ stopped: boolean }>;
+  directUploadState?(): Promise<{ active: boolean; pending: number; lastOkAt: number; lastError: string | null }>;
   permissionState?(): Promise<DriverPermissionState>;
   requestLocation?(): Promise<DriverPermissionState>;
   requestBackgroundLocation?(): Promise<DriverPermissionState>;
@@ -324,6 +328,32 @@ export async function registerForPush(onToken: (token: string) => void): Promise
  * Returns a stop function, or null where it isn't available (a browser, or an
  * APK built before this existed).
  */
+/** D-838: ¿sabe esta APK subir las posiciones sola? (APK 7 en adelante.) */
+export function directUploadAvailable(): boolean {
+  return !!batteryGuard()?.startDirectUpload;
+}
+
+/**
+ * D-838: arranca la subida directa desde Android. `renueva(token)` cambia la llave sin parar nada (la página la pide al
+ * volver al frente). null si esta APK no la tiene o no arrancó: la página sigue subiendo como antes.
+ */
+export async function startDirectUpload(
+  url: string, token: string, onFix: (fix: TimedFix) => void, intervalMs = 5_000,
+): Promise<{ stop: () => void; renueva: (token: string) => void } | null> {
+  const p = batteryGuard();
+  if (!p?.startDirectUpload || !p.addListener) return null;
+  try {
+    const handle = await p.addListener("directFix", (f) => { if (typeof f?.lat === "number" && typeof f?.lng === "number") onFix(f); });
+    await p.startDirectUpload({ url, token, intervalMs });
+    return {
+      stop: () => { try { handle.remove(); } catch { /* cerrando */ } void p.stopDirectUpload?.().catch(() => { /* cerrando */ }); },
+      renueva: (t: string) => { void p.startDirectUpload?.({ url, token: t, intervalMs }).catch(() => { /* la siguiente vuelta al frente lo intenta */ }); },
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function startTimedPositions(
   onFix: (fix: TimedFix) => void,
   intervalMs = 120_000,

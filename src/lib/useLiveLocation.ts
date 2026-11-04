@@ -3,7 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { shouldSend, heartbeatDue, HEARTBEAT_MS, MIN_MOVE_M } from "@/lib/location-filter";
-import { isNativeApp, startNativeWatch, startTimedPositions, type NativeFix } from "@/lib/native-bridge";
+import { directUploadAvailable, isNativeApp, startDirectUpload, startNativeWatch, startTimedPositions, type NativeFix } from "@/lib/native-bridge";
+
+/** D-838: la llave del turno para que Android suba las posiciones solo. null si no se pudo (la página sube como antes). */
+async function pideLlaveDeGps(): Promise<string | null> {
+  try {
+    const r = await fetch("/api/gps/token", { cache: "no-store" });
+    if (!r.ok) return null;
+    const j = (await r.json()) as { token?: string };
+    return typeof j.token === "string" ? j.token : null;
+  } catch { return null; }
+}
 
 // ============================================================
 // Shares the driver's position with the office WHILE THEY ARE ON SHIFT.
@@ -87,6 +97,8 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
   const pendingRef = useRef<NativeFix[]>([]);
   // The last fix that passed the filter (queued or sent): the burst is filtered against it, by the DEVICE's clock.
   const acceptedRef = useRef<{ lat: number; lng: number; at: number } | null>(null);
+  // D-838: con la APK 7, Android sube las posiciones solo: la página ya no sube nada, solo enseña el estado.
+  const directRef = useRef(false);
 
   useEffect(() => {
     if (!active) { setStatus("off"); lastRef.current = null; acceptedRef.current = null; pendingRef.current = []; return; }
@@ -96,6 +108,7 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
     let cancelled = false;
     let stopNative: (() => void) | null = null;
     let stopTimed: (() => void) | null = null;
+    let stopDirect: (() => void) | null = null;
     let browserWatchId: number | null = null;
 
     // Shared by both sources: filter, then write.
@@ -103,6 +116,8 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
       if (cancelled) return;
       setStatus("live");
       latestFixRef.current = fix;
+      // D-838: con la subida directa de Android, la página no sube nada (no duplicar filas).
+      if (directRef.current) { setLastAt(new Date().toISOString()); return; }
       // D-835: the interval is measured on the DEVICE's clock (when the fix was taken), not when the callback ran:
       // a burst of 20 minutes of fixes delivered in one second is 20 minutes of road, not 240 duplicates.
       const at = Date.parse(fix.recorded_at ?? "") || Date.now();
@@ -144,7 +159,7 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
     // one does not prove it is dead. Reliable background heartbeats would
     // need native work the GPS plugin doesn't offer.
     const beat = setInterval(() => {
-      if (cancelled) return;
+      if (cancelled || directRef.current) return;
       const fix = latestFixRef.current;
       const last = lastRef.current;
       if (!fix || !last || !heartbeatDue(last.at, Date.now())) return;
@@ -229,6 +244,23 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
         if (stop) {
           stopNative = stop;
           setNative(true);
+          // D-838 (APK 7): Android sube las posiciones solo, cada 5 s / 10 m, aunque la página esté congelada. La llave se
+          // renueva cada vez que la app vuelve al frente. Si no arranca, sigue el camino de siempre (abajo).
+          if (directUploadAvailable()) {
+            const llave = await pideLlaveDeGps();
+            const directo = llave && !cancelled ? await startDirectUpload(`${window.location.origin}/api/gps/ingest`, llave, () => {
+              if (cancelled) return;
+              setStatus("live"); setLastAt(new Date().toISOString());
+            }) : null;
+            if (cancelled) { directo?.stop(); return; }
+            if (directo) {
+              directRef.current = true;
+              const renueva = () => { if (!document.hidden) void pideLlaveDeGps().then((t) => { if (t && !cancelled) directo.renueva(t); }); };
+              document.addEventListener("visibilitychange", renueva);
+              stopDirect = () => { document.removeEventListener("visibilitychange", renueva); directo.stop(); directRef.current = false; };
+              return;
+            }
+          }
           // Distance reporting alone leaves a parked truck silent for hours.
           // This adds a fix on a clock, so a stop is a stop rather than a
           // hole. Its own timestamps survive the app being backgrounded, so
@@ -283,6 +315,7 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
       document.removeEventListener("visibilitychange", onWake);
       clearInterval(beat);
       stopTimed?.();
+      stopDirect?.();
       stopNative?.();
       if (browserWatchId != null) navigator.geolocation.clearWatch(browserWatchId);
     };
