@@ -601,6 +601,88 @@ export function filasOcultas(): FilaDeFicha[] {
   return [...ocultos.filter(tanda).map(filaDe), ...FILAS_SOLO_DE_LECTURA, ...ocultos.filter((c) => !tanda(c)).map(filaDe)];
 }
 
+// ---- Qué ve el vendedor en la ficha ------------------------------------------------------------------------------
+
+/**
+ * D-NEXT: lo que el vendedor ve en el ALTA («Solicitar cliente nuevo»), además de lo que D-728 ya le escondía siempre
+ * (`GRUPOS_QUE_NO_VE_EL_VENDEDOR`, «Campos ocultos» y «Archivos»). El dueño, 2026-11-04: «For sales people: remove Estado
+ * and Historial. In Cuenta they will only see Vendedor de comisión. Contacto stays exactly as it is. In Otros, only remove
+ * CRM type». Solo el alta: al ver o pedir la edición de un cliente que ya existe, el vendedor sigue viendo lo de antes
+ * (D-797 le dio «Vendedor (QB)» a propósito). Admin, gerente y oficina, sin cambios.
+ */
+export const GRUPOS_QUE_NO_VE_EL_VENDEDOR_EN_EL_ALTA: readonly string[] = [...GRUPOS_QUE_NO_VE_EL_VENDEDOR, "estado"];
+/** D-NEXT: en el alta, de «Cuenta» el vendedor solo ve «Vendedor de comisión» (`rep_id`, que es él); de «Otros», todo menos el tipo CRM. */
+export const CAMPOS_QUE_NO_VE_EL_VENDEDOR_EN_EL_ALTA: readonly string[] = ["unified_account", "rep_store", "rep_qb", "rep_history", "crm_type_store", "crm_type_group"];
+
+/** Quién mira la ficha, para decidir qué tarjetas y qué campos se pintan. `alta` = «Nuevo cliente» (aún no hay fila). */
+export interface QuienVeLaFicha { esVendedor: boolean; alta: boolean }
+
+/** ¿Se pinta esta tarjeta (o «Campos ocultos», `ocultos`) para quien mira? */
+export function veElGrupo(grupo: string, q: QuienVeLaFicha): boolean {
+  if (!q.esVendedor) return true;
+  if (grupo === GRUPO_OCULTO.key) return false; // D-728
+  return !(q.alta ? GRUPOS_QUE_NO_VE_EL_VENDEDOR_EN_EL_ALTA : GRUPOS_QUE_NO_VE_EL_VENDEDOR).includes(grupo);
+}
+
+/**
+ * ¿Ve este campo quien mira? Los de la cabecera (cuenta, tienda) siempre: van arriba. Lo que no es un campo de `CAMPOS`
+ * (los contactos, `contacto.0.name`…) también: «Contacto» se ve entera. D-NEXT: lo que no ve no puede ser obligatorio
+ * para él (`faltanEnElAlta`), ni dejar un «Revisa los campos marcados» sin nada marcado a la vista.
+ */
+export function veElCampo(key: string, q: QuienVeLaFicha): boolean {
+  const campo = CAMPOS.find((c) => c.key === key);
+  if (!campo || campo.grupo === "cabecera") return true;
+  if (!veElGrupo(campo.grupo, q)) return false;
+  return !(q.esVendedor && q.alta && CAMPOS_QUE_NO_VE_EL_VENDEDOR_EN_EL_ALTA.includes(key));
+}
+
+/** Las tarjetas y líneas de `filasPorGrupo` que se pintan para quien mira (las de solo lectura, como «Cuenta», se quedan). */
+export function filasPorGrupoQueVe(q: QuienVeLaFicha): ReturnType<typeof filasPorGrupo> {
+  return filasPorGrupo()
+    .filter(({ grupo }) => veElGrupo(grupo.key, q))
+    .map(({ grupo, filas }) => ({ grupo, filas: filas.filter((f) => !f.campo || veElCampo(f.key, q)) }))
+    .filter((g) => g.filas.length > 0 || g.grupo.key === "contacto");
+}
+
+/**
+ * D-NEXT: dónde está un error de la ficha, para decirlo con palabras («Términos (Crédito y términos)», «Nombre (Contacto
+ * 1)»): «Revisa los campos marcados» a secas dejaba al vendedor sin saber qué faltaba cuando el campo no estaba a la vista.
+ */
+export function dondeEstaElError(key: string, t: T): string {
+  const m = /^contacto\.(\d+)\.(\w+)/.exec(key);
+  if (m) {
+    const n = Number(m[1]) + 1;
+    const que: Record<string, [string, string]> = {
+      name: ["Name", "Nombre"], title: ["Title", "Cargo"], phones: ["Phone", "Teléfono"], emails: ["Email", "Correo"],
+      address: ["Address", "Dirección"], website: ["Website", "Sitio web"], note: ["Note", "Nota"],
+    };
+    const [en, es] = que[m[2]] ?? [m[2], m[2]];
+    return t(`${en} (Contact ${n})`, `${es} (Contacto ${n})`);
+  }
+  if (key === "account") return t("Account name (top)", "Nombre de la cuenta (arriba)");
+  if (key === "store") return t("Stores (top)", "Tiendas (arriba)");
+  const campo = CAMPOS.find((c) => c.key === key);
+  if (!campo) return key;
+  const grupo = campo.grupo === GRUPO_OCULTO.key ? GRUPO_OCULTO : GRUPOS.find((g) => g.key === campo.grupo);
+  return grupo ? t(`${campo.en} (${grupo.en})`, `${campo.es} (${grupo.es})`) : t(campo.en, campo.es);
+}
+
+/**
+ * El aviso de «Guardar» con errores: cuáles, con su tarjeta, sin repetir. Sin teléfono ni correo en un contacto
+ * (`faltanEnElAlta` marca los dos), dice «Teléfono o correo»: basta con uno.
+ */
+export function avisoDeErrores(errores: readonly string[], t: T): string {
+  const donde = [...new Set(errores.map((e) => {
+    const m = /^contacto\.(\d+)\.(phones|emails)\.0$/.exec(e);
+    if (m && errores.includes(`contacto.${m[1]}.phones.0`) && errores.includes(`contacto.${m[1]}.emails.0`)) {
+      const n = Number(m[1]) + 1;
+      return t(`Phone or email (Contact ${n})`, `Teléfono o correo (Contacto ${n})`);
+    }
+    return dondeEstaElError(e, t);
+  }))];
+  return t("Missing or wrong: ", "Falta o está mal: ") + donde.join(" · ");
+}
+
 /** El texto de una línea de la ficha: el del campo (`textoDeCampo`), o el de las de solo lectura. */
 export function textoDeFila(c: Cliente, fila: FilaDeFicha, t: T): string {
   if (fila.campo) return textoDeCampo(c, fila.campo, t);

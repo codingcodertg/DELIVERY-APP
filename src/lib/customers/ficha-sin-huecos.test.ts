@@ -39,6 +39,6 @@ describe("las columnas de la ficha", () => {
   it("«Campos ocultos» y «Archivos» van al pie de la última columna", () => {
     expect(ficha).toContain("{!esVendedor && i === columnasDeLaFicha(editando).length - 1 && (");
     const desde = ficha.indexOf("data-tarjetas-de-la-ficha");
-    expect(ficha.slice(desde, ficha.indexOf("data-solo-no-vendedor"))).toContain("filasPorGrupo()");
+    expect(ficha.slice(desde, ficha.indexOf("data-solo-no-vendedor"))).toContain("filasPorGrupoQueVe("); // D-NEXT: la regla de quién ve qué
   });
 });

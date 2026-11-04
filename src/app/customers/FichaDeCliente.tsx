@@ -32,9 +32,9 @@ import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { rcCall } from "@/lib/recruiting/utils";
 import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
 import {
-  cierraLaFicha, columnasDeLaFicha, ESTADOS, GRUPOS_QUE_NO_VE_EL_VENDEDOR, estadoClase, estadoLabel, estaArchivado, fecha, filasOcultas, filasPorGrupo, formDe, GRUPO_OCULTO, HISTORIAS, historiaLabel,
+  avisoDeErrores, cierraLaFicha, columnasDeLaFicha, ESTADOS, estadoClase, estadoLabel, estaArchivado, fecha, filasOcultas, filasPorGrupoQueVe, formDe, GRUPO_OCULTO, HISTORIAS, historiaLabel,
   IMPUESTOS, impuestoLabel, motivoLabel, nombreDeTienda, PARCHE_DESARCHIVAR, parcheArchivar, parcheDe, QB_ESTADOS, qbLabel,
-  textoDeFila, TIENDAS, webUrl,
+  textoDeFila, TIENDAS, veElCampo, webUrl,
   type Campo, type Cliente, type FilaDeFicha,
 } from "@/lib/customers/reglas";
 
@@ -129,7 +129,9 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
         {/* D-786: al ver, «Otros» va debajo de «Contacto» (`columnasDeLaFicha`). */}
         {columnasDeLaFicha(editando).map((claves, i) => (
         <div key={i} className="space-y-4" data-columna={i + 1}>
-        {filasPorGrupo().filter(({ grupo }) => claves.includes(grupo.key) && (!esVendedor || !GRUPOS_QUE_NO_VE_EL_VENDEDOR.includes(grupo.key))).map(({ grupo, filas }) => (
+        {/* D-728: al vendedor, sin «Crédito y términos»; D-NEXT: en el alta, tampoco «Estado e historial», y de «Cuenta» solo
+            «Vendedor de comisión» y de «Otros» todo menos el tipo CRM (`filasPorGrupoQueVe`). */}
+        {filasPorGrupoQueVe({ esVendedor, alta: cliente === null }).filter(({ grupo }) => claves.includes(grupo.key)).map(({ grupo, filas }) => (
           <section key={grupo.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo={grupo.key}>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(grupo.en, grupo.es)}</h2>
             {grupo.key === "contacto" && (editando && contactos && onContactos
@@ -742,9 +744,9 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     return {
       parche: { ...campos.parche, ...parcheDeContactos(contactosOriginales, contactos, cliente), ...parcheDeRedes(redesOriginales, redes) },
       // D-772: en un alta, además, lo obligatorio (términos; del primer contacto nombre, cargo y teléfono o correo).
-      errores: [...campos.errores, ...erroresDeContactos(contactos), ...(nuevo ? faltanEnElAlta(form, contactos, altaComoSolicitud) : [])],
+      errores: [...campos.errores, ...erroresDeContactos(contactos), ...(nuevo ? faltanEnElAlta(form, contactos, altaComoSolicitud, (k) => veElCampo(k, { esVendedor, alta: true })) : [])],
     };
-  }, [form, original, nuevo, contactosOriginales, contactos, cliente, redesOriginales, redes, altaComoSolicitud, direccionAparte]);
+  }, [form, original, nuevo, contactosOriginales, contactos, cliente, redesOriginales, redes, altaComoSolicitud, direccionAparte, esVendedor]);
   const cambiado = Object.keys(parche).length > 0;
 
   // Solicitud 3914768b («need a save draft»): el alta se puede guardar a medias en este navegador, por persona.
@@ -941,7 +943,8 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     if (errores.length) {
       const mal = contactosConErrores(errores);
       if (mal.length && !mal.includes(contactoElegido)) setContactoElegido(mal[0]);
-      setAviso({ tono: "rojo", texto: t("Check the highlighted fields.", "Revisa los campos marcados.") });
+      // D-NEXT: dice cuáles y en qué tarjeta: con un campo fuera de la vista, «Revisa los campos marcados» no decía nada.
+      setAviso({ tono: "rojo", texto: avisoDeErrores(errores, t) });
       return;
     }
     if (hayObvia && !deTodasFormas) {
