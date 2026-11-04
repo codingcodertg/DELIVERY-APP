@@ -12,6 +12,7 @@ import { orderLabel, retentionFloorISO, seesAllHistory, todayISO, shiftDateISO, 
 import { centralWallToUtc } from "@/lib/clockin/tz";
 import { nameStop, summarizeTrack, type Fix, type TrackSummary } from "@/lib/track-history";
 import { PausasDelDia } from "@/components/PausasDelDia";
+import { tramos } from "@/lib/tramos-del-recorrido";
 import { colorDeChofer } from "@/lib/map-legend";
 import { choferesEnVivo, etiquetaEnVivo, MINUTOS_EN_VIVO } from "@/lib/choferes-en-vivo";
 
@@ -55,23 +56,6 @@ function clock(iso: string | null, lang: string): string {
   return new Date(iso).toLocaleTimeString(lang === "es" ? "es-MX" : "en-US", {
     hour: "2-digit", minute: "2-digit", timeZone: "America/Chicago",
   });
-}
-
-/** The traced path, broken at every stretch we couldn't read — a straight
- * line drawn across an unexplained hour would be a road the truck never took. */
-function segmentos(fixes: Fix[]): [number, number][][] {
-  const segs: [number, number][][] = [];
-  let cur: [number, number][] = [];
-  for (let i = 0; i < fixes.length; i++) {
-    const f = fixes[i];
-    if (i > 0) {
-      const mins = (new Date(f.at).getTime() - new Date(fixes[i - 1].at).getTime()) / 60_000;
-      if (mins > 20) { if (cur.length > 1) segs.push(cur); cur = []; }
-    }
-    cur.push([f.lat, f.lng]);
-  }
-  if (cur.length > 1) segs.push(cur);
-  return segs;
 }
 
 export default function TrackPage() {
@@ -249,7 +233,8 @@ export default function TrackPage() {
   // Las líneas: una por chofer visible, con su color (el mismo del Route Manager, D-274). Pulsar una lleva a ese chofer.
   const lines: MapLine[] = useMemo(() => idsVisibles.flatMap((id) => {
     const nombre = nameById.get(id) ?? "";
-    return segmentos(porChofer[id]?.fixes ?? []).map((positions, i) => ({ id: `${id}:seg${i}`, color: unSolo ? "#2456c9" : color(nombre), positions }));
+    // D-835: lo que no se sabe va punteado y gris, no como una calle recta.
+    return tramos(porChofer[id]?.fixes ?? []).map((t, i) => ({ id: `${id}:seg${i}`, color: t.hueco ? "#8a94a0" : unSolo ? "#2456c9" : color(nombre), positions: t.positions, dashed: t.hueco }));
   }), [idsVisibles, porChofer, nameById, unSolo, color]);
 
   const points: MapPoint[] = useMemo(
@@ -303,7 +288,7 @@ export default function TrackPage() {
   }, [reproduciendo, fixes.length]);
   const lineasVisibles: MapLine[] = useMemo(() => {
     if (!unSolo || cursor == null) return lines;
-    return segmentos(fixes.slice(0, cursor + 1)).map((positions, i) => ({ id: `rep${i}`, color: "#2456c9", positions }));
+    return tramos(fixes.slice(0, cursor + 1)).map((t, i) => ({ id: `rep${i}`, color: t.hueco ? "#8a94a0" : "#2456c9", positions: t.positions, dashed: t.hueco }));
   }, [unSolo, cursor, fixes, lines]);
 
   // D-833: los camiones EN VIVO (la última posición de cada chofer visible, si es de hace menos de una hora). En la

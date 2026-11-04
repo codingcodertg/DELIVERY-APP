@@ -22,7 +22,7 @@
  */
 export const MIN_INTERVAL_MS = 5_000; // D-831: era 10 s; a 30 mph son 67 m por punto, y el dueño quiere el recorrido «exacto y preciso».
 /** Coarser than this is a cell-tower guess, not a position — ignore it. */
-export const MAX_ACCURACY_M = 200;
+export const MAX_ACCURACY_M = 65; // D-835: era 200. Con GPS de verdad un camión da 3–30 m; 93 m fue la posición vieja de antes del turno que dibujó un salto de 3.7 millas.
 /**
  * Below this the truck is parked and the GPS is just drifting.
  *

@@ -50140,3 +50140,24 @@ Sello `deliveries` 1.522.0; repo 1.689.0.
 **Pruebas:** `afinidad.test.ts` (el modelo, el coste, que el motor cambia de chofer con la historia y no sin ella, el cableado); `calibra.backtest.test.ts` repite la calibración si se le da un volcado (`RUTAS_DATOS`), si no se salta; versión en las pruebas que la fijan.
 
 **Pendiente:** con más semanas de rutas, repetir la calibración (las señales de cliente y cercanía pueden empezar a ayudar); registrar los reordenamientos manuales como eventos (hoy `reorderStops` no deja rastro) para poder aprender también el orden.
+
+## D-835 · GPS del chofer: la ráfaga del segundo plano se escribe entera; sin puntos viejos; el mapa no inventa calles
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho directo por el orquestador en `fix/gps-segundo-plano` (laptop nueva).
+
+**Pedido (el dueño, con captura del Recorrido de Ernesto Castillo):** «mira esos brincos» · «no me está haciendo el tracking que quiero».
+
+**Lo que había (producción, 2026-11-04, primer día del turno automático D-831):** 18 posiciones en 45 minutos. Dos huecos de ~20 min en los que el camión anduvo más de 2 millas; una posición llegó 17 min tarde. El primer punto (93 m de precisión) era de ANTES del turno y estaba a 3.7 millas del segundo, tomado 33 s después.
+
+**Causa:** Android entrega a la app en segundo plano sus posiciones de golpe al despertar, y `useLiveLocation` las tiraba: medía «cada 5 s» con el reloj de la llamada (toda la ráfaga cae en el mismo segundo) y descartaba lo que llegaba mientras otro envío estaba en curso. El teléfono sí rastreaba; se perdía en la app.
+
+**Qué cambia:**
+- **`useLiveLocation`:** el intervalo se mide con la hora en que el teléfono tomó el punto (`recorded_at`); lo que pasa el filtro se encola (`pendingRef`) y se envía en orden, nada se tira por haber un envío en curso; un punto tomado más de 60 s antes de empezar el rastreo se descarta.
+- **`MAX_ACCURACY_M`:** 200 → 65 m.
+- **Recorrido (`tramos-del-recorrido.ts`):** un salto que pide más de 150 mph se quita, quedándose con el punto más preciso de los dos; un tramo de más de 2 min y ¼ de milla sin posiciones se dibuja punteado y gris («no sabemos por qué calle») en vez de una línea sólida.
+
+Las posiciones ya perdidas hoy no se recuperan. Los choferes toman el código nuevo al cerrar y abrir la app.
+
+Sello `deliveries` 1.523.0; repo 1.690.0.
+
+**Pruebas:** `gps-rafaga.test.ts`; `location-filter.test.ts`.
