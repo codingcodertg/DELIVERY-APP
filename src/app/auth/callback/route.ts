@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { safeNext } from "@/lib/auth-redirect";
+import { destinoAlEntrar } from "@/lib/auth-redirect";
 
 /**
  * Intercambio del código de Supabase Auth por una sesión (D-193).
@@ -16,7 +16,7 @@ import { safeNext } from "@/lib/auth-redirect";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const next = safeNext(url.searchParams.get("next"));
+  const next = destinoAlEntrar(url.searchParams.get("next"));
 
   const fail = (reason: string) =>
     NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(reason)}`, request.url), { status: 303 });

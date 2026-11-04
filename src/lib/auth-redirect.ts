@@ -22,3 +22,16 @@ export function safeNext(next: string | null | undefined, fallback = "/home"): s
   if (n === "/login" || n.startsWith("/login/") || n.startsWith("/login?")) return fallback;
   return n;
 }
+
+/**
+ * A dónde ir justo al entrar (D-839). Como `safeNext`, pero la raíz `/` va a `/home`.
+ *
+ * La app del teléfono y la del escritorio abren la raíz del sitio, que es la lista de órdenes de Entregas. Sin sesión,
+ * el middleware mandaba a `/login?next=/` y, al entrar, todos acababan en Entregas en vez de en el inicio. `/home` ya
+ * manda a cada uno a lo suyo: el chofer a su ruta, quien tiene una sola app a esa app.
+ */
+export function destinoAlEntrar(next: string | null | undefined): string {
+  const d = safeNext(next, "/home");
+  // Solo la raíz pelada: `/?order=…` es un enlace a una orden concreta y se respeta.
+  return d === "/" ? "/home" : d;
+}
