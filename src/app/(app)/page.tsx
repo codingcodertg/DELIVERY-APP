@@ -6,7 +6,7 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { preguntaDelBloque, reparteParaElBloque } from "@/lib/cambio-en-bloque";
-import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, puedeAnular, ROLE_DEFAULT_COLUMNS, STAGES, stageLabel } from "@/lib/constants";
+import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, puedeAnular, ROLE_DEFAULT_COLUMNS, STAGES, stageInfo, stageLabel } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { colocaColumna, mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
 import { CLAVE_DE_COLUMNAS, anchosDeUnRol, anchosValidos, claveDelNavegador, columnasDe, columnasDeVentas, guardaColumnas, hayQueSembrar, leeColumnas, semillaDelNavegador, valorDeColumnas, type AnchosPorRol, type ClienteDePrefs, type ColumnasPorRol, type FiltroGuardado, type PlantillaDeColumnas } from "@/lib/user-prefs";
@@ -678,30 +678,71 @@ export default function OrdersPage() {
     downloadCSV(`deliveries_${todayISO()}.csv`, toCSV(headers, data));
   };
 
+  // ---- Solo de pantalla (vista previa de diseño): el resumen de arriba y la tabla vacía ----
+  // El color de cada etapa es el de su pastilla `.sema` (`STAGES`), pasado como variable CSS: la hoja lo usa para el punto
+  // de la pastilla de filtro y para el tramo de la barra, así las tres cosas dicen lo mismo con el mismo color.
+  const esEtapa = (key: string) => STAGES.some((s) => s.key === key);
+  const colorDeEtapa = (key: string): React.CSSProperties | undefined =>
+    esEtapa(key) ? ({ ["--etapa" as string]: stageInfo(key).color } as React.CSSProperties) : undefined;
+  // Las cuentas de la barra son las de las pastillas de etapa («Todas» es su suma; «Expiradas» y «Factura pendiente»
+  // repiten órdenes que ya están en su etapa, así que no entran).
+  const etapasDeLaBarra = pastillas.filter((p) => esEtapa(p.key));
+  const totalEnLaVista = etapasDeLaBarra.reduce((n, p) => n + p.cuenta, 0);
+  const entregadasEnLaVista = etapasDeLaBarra.find((p) => p.key === "delivered")?.cuenta;
+  const presetActual = presets.find((p) => p.id === preset);
+  const etiquetaDelPreset = presetActual
+    ? (presetActual.id === "all" ? t("All dates", "Todas las fechas") : t(presetActual.en, presetActual.es))
+    : null;
+  // La tabla vacía dice POR QUÉ está vacía y ofrece la salida, en vez de una línea gris. Los botones hacen exactamente lo
+  // que ya hacen la ✕ del buscador, el chip «Todas» de fechas y la pastilla «Todas» de etapa; nada nuevo.
+  // «Factura pendiente» sin tienda conserva su texto de siempre (D-404): ahí la tabla no pasa `vacio`.
+  const vacioDeOrdenes = filter === PESTANA_DOCUMENTO_PENDIENTE && alcancePendientes.tipo === "sin-tienda" ? undefined : (
+    <div className="entregas-vacio" data-tabla-vacia role="status">
+      <b>
+        {q.trim()
+          ? t(`Nothing matches “${q.trim()}”`, `Nada coincide con «${q.trim()}»`)
+          : t("No orders match this view.", "No hay órdenes en esta vista.")}
+      </b>
+      <span>
+        {q.trim()
+          ? t("Check the number or name, or clear the search to see every order again.", "Revise el número o el nombre, o borre la búsqueda para volver a verlas todas.")
+          : preset !== "all" && etiquetaDelPreset
+            ? (filter === PASTILLA_TODAS
+              ? t(`No orders for ${(etiquetaDelPreset ?? "").toLowerCase()}. Other days may have some.`,
+                `No hay órdenes para ${(etiquetaDelPreset ?? "").toLowerCase()}. Puede haber en otros días.`)
+              : t(`Nothing in ${nombreDePastilla(filter)} for ${(etiquetaDelPreset ?? "").toLowerCase()}. Other days may have some.`,
+                `Nada en ${nombreDePastilla(filter)} para ${(etiquetaDelPreset ?? "").toLowerCase()}. Puede haber en otros días.`))
+            : filter === PASTILLA_TODAS
+              ? t("There are no orders to show yet.", "Todavía no hay órdenes que enseñar.")
+              : t("No order is in this stage right now.", "Ahora mismo no hay ninguna orden en esta etapa.")}
+      </span>
+      <span className="entregas-vacio-acciones">
+        {q.trim() && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQ("")}>✕ {t("Clear search", "Borrar la búsqueda")}</button>}
+        {!q.trim() && preset !== "all" && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPreset("all")}>{t("Show all dates", "Ver todas las fechas")}</button>}
+        {!q.trim() && filter !== PASTILLA_TODAS && (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setFilter(PASTILLA_TODAS); setPreset((antes) => presetAlElegirPastilla(PASTILLA_TODAS, antes, "all")); }}>
+            {t("Show every stage", "Ver todas las etapas")}
+          </button>
+        )}
+      </span>
+    </div>
+  );
+
   return (
     <>
-      <div className="page-head">
+      <div className="entregas-ordenes" data-vista={view}>
+      {/* Vista previa de diseño (rama design/entregas-preview): la cabecera dice QUÉ se puede hacer —exportar, columnas,
+          importar, nueva orden— y la barra de abajo QUÉ se está viendo —buscar, tabla o tablero, y las fechas—. Los
+          estilos viven en `entregas.css`, colgados de `.entregas-ordenes`: la tabla compartida no cambia en otras pantallas. */}
+      <div className="page-head entregas-cabecera">
         <h2>{t("Orders", "Órdenes")} <span className="count-tag">{rows.length}</span></h2>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <div className="viewtoggle">
-            <button className={"vt " + (view === "table" ? "on" : "")} onClick={() => setView("table")}>☰ {t("Table", "Tabla")}</button>
-            <button className={"vt " + (view === "board" ? "on" : "")} onClick={() => setView("board")}>▦ {t("Board", "Tablero")}</button>
-          </div>
-          {/* All / Today rides with the view switch — both answer "what am I
-              looking at", so they belong on the same line. */}
-          <div className="viewtoggle">
-            {presets.map((p) => (
-              <button key={p.id} className={"vt " + (preset === p.id ? "on" : "")} onClick={() => setPreset(p.id)}>
-                {t(p.en, p.es)}
-              </button>
-            ))}
-          </div>
+        <div className="entregas-acciones">
           {/* Data exports (Excel / PDF report / CSV) are admin-only. */}
-          {me.role === "admin" && <>
+          {me.role === "admin" && <div className="entregas-exportar" role="group" aria-label={t("Export", "Exportar")}>
             <button className="btn btn-ghost" onClick={() => exportExcelByEmployee(rows, users, lang).catch((e: unknown) => alert(t("Could not load the Excel exporter: ", "No se pudo cargar el exportador de Excel: ") + ((e as { message?: string })?.message || "")))} disabled={!rows.length} title={t("Excel grouped by employee, collapsible", "Excel agrupado por empleado, colapsable")}>📊 {t("Excel", "Excel")}</button>
             <button className="btn btn-ghost" onClick={() => exportPDFByEmployee(rows, users, lang)} disabled={!rows.length}>🖨 {t("PDF", "PDF")}</button>
             <button className="btn btn-ghost" onClick={exportCSV} disabled={!rows.length}>⬇ {t("CSV", "CSV")}</button>
-          </>}
+          </div>}
           {/* Column picking is an office habit. Sales get a fixed list set by
               an admin, and a driver has one job on a phone — the button was
               just taking room from the list. */}
@@ -743,7 +784,26 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      <div className="filters">
+      {/* Cuánto va de lo que se ve: «Hoy: 4 de 30 entregadas» y una barra con las MISMAS cuentas que las pastillas de
+          etapa, cada tramo del color de su etapa (el de la pastilla `.sema`). Solo se pinta: no filtra ni ordena nada. */}
+      <div className="entregas-resumen" data-resumen-de-etapas>
+        <div className="entregas-resumen-texto">
+          {etiquetaDelPreset && <span className="entregas-resumen-cuando">{etiquetaDelPreset}</span>}
+          {entregadasEnLaVista != null
+            ? <span><b>{entregadasEnLaVista}</b> {t(`of ${totalEnLaVista} delivered`, `de ${totalEnLaVista} entregadas`)}</span>
+            : <span><b>{totalEnLaVista}</b> {t("orders", "órdenes")}</span>}
+        </div>
+        {totalEnLaVista > 0 && (
+          <div className="entregas-resumen-barra" role="img" aria-label={t("Orders by stage", "Órdenes por etapa")}>
+            {etapasDeLaBarra.filter((p) => p.cuenta > 0).map((p) => (
+              <span key={p.key} title={`${nombreDePastilla(p.key)}: ${p.cuenta}`}
+                style={{ width: `${(p.cuenta / totalEnLaVista) * 100}%`, ...colorDeEtapa(p.key) }} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="filters entregas-herramientas">
         {/* Con su «✕» para borrar (D-546). */}
         <BuscadorConBorrar
           ref={searchRef}
@@ -758,9 +818,24 @@ export default function OrdersPage() {
             ★ {t("Save filter", "Guardar filtro")}{filtrosGuardados.length ? ` (${filtrosGuardados.length})` : ""}
           </button>
         )}
+        <div className="entregas-vistas">
+          <div className="viewtoggle">
+            <button className={"vt " + (view === "table" ? "on" : "")} onClick={() => setView("table")}>☰ {t("Table", "Tabla")}</button>
+            <button className={"vt " + (view === "board" ? "on" : "")} onClick={() => setView("board")}>▦ {t("Board", "Tablero")}</button>
+          </div>
+          {/* All / Today rides with the view switch — both answer "what am I
+              looking at", so they belong on the same line. */}
+          <div className="viewtoggle">
+            {presets.map((p) => (
+              <button key={p.id} className={"vt " + (preset === p.id ? "on" : "")} onClick={() => setPreset(p.id)}>
+                {t(p.en, p.es)}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="filters filters-oneline">
+      <div className="filters filters-oneline entregas-etapas">
         {view === "table" && (
           <>
             {/* Qué pastillas hay, en qué orden y cuál está encendida lo decide `pastillasDeOrdenes`
@@ -771,6 +846,8 @@ export default function OrdersPage() {
               <button
                 key={p.key}
                 className={"chip " + (p.clase ? p.clase + " " : "") + (p.activa ? "on" : "")}
+                data-etapa={p.key}
+                style={colorDeEtapa(p.key)}
                 onClick={() => {
                   // Pulsar la encendida vuelve a «Todas» (D-313), y de ahí sale la clave que de
                   // verdad queda puesta. El chip de FECHA lo decide `presetAlElegirPastilla`
@@ -809,7 +886,7 @@ export default function OrdersPage() {
       )}
 
       {view === "table" && chosen.length > 0 && (
-        <div className="bulk-bar">
+        <div className="bulk-bar entregas-lote">
           <b>{chosen.length} {t("selected", "seleccionadas")}</b>
           <span style={{ flex: 1 }} />
           {me.role === "admin" && (
@@ -889,7 +966,7 @@ export default function OrdersPage() {
             </button>
           )}
           {me.role === "admin" && <button className="btn btn-ghost btn-sm" disabled={bulkBusy} onClick={exportSelected}>⬇ {t("Export", "Exportar")}</button>}
-          <button className="btn btn-sm" onClick={() => setSelected(new Set())}>✕</button>
+          <button className="btn btn-sm entregas-lote-cerrar" onClick={() => setSelected(new Set())} aria-label={t("Clear selection", "Quitar la selección")} title={t("Clear selection", "Quitar la selección")}>✕</button>
         </div>
       )}
 
@@ -922,6 +999,7 @@ export default function OrdersPage() {
               ? t("🏬 No store assigned: Invoice pending shows only your store's orders. Ask an admin to assign your store in Users.",
                 "🏬 Sin tienda asignada: Factura pendiente enseña solo las órdenes de su tienda. Pida a un admin que se la asigne en Usuarios.")
               : t("No orders match this view.", "No hay órdenes en esta vista.")}
+            vacio={vacioDeOrdenes}
             visible={mananaDeTodos ? [...COLUMNAS_DE_MANANA_PARA_VENTAS] : cols}
             orden={me?.role === "sales" ? null : orden}
             // The checkbox column only earns its space for roles that have a
@@ -945,6 +1023,7 @@ export default function OrdersPage() {
       ) : (
         <div className="empty">{t("Loading…", "Cargando…")}</div>
       )}
+      </div>
 
       {open && <OrderModal me={me} existing={open} startEditing={false} onClose={() => setOpen(null)} />}
       {creating && <OrderModal me={me} existing={null} startEditing onClose={() => setCreating(false)} />}

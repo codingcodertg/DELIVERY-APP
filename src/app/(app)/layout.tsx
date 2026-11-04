@@ -14,6 +14,8 @@ import { LocationTracker } from "@/components/LocationTracker";
 import type { Profile } from "@/lib/types";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
+// La capa visual de Entregas (Órdenes y la ficha de la orden), colgada de `.entregas-ordenes` y `.modal.ficha-orden`.
+import "./entregas.css";
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
