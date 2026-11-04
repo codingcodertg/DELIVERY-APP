@@ -50518,3 +50518,21 @@ Sello `deliveries` 1.535.0; repo 1.711.0.
 Sello `customers` 0.43.0; repo 1.712.0.
 
 **Pruebas:** `customers/borradores-del-alta.test.ts` (23); `borrador-del-alta.test.ts` puesta al día.
+
+## D-858 · Clientes: ventas por fin puede mandar la solicitud de cliente nuevo; su formulario, solo lo que usa
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `fix/clientes-alta-ventas`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño):** «en el usuario de sales quiero agregar el request para un cliente nuevo y todo lo que está en rojo lo pongo y no me deja guardar»; y «para sales people quita estado e historial, en cuenta solo va a ver vendedor de comisión, contacto lo dejas tal cual y en other solo vas a quitar CRM type».
+
+**Causa medida:** desde D-772 (2026-10-30) `faltanEnElAlta` exigía siempre Términos, que está en «Crédito y términos», la tarjeta que D-728 esconde a ventas. Toda solicitud de ventas llevaba un error en un campo invisible y el aviso decía «Revisa los campos marcados» sin nada marcado. En producción, `erp.customer_requests` tiene 0 filas: ningún vendedor (15 con el módulo) pudo mandar una nunca.
+
+**Qué cambia:**
+- **Una regla de visibilidad** (`reglas.ts`: `veElGrupo`, `veElCampo`, `filasPorGrupoQueVe`), y `faltanEnElAlta(…, seVe)` solo exige lo que quien llena el formulario ve.
+- **El aviso nombra cada campo y su tarjeta** («Falta o está mal: Nombre (Contacto 1) · …»), también si estuviera escondido: nunca vuelve a salir vacío.
+- **Lo que ve ventas en Cliente nuevo:** Cuenta solo con «Vendedor de comisión» (fijo a él, D-740; el nombre de la cuenta sigue en la cabecera y es obligatorio); sin Estado ni Historial; Contacto igual; Otros sin los dos campos de tipo CRM. Crédito y términos, Campos ocultos y Archivos siguen escondidos (D-728). Admin, gerente y contabilidad, igual.
+- La solicitud llega sin Términos; el admin los pone en la ficha tras aprobarla (216 inserta nulo en lo que falta).
+
+Sello `customers` 0.44.0; repo 1.713.0.
+
+**Pruebas:** `customers/alta-del-vendedor.test.ts` (2 de 10 fallaban con el código de main); `por-rol`, `obligatorios` y `ficha-sin-huecos` puestas al día. Probado en el demo como Vendedor: «Solicitud #1 enviada al admin ✓».

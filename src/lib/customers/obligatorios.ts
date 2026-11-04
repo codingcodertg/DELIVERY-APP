@@ -10,7 +10,7 @@ import type { ContactoEnEdicion } from "./contactos";
  * Devuelve las claves con la forma de `erroresDeContactos` (`contacto.<i>.<campo>[.<j>]`), que la ficha ya sabe marcar en
  * rojo y a cuya pestaña salta «Guardar».
  *
- * D-NEXT: `seVe` dice qué campos ve quien da el alta (`veElCampo`). Lo que no ve NO se le exige: el vendedor no ve
+ * D-858: `seVe` dice qué campos ve quien da el alta (`veElCampo`). Lo que no ve NO se le exige: el vendedor no ve
  * «Crédito y términos» (D-728), y desde D-772 los términos le faltaban siempre, en una tarjeta que no tenía; «Enviar
  * solicitud» decía «Revisa los campos marcados» sin ninguno marcado y ninguna solicitud de vendedor llegó a guardarse. Los
  * términos de su solicitud los pone el admin (al aprobar se crea sin ellos; se completan en la ficha).

@@ -10,7 +10,7 @@ import {
 import { cuerpoDeSolicitud } from "./solicitud-de-cliente";
 
 /**
- * D-NEXT · El dueño, 2026-11-04: «como el usuario de sales quiero agregar la solicitud de un nuevo cliente; lleno todo lo
+ * D-858 · El dueño, 2026-11-04: «como el usuario de sales quiero agregar la solicitud de un nuevo cliente; lleno todo lo
  * que está en rojo y no me deja guardar».
  *
  * Causa: D-772 hizo obligatorios los «Términos» en todo alta, y D-728 esconde al vendedor la tarjeta «Crédito y términos»

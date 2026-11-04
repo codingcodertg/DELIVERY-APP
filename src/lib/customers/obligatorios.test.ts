@@ -34,7 +34,7 @@ describe("faltanEnElAlta", () => {
   });
 });
 
-describe("lo que no se ve no se exige (D-NEXT)", () => {
+describe("lo que no se ve no se exige (D-858)", () => {
   it("sin términos a la vista (el vendedor), no se piden; lo del contacto, sí", () => {
     const seVe = (k: string) => k !== "terms";
     expect(faltanEnElAlta({ terms: "" }, [lleno], true, seVe)).toEqual([]);
@@ -45,7 +45,7 @@ describe("lo que no se ve no se exige (D-NEXT)", () => {
 describe("la ficha", () => {
   const ficha = sinComentarios(leer("src/app/customers/FichaDeCliente.tsx"));
   it("solo en un alta suma lo obligatorio a los errores, con la bandera de solicitud; una ficha ya creada no", () => {
-    // D-NEXT: con lo que ve quien da el alta (al vendedor no se le exigen los términos, que no ve).
+    // D-858: con lo que ve quien da el alta (al vendedor no se le exigen los términos, que no ve).
     expect(ficha).toContain("...(nuevo ? faltanEnElAlta(form, contactos, altaComoSolicitud, (k) => veElCampo(k, { esVendedor, alta: true })) : [])");
   });
   it("marca en rojo nombre, cargo y dirección del contacto, y en el alta pone el asterisco al primero", () => {

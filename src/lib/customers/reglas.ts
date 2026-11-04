@@ -604,14 +604,14 @@ export function filasOcultas(): FilaDeFicha[] {
 // ---- Qué ve el vendedor en la ficha ------------------------------------------------------------------------------
 
 /**
- * D-NEXT: lo que el vendedor ve en el ALTA («Solicitar cliente nuevo»), además de lo que D-728 ya le escondía siempre
+ * D-858: lo que el vendedor ve en el ALTA («Solicitar cliente nuevo»), además de lo que D-728 ya le escondía siempre
  * (`GRUPOS_QUE_NO_VE_EL_VENDEDOR`, «Campos ocultos» y «Archivos»). El dueño, 2026-11-04: «For sales people: remove Estado
  * and Historial. In Cuenta they will only see Vendedor de comisión. Contacto stays exactly as it is. In Otros, only remove
  * CRM type». Solo el alta: al ver o pedir la edición de un cliente que ya existe, el vendedor sigue viendo lo de antes
  * (D-797 le dio «Vendedor (QB)» a propósito). Admin, gerente y oficina, sin cambios.
  */
 export const GRUPOS_QUE_NO_VE_EL_VENDEDOR_EN_EL_ALTA: readonly string[] = [...GRUPOS_QUE_NO_VE_EL_VENDEDOR, "estado"];
-/** D-NEXT: en el alta, de «Cuenta» el vendedor solo ve «Vendedor de comisión» (`rep_id`, que es él); de «Otros», todo menos el tipo CRM. */
+/** D-858: en el alta, de «Cuenta» el vendedor solo ve «Vendedor de comisión» (`rep_id`, que es él); de «Otros», todo menos el tipo CRM. */
 export const CAMPOS_QUE_NO_VE_EL_VENDEDOR_EN_EL_ALTA: readonly string[] = ["unified_account", "rep_store", "rep_qb", "rep_history", "crm_type_store", "crm_type_group"];
 
 /** Quién mira la ficha, para decidir qué tarjetas y qué campos se pintan. `alta` = «Nuevo cliente» (aún no hay fila). */
@@ -626,7 +626,7 @@ export function veElGrupo(grupo: string, q: QuienVeLaFicha): boolean {
 
 /**
  * ¿Ve este campo quien mira? Los de la cabecera (cuenta, tienda) siempre: van arriba. Lo que no es un campo de `CAMPOS`
- * (los contactos, `contacto.0.name`…) también: «Contacto» se ve entera. D-NEXT: lo que no ve no puede ser obligatorio
+ * (los contactos, `contacto.0.name`…) también: «Contacto» se ve entera. D-858: lo que no ve no puede ser obligatorio
  * para él (`faltanEnElAlta`), ni dejar un «Revisa los campos marcados» sin nada marcado a la vista.
  */
 export function veElCampo(key: string, q: QuienVeLaFicha): boolean {
@@ -645,7 +645,7 @@ export function filasPorGrupoQueVe(q: QuienVeLaFicha): ReturnType<typeof filasPo
 }
 
 /**
- * D-NEXT: dónde está un error de la ficha, para decirlo con palabras («Términos (Crédito y términos)», «Nombre (Contacto
+ * D-858: dónde está un error de la ficha, para decirlo con palabras («Términos (Crédito y términos)», «Nombre (Contacto
  * 1)»): «Revisa los campos marcados» a secas dejaba al vendedor sin saber qué faltaba cuando el campo no estaba a la vista.
  */
 export function dondeEstaElError(key: string, t: T): string {

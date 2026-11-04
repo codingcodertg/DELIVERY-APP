@@ -129,7 +129,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
         {/* D-786: al ver, «Otros» va debajo de «Contacto» (`columnasDeLaFicha`). */}
         {columnasDeLaFicha(editando).map((claves, i) => (
         <div key={i} className="space-y-4" data-columna={i + 1}>
-        {/* D-728: al vendedor, sin «Crédito y términos»; D-NEXT: en el alta, tampoco «Estado e historial», y de «Cuenta» solo
+        {/* D-728: al vendedor, sin «Crédito y términos»; D-858: en el alta, tampoco «Estado e historial», y de «Cuenta» solo
             «Vendedor de comisión» y de «Otros» todo menos el tipo CRM (`filasPorGrupoQueVe`). */}
         {filasPorGrupoQueVe({ esVendedor, alta: cliente === null }).filter(({ grupo }) => claves.includes(grupo.key)).map(({ grupo, filas }) => (
           <section key={grupo.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo={grupo.key}>
@@ -943,7 +943,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     if (errores.length) {
       const mal = contactosConErrores(errores);
       if (mal.length && !mal.includes(contactoElegido)) setContactoElegido(mal[0]);
-      // D-NEXT: dice cuáles y en qué tarjeta: con un campo fuera de la vista, «Revisa los campos marcados» no decía nada.
+      // D-858: dice cuáles y en qué tarjeta: con un campo fuera de la vista, «Revisa los campos marcados» no decía nada.
       setAviso({ tono: "rojo", texto: avisoDeErrores(errores, t) });
       return;
     }
