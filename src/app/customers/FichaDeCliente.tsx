@@ -26,9 +26,8 @@ import { enviaSolicitudDeAyuda, pideContactoDeAyuda, rolDeQuienEscribe } from "@
 import { claveDeEmpresa } from "@/lib/customers/duplicados";
 import { CAMPOS_EN_MAYUSCULAS } from "@/lib/customers/formato";
 import { conDireccionDeLaCuenta, direccionDeLaCuentaAlGuardar, direccionesAparte, mismaDireccion } from "@/lib/customers/direccion-unica";
-import {
-  borraBorradorDelAlta, cuandoSeGuardo, guardaBorradorDelAlta, hayAlgoEscrito, huellaDelBorrador, leeBorradorDelAlta, type BorradorDelAlta,
-} from "@/lib/customers/borrador-del-alta";
+import { cuandoSeGuardo, hayAlgoEscrito, huellaDelBorrador } from "@/lib/customers/borrador-del-alta";
+import { borraBorrador, guardaBorrador, MAX_BORRADORES, type BorradorGuardado } from "@/lib/customers/borradores-del-alta";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { rcCall } from "@/lib/recruiting/utils";
 import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
@@ -659,7 +658,7 @@ function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, a
  * `cliente` null = alta. En el alta la tienda son CASILLAS (D-664): una por tienda y «Todas»; se crea una fila por tienda
  * marcada, todas de la misma empresa nueva, y al terminar la ventana enseña la de la primera tienda con sus pastillas.
  */
-export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, puedeArchivar = false, esVendedor = false, puedePedirVendedor = false, onPedirVendedor, yo, miTienda = null, altaComoSolicitud = false, edicionComoSolicitud = false, onSolicitado, lang = "es", almacen, onClose, onGuardado, editarAlAbrir = false, t }: {
+export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeEditar, puedeArchivar = false, esVendedor = false, puedePedirVendedor = false, onPedirVendedor, yo, miTienda = null, altaComoSolicitud = false, edicionComoSolicitud = false, onSolicitado, lang = "es", almacen, onClose, onGuardado, editarAlAbrir = false, borradorAlAbrir = null, onBorradores, t }: {
   cliente: Cliente | null;
   /** La lista que la pantalla ya tiene cargada: contra ella se busca el duplicado mientras se escribe (D-665). */
   lista?: readonly Cliente[];
@@ -687,6 +686,10 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   /** D-742: el gerente no asigna vendedor: lo pide al admin con un botón que abre la ventana de quien llama. */
   puedePedirVendedor?: boolean;
   onPedirVendedor?: () => void;
+  /** D-857: el borrador elegido en la lista «💾 Borradores»: el alta abre con él, y «Guardar borrador» lo actualiza. */
+  borradorAlAbrir?: BorradorGuardado | null;
+  /** D-857: la lista de borradores cambió (se guardó o se borró uno): quien llama la vuelve a leer. */
+  onBorradores?: () => void;
   t: T;
 }) {
   const nuevo = cliente === null;
@@ -744,30 +747,24 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   }, [form, original, nuevo, contactosOriginales, contactos, cliente, redesOriginales, redes, altaComoSolicitud, direccionAparte]);
   const cambiado = Object.keys(parche).length > 0;
 
-  // Solicitud 3914768b («need a save draft»): el alta se puede guardar a medias en este navegador, por persona
-  // (`borrador-del-alta.ts`), y retomarse al abrir otra vez «Nuevo cliente». Al crearla (o mandarla como solicitud) se borra.
+  // Solicitud 3914768b («need a save draft»): el alta se puede guardar a medias en este navegador, por persona.
+  // D-857 («show the list of the drafts separately so you can have many»): VARIOS borradores, en la lista «💾 Borradores»
+  // de la pantalla (`borradores-del-alta.ts`). Abierta desde uno, «Guardar borrador» actualiza ESE; si no, crea otro. Al
+  // crear el cliente (o mandar la solicitud) se borra solo ese. Ya no hay aviso de «Recuperar borrador»: se retoma desde la lista.
   const conBorrador = nuevo && Boolean(yo);
-  const [borradorPendiente, setBorradorPendiente] = useState<BorradorDelAlta | null>(() => (conBorrador && yo ? leeBorradorDelAlta((k) => window.localStorage.getItem(k), yo) : null));
+  const [borradorId, setBorradorId] = useState<string | null>(borradorAlAbrir?.id ?? null);
+  const [borradorGuardadoEl, setBorradorGuardadoEl] = useState<string>(borradorAlAbrir?.guardado ?? "");
   const borradorActual = { form, contactos, redes, tiendas: tiendasAlta };
   const huellaActual = huellaDelBorrador(borradorActual);
-  // La huella del último borrador guardado o recuperado: si lo escrito es eso mismo, cerrar no pregunta (ya está a salvo).
+  // La huella del último borrador guardado o abierto: si lo escrito es eso mismo, cerrar no pregunta (ya está a salvo).
   const [huellaGuardada, setHuellaGuardada] = useState<string | null>(null);
   const hayParaBorrador = conBorrador && hayAlgoEscrito(borradorActual, preajuste);
   const almacenDelNavegador = () => window.localStorage;
-  const guardarBorrador = () => {
-    if (!yo || !hayParaBorrador) return;
-    if (!guardaBorradorDelAlta(almacenDelNavegador, yo, { ...borradorActual, guardado: new Date().toISOString() })) {
-      setAviso({ tono: "rojo", texto: t("Could not save the draft in this browser.", "No se pudo guardar el borrador en este navegador.") });
-      return;
-    }
-    setHuellaGuardada(huellaActual);
-    setBorradorPendiente(null);
-    setAviso({ tono: "verde", texto: t("Draft saved ✓ — open «New customer» again to finish it.", "Borrador guardado ✓ — abre «Nuevo cliente» otra vez para terminarlo.") });
-  };
-  const recuperarBorrador = () => {
-    const b = borradorPendiente;
-    if (!b) return;
-    // Lo que la ficha pone sola manda sobre lo guardado: el vendedor del vendedor (D-740) y, si no elige tienda, la suya (D-797).
+  // El borrador elegido se pone DESPUÉS de los efectos de arriba que dejan la ficha en blanco al abrir (van antes; este gana).
+  // Lo que la ficha pone sola manda sobre lo guardado: el vendedor del vendedor (D-740) y, si no elige tienda, la suya (D-797).
+  useEffect(() => {
+    const b = borradorAlAbrir;
+    if (!b || !nuevo) return;
     const tiendas = altaComoSolicitud && tiendaPre ? [tiendaPre] : tiendasDelAlta(b.tiendas.filter((c) => TIENDAS.some((x) => x.code === c)));
     const forma = { ...original, ...b.form, ...preajuste, store: tiendas[0] ?? "" };
     const lista = b.contactos.length ? b.contactos : enEdicion([]);
@@ -777,19 +774,39 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     setContactoElegido(0);
     setRedes(b.redes);
     setHuellaGuardada(huellaDelBorrador({ form: forma, contactos: lista, redes: b.redes, tiendas }));
-    setBorradorPendiente(null);
-    setAviso({ tono: "verde", texto: t("Draft restored ✓", "Borrador recuperado ✓") });
+    // Solo al abrir con un borrador: lo demás (original, preajuste…) no cambia en un alta.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [borradorAlAbrir]);
+  const guardarBorrador = () => {
+    if (!yo || !hayParaBorrador) return;
+    const guardado = new Date().toISOString();
+    const r = guardaBorrador(almacenDelNavegador, yo, { ...borradorActual, guardado }, borradorId);
+    if (!r.ok) {
+      setAviso({
+        tono: "rojo",
+        texto: r.motivo === "tope"
+          ? t(`You already have ${MAX_BORRADORES} drafts, the limit. Delete one under «💾 Drafts» to save this one.`, `Ya tienes ${MAX_BORRADORES} borradores, el máximo. Borra uno en «💾 Borradores» para guardar este.`)
+          : t("Could not save the draft in this browser.", "No se pudo guardar el borrador en este navegador."),
+      });
+      return;
+    }
+    setBorradorId(r.id);
+    setBorradorGuardadoEl(guardado);
+    setHuellaGuardada(huellaActual);
+    setAviso({
+      tono: "verde",
+      texto: r.creado
+        ? t("New draft saved ✓ — find it under «💾 Drafts».", "Borrador nuevo guardado ✓ — lo encuentras en «💾 Borradores».")
+        : t("Draft updated ✓", "Borrador actualizado ✓"),
+    });
+    onBorradores?.();
   };
-  const descartarBorrador = () => {
-    if (!yo) return;
-    if (!window.confirm(t("Discard the saved draft? It cannot be recovered.", "¿Descartar el borrador guardado? No se puede recuperar."))) return;
-    borraBorradorDelAlta(almacenDelNavegador, yo);
-    setBorradorPendiente(null);
-    setHuellaGuardada(null);
-    setAviso({ tono: "verde", texto: t("Draft discarded.", "Borrador descartado.") });
+  /** El alta ya se creó o se pidió: su borrador (solo ese) sobra. */
+  const olvidarBorrador = () => {
+    if (!conBorrador || !yo || !borradorId) return;
+    borraBorrador(almacenDelNavegador, yo, borradorId);
+    onBorradores?.();
   };
-  /** El alta ya se creó o se pidió: su borrador sobra. */
-  const olvidarBorrador = () => { if (conBorrador && yo) borraBorradorDelAlta(almacenDelNavegador, yo); };
 
   // D-665: «this information matches another account». Mientras se edita (alta o ficha), lo escrito se compara con la
   // lista ya cargada (`coincidenciasDe`, las reglas de D-633), con un pequeño retardo para no buscar a cada tecla. Fuera
@@ -1101,17 +1118,16 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
         </div>
 
         <div className="space-y-3 pt-3">
-          {nuevo && editando && borradorPendiente && (
-            <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900" role="status" data-borrador-guardado>
-              <span className="min-w-0 flex-1">
-                📝 {cuandoSeGuardo(borradorPendiente.guardado, lang)
-                  ? t(`You have a draft saved ${cuandoSeGuardo(borradorPendiente.guardado, lang)}.`, `Tienes un borrador guardado el ${cuandoSeGuardo(borradorPendiente.guardado, lang)}.`)
-                  : t("You have a saved draft.", "Tienes un borrador guardado.")}
-                {borradorPendiente.form.account?.trim() ? <span className="font-semibold"> {borradorPendiente.form.account}</span> : null}
-              </span>
-              <Button size="sm" onClick={recuperarBorrador} data-recuperar-borrador>{t("Restore draft", "Recuperar borrador")}</Button>
-              <Button size="sm" variant="outline" onClick={descartarBorrador} data-descartar-borrador>{t("Discard", "Descartar")}</Button>
-            </div>
+          {nuevo && editando && borradorId && (
+            <p className="rounded-md bg-slate-50 p-2 text-xs text-slate-500" role="status" data-borrador-abierto>
+              💾 {cuandoSeGuardo(borradorGuardadoEl, lang)
+                ? t(`Draft saved ${cuandoSeGuardo(borradorGuardadoEl, lang)}.`, `Borrador guardado el ${cuandoSeGuardo(borradorGuardadoEl, lang)}.`)
+                : t("Draft.", "Borrador.")}
+              {" "}{t("«Update draft» keeps your changes.", "«Actualizar borrador» guarda tus cambios.")}
+              {" "}{altaComoSolicitud
+                ? t("It leaves the list when the request is sent.", "Sale de la lista al mandar la solicitud.")
+                : t("It leaves the list when the customer is created.", "Sale de la lista al crear el cliente.")}
+            </p>
           )}
           {archivado && (
             <p className="rounded-md border border-slate-200 bg-slate-100 p-2 text-xs text-slate-600">
@@ -1156,8 +1172,10 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
                 )}
                 {conBorrador && (
                   <Button variant="outline" onClick={guardarBorrador} disabled={ocupado || !hayParaBorrador || huellaActual === huellaGuardada}
-                    title={t("Keep what you typed in this browser and finish it later", "Guarda lo escrito en este navegador para terminarlo después")} data-guardar-borrador>
-                    💾 {t("Save draft", "Guardar borrador")}
+                    title={borradorId
+                      ? t("Save your changes to this draft, in this browser", "Guarda tus cambios en este borrador, en este navegador")
+                      : t("Keep what you typed in this browser and finish it later", "Guarda lo escrito en este navegador para terminarlo después")} data-guardar-borrador>
+                    💾 {borradorId ? t("Update draft", "Actualizar borrador") : t("Save draft", "Guardar borrador")}
                   </Button>
                 )}
                 <Button variant="outline" onClick={cancelar} disabled={ocupado}>{t("Cancel", "Cancelar")}</Button>

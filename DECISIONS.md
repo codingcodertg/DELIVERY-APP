@@ -50500,3 +50500,21 @@ Sello `deliveries` 1.534.0; repo 1.710.0.
 Sello `deliveries` 1.535.0; repo 1.711.0.
 
 **Pruebas:** `gps-del-turno.test.ts` (la barra ya no lo lleva; el Gestor sí).
+
+## D-857 · Clientes: varios borradores, en su propia lista
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `feat/clientes-varios-borradores`, fusionado por el orquestador (laptop nueva).
+
+**Pedido:** «show the list of the drafts separately so you can have many». Amplía D-847, que guardaba UN borrador por usuario.
+
+**Qué cambia (`customers/borradores-del-alta.ts`, `BorradoresDelAlta.tsx`):**
+- **«💾 Borradores [N]»** junto a «+ Cliente nuevo», solo con N > 0 y para quien puede dar de alta. Abre una lista (mismo estilo que Solicitudes), lo más nuevo arriba: nombre de la cuenta o «(sin nombre)», fecha y hora de Texas, y un resumen (primer contacto y tiendas). **Abrir** lo carga en Cliente nuevo; **Borrar** pregunta con `useConfirm`.
+- **En la ficha:** abierta desde un borrador, «💾 Actualizar borrador» lo actualiza; si no, «Guardar borrador» crea uno nuevo. Al crear el cliente o mandar la solicitud se borra solo ese. Fuera el aviso «Restaurar / Descartar» de D-847: la lista es la única entrada.
+- **Tope de 50** por usuario, dicho en pantalla. Sigue en el navegador (`rtg_customers_new_drafts_<id>`); el borrador único de D-847 se pasa a la lista sin perderse (la clave vieja se borra solo si la lista se escribió). No sigue a otra computadora: haría falta una tabla y su migración.
+- `cuandoSeGuardo` ahora en hora de Texas (R7 del revisor). `/customers` monta `ConfirmProvider` (no lo tenía).
+
+**Arreglo de paso:** al fusionar D-852 se cambió por error el marcador genérico `D-NEXT` por `D-852` en tres líneas de CLAUDE.md y `revisor-ui-rtg.md`; vuelven a `D-NEXT`.
+
+Sello `customers` 0.43.0; repo 1.712.0.
+
+**Pruebas:** `customers/borradores-del-alta.test.ts` (23); `borrador-del-alta.test.ts` puesta al día.

@@ -1,5 +1,7 @@
 import type { ContactoEnEdicion } from "./contactos";
 import { REDES, type RedesEnEdicion } from "./redes";
+import { formateadorDeFecha } from "@/lib/formateador";
+import { BUSINESS_TZ } from "@/lib/utils";
 
 /**
  * «Save draft» en el alta de un cliente. Roberto Rodriguez Jr (admin), solicitud de ayuda 3914768b, 2026-11-04, con la
@@ -10,7 +12,12 @@ import { REDES, type RedesEnEdicion } from "./redes";
  * DÓNDE SE GUARDA: en ESTE navegador, por persona (`localStorage`, con el id en la clave), como las vistas del Gestor
  * (`vistas-del-gestor.ts`) y los avisos cerrados (`avisos-ocultos.ts`), y por la misma razón: `user_prefs` tiene su lista de
  * claves cerrada en la base (136) y un tope de 8 KB, así que guardarlo allí sería una migración. Consecuencia que se dice:
- * el borrador no viaja a otra computadora ni a otro navegador. Un borrador por persona: guardar otro lo sustituye.
+ * el borrador no viaja a otra computadora ni a otro navegador.
+ *
+ * D-857 (Roberto Rodriguez Jr, el mismo día: «show the list of the drafts separately so you can have many»): ya no hay UN
+ * borrador por persona sino una LISTA (`borradores-del-alta.ts`, clave `rtg_customers_new_drafts_<id>`). Aquí queda la
+ * forma de un borrador, su limpieza y la clave VIEJA (`rtg_customers_new_draft_<id>`), que solo se lee para pasarla a la
+ * lista una vez; nadie escribe ya en ella.
  *
  * Todo con try/catch: un navegador sin almacenamiento (o que lo niega, o lleno) no rompe la ficha; «Guardar borrador» dice
  * que no se pudo, y leer da «no hay borrador».
@@ -27,9 +34,9 @@ export interface BorradorDelAlta {
 }
 
 /** Lo que se escribe en el navegador: con versión, para poder cambiar la forma sin leer basura. */
-const VERSION = 1;
+export const VERSION_DEL_BORRADOR = 1;
 
-/** La clave del navegador, por persona: dos personas en la misma computadora no se pisan el borrador. */
+/** La clave VIEJA (D-847), por persona: un solo borrador. Solo se lee, para pasarlo a la lista (`borradores-del-alta.ts`). */
 export const claveDelBorradorDelAlta = (userId: string): string => `rtg_customers_new_draft_${userId}`;
 
 const texto = (v: unknown): string => (typeof v === "string" ? v : "");
@@ -51,7 +58,7 @@ function contactoDe(x: unknown): ContactoEnEdicion | null {
 export function borradorDe(crudo: unknown): BorradorDelAlta | null {
   if (!crudo || typeof crudo !== "object") return null;
   const o = crudo as Record<string, unknown>;
-  if (o.v !== VERSION) return null;
+  if (o.v !== VERSION_DEL_BORRADOR) return null;
   const form: Record<string, string> = {};
   if (o.form && typeof o.form === "object") {
     for (const [k, v] of Object.entries(o.form as Record<string, unknown>)) if (typeof v === "string") form[k] = v;
@@ -78,7 +85,7 @@ export function hayAlgoEscrito(b: Pick<BorradorDelAlta, "form" | "contactos" | "
 export const huellaDelBorrador = (b: Pick<BorradorDelAlta, "form" | "contactos" | "redes" | "tiendas">): string =>
   JSON.stringify([b.form, b.contactos, REDES.map((k) => b.redes[k] ?? ""), b.tiendas]);
 
-/** El borrador guardado por esta persona, o null (nada, basura, o un navegador que niega el almacenamiento). */
+/** El borrador de la clave vieja (D-847), o null (nada, basura, o un navegador que niega el almacenamiento). */
 export function leeBorradorDelAlta(leer: (clave: string) => string | null, userId: string): BorradorDelAlta | null {
   try {
     const crudo = leer(claveDelBorradorDelAlta(userId));
@@ -86,22 +93,12 @@ export function leeBorradorDelAlta(leer: (clave: string) => string | null, userI
   } catch { return null; }
 }
 
-/** Guarda el borrador (sustituye al anterior). false si el navegador no dejó: quien llama lo dice. */
-export function guardaBorradorDelAlta(almacen: () => { setItem(k: string, v: string): void }, userId: string, b: BorradorDelAlta): boolean {
-  try {
-    almacen().setItem(claveDelBorradorDelAlta(userId), JSON.stringify({ v: VERSION, ...b }));
-    return true;
-  } catch { return false; }
-}
-
-/** Lo borra: al descartarlo, o cuando el alta ya se creó (o se mandó como solicitud). */
-export function borraBorradorDelAlta(almacen: () => { removeItem(k: string): void }, userId: string): void {
-  try { almacen().removeItem(claveDelBorradorDelAlta(userId)); } catch { /* sin almacenamiento: no había nada que borrar */ }
-}
-
-/** Cuándo se guardó, para el aviso: «Nov 4, 2:31 PM» / «4 nov, 14:31». Una fecha que no se lee, vacío. */
+/**
+ * Cuándo se guardó: «Nov 4, 2:31 PM» / «4 nov, 14:31», en hora de Texas (`BUSINESS_TZ`, D-744), no la de la computadora:
+ * la misma hora para todos. Una fecha que no se lee, vacío.
+ */
 export function cuandoSeGuardo(iso: string, lang: "en" | "es"): string {
   const d = new Date(iso);
   if (!iso || Number.isNaN(d.getTime())) return "";
-  return d.toLocaleString(lang === "es" ? "es-MX" : "en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return formateadorDeFecha(lang === "es" ? "es-MX" : "en-US", { timeZone: BUSINESS_TZ, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(d);
 }
