@@ -40,6 +40,7 @@ import { todasLasMiasAutoAprueban } from "@/lib/auto-aprueban-las-mias";
 import { presetInicialDe, type PresetDeFechas } from "@/lib/preset-inicial";
 import { COLUMNAS_DE_MANANA_PARA_VENTAS, mananaDeTodosParaVentas } from "@/lib/manana-de-ventas";
 import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
+import { MenuDeAcciones } from "@/components/MenuDeAcciones";
 
 // Quick saved views — one-tap presets layered on top of the stage chip.
 type Preset = PresetDeFechas | "overdue" | "unassigned" | "mine";
@@ -678,17 +679,12 @@ export default function OrdersPage() {
     downloadCSV(`deliveries_${todayISO()}.csv`, toCSV(headers, data));
   };
 
-  // ---- Solo de pantalla (vista previa de diseño): el resumen de arriba y la tabla vacía ----
+  // ---- Solo de pantalla (vista previa de diseño): el punto de color de las pastillas y la tabla vacía ----
   // El color de cada etapa es el de su pastilla `.sema` (`STAGES`), pasado como variable CSS: la hoja lo usa para el punto
-  // de la pastilla de filtro y para el tramo de la barra, así las tres cosas dicen lo mismo con el mismo color.
+  // de la pastilla de filtro, así la pastilla de arriba y la de la fila dicen lo mismo con el mismo color.
   const esEtapa = (key: string) => STAGES.some((s) => s.key === key);
   const colorDeEtapa = (key: string): React.CSSProperties | undefined =>
     esEtapa(key) ? ({ ["--etapa" as string]: stageInfo(key).color } as React.CSSProperties) : undefined;
-  // Las cuentas de la barra son las de las pastillas de etapa («Todas» es su suma; «Expiradas» y «Factura pendiente»
-  // repiten órdenes que ya están en su etapa, así que no entran).
-  const etapasDeLaBarra = pastillas.filter((p) => esEtapa(p.key));
-  const totalEnLaVista = etapasDeLaBarra.reduce((n, p) => n + p.cuenta, 0);
-  const entregadasEnLaVista = etapasDeLaBarra.find((p) => p.key === "delivered")?.cuenta;
   const presetActual = presets.find((p) => p.id === preset);
   const etiquetaDelPreset = presetActual
     ? (presetActual.id === "all" ? t("All dates", "Todas las fechas") : t(presetActual.en, presetActual.es))
@@ -731,79 +727,11 @@ export default function OrdersPage() {
   return (
     <>
       <div className="entregas-ordenes" data-vista={view}>
-      {/* Vista previa de diseño (rama design/entregas-preview): la cabecera dice QUÉ se puede hacer —exportar, columnas,
-          importar, nueva orden— y la barra de abajo QUÉ se está viendo —buscar, tabla o tablero, y las fechas—. Los
-          estilos viven en `entregas.css`, colgados de `.entregas-ordenes`: la tabla compartida no cambia en otras pantallas. */}
+      {/* Vista previa de diseño (rama design/entregas-preview), versión compacta: UNA fila arriba con el título, el
+          buscador, tabla o tablero, las fechas y las acciones; lo que se usa poco (Excel, PDF, CSV, Importar) va en el
+          menú «Más ▾». Así la tabla empieza más arriba y caben más filas. Estilos en `entregas.css`. */}
       <div className="page-head entregas-cabecera">
         <h2>{t("Orders", "Órdenes")} <span className="count-tag">{rows.length}</span></h2>
-        <div className="entregas-acciones">
-          {/* Data exports (Excel / PDF report / CSV) are admin-only. */}
-          {me.role === "admin" && <div className="entregas-exportar" role="group" aria-label={t("Export", "Exportar")}>
-            <button className="btn btn-ghost" onClick={() => exportExcelByEmployee(rows, users, lang).catch((e: unknown) => alert(t("Could not load the Excel exporter: ", "No se pudo cargar el exportador de Excel: ") + ((e as { message?: string })?.message || "")))} disabled={!rows.length} title={t("Excel grouped by employee, collapsible", "Excel agrupado por empleado, colapsable")}>📊 {t("Excel", "Excel")}</button>
-            <button className="btn btn-ghost" onClick={() => exportPDFByEmployee(rows, users, lang)} disabled={!rows.length}>🖨 {t("PDF", "PDF")}</button>
-            <button className="btn btn-ghost" onClick={exportCSV} disabled={!rows.length}>⬇ {t("CSV", "CSV")}</button>
-          </div>}
-          {/* Column picking is an office habit. Sales get a fixed list set by
-              an admin, and a driver has one job on a phone — the button was
-              just taking room from the list. */}
-          {view === "table" && !["sales", "driver"].includes(me.role) && (
-            <div ref={colsRef} style={{ position: "relative" }}>
-              <button className="btn btn-ghost" onClick={() => setShowCols((s) => !s)}>⚙ {t("Columns", "Columnas")}</button>
-              {showCols && (
-                <div className="col-menu">
-                  <div className="col-menu-head">
-                    <b>{t("Show and order columns", "Mostrar y ordenar columnas")}</b>
-                    <button className="notif-clear" onClick={() => saveCols(defaultColsFor(me.role))}>{t("Reset", "Restablecer")}</button>
-                    {orden && <button className="notif-clear" onClick={() => guardaOrden(null)}>{t("Reset order", "Restablecer orden")}</button>}
-                  </div>
-                  <PlantillasDeColumnas plantillas={plantillas} onAplicar={aplicaPlantilla} onGuardar={guardaPlantillaActual} onBorrar={borraPlantillaGuardada} t={t} />
-                  {ordenDelSelector.map((k) => ORDER_COLUMNS.find((c) => c.key === k)!).map((c) => (
-                    <div key={c.key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <label className="col-opt" style={{ flex: 1 }}>
-                      <input
-                        type="checkbox"
-                        checked={cols.includes(c.key)}
-                        onChange={() => saveCols(cols.includes(c.key) ? cols.filter((k) => k !== c.key) : [...cols, c.key])}
-                      />
-                      {lang === "es" ? c.es : c.en}
-                    </label>
-                    <button type="button" className="btn btn-ghost btn-sm" disabled={!seMueve(c.key, -1)} aria-label={t(`Move ${c.en} up`, `Subir ${c.es}`)} onClick={() => guardaOrden(mueveColumna(ordenDelSelector, c.key, -1, cols))}>↑</button>
-                    <button type="button" className="btn btn-ghost btn-sm" disabled={!seMueve(c.key, 1)} aria-label={t(`Move ${c.en} down`, `Bajar ${c.es}`)} onClick={() => guardaOrden(mueveColumna(ordenDelSelector, c.key, 1, cols))}>↓</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          {me.role === "admin" && (
-            <button className="btn btn-ghost" onClick={() => setImporting(true)} title={t("Bulk-create orders from a CSV file", "Crear órdenes en masa desde un archivo CSV")}>⬆ {t("Import", "Importar")}</button>
-          )}
-          {canCreate(me) && (
-            <button className="btn btn-primary" onClick={() => setCreating(true)}>+ {t("New order", "Nueva orden")}</button>
-          )}
-        </div>
-      </div>
-
-      {/* Cuánto va de lo que se ve: «Hoy: 4 de 30 entregadas» y una barra con las MISMAS cuentas que las pastillas de
-          etapa, cada tramo del color de su etapa (el de la pastilla `.sema`). Solo se pinta: no filtra ni ordena nada. */}
-      <div className="entregas-resumen" data-resumen-de-etapas>
-        <div className="entregas-resumen-texto">
-          {etiquetaDelPreset && <span className="entregas-resumen-cuando">{etiquetaDelPreset}</span>}
-          {entregadasEnLaVista != null
-            ? <span><b>{entregadasEnLaVista}</b> {t(`of ${totalEnLaVista} delivered`, `de ${totalEnLaVista} entregadas`)}</span>
-            : <span><b>{totalEnLaVista}</b> {t("orders", "órdenes")}</span>}
-        </div>
-        {totalEnLaVista > 0 && (
-          <div className="entregas-resumen-barra" role="img" aria-label={t("Orders by stage", "Órdenes por etapa")}>
-            {etapasDeLaBarra.filter((p) => p.cuenta > 0).map((p) => (
-              <span key={p.key} title={`${nombreDePastilla(p.key)}: ${p.cuenta}`}
-                style={{ width: `${(p.cuenta / totalEnLaVista) * 100}%`, ...colorDeEtapa(p.key) }} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="filters entregas-herramientas">
         {/* Con su «✕» para borrar (D-546). */}
         <BuscadorConBorrar
           ref={searchRef}
@@ -832,6 +760,58 @@ export default function OrdersPage() {
               </button>
             ))}
           </div>
+        </div>
+        <div className="entregas-acciones">
+          {/* Column picking is an office habit. Sales get a fixed list set by
+              an admin, and a driver has one job on a phone — the button was
+              just taking room from the list. */}
+          {view === "table" && !["sales", "driver"].includes(me.role) && (
+            <div ref={colsRef} style={{ position: "relative" }}>
+              <button className="btn btn-ghost" aria-label={t("Columns", "Columnas")} onClick={() => setShowCols((s) => !s)}>⚙ <span className="entregas-rotulo">{t("Columns", "Columnas")}</span></button>
+              {showCols && (
+                <div className="col-menu">
+                  <div className="col-menu-head">
+                    <b>{t("Show and order columns", "Mostrar y ordenar columnas")}</b>
+                    <button className="notif-clear" onClick={() => saveCols(defaultColsFor(me.role))}>{t("Reset", "Restablecer")}</button>
+                    {orden && <button className="notif-clear" onClick={() => guardaOrden(null)}>{t("Reset order", "Restablecer orden")}</button>}
+                  </div>
+                  <PlantillasDeColumnas plantillas={plantillas} onAplicar={aplicaPlantilla} onGuardar={guardaPlantillaActual} onBorrar={borraPlantillaGuardada} t={t} />
+                  {ordenDelSelector.map((k) => ORDER_COLUMNS.find((c) => c.key === k)!).map((c) => (
+                    <div key={c.key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <label className="col-opt" style={{ flex: 1 }}>
+                      <input
+                        type="checkbox"
+                        checked={cols.includes(c.key)}
+                        onChange={() => saveCols(cols.includes(c.key) ? cols.filter((k) => k !== c.key) : [...cols, c.key])}
+                      />
+                      {lang === "es" ? c.es : c.en}
+                    </label>
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={!seMueve(c.key, -1)} aria-label={t(`Move ${c.en} up`, `Subir ${c.es}`)} onClick={() => guardaOrden(mueveColumna(ordenDelSelector, c.key, -1, cols))}>↑</button>
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={!seMueve(c.key, 1)} aria-label={t(`Move ${c.en} down`, `Bajar ${c.es}`)} onClick={() => guardaOrden(mueveColumna(ordenDelSelector, c.key, 1, cols))}>↓</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {/* Data exports (Excel / PDF report / CSV) and Import are admin-only. Se usan poco: van juntas en «Más ▾»
+              (el menú de acciones de la ficha, D-497), con el mismo `title` y el mismo apagado sin filas que tenían. */}
+          {me.role === "admin" && (
+            <MenuDeAcciones rotulo={t("More", "Más")} className="btn btn-ghost" opciones={[
+              { id: "excel", texto: `📊 ${t("Excel", "Excel")}`, titulo: t("Excel grouped by employee, collapsible", "Excel agrupado por empleado, colapsable"),
+                deshabilitada: rows.length ? null : t("No orders in this view", "No hay órdenes en esta vista"),
+                alPulsar: () => { exportExcelByEmployee(rows, users, lang).catch((e: unknown) => alert(t("Could not load the Excel exporter: ", "No se pudo cargar el exportador de Excel: ") + ((e as { message?: string })?.message || ""))); } },
+              { id: "pdf", texto: `🖨 ${t("PDF", "PDF")}`, deshabilitada: rows.length ? null : t("No orders in this view", "No hay órdenes en esta vista"),
+                alPulsar: () => exportPDFByEmployee(rows, users, lang) },
+              { id: "csv", texto: `⬇ ${t("CSV", "CSV")}`, deshabilitada: rows.length ? null : t("No orders in this view", "No hay órdenes en esta vista"),
+                alPulsar: exportCSV },
+              { id: "importar", texto: `⬆ ${t("Import", "Importar")}`, titulo: t("Bulk-create orders from a CSV file", "Crear órdenes en masa desde un archivo CSV"),
+                alPulsar: () => setImporting(true) },
+            ]} />
+          )}
+          {canCreate(me) && (
+            <button className="btn btn-primary" onClick={() => setCreating(true)}>+ {t("New order", "Nueva orden")}</button>
+          )}
         </div>
       </div>
 

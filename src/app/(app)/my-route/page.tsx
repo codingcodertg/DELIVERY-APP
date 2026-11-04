@@ -427,7 +427,8 @@ export default function MyRoutePage() {
   );
 
   return (
-    <>
+    // `entregas-mi-ruta`: solo de pantalla (vista previa de diseño). Pone el buscador de factura y Ayer/Hoy/Mañana en una fila.
+    <div className="entregas-mi-ruta">
       <div className="page-head">
         <h2>🧭 {t("My route", "Mi ruta")}</h2>
         <span className="hint">{fmtDate(dia)}</span>
@@ -606,6 +607,6 @@ export default function MyRoutePage() {
       {palletsDe && <PalletsAlRecoger pedido={palletsDe} onCancelar={() => setPalletsDe(null)}
         onConfirmar={(n) => { const d = palletsDe; setPalletsDe(null); void recogerDeUnToque(d, n); }} />}
       {open && <OrderModal me={me} existing={open} startEditing={false} onClose={cerrarFicha} abrirEn={abrirEn} />}
-    </>
+    </div>
   );
 }

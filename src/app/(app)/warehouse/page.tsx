@@ -225,7 +225,8 @@ export default function WarehousePage() {
   if (!canFulfill(me)) return <div className="empty">{t("You don’t have access to the warehouse queue.", "No tienes acceso a la cola del almacén.")}</div>;
 
   return (
-    <>
+    // `entregas-almacen`: solo de pantalla (vista previa de diseño). Pone la cabecera y Cola/Recepción/Ruta en una fila.
+    <div className="entregas-almacen">
       <div className="page-head">
         <h2>{t("Warehouse", "Almacén")} <span className="count-tag">{vista === "recepcion" ? recepcion.filas.length : cola.filas.length}</span></h2>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
@@ -418,6 +419,6 @@ export default function WarehousePage() {
       {open && <OrderModal me={me} existing={open} startEditing={false} onClose={() => setOpen(null)} />}
       {/* El diálogo del salto elegido en una burbuja de etapa (tarifa, pallets, motivo…), fuera de la tabla. */}
       {etapaEnLaFila.dialogo}
-    </>
+    </div>
   );
 }
