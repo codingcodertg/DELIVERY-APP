@@ -4,6 +4,7 @@ import { telClean } from "./utils";
 import { pestanasVisibles } from "./vista-del-gerente";
 import { coincideBusqueda } from "./tabla-de-empleados";
 import { estaDadoDeBaja } from "@/lib/baja";
+import { telefonoEstandar } from "./formato";
 
 /**
  * El buscador de la barra de RR. HH. (`GlobalSearch`). El dueño: «aquí no es solo candidatos, también empleados, pero
@@ -151,9 +152,10 @@ export function placeholderDelBuscador(conEmpleados: boolean, t: T): string {
     : t("🔍 Search candidates…  ( / )", "🔍 Buscar candidatos…  ( / )");
 }
 
-/** La segunda línea de un empleado: puesto · tienda · teléfono (lo que haya), y «Baja» si ya se fue. */
+/** La segunda línea de un empleado: puesto · tienda · teléfono (lo que haya, el teléfono en la forma única del hub,
+ * D-850), y «Baja» si ya se fue. */
 export function detalleDeEmpleado(e: EmpleadoEncontrado, t: T, hoy?: string): string {
-  const partes = [e.job_title, e.store, e.phone].map((v) => (v ?? "").trim()).filter(Boolean);
+  const partes = [e.job_title, e.store, telefonoEstandar(e.phone)].map((v) => (v ?? "").trim()).filter(Boolean);
   if (estaDadoDeBaja(e.date_left, hoy)) partes.unshift(t("Left", "Baja"));
   return partes.join(" · ");
 }

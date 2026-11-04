@@ -66,7 +66,7 @@ describe("del lead a la cotización", () => {
 
   it("el contacto es el nombre, el dueño de la obra la empresa, y el teléfono con el formato del campo", () => {
     const d = borradorDesdeLead(lead({ owner_contact: " Juan Pérez ", owner_name: "Obras Sur LLC", owner_phone: "(956) 555-0142" }), vacio(), tiendas);
-    expect(d.customer).toEqual({ salutation: "Mr.", full_name: "Juan Pérez", company: "Obras Sur LLC", phone: "956-555-0142" });
+    expect(d.customer).toEqual({ salutation: "Mr.", full_name: "Juan Pérez", company: "Obras Sur LLC", phone: "(956) 555-0142" });
   });
 
   it("sin contacto, el dueño va de nombre y la empresa queda vacía", () => {

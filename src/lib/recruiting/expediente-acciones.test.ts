@@ -230,7 +230,7 @@ describe("＋ Agregar empleado", () => {
       ringcentral_ext: "ext 204", job_title: " Cajera ", personal_phone: "9565550199",
     }, true)).toEqual({
       full_name: "Ana Ruiz", profile_id: null, date_hired: "2026-10-01", department: "Ventas", store: null,
-      phone: "956-555-0123", ringcentral_ext: "204", job_title: "Cajera", personal_phone: "956-555-0199",
+      phone: "(956) 555-0123", ringcentral_ext: "204", job_title: "Cajera", personal_phone: "(956) 555-0199",
     });
   });
 
@@ -261,12 +261,12 @@ describe("＋ Agregar empleado", () => {
   });
 });
 
-describe("teléfonos con la forma de la app (D-432: 956-xxx-xxxx)", () => {
-  it("un número de EE. UU. completo se guarda 956-xxx-xxxx, venga como venga", () => {
-    expect(telefonoDeFicha("(956) 555-0123")).toBe("956-555-0123");
-    expect(telefonoDeFicha("9565550123")).toBe("956-555-0123");
-    expect(telefonoDeFicha("+1 956.555.0123")).toBe("956-555-0123");
-    expect(telefonoDeFicha("956-555-0123")).toBe("956-555-0123");
+describe("teléfonos con la forma única del hub (D-850: «(956) 340-5910»; antes 956-xxx-xxxx, D-432)", () => {
+  it("un número de EE. UU. completo se guarda «(956) 555-0123», venga como venga (también el 956-xxx-xxxx de antes)", () => {
+    expect(telefonoDeFicha("(956) 555-0123")).toBe("(956) 555-0123");
+    expect(telefonoDeFicha("9565550123")).toBe("(956) 555-0123");
+    expect(telefonoDeFicha("+1 956.555.0123")).toBe("(956) 555-0123");
+    expect(telefonoDeFicha("956-555-0123")).toBe("(956) 555-0123");
   });
 
   it("lo que no es un número completo se deja como está, y vacío es null", () => {
@@ -462,7 +462,7 @@ describe("el directorio telefónico (T-0054) lee estos datos", () => {
     expect(pagina).toContain("const directorio = saleEnDirectorio(persona);");
     expect(pagina).toContain("directorio.falta.map((f) => PORQUE_NO_SALE[f]).join(\", \")");
     // El campo «de oficina» escribe `phone` y la extensión `ringcentral_ext`: las dos columnas que lee phone_book().
-    expect(pagina).toContain('<input value={info.phone} placeholder="956-555-0123" data-campo="phone"');
+    expect(pagina).toContain('<input value={info.phone} placeholder="(956) 555-0123" data-campo="phone"');
     expect(pagina).toContain('<input value={info.ringcentral_ext} inputMode="numeric" data-campo="ringcentral_ext"');
   });
 });

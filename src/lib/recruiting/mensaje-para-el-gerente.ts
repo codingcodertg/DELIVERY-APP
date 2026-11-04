@@ -1,6 +1,7 @@
 import type { Candidate, Contact } from "./types";
 import { fmtDateTime } from "./utils";
 import { RESULTADO_AGENDADA } from "./agendar-presencial";
+import { telefonoEstandar } from "./formato";
 
 // ============================================================
 // «📋 Copiar para el gerente» (D-590, 2026-10-19). El dueño: «en el hr app haya una opcion que sea como copiar mensaje
@@ -53,14 +54,14 @@ export function mensajeParaElGerente(
   const lineas = lang === "es"
     ? [
         `Candidato: ${c.name.trim()}${puesto ? ` (${puesto})` : ""}`,
-        `Teléfono: ${c.phone.trim() || "—"}`,
+        `Teléfono: ${telefonoEstandar(c.phone) || "—"}`,
         `CV: ${datos.cvEnlace ?? s.cv}`,
         `Nota de la entrevista: ${notaDeLaEntrevista(c) ?? s.nota}`,
         `Entrevista presencial: ${citaPresencial(c, datos.contactos) ?? s.cita}`,
       ]
     : [
         `Candidate: ${c.name.trim()}${puesto ? ` (${puesto})` : ""}`,
-        `Phone: ${c.phone.trim() || "—"}`,
+        `Phone: ${telefonoEstandar(c.phone) || "—"}`,
         `CV: ${datos.cvEnlace ?? s.cv}`,
         `Interview note: ${notaDeLaEntrevista(c) ?? s.nota}`,
         `In-person interview: ${citaPresencial(c, datos.contactos) ?? s.cita}`,

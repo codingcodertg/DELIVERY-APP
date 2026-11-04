@@ -676,8 +676,8 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
           </div>
           <div className="field">
             <label htmlFor="est-tel">{t("Phone", "Teléfono")}</label>
-            {/* 956-555-0123 al completar los 10 dígitos o al salir (D-432); lo que no es un número completo se deja y se marca. */}
-            <input id="est-tel" value={draft.customer.phone} inputMode="tel" placeholder="956-555-0123"
+            {/* «(956) 555-0123» al completar los 10 dígitos o al salir (D-850); lo que no es un número completo se deja y se marca. */}
+            <input id="est-tel" value={draft.customer.phone} inputMode="tel" placeholder="(956) 555-0123"
               className={inv(!!draft.customer.phone.trim() && telefonoLimpio(draft.customer.phone) === null)}
               onChange={(e) => setCliente({ phone: telefonoAlEscribir(e.target.value) })}
               onBlur={(e) => setCliente({ phone: telefonoAlEscribir(e.target.value) })} />

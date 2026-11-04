@@ -80,7 +80,7 @@ export function rotulo(c: ClienteParaCotizar): string {
 
 /**
  * Lo que se vuelca al bloque del cliente al elegir: el contacto como nombre completo (es lo que se imprime, «Mr. Serna»),
- * la cuenta como empresa, y el teléfono con el formato de la casa (956-555-0123). Lo que no hay se deja VACÍO, no se
+ * la cuenta como empresa, y el teléfono con el formato de la casa («(956) 555-0123», D-850). Lo que no hay se deja VACÍO, no se
  * inventa: si la ficha no tiene contacto, el nombre queda en blanco y se escribe a mano.
  */
 export function relleno(c: ClienteParaCotizar): { full_name: string; company: string; phone: string } {

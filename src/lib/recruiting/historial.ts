@@ -7,6 +7,7 @@
  *
  * Aquí lo que no toca la base: los tipos, las etiquetas, el texto de una fila y la regla del motivo.
  */
+import { telefonoEstandar } from "./formato";
 
 export const KINDS = [
   "employee_deactivated", "employee_leaving_edited", "employee_reactivated",
@@ -110,10 +111,12 @@ export function textoDeEntrada(e: EntradaDeHistorial, lang: "en" | "es"): string
   return partes.join(" · ");
 }
 
-/** El texto con el que se guarda un activo en el historial: «✉️ ana@rdz…» o «📞 956-555-0123 ext. 12». */
+/** El texto con el que se guarda un activo en el historial: «✉️ ana@rdz…» o «📞 (956) 555-0123 ext. 12». El número va en
+ * la forma única del hub (D-850) aunque la fila lo tenga guardado de antes («956-555-0123»). Las entradas YA escritas no
+ * se reescriben: el historial cuenta lo que pasó y no se toca. */
 export function textoDeActivoParaHistorial(a: { kind: "email" | "phone"; value: string; ext?: string | null }): string {
   if (a.kind === "email") return `✉️ ${a.value}`;
-  return `📞 ${a.value}${a.ext ? ` ext. ${a.ext}` : ""}`;
+  return `📞 ${telefonoEstandar(a.value) || a.value}${a.ext ? ` ext. ${a.ext}` : ""}`;
 }
 
 /** Lo que cambió entre dos versiones de un activo, para `data` y para el detalle. */

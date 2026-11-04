@@ -3,7 +3,7 @@ import type { EstimadoHallado, AprobacionEstado } from "./validar";
 import {
   DEFAULT_DISPLAY_LEVEL, DEFAULT_SALUTATION, DISPLAY_LEVELS, SALUTATIONS, hoyLocal, resumenDeTotales,
   type Customer, type Delivery, type DisplayLevel, type QuoteDraft, type QuoteLine,
-  tasaDeImpuesto,
+  tasaDeImpuesto, telefonoAlEscribir,
 } from "./modelo";
 import {
   aplicaAlcance, aplicaFiltro, cortaTanda, piesCuadradosPedidos, rangoDeTanda,
@@ -115,7 +115,7 @@ export function borradorDeFila(fila: Record<string, unknown>): QuoteDraft {
     // `last_name` / `last_name_edited` de las filas guardadas antes de D-432 se ignoran a propósito: el apellido que se
     // imprime sale del nombre completo, que sí se ve y se corrige en pantalla.
     company: texto(c.company),
-    phone: texto(c.phone),
+    phone: telefonoAlEscribir(texto(c.phone)), // D-850: guardado como «956-555-0123», se abre en la forma única del hub.
     // `address` de las filas guardadas antes de D-451 se ignora: el campo se quitó («remove dirrecion en estimador»).
     // Al volver a guardar esa cotización, el `jsonb` del cliente ya no la lleva.
   };

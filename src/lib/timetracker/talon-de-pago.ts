@@ -21,6 +21,7 @@ import { computePay, projectWeekStart, weekStartISO } from "@/lib/timetracker/he
 import { sumaDeAjustes, totalConAjustes } from "@/lib/timetracker/total-de-nomina";
 import type { Assignment, PayrollAdjustment, Project, Session } from "@/lib/timetracker/types";
 import { OT_WEEKLY_MIN, summarize, type PayEntry } from "@/lib/clockin/payroll";
+import { telefonoEstandar } from "@/lib/recruiting/formato";
 
 export type TipoDeTalon = "onsite" | "remote";
 
@@ -384,7 +385,8 @@ function seccionDelTalon(t: TalonDePago, empresa: Empresa, acumulado: Acumulado,
 
   const datosEmpresa = [
     empresa.address ? escapa(empresa.address) : "",
-    [empresa.phone ? escapa(empresa.phone) : "", empresa.email ? escapa(empresa.email) : ""].filter(Boolean).join(" · "),
+    // D-850: el teléfono de la empresa, en la forma única del hub.
+    [empresa.phone ? escapa(telefonoEstandar(empresa.phone)) : "", empresa.email ? escapa(empresa.email) : ""].filter(Boolean).join(" · "),
     empresa.taxId ? `${T("Tax ID", "ID fiscal")} ${escapa(empresa.taxId)}` : "",
   ].filter(Boolean).map((x) => `<div>${x}</div>`).join("");
 

@@ -101,7 +101,7 @@ con `gh auth refresh -h github.com -s workflow`.
    (squash). `git push origin main` no existe en este proyecto: la protección de
    rama lo rechaza
 7. Ya fusionado: aplicar migraciones (con `migrate-status` antes y después),
-   asignar la versión, y sustituir el marcador `D-NEXT` por el número `D-0XX`
+   asignar la versión, y sustituir el marcador `D-852` por el número `D-0XX`
    real. Si cambia el comportamiento: entrada en `DECISIONS.md` **y** en el ADR
    de Notion
 8. Actualizar Notion (regla 1)
@@ -172,7 +172,7 @@ Lo que **sí** se permite desde la rama: pruebas con `ROLLBACK`, de solo lectura
 
 El worker **no** toca `package.json` ni `APP_VERSIONS`, y **no** numera su
 decisión: escribe su entrada de `DECISIONS.md` con el marcador literal
-**`D-NEXT`** en el título. El orquestador la numera al fusionar, en serie.
+**`D-852`** en el título. El orquestador la numera al fusionar, en serie.
 
 La razón: `DECISIONS.md` es append-only y su numeración es la columna vertebral
 de la documentación. Dos ramas paralelas que se numeran solas producen dos
@@ -267,8 +267,11 @@ Emails: always lowercase. Names: proper capitalization (First Last), never all c
 text casing must be consistent across all fields and screens — no random uppercase labels or mixed styles. Normalize data
 on input/save so everything stored and displayed follows the same format.»*
 
-- **Teléfonos:** la forma de la app es `956-555-0123` (D-432, `telefonoDeFicha` en RR. HH.; Clientes y Entregas tienen
-  la suya equivalente). La extensión se enseña aparte como «ext. 123». No se inventa otra forma en una app nueva.
+- **Teléfonos:** una sola forma en todo el hub, `(956) 340-5910` (D-850; el dueño: «usa el formato (956) 340-5910 en
+  todo»), y un solo ayudante, `telefonoEstandar` (`src/lib/recruiting/formato.ts`). `telefonoDeFicha` (RR. HH.) y
+  `telefonoParaVer` / `conTelefonoEstandar` (Entregas) delegan en él. Toda pantalla, exportación y correo pinta el
+  teléfono pasando por él, aunque la fila esté guardada de antes. La extensión se enseña aparte como «ext. 123»; si viene
+  escrita dentro del campo, se deja como está. No se inventa otra forma en una app nueva.
 - **Correos:** siempre en minúsculas y recortados al guardar (`correoDeFicha`).
 - **Nombres de persona:** con mayúscula inicial en cada palabra cuando llegan todo en mayúsculas o todo en minúsculas
   (`nombreDeFicha`); lo mezclado a propósito («McAllen») se respeta.

@@ -33,9 +33,9 @@ describe("buscar", () => {
 });
 
 describe("lo que rellena", () => {
-  it("contacto como nombre, cuenta como empresa, teléfono con guiones; el de la ficha de contactos manda", () => {
-    expect(relleno(CLIENTES_DEMO[0])).toEqual({ full_name: "Carlos Serna", company: "Risse Builders", phone: "956-703-3694" });
-    expect(relleno(CLIENTES_DEMO[1])).toEqual({ full_name: "Ana Pérez", company: "Rio Homes LLC", phone: "956-555-0101" });
+  it("contacto como nombre, cuenta como empresa, teléfono en la forma única «(956) 703-3694» (D-850); el de la ficha de contactos manda", () => {
+    expect(relleno(CLIENTES_DEMO[0])).toEqual({ full_name: "Carlos Serna", company: "Risse Builders", phone: "(956) 703-3694" });
+    expect(relleno(CLIENTES_DEMO[1])).toEqual({ full_name: "Ana Pérez", company: "Rio Homes LLC", phone: "(956) 555-0101" });
   });
   it("sin contacto, el nombre queda vacío (no se inventa) y sin teléfono, vacío", () => {
     expect(relleno({ ...CLIENTES_DEMO[2], phone: null })).toEqual({ full_name: "", company: "Valley Flooring", phone: "" });

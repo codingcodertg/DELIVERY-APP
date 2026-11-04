@@ -14,6 +14,7 @@ import { sumaDeAjustes, totalConAjustes, totalPagado } from "@/lib/timetracker/t
 import { necesitaProyecto, nombreDeLinea, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
 import { isOverlapError } from "@/lib/timetracker/overlap";
 import { Modal } from "./Modal";
+import { telefonoEstandar } from "@/lib/recruiting/formato";
 
 // Ported (D-071) from timetracker-clean's manager/ManagerReports.jsx — the
 // biggest and highest-stakes screen in the app: it computes and records
@@ -554,7 +555,7 @@ export function ManagerReports({ period }: { period: string }) {
             {co.companyAddress && <div className="small">{co.companyAddress}</div>}
             <div className="small">
               {co.companyTaxId ? t("mgr.rep.rcptTaxId") + " " + co.companyTaxId : ""}
-              {co.companyPhone ? "  ·  " + co.companyPhone : ""}
+              {co.companyPhone ? "  ·  " + telefonoEstandar(co.companyPhone) : ""}
               {co.companyEmail ? "  ·  " + co.companyEmail : ""}
             </div>
             <div className="hr" style={{ background: "#ddd" }} />

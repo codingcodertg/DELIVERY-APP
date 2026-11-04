@@ -1,6 +1,7 @@
 import type { Candidate, Contact } from "./types";
 import { mergeTemplate, rcCall, rcSms, telClean } from "./utils";
 import { formatoEnBrownsville } from "./hora-de-brownsville";
+import { telefonoEstandar } from "./formato";
 
 /** Lo que las funciones de aquí necesitan del candidato; `phone` admite nulo porque el dato viejo puede venir vacío. */
 type Cand = Pick<Candidate, "id" | "name" | "role"> & { phone: string | null };
@@ -71,9 +72,9 @@ export function estadoDelBoton(contactos: Contact[], candidateId: string, lang: 
   return { enviado: true, etiqueta: (lang === "es" ? "SMS enviado ✓ " : "SMS sent ✓ ") + hora };
 }
 
-/** El teléfono en la fila de la lista (pedido del dueño, misma D-581): el número tal cual lo escribieron,
- * enlazado a RingCentral como el «📞 Llamar» de la ficha. Sin dígitos no se pinta nada. */
+/** El teléfono en la fila de la lista (pedido del dueño, misma D-581): el número en la forma única del hub,
+ * «(956) 340-5910» (D-850; lo que no es un número completo, tal cual lo escribieron), enlazado a RingCentral como el «📞 Llamar» de la ficha. Sin dígitos no se pinta nada. */
 export function telefonoEnLaFila(phone: string | null): { texto: string; href: string } | null {
   if (!telClean(phone)) return null;
-  return { texto: (phone ?? "").trim(), href: rcCall(phone) };
+  return { texto: telefonoEstandar(phone), href: rcCall(phone) };
 }

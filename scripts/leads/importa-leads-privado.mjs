@@ -40,7 +40,9 @@ const POOL_POR_CIUDAD = {
 const limpio = (v) => { const s = v === null || v === undefined ? "" : String(v).trim(); return !s || /^unk\.?$/i.test(s) || s === "-" ? null : s; };
 const numero = (v) => { const s = limpio(v); if (s === null) return null; const n = Number(String(s).replace(/[$,\s]/g, "")); return Number.isFinite(n) ? n : null; };
 export const digitos = (v) => { const s = limpio(v); if (!s) return null; let d = String(s).replace(/\D/g, ""); if (d.length === 11 && d.startsWith("1")) d = d.slice(1); return d.length === 10 ? d : null; };
-export const telBonito = (d) => (d ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : null);
+// D-850: la forma única del hub, «(956) 340-5910» (la de `telefonoEstandar`, src/lib/recruiting/formato.ts). Copia: este guion
+// corre con node y no resuelve el alias `@/`.
+export const telBonito = (d) => (d ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : null);
 export const poolDeCiudad = (ciudad) => POOL_POR_CIUDAD[(limpio(ciudad) ?? "").toLowerCase()] ?? "No store";
 /** Un nombre comparable: minúsculas, sin acentos, sin «llc/inc/co/corp/ltd», sin puntuación, sin «the», espacios de uno. */
 export const nombreClave = (v) => {

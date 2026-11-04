@@ -96,13 +96,14 @@ describe("el cliente: nombre completo dentro, «Ms. Apellido» fuera", () => {
   });
 });
 
-describe("el teléfono del cliente, con forma limpia 956-xxx-xxxx (D-432)", () => {
-  it("paréntesis, espacios, puntos y +1 se normalizan", () => {
-    expect(telefonoLimpio("(956) 555 0123")).toBe("956-555-0123");
-    expect(telefonoLimpio("+1 956 555 0123")).toBe("956-555-0123");
-    expect(telefonoLimpio("1-956-555-0123")).toBe("956-555-0123");
-    expect(telefonoLimpio("956.555.0123")).toBe("956-555-0123");
-    expect(telefonoLimpio("9565550123")).toBe("956-555-0123");
+describe("el teléfono del cliente, en la forma única del hub «(956) 555-0123» (D-850; antes 956-xxx-xxxx, D-432)", () => {
+  it("guiones, paréntesis, espacios, puntos y +1 se normalizan", () => {
+    expect(telefonoLimpio("(956) 555 0123")).toBe("(956) 555-0123");
+    expect(telefonoLimpio("+1 956 555 0123")).toBe("(956) 555-0123");
+    expect(telefonoLimpio("1-956-555-0123")).toBe("(956) 555-0123");
+    expect(telefonoLimpio("956.555.0123")).toBe("(956) 555-0123");
+    expect(telefonoLimpio("9565550123")).toBe("(956) 555-0123");
+    expect(telefonoLimpio("956-555-0123")).toBe("(956) 555-0123");
   });
   it("lo que no son 10 dígitos de EE. UU. no se toca: null, y al escribir se deja tal cual", () => {
     expect(telefonoLimpio("555 0123")).toBeNull();
@@ -110,7 +111,7 @@ describe("el teléfono del cliente, con forma limpia 956-xxx-xxxx (D-432)", () =
     expect(telefonoLimpio("(056) 555 0123")).toBeNull();
     expect(telefonoAlEscribir("555 0123")).toBe("555 0123");
     expect(telefonoAlEscribir("(956) 555 012")).toBe("(956) 555 012");
-    expect(telefonoAlEscribir("(956) 555 0123")).toBe("956-555-0123");
+    expect(telefonoAlEscribir("(956) 555 0123")).toBe("(956) 555-0123");
   });
 });
 

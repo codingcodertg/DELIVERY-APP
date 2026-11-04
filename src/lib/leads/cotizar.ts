@@ -60,7 +60,7 @@ export function direccionDeObra(l: Pick<Lead, "site_address" | "site_city" | "si
  * |---------------------------------|----------------------------------------------------------|
  * | `owner_contact` (la persona)    | Nombre completo                                          |
  * | `owner_name` (el dueño de obra) | Empresa; y Nombre completo si no hay contacto            |
- * | `owner_phone`                   | Teléfono, con el formato del campo (956-555-0123)        |
+ * | `owner_phone`                   | Teléfono, con el formato del campo ((956) 555-0123)      |
  * | `site_address/city/zip`         | Dirección de entrega (el modo se queda como estaba)      |
  * | `pool` (la tienda más cercana)  | Tienda de salida, solo si es una tienda de Ajustes       |
  *

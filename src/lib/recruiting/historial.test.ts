@@ -63,8 +63,9 @@ describe("historial de RR. HH. (D-734)", () => {
   });
   it("el activo se guarda como texto: correo con ✉️, número con 📞 y su extensión", () => {
     expect(textoDeActivoParaHistorial({ kind: "email", value: "ana@rdz.net" })).toBe("✉️ ana@rdz.net");
-    expect(textoDeActivoParaHistorial({ kind: "phone", value: "956-555-0123", ext: "12" })).toBe("📞 956-555-0123 ext. 12");
-    expect(textoDeActivoParaHistorial({ kind: "phone", value: "956-555-0123", ext: null })).toBe("📞 956-555-0123");
+    // D-850: el número en la forma única del hub aunque la fila lo guarde de antes; la extensión, como «ext. 12».
+    expect(textoDeActivoParaHistorial({ kind: "phone", value: "956-555-0123", ext: "12" })).toBe("📞 (956) 555-0123 ext. 12");
+    expect(textoDeActivoParaHistorial({ kind: "phone", value: "(956) 555-0123", ext: null })).toBe("📞 (956) 555-0123");
   });
   it("los cambios de un activo: solo lo que cambió, y el detalle los cuenta", () => {
     const c = cambiosDeActivo({ plan: "A", note: null, cost_year: 10 }, { plan: "B", note: null, cost_year: 10 }, ["plan", "note", "cost_year"]);
