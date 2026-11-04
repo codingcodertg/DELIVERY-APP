@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import {
-  APP_SETTINGS, dateISO, effBreaks, effTrackMode, effWorkerType, fmtClock, fmtHrs, fmtTime, money,
+  APP_SETTINGS, dateISO, effBreaks, effTrackMode, effWorkerType, fmtClock, fmtClockSinSegundos, fmtHrs, fmtTime, money,
   projectWeekStart, timeAgo, weekStartISO,
 } from "@/lib/timetracker/helpers";
 import {
@@ -1415,7 +1415,9 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
 
         <div className="row between">
           <div>
-            <div className="timer-big">{fmtClock(worked)}</div>
+            {/* D-829: sin segundos, como el panel de fichar (D-755; Roberto: «Employees don't need to see seconds that
+                they're clocked in»). El tick de un segundo se queda: hace más que repintar (latido, vigía). */}
+            <div className="timer-big">{fmtClockSinSegundos(worked)}</div>
             <div className="small muted">
               {remoteOwner
                 ? t(remoteOwner === "desktop" ? "track.viaDesktop" : "track.viaWeb")
