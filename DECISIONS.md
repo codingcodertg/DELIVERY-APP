@@ -50242,3 +50242,13 @@ Sello `deliveries` 1.527.0; repo 1.694.0.
 Sello `promos` 0.22.0; repo 1.695.0.
 
 **Pruebas:** `promos/filtros-y-votos.test.ts`; `precio-por-grupo.test.ts` puesta al día.
+
+## D-841 · APK 7 publicada: el aviso de «Hay una nueva versión» la ofrece
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho directo por el orquestador en `release/apk-7` (laptop nueva).
+
+**Qué cambia:** la APK 7 de D-838 ya está en el almacén (`app/RDZ-Deliveries.apk`, 3 581 810 bytes, sha256 `9ecb9196…c1276`, comprobada tras subirla; la 6 queda respaldada en la laptop). Ahora sí: `LATEST_APK_VERSION_CODE` = 7, `versionCode` 7 / `versionName` 1.12.0 en `build.gradle` y `RDZDeliveries/7` en `capacitor.config.ts`, los tres iguales como pide D-638. Los teléfonos con la APK 5 o 6 ven el aviso y la instalan encima, sin perder la sesión (misma firma).
+
+Sello `deliveries` 1.528.0; repo 1.696.0.
+
+**Pruebas:** `app-update.test.ts`.

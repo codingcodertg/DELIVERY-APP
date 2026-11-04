@@ -16,7 +16,7 @@ import type { AppKey } from "@/lib/app-versions";
 /** Build number of the newest published APK. Bump this together with
  * `versionCode` in mobile/android/app/build.gradle and `appendUserAgent` in
  * mobile/capacitor.config.ts whenever a new APK is released. */
-export const LATEST_APK_VERSION_CODE = 6;
+export const LATEST_APK_VERSION_CODE = 7;
 
 /** Where the newest APK can be downloaded. Android's download manager handles
  * the install prompt, so the app itself needs no install permission. */
