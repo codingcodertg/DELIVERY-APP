@@ -14,6 +14,8 @@ import { LocationTracker } from "@/components/LocationTracker";
 import type { Profile } from "@/lib/types";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
+// La capa visual de Entregas (Órdenes y la ficha de la orden), colgada de `.entregas-ordenes` y `.modal.ficha-orden`.
+import "./entregas.css";
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
@@ -79,9 +81,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             they are gated: nobody else's work depends on background GPS, and
             the gate is inert outside the APK anyway. */}
         {me.role === "driver" ? (
-          <DriverGate><div className="wrap"><ErrorBoundary role={me.role}><TabGate>{children}</TabGate></ErrorBoundary></div></DriverGate>
+          <DriverGate><div className="wrap entregas-app"><ErrorBoundary role={me.role}><TabGate>{children}</TabGate></ErrorBoundary></div></DriverGate>
         ) : (
-          <div className="wrap"><ErrorBoundary role={me.role}><TabGate>{children}</TabGate></ErrorBoundary></div>
+          <div className="wrap entregas-app"><ErrorBoundary role={me.role}><TabGate>{children}</TabGate></ErrorBoundary></div>
         )}
         {/* La burbuja de Ayuda ya no se monta aquí: está en el layout raíz, la misma para todas las apps (D-530). */}
         <VersionFooter />

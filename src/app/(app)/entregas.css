@@ -1,0 +1,199 @@
+/* RTG Entregas: la capa compacta (vista previa de diseño, rama design/entregas-preview).
+   ---------------------------------------------------------------------------
+   El dueño, al ver la primera vista previa: «más eficiente, que aproveche mejor el espacio, y que toque las otras
+   vistas». Esto es UN sistema de densidad para todas las pantallas de Entregas (Órdenes, Almacén, Chofer, Mi ruta,
+   Gestor de Rutas, Resumen, Cuentas, Ruta de hoy, Recorrido, Panel…), no un adorno por pantalla:
+   menos aire arriba, cabeceras de una fila, pastillas y botones de barra más bajos, filas de tabla de ~32 px,
+   avisos de una línea, tarjetas de teléfono de dos líneas.
+
+   Cómo está acotado:
+   - Todo cuelga de `.entregas-app`, la clase del `.wrap` del layout de Entregas (`(app)/layout.tsx` y el demo,
+     `LocalApp`). Promos, Clientes, RR. HH., Time Tracker y el resto de apps no la llevan: no cambian.
+   - Las reglas generales van con `:where(.entregas-app)`, que NO suma especificidad: pisan solo el estilo base de
+     globals.css (misma especificidad, esta hoja se carga después) y dejan ganar a las reglas propias y más
+     concretas de cada pantalla (la tabla de paradas del Gestor, `.gestor-eficiente`, Mi ruta…), que ya están medidas.
+   - Los diálogos NO entran (la ficha de la orden, las confirmaciones…): cada regla general lleva
+     `:where(:not(.overlay *))`, sin especificidad, así que lo que se abre en un `.overlay` se ve como en main.
+     El dueño aprobó la versión compacta salvo la ficha: «la hiciste más ancha y se deforma».
+   - Colores: solo variables de globals.css; las sombras mezclan `--ink` con transparente. El color de cada etapa
+     llega como `--etapa`, desde `STAGES` (el de la pastilla `.sema`). */
+
+/* =====================================================================================================================
+   1 · El marco y las cabeceras
+   ===================================================================================================================== */
+/* Menos aire arriba y a los lados; el de abajo es el hueco de la burbuja de Ayuda (D-530) y no se toca. */
+.wrap.entregas-app { padding-top: 10px; }
+@media (min-width: 641px) { .wrap.entregas-app { padding-left: 12px; padding-right: 12px; } }
+@media (min-width: 1280px) { .wrap.entregas-app { max-width: min(1600px, 100%); } }
+
+:where(.entregas-app) .page-head:where(:not(.overlay *)) { gap: 6px 8px; margin-bottom: 8px; }
+:where(.entregas-app) .page-head h2:where(:not(.overlay *)) { font-size: 18px; line-height: 1.2; }
+:where(.entregas-app) .page-head h2 .count-tag:where(:not(.overlay *)) { font-size: 12px; padding: 0 8px; }
+:where(.entregas-app) .filters:where(:not(.overlay *)) { gap: 6px; margin-bottom: 8px; }
+:where(.entregas-app) .card:where(:not(.overlay *)) { padding: 12px 14px; margin-bottom: 10px; border-radius: 10px; }
+:where(.entregas-app) .card h2:where(:not(.overlay *)) { margin-bottom: 8px; font-size: 14px; }
+/* Una lista de tarjetas dentro de una tarjeta (Clientes guardados en Cuentas): la separa el `gap` de su rejilla, no el
+   margen de tarjeta suelta, que la dejaba a 60 px por cliente. */
+:where(.entregas-app) .card > div > .card:where(:not(.overlay *)) { margin-bottom: 0; }
+:where(.entregas-app) .section-label:where(:not(.overlay *)) { margin: 12px 0 6px; padding-bottom: 4px; }
+:where(.entregas-app) .empty:where(:not(.overlay *)) { padding: 22px 10px; }
+:where(.entregas-app) .stat-pills:where(:not(.overlay *)) { gap: 6px; margin-bottom: 10px; }
+:where(.entregas-app) .stat-pill:where(:not(.overlay *)) { padding: 5px 12px; border-radius: 8px; min-width: 76px; }
+:where(.entregas-app) .stat-pill b:where(:not(.overlay *)) { font-size: 17px; line-height: 1.2; }
+:where(.entregas-app) .kpi-grid:where(:not(.overlay *)) { gap: 6px; margin-bottom: 10px; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+:where(.entregas-app) .kpi:where(:not(.overlay *)) { padding: 8px 10px; border-radius: 10px; }
+:where(.entregas-app) .kpi b:where(:not(.overlay *)) { font-size: 20px; }
+
+/* Controles de barra en escritorio: un punto más bajos. En el teléfono manda la regla de 36 px de globals (R8). */
+@media (min-width: 761px) {
+  :where(.entregas-app) .page-head .btn:not(.btn-sm):where(:not(.overlay *)), :where(.entregas-app) .filters .btn:not(.btn-sm):where(:not(.overlay *)) { padding: 6px 12px; font-size: 12.5px; }
+  :where(.entregas-app) .page-head .btn-sm:where(:not(.overlay *)), :where(.entregas-app) .filters .btn-sm:where(:not(.overlay *)) { padding: 5px 9px; }
+  :where(.entregas-app) .page-head input:where(:not(.overlay *)), :where(.entregas-app) .page-head select:where(:not(.overlay *)), :where(.entregas-app) .filters input:where(:not(.overlay *)), :where(.entregas-app) .filters select:where(:not(.overlay *)) { padding: 6px 10px; font-size: 13px; }
+  :where(.entregas-app) .viewtoggle .vt:where(:not(.overlay *)) { padding: 5px 10px; font-size: 12.5px; }
+  :where(.entregas-app) .chip:where(:not(.overlay *)) { padding: 4px 9px; font-size: 12px; }
+}
+/* El encendido de una pastilla: el color del TEXTO de fondo y el del papel de letra. En claro es el azul marino de
+   siempre; en oscuro, claro sobre oscuro — con `--ink` (globals) en oscuro casi no se veía cuál estaba puesta. */
+:where(.entregas-app) .chip.on:where(:not(.overlay *)) { background: var(--text); border-color: var(--text); color: var(--paper); }
+:where(.entregas-app) .chip .cnt:where(:not(.overlay *)) { margin-left: 4px; }
+
+/* =====================================================================================================================
+   2 · Tablas (la de Órdenes y todas las que la usan dentro de Entregas)
+   ===================================================================================================================== */
+:where(.entregas-app) table.orders td:where(:not(.overlay *)) { font-variant-numeric: tabular-nums; }
+@media (min-width: 641px) {
+  /* Filas de ~32 px (eran ~38): menos relleno, la línea más justa, la pastilla de etapa más baja. */
+  :where(.entregas-app) table.orders.tbl-resize th:where(:not(.overlay *)), :where(.entregas-app) table.orders.tbl-resize td:where(:not(.overlay *)) { padding: 2px 8px; line-height: 1.25; }
+  :where(.entregas-app) table.orders.tbl-resize th:where(:not(.overlay *)) { padding-top: 5px; padding-bottom: 5px; }
+  :where(.entregas-app) table.orders td .sema:where(:not(.overlay *)) { padding: 1px 8px; font-size: 11px; }
+  :where(.entregas-app) table.orders .drv-head .drv-inv:where(:not(.overlay *)) { font-size: 12.5px; line-height: 1.2; }
+  :where(.entregas-app) table.orders .drv-head .drv-code:where(:not(.overlay *)) { font-size: 10.5px; line-height: 1.15; }
+  /* Filas alternas, apenas; la fila urgente y los encabezados de tienda conservan su color. */
+  :where(.entregas-app) table.orders tbody tr.clickable:nth-child(even):not(.row-urgent) td:where(:not(.overlay *)) { background: color-mix(in srgb, var(--paper) 55%, var(--card)); }
+  :where(.entregas-app) table.orders tbody tr.clickable:not(.row-urgent):hover td:where(:not(.overlay *)) { background: color-mix(in srgb, var(--accent-soft) 70%, var(--card)); }
+  :where(.entregas-app) table.orders tbody tr[data-elegida]:not(.row-urgent) td:where(:not(.overlay *)) { background: var(--accent-soft); }
+  :where(.entregas-app) table.orders tbody tr[data-elegida] td.sel-cell:where(:not(.overlay *)) { box-shadow: inset 3px 0 0 var(--accent); }
+  :where(.entregas-app) table.orders input[type="checkbox"]:where(:not(.overlay *)) { accent-color: var(--accent); cursor: pointer; }
+
+  /* La casilla y el # pegados a la izquierda: al desplazar la tabla de lado, la factura no se va. Solo en las tablas
+     de `OrdersTable` (llevan `data-col`), con fondo propio para no transparentar lo que pasa debajo. */
+  :where(.entregas-app) table[data-con-casilla] thead th:first-child:where(:not(.overlay *)), :where(.entregas-app) table[data-con-casilla] td.sel-cell:where(:not(.overlay *)) { position: sticky; left: 0; padding-left: 9px; padding-right: 3px; }
+  :where(.entregas-app) table.orders th[data-col="__id"]:where(:not(.overlay *)), :where(.entregas-app) table.orders td[data-col="__id"]:where(:not(.overlay *)) {
+    position: sticky; left: 0; box-shadow: inset -1px 0 0 var(--line), 8px 0 10px -8px color-mix(in srgb, var(--ink) 22%, transparent);
+  }
+  :where(.entregas-app) table[data-con-casilla] th[data-col="__id"]:where(:not(.overlay *)), :where(.entregas-app) table[data-con-casilla] td[data-col="__id"]:where(:not(.overlay *)) { left: 34px; }
+  :where(.entregas-app) table[data-con-casilla] tbody td.sel-cell:where(:not(.overlay *)), :where(.entregas-app) table.orders tbody td[data-col="__id"]:where(:not(.overlay *)) { z-index: 1; background: var(--card); }
+  :where(.entregas-app) table.orders tbody tr.clickable:nth-child(even):not(.row-urgent) td[data-col="__id"]:where(:not(.overlay *)), :where(.entregas-app) table[data-con-casilla] tbody tr.clickable:nth-child(even):not(.row-urgent) td.sel-cell:where(:not(.overlay *)) { background: color-mix(in srgb, var(--paper) 55%, var(--card)); }
+  :where(.entregas-app) table.orders tbody tr[data-elegida]:not(.row-urgent) td[data-col="__id"]:where(:not(.overlay *)), :where(.entregas-app) table.orders tbody tr[data-elegida]:not(.row-urgent) td.sel-cell:where(:not(.overlay *)) { background: var(--accent-soft); }
+  :where(.entregas-app) table.orders tbody tr.row-urgent td.sel-cell:where(:not(.overlay *)), :where(.entregas-app) table.orders tbody tr.row-urgent td[data-col="__id"]:where(:not(.overlay *)) { background: var(--red-tint); }
+  :where(.entregas-app) .tbl-caja table.orders thead th:first-child:where(:not(.overlay *)), :where(.entregas-app) .tbl-caja table.orders th[data-col="__id"]:where(:not(.overlay *)) { z-index: 3; }
+}
+
+/* =====================================================================================================================
+   3 · Avisos y barras: una línea
+   ===================================================================================================================== */
+:where(.entregas-app) .filtros-puestos:where(:not(.overlay *)) { padding: 2px 4px 2px 12px; margin-bottom: 6px; background: var(--card); border-color: var(--line); box-shadow: inset 3px 0 0 var(--amber); font-size: 12.5px; }
+:where(.entregas-app) .filtros-puestos .btn:where(:not(.overlay *)) { padding: 3px 8px; }
+:where(.entregas-app) .bulk-bar:where(:not(.overlay *)) { gap: 6px; padding: 4px 6px 4px 12px; margin-bottom: 6px; font-size: 12.5px; background: var(--accent-soft); color: var(--text); border: 1px solid var(--accent); }
+:where(.entregas-app) .bulk-bar .btn:where(:not(.overlay *)) { padding: 4px 9px; }
+:where(.entregas-app) .bulk-bar select:where(:not(.overlay *)), :where(.entregas-app) .bulk-bar input:where(:not(.overlay *)) { padding: 4px 8px; border-color: var(--line); }
+:where(.entregas-app) .banner:where(:not(.overlay *)) { padding: 6px 12px; margin-bottom: 8px; font-size: 12.5px; }
+:where(.entregas-app) .filtro-aviso:where(:not(.overlay *)) { margin: -2px 0 6px; }
+
+/* =====================================================================================================================
+   4 · Teléfono: tarjetas de dos líneas
+   ===================================================================================================================== */
+@media (max-width: 640px) {
+  :where(.entregas-app) .page-head h2:where(:not(.overlay *)) { font-size: 17px; }
+  :where(.entregas-app) table.orders-responsive tr:where(:not(.overlay *)) { padding: 2px 10px; margin-bottom: 6px; border-radius: 10px; }
+  :where(.entregas-app) table.orders-responsive td:where(:not(.overlay *)) { padding: 4px 0; gap: 10px; }
+  :where(.entregas-app) table.orders-responsive td.ordno:where(:not(.overlay *)) { font-size: 14px; }
+  /* La cabecera de la tarjeta, de tres líneas a dos: arriba la etapa y la factura (lo que se busca); abajo, pequeño y
+     seguido, tipo, tienda, fecha e ID. Son los mismos seis datos en los mismos sitios del marcado; solo cambia la rejilla. */
+  :where(.entregas-app) .drv-head:where(:not(.overlay *)) {
+    grid-template-columns: auto auto auto 1fr; grid-template-areas: "et et fa fa" "ti tn fe id"; gap: 3px 8px; align-items: center;
+  }
+  :where(.entregas-app) .drv-head > :nth-child(1):where(:not(.overlay *)) { grid-area: et; }
+  :where(.entregas-app) .drv-head > :nth-child(2):where(:not(.overlay *)) { grid-area: fa; }
+  :where(.entregas-app) .drv-head > :nth-child(3):where(:not(.overlay *)) { grid-area: ti; }
+  :where(.entregas-app) .drv-head > :nth-child(4):where(:not(.overlay *)) { grid-area: fe; justify-self: start; font-size: 11.5px; }
+  :where(.entregas-app) .drv-head > :nth-child(5):where(:not(.overlay *)) { grid-area: tn; }
+  :where(.entregas-app) .drv-head > :nth-child(6):where(:not(.overlay *)) { grid-area: id; font-size: 11px; color: var(--gray); }
+  :where(.entregas-app) .drv-head .drv-inv:where(:not(.overlay *)) { font-size: 14.5px; }
+  :where(.entregas-app) table.orders-responsive tr[data-elegida]:where(:not(.overlay *)) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  :where(.entregas-app) table.orders-responsive tr.con-casilla td.sel-cell:where(:not(.overlay *)) { top: 0; right: 0; padding: 8px !important; }
+  :where(.entregas-app) table.orders-responsive tr.con-casilla td.sel-cell input:where(:not(.overlay *)) { width: 22px !important; height: 22px !important; accent-color: var(--accent); }
+  :where(.entregas-app) table.orders-responsive tr.con-casilla .drv-head .drv-inv:where(:not(.overlay *)) { padding-right: 32px; }
+  /* Las tarjetas que enseñan todos los campos (Almacén, que no las pliega): los campos en DOS columnas, el rótulo
+     encima del valor, en vez de una línea por campo. La cabecera (#), la casilla y la dirección, a lo ancho. Solo en
+     las tablas de `OrdersTable` (sus celdas llevan `data-col`). */
+  :where(.entregas-app) table.orders-responsive tr:not(.row-collapsed):has(> td[data-col]):where(:not(.overlay *)) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 12px; }
+  :where(.entregas-app) table.orders-responsive tr:not(.row-collapsed) > td[data-col]:where(:not(.overlay *)) {
+    flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0; text-align: left; padding: 3px 0; border-top: 1px solid var(--line); min-width: 0;
+  }
+  :where(.entregas-app) table.orders-responsive tr:not(.row-collapsed) > td[data-col]:where(:not(.overlay *))::before { font-size: 10px; line-height: 1.3; }
+  :where(.entregas-app) table.orders-responsive tr:not(.row-collapsed) > :is(td.ordno:where(:not(.overlay *)), td[data-col="address"], td[data-col="__id"]) { grid-column: 1 / -1; }
+  :where(.entregas-app) table.orders-responsive tr:not(.row-collapsed) > td.ordno:where(:not(.overlay *)) { border-top: none; }
+  .entregas-rotulo { display: none; }
+}
+
+/* =====================================================================================================================
+   5 · Órdenes (`(app)/page.tsx`, `.entregas-ordenes`): una sola fila arriba
+   ===================================================================================================================== */
+.entregas-ordenes > .entregas-cabecera { flex-wrap: wrap; justify-content: flex-start; }
+.entregas-ordenes > .entregas-cabecera > h2 { display: flex; align-items: center; gap: 6px; margin-right: 4px; white-space: nowrap; }
+.entregas-ordenes > .entregas-cabecera > .buscador-con-borrar { flex: 0 1 240px; }
+.entregas-vistas { display: flex; gap: 6px; }
+.entregas-acciones { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.entregas-ordenes > .entregas-etapas { margin-bottom: 6px; gap: 4px; }
+/* El punto de la pastilla: el color de la etapa, el mismo de la pastilla `.sema` de la fila. */
+.entregas-etapas .chip[style]::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%;
+  background: var(--etapa); vertical-align: 1px;
+}
+.entregas-lote-cerrar { min-width: 28px; justify-content: center; border: 1px solid var(--line); background: var(--card); color: var(--text); }
+
+/* La tabla vacía: dice por qué y da la salida; compacta. */
+.entregas-vacio {
+  display: grid; justify-items: center; gap: 4px; padding: 20px 16px; text-align: center;
+  border: 1px dashed var(--line); border-radius: 10px; background: var(--card);
+}
+.entregas-vacio > b { font-family: 'Archivo', system-ui, sans-serif; font-size: 15px; font-weight: 800; color: var(--text); overflow-wrap: anywhere; }
+.entregas-vacio > span { max-width: 460px; color: var(--gray); font-size: 13px; line-height: 1.4; }
+.entregas-vacio-acciones { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+.entregas-vacio-acciones:empty { display: none; }
+
+@media (max-width: 640px) {
+  /* Fila 1: título y acciones; fila 2: buscar y guardar filtro; fila 3: tabla/tablero y fechas, repartidos. */
+  .entregas-ordenes > .entregas-cabecera > h2 { order: 0; }
+  .entregas-ordenes > .entregas-cabecera > h2 { margin-right: 0; }
+  .entregas-acciones { order: 1; gap: 4px; }
+  .entregas-acciones .btn { padding-left: 10px; padding-right: 10px; }
+  .entregas-ordenes > .entregas-cabecera > .buscador-con-borrar { order: 2; flex: 1 1 160px; max-width: none !important; }
+  .entregas-ordenes > .entregas-cabecera > [data-abre-filtros-guardados] { order: 3; }
+  .entregas-vistas { order: 4; width: 100%; }
+  .entregas-vistas > .viewtoggle { flex: 1 1 auto; }
+  .entregas-vistas > .viewtoggle .vt { flex: 1 1 0; text-align: center; padding: 6px 4px; white-space: nowrap; }
+  .entregas-lote-cerrar { min-width: 36px; }
+}
+
+/* =====================================================================================================================
+   7 · Almacén (`warehouse/page.tsx`, `.entregas-almacen`): Cola/Recepción/Ruta, el buscador y las pastillas en UNA fila
+   ===================================================================================================================== */
+.entregas-almacen { display: flex; flex-wrap: wrap; align-items: center; column-gap: 10px; }
+.entregas-almacen > :not(.overlay) { flex: 1 1 100%; min-width: 0; }
+.entregas-almacen > .filters-oneline:has(> .viewtoggle) { flex: 0 0 auto; }
+.entregas-almacen > .filters-oneline:has(> .viewtoggle) + .filters { flex: 1 1 420px; }
+.entregas-almacen > .page-head label { font-size: 12.5px; }
+
+/* =====================================================================================================================
+   8 · Mi ruta (`my-route/page.tsx`, `.entregas-mi-ruta`; también dentro de la pestaña Chofer del admin): el buscador de
+   factura y Ayer/Hoy/Mañana en una fila, y menos aire entre tarjetas. Solo envoltorio y atributos `data-*`.
+   ===================================================================================================================== */
+.entregas-mi-ruta { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; }
+.entregas-mi-ruta > :not(.overlay) { flex: 1 1 100%; min-width: 0; }
+.entregas-mi-ruta > .page-head { margin-bottom: 6px; }
+.entregas-mi-ruta > [data-buscador-de-mi-ruta] { flex: 1 1 150px; }
+.entregas-mi-ruta > [data-buscador-de-mi-ruta] > input { max-width: none !important; }
+.entregas-mi-ruta > [data-dia-de-mi-ruta] { flex: 0 0 auto; }
+.entregas-mi-ruta .section-label:where(:not(.overlay *)) { margin: 8px 0 6px; }

@@ -6,7 +6,7 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { preguntaDelBloque, reparteParaElBloque } from "@/lib/cambio-en-bloque";
-import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, puedeAnular, ROLE_DEFAULT_COLUMNS, STAGES, stageLabel } from "@/lib/constants";
+import { AUTO_CANCEL_LATE_ENABLED, canCreate, driverNames, filterStagesFor, puedeAnular, ROLE_DEFAULT_COLUMNS, STAGES, stageInfo, stageLabel } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { colocaColumna, mueveColumna, ordenEfectivo } from "@/lib/orden-de-columnas";
 import { CLAVE_DE_COLUMNAS, anchosDeUnRol, anchosValidos, claveDelNavegador, columnasDe, columnasDeVentas, guardaColumnas, hayQueSembrar, leeColumnas, semillaDelNavegador, valorDeColumnas, type AnchosPorRol, type ClienteDePrefs, type ColumnasPorRol, type FiltroGuardado, type PlantillaDeColumnas } from "@/lib/user-prefs";
@@ -40,6 +40,7 @@ import { todasLasMiasAutoAprueban } from "@/lib/auto-aprueban-las-mias";
 import { presetInicialDe, type PresetDeFechas } from "@/lib/preset-inicial";
 import { COLUMNAS_DE_MANANA_PARA_VENTAS, mananaDeTodosParaVentas } from "@/lib/manana-de-ventas";
 import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
+import { MenuDeAcciones } from "@/components/MenuDeAcciones";
 
 // Quick saved views — one-tap presets layered on top of the stage chip.
 type Preset = PresetDeFechas | "overdue" | "unassigned" | "mine";
@@ -678,11 +679,74 @@ export default function OrdersPage() {
     downloadCSV(`deliveries_${todayISO()}.csv`, toCSV(headers, data));
   };
 
+  // ---- Solo de pantalla (vista previa de diseño): el punto de color de las pastillas y la tabla vacía ----
+  // El color de cada etapa es el de su pastilla `.sema` (`STAGES`), pasado como variable CSS: la hoja lo usa para el punto
+  // de la pastilla de filtro, así la pastilla de arriba y la de la fila dicen lo mismo con el mismo color.
+  const esEtapa = (key: string) => STAGES.some((s) => s.key === key);
+  const colorDeEtapa = (key: string): React.CSSProperties | undefined =>
+    esEtapa(key) ? ({ ["--etapa" as string]: stageInfo(key).color } as React.CSSProperties) : undefined;
+  const presetActual = presets.find((p) => p.id === preset);
+  const etiquetaDelPreset = presetActual
+    ? (presetActual.id === "all" ? t("All dates", "Todas las fechas") : t(presetActual.en, presetActual.es))
+    : null;
+  // La tabla vacía dice POR QUÉ está vacía y ofrece la salida, en vez de una línea gris. Los botones hacen exactamente lo
+  // que ya hacen la ✕ del buscador, el chip «Todas» de fechas y la pastilla «Todas» de etapa; nada nuevo.
+  // «Factura pendiente» sin tienda conserva su texto de siempre (D-404): ahí la tabla no pasa `vacio`.
+  const vacioDeOrdenes = filter === PESTANA_DOCUMENTO_PENDIENTE && alcancePendientes.tipo === "sin-tienda" ? undefined : (
+    <div className="entregas-vacio" data-tabla-vacia role="status">
+      <b>
+        {q.trim()
+          ? t(`Nothing matches “${q.trim()}”`, `Nada coincide con «${q.trim()}»`)
+          : t("No orders match this view.", "No hay órdenes en esta vista.")}
+      </b>
+      <span>
+        {q.trim()
+          ? t("Check the number or name, or clear the search to see every order again.", "Revise el número o el nombre, o borre la búsqueda para volver a verlas todas.")
+          : preset !== "all" && etiquetaDelPreset
+            ? (filter === PASTILLA_TODAS
+              ? t(`No orders for ${(etiquetaDelPreset ?? "").toLowerCase()}. Other days may have some.`,
+                `No hay órdenes para ${(etiquetaDelPreset ?? "").toLowerCase()}. Puede haber en otros días.`)
+              : t(`Nothing in ${nombreDePastilla(filter)} for ${(etiquetaDelPreset ?? "").toLowerCase()}. Other days may have some.`,
+                `Nada en ${nombreDePastilla(filter)} para ${(etiquetaDelPreset ?? "").toLowerCase()}. Puede haber en otros días.`))
+            : filter === PASTILLA_TODAS
+              ? t("There are no orders to show yet.", "Todavía no hay órdenes que enseñar.")
+              : t("No order is in this stage right now.", "Ahora mismo no hay ninguna orden en esta etapa.")}
+      </span>
+      <span className="entregas-vacio-acciones">
+        {q.trim() && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQ("")}>✕ {t("Clear search", "Borrar la búsqueda")}</button>}
+        {!q.trim() && preset !== "all" && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPreset("all")}>{t("Show all dates", "Ver todas las fechas")}</button>}
+        {!q.trim() && filter !== PASTILLA_TODAS && (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setFilter(PASTILLA_TODAS); setPreset((antes) => presetAlElegirPastilla(PASTILLA_TODAS, antes, "all")); }}>
+            {t("Show every stage", "Ver todas las etapas")}
+          </button>
+        )}
+      </span>
+    </div>
+  );
+
   return (
     <>
-      <div className="page-head">
+      <div className="entregas-ordenes" data-vista={view}>
+      {/* Vista previa de diseño (rama design/entregas-preview), versión compacta: UNA fila arriba con el título, el
+          buscador, tabla o tablero, las fechas y las acciones; lo que se usa poco (Excel, PDF, CSV, Importar) va en el
+          menú «Más ▾». Así la tabla empieza más arriba y caben más filas. Estilos en `entregas.css`. */}
+      <div className="page-head entregas-cabecera">
         <h2>{t("Orders", "Órdenes")} <span className="count-tag">{rows.length}</span></h2>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {/* Con su «✕» para borrar (D-546). */}
+        <BuscadorConBorrar
+          ref={searchRef}
+          maxWidth={260}
+          placeholder={t("Search…  (press / )", "Buscar…  (tecla / )")}
+          valor={q}
+          onValor={setQ}
+        />
+        {view === "table" && (
+          <button type="button" className={"btn btn-ghost btn-sm" + (verFiltrosGuardados ? " on" : "")} data-abre-filtros-guardados
+            aria-expanded={verFiltrosGuardados} onClick={() => setVerFiltrosGuardados((v) => !v)}>
+            ★ {t("Save filter", "Guardar filtro")}{filtrosGuardados.length ? ` (${filtrosGuardados.length})` : ""}
+          </button>
+        )}
+        <div className="entregas-vistas">
           <div className="viewtoggle">
             <button className={"vt " + (view === "table" ? "on" : "")} onClick={() => setView("table")}>☰ {t("Table", "Tabla")}</button>
             <button className={"vt " + (view === "board" ? "on" : "")} onClick={() => setView("board")}>▦ {t("Board", "Tablero")}</button>
@@ -696,18 +760,14 @@ export default function OrdersPage() {
               </button>
             ))}
           </div>
-          {/* Data exports (Excel / PDF report / CSV) are admin-only. */}
-          {me.role === "admin" && <>
-            <button className="btn btn-ghost" onClick={() => exportExcelByEmployee(rows, users, lang).catch((e: unknown) => alert(t("Could not load the Excel exporter: ", "No se pudo cargar el exportador de Excel: ") + ((e as { message?: string })?.message || "")))} disabled={!rows.length} title={t("Excel grouped by employee, collapsible", "Excel agrupado por empleado, colapsable")}>📊 {t("Excel", "Excel")}</button>
-            <button className="btn btn-ghost" onClick={() => exportPDFByEmployee(rows, users, lang)} disabled={!rows.length}>🖨 {t("PDF", "PDF")}</button>
-            <button className="btn btn-ghost" onClick={exportCSV} disabled={!rows.length}>⬇ {t("CSV", "CSV")}</button>
-          </>}
+        </div>
+        <div className="entregas-acciones">
           {/* Column picking is an office habit. Sales get a fixed list set by
               an admin, and a driver has one job on a phone — the button was
               just taking room from the list. */}
           {view === "table" && !["sales", "driver"].includes(me.role) && (
             <div ref={colsRef} style={{ position: "relative" }}>
-              <button className="btn btn-ghost" onClick={() => setShowCols((s) => !s)}>⚙ {t("Columns", "Columnas")}</button>
+              <button className="btn btn-ghost" aria-label={t("Columns", "Columnas")} onClick={() => setShowCols((s) => !s)}>⚙ <span className="entregas-rotulo">{t("Columns", "Columnas")}</span></button>
               {showCols && (
                 <div className="col-menu">
                   <div className="col-menu-head">
@@ -734,8 +794,20 @@ export default function OrdersPage() {
               )}
             </div>
           )}
+          {/* Data exports (Excel / PDF report / CSV) and Import are admin-only. Se usan poco: van juntas en «Más ▾»
+              (el menú de acciones de la ficha, D-497), con el mismo `title` y el mismo apagado sin filas que tenían. */}
           {me.role === "admin" && (
-            <button className="btn btn-ghost" onClick={() => setImporting(true)} title={t("Bulk-create orders from a CSV file", "Crear órdenes en masa desde un archivo CSV")}>⬆ {t("Import", "Importar")}</button>
+            <MenuDeAcciones rotulo={t("More", "Más")} className="btn btn-ghost" opciones={[
+              { id: "excel", texto: `📊 ${t("Excel", "Excel")}`, titulo: t("Excel grouped by employee, collapsible", "Excel agrupado por empleado, colapsable"),
+                deshabilitada: rows.length ? null : t("No orders in this view", "No hay órdenes en esta vista"),
+                alPulsar: () => { exportExcelByEmployee(rows, users, lang).catch((e: unknown) => alert(t("Could not load the Excel exporter: ", "No se pudo cargar el exportador de Excel: ") + ((e as { message?: string })?.message || ""))); } },
+              { id: "pdf", texto: `🖨 ${t("PDF", "PDF")}`, deshabilitada: rows.length ? null : t("No orders in this view", "No hay órdenes en esta vista"),
+                alPulsar: () => exportPDFByEmployee(rows, users, lang) },
+              { id: "csv", texto: `⬇ ${t("CSV", "CSV")}`, deshabilitada: rows.length ? null : t("No orders in this view", "No hay órdenes en esta vista"),
+                alPulsar: exportCSV },
+              { id: "importar", texto: `⬆ ${t("Import", "Importar")}`, titulo: t("Bulk-create orders from a CSV file", "Crear órdenes en masa desde un archivo CSV"),
+                alPulsar: () => setImporting(true) },
+            ]} />
           )}
           {canCreate(me) && (
             <button className="btn btn-primary" onClick={() => setCreating(true)}>+ {t("New order", "Nueva orden")}</button>
@@ -743,24 +815,7 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      <div className="filters">
-        {/* Con su «✕» para borrar (D-546). */}
-        <BuscadorConBorrar
-          ref={searchRef}
-          maxWidth={260}
-          placeholder={t("Search…  (press / )", "Buscar…  (tecla / )")}
-          valor={q}
-          onValor={setQ}
-        />
-        {view === "table" && (
-          <button type="button" className={"btn btn-ghost btn-sm" + (verFiltrosGuardados ? " on" : "")} data-abre-filtros-guardados
-            aria-expanded={verFiltrosGuardados} onClick={() => setVerFiltrosGuardados((v) => !v)}>
-            ★ {t("Save filter", "Guardar filtro")}{filtrosGuardados.length ? ` (${filtrosGuardados.length})` : ""}
-          </button>
-        )}
-      </div>
-
-      <div className="filters filters-oneline">
+      <div className="filters filters-oneline entregas-etapas">
         {view === "table" && (
           <>
             {/* Qué pastillas hay, en qué orden y cuál está encendida lo decide `pastillasDeOrdenes`
@@ -771,6 +826,8 @@ export default function OrdersPage() {
               <button
                 key={p.key}
                 className={"chip " + (p.clase ? p.clase + " " : "") + (p.activa ? "on" : "")}
+                data-etapa={p.key}
+                style={colorDeEtapa(p.key)}
                 onClick={() => {
                   // Pulsar la encendida vuelve a «Todas» (D-313), y de ahí sale la clave que de
                   // verdad queda puesta. El chip de FECHA lo decide `presetAlElegirPastilla`
@@ -809,7 +866,7 @@ export default function OrdersPage() {
       )}
 
       {view === "table" && chosen.length > 0 && (
-        <div className="bulk-bar">
+        <div className="bulk-bar entregas-lote">
           <b>{chosen.length} {t("selected", "seleccionadas")}</b>
           <span style={{ flex: 1 }} />
           {me.role === "admin" && (
@@ -889,7 +946,7 @@ export default function OrdersPage() {
             </button>
           )}
           {me.role === "admin" && <button className="btn btn-ghost btn-sm" disabled={bulkBusy} onClick={exportSelected}>⬇ {t("Export", "Exportar")}</button>}
-          <button className="btn btn-sm" onClick={() => setSelected(new Set())}>✕</button>
+          <button className="btn btn-sm entregas-lote-cerrar" onClick={() => setSelected(new Set())} aria-label={t("Clear selection", "Quitar la selección")} title={t("Clear selection", "Quitar la selección")}>✕</button>
         </div>
       )}
 
@@ -922,6 +979,7 @@ export default function OrdersPage() {
               ? t("🏬 No store assigned: Invoice pending shows only your store's orders. Ask an admin to assign your store in Users.",
                 "🏬 Sin tienda asignada: Factura pendiente enseña solo las órdenes de su tienda. Pida a un admin que se la asigne en Usuarios.")
               : t("No orders match this view.", "No hay órdenes en esta vista.")}
+            vacio={vacioDeOrdenes}
             visible={mananaDeTodos ? [...COLUMNAS_DE_MANANA_PARA_VENTAS] : cols}
             orden={me?.role === "sales" ? null : orden}
             // The checkbox column only earns its space for roles that have a
@@ -945,6 +1003,7 @@ export default function OrdersPage() {
       ) : (
         <div className="empty">{t("Loading…", "Cargando…")}</div>
       )}
+      </div>
 
       {open && <OrderModal me={me} existing={open} startEditing={false} onClose={() => setOpen(null)} />}
       {creating && <OrderModal me={me} existing={null} startEditing onClose={() => setCreating(false)} />}

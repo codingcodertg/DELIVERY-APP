@@ -50470,3 +50470,21 @@ Sello `customers` 0.41.0; repo 1.708.0.
 Sellos `customers` 0.42.0 y `leads` 0.18.0; repo 1.709.0.
 
 **Pruebas:** `customers/terminos.test.ts`; `formato.test.ts` y el test del importador puestos al día.
+
+## D-855 · Entregas compacta: más filas por pantalla en todas las vistas (la ventana de la orden, igual)
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente con el skill `frontend-design` en `design/entregas-preview`, en tres pasadas con capturas del demo: la primera (más aire, barra de resumen) la rechazó el dueño («si haces algo quiero que sea más eficiente, que aproveche mejor los espacios, y no me tocaste las demás views»); la segunda la aprobó salvo la ventana de la orden («lo hiciste más ancho y se deforma»), que la tercera devuelve tal cual a main. Fusionado por el orquestador.
+
+**Medido en el demo (filas enteras a la vista):** Órdenes a 1440×900, de 15 a 20 filas (37→32 px) y la tabla empieza 86 px más arriba; a 390×844, de 3 a 7 tarjetas. Almacén a 1440, de 15 a 20.
+
+**Qué cambia (todo en `(app)/entregas.css`, bajo la clase `entregas-app` del envoltorio de Entregas; otras apps no la llevan):**
+- **Órdenes:** cabecera y barra de herramientas en una fila (título y cuenta, búsqueda, Guardar filtro, Tabla/Tablero, Todas/Hoy/Mañana, Columnas, «Más ▾» con Excel, PDF, CSV e Importar, Nueva orden). Etapas en una línea con un punto de su color; en oscuro ya se ve la activa. Filas de 32 px; la casilla y el # de factura se quedan al desplazar de lado. Barras de aviso, de filtros y de selección en una línea fina. Tabla vacía que dice por qué, con atajo para quitar la búsqueda o los filtros. En el teléfono, tarjetas de dos líneas.
+- **Almacén:** pestañas, búsqueda y pastillas en una fila; tarjetas del teléfono con los campos en dos columnas.
+- **Mi ruta y Chofer:** búsqueda de factura y Ayer/Hoy/Mañana en una fila, menos aire entre secciones.
+- **Cuentas, Resumen, Panel, Recorrido, Gestor, Ruta de hoy y el resto:** la compactación general (cabeceras de una línea, tarjetas, KPI y pastillas más ajustadas). Las reglas generales van con `:where(...)` (sin especificidad), así que lo afinado de cada pantalla sigue mandando.
+- **La ventana de la orden y todos los diálogos:** iguales a antes (las reglas compactas terminan en `:where(:not(.overlay *))`). `OrderModal.tsx` sin cambios.
+- Sin cambios de comportamiento; la barra superior compartida y el Chofer de ancho de teléfono (D-502) se dejaron como estaban.
+
+Sello `deliveries` 1.534.0; repo 1.710.0.
+
+**Pruebas:** las que leen los ficheros tocados, más `inline-colors`, `botones-vivos`, `botones-apagados`, `map-legend` y `formateador`, en verde.

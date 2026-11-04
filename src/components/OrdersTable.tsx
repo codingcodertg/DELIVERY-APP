@@ -465,10 +465,14 @@ export function OrdersTable({
   vista,
   onVista,
   onMoverColumna,
+  vacio,
 }: {
   rows: Delivery[];
   onOpen: (d: Delivery) => void;
   empty?: string;
+  /** Opcional: lo que se pinta en vez de la línea gris de `empty` cuando no hay filas (Órdenes, su tabla vacía con el
+   *  porqué y la salida). Sin él, la `.empty` de siempre: las demás pantallas no cambian. */
+  vacio?: React.ReactNode;
   visible?: string[];
   /** El orden de columnas que eligió la persona (todas las claves, visibles o no). Sin él, el canónico. */
   orden?: readonly string[] | null;
@@ -661,7 +665,7 @@ export function OrdersTable({
     [rows, filters, cols, openFilter, lang],
   );
 
-  if (!rows.length) return <div className="empty">{empty}</div>;
+  if (!rows.length) return vacio ? <>{vacio}</> : <div className="empty">{empty}</div>;
 
   // Sorting is chosen in the header menu: ascending, descending, or none. Choosing closes it.
   const ordenar = (key: string, dir: "asc" | "desc" | null) => {
@@ -706,7 +710,7 @@ export function OrdersTable({
     <div className="tbl-con-barra">
     <BarraSuperior caja={cajaRef} />
     <div className="tbl-scroll tbl-fit orders-scroll tbl-caja" ref={cajaRef}>
-      <table className="orders tbl-resize orders-responsive" style={anchoDeTabla([selectable ? 34 : 0, ...cols.map((c) => colw.widthOf(c.key)), columnaExtra ? columnaExtra.ancho : 0])}>
+      <table className="orders tbl-resize orders-responsive" style={anchoDeTabla([selectable ? 34 : 0, ...cols.map((c) => colw.widthOf(c.key)), columnaExtra ? columnaExtra.ancho : 0])} data-con-casilla={selectable || undefined}>
         <colgroup>
           {selectable && <col style={{ width: 34 }} />}
           {cols.map((c, i) => [
@@ -731,6 +735,7 @@ export function OrdersTable({
               return [
                 <th
                   key={c.key}
+                  data-col={c.key}
                   className={(arrastrada === c.key ? "th-arrastrada" : "") + cae || undefined}
                   onDragOver={seArrastra(c.key) ? (e) => { if (arrastrada && arrastrada !== c.key) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setSobre(c.key); } } : undefined}
                   onDragLeave={seArrastra(c.key) ? () => setSobre((s) => (s === c.key ? null : s)) : undefined}
@@ -792,6 +797,7 @@ export function OrdersTable({
                 // donde la hay: la vista del chofer no tiene casillas y no debe perder ancho.
                 + (selectable ? " con-casilla" : "")
                 + (collapsible && !expanded.has(d.id) ? " row-collapsed" : "")}
+              data-elegida={selected?.has(d.id) || undefined}
               onClick={() => onOpen(d)}
             >
               {selectable && (
@@ -800,7 +806,7 @@ export function OrdersTable({
                 </td>
               )}
               {cols.map((c, i) => [
-                <td key={c.key} data-label={lang === "es" ? c.es : c.en} className={[c.key === "__id" ? (byInvoice ? "ordno ordno-drv" : "ordno") : "", c.pastillas ? "td-pastillas" : ""].filter(Boolean).join(" ") || undefined}>
+                <td key={c.key} data-label={lang === "es" ? c.es : c.en} data-col={c.key} className={[c.key === "__id" ? (byInvoice ? "ordno ordno-drv" : "ordno") : "", c.pastillas ? "td-pastillas" : ""].filter(Boolean).join(" ") || undefined}>
                   {c.cell(d, ctx)}
                   {/* La acción de la fila ya va dentro de la celda, junto a la factura (D-572, `ctx.accion`). */}
                   {/* The chevron is only offered where the extra rows are
