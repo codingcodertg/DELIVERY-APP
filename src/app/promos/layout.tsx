@@ -6,6 +6,8 @@ import { BarraSencilla } from "@/components/BarraDeApp";
 import type { UserRole } from "@/lib/types";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
+// La capa visual de Promos (vista previa de diseño): todo bajo `.promos-ronda` / `promos-*`, nada compartido.
+import "./promos.css";
 
 export const metadata: Metadata = {
   title: "RTG PROMOS",

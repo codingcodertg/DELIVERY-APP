@@ -44,20 +44,21 @@ export default async function PromosIndex() {
 }
 
 function SinRondas() {
+  // Servidor sin idioma de la persona: las dos lenguas, como siempre, pero el inglés delante y con título propio.
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 16px" }}>
-      <h1 style={{ marginTop: 0 }}>🏷️ RTG PROMOS</h1>
-      <div className="card">
-        <p className="hint" style={{ margin: 0 }}>
-          No hay ninguna ronda que puedas ver. O todavía no se ha subido ninguna —las carga un
-          administrador con el script de <code>scripts/promos/</code>— o no tienes el módulo de
-          promociones habilitado.
-          <br />
-          <br />
-          No rounds to show. Either none has been uploaded yet — an admin loads them with the script
-          in <code>scripts/promos/</code> — or you don&apos;t have the promos module enabled.
-        </p>
-      </div>
+    <div className="promos-sin-rondas">
+      <div className="promos-sin-rondas-icono" aria-hidden="true">🏷️</div>
+      <h1>No rounds to show</h1>
+      <h2 lang="es">No hay ninguna ronda que puedas ver</h2>
+      <p>
+        Either none has been uploaded yet — an admin loads them with the script
+        in <code>scripts/promos/</code> — or you don&apos;t have the promos module enabled.
+      </p>
+      <p lang="es">
+        O todavía no se ha subido ninguna —las carga un
+        administrador con el script de <code>scripts/promos/</code>— o no tienes el módulo de
+        promociones habilitado.
+      </p>
     </div>
   );
 }
