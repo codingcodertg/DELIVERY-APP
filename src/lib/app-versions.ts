@@ -41,7 +41,7 @@ export const APP_VERSIONS = {
   // rama porque sin ella /leads no tiene sello de version; los siguientes numeros, el orquestador.
   leads: "0.17.0",
   // Clientes (D-569): la primera, como leads.
-  customers: "0.40.0",
+  customers: "0.41.0",
   // Security (D-811): la primera, como las demás apps nuevas.
   security: "0.12.0",
 } as const;
