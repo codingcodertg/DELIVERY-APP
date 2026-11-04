@@ -50214,3 +50214,17 @@ APK 7: versionCode 7, versionName 1.12.0, agente `RDZDeliveries/7`, firmada con 
 Sello `deliveries` 1.526.0; repo 1.693.0. No es recarga obligatoria: solo sirve con la APK 7, que carga la página nueva al instalarse.
 
 **Pruebas:** `gps-nativo.test.ts`.
+
+## D-839 · Al entrar, al inicio y no a Entregas
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho directo por el orquestador en `fix/login-a-inicio` (laptop nueva).
+
+**Pedido (el dueño):** «when people log in to app they see delivery app by default instead of Home Screen».
+
+**Causa:** la app del teléfono y la del escritorio abren la raíz del sitio (`/`), que es la lista de órdenes de Entregas. Sin sesión, el middleware manda a `/login?next=/` para volver a donde iba (D-193), y al entrar todos acababan en Entregas.
+
+**Qué cambia:** `destinoAlEntrar` (`auth-redirect.ts`) es `safeNext` con una regla más: la raíz pelada va a `/home`. La usan el login, el enlace del correo (`/auth/callback`) y quien ya entró y pisa el login. `/home` ya manda a cada uno a lo suyo: el chofer a su ruta, quien tiene una sola app a esa app. Un enlace a una orden (`/?order=…`) o a cualquier otra pantalla se respeta como siempre.
+
+Sello `deliveries` 1.527.0; repo 1.694.0.
+
+**Pruebas:** `entrar-al-inicio.test.ts`.

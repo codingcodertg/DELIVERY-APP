@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { usePrefs } from "@/lib/prefs";
 import { PasswordInput } from "@/components/PasswordInput";
 import { VersionFooter } from "@/components/VersionFooter";
-import { safeNext } from "@/lib/auth-redirect";
+import { destinoAlEntrar } from "@/lib/auth-redirect";
 import {
   loadAccounts, saveAccounts, upsertAccount, removeAccount, type RememberedAccount,
 } from "@/lib/remembered-accounts";
@@ -54,7 +54,7 @@ export default function LoginPage() {
     setAccounts(list);
     setShowList(list.length > 0);
     const params = new URLSearchParams(window.location.search);
-    setNext(safeNext(params.get("next")));
+    setNext(destinoAlEntrar(params.get("next")));
     // De /auth/callback cuando el enlace del correo no pudo canjearse (caducado, ya usado).
     const err = params.get("error");
     if (err) { setMsg(t("The link is no longer valid: ", "El enlace ya no es válido: ") + err); setMsgOk(false); }

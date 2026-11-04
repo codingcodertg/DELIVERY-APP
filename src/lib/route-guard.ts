@@ -1,4 +1,4 @@
-import { safeNext } from "@/lib/auth-redirect";
+import { destinoAlEntrar } from "@/lib/auth-redirect";
 
 // ============================================================
 // El guard de rutas del middleware, como función pura (G-29, D-208).
@@ -103,7 +103,7 @@ export function decide(pathWithSearch: string, next: string | null, hasUser: boo
     // Fue exactamente el síntoma del dueño: «me manda el correo pero al ingresar solo me lleva
     // al RTG Hub lobby y nada más».
     if (tieneError(pathWithSearch)) return { kind: "next" };
-    return { kind: "redirect", to: safeNext(next, "/home") };
+    return { kind: "redirect", to: destinoAlEntrar(next) };
   }
   if (isPublicPath(path)) return { kind: "next" };
   if (!hasUser) {
