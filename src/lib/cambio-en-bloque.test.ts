@@ -141,7 +141,7 @@ describe("la pantalla: elegir y aplicar son dos pasos", () => {
   it("los dos pasan por la misma puerta, que pregunta y reparte", () => {
     expect(plano(pagina)).toContain("const bulkAssignDriver = (driver: string) => cambioEnBloque(");
     // D-532: `bulkSetDate` primero rechaza un día pasado y luego entra por la misma puerta.
-    expect(plano(pagina)).toContain("const bulkSetDate = (date: string) => {");
+    expect(plano(pagina)).toContain("const bulkSetDate = async (date: string) => {");
     expect(plano(pagina)).toContain("return cambioEnBloque(");
     const puerta = pagina.slice(pagina.indexOf("const cambioEnBloque ="), pagina.indexOf("const bulkAssignDriver ="));
     expect(puerta).toContain("const { entran, saltadas } = reparteParaElBloque(chosen);");

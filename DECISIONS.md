@@ -50356,3 +50356,19 @@ Sello `deliveries` 1.531.0; repo 1.701.0.
 Sello `customers` 0.40.0; repo 1.702.0.
 
 **Pruebas:** `customers/borrador-del-alta.test.ts`; `customers/direccion-unica.test.ts`.
+
+## D-848 · Ventas después de las 12: pregunta «¿seguro que es para hoy?» en vez de bloquear; la 237 en espera
+
+**Fecha:** 2026-11-04 · Sin migración (la 237 queda sin aplicar) · Hecho por un agente en `fix/corte-ventas-pregunta`, revisado y fusionado por el orquestador (laptop nueva). Corrige D-845 el mismo día.
+
+**Pedido (el dueño, tras D-845):** «que no aplique, solo que le pregunte al sales "¿seguro? ya es tarde"»; la regla dura queda pendiente hasta que él diga.
+
+**Qué cambia:**
+- **`corte-de-ventas.ts`:** `esHoyTrasElMediodia` y `pideConfirmarMediodia` (antes `fechaCortadaParaVentas` y `cortaPorMediodia`); `preguntaSiEsParaHoy` pregunta con `useConfirm`: «Ya es después de las 12:00 del mediodía. ¿Seguro que esta orden es para hoy?», con «Sí, para hoy» y «Cambiar fecha». Sí = se guarda como antes de D-845.
+- **Mismos caminos que D-845:** crear y enviar, guardar borrador, editar solo la fecha, enviar borrador o reenviar rechazada, 📅 Reprogramar, celda de fecha del Gestor y fecha en bloque. Una sola pregunta por acción, y solo si la fecha es nueva o cambió, o si la orden sale de borrador o rechazada. Los selectores vuelven a dejar elegir hoy; duplicar vuelve a nacer hoy. La nota bajo la fecha queda como consejo en ámbar.
+- **Migración 237:** escrita y sin aplicar por decisión del dueño. No se aplica ni se edita (checksum congelado) hasta que él lo pida.
+- **Recarga obligatoria (D-836) a 1.532.0:** los navegadores con el bloqueo de 1.530/1.531 se ponen al día solos.
+
+Sello `deliveries` 1.532.0; repo 1.703.0.
+
+**Pruebas:** `corte-de-ventas.test.ts` reescrita; `fecha-de-entrega`, `dia-de-entrega` y `borrador-y-duplicar` vueltas a antes de D-845.
