@@ -32,7 +32,9 @@ describe("clientes por rol", () => {
   });
   it("la ficha esconde al vendedor crédito, campos ocultos y archivos; el contacto lleva etiqueta a la izquierda", () => {
     const ficha = leer("src/app/customers/FichaDeCliente.tsx");
-    expect(ficha).toContain("filasPorGrupo().filter(({ grupo }) => claves.includes(grupo.key) && (!esVendedor || !GRUPOS_QUE_NO_VE_EL_VENDEDOR.includes(grupo.key)))");
+    // D-858: la regla vive en `filasPorGrupoQueVe` (`veElGrupo` sigue leyendo GRUPOS_QUE_NO_VE_EL_VENDEDOR).
+    expect(ficha).toContain("filasPorGrupoQueVe({ esVendedor, alta: cliente === null }).filter(({ grupo }) => claves.includes(grupo.key))");
+    expect(leer("src/lib/customers/reglas.ts")).toContain("return !(q.alta ? GRUPOS_QUE_NO_VE_EL_VENDEDOR_EN_EL_ALTA : GRUPOS_QUE_NO_VE_EL_VENDEDOR).includes(grupo);");
     expect(ficha).toContain("{!esVendedor && i === columnasDeLaFicha(editando).length - 1 && (\n        <div className=\"space-y-4\" data-solo-no-vendedor>");
     expect(ficha).toContain("esVendedor={esVendedor} puedePedirVendedor={puedePedirVendedor} t={t} />");
     for (const campo of ["contact_name", "contact_title", "phone", "email"]) {
