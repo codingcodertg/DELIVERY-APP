@@ -21,6 +21,9 @@ import { almacenDemo } from "@/lib/customers/demo";
 import { FichaEnVentana, selCls } from "./FichaDeCliente";
 import { PedirVendedor } from "./PedirVendedor";
 import { SolicitudesDeCliente } from "./SolicitudesDeCliente";
+import { BorradoresDelAlta } from "./BorradoresDelAlta";
+import { borraBorrador, claveDeLosBorradores, leeBorradores, type BorradorGuardado } from "@/lib/customers/borradores-del-alta";
+import { claveDelBorradorDelAlta } from "@/lib/customers/borrador-del-alta";
 import { pendientes, type SolicitudDeCliente } from "@/lib/customers/solicitud-de-cliente";
 import { BarraDeSeleccion } from "./BarraDeSeleccion";
 import { alternaEmpresa, empresasElegidas, estaMarcada, marcaTodas } from "@/lib/customers/seleccion";
@@ -39,7 +42,8 @@ import {
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
 /** La ficha abierta en su ventana; `editar`: abre ya editando («✏️ Editar» de la página, D-648). */
-type Ficha = { tipo: "ver"; cliente: Cliente; editar?: boolean } | { tipo: "nuevo" };
+// D-NEXT: `borrador`, el alta abre con el borrador elegido en «💾 Borradores».
+type Ficha = { tipo: "ver"; cliente: Cliente; editar?: boolean } | { tipo: "nuevo"; borrador?: BorradorGuardado };
 
 /** Cuántas filas se pintan de entrada y cuántas más con cada «ver más»: 1.349 filas de golpe pesan en un teléfono. */
 const TANDA = 100;
@@ -107,6 +111,30 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
     if (new URLSearchParams(window.location.search).get("solicitudes")) setVerSolicitudes(true);
   }, []);
   const solicitudesPendientes = pendientes(solicitudes).length;
+
+  // D-NEXT («show the list of the drafts separately so you can have many»): los borradores del alta de quien mira, en
+  // este navegador (`borradores-del-alta.ts`). Leerlos pasa a la lista el borrador único de D-847, una vez. Se releen al
+  // guardar o borrar uno en la ficha, y si cambian en otra pestaña (evento `storage`).
+  const puedeCrear = puedeEditar || puedeDarDeAlta;
+  const [borradores, setBorradores] = useState<BorradorGuardado[]>([]);
+  const [verBorradores, setVerBorradores] = useState(false);
+  const releeBorradores = useCallback(() => {
+    if (!puedeCrear) return;
+    setBorradores(leeBorradores(() => window.localStorage, userId));
+  }, [puedeCrear, userId]);
+  useEffect(() => {
+    releeBorradores();
+    const alCambiar = (e: StorageEvent) => {
+      if (e.key === null || e.key === claveDeLosBorradores(userId) || e.key === claveDelBorradorDelAlta(userId)) releeBorradores();
+    };
+    window.addEventListener("storage", alCambiar);
+    return () => window.removeEventListener("storage", alCambiar);
+  }, [releeBorradores, userId]);
+  const borrarBorrador = (b: BorradorGuardado) => {
+    const ok = borraBorrador(() => window.localStorage, userId, b.id);
+    releeBorradores();
+    return ok;
+  };
 
   // D-740 (215): el vendedor busca en TODA la empresa. Con dos letras o más, y tras un respiro, se pregunta a la base;
   // lo que llegue y no esté ya en su lista se pinta como fila que no se abre (`puedeAbrirCliente`).
@@ -258,6 +286,12 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
           {(esAdmin || altaComoSolicitud || edicionComoSolicitud) && (
             <Button variant="outline" onClick={() => setVerSolicitudes(true)} data-abrir-solicitudes>
               📝 {t("Requests", "Solicitudes")} {solicitudesPendientes > 0 && <span className="ml-1 rounded-full bg-amber-100 px-1.5 text-xs text-amber-800" data-solicitudes-pendientes>{solicitudesPendientes}</span>}
+            </Button>
+          )}
+          {/* D-NEXT: los borradores del alta, aparte, junto a «+ Nuevo cliente». Solo si hay alguno y solo quien puede crear. */}
+          {puedeCrear && borradores.length > 0 && (
+            <Button variant="outline" onClick={() => setVerBorradores(true)} data-abrir-borradores>
+              💾 {t("Drafts", "Borradores")} <span className="ml-1 rounded-full bg-slate-100 px-1.5 text-xs text-slate-600" data-cuantos-borradores>{borradores.length}</span>
             </Button>
           )}
           {/* D-800 (226): la oficina no edita pero sí pide el alta (`puedeDarDeAlta`). */}
@@ -570,6 +604,18 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
           onClose={() => setFicha(null)}
           onGuardado={alGuardar}
           editarAlAbrir={ficha.tipo === "ver" && ficha.editar === true}
+          borradorAlAbrir={ficha.tipo === "nuevo" ? ficha.borrador ?? null : null}
+          onBorradores={releeBorradores}
+          t={t}
+        />
+      )}
+      {verBorradores && (
+        <BorradoresDelAlta
+          borradores={borradores}
+          lang={lang}
+          onAbrir={(b) => { setVerBorradores(false); setFicha({ tipo: "nuevo", borrador: b }); }}
+          onBorrar={borrarBorrador}
+          onClose={() => setVerBorradores(false)}
           t={t}
         />
       )}

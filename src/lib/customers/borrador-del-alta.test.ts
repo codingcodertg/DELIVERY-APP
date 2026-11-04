@@ -4,8 +4,7 @@ import { join } from "node:path";
 import { contactoVacio } from "./contactos";
 import { redesEnEdicion } from "./redes";
 import {
-  borraBorradorDelAlta, borradorDe, claveDelBorradorDelAlta, cuandoSeGuardo, guardaBorradorDelAlta, hayAlgoEscrito, huellaDelBorrador,
-  leeBorradorDelAlta, type BorradorDelAlta,
+  borradorDe, claveDelBorradorDelAlta, cuandoSeGuardo, hayAlgoEscrito, huellaDelBorrador, leeBorradorDelAlta, type BorradorDelAlta,
 } from "./borrador-del-alta";
 
 /**
@@ -30,21 +29,12 @@ describe("borrador del alta", () => {
     expect(claveDelBorradorDelAlta("u1")).toBe("rtg_customers_new_draft_u1");
     expect(claveDelBorradorDelAlta("u1")).not.toBe(claveDelBorradorDelAlta("u2"));
   });
-  it("guardar y leer devuelve lo mismo; borrar lo quita; otra persona no lo ve", () => {
+  it("la clave vieja se lee (para pasarla a la lista); un navegador que niega el almacenamiento da null", () => {
     const { m, almacen } = memoria();
-    expect(guardaBorradorDelAlta(almacen, "u1", borrador())).toBe(true);
+    m.set(claveDelBorradorDelAlta("u1"), JSON.stringify({ v: 1, ...borrador() }));
     expect(leeBorradorDelAlta((k) => almacen().getItem(k), "u1")).toEqual(borrador());
     expect(leeBorradorDelAlta((k) => almacen().getItem(k), "u2")).toBeNull();
-    borraBorradorDelAlta(almacen, "u1");
-    expect(m.size).toBe(0);
-    expect(leeBorradorDelAlta((k) => almacen().getItem(k), "u1")).toBeNull();
-  });
-  it("un navegador que niega el almacenamiento (o lleno) no rompe: guardar dice false, leer da null, borrar no lanza", () => {
-    const roto = () => { throw new Error("SecurityError"); };
-    expect(guardaBorradorDelAlta(roto, "u1", borrador())).toBe(false);
-    expect(guardaBorradorDelAlta(() => ({ setItem: () => { throw new Error("QuotaExceededError"); } }), "u1", borrador())).toBe(false);
-    expect(leeBorradorDelAlta(roto, "u1")).toBeNull();
-    expect(() => borraBorradorDelAlta(roto, "u1")).not.toThrow();
+    expect(leeBorradorDelAlta(() => { throw new Error("SecurityError"); }, "u1")).toBeNull();
   });
   it("basura, otra versión o un borrador vacío no son un borrador", () => {
     const lee = (v: string) => leeBorradorDelAlta(() => v, "u1");
@@ -72,8 +62,10 @@ describe("borrador del alta", () => {
     expect(huellaDelBorrador(borrador())).toBe(huellaDelBorrador(borrador({ guardado: "2030-01-01T00:00:00.000Z" })));
     expect(huellaDelBorrador(borrador())).not.toBe(huellaDelBorrador(borrador({ tiendas: ["BRO"] })));
   });
-  it("cuandoSeGuardo: fecha legible, o vacío si no se lee", () => {
-    expect(cuandoSeGuardo("2026-11-04T18:48:00.000Z", "en")).toMatch(/Nov/);
+  it("cuandoSeGuardo: fecha legible en hora de Texas (BUSINESS_TZ), o vacío si no se lee", () => {
+    expect(cuandoSeGuardo("2026-11-04T18:48:00.000Z", "en")).toMatch(/Nov 4.*12:48/);
+    // 03:30 UTC del día 5 es todavía el 4 en Texas (CST, UTC-6).
+    expect(cuandoSeGuardo("2026-11-05T03:30:00.000Z", "en")).toMatch(/Nov 4.*9:30/);
     expect(cuandoSeGuardo("no", "es")).toBe("");
     expect(cuandoSeGuardo("", "en")).toBe("");
   });
@@ -82,14 +74,14 @@ describe("borrador del alta", () => {
 describe("borrador del alta: la ventana", () => {
   const ficha = readFileSync(join(process.cwd(), "src/app/customers/FichaDeCliente.tsx"), "utf8");
   it("el botón «Guardar borrador» va junto a «Cancelar», solo en el alta, bilingüe", () => {
-    expect(ficha).toContain('{t("Save draft", "Guardar borrador")}');
+    expect(ficha).toContain('t("Save draft", "Guardar borrador")');
     expect(ficha.indexOf("data-guardar-borrador")).toBeLessThan(ficha.indexOf('{t("Cancel", "Cancelar")}</Button>'));
     expect(ficha).toContain("const conBorrador = nuevo && Boolean(yo);");
   });
-  it("al abrir el alta con un borrador, se ofrece recuperarlo o descartarlo; al crear o pedir el alta, se borra", () => {
-    expect(ficha).toContain("data-recuperar-borrador");
-    expect(ficha).toContain("data-descartar-borrador");
+  it("D-NEXT: sin aviso de «Recuperar borrador» (se retoma desde la lista); al crear o pedir el alta, se borra solo ese borrador", () => {
+    expect(ficha).not.toContain("data-recuperar-borrador");
+    expect(ficha).not.toContain("data-descartar-borrador");
     expect(ficha.match(/olvidarBorrador\(\);/g)?.length).toBe(2);
-    expect(ficha).toContain('t("Draft saved ✓');
+    expect(ficha).toContain("borraBorrador(almacenDelNavegador, yo, borradorId);");
   });
 });

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { landingRoute } from "@/lib/constants";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
+import { ConfirmProvider } from "@/lib/confirm";
 import "@/app/erp/erp.css";
 
 export const metadata: Metadata = {
@@ -33,7 +34,7 @@ export default async function CustomersLayout({ children }: { children: React.Re
   // D-622 (2026-10-21): la barra es la superior de Entregas, en el flujo; sin `ErpNavProvider` ni hueco lateral.
   const cascaron = <div data-app="erp">{children}</div>;
   // Modo demo: sin base ni sesión. Los clientes son los inventados de `lib/customers/demo`.
-  if (LOCAL_MODE) return cascaron;
+  if (LOCAL_MODE) return <ConfirmProvider>{cascaron}</ConfirmProvider>;
 
   const supabase = await createClient();
   const {
@@ -57,5 +58,6 @@ export default async function CustomersLayout({ children }: { children: React.Re
     redirect(landingRoute({ role, module_access: profile?.module_access }));
   }
 
-  return cascaron;
+  // D-NEXT: el diálogo de la app (`useConfirm`) para «¿Borrar el borrador?», como en Entregas; antes Clientes no lo montaba.
+  return <ConfirmProvider>{cascaron}</ConfirmProvider>;
 }
