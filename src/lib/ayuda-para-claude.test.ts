@@ -7,7 +7,7 @@ import {
 } from "./ayuda-para-claude";
 
 /**
- * «Copiar para Claude» (D-NEXT).
+ * «Copiar para Claude» (D-844).
  *
  * Lo que se decide sin navegador —el texto, el HTML, los nombres de descarga, el enlace del correo— se prueba aquí.
  * El portapapeles, el lienzo y la descarga viven en la pantalla y NO se prueban: vitest no tiene portapapeles, y una

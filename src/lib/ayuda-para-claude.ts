@@ -5,7 +5,7 @@ import { RUTA_SOLICITUDES_ADMIN } from "./help-thread";
 import { formateadorDeFecha } from "./formateador";
 
 /**
- * «Copiar para Claude»: una solicitud de ayuda lista para pegarla en Claude (D-NEXT).
+ * «Copiar para Claude»: una solicitud de ayuda lista para pegarla en Claude (D-844).
  *
  * El dueño, sobre el correo de ayuda con la captura: lo necesita mandar a Claude para arreglar el problema, y quiere
  * que copiar el texto y la imagen sea UNA acción y pegar no pida pasos de más, y que la foto se descargue sola.

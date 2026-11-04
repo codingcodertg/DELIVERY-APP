@@ -50288,3 +50288,19 @@ Sello `recruiting` 0.73.0; repo 1.697.0.
 Sello `recruiting` 0.74.0; repo 1.698.0.
 
 **Pruebas:** `recruiting/busqueda-global.test.ts`.
+
+## D-844 · Ayuda: «Copiar para Claude», la solicitud lista para pegar, con su captura
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `feat/ayuda-copiar-para-claude`, revisado y fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño):** el correo de ayuda con la foto está excelente, pero necesita mandar el mensaje y la foto directo a Claude para arreglar el problema: que se copien texto e imagen de un solo, que la foto se descargue sola, y pegar en Claude sin más.
+
+**Qué cambia:**
+- **Página `/home/solicitudes-de-ayuda/[id]/copiar`** (solo admin, como la bandeja): al abrirse descarga las capturas (`ayuda-<id>-<n>`). «📋 Copiar texto + imagen» escribe un solo `ClipboardItem` con el texto (quién, rol, página, versión, fecha, el mensaje tal cual y el hilo, el id), el mismo texto en HTML con la imagen, y la imagen en PNG. Botones de respaldo «Solo texto» y «Solo imagen», y «⌨️ Copiar para Claude Code» con una línea que nombra el id. Las capturas se bajan con la sesión del cubo privado `help-files`; nada se hace público.
+- **Correo (`/api/help`):** el texto de siempre más la línea «📋 Copy for Claude: <enlace>», y una parte HTML nueva con el botón arriba y las fotos dentro del correo (antes solo iba el enlace firmado).
+- **Bandeja:** cada solicitud tiene su enlace «📋 Copy for Claude».
+- Lógica pura en `ayuda-para-claude.ts`. No medido en el momento de fusionar: si claude.ai conserva texto e imagen al pegar el elemento combinado; para eso están los botones de respaldo.
+
+Sello `deliveries` 1.529.0; repo 1.699.0.
+
+**Pruebas:** `ayuda-para-claude.test.ts`.

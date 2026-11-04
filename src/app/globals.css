@@ -1983,7 +1983,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 .aviso-practica { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 1100; max-width: min(520px, calc(100vw - 32px));
   background: var(--teaching-bg); color: #fff; padding: 10px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.25); cursor: pointer; }
 
-/* «Copiar para Claude» (D-NEXT): una solicitud de ayuda lista para pegar en Claude. El botón grande ocupa la tarjeta;
+/* «Copiar para Claude» (D-844): una solicitud de ayuda lista para pegar en Claude. El botón grande ocupa la tarjeta;
    las capturas, en miniatura y en fila. Solo tokens: sale igual en claro y en oscuro. */
 .copia-claude-principal { width: 100%; justify-content: center; font-size: 17px; padding: 14px 22px; }
 .copia-claude-principal:disabled { opacity: .6; cursor: default; }

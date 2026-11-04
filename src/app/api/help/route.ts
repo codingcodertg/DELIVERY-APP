@@ -157,7 +157,7 @@ export async function POST(req: Request) {
   };
 
   const subject = `Help request from ${who}${roleLabel}`;
-  // «📋 Copy for Claude» (D-NEXT): la pantalla del hub que deja la solicitud lista para pegarla en Claude —texto e
+  // «📋 Copy for Claude» (D-844): la pantalla del hub que deja la solicitud lista para pegarla en Claude —texto e
   // imagen de una vez— y baja la captura sola. Absoluto, con el dominio de producción: el correo se abre fuera de la app.
   const copiar = fila?.id ? enlaceParaCopiar(origenPublico(req.url), String(fila.id)) : null;
   const contexto = [

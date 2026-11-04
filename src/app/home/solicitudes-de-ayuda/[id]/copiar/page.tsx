@@ -14,7 +14,7 @@ import {
 } from "@/lib/ayuda-para-claude";
 
 /**
- * «Copiar para Claude» (D-NEXT): una solicitud de ayuda lista para pegarla en Claude.
+ * «Copiar para Claude» (D-844): una solicitud de ayuda lista para pegarla en Claude.
  *
  * Solo el admin llega aquí: la puerta es el `layout` de `/home/solicitudes-de-ayuda`, que envuelve también esta ruta,
  * y debajo está la 120 (RLS), que no deja leer la solicitud de otra persona a quien no es admin.
