@@ -50372,3 +50372,23 @@ Sello `customers` 0.40.0; repo 1.702.0.
 Sello `deliveries` 1.532.0; repo 1.703.0.
 
 **Pruebas:** `corte-de-ventas.test.ts` reescrita; `fecha-de-entrega`, `dia-de-entrega` y `borrador-y-duplicar` vueltas a antes de D-845.
+
+## D-849 · Promos: diseño nuevo de la ronda (sin cambios de comportamiento)
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente con el skill `frontend-design` en `design/promos-preview`; el dueño vio el antes y el después en capturas del demo y lo aprobó («me encantó ese nuevo diseño, hazlo»). Fusionado por el orquestador (laptop nueva).
+
+**Qué cambia (solo lo visual, todo bajo `.promos-ronda` en `promos/promos.css`; `globals.css` y Órdenes no se tocan):**
+- **Cabecera:** el nombre de la ronda manda; selector de ronda y Cerrar/Reabrir a la derecha (Cerrar era un botón sin estilo que se leía como texto).
+- **Barra de avance:** «3 de 12 decididos», verde aprobados y rojo rechazados, con las mismas cuentas que las pastillas.
+- **Fila de contexto:** «Decidiendo por NORTE ▾» y «Precios por tamaño» en una línea.
+- **Pendiente / Aprobado / Rechazado:** control segmentado con un punto del color de cada estado (en oscuro, el «Pendiente» activo casi no se veía).
+- **Tabla:** casilla y Código pegados a la izquierda y Decidir a la derecha (a 1440 px ✓/✕ quedaban tras las columnas de QOH); filas alternas, hover y seleccionadas en azul; números con ancho fijo y cabeceras numéricas a la derecha.
+- **✓ / ✕:** más grandes y con borde de su color; el de la decisión que ya tiene la fila va relleno, no gris.
+- **Tabla vacía:** dice por qué (sin productos, nada en esa tienda, nada por decidir, los filtros lo esconden).
+- **Barras más calmadas:** «Filtrado por» blanca con franja ámbar (en Promos siempre sale, porque nace en Pendiente); igual los avisos y la barra de selección.
+- **Carga:** `loading.tsx` con un esqueleto gris. **Teléfono:** tarjetas más cortas (código como título, QOH por tienda en rejilla) y ✓/✕ de 44 px a todo el ancho.
+- Lo que las pruebas fijan (la pastilla de Decisión, las clases de la tabla de Órdenes, la barra superior compartida) se dejó igual: los estilos nuevos van por atributos `data-*` y clases envolventes.
+
+Sello `promos` 0.23.0; repo 1.704.0.
+
+**Pruebas:** `src/lib/promos/*` y `inline-colors` sin cambios, en verde.
