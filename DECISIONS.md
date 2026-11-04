@@ -50035,3 +50035,13 @@ Sello `security` 0.11.0; repo 1.683.0.
 **Pruebas:** `cierra-sesiones.test.ts`.
 
 **No verificado:** la 236 en producción (la aplica el orquestador).
+
+## D-829 · Time Tracker: el cronómetro de escritorio tampoco enseña segundos
+
+**Fecha:** 2026-11-03 · Sin migración · Hecho directo por el orquestador en `feat/cronometro-escritorio-sin-segundos` (laptop nueva).
+
+**Pedido:** Roberto Rodriguez Jr, help request del 30 de octubre desde /timetracker: «Employees don't need to see seconds that they're clocked in». D-755 lo hizo en el panel de fichar de tienda (`PunchPanel`); el cronómetro de escritorio (`Cronometro`, el que ve la gente de oficina) seguía con «0:01:40».
+
+**Qué cambia:** el contador grande usa `fmtClockSinSegundos` («0:01», «8:07»). El tick de un segundo se queda porque hace más que repintar (latido de diez segundos, vigía). El detalle de comidas y descansos y las pantallas de medir (semana, nómina, en vivo) siguen con segundos. Sello `timetracker` 1.15.1; repo 1.684.0.
+
+**Pruebas:** `cronometro-sin-segundos.test.ts`.
