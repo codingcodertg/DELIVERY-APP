@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { soloActivos } from "@/lib/baja";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
-import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
+import { MapView, type LiveDriver, type MapLine, type MapPoint } from "@/components/MapView";
+import { NOTA_TURNO_AUTOMATICO } from "@/lib/turno-automatico";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { orderLabel, retentionFloorISO, seesAllHistory, todayISO, shiftDateISO, fmtDateShort } from "@/lib/utils";
 import { centralWallToUtc } from "@/lib/clockin/tz";
@@ -24,9 +25,11 @@ import { PausasDelDia } from "@/components/PausasDelDia";
 
 /** How many days back the quick-pick strip reaches. */
 const DAY_STRIP = 13;
-/** Most `recorded_at` rows the "which days have data" read will take: the strip's days at
- * ~170 fixes/day each (location-filter.ts), with room for a busy day. Was 20,000 (G-18). */
-const DAY_STRIP_ROW_CAP = (DAY_STRIP + 1) * 400;
+/** D-832: a 10 m / 5 s (D-831) un día largo son ~6 000 posiciones; el tope de 5 000 cortaba la tarde. */
+const FIXES_POR_DIA = 20_000;
+
+type Turno = { started_at: string; ended_at: string | null; note: string | null };
+type Hito = { id: string; kind: "picked_up" | "delivered"; at: string; delivery_id: string };
 
 function fmtMin(m: number): string {
   const n = Math.round(m);
@@ -59,6 +62,9 @@ export default function TrackPage() {
   const pisoFecha = retentionFloorISO();
   const fecha = veTodoElHistorial || date >= pisoFecha ? date : pisoFecha;
   const [fixes, setFixes] = useState<Fix[]>([]);
+  // D-832: los turnos del día (D-831: nacen solos con la primera carga) y las cargas/entregas que el chofer marcó.
+  const [turnos, setTurnos] = useState<Turno[]>([]);
+  const [hitos, setHitos] = useState<Hito[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -82,17 +88,21 @@ export default function TrackPage() {
       // fichaje (src/lib/clockin/tz.ts).
       const from = centralWallToUtc(`${fecha}T00:00`);
       const to = centralWallToUtc(`${shiftDateISO(fecha, 1)}T00:00`);
-      const { data, error } = await supabase
-        .from("driver_locations")
-        .select("lat, lng, accuracy_m, recorded_at")
-        .eq("driver_id", driverId)
-        .gte("recorded_at", from)
-        .lt("recorded_at", to)
-        .order("recorded_at", { ascending: true })
-        .limit(5000);
+      const [{ data, error }, t1, h1] = await Promise.all([
+        supabase.from("driver_locations").select("lat, lng, accuracy_m, recorded_at").eq("driver_id", driverId)
+          .gte("recorded_at", from).lt("recorded_at", to).order("recorded_at", { ascending: true }).limit(FIXES_POR_DIA),
+        supabase.from("driver_shifts").select("started_at, ended_at, note").eq("driver_id", driverId)
+          .gte("started_at", from).lt("started_at", to).order("started_at", { ascending: true }),
+        supabase.from("order_events").select("id, kind, created_at, delivery_id").eq("created_by", driverId)
+          .in("kind", ["picked_up", "delivered"]).gte("created_at", from).lt("created_at", to).order("created_at", { ascending: true }),
+      ]);
       if (cancelled) return;
       if (error) { setErr(error.message); setFixes([]); }
       else setFixes((data ?? []).map((r) => ({ lat: r.lat, lng: r.lng, accuracy_m: r.accuracy_m, at: r.recorded_at })));
+      setTurnos((t1.data ?? []) as Turno[]);
+      setHitos(((h1.data ?? []) as { id: string; kind: string; created_at: string; delivery_id: string }[])
+        .map((e) => ({ id: e.id, kind: e.kind as Hito["kind"], at: e.created_at, delivery_id: e.delivery_id })));
+      setCursor(null);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -107,25 +117,21 @@ export default function TrackPage() {
     let cancelled = false;
     (async () => {
       const supabase = createClient();
-      // G-18 (D-201): this only needs "which days have at least one fix". The right answer is
-      // one aggregate in SQL (a `distinct date` RPC), but that needs a migration, so it is left
-      // as PENDING and this stays a range-bounded read of `recorded_at` alone, grouped in the
-      // browser. The range was already the strip (DAY_STRIP + 1 days); the cap was 20,000 rows,
-      // an order of magnitude above what that range can hold (~170 fixes/day per driver,
-      // location-filter.ts). Capped to what the strip can actually contain, plus margin.
+      // D-832: «qué días tienen recorrido» se lee de los TURNOS (una fila por día, D-831), no de las posiciones:
+      // a 10 m / 5 s la tira de dos semanas serían ~80 000 filas (G-18 ya lo dejó como pendiente).
       const { data } = await supabase
-        .from("driver_locations")
-        .select("recorded_at")
+        .from("driver_shifts")
+        .select("started_at")
         .eq("driver_id", driverId)
-        .gte("recorded_at", centralWallToUtc(`${shiftDateISO(todayISO(), -DAY_STRIP)}T00:00`))
-        .order("recorded_at", { ascending: false })
-        .limit(DAY_STRIP_ROW_CAP);
+        .gte("started_at", centralWallToUtc(`${shiftDateISO(todayISO(), -DAY_STRIP)}T00:00`))
+        .order("started_at", { ascending: false })
+        .limit(200);
       if (cancelled) return;
       const set = new Set<string>();
       for (const r of data ?? []) {
         // Business time, not the browser's: a fix at 7pm Chicago is still that
         // day even when the office reviewing it sits in another zone.
-        set.add(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date(r.recorded_at as string)));
+        set.add(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date(r.started_at as string)));
       }
       setDaysWithData(set);
     })();
@@ -191,6 +197,53 @@ export default function TrackPage() {
     () => deliveries.filter((d) => d.assigned_driver === driverName && d.stage === "delivered" && (d.delivery_date ?? "").slice(0, 10) === fecha),
     [deliveries, driverName, fecha],
   );
+
+  // D-832: cargas y entregas que el chofer marcó, con la orden a la que pertenecen (si sigue cargada en pantalla).
+  const hitosConOrden = useMemo(() => hitos.map((h) => {
+    const d = deliveries.find((x) => x.id === h.delivery_id);
+    const etiqueta = d ? `#${orderLabel(d)}${d.account ? ` · ${d.account}` : ""}` : t("order", "orden");
+    const fix = fixes.length ? fixes.reduce((mejor, f) => Math.abs(new Date(f.at).getTime() - new Date(h.at).getTime()) < Math.abs(new Date(mejor.at).getTime() - new Date(h.at).getTime()) ? f : mejor) : null;
+    return { ...h, etiqueta, direccion: d?.delivery_address ?? null, lat: d?.delivery_lat ?? fix?.lat ?? null, lng: d?.delivery_lng ?? fix?.lng ?? null };
+  }), [hitos, deliveries, fixes, t]);
+  const puntosDeHitos: MapPoint[] = useMemo(() => hitosConOrden.filter((h) => h.lat != null && h.lng != null).map((h) => ({
+    id: `hito${h.id}`, lat: h.lat as number, lng: h.lng as number,
+    color: h.kind === "delivered" ? "#15803d" : "#2456c9",
+    label: `${h.kind === "delivered" ? t("Delivered", "Entregada") : t("Picked up", "Cargada")} ${h.etiqueta} · ${clock(h.at, lang)}`,
+    badge: h.kind === "delivered" ? "✓" : "▲",
+  })), [hitosConOrden, t, lang]);
+
+  // D-832: reproducir el recorrido. `cursor` = hasta qué posición se pinta; null = el día entero.
+  const [cursor, setCursor] = useState<number | null>(null);
+  const [reproduciendo, setReproduciendo] = useState(false);
+  const reproRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (!reproduciendo) { if (reproRef.current) clearInterval(reproRef.current); reproRef.current = null; return; }
+    const paso = Math.max(1, Math.round(fixes.length / 400));
+    reproRef.current = setInterval(() => {
+      setCursor((c) => {
+        const n = (c ?? 0) + paso;
+        if (n >= fixes.length - 1) { setReproduciendo(false); return fixes.length - 1; }
+        return n;
+      });
+    }, 50);
+    return () => { if (reproRef.current) clearInterval(reproRef.current); };
+  }, [reproduciendo, fixes.length]);
+  const lineasVisibles: MapLine[] = useMemo(() => {
+    if (cursor == null) return lines;
+    const hasta = fixes.slice(0, cursor + 1);
+    const segs: [number, number][][] = []; let cur: [number, number][] = [];
+    for (let i = 0; i < hasta.length; i++) {
+      if (i > 0 && (new Date(hasta[i].at).getTime() - new Date(hasta[i - 1].at).getTime()) / 60_000 > 20) { if (cur.length > 1) segs.push(cur); cur = []; }
+      cur.push([hasta[i].lat, hasta[i].lng]);
+    }
+    if (cur.length > 1) segs.push(cur);
+    return segs.map((positions, i) => ({ id: `rep${i}`, color: "#2456c9", positions }));
+  }, [cursor, fixes, lines]);
+  const camion: LiveDriver[] = useMemo(() => {
+    if (cursor == null || !fixes[cursor]) return [];
+    const f = fixes[cursor];
+    return [{ driver: driverName, lat: f.lat, lng: f.lng, color: "#d97706", accuracy_m: f.accuracy_m, label: clock(f.at, lang) }];
+  }, [cursor, fixes, driverName, lang]);
 
 
   return (
@@ -283,6 +336,21 @@ export default function TrackPage() {
         </div>
       </div>
 
+      {/* D-832: el turno del día (D-831): de la primera carga a la última entrega. */}
+      <div className="card" data-bloque="turnos">
+        <b>⏱ {t("Shift", "Turno")}</b>{" "}
+        {turnos.length === 0 ? (
+          <span className="hint">{t("No shift that day: the driver did not pick up anything from the app.", "Sin turno ese día: el chofer no cargó nada desde la app.")}</span>
+        ) : turnos.map((s, i) => (
+          <span key={i} style={{ marginLeft: 8 }}>
+            {clock(s.started_at, lang)} – {s.ended_at ? clock(s.ended_at, lang) : <b style={{ color: "var(--green)" }}>{t("open", "abierto")}</b>}
+            <span className="hint" style={{ marginLeft: 4 }}>
+              {s.note === NOTA_TURNO_AUTOMATICO ? t("(automatic: first pickup → last delivery)", "(automático: primera carga → última entrega)") : t("(clocked in by hand)", "(marcado a mano)")}
+            </span>
+          </span>
+        ))}
+      </div>
+
       <div className="card">
         <h2>
           🗺 {t("Where the truck went", "Por dónde anduvo el camión")}
@@ -300,9 +368,11 @@ export default function TrackPage() {
             {t("No positions recorded that day.", "No se registraron posiciones ese día.")}
           </div>
         ) : (
+          <>
           <MapView
-            points={points}
-            lines={lines}
+            points={[...points, ...puntosDeHitos]}
+            lines={lineasVisibles}
+            liveDrivers={camion}
             stores={storeMarkers}
             // Frame the whole day, not just the stops: a track with two long
             // stops and a lot of road between them would otherwise open zoomed
@@ -310,6 +380,42 @@ export default function TrackPage() {
             fitTo={fixes.map((f) => [f.lat, f.lng] as [number, number])}
             height={420}
           />
+          {/* D-832: reproducir el día. El camión naranja va por la línea; la barra deja ir a cualquier momento. */}
+          <div data-bloque="reproduccion" style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+            <button className={"btn btn-sm " + (reproduciendo ? "btn-ghost" : "btn-primary")} data-accion="reproducir"
+              onClick={() => { if (reproduciendo) setReproduciendo(false); else { if (cursor == null || cursor >= fixes.length - 1) setCursor(0); setReproduciendo(true); } }}>
+              {reproduciendo ? "⏸ " + t("Pause", "Pausa") : "▶ " + t("Replay the day", "Reproducir el día")}
+            </button>
+            <input type="range" min={0} max={Math.max(0, fixes.length - 1)} value={cursor ?? fixes.length - 1} style={{ flex: 1, minWidth: 160 }}
+              onChange={(e) => { setReproduciendo(false); setCursor(Number(e.target.value)); }} />
+            <span className="hint" style={{ marginTop: 0, fontVariantNumeric: "tabular-nums", minWidth: 60 }}>{cursor != null && fixes[cursor] ? clock(fixes[cursor].at, lang) : clock(summary.lastAt, lang)}</span>
+            {cursor != null && <button className="btn btn-ghost btn-sm" onClick={() => { setReproduciendo(false); setCursor(null); }}>{t("Whole day", "Día entero")}</button>}
+          </div>
+          </>
+        )}
+      </div>
+
+      {/* D-832: lo que el chofer marcó, en orden: cada carga y cada entrega con su hora. */}
+      <div className="card" data-bloque="hitos">
+        <h2>🚚 {t("Pickups and deliveries", "Cargas y entregas")}<span className="count-tag">{hitosConOrden.length}</span></h2>
+        {hitosConOrden.length === 0 ? (
+          <div className="empty">{t("Nothing marked from the app that day.", "Nada marcado desde la app ese día.")}</div>
+        ) : (
+          <div className="tbl-scroll">
+            <table className="orders">
+              <thead><tr><th>{t("Time", "Hora")}</th><th>{t("What", "Qué")}</th><th>{t("Order", "Orden")}</th><th>{t("Address", "Dirección")}</th></tr></thead>
+              <tbody>
+                {hitosConOrden.map((h) => (
+                  <tr key={h.id}>
+                    <td style={{ fontVariantNumeric: "tabular-nums" }}>{clock(h.at, lang)}</td>
+                    <td>{h.kind === "delivered" ? <b style={{ color: "var(--green)" }}>✓ {t("Delivered", "Entregada")}</b> : <b style={{ color: "#2456c9" }}>▲ {t("Picked up", "Cargada")}</b>}</td>
+                    <td className="ordno">{h.etiqueta}</td>
+                    <td>{h.direccion ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

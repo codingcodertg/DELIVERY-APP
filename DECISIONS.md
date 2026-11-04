@@ -50075,3 +50075,22 @@ Sello `deliveries` 1.519.0; repo 1.686.0. La pestaña «Recorrido» para verlo e
 **Pruebas:** `turno-automatico.test.ts`, `location-filter.test.ts`.
 
 **No verificado:** en un teléfono real (la app Android ya existente manda los puntos; aquí solo cambian los umbrales).
+
+## D-832 · Recorrido del chofer: turno del día, cargas y entregas, reproducción; pestaña en Time Tracker
+
+**Fecha:** 2026-11-03 · Sin migración · Hecho directo por el orquestador en `feat/recorrido-del-chofer` (laptop nueva).
+
+**Pedido (el dueño):** «quiero un tab donde pueda ver el recorrido completo» · «ver en el mapa el recorrido exacto y preciso que el driver haga».
+
+**Qué había:** `/track` («Recorrido del chofer», D-201) ya tenía chofer + día, la línea del GPS, millas, manejando/detenido, paradas deducidas y entregadas del día. Nadie lo encontraba desde Time Tracker, y con la densidad de D-831 se quedaba corto.
+
+**Qué cambia (`/track`):**
+- Hasta 20 000 posiciones por día (antes 5 000: a 10 m / 5 s cortaba la tarde). Los días con recorrido en la tira de dos semanas salen de `driver_shifts` (una fila por día), no de las posiciones.
+- **Turno del día:** hora de inicio y fin, y si fue automático (primera carga → última entrega, D-831) o a mano.
+- **Cargas y entregas:** cada `picked_up` y `delivered` que el chofer marcó, con hora, orden y dirección; en el mapa, ▲ azul y ✓ verde. Si la orden ya no está cargada en pantalla, el punto cae sobre la posición GPS más cercana en el tiempo.
+- **Reproducir el día:** un camión naranja recorre la línea; barra para ir a cualquier momento; «Día entero» vuelve a la vista completa.
+- **Time Tracker:** pestaña «🛣 Recorrido» en la barra del admin, junto a «Trabajando ahora», que lleva a `/track`.
+
+Sellos `deliveries` 1.520.0, `timetracker` 1.15.2; repo 1.687.0.
+
+**Pruebas:** `recorrido.test.ts`.
