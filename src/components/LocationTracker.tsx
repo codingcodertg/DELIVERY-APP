@@ -6,6 +6,7 @@ import { useLiveLocation } from "@/lib/useLiveLocation";
 import { deviceId, isShiftDevice } from "@/lib/device-id";
 import { isNativeApp, openLocationSettings } from "@/lib/native-bridge";
 import { avisoDeGps } from "@/lib/gps-del-turno";
+import { decideTurnoAutomatico, NOTA_TURNO_AUTOMATICO } from "@/lib/turno-automatico";
 import { APK_DOWNLOAD_URL } from "@/lib/app-update";
 import { usePrefs } from "@/lib/prefs";
 import type { Profile } from "@/lib/types";
@@ -38,11 +39,23 @@ import type { Profile } from "@/lib/types";
 // ============================================================
 
 export function LocationTracker({ me }: { me: Profile }) {
-  const { shifts, marcaGpsDelTurno } = useData();
+  const { shifts, marcaGpsDelTurno, deliveries, clockIn, clockOut } = useData();
   const { t } = usePrefs();
 
   const shift = useMemo(() => shifts.find((s) => s.driver_id === me.id && !s.ended_at) ?? null, [shifts, me.id]);
   const esteTelefono = !!shift && isShiftDevice(shift.device_id, deviceId());
+
+  // D-831: el turno empieza al cargar la primera orden y termina con la última entrega, sin tocar el botón. Solo en
+  // la app Android (la única con GPS de verdad). Un turno abierto a mano no se toca. `clockIn` ya rechaza un segundo
+  // turno abierto, así que repetir el efecto no duplica nada.
+  const decidiendoRef = useRef(false);
+  useEffect(() => {
+    if (decidiendoRef.current) return;
+    const que = decideTurnoAutomatico({ ordenes: deliveries, nombre: me.full_name, turnoAbierto: shift, nativa: isNativeApp() });
+    if (!que) return;
+    decidiendoRef.current = true;
+    (que === "abrir" ? clockIn(me.id, NOTA_TURNO_AUTOMATICO) : clockOut(me.id)).finally(() => { decidiendoRef.current = false; });
+  }, [deliveries, shift, me.id, me.full_name, clockIn, clockOut]);
 
   const track = useMemo(() => {
     if (!shift) return false;

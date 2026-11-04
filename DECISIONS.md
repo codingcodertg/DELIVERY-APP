@@ -50055,3 +50055,23 @@ Sello `security` 0.11.0; repo 1.683.0.
 **Qué cambia:** Security abre con una fila de tarjetas (`data-bloque="salud"`), sacadas de lo que la página ya carga, en tiempo real como el resto (D-820): versión publicada de Deliveries y Security (el resto, al pasar el ratón); apps de escritorio al día sobre el total y cuántas van atrás (rojo si hay alguna); dentro en la última hora; usuarios activos sin entrar en 7 días (ámbar); dispositivos por aprobar (ámbar); bloqueos web en 24 h (rojo); entradas desde sitio nuevo en 7 días (rojo). Sin «errores de la API»: no hay tabla de errores de cliente que leer; cuando la haya, es una tarjeta más. Sello `security` 0.12.0; repo 1.685.0.
 
 **Pruebas:** `cierra-sesiones.test.ts` (la fila y sus 7 tarjetas).
+
+## D-831 · Choferes: el turno empieza al cargar la primera orden y termina con la última entrega; GPS a 10 m / 5 s
+
+**Fecha:** 2026-11-03 · Sin migración · Hecho directo por el orquestador en `feat/turno-automatico-chofer` (laptop nueva).
+
+**Pedido (el dueño):** «los drivers quiero que podamos trackear con el GPS pero no están haciendo el clock in; desde que ellos pickup la primera carga será como que hagan clock in y los vas a trackear con el GPS hasta la última orden que hagan delivered: es el clock out» · «quiero ver en el mapa el recorrido exacto y preciso que el driver haga, algo súper reliable y preciso».
+
+**Qué había:** el turno del chofer (`driver_shifts`, D-200) es lo que enciende el GPS (D-714), pero solo con el botón «Marcar entrada», que nadie pulsa. Puntos cada 25 m o cada 10 s en movimiento, y cada 5 min parado.
+
+**Qué cambia:**
+- **Regla (`turno-automatico.ts`):** con alguna orden suya en `picked_up` y sin turno abierto → se abre uno con nota `auto: carga`; sin ninguna cargada y con un turno automático abierto → se cierra. Solo decide en la app Android (la única con GPS en segundo plano). Un turno abierto a mano no se toca. La aplica `LocationTracker` (vive en el layout del chofer), así que vale desde cualquier pantalla y aunque la última entrega se marque desde otro sitio.
+- **`clockIn(driverId, note?)`** guarda la nota; la cola sin internet (`ShiftOp.note`) también.
+- **Precisión:** `MIN_MOVE_M` 25 → 10 m, `MIN_INTERVAL_MS` 10 → 5 s, `HEARTBEAT_MS` 5 min → 1 min, reloj nativo 60 → 15 s. A 30 mph, un punto cada ~67 m como mucho (antes 134 m). Coste: hasta ~6 000 puntos por chofer y día; la poda (90 días) no cambia.
+- **Tarjeta del turno:** dice que empezó con la primera carga y termina con la última entrega; fuera de turno explica que empieza solo.
+
+Sello `deliveries` 1.519.0; repo 1.686.0. La pestaña «Recorrido» para verlo es D-832.
+
+**Pruebas:** `turno-automatico.test.ts`, `location-filter.test.ts`.
+
+**No verificado:** en un teléfono real (la app Android ya existente manda los puntos; aquí solo cambian los umbrales).

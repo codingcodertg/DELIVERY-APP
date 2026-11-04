@@ -273,7 +273,7 @@ export interface DataState {
 
   // driver shift clock (idle-time KPI)
   shifts: DriverShift[];
-  clockIn: (driverId: string) => Promise<void>;
+  clockIn: (driverId: string, note?: string | null) => Promise<void>;
   clockOut: (driverId: string) => Promise<void>;
   /** D-714: el rastreador escribe el último estado del GPS en el turno abierto (migración 206). */
   marcaGpsDelTurno: (shiftId: string, gps: string) => Promise<void>;
@@ -2185,7 +2185,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const { remaining } = await flushShiftOps(items, async (op) => {
         try {
           if (op.kind === "in") {
-            const { error } = await supabase.from("driver_shifts").insert({ driver_id: op.driverId, device_id: op.deviceId, started_at: op.at, app: op.app ?? null });
+            const { error } = await supabase.from("driver_shifts").insert({ driver_id: op.driverId, device_id: op.deviceId, started_at: op.at, app: op.app ?? null, note: op.note ?? null });
             if (!error) return "ok";
             return isOfflineError(error) ? "offline" : "rejected";
           }
@@ -2226,7 +2226,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     catch { /* sin red: el siguiente cambio de estado lo vuelve a intentar */ }
   }, [supabase, teaching]);
 
-  const clockIn = useCallback<DataState["clockIn"]>(async (driverId) => {
+  const clockIn = useCallback<DataState["clockIn"]>(async (driverId, note) => {
     // Guard against a second open shift (also enforced by a partial unique index). Looks at
     // the queue too, so a queued "in" is not tapped twice.
     if (shiftsView.some((sh) => sh.driver_id === driverId && !sh.ended_at)) return;
@@ -2234,13 +2234,13 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // Which phone started the shift — only it reports position for it.
     let error: { message: string } | null = null;
     try {
-      const res = await supabase.from("driver_shifts").insert({ driver_id: driverId, device_id: deviceId(), started_at: at, app: appActual() });
+      const res = await supabase.from("driver_shifts").insert({ driver_id: driverId, device_id: deviceId(), started_at: at, app: appActual(), note: note ?? null });
       error = res.error;
     } catch (e) { error = { message: e instanceof Error ? e.message : "network error" }; }
     if (error) {
       // G-8 (D-200): no signal → the punch queues and the day starts on screen now.
       if (isOfflineError(error)) {
-        queueShiftOp({ id: `s${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, kind: "in", driverId, at, deviceId: deviceId(), app: appActual() });
+        queueShiftOp({ id: `s${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, kind: "in", driverId, at, deviceId: deviceId(), app: appActual(), note: note ?? null });
         notify(t_offlineSaved());
         return;
       }

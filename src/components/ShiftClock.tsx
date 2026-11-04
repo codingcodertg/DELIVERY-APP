@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
+import { NOTA_TURNO_AUTOMATICO } from "@/lib/turno-automatico";
 import { usePrefs } from "@/lib/prefs";
 import { batteryGuardState, isNativeApp, openOemBatterySettings, requestBatteryExemption, requestHibernationExemption, type BatteryGuardState } from "@/lib/native-bridge";
 import { fmtDuration } from "@/lib/utils";
@@ -88,8 +89,8 @@ export function ShiftClock({ driverId }: { driverId: string }) {
           </div>
           <div className="hint" style={{ fontVariantNumeric: "tabular-nums" }}>
             {open
-              ? t("Working for", "Trabajando por") + " " + fmtDuration(elapsed)
-              : t("Clock in when you start your shift.", "Marca entrada al iniciar tu turno.")}
+              ? t("Working for", "Trabajando por") + " " + fmtDuration(elapsed) + (open.note === NOTA_TURNO_AUTOMATICO ? " · " + t("started with your first pickup; ends with your last delivery", "empezó con tu primera carga; termina con tu última entrega") : "")
+              : t("Your shift starts by itself when you pick up your first order. You can also clock in here.", "Tu turno empieza solo al cargar tu primera orden. También puedes marcar entrada aquí.")}
           </div>
           {/* The shift card is deliberately just the clock. Location status was
               removed from the driver's view at the owner's request; drivers are

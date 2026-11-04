@@ -32,20 +32,20 @@ describe("shouldSend", () => {
   });
 
   it("throttles fixes that arrive too close together", () => {
-    const last = { ...here, at: now - 5_000 };
-    // Moved a long way, but only 5s later — the interval guard still applies,
+    const last = { ...here, at: now - 3_000 };
+    // Moved a long way, but only 3s later (D-831: the guard is 5 s now) — the interval guard still applies,
     // otherwise a parked-but-drifting GPS floods the table.
     expect(shouldSend({ lat: 26.3, lng: -98.3 }, last, now)).toBe(false);
   });
 
   it("skips a truck that hasn't really moved", () => {
-    const last = { ...here, at: now - 60_000 };
-    // ~10 m of GPS drift while parked at a stop.
-    expect(shouldSend({ lat: 26.20349, lng: -98.23 }, last, now)).toBe(false);
+    const last = { ...here, at: now - 30_000 };
+    // ~5 m of GPS drift while parked at a stop (D-831: 10 m is a real move now; the heartbeat is 60 s).
+    expect(shouldSend({ lat: 26.20344, lng: -98.23 }, last, now)).toBe(false);
   });
 
   it("sends once the truck has moved and enough time passed", () => {
-    const last = { ...here, at: now - 60_000 };
+    const last = { ...here, at: now - 30_000 };
     expect(shouldSend({ lat: 26.2065, lng: -98.23 }, last, now)).toBe(true);
   });
 });
@@ -80,20 +80,25 @@ describe("heartbeat", () => {
 describe("how precise a driven route can be", () => {
   const here = { lat: 26.2034, lng: -98.23 };
 
-  it("writes a moving truck every 10 seconds, not every 25", () => {
+  it("writes a moving truck every 5 seconds (D-831), not every 10 or 25", () => {
     // This constant, not the GPS, is what limits the trace. At 30 mph a
-    // 25-second gap left 400 m of road unrecorded between two points.
+    // 10-second gap left 134 m of road unrecorded between two points.
     const last = { ...here, at: 0 };
     const moved = { lat: 26.2034, lng: -98.2295 };   // ~50 m east
-    expect(shouldSend(moved, last, 9_000)).toBe(false);
-    expect(shouldSend(moved, last, 10_000)).toBe(true);
+    expect(shouldSend(moved, last, 4_000)).toBe(false);
+    expect(shouldSend(moved, last, 5_000)).toBe(true);
+  });
+  it("D-831: 10 m is enough to record a turn through an intersection", () => {
+    const last = { ...here, at: 0 };
+    const turned = { lat: 26.2034, lng: -98.22988 };   // ~12 m east
+    expect(shouldSend(turned, last, 5_000)).toBe(true);
   });
 
   it("still refuses a parked truck's drift", () => {
-    // 25 m is well clear of what a stationary phone wanders at 4-10 m accuracy.
+    // 10 m is still clear of what a stationary phone wanders at 4-10 m accuracy.
     const last = { ...here, at: 0 };
     const drift = { lat: 26.20342, lng: -98.23002 };  // a couple of metres
-    expect(shouldSend(drift, last, 60_000)).toBe(false);
+    expect(shouldSend(drift, last, 30_000)).toBe(false);
   });
 
   it("keeps the parked heartbeat as the way a stopped truck stays visible", () => {

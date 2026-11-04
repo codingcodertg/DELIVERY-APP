@@ -41,7 +41,7 @@ export type LocationStatus = "off" | "starting" | "live" | "denied" | "unavailab
  * Offering more often than the heartbeat also means a truck that starts moving
  * is noticed within a minute rather than five.
  */
-const TIMED_INTERVAL_MS = 60_000;
+const TIMED_INTERVAL_MS = 15_000; // D-831: era 60 s; el reloj nativo sobrevive al segundo plano, así que es el que de verdad dibuja el recorrido.
 
 interface BatteryManager { level: number }
 
