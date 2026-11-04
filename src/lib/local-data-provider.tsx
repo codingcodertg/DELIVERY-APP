@@ -20,7 +20,6 @@ import { palletsDeLaOrden } from "@/lib/pallets";
 import { orderLabel } from "@/lib/utils";
 import { notaDeReprogramacion } from "@/lib/reprogramar-orden";
 import { notaDeDomingo, problemaAlAgendar, textoDelProblema, usaCasoEspecial } from "@/lib/dia-de-entrega";
-import { AVISO_CORTE_VENTAS, cortaPorMediodia } from "@/lib/corte-de-ventas";
 import { conTelefonoEstandar } from "@/lib/telefono-de-la-orden";
 import { ETAPAS_PARA_TOMAR, facturaParaBuscar, notaAlTomar, numerosDeFactura, sePuedeBuscar, sePuedeTomar, type OrdenParaTomar } from "@/lib/tomar-orden";
 
@@ -556,8 +555,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     reprogramarOrden: async (id, fecha, nota, lang, caso) => {
       const antes = storeRef.current.deliveries.find((c) => c.id === id)?.delivery_date ?? null;
       // La misma regla que el proveedor de verdad (D-658): ni domingo sin el caso especial ni un año imposible.
-      // Ventas, pasadas las 12 en Texas, no reprograma para hoy (`corte-de-ventas`; la base lo repite, 237).
-      if (cortaPorMediodia(fecha, antes, { rol: me?.role })) { notify(lang === "es" ? AVISO_CORTE_VENTAS.es : AVISO_CORTE_VENTAS.en); return false; }
+      // Ventas, pasadas las 12, para hoy: aquí ya no se bloquea; lo pregunta la pantalla (`ReprogramarOrden`, `corte-de-ventas`).
       const problema = problemaAlAgendar(fecha, antes, { rol: me?.role, caso });
       if (problema) { const m = textoDelProblema(problema, me?.role); notify(lang === "es" ? m.es : m.en); return false; }
       const ok = await updateDelivery(id, { delivery_date: fecha });

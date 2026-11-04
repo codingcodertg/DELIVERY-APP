@@ -24,7 +24,7 @@ import { printRouteManifest } from "@/lib/manifest";
 import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, nombresPorId, orderLabel, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
 import { agendaEnDiaPasado, AVISO_FECHA_PASADA, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
 import { maxFechaDeEntrega, problemaAlAgendar, textoDelProblema } from "@/lib/dia-de-entrega";
-import { AVISO_CORTE_VENTAS, cortaPorMediodia } from "@/lib/corte-de-ventas";
+import { pideConfirmarMediodia, preguntaSiEsParaHoy } from "@/lib/corte-de-ventas";
 import { colorDeChofer } from "@/lib/map-legend";
 import { antecedentesDeRutas } from "@/lib/route-plan/historia";
 import { useRutasDelDia } from "@/lib/usa-rutas-del-dia";
@@ -698,15 +698,15 @@ export default function RoutesPage() {
   // Lo único que logística cambia en una orden atrasada o sin fecha: ponerle su día. Entonces pasa a ESE día.
   // The one thing logistics can change on a carried-forward order: push its
   // delivery date up to today, or leave it — either way it's on this list.
-  const reschedule = (id: string, delivery_date: string) => {
+  const reschedule = async (id: string, delivery_date: string) => {
     // Un día pasado no se agenda (D-532): «que no se pueda agendar orden a dias pasados».
     const actual = deliveries.find((d) => d.id === id)?.delivery_date;
     if (agendaEnDiaPasado(delivery_date, actual)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
-    // Ventas con el Gestor por permiso suelto: pasadas las 12 en Texas, no para hoy (`corte-de-ventas`).
-    if (cortaPorMediodia(delivery_date, actual, { rol: me?.role })) { notify(t(AVISO_CORTE_VENTAS.en, AVISO_CORTE_VENTAS.es)); return; }
     // Ni domingo ni un año imposible (D-658). La celda no tiene la casilla del caso especial: el aviso dice dónde está.
     const problemaDeLaFecha = problemaAlAgendar(delivery_date, actual, { rol: me?.role });
     if (problemaDeLaFecha) { const m = textoDelProblema(problemaDeLaFecha, me?.role, { sinCasilla: true }); notify(t(m.en, m.es)); return; }
+    // Ventas con el Gestor por permiso suelto, pasadas las 12, para hoy: se pregunta, no se bloquea (`corte-de-ventas`).
+    if (pideConfirmarMediodia(delivery_date, actual, { rol: me?.role }) && !(await preguntaSiEsParaHoy(confirmAction, t))) return;
     return updateDelivery(id, { delivery_date });
   };
 

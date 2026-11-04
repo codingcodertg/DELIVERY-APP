@@ -22,8 +22,8 @@ import { PedirAsignacion } from "@/components/PedirAsignacion";
 import { esRolQuePide, puedeDecidirSolicitudes } from "@/lib/solicitud-de-asignacion";
 import { facturaNuevaAlEditar, notaAlJuntar, ofreceJuntar, parcheAlJuntar, puedeJuntarEn } from "@/lib/juntar-intertienda";
 import { useJuntarExistente } from "@/components/PreguntaJuntarExistente";
-import { agendaEnDiaPasado, AVISO_FECHA_PASADA } from "@/lib/fecha-de-entrega";
-import { AVISO_CORTE_VENTAS, cortaPorMediodia, minFechaParaRol } from "@/lib/corte-de-ventas";
+import { agendaEnDiaPasado, AVISO_FECHA_PASADA, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
+import { pideConfirmarMediodia, preguntaSiEsParaHoy } from "@/lib/corte-de-ventas";
 import { maxFechaDeEntrega, notaDeDomingo, problemaAlAgendar, saltaDomingo, SIN_CASO_ESPECIAL, textoDelProblema, usaCasoEspecial, type CasoEspecial } from "@/lib/dia-de-entrega";
 import { AvisoDeFecha } from "@/components/AvisoDeFecha";
 import { alcanceDeEdicion, parcheSoloFecha, type AlcanceDeEdicion } from "@/lib/edicion-de-ventas";
@@ -625,14 +625,18 @@ export function OrderModal({
 
   /** Domingo o año imposible al PONER la fecha (D-658): avisa y dice que no. La misma regla para todos los caminos de la ficha. */
   const fechaNoVale = (nueva: string | null | undefined): boolean => {
-    // Ventas, pasadas las 12 en Texas, no agenda para hoy: el primer día es mañana (`corte-de-ventas`).
-    if (cortaPorMediodia(nueva, existing?.delivery_date, { rol: me.role })) { notify(t(AVISO_CORTE_VENTAS.en, AVISO_CORTE_VENTAS.es)); return true; }
     const p = problemaAlAgendar(nueva, existing?.delivery_date, { rol: me.role, caso: casoDomingo });
     if (!p) return false;
     const m = textoDelProblema(p, me.role);
     notify(t(m.en, m.es));
     return true;
   };
+  /**
+   * Ventas, pasadas las 12 en Texas, poniendo HOY (o mandando a programar para hoy, `agenda`): se le pregunta UNA vez por
+   * guardado «¿Seguro que esta orden es para hoy?» (`corte-de-ventas`; D-845 ya no bloquea). `false` = «Cambiar fecha».
+   */
+  const siguePorMediodia = async (nueva: string | null | undefined, { agenda = false }: { agenda?: boolean } = {}): Promise<boolean> =>
+    !pideConfirmarMediodia(nueva, existing?.delivery_date, { rol: me.role, agenda }) || preguntaSiEsParaHoy(confirmAction, t);
   /** Tras guardar una fecha en domingo con el caso especial: la nota en el historial de la orden (D-658). */
   const anotaDomingo = async (id: string, nueva: string | null | undefined, actual: string | null | undefined) => {
     if (usaCasoEspecial(nueva, actual, { rol: me.role, caso: casoDomingo })) await addNote(id, notaDeDomingo(me.full_name, casoDomingo.motivo, lang));
@@ -646,6 +650,8 @@ export function OrderModal({
     if (agendaEnDiaPasado(draft.delivery_date, existing?.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return false; }
     // Ni domingo (salvo el caso especial de la oficina) ni un año imposible (D-658). Tope duro, sin «¿continuar?».
     if (fechaNoVale(draft.delivery_date)) return false;
+    // Ventas, pasadas las 12, para hoy: «¿Seguro que esta orden es para hoy?» (`corte-de-ventas`). Una vez por envío.
+    if (!(await siguePorMediodia(draft.delivery_date))) return false;
     // La tarifa mínima de la tienda, para ventas (D-546). Tope duro, sin «¿continuar?»: es lo que el dueño quitó.
     const bajoMinimo = bloqueoPorTarifaMinima({ rol: me.role, tienda: draft.store, tiendas: settings.stores, tipo: draft.order_type, reglas: settings.order_type_rules, tarifa: draft.delivery_fee });
     if (bajoMinimo) { const m = textoTarifaMinima(bajoMinimo); notify(t(m.en, m.es)); return false; }
@@ -818,6 +824,7 @@ export function OrderModal({
       if (!d.delivery_date) { notify(t("Pick a delivery date.", "Elija una fecha de entrega.")); return; }
       if (agendaEnDiaPasado(d.delivery_date, existing!.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
       if (fechaNoVale(d.delivery_date)) return;
+      if (!(await siguePorMediodia(d.delivery_date))) return;
       setBusy(true);
       const ok = await updateDelivery(existing!.id, parcheSoloFecha(d));
       if (ok) await anotaDomingo(existing!.id, d.delivery_date, existing!.delivery_date);
@@ -845,6 +852,7 @@ export function OrderModal({
     // imposible (D-658): enviarlo después no vuelve a escribir la fecha.
     if ((payload.stage ?? "draft") === "draft" && agendaEnDiaPasado(payload.delivery_date, existing?.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
     if ((payload.stage ?? "draft") === "draft" && fechaNoVale(payload.delivery_date)) return;
+    if ((payload.stage ?? "draft") === "draft" && !(await siguePorMediodia(payload.delivery_date))) return;
     // Completas y dentro de la región, también en un borrador (D-589). Con `busy`: puede ir a buscar el punto.
     setBusy(true);
     const direcciones = await direccionesValidas(payload);
@@ -1051,12 +1059,8 @@ export function OrderModal({
     // Un borrador guardado ANTES de D-589 puede llevar la dirección a medias: no sale del borrador así.
     if (esEnvioDeBorrador(existing.stage, to) && !direccionesCompletasDe(existing)) return;
     // Enviar un borrador o reenviar una rechazada (`esEnvioDeBorrador` cubre las dos) AGENDA aunque no se toque la fecha:
-    // ventas, pasadas las 12 en Texas, no la manda para hoy (`corte-de-ventas`). Un borrador de las 10 no se envía a las 2.
-    if (esEnvioDeBorrador(existing.stage, to)
-      && cortaPorMediodia(existing.delivery_date, existing.delivery_date, { rol: me.role, agenda: true })) {
-      notify(t(AVISO_CORTE_VENTAS.en, AVISO_CORTE_VENTAS.es));
-      return;
-    }
+    // ventas, pasadas las 12 en Texas, con la fecha de hoy, confirma que es para hoy (`corte-de-ventas`).
+    if (esEnvioDeBorrador(existing.stage, to) && !(await siguePorMediodia(existing.delivery_date, { agenda: true }))) return;
     // Enviar un borrador que iba a aprobarse solo: hora y cupo se miran de nuevo al pulsar (D-639). Si alguno salta,
     // va a aprobación con el motivo, que se apunta en el historial y le llega a la oficina en el aviso.
     if (esEnvioDeBorrador(existing.stage, to) && to === "approved") {
@@ -1617,7 +1621,7 @@ export function OrderModal({
   // en `lib/order-duplicate` (D-286), que es donde se puede leer y probar.
   const duplicate = async () => {
     if (!existing) return;
-    const payload: Draft = borradorDuplicado(existing, saltaDomingo(minFechaParaRol(me.role)));
+    const payload: Draft = borradorDuplicado(existing, saltaDomingo(todayISO()));
     // El PO y el SO se copian a propósito, así que la copia puede chocar con una orden que ya existe:
     // misma cuenta, misma fecha y mismo PO. Se avisa ANTES de crearla y se deja seguir, como el aviso
     // de factura duplicada. No se mete en `passesChecks`: ese camino es el de enviar, y esto es crear.
@@ -2354,7 +2358,7 @@ export function OrderModal({
                  "Solo puede cambiar la fecha de entrega de esta orden. Lo demás queda como está.")}
             </div>
             <div className="grid g2">
-              <Txt label={t("New delivery date", "Nueva fecha de entrega")} type="date" val={d.delivery_date} on={(v) => set("delivery_date", v)} invalid={!d.delivery_date} min={minFechaParaRol(me.role)} max={maxFechaDeEntrega()} />
+              <Txt label={t("New delivery date", "Nueva fecha de entrega")} type="date" val={d.delivery_date} on={(v) => set("delivery_date", v)} invalid={!d.delivery_date} min={minFechaDeEntrega()} max={maxFechaDeEntrega()} />
             </div>
             <AvisoDeFecha fecha={d.delivery_date} actual={existing?.delivery_date} rol={me.role} caso={casoDomingo} onCaso={setCasoDomingo} t={t} />
             <FranjasDelDia
@@ -2437,7 +2441,7 @@ export function OrderModal({
             )}
             {/* ---- Schedule ---- */}
             <div className="grid g2">
-              <Txt label={t("Delivery Date", "Fecha de Entrega")} type="date" val={d.delivery_date} on={(v) => set("delivery_date", v)} disabled={!salesFields} invalid={missingSet.has("delivery_date")} min={minFechaParaRol(me.role)} max={maxFechaDeEntrega()} />
+              <Txt label={t("Delivery Date", "Fecha de Entrega")} type="date" val={d.delivery_date} on={(v) => set("delivery_date", v)} disabled={!salesFields} invalid={missingSet.has("delivery_date")} min={minFechaDeEntrega()} max={maxFechaDeEntrega()} />
               <WindowSel val={d.delivery_windows} fecha={d.delivery_date} on={(v) => set("delivery_windows", v)} disabled={!salesFields} invalid={missingSet.has("delivery_windows")} t={t} />
             </div>
             {salesFields && <AvisoDeFecha fecha={d.delivery_date} actual={existing?.delivery_date} rol={me.role} caso={casoDomingo} onCaso={setCasoDomingo} t={t} />}

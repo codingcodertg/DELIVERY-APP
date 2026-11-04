@@ -216,10 +216,9 @@ describe("todos los sitios que escriben delivery_date usan la regla", () => {
     expect(modal).toContain("if (ok) await anotaDomingo(existing!.id, d.delivery_date, existing!.delivery_date);");
   });
   it("la ficha: los dos selectores llevan `max` y el aviso con la casilla; duplicar no nace en domingo", () => {
-    // El `min` es el del rol desde el corte de mediodía de ventas (corte-de-ventas): hoy, o mañana para ventas desde las 12.
-    expect(modal.split("min={minFechaParaRol(me.role)} max={maxFechaDeEntrega()} />").length - 1).toBe(2);
+    expect(modal.split("min={minFechaDeEntrega()} max={maxFechaDeEntrega()} />").length - 1).toBe(2);
     expect(modal.split("<AvisoDeFecha fecha={d.delivery_date} actual={existing?.delivery_date} rol={me.role} caso={casoDomingo} onCaso={setCasoDomingo} t={t} />").length - 1).toBe(2);
-    expect(modal).toContain("borradorDuplicado(existing, saltaDomingo(minFechaParaRol(me.role)))");
+    expect(modal).toContain("borradorDuplicado(existing, saltaDomingo(todayISO()))");
   });
   it("«📅 Reprogramar»: el cuadro no se enciende con domingo sin caso especial y manda la casilla", () => {
     const cuadro = leer("src/components/ReprogramarOrden.tsx");
@@ -240,11 +239,11 @@ describe("todos los sitios que escriben delivery_date usan la regla", () => {
   });
   it("el Gestor (celda de fecha) y la fecha en bloque de Órdenes, sin casilla", () => {
     const gestor = leer("src/app/(app)/routes/page.tsx");
-    const reschedule = gestor.slice(gestor.indexOf("const reschedule = (id: string, delivery_date: string) => {"));
+    const reschedule = gestor.slice(gestor.indexOf("const reschedule = async (id: string, delivery_date: string) => {"));
     expect(reschedule.slice(0, reschedule.indexOf("return updateDelivery(id, { delivery_date });"))).toContain("const problemaDeLaFecha = problemaAlAgendar(delivery_date, actual, { rol: me?.role });");
     expect(gestor).toContain("max={maxFechaDeEntrega()}\n        min={minFechaDeEntrega()}");
     const ordenes = leer("src/app/(app)/page.tsx");
-    const bloque = ordenes.slice(ordenes.indexOf("const bulkSetDate = (date: string) => {"));
+    const bloque = ordenes.slice(ordenes.indexOf("const bulkSetDate = async (date: string) => {"));
     expect(bloque.slice(0, bloque.indexOf("return cambioEnBloque("))).toContain("const problemaDeLaFecha = problemaAlAgendar(date, null, { rol: me?.role });");
     expect(ordenes).toContain("onChange={(e) => setFechaEnBloque(e.target.value)} max={maxFechaDeEntrega()}");
   });

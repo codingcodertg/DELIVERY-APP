@@ -29,7 +29,7 @@ import { ImportOrdersModal } from "@/components/ImportOrdersModal";
 import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, isTomorrow, orderOwner, toCSV, seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
 import { AVISO_FECHA_PASADA, fechaDeEntregaPasada, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
 import { maxFechaDeEntrega, problemaAlAgendar, textoDelProblema } from "@/lib/dia-de-entrega";
-import { AVISO_CORTE_VENTAS, cortaPorMediodia } from "@/lib/corte-de-ventas";
+import { pideConfirmarMediodia, preguntaSiEsParaHoy } from "@/lib/corte-de-ventas";
 import { exportExcelByEmployee, exportPDFByEmployee } from "@/lib/export";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 import { tiendasDeAlmacen } from "@/lib/almacen";
@@ -579,14 +579,14 @@ export default function OrdersPage() {
     { assigned_driver: driver },
     (n) => ({ en: `Assigned ${n} order(s) to ${driver}`, es: `${n} orden(es) asignadas a ${driver}` }));
 
-  const bulkSetDate = (date: string) => {
+  const bulkSetDate = async (date: string) => {
     // Un día pasado no se agenda (D-532): «que no se pueda agendar orden a dias pasados».
     if (fechaDeEntregaPasada(date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
-    // La tanda es de gerente, admin y logística; si algún día llega a ventas, el corte de mediodía ya está (`corte-de-ventas`).
-    if (cortaPorMediodia(date, null, { rol: me?.role })) { notify(t(AVISO_CORTE_VENTAS.en, AVISO_CORTE_VENTAS.es)); return; }
     // Ni domingo ni un año imposible (D-658), sin caso especial: la tanda no lleva casilla ni motivo.
     const problemaDeLaFecha = problemaAlAgendar(date, null, { rol: me?.role });
     if (problemaDeLaFecha) { const m = textoDelProblema(problemaDeLaFecha, me?.role, { sinCasilla: true }); notify(t(m.en, m.es)); return; }
+    // La tanda es de gerente, admin y logística; si algún día llega a ventas, pasadas las 12 y para hoy, se pregunta (`corte-de-ventas`).
+    if (pideConfirmarMediodia(date, null, { rol: me?.role }) && !(await preguntaSiEsParaHoy(confirmAction, t))) return;
     return cambioEnBloque(
     { en: `Set the delivery date to ${date}?`, es: `¿Fijar la fecha de entrega en ${date}?` },
     { delivery_date: date },

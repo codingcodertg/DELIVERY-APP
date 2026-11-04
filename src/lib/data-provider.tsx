@@ -40,7 +40,6 @@ import { avisoDePartirSola, cargasAlGuardar, esFuncionAusente, parteEnCadena, re
 import { capacidadDelChofer } from "@/lib/agregar-material-avisos";
 import { argumentosDeReprogramar, caminoTrasReprogramar, notaDeReprogramacion } from "@/lib/reprogramar-orden";
 import { notaDeDomingo, problemaAlAgendar, textoDelProblema, usaCasoEspecial, type CasoEspecial } from "@/lib/dia-de-entrega";
-import { AVISO_CORTE_VENTAS, cortaPorMediodia } from "@/lib/corte-de-ventas";
 import { blankDelivery } from "@/lib/blank-delivery";
 import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
 import { avisoSinFactura, escrituraSinFactura } from "@/lib/factura-obligatoria";
@@ -1718,8 +1717,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       const antes = deliveries.find((c) => c.id === id)?.delivery_date ?? null;
       // Ni domingo sin el caso especial ni un año imposible (D-658). Aquí pasan el 📅 de cada fila y «Reprogramar a …»
       // de Recomendaciones: un solo sitio para los dos. La función de la base (173) no lo mira.
-      // Ventas, pasadas las 12 en Texas, no reprograma para hoy (`corte-de-ventas`; la base lo repite, 237).
-      if (cortaPorMediodia(fecha, antes, { rol: me?.role })) { notify(lang === "es" ? AVISO_CORTE_VENTAS.es : AVISO_CORTE_VENTAS.en); return false; }
+      // Ventas, pasadas las 12, para hoy: aquí ya no se bloquea; lo pregunta la pantalla (`ReprogramarOrden`, `corte-de-ventas`).
       const problema = problemaAlAgendar(fecha, antes, { rol: me?.role, caso });
       if (problema) { const m = textoDelProblema(problema, me?.role); notify(lang === "es" ? m.es : m.en); return false; }
       const domingo = usaCasoEspecial(fecha, antes, { rol: me?.role, caso });
