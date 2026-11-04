@@ -18,6 +18,8 @@ import {
   valorParaFiltrar, type DecisionDeGrupo, type EstadoDeDecision, type ProductoDeCatalogo,
 } from "@/lib/promos/tabla";
 import { cuentaDeVotos, votosDelProducto, type DecisionConAutor } from "@/lib/promos/votos";
+import { formateadorDeFecha } from "@/lib/formateador";
+import { BUSINESS_TZ } from "@/lib/utils";
 
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
@@ -742,7 +744,9 @@ function PanelDeVotos({ code, descripcion, decisiones, grupos, nombres, lang, t,
 }) {
   const votos = votosDelProducto(code, decisiones, grupos, nombres);
   const cuenta = cuentaDeVotos(votos);
-  const fecha = (iso: string | null) => (iso ? new Date(iso).toLocaleString(lang === "es" ? "es-MX" : "en-US", { dateStyle: "medium", timeStyle: "short" }) : "—");
+  // Hora de Texas aunque el aparato esté en otra zona (R7, D-744): el formateador cacheado con BUSINESS_TZ.
+  const fmt = formateadorDeFecha(lang === "es" ? "es-MX" : "en-US", { timeZone: BUSINESS_TZ, dateStyle: "medium", timeStyle: "short" });
+  const fecha = (iso: string | null) => (iso ? fmt.format(new Date(iso)) : "—");
   const hayPrecio = votos.some((v) => v.precio != null);
   const hayNota = votos.some((v) => v.nota);
   useEffect(() => {
@@ -758,7 +762,7 @@ function PanelDeVotos({ code, descripcion, decisiones, grupos, nombres, lang, t,
             <h3 style={{ margin: 0 }}>🗳️ {t("Who voted what", "Quién votó qué")} · {code}</h3>
             {descripcion && <div className="hint" style={{ marginTop: 2 }}>{descripcion}</div>}
           </div>
-          <button className="notif-clear" onClick={onCerrar} aria-label={t("Close", "Cerrar")}>✕</button>
+          <button className="notif-clear btn-cerrar-panel" onClick={onCerrar} aria-label={t("Close", "Cerrar")}>✕</button>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "10px 0" }}>
           {(["approved", "rejected", "pending"] as const).map((e) => (

@@ -50404,3 +50404,17 @@ Sello `promos` 0.23.0; repo 1.704.0.
 **Pendiente del dueño:** hay dos formatos de teléfono en la app (`956-555-0123` en RR. HH., D-432; `(956) 340-5910` en Entregas, Clientes y candidatos, D-610/D-630).
 
 Repo 1.705.0 (sin sello de app: no cambia ninguna pantalla).
+
+## D-851 · Promos: los tres hallazgos del revisor de diseño en D-840
+
+**Fecha:** 2026-11-04 · Sin migración · Hallados por `revisor-ui-rtg` (D-850) al probarlo; arreglados por un agente en `fix/promos-hallazgos-revisor`, fusionado por el orquestador.
+
+**Qué cambia:**
+- **R7, hora de Texas:** el panel «Quién votó qué» formatea `decided_at` con `formateadorDeFecha` y `timeZone: BUSINESS_TZ`. Antes salía en la zona del dispositivo de quien miraba.
+- **R8, zoom en iPhone:** el filtro de número deja sus 12,5 px solo para pantallas de más de 640 px; en el teléfono gana la regla de 16 px en los campos y iOS ya no acerca la pantalla al tocarlo.
+- **R8, ✕ con dedo:** la ✕ del panel lleva la clase nueva `.btn-cerrar-panel` (38×38 px). `.notif-clear` no se toca: otros sitios y pruebas dependen de ella.
+- **R3, números en el idioma elegido:** «Filtrado por: QOH > 1,000» formatea con el idioma de la app (`formateadorDeNumero`), no con el del navegador.
+
+Sello `promos` 0.23.1; repo 1.706.0.
+
+**Pruebas:** `promos/filtros-y-votos.test.ts` ampliada.

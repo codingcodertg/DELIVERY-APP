@@ -9,6 +9,7 @@
  *
  * Aquí no hay React: se prueba con vitest, sin navegador.
  */
+import { formateadorDeNumero } from "./formateador";
 
 /** Lo que una columna extrae de una fila para comparar y filtrar. Un número ordena como número; lo demás, como texto. */
 export type ValorDeCelda = string | number | null;
@@ -95,11 +96,12 @@ export function pasaElFiltro(v: ValorDeCelda, s: ReadonlySet<string>): boolean {
   return s.has(O_LOGICO) ? conds.some((c) => cumpleCondicion(v, c)) : conds.every((c) => cumpleCondicion(v, c));
 }
 
-/** «> 100 y ≤ 200», para enseñar qué condición está puesta. */
-export function textoDeCondiciones(s: ReadonlySet<string> | undefined, y: string, o: string): string {
+/** «> 100 y ≤ 200», para enseñar qué condición está puesta. `locale` es el idioma elegido («en-US»/«es-MX»),
+ *  no el del navegador: si no, «1,000» salía «1.000» o al revés según el aparato. */
+export function textoDeCondiciones(s: ReadonlySet<string> | undefined, y: string, o: string, locale?: string): string {
   const signo: Record<Comparador, string> = { gt: ">", gte: "≥", lt: "<", lte: "≤", eq: "=", ne: "≠" };
   const conds = condicionesDe(s);
-  return conds.map((c) => `${signo[c.op]} ${c.valor.toLocaleString()}`).join(s?.has(O_LOGICO) ? ` ${o} ` : ` ${y} `);
+  return conds.map((c) => `${signo[c.op]} ${formateadorDeNumero(locale).format(c.valor)}`).join(s?.has(O_LOGICO) ? ` ${o} ` : ` ${y} `);
 }
 
 /**
