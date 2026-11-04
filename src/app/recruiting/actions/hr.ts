@@ -10,8 +10,9 @@ import {
   normalizaMotivoBaja, parcheAlta, parcheAltaCompleto, parcheBaja, parcheBajaCompleto, puedeDarDeBaja,
   puedeEditarGrupoDirectorio, sin159, telefonoDeFicha, tiene159,
   COLUMNAS_207, NUMERICAS_207, normaliza1Password, numeroDeFicha, tiene207,
-  correoDeFicha, nombreDeFicha, conQueEntra,
+  correoDeFicha, nombreDeFicha, conQueEntra, tiendaVisible,
 } from "@/lib/recruiting/employee-file";
+import { LARGO_MAXIMO, aEncontrado, buscaEmpleados, type EmpleadoEncontrado, type EmpleadoParaBuscar } from "@/lib/recruiting/busqueda-global";
 import type { HechosDeCuenta } from "@/lib/recruiting/employee-file";
 import { parcheLiberar, type TipoDeActivo } from "@/lib/recruiting/activos";
 import { anotaEnHistorial } from "@/lib/recruiting/historial-escribe";
@@ -173,6 +174,39 @@ export async function listEmployeeFiles(): Promise<
       (docs ?? []) as { employee_id: string; kind: string; signed_at?: string | null; expires_at?: string | null }[],
     ),
   };
+}
+
+/**
+ * El buscador de la barra de RR. HH. (`GlobalSearch`): los empleados que coinciden con `texto`, ya recortados a lo que
+ * se pinta. Misma barrera que `listEmployeeFiles` (admin y gerente de RR. HH.) y mismo cliente con la sesión de quien
+ * busca, así que la RLS de la 094 decide igual que en la pantalla Empleados: no abre nada que esa pantalla no enseñe.
+ * Se busca aquí y no en el navegador para no cargar la plantilla en el estado del módulo (ver la cabecera).
+ * A quien no puede, una lista vacía y no un error: el buscador no debe gritarle a un reclutador.
+ */
+export async function buscaEmpleadosParaLaBarra(texto: string): Promise<EmpleadoEncontrado[]> {
+  const q = (typeof texto === "string" ? texto : "").trim().slice(0, LARGO_MAXIMO);
+  if (!q) return [];
+  const supabase = await createClient();
+  const yo = await tier(supabase);
+  if (!yo || !PUEDE.includes(yo.role)) return [];
+
+  const [{ data: files, error }, { data: people }] = await Promise.all([
+    // `*` y no una lista: las columnas de la 159 (puesto, correo personal) pueden no estar, igual que en la lista.
+    supabase.schema("recruiting").from("employee_files").select("*"),
+    supabase.from("profiles").select("id, full_name, store"),
+  ]);
+  if (error) return [];
+  const filas = filasDeExpediente(
+    (files ?? []) as Record<string, unknown>[],
+    (people ?? []) as { id: string; full_name?: string | null; store?: string | null }[],
+    [],
+  );
+  const paraBuscar: EmpleadoParaBuscar[] = filas.map((f) => ({
+    id: f.id, full_name: f.full_name, job_title: f.job_title, department: f.department, store: tiendaVisible(f),
+    phone: f.phone, ringcentral_ext: f.ringcentral_ext, email: f.email, personal_email: f.personal_email,
+    employee_code: f.employee_code, date_left: f.date_left,
+  }));
+  return buscaEmpleados(paraBuscar, q).map(aEncontrado);
 }
 
 /** Los documentos de una persona, al abrir su ficha. */

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/recruiting-data-provider";
 import {
@@ -37,6 +38,7 @@ import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
 import { nombreDeDepartamento } from "@/lib/departamentos";
 import { PLANES_DE_CORREO, tooltipDelPlan } from "@/lib/recruiting/planes-de-correo";
 import { avisoDeLicencia, estadoDeLicencia } from "@/lib/recruiting/hr";
+import { fichaPedida } from "@/lib/recruiting/busqueda-global";
 
 /**
  * El expediente de RR. HH. (D-145).
@@ -98,6 +100,16 @@ export default function EmployeeFilesPage() {
 
   useEffect(() => { void load(); }, [load]);
 
+  // El buscador de la barra lleva aquí con `?ficha=<id>` (busqueda-global.ts): ya cargada la lista, se abre esa ficha.
+  // Se busca en TODAS las filas, no en las del filtro: una baja se abre aunque el filtro esté en «Activos».
+  const [pedida, setPedida] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pedida || cargando) return;
+    if (rows.some((r) => r.id === pedida)) setAbierto(pedida);
+    else if (!err) notify(t("That employee file was not found.", "No se encontró ese expediente."));
+    setPedida(null);
+  }, [pedida, cargando, rows, err, notify, t]);
+
   const faltan = (r: { docKinds: string[] }) => REQUIRED_FORMS.filter((f) => !r.docKinds.includes(f.key));
 
   const cuenta = cuentaPorEstado(rows);
@@ -144,6 +156,7 @@ export default function EmployeeFilesPage() {
 
   return (
     <>
+      <Suspense fallback={null}><FichaDeLaUrl onPedida={setPedida} /></Suspense>
       <UsuariosPorCrear />
       {/* D-725: la misma cabecera que la tabla de Órdenes —título con su cuenta, botones a la derecha— y la lista a
           todo el ancho de la pantalla (`.wrap` deja de acotarla aquí; recruiting.css). El dueño, 2026-10-28: «The Employees
@@ -368,6 +381,21 @@ export default function EmployeeFilesPage() {
       )}
     </>
   );
+}
+
+/** Lee `?ficha=<id>` (lo pone el buscador de la barra), lo pasa a la página y lo quita de la URL: así volver a elegir
+ *  a la misma persona desde el buscador cambia la URL otra vez y la vuelve a abrir. Va en su propio `<Suspense>`
+ *  porque `useSearchParams` lo pide en una página de cliente. */
+function FichaDeLaUrl({ onPedida }: { onPedida: (id: string) => void }) {
+  const params = useSearchParams();
+  const router = useRouter();
+  const id = fichaPedida(params);
+  useEffect(() => {
+    if (!id) return;
+    onPedida(id);
+    router.replace("/recruiting/employees", { scroll: false });
+  }, [id, onPedida, router]);
+  return null;
 }
 
 /**
