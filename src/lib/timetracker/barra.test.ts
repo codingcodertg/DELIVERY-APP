@@ -20,7 +20,7 @@ const sinComentarios = (s: string) =>
 const plano = (s: string) => s.replace(/\s+/g, " ");
 const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
 
-const GESTION = ["insights", "live", "payroll", "team-requests", "projects", "assignments", "people", "audit"];
+const GESTION = ["insights", "live", "recorrido", "payroll", "team-requests", "projects", "assignments", "people", "audit"];
 const MIO = ["track", "week", "requests", "diary", "settings"];
 
 describe("qué va en la fila y qué en «👤 Mío ▾»", () => {
