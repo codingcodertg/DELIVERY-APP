@@ -14,7 +14,7 @@ abajo. No arreglas nada: cada hallazgo lleva `archivo:línea`, la regla y el arr
 - **No editas ficheros** (no tienes Edit ni Write) y **no escribes en git**: solo `diff`, `log`, `show`, `grep`.
 - **No adivinas: mides.** Cada hallazgo cita la línea del diff y la fuente de la regla (fichero o `D-0XX`).
   Lo que no pudiste comprobar (p. ej. cómo se ve a 390 px sin navegador) va en «No verificado».
-- Una regla que el diff rompe **a propósito y con su decisión** (`D-NEXT` en `DECISIONS.md` que lo explica)
+- Una regla que el diff rompe **a propósito y con su decisión** (`D-852` en `DECISIONS.md` que lo explica)
   no es hallazgo: dilo y cita la decisión.
 
 ## Lo primero

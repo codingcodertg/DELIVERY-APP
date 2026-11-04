@@ -50418,3 +50418,20 @@ Repo 1.705.0 (sin sello de app: no cambia ninguna pantalla).
 Sello `promos` 0.23.1; repo 1.706.0.
 
 **Pruebas:** `promos/filtros-y-votos.test.ts` ampliada.
+
+## D-852 · Un solo formato de teléfono en todo el hub: (956) 340-5910
+
+**Fecha:** 2026-11-04 · Migración 238 (escrita; se aplica aparte con el visto bueno del dueño) · Hecho por un agente en `fix/telefono-formato-unico`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño, tras el aviso del revisor de diseño):** «usa el formato (956) 340-5910 en todo». Había dos: `956-555-0123` en RR. HH. (D-432) y `(956) 340-5910` en Entregas, Clientes y candidatos (D-610/D-630); CLAUDE.md decía el primero.
+
+**Qué cambia:**
+- **Un ayudante:** `telefonoEstandar` (`recruiting/formato.ts`). `telefonoDeFicha` delega en él; las dos copias que necesitan los scripts de node (`telefonoDeCliente`, `telefonoDeActivo`) dan lo mismo, con prueba.
+- **Dónde se ve o se guarda:** RR. HH. (tabla, ficha, exportar, buscador, activos, historial, mensaje al gerente), Entregas (contactos de almacén, directorio de `/home`, teléfono de Ayuda en Ajustes y «Llámanos», cuentas guardadas), Estimador, Leads (también el script de importación), Encuestas (tabla y CSV) y Time Tracker (teléfono de la empresa en informes y talón).
+- **Extensiones:** un texto con letras («… ext. 12») se respeta tal cual; la extensión en su propia columna se sigue enseñando aparte («ext. 123»). Los envíos (correo y SMS) siguen en E.164.
+- **Datos guardados (238, sin aplicar):** reformatea las filas viejas (RR. HH. 79, activos 30, leads 374, cotizaciones 2, Ajustes 1). No hace falta para verlo bien (todo pasa por el ayudante), pero cierra un hueco: en `company_assets`, `unique (kind, value)` no ve como duplicado el mismo número en los dos formatos.
+- **Reglas:** CLAUDE.md y la R6 del revisor de diseño: un ayudante, un formato; un teléfono guardado enseñado sin él es un must.
+
+Sellos `deliveries` 1.533.0, `recruiting` 0.75.0, `timetracker` 1.15.3, `estimator` 0.28.0, `leads` 0.17.0, `surveys` 0.9.0; repo 1.707.0.
+
+**Pruebas:** `telefono-unico.test.ts` (todos los ayudantes iguales y barrido contra el formato viejo); D-432, activos, historial, tabla de empleados, buscador, estimador y leads puestas al día.

@@ -101,7 +101,7 @@ con `gh auth refresh -h github.com -s workflow`.
    (squash). `git push origin main` no existe en este proyecto: la protección de
    rama lo rechaza
 7. Ya fusionado: aplicar migraciones (con `migrate-status` antes y después),
-   asignar la versión, y sustituir el marcador `D-NEXT` por el número `D-0XX`
+   asignar la versión, y sustituir el marcador `D-852` por el número `D-0XX`
    real. Si cambia el comportamiento: entrada en `DECISIONS.md` **y** en el ADR
    de Notion
 8. Actualizar Notion (regla 1)
@@ -172,7 +172,7 @@ Lo que **sí** se permite desde la rama: pruebas con `ROLLBACK`, de solo lectura
 
 El worker **no** toca `package.json` ni `APP_VERSIONS`, y **no** numera su
 decisión: escribe su entrada de `DECISIONS.md` con el marcador literal
-**`D-NEXT`** en el título. El orquestador la numera al fusionar, en serie.
+**`D-852`** en el título. El orquestador la numera al fusionar, en serie.
 
 La razón: `DECISIONS.md` es append-only y su numeración es la columna vertebral
 de la documentación. Dos ramas paralelas que se numeran solas producen dos
