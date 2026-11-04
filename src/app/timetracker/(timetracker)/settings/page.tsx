@@ -6,6 +6,7 @@ import { useT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS, BROWSER_TZ, DAYS, LOCALE, TZ_LIST } from "@/lib/timetracker/helpers";
 import type { AppSettings } from "@/lib/timetracker/helpers";
 import Link from "next/link";
+import { telefonoEstandar } from "@/lib/recruiting/formato";
 import { VehiclesSection } from "@/components/timetracker/VehiclesSection";
 import { GeofenceSection } from "@/components/timetracker/GeofenceSection";
 
@@ -46,7 +47,7 @@ export default function ManagerSettingsPage() {
   const [breaks, setBreaks] = useState(APP_SETTINGS.defaultBreaksEnabled ? "yes" : "no");
   const [co, setCo] = useState({
     name: APP_SETTINGS.companyName || "", address: APP_SETTINGS.companyAddress || "",
-    taxId: APP_SETTINGS.companyTaxId || "", phone: APP_SETTINGS.companyPhone || "", email: APP_SETTINGS.companyEmail || "",
+    taxId: APP_SETTINGS.companyTaxId || "", phone: telefonoEstandar(APP_SETTINGS.companyPhone), email: APP_SETTINGS.companyEmail || "",
   });
   const [saved, setSaved] = useState(false);
   const [saveErr, setSaveErr] = useState("");
@@ -75,7 +76,8 @@ export default function ManagerSettingsPage() {
       defaultTrackMode: tmode,
       defaultBreaksEnabled: breaks === "yes",
       companyName: co.name.trim(), companyAddress: co.address.trim(), companyTaxId: co.taxId.trim(),
-      companyPhone: co.phone.trim(), companyEmail: co.email.trim(),
+      // D-850: el teléfono de la empresa, en la forma única del hub («(956) 555-0123»).
+      companyPhone: telefonoEstandar(co.phone), companyEmail: co.email.trim(),
     };
     try {
       await updateSettings(payload);
@@ -128,7 +130,7 @@ export default function ManagerSettingsPage() {
       <input value={co.address} onChange={(e) => upCo("address", e.target.value)} placeholder="123 Main St, Suite 100, Austin, TX 78701" />
       <div className="grid g3">
         <div><label>{t("mgr.set.taxId")}</label><input value={co.taxId} onChange={(e) => upCo("taxId", e.target.value)} placeholder="EIN 12-3456789" /></div>
-        <div><label>{t("mgr.set.phone")}</label><input value={co.phone} onChange={(e) => upCo("phone", e.target.value)} placeholder="+1 (555) 123-4567" /></div>
+        <div><label>{t("mgr.set.phone")}</label><input value={co.phone} onChange={(e) => upCo("phone", e.target.value)} placeholder="(956) 555-0123" /></div>
         <div><label>{t("mgr.set.email")}</label><input value={co.email} onChange={(e) => upCo("email", e.target.value)} placeholder="payroll@company.com" /></div>
       </div>
 

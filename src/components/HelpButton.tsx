@@ -7,6 +7,7 @@ import { APP_VERSIONS } from "@/lib/app-versions";
 import { appForPath } from "@/lib/app-for-path";
 import { Z_PANEL_DE_AYUDA, ayudaEnLaRuta, type ContactoDeAyuda } from "@/lib/ayuda-flotante";
 import { telClean } from "@/lib/utils";
+import { telefonoEstandar } from "@/lib/recruiting/formato";
 import Link from "next/link";
 import { LIMITES_DE_ADJUNTOS, mensajeDeAdjunto, validaAdjuntos } from "@/lib/help-attachments";
 import {
@@ -261,7 +262,7 @@ export function HelpButton({ sinBurbuja = false }: { sinBurbuja?: boolean } = {}
                 className="btn btn-green"
                 style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 12 }}
               >
-                📞 {t("Call us", "Llámanos")} · {contacto.telefono}
+                📞 {t("Call us", "Llámanos")} · {telefonoEstandar(contacto.telefono)}
               </a>
             )}
             <textarea

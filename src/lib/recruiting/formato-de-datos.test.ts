@@ -18,8 +18,8 @@ describe("formato de los datos del expediente", () => {
     expect(nombreDeFicha("Roberto Rodriguez Jr")).toBe("Roberto Rodriguez Jr");
     expect(nombreDeFicha("   ")).toBe("");
   });
-  it("el teléfono sigue con la forma de la app (D-432)", () => {
-    expect(telefonoDeFicha("(956) 817-1583")).toBe("956-817-1583");
+  it("el teléfono va en la forma única del hub (D-850, antes D-432)", () => {
+    expect(telefonoDeFicha("956-817-1583")).toBe("(956) 817-1583");
   });
   it("guardar y agregar pasan por el formato: nombre, correos y teléfonos", () => {
     const accion = readFileSync(new URL("../../app/recruiting/actions/hr.ts", import.meta.url), "utf8");

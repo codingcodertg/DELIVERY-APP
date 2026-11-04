@@ -19,6 +19,7 @@
 import { isSyntheticEmail } from "@/lib/username";
 import { hoyEnBrownsville } from "./hora-de-brownsville";
 import { estaDadoDeBaja } from "@/lib/baja";
+import { telefonoEstandar } from "./formato";
 
 /** La fila del expediente, tal como vive en `recruiting.employee_files` tras la 106. */
 export interface EmployeeFileRow {
@@ -610,17 +611,12 @@ export function cuentaPorEstado(filas: Pick<EmployeeFileRow, "date_left">[]): Re
 // ---- Teléfonos ------------------------------------------------------------------------------
 
 /**
- * Un teléfono como lo guarda la ficha: `956-555-0123` (D-432) si es un número de EE. UU. completo —con
- * paréntesis, espacios, puntos o `+1` delante—, y si no, lo escrito sin tocar. Vacío es `null`.
+ * Un teléfono como lo guarda la ficha: la forma única del hub, `(956) 555-0123` (D-850; antes `956-555-0123`, D-432),
+ * si es un número de EE. UU. completo —con guiones, espacios, puntos o `+1` delante—, y si no, lo escrito sin perder nada
+ * (una extensión escrita al lado, «ext. 12», se queda). Vacío es `null`. Delega en `telefonoEstandar`: no hay otra forma.
  */
 export function telefonoDeFicha(raw: string | null | undefined): string | null {
-  const v = (raw ?? "").trim();
-  if (!v) return null;
-  const d = v.replace(/\D/g, "");
-  const diez = d.length === 11 && d.startsWith("1") ? d.slice(1) : d;
-  // Solo se reescribe si lo tecleado es un número y nada más: «ext. 12» o un texto se dejan como están.
-  if (diez.length !== 10 || /[a-z]/i.test(v)) return v;
-  return `${diez.slice(0, 3)}-${diez.slice(3, 6)}-${diez.slice(6)}`;
+  return telefonoEstandar(raw) || null;
 }
 
 // ---- ¿Sale en el directorio? ----------------------------------------------------------------
@@ -785,7 +781,7 @@ export function tienePuesto(actual: string | null | undefined, puesto: string): 
 /**
  * El dueño, 2026-10-28: «Emails: always lowercase. Names: proper capitalization (First Last), never all caps or all
  * lowercase … Normalize data on input/save so everything stored and displayed follows the same format». Los teléfonos
- * ya tenían su forma (`telefonoDeFicha`, 956-xxx-xxxx, D-432).
+ * ya tenían su forma (`telefonoDeFicha`, hoy «(956) 340-5910», D-850).
  */
 
 /** Un correo: recortado y en minúsculas; vacío ⇒ null. */

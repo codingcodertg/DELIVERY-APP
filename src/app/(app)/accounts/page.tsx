@@ -12,6 +12,7 @@ import type { AccountRecord, Delivery, Settings } from "@/lib/types";
 import { isStoreToStore } from "@/lib/required";
 import { sumaPallets } from "@/lib/pallets";
 import { sumaDinero } from "@/lib/totales";
+import { telefonoEstandar } from "@/lib/recruiting/formato";
 
 // ============================================================
 // Customer accounts — every order grouped by the customer it belongs to.
@@ -237,7 +238,7 @@ function SavedCustomers({ settings, saveSettings, notify, t }: {
   const save = () => {
     const name = form.name.trim();
     if (!name) { notify(t("Enter a customer name.", "Ingrese un nombre de cliente.")); return; }
-    const rec: AccountRecord = { name, contact: form.contact.trim(), phone: form.phone.trim(), address: form.address?.trim() || undefined, intertienda: !!form.intertienda };
+    const rec: AccountRecord = { name, contact: form.contact.trim(), phone: telefonoEstandar(form.phone), address: form.address?.trim() || undefined, intertienda: !!form.intertienda };
     const drop = new Set([name.toLowerCase(), (editingName ?? name).toLowerCase()]);
     const next = [...accounts.filter((a) => !drop.has(a.name.toLowerCase())), rec].sort((a, b) => a.name.localeCompare(b.name));
     saveSettings({ accounts: next });
@@ -292,7 +293,7 @@ function SavedCustomers({ settings, saveSettings, notify, t }: {
             <div key={a.name} className="card" style={{ padding: "8px 10px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <b style={{ minWidth: 130 }}>{a.name}{a.intertienda && <span className="sema" style={{ background: "var(--purple)", color: "#fff", marginLeft: 6 }}>Intertienda</span>}</b>
               <span className="hint" style={{ margin: 0 }}>👤 {a.contact || "—"}</span>
-              <span className="hint" style={{ margin: 0 }}>📞 {a.phone || "—"}</span>
+              <span className="hint" style={{ margin: 0 }}>📞 {telefonoEstandar(a.phone) || "—"}</span>
               <span className="hint" style={{ margin: 0, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.address || ""}</span>
               <button className="btn btn-ghost btn-sm" onClick={() => startEdit(a)}>✏ {t("Edit", "Editar")}</button>
               <button className="btn btn-danger btn-sm" onClick={() => remove(a)}>🗑</button>

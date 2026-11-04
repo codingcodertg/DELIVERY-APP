@@ -245,7 +245,7 @@ export function AgregarDialog({
   }, []);
 
   const pon = (k: keyof typeof f, v: string) => setF((a) => ({ ...a, [k]: v }));
-  // Al salir del campo el teléfono toma la forma de la app, 956-xxx-xxxx (D-432).
+  // Al salir del campo el teléfono toma la forma única del hub, «(956) 555-0123» (D-850).
   const alSalir = (k: "phone" | "personal_phone") => () => pon(k, telefonoDeFicha(f[k]) ?? "");
 
   async function agrega() {
@@ -317,11 +317,11 @@ export function AgregarDialog({
               </div>
               <div>
                 <label>{t("Office phone", "Teléfono de oficina")}</label>
-                <input value={f.phone} placeholder="956-555-0123" onBlur={alSalir("phone")} onChange={(e) => pon("phone", e.target.value)} />
+                <input value={f.phone} placeholder="(956) 555-0123" onBlur={alSalir("phone")} onChange={(e) => pon("phone", e.target.value)} />
               </div>
               <div>
                 <label>{t("Personal phone", "Teléfono personal")}</label>
-                <input value={f.personal_phone} disabled={!con159} placeholder={con159 ? "956-555-0123" : faltaMigracion(t)}
+                <input value={f.personal_phone} disabled={!con159} placeholder={con159 ? "(956) 555-0123" : faltaMigracion(t)}
                   onBlur={alSalir("personal_phone")} onChange={(e) => pon("personal_phone", e.target.value)} />
               </div>
             </div>

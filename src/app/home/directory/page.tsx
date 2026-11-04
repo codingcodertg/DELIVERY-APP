@@ -9,6 +9,7 @@ import {
   buscaPersonas, departamentosDe, grupoDe, mailtoHref, personasDe, saltaDepartamentos, telHref,
   tiendasDelDirectorio, type GrupoTienda, type PersonaDirectorio,
 } from "@/lib/phone-book";
+import { telefonoEstandar } from "@/lib/recruiting/formato";
 
 /**
  * El directorio de la compañía (D-256).
@@ -201,7 +202,8 @@ function TarjetaPersona({ p, sitio, onClose }: { p: PersonaDirectorio; sitio: st
 
         <div className="dir-card-grid">
           <span className="hint">{t("Phone", "Teléfono")}</span>
-          <span>{tel ? <a href={tel}>{p.phone}</a> : sinDato}</span>
+          {/* D-850: en la forma única del hub aunque el expediente lo guarde de antes («956-555-0123»). */}
+          <span>{tel ? <a href={tel}>{telefonoEstandar(p.phone)}</a> : sinDato}</span>
 
           <span className="hint">{t("Extension", "Extensión")}</span>
           <span>{p.ringcentral_ext || sinDato}</span>

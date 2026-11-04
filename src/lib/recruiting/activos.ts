@@ -2,16 +2,17 @@
  * Los activos de la empresa (D-730): correos y números de teléfono que se pagan, con su estado y quién los tiene.
  * Todo puro; la base y la pantalla están en `actions/activos.ts` y `(recruiting)/assets/page.tsx`.
  */
-// Sin importar `telefonoDeFicha` de employee-file: el guion de una vez (scripts/carga-activos-de-empresa.mjs) importa ESTE
-// fichero con node, que no resuelve importaciones de .ts sin extensión. La forma es la misma de la app (D-432) y la prueba
-// de formato la fija contra `telefonoDeFicha`.
+// Sin importar `telefonoEstandar` (recruiting/formato.ts): el guion de una vez (scripts/carga-activos-de-empresa.mjs)
+// importa ESTE fichero con node, que no resuelve importaciones de .ts sin extensión. Es una COPIA de la forma única del hub,
+// «(956) 340-5910» (D-850), y la prueba de activos exige que dé lo mismo que `telefonoEstandar` y que `telefonoDeFicha`.
 function telefonoDeActivo(raw: string | null | undefined): string | null {
-  const v = (raw ?? "").trim();
-  if (!v) return null;
-  const d = v.replace(/\D/g, "");
-  const diez = d.length === 11 && d.startsWith("1") ? d.slice(1) : d;
-  if (diez.length !== 10 || /[a-z]/i.test(v)) return v;
-  return `${diez.slice(0, 3)}-${diez.slice(3, 6)}-${diez.slice(6)}`;
+  const limpio = (raw ?? "").trim();
+  if (!limpio) return null;
+  if (/\p{L}/u.test(limpio)) return limpio.replace(/\s+/g, " ");
+  const d = limpio.replace(/\D/g, "");
+  const diez = d.length === 10 ? d : d.length === 11 && d.startsWith("1") ? d.slice(1) : null;
+  if (!diez) return limpio.replace(/\s+/g, " ");
+  return `(${diez.slice(0, 3)}) ${diez.slice(3, 6)}-${diez.slice(6)}`;
 }
 
 export type TipoDeActivo = "email" | "phone";
@@ -56,16 +57,18 @@ export function etiquetaDeTipoDeTelefono(p: TipoDeTelefono | null, lang: "en" | 
   return x ? (lang === "es" ? x.es : x.en) : "—";
 }
 
-/** El valor como se guarda: un correo en minúsculas; un número con la forma de la app (956-555-0123). */
+/** El valor como se guarda: un correo en minúsculas; un número con la forma única del hub, «(956) 555-0123» (D-850). */
 export function valorDeActivo(kind: TipoDeActivo, raw: string | null | undefined): string | null {
   const v = (raw ?? "").trim();
   if (!v) return null;
   return kind === "email" ? v.toLowerCase() : (telefonoDeActivo(v) ?? v);
 }
 
-/** El número con su extensión, para enseñarlo: «956-817-1583 · ext. 111». */
+/** El número con su extensión, para enseñarlo: «(956) 817-1583 · ext. 111». Un número guardado antes de D-850
+ * («956-817-1583») sale igual en la forma de hoy: lo que se ve no depende de cómo quedó guardado. */
 export function textoDeTelefono(a: Pick<Activo, "value" | "ext">): string {
-  return a.ext ? `${a.value} · ext. ${a.ext}` : a.value;
+  const numero = telefonoDeActivo(a.value) ?? a.value;
+  return a.ext ? `${numero} · ext. ${a.ext}` : numero;
 }
 
 /** Los que se pueden asignar: disponibles de ese tipo (un «pendiente de respaldo» no, hasta que se respalde). */

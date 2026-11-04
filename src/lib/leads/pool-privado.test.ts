@@ -51,12 +51,12 @@ describe("el importador", () => {
     "Contractor Address": "509 West Garrison Dr.", "Contractor City": "Pharr", "St": "TX", "Zip": 78577, "Contractor Phone": 9568219906, "Contractor Phone II": "",
     "Owner Name": "unk", "Owner Address": "unk", "Owner City": "unk", "Owner State": "unk", "Owner Zip": "unk", "Owner Phone": "unk", "Owner Phone II ": "",
   };
-  it("un permiso → un lead privado: PRIV + permiso, pool por ciudad, contratista en owner_*, teléfono con guiones, «unk» = nada", () => {
+  it("un permiso → un lead privado: PRIV + permiso, pool por ciudad, contratista en owner_*, teléfono «(956) 821-9906» (D-850), «unk» = nada", () => {
     const l = leadDeFila(fila, 0);
     expect(l).toMatchObject({
       tabs_project: "PRIV 26-00061", pool: "RDZ Pharr", source: "privado", category: "Sirve – usa piso", project_type: "Residential · new",
       project_name: "Single Family Dwelling", facility_name: "Arnold Grove · Lot 58&59", square_footage: 3459, estimated_cost: 330000,
-      registered_date: "2026-08-12", site_address: "907 Bette St.", site_city: "Pharr", owner_name: "Red Moon Buikders Llc", owner_phone: "956-821-9906",
+      registered_date: "2026-08-12", site_address: "907 Bette St.", site_city: "Pharr", owner_name: "Red Moon Buikders Llc", owner_phone: "(956) 821-9906",
       owner_city_state_zip: "Pharr, TX, 78577", tenant_name: null, tenant_phone: null, reason: "Permit 26-00061",
     });
     expect(leadDeFila(fila, 2).tabs_project).toBe("PRIV 26-00061-2");
@@ -76,7 +76,7 @@ describe("el importador", () => {
       { id: 2, store: "MCA", account: "LAURA GARZA", unified_account: null, phone: null, contact_name: null, contacts: [], archived_at: null },
       { id: 3, store: "BRO", account: "ARCHIVADO LLC", unified_account: null, phone: "956-000-0000", contact_name: null, contacts: [], archived_at: "2026-01-01" },
     ]);
-    expect(cruza(leadDeFila(fila, 0), idx)).toEqual({ id: 1, nota: "Teléfono 956-821-9906 = RED MOON BUILDERS (PHR)" });
+    expect(cruza(leadDeFila(fila, 0), idx)).toEqual({ id: 1, nota: "Teléfono (956) 821-9906 = RED MOON BUILDERS (PHR)" });
     expect(cruza(leadDeFila({ ...fila, "Contractor Company Name": "Garza, Laura", "Contractor Phone": "unk" }, 0), idx)).toEqual({ id: 2, nota: "Nombre «laura garza» = LAURA GARZA (MCA)" });
     expect(cruza(leadDeFila({ ...fila, "Contractor Company Name": "Archivado Llc", "Contractor Phone": "956-000-0000" }, 0), idx)).toBeNull();
     expect(cruza(leadDeFila({ ...fila, "Contractor Company Name": "Nadie", "Contractor Phone": "unk" }, 0), idx)).toBeNull();

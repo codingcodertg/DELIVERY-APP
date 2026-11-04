@@ -54,7 +54,8 @@ const fecha = (s) => {
 const telefono = (s) => {
   const v = limpio(s); if (!v || /[a-z?]/i.test(v)) return null;
   const d = v.replace(/\D/g, ""); const diez = d.length === 11 && d.startsWith("1") ? d.slice(1) : d;
-  return diez.length === 10 ? `${diez.slice(0, 3)}-${diez.slice(3, 6)}-${diez.slice(6)}` : v;
+  // D-850: la forma única del hub, «(956) 340-5910» (`telefonoEstandar`); copia porque este guion corre con node.
+  return diez.length === 10 ? `(${diez.slice(0, 3)}) ${diez.slice(3, 6)}-${diez.slice(6)}` : v;
 };
 const onePw = (s) => ({ yes: "yes", no: "no", maybe: "maybe" })[limpio(s).toLowerCase()] ?? null;
 const texto = (s) => { const v = limpio(s); return v && v !== "N/A" && v !== "NA" ? v : null; };

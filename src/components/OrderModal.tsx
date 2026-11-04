@@ -3926,7 +3926,7 @@ function AlmacenDeLaParada({
                   {p.title && <span className="hint" style={{ marginLeft: 6 }}>{p.title}</span>}
                 </span>
                 <span className="dv">
-                  {href ? <a href={href}>{p.phone}</a> : p.phone}
+                  {href ? <a href={href}>{telefonoParaVer(p.phone)}</a> : telefonoParaVer(p.phone)}
                   {p.ringcentral_ext && <span className="hint" style={{ marginLeft: 6 }}>ext. {p.ringcentral_ext}</span>}
                 </span>
               </div>

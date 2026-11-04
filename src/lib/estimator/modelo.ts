@@ -11,6 +11,7 @@
  */
 
 import { telefonoValido } from "@/lib/avisos-cliente";
+import { telefonoEstandar } from "@/lib/recruiting/formato";
 import type { PinSource } from "@/lib/pin-draft";
 
 export type Salutation = "Ms." | "Mr." | "Mrs.";
@@ -334,15 +335,15 @@ export function paraQuienSeImprime(c: Pick<Customer, "salutation" | "full_name">
 }
 
 /**
- * El teléfono del cliente con forma limpia, `956-555-0123` (D-432). Reutiliza `telefonoValido` (el de los avisos al
+ * El teléfono del cliente en la forma única del hub, `(956) 555-0123` (D-850; antes `956-555-0123`, D-432): la pone
+ * `telefonoEstandar`, no otra copia. Reutiliza `telefonoValido` (el de los avisos al
  * cliente: 10 dígitos de EE. UU., o 11 con el 1 delante; paréntesis, espacios, puntos y `+1` se quitan). Null si no es
  * un número de EE. UU. completo: entonces se deja lo escrito tal cual y la pantalla lo marca.
  */
 export function telefonoLimpio(raw: string): string | null {
   const e164 = telefonoValido(raw);
   if (!e164) return null;
-  const d = e164.slice(2);
-  return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  return telefonoEstandar(e164);
 }
 
 /** Lo que el campo Teléfono deja escrito: la forma limpia si es un número completo, y si no, lo tecleado sin tocar. */

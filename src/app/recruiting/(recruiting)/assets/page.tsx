@@ -347,7 +347,7 @@ function EditarActivo({ activo, busy, onClose, onSave, onDelete }: {
         <div className="grid g2" style={{ marginTop: 12 }}>
           <div style={{ gridColumn: esTel ? undefined : "1 / -1" }}>
             <label>{esTel ? t("Line", "Línea") : t("Email", "Correo")}</label>
-            <input value={f.value} autoFocus onChange={(e) => setF({ ...f, value: e.target.value })} placeholder={esTel ? "956-555-0123" : "name@rdztilegroup.net"} />
+            <input value={f.value} autoFocus onChange={(e) => setF({ ...f, value: e.target.value })} placeholder={esTel ? "(956) 555-0123" : "name@rdztilegroup.net"} />
           </div>
           {esTel && <div><label>{t("Extension", "Extensión")}</label><input value={f.ext} inputMode="numeric" onChange={(e) => setF({ ...f, ext: e.target.value })} /></div>}
           {esTel && (

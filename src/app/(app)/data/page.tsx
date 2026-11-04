@@ -12,6 +12,7 @@ import { reglasAlGuardar, type FilaDeTipo } from "@/lib/origen-libre";
 import { leeDedicados } from "@/lib/gestor/choferes-por-tienda";
 import { claveDesdeEtiqueta, motivosDeAnulacion, MOTIVOS_QUE_NO_SE_BORRAN } from "@/lib/cancel-reasons";
 import { CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN, esCuentaDeMostrador } from "@/lib/customer-type";
+import { telefonoEstandar } from "@/lib/recruiting/formato";
 
 // ============================================================
 // Data — the reusable reference lists behind the order form: pickup points,
@@ -114,7 +115,7 @@ function AccountsEditor({
   type Row = { name: string; contact: string; phone: string; intertienda: boolean; requires_approval: boolean; resto: AccountRecord };
   const build = (): Row[] =>
     (settings.accounts ?? []).map((a) => ({
-      name: a.name, contact: a.contact, phone: a.phone,
+      name: a.name, contact: a.contact, phone: telefonoEstandar(a.phone),
       intertienda: !!a.intertienda, requires_approval: !!a.requires_approval, resto: a,
     }));
   const [rows, setRows] = useState<Row[]>(build);
@@ -130,7 +131,8 @@ function AccountsEditor({
     const accounts = rows
       .map((r) => ({
         ...r.resto,
-        name: r.name.trim(), contact: r.contact.trim(), phone: r.phone.trim(),
+        // D-850: el teléfono de la cuenta, en la forma única del hub («(956) 555-0123»).
+        name: r.name.trim(), contact: r.contact.trim(), phone: telefonoEstandar(r.phone),
         intertienda: r.intertienda, requires_approval: r.requires_approval,
         // La cuenta ya no dice si es builder (D-337): todo es builder salvo la opción fija «Venta al mostrador» de la orden.
         customer_type: undefined,

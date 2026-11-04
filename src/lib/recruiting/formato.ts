@@ -8,7 +8,13 @@ import type { Candidate } from "./types";
  * edición), así que da igual por qué pantalla entre el dato. */
 
 /** «(956) 340-5910» con 10 dígitos (o 11 empezando por 1, el país); otra cosa (internacional, corto) se deja limpia tal cual.
- * Con letras tampoco se toca (D-635): «956-246-6915 - Viya, A/P» lleva a quién llamar, y quitarlo lo perdería. */
+ * Con letras tampoco se toca (D-635): «956-246-6915 - Viya, A/P» lleva a quién llamar, y quitarlo lo perdería. Por lo
+ * mismo, una extensión escrita en el campo («956-555-0123 ext. 12») se queda como está, sin perderla.
+ *
+ * ES LA ÚNICA forma de teléfono del hub (D-850, el dueño: «usa el formato (956) 340-5910 en todo»): RR. HH.
+ * (`telefonoDeFicha`), Entregas (`telefonoParaVer` / `conTelefonoEstandar`), Clientes (`telefonoDeCliente`, copia sin
+ * imports), activos de la empresa, Leads, Estimador, Encuestas, Time Tracker y la ayuda pasan por aquí o por una copia que
+ * una prueba obliga a dar lo mismo. No se escribe otra. */
 export function telefonoEstandar(t: string | null | undefined): string {
   const limpio = (t ?? "").trim();
   if (!limpio) return "";

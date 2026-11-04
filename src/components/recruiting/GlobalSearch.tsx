@@ -13,6 +13,7 @@ import {
   placeholderDelBuscador, puedeBuscarEmpleados, type EmpleadoEncontrado, type ResultadoDeBusqueda, type TipoDeResultado,
 } from "@/lib/recruiting/busqueda-global";
 import type { Candidate, Stage } from "@/lib/recruiting/types";
+import { telefonoEstandar } from "@/lib/recruiting/formato";
 
 /** Cuánto se espera tras la última tecla antes de preguntar al servidor por empleados. */
 const ESPERA_EMPLEADOS_MS = 180;
@@ -249,7 +250,7 @@ function FilaCandidato({ c, stages, t }: { c: Candidate; stages: Stage[]; t: T }
           <span className="gs-nombre-texto">{c.pinned && "📌 "}{c.name}</span>
           <PastillaDeTipo tipo="candidato" t={t} />
         </div>
-        <div className="gs-detalle">{[c.role, c.phone].filter(Boolean).join(" · ")}</div>
+        <div className="gs-detalle">{[c.role, telefonoEstandar(c.phone)].filter(Boolean).join(" · ")}</div>
       </div>
       <span className="sema" style={{ flex: "0 0 auto", background: st.color + "22", color: st.color, fontSize: 10 }}>
         {st.label}

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { COLUMNAS, COLUMNAS_SIN_TIENDA, type RespuestaEncuesta } from "./resumen";
+import { telefonoEstandar } from "@/lib/recruiting/formato";
 
 /**
  * Dónde viven las respuestas: `public.survey_responses` (migración 155). Una interfaz con dos implementaciones
@@ -51,7 +52,8 @@ export function filaDeLaBase(f: Record<string, unknown>): RespuestaEncuesta {
     ratings,
     wants_contact: f.wants_contact === true,
     contact_name: texto(f.contact_name),
-    contact_phone: texto(f.contact_phone),
+    // D-850: el cliente lo escribe como quiere en la encuesta; aquí sale en la forma única del hub (tabla y CSV).
+    contact_phone: telefonoEstandar(texto(f.contact_phone)) || null,
     contact_email: texto(f.contact_email),
     contacted: f.contacted === true,
     contacted_at: texto(f.contacted_at),

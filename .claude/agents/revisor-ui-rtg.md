@@ -89,10 +89,14 @@ esos. Inter en el cuerpo y Archivo en títulos, sin fuentes ni tamaños nuevos s
 `table.orders tbl-resize` dentro de `.tbl-scroll.tbl-fit.tbl-caja`, la etapa como pastilla `.sema`, y Excel/CSV con
 lo que se ve (`src/lib/export-tabla.ts`). Ancho fluido. Una tabla con su propio `<th onClick>` de ordenar es **must**.
 
-**R6 · Formato de datos** (CLAUDE.md, regla permanente). Teléfono: el ayudante de la app que se toca, nunca un regex
-nuevo — expediente de RR. HH. `telefonoDeFicha` (`956-555-0123`, D-432); Entregas y Clientes `telefonoParaVer` /
-`telefonoAlEscribir` / `conTelefonoEstandar` (`src/lib/telefono-de-la-orden.ts`, `(956) 340-5910`, D-630); candidatos
-`telefonoEstandar` (D-610). Extensión aparte como «ext. 123». Correo: `correoDeFicha` (minúsculas, recortado). Nombre:
+**R6 · Formato de datos** (CLAUDE.md, regla permanente). Teléfono: UNA forma en todo el hub, `(956) 340-5910` (D-850,
+el dueño: «usa el formato (956) 340-5910 en todo»), y UN ayudante, `telefonoEstandar` (`src/lib/recruiting/formato.ts`),
+en todas las apps; nunca un regex nuevo ni otra forma. Sus envoltorios valen porque delegan en él: `telefonoDeFicha`
+(RR. HH., vacío → `null`), `telefonoParaVer` / `conTelefonoEstandar` (Entregas), y `telefonoAlEscribir`
+(`src/lib/telefono-de-la-orden.ts`, el campo que se formatea al teclear). Las copias sin imports (`telefonoDeCliente`,
+`telefonoDeActivo`) existen solo porque un guion las carga con node, y una prueba las obliga a dar lo mismo. **must**:
+un teléfono guardado que se pinta, exporta o manda sin pasar por el ayudante. Extensión aparte como «ext. 123»; escrita
+dentro del campo («… ext. 12») el ayudante la deja como está. Correo: `correoDeFicha` (minúsculas, recortado). Nombre:
 `nombreDeFicha` (`src/lib/recruiting/employee-file.ts`). Se normaliza **en el servidor** al guardar, no solo en el campo.
 
 **R7 · Fechas y hora de Texas.** «Hoy» y toda fecha que se enseña salen en `BUSINESS_TZ` (`America/Chicago`,

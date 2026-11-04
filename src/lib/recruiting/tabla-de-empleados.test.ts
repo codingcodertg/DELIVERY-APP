@@ -11,7 +11,7 @@ describe("D-706: tabla de Empleados", () => {
   it("cada columna da su valor; vacío o en blanco es null", () => {
     const c = { sinLlenar: 0, papelesQueFaltan: 2 };
     expect(COLUMNAS_DE_EMPLEADOS.map((k) => valorDeEmpleado(k.key, ana, c, t))).toEqual(
-      ["Ana Núñez", "Cajera", "Ventas", "RDZ Edinburg", "956-555-0101", "204", "2025-01-02", null, "Con usuario", "completo", 2]);
+      ["Ana Núñez", "Cajera", "Ventas", "RDZ Edinburg", "(956) 555-0101", "204", "2025-01-02", null, "Con usuario", "completo", 2]);
     expect(valorDeEmpleado("job_title", beto, c, t)).toBeNull();
     expect(valorDeEmpleado("cuenta", beto, c, t)).toBe("Sin usuario");
     expect(valorDeEmpleado("expediente", beto, { sinLlenar: 3, papelesQueFaltan: 0 }, t)).toBe("incompleto");

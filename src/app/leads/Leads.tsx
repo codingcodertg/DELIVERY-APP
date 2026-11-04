@@ -17,6 +17,8 @@ import {
 } from "@/lib/leads/reglas";
 import { cotizacionesPorLead, enlaceACotizacion, enlaceACotizar, idDeParametro, puedeCotizarLead, type CotizacionDeLead } from "@/lib/leads/cotizar";
 import { enlaceDeLaBase, enlaceDemo, type AlmacenDelEnlace } from "@/lib/leads/enlace";
+// D-850: los teléfonos se enseñan en la forma única del hub; el Excel los trae de mil maneras («956.555.0123», «956-555-0123»).
+import { telefonoEstandar } from "@/lib/recruiting/formato";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
 type Pestana = "banco" | "mio" | "admin" | "privado";
@@ -524,13 +526,13 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
           <p>
             {/* D-760: en un lead privado el que va aquí es el CONTRATISTA (a quien se le vende); el propietario, abajo. */}
             {esPrivado(l) ? <>🏗 {t("Contractor", "Contratista")}: </> : "👤 "}{l.owner_name ?? "—"}{l.owner_contact ? ` · ${l.owner_contact}` : ""}
-            {l.owner_phone ? <> · {telUrl(l.owner_phone) ? <a href={telUrl(l.owner_phone)!} data-tel>📞 {l.owner_phone}</a> : l.owner_phone}</> : null}
+            {l.owner_phone ? <> · {telUrl(l.owner_phone) ? <a href={telUrl(l.owner_phone)!} data-tel>📞 {telefonoEstandar(l.owner_phone)}</a> : telefonoEstandar(l.owner_phone)}</> : null}
           </p>
           {l.tenant_name && (
-            <p>{esPrivado(l) ? <>🏠 {t("Owner", "Propietario")}</> : <>🏪 {t("Tenant", "Inquilino")}</>}: {l.tenant_name}{l.tenant_phone ? <> · {telUrl(l.tenant_phone) ? <a href={telUrl(l.tenant_phone)!}>📞 {l.tenant_phone}</a> : l.tenant_phone}</> : null}</p>
+            <p>{esPrivado(l) ? <>🏠 {t("Owner", "Propietario")}</> : <>🏪 {t("Tenant", "Inquilino")}</>}: {l.tenant_name}{l.tenant_phone ? <> · {telUrl(l.tenant_phone) ? <a href={telUrl(l.tenant_phone)!}>📞 {telefonoEstandar(l.tenant_phone)}</a> : telefonoEstandar(l.tenant_phone)}</> : null}</p>
           )}
           {l.design_firm_name && (
-            <p>📐 {t("Design firm", "Despacho")}: {l.design_firm_name}{l.design_firm_phone ? <> · {telUrl(l.design_firm_phone) ? <a href={telUrl(l.design_firm_phone)!}>📞 {l.design_firm_phone}</a> : l.design_firm_phone}</> : null}</p>
+            <p>📐 {t("Design firm", "Despacho")}: {l.design_firm_name}{l.design_firm_phone ? <> · {telUrl(l.design_firm_phone) ? <a href={telUrl(l.design_firm_phone)!}>📞 {telefonoEstandar(l.design_firm_phone)}</a> : telefonoEstandar(l.design_firm_phone)}</> : null}</p>
           )}
         </div>
       ) : (
@@ -599,7 +601,7 @@ function FichaCruzada({ dialogo, onCerrar }: { dialogo: Extract<Dialogo, { tipo:
     [t("Store", "Tienda"), c.store],
     [t("Sales rep", "Vendedor"), c.rep_name ?? t("Unassigned", "Sin asignar")],
     [t("Contact", "Contacto"), [c.contact_name, c.contact_title].filter(Boolean).join(" · ") || null],
-    [t("Phone", "Teléfono"), c.phone],
+    [t("Phone", "Teléfono"), telefonoEstandar(c.phone) || null],
     [t("Email", "Correo"), c.email],
     [t("Address", "Dirección"), c.address],
     [t("Account no.", "N.º de cuenta"), c.account_no],

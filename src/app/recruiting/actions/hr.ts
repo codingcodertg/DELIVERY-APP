@@ -298,7 +298,7 @@ export async function saveEmployeeFile(
   const limpio: Record<string, unknown> = { id: fileId, updated_at: new Date().toISOString(), updated_by: yo.userId };
   for (const [k, v] of Object.entries(patch)) limpio[k] = v === "" ? null : v;
   if (patch.ringcentral_ext !== undefined) limpio.ringcentral_ext = limpiaExtension(patch.ringcentral_ext);
-  // Los teléfonos se guardan con la forma de la app, 956-xxx-xxxx (D-432).
+  // Los teléfonos se guardan con la forma única del hub, «(956) 555-0123» (D-850; antes 956-xxx-xxxx, D-432).
   for (const k of ["phone", "personal_phone", "emergency_phone", "previous_phone"] as const) {
     if (patch[k] !== undefined) limpio[k] = telefonoDeFicha(patch[k]);
   }

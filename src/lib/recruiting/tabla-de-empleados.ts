@@ -1,4 +1,5 @@
 import type { ValorDeCelda } from "@/lib/orden-y-filtro";
+import { telefonoEstandar } from "./formato";
 
 /**
  * D-706: la tabla de Empleados como la de Órdenes. El dueño: «que uno pueda resize las columnas, buscar, sort, todo
@@ -40,7 +41,8 @@ export function valorDeEmpleado(clave: string, f: FilaDeEmpleado, c: Calculado, 
     case "job_title": return texto(f.job_title);
     case "department": return texto(f.department);
     case "store": return texto(f.store);
-    case "phone": return texto(f.phone);
+    // D-850: en la forma única del hub, «(956) 555-0123», aunque la fila venga guardada de antes; igual en el Excel.
+    case "phone": return texto(telefonoEstandar(f.phone));
     case "ringcentral_ext": return texto(f.ringcentral_ext);
     case "date_hired": return texto(f.date_hired);
     case "date_left": return texto(f.date_left);
@@ -55,7 +57,7 @@ export function valorDeEmpleado(clave: string, f: FilaDeEmpleado, c: Calculado, 
 export function coincideBusqueda(f: FilaDeEmpleado, texto: string): boolean {
   const q = normaliza(texto);
   if (!q) return true;
-  const campos = [f.full_name, f.job_title, f.department, f.store, f.phone, f.ringcentral_ext, f.email, f.personal_email];
+  const campos = [f.full_name, f.job_title, f.department, f.store, f.phone, telefonoEstandar(f.phone), f.ringcentral_ext, f.email, f.personal_email];
   return campos.some((v) => normaliza(v ?? "").includes(q));
 }
 

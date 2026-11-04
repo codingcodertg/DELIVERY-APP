@@ -287,7 +287,7 @@ export default function EmployeeFilesPage() {
                     <td>{r.job_title || "—"}</td>
                     <td>{nombreDeDepartamento(r.department, lang) || "—"}</td>
                     <td>{tiendaVisible(r) || "—"}</td>
-                    <td>{r.phone || "—"}</td>
+                    <td>{telefonoDeFicha(r.phone) || "—"}</td>
                     <td>{r.ringcentral_ext || "—"}</td>
                     <td>{r.date_hired || "—"}</td>
                     <td>{r.date_left || "—"}</td>
@@ -443,7 +443,8 @@ function Ficha({
     employee_code: persona.employee_code ?? "",
     birthday: persona.birthday ?? "",
     date_hired: persona.date_hired ?? "",
-    phone: persona.phone ?? "",
+    // D-850: los teléfonos se abren ya en la forma única del hub, aunque estén guardados de antes («956-555-0123»).
+    phone: telefonoDeFicha(persona.phone) ?? "",
     ringcentral_ext: persona.ringcentral_ext ?? "",
     email: persona.email ?? "",
     department: persona.department ?? "",
@@ -455,11 +456,11 @@ function Ficha({
     notes: persona.notes ?? "",
     // ---- 159 ----
     job_title: persona.job_title ?? "",
-    personal_phone: persona.personal_phone ?? "",
+    personal_phone: telefonoDeFicha(persona.personal_phone) ?? "",
     personal_email: persona.personal_email ?? "",
     emergency_name: persona.emergency_name ?? "",
     emergency_relation: persona.emergency_relation ?? "",
-    emergency_phone: persona.emergency_phone ?? "",
+    emergency_phone: telefonoDeFicha(persona.emergency_phone) ?? "",
     // ---- 207 (D-719) ----
     email_plan: persona.email_plan != null ? String(persona.email_plan) : "",
     email_cost_year: persona.email_cost_year != null ? String(persona.email_cost_year) : "",
@@ -467,7 +468,7 @@ function Ficha({
     second_email: persona.second_email != null ? String(persona.second_email) : "",
     app_username: persona.app_username != null ? String(persona.app_username) : "",
     onepassword: persona.onepassword != null ? String(persona.onepassword) : "",
-    previous_phone: persona.previous_phone != null ? String(persona.previous_phone) : "",
+    previous_phone: persona.previous_phone != null ? (telefonoDeFicha(String(persona.previous_phone)) ?? "") : "",
     device_serial: persona.device_serial != null ? String(persona.device_serial) : "",
     qb_initials: persona.qb_initials != null ? String(persona.qb_initials) : "",
     remote_pc_name: persona.remote_pc_name != null ? String(persona.remote_pc_name) : "",
@@ -630,7 +631,7 @@ function Ficha({
         placeholder={con207 ? extra.placeholder : faltaMigracion(t, 207)} />
     </div>
   );
-  /** Un teléfono: al salir del campo toma la forma de la app, 956-xxx-xxxx (D-432). */
+  /** Un teléfono: al salir del campo toma la forma única del hub, «(956) 555-0123» (D-850). */
   const alSalirTel = (k: Clave) => () => setInfo((a) => ({ ...a, [k]: telefonoDeFicha(a[k]) ?? "" }));
 
   const deBaja = estadoEmpleado(persona) === "baja";
@@ -864,7 +865,7 @@ function Ficha({
       <div className="grid g3">
         <div>
           <label>{t("Office phone (phone book)", "Teléfono de oficina (directorio)")}</label>
-          <input value={info.phone} placeholder="956-555-0123" data-campo="phone"
+          <input value={info.phone} placeholder="(956) 555-0123" data-campo="phone"
             onBlur={alSalirTel("phone")} onChange={(e) => setInfo({ ...info, phone: e.target.value })} />
         </div>
         <div>
@@ -874,7 +875,7 @@ function Ficha({
         </div>
         {campo("email", t("Work email (phone book)", "Correo de trabajo (directorio)"), "email")}
         {campo159("personal_phone", t("Personal phone (HR only)", "Teléfono personal (solo RR. HH.)"),
-          { placeholder: "956-555-0123", onBlur: alSalirTel("personal_phone") })}
+          { placeholder: "(956) 555-0123", onBlur: alSalirTel("personal_phone") })}
         {campo159("personal_email", t("Personal email (HR only)", "Correo personal (solo RR. HH.)"), { type: "email" })}
       </div>
       </Seccion>
@@ -883,7 +884,7 @@ function Ficha({
       <div className="grid g3">
         {campo159("emergency_name", t("Name", "Nombre"))}
         {campo159("emergency_relation", t("Relationship", "Parentesco"))}
-        {campo159("emergency_phone", t("Phone", "Teléfono"), { placeholder: "956-555-0123", onBlur: alSalirTel("emergency_phone") })}
+        {campo159("emergency_phone", t("Phone", "Teléfono"), { placeholder: "(956) 555-0123", onBlur: alSalirTel("emergency_phone") })}
       </div>
       </Seccion>
 
@@ -920,7 +921,7 @@ function Ficha({
             {OPCIONES_1PW.map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
         </div>
-        {campo207("previous_phone", t("Previous office number", "Número de oficina anterior"), { placeholder: "956-555-0123", onBlur: alSalirTel("previous_phone") })}
+        {campo207("previous_phone", t("Previous office number", "Número de oficina anterior"), { placeholder: "(956) 555-0123", onBlur: alSalirTel("previous_phone") })}
         {campo207("device_serial", t("Desk phone serial", "Serie del teléfono de escritorio"))}
         {campo207("qb_initials", t("QuickBooks initials", "Iniciales en QuickBooks"))}
         {campo207("remote_pc_name", t("Remote PC name", "PC de Remote PC"))}

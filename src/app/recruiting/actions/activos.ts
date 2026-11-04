@@ -29,8 +29,11 @@ export async function faltaLa211(error: { code?: string | null } | null | undefi
 
 function fila(f: Record<string, unknown>, nombres: Map<string, string>): Activo {
   const txt = (v: unknown) => (typeof v === "string" ? v : null);
+  // D-850: un número se enseña en la forma única del hub aunque la fila lo guarde de antes («956-555-0123»): la tabla, el
+  // detalle, el buscador y el formulario de editar ven «(956) 555-0123», y al guardar ya queda así.
+  const valor = f.kind === "phone" ? (valorDeActivo("phone", String(f.value)) ?? String(f.value)) : String(f.value);
   return {
-    id: String(f.id), kind: f.kind as TipoDeActivo, value: String(f.value), ext: txt(f.ext), phone_type: (txt(f.phone_type) as TipoDeTelefono | null),
+    id: String(f.id), kind: f.kind as TipoDeActivo, value: valor, ext: txt(f.ext), phone_type: (txt(f.phone_type) as TipoDeTelefono | null),
     status: f.status as EstadoDeActivo, employee_id: txt(f.employee_id), employee_name: f.employee_id ? (nombres.get(String(f.employee_id)) ?? null) : null,
     last_employee_id: txt(f.last_employee_id), last_employee_name: f.last_employee_id ? (nombres.get(String(f.last_employee_id)) ?? null) : null,
     plan: txt(f.plan), cost_year: typeof f.cost_year === "number" ? f.cost_year : f.cost_year != null ? Number(f.cost_year) : null,
@@ -87,7 +90,11 @@ export async function saveAsset(input: {
     if (status && actual?.status !== "assigned") limpio.status = status;
     const { error } = await tabla.update(limpio).eq("id", input.id);
     if (error) return { ok: false, message: error.code === "23505" ? "That email or number is already in the list." : error.message };
-    const cambios = cambiosDeActivo((actual ?? {}) as Record<string, unknown>, limpio, CAMPOS_QUE_SE_EDITAN);
+    // D-850: el número guardado de antes («956-555-0123») se compara ya en la forma de hoy; si no, editar la nota de un
+    // activo viejo apuntaría en el historial un «cambio de número» que nadie hizo.
+    const antes = { ...(actual ?? {}) } as Record<string, unknown>;
+    if (input.kind === "phone" && typeof antes.value === "string") antes.value = valorDeActivo("phone", antes.value) ?? antes.value;
+    const cambios = cambiosDeActivo(antes, limpio, CAMPOS_QUE_SE_EDITAN);
     if (Object.keys(cambios).length) {
       await anotaEnHistorial(supabase, yo.userId, {
         kind: "status" in cambios && Object.keys(cambios).length === 1 ? "asset_status_changed" : "asset_edited",

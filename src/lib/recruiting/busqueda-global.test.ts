@@ -85,7 +85,8 @@ describe("buscador de la barra: empleados", () => {
     expect(JSON.stringify(fuera)).not.toContain("gmail");
   });
   it("la segunda línea: puesto · tienda · teléfono, y «Baja» delante si ya se fue", () => {
-    expect(detalleDeEmpleado(lista[0], es, HOY)).toBe("Cajera · RDZ Edinburg · 956-555-0101");
+    // D-850: el teléfono guardado de antes («956-555-0101») sale en la forma única del hub.
+    expect(detalleDeEmpleado(lista[0], es, HOY)).toBe("Cajera · RDZ Edinburg · (956) 555-0101");
     expect(detalleDeEmpleado(lista[1], es, HOY)).toBe("Baja");
     expect(detalleDeEmpleado(lista[1], en, HOY)).toBe("Left");
     expect(detalleDeEmpleado(emp("e9", "X", { date_left: "2099-01-01", job_title: "Chofer" }), es, HOY)).toBe("Chofer");

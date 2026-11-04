@@ -16,6 +16,7 @@ import { RouteEngineSettings } from "@/components/RouteEngineSettings";
 import { HORAS_NOCHE_ANTES, HORA_NOCHE_ANTES_POR_DEFECTO, laBaseTieneAjustesDeAvisos } from "@/lib/avisos-cliente";
 import { reglasDeAprobacion, ventanasConCupoEditable, type ReglasDeAprobacion } from "@/lib/aprobacion-por-hora-y-cupo";
 import { fmtWindows } from "@/lib/utils";
+import { telefonoEstandar } from "@/lib/recruiting/formato";
 
 export default function SettingsPage() {
   const { me, users, settings, saveSettings, notify } = useData();
@@ -73,11 +74,12 @@ export default function SettingsPage() {
         <p className="hint" style={{ marginTop: 0, marginBottom: 8 }}>
           {t("When set, the Help button shows a Call link that opens the user's phone dialer with this number.", "Cuando se define, el botón de Ayuda muestra un enlace de Llamada que abre el marcador del teléfono con este número.")}
         </p>
+        {/* D-850: se enseña y se guarda en la forma única del hub, «(956) 555-0100». */}
         <HelpPhone
-          current={settings.help_phone ?? ""}
-          placeholder="+1 956 555 0100"
+          current={telefonoEstandar(settings.help_phone)}
+          placeholder="(956) 555-0100"
           saveLabel={t("Save", "Guardar")}
-          onSave={(v) => { saveSettings({ help_phone: v || null } as Partial<Settings>); notify(t("Saved", "Guardado")); }}
+          onSave={(v) => { saveSettings({ help_phone: telefonoEstandar(v) || null } as Partial<Settings>); notify(t("Saved", "Guardado")); }}
         />
       </div>
 
