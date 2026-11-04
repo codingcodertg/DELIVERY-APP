@@ -80,12 +80,18 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
   // Keep the latest pushLocation without restarting the GPS watch on rerender.
   const pushRef = useRef(pushLocation);
   pushRef.current = pushLocation;
-  // One push at a time: while a send is in flight, later callbacks wait for the next fix
-  // instead of piling up identical writes (G-22, D-200).
+  // One push at a time (G-22, D-200). D-835: what arrives while a push is in flight WAITS in `pendingRef` instead of
+  // being dropped. Android hands a backgrounded app its fixes in one burst when it wakes; dropping all but the first
+  // is what drew Ernesto's 20-minute straight lines on 2026-11-04.
   const inFlightRef = useRef(false);
+  const pendingRef = useRef<NativeFix[]>([]);
+  // The last fix that passed the filter (queued or sent): the burst is filtered against it, by the DEVICE's clock.
+  const acceptedRef = useRef<{ lat: number; lng: number; at: number } | null>(null);
 
   useEffect(() => {
-    if (!active) { setStatus("off"); lastRef.current = null; return; }
+    if (!active) { setStatus("off"); lastRef.current = null; acceptedRef.current = null; pendingRef.current = []; return; }
+    // D-835: a fix taken before tracking started is the previous trip's last position, not where the truck is.
+    const startedAt = Date.now();
 
     let cancelled = false;
     let stopNative: (() => void) | null = null;
@@ -97,19 +103,25 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
       if (cancelled) return;
       setStatus("live");
       latestFixRef.current = fix;
-      const now = Date.now();
-      if (!shouldSend({ lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy_m }, lastRef.current, now)) return;
+      // D-835: the interval is measured on the DEVICE's clock (when the fix was taken), not when the callback ran:
+      // a burst of 20 minutes of fixes delivered in one second is 20 minutes of road, not 240 duplicates.
+      const at = Date.parse(fix.recorded_at ?? "") || Date.now();
+      if (at < startedAt - 60_000) return;
+      if (!shouldSend({ lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy_m }, acceptedRef.current, at)) return;
+      acceptedRef.current = { lat: fix.lat, lng: fix.lng, at };
+      pendingRef.current.push(fix);
       if (inFlightRef.current) return;
-      // G-22 (D-200): `lastRef` used to advance BEFORE knowing whether the write worked, so a
-      // failed send consumed its 5-minute window and the truck went silent. Now it advances only
-      // when the push got through or was queued for replay; a rejection leaves it where it was.
+      // Drain in order. G-22 (D-200): `lastRef` (what the heartbeat trusts) advances only when a push got through or was
+      // queued for replay; a rejection leaves it where it was.
       inFlightRef.current = true;
-      let ok = false;
-      try { ok = await pushRef.current({ ...fix, battery_pct: await batteryPct() }); }
-      finally { inFlightRef.current = false; }
-      if (!ok || cancelled) return;
-      lastRef.current = { lat: fix.lat, lng: fix.lng, at: now };
-      setLastAt(new Date().toISOString());
+      try {
+        while (pendingRef.current.length && !cancelled) {
+          const next = pendingRef.current.shift()!;
+          let ok = false;
+          try { ok = await pushRef.current({ ...next, battery_pct: await batteryPct() }); } catch { ok = false; }
+          if (ok) { lastRef.current = { lat: next.lat, lng: next.lng, at: Date.now() }; setLastAt(new Date().toISOString()); }
+        }
+      } finally { inFlightRef.current = false; }
     };
 
     // HEARTBEAT.
