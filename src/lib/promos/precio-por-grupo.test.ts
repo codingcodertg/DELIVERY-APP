@@ -74,7 +74,7 @@ describe("lo que se ve", () => {
     expect(tabla).toContain('if (clave === "price") return textoDePrecio(fila.precioDelGrupo ?? fila.price);');
     expect(tabla).toContain("{sePuede && gruposActivos.length === 1 && (");
     expect(tabla).toContain('.upsert(filasAEscribir, { onConflict: "round_id,code,group_code" })');
-    expect(leer("src/app/promos/[id]/page.tsx")).toContain('.select("round_id, code, group_code, status, note, price")');
+    expect(leer("src/app/promos/[id]/page.tsx")).toContain('.select("round_id, code, group_code, status, note, price, decided_by, decided_at")');
   });
   it("la 230: la columna, no negativa, y sin transacción propia", () => {
     const sql = leer("supabase/migrations/230_promos_precio_por_grupo.sql");

@@ -17,6 +17,7 @@ import {
   MINIMO_EN_LA_TIENDA, motivoParaNoDecidir, mueveColumnaDePromos, ordenDeColumnasDePromos, puedeDecidir,
   valorParaFiltrar, type DecisionDeGrupo, type EstadoDeDecision, type ProductoDeCatalogo,
 } from "@/lib/promos/tabla";
+import { cuentaDeVotos, votosDelProducto, type DecisionConAutor } from "@/lib/promos/votos";
 
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
@@ -41,7 +42,7 @@ const claveDelOrdenDePromos = (rol: string) => `rtg_promos_orden_${rol}`;
  * filas y PostgREST responde limpio: sin `.select()`, «guardado» sería una suposición.
  */
 export function TablaDeRonda({
-  ronda, productos, decisiones, rol, userId, grupo, esDecisor, esAdmin, gruposDelLibro, rondas,
+  ronda, productos, decisiones, rol, userId, grupo, esDecisor, esAdmin, gruposDelLibro, rondas, veVotos = false, nombres = {},
 }: {
   ronda: { id: string; label: string; closed_at: string | null };
   productos: ProductoDeCatalogo[];
@@ -54,10 +55,16 @@ export function TablaDeRonda({
   gruposDelLibro: string[];
   /** Todas las rondas, para el selector que sustituye a la lista que se quitó (D-375). */
   rondas: readonly { id: string; label: string; uploaded_at: string; closed_at: string | null }[];
+  /** D-840: pulsar la Decisión enseña quién votó qué (admin y quien decide). */
+  veVotos?: boolean;
+  /** D-840: id → nombre de quien decidió cada voto. */
+  nombres?: Readonly<Record<string, string>>;
   /** Tiendas a las que les falta el grupo de promociones. Vacío = no hay nada que avisar. */
 }) {
   const { lang, t } = usePrefs();
   const router = useRouter();
+  // D-840: el producto cuyo panel de votos está abierto.
+  const [votosDe, setVotosDe] = useState<string | null>(null);
   const supabase = useMemo(() => createClient(), []);
 
   // El admin no tiene tienda propia, así que elige de qué grupo mira y decide. Los demás miran el
@@ -260,7 +267,8 @@ export function TablaDeRonda({
   const orden = useOrdenYFiltro(filas, valorParaFiltrar, undefined, { estado: new Set(["pending"]) });
   const cuenta = cuentaPorEstado(filas);
 
-  const columnasConMenu: ColumnaConMenu[] = columnasPintadas.map((c) => ({ key: c.key, en: c.en, es: c.es }));
+  // D-840: las de número (QOH, Precio, Demanda…) llevan el filtro de «mayor que / menor que» de Excel.
+  const columnasConMenu: ColumnaConMenu[] = columnasPintadas.map((c) => ({ key: c.key, en: c.en, es: c.es, numerico: !!c.numero }));
 
   const alterna = (code: string) =>
     setSeleccion((s) => { const n = new Set(s); if (n.has(code)) n.delete(code); else n.add(code); return n; });
@@ -338,6 +346,19 @@ export function TablaDeRonda({
   const celda = (fila: (typeof filas)[number], clave: string) => {
     const texto = textoDeCelda(fila, clave);
     if (clave !== "estado") return texto;
+    // D-840: la pastilla se pulsa para ver quién votó qué.
+    if (veVotos) {
+      return (
+        <button type="button" className="sema-boton" data-ver-votos onClick={(e) => { e.stopPropagation(); setVotosDe(fila.code); }}
+          title={t("See who voted what", "Ver quién votó qué")}>
+          {pastilla(fila, texto)}
+        </button>
+      );
+    }
+    return pastilla(fila, texto);
+  };
+
+  const pastilla = (fila: (typeof filas)[number], texto: string) => {
     // La PASTILLA, con las clases de Órdenes y su mismo corte con puntos (D-364): el estado en
     // texto plano era la diferencia que más se veía al poner las dos tablas al lado, y el dueño
     // pidió «the style of the order table in deliveries». El color sale de la paleta de las etapas,
@@ -630,6 +651,85 @@ export function TablaDeRonda({
         </table>
       </div>
       <MenuDeColumnaAbierto estado={orden} columnas={columnasConMenu} lang={lang} t={t} />
+      {votosDe && (
+        <PanelDeVotos
+          code={votosDe}
+          descripcion={productos.find((p) => p.code === votosDe)?.description ?? null}
+          decisiones={decisiones as DecisionConAutor[]}
+          grupos={gruposDelLibro}
+          nombres={nombres}
+          lang={lang}
+          t={t}
+          onCerrar={() => setVotosDe(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** D-840: quién votó qué en un producto, grupo por grupo. */
+function PanelDeVotos({ code, descripcion, decisiones, grupos, nombres, lang, t, onCerrar }: {
+  code: string; descripcion: string | null; decisiones: readonly DecisionConAutor[]; grupos: readonly string[];
+  nombres: Readonly<Record<string, string>>; lang: "en" | "es"; t: (en: string, es: string) => string; onCerrar: () => void;
+}) {
+  const votos = votosDelProducto(code, decisiones, grupos, nombres);
+  const cuenta = cuentaDeVotos(votos);
+  const fecha = (iso: string | null) => (iso ? new Date(iso).toLocaleString(lang === "es" ? "es-MX" : "en-US", { dateStyle: "medium", timeStyle: "short" }) : "—");
+  const hayPrecio = votos.some((v) => v.precio != null);
+  const hayNota = votos.some((v) => v.nota);
+  useEffect(() => {
+    const alPulsar = (e: KeyboardEvent) => { if (e.key === "Escape") onCerrar(); };
+    window.addEventListener("keydown", alPulsar);
+    return () => window.removeEventListener("keydown", alPulsar);
+  }, [onCerrar]);
+  return (
+    <div className="overlay" data-panel-de-votos onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}>
+      <div className="modal" role="dialog" aria-modal="true" aria-label={t("Who voted what", "Quién votó qué")} style={{ maxWidth: 720 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+          <div>
+            <h3 style={{ margin: 0 }}>🗳️ {t("Who voted what", "Quién votó qué")} · {code}</h3>
+            {descripcion && <div className="hint" style={{ marginTop: 2 }}>{descripcion}</div>}
+          </div>
+          <button className="notif-clear" onClick={onCerrar} aria-label={t("Close", "Cerrar")}>✕</button>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "10px 0" }}>
+          {(["approved", "rejected", "pending"] as const).map((e) => (
+            <span key={e} className="sema" style={{ background: COLOR_DE_ESTADO[e], color: "#fff" }}>
+              {cuenta[e]} {t(ETIQUETA_ESTADO[e].en, ETIQUETA_ESTADO[e].es)}
+            </span>
+          ))}
+        </div>
+        <div className="votos-caja">
+          <table className="orders">
+            <thead>
+              <tr>
+                <th>{t("Group", "Grupo")}</th>
+                <th>{t("Decision", "Decisión")}</th>
+                <th>{t("By", "Quién")}</th>
+                <th>{t("When", "Cuándo")}</th>
+                {hayPrecio && <th>{t("Price", "Precio")}</th>}
+                {hayNota && <th>{t("Note", "Nota")}</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {votos.map((v) => (
+                <tr key={v.grupo} data-voto={v.grupo}>
+                  <td><b>{v.grupo}</b></td>
+                  <td><span className="sema" style={{ background: COLOR_DE_ESTADO[v.estado], color: "#fff" }}>{t(ETIQUETA_ESTADO[v.estado].en, ETIQUETA_ESTADO[v.estado].es)}</span></td>
+                  <td>{v.quien ?? (v.cuando ? t("Someone (no longer here)", "Alguien (ya no está)") : "—")}</td>
+                  <td style={{ fontVariantNumeric: "tabular-nums" }}>{fecha(v.cuando)}</td>
+                  {hayPrecio && <td style={{ textAlign: "right" }}>{v.precio != null ? `${v.precio.toFixed(2)}` : "—"}</td>}
+                  {hayNota && <td>{v.nota ?? "—"}</td>}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="hint" style={{ marginTop: 8 }}>
+          {t("Each group keeps its latest decision: if someone changed their vote, you see the current one.",
+             "Cada grupo guarda su última decisión: si alguien cambió su voto, se ve el de ahora.")}
+        </div>
+      </div>
     </div>
   );
 }

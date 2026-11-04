@@ -16,7 +16,24 @@ import { ANCHO_MINIMO } from "@/lib/user-prefs";
 import { columnaExtraTras, columnasEnOrden, enOrdenDePartida, ordenEfectivo } from "@/lib/orden-de-columnas";
 import { posicionDelMenu, useCierraAlSalir } from "@/lib/menu-desplegable";
 import { columnasFiltradas, textoDeColumnas } from "@/lib/filtros-activos";
-import { comparaCeldas, filtraFilas, opcionesDeFiltro, type ValorDeCelda } from "@/lib/orden-y-filtro";
+import { COMPARADORES, comparaCeldas, condicionesDe, filtraFilas, filtroDeCondiciones, O_LOGICO, opcionesDeFiltro, type Comparador, type CondicionNumerica, type ValorDeCelda } from "@/lib/orden-y-filtro";
+
+/** D-840: el nombre de cada comparación del filtro de número, como en Excel. */
+const NOMBRE_DEL_COMPARADOR: Record<Comparador, [en: string, es: string]> = {
+  gt: ["Greater than", "Mayor que"],
+  gte: ["Greater than or equal to", "Mayor o igual que"],
+  lt: ["Less than", "Menor que"],
+  lte: ["Less than or equal to", "Menor o igual que"],
+  eq: ["Equals", "Igual a"],
+  ne: ["Does not equal", "Distinto de"],
+};
+/** Lo escrito en la casilla del valor, como número; null si está vacío o no es un número. */
+const numeroEscrito = (txt: string): number | null => {
+  const limpio = txt.replace(/,/g, "").trim();
+  if (limpio === "") return null;
+  const n = Number(limpio);
+  return Number.isFinite(n) ? n : null;
+};
 import { gruposPorTienda } from "@/lib/documento-pendiente";
 import type { VistaDeTabla } from "@/lib/filtros-guardados";
 import { etiquetaDePrioridad, prioridadDe, seDestaca, valorDePrioridad } from "@/lib/prioridad";
@@ -290,7 +307,7 @@ const ID_COLUMN: OrderColumn = {
  * Sorting sits in the same menu so both are one click away (D-275).
  * Se exporta para las tablas del Gestor de Rutas (D-360): el menú es el mismo, solo cambian las filas. */
 export function ColumnFilterMenu({
-  col, options, active, orden, onOrdenar, onApply, onClear, onClose, lang, t, style, menuRef, masOrden,
+  col, options, active, orden, onOrdenar, onApply, onClear, onClose, lang, t, style, menuRef, masOrden, numerico = false,
 }: {
   /** Solo hace falta el nombre de la columna en los dos idiomas. */
   col: Pick<OrderColumn, "en" | "es">;
@@ -310,9 +327,25 @@ export function ColumnFilterMenu({
   menuRef?: React.Ref<HTMLDivElement>;
   /** Opciones de orden de más, bajo las de ↑ / ↓ (Clientes: «Añadir como siguiente orden», D-650). Órdenes no pasa nada. */
   masOrden?: React.ReactNode;
+  /** D-840: columna de números: el menú ofrece además «mayor que», «menor que»… como Excel. */
+  numerico?: boolean;
 }) {
   const [search, setSearch] = useState("");
-  const [draft, setDraft] = useState<Set<string>>(() => new Set(active ?? options.map((o) => o.key)));
+  // Con una condición de número puesta, la lista de valores nace toda marcada (la condición no es una lista).
+  const condsPuestas = condicionesDe(active);
+  const [draft, setDraft] = useState<Set<string>>(() => new Set(active && condsPuestas.length === 0 ? active : options.map((o) => o.key)));
+  const [op1, setOp1] = useState<Comparador>(condsPuestas[0]?.op ?? "gt");
+  const [v1, setV1] = useState(condsPuestas[0] ? String(condsPuestas[0].valor) : "");
+  const [op2, setOp2] = useState<Comparador | "">(condsPuestas[1]?.op ?? "");
+  const [v2, setV2] = useState(condsPuestas[1] ? String(condsPuestas[1].valor) : "");
+  const [conO, setConO] = useState(!!active?.has(O_LOGICO));
+  const n1 = numeroEscrito(v1), n2 = numeroEscrito(v2);
+  const condiciones: CondicionNumerica[] = numerico && n1 != null
+    ? [{ op: op1, valor: n1 }, ...(op2 && n2 != null ? [{ op: op2, valor: n2 }] : [])]
+    : [];
+  const aplicar = () => onApply(condiciones.length ? filtroDeCondiciones(condiciones, conO) : draft);
+  const alPulsarEnter = (e: React.KeyboardEvent) => { if (e.key === "Enter") aplicar(); };
+  const nombreDe = (op: Comparador) => (lang === "es" ? NOMBRE_DEL_COMPARADOR[op][1] : NOMBRE_DEL_COMPARADOR[op][0]);
 
   const visible = options.filter((o) => o.label.toLowerCase().includes(search.trim().toLowerCase()));
   const allVisibleChecked = visible.length > 0 && visible.every((o) => draft.has(o.key));
@@ -348,12 +381,41 @@ export function ColumnFilterMenu({
         )}
         {masOrden}
       </div>
+      {numerico && (
+        <div className="col-menu-numero">
+          <div className="col-menu-numero-titulo">{t("Number filter", "Filtro de número")}</div>
+          <div className="col-menu-numero-fila">
+            <select value={op1} onChange={(e) => setOp1(e.target.value as Comparador)} aria-label={t("Condition", "Condición")}>
+              {COMPARADORES.map((op) => <option key={op} value={op}>{nombreDe(op)}</option>)}
+            </select>
+            <input type="text" inputMode="decimal" value={v1} onChange={(e) => setV1(e.target.value)} onKeyDown={alPulsarEnter}
+              placeholder={t("e.g. 100", "p. ej. 100")} aria-label={t("Value", "Valor")} autoFocus />
+          </div>
+          {n1 != null && (
+            <>
+              <div className="col-menu-numero-union">
+                <label><input type="radio" checked={!conO} onChange={() => setConO(false)} /> {t("And", "Y")}</label>
+                <label><input type="radio" checked={conO} onChange={() => setConO(true)} /> {t("Or", "O")}</label>
+              </div>
+              <div className="col-menu-numero-fila">
+                <select value={op2} onChange={(e) => setOp2(e.target.value as Comparador | "")} aria-label={t("Second condition", "Segunda condición")}>
+                  <option value="">{t("(no second condition)", "(sin segunda condición)")}</option>
+                  {COMPARADORES.map((op) => <option key={op} value={op}>{nombreDe(op)}</option>)}
+                </select>
+                <input type="text" inputMode="decimal" value={v2} onChange={(e) => setV2(e.target.value)} onKeyDown={alPulsarEnter}
+                  disabled={!op2} aria-label={t("Second value", "Segundo valor")} />
+              </div>
+              <div className="hint col-menu-numero-nota">{t("Apply uses this condition, not the value list.", "«Aplicar» usa esta condición, no la lista de valores.")}</div>
+            </>
+          )}
+        </div>
+      )}
       <input
         className="col-menu-search"
         placeholder={t("Search values…", "Buscar valores…")}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        autoFocus
+        autoFocus={!numerico}
       />
       <label className="col-opt">
         <input type="checkbox" checked={allVisibleChecked} onChange={toggleAllVisible} />
@@ -370,7 +432,7 @@ export function ColumnFilterMenu({
       </div>
       <div className="col-menu-actions">
         <button className="btn btn-ghost btn-sm" onClick={() => { onClear(); }}>{t("Clear", "Limpiar")}</button>
-        <button className="btn btn-primary btn-sm" onClick={() => onApply(draft)}>{t("Apply", "Aplicar")}</button>
+        <button className="btn btn-primary btn-sm" onClick={aplicar}>{t("Apply", "Aplicar")}</button>
       </div>
     </div>
   );

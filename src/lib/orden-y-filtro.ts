@@ -28,6 +28,81 @@ export function claveDeFiltro(v: ValorDeCelda): string {
 }
 
 /**
+ * D-840: filtros de número como los de Excel («mayor que 100», «menor que 50», entre dos valores).
+ *
+ * Viajan en el MISMO conjunto de claves que los valores marcados, como claves que nadie puede escribir en una celda
+ * (empiezan por espacio, como `SIN_VALOR`): `" #gt:100"`. Así no cambia el tipo de los filtros, ni la barra de
+ * «Filtrado por», ni nada que los guarde. Si una columna tiene alguna condición, manda la condición y la lista de
+ * valores marcados no cuenta (como en Excel: o filtras por valores o por condición). Dos condiciones se juntan con Y
+ * (entre 10 y 20), o con O si el conjunto lleva `O_LOGICO`. Una celda sin número no pasa ninguna condición.
+ */
+export type Comparador = "gt" | "gte" | "lt" | "lte" | "eq" | "ne";
+export const COMPARADORES: readonly Comparador[] = ["gt", "gte", "lt", "lte", "eq", "ne"];
+export type CondicionNumerica = { op: Comparador; valor: number };
+const PREFIJO_DE_CONDICION = " #";
+/** Con esta clave en el conjunto, las condiciones se juntan con O en vez de con Y. */
+export const O_LOGICO = " #or";
+
+export const claveDeCondicion = (c: CondicionNumerica): string => `${PREFIJO_DE_CONDICION}${c.op}:${c.valor}`;
+
+export function leeCondicion(clave: string): CondicionNumerica | null {
+  const m = /^ #(gt|gte|lt|lte|eq|ne):(-?\d+(?:\.\d+)?)$/.exec(clave);
+  return m ? { op: m[1] as Comparador, valor: Number(m[2]) } : null;
+}
+
+/** Las condiciones de número de un filtro (vacío si filtra por valores marcados o no filtra). */
+export function condicionesDe(s: ReadonlySet<string> | undefined): CondicionNumerica[] {
+  if (!s) return [];
+  const out: CondicionNumerica[] = [];
+  for (const k of s) { const c = leeCondicion(k); if (c) out.push(c); }
+  return out;
+}
+
+/** El conjunto de claves para unas condiciones (las que no tienen número se ignoran). */
+export function filtroDeCondiciones(conds: readonly CondicionNumerica[], o = false): Set<string> {
+  const validas = conds.filter((c) => Number.isFinite(c.valor));
+  const s = new Set(validas.map(claveDeCondicion));
+  if (o && validas.length > 1) s.add(O_LOGICO);
+  return s;
+}
+
+/** El número de una celda: los números tal cual; un texto solo si entero es un número («1,250» también). */
+export function numeroDeCelda(v: ValorDeCelda): number | null {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (v == null) return null;
+  const t = String(v).trim().replace(/,/g, "");
+  if (t === "" || !/^-?\d+(\.\d+)?$/.test(t)) return null;
+  return Number(t);
+}
+
+export function cumpleCondicion(v: ValorDeCelda, c: CondicionNumerica): boolean {
+  const n = numeroDeCelda(v);
+  if (n == null) return false;
+  switch (c.op) {
+    case "gt": return n > c.valor;
+    case "gte": return n >= c.valor;
+    case "lt": return n < c.valor;
+    case "lte": return n <= c.valor;
+    case "eq": return n === c.valor;
+    case "ne": return n !== c.valor;
+  }
+}
+
+/** ¿Pasa la celda el filtro de su columna? Con condiciones manda la condición; si no, el valor marcado. */
+export function pasaElFiltro(v: ValorDeCelda, s: ReadonlySet<string>): boolean {
+  const conds = condicionesDe(s);
+  if (conds.length === 0) return s.has(claveDeFiltro(v));
+  return s.has(O_LOGICO) ? conds.some((c) => cumpleCondicion(v, c)) : conds.every((c) => cumpleCondicion(v, c));
+}
+
+/** «> 100 y ≤ 200», para enseñar qué condición está puesta. */
+export function textoDeCondiciones(s: ReadonlySet<string> | undefined, y: string, o: string): string {
+  const signo: Record<Comparador, string> = { gt: ">", gte: "≥", lt: "<", lte: "≤", eq: "=", ne: "≠" };
+  const conds = condicionesDe(s);
+  return conds.map((c) => `${signo[c.op]} ${c.valor.toLocaleString()}`).join(s?.has(O_LOGICO) ? ` ${o} ` : ` ${y} `);
+}
+
+/**
  * Compara dos celdas para ordenar ASCENDENTE, con los nulos al final: un «—» arriba de la lista no le sirve a nadie
  * que ordenó por fecha o por pallets para ver qué va primero. Números contra números, numéricamente; lo demás, como
  * texto con `numeric` (así «#9» va antes de «#10») e ignorando mayúsculas.
@@ -70,7 +145,7 @@ export function filtraFilas<T>(
 ): T[] {
   const activos = Object.entries(filtros).filter(([k, s]) => k !== saltar && s && s.size > 0);
   if (activos.length === 0) return [...filas];
-  return filas.filter((f) => activos.every(([k, s]) => s.has(claveDeFiltro(valorDe(k, f)))));
+  return filas.filter((f) => activos.every(([k, s]) => pasaElFiltro(valorDe(k, f), s)));
 }
 
 /**

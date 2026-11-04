@@ -50228,3 +50228,17 @@ Sello `deliveries` 1.526.0; repo 1.693.0. No es recarga obligatoria: solo sirve 
 Sello `deliveries` 1.527.0; repo 1.694.0.
 
 **Pruebas:** `entrar-al-inicio.test.ts`.
+
+## D-840 · Promos: filtros de número como Excel y quién votó qué
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho directo por el orquestador en `feat/promos-filtros-y-votos` (laptop nueva).
+
+**Pedido (Roberto Rodriguez Jr, admin, en la tabla de Promo Noviembre):** «allow me to filter like excel (greater than 100 for example, less than 50, etc)» y «would like to be able to click and see who voted what».
+
+**Qué cambia:**
+- **Filtro de número (`orden-y-filtro.ts`, `ColumnFilterMenu`):** en una columna de números el menú ofrece «Mayor que», «Mayor o igual que», «Menor que», «Menor o igual que», «Igual a» y «Distinto de», con una segunda condición opcional unida con Y (entre dos valores) u O. Las condiciones viajan en el mismo conjunto de claves que los valores marcados, con claves que nadie puede escribir en una celda (`" #gt:100"`), así que no cambia el tipo de los filtros. Si hay condición, manda la condición. La barra de «Filtrado por» la dice entera («QOH > 100»). En Promos lo llevan las columnas de número (QOH y QOH por tienda, Precio, Costo, Margen, Demanda, Meses de stock). Otras tablas lo tendrán marcando `numerico` en su columna.
+- **Quién votó qué (`promos/votos.ts`, `PanelDeVotos`):** para el admin y quien decide, la pastilla de Decisión se pulsa y abre, grupo por grupo de tiendas, la decisión, quién, cuándo, y el precio o la nota si los hay. Los grupos que aún no decidieron salen en Pendiente. Los nombres se leen con la sesión de quien mira (la RLS de `profiles` lo deja, 099): Promos sigue sin llave de servicio. La base guarda la última decisión de cada grupo: si alguien cambió su voto, se ve el de ahora.
+
+Sello `promos` 0.22.0; repo 1.695.0.
+
+**Pruebas:** `promos/filtros-y-votos.test.ts`; `precio-por-grupo.test.ts` puesta al día.

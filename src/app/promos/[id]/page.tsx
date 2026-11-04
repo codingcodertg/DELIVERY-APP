@@ -71,12 +71,26 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
 
   const { data: decisiones } = await supabase
     .from("promo_decisions")
-    .select("round_id, code, group_code, status, note, price")
+    .select("round_id, code, group_code, status, note, price, decided_by, decided_at")
     .eq("round_id", id)
     .limit(20000);
 
   const rol = me?.role ?? null;
   const grupo = grupoDeLaTienda(tiendas, me?.store ?? null);
+  const esDecisor = esDecisorDePromos({ rol, grupo });
+  // D-840: quién votó qué, para el admin y quien decide. Los nombres de quien decidió, con la sesión de quien mira
+  // (la RLS de profiles deja leerlos a cualquiera con sesión, 099) y solo esos: id → nombre. Sin llave de servicio en Promos.
+  const veVotos = rol === "admin" || esDecisor;
+  const nombres: Record<string, string> = {};
+  if (veVotos) {
+    const ids = Array.from(new Set((decisiones ?? []).map((d) => d.decided_by as string | null).filter((x): x is string => !!x)));
+    if (ids.length) {
+      try {
+        const { data: perfiles } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+        for (const p of perfiles ?? []) nombres[p.id as string] = ((p.full_name as string | null) || "—").trim();
+      } catch { /* sin nombres: el panel dice «alguien» y sigue */ }
+    }
+  }
   const gruposDelLibro = Array.from(
     new Set(tiendas.map((t) => (t.promo_group ?? "").trim()).filter((g) => g !== "")),
   );
@@ -94,7 +108,9 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
         rol={rol}
         userId={user?.id ?? null}
         grupo={grupo}
-        esDecisor={esDecisorDePromos({ rol, grupo })}
+        esDecisor={esDecisor}
+        veVotos={veVotos}
+        nombres={nombres}
         esAdmin={rol === "admin"}
         gruposDelLibro={gruposDelLibro}
         rondas={(todasLasRondas ?? []) as { id: string; label: string; uploaded_at: string; closed_at: string | null }[]}
