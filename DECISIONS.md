@@ -50272,3 +50272,19 @@ Sello `deliveries` 1.528.0; repo 1.696.0.
 Sello `recruiting` 0.73.0; repo 1.697.0.
 
 **Pruebas:** `cambio-de-usuario.test.ts`.
+
+## D-843 · RR. HH.: el buscador de la barra encuentra candidatos y empleados, y se nota cuál es cuál
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `feat/recruiting-busca-empleados`, revisado y fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño, con captura de «🔍 Buscar candidatos… ( / )»):** «aquí no es solo candidatos, también empleados, pero que se note la diferencia entre los 2».
+
+**Qué cambia:**
+- **`GlobalSearch`:** dos grupos, «👥 Candidatos · n» y «👤 Empleados · n», con una pastilla por fila (Candidato en azul, Empleado en verde) y avatar cuadrado para el empleado. La segunda línea del empleado dice puesto · tienda · teléfono, con «Baja» delante si se fue. Teclado igual que antes (`/`, flechas, Enter, Escape) sobre la lista entera.
+- **Empleados (`buscaEmpleadosParaLaBarra`, `actions/hr.ts`):** se buscan en el servidor con la misma barrera que la pantalla Empleados (admin y gerente de RR. HH.) y con la sesión de quien busca, así que la RLS decide igual. Solo vuelven las coincidencias, recortadas (id, nombre, puesto, tienda, teléfono, baja), hasta 6; activos primero. A un reclutador o gerente de tienda la barra no le pide empleados y conserva «Buscar candidatos…».
+- **Al pulsar un empleado:** `/recruiting/employees?ficha=<id>` abre su ficha (también si está de baja) y quita el parámetro.
+- Lógica pura en `recruiting/busqueda-global.ts`.
+
+Sello `recruiting` 0.74.0; repo 1.698.0.
+
+**Pruebas:** `recruiting/busqueda-global.test.ts`.
