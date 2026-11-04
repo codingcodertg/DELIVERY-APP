@@ -19,6 +19,7 @@ import { cotizacionesPorLead, enlaceACotizacion, enlaceACotizar, idDeParametro, 
 import { enlaceDeLaBase, enlaceDemo, type AlmacenDelEnlace } from "@/lib/leads/enlace";
 // D-850: los teléfonos se enseñan en la forma única del hub; el Excel los trae de mil maneras («956.555.0123», «956-555-0123»).
 import { telefonoEstandar } from "@/lib/recruiting/formato";
+import { terminoLabel } from "@/lib/customers/terminos";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
 type Pestana = "banco" | "mio" | "admin" | "privado";
@@ -605,7 +606,8 @@ function FichaCruzada({ dialogo, onCerrar }: { dialogo: Extract<Dialogo, { tipo:
     [t("Email", "Correo"), c.email],
     [t("Address", "Dirección"), c.address],
     [t("Account no.", "N.º de cuenta"), c.account_no],
-    [t("Terms", "Términos"), c.terms],
+    // Los términos con su etiqueta de Clientes («30 days» / «30 días»); uno viejo, tal cual.
+    [t("Terms", "Términos"), c.terms?.trim() ? terminoLabel(c.terms, t) : null],
     [t("Credit limit", "Límite de crédito"), c.credit_limit == null ? null : dinero(c.credit_limit)],
     [t("Status", "Estado"), [c.activity_status, c.status_store].filter(Boolean).join(" · ") || null],
     [t("Notes", "Notas"), c.notes],

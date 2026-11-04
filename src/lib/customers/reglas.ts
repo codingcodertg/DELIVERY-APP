@@ -4,6 +4,7 @@ import { colocaColumna, mueveColumna, ordenEfectivo } from "@/lib/orden-de-colum
 import { contactosDe } from "./contactos";
 import { espejoDeContactos, formatoDeCampo, normalizaContactos, type Contacto } from "./formato";
 import { SIN_ASIGNAR } from "./pedir-vendedor";
+import { rangoDeTermino, terminoAceptado, terminoDeFicha, terminoLabel } from "./terminos";
 
 /**
  * «Clientes» (migración 180): las reglas de la pantalla, puras y probadas sin navegador. La base las vuelve a exigir
@@ -383,6 +384,8 @@ export function valorDeColumna(c: Cliente, key: ClaveDeColumna, tiendasDe?: (c: 
   if (key === "contacts" || key === "socials") return null;
   // D-683: el vendedor se enseña, ordena y busca por su NOMBRE.
   if (key === "rep_id") return c.rep_name ?? c.rep_id ?? null;
+  // Los términos (`terminos.ts`): «NET 30» y «Net 30» son la misma opción, una sola casilla en el filtro.
+  if (key === "terms") return terminoDeFicha(c.terms) || null;
   return c[key] ?? null;
 }
 
@@ -393,6 +396,11 @@ const rangoHistoria = (h: string | null) => { const i = HISTORIAS.indexOf(h as (
 function comparaPor(a: Cliente, b: Cliente, k: ClaveDeColumna, tiendasDe?: (c: Cliente) => number): number {
   if (k === "status_store" || k === "status_group") return rangoEstado(a[k]) - rangoEstado(b[k]);
   if (k === "history_store" || k === "history_group") return rangoHistoria(a[k]) - rangoHistoria(b[k]);
+  // Al recibir, 15, 30, luego los viejos; sin términos, al final.
+  if (k === "terms" && !!a.terms?.trim() && !!b.terms?.trim()) {
+    const r = rangoDeTermino(a.terms) - rangoDeTermino(b.terms);
+    if (r !== 0) return r;
+  }
   const va = valorDeColumna(a, k, tiendasDe), vb = valorDeColumna(b, k, tiendasDe);
   if (va === null && vb === null) return 0;
   if (va === null) return 1;
@@ -454,7 +462,7 @@ export function esVendedor(role: UserRole | null | undefined): boolean {
 }
 export const GRUPOS_QUE_NO_VE_EL_VENDEDOR: readonly string[] = ["credito"];
 
-export type TipoCampo = "text" | "num" | "textarea" | "estado" | "historia" | "qb" | "tienda" | "impuesto" | "vendedor";
+export type TipoCampo = "text" | "num" | "textarea" | "estado" | "historia" | "qb" | "tienda" | "impuesto" | "vendedor" | "terminos";
 /**
  * Los grupos de la ficha, en su orden (D-634). `cabecera` no es una tarjeta: la cuenta y la tienda van arriba, en el nombre
  * y en las pestañas de tiendas (D-654, el dueño: «abajo donde dice cuenta, vuelve a decir la tienda […] elimina esa
@@ -496,7 +504,8 @@ export const CAMPOS: readonly Campo[] = [
   { key: "website", tipo: "text", en: "Website", es: "Sitio web", grupo: "ocultos" },
   // D-786: la dirección de la cuenta vuelve a «Contacto», debajo de los contactos (Roberto: «Missing address now»).
   { key: "address", tipo: "textarea", en: "Address", es: "Dirección", grupo: "contacto" },
-  { key: "terms", tipo: "text", en: "Terms", es: "Términos", grupo: "credito" },
+  // El dueño (2026-11-04): «terms in customer can a dropdown that says due on receipt / 15 days / 30 days» (`terminos.ts`).
+  { key: "terms", tipo: "terminos", en: "Terms", es: "Términos", grupo: "credito" },
   { key: "credit_limit", tipo: "num", en: "Credit limit", es: "Límite de crédito", grupo: "credito" },
   { key: "euler_limit", tipo: "num", en: "Euler limit", es: "Límite Euler", grupo: "credito" },
   { key: "account_no", tipo: "text", en: "Account / credit", es: "Cuenta / crédito", grupo: "credito" },
@@ -608,6 +617,7 @@ export function textoDeCampo(c: Cliente, campo: Campo, t: T): string {
     case "historia": return historiaLabel(c[campo.key] as string | null, t);
     case "qb": return qbLabel(c[campo.key] as string | null, t);
     case "impuesto": return impuestoLabel(c[campo.key] as string | null, t);
+    case "terminos": return terminoLabel(c[campo.key] as string | null, t);
     case "num": return dinero(c[campo.key] as number | null);
     default: { const v = c[campo.key]; return v === null || v === undefined || v === "" ? "—" : String(v); }
   }
@@ -628,7 +638,9 @@ export function formDe(c: Cliente | null): Record<string, string> {
   const f: Record<string, string> = {};
   for (const campo of CAMPOS) {
     const v = c ? c[campo.key] : null;
-    f[campo.key] = v === null || v === undefined ? "" : String(v);
+    // Los términos, ya como su opción («NET 30» → «Net 30»), en el formulario y en el original: abrir y guardar sin
+    // tocarlos no los cuenta como cambio; uno viejo («25 Days») se queda tal cual.
+    f[campo.key] = campo.tipo === "terminos" ? terminoDeFicha(v as string | null) : v === null || v === undefined ? "" : String(v);
   }
   return f;
 }
@@ -657,6 +669,14 @@ export function parcheDe(form: Record<string, string>, original: Record<string, 
       continue;
     }
     if ((campo.key === "account" || campo.key === "store") && v === "") { errores.push(campo.key); continue; }
+    // Los términos: una de las tres opciones o vacío (`terminoAceptado`; lo que ya había sin cambiar no llega aquí).
+    if (campo.tipo === "terminos") {
+      const n = terminoDeFicha(v);
+      if (n === terminoDeFicha(o)) continue;
+      if (!terminoAceptado(n, o)) { errores.push(campo.key); continue; }
+      parche[campo.key] = n === "" ? null : n;
+      continue;
+    }
     // D-635: lo que se guarda va en su formato (nombres en MAYÚSCULAS, teléfono «(956) 340-5910», correo en minúsculas).
     // Si en formato es lo mismo que ya había, no hay cambio que guardar.
     const f = campo.key === "store" ? v.toUpperCase() : formatoDeCampo(campo.key, v);
@@ -759,6 +779,7 @@ export function textoDeValor(key: ClaveDeColumna, v: Cliente[keyof Cliente], t: 
     case "history_store": case "history_group": return historiaLabel(v as string | null, t);
     case "qb_status": return qbLabel(v as string | null, t);
     case "tax_terms": return impuestoLabel(v as string | null, t);
+    case "terms": return terminoLabel(v as string | null, t);
     case "credit_limit": case "euler_limit": return dinero(v as number | null);
     case "updated_at": return fecha(v as string | null);
     case "archived_reason": return motivoLabel(v as string | null, t);
