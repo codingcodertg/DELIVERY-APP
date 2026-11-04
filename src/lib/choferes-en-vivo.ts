@@ -1,4 +1,5 @@
 import type { DriverLocation } from "@/lib/types";
+import { unCamionPorChofer } from "@/lib/recorrido-contra-plan";
 
 /**
  * Qué choferes están reportando ahora mismo, y dónde (D-289).
@@ -33,6 +34,9 @@ export type ChoferEnVivo = {
  * «el camión está ahí», que es peor que no pintar nada.
  *
  * `ahora` entra por parámetro para poder probar la frontera sin esperar una hora.
+ *
+ * D-NEXT: un chofer, UN camión — el de su posición más nueva —, aunque la lista traiga varias suyas (el dueño: «Solo
+ * debería ser 1, que sea el driver en ese momento»).
  */
 export function choferesEnVivo(
   posiciones: DriverLocation[],
@@ -40,13 +44,13 @@ export function choferesEnVivo(
   colorDe: (nombre: string) => string,
   ahora: number = Date.now(),
 ): ChoferEnVivo[] {
-  return posiciones.flatMap((loc) => {
+  return unCamionPorChofer(posiciones.flatMap((loc) => {
     const driver = nombrePorId.get(loc.driver_id);
     if (!driver) return [];
     const ageMin = (ahora - new Date(loc.recorded_at).getTime()) / 60000;
     if (ageMin > MINUTOS_EN_VIVO) return [];
     return [{ driver, lat: loc.lat, lng: loc.lng, color: colorDe(driver), accuracy_m: loc.accuracy_m ?? null, ageMin }];
-  });
+  }));
 }
 
 /** «🚚 Ana · hace 3 min». La escribe quien pinta, en su idioma. */
