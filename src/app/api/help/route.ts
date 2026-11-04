@@ -1,10 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { resendFrom } from "@/lib/email";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CUBO_DE_ADJUNTOS, LIMITES_DE_ADJUNTOS, VALIDEZ_DEL_ENLACE, esMiRuta, lineasDeAdjuntos } from "@/lib/help-attachments";
 import { destinoDeAyuda, type ContactoDeAyuda } from "@/lib/ayuda-flotante";
 import { enlaceParaCopiar, htmlDelCorreoDeAyuda } from "@/lib/ayuda-para-claude";
 import { origenPublico } from "@/lib/avisos-cliente-envio";
+import { destinoDelAviso, enviarAvisoDeAyuda, textoDelAviso } from "@/lib/aviso-de-ayuda";
+import { proveedorDelEntorno } from "@/lib/mensajeria";
 
 import { requireUser } from "@/lib/api-auth";
 
@@ -60,6 +62,30 @@ async function ajustesDeAyuda(): Promise<{ help_email: string | null; help_phone
  * Lo que la burbuja de Ayuda necesita y antes sacaba del `DataProvider` de Entregas (D-530): el teléfono de ayuda
  * y quién escribe. Con sesión, como el POST; sin ella, 401 y la burbuja no puede mandar nada.
  */
+/**
+ * El móvil al que avisar por SMS (D-NEXT), en su propia lectura: si la columna aún no existe (migración 240 sin aplicar)
+ * falla solo esto y el correo sigue yendo a donde iba. `null` = no se avisa.
+ */
+async function telefonoDelAviso(): Promise<string | null> {
+  try {
+    const { data, error } = await createAdminClient().from("settings").select("help_sms_to").eq("id", 1).maybeSingle();
+    if (error) return null;
+    return destinoDelAviso((data as { help_sms_to: string | null } | null)?.help_sms_to);
+  } catch {
+    return null;
+  }
+}
+
+/** `after()` de Next si hay petición de verdad; fuera de ella (las pruebas llaman a la ruta a pelo), una promesa suelta. */
+function enSegundoPlano(tarea: () => Promise<void>) {
+  const segura = () => tarea().catch((e) => console.error("[help] sms alert crashed:", (e as Error)?.message ?? e));
+  try {
+    after(segura);
+  } catch {
+    void segura();
+  }
+}
+
 export async function GET() {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
@@ -156,10 +182,27 @@ export async function POST(req: Request) {
     } catch { /* el correo ya se intentó; no se pierde la solicitud por no poder anotarlo */ }
   };
 
+  const copiar = fila?.id ? enlaceParaCopiar(origenPublico(req.url), String(fila.id)) : null;
+  // Aviso al teléfono del dueño (D-NEXT): un SMS corto, después de responder (`after`), con tiempo límite. Nunca
+  // bloquea ni tumba la solicitud; si falla, queda en el log del servidor.
+  enSegundoPlano(async () => {
+    const aviso = await telefonoDelAviso();
+    if (!aviso) return;
+    const texto = textoDelAviso({
+      quien: who,
+      rol: body.role,
+      pagina: body.page,
+      mensaje: message,
+      fotos: mios.length,
+      enlace: copiar,
+    });
+    const r = await enviarAvisoDeAyuda(proveedorDelEntorno(), aviso, texto);
+    if (!r.ok) console.error("[help] sms alert not sent:", "error" in r ? r.error : r.motivo);
+  });
+
   const subject = `Help request from ${who}${roleLabel}`;
   // «📋 Copy for Claude» (D-844): la pantalla del hub que deja la solicitud lista para pegarla en Claude —texto e
   // imagen de una vez— y baja la captura sola. Absoluto, con el dominio de producción: el correo se abre fuera de la app.
-  const copiar = fila?.id ? enlaceParaCopiar(origenPublico(req.url), String(fila.id)) : null;
   const contexto = [
     `From: ${who}${senderEmail ? ` <${senderEmail}>` : ""}${roleLabel}`,
     body.page ? `Page: ${body.page}` : null,

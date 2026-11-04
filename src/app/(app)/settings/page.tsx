@@ -81,6 +81,19 @@ export default function SettingsPage() {
           saveLabel={t("Save", "Guardar")}
           onSave={(v) => { saveSettings({ help_phone: telefonoEstandar(v) || null } as Partial<Settings>); notify(t("Saved", "Guardado")); }}
         />
+        <label style={{ display: "block", marginTop: 14, marginBottom: 6, fontSize: 13, fontWeight: 600 }}>
+          📱 {t("Text me new requests (optional)", "Avisarme por SMS de cada solicitud (opcional)")}
+        </label>
+        <p className="hint" style={{ marginTop: 0, marginBottom: 8 }}>
+          {t("Each new help request also sends a short text to this mobile, with a link to it. Leave blank for no text.", "Cada solicitud de ayuda nueva manda además un SMS corto a este móvil, con el enlace. Déjelo vacío para no recibir SMS.")}
+        </p>
+        {/* D-NEXT: el SMS al dueño. Se guarda en la forma del hub; el servidor lo pasa a E.164. */}
+        <HelpPhone
+          current={telefonoEstandar(settings.help_sms_to)}
+          placeholder="(956) 555-0100"
+          saveLabel={t("Save", "Guardar")}
+          onSave={(v) => { saveSettings({ help_sms_to: telefonoEstandar(v) || null } as Partial<Settings>); notify(t("Saved", "Guardado")); }}
+        />
       </div>
 
       <div className="card">

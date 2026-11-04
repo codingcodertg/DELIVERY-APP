@@ -701,6 +701,10 @@ export interface Settings {
    * link that opens the user's phone dialer (tel:) with this number. */
   help_phone?: string;
 
+  /** D-NEXT: mobile that gets an SMS when a help request arrives, in the hub's «(956) 555-0100» form.
+   * Empty = no SMS. Read only by the server (/api/help). */
+  help_sms_to?: string | null;
+
   /** When true, a driver can't mark an order Delivered until proof exists — at
    * least one material photo OR a captured signature. Off by default. */
   require_pod?: boolean;
