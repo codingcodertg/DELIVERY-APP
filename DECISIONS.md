@@ -50045,3 +50045,13 @@ Sello `security` 0.11.0; repo 1.683.0.
 **Qué cambia:** el contador grande usa `fmtClockSinSegundos` («0:01», «8:07»). El tick de un segundo se queda porque hace más que repintar (latido de diez segundos, vigía). El detalle de comidas y descansos y las pantallas de medir (semana, nómina, en vivo) siguen con segundos. Sello `timetracker` 1.15.1; repo 1.684.0.
 
 **Pruebas:** `cronometro-sin-segundos.test.ts`.
+
+## D-830 · Security · Salud del sistema de un vistazo
+
+**Fecha:** 2026-11-03 · Sin migración · Hecho directo por el orquestador en `feat/security-salud` (laptop nueva).
+
+**Pedido (el dueño):** de la lista de sugerencias, la 10: «tablero de salud del sistema: versión de app por computadora, última entrada por persona, errores… juntarlo en una vista».
+
+**Qué cambia:** Security abre con una fila de tarjetas (`data-bloque="salud"`), sacadas de lo que la página ya carga, en tiempo real como el resto (D-820): versión publicada de Deliveries y Security (el resto, al pasar el ratón); apps de escritorio al día sobre el total y cuántas van atrás (rojo si hay alguna); dentro en la última hora; usuarios activos sin entrar en 7 días (ámbar); dispositivos por aprobar (ámbar); bloqueos web en 24 h (rojo); entradas desde sitio nuevo en 7 días (rojo). Sin «errores de la API»: no hay tabla de errores de cliente que leer; cuando la haya, es una tarjeta más. Sello `security` 0.12.0; repo 1.685.0.
+
+**Pruebas:** `cierra-sesiones.test.ts` (la fila y sus 7 tarjetas).

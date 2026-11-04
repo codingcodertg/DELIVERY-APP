@@ -28,3 +28,13 @@ describe("D-828: cerrar sesiones", () => {
     expect(panel).toContain("window.confirm(");
   });
 });
+
+describe("D-830: salud del sistema de un vistazo", () => {
+  it("Security abre con la fila de KPIs: versión, escritorios al día, dentro, sin entrar, pendientes, bloqueos, sitios nuevos", () => {
+    const panel = leer("src/app/security/PanelDeSeguridad.tsx");
+    expect(panel).toContain('data-bloque="salud"');
+    for (const k of ["version", "escritorio", "dentro", "sin-entrar", "pendientes", "bloqueos", "sitios-nuevos"]) expect(panel).toContain(`data-kpi="${k}"`);
+    expect(panel).toContain("APP_VERSIONS.deliveries");
+    expect(panel).toContain("ESCRITORIO_MINIMO");
+  });
+});
