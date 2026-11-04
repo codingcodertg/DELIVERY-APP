@@ -16,6 +16,7 @@ import type { LatLng } from "@/lib/route-times/claves";
 import type { Delivery, DriverSettings, NamedLocation, Profile, Settings } from "@/lib/types";
 import { ETAPAS_RUTEABLES, ordenDeLaParte, type EscrituraDeOrden } from "./publicar";
 import { palletsDeLaOrden } from "../pallets";
+import { aprendeAfinidad, PESO_DE_HISTORIA_POR_DEFECTO, type Antecedente } from "../route-engine/afinidad";
 
 /**
  * De lo que hay en la base a lo que entiende el motor, y de vuelta (D-320). Puro: recibe filas y devuelve
@@ -71,6 +72,9 @@ export interface DatosDelDia {
   /** De qué tienda sale y en cuál termina cada chofer ESE día, por id (166, `driver_day_bases`; `base-del-dia.ts`). Manda
    *  sobre la base de Ajustes; las zonas siguen a la salida (D-479). Sin nada, como siempre. */
   basesDelDia?: BasesDelDia;
+  /** D-834: las rutas publicadas de días anteriores, para que el motor aprenda quién suele llevar qué. `fecha` es el día
+   *  que se planifica: solo cuenta lo de antes. Sin ella, el motor decide como antes. */
+  historia?: { fecha: string; antecedentes: readonly Antecedente[] };
 }
 
 /** Las columnas de una orden que lee «Planificar el día». `priority` (147) y `requirements` (151) no están: las añade
@@ -169,6 +173,10 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
   // con ellas (D-423). Una ciudad que no es zona de nadie no decide nada en el motor, así que no hace falta más lista.
   const zonasConocidas = choferes.flatMap((c) => c.zonas ?? []);
 
+  // ---- Lo aprendido (D-834) ----
+  const pesoHistoria = pesosDeRuta(settings).historia ?? PESO_DE_HISTORIA_POR_DEFECTO;
+  const afinidadDe = datos.historia && pesoHistoria > 0 ? aprendeAfinidad(datos.historia.antecedentes, choferes.map((c) => c.nombre), datos.historia.fecha) : null;
+
   // ---- Órdenes ----
   const ordenes: OrdenEntrada[] = [];
   const fotos: EntradaDelDia["fotos"] = [];
@@ -227,6 +235,13 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
       ...(hayZonas && zonaDeLaOrden(d, zonasConocidas) ? { zona: zonaDeLaOrden(d, zonasConocidas) } : {}),
       // Y la de la recogida (D-427): recoger en la tienda de la zona de otro chofer también es entrar en su zona.
       ...(zonaRecogida ? { zonaRecogida } : {}),
+      // Lo aprendido (D-834): quién suele llevar órdenes de esta tienda, este cliente, este sitio.
+      ...(() => {
+        if (!afinidadDe) return {};
+        const tienda = recogidaLibre ? null : (tiendas.find((t) => igual(t.name, d.pickup_name))?.name ?? d.store);
+        const a = afinidadDe({ tienda, cuenta: d.account, lat: d.delivery_lat, lng: d.delivery_lng });
+        return a ? { afinidad: a } : {};
+      })(),
     });
     fotos.push({ id: d.id, updated_at: d.updated_at, factura: d.invoice_num ?? null });
   }
@@ -239,7 +254,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     if (validas.length) secuenciaFijada[chofer] = validas.map((p) => ({ orden: p.orden, tipo: p.tipo }));
   }
   // Entregar antes lo que está de paso (D-464): «Armar rutas» lo lleva siempre, con la banda de siempre; el motor solo, no.
-  const parametros: Parametros = { ...PARAMETROS_POR_DEFECTO, pesos: pesosDeRuta(settings), topeTardeAnchaMin: topeDeRetrasoMin(settings), ...opcionesDeReparto(settings), dePaso: TOLERANCIA_DE_PASO };
+  const parametros: Parametros = { ...PARAMETROS_POR_DEFECTO, pesos: { ...pesosDeRuta(settings), ...(afinidadDe ? { historia: pesoHistoria } : {}) }, topeTardeAnchaMin: topeDeRetrasoMin(settings), ...opcionesDeReparto(settings), dePaso: TOLERANCIA_DE_PASO };
   return { entrada: { ordenes, choferes, matriz: {}, ...(Object.keys(secuenciaFijada).length ? { secuenciaFijada } : {}) }, parametros, puntos, fotos, fuera, choferesFuera };
 }
 

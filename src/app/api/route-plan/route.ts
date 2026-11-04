@@ -13,6 +13,7 @@ import { porQueDelPlan } from "@/lib/route-plan/porque";
 import { ETAPAS_RUTEABLES } from "@/lib/route-plan/publicar";
 import { cacheEnSupabase, type ClienteDeCache } from "@/lib/route-times/cache-supabase";
 import { proveedorEstimado, proveedorGoogle, proveedorOSRM, type FetchFn, type ProveedorDeTiempos } from "@/lib/route-times/proveedores";
+import { leeHistoriaDeRutas, type ClienteDeHistoria } from "@/lib/route-plan/historia";
 import { COLUMNAS_DE_AJUSTES, COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER, entradaDelDia, leeConOpcionales, leeOrdenesDelDia, type DatosDelDia } from "@/lib/route-plan/entrada";
 import { fotoDeLaCopia, type OrdenAhora } from "@/lib/route-plan/copia";
 import { hayQueReleer, parteEnLaBase, type ClienteDeCargas } from "@/lib/route-plan/partir-antes-de-planificar";
@@ -58,6 +59,8 @@ async function leeElDia(supabase: Sesion, fecha: string, extra = ""): Promise<{ 
     supabase.from("driver_availability").select("driver_id, start_date, end_date"),
     supabase.from("route_plans").select("writes").eq("plan_date", fecha).eq("status", "published").maybeSingle(),
   ]);
+  // D-834: las rutas hechas de los 120 días anteriores, para aprender quién lleva qué. Si falla, se planifica sin ellas.
+  const historia = await leeHistoriaDeRutas(supabase as unknown as ClienteDeHistoria, fecha);
   const fallo = ordenes.error ?? ajustes.error ?? choferes.error ?? deChofer.error ?? ausencias.error ?? publicado.error;
   if (fallo || !ajustes.data) return { ok: false, respuesta: NextResponse.json({ error: "Could not read the day.", detail: fallo?.message ?? "no settings" }, { status: 500 }) };
 
@@ -83,6 +86,7 @@ async function leeElDia(supabase: Sesion, fecha: string, extra = ""): Promise<{ 
       noDisponibles: [...unavailableDriverNames((ausencias.data ?? []) as { driver_id: string; start_date: string; end_date: string }[], nombrePorId, fecha)],
       bloqueadas: candados.fuente === "base" ? candados.rutas : [],
       basesDelDia: bases.fuente === "base" ? bases.bases : {},
+      historia: { fecha, antecedentes: historia },
     },
   };
 }

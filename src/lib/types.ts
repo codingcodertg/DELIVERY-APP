@@ -458,6 +458,8 @@ export interface RouteWeights {
   /** Por RECOGIDA en la tienda de la zona de otro chofer (D-479, `motor-8`): la punta cara. Opcional, como `zona`, y en el
    *  mismo jsonb: sin él, `PESO_DE_ZONA_RECOGIDA_POR_DEFECTO`. */
   zonaRecogida?: number;
+  /** D-834: peso de lo aprendido de las rutas publicadas (minutos equivalentes por orden); 0 lo apaga. */
+  historia?: number;
   /** El umbral de la zona, en millas (D-423): por debajo, la zona gana al builder y al balance. Opcional, como `zona`, y
    *  en el mismo jsonb: sin él, `UMBRAL_DE_ZONA_POR_DEFECTO_MI`. */
   zonaMillas?: number;

@@ -50109,3 +50109,34 @@ Sellos `deliveries` 1.520.0, `timetracker` 1.15.2; repo 1.687.0.
 Sello `deliveries` 1.521.0; repo 1.688.0.
 
 **Pruebas:** `recorrido.test.ts`.
+
+## D-834 · Rutas: el motor aprende de las rutas publicadas (motor-10)
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho directo por el orquestador en `feat/rutas-aprendidas` (laptop nueva).
+
+**Pedido (el dueño):** «el route manager aún tiene un gran problema: siempre hay que volver a reorganizar todo porque nunca quedan como tienen que quedar. Ya hemos hecho varias rutas: quiero que el sistema estudie y aprenda de todas las que hemos hecho para que ese botón de optimizar y el autoassign funcionen bien, como nosotros pensamos para armar las rutas».
+
+**Lo que se midió primero (producción, solo lectura):** 21 días con la propuesta original del motor guardada (`route_plans`, `source = engine`, con su entrada exacta) contra lo que el equipo publicó (`deliveries.assigned_driver`, `route_seq`), 229 órdenes:
+- chofer igual al publicado: **65%**; orden de paradas (pares en el mismo orden): 76% contra el plan original, 84% al repetir con el motor de hoy;
+- lo publicado contra lo que el chofer hizo en la calle: 64%.
+- Ninguna regla simple explica cómo se ordenan las paradas (más cerca primero, vecino más cercano, por tienda, más pallets primero: 47–58%, casi al azar). **El problema grande es a QUIÉN va cada orden, no el orden.**
+
+**Qué cambia:**
+- **`route-engine/afinidad.ts`:** `aprendeAfinidad(historia, choferes, hoy)` da, para cada orden, la afinidad de cada chofer (0..1) aprendida de las rutas hechas de los 120 días ANTERIORES, con media vida de 45 días. Tres señales posibles —tienda de recogida, cliente, cercanía de la entrega—; calibradas, **solo cuenta la tienda** (`pesoSitio 0`, `pesoCuenta 0`): la cercanía empeoraba el acierto (los choferes cruzan territorios para entregar) y el cliente no añadía nada con los datos de hoy.
+- **El motor (`evalua.ts`, `motor-10`):** cada orden con afinidad cuesta `historia × (1 − afinidad del chofer que la lleva)` (`historiaMil` en el desglose). `PESO_DE_HISTORIA_POR_DEFECTO = 240` minutos equivalentes; se guarda en `route_weights.historia` y se cambia en Ajustes → Rutas («6 · Aprendido de las rutas hechas», 0 = apagado).
+- **Preferencia, nunca regla:** si lo aprendido deja alguna orden fuera, `planifica` vuelve a planificar sin ello y se queda el plan con menos órdenes fuera (como las zonas, D-421). Sin esa vuelta, la historia dejaba 2 órdenes más fuera en los 21 días.
+- **Dónde se usa:** «🧭 Armar rutas» (el servidor lee la historia con la sesión de quien planifica, `leeHistoriaDeRutas`, que nunca falla: sin historia planifica como antes) y «Asignar a…» con varios choferes (la historia que el Gestor ya tiene cargada).
+- **«🧭 Optimizar» de una ruta no cambia:** no mueve órdenes entre choferes, y el orden de paradas no se explica por ninguna regla aprendible con estos datos; su motor ya coincide en 84% de los pares.
+
+**Resultado, repitiendo los 21 días reales (cada día aprende solo de los anteriores):**
+
+| | chofer igual al publicado | orden de paradas | órdenes fuera |
+| --- | --- | --- | --- |
+| motor-9 | 65.1% (149/229) | 84.1% | 14 |
+| motor-10 | **78.6%** (180/229) | 81.0% | 14 |
+
+Sello `deliveries` 1.522.0; repo 1.689.0.
+
+**Pruebas:** `afinidad.test.ts` (el modelo, el coste, que el motor cambia de chofer con la historia y no sin ella, el cableado); `calibra.backtest.test.ts` repite la calibración si se le da un volcado (`RUTAS_DATOS`), si no se salta; versión en las pruebas que la fijan.
+
+**Pendiente:** con más semanas de rutas, repetir la calibración (las señales de cliente y cercanía pueden empezar a ayudar); registrar los reordenamientos manuales como eventos (hoy `reorderStops` no deja rastro) para poder aprender también el orden.

@@ -72,6 +72,9 @@ export interface OrdenEntrada {
    *  recogerla a la zona de otro chofer también es entrar en su zona. Sin ella, o con la recogida ya hecha, solo cuenta
    *  la entrega, como antes. */
   zonaRecogida?: string | null;
+  /** D-834: afinidad aprendida de las rutas publicadas: chofer (nombre, en minúsculas) → 0..1. Llevarla con un chofer
+   *  cuesta `historia` × (1 − su afinidad). Sin ella, nada cambia. */
+  afinidad?: Record<string, number> | null;
 }
 
 /** Los cuatro niveles de la 147. El motor no importa `lib/prioridad`: se queda sin nada de fuera. */
@@ -122,6 +125,9 @@ export interface Pesos {
   /** Por RECOGIDA en la tienda de la zona de otro chofer (D-479, `motor-8`): la punta cara. En minutos equivalentes, como
    *  `zona`, y en su lugar para esa punta (no encima). Ausente = el de por defecto; 0 = la recogida cuesta lo que `zona`. */
   zonaRecogida?: number;
+  /** D-834: por orden que lleva un chofer que nunca la habría llevado (afinidad 0), en minutos equivalentes; con afinidad
+   *  p cuesta (1 − p) de esto. Ausente o 0 = la historia no decide nada. */
+  historia?: number;
   /** El umbral de la zona, en millas (D-423): por debajo, la zona gana al builder y al balance. No es un peso —no entra
    *  en el coste—, pero se guarda con ellos en `route_weights`. Ausente = el de por defecto; 0 = solo el peso `zona`. */
   zonaMillas?: number;
@@ -181,6 +187,8 @@ export interface Desglose {
   /** De esas puntas, cuántas son RECOGIDAS en la tienda de la zona de otro (D-479): las que cuestan `zonaRecogida`. Va con
    *  `fueraDeZona`: solo si algún chofer tiene zonas. Un desglose guardado antes no la trae y vale cero (todo a `zona`). */
   recogidasFueraDeZona?: number;
+  /** D-834: (1 − afinidad) × 1000 sumado sobre las entregas. Solo si alguna orden trae afinidad. */
+  historiaMil?: number;
   /** La suma ponderada, en unidades internas enteras. Solo sirve para comparar dos planes. */
   total: number;
 }
@@ -234,6 +242,8 @@ export interface RutaEvaluada {
   fueraDeZona?: number;
   /** De esas, las recogidas en la tienda de la zona de otro (D-479). Solo si el chofer tiene zonas. */
   recogidasFueraDeZona?: number;
+  /** D-834: suma de (1 − afinidad) × 1000 de las entregas de esta ruta. Solo si alguna orden trae afinidad. */
+  historiaMil?: number;
   violaciones: Violacion[];
 }
 
