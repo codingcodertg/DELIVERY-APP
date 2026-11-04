@@ -50094,3 +50094,18 @@ Sello `deliveries` 1.519.0; repo 1.686.0. La pestaña «Recorrido» para verlo e
 Sellos `deliveries` 1.520.0, `timetracker` 1.15.2; repo 1.687.0.
 
 **Pruebas:** `recorrido.test.ts`.
+
+## D-833 · Recorrido: como el Route Manager, todos los choferes en un mapa, tarjetas para elegir, en vivo
+
+**Fecha:** 2026-11-03 · Sin migración · Hecho directo por el orquestador en `feat/recorrido-todos-los-choferes` (laptop nueva).
+
+**Pedido (el dueño, sobre D-832):** «quiero el mismo view de route manager: están los 3 conductores y yo le doy click para verlos y ver la ruta que hizo, y poder verlos live».
+
+**Qué cambia (`/track`):**
+- Abre con **todos los choferes**: una tarjeta por chofer (su color del Route Manager, D-274; 🟢 en vivo / hace N min o ⚪ sin señal; turno de hoy; millas; ▲ cargas y ✓ entregas) y el mapa con el recorrido del día de todos, cada línea de su color, con los camiones en vivo encima. Pulsar una tarjeta o una línea = ver solo a ese chofer, con el detalle de D-832 (turno, paradas, pausas, reproducción); pulsarla otra vez = todos. El selector de arriba tiene «Todos los choferes».
+- **En vivo:** las posiciones que el proveedor recibe por realtime (la última por chofer) se cuelgan al final de su recorrido si son de hoy: la línea crece sola sin recargar. «● en vivo» en la cabecera del mapa cuando hay camiones.
+- El día de todos se lee de una vez (posiciones, turnos, cargas/entregas con `in(...)`), así que cambiar de uno a todos no vuelve a leer.
+
+Sello `deliveries` 1.521.0; repo 1.688.0.
+
+**Pruebas:** `recorrido.test.ts`.
