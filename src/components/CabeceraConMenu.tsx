@@ -4,13 +4,14 @@ import { createPortal } from "react-dom";
 import { ColumnFilterMenu } from "@/components/OrdersTable";
 import { posicionDelMenu } from "@/lib/menu-desplegable";
 import { columnasFiltradas, textoDeColumnas } from "@/lib/filtros-activos";
+import { textoDeCondiciones } from "@/lib/orden-y-filtro";
 import type { OrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import type { ValorDeCelda } from "@/lib/orden-y-filtro";
 
 type T = (en: string, es: string) => string;
 
 /** Una columna que ordena y filtra: su clave, su nombre en los dos idiomas y, si hace falta, cómo se enseña cada valor. */
-export type ColumnaConMenu = { key: string; en: string; es: string; etiqueta?: (v: ValorDeCelda) => string };
+export type ColumnaConMenu = { key: string; en: string; es: string; etiqueta?: (v: ValorDeCelda) => string; numerico?: boolean };
 
 /**
  * La cabecera de una columna con el menú de ordenar y filtrar de Órdenes (D-275), para las tablas del Gestor de
@@ -56,6 +57,7 @@ export function MenuDeColumnaAbierto<F>({ estado, columnas, lang, t }: { estado:
       onApply={(marcados) => estado.aplicar(clave, marcados)}
       onClear={() => estado.limpiar(clave)}
       onClose={estado.cerrar}
+      numerico={col.numerico}
     />,
     document.body,
   );
@@ -68,7 +70,13 @@ export function MenuDeColumnaAbierto<F>({ estado, columnas, lang, t }: { estado:
 export function FiltrosPuestos<F>({ estado, columnas, lang, t }: { estado: OrdenYFiltro<F>; columnas: readonly ColumnaConMenu[]; lang: "en" | "es"; t: T }) {
   const filtradas = columnasFiltradas(estado.filtros, columnas.map((c) => c.key));
   if (filtradas.length === 0) return null;
-  const nombres = filtradas.map((k) => { const c = columnas.find((x) => x.key === k); return c ? (lang === "es" ? c.es : c.en) : k; });
+  // D-840: una condición de número se dice entera («QOH > 100»), que no se quede escondida tras el nombre.
+  const nombres = filtradas.map((k) => {
+    const c = columnas.find((x) => x.key === k);
+    const nombre = c ? (lang === "es" ? c.es : c.en) : k;
+    const cond = textoDeCondiciones(estado.filtros[k], t("and", "y"), t("or", "o"));
+    return cond ? `${nombre} ${cond}` : nombre;
+  });
   return (
     <div className="filtros-puestos">
       <span>

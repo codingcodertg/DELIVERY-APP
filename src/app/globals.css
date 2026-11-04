@@ -802,6 +802,19 @@ table.orders td.td-pastillas .sema {
 .col-menu-orden { border-bottom: 1px solid var(--line); padding-bottom: 4px; margin-bottom: 4px; }
 .col-orden { width: 100%; background: none; border: none; text-align: left; font-family: inherit; }
 .col-orden.on { color: var(--accent); font-weight: 700; }
+/* El filtro de número de Excel (D-840), entre el orden y la lista de valores, en las columnas de números. */
+.col-menu-numero { border-bottom: 1px solid var(--line); padding: 2px 4px 6px; margin-bottom: 4px; display: grid; gap: 4px; }
+.col-menu-numero-titulo { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--gray); padding: 2px 4px 0; }
+.col-menu-numero-fila { display: flex; gap: 4px; }
+.col-menu-numero-fila select { flex: 1 1 auto; min-width: 0; font-size: 12.5px; padding: 5px 4px; }
+.col-menu-numero-fila input { flex: 0 0 84px; width: 84px; font-size: 12.5px; padding: 5px 6px; box-sizing: border-box; }
+.col-menu-numero-union { display: flex; gap: 14px; padding: 0 4px; font-size: 12.5px; }
+.col-menu-numero-union label { display: flex; align-items: center; gap: 4px; margin: 0; text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--text); }
+.col-menu-numero-nota { padding: 0 4px; font-size: 11.5px; }
+/* La Decisión de Promos se pulsa para ver quién votó qué (D-840): la pastilla dentro de un botón sin aspecto de botón. */
+.votos-caja { overflow-x: auto; }
+.sema-boton { background: none; border: none; padding: 0; margin: 0; cursor: pointer; font: inherit; max-width: 100%; }
+.sema-boton:hover .sema, .sema-boton:focus-visible .sema { box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 3px var(--accent); }
 
 /* La barra de «hay filtros puestos» encima de la tabla (D-297). Solo sale cuando los hay, así
    que puede permitirse el color de aviso sin volverse ruido. */
