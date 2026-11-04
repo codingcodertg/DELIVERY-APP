@@ -74,7 +74,7 @@ export function FiltrosPuestos<F>({ estado, columnas, lang, t }: { estado: Orden
   const nombres = filtradas.map((k) => {
     const c = columnas.find((x) => x.key === k);
     const nombre = c ? (lang === "es" ? c.es : c.en) : k;
-    const cond = textoDeCondiciones(estado.filtros[k], t("and", "y"), t("or", "o"));
+    const cond = textoDeCondiciones(estado.filtros[k], t("and", "y"), t("or", "o"), lang === "es" ? "es-MX" : "en-US");
     return cond ? `${nombre} ${cond}` : nombre;
   });
   return (
