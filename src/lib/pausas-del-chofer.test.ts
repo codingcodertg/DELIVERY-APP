@@ -180,7 +180,7 @@ describe("logística y admin las ven en el Recorrido del chofer", async () => {
     expect(pinta()).toContain("migration 167");
   });
   it("el Recorrido la monta con el chofer y el día que se miran", () => {
-    expect(leer("src/app/(app)/track/page.tsx")).toContain("{driverId && <PausasDelDia driverId={driverId} fecha={fecha} clock={(iso) => clock(iso, lang)} />}");
+    expect(leer("src/app/(app)/track/page.tsx")).toContain("{unSolo && <PausasDelDia driverId={driverId} fecha={fecha} clock={(iso) => clock(iso, lang)} />}") // D-833;
   });
 });
 
