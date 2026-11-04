@@ -20,7 +20,7 @@
  * longer gap doesn't save power, it only throws away positions already paid
  * for. What it costs is rows — about 1,500 a day per driver instead of 170.
  */
-export const MIN_INTERVAL_MS = 10_000;
+export const MIN_INTERVAL_MS = 5_000; // D-831: era 10 s; a 30 mph son 67 m por punto, y el dueño quiere el recorrido «exacto y preciso».
 /** Coarser than this is a cell-tower guess, not a position — ignore it. */
 export const MAX_ACCURACY_M = 200;
 /**
@@ -31,7 +31,7 @@ export const MAX_ACCURACY_M = 200;
  * clear of the drift a parked phone shows at the 4–10 m accuracy these fixes
  * report.
  */
-export const MIN_MOVE_M = 25;
+export const MIN_MOVE_M = 10; // D-831: era 25 m. A 10 m una vuelta de cuadra se ve como vuelta; la deriva de un teléfono parado (4-10 m) sigue fuera.
 /**
  * Report at least this often even when the truck hasn't moved.
  *
@@ -44,7 +44,7 @@ export const MIN_MOVE_M = 25;
  * Well under STALE_AFTER_MIN so a heartbeat that slips a little (a phone
  * throttling timers with the screen off) still lands inside the window.
  */
-export const HEARTBEAT_MS = 5 * 60_000;
+export const HEARTBEAT_MS = 60_000; // D-831: era 5 min. Una parada de entrega se ve de un minuto en un minuto.
 
 /** Metres between two lat/lng points (haversine). */
 export function metresBetween(aLat: number, aLng: number, bLat: number, bLng: number): number {
