@@ -1668,11 +1668,6 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
   box-sizing: content-box; flex: 0 0 auto;
   border: 10px solid var(--ink); border-radius: 28px; background: var(--card);
 }
-/* El botón de vista del aviso amarillo de «Entrar como» (D-516): en un ancho de teléfono —y dentro del marco
-   de arriba, que mide 360, 390 o 430— solo el icono, 📱 o 🖥; el nombre va en `aria-label` y `title`. Con el
-   texto, el aviso pasaba de dos filas a tres: medido a 390 px en inglés, de 71 a 113 px de alto (D-483 pidió
-   que ocupe poco). */
-@media (max-width: 640px) { .aviso-vista-texto { display: none; } }
 
 /* The document number an order's type asks for (invoice, PO or estimate), highlighted at the top
    of the order view (D-278, más discreto en D-294: el dueño pidió resaltarlo, no agrandarlo). Tokens only, so it follows the theme; `user-select: all` so one click
@@ -1964,6 +1959,44 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 .fab-menu .switch-panel { top: auto; bottom: calc(100% + 6px); }
 @media (max-width: 640px) {
   .fab-general-caja { right: 14px; bottom: 14px; }
+}
+
+/* ---------------------------------------------------------------------------
+   «Entrar como» en la burbuja (D-859, 2026-11-04). Ya no hay franja arriba: mientras se está dentro de otra
+   persona la burbuja se pone NARANJA y dice «Estás como Ernesto» (se lee sin pasar el ratón, también en el
+   teléfono), y encima lleva el botón ROJO «↩ Volver a mi usuario». Texto `--ink` sobre `--amber`: `--ink` es
+   oscuro en los dos temas, y el blanco sobre ese ámbar no se leería.
+   --------------------------------------------------------------------------- */
+.fab-general.suplantando {
+  width: auto; max-width: calc(100vw - 28px); gap: 8px; padding: 0 16px 0 14px;
+  background: var(--amber); color: var(--ink);
+}
+.fab-general.suplantando:hover, .fab-general.suplantando.abierto { background: var(--amber); filter: brightness(.95); }
+.fab-suplantando-texto {
+  min-width: 0; max-width: min(280px, calc(100vw - 110px));
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 13px; font-weight: 800;
+}
+/* El botón rojo: el de peligro de la app (`.btn-danger`), del alto de un dedo y redondo como la burbuja. */
+.fab-general-caja .fab-volver {
+  min-height: 44px; padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 800;
+  white-space: nowrap; cursor: pointer; box-shadow: 0 6px 18px rgba(10,20,40,.28);
+}
+/* Apagado mientras vuelve: lo pone `.btn:disabled` (D-489). Las opciones del menú, igual. */
+.fab-opcion:disabled { opacity: .45; filter: grayscale(1); cursor: not-allowed; }
+/* La frase de la contraseña temporal (D-486), entre el menú y el botón rojo: no es una opción. */
+.fab-nota {
+  max-width: min(320px, calc(100vw - 28px)); padding: 8px 12px; border-radius: 12px;
+  background: var(--amber-soft); color: var(--amber-text); border: 1px solid var(--amber);
+  font-size: 12px; font-weight: 700; white-space: normal;
+}
+/* El hueco de abajo crece mientras está el botón rojo (46 + 8 + 44 px y el margen): así lo último de la página sigue
+   pudiendo subir por encima de los dos, como sube por encima de la burbuja sola (D-530). `.wrap` (Entregas, el hub,
+   RR. HH.) lo tenía escrito a mano; aquí toma el hueco. Fuera de una suplantación esta regla no aplica. */
+:root:has(.fab-general-caja.suplantando) { --hueco-de-ayuda: 136px; }
+:root:has(.fab-general-caja.suplantando) .wrap { padding-bottom: var(--hueco-de-ayuda); }
+@media (max-width: 640px) {
+  :root:has(.fab-general-caja.suplantando) { --hueco-de-ayuda: 124px; }
 }
 
 /* La línea de «de qué va» en cada solicitud de la bandeja (D-624, 2026-10-21): una sola línea cortada con «…», del ancho

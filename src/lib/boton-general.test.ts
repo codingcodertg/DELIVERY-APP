@@ -74,11 +74,13 @@ describe("puerta: la burbuja general en el layout raíz, y Ayuda y Chat se abren
   const chat = sinComentarios(leer("src/components/ChatFlotante.tsx"));
 
   it("sale donde sale la Ayuda, se pide al servidor una vez, y pinta las opciones de opcionesDelBotonGeneral", () => {
-    expect(burbuja).toContain("const sale = ayudaEnLaRuta(pathname);");
+    // D-859: dentro de una suplantación sale en TODAS las rutas (`burbujaEnLaRuta`); fuera, donde la Ayuda.
+    expect(burbuja).toContain("const ayudaAqui = ayudaEnLaRuta(pathname);");
+    expect(burbuja).toContain("const sale = burbujaEnLaRuta(pathname, suplantando);");
     expect(burbuja).toContain("if (!sale) return null;");
-    expect(burbuja).toContain("const opciones = opcionesDelBotonGeneral({ adminReal: servidor.adminReal, switchHabilitado: servidor.habilitado });");
+    expect(burbuja).toContain("const opciones = opcionesDelBotonGeneral({ adminReal: servidor.adminReal, switchHabilitado: servidor.habilitado, suplantando, ayudaAqui });");
     expect(burbuja).toContain("{opciones.map(opcion)}");
-    expect(burbuja).toContain('className={"fab-general" + (abierto ? " abierto" : "")}');
+    expect(burbuja).toContain('className={"fab-general" + (abierto ? " abierto" : "") + (naranja ? " suplantando" : "")}');
   });
 
   it("Ayuda y Chat se abren por evento y, montados sin burbuja, no pintan la suya", () => {
@@ -110,9 +112,11 @@ describe("puerta: la burbuja general en el layout raíz, y Ayuda y Chat se abren
   });
 
   it("al volver a la cuenta y al entrar como otro, se cae a destinoDeLaApp; la página del hub, al hub", () => {
-    const banner = sinComentarios(leer("src/components/ImpersonationBanner.tsx"));
-    expect(banner).toContain("window.location.href = destinoDeLaApp(window.location.pathname);");
-    expect(banner).not.toContain('window.location.href = "/";');
+    // D-859: la vuelta vive en `volverAMiCuenta` (la de la franja, movida tal cual); su prueba con navegador falso,
+    // en `suplantacion-en-burbuja.test.ts`.
+    const vuelta = sinComentarios(leer("src/lib/suplantacion-en-burbuja.ts"));
+    expect(vuelta).toContain("nav.ubicacion.href = destinoDeLaApp(nav.ubicacion.pathname);");
+    expect(vuelta).not.toContain('href = "/";');
     const panel = sinComentarios(leer("src/components/SwitchUserPanel.tsx"));
     expect(panel.split("window.location.href = destino;").length - 1).toBe(2);
     expect(panel).not.toContain('window.location.href = "/"');

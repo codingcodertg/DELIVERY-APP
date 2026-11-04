@@ -3,25 +3,30 @@ import { readFileSync } from "node:fs";
 
 // D-483. El dueño, 2026-10-06: «lo único que salga ahí es, ok, estás login como Robert y ya. Pero no quiero ese timeout y
 // esa cosa porque quita mucho espacio».
-const banner = readFileSync("src/components/ImpersonationBanner.tsx", "utf8");
+//
+// D-859 (2026-11-04) va más lejos: ni franja. El aviso es la burbuja naranja («Estás como Robert») y la vuelta, el
+// botón rojo de encima. Lo que D-483 pedía sigue: una frase corta, sin los minutos, y la vuelta sola a la hora intacta.
+const lib = readFileSync("src/lib/suplantacion-en-burbuja.ts", "utf8");
+const sup = readFileSync("src/components/SuplantacionEnBurbuja.tsx", "utf8");
 
-describe("el aviso de «Estás como…» es una línea corta, sin los minutos (D-483)", () => {
-  it("dice solo con quién estás", () => {
-    // D-516: en el idioma del admin, no en español fijo (el render en los dos idiomas está en
-    // `aviso-de-suplantacion.test.ts`). Sigue siendo UN idioma a la vez: nada del texto doble de antes de D-483.
-    expect(banner).toContain('{t("👤 Signed in as", "👤 Estás como")} {p.como}');
-    expect(banner).not.toContain("You are signed in as");
+describe("el aviso de «Estás como…» es corto, sin los minutos (D-483, en la burbuja desde D-859)", () => {
+  it("dice solo con quién estás, en el idioma del admin (D-516)", () => {
+    expect(lib).toContain("etiqueta: t(`You're viewing as ${a.como}`, `Estás como ${a.como}`),");
+    expect(lib).not.toContain("You are signed in as");
   });
   it("no pinta los minutos que quedan", () => {
-    expect(banner).not.toMatch(/\{quedan\} min/);
-    expect(banner).not.toContain("setQuedan");
+    for (const f of [lib, sup]) {
+      expect(f).not.toMatch(/\{quedan\} min/);
+      expect(f).not.toContain("setQuedan");
+    }
   });
   it("la vuelta automática a la hora sigue: la red de seguridad no se quita", () => {
-    expect(banner).toContain("IMPERSONACION_MINUTOS * 60_000 - Date.now()");
-    expect(banner).toContain('if (restan <= 0 && !volviendo) void volver("expired");');
+    expect(lib).toContain("return s !== null && impersonacionCaducada(s.inicio, ahora);");
+    expect(sup).toContain('if (!volviendo && tocaVolverSolo(estado, Date.now())) void volver("expired");');
+    expect(sup).toContain("const id = setInterval(tic, 30_000);");
   });
-  it("los dos botones siguen, más cortos", () => {
-    expect(banner).toContain("↩ Volver a mi cuenta");
-    expect(banner).toContain("⇄ Cambiar usuario");
+  it("los dos botones siguen: volver (el rojo) y cambiar usuario (en el menú de la burbuja)", () => {
+    expect(lib).toContain('t("↩ Back to my user", "↩ Volver a mi usuario")');
+    expect(readFileSync("src/components/BotonGeneral.tsx", "utf8")).toContain('tAdmin("Switch user", "Cambiar usuario")');
   });
 });

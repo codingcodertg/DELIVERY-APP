@@ -172,12 +172,12 @@ describe("la pantalla, el formulario y el banner usan esto mismo", () => {
     expect(f).toContain('action="/auth/signout"');
     expect(f).toContain("window.location.href = destino");
   });
-  it("el banner de «Entrar como» enseña el aviso cuando el estado lo dice", () => {
-    const b = src("src/components/ImpersonationBanner.tsx");
-    // D-516: lo pinta `AvisoDeSuplantacion` (la parte sin estado del banner), con lo que le pasa el banner.
-    expect(b).toMatch(/\{p\.cambiaContrasena && \(/);
-    expect(b).toMatch(/cambiaContrasena=\{estado\.cambiaContrasena === true\}/);
-    expect(b).toMatch(/cambiaContrasena: d\.cambiaContrasena === true/);
+  it("la burbuja de «Entrar como» enseña el aviso cuando el estado lo dice", () => {
+    // D-859: la franja se fue; el estado lo lee `suplantacionDelEstado` y la frase la pinta la burbuja, entre el menú y
+    // el botón rojo, con una 🔑 en la propia burbuja. El render en los dos idiomas, en `suplantacion-en-burbuja.test.ts`.
+    expect(src("src/lib/suplantacion-en-burbuja.ts")).toContain("cambiaContrasena: r.cambiaContrasena === true,");
+    expect(src("src/components/BotonGeneral.tsx")).toMatch(/\{textos\?\.contrasena && <div className="fab-nota"/);
+    expect(src("src/components/SuplantacionEnBurbuja.tsx")).toContain('p.suplantacion.cambiaContrasena ? "🔑 " : "👤 "');
   });
   it("el diálogo de Usuarios avisa al admin de que se le pedirá cambiarla", () => {
     expect(src("src/components/UserDialog.tsx")).toContain("Al entrar se le pedirá que elija una suya.");

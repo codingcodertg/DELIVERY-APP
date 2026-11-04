@@ -78,7 +78,7 @@
    solid dark bar, white text, no background pill on inactive tabs (exactly
    deliveries' own .tab styling, globals.css) — only the active tab gets a
    background, and it's a solid accent color so it reads in both themes. */
-.timetracker-module .topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;margin-bottom:6px;position:sticky;top:var(--banner-impersonacion, 0px);z-index:20;background:var(--ink);color:#fff}
+.timetracker-module .topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;margin-bottom:6px;position:sticky;top:0;z-index:20;background:var(--ink);color:#fff}
 /* El nombre de la app ya no es un `.brand` propio: es el `<h1>` de `BarraDeApp` (D-643), con las reglas de globals.css. */
 .timetracker-module .timer-big{font-size:52px;font-weight:800;font-variant-numeric:tabular-nums}
 .timetracker-module .meter{display:flex;gap:3px;margin-top:6px}
@@ -165,7 +165,7 @@
    idioma y tema de esa barra, que llevan su fondo translúcido en línea. */
 /* La cabecera (D-490): el aviso del modo capacitación y la barra, pegados arriba JUNTOS. Antes la
    pegajosa era la barra sola; con el aviso encima, dos pegajosas en el mismo sitio se taparían. */
-.timetracker-module .tt-cabecera{position:sticky;top:var(--banner-impersonacion, 0px);z-index:20;margin-bottom:6px}
+.timetracker-module .tt-cabecera{position:sticky;top:0;z-index:20;margin-bottom:6px}
 .timetracker-module .tt-cabecera .topbar{position:static;margin-bottom:0}
 /* El aviso fijo del modo capacitación: el mismo violeta que el modo enseñanza de Entregas. */
 .timetracker-module .tt-capacitacion{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
