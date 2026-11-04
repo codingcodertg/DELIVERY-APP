@@ -373,111 +373,166 @@ export function TablaDeRonda({
     );
   };
 
+  // Cuánto queda por decidir, para la barra de la cabecera. Sale de la MISMA cuenta que los chips de estado, así que
+  // con el filtro de tienda puesto habla de la lista filtrada, igual que ellos (D-385).
+  const decididos = cuenta.approved + cuenta.rejected;
+  const totalDeLaLista = decididos + cuenta.pending;
+  const anchoDe = (n: number) => `${totalDeLaLista ? (n / totalDeLaLista) * 100 : 0}%`;
+  const hayContexto = (esAdmin && gruposDelLibro.length > 0) || (sePuede && gruposActivos.length === 1);
+
+  // Una tabla sin filas dice POR QUÉ: sin productos, el filtro de tienda, nada pendiente o los filtros de columna.
+  const vacio = productos.length === 0
+    ? { titulo: t("This round has no products.", "Esta ronda no tiene productos."), detalle: "" }
+    : filas.length === 0
+      ? {
+        titulo: t(`No product has ${MINIMO_EN_LA_TIENDA}+ in stock at ${tiendaFiltro}.`, `Ningún producto tiene ${MINIMO_EN_LA_TIENDA} o más en ${tiendaFiltro}.`),
+        detalle: t("Pick another store, or All stores.", "Elige otra tienda, o Todas las tiendas."),
+      }
+      : cuenta.pending === 0 && !!orden.filtros.estado?.has("pending")
+        ? {
+          titulo: t("Nothing left to decide.", "No queda nada por decidir."),
+          detalle: t("Every product here has a decision. Open Approved or Rejected to review them.", "Cada producto ya tiene decisión. Abre Aprobado o Rechazado para revisarlos."),
+        }
+        : {
+          titulo: t("No products match these filters.", "Ningún producto cumple estos filtros."),
+          detalle: t("Clear the filters above to see the whole list.", "Quita los filtros de arriba para ver la lista entera."),
+        };
+
   return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <h1 style={{ margin: 0 }}>🏷️ {ronda.label}</h1>
-        {rondaCerrada && <span className="sema" style={{ background: "var(--gray)", color: "#fff" }}>{t("Closed", "Cerrada")}</span>}
-        {/* El selector que sustituye a la lista de rondas (D-375). Solo sale si hay MAS DE UNA:
-            con una sola ronda seria un desplegable de un elemento, que es justo el clic de mas que
-            el dueno mando quitar. Es un `<select>` y no enlaces porque las rondas crecen con los
-            meses y una fila de enlaces se hace larga sola. */}
-        {rondas.length > 1 && (
-          <select
-            value={ronda.id}
-            aria-label={t("Round", "Ronda")}
-            style={{ maxWidth: 260 }}
-            onChange={(e) => { if (e.target.value !== ronda.id) router.push(`/promos/${e.target.value}`); }}
-          >
-            {rondas.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label}{r.closed_at ? t(" · closed", " · cerrada") : ""}
-              </option>
-            ))}
-          </select>
-        )}
-        {esAdmin && (
-          <button onClick={() => cierraOReabre(!rondaCerrada)} disabled={ocupado}>
-            {rondaCerrada ? t("Reopen round", "Reabrir ronda") : t("Close round", "Cerrar ronda")}
-          </button>
-        )}
-      </div>
-
-      {/* D-790: aquí estaba el aviso ámbar de las tiendas sin grupo de promociones. El dueño, con la
-          captura: «quita ese mensaje». Una tienda sin grupo sigue sin poder aprobar; se ve en Datos → Tiendas. */}
-
-      {esAdmin && gruposDelLibro.length > 0 && (
-        <div className="field" style={{ maxWidth: 260, marginTop: 10, position: "relative" }}>
-          <label>{t("Deciding for", "Decidiendo por")}</label>
-          {/* D-810: varios a la vez. Lo que se aprueba o rechaza se escribe en CADA grupo marcado. */}
-          <details className="menu-de-grupos" data-grupos-elegidos={gruposActivos.join(",")}>
-            <summary style={{ cursor: "pointer", padding: "8px 12px", border: "1px solid var(--line)", borderRadius: 8, background: "var(--card)", listStyle: "none" }}>
-              {gruposActivos.join(", ") || "—"} ▾
-            </summary>
-            <div style={{ position: "absolute", zIndex: 20, background: "var(--card)", border: "1px solid var(--line)", borderRadius: 8, padding: 8, marginTop: 4, minWidth: 180, boxShadow: "0 4px 14px rgba(0,0,0,.12)" }}>
-              <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setGruposElegidos([...gruposDelLibro]); setSeleccion(new Set()); }}>{t("All", "Todos")}</button>
-              </div>
-              {gruposDelLibro.map((g) => (
-                <label key={g} style={{ display: "flex", gap: 8, alignItems: "center", padding: "3px 2px", cursor: "pointer", textTransform: "none", fontWeight: 400 }}>
-                  <input type="checkbox" data-grupo={g} checked={gruposActivos.includes(g)} onChange={() => alternaGrupo(g)} style={{ width: 15, height: 15 }} />
-                  {g}
-                </label>
-              ))}
-            </div>
-          </details>
-          {gruposActivos.length > 1 && (
-            <span className="hint" style={{ marginTop: 4 }}>
-              {t(`Each decision is saved in the ${gruposActivos.length} groups.`, `Cada decisión se guarda en los ${gruposActivos.length} grupos.`)}
-            </span>
-          )}
+    <div className="promos-ronda">
+      <header className="promos-cabecera">
+        <div className="promos-cabecera-fila">
+          <h1 className="promos-titulo">🏷️ {ronda.label}</h1>
+          {rondaCerrada && <span className="sema" style={{ background: "var(--gray)", color: "#fff" }}>{t("Closed", "Cerrada")}</span>}
+          <div className="promos-cabecera-acciones">
+            {/* El selector que sustituye a la lista de rondas (D-375). Solo sale si hay MAS DE UNA:
+                con una sola ronda seria un desplegable de un elemento, que es justo el clic de mas que
+                el dueno mando quitar. Es un `<select>` y no enlaces porque las rondas crecen con los
+                meses y una fila de enlaces se hace larga sola. */}
+            {rondas.length > 1 && (
+              <select
+                value={ronda.id}
+                aria-label={t("Round", "Ronda")}
+                className="promos-selector-de-ronda"
+                onChange={(e) => { if (e.target.value !== ronda.id) router.push(`/promos/${e.target.value}`); }}
+              >
+                {rondas.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.label}{r.closed_at ? t(" · closed", " · cerrada") : ""}
+                  </option>
+                ))}
+              </select>
+            )}
+            {esAdmin && (
+              <button className="btn btn-ghost btn-sm" onClick={() => cierraOReabre(!rondaCerrada)} disabled={ocupado}>
+                {rondaCerrada ? t("Reopen round", "Reabrir ronda") : t("Close round", "Cerrar ronda")}
+              </button>
+            )}
+          </div>
         </div>
-      )}
 
-      {/* D-812: precios por tamaño para el grupo que se mira. Solo con UN grupo marcado: el precio es de ese grupo. */}
-      {sePuede && gruposActivos.length === 1 && (
-        <div style={{ marginTop: 10 }}>
-          <button type="button" className="btn btn-ghost btn-sm" data-accion="precios-por-tamano" onClick={() => setPanelDePrecios((v) => !v)}>
-            💲 {t(`Prices by size for ${gruposActivos[0]}`, `Precios por tamaño para ${gruposActivos[0]}`)}
-          </button>
-          {panelDePrecios && (
-            <div className="card" data-bloque="precios-por-tamano" style={{ marginTop: 8, maxWidth: 560 }}>
-              <div className="hint" style={{ marginTop: 0 }}>
-                {t("One size per line, with its price, as in your sheet: «10X64 $ 2.09». Every product of this round with that size gets that price, for this group only.",
-                  "Un tamaño por línea con su precio, como en tu hoja: «10X64 $ 2.09». Cada producto de esta ronda con ese tamaño recibe ese precio, solo para este grupo.")}
+        {/* Cuánto queda: aprobado en verde y rechazado en rojo, los colores de la pastilla; lo gris es lo pendiente. */}
+        {totalDeLaLista > 0 && (
+          <div className="promos-avance" data-avance>
+            <div className="promos-avance-texto">
+              {lang === "es"
+                ? <><b>{decididos} de {totalDeLaLista}</b> decididos</>
+                : <><b>{decididos} of {totalDeLaLista}</b> decided</>}
+            </div>
+            <div
+              className="promos-avance-barra"
+              role="progressbar"
+              aria-label={t("Decided", "Decididos")}
+              aria-valuemin={0}
+              aria-valuemax={totalDeLaLista}
+              aria-valuenow={decididos}
+            >
+              <span className="promos-avance-aprobado" style={{ width: anchoDe(cuenta.approved) }} />
+              <span className="promos-avance-rechazado" style={{ width: anchoDe(cuenta.rejected) }} />
+            </div>
+          </div>
+        )}
+
+        {/* D-790: aquí estaba el aviso ámbar de las tiendas sin grupo de promociones. El dueño, con la
+            captura: «quita ese mensaje». Una tienda sin grupo sigue sin poder aprobar; se ve en Datos → Tiendas. */}
+
+        {hayContexto && (
+          <div className="promos-contexto">
+            {esAdmin && gruposDelLibro.length > 0 && (
+              <div className="field promos-decidiendo">
+                <label>{t("Deciding for", "Decidiendo por")}</label>
+                {/* D-810: varios a la vez. Lo que se aprueba o rechaza se escribe en CADA grupo marcado. */}
+                <details className="menu-de-grupos" data-grupos-elegidos={gruposActivos.join(",")}>
+                  <summary className="promos-grupos-boton">
+                    {gruposActivos.join(", ") || "—"} <span className="promos-grupos-flecha" aria-hidden="true">▾</span>
+                  </summary>
+                  <div className="promos-grupos-menu">
+                    <div className="promos-grupos-menu-todos">
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setGruposElegidos([...gruposDelLibro]); setSeleccion(new Set()); }}>{t("All", "Todos")}</button>
+                    </div>
+                    {gruposDelLibro.map((g) => (
+                      <label key={g} className="promos-grupo-opcion">
+                        <input type="checkbox" data-grupo={g} checked={gruposActivos.includes(g)} onChange={() => alternaGrupo(g)} style={{ width: 15, height: 15 }} />
+                        {g}
+                      </label>
+                    ))}
+                  </div>
+                </details>
+                {gruposActivos.length > 1 && (
+                  <span className="hint">
+                    {t(`Each decision is saved in the ${gruposActivos.length} groups.`, `Cada decisión se guarda en los ${gruposActivos.length} grupos.`)}
+                  </span>
+                )}
               </div>
-              <textarea rows={6} value={textoDePrecios} onChange={(e) => setTextoDePrecios(e.target.value)} placeholder={"10X64 $ 2.09\n12X36 $ 1.59"} style={{ width: "100%", marginTop: 6, fontFamily: "monospace" }} />
-              {vistaPrevia.malas.length > 0 && (
-                <div className="hint" style={{ color: "var(--red)" }}>{t("Not understood:", "No se entendió:")} {vistaPrevia.malas.join(" · ")}</div>
-              )}
-              {Object.keys(vistaPrevia.precios).length > 0 && (
-                <div style={{ marginTop: 6 }} data-vista-previa>
-                  {Object.entries(vistaPrevia.precios).map(([tam, precio]) => (
-                    <span key={tam} className="chip" style={{ marginRight: 6, marginBottom: 4 }} data-tamano={tam}>
-                      {tam} → {textoDePrecio(precio)} <span className="cnt">{vistaPrevia.porTamano.get(tam) ?? 0}</span>
-                    </span>
-                  ))}
-                </div>
-              )}
-              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                <button type="button" className="btn btn-green" disabled={ocupado || vistaPrevia.filas.length === 0} data-accion="aplicar-precios" onClick={() => void guardaPrecios()}>
-                  {t(`Apply to ${vistaPrevia.filas.length} products`, `Aplicar a ${vistaPrevia.filas.length} productos`)}
+            )}
+
+            {/* D-812: precios por tamaño para el grupo que se mira. Solo con UN grupo marcado: el precio es de ese grupo. */}
+            {sePuede && gruposActivos.length === 1 && (
+              <div className="promos-precios">
+                <button type="button" className="btn btn-ghost btn-sm" data-accion="precios-por-tamano" onClick={() => setPanelDePrecios((v) => !v)}>
+                  💲 {t(`Prices by size for ${gruposActivos[0]}`, `Precios por tamaño para ${gruposActivos[0]}`)}
                 </button>
-                <button type="button" className="btn btn-ghost" onClick={() => setPanelDePrecios(false)}>{t("Cancel", "Cancelar")}</button>
+                {panelDePrecios && (
+                  <div className="card" data-bloque="precios-por-tamano" style={{ marginTop: 8, maxWidth: 560 }}>
+                    <div className="hint" style={{ marginTop: 0 }}>
+                      {t("One size per line, with its price, as in your sheet: «10X64 $ 2.09». Every product of this round with that size gets that price, for this group only.",
+                        "Un tamaño por línea con su precio, como en tu hoja: «10X64 $ 2.09». Cada producto de esta ronda con ese tamaño recibe ese precio, solo para este grupo.")}
+                    </div>
+                    <textarea rows={6} value={textoDePrecios} onChange={(e) => setTextoDePrecios(e.target.value)} placeholder={"10X64 $ 2.09\n12X36 $ 1.59"} style={{ width: "100%", marginTop: 6, fontFamily: "monospace" }} />
+                    {vistaPrevia.malas.length > 0 && (
+                      <div className="hint" style={{ color: "var(--red)" }}>{t("Not understood:", "No se entendió:")} {vistaPrevia.malas.join(" · ")}</div>
+                    )}
+                    {Object.keys(vistaPrevia.precios).length > 0 && (
+                      <div style={{ marginTop: 6 }} data-vista-previa>
+                        {Object.entries(vistaPrevia.precios).map(([tam, precio]) => (
+                          <span key={tam} className="chip" style={{ marginRight: 6, marginBottom: 4 }} data-tamano={tam}>
+                            {tam} → {textoDePrecio(precio)} <span className="cnt">{vistaPrevia.porTamano.get(tam) ?? 0}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                      <button type="button" className="btn btn-green" disabled={ocupado || vistaPrevia.filas.length === 0} data-accion="aplicar-precios" onClick={() => void guardaPrecios()}>
+                        {t(`Apply to ${vistaPrevia.filas.length} products`, `Aplicar a ${vistaPrevia.filas.length} productos`)}
+                      </button>
+                      <button type="button" className="btn btn-ghost" onClick={() => setPanelDePrecios(false)}>{t("Cancel", "Cancelar")}</button>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </header>
 
-      {motivo && <div className="card" style={{ borderColor: "var(--amber)", marginTop: 10 }}>{t(motivo.en, motivo.es)}</div>}
-      {error && <div className="card" style={{ borderColor: "var(--red)", marginTop: 10 }}>{error}</div>}
+      {motivo && <div className="promos-aviso" data-tono="aviso" role="status">{t(motivo.en, motivo.es)}</div>}
+      {error && <div className="promos-aviso" data-tono="error" role="alert">{error}</div>}
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "12px 0" }}>
+      <div className="promos-barra">
         {/* D-794 (el dueño, con captura): «pendiente aprobado rechazado son botones pero no aparecen botones; quiero el
             estilo de tablas como deliveries». Chips como los de estado de la tabla de Órdenes (`.chip`, `.on`, `.cnt`):
-            se ven como botón, y el encendido se ve encendido. */}
-        <div className="ld-vistas" role="group" aria-label={t("Decision", "Decisión")} data-chips-de-estado>
+            se ven como botón, y el encendido se ve encendido. En Promos van juntos, como un control segmentado. */}
+        <div className="ld-vistas promos-estados" role="group" aria-label={t("Decision", "Decisión")} data-chips-de-estado>
           {(["pending", "approved", "rejected"] as const).map((e) => (
             <button
               key={e}
@@ -497,7 +552,6 @@ export function TablaDeRonda({
           <select
             value={tiendaFiltro}
             aria-label={t("Store filter", "Filtro de tienda")}
-            style={{ maxWidth: 220 }}
             onChange={(e) => { setTiendaFiltro(e.target.value); setSeleccion(new Set()); }}
           >
             <option value="">{t("All stores", "Todas las tiendas")}</option>
@@ -506,9 +560,9 @@ export function TablaDeRonda({
             ))}
           </select>
         )}
-        <span className="hint">{orden.visibles.length} / {filas.length}</span>
+        <span className="hint promos-cuenta">{orden.visibles.length} / {filas.length}</span>
         {todasLasFilas.length > filas.length && (
-          <span className="hint">
+          <span className="hint promos-cuenta">
             {t(
               `${todasLasFilas.length - filas.length} hidden: under ${MINIMO_EN_LA_TIENDA} in ${tiendaFiltro}`,
               `${todasLasFilas.length - filas.length} ocultos: menos de ${MINIMO_EN_LA_TIENDA} en ${tiendaFiltro}`,
@@ -518,7 +572,7 @@ export function TablaDeRonda({
         {/* El MISMO «⚙ Columnas» de Órdenes y del Gestor, con su `.col-menu` y su cierre al pulsar
             fuera o con Escape (D-275). Era un `<details>` nativo, que se veía distinto de todo lo
             demás justo en la pantalla a la que el dueño pidió parecerse. */}
-        <div ref={colsRef} style={{ position: "relative" }}>
+        <div ref={colsRef} className="promos-columnas">
           <button className="btn btn-ghost" onClick={() => setShowCols((v) => !v)}>⚙ {t("Columns", "Columnas")}</button>
           {showCols && (
             <div className="col-menu">
@@ -552,7 +606,7 @@ export function TablaDeRonda({
       </div>
 
       {sePuede && seleccion.size > 0 && (
-        <div className="card" style={{ marginBottom: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <div className="promos-lote" role="region" aria-label={t("Selected products", "Productos seleccionados")}>
           <b>{t(`${seleccion.size} selected`, `${seleccion.size} seleccionados`)}</b>
           {/* Aprobar VERDE y rechazar ROJO, aqui y en cada fila, con las clases de la paleta
               (`btn-green` / `btn-danger`, que salen de --green y --red). Antes aprobar era el azul
@@ -580,6 +634,7 @@ export function TablaDeRonda({
       <div className="tbl-scroll tbl-fit orders-scroll tbl-caja" ref={cajaRef}>
         <table
           className="orders tbl-resize orders-responsive"
+          data-con-casilla={sePuede || undefined}
           style={anchoDeTabla([sePuede ? 34 : 0, ...columnasPintadas.map((c) => anchos.widthOf(c.key)), sePuede ? 92 : 0])}
         >
           <colgroup>
@@ -590,7 +645,7 @@ export function TablaDeRonda({
           <thead>
             <tr>
               {sePuede && (
-                <th>
+                <th data-col="sel">
                   <input
                     type="checkbox"
                     checked={todasVisiblesSeleccionadas}
@@ -600,7 +655,7 @@ export function TablaDeRonda({
                 </th>
               )}
               {columnasConMenu.map((c) => (
-                <th key={c.key}>
+                <th key={c.key} data-col={c.key} data-numero={c.numerico || undefined}>
                   <CabeceraConMenu estado={orden} col={c} lang={lang} t={t} />
                   <span
                     className="col-resizer"
@@ -610,12 +665,12 @@ export function TablaDeRonda({
                   />
                 </th>
               ))}
-              {sePuede && <th>{t("Decide", "Decidir")}</th>}
+              {sePuede && <th data-col="decidir">{t("Decide", "Decidir")}</th>}
             </tr>
           </thead>
           <tbody>
             {orden.visibles.map((f) => (
-              <tr key={f.code} className={sePuede ? "con-casilla" : undefined}>
+              <tr key={f.code} className={sePuede ? "con-casilla" : undefined} data-elegida={seleccion.has(f.code) || undefined}>
                 {sePuede && (
                   <td className="sel-cell" onClick={(e) => e.stopPropagation()}>
                     <input type="checkbox" checked={seleccion.has(f.code)} onChange={() => alterna(f.code)} style={{ width: 15, height: 15 }} />
@@ -630,6 +685,8 @@ export function TablaDeRonda({
                   <td
                     key={c.key}
                     data-label={lang === "es" ? c.es : c.en}
+                    data-col={c.key}
+                    data-numero={c.numero || undefined}
                     title={c.key === "estado" ? undefined : textoDeCelda(f, c.key)}
                     className={c.key === "estado" ? "td-pastillas" : undefined}
                     style={{ textAlign: c.numero ? "right" : undefined }}
@@ -638,15 +695,26 @@ export function TablaDeRonda({
                   </td>
                 ))}
                 {sePuede && (
-                  <td>
-                    <span style={{ display: "flex", gap: 4 }}>
-                      <button className="btn btn-sm btn-green" disabled={ocupado || f.estado === "approved"} onClick={() => guarda([f.code], "approved")} title={t("Approve", "Aprobar")} aria-label={t("Approve", "Aprobar")}>✓</button>
-                      <button className="btn btn-sm btn-danger" disabled={ocupado || f.estado === "rejected"} onClick={() => guarda([f.code], "rejected")} title={t("Reject", "Rechazar")} aria-label={t("Reject", "Rechazar")}>✕</button>
+                  <td data-col="decidir">
+                    {/* `data-actual`: el botón de la decisión que la fila YA tiene sale lleno de su color, no gris. */}
+                    <span className="promos-decidir">
+                      <button className="btn btn-sm btn-green" disabled={ocupado || f.estado === "approved"} data-actual={f.estado === "approved" || undefined} onClick={() => guarda([f.code], "approved")} title={t("Approve", "Aprobar")} aria-label={t("Approve", "Aprobar")}>✓</button>
+                      <button className="btn btn-sm btn-danger" disabled={ocupado || f.estado === "rejected"} data-actual={f.estado === "rejected" || undefined} onClick={() => guarda([f.code], "rejected")} title={t("Reject", "Rechazar")} aria-label={t("Reject", "Rechazar")}>✕</button>
                     </span>
                   </td>
                 )}
               </tr>
             ))}
+            {orden.visibles.length === 0 && (
+              <tr>
+                <td className="empty promos-vacio" colSpan={columnasPintadas.length + (sePuede ? 2 : 0)}>
+                  <div className="promos-vacio-caja" role="status">
+                    <b>{vacio.titulo}</b>
+                    {vacio.detalle && <span>{vacio.detalle}</span>}
+                  </div>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
