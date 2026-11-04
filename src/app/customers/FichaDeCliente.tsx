@@ -24,6 +24,10 @@ import { APP_VERSIONS } from "@/lib/app-versions";
 import { enviaSolicitudDeAyuda, pideContactoDeAyuda, rolDeQuienEscribe } from "@/lib/help-send";
 import { claveDeEmpresa } from "@/lib/customers/duplicados";
 import { CAMPOS_EN_MAYUSCULAS } from "@/lib/customers/formato";
+import { conDireccionDeLaCuenta, direccionDeLaCuentaAlGuardar, direccionesAparte, mismaDireccion } from "@/lib/customers/direccion-unica";
+import {
+  borraBorradorDelAlta, cuandoSeGuardo, guardaBorradorDelAlta, hayAlgoEscrito, huellaDelBorrador, leeBorradorDelAlta, type BorradorDelAlta,
+} from "@/lib/customers/borrador-del-alta";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { rcCall } from "@/lib/recruiting/utils";
 import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
@@ -60,8 +64,13 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  * escribe (`contactos`, `ContactosParaEditar`) y las siete redes (`redes`, `RedesParaEditar`). El sitio web y la dirección
  * son de cada contacto (D-697); los de la cuenta, en «Campos ocultos».
  */
-export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, contactoElegido, onEligeContacto, redes, onRedes, vendedores, almacen, puedeEditar = false, esVendedor = false, puedePedirVendedor = false, t }: {
+export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [], onCampo, contactos, onContactos, contactoElegido, onEligeContacto, redes, onRedes, vendedores, almacen, puedeEditar = false, esVendedor = false, puedePedirVendedor = false, direccionUnica = false, t }: {
   cliente: Cliente | null;
+  /**
+   * Solicitud 3914768b (Roberto, «address box should not repeat»): editando, la dirección de la cuenta NO sale aparte: es la
+   * del primer contacto (`direccion-unica.ts`). Solo la pasa la ventana, que es la que la sincroniza al guardar.
+   */
+  direccionUnica?: boolean;
   form?: Record<string, string>;
   editando?: boolean;
   errores?: string[];
@@ -88,6 +97,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
 }) {
   const deLaFila = useMemo(() => contactosDe(cliente), [cliente]);
   const linea = (fila: FilaDeFicha) => {
+    if (editando && direccionUnica && fila.key === "address") return null;
     if (editando && fila.campo && form && onCampo) {
       return (
         <label key={fila.key} className="block space-y-1 py-1.5" data-campo={fila.key}>
@@ -124,10 +134,10 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(grupo.en, grupo.es)}</h2>
             {grupo.key === "contacto" && (editando && contactos && onContactos
               ? <>
-                  <ContactosParaEditar contactos={contactos} errores={errores} onCambia={onContactos} elegido={contactoElegido} onElige={onEligeContacto} alta={cliente === null} t={t} />
+                  <ContactosParaEditar contactos={contactos} errores={errores} onCambia={onContactos} elegido={contactoElegido} onElige={onEligeContacto} direccionDeLaCuenta={direccionUnica} alta={cliente === null} t={t} />
                   {redes && onRedes && <RedesParaEditar redes={redes} onCambia={onRedes} t={t} />}
                 </>
-              : cliente && <ContactosParaVer key={cliente.id} contactos={deLaFila} redes={redesDe(cliente)} t={t} />)}
+              : cliente && <ContactosParaVer key={cliente.id} contactos={deLaFila} redes={redesDe(cliente)} direccionDeLaCuenta={cliente.address} t={t} />)}
             {filas.map(linea)}
           </section>
         ))}
@@ -269,7 +279,7 @@ function BotonCopiar({ texto, t }: { texto: string; t: T }) {
 const FILA_DE_CONTACTO = "flex justify-between gap-4 border-b border-slate-100 py-1.5 text-sm last:border-0";
 const ETIQUETA_DE_CONTACTO = "shrink-0 text-slate-500";
 
-function ContactosParaVer({ contactos, redes = {}, t }: { contactos: Contacto[]; redes?: Redes; t: T }) {
+function ContactosParaVer({ contactos, redes = {}, direccionDeLaCuenta = null, t }: { contactos: Contacto[]; redes?: Redes; direccionDeLaCuenta?: string | null; t: T }) {
   const [elegido, setElegido] = useState<number | "redes">(0);
   // «+N»: un menú propio (no un <select>: en el teléfono el nativo se estiraba y cortaba el nombre).
   const [menu, setMenu] = useState(false);
@@ -377,7 +387,8 @@ function ContactosParaVer({ contactos, redes = {}, t }: { contactos: Contacto[];
               : <span className="min-w-0 break-all text-right text-slate-700">{c.website}</span>}
           </div>
         )}
-        {c.address && (
+        {/* Solicitud 3914768b: la que es igual a la de la cuenta (que sale debajo, D-786) no se repite. */}
+        {c.address && !mismaDireccion(c.address, direccionDeLaCuenta) && (
           <div className={FILA_DE_CONTACTO} data-direccion-de-contacto>
             <span className={ETIQUETA_DE_CONTACTO}>{t("Address", "Dirección")}</span>
             <span className="min-w-0 whitespace-pre-wrap break-words text-right text-slate-700">{c.address}</span>
@@ -494,10 +505,12 @@ function ArchivosDeLaFicha({ cliente, almacen, puedeEditar, t }: { cliente: Clie
  * Editar los contactos (D-668): cuantos hagan falta, y cada uno con cuantos teléfonos y correos hagan falta. El nombre
  * y el cargo salen en MAYÚSCULAS al escribir; el teléfono con el molde de Entregas. Un hueco vacío no cuenta.
  */
-function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, alta = false, t }: {
+function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, alta = false, direccionDeLaCuenta = false, t }: {
   contactos: ContactoEnEdicion[]; errores: string[]; onCambia: (c: ContactoEnEdicion[]) => void; elegido?: number; onElige?: (i: number) => void;
   /** D-772: en un alta, el primer contacto lleva asterisco en nombre, cargo y «teléfono o correo». */
-  alta?: boolean; t: T;
+  alta?: boolean;
+  /** Solicitud 3914768b: la dirección del primer contacto es también la de la cuenta (una sola casilla), y se dice debajo. */
+  direccionDeLaCuenta?: boolean; t: T;
 }) {
   // D-708: «This is too long so have tabs at the top to add/ switch to the others». Uno a la vista, con pestañas arriba
   // como las pastillas de `ContactosParaVer` (y su «+N»), y «+ Agregar contacto» al final, que lo crea y salta a él. Los
@@ -611,6 +624,11 @@ function ContactosParaEditar({ contactos, errores, onCambia, elegido, onElige, a
             <span className={etiqueta}>{t("Address", "Dirección")}</span>
             <textarea rows={2} value={c.address} onChange={(e) => cambia(i, { address: e.target.value })} data-direccion-de-contacto={i}
               className={cn("w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500", rojo(`contacto.${i}.address`))} />
+            {direccionDeLaCuenta && i === 0 && (
+              <span className="block text-[11px] text-slate-400" data-direccion-es-la-de-la-cuenta>
+                {t("Also the account address (used on orders).", "También es la dirección de la cuenta (la usan las órdenes).")}
+              </span>
+            )}
           </label>
         </fieldset>
       ))}
@@ -671,7 +689,13 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
   const [form, setForm] = useState<Record<string, string>>(() => ({ ...original, ...preajuste }));
   useEffect(() => { setForm({ ...original, ...preajuste }); }, [original, preajuste]);
   // D-668: los contactos van aparte del resto de campos: una lista que se edita entera.
-  const contactosOriginales = useMemo(() => contactosDe(cliente), [cliente]);
+  // Solicitud 3914768b («address box should not repeat»): una sola casilla de dirección, la del primer contacto, que es
+  // también la de la cuenta; si el primero no tiene, abre con la de la cuenta. Salvo filas con dos direcciones distintas.
+  const direccionAparte = useMemo(() => direccionesAparte(cliente?.address, contactosDe(cliente)), [cliente]);
+  const contactosOriginales = useMemo(
+    () => (direccionAparte ? contactosDe(cliente) : conDireccionDeLaCuenta(contactosDe(cliente), cliente?.address)),
+    [cliente, direccionAparte],
+  );
   const [contactos, setContactos] = useState<ContactoEnEdicion[]>(() => enEdicion(contactosOriginales));
   useEffect(() => { setContactos(enEdicion(contactosOriginales)); }, [contactosOriginales]);
   // D-708: la pestaña de contacto a la vista al editar; «Guardar» con errores salta a la primera que los tiene.
@@ -699,14 +723,63 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     setForm((f) => ({ ...f, store: orden[0] ?? "" }));
   };
   const { parche, errores } = useMemo(() => {
-    const campos = parcheDe(form, original, nuevo);
+    // Con una sola casilla, la dirección de la cuenta sigue a la del primer contacto (solo si esta cambió).
+    const conDireccion = direccionAparte ? form : { ...form, address: direccionDeLaCuentaAlGuardar(form.address ?? "", contactosOriginales, contactos) };
+    const campos = parcheDe(conDireccion, original, nuevo);
     return {
       parche: { ...campos.parche, ...parcheDeContactos(contactosOriginales, contactos, cliente), ...parcheDeRedes(redesOriginales, redes) },
       // D-772: en un alta, además, lo obligatorio (términos; del primer contacto nombre, cargo y teléfono o correo).
       errores: [...campos.errores, ...erroresDeContactos(contactos), ...(nuevo ? faltanEnElAlta(form, contactos, altaComoSolicitud) : [])],
     };
-  }, [form, original, nuevo, contactosOriginales, contactos, cliente, redesOriginales, redes, altaComoSolicitud]);
+  }, [form, original, nuevo, contactosOriginales, contactos, cliente, redesOriginales, redes, altaComoSolicitud, direccionAparte]);
   const cambiado = Object.keys(parche).length > 0;
+
+  // Solicitud 3914768b («need a save draft»): el alta se puede guardar a medias en este navegador, por persona
+  // (`borrador-del-alta.ts`), y retomarse al abrir otra vez «Nuevo cliente». Al crearla (o mandarla como solicitud) se borra.
+  const conBorrador = nuevo && Boolean(yo);
+  const [borradorPendiente, setBorradorPendiente] = useState<BorradorDelAlta | null>(() => (conBorrador && yo ? leeBorradorDelAlta((k) => window.localStorage.getItem(k), yo) : null));
+  const borradorActual = { form, contactos, redes, tiendas: tiendasAlta };
+  const huellaActual = huellaDelBorrador(borradorActual);
+  // La huella del último borrador guardado o recuperado: si lo escrito es eso mismo, cerrar no pregunta (ya está a salvo).
+  const [huellaGuardada, setHuellaGuardada] = useState<string | null>(null);
+  const hayParaBorrador = conBorrador && hayAlgoEscrito(borradorActual, preajuste);
+  const almacenDelNavegador = () => window.localStorage;
+  const guardarBorrador = () => {
+    if (!yo || !hayParaBorrador) return;
+    if (!guardaBorradorDelAlta(almacenDelNavegador, yo, { ...borradorActual, guardado: new Date().toISOString() })) {
+      setAviso({ tono: "rojo", texto: t("Could not save the draft in this browser.", "No se pudo guardar el borrador en este navegador.") });
+      return;
+    }
+    setHuellaGuardada(huellaActual);
+    setBorradorPendiente(null);
+    setAviso({ tono: "verde", texto: t("Draft saved ✓ — open «New customer» again to finish it.", "Borrador guardado ✓ — abre «Nuevo cliente» otra vez para terminarlo.") });
+  };
+  const recuperarBorrador = () => {
+    const b = borradorPendiente;
+    if (!b) return;
+    // Lo que la ficha pone sola manda sobre lo guardado: el vendedor del vendedor (D-740) y, si no elige tienda, la suya (D-797).
+    const tiendas = altaComoSolicitud && tiendaPre ? [tiendaPre] : tiendasDelAlta(b.tiendas.filter((c) => TIENDAS.some((x) => x.code === c)));
+    const forma = { ...original, ...b.form, ...preajuste, store: tiendas[0] ?? "" };
+    const lista = b.contactos.length ? b.contactos : enEdicion([]);
+    setForm(forma);
+    setTiendasAlta(tiendas);
+    setContactos(lista);
+    setContactoElegido(0);
+    setRedes(b.redes);
+    setHuellaGuardada(huellaDelBorrador({ form: forma, contactos: lista, redes: b.redes, tiendas }));
+    setBorradorPendiente(null);
+    setAviso({ tono: "verde", texto: t("Draft restored ✓", "Borrador recuperado ✓") });
+  };
+  const descartarBorrador = () => {
+    if (!yo) return;
+    if (!window.confirm(t("Discard the saved draft? It cannot be recovered.", "¿Descartar el borrador guardado? No se puede recuperar."))) return;
+    borraBorradorDelAlta(almacenDelNavegador, yo);
+    setBorradorPendiente(null);
+    setHuellaGuardada(null);
+    setAviso({ tono: "verde", texto: t("Draft discarded.", "Borrador descartado.") });
+  };
+  /** El alta ya se creó o se pidió: su borrador sobra. */
+  const olvidarBorrador = () => { if (conBorrador && yo) borraBorradorDelAlta(almacenDelNavegador, yo); };
 
   // D-665: «this information matches another account». Mientras se edita (alta o ficha), lo escrito se compara con la
   // lista ya cargada (`coincidenciasDe`, las reglas de D-633), con un pequeño retardo para no buscar a cada tecla. Fuera
@@ -731,7 +804,8 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
 
   // Cerrar: un clic fuera, ✕ o Escape. Con algo escrito sin guardar se pregunta: un clic fuera sin querer no lo tira.
   const cambiadoRef = useRef(cambiado);
-  cambiadoRef.current = cambiado;
+  // Lo guardado como borrador ya no se pierde al cerrar: no se pregunta.
+  cambiadoRef.current = cambiado && huellaActual !== huellaGuardada;
   const pedirCierre = () => {
     if (cambiadoRef.current && !window.confirm(t("Close without saving your changes?", "¿Cerrar sin guardar los cambios?"))) return;
     onClose();
@@ -789,6 +863,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
       }
     } catch { /* la solicitud ya está guardada; el aviso es un extra */ }
     setOcupado(false);
+    olvidarBorrador();
     setAviso({ tono: "verde", texto: t("Request sent to the admin ✓", "Solicitud enviada al admin ✓") });
     onSolicitado?.(r.valor);
   };
@@ -828,6 +903,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     if (!r.ok) { setAviso({ tono: "rojo", texto: textoDelFallo(r, tiendasAlta.length > 1) }); return; }
     const ver = filaQueSeEnsena(r.valor, tiendasAlta);
     if (!ver) return;
+    olvidarBorrador();
     const faltan = avisoDeNoCreadas(r.valor, t);
     setAviso(faltan ? { tono: "ambar", texto: t("Saved ✓ ", "Guardado ✓ ") + faltan } : { tono: "verde", texto: t("Saved ✓", "Guardado ✓") });
     setEditando(false);
@@ -1015,6 +1091,18 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
         </div>
 
         <div className="space-y-3 pt-3">
+          {nuevo && editando && borradorPendiente && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900" role="status" data-borrador-guardado>
+              <span className="min-w-0 flex-1">
+                📝 {cuandoSeGuardo(borradorPendiente.guardado, lang)
+                  ? t(`You have a draft saved ${cuandoSeGuardo(borradorPendiente.guardado, lang)}.`, `Tienes un borrador guardado el ${cuandoSeGuardo(borradorPendiente.guardado, lang)}.`)
+                  : t("You have a saved draft.", "Tienes un borrador guardado.")}
+                {borradorPendiente.form.account?.trim() ? <span className="font-semibold"> {borradorPendiente.form.account}</span> : null}
+              </span>
+              <Button size="sm" onClick={recuperarBorrador} data-recuperar-borrador>{t("Restore draft", "Recuperar borrador")}</Button>
+              <Button size="sm" variant="outline" onClick={descartarBorrador} data-descartar-borrador>{t("Discard", "Descartar")}</Button>
+            </div>
+          )}
           {archivado && (
             <p className="rounded-md border border-slate-200 bg-slate-100 p-2 text-xs text-slate-600">
               <span className="font-medium">{t("Archived", "Archivado")}</span> {fecha(cliente.archived_at)} · {motivoLabel(cliente.archived_reason, t)}
@@ -1042,7 +1130,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
               )}
             </div>
           )}
-          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} onCampo={campo} contactos={contactos} onContactos={setContactos} contactoElegido={contactoElegido} onEligeContacto={setContactoElegido} redes={redes} onRedes={setRedes} vendedores={vendedores} almacen={almacen} puedeEditar={puedeEditar} esVendedor={esVendedor} puedePedirVendedor={puedePedirVendedor} t={t} />
+          <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} direccionUnica={!direccionAparte} onCampo={campo} contactos={contactos} onContactos={setContactos} contactoElegido={contactoElegido} onEligeContacto={setContactoElegido} redes={redes} onRedes={setRedes} vendedores={vendedores} almacen={almacen} puedeEditar={puedeEditar} esVendedor={esVendedor} puedePedirVendedor={puedePedirVendedor} t={t} />
           {/* D-780 (221): el historial del cliente, plegado, al pie de las tarjetas. El vendedor no lo ve (lleva crédito
               y campos que D-728 le esconde). */}
           {cliente && !editando && !esVendedor && <HistorialDelCliente clienteId={cliente.id} almacen={almacen} t={t} />}
@@ -1055,6 +1143,12 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
               <>
                 {!nuevo && edicionComoSolicitud && (
                   <Input value={notaDeEdicion} onChange={(e) => setNotaDeEdicion(e.target.value)} placeholder={t("Why this change? (optional)", "¿Por qué el cambio? (opcional)")} aria-label={t("Reason for the edit", "Motivo de la edición")} className="h-9 min-w-60 flex-1" data-nota-de-edicion />
+                )}
+                {conBorrador && (
+                  <Button variant="outline" onClick={guardarBorrador} disabled={ocupado || !hayParaBorrador || huellaActual === huellaGuardada}
+                    title={t("Keep what you typed in this browser and finish it later", "Guarda lo escrito en este navegador para terminarlo después")} data-guardar-borrador>
+                    💾 {t("Save draft", "Guardar borrador")}
+                  </Button>
                 )}
                 <Button variant="outline" onClick={cancelar} disabled={ocupado}>{t("Cancel", "Cancelar")}</Button>
                 <Button onClick={guardar} disabled={ocupado || !cambiado} data-guardar-ficha>
