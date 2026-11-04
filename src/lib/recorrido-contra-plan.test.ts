@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   ANCHO_PLAN_CON_RECORRIDO, ANCHO_RECORRIDO_REAL, BORDE_RECORRIDO_REAL, COLOR_HUECO, COLOR_RECORRIDO_REAL,
-  choferDeLaLineaPlaneada, leyendaPlanContraReal, lineasDelRecorridoReal, planContraRecorrido, unCamionPorChofer,
+  choferDeLaLineaPlaneada, lineasDelRecorridoReal, planContraRecorrido, unCamionPorChofer,
 } from "./recorrido-contra-plan";
 import { choferesEnVivo } from "./choferes-en-vivo";
 import { carrilesDelDia, puntosDeLasRutas, rutasPorChofer } from "./mapa-de-rutas";
@@ -142,20 +142,11 @@ describe("3 · la ruta planeada y lo manejado, en estilos que no se confunden", 
     expect(paleta.has(COLOR_RECORRIDO_REAL)).toBe(false);
     expect(paleta.has(COLOR_HUECO)).toBe(false);
   });
-  it("la leyenda dice solo lo que se pinta, y nada sin recorrido", () => {
-    const todas = planContraRecorrido(plan, lineasDelRecorridoReal({ "Julio Jijon": julio }));
-    expect(leyendaPlanContraReal(todas).map((e) => [e.en, e.es])).toEqual([
-      ["Planned route", "Ruta planeada"], ["Driven", "Recorrido real"], ["No GPS (street unknown)", "Sin GPS (calle desconocida)"],
-    ]);
-    expect(leyendaPlanContraReal(plan)).toEqual([]);
-    const sinHueco = planContraRecorrido(plan, lineasDelRecorridoReal({ "Julio Jijon": julio.slice(0, 3) }));
-    expect(leyendaPlanContraReal(sinHueco).map((e) => e.clave)).toEqual(["plan", "real"]);
-  });
-  it("el Gestor, «Ruta de hoy» y el mapa de «Mi ruta» (la misma página) pintan lo manejado con su leyenda", () => {
+  it("el Gestor, «Ruta de hoy» y el mapa de «Mi ruta» (la misma página) pintan lo manejado encima de lo planeado, sin leyenda (D-520)", () => {
     const p = leer("src/app/(app)/routes/page.tsx");
     expect(p).toContain("return planContraRecorrido(out, lineasDelRecorridoReal(recorridoDelDia, { pasaFiltro, atenuada: isDim }));");
     expect(p).toContain("const recorridoDelDia = useRecorridoDelDia(choferesDelRecorrido, date, veCamiones, driverLocations, date === todayISO());");
-    expect(p.split("<LeyendaPlanContraReal lineas={lines} />").length - 1).toBe(2);
+    expect(p).not.toContain("LeyendaPlanContraReal");
   });
   it("Google: lo manejado y su borde se alargan en sitio (setPath), sin borrar y crear (D-837)", () => {
     const g = leer("src/components/GoogleMapView.tsx");

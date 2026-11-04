@@ -56,13 +56,10 @@ describe("D-520: el mapa ya no lleva leyenda, en ninguna pantalla", () => {
   });
   it("el Gestor, «Ruta de hoy» y «Mi ruta» montan la tarjeta del mapa sin nada debajo", () => {
     const gestor = sinComentarios(leer("src/app/(app)/routes/page.tsx"));
-    // **Puesto al día por D-NEXT**: debajo del mapa va SOLO la clave «Ruta planeada / Recorrido real»
-    // (`LeyendaPlanContraReal`), que sale únicamente cuando el mapa pinta lo manejado por un chofer. La leyenda general
-    // de D-520 sigue sin volver.
-    // La tarjeta de «solo el mapa» (la de «Mi ruta», D-514): el `MapView`, esa clave, y se cierra.
-    expect(gestor).toMatch(/onPointClick=\{\(id\) => soloElMapa\.alPulsarParada\?\.\(id\)\} \/>\n\s*<div style=\{\{ padding: "0 10px 6px" \}\}><LeyendaPlanContraReal lineas=\{lines\} \/><\/div>\n\s*<\/div>/);
-    // La de la página entera (Gestor y «Ruta de hoy»): tras el `MapView` y esa clave, la tarjeta se cierra.
-    expect(gestor).toMatch(/if \(d\) toggleOrder\(d\.id\);\n\s*\}\} \/>\n\s*<div style=\{\{ padding: "0 10px 6px" \}\}><LeyendaPlanContraReal lineas=\{lines\} \/><\/div>\n\s*<\/div>/);
+    // La tarjeta de «solo el mapa» (la de «Mi ruta», D-514): el `MapView` y se cierra.
+    expect(gestor).toMatch(/onPointClick=\{\(id\) => soloElMapa\.alPulsarParada\?\.\(id\)\} \/>\n\s*<\/div>/);
+    // La de la página entera (Gestor y «Ruta de hoy»): tras el `MapView`, la tarjeta se cierra.
+    expect(gestor).toMatch(/if \(d\) toggleOrder\(d\.id\);\n\s*\}\} \/>\n\s*<\/div>/);
   });
 });
 

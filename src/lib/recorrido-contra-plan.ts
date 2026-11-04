@@ -90,16 +90,3 @@ export function planContraRecorrido(plan: readonly MapLine[], real: readonly Map
   });
   return [...ensanchada, ...real];
 }
-
-/** Qué dice la leyenda: solo lo que el mapa está pintando, y nada si no hay recorrido que comparar. */
-export interface EntradaDeLaLeyenda { clave: "plan" | "real" | "hueco"; en: string; es: string }
-
-export function leyendaPlanContraReal(lineas: readonly MapLine[]): EntradaDeLaLeyenda[] {
-  const real = lineas.filter((l) => l.id.startsWith(PREFIJO_REAL));
-  if (!real.some((l) => !l.dashed)) return [];
-  const out: EntradaDeLaLeyenda[] = [];
-  if (lineas.some((l) => choferDeLaLineaPlaneada(l.id) != null)) out.push({ clave: "plan", en: "Planned route", es: "Ruta planeada" });
-  out.push({ clave: "real", en: "Driven", es: "Recorrido real" });
-  if (real.some((l) => l.dashed)) out.push({ clave: "hueco", en: "No GPS (street unknown)", es: "Sin GPS (calle desconocida)" });
-  return out;
-}

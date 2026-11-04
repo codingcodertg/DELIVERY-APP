@@ -131,7 +131,6 @@ import { fraseDeFaltan } from "@/lib/requisitos";
 import { CANDADOS_SIN_LEER, cargaCandados, dondeViveElCandado, estaBloqueada, pulsaCandado, quienBloqueo, type ClienteDeCandados, type EstadoDeCandados, type OpcionesDeCandados } from "@/lib/rutas-bloqueadas";
 import { AVISOS_DEL_GESTOR, cierraAviso, guardaAvisosOcultos, leeAvisosOcultos, type AvisoDelGestor } from "@/lib/avisos-ocultos";
 import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
-import { LeyendaPlanContraReal } from "@/components/LeyendaPlanContraReal";
 import { lineasDelRecorridoReal, planContraRecorrido } from "@/lib/recorrido-contra-plan";
 import { useRecorridoDelDia } from "@/lib/useRecorridoDelDia";
 
@@ -2738,7 +2737,6 @@ export default function RoutesPage() {
         {/* El toque va entero a quien monta el mapa: «Mi ruta» busca la parada en su propia lista, y lo que no sea una
             parada suya (la casita de una tienda, la base) no abre nada. */}
         <MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))} onLineClick={onLineClick} fitTo={fitTo} height={soloElMapa.alto ?? 430} onPointClick={(id) => soloElMapa.alPulsarParada?.(id)} />
-        <div style={{ padding: "0 10px 6px" }}><LeyendaPlanContraReal lineas={lines} /></div>
       </div>
     );
   }
@@ -3045,7 +3043,6 @@ export default function RoutesPage() {
             const d = dayOrders.find((x) => x.id === id);
             if (d) toggleOrder(d.id);
           }} />
-          <div style={{ padding: "0 10px 6px" }}><LeyendaPlanContraReal lineas={lines} /></div>
         </div>
       </div>
       </>)}
