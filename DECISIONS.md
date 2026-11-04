@@ -50178,3 +50178,19 @@ Sello `deliveries` 1.523.0; repo 1.690.0.
 Sello `deliveries` 1.524.0; repo 1.691.0.
 
 **Pruebas:** `recarga-obligatoria.test.ts`; `gps-del-turno.test.ts` puesta al día.
+
+## D-837 · Recorrido: sin parpadeo con las posiciones en vivo
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho directo por el orquestador en `fix/recorrido-sin-parpadeo` (laptop nueva).
+
+**Pedido (el dueño, viendo a Maximo en el Recorrido):** «se ve súper, pero no deja de flicker cada segundo».
+
+**Causa:** con D-835 las posiciones llegan cada pocos segundos, y a cada una el mapa de Google borraba y creaba todas las líneas, los pines y los camiones, y se volvía a encuadrar para meter el punto nuevo. La página además le pasaba los pines en una lista nueva a cada render.
+
+**Qué cambia:**
+- **`GoogleMapView`:** una línea con el mismo id y estilo se alarga (`setPath`); solo se crea lo nuevo y se quita lo que ya no está. Cada camión en vivo se mueve (`setPosition`, y su círculo con `setOptions`). Los pines que no cambiaron no se repintan (firma de su contenido).
+- **Recorrido:** los pines van en una lista estable; el mapa se encuadra al abrir y al cambiar de chofer o de día, no con cada posición: lo que el usuario acercó o movió se queda.
+
+Sello `deliveries` 1.525.0; repo 1.692.0. No se marca como recarga obligatoria (D-836): es de quien mira el mapa, no de los teléfonos de los choferes.
+
+**Pruebas:** `recorrido-sin-parpadeo.test.ts`.

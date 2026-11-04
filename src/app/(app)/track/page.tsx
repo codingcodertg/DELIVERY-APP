@@ -307,6 +307,20 @@ export default function TrackPage() {
 
   const todasLasPosiciones = useMemo(() => idsVisibles.flatMap((id) => (porChofer[id]?.fixes ?? []).map((f) => [f.lat, f.lng] as [number, number])), [idsVisibles, porChofer]);
   const totalPosiciones = todasLasPosiciones.length;
+  // D-837: los pines del mapa en una lista estable (una lista nueva a cada render los repintaba).
+  const puntosDelMapa = useMemo(() => [...points, ...puntosDeHitos], [points, puntosDeHitos]);
+  // D-837: el mapa se ENCUADRA al abrir y al cambiar de chofer o de día; una posición nueva en vivo no lo mueve (antes se
+  // reencuadraba con cada punto y saltaba). Lo que el usuario acercó o movió, se queda.
+  const [encuadre, setEncuadre] = useState<[number, number][]>([]);
+  const ultimoEncuadreRef = useRef("");
+  useEffect(() => {
+    if (loading) return;
+    const clave = `${driverId}|${fecha}`;
+    const pts = todasLasPosiciones.length ? todasLasPosiciones : camiones.map((c) => [c.lat, c.lng] as [number, number]);
+    if (!pts.length || ultimoEncuadreRef.current === clave) return;
+    ultimoEncuadreRef.current = clave;
+    setEncuadre(pts);
+  }, [driverId, fecha, loading, todasLasPosiciones, camiones]);
 
   return (
     <>
@@ -477,7 +491,7 @@ export default function TrackPage() {
         ) : (
           <>
           <MapView
-            points={[...points, ...puntosDeHitos]}
+            points={puntosDelMapa}
             lines={lineasVisibles}
             liveDrivers={camiones}
             stores={storeMarkers}
@@ -485,7 +499,7 @@ export default function TrackPage() {
             // Frame the whole day, not just the stops: a track with two long
             // stops and a lot of road between them would otherwise open zoomed
             // into one parking lot.
-            fitTo={todasLasPosiciones.length ? todasLasPosiciones : camiones.map((c) => [c.lat, c.lng] as [number, number])}
+            fitTo={encuadre}
             height={unSolo ? 420 : 520}
           />
           {/* D-832: reproducir el día. El camión naranja va por la línea; la barra deja ir a cualquier momento. */}

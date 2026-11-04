@@ -113,6 +113,11 @@ export function GoogleMapView({
   const markersRef = useRef<google.maps.Marker[]>([]);
   const storeMarkersRef = useRef<google.maps.Marker[]>([]);
   const liveRef = useRef<(google.maps.Marker | google.maps.Circle)[]>([]);
+  // D-837: los camiones en vivo por chofer, para MOVERLOS en vez de borrarlos y volver a crearlos (parpadeaban).
+  const liveByDriverRef = useRef(new Map<string, { marker: google.maps.Marker; circle: google.maps.Circle | null; icon: string }>());
+  // D-837: lo último dibujado, para no repintar lo que no cambió.
+  const pointsSigRef = useRef("");
+  const linesById = useRef(new Map<string, { poly: google.maps.Polyline; estilo: string }>());
   const linesRef = useRef<google.maps.Polyline[]>([]);
   const zoneRef = useRef<google.maps.Polygon | null>(null);
   const offsetLinesRef = useRef<{ poly: google.maps.Polyline; base: [number, number][]; offset: number }[]>([]);
@@ -248,7 +253,9 @@ export function GoogleMapView({
   useEffect(() => {
     const maps = mapsRef.current, map = mapRef.current;
     if (!ready || !maps || !map) return;
-    linesRef.current.forEach((l) => l.setMap(null));
+    // D-837: una línea con el mismo id y el mismo estilo se ALARGA (setPath); solo se crea lo nuevo y se quita lo que ya no
+    // está. Antes se borraban y creaban todas a cada posición nueva del chofer: el Recorrido parpadeaba cada segundo.
+    const vivos = new Set<string>();
     linesRef.current = [];
     offsetLinesRef.current = [];
     // Dimmed first so focused routes paint over them.
@@ -256,6 +263,16 @@ export function GoogleMapView({
     for (const line of ordered) {
       if (line.positions.length < 2) continue;
       const off = line.offset ?? 0;
+      const estilo = `${line.color}|${!!line.dimmed}|${!!line.dashed}|${off}`;
+      const previa = linesById.current.get(line.id);
+      if (previa && previa.estilo === estilo) {
+        previa.poly.setPath(offsetPath(line.positions, off));
+        vivos.add(line.id);
+        linesRef.current.push(previa.poly);
+        offsetLinesRef.current.push({ poly: previa.poly, base: line.positions, offset: off });
+        continue;
+      }
+      previa?.poly.setMap(null);
       const poly = new maps.Polyline({
         map,
         path: offsetPath(line.positions, off),
@@ -270,13 +287,20 @@ export function GoogleMapView({
       }
       linesRef.current.push(poly);
       offsetLinesRef.current.push({ poly, base: line.positions, offset: off });
+      linesById.current.set(line.id, { poly, estilo });
+      vivos.add(line.id);
     }
+    for (const [id, l] of linesById.current) if (!vivos.has(id)) { l.poly.setMap(null); linesById.current.delete(id); }
   }, [lines, ready]);
 
   // ---- Order pins ----
   useEffect(() => {
     const maps = mapsRef.current, map = mapRef.current;
     if (!ready || !maps || !map) return;
+    // D-837: los mismos pines no se repintan (una lista nueva con lo mismo dentro era un parpadeo).
+    const sig = JSON.stringify(points.map((p) => [p.id, p.lat, p.lng, p.color, p.badge, p.dimmed, p.label, p.offset?.x, p.offset?.y]));
+    if (sig === pointsSigRef.current && markersRef.current.length) return;
+    pointsSigRef.current = sig;
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
     const ordered = [...points].sort((a, b) => Number(!!b.dimmed) - Number(!!a.dimmed));
@@ -325,26 +349,34 @@ export function GoogleMapView({
   useEffect(() => {
     const maps = mapsRef.current, map = mapRef.current;
     if (!ready || !maps || !map) return;
-    liveRef.current.forEach((m) => m.setMap(null));
+    // D-837: cada camión se MUEVE (setPosition) en vez de borrarse y crearse: así no parpadea a cada posición nueva.
+    const vistos = new Set<string>();
     liveRef.current = [];
     for (const d of liveDrivers) {
       if (d.lat == null || d.lng == null) continue;
       const stale = (d.ageMin ?? 0) > 10;
-      if (d.accuracy_m && d.accuracy_m > 25) {
-        liveRef.current.push(new maps.Circle({
-          map, center: { lat: d.lat, lng: d.lng }, radius: d.accuracy_m,
-          strokeColor: stale ? STALE_GREY : d.color, strokeWeight: 1, strokeOpacity: stale ? 0.25 : 0.5,
-          fillColor: stale ? STALE_GREY : d.color, fillOpacity: stale ? 0.05 : 0.12, clickable: false,
-        }));
+      const icon = truckIcon(d.color, stale);
+      const pos = { lat: d.lat, lng: d.lng };
+      const conCirculo = !!(d.accuracy_m && d.accuracy_m > 25);
+      let it = liveByDriverRef.current.get(d.driver);
+      if (!it) {
+        it = { marker: new maps.Marker({ map, position: pos, title: d.label ?? d.driver, zIndex: 1500, icon: { url: icon, anchor: new maps.Point(18, 18) } }), circle: null, icon };
+        liveByDriverRef.current.set(d.driver, it);
+      } else {
+        it.marker.setPosition(pos);
+        it.marker.setTitle(d.label ?? d.driver);
+        if (it.icon !== icon) { it.marker.setIcon({ url: icon, anchor: new maps.Point(18, 18) }); it.icon = icon; }
       }
-      liveRef.current.push(new maps.Marker({
-        map,
-        position: { lat: d.lat, lng: d.lng },
-        title: d.label ?? d.driver,
-        zIndex: 1500,
-        icon: { url: truckIcon(d.color, stale), anchor: new maps.Point(18, 18) },
-      }));
+      if (conCirculo) {
+        const opts = { center: pos, radius: d.accuracy_m!, strokeColor: stale ? STALE_GREY : d.color, strokeOpacity: stale ? 0.25 : 0.5, fillColor: stale ? STALE_GREY : d.color, fillOpacity: stale ? 0.05 : 0.12 };
+        if (it.circle) it.circle.setOptions(opts);
+        else it.circle = new maps.Circle({ map, strokeWeight: 1, clickable: false, ...opts });
+      } else if (it.circle) { it.circle.setMap(null); it.circle = null; }
+      vistos.add(d.driver);
+      liveRef.current.push(it.marker);
+      if (it.circle) liveRef.current.push(it.circle);
     }
+    for (const [k, it] of liveByDriverRef.current) if (!vistos.has(k)) { it.marker.setMap(null); it.circle?.setMap(null); liveByDriverRef.current.delete(k); }
   }, [liveDrivers, ready]);
 
   // ---- Framing ----
