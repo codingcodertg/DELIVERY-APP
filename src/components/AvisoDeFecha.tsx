@@ -1,6 +1,7 @@
 import {
   cambiaLaFecha, esDomingo, problemaDeFecha, puedeAutorizarDomingo, textoDelProblema, type CasoEspecial,
 } from "@/lib/dia-de-entrega";
+import { AVISO_CORTE_VENTAS, cortaPorMediodia } from "@/lib/corte-de-ventas";
 
 /**
  * El aviso debajo de un selector de fecha de entrega (D-658): «Los domingos no hay entregas» y, para oficina, gerente
@@ -10,8 +11,11 @@ import {
  *
  * Sin estado propio: la casilla y el motivo los guarda quien lo monta, que es quien escribe la fecha y la nota.
  * Solo sale cuando la fecha es nueva o cambia, como el tope al guardar.
+ *
+ * Y a ventas, pasadas las 12 del mediodía en Texas, una fecha de hoy (o antes) lo dice aquí mismo, en rojo y sin
+ * casilla: el primer día es mañana (`corte-de-ventas`). El selector ya empieza en mañana; esto es para lo tecleado.
  */
-export function AvisoDeFecha({ fecha, actual, rol, caso, onCaso, t, hoy }: {
+export function AvisoDeFecha({ fecha, actual, rol, caso, onCaso, t, hoy, ahora }: {
   fecha: string | null | undefined;
   actual: string | null | undefined;
   rol: string | null | undefined;
@@ -20,9 +24,20 @@ export function AvisoDeFecha({ fecha, actual, rol, caso, onCaso, t, hoy }: {
   t: (en: string, es: string) => string;
   /** Hoy en Texas (`todayISO()` si falta): decide los años posibles. */
   hoy?: string;
+  /** El instante (`new Date()` si falta): decide el corte de mediodía de ventas. Para fijarlo en las pruebas. */
+  ahora?: Date;
 }) {
   if (!cambiaLaFecha(fecha, actual)) return null;
   const imposible = problemaDeFecha(fecha, { hoy }) === "fecha_imposible";
+  // El año imposible y el domingo se dicen antes: tienen su propio aviso (y el domingo, su casilla).
+  if (!imposible && !esDomingo(fecha) && cortaPorMediodia(fecha, actual, { rol, ahora })) {
+    return (
+      <div data-aviso-fecha="corte-ventas" role="alert"
+        style={{ margin: "6px 0 12px", padding: "10px 12px", borderRadius: 8, background: "var(--red-soft)", border: "1px solid var(--red)", fontSize: 13, minWidth: 0 }}>
+        <div style={{ fontWeight: 700 }}>🕛 {t(AVISO_CORTE_VENTAS.en, AVISO_CORTE_VENTAS.es)}</div>
+      </div>
+    );
+  }
   if (!imposible && !esDomingo(fecha)) return null;
   const autoriza = puedeAutorizarDomingo(rol);
   const aviso = textoDelProblema(imposible ? "fecha_imposible" : "domingo", rol, { hoy });

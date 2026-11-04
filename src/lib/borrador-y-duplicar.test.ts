@@ -135,7 +135,8 @@ describe("la ficha, al duplicar", () => {
   const modal = leer("src/components/OrderModal.tsx");
 
   it("arma la copia con la función compartida", () => {
-    expect(modal).toContain("const payload: Draft = borradorDuplicado(existing, saltaDomingo(todayISO()));");
+    // Nace en el primer día del rol (hoy; mañana para ventas desde las 12 en Texas, corte-de-ventas), saltando el domingo.
+    expect(modal).toContain("const payload: Draft = borradorDuplicado(existing, saltaDomingo(minFechaParaRol(me.role)));");
   });
 
   it("avisa si la copia choca con una orden que ya existe, y deja seguir", () => {
