@@ -1,5 +1,5 @@
 /**
- * D-NEXT: la revisión de una solicitud de cliente en su tarjeta (migración 242).
+ * D-865: la revisión de una solicitud de cliente en su tarjeta (migración 242).
  *
  * El dueño, con la captura de «Solicitudes de cliente»: «quiero que eso se vea mejor, que la parte donde está el customer
  * sea un row y si le doy click se abre la card con la info del customer para revisarlo, y allí mismo le doy approve,

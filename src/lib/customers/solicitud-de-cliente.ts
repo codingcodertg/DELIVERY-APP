@@ -15,7 +15,7 @@ import type { UserRole } from "@/lib/types";
 import { puedeEditar } from "./reglas";
 import type { Parche } from "./reglas";
 
-/** D-NEXT (242): «review» = Revisar: en espera porque algo hay que comprobar; sale de Pendientes. */
+/** D-865 (242): «review» = Revisar: en espera porque algo hay que comprobar; sale de Pendientes. */
 export type EstadoDeSolicitud = "pending" | "review" | "approved" | "rejected";
 
 export interface SolicitudDeCliente {
@@ -35,10 +35,10 @@ export interface SolicitudDeCliente {
   decided_at: string | null;
   decision_note: string | null;
   created_ids: number[] | null;
-  /** D-NEXT (242): la nota de «Revisar» (qué hay que comprobar) y cuándo; null sin la 242. */
+  /** D-865 (242): la nota de «Revisar» (qué hay que comprobar) y cuándo; null sin la 242. */
   review_note?: string | null;
   reviewed_at?: string | null;
-  /** D-NEXT (242): lo que mandó quien pidió, si el admin corrigió la solicitud (`payload` es ya lo corregido). */
+  /** D-865 (242): lo que mandó quien pidió, si el admin corrigió la solicitud (`payload` es ya lo corregido). */
   payload_original?: Record<string, unknown> | null;
   corrected_at?: string | null;
 }

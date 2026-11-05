@@ -33,7 +33,7 @@ const tiendasDe = (s: SolicitudDeCliente) => s.stores.map((c) => nombreDeTienda(
 const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonly string[]).includes(k) ? v.toUpperCase() : v);
 
 /**
- * Las solicitudes de cliente: de alta (D-743, 216) y de edición (D-780, 221). D-NEXT (242): una FILA por solicitud, con
+ * Las solicitudes de cliente: de alta (D-743, 216) y de edición (D-780, 221). D-865 (242): una FILA por solicitud, con
  * chips por estado (abre en Pendiente), y al pulsarla su tarjeta con la solicitud entera: un alta, agrupada como la ficha;
  * una edición, cada campo con el valor de hoy → lo pedido. En la tarjeta el admin aprueba, rechaza (con nota), la pasa a
  * «Revisar» (con nota) o la corrige antes de aprobar. Vendedor y gerente ven las suyas, solo para leer.

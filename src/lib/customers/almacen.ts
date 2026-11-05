@@ -64,11 +64,11 @@ export interface AlmacenDeClientes {
   rechazarSolicitud(id: number, nota: string): Promise<Res<null>>;
   /** D-780 (221): la edición de vendedor y gerente es una solicitud (solo lo que cambia, con lo que había y el porqué). */
   solicitarEdicion(cliente: Cliente, parche: Parche, nota: string): Promise<Res<SolicitudDeCliente>>;
-  /** D-NEXT (242): ¿tiene la base «Revisar» y la corrección de solicitudes? Sin la 242, la pantalla las esconde. */
+  /** D-865 (242): ¿tiene la base «Revisar» y la corrección de solicitudes? Sin la 242, la pantalla las esconde. */
   revisionDeSolicitudes(): Promise<boolean>;
-  /** D-NEXT (242): «Revisar»: en espera, con la nota de qué hay que comprobar (`erp.revisa_solicitud_de_cliente`). */
+  /** D-865 (242): «Revisar»: en espera, con la nota de qué hay que comprobar (`erp.revisa_solicitud_de_cliente`). */
   revisarSolicitud(id: number, nota: string): Promise<Res<null>>;
-  /** D-NEXT (242): guarda en la solicitud lo que corrigió el admin (`erp.corrige_solicitud_de_cliente`); aprobar lo aplica. */
+  /** D-865 (242): guarda en la solicitud lo que corrigió el admin (`erp.corrige_solicitud_de_cliente`); aprobar lo aplica. */
   corregirSolicitud(id: number, payload: Record<string, unknown>): Promise<Res<null>>;
   /** El admin aplica la edición pedida (`erp.aprueba_edicion_de_cliente`), con nota opcional. */
   aprobarEdicion(id: number, nota: string): Promise<Res<null>>;
@@ -141,7 +141,7 @@ export async function leeConRespaldo<T>(consulta: (columnas: string) => PromiseL
 /** Las columnas de una solicitud de cliente (216) y, desde la 221, su clase, la fila, lo que había y la nota. */
 export const COLUMNAS_DE_SOLICITUD_216 = "id, requested_by, stores, payload, status, created_at, decided_at, decision_note, created_ids";
 export const COLUMNAS_DE_SOLICITUD = COLUMNAS_DE_SOLICITUD_216 + ", kind, customer_id, before, note";
-/** D-NEXT (242): la nota de «Revisar» y lo que mandó quien pidió si el admin lo corrigió. */
+/** D-865 (242): la nota de «Revisar» y lo que mandó quien pidió si el admin lo corrigió. */
 export const COLUMNAS_DE_SOLICITUD_242 = COLUMNAS_DE_SOLICITUD + ", review_note, reviewed_at, payload_original, corrected_at";
 /** Las columnas del historial (221). */
 export const COLUMNAS_DE_HISTORIAL = "id, customer_id, at, by, kind, before, after, note, request_id, requested_by, decision_note";

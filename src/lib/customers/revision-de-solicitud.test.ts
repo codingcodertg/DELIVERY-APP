@@ -154,7 +154,7 @@ describe("la 242", () => {
     expect(sql).not.toContain("if not public.is_admin()");
     expect(sql.match(/if not erp\.es_admin_de_clientes\(\) then/g)?.length).toBe(5);
     expect(sql).toContain("aplica primero la 241");
-    expect(sql).not.toContain("D-NEXT");
+    expect(sql).not.toContain("D-865");
     expect(sql).toContain("-- @ledger-below");
   });
 });

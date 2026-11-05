@@ -68,7 +68,7 @@ export function almacenDemo(): AlmacenDeClientes {
 }
 
 /**
- * D-NEXT: unas solicitudes de ejemplo para la pantalla del demo (no para las pruebas, que empiezan sin ninguna): un alta
+ * D-865: unas solicitudes de ejemplo para la pantalla del demo (no para las pruebas, que empiezan sin ninguna): un alta
  * pendiente, una edición pendiente de la fila 1 y un alta rechazada.
  */
 export const SOLICITUDES_DEMO: readonly SolicitudDeCliente[] = [
@@ -107,7 +107,7 @@ export function almacenDemoNuevo(semilla: readonly SolicitudDeCliente[] = []): A
   };
   let archivoNuevo = 0;
   const enlaces = new Map<number, string>();
-  // D-NEXT (242): se decide desde «pending» o «review».
+  // D-865 (242): se decide desde «pending» o «review».
   const abierta = (s: SolicitudDeCliente) => s.status === "pending" || s.status === "review";
   const sinFila = { ok: false as const, sinTabla: false, sinPermiso: true, duplicado: false, error: "not saved: no row came back" };
   const almacen: AlmacenDeClientes = {
