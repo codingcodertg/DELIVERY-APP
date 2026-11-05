@@ -61,7 +61,7 @@ import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { MenuDeAcciones } from "@/components/MenuDeAcciones";
 import { accionesDeLaFicha, type IdDeAccion, type Texto } from "@/lib/acciones-de-la-ficha";
 import { LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
-import { fuenteAlAplicar, pinDraftParaGuardar, type PinSource } from "@/lib/pin-draft";
+import { buscarDireccionAlAbrir, fuenteAlAplicar, pinDraftParaGuardar, vistaDelSelector, type PinSource } from "@/lib/pin-draft";
 import { avisoDireccionIncompleta, avisoFueraDeLaRegion, direccionCompleta, direccionesARevisar, puntoDentroDeLaRegion } from "@/lib/direccion-completa";
 import { parcheDeUbicacion, resultadoDeRespuesta } from "@/lib/geocode-on-save";
 import { tiendasParaElMapa } from "@/lib/store-pins";
@@ -515,6 +515,10 @@ export function OrderModal({
   // duplicate-invoice guard doesn't fight it. Cleared on a manual edit.
   // Ocupado mientras el pin soltado busca su dirección (`geocodePin`).
   const [pinLookupBusy, setPinLookupBusy] = useState(false);
+  // La dirección tecleada, encontrada al abrir el selector, para que el mapa abra encima de ella (D-NEXT). Solo
+  // referencia: no es borrador ni se guarda. `null` mientras no hay, o si el proveedor no la encontró.
+  const [puntoDeDireccion, setPuntoDeDireccion] = useState<[number, number] | null>(null);
+  const [buscandoDireccion, setBuscandoDireccion] = useState(false);
   const [sharedInvoice, setSharedInvoice] = useState(false);
 
   // Local-zone pricing suggestion for the edit form (fee by miles).
@@ -999,6 +1003,23 @@ export function OrderModal({
   // still edit it by hand afterward (e.g. to add gate code instructions).
   // Reverse-geocode a point → fill the Delivery Address. Shared by "drop" (so
   // the address appears as soon as the pin lands) and "Save pin".
+  // Abre el selector sobre la dirección tecleada cuando el pedido aún no tiene punto (D-NEXT, ayuda abde8b1c).
+  const buscarDireccionDelSelector = async () => {
+    setPuntoDeDireccion(null);
+    if (teaching || !buscarDireccionAlAbrir(d)) return;
+    setBuscandoDireccion(true);
+    try {
+      const res = await fetch("/api/geocode-point", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: d.delivery_address }) });
+      const r = resultadoDeRespuesta(res.status, await res.json().catch(() => null));
+      if (r.kind === "ok") setPuntoDeDireccion([r.lat, r.lng]);
+    } catch { /* sin red: el mapa abre con el encuadre de siempre */ }
+    setBuscandoDireccion(false);
+  };
+  const vistaSelector = vistaDelSelector({ borrador: pinDraft, pedido: d, direccion: puntoDeDireccion });
+  const puntosDeReferencia = vistaSelector.referencia
+    ? [{ id: "direccion", lat: vistaSelector.referencia[0], lng: vistaSelector.referencia[1], color: "#2456c9", label: d.delivery_address || "" }]
+    : undefined;
+
   const geocodePin = async (lat: number, lng: number) => {
     setPinLookupBusy(true);
     try {
@@ -2268,6 +2289,7 @@ export function OrderModal({
                 setPinDraft(d.delivery_lat != null && d.delivery_lng != null ? [d.delivery_lat, d.delivery_lng] : null);
                 // Abrir para mirar no cambia la procedencia: se hereda la del pedido.
                 setPinDraftSource(d.delivery_pin_source ?? null);
+                if (!showPinPicker) void buscarDireccionDelSelector();
                 setShowPinPicker((s) => !s);
               }}>
                 📍 {t("Set exact location on map", "Marcar ubicación exacta en el mapa")}
@@ -2287,18 +2309,26 @@ export function OrderModal({
                 <div className="hint" style={{ marginBottom: 8 }}>
                   {t("Move the mouse to preview the spot, then right-click to drop the pin.", "Mueva el mouse para previsualizar el punto y haga clic derecho para marcarlo.")}
                 </div>
+                {buscandoDireccion ? (
+                  <div className="hint" style={{ height: 280, display: "flex", alignItems: "center", justifyContent: "center" }}>{t("Looking up the address…", "Buscando la dirección…")}</div>
+                ) : (
                 <MapView
+                  // El centro solo se lee al montar: la clave lo vuelve a montar cuando llega la dirección (D-NEXT).
+                  key={vistaSelector.referencia ? vistaSelector.referencia.join(",") : "sin-direccion"}
                   pickable
                   zone={LOCAL_ZONE_LATLNG}
                   // Referencia, no encuadre: las tiendas NO entran en `fitTo` ni en `center`. Con
                   // siete puntos dentro del marco el mapa se alejaría y se perdería el detalle
                   // justo donde importa, que es alrededor del pin.
                   stores={tiendasConPapel}
+                  points={puntosDeReferencia}
                   pickedPoint={pinDraft}
-                  center={pinDraft ?? (d.delivery_lat != null && d.delivery_lng != null ? [d.delivery_lat, d.delivery_lng] : undefined)}
+                  center={vistaSelector.center}
+                  zoom={vistaSelector.zoom}
                   onPick={(lat, lng) => dropPin(lat, lng)}
                   height={280}
                 />
+                )}
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <button className="btn btn-primary btn-sm" disabled={!pinDraft} onClick={() => { if (pinDraft) savePin(pinDraft[0], pinDraft[1]); }}>{t("Save pin", "Guardar pin")}</button>
                   {(d.delivery_lat != null || pinDraft) && (
@@ -2797,6 +2827,7 @@ export function OrderModal({
                 setPinDraft(d.delivery_lat != null && d.delivery_lng != null ? [d.delivery_lat, d.delivery_lng] : null);
                 // Abrir para mirar no cambia la procedencia: se hereda la del pedido.
                 setPinDraftSource(d.delivery_pin_source ?? null);
+                if (!showPinPicker) void buscarDireccionDelSelector();
                 setShowPinPicker((s) => !s);
               }}>
                 📍 {t("Set exact location on map", "Marcar ubicación exacta en el mapa")}
@@ -2816,18 +2847,26 @@ export function OrderModal({
                 <div className="hint" style={{ marginBottom: 8 }}>
                   {t("Move the mouse to preview the spot, then right-click to drop the pin — useful when there's no formal address yet (a construction site, a lot).", "Mueva el mouse para previsualizar el punto y haga clic derecho para marcarlo — útil cuando aún no hay una dirección formal (un sitio de construcción, un lote).")}
                 </div>
+                {buscandoDireccion ? (
+                  <div className="hint" style={{ height: 280, display: "flex", alignItems: "center", justifyContent: "center" }}>{t("Looking up the address…", "Buscando la dirección…")}</div>
+                ) : (
                 <MapView
+                  // El centro solo se lee al montar: la clave lo vuelve a montar cuando llega la dirección (D-NEXT).
+                  key={vistaSelector.referencia ? vistaSelector.referencia.join(",") : "sin-direccion"}
                   pickable
                   zone={LOCAL_ZONE_LATLNG}
                   // Referencia, no encuadre: las tiendas NO entran en `fitTo` ni en `center`. Con
                   // siete puntos dentro del marco el mapa se alejaría y se perdería el detalle
                   // justo donde importa, que es alrededor del pin.
                   stores={tiendasConPapel}
+                  points={puntosDeReferencia}
                   pickedPoint={pinDraft}
-                  center={pinDraft ?? (d.delivery_lat != null && d.delivery_lng != null ? [d.delivery_lat, d.delivery_lng] : undefined)}
+                  center={vistaSelector.center}
+                  zoom={vistaSelector.zoom}
                   onPick={(lat, lng) => dropPin(lat, lng)}
                   height={280}
                 />
+                )}
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <button className="btn btn-primary btn-sm" disabled={!pinDraft} onClick={() => {
                     if (!pinDraft) return;

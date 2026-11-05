@@ -73,3 +73,33 @@ export function pinDraftParaGuardar(e: EstadoPin): PinParaGuardar | null {
 export function fuenteAlAplicar(fuente: PinSource | null): PinSource {
   return fuente ?? "manual";
 }
+
+/**
+ * Dónde abre el selector de pin, y si hace falta buscar la dirección para saberlo (D-NEXT).
+ *
+ * Francisca, 2026-11-05: «NEED TO SEE THE ADDRESS ON THE MAP». La orden aún no tenía punto (se ubica al guardar,
+ * D-337 §1), así que el selector abría con el valle entero y la dirección tecleada no aparecía. Ahora, sin pin ni
+ * punto guardado, el selector busca la dirección y abre encima de ella, marcada como **referencia**: no es un
+ * borrador, no se guarda y no cambia la zona; el pin sigue siendo solo el del clic derecho.
+ *
+ * Orden: el borrador visible, luego el punto del pedido, luego la dirección encontrada. `zoom` cerca solo cuando hay
+ * un punto concreto; sin nada, se deja el encuadre de siempre.
+ */
+export function vistaDelSelector(e: {
+  borrador: [number, number] | null;
+  pedido: { delivery_lat?: number | null; delivery_lng?: number | null };
+  direccion: [number, number] | null;
+}): { center?: [number, number]; zoom?: number; referencia: [number, number] | null } {
+  if (e.borrador) return { center: e.borrador, referencia: null };
+  const { delivery_lat: lat, delivery_lng: lng } = e.pedido;
+  if (lat != null && lng != null && !(lat === 0 && lng === 0)) return { center: [lat, lng], referencia: null };
+  if (e.direccion) return { center: e.direccion, zoom: 16, referencia: e.direccion };
+  return { referencia: null };
+}
+
+/** ¿Al abrir el selector hay que buscar la dirección? Solo si hay texto y el pedido no tiene ya un punto. */
+export function buscarDireccionAlAbrir(pedido: { delivery_address?: string | null; delivery_lat?: number | null; delivery_lng?: number | null }): boolean {
+  if (!(pedido.delivery_address ?? "").trim()) return false;
+  const { delivery_lat: lat, delivery_lng: lng } = pedido;
+  return lat == null || lng == null || (lat === 0 && lng === 0);
+}
