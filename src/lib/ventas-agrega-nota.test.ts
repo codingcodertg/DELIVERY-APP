@@ -23,7 +23,8 @@ describe("244: el guard deja a ventas agregar una nota a su orden aprobada", () 
   const sql = () => plano(leer(RUTA));
   const bloque = () => {
     const s = sql();
-    const i = s.indexOf("-- 244 (D-869)");
+    // La 244 dice D-NEXT en su texto: numerarla cambiaría su suma (D-869).
+    const i = s.indexOf("-- 244 (D-NEXT)");
     return s.slice(i, s.indexOf("-- A late GPS fix", i));
   };
 
