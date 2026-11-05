@@ -50741,3 +50741,15 @@ Sello `recruiting` 0.76.0; repo 1.728.0.
 Sellos `customers` 0.51.0, `estimator` 0.29.0 y `deliveries` 1.542.0; repo 1.729.0.
 
 **Pruebas:** `customers/tratos.test.ts` (la clave en TS y en SQL casan); `columnas-de-la-lista` y `clientes-para-cotizar` puestas al día.
+
+## D-875 · Time Tracker: ya no pierde el tiempo contado
+
+**Fecha:** 2026-11-05 · Sin migración · Hecho por un agente en `fix/tt-no-pierde-tiempo`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño, con captura de «Sin guardar desde las 08:43 — 43 min… no están todavía en la base» y el reloj en 0:00):** «perdí ese tiempo hasta ahorita, corrígeme el tiempo». Se recuperaron a mano 44 min hoy y 1 h 25 min ayer.
+
+**Causa:** `Cronometro.tsx` sabía cuándo ya no guardaba pero nunca creaba otra fila: (1) latido «cerrada» (el cron o la página la cerró, o la RLS no la ve): solo enseñaba el aviso y seguía contando; (2) latido «overlap»: llamaba a `stop()`, que chocaba con la misma restricción y perdía todo desde el último guardado; (3) el alta al pulsar Iniciar fallaba (red tras despertar, sesión caducada) y no se reintentaba, con el reloj ya en 0. En la base: horas «En marcha» sin fila ni capturas.
+
+**Qué cambia (`no-perder-tiempo.ts`):** «cerrada» u «overlap» cierran la fila vieja y abren otra desde el último guardado (o desde ahora si el reloj se durmió, D-098), recortada para no solaparse; si el alta falla, el reloj sigue desde el clic y se reintenta (2, 4, 8, 16, 30 s); si se detiene con el alta pendiente, la fila cerrada se guarda en el navegador y se reintenta hasta que entra. El reloj grande suma lo ya guardado en filas anteriores. Sin nueva versión de escritorio: el tracker carga `/timetracker` desde Vercel.
+
+Sello `timetracker` 1.16.0; repo 1.730.0.
