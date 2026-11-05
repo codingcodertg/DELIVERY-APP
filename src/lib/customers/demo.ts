@@ -63,19 +63,33 @@ export const SUGERENCIAS_DEMO: Sugerencia[] = sospechosos(CLIENTES_DEMO).map((s,
  */
 let compartido: AlmacenDeClientes | null = null;
 export function almacenDemo(): AlmacenDeClientes {
-  if (!compartido) compartido = almacenDemoNuevo();
+  if (!compartido) compartido = almacenDemoNuevo(SOLICITUDES_DEMO);
   return compartido;
 }
 
-export function almacenDemoNuevo(): AlmacenDeClientes {
+/**
+ * D-NEXT: unas solicitudes de ejemplo para la pantalla del demo (no para las pruebas, que empiezan sin ninguna): un alta
+ * pendiente, una edición pendiente de la fila 1 y un alta rechazada.
+ */
+export const SOLICITUDES_DEMO: readonly SolicitudDeCliente[] = [
+  solicitudDeLaBase({ id: 3, kind: "alta", requested_by: "demo-beto", requested_name: "Beto Demo", stores: ["PHR"], status: "pending", created_at: "2026-11-04T15:10:00Z",
+    payload: { account: "IDEA DONNA", phone: "(956) 562-0131", contact_name: "EVERTO PRADO", contact_title: "OWNER", address: "120 N Main St, Pharr, TX", rep_id: "demo-beto",
+      contacts: [{ name: "EVERTO PRADO", title: "OWNER", phones: ["(956) 562-0131"], emails: ["everto@ideadonna.com"], note: null }] } }),
+  solicitudDeLaBase({ id: 2, kind: "edicion", customer_id: 1, requested_by: "demo-ana", requested_name: "Ana Demo", stores: ["MCA"], status: "pending", created_at: "2026-11-03T18:40:00Z",
+    payload: { terms: "Net 15", credit_limit: 25000 }, before: { account: "Demo Homes LLC", terms: "Net 30", credit_limit: 20000 }, note: "El cliente pide más crédito y paga a 15 días" }),
+  solicitudDeLaBase({ id: 1, kind: "alta", requested_by: "demo-ana", requested_name: "Ana Demo", stores: ["MCA", "BRO"], status: "rejected", created_at: "2026-11-01T14:00:00Z", decided_at: "2026-11-01T16:00:00Z",
+    decision_note: "Ya existe como Demo Homes LLC", payload: { account: "DEMO HOMES", contacts: [] } }),
+];
+
+export function almacenDemoNuevo(semilla: readonly SolicitudDeCliente[] = []): AlmacenDeClientes {
   let lista = CLIENTES_DEMO.map((c) => ({ ...c }));
   let cola = SUGERENCIAS_DEMO.map((s) => ({ ...s }));
   let siguiente = Math.max(...lista.map((c) => c.id)) + 1;
   let empresaNueva = 0;
   let archivos: ArchivoDeCliente[] = [];
   // D-743 (216): las solicitudes de cliente nuevo, en memoria.
-  let solicitudes: SolicitudDeCliente[] = [];
-  let solicitudNueva = 0;
+  let solicitudes: SolicitudDeCliente[] = semilla.map((x) => ({ ...x }));
+  let solicitudNueva = Math.max(0, ...semilla.map((x) => x.id));
   // D-780 (221): el historial, en memoria; lo escribe `guardar` (como el disparador) y las decisiones de edición.
   let historial: HistorialDeCliente[] = [];
   let historialNuevo = 0;
@@ -93,6 +107,8 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
   };
   let archivoNuevo = 0;
   const enlaces = new Map<number, string>();
+  // D-NEXT (242): se decide desde «pending» o «review».
+  const abierta = (s: SolicitudDeCliente) => s.status === "pending" || s.status === "review";
   const sinFila = { ok: false as const, sinTabla: false, sinPermiso: true, duplicado: false, error: "not saved: no row came back" };
   const almacen: AlmacenDeClientes = {
     async leer() { return { ok: true, valor: lista.map((c) => ({ ...c })) }; },
@@ -113,7 +129,7 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
     },
     async aprobarEdicion(id, nota) {
       const s = solicitudes.find((x) => x.id === id);
-      if (!s || s.status !== "pending" || s.kind !== "edicion" || s.customer_id === null) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not pending" };
+      if (!s || !abierta(s) || s.kind !== "edicion" || s.customer_id === null) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not pending" };
       const antes = lista.find((c) => c.id === s.customer_id);
       if (!antes) return sinFila;
       const r = await almacen.guardar(s.customer_id, s.payload as Parche);
@@ -123,10 +139,29 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
       solicitudes = solicitudes.map((x) => (x.id === id ? { ...x, status: "approved", decided_at: new Date().toISOString(), decision_note: nota.trim() || null } : x));
       return { ok: true, valor: null };
     },
+    async revisionDeSolicitudes() { return true; },
+    async revisarSolicitud(id, nota) {
+      const s = solicitudes.find((x) => x.id === id);
+      if (!s || !abierta(s)) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not open" };
+      if (!nota.trim()) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "a note is required" };
+      solicitudes = solicitudes.map((x) => (x.id === id ? { ...x, status: "review", review_note: nota.trim(), reviewed_at: new Date().toISOString() } : x));
+      return { ok: true, valor: null };
+    },
+    async corregirSolicitud(id, payload) {
+      const s = solicitudes.find((x) => x.id === id);
+      if (!s || !abierta(s)) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not open" };
+      if (s.kind === "alta" ? !String(payload.account ?? "").trim() : !Object.keys(payload).length) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "check_violation" };
+      // Como la 242: cada campo nuevo de una edición entra en `before` con el valor de hoy de la fila.
+      const fila = s.kind === "edicion" ? (lista.find((c) => c.id === s.customer_id) as unknown as Record<string, unknown> | undefined) : undefined;
+      const before = s.kind === "edicion" ? { ...(s.before ?? {}) } : s.before;
+      if (before && fila) for (const k of Object.keys(payload)) if (!(k in before)) before[k] = fila[k] ?? null;
+      solicitudes = solicitudes.map((x) => (x.id === id ? { ...x, payload: { ...payload }, before, payload_original: x.payload_original ?? x.payload, corrected_at: new Date().toISOString() } : x));
+      return { ok: true, valor: null };
+    },
     async historial(clienteId) { return { ok: true, valor: historial.filter((h) => h.customer_id === clienteId).map((h) => ({ ...h })) }; },
     async aprobarSolicitud(id) {
       const s = solicitudes.find((x) => x.id === id);
-      if (!s || s.status !== "pending") return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not pending" };
+      if (!s || !abierta(s)) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not pending" };
       const r = await almacen.crearVarias(s.stores.map((store) => ({ ...(s.payload as Parche), store, company_id: `demo-solicitud-${id}` })));
       if (!r.ok) return r;
       const ids = r.valor.creados.map((c) => c.id);
@@ -135,7 +170,7 @@ export function almacenDemoNuevo(): AlmacenDeClientes {
     },
     async rechazarSolicitud(id, nota) {
       const s = solicitudes.find((x) => x.id === id);
-      if (!s || s.status !== "pending") return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not pending" };
+      if (!s || !abierta(s)) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not pending" };
       solicitudes = solicitudes.map((x) => (x.id === id ? { ...x, status: "rejected", decided_at: new Date().toISOString(), decision_note: nota.trim() || null } : x));
       if (s.kind === "edicion" && s.customer_id !== null) apunta({ customer_id: s.customer_id, kind: "rejected", before: s.before, after: s.payload, note: s.note, request_id: id, requested_by: s.requested_by, requested_name: s.requested_name, decision_note: nota.trim() || null });
       return { ok: true, valor: null };

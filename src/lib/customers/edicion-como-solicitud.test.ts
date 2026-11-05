@@ -132,9 +132,9 @@ describe("las pantallas", () => {
   });
   it("la ventana de solicitudes pinta cada cambio antes → después, la nota, y aprueba la edición con su función", () => {
     expect(ventana).toContain("data-cambios-pedidos");
-    expect(ventana).toContain("almacen.aprobarEdicion(s.id, notas[s.id] ?? \"\")");
-    expect(ventana).toContain("data-nota-de-decision={s.id}");
-    expect(ventana).toContain('{edicion && s.note && <div className="mt-0.5 text-xs text-slate-600">📝 {t("Why", "Por qué")}: {s.note}</div>}');
+    expect(ventana).toContain("almacen.aprobarEdicion(s.id, nota)");
+    expect(ventana).toContain("data-nota-de-decision");
+    expect(ventana).toContain('{s.note && <p className="text-slate-700">📝 {t("Why", "Por qué")}: {s.note}</p>}');
   });
   it("la función nueva está clasificada como de las que escriben (modo enseñanza)", () => {
     expect(leer("src/lib/ensenanza-general.ts")).toContain('"aprueba_edicion_de_cliente"');

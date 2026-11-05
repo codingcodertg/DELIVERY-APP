@@ -15,7 +15,8 @@ import type { UserRole } from "@/lib/types";
 import { puedeEditar } from "./reglas";
 import type { Parche } from "./reglas";
 
-export type EstadoDeSolicitud = "pending" | "approved" | "rejected";
+/** D-NEXT (242): «review» = Revisar: en espera porque algo hay que comprobar; sale de Pendientes. */
+export type EstadoDeSolicitud = "pending" | "review" | "approved" | "rejected";
 
 export interface SolicitudDeCliente {
   id: number;
@@ -34,6 +35,12 @@ export interface SolicitudDeCliente {
   decided_at: string | null;
   decision_note: string | null;
   created_ids: number[] | null;
+  /** D-NEXT (242): la nota de «Revisar» (qué hay que comprobar) y cuándo; null sin la 242. */
+  review_note?: string | null;
+  reviewed_at?: string | null;
+  /** D-NEXT (242): lo que mandó quien pidió, si el admin corrigió la solicitud (`payload` es ya lo corregido). */
+  payload_original?: Record<string, unknown> | null;
+  corrected_at?: string | null;
 }
 
 export function altaEsSolicitud(role: UserRole | null | undefined): boolean {
@@ -63,7 +70,7 @@ const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() 
 const numero = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
 export function solicitudDeLaBase(f: Record<string, unknown>): SolicitudDeCliente {
-  const estado = f.status === "approved" || f.status === "rejected" ? f.status : "pending";
+  const estado = f.status === "approved" || f.status === "rejected" || f.status === "review" ? f.status : "pending";
   return {
     id: Number(f.id),
     kind: f.kind === "edicion" ? "edicion" : "alta",
@@ -79,6 +86,10 @@ export function solicitudDeLaBase(f: Record<string, unknown>): SolicitudDeClient
     decided_at: texto(f.decided_at),
     decision_note: texto(f.decision_note),
     created_ids: Array.isArray(f.created_ids) ? f.created_ids.map(numero).filter((n): n is number => n !== null) : null,
+    review_note: texto(f.review_note),
+    reviewed_at: texto(f.reviewed_at),
+    payload_original: f.payload_original && typeof f.payload_original === "object" && !Array.isArray(f.payload_original) ? (f.payload_original as Record<string, unknown>) : null,
+    corrected_at: texto(f.corrected_at),
   };
 }
 

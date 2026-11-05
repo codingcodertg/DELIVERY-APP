@@ -620,7 +620,7 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
         />
       )}
       {verSolicitudes && (
-        <SolicitudesDeCliente solicitudes={solicitudes} esAdmin={esAdmin} almacen={almacen} onDecidida={() => { void cargar(); void cargaSolicitudes(); }} onClose={() => setVerSolicitudes(false)} t={t} />
+        <SolicitudesDeCliente solicitudes={solicitudes} clientes={lista} esAdmin={esAdmin} almacen={almacen} onDecidida={() => { void cargar(); void cargaSolicitudes(); }} onClose={() => setVerSolicitudes(false)} t={t} />
       )}
       {pidiendo && <PedirVendedor cliente={pidiendo} vendedores={vendedores} onClose={() => setPidiendo(null)} t={t} />}
     </main>
