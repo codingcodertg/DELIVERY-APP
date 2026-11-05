@@ -35,7 +35,7 @@ export default async function CategoryAnalytics({
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-screen-2xl px-4 py-6">
+      <main className="erp-diseno mx-auto max-w-screen-2xl px-4 py-6">
         <h1 className="text-2xl font-semibold"><Tx en="Analytics" es="Analítica" /></h1>
         <p className="mt-1 text-sm text-slate-500">
           <Tx en="Sales + catalog rolled up by category" es="Ventas y catálogo agrupados por categoría" /> {parent ? <>· <Tx en="drilled into" es="dentro de" /> <b>{parent}</b> (L2)</> : <Tx en="(L1 — click a row to drill)" es="(L1 — clic en una fila para entrar)" />} · <Tx en="manager view (#29)." es="vista de gerente (#29)." />

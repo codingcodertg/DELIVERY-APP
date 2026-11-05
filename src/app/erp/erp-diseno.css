@@ -1,0 +1,307 @@
+/* ===========================================================================
+   Inventario: diseño de la vista previa (design/inventario-preview).
+   ===========================================================================
+   La familia de Promos (D-849) con la densidad de Entregas (D-855): cabecera de una fila, control
+   segmentado con puntos de color, columnas clave pegadas, filas alternas y hover, números con ancho
+   fijo y a la derecha, avisos calmados y tabla vacía que dice por qué.
+
+   Todo cuelga de `main.erp-diseno`, que solo llevan las páginas de /erp (Clientes también usa
+   data-app="erp", pero no esta clase). Sin capa a propósito: así gana a las utilidades de Tailwind
+   (que viven en @layer utilities) sin tocar sus clases, que las pruebas leen. Solo variables del hub. */
+
+/* ---- Página y cabecera de una fila ---------------------------------------------------------------- */
+main.erp-diseno {
+  padding-top: 10px;
+  padding-bottom: 12px;
+}
+main.erp-diseno > .erp-grupo {
+  float: right;
+  margin: 0 0 0 12px;
+  padding: 2px;
+  gap: 2px;
+}
+main.erp-diseno > .erp-grupo > a {
+  padding: 3px 10px;
+  font-size: 13px;
+}
+main.erp-diseno > div:has(> h1) {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  min-height: 32px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+main.erp-diseno > div:has(> h1) > h1 {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+main.erp-diseno > div:has(> h1) > p {
+  margin: 0;
+  max-width: none;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+main.erp-diseno > :not(.erp-grupo, :has(> h1)) {
+  clear: both;
+}
+
+/* ---- Tablas HTML (Inventario, Compras, Recepción, Revisión…) -------------------------------------- */
+main.erp-diseno table {
+  font-variant-numeric: tabular-nums;
+}
+main.erp-diseno thead,
+main.erp-diseno thead th {
+  text-transform: none;
+  letter-spacing: 0;
+}
+main.erp-diseno thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--card);
+  color: var(--gray);
+  font-size: 12px;
+  font-weight: 600;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  box-shadow: inset 0 -1px var(--line);
+}
+main.erp-diseno tbody td {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+main.erp-diseno tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--paper) 55%, var(--card));
+}
+main.erp-diseno tbody tr:hover {
+  background: var(--accent-soft);
+}
+main.erp-diseno section.rounded-2xl {
+  border-radius: 12px;
+  box-shadow: none;
+}
+main.erp-diseno section.rounded-2xl > .border-b:first-child {
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+main.erp-diseno .space-y-5 > * + * {
+  margin-top: 12px;
+}
+main.erp-diseno .gap-5 {
+  gap: 12px;
+}
+
+/* ---- Avisos calmados: blancos con franja de su color ----------------------------------------------- */
+main.erp-diseno :is(p, div).p-3:is(.bg-red-50, .bg-amber-50, .bg-emerald-50),
+main.erp-diseno .erp-aviso {
+  background: var(--card);
+  border-color: var(--line);
+  border-left: 3px solid var(--red);
+  color: var(--text);
+  padding: 6px 10px;
+}
+main.erp-diseno :is(p, div).p-3.bg-amber-50 {
+  border-left-color: var(--amber);
+}
+main.erp-diseno :is(p, div).p-3.bg-emerald-50 {
+  border-left-color: var(--green);
+}
+
+/* ---- Catálogo: resumen en una fila (pestañas segmentadas + cifras) --------------------------------- */
+main.erp-diseno .erp-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+}
+main.erp-diseno .erp-resumen > .erp-kpis {
+  order: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0 0 0 auto;
+}
+main.erp-diseno .erp-kpi {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+main.erp-diseno .erp-kpi > div:first-child {
+  font-size: 12px;
+}
+main.erp-diseno .erp-kpi > div:last-child {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Control segmentado: la pista es el papel, la activa es la tarjeta; cada estado con su punto. */
+main.erp-diseno .erp-segmento {
+  margin: 0;
+  padding: 2px;
+  gap: 2px;
+  background: var(--paper);
+}
+main.erp-diseno .erp-segmento > button {
+  padding: 3px 10px;
+  font-size: 13px;
+  background: none;
+  color: var(--ink-soft);
+}
+main.erp-diseno .erp-segmento > button[aria-pressed="true"] {
+  background: var(--card);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--line);
+}
+main.erp-diseno .erp-punto {
+  background: var(--gray);
+}
+main.erp-diseno [data-estado="published"] .erp-punto { background: var(--green); }
+main.erp-diseno [data-estado="draft"] .erp-punto { background: var(--accent); }
+main.erp-diseno [data-estado="pending_approval"] .erp-punto { background: var(--amber); }
+main.erp-diseno [data-estado="archived"] .erp-punto { background: var(--line); }
+
+/* Vistas guardadas y barra de herramientas más bajas. */
+main.erp-diseno > div > div.mb-3.flex:first-child {
+  margin-bottom: 6px;
+}
+main.erp-diseno > div > div.mb-3.flex:first-child button.rounded-full,
+main.erp-diseno > div > div.mb-3.flex:first-child > span.rounded-full {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  font-size: 13px;
+}
+main.erp-diseno .erp-herramientas {
+  margin-bottom: 8px;
+}
+main.erp-diseno .erp-herramientas :is(input:not([type="checkbox"]), select) {
+  height: 32px;
+}
+main.erp-diseno .erp-herramientas label {
+  margin: 0;
+}
+
+/* ---- Catálogo: la tabla ---------------------------------------------------------------------------- */
+main.erp-diseno .erp-tabla {
+  height: calc(100dvh - 232px);
+  min-height: 320px;
+  box-shadow: none;
+  font-variant-numeric: tabular-nums;
+}
+main.erp-diseno .erp-cabeza {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--card);
+}
+main.erp-diseno .erp-cabeza > div {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+main.erp-diseno .erp-fila {
+  --fondo: var(--card);
+  background: var(--fondo);
+}
+main.erp-diseno .erp-fila[data-par] {
+  --fondo: color-mix(in srgb, var(--paper) 55%, var(--card));
+}
+main.erp-diseno .erp-fila:hover {
+  --fondo: color-mix(in srgb, var(--accent-soft) 70%, var(--card));
+}
+main.erp-diseno .erp-fila[data-sel] {
+  --fondo: var(--accent-soft);
+}
+main.erp-diseno .erp-fila :is(img, .h-8.w-8) {
+  width: 24px;
+  height: 24px;
+}
+main.erp-diseno :is(.erp-fila, .erp-cabeza) > [data-fija] {
+  position: sticky;
+  z-index: 1;
+  background: var(--fondo, var(--card));
+}
+main.erp-diseno :is(.erp-fila, .erp-cabeza) > [data-fija="ultima"] {
+  box-shadow: inset -1px 0 var(--line);
+}
+main.erp-diseno :is(.erp-fila, .erp-cabeza) > [data-num] {
+  display: flex;
+  justify-content: flex-end;
+  text-align: right;
+}
+main.erp-diseno .erp-vacio {
+  padding: 28px 16px;
+  color: var(--ink-soft);
+}
+main.erp-diseno .erp-mas {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+/* ---- Teléfono ---------------------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  main.erp-diseno > .erp-grupo {
+    float: none;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0 0 6px;
+  }
+  main.erp-diseno > .erp-grupo > a {
+    padding: 8px 12px;
+    white-space: nowrap;
+  }
+  main.erp-diseno > div:has(> h1) > p {
+    display: none;
+  }
+  main.erp-diseno .erp-segmento {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  main.erp-diseno .erp-segmento > button {
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+  main.erp-diseno .erp-resumen > .erp-kpis {
+    margin: 0;
+  }
+  main.erp-diseno .erp-herramientas > input {
+    max-width: none;
+    flex: 1 1 100%;
+  }
+  main.erp-diseno .erp-herramientas :is(button, select, input:not([type="checkbox"])) {
+    min-height: 40px;
+  }
+  main.erp-diseno .erp-herramientas input[type="checkbox"],
+  main.erp-diseno .erp-fila input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+  }
+  main.erp-diseno .erp-tabla {
+    height: calc(100dvh - 200px);
+  }
+  main.erp-diseno .erp-tabla .grid {
+    gap: 8px;
+    padding: 8px;
+  }
+  main.erp-diseno .erp-tabla .grid button {
+    min-height: 44px;
+    width: 100%;
+  }
+}

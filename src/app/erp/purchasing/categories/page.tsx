@@ -40,7 +40,7 @@ export default async function PurchasingCategories({
     return (
       <>
         <Header />
-        <main className="mx-auto max-w-screen-2xl px-4 py-6">
+        <main className="erp-diseno mx-auto max-w-screen-2xl px-4 py-6">
           <Link href="/erp/purchasing/categories" className="text-sm text-clay-600 hover:underline"><Tx en="← All categories" es="← Todas las categorías" /></Link>
           <h1 className="mt-2 text-2xl font-semibold">{cat}</h1>
           <p className="mb-4 text-sm text-slate-500">{first.total.toLocaleString()} <Tx en="products in" es="productos en" /> {cat} · <Tx en="priced with cost (manager view, #29)." es="con costo (vista de gerente, #29)." /></p>
@@ -79,7 +79,7 @@ export default async function PurchasingCategories({
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-screen-2xl px-4 py-6">
+      <main className="erp-diseno mx-auto max-w-screen-2xl px-4 py-6">
         <Link href="/erp/purchasing" className="text-sm text-clay-600 hover:underline"><Tx en="← Purchasing" es="← Compras" /></Link>
         <h1 className="mt-2 text-2xl font-semibold"><Tx en="Browse by category" es="Explorar por categoría" /></h1>
         <p className="mb-4 text-sm text-slate-500">

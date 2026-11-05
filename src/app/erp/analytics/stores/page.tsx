@@ -40,7 +40,7 @@ export default async function StoreAnalytics({
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-screen-2xl px-4 py-6">
+      <main className="erp-diseno mx-auto max-w-screen-2xl px-4 py-6">
         <h1 className="text-2xl font-semibold"><Tx en="Analytics" es="Analítica" /></h1>
         <p className="mt-1 text-sm text-slate-500">
           {s?.range_start && s?.range_end ? <><Tx en="Sales" es="Ventas" /> {s.range_start} → {s.range_end}</> : <Tx en="No sales history loaded" es="Sin historial de ventas cargado" />} · <Tx en="margin from cost (manager view, #29)." es="margen sobre costo (vista de gerente, #29)." />

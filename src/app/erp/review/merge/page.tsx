@@ -49,7 +49,7 @@ export default async function MergePage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-screen-2xl px-4 py-6">
+      <main className="erp-diseno mx-auto max-w-screen-2xl px-4 py-6">
         <Link href="/erp/review" className="text-sm text-clay-600 hover:underline">
           <Tx en="← Review queue" es="← Cola de revisión" />
         </Link>

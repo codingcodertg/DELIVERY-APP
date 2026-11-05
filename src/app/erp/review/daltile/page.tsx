@@ -60,7 +60,7 @@ export default async function DaltileReviewPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-screen-xl px-4 py-6">
+      <main className="erp-diseno mx-auto max-w-screen-xl px-4 py-6">
         <Link href="/erp/catalog" className="text-sm text-clay-600 hover:underline"><Tx en="← Catalog" es="← Catálogo" /></Link>
         <h1 className="mt-2 text-2xl font-semibold"><Tx en="Daltile match review" es="Revisión de coincidencias Daltile" /></h1>
         <p className="mt-1 text-sm text-slate-500">

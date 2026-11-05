@@ -59,7 +59,7 @@ export default async function RequestPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-3xl px-4 py-6">
+      <main className="erp-diseno mx-auto max-w-3xl px-4 py-6">
         <h1 className="text-2xl font-semibold"><Tx en="Item request" es="Solicitud de artículo" /></h1>
         <p className="mb-5 text-sm text-slate-500">
           <Tx en="Create a new item or a copy of one (lands as a" es="Crea un artículo nuevo o una copia de otro (entra como" /> <span className="font-medium"><Tx en="draft" es="borrador" /></span> <Tx en="for an admin to publish), or request a change / reactivate / deactivate / discontinue on an existing one." es="para que un admin lo publique), o pide un cambio / reactivar / desactivar / descontinuar uno existente." />

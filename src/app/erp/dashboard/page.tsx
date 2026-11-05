@@ -62,7 +62,7 @@ export default async function DashboardPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-screen-2xl px-4 py-8">
+      <main className="erp-diseno mx-auto max-w-screen-2xl px-4 py-8">
         <GroupTabs grupo="analytics" role={session.role} />
         <h1 className="text-2xl font-semibold"><Tx en="Product Analytics" es="Analítica de productos" /></h1>
         <p className="mt-1 text-sm text-slate-500">

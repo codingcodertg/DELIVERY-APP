@@ -24,7 +24,7 @@ export function GroupTabs({ grupo, role }: { grupo: GrupoId; role: AppRole }) {
   if (tabs.length < 2) return null;
   const activa = pestanaActiva(tabs, pathname);
   return (
-    <div className="mb-4 inline-flex flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
+    <div className="erp-grupo mb-4 inline-flex flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
       {tabs.map((tab) => (
         <Link
           key={tab.href}

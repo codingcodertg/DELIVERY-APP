@@ -70,7 +70,7 @@ export default async function RequestsPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-screen-2xl px-4 py-6">
+      <main className="erp-diseno mx-auto max-w-screen-2xl px-4 py-6">
         <GroupTabs grupo="catalog" role={session.role} />
         <h1 className="text-2xl font-semibold"><Tx en="Request approvals" es="Aprobación de solicitudes" /></h1>
         <p className="mb-5 text-sm text-slate-500">

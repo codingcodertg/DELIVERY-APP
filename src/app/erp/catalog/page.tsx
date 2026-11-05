@@ -52,7 +52,7 @@ export default async function CatalogPage({
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-screen-2xl px-4 py-6">
+      <main className="erp-diseno mx-auto max-w-screen-2xl px-4 py-6">
         <GroupTabs grupo="catalog" role={session.role} />
         <div className="mb-4">
           <h1 className="text-2xl font-semibold"><Tx en="Catalog" es="Catálogo" /></h1>

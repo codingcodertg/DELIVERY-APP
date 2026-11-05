@@ -44,6 +44,11 @@ function Thumb({ path, alt }: { path?: string | null; alt: string }) {
   return <img src={url} alt={alt} loading="lazy" className="h-8 w-8 rounded object-cover ring-1 ring-slate-200" />;
 }
 
+// Diseño de la vista previa (design/inventario-preview): columnas que se quedan al desplazar de lado y las
+// que alinean a la derecha. Solo pintan (atributos data-*); el orden y la visibilidad siguen siendo de catalogColumns.
+const FIJAS = new Set(["thumb", "sku"]);
+const NUMERICAS = new Set(["price", "cost", "margin_pct", "qoh"]);
+
 const COMMERCIAL = ["all", "active", "special_order", "discontinued", "inactive"];
 type T = (en: string, es: string) => string;
 
@@ -66,7 +71,7 @@ const builtins = (t: T) => [
 
 function Kpi({ label, value, dot }: { label: string; value: number; dot: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+    <div className="erp-kpi rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
       <div className="flex items-center gap-1.5 text-xs text-slate-500">
         <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />
         {label}
@@ -283,7 +288,25 @@ export function CatalogTable({
   const infoDe = (id: string) => colInfo.find((c) => c.id === id) as CatalogColumn;
 
   const tableRows = table.getRowModel().rows;
-  const virtualizer = useVirtualizer({ count: tableRows.length, getScrollElement: () => parentRef.current, estimateSize: () => 44, overscan: 12 });
+  const virtualizer = useVirtualizer({ count: tableRows.length, getScrollElement: () => parentRef.current, estimateSize: () => 34, overscan: 12 });
+  // Dónde se pega cada columna fija: tras la casilla (40 px), solo si van seguidas al principio.
+  const fijaEn = new Map<string, number>();
+  {
+    let x = 40;
+    for (const c of table.getVisibleLeafColumns()) {
+      if (!FIJAS.has(c.id)) break;
+      fijaEn.set(c.id, x);
+      x += c.getSize();
+    }
+  }
+  const ultimaFija = [...fijaEn.keys()].pop();
+  const filtrosPuestos = statusFilter !== "all" || recordTab !== "all" || reviewOnly;
+  // La tabla vacía dice por qué (como Promos, D-849): la búsqueda, los filtros o un catálogo sin nada.
+  const motivoVacio = debouncedFilter.trim()
+    ? t(`Nothing matches “${debouncedFilter.trim()}”. Check the spelling, or search by SKU or vendor.`, `Nada coincide con «${debouncedFilter.trim()}». Revisa cómo se escribe, o busca por SKU o proveedor.`)
+    : filtrosPuestos
+      ? t("No products with these filters. Set the status to All, the tab to All, or untick Needs review to see more.", "Ningún producto con estos filtros. Pon el estado en Todos, la pestaña en Todos o quita Requiere revisión para ver más.")
+      : t("The catalog has no products yet.", "El catálogo aún no tiene productos.");
   const totalWidth = table.getTotalSize() + 40;
   const allSelected = tableRows.length > 0 && tableRows.every((r) => selected.has(r.original.id));
   function toggleAll() {
@@ -318,7 +341,7 @@ export function CatalogTable({
   // Shared by both views — same lazy-load (100/page) on scroll-near-bottom.
   const loadMoreFooter =
     loadingMore || hasMore ? (
-      <div className="flex items-center justify-center gap-3 border-t border-slate-100 py-3 text-sm text-slate-500">
+      <div className="erp-mas flex items-center justify-center gap-3 border-t border-slate-100 py-3 text-sm text-slate-500">
         {loadingMore ? (
           t("Loading more…", "Cargando más…")
         ) : (
@@ -335,8 +358,9 @@ export function CatalogTable({
         <SavedViews scope="catalog" saved={savedViews} builtins={builtins(t)} currentState={{ globalFilter, statusFilter, recordTab, reviewOnly, sorting, columnVisibility, columnOrder }} onApply={applyState} />
       )}
 
+      <div className="erp-resumen">
       {!compact && facets && (
-        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="erp-kpis mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Kpi label={t("Products", "Productos")} value={facets.total} dot="bg-slate-300" />
           <Kpi label={t("Active", "Activos")} value={facets.active} dot="bg-emerald-400" />
           <Kpi label={t("Needs review", "Requiere revisión")} value={facets.needs_review} dot="bg-amber-400" />
@@ -345,13 +369,13 @@ export function CatalogTable({
       )}
 
       {!compact && facets && (
-        <div className="mb-3 inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
+        <div className="erp-segmento mb-3 inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
           {recordTabs(t).map((tab) => {
             const active = recordTab === tab.value;
             const count = facets.by_record[tab.value as keyof CatalogFacets["by_record"]] ?? 0;
             return (
-              <button key={tab.value} type="button" onClick={() => setRecordTab(tab.value)} className={cn("inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-sm transition-colors", active ? "bg-clay-50 font-medium text-clay-700" : "text-slate-500 hover:text-slate-800")}>
-                {active && <span className="h-1.5 w-1.5 rounded-full bg-clay-500" />}
+              <button key={tab.value} type="button" data-estado={tab.value} aria-pressed={active} onClick={() => setRecordTab(tab.value)} className={cn("inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-sm transition-colors", active ? "bg-clay-50 font-medium text-clay-700" : "text-slate-500 hover:text-slate-800")}>
+                <span className="erp-punto h-1.5 w-1.5 rounded-full" aria-hidden />
                 {tab.label}
                 <span className="text-xs text-slate-400">{count.toLocaleString()}</span>
               </button>
@@ -359,8 +383,9 @@ export function CatalogTable({
           })}
         </div>
       )}
+      </div>
 
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+      <div className="erp-herramientas mb-3 flex flex-wrap items-center gap-2">
         <Input placeholder={t("Search name, SKU, vendor…", "Buscar nombre, SKU, proveedor…")} value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} className="max-w-xs" />
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500">
           {COMMERCIAL.map((s) => (
@@ -420,7 +445,7 @@ export function CatalogTable({
         </div>
       </div>
 
-      {err && <p className="mb-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{t("Failed to load catalog:", "No se pudo cargar el catálogo:")} {err}</p>}
+      {err && <p className="erp-aviso mb-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{t("Failed to load catalog:", "No se pudo cargar el catálogo:")} {err}</p>}
 
       <div
         ref={parentRef}
@@ -428,7 +453,7 @@ export function CatalogTable({
           const el = e.currentTarget;
           if (el.scrollHeight - el.scrollTop - el.clientHeight < 400) loadMore();
         }}
-        className="h-[calc(100vh-340px)] overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm"
+        className="erp-tabla h-[calc(100vh-340px)] overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm"
       >
         {view === "cards" ? (
           <>
@@ -437,15 +462,21 @@ export function CatalogTable({
           </>
         ) : (
           <div style={{ minWidth: totalWidth }}>
-            <div className="sticky top-0 z-10 flex border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-              <div className="flex w-10 shrink-0 items-center justify-center py-2.5">
+            <div className="erp-cabeza sticky top-0 z-10 flex border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <div data-fija="" style={{ left: 0 }} className="flex w-10 shrink-0 items-center justify-center py-2.5">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-clay-500" aria-label={t("Select all loaded", "Seleccionar todo lo cargado")} />
               </div>
               {/* D-553: pulsar una cabecera abre su menú (ordenar ↑/↓, ocultar) en vez de alternar el
                   orden. Ordenar escribe el MISMO `sorting` que lee la consulta (sortId/sortDesc): el
                   servidor vuelve a pedir desde la página 1; nada se ordena en el navegador. */}
               {table.getHeaderGroups()[0].headers.map((h) => (
-                <div key={h.id} style={{ width: h.getSize() }} className="px-3 py-2.5 font-medium">
+                <div
+                  key={h.id}
+                  style={{ width: h.getSize(), ...(fijaEn.has(h.column.id) ? { left: fijaEn.get(h.column.id) } : {}) }}
+                  data-fija={fijaEn.has(h.column.id) ? (h.column.id === ultimaFija ? "ultima" : "") : undefined}
+                  data-num={NUMERICAS.has(h.column.id) ? "" : undefined}
+                  className="px-3 py-2.5 font-medium"
+                >
                   {h.isPlaceholder || !h.column.columnDef.header ? null : (
                     <ColumnHeaderMenu
                       label={t(infoDe(h.column.id).en, infoDe(h.column.id).es)}
@@ -470,21 +501,29 @@ export function CatalogTable({
                   <div
                     key={row.id}
                     onClick={() => setDrawerId(row.original.id)}
-                    className={cn("absolute flex w-full cursor-pointer border-b border-slate-100", isSel ? "bg-clay-50/60" : "hover:bg-clay-50/40")}
+                    data-par={vi.index % 2 === 1 ? "" : undefined}
+                    data-sel={isSel ? "" : undefined}
+                    className={cn("erp-fila absolute flex w-full cursor-pointer border-b border-slate-100", isSel ? "bg-clay-50/60" : "hover:bg-clay-50/40")}
                     style={{ transform: `translateY(${vi.start}px)`, height: `${vi.size}px` }}
                   >
-                    <div className="flex w-10 shrink-0 items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                    <div data-fija="" style={{ left: 0 }} className="flex w-10 shrink-0 items-center justify-center" onClick={(e) => e.stopPropagation()}>
                       <input type="checkbox" checked={isSel} onChange={() => toggle(row.original.id)} className="accent-clay-500" />
                     </div>
                     {row.getVisibleCells().map((cell) => (
-                      <div key={cell.id} style={{ width: cell.column.getSize() }} className="flex items-center overflow-hidden whitespace-nowrap px-3">
+                      <div
+                        key={cell.id}
+                        style={{ width: cell.column.getSize(), ...(fijaEn.has(cell.column.id) ? { left: fijaEn.get(cell.column.id) } : {}) }}
+                        data-fija={fijaEn.has(cell.column.id) ? (cell.column.id === ultimaFija ? "ultima" : "") : undefined}
+                        data-num={NUMERICAS.has(cell.column.id) ? "" : undefined}
+                        className="flex items-center overflow-hidden whitespace-nowrap px-3"
+                      >
                         <span className="truncate">{flexRender(cell.column.columnDef.cell, cell.getContext())}</span>
                       </div>
                     ))}
                   </div>
                 );
               })}
-              {tableRows.length === 0 && !loading && <div className="p-8 text-center text-sm text-slate-500">{t("No products match these filters.", "Ningún producto coincide con estos filtros.")}</div>}
+              {tableRows.length === 0 && !loading && !err && <div className="erp-vacio p-8 text-center text-sm text-slate-500">{motivoVacio}</div>}
             </div>
 
             {loadMoreFooter}

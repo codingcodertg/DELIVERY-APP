@@ -22,7 +22,7 @@ export default async function PoUploadPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-screen-2xl px-4 py-6">
+      <main className="erp-diseno mx-auto max-w-screen-2xl px-4 py-6">
         <h1 className="text-2xl font-semibold"><Tx en="PO upload" es="Subir OC" /></h1>
         <p className="mb-5 text-sm text-slate-500">
           <Tx en="Upload a purchase-order CSV → match lines to products (MPN → name) → unmatched lines become pre-filled draft products (vendor, cost, MPN captured at source). Extraction + draft creation only; the full PO lifecycle is M7." es="Sube un CSV de orden de compra → casa las líneas con productos (MPN → nombre) → las que no casan se convierten en borradores prerrellenados (proveedor, costo y MPN capturados en origen). Solo extracción y creación de borradores; el ciclo completo de la OC es M7." />

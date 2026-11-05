@@ -67,7 +67,7 @@ export default async function PoDetailPage({ params }: { params: Promise<{ id: s
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-screen-2xl px-4 py-6">
+      <main className="erp-diseno mx-auto max-w-screen-2xl px-4 py-6">
         {error ? (
           <div>
             <Link href="/erp/purchasing/orders" className="text-sm text-slate-500 hover:text-clay-700"><Tx en="← All orders" es="← Todos los pedidos" /></Link>

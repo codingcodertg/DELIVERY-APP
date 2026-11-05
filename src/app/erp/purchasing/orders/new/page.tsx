@@ -24,7 +24,7 @@ export default async function NewPoPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-screen-2xl px-4 py-6">
+      <main className="erp-diseno mx-auto max-w-screen-2xl px-4 py-6">
         <div className="mb-4">
           <Link href="/erp/purchasing/orders" className="text-sm text-slate-500 hover:text-clay-700"><Tx en="← All orders" es="← Todos los pedidos" /></Link>
           <h1 className="mt-1 text-2xl font-semibold"><Tx en="Log PO / proforma" es="Registrar OC / proforma" /></h1>

@@ -50,7 +50,7 @@ export default async function PurchasingPage({
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-screen-2xl px-4 py-6">
+      <main className="erp-diseno mx-auto max-w-screen-2xl px-4 py-6">
         <GroupTabs grupo="purchasing" role={session.role} />
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
