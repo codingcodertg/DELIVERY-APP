@@ -21,6 +21,7 @@ import { vendedoresEnOrden, type Vendedor } from "@/lib/customers/vendedores";
 import { mensajeDeAltaPendiente, PAGINA_DE_SOLICITUDES, type SolicitudDeCliente } from "@/lib/customers/solicitud-de-cliente";
 import { mensajeDeEdicionPendiente } from "@/lib/customers/edicion-como-solicitud";
 import { HistorialDelCliente } from "./HistorialDelCliente";
+import { AsociacionesDelCliente } from "./AsociacionesDelCliente";
 import { HistorialDeTratos } from "./HistorialDeTratos";
 import { APP_VERSIONS } from "@/lib/app-versions";
 import { enviaSolicitudDeAyuda, pideContactoDeAyuda, rolDeQuienEscribe } from "@/lib/help-send";
@@ -1163,6 +1164,14 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
                 <p className="text-xs text-amber-800">{t(`and ${coinciden.length - MAX_COINCIDENCIAS} more`, `y ${coinciden.length - MAX_COINCIDENCIAS} más`)}</p>
               )}
             </div>
+          )}
+          {/* D-884 (249): «En asociación con». Al ver, las pastillas (si hay); editando, el buscador, solo para quien edita
+              directo (admin y admin de Clientes): la edición del vendedor y del gerente es una solicitud de columnas
+              (D-780) y la asociación no es una columna. */}
+          {cliente && (
+            <AsociacionesDelCliente cliente={cliente} almacen={almacen} lista={lista}
+              editable={editando && puedeEditar && !edicionComoSolicitud}
+              pintaFicha={(c) => <TarjetasDeLaFicha cliente={c} esVendedor={esVendedor} t={t} />} t={t} />
           )}
           <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} direccionUnica={!direccionAparte} onCampo={campo} contactos={contactos} onContactos={setContactos} contactoElegido={contactoElegido} onEligeContacto={setContactoElegido} redes={redes} onRedes={setRedes} vendedores={vendedores} almacen={almacen} puedeEditar={puedeEditar} esVendedor={esVendedor} puedePedirVendedor={puedePedirVendedor} t={t} />
           {/* D-780 (221): el historial del cliente, plegado, al pie de las tarjetas. El vendedor no lo ve (lleva crédito

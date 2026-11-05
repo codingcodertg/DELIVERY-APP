@@ -8,6 +8,7 @@ import { clienteDeBusqueda } from "./vendedor-por-tienda";
 import { cuerpoDeSolicitud, solicitudDeLaBase, type SolicitudDeCliente } from "./solicitud-de-cliente";
 import { cuerpoDeEdicion, historialDeLaBase, nombraVendedores, vendedoresDelHistorial, type HistorialDeCliente } from "./edicion-como-solicitud";
 import { leeTratos, type TratosLeidos } from "./tratos-de-la-base";
+import { asociadoDeLaBase, type Asociado } from "./asociaciones";
 import { conVendedores, nombresDeVendedores, type Vendedor } from "./vendedores";
 
 /**
@@ -77,6 +78,15 @@ export interface AlmacenDeClientes {
   historial(clienteId: number): Promise<Res<HistorialDeCliente[]>>;
   /** D-874 (245): el historial principal: las órdenes de Entregas y las cotizaciones del Quote Builder de esta fila. */
   tratos(cliente: Pick<Cliente, "id" | "account">): Promise<Res<TratosLeidos>>;
+  /** D-884 (249): las empresas asociadas a una («En asociación con»). Sin la 249, `sinTabla`. Opcional: los dobles de
+   *  las pruebas no la tienen y la ficha entonces no pinta la sección. */
+  asociados?(companyId: string): Promise<Res<Asociado[]>>;
+  /** D-884 (249): asocia dos empresas (solo quien edita directo; la RLS lo exige). */
+  asociar?(companyA: string, companyB: string): Promise<Res<null>>;
+  /** D-884 (249): quita un par por su id. */
+  desasociar?(parId: number): Promise<Res<null>>;
+  /** D-884 (249): las filas de una empresa que quien mira puede ver (para abrir una asociada en una tarjeta). */
+  filasDeEmpresa?(companyId: string): Promise<Res<Cliente[]>>;
 }
 
 /** ¿Es «la 180 no está aplicada»? PGRST205 (tabla) de PostgREST; 42P01 de Postgres. Solo esos. */
@@ -266,6 +276,28 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
         } catch { /* sin nombres */ }
       }
       return { ok: true, valor: filas };
+    },
+    async asociados(companyId) {
+      const { data, error } = await sb.rpc("asociados_de_la_empresa", { p_company: companyId });
+      // Sin la 249: ni la función (PGRST202 / 42883) ni la tabla.
+      if (error) return { ...fallo(error), sinTabla: faltaLaTabla(error) || error.code === "PGRST202" || error.code === "42883" };
+      return { ok: true, valor: ((data ?? []) as Record<string, unknown>[]).map(asociadoDeLaBase) };
+    },
+    async asociar(companyA, companyB) {
+      const { error } = await sb.from("customer_associations").insert({ company_a: companyA, company_b: companyB });
+      if (error) return fallo(error);
+      return { ok: true, valor: null };
+    },
+    async desasociar(parId) {
+      const { data, error } = await sb.from("customer_associations").delete().eq("id", parId).select("id");
+      if (error) return fallo(error);
+      if (!data?.length) return sinFila();
+      return { ok: true, valor: null };
+    },
+    async filasDeEmpresa(companyId) {
+      const { data, error } = await leeConRespaldo((cols) => sb.from("customers").select(cols).eq("company_id", companyId).order("id"));
+      if (error) return fallo(error);
+      return { ok: true, valor: await conNombres(((data ?? []) as unknown as Record<string, unknown>[]).map(clienteDeLaBase)) };
     },
     async tratos(cliente) {
       try { return { ok: true, valor: await leeTratos(sb, cliente) }; } catch (e) { return fallo({ message: e instanceof Error ? e.message : String(e) }); }

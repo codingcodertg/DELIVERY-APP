@@ -50846,3 +50846,13 @@ Sello `deliveries` 1.547.0; repo 1.737.0.
 **Expediente:** insubordinación, zona y positiva escriben en `recruiting.hr_history` (`employee_insubordination`, `employee_zone_infraction`, `employee_positive_observation`) y salen en el historial de la ficha. Fuera de v1: tareas y revisión de montacargas, descuento de inventario, gráficas.
 
 Sello `deliveries` 1.548.0; repo 1.738.0.
+
+## D-884 · Clientes: asociación entre clientes (solo informativa)
+
+**Fecha:** 2026-11-05 · Migración 249 (escrita; se aplica aparte; 248 queda libre) · Hecho por un agente en `feat/clientes-asociaciones`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño):** «una opción que se llama asociación entre clientes… un constructor y un contratista pueden haber trabajado entre ellos… por ahora no afecta nada, solo simbólico… se edita el cliente y se agrega la asociación de la misma base de clientes».
+
+**Qué cambia (`asociaciones.ts`, `AsociacionesDelCliente.tsx`):** «🤝 En asociación con:» y fichas en la tarjeta y en `/customers/[id]`; clic abre ese cliente en una tarjeta de solo lectura encima. Al editar, buscador sobre los clientes ya cargados (una entrada por empresa, sin él mismo, los ya asociados ni archivados); ✕ pregunta antes de quitar; se guarda al momento. Simétrico y por empresa (`company_id`): todas sus tiendas lo ven. **249:** `erp.customer_associations` (un par ordenado, sin repetir ni consigo), RLS (leer con acceso a Clientes; añadir/quitar solo `es_admin_de_clientes()`), RPC de lectura `asociados_de_la_empresa`, historial `associate`/`dissociate` en ambas empresas; al juntar clientes, las asociaciones pasan a la empresa que queda. No afecta filtros, órdenes ni permisos. El campo de texto «Associated with» se queda como está.
+
+Sello `customers` 0.53.0; repo 1.739.0.
