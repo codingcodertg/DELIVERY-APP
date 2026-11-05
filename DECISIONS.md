@@ -50856,3 +50856,9 @@ Sello `deliveries` 1.548.0; repo 1.738.0.
 **Qué cambia (`asociaciones.ts`, `AsociacionesDelCliente.tsx`):** «🤝 En asociación con:» y fichas en la tarjeta y en `/customers/[id]`; clic abre ese cliente en una tarjeta de solo lectura encima. Al editar, buscador sobre los clientes ya cargados (una entrada por empresa, sin él mismo, los ya asociados ni archivados); ✕ pregunta antes de quitar; se guarda al momento. Simétrico y por empresa (`company_id`): todas sus tiendas lo ven. **249:** `erp.customer_associations` (un par ordenado, sin repetir ni consigo), RLS (leer con acceso a Clientes; añadir/quitar solo `es_admin_de_clientes()`), RPC de lectura `asociados_de_la_empresa`, historial `associate`/`dissociate` en ambas empresas; al juntar clientes, las asociaciones pasan a la empresa que queda. No afecta filtros, órdenes ni permisos. El campo de texto «Associated with» se queda como está.
 
 Sello `customers` 0.53.0; repo 1.739.0.
+
+## D-885 · Customers: selector Mostrar 10/50/100/1000
+
+La tabla de Clientes reemplaza «Ver más (quedan N)» por un selector Mostrar 10/50/100/1000 (por defecto 100, recordado por tabla); orden y filtros sobre la lista completa.
+
+Sello `customers` 0.54.0; repo 1.740.0.
