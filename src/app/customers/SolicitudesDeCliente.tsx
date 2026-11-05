@@ -175,7 +175,7 @@ function TarjetaDeSolicitud({ s, actual, esAdmin, revision, almacen, onVolver, o
   t: T;
 }) {
   const edicion = s.kind === "edicion";
-  // D-NEXT (250): una propuesta de asociación: se aprueba o rechaza (o «Revisar»), pero no se corrige.
+  // D-886 (250): una propuesta de asociación: se aprueba o rechaza (o «Revisar»), pero no se corrige.
   const asociacion = s.kind === "asociacion";
   const acciones = { ...accionesDeSolicitud(s.status, { esAdmin, revision }), ...(asociacion ? { corregir: false } : {}) };
   const fila = useMemo(() => filaDeSolicitud(s, actual), [s, actual]);
@@ -280,7 +280,7 @@ function TarjetaDeSolicitud({ s, actual, esAdmin, revision, almacen, onVolver, o
         </div>
       )}
 
-      {/* D-NEXT (250): una asociación: qué se añade o se quita. */}
+      {/* D-886 (250): una asociación: qué se añade o se quita. */}
       {asociacion && (
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" data-asociacion-pedida>
           <p className="text-sm font-semibold text-slate-900">🤝 {textoDeSolicitudDeAsociacion(s.payload, t)}</p>

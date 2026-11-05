@@ -139,7 +139,7 @@ export function asociadosDesdeLaLista(empresa: string, pares: readonly ParDeEmpr
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// D-NEXT (250): varias a la vez, solo desde la edición, y con aprobación. El admin de Clientes aplica directo; vendedor y
+// D-886 (250): varias a la vez, solo desde la edición, y con aprobación. El admin de Clientes aplica directo; vendedor y
 // gerente proponen: cada alta o baja es una solicitud ('asociacion') que el admin aprueba en «Solicitudes de cliente».
 // El no admin solo busca (y solo puede proponer) empresas con alguna fila en sus tiendas. La base lo exige
 // (erp.busca_clientes_para_asociar y erp.propone_asociaciones); esto es el espejo para la demo y las pruebas.

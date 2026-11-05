@@ -7,7 +7,7 @@ import { cambiosDelHistorial } from "./edicion-como-solicitud";
 import { solicitudDeLaBase } from "./solicitud-de-cliente";
 import type { Cliente } from "./reglas";
 
-// D-NEXT (250): asociaciones varias a la vez, con aprobación y solo de las tiendas de quien propone.
+// D-886 (250): asociaciones varias a la vez, con aprobación y solo de las tiendas de quien propone.
 const fila = (id: number, company_id: string, account: string, store: string): Cliente =>
   ({ id, company_id, account, store, archived_at: null, phone: null, contacts: [] }) as unknown as Cliente;
 const t = (en: string) => en;
@@ -29,7 +29,7 @@ describe("asociaciones: tiendas de quien propone", () => {
     expect(sql).toMatch(/function erp\.busca_clientes_para_asociar[\s\S]*yo\.admin or exists[\s\S]*= any \(yo\.tiendas\)/);
     expect(sql).toMatch(/if not admin and not erp\.empresa_en_mis_tiendas\(otra\) then\s+raise exception/);
     expect(sql).toMatch(/with check \(kind <> 'asociacion'\)/);
-    expect(sql).not.toContain("D-NEXT");
+    expect(sql).not.toContain("D-886");
   });
 });
 

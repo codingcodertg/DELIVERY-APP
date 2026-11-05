@@ -87,13 +87,13 @@ export interface AlmacenDeClientes {
   desasociar?(parId: number): Promise<Res<null>>;
   /** D-884 (249): las filas de una empresa que quien mira puede ver (para abrir una asociada en una tarjeta). */
   filasDeEmpresa?(companyId: string): Promise<Res<Cliente[]>>;
-  /** D-NEXT (250): el buscador de asociaciones; el no admin solo recibe empresas de sus tiendas. */
+  /** D-886 (250): el buscador de asociaciones; el no admin solo recibe empresas de sus tiendas. */
   buscarParaAsociar?(q: string): Promise<Res<EmpresaParaAsociar[]>>;
-  /** D-NEXT (250): añade y quita varias de una vez. El admin aplica; los demás crean solicitudes por aprobar. */
+  /** D-886 (250): añade y quita varias de una vez. El admin aplica; los demás crean solicitudes por aprobar. */
   proponerAsociaciones?(clienteId: number, add: readonly string[], remove: readonly number[], nota: string): Promise<Res<ResultadoDePropuesta>>;
-  /** D-NEXT (250): las propuestas abiertas de una empresa («pendiente de aprobación»). */
+  /** D-886 (250): las propuestas abiertas de una empresa («pendiente de aprobación»). */
   asociacionesPendientes?(companyId: string): Promise<Res<AsociacionPendiente[]>>;
-  /** D-NEXT (250): el admin aprueba una solicitud de asociación (la aplica). Rechazar es `rechazarSolicitud`. */
+  /** D-886 (250): el admin aprueba una solicitud de asociación (la aplica). Rechazar es `rechazarSolicitud`. */
   aprobarAsociacion?(id: number, nota: string): Promise<Res<null>>;
 }
 

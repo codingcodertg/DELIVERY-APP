@@ -12,7 +12,7 @@ type T = (en: string, es: string) => string;
  * D-884 (249): «En asociación con». Entre EMPRESAS: la ven todas las tiendas. Al ver, las pastillas; cada una abre la
  * asociada EN EL SITIO, como tarjeta (nunca se salta a otra página).
  *
- * D-NEXT (250): se cambian SOLO desde la edición (`editable`), varias a la vez: el buscador marca varias empresas, la ✕
+ * D-886 (250): se cambian SOLO desde la edición (`editable`), varias a la vez: el buscador marca varias empresas, la ✕
  * marca las que se quitan, y un solo botón lo manda junto (`almacen.proponerAsociaciones`). El admin de Clientes
  * (`esAdmin`) aplica directo; vendedor y gerente crean solicitudes que el admin aprueba en «Solicitudes de cliente». Lo
  * propuesto sale como «pendiente de aprobación» hasta que se decide. El no admin solo encuentra empresas de sus tiendas

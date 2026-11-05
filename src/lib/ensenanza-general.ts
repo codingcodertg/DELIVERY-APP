@@ -61,8 +61,8 @@ export const RPC_QUE_SOLO_LEEN = [
   "cuentas_de_clientes", // 203: las cuentas de Clientes para el formulario de orden; solo lee.
   "busca_clientes_en_toda_la_empresa", // 215 (D-740): la búsqueda del vendedor en toda la empresa; solo lee.
   "asociados_de_la_empresa", // 249 (D-884): las empresas asociadas a una («En asociación con»); solo lee.
-  "busca_clientes_para_asociar", // 250 (D-NEXT): el buscador de asociaciones (el no admin, solo sus tiendas); solo lee.
-  "asociaciones_pendientes", // 250 (D-NEXT): las propuestas de asociación abiertas de una empresa; solo lee.
+  "busca_clientes_para_asociar", // 250 (D-886): el buscador de asociaciones (el no admin, solo sus tiendas); solo lee.
+  "asociaciones_pendientes", // 250 (D-886): las propuestas de asociación abiertas de una empresa; solo lee.
   "analytics_category_stats", "analytics_store_stats", "analytics_vendor_stats", "buscar_factura_para_recoger",
   "catalog_facets", "category_browse", "dashboard_stats", "estimator_find_estimate", "estimator_pending_approvals",
   "leads_my_scope", "list_cycle_counts", "list_purchase_orders", "my_point_balance", "my_published_stops",
@@ -84,8 +84,8 @@ export const RPC_QUE_ESCRIBEN = [
   "promo_set_round_closed", "publish_product", "publish_route_plan", "receive_manual", "receive_po", "rechaza_sugerencia_de_clientes",
   "aprueba_solicitud_de_cliente", "rechaza_solicitud_de_cliente", // 216 (D-743): deciden una solicitud de cliente nuevo.
   "aprueba_edicion_de_cliente", // 221 (D-780): aplica una edición pedida por vendedor o gerente.
-  "propone_asociaciones", // 250 (D-NEXT): añade o quita asociaciones (el admin) o crea solicitudes (los demás).
-  "aprueba_asociacion", // 250 (D-NEXT): el admin aprueba una solicitud de asociación.
+  "propone_asociaciones", // 250 (D-886): añade o quita asociaciones (el admin) o crea solicitudes (los demás).
+  "aprueba_asociacion", // 250 (D-886): el admin aprueba una solicitud de asociación.
   "reconcile_cycle_count", "record_cycle_count", "reentrega_como_carga", "reject_external_match",
   "remove_product_relation", "reparte_cargas", "reprogramar_orden", "resolve_review_tag", "set_po_line_product",
   "set_request_ready", "tomar_orden_para_recoger", "update_product", "upsert_acknowledgment", "upsert_purchase_order",

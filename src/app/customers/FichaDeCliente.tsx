@@ -1165,7 +1165,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
               )}
             </div>
           )}
-          {/* D-884 (249): «En asociación con». D-NEXT (250): editando, quien edita (admin, gerente, vendedor) añade y
+          {/* D-884 (249): «En asociación con». D-886 (250): editando, quien edita (admin, gerente, vendedor) añade y
               quita varias; el admin aplica directo, los demás mandan a aprobación. */}
           {cliente && (
             <AsociacionesDelCliente cliente={cliente} almacen={almacen} lista={lista}

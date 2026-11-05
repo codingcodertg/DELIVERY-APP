@@ -84,7 +84,7 @@ export const SOLICITUDES_DEMO: readonly SolicitudDeCliente[] = [
 ];
 
 export function almacenDemoNuevo(semilla: readonly SolicitudDeCliente[] = [], quien: { esAdmin?: boolean; misTiendas?: readonly string[] } = {}): AlmacenDeClientes {
-  // D-NEXT (250): quien usa la demo. Por defecto el admin (aplica directo); con `esAdmin: false`, propone y espera.
+  // D-886 (250): quien usa la demo. Por defecto el admin (aplica directo); con `esAdmin: false`, propone y espera.
   const esAdmin = quien.esAdmin ?? true;
   const misTiendas = quien.misTiendas ?? [];
   let lista = CLIENTES_DEMO.map((c) => ({ ...c }));
@@ -196,7 +196,7 @@ export function almacenDemoNuevo(semilla: readonly SolicitudDeCliente[] = [], qu
       apuntaPar(p.company_a, p.company_b, "dissociate");
       return { ok: true, valor: null };
     },
-    // D-NEXT (250): proponer varias, con aprobación para el no admin y solo empresas de sus tiendas.
+    // D-886 (250): proponer varias, con aprobación para el no admin y solo empresas de sus tiendas.
     async buscarParaAsociar(q) { return { ok: true, valor: buscaParaAsociar(lista, null, [], q, misTiendas, esAdmin, 30) }; },
     async proponerAsociaciones(clienteId, add, remove, nota) {
       const fila = lista.find((c) => c.id === clienteId);
