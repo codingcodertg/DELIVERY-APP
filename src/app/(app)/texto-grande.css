@@ -107,3 +107,8 @@ html[data-texto-grande="on"] body { font-size: 18px; line-height: 1.4; }
 /* La lista del chofer (pestaña «Chofer») y el reloj de turno. */
 [data-texto-grande="on"] .drv-inv { font-size: 20px; }
 [data-texto-grande="on"] .drv-notes { font-size: 18px; }
+
+/* D-NEXT: «Entregué en otra dirección» — la lista de tiendas/bodegas y el texto libre, grandes para el dedo (56 px, 18 px)
+   aunque la letra grande esté apagada: se tocan de pie junto a la caja del camión. */
+select[data-entregar-en-tienda],
+input[data-entregar-en-direccion] { min-height: 56px; font-size: 18px; }
