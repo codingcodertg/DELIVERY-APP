@@ -50797,3 +50797,18 @@ Sello `deliveries` 1.544.0; repo 1.733.0.
 **Qué cambia:** en «Órdenes y cotizaciones» (D-874), clic en una orden abre el formulario real de Entregas (`OrderModal`) encima de Clientes, con sus permisos y acciones; `DataProvider` gana `soloOrden` (lee solo esa orden, sus eventos, ajustes y perfiles) y `OrderModal` el prop opcional `enlaceAparte` («Abrir en Entregas ↗» como enlace secundario; sin él, la ficha es la de siempre). Al cerrar, el historial se recarga. Clic en una cotización abre la hoja del cliente del Cotizador (solo lectura) con «Abrir en Cotizador ↗». Sin acceso a Entregas, un resumen de solo lectura. Esc cierra solo la tarjeta de arriba (`queHaceEsc`).
 
 Sello `customers` 0.52.0; repo 1.734.0.
+
+## D-880 · Avisos: Importantes y Secundarias; solo los importantes suenan
+
+**Fecha:** 2026-11-05 · Sin migración · Hecho por un agente en `feat/avisos-importantes-y-secundarios`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño):** «bórrame todas las notificaciones; ahí aparecerán solo las de clientes, y de deliveries solo si fue cancelado, rejected o rescheduled; lo demás se pasa a secondary notifications que siempre caen ahí pero no hacen ruido, en otra sección».
+
+**Qué cambia:**
+- **`clase-del-aviso.ts`:** importantes = las cuatro de solicitudes de cliente (D-867), `canceled`, `rejected`, `customer_rejected` y `rescheduled` (nueva); todo lo demás, y cualquier tipo desconocido, secundario. Se clasifica en el navegador por `kind`, sin migración.
+- **Campana (Entregas y Clientes, el mismo `CampanaDeAvisos`):** pestañas «Importantes» y «Secundarias»; el número rojo cuenta solo importantes sin leer; Secundarias con un número gris; «Marcar todo leído» por pestaña. `/api/push` y `AssignmentPing` solo avisan de importantes (los choferes ya no reciben push al asignarles una parada o publicar la ruta).
+- **Nuevos avisos:** al cancelar, el vendedor de la orden siempre se entera; al reprogramar (`reprogramarOrden`), aviso `rescheduled` al vendedor (no en modo enseñanza ni al Deshacer; el cron de intertiendas no avisa).
+- **Borrar lo de antes:** `borra-notificaciones.mjs` (11.743 filas de 39 usuarios en el ensayo), se corre aparte.
+- La campana de Time Tracker (`clockin.notifications`) no cambia.
+
+Sello `deliveries` 1.545.0; repo 1.735.0.

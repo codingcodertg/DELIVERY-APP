@@ -18,7 +18,7 @@ import { createClient } from "@/lib/supabase/client";
 import { usePrefs } from "@/lib/prefs";
 import { fallóElRegistro } from "@/lib/security-log-notice";
 import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage, UserRole } from "@/lib/types";
-import { type AppNotification, assignmentNotification, notificationsForStage } from "@/lib/notifications";
+import { type AppNotification, assignmentNotification, avisoDeReprogramacion, notificationsForStage } from "@/lib/notifications";
 import { canTransition, knownModules } from "@/lib/constants";
 import { borrarOrden } from "@/lib/deshacer-y-borrar";
 import { orderOwner, orderLabel, changedFieldsNote, shiftDateISO, todayISO } from "@/lib/utils";
@@ -1759,19 +1759,28 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         const ok = await updateDelivery(id, { delivery_date: fecha });
         if (ok) await addNote(id, notaDeReprogramacion(antes, fecha, nota, lang));
         if (ok && domingo && caso) await addNote(id, notaDeDomingo(me?.full_name, caso.motivo, lang));
+        if (ok && !teaching) await avisaAlVendedor();
         return ok;
+      };
+      // D-880: su vendedor se entera (aviso importante). El «Deshacer» no avisa: vuelve a lo que ya sabía.
+      const avisaAlVendedor = async () => {
+        const orden = deliveries.find((c) => c.id === id);
+        if (deshacer || !orden) return;
+        const semilla = avisoDeReprogramacion({ ownerId: orderOwner(orden), actorId: me?.id ?? null, order_no: orden.order_no, order_code: orden.order_code, delivery_id: id, fechaAntes: antes, fechaNueva: fecha });
+        if (semilla) await pushNotifs([semilla]);
       };
       if (teaching) return comoAntes();
       const { error } = await supabase.rpc("reprogramar_orden", argumentosDeReprogramar(id, fecha, nota, lang));
       const camino = caminoTrasReprogramar(error);
       if (camino === "respaldo") return comoAntes();
       if (camino === "error") { notify("Error: " + (error?.message ?? "")); return false; }
+      await avisaAlVendedor();
       if (domingo && caso) await addNote(id, notaDeDomingo(me?.full_name, caso.motivo, lang));
       await reloadTables(["deliveries", "order_events"]);
       if (deshacer) { const ok = await devuelveLaRuta(); if (ok) await reloadTables(["deliveries", "order_events"]); return ok; }
       return true;
     },
-    [supabase, notify, teaching, deliveries, updateDelivery, addNote, reloadTables, me],
+    [supabase, notify, teaching, deliveries, updateDelivery, addNote, reloadTables, me, pushNotifs],
   );
 
   const buscarFacturaParaRecoger = useCallback<DataState["buscarFacturaParaRecoger"]>(

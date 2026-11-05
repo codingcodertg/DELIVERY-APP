@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
-import { ASSIGNED_KIND } from "@/lib/notifications";
+import { esImportante } from "@/lib/clase-del-aviso";
 import type { Profile } from "@/lib/types";
 
 // ============================================================
@@ -63,7 +63,8 @@ export function AssignmentPing({ role }: { role: Profile["role"] }) {
       return;
     }
 
-    const fresh = notifications.filter((n) => n.kind === ASSIGNED_KIND && !n.read && !seen.current.has(n.id));
+    // D-880: solo los avisos importantes hacen ruido; una asignación es secundaria y espera en la campana.
+    const fresh = notifications.filter((n) => esImportante(n) && !n.read && !seen.current.has(n.id));
     for (const n of notifications) seen.current.add(n.id);
     if (!fresh.length) return;
 
@@ -75,11 +76,11 @@ export function AssignmentPing({ role }: { role: Profile["role"] }) {
       if (!batch.length || Notification.permission !== "granted") return;
       const body = batch.length === 1
         ? batch[0]
-        : t(`${batch.length} stops were assigned to you`, `Se te asignaron ${batch.length} paradas`);
+        : t(`${batch.length} new notifications`, `${batch.length} avisos nuevos`);
       try {
         // A fixed tag so a second batch REPLACES the first rather than
         // stacking — the driver only ever needs the latest count.
-        new Notification(t("New work assigned", "Trabajo nuevo asignado"), { body, tag: "rtg-assigned" });
+        new Notification(t("New notification", "Aviso nuevo"), { body, tag: "rtg-assigned" });
       } catch {
         // Some WebViews refuse to construct one without a service worker. The
         // in-app bell already has it either way.
