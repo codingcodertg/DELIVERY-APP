@@ -181,7 +181,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
    */
   const conduceRef = useRef(false);
   /**
-   * Que el reloj nunca cuente en el vacío (D-NEXT, `lib/timetracker/no-perder-tiempo.ts`).
+   * Que el reloj nunca cuente en el vacío (D-875, `lib/timetracker/no-perder-tiempo.ts`).
    *
    *  · `pendienteRef` — un INSERT que todavía no entró: el reloj ya cuenta desde `desdeMs` y
    *    la fila se reintenta con espera creciente hasta que la base la acepte.
@@ -999,7 +999,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
             // crecido hasta chocar con tiempo ya fichado (`overlap`, 082). Antes, `cerrada`
             // dejaba el reloj contando en el vacío con un aviso, y `overlap` llamaba a `stop()`,
             // cuyo parche chocaba igual y se perdía con todo lo contado desde el último latido
-            // bueno (D-NEXT). Ahora se continúa en una fila nueva, recortada para no solapar.
+            // bueno (D-875). Ahora se continúa en una fila nueva, recortada para no solapar.
             if (planTrasLatido(r) === "fila-nueva" && !stoppedRef.current) {
               marcarSinGuardar();
               notify(t(r === "overlap" ? "track.overlapContinued" : "track.rowContinued"));
@@ -1064,7 +1064,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   const pararTrasInsertRef = useRef<Partial<Session> | null>(null);
 
   /**
-   * La fila dejó de aceptar latidos: se continúa en otra (D-NEXT). Arranca donde terminó lo
+   * La fila dejó de aceptar latidos: se continúa en otra (D-875). Arranca donde terminó lo
    * guardado si el reloj no se paró (si se paró, ahora: D-098), y el reloj de pantalla no
    * vuelve a cero —lo ya guardado pasa a `arrastre`—.
    */
@@ -1314,7 +1314,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   useEffect(() => {
     const vigilar = () => {
       const ahora = Date.now();
-      // Lo pendiente se reintenta aquí, en el intervalo que no depende del tick (D-NEXT).
+      // Lo pendiente se reintenta aquí, en el intervalo que no depende del tick (D-875).
       if (tocaReintentarPendiente(pendienteRef.current, ahora)) void intentarPendienteRef.current();
       if (ahora % 60_000 < VIGIA_CADA_MS) void guardarFilasRef.current();
       const estado = estadoVigia({
@@ -1431,7 +1431,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
       // mensaje ni se suelta el error de Postgres en un alert — que es lo que salía antes:
       // "permission denied for schema timetracker", delante de alguien que solo quería fichar.
       //
-      // Pero callar no puede ser lo mismo que no contar (D-NEXT): la persona ya pulsó Start y
+      // Pero callar no puede ser lo mismo que no contar (D-875): la persona ya pulsó Start y
       // se pone a trabajar. Ese era el «0:00 · En marcha… · sin guardar desde las 08:43» del
       // dueño. Se cuenta desde ahora y el INSERT se reintenta hasta que entre.
       if (isSessionExpired(e)) { entrarEnPendiente(startMsRef.current); return; }
@@ -1457,7 +1457,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
         return;
       }
       // Red caída (lo normal justo al despertar el equipo) o un fallo pasajero del servidor.
-      // Antes era un `alert` y nada contado; ahora se cuenta y se reintenta (D-NEXT).
+      // Antes era un `alert` y nada contado; ahora se cuenta y se reintenta (D-875).
       entrarEnPendiente(startMsRef.current);
       return;
     }
@@ -1518,7 +1518,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
 
     ponerArrastre(0);
     if (!id) {
-      // El tramo contado todavía no tenía fila (D-NEXT). No se tira: si el INSERT está en vuelo,
+      // El tramo contado todavía no tenía fila (D-875). No se tira: si el INSERT está en vuelo,
       // se cierra en cuanto exista; si no, la fila cerrada entera queda en `localStorage` y se
       // reintenta hasta que entre.
       if (enVuelo) { pararTrasInsertRef.current = patch; return; }

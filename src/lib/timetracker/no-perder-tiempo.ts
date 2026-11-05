@@ -1,5 +1,5 @@
 /**
- * El reloj nunca cuenta en el vacío (D-NEXT).
+ * El reloj nunca cuenta en el vacío (D-875).
  *
  * El incidente (2026-11-04 y 2026-11-05, cuenta del dueño, app de escritorio): la pantalla
  * enseñaba «En marcha…» y el aviso «Sin guardar desde las 08:43 — 43 min…», y en la base no
