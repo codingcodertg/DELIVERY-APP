@@ -66,7 +66,7 @@ function RutaDeUnChoferParaElAdmin() {
   const elegir = (id: string) => { setGuardado(id); guardaChoferVisto(() => window.localStorage, quienMira, id); };
   // Lo de antes, plegado: no se monta hasta que se abre (una tabla con todas las órdenes, escondida, sería trabajo de más).
   const [verLista, setVerLista] = useState(false);
-  // D-NEXT: la columna de teléfono enseña la ruta como la ve el chofer, también en grande; el admin lo apaga en Mi ruta.
+  // D-881: la columna de teléfono enseña la ruta como la ve el chofer, también en grande; el admin lo apaga en Mi ruta.
   const [textoGrande] = useTextoGrande(me?.id);
 
   return (

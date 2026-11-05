@@ -3,7 +3,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 /**
- * «Texto grande» del chofer (D-NEXT). El dueño, con la solicitud de Ernesto («This is too small, didnt even see it», la
+ * «Texto grande» del chofer (D-881). El dueño, con la solicitud de Ernesto («This is too small, didnt even see it», la
  * casilla «Entregué en otra dirección»): «los choferes son señores mayores, necesitan vistas más grandes».
  *
  * Encendido POR DEFECTO para el rol `driver` (y en la columna de teléfono de la pestaña «Chofer» del admin, que enseña la

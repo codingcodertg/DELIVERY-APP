@@ -6,7 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { ATRIBUTO_TEXTO_GRANDE, useTextoGrande } from "@/lib/texto-grande";
 
 /**
- * Pone `data-texto-grande="on"` en `<html>` mientras quien está en la sesión es chofer y no lo apagó (D-NEXT). En `<html>`
+ * Pone `data-texto-grande="on"` en `<html>` mientras quien está en la sesión es chofer y no lo apagó (D-881). En `<html>`
  * y no en un `div`: así alcanza también a las fichas y diálogos (la ficha de la orden, «Confirmar entrega») y al reloj de
  * turno. Para cualquier otro rol lo quita: la oficina sigue con Entregas compacta (D-855). No pinta nada.
  */
