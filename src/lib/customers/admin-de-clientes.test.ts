@@ -8,7 +8,7 @@ import { securityLabel } from "@/lib/security-log";
 const leer = (p: string) => readFileSync(p, "utf8").split("\r\n").join("\n");
 const conCasilla = ["customers", "deliveries"];
 
-describe("admin solo de Clientes (customers_role, 240)", () => {
+describe("admin solo de Clientes (customers_role, 241)", () => {
   it("con customers_role = 'admin' y la casilla, dentro de Clientes es admin", () => {
     const nick = { role: "sales", customers_role: "admin", module_access: conCasilla };
     expect(esAdminDeClientes(nick)).toBe(true);
@@ -43,8 +43,8 @@ describe("admin solo de Clientes (customers_role, 240)", () => {
     expect(leer("src/components/customers/barra.tsx")).toContain('...((esAdminDeClientes ?? role === "admin") ? [{ href: "/customers/juntar"');
   });
 
-  it("la base lo respeta (240): columna guardada, función, fila, políticas y las tres funciones de decidir", () => {
-    const sql = leer("supabase/migrations/240_admin_de_clientes.sql");
+  it("la base lo respeta (241): columna guardada, función, fila, políticas y las tres funciones de decidir", () => {
+    const sql = leer("supabase/migrations/241_admin_de_clientes.sql");
     expect(sql).toContain("add column if not exists customers_role text");
     expect(sql).toContain("or NEW.customers_role is distinct from OLD.customers_role");
     expect(sql).toContain("create or replace function erp.es_admin_de_clientes()");

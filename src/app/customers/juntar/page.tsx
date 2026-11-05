@@ -40,7 +40,7 @@ export default async function JuntarPage() {
     // El fallo de lectura no manda a nadie a otro sitio (D-749, misma guarda que el layout): se enseña y se reintenta.
     if (estadoDeLectura({ data: perfil, error: errorPerfil }) === "fallo") return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
     role = (perfil?.role as UserRole | undefined) ?? "sales";
-    // 240: admin SOLO de Clientes (`customers_role`). Las reglas de aquí se leen con el rol de Clientes; la barra, con el del hub.
+    // 241: admin SOLO de Clientes (`customers_role`). Las reglas de aquí se leen con el rol de Clientes; la barra, con el del hub.
     rolDelHub = role;
     role = rolEnClientes(perfil);
     fullName = perfil?.full_name?.trim() || null;

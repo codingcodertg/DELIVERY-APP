@@ -1,4 +1,4 @@
--- 240: Admin SOLO de Clientes (profiles.customers_role), sin tocar el role del hub.
+-- 241: Admin SOLO de Clientes (profiles.customers_role), sin tocar el role del hub.
 --
 -- El dueño (2026-11-04): «dale permiso de admin a Nick solo para la app de Clientes». Hasta hoy «admin de Clientes» era
 -- `profiles.role = 'admin'`, que lo hace admin en TODAS las apps. Esto anade un rol dentro de la app, como
@@ -99,7 +99,7 @@ begin
   ] loop
     def := pg_get_functiondef(f::regprocedure);
     if position('if not public.is_admin() then' in def) = 0 then
-      raise exception '240: % no tiene la puerta esperada (if not public.is_admin() then)', f;
+      raise exception '241: % no tiene la puerta esperada (if not public.is_admin() then)', f;
     end if;
     execute replace(def, 'if not public.is_admin() then', 'if not erp.es_admin_de_clientes() then');
   end loop;
@@ -112,16 +112,16 @@ do $chk$
 declare f text;
 begin
   if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'customers_role') then
-    raise exception '240: falta profiles.customers_role';
+    raise exception '241: falta profiles.customers_role';
   end if;
   if position('customers_role' in pg_get_functiondef('public.guard_profile_privileged_columns()'::regprocedure)) = 0 then
-    raise exception '240: el guardia de profiles no protege customers_role (seria autoservicio)';
+    raise exception '241: el guardia de profiles no protege customers_role (seria autoservicio)';
   end if;
   if position('visible_stores' in pg_get_functiondef('public.guard_profile_privileged_columns()'::regprocedure)) = 0 then
-    raise exception '240: el guardia de profiles perdio visible_stores';
+    raise exception '241: el guardia de profiles perdio visible_stores';
   end if;
   if position('customers_role' in pg_get_functiondef('erp.customers_ve_la_fila(uuid, uuid, text)'::regprocedure)) = 0 then
-    raise exception '240: customers_ve_la_fila no conoce customers_role';
+    raise exception '241: customers_ve_la_fila no conoce customers_role';
   end if;
   foreach f in array array[
     'erp.aprueba_solicitud_de_cliente(bigint)',
@@ -130,22 +130,22 @@ begin
   ] loop
     if position('erp.es_admin_de_clientes()' in pg_get_functiondef(f::regprocedure)) = 0
        or position('public.is_admin()' in pg_get_functiondef(f::regprocedure)) > 0 then
-      raise exception '240: % no quedo con la puerta nueva', f;
+      raise exception '241: % no quedo con la puerta nueva', f;
     end if;
     if not (select p.prosecdef from pg_proc p where p.oid = f::regprocedure) then
-      raise exception '240: % dejo de ser security definer', f;
+      raise exception '241: % dejo de ser security definer', f;
     end if;
-    if has_function_privilege('anon', f, 'execute') then raise exception '240: anon ejecuta %', f; end if;
+    if has_function_privilege('anon', f, 'execute') then raise exception '241: anon ejecuta %', f; end if;
   end loop;
-  if has_function_privilege('anon', 'erp.es_admin_de_clientes()', 'execute') then raise exception '240: anon ejecuta es_admin_de_clientes'; end if;
+  if has_function_privilege('anon', 'erp.es_admin_de_clientes()', 'execute') then raise exception '241: anon ejecuta es_admin_de_clientes'; end if;
   if not exists (select 1 from pg_policies where schemaname = 'erp' and tablename = 'customers' and policyname = 'customers update (admin)'
                    and qual like '%es_admin_de_clientes%') then
-    raise exception '240: la politica de update no usa es_admin_de_clientes';
+    raise exception '241: la politica de update no usa es_admin_de_clientes';
   end if;
   if (select count(*) from public.profiles where customers_role is not null) > 0 then
-    raise exception '240: nadie deberia nacer con customers_role';
+    raise exception '241: nadie deberia nacer con customers_role';
   end if;
 end $chk$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('240_admin_de_clientes.sql', 'a9301fba5a1d383491020be55c63f6e850a2c10f93a427fc693d87bbb4e0d5ab') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('241_admin_de_clientes.sql', 'adcf18485dc091f72e562d67c62ad2362d66a034be6380c451247454ee880bf0') on conflict (name) do nothing;

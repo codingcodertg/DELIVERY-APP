@@ -40,7 +40,7 @@ export default async function CustomersPage() {
     const { data } = await supabase.from("profiles").select("full_name, role, module_access, store, customers_role").eq("id", user.id).maybeSingle();
     miTienda = (data?.store as string | null | undefined) ?? null;
     role = (data?.role as UserRole | undefined) ?? "sales";
-    // 240: admin SOLO de Clientes (`customers_role`). Las reglas de aquí se leen con el rol de Clientes; la barra, con el del hub.
+    // 241: admin SOLO de Clientes (`customers_role`). Las reglas de aquí se leen con el rol de Clientes; la barra, con el del hub.
     rolDelHub = role;
     role = rolEnClientes(data);
     fullName = data?.full_name?.trim() || null;

@@ -48,7 +48,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
   if (user) {
     const { data } = await supabase.from("profiles").select("full_name, role, module_access, customers_role").eq("id", user.id).maybeSingle();
     role = (data?.role as UserRole | undefined) ?? "sales";
-    // 240: admin SOLO de Clientes (`customers_role`). Las reglas de aquí se leen con el rol de Clientes; la barra, con el del hub.
+    // 241: admin SOLO de Clientes (`customers_role`). Las reglas de aquí se leen con el rol de Clientes; la barra, con el del hub.
     rolDelHub = role;
     role = rolEnClientes(data);
     fullName = data?.full_name?.trim() || null;

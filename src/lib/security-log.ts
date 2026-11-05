@@ -43,7 +43,7 @@ export type SecurityKind =
   | "leads_access_changed"
   // Clientes (180). Solo el acceso, como Leads.
   | "customers_access_changed"
-  // Admin solo de Clientes (240): profiles.customers_role.
+  // Admin solo de Clientes (241): profiles.customers_role.
   | "customers_role_changed"
   | "deliveries_access_changed"
   | "clockin_access_changed"

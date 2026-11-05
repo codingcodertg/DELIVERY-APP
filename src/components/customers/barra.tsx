@@ -22,7 +22,7 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 export function BarraDeClientes({ role, fullName, email, moduleAccess, esAdminDeClientes }: {
   /** El rol del hub (`profiles.role`): el de la pastilla y el que decide la casa (`HubHomeLink`, D-643). */
   role: UserRole; fullName: string | null; email: string; moduleAccess: string[] | null;
-  /** 240: admin de Clientes (del hub o con `customers_role`). Sin pasarlo, el admin del hub. */
+  /** 241: admin de Clientes (del hub o con `customers_role`). Sin pasarlo, el admin del hub. */
   esAdminDeClientes?: boolean;
 }) {
   const { t } = usePrefs();

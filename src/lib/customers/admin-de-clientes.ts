@@ -1,7 +1,7 @@
 import type { UserRole } from "@/lib/types";
 
 /**
- * Admin SOLO de Clientes (`profiles.customers_role = 'admin'`, migración 240). El dueño, 2026-11-04: «dale permiso de
+ * Admin SOLO de Clientes (`profiles.customers_role = 'admin'`, migración 241). El dueño, 2026-11-04: «dale permiso de
  * admin a Nick solo para la app de Clientes». Mismo patrón que `recruiting_role`: un rol dentro de la app que no toca el
  * `role` del hub, así que en el resto de las apps sigue siendo lo que era.
  *
