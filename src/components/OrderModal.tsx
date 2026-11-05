@@ -131,6 +131,7 @@ export function OrderModal({
   startEditing,
   onClose,
   abrirEn,
+  enlaceAparte,
 }: {
   me: Profile;
   existing: Delivery | null;
@@ -141,6 +142,11 @@ export function OrderModal({
    * «Recoger de todos modos» ya abierta si el almacén no la marcó lista— o `entregar` —la prueba de entrega abierta—.
    */
   abrirEn?: "recoger" | "entregar";
+  /**
+   * D-879: una línea pequeña y secundaria al pie de la ficha, solo cuando se abre FUERA de Entregas (el historial de
+   * Clientes la usa para «Abrir en Entregas»). Sin ella la ficha es exactamente la de siempre (D-855).
+   */
+  enlaceAparte?: React.ReactNode;
   // Nota D-637: `fotosDeEntrega` y `fotoEnCamino` (las fotos de la cámara que «Mi ruta» abría al pulsar «Entregado»)
   // se quitaron con esa cámara: las fotos de la entrega se toman ya dentro de la prueba de entrega.
 }) {
@@ -3176,6 +3182,7 @@ export function OrderModal({
         {/* Viendo la orden (D-497): el menú «Acciones ▾» y la principal (`stageActions`), sin nada más — «Duplicar» y
             «Eliminar», que iban aquí a la izquierda, están dentro del menú. Editando, el pie es el de siempre: Guardar y
             Cancelar (y Eliminar, si se puede, como hasta ahora). */}
+        {enlaceAparte && paso === "completo" && <div className="hint" data-enlace-aparte style={{ marginTop: 12 }}>{enlaceAparte}</div>}
         {paso === "completo" && (
         <div className="modal-actions">
           {editing && existing && borraAqui && (

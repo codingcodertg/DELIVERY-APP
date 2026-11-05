@@ -50787,3 +50787,13 @@ Sello `deliveries` 1.543.0; repo 1.732.0.
 **Qué cambia (`distancia-plausible.ts`, `OrderModal`, `/api/distance`, `pricing.ts`):** solo la petición más reciente escribe las millas; una ruta rechazada borra las viejas y lo dice; la geocodificación se sesga al Valle y descarta puntos fuera (caja 25.8–27.9 N, 97–99 O); una ruta de más de 200 mi devuelve 422 y no sugiere tarifa; aviso rojo «no es una entrega del Valle» junto a Millas.
 
 Sello `deliveries` 1.544.0; repo 1.733.0.
+
+## D-879 · Historial del cliente: la orden y la cotización se abren ahí mismo, como tarjeta
+
+**Fecha:** 2026-11-05 · Sin migración · Hecho por un agente en `feat/historial-abre-en-tarjeta`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño):** «cuando le apreté ahí a la orden, en vez de que me lleve a deliveries quiero que ahí mismo se abra el order form como card, así como siempre te lo pido». Regla de todo el hub: un registro de otra app se abre en tarjeta donde uno está.
+
+**Qué cambia:** en «Órdenes y cotizaciones» (D-874), clic en una orden abre el formulario real de Entregas (`OrderModal`) encima de Clientes, con sus permisos y acciones; `DataProvider` gana `soloOrden` (lee solo esa orden, sus eventos, ajustes y perfiles) y `OrderModal` el prop opcional `enlaceAparte` («Abrir en Entregas ↗» como enlace secundario; sin él, la ficha es la de siempre). Al cerrar, el historial se recarga. Clic en una cotización abre la hoja del cliente del Cotizador (solo lectura) con «Abrir en Cotizador ↗». Sin acceso a Entregas, un resumen de solo lectura. Esc cierra solo la tarjeta de arriba (`queHaceEsc`).
+
+Sello `customers` 0.52.0; repo 1.734.0.
