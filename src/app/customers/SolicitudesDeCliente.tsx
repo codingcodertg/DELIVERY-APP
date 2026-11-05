@@ -39,7 +39,9 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  * «Revisar» (con nota) o la corrige antes de aprobar. Vendedor y gerente ven las suyas, solo para leer.
  * Cada decisión la escribe la base con su función; aquí solo se pinta lo que vuelve.
  */
-export function SolicitudesDeCliente({ solicitudes, clientes, esAdmin, almacen, onDecidida, onClose, t }: {
+export function SolicitudesDeCliente({ inicial = null, solicitudes, clientes, esAdmin, almacen, onDecidida, onClose, t }: {
+  /** D-NEXT: la solicitud que abre el enlace de un aviso (`?solicitud=N`): se abre su tarjeta, en su pestaña. */
+  inicial?: number | null;
   solicitudes: readonly SolicitudDeCliente[];
   /** La lista de clientes que ya se leyó: de ahí sale el valor de hoy de una edición. */
   clientes: readonly Cliente[];
@@ -60,6 +62,17 @@ export function SolicitudesDeCliente({ solicitudes, clientes, esAdmin, almacen, 
     if (esAdmin) void almacen.revisionDeSolicitudes().then((r) => { if (vivo) setRevision(r); });
     return () => { vivo = false; };
   }, [almacen, esAdmin]);
+
+  // Las solicitudes pueden llegar después de abrir el panel: se abre en cuanto aparece, una sola vez por enlace.
+  const [yaAbierta, setYaAbierta] = useState<number | null>(null);
+  useEffect(() => {
+    if (inicial === null || inicial === yaAbierta) return;
+    const una = solicitudes.find((x) => x.id === inicial);
+    if (!una) return;
+    setYaAbierta(inicial);
+    setFiltro(una.status);
+    setAbierta(inicial);
+  }, [inicial, yaAbierta, solicitudes]);
 
   const cuentas = useMemo(() => cuentaPorEstado(solicitudes), [solicitudes]);
   const filas = useMemo(() => filtraPorEstado(solicitudes, filtro), [solicitudes, filtro]);

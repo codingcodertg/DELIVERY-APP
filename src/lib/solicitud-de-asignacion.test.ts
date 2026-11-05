@@ -192,7 +192,8 @@ describe("la ficha y la campana", () => {
     expect(destinoDelAvisoDeSolicitud("assign_request_approved", "o1")).toBe("/?order=o1");
     expect(destinoDelAvisoDeSolicitud("assign_request_rejected", "o1")).toBe("/?order=o1");
     expect(destinoDelAvisoDeSolicitud("approved", "o1")).toBeNull();
-    expect(lee("src/components/NotificationBell.tsx")).toContain("else if (solicitud) router.push(solicitud);");
+    // D-NEXT: la campana pasa por `destinoDelAviso`, que pregunta a `destinoDelAvisoDeSolicitud` antes de ir a la orden.
+    expect(lee("src/lib/destino-del-aviso.ts")).toContain("?? destinoDelAvisoDeSolicitud(n.kind, n.delivery_id)");
   });
 });
 

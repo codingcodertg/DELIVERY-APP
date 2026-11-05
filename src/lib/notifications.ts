@@ -25,6 +25,10 @@ export interface AppNotification {
   message: string;
   read: boolean;
   created_at: string;
+  /** D-NEXT (243): a dónde lleva el aviso (ruta interna). Sin la 243, no viene. */
+  link?: string | null;
+  /** D-NEXT (243): el texto en español; `message` es el inglés. Sin la 243, no viene. */
+  message_es?: string | null;
 }
 
 /** A notification about to be created (id/read/created_at supplied by the store). */
