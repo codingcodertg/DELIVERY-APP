@@ -13,7 +13,7 @@ type T = (en: string, es: string) => string;
 const dinero = (n: number | null): string => (n === null ? "—" : `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 
 /**
- * D-NEXT (245): el historial PRINCIPAL del cliente: sus órdenes de Entregas y sus cotizaciones del Quote Builder, lo más
+ * D-874 (245): el historial PRINCIPAL del cliente: sus órdenes de Entregas y sus cotizaciones del Quote Builder, lo más
  * nuevo primero, con filtro por tipo. Cada fila abre la orden o la cotización en su app. Lo que llega lo decide la RLS de
  * cada tabla con la sesión de quien mira. Estructura mínima (tabla y clases de siempre) para que el rediseño la vista.
  */

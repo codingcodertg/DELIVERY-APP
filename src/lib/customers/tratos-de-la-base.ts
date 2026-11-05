@@ -3,7 +3,7 @@ import { nombraLaColumna } from "@/lib/columnas-opcionales";
 import { COLUMNAS_DE_COTIZACION, COLUMNAS_DE_ORDEN, patronExacto, tratoDeCotizacion, tratoDeOrden, type Trato } from "./tratos";
 
 /**
- * Lee el historial principal (D-NEXT, 245) con la sesión de quien mira: la RLS de `public.deliveries` y de
+ * Lee el historial principal (D-874, 245) con la sesión de quien mira: la RLS de `public.deliveries` y de
  * `public.estimator_quotes` decide qué filas llegan. Cada fuente va por su lado: si una falla (sin permiso, sin tabla),
  * la otra se enseña igual y se dice cuál faltó.
  *

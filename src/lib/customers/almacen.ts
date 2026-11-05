@@ -75,7 +75,7 @@ export interface AlmacenDeClientes {
   aprobarEdicion(id: number, nota: string): Promise<Res<null>>;
   /** El historial de una fila (`erp.customer_history`), lo más nuevo primero. Sin la 221, `sinTabla`. */
   historial(clienteId: number): Promise<Res<HistorialDeCliente[]>>;
-  /** D-NEXT (245): el historial principal: las órdenes de Entregas y las cotizaciones del Quote Builder de esta fila. */
+  /** D-874 (245): el historial principal: las órdenes de Entregas y las cotizaciones del Quote Builder de esta fila. */
   tratos(cliente: Pick<Cliente, "id" | "account">): Promise<Res<TratosLeidos>>;
 }
 
@@ -261,7 +261,7 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
           const { data: perfiles } = await sb.schema("public").from("profiles").select("id, full_name").in("id", ids);
           const nombre = new Map(((perfiles ?? []) as { id: string; full_name: string | null }[]).map((p) => [p.id, p.full_name]));
           for (const f of filas) { f.by_name = f.by ? nombre.get(f.by) ?? null : null; f.requested_name = f.requested_by ? nombre.get(f.requested_by) ?? null : null; }
-          // D-NEXT: el vendedor del cambio, con su nombre en vez del uuid.
+          // D-874: el vendedor del cambio, con su nombre en vez del uuid.
           for (const f of filas) nombraVendedores(f, (id) => nombre.get(id) ?? null);
         } catch { /* sin nombres */ }
       }

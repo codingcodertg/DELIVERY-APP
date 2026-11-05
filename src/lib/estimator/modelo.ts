@@ -35,7 +35,7 @@ export interface Customer {
   company: string;
   phone: string;
   /**
-   * D-NEXT (245): la fila de Clientes elegida en el buscador (D-784), o nada si se escribió a mano. Viaja dentro del
+   * D-874 (245): la fila de Clientes elegida en el buscador (D-784), o nada si se escribió a mano. Viaja dentro del
    * `jsonb` (así guardar no falla antes de la 245) y la base la copia a `estimator_quotes.customer_id`.
    */
   customer_id?: number | null;

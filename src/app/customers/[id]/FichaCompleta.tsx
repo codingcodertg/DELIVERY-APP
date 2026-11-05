@@ -21,7 +21,7 @@ export function FichaCompleta({ cliente: c, hermanas = [], puedeEditar = false, 
   const { t } = usePrefs();
   const tel = telUrl(c.phone);
   const mail = mailUrl(c.email);
-  // D-NEXT (245): los dos historiales, como en la ventana; se leen con la sesión de quien mira.
+  // D-874 (245): los dos historiales, como en la ventana; se leen con la sesión de quien mira.
   const almacen = useMemo(() => almacenDeLaBase(createClient()), []);
   return (
     <main className="mx-auto max-w-screen-2xl px-4 py-6">

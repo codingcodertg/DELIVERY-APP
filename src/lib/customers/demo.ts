@@ -159,7 +159,7 @@ export function almacenDemoNuevo(semilla: readonly SolicitudDeCliente[] = []): A
       solicitudes = solicitudes.map((x) => (x.id === id ? { ...x, payload: { ...payload }, before, payload_original: x.payload_original ?? x.payload, corrected_at: new Date().toISOString() } : x));
       return { ok: true, valor: null };
     },
-    // D-NEXT (245): en el demo, una orden y una cotización de muestra para cualquier fila.
+    // D-874 (245): en el demo, una orden y una cotización de muestra para cualquier fila.
     async tratos(cliente) {
       return { ok: true, valor: { unidos: true, fallan: [], tratos: [
         tratoDeOrden({ id: `demo-o-${cliente.id}`, order_code: "FA100", invoice_num: "INV-1001", stage: "delivered", store: "RDZ Brownsville", assigned_driver: "Demo Driver", delivery_fee: 85, est_pallets: 3, delivery_date: "2026-10-20" }),

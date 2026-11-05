@@ -1,5 +1,5 @@
 /**
- * El historial PRINCIPAL del cliente: lo que se ha hecho con él en las otras apps (D-NEXT, migración 245).
+ * El historial PRINCIPAL del cliente: lo que se ha hecho con él en las otras apps (D-874, migración 245).
  *
  * El dueño: «el historial principal va a ser de las entregas que se hicieron con ese cliente […] conecta Deliveries con
  * Customers, y hasta con el Quote Builder, para que todo lo que se haya hecho con ese cliente salga ahí».

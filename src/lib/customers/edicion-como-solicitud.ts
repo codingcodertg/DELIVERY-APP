@@ -97,7 +97,7 @@ export function cambiosEntre(antes: Record<string, unknown> | null | undefined, 
 
 export const cambiosDeSolicitud = (s: Pick<SolicitudDeCliente, "payload" | "before">): Cambio[] => cambiosEntre(s.before, s.payload);
 
-/** D-NEXT (245): `merge`, `review`, `corrected` y `rep` se suman a las seis de la 221. */
+/** D-874 (245): `merge`, `review`, `corrected` y `rep` se suman a las seis de la 221. */
 export type ClaseDeHistorial = "create" | "edit" | "archive" | "restore" | "approved" | "rejected" | "merge" | "review" | "corrected" | "rep";
 
 export interface HistorialDeCliente {
