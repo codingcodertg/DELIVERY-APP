@@ -63,3 +63,17 @@ export function ordenDeLaTarjeta<D extends { id: string }>(ordenes: readonly D[]
   if (exacta) return exacta;
   return demo && id.startsWith("demo-o-") ? ordenes[0] ?? null : null;
 }
+
+export type QueHaceEsc = "cerrar" | "solo-retener" | "nada";
+
+/**
+ * Esc con la tarjeta abierta (D-NEXT): cierra SOLO la capa de arriba, nunca la ficha del cliente de debajo.
+ *  - Otra tecla: nada.
+ *  - Esc con la tarjeta arriba del todo: se cierra la tarjeta (la orden, por su propio ✕, que pregunta si hay cambios).
+ *  - Esc con algo encima de la tarjeta (un «¿seguro?», la prueba de entrega…): esa capa decide; la tarjeta no se cierra.
+ * En los dos casos con Esc se marca el evento (`preventDefault`): la ficha del cliente ignora un Esc ya atendido.
+ */
+export function queHaceEsc(tecla: string, tarjetaArriba: boolean): QueHaceEsc {
+  if (tecla !== "Escape") return "nada";
+  return tarjetaArriba ? "cerrar" : "solo-retener";
+}

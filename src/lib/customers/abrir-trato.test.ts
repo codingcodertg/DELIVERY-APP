@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { comoAbrirTrato, esDeLaOrden, ordenDeLaTarjeta, pideEnUnaOrden, tieneAccesoAlCotizador } from "./abrir-trato";
+import { queHaceEsc, comoAbrirTrato, esDeLaOrden, ordenDeLaTarjeta, pideEnUnaOrden, tieneAccesoAlCotizador } from "./abrir-trato";
 
 const orden = { clase: "orden" as const, href: "/?order=o1" };
 const coti = { clase: "cotizacion" as const, href: "/estimator?quote=q1" };
@@ -40,5 +40,20 @@ describe("la carga de UNA orden", () => {
     expect(ordenDeLaTarjeta(l, "demo-o-3")).toBeNull();
     expect(ordenDeLaTarjeta(l, "demo-o-3", true)).toEqual({ id: "a" });
     expect(ordenDeLaTarjeta([], "demo-o-3", true)).toBeNull();
+  });
+});
+
+describe("Esc con la tarjeta abierta", () => {
+  it("cierra solo la capa de arriba y retiene el Esc para que la ficha del cliente no se cierre", () => {
+    expect(queHaceEsc("Escape", true)).toBe("cerrar");
+    expect(queHaceEsc("Escape", false)).toBe("solo-retener");
+    expect(queHaceEsc("Enter", true)).toBe("nada");
+  });
+  it("la ficha del cliente respeta un Esc ya atendido y la tarjeta escucha en captura", async () => {
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync("src/app/customers/FichaDeCliente.tsx", "utf8")).toMatch(/!e\.defaultPrevented && cierraLaFicha/);
+    const tarjeta = readFileSync("src/app/customers/TarjetaDeTrato.tsx", "utf8");
+    expect(tarjeta).toMatch(/addEventListener\("keydown", alPulsar, true\)/);
+    expect(tarjeta).toContain("e.preventDefault()");
   });
 });

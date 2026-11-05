@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { DataProvider, useData } from "@/lib/data-provider";
 import { LocalDataProvider } from "@/lib/local-data-provider";
 import { OrderModal } from "@/components/OrderModalLazy";
-import { comoAbrirTrato, ordenDeLaTarjeta } from "@/lib/customers/abrir-trato";
+import { comoAbrirTrato, ordenDeLaTarjeta, queHaceEsc } from "@/lib/customers/abrir-trato";
 import type { Trato } from "@/lib/customers/tratos";
 import { almacenDeLaBase, type CotizacionGuardada } from "@/lib/estimator/almacen";
 import { almacenDemo } from "@/lib/estimator/demo";
@@ -34,6 +34,29 @@ export function TarjetaDeTrato({ trato, onCerrar }: { trato: Trato; onCerrar: ()
   const { t } = usePrefs();
   const [me, setMe] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Esc cierra SOLO la tarjeta (D-NEXT). En captura, antes que la ficha del cliente, que ignora un Esc con
+  // `defaultPrevented`. La orden se cierra por su propio ✕ (`requestClose`: pregunta si hay cambios sin guardar).
+  const cerrarRef = useRef(onCerrar);
+  cerrarRef.current = onCerrar;
+  useEffect(() => {
+    const alPulsar = (e: KeyboardEvent) => {
+      const capas = document.querySelectorAll(".overlay");
+      const arriba = capas[capas.length - 1];
+      const tarjetaArriba = !!arriba?.querySelector("[data-tarjeta-de-trato], [data-enlace-aparte]");
+      const que = queHaceEsc(e.key, tarjetaArriba);
+      if (que === "nada") return;
+      e.preventDefault();
+      if (que !== "cerrar") return;
+      // La ✕ de la ficha de la orden (la que llama a su `requestClose`); la ficha no se toca (D-855).
+      const x = arriba?.querySelector("[data-enlace-aparte]")
+        ? [...arriba.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent?.trim() === "✕")
+        : undefined;
+      if (x) x.click(); else cerrarRef.current();
+    };
+    window.addEventListener("keydown", alPulsar, true);
+    return () => window.removeEventListener("keydown", alPulsar, true);
+  }, []);
 
   useEffect(() => {
     let vivo = true;
@@ -152,11 +175,6 @@ function Resumen({ trato }: { trato: Trato }) {
 /** El marco de siempre (`.overlay` / `.modal` de globals.css): nada nuevo que dibujar. */
 function Marco({ titulo, onCerrar, children, pie, ancho = false }: { titulo: string; onCerrar: () => void; children: React.ReactNode; pie?: React.ReactNode; ancho?: boolean }) {
   const { t } = usePrefs();
-  useEffect(() => {
-    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onCerrar(); };
-    window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
-  }, [onCerrar]);
   return (
     <div className="overlay" onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}>
       <div className={ancho ? "modal tarjeta-de-trato ancha" : "modal tarjeta-de-trato"} role="dialog" aria-modal="true" aria-label={titulo} data-tarjeta-de-trato>
