@@ -50708,3 +50708,9 @@ Sello `deliveries` 1.541.0; repo 1.724.0.
 **Fecha:** 2026-11-05 · Sin migración · Agente con `frontend-design` en `design/leads-preview`; el dueño vio el antes y el después y lo aprobó. Cabecera en una fila, pestañas GOV/Mi pool/Admin/STXP como control segmentado con cuentas, situaciones con punto de color, filtros en una fila, tarjetas más cortas con las cifras en una fila (dos por fila desde 1100 px), tablas de Admin con columna fija, avisos con franja y vacíos que dicen por qué. GOV Pool pasa de 0 a 2 leads enteros a la vista. Sin cambios de comportamiento; estilos bajo `.leads-app`.
 
 Sello `leads` 0.19.0; repo 1.725.0.
+
+## D-871 · Clientes: diseño compacto de Promos
+
+**Fecha:** 2026-11-05 · Sin migración · Agente con `frontend-design` en `design/clientes-preview`; aprobado por el dueño tras las capturas. Cabecera en una fila; tiendas como control segmentado junto a búsqueda y QB; filas de 32 px con cebra, hover y primera columna fija (11 → 18 filas a 1280×800); avisos con franja; vacíos que dicen por qué; Solicitudes con estados de punto de color; la ficha conserva su disposición (D-766, D-847, D-868) y solo cambia el acabado. En el teléfono, tarjetas de dos líneas. Sin cambios de comportamiento; estilos bajo `.clientes-app` en `clientes.css`.
+
+Sello `customers` 0.50.0; repo 1.726.0.
