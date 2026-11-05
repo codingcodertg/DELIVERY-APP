@@ -50702,3 +50702,9 @@ Sello `customers` 0.49.0; repo 1.723.0.
 Sello `deliveries` 1.541.0; repo 1.724.0.
 
 **Pruebas:** `ventas-agrega-nota.test.ts`; `anular-con-motivo.test.ts` (la 244 es la versión más nueva del guarda).
+
+## D-870 · Leads: diseño compacto de Promos
+
+**Fecha:** 2026-11-05 · Sin migración · Agente con `frontend-design` en `design/leads-preview`; el dueño vio el antes y el después y lo aprobó. Cabecera en una fila, pestañas GOV/Mi pool/Admin/STXP como control segmentado con cuentas, situaciones con punto de color, filtros en una fila, tarjetas más cortas con las cifras en una fila (dos por fila desde 1100 px), tablas de Admin con columna fija, avisos con franja y vacíos que dicen por qué. GOV Pool pasa de 0 a 2 leads enteros a la vista. Sin cambios de comportamiento; estilos bajo `.leads-app`.
+
+Sello `leads` 0.19.0; repo 1.725.0.
