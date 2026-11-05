@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
- * Ventas agrega una nota a SU orden ya aprobada (D-NEXT).
+ * Ventas agrega una nota a SU orden ya aprobada (D-869).
  *
  * Ayuda de un vendedor, 2026-11-05: «trate de agregar una nota a una factura que ya estaba registrada para delivery pero
  * no se guarda». La ficha enseña «Agregar nota» en cualquier etapa, pero `guard_delivery_stage` solo dejaba a ventas
@@ -23,7 +23,7 @@ describe("244: el guard deja a ventas agregar una nota a su orden aprobada", () 
   const sql = () => plano(leer(RUTA));
   const bloque = () => {
     const s = sql();
-    const i = s.indexOf("-- 244 (D-NEXT)");
+    const i = s.indexOf("-- 244 (D-869)");
     return s.slice(i, s.indexOf("-- A late GPS fix", i));
   };
 
