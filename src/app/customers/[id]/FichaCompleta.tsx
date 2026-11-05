@@ -5,6 +5,11 @@ import { usePrefs } from "@/lib/prefs";
 import { Badge } from "@/components/erp/ui/badge";
 import { estadoClase, estadoLabel, estaArchivado, fecha, mailUrl, motivoLabel, nombreDeTienda, telUrl, type Cliente } from "@/lib/customers/reglas";
 import { TarjetasDeLaFicha } from "../FichaDeCliente";
+import { useMemo } from "react";
+import { createClient } from "@/lib/erp/supabase/client";
+import { almacenDeLaBase } from "@/lib/customers/almacen";
+import { HistorialDeTratos } from "../HistorialDeTratos";
+import { HistorialDelCliente } from "../HistorialDelCliente";
 
 /**
  * La ficha completa de un cliente como página propia, para un enlace directo (la cola de «Decidir si se juntan» enlaza
@@ -16,6 +21,8 @@ export function FichaCompleta({ cliente: c, hermanas = [], puedeEditar = false, 
   const { t } = usePrefs();
   const tel = telUrl(c.phone);
   const mail = mailUrl(c.email);
+  // D-874 (245): los dos historiales, como en la ventana; se leen con la sesión de quien mira.
+  const almacen = useMemo(() => almacenDeLaBase(createClient()), []);
   return (
     <main className="mx-auto max-w-screen-2xl px-4 py-6">
       <Link href="/customers" className="text-sm text-clay-600 hover:underline">{t("← Customers", "← Clientes")}</Link>
@@ -73,6 +80,8 @@ export function FichaCompleta({ cliente: c, hermanas = [], puedeEditar = false, 
 
       <div className="mt-6">
         <TarjetasDeLaFicha cliente={c} esVendedor={esVendedor} t={t} />
+        <HistorialDeTratos cliente={c} almacen={almacen} t={t} />
+        {!esVendedor && <HistorialDelCliente clienteId={c.id} almacen={almacen} t={t} />}
       </div>
       {/* D-660: lo último de la página es ahora «🔒 Campos ocultos», y la burbuja de Ayuda (fija abajo a la derecha) lo
           tapaba a 390 px (medido). El hueco de D-530 deja que suba por encima de ella; como en la ventana (D-654). */}

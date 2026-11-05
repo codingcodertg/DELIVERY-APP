@@ -268,6 +268,9 @@ export interface Delivery {
   /** Arranque numerado del plan (D-722, 208): 1, 2, 3… «Armar las rutas del día» abre una ruta con estas, en este orden.
    *  Opcional en el tipo porque una base sin la 208 no lo trae; la lista lo pide como columna opcional. */
   plan_rank?: number | null;
+  /** D-874 (245): la fila de Clientes de esta orden. La pone la base (disparador) por la cuenta y la tienda; el cliente
+   *  no la escribe. Opcional: sin la 245 la columna no existe. */
+  customer_id?: number | null;
   /** Avisos al cliente (D-416, migración 150): su correo, cómo quiere los avisos y su idioma. Opcionales en el tipo
    *  porque una base sin la 150 no los trae; se leen con `preferenciaDe` / `idiomaDe` (lib/avisos-cliente.ts). */
   customer_email?: string | null;

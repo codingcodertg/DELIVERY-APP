@@ -50726,3 +50726,18 @@ Sello `surveys` 0.10.0; repo 1.727.0.
 **Fecha:** 2026-11-05 · Sin migración · Agente con `frontend-design` en `design/rh-preview`; aprobado por el dueño tras las capturas. Empleados y Activos con búsqueda y estados en una fila, estados como control segmentado con punto de color (visible en oscuro), filas de 32 px con cebra, hover y primera columna fija (14 → 17 filas; en el teléfono 6 → 11); Candidatos con las etapas en una tira y tarjetas más ajustadas (4 → 8); avisos con franja; la ficha con etiquetas sin mayúsculas; compactación general del resto. Sin cambios de comportamiento ni de permisos; estilos en `recruiting.css`.
 
 Sello `recruiting` 0.76.0; repo 1.728.0.
+
+## D-874 · Historial del cliente: órdenes y cotizaciones con ese cliente, y la actividad de su ficha completa
+
+**Fecha:** 2026-11-05 · Migración 245 (escrita; se aplica aparte, tras 221 y 242) · Hecho por un agente en `feat/historial-del-cliente`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño):** «cada cambio, modificación o hasta creación tiene que quedar en historial de actividad del customer, y el historial principal va a ser para los deliveries que se hayan hecho con ese cliente; conecta deliveries con clientes y hasta con quote builder».
+
+**Qué cambia:**
+- **Enlace (245):** `deliveries.customer_id` y `estimator_quotes.customer_id` (bigint, FK a `erp.customers`, `on delete set null`). Los pone un disparador al crear y al cambiar cuenta o tienda: la fila ACTIVA del cliente en la MISMA tienda (si no hay, la única activa); nunca archivados ni cuentas en blanco; ambiguo, nulo. Nombre comparado sin mayúsculas, acentos, puntuación ni LLC/INC/CO/CORP…; tienda por código. En el Cotizador gana el cliente elegido en el buscador (su id viaja en el jsonb). Relleno de lo viejo: 111 órdenes enlazadas (42 grafías), 945 no (363 en blanco, 57 solo con archivados, 1 ambigua, 524 sin cliente); cotizaciones, 0 de 5.
+- **Historial principal «Órdenes y cotizaciones»** en la ficha y en `/customers/[id]`: fecha (Texas), orden o cotización, factura, etapa, tienda, chofer, cargo de entrega, tarimas / total; filtro Todas / Órdenes / Cotizaciones; clic abre la orden o la cotización. Con la sesión de quien mira (ve lo que ya podía ver). Sin la 245, cae al nombre exacto y lo avisa.
+- **Actividad:** el registro de 221 ya llevaba altas, ediciones, archivar, asignar vendedor y aprobaciones; se añaden fusión (`merge`, `junta_clientes` envuelve a la de 189), cambio de vendedor con nombre (`rep`), «Revisar» y correcciones del admin en solicitudes (`review`, `corrected`), y un «creado» para los 1.348 clientes anteriores al historial.
+
+Sellos `customers` 0.51.0, `estimator` 0.29.0 y `deliveries` 1.542.0; repo 1.729.0.
+
+**Pruebas:** `customers/tratos.test.ts` (la clave en TS y en SQL casan); `columnas-de-la-lista` y `clientes-para-cotizar` puestas al día.

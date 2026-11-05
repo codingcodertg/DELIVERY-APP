@@ -34,7 +34,7 @@ export function HistorialDelCliente({ clienteId, almacen, t }: { clienteId: numb
   return (
     <details className="group mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-5 py-3" data-historial-del-cliente onToggle={(e) => setAbierto((e.currentTarget as HTMLDetailsElement).open)}>
       <summary className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-700">
-        📜 {t("History", "Historial")}
+        📜 {t("Activity", "Actividad")}
       </summary>
       <div className="mt-2">
         {error && <p className="text-xs text-red-600" role="status">{error}</p>}

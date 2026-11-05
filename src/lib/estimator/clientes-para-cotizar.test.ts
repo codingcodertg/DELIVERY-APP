@@ -51,7 +51,7 @@ describe("la pantalla", () => {
   it("pregunta a la base con las columnas de aquí, filtra con elegibles y rellena con relleno", () => {
     expect(est).toContain('.from("customers").select(COLUMNAS_PARA_COTIZAR)');
     expect(est).toContain("elegibles(");
-    expect(est).toContain("setCliente(relleno(c))");
+    expect(est).toContain("setCliente({ ...relleno(c), customer_id: c.id })"); // D-874 (245): y el id del elegido
     expect(est).toContain("data-busca-cliente");
     expect(est).toContain("data-cliente-opcion");
   });

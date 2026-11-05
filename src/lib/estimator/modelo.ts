@@ -34,6 +34,11 @@ export interface Customer {
   full_name: string;
   company: string;
   phone: string;
+  /**
+   * D-874 (245): la fila de Clientes elegida en el buscador (D-784), o nada si se escribió a mano. Viaja dentro del
+   * `jsonb` (así guardar no falla antes de la 245) y la base la copia a `estimator_quotes.customer_id`.
+   */
+  customer_id?: number | null;
   // Sin `address` (D-451, «remove dirrecion en estimador»): la dirección del cliente repetía la de entrega, que es la
   // que alimenta la calculadora de tarifa (D-442) y sigue en `Delivery`. `borradorDeFila` no la lee de las filas viejas.
 }
