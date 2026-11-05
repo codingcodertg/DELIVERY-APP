@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { anchoSinAcciones, encuadreDeLaFoto, filasDeLaFoto, FUERA_DE_LA_TABLA, lineasDeLaRuta, nombreDelPng, palletsDeLaFoto, puedeCompartirFicheros, puntosDeLaRuta } from "./foto-de-la-ruta";
+import { anchoSinAcciones, encuadreDeLaFoto, filasDeLaFoto, CASILLAS_DE_LA_TABLA, filaFueraDeLaFoto, lineasDeLaRuta, nombreDelPng, palletsDeLaFoto, puedeCompartirFicheros, puntosDeLaRuta, QUITAR_DE_LA_TABLA } from "./foto-de-la-ruta";
 import type { MapLine, MapPoint } from "@/components/LeafletMap";
 import type { ParadaFisica } from "@/lib/gestor/paradas-numeradas";
 import type { Delivery } from "@/lib/types";
@@ -108,12 +108,13 @@ describe("D-636: la foto lleva la tabla del Gestor", () => {
     expect(anchoSinAcciones(1300, 0)).toBe(1300);
     expect(anchoSinAcciones(1300, 1300)).toBe(1300);
     expect(anchoSinAcciones(1300, Number.NaN)).toBe(1300);
-    expect([...FUERA_DE_LA_TABLA]).toEqual(['input[type="checkbox"]', ".col-resizer"]);
+    expect([...QUITAR_DE_LA_TABLA]).toEqual([".col-resizer"]);
+    expect(CASILLAS_DE_LA_TABLA).toBe('input[type="checkbox"]');
   });
   it("el cuadro: mapa ARRIBA y la tabla de la página debajo, en tema claro, sin casillas; sin tabla, la lista sencilla", () => {
     const c = leer("src/components/FotoDeLaRuta.tsx");
     expect(c).toContain("document.querySelector<HTMLElement>(`[data-tabla-de-la-ruta=\"${CSS.escape(laneKey)}\"]`)");
-    expect(c).toContain('snapdom.toCanvas(tabla, { backgroundColor: "#ffffff", scale: 2, exclude: [...FUERA_DE_LA_TABLA], excludeMode: "hide" })');
+    expect(c).toContain('snapdom.toCanvas(tabla, { backgroundColor: "#ffffff", scale: 2, exclude: [...QUITAR_DE_LA_TABLA], excludeMode: "remove" })');
     expect(c).toContain('if (tema === "dark") raiz.setAttribute("data-theme", "light");');
     expect(c).toContain('if (tema === "dark") raiz.setAttribute("data-theme", tema);');
     expect(c).toContain("const ancho = anchoSinAcciones(tabla.offsetWidth, ultima?.offsetWidth ?? 0);");
@@ -163,5 +164,42 @@ describe("el Gestor y el cuadro", () => {
     expect(c).toContain("await navigator.share({ files: [fichero], title: `${chofer} · ${fmtDate(fecha)}` });");
     expect(c).toContain('if ((e as { name?: string })?.name !== "AbortError")');
     expect(leer("src/components/CapturaDeAyuda.tsx")).toContain("export function cargaSnapdom(): Promise<Snapdom> {");
+  });
+});
+
+// D-863 · «cuando le doy al botón PNG de las rutas no imprime la última hora, que es a la hora que van a llegar a la base».
+describe("D-863: la foto lleva la fila «🏠 Base: regreso» con su hora", () => {
+  /** Un elemento falso que solo sabe `matches` con selectores sencillos (etiqueta[atributo], .clase, [atributo]). */
+  const el = (tag: string, attrs: Record<string, string> = {}, clases: string[] = []) => ({
+    matches: (sel: string) => {
+      if (sel.startsWith(".")) return clases.includes(sel.slice(1));
+      const m = /^([a-z]*)(?:\[([a-z-]+)(?:="([^"]*)")?\])?$/.exec(sel);
+      if (!m) return false;
+      const [, t, a, v] = m;
+      return (!t || t === tag) && (!a || (a in attrs && (v === undefined || attrs[a] === v)));
+    },
+  });
+  it("ninguna fila de la base (salida ni regreso) ni la celda de su hora se queda fuera", () => {
+    expect(filaFueraDeLaFoto(el("tr", { "data-base": "regreso" }))).toBe(false);
+    expect(filaFueraDeLaFoto(el("tr", { "data-base": "salida" }))).toBe(false);
+    expect(filaFueraDeLaFoto(el("td", { "data-hora-de-la-base": "regreso" }))).toBe(false);
+    expect(filaFueraDeLaFoto(el("tr"))).toBe(false);
+  });
+  it("lo que sí sale fuera: el asa de ancho (quitada) y las casillas (escondidas)", () => {
+    expect(filaFueraDeLaFoto(el("div", {}, ["col-resizer"]))).toBe(true);
+    expect(filaFueraDeLaFoto(el("input", { type: "checkbox" }))).toBe(true);
+  });
+  it("el asa se QUITA, no se esconde: escondida, entraba en la cabecera y empujaba la última fila fuera del lienzo", () => {
+    const c = leer("src/components/FotoDeLaRuta.tsx");
+    expect(c).not.toContain('excludeMode: "hide"');
+    expect(c).toContain("for (const [el] of casillas) el.style.visibility = \"hidden\";");
+    expect(c).toContain("for (const [el, antes] of casillas) el.style.visibility = antes;");
+    // Con la fila del regreso dentro de la tabla que se fotografía.
+    const g = leer("src/app/(app)/routes/page.tsx");
+    const tabla = g.indexOf("data-tabla-de-la-ruta={u.key}");
+    const regreso = g.indexOf('filaDeLaBase(u.key, "regreso"', tabla);
+    expect(tabla).toBeGreaterThan(0);
+    expect(regreso).toBeGreaterThan(tabla);
+    expect(regreso).toBeLessThan(g.indexOf("</table>", tabla));
   });
 });

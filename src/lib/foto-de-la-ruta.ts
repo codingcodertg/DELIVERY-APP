@@ -117,8 +117,23 @@ export function anchoSinAcciones(anchoDeLaTabla: number, anchoDeLaUltima: number
   return anchoDeLaTabla - anchoDeLaUltima;
 }
 
-/** D-636: lo que no sale en la foto de la tabla del Gestor: las casillas de marcar y las asas de ancho (se esconden sin mover nada). */
-export const FUERA_DE_LA_TABLA = ['input[type="checkbox"]', ".col-resizer"] as const;
+/**
+ * D-636: lo que no sale en la foto de la tabla del Gestor: las casillas de marcar y las asas de ancho.
+ *
+ * D-863 (el dueño, 2026-11-04: «cuando le doy al botón PNG de las rutas no imprime la última hora, que es a la hora que
+ * van a llegar a la base»): las dos se escondían con `excludeMode: "hide"` de snapdom, y el asa escondida deja de ser
+ * `position: absolute` en la copia: entra en el flujo de cada `<th>` y la cabecera crecía ~27 px. El lienzo tiene el alto
+ * de la tabla en la página, así que todo bajaba y la última fila —«🏠 Base: regreso» con su hora— se quedaba fuera.
+ * Por eso: el asa se QUITA (no ocupa sitio en la página, quitarla no mueve nada) y las casillas, que sí ocupan sitio en su
+ * celda, se esconden en la página (`visibility: hidden`) solo mientras se fotografía.
+ */
+export const QUITAR_DE_LA_TABLA = [".col-resizer"] as const;
+export const CASILLAS_DE_LA_TABLA = 'input[type="checkbox"]';
+
+/** D-863: ¿esta fila de la tabla se queda fuera de la foto? Ninguna: ni la de la salida ni la del regreso a base. */
+export function filaFueraDeLaFoto(fila: Pick<Element, "matches">): boolean {
+  return QUITAR_DE_LA_TABLA.some((sel) => fila.matches(sel)) || fila.matches(CASILLAS_DE_LA_TABLA);
+}
 
 /** ¿El navegador puede compartir un fichero (la hoja de compartir del teléfono: WhatsApp, correo…)? En escritorio casi nunca. */
 export function puedeCompartirFicheros(nav: Pick<Navigator, "canShare" | "share"> | undefined, fichero: File): boolean {

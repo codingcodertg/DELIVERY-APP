@@ -50597,3 +50597,17 @@ Sello `deliveries` 1.538.0; repo 1.716.0.
 Sello `deliveries` 1.539.0; repo 1.717.0.
 
 **Pruebas:** las que leen los ficheros tocados, `inline-colors`, `ayuda-flotante` y `suplantacion-en-burbuja`.
+
+## D-863 · El PNG de la ruta ya trae la fila de regreso a la base
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `fix/png-ruta-regreso`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño):** «cuando aprieto el botón de PNG para las rutas no me imprime la última hora, que es la hora a la cual llegarán a base de vuelta».
+
+**Causa medida:** el PNG es una foto de la tabla (`fotoDeLaTabla`, snapdom, D-636). Escondía las casillas y los tiradores de ancho con `excludeMode: "hide"`; en la copia, cada tirador escondido dejaba de ser absoluto y ensanchaba la cabecera ~27 px, y como la imagen mide lo que mide la tabla en la página, la última fila (🏠 Base: regreso con su hora) se caía por abajo. Roto desde D-636 (2026-10-21).
+
+**Qué cambia (`FotoDeLaRuta.tsx`, `foto-de-la-ruta.ts`):** los tiradores se QUITAN de la copia (`excludeMode: "remove"`, no ocupan sitio en la página); las casillas, que sí lo ocupan, se ponen `visibility:hidden` en la página solo mientras dura la foto y vuelven en `finally`. La fila de regreso y su celda de hora nunca se excluyen. No había otra exportación de rutas con el mismo fallo.
+
+Sello `deliveries` 1.540.0; repo 1.718.0.
+
+**Pruebas:** `foto-de-la-ruta.test.ts` puesta al día.

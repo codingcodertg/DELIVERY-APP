@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LeafletMap, type MapLine, type MapPoint } from "@/components/LeafletMap";
 import { cargaSnapdom } from "@/components/CapturaDeAyuda";
-import { anchoSinAcciones, encuadreDeLaFoto, filasDeLaFoto, FUERA_DE_LA_TABLA, nombreDelPng, palletsDeLaFoto, puedeCompartirFicheros } from "@/lib/foto-de-la-ruta";
+import { anchoSinAcciones, encuadreDeLaFoto, filasDeLaFoto, CASILLAS_DE_LA_TABLA, nombreDelPng, palletsDeLaFoto, puedeCompartirFicheros, QUITAR_DE_LA_TABLA } from "@/lib/foto-de-la-ruta";
 import { fmtDate } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
@@ -35,10 +35,14 @@ async function fotoDeLaTabla(tabla: HTMLElement): Promise<{ url: string; ancho: 
   const raiz = document.documentElement;
   const tema = raiz.getAttribute("data-theme");
   if (tema === "dark") raiz.setAttribute("data-theme", "light");
+  // D-863: las casillas, escondidas en la página sin mover nada; el asa de ancho, quitada (ver `QUITAR_DE_LA_TABLA`).
+  const casillas = [...tabla.querySelectorAll<HTMLElement>(CASILLAS_DE_LA_TABLA)].map((el) => [el, el.style.visibility] as const);
+  for (const [el] of casillas) el.style.visibility = "hidden";
   let lienzo: HTMLCanvasElement;
   try {
-    lienzo = await snapdom.toCanvas(tabla, { backgroundColor: "#ffffff", scale: 2, exclude: [...FUERA_DE_LA_TABLA], excludeMode: "hide" });
+    lienzo = await snapdom.toCanvas(tabla, { backgroundColor: "#ffffff", scale: 2, exclude: [...QUITAR_DE_LA_TABLA], excludeMode: "remove" });
   } finally {
+    for (const [el, antes] of casillas) el.style.visibility = antes;
     if (tema === "dark") raiz.setAttribute("data-theme", tema);
   }
   const escala = lienzo.width / Math.max(1, tabla.offsetWidth);
