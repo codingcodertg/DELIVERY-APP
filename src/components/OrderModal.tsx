@@ -1,5 +1,6 @@
 "use client";
 
+import { lugarDeLaDireccion, lugaresParaEntregarEn } from "@/lib/entregar-en-tienda";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
@@ -284,6 +285,7 @@ export function OrderModal({
   const [podSig, setPodSig] = useState<string | null>(null);
   // Driver override: delivered somewhere other than the ordered address.
   const [deliveredElsewhere, setDeliveredElsewhere] = useState(false);
+  const lugaresEntrega = useMemo(() => lugaresParaEntregarEn(settings), [settings]);
   const [deliveredAddress, setDeliveredAddress] = useState("");
   const [noteText, setNoteText] = useState("");
   const [notingBusy, setNotingBusy] = useState(false);
@@ -3361,10 +3363,33 @@ export function OrderModal({
                   <div className="hint" style={{ marginTop: 0, marginBottom: 4 }}>
                     {t("Ordered address:", "Dirección del pedido:")} {existing?.delivery_address || "—"}
                   </div>
+                  {/* D-882: lista de tiendas/bodegas (Ernesto: «I also want dropdowns so I can just select the store»).
+                      Elegir una llena el mismo texto de abajo (`delivered_address`); escribir a mano sigue valiendo. No hay
+                      campo de punto para la entrega (`pod_lat/lng` es el GPS del chofer y no se pisa). */}
+                  {lugaresEntrega.length > 0 && (
+                    <select
+                      data-entregar-en-tienda
+                      aria-label={t("Pick a store or warehouse", "Elija una tienda o bodega")}
+                      value={lugarDeLaDireccion(lugaresEntrega, deliveredAddress)?.name ?? ""}
+                      onChange={(e) => {
+                        const l = lugaresEntrega.find((x) => x.name === e.target.value);
+                        if (l) setDeliveredAddress(l.address);
+                      }}
+                      style={{ marginBottom: 8 }}
+                    >
+                      <option value="">{t("🏬 Pick a store or warehouse…", "🏬 Elija una tienda o bodega…")}</option>
+                      {lugaresEntrega.map((l) => (
+                        <option key={l.name} value={l.name}>
+                          {l.bodega ? "📦 " : "🏬 "}{l.name} — {l.address}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   <input
+                    data-entregar-en-direccion
                     value={deliveredAddress}
                     onChange={(e) => setDeliveredAddress(e.target.value)}
-                    placeholder={t("Address where you actually delivered", "Dirección donde entregó realmente")}
+                    placeholder={t("…or type the address where you delivered", "…o escriba la dirección donde entregó")}
                   />
                   <div className="hint" style={{ color: "var(--amber)", fontWeight: 600, marginTop: 4 }}>
                     ⚠ {t("This will be reported to the office.", "Esto se reportará a la oficina.")}
