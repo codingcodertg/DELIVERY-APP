@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/erp/ui/badge";
 import { Button } from "@/components/erp/ui/button";
 import { Input } from "@/components/erp/ui/input";
@@ -132,16 +132,20 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
         {/* D-728: al vendedor, sin «Crédito y términos»; D-858: en el alta, tampoco «Estado e historial», y de «Cuenta» solo
             «Vendedor de comisión» y de «Otros» todo menos el tipo CRM (`filasPorGrupoQueVe`). */}
         {filasPorGrupoQueVe({ esVendedor, alta: cliente === null }).filter(({ grupo }) => claves.includes(grupo.key)).map(({ grupo, filas }) => (
-          <section key={grupo.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo={grupo.key}>
+          <Fragment key={grupo.key}>
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo={grupo.key}>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(grupo.en, grupo.es)}</h2>
             {grupo.key === "contacto" && (editando && contactos && onContactos
               ? <>
                   <ContactosParaEditar contactos={contactos} errores={errores} onCambia={onContactos} elegido={contactoElegido} onElige={onEligeContacto} direccionDeLaCuenta={direccionUnica} alta={cliente === null} t={t} />
-                  {redes && onRedes && <RedesParaEditar redes={redes} onCambia={onRedes} t={t} />}
                 </>
               : cliente && <ContactosParaVer key={cliente.id} contactos={deLaFila} redes={redesDe(cliente)} direccionDeLaCuenta={cliente.address} t={t} />)}
             {filas.map(linea)}
           </section>
+          {/* D-NEXT (D-858): al crear o editar, «🌐 Redes sociales» va en su tarjeta justo debajo de «Cuenta» (columna 1),
+              que en el alta del vendedor es corta; antes iba al pie de «Contacto» (D-682). Mismos campos y datos. */}
+          {grupo.key === "cuenta" && editando && redes && onRedes && <RedesParaEditar redes={redes} onCambia={onRedes} t={t} />}
+          </Fragment>
         ))}
         {/* Al pie de la tercera columna, apilados: «Campos ocultos» y, debajo, «Archivos» (D-681: «keeping a compact
             design. Lets move attachments down below Hidden Fields»; hasta D-681 iban al pie de «Crédito y términos»). */}
@@ -411,12 +415,12 @@ function ContactosParaVer({ contactos, redes = {}, direccionDeLaCuenta = null, t
   );
 }
 
-/** Las siete redes (D-682), cada una con su casilla: la URL entera o solo el usuario. Debajo de los contactos, al editar. */
+/** Las siete redes (D-682), cada una con su casilla: la URL entera o solo el usuario. Al editar, en su tarjeta bajo «Cuenta» (D-NEXT). */
 function RedesParaEditar({ redes, onCambia, t }: { redes: RedesEnEdicion; onCambia: (r: RedesEnEdicion) => void; t: T }) {
   return (
-    <fieldset className="my-3 space-y-2 rounded-xl border border-slate-200 bg-slate-50/50 p-3" data-redes-editando>
-      <legend className="text-xs font-semibold uppercase tracking-wide text-slate-400">🌐 {t("Socials", "Redes sociales")}</legend>
-      <div className="grid gap-2 sm:grid-cols-2">
+    <fieldset className="space-y-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo="redes" data-redes-editando>
+      <legend className="float-left mb-2 w-full text-xs font-semibold uppercase tracking-wide text-slate-400">🌐 {t("Socials", "Redes sociales")}</legend>
+      <div className="clear-both grid gap-2 sm:grid-cols-2">
         {REDES.map((k) => (
           <label key={k} className="block space-y-1">
             <span className="text-xs text-slate-500">{NOMBRE_DE_RED[k]}</span>
