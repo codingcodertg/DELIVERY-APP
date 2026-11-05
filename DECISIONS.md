@@ -50862,3 +50862,9 @@ Sello `customers` 0.53.0; repo 1.739.0.
 La tabla de Clientes reemplaza «Ver más (quedan N)» por un selector Mostrar 10/50/100/1000 (por defecto 100, recordado por tabla); orden y filtros sobre la lista completa.
 
 Sello `customers` 0.54.0; repo 1.740.0.
+
+## D-886 · Customers: asociaciones múltiples con aprobación
+
+Desde Editar se agregan o quitan varias asociaciones a la vez; ventas y gerentes las proponen y pasan por el panel de solicitudes (tipo asociacion) hasta que un admin las aprueba; solo pueden buscar clientes de sus tiendas. Migración 250.
+
+Sello `customers` 0.55.0; repo 1.741.0.

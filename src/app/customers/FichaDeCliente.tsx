@@ -1165,12 +1165,11 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
               )}
             </div>
           )}
-          {/* D-884 (249): «En asociación con». Al ver, las pastillas (si hay); editando, el buscador, solo para quien edita
-              directo (admin y admin de Clientes): la edición del vendedor y del gerente es una solicitud de columnas
-              (D-780) y la asociación no es una columna. */}
+          {/* D-884 (249): «En asociación con». D-886 (250): editando, quien edita (admin, gerente, vendedor) añade y
+              quita varias; el admin aplica directo, los demás mandan a aprobación. */}
           {cliente && (
             <AsociacionesDelCliente cliente={cliente} almacen={almacen} lista={lista}
-              editable={editando && puedeEditar && !edicionComoSolicitud}
+              editable={editando && puedeEditar} esAdmin={puedeEditar && !edicionComoSolicitud}
               pintaFicha={(c) => <TarjetasDeLaFicha cliente={c} esVendedor={esVendedor} t={t} />} t={t} />
           )}
           <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} direccionUnica={!direccionAparte} onCampo={campo} contactos={contactos} onContactos={setContactos} contactoElegido={contactoElegido} onEligeContacto={setContactoElegido} redes={redes} onRedes={setRedes} vendedores={vendedores} almacen={almacen} puedeEditar={puedeEditar} esVendedor={esVendedor} puedePedirVendedor={puedePedirVendedor} t={t} />

@@ -183,6 +183,11 @@ export function cambiosDelHistorial(h: Pick<HistorialDeCliente, "kind" | "before
     return cambiosEntre({}, con);
   }
   // D-884 (249): la asociación lleva el nombre de la otra empresa; su company_id no se enseña.
+  // D-886 (250): una solicitud de asociación rechazada lleva su payload (op, company, other…): solo la otra empresa.
+  if (h.kind === "rejected" && (h.after?.op === "add" || h.after?.op === "remove")) {
+    const otra = h.after?.associated_customer;
+    return typeof otra === "string" && otra ? cambiosEntre({}, { associated_customer: otra }) : [];
+  }
   if (h.kind === "associate" || h.kind === "dissociate") {
     const otra = h.after?.associated_customer;
     return typeof otra === "string" && otra ? cambiosEntre({}, { associated_customer: otra }) : [];

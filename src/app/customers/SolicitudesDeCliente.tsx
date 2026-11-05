@@ -13,6 +13,7 @@ import {
   accionesDeSolicitud, cambiosContraLaFila, correccionesDelAdmin, cuentaPorEstado, estadosAVer, ETIQUETA_DE_ESTADO, filaDeSolicitud,
   filtraPorEstado, notaValida, payloadCorregido,
 } from "@/lib/customers/revision-de-solicitud";
+import { textoDeSolicitudDeAsociacion } from "@/lib/customers/asociaciones";
 import { resumenDeSolicitud, type EstadoDeSolicitud, type SolicitudDeCliente } from "@/lib/customers/solicitud-de-cliente";
 import { vendedoresEnOrden, type Vendedor } from "@/lib/customers/vendedores";
 import { TarjetasDeLaFicha } from "./FichaDeCliente";
@@ -25,7 +26,7 @@ const Estado = ({ status, t }: { status: EstadoDeSolicitud; t: T }) => (
 );
 
 const Clase = ({ s, t }: { s: SolicitudDeCliente; t: T }) => (
-  <span className="text-xs text-slate-600">{s.kind === "edicion" ? `✏️ ${t("Edit", "Edición")}` : `✨ ${t("New", "Nuevo")}`}</span>
+  <span className="text-xs text-slate-600">{s.kind === "asociacion" ? `🤝 ${t("Association", "Asociación")}` : s.kind === "edicion" ? `✏️ ${t("Edit", "Edición")}` : `✨ ${t("New", "Nuevo")}`}</span>
 );
 
 /** La lista vacía dice por qué: no hay ninguna, o no hay en ese estado (solo texto). */
@@ -37,7 +38,7 @@ const vaciaPorEstado = (e: EstadoDeSolicitud, total: number, esAdmin: boolean, t
   return t("No denied requests.", "Ninguna solicitud rechazada.");
 };
 
-const cuentaDe = (s: SolicitudDeCliente) => (s.kind === "edicion" ? textoDeValor(s.before?.account) : resumenDeSolicitud(s).cuenta);
+const cuentaDe = (s: SolicitudDeCliente) => (s.kind === "edicion" ? textoDeValor(s.before?.account) : s.kind === "asociacion" ? textoDeValor(s.payload.account) : resumenDeSolicitud(s).cuenta);
 const tiendasDe = (s: SolicitudDeCliente) => s.stores.map((c) => nombreDeTienda(c)).join(", ");
 const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonly string[]).includes(k) ? v.toUpperCase() : v);
 
@@ -174,7 +175,9 @@ function TarjetaDeSolicitud({ s, actual, esAdmin, revision, almacen, onVolver, o
   t: T;
 }) {
   const edicion = s.kind === "edicion";
-  const acciones = accionesDeSolicitud(s.status, { esAdmin, revision });
+  // D-886 (250): una propuesta de asociación: se aprueba o rechaza (o «Revisar»), pero no se corrige.
+  const asociacion = s.kind === "asociacion";
+  const acciones = { ...accionesDeSolicitud(s.status, { esAdmin, revision }), ...(asociacion ? { corregir: false } : {}) };
   const fila = useMemo(() => filaDeSolicitud(s, actual), [s, actual]);
   const cambios = useMemo(() => (edicion ? cambiosContraLaFila(s, actual) : []), [edicion, s, actual]);
   const corregidas = useMemo(() => correccionesDelAdmin(s), [s]);
@@ -221,6 +224,12 @@ function TarjetaDeSolicitud({ s, actual, esAdmin, revision, almacen, onVolver, o
   };
   const aprobar = async () => {
     if (corrigiendo && !(await guardaCorreccion())) return;
+    if (asociacion) {
+      if (!almacen.aprobarAsociacion) { onFallo(t("Not approved: migration 250 is missing.", "No se aprobó: falta la migración 250.")); return; }
+      const aprueba = almacen.aprobarAsociacion;
+      await corre(() => aprueba(s.id, nota), ["Not approved: ", "No se aprobó: "], t("Approved ✓ The association was updated.", "Aprobada ✓ La asociación quedó actualizada."));
+      return;
+    }
     if (edicion) {
       await corre(() => almacen.aprobarEdicion(s.id, nota), ["Not approved: ", "No se aprobó: "], t("Approved ✓ The customer was updated.", "Aprobada ✓ El cliente quedó actualizado."));
       return;
@@ -271,6 +280,14 @@ function TarjetaDeSolicitud({ s, actual, esAdmin, revision, almacen, onVolver, o
         </div>
       )}
 
+      {/* D-886 (250): una asociación: qué se añade o se quita. */}
+      {asociacion && (
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" data-asociacion-pedida>
+          <p className="text-sm font-semibold text-slate-900">🤝 {textoDeSolicitudDeAsociacion(s.payload, t)}</p>
+          <p className="mt-1 text-xs text-slate-500">{t("Nothing changes until it is approved. Denying leaves the associations as they are.", "Nada cambia hasta aprobarla. Rechazarla deja las asociaciones como están.")}</p>
+        </section>
+      )}
+
       {/* Una edición: valor de hoy → lo pedido. */}
       {edicion && !corrigiendo && (
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" data-cambios-pedidos>
@@ -294,7 +311,7 @@ function TarjetaDeSolicitud({ s, actual, esAdmin, revision, almacen, onVolver, o
       )}
 
       {/* Un alta, o cualquiera al corregir: las tarjetas de la ficha. */}
-      {(corrigiendo || !edicion) && (
+      {(corrigiendo || (!edicion && !asociacion)) && (
         <div data-ficha-de-solicitud>
           <TarjetasDeLaFicha
             cliente={fila}

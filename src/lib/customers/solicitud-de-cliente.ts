@@ -21,7 +21,7 @@ export type EstadoDeSolicitud = "pending" | "review" | "approved" | "rejected";
 export interface SolicitudDeCliente {
   id: number;
   /** D-780 (221): 'alta' (216) o 'edicion' de una fila (`customer_id`): `payload` solo con lo que cambia, `before` con lo que había, `note` el porqué. */
-  kind: "alta" | "edicion";
+  kind: "alta" | "edicion" | "asociacion";
   customer_id: number | null;
   before: Record<string, unknown> | null;
   note: string | null;
@@ -73,7 +73,7 @@ export function solicitudDeLaBase(f: Record<string, unknown>): SolicitudDeClient
   const estado = f.status === "approved" || f.status === "rejected" || f.status === "review" ? f.status : "pending";
   return {
     id: Number(f.id),
-    kind: f.kind === "edicion" ? "edicion" : "alta",
+    kind: f.kind === "edicion" || f.kind === "asociacion" ? f.kind : "alta",
     customer_id: numero(f.customer_id),
     before: f.before && typeof f.before === "object" && !Array.isArray(f.before) ? (f.before as Record<string, unknown>) : null,
     note: texto(f.note),

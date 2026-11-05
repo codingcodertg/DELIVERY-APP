@@ -8,7 +8,7 @@ import type { Sugerencia } from "./empresas";
 import type { Cliente, Parche } from "./reglas";
 import { cuerpoDeSolicitud, solicitudDeLaBase, type SolicitudDeCliente } from "./solicitud-de-cliente";
 import { cuerpoDeEdicion, historialDeLaBase, type HistorialDeCliente } from "./edicion-como-solicitud";
-import { asociadasDe, asociadosDesdeLaLista, parNormalizado, puedeAsociar, type ParDeEmpresas } from "./asociaciones";
+import { asociadasDe, asociadosDesdeLaLista, buscaParaAsociar, claveDePar, empresaEnMisTiendas, parNormalizado, puedeAsociar, type ParDeEmpresas } from "./asociaciones";
 
 /**
  * Clientes INVENTADOS para el modo demo (`NEXT_PUBLIC_LOCAL_MODE`), que no tiene base. Ni un dato real: los nombres
@@ -83,7 +83,10 @@ export const SOLICITUDES_DEMO: readonly SolicitudDeCliente[] = [
     decision_note: "Ya existe como Demo Homes LLC", payload: { account: "DEMO HOMES", contacts: [] } }),
 ];
 
-export function almacenDemoNuevo(semilla: readonly SolicitudDeCliente[] = []): AlmacenDeClientes {
+export function almacenDemoNuevo(semilla: readonly SolicitudDeCliente[] = [], quien: { esAdmin?: boolean; misTiendas?: readonly string[] } = {}): AlmacenDeClientes {
+  // D-886 (250): quien usa la demo. Por defecto el admin (aplica directo); con `esAdmin: false`, propone y espera.
+  const esAdmin = quien.esAdmin ?? true;
+  const misTiendas = quien.misTiendas ?? [];
   let lista = CLIENTES_DEMO.map((c) => ({ ...c }));
   let cola = SUGERENCIAS_DEMO.map((s) => ({ ...s }));
   let siguiente = Math.max(...lista.map((c) => c.id)) + 1;
@@ -193,11 +196,66 @@ export function almacenDemoNuevo(semilla: readonly SolicitudDeCliente[] = []): A
       apuntaPar(p.company_a, p.company_b, "dissociate");
       return { ok: true, valor: null };
     },
+    // D-886 (250): proponer varias, con aprobación para el no admin y solo empresas de sus tiendas.
+    async buscarParaAsociar(q) { return { ok: true, valor: buscaParaAsociar(lista, null, [], q, misTiendas, esAdmin, 30) }; },
+    async proponerAsociaciones(clienteId, add, remove, nota) {
+      const fila = lista.find((c) => c.id === clienteId);
+      if (!fila?.company_id) return sinFila;
+      const yo = fila.company_id;
+      const no = (error: string, sinPermiso = false, duplicado = false) => ({ ok: false as const, sinTabla: false, sinPermiso, duplicado, error });
+      for (const otra of add) {
+        if (!parNormalizado(yo, otra)) return no("self");
+        const filas = lista.filter((c) => c.company_id === otra);
+        if (!filas.length) return no("Customer not found");
+        if (!empresaEnMisTiendas(filas, misTiendas, esAdmin)) return no("You can only associate customers of your store(s)", true);
+        if (!puedeAsociar(yo, otra, asociadasDe(yo, pares))) return no("They are already associated", false, true);
+      }
+      let aplicadas = 0;
+      const nuevas: number[] = [];
+      const pide = (op: "add" | "remove", otra: string) => {
+        const nombre = lista.find((c) => c.company_id === otra)?.account ?? otra;
+        const s = solicitudDeLaBase({ id: ++solicitudNueva, kind: "asociacion", customer_id: clienteId, requested_by: "demo", requested_name: "Demo", stores: [fila.store ?? "?"], status: "pending", created_at: new Date().toISOString(), note: nota.trim() || null, payload: { op, company: yo, other: otra, account: fila.account, associated_customer: nombre } });
+        solicitudes = [s, ...solicitudes];
+        nuevas.push(s.id);
+      };
+      for (const otra of add) {
+        if (esAdmin) { const r = await almacen.asociar!(yo, otra); if (!r.ok) return r; aplicadas++; } else pide("add", otra);
+      }
+      for (const id of remove) {
+        const p = pares.find((x) => x.id === id);
+        if (!p || (p.company_a !== yo && p.company_b !== yo)) return no("Association not found");
+        if (esAdmin) { await almacen.desasociar!(id); aplicadas++; } else pide("remove", p.company_a === yo ? p.company_b : p.company_a);
+      }
+      return { ok: true, valor: { aplicadas, solicitudes: nuevas } };
+    },
+    async asociacionesPendientes(companyId) {
+      return { ok: true, valor: solicitudes.filter((s) => s.kind === "asociacion" && abierta(s) && (s.payload.company === companyId || s.payload.other === companyId)).map((s) => {
+        const mia = s.payload.company === companyId;
+        return { id: s.id, op: s.payload.op === "remove" ? "remove" : "add", company_id: String(mia ? s.payload.other : s.payload.company), account: String((mia ? s.payload.associated_customer : s.payload.account) ?? ""), status: s.status === "review" ? "review" : "pending" } as const;
+      }) };
+    },
+    async aprobarAsociacion(id, nota) {
+      const s = solicitudes.find((x) => x.id === id);
+      if (!s || !abierta(s) || s.kind !== "asociacion") return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not pending" };
+      const a = String(s.payload.company);
+      const b = String(s.payload.other);
+      const antes = historial.length;
+      if (s.payload.op === "remove") {
+        const k = claveDePar(a, b);
+        const p = pares.find((x) => claveDePar(x.company_a, x.company_b) === k);
+        if (p) await almacen.desasociar!(p.id);
+      } else if (puedeAsociar(a, b, asociadasDe(a, pares))) await almacen.asociar!(a, b);
+      // Como el disparador con la solicitud: las filas nuevas del historial llevan quién pidió y las notas.
+      const n = historial.length - antes;
+      historial = historial.map((h, i) => (i < n ? { ...h, note: s.note, request_id: id, requested_by: s.requested_by, requested_name: s.requested_name, decision_note: nota.trim() || null } : h));
+      solicitudes = solicitudes.map((x) => (x.id === id ? { ...x, status: "approved", decided_at: new Date().toISOString(), decision_note: nota.trim() || null } : x));
+      return { ok: true, valor: null };
+    },
     async filasDeEmpresa(companyId) { return { ok: true, valor: lista.filter((c) => c.company_id === companyId).map((c) => ({ ...c })) }; },
     async historial(clienteId) { return { ok: true, valor: historial.filter((h) => h.customer_id === clienteId).map((h) => ({ ...h })) }; },
     async aprobarSolicitud(id) {
       const s = solicitudes.find((x) => x.id === id);
-      if (!s || !abierta(s)) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not pending" };
+      if (!s || !abierta(s) || s.kind === "asociacion") return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not pending" };
       const r = await almacen.crearVarias(s.stores.map((store) => ({ ...(s.payload as Parche), store, company_id: `demo-solicitud-${id}` })));
       if (!r.ok) return r;
       const ids = r.valor.creados.map((c) => c.id);
@@ -208,7 +266,7 @@ export function almacenDemoNuevo(semilla: readonly SolicitudDeCliente[] = []): A
       const s = solicitudes.find((x) => x.id === id);
       if (!s || !abierta(s)) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: false, error: "request not pending" };
       solicitudes = solicitudes.map((x) => (x.id === id ? { ...x, status: "rejected", decided_at: new Date().toISOString(), decision_note: nota.trim() || null } : x));
-      if (s.kind === "edicion" && s.customer_id !== null) apunta({ customer_id: s.customer_id, kind: "rejected", before: s.before, after: s.payload, note: s.note, request_id: id, requested_by: s.requested_by, requested_name: s.requested_name, decision_note: nota.trim() || null });
+      if ((s.kind === "edicion" || s.kind === "asociacion") && s.customer_id !== null) apunta({ customer_id: s.customer_id, kind: "rejected", before: s.before, after: s.payload, note: s.note, request_id: id, requested_by: s.requested_by, requested_name: s.requested_name, decision_note: nota.trim() || null });
       return { ok: true, valor: null };
     },
     async buscarEnTodaLaEmpresa(q) {
