@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { SideNav } from "@/components/erp/side-nav";
+import { CampanaDeClientes } from "@/components/customers/CampanaDeClientes";
 import { createClient } from "@/lib/erp/supabase/client";
 import { cuentaPendientes } from "@/lib/customers/almacen";
 import { almacenDemo } from "@/lib/customers/demo";
@@ -48,6 +49,8 @@ export function BarraDeClientes({ role, fullName, email, moduleAccess, esAdminDe
       cost={false}
       deliveriesRole={role}
       moduleAccess={moduleAccess}
+      // D-867: los avisos de quien mira (sus solicitudes aprobadas, rechazadas o por revisar; al admin, las nuevas).
+      campana={<CampanaDeClientes />}
       otra={{
         brand: t("RTG Customers", "RTG Clientes"),
         badge: role,

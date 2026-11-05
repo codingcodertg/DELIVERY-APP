@@ -50658,3 +50658,19 @@ Sello `customers` 0.46.0; repo 1.720.0.
 Sello `customers` 0.47.0; repo 1.721.0.
 
 **Pruebas:** `lo-que-se-ve.test.ts` (fallaban antes del arreglo); tres de `cabeceras.test.ts` puestas al nuevo resultado.
+
+## D-867 · Avisos de Clientes: a quien pidió, cuando se aprueba, rechaza o manda a revisar; al admin, cuando llega una solicitud
+
+**Fecha:** 2026-11-04 · Migración 243 (escrita; se aplica aparte) · Hecho por un agente en `feat/clientes-notificaciones`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño):** «cuando un cliente se cree que se notifique al usuario que lo hizo; notificaciones generales para el app, y si se rechaza, se manda a review o se acepta, que se mande la notificación al user».
+
+**Qué cambia:**
+- **243:** `public.notifications` (la tabla de la 🔔 de Entregas, 001) gana `link` y `message_es`; disparador `customer_requests_avisa` en `erp.customer_requests`, en la misma transacción que la decisión (sin tocar las funciones de 242): solicitud nueva → admins de Clientes (del hub y `customers_role`, D-864), menos quien pidió; aprobada → «✅ Cliente IDEA aprobado» con enlace al cliente; rechazada → «❌ … rechazada: <nota>»; a revisar → «⚠️ … necesita revisión: <nota>». Texto en inglés y español; quien decide su propia solicitud no se avisa.
+- **🔔 en Clientes** (`CampanaDeClientes`, la campana de Entregas partida en `CampanaDeAvisos` + `NotificationBell`): cuenta de no leídos, en vivo, marcar leído, y clic al enlace. `?solicitud=N` abre el panel con esa solicitud.
+- Sin la 243 la campana enseña los avisos de siempre y los nuevos aún no llegan.
+- De paso: `revisa_solicitud_de_cliente` y `corrige_solicitud_de_cliente` (242) clasificadas en `ensenanza-general` como escrituras (la prueba fallaba en main).
+
+Sello `customers` 0.48.0; repo 1.722.0.
+
+**Pruebas:** `customers/avisos-de-solicitud.test.ts`; `solicitud-de-cliente`, `help-thread`, `solicitud-de-asignacion` y `ensenanza-general` puestas al día.

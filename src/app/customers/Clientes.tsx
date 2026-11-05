@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams } from "next/navigation";
+import { solicitudDelEnlace } from "@/lib/customers/avisos-de-solicitud";
 import { BarraSuperior } from "@/components/BarraSuperior";
 import { ColumnFilterMenu } from "@/components/OrdersTable";
 import { posicionDelMenu, useCierraAlSalir } from "@/lib/menu-desplegable";
@@ -107,9 +109,15 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
     if (r.ok) setSolicitudes(r.valor);
   }, [almacen, esAdmin, altaComoSolicitud, edicionComoSolicitud]);
   useEffect(() => { void cargaSolicitudes(); }, [cargaSolicitudes]);
+  // `?solicitudes=1` abre el panel; `?solicitud=N` (el enlace de un aviso de la campana, D-867) lo abre con esa
+  // solicitud ya abierta. Con `useSearchParams`: pulsar un aviso estando ya en Clientes también lo abre.
+  const params = useSearchParams();
+  const [solicitudInicial, setSolicitudInicial] = useState<number | null>(null);
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("solicitudes")) setVerSolicitudes(true);
-  }, []);
+    const una = solicitudDelEnlace(params.get("solicitud"));
+    if (una !== null) { setSolicitudInicial(una); setVerSolicitudes(true); }
+    else if (params.get("solicitudes")) setVerSolicitudes(true);
+  }, [params]);
   const solicitudesPendientes = pendientes(solicitudes).length;
 
   // D-857 («show the list of the drafts separately so you can have many»): los borradores del alta de quien mira, en
@@ -620,7 +628,7 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
         />
       )}
       {verSolicitudes && (
-        <SolicitudesDeCliente solicitudes={solicitudes} clientes={lista} esAdmin={puedeDecidirSolicitudes} almacen={almacen} onDecidida={() => { void cargar(); void cargaSolicitudes(); }} onClose={() => setVerSolicitudes(false)} t={t} />
+        <SolicitudesDeCliente inicial={solicitudInicial} solicitudes={solicitudes} clientes={lista} esAdmin={puedeDecidirSolicitudes} almacen={almacen} onDecidida={() => { void cargar(); void cargaSolicitudes(); }} onClose={() => { setVerSolicitudes(false); setSolicitudInicial(null); }} t={t} />
       )}
       {pidiendo && <PedirVendedor cliente={pidiendo} vendedores={vendedores} onClose={() => setPidiendo(null)} t={t} />}
     </main>

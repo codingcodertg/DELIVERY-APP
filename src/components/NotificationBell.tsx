@@ -7,24 +7,42 @@ import { useRouter } from "next/navigation";
 import { useData } from "@/lib/data-provider";
 import { stageInfo } from "@/lib/constants";
 import { ASSIGNED_KIND, AYUDA_ATENDIDA_KIND } from "@/lib/notifications";
-import { AYUDA_MENSAJE_KIND, AYUDA_RESPUESTA_KIND, destinoDelAvisoDeAyuda } from "@/lib/help-thread";
-import { AVISO_SOLICITUD_APROBADA, AVISO_SOLICITUD_NUEVA, AVISO_SOLICITUD_RECHAZADA, destinoDelAvisoDeSolicitud } from "@/lib/solicitud-de-asignacion";
+import type { AppNotification } from "@/lib/notifications";
+import { AYUDA_MENSAJE_KIND, AYUDA_RESPUESTA_KIND } from "@/lib/help-thread";
+import { AVISO_SOLICITUD_APROBADA, AVISO_SOLICITUD_NUEVA, AVISO_SOLICITUD_RECHAZADA } from "@/lib/solicitud-de-asignacion";
+import { destinoDelAviso } from "@/lib/destino-del-aviso";
+import { AVISO_CLIENTE_APROBADA, AVISO_CLIENTE_NUEVA, AVISO_CLIENTE_RECHAZADA, AVISO_CLIENTE_REVISAR, mensajeDelAviso } from "@/lib/customers/avisos-de-solicitud";
+import { usePrefs } from "@/lib/prefs";
 
 // Compact "3m", "2h", "4d" relative time for the notification list.
-function ago(iso: string): string {
+function ago(iso: string, t: (en: string, es: string) => string): string {
   const then = new Date(iso).getTime();
   const secs = Math.max(0, Math.round((Date.now() - then) / 1000));
-  if (secs < 60) return "just now";
+  if (secs < 60) return t("just now", "ahora");
   const mins = Math.round(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 60) return t(`${mins}m ago`, `hace ${mins} min`);
   const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.round(hrs / 24)}d ago`;
+  if (hrs < 24) return t(`${hrs}h ago`, `hace ${hrs} h`);
+  const dias = Math.round(hrs / 24);
+  return t(`${dias}d ago`, `hace ${dias} d`);
 }
 
 /** Bell with an unread badge + dropdown of the current user's workflow alerts. */
 export function NotificationBell() {
   const { notifications, markNotifRead, markAllNotifsRead } = useData();
+  return <CampanaDeAvisos notifications={notifications} markNotifRead={markNotifRead} markAllNotifsRead={markAllNotifsRead} />;
+}
+
+/**
+ * La campana en sí, sin saber de dónde salen los avisos (D-867): Entregas se los da desde su `DataProvider`; Clientes,
+ * desde `useAvisosPropios` (`CampanaDeClientes`). La misma tabla (`public.notifications`), el mismo aspecto.
+ */
+export function CampanaDeAvisos({ notifications, markNotifRead, markAllNotifsRead }: {
+  notifications: readonly AppNotification[];
+  markNotifRead: (id: string) => unknown;
+  markAllNotifsRead: () => unknown;
+}) {
+  const { t, lang } = usePrefs();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
@@ -32,17 +50,13 @@ export function NotificationBell() {
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Mark read and jump to the order the notification is about.
-  const onPick = (id: string, read: boolean, deliveryId: string | null, kind: string) => {
-    if (!read) markNotifRead(id);
+  // Los de ayuda, a la conversación (D-311); las solicitudes de asignación, a la bandeja o a su orden (D-560); los de
+  // Clientes, a su `link` (D-867). La regla está en `lib/destino-del-aviso.ts`.
+  const onPick = (n: AppNotification) => {
+    if (!n.read) markNotifRead(n.id);
     setOpen(false);
-    // Los avisos de ayuda no son de una orden y no llevaban a ningún sitio, tampoco el de «atendida»
-    // de D-301. Ahora llevan a la conversación: a «Mis solicitudes», o a la vista del admin (D-311).
-    const ayuda = destinoDelAvisoDeAyuda(kind);
-    // Las solicitudes de asignación (D-560): la nueva, a la bandeja del Gestor; la decidida, a su orden.
-    const solicitud = destinoDelAvisoDeSolicitud(kind, deliveryId);
-    if (ayuda) router.push(ayuda);
-    else if (solicitud) router.push(solicitud);
-    else if (deliveryId) router.push(`/?order=${deliveryId}`);
+    const destino = destinoDelAviso(n);
+    if (destino) router.push(destino);
   };
 
   const unread = notifications.filter((n) => !n.read).length;
@@ -103,7 +117,8 @@ export function NotificationBell() {
         className="tab tab-icon notif-btn"
         style={{ background: "rgba(255,255,255,.1)" }}
         onClick={toggle}
-        title="Notifications"
+        title={t("Notifications", "Avisos")}
+        aria-label={t("Notifications", "Avisos")}
       >
         🔔
         {unread > 0 && <span className="notif-badge">{unread > 9 ? "9+" : unread}</span>}
@@ -121,16 +136,16 @@ export function NotificationBell() {
           }}
         >
           <div className="notif-head">
-            <b>Notifications</b>
+            <b>{t("Notifications", "Avisos")}</b>
             {unread > 0 && (
               <button className="notif-clear" onClick={() => markAllNotifsRead()}>
-                Mark all read
+                {t("Mark all read", "Marcar todo leído")}
               </button>
             )}
           </div>
 
           {notifications.length === 0 ? (
-            <div className="notif-empty">You&apos;re all caught up 🎉</div>
+            <div className="notif-empty">{t("You're all caught up 🎉", "Estás al día 🎉")}</div>
           ) : (
             <div className="notif-list">
               {notifications.map((n) => {
@@ -145,17 +160,20 @@ export function NotificationBell() {
                   : n.kind === AVISO_SOLICITUD_APROBADA ? "var(--green)"
                   : n.kind === AVISO_SOLICITUD_RECHAZADA ? "var(--red)"
                   : n.kind === KIND_TOMADA_POR_CHOFER ? "var(--amber)"
+                  : n.kind === AVISO_CLIENTE_NUEVA || n.kind === AVISO_CLIENTE_REVISAR ? "var(--amber)"
+                  : n.kind === AVISO_CLIENTE_APROBADA ? "var(--green)"
+                  : n.kind === AVISO_CLIENTE_RECHAZADA ? "var(--red)"
                   : stageInfo(n.kind).color;
                 return (
                   <button
                     key={n.id}
                     className={"notif-item" + (n.read ? "" : " unread")}
-                    onClick={() => onPick(n.id, n.read, n.delivery_id, n.kind)}
+                    onClick={() => onPick(n)}
                   >
                     <span className="notif-dot" style={{ background: dotColor }} />
                     <span className="notif-body">
-                      <span className="notif-msg">{n.message}</span>
-                      <span className="notif-time">{ago(n.created_at)}</span>
+                      <span className="notif-msg">{mensajeDelAviso(n, lang)}</span>
+                      <span className="notif-time">{ago(n.created_at, t)}</span>
                     </span>
                   </button>
                 );
