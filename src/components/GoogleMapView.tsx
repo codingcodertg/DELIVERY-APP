@@ -103,7 +103,8 @@ export function GoogleMapView({
   pickable?: boolean;
   onPick?: (lat: number, lng: number) => void;
   pickedPoint?: [number, number] | null;
-  height?: number;
+  /** Píxeles, o un largo de CSS (el Gestor pasa `var(--alto-mapa-gestor)`, D-NEXT). */
+  height?: number | string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);

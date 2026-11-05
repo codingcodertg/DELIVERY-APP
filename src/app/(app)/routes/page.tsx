@@ -3038,7 +3038,7 @@ export default function RoutesPage() {
         />
         <div className="card" data-mapa-del-gestor style={{ flex: "3 1 460px", margin: 0, padding: 0, overflow: "hidden" }}>
           {/* Más bajo en la eficiente (D-653), para que el mapa y la tabla de la ruta quepan juntos en una pantalla. */}
-          <MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))} onLineClick={onLineClick} fitTo={fitTo} height={eficiente ? 300 : 430} onPointClick={(id) => {
+          <MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))} onLineClick={onLineClick} fitTo={fitTo} height={eficiente ? "var(--alto-mapa-gestor-eficiente)" : "var(--alto-mapa-gestor)"} onPointClick={(id) => {
             // Click any order pin (assigned or pool) to toggle its PU→DEL view.
             const d = dayOrders.find((x) => x.id === id);
             if (d) toggleOrder(d.id);
