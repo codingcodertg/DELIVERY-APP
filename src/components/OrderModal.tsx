@@ -61,6 +61,7 @@ import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { MenuDeAcciones } from "@/components/MenuDeAcciones";
 import { accionesDeLaFicha, type IdDeAccion, type Texto } from "@/lib/acciones-de-la-ficha";
 import { LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
+import { esRespuestaVigente, millasImposibles, MAX_MILLAS_PLAUSIBLES } from "@/lib/distancia-plausible";
 import { buscarDireccionAlAbrir, fuenteAlAplicar, pinDraftParaGuardar, vistaDelSelector, type PinSource } from "@/lib/pin-draft";
 import { avisoDireccionIncompleta, avisoFueraDeLaRegion, direccionCompleta, direccionesARevisar, puntoDentroDeLaRegion } from "@/lib/direccion-completa";
 import { parcheDeUbicacion, resultadoDeRespuesta } from "@/lib/geocode-on-save";
@@ -559,6 +560,12 @@ export function OrderModal({
   const descuentoOfrecido = ofreceDescuento(me.role, d.store, settings.stores) ? feeSuggestion.discount : null;
   /** De dónde sale la zona, para decirlo junto al aviso: un «No local» sin motivo no distingue
    *  «esta dirección no tiene pin» de «esta entrega está lejos de verdad». */
+  /** Unas millas que no pueden ser del Valle, dichas junto a las millas (D-NEXT): 171838 se guardó con 321 mi por 25. */
+  const avisoMillas = millasImposibles(d.route_miles) ? (
+    <div className="hint" style={{ color: "var(--red)" }}>⚠ {t(
+      `${d.route_miles} mi is not a Valley delivery (more than ${MAX_MILLAS_PLAUSIBLES}). The address was probably found in the wrong place: check it and recalculate.`,
+      `${d.route_miles} mi no es una entrega del Valle (más de ${MAX_MILLAS_PLAUSIBLES}). La dirección probablemente se ubicó en otro lugar: revísela y vuelva a calcular.`)}</div>
+  ) : null;
   const zoneWhy = feeSuggestion.zoneSource === "pin"
     // Tres estados, y ninguno advierte ya de perder el punto: desde D-221 el borrador se guarda
     // con el pedido, así que la advertencia de D-220 («sin guardar todavía») asustaría sobre algo
@@ -903,12 +910,16 @@ export function OrderModal({
   // Remembers the last origin→destination pair we routed, so the auto-calc
   // effect doesn't re-fire for an address that's already been resolved.
   const lastRouted = useRef<string>("");
+  /** Número del último cálculo pedido (D-NEXT): solo ese puede escribir las millas. Con la ruta calculándose
+   *  mientras se teclea, la respuesta tardía de «9402 Solan» pisaba la de la dirección completa (factura 171838). */
+  const routeSeq = useRef(0);
 
   const runRoute = async (origin: string, destination: string, manual: boolean) => {
     if (!origin) { if (manual) setRouteErr(t("Add a pickup address (or store) first.", "Agregue primero una dirección de recolección (o tienda).")); return; }
     if (!destination) { if (manual) setRouteErr(t("Add a delivery address first.", "Agregue primero una dirección de entrega.")); return; }
     setRouteErr("");
     lastRouted.current = `${origin}→${destination}`;
+    const pedido = ++routeSeq.current;
     setRouting(true);
     try {
       const res = await fetch("/api/distance", {
@@ -917,10 +928,13 @@ export function OrderModal({
         body: JSON.stringify({ origin, destination }),
       });
       const body = await res.json();
+      if (!esRespuestaVigente(pedido, routeSeq.current)) return; // llegó tarde: ya se pidió otra dirección
       if (!res.ok) {
         // Let a manual retry re-run this pair.
         lastRouted.current = "";
-        if (manual) setRouteErr(body.error || t("Could not calculate route.", "No se pudo calcular la ruta."));
+        // Unas millas imposibles se dicen siempre, también en el cálculo automático, y no dejan el número viejo.
+        if (body.implausible) setD((p) => ({ ...p, route_miles: null, route_duration: null, route_provider: null, route_traffic: false }));
+        if (manual || body.implausible) setRouteErr(body.error || t("Could not calculate route.", "No se pudo calcular la ruta."));
         return;
       }
       setD((p) => ({
@@ -931,10 +945,11 @@ export function OrderModal({
         route_traffic: body.traffic,
       }));
     } catch {
+      if (!esRespuestaVigente(pedido, routeSeq.current)) return;
       lastRouted.current = "";
       if (manual) setRouteErr(t("Network error — is the machine online?", "Error de red — ¿la máquina está en línea?"));
     } finally {
-      setRouting(false);
+      if (esRespuestaVigente(pedido, routeSeq.current)) setRouting(false);
     }
   };
 
@@ -2350,6 +2365,7 @@ export function OrderModal({
               <span className="hint" style={{ margin: 0 }}>{t("Delivery Fee", "Costo de Entrega")}: <b>{d.delivery_fee == null ? "—" : fmtMoney(d.delivery_fee)}</b></span>
             </div>
             {routeErr && <div className="hint" style={{ color: "var(--red)" }}>{routeErr}</div>}
+            {!routing && avisoMillas}
             {/* Los dos botones otra vez, Lista y Descuento (D-303): D-283 los dejó en uno y el
                 dueño pidió el descuento de vuelta el mismo día. */}
             {/* Desde D-450 los botones son `BotonesDeTarifa`, el mismo componente en los tres sitios. */}
@@ -2923,6 +2939,7 @@ export function OrderModal({
             </div>
             <div className="hint">{t("Miles come from the live routing service — press Auto-calculate to fill them in.", "Las millas provienen del servicio de ruteo en vivo — presione Calcular para llenarlas.")}</div>
             {routeErr && <div className="hint" style={{ color: "var(--red)" }}>{routeErr}</div>}
+            {!routing && avisoMillas}
             {!routing && !routeErr && (d.delivery_address || "").trim() && d.route_miles == null && (
               <div className="hint" style={{ color: "var(--amber)" }}>⚠ {t("Delivery address not verified yet — recalculate to confirm it maps to a real location.", "Dirección de entrega no verificada — recalcule para confirmar que corresponde a una ubicación real.")}</div>
             )}
