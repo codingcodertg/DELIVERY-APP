@@ -15,7 +15,7 @@ import type { Contexto } from "./Operaciones";
 const LIMITE = 500;
 
 /**
- * «Mis reportes» y «Reportes» (D-NEXT, 247). Las filas son las que la RLS deja ver; «Mis reportes» además se queda con
+ * «Mis reportes» y «Reportes» (D-883, 247). Las filas son las que la RLS deja ver; «Mis reportes» además se queda con
  * las que llenó quien mira (sin las de RR. HH., que el autor no ve). Cada fila se abre como tarjeta aquí mismo.
  * La tabla es la de Órdenes (CLAUDE.md): `table.orders` dentro de `.tbl-scroll.tbl-caja` (sin anchos que se arrastran, como el historial de RR. HH.), chips con `.cnt`.
  */

@@ -501,7 +501,7 @@ export const MODULES: ModuleInfo[] = [
     desc_es: "La lista maestra de clientes, por tienda",
   },
   {
-    // Operaciones de almacén (D-NEXT, migración 247): la bitácora del piso del almacén (la vieja Tile Ops del jefe,
+    // Operaciones de almacén (D-883, migración 247): la bitácora del piso del almacén (la vieja Tile Ops del jefe,
     // rehecha). La clave es "warehouse_ops", la palabra que la 247 añade a `profiles_module_access_known`.
     key: "warehouse_ops",
     href: "/operaciones",
@@ -1252,7 +1252,7 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
   {
     key: "warehouse_ops", label_en: "Warehouse Ops", label_es: "Operaciones de almacén",
     alwaysOn: false,
-    // D-NEXT (247): sin escalafón propio. Quien tiene la casilla llena reportes y ve los suyos. El manager del hub
+    // D-883 (247): sin escalafón propio. Quien tiene la casilla llena reportes y ve los suyos. El manager del hub
     // (`profiles.role`) ve los de su tienda, también los de RR. HH.; el supervisor de almacén (permiso por persona)
     // ve los de su tienda que no son de RR. HH. Lo decide `public.warehouse_ops_can_see` (RLS).
     roleKeys: [],

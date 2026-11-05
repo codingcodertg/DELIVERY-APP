@@ -1,5 +1,5 @@
 /**
- * Operaciones de almacén (D-NEXT, migración 247): lo que la pantalla lee y escribe, y el demo.
+ * Operaciones de almacén (D-883, migración 247): lo que la pantalla lee y escribe, y el demo.
  * Todo con la sesión de quien mira: la RLS de la 247 decide qué filas vuelven.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";

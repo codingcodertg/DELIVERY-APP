@@ -122,7 +122,7 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
         // Igual: sin `roleColumn`, inalcanzable. Lo fija `customers/modulo.test.ts`.
         return;
       case "warehouse_ops":
-        // Igual: sin `roleColumn`, inalcanzable (D-NEXT, 247).
+        // Igual: sin `roleColumn`, inalcanzable (D-883, 247).
         return;
       default: { const _exhaustive: never = key; return _exhaustive; }
     }

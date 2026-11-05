@@ -1,4 +1,4 @@
-/** Operaciones de almacén (D-NEXT, migración 247): los siete reportes. Las claves son las de `warehouse_reports.kind`. */
+/** Operaciones de almacén (D-883, migración 247): los siete reportes. Las claves son las de `warehouse_reports.kind`. */
 export const TIPOS = ["incident", "zone", "insubordination", "safety", "maintenance", "positive", "scrap"] as const;
 export type TipoDeReporte = (typeof TIPOS)[number];
 

@@ -57,7 +57,7 @@ export { valorDeCapacitacion as valorDeEnsenanza };
  * lista o en la de abajo, para que una nueva no se cuele sin que alguien decida.
  */
 export const RPC_QUE_SOLO_LEEN = [
-  "warehouse_ops_search_products", // 247 (D-NEXT): busca productos para la merma; stable, solo lee.
+  "warehouse_ops_search_products", // 247 (D-883): busca productos para la merma; stable, solo lee.
   "cuentas_de_clientes", // 203: las cuentas de Clientes para el formulario de orden; solo lee.
   "busca_clientes_en_toda_la_empresa", // 215 (D-740): la búsqueda del vendedor en toda la empresa; solo lee.
   "analytics_category_stats", "analytics_store_stats", "analytics_vendor_stats", "buscar_factura_para_recoger",
@@ -70,7 +70,7 @@ export const RPC_QUE_SOLO_LEEN = [
 
 /** Las que escriben: se cortan. Están nombradas solo para que la prueba sepa que alguien las miró. */
 export const RPC_QUE_ESCRIBEN = [
-  "warehouse_ops_file_report", // 247 (D-NEXT): crea un reporte de Operaciones de almacén y, en los de RR. HH., su fila del expediente.
+  "warehouse_ops_file_report", // 247 (D-883): crea un reporte de Operaciones de almacén y, en los de RR. HH., su fila del expediente.
   "security_touch_device", "security_request_access", // 229 (D-811): registran el dispositivo de la sesión y su solicitud.
   "security_note_web_block", // 232 (D-818): anota que a esta sesión se le cerró la web.
   "security_sign_out_user", // 236 (D-828): cierra todas las sesiones de una persona.

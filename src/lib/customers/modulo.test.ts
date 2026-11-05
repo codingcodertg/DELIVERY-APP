@@ -106,7 +106,7 @@ describe("la 180", () => {
       .filter((f) => f.endsWith(".sql"))
       .sort()
       .filter((f) => leer(`supabase/migrations/${f}`).includes("add constraint profiles_module_access_known"));
-    // D-NEXT: desde la 247 la última es la de Operaciones de almacén (la igualdad con MODULE_ACCESS entero la mira almacen-ops.test.ts).
+    // D-883: desde la 247 la última es la de Operaciones de almacén (la igualdad con MODULE_ACCESS entero la mira almacen-ops.test.ts).
     expect(definen).toContain("180_clientes.sql");
     const lista = /module_access <@ array\[([^\]]+)\]\)\n  not valid;/.exec(cuerpo)![1];
     expect(lista).not.toContain("clockin");

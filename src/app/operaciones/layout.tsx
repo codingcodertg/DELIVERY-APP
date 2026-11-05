@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * La puerta de «Operaciones de almacén» (D-NEXT, migración 247). Calcada de la de Encuestas: quien no tiene el módulo
+ * La puerta de «Operaciones de almacén» (D-883, migración 247). Calcada de la de Encuestas: quien no tiene el módulo
  * vuelve a su pantalla de inicio. La base niega igual (RLS de la 247); esto evita una pantalla vacía que mienta.
  * Excepción: RR. HH. (admin o gerente) entra sin el módulo, porque ve los reportes de RR. HH. de todas las tiendas.
  */

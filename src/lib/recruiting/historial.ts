@@ -18,7 +18,7 @@ export const KINDS = [
   "employee_warning",
   // D-807 (228): la reprimenda, el grado siguiente; mismo sitio, mismos permisos.
   "employee_reprimand",
-  // D-NEXT (247): los tres reportes de RR. HH. de Operaciones de almacén entran solos al expediente.
+  // D-883 (247): los tres reportes de RR. HH. de Operaciones de almacén entran solos al expediente.
   "employee_insubordination", "employee_zone_infraction", "employee_positive_observation",
 ] as const;
 

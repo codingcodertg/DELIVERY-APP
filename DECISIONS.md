@@ -50832,3 +50832,17 @@ Sello `deliveries` 1.546.0; repo 1.736.0.
 **Qué cambia (`entregar-en-tienda.ts`, `OrderModal`):** al marcar «📍 Entregué en otra dirección», una lista «🏬 Elija una tienda o bodega…» (tiendas de Ajustes, bodegas incluidas, y puntos de recogida guardados; sin repetidos ni los que no tienen dirección) llena el mismo `delivered_address` que se escribe a mano, así que reportes, historial y el aviso de dirección distinta siguen igual; escribir a mano sigue valiendo. 56 px y 18 px de texto (texto grande, D-881). El punto de la tienda no se guarda: las órdenes no tienen campo para él y `pod_lat/lng` es el GPS real del chofer.
 
 Sello `deliveries` 1.547.0; repo 1.737.0.
+
+## D-883 · Operaciones de almacén: app nueva (Tile Ops reconstruida en el hub)
+
+**Fecha:** 2026-11-05 · Migración 247 (escrita; se aplica aparte) · Hecho por un agente en `feat/operaciones-de-almacen`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño):** traer al hub, como app nueva, la app de bodega del jefe (Tile Ops, `codingcodertg/tile-ops-app`), adaptada al diseño del hub y sin PIN. Decisiones: sin descontar inventario por ahora; pérdida a costo por pieza; cada reporte de una tienda; los reportes de RR. HH. entran al expediente del empleado.
+
+**Qué es (`/operaciones`, módulo `warehouse_ops`):** inicio con 7 reportes (incidente, infracción de zona, insubordinación, infracción de seguridad, mantenimiento, observación positiva, merma/daño) en un asistente de una pregunta por pantalla, con fotos privadas (cubo `warehouse-ops`) y resumen editable; merma busca en `erp.products` y calcula piezas y pérdida en el servidor (costo congelado al reportar). «Mis reportes» y «Reportes» (gerentes) con filtros, tarjeta en el sitio y pestaña Merma (semana, mes, total por tienda).
+
+**Permisos (RLS, `warehouse_ops_can_see`):** admin todo; reportes de RR. HH. solo RR. HH. (`recruiting_role`) y el gerente de la tienda, nunca el autor ni el compañero; los demás, el autor, los gerentes de la tienda y el nuevo permiso «Supervisor de bodega». Alta solo por la RPC `warehouse_ops_file_report`; nadie edita ni borra.
+
+**Expediente:** insubordinación, zona y positiva escriben en `recruiting.hr_history` (`employee_insubordination`, `employee_zone_infraction`, `employee_positive_observation`) y salen en el historial de la ficha. Fuera de v1: tareas y revisión de montacargas, descuento de inventario, gráficas.
+
+Sello `deliveries` 1.548.0; repo 1.738.0.

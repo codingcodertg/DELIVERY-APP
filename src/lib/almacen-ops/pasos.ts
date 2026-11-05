@@ -1,5 +1,5 @@
 /**
- * Operaciones de almacén (D-NEXT): las preguntas de cada reporte, una por pantalla, y cuándo una está contestada.
+ * Operaciones de almacén (D-883): las preguntas de cada reporte, una por pantalla, y cuándo una está contestada.
  * Son las de Tile Ops (recon §2), con dos mejoras: «¿cuál?» si el equipo es «Otro», y las piezas sueltas en merma.
  */
 import type { TipoDeReporte } from "./tipos";

@@ -1,5 +1,5 @@
 /**
- * Operaciones de almacén (D-NEXT, migración 247): la cuenta de la merma.
+ * Operaciones de almacén (D-883, migración 247): la cuenta de la merma.
  *
  * El dueño: la pérdida es **costo por pieza**. Piezas = cajas × piezas por caja + piezas sueltas. El costo se congela
  * al reportar (la base copia `erp.products.cost` en `unit_cost`), así que cambiar un precio después no mueve los

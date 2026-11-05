@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /**
- * Operaciones de almacén (D-NEXT, migración 247). Una sola página para cuatro rutas:
+ * Operaciones de almacén (D-883, migración 247). Una sola página para cuatro rutas:
  *   /operaciones                  el inicio (las siete tarjetas y «Mis reportes»)
  *   /operaciones/nuevo/<tipo>     el asistente de un reporte
  *   /operaciones/mis-reportes     lo que llenó quien mira

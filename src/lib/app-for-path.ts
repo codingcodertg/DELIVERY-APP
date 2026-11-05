@@ -28,7 +28,7 @@ const BY_PREFIX: ReadonlyArray<readonly [string, AppKey]> = [
   // Y con Leads (migración 162).
   ["/leads", "leads"],
   ["/customers", "customers"],
-  // Operaciones de almacén (D-NEXT, 247).
+  // Operaciones de almacén (D-883, 247).
   ["/operaciones", "warehouse_ops"],
   // Y Security (D-811).
   ["/security", "security"],

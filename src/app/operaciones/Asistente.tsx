@@ -18,7 +18,7 @@ import type { Contexto } from "./Operaciones";
 const MAX_FOTOS = 3;
 
 /**
- * El asistente de un reporte (D-NEXT, 247): una pregunta por pantalla, con botones grandes para el teléfono; luego el
+ * El asistente de un reporte (D-883, 247): una pregunta por pantalla, con botones grandes para el teléfono; luego el
  * resumen, donde cada fila se toca para corregirla, la tienda (la de la persona por defecto) y «Enviar».
  */
 export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto }) {

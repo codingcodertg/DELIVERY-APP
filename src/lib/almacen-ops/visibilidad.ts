@@ -1,5 +1,5 @@
 /**
- * Operaciones de almacén (D-NEXT, migración 247): quién ve qué. Es la MISMA regla que `public.warehouse_ops_can_see`
+ * Operaciones de almacén (D-883, migración 247): quién ve qué. Es la MISMA regla que `public.warehouse_ops_can_see`
  * de la 247; la base es la que manda (RLS) y esto solo decide qué pantalla ofrecer. La prueba lee el SQL para que
  * las dos no se separen.
  */

@@ -21,7 +21,7 @@ export interface Contexto {
 
 type Carga = { estado: "cargando" } | { estado: "falta-247" } | { estado: "error"; mensaje: string } | { estado: "listo"; ctx: Contexto };
 
-/** Operaciones de almacén (D-NEXT, 247): lee quién es, las tiendas y la gente; si falta la 247, lo dice. */
+/** Operaciones de almacén (D-883, 247): lee quién es, las tiendas y la gente; si falta la 247, lo dice. */
 export function Operaciones({ vista, demo }: { vista: Vista; demo: boolean }) {
   const { t } = usePrefs();
   const [carga, setCarga] = useState<Carga>(demo

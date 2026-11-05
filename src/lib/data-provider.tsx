@@ -2162,7 +2162,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     [supabase, notify, reloadAll, users, logSecurityClient, lang],
   );
 
-  // Operaciones de almacén (247, D-NEXT): la misma forma que Clientes, solo la casilla.
+  // Operaciones de almacén (247, D-883): la misma forma que Clientes, solo la casilla.
   const updateUserWarehouseOpsAccess = useCallback<DataState["updateUserWarehouseOpsAccess"]>(
     async (userId, { granted }) => {
       const target = users.find((u) => u.id === userId);
