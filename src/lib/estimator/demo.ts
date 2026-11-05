@@ -23,6 +23,12 @@ import { resumenDeTotales, tasaDeImpuesto } from "./modelo";
 
 export const DEMO_OTRO_VENDEDOR = { id: "u-sales2", name: "Sofia Ventas" };
 export const DEMO_ESTIMADO_AJENO = "DEMO-1001";
+/** D-876: los vendedores que el admin del demo puede elegir en la cotización. */
+export const VENDEDORES_DEMO = [
+  { id: "u-sales", full_name: "Sam Sales", store: "Edinburg" },
+  { id: DEMO_OTRO_VENDEDOR.id, full_name: DEMO_OTRO_VENDEDOR.name, store: "Weslaco" },
+  { id: "u-sales3", full_name: "Pablo Pharr", store: "Pharr" },
+];
 
 /**
  * La extensión de cada persona del demo (D-432): simula `recruiting.employee_files.ringcentral_ext`, que en producción
@@ -118,9 +124,12 @@ export function almacenDemo(me: () => { id: string; name: string; admin: boolean
       return bien(out);
     },
 
-    async guardar(quoteId, draft, leadId) {
+    async guardar(quoteId, draft, leadId, asignacion = {}) {
       if (sinTabla) return SIN_TABLA;
       const yo = me();
+      // D-876: como el guardia de la 148 + 246: solo el admin pone otro dueño o la tienda.
+      const nombreDe = (id: string) => VENDEDORES_DEMO.find((v) => v.id === id)?.full_name ?? (id === yo.id ? yo.name : id);
+      const tiendaDe = (id: string) => VENDEDORES_DEMO.find((v) => v.id === id)?.store ?? (id === yo.id ? yo.store?.trim() || null : null);
       if (quoteId) {
         const q = db.cotizaciones.find((c) => c.id === quoteId);
         if (!q) return { ok: false, sinTabla: false, error: "0 rows" };
@@ -128,7 +137,11 @@ export function almacenDemo(me: () => { id: string; name: string; admin: boolean
         // La misma regla que la política de UPDATE de la 148: dueño, admin o aprobado. Si no, cero filas.
         if (!(q.owner_id === yo.id || yo.admin || aprobada)) return { ok: false, sinTabla: false, error: "0 rows" };
         q.draft = structuredClone({ ...draft, estimate_num: q.draft.estimate_num });
-        return bien(q.id);
+        if (yo.admin && asignacion.owner_id && asignacion.owner_id !== q.owner_id) {
+          q.owner_id = asignacion.owner_id; q.owner_name = nombreDe(asignacion.owner_id); q.store = tiendaDe(asignacion.owner_id);
+        }
+        if (yo.admin && "store" in asignacion) q.store = asignacion.store ?? null;
+        return { ok: true, valor: q.id, store: q.store };
       }
       // El índice único por estimado de la 148: una segunda cotización para el mismo número falla.
       if (db.cotizaciones.some((c) => claveDeEstimado(c.draft.estimate_num) === claveDeEstimado(draft.estimate_num))) {
@@ -137,13 +150,20 @@ export function almacenDemo(me: () => { id: string; name: string; admin: boolean
       n += 1;
       const id = `demo-q-${n}`;
       // Como el disparador de la 148: la tienda es la del perfil de quien la crea.
+      const dueno = yo.admin && asignacion.owner_id ? asignacion.owner_id : yo.id;
+      const tienda = yo.admin && asignacion.store ? asignacion.store : tiendaDe(dueno);
       db.cotizaciones.push({
-        id, owner_id: yo.id, owner_name: yo.name, store: yo.store?.trim() || null, print_count: 0, draft: structuredClone(draft),
+        id, owner_id: dueno, owner_name: nombreDe(dueno), store: tienda, print_count: 0, draft: structuredClone(draft),
         created_at: new Date().toISOString(), printed_at: null,
         // Como la base con la 175 (D-558): el enlace al lead se pone al crear, y una edición no lo toca.
         lead_id: leadId ?? null,
       });
-      return bien(id);
+      return { ok: true, valor: id, store: tienda };
+    },
+
+    async vendedores() {
+      if (sinTabla) return SIN_TABLA;
+      return bien(VENDEDORES_DEMO.map((v) => ({ ...v })));
     },
 
     async pedirAprobacion(quoteId, approvalId) {

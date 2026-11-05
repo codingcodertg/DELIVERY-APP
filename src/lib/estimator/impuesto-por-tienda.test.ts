@@ -33,7 +33,7 @@ describe("la hoja y la pantalla usan la tasa de la tienda", () => {
     expect(hojaDelCliente(q).textoImpuesto).toBe("Tax 8.25%: $8.25");
   });
   it("la pantalla, la lista y el demo pasan la tienda de la cotización a la tasa", () => {
-    expect(sinComentarios(leer("src/app/estimator/Estimador.tsx"))).toContain("resumenDeTotales(draft.lines, tasaDeImpuesto(tiendaDeLaHoja(tiendaGuardada, me?.store)))");
+    expect(sinComentarios(leer("src/app/estimator/Estimador.tsx"))).toContain("resumenDeTotales(draft.lines, tasaDeImpuesto(tiendaDeLaHoja(me?.admin ? asignacion.store : tiendaGuardada, me?.store)))");
     expect(sinComentarios(leer("src/lib/estimator/almacen.ts"))).toContain("total: resumenDeTotales(borrador.lines, tasaDeImpuesto(store)).total,");
     expect(sinComentarios(leer("src/lib/estimator/demo.ts"))).toContain("total: resumenDeTotales(q.draft.lines, tasaDeImpuesto(q.store)).total,");
     expect(sinComentarios(leer("src/lib/estimator/hoja.ts"))).toContain("const r = resumenDeTotales(q.lines, tasaDeImpuesto(tienda));");

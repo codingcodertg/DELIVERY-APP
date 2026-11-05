@@ -50753,3 +50753,13 @@ Sellos `customers` 0.51.0, `estimator` 0.29.0 y `deliveries` 1.542.0; repo 1.729
 **Qué cambia (`no-perder-tiempo.ts`):** «cerrada» u «overlap» cierran la fila vieja y abren otra desde el último guardado (o desde ahora si el reloj se durmió, D-098), recortada para no solaparse; si el alta falla, el reloj sigue desde el clic y se reintenta (2, 4, 8, 16, 30 s); si se detiene con el alta pendiente, la fila cerrada se guarda en el navegador y se reintenta hasta que entra. El reloj grande suma lo ya guardado en filas anteriores. Sin nueva versión de escritorio: el tracker carga `/timetracker` desde Vercel.
 
 Sello `timetracker` 1.16.0; repo 1.730.0.
+
+## D-876 · Cotizador: el admin elige tienda y vendedor de la cotización
+
+**Fecha:** 2026-11-05 · Migración 246 (escrita; se aplica aparte) · Hecho por un agente en `feat/cotizacion-tienda-vendedor`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (Roberto Rodriguez Jr, admin, solicitud `5e8b3ea8`):** «allow admin to change this; in this case I wanted to create one for a rep in Pharr».
+
+**Qué cambia:** el admin tiene en la cotización «Tienda» (las de Ajustes) y «Vendedor» (perfiles activos de ventas; al elegir tienda se filtra y sugiere uno). Solo el admin manda `owner_id`/`store`, y solo si cambiaron; «Todas las cotizaciones» enseña el vendedor y la tienda reales. El guarda de la 148 ya dejaba al admin poner otro dueño y rechaza (42501) que otro lo cambie; la **246** hace que guarde la tienda que eligió el admin (antes tomaba siempre la del perfil del dueño). Sin la 246, la tienda sigue la del vendedor, y la pantalla avisa en ámbar qué tienda quedó. El enlace con el cliente (D-874) se rehace al cambiar la tienda.
+
+Sello `estimator` 0.30.0; repo 1.731.0.
