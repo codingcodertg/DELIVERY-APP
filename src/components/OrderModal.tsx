@@ -143,7 +143,7 @@ export function OrderModal({
    */
   abrirEn?: "recoger" | "entregar";
   /**
-   * D-NEXT: una línea pequeña y secundaria al pie de la ficha, solo cuando se abre FUERA de Entregas (el historial de
+   * D-879: una línea pequeña y secundaria al pie de la ficha, solo cuando se abre FUERA de Entregas (el historial de
    * Clientes la usa para «Abrir en Entregas»). Sin ella la ficha es exactamente la de siempre (D-855).
    */
   enlaceAparte?: React.ReactNode;

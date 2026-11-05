@@ -1,5 +1,5 @@
 /**
- * D-NEXT: una fila del historial del cliente (D-874) se abre AQUÍ, en una tarjeta, no saltando a otra app.
+ * D-879: una fila del historial del cliente (D-874) se abre AQUÍ, en una tarjeta, no saltando a otra app.
  *
  * El dueño: «when I clicked the order there, instead of taking me to Deliveries, I want the order form to open right there
  * as a card, like I always ask you». Regla del hub: un registro se abre en su sitio (tarjeta o modal); el enlace a su app
@@ -67,7 +67,7 @@ export function ordenDeLaTarjeta<D extends { id: string }>(ordenes: readonly D[]
 export type QueHaceEsc = "cerrar" | "solo-retener" | "nada";
 
 /**
- * Esc con la tarjeta abierta (D-NEXT): cierra SOLO la capa de arriba, nunca la ficha del cliente de debajo.
+ * Esc con la tarjeta abierta (D-879): cierra SOLO la capa de arriba, nunca la ficha del cliente de debajo.
  *  - Otra tecla: nada.
  *  - Esc con la tarjeta arriba del todo: se cierra la tarjeta (la orden, por su propio ✕, que pregunta si hay cambios).
  *  - Esc con algo encima de la tarjeta (un «¿seguro?», la prueba de entrega…): esa capa decide; la tarjeta no se cierra.

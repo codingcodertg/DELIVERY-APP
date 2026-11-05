@@ -226,7 +226,7 @@
   .clientes-app [data-caja-de-clientes] > div:last-child:not(table) { border: 0; }
 }
 
-/* D-NEXT: la tarjeta de una fila del historial (TarjetaDeTrato). La ficha de la orden es la de Entregas, sin tocar; esto
+/* D-879: la tarjeta de una fila del historial (TarjetaDeTrato). La ficha de la orden es la de Entregas, sin tocar; esto
    solo es el marco de la cotización y la hoja del cliente en su sitio (estimator.css no se importa aquí: su @media print
    escondería Clientes entero al imprimir). Solo variables de color. */
 .modal.tarjeta-de-trato.ancha { max-width: 860px; }

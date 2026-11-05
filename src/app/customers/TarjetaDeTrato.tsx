@@ -22,7 +22,7 @@ const ME_DEL_DEMO = "rtg_deliveries_local_me";
 const COLUMNAS_DEL_PERFIL = "id, full_name, username, role, store, permissions, avatar_url, recruiting_role, module_access, title, title_color";
 
 /**
- * D-NEXT: la tarjeta de una fila del historial del cliente (D-874). La orden abre la FICHA DE VERDAD de Entregas
+ * D-879: la tarjeta de una fila del historial del cliente (D-874). La orden abre la FICHA DE VERDAD de Entregas
  * (`OrderModal`, igual de aspecto, permisos y acciones) encima de Clientes; la cotización, la hoja del cliente del Quote
  * Builder, de solo lectura. El enlace a la app es secundario, dentro de la tarjeta. Quien no tiene Entregas ve un
  * resumen de solo lectura con la explicación, nunca la ficha.
@@ -35,7 +35,7 @@ export function TarjetaDeTrato({ trato, onCerrar }: { trato: Trato; onCerrar: ()
   const [me, setMe] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Esc cierra SOLO la tarjeta (D-NEXT). En captura, antes que la ficha del cliente, que ignora un Esc con
+  // Esc cierra SOLO la tarjeta (D-879). En captura, antes que la ficha del cliente, que ignora un Esc con
   // `defaultPrevented`. La orden se cierra por su propio ✕ (`requestClose`: pregunta si hay cambios sin guardar).
   const cerrarRef = useRef(onCerrar);
   cerrarRef.current = onCerrar;

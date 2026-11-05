@@ -10,14 +10,14 @@ import { fmtDateShort } from "@/lib/utils";
 
 type T = (en: string, es: string) => string;
 
-// D-NEXT: la tarjeta (con la ficha de Entregas y su proveedor) baja solo cuando alguien abre una fila.
+// D-879: la tarjeta (con la ficha de Entregas y su proveedor) baja solo cuando alguien abre una fila.
 const TarjetaDeTrato = dynamic(() => import("./TarjetaDeTrato").then((m) => m.TarjetaDeTrato));
 
 const dinero = (n: number | null): string => (n === null ? "—" : `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 
 /**
  * D-874 (245): el historial PRINCIPAL del cliente: sus órdenes de Entregas y sus cotizaciones del Quote Builder, lo más
- * nuevo primero, con filtro por tipo. Cada fila abre la orden o la cotización AQUÍ, en una tarjeta (D-NEXT, `TarjetaDeTrato`);
+ * nuevo primero, con filtro por tipo. Cada fila abre la orden o la cotización AQUÍ, en una tarjeta (D-879, `TarjetaDeTrato`);
  * el enlace a su app queda dentro, como acción secundaria. Lo que llega lo decide la RLS de
  * cada tabla con la sesión de quien mira. Estructura mínima (tabla y clases de siempre) para que el rediseño la vista.
  */

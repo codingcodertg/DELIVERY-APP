@@ -4,7 +4,7 @@ import { queHaceEsc, comoAbrirTrato, esDeLaOrden, ordenDeLaTarjeta, pideEnUnaOrd
 const orden = { clase: "orden" as const, href: "/?order=o1" };
 const coti = { clase: "cotizacion" as const, href: "/estimator?quote=q1" };
 
-describe("comoAbrirTrato (D-NEXT: el historial abre en una tarjeta)", () => {
+describe("comoAbrirTrato (D-879: el historial abre en una tarjeta)", () => {
   it("con Entregas, la orden abre la ficha de verdad y deja el enlace secundario", () => {
     expect(comoAbrirTrato(orden, { role: "sales", module_access: ["deliveries", "customers"] })).toEqual({ modo: "orden", enlace: "/?order=o1" });
     expect(comoAbrirTrato(orden, { role: "admin" })).toEqual({ modo: "orden", enlace: "/?order=o1" });

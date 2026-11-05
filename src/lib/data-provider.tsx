@@ -329,7 +329,7 @@ export const RECARGA_AL_VOLVER_MS = 20_000;
 const OPEN_STAGES_FILTER = "stage.not.in.(delivered,canceled)";
 
 /**
- * `soloOrden` (D-NEXT): el proveedor para la ficha de UNA orden fuera de Entregas (el historial de Clientes). Pide solo
+ * `soloOrden` (D-879): el proveedor para la ficha de UNA orden fuera de Entregas (el historial de Clientes). Pide solo
  * esa orden y sus eventos, más ajustes y perfiles (lo que la ficha lee); nada de avisos, turnos ni ubicaciones. Las
  * escrituras y la RLS son las mismas: es el mismo proveedor, con la lectura acotada (`lib/customers/abrir-trato.ts`).
  */
