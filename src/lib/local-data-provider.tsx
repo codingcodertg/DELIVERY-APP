@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Ctx, type DataState } from "@/lib/data-provider";
+import { Ctx, type AccionDelAviso, type DataState, type OpcionesDelAviso } from "@/lib/data-provider";
 import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage } from "@/lib/types";
 import { type AppNotification, notificationsForStage } from "@/lib/notifications";
 import { canTransition, puedeAnular } from "@/lib/constants";
@@ -110,10 +110,13 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
   /** Apply a change to the freshest store and persist it. */
   const persist = useCallback((next: Store) => commit(next), [commit]);
 
-  const notify = useCallback((msg: string) => {
+  // D-861: el aviso puede llevar UN botón (p. ej. «Deshacer» tras reprogramar) y quedarse más rato (`ms`).
+  const [accionDelAviso, setAccionDelAviso] = useState<AccionDelAviso | null>(null);
+  const notify = useCallback((msg: string, opciones?: OpcionesDelAviso) => {
     setToast(msg);
+    setAccionDelAviso(opciones?.accion ?? null);
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(""), 2600);
+    toastTimer.current = setTimeout(() => { setToast(""); setAccionDelAviso(null); }, opciones?.ms ?? 2600);
   }, []);
 
   const addEvent = (s: Store, deliveryId: string, kind: string, note?: string): OrderEvent[] => [
@@ -552,15 +555,17 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       return ok;
     },
     // El demo no tiene la función `reprogramar_orden` (173) ni guard: la fecha y la nota, como antes (D-500).
-    reprogramarOrden: async (id, fecha, nota, lang, caso) => {
+    reprogramarOrden: async (id, fecha, nota, lang, caso, opciones) => {
       const antes = storeRef.current.deliveries.find((c) => c.id === id)?.delivery_date ?? null;
+      // D-861: el «Deshacer» del aviso vuelve a un estado que ya estuvo: sin las reglas de agendar (el demo no saca de la ruta).
+      const deshacer = !!opciones?.deshacer;
       // La misma regla que el proveedor de verdad (D-658): ni domingo sin el caso especial ni un año imposible.
       // Ventas, pasadas las 12, para hoy: aquí ya no se bloquea; lo pregunta la pantalla (`ReprogramarOrden`, `corte-de-ventas`).
-      const problema = problemaAlAgendar(fecha, antes, { rol: me?.role, caso });
+      const problema = deshacer ? null : problemaAlAgendar(fecha, antes, { rol: me?.role, caso });
       if (problema) { const m = textoDelProblema(problema, me?.role); notify(lang === "es" ? m.es : m.en); return false; }
       const ok = await updateDelivery(id, { delivery_date: fecha });
       if (ok) await addNote(id, notaDeReprogramacion(antes, fecha, nota, lang));
-      if (ok && caso && usaCasoEspecial(fecha, antes, { rol: me?.role, caso })) await addNote(id, notaDeDomingo(me?.full_name, caso.motivo, lang));
+      if (ok && !deshacer && caso && usaCasoEspecial(fecha, antes, { rol: me?.role, caso })) await addNote(id, notaDeDomingo(me?.full_name, caso.motivo, lang));
       return ok;
     },
     // El demo no tiene las funciones de la 188: la misma búsqueda (con la copia de `numeros_de_factura`) y la misma
@@ -602,7 +607,18 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
   return (
     <Ctx.Provider value={value}>
       {children}
-      {toast && <div className="toast">{toast}</div>}
+      {toast && (
+        <div className="toast" role="status">
+          {toast}
+          {accionDelAviso && (
+            // Una sola vez: al tocarlo se quita, y quien lo puso avisa del resultado.
+            <button type="button" className="toast-accion" data-accion-del-aviso
+              onClick={() => { const a = accionDelAviso; setAccionDelAviso(null); a.alTocar(); }}>
+              {accionDelAviso.etiqueta}
+            </button>
+          )}
+        </div>
+      )}
     </Ctx.Provider>
   );
 }

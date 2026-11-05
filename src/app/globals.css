@@ -562,7 +562,11 @@ table.orders tr.fila-plan-recoger .factura-e-id > [data-id-de-la-orden], table.o
 
 .empty { text-align: center; color: var(--gray); padding: 40px 10px; font-size: 13px; }
 .hint { font-size: 12px; color: var(--gray); margin-top: 6px; }
-.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 20px; border-radius: 10px; font-weight: 600; font-size: 13px; z-index: 99; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 20px; border-radius: 10px; font-weight: 600; font-size: 13px; z-index: 99; display: flex; align-items: center; gap: 12px; max-width: calc(100vw - 32px); }
+/* D-861: el botón del aviso («Deshacer» tras reprogramar). 36px de alto como mínimo en el teléfono. */
+.toast-accion { background: transparent; color: inherit; border: 1px solid currentColor; border-radius: 8px; padding: 6px 12px; min-height: 32px; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.toast-accion:hover { background: color-mix(in srgb, currentColor 18%, transparent); }
+@media (max-width: 640px) { .toast-accion { min-height: 40px; } }
 
 .stat-pills { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
 .stat-pill { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; text-align: center; min-width: 92px; }

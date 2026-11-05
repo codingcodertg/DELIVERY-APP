@@ -39,6 +39,7 @@ import { cumpleFiltroDeLaLista, fusionarFilas, planDeRafaga, porCreatedAtDesc, p
 import { avisoDePartirSola, cargasAlGuardar, esFuncionAusente, parteEnCadena, restosParaPartir } from "@/lib/cargas-partidas";
 import { capacidadDelChofer } from "@/lib/agregar-material-avisos";
 import { argumentosDeReprogramar, caminoTrasReprogramar, notaDeReprogramacion } from "@/lib/reprogramar-orden";
+import { planDeDeshacer, type FotoDeReprogramacion } from "@/lib/deshacer-reprogramar";
 import { notaDeDomingo, problemaAlAgendar, textoDelProblema, usaCasoEspecial, type CasoEspecial } from "@/lib/dia-de-entrega";
 import { blankDelivery } from "@/lib/blank-delivery";
 import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order-sites";
@@ -113,7 +114,7 @@ export interface DataState {
   events: OrderEvent[];
   notifications: AppNotification[];
   toast: string;
-  notify: (msg: string) => void;
+  notify: (msg: string, opciones?: OpcionesDelAviso) => void;
 
   // in-app notifications (role-targeted workflow alerts)
   markNotifRead: (id: string) => Promise<void>;
@@ -142,7 +143,8 @@ export interface DataState {
    * `nota` es lo que escribió la persona, sin componer. `true` si quedó guardada.
    */
   /** `caso`: la casilla «Caso especial: entregar en domingo» del cuadro (D-658). Sin ella, el domingo no pasa. */
-  reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es", caso?: CasoEspecial) => Promise<boolean>;
+  /** `opciones.deshacer` (D-861): es el «Deshacer» del aviso; vuelve a la foto de antes, sin las preguntas de agendar. */
+  reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es", caso?: CasoEspecial, opciones?: { deshacer?: FotoDeReprogramacion }) => Promise<boolean>;
   /**
    * El chofer busca una factura en TODAS las órdenes por recoger (D-625, 188: `buscar_factura_para_recoger`), también en
    * las que no son suyas y que la RLS no le deja leer. `null` si falló (y lo avisa).
@@ -294,6 +296,10 @@ const emptyOverlay = (): Overlay => ({ created: [], updated: {}, deleted: new Se
 // until "Reset sandbox" is pressed (the Set is stored as an array for JSON).
 const TEACHING_OVERLAY_KEY = "rtg_teaching_overlay";
 
+/** El botón que puede llevar el aviso de abajo (D-861, «Deshacer» tras reprogramar). */
+export interface AccionDelAviso { etiqueta: string; alTocar: () => void }
+export interface OpcionesDelAviso { accion?: AccionDelAviso; ms?: number }
+
 export const Ctx = createContext<DataState | null>(null);
 
 export function useData(): DataState {
@@ -438,10 +444,13 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const notify = useCallback((msg: string) => {
+  // D-861: el aviso puede llevar UN botón (p. ej. «Deshacer» tras reprogramar) y quedarse más rato (`ms`).
+  const [accionDelAviso, setAccionDelAviso] = useState<AccionDelAviso | null>(null);
+  const notify = useCallback((msg: string, opciones?: OpcionesDelAviso) => {
     setToast(msg);
+    setAccionDelAviso(opciones?.accion ?? null);
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(""), 2600);
+    toastTimer.current = setTimeout(() => { setToast(""); setAccionDelAviso(null); }, opciones?.ms ?? 2600);
   }, []);
 
   // What the app actually renders. In live mode that's just the real rows; in
@@ -1713,14 +1722,25 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   // «📅 Reprogramar» por la función de la base (D-549, 173). Qué hacer con la respuesta lo decide `caminoTrasReprogramar`:
   // sin la función (la migración va después de fusionar), el camino de antes, `updateDelivery` + `addNote`.
   const reprogramarOrden = useCallback<DataState["reprogramarOrden"]>(
-    async (id, fecha, nota, lang, caso) => {
+    async (id, fecha, nota, lang, caso, opciones) => {
       const antes = deliveries.find((c) => c.id === id)?.delivery_date ?? null;
+      const deshacer = opciones?.deshacer;
+      // D-861: el «Deshacer» vuelve a un estado que ya estuvo; no se le vuelve a juzgar como una fecha nueva.
+      const problema = deshacer ? null : problemaAlAgendar(fecha, antes, { rol: me?.role, caso });
       // Ni domingo sin el caso especial ni un año imposible (D-658). Aquí pasan el 📅 de cada fila y «Reprogramar a …»
       // de Recomendaciones: un solo sitio para los dos. La función de la base (173) no lo mira.
       // Ventas, pasadas las 12, para hoy: aquí ya no se bloquea; lo pregunta la pantalla (`ReprogramarOrden`, `corte-de-ventas`).
-      const problema = problemaAlAgendar(fecha, antes, { rol: me?.role, caso });
       if (problema) { const m = textoDelProblema(problema, me?.role); notify(lang === "es" ? m.es : m.en); return false; }
-      const domingo = usaCasoEspecial(fecha, antes, { rol: me?.role, caso });
+      // Si la 172 la sacó de la ruta, la devuelve con su chofer y su posición (el guard decide si este rol puede).
+      // Solo en el camino de la base: el de respaldo (y el modo enseñanza) no pasa por la 172 y no le quita el chofer.
+      const devuelveLaRuta = async () => {
+        if (!deshacer) return true;
+        const { data: ahora } = await supabase.from("deliveries").select("assigned_driver").eq("id", id).maybeSingle();
+        if (!ahora) return true;
+        const plan = planDeDeshacer(deshacer, ahora as { assigned_driver: string | null }, me?.role, lang);
+        return plan.parcheDeRuta ? updateDelivery(id, plan.parcheDeRuta) : true;
+      };
+      const domingo = !deshacer && usaCasoEspecial(fecha, antes, { rol: me?.role, caso });
       const comoAntes = async () => {
         const ok = await updateDelivery(id, { delivery_date: fecha });
         if (ok) await addNote(id, notaDeReprogramacion(antes, fecha, nota, lang));
@@ -1734,6 +1754,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       if (camino === "error") { notify("Error: " + (error?.message ?? "")); return false; }
       if (domingo && caso) await addNote(id, notaDeDomingo(me?.full_name, caso.motivo, lang));
       await reloadTables(["deliveries", "order_events"]);
+      if (deshacer) { const ok = await devuelveLaRuta(); if (ok) await reloadTables(["deliveries", "order_events"]); return ok; }
       return true;
     },
     [supabase, notify, teaching, deliveries, updateDelivery, addNote, reloadTables, me],
@@ -2313,7 +2334,18 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   return (
     <Ctx.Provider value={value}>
       {children}
-      {toast && <div className="toast">{toast}</div>}
+      {toast && (
+        <div className="toast" role="status">
+          {toast}
+          {accionDelAviso && (
+            // Una sola vez: al tocarlo se quita, y quien lo puso avisa del resultado.
+            <button type="button" className="toast-accion" data-accion-del-aviso
+              onClick={() => { const a = accionDelAviso; setAccionDelAviso(null); a.alTocar(); }}>
+              {accionDelAviso.etiqueta}
+            </button>
+          )}
+        </div>
+      )}
       {authGone && <SessionExpired />}
     </Ctx.Provider>
   );
