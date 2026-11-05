@@ -114,12 +114,12 @@ describe("las pantallas", () => {
     expect(lista).toContain("altaComoSolicitud={altaComoSolicitud}");
     expect(lista).toContain('{altaComoSolicitud ? t("Request new customer", "Solicitar cliente nuevo") : t("New customer", "Nuevo cliente")}');
   });
-  it("en la ficha, el alta como solicitud guarda la solicitud, avisa al admin por ayuda y lo dice; el botón dice «Enviar solicitud»", () => {
+  it("en la ficha, el alta como solicitud guarda la solicitud, avisa al admin (no por ayuda) y lo dice; el botón dice «Enviar solicitud»", () => {
     expect(ficha).toContain("if (nuevo && altaComoSolicitud) { await solicitarEnLasTiendas(); return; }");
     expect(lista).toContain("lang={lang}");
     expect(ficha).toContain("almacen.solicitarAlta(parche, tiendasAlta)");
-    expect(ficha).toContain("mensajeDeAltaPendiente(r.valor, lang)");
-    expect(ficha).toContain("page: PAGINA_DE_SOLICITUDES,");
+    expect(ficha).toContain("await avisaAlAdminDeLaSolicitud(r.valor.id);");
+    expect(ficha).not.toContain("enviaSolicitudDeAyuda");
     expect(ficha).toContain('altaComoSolicitud ? t("Send request", "Enviar solicitud") : t("Create", "Crear")');
   });
   it("la lista enseña «Solicitudes» con las pendientes, abre la ventana (también con ?solicitudes=1) y relee al decidir", () => {

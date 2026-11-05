@@ -156,7 +156,7 @@ export function avisoGeneralEnLaRuta(pathname: string | null | undefined): boole
 export const RUTAS_QUE_NO_SE_PRACTICAN = [
   "/api/notify", "/api/call", "/api/push", "/api/recruiting/rc-contact", "/api/avisos-cliente",
   "/api/invite", "/api/reset-password", "/api/delete-user", "/api/user-identity", "/api/profile/password",
-  "/api/route-plan/publish",
+  "/api/route-plan/publish", "/api/customers/aviso-solicitud",
 ] as const;
 
 /** Las que tienen efecto y siguen en práctica, con su porqué. */

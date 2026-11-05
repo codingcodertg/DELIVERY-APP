@@ -18,13 +18,10 @@ import {
 } from "@/lib/customers/contactos";
 import { hayRedes, NOMBRE_DE_RED, parcheDeRedes, REDES, redesDe, redesEnEdicion, textoDeRed, urlDeRed, type Redes, type RedesEnEdicion } from "@/lib/customers/redes";
 import { vendedoresEnOrden, type Vendedor } from "@/lib/customers/vendedores";
-import { mensajeDeAltaPendiente, PAGINA_DE_SOLICITUDES, type SolicitudDeCliente } from "@/lib/customers/solicitud-de-cliente";
-import { mensajeDeEdicionPendiente } from "@/lib/customers/edicion-como-solicitud";
+import { avisaAlAdminDeLaSolicitud, type SolicitudDeCliente } from "@/lib/customers/solicitud-de-cliente";
 import { HistorialDelCliente } from "./HistorialDelCliente";
 import { AsociacionesDelCliente } from "./AsociacionesDelCliente";
 import { HistorialDeTratos } from "./HistorialDeTratos";
-import { APP_VERSIONS } from "@/lib/app-versions";
-import { enviaSolicitudDeAyuda, pideContactoDeAyuda, rolDeQuienEscribe } from "@/lib/help-send";
 import { claveDeEmpresa } from "@/lib/customers/duplicados";
 import { CAMPOS_EN_MAYUSCULAS } from "@/lib/customers/formato";
 import { conDireccionDeLaCuenta, direccionDeLaCuentaAlGuardar, direccionesAparte, mismaDireccion } from "@/lib/customers/direccion-unica";
@@ -881,22 +878,15 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
 
   // D-664: el alta crea una fila por tienda marcada, con los mismos datos y la MISMA empresa nueva (como «Separar»). La
   // que choca no se crea y se dice cuál; las demás, sí. Se enseña la de la primera tienda marcada que se creó.
-  // D-743 (216): el alta del vendedor y del gerente se guarda como solicitud, se avisa al admin por el canal de ayuda
-  // (D-311: le llega al hub y por correo) y se le dice a quien llama. No se crea ninguna fila de cliente.
+  // D-743 (216): el alta del vendedor y del gerente se guarda como solicitud, se avisa al admin (campana de la 243 y
+  // correo «New customer request») y se le dice a quien llama. No se crea ninguna fila de cliente.
   const solicitarEnLasTiendas = async () => {
     setOcupado(true);
     setAviso(null);
     const r = await almacen.solicitarAlta(parche, tiendasAlta);
     if (!r.ok) { setOcupado(false); setAviso({ tono: "rojo", texto: textoDelFallo(r, false) }); return; }
-    try {
-      const quien = await pideContactoDeAyuda();
-      if (quien) {
-        await enviaSolicitudDeAyuda({
-          userId: quien.id, message: mensajeDeAltaPendiente(r.valor, lang), ficheros: [], page: PAGINA_DE_SOLICITUDES,
-          senderName: quien.nombre, role: rolDeQuienEscribe(quien.rol, lang), appVersion: APP_VERSIONS.customers, lang,
-        });
-      }
-    } catch { /* la solicitud ya está guardada; el aviso es un extra */ }
+    // Correo al admin titulado «New customer request» (no por ayuda: no va a `help_requests`). La campana la escribe la 243.
+    await avisaAlAdminDeLaSolicitud(r.valor.id);
     setOcupado(false);
     olvidarBorrador();
     setAviso({ tono: "verde", texto: t("Request sent to the admin ✓", "Solicitud enviada al admin ✓") });
@@ -911,15 +901,8 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
     setAviso(null);
     const r = await almacen.solicitarEdicion(cliente, parche, notaDeEdicion);
     if (!r.ok) { setOcupado(false); setAviso({ tono: "rojo", texto: textoDelFallo(r, false) }); return; }
-    try {
-      const quien = await pideContactoDeAyuda();
-      if (quien) {
-        await enviaSolicitudDeAyuda({
-          userId: quien.id, message: mensajeDeEdicionPendiente(r.valor, lang), ficheros: [], page: PAGINA_DE_SOLICITUDES,
-          senderName: quien.nombre, role: rolDeQuienEscribe(quien.rol, lang), appVersion: APP_VERSIONS.customers, lang,
-        });
-      }
-    } catch { /* la solicitud ya está guardada; el aviso es un extra */ }
+    // Correo al admin titulado «Customer edit request» (no por ayuda: no va a `help_requests`). La campana la escribe la 243.
+    await avisaAlAdminDeLaSolicitud(r.valor.id);
     setOcupado(false);
     setForm(original);
     setContactos(enEdicion(contactosOriginales));
