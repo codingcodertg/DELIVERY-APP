@@ -8,6 +8,7 @@ import type { Sugerencia } from "./empresas";
 import type { Cliente, Parche } from "./reglas";
 import { cuerpoDeSolicitud, solicitudDeLaBase, type SolicitudDeCliente } from "./solicitud-de-cliente";
 import { cuerpoDeEdicion, historialDeLaBase, type HistorialDeCliente } from "./edicion-como-solicitud";
+import { asociadasDe, asociadosDesdeLaLista, parNormalizado, puedeAsociar, type ParDeEmpresas } from "./asociaciones";
 
 /**
  * Clientes INVENTADOS para el modo demo (`NEXT_PUBLIC_LOCAL_MODE`), que no tiene base. Ni un dato real: los nombres
@@ -97,6 +98,16 @@ export function almacenDemoNuevo(semilla: readonly SolicitudDeCliente[] = []): A
   const apunta = (h: Omit<HistorialDeCliente, "id" | "at" | "by" | "by_name" | "requested_name"> & Partial<Pick<HistorialDeCliente, "requested_name">>) => {
     historial = [historialDeLaBase({ ...h, id: ++historialNuevo, at: new Date().toISOString(), by: "demo", by_name: "Demo", requested_name: h.requested_name ?? null }), ...historial];
   };
+  let pares: ParDeEmpresas[] = [];
+  let parNuevo = 0;
+  const apuntaPar = (a: string, b: string, kind: "associate" | "dissociate") => {
+    const nombre = (k: string) => lista.find((c) => c.company_id === k)?.account ?? k;
+    for (const [aqui, alli] of [[a, b], [b, a]] as const) {
+      for (const c of lista.filter((x) => x.company_id === aqui)) {
+        apunta({ customer_id: c.id, kind, before: null, after: { associated_customer: nombre(alli), associated_company: alli }, note: null, request_id: null, requested_by: null, decision_note: null });
+      }
+    }
+  };
   const diff = (antes: Cliente, despues: Cliente) => {
     const before: Record<string, unknown> = {};
     const after: Record<string, unknown> = {};
@@ -166,6 +177,23 @@ export function almacenDemoNuevo(semilla: readonly SolicitudDeCliente[] = []): A
         tratoDeCotizacion({ id: `demo-q-${cliente.id}`, estimate_num: "E-2001", store: "RDZ Brownsville", lines: [], created_at: "2026-10-15T10:00:00Z" }),
       ] } };
     },
+    // D-NEXT (249): las asociaciones, en memoria, con su historial en las dos empresas (como el disparador).
+    async asociados(companyId) { return { ok: true, valor: asociadosDesdeLaLista(companyId, pares, lista) }; },
+    async asociar(a, b) {
+      const par = parNormalizado(a, b);
+      if (!par || !puedeAsociar(a, b, asociadasDe(a, pares))) return { ok: false, sinTabla: false, sinPermiso: false, duplicado: true, error: "duplicate or self" };
+      pares = [...pares, { id: ++parNuevo, ...par }];
+      apuntaPar(par.company_a, par.company_b, "associate");
+      return { ok: true, valor: null };
+    },
+    async desasociar(parId) {
+      const p = pares.find((x) => x.id === parId);
+      if (!p) return { ok: false, sinTabla: false, sinPermiso: true, duplicado: false, error: "not found" };
+      pares = pares.filter((x) => x.id !== parId);
+      apuntaPar(p.company_a, p.company_b, "dissociate");
+      return { ok: true, valor: null };
+    },
+    async filasDeEmpresa(companyId) { return { ok: true, valor: lista.filter((c) => c.company_id === companyId).map((c) => ({ ...c })) }; },
     async historial(clienteId) { return { ok: true, valor: historial.filter((h) => h.customer_id === clienteId).map((h) => ({ ...h })) }; },
     async aprobarSolicitud(id) {
       const s = solicitudes.find((x) => x.id === id);

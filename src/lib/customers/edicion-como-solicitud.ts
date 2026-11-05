@@ -53,6 +53,7 @@ const ETIQUETA_EXTRA: Record<string, { en: string; es: string }> = {
   rep_id: { en: "Sales rep", es: "Vendedor" },
   archived_at: { en: "Archived", es: "Archivado" },
   archived_reason: { en: "Archive reason", es: "Motivo de archivo" },
+  associated_customer: { en: "In association with", es: "En asociación con" },
 };
 
 export function etiquetaDeClave(key: string): { en: string; es: string } {
@@ -98,7 +99,7 @@ export function cambiosEntre(antes: Record<string, unknown> | null | undefined, 
 export const cambiosDeSolicitud = (s: Pick<SolicitudDeCliente, "payload" | "before">): Cambio[] => cambiosEntre(s.before, s.payload);
 
 /** D-874 (245): `merge`, `review`, `corrected` y `rep` se suman a las seis de la 221. */
-export type ClaseDeHistorial = "create" | "edit" | "archive" | "restore" | "approved" | "rejected" | "merge" | "review" | "corrected" | "rep";
+export type ClaseDeHistorial = "create" | "edit" | "archive" | "restore" | "approved" | "rejected" | "merge" | "review" | "corrected" | "rep" | "associate" | "dissociate";
 
 export interface HistorialDeCliente {
   id: number;
@@ -127,7 +128,13 @@ export const CLASE_DE_HISTORIAL: Record<ClaseDeHistorial, { en: string; es: stri
   review: { en: "Edit request needs check", es: "Solicitud de edición: revisar", icono: "🔎" },
   corrected: { en: "Edit request corrected by admin", es: "Solicitud de edición corregida por el admin", icono: "🛠️" },
   rep: { en: "Sales rep assigned", es: "Vendedor asignado", icono: "👤" },
+  // D-NEXT (249): «En asociación con».
+  associate: { en: "Association added", es: "Asociación añadida", icono: "🤝" },
+  dissociate: { en: "Association removed", es: "Asociación quitada", icono: "✂️" },
 };
+
+/** D-NEXT (249): las clases que se leen como un valor solo (sin antes → después). */
+export const CLASES_DE_UN_VALOR: readonly ClaseDeHistorial[] = ["create", "associate", "dissociate"];
 
 /** Los uuid de vendedor que trae una fila del historial (antes y después de `rep_id`), para ponerles nombre. */
 export function vendedoresDelHistorial(h: Pick<HistorialDeCliente, "before" | "after">): string[] {
@@ -144,7 +151,7 @@ export function nombraVendedores(h: Pick<HistorialDeCliente, "before" | "after">
 
 /** Una línea de texto por cambio: «Teléfono: 956-1 → 956-2» (en un alta, solo el valor). */
 export function textoDeCambios(h: Pick<HistorialDeCliente, "kind" | "before" | "after">, lang: "en" | "es"): string[] {
-  return cambiosDelHistorial(h).map((c) => `${lang === "es" ? c.es : c.en}: ${h.kind === "create" ? c.despues : `${c.antes} → ${c.despues}`}`);
+  return cambiosDelHistorial(h).map((c) => `${lang === "es" ? c.es : c.en}: ${CLASES_DE_UN_VALOR.includes(h.kind) ? c.despues : `${c.antes} → ${c.despues}`}`);
 }
 
 const textoONulo = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v.trim() : null);
@@ -174,6 +181,11 @@ export function cambiosDelHistorial(h: Pick<HistorialDeCliente, "kind" | "before
   if (h.kind === "create") {
     const con = Object.fromEntries(Object.entries(h.after ?? {}).filter(([k, v]) => v !== null && v !== "" && !["id", "company_id", "house_no", "source"].includes(k) && !(Array.isArray(v) && v.length === 0) && !(typeof v === "object" && !Array.isArray(v) && v && Object.keys(v).length === 0)));
     return cambiosEntre({}, con);
+  }
+  // D-NEXT (249): la asociación lleva el nombre de la otra empresa; su company_id no se enseña.
+  if (h.kind === "associate" || h.kind === "dissociate") {
+    const otra = h.after?.associated_customer;
+    return typeof otra === "string" && otra ? cambiosEntre({}, { associated_customer: otra }) : [];
   }
   return cambiosEntre(h.before, h.after);
 }

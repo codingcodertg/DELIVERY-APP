@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { AlmacenDeClientes } from "@/lib/customers/almacen";
-import { cambiosDelHistorial, CLASE_DE_HISTORIAL, type HistorialDeCliente } from "@/lib/customers/edicion-como-solicitud";
+import { cambiosDelHistorial, CLASE_DE_HISTORIAL, CLASES_DE_UN_VALOR, type HistorialDeCliente } from "@/lib/customers/edicion-como-solicitud";
 
 type T = (en: string, es: string) => string;
 
@@ -59,7 +59,7 @@ export function HistorialDelCliente({ clienteId, almacen, t }: { clienteId: numb
                         {cambios.map((c) => (
                           <tr key={c.key} data-cambio={c.key}>
                             <td className="w-1/4 py-0.5 pr-2 text-slate-500">{t(c.en, c.es)}</td>
-                            {h.kind === "create" ? (
+                            {CLASES_DE_UN_VALOR.includes(h.kind) ? (
                               <td className="py-0.5 text-slate-900">{c.despues}</td>
                             ) : (
                               <td className="py-0.5">

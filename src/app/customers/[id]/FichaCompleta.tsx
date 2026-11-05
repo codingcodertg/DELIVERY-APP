@@ -10,6 +10,7 @@ import { createClient } from "@/lib/erp/supabase/client";
 import { almacenDeLaBase } from "@/lib/customers/almacen";
 import { HistorialDeTratos } from "../HistorialDeTratos";
 import { HistorialDelCliente } from "../HistorialDelCliente";
+import { AsociacionesDelCliente } from "../AsociacionesDelCliente";
 
 /**
  * La ficha completa de un cliente como página propia, para un enlace directo (la cola de «Decidir si se juntan» enlaza
@@ -79,6 +80,8 @@ export function FichaCompleta({ cliente: c, hermanas = [], puedeEditar = false, 
       )}
 
       <div className="mt-6">
+        {/* D-NEXT (249): «En asociación con»; cada pastilla abre la asociada aquí mismo, en una tarjeta. */}
+        <AsociacionesDelCliente cliente={c} almacen={almacen} pintaFicha={(x) => <TarjetasDeLaFicha cliente={x} esVendedor={esVendedor} t={t} />} t={t} />
         <TarjetasDeLaFicha cliente={c} esVendedor={esVendedor} t={t} />
         <HistorialDeTratos cliente={c} almacen={almacen} t={t} />
         {!esVendedor && <HistorialDelCliente clienteId={c.id} almacen={almacen} t={t} />}
