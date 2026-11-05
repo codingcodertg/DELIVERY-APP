@@ -48,11 +48,23 @@ export function vaciarParaMostrador(): AlPasarAMostrador {
   };
 }
 
+/**
+ * D-860: el destino (nombre, dirección, pin y ruta) solo se vacía si era de OTRA cuenta. En una orden nueva la dirección se
+ * teclea en el primer paso («Siguiente →») ANTES de elegir la cuenta; vaciarla al elegir mostrador la borraba, y el vendedor
+ * veía que «la dirección no se guarda». Sin cuenta previa (o ya de mostrador), esa dirección es la del cliente de paso.
+ */
+function destinoEsDeOtraCuenta(cuentaAnterior: string | null | undefined): boolean {
+  return laCuentaRecuerda(cuentaAnterior);
+}
+
 export function contactoAlElegirCuenta(o: {
   cuenta: string; guardada: ConContacto | undefined; ultimaOrden: OrdenPasada | undefined;
-  actual: ConCamposDelCliente;
+  actual: ConCamposDelCliente & { account?: string | null };
 }): AlPasarAMostrador | { contact: string | null | undefined; delivery_phone: string | null | undefined } {
-  if (esCuentaDeMostrador(o.cuenta)) return vaciarParaMostrador();
+  if (esCuentaDeMostrador(o.cuenta)) {
+    if (destinoEsDeOtraCuenta(o.actual.account)) return vaciarParaMostrador();
+    return { contact: "", delivery_phone: "" };
+  }
   if (o.guardada) return { contact: o.guardada.contact, delivery_phone: o.guardada.phone };
   return { contact: o.ultimaOrden?.contact ?? o.actual.contact, delivery_phone: o.ultimaOrden?.delivery_phone ?? o.actual.delivery_phone };
 }
