@@ -50714,3 +50714,9 @@ Sello `leads` 0.19.0; repo 1.725.0.
 **Fecha:** 2026-11-05 · Sin migración · Agente con `frontend-design` en `design/clientes-preview`; aprobado por el dueño tras las capturas. Cabecera en una fila; tiendas como control segmentado junto a búsqueda y QB; filas de 32 px con cebra, hover y primera columna fija (11 → 18 filas a 1280×800); avisos con franja; vacíos que dicen por qué; Solicitudes con estados de punto de color; la ficha conserva su disposición (D-766, D-847, D-868) y solo cambia el acabado. En el teléfono, tarjetas de dos líneas. Sin cambios de comportamiento; estilos bajo `.clientes-app` en `clientes.css`.
 
 Sello `customers` 0.50.0; repo 1.726.0.
+
+## D-872 · Encuestas: diseño compacto de Promos
+
+**Fecha:** 2026-11-05 · Sin migración · Agente con `frontend-design` en `design/encuestas-preview`; aprobado por el dueño tras las capturas. Cabecera y filtro de fechas en una fila (atajos como control segmentado), KPI en una franja, las tres gráficas lado a lado, tablas de ~30 px con fecha fija y estado de contacto con punto de color, avisos con franja, vacíos que dicen por qué; en el teléfono, cada fila es una tarjeta con botones de 44 px. La página mide un 45 % menos. Sin cambios de comportamiento; estilos bajo `.encuestas-app`. El formulario público de encuestas es otro sitio y no cambia.
+
+Sello `surveys` 0.10.0; repo 1.727.0.

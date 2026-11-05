@@ -7,6 +7,7 @@ import type { UserRole } from "@/lib/types";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import "./surveys.css";
+import "./encuestas-diseno.css";
 
 export const metadata: Metadata = {
   title: "RTG SURVEYS",
