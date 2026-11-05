@@ -167,7 +167,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   );
   useEffect(() => { setCuantos(TANDA); }, [pool, vista, categoria, tipo, ciudad, busca, situacion, coinciden, orden]);
 
-  if (!yo) return <div className="ld-wrap"><p className="hint">{t("No session.", "Sin sesión.")}</p></div>;
+  if (!yo) return <div className="ld-wrap leads-app"><p className="hint">{t("No session.", "Sin sesión.")}</p></div>;
 
   const mios = abiertosDe(leads, yo.id);
   const misVentas = ventasDe(leads, yo.id);
@@ -216,7 +216,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const leadEnfocado = enfocado ? leads.find((l) => l.id === enfocado) ?? null : null;
 
   return (
-    <div className="ld-wrap">
+    <div className="ld-wrap leads-app">
       <div className="ld-cabecera">
         <div>
           {/* Sin «◂ Volver al hub»: la casa está en la barra de arriba, la de todas las apps (D-643). */}
@@ -255,7 +255,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 
       {estado.tipo === "listo" && (
         <>
-          <div className="ld-pestanas" role="tablist">
+          <div className="ld-pestanas">
+            <div className="ld-segmento" role="tablist">
             <button type="button" role="tab" aria-selected={pestana === "banco"} className={`chip${pestana === "banco" ? " on" : ""}`} data-pestana="banco" onClick={() => cambiaPestana("banco")}>
               🏦 {t("GOV Pool", "GOV Pool")}
             </button>
@@ -272,6 +273,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                 🔒 {t("STXP Pool", "STXP Pool")} <span className="cnt" data-privados>{privados.length}</span>
               </button>
             )}
+            </div>
             <button type="button" className="btn btn-ghost btn-sm ld-releer" onClick={() => void cargar()}>↻ {t("Refresh", "Actualizar")}</button>
           </div>
 
@@ -407,7 +409,18 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                   )}
                 </div>
               )}
-              {visibles.length === 0 && <p className="hint">{t("No leads with these filters.", "No hay leads con estos filtros.")}</p>}
+              {visibles.length === 0 && (
+                /* Vacío con su porqué: o el pool no tiene nada, o lo esconden los filtros (y se ofrece quitarlos). */
+                <div className="ld-vacio" data-vacio={delPool.length === 0 ? "pool" : "filtros"}>
+                  <p className="hint">{t("No leads with these filters.", "No hay leads con estos filtros.")}</p>
+                  {delPool.length === 0
+                    ? <span>{t("This pool has no leads yet: they arrive with the next import.", "Este pool todavía no tiene leads: llegan con el próximo import.")}</span>
+                    : <span>
+                        {t(`This pool has ${delPool.length}, but the view, filters or search hide them all.`, `Este pool tiene ${delPool.length}, pero la vista, los filtros o la búsqueda los esconden todos.`)}{" "}
+                        <button type="button" className="ld-enlace" data-vacio-quitar onClick={limpiaFiltros}>{t("Reset filters", "Quitar filtros")}</button>
+                      </span>}
+                </div>
+              )}
               <div className="ld-lista" data-lista-banco>{visibles.slice(0, cuantos).map((l) => tarjeta(l, "banco"))}</div>
               {visibles.length > cuantos && (
                 <button type="button" className="btn btn-ghost ld-mas" data-ver-mas onClick={() => setCuantos((n) => n + TANDA)}>
@@ -419,13 +432,18 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 
           {pestana === "mio" && (
             <>
-              <p className="hint">
+              <p className="hint ld-intro">
                 {t(
                   `You can hold up to ${tope} open leads. A progress note keeps the lead open; only closing it with a result frees its slot.`,
                   `Puedes tener hasta ${tope} leads abiertos. Una nota de avance deja el lead abierto; solo cerrarlo con un resultado libera su puesto.`,
                 )}
               </p>
-              {mios.length === 0 && <p className="hint">{t("Your pool is empty. Take leads from the GOV Pool.", "Tu pool está vacío. Toma leads del GOV Pool.")}</p>}
+              {mios.length === 0 && (
+                <div className="ld-vacio" data-vacio="mio">
+                  <p className="hint">{t("Your pool is empty. Take leads from the GOV Pool.", "Tu pool está vacío. Toma leads del GOV Pool.")}</p>
+                  <span>{t("Nothing is held in your name yet; a lead you take shows up here.", "Todavía no tienes nada a tu nombre; el lead que tomes sale aquí.")}</span>
+                </div>
+              )}
               <div className="ld-lista" data-lista-mia>{ordenar(mios, "distancia").map((l) => tarjeta(l, "mio"))}</div>
               {misVentas.length > 0 && (
                 <>
@@ -757,8 +775,8 @@ function Admin({ leads, tope, almacen, tarjeta, demo, onTope }: {
   const topeOk = Number.isInteger(n) && n >= 1 && n <= 100;
 
   return (
-    <>
-      <div className="card">
+    <div className="ld-admin">
+      <div className="card" data-bloque="tope">
         <h2>🔢 {t("Limit of open leads per person", "Tope de leads abiertos por persona")}</h2>
         <div className="ld-fila">
           <input type="number" min={1} max={100} inputMode="numeric" data-tope value={nuevoTope} onChange={(e) => setNuevoTope(e.target.value)} aria-label={t("Limit", "Tope")} />
@@ -767,37 +785,37 @@ function Admin({ leads, tope, almacen, tarjeta, demo, onTope }: {
         <p className="hint">{t("Lowering it takes nothing away: whoever is above it cannot take another until they are below.", "Bajarlo no le quita nada a nadie: quien quede por encima no toma otro hasta bajar.")}</p>
       </div>
 
-      <div className="card">
+      <div className="card ld-ancho-total" data-bloque="cola">
         <h2>🧐 {t("Needs review", "Ocupa revisión")} ({cola.length})</h2>
         {cola.length === 0 && <p className="hint">{t("Nothing waiting.", "Nada esperando.")}</p>}
         <div className="ld-lista" data-cola>{cola.map((l) => tarjeta(l, "admin"))}</div>
       </div>
 
-      <div className="card">
+      <div className="card" data-bloque="vendedores">
         <h2>👥 {t("By salesperson", "Por vendedor")}</h2>
         {vendedores.length === 0 ? <p className="hint">{t("Nobody has taken a lead yet.", "Nadie ha tomado un lead todavía.")}</p> : (
           <div className="tbl-scroll">
             <table className="orders" data-por-vendedor>
-              <thead><tr><th>{t("Salesperson", "Vendedor")}</th><th>{t("Open", "Abiertos")}</th><th>{t("Closed", "Cerrados")}</th><th>{t("Sales", "Ventas")}</th></tr></thead>
-              <tbody>{vendedores.map((v) => <tr key={v.id}><td>{v.nombre}</td><td>{v.abiertos}</td><td>{v.cerrados}</td><td>{v.ventas}</td></tr>)}</tbody>
+              <thead><tr><th>{t("Salesperson", "Vendedor")}</th><th data-numero>{t("Open", "Abiertos")}</th><th data-numero>{t("Closed", "Cerrados")}</th><th data-numero>{t("Sales", "Ventas")}</th></tr></thead>
+              <tbody>{vendedores.map((v) => <tr key={v.id}><td>{v.nombre}</td><td data-numero>{v.abiertos}</td><td data-numero>{v.cerrados}</td><td data-numero>{v.ventas}</td></tr>)}</tbody>
             </table>
           </div>
         )}
       </div>
 
-      <div className="card">
+      <div className="card" data-bloque="pools">
         <h2>🏬 {t("By GOV Pool", "Por GOV Pool")}</h2>
         <div className="tbl-scroll">
           <table className="orders" data-por-pool>
-            <thead><tr><th>{t("GOV Pool", "GOV Pool")}</th><th>{t("Free", "Libres")}</th><th>{t("Taken", "Tomados")}</th><th>Total</th></tr></thead>
-            <tbody>{poolsDe(leads).map((p) => <tr key={p.pool}><td>{poolLabel(p.pool, lang)}</td><td>{p.libres}</td><td>{p.tomados}</td><td>{p.total}</td></tr>)}</tbody>
+            <thead><tr><th>{t("GOV Pool", "GOV Pool")}</th><th data-numero>{t("Free", "Libres")}</th><th data-numero>{t("Taken", "Tomados")}</th><th data-numero>Total</th></tr></thead>
+            <tbody>{poolsDe(leads).map((p) => <tr key={p.pool}><td>{poolLabel(p.pool, lang)}</td><td data-numero>{p.libres}</td><td data-numero>{p.tomados}</td><td data-numero>{p.total}</td></tr>)}</tbody>
           </table>
         </div>
       </div>
 
-      <div className="card">
+      <div className="card ld-ancho-total" data-bloque="sin-tocar">
         <h2>⏳ {t("Taken and untouched", "Tomados y sin tocar")} ({viejos.length})</h2>
-        <div className="ld-vistas">
+        <div className="ld-vistas ld-dias">
           {DIAS_SIN_TOCAR.map((d) => (
             <button key={d} type="button" className={`chip${dias === d ? " on" : ""}`} data-dias={d} onClick={() => setDias(d)}>{d}+ {t("days", "días")}</button>
           ))}
@@ -806,7 +824,7 @@ function Admin({ leads, tope, almacen, tarjeta, demo, onTope }: {
         <div className="ld-lista" data-sin-tocar>{viejos.map((l) => tarjeta(l, "admin"))}</div>
       </div>
 
-      <div className="card">
+      <div className="card" data-bloque="importar">
         <h2>📥 {t("Import or update leads", "Importar o actualizar leads")}</h2>
         <p className="hint">
           {t(
@@ -817,6 +835,6 @@ function Admin({ leads, tope, almacen, tarjeta, demo, onTope }: {
         <code className="ld-comando">node scripts/leads/importa-leads.mjs &lt;file.xlsx&gt; --aplicar</code>
         {demo && <p className="hint">{t("Not available in demo mode.", "No disponible en modo demo.")}</p>}
       </div>
-    </>
+    </div>
   );
 }
