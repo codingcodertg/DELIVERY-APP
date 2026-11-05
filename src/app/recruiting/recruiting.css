@@ -367,3 +367,122 @@
 .recruiting-module .gs-tipo[data-tipo="empleado"] { background: var(--tint-green); color: var(--green-deep); }
 .recruiting-module .avatar.gs-avatar-empleado { width: 30px; height: 30px; flex: 0 0 30px; font-size: 12px; border-radius: 8px; background: var(--tint-green); color: var(--green-deep); }
 .recruiting-module .gs-buscando { padding: 6px 10px; font-size: 11px; color: var(--gray); }
+
+/* ---------------------------------------------------------------------------
+   Diseño compacto de RR. HH. (vista previa, rama design/rh-preview). El lenguaje de Promos (D-849) con la regla de
+   Entregas compacta (D-855): cabeceras de una fila, nada de cromo vertical nuevo, más filas por pantalla. Solo CSS y
+   solo tokens (los dos temas los mueven); las clases y atributos que las pruebas fijan no se tocan: lo nuevo cuelga de
+   atributos `data-*` que ya estaban. Las reglas generales llevan `.wrap` delante para ganar a la regla vieja de su clase.
+   --------------------------------------------------------------------------- */
+.recruiting-module > .wrap { padding: 12px 16px 56px; }
+.recruiting-module .wrap .card { padding: 12px 14px; margin-bottom: 10px; border-radius: 10px; }
+.recruiting-module .wrap .card > h2 { margin-bottom: 8px; }
+.recruiting-module .wrap .filters { gap: 6px; margin-bottom: 8px; }
+.recruiting-module .wrap .chip { padding: 4px 10px; }
+.recruiting-module .wrap .mini-row { padding: 6px 10px; margin-bottom: 4px; }
+.recruiting-module .wrap .today-sec { margin-bottom: 10px; }
+.recruiting-module .wrap .kpi-grid { gap: 8px; margin-bottom: 10px; }
+.recruiting-module .wrap .kpi { padding: 10px 12px; }
+.recruiting-module .wrap .kpi .k-val { font-size: 24px; font-variant-numeric: tabular-nums; }
+.recruiting-module .wrap .kpi .k-lbl { text-transform: none; letter-spacing: 0; font-size: 12px; }
+.recruiting-module .wrap .kb-board { gap: 8px; }
+.recruiting-module .wrap .kb-col { padding: 8px; border-radius: 10px; }
+.recruiting-module .wrap .kb-col-head { margin-bottom: 6px; }
+.recruiting-module .wrap .kb-card { padding: 6px 9px; margin-bottom: 5px; border-radius: 8px; }
+.recruiting-module .wrap .sec-head { margin: 14px 2px 8px; padding-bottom: 6px; border-bottom-width: 1px; }
+.recruiting-module .wrap .empty { padding: 18px 10px; }
+.recruiting-module .wrap .cal-day { min-height: 64px; }
+
+/* Cabecera de página: título con su cuenta a la izquierda, acciones a la derecha, una sola fila. */
+.recruiting-module .page-head { margin-bottom: 8px; gap: 8px; }
+.recruiting-module .page-head h2 { font-size: 18px; display: flex; align-items: center; gap: 8px; letter-spacing: -.01em; }
+.recruiting-module .page-head .btn { padding: 6px 12px; }
+.recruiting-module .page-head .viewtoggle .vt { padding: 6px 12px; }
+
+/* La caja de la tabla (Empleados y Activos): búsqueda y pastillas en UNA fila; avisos y tabla a todo el ancho. */
+.recruiting-module .card[data-tabla-a-todo-el-ancho] { display: flex; flex-wrap: wrap; align-items: center; column-gap: 10px; padding: 10px 12px; }
+.recruiting-module .card[data-tabla-a-todo-el-ancho] > * { flex: 1 1 100%; min-width: 0; }
+.recruiting-module .card[data-tabla-a-todo-el-ancho] > .filters:not(.filters-oneline) { flex: 0 0 auto; margin-bottom: 8px; }
+
+/* Pastillas de estado como control segmentado: carril gris, la elegida en tarjeta, y un punto del color de cada
+   estado (en oscuro la elegida ya no es azul marino sobre azul marino). */
+.recruiting-module .card[data-tabla-a-todo-el-ancho] > .filters-oneline { flex: 0 1 auto; width: fit-content; max-width: 100%; margin-bottom: 8px; gap: 2px; padding: 3px; background: var(--track); border-radius: 9px; }
+.recruiting-module .card[data-tabla-a-todo-el-ancho] .filters-oneline .chip { border: 0; background: transparent; border-radius: 7px; padding: 4px 10px; color: var(--ink-soft); display: inline-flex; align-items: center; gap: 6px; }
+.recruiting-module .card[data-tabla-a-todo-el-ancho] .filters-oneline .chip:hover { background: var(--card); color: var(--ink); }
+.recruiting-module .card[data-tabla-a-todo-el-ancho] .filters-oneline .chip.on { background: var(--card); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+.recruiting-module .card[data-tabla-a-todo-el-ancho] .filters-oneline .chip .cnt { margin-left: 0; font-variant-numeric: tabular-nums; color: var(--gray); opacity: 1; }
+.recruiting-module .card[data-tabla-a-todo-el-ancho] .filters-oneline .chip.chip-pend { color: var(--amber); }
+.recruiting-module .card[data-tabla-a-todo-el-ancho] .filters-oneline .chip[data-estado]::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--gray); }
+.recruiting-module .card[data-tabla-a-todo-el-ancho] .filters-oneline .chip:is([data-estado="activos"], [data-estado="assigned"])::before { background: var(--green); }
+.recruiting-module .card[data-tabla-a-todo-el-ancho] .filters-oneline .chip[data-estado="bajas"]::before { background: var(--red); }
+.recruiting-module .card[data-tabla-a-todo-el-ancho] .filters-oneline .chip[data-estado="available"]::before { background: var(--accent); }
+.recruiting-module .card[data-tabla-a-todo-el-ancho] .filters-oneline .chip[data-estado="pending_backup"]::before { background: var(--amber); }
+.recruiting-module .card[data-tabla-a-todo-el-ancho] .filters-oneline .chip:is([data-estado="todos"], [data-estado=""])::before { display: none; }
+
+/* Las tablas (clases de Órdenes, D-725): filas de 32 px, alternas, hover azul, la primera columna se queda al
+   desplazar de lado y los números con ancho fijo. */
+.recruiting-module table.orders tbody td { padding-top: 5px; padding-bottom: 5px; height: 32px; background: var(--card); font-variant-numeric: tabular-nums; }
+.recruiting-module table.orders tbody tr:nth-child(even) td { background: var(--surface-soft); }
+.recruiting-module table.orders tbody tr:hover td { background: var(--accent-soft); }
+.recruiting-module table.orders tbody td .badge { padding: 1px 8px; }
+.recruiting-module table.orders tbody td .btn-sm { padding: 3px 8px; }
+.recruiting-module table.orders th:first-child, .recruiting-module table.orders td:first-child { position: sticky; left: 0; z-index: 1; box-shadow: inset -1px 0 0 var(--line); }
+.recruiting-module table.orders thead th:first-child { z-index: 3; }
+
+/* Avisos: blancos con franja de su color, no un bloque de color. */
+.recruiting-module :is([data-aviso="159"], [data-aviso="211"], [data-aviso="incompleto"], [data-aviso="licencia"]) {
+  background: var(--card) !important; border: 1px solid var(--line) !important; border-left: 3px solid var(--amber) !important;
+  border-radius: 6px !important; padding: 5px 10px !important; margin: 0 0 8px !important; color: var(--ink-soft);
+}
+
+/* Candidatos: contadores por etapa y «Registrar candidato» en UNA fila; cada candidato en dos líneas cortas. */
+.recruiting-module [data-pantalla="candidatos"] { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0 8px; }
+.recruiting-module [data-pantalla="candidatos"] > * { flex: 1 1 100%; min-width: 0; }
+.recruiting-module [data-pantalla="candidatos"] > .stat-pills { flex: 0 1 auto; margin-bottom: 10px; gap: 2px; padding: 3px; background: var(--track); border-radius: 9px; }
+.recruiting-module [data-pantalla="candidatos"] > .card:nth-child(2) { flex: 0 1 auto; padding: 6px 10px; }
+.recruiting-module [data-pantalla="candidatos"] > .card:nth-child(2) h2 { font-size: 13px; }
+.recruiting-module [data-pantalla="candidatos"] .stat-pill { display: inline-flex; align-items: baseline; gap: 6px; padding: 5px 10px; min-width: 0; border: 0; border-radius: 7px; background: transparent; }
+.recruiting-module [data-pantalla="candidatos"] .stat-pill b { display: inline; font-size: 15px; font-variant-numeric: tabular-nums; }
+.recruiting-module [data-pantalla="candidatos"] .stat-pill span { font-size: 12px; color: var(--ink-soft); }
+.recruiting-module [data-pantalla="candidatos"] button.stat-pill:hover { background: var(--card); }
+.recruiting-module [data-pantalla="candidatos"] button.stat-pill.on { background: var(--card); box-shadow: 0 0 0 1px var(--line) !important; }
+.recruiting-module [data-pantalla="candidatos"] .card h2 { font-size: 14px; }
+.recruiting-module [data-pantalla="candidatos"] .filters { margin: 8px 0 6px !important; }
+.recruiting-module [data-pantalla="candidatos"] .card > div[style] { margin-bottom: 6px !important; }
+.recruiting-module [data-pantalla="candidatos"] .card input:not([type="checkbox"]), .recruiting-module [data-pantalla="candidatos"] .card select { padding: 6px 10px; }
+.recruiting-module [data-pantalla="candidatos"] .bulk-bar { padding: 4px 10px; margin-bottom: 6px; }
+.recruiting-module .cand-row { padding: 6px 12px; margin-bottom: 4px; border-radius: 8px; }
+.recruiting-module .cand-row .avatar { width: 30px; height: 30px; flex: 0 0 30px; font-size: 12px; }
+.recruiting-module .cand-row .cand-head > div > input[type="checkbox"] { margin-top: 6px !important; }
+.recruiting-module .cand-row .cand-name { font-size: 14px; }
+.recruiting-module .cand-meta { margin-top: 1px; gap: 10px; font-size: 12px; }
+.recruiting-module .cand-row .badge { padding: 2px 8px; }
+.recruiting-module .cand-row .cand-actions { margin-top: 6px; }
+
+/* El expediente: la misma ficha con menos aire; etiquetas en minúscula. */
+.recruiting-module .modal[data-dialogo="ficha"] .ficha-cabecera { padding: 10px 0 8px; }
+.recruiting-module .modal[data-dialogo="ficha"] .grid { gap: 8px 12px; }
+.recruiting-module .modal[data-dialogo="ficha"] label { text-transform: none; letter-spacing: 0; margin-bottom: 2px; }
+.recruiting-module .modal[data-dialogo="ficha"] :is(input:not([type="checkbox"]), select, textarea) { padding: 6px 10px; }
+.recruiting-module .modal[data-dialogo="ficha"] .sec-head { margin: 10px 2px 6px; }
+.recruiting-module .modal[data-dialogo="ficha"] .sec-title { font-size: 15px; }
+
+/* Teléfono: título y acciones en una fila, pastillas en una línea que se desliza, filas de 44 px para el dedo. */
+@media (max-width: 760px) {
+  .recruiting-module > .wrap { padding: 8px 8px 48px; }
+  .recruiting-module .page-head { flex-wrap: nowrap; }
+  .recruiting-module .page-head h2 { font-size: 16px; white-space: nowrap; }
+  .recruiting-module .page-head > div { flex-wrap: nowrap !important; overflow-x: auto; }
+  .recruiting-module .page-head .btn { padding: 6px 9px; font-size: 12px; white-space: nowrap; }
+  .recruiting-module .card[data-tabla-a-todo-el-ancho] { padding: 8px; }
+  .recruiting-module .card[data-tabla-a-todo-el-ancho] > .filters-oneline { flex-wrap: nowrap; }
+  .recruiting-module .card[data-tabla-a-todo-el-ancho] > .filters:not(.filters-oneline) { flex: 1 1 100%; }
+  .recruiting-module table.orders tbody td { height: 44px; }
+  .recruiting-module [data-pantalla="candidatos"] > .stat-pills { flex-wrap: nowrap; overflow-x: auto; }
+  .recruiting-module [data-pantalla="candidatos"] .stat-pill { flex: 0 0 auto; }
+  .recruiting-module [data-pantalla="candidatos"] > .card:nth-child(2) { flex: 1 1 100%; }
+  .recruiting-module [data-pantalla="candidatos"] .filters { flex-wrap: nowrap; overflow-x: auto; }
+  .recruiting-module [data-pantalla="candidatos"] .filters .chip { flex: 0 0 auto; }
+  .recruiting-module .cand-row { padding: 8px 10px; }
+  .recruiting-module .cand-row .star { min-width: 32px; min-height: 32px; }
+}

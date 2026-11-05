@@ -228,7 +228,7 @@ export default function CandidatesPage() {
   if (esGerenteDeTienda(me?.role)) return <VistaDelGerente />;
 
   return (
-    <div>
+    <div data-pantalla="candidatos">
       <div className="stat-pills">
         <button
           className={"stat-pill" + (filter === "all" ? " on" : "")}
