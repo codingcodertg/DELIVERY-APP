@@ -3363,7 +3363,7 @@ export function OrderModal({
                   <div className="hint" style={{ marginTop: 0, marginBottom: 4 }}>
                     {t("Ordered address:", "Dirección del pedido:")} {existing?.delivery_address || "—"}
                   </div>
-                  {/* D-NEXT: lista de tiendas/bodegas (Ernesto: «I also want dropdowns so I can just select the store»).
+                  {/* D-882: lista de tiendas/bodegas (Ernesto: «I also want dropdowns so I can just select the store»).
                       Elegir una llena el mismo texto de abajo (`delivered_address`); escribir a mano sigue valiendo. No hay
                       campo de punto para la entrega (`pod_lat/lng` es el GPS del chofer y no se pisa). */}
                   {lugaresEntrega.length > 0 && (

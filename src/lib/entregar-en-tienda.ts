@@ -1,6 +1,6 @@
 import type { NamedLocation, Settings } from "./types";
 
-/** D-NEXT: «Entregué en otra dirección» con lista de tiendas/bodegas. Ernesto (chofer): «I also want dropdowns so I
+/** D-882: «Entregué en otra dirección» con lista de tiendas/bodegas. Ernesto (chofer): «I also want dropdowns so I
  *  can just select the store». Las opciones son las tiendas de Datos (`settings.stores`, bodegas incluidas) y los puntos
  *  de recogida guardados (`pickup_locations`), sin repetir nombre y solo los que tienen dirección: elegir una llena el
  *  mismo texto libre de siempre (`delivered_address`), así informes e historial no cambian. */

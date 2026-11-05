@@ -50822,3 +50822,13 @@ Sello `deliveries` 1.545.0; repo 1.735.0.
 **Qué cambia (`texto-grande.css`, `TextoGrande.tsx`, `texto-grande.ts`):** con rol `driver` y el ajuste encendido (por defecto), `<html data-texto-grande=on>`: texto base 18 px; dirección, factura, ventana, tarimas y número de parada 19–20 px en negrita; cada acción de la parada en su fila de 60 px a todo el ancho; botones de las ventanas ≥56 px apilados; casillas de 28 px dentro de una fila de 56 px; campos de 18 px. Alcanza Mi ruta, la lista del chofer, la orden vista por el chofer y «Confirmar entrega». Botón «🔠 Texto grande: Sí/No» en Mi ruta (por usuario, en el navegador). La pestaña Chofer del admin lo enseña igual. Otros roles, sin cambios (D-855).
 
 Sello `deliveries` 1.546.0; repo 1.736.0.
+
+## D-882 · Entregué en otra dirección: elegir la tienda o bodega de una lista
+
+**Fecha:** 2026-11-05 · Sin migración · Hecho por un agente en `feat/entrega-en-tienda-lista`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (Ernesto Castillo, chofer, solicitud `961d06d3`):** «good that I can enter address in case it's not a store but I also want dropdowns so I can just select the store».
+
+**Qué cambia (`entregar-en-tienda.ts`, `OrderModal`):** al marcar «📍 Entregué en otra dirección», una lista «🏬 Elija una tienda o bodega…» (tiendas de Ajustes, bodegas incluidas, y puntos de recogida guardados; sin repetidos ni los que no tienen dirección) llena el mismo `delivered_address` que se escribe a mano, así que reportes, historial y el aviso de dirección distinta siguen igual; escribir a mano sigue valiendo. 56 px y 18 px de texto (texto grande, D-881). El punto de la tienda no se guarda: las órdenes no tienen campo para él y `pod_lat/lng` es el GPS real del chofer.
+
+Sello `deliveries` 1.547.0; repo 1.737.0.
