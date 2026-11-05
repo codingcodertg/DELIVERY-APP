@@ -14,6 +14,8 @@ import { routeOrder } from "@/lib/dispatch";
 import { OrdersTable } from "@/components/OrdersTable";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { ShiftClock } from "@/components/ShiftClock";
+import { InterruptorTextoGrande } from "@/components/TextoGrande";
+import { useTextoGrande } from "@/lib/texto-grande";
 import { TomarFacturaAjena } from "@/components/TomarFacturaAjena";
 import { seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
@@ -64,6 +66,8 @@ function RutaDeUnChoferParaElAdmin() {
   const elegir = (id: string) => { setGuardado(id); guardaChoferVisto(() => window.localStorage, quienMira, id); };
   // Lo de antes, plegado: no se monta hasta que se abre (una tabla con todas las órdenes, escondida, sería trabajo de más).
   const [verLista, setVerLista] = useState(false);
+  // D-NEXT: la columna de teléfono enseña la ruta como la ve el chofer, también en grande; el admin lo apaga en Mi ruta.
+  const [textoGrande] = useTextoGrande(me?.id);
 
   return (
     <>
@@ -89,10 +93,12 @@ function RutaDeUnChoferParaElAdmin() {
             </div>
             {/* `key`: otro chofer es otra pantalla. Sin él, el día elegido y la ruta trazada en el mapa del anterior se
                 quedarían puestos sobre las paradas del nuevo. */}
+            <div data-texto-grande={textoGrande ? "on" : undefined}>
             <div className="como-telefono" data-como-telefono>
               <RutaDeUnChofer chofer={elegido}>
                 <MyRoutePage key={elegido.id} />
               </RutaDeUnChofer>
+            </div>
             </div>
           </>
         )}
@@ -186,6 +192,7 @@ function ListaDelChofer({ plegada = false }: { plegada?: boolean }) {
           <h2>{t("Driver", "Chofer")} <span className="count-tag">{rows.length}</span></h2>
         )}
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {me.role === "driver" && <InterruptorTextoGrande />}
           {me.role !== "driver" && (
             <label style={{ margin: 0, textTransform: "none", letterSpacing: 0, display: "flex", alignItems: "center", gap: 8 }}>
               {t("Store", "Tienda")}

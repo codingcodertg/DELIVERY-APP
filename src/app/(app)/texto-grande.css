@@ -1,0 +1,109 @@
+/* ============================================================================================================================
+   «Texto grande» del chofer (D-NEXT). El dueño, con la solicitud de Ernesto Castillo («This is too small, didnt even see it»):
+   «los choferes son señores mayores, necesitan vistas más grandes».
+
+   TODO cuelga de `[data-texto-grande="on"]`, que pone `<AplicaTextoGrande>` en `<html>` SOLO para el rol driver (y la pestaña
+   «Chofer» del admin en su columna de teléfono, `.como-telefono`). Ningún otro rol lo recibe: la oficina sigue con Entregas
+   compacta (D-855). Se apaga con «🔠 Texto grande» en Mi ruta.
+
+   Solo variables de tema (claro y oscuro salen solos). Muchas filas de Mi ruta llevan tamaños en línea (y las pruebas leen
+   ese fuente), así que aquí se gana con `!important` dentro del ámbito en vez de tocar el JSX.
+   - Letra base 18 px (antes 13–14); lo clave —dirección, factura, ventana, número de parada, pallets— 19–20 px y en negrita.
+   - Botones de acción: al menos 56 px de alto, a todo el ancho, etiqueta de 18 px; separación de 10 px entre ellos.
+   - El gris de las pistas sube a `--ink-soft` (más contraste) donde lleva información del chofer.
+   ========================================================================================================================== */
+
+html[data-texto-grande="on"] body { font-size: 18px; line-height: 1.4; }
+
+[data-texto-grande="on"] .page-head h2 { font-size: 24px !important; }
+[data-texto-grande="on"] .hint { font-size: 16px; color: var(--ink-soft); }
+[data-texto-grande="on"] .empty { font-size: 18px; }
+[data-texto-grande="on"] .banner { font-size: 17px; }
+[data-texto-grande="on"] .section-label { font-size: 15px; }
+[data-texto-grande="on"] label { font-size: 15px; }
+[data-texto-grande="on"] input,
+[data-texto-grande="on"] select,
+[data-texto-grande="on"] textarea { font-size: 18px; min-height: 52px; }
+[data-texto-grande="on"] textarea { min-height: 96px; }
+
+/* Casillas: la de «Entregué en otra dirección» era la que Ernesto no vio. 28 px y su rótulo a 18 px, todo él tocable. */
+[data-texto-grande="on"] input[type="checkbox"],
+[data-texto-grande="on"] input[type="radio"] { width: 28px !important; height: 28px; min-height: 0; flex: 0 0 auto; accent-color: var(--accent); }
+[data-texto-grande="on"] label:has(> input[type="checkbox"]) {
+  font-size: 18px !important; font-weight: 700; color: var(--text); min-height: 56px; padding: 8px 12px; gap: 12px !important;
+  border: 2px solid var(--line); border-radius: 12px; background: var(--card);
+}
+
+/* Botones: los de acción, grandes; los chicos (btn-sm, chips, Ayer/Hoy/Mañana) al menos 48 px. */
+[data-texto-grande="on"] .btn { font-size: 18px !important; min-height: 56px !important; padding: 10px 16px; border-radius: 12px; justify-content: center; }
+[data-texto-grande="on"] .btn-sm { font-size: 16px !important; min-height: 48px !important; padding: 8px 12px; }
+[data-texto-grande="on"] .chip { font-size: 16px; min-height: 48px; padding: 8px 14px; display: inline-flex; align-items: center; }
+[data-texto-grande="on"] .viewtoggle .vt { font-size: 18px; padding: 12px 18px; min-height: 52px; }
+[data-texto-grande="on"] .modal-actions { gap: 10px; flex-wrap: wrap; }
+[data-texto-grande="on"] .modal-actions .btn { flex: 1 1 100%; }
+[data-texto-grande="on"] .modal { padding: 20px 16px; }
+[data-texto-grande="on"] .modal h3 { font-size: 22px; }
+
+/* ---- Mi ruta ---- */
+[data-texto-grande="on"] .entregas-mi-ruta .card { padding: 16px; }
+[data-texto-grande="on"] .entregas-mi-ruta .card b { font-size: 20px !important; }
+[data-texto-grande="on"] .entregas-mi-ruta [data-dia-de-mi-ruta] { display: flex; }
+[data-texto-grande="on"] .entregas-mi-ruta [data-dia-de-mi-ruta] .vt { flex: 1 1 0; }
+[data-texto-grande="on"] .entregas-mi-ruta [data-buscador-de-mi-ruta] input { max-width: none !important; }
+[data-texto-grande="on"] .entregas-mi-ruta [data-selector-de-lista] { gap: 10px !important; }
+
+/* La fila de una parada: más aire, número de parada grande, factura y dirección grandes y en negrita. */
+[data-texto-grande="on"] .entregas-mi-ruta .bar-list { gap: 14px; }
+[data-texto-grande="on"] .acct-row[data-fila-de-ruta] {
+  font-size: 18px; padding: 14px 12px; gap: 12px; border-width: 2px; border-radius: 14px; line-height: 1.35;
+}
+[data-texto-grande="on"] .acct-row[data-fila-de-ruta] > span > button > span:first-child,
+[data-texto-grande="on"] .acct-row[data-fila-de-ruta] > span > span:first-child { font-size: 20px; font-weight: 800; }
+[data-texto-grande="on"] .acct-row[data-fila-de-ruta] .hint { font-size: 18px; color: var(--text); margin-top: 4px; }
+[data-texto-grande="on"] .acct-row[data-tipo-de-fila="D"] > span > button > span:nth-child(2) { font-weight: 700; }
+[data-texto-grande="on"] .acct-row[data-fila-de-ruta] [data-cuenta] { font-weight: 800; }
+[data-texto-grande="on"] .acct-row[data-fila-de-ruta] [data-abre-la-parada] { min-width: 44px !important; }
+[data-texto-grande="on"] .numero-de-parada { min-width: 40px; height: 40px; border-radius: 20px; font-size: 20px; margin-right: 0; }
+[data-texto-grande="on"] .sema { font-size: 14px; padding: 3px 10px; }
+
+/* Los botones de la parada (Llegué · Recogido · Entregado · Problema · Rechazado): uno por renglón, a todo el ancho, el
+   icono al lado de la palabra. Tres en fila a 390 px con letra de 18 no caben sin partir la palabra. */
+[data-texto-grande="on"] [data-acciones-de-parada] { flex-direction: column; gap: 10px !important; margin-top: 12px !important; }
+[data-texto-grande="on"] [data-acciones-de-parada] .btn,
+[data-texto-grande="on"] .btn[data-accion] {
+  width: 100%; flex: 0 0 auto !important; flex-direction: row !important; gap: 10px !important;
+  min-height: 60px !important; font-size: 19px !important; font-weight: 800; padding: 10px 14px !important;
+}
+[data-texto-grande="on"] .btn[data-accion="llegue"] { margin-top: 10px; }
+[data-texto-grande="on"] [data-motivo-apagado],
+[data-texto-grande="on"] [data-marca-de-parada],
+[data-texto-grande="on"] [data-llegada="hecha"] { font-size: 16px !important; }
+
+/* La ficha de la orden abierta por el chofer: dirección, cliente, teléfono y ventana se leen de lejos. */
+[data-texto-grande="on"] .modal.ficha-orden,
+[data-texto-grande="on"] .modal { font-size: 18px; }
+[data-texto-grande="on"] .modal .detail-grid { gap: 14px; }
+[data-texto-grande="on"] .modal .detail-grid > div { font-size: 18px; }
+[data-texto-grande="on"] .modal .detail-grid b,
+[data-texto-grande="on"] .modal .detail-grid strong { font-size: 19px; }
+[data-texto-grande="on"] .modal a[href^="tel:"] { font-size: 20px; font-weight: 800; }
+
+/* La pantalla del chofer dentro de la ficha (`drv-*`): las dos paradas, el contacto, el teléfono. */
+[data-texto-grande="on"] .drv-banner-title { font-size: 21px; }
+[data-texto-grande="on"] .drv-banner-sub { font-size: 18px; font-weight: 700; color: var(--text); }
+[data-texto-grande="on"] .drv-banner-step { width: 40px; height: 40px; flex-basis: 40px; font-size: 20px; }
+[data-texto-grande="on"] .drv-k { font-size: 14px; color: var(--ink-soft); }
+[data-texto-grande="on"] .drv-v { font-size: 20px; }
+[data-texto-grande="on"] .drv-addr { font-size: 20px; }
+[data-texto-grande="on"] .drv-call,
+[data-texto-grande="on"] .drv-tel { font-size: 20px !important; min-height: 60px !important; }
+[data-texto-grande="on"] .drv-run { gap: 12px; }
+[data-texto-grande="on"] .drv-run > button { flex: 1 1 100%; min-height: 60px; }
+
+/* Las tres de la foto (Varias · Una · Galería): más altas y con la palabra legible. */
+[data-texto-grande="on"] .foto-opcion { min-height: 76px; }
+[data-texto-grande="on"] .foto-opcion span { font-size: 16px; }
+
+/* La lista del chofer (pestaña «Chofer») y el reloj de turno. */
+[data-texto-grande="on"] .drv-inv { font-size: 20px; }
+[data-texto-grande="on"] .drv-notes { font-size: 18px; }
