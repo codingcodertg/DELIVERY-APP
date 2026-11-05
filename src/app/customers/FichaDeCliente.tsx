@@ -142,7 +142,7 @@ export function TarjetasDeLaFicha({ cliente, form, editando = false, errores = [
               : cliente && <ContactosParaVer key={cliente.id} contactos={deLaFila} redes={redesDe(cliente)} direccionDeLaCuenta={cliente.address} t={t} />)}
             {filas.map(linea)}
           </section>
-          {/* D-NEXT (D-858): al crear o editar, «🌐 Redes sociales» va en su tarjeta justo debajo de «Cuenta» (columna 1),
+          {/* D-868 (D-858): al crear o editar, «🌐 Redes sociales» va en su tarjeta justo debajo de «Cuenta» (columna 1),
               que en el alta del vendedor es corta; antes iba al pie de «Contacto» (D-682). Mismos campos y datos. */}
           {grupo.key === "cuenta" && editando && redes && onRedes && <RedesParaEditar redes={redes} onCambia={onRedes} t={t} />}
           </Fragment>
@@ -415,7 +415,7 @@ function ContactosParaVer({ contactos, redes = {}, direccionDeLaCuenta = null, t
   );
 }
 
-/** Las siete redes (D-682), cada una con su casilla: la URL entera o solo el usuario. Al editar, en su tarjeta bajo «Cuenta» (D-NEXT). */
+/** Las siete redes (D-682), cada una con su casilla: la URL entera o solo el usuario. Al editar, en su tarjeta bajo «Cuenta» (D-868). */
 function RedesParaEditar({ redes, onCambia, t }: { redes: RedesEnEdicion; onCambia: (r: RedesEnEdicion) => void; t: T }) {
   return (
     <fieldset className="space-y-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-grupo="redes" data-redes-editando>

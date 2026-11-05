@@ -79,7 +79,7 @@ describe("la pestaña «Socials» de la tarjeta «Contacto»", () => {
     expect(html).not.toContain("Sin contacto todavía");
   });
   it("editando, las siete en su tarjeta bajo «Cuenta», con lo guardado; en un alta, vacías", () => {
-    // D-NEXT (D-858): en su tarjeta, justo debajo de «Cuenta» en la columna 1; ya no al pie de «Contacto».
+    // D-868 (D-858): en su tarjeta, justo debajo de «Cuenta» en la columna 1; ya no al pie de «Contacto».
     const entera = pinta({ ...galeria, socials }, true);
     const html = tarjeta(entera, "redes");
     for (const k of REDES) expect(html).toContain(`data-red-editable="${k}"`);
