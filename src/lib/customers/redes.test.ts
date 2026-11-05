@@ -78,13 +78,18 @@ describe("la pestaña «Socials» de la tarjeta «Contacto»", () => {
     expect(html).not.toContain('data-red="instagram"');
     expect(html).not.toContain("Sin contacto todavía");
   });
-  it("editando, las siete en su apartado, con lo guardado; en un alta, vacías", () => {
-    const html = tarjeta(pinta({ ...galeria, socials }, true), "contacto");
+  it("editando, las siete en su tarjeta bajo «Cuenta», con lo guardado; en un alta, vacías", () => {
+    // D-868 (D-858): en su tarjeta, justo debajo de «Cuenta» en la columna 1; ya no al pie de «Contacto».
+    const entera = pinta({ ...galeria, socials }, true);
+    const html = tarjeta(entera, "redes");
     for (const k of REDES) expect(html).toContain(`data-red-editable="${k}"`);
     expect(html).toMatch(/data-red-editable="facebook" value="rdztile"/);
     expect(html).toMatch(/data-red-editable="instagram" value=""/);
-    expect(html.indexOf("data-redes-editando")).toBeGreaterThan(html.indexOf("data-contactos-editando"));
-    expect(tarjeta(pinta(null), "contacto")).toContain('data-red-editable="tiktok"');
+    expect(tarjeta(entera, "contacto")).not.toContain("data-red-editable");
+    const col1 = entera.slice(entera.indexOf('data-columna="1"'), entera.indexOf('data-columna="2"'));
+    expect(col1.indexOf('data-grupo="redes"')).toBeGreaterThan(col1.indexOf('data-grupo="cuenta"'));
+    expect(col1.indexOf('data-grupo="redes"')).toBeLessThan(col1.indexOf('data-grupo="estado"'));
+    expect(tarjeta(pinta(null), "redes")).toContain('data-red-editable="tiktok"');
   });
   it("puerta: lo escrito entra en el parche al guardar, y cancelar lo devuelve a lo guardado", () => {
     const c = readFileSync("src/app/customers/FichaDeCliente.tsx", "utf8");

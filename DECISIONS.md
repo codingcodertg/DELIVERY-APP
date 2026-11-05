@@ -50674,3 +50674,15 @@ Sello `customers` 0.47.0; repo 1.721.0.
 Sello `customers` 0.48.0; repo 1.722.0.
 
 **Pruebas:** `customers/avisos-de-solicitud.test.ts`; `solicitud-de-cliente`, `help-thread`, `solicitud-de-asignacion` y `ensenanza-general` puestas al día.
+
+## D-868 · Clientes: Redes en su tarjeta, bajo Cuenta
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `fix/clientes-redes-bajo-cuenta`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño, con captura del alta de un vendedor):** «para hacerlo más eficiente, la parte de social que vaya abajo de cuenta para aprovechar el espacio».
+
+**Qué cambia (`FichaDeCliente.tsx`, `TarjetasDeLaFicha`):** las siete redes salen del pie de la tarjeta de Contacto a su propia tarjeta, justo bajo Cuenta y antes de Estado e historial, en el alta y al editar, para todos los roles; en ventas llena el hueco bajo «Vendedor de comisión». Mismos campos, datos y guardado; la vista de solo lectura (pestaña «🌐 Redes» en Contacto) no cambia. En el teléfono, Redes queda antes de Contacto.
+
+Sello `customers` 0.49.0; repo 1.723.0.
+
+**Pruebas:** `customers/redes.test.ts` puesta al día.
