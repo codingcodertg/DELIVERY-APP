@@ -6,6 +6,7 @@ import { ConfirmProvider } from "@/lib/confirm";
 import { LocalApp } from "@/components/LocalApp";
 import { TopBar } from "@/components/TopBar";
 import { VersionFooter } from "@/components/VersionFooter";
+import { AplicaTextoGrande } from "@/components/TextoGrande";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DriverGate } from "@/components/DriverGate";
 import { AssignmentPing } from "@/components/AssignmentPing";
@@ -16,6 +17,8 @@ import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 // La capa visual de Entregas (Órdenes y la ficha de la orden), colgada de `.entregas-ordenes` y `.modal.ficha-orden`.
 import "./entregas.css";
+// «Texto grande» del chofer (D-881): todo colgado de `[data-texto-grande="on"]`, que solo se pone para el rol driver.
+import "./texto-grande.css";
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
@@ -70,6 +73,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <ConfirmProvider>
       <DataProvider me={me}>
         <TopBar me={me} />
+        {/* D-881: letra y botones grandes para el chofer (lo apaga en Mi ruta). Otros roles, sin cambios. */}
+        <AplicaTextoGrande />
         {/* Buzzes the phone when a driver is handed a stop. Renders nothing. */}
         <AssignmentPing role={me.role} />
         {/* Records which phone to push to. Inert outside the APK. */}

@@ -48,6 +48,7 @@ import { rutaDeSoloLectura } from "@/lib/vista-de-chofer";
 import { AvisoDeInspeccion } from "@/components/inspeccion/AvisoDeInspeccion";
 import { muestraElPlanEnMiRuta } from "@/lib/barra-de-entregas";
 import { TomarFacturaAjena } from "@/components/TomarFacturaAjena";
+import { InterruptorTextoGrande } from "@/components/TextoGrande";
 
 // ============================================================
 // "My route" — the driver's read-only copy of what logistics planned.
@@ -432,6 +433,8 @@ export default function MyRoutePage() {
       <div className="page-head">
         <h2>🧭 {t("My route", "Mi ruta")}</h2>
         <span className="hint">{fmtDate(dia)}</span>
+        {/* D-881: «Texto grande», encendido por defecto para el chofer; aquí lo apaga (o el admin, en su columna de teléfono). */}
+        {(me.role === "driver" || ajeno) && <InterruptorTextoGrande />}
       </div>
       {/* D-518: «Haz tu inspección pre-viaje» mientras hoy no haya una. Avisa, no bloquea. Solo en su propia ruta. */}
       {!ajeno && <AvisoDeInspeccion />}

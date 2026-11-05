@@ -50812,3 +50812,13 @@ Sello `customers` 0.52.0; repo 1.734.0.
 - La campana de Time Tracker (`clockin.notifications`) no cambia.
 
 Sello `deliveries` 1.545.0; repo 1.735.0.
+
+## D-881 · Choferes: vista grande (texto y botones) por defecto
+
+**Fecha:** 2026-11-05 · Sin migración · Hecho por un agente en `feat/chofer-vista-grande`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (Ernesto Castillo, chofer, solicitud `8e1201eb`, en «Confirmar entrega»):** «this is too small, didn't even see it» (la casilla «Entregué en otra dirección»). El dueño: «los conductores ya son señores, ocupan las vistas más grandes».
+
+**Qué cambia (`texto-grande.css`, `TextoGrande.tsx`, `texto-grande.ts`):** con rol `driver` y el ajuste encendido (por defecto), `<html data-texto-grande=on>`: texto base 18 px; dirección, factura, ventana, tarimas y número de parada 19–20 px en negrita; cada acción de la parada en su fila de 60 px a todo el ancho; botones de las ventanas ≥56 px apilados; casillas de 28 px dentro de una fila de 56 px; campos de 18 px. Alcanza Mi ruta, la lista del chofer, la orden vista por el chofer y «Confirmar entrega». Botón «🔠 Texto grande: Sí/No» en Mi ruta (por usuario, en el navegador). La pestaña Chofer del admin lo enseña igual. Otros roles, sin cambios (D-855).
+
+Sello `deliveries` 1.546.0; repo 1.736.0.
