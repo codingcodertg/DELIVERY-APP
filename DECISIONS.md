@@ -50644,3 +50644,17 @@ Sello `customers` 0.45.0; repo 1.719.0.
 Sello `customers` 0.46.0; repo 1.720.0.
 
 **Pruebas:** `customers/revision-de-solicitud.test.ts`; `solicitud-de-cliente` y `edicion-como-solicitud` puestas al día.
+
+## D-866 · Clientes: el filtro busca en todas las filas de cada empresa, no solo en la que se pinta
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `fix/clientes-filtra-todo`, fusionado por el orquestador (laptop nueva). Amplía D-853.
+
+**Pedido (el dueño):** «cuando en customer quiero filtrar, que me filtre todo, no solo lo que se mira, porque si abajo hay más ocultos eso no está contando para el filtro».
+
+**Causa medida:** no eran las filas tras «Ver más» (se filtra y ordena la lista entera antes de paginar; se cargan las 1.353 filas). Eran las otras filas de cada empresa: el filtro de columna y su menú miraban solo la fila que la empresa pinta, así que un valor que solo tenía otra tienda de la misma empresa no se encontraba (prueba: Acme pinta NEW en Pharr y tiene LOST en Brownsville; «Estado = LOST» la dejaba fuera). En producción, 93 empresas vivas tienen más de una fila; 65 con estados distintos y 45 con vendedores distintos.
+
+**Qué cambia (`cabeceras.ts` `filasQuePasan`, `lo-que-se-ve.ts`):** cada filtro de columna mira todas las filas de la empresa (tras búsqueda y pastillas); la empresa sale si alguna casa, y la línea pinta una fila que casa (la que ya pintaba si casa; si no, la más completa), así que lo que se ve es lo que casó: la regla de tienda de D-853 extendida a todas las columnas. Las opciones del menú salen de todas las filas que casan. Se mantiene de D-853: columnas escondidas no filtran, el filtro de Tienda y su relación con la pastilla, «N.º tiendas» por empresa.
+
+Sello `customers` 0.47.0; repo 1.721.0.
+
+**Pruebas:** `lo-que-se-ve.test.ts` (fallaban antes del arreglo); tres de `cabeceras.test.ts` puestas al nuevo resultado.

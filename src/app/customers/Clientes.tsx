@@ -32,7 +32,7 @@ import { columnasDelVendedor, conLosEncontrados, puedeAbrirCliente, RETARDO_DE_B
 import type { Parche } from "@/lib/customers/reglas";
 import { agrupaEnEmpresas, empresasPorTienda, filasDeLaEmpresa, tiendasDeLaEmpresa } from "@/lib/customers/empresas";
 import { alPulsarCabecera, esOrdenInicial, MAX_NIVELES, nivelDeOrden, opcionesDeColumna, ordenDesdeMenu, ORDENES_INICIALES } from "@/lib/customers/cabeceras";
-import { conLaTiendaFiltrada, empresasQueSeVen, filtrosQueSeVen, ordenesQueSeVen } from "@/lib/customers/lo-que-se-ve";
+import { empresasQueSeVen, filtrosQueSeVen, ordenesQueSeVen } from "@/lib/customers/lo-que-se-ve";
 import {
   alternaColumna, celda, claveDeColumnasDeClientes, CLAVE_HEREDADA_DE_COLUMNAS, colocaColumnaDeClientes, columnasAPintar, columnasDelSelector,
   estadoClase, estadoLabel, estaArchivado, FILTRO_INICIAL, motivoLabel, mueveColumnaDeClientes, nombreDeTienda,
@@ -539,7 +539,7 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
         (() => {
           const col = colsVisibles.find((c) => c.key === abierta);
           if (!col) return null;
-          const opciones = opcionesDeColumna(conLaTiendaFiltrada(empresas, filtrosVistos), filtrosVistos, abierta, t);
+          const opciones = opcionesDeColumna(empresas, filtrosVistos, abierta, t);
           const nivel = nivelDeOrden(ordenesVistas, abierta);
           return (
             <ColumnFilterMenu

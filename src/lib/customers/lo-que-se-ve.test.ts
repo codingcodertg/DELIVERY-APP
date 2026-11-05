@@ -82,8 +82,30 @@ describe("la pantalla usa todo esto", () => {
   const pantalla = readFileSync("src/app/customers/Clientes.tsx", "utf8").split("\r\n").join("\n");
   it("la lista, las casillas y «Filtrado por» salen de las columnas que se ven", () => {
     expect(pantalla).toContain("empresasQueSeVen(empresas, filtrosVistos, ordenesVistas, clavesVistas)");
-    expect(pantalla).toContain("opcionesDeColumna(conLaTiendaFiltrada(empresas, filtrosVistos), filtrosVistos, abierta, t)");
+    expect(pantalla).toContain("opcionesDeColumna(empresas, filtrosVistos, abierta, t)");
     expect(pantalla).toContain("columnasFiltradas(filtrosVistos, clavesVistas)");
     expect(pantalla).toContain("nivelDeOrden(ordenesVistas, c.key)");
+  });
+});
+
+describe("el filtro mira TODA la lista y todas las filas de cada empresa (D-866)", () => {
+  // El dueño, 2026-11-04: «cuando filtro, que filtre TODO, no solo lo que se ve; si hay más ocultos abajo, no los está
+  // contando». 150 empresas (más que una tanda de «Ver más»); la última tiene dos tiendas y su vendedor «QQ» solo está
+  // en la fila de Brownsville, que no es la que se pinta.
+  const muchas: Cliente[] = Array.from({ length: 150 }, (_, i) => base(100 + i, { account: `Cliente ${String(i).padStart(3, "0")}`, rep_store: "AA", phone: "1" }));
+  muchas.push(
+    base(900, { account: "Zeta Pisos", store: "PHR", company_id: "ZETA", rep_store: "AA", phone: "956-555-0900", terms: "COD", status_store: "NEW" }),
+    base(901, { account: "Zeta Pisos", store: "BRO", company_id: "ZETA", rep_store: "QQ" }),
+  );
+  const todas = agrupaEnEmpresas(muchas, FILTRO_INICIAL);
+  it("un vendedor que solo está en una fila escondida de la empresa la trae, pintada con esa fila", () => {
+    const e = empresasQueSeVen(todas, { rep_store: new Set(["QQ"]) }, ORDENES_INICIALES, CON_TODO);
+    expect(pintadas(e)).toEqual([901]);
+  });
+  it("las casillas del menú ofrecen ese valor, aunque ninguna fila pintada lo tenga", () => {
+    expect(opcionesDeColumna(todas, {}, "rep_store", t).map((o) => o.label)).toEqual(["AA", "QQ"]);
+  });
+  it("cuenta todas las que coinciden, no solo la primera tanda", () => {
+    expect(empresasQueSeVen(todas, { rep_store: new Set(["AA"]) }, ORDENES_INICIALES, CON_TODO)).toHaveLength(151);
   });
 });

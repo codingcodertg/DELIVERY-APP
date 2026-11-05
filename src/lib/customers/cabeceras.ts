@@ -1,7 +1,7 @@
 import { claveDeFiltro, SIN_VALOR, type FiltrosPorColumna, type ValorDeCelda } from "@/lib/orden-y-filtro";
 import { codigoDeTienda } from "./duplicados";
-import { tiendasDeLaEmpresa, type Empresa } from "./empresas";
-import { ORDEN_INICIAL, textoDeValor, valorDeColumna, type ClaveDeColumna, type Orden } from "./reglas";
+import { principalDe, tiendasDeLaEmpresa, type Empresa } from "./empresas";
+import { ORDEN_INICIAL, textoDeValor, valorDeColumna, type Cliente, type ClaveDeColumna, type Orden } from "./reglas";
 
 type T = (en: string, es: string) => string;
 
@@ -73,22 +73,71 @@ export function valoresDeLaColumna(e: Empresa, key: ClaveDeColumna): ValorDeCeld
   return [typeof v === "number" || typeof v === "string" ? v : null];
 }
 
+/** El valor de UNA fila en una columna, como lo enseña la celda («Actualizado» por día). */
+function valorDeLaFila(c: Cliente, key: ClaveDeColumna): ValorDeCelda {
+  const v = valorDeColumna(c, key);
+  if (key === "updated_at") return typeof v === "string" ? v.slice(0, 10) : null;
+  return typeof v === "number" || typeof v === "string" ? v : null;
+}
+
 /**
- * Las empresas que pasan TODOS los filtros de columna puestos (una columna pasa si alguno de sus valores está marcado).
+ * D-866. Las filas de una empresa (de las que pasan los filtros de arriba) que pasan TODOS los filtros de columna
+ * puestos. El dueño, 2026-11-04: «cuando filtro, que filtre TODO, no solo lo que se ve; si hay más ocultos abajo, no
+ * los está contando». Antes cada columna miraba solo la fila que se pinta (`principal`): una empresa con la fila de
+ * Pharr NEW y la de Brownsville LOST no salía con «Estado = LOST», aunque la tenía. Ahora vale cualquier fila de la
+ * empresa, y la que se pinta pasa a ser una de las que pasan (D-853: lo que se ve es lo que coincide).
+ * - «Tienda»: la empresa tiene que tener una fila en una tienda marcada; si alguna de las que pasan los filtros de arriba
+ *   lo está, solo valen esas. Si no (la pastilla «Pharr» arriba y «Brownsville» en la columna), manda la de arriba.
+ * - «N.º tiendas» es de la empresa, no de una fila.
+ */
+export function filasQuePasan(e: Empresa, filtros: FiltrosPorColumna, saltar?: string): Cliente[] {
+  const activos = Object.entries(filtros).filter(([k, s]) => k !== saltar && s && s.size > 0) as [ClaveDeColumna, Set<string>][];
+  let filas = e.coinciden.length ? e.coinciden : [e.principal];
+  for (const [k, s] of activos) {
+    if (k === "store") {
+      const marcada = (c: Cliente) => s.has(claveDeFiltro(codigoDeTienda(c.store)));
+      if (!e.filas.some(marcada)) return [];
+      if (e.coinciden.some(marcada)) filas = filas.filter(marcada);
+    } else if (k === "store_count") {
+      if (!s.has(claveDeFiltro(tiendasDeLaEmpresa(e)))) return [];
+    } else {
+      filas = filas.filter((c) => s.has(claveDeFiltro(valorDeLaFila(c, k))));
+    }
+    if (!filas.length) return [];
+  }
+  return filas;
+}
+
+/**
+ * Las empresas que pasan TODOS los filtros de columna puestos, mirando TODAS sus filas (no solo la que se pinta), y cada
+ * una pintada con una fila que pasa: la que ya se pintaba si pasa, si no la más completa de las que pasan.
  * `saltar` deja fuera el de una columna: así el menú de esa columna ofrece lo que quedaría si se quitara solo ese, y
  * los de las otras siguen acotando (en cascada, como Órdenes, D-275). Se suma a los de arriba (tienda, QB, búsqueda).
  */
 export function filtraEmpresas(empresas: readonly Empresa[], filtros: FiltrosPorColumna, saltar?: string): Empresa[] {
   const activos = Object.entries(filtros).filter(([k, s]) => k !== saltar && s && s.size > 0);
   if (!activos.length) return [...empresas];
-  return empresas.filter((e) => activos.every(([k, s]) => valoresDeLaColumna(e, k as ClaveDeColumna).some((v) => s.has(claveDeFiltro(v)))));
+  const out: Empresa[] = [];
+  for (const e of empresas) {
+    const pasan = filasQuePasan(e, filtros, saltar);
+    if (!pasan.length) continue;
+    out.push(pasan.includes(e.principal) ? e : { ...e, principal: principalDe(pasan) });
+  }
+  return out;
 }
 
-/** Las casillas del menú de una columna: cada valor una vez, con el texto de la celda, por orden alfabético. */
+/**
+ * Las casillas del menú de una columna: cada valor una vez, con el texto de la celda, por orden alfabético. Salen de
+ * TODA la lista (no de la página pintada) y de todas las filas de cada empresa que pasan los demás filtros: un valor
+ * que solo tiene una fila escondida de una empresa también se ofrece (D-866).
+ */
 export function opcionesDeColumna(empresas: readonly Empresa[], filtros: FiltrosPorColumna, key: ClaveDeColumna, t: T): { key: string; label: string }[] {
   const vistos = new Map<string, string>();
-  for (const e of filtraEmpresas(empresas, filtros, key)) {
-    for (const v of valoresDeLaColumna(e, key)) {
+  for (const e of empresas) {
+    const pasan = filasQuePasan(e, filtros, key);
+    if (!pasan.length) continue;
+    const valores: ValorDeCelda[] = key === "store" ? valoresDeLaColumna(e, key) : key === "store_count" ? [tiendasDeLaEmpresa(e)] : pasan.map((c) => valorDeLaFila(c, key));
+    for (const v of valores) {
       const k = claveDeFiltro(v);
       if (!vistos.has(k)) vistos.set(k, k === SIN_VALOR ? "—" : textoDeValor(key, v, t));
     }
