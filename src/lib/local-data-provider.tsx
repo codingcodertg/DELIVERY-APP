@@ -489,6 +489,10 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     notify("Not available in demo mode");
   }, [notify]);
 
+  const updateUserWarehouseOpsAccess = useCallback<DataState["updateUserWarehouseOpsAccess"]>(async () => {
+    notify("Not available in demo mode");
+  }, [notify]);
+
   // Clientes tampoco: en demo se entra directo a /customers.
   const updateUserCustomersAccess = useCallback<DataState["updateUserCustomersAccess"]>(async () => {
     notify("Not available in demo mode");
@@ -594,7 +598,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       return ok;
     },
     reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada, setUserIdentity, resetUserPassword,
-    saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserDeliveriesAccess, deleteUser,
+    saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserDeliveriesAccess, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
     shifts: store.shifts ?? [], clockIn, clockOut, marcaGpsDelTurno,
     incidents: store.incidents ?? [], addIncident, removeIncident,

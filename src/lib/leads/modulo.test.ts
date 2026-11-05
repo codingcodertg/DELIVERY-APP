@@ -101,7 +101,7 @@ describe("la 162", () => {
     expect(definen).toContain("162_leads.sql");
     const lista = /module_access <@ array\[([^\]]+)\]\)\n  not valid;/.exec(cuerpo)![1];
     expect(lista).not.toContain("clockin");
-    expect(lista.split(",").sort()).toEqual(MODULE_ACCESS.filter((m) => m.key !== "customers").map((m) => `'${m.key}'`).sort());
+    expect(lista.split(",").sort()).toEqual(MODULE_ACCESS.filter((m) => m.key !== "customers" && m.key !== "warehouse_ops").map((m) => `'${m.key}'`).sort());
   });
 
   it("el tope vive en la base y vale 10 de partida, entre 1 y 100", () => {

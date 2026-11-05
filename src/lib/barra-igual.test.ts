@@ -33,6 +33,7 @@ const BARRAS: Record<string, { carpeta: string; barra: string; monta: string[] |
   leads: { carpeta: "src/app/leads", barra: PIEZA, monta: ["src/app/leads/layout.tsx"], etiqueta: "<BarraSencilla " },
   surveys: { carpeta: "src/app/surveys", barra: PIEZA, monta: ["src/app/surveys/layout.tsx"], etiqueta: "<BarraSencilla " },
   promos: { carpeta: "src/app/promos", barra: PIEZA, monta: ["src/app/promos/layout.tsx"], etiqueta: "<BarraSencilla " },
+  warehouse_ops: { carpeta: "src/app/operaciones", barra: PIEZA, monta: ["src/app/operaciones/layout.tsx"], etiqueta: "<BarraSencilla " },
 };
 
 /** Lo que hay en `src/app` y NO es una app con barra, con el porqué. */

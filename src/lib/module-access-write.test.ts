@@ -44,7 +44,7 @@ describe("lo que se escribe al conceder un módulo partiendo de ['clockin']", ()
   const alQuitar = (actual: string[] | null, modulo: string) =>
     knownModules(actual).filter((m) => m !== modulo);
 
-  for (const modulo of ["deliveries", "recruiting", "timetracker", "erp", "promos", "estimator", "surveys", "leads", "customers"]) {
+  for (const modulo of ["deliveries", "recruiting", "timetracker", "erp", "promos", "estimator", "surveys", "leads", "customers", "warehouse_ops"]) {
     it(`conceder ${modulo}: sin 'clockin' y con el módulo concedido`, () => {
       const escrito = alConceder(["clockin"], modulo);
       expect(escrito).not.toContain("clockin");
@@ -68,10 +68,11 @@ describe("lo que se escribe al conceder un módulo partiendo de ['clockin']", ()
 // Siete desde Encuestas (migración 155): `updateUserSurveysAccess`, misma forma que el Estimador.
 // Ocho desde Leads (migración 162): `updateUserLeadsAccess`, misma forma que Encuestas.
 // Nueve desde Clientes (migración 180): `updateUserCustomersAccess`, misma forma que Leads.
+// Diez desde Operaciones de almacén (migración 247): `updateUserWarehouseOpsAccess`, misma forma que Clientes.
 describe("las nueve escrituras del provider filtran, y el select trae erp_role", () => {
   const src = leer("src/lib/data-provider.tsx");
   it("ninguna parte ya del array crudo de la fila", () => {
-    expect(src.match(/const actuales = knownModules\(target\?\.module_access\);/g) ?? []).toHaveLength(9);
+    expect(src.match(/const actuales = knownModules\(target\?\.module_access\);/g) ?? []).toHaveLength(10);
     expect(src).not.toMatch(/Array\.from\(new Set\(\[\.\.\.\(target\?\.module_access \?\? \[\]\)/);
     expect(src).not.toMatch(/\(target\?\.module_access \?\? \[\]\)\.filter/);
   });
@@ -91,8 +92,8 @@ describe("las nueve escrituras del provider filtran, y el select trae erp_role",
     expect(hasta).toBeGreaterThan(desde);
     const tramo = src.slice(desde, hasta);
     expect(tramo).not.toMatch(/notify\(error\.message\)/);
-    expect(tramo.match(/notify\(mensajeEscrituraPerfil\(error, lang\)\)/g) ?? []).toHaveLength(9);
-    expect(tramo.match(/console\.error\(detalleAConsola\(error\)\)/g) ?? []).toHaveLength(9);
+    expect(tramo.match(/notify\(mensajeEscrituraPerfil\(error, lang\)\)/g) ?? []).toHaveLength(10);
+    expect(tramo.match(/console\.error\(detalleAConsola\(error\)\)/g) ?? []).toHaveLength(10);
   });
 });
 

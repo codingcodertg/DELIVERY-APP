@@ -248,6 +248,7 @@ export interface DataState {
   updateUserSurveysAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   updateUserLeadsAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   updateUserCustomersAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
+  updateUserWarehouseOpsAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   /** Deliveries is granted like any other module since D-100 — `role` stays put. */
   updateUserDeliveriesAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   updateUserTimetrackerAccess: (userId: string, patch: { granted: boolean; timetracker_role: string | null }) => Promise<void>;
@@ -2161,6 +2162,23 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     [supabase, notify, reloadAll, users, logSecurityClient, lang],
   );
 
+  // Operaciones de almacén (247, D-883): la misma forma que Clientes, solo la casilla.
+  const updateUserWarehouseOpsAccess = useCallback<DataState["updateUserWarehouseOpsAccess"]>(
+    async (userId, { granted }) => {
+      const target = users.find((u) => u.id === userId);
+      const before = (target?.module_access ?? []).includes("warehouse_ops");
+      const actuales = knownModules(target?.module_access);
+      const nextModules = granted
+        ? Array.from(new Set([...actuales, "warehouse_ops"]))
+        : actuales.filter((m) => m !== "warehouse_ops");
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, module_access: nextModules } : u)));
+      const { error } = await supabase.from("profiles").update({ module_access: nextModules }).eq("id", userId);
+      if (error) { console.error(detalleAConsola(error)); notify(mensajeEscrituraPerfil(error, lang)); reloadAll(); return; }
+      if (before !== granted) void logSecurityClient(userId, "warehouse_ops_access_changed", change(String(before), String(granted)));
+    },
+    [supabase, notify, reloadAll, users, logSecurityClient, lang],
+  );
+
   const updateUserTimetrackerAccess = useCallback<DataState["updateUserTimetrackerAccess"]>(
     async (userId, { granted, timetracker_role }) => {
       const target = users.find((u) => u.id === userId);
@@ -2346,13 +2364,13 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events: effectiveEvents, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
     addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
-    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserDeliveriesAccess, deleteUser,
+    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut, marcaGpsDelTurno,
     incidents, addIncident, removeIncident,
     driverLocations, pushLocation,
     pendingSync: outbox.length, syncing,
-  }), [ready, effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, effectiveDeliveries, ensureDeliveriesSince, effectiveEvents, notifications, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserDeliveriesAccess, deleteUser, availability, addAvailability, removeAvailability, shiftsView, clockIn, clockOut, marcaGpsDelTurno, incidents, addIncident, removeIncident, driverLocations, pushLocation, outbox.length, syncing]);
+  }), [ready, effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, effectiveDeliveries, ensureDeliveriesSince, effectiveEvents, notifications, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserDeliveriesAccess, deleteUser, availability, addAvailability, removeAvailability, shiftsView, clockIn, clockOut, marcaGpsDelTurno, incidents, addIncident, removeIncident, driverLocations, pushLocation, outbox.length, syncing]);
 
   return (
     <Ctx.Provider value={value}>
