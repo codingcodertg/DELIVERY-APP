@@ -28,6 +28,15 @@ const Clase = ({ s, t }: { s: SolicitudDeCliente; t: T }) => (
   <span className="text-xs text-slate-600">{s.kind === "edicion" ? `✏️ ${t("Edit", "Edición")}` : `✨ ${t("New", "Nuevo")}`}</span>
 );
 
+/** La lista vacía dice por qué: no hay ninguna, o no hay en ese estado (solo texto). */
+const vaciaPorEstado = (e: EstadoDeSolicitud, total: number, esAdmin: boolean, t: T) => {
+  if (total === 0) return esAdmin ? t("No requests yet. Sales and managers send them from the list.", "Aún no hay solicitudes. Las mandan ventas y gerentes desde la lista.") : t("You haven't requested anything yet.", "Aún no has pedido nada.");
+  if (e === "pending") return t("Nothing waiting for a decision.", "Nada esperando decisión.");
+  if (e === "review") return t("Nothing sent back to check.", "Nada devuelto para revisar.");
+  if (e === "approved") return t("No approved requests.", "Ninguna solicitud aprobada.");
+  return t("No denied requests.", "Ninguna solicitud rechazada.");
+};
+
 const cuentaDe = (s: SolicitudDeCliente) => (s.kind === "edicion" ? textoDeValor(s.before?.account) : resumenDeSolicitud(s).cuenta);
 const tiendasDe = (s: SolicitudDeCliente) => s.stores.map((c) => nombreDeTienda(c)).join(", ");
 const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonly string[]).includes(k) ? v.toUpperCase() : v);
@@ -80,7 +89,7 @@ export function SolicitudesDeCliente({ inicial = null, solicitudes, clientes, es
   const abre = (id: number) => { setAviso(null); setAbierta(id); };
 
   return (
-    <div className="overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} data-solicitudes-de-cliente>
+    <div className="overlay cli-panel" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} data-solicitudes-de-cliente>
       <div className="modal" style={{ maxWidth: s ? 1180 : 960 }} role="dialog" aria-modal="true" aria-label={t("Customer requests", "Solicitudes de cliente")}>
         <div className="flex items-start gap-3 border-b border-slate-200 pb-3">
           <div className="min-w-0 flex-1">
@@ -110,7 +119,7 @@ export function SolicitudesDeCliente({ inicial = null, solicitudes, clientes, es
           />
         ) : (
           <>
-            <div className="mt-3 flex flex-wrap gap-2" data-chips-de-estado>
+            <div className="cli-estados mt-3 flex flex-wrap gap-2" role="group" aria-label={t("Status", "Estado")} data-chips-de-estado>
               {estadosAVer(revision, cuentas).map((e) => (
                 <button key={e} type="button" className={cn("chip", e === "pending" && "chip-pend", filtro === e && "on")} onClick={() => setFiltro(e)} data-chip-estado={e} aria-pressed={filtro === e}>
                   {t(ETIQUETA_DE_ESTADO[e].en, ETIQUETA_DE_ESTADO[e].es)}<span className="cnt">{cuentas[e]}</span>
@@ -143,7 +152,7 @@ export function SolicitudesDeCliente({ inicial = null, solicitudes, clientes, es
                   ))}
                 </tbody>
               </table>
-              {filas.length === 0 && <p className="py-6 text-center text-sm text-slate-500">{t("No requests here.", "No hay solicitudes aquí.")}</p>}
+              {filas.length === 0 && <p className="py-6 text-center text-sm text-slate-500" data-cli-vacia>{vaciaPorEstado(filtro, solicitudes.length, esAdmin, t)}</p>}
             </div>
           </>
         )}

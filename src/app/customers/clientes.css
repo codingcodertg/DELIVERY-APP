@@ -1,0 +1,227 @@
+/* RTG Customers: su capa visual (vista previa de diseño, rama design/clientes-preview).
+   ---------------------------------------------------------------------------
+   Todo cuelga de `.clientes-app` (el <main> de la lista; los paneles y la ficha se pintan dentro) o lleva el prefijo
+   `cli-`. Las clases de Tailwind que fijan las pruebas siguen en el código: aquí se afinan desde fuera. Este fichero no
+   va en una capa (@layer), así que gana a las utilidades de Tailwind sin `!important`; solo el ancho de la tabla en el
+   teléfono, que llega en `style={{}}`, lo necesita.
+   Denso a propósito (D-855: «que aproveche mejor los espacios»): cabecera de una línea, tiendas y filtros en una fila,
+   filas de 32 px. Colores: solo variables del hub (globals.css), así claro y oscuro salen solos. */
+
+.clientes-app {
+  --cli-fila: 32px;
+  --cli-control: 30px;
+  --cli-cebra: color-mix(in srgb, var(--line) 28%, var(--card));
+  --cli-encima: color-mix(in srgb, var(--accent) 7%, var(--card));
+  --cli-sombra: color-mix(in srgb, var(--ink) 18%, transparent);
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+/* ---- Cabecera: una fila. Título, la frase de ayuda en una línea (entera en su `title`) y las acciones a la derecha ---- */
+.clientes-app [data-cli-cabecera] { margin-bottom: 8px; align-items: center; flex-wrap: nowrap; gap: 12px; }
+.clientes-app .cli-titulo { display: flex; align-items: baseline; gap: 12px; min-width: 0; flex: 1 1 auto; }
+.clientes-app .cli-titulo > h1 {
+  flex: none; margin: 0; font-size: 22px; font-weight: 800; line-height: 1.15; letter-spacing: -0.015em; color: var(--text);
+}
+.clientes-app .cli-titulo > p {
+  min-width: 0; margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  font-size: 12.5px; color: var(--gray);
+}
+.clientes-app .cli-acciones { flex: none; gap: 6px; }
+.clientes-app .cli-acciones > button { height: var(--cli-control); padding: 0 12px; font-size: 13px; }
+.clientes-app .cli-acciones > button [data-solicitudes-pendientes],
+.clientes-app .cli-acciones > button [data-cuantos-borradores] {
+  min-width: 20px; padding: 0 6px; border-radius: 999px; font-variant-numeric: tabular-nums; text-align: center; font-weight: 700;
+}
+
+/* ---- Tiendas + búsqueda + QB + cuenta: una sola fila ---- */
+.clientes-app .cli-barra { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.clientes-app .cli-barra > .cli-tiendas,
+.clientes-app .cli-barra > .cli-filtros { margin: 0; }
+.clientes-app .cli-filtros { flex: 1 1 360px; flex-wrap: nowrap; gap: 8px; min-width: 0; }
+.clientes-app .cli-filtros > input { height: var(--cli-control); flex: 1 1 200px; min-width: 140px; max-width: 320px; font-size: 13px; }
+.clientes-app .cli-filtros > select { flex: none; height: var(--cli-control); width: auto; max-width: 170px; padding-top: 0; padding-bottom: 0; font-size: 13px; }
+.clientes-app .cli-filtros > button { height: var(--cli-control); }
+.clientes-app .cli-filtros > span:last-child { flex: none; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 12.5px; }
+
+/* Las tiendas: un control segmentado, como el de Promos (D-849). Siguen siendo los mismos botones; el encendido es la
+   tarjeta (se ve igual en claro y en oscuro) y la cuenta va en una pastilla de ancho fijo. «Archivados» se queda aparte,
+   al final, con borde discontinuo: no es una tienda sino lo escondido. */
+.clientes-app .cli-tiendas { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.clientes-app .cli-tiendas > button:not([data-chip-archivados]) {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; margin: 0;
+  border: 0; border-radius: 7px; background: transparent; color: var(--ink-soft);
+  font-size: 12.5px; font-weight: 600; white-space: nowrap;
+}
+/* El carril: un fondo detrás de los botones de tienda, sin envoltorio nuevo (el primero abre, el último cierra). */
+.clientes-app .cli-tiendas { --cli-carril: color-mix(in srgb, var(--line) 55%, var(--paper)); }
+.clientes-app .cli-tiendas > button:not([data-chip-archivados]) { box-shadow: 0 0 0 3px var(--cli-carril); background: var(--cli-carril); }
+.clientes-app .cli-tiendas:has(> button:not([data-chip-archivados])) { gap: 6px 3px; padding-left: 3px; }
+.clientes-app .cli-tiendas > button:not([data-chip-archivados]):hover { color: var(--text); background: color-mix(in srgb, var(--card) 55%, var(--cli-carril)); }
+.clientes-app .cli-tiendas > button:not([data-chip-archivados]).font-medium {
+  background: var(--card); color: var(--text);
+  box-shadow: 0 0 0 3px var(--cli-carril), 0 1px 2px var(--cli-sombra), 0 0 0 1px var(--line);
+}
+.clientes-app .cli-tiendas > button > span {
+  min-width: 20px; padding: 0 5px; border-radius: 999px; text-align: center;
+  background: color-mix(in srgb, var(--line) 80%, transparent); color: var(--ink-soft);
+  font-size: 11px; font-weight: 700; line-height: 17px; font-variant-numeric: tabular-nums;
+}
+.clientes-app .cli-tiendas > button.font-medium > span { background: var(--accent-soft); color: var(--accent); }
+.clientes-app .cli-tiendas > button[data-chip-archivados] {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; margin-left: 10px; padding: 0 10px;
+  border-style: dashed; font-size: 12.5px; font-weight: 600;
+}
+.clientes-app .cli-tiendas > button[data-chip-archivados][aria-pressed="true"] { border-style: solid; }
+.clientes-app .cli-tiendas > button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---- Avisos: una raya de color a la izquierda, no una caja entera teñida ---- */
+.clientes-app [data-cli-aviso],
+.clientes-app .cli-aviso-filtros {
+  margin-bottom: 8px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--card); color: var(--text); font-size: 13px;
+  box-shadow: inset 3px 0 0 var(--amber);
+}
+.clientes-app [data-cli-aviso="ok"] { box-shadow: inset 3px 0 0 var(--green); }
+.clientes-app [data-cli-aviso="error"] { background: var(--red-soft); box-shadow: inset 3px 0 0 var(--red); }
+.clientes-app .cli-aviso-filtros { min-height: var(--cli-control); padding-top: 2px; padding-bottom: 2px; color: var(--ink-soft); }
+.clientes-app .cli-aviso-filtros b { color: var(--text); }
+.clientes-app .cli-aviso-filtros button { height: 24px; }
+
+/* ---- La tabla: filas de 32 px, cebra suave, la primera columna pegada a la izquierda ---- */
+.clientes-app [data-caja-de-clientes] { border-color: var(--line); border-radius: 10px; background: var(--card); }
+.clientes-app [data-tabla-de-clientes] { font-size: 13px; }
+.clientes-app [data-tabla-de-clientes] thead {
+  background: var(--paper); box-shadow: 0 1px 0 0 var(--line);
+  text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--ink-soft);
+}
+.clientes-app [data-tabla-de-clientes] th { height: 30px; padding: 0 10px; font-weight: 700; background: var(--paper); }
+.clientes-app [data-tabla-de-clientes] th[data-columna="credit_limit"],
+.clientes-app [data-tabla-de-clientes] th[data-columna="euler_limit"],
+.clientes-app [data-tabla-de-clientes] th[data-columna="store_count"] { text-align: right; }
+.clientes-app [data-tabla-de-clientes] tbody tr { height: var(--cli-fila); background: var(--card); }
+.clientes-app [data-tabla-de-clientes] tbody tr:nth-child(even) { background: var(--cli-cebra); }
+.clientes-app [data-tabla-de-clientes] tbody tr:not([data-no-se-abre]):not([data-cli-vacia]):hover { background: var(--cli-encima); }
+.clientes-app [data-tabla-de-clientes] tbody tr:has(input[data-elegir]:checked) { background: var(--accent-soft); }
+.clientes-app [data-tabla-de-clientes] td { padding: 0 10px; height: var(--cli-fila); border-top-color: var(--line); }
+.clientes-app [data-tabla-de-clientes] td.tabular-nums { font-variant-numeric: tabular-nums; }
+/* La columna clave (la primera, normalmente la cuenta) se queda al desplazar de lado. */
+.clientes-app [data-tabla-de-clientes] tbody td:first-child { position: sticky; left: 0; z-index: 1; background: inherit; box-shadow: 1px 0 0 var(--line); }
+.clientes-app [data-tabla-de-clientes] thead th:first-child { position: sticky; left: 0; z-index: 3; box-shadow: 1px 0 0 var(--line); }
+.clientes-app [data-tabla-de-clientes] tbody tr[data-cli-vacia] td { position: static; height: auto; padding: 28px 16px; box-shadow: none; color: var(--gray); }
+.clientes-app [data-tabla-de-clientes] [data-tiendas] > span:first-child { padding-top: 1px; padding-bottom: 1px; }
+
+/* ---- Paneles (Solicitudes, Borradores): cabecera de una línea, estados segmentados con su punto, tabla con cebra ---- */
+.clientes-app .cli-panel .modal { padding: 16px 18px; }
+.clientes-app .cli-panel .modal > div:first-child { padding-bottom: 10px; }
+.clientes-app .cli-panel .modal > div:first-child h2 { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+
+.clientes-app .cli-estados {
+  display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px;
+  background: color-mix(in srgb, var(--line) 55%, var(--paper)); border: 1px solid var(--line);
+}
+.clientes-app .cli-estados .chip {
+  display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border: 0; border-radius: 7px;
+  background: transparent; color: var(--ink-soft); font-size: 13px; font-weight: 600;
+}
+.clientes-app .cli-estados .chip::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--gray); }
+.clientes-app .cli-estados .chip[data-chip-estado="pending"]::before { background: var(--amber); }
+.clientes-app .cli-estados .chip[data-chip-estado="review"]::before { background: var(--purple); }
+.clientes-app .cli-estados .chip[data-chip-estado="approved"]::before { background: var(--green); }
+.clientes-app .cli-estados .chip[data-chip-estado="rejected"]::before { background: var(--gray); }
+.clientes-app .cli-estados .chip:hover { color: var(--text); background: color-mix(in srgb, var(--card) 60%, transparent); }
+.clientes-app .cli-estados .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.clientes-app .cli-estados .chip.on {
+  background: var(--card); color: var(--text);
+  box-shadow: 0 1px 3px var(--cli-sombra), 0 0 0 1px var(--line);
+}
+.clientes-app .cli-estados .chip .cnt {
+  margin-left: 0; min-width: 22px; padding: 1px 6px; border-radius: 999px; opacity: 1; text-align: center;
+  background: color-mix(in srgb, var(--line) 80%, transparent); color: var(--ink-soft);
+  font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.clientes-app .cli-estados .chip.on .cnt { background: var(--accent-soft); color: var(--accent); }
+
+.clientes-app .cli-panel table.orders th { text-transform: none; letter-spacing: 0; font-size: 12px; padding: 7px 12px; }
+.clientes-app .cli-panel table.orders td { padding: 6px 12px; }
+.clientes-app .cli-panel table.orders tbody tr:nth-child(even) td { background: var(--cli-cebra); }
+.clientes-app .cli-panel table.orders tbody tr.clickable:hover td { background: var(--cli-encima); }
+.clientes-app .cli-panel table.orders tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.clientes-app .cli-panel [data-cli-vacia] { color: var(--gray); }
+
+/* Borradores: filas con su hover, la fecha en cifras de ancho fijo. */
+.clientes-app [data-borradores-del-alta] li[data-borrador] { padding: 8px 6px; border-radius: 6px; }
+.clientes-app [data-borradores-del-alta] li[data-borrador]:hover { background: var(--cli-encima); }
+.clientes-app [data-borradores-del-alta] li[data-borrador] .text-xs { font-variant-numeric: tabular-nums; }
+
+/* ---- La ficha (y las tarjetas de una solicitud): misma disposición —D-766, D-847, D-868—, solo el acabado ---- */
+.clientes-app [data-ficha-de-cliente] .modal { padding: 18px 20px; }
+.clientes-app [data-ficha-de-cliente] [data-nombre-de-la-cuenta] { font-size: 21px; font-weight: 800; letter-spacing: -0.015em; }
+.clientes-app [data-ficha-de-cliente] [role="tablist"] { padding-top: 6px; padding-bottom: 6px; }
+.clientes-app [data-tarjetas-de-la-ficha] { gap: 12px; }
+.clientes-app [data-tarjetas-de-la-ficha] > [data-columna] { display: grid; gap: 12px; }
+.clientes-app [data-tarjetas-de-la-ficha] > [data-columna] > * { margin: 0; }
+.clientes-app [data-tarjetas-de-la-ficha] [data-solo-no-vendedor] { display: grid; gap: 12px; }
+.clientes-app [data-tarjetas-de-la-ficha] [data-solo-no-vendedor] > * { margin: 0; }
+.clientes-app [data-tarjetas-de-la-ficha] :is(section, fieldset)[data-grupo] {
+  padding: 12px 16px; border-color: var(--line); border-radius: 12px; box-shadow: none; background: var(--card);
+}
+.clientes-app [data-tarjetas-de-la-ficha] section[data-grupo] > h2,
+.clientes-app [data-tarjetas-de-la-ficha] fieldset[data-grupo] > legend,
+.clientes-app [data-tarjetas-de-la-ficha] [data-campos-ocultos] > summary {
+  margin-bottom: 4px; text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 800; color: var(--text);
+}
+.clientes-app [data-tarjetas-de-la-ficha] [data-campos-ocultos] { padding: 10px 16px; border-radius: 12px; }
+.clientes-app [data-tarjetas-de-la-ficha] [data-campo] { padding-top: 5px; padding-bottom: 5px; }
+.clientes-app [data-tarjetas-de-la-ficha] div[data-campo] > span:first-child { color: var(--gray); }
+.clientes-app [data-tarjetas-de-la-ficha] div[data-campo] > span:last-child { font-variant-numeric: tabular-nums; }
+.clientes-app [data-tarjetas-de-la-ficha] div[data-campo] { border-bottom-color: color-mix(in srgb, var(--line) 70%, transparent); }
+/* Las etiquetas de los campos, en minúscula de frase como el resto (globals las ponía en versalitas). */
+.clientes-app [data-tarjetas-de-la-ficha] :is(label, label > span, h3, h4) { text-transform: none; letter-spacing: 0; }
+.clientes-app [data-tarjetas-de-la-ficha] label > span:first-child { font-size: 12px; font-weight: 600; color: var(--gray); }
+/* El historial plegado del pie, igual de callado que «Campos ocultos». */
+.clientes-app [data-ficha-de-cliente] details:not([data-campos-ocultos]) > summary { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 800; color: var(--text); }
+
+/* ---- Teléfono: la tabla se vuelve tarjetas; la cabecera queda como una tira de botones de ordenar/filtrar ---- */
+@media (max-width: 640px) {
+  .clientes-app { padding-left: 12px; padding-right: 12px; }
+  .clientes-app [data-cli-cabecera] { flex-wrap: wrap; row-gap: 8px; }
+  .clientes-app .cli-titulo > p { display: none; }
+  .clientes-app .cli-acciones { flex: 1 1 100%; flex-wrap: wrap; }
+  .clientes-app .cli-acciones > button { height: 40px; }
+  .clientes-app .cli-tiendas { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding: 3px; scrollbar-width: none; }
+  .clientes-app .cli-tiendas > button { flex: none; height: 36px !important; }
+  .clientes-app .cli-filtros { flex-basis: 100%; flex-wrap: wrap; gap: 6px; }
+  .clientes-app .cli-filtros > input { max-width: none; flex: 1 1 150px; min-width: 0; height: 40px; font-size: 16px; }
+  .clientes-app .cli-filtros > select { height: 40px; max-width: 120px; }
+  .clientes-app .cli-filtros > span:last-child { margin-left: 0; }
+
+  .clientes-app [data-caja-de-clientes] { border: 0; background: transparent; }
+  .clientes-app [data-tabla-de-clientes] { display: block; width: 100% !important; min-width: 0; }
+  .clientes-app [data-tabla-de-clientes] colgroup { display: none; }
+  .clientes-app [data-tabla-de-clientes] thead { display: block; background: var(--paper); box-shadow: none; }
+  .clientes-app [data-tabla-de-clientes] thead tr { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; }
+  .clientes-app [data-tabla-de-clientes] thead th {
+    position: static; display: flex; align-items: center; flex: none; height: 36px; width: auto !important; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); box-shadow: none;
+  }
+  .clientes-app [data-tabla-de-clientes] thead th .col-resizer { display: none; }
+  .clientes-app [data-tabla-de-clientes] tbody { display: grid; gap: 4px; }
+  .clientes-app [data-tabla-de-clientes] tbody tr {
+    /* Dos líneas: la cuenta y, debajo, el resto de las celdas seguidas (lo que no cabe se corta, como antes la tabla). */
+    display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; height: auto; max-height: 54px; overflow: hidden; padding: 4px 12px 6px;
+    border: 1px solid var(--line); border-radius: 12px; background: var(--card);
+  }
+  .clientes-app [data-tabla-de-clientes] tbody tr:nth-child(even) { background: var(--card); }
+  .clientes-app [data-tabla-de-clientes] tbody td {
+    display: block; height: auto; padding: 0; border: 0; max-width: 100%;
+    font-size: 12.5px; color: var(--ink-soft);
+  }
+  .clientes-app [data-tabla-de-clientes] tbody td:empty { display: none; }
+  .clientes-app [data-tabla-de-clientes] tbody td:first-child {
+    position: static; flex-basis: 100%; min-height: 24px; display: flex; align-items: center; box-shadow: none; font-size: 15px; font-weight: 700; color: var(--text);
+  }
+  .clientes-app [data-tabla-de-clientes] tbody td:first-child input[data-elegir] { width: 22px; height: 22px; }
+  .clientes-app [data-tabla-de-clientes] tbody tr[data-cli-vacia] { display: block; }
+  .clientes-app [data-tabla-de-clientes] tbody tr[data-cli-vacia] td { text-align: center; }
+  .clientes-app [data-caja-de-clientes] > div:last-child:not(table) { border: 0; }
+}

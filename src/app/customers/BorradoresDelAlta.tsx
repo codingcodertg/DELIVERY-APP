@@ -40,7 +40,7 @@ export function BorradoresDelAlta({ borradores, lang, onAbrir, onBorrar, onClose
   };
 
   return (
-    <div className="overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} data-borradores-del-alta>
+    <div className="overlay cli-panel" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} data-borradores-del-alta>
       <div className="modal" style={{ maxWidth: 720 }} role="dialog" aria-modal="true" aria-label={t("Drafts", "Borradores")}>
         <div className="flex items-start gap-3 border-b border-slate-200 pb-3">
           <div className="min-w-0 flex-1">
@@ -56,7 +56,7 @@ export function BorradoresDelAlta({ borradores, lang, onAbrir, onBorrar, onClose
         </div>
         {aviso && <p className={aviso.ok ? "mt-2 rounded-md bg-emerald-50 p-2 text-sm text-emerald-800" : "mt-2 rounded-md bg-red-50 p-2 text-sm text-red-800"} role="status">{aviso.texto}</p>}
         <div className="mt-3 max-h-[60vh] overflow-auto">
-          {borradores.length === 0 && <p className="py-6 text-center text-sm text-slate-500">{t("No drafts.", "Sin borradores.")}</p>}
+          {borradores.length === 0 && <p className="py-6 text-center text-sm text-slate-500">{t("No drafts. «Save draft» in a new customer keeps it here.", "Sin borradores. «Guardar borrador» en un cliente nuevo lo guarda aquí.")}</p>}
           <ul className="divide-y divide-slate-100">
             {borradores.map((b) => {
               const resumen = resumenDelBorrador(b);
