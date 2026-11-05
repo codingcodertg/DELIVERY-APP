@@ -6,7 +6,7 @@ import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import type { AlmacenDeCotizaciones } from "@/lib/estimator/almacen";
 import { filtraEstimados, masNuevoPrimero, type AlmacenDeCompetencia, type EstimadoDeCompetencia } from "@/lib/estimator/competencia";
 import {
-  ORDEN_INICIAL, TANDA, alcanceDeLista, atajoEncendido, celdaDePriceMatch, columnasDeLaLista, fechaDeCelda, filtraCompetenciaComoLaTabla, filtroVacio,
+  ORDEN_INICIAL, TANDA, alcanceDeLista, atajoEncendido, celdaDePriceMatch, columnasDeLaLista, estadoDeCotizacion, fechaDeCelda, filtraCompetenciaComoLaTabla, filtroVacio,
   pasoDeRango, rangoAcotado, rangoDeAtajo, subidoPorDelAlcance, textoDeEstado, valorDeColumna,
   type AtajoDeRango, type CotizacionResumen, type FiltroDeCotizaciones, type RangoDeFechas,
 } from "@/lib/estimator/lista-admin";
@@ -167,7 +167,7 @@ export function TodasLasCotizaciones({ almacen, competencia, me, t, lang, onAbri
   const filtrando = !!(filtro.desde || filtro.hasta || filtro.texto.trim());
 
   return (
-    <div data-pestana-todas={estado}>
+    <div className="est-todas" data-pestana-todas={estado}>
       <div className="card">
         <h2 data-todas-titulo={todas ? "todas" : "mias"}>
           📚 {todas ? t("All quotes", "Todas las cotizaciones") : t("My quotes", "Mis cotizaciones")}{" "}
@@ -203,7 +203,12 @@ export function TodasLasCotizaciones({ almacen, competencia, me, t, lang, onAbri
               <p className="hint">{t("Loading…", "Cargando…")}</p>
             ) : filas.length === 0 ? (
               <p className="hint" data-todas-vacia>
-                {filtrando ? t("Nothing matches the filter.", "Nada coincide con el filtro.") : t("No saved quotes yet.", "Todavía no hay cotizaciones guardadas.")}
+                {filtrando ? t("Nothing matches the filter.", "Nada coincide con el filtro.") : t("No saved quotes yet.", "Todavía no hay cotizaciones guardadas.")}{" "}
+                <span className="est-vacia-por-que">
+                  {filtrando
+                    ? t("Clear the search or pick «All» in the dates to see every quote.", "Borra la búsqueda o elige «Todo» en las fechas para ver todas.")
+                    : t("A quote shows up here once it is saved from the Quote tab.", "Una cotización aparece aquí cuando se guarda desde la pestaña Cotización.")}
+                </span>
               </p>
             ) : (
               <div className="tbl-scroll">
@@ -218,7 +223,7 @@ export function TodasLasCotizaciones({ almacen, competencia, me, t, lang, onAbri
                     {orden.visibles.length === 0 ? (
                       <tr><td colSpan={columnas.length + 1} className="empty" data-todas-vacia>{t("No rows match the current filters.", "Ninguna fila coincide con los filtros actuales.")}</td></tr>
                     ) : orden.visibles.map((c) => (
-                      <tr key={c.id} data-cotizacion={c.id} className="clickable" onClick={() => onAbrir(c.id)}>
+                      <tr key={c.id} data-cotizacion={c.id} data-estado-cot={estadoDeCotizacion(c)} className="clickable" onClick={() => onAbrir(c.id)}>
                         <td>{fechaDeCelda(c.created_at)}</td>
                         <td><b>{c.estimate_num || "—"}</b></td>
                         {todas && <td data-cotizacion-vendedor>{c.owner_name ?? (c.owner_id ? "?" : t("(no owner)", "(sin dueño)"))}</td>}

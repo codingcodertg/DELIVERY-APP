@@ -7,6 +7,7 @@ import type { UserRole } from "@/lib/types";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import "./estimator.css";
+import "./estimator-diseno.css";
 
 export const metadata: Metadata = {
   title: "RTG QUOTE BUILDER",

@@ -1,0 +1,147 @@
+/* El Cotizador: su capa visual (vista previa de diseño, rama design/cotizador-preview).
+   ---------------------------------------------------------------------------
+   Calcado de Promos (D-849) con la regla de Entregas compacta (D-855): más claro, nunca más alto. Todo cuelga de
+   `.est-app` (el envoltorio `.est-wrap` de Estimador.tsx) o de `.est-vista-barras`; las clases compartidas (`card`,
+   `btn`, `orders`, `filters`) solo cambian DENTRO del Cotizador. Colores: solo variables de globals.css, así el claro
+   y el oscuro salen solos. La hoja del cliente (`.hoja-cliente`, `.hc-*`) y el @media print de estimator.css NO se
+   tocan: aquí solo se viste lo que la rodea en pantalla. */
+
+.est-app { --est-sombra: color-mix(in srgb, var(--ink) 22%, transparent); padding-top: 14px; }
+.est-app .est-pm-check { display: inline-flex; }
+
+/* ---- Cabecera en una fila: el título manda, la ayuda al lado, las pestañas a la derecha ---- */
+.est-app .est-cab { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; margin: 0 0 12px; }
+.est-app .est-cab h1 { margin: 0; font-size: 22px; font-weight: 800; line-height: 1.15; letter-spacing: -0.01em; color: var(--text); white-space: nowrap; }
+.est-app .est-cab-ayuda { margin: 0; flex: 1 1 260px; min-width: 0; line-height: 1.35; }
+
+/* Cotización / Competencia / Todas: un control segmentado. Siguen siendo `.btn` con `btn-primary` o `btn-ghost`
+   (las pruebas los leen así); aquí el encendido es la tarjeta, que se ve en claro y en oscuro. */
+.est-app .est-pestanas {
+  display: inline-flex; gap: 2px; margin: 0 0 0 auto; padding: 3px; border-radius: 10px; flex-wrap: wrap;
+  background: color-mix(in srgb, var(--line) 55%, var(--paper)); border: 1px solid var(--line);
+}
+.est-app .est-pestanas .btn {
+  border: 0; border-radius: 7px; padding: 6px 12px; font-size: 13px; font-weight: 600;
+  background: transparent; color: var(--ink-soft); box-shadow: none;
+}
+.est-app .est-pestanas .btn:hover { color: var(--text); background: color-mix(in srgb, var(--card) 60%, transparent); }
+.est-app .est-pestanas .btn.btn-primary {
+  background: var(--card); color: var(--text);
+  box-shadow: 0 1px 3px var(--est-sombra), 0 0 0 1px var(--line);
+}
+.est-app .est-pestanas .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---- Tarjetas: misma estructura, menos aire (nunca más altas que antes) ---- */
+.est-app .card { padding: 14px 16px; margin-bottom: 12px; border-radius: 10px; }
+.est-app .card h2 { font-size: 15px; font-weight: 800; margin: 0 0 10px; color: var(--text); }
+.est-app .card h2 .hint { margin: 0; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.est-app .card h2 + .hint { margin: -6px 0 10px; }
+.est-app .field { margin-bottom: 10px; }
+
+/* ---- Avisos: una raya de color a la izquierda, no una caja entera teñida ---- */
+.est-app .est-aviso {
+  border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.45;
+  background: var(--card); border: 1px solid var(--line); color: var(--text); box-shadow: inset 4px 0 0 var(--gray);
+}
+.est-app .est-aviso.ambar { box-shadow: inset 4px 0 0 var(--amber); }
+.est-app .est-aviso.verde { box-shadow: inset 4px 0 0 var(--green); }
+.est-app .est-aviso.rojo { background: var(--red-soft); box-shadow: inset 4px 0 0 var(--red); }
+:root[data-theme="dark"] .est-app .est-aviso.ambar,
+:root[data-theme="dark"] .est-app .est-aviso.verde { background: var(--card); }
+:root[data-theme="dark"] .est-app .est-aviso.rojo { background: var(--red-soft); }
+.est-app .filtros-puestos { background: var(--card); border-color: var(--line); box-shadow: inset 3px 0 0 var(--amber); }
+
+/* ---- Líneas de producto y totales: números con ancho fijo ---- */
+.est-app .est-linea { padding: 10px 12px; margin-bottom: 10px; border-radius: 8px; }
+.est-app .est-calc, .est-app .est-total, .est-app [data-subtotal], .est-app [data-ahorro], .est-app [data-impuesto] { font-variant-numeric: tabular-nums; }
+.est-app .est-radios label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+
+/* ---- Todas las cotizaciones: búsqueda y fechas en una fila; la tabla con columnas pegadas ---- */
+.est-app .est-todas .filters { gap: 8px 10px; margin-bottom: 10px; }
+.est-app .est-todas .filters > input { flex: 0 1 200px; padding: 6px 10px; font-size: 13px; }
+.est-app [data-rango-fechas] { gap: 6px !important; }
+.est-app [data-rango-fechas] label { display: inline-flex; align-items: center; gap: 6px; margin: 0 !important; font-size: 12px; }
+.est-app [data-rango-fechas] input[type="date"] { width: 138px !important; margin: 0 !important; padding: 5px 8px; font-size: 13px; }
+
+.est-app [data-todas-tabla] th, .est-app [data-todas-tabla] td { padding: 7px 9px; }
+.est-app .est-app [data-todas-tabla] td[data-cotizacion-sf], .est-app [data-todas-tabla] td[data-cotizacion-total] { font-variant-numeric: tabular-nums; }
+.est-app [data-todas-tabla] tbody tr > td { background: var(--card); }
+.est-app [data-todas-tabla] tbody tr:nth-child(even) > td { background: color-mix(in srgb, var(--line) 25%, var(--card)); }
+.est-app [data-todas-tabla] tbody tr.clickable:hover > td { background: var(--accent-soft); }
+/* Fecha se queda a la izquierda al desplazar de lado; Abrir, a la derecha (antes quedaba fuera de la vista a 1280). */
+.est-app [data-todas-tabla] th:last-child, .est-app [data-todas-tabla] td:last-child { position: sticky; right: 0; z-index: 1; padding-left: 8px; }
+.est-app [data-todas-tabla] td:last-child { box-shadow: inset 1px 0 0 var(--line); }
+.est-app [data-todas-tabla] th:first-child, .est-app [data-todas-tabla] td:first-child { position: sticky; left: 0; z-index: 1; }
+.est-app [data-todas-tabla] th:first-child, .est-app [data-todas-tabla] th:last-child { z-index: 3; }
+.est-app [data-todas-tabla] td:first-child { box-shadow: inset -1px 0 0 var(--line); }
+/* El estado con un punto de su color: ámbar guardada sin imprimir, verde impresa. */
+.est-app [data-estado-cot] > td[data-cotizacion-estado] { white-space: nowrap; }
+.est-app [data-estado-cot] > td[data-cotizacion-estado]::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; background: var(--gray); }
+.est-app [data-estado-cot="guardada"] > td[data-cotizacion-estado]::before { background: var(--amber); }
+.est-app [data-estado-cot="impresa"] > td[data-cotizacion-estado]::before { background: var(--green); }
+.est-app .est-vacia-por-que { display: block; margin-top: 2px; color: var(--gray); }
+
+/* ---- La vista previa de la hoja: sus controles en un panel fijo arriba; la hoja, igual que siempre ---- */
+.est-vista-previa { background: color-mix(in srgb, var(--ink) 82%, transparent); }
+.est-vista-previa .est-vista-barras {
+  position: sticky; top: -16px; z-index: 2; max-width: 760px; margin: -16px auto 12px; padding: 10px 12px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  background: var(--card); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 10px 10px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--ink) 35%, transparent);
+}
+.est-vista-previa .est-vista-barras .est-barra { margin: 0; max-width: none; }
+.est-vista-previa .est-vista-barras .est-nivel-rotulo { color: var(--ink-soft); text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 700; }
+.est-vista-previa .est-vista-barras .est-radios {
+  display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; flex-wrap: wrap;
+  background: color-mix(in srgb, var(--line) 55%, var(--paper)); border: 1px solid var(--line);
+}
+.est-vista-previa .est-vista-barras .est-radios label {
+  border: 0; border-radius: 7px; padding: 5px 10px; background: transparent; color: var(--ink-soft); font-size: 12.5px;
+}
+.est-vista-previa .est-vista-barras .est-radios label:has(input:checked) {
+  background: var(--card); color: var(--text); border-color: transparent;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 22%, transparent), 0 0 0 1px var(--line);
+}
+.est-vista-previa .est-vista-barras .est-radios input { accent-color: var(--accent); }
+.est-vista-previa .est-volver { background: var(--card); }
+
+/* ---- Teléfono: la lista en tarjetas cortas, botones grandes ---- */
+@media (max-width: 640px) {
+  .est-app { padding: 10px 12px 80px; }
+  .est-app .est-cab h1 { font-size: 19px; }
+  .est-app .est-cab-ayuda { flex-basis: 100%; }
+  .est-app .est-pestanas { margin: 0; width: 100%; }
+  .est-app .est-pestanas .btn { flex: 1 1 auto; min-height: 40px; justify-content: center; padding: 6px 10px; }
+  .est-app .card { padding: 12px; }
+  .est-app .btn { min-height: 44px; }
+  .est-app .btn-sm { min-height: 36px; }
+  .est-app .est-todas .filters > input { flex: 1 1 100%; }
+
+  .est-app .tbl-scroll:has([data-todas-tabla]) { border: 0; overflow: visible; background: none; }
+  .est-app [data-todas-tabla], .est-app [data-todas-tabla] tbody { display: block; }
+  .est-app [data-todas-tabla] thead { display: none; }
+  .est-app [data-todas-tabla] tbody tr {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px;
+    padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--card);
+  }
+  .est-app [data-todas-tabla] tbody tr > td:nth-child(n) {
+    display: block; position: static; padding: 0; border: 0; box-shadow: none; background: transparent; white-space: normal; text-align: left;
+  }
+  .est-app [data-todas-tabla] tbody tr > td:empty { display: none; }
+  .est-app [data-todas-tabla] td:nth-child(2) { order: 1; flex: 1 1 50%; font-size: 15px; }
+  .est-app [data-todas-tabla] td[data-cotizacion-total] { order: 2; font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .est-app [data-todas-tabla] td[data-cotizacion-cliente] { order: 3; flex: 1 1 100%; font-weight: 600; }
+  .est-app [data-todas-tabla] td:first-child,
+  .est-app [data-todas-tabla] td[data-cotizacion-vendedor],
+  .est-app [data-todas-tabla] td[data-cotizacion-tienda],
+  .est-app [data-todas-tabla] td[data-cotizacion-sf] { order: 4; color: var(--ink-soft); font-size: 12.5px; }
+  .est-app [data-todas-tabla] td[data-cotizacion-sf]::after { content: " SF"; }
+  .est-app [data-todas-tabla] td[data-cotizacion-price-match] { order: 5; flex: 1 1 100%; }
+  .est-app [data-todas-tabla] td[data-cotizacion-estado] { order: 6; flex: 1 1 auto; font-size: 12.5px; }
+  .est-app [data-todas-tabla] td:last-child { order: 7; }
+  .est-app [data-todas-tabla] tbody tr.clickable:hover > td { background: transparent; }
+  .est-app [data-todas-tabla] td.empty { flex: 1 1 100%; }
+
+  .est-vista-previa .est-vista-barras .est-radios { width: 100%; }
+  .est-vista-previa .est-vista-barras .est-radios label { min-height: 40px; flex: 1 1 auto; }
+}

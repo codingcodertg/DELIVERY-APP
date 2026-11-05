@@ -474,7 +474,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const propias = useMemo(() => lineasPropias(draft.lines), [draft.lines]);
 
   if (!me) {
-    return <div className="est-wrap"><p className="hint">{t("Loading…", "Cargando…")}</p></div>;
+    return <div className="est-wrap est-app"><p className="hint">{t("Loading…", "Cargando…")}</p></div>;
   }
 
   // ---- pintado --------------------------------------------------------------------------------------
@@ -482,13 +482,32 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const inv = (vacio: boolean) => (vacio ? "invalid" : undefined);
 
   return (
-    <div className="est-wrap">
+    <div className="est-wrap est-app">
       {/* El «◂ Volver al hub» de aquí se fue: la casa está en la barra de arriba, la de todas las apps (D-643). */}
+      {/* La cabecera en UNA fila (vista previa de diseño): título, la línea de ayuda y, a la derecha, las pestañas. */}
+      <header className="est-cab">
       <h1>🧮 {t("Quote Builder", "Cotizador")}</h1>
-      <p className="hint" style={{ marginTop: 0 }}>
+      <p className="hint est-cab-ayuda" style={{ marginTop: 0 }}>
         {t("Internal inputs → customer output. Only the customer sheet is printed.", "Entradas internas → salida al cliente. Solo se imprime la hoja del cliente.")}
         {demo && <> · <b>{t("Demo mode: made-up data", "Modo demo: datos inventados")}</b></>}
       </p>
+      <div className="est-pestanas" role="tablist">
+        <button type="button" role="tab" aria-selected={pestana === "cotizacion"} data-pestana="cotizacion"
+          className={"btn btn-sm " + (pestana === "cotizacion" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("cotizacion")}>
+          🧮 {t("Quote", "Cotización")}
+        </button>
+        <button type="button" role="tab" aria-selected={pestana === "competencia"} data-pestana="competencia"
+          className={"btn btn-sm " + (pestana === "competencia" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("competencia")}>
+          🕵️ {t("Competitor estimates", "Estimados de la competencia")}
+        </button>
+        {puedeVerLista(me) && (
+          <button type="button" role="tab" aria-selected={pestana === "todas"} data-pestana="todas"
+            className={"btn btn-sm " + (pestana === "todas" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("todas")}>
+            📚 {puedeVerTodas(me) ? t("All quotes (admin)", "Todas las cotizaciones (admin)") : t("My quotes", "Mis cotizaciones")}
+          </button>
+        )}
+      </div>
+      </header>
 
       {baseDisponible === false && (
         <div className="est-aviso ambar" data-aviso-sin-base>
@@ -513,22 +532,6 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
         </div>
       )}
 
-      <div className="est-pestanas" role="tablist">
-        <button type="button" role="tab" aria-selected={pestana === "cotizacion"} data-pestana="cotizacion"
-          className={"btn btn-sm " + (pestana === "cotizacion" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("cotizacion")}>
-          🧮 {t("Quote", "Cotización")}
-        </button>
-        <button type="button" role="tab" aria-selected={pestana === "competencia"} data-pestana="competencia"
-          className={"btn btn-sm " + (pestana === "competencia" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("competencia")}>
-          🕵️ {t("Competitor estimates", "Estimados de la competencia")}
-        </button>
-        {puedeVerLista(me) && (
-          <button type="button" role="tab" aria-selected={pestana === "todas"} data-pestana="todas"
-            className={"btn btn-sm " + (pestana === "todas" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("todas")}>
-            📚 {puedeVerTodas(me) ? t("All quotes (admin)", "Todas las cotizaciones (admin)") : t("My quotes", "Mis cotizaciones")}
-          </button>
-        )}
-      </div>
 
       {/* La `key` la monta de nuevo si «Ver como» cambia de persona: otra persona, otro alcance, otros filtros. */}
       {pestana === "todas" && puedeVerLista(me) && (
@@ -975,9 +978,11 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
       {/* 7. La hoja, lista para imprimir */}
       {vistaPrevia && (
         <div className="est-vista-previa" data-vista-previa>
+          {/* Las tres barras, juntas en un panel fijo arriba (vista previa de diseño): no flotan sobre el formulario. */}
+          <div className="est-vista-barras">
           <div className="est-barra">
             <button className="btn btn-primary" data-imprimir onClick={() => window.print()}>🖨️ {t("Print", "Imprimir")}</button>
-            <button className="btn btn-ghost" style={{ background: "#fff" }} onClick={() => setVistaPrevia(false)}>◂ {t("Back to edit", "Volver a editar")}</button>
+            <button className="btn btn-ghost est-volver" onClick={() => setVistaPrevia(false)}>◂ {t("Back to edit", "Volver a editar")}</button>
           </div>
           {/* D-775: el nivel de detalle se cambia aquí, con la hoja a la vista; `hoja` sale del borrador, así que cambia en
               vivo. Es un control de la pantalla, no de la hoja: al imprimir no sale (solo `.hoja-cliente` es visible). */}
@@ -1001,6 +1006,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
                 <label key={k}><input type="radio" name="idioma-hoja" data-idioma={k} checked={idiomaDeLaHoja === k} onChange={() => setIdiomaElegido(k)} /> {txt}</label>
               ))}
             </div>
+          </div>
           </div>
           <HojaCliente hoja={hoja} />
         </div>
