@@ -35,7 +35,7 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
    *  aquí —viven en el expediente—; quedan el título, el rol, los módulos y permisos y el acceso. */
   desdeExpediente?: boolean;
 }) {
-  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
+  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
 
@@ -121,6 +121,9 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
       case "customers":
         // Igual: sin `roleColumn`, inalcanzable. Lo fija `customers/modulo.test.ts`.
         return;
+      case "warehouse_ops":
+        // Igual: sin `roleColumn`, inalcanzable (D-NEXT, 247).
+        return;
       default: { const _exhaustive: never = key; return _exhaustive; }
     }
   };
@@ -154,6 +157,10 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
       case "customers":
         // Solo la casilla: la 180 no crea columna de rol.
         updateUserCustomersAccess(u.id, { granted });
+        return;
+      case "warehouse_ops":
+        // Solo la casilla: la 247 no crea columna de rol.
+        updateUserWarehouseOpsAccess(u.id, { granted });
         return;
       case "deliveries":
         // Sí se llama desde D-100: Entregas dejó de ser implícita y su casilla ahora

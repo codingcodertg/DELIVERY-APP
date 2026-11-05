@@ -18,6 +18,8 @@ export const KINDS = [
   "employee_warning",
   // D-807 (228): la reprimenda, el grado siguiente; mismo sitio, mismos permisos.
   "employee_reprimand",
+  // D-NEXT (247): los tres reportes de RR. HH. de Operaciones de almacén entran solos al expediente.
+  "employee_insubordination", "employee_zone_infraction", "employee_positive_observation",
 ] as const;
 
 /** D-807: las dos acciones disciplinarias del menú «Acciones del empleado» (Roberto: «give warning or reprimand»). */
@@ -70,6 +72,9 @@ const ETIQUETAS: Record<TipoDeHistorial, { en: string; es: string }> = {
   asset_status_changed: { en: "Status changed", es: "Estado cambiado" },
   employee_warning: { en: "Warning", es: "Amonestación" },
   employee_reprimand: { en: "Reprimand", es: "Reprimenda" },
+  employee_insubordination: { en: "Insubordination (warehouse)", es: "Insubordinación (almacén)" },
+  employee_zone_infraction: { en: "Zone infraction (warehouse)", es: "Infracción de zona (almacén)" },
+  employee_positive_observation: { en: "Positive observation", es: "Observación positiva" },
 };
 
 /** D-806: una amonestación necesita motivo (sin él no se registra); la nota es opcional. */

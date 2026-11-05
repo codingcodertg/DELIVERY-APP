@@ -89,7 +89,7 @@ describe("la 148", () => {
     // migración que toca la restricción, `encuestas/modulo.test.ts`.
     // Y desde la 162 tampoco cuenta 'leads' (misma razón).
     // Y desde la 180 tampoco 'customers'.
-    const claves = MODULE_ACCESS.filter((m) => m.key !== "surveys" && m.key !== "leads" && m.key !== "customers").map((m) => `'${m.key}'`).sort();
+    const claves = MODULE_ACCESS.filter((m) => m.key !== "surveys" && m.key !== "leads" && m.key !== "customers" && m.key !== "warehouse_ops").map((m) => `'${m.key}'`).sort();
     expect(lista.split(",").sort()).toEqual(claves);
   });
   it("una cotización por estimado, sin mayúsculas ni espacios que las separen", () => {

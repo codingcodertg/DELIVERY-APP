@@ -5,6 +5,7 @@ import type { Lang } from "./prefs";
 import { PERMISO_OTRAS_TIENDAS, PERMISO_POOL_PRIVADO, seOfreceOtrasTiendas } from "./leads/alcance";
 import { seOfreceClientes } from "./customers/reglas";
 import { CAP_TODAS_LAS_TIENDAS, seOfreceTodasLasTiendas } from "./todas-las-tiendas";
+import { PERMISO_SUPERVISOR as PERMISO_SUPERVISOR_ALMACEN } from "./almacen-ops/visibilidad";
 
 // App version moved to src/lib/app-versions.ts (D-087) — one number per app
 // (deliveries/recruiting/timetracker) instead of a single global constant.
@@ -498,6 +499,17 @@ export const MODULES: ModuleInfo[] = [
     label_es: "Clientes",
     desc_en: "The customer master list, by store",
     desc_es: "La lista maestra de clientes, por tienda",
+  },
+  {
+    // Operaciones de almacén (D-NEXT, migración 247): la bitácora del piso del almacén (la vieja Tile Ops del jefe,
+    // rehecha). La clave es "warehouse_ops", la palabra que la 247 añade a `profiles_module_access_known`.
+    key: "warehouse_ops",
+    href: "/operaciones",
+    emoji: "🦺",
+    label_en: "Warehouse Ops",
+    label_es: "Operaciones de almacén",
+    desc_en: "Floor reports, safety and scrap",
+    desc_es: "Reportes del piso, seguridad y merma",
   },
 ];
 
@@ -1005,7 +1017,7 @@ export const ROLE_CAPS: Record<UserRole, Capability[]> = {
 // module costs one line here plus its MODULE_ACCESS entry — a small,
 // deliberate price for a compiler-checked guarantee on the sensitive half
 // (writes), while the rendering half stays fully data-driven.
-export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp" | "promos" | "estimator" | "surveys" | "leads" | "customers";
+export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp" | "promos" | "estimator" | "surveys" | "leads" | "customers" | "warehouse_ops";
 
 export interface ModuleAccessConfig {
   key: ModuleAccessKey;
@@ -1236,6 +1248,31 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
       en: "No role of its own. Shows every store's customers with contact name, phone, email and credit terms: grant it only to whoever needs the list. Admins and managers can edit; everyone else reads. Admins always have it.",
       es: "Sin rol propio. Enseña los clientes de todas las tiendas con contacto, teléfono, correo y crédito: concédelo solo a quien necesite la lista. Admins y managers editan; los demás leen. Los admins lo tienen siempre.",
     },
+  },
+  {
+    key: "warehouse_ops", label_en: "Warehouse Ops", label_es: "Operaciones de almacén",
+    alwaysOn: false,
+    // D-NEXT (247): sin escalafón propio. Quien tiene la casilla llena reportes y ve los suyos. El manager del hub
+    // (`profiles.role`) ve los de su tienda, también los de RR. HH.; el supervisor de almacén (permiso por persona)
+    // ve los de su tienda que no son de RR. HH. Lo decide `public.warehouse_ops_can_see` (RLS).
+    roleKeys: [],
+    roleLabel: (key, lang) => roleLabel(key as UserRole, lang),
+    accessColumn: "module_access",
+    roleNote: {
+      en: "No role of its own. Everyone files reports and sees their own. Managers see their store's reports, including HR ones (insubordination, zone, positive), which also go to the employee's HR file. Admins always have it.",
+      es: "Sin rol propio. Cada quien llena reportes y ve los suyos. Los managers ven los de su tienda, también los de RR. HH. (insubordinación, zona, positiva), que además van al expediente del empleado. Los admins lo tienen siempre.",
+    },
+    capabilities: [
+      {
+        key: PERMISO_SUPERVISOR_ALMACEN,
+        en: "Warehouse supervisor", es: "Supervisor de almacén",
+        desc_en: "Sees every report of their store except the HR ones.",
+        desc_es: "Ve todos los reportes de su tienda menos los de RR. HH.",
+      },
+    ],
+    capabilitiesRole: "role",
+    capabilitiesFromRole: () => [],
+    capabilityOffered: (_cap, key) => key !== "admin" && key !== "manager",
   },
 ];
 

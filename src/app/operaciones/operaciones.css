@@ -1,0 +1,156 @@
+/* Operaciones de almacén (D-NEXT, migración 247): su capa visual.
+   ---------------------------------------------------------------------------
+   Para el teléfono del piso del almacén: dedos con guantes, prisa y luz mala. Por eso los blancos de toque miden
+   56 px o más (como la vista grande del chofer, D-881), el texto de la pregunta es grande y cada pantalla pide una
+   sola cosa. La lista de gerentes es la tabla de Órdenes (CLAUDE.md) y aquí solo se afina dentro de `.ops`.
+   Colores: solo variables de globals.css, así claro y oscuro salen solos; mezclas con color-mix en vez de rgba.
+   La pieza con carácter es el tablero de inicio: tarjetas con el borde izquierdo del color de su familia —ámbar para
+   seguridad/incidentes, morado para RR. HH., azul para mantenimiento, rojo para merma— que se leen de un vistazo. */
+
+.ops { max-width: 1180px; margin: 0 auto; padding: 16px 16px 120px; }
+.ops .hint { color: var(--gray); }
+
+/* ---- Saludo ---- */
+.ops-saludo { margin: 6px 0 16px; }
+.ops-saludo h2 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.015em; color: var(--text); }
+.ops-saludo p { margin: 2px 0 0; font-size: 15px; color: var(--ink-soft); }
+
+/* ---- El tablero ---- */
+.ops-tablero { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 720px) { .ops-tablero { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; } }
+.ops-tarjeta {
+  --familia: var(--amber);
+  display: flex; flex-direction: column; gap: 4px; min-height: 124px; padding: 14px 14px 12px;
+  background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--familia); border-radius: 12px;
+  color: var(--text); text-decoration: none;
+}
+.ops-tarjeta:hover { background: var(--card-hover); }
+.ops-tarjeta:active { transform: translateY(1px); }
+.ops-tarjeta:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.ops-t-zone, .ops-t-insubordination, .ops-t-positive { --familia: var(--purple); }
+.ops-t-maintenance { --familia: var(--blue); }
+.ops-t-scrap { --familia: var(--red); }
+.ops-tarjeta-icono { font-size: 30px; line-height: 1; }
+.ops-tarjeta-nombre { font-size: 17px; font-weight: 800; line-height: 1.2; }
+.ops-tarjeta-desc { font-size: 13px; color: var(--ink-soft); line-height: 1.3; }
+.ops-tarjeta-rrhh {
+  margin-top: auto; align-self: flex-start; font-size: 11.5px; font-weight: 700; color: var(--purple);
+  background: color-mix(in srgb, var(--purple) 12%, transparent); border-radius: 999px; padding: 2px 8px;
+}
+
+.ops-pie { display: grid; gap: 10px; margin-top: 16px; }
+@media (min-width: 720px) { .ops-pie { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---- Botones grandes ---- */
+.ops-boton, .ops-boton-ancho {
+  min-height: 56px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
+  color: var(--text); font-size: 16px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; text-decoration: none; cursor: pointer;
+}
+.ops-boton-ancho { width: 100%; }
+.ops-boton-primario { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ops-boton-gerente { border-color: var(--ink-soft); }
+.ops-boton:focus-visible, .ops-boton-ancho:focus-visible, .ops-opcion:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.ops-boton:disabled { opacity: .45; filter: grayscale(1); cursor: not-allowed; }
+
+/* ---- El asistente ---- */
+.ops-asistente { max-width: 620px; margin: 0 auto; }
+.ops-asistente-cabeza { display: grid; gap: 10px; margin-bottom: 18px; }
+.ops-asistente-tipo { font-size: 14px; font-weight: 700; color: var(--ink-soft); }
+.ops-progreso { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; }
+.ops-progreso li { flex: 1; height: 6px; border-radius: 999px; background: var(--line); }
+.ops-progreso li.hecho { background: var(--accent); }
+.ops-progreso li.ahora { background: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+.ops-pregunta h2, .ops-resumen h2 { margin: 0 0 14px; font-size: 24px; font-weight: 800; line-height: 1.2; color: var(--text); }
+
+.ops-opciones { display: grid; gap: 8px; }
+.ops-dos { grid-template-columns: 1fr 1fr; }
+.ops-opcion {
+  min-height: 60px; padding: 10px 16px; border-radius: 12px; border: 2px solid var(--line); background: var(--card);
+  color: var(--text); font-size: 17px; font-weight: 700; text-align: left; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.ops-opcion.elegida { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
+.ops-persona-tienda { font-size: 13px; font-weight: 600; color: var(--gray); }
+.ops-producto { flex-direction: column; align-items: flex-start; gap: 2px; }
+.ops-producto-meta { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.ops-camara { justify-content: center; border-style: dashed; }
+
+.ops-campo {
+  width: 100%; min-height: 56px; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line);
+  background: var(--card); color: var(--text); font-size: 17px; font-family: inherit;
+}
+textarea.ops-campo { min-height: 150px; resize: vertical; }
+.ops-campo:focus { border-color: var(--accent); outline: none; }
+.ops-personas { display: grid; gap: 10px; }
+.ops-elegidos { margin: 0; font-size: 14px; font-weight: 700; color: var(--accent); }
+
+.ops-cantidades { display: grid; gap: 12px; }
+.ops-cantidad { display: grid; gap: 6px; font-size: 15px; font-weight: 700; color: var(--ink-soft); }
+.ops-paso-a-paso { display: grid; grid-template-columns: 64px 1fr 64px; gap: 8px; }
+.ops-paso-a-paso .ops-boton { font-size: 24px; padding: 0; }
+.ops-paso-a-paso .ops-campo { text-align: center; font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* La pérdida: la cifra que el gerente viene a ver. */
+.ops-perdida { display: grid; gap: 2px; margin-bottom: 12px; padding: 12px 14px; border-radius: 12px; background: var(--red-soft); }
+.ops-perdida-cifra { font-family: 'Archivo', system-ui, sans-serif; font-size: 26px; font-weight: 800; color: var(--red); font-variant-numeric: tabular-nums; }
+.ops-perdida.grande .ops-perdida-cifra { font-size: 40px; letter-spacing: -0.02em; }
+.ops-perdida-cuenta { font-size: 13.5px; color: var(--ink-soft); }
+
+.ops-fotos { display: grid; gap: 10px; }
+.ops-fotos-lista { display: flex; flex-wrap: wrap; gap: 8px; }
+.ops-fotos-lista figure { margin: 0; display: grid; gap: 4px; }
+.ops-fotos-lista img { width: 120px; height: 120px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+.ops-fotos-lista .ops-boton { min-height: 40px; font-size: 14px; }
+
+.ops-resumen dl { display: grid; gap: 6px; margin: 0 0 14px; }
+.ops-fila {
+  display: grid; gap: 2px; padding: 10px 14px; min-height: 56px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--card); text-align: left; cursor: pointer; color: var(--text);
+}
+.ops-fila dt { font-size: 12.5px; font-weight: 600; color: var(--gray); }
+.ops-fila dd { margin: 0; font-size: 15.5px; font-weight: 700; overflow-wrap: anywhere; }
+.ops-fila.falta { border-color: var(--red); }
+.ops-tienda { display: grid; gap: 6px; margin-bottom: 14px; font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+.ops-tienda select { min-height: 52px; font-size: 16px; }
+
+.ops-botonera {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: 1fr 2fr; gap: 10px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--paper); border-top: 1px solid var(--line);
+}
+@media (min-width: 720px) { .ops-botonera { position: static; padding: 18px 0 0; background: none; border-top: 0; } }
+
+.ops-hecho { max-width: 520px; margin: 40px auto; text-align: center; display: grid; gap: 10px; justify-items: center; }
+.ops-hecho-icono { font-size: 54px; }
+.ops-hecho h2 { margin: 0; font-size: 26px; font-weight: 800; }
+.ops-hecho p { margin: 0; color: var(--ink-soft); }
+.ops-hecho-acciones { display: grid; gap: 10px; width: 100%; margin-top: 10px; }
+
+.ops-aviso { padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); }
+.ops-aviso h2 { margin: 0 0 4px; font-size: 20px; }
+.ops-aviso p { margin: 0; color: var(--ink-soft); }
+.ops-aviso-error { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+
+/* ---- Reportes (gerentes) ---- */
+.ops-pestanas { display: flex; gap: 8px; margin-bottom: 12px; }
+.ops-filtros { margin-bottom: 10px; overflow-x: auto; }
+.ops-filtros-campos { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+.ops-filtros-campos select, .ops-filtros-campos input { min-height: 36px; width: auto; }
+.ops-filtros-campos .ops-fecha { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--ink-soft); }
+.ops-fila-tabla { cursor: pointer; }
+.ops-detalle-corto { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ops .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.ops-merma { display: grid; gap: 12px; }
+.ops-merma-totales { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ops-merma-total { display: grid; gap: 2px; padding: 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); font-size: 13px; color: var(--ink-soft); }
+.ops-merma-cifra { font-family: 'Archivo', system-ui, sans-serif; font-size: 22px; font-weight: 800; color: var(--red); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+.ops-tarjeta-reporte .ops-tarjeta-rrhh { display: inline-block; margin: 0 0 10px; }
+.ops-tarjeta-datos { display: grid; grid-template-columns: minmax(110px, auto) 1fr; gap: 6px 14px; margin: 0 0 12px; }
+.ops-tarjeta-datos dt { font-size: 12.5px; color: var(--gray); font-weight: 600; }
+.ops-tarjeta-datos dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.ops-tarjeta-datos .ops-par { display: contents; }
+.ops-tarjeta-perdida { color: var(--red); font-weight: 800; font-size: 18px; }
+
+@media (prefers-reduced-motion: reduce) { .ops-tarjeta:active { transform: none; } }

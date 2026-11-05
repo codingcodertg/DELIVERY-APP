@@ -112,7 +112,7 @@ describe("la 155", () => {
     const lista = /module_access <@ array\[([^\]]+)\]\)\n  not valid;/.exec(cuerpo)![1];
     expect(lista).not.toContain("clockin");
     // Y desde la 180 tampoco cuenta 'customers' (misma razón).
-    expect(lista.split(",").sort()).toEqual(MODULE_ACCESS.filter((m) => m.key !== "leads" && m.key !== "customers").map((m) => `'${m.key}'`).sort());
+    expect(lista.split(",").sort()).toEqual(MODULE_ACCESS.filter((m) => m.key !== "leads" && m.key !== "customers" && m.key !== "warehouse_ops").map((m) => `'${m.key}'`).sort());
   });
 
   it("las ocho claves de área son las de la app, en el validador de la tabla y en la función", () => {

@@ -19,7 +19,8 @@ describe("la amonestación", () => {
   it("la 228 suma la reprimenda sin perder los de la 212 ni la 227", () => {
     const sql = leer("supabase/migrations/228_rrhh_reprimendas.sql");
     expect(sql).toContain("'employee_reprimand'");
-    for (const k of KINDS) expect(sql, k).toContain(`'${k}'`);
+    // D-NEXT (247) suma tres tipos después; la 228 tiene todos los de antes.
+    for (const k of KINDS.filter((x) => !["employee_insubordination", "employee_zone_infraction", "employee_positive_observation"].includes(x))) expect(sql, k).toContain(`'${k}'`);
   });
   it("la acción la dan admin y gerente (PUEDE), exige motivo y escribe la fila con quién y por qué", () => {
     const hr = leer("src/app/recruiting/actions/hr.ts");

@@ -43,6 +43,8 @@ export type SecurityKind =
   | "leads_access_changed"
   // Clientes (180). Solo el acceso, como Leads.
   | "customers_access_changed"
+  // Operaciones de almacén (247). Solo el acceso.
+  | "warehouse_ops_access_changed"
   // Admin solo de Clientes (241): profiles.customers_role.
   | "customers_role_changed"
   | "deliveries_access_changed"
@@ -84,6 +86,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     surveys_access_changed: "Surveys access changed",
     leads_access_changed: "Leads access changed",
     customers_access_changed: "Customers access changed",
+    warehouse_ops_access_changed: "Warehouse Ops access changed",
     customers_role_changed: "Customers admin changed",
     deliveries_access_changed: "Deliveries access changed",
     clockin_access_changed: "Clock-in access changed",
@@ -112,6 +115,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     surveys_access_changed: "Acceso a Encuestas cambiado",
     leads_access_changed: "Acceso a Leads cambiado",
     customers_access_changed: "Acceso a Clientes cambiado",
+    warehouse_ops_access_changed: "Acceso a Operaciones de almacén cambiado",
     customers_role_changed: "Admin de Clientes cambiado",
     // Estas dos faltaban desde antes de esta rama: en español caían al `?? kind` y el registro
     // enseñaba la clave cruda, `deliveries_access_changed`, a quien lo abriera. Se añaden aquí
