@@ -35,6 +35,8 @@ export async function POST(req: Request) {
   if (!fila) return NextResponse.json({ error: "not found" }, { status: 404 });
   const s = solicitudDeLaBase(fila as unknown as Record<string, unknown>);
   if (s.requested_by !== auth.user.id) return NextResponse.json({ error: "not yours" }, { status: 403 });
+  // Solo altas y ediciones: las asociaciones tienen su propio flujo.
+  if (s.kind !== "alta" && s.kind !== "edicion") return NextResponse.json({ error: "unsupported kind" }, { status: 400 });
 
   const admin = createAdminClient();
   const [{ data: ajustes }, { data: perfil }] = await Promise.all([

@@ -41,14 +41,13 @@ describe("una solicitud de cliente nuevo no llega como solicitud de ayuda", () =
   it("la ayuda de verdad sigue igual", () => {
     expect(leer("src/app/api/help/route.ts")).toContain("const subject = `Help request from ${who}${roleLabel}`;");
   });
-  it("la 250 cambia solo el texto en español del alta y lleva su registro", () => {
-    const sql = leer("supabase/migrations/250_aviso_solicitud_de_cliente_nuevo.sql");
-    expect(sql).toContain("'📝 Solicitud de cliente nuevo: '");
-    expect(sql).toContain("'📝 New customer request: '");
-    expect(sql).toContain("'📝 Nueva solicitud de edición: '");
-    expect(sql).not.toContain("'📝 Nueva solicitud de cliente: ' end");
+  it("la 251 cambia solo el texto en español del alta, sobre la función de la 250, y lleva su registro", () => {
+    const sql = leer("supabase/migrations/251_aviso_solicitud_de_cliente_nuevo.sql");
+    expect(sql).toContain("execute replace(def, 'else ''📝 Nueva solicitud de cliente: '' end', 'else ''📝 Solicitud de cliente nuevo: '' end');");
+    expect(sql).toContain("aplica primero la 250");
+    expect(sql).not.toContain("create or replace function");
     expect(sql).not.toMatch(/D-\d{3}|D-NEXT/);
     expect(sql).toContain("-- @ledger-below");
-    expect(sql).toMatch(/values \('250_aviso_solicitud_de_cliente_nuevo\.sql', '[0-9a-f]{64}'\)/);
+    expect(sql).toMatch(/values \('251_aviso_solicitud_de_cliente_nuevo\.sql', '[0-9a-f]{64}'\)/);
   });
 });
