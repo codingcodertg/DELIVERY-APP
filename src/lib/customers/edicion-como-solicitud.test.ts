@@ -124,7 +124,7 @@ describe("las pantallas", () => {
     expect(ficha).toContain('edicionComoSolicitud && !nuevo ? t("Request edit", "Solicitar edición") : t("Edit", "Editar")');
     expect(ficha).toContain("if (edicionComoSolicitud) { await solicitarLaEdicion(); return; }");
     expect(ficha).toContain("almacen.solicitarEdicion(cliente, parche, notaDeEdicion)");
-    expect(ficha).toContain("mensajeDeEdicionPendiente(r.valor, lang)");
+    expect(ficha).toContain("await avisaAlAdminDeLaSolicitud(r.valor.id);");
     expect(ficha).toContain("data-nota-de-edicion");
     expect(ficha).toContain('edicionComoSolicitud ? t("Send request", "Enviar solicitud") : t("Save", "Guardar")');
     expect(ficha).toContain("{cliente && !editando && !esVendedor && <HistorialDelCliente clienteId={cliente.id} almacen={almacen} t={t} />}");

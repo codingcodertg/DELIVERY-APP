@@ -50,7 +50,7 @@ export function textoDelAviso(kind: AvisoDeCliente, d: DatosDelAviso): { en: str
       const quien = d.quien?.trim() || "?";
       return d.clase === "edicion"
         ? { en: `📝 New edit request: ${cuenta}${tiendas} from ${quien}`, es: `📝 Nueva solicitud de edición: ${cuenta}${tiendas} de ${quien}` }
-        : { en: `📝 New customer request: ${cuenta}${tiendas} from ${quien}`, es: `📝 Nueva solicitud de cliente: ${cuenta}${tiendas} de ${quien}` };
+        : { en: `📝 New customer request: ${cuenta}${tiendas} from ${quien}`, es: `📝 Solicitud de cliente nuevo: ${cuenta}${tiendas} de ${quien}` };
     }
     case AVISO_CLIENTE_APROBADA:
       return d.clase === "edicion"
@@ -90,4 +90,26 @@ export function mensajeDelAviso(n: { message: string; message_es?: string | null
 export function enlaceSeguro(link: string | null | undefined): string | null {
   const l = (link ?? "").trim();
   return l.startsWith("/") && !l.startsWith("//") ? l : null;
+}
+
+/**
+ * El correo al admin de una solicitud de cliente. Antes el alta (y la edición) se avisaba con una solicitud de AYUDA
+ * (`/api/help`): llegaba como «Help request from …», se guardaba en `help_requests` y salía en «Solicitudes de ayuda».
+ * Ahora tiene su propio asunto y su ruta (`/api/customers/aviso-solicitud`), y no toca `help_requests`.
+ */
+export const TITULO_SOLICITUD_DE_CLIENTE = { en: "New customer request", es: "Solicitud de cliente nuevo" } as const;
+export const TITULO_SOLICITUD_DE_EDICION = { en: "Customer edit request", es: "Solicitud de edición de cliente" } as const;
+
+export const TITULO_SOLICITUD_DE_ASOCIACION = { en: "Customer association request", es: "Solicitud de asociación de cliente" } as const;
+
+export function tituloDeLaSolicitud(clase: "alta" | "edicion" | "asociacion", lang: "en" | "es"): string {
+  return (clase === "edicion" ? TITULO_SOLICITUD_DE_EDICION : clase === "asociacion" ? TITULO_SOLICITUD_DE_ASOCIACION : TITULO_SOLICITUD_DE_CLIENTE)[lang];
+}
+
+/** El asunto del correo: «New customer request: IDEA from Everto (Sales rep)». Nunca «Help request». */
+export function asuntoDelCorreoDeSolicitud(clase: "alta" | "edicion" | "asociacion", d: { cuenta: string; quien?: string | null; rol?: string | null }): string {
+  const cuenta = d.cuenta.trim() || "?";
+  const quien = d.quien?.trim() || "?";
+  const rol = d.rol?.trim() ? ` (${d.rol.trim()})` : "";
+  return `${tituloDeLaSolicitud(clase, "en")}: ${cuenta} from ${quien}${rol}`;
 }

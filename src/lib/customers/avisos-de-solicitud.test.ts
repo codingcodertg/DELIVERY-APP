@@ -12,7 +12,7 @@ const SQL = readFileSync(join(process.cwd(), "supabase/migrations/243_avisos_de_
 describe("textos de los avisos de solicitud de cliente (D-867)", () => {
   it("nueva: cuenta, tiendas y quien pidió, en los dos idiomas", () => {
     expect(textoDelAviso(AVISO_CLIENTE_NUEVA, { cuenta: "IDEA", clase: "alta", tiendas: "PHR", quien: "Everto" }))
-      .toEqual({ en: "📝 New customer request: IDEA (PHR) from Everto", es: "📝 Nueva solicitud de cliente: IDEA (PHR) de Everto" });
+      .toEqual({ en: "📝 New customer request: IDEA (PHR) from Everto", es: "📝 Solicitud de cliente nuevo: IDEA (PHR) de Everto" });
     expect(textoDelAviso(AVISO_CLIENTE_NUEVA, { cuenta: "IDEA", clase: "edicion", quien: "Everto" }).en).toBe("📝 New edit request: IDEA from Everto");
   });
   it("aprobada: alta y edición", () => {

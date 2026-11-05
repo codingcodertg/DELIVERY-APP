@@ -123,3 +123,13 @@ export function mensajeDeAltaPendiente(s: Pick<SolicitudDeCliente, "id" | "paylo
   lineas.push(es ? `Apruébala o recházala en Clientes → Solicitudes.` : `Approve or reject it in Customers → Requests.`);
   return lineas.join("\n");
 }
+
+/** Avisa al admin por correo de una solicitud de cliente (alta o edición), con su propio título, sin pasar por ayuda. */
+export async function avisaAlAdminDeLaSolicitud(id: number): Promise<boolean> {
+  try {
+    const res = await fetch("/api/customers/aviso-solicitud", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
