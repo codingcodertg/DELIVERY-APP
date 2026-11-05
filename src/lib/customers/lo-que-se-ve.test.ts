@@ -88,7 +88,7 @@ describe("la pantalla usa todo esto", () => {
   });
 });
 
-describe("el filtro mira TODA la lista y todas las filas de cada empresa (D-NEXT)", () => {
+describe("el filtro mira TODA la lista y todas las filas de cada empresa (D-866)", () => {
   // El dueño, 2026-11-04: «cuando filtro, que filtre TODO, no solo lo que se ve; si hay más ocultos abajo, no los está
   // contando». 150 empresas (más que una tanda de «Ver más»); la última tiene dos tiendas y su vendedor «QQ» solo está
   // en la fila de Brownsville, que no es la que se pinta.

@@ -81,7 +81,7 @@ function valorDeLaFila(c: Cliente, key: ClaveDeColumna): ValorDeCelda {
 }
 
 /**
- * D-NEXT. Las filas de una empresa (de las que pasan los filtros de arriba) que pasan TODOS los filtros de columna
+ * D-866. Las filas de una empresa (de las que pasan los filtros de arriba) que pasan TODOS los filtros de columna
  * puestos. El dueño, 2026-11-04: «cuando filtro, que filtre TODO, no solo lo que se ve; si hay más ocultos abajo, no
  * los está contando». Antes cada columna miraba solo la fila que se pinta (`principal`): una empresa con la fila de
  * Pharr NEW y la de Brownsville LOST no salía con «Estado = LOST», aunque la tenía. Ahora vale cualquier fila de la
@@ -129,7 +129,7 @@ export function filtraEmpresas(empresas: readonly Empresa[], filtros: FiltrosPor
 /**
  * Las casillas del menú de una columna: cada valor una vez, con el texto de la celda, por orden alfabético. Salen de
  * TODA la lista (no de la página pintada) y de todas las filas de cada empresa que pasan los demás filtros: un valor
- * que solo tiene una fila escondida de una empresa también se ofrece (D-NEXT).
+ * que solo tiene una fila escondida de una empresa también se ofrece (D-866).
  */
 export function opcionesDeColumna(empresas: readonly Empresa[], filtros: FiltrosPorColumna, key: ClaveDeColumna, t: T): { key: string; label: string }[] {
   const vistos = new Map<string, string>();

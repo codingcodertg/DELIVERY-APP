@@ -55,6 +55,6 @@ export function conLaTiendaFiltrada(empresas: readonly Empresa[], filtros: Filtr
 /** Lo que pinta la tabla: la fila de la tienda filtrada, los filtros y el orden de las columnas que se ven. */
 export function empresasQueSeVen(empresas: readonly Empresa[], filtros: FiltrosPorColumna, ordenes: readonly Orden[], claves: readonly string[]): Empresa[] {
   const vistos = filtrosQueSeVen(filtros, claves);
-  // D-NEXT: `filtraEmpresas` ya mira todas las filas de cada empresa y pinta una que pasa (también la de la tienda marcada).
+  // D-866: `filtraEmpresas` ya mira todas las filas de cada empresa y pinta una que pasa (también la de la tienda marcada).
   return ordenarEmpresas(filtraEmpresas(empresas, vistos), ordenesQueSeVen(ordenes, claves));
 }
