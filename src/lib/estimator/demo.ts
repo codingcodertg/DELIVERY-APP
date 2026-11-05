@@ -23,7 +23,7 @@ import { resumenDeTotales, tasaDeImpuesto } from "./modelo";
 
 export const DEMO_OTRO_VENDEDOR = { id: "u-sales2", name: "Sofia Ventas" };
 export const DEMO_ESTIMADO_AJENO = "DEMO-1001";
-/** D-NEXT: los vendedores que el admin del demo puede elegir en la cotización. */
+/** D-876: los vendedores que el admin del demo puede elegir en la cotización. */
 export const VENDEDORES_DEMO = [
   { id: "u-sales", full_name: "Sam Sales", store: "Edinburg" },
   { id: DEMO_OTRO_VENDEDOR.id, full_name: DEMO_OTRO_VENDEDOR.name, store: "Weslaco" },
@@ -127,7 +127,7 @@ export function almacenDemo(me: () => { id: string; name: string; admin: boolean
     async guardar(quoteId, draft, leadId, asignacion = {}) {
       if (sinTabla) return SIN_TABLA;
       const yo = me();
-      // D-NEXT: como el guardia de la 148 + 246: solo el admin pone otro dueño o la tienda.
+      // D-876: como el guardia de la 148 + 246: solo el admin pone otro dueño o la tienda.
       const nombreDe = (id: string) => VENDEDORES_DEMO.find((v) => v.id === id)?.full_name ?? (id === yo.id ? yo.name : id);
       const tiendaDe = (id: string) => VENDEDORES_DEMO.find((v) => v.id === id)?.store ?? (id === yo.id ? yo.store?.trim() || null : null);
       if (quoteId) {

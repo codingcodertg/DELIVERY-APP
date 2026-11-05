@@ -83,7 +83,7 @@ describe("la migración 246 y la pantalla", () => {
     expect(sql).toContain("when admin and new.store is distinct from old.store");
     expect(sql).toContain("Only an admin can change who owns an estimate");
     expect(sql).toContain("-- @ledger-below");
-    expect(sql).not.toContain("D-NEXT");
+    expect(sql).not.toContain("D-876");
   });
   it("el selector del vendedor va dentro de «me.admin &&»", () => {
     const e = readFileSync(join(process.cwd(), "src/app/estimator/Estimador.tsx"), "utf8");

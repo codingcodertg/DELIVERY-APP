@@ -227,7 +227,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     if (!id) { setTiendaGuardada(null); setAsignacionGuardada(null); setEleccion(null); }
   };
   /**
-   * D-NEXT (Roberto Rodriguez Jr, 5e8b3ea8): el admin elige la tienda y el vendedor de la cotización. `asignacionGuardada`:
+   * D-876 (Roberto Rodriguez Jr, 5e8b3ea8): el admin elige la tienda y el vendedor de la cotización. `asignacionGuardada`:
    * el dueño y la tienda de la guardada abierta (null si es nueva); `eleccion`: lo que el admin cambió y aún no guardó.
    */
   const [asignacionGuardada, setAsignacionGuardada] = useState<Asignacion | null>(null);
@@ -608,7 +608,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
           </div>
           {/* D-771: el campo «Tienda (sale en la cotización)» solo lo ve el admin (el dueño: «for sales people remove tienda que
               sale en cotiza»). La tienda sigue saliendo en la hoja del cliente (`tiendaHoja`, D-451): es la del perfil. */}
-          {/* D-NEXT (Roberto Rodriguez Jr, 5e8b3ea8): el admin ELIGE la tienda y el vendedor («create one for a rep in
+          {/* D-876 (Roberto Rodriguez Jr, 5e8b3ea8): el admin ELIGE la tienda y el vendedor («create one for a rep in
               pharr»). La tienda filtra los vendedores; la base decide (148 + 246) y la lista «Todas» lee lo guardado. */}
           {me.admin && (
           <div className="field">

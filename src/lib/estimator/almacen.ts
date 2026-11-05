@@ -29,7 +29,7 @@ import { soloActivos } from "@/lib/baja";
  * `sinLead` (D-558): se guardó, pero SIN el enlace al lead, porque la columna `lead_id` (migración 175) aún no está.
  * El guardado no falla por eso: el código llega antes que la migración.
  */
-export type Resultado<T> = { ok: true; valor: T; sinLead?: boolean; /** D-NEXT: la tienda con la que quedó al guardar. */ store?: string | null } | { ok: false; sinTabla: boolean; error: string; duplicado?: boolean };
+export type Resultado<T> = { ok: true; valor: T; sinLead?: boolean; /** D-876: la tienda con la que quedó al guardar. */ store?: string | null } | { ok: false; sinTabla: boolean; error: string; duplicado?: boolean };
 
 export interface CotizacionGuardada {
   id: string;
@@ -59,7 +59,7 @@ export interface AlmacenDeCotizaciones {
    * solo cuenta al CREAR: el enlace al lead se pone una vez y una edición no lo manda (`filaNueva`).
    */
   guardar(quoteId: string | null, draft: QuoteDraft, leadId?: string | null, asignacion?: Partial<Asignacion>): Promise<Resultado<string>>;
-  /** D-NEXT: los vendedores activos (rol `sales`) con su tienda, para el desplegable del admin. */
+  /** D-876: los vendedores activos (rol `sales`) con su tienda, para el desplegable del admin. */
   vendedores(): Promise<Resultado<VendedorElegible[]>>;
   pedirAprobacion(quoteId: string, approvalId: string | null): Promise<Resultado<AprobacionEstado>>;
   pendientes(): Promise<Resultado<AprobacionPendiente[]>>;
@@ -273,7 +273,7 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeCotizaciones
     async guardar(quoteId, draft, leadId, asignacion = {}) {
       // Una edición NUNCA manda `lead_id` (no se reenvía lo que la acción no cambia); una nueva, si sale de un lead.
       const fila = quoteId ? filaDeBorrador(draft) : filaNueva(draft, leadId);
-      // D-NEXT: el dueño y la tienda que eligió el admin (`filaDeAsignacion`: vacía para el no-admin). Los guardas la base.
+      // D-876: el dueño y la tienda que eligió el admin (`filaDeAsignacion`: vacía para el no-admin). Los guardas la base.
       const escribir = (f: ReturnType<typeof filaNueva>) => quoteId
         ? supabase.from("estimator_quotes").update({ ...f, ...asignacion }).eq("id", quoteId).select("id, store")
         : supabase.from("estimator_quotes").insert({ ...f, ...asignacion }).select("id, store");

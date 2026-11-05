@@ -1,5 +1,5 @@
 /**
- * D-NEXT (Roberto Rodriguez Jr, admin, solicitud 5e8b3ea8): «Allow admin to change this. In this case i wanted to create
+ * D-876 (Roberto Rodriguez Jr, admin, solicitud 5e8b3ea8): «Allow admin to change this. In this case i wanted to create
  * one for a rep in pharr». En el Quote Builder el admin del hub elige la TIENDA y el VENDEDOR de la cotización. De
  * entrada, los de ahora: el dueño guardado y su tienda; en una nueva, quien la crea y la tienda de su perfil.
  *
