@@ -30,7 +30,7 @@ describe("D-391 · al elegir mostrador, los cuatro campos del cliente quedan vac
         .toEqual(TODO_VACIO);
     }
   });
-  it("D-NEXT: la dirección tecleada en el primer paso de una orden nueva (sin cuenta aún) NO se borra al elegir mostrador", () => {
+  it("D-860: la dirección tecleada en el primer paso de una orden nueva (sin cuenta aún) NO se borra al elegir mostrador", () => {
     const delPrimerPaso = { account: "", contact: "", delivery_phone: "", delivery_name: "", delivery_address: "5 Calle Inventada, McAllen TX" };
     const r = contactoAlElegirCuenta({ cuenta: CUENTA_DE_MOSTRADOR, guardada: undefined, ultimaOrden: undefined, actual: delPrimerPaso });
     expect(r).toEqual({ contact: "", delivery_phone: "" });

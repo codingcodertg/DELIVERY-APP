@@ -1,4 +1,4 @@
-// D-NEXT: dirección del primer paso de una orden nueva y «Venta al mostrador». Demo en 127.0.0.1:3931.
+// D-860: dirección del primer paso de una orden nueva y «Venta al mostrador». Demo en 127.0.0.1:3931.
 import { abreChrome } from "./cdp.mjs";
 const nav = await abreChrome();
 try {

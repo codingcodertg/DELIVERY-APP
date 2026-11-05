@@ -50552,3 +50552,19 @@ Sello `customers` 0.44.0; repo 1.713.0.
 Sello `deliveries` 1.536.0; repo 1.714.0.
 
 **Pruebas:** `suplantacion-en-burbuja.test.ts`; `impersonation-banner`, `aviso-de-suplantacion`, `banner-corto`, `banner-panel-providers`, `impersonation-switch-ui` reescritas; varias más ajustadas.
+
+## D-860 · Venta al mostrador ya no borra la dirección escrita en el primer paso de la orden
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `fix/direccion-preorden`, fusionado por el orquestador (laptop nueva). Matiza D-391.
+
+**Pedido (el dueño, de los usuarios):** «cuando meten la orden, en el pre-order form ponen los addresses, le dan next y ese address no se guarda».
+
+**Causa medida:** la dirección no se perdía al pulsar «Siguiente»: se borraba al elegir luego «Venta al mostrador» en la ficha completa. `contactoAlElegirCuenta` (`cuenta-elegida.ts`) llamaba siempre a `vaciarParaMostrador()` (D-391), que vacía contacto, teléfono, nombre de entrega, dirección, pin y ruta; D-391 no contaba con que la dirección se escribe en el primer paso, antes de elegir la cuenta. Reproducido en el demo.
+
+**Qué cambia:** al elegir Venta al mostrador, el destino (nombre, dirección, pin, ruta) solo se vacía si la orden ya tenía OTRA cuenta de cliente real (los casos de D-391: «Rio Tile y luego mostrador», editar la #1073). Contacto y teléfono se siguen vaciando siempre (D-337/D-391). La ventana de la orden no cambia.
+
+**Órdenes afectadas:** ninguna guardada sin dirección en 14 días (es obligatoria): la gente la volvía a escribir. Nada que recuperar.
+
+Sello `deliveries` 1.537.0; repo 1.715.0.
+
+**Pruebas:** `mostrador-vacio.test.ts` (falla con el código viejo).

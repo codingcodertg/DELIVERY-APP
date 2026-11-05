@@ -49,7 +49,7 @@ export function vaciarParaMostrador(): AlPasarAMostrador {
 }
 
 /**
- * D-NEXT: el destino (nombre, dirección, pin y ruta) solo se vacía si era de OTRA cuenta. En una orden nueva la dirección se
+ * D-860: el destino (nombre, dirección, pin y ruta) solo se vacía si era de OTRA cuenta. En una orden nueva la dirección se
  * teclea en el primer paso («Siguiente →») ANTES de elegir la cuenta; vaciarla al elegir mostrador la borraba, y el vendedor
  * veía que «la dirección no se guarda». Sin cuenta previa (o ya de mostrador), esa dirección es la del cliente de paso.
  */
