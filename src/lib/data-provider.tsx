@@ -1762,7 +1762,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         if (ok && !teaching) await avisaAlVendedor();
         return ok;
       };
-      // D-NEXT: su vendedor se entera (aviso importante). El «Deshacer» no avisa: vuelve a lo que ya sabía.
+      // D-880: su vendedor se entera (aviso importante). El «Deshacer» no avisa: vuelve a lo que ya sabía.
       const avisaAlVendedor = async () => {
         const orden = deliveries.find((c) => c.id === id);
         if (deshacer || !orden) return;

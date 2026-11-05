@@ -3,7 +3,7 @@ import { claseDelAviso, cuentaPorClase, sinLeerDeLaClase } from "@/lib/clase-del
 import { avisoDeReprogramacion, notificationsForStage } from "@/lib/notifications";
 import type { Profile } from "@/lib/types";
 
-describe("claseDelAviso (D-NEXT): cada kind conocido", () => {
+describe("claseDelAviso (D-880): cada kind conocido", () => {
   const tabla: [string, "importante" | "secundario"][] = [
     // Clientes (D-867)
     ["cliente_solicitud_nueva", "importante"],
@@ -63,7 +63,7 @@ describe("cuentaPorClase y sinLeerDeLaClase", () => {
   });
 });
 
-describe("avisos nuevos de Entregas (D-NEXT)", () => {
+describe("avisos nuevos de Entregas (D-880)", () => {
   const users = [
     { id: "kevin", role: "sales", full_name: "Kevin" },
     { id: "jefa", role: "manager", full_name: "Jefa" },

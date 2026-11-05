@@ -1213,7 +1213,7 @@ a.mapa-casilla:hover, a.mapa-casilla:focus-visible { background: var(--paper); b
    38 px para el dedo sin tocar los demás `.notif-clear`, que son enlaces de texto (R8). */
 .btn-cerrar-panel { min-width: 38px; min-height: 38px; padding: 8px; margin: -8px -8px 0 0; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; line-height: 1; border-radius: 8px; flex: 0 0 auto; }
 .btn-cerrar-panel:hover { background: var(--card-hover); }
-/* D-NEXT: las dos secciones de la campana. El contador de «Secundarias» va gris: está, pero no llama. */
+/* D-880: las dos secciones de la campana. El contador de «Secundarias» va gris: está, pero no llama. */
 .notif-tabs { display: flex; border-bottom: 1px solid var(--line); }
 .notif-tab { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 8px 10px; font-size: 13px; font-weight: 600; color: var(--gray); background: none; border-bottom: 2px solid transparent; }
 .notif-tab.on { color: var(--text); border-bottom-color: var(--accent); }

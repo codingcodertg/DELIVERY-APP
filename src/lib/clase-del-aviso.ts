@@ -2,7 +2,7 @@ import { AVISO_CLIENTE_APROBADA, AVISO_CLIENTE_NUEVA, AVISO_CLIENTE_RECHAZADA, A
 import { KIND_RECHAZADA } from "@/lib/acciones-parada";
 
 // ============================================================
-// Importantes y secundarios (D-NEXT).
+// Importantes y secundarios (D-880).
 //
 // El dueño: «las notificaciones principales SOLO las de Clientes, y de Entregas SOLO si la entrega se canceló, se
 // rechazó o se reprogramó. Todo lo demás, a SECUNDARIAS: llegan siempre, pero sin ruido y en otra sección.»
@@ -14,11 +14,11 @@ import { KIND_RECHAZADA } from "@/lib/acciones-parada";
 
 export type ClaseDelAviso = "importante" | "secundario";
 
-/** Una orden anulada (`notificationsForStage`, D-656 y D-NEXT: también a su vendedor). */
+/** Una orden anulada (`notificationsForStage`, D-656 y D-880: también a su vendedor). */
 export const KIND_ANULADA = "canceled";
 /** Una orden rechazada por la oficina (etapa `rejected`). */
 export const KIND_ORDEN_RECHAZADA = "rejected";
-/** Una orden reprogramada a otra fecha (D-NEXT, `avisoDeReprogramacion`). */
+/** Una orden reprogramada a otra fecha (D-880, `avisoDeReprogramacion`). */
 export const KIND_REPROGRAMADA = "rescheduled";
 
 /** Los únicos que suenan y cuentan en el número rojo. */

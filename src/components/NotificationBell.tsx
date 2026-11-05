@@ -38,7 +38,7 @@ export function NotificationBell() {
  * La campana en sí, sin saber de dónde salen los avisos (D-867): Entregas se los da desde su `DataProvider`; Clientes,
  * desde `useAvisosPropios` (`CampanaDeClientes`). La misma tabla (`public.notifications`), el mismo aspecto.
  *
- * D-NEXT: dos secciones. «Importantes» (Clientes; de Entregas, solo anulada, rechazada o reprogramada) llevan el número
+ * D-880: dos secciones. «Importantes» (Clientes; de Entregas, solo anulada, rechazada o reprogramada) llevan el número
  * rojo; «Secundarias» llegan igual, sin leer, pero sin número rojo ni ruido: solo un contador gris en su pestaña. La
  * regla está en `lib/clase-del-aviso.ts`. «Marcar todo leído» marca solo la sección que se ve.
  */

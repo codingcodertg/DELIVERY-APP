@@ -63,7 +63,7 @@ export function AssignmentPing({ role }: { role: Profile["role"] }) {
       return;
     }
 
-    // D-NEXT: solo los avisos importantes hacen ruido; una asignación es secundaria y espera en la campana.
+    // D-880: solo los avisos importantes hacen ruido; una asignación es secundaria y espera en la campana.
     const fresh = notifications.filter((n) => esImportante(n) && !n.read && !seen.current.has(n.id));
     for (const n of notifications) seen.current.add(n.id);
     if (!fresh.length) return;

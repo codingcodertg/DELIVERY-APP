@@ -11,7 +11,7 @@ import { soloActivos } from "@/lib/baja";
 //   → ready      sales             "your order is ready"
 //   → delivered  sales             "your order was delivered"
 //   → canceled   managers + office "<rep> canceled order #X: reason" — only when a sales rep cancels (D-656)
-//                + the order's sales rep, always (D-NEXT)
+//                + the order's sales rep, always (D-880)
 //
 // The same logic drives both the Supabase and local providers, so the
 // two stay in lock-step. The actor is never notified about their own action.
@@ -85,7 +85,7 @@ export function notificationsForStage(args: {
       // D-656 (migración 191): el vendedor anula SU orden hasta «Listo» (D-663, 192) sin pasar por nadie, así que la oficina
       // —gerente y Office, los mismos de D-639— se entera aquí, con el motivo. Lo que anula la oficina no se avisa: es suyo.
       // D-676 (196): y el chofer, que anula SU orden ya recogida.
-      // D-NEXT: y SIEMPRE a su vendedor (quien la creó o a quien se le asignó), que es de quien es la orden. Si la anula él
+      // D-880: y SIEMPRE a su vendedor (quien la creó o a quien se le asignó), que es de quien es la orden. Si la anula él
       // mismo, `push` no le avisa (nunca al que actúa).
       push(creatorId, "canceled", `Your order ${label} was canceled${reason ? `: ${reason}` : ""}`);
       if (actorRole !== "sales" && actorRole !== "driver") break;
@@ -149,7 +149,7 @@ export function assignmentNotification(args: {
 }
 
 /**
- * Una orden reprogramada (D-NEXT): se le dice a su vendedor —el mismo a quien se le dice que se aprobó o se entregó
+ * Una orden reprogramada (D-880): se le dice a su vendedor —el mismo a quien se le dice que se aprobó o se entregó
  * (`orderOwner`)—, nunca a quien la reprograma. Es de los avisos importantes (`lib/clase-del-aviso.ts`).
  */
 export function avisoDeReprogramacion(args: {

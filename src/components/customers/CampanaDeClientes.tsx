@@ -55,7 +55,7 @@ export function CampanaDeClientes() {
     await supabase.from("notifications").update({ read: true }).eq("id", id);
   }, [supabase]);
 
-  // «Marcar todo leído» de UNA sección (D-NEXT): los ids que la campana le pasa, en una sola escritura.
+  // «Marcar todo leído» de UNA sección (D-880): los ids que la campana le pasa, en una sola escritura.
   const marcaVarios = useCallback(async (ids: string[]) => {
     if (!supabase || !yo || !ids.length) return;
     const set = new Set(ids);

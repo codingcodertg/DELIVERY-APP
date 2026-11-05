@@ -384,7 +384,7 @@ describe("el vendedor anula SU orden pendiente o programada (D-656, 191)", () =>
     expect(aviso("kevin", "sales", null)[0].message).toBe("Kevin Gonzalez canceled order #FV216");
   });
 
-  it("si anula la oficina o el admin, a la oficina no se le avisa; al vendedor de la orden sí (D-NEXT)", () => {
+  it("si anula la oficina o el admin, a la oficina no se le avisa; al vendedor de la orden sí (D-880)", () => {
     const soloKevin = (s: ReturnType<typeof aviso>) => s.map((x) => x.user_id);
     expect(soloKevin(aviso("ger", "manager", "Duplicate order"))).toEqual(["kevin"]);
     expect(soloKevin(aviso("ofi", "accounting", "Duplicate order"))).toEqual(["kevin"]);
@@ -424,7 +424,7 @@ describe("el chofer anula SU orden ya recogida (D-676, 196)", () => {
   it("si anula un chofer, también se avisa a gerente y Office, con su nombre y el motivo", () => {
     const users = [{ id: "ana", role: "driver", full_name: "Ana Chofer" }, { id: "ger", role: "manager", full_name: "Gerente" }, { id: "ofi", role: "accounting", full_name: "Office" }] as Profile[];
     const seeds = notificationsForStage({ stage: "canceled", order_no: 9, order_code: "FV9", delivery_id: "d9", creatorId: "kevin", actorId: "ana", actorRole: "driver", users, reason: "Customer refused" });
-    // D-NEXT: y su vendedor, siempre.
+    // D-880: y su vendedor, siempre.
     expect(seeds.map((s) => s.user_id).sort()).toEqual(["ger", "kevin", "ofi"]);
     expect(seeds.find((s) => s.user_id === "ger")?.message).toBe("Ana Chofer canceled order #FV9: Customer refused");
   });

@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     .maybeSingle();
   if (!notif) return NextResponse.json({ error: "No such notification" }, { status: 404 });
 
-  // D-NEXT: solo los avisos importantes suenan en el teléfono. Los secundarios llegan igual a la campana, en silencio.
+  // D-880: solo los avisos importantes suenan en el teléfono. Los secundarios llegan igual a la campana, en silencio.
   if (claseDelAviso(notif.kind) !== "importante") return NextResponse.json({ skipped: "secondary" });
 
   // Only ever pushes something just created, so an old id can't be replayed to
