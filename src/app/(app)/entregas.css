@@ -21,8 +21,26 @@
 /* =====================================================================================================================
    1 · El marco y las cabeceras
    ===================================================================================================================== */
-/* Menos aire arriba y a los lados; el de abajo es el hueco de la burbuja de Ayuda (D-530) y no se toca. */
+/* Menos aire arriba y a los lados. */
 .wrap.entregas-app { padding-top: 10px; }
+/* El de abajo (D-862). El dueño, con el final del Gestor a 1918 px: «mira este espacio de abajo, todo vacío». Medido en
+   el demo: al acabar cualquier pantalla de Entregas quedaban ~134 px muertos (80 del `.wrap` + 16 + 15 + 24 del pie de
+   la versión), y la burbuja de Ayuda solo pide 62 (20 + 42; 58 en el teléfono). El pie ya está debajo del contenido y
+   pasa por debajo de la burbuja, así que el hueco de D-530 se cuenta CON el pie: el `.wrap` pone solo lo que falta.
+   Lo último sigue pudiendo subir por encima de la burbuja (24 + 56 = 80 ≥ 62), y mientras se suplanta el hueco crece
+   igual que antes (D-859: 136 − 56 = 80 en el `.wrap`; la segunda regla le gana a la general de globals.css). */
+:root { --alto-del-pie-de-version: 56px; }
+.wrap.entregas-app,
+:root:has(.fab-general-caja.suplantando) .wrap.entregas-app {
+  padding-bottom: max(12px, calc(var(--hueco-de-ayuda) - var(--alto-del-pie-de-version)));
+}
+/* El mapa del Gestor sigue el alto de la ventana (D-862): antes 430 px fijos (300 en la vista eficiente), y en una
+   pantalla alta sobraba media ventana. Nunca baja de lo de antes (el teléfono y las pantallas cortas quedan igual) y
+   tiene techo: en la vista completa el mapa va fijo arriba con el panel (D-481), y uno demasiado alto taparía las tablas. */
+:root {
+  --alto-mapa-gestor: clamp(430px, calc(100dvh - 560px), 620px);
+  --alto-mapa-gestor-eficiente: clamp(300px, calc(100dvh - 600px), 480px);
+}
 @media (min-width: 641px) { .wrap.entregas-app { padding-left: 12px; padding-right: 12px; } }
 @media (min-width: 1280px) { .wrap.entregas-app { max-width: min(1600px, 100%); } }
 
