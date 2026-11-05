@@ -50720,3 +50720,9 @@ Sello `customers` 0.50.0; repo 1.726.0.
 **Fecha:** 2026-11-05 · Sin migración · Agente con `frontend-design` en `design/encuestas-preview`; aprobado por el dueño tras las capturas. Cabecera y filtro de fechas en una fila (atajos como control segmentado), KPI en una franja, las tres gráficas lado a lado, tablas de ~30 px con fecha fija y estado de contacto con punto de color, avisos con franja, vacíos que dicen por qué; en el teléfono, cada fila es una tarjeta con botones de 44 px. La página mide un 45 % menos. Sin cambios de comportamiento; estilos bajo `.encuestas-app`. El formulario público de encuestas es otro sitio y no cambia.
 
 Sello `surveys` 0.10.0; repo 1.727.0.
+
+## D-873 · RR. HH.: diseño compacto de Promos
+
+**Fecha:** 2026-11-05 · Sin migración · Agente con `frontend-design` en `design/rh-preview`; aprobado por el dueño tras las capturas. Empleados y Activos con búsqueda y estados en una fila, estados como control segmentado con punto de color (visible en oscuro), filas de 32 px con cebra, hover y primera columna fija (14 → 17 filas; en el teléfono 6 → 11); Candidatos con las etapas en una tira y tarjetas más ajustadas (4 → 8); avisos con franja; la ficha con etiquetas sin mayúsculas; compactación general del resto. Sin cambios de comportamiento ni de permisos; estilos en `recruiting.css`.
+
+Sello `recruiting` 0.76.0; repo 1.728.0.
