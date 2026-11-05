@@ -4,7 +4,7 @@ import {
   MAX_MILLAS_PLAUSIBLES, boundsGoogleRGV, esRespuestaVigente, millasImposibles, puntoEnElValle,
 } from "./distancia-plausible";
 
-describe("millasImposibles (D-NEXT, factura 171838)", () => {
+describe("millasImposibles (D-878, factura 171838)", () => {
   it("321,3 mi de Pharr a Monte Alto es imposible", () => {
     expect(millasImposibles(321.3)).toBe(true);
   });

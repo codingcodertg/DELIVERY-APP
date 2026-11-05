@@ -560,7 +560,7 @@ export function OrderModal({
   const descuentoOfrecido = ofreceDescuento(me.role, d.store, settings.stores) ? feeSuggestion.discount : null;
   /** De dónde sale la zona, para decirlo junto al aviso: un «No local» sin motivo no distingue
    *  «esta dirección no tiene pin» de «esta entrega está lejos de verdad». */
-  /** Unas millas que no pueden ser del Valle, dichas junto a las millas (D-NEXT): 171838 se guardó con 321 mi por 25. */
+  /** Unas millas que no pueden ser del Valle, dichas junto a las millas (D-878): 171838 se guardó con 321 mi por 25. */
   const avisoMillas = millasImposibles(d.route_miles) ? (
     <div className="hint" style={{ color: "var(--red)" }}>⚠ {t(
       `${d.route_miles} mi is not a Valley delivery (more than ${MAX_MILLAS_PLAUSIBLES}). The address was probably found in the wrong place: check it and recalculate.`,
@@ -910,7 +910,7 @@ export function OrderModal({
   // Remembers the last origin→destination pair we routed, so the auto-calc
   // effect doesn't re-fire for an address that's already been resolved.
   const lastRouted = useRef<string>("");
-  /** Número del último cálculo pedido (D-NEXT): solo ese puede escribir las millas. Con la ruta calculándose
+  /** Número del último cálculo pedido (D-878): solo ese puede escribir las millas. Con la ruta calculándose
    *  mientras se teclea, la respuesta tardía de «9402 Solan» pisaba la de la dirección completa (factura 171838). */
   const routeSeq = useRef(0);
 

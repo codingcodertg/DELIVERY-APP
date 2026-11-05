@@ -1,5 +1,5 @@
 // ============================================================
-// Millas imposibles (D-NEXT).
+// Millas imposibles (D-878).
 //
 // Medido el 2026-11-05 sobre producción: la factura 171838 (RDZ Pharr → 9402 Solana Dr, Monte Alto)
 // guardó **321,3 mi / 6 h** cuando son ~25 mi. No fue la dirección final: con ella Google Routes da

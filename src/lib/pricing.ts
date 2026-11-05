@@ -343,7 +343,7 @@ export function suggestDeliveryFee(
   // libre y falla justo donde más duele. Sin punto se cae al método de siempre, sin cambiarlo.
   const porPunto = puntoEnZonaLocal(d.delivery_lat, d.delivery_lng);
   const local = porPunto ?? isLocalCity(city, s);
-  // Unas millas imposibles (D-NEXT: 171838 guardó 321 mi por 25) no ponen precio: sin ellas no hay sugerencia, y la
+  // Unas millas imposibles (D-878: 171838 guardó 321 mi por 25) no ponen precio: sin ellas no hay sugerencia, y la
   // ficha dice por qué. Antes salía una tarifa de cientos de millas como si fuera buena.
   const miles = millasImposibles(d.route_miles) ? null : d.route_miles;
   // Un solo cálculo para el número y para la explicación. `total` ya lleva el recargo dentro,

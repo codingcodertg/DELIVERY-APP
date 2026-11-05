@@ -148,7 +148,7 @@ async function osmGeocode(q: string): Promise<[number, number] | null> {
 }
 
 async function geocodeBest(q: string, google?: string, mapbox?: string): Promise<[number, number]> {
-  // Un punto fuera del Valle no sirve (D-NEXT): «9402 Solan» se geocodificaba en India y salía una ruta de miles de
+  // Un punto fuera del Valle no sirve (D-878): «9402 Solan» se geocodificaba en India y salía una ruta de miles de
   // millas. Se descarta y se prueba el siguiente proveedor; si ninguno da un punto del Valle, error.
   const safe = async (fn: () => Promise<[number, number] | null>) => {
     try { const p = await fn(); return p && puntoEnElValle(p[1], p[0]) ? p : null; } catch { return null; }
@@ -207,7 +207,7 @@ export async function POST(req: Request) {
     if (!result && mapbox) result = await safe(() => viaMapbox(origin, destination, mapbox));
     // Fallback: accurate geocode (Google/Mapbox/OSM) + free OSRM routing.
     if (!result) result = await viaGeocodeOSRM(origin, destination, google, mapbox);
-    // Ninguna entrega del Valle está a cientos de millas (D-NEXT, factura 171838: 321 mi por 25). Mejor un error que
+    // Ninguna entrega del Valle está a cientos de millas (D-878, factura 171838: 321 mi por 25). Mejor un error que
     // la ficha pueda enseñar que un número que se guarda y cobra en silencio.
     if (millasImposibles(result.miles)) {
       return NextResponse.json({
