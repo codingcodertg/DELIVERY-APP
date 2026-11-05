@@ -171,7 +171,8 @@ describe("104_profile_title.sql", () => {
     // **Este nombre se mueve con cada redefinición, a mano y a propósito.** Es la parte del canario
     // que obliga a venir aquí y leer el comentario de arriba antes de reescribir el guard. Saltó al
     // escribir la 131 (D-315) y por eso dice 131: la 104 dejó de ser la última.
-    expect(ultima[0]).toBe("131_visibilidad_por_tienda.sql");
+    // La 240 (admin solo de Clientes) la reescribió partiendo de la 131 y añadiendo customers_role.
+    expect(ultima[0]).toBe("240_admin_de_clientes.sql");
     for (const [fichero, previas] of defs.slice(0, -1)) {
       const perdidas = [...previas].filter((c) => !ultima[1].has(c));
       expect(perdidas, `${ultima[0]} deja de vigilar lo que vigilaba ${fichero}`).toEqual([]);
@@ -181,6 +182,8 @@ describe("104_profile_title.sql", () => {
     expect(ultima[1].has("title_color")).toBe(true);
     // La de la 131: sin ella, la persona a la que se le limita la visibilidad se la quita sola.
     expect(ultima[1].has("visible_stores")).toBe(true);
+    // La de la 240: sin ella, cualquiera se haría admin de Clientes a sí mismo.
+    expect(ultima[1].has("customers_role")).toBe(true);
   });
 
   it("el guard cubre las columnas nuevas además de las que ya venían", () => {

@@ -4,6 +4,7 @@ import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { puedeEditar } from "@/lib/customers/reglas";
 import type { UserRole } from "@/lib/types";
+import { rolEnClientes } from "@/lib/customers/admin-de-clientes";
 import { BarraDeClientes } from "@/components/customers/barra";
 import { DecidirJuntar } from "./DecidirJuntar";
 
@@ -31,13 +32,17 @@ export default async function JuntarPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   let role: UserRole = "sales";
+  let rolDelHub: UserRole = "sales";
   let fullName: string | null = null;
   let moduleAccess: string[] | null = null;
   if (user) {
-    const { data: perfil, error: errorPerfil } = await supabase.from("profiles").select("full_name, role, module_access").eq("id", user.id).maybeSingle();
+    const { data: perfil, error: errorPerfil } = await supabase.from("profiles").select("full_name, role, module_access, customers_role").eq("id", user.id).maybeSingle();
     // El fallo de lectura no manda a nadie a otro sitio (D-749, misma guarda que el layout): se enseña y se reintenta.
     if (estadoDeLectura({ data: perfil, error: errorPerfil }) === "fallo") return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
     role = (perfil?.role as UserRole | undefined) ?? "sales";
+    // 240: admin SOLO de Clientes (`customers_role`). Las reglas de aquí se leen con el rol de Clientes; la barra, con el del hub.
+    rolDelHub = role;
+    role = rolEnClientes(perfil);
     fullName = perfil?.full_name?.trim() || null;
     moduleAccess = (perfil?.module_access as string[] | null) ?? null;
   }
@@ -45,7 +50,7 @@ export default async function JuntarPage() {
   if (role !== "admin") redirect("/customers");
   return (
     <>
-      <BarraDeClientes role={role} fullName={fullName} email={user?.email ?? ""} moduleAccess={moduleAccess} />
+      <BarraDeClientes role={rolDelHub} esAdminDeClientes={role === "admin"} fullName={fullName} email={user?.email ?? ""} moduleAccess={moduleAccess} />
       <DecidirJuntar demo={false} puedeEditar={puedeEditar(role)} />
     </>
   );

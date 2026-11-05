@@ -6,6 +6,7 @@ import { CLIENTES_DEMO } from "@/lib/customers/demo";
 import { filasDeLaEmpresa } from "@/lib/customers/empresas";
 import { clienteDeLaBase, esVendedor, puedeEditar, type Cliente } from "@/lib/customers/reglas";
 import type { UserRole } from "@/lib/types";
+import { rolEnClientes } from "@/lib/customers/admin-de-clientes";
 import { BarraDeClientes } from "@/components/customers/barra";
 import { FichaCompleta } from "./FichaCompleta";
 
@@ -41,11 +42,15 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   let role: UserRole = "sales";
+  let rolDelHub: UserRole = "sales";
   let fullName: string | null = null;
   let moduleAccess: string[] | null = null;
   if (user) {
-    const { data } = await supabase.from("profiles").select("full_name, role, module_access").eq("id", user.id).maybeSingle();
+    const { data } = await supabase.from("profiles").select("full_name, role, module_access, customers_role").eq("id", user.id).maybeSingle();
     role = (data?.role as UserRole | undefined) ?? "sales";
+    // 240: admin SOLO de Clientes (`customers_role`). Las reglas de aquí se leen con el rol de Clientes; la barra, con el del hub.
+    rolDelHub = role;
+    role = rolEnClientes(data);
     fullName = data?.full_name?.trim() || null;
     moduleAccess = (data?.module_access as string[] | null) ?? null;
   }
@@ -69,7 +74,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
 
   return (
     <>
-      <BarraDeClientes role={role} fullName={fullName} email={user?.email ?? ""} moduleAccess={moduleAccess} />
+      <BarraDeClientes role={rolDelHub} esAdminDeClientes={role === "admin"} fullName={fullName} email={user?.email ?? ""} moduleAccess={moduleAccess} />
       <FichaCompleta cliente={cliente} hermanas={hermanas} puedeEditar={puedeEditar(role)} esVendedor={esVendedor(role)} />
     </>
   );

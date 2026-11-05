@@ -43,6 +43,8 @@ export type SecurityKind =
   | "leads_access_changed"
   // Clientes (180). Solo el acceso, como Leads.
   | "customers_access_changed"
+  // Admin solo de Clientes (240): profiles.customers_role.
+  | "customers_role_changed"
   | "deliveries_access_changed"
   | "clockin_access_changed"
   // D-243: entrar como otra persona deja DOS filas, una al entrar y otra al volver. Son dos
@@ -82,6 +84,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     surveys_access_changed: "Surveys access changed",
     leads_access_changed: "Leads access changed",
     customers_access_changed: "Customers access changed",
+    customers_role_changed: "Customers admin changed",
     deliveries_access_changed: "Deliveries access changed",
     clockin_access_changed: "Clock-in access changed",
     impersonation_start: "Signed in as this user",
@@ -109,6 +112,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     surveys_access_changed: "Acceso a Encuestas cambiado",
     leads_access_changed: "Acceso a Leads cambiado",
     customers_access_changed: "Acceso a Clientes cambiado",
+    customers_role_changed: "Admin de Clientes cambiado",
     // Estas dos faltaban desde antes de esta rama: en español caían al `?? kind` y el registro
     // enseñaba la clave cruda, `deliveries_access_changed`, a quien lo abriera. Se añaden aquí
     // porque es el mismo mapa que estoy tocando y dejar el hueco al lado de las líneas nuevas

@@ -29,7 +29,7 @@ describe("la pantalla", () => {
     expect(lista).toContain("const soloSuTienda = vistaAcotada;");
   });
   it("«Decidir si se juntan» solo en la barra del admin, y su página redirige a los demás", () => {
-    expect(sinComentarios(leer("src/components/customers/barra.tsx"))).toContain('...(role === "admin" ? [{ href: "/customers/juntar", label: rotuloDeDecidir(pendientes, t) }] : []),');
+    expect(sinComentarios(leer("src/components/customers/barra.tsx"))).toContain('...((esAdminDeClientes ?? role === "admin") ? [{ href: "/customers/juntar", label: rotuloDeDecidir(pendientes, t) }] : []),');
     const pagina = sinComentarios(leer("src/app/customers/juntar/page.tsx"));
     expect(pagina).toContain('if (role !== "admin") redirect("/customers");');
     expect(pagina).toContain('import { redirect } from "next/navigation";');

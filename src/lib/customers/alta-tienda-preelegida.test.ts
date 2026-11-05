@@ -24,7 +24,7 @@ describe("tiendaPreelegida", () => {
 describe("el camino hasta la ficha", () => {
   it("la página lee profiles.store y lo manda; la lista se lo pasa a la ventana", () => {
     const pagina = sinComentarios(leer("src/app/customers/page.tsx"));
-    expect(pagina).toContain('select("full_name, role, module_access, store")');
+    expect(pagina).toContain('select("full_name, role, module_access, store, customers_role")');
     expect(pagina).toContain("miTienda = (data?.store as string | null | undefined) ?? null;");
     expect(pagina).toContain("miTienda={miTienda} />");
     const lista = sinComentarios(leer("src/app/customers/Clientes.tsx"));
