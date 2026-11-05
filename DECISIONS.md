@@ -50868,3 +50868,9 @@ Sello `customers` 0.54.0; repo 1.740.0.
 Desde Editar se agregan o quitan varias asociaciones a la vez; ventas y gerentes las proponen y pasan por el panel de solicitudes (tipo asociacion) hasta que un admin las aprueba; solo pueden buscar clientes de sus tiendas. Migración 250.
 
 Sello `customers` 0.55.0; repo 1.741.0.
+
+## D-887 · Customers: solicitudes de cliente nuevo ya no llegan como Help
+
+Las solicitudes de cliente nuevo y de edición dejan de pasar por Help (no más filas en help_requests ni correo «Help request»); van por /api/customers/aviso-solicitud con el asunto «New customer request» y enlace al panel de solicitudes. La campana en español dice «Solicitud de cliente nuevo». Migración 251.
+
+Sello `customers` 0.56.0; repo 1.742.0.

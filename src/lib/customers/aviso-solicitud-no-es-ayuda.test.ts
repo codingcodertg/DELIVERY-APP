@@ -46,7 +46,7 @@ describe("una solicitud de cliente nuevo no llega como solicitud de ayuda", () =
     expect(sql).toContain("execute replace(def, 'else ''📝 Nueva solicitud de cliente: '' end', 'else ''📝 Solicitud de cliente nuevo: '' end');");
     expect(sql).toContain("aplica primero la 250");
     expect(sql).not.toContain("create or replace function");
-    expect(sql).not.toMatch(/D-\d{3}|D-NEXT/);
+    expect(sql).not.toMatch(/D-\d{3}|D-887/);
     expect(sql).toContain("-- @ledger-below");
     expect(sql).toMatch(/values \('251_aviso_solicitud_de_cliente_nuevo\.sql', '[0-9a-f]{64}'\)/);
   });
