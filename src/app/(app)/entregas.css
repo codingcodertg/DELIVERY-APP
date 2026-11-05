@@ -23,7 +23,7 @@
    ===================================================================================================================== */
 /* Menos aire arriba y a los lados. */
 .wrap.entregas-app { padding-top: 10px; }
-/* El de abajo (D-NEXT). El dueño, con el final del Gestor a 1918 px: «mira este espacio de abajo, todo vacío». Medido en
+/* El de abajo (D-862). El dueño, con el final del Gestor a 1918 px: «mira este espacio de abajo, todo vacío». Medido en
    el demo: al acabar cualquier pantalla de Entregas quedaban ~134 px muertos (80 del `.wrap` + 16 + 15 + 24 del pie de
    la versión), y la burbuja de Ayuda solo pide 62 (20 + 42; 58 en el teléfono). El pie ya está debajo del contenido y
    pasa por debajo de la burbuja, así que el hueco de D-530 se cuenta CON el pie: el `.wrap` pone solo lo que falta.
@@ -34,7 +34,7 @@
 :root:has(.fab-general-caja.suplantando) .wrap.entregas-app {
   padding-bottom: max(12px, calc(var(--hueco-de-ayuda) - var(--alto-del-pie-de-version)));
 }
-/* El mapa del Gestor sigue el alto de la ventana (D-NEXT): antes 430 px fijos (300 en la vista eficiente), y en una
+/* El mapa del Gestor sigue el alto de la ventana (D-862): antes 430 px fijos (300 en la vista eficiente), y en una
    pantalla alta sobraba media ventana. Nunca baja de lo de antes (el teléfono y las pantallas cortas quedan igual) y
    tiene techo: en la vista completa el mapa va fijo arriba con el panel (D-481), y uno demasiado alto taparía las tablas. */
 :root {

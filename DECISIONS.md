@@ -50580,3 +50580,20 @@ Sello `deliveries` 1.537.0; repo 1.715.0.
 Sello `deliveries` 1.538.0; repo 1.716.0.
 
 **Pruebas:** `deshacer-reprogramar.test.ts`; `dia-de-entrega.test.ts` puesta al día.
+
+## D-862 · Entregas sin franja vacía abajo; el mapa del Gestor crece con la ventana
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `fix/gestor-llena-la-ventana`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño, con captura del pie del Gestor):** «mira este espacio abajo, ayúdame a que todo esté bien, se adapte a la pantalla o al tamaño del window».
+
+**Causa medida:** el relleno inferior de `.wrap` (80 px, 72 en el teléfono: el hueco de Ayuda de D-530) más el pie con la versión (~56 px) sumaban ~134 px vacíos, cuando la burbuja necesita 62. El hueco se contaba dos veces. Y el mapa del Gestor medía 430 px fijos, fuera cual fuera la ventana.
+
+**Qué cambia:**
+- **En Entregas** (`entregas.css`): el relleno de `.wrap` es el hueco menos `--alto-del-pie-de-version` (56 px), nunca menos de 12. Franja vacía de ~134 a ~78 px (126→70 en el teléfono); la última fila sigue libre de la burbuja. Entrando como alguien (D-859) se respeta el hueco mayor.
+- **Mapa del Gestor:** `clamp(430px, 100dvh - 560px, 620px)` (vista compacta `clamp(300px, 100dvh - 600px, 480px)`): nunca más bajo que antes y con tope, porque va pegado arriba con el panel de choferes (D-481). `MapView`, `LeafletMap` y `GoogleMapView` aceptan altura en texto.
+- Sin rehacer el Gestor en columna con paneles propios (su CSS y la vista compacta están muy probados). La ventana de la orden, igual.
+
+Sello `deliveries` 1.539.0; repo 1.717.0.
+
+**Pruebas:** las que leen los ficheros tocados, `inline-colors`, `ayuda-flotante` y `suplantacion-en-burbuja`.

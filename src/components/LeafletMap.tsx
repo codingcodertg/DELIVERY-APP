@@ -148,7 +148,7 @@ export function LeafletMap({
   onPick?: (lat: number, lng: number) => void;
   /** The currently-picked point, shown as its own marker in pickable mode. */
   pickedPoint?: [number, number] | null;
-  /** Píxeles, o un largo de CSS (el Gestor pasa `var(--alto-mapa-gestor)`, D-NEXT). */
+  /** Píxeles, o un largo de CSS (el Gestor pasa `var(--alto-mapa-gestor)`, D-862). */
   height?: number | string;
   /**
    * De dónde salen los mosaicos (D-678). `osm` (lo de siempre): OpenStreetMap, gratis. `google`: los de Google por
