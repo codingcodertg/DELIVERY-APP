@@ -50874,3 +50874,9 @@ Sello `customers` 0.55.0; repo 1.741.0.
 Las solicitudes de cliente nuevo y de edición dejan de pasar por Help (no más filas en help_requests ni correo «Help request»); van por /api/customers/aviso-solicitud con el asunto «New customer request» y enlace al panel de solicitudes. La campana en español dice «Solicitud de cliente nuevo». Migración 251.
 
 Sello `customers` 0.56.0; repo 1.742.0.
+
+## D-888 · Customers: buscador de asociaciones siempre escribible y con avisos claros
+
+El buscador de asociaciones nunca se deshabilita; muestra «La búsqueda falló» si la búsqueda falla, avisa si el perfil no tiene tienda y, sin resultados, dice qué tiendas se buscaron y que clientes de otras tiendas solo los asocia un admin. Reporte de Zulema.
+
+Sello `customers` 0.57.0; repo 1.743.0.
