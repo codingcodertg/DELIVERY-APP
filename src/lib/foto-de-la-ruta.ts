@@ -120,7 +120,7 @@ export function anchoSinAcciones(anchoDeLaTabla: number, anchoDeLaUltima: number
 /**
  * D-636: lo que no sale en la foto de la tabla del Gestor: las casillas de marcar y las asas de ancho.
  *
- * D-NEXT (el dueño, 2026-11-04: «cuando le doy al botón PNG de las rutas no imprime la última hora, que es a la hora que
+ * D-863 (el dueño, 2026-11-04: «cuando le doy al botón PNG de las rutas no imprime la última hora, que es a la hora que
  * van a llegar a la base»): las dos se escondían con `excludeMode: "hide"` de snapdom, y el asa escondida deja de ser
  * `position: absolute` en la copia: entra en el flujo de cada `<th>` y la cabecera crecía ~27 px. El lienzo tiene el alto
  * de la tabla en la página, así que todo bajaba y la última fila —«🏠 Base: regreso» con su hora— se quedaba fuera.
@@ -130,7 +130,7 @@ export function anchoSinAcciones(anchoDeLaTabla: number, anchoDeLaUltima: number
 export const QUITAR_DE_LA_TABLA = [".col-resizer"] as const;
 export const CASILLAS_DE_LA_TABLA = 'input[type="checkbox"]';
 
-/** D-NEXT: ¿esta fila de la tabla se queda fuera de la foto? Ninguna: ni la de la salida ni la del regreso a base. */
+/** D-863: ¿esta fila de la tabla se queda fuera de la foto? Ninguna: ni la de la salida ni la del regreso a base. */
 export function filaFueraDeLaFoto(fila: Pick<Element, "matches">): boolean {
   return QUITAR_DE_LA_TABLA.some((sel) => fila.matches(sel)) || fila.matches(CASILLAS_DE_LA_TABLA);
 }

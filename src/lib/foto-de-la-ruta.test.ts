@@ -167,8 +167,8 @@ describe("el Gestor y el cuadro", () => {
   });
 });
 
-// D-NEXT · «cuando le doy al botón PNG de las rutas no imprime la última hora, que es a la hora que van a llegar a la base».
-describe("D-NEXT: la foto lleva la fila «🏠 Base: regreso» con su hora", () => {
+// D-863 · «cuando le doy al botón PNG de las rutas no imprime la última hora, que es a la hora que van a llegar a la base».
+describe("D-863: la foto lleva la fila «🏠 Base: regreso» con su hora", () => {
   /** Un elemento falso que solo sabe `matches` con selectores sencillos (etiqueta[atributo], .clase, [atributo]). */
   const el = (tag: string, attrs: Record<string, string> = {}, clases: string[] = []) => ({
     matches: (sel: string) => {

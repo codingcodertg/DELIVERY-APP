@@ -1,4 +1,4 @@
-// D-NEXT: ¿la foto «📸 PNG» de la ruta lleva la fila «🏠 Base: regreso» con su hora? Guarda la tabla fotografiada y la
+// D-863: ¿la foto «📸 PNG» de la ruta lleva la fila «🏠 Base: regreso» con su hora? Guarda la tabla fotografiada y la
 // pantalla. Uso: SCRATCH=<carpeta> ETIQUETA=antes node png-ruta-regreso.mjs
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

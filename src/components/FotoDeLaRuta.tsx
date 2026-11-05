@@ -35,7 +35,7 @@ async function fotoDeLaTabla(tabla: HTMLElement): Promise<{ url: string; ancho: 
   const raiz = document.documentElement;
   const tema = raiz.getAttribute("data-theme");
   if (tema === "dark") raiz.setAttribute("data-theme", "light");
-  // D-NEXT: las casillas, escondidas en la página sin mover nada; el asa de ancho, quitada (ver `QUITAR_DE_LA_TABLA`).
+  // D-863: las casillas, escondidas en la página sin mover nada; el asa de ancho, quitada (ver `QUITAR_DE_LA_TABLA`).
   const casillas = [...tabla.querySelectorAll<HTMLElement>(CASILLAS_DE_LA_TABLA)].map((el) => [el, el.style.visibility] as const);
   for (const [el] of casillas) el.style.visibility = "hidden";
   let lienzo: HTMLCanvasElement;
