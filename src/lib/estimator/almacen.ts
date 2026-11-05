@@ -10,6 +10,8 @@ import {
   type AlcanceDeLista, type Consulta, type CotizacionResumen, type FiltroDeCotizaciones,
 } from "./lista-admin";
 import { lineasConPriceMatch, marcaDeFila } from "./price-match";
+import type { Asignacion, VendedorElegible } from "./vendedor-de-la-cotizacion";
+import { soloActivos } from "@/lib/baja";
 
 /**
  * Dónde se guardan las cotizaciones: `public.estimator_quotes` y `public.estimator_approvals`
@@ -27,7 +29,7 @@ import { lineasConPriceMatch, marcaDeFila } from "./price-match";
  * `sinLead` (D-558): se guardó, pero SIN el enlace al lead, porque la columna `lead_id` (migración 175) aún no está.
  * El guardado no falla por eso: el código llega antes que la migración.
  */
-export type Resultado<T> = { ok: true; valor: T; sinLead?: boolean } | { ok: false; sinTabla: boolean; error: string; duplicado?: boolean };
+export type Resultado<T> = { ok: true; valor: T; sinLead?: boolean; /** D-NEXT: la tienda con la que quedó al guardar. */ store?: string | null } | { ok: false; sinTabla: boolean; error: string; duplicado?: boolean };
 
 export interface CotizacionGuardada {
   id: string;
@@ -56,7 +58,9 @@ export interface AlmacenDeCotizaciones {
    * Nuevo si `quoteId` es null. Devuelve el id: sin id de vuelta, «guardado» sería una suposición. `leadId` (D-558)
    * solo cuenta al CREAR: el enlace al lead se pone una vez y una edición no lo manda (`filaNueva`).
    */
-  guardar(quoteId: string | null, draft: QuoteDraft, leadId?: string | null): Promise<Resultado<string>>;
+  guardar(quoteId: string | null, draft: QuoteDraft, leadId?: string | null, asignacion?: Partial<Asignacion>): Promise<Resultado<string>>;
+  /** D-NEXT: los vendedores activos (rol `sales`) con su tienda, para el desplegable del admin. */
+  vendedores(): Promise<Resultado<VendedorElegible[]>>;
   pedirAprobacion(quoteId: string, approvalId: string | null): Promise<Resultado<AprobacionEstado>>;
   pendientes(): Promise<Resultado<AprobacionPendiente[]>>;
   decidir(approvalId: string, estado: "approved" | "denied"): Promise<Resultado<null>>;
@@ -266,12 +270,13 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeCotizaciones
       };
     },
 
-    async guardar(quoteId, draft, leadId) {
+    async guardar(quoteId, draft, leadId, asignacion = {}) {
       // Una edición NUNCA manda `lead_id` (no se reenvía lo que la acción no cambia); una nueva, si sale de un lead.
       const fila = quoteId ? filaDeBorrador(draft) : filaNueva(draft, leadId);
+      // D-NEXT: el dueño y la tienda que eligió el admin (`filaDeAsignacion`: vacía para el no-admin). Los guardas la base.
       const escribir = (f: ReturnType<typeof filaNueva>) => quoteId
-        ? supabase.from("estimator_quotes").update(f).eq("id", quoteId).select("id")
-        : supabase.from("estimator_quotes").insert(f).select("id");
+        ? supabase.from("estimator_quotes").update({ ...f, ...asignacion }).eq("id", quoteId).select("id, store")
+        : supabase.from("estimator_quotes").insert({ ...f, ...asignacion }).select("id, store");
       let { data, error } = await escribir(fila);
       let sinLead = false;
       // Sin la 175 (D-558): PostgREST rechaza la fila entera ANTES de escribir nada (PGRST204), así que se vuelve a
@@ -282,9 +287,20 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeCotizaciones
       }
       if (error) return fallo(error);
       // Un UPDATE que la RLS no deja pasar vuelve limpio con cero filas: eso NO es guardado.
-      const id = (data as { id: string }[] | null)?.[0]?.id;
+      const vuelta = (data as { id: string; store?: string | null }[] | null)?.[0];
+      const id = vuelta?.id;
       if (!id) return { ok: false, sinTabla: false, error: "0 rows" };
-      return sinLead ? { ok: true, valor: id, sinLead } : { ok: true, valor: id };
+      // La tienda solo si la base la devolvió (undefined = no se sabe; la pantalla se queda con la elegida).
+      const tienda = vuelta && "store" in vuelta ? { store: typeof vuelta.store === "string" && vuelta.store.trim() ? vuelta.store.trim() : null } : {};
+      return sinLead ? { ok: true, valor: id, sinLead, ...tienda } : { ok: true, valor: id, ...tienda };
+    },
+
+    async vendedores() {
+      // Como Clientes (`almacen.vendedores()`): perfiles con rol de vendedor, solo los que no están de baja.
+      const { data, error } = await supabase.from("profiles").select("id, full_name, store, left_at").eq("role", "sales").order("full_name");
+      if (error) return fallo(error);
+      const filas = soloActivos((data ?? []) as { id: string; full_name: string | null; store: string | null; left_at: string | null }[]);
+      return { ok: true, valor: filas.map((p) => ({ id: p.id, full_name: p.full_name ?? "", store: p.store?.trim() || null })) };
     },
 
     async pedirAprobacion(quoteId, approvalId) {

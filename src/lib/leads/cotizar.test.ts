@@ -295,7 +295,7 @@ describe("las pantallas usan estas reglas", () => {
     const p = leer("src/app/estimator/Estimador.tsx");
     expect(p).toContain("const que = decidirRelleno(leido, me);");
     expect(p).toContain('} else {\n        setDraft((d) => borradorDesdeLead(que.lead, d, ajustes.stores.map((s) => s.name)));');
-    expect(p).toContain("almacen.guardar(quoteIdRef.current, draft, quoteIdRef.current ? null : leadId)");
+    expect(p).toContain("almacen.guardar(quoteIdRef.current, draft, quoteIdRef.current ? null : leadId, asignar)");
     expect(p).toContain("ponerLead(c.valor.lead_id ?? null);");
   });
 });

@@ -36,6 +36,9 @@ import { alternarPriceMatch, etiquetaPriceMatch, igualaPrecio, ponCompetidor, po
 import { borradorDesdeLead, decidirRelleno, idDeParametro, nombreDeLead, vinculoDeLead } from "@/lib/leads/cotizar";
 import { enlaceDeLaBase, enlaceDemo, type AlmacenDelEnlace } from "@/lib/leads/enlace";
 import type { Lead } from "@/lib/leads/reglas";
+import {
+  avisoDeTienda, filaDeAsignacion, vendedorAlCambiarTienda, vendedoresParaElegir, type Asignacion, type VendedorElegible,
+} from "@/lib/estimator/vendedor-de-la-cotizacion";
 import { HojaCliente } from "./HojaCliente";
 import { SeccionCompetencia } from "./Competencia";
 import { EntregaCotizacion } from "./EntregaCotizacion";
@@ -219,7 +222,25 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const quoteIdRef = useRef<string | null>(null);
   /** La tienda de la cotización guardada que está abierta (148); null si es nueva. Sale en la hoja (D-451). */
   const [tiendaGuardada, setTiendaGuardada] = useState<string | null>(null);
-  const ponerQuoteId = (id: string | null) => { quoteIdRef.current = id; setQuoteId(id); if (!id) setTiendaGuardada(null); };
+  const ponerQuoteId = (id: string | null) => {
+    quoteIdRef.current = id; setQuoteId(id);
+    if (!id) { setTiendaGuardada(null); setAsignacionGuardada(null); setEleccion(null); }
+  };
+  /**
+   * D-NEXT (Roberto Rodriguez Jr, 5e8b3ea8): el admin elige la tienda y el vendedor de la cotización. `asignacionGuardada`:
+   * el dueño y la tienda de la guardada abierta (null si es nueva); `eleccion`: lo que el admin cambió y aún no guardó.
+   */
+  const [asignacionGuardada, setAsignacionGuardada] = useState<Asignacion | null>(null);
+  const [eleccion, setEleccion] = useState<Asignacion | null>(null);
+  const [vendedores, setVendedores] = useState<VendedorElegible[]>([]);
+  useEffect(() => {
+    if (!me?.admin) return;
+    let vivo = true;
+    void almacen.vendedores().then((r) => { if (vivo && r.ok) setVendedores(r.valor); });
+    return () => { vivo = false; };
+  }, [almacen, me?.admin]);
+  /** Lo que vale ahora: lo elegido; si no, lo guardado; en una nueva, quien la crea y la tienda de su perfil. */
+  const asignacion: Asignacion = eleccion ?? asignacionGuardada ?? { owner_id: me?.id ?? "", store: me?.store?.trim() || null };
   /**
    * El lead de lo que hay en pantalla (D-558): el de la cotización guardada que está abierta, o el lead del que se
    * empezó una nueva (`?lead=`). Solo se GUARDA al crear la cotización (`filaNueva`); abrir otra guardada lo cambia por
@@ -249,7 +270,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const cortas = lineasCortas(draft);
   // Subtotal regular → ahorro → impuesto → total (D-442), el mismo cálculo que la hoja. Solo líneas: sin entrega.
   // D-776: con la tasa de la tienda de la cotización (Mission 6.25 %; las demás 8.25 %), la misma que la hoja.
-  const totales = resumenDeTotales(draft.lines, tasaDeImpuesto(tiendaDeLaHoja(tiendaGuardada, me?.store)));
+  const totales = resumenDeTotales(draft.lines, tasaDeImpuesto(tiendaDeLaHoja(me?.admin ? asignacion.store : tiendaGuardada, me?.store)));
 
   // ---- acciones -------------------------------------------------------------------------------------
   const abrirGuardada = async (id: string): Promise<boolean> => {
@@ -259,6 +280,8 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     ponerQuoteId(c.valor.id);
     ponerLead(c.valor.lead_id ?? null);
     setTiendaGuardada(c.valor.store);
+    setAsignacionGuardada({ owner_id: c.valor.owner_id ?? meRef.current.id, store: c.valor.store });
+    setEleccion(null);
     setPrintCount(c.valor.print_count);
     setOfertaAbrir(null);
     setAviso({ tipo: "verde", texto: t("Saved quote opened. Changes replace it: one quote per estimate.", "Cotización guardada abierta. Los cambios la reemplazan: una cotización por estimado.") });
@@ -355,7 +378,8 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     }
     setOcupado(true);
     // El lead solo viaja al CREAR (D-558); `guardar` no lo manda en una edición aunque se le pase.
-    const r = await almacen.guardar(quoteIdRef.current, draft, quoteIdRef.current ? null : leadId);
+    const asignar = filaDeAsignacion(me.admin, asignacion, quoteIdRef.current ? asignacionGuardada : null);
+    const r = await almacen.guardar(quoteIdRef.current, draft, quoteIdRef.current ? null : leadId, asignar);
     setOcupado(false);
     if (!r.ok) {
       if (r.sinTabla) { setBaseDisponible(false); return null; }
@@ -369,13 +393,26 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
       return null;
     }
     ponerQuoteId(r.valor);
-    if (!h) {
-      setBusqueda({ num: draft.estimate_num.trim(), hallado: { quote_id: r.valor, estimate_num: draft.estimate_num.trim(), owner_id: me.id, owner_name: me.name, owner_store: null, my_approval_id: null, my_approval: null } });
+    // La tienda con la que quedó (la pone la base): la hoja y la lista dicen esa, no la elegida.
+    const dueno = me.admin ? asignacion.owner_id : (h?.owner_id ?? me.id);
+    const tiendaQueQuedo = r.store !== undefined ? r.store : asignacion.store;
+    setTiendaGuardada(tiendaQueQuedo);
+    setAsignacionGuardada({ owner_id: dueno, store: tiendaQueQuedo });
+    setEleccion(null);
+    const nombreDueno = dueno === me.id ? me.name : (vendedores.find((v) => v.id === dueno)?.full_name ?? null);
+    if (!h || (me.admin && asignar.owner_id)) {
+      setBusqueda({ num: draft.estimate_num.trim(), hallado: { quote_id: r.valor, estimate_num: draft.estimate_num.trim(), owner_id: dueno, owner_name: nombreDueno, owner_store: null, my_approval_id: null, my_approval: null } });
     }
+    const otraTienda = me.admin ? avisoDeTienda(asignacion.store, tiendaQueQuedo) : null;
     if (r.sinLead) {
       // Guardada, pero la base aún no tiene dónde apuntar el lead (falta la 175): no se finge un enlace que no está.
       ponerLead(null);
       setAviso({ tipo: "ambar", texto: t("Saved, but without the link to the lead: the database has not been updated yet (migration 175).", "Guardada, pero sin el enlace al lead: la base aún no está actualizada (migración 175).") });
+    } else if (otraTienda !== null) {
+      // Sin la 246 la base pone la tienda del perfil del vendedor: se dice la que quedó, no se finge la elegida.
+      setAviso({ tipo: "ambar", texto: t(
+        `Saved, but with the store ${otraTienda || "(none)"}: the database does not let you pick the store yet (migration 246).`,
+        `Guardada, pero con la tienda ${otraTienda || "(ninguna)"}: la base aún no deja elegir la tienda (migración 246).`) });
     } else {
       setAviso({ tipo: "verde", texto: t("Saved.", "Guardada.") });
     }
@@ -465,7 +502,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   };
 
   // La tienda donde se creó (D-451): la de la cotización guardada; si es nueva, la del perfil de quien la prepara.
-  const tiendaHoja = tiendaDeLaHoja(tiendaGuardada, me?.store);
+  const tiendaHoja = tiendaDeLaHoja(me?.admin ? asignacion.store : tiendaGuardada, me?.store);
   // D-796: el idioma de la hoja. De entrada, el del usuario; se cambia en la vista previa, con la hoja a la vista.
   const [idiomaElegido, setIdiomaElegido] = useState<IdiomaDeLaHoja | null>(null);
   const idiomaDeLaHoja: IdiomaDeLaHoja = idiomaElegido ?? (lang === "es" ? "es" : "en");
@@ -571,10 +608,34 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
           </div>
           {/* D-771: el campo «Tienda (sale en la cotización)» solo lo ve el admin (el dueño: «for sales people remove tienda que
               sale en cotiza»). La tienda sigue saliendo en la hoja del cliente (`tiendaHoja`, D-451): es la del perfil. */}
+          {/* D-NEXT (Roberto Rodriguez Jr, 5e8b3ea8): el admin ELIGE la tienda y el vendedor («create one for a rep in
+              pharr»). La tienda filtra los vendedores; la base decide (148 + 246) y la lista «Todas» lee lo guardado. */}
           {me.admin && (
           <div className="field">
-            <label>{t("Store (printed on the quote)", "Tienda (sale en la cotización)")}</label>
-            <div data-tienda style={{ padding: "8px 0", fontWeight: 600 }}>{tiendaHoja ?? <span className="hint">{t("No store on your profile", "Tu perfil no tiene tienda")}</span>}</div>
+            <label htmlFor="est-tienda">{t("Store (printed on the quote)", "Tienda (sale en la cotización)")}</label>
+            <select id="est-tienda" data-tienda value={asignacion.store ?? ""}
+              onChange={(e) => {
+                const store = e.target.value || null;
+                setEleccion({ store, owner_id: vendedorAlCambiarTienda(vendedores, store, asignacion.owner_id) });
+              }}>
+              <option value="">{t("— No store —", "— Sin tienda —")}</option>
+              {[...new Set([...ajustes.stores.map((s) => s.name), ...(asignacion.store ? [asignacion.store] : [])])].map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </div>
+          )}
+          {me.admin && (
+          <div className="field">
+            <label htmlFor="est-vendedor">{t("Sales rep", "Vendedor")}</label>
+            <select id="est-vendedor" data-vendedor value={asignacion.owner_id}
+              onChange={(e) => setEleccion({ ...asignacion, owner_id: e.target.value })}>
+              {vendedoresParaElegir(vendedores, asignacion.store, asignacion.owner_id === me.id
+                ? { id: me.id, full_name: me.name, store: me.store ?? null }
+                : (vendedores.find((v) => v.id === asignacion.owner_id) ?? { id: asignacion.owner_id, full_name: hallado?.owner_name ?? asignacion.owner_id, store: asignacion.store })
+              ).map((v) => <option key={v.id} value={v.id}>{v.full_name || v.id}</option>)}
+            </select>
+            {eleccion && <span className="hint" data-sin-guardar>{t("Saved when you save the quote.", "Se guarda al guardar la cotización.")}</span>}
           </div>
           )}
         </div>

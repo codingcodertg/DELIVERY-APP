@@ -351,7 +351,7 @@ describe("la hoja impresa, sobre la captura del dueño del 2026-09-29 (D-451)", 
 
   it("la pantalla le pasa a la hoja la tienda guardada (la de la cotización abierta) o la del perfil", () => {
     const pantalla = leer("src/app/estimator/Estimador.tsx");
-    expect(pantalla).toContain("const tiendaHoja = tiendaDeLaHoja(tiendaGuardada, me?.store);");
+    expect(pantalla).toContain("const tiendaHoja = tiendaDeLaHoja(me?.admin ? asignacion.store : tiendaGuardada, me?.store);");
     expect(pantalla).toContain("setTiendaGuardada(c.valor.store);");
   });
 });
