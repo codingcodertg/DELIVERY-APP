@@ -261,19 +261,32 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
     setFicha({ tipo: "ver", cliente: c });
   };
 
+  // La tabla vacía dice por qué (solo texto: nada de esto cambia qué filas salen).
+  const porQueVacia = () => {
+    if (lista.length === 0) return t("No customers yet.", "Aún no hay clientes.");
+    if (filtro.archivados && vista.length === 0) return t("Nothing is archived.", "No hay nada archivado.");
+    if (filtro.busca.trim()) return t(`Nothing matches «${filtro.busca.trim()}». Check the spelling or clear the search.`, `Nada coincide con «${filtro.busca.trim()}». Revisa cómo está escrito o borra la búsqueda.`);
+    if (filtro.tienda && (porTienda.get(filtro.tienda) ?? 0) === 0) return t(`No customers buy at ${nombreDeTienda(filtro.tienda)}.`, `Ningún cliente compra en ${nombreDeTienda(filtro.tienda)}.`);
+    return t("The filters hide every customer. «Clear filters» shows them all.", "Los filtros esconden a todos los clientes. «Quitar filtros» los enseña todos.");
+  };
+
   return (
-    <main className="mx-auto max-w-screen-2xl px-4 py-6">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
+    // Vista previa de diseño (rama design/clientes-preview): `clientes-app` ancla la capa visual de `clientes.css`.
+    <main className="clientes-app mx-auto max-w-screen-2xl px-4 py-6">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3" data-cli-cabecera>
+        <div className="cli-titulo">
           <h1 className="text-2xl font-semibold">{t("Customers", "Clientes")}</h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500" title={t(
+              "The master customer list: one row per company, with the stores where it buys. Click a row to open its card and switch stores.",
+              "La lista maestra de clientes: una fila por empresa, con las tiendas donde compra. Toca una fila para abrir su ficha y cambiar de tienda.",
+            )}>
             {t(
               "The master customer list: one row per company, with the stores where it buys. Click a row to open its card and switch stores.",
               "La lista maestra de clientes: una fila por empresa, con las tiendas donde compra. Toca una fila para abrir su ficha y cambiar de tienda.",
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="cli-acciones flex items-center gap-2">
           {!vistaAcotada && (
           <SelectorDeColumnas
             columnas={columnasDelSelector(prefCols)}
@@ -307,8 +320,10 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
         </div>
       </div>
 
+      {/* Tiendas y filtros en una sola fila (la vista previa de diseño): son dos grupos, como antes, dentro de `cli-barra`. */}
+      <div className="cli-barra">
       {/* Las tiendas, con su cuenta: pulsar una filtra; otra vez, todas. */}
-      <div className="mb-3 flex flex-wrap gap-2">
+      <div className="cli-tiendas mb-3 flex flex-wrap gap-2" role="group" aria-label={t("Stores", "Tiendas")}>
         {/* D-742: quien ve solo su tienda (vendedor, gerente) no tiene pastillas de tiendas que elegir. */}
         {!soloSuTienda && (
           <>
@@ -336,7 +351,7 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
         )}
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="cli-filtros mb-4 flex flex-wrap items-center gap-2">
         <Input
           className="max-w-xs"
           placeholder={t("Search account, contact, phone, email, rep…", "Buscar cuenta, contacto, teléfono, correo, vendedor…")}
@@ -357,11 +372,12 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
           {filtro.archivados ? t("archived", "archivados") : t("customers", "clientes")}
         </span>
       </div>
+      </div>
 
       {/* Qué columnas filtran y por qué columnas se ordena, dicho con palabras: un filtro que se olvida puesto esconde
           clientes (D-297), y el orden en niveles no se lee de un vistazo en las flechas. */}
       {(filtradas.length > 0 || !esOrdenInicial(ordenesVistas)) && (
-        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
+        <div className="cli-aviso-filtros mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
           {filtradas.length > 0 && (
             <span data-filtrado-por>
               🔎 <b>{t("Filtered by", "Filtrado por")}:</b> {textoDeColumnas(filtradas.map(nombreDe), t("and", "y"), (n) => t(`${n} more`, `${n} más`))}
@@ -382,17 +398,17 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
       )}
 
       {avisoDeSolicitud && (
-        <p className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status" data-aviso-de-solicitud>
+        <p className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status" data-aviso-de-solicitud data-cli-aviso="ok">
           {avisoDeSolicitud} <button type="button" className="ml-2 underline" onClick={() => setAvisoDeSolicitud(null)}>{t("Close", "Cerrar")}</button>
         </p>
       )}
       {estado.tipo === "cargando" && <p className="text-sm text-slate-500">{t("Loading…", "Cargando…")}</p>}
       {estado.tipo === "sinTabla" && (
-        <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+        <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800" data-cli-aviso="ambar">
           {t("The customers table does not exist yet (migration 180 is not applied).", "La tabla de clientes aún no existe (la migración 180 no está aplicada).")}
         </p>
       )}
-      {estado.tipo === "error" && <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{t("Could not load the customers: ", "No se pudieron cargar los clientes: ")}{estado.texto}</p>}
+      {estado.tipo === "error" && <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700" data-cli-aviso="error">{t("Could not load the customers: ", "No se pudieron cargar los clientes: ")}{estado.texto}</p>}
 
       {/* Cabecera bloqueada y barra de arriba (D-649), como Órdenes desde D-398. Roberto: «Need to be able to scroll down and
           still see headers» y «the bar is at the very bottom so probably better to have the bar above the locked headers». La
@@ -469,7 +485,7 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
             </thead>
             <tbody>
               {visibles.length === 0 && (
-                <tr><td colSpan={colsVisibles.length} className="px-3 py-6 text-center text-slate-500">{t("No customers match.", "Ningún cliente coincide.")}</td></tr>
+                <tr data-cli-vacia><td colSpan={colsVisibles.length} className="px-3 py-6 text-center text-slate-500">{porQueVacia()}</td></tr>
               )}
               {visibles.slice(0, cuantos).map(({ clave, filas, principal: c }) => {
                 // D-740: el vendedor abre solo los suyos; los demás se ven y no se abren.

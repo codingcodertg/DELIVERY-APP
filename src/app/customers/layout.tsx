@@ -7,6 +7,8 @@ import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import { ConfirmProvider } from "@/lib/confirm";
 import "@/app/erp/erp.css";
+// La capa visual de Clientes (vista previa de diseño): todo bajo `.clientes-app`, el <main> de la lista.
+import "./clientes.css";
 
 export const metadata: Metadata = {
   title: "RTG CUSTOMERS",
