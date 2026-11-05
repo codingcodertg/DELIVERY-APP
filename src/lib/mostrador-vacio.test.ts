@@ -14,7 +14,7 @@ const leer = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8").rep
 const formulario = leer("src/components/OrderModal.tsx");
 
 const ORDEN_CON_CLIENTE = {
-  contact: "Persona Anterior", delivery_phone: "9560000009",
+  account: "Cuenta Anterior", contact: "Persona Anterior", delivery_phone: "9560000009",
   delivery_name: "Obra Anterior", delivery_address: "1 Calle Inventada, Pharr TX",
 };
 const TODO_VACIO = {
@@ -30,8 +30,14 @@ describe("D-391 · al elegir mostrador, los cuatro campos del cliente quedan vac
         .toEqual(TODO_VACIO);
     }
   });
-  it("aunque no hubiera nada que quitar, el resultado es el mismo: no depende de lo que había", () => {
-    expect(contactoAlElegirCuenta({ cuenta: CUENTA_DE_MOSTRADOR, guardada: undefined, ultimaOrden: undefined, actual: {} })).toEqual(TODO_VACIO);
+  it("D-NEXT: la dirección tecleada en el primer paso de una orden nueva (sin cuenta aún) NO se borra al elegir mostrador", () => {
+    const delPrimerPaso = { account: "", contact: "", delivery_phone: "", delivery_name: "", delivery_address: "5 Calle Inventada, McAllen TX" };
+    const r = contactoAlElegirCuenta({ cuenta: CUENTA_DE_MOSTRADOR, guardada: undefined, ultimaOrden: undefined, actual: delPrimerPaso });
+    expect(r).toEqual({ contact: "", delivery_phone: "" });
+    expect({ ...delPrimerPaso, ...r }.delivery_address).toBe("5 Calle Inventada, McAllen TX");
+    // Y si ya era de mostrador, tampoco: es la del mismo cliente de paso.
+    expect(contactoAlElegirCuenta({ cuenta: CUENTA_DE_MOSTRADOR, guardada: undefined, ultimaOrden: undefined, actual: { ...delPrimerPaso, account: CUENTA_DE_MOSTRADOR } }))
+      .toEqual({ contact: "", delivery_phone: "" });
   });
   it("cualquier otra cuenta NO toca destino, dirección, pin ni ruta", () => {
     const otra = contactoAlElegirCuenta({ cuenta: "Constructora Uno", guardada: { contact: "A", phone: "1" }, ultimaOrden: undefined, actual: ORDEN_CON_CLIENTE });

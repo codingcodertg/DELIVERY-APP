@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const CHROME = "C:/Program Files/Google/Chrome/Application/chrome.exe";
-const PORT = 9333;
+const PORT = Number(process.env.CDP_PORT ?? 9333);
 export const TIROS = join(process.env.SCRATCH ?? ".", "tiros");
 mkdirSync(TIROS, { recursive: true });
 
