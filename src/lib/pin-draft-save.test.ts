@@ -160,7 +160,7 @@ describe("la ficha usa esa regla, y las dos vías de mapa la comparten", () => {
   });
   it("la ficha NO tiene su propia copia de la regla: la importa", () => {
     // Lo que hace que esta prueba valga: se prueba la función que corre de verdad, no una copia.
-    // D-NEXT: la importación crece (`vistaDelSelector`); lo que importa es que la regla venga de aquí.
+    // D-877: la importación crece (`vistaDelSelector`); lo que importa es que la regla venga de aquí.
     expect(src).toMatch(/import \{[^}]*\bfuenteAlAplicar, pinDraftParaGuardar,[^}]*type PinSource \} from "@\/lib\/pin-draft";/);
     expect(src).not.toContain("const pinDraftParaGuardar = (");
   });

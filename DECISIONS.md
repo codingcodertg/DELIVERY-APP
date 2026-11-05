@@ -50763,3 +50763,15 @@ Sello `timetracker` 1.16.0; repo 1.730.0.
 **Qué cambia:** el admin tiene en la cotización «Tienda» (las de Ajustes) y «Vendedor» (perfiles activos de ventas; al elegir tienda se filtra y sugiere uno). Solo el admin manda `owner_id`/`store`, y solo si cambiaron; «Todas las cotizaciones» enseña el vendedor y la tienda reales. El guarda de la 148 ya dejaba al admin poner otro dueño y rechaza (42501) que otro lo cambie; la **246** hace que guarde la tienda que eligió el admin (antes tomaba siempre la del perfil del dueño). Sin la 246, la tienda sigue la del vendedor, y la pantalla avisa en ámbar qué tienda quedó. El enlace con el cliente (D-874) se rehace al cambiar la tienda.
 
 Sello `estimator` 0.30.0; repo 1.731.0.
+
+## D-877 · El mapa para marcar el pin abre sobre la dirección escrita
+
+**Fecha:** 2026-11-05 · Sin migración · Hecho por un agente en `fix/ayuda-nueva`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (Francisca Reyes, ventas, solicitud `abde8b1c`, factura 171838):** «need to see the address on the map».
+
+**Causa:** desde D-337 §1 (sin «Buscar dirección en el mapa»), una orden sin coordenadas abría el selector de pin con el encuadre de siempre: el centro solo era el pin guardado o el borrador, así que la dirección escrita no salía. La 171838 además se guardó sin punto (geocodificación fallida al guardar, sin evento), de ahí el «NO LOCAL · 321.3 mi».
+
+**Qué cambia (`pin-draft.ts`, `OrderModal`):** al abrir «Marcar ubicación exacta en el mapa» sin punto, se busca la dirección (`/api/geocode-point`, no en modo enseñanza) y el mapa abre encima, a zoom 16, con un marcador azul de referencia que no se guarda ni cambia zona ni tarifa; el pin con clic derecho, igual. Orden: borrador, punto guardado, dirección encontrada.
+
+Sello `deliveries` 1.543.0; repo 1.732.0.

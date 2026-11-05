@@ -515,7 +515,7 @@ export function OrderModal({
   // duplicate-invoice guard doesn't fight it. Cleared on a manual edit.
   // Ocupado mientras el pin soltado busca su dirección (`geocodePin`).
   const [pinLookupBusy, setPinLookupBusy] = useState(false);
-  // La dirección tecleada, encontrada al abrir el selector, para que el mapa abra encima de ella (D-NEXT). Solo
+  // La dirección tecleada, encontrada al abrir el selector, para que el mapa abra encima de ella (D-877). Solo
   // referencia: no es borrador ni se guarda. `null` mientras no hay, o si el proveedor no la encontró.
   const [puntoDeDireccion, setPuntoDeDireccion] = useState<[number, number] | null>(null);
   const [buscandoDireccion, setBuscandoDireccion] = useState(false);
@@ -1003,7 +1003,7 @@ export function OrderModal({
   // still edit it by hand afterward (e.g. to add gate code instructions).
   // Reverse-geocode a point → fill the Delivery Address. Shared by "drop" (so
   // the address appears as soon as the pin lands) and "Save pin".
-  // Abre el selector sobre la dirección tecleada cuando el pedido aún no tiene punto (D-NEXT, ayuda abde8b1c).
+  // Abre el selector sobre la dirección tecleada cuando el pedido aún no tiene punto (D-877, ayuda abde8b1c).
   const buscarDireccionDelSelector = async () => {
     setPuntoDeDireccion(null);
     if (teaching || !buscarDireccionAlAbrir(d)) return;
@@ -2313,7 +2313,7 @@ export function OrderModal({
                   <div className="hint" style={{ height: 280, display: "flex", alignItems: "center", justifyContent: "center" }}>{t("Looking up the address…", "Buscando la dirección…")}</div>
                 ) : (
                 <MapView
-                  // El centro solo se lee al montar: la clave lo vuelve a montar cuando llega la dirección (D-NEXT).
+                  // El centro solo se lee al montar: la clave lo vuelve a montar cuando llega la dirección (D-877).
                   key={vistaSelector.referencia ? vistaSelector.referencia.join(",") : "sin-direccion"}
                   pickable
                   zone={LOCAL_ZONE_LATLNG}
@@ -2851,7 +2851,7 @@ export function OrderModal({
                   <div className="hint" style={{ height: 280, display: "flex", alignItems: "center", justifyContent: "center" }}>{t("Looking up the address…", "Buscando la dirección…")}</div>
                 ) : (
                 <MapView
-                  // El centro solo se lee al montar: la clave lo vuelve a montar cuando llega la dirección (D-NEXT).
+                  // El centro solo se lee al montar: la clave lo vuelve a montar cuando llega la dirección (D-877).
                   key={vistaSelector.referencia ? vistaSelector.referencia.join(",") : "sin-direccion"}
                   pickable
                   zone={LOCAL_ZONE_LATLNG}

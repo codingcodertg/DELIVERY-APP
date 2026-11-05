@@ -75,7 +75,7 @@ export function fuenteAlAplicar(fuente: PinSource | null): PinSource {
 }
 
 /**
- * Dónde abre el selector de pin, y si hace falta buscar la dirección para saberlo (D-NEXT).
+ * Dónde abre el selector de pin, y si hace falta buscar la dirección para saberlo (D-877).
  *
  * Francisca, 2026-11-05: «NEED TO SEE THE ADDRESS ON THE MAP». La orden aún no tenía punto (se ubica al guardar,
  * D-337 §1), así que el selector abría con el valle entero y la dirección tecleada no aparecía. Ahora, sin pin ni
