@@ -230,9 +230,10 @@ describe("todos los sitios que escriben delivery_date usan la regla", () => {
     for (const p of ["src/lib/data-provider.tsx", "src/lib/local-data-provider.tsx"]) {
       const f = leer(p);
       const i = f.indexOf("reprogramarOrden");
-      const cuerpo = f.slice(f.indexOf("async (id, fecha, nota, lang, caso) => {", i));
+      // Nota D-NEXT: sexto argumento `opciones` (el «Deshacer» del aviso, que vuelve a la fecha de antes sin la regla).
+      const cuerpo = f.slice(f.indexOf("async (id, fecha, nota, lang, caso, opciones) => {", i));
       const antesDeEscribir = cuerpo.slice(0, cuerpo.indexOf("updateDelivery(id, { delivery_date: fecha })"));
-      expect(antesDeEscribir).toContain("const problema = problemaAlAgendar(fecha, antes, { rol: me?.role, caso });");
+      expect(antesDeEscribir).toContain("const problema = deshacer ? null : problemaAlAgendar(fecha, antes, { rol: me?.role, caso });");
       expect(antesDeEscribir).toContain("if (problema) {");
       expect(cuerpo.slice(0, 2000)).toContain("notaDeDomingo(me?.full_name, caso.motivo, lang)");
     }

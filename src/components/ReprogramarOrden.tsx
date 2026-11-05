@@ -8,6 +8,8 @@ import { AvisoDeFecha } from "@/components/AvisoDeFecha";
 import { pideConfirmarMediodia, preguntaSiEsParaHoy } from "@/lib/corte-de-ventas";
 import { orderLabel, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
+import type { OpcionesDelAviso } from "@/lib/data-provider";
+import { fotoAntesDeReprogramar, MS_AVISO_CON_DESHACER, notaDeDeshacer, type FotoDeReprogramacion } from "@/lib/deshacer-reprogramar";
 
 /**
  * El botón «📅» de una fila del Gestor y su cuadro (D-500): la fecha nueva (propone el día siguiente) y una nota
@@ -22,8 +24,8 @@ export function ReprogramarOrden({ pedido, rol, lang, t, reprogramarOrden, notif
   pedido: Delivery;
   lang: "en" | "es";
   t: (en: string, es: string) => string;
-  reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es", caso?: CasoEspecial) => Promise<boolean>;
-  notify: (msg: string) => void;
+  reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es", caso?: CasoEspecial, opciones?: { deshacer?: FotoDeReprogramacion }) => Promise<boolean>;
+  notify: (msg: string, opciones?: OpcionesDelAviso) => void;
 }) {
   const hoy = todayISO();
   const [abierto, setAbierto] = useState(false);
@@ -41,9 +43,22 @@ export function ReprogramarOrden({ pedido, rol, lang, t, reprogramarOrden, notif
     // Ventas, pasadas las 12 en Texas, reprogramando para HOY: «¿Seguro que esta orden es para hoy?» (`corte-de-ventas`).
     if (pideConfirmarMediodia(fecha, pedido.delivery_date, { rol }) && !(await preguntaSiEsParaHoy(confirmAction, t))) return;
     setGuardando(true);
+    // D-NEXT: la foto de ANTES, para el «Deshacer» del aviso (fecha y, si la 172 la saca de la ruta, chofer y posición).
+    const foto = fotoAntesDeReprogramar(pedido);
     const ok = await reprogramarOrden(pedido.id, fecha, nota, lang, caso);
     if (ok) {
-      notify(t(`Rescheduled to ${fecha}`, `Reprogramada al ${fecha}`));
+      // Deshacer: la misma función de vuelta a la fecha de antes (permisos, RLS e historial), sin la pregunta del mediodía
+      // (D-848): vuelve a un estado que ya estuvo. Una sola vez: el aviso quita el botón al tocarlo.
+      const deshacer = async () => {
+        if (!foto.delivery_date) return;
+        notify(t("Undoing…", "Deshaciendo…"));
+        const vuelta = await reprogramarOrden(foto.id, foto.delivery_date, notaDeDeshacer(lang), lang, undefined, { deshacer: foto });
+        // Si falla, el proveedor ya enseñó el error de la base en este mismo aviso.
+        if (vuelta) notify(t(`Undone: back to ${foto.delivery_date}`, `Deshecho: vuelve a ${foto.delivery_date}`));
+      };
+      notify(t(`Rescheduled to ${fecha}`, `Reprogramada al ${fecha}`), foto.delivery_date
+        ? { ms: MS_AVISO_CON_DESHACER, accion: { etiqueta: `↶ ${t("Undo", "Deshacer")}`, alTocar: () => void deshacer() } }
+        : undefined);
       setAbierto(false);
     }
     setGuardando(false);
