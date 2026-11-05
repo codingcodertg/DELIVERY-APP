@@ -124,7 +124,7 @@ describe("las pantallas", () => {
   });
   it("la lista enseña «Solicitudes» con las pendientes, abre la ventana (también con ?solicitudes=1) y relee al decidir", () => {
     expect(lista).toContain("data-abrir-solicitudes");
-    expect(lista).toContain("<SolicitudesDeCliente solicitudes={solicitudes} esAdmin={esAdmin} almacen={almacen} onDecidida={() => { void cargar(); void cargaSolicitudes(); }}");
+    expect(lista).toContain("<SolicitudesDeCliente solicitudes={solicitudes} clientes={lista} esAdmin={puedeDecidirSolicitudes} almacen={almacen} onDecidida={() => { void cargar(); void cargaSolicitudes(); }}");
     expect(lista).toContain('new URLSearchParams(window.location.search).get("solicitudes")');
   });
   it("las dos funciones de la 216 están clasificadas como las que escriben (modo enseñanza)", () => {

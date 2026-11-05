@@ -64,6 +64,12 @@ export interface AlmacenDeClientes {
   rechazarSolicitud(id: number, nota: string): Promise<Res<null>>;
   /** D-780 (221): la edición de vendedor y gerente es una solicitud (solo lo que cambia, con lo que había y el porqué). */
   solicitarEdicion(cliente: Cliente, parche: Parche, nota: string): Promise<Res<SolicitudDeCliente>>;
+  /** D-865 (242): ¿tiene la base «Revisar» y la corrección de solicitudes? Sin la 242, la pantalla las esconde. */
+  revisionDeSolicitudes(): Promise<boolean>;
+  /** D-865 (242): «Revisar»: en espera, con la nota de qué hay que comprobar (`erp.revisa_solicitud_de_cliente`). */
+  revisarSolicitud(id: number, nota: string): Promise<Res<null>>;
+  /** D-865 (242): guarda en la solicitud lo que corrigió el admin (`erp.corrige_solicitud_de_cliente`); aprobar lo aplica. */
+  corregirSolicitud(id: number, payload: Record<string, unknown>): Promise<Res<null>>;
   /** El admin aplica la edición pedida (`erp.aprueba_edicion_de_cliente`), con nota opcional. */
   aprobarEdicion(id: number, nota: string): Promise<Res<null>>;
   /** El historial de una fila (`erp.customer_history`), lo más nuevo primero. Sin la 221, `sinTabla`. */
@@ -135,6 +141,8 @@ export async function leeConRespaldo<T>(consulta: (columnas: string) => PromiseL
 /** Las columnas de una solicitud de cliente (216) y, desde la 221, su clase, la fila, lo que había y la nota. */
 export const COLUMNAS_DE_SOLICITUD_216 = "id, requested_by, stores, payload, status, created_at, decided_at, decision_note, created_ids";
 export const COLUMNAS_DE_SOLICITUD = COLUMNAS_DE_SOLICITUD_216 + ", kind, customer_id, before, note";
+/** D-865 (242): la nota de «Revisar» y lo que mandó quien pidió si el admin lo corrigió. */
+export const COLUMNAS_DE_SOLICITUD_242 = COLUMNAS_DE_SOLICITUD + ", review_note, reviewed_at, payload_original, corrected_at";
 /** Las columnas del historial (221). */
 export const COLUMNAS_DE_HISTORIAL = "id, customer_id, at, by, kind, before, after, note, request_id, requested_by, decision_note";
 
@@ -186,7 +194,9 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
     async solicitudes() {
       // Sin la 221 (el código llega antes que la migración), las columnas de la 216.
       const consulta = (cols: string) => sb.from("customer_requests").select(cols).order("status").order("created_at", { ascending: false }).range(0, 499);
-      let r = await consulta(COLUMNAS_DE_SOLICITUD);
+      // Y sin la 242, sin sus columnas.
+      let r = await consulta(COLUMNAS_DE_SOLICITUD_242);
+      if (r.error && faltaLa182(r.error)) r = await consulta(COLUMNAS_DE_SOLICITUD);
       if (r.error && faltaLa182(r.error)) r = await consulta(COLUMNAS_DE_SOLICITUD_216);
       const { data, error } = r;
       if (error) return fallo(error);
@@ -209,6 +219,21 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
     },
     async rechazarSolicitud(id, nota) {
       const { error } = await sb.rpc("rechaza_solicitud_de_cliente", { p_id: id, p_nota: nota || null });
+      if (error) return fallo(error);
+      return { ok: true, valor: null };
+    },
+    async revisionDeSolicitudes() {
+      // Sin la 242 la columna no existe (42703): ni «Revisar» ni corregir. Cualquier otro fallo, tampoco: mejor esconder.
+      const { error } = await sb.from("customer_requests").select("id, review_note, payload_original").range(0, 0);
+      return !error;
+    },
+    async revisarSolicitud(id, nota) {
+      const { error } = await sb.rpc("revisa_solicitud_de_cliente", { p_id: id, p_nota: nota });
+      if (error) return fallo(error);
+      return { ok: true, valor: null };
+    },
+    async corregirSolicitud(id, payload) {
+      const { error } = await sb.rpc("corrige_solicitud_de_cliente", { p_id: id, p_payload: payload });
       if (error) return fallo(error);
       return { ok: true, valor: null };
     },

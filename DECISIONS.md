@@ -50628,3 +50628,19 @@ Sello `deliveries` 1.540.0; repo 1.718.0.
 Sello `customers` 0.45.0; repo 1.719.0.
 
 **Pruebas:** `admin-de-clientes.test.ts`; `person-badge` y cuatro de texto puestas al día.
+
+## D-865 · Solicitudes de cliente: filas, tarjeta de revisión, Revisar y corregir antes de aprobar
+
+**Fecha:** 2026-11-04 · Migración 242 (escrita; se aplica aparte, tras la 241) · Hecho por un agente en `feat/clientes-solicitudes-revision`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño, con captura del panel «Solicitudes de cliente»):** «quiero que se mire mejor; que el cliente sea como un row y si lo aprieto se abra la card con la info del cliente para revisarla, y ahí mismo le doy approve, denied o needs check, y yo poder editarla».
+
+**Qué cambia (`SolicitudesDeCliente.tsx`, `revision-de-solicitud.ts`):**
+- **Lista en filas** con la tabla de Órdenes: Tipo (✨ nuevo / ✏️ edición), Cuenta, Tienda, Quién, Fecha, Estado. Chips Pendiente / Revisar / Aprobadas / Rechazadas con cuentas; nace en Pendiente.
+- **Tarjeta al pulsar:** cliente nuevo con las tarjetas de la ficha; edición con «Actual → Pedido» por campo (⚠️ si la fila cambió desde la solicitud); notas de quien pide, de revisión y de la decisión, y lo corregido por el admin.
+- **Acciones (solo admin del hub o de Clientes, D-864):** Aprobar (216/221), Rechazar con nota obligatoria, ⚠️ Revisar con nota, y ✏️ «Corregir antes de aprobar» con el formulario de la ficha (Términos, validación). Gerentes y ventas la ven sin botones (antes el gerente veía Aprobar y la base se lo negaba).
+- **242:** estado `review`, columnas de revisión y de corrección (`payload_original` guarda lo que mandó quien pidió), RPC `revisa_` y `corrige_solicitud_de_cliente`, y las tres de decidir aceptan `review`; todo con la puerta de la 241. Exige la 241. Sin la 242, Revisar y Corregir no salen y lo demás funciona.
+
+Sello `customers` 0.46.0; repo 1.720.0.
+
+**Pruebas:** `customers/revision-de-solicitud.test.ts`; `solicitud-de-cliente` y `edicion-como-solicitud` puestas al día.
