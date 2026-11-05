@@ -6,7 +6,8 @@ import { sugerenciaDeLaBase, type Sugerencia } from "./empresas";
 import { clienteDeLaBase, type Cliente, type Parche } from "./reglas";
 import { clienteDeBusqueda } from "./vendedor-por-tienda";
 import { cuerpoDeSolicitud, solicitudDeLaBase, type SolicitudDeCliente } from "./solicitud-de-cliente";
-import { cuerpoDeEdicion, historialDeLaBase, type HistorialDeCliente } from "./edicion-como-solicitud";
+import { cuerpoDeEdicion, historialDeLaBase, nombraVendedores, vendedoresDelHistorial, type HistorialDeCliente } from "./edicion-como-solicitud";
+import { leeTratos, type TratosLeidos } from "./tratos-de-la-base";
 import { conVendedores, nombresDeVendedores, type Vendedor } from "./vendedores";
 
 /**
@@ -74,6 +75,8 @@ export interface AlmacenDeClientes {
   aprobarEdicion(id: number, nota: string): Promise<Res<null>>;
   /** El historial de una fila (`erp.customer_history`), lo más nuevo primero. Sin la 221, `sinTabla`. */
   historial(clienteId: number): Promise<Res<HistorialDeCliente[]>>;
+  /** D-NEXT (245): el historial principal: las órdenes de Entregas y las cotizaciones del Quote Builder de esta fila. */
+  tratos(cliente: Pick<Cliente, "id" | "account">): Promise<Res<TratosLeidos>>;
 }
 
 /** ¿Es «la 180 no está aplicada»? PGRST205 (tabla) de PostgREST; 42P01 de Postgres. Solo esos. */
@@ -252,15 +255,20 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
       const { data, error } = await sb.from("customer_history").select(COLUMNAS_DE_HISTORIAL).eq("customer_id", clienteId).order("at", { ascending: false }).range(0, 199);
       if (error) return fallo(error);
       const filas = ((data ?? []) as unknown as Record<string, unknown>[]).map(historialDeLaBase);
-      const ids = [...new Set(filas.flatMap((f) => [f.by, f.requested_by]).filter((x): x is string => !!x))];
+      const ids = [...new Set(filas.flatMap((f) => [f.by, f.requested_by, ...vendedoresDelHistorial(f)]).filter((x): x is string => !!x))];
       if (ids.length) {
         try {
           const { data: perfiles } = await sb.schema("public").from("profiles").select("id, full_name").in("id", ids);
           const nombre = new Map(((perfiles ?? []) as { id: string; full_name: string | null }[]).map((p) => [p.id, p.full_name]));
           for (const f of filas) { f.by_name = f.by ? nombre.get(f.by) ?? null : null; f.requested_name = f.requested_by ? nombre.get(f.requested_by) ?? null : null; }
+          // D-NEXT: el vendedor del cambio, con su nombre en vez del uuid.
+          for (const f of filas) nombraVendedores(f, (id) => nombre.get(id) ?? null);
         } catch { /* sin nombres */ }
       }
       return { ok: true, valor: filas };
+    },
+    async tratos(cliente) {
+      try { return { ok: true, valor: await leeTratos(sb, cliente) }; } catch (e) { return fallo({ message: e instanceof Error ? e.message : String(e) }); }
     },
     async guardar(id, parche) {
       const { data, error } = await leeConRespaldo((cols) => sb.from("customers").update(parche).eq("id", id).select(cols).maybeSingle());

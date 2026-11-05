@@ -202,7 +202,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     }, RETARDO_MS);
     return () => { vivo = false; clearTimeout(tarea); };
   }, [buscaCliente, demo, erp, me]);
-  const eligeCliente = (c: ClienteParaCotizar) => { setCliente(relleno(c)); setBuscaCliente(""); setOpcionesDeCliente([]); };
+  const eligeCliente = (c: ClienteParaCotizar) => { setCliente({ ...relleno(c), customer_id: c.id }); setBuscaCliente(""); setOpcionesDeCliente([]); };
   const setEntrega = (patch: Partial<QuoteDraft["delivery"]>) => setDraft((d) => ({ ...d, delivery: { ...d.delivery, ...patch } }));
   const ponEntrega = (delivery: QuoteDraft["delivery"]) => setDraft((d) => ({ ...d, delivery }));
   const setLinea = (id: string, patch: Partial<QuoteLine>) =>
@@ -672,7 +672,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
           </div>
           <div className="field">
             <label htmlFor="est-empresa">{t("Company", "Empresa")}</label>
-            <input id="est-empresa" value={draft.customer.company} onChange={(e) => setCliente({ company: e.target.value })} />
+            <input id="est-empresa" value={draft.customer.company} onChange={(e) => setCliente({ company: e.target.value, customer_id: null })} />
           </div>
           <div className="field">
             <label htmlFor="est-tel">{t("Phone", "Teléfono")}</label>

@@ -21,6 +21,7 @@ import { vendedoresEnOrden, type Vendedor } from "@/lib/customers/vendedores";
 import { mensajeDeAltaPendiente, PAGINA_DE_SOLICITUDES, type SolicitudDeCliente } from "@/lib/customers/solicitud-de-cliente";
 import { mensajeDeEdicionPendiente } from "@/lib/customers/edicion-como-solicitud";
 import { HistorialDelCliente } from "./HistorialDelCliente";
+import { HistorialDeTratos } from "./HistorialDeTratos";
 import { APP_VERSIONS } from "@/lib/app-versions";
 import { enviaSolicitudDeAyuda, pideContactoDeAyuda, rolDeQuienEscribe } from "@/lib/help-send";
 import { claveDeEmpresa } from "@/lib/customers/duplicados";
@@ -1166,6 +1167,8 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
           <TarjetasDeLaFicha cliente={cliente} form={form} editando={editando} errores={errores} direccionUnica={!direccionAparte} onCampo={campo} contactos={contactos} onContactos={setContactos} contactoElegido={contactoElegido} onEligeContacto={setContactoElegido} redes={redes} onRedes={setRedes} vendedores={vendedores} almacen={almacen} puedeEditar={puedeEditar} esVendedor={esVendedor} puedePedirVendedor={puedePedirVendedor} t={t} />
           {/* D-780 (221): el historial del cliente, plegado, al pie de las tarjetas. El vendedor no lo ve (lleva crédito
               y campos que D-728 le esconde). */}
+          {/* D-NEXT (245): el historial PRINCIPAL (órdenes y cotizaciones), para todos: la RLS de cada app decide qué llega. */}
+          {cliente && !editando && <HistorialDeTratos cliente={cliente} almacen={almacen} t={t} />}
           {cliente && !editando && !esVendedor && <HistorialDelCliente clienteId={cliente.id} almacen={almacen} t={t} />}
         </div>
 

@@ -97,7 +97,8 @@ export function cambiosEntre(antes: Record<string, unknown> | null | undefined, 
 
 export const cambiosDeSolicitud = (s: Pick<SolicitudDeCliente, "payload" | "before">): Cambio[] => cambiosEntre(s.before, s.payload);
 
-export type ClaseDeHistorial = "create" | "edit" | "archive" | "restore" | "approved" | "rejected";
+/** D-NEXT (245): `merge`, `review`, `corrected` y `rep` se suman a las seis de la 221. */
+export type ClaseDeHistorial = "create" | "edit" | "archive" | "restore" | "approved" | "rejected" | "merge" | "review" | "corrected" | "rep";
 
 export interface HistorialDeCliente {
   id: number;
@@ -122,7 +123,29 @@ export const CLASE_DE_HISTORIAL: Record<ClaseDeHistorial, { en: string; es: stri
   restore: { en: "Restored", es: "Desarchivado", icono: "↩️" },
   approved: { en: "Edit request approved", es: "Solicitud de edición aprobada", icono: "✅" },
   rejected: { en: "Edit request rejected", es: "Solicitud de edición rechazada", icono: "⛔" },
+  merge: { en: "Merged", es: "Juntado", icono: "🔗" },
+  review: { en: "Edit request needs check", es: "Solicitud de edición: revisar", icono: "🔎" },
+  corrected: { en: "Edit request corrected by admin", es: "Solicitud de edición corregida por el admin", icono: "🛠️" },
+  rep: { en: "Sales rep assigned", es: "Vendedor asignado", icono: "👤" },
 };
+
+/** Los uuid de vendedor que trae una fila del historial (antes y después de `rep_id`), para ponerles nombre. */
+export function vendedoresDelHistorial(h: Pick<HistorialDeCliente, "before" | "after">): string[] {
+  return [h.before?.rep_id, h.after?.rep_id].filter((x): x is string => typeof x === "string" && x !== "");
+}
+
+/** Cambia el uuid de `rep_id` por el nombre (si se conoce), en antes y después. Lo desconocido se queda como estaba. */
+export function nombraVendedores(h: Pick<HistorialDeCliente, "before" | "after">, nombre: (id: string) => string | null): void {
+  for (const lado of [h.before, h.after]) {
+    const v = lado?.rep_id;
+    if (lado && typeof v === "string" && v) lado.rep_id = nombre(v) ?? v;
+  }
+}
+
+/** Una línea de texto por cambio: «Teléfono: 956-1 → 956-2» (en un alta, solo el valor). */
+export function textoDeCambios(h: Pick<HistorialDeCliente, "kind" | "before" | "after">, lang: "en" | "es"): string[] {
+  return cambiosDelHistorial(h).map((c) => `${lang === "es" ? c.es : c.en}: ${h.kind === "create" ? c.despues : `${c.antes} → ${c.despues}`}`);
+}
 
 const textoONulo = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v.trim() : null);
 const objeto = (v: unknown): Record<string, unknown> | null => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null);

@@ -118,6 +118,8 @@ export function borradorDeFila(fila: Record<string, unknown>): QuoteDraft {
     phone: telefonoAlEscribir(texto(c.phone)), // D-850: guardado como «956-555-0123», se abre en la forma única del hub.
     // `address` de las filas guardadas antes de D-451 se ignora: el campo se quitó («remove dirrecion en estimador»).
     // Al volver a guardar esa cotización, el `jsonb` del cliente ya no la lleva.
+    // D-NEXT (245): el cliente elegido, si lo hay (solo entonces aparece la clave).
+    ...(num(c.customer_id) !== null ? { customer_id: num(c.customer_id) } : {}),
   };
   // Antes de D-442 la dirección eran cuatro campos (calle, ciudad, estado, zip); se juntan en la línea de hoy para que
   // una cotización vieja se abra con su dirección escrita, lista para buscarla.
