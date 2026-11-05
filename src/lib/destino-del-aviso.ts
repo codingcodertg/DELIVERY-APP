@@ -3,7 +3,7 @@ import { destinoDelAvisoDeSolicitud } from "@/lib/solicitud-de-asignacion";
 import { enlaceSeguro } from "@/lib/customers/avisos-de-solicitud";
 
 /**
- * A dónde lleva un aviso de la campana al pulsarlo (D-NEXT). Lo usan las dos campanas: la de Entregas y la de Clientes.
+ * A dónde lleva un aviso de la campana al pulsarlo (D-867). Lo usan las dos campanas: la de Entregas y la de Clientes.
  *
  * 1. Su `link` (243), si es una ruta interna.
  * 2. Los avisos de ayuda, a la conversación (D-311); las solicitudes de asignación, a la bandeja o a su orden (D-560).

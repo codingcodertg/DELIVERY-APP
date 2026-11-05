@@ -126,7 +126,7 @@ describe("las pantallas", () => {
     expect(lista).toContain("data-abrir-solicitudes");
     expect(lista).toContain("<SolicitudesDeCliente inicial={solicitudInicial} solicitudes={solicitudes} clientes={lista} esAdmin={puedeDecidirSolicitudes} almacen={almacen} onDecidida={() => { void cargar(); void cargaSolicitudes(); }}");
     expect(lista).toContain('else if (params.get("solicitudes")) setVerSolicitudes(true);');
-    // D-NEXT: `?solicitud=N` (el enlace de un aviso) abre esa solicitud.
+    // D-867: `?solicitud=N` (el enlace de un aviso) abre esa solicitud.
     expect(lista).toContain('solicitudDelEnlace(params.get("solicitud"))');
   });
   it("las dos funciones de la 216 están clasificadas como las que escriben (modo enseñanza)", () => {

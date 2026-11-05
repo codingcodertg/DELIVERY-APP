@@ -8,7 +8,7 @@ import { CampanaDeAvisos } from "@/components/NotificationBell";
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /**
- * La campana 🔔 en Clientes (D-NEXT). Clientes no monta el `DataProvider` de Entregas, así que lee sus avisos aquí: la
+ * La campana 🔔 en Clientes (D-867). Clientes no monta el `DataProvider` de Entregas, así que lee sus avisos aquí: la
  * MISMA tabla (`public.notifications`, la RLS de la 001 deja leer y marcar solo los propios) y la MISMA campana
  * (`CampanaDeAvisos`). Enseña todos los avisos de quien mira, no solo los de Clientes: es su bandeja, y cada aviso lleva
  * a su sitio (`lib/destino-del-aviso.ts`).

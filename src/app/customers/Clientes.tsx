@@ -109,7 +109,7 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
     if (r.ok) setSolicitudes(r.valor);
   }, [almacen, esAdmin, altaComoSolicitud, edicionComoSolicitud]);
   useEffect(() => { void cargaSolicitudes(); }, [cargaSolicitudes]);
-  // `?solicitudes=1` abre el panel; `?solicitud=N` (el enlace de un aviso de la campana, D-NEXT) lo abre con esa
+  // `?solicitudes=1` abre el panel; `?solicitud=N` (el enlace de un aviso de la campana, D-867) lo abre con esa
   // solicitud ya abierta. Con `useSearchParams`: pulsar un aviso estando ya en Clientes también lo abre.
   const params = useSearchParams();
   const [solicitudInicial, setSolicitudInicial] = useState<number | null>(null);

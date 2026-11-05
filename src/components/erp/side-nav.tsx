@@ -66,7 +66,7 @@ export function SideNav({
    * `otra`, `cost` no se pinta (no hay costo que esconder) y la pastilla es la que diga `badge`.
    */
   otra?: { brand: string; nav: { main: NavItem[]; analytics: NavItem[] }; badge: string };
-  /** D-NEXT: la campana 🔔, en el mismo sitio que en Entregas (entre Recargar y la cuenta). Clientes pasa la suya. */
+  /** D-867: la campana 🔔, en el mismo sitio que en Entregas (entre Recargar y la cuenta). Clientes pasa la suya. */
   campana?: ReactNode;
 }) {
   const pathname = usePathname();

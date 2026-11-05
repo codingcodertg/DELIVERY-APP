@@ -34,7 +34,7 @@ export function NotificationBell() {
 }
 
 /**
- * La campana en sí, sin saber de dónde salen los avisos (D-NEXT): Entregas se los da desde su `DataProvider`; Clientes,
+ * La campana en sí, sin saber de dónde salen los avisos (D-867): Entregas se los da desde su `DataProvider`; Clientes,
  * desde `useAvisosPropios` (`CampanaDeClientes`). La misma tabla (`public.notifications`), el mismo aspecto.
  */
 export function CampanaDeAvisos({ notifications, markNotifRead, markAllNotifsRead }: {
@@ -51,7 +51,7 @@ export function CampanaDeAvisos({ notifications, markNotifRead, markAllNotifsRea
 
   // Mark read and jump to the order the notification is about.
   // Los de ayuda, a la conversación (D-311); las solicitudes de asignación, a la bandeja o a su orden (D-560); los de
-  // Clientes, a su `link` (D-NEXT). La regla está en `lib/destino-del-aviso.ts`.
+  // Clientes, a su `link` (D-867). La regla está en `lib/destino-del-aviso.ts`.
   const onPick = (n: AppNotification) => {
     if (!n.read) markNotifRead(n.id);
     setOpen(false);

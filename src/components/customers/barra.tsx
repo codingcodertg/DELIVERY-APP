@@ -49,7 +49,7 @@ export function BarraDeClientes({ role, fullName, email, moduleAccess, esAdminDe
       cost={false}
       deliveriesRole={role}
       moduleAccess={moduleAccess}
-      // D-NEXT: los avisos de quien mira (sus solicitudes aprobadas, rechazadas o por revisar; al admin, las nuevas).
+      // D-867: los avisos de quien mira (sus solicitudes aprobadas, rechazadas o por revisar; al admin, las nuevas).
       campana={<CampanaDeClientes />}
       otra={{
         brand: t("RTG Customers", "RTG Clientes"),

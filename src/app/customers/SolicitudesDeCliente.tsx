@@ -40,7 +40,7 @@ const enMayusculas = (k: string, v: string) => ((CAMPOS_EN_MAYUSCULAS as readonl
  * Cada decisión la escribe la base con su función; aquí solo se pinta lo que vuelve.
  */
 export function SolicitudesDeCliente({ inicial = null, solicitudes, clientes, esAdmin, almacen, onDecidida, onClose, t }: {
-  /** D-NEXT: la solicitud que abre el enlace de un aviso (`?solicitud=N`): se abre su tarjeta, en su pestaña. */
+  /** D-867: la solicitud que abre el enlace de un aviso (`?solicitud=N`): se abre su tarjeta, en su pestaña. */
   inicial?: number | null;
   solicitudes: readonly SolicitudDeCliente[];
   /** La lista de clientes que ya se leyó: de ahí sale el valor de hoy de una edición. */

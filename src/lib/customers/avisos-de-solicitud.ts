@@ -1,5 +1,5 @@
 /**
- * Los avisos (la campana 🔔) de las solicitudes de cliente (D-NEXT, migración 243).
+ * Los avisos (la campana 🔔) de las solicitudes de cliente (D-867, migración 243).
  *
  * El dueño: «cuando se cree un customer, que le notifique al usuario que lo pidió […] y si es rechazado, enviado a
  * revisar o aceptado, que le mande la notificación a ese usuario».

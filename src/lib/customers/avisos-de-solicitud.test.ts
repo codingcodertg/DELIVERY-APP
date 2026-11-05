@@ -9,7 +9,7 @@ import { destinoDelAviso } from "@/lib/destino-del-aviso";
 
 const SQL = readFileSync(join(process.cwd(), "supabase/migrations/243_avisos_de_solicitudes_de_cliente.sql"), "utf8");
 
-describe("textos de los avisos de solicitud de cliente (D-NEXT)", () => {
+describe("textos de los avisos de solicitud de cliente (D-867)", () => {
   it("nueva: cuenta, tiendas y quien pidió, en los dos idiomas", () => {
     expect(textoDelAviso(AVISO_CLIENTE_NUEVA, { cuenta: "IDEA", clase: "alta", tiendas: "PHR", quien: "Everto" }))
       .toEqual({ en: "📝 New customer request: IDEA (PHR) from Everto", es: "📝 Nueva solicitud de cliente: IDEA (PHR) de Everto" });
@@ -73,9 +73,9 @@ describe("la 243 escribe lo mismo que esta librería", () => {
       "'/customers?solicitud='", "'/customers/'",
     ]) expect(SQL).toContain(trozo);
   });
-  it("no toca las funciones de decidir de la 242 y no lleva D-NEXT ni número de decisión", () => {
+  it("no toca las funciones de decidir de la 242 y no lleva D-867 ni número de decisión", () => {
     expect(SQL).not.toMatch(/create or replace function erp\.(aprueba|rechaza|revisa)_/);
-    expect(SQL).not.toMatch(/D-\d{3}|D-NEXT/);
+    expect(SQL).not.toMatch(/D-\d{3}|D-867/);
     expect(SQL).toContain("customers_role = 'admin'");
   });
 });
