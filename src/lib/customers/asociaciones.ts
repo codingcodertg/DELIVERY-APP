@@ -172,6 +172,22 @@ export function buscaParaAsociar(lista: readonly Cliente[], propia: string | nul
     .map(({ company_id, account, stores, crm_type }) => ({ company_id, account, stores, crm_type }));
 }
 
+/**
+ * El aviso bajo el buscador de asociaciones. El cuadro NUNCA se bloquea (se escribe siempre); lo que no se puede buscar
+ * se DICE aquí en vez de callarlo: sin tiendas en el perfil (el no admin no encontraría nada), un fallo de la base, o
+ * «no coincide» con las tiendas en las que se buscó. `null` = sin aviso.
+ */
+export type AvisoDelBuscador = "sinTiendas" | "error" | "nadaEnMisTiendas" | "nada" | null;
+export function avisoDelBuscador({ esAdmin, misTiendas, q, error, hay }: {
+  esAdmin: boolean; misTiendas: readonly string[] | null; q: string; error: boolean; hay: boolean;
+}): AvisoDelBuscador {
+  if (!esAdmin && misTiendas !== null && misTiendas.map(codigo).filter(Boolean).length === 0) return "sinTiendas";
+  if (q.trim().length < 2) return null;
+  if (error) return "error";
+  if (hay) return null;
+  return esAdmin ? "nada" : "nadaEnMisTiendas";
+}
+
 /** Lo que se manda al guardar: las elegidas que aún no están (ni pendientes), y las marcadas para quitar que existen. */
 export function planDeCambios(asociados: readonly Asociado[], pendientes: readonly AsociacionPendiente[], elegidas: readonly string[], quitar: readonly number[]): { add: string[]; remove: number[] } {
   const ya = new Set(asociados.map((a) => limpio(a.company_id)));

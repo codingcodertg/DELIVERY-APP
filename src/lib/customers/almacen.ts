@@ -89,6 +89,8 @@ export interface AlmacenDeClientes {
   filasDeEmpresa?(companyId: string): Promise<Res<Cliente[]>>;
   /** D-886 (250): el buscador de asociaciones; el no admin solo recibe empresas de sus tiendas. */
   buscarParaAsociar?(q: string): Promise<Res<EmpresaParaAsociar[]>>;
+  /** Las tiendas (códigos) en las que busca el no admin: su tienda y `visible_stores` (`erp.mis_tiendas_de_clientes`). */
+  misTiendasParaAsociar?(): Promise<Res<string[]>>;
   /** D-886 (250): añade y quita varias de una vez. El admin aplica; los demás crean solicitudes por aprobar. */
   proponerAsociaciones?(clienteId: number, add: readonly string[], remove: readonly number[], nota: string): Promise<Res<ResultadoDePropuesta>>;
   /** D-886 (250): las propuestas abiertas de una empresa («pendiente de aprobación»). */
@@ -309,6 +311,11 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
         const a = asociadoDeLaBase({ ...f, id: 0 });
         return { company_id: a.company_id, account: a.account, stores: a.stores, crm_type: a.crm_type };
       }) };
+    },
+    async misTiendasParaAsociar() {
+      const { data, error } = await sb.rpc("mis_tiendas_de_clientes");
+      if (error) return { ...fallo(error), sinTabla: error.code === "PGRST202" || error.code === "42883" };
+      return { ok: true, valor: ((data ?? []) as unknown[]).map(String) };
     },
     async proponerAsociaciones(clienteId, add, remove, nota) {
       const { data, error } = await sb.rpc("propone_asociaciones", { p_customer: clienteId, p_add: [...add], p_remove: [...remove], p_nota: nota.trim() || null });
