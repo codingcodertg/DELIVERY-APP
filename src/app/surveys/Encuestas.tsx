@@ -68,6 +68,18 @@ export function Encuestas({ demo, tiendas }: { demo: boolean; tiendas: string[] 
   const maxSerie = Math.max(1, ...serie.map((s) => s.n));
   const maxArea = Math.max(1, ...areas.map((a) => a.veces));
 
+  // Cuál atajo está puesto, solo para pintarlo encendido: no cambia qué hace cada botón.
+  const atajoPuesto = (dias: number | null) => {
+    if (dias === null) return !desde && !hasta;
+    const hoy = todayISO();
+    return hasta === hoy && desde === shiftDateISO(hoy, -(dias - 1));
+  };
+
+  // Las etiquetas de las celdas en el teléfono, donde cada fila es una tarjeta: van como variables CSS de la tabla
+  // para no tocar las celdas que las pruebas fijan.
+  const etiquetas = (pares: [string, string][]) =>
+    Object.fromEntries(pares.map(([en, es], i) => [`--enc-l${i + 1}`, JSON.stringify(t(en, es))])) as React.CSSProperties;
+
   const atajo = (dias: number | null) => {
     const hoy = todayISO();
     setHasta(dias === null ? "" : hoy);
@@ -93,16 +105,34 @@ export function Encuestas({ demo, tiendas }: { demo: boolean; tiendas: string[] 
   };
 
   return (
-    <div className="enc-wrap">
+    <div className="enc-wrap encuestas-app">
       <div className="enc-cabecera">
-        <div>
-          {/* Sin «◂ Volver al hub»: la casa está en la barra de arriba, la de todas las apps (D-643). */}
-          <h1>📋 {t("Customer surveys", "Encuestas de clientes")}</h1>
-          <p className="hint" style={{ marginTop: 0 }}>
-            {t("Answers from the public survey site.", "Las respuestas del sitio público de la encuesta.")}
-            {demo ? ` ${t("Demo data.", "Datos de demostración.")}` : ""}
-          </p>
-        </div>
+        {/* Sin «◂ Volver al hub»: la casa está en la barra de arriba, la de todas las apps (D-643). */}
+        <h1>📋 {t("Customer surveys", "Encuestas de clientes")}</h1>
+        <p className="hint enc-subtitulo">
+          {t("Answers from the public survey site.", "Las respuestas del sitio público de la encuesta.")}
+          {demo ? ` ${t("Demo data.", "Datos de demostración.")}` : ""}
+        </p>
+        {estado.tipo === "listo" && (
+          <div className="enc-filtro" role="group" aria-label={t("Date range", "Rango de fechas")}>
+            <div className="enc-atajos">
+              {ATAJOS.map((a) => (
+                <button key={a.en} type="button" className="btn btn-ghost btn-sm" aria-pressed={atajoPuesto(a.dias)} onClick={() => atajo(a.dias)}>
+                  {t(a.en, a.es)}
+                </button>
+              ))}
+            </div>
+            <div className="enc-fecha">
+              <label htmlFor="enc-desde">{t("From", "Desde")}</label>
+              <input id="enc-desde" type="date" value={desde} max={hasta || undefined} onChange={(e) => setDesde(e.target.value)} />
+            </div>
+            <div className="enc-fecha">
+              <label htmlFor="enc-hasta">{t("To", "Hasta")}</label>
+              <input id="enc-hasta" type="date" value={hasta} min={desde || undefined} onChange={(e) => setHasta(e.target.value)} />
+            </div>
+            <span className="hint enc-tz">{t("Days are Texas time.", "Los días son hora de Texas.")}</span>
+          </div>
+        )}
       </div>
 
       {/* Un QR por tienda (D-724): el general (el que ya está impreso) y uno por cada tienda de Ajustes, plegados. */}
@@ -142,25 +172,6 @@ export function Encuestas({ demo, tiendas }: { demo: boolean; tiendas: string[] 
 
       {estado.tipo === "listo" && (
         <>
-          <div className="card">
-            <div className="enc-filtro">
-              <div>
-                <label htmlFor="enc-desde">{t("From", "Desde")}</label>
-                <input id="enc-desde" type="date" value={desde} max={hasta || undefined} onChange={(e) => setDesde(e.target.value)} />
-              </div>
-              <div>
-                <label htmlFor="enc-hasta">{t("To", "Hasta")}</label>
-                <input id="enc-hasta" type="date" value={hasta} min={desde || undefined} onChange={(e) => setHasta(e.target.value)} />
-              </div>
-              {ATAJOS.map((a) => (
-                <button key={a.en} type="button" className="btn btn-ghost btn-sm" onClick={() => atajo(a.dias)}>
-                  {t(a.en, a.es)}
-                </button>
-              ))}
-            </div>
-            <p className="hint">{t("Days are Texas time.", "Los días son hora de Texas.")}</p>
-          </div>
-
           <div className="kpi-grid">
             <div className="kpi" data-kpi-total><b>{visibles.length}</b><span>{t("Responses", "Respuestas")}</span></div>
             <div className="kpi" data-kpi-nada>
@@ -170,10 +181,14 @@ export function Encuestas({ demo, tiendas }: { demo: boolean; tiendas: string[] 
             <div className="kpi" data-kpi-pendientes><b>{pendientes}</b><span>{t("To contact", "Por contactar")}</span></div>
           </div>
 
+          <div className="enc-rejilla" data-columnas={tiendasConRespuestas.some((x) => x.tienda !== null) ? 3 : 2}>
           <div className="card">
             <h2>📈 {t("Responses per day", "Respuestas por día")}</h2>
             {serie.length === 0 ? (
-              <p className="hint">{t("No responses in this range.", "Sin respuestas en este rango.")}</p>
+              <p className="hint enc-vacio">
+                {t("No responses in this range.", "Sin respuestas en este rango.")}{" "}
+                {t("Widen the dates or pick All.", "Amplía las fechas o elige Todo.")}
+              </p>
             ) : (
               <>
                 <div className="enc-serie" data-serie>
@@ -225,10 +240,16 @@ export function Encuestas({ demo, tiendas }: { demo: boolean; tiendas: string[] 
             <p className="hint">{t("Times selected, and the average rating from 1 (very poor) to 5 (excellent).", "Veces elegida, y la calificación media del 1 (muy malo) al 5 (excelente).")}</p>
           </div>
 
+          </div>
+
+          <div className="enc-rejilla" data-columnas={2}>
           <div className="card">
             <h2>✍️ {t("“Other” answers", "Respuestas de «Otro»")}</h2>
             {otros.length === 0 ? (
-              <p className="hint">{t("None in this range.", "Ninguna en este rango.")}</p>
+              <p className="hint enc-vacio">
+                {t("None in this range.", "Ninguna en este rango.")}{" "}
+                {t("Nobody picked “Other” and wrote something.", "Nadie eligió «Otro» y escribió algo.")}
+              </p>
             ) : (
               <ul className="enc-lista" data-otros>
                 {otros.map((o) => (
@@ -247,7 +268,10 @@ export function Encuestas({ demo, tiendas }: { demo: boolean; tiendas: string[] 
               {t("The optional note at the end of the survey.", "La nota opcional del final de la encuesta.")}
             </p>
             {notas.length === 0 ? (
-              <p className="hint">{t("None in this range.", "Ninguna en este rango.")}</p>
+              <p className="hint enc-vacio">
+                {t("None in this range.", "Ninguna en este rango.")}{" "}
+                {t("The note is optional and nobody left one.", "La nota es opcional y nadie dejó una.")}
+              </p>
             ) : (
               <ul className="enc-lista" data-notas>
                 {notas.map((n) => (
@@ -260,16 +284,21 @@ export function Encuestas({ demo, tiendas }: { demo: boolean; tiendas: string[] 
             )}
           </div>
 
+          </div>
+
           <div className="card">
             <h2>📞{t("Asked to be contacted", "Piden que los contacten")}</h2>
             <p className="hint" style={{ marginTop: 0 }}>
               {t("All dates, pending first — the date filter does not hide anyone waiting for a call.", "Todas las fechas, primero las pendientes: el filtro de fechas no esconde a nadie que espera una llamada.")}
             </p>
             {contactar.length === 0 ? (
-              <p className="hint">{t("Nobody has asked yet.", "Nadie lo ha pedido todavía.")}</p>
+              <p className="hint enc-vacio">
+                {t("Nobody has asked yet.", "Nadie lo ha pedido todavía.")}{" "}
+                {t("Customers who leave a phone or email to be called show up here.", "Aquí salen los clientes que dejan teléfono o correo para que los llamen.")}
+              </p>
             ) : (
               <div className="tbl-scroll">
-                <table className="orders" data-contactar>
+                <table className="orders enc-tabla" data-contactar style={etiquetas([["Date", "Fecha"], ["Store", "Tienda"], ["Name", "Nombre"], ["Phone", "Teléfono"], ["Email", "Correo"], ["Selected and rating", "Eligió y calificó"], ["Other", "Otro"], ["Note", "Nota"], ["Contacted", "Contactado"]])}>
                   <thead>
                     <tr>
                       <th>{t("Date", "Fecha")}</th><th>{t("Store", "Tienda")}</th><th>{t("Name", "Nombre")}</th><th>{t("Phone", "Teléfono")}</th><th>{t("Email", "Correo")}</th>
@@ -279,7 +308,7 @@ export function Encuestas({ demo, tiendas }: { demo: boolean; tiendas: string[] 
                   </thead>
                   <tbody>
                     {contactar.map((f) => (
-                      <tr key={f.id} className={f.contacted ? "enc-contactado" : undefined}>
+                      <tr key={f.id} className={f.contacted ? "enc-contactado" : undefined} data-estado-contacto={f.contacted ? "hecho" : "pendiente"}>
                         <td>{fechaHora(f.created_at)}</td>
                         <td>{f.store ?? "—"}</td>
                         <td className={f.contact_name ? undefined : "hint"}>{nombreDeContacto(f, lang)}</td>
@@ -318,10 +347,15 @@ export function Encuestas({ demo, tiendas }: { demo: boolean; tiendas: string[] 
               </button>
             </div>
             {visibles.length === 0 ? (
-              <p className="hint">{t("No responses in this range.", "Sin respuestas en este rango.")}</p>
+              <p className="hint enc-vacio">
+                {t("No responses in this range.", "Sin respuestas en este rango.")}{" "}
+                {filas.length > 0
+                  ? t(`There are ${filas.length} in total: widen the dates or pick All.`, `Hay ${filas.length} en total: amplía las fechas o elige Todo.`)
+                  : t("Nobody has answered the survey yet.", "Nadie ha contestado la encuesta todavía.")}
+              </p>
             ) : (
               <div className="tbl-scroll">
-                <table className="orders" data-todas>
+                <table className="orders enc-tabla" data-todas style={etiquetas([["Date", "Fecha"], ["Store", "Tienda"], ["Selected and rating", "Eligió y calificó"], ["Other", "Otro"], ["Note", "Nota"], ["Contact", "Contacto"], ["Contacted", "Contactado"]])}>
                   <thead>
                     <tr>
                       <th>{t("Date", "Fecha")}</th><th>{t("Store", "Tienda")}</th><th>{t("Selected and rating", "Eligió y calificó")}</th><th>{t("Other", "Otro")}</th>
@@ -337,7 +371,7 @@ export function Encuestas({ demo, tiendas }: { demo: boolean; tiendas: string[] 
                         <td style={{ whiteSpace: "normal" }}>{f.other_text ?? ""}</td>
                         <td style={{ whiteSpace: "pre-wrap" }}>{f.note ?? ""}</td>
                         <td>{f.wants_contact ? [nombreDeContacto(f, lang), f.contact_phone, f.contact_email].filter(Boolean).join(" · ") : t("No", "No")}</td>
-                        <td>{f.wants_contact ? (f.contacted ? "✓" : t("Pending", "Pendiente")) : ""}</td>
+                        <td data-estado-contacto={f.wants_contact ? (f.contacted ? "hecho" : "pendiente") : undefined}>{f.wants_contact ? (f.contacted ? "✓" : t("Pending", "Pendiente")) : ""}</td>
                       </tr>
                     ))}
                   </tbody>

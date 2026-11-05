@@ -1,0 +1,158 @@
+/* RTG Encuestas: su capa visual (vista previa de diseño, rama design/encuestas-preview).
+   ---------------------------------------------------------------------------
+   El mismo lenguaje que Promos (D-849) con la densidad de Entregas compacta (D-855): cabecera de una fila con el
+   filtro de fechas dentro, cifras en una tira fina, gráficas y textos lado a lado, tablas de filas bajas.
+   Todo cuelga de `.encuestas-app` (el envoltorio de /surveys); `card`, `kpi`, `bar-*` y `table.orders` de globals.css
+   no cambian fuera de aquí. Colores: solo variables de globals.css (claro y oscuro salen solos); las mezclas van con
+   `color-mix`, nunca con un rgba escrito. */
+
+.encuestas-app { --enc-fila: 30px; --enc-sombra: color-mix(in srgb, var(--ink) 18%, transparent); max-width: 1240px; padding: 12px 16px 56px; }
+.encuestas-app .card { padding: 12px 14px; margin-bottom: 10px; border-radius: 10px; }
+.encuestas-app .card h2 { margin: 0 0 8px; font-size: 14px; }
+.encuestas-app .hint { margin-top: 4px; }
+
+/* ---- Cabecera: título, subtítulo y filtro en UNA fila ---- */
+.encuestas-app > .enc-cabecera { flex-wrap: wrap; justify-content: flex-start; align-items: center; gap: 6px 12px; margin-bottom: 10px; }
+.encuestas-app > .enc-cabecera h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.2; white-space: nowrap; }
+.encuestas-app .enc-subtitulo { margin: 0; flex: 1 1 200px; min-width: 0; }
+.encuestas-app .enc-filtro { align-items: center; gap: 8px; margin-left: auto; }
+.encuestas-app .enc-fecha { display: flex; align-items: center; gap: 6px; }
+.encuestas-app .enc-fecha label { margin: 0; font-size: 12px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--ink-soft); }
+.encuestas-app .enc-filtro input[type="date"] { padding: 4px 6px; font-size: 13px; border-radius: 7px; }
+.encuestas-app .enc-tz { margin: 0; font-size: 11.5px; }
+
+/* Los atajos de fechas: un control segmentado; el que coincide con las fechas puestas va encendido. */
+.encuestas-app .enc-atajos {
+  display: inline-flex; gap: 2px; padding: 2px; border-radius: 9px;
+  background: color-mix(in srgb, var(--line) 55%, var(--paper)); border: 1px solid var(--line);
+}
+.encuestas-app .enc-atajos .btn {
+  border: 0; border-radius: 7px; background: transparent; color: var(--ink-soft);
+  padding: 4px 10px; font-size: 12.5px; font-weight: 600; box-shadow: none;
+}
+.encuestas-app .enc-atajos .btn:hover { color: var(--text); background: color-mix(in srgb, var(--card) 60%, transparent); }
+.encuestas-app .enc-atajos .btn[aria-pressed="true"] {
+  background: var(--card); color: var(--text);
+  box-shadow: 0 1px 2px var(--enc-sombra), 0 0 0 1px var(--line);
+}
+.encuestas-app .enc-atajos .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---- Enlaces y QR: una línea plegada ---- */
+.encuestas-app [data-enlace-encuesta] { padding: 8px 14px; }
+.encuestas-app [data-enlace-encuesta] > summary { font-size: 13.5px; }
+.encuestas-app [data-enlace-encuesta][open] > summary { margin-bottom: 4px; }
+.encuestas-app [data-enlace-encuesta] [data-qr-tienda] { margin: 0; padding: 10px 12px; }
+
+/* ---- Avisos: raya de color a la izquierda, no la caja entera teñida ---- */
+.encuestas-app .enc-aviso {
+  margin-bottom: 10px; padding: 8px 12px; border-radius: 8px; line-height: 1.45;
+  background: var(--card); border: 1px solid var(--line); color: var(--text);
+}
+.encuestas-app .enc-aviso.ambar { box-shadow: inset 4px 0 0 var(--amber); }
+.encuestas-app .enc-aviso.rojo { background: var(--red-soft); box-shadow: inset 4px 0 0 var(--red); }
+
+/* ---- Cifras: una tira de tres, número y nombre en la misma línea ---- */
+.encuestas-app .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); overflow: hidden; }
+.encuestas-app .kpi {
+  display: flex; align-items: baseline; gap: 10px; padding: 8px 14px; text-align: left;
+  border: 0; border-radius: 0; background: transparent; min-width: 0;
+}
+.encuestas-app .kpi + .kpi { border-left: 1px solid var(--line); }
+.encuestas-app .kpi b { font-family: 'Archivo', system-ui, sans-serif; font-size: 22px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.encuestas-app .kpi span { margin: 0; font-size: 12.5px; color: var(--ink-soft); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.encuestas-app [data-kpi-pendientes] b { color: var(--amber-text); }
+
+/* ---- Gráficas y textos lado a lado ---- */
+.encuestas-app .enc-rejilla { display: grid; gap: 10px; margin-bottom: 10px; align-items: start; }
+.encuestas-app .enc-rejilla[data-columnas="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.encuestas-app .enc-rejilla[data-columnas="3"] { grid-template-columns: 1.2fr 1fr 1.2fr; }
+.encuestas-app .enc-rejilla > .card { margin: 0; min-width: 0; }
+.encuestas-app .enc-serie { height: 96px; }
+.encuestas-app .bar-list { gap: 4px; }
+.encuestas-app .bar-row { min-height: 22px; }
+.encuestas-app .enc-area-label { flex-basis: 140px; font-size: 12.5px; }
+.encuestas-app .bar-num { font-variant-numeric: tabular-nums; text-align: right; }
+.encuestas-app .enc-lista { max-height: 220px; overflow-y: auto; }
+.encuestas-app .enc-lista li { padding: 5px 0; line-height: 1.4; }
+
+/* Vacío: dice por qué, en una línea. */
+.encuestas-app .enc-vacio { margin: 0; padding: 6px 0; }
+
+/* ---- Tablas: filas bajas, alternas, hover, fecha pegada a la izquierda (desde tablet; en el teléfono, tarjetas) ---- */
+.encuestas-app .enc-tabla .btn-sm { padding: 2px 8px; font-size: 11.5px; line-height: 1.3; }
+/* Estado de contacto: un punto de su color delante (ámbar pendiente, verde hecho). */
+.encuestas-app td[data-estado-contacto]::before,
+.encuestas-app [data-contactar] tr[data-estado-contacto] td:last-child::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; vertical-align: 1px; background: var(--amber);
+}
+.encuestas-app td[data-estado-contacto="hecho"]::before,
+.encuestas-app [data-contactar] tr[data-estado-contacto="hecho"] td:last-child::before { background: var(--green); }
+
+@media (min-width: 641px) {
+  .encuestas-app .enc-tabla { font-size: 12.5px; min-width: 760px; }
+  .encuestas-app .enc-tabla th { padding: 6px 10px; font-size: 11px; }
+  .encuestas-app .enc-tabla td { padding: 5px 10px; height: var(--enc-fila); line-height: 1.35; vertical-align: top; }
+  .encuestas-app .enc-tabla tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--paper) 60%, var(--card)); }
+  .encuestas-app .enc-tabla tbody tr:hover td { background: var(--card-hover); }
+  .encuestas-app .enc-tabla th:first-child, .encuestas-app .enc-tabla td:first-child { position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: inset -1px 0 0 var(--line); }
+  .encuestas-app .enc-tabla th:first-child { z-index: 2; background: var(--paper); }
+  .encuestas-app .enc-tabla tbody tr:nth-child(even) td:first-child { background: color-mix(in srgb, var(--paper) 60%, var(--card)); }
+  .encuestas-app .enc-tabla tbody tr:hover td:first-child { background: var(--card-hover); }
+  .encuestas-app [data-contactar] tr[data-estado-contacto="pendiente"] td:first-child { box-shadow: inset 3px 0 0 var(--amber), inset -1px 0 0 var(--line); }
+  /* Las notas largas no se aprietan en una columna de tres palabras. */
+  .encuestas-app .enc-tabla td[style*="pre-wrap"] { min-width: 180px; max-width: 320px; }
+  .encuestas-app .enc-tabla td[style*="normal"] { min-width: 150px; }
+}
+
+/* ---- Tablet ---- */
+@media (max-width: 1000px) {
+  .encuestas-app .enc-rejilla[data-columnas="3"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .encuestas-app .enc-rejilla[data-columnas="3"] > .card:first-child { grid-column: 1 / -1; }
+  .encuestas-app .enc-filtro { margin-left: 0; }
+}
+
+/* ---- Teléfono: una columna; cada fila de tabla es una tarjeta con sus etiquetas ---- */
+@media (max-width: 640px) {
+  .encuestas-app { padding: 10px 10px 48px; }
+  .encuestas-app .enc-cabecera h1 { font-size: 18px; }
+  .encuestas-app .enc-subtitulo { flex-basis: 100%; }
+  .encuestas-app .enc-filtro { width: 100%; }
+  .encuestas-app .enc-atajos { display: flex; width: 100%; }
+  .encuestas-app .enc-atajos .btn { flex: 1 1 0; min-height: 40px; }
+  .encuestas-app .enc-fecha { flex: 1 1 140px; }
+  .encuestas-app .enc-fecha input[type="date"] { flex: 1; min-height: 40px; }
+  .encuestas-app .enc-rejilla[data-columnas] { grid-template-columns: minmax(0, 1fr); }
+  .encuestas-app .kpi { flex-direction: column; gap: 0; padding: 8px 10px; }
+  .encuestas-app .kpi span { white-space: normal; font-size: 11.5px; line-height: 1.25; }
+
+  .encuestas-app .tbl-scroll:has(.enc-tabla) { border: 0; background: none; overflow: visible; }
+  .encuestas-app .enc-tabla { display: block; min-width: 0; }
+  .encuestas-app .enc-tabla thead { display: none; }
+  .encuestas-app .enc-tabla tbody { display: block; }
+  .encuestas-app .enc-tabla tr {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2px 10px;
+    padding: 8px 10px; margin-bottom: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--card);
+  }
+  .encuestas-app [data-contactar] tr[data-estado-contacto="pendiente"] { box-shadow: inset 3px 0 0 var(--amber); }
+  .encuestas-app .enc-tabla td { display: block; padding: 0; border: 0; white-space: normal; overflow-wrap: anywhere; font-size: 13px; grid-column: 1 / -1; }
+  .encuestas-app .enc-tabla td:empty { display: none; }
+  .encuestas-app .enc-tabla td:nth-child(1) { grid-column: 1; font-weight: 700; }
+  .encuestas-app .enc-tabla td:nth-child(2) { grid-column: 2; text-align: right; color: var(--ink-soft); }
+  .encuestas-app [data-contactar] td:nth-child(3) { grid-column: 1; }
+  .encuestas-app [data-contactar] td:nth-child(4) { grid-column: 2; text-align: right; }
+  /* La etiqueta de cada celda larga, de las variables que la tabla trae en su idioma. */
+  .encuestas-app [data-todas] td:nth-child(n+3)::before,
+  .encuestas-app [data-contactar] td:nth-child(n+6)::before {
+    display: block; font-size: 11px; font-weight: 600; color: var(--gray); margin: 2px 0 0;
+  }
+  .encuestas-app [data-todas] td:nth-child(3)::before { content: var(--enc-l3); }
+  .encuestas-app [data-todas] td:nth-child(4)::before { content: var(--enc-l4); }
+  .encuestas-app [data-todas] td:nth-child(5)::before { content: var(--enc-l5); }
+  .encuestas-app [data-todas] td:nth-child(6)::before { content: var(--enc-l6); }
+  .encuestas-app [data-contactar] td:nth-child(6)::before { content: var(--enc-l6); }
+  .encuestas-app [data-contactar] td:nth-child(7)::before { content: var(--enc-l7); }
+  .encuestas-app [data-contactar] td:nth-child(8)::before { content: var(--enc-l8); }
+  .encuestas-app .enc-tabla td:last-child { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .encuestas-app .enc-tabla td:last-child .btn-sm { min-height: 44px; padding: 8px 14px; font-size: 13px; flex: 1 1 140px; }
+  .encuestas-app [data-todas] td[data-estado-contacto] { margin-top: 0; }
+}
