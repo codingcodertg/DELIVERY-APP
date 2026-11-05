@@ -137,3 +137,71 @@ export function asociadosDesdeLaLista(empresa: string, pares: readonly ParDeEmpr
   }
   return salida.sort((x, y) => x.account.localeCompare(y.account));
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// D-NEXT (250): varias a la vez, solo desde la edición, y con aprobación. El admin de Clientes aplica directo; vendedor y
+// gerente proponen: cada alta o baja es una solicitud ('asociacion') que el admin aprueba en «Solicitudes de cliente».
+// El no admin solo busca (y solo puede proponer) empresas con alguna fila en sus tiendas. La base lo exige
+// (erp.busca_clientes_para_asociar y erp.propone_asociaciones); esto es el espejo para la demo y las pruebas.
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Una empresa del buscador de asociaciones (`erp.busca_clientes_para_asociar`). */
+export interface EmpresaParaAsociar { company_id: string; account: string; stores: string[]; crm_type: string | null }
+
+/** Una propuesta abierta (pendiente o en «Revisar») de una empresa (`erp.asociaciones_pendientes`). */
+export interface AsociacionPendiente { id: number; op: "add" | "remove"; company_id: string; account: string; status: "pending" | "review" }
+
+/** Lo que devuelve proponer: cuántas se aplicaron (admin) y las solicitudes creadas (los demás). */
+export interface ResultadoDePropuesta { aplicadas: number; solicitudes: number[] }
+
+const codigo = (s: string | null | undefined): string => (s ?? "").trim().toUpperCase();
+
+/** ¿Tiene la empresa ALGUNA fila en una de mis tiendas? El admin, siempre. Espejo de erp.empresa_en_mis_tiendas. */
+export function empresaEnMisTiendas(filas: readonly Pick<Cliente, "store">[], misTiendas: readonly string[], esAdmin: boolean): boolean {
+  if (esAdmin) return true;
+  const mias = new Set(misTiendas.map(codigo).filter(Boolean));
+  return filas.some((f) => mias.has(codigo(f.store)));
+}
+
+/** El buscador con la regla de tiendas: el no admin solo ve las empresas que tienen alguna fila en sus tiendas. */
+export function buscaParaAsociar(lista: readonly Cliente[], propia: string | null | undefined, yaAsociadas: readonly string[], busca: string, misTiendas: readonly string[], esAdmin: boolean, max = 8): EmpresaParaAsociar[] {
+  const todas = candidatosParaAsociar(lista, propia, yaAsociadas, busca, Number.MAX_SAFE_INTEGER);
+  return todas
+    .filter((c) => empresaEnMisTiendas(lista.filter((f) => limpio(f.company_id) === c.company_id), misTiendas, esAdmin))
+    .slice(0, max)
+    .map(({ company_id, account, stores, crm_type }) => ({ company_id, account, stores, crm_type }));
+}
+
+/** Lo que se manda al guardar: las elegidas que aún no están (ni pendientes), y las marcadas para quitar que existen. */
+export function planDeCambios(asociados: readonly Asociado[], pendientes: readonly AsociacionPendiente[], elegidas: readonly string[], quitar: readonly number[]): { add: string[]; remove: number[] } {
+  const ya = new Set(asociados.map((a) => limpio(a.company_id)));
+  const enEspera = new Set(pendientes.filter((p) => p.op === "add").map((p) => limpio(p.company_id)));
+  const quitaEnEspera = new Set(pendientes.filter((p) => p.op === "remove").map((p) => limpio(p.company_id)));
+  const add = [...new Set(elegidas.map(limpio))].filter((c) => c && !ya.has(c) && !enEspera.has(c));
+  const remove = [...new Set(quitar)].filter((id) => {
+    const a = asociados.find((x) => x.id === id);
+    return !!a && !quitaEnEspera.has(limpio(a.company_id));
+  });
+  return { add, remove };
+}
+
+export function pendienteDeLaBase(f: Record<string, unknown>): AsociacionPendiente {
+  return {
+    id: Number(f.id),
+    op: f.op === "remove" ? "remove" : "add",
+    company_id: String(f.company_id ?? ""),
+    account: typeof f.account === "string" ? f.account : "",
+    status: f.status === "review" ? "review" : "pending",
+  };
+}
+
+export function resultadoDeLaBase(v: unknown): ResultadoDePropuesta {
+  const o = v && typeof v === "object" ? (v as Record<string, unknown>) : {};
+  return { aplicadas: Number(o.applied ?? 0) || 0, solicitudes: Array.isArray(o.requests) ? o.requests.map(Number).filter(Number.isFinite) : [] };
+}
+
+/** El texto de una solicitud de asociación: «Add association with X» / «Remove association with X». */
+export function textoDeSolicitudDeAsociacion(payload: Record<string, unknown>, t: (en: string, es: string) => string): string {
+  const otra = typeof payload.associated_customer === "string" && payload.associated_customer ? payload.associated_customer : "?";
+  return payload.op === "remove" ? t(`Remove association with ${otra}`, `Quitar asociación con ${otra}`) : t(`Add association with ${otra}`, `Añadir asociación con ${otra}`);
+}

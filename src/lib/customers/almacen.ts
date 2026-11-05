@@ -8,7 +8,7 @@ import { clienteDeBusqueda } from "./vendedor-por-tienda";
 import { cuerpoDeSolicitud, solicitudDeLaBase, type SolicitudDeCliente } from "./solicitud-de-cliente";
 import { cuerpoDeEdicion, historialDeLaBase, nombraVendedores, vendedoresDelHistorial, type HistorialDeCliente } from "./edicion-como-solicitud";
 import { leeTratos, type TratosLeidos } from "./tratos-de-la-base";
-import { asociadoDeLaBase, type Asociado } from "./asociaciones";
+import { asociadoDeLaBase, pendienteDeLaBase, resultadoDeLaBase, type Asociado, type AsociacionPendiente, type EmpresaParaAsociar, type ResultadoDePropuesta } from "./asociaciones";
 import { conVendedores, nombresDeVendedores, type Vendedor } from "./vendedores";
 
 /**
@@ -87,6 +87,14 @@ export interface AlmacenDeClientes {
   desasociar?(parId: number): Promise<Res<null>>;
   /** D-884 (249): las filas de una empresa que quien mira puede ver (para abrir una asociada en una tarjeta). */
   filasDeEmpresa?(companyId: string): Promise<Res<Cliente[]>>;
+  /** D-NEXT (250): el buscador de asociaciones; el no admin solo recibe empresas de sus tiendas. */
+  buscarParaAsociar?(q: string): Promise<Res<EmpresaParaAsociar[]>>;
+  /** D-NEXT (250): añade y quita varias de una vez. El admin aplica; los demás crean solicitudes por aprobar. */
+  proponerAsociaciones?(clienteId: number, add: readonly string[], remove: readonly number[], nota: string): Promise<Res<ResultadoDePropuesta>>;
+  /** D-NEXT (250): las propuestas abiertas de una empresa («pendiente de aprobación»). */
+  asociacionesPendientes?(companyId: string): Promise<Res<AsociacionPendiente[]>>;
+  /** D-NEXT (250): el admin aprueba una solicitud de asociación (la aplica). Rechazar es `rechazarSolicitud`. */
+  aprobarAsociacion?(id: number, nota: string): Promise<Res<null>>;
 }
 
 /** ¿Es «la 180 no está aplicada»? PGRST205 (tabla) de PostgREST; 42P01 de Postgres. Solo esos. */
@@ -292,6 +300,29 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
       const { data, error } = await sb.from("customer_associations").delete().eq("id", parId).select("id");
       if (error) return fallo(error);
       if (!data?.length) return sinFila();
+      return { ok: true, valor: null };
+    },
+    async buscarParaAsociar(q) {
+      const { data, error } = await sb.rpc("busca_clientes_para_asociar", { p_q: q });
+      if (error) return { ...fallo(error), sinTabla: faltaLaTabla(error) || error.code === "PGRST202" || error.code === "42883" };
+      return { ok: true, valor: ((data ?? []) as Record<string, unknown>[]).map((f) => {
+        const a = asociadoDeLaBase({ ...f, id: 0 });
+        return { company_id: a.company_id, account: a.account, stores: a.stores, crm_type: a.crm_type };
+      }) };
+    },
+    async proponerAsociaciones(clienteId, add, remove, nota) {
+      const { data, error } = await sb.rpc("propone_asociaciones", { p_customer: clienteId, p_add: [...add], p_remove: [...remove], p_nota: nota.trim() || null });
+      if (error) return { ...fallo(error), sinTabla: faltaLaTabla(error) || error.code === "PGRST202" || error.code === "42883" };
+      return { ok: true, valor: resultadoDeLaBase(data) };
+    },
+    async asociacionesPendientes(companyId) {
+      const { data, error } = await sb.rpc("asociaciones_pendientes", { p_company: companyId });
+      if (error) return { ...fallo(error), sinTabla: faltaLaTabla(error) || error.code === "PGRST202" || error.code === "42883" };
+      return { ok: true, valor: ((data ?? []) as Record<string, unknown>[]).map(pendienteDeLaBase) };
+    },
+    async aprobarAsociacion(id, nota) {
+      const { error } = await sb.rpc("aprueba_asociacion", { p_id: id, p_nota: nota || null });
+      if (error) return fallo(error);
       return { ok: true, valor: null };
     },
     async filasDeEmpresa(companyId) {
