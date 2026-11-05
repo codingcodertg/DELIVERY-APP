@@ -1,4 +1,5 @@
 import type { Settings } from "@/lib/types";
+import { millasImposibles } from "@/lib/distancia-plausible";
 import { todayISO } from "@/lib/utils";
 import { ciudadDeEntrega } from "@/lib/ciudad-de-entrega";
 import { puntoEnZonaLocal } from "@/lib/delivery-zone";
@@ -342,7 +343,9 @@ export function suggestDeliveryFee(
   // libre y falla justo donde más duele. Sin punto se cae al método de siempre, sin cambiarlo.
   const porPunto = puntoEnZonaLocal(d.delivery_lat, d.delivery_lng);
   const local = porPunto ?? isLocalCity(city, s);
-  const miles = d.route_miles;
+  // Unas millas imposibles (D-878: 171838 guardó 321 mi por 25) no ponen precio: sin ellas no hay sugerencia, y la
+  // ficha dice por qué. Antes salía una tarifa de cientos de millas como si fuera buena.
+  const miles = millasImposibles(d.route_miles) ? null : d.route_miles;
   // Un solo cálculo para el número y para la explicación. `total` ya lleva el recargo dentro,
   // así que `fee` sale de aquí en vez de sumarlo otra vez por su cuenta — que es donde se
   // habrían podido separar.

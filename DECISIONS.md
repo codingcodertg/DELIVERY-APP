@@ -50775,3 +50775,15 @@ Sello `estimator` 0.30.0; repo 1.731.0.
 **Qué cambia (`pin-draft.ts`, `OrderModal`):** al abrir «Marcar ubicación exacta en el mapa» sin punto, se busca la dirección (`/api/geocode-point`, no en modo enseñanza) y el mapa abre encima, a zoom 16, con un marcador azul de referencia que no se guarda ni cambia zona ni tarifa; el pin con clic derecho, igual. Orden: borrador, punto guardado, dirección encontrada.
 
 Sello `deliveries` 1.543.0; repo 1.732.0.
+
+## D-878 · Millas imposibles: solo la respuesta más reciente cuenta y nada de más de 200 mi
+
+**Fecha:** 2026-11-05 · Sin migración · Hecho por un agente en `fix/distancia-imposible`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño, por WhatsApp):** «171838 — Francisca said the map says 321 miles but it's 23 mi».
+
+**Causa medida:** el formulario recalcula la ruta con el TEXTO de la dirección tras cada pausa al escribir (900 ms) y no comprobaba que la respuesta fuera la de la última petición: una respuesta lenta de una dirección a medio escribir («9402», «…, Mo») pisaba la buena. El proveedor guardado «Google + OSRM» solo sale de un texto parcial. En 60 días, 9 órdenes con millas falsas (hasta 1.789 mi) y 2 con pin fuera del Valle (Napa, CA; Florida); 8 corregidas con `ayuda-abde8b1c-punto.mjs`, 2 quedan para poner el pin a mano.
+
+**Qué cambia (`distancia-plausible.ts`, `OrderModal`, `/api/distance`, `pricing.ts`):** solo la petición más reciente escribe las millas; una ruta rechazada borra las viejas y lo dice; la geocodificación se sesga al Valle y descarta puntos fuera (caja 25.8–27.9 N, 97–99 O); una ruta de más de 200 mi devuelve 422 y no sugiere tarifa; aviso rojo «no es una entrega del Valle» junto a Millas.
+
+Sello `deliveries` 1.544.0; repo 1.733.0.
