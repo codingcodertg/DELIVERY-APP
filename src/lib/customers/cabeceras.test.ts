@@ -101,12 +101,12 @@ describe("filtro por columna, sobre las empresas", () => {
   const empresas = agrupaEnEmpresas(CON_EMPRESA, FILTRO_INICIAL);
   const pintadas = (l: ReturnType<typeof filtraEmpresas>) => l.map((e) => e.principal.id).sort((a, b) => a - b);
 
-  it("filtra por la fila que se pinta: Acme pinta NEW, así que «LOST» no la trae", () => {
-    expect(pintadas(filtraEmpresas(empresas, { status_store: new Set(["LOST"]) }))).toEqual([2, 4, 5]);
+  it("filtra por TODAS las filas de la empresa (D-NEXT): «LOST» trae a Acme, pintada con su fila LOST (Brownsville)", () => {
+    expect(pintadas(filtraEmpresas(empresas, { status_store: new Set(["LOST"]) }))).toEqual([2, 4, 5, 7]);
     expect(pintadas(filtraEmpresas(empresas, { status_store: new Set(["NEW"]) }))).toEqual([1, 3, 6, 8]);
   });
-  it("«Tienda» mira todas las tiendas que pinta la celda: Brownsville trae a Acme, que se pinta en Pharr", () => {
-    expect(pintadas(filtraEmpresas(empresas, { store: new Set(["BRO"]) }))).toEqual([8]);
+  it("«Tienda» mira todas las tiendas de la empresa: Brownsville trae a Acme, pintada con su fila de Brownsville (D-853)", () => {
+    expect(pintadas(filtraEmpresas(empresas, { store: new Set(["BRO"]) }))).toEqual([7]);
   });
   it("el «sin valor» se marca como cualquier otro; dos columnas se suman (y las dos tienen que pasar)", () => {
     expect(pintadas(filtraEmpresas(empresas, { status_store: new Set([SIN_VALOR]) }))).toEqual([9, 10]);
@@ -118,8 +118,8 @@ describe("filtro por columna, sobre las empresas", () => {
   it("las casillas de un menú: lo que quedaría sin SU filtro, con lo de las otras columnas puesto (en cascada)", () => {
     // Su propio filtro no le quita casillas: con «Lost» marcado, el menú de Estado sigue ofreciendo las tres.
     expect(opcionesDeColumna(empresas, { status_store: new Set(["LOST"]) }, "status_store", t).map((o) => o.label)).toEqual(["—", "Lost", "New"]);
-    // El de otra columna, sí: con «Lost», el de Tienda solo ofrece donde hay LOST pintadas.
-    expect(opcionesDeColumna(empresas, { status_store: new Set(["LOST"]) }, "store", t).map((o) => o.label)).toEqual(["RDZ McAllen", "RDZ Pharr"]);
+    // El de otra columna, sí: con «Lost», el de Tienda ofrece las tiendas de las empresas con alguna fila LOST (D-NEXT).
+    expect(opcionesDeColumna(empresas, { status_store: new Set(["LOST"]) }, "store", t).map((o) => o.label)).toEqual(["RDZ Brownsville", "RDZ McAllen", "RDZ Pharr"]);
     const filtros = { store: new Set(["MCA"]), status_store: new Set(["LOST"]) };
     expect(opcionesDeColumna(empresas, filtros, "rep_store", t).map((o) => o.label)).toEqual(["BB", "ZZ"]);
     expect(opcionesDeColumna(empresas, {}, "status_store", t).map((o) => o.label)).toEqual(["—", "Lost", "New"]);
