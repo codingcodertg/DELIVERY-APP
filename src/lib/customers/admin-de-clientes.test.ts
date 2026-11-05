@@ -53,7 +53,7 @@ describe("admin solo de Clientes (customers_role, 241)", () => {
     for (const pol of ["customers update (admin)", "customers delete (admin)", "customer requests read own or admin"]) expect(sql).toContain(`create policy "${pol}"`);
     for (const f of ["aprueba_solicitud_de_cliente(bigint)", "rechaza_solicitud_de_cliente(bigint, text)", "aprueba_edicion_de_cliente(bigint, text)"]) expect(sql).toContain(`'erp.${f}'`);
     expect(sql).toContain("replace(def, 'if not public.is_admin() then', 'if not erp.es_admin_de_clientes() then')");
-    expect(sql).not.toContain("D-NEXT");
+    expect(sql).not.toContain("D-864");
     expect(sql).toContain("-- @ledger-below");
   });
 });
