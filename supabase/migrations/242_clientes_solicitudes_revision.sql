@@ -7,7 +7,7 @@
 --
 -- Que habia (216, 221): `erp.customer_requests` con status pending / approved / rejected; nadie actualiza la tabla
 -- (authenticated solo tiene select e insert): se decide con erp.aprueba_solicitud_de_cliente (alta),
--- erp.aprueba_edicion_de_cliente (edicion) y erp.rechaza_solicitud_de_cliente, todas solo admin y solo desde 'pending'.
+-- erp.aprueba_edicion_de_cliente (edicion) y erp.rechaza_solicitud_de_cliente, todas solo admin (desde la 241, erp.es_admin_de_clientes()) y solo desde 'pending'.
 --
 -- Que hace:
 --  1. Un estado nuevo, 'review' («Revisar»: algo hay que comprobar). Sale de Pendientes, lleva su nota (`review_note`,
@@ -19,7 +19,7 @@
 --     sigue teniendo antes → despues de todo).
 --  3. erp.revisa_solicitud_de_cliente(id, nota) y erp.corrige_solicitud_de_cliente(id, payload): solo admin, nota
 --     obligatoria en la primera, y solo desde 'pending' o 'review'.
---  4. Las tres funciones de decidir se reescriben IGUAL que en la 216/221, salvo que aceptan 'review' ademas de 'pending'.
+--  4. Las tres funciones de decidir se reescriben IGUAL que como las deja la 241 (cuerpos de la 216/221 con la puerta erp.es_admin_de_clientes()), salvo que aceptan 'review' ademas de 'pending'.
 --     Al aprobar un alta desde 'review', la nota de revision queda (decision_note no se toca, como en la 216).
 --
 -- Sin begin/commit propios: el ensayo con ROLLBACK envuelve el fichero.
@@ -27,6 +27,14 @@
 -- erp.corrige_solicitud_de_cliente(bigint, jsonb); pasar las 'review' a 'pending'; volver a crear la restriccion
 -- customer_requests_status de la 216 y las tres funciones como en la 216/221; quitar las columnas review_note,
 -- reviewed_by, reviewed_at, payload_original, corrected_by, corrected_at; borrar la fila del registro.
+
+-- Va DESPUES de la 241 (admin de Clientes): todas las puertas de aqui son erp.es_admin_de_clientes().
+do $pre$
+begin
+  if to_regprocedure('erp.es_admin_de_clientes()') is null then
+    raise exception '242: falta erp.es_admin_de_clientes(); aplica primero la 241 (admin_de_clientes)';
+  end if;
+end $pre$;
 
 -- ---------------------------------------------------------------------------
 -- 1. El estado 'review' y las columnas
@@ -47,7 +55,7 @@ alter table erp.customer_requests add constraint customer_requests_status check 
 create or replace function erp.revisa_solicitud_de_cliente(p_id bigint, p_nota text)
   returns void language plpgsql security definer set search_path = public, erp, pg_temp as $$
 begin
-  if not public.is_admin() then raise exception 'solo el admin revisa solicitudes de cliente' using errcode = '42501'; end if;
+  if not erp.es_admin_de_clientes() then raise exception 'solo el admin revisa solicitudes de cliente' using errcode = '42501'; end if;
   if length(btrim(coalesce(p_nota, ''))) = 0 then raise exception 'revisar pide una nota: que hay que comprobar' using errcode = '22023'; end if;
   update erp.customer_requests set status = 'review', review_note = btrim(p_nota), reviewed_by = auth.uid(), reviewed_at = now()
    where id = p_id and status in ('pending', 'review');
@@ -66,7 +74,7 @@ declare
   k text;
   antes jsonb;
 begin
-  if not public.is_admin() then raise exception 'solo el admin corrige solicitudes de cliente' using errcode = '42501'; end if;
+  if not erp.es_admin_de_clientes() then raise exception 'solo el admin corrige solicitudes de cliente' using errcode = '42501'; end if;
   if p_payload is null or jsonb_typeof(p_payload) <> 'object' then raise exception 'la correccion debe ser un objeto' using errcode = '22023'; end if;
   select * into s from erp.customer_requests where id = p_id for update;
   if not found then raise exception 'solicitud % no existe', p_id; end if;
@@ -103,7 +111,7 @@ declare
   ids bigint[] := '{}';
   empresa uuid := gen_random_uuid();
 begin
-  if not public.is_admin() then raise exception 'solo el admin aprueba solicitudes de cliente' using errcode = '42501'; end if;
+  if not erp.es_admin_de_clientes() then raise exception 'solo el admin aprueba solicitudes de cliente' using errcode = '42501'; end if;
   select * into s from erp.customer_requests where id = p_id for update;
   if not found then raise exception 'solicitud % no existe', p_id; end if;
   if s.status not in ('pending', 'review') then raise exception 'la solicitud % ya esta %', p_id, s.status; end if;
@@ -134,7 +142,7 @@ declare
   s erp.customer_requests%rowtype;
   r erp.customers%rowtype;
 begin
-  if not public.is_admin() then raise exception 'solo el admin aprueba ediciones de cliente' using errcode = '42501'; end if;
+  if not erp.es_admin_de_clientes() then raise exception 'solo el admin aprueba ediciones de cliente' using errcode = '42501'; end if;
   select * into s from erp.customer_requests where id = p_id for update;
   if not found then raise exception 'solicitud % no existe', p_id; end if;
   if s.kind <> 'edicion' then raise exception 'la solicitud % no es una edicion', p_id; end if;
@@ -167,7 +175,7 @@ create or replace function erp.rechaza_solicitud_de_cliente(p_id bigint, p_nota 
 declare
   s erp.customer_requests%rowtype;
 begin
-  if not public.is_admin() then raise exception 'solo el admin rechaza solicitudes de cliente' using errcode = '42501'; end if;
+  if not erp.es_admin_de_clientes() then raise exception 'solo el admin rechaza solicitudes de cliente' using errcode = '42501'; end if;
   select * into s from erp.customer_requests where id = p_id for update;
   if not found or s.status not in ('pending', 'review') then raise exception 'solicitud % no existe o ya esta decidida', p_id; end if;
   update erp.customer_requests set status = 'rejected', decided_by = auth.uid(), decided_at = now(),
@@ -206,11 +214,11 @@ begin
   foreach f in array array['erp.revisa_solicitud_de_cliente(bigint, text)', 'erp.corrige_solicitud_de_cliente(bigint, jsonb)', 'erp.aprueba_solicitud_de_cliente(bigint)', 'erp.aprueba_edicion_de_cliente(bigint, text)', 'erp.rechaza_solicitud_de_cliente(bigint, text)'] loop
     if not (select prosecdef from pg_proc where oid = f::regprocedure) then raise exception '242: % no es security definer', f; end if;
     if has_function_privilege('anon', f, 'execute') then raise exception '242: anon ejecuta %', f; end if;
-    if position('is_admin()' in pg_get_functiondef(f::regprocedure)) = 0 then raise exception '242: % no mira is_admin()', f; end if;
+    if position('erp.es_admin_de_clientes()' in pg_get_functiondef(f::regprocedure)) = 0 then raise exception '242: % no mira is_admin()', f; end if;
   end loop;
   foreach f in array array['erp.aprueba_solicitud_de_cliente(bigint)', 'erp.aprueba_edicion_de_cliente(bigint, text)', 'erp.rechaza_solicitud_de_cliente(bigint, text)'] loop
     if position('''review''' in pg_get_functiondef(f::regprocedure)) = 0 then raise exception '242: % no acepta review', f; end if;
   end loop;
 end $chk$;
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('242_clientes_solicitudes_revision.sql', 'e7eb59fba7efb6823e70526e8377327cf3fff0c648323dd3980b1a6fdd8dd2a5') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('242_clientes_solicitudes_revision.sql', 'bcc510cf09151d6cf573d923571db729ff7c6e39d8a5ddb0b51036279a0b1013') on conflict (name) do nothing;

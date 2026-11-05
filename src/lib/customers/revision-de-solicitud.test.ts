@@ -150,6 +150,10 @@ describe("la 242", () => {
     expect(sql.match(/s\.status not in \('pending', 'review'\)/g)?.length).toBe(4);
     expect(sql).toContain("payload_original = coalesce(payload_original, payload)");
     expect(sql).not.toContain("grant update");
+    // Después de la 241: la puerta es el admin de Clientes, y sin ella la 242 no corre.
+    expect(sql).not.toContain("if not public.is_admin()");
+    expect(sql.match(/if not erp\.es_admin_de_clientes\(\) then/g)?.length).toBe(5);
+    expect(sql).toContain("aplica primero la 241");
     expect(sql).not.toContain("D-NEXT");
     expect(sql).toContain("-- @ledger-below");
   });
