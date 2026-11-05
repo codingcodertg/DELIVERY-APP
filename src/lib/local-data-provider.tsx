@@ -110,7 +110,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
   /** Apply a change to the freshest store and persist it. */
   const persist = useCallback((next: Store) => commit(next), [commit]);
 
-  // D-NEXT: el aviso puede llevar UN botón (p. ej. «Deshacer» tras reprogramar) y quedarse más rato (`ms`).
+  // D-861: el aviso puede llevar UN botón (p. ej. «Deshacer» tras reprogramar) y quedarse más rato (`ms`).
   const [accionDelAviso, setAccionDelAviso] = useState<AccionDelAviso | null>(null);
   const notify = useCallback((msg: string, opciones?: OpcionesDelAviso) => {
     setToast(msg);
@@ -557,7 +557,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // El demo no tiene la función `reprogramar_orden` (173) ni guard: la fecha y la nota, como antes (D-500).
     reprogramarOrden: async (id, fecha, nota, lang, caso, opciones) => {
       const antes = storeRef.current.deliveries.find((c) => c.id === id)?.delivery_date ?? null;
-      // D-NEXT: el «Deshacer» del aviso vuelve a un estado que ya estuvo: sin las reglas de agendar (el demo no saca de la ruta).
+      // D-861: el «Deshacer» del aviso vuelve a un estado que ya estuvo: sin las reglas de agendar (el demo no saca de la ruta).
       const deshacer = !!opciones?.deshacer;
       // La misma regla que el proveedor de verdad (D-658): ni domingo sin el caso especial ni un año imposible.
       // Ventas, pasadas las 12, para hoy: aquí ya no se bloquea; lo pregunta la pantalla (`ReprogramarOrden`, `corte-de-ventas`).

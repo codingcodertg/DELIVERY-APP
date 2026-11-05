@@ -1,5 +1,5 @@
 /**
- * «Deshacer» en el aviso «Reprogramada al …» (D-NEXT). El dueño, 2026-11-04, con la captura del Gestor: «where it says
+ * «Deshacer» en el aviso «Reprogramada al …» (D-861). El dueño, 2026-11-04, con la captura del Gestor: «where it says
  * rescheduled at the bottom, I want an UNDO right there, in case it was a mistake and I catch it».
  *
  * Qué cambia un «📅 Reprogramar» (medido en las migraciones, no supuesto):

@@ -50568,3 +50568,15 @@ Sello `deliveries` 1.536.0; repo 1.714.0.
 Sello `deliveries` 1.537.0; repo 1.715.0.
 
 **Pruebas:** `mostrador-vacio.test.ts` (falla con el código viejo).
+
+## D-861 · «Deshacer» en el aviso de «Reprogramada para…»
+
+**Fecha:** 2026-11-04 · Sin migración · Hecho por un agente en `feat/deshacer-reprogramar`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño, con captura del aviso «Rescheduled to 2026-11-06» en el Gestor):** «ahí donde sale eso de rescheduled abajo quiero un undo ahí mismo, en caso fue un error y lo cacho».
+
+**Qué cambia (`deshacer-reprogramar.ts`, `ReprogramarOrden`):** el aviso de 📅 Reprogramar lleva «↶ Deshacer» y dura 8 s (los demás avisos, 2,6 s). Deshacer llama al mismo `reprogramar_orden` hacia la fecha anterior, con la nota «Deshecha la reprogramación anterior (fue un error)», así que permisos, RLS e historial son los de siempre; si el disparador de la 172 sacó la orden de la ruta y quien deshace es admin, logística o gerente, vuelve el chofer y su orden en la ruta (solo si nadie la reasignó entretanto). Una sola vez; dice «Deshecho: vuelve a <fecha>» o el error del servidor. No pregunta el «¿seguro?» de mediodía (D-848). Sale en todo lo que usa `ReprogramarOrden`: las dos tablas del Gestor, Almacén y el 📅 de la orden. Límites: no se deshace hacia una fecha ya pasada (el servidor la rechaza).
+
+Sello `deliveries` 1.538.0; repo 1.716.0.
+
+**Pruebas:** `deshacer-reprogramar.test.ts`; `dia-de-entrega.test.ts` puesta al día.

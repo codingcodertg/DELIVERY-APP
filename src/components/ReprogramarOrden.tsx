@@ -43,7 +43,7 @@ export function ReprogramarOrden({ pedido, rol, lang, t, reprogramarOrden, notif
     // Ventas, pasadas las 12 en Texas, reprogramando para HOY: «¿Seguro que esta orden es para hoy?» (`corte-de-ventas`).
     if (pideConfirmarMediodia(fecha, pedido.delivery_date, { rol }) && !(await preguntaSiEsParaHoy(confirmAction, t))) return;
     setGuardando(true);
-    // D-NEXT: la foto de ANTES, para el «Deshacer» del aviso (fecha y, si la 172 la saca de la ruta, chofer y posición).
+    // D-861: la foto de ANTES, para el «Deshacer» del aviso (fecha y, si la 172 la saca de la ruta, chofer y posición).
     const foto = fotoAntesDeReprogramar(pedido);
     const ok = await reprogramarOrden(pedido.id, fecha, nota, lang, caso);
     if (ok) {

@@ -143,7 +143,7 @@ export interface DataState {
    * `nota` es lo que escribió la persona, sin componer. `true` si quedó guardada.
    */
   /** `caso`: la casilla «Caso especial: entregar en domingo» del cuadro (D-658). Sin ella, el domingo no pasa. */
-  /** `opciones.deshacer` (D-NEXT): es el «Deshacer» del aviso; vuelve a la foto de antes, sin las preguntas de agendar. */
+  /** `opciones.deshacer` (D-861): es el «Deshacer» del aviso; vuelve a la foto de antes, sin las preguntas de agendar. */
   reprogramarOrden: (id: string, fecha: string, nota: string, lang: "en" | "es", caso?: CasoEspecial, opciones?: { deshacer?: FotoDeReprogramacion }) => Promise<boolean>;
   /**
    * El chofer busca una factura en TODAS las órdenes por recoger (D-625, 188: `buscar_factura_para_recoger`), también en
@@ -296,7 +296,7 @@ const emptyOverlay = (): Overlay => ({ created: [], updated: {}, deleted: new Se
 // until "Reset sandbox" is pressed (the Set is stored as an array for JSON).
 const TEACHING_OVERLAY_KEY = "rtg_teaching_overlay";
 
-/** El botón que puede llevar el aviso de abajo (D-NEXT, «Deshacer» tras reprogramar). */
+/** El botón que puede llevar el aviso de abajo (D-861, «Deshacer» tras reprogramar). */
 export interface AccionDelAviso { etiqueta: string; alTocar: () => void }
 export interface OpcionesDelAviso { accion?: AccionDelAviso; ms?: number }
 
@@ -444,7 +444,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // D-NEXT: el aviso puede llevar UN botón (p. ej. «Deshacer» tras reprogramar) y quedarse más rato (`ms`).
+  // D-861: el aviso puede llevar UN botón (p. ej. «Deshacer» tras reprogramar) y quedarse más rato (`ms`).
   const [accionDelAviso, setAccionDelAviso] = useState<AccionDelAviso | null>(null);
   const notify = useCallback((msg: string, opciones?: OpcionesDelAviso) => {
     setToast(msg);
@@ -1725,7 +1725,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     async (id, fecha, nota, lang, caso, opciones) => {
       const antes = deliveries.find((c) => c.id === id)?.delivery_date ?? null;
       const deshacer = opciones?.deshacer;
-      // D-NEXT: el «Deshacer» vuelve a un estado que ya estuvo; no se le vuelve a juzgar como una fecha nueva.
+      // D-861: el «Deshacer» vuelve a un estado que ya estuvo; no se le vuelve a juzgar como una fecha nueva.
       const problema = deshacer ? null : problemaAlAgendar(fecha, antes, { rol: me?.role, caso });
       // Ni domingo sin el caso especial ni un año imposible (D-658). Aquí pasan el 📅 de cada fila y «Reprogramar a …»
       // de Recomendaciones: un solo sitio para los dos. La función de la base (173) no lo mira.

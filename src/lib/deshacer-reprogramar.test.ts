@@ -5,7 +5,7 @@ import { fotoAntesDeReprogramar, MS_AVISO_CON_DESHACER, notaDeDeshacer, planDeDe
 const leer = (p: string) => readFileSync(p, "utf8").split("\r\n").join("\n");
 const orden = { id: "o1", delivery_date: "2026-11-05T00:00:00", stage: "ready" as const, assigned_driver: "Luis", route_seq: 3, pickup_seq: 1 };
 
-describe("«Deshacer» en el aviso de reprogramar (D-NEXT)", () => {
+describe("«Deshacer» en el aviso de reprogramar (D-861)", () => {
   it("la foto guarda la fecha (solo el día) y lo que la 172 puede quitar", () => {
     expect(fotoAntesDeReprogramar(orden)).toEqual({ id: "o1", delivery_date: "2026-11-05", stage: "ready", assigned_driver: "Luis", route_seq: 3, pickup_seq: 1 });
     expect(fotoAntesDeReprogramar({ ...orden, delivery_date: null, assigned_driver: null, route_seq: null, pickup_seq: undefined }))
