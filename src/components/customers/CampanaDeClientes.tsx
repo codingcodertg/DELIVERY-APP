@@ -55,12 +55,14 @@ export function CampanaDeClientes() {
     await supabase.from("notifications").update({ read: true }).eq("id", id);
   }, [supabase]);
 
-  const marcaTodos = useCallback(async () => {
-    if (!supabase || !yo) return;
-    setAvisos((prev) => prev.map((n) => ({ ...n, read: true })));
-    await supabase.from("notifications").update({ read: true }).eq("user_id", yo).eq("read", false);
+  // «Marcar todo leído» de UNA sección (D-NEXT): los ids que la campana le pasa, en una sola escritura.
+  const marcaVarios = useCallback(async (ids: string[]) => {
+    if (!supabase || !yo || !ids.length) return;
+    const set = new Set(ids);
+    setAvisos((prev) => prev.map((n) => (set.has(n.id) ? { ...n, read: true } : n)));
+    await supabase.from("notifications").update({ read: true }).eq("user_id", yo).in("id", ids);
   }, [supabase, yo]);
 
   if (!supabase) return null;
-  return <CampanaDeAvisos notifications={avisos} markNotifRead={marcaLeido} markAllNotifsRead={marcaTodos} />;
+  return <CampanaDeAvisos notifications={avisos} markNotifRead={marcaLeido} markManyRead={marcaVarios} />;
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fcmConfigured, sendPush } from "@/lib/fcm";
+import { claseDelAviso } from "@/lib/clase-del-aviso";
 
 // ============================================================
 // Push one already-created in-app notification to its recipient's phones.
@@ -38,6 +39,9 @@ export async function POST(req: Request) {
     .eq("id", id)
     .maybeSingle();
   if (!notif) return NextResponse.json({ error: "No such notification" }, { status: 404 });
+
+  // D-NEXT: solo los avisos importantes suenan en el teléfono. Los secundarios llegan igual a la campana, en silencio.
+  if (claseDelAviso(notif.kind) !== "importante") return NextResponse.json({ skipped: "secondary" });
 
   // Only ever pushes something just created, so an old id can't be replayed to
   // buzz someone at midnight about last week's route.

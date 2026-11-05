@@ -11,6 +11,7 @@ import { soloActivos } from "@/lib/baja";
 //   → ready      sales             "your order is ready"
 //   → delivered  sales             "your order was delivered"
 //   → canceled   managers + office "<rep> canceled order #X: reason" — only when a sales rep cancels (D-656)
+//                + the order's sales rep, always (D-NEXT)
 //
 // The same logic drives both the Supabase and local providers, so the
 // two stay in lock-step. The actor is never notified about their own action.
@@ -84,6 +85,9 @@ export function notificationsForStage(args: {
       // D-656 (migración 191): el vendedor anula SU orden hasta «Listo» (D-663, 192) sin pasar por nadie, así que la oficina
       // —gerente y Office, los mismos de D-639— se entera aquí, con el motivo. Lo que anula la oficina no se avisa: es suyo.
       // D-676 (196): y el chofer, que anula SU orden ya recogida.
+      // D-NEXT: y SIEMPRE a su vendedor (quien la creó o a quien se le asignó), que es de quien es la orden. Si la anula él
+      // mismo, `push` no le avisa (nunca al que actúa).
+      push(creatorId, "canceled", `Your order ${label} was canceled${reason ? `: ${reason}` : ""}`);
       if (actorRole !== "sales" && actorRole !== "driver") break;
       const quien = users.find((u) => u.id === actorId)?.full_name?.trim() || (actorRole === "driver" ? "A driver" : "A sales rep");
       for (const m of [...withRole("manager"), ...withRole("accounting")]) push(m.id, "canceled", `${quien} canceled order ${label}${reason ? `: ${reason}` : ""}`);
@@ -141,5 +145,30 @@ export function assignmentNotification(args: {
     order_no,
     kind: ASSIGNED_KIND,
     message: `Stop ${label} was assigned to you${when}`,
+  };
+}
+
+/**
+ * Una orden reprogramada (D-NEXT): se le dice a su vendedor —el mismo a quien se le dice que se aprobó o se entregó
+ * (`orderOwner`)—, nunca a quien la reprograma. Es de los avisos importantes (`lib/clase-del-aviso.ts`).
+ */
+export function avisoDeReprogramacion(args: {
+  ownerId: string | null;
+  actorId: string | null;
+  order_no: number | null;
+  order_code?: string | null;
+  delivery_id: string;
+  fechaAntes: string | null;
+  fechaNueva: string;
+}): NotifSeed | null {
+  const { ownerId, actorId, order_no, order_code, delivery_id, fechaAntes, fechaNueva } = args;
+  if (!ownerId || ownerId === actorId) return null;
+  const label = order_code ? `#${order_code}` : (order_no != null ? `#${order_no}` : "");
+  return {
+    user_id: ownerId,
+    delivery_id,
+    order_no,
+    kind: "rescheduled",
+    message: `Your order ${label} was rescheduled${fechaAntes ? ` from ${fechaAntes}` : ""} to ${fechaNueva}`,
   };
 }

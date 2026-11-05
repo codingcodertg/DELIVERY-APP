@@ -13,6 +13,7 @@ import { AVISO_SOLICITUD_APROBADA, AVISO_SOLICITUD_NUEVA, AVISO_SOLICITUD_RECHAZ
 import { destinoDelAviso } from "@/lib/destino-del-aviso";
 import { AVISO_CLIENTE_APROBADA, AVISO_CLIENTE_NUEVA, AVISO_CLIENTE_RECHAZADA, AVISO_CLIENTE_REVISAR, mensajeDelAviso } from "@/lib/customers/avisos-de-solicitud";
 import { usePrefs } from "@/lib/prefs";
+import { claseDelAviso, cuentaPorClase, sinLeerDeLaClase, type ClaseDelAviso } from "@/lib/clase-del-aviso";
 
 // Compact "3m", "2h", "4d" relative time for the notification list.
 function ago(iso: string, t: (en: string, es: string) => string): string {
@@ -29,22 +30,28 @@ function ago(iso: string, t: (en: string, es: string) => string): string {
 
 /** Bell with an unread badge + dropdown of the current user's workflow alerts. */
 export function NotificationBell() {
-  const { notifications, markNotifRead, markAllNotifsRead } = useData();
-  return <CampanaDeAvisos notifications={notifications} markNotifRead={markNotifRead} markAllNotifsRead={markAllNotifsRead} />;
+  const { notifications, markNotifRead } = useData();
+  return <CampanaDeAvisos notifications={notifications} markNotifRead={markNotifRead} />;
 }
 
 /**
  * La campana en sí, sin saber de dónde salen los avisos (D-867): Entregas se los da desde su `DataProvider`; Clientes,
  * desde `useAvisosPropios` (`CampanaDeClientes`). La misma tabla (`public.notifications`), el mismo aspecto.
+ *
+ * D-NEXT: dos secciones. «Importantes» (Clientes; de Entregas, solo anulada, rechazada o reprogramada) llevan el número
+ * rojo; «Secundarias» llegan igual, sin leer, pero sin número rojo ni ruido: solo un contador gris en su pestaña. La
+ * regla está en `lib/clase-del-aviso.ts`. «Marcar todo leído» marca solo la sección que se ve.
  */
-export function CampanaDeAvisos({ notifications, markNotifRead, markAllNotifsRead }: {
+export function CampanaDeAvisos({ notifications, markNotifRead, markManyRead }: {
   notifications: readonly AppNotification[];
   markNotifRead: (id: string) => unknown;
-  markAllNotifsRead: () => unknown;
+  /** Marca varios de golpe (Clientes, una sola escritura). Sin él, uno a uno con `markNotifRead`. */
+  markManyRead?: (ids: string[]) => unknown;
 }) {
   const { t, lang } = usePrefs();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [seccion, setSeccion] = useState<ClaseDelAviso>("importante");
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -59,7 +66,17 @@ export function CampanaDeAvisos({ notifications, markNotifRead, markAllNotifsRea
     if (destino) router.push(destino);
   };
 
-  const unread = notifications.filter((n) => !n.read).length;
+  const cuenta = cuentaPorClase(notifications);
+  // El número rojo: SOLO los importantes sin leer.
+  const unread = cuenta.importante.sinLeer;
+  const visibles = notifications.filter((n) => claseDelAviso(n.kind) === seccion);
+  const sinLeerAqui = cuenta[seccion].sinLeer;
+  const marcaSeccion = () => {
+    const ids = sinLeerDeLaClase(notifications, seccion);
+    if (!ids.length) return;
+    if (markManyRead) markManyRead(ids);
+    else for (const id of ids) markNotifRead(id);
+  };
 
   const toggle = () => {
     if (!open && btnRef.current) setAnchor(btnRef.current.getBoundingClientRect());
@@ -137,18 +154,31 @@ export function CampanaDeAvisos({ notifications, markNotifRead, markAllNotifsRea
         >
           <div className="notif-head">
             <b>{t("Notifications", "Avisos")}</b>
-            {unread > 0 && (
-              <button className="notif-clear" onClick={() => markAllNotifsRead()}>
+            {sinLeerAqui > 0 && (
+              <button className="notif-clear" onClick={marcaSeccion}>
                 {t("Mark all read", "Marcar todo leído")}
               </button>
             )}
           </div>
 
-          {notifications.length === 0 ? (
+          <div className="notif-tabs" role="tablist">
+            <button type="button" role="tab" aria-selected={seccion === "importante"} data-seccion-avisos="importante"
+              className={"notif-tab" + (seccion === "importante" ? " on" : "")} onClick={() => setSeccion("importante")}>
+              {t("Important", "Importantes")}
+              {cuenta.importante.sinLeer > 0 && <span className="notif-tab-cnt fuerte">{cuenta.importante.sinLeer}</span>}
+            </button>
+            <button type="button" role="tab" aria-selected={seccion === "secundario"} data-seccion-avisos="secundario"
+              className={"notif-tab" + (seccion === "secundario" ? " on" : "")} onClick={() => setSeccion("secundario")}>
+              {t("Other", "Secundarias")}
+              {cuenta.secundario.sinLeer > 0 && <span className="notif-tab-cnt">{cuenta.secundario.sinLeer}</span>}
+            </button>
+          </div>
+
+          {visibles.length === 0 ? (
             <div className="notif-empty">{t("You're all caught up 🎉", "Estás al día 🎉")}</div>
           ) : (
             <div className="notif-list">
-              {notifications.map((n) => {
+              {visibles.map((n) => {
                 // `stageInfo` cae a la PRIMERA etapa cuando la clave no es una etapa, así que un
                 // `kind` que no lo sea se pinta con un color prestado sin que nada chirríe. Los que
                 // no son etapas llevan el suyo, explícito.
