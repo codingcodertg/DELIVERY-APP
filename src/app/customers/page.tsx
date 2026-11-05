@@ -4,6 +4,7 @@ import { puedePedirVendedor } from "@/lib/customers/pedir-vendedor";
 import { altaEsSolicitud, puedeDarDeAlta } from "@/lib/customers/solicitud-de-cliente";
 import { edicionEsSolicitud } from "@/lib/customers/edicion-como-solicitud";
 import type { UserRole } from "@/lib/types";
+import { rolEnClientes } from "@/lib/customers/admin-de-clientes";
 import { BarraDeClientes } from "@/components/customers/barra";
 import { Clientes } from "./Clientes";
 
@@ -30,21 +31,26 @@ export default async function CustomersPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   let role: UserRole = "sales";
+  let rolDelHub: UserRole = "sales";
   let fullName: string | null = null;
   let moduleAccess: string[] | null = null;
   // D-767: la tienda de quien mira, para dejarla marcada en el alta.
   let miTienda: string | null = null;
   if (user) {
-    const { data } = await supabase.from("profiles").select("full_name, role, module_access, store").eq("id", user.id).maybeSingle();
+    const { data } = await supabase.from("profiles").select("full_name, role, module_access, store, customers_role").eq("id", user.id).maybeSingle();
     miTienda = (data?.store as string | null | undefined) ?? null;
     role = (data?.role as UserRole | undefined) ?? "sales";
+    // 241: admin SOLO de Clientes (`customers_role`). Las reglas de aquí se leen con el rol de Clientes; la barra, con el del hub.
+    rolDelHub = role;
+    role = rolEnClientes(data);
     fullName = data?.full_name?.trim() || null;
     moduleAccess = (data?.module_access as string[] | null) ?? null;
   }
   return (
     <>
       <BarraDeClientes
-        role={role}
+        role={rolDelHub}
+        esAdminDeClientes={role === "admin"}
         fullName={fullName}
         email={user?.email ?? ""}
         // ¿Hay hub al que volver? Lo decide la casa de la barra con `canReachHub`, como en todas las apps (D-643).

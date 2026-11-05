@@ -19,9 +19,11 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
  * Desde la 189 tiene dos pestañas: la lista y «Decidir si se juntan», con las pendientes contadas (con la sesión de
  * quien mira: la RLS de la 189 decide; sin la 189 o sin permiso, sin número).
  */
-export function BarraDeClientes({ role, fullName, email, moduleAccess }: {
+export function BarraDeClientes({ role, fullName, email, moduleAccess, esAdminDeClientes }: {
   /** El rol del hub (`profiles.role`): el de la pastilla y el que decide la casa (`HubHomeLink`, D-643). */
   role: UserRole; fullName: string | null; email: string; moduleAccess: string[] | null;
+  /** 241: admin de Clientes (del hub o con `customers_role`). Sin pasarlo, el admin del hub. */
+  esAdminDeClientes?: boolean;
 }) {
   const { t } = usePrefs();
   const [pendientes, setPendientes] = useState<number | null>(null);
@@ -53,7 +55,7 @@ export function BarraDeClientes({ role, fullName, email, moduleAccess }: {
           // D-748: «Decidir si se juntan» es cosa del admin (la página redirige a los demás).
           main: [
             { href: "/customers", label: t("Customers", "Clientes") },
-            ...(role === "admin" ? [{ href: "/customers/juntar", label: rotuloDeDecidir(pendientes, t) }] : []),
+            ...((esAdminDeClientes ?? role === "admin") ? [{ href: "/customers/juntar", label: rotuloDeDecidir(pendientes, t) }] : []),
           ],
           analytics: [],
         },

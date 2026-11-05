@@ -50611,3 +50611,20 @@ Sello `deliveries` 1.539.0; repo 1.717.0.
 Sello `deliveries` 1.540.0; repo 1.718.0.
 
 **Pruebas:** `foto-de-la-ruta.test.ts` puesta al día.
+
+## D-864 · Admin de Clientes sin ser admin del hub (`customers_role`)
+
+**Fecha:** 2026-11-04 · Migración 241 (aplicada el mismo día) · Hecho por un agente en `feat/admin-de-clientes`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (el dueño):** «a Nick le vas a dar permiso de admin para el app de customers solamente».
+
+**Qué había:** en Clientes, «admin» era `profiles.role = 'admin'`, que es admin en todas las apps; no había rol por app.
+
+**Qué cambia:**
+- **241:** `profiles.customers_role` (nulo o `'admin'`), protegido por el guarda de perfiles; `erp.es_admin_de_clientes()`; `customers_ve_la_fila`, las políticas de editar y borrar clientes, la lectura de solicitudes y las tres funciones de aprobar o rechazar (216/221) aceptan al admin del hub o al de Clientes.
+- **Pantallas de Clientes** (lista, ficha, juntar): el permiso sale de `rolEnClientes` (`admin-de-clientes.ts`); la barra lateral sigue con el rol real del hub. Solo vale con la casilla «customers» marcada.
+- Se da por script (`nick-admin-clientes.mjs`), con registro `customers_role_changed` en seguridad. Nick Huerta queda «sales» en las demás apps.
+
+Sello `customers` 0.45.0; repo 1.719.0.
+
+**Pruebas:** `admin-de-clientes.test.ts`; `person-badge` y cuatro de texto puestas al día.
