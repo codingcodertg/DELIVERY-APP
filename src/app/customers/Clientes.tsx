@@ -28,6 +28,7 @@ import { borraBorrador, claveDeLosBorradores, leeBorradores, type BorradorGuarda
 import { claveDelBorradorDelAlta } from "@/lib/customers/borrador-del-alta";
 import { pendientes, type SolicitudDeCliente } from "@/lib/customers/solicitud-de-cliente";
 import { BarraDeSeleccion } from "./BarraDeSeleccion";
+import { MostrarN, useTamanoDeTabla } from "@/components/MostrarN";
 import { alternaEmpresa, empresasElegidas, estaMarcada, marcaTodas } from "@/lib/customers/seleccion";
 import { vendedoresEnOrden, type Vendedor } from "@/lib/customers/vendedores";
 import { columnasDelVendedor, conLosEncontrados, puedeAbrirCliente, RETARDO_DE_BUSQUEDA_MS, seBuscaEnTodaLaEmpresa } from "@/lib/customers/vendedor-por-tienda";
@@ -48,7 +49,6 @@ type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; tex
 type Ficha = { tipo: "ver"; cliente: Cliente; editar?: boolean } | { tipo: "nuevo"; borrador?: BorradorGuardado };
 
 /** Cuántas filas se pintan de entrada y cuántas más con cada «ver más»: 1.349 filas de golpe pesan en un teléfono. */
-const TANDA = 100;
 
 /**
  * «Clientes» (migración 180): la lista maestra, con búsqueda, filtros por tienda y por columna, columnas elegibles y la
@@ -71,7 +71,8 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
   const [ordenes, setOrdenes] = useState<Orden[]>([...ORDENES_INICIALES]);
   const [filtrosCol, setFiltrosCol] = useState<FiltrosPorColumna>({});
   const [prefCols, setPrefCols] = useState<PreferenciaDeColumnas>(PREFERENCIA_INICIAL);
-  const [cuantos, setCuantos] = useState(TANDA);
+  // «Mostrar 10/50/100/1000» (sustituye al «Ver más»): orden y filtros van sobre la lista entera; esto solo recorta lo pintado.
+  const [cuantos, setCuantos] = useTamanoDeTabla("clientes");
   const [ficha, setFicha] = useState<Ficha | null>(null);
   // D-779: la ventana «Asignar vendedores» por iniciales (D-684) se quitó: el dueño la pidió solo para la carga inicial.
   // D-685: elegir varios clientes (filas de la base, todas las tiendas de cada empresa marcada) y hacerles lo mismo.
@@ -204,7 +205,6 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
   const ordenesVistas = useMemo(() => ordenesQueSeVen(ordenes, clavesVistas), [ordenes, clavesVistas]);
   const enVista = (o: Orden[]) => ordenesQueSeVen(o, clavesVistas);
   const visibles = useMemo(() => empresasQueSeVen(empresas, filtrosVistos, ordenesVistas, clavesVistas), [empresas, filtrosVistos, ordenesVistas, clavesVistas]);
-  useEffect(() => { setCuantos(TANDA); }, [filtro, filtrosVistos, ordenesVistas]);
   // Los archivados (181) se esconden por defecto: las cuentas de las tiendas y el «N clientes» son de lo que se está viendo
   // (vivos, o archivados con el chip), no de la tabla entera. Y cuentan EMPRESAS, no filas.
   const vista = useMemo(() => agrupaEnEmpresas(lista, { ...FILTRO_INICIAL, archivados: filtro.archivados }), [lista, filtro.archivados]);
@@ -549,11 +549,9 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
               })}
             </tbody>
           </table>
-          {visibles.length > cuantos && (
-            <div className="border-t border-slate-100 p-3 text-center">
-              <Button variant="outline" size="sm" onClick={() => setCuantos((n) => n + TANDA)}>
-                {t(`Show more (${visibles.length - cuantos} left)`, `Ver más (quedan ${visibles.length - cuantos})`)}
-              </Button>
+          {visibles.length > 10 && (
+            <div className="border-t border-slate-100 p-3">
+              <MostrarN valor={cuantos} onCambio={setCuantos} total={visibles.length} />
             </div>
           )}
         </div>
