@@ -1,5 +1,6 @@
 "use client";
 
+import { esDeLaOrden, pideEnUnaOrden } from "@/lib/customers/abrir-trato";
 import { falloAlTomar, mensajeDelFallo, sePuedeBuscar, type OrdenParaTomar } from "@/lib/tomar-orden";
 import { soloActivos } from "@/lib/baja";
 import { EVENTO_ENSENANZA, escribeEnsenanza, leeEnsenanza } from "@/lib/boton-general";
@@ -327,7 +328,12 @@ export const RECARGA_AL_VOLVER_MS = 20_000;
 /** Stages that are finished: an order in any other stage stays loaded no matter how old. */
 const OPEN_STAGES_FILTER = "stage.not.in.(delivered,canceled)";
 
-export function DataProvider({ children, me }: { children: React.ReactNode; me: Profile | null }) {
+/**
+ * `soloOrden` (D-NEXT): el proveedor para la ficha de UNA orden fuera de Entregas (el historial de Clientes). Pide solo
+ * esa orden y sus eventos, más ajustes y perfiles (lo que la ficha lee); nada de avisos, turnos ni ubicaciones. Las
+ * escrituras y la RLS son las mismas: es el mismo proveedor, con la lectura acotada (`lib/customers/abrir-trato.ts`).
+ */
+export function DataProvider({ children, me, soloOrden }: { children: React.ReactNode; me: Profile | null; soloOrden?: string }) {
   const supabase = useMemo(() => createClient(), []);
   // Offline messages are read by a driver mid-route, so they follow the
   // app language like everything else they see.
@@ -642,6 +648,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   const deliveriesQuery = useCallback(async () => {
     const pedir = (columnas: string) => {
       const q = supabase.from("deliveries").select(columnas).eq("is_training", false);
+      if (soloOrden) return q.eq("id", soloOrden);
       const floor = deliveriesFloorRef.current;
       return (floor
         ? q.or(`delivery_date.gte.${floor},input_date.gte.${floor},delivery_date.is.null,${OPEN_STAGES_FILTER}`)
@@ -653,14 +660,15 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     const conOpcionales = (base: string) => leeConOpcionales((columnas) => pedir(columnas), base, COLUMNAS_OPCIONALES_DE_LA_LISTA);
     const r = await conOpcionales(COLUMNAS_DE_LA_LISTA);
     return faltaPhotoCount(r.error) ? await conOpcionales(COLUMNAS_DE_LA_LISTA_SIN_CONTEO) : r;
-  }, [supabase]);
+  }, [supabase, soloOrden]);
 
   /**
    * One loader per query (G-15, D-201): `reloadAll` runs all nine; a realtime event runs ONLY
    * the one for the table that changed (see lib/realtime-reload.ts). Each loader fetches and
    * applies its own state, and returns the raw result so the caller can spot a returned error.
    */
-  const loaders = useMemo<Record<QueryName, () => Promise<{ error: unknown } | { data: unknown }>>>(() => ({
+  const loaders = useMemo<Record<QueryName, () => Promise<{ error: unknown } | { data: unknown }>>>(() => {
+    const todos: Record<QueryName, () => Promise<{ error: unknown } | { data: unknown }>> = {
     settings: async () => {
       const r = await supabase.from("settings").select("*").eq("id", 1).maybeSingle();
       if (r.data) setSettings(r.data as Settings);
@@ -695,7 +703,8 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     // turnaround) both work on recent activity; neither pages back through the whole history.
     // The audit page says when it is showing a capped window.
     order_events: async () => {
-      const r = await supabase.from("order_events").select("*").order("created_at", { ascending: false }).limit(EVENTS_WINDOW);
+      const base = supabase.from("order_events").select("*");
+      const r = await (soloOrden ? base.eq("delivery_id", soloOrden) : base).order("created_at", { ascending: false }).limit(EVENTS_WINDOW);
       if (r.data) setEvents(r.data as OrderEvent[]);
       return r;
     },
@@ -736,7 +745,12 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       }
       return r;
     },
-  }), [supabase, me, deliveriesQuery]);
+    };
+    if (!soloOrden) return todos;
+    // Una sola orden: lo que la ficha no lee no se pide (se queda vacío).
+    const nada = async () => ({ data: [] as unknown[] });
+    return Object.fromEntries((Object.keys(todos) as QueryName[]).map((q) => [q, pideEnUnaOrden(q) ? todos[q] : nada])) as typeof todos;
+  }, [supabase, me, deliveriesQuery, soloOrden]);
 
   const reloadAll = useCallback(async () => {
     try {
@@ -795,7 +809,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       }
       const leidas = (r.data ?? []) as Delivery[];
       const floor = deliveriesFloorRef.current;
-      setDeliveries((prev) => fusionarFilas(prev, leidas, plan, (d) => cumpleFiltroDeLaLista(d, floor), porOrderNoDesc));
+      setDeliveries((prev) => fusionarFilas(prev, leidas, plan, (d) => (soloOrden ? esDeLaOrden(soloOrden, { id: d.id }) : cumpleFiltroDeLaLista(d, floor)), porOrderNoDesc));
       return r;
     },
     order_events: async (plan) => {
@@ -804,7 +818,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         r = await supabase.from("order_events").select("*").in("id", plan.leer);
         if (r.error) return r;
       }
-      setEvents((prev) => fusionarFilas(prev, (r.data ?? []) as OrderEvent[], plan, () => true, porCreatedAtDesc, EVENTS_WINDOW));
+      setEvents((prev) => fusionarFilas(prev, (r.data ?? []) as OrderEvent[], plan, (e) => !soloOrden || esDeLaOrden(soloOrden, e), porCreatedAtDesc, EVENTS_WINDOW));
       return r;
     },
     notifications: async (plan) => {
@@ -818,7 +832,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       setNotifications((prev) => fusionarFilas(prev, (r.data ?? []) as AppNotification[], plan, (n) => n.user_id === mio, porCreatedAtDesc, 50));
       return r;
     },
-  }), [supabase, me]);
+  }), [supabase, me, soloOrden]);
 
   /**
    * Una ráfaga realtime: las tablas que caen a lista entera van por `reloadTables` (D-201); las demás, fila a fila.

@@ -1,36 +1,43 @@
 "use client";
 
-import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import type { AlmacenDeClientes } from "@/lib/customers/almacen";
 import type { TratosLeidos } from "@/lib/customers/tratos-de-la-base";
-import { diaDeTexas, mezclaTratos, type FiltroDeTratos } from "@/lib/customers/tratos";
+import { diaDeTexas, mezclaTratos, type FiltroDeTratos, type Trato } from "@/lib/customers/tratos";
 import { stageInfo, stageLabel } from "@/lib/constants";
 import { fmtDateShort } from "@/lib/utils";
 
 type T = (en: string, es: string) => string;
 
+// D-NEXT: la tarjeta (con la ficha de Entregas y su proveedor) baja solo cuando alguien abre una fila.
+const TarjetaDeTrato = dynamic(() => import("./TarjetaDeTrato").then((m) => m.TarjetaDeTrato));
+
 const dinero = (n: number | null): string => (n === null ? "—" : `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 
 /**
  * D-874 (245): el historial PRINCIPAL del cliente: sus órdenes de Entregas y sus cotizaciones del Quote Builder, lo más
- * nuevo primero, con filtro por tipo. Cada fila abre la orden o la cotización en su app. Lo que llega lo decide la RLS de
+ * nuevo primero, con filtro por tipo. Cada fila abre la orden o la cotización AQUÍ, en una tarjeta (D-NEXT, `TarjetaDeTrato`);
+ * el enlace a su app queda dentro, como acción secundaria. Lo que llega lo decide la RLS de
  * cada tabla con la sesión de quien mira. Estructura mínima (tabla y clases de siempre) para que el rediseño la vista.
  */
 export function HistorialDeTratos({ cliente, almacen, t }: { cliente: { id: number; account: string }; almacen: AlmacenDeClientes; t: T }) {
   const [leido, setLeido] = useState<TratosLeidos | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<FiltroDeTratos>("todo");
+  const [abierto, setAbierto] = useState<Trato | null>(null);
+  // Al cerrar la tarjeta se vuelve a leer: lo que se cambió en la ficha (etapa, factura…) sale en la fila.
+  const [lectura, setLectura] = useState(0);
   useEffect(() => {
     let vivo = true;
-    setLeido(null);
+    if (lectura === 0) setLeido(null);
     setError(null);
     void almacen.tratos({ id: cliente.id, account: cliente.account }).then((r) => {
       if (!vivo) return;
       if (r.ok) setLeido(r.valor); else setError(r.error);
     });
     return () => { vivo = false; };
-  }, [cliente.id, cliente.account, almacen]);
+  }, [cliente.id, cliente.account, almacen, lectura]);
   const filas = useMemo(() => (leido ? mezclaTratos(leido.tratos.filter((x) => x.clase === "orden"), leido.tratos.filter((x) => x.clase === "cotizacion"), filtro) : []), [leido, filtro]);
   const cuantas = (c: "orden" | "cotizacion") => leido?.tratos.filter((x) => x.clase === c).length ?? 0;
 
@@ -78,10 +85,13 @@ export function HistorialDeTratos({ cliente, almacen, t }: { cliente: { id: numb
               </thead>
               <tbody>
                 {filas.map((x) => (
-                  <tr key={`${x.clase}-${x.id}`} data-trato={x.id} data-clase={x.clase}>
+                  <tr key={`${x.clase}-${x.id}`} data-trato={x.id} data-clase={x.clase} className="cursor-pointer" onClick={(e) => { if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === "TD") setAbierto(x); }}>
                     <td>{fmtDateShort(diaDeTexas(x.fecha), t("en", "es") as "en" | "es") || "—"}</td>
                     <td>{x.clase === "orden" ? `🚚 ${t("Order", "Orden")}` : `🧾 ${t("Quote", "Cotización")}`}</td>
-                    <td><Link href={x.href} className="text-clay-600 hover:underline">{x.numero}</Link></td>
+                    <td>
+                      <button type="button" className="text-clay-600 hover:underline" data-abre-trato onClick={() => setAbierto(x)}
+                        aria-label={`${x.clase === "orden" ? t("Open order", "Abrir orden") : t("Open quote", "Abrir cotización")} ${x.numero}`}>{x.numero}</button>
+                    </td>
                     <td>{x.factura ?? "—"}</td>
                     <td>
                       {x.clase === "orden"
@@ -99,6 +109,7 @@ export function HistorialDeTratos({ cliente, almacen, t }: { cliente: { id: numb
           </div>
         )}
       </div>
+      {abierto && <TarjetaDeTrato trato={abierto} onCerrar={() => { setAbierto(null); setLectura((n) => n + 1); }} />}
     </section>
   );
 }
