@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { AlmacenDeClientes } from "@/lib/customers/almacen";
-import { candidatosParaAsociar, planDeCambios, tiendasEnTexto, type Asociado, type AsociacionPendiente, type EmpresaParaAsociar } from "@/lib/customers/asociaciones";
+import { avisoDelBuscador, candidatosParaAsociar, planDeCambios, tiendasEnTexto, type Asociado, type AsociacionPendiente, type EmpresaParaAsociar } from "@/lib/customers/asociaciones";
 import { enOrdenDeTienda, principalDe } from "@/lib/customers/empresas";
 import { nombreDeTienda, type Cliente } from "@/lib/customers/reglas";
 
@@ -47,6 +47,17 @@ export function AsociacionesDelCliente({ cliente, almacen, lista = [], editable 
   const [ocupado, setOcupado] = useState(false);
   const [abierta, setAbierta] = useState<Asociado | null>(null);
   const [vuelta, setVuelta] = useState(0);
+  // El buscador nunca se bloquea: si falla o no hay tiendas, se avisa (antes el error se tragaba como «sin resultados»).
+  const [errorDeBusqueda, setErrorDeBusqueda] = useState(false);
+  const [misTiendas, setMisTiendas] = useState<string[] | null>(null);
+
+  // El no admin solo encuentra empresas de sus tiendas: se leen para decirle dónde busca (y si no tiene ninguna).
+  useEffect(() => {
+    if (!editable || esAdmin || !almacen.misTiendasParaAsociar) return;
+    let vivo = true;
+    void almacen.misTiendasParaAsociar().then((r) => { if (vivo) setMisTiendas(r.ok ? r.valor : null); });
+    return () => { vivo = false; };
+  }, [editable, esAdmin, almacen]);
 
   useEffect(() => {
     if (!empresa || !almacen.asociados) return;
@@ -73,11 +84,11 @@ export function AsociacionesDelCliente({ cliente, almacen, lista = [], editable 
   useEffect(() => {
     if (!editable || !empresa) return;
     const q = busca.trim();
-    if (q.length < 2) { setResultados([]); return; }
+    if (q.length < 2) { setResultados([]); setErrorDeBusqueda(false); return; }
     let vivo = true;
     const h = setTimeout(() => {
       if (almacen.buscarParaAsociar) {
-        void almacen.buscarParaAsociar(q).then((r) => { if (vivo) setResultados(r.ok ? r.valor : []); });
+        void almacen.buscarParaAsociar(q).then((r) => { if (vivo) { setResultados(r.ok ? r.valor : []); setErrorDeBusqueda(!r.ok); } });
       } else {
         setResultados(candidatosParaAsociar(lista, empresa, yaAsociadas, q).map(({ company_id, account, stores, crm_type }) => ({ company_id, account, stores, crm_type })));
       }
@@ -85,6 +96,8 @@ export function AsociacionesDelCliente({ cliente, almacen, lista = [], editable 
     return () => { vivo = false; clearTimeout(h); };
   }, [busca, editable, empresa, almacen, lista, yaAsociadas]);
   const candidatos = resultados.filter((c) => !fuera.has(c.company_id)).slice(0, 8);
+  const avisoDeBusqueda = avisoDelBuscador({ esAdmin, misTiendas, q: busca, error: errorDeBusqueda, hay: candidatos.length > 0 });
+  const tiendasMias = (misTiendas ?? []).join(", ");
 
   if (!empresa || !almacen.asociados) return null;
   if (!editable && (!asociados || asociados.length === 0) && pendientes.length === 0) return null;
@@ -168,11 +181,24 @@ export function AsociacionesDelCliente({ cliente, almacen, lista = [], editable 
             placeholder={t("Add associated customers: name, phone, contact…", "Añadir clientes asociados: nombre, teléfono, contacto…")}
             aria-label={t("Search customers to associate", "Buscar clientes para asociar")}
             data-busca-asociado
-            disabled={ocupado}
           />
-          {busca.trim().length >= 2 && (
+          {avisoDeBusqueda === "sinTiendas" && (
+            <p className="cli-asociaciones-nota" role="status" data-aviso-busqueda="sinTiendas">
+              {t("Your profile has no store assigned, so the search can't find customers to associate. Ask an admin to set your store.",
+                "Tu perfil no tiene tienda asignada, así que el buscador no encuentra clientes para asociar. Pide a un admin que te ponga tu tienda.")}
+            </p>
+          )}
+          {busca.trim().length >= 2 && avisoDeBusqueda !== "sinTiendas" && (
             <ul className="cli-asociaciones-sugerencias" role="listbox" aria-multiselectable="true" aria-label={t("Customers", "Clientes")}>
-              {candidatos.length === 0 && <li className="cli-asociaciones-nota">{t("No customer matches.", "Ningún cliente coincide.")}</li>}
+              {avisoDeBusqueda === "error" && <li className="cli-asociaciones-nota" data-aviso-busqueda="error">{t("The search failed. Try again.", "La búsqueda falló. Inténtalo de nuevo.")}</li>}
+              {avisoDeBusqueda === "nada" && <li className="cli-asociaciones-nota" data-aviso-busqueda="nada">{t("No customer matches.", "Ningún cliente coincide.")}</li>}
+              {avisoDeBusqueda === "nadaEnMisTiendas" && (
+                <li className="cli-asociaciones-nota" data-aviso-busqueda="nadaEnMisTiendas">
+                  {tiendasMias
+                    ? t(`No customer of your store(s) (${tiendasMias}) matches. Customers of other stores can only be associated by an admin.`, `Ningún cliente de tu(s) tienda(s) (${tiendasMias}) coincide. Los de otras tiendas solo los asocia un admin.`)
+                    : t("No customer of your store(s) matches. Customers of other stores can only be associated by an admin.", "Ningún cliente de tu(s) tienda(s) coincide. Los de otras tiendas solo los asocia un admin.")}
+                </li>
+              )}
               {candidatos.map((c) => (
                 <li key={c.company_id} role="option" aria-selected={false}>
                   <button type="button" onClick={() => setElegidas((l) => [...l, c])} disabled={ocupado} data-candidato-asociado={c.company_id}>

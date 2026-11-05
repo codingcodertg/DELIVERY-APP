@@ -198,6 +198,7 @@ export function almacenDemoNuevo(semilla: readonly SolicitudDeCliente[] = [], qu
     },
     // D-886 (250): proponer varias, con aprobación para el no admin y solo empresas de sus tiendas.
     async buscarParaAsociar(q) { return { ok: true, valor: buscaParaAsociar(lista, null, [], q, misTiendas, esAdmin, 30) }; },
+    async misTiendasParaAsociar() { return { ok: true, valor: [...misTiendas] }; },
     async proponerAsociaciones(clienteId, add, remove, nota) {
       const fila = lista.find((c) => c.id === clienteId);
       if (!fila?.company_id) return sinFila;
