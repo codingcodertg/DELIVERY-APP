@@ -1165,7 +1165,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
               )}
             </div>
           )}
-          {/* D-NEXT (249): «En asociación con». Al ver, las pastillas (si hay); editando, el buscador, solo para quien edita
+          {/* D-884 (249): «En asociación con». Al ver, las pastillas (si hay); editando, el buscador, solo para quien edita
               directo (admin y admin de Clientes): la edición del vendedor y del gerente es una solicitud de columnas
               (D-780) y la asociación no es una columna. */}
           {cliente && (

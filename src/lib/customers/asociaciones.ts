@@ -2,7 +2,7 @@ import { coincide, estaArchivado, nombreDeTienda, type Cliente } from "./reglas"
 import { enOrdenDeTienda, principalDe } from "./empresas";
 
 /**
- * D-NEXT (249): «En asociación con» — la asociación entre clientes. Simbólica: no cambia filtros, órdenes, permisos ni
+ * D-884 (249): «En asociación con» — la asociación entre clientes. Simbólica: no cambia filtros, órdenes, permisos ni
  * nada más. Es entre EMPRESAS (`company_id`, 189), no entre filas: todas las tiendas de una empresa la ven. Simétrica:
  * una sola fila por par en `erp.customer_associations`; si A está con B, B está con A.
  *

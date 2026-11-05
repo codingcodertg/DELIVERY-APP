@@ -78,14 +78,14 @@ export interface AlmacenDeClientes {
   historial(clienteId: number): Promise<Res<HistorialDeCliente[]>>;
   /** D-874 (245): el historial principal: las órdenes de Entregas y las cotizaciones del Quote Builder de esta fila. */
   tratos(cliente: Pick<Cliente, "id" | "account">): Promise<Res<TratosLeidos>>;
-  /** D-NEXT (249): las empresas asociadas a una («En asociación con»). Sin la 249, `sinTabla`. Opcional: los dobles de
+  /** D-884 (249): las empresas asociadas a una («En asociación con»). Sin la 249, `sinTabla`. Opcional: los dobles de
    *  las pruebas no la tienen y la ficha entonces no pinta la sección. */
   asociados?(companyId: string): Promise<Res<Asociado[]>>;
-  /** D-NEXT (249): asocia dos empresas (solo quien edita directo; la RLS lo exige). */
+  /** D-884 (249): asocia dos empresas (solo quien edita directo; la RLS lo exige). */
   asociar?(companyA: string, companyB: string): Promise<Res<null>>;
-  /** D-NEXT (249): quita un par por su id. */
+  /** D-884 (249): quita un par por su id. */
   desasociar?(parId: number): Promise<Res<null>>;
-  /** D-NEXT (249): las filas de una empresa que quien mira puede ver (para abrir una asociada en una tarjeta). */
+  /** D-884 (249): las filas de una empresa que quien mira puede ver (para abrir una asociada en una tarjeta). */
   filasDeEmpresa?(companyId: string): Promise<Res<Cliente[]>>;
 }
 

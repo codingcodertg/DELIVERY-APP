@@ -10,7 +10,7 @@ import { nombreDeTienda, type Cliente } from "@/lib/customers/reglas";
 type T = (en: string, es: string) => string;
 
 /**
- * D-NEXT (249): «En asociación con» (el dueño: «es simbólico; dirá "en asociación con" otro cliente»). Entre EMPRESAS:
+ * D-884 (249): «En asociación con» (el dueño: «es simbólico; dirá "en asociación con" otro cliente»). Entre EMPRESAS:
  * la ven todas las tiendas. Al ver, las pastillas; cada una abre la asociada EN EL SITIO, como tarjeta (nunca se salta a
  * otra página). Editando —solo quien edita directo (`editable`)—, el buscador sobre los clientes que ya existen y la ✕
  * de cada una (con el diálogo de la app). Se guarda al momento: no espera al «Guardar» de la ficha.

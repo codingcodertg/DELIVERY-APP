@@ -128,12 +128,12 @@ export const CLASE_DE_HISTORIAL: Record<ClaseDeHistorial, { en: string; es: stri
   review: { en: "Edit request needs check", es: "Solicitud de edición: revisar", icono: "🔎" },
   corrected: { en: "Edit request corrected by admin", es: "Solicitud de edición corregida por el admin", icono: "🛠️" },
   rep: { en: "Sales rep assigned", es: "Vendedor asignado", icono: "👤" },
-  // D-NEXT (249): «En asociación con».
+  // D-884 (249): «En asociación con».
   associate: { en: "Association added", es: "Asociación añadida", icono: "🤝" },
   dissociate: { en: "Association removed", es: "Asociación quitada", icono: "✂️" },
 };
 
-/** D-NEXT (249): las clases que se leen como un valor solo (sin antes → después). */
+/** D-884 (249): las clases que se leen como un valor solo (sin antes → después). */
 export const CLASES_DE_UN_VALOR: readonly ClaseDeHistorial[] = ["create", "associate", "dissociate"];
 
 /** Los uuid de vendedor que trae una fila del historial (antes y después de `rep_id`), para ponerles nombre. */
@@ -182,7 +182,7 @@ export function cambiosDelHistorial(h: Pick<HistorialDeCliente, "kind" | "before
     const con = Object.fromEntries(Object.entries(h.after ?? {}).filter(([k, v]) => v !== null && v !== "" && !["id", "company_id", "house_no", "source"].includes(k) && !(Array.isArray(v) && v.length === 0) && !(typeof v === "object" && !Array.isArray(v) && v && Object.keys(v).length === 0)));
     return cambiosEntre({}, con);
   }
-  // D-NEXT (249): la asociación lleva el nombre de la otra empresa; su company_id no se enseña.
+  // D-884 (249): la asociación lleva el nombre de la otra empresa; su company_id no se enseña.
   if (h.kind === "associate" || h.kind === "dissociate") {
     const otra = h.after?.associated_customer;
     return typeof otra === "string" && otra ? cambiosEntre({}, { associated_customer: otra }) : [];

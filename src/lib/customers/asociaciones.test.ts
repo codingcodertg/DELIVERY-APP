@@ -6,7 +6,7 @@ import { almacenDemoNuevo } from "./demo";
 import { cambiosDelHistorial, CLASE_DE_HISTORIAL, textoDeCambios } from "./edicion-como-solicitud";
 import type { Cliente } from "./reglas";
 
-// D-NEXT (249): «En asociación con».
+// D-884 (249): «En asociación con».
 const fila = (id: number, company_id: string, account: string, extra: Partial<Cliente> = {}): Cliente =>
   ({ id, company_id, account, store: "MCA", archived_at: null, phone: null, contacts: [], ...extra }) as unknown as Cliente;
 

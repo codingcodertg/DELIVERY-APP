@@ -249,7 +249,7 @@
 .tarjeta-cotizacion .hc-nota-cajas { font-size: 12px; font-style: italic; }
 @media (max-width: 640px) { .tarjeta-cotizacion .hoja-cliente { padding: 16px 12px; font-size: 12px; } }
 
-/* ---- D-NEXT (249): «En asociación con» — las pastillas, el buscador y la asociada abierta en el sitio ----
+/* ---- D-884 (249): «En asociación con» — las pastillas, el buscador y la asociada abierta en el sitio ----
    Fuera de `.clientes-app` a propósito: también sale en la página del cliente (/customers/[id]), que no lo lleva. */
 .cli-asociaciones {
   margin: 0 0 12px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card);

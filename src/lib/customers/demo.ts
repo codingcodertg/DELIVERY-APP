@@ -177,7 +177,7 @@ export function almacenDemoNuevo(semilla: readonly SolicitudDeCliente[] = []): A
         tratoDeCotizacion({ id: `demo-q-${cliente.id}`, estimate_num: "E-2001", store: "RDZ Brownsville", lines: [], created_at: "2026-10-15T10:00:00Z" }),
       ] } };
     },
-    // D-NEXT (249): las asociaciones, en memoria, con su historial en las dos empresas (como el disparador).
+    // D-884 (249): las asociaciones, en memoria, con su historial en las dos empresas (como el disparador).
     async asociados(companyId) { return { ok: true, valor: asociadosDesdeLaLista(companyId, pares, lista) }; },
     async asociar(a, b) {
       const par = parNormalizado(a, b);

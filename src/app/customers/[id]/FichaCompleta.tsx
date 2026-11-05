@@ -80,7 +80,7 @@ export function FichaCompleta({ cliente: c, hermanas = [], puedeEditar = false, 
       )}
 
       <div className="mt-6">
-        {/* D-NEXT (249): «En asociación con»; cada pastilla abre la asociada aquí mismo, en una tarjeta. */}
+        {/* D-884 (249): «En asociación con»; cada pastilla abre la asociada aquí mismo, en una tarjeta. */}
         <AsociacionesDelCliente cliente={c} almacen={almacen} pintaFicha={(x) => <TarjetasDeLaFicha cliente={x} esVendedor={esVendedor} t={t} />} t={t} />
         <TarjetasDeLaFicha cliente={c} esVendedor={esVendedor} t={t} />
         <HistorialDeTratos cliente={c} almacen={almacen} t={t} />
