@@ -26,7 +26,7 @@ const sql = leer("supabase/migrations/122_anular_con_motivo.sql");
 /** El guard VIVO para el espejo de quién anula: la 191 (D-656) es la última que redefine `guard_delivery_stage` —la 188
  *  con una línea más para ventas—. Hasta D-656 esta prueba leía la 122, y entre medias el guard se redefinió muchas
  *  veces: el espejo comparaba con una versión vieja. La primera prueba de abajo dice cuándo deja de ser la última. */
-const GUARD_VIVO = "196_chofer_anula_recogida.sql";   // D-676: la 196 (el chofer anula SU recogida) sustituye a la 192
+const GUARD_VIVO = "244_ventas_agrega_nota.sql";   // D-869: la 244 (ventas agrega nota) sustituye a la 196 (D-676)
 const guardVivo = leer(`supabase/migrations/${GUARD_VIVO}`);
 const modal = leer("src/components/OrderModal.tsx");
 const lista = leer("src/app/(app)/page.tsx");
@@ -74,7 +74,7 @@ function laBaseDejaAnular(rol: UserRole, etapa: Stage, suya: boolean): boolean {
 }
 
 describe("quién anula y desde dónde: la app y la base dicen lo mismo", () => {
-  it("la 196 es la ÚLTIMA migración que define el guard: si otra lo redefine, el espejo tiene que leer esa (control)", () => {
+  it("la 244 (D-869) es la ÚLTIMA migración que define el guard: si otra lo redefine, el espejo tiene que leer esa (control)", () => {
     const dir = "supabase/migrations";
     // Sin distinguir mayúsculas: desde la 185 el guard se escribe `CREATE OR REPLACE FUNCTION`, y un `includes` en
     // minúsculas no lo ve.
@@ -82,7 +82,7 @@ describe("quién anula y desde dónde: la app y la base dicen lo mismo", () => {
       .filter((f) => f.endsWith(".sql") && /function public\.guard_delivery_stage\(\)/i.test(leer(`${dir}/${f}`)))
       .sort();
     expect(conGuard.at(-1)).toBe(GUARD_VIVO);
-    expect(conGuard.at(-2)).toBe("192_ventas_anula_hasta_listo.sql");
+    expect(conGuard.at(-2)).toBe("196_chofer_anula_recogida.sql");
   });
 
   it("el tramo del guard se encontró y trae las cinco líneas de anular (control)", () => {

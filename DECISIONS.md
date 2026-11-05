@@ -50686,3 +50686,19 @@ Sello `customers` 0.48.0; repo 1.722.0.
 Sello `customers` 0.49.0; repo 1.723.0.
 
 **Pruebas:** `customers/redes.test.ts` puesta al día.
+
+## D-869 · Ventas puede añadir notas a su orden ya aprobada; la caja de nota no se vacía si falla
+
+**Fecha:** 2026-11-05 · Migración 244 (escrita; se aplica aparte; su texto dice D-NEXT por no alterar la suma) · Hecho por un agente en `fix/ayuda-melecio`, fusionado por el orquestador (laptop nueva).
+
+**Pedido (Melecio Rodriguez, ventas, solicitud `4dddfa52`):** «traté de agregar una nota a una factura que ya estaba registrada para delivery pero no se guarda».
+
+**Causa medida:** `guard_delivery_stage` solo deja a `sales` editar una orden sin cambiarle la etapa en draft, pending o rejected; «Agregar nota» guarda `role_notes` como una edición normal, así que en `fulfilling` la base respondía «You cannot edit an order in the fulfilling stage». Y la caja se cerraba y vaciaba igual, sin decir nada. Sus órdenes #1433 y #1434 acababan de pasar a fulfilling; sus notas anteriores, en pending, sí se guardaron.
+
+**Qué cambia:**
+- **244:** el guarda (recreado del texto vivo de hoy) deja a ventas AÑADIR notas a SU orden (creada por él o asignada) en approved, fulfilling, ready o picked_up: la lista solo crece, las notas viejas quedan idénticas, la nueva va firmada por quien escribe, 1–2000 caracteres, tope de 50; nada más de la orden puede cambiar. Quitar su nota (✕) en esas etapas sigue sin poder.
+- **`OrderModal`:** si la nota no se guarda, la caja se queda abierta con el texto.
+
+Sello `deliveries` 1.541.0; repo 1.724.0.
+
+**Pruebas:** `ventas-agrega-nota.test.ts`; `anular-con-motivo.test.ts` (la 244 es la versión más nueva del guarda).

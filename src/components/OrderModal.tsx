@@ -1302,9 +1302,10 @@ export function OrderModal({
     role, text: text.trim(), by: me.id, by_name: me.full_name ?? null, at: new Date().toISOString(),
   });
   // View mode: an existing order — persist the note straight to the DB.
+  // Devuelve si se guardó: si la base la rechaza, el redactor se queda abierto con el texto (D-869).
   const addRoleNote = async (role: NoteRole, text: string) => {
-    if (!existing || !text.trim()) return;
-    await updateDelivery(existing.id, { role_notes: [...(existing.role_notes ?? []), makeNote(role, text)] });
+    if (!existing || !text.trim()) return false;
+    return updateDelivery(existing.id, { role_notes: [...(existing.role_notes ?? []), makeNote(role, text)] });
   };
   const removeRoleNote = async (id: string) => {
     if (!existing) return;
@@ -3502,7 +3503,8 @@ const NOTE_ROLE_META: Record<NoteRole, { en: string; es: string; emoji: string; 
 function RoleNotes({ notes, me, onAdd, onRemove, t, lang }: {
   notes: RoleNote[];
   me: Profile;
-  onAdd: (role: NoteRole, text: string) => void | Promise<void>;
+  /** `false` = no se guardó (la base la rechazó): el redactor no se cierra ni pierde el texto (D-869). */
+  onAdd: (role: NoteRole, text: string) => void | boolean | Promise<void | boolean>;
   onRemove: (id: string) => void | Promise<void>;
   t: (en: string, es: string) => string;
   lang: string;
@@ -3514,7 +3516,7 @@ function RoleNotes({ notes, me, onAdd, onRemove, t, lang }: {
 
   const submit = async () => {
     if (!text.trim()) return;
-    await onAdd(role, text);
+    if ((await onAdd(role, text)) === false) return;
     setText(""); setRole("everyone"); setOpen(false);
   };
 
