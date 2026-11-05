@@ -32,7 +32,7 @@ describe("el panel de fichar", () => {
 describe("el cronómetro de escritorio (D-829)", () => {
   const crono = leer("src/components/timetracker/Cronometro.tsx").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
   it("el contador grande tampoco enseña segundos; el detalle de comidas y descansos sí (es para medir)", () => {
-    expect(crono).toContain('<div className="timer-big">{fmtClockSinSegundos(worked)}</div>');
+    expect(crono).toContain('<div className="timer-big">{fmtClockSinSegundos(worked + (running ? arrastre : 0))}</div>');
     expect(crono).not.toContain("{fmtClock(worked)}");
   });
 });

@@ -30,6 +30,10 @@ import {
 } from "@/lib/timetracker/vigia";
 import { avisoDeSistema, sonarAlarma } from "@/lib/timetracker/alarma";
 import { accionDeEnergia } from "@/lib/timetracker/pausa-de-energia";
+import {
+  filasPendientesKey, inicioDeContinuacion, inicioSinSolape, leerFilasPendientes, nuevoPendiente, planTrasLatido,
+  tocaReintentarPendiente, trasFallo, type FilaPendiente, type Pendiente,
+} from "@/lib/timetracker/no-perder-tiempo";
 import Link from "next/link";
 
 // ============================================================
@@ -176,6 +180,27 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
    * parar y en el modo mirón. Lo leen Stop (`parcheDeStop`) y el vigía.
    */
   const conduceRef = useRef(false);
+  /**
+   * Que el reloj nunca cuente en el vacío (D-NEXT, `lib/timetracker/no-perder-tiempo.ts`).
+   *
+   *  · `pendienteRef` — un INSERT que todavía no entró: el reloj ya cuenta desde `desdeMs` y
+   *    la fila se reintenta con espera creciente hasta que la base la acepte.
+   *  · `guardadoHastaRef` / `guardadoNetoRef` — el `endMs` y la duración del último latido que
+   *    SÍ entró: hasta ahí la fila actual lo tiene, y desde ahí continúa la siguiente.
+   *  · `filaBaseRef` — proyecto, asignación y nota de la fila en curso, para abrir la que la
+   *    continúa sin depender del estado de React (el tick corre con un cierre viejo).
+   *  · `arrastre` — los segundos ya guardados en filas anteriores de esta misma tanda: el reloj
+   *    de pantalla no vuelve a 0:00 cuando una fila cerrada se continúa en otra.
+   */
+  const pendienteRef = useRef<Pendiente | null>(null);
+  const insertandoRef = useRef(false);
+  const guardadoHastaRef = useRef<number | null>(null);
+  const guardadoNetoRef = useRef(0);
+  const filaBaseRef = useRef<Partial<Session> | null>(null);
+  const arrastreRef = useRef(0);
+  const [arrastre, setArrastre] = useState(0);
+  const misSesionesRef = useRef<Session[]>([]);
+  misSesionesRef.current = sessions;
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Continuidad del tick (CAMBIOS del auditor sobre D-197). `lastTickRef` es el instante del
   // último tick; si el siguiente llega más de LATIDO_MAX_MS después, el reloj estuvo parado
@@ -554,6 +579,10 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
 
         sessionIdRef.current = mine.id;
         startMsRef.current = mine.startMs || Date.now();
+        filaBaseRef.current = baseDe(mine);
+        guardadoHastaRef.current = mine.endMs ?? null;
+        guardadoNetoRef.current = mine.durationSeconds || 0;
+        ponerArrastre(0);
         // Whose session is it? A client drives only what its own kind started; see remoteOwner.
         const mineKind = isDesktop() ? "desktop" : "timer";
         const theirs = (mine.source === "desktop" || mine.source === "timer") && mine.source !== mineKind;
@@ -703,6 +732,11 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     }
 
     sessionIdRef.current = mine.id;
+    filaBaseRef.current = baseDe(mine);
+    // El hueco no se paga: si esta fila vuelve a cerrarse, la siguiente arranca entonces.
+    guardadoHastaRef.current = null;
+    guardadoNetoRef.current = mine.durationSeconds || 0;
+    ponerArrastre(0);
     // El arranque se corre hacia delante lo que duró el hueco: así `Date.now() - startMs` sigue
     // valiendo lo mismo que valía en el último latido, más lo que se cuente desde ahora.
     startMsRef.current = (mine.startMs || Date.now()) + hueco;
@@ -803,6 +837,12 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
    */
   function reanudarConMarca(id: string, startMs: number) {
     sessionIdRef.current = id;
+    // Sin la fila delante: si hay que continuarla, `intentarPendiente` la lee por su id.
+    filaBaseRef.current = null;
+    filaAnteriorIdRef.current = id;
+    guardadoHastaRef.current = null;
+    guardadoNetoRef.current = 0;
+    ponerArrastre(0);
     startMsRef.current = startMs;
     setRemoteOwner(null);
     setWorked(Math.floor((Date.now() - startMs) / 1000));
@@ -939,8 +979,9 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
           if (continuoRef.current) {
             try { localStorage.setItem(LS_RESUME, JSON.stringify({ sessionId: id, at: Date.now() })); } catch { /* ignore */ }
           }
+          const finLatido = Date.now();
           void writeSession(id, {
-            endMs: Date.now(),
+            endMs: finLatido,
             durationSeconds: net,
             activeSeconds: activeSecondsRef.current,
             idleSeconds: idleRef.current,
@@ -951,24 +992,26 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
             breakSeconds: brkRef.current,
             breakEvents: breakEventsPayload(),
           }, 3, true).then((r) => {
-            // La fila ha crecido hasta chocar con otra ya fichada (082). Es justo la
-            // forma que tenía el fantasma de 25.75 h: contando sobre un tramo que ya
-            // existía. Se para aquí, en vez de seguir enseñando un reloj que ya no
-            // guarda nada.
-            if (r === "overlap" && !stoppedRef.current) {
-              notify(t("track.overlap"));
-              void stop();
+            // Un latido de una fila que ya no es la actual (se continuó en otra mientras este
+            // estaba en vuelo) no decide nada.
+            if (sessionIdRef.current !== id) return;
+            // La fila ya no acepta latidos: la cerró el cron o la pantalla (`cerrada`), o ha
+            // crecido hasta chocar con tiempo ya fichado (`overlap`, 082). Antes, `cerrada`
+            // dejaba el reloj contando en el vacío con un aviso, y `overlap` llamaba a `stop()`,
+            // cuyo parche chocaba igual y se perdía con todo lo contado desde el último latido
+            // bueno (D-NEXT). Ahora se continúa en una fila nueva, recortada para no solapar.
+            if (planTrasLatido(r) === "fila-nueva" && !stoppedRef.current) {
+              marcarSinGuardar();
+              notify(t(r === "overlap" ? "track.overlapContinued" : "track.rowContinued"));
+              continuarEnFilaNueva();
               return;
             }
-            // Los dos fallos que NO se recuperan solos se ven en el acto y una sola vez
-            // (D-241). El cronómetro no se para: el trabajo se está haciendo, lo que falta
-            // es dónde guardarlo, y pararlo por su cuenta sería tirar los minutos que aún se
-            // pueden recuperar. Lo que se acaba es aparentar que se guarda.
-            if (r === "auth" || r === "cerrada") {
+            // Sin sesión (auth) el parche queda en la cola y sale con la duración completa en
+            // cuanto la persona vuelve a entrar (D-241). Se dice una vez; el reloj no se para.
+            if (r === "auth") {
               if (sinGuardarDesdeRef.current === null) {
-                sinGuardarDesdeRef.current = ultimoGuardadoRef.current ?? Date.now();
-                setSinGuardarDesde(sinGuardarDesdeRef.current);
-                notify(t(r === "auth" ? "track.authLost" : "track.rowClosed"));
+                marcarSinGuardar();
+                notify(t("track.authLost"));
               }
               return;
             }
@@ -977,6 +1020,8 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
             // el del último guardado de verdad, no el del primer error.
             if (r === true) {
               ultimoGuardadoRef.current = Date.now();
+              guardadoHastaRef.current = finLatido;
+              guardadoNetoRef.current = net;
               // El cascarón de escritorio (versiones nuevas) vigila este pulso por su cuenta.
               desktopHeartbeat({ sessionId: id, at: ultimoGuardadoRef.current });
               if (sinGuardarDesdeRef.current !== null) {
@@ -995,6 +1040,184 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   const ultimoGuardadoRef = useRef<number | null>(null);
   const sinGuardarDesdeRef = useRef<number | null>(null);
   const [sinGuardarDesde, setSinGuardarDesde] = useState<number | null>(null);
+
+  function marcarSinGuardar(desdeMs?: number) {
+    if (sinGuardarDesdeRef.current !== null) return;
+    sinGuardarDesdeRef.current = desdeMs ?? ultimoGuardadoRef.current ?? Date.now();
+    setSinGuardarDesde(sinGuardarDesdeRef.current);
+  }
+  function limpiarSinGuardar() {
+    if (sinGuardarDesdeRef.current === null) return;
+    sinGuardarDesdeRef.current = null;
+    setSinGuardarDesde(null);
+  }
+  function ponerArrastre(seg: number) { arrastreRef.current = seg; setArrastre(seg); }
+  /** Lo que hay que saber de una fila para abrir la que la continúa. */
+  function baseDe(s: Partial<Session> | null | undefined): Partial<Session> | null {
+    if (!s) return null;
+    return { projectId: s.projectId, assignmentId: s.assignmentId, memo: s.memo ?? "", source: s.source };
+  }
+
+  // La fila de la que se continúa, por si `filaBaseRef` no está (sesión retomada solo con la miga).
+  const filaAnteriorIdRef = useRef<string | null>(null);
+  // Un Stop que llegó con el INSERT en vuelo: se aplica a la fila en cuanto exista.
+  const pararTrasInsertRef = useRef<Partial<Session> | null>(null);
+
+  /**
+   * La fila dejó de aceptar latidos: se continúa en otra (D-NEXT). Arranca donde terminó lo
+   * guardado si el reloj no se paró (si se paró, ahora: D-098), y el reloj de pantalla no
+   * vuelve a cero —lo ya guardado pasa a `arrastre`—.
+   */
+  function continuarEnFilaNueva() {
+    const ahora = Date.now();
+    const desde = inicioDeContinuacion({ guardadoHastaMs: guardadoHastaRef.current, continuo: continuoRef.current, ahoraMs: ahora });
+    ponerArrastre(arrastreRef.current + guardadoNetoRef.current);
+    guardadoNetoRef.current = 0;
+    guardadoHastaRef.current = null;
+    filaAnteriorIdRef.current = sessionIdRef.current;
+    sessionIdRef.current = null;
+    try { localStorage.removeItem(LS_RESUME); } catch { /* ignore */ }
+    startMsRef.current = desde;
+    lunchRef.current = 0; brkRef.current = 0; idleRef.current = 0; activeSecondsRef.current = 0;
+    breakEventsRef.current = onBreakRef.current ? [{ kind: onBreakRef.current, start: desde, end: null }] : [];
+    pendienteRef.current = nuevoPendiente(desde, ahora);
+    // Tras un solape la fila vieja sigue viva, y con ella viva la base rechazaría la nueva (092:
+    // una sola viva por persona). Se cierra tal como quedó en su último latido bueno —un PATCH
+    // de solo `is_live` no toca lo guardado— y después se abre la siguiente. Sobre una fila que
+    // ya cerró el cron no cambia nada.
+    const anterior = filaAnteriorIdRef.current;
+    void (anterior ? updateSession(anterior, { isLive: false }).catch(() => {}) : Promise.resolve())
+      .then(() => intentarPendiente());
+  }
+
+  /**
+   * Start no consiguió fila (red caída al despertar, token caducado tras la noche…). Antes:
+   * `return` en silencio o un `alert`, y la persona trabajaba sin nada detrás. Ahora el reloj
+   * cuenta desde que se pulsó, el aviso lo dice, y el INSERT se reintenta hasta que entre.
+   */
+  function entrarEnPendiente(desdeMs: number) {
+    const ahora = Date.now();
+    sessionIdRef.current = null;
+    pendienteRef.current = { ...nuevoPendiente(desdeMs, ahora), proximoMs: ahora + 2_000 };
+    conduceRef.current = true;
+    setRemoteOwner(null);
+    setRunning(true);
+    ultimoGuardadoRef.current = desdeMs;
+    marcarSinGuardar(desdeMs);
+    notify(t("track.startPending"));
+    beginTicking();
+  }
+
+  /** Un intento del INSERT pendiente. Lo llaman la continuación, Start y el vigía. */
+  async function intentarPendiente() {
+    const p = pendienteRef.current;
+    if (!p || insertandoRef.current || stoppedRef.current) return;
+    insertandoRef.current = true;
+    const ahora = Date.now();
+    try {
+      if (!filaBaseRef.current && filaAnteriorIdRef.current) {
+        try { filaBaseRef.current = baseDe(await getSession(filaAnteriorIdRef.current)); } catch { /* se reintenta */ }
+      }
+      const base = filaBaseRef.current;
+      if (!base?.projectId && !base?.assignmentId) { pendienteRef.current = trasFallo(p, ahora); return; }
+      // Recortar contra lo ya fichado en vez de chocar (082). Tras varios choques con lo que
+      // esta pantalla no ve, el último recurso es arrancar ahora: lo de antes ya está fichado.
+      const tramos = misSesionesRef.current
+        .filter((s) => s.startMs != null && s.endMs != null)
+        .map((s) => ({ startMs: Number(s.startMs), endMs: Number(s.endMs) }));
+      const desde = (p.solapes ?? 0) >= 3 ? ahora : inicioSinSolape(p.desdeMs, ahora, tramos);
+      if (desde === null) { pendienteRef.current = trasFallo(p, ahora); return; }
+      if (desde !== startMsRef.current && desde > startMsRef.current) startMsRef.current = desde;
+      const el = Math.max(0, Math.floor((ahora - desde) / 1000));
+      const row = await startSession({
+        ...base,
+        employeeUid: me.id,
+        employeeName: me.fullName,
+        weekOf: weekStartISO(desde),
+        date: dateISO(desde),
+        startMs: desde,
+        endMs: ahora,
+        durationSeconds: netSeconds(el),
+        activeSeconds: activeSecondsRef.current,
+        idleSeconds: idleRef.current,
+        keystrokes: keystrokesRef.current,
+        clicks: clicksRef.current,
+        lunchSeconds: lunchRef.current,
+        breakSeconds: brkRef.current,
+        breakEvents: breakEventsPayload(),
+        manual: false,
+        isLive: true,
+        liveNote: "active",
+      });
+      pendienteRef.current = null;
+      const parar = pararTrasInsertRef.current;
+      if (parar || stoppedRef.current) {
+        // Se pulsó Stop con el INSERT en vuelo: la fila existe, se cierra con lo contado.
+        pararTrasInsertRef.current = null;
+        await writeSession(row.id, { ...(parar ?? {}), isLive: false });
+        return;
+      }
+      sessionIdRef.current = row.id;
+      try { localStorage.setItem(LS_LIVE, JSON.stringify({ id: row.id, startMs: desde, source: base.source })); } catch { /* ignore */ }
+      ultimoGuardadoRef.current = Date.now();
+      guardadoHastaRef.current = ahora;
+      guardadoNetoRef.current = netSeconds(el);
+      limpiarSinGuardar();
+      desktopStart({ sessionId: row.id, intervalMin: shotMin });
+      notify(t("track.savingAgain"));
+    } catch (e) {
+      const sig = trasFallo(p, Date.now());
+      pendienteRef.current = isOverlapError(e) ? { ...sig, solapes: (p.solapes ?? 0) + 1 } : sig;
+    } finally {
+      insertandoRef.current = false;
+    }
+  }
+  const intentarPendienteRef = useRef(intentarPendiente);
+  intentarPendienteRef.current = intentarPendiente;
+
+  /**
+   * Tramos que se pararon sin haber llegado a tener fila: viven en `localStorage` hasta que
+   * entren. Si chocan con lo ya fichado se recorta el arranque; si ya está todo fichado, no
+   * queda nada que guardar y se quita.
+   */
+  const LS_PENDING_ROWS = filasPendientesKey(me.id);
+  const guardandoFilasRef = useRef(false);
+  async function guardarFilasPendientes() {
+    if (guardandoFilasRef.current) return;
+    let filas: FilaPendiente[] = [];
+    try { filas = leerFilasPendientes(localStorage.getItem(LS_PENDING_ROWS)); } catch { return; }
+    if (!filas.length) return;
+    guardandoFilasRef.current = true;
+    const quedan: FilaPendiente[] = [];
+    try {
+      for (const f of filas) {
+        const tramos = misSesionesRef.current
+          .filter((s) => s.startMs != null && s.endMs != null)
+          .map((s) => ({ startMs: Number(s.startMs), endMs: Number(s.endMs) }));
+        const desde = inicioSinSolape(f.startMs, f.endMs, tramos);
+        if (desde === null || desde >= f.endMs) continue; // todo ese tramo ya está fichado
+        const recorte = Math.floor((desde - f.startMs) / 1000);
+        try {
+          await startSession({
+            ...(f.payload as Partial<Session>),
+            startMs: desde, endMs: f.endMs, durationSeconds: Math.max(0, f.durationSeconds - recorte), isLive: false, liveNote: null,
+          });
+        } catch (e) {
+          if (isOverlapError(e)) quedan.push({ ...f, startMs: Math.min(f.endMs, desde + 60_000) });
+          else quedan.push(f);
+        }
+      }
+    } finally {
+      try {
+        if (quedan.length) localStorage.setItem(LS_PENDING_ROWS, JSON.stringify(quedan));
+        else localStorage.removeItem(LS_PENDING_ROWS);
+      } catch { /* ignore */ }
+      guardandoFilasRef.current = false;
+    }
+  }
+  const guardarFilasRef = useRef(guardarFilasPendientes);
+  guardarFilasRef.current = guardarFilasPendientes;
+  useEffect(() => { void guardarFilasRef.current(); }, []);
 
   /**
    * Esta pestaña ya se enteró, así que el indicador no lo repite (D-242).
@@ -1091,6 +1314,9 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   useEffect(() => {
     const vigilar = () => {
       const ahora = Date.now();
+      // Lo pendiente se reintenta aquí, en el intervalo que no depende del tick (D-NEXT).
+      if (tocaReintentarPendiente(pendienteRef.current, ahora)) void intentarPendienteRef.current();
+      if (ahora % 60_000 < VIGIA_CADA_MS) void guardarFilasRef.current();
       const estado = estadoVigia({
         corriendo: runningRef.current && !stoppedRef.current,
         ajeno: !!remoteOwnerRef.current,
@@ -1178,6 +1404,14 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
       source: isDesktop() ? "desktop" : "timer",
       isLive: true,
     };
+    // Lo que hace falta para continuar esta tanda en otra fila si la base deja de aceptarla.
+    filaBaseRef.current = baseDe(payload);
+    filaAnteriorIdRef.current = null;
+    pendienteRef.current = null;
+    pararTrasInsertRef.current = null;
+    guardadoHastaRef.current = startMsRef.current;
+    guardadoNetoRef.current = 0;
+    ponerArrastre(0);
     try {
       const row = await startSession(payload);
       sessionIdRef.current = row.id;
@@ -1196,7 +1430,11 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
       // enseñando el aviso con el botón de volver a entrar, así que aquí no se repite el
       // mensaje ni se suelta el error de Postgres en un alert — que es lo que salía antes:
       // "permission denied for schema timetracker", delante de alguien que solo quería fichar.
-      if (isSessionExpired(e)) return;
+      //
+      // Pero callar no puede ser lo mismo que no contar (D-NEXT): la persona ya pulsó Start y
+      // se pone a trabajar. Ese era el «0:00 · En marcha… · sin guardar desde las 08:43» del
+      // dueño. Se cuenta desde ahora y el INSERT se reintenta hasta que entre.
+      if (isSessionExpired(e)) { entrarEnPendiente(startMsRef.current); return; }
       // Doble clic: la base ya rechazó la segunda (092). No es un fallo que contarle a nadie —
       // se recoge la que sí quedó corriendo y la pantalla sigue como si nada.
       if (isAlreadyRunning(e)) {
@@ -1204,6 +1442,9 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
         if (viva) {
           sessionIdRef.current = viva.id;
           startMsRef.current = viva.startMs || Date.now();
+          filaBaseRef.current = baseDe(viva);
+          guardadoHastaRef.current = viva.endMs ?? null;
+          guardadoNetoRef.current = 0;
           try { localStorage.setItem(LS_LIVE, JSON.stringify({ id: viva.id, startMs: startMsRef.current, source: payload.source })); } catch { /* ignore */ }
           setRunning(true);
           setRemoteOwner(null);
@@ -1215,8 +1456,9 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
         }
         return;
       }
-      const err = e as { message?: string } | null;
-      alert("Could not start tracking: " + (err?.message || "unknown error"));
+      // Red caída (lo normal justo al despertar el equipo) o un fallo pasajero del servidor.
+      // Antes era un `alert` y nada contado; ahora se cuenta y se reintenta (D-NEXT).
+      entrarEnPendiente(startMsRef.current);
       return;
     }
     beginTicking();
@@ -1245,6 +1487,9 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     // contadores valen cero y `el` cuenta desde el arranque hasta ahora: escribirlos fue lo que
     // dejó la sesión del 2026-10-04 con 4,27 h y 0 s de actividad. `parcheDeStop` en ese caso
     // solo cierra, y la fila se queda como la dejó su último latido.
+    const pendiente = pendienteRef.current;
+    const enVuelo = insertandoRef.current;
+    pendienteRef.current = null;
     const patch = parcheDeStop(conduceRef.current, {
       endMs: Date.now(),
       durationSeconds: netSeconds(el),
@@ -1271,7 +1516,36 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     setWorked(0); setBreaks({ lunch: 0, brk: 0 }); setBreakList([]);
     setActivePct(0); setMeter(new Array(METER_BARS).fill(false));
 
-    if (!id) return;
+    ponerArrastre(0);
+    if (!id) {
+      // El tramo contado todavía no tenía fila (D-NEXT). No se tira: si el INSERT está en vuelo,
+      // se cierra en cuanto exista; si no, la fila cerrada entera queda en `localStorage` y se
+      // reintenta hasta que entre.
+      if (enVuelo) { pararTrasInsertRef.current = patch; return; }
+      if (pendiente && filaBaseRef.current) {
+        const fila: FilaPendiente = {
+          startMs: startMsRef.current,
+          endMs: Date.now(),
+          durationSeconds: netSeconds(el),
+          payload: {
+            ...filaBaseRef.current,
+            ...patch,
+            employeeUid: me.id,
+            employeeName: me.fullName,
+            weekOf: weekStartISO(startMsRef.current),
+            date: dateISO(startMsRef.current),
+            manual: false,
+          },
+        };
+        try {
+          const previas = leerFilasPendientes(localStorage.getItem(LS_PENDING_ROWS));
+          localStorage.setItem(LS_PENDING_ROWS, JSON.stringify([...previas, fila]));
+        } catch { /* sin almacenamiento: se intenta igual ahora mismo */ }
+        notify(t("track.savedOffline"));
+        void guardarFilasPendientes();
+      }
+      return;
+    }
     const ok = await writeSession(id, patch);
     // `if (!ok)` used to guard an alert here that could never fire: writeSession returns true or
     // the string "queued", both truthy. What can really happen is the queue, and that is worth
@@ -1417,7 +1691,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
           <div>
             {/* D-829: sin segundos, como el panel de fichar (D-755; Roberto: «Employees don't need to see seconds that
                 they're clocked in»). El tick de un segundo se queda: hace más que repintar (latido, vigía). */}
-            <div className="timer-big">{fmtClockSinSegundos(worked)}</div>
+            <div className="timer-big">{fmtClockSinSegundos(worked + (running ? arrastre : 0))}</div>
             <div className="small muted">
               {remoteOwner
                 ? t(remoteOwner === "desktop" ? "track.viaDesktop" : "track.viaWeb")

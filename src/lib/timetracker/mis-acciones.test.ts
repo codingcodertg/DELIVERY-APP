@@ -251,7 +251,7 @@ describe("3 · quitar el número NO para el cronómetro de D-470", () => {
     }
   });
   it("el número del cronómetro (remoto, admin) sigue en su sitio, y la tarjeta de fichar no toca el cronómetro", () => {
-    expect(cronometro).toContain('<div className="timer-big">{fmtClockSinSegundos(worked)}</div>') // D-829;
+    expect(cronometro).toContain('<div className="timer-big">{fmtClockSinSegundos(worked + (running ? arrastre : 0))}</div>') // D-829;
     expect(punchCodigo).not.toMatch(/Cronometro|heartbeat|timer-big/);
   });
 });
