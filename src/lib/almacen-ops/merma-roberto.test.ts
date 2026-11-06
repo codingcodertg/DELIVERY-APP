@@ -48,7 +48,7 @@ describe("b158a7a5: producto fuera de catálogo", () => {
     expect(SQL).toContain("create or replace function public.warehouse_ops_edit_scrap_product(");
     expect(SQL).toContain("'warehouse_ops_supervisor' = any");
     expect(SQL).toContain("-- @ledger-below");
-    expect(SQL).not.toContain("D-NEXT");
+    expect(SQL).not.toContain("D-893");
     expect(SQL).not.toMatch(/create policy [^;]*on public\.warehouse_reports/);
   });
   it("quién corrige la merma (igual que la 252)", () => {

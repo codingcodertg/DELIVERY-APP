@@ -129,7 +129,7 @@ describe("el módulo y el expediente", () => {
     expect(knownModules(["warehouse_ops"])).toEqual(["warehouse_ops"]);
     expect(MODULE_ACCESS.find((m) => m.key === "warehouse_ops")?.accessColumn).toBe("module_access");
     expect(appForPath("/operaciones/reportes")).toBe("warehouse_ops");
-    expect(APP_VERSIONS.warehouse_ops).toBe("0.1.0");
+    expect(APP_VERSIONS.warehouse_ops).toBe("0.2.0");
     expect(SQL).toContain("'customers','warehouse_ops']");
   });
   it("la 247 es la ÚLTIMA que define profiles_module_access_known, y su lista es MODULE_ACCESS entero", () => {

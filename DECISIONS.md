@@ -50898,3 +50898,9 @@ Sello `leads` 0.20.0; repo 1.745.0.
 Tras un standby de más de 5 min el cronómetro ya no se detiene (D-510 devolvía para): sigue en una fila nueva desde el despertar, el standby sigue sin pagarse, avisa en pantalla y con notificación de Windows; todo paro automático deja un banner rojo fijo.
 
 Sello `timetracker` 1.17.0; repo 1.746.0.
+
+## D-893 · Warehouse Ops: ajustes de Roberto al formulario de merma
+
+Productos fuera de catálogo con edición del gerente; Dañado/Muestra dentro de la pregunta de cantidad; sin piezas sueltas; empleados solo de bodega de la tienda del reporte; CRMA solo en devolución de cliente; Guardar borrador y Cerrar en todos los formularios. Migración 252.
+
+Sello `warehouse_ops` 0.2.0; repo 1.747.0.
