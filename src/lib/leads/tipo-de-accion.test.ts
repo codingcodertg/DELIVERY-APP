@@ -26,7 +26,7 @@ describe("tipos de acción", () => {
     const lista = TIPOS_DE_ACCION.map((a) => `'${a}'`).join(", ");
     expect(sql.split(lista).length - 1).toBeGreaterThanOrEqual(3);
     expect(sql).toContain("-- @ledger-below");
-    expect(sql).not.toContain("D-NEXT");
+    expect(sql).not.toContain("D-890");
   });
 });
 
