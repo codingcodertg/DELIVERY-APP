@@ -11,7 +11,6 @@ const producto = { id: 7, sku: "S", name: "N", cost: 2.5, pieces_per_box: 4 };
 const qty = { boxes: 2, piecesPerBox: 4, loosePieces: 0 }; // 8 piezas
 const base = { product: producto, qty, split: { damaged: 6, sample: 2 }, return_type: "internal", reason: "fell" };
 const pasoQty = PASOS.scrap.find((p) => p.id === "qty")!;
-const pasoCrma = PASOS.scrap.find((p) => p.id === "crma")!;
 
 describe("faa07047: primero el total, luego cuántas dañadas y cuántas de muestra", () => {
   it("la pregunta es por el total de piezas, ya no «dañado o muestra»", () => {
@@ -63,14 +62,14 @@ describe("faa07047: primero el total, luego cuántas dañadas y cuántas de mues
       scrap_type: "mixed", damaged_pieces: 6, sample_pieces: 2, boxes: 2, pieces_per_box: 4, loose_pieces: 0,
       return_type: "internal", reason: "fell", broken_by: [], crma: null,
     });
-    expect(respuestasParaGuardar("scrap", base)).toEqual({ return_type: "internal", reason: "fell" });
+    // Desde 714584e6 el origen ya no es una pregunta: no viaja en answers (va fijo en el cuerpo de la merma).
+    expect(respuestasParaGuardar("scrap", base)).toEqual({ reason: "fell" });
   });
-  it("la pérdida no cambia de regla: costo × todas las piezas, dañadas y de muestra (como antes)", () => {
+  it("la 254 dejó la pérdida en costo × todas las piezas; la 259 la cambió a solo dañadas (ver merma-roberto-3)", () => {
     expect(perdida(producto.cost, piezasTotales(qty))).toBe(20);
     expect(SQL).toContain("round(prod.cost * v_total, 2)");
-    expect(SQL).not.toMatch(/prod\.cost \* v_dan/);
-    const r4 = DEMO_REPORTES.find((r) => r.id === "r4")!; // todo muestra, de antes: ya contaba entero
-    expect(r4.total_loss).toBe(perdida(r4.unit_cost, r4.total_pieces!));
+    const r4 = DEMO_REPORTES.find((r) => r.id === "r4")!; // todo muestra: desde 0c2fb392 no es pérdida
+    expect(r4.total_loss).toBe(0);
   });
   it("los reportes viejos (una sola opción) se siguen leyendo; los nuevos traen las dos cuentas", () => {
     expect(repartoDeReporte({ scrap_type: "damaged", total_pieces: 7 })).toEqual({ damaged: 7, sample: 0 });
@@ -82,25 +81,16 @@ describe("faa07047: primero el total, luego cuántas dañadas y cuántas de mues
   });
 });
 
-describe("87254659: el CRMA es obligatorio, pero solo en devolución de cliente", () => {
-  it("ya no dice «opcional»", () => {
-    expect(pasoCrma.en).toBe("CRMA / claim #");
-    expect(pasoCrma.es).not.toMatch(/opcional/i);
-    expect("opcional" in pasoCrma && pasoCrma.opcional).toBeFalsy();
-  });
-  it("interno: no se pregunta ni estorba; devolución: se pregunta y sin él no se envía", () => {
+describe("87254659 → 714584e6: el CRMA era obligatorio en devolución; ahora la merma es siempre interna", () => {
+  it("ya no se pregunta el CRMA, ni con un borrador viejo de devolución, y no estorba para enviar", () => {
     expect(pasosVisibles("scrap", { ...base }).some((p) => p.id === "crma")).toBe(false);
     expect(primerHueco("scrap", base)).toBe(-1);
     const dev = { ...base, return_type: "customer_return" };
-    const donde = pasosVisibles("scrap", dev).findIndex((p) => p.id === "crma");
-    expect(donde).toBeGreaterThan(0);
-    expect(primerHueco("scrap", dev)).toBe(donde);
-    expect(primerHueco("scrap", { ...dev, crma: "   " })).toBe(donde);
-    expect(primerHueco("scrap", { ...dev, crma: "7" })).toBe(-1);
-    expect(primerHueco("scrap", { ...dev, crma: "CR-2291" })).toBe(-1);
+    expect(pasosVisibles("scrap", dev).some((p) => p.id === "crma")).toBe(false);
+    expect(primerHueco("scrap", dev)).toBe(-1);
   });
-  it("solo viaja con devolución: si se cambió a interno, lo escrito no se guarda", () => {
-    expect(mermaParaEnviar({ ...base, return_type: "customer_return", crma: " CR-1 " }).crma).toBe("CR-1");
+  it("no viaja nunca: ni escrito en un borrador viejo", () => {
+    expect(mermaParaEnviar({ ...base, return_type: "customer_return", crma: " CR-1 " }).crma).toBeNull();
     expect(mermaParaEnviar({ ...base, return_type: "internal", crma: "CR-1" }).crma).toBeNull();
     expect(respuestasParaGuardar("scrap", { ...base, crma: "CR-1" }).crma).toBeUndefined();
   });

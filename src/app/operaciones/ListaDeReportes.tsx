@@ -10,7 +10,7 @@ import { PASOS, etiquetaDeOpcion } from "@/lib/almacen-ops/pasos";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
 import { DEMO_PRODUCTOS, DEMO_REPORTES, buscarProductos, corregirMerma, enlacesDeFotos, type Reporte } from "@/lib/almacen-ops/datos";
 import { costoDelCampo, type ProductoElegido } from "@/lib/almacen-ops/pasos";
-import { perdida, repartoDeReporte } from "@/lib/almacen-ops/perdida";
+import { perdidaDeMerma, repartoDeReporte } from "@/lib/almacen-ops/perdida";
 import { puedeCorregirMerma, puedeVerReporte } from "@/lib/almacen-ops/visibilidad";
 import type { Contexto } from "./Operaciones";
 
@@ -102,8 +102,8 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
               </tbody>
             </table>
           </div>
-          <p className="hint">{t(`Loss = pieces × the product's cost per piece when it was reported. Based on the latest ${LIMITE} reports you can see.`,
-            `Pérdida = piezas × el costo por pieza del producto al reportarse. Sobre los últimos ${LIMITE} reportes que puedes ver.`)}</p>
+          <p className="hint">{t(`Loss = damaged pieces × the product's cost per piece when it was reported (pieces usable as samples are not counted). Based on the latest ${LIMITE} reports you can see.`,
+            `Pérdida = piezas dañadas × el costo por pieza del producto al reportarse (las que sirven de muestra no cuentan). Sobre los últimos ${LIMITE} reportes que puedes ver.`)}</p>
         </div>
       )}
 
@@ -153,7 +153,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
                     <td>{r.author_name ?? nombre(r.author_id)}</td>
                     <td>{r.subject_ids.map(nombre).join(", ")}</td>
                     <td className="ops-detalle-corto">{r.kind === "scrap"
-                      ? `${r.product_not_in_catalog ? `${r.product_name ?? ""} (${t("not in catalog", "fuera de catálogo")})` : r.product_sku ?? ""} · ${r.total_pieces ?? 0} ${t("pcs", "pzs")} · ${fmtMoney(r.total_loss)}`
+                      ? `${r.product_not_in_catalog ? `${r.product_name ?? ""} (${t("not in catalog", "fuera de catálogo")})` : r.product_sku ?? ""} · ${repartoDeReporte(r).damaged} ${t("damaged", "dañadas")} · ${fmtMoney(r.total_loss)}`
                       : String(r.answers.description ?? "")}</td>
                   </tr>
                 ))}
@@ -220,8 +220,9 @@ function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Contexto; on
                 ? t(`${r.boxes} boxes × ${r.pieces_per_box} + ${r.loose_pieces} loose = ${r.total_pieces} pieces`, `${r.boxes} cajas × ${r.pieces_per_box} + ${r.loose_pieces} sueltas = ${r.total_pieces} piezas`)
                 : t(`${r.boxes} boxes × ${r.pieces_per_box} = ${r.total_pieces} pieces`, `${r.boxes} cajas × ${r.pieces_per_box} = ${r.total_pieces} piezas`)}</dd>
               <dt>{t("Cost per piece (when reported)", "Costo por pieza (al reportar)")}</dt><dd>{fmtMoney(r.unit_cost)}</dd>
-              <dt>{t("Loss", "Pérdida")}</dt><dd className="ops-tarjeta-perdida">{fmtMoney(r.total_loss)}</dd>
-              <dt>{t("Where from", "De dónde")}</dt><dd>{etiquetaDeOpcion("scrap", "return_type", r.return_type, lang)}</dd>
+              <dt>{t("Loss (damaged pieces only)", "Pérdida (solo piezas dañadas)")}</dt><dd className="ops-tarjeta-perdida" data-perdida-reporte={r.total_loss ?? ""}>{fmtMoney(r.total_loss)}</dd>
+              {/* Ya no se pregunta (pedido 714584e6): solo se enseña en los reportes de antes que vinieron de un cliente. */}
+              {r.return_type === "customer_return" && <><dt>{t("Where from", "De dónde")}</dt><dd data-origen-reporte={r.return_type}>{etiquetaDeOpcion("scrap", "return_type", r.return_type, lang)}</dd></>}
               <dt>{t("Reason", "Motivo")}</dt><dd>{etiquetaDeOpcion("scrap", "reason", r.reason, lang)}</dd>
               {r.broken_by.length > 0 && <><dt>{t("Broken by", "Lo rompió")}</dt><dd>{r.broken_by.map(nombre).join(", ")}</dd></>}
               {r.crma && <><dt>CRMA</dt><dd>{r.crma}</dd></>}
@@ -271,7 +272,8 @@ function CorregirProducto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onLi
     return () => { vivo = false; clearTimeout(id); };
   }, [q, ctx.demo]);
 
-  const total = (c: number | null) => perdida(c, r.total_pieces ?? 0);
+  // La misma cuenta que la base (259): costo × piezas dañadas.
+  const total = (c: number | null) => perdidaDeMerma(c, repartoDeReporte(r));
   const guarda = async (p: ProductoElegido | null) => {
     const c = costoDelCampo(costo);
     if (!p && (nombre.trim().length < 2 || Number.isNaN(c))) { setError(t("Write a name and a valid cost.", "Escribe un nombre y un costo válido.")); return; }

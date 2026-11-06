@@ -14,7 +14,7 @@ import {
   costoDelCampo, empleadosDelReporte, etiquetaDeOpcion, pasoCompleto, pasosVisibles, primerHueco, productoLibre,
   respuestasParaGuardar, type Paso, type ProductoElegido, type Respuestas,
 } from "@/lib/almacen-ops/pasos";
-import { cantidadesValidas, enteroDelCampo, perdida, piezasPorCajaInicial, piezasTotales, repartoAjustado, repartoAlCambiar, repartoValido, type Cantidades, type Reparto } from "@/lib/almacen-ops/perdida";
+import { cantidadesValidas, enteroDelCampo, perdidaDeMerma, piezasPorCajaInicial, piezasTotales, repartoAjustado, repartoAlCambiar, repartoValido, type Cantidades, type Reparto } from "@/lib/almacen-ops/perdida";
 import { DEMO_PRODUCTOS, buscarProductos, mermaParaEnviar, productoParaEnviar, registrar, subirFoto, type Envio } from "@/lib/almacen-ops/datos";
 import { personasParaElegir } from "@/lib/almacen-ops/personas";
 import { borrarBorrador, guardarBorrador, hayCambios, leerBorrador } from "@/lib/almacen-ops/borradores";
@@ -24,7 +24,11 @@ const MAX_FOTOS = 3;
 
 /**
  * El asistente de un reporte (D-883, 247): una pregunta por pantalla, con botones grandes para el teléfono; luego el
- * resumen, donde cada fila se toca para corregirla, la tienda (la de la persona por defecto) y «Enviar».
+ * resumen, donde cada fila se toca para corregirla, y «Enviar». La tienda (la de la persona por defecto) va arriba.
+ *
+ * Ningún paso avanza solo (pedido 6f14b2b3): antes los de una sola opción saltaban al elegir y los demás no, y eso
+ * confundía. Siempre se toca «Siguiente»; al elegir, el foco pasa a ese botón (Enter lo oprime) y Enter en un campo
+ * de una línea también avanza.
  */
 export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto }) {
   const { t, lang } = usePrefs();
@@ -48,6 +52,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hecho, setHecho] = useState(false);
+  const botonSiguiente = useRef<HTMLButtonElement>(null);
 
   const pasos = pasosVisibles(tipo, r);
   const enResumen = i >= pasos.length;
@@ -89,6 +94,15 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
     setI((n) => n + 1);
   };
   const editar = (n: number) => { setVolverAlResumen(true); setI(n); };
+  /** Al elegir una opción NO se avanza: el foco va a «Siguiente» (espera al render: el botón estaba apagado). */
+  const alElegirUno = () => { setTimeout(() => botonSiguiente.current?.focus(), 0); };
+  /** Enter en un campo de una línea = «Siguiente» (no en el buscador ni en el texto largo, donde Enter es otra cosa). */
+  const enterAvanza = (e: React.KeyboardEvent) => {
+    const el = e.target;
+    if (e.key !== "Enter" || !listo || !(el instanceof HTMLInputElement) || el.type === "search" || el.type === "file") return;
+    e.preventDefault();
+    siguiente();
+  };
 
   const enviar = async () => {
     if (primerHueco(tipo, r) >= 0 || !tienda) return;
@@ -135,7 +149,6 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
         <div className="ops-asistente-barra">
           <span className="ops-asistente-tipo"><span aria-hidden>{info.emoji}</span> {lang === "es" ? info.es : info.en}</span>
           <span className="ops-asistente-acciones">
-            <button type="button" className="ops-boton ops-boton-chico" onClick={guardar} disabled={enviando || !cambiado} data-accion="guardar-borrador">💾 {t("Save draft", "Guardar borrador")}</button>
             <button type="button" className="ops-boton ops-boton-chico" onClick={cerrar} disabled={enviando} data-accion="cerrar">✕ {t("Close", "Cerrar")}</button>
           </span>
         </div>
@@ -147,16 +160,15 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
             </select>
           </label>
         )}
-        {avisoBorrador && <p className="ops-aviso" role="status" data-aviso="borrador">{avisoBorrador}</p>}
         <ol className="ops-progreso" aria-label={t(`Step ${Math.min(i + 1, pasos.length + 1)} of ${pasos.length + 1}`, `Paso ${Math.min(i + 1, pasos.length + 1)} de ${pasos.length + 1}`)}>
           {[...pasos, null].map((_, n) => <li key={n} className={n < i ? "hecho" : n === i ? "ahora" : ""} />)}
         </ol>
       </header>
 
       {!enResumen && paso && (
-        <div className="ops-pregunta" data-paso={paso.id}>
+        <div className="ops-pregunta" data-paso={paso.id} onKeyDown={enterAvanza}>
           <h2>{lang === "es" ? paso.es : paso.en}</h2>
-          <Respuesta paso={paso} r={r} pon={pon} ctx={ctx} tienda={tienda} onElegirUno={() => { if (!volverAlResumen) setTimeout(() => setI((n) => n + 1), 120); }} />
+          <Respuesta paso={paso} r={r} pon={pon} ctx={ctx} tienda={tienda} onElegirUno={alElegirUno} />
         </div>
       )}
 
@@ -172,12 +184,15 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
               </button>
             ))}
           </dl>
-          <label className="ops-tienda">
-            <span>{t("Store", "Tienda")}</span>
-            <select value={tienda} onChange={(e) => setTienda(e.target.value)} data-campo="tienda">
-              {ctx.tiendas.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </label>
+          {/* La tienda ya se elige arriba (pedido c10078f9); aquí solo queda cuando arriba no sale (una sola tienda). */}
+          {ctx.tiendas.length <= 1 && (
+            <label className="ops-tienda">
+              <span>{t("Store", "Tienda")}</span>
+              <select value={tienda} onChange={(e) => setTienda(e.target.value)} data-campo="tienda">
+                {ctx.tiendas.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </label>
+          )}
           {error && <p className="ops-aviso ops-aviso-error" role="alert">{t("Not sent: ", "No se envió: ")}{error}</p>}
         </div>
       )}
@@ -197,6 +212,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
       )}
 
       <footer className="ops-botonera">
+        {avisoBorrador && <p className="ops-aviso ops-botonera-entera" role="status" data-aviso="borrador">{avisoBorrador}</p>}
         {i === 0
           ? <button type="button" className="ops-boton" onClick={cerrar}>{t("Cancel", "Cancelar")}</button>
           : <button type="button" className="ops-boton" onClick={() => { setVolverAlResumen(false); setI((n) => n - 1); }} disabled={enviando}>{t("Back", "Atrás")}</button>}
@@ -204,9 +220,11 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
           ? <button type="button" className="ops-boton ops-boton-primario" onClick={enviar} disabled={enviando || primerHueco(tipo, r) >= 0 || !tienda} data-accion="enviar">
               {enviando ? t("Sending…", "Enviando…") : t("Send report", "Enviar reporte")}
             </button>
-          : <button type="button" className="ops-boton ops-boton-primario" onClick={siguiente} disabled={!listo} data-accion="siguiente">
+          : <button type="button" ref={botonSiguiente} className="ops-boton ops-boton-primario" onClick={siguiente} disabled={!listo} data-accion="siguiente">
               {volverAlResumen ? t("Back to summary", "Volver al resumen") : i === pasos.length - 1 ? t("Review", "Revisar") : t("Next", "Siguiente")}
             </button>}
+        {/* «Guardar borrador» abajo, con Atrás / Siguiente (pedido 78b2e1fc); «Cerrar» sigue arriba. */}
+        <button type="button" className="ops-boton ops-boton-chico ops-botonera-entera" onClick={guardar} disabled={enviando || !cambiado} data-accion="guardar-borrador">💾 {t("Save draft", "Guardar borrador")}</button>
       </footer>
     </section>
   );
@@ -247,7 +265,10 @@ function Perdida({ r, grande = false }: { r: Respuestas; grande?: boolean }) {
   const q = r.qty as Cantidades | undefined;
   if (!p || !q) return null;
   const piezas = piezasTotales(q);
-  const total = perdida(p.cost, piezas);
+  // Solo las dañadas son pérdida (pedido 0c2fb392); las que sirven de muestra no cuentan.
+  const s = repartoValido(piezas, r.split as Partial<Reparto> | undefined) ? (r.split as Reparto) : repartoAjustado(piezas, r.split as Partial<Reparto> | undefined, r.scrap_type);
+  const total = perdidaDeMerma(p.cost, s);
+  const sinContar = s.sample > 0 ? t(` · ${s.sample} sample not counted`, ` · ${s.sample} de muestra no cuentan`) : "";
   return (
     <div className={`ops-perdida${grande ? " grande" : ""}`} data-perdida={total ?? ""}>
       <span className="ops-perdida-cifra">{total == null ? t("No cost", "Sin costo") : fmtMoney(total)}</span>
@@ -256,7 +277,7 @@ function Perdida({ r, grande = false }: { r: Respuestas; grande?: boolean }) {
           ? p.libre
             ? t("No cost entered; a manager can add it later.", "Sin costo; un gerente lo puede poner después.")
             : t("This product has no cost in the catalog; the loss is saved without a $ amount.", "Este producto no tiene costo en el catálogo; la pérdida se guarda sin monto.")
-          : t(`${piezas} pieces × ${fmtMoney(p.cost)} per piece`, `${piezas} piezas × ${fmtMoney(p.cost)} por pieza`)}
+          : t(`${s.damaged} damaged pieces × ${fmtMoney(p.cost)} per piece`, `${s.damaged} piezas dañadas × ${fmtMoney(p.cost)} por pieza`) + sinContar}
       </span>
     </div>
   );

@@ -91,18 +91,17 @@ export function productoParaEnviar(p: ProductoElegido): { product_id: number | n
 }
 
 /**
- * Las cuentas de la merma que van a `warehouse_ops_file_report` (254): cajas, el reparto dañadas / muestra y el CRMA,
- * que solo viaja si es devolución de cliente (si alguien lo escribió y luego cambió a «interno», no se guarda).
+ * Las cuentas de la merma que van a `warehouse_ops_file_report` (254): cajas y el reparto dañadas / muestra. Desde el
+ * pedido 714584e6 la merma es siempre interna y sin CRMA, aunque un borrador viejo traiga «devolución de cliente».
  */
 export function mermaParaEnviar(r: Respuestas): Omit<NonNullable<Envio["scrap"]>, "product_id" | "free_name" | "unit_cost"> {
   const q = r.qty as Cantidades;
   const s = r.split as Reparto;
-  const devolucion = r.return_type === "customer_return";
   return {
     scrap_type: tipoDeReparto(s), damaged_pieces: s.damaged, sample_pieces: s.sample,
     boxes: q.boxes, pieces_per_box: q.piecesPerBox, loose_pieces: 0,
-    return_type: String(r.return_type), reason: String(r.reason), broken_by: (r.broken_by as string[] | undefined) ?? [],
-    crma: devolucion && typeof r.crma === "string" && r.crma.trim() ? r.crma.trim() : null,
+    return_type: "internal", reason: String(r.reason), broken_by: (r.broken_by as string[] | undefined) ?? [],
+    crma: null,
   };
 }
 
@@ -143,11 +142,11 @@ const dias = (n: number) => new Date(Date.now() - n * 86400000).toISOString();
 const vacio = { damaged_pieces: null, sample_pieces: null, product_id: null, product_sku: null, product_name: null, scrap_type: null, boxes: null, pieces_per_box: null, loose_pieces: null, total_pieces: null, unit_cost: null, total_loss: null, return_type: null, reason: null, broken_by: [], crma: null, photos: [] };
 export const DEMO_REPORTES: Reporte[] = [
   { ...vacio, id: "r1", created_at: dias(0.1), kind: "scrap", store: "McAllen", author_id: "p1", author_name: "Ana García", subject_ids: [], answers: { comments: "Pallet slid off the forks" },
-    product_id: 101, product_sku: "PORC-2448-GRY", product_name: "Porcelain 24x48 Ash Grey", scrap_type: "mixed", damaged_pieces: 5, sample_pieces: 2, boxes: 3, pieces_per_box: 2, loose_pieces: 1, total_pieces: 7, unit_cost: 9.4, total_loss: 65.8, return_type: "internal", reason: "forklift", broken_by: ["p2"], crma: null },
+    product_id: 101, product_sku: "PORC-2448-GRY", product_name: "Porcelain 24x48 Ash Grey", scrap_type: "mixed", damaged_pieces: 5, sample_pieces: 2, boxes: 3, pieces_per_box: 2, loose_pieces: 1, total_pieces: 7, unit_cost: 9.4, total_loss: 47, return_type: "internal", reason: "forklift", broken_by: ["p2"], crma: null },
   { ...vacio, id: "r2", created_at: dias(1.3), kind: "safety", store: "McAllen", author_id: "p2", author_name: "Luis Treviño", subject_ids: ["p1"], answers: { safety_type: "ppe", description: "Loading without gloves", injured: "no" } },
   { ...vacio, id: "r3", created_at: dias(3), kind: "maintenance", store: "Edinburg", author_id: "p3", author_name: "Mario Salinas", subject_ids: [], answers: { equipment: "forklift_2", issue: "repair_needed", description: "Hydraulic leak under the mast" } },
   { ...vacio, id: "r4", created_at: dias(9), kind: "scrap", store: "Edinburg", author_id: "p3", author_name: "Mario Salinas", subject_ids: [], answers: {},
-    product_id: 102, product_sku: "CER-1212-WHT", product_name: "Ceramic 12x12 Matte White", scrap_type: "sample", boxes: 0, pieces_per_box: 15, loose_pieces: 6, total_pieces: 6, unit_cost: 0.82, total_loss: 4.92, return_type: "customer_return", reason: "transportation", broken_by: [], crma: "CR-2291" },
+    product_id: 102, product_sku: "CER-1212-WHT", product_name: "Ceramic 12x12 Matte White", scrap_type: "sample", damaged_pieces: 0, sample_pieces: 6, boxes: 0, pieces_per_box: 15, loose_pieces: 6, total_pieces: 6, unit_cost: 0.82, total_loss: 0, return_type: "customer_return", reason: "transportation", broken_by: [], crma: "CR-2291" },
   { ...vacio, id: "r5", created_at: dias(2), kind: "positive", store: "McAllen", author_id: "demo-admin", author_name: "Demo Admin", subject_ids: ["p2"], answers: { employee: "p2", category: "safety", description: "Cleared the blocked exit before the delivery came in" } },
   { ...vacio, id: "r6", created_at: dias(4), kind: "insubordination", store: "Harlingen", author_id: "demo-admin", author_name: "Demo Admin", subject_ids: ["p4"], answers: { severity: "minor", description: "Refused to restack the returns cage", verbal_warning: "yes" } },
 ];
