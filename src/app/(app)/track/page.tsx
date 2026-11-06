@@ -18,6 +18,9 @@ import { recargaObligatoria } from "@/lib/app-update";
 import { colorDeChofer } from "@/lib/map-legend";
 import { choferesEnVivo, marcaEnVivo, MINUTOS_EN_VIVO } from "@/lib/choferes-en-vivo";
 import { usePosicionesDeChoferes } from "@/lib/tracksolid/useCamionDelDia";
+import { useRastrosDeCamiones } from "@/lib/tracksolid/useRastrosDeCamiones";
+import { eligeRecorrido, textoDelConteo, type RecorridoElegido } from "@/lib/tracksolid/rastro-en-mapa";
+import { leeRecorridoDelTelefono } from "@/lib/recorrido-del-telefono";
 
 // ============================================================
 // A driver's day, after the fact: where the truck went, how far, how long it
@@ -36,8 +39,6 @@ import { usePosicionesDeChoferes } from "@/lib/tracksolid/useCamionDelDia";
 
 /** How many days back the quick-pick strip reaches. */
 const DAY_STRIP = 13;
-/** D-832: a 10 m / 5 s (D-831) un día largo son ~6 000 posiciones por chofer; el tope de 5 000 cortaba la tarde. */
-const FIXES_POR_DIA = 20_000;
 /** D-833: «todos los choferes» en el selector. */
 const TODOS = "todos";
 
@@ -45,6 +46,7 @@ type Turno = { driver_id: string; started_at: string; ended_at: string | null; n
 type Hito = { id: string; driver_id: string; kind: "picked_up" | "delivered"; at: string; delivery_id: string };
 type DiaDeChofer = { fixes: Fix[]; turnos: Turno[]; hitos: Hito[] };
 const DIA_VACIO: DiaDeChofer = { fixes: [], turnos: [], hitos: [] };
+const SIN_RECORRIDO: RecorridoElegido = { fuente: "telefono", fixes: [] };
 
 function fmtMin(m: number): string {
   const n = Math.round(m);
@@ -65,9 +67,10 @@ export default function TrackPage() {
   const { users, deliveries, settings, me, realRole, driverLocations } = useData();
   const { lang, t } = usePrefs();
   // D-903: «dónde está ahora» sale del teléfono o del rastreador del camión que el chofer lleva hoy, lo mejor de los dos
-  // (`posicionesDeChoferes`). El RECORRIDO del día (la línea) sigue siendo solo del teléfono (`driverLocations`): del
-  // rastreador no se guarda historia.
-  const { posiciones: posicionesAhora } = usePosicionesDeChoferes(!!me);
+  // (`posicionesDeChoferes`).
+  // D-NEXT: y el RECORRIDO del día (la línea) también: del rastreador del camión si el chofer lleva uno ese día
+  // (`useRastrosDeCamiones`, más abajo, cuando ya se sabe la fecha); si no, del teléfono (`driver_locations`).
+  const { posiciones: posicionesAhora, camionesDeHoy } = usePosicionesDeChoferes(!!me);
   const drivers = useMemo(() => soloActivos(users.filter((u) => u.role === "driver")), [users]); // D-707
   const nameById = useMemo(() => new Map(drivers.map((d) => [d.id, d.full_name])), [drivers]);
   const coloresDeChofer = settings.driver_colors;
@@ -87,6 +90,8 @@ export default function TrackPage() {
   const esHoy = fecha === todayISO();
   const idsDelDia = useMemo(() => drivers.map((d) => d.id), [drivers]);
   const idsVisibles = useMemo(() => driverId === TODOS ? idsDelDia : [driverId], [driverId, idsDelDia]);
+  // D-NEXT: el rastro del camión de cada chofer ese día (hoy o un día pasado), con la posición en vivo colgada al final.
+  const rastrosDeCamion = useRastrosDeCamiones(fecha, !!me, camionesDeHoy.posiciones);
 
   // D-833: el día de CADA chofer (posiciones, turnos, cargas/entregas), se vea uno o todos. Se carga el día entero de
   // todos de una vez: así pasar de «todos» a uno no vuelve a leer nada.
@@ -110,9 +115,10 @@ export default function TrackPage() {
       // fichaje (src/lib/clockin/tz.ts).
       const from = centralWallToUtc(`${fecha}T00:00`);
       const to = centralWallToUtc(`${shiftDateISO(fecha, 1)}T00:00`);
-      const [{ data, error }, t1, h1] = await Promise.all([
-        supabase.from("driver_locations").select("driver_id, lat, lng, accuracy_m, recorded_at").in("driver_id", idsDelDia)
-          .gte("recorded_at", from).lt("recorded_at", to).order("recorded_at", { ascending: true }).limit(FIXES_POR_DIA * Math.max(1, idsDelDia.length)),
+      // D-NEXT: las posiciones, ENTERAS (`leeRecorridoDelTelefono`). Antes iban en una petición con `.limit()`, y
+      // PostgREST corta en 1.000 filas: llegaban las primeras 1.000 del día entre todos y las líneas se acababan a media mañana.
+      const [telefono, t1, h1] = await Promise.all([
+        leeRecorridoDelTelefono(supabase, idsDelDia, fecha),
         supabase.from("driver_shifts").select("driver_id, started_at, ended_at, note, app").in("driver_id", idsDelDia)
           .gte("started_at", from).lt("started_at", to).order("started_at", { ascending: true }),
         supabase.from("order_events").select("id, kind, created_at, delivery_id, created_by").in("created_by", idsDelDia)
@@ -121,10 +127,8 @@ export default function TrackPage() {
       if (cancelled) return;
       const out: Record<string, DiaDeChofer> = {};
       for (const id of idsDelDia) out[id] = { fixes: [], turnos: [], hitos: [] };
-      if (error) setErr(error.message);
-      for (const r of (data ?? []) as { driver_id: string; lat: number; lng: number; accuracy_m: number | null; recorded_at: string }[]) {
-        out[r.driver_id]?.fixes.push({ lat: r.lat, lng: r.lng, accuracy_m: r.accuracy_m, at: r.recorded_at });
-      }
+      if (telefono.error) setErr(telefono.error);
+      for (const id of idsDelDia) out[id].fixes = telefono.porId[id] ?? [];
       for (const s of (t1.data ?? []) as Turno[]) out[s.driver_id]?.turnos.push(s);
       for (const e of (h1.data ?? []) as { id: string; kind: string; created_at: string; delivery_id: string; created_by: string }[]) {
         out[e.created_by]?.hitos.push({ id: e.id, driver_id: e.created_by, kind: e.kind as Hito["kind"], at: e.created_at, delivery_id: e.delivery_id });
@@ -193,13 +197,22 @@ export default function TrackPage() {
   // Lo del chofer que se mira (uno solo); con «todos», lo de todos donde tenga sentido.
   const unSolo = driverId !== TODOS;
   const dia: DiaDeChofer = porChofer[driverId] ?? DIA_VACIO;
-  const fixes = dia.fixes;
+  // D-NEXT: la línea de cada chofer sale de UNA fuente: el rastreador de su camión si hay rastro suyo ese día; si no,
+  // su teléfono. Todo lo de abajo (líneas, millas, paradas, reproducción) lee de aquí.
+  const recorridos = useMemo(() => {
+    const out: Record<string, RecorridoElegido> = {};
+    for (const id of idsDelDia) out[id] = eligeRecorrido(porChofer[id]?.fixes, rastrosDeCamion.get(id)?.fixes);
+    return out;
+  }, [idsDelDia, porChofer, rastrosDeCamion]);
+  const recorrido = recorridos[driverId] ?? SIN_RECORRIDO;
+  const fixes = recorrido.fixes;
+  const esDeCamion = recorrido.fuente === "camion";
   const turnos = dia.turnos;
   const hitos = useMemo(
     () => unSolo ? dia.hitos : idsVisibles.flatMap((id) => porChofer[id]?.hitos ?? []).sort((a, b) => a.at.localeCompare(b.at)),
     [unSolo, dia.hitos, idsVisibles, porChofer],
   );
-  const summary: TrackSummary = useMemo(() => summarizeTrack(fixes), [fixes]);
+  const summary: TrackSummary = useMemo(() => summarizeTrack(fixes, { silencioQuietoEsParada: esDeCamion }), [fixes, esDeCamion]);
   const driverName = nameById.get(driverId) ?? "";
 
   // D-833: la tarjeta de cada chofer: lo de hoy de un vistazo.
@@ -210,15 +223,17 @@ export default function TrackPage() {
       const loc = posicionesAhora.find((l) => l.driver_id === d.id);
       const minutos = loc ? (ahora - new Date(loc.recorded_at).getTime()) / 60_000 : null;
       const turnoAbierto = x.turnos.find((s) => !s.ended_at) ?? null;
-      const resumen = summarizeTrack(x.fixes);
+      const r = recorridos[d.id] ?? SIN_RECORRIDO;
+      const resumen = summarizeTrack(r.fixes, { silencioQuietoEsParada: r.fuente === "camion" });
       return {
         id: d.id, nombre: d.full_name, color: color(d.full_name),
         enVivo: esHoy && minutos != null && minutos <= MINUTOS_EN_VIVO, minutos,
         turnoAbierto, turnos: x.turnos, millas: resumen.miles,
+        camion: r.fuente === "camion" ? rastrosDeCamion.get(d.id)?.camion ?? null : null,
         cargas: x.hitos.filter((h) => h.kind === "picked_up").length, entregas: x.hitos.filter((h) => h.kind === "delivered").length,
       };
     });
-  }, [drivers, porChofer, posicionesAhora, esHoy, color]);
+  }, [drivers, porChofer, recorridos, rastrosDeCamion, posicionesAhora, esHoy, color]);
 
   // Somewhere to match a stop against: the day's delivery addresses, plus
   // every store.
@@ -241,8 +256,8 @@ export default function TrackPage() {
   const lines: MapLine[] = useMemo(() => idsVisibles.flatMap((id) => {
     const nombre = nameById.get(id) ?? "";
     // D-835: lo que no se sabe va punteado y gris, no como una calle recta.
-    return tramos(porChofer[id]?.fixes ?? []).map((t, i) => ({ id: `${id}:seg${i}`, color: t.hueco ? "#8a94a0" : unSolo ? "#2456c9" : color(nombre), positions: t.positions, dashed: t.hueco }));
-  }), [idsVisibles, porChofer, nameById, unSolo, color]);
+    return tramos(recorridos[id]?.fixes ?? []).map((t, i) => ({ id: `${id}:seg${i}`, color: t.hueco ? "#8a94a0" : unSolo ? "#2456c9" : color(nombre), positions: t.positions, dashed: t.hueco }));
+  }), [idsVisibles, recorridos, nameById, unSolo, color]);
 
   const points: MapPoint[] = useMemo(
     () => unSolo ? summary.stops.map((s, i) => ({
@@ -265,10 +280,10 @@ export default function TrackPage() {
   const hitosConOrden = useMemo(() => hitos.map((h) => {
     const d = deliveries.find((x) => x.id === h.delivery_id);
     const etiqueta = d ? `#${orderLabel(d)}${d.account ? ` · ${d.account}` : ""}` : t("order", "orden");
-    const suyas = porChofer[h.driver_id]?.fixes ?? [];
+    const suyas = recorridos[h.driver_id]?.fixes ?? [];
     const fix = suyas.length ? suyas.reduce((mejor, f) => Math.abs(new Date(f.at).getTime() - new Date(h.at).getTime()) < Math.abs(new Date(mejor.at).getTime() - new Date(h.at).getTime()) ? f : mejor) : null;
     return { ...h, chofer: nameById.get(h.driver_id) ?? "", etiqueta, direccion: d?.delivery_address ?? null, lat: d?.delivery_lat ?? fix?.lat ?? null, lng: d?.delivery_lng ?? fix?.lng ?? null };
-  }), [hitos, deliveries, porChofer, nameById, t]);
+  }), [hitos, deliveries, recorridos, nameById, t]);
   const puntosDeHitos: MapPoint[] = useMemo(() => hitosConOrden.filter((h) => h.lat != null && h.lng != null).map((h) => ({
     id: `hito${h.id}`, lat: h.lat as number, lng: h.lng as number,
     color: h.kind === "delivered" ? "#15803d" : "#2456c9",
@@ -310,8 +325,18 @@ export default function TrackPage() {
     return choferesEnVivo(posicionesAhora, nameById, color).filter((c) => nombresVisibles.has(c.driver)).map((c) => marcaEnVivo(c, t));
   }, [unSolo, cursor, fixes, driverName, lang, esHoy, posicionesAhora, nameById, idsVisibles, t, color]);
 
-  const todasLasPosiciones = useMemo(() => idsVisibles.flatMap((id) => (porChofer[id]?.fixes ?? []).map((f) => [f.lat, f.lng] as [number, number])), [idsVisibles, porChofer]);
+  const todasLasPosiciones = useMemo(() => idsVisibles.flatMap((id) => (recorridos[id]?.fixes ?? []).map((f) => [f.lat, f.lng] as [number, number])), [idsVisibles, recorridos]);
   const totalPosiciones = todasLasPosiciones.length;
+  // D-NEXT: la cabecera dice QUÉ cuenta: los puntos GPS que mandó el rastreador de los camiones que se dibujan (todos,
+  // no los de la línea simplificada) y las posiciones del teléfono de los choferes que se dibujan con el teléfono.
+  const conteo = useMemo(() => {
+    let camion = 0, telefono = 0;
+    for (const id of idsVisibles) {
+      if (recorridos[id]?.fuente === "camion") camion += rastrosDeCamion.get(id)?.puntos ?? 0;
+      else telefono += recorridos[id]?.fixes.length ?? 0;
+    }
+    return { camion, telefono };
+  }, [idsVisibles, recorridos, rastrosDeCamion]);
   // D-837: los pines del mapa en una lista estable (una lista nueva a cada render los repintaba).
   const puntosDelMapa = useMemo(() => [...points, ...puntosDeHitos], [points, puntosDeHitos]);
   // D-837: el mapa se ENCUADRA al abrir y al cambiar de chofer o de día; una posición nueva en vivo no lo mueve (antes se
@@ -396,6 +421,8 @@ export default function TrackPage() {
               <div className="hint" style={{ marginTop: 2 }}>
                 🛣 {c.millas} mi · ▲ {c.cargas} · ✓ {c.entregas}
               </div>
+              {/* D-NEXT: de dónde sale su línea. El nombre del camión es texto de TrackSolid: React lo pinta como texto. */}
+              {c.camion && <div className="hint" data-fuente-linea="camion" style={{ marginTop: 2 }}>🚛 {t("Line from the truck's GPS", "Línea del GPS del camión")}: {c.camion}</div>}
               {/* D-836: la versión de la app en su teléfono (la reporta el propio teléfono con su turno). */}
               {(() => {
                 const app = [...c.turnos].reverse().find((s) => s.app)?.app ?? null;
@@ -479,7 +506,7 @@ export default function TrackPage() {
       <div className="card">
         <h2>
           🗺 {unSolo ? t("Where the truck went", "Por dónde anduvo el camión") : t("Where the trucks went", "Por dónde anduvieron los camiones")}
-          <span className="count-tag">{totalPosiciones} {t("fixes", "posiciones")}</span>
+          <span className="count-tag" data-conteo-camion={conteo.camion} data-conteo-telefono={conteo.telefono}>{textoDelConteo(conteo.camion, conteo.telefono, t)}</span>
           {unSolo && summary.firstAt && (
             <span className="hint" style={{ marginTop: 0 }}>
               {clock(summary.firstAt, lang)} – {clock(summary.lastAt, lang)}

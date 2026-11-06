@@ -756,7 +756,7 @@ export default function RoutesPage() {
   // (`posicionesDeChoferes`). Misma forma que `driverLocations`; sin TrackSolid es exactamente `driverLocations`.
   // El aviso de «no reporta» (`trackingIssues`, arriba) sigue mirando SOLO el teléfono: que el camión cubra el hueco no
   // quita que haya un teléfono callado que arreglar.
-  const { posiciones: posicionesAhora } = usePosicionesDeChoferes(!!me && veCamiones);
+  const { posiciones: posicionesAhora, camionesDeHoy: camionesDeLosChoferes } = usePosicionesDeChoferes(!!me && veCamiones);
   // Y qué camión lleva cada chofer el día que se está mirando (cabecera de la ruta, hoja PNG).
   const camionesDelDia = useCamionDelDia(date, { activo: !!me });
   const liveNames = useMemo(
@@ -873,7 +873,7 @@ export default function RoutesPage() {
   // verdad (no las rutas temporales ni las huérfanas) y quien ve camiones (`veCamiones`); la base decide qué filas ve cada
   // rol (121). El dueño: «quiero que la ruta que lleva el driver esté en otro color al de su ruta, para comparar».
   const choferesDelRecorrido = useMemo(() => lanes.filter((l) => !l.isBucket && !l.id.startsWith("orphan:") && !l.id.startsWith("bucket:")).map((l) => ({ id: l.id, nombre: l.driver })), [lanes]);
-  const recorridoDelDia = useRecorridoDelDia(choferesDelRecorrido, date, veCamiones, driverLocations, date === todayISO());
+  const recorridoDelDia = useRecorridoDelDia(choferesDelRecorrido, date, veCamiones, driverLocations, date === todayISO(), camionesDeLosChoferes.posiciones); // D-NEXT: con camión, su rastro
 
   // Desde qué puesto se numera la ruta de un chofer al moverla a mano: tras lo que ya recogió o entregó en esas fechas, que
   // el Gestor no enseña pero «Mi ruta» sí (D-433, `inicioDeLaSecuencia`).

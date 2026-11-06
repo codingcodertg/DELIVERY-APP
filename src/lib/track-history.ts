@@ -30,6 +30,9 @@ export const STILL_M = 60;
 export const STOP_MIN_MINUTES = 4;
 /** Longer than this between fixes and we simply don't know what happened. */
 export const GAP_MINUTES = 20;
+/** A truck tracker that goes quiet and wakes up within this distance never left (engine off). Wider than
+ * `STILL_M`: the first fix after a cold start can land a little off. Only used with `silencioQuietoEsParada`. */
+export const QUIET_SILENCE_M = 150;
 /** Coarser than this is a cell-tower guess, not a position. */
 export const MAX_ACCURACY_M = 200;
 /**
@@ -104,8 +107,10 @@ export function cleanFixes(fixes: Fix[]): Fix[] {
 /**
  * Rebuild the day: distance covered, time driving, time standing still, and
  * where the standing still happened.
+ *
+ * `silencioQuietoEsParada` (D-NEXT): for a trail that comes from a TRUCK tracker rather than a phone.
  */
-export function summarizeTrack(raw: Fix[]): TrackSummary {
+export function summarizeTrack(raw: Fix[], opciones: { silencioQuietoEsParada?: boolean } = {}): TrackSummary {
   const fixes = cleanFixes(raw);
   if (fixes.length === 0) return { ...EMPTY };
   if (fixes.length === 1) {
@@ -118,6 +123,8 @@ export function summarizeTrack(raw: Fix[]): TrackSummary {
   let unknownMinutes = 0;
   let gaps = 0;
   let teleports = 0;
+  // Engine-off silences of a truck tracker: time with no fixes that is NOT a sign of a sparse track.
+  let silentMinutes = 0;
 
   // A stop being accumulated: where it started and when.
   let anchor: { at: LatLng; from: string; to: string } | null = null;
@@ -151,6 +158,16 @@ export function summarizeTrack(raw: Fix[]): TrackSummary {
       continue;
     }
 
+    // D-NEXT: el rastreador de un CAMIÓN calla con el motor apagado. Un silencio largo que acaba donde empezó no es
+    // «no se sabe»: el camión estuvo ahí parado. (Con el teléfono no se puede decir lo mismo: pudo ir y volver dormido.)
+    if (mins > GAP_MINUTES && opciones.silencioQuietoEsParada && metres < QUIET_SILENCE_M) {
+      stoppedMinutes += mins;
+      silentMinutes += mins;
+      if (!anchor) anchor = { at: { lat: prev.lat, lng: prev.lng }, from: prev.at, to: cur.at };
+      else anchor.to = cur.at;
+      continue;
+    }
+
     if (mins > GAP_MINUTES) {
       // Unreadable. Count the distance (the truck really did end up there)
       // but refuse to say whether the time was spent driving or parked.
@@ -175,7 +192,7 @@ export function summarizeTrack(raw: Fix[]): TrackSummary {
 
   // Fixes this far apart make the straight-line total little more than an
   // outline; say so rather than presenting it as a mileage figure.
-  const span = minutesBetween(fixes[0].at, fixes[fixes.length - 1].at);
+  const span = minutesBetween(fixes[0].at, fixes[fixes.length - 1].at) - silentMinutes;
   const perFix = span / Math.max(1, fixes.length - 1);
 
   return {
