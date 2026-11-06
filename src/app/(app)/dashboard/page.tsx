@@ -12,6 +12,8 @@ import {
 } from "@/lib/analytics";
 import { Sparkline } from "@/components/Sparkline";
 import { PuntualidadPorChofer } from "@/components/PuntualidadPorChofer";
+import { ReportesDeChoferes } from "@/components/ReportesDeChoferes";
+import { puedeVerReportesDeChoferes } from "@/lib/reportes-choferes/permiso";
 import { EncuestaDelPanel } from "@/components/EncuestaDelPanel";
 
 // Matches the Routes Manager / Map default when a driver has no capacity set.
@@ -481,6 +483,10 @@ export default function DashboardPage() {
           {/* ---------- Puntualidad por chofer, contra la ventana (D-414) ---------- */}
           {/* Justo debajo de los KPIs de choferes: mismo rango, y su «A tiempo» mide otra cosa, así que se leen juntos. */}
           <PuntualidadPorChofer desde={from} hasta={to} entregasDelPanel={scoped} eventos={events} usuarios={users} />
+
+          {/* ---------- Reportes de choferes: ruta planeada vs real, estimado vs real, tiempo por parada (D-NEXT) ---------- */}
+          {/* Mismo rango que el Panel. El permiso de verdad lo comprueba /api/driver-reports; aquí solo se esconde la tarjeta. */}
+          {puedeVerReportesDeChoferes(me) && <ReportesDeChoferes desde={from} hasta={to} />}
 
           {/* ---------- Satisfacción del cliente: la encuesta de la página de seguimiento (D-418, 151) ---------- */}
           {/* Mismas órdenes que el resto del Panel (`scoped`): sus tiendas y su rango. Solo admin, logística y gerentes. */}
