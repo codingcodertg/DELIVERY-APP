@@ -1,6 +1,7 @@
 import { aLaDecima, palletsDeLaOrden } from "./pallets";
 import { parteOrdenesGrandes, type ChoferEntrada, type OrdenEntrada } from "./route-engine";
 import { ETAPAS_RUTEABLES } from "./route-plan/publicar";
+import { esPasoDeRelevo } from "./relevo-etiqueta";
 import type { Delivery } from "./types";
 
 /**
@@ -15,7 +16,7 @@ import type { Delivery } from "./types";
  * columnas.
  */
 
-export type CargaMinima = Pick<Delivery, "id" | "order_no"> & { order_suffix?: string | null; is_training?: boolean; stage?: string; actual_pallets?: number | null; est_pallets?: number | null };
+export type CargaMinima = Pick<Delivery, "id" | "order_no"> & { order_suffix?: string | null; relay_step?: number | null; is_training?: boolean; stage?: string; actual_pallets?: number | null; est_pallets?: number | null };
 
 /** Las cargas de la misma orden —misma `order_no` y mismo `is_training`—, incluida ella, por su letra (la sin letra, primero). */
 export function hermanasDe<T extends CargaMinima>(todas: readonly T[], d: Pick<CargaMinima, "order_no" | "is_training">): T[] {
@@ -24,9 +25,10 @@ export function hermanasDe<T extends CargaMinima>(todas: readonly T[], d: Pick<C
     .sort((a, b) => (a.order_suffix ?? "").localeCompare(b.order_suffix ?? ""));
 }
 
-/** «Carga 1 de 2»: cuál es esta y de cuántas. `null` si la orden no está partida. */
-export function cargaDe(d: Pick<CargaMinima, "id">, hermanas: readonly Pick<CargaMinima, "id">[]): { numero: number; de: number } | null {
-  if (hermanas.length < 2) return null;
+/** «Carga 1 de 2»: cuál es esta y de cuántas. `null` si la orden no está partida, y también si las hermanas son PASOS DE
+ *  RELEVO (D-NEXT, 256): esos van en serie, no son cargas de un mismo viaje, y se nombran «Tr-1111-a» con su pastilla. */
+export function cargaDe(d: Pick<CargaMinima, "id">, hermanas: readonly Pick<CargaMinima, "id" | "relay_step">[]): { numero: number; de: number } | null {
+  if (hermanas.length < 2 || hermanas.some(esPasoDeRelevo)) return null;
   const numero = hermanas.findIndex((x) => x.id === d.id) + 1;
   return numero > 0 ? { numero, de: hermanas.length } : null;
 }
@@ -55,13 +57,15 @@ const ruteable = (d: { stage?: string }) => !!d.stage && ETAPAS_RUTEABLES.includ
 
 /** ¿Se puede partir esta orden desde el Gestor? Pendiente de ruta, con pallets, y más de los que caben en ese camión. */
 export function sePuedePartir(d: CargaMinima, capacidad: number): boolean {
-  return ruteable(d) && restoPropuesto(palletsDeLaOrden(d), capacidad) != null;
+  // Un paso de relevo no se parte en cargas (D-NEXT): la base lo rechaza (`RELEVO_FIJO`).
+  return !esPasoDeRelevo(d) && ruteable(d) && restoPropuesto(palletsDeLaOrden(d), capacidad) != null;
 }
 
 /** ¿Se pueden volver a juntar dos cargas? Hermanas, las dos pendientes de ruta, y la suma cabe en ese camión. */
 export function sePuedenJuntar(a: CargaMinima, b: CargaMinima, capacidad: number): boolean {
   if (a.id === b.id || a.order_no !== b.order_no || !!a.is_training !== !!b.is_training) return false;
   if (!a.order_suffix || !b.order_suffix || !ruteable(a) || !ruteable(b)) return false;
+  if (esPasoDeRelevo(a) || esPasoDeRelevo(b)) return false;   // los pasos de relevo se deshacen enteros, no se juntan
   return capacidad > 0 && centesimas(palletsDeLaOrden(a)) + centesimas(palletsDeLaOrden(b)) <= centesimas(capacidad);
 }
 
@@ -123,7 +127,7 @@ export function cargasParaElCamion(total: number, capacidad: number): number[] {
   return Array.from({ length: n }, (_, k) => (k < n - 1 ? c : t - c * (n - 1)) / 100);
 }
 
-export type OrdenAlGuardar = Pick<Delivery, "assigned_driver" | "stage" | "est_pallets" | "actual_pallets">;
+export type OrdenAlGuardar = Pick<Delivery, "assigned_driver" | "stage" | "est_pallets" | "actual_pallets"> & { relay_step?: number | null };
 
 /**
  * ¿Este guardado deja una orden que no cabe en el camión de su chofer? Devuelve las CARGAS en que va (vacío si no hay que
@@ -136,6 +140,7 @@ export type OrdenAlGuardar = Pick<Delivery, "assigned_driver" | "stage" | "est_p
  */
 export function cargasAlGuardar(antes: OrdenAlGuardar | null | undefined, cambio: Partial<OrdenAlGuardar>, capacidadDe: (chofer: string) => number, rol: string | null | undefined): number[] {
   if (!antes || !rol || !ROLES_QUE_PARTEN.includes(rol)) return [];
+  if (esPasoDeRelevo(antes)) return [];   // D-NEXT: un paso de relevo no se parte solo
   const despues = { ...antes, ...cambio };
   const chofer = (despues.assigned_driver ?? "").trim();
   if (!chofer || !ruteable(despues)) return [];

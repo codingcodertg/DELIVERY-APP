@@ -1,3 +1,4 @@
+import { numeroConLetra } from "./relevo-etiqueta";
 // ============================================================
 // Order code — the human-facing 5-char order id, e.g. "FA100".
 //
@@ -95,7 +96,7 @@ export function nextOrderCode(existingCodes: (string | null | undefined)[], date
 }
 
 /** Display id: the code plus any split-load suffix ("FA100", "FA100a"). */
-export function codeLabel(d: { order_code?: string | null; order_no?: number; order_suffix?: string | null }): string {
+export function codeLabel(d: { order_code?: string | null; order_no?: number; order_suffix?: string | null; relay_step?: number | null }): string {
   const base = d.order_code || (d.order_no != null ? String(d.order_no) : "");
-  return `${base}${d.order_suffix ?? ""}`;
+  return numeroConLetra(base, d);
 }

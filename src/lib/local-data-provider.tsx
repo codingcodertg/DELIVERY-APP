@@ -15,6 +15,7 @@ import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { deviceId } from "@/lib/device-id";
 import { DEMO_USERS, demoDeliveries, demoNotifications, demoSettings, uid } from "@/lib/demo-data";
 import { alJuntar, alRepartir, avisoDePartirSola, cargasAlGuardar, copiaParaLaCarga, hermanasDe, madreAlPartir, parteEnCadena, restosParaPartir, siguienteLetra } from "@/lib/cargas-partidas";
+import { alActivar, alDeshacer, entraEnElCamion, pasosDelRelevo as pasosDeLaFamilia, pasosParaVer, porQueNoSeActiva, porQueNoSeRecoge, primerDiaDelPasoB, puedeGestionarRelevo, relevoParaElAviso, TEXTO_NO_SE_ACTIVA } from "@/lib/relevo";
 import { capacidadDelChofer } from "@/lib/agregar-material-avisos";
 import { palletsDeLaOrden } from "@/lib/pallets";
 import { orderLabel } from "@/lib/utils";
@@ -127,7 +128,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
   // Fan a stage change out to the people who need to act next.
   const addNotifs = (
     s: Store,
-    args: { stage: Stage; order_no: number | null; order_code?: string | null; delivery_id: string; creatorId: string | null; reason?: string | null },
+    args: { stage: Stage; order_no: number | null; order_code?: string | null; delivery_id: string; creatorId: string | null; reason?: string | null; etiqueta?: string | null; faltanPasos?: boolean },
   ): AppNotification[] => {
     const seeds = notificationsForStage({ ...args, actorId: me.id, actorRole: me.role, users: s.users });
     const now = new Date().toISOString();
@@ -265,6 +266,46 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     return true;
   }, [me, persist, notify]);   // `me` en las dependencias: `addEvent` firma con `me.id` (D-373)
 
+  // ---- Transferencia por relevo (D-NEXT, 256): el demo hace en memoria lo que `activar_relevo` y `deshacer_relevo` hacen
+  // en la base, con las MISMAS reglas (`lib/relevo`): quién puede, qué orden lo admite, qué tienda, qué día.
+  const activarRelevo = useCallback<DataState["activarRelevo"]>(async (id, tienda, fecha) => {
+    const s = storeRef.current;
+    if (!puedeGestionarRelevo(me)) { notify("Only route planners (or an admin) can set up a relay transfer."); return null; }
+    const madre = s.deliveries.find((c) => c.id === id);
+    if (!madre) return null;
+    const no = porQueNoSeActiva(madre, hermanasDe(s.deliveries, madre), s.settings.stores, s.settings.order_type_rules);
+    if (no) { notify(TEXTO_NO_SE_ACTIVA[no].en); return null; }
+    const hoy = todayISO();
+    if (!fecha || fecha < primerDiaDelPasoB(madre.delivery_date, hoy)) { notify("Step b can't be picked up before today or before step a's day."); return null; }
+    const lugar = s.settings.stores.find((t) => t.name.trim().toLowerCase() === tienda.trim().toLowerCase());
+    const ahora = new Date().toISOString();
+    const r = lugar ? alActivar(madre, lugar, fecha, { id: uid(), ahora, creador: me.id }) : null;
+    if (!r) { notify("The relay store must be a store from Settings other than the origin and the destination."); return null; }
+    const a = { ...madre, ...r.madre, updated_at: ahora };
+    let next: Store = { ...s, deliveries: [r.paso, ...s.deliveries.map((c) => (c.id === id ? a : c))] };
+    next = { ...next, events: addEvent(next, id, "edited", `Relay transfer set up: this order is now step ${orderLabel(a)} (${madre.pickup_name} -> ${a.delivery_name}); step ${orderLabel(r.paso)} (${r.paso.pickup_name} -> ${r.paso.delivery_name}) is picked up on ${fecha}`) };
+    next = { ...next, events: addEvent(next, r.paso.id, "created", `Relay transfer step ${orderLabel(r.paso)}: ${r.paso.pickup_name} -> ${r.paso.delivery_name}, pickup day ${fecha}`) };
+    persist(next);
+    return r.paso.id;
+  }, [me, persist, notify]);
+  const deshacerRelevo = useCallback<DataState["deshacerRelevo"]>(async (id) => {
+    const s = storeRef.current;
+    if (!puedeGestionarRelevo(me)) { notify("Only route planners (or an admin) can undo a relay transfer."); return false; }
+    const d = s.deliveries.find((c) => c.id === id);
+    const r = d ? alDeshacer(pasosDeLaFamilia(s.deliveries, d)) : null;
+    if (!r) { notify("The relay can no longer be undone: the first step was already picked up."); return false; }
+    const ahora = new Date().toISOString();
+    let next: Store = { ...s, deliveries: s.deliveries.filter((c) => !r.borrar.includes(c.id)).map((c) => (c.id === r.id ? { ...c, ...r.cambio, updated_at: ahora } : c)) };
+    next = { ...next, events: addEvent(next, r.id, "edited", "Relay transfer undone: it is one order again, to its final destination") };
+    persist(next);
+    return true;
+  }, [me, persist, notify]);
+  const pasosDelRelevo = useCallback<DataState["pasosDelRelevo"]>(async (id) => {
+    const s = storeRef.current;
+    const d = s.deliveries.find((c) => c.id === id);
+    return d ? pasosParaVer(pasosDeLaFamilia(s.deliveries, d), s.events, (uid2) => s.users.find((u) => u.id === uid2)?.full_name ?? null) : [];
+  }, []);
+
   // Local demo mode: positions live only in this browser session, so the
   // driver view can be exercised without a backend.
   const [driverLocations, setDriverLocations] = useState<DriverLocation[]>([]);
@@ -334,6 +375,11 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       );
       if (falta) { notify(falta); return false; }
     }
+    // D-NEXT (256): la regla del orden del relevo, como el proveedor real (y como `guard_relevo` en la base).
+    if (cur && entraEnElCamion(cur.stage, stage)) {
+      const espera = porQueNoSeRecoge(cur, s.deliveries);
+      if (espera) { notify(espera.en); return false; }
+    }
     const patch: Partial<Delivery> = { stage, ...extra, updated_at: new Date().toISOString() };
     if (stage === "approved") { patch.approved_by = me.id; patch.approved_at = new Date().toISOString(); }
     if (stage === "rejected") patch.rejected_reason = note ?? null;
@@ -349,7 +395,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     };
     persist({
       ...base,
-      notifications: addNotifs(base, { stage, order_no: cur?.order_no ?? null, order_code: cur?.order_code ?? null, delivery_id: id, creatorId: cur ? orderOwner(cur) : null, reason: note }),
+      notifications: addNotifs(base, { stage, order_no: cur?.order_no ?? null, order_code: cur?.order_code ?? null, delivery_id: id, creatorId: cur ? orderOwner(cur) : null, reason: note, ...(cur ? relevoParaElAviso(cur, s.deliveries) : {}) }),
     });
     return true;
   }, [me, persist, notify]);
@@ -597,7 +643,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       if (ok) await addNote(id, notaAlTomar({ yo, antes: d.assigned_driver, motivo, lang }));
       return ok;
     },
-    reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada, setUserIdentity, resetUserPassword,
+    reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, setUserIdentity, resetUserPassword,
     saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserDeliveriesAccess, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
     shifts: store.shifts ?? [], clockIn, clockOut, marcaGpsDelTurno,
@@ -606,7 +652,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // Local demo mode writes straight to this browser, so nothing is ever
     // waiting on a connection.
     pendingSync: 0, syncing: false,
-  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, marcaGpsDelTurno, addIncident, removeIncident, driverLocations, pushLocation]);
+  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, marcaGpsDelTurno, addIncident, removeIncident, driverLocations, pushLocation]);
 
   return (
     <Ctx.Provider value={value}>

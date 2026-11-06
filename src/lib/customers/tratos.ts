@@ -18,6 +18,7 @@
  */
 import { totalDeMateriales, type QuoteLine } from "@/lib/estimator/modelo";
 import { isoInTZ } from "@/lib/utils";
+import { numeroConLetra } from "@/lib/relevo-etiqueta";
 
 /** El día (YYYY-MM-DD) de una fecha o fecha y hora, en la hora de Texas (`BUSINESS_TZ`). */
 export function diaDeTexas(s: string): string {
@@ -105,7 +106,7 @@ export function tratoDeOrden(f: Record<string, unknown>): Trato {
     clase: "orden",
     id: String(f.id),
     fecha: txt(f.delivery_date) ?? txt(f.input_date) ?? txt(f.created_at) ?? "",
-    numero: codigo ? `${codigo}${txt(f.order_suffix) ?? ""}` : String(f.id).slice(0, 8),
+    numero: codigo ? numeroConLetra(codigo, { order_suffix: txt(f.order_suffix), relay_step: typeof f.relay_step === "number" ? f.relay_step : null }) : String(f.id).slice(0, 8),
     factura: txt(f.invoice_num),
     estado: txt(f.stage) ?? "",
     tienda: txt(f.store),

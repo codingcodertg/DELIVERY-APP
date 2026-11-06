@@ -15,6 +15,7 @@
  */
 
 import { fmtDate, orderLabel } from "@/lib/utils";
+import { esPasoDeRelevo, numeroConLetra } from "@/lib/relevo-etiqueta";
 import { columnaDeOrdenes } from "@/lib/routes-columns";
 import { ciudadDeEntrega } from "@/lib/ciudad-de-entrega";
 import type { OrderTypeRules } from "@/lib/required";
@@ -36,9 +37,9 @@ export interface DeOrdenes<C> {
  * factura (una Intertienda, un borrador) enseña su código, en gris (`esFactura: false`): es la misma regla que el «#» de
  * Órdenes (`invoice_num || orderLabel`), y sin ella esa fila no tendría nada que pulsar para abrirla.
  */
-export function textoQueAbreLaOrden(d: Pick<Delivery, "invoice_num" | "order_code" | "order_no" | "order_suffix">): { texto: string; esFactura: boolean } {
+export function textoQueAbreLaOrden(d: Pick<Delivery, "invoice_num" | "order_code" | "order_no" | "order_suffix" | "relay_step">): { texto: string; esFactura: boolean } {
   const factura = (d.invoice_num ?? "").trim();
-  return factura ? { texto: factura, esFactura: true } : { texto: `#${orderLabel(d)}`, esFactura: false };
+  return factura ? { texto: esPasoDeRelevo(d) ? numeroConLetra(factura, d) : factura, esFactura: true } : { texto: `#${orderLabel(d)}`, esFactura: false };
 }
 
 /** Lo que dos columnas de paradas necesitan saber de la pantalla para dar su valor (D-548): las tiendas (la ciudad de

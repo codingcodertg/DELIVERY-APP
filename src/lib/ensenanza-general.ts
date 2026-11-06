@@ -67,7 +67,7 @@ export const RPC_QUE_SOLO_LEEN = [
   "catalog_facets", "category_browse", "dashboard_stats", "estimator_find_estimate", "estimator_pending_approvals",
   "leads_my_scope", "list_cycle_counts", "list_purchase_orders", "my_point_balance", "my_published_stops",
   "negative_balances", "phone_book", "po_receiving_detail", "product_vocabulary", "purchasing_groups", "reconcile_po",
-  "reorder_report", "review_tag_facets", "rutas_del_dia", "security_gate", "session_gate", "store_names", "suggest_po_line_matches",
+  "pasos_del_relevo", "reorder_report", "review_tag_facets", "rutas_del_dia", "security_gate", "session_gate", "store_names", "suggest_po_line_matches",
   "tutorials",
 ] as const;
 
@@ -80,6 +80,7 @@ export const RPC_QUE_ESCRIBEN = [
   "security_sign_out_user", // 236 (D-828): cierra todas las sesiones de una persona.
   "revisa_solicitud_de_cliente", "corrige_solicitud_de_cliente", // 242 (D-865): mandan a Revisar y corrigen una solicitud.
   "add_product_relation", "adjust_inventory", "apply_decisions", "apply_master_import", "assign_draft_sku",
+  "activar_relevo", "deshacer_relevo", // 256: activan y deshacen una transferencia por relevo.
   "bulk_resolve_tag", "bulk_update_products", "confirm_external_match", "decide_request", "junta_clientes", "juntar_cargas",
   "leads_set_cap", "link_draft_to_product", "mark_survey_contacted", "merge_products", "partir_carga",
   "promo_set_round_closed", "publish_product", "publish_route_plan", "receive_manual", "receive_po", "rechaza_sugerencia_de_clientes",

@@ -1,6 +1,7 @@
 import type { NotifSeed } from "@/lib/notifications";
 import type { NamedLocation, OrderEvent, Stage } from "@/lib/types";
 import { mismaTiendaOGrupo } from "@/lib/store-group";
+import { mensajeDelRelevo } from "@/lib/relevo-etiqueta";
 
 // ============================================================
 // La recogida del chofer en «Mi ruta» y en su ficha (D-527, 2026-10-11). Cuatro pedidos del dueño, literales:
@@ -101,6 +102,10 @@ export function avisosDeRecogidaSinListo(args: {
  * tienda con el material delante. `null`: no es ese error, y se enseña el de siempre.
  */
 export function mensajeDelGuard(mensaje: string | null | undefined, lang: "en" | "es"): string | null {
+  // D-NEXT (256): el guard del relevo (`RELEVO_…`): el paso b de una transferencia no se recoge antes de que el a esté
+  // entregado. Lo dice `mensajeDelRelevo`; pasa por aquí para que valga al escribir la etapa Y al vaciar la cola sin red.
+  const delRelevo = mensajeDelRelevo(mensaje, lang);
+  if (delRelevo) return delRelevo;
   if (!/cannot move an order from (approved|fulfilling) to picked_up/.test(mensaje ?? "")) return null;
   return lang === "es"
     ? "Aún no disponible: falta una actualización del sistema — avisa a la oficina"

@@ -14,6 +14,7 @@
  * lectura de los errores y las etiquetas; `numerosDeFactura` es la copia de la de la base para el modo demo, que no
  * tiene base (y una prueba fija que las dos parten igual los casos del ensayo).
  */
+import { numeroConLetra } from "./relevo-etiqueta";
 
 /** Por debajo de esto la base no busca (devuelve nada): un número de 3 cifras casa con demasiadas facturas. */
 export const MINIMO_PARA_BUSCAR = 4;
@@ -84,9 +85,9 @@ export function ajenasParaTomar(filas: readonly OrdenParaTomar[], misIds: Readon
   return filas.filter((f) => !f.es_mia && !misIds.has(f.id) && ETAPAS_PARA_TOMAR.has(f.stage));
 }
 
-export function etiquetaDeLaOrden(o: Pick<OrdenParaTomar, "order_no" | "order_suffix" | "invoice_num">): string {
+export function etiquetaDeLaOrden(o: Pick<OrdenParaTomar, "order_no" | "order_suffix" | "invoice_num"> & { relay_step?: number | null }): string {
   const inv = (o.invoice_num ?? "").trim();
-  return `#${o.order_no}${o.order_suffix ?? ""}${inv ? ` · INV ${inv}` : ""}`;
+  return `#${numeroConLetra(o.order_no, o)}${inv ? ` · INV ${inv}` : ""}`;
 }
 
 export type FalloAlTomar = "sin-sesion" | "no-permitido" | "etapa" | "ya-es-tuya" | "sin-motivo" | "no-existe" | "sin-funcion" | "otro";

@@ -46,10 +46,14 @@ export function notificationsForStage(args: {
   actorRole?: Profile["role"] | null;
   users: Profile[];
   reason?: string | null;
+  /** D-NEXT (256): el nombre de un paso de transferencia por relevo («#Tr-1111-a»). Sin él, el código de siempre. */
+  etiqueta?: string | null;
+  /** D-NEXT: es un paso de relevo y después de él quedan más. Entonces «entregado» es «llegó a la tienda de relevo». */
+  faltanPasos?: boolean;
 }): NotifSeed[] {
-  const { stage, order_no, order_code, delivery_id, creatorId, actorId, actorRole, users, reason } = args;
+  const { stage, order_no, order_code, delivery_id, creatorId, actorId, actorRole, users, reason, etiqueta, faltanPasos } = args;
   const seeds: NotifSeed[] = [];
-  const label = order_code ? `#${order_code}` : (order_no != null ? `#${order_no}` : "");
+  const label = etiqueta || (order_code ? `#${order_code}` : (order_no != null ? `#${order_no}` : ""));
 
   const push = (userId: string | null | undefined, kind: string, message: string) => {
     if (!userId || userId === actorId) return;          // never notify the actor
@@ -76,10 +80,13 @@ export function notificationsForStage(args: {
       push(creatorId, "ready", `Order ${label} is ready for delivery`);
       break;
     case "picked_up":
-      push(creatorId, "picked_up", `Order ${label} was picked up — out for delivery`);
+      push(creatorId, "picked_up", etiqueta ? `Transfer step ${label} was picked up — on its way` : `Order ${label} was picked up — out for delivery`);
       break;
     case "delivered":
-      push(creatorId, "delivered", `Order ${label} was delivered`);
+      // Un paso de relevo que no es el último llegó a la tienda de relevo: la ORDEN todavía no está entregada.
+      push(creatorId, "delivered", etiqueta
+        ? (faltanPasos ? `Transfer step ${label} reached the relay store — the order is not delivered yet, the next step is still to go` : `Transfer step ${label} was delivered — the order is complete`)
+        : `Order ${label} was delivered`);
       break;
     case "canceled": {
       // D-656 (migración 191): el vendedor anula SU orden hasta «Listo» (D-663, 192) sin pasar por nadie, así que la oficina

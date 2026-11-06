@@ -4,7 +4,7 @@ import { useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { NO_ESTA_LISTA } from "@/lib/acciones-parada";
 import { MOTIVOS_SIN_LISTO, notaDelMotivoSinListo, type MotivoSinListo } from "@/lib/recoger-sin-listo-pantalla";
-import { orderLabel } from "@/lib/utils";
+import { nombreDeLaOrden } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 /**
@@ -22,7 +22,7 @@ export function RecogerSinListo({ pedido, ocupado, onCancelar, onConfirmar }: {
   const [motivo, setMotivo] = useState<MotivoSinListo | null>(null);
   const [texto, setTexto] = useState("");
   const nota = notaDelMotivoSinListo(motivo, texto, lang);
-  const etiqueta = pedido.invoice_num || `#${orderLabel(pedido)}`;
+  const etiqueta = nombreDeLaOrden(pedido);
   return (
     <div className="overlay" data-recoger-sin-listo="" onClick={(e) => { if (e.target === e.currentTarget && !ocupado) onCancelar(); }}>
       <div className="modal" role="dialog" aria-modal="true" aria-label={t(NO_ESTA_LISTA.en, NO_ESTA_LISTA.es)} style={{ maxWidth: 380 }}>

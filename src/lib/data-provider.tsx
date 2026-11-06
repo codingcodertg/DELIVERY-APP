@@ -38,6 +38,7 @@ import { applyShiftOutbox, enqueueShiftOp, flushShiftOps, loadShiftOutbox, saveS
 import { ALL_QUERIES, queriesForTables, type QueryName } from "@/lib/realtime-reload";
 import { cumpleFiltroDeLaLista, fusionarFilas, planDeRafaga, porCreatedAtDesc, porOrderNoDesc, type EventoRealtime, type PlanDeTabla, type TablaPorFila, type TipoDeEvento } from "@/lib/recarga-por-fila";
 import { avisoDePartirSola, cargasAlGuardar, esFuncionAusente, parteEnCadena, restosParaPartir } from "@/lib/cargas-partidas";
+import { entraEnElCamion, mensajeDelRelevo, pasosDelRelevo as pasosDeLaFamilia, pasosParaVer, porQueNoSeRecoge, relevoParaElAviso, type PasoParaVer } from "@/lib/relevo";
 import { capacidadDelChofer } from "@/lib/agregar-material-avisos";
 import { argumentosDeReprogramar, caminoTrasReprogramar, notaDeReprogramacion } from "@/lib/reprogramar-orden";
 import { planDeDeshacer, type FotoDeReprogramacion } from "@/lib/deshacer-reprogramar";
@@ -179,6 +180,15 @@ export interface DataState {
   reparteCargas: (a: string, b: string, palletsA: number) => Promise<boolean>;
   /** Devuelve los pallets de `b` a `a` y borra `b` (queda en `deliveries_borradas`, 142). */
   juntarCargas: (a: string, b: string) => Promise<boolean>;
+  /** TRANSFERENCIA POR RELEVO de una orden de tienda a tienda (D-NEXT, migración 256; regla en `lib/relevo`). La orden pasa
+   *  a ser el paso a («Tr-1111-a», hasta la tienda de relevo) y nace el paso b («Tr-1111-b», de ahí al destino), que se
+   *  recoge el día `fecha`. Devuelve el id del paso b (`null` si no se pudo: la base lo dice, o no tiene la 256). */
+  activarRelevo: (id: string, tienda: string, fecha: string) => Promise<string | null>;
+  /** Deshace el relevo mientras el paso a no se haya recogido: vuelve a ser UNA orden, con su destino final. */
+  deshacerRelevo: (id: string) => Promise<boolean>;
+  /** Los pasos del relevo de esa orden con quién y cuándo (`pasos_del_relevo`: también los que la RLS no deja leer a un
+   *  chofer). Sin la función, o en el demo, salen de las filas a la vista. */
+  pasosDelRelevo: (id: string) => Promise<import("@/lib/relevo").PasoParaVer[]>;
   /** Borra una orden. `true` solo si la base devolvió la fila (D-383): un DELETE que la política no deja
    * pasar vuelve limpio con CERO filas, y entonces la orden se queda en la lista y se avisa. */
   deleteDelivery: (id: string) => Promise<boolean>;
@@ -1047,7 +1057,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
   // ---------------- Notification fan-out ----------------
   // Insert one row per recipient. Realtime pushes them to each user's bell.
   const emitStageNotifs = useCallback(
-    async (args: { stage: Stage; order_no: number | null; order_code?: string | null; delivery_id: string; creatorId: string | null; reason?: string | null }) => {
+    async (args: { stage: Stage; order_no: number | null; order_code?: string | null; delivery_id: string; creatorId: string | null; reason?: string | null; etiqueta?: string | null; faltanPasos?: boolean }) => {
       const seeds = notificationsForStage({ ...args, actorId: me?.id ?? null, actorRole: me?.role ?? null, users });
       if (!seeds.length) return;
       const { error } = await supabase.from("notifications").insert(seeds);
@@ -1490,6 +1500,37 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     return trasLasCargas(error);
   }, [supabase, teaching, notify, trasLasCargas]);
 
+  // ---- Transferencia por relevo (D-NEXT, 256): la base hace el trabajo (`activar_relevo`, `deshacer_relevo`) y dice por
+  // qué no cuando no deja; aquí solo se llama, se traduce el error (`mensajeDelRelevo`) y se recarga.
+  const trasElRelevo = useCallback(async (error: { code?: string | null; message: string } | null): Promise<boolean> => {
+    if (error) {
+      notify(esFuncionAusente(error)
+        ? (lang === "es" ? "La transferencia por relevo necesita la actualización de la base (migración 256). No se cambió nada." : "Relay transfers need the database update (migration 256). Nothing was changed.")
+        : mensajeDelRelevo(error.message, lang) ?? "Error: " + error.message);
+      return false;
+    }
+    await reloadTables(["deliveries", "order_events"]);
+    return true;
+  }, [notify, reloadTables, lang]);
+  const activarRelevo = useCallback<DataState["activarRelevo"]>(async (id, tienda, fecha) => {
+    if (teaching) { notify("Not available in teaching mode."); return null; }
+    const { data, error } = await supabase.rpc("activar_relevo", { p_id: id, p_tienda: tienda, p_fecha: fecha });
+    return (await trasElRelevo(error)) && typeof data === "string" ? data : null;
+  }, [supabase, teaching, notify, trasElRelevo]);
+  const deshacerRelevo = useCallback<DataState["deshacerRelevo"]>(async (id) => {
+    if (teaching) { notify("Not available in teaching mode."); return false; }
+    const { error } = await supabase.rpc("deshacer_relevo", { p_id: id });
+    return trasElRelevo(error);
+  }, [supabase, teaching, notify, trasElRelevo]);
+  const pasosDelRelevo = useCallback<DataState["pasosDelRelevo"]>(async (id) => {
+    const d = effectiveDeliveries.find((c) => c.id === id);
+    const aLaVista = d ? pasosParaVer(pasosDeLaFamilia(effectiveDeliveries, d), events, (uid) => users.find((u) => u.id === uid)?.full_name ?? null) : [];
+    if (teaching) return aLaVista;
+    const { data, error } = await supabase.rpc("pasos_del_relevo", { p_id: id });
+    // Sin la función (256 sin aplicar) o si no devuelve nada, lo que esta persona ya tiene a la vista.
+    return !error && Array.isArray(data) && data.length ? (data as PasoParaVer[]) : aLaVista;
+  }, [supabase, teaching, effectiveDeliveries, events, users]);
+
   // Report this device's position. Called on a timer while the driver is on
   // shift (and by the Android app's background service). Deliberately quiet:
   // a dropped fix is not worth a toast on the driver's screen, and the next
@@ -1633,6 +1674,13 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         );
         if (falta) { notify(falta); return false; }
       }
+      // D-NEXT (256): el paso b de una transferencia por relevo no se recoge (ni se da por entregado) hasta que el paso a
+      // esté entregado en la tienda de relevo. Vale para todos, admin incluido; la base lo repite (`guard_relevo`), y es
+      // ella quien decide cuando el paso anterior es de otro chofer y esta persona no lo tiene a la vista.
+      if (current && entraEnElCamion(current.stage, stage)) {
+        const espera = porQueNoSeRecoge(current, effectiveDeliveries);
+        if (espera) { notify(espera[lang]); return false; }
+      }
       const patch: Partial<Delivery> = { stage, ...extra };
       if (stage === "approved") {
         patch.approved_by = me?.id ?? null;
@@ -1685,7 +1733,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       // `kind` por defecto es la etapa, como siempre. Un gesto con nombre propio —«Dejar en
       // tienda»— lo pasa, para que en el historial no se confunda con una reversión cualquiera.
       void logEvent(id, kind ?? stage, note);
-      void emitStageNotifs({ stage, order_no: order?.order_no ?? null, order_code: order?.order_code ?? null, delivery_id: id, creatorId: order ? orderOwner(order) : null, reason: note });
+      void emitStageNotifs({ stage, order_no: order?.order_no ?? null, order_code: order?.order_code ?? null, delivery_id: id, creatorId: order ? orderOwner(order) : null, reason: note, ...(order ? relevoParaElAviso(order, deliveries) : {}) });
       // Aviso «en camino» al cliente de la parada que ahora es la siguiente (D-416, 150). Solo si está encendido en
       // Ajustes; el servidor rehace la ruta y decide. En modo enseñanza no se llega aquí (sale arriba).
       pedirAvisoEnCamino(id, stage, settings.notify_on_the_way_enabled);
@@ -2363,14 +2411,14 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
   const value: DataState = useMemo(() => ({
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events: effectiveEvents, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
-    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
+    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
     saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut, marcaGpsDelTurno,
     incidents, addIncident, removeIncident,
     driverLocations, pushLocation,
     pendingSync: outbox.length, syncing,
-  }), [ready, effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, effectiveDeliveries, ensureDeliveriesSince, effectiveEvents, notifications, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserDeliveriesAccess, deleteUser, availability, addAvailability, removeAvailability, shiftsView, clockIn, clockOut, marcaGpsDelTurno, incidents, addIncident, removeIncident, driverLocations, pushLocation, outbox.length, syncing]);
+  }), [ready, effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, effectiveDeliveries, ensureDeliveriesSince, effectiveEvents, notifications, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserDeliveriesAccess, deleteUser, availability, addAvailability, removeAvailability, shiftsView, clockIn, clockOut, marcaGpsDelTurno, incidents, addIncident, removeIncident, driverLocations, pushLocation, outbox.length, syncing]);
 
   return (
     <Ctx.Provider value={value}>

@@ -5,7 +5,7 @@ import { useSolicitudesDeAsignacion } from "@/lib/usa-solicitudes-de-asignacion"
 import {
   abiertaDe, fechaPropuestaDeSolicitud, puedePedirAsignacion, solicitudValida, ultimaDe,
 } from "@/lib/solicitud-de-asignacion";
-import { orderLabel, shiftDateISO, todayISO } from "@/lib/utils";
+import { shiftDateISO, todayISO, nombreDeLaOrden } from "@/lib/utils";
 import type { Delivery, Profile } from "@/lib/types";
 
 /**
@@ -90,7 +90,7 @@ export function PedirAsignacion({ pedido, me, esSuya, choferes, t, notify }: {
       {abierto && (
         <div className="overlay" data-dialogo-pedir-asignacion onClick={(e) => { if (e.target === e.currentTarget && !guardando) setAbierto(false); }}>
           <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 420 }}>
-            <h3 style={{ marginTop: 0 }}>📅 {t("Request for today", "Pedir para hoy")} · {pedido.invoice_num || `#${orderLabel(pedido)}`}</h3>
+            <h3 style={{ marginTop: 0 }}>📅 {t("Request for today", "Pedir para hoy")} · {nombreDeLaOrden(pedido)}</h3>
             <p className="hint" style={{ marginTop: 0 }}>
               {t(`Now: ${pedido.delivery_date?.slice(0, 10) || "no date"}. Logistics approves (reschedules and assigns it) or rejects it; you'll see it in your 🔔.`,
                 `Ahora: ${pedido.delivery_date?.slice(0, 10) || "sin fecha"}. Logística la aprueba (la reprograma y la asigna) o la rechaza; lo verá en su 🔔.`)}

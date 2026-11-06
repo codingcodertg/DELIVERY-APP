@@ -5,7 +5,7 @@ import { useSolicitudesDeAsignacion } from "@/lib/usa-solicitudes-de-asignacion"
 import {
   abiertasEnOrden, choferInicial, motivoValido, type SolicitudDeAsignacion,
 } from "@/lib/solicitud-de-asignacion";
-import { orderLabel } from "@/lib/utils";
+import { nombreDeLaOrden } from "@/lib/utils";
 import type { Delivery, Profile } from "@/lib/types";
 
 /**
@@ -107,7 +107,7 @@ function FilaDeSolicitud({ s, orden, quien, choferes, aprobar, decidir, abrirOrd
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "baseline" }}>
         {orden
           ? <button type="button" className="btn btn-ghost btn-sm" onClick={() => abrirOrden(orden)}>
-              <b>{orden.invoice_num || `#${orderLabel(orden)}`}</b>{orden.account ? ` · ${orden.account}` : ""}
+              <b>{nombreDeLaOrden(orden)}</b>{orden.account ? ` · ${orden.account}` : ""}
             </button>
           : <b>{t("Order not loaded", "Orden no cargada")}</b>}
         <span>{(s.from_date ?? t("no date", "sin fecha"))} → <b>{s.requested_date}</b></span>

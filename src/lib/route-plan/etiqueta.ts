@@ -1,4 +1,5 @@
 import { orderLabel } from "@/lib/utils";
+import { esPasoDeRelevo, numeroConLetra } from "@/lib/relevo-etiqueta";
 
 /**
  * Cómo se nombra una orden en todo lo del plan de ruta (D-331): su código Y su número de factura.
@@ -8,7 +9,7 @@ import { orderLabel } from "@/lib/utils";
  * VIVO de la orden (`deliveries`), no de la foto del plan: los planes ya guardados no la llevan, y quien ve el plan ve
  * esas órdenes. Una orden que ya no está a la vista se nombra por el principio de su referencia, como antes.
  */
-export type OrdenParaNombrar = { id: string; order_code?: string | null; order_no: number; order_suffix?: string | null; invoice_num?: string | null };
+export type OrdenParaNombrar = { id: string; order_code?: string | null; order_no: number; order_suffix?: string | null; relay_step?: number | null; invoice_num?: string | null };
 
 export function etiquetaDeOrden(d: OrdenParaNombrar, es: boolean): string {
   const factura = (d.invoice_num ?? "").trim();
@@ -45,6 +46,8 @@ export interface FacturaYId { principal: string; id: string | null; esFactura: b
 export function facturaYId(d: Omit<OrdenParaNombrar, "id">): FacturaYId {
   const factura = (d.invoice_num ?? "").trim();
   const codigo = `#${orderLabel(d)}`;
+  // D-NEXT (256): un paso de relevo se nombra «Tr-<factura>-a» también donde lo que nombra la orden es su factura.
+  if (factura && esPasoDeRelevo(d)) return { principal: numeroConLetra(factura, d), id: codigo, esFactura: true };
   return factura ? { principal: factura, id: codigo, esFactura: true } : { principal: codigo, id: null, esFactura: false };
 }
 

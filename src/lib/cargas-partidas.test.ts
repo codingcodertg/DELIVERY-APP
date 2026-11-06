@@ -316,8 +316,11 @@ describe("las pantallas usan la regla (la prueba se alimenta de quien llama)", (
     expect(gestor).toContain("const id = await partirCarga(d.id, resto);");
   });
   it("«Mi ruta»: «carga 1 de 2» en la siguiente parada y en cada fila; el botón de marcar es el de siempre, por carga", () => {
-    expect(miRuta).toContain("{facturasDeLaOrden(next).join(\", \") || `#${orderLabel(next)}`}{etiquetaDeLaCarga(next)}");
-    expect(miRuta).toContain("{facturasDeLaOrden(d).join(\", \") || `#${orderLabel(d)}`}{etiquetaDeLaCarga(d)}");
+    // Nota (256, transferencia por relevo): lo que nombra la orden pasa por `nombreEnMiRuta` —las facturas o el código, como
+    // antes; un paso de relevo, «Tr-<factura>-b»—, y «carga 1 de 2» sigue justo detrás.
+    expect(miRuta).toContain("{nombreEnMiRuta(next)}{etiquetaDeLaCarga(next)}");
+    expect(miRuta).toContain("{nombreEnMiRuta(d)}{etiquetaDeLaCarga(d)}");
+    expect(miRuta).toContain("facturasDeLaOrden(d).join(\", \") || `#${orderLabel(d)}`");
     expect(miRuta).toContain("cargaDe(d, hermanasDe(deliveries, d))");
   });
 });
