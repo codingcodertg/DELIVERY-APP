@@ -50892,3 +50892,9 @@ Sello `deliveries` 1.549.0; repo 1.744.0.
 La nota de progreso exige uno de siete tipos (Made Contact, Didn't Answer, Had Appointment, Made Quote, Under Negotiation, Closed, Lost), mostrado como píldora; filtro por última acción. Pedido de Roberto (help e207d9ef). Migración 253.
 
 Sello `leads` 0.20.0; repo 1.745.0.
+
+## D-892 · Time Tracker: no se detiene al despertar la PC
+
+Tras un standby de más de 5 min el cronómetro ya no se detiene (D-510 devolvía para): sigue en una fila nueva desde el despertar, el standby sigue sin pagarse, avisa en pantalla y con notificación de Windows; todo paro automático deja un banner rojo fijo.
+
+Sello `timetracker` 1.17.0; repo 1.746.0.
