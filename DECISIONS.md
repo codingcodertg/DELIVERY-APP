@@ -50982,3 +50982,9 @@ Sello `warehouse_ops` 0.5.0; repo 1.759.0.
 Las horas pendientes se proyectan desde el último evento real (esté donde esté en la lista), siempre crecen hacia abajo y nunca quedan en el pasado; la salida de base sale del primer evento real; ahora y hoy son hora de Texas; se refrescan cada minuto; un tramo sin tiempo dice sin hora y una recogida a medias dice sin marcar; la hora planeada es la del plan vigente (se rehace al reordenar) y se guarda la primera estimación; paradas hechas fuera de orden lo dicen. Pedido de Roberto (help a88c6b76 y 8e91185c). Migración 260.
 
 Sello `deliveries` 1.558.0; repo 1.760.0.
+
+## D-907 · Entregas: reportes de choferes (ruta planeada vs real, hora estimada vs real, tiempo por parada)
+
+Tarjeta Driver reports en el Panel: ruta planeada vs real por chofer y día (orden, millas, mapa con el rastro GPS real), hora estimada vs real por parada, tiempo en cada parada por tipo/tienda/cliente/chofer y tarjeta de puntuación del chofer con la cobertura de datos de cada número. Llegadas y salidas se detectan del rastro GPS (camión por TrackSolid jimi.device.track.list, luego teléfono, luego toque). Cron diario guarda el rastro de los camiones. CSV en cada pestaña. Migración 264.
+
+Sello `deliveries` 1.559.0; repo 1.761.0.
