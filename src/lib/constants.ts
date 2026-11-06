@@ -6,6 +6,7 @@ import { PERMISO_OTRAS_TIENDAS, PERMISO_POOL_PRIVADO, seOfreceOtrasTiendas } fro
 import { seOfreceClientes } from "./customers/reglas";
 import { CAP_TODAS_LAS_TIENDAS, seOfreceTodasLasTiendas } from "./todas-las-tiendas";
 import { PERMISO_SUPERVISOR as PERMISO_SUPERVISOR_ALMACEN } from "./almacen-ops/visibilidad";
+import { INFO_DE_NIVEL, NIVELES, esNivel, nivelPorDefecto } from "./almacen-ops/nivel";
 
 // App version moved to src/lib/app-versions.ts (D-087) — one number per app
 // (deliveries/recruiting/timetracker) instead of a single global constant.
@@ -1031,7 +1032,17 @@ export interface ModuleAccessConfig {
    * be a duplicate of the same fact, free to drift. Access is the checkbox
    * alone. The uniqueness rule this field encodes still holds: no two modules
    * may aim at the same column, and absent is not the same as "role". */
-  roleColumn?: "recruiting_role" | "timetracker_role" | "role" | "erp_role";
+  roleColumn?: "recruiting_role" | "timetracker_role" | "role" | "erp_role" | "warehouse_ops_role";
+  /**
+   * El valor que el selector enseña cuando la columna está vacía, según el rol del hub (D-908, Warehouse Ops: sin
+   * nivel escrito manda el rol del hub, y la base aplica esa misma regla). Ausente = el último de `roleKeys`.
+   */
+  roleDefault?: (hubRole: UserRole) => string;
+  /** Si devuelve algo, ese rol del hub tiene el nivel FIJO (el admin del hub es admin de la app): el selector se
+   *  enseña con ese valor y apagado, en vez de dejar elegir algo que la base no le aplicaría. */
+  roleFixedFor?: (hubRole: UserRole) => string | undefined;
+  /** Una línea bajo el selector que dice qué abre el valor elegido. */
+  roleDescription?: (key: string, lang: Lang) => string;
   /**
    * Dónde se edita ese rol, cuando NO es dentro del bloque del módulo (D-230).
    *
@@ -1252,11 +1263,18 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
   {
     key: "warehouse_ops", label_en: "Warehouse Ops", label_es: "Operaciones de almacén",
     alwaysOn: false,
-    // D-883 (247): sin escalafón propio. Quien tiene la casilla llena reportes y ve los suyos. El manager del hub
-    // (`profiles.role`) ve los de su tienda, también los de RR. HH.; el supervisor de almacén (permiso por persona)
-    // ve los de su tienda que no son de RR. HH. Lo decide `public.warehouse_ops_can_see` (RLS).
-    roleKeys: [],
-    roleLabel: (key, lang) => roleLabel(key as UserRole, lang),
+    // D-883 (247): nació sin escalafón propio. D-908 (265): tiene NIVEL (`profiles.warehouse_ops_role`), que dice
+    // qué secciones abre y si es admin dentro de la app (en todas las tiendas o solo en las suyas). Sin nivel escrito
+    // manda el rol del hub: almacén = solo merma; los demás = todos los reportes. Con «todos los reportes», el manager
+    // del hub ve los de su tienda (también RR. HH.) y el supervisor de almacén (permiso por persona) los que no son
+    // de RR. HH. Lo decide la base: `public.warehouse_ops_can_see` (RLS) y el guardia de `warehouse_reports`.
+    roleColumn: "warehouse_ops_role",
+    roleKeys: NIVELES,
+    // Recibe un nivel (el selector) o un rol del hub (la frase de los permisos finos, por `capabilitiesRole`).
+    roleLabel: (key, lang) => (esNivel(key) ? INFO_DE_NIVEL[key][lang === "es" ? "es" : "en"] : roleLabel(key as UserRole, lang)),
+    roleDefault: (hubRole) => nivelPorDefecto(hubRole),
+    roleFixedFor: (hubRole) => (hubRole === "admin" ? "admin" : undefined),
+    roleDescription: (key, lang) => (esNivel(key) ? INFO_DE_NIVEL[key][lang === "es" ? "desc_es" : "desc_en"] : ""),
     accessColumn: "module_access",
     roleNote: {
       en: "No role of its own. Everyone files reports and sees their own. Managers see their store's reports, including HR ones (insubordination, zone, positive), which also go to the employee's HR file. Admins always have it.",
@@ -1266,8 +1284,8 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
       {
         key: PERMISO_SUPERVISOR_ALMACEN,
         en: "Warehouse supervisor", es: "Supervisor de almacén",
-        desc_en: "Sees every report of their store except the HR ones.",
-        desc_es: "Ve todos los reportes de su tienda menos los de RR. HH.",
+        desc_en: "Sees every report of their store except the HR ones. Only applies with the \"All reports\" level.",
+        desc_es: "Ve todos los reportes de su tienda menos los de RR. HH. Solo cuenta con el nivel «Todos los reportes».",
       },
     ],
     capabilitiesRole: "role",

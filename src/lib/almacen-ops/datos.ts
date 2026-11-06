@@ -37,6 +37,8 @@ export interface Reporte {
   reason: string | null;
   broken_by: string[];
   crma: string | null;
+  /** 266: el día en que se rompió la merma (YYYY-MM-DD). Null en lo que no es merma. */
+  broken_on?: string | null;
   /** 254: de `total_pieces`, cuántas dañadas y cuántas de muestra. Null en los reportes de antes (una sola opción). */
   damaged_pieces?: number | null;
   sample_pieces?: number | null;

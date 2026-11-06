@@ -9,7 +9,7 @@ const SQL = readFileSync(join(process.cwd(), "supabase/migrations/254_merma_repa
 
 const producto = { id: 7, sku: "S", name: "N", cost: 2.5, pieces_per_box: 4 };
 const qty = { boxes: 2, piecesPerBox: 4, loosePieces: 0 }; // 8 piezas
-const base = { product: producto, qty, split: { damaged: 6, sample: 2 }, return_type: "internal", reason: "fell" };
+const base = { product: producto, qty, split: { damaged: 6, sample: 2 }, return_type: "internal", reason: "fell", broken_on: "2020-01-01" }; // 266: la fecha del daño es obligatoria
 const pasoQty = PASOS.scrap.find((p) => p.id === "qty")!;
 
 describe("faa07047: primero el total, luego cuántas dañadas y cuántas de muestra", () => {
@@ -63,7 +63,8 @@ describe("faa07047: primero el total, luego cuántas dañadas y cuántas de mues
       return_type: "internal", reason: "fell", broken_by: [], crma: null,
     });
     // El origen vuelve a ser una pregunta (el pedido 714584e6 fue retirado): viaja otra vez en answers.
-    expect(respuestasParaGuardar("scrap", base)).toEqual({ return_type: "internal", reason: "fell" });
+    // 266: la fecha del daño viaja en `answers`; el trigger de la base la pasa a su columna y la quita de ahí.
+    expect(respuestasParaGuardar("scrap", base)).toEqual({ return_type: "internal", reason: "fell", broken_on: "2020-01-01" });
   });
   it("la 254 dejó la pérdida en costo × todas las piezas; la 259 la cambió a solo dañadas (ver merma-roberto-3)", () => {
     expect(perdida(producto.cost, piezasTotales(qty))).toBe(20);

@@ -50988,3 +50988,9 @@ Sello `deliveries` 1.558.0; repo 1.760.0.
 Tarjeta Driver reports en el Panel: ruta planeada vs real por chofer y día (orden, millas, mapa con el rastro GPS real), hora estimada vs real por parada, tiempo en cada parada por tipo/tienda/cliente/chofer y tarjeta de puntuación del chofer con la cobertura de datos de cada número. Llegadas y salidas se detectan del rastro GPS (camión por TrackSolid jimi.device.track.list, luego teléfono, luego toque). Cron diario guarda el rastro de los camiones. CSV en cada pestaña. Migración 264.
 
 Sello `deliveries` 1.559.0; repo 1.761.0.
+
+## D-908 · Warehouse Ops: niveles por persona (Francis admin de Pharr, almacén solo merma) y fecha del daño en la merma
+
+Warehouse Ops ahora tiene un nivel por persona, que un admin cambia en Usuarios: admin, admin de sus tiendas, todos los reportes o solo merma. Francis Lestarpe queda como admin de la app solo en Pharr, y el personal de almacén con cuenta ve únicamente la merma (formulario, borradores y sus reportes); la base y el servidor bloquean lo demás, también por URL directa. La merma pregunta la fecha en que se rompió (hoy en Texas por defecto, nunca futura); la tarjeta la muestra, y la lista de gerentes, sus filtros y los totales de pérdida por tienda cuentan por ese día.
+
+Sello `warehouse_ops` 0.6.0; repo 1.762.0.

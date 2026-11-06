@@ -4,15 +4,18 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
-import { INFO_DE_TIPO, TIPOS, esDeRrhh, type TipoDeReporte } from "@/lib/almacen-ops/tipos";
-import { tieneElModulo, veLosReportes } from "@/lib/almacen-ops/visibilidad";
+import { INFO_DE_TIPO, esDeRrhh } from "@/lib/almacen-ops/tipos";
+import { veLosReportes } from "@/lib/almacen-ops/visibilidad";
+import { leerNivelEscrito, tiposPermitidos } from "@/lib/almacen-ops/nivel";
+import { tiendasPara, vistaPermitida, type Vista } from "@/lib/almacen-ops/puerta";
 import { DEMO_PERSONAS, DEMO_TIENDAS, DEMO_YO, faltaLaMigracion, type Persona, type Yo } from "@/lib/almacen-ops/datos";
 import { Asistente } from "./Asistente";
 import { borrarBorrador, listarBorradores, type Borrador } from "@/lib/almacen-ops/borradores";
 import { fmtDateTime } from "@/lib/utils";
+import { esDia, fmtDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { ListaDeReportes } from "./ListaDeReportes";
 
-export type Vista = { v: "inicio" } | { v: "nuevo"; tipo: TipoDeReporte } | { v: "mios" } | { v: "reportes" };
+export type { Vista };
 
 export interface Contexto {
   demo: boolean;
@@ -37,19 +40,23 @@ export function Operaciones({ vista, demo }: { vista: Vista; demo: boolean }) {
       const sb = createClient();
       const { data: { user } } = await sb.auth.getUser();
       if (!user) return;
-      const [perfil, ajustes, gente, prueba] = await Promise.all([
+      const [perfil, ajustes, gente, prueba, nivel] = await Promise.all([
         sb.from("profiles").select("id, full_name, role, store, visible_stores, permissions, module_access, recruiting_role").eq("id", user.id).maybeSingle(),
         sb.from("settings").select("stores").eq("id", 1).maybeSingle(),
         sb.from("profiles").select("id, full_name, store, role, module_access, left_at").order("full_name"),
         sb.from("warehouse_reports").select("id", { head: true, count: "exact" }).limit(1),
+        // 265: el nivel dentro de la app. Lectura aparte y tolerante: si la columna aún no existe, manda el rol del hub.
+        leerNivelEscrito(sb, user.id),
       ]);
       if (!vivo) return;
       if (faltaLaMigracion(prueba.error)) { setCarga({ estado: "falta-247" }); return; }
       const error = perfil.error ?? ajustes.error ?? gente.error ?? prueba.error;
       if (error || !perfil.data) { setCarga({ estado: "error", mensaje: error?.message ?? "profile" }); return; }
-      const tiendas = ((ajustes.data?.stores ?? []) as { name?: string | null }[]).map((s) => (s.name ?? "").trim()).filter(Boolean);
+      const yo = { ...perfil.data, full_name: perfil.data.full_name ?? "", warehouse_ops_role: nivel } as Yo;
+      const todas = ((ajustes.data?.stores ?? []) as { name?: string | null }[]).map((s) => (s.name ?? "").trim()).filter(Boolean);
       const personas = ((gente.data ?? []) as Persona[]).filter((p) => (p.full_name ?? "").trim());
-      setCarga({ estado: "listo", ctx: { demo, yo: { ...perfil.data, full_name: perfil.data.full_name ?? "" } as Yo, tiendas, personas } });
+      // 265: el admin de la app «solo en sus tiendas» no elige ni filtra otra tienda (la base se lo rechaza igual).
+      setCarga({ estado: "listo", ctx: { demo, yo, tiendas: tiendasPara(yo, todas), personas } });
     })();
     return () => { vivo = false; };
   }, [demo]);
@@ -71,6 +78,9 @@ export function Operaciones({ vista, demo }: { vista: Vista; demo: boolean }) {
 }
 
 function Pantalla({ vista, ctx }: { vista: Vista; ctx: Contexto }) {
+  // La página del servidor ya devolvió al inicio a quien no puede; esto cubre el demo y un nivel que cambió con la
+  // pantalla abierta. La base lo rechaza igual (265).
+  if (!vistaPermitida(ctx.yo, vista)) return <Inicio ctx={ctx} />;
   if (vista.v === "nuevo") return <Asistente tipo={vista.tipo} ctx={ctx} />;
   if (vista.v === "mios") return <ListaDeReportes modo="mios" ctx={ctx} />;
   if (vista.v === "reportes") return <ListaDeReportes modo="todos" ctx={ctx} />;
@@ -79,18 +89,32 @@ function Pantalla({ vista, ctx }: { vista: Vista; ctx: Contexto }) {
 
 function Inicio({ ctx }: { ctx: Contexto }) {
   const { t, lang } = usePrefs();
-  const llena = tieneElModulo(ctx.yo);
+  // 265: las tarjetas son las que su nivel abre. Con una sola (el personal de almacén: merma) no hay tablero ni
+  // pregunta: una tarjeta ancha que abre el formulario, sus borradores y sus reportes.
+  const tipos = useMemo(() => tiposPermitidos(ctx.yo), [ctx.yo]);
+  const llena = tipos.length > 0;
+  const unico = tipos.length === 1 ? tipos[0] : null;
   const gerente = veLosReportes(ctx.yo);
   const nombre = useMemo(() => (ctx.yo.full_name || "").split(/\s+/)[0], [ctx.yo.full_name]);
   return (
     <>
       <header className="ops-saludo">
         <h2>{nombre ? t(`Hi, ${nombre}`, `Hola, ${nombre}`) : t("Warehouse Ops", "Operaciones de almacén")}</h2>
-        <p>{t("What do you need to report?", "¿Qué necesitas reportar?")}</p>
+        {llena && !unico && <p>{t("What do you need to report?", "¿Qué necesitas reportar?")}</p>}
+        {unico && <p>{lang === "es" ? INFO_DE_TIPO[unico].desc_es : INFO_DE_TIPO[unico].desc_en}</p>}
       </header>
-      {llena && (
+      {unico && (
+        <Link href={`/operaciones/nuevo/${unico}`} className={`ops-tarjeta ops-tarjeta-unica ops-t-${unico}`} data-tipo={unico} data-unica="1">
+          <span className="ops-tarjeta-icono" aria-hidden>{INFO_DE_TIPO[unico].emoji}</span>
+          <span className="ops-tarjeta-nombre">
+            {unico === "scrap" ? t("Report scrap / damage", "Reportar merma / daños") : (lang === "es" ? INFO_DE_TIPO[unico].es : INFO_DE_TIPO[unico].en)}
+          </span>
+          <span className="ops-tarjeta-desc">{t("Tap to start a new report", "Toca para empezar un reporte nuevo")}</span>
+        </Link>
+      )}
+      {llena && !unico && (
         <nav className="ops-tablero" aria-label={t("Reports", "Reportes")}>
-          {TIPOS.map((k) => {
+          {tipos.map((k) => {
             const i = INFO_DE_TIPO[k];
             return (
               <Link key={k} href={`/operaciones/nuevo/${k}`} className={`ops-tarjeta ops-t-${k}`} data-tipo={k}>
@@ -104,8 +128,12 @@ function Inicio({ ctx }: { ctx: Contexto }) {
         </nav>
       )}
       {llena && <Borradores ctx={ctx} />}
-      <div className="ops-pie">
-        {llena && <Link href="/operaciones/mis-reportes" className="ops-boton-ancho" data-ir="mios">📄 {t("My reports", "Mis reportes")}</Link>}
+      <div className={"ops-pie" + (llena && gerente ? "" : " ops-pie-uno")}>
+        {llena && (
+          <Link href="/operaciones/mis-reportes" className="ops-boton-ancho" data-ir="mios">
+            📄 {unico === "scrap" ? t("My scrap reports", "Mis reportes de merma") : t("My reports", "Mis reportes")}
+          </Link>
+        )}
         {gerente && <Link href="/operaciones/reportes" className="ops-boton-ancho ops-boton-gerente" data-ir="reportes">🗂️ {t("Reports (managers)", "Reportes (gerentes)")}</Link>}
       </div>
     </>
@@ -116,7 +144,10 @@ function Inicio({ ctx }: { ctx: Contexto }) {
 function Borradores({ ctx }: { ctx: Contexto }) {
   const { t, lang } = usePrefs();
   const [lista, setLista] = useState<Borrador[]>([]);
-  useEffect(() => { setLista(listarBorradores(ctx.yo.id)); }, [ctx.yo.id]);
+  // Solo los de un tipo que su nivel abre: un borrador viejo de otro formulario no deja una fila que no abre (265).
+  const leer = () => { const abre = tiposPermitidos(ctx.yo); return listarBorradores(ctx.yo.id).filter((b) => abre.includes(b.tipo)); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setLista(leer()); }, [ctx.yo]);
   if (lista.length === 0) return null;
   return (
     <section className="ops-borradores" data-borradores={lista.length}>
@@ -128,9 +159,13 @@ function Borradores({ ctx }: { ctx: Contexto }) {
             <li key={b.id} data-borrador={b.id}>
               <Link href={`/operaciones/nuevo/${b.tipo}?borrador=${encodeURIComponent(b.id)}`} className="ops-borrador-abrir">
                 <span aria-hidden>{i.emoji}</span> {lang === "es" ? i.es : i.en}
-                <span className="ops-persona-tienda">{b.tienda} · {fmtDateTime(b.guardado)}</span>
+                <span className="ops-persona-tienda">
+                  {b.tienda}
+                  {b.tipo === "scrap" && esDia(b.r.broken_on) && <> · <span data-borrador-fecha={b.r.broken_on}>{t("broken", "se rompió")} {fmtDia(b.r.broken_on, lang)}</span></>}
+                  {" · "}{t("saved", "guardado")} {fmtDateTime(b.guardado)}
+                </span>
               </Link>
-              <button type="button" className="ops-boton ops-boton-chico" onClick={() => { borrarBorrador(ctx.yo.id, b.id); setLista(listarBorradores(ctx.yo.id)); }}
+              <button type="button" className="ops-boton ops-boton-chico" onClick={() => { borrarBorrador(ctx.yo.id, b.id); setLista(leer()); }}
                 data-accion="borrar-borrador">{t("Delete", "Borrar")}</button>
             </li>
           );

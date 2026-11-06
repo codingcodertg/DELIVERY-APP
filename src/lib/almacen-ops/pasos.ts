@@ -4,6 +4,7 @@
  */
 import type { TipoDeReporte } from "./tipos";
 import { cantidadesValidas, piezasTotales, repartoValido, type Cantidades, type Reparto } from "./perdida";
+import { fechaDelDanoValida, fmtDia, hoyEnTexas } from "./fecha-del-dano";
 
 export type Opcion = { v: string; en: string; es: string };
 export type Paso =
@@ -14,7 +15,12 @@ export type Paso =
   | { id: string; tipo: "texto"; en: string; es: string; opcional?: boolean; corto?: boolean; min?: number; si?: { paso: string; vale: string } }
   | { id: string; tipo: "foto"; en: string; es: string }
   | { id: string; tipo: "producto"; en: string; es: string }
-  | { id: string; tipo: "cantidad"; en: string; es: string };
+  | { id: string; tipo: "cantidad"; en: string; es: string }
+  // Un día (YYYY-MM-DD), obligatorio y nunca futuro (266: cuándo se rompió la merma).
+  | { id: string; tipo: "fecha"; en: string; es: string };
+
+/** El paso de la merma que pregunta cuándo se rompió (266). Va a `warehouse_reports.broken_on`. */
+export const PASO_FECHA_DEL_DANO = "broken_on";
 
 /**
  * El producto de la merma. `libre` (migración 252): no está en el catálogo; `id` es null, el nombre lo escribió quien
@@ -110,6 +116,8 @@ export const PASOS: Record<TipoDeReporte, Paso[]> = {
     // De vuelta en su sitio (D-893 / D-894), tras retirar Roberto el pedido 714584e6.
     { id: "return_type", tipo: "opcion", en: "Where did it come from?", es: "¿De dónde viene?", opciones: ORIGENES_DE_MERMA },
     { id: "reason", tipo: "opcion", en: "Reason", es: "Motivo", opciones: [o("fell", "It fell", "Se cayó"), o("strap", "Strap broke", "Se rompió el fleje"), o("forklift", "Forklift", "Montacargas"), o("transportation", "Transportation", "Transporte"), o("other", "Other", "Otro")] },
+    // Cuándo se rompió (pedido del dueño, 266): por defecto hoy en Texas, se puede cambiar, nunca futuro.
+    { id: PASO_FECHA_DEL_DANO, tipo: "fecha", en: "What date was it broken?", es: "¿Qué día se rompió?" },
     { id: "broken_by", tipo: "personas", opcional: true, en: "Who broke it? (optional)", es: "¿Quién lo rompió? (opcional)" },
     // Solo si fue devolución de un cliente (pedido 60bbd7ed). OPCIONAL otra vez (la 254 lo exigía; la 263 ya no): suele
     // llegar después del reporte y el gerente lo pone desde la tarjeta. Sin CRMA la devolución no cuenta como pérdida.
@@ -129,9 +137,10 @@ export function pasosVisibles(tipo: TipoDeReporte, r: Respuestas): Paso[] {
 }
 
 /** ¿Está contestado lo bastante para seguir? */
-export function pasoCompleto(p: Paso, r: Respuestas): boolean {
+export function pasoCompleto(p: Paso, r: Respuestas, hoy: string = hoyEnTexas()): boolean {
   const v = r[p.id];
   switch (p.tipo) {
+    case "fecha": return fechaDelDanoValida(v, hoy);
     case "foto": return true;
     case "personas": return !!p.opcional || (Array.isArray(v) && v.length > 0);
     case "persona": return typeof v === "string" && v.length > 0;
@@ -147,8 +156,19 @@ export function pasoCompleto(p: Paso, r: Respuestas): boolean {
 }
 
 /** El primer paso sin contestar (el resumen no envía con huecos), o -1. */
-export function primerHueco(tipo: TipoDeReporte, r: Respuestas): number {
-  return pasosVisibles(tipo, r).findIndex((p) => !pasoCompleto(p, r));
+export function primerHueco(tipo: TipoDeReporte, r: Respuestas, hoy: string = hoyEnTexas()): number {
+  return pasosVisibles(tipo, r).findIndex((p) => !pasoCompleto(p, r, hoy));
+}
+
+/**
+ * Las respuestas con las que arranca un reporte (266): la merma trae la fecha del daño puesta en hoy (Texas). Un
+ * borrador de antes de la 266, o uno guardado con una fecha que ya no vale, también la recibe; una fecha válida que la
+ * persona eligió se respeta.
+ */
+export function respuestasIniciales(tipo: TipoDeReporte, previas?: Respuestas | null, hoy: string = hoyEnTexas()): Respuestas {
+  const r = { ...(previas ?? {}) };
+  if (tipo === "scrap" && !fechaDelDanoValida(r[PASO_FECHA_DEL_DANO], hoy)) r[PASO_FECHA_DEL_DANO] = hoy;
+  return r;
 }
 
 /** Lo que va a `answers`: solo lo que se muestra (si «lesión» pasa a «no», su texto no viaja), recortado. */
@@ -176,5 +196,6 @@ export function etiquetaDeOpcion(tipo: TipoDeReporte, pasoId: string, v: unknown
   if (tipo === "scrap" && pasoId === "return_type") { const x = ORIGENES_DE_MERMA.find((y) => y.v === v); return x ? x[lang] : ""; }
   if (p?.tipo === "opcion") { const x = p.opciones.find((y) => y.v === v); if (x) return x[lang]; }
   if (p?.tipo === "sino") return v === "yes" ? (lang === "es" ? "Sí" : "Yes") : v === "no" ? "No" : "";
+  if (p?.tipo === "fecha") return typeof v === "string" && v ? fmtDia(v, lang) : "";
   return typeof v === "string" ? v : "";
 }

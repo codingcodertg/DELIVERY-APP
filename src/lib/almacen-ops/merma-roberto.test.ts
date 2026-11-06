@@ -19,7 +19,7 @@ function memoria(limite = Infinity): Almacen & { datos: Map<string, string> } {
   };
 }
 
-const base = { split: { damaged: 4, sample: 0 }, qty: { boxes: 1, piecesPerBox: 4, loosePieces: 0 }, return_type: "internal", reason: "fell" };
+const base = { split: { damaged: 4, sample: 0 }, qty: { boxes: 1, piecesPerBox: 4, loosePieces: 0 }, return_type: "internal", reason: "fell", broken_on: "2020-01-01" }; // 266: la fecha del daño es obligatoria
 
 describe("b158a7a5: producto fuera de catálogo", () => {
   it("vale con nombre y costo opcional; no con nombre corto o costo malo", () => {
@@ -56,7 +56,9 @@ describe("b158a7a5: producto fuera de catálogo", () => {
     expect(puedeCorregirMerma({ id: "a", role: "admin" }, r)).toBe(true);
     expect(puedeCorregirMerma({ id: "g", role: "manager", store: "McAllen", module_access: ["warehouse_ops"] }, r)).toBe(true);
     expect(puedeCorregirMerma({ id: "g", role: "manager", store: "Edinburg", module_access: ["warehouse_ops"] }, r)).toBe(false);
-    expect(puedeCorregirMerma({ id: "s", role: "warehouse", store: "McAllen", module_access: ["warehouse_ops"], permissions: ["warehouse_ops_supervisor"] }, r)).toBe(true);
+    // Desde la 265 el rol `warehouse` es «solo merma» si nadie le escribe otro nivel; el supervisor corrige con «full».
+    expect(puedeCorregirMerma({ id: "s", role: "warehouse", store: "McAllen", module_access: ["warehouse_ops"], permissions: ["warehouse_ops_supervisor"], warehouse_ops_role: "full" }, r)).toBe(true);
+    expect(puedeCorregirMerma({ id: "s", role: "warehouse", store: "McAllen", module_access: ["warehouse_ops"], permissions: ["warehouse_ops_supervisor"] }, r)).toBe(false);
     expect(puedeCorregirMerma({ id: "w", role: "warehouse", store: "McAllen", module_access: ["warehouse_ops"] }, r)).toBe(false);
     expect(puedeCorregirMerma({ id: "a", role: "admin" }, { kind: "safety", store: "McAllen" })).toBe(false);
   });

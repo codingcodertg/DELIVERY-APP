@@ -35,7 +35,7 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
    *  aquí —viven en el expediente—; quedan el título, el rol, los módulos y permisos y el acceso. */
   desdeExpediente?: boolean;
 }) {
-  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
+  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
 
@@ -122,7 +122,8 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
         // Igual: sin `roleColumn`, inalcanzable. Lo fija `customers/modulo.test.ts`.
         return;
       case "warehouse_ops":
-        // Igual: sin `roleColumn`, inalcanzable (D-883, 247).
+        // D-908 (265): su propio nivel, `warehouse_ops_role`. Escribe solo esa columna; la casilla no se toca.
+        updateUserWarehouseOpsRole(u.id, roleValue);
         return;
       default: { const _exhaustive: never = key; return _exhaustive; }
     }
@@ -159,7 +160,8 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
         updateUserCustomersAccess(u.id, { granted });
         return;
       case "warehouse_ops":
-        // Solo la casilla: la 247 no crea columna de rol.
+        // Solo la casilla. El nivel (265) vive en su columna y NO se escribe aquí: sin nivel escrito manda el rol
+        // del hub, y así la casilla sigue funcionando aunque la 265 aún no esté aplicada.
         updateUserWarehouseOpsAccess(u.id, { granted });
         return;
       case "deliveries":
@@ -380,7 +382,10 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
           // The lowest-listed role is the default when checking the box with
           // nothing chosen yet — matches what recruiting's own invite flow
           // always defaulted to ("recruiter", last in RECRUITING_ROLE_LABELS).
-          const defaultRole = m.roleKeys[m.roleKeys.length - 1];
+          // Un módulo puede decir qué valor toca cuando la columna está vacía (Warehouse Ops: según el rol del hub)
+          // y a quién se le fija (el admin del hub). Ausentes, lo de siempre: el último de la lista.
+          const fixedRole = m.roleFixedFor?.(u.role);
+          const defaultRole = fixedRole ?? m.roleDefault?.(u.role) ?? m.roleKeys[m.roleKeys.length - 1];
           // De qué rol dependen los permisos finos: el del módulo, o —si el módulo lo declara (Leads)— el de la app.
           const capRole = m.capabilitiesRole === "role" ? u.role : (currentRole ?? defaultRole);
           // Solo se dibujan los que se OFRECEN a ese rol (Leads: «otras tiendas» es solo del manager).
@@ -437,11 +442,16 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
                       <div className="field">
                         <label>{t("Role", "Rol")}</label>
                         <select
-                          value={currentRole ?? defaultRole}
+                          value={fixedRole ?? currentRole ?? defaultRole}
+                          disabled={!!fixedRole}
                           onChange={(e) => setModuleRole(m.key, e.target.value)}
+                          data-rol-de-modulo={m.key}
                         >
                           {m.roleKeys.map((r) => <option key={r} value={r}>{m.roleLabel(r, lang)}</option>)}
                         </select>
+                        {m.roleDescription && (
+                          <div className="hint" style={{ marginTop: 4 }}>{m.roleDescription(fixedRole ?? currentRole ?? defaultRole, lang)}</div>
+                        )}
                       </div>
                     ) : (
                       <div className="field">
