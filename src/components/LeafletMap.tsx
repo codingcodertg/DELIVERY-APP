@@ -116,6 +116,14 @@ export interface MapLine {
 /** La misma lista vacía en cada render: sin ella, el efecto de los camiones correría siempre. */
 const SIN_CAMIONES: TruckMarker[] = [];
 
+// Leaflet trata una cadena de bindTooltip como HTML. Los nombres de chofer, tienda y camión (este último viene de
+// TrackSolid) son datos: se entregan como nodo de texto para que nunca se interpreten como marcado.
+function soloTexto(texto: string): HTMLElement {
+  const nodo = document.createElement("span");
+  nodo.textContent = texto;
+  return nodo;
+}
+
 export function LeafletMap({
   points = [],
   zone,
@@ -387,7 +395,7 @@ export function LeafletMap({
               iconAnchor: [8 - (p.offset?.x ?? 0), 8 - (p.offset?.y ?? 0)],
             });
         const marker = L.marker([p.lat, p.lng], { icon, opacity: p.dimmed ? 0.35 : 1, zIndexOffset: p.dimmed ? 0 : 500 }).addTo(mapRef.current!);
-        marker.bindTooltip(p.label);
+        marker.bindTooltip(soloTexto(p.label));
         marker.on("click", () => onClickRef.current?.(p.id));
         markersRef.current.push(marker);
       }
@@ -427,7 +435,7 @@ export function LeafletMap({
             });
         const marker = L.marker([s.lat, s.lng], { icon, zIndexOffset: estilo ? estilo.zIndex : Z_CASITA_DESPACHO, interactive: true }).addTo(mapRef.current!);
         // El nombre de la destacada ya va dentro del dibujo; el resto lo enseña al pasar el ratón.
-        if (!estilo?.etiquetaPermanente) marker.bindTooltip(`🏬 ${s.name}`, { permanent: false, direction: "top" });
+        if (!estilo?.etiquetaPermanente) marker.bindTooltip(soloTexto(`🏬 ${s.name}`), { permanent: false, direction: "top" });
         storeMarkersRef.current.push(marker);
       }
     })();
@@ -475,7 +483,7 @@ export function LeafletMap({
           iconAnchor: [17, 17],
         });
         const marker = L.marker([d.lat, d.lng], { icon, zIndexOffset: 1500 }).addTo(mapRef.current!);
-        marker.bindTooltip(d.label ?? d.driver, { direction: "top" });
+        marker.bindTooltip(soloTexto(d.label ?? d.driver), { direction: "top" });
         if (d.tarjeta) {
           marker.bindPopup(tarjetaDelChoferConCamion(d.tarjeta), { autoPan: false });
           if (abierta === d.driver) { marker.openPopup(); liveAbiertoRef.current = d.driver; }
