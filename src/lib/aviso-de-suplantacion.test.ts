@@ -150,7 +150,10 @@ vi.mock("next/headers", () => ({
 }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
-    auth: { getUser: async () => ({ data: { user: { id: "chofer-1", email: "e@x", user_metadata: {} } } }) },
+    auth: {
+      getUser: async () => ({ data: { user: { id: "chofer-1", email: "e@x", user_metadata: {} } } }),
+      getSession: async () => ({ data: { session: null } }),
+    },
     from: () => ({
       select: (cols: string) => ({
         eq: (_c: string, id: string) => ({

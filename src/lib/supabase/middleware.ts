@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { decide, skipsSession } from "@/lib/route-guard";
-import { impersonacionCaducada } from "@/lib/impersonation";
+import { impersonacionCaducada, MOTIVO_MARCA_PERDIDA, rutaConSesionDeCorreo, sesionDeEntrarComo } from "@/lib/impersonation";
 import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
 import { debeCerrarSesion } from "@/lib/session-cutoff";
 import { debeCambiarContrasena, decideCambioObligatorio } from "@/lib/cambio-obligatorio";
@@ -80,6 +80,8 @@ export async function updateSession(
     debeCambiar?: boolean;
     /** Solo pruebas: la puerta de dispositivo (D-811) con una respuesta fija. */
     dispositivo?: (req: NextRequest) => Promise<PuertaDeDispositivo | null>;
+    /** Solo pruebas: si la sesión de `getUser` nació de «Entrar como» (claim `amr` de magic link). */
+    deEntrarComo?: boolean;
   } = {},
 ) {
   // Local demo mode: skip all auth — the app has no backend.
@@ -136,6 +138,8 @@ export async function updateSession(
   // La marca de «cambia tu contraseña al entrar» (D-486), leída del mismo `getUser()`: no cuesta
   // ninguna ida más al servidor.
   let debeCambiar = false;
+  // Si la sesión la abrió «Entrar como» (magic link en el `amr`), leído del token y no de la cookie de retorno.
+  let deEntrarComo = false;
   let leerPuerta: (() => Promise<PuertaDeSesion | null>) | null = null;
   let leerDispositivo: (() => Promise<PuertaDeDispositivo | null>) | null = null;
   if (deps.getUser) {
@@ -144,6 +148,7 @@ export async function updateSession(
     // `null` es «no pude preguntar»: ni hay usuario ni está confirmado que no lo haya.
     sinUsuarioConfirmado = v === false;
     debeCambiar = hasUser && deps.debeCambiar === true;
+    deEntrarComo = hasUser && deps.deEntrarComo === true;
   } else {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -168,6 +173,12 @@ export async function updateSession(
     hasUser = !!user;
     sinUsuarioConfirmado = !user && !errUsuario;
     debeCambiar = debeCambiarContrasena(user);
+    if (user) {
+      // Después de `getUser()`, que ya validó y (si tocaba) refrescó: el token de aquí es el bueno.
+      // Un fallo al leerla vale «no es de Entrar como»: aquí solo se decide si cerrar.
+      const leida = await Promise.resolve().then(() => supabase.auth.getSession()).catch(() => null);
+      deEntrarComo = sesionDeEntrarComo(leida?.data?.session?.access_token);
+    }
     if (user) leerPuerta = async () => {
       const { data, error } = await supabase.rpc("session_gate").single<PuertaDeSesion>();
       // Cualquier fallo —la función no existe todavía, la red, un permiso— vale `null`, y
@@ -183,6 +194,16 @@ export async function updateSession(
       const { data, error } = await supabase.rpc("security_gate", { p_device: dispositivo }).single<PuertaDeDispositivo>();
       return error ? null : data;
     };
+  }
+
+  // La suplantación HUÉRFANA: una sesión abierta por «Entrar como» sin cookie de retorno que la acompañe. Es lo que
+  // le pasó al dueño (entró como Zulema, cerró el equipo, la cookie de 61 minutos caducó y la sesión de Zulema quedó
+  // como suya, sin burbuja ni vuelta). Nunca se deja a nadie dentro de una cuenta ajena sin decírselo: al restaurador,
+  // que sin cookie cierra esa sesión en el servidor, lo apunta y manda al login.
+  if (hasUser && deEntrarComo && !vuelta && !rutaConSesionDeCorreo(path)) {
+    return NextResponse.redirect(
+      new URL(`${RUTA_VUELTA_AUTOMATICA}?motivo=${MOTIVO_MARCA_PERDIDA}`, request.nextUrl.origin),
+    );
   }
 
   // El cierre diario, antes del guard: si esta sesión ya no vale, lo que decida el guard sobre

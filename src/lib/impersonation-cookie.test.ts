@@ -37,10 +37,11 @@ describe("los ajustes de la cookie", () => {
     expect(AJUSTES_COOKIE.path).toBe("/");
   });
 
-  it("dura un minuto más que la impersonación, no menos", () => {
+  it("dura mucho más que la impersonación: la caducidad la decide `inicio`, no el navegador", () => {
     // Si caducara a la vez, moriría justo en el instante en que hace falta para devolver al
     // admin — y entonces «volver» acabaría en el login en el caso más previsible de todos.
-    expect(AJUSTES_COOKIE.maxAge).toBe((IMPERSONACION_MINUTOS + 1) * 60);
+    // Sobrevive con holgura a la hora (antes caducaba a los 61 min y la sesión ajena se quedaba sin marca).
+    expect(AJUSTES_COOKIE.maxAge).toBeGreaterThanOrEqual(24 * 60 * 60);
     expect(AJUSTES_COOKIE.maxAge).toBeGreaterThan(IMPERSONACION_MINUTOS * 60);
   });
 

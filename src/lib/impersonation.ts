@@ -105,3 +105,46 @@ export function candidatosParaSaltar(quien: QuienEntra, plantilla: readonly Cand
     .filter((p) => puedeEntrarComo(quien, { id: p.id, rol: p.role }).permitido)
     .map(({ id, full_name, role, store }) => ({ id, full_name, role, store }));
 }
+
+/**
+ * ¿Esta sesión nació de «Entrar como»? Derivado del propio JWT, no de la cookie de retorno.
+ *
+ * EL FALLO que esto cierra: la cookie de retorno era la ÚNICA marca de «esto es una suplantación», y caducaba a los
+ * 61 minutos (`maxAge`), mientras que las cookies `sb-` de Supabase duran meses. El dueño entró como Zulema, cerró el
+ * equipo, y al volver horas después la cookie de retorno ya no existía: el middleware no veía nada que caducar, la
+ * burbuja no veía nada que pintar, y la sesión de Zulema —real, minada con un magic link— seguía viva. Era suya.
+ *
+ * La marca que no se pierde: en esta app el ÚNICO camino que abre sesión con un magic link es «Entrar como» (y su
+ * «saltar», D-247); las personas entran con contraseña. Supabase apunta el método en el claim `amr` del access token,
+ * así que una sesión con `amr` de `magiclink`/`otp` y SIN cookie de retorno válida es una suplantación huérfana, y se
+ * cierra. Se decodifica sin verificar la firma A PROPÓSITO: quien llama ya validó la sesión con `getUser()`, y esto
+ * solo decide si CERRAR — un token falsificado como mucho consigue que lo saquen.
+ */
+export const METODOS_DE_ENTRAR_COMO: readonly string[] = ["magiclink", "otp"];
+
+export function sesionDeEntrarComo(accessToken: string | null | undefined): boolean {
+  const partes = (accessToken ?? "").split(".");
+  if (partes.length < 2 || !partes[1]) return false;
+  try {
+    const b64 = partes[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = JSON.parse(atob(b64 + "=".repeat((4 - (b64.length % 4)) % 4))) as { amr?: unknown };
+    if (!Array.isArray(json.amr)) return false;
+    return json.amr.some((e) => {
+      const m = typeof e === "string" ? e : (e as { method?: unknown } | null)?.method;
+      return typeof m === "string" && METODOS_DE_ENTRAR_COMO.includes(m);
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Las pantallas donde una sesión de correo es legítima y no se toca: la del enlace de «olvidé mi contraseña» (D-263)
+ * y el canje de `/auth/callback`. Ahí la sesión puede venir de un correo y no de «Entrar como».
+ */
+export function rutaConSesionDeCorreo(path: string): boolean {
+  return path === "/reset-password" || path.startsWith("/reset-password/") || path.startsWith("/auth/");
+}
+
+/** El motivo de la vuelta cuando la sesión es de «Entrar como» pero la marca se perdió. */
+export const MOTIVO_MARCA_PERDIDA = "lost";

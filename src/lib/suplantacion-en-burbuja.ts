@@ -52,6 +52,14 @@ export function suplantacionDelEstado(d: unknown, copiaLocal: string | null | un
  * ¿Sale la burbuja en esta ruta? Donde sale la Ayuda, siempre; y dentro de una suplantación, en TODAS: el aviso y la
  * vuelta no pueden faltar en ninguna pantalla (D-243), y la franja de antes salía también en el login o en `/no-access`.
  */
+/**
+ * ¿El servidor dice que esta sesión es de «Entrar como» pero ya no tiene su marca (cookie de retorno)? Entonces no hay
+ * a quién devolver: se sale del todo (la ruta de vuelta, sin cookie, cierra sesión y manda al login).
+ */
+export function marcaPerdidaDelEstado(d: unknown): boolean {
+  return !!d && typeof d === "object" && (d as { marcaPerdida?: unknown }).marcaPerdida === true;
+}
+
 export function burbujaEnLaRuta(pathname: string | null, suplantando: boolean): boolean {
   return suplantando || ayudaEnLaRuta(pathname);
 }
