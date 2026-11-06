@@ -6,8 +6,9 @@ import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import {
   adjuntosDe, asomoEnLaLista, avisoDeAtendida, filtraSolicitudes, parcheDeEstado, personasDeSolicitudes, quienEscribe,
-  resumenDelEnvio, separaPorEstado, listaSegunEstado, type FiltroDeEstado, type SolicitudDeAyuda,
+  resumenDelEnvio, separaPorEstado, listaSegunEstado, leeConUbicacion, type FiltroDeEstado, type SolicitudDeAyuda,
 } from "@/lib/help-requests";
+import { textoDelDispositivo, ubicacionDeSolicitud } from "@/lib/ayuda-ubicacion";
 import { noLeidosPorSolicitud, type MensajeDeAyuda } from "@/lib/help-thread";
 import { HiloDeAyuda } from "@/components/HiloDeAyuda";
 import { rutaParaCopiar } from "@/lib/ayuda-para-claude";
@@ -22,9 +23,6 @@ import { rutaParaCopiar } from "@/lib/ayuda-para-claude";
  * **Los adjuntos se firman al abrirlos**, uno a uno y por cinco minutos. Lo guardado es la clave del
  * cubo; un enlace guardado sería un enlace caducado (D-284).
  */
-
-const COLUMNAS =
-  "id, created_at, user_id, sender_name, sender_email, role_label, page, app_version, lang, message, files, email_to, email_ok, email_error, status, attended_by, attended_at";
 
 export default function SolicitudesDeAyudaPage() {
   const { lang, t } = usePrefs();
@@ -44,11 +42,12 @@ export default function SolicitudesDeAyudaPage() {
   const [sinLeer, setSinLeer] = useState<Map<string, number>>(new Map());
 
   const cargar = useCallback(async () => {
-    const { data, error: e } = await createClient()
-      .from("help_requests").select(COLUMNAS).order("created_at", { ascending: false }).limit(500);
+    // Con las columnas de la 258 (dónde estaba, aparato) si la base ya las tiene; si no, como antes.
+    const { data, error: e } = await leeConUbicacion((columnas) => createClient()
+      .from("help_requests").select(columnas).order("created_at", { ascending: false }).limit(500));
     if (e) { setError(e.message); return; }
     setError(null);
-    setFilas((data ?? []) as SolicitudDeAyuda[]);
+    setFilas((data ?? []) as unknown as SolicitudDeAyuda[]);
     // Los no leídos de cada hilo (D-311). Si fallan, la lista se enseña igual.
     const supabase = createClient();
     const { data: sesion } = await supabase.auth.getUser();
@@ -132,6 +131,9 @@ export default function SolicitudesDeAyudaPage() {
     const adjuntos = adjuntosDe(s);
     const abiertaEsta = abierta === s.id;
     const asomo = asomoEnLaLista(s.message);
+    // Dónde estaba (D-901): lo que guardó la app al mandarla; en una solicitud de antes, lo que se deduce de su ruta.
+    const donde = ubicacionDeSolicitud(s, lang === "es" ? "es" : "en");
+    const aparato = textoDelDispositivo(s.device, lang === "es" ? "es" : "en");
     return (
       <div className="card" key={s.id}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -155,6 +157,14 @@ export default function SolicitudesDeAyudaPage() {
             {s.status === "atendida" ? t("Mark pending", "Marcar pendiente") : t("Mark handled", "Marcar atendida")}
           </button>
         </div>
+        {/* Dónde estaba, SIEMPRE a la vista (D-901; el dueño: «to know what they are looking at when they don't send a
+            screenshot»): en la lista y con la solicitud abierta. */}
+        {donde && (
+          <div className="ubicacion-solicitud" data-ubicacion-solicitud data-ubicacion-guardada={donde.guardada ? "si" : "no"}
+            title={donde.guardada ? undefined : t("Worked out from the page address (older request)", "Deducido de la dirección de la página (solicitud anterior)")}>
+            <span aria-hidden>📍</span> {donde.texto}
+          </div>
+        )}
         {/* De qué va, sin abrirla (D-624, 2026-10-21; Roberto: «showed a bit of the sentence […] without having to open
             1 by 1»). Una línea, cortada con «…»; abierta, el mensaje entero está en la conversación de abajo. Pulsarla
             abre la solicitud, como «Abrir». */}
@@ -173,7 +183,11 @@ export default function SolicitudesDeAyudaPage() {
                 atenderla sigue siendo el botón de arriba. Si la persona contesta a una atendida, la
                 base la devuelve a pendiente y aquí aparece otra vez en la lista de trabajo al recargar. */}
             {yoId && <HiloDeAyuda solicitud={s} yo={{ id: yoId, esAdmin: true }} />}
+            <div className="detail-row"><span className="dk">{t("Where", "Dónde")}</span><span className="dv"><b>{donde?.texto ?? "—"}</b></span></div>
             <div className="detail-row"><span className="dk">{t("Page", "Página")}</span><span className="dv">{s.page || "—"}</span></div>
+            {aparato && (
+              <div className="detail-row" data-dispositivo-solicitud><span className="dk">{t("Device", "Dispositivo")}</span><span className="dv hint" style={{ margin: 0 }}>{aparato}</span></div>
+            )}
             <div className="detail-row"><span className="dk">{t("Version", "Versión")}</span><span className="dv">{s.app_version || "—"}</span></div>
             <div className="detail-row"><span className="dk">{t("Email", "Correo")}</span><span className="dv">{resumenDelEnvio(s, t)}</span></div>
             {s.attended_at && (

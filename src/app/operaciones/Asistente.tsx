@@ -1,5 +1,7 @@
 "use client";
 
+import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion";
+import { contextoDelAsistente } from "@/lib/ayuda-contextos";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -51,6 +53,10 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
   const enResumen = i >= pasos.length;
   const paso = pasos[i];
   const listo = paso ? pasoCompleto(paso, r) : false;
+  // Lo que una solicitud de ayuda dirá de esta pantalla (D-901): por qué paso iba (la pregunta, no la respuesta).
+  useContextoDeAyuda("asistente-de-operaciones", contextoDelAsistente({
+    paso: paso ? { en: paso.en, es: paso.es } : null, indice: i, total: pasos.length, enResumen, enviado: hecho, tienda,
+  }));
   const pon = (id: string, v: unknown) => setR((x) => ({ ...x, [id]: v }));
   const cambiado = hayCambios(r, guardadoComo.r) || (Object.keys(r).length > 0 && tienda !== guardadoComo.tienda);
 

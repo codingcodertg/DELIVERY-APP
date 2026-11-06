@@ -7,6 +7,8 @@ import { enlaceParaCopiar, htmlDelCorreoDeAyuda } from "@/lib/ayuda-para-claude"
 import { origenPublico } from "@/lib/avisos-cliente-envio";
 
 import { requireUser } from "@/lib/api-auth";
+import { limpiaDispositivo, limpiaUbicacion, nombreDeRuta, textoDelDispositivo } from "@/lib/ayuda-ubicacion";
+import { faltaLaColumna } from "@/lib/help-requests";
 
 // ============================================================
 // In-app Help button (#help) — emails a support request to the address an
@@ -35,6 +37,10 @@ interface HelpBody {
   role?: string;
   appVersion?: string;
   lang?: string;
+  /** Dónde estaba, con palabras (D-901): app, pantalla, pestaña, ficha abierta. Lo compone el navegador al mandar. */
+  ubicacion?: { en?: unknown; es?: unknown };
+  /** Teléfono o computadora, tamaño de pantalla y navegador. */
+  dispositivo?: unknown;
   /** Lo ya subido al cubo privado: la ruta dentro de `help-files` y con qué nombre se eligió. */
   archivos?: { path?: string; nombre?: string }[];
 }
@@ -122,25 +128,34 @@ export async function POST(req: Request) {
     }
   }
 
+  // Dónde estaba (D-901). Lo dice el navegador, que es quien sabe la pestaña y la ficha abierta; aquí se comprueba y
+  // se acota. Si no llega (una pestaña abierta desde antes del despliegue), se deduce de la ruta: nunca una ruta cruda.
+  const pagina = body.page?.trim() || null;
+  const deLaRuta = pagina ? nombreDeRuta(pagina) : null;
+  const ubicacionEn = limpiaUbicacion(body.ubicacion?.en) ?? deLaRuta?.en ?? null;
+  const ubicacionEs = limpiaUbicacion(body.ubicacion?.es) ?? deLaRuta?.es ?? null;
+  const dispositivo = limpiaDispositivo(body.dispositivo);
+
   // Se guarda antes de intentar el correo (D-285). Si la llamada a Resend revienta o tarda, la
   // solicitud ya está en el historial que el admin ve en el hub; el resultado del envío se anota
   // justo después, sobre esta misma fila.
-  const { data: fila, error: errorAlGuardar } = await auth.supabase
-    .from("help_requests")
-    .insert({
-      user_id: auth.user.id,
-      sender_name: body.senderName?.trim() || null,
-      sender_email: senderEmail || null,
-      role_label: body.role?.trim() || null,
-      page: body.page?.trim() || null,
-      app_version: body.appVersion?.trim() || null,
-      lang: body.lang?.trim() || null,
-      message,
-      files: mios.map((a) => ({ path: (a.path || "").trim(), nombre: (a.nombre || "").trim() })),
-      email_to: to,
-    })
-    .select("id")
-    .maybeSingle();
+  const filaBase = {
+    user_id: auth.user.id,
+    sender_name: body.senderName?.trim() || null,
+    sender_email: senderEmail || null,
+    role_label: body.role?.trim() || null,
+    page: pagina,
+    app_version: body.appVersion?.trim() || null,
+    lang: body.lang?.trim() || null,
+    message,
+    files: mios.map((a) => ({ path: (a.path || "").trim(), nombre: (a.nombre || "").trim() })),
+    email_to: to,
+  };
+  const guarda = (f: Record<string, unknown>) => auth.supabase.from("help_requests").insert(f).select("id").maybeSingle();
+  let { data: fila, error: errorAlGuardar } = await guarda({ ...filaBase, location_en: ubicacionEn, location_es: ubicacionEs, device: dispositivo });
+  // La 258 (las tres columnas) se aplica aparte del despliegue. Mientras no esté, la solicitud se guarda como antes:
+  // perder la ubicación en la fila es mucho menos que perder la solicitud. El correo la lleva igual.
+  if (faltaLaColumna(errorAlGuardar)) ({ data: fila, error: errorAlGuardar } = await guarda(filaBase));
   // Guardar es lo importante: si ni eso se pudo, se dice, en vez de mandar un correo que nadie podrá
   // volver a encontrar.
   if (errorAlGuardar) {
@@ -156,18 +171,23 @@ export async function POST(req: Request) {
     } catch { /* el correo ya se intentó; no se pierde la solicitud por no poder anotarlo */ }
   };
 
-  const subject = `Help request from ${who}${roleLabel}`;
+  // El asunto dice dónde: en la bandeja del correo se sabe de qué pantalla habla sin abrirlo.
+  const subject = `Help request from ${who}${roleLabel}${ubicacionEn ? ` — ${ubicacionEn}` : ""}`;
+  const aparato = textoDelDispositivo(dispositivo, "en");
   // «📋 Copy for Claude» (D-844): la pantalla del hub que deja la solicitud lista para pegarla en Claude —texto e
   // imagen de una vez— y baja la captura sola. Absoluto, con el dominio de producción: el correo se abre fuera de la app.
   const copiar = fila?.id ? enlaceParaCopiar(origenPublico(req.url), String(fila.id)) : null;
   const contexto = [
     `From: ${who}${senderEmail ? ` <${senderEmail}>` : ""}${roleLabel}`,
+    ubicacionEn ? `Where: ${ubicacionEn}` : null,
     body.page ? `Page: ${body.page}` : null,
+    aparato ? `Device: ${aparato}` : null,
     body.appVersion ? `App version: ${body.appVersion}` : null,
     body.lang ? `Language: ${body.lang}` : null,
     `Sent: ${new Date().toISOString()}`,
   ].filter((l): l is string => !!l);
   const text = [
+    ubicacionEn ? `Where: ${ubicacionEn}` : null,
     message,
     "",
     copiar ? `📋 Copy for Claude: ${copiar}` : null,
@@ -179,7 +199,7 @@ export async function POST(req: Request) {
     .join("\n");
   // Lo mismo en HTML, con el botón arriba y las fotos adjuntas pintadas dentro (el mismo enlace firmado de 30 días).
   // El texto sigue yendo: es lo que lee un cliente sin HTML.
-  const html = htmlDelCorreoDeAyuda({ mensaje: message, contexto, adjuntos, enlaceParaCopiar: copiar });
+  const html = htmlDelCorreoDeAyuda({ mensaje: message, ubicacion: ubicacionEn, contexto, adjuntos, enlaceParaCopiar: copiar });
 
   const key = process.env.RESEND_API_KEY;
   const from = resendFrom();

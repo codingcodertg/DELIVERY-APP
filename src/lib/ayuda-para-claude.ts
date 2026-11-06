@@ -1,3 +1,4 @@
+import { textoDelDispositivo, ubicacionDeSolicitud } from "@/lib/ayuda-ubicacion";
 import type { FicheroAdjunto } from "./help-attachments";
 import type { SolicitudDeAyuda } from "./help-requests";
 import type { MensajeDeAyuda } from "./help-thread";
@@ -102,7 +103,8 @@ export function fechaParaClaude(iso: string): string {
 }
 
 export type DatosParaClaude = {
-  solicitud: Pick<SolicitudDeAyuda, "id" | "created_at" | "sender_name" | "sender_email" | "role_label" | "page" | "app_version" | "lang" | "message">;
+  solicitud: Pick<SolicitudDeAyuda, "id" | "created_at" | "sender_name" | "sender_email" | "role_label" | "page" | "app_version" | "lang" | "message">
+    & Pick<SolicitudDeAyuda, "location_en" | "location_es" | "device">;
   /** Los mensajes del hilo DESPUÉS de la solicitud (sin la original). */
   mensajes: readonly Pick<MensajeDeAyuda, "author_name" | "body" | "created_at">[];
   /** Cuántas capturas hay en total. */
@@ -137,7 +139,10 @@ export function textoParaClaude(d: DatosParaClaude): string {
     "",
     `De: ${remitente(s)}`,
     `Rol: ${s.role_label?.trim() || "—"}`,
+    // Dónde estaba, con palabras (D-901): la app, la pantalla y lo que tenía abierto. En una solicitud vieja sale de la ruta.
+    `Dónde estaba: ${ubicacionDeSolicitud(s, "es")?.texto ?? "—"}`,
     `Página: ${s.page?.trim() || "—"}`,
+    textoDelDispositivo(s.device, "es") ? `Dispositivo: ${textoDelDispositivo(s.device, "es")}` : null,
     `Versión de la app: ${s.app_version?.trim() || "—"}`,
     s.lang?.trim() ? `Idioma de la app: ${s.lang.trim()}` : null,
     `Fecha: ${fechaParaClaude(s.created_at)}`,
@@ -206,6 +211,8 @@ export type AdjuntoDelCorreo = { nombre: string; url: string | null };
  */
 export function htmlDelCorreoDeAyuda(c: {
   mensaje: string;
+  /** Dónde estaba quien escribe, con palabras (D-901): va ARRIBA y en negrita, antes del mensaje. */
+  ubicacion?: string | null;
   /** Las líneas de contexto, ya compuestas («From: …», «Page: …»…). */
   contexto: string[];
   adjuntos: AdjuntoDelCorreo[];
@@ -214,7 +221,8 @@ export function htmlDelCorreoDeAyuda(c: {
   const boton = c.enlaceParaCopiar
     ? `<p><a href="${escapaHtml(c.enlaceParaCopiar)}" style="display:inline-block;padding:10px 18px;border:2px solid;border-radius:8px;font-weight:bold;font-size:16px;text-decoration:none">📋 Copy for Claude</a></p>`
     : "";
-  const mensaje = `<div style="white-space:pre-wrap">${escapaHtml(c.mensaje)}</div>`;
+  const donde = c.ubicacion?.trim() ? `<p><b>Where: ${escapaHtml(c.ubicacion.trim())}</b></p>` : "";
+  const mensaje = `${donde}<div style="white-space:pre-wrap">${escapaHtml(c.mensaje)}</div>`;
   const contexto = `<hr><p>${c.contexto.map(escapaHtml).join("<br>")}</p>`;
   const adjuntos = c.adjuntos.length
     ? `<p><b>Attachments (${c.adjuntos.length}):</b></p>` + c.adjuntos.map((a) => {

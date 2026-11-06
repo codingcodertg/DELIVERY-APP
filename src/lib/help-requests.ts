@@ -22,6 +22,12 @@ export type SolicitudDeAyuda = {
   sender_email: string | null;
   role_label: string | null;
   page: string | null;
+  /** Dónde estaba, con palabras y en los dos idiomas (258, D-901). Nulas en las solicitudes de antes: entonces la
+   *  pantalla la deduce de `page` (`ubicacionDeSolicitud`). Opcionales: sin la 258 aplicada la consulta no las trae. */
+  location_en?: string | null;
+  location_es?: string | null;
+  /** Teléfono o computadora, tamaño de pantalla y navegador (258). Se lee con `textoDelDispositivo`. */
+  device?: unknown;
   app_version: string | null;
   lang: string | null;
   message: string;
@@ -33,6 +39,33 @@ export type SolicitudDeAyuda = {
   attended_by: string | null;
   attended_at: string | null;
 };
+
+/**
+ * Las columnas que leen las tres pantallas de solicitudes. Dos listas: con lo de la 258 (dónde estaba y con qué
+ * aparato) y sin ello. La 258 se aplica aparte del despliegue, y pedir una columna que aún no existe deja la bandeja
+ * entera sin cargar; por eso `leeConUbicacion` prueba la primera y, si la base no la conoce, repite con la segunda.
+ */
+export const COLUMNAS_SIN_UBICACION =
+  "id, created_at, user_id, sender_name, sender_email, role_label, page, app_version, lang, message, files, email_to, email_ok, email_error, status, attended_by, attended_at";
+export const COLUMNAS_DE_SOLICITUD = `${COLUMNAS_SIN_UBICACION}, location_en, location_es, device`;
+
+/** ¿El error es «esa columna no existe»? PostgREST lo dice con PGRST204 (al escribir) o 42703 (al leer). */
+export function faltaLaColumna(error: { code?: string | null; message?: string | null } | null | undefined): boolean {
+  if (!error) return false;
+  if (error.code === "PGRST204" || error.code === "42703") return true;
+  return /location_en|location_es|device/.test(error.message ?? "") && /column/i.test(error.message ?? "");
+}
+
+/**
+ * Corre una consulta de solicitudes con las columnas nuevas y, si la base aún no las tiene, sin ellas. `consulta`
+ * recibe la lista de columnas y devuelve la consulta ya armada (con sus filtros y su orden).
+ */
+export async function leeConUbicacion<T extends { error: { code?: string | null; message?: string | null } | null }>(
+  consulta: (columnas: string) => PromiseLike<T>,
+): Promise<T> {
+  const r = await consulta(COLUMNAS_DE_SOLICITUD);
+  return faltaLaColumna(r.error) ? consulta(COLUMNAS_SIN_UBICACION) : r;
+}
 
 export type FiltroDeSolicitudes = {
   persona?: string;
