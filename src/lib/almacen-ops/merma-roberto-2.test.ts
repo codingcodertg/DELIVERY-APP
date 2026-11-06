@@ -134,7 +134,7 @@ describe("la 254 hace cumplir lo mismo en la base", () => {
     expect(SQL).toContain("recruiting.hr_history");
     expect(SQL).toContain("-- @ledger-below");
     expect(SQL).toMatch(/values \('254_merma_reparto_y_crma\.sql', '[0-9a-f]{64}'\)/);
-    expect(SQL).not.toContain("D-NEXT");
+    expect(SQL).not.toContain("D-894");
     expect(SQL).not.toMatch(/create policy [^;]*on public\.warehouse_reports/);
   });
 });

@@ -50904,3 +50904,9 @@ Sello `timetracker` 1.17.0; repo 1.746.0.
 Productos fuera de catálogo con edición del gerente; Dañado/Muestra dentro de la pregunta de cantidad; sin piezas sueltas; empleados solo de bodega de la tienda del reporte; CRMA solo en devolución de cliente; Guardar borrador y Cerrar en todos los formularios. Migración 252.
 
 Sello `warehouse_ops` 0.2.0; repo 1.747.0.
+
+## D-894 · Warehouse Ops: total de piezas y reparto dañado/muestra; CRMA obligatorio
+
+El formulario de merma pide primero el total de piezas y luego cuántas están dañadas y cuántas sirven de muestra (deben sumar el total); CRMA obligatorio en devolución de cliente. La pérdida sigue contando todas las piezas. Pedidos de Roberto (help faa07047, 87254659). Migración 254.
+
+Sello `warehouse_ops` 0.3.0; repo 1.748.0.
