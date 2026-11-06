@@ -53,7 +53,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
   const enResumen = i >= pasos.length;
   const paso = pasos[i];
   const listo = paso ? pasoCompleto(paso, r) : false;
-  // Lo que una solicitud de ayuda dirá de esta pantalla (D-NEXT): por qué paso iba (la pregunta, no la respuesta).
+  // Lo que una solicitud de ayuda dirá de esta pantalla (D-901): por qué paso iba (la pregunta, no la respuesta).
   useContextoDeAyuda("asistente-de-operaciones", contextoDelAsistente({
     paso: paso ? { en: paso.en, es: paso.es } : null, indice: i, total: pasos.length, enResumen, enviado: hecho, tienda,
   }));

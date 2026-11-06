@@ -3,7 +3,7 @@ import { STAGE_ES, stageInfo } from "@/lib/constants";
 import { orderLabel } from "@/lib/utils";
 
 /**
- * Lo que cada pantalla grande dice de sí misma en una solicitud de ayuda (D-NEXT), fuera de la pantalla para poder
+ * Lo que cada pantalla grande dice de sí misma en una solicitud de ayuda (D-901), fuera de la pantalla para poder
  * probarlo: cada función recibe el estado que importa (pestaña, filtro, ficha abierta, paso) y devuelve las partes que
  * `useContextoDeAyuda` publica. La ruta ya la nombra `ayuda-ubicacion.ts`; esto es lo que va DETRÁS.
  *

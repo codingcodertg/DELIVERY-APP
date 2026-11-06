@@ -92,7 +92,7 @@ export default function EmployeeFilesPage() {
   // `me.role` es el rol de RR. HH. (el layout del módulo lo monta así). La barrera de verdad está
   // en las acciones de servidor; esto es para no ofrecer un botón que va a fallar.
   const puedeBaja = puedeDarDeBaja(me?.role);
-  // Lo que una solicitud de ayuda dirá de esta pantalla (D-NEXT): qué lista se ve y de quién es el expediente abierto.
+  // Lo que una solicitud de ayuda dirá de esta pantalla (D-901): qué lista se ve y de quién es el expediente abierto.
   useContextoDeAyuda("expedientes", contextoDeExpedientes({
     estado, buscando: !!buscar.trim(), abierto: abierto ? rows.find((r) => r.id === abierto)?.full_name?.trim() || null : null,
     dialogo: agregando ? "agregar" : baja ? "baja" : reactivar ? "reactivar" : amonestar ? "amonestar" : queFalta ? "que-falta" : null,

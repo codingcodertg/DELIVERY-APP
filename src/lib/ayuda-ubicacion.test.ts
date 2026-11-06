@@ -15,7 +15,7 @@ import { COLUMNAS_DE_SOLICITUD, COLUMNAS_SIN_UBICACION, faltaLaColumna, leeConUb
 import { htmlDelCorreoDeAyuda, textoParaClaude } from "./ayuda-para-claude";
 
 /**
- * D-NEXT (2026-11-06). El dueño: «be more specific in the help request, for example whether it's in the Delivery app
+ * D-901 (2026-11-06). El dueño: «be more specific in the help request, for example whether it's in the Delivery app
  * main page, or Delivery app route manager, to know what they are looking at when they don't send a screenshot».
  */
 
@@ -466,8 +466,8 @@ describe("la migración 258", () => {
     expect(nueva).toBe(de(lee("supabase/migrations/126_ayuda_chat.sql")));
   });
 
-  it("lleva su línea de registro y ningún D-NEXT (numerar cambiaría el checksum)", () => {
+  it("lleva su línea de registro y ningún D-901 (numerar cambiaría el checksum)", () => {
     expect(sql).toMatch(/-- @ledger-below\r?\ninsert into public\.schema_migrations \(name, checksum\) values \('258_ayuda_ubicacion_clara\.sql', '[0-9a-f]{64}'\) on conflict \(name\) do nothing;/);
-    expect(sql).not.toContain("D-NEXT");
+    expect(sql).not.toContain("D-901");
   });
 });

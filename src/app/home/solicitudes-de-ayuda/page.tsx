@@ -131,7 +131,7 @@ export default function SolicitudesDeAyudaPage() {
     const adjuntos = adjuntosDe(s);
     const abiertaEsta = abierta === s.id;
     const asomo = asomoEnLaLista(s.message);
-    // Dónde estaba (D-NEXT): lo que guardó la app al mandarla; en una solicitud de antes, lo que se deduce de su ruta.
+    // Dónde estaba (D-901): lo que guardó la app al mandarla; en una solicitud de antes, lo que se deduce de su ruta.
     const donde = ubicacionDeSolicitud(s, lang === "es" ? "es" : "en");
     const aparato = textoDelDispositivo(s.device, lang === "es" ? "es" : "en");
     return (
@@ -157,7 +157,7 @@ export default function SolicitudesDeAyudaPage() {
             {s.status === "atendida" ? t("Mark pending", "Marcar pendiente") : t("Mark handled", "Marcar atendida")}
           </button>
         </div>
-        {/* Dónde estaba, SIEMPRE a la vista (D-NEXT; el dueño: «to know what they are looking at when they don't send a
+        {/* Dónde estaba, SIEMPRE a la vista (D-901; el dueño: «to know what they are looking at when they don't send a
             screenshot»): en la lista y con la solicitud abierta. */}
         {donde && (
           <div className="ubicacion-solicitud" data-ubicacion-solicitud data-ubicacion-guardada={donde.guardada ? "si" : "no"}

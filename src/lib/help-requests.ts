@@ -22,7 +22,7 @@ export type SolicitudDeAyuda = {
   sender_email: string | null;
   role_label: string | null;
   page: string | null;
-  /** Dónde estaba, con palabras y en los dos idiomas (258, D-NEXT). Nulas en las solicitudes de antes: entonces la
+  /** Dónde estaba, con palabras y en los dos idiomas (258, D-901). Nulas en las solicitudes de antes: entonces la
    *  pantalla la deduce de `page` (`ubicacionDeSolicitud`). Opcionales: sin la 258 aplicada la consulta no las trae. */
   location_en?: string | null;
   location_es?: string | null;

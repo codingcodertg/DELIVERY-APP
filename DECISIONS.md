@@ -50946,3 +50946,9 @@ Sello `deliveries` 1.553.0; repo 1.753.0.
 Capa Trucks en el mapa del Gestor de rutas con la posición de los rastreadores GPS de los camiones (TrackSolid Pro Open API): estado, velocidad en mph, último reporte y aviso de sin señal tras 15 min; enlace rastreador → chofer/tienda en Ajustes; token y lectura en caché en la base (solo service role). Se oculta si faltan las variables TRACKSOLID_* o la migración 257.
 
 Sello `deliveries` 1.554.0; repo 1.754.0.
+
+## D-901 · Ayuda: cada solicitud dice en qué app y pantalla estaba la persona
+
+Cada solicitud de ayuda guarda y muestra una ubicación legible (app · pantalla · pestaña/filtros · formulario u orden abierta · paso del asistente · Cambiar usuario) y el dispositivo; aparece en el panel de ayuda, el asunto y cuerpo del correo y la campana. Las solicitudes viejas muestran el nombre deducido de la ruta. Migración 258.
+
+Sello `deliveries` 1.555.0; repo 1.755.0.

@@ -3,7 +3,7 @@ import { DELIVERIES_CARD, HUB_TOOLS, MODULES, TABS } from "@/lib/constants";
 import { INFO_DE_TIPO, esTipo } from "@/lib/almacen-ops/tipos";
 
 /**
- * DÓNDE estaba la persona cuando pidió ayuda, dicho con palabras (D-NEXT).
+ * DÓNDE estaba la persona cuando pidió ayuda, dicho con palabras (D-901).
  *
  * El dueño, 2026-11-06: «be more specific in the help request, for example whether it's in the Delivery app main page,
  * or Delivery app route manager, to know what they are looking at when they don't send a screenshot». Hasta ahora la

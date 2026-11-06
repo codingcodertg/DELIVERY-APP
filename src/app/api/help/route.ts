@@ -37,7 +37,7 @@ interface HelpBody {
   role?: string;
   appVersion?: string;
   lang?: string;
-  /** Dónde estaba, con palabras (D-NEXT): app, pantalla, pestaña, ficha abierta. Lo compone el navegador al mandar. */
+  /** Dónde estaba, con palabras (D-901): app, pantalla, pestaña, ficha abierta. Lo compone el navegador al mandar. */
   ubicacion?: { en?: unknown; es?: unknown };
   /** Teléfono o computadora, tamaño de pantalla y navegador. */
   dispositivo?: unknown;
@@ -128,7 +128,7 @@ export async function POST(req: Request) {
     }
   }
 
-  // Dónde estaba (D-NEXT). Lo dice el navegador, que es quien sabe la pestaña y la ficha abierta; aquí se comprueba y
+  // Dónde estaba (D-901). Lo dice el navegador, que es quien sabe la pestaña y la ficha abierta; aquí se comprueba y
   // se acota. Si no llega (una pestaña abierta desde antes del despliegue), se deduce de la ruta: nunca una ruta cruda.
   const pagina = body.page?.trim() || null;
   const deLaRuta = pagina ? nombreDeRuta(pagina) : null;

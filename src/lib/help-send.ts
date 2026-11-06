@@ -57,7 +57,7 @@ async function enQuienEstoy(): Promise<string | null> {
 }
 
 /**
- * Lo que la persona tenía delante, recogido en el momento de mandar (D-NEXT): la ruta con sus parámetros, lo que la
+ * Lo que la persona tenía delante, recogido en el momento de mandar (D-901): la ruta con sus parámetros, lo que la
  * pantalla haya publicado (`useContextoDeAyuda`), si está en «Cambiar usuario», y el aparato. Nada de esto puede tumbar
  * el envío: si algo falla, la solicitud sale con lo que haya.
  */

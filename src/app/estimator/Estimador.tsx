@@ -508,7 +508,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   // D-796: el idioma de la hoja. De entrada, el del usuario; se cambia en la vista previa, con la hoja a la vista.
   const [idiomaElegido, setIdiomaElegido] = useState<IdiomaDeLaHoja | null>(null);
   const idiomaDeLaHoja: IdiomaDeLaHoja = idiomaElegido ?? (lang === "es" ? "es" : "en");
-  // Lo que una solicitud de ayuda dirá de esta pantalla (D-NEXT): pestaña, qué cotización (su número) y qué hay abierto.
+  // Lo que una solicitud de ayuda dirá de esta pantalla (D-901): pestaña, qué cotización (su número) y qué hay abierto.
   useContextoDeAyuda("estimador", contextoDelEstimador({
     pestana, numero: draft.estimate_num?.trim() || null, guardada: quoteId !== null, lineas: draft.lines.length,
     vistaPrevia, politicaAbierta, desdeLead: leadId !== null,

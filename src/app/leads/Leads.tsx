@@ -80,7 +80,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [aviso, setAviso] = useState<{ tono: "rojo" | "verde"; texto: string } | null>(null);
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
   const [historial, setHistorial] = useState<{ id: string; eventos: EventoLead[] | null } | null>(null);
-  // Lo que una solicitud de ayuda dirá de esta pantalla (D-NEXT). Del lead no se nombra a la persona.
+  // Lo que una solicitud de ayuda dirá de esta pantalla (D-901). Del lead no se nombra a la persona.
   useContextoDeAyuda("leads", contextoDeLeads({
     pestana, pool, vista, buscando: !!busca.trim(), dialogo: dialogo?.tipo ?? null, historialAbierto: historial !== null, demo,
   }));

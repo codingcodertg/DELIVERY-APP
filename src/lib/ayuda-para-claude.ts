@@ -139,7 +139,7 @@ export function textoParaClaude(d: DatosParaClaude): string {
     "",
     `De: ${remitente(s)}`,
     `Rol: ${s.role_label?.trim() || "—"}`,
-    // Dónde estaba, con palabras (D-NEXT): la app, la pantalla y lo que tenía abierto. En una solicitud vieja sale de la ruta.
+    // Dónde estaba, con palabras (D-901): la app, la pantalla y lo que tenía abierto. En una solicitud vieja sale de la ruta.
     `Dónde estaba: ${ubicacionDeSolicitud(s, "es")?.texto ?? "—"}`,
     `Página: ${s.page?.trim() || "—"}`,
     textoDelDispositivo(s.device, "es") ? `Dispositivo: ${textoDelDispositivo(s.device, "es")}` : null,
@@ -211,7 +211,7 @@ export type AdjuntoDelCorreo = { nombre: string; url: string | null };
  */
 export function htmlDelCorreoDeAyuda(c: {
   mensaje: string;
-  /** Dónde estaba quien escribe, con palabras (D-NEXT): va ARRIBA y en negrita, antes del mensaje. */
+  /** Dónde estaba quien escribe, con palabras (D-901): va ARRIBA y en negrita, antes del mensaje. */
   ubicacion?: string | null;
   /** Las líneas de contexto, ya compuestas («From: …», «Page: …»…). */
   contexto: string[];

@@ -2022,7 +2022,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .asomo-solicitud:hover { color: var(--text); }
-/* Dónde estaba quien pidió ayuda (D-NEXT): una línea en negrita debajo del nombre, en la lista y con la solicitud abierta.
+/* Dónde estaba quien pidió ayuda (D-901): una línea en negrita debajo del nombre, en la lista y con la solicitud abierta.
    En una pantalla estrecha se parte en vez de cortarse: lo que importa suele ir al final (la ficha abierta, el paso). */
 .ubicacion-solicitud { margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
 .ubicacion-solicitud[data-ubicacion-guardada="no"] { font-weight: 600; color: var(--ink-soft); }
