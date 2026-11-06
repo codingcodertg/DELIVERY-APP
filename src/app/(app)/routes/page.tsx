@@ -11,7 +11,7 @@ import { useSoloElMapa } from "@/lib/gestor/solo-el-mapa";
 import { soloLoMioPorChofer, soloMisCarriles, soloMisOrdenes } from "@/lib/gestor/mis-rutas";
 import { PlanDelDia } from "@/components/PlanDelDia";
 import { RecomendacionesDeVuelta } from "@/components/RecomendacionesDeVuelta";
-import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
+import { choferesEnVivo, marcaEnVivo } from "@/lib/choferes-en-vivo";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { canPlanRoutes } from "@/lib/constants";
@@ -29,7 +29,10 @@ import { maxFechaDeEntrega, problemaAlAgendar, textoDelProblema } from "@/lib/di
 import { pideConfirmarMediodia, preguntaSiEsParaHoy } from "@/lib/corte-de-ventas";
 import { colorDeChofer } from "@/lib/map-legend";
 import { COLOR_DE_CAMION_SIN_CHOFER, textoDelCamion } from "@/lib/tracksolid/camiones";
+import { repartoParaElMapa } from "@/lib/tracksolid/camion-del-dia";
 import { useCamionesDeTracksolid } from "@/lib/tracksolid/useCamiones";
+import { useCamionDelDia, usePosicionesDeChoferes } from "@/lib/tracksolid/useCamionDelDia";
+import { CamionDelChofer } from "@/components/CamionDelChofer";
 import type { TruckMarker } from "@/lib/tracksolid/marca";
 import { antecedentesDeRutas } from "@/lib/route-plan/historia";
 import { useRutasDelDia } from "@/lib/usa-rutas-del-dia";
@@ -113,6 +116,7 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 /** La capa de camiones de TrackSolid (D-900): la misma lista vacía siempre, y dónde recuerda el navegador si se apagó. */
 const SIN_CAMIONES_EN_MAPA: TruckMarker[] = [];
 const CLAVE_CAPA_CAMIONES = "rtg_capa_camiones";
+const SIN_REPARTO = { asignados: new Map<string, { driverId: string; driver: string }>(), sinAsignar: [] as string[] };
 import type { Delivery, DriverIncident, Profile } from "@/lib/types";
 import { abanicoDeMarcas } from "@/lib/abanico-de-marcas";
 import { palletsDeLaOrden, sumaPallets } from "@/lib/pallets";
@@ -747,10 +751,17 @@ export default function RoutesPage() {
   // Drivers on shift AND reporting — drives the LIVE tag. Recomputed on the
   // same minute tick so the tag clears by itself when a phone goes quiet, not
   // only when a new position happens to arrive.
+  // D-903: dónde está cada chofer AHORA, con la mejor fuente: su teléfono o el rastreador del camión que lleva hoy
+  // (`posicionesDeChoferes`). Misma forma que `driverLocations`; sin TrackSolid es exactamente `driverLocations`.
+  // El aviso de «no reporta» (`trackingIssues`, arriba) sigue mirando SOLO el teléfono: que el camión cubra el hueco no
+  // quita que haya un teléfono callado que arreglar.
+  const { posiciones: posicionesAhora } = usePosicionesDeChoferes(!!me && veCamiones);
+  // Y qué camión lleva cada chofer el día que se está mirando (cabecera de la ruta, hoja PNG).
+  const camionesDelDia = useCamionDelDia(date, { activo: !!me });
   const liveNames = useMemo(
-    () => (veCamiones ? liveDriverNames(users, shifts, driverLocations) : new Set<string>()),
+    () => (veCamiones ? liveDriverNames(users, shifts, posicionesAhora) : new Set<string>()),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [users, shifts, driverLocations, healthTick, veCamiones],
+    [users, shifts, posicionesAhora, healthTick, veCamiones],
   );
   // Set by tapping a driver's LIVE tag: frame the map on where they are right
   // now. Cleared as soon as anything else takes over the map, so it's a
@@ -772,11 +783,11 @@ export default function RoutesPage() {
     // Misma regla que el mapa de despacho y que la ruta del día de Almacén (D-289). El color se
     // pasa como estaba aquí: esta pantalla no usa `colorDeChofer`.
     const color = (n: string) => settings.driver_colors?.[n] || fallbackDriverColor(n);
-    const todos = choferesEnVivo(driverLocations, nameById, color);
+    const todos = choferesEnVivo(posicionesAhora, nameById, color);
     // Acotada (D-506), solo SU camión: dónde está otro chofer ahora tampoco se le enseña.
-    return (miChofer == null ? todos.filter((c) => seVeElChofer(c.driver)) : soloLoMioPorChofer(todos, miChofer)).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));
+    return (miChofer == null ? todos.filter((c) => seVeElChofer(c.driver)) : soloLoMioPorChofer(todos, miChofer)).map((c) => marcaEnVivo(c, t));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [driverLocations, users, settings.driver_colors, veCamiones, miChofer, alcanceChoferes, choferesConParada]);
+  }, [posicionesAhora, healthTick, lang, users, settings.driver_colors, veCamiones, miChofer, alcanceChoferes, choferesConParada]);
 
   // Los camiones de la empresa por su rastreador GPS (TrackSolid, D-900). Es OTRA fuente que los 🚚 de arriba: aquellos
   // son el teléfono del chofer; estos, el aparato atornillado al camión, que sigue reportando aunque el chofer no fiche.
@@ -789,19 +800,36 @@ export default function RoutesPage() {
     setCapaCamiones(ver);
     try { window.localStorage.setItem(CLAVE_CAPA_CAMIONES, ver ? "1" : "0"); } catch { /* sin navegador */ }
   };
+  // El dueño, 2026-11-06 (D-903): un camión que ese día no lleva ningún chofer está estacionado y en el mapa solo estorba.
+  // Se pintan los ASIGNADOS ese día (`repartoParaElMapa`); los demás, solo con «sin asignar (N)», que nace apagado y no
+  // se recuerda: cada vez que se abre el Gestor, el mapa vuelve limpio.
+  const [verSinAsignar, setVerSinAsignar] = useState(false);
+  const repartoDeCamiones = useMemo(() => {
+    if (!rastreadores.disponible) return SIN_REPARTO;
+    const conRuta = new Set([...dayOrders.map((d) => d.assigned_driver), ...hechasPintadas.keys()]
+      .flatMap((n) => { const id = n ? users.find((x) => x.role === "driver" && x.full_name === n)?.id : null; return id ? [id] : []; }));
+    return repartoParaElMapa(rastreadores.camiones.filter((c) => c.lat != null && c.lng != null).map((c) => c.imei), camionesDelDia.asignaciones, conRuta);
+  }, [rastreadores.disponible, rastreadores.camiones, camionesDelDia.asignaciones, dayOrders, hechasPintadas, users]);
   const camionesEnMapa = useMemo<TruckMarker[]>(() => {
     if (!rastreadores.disponible || !capaCamiones) return SIN_CAMIONES_EN_MAPA;
     const ahora = Date.now();
-    return rastreadores.camiones.flatMap((c) => {
-      if (c.lat == null || c.lng == null) return [];
+    // D-903: UNA marca por «chofer + camión». El camión cuya posición ya está fundida en la marca redonda de su chofer
+    // no se pinta otra vez como cuadrado. Y el nombre que lleva el cuadrado es el del chofer de HOY, no el habitual.
+    const fundidos = new Set(liveDrivers.flatMap((d) => (d.fusion ? [d.fusion.camion.imei] : [])));
+    return rastreadores.camiones.flatMap((crudo) => {
+      if (crudo.lat == null || crudo.lng == null || fundidos.has(crudo.imei)) return [];
+      const asignado = repartoDeCamiones.asignados.get(crudo.imei);
+      if (!asignado && !verSinAsignar) return [];
+      // Asignado pero sin fundir (el chofer aún no abre turno, o se mira otro día): sale como camión, con su chofer de ese día.
+      const c = { ...crudo, chofer: asignado?.driver ?? null };
       const txt = textoDelCamion(c, ahora, t, lang);
       // Enlazado en Ajustes: el color de la ruta de su chofer. Sin enlazar: pizarra, que no es de ninguna ruta.
       const color = c.chofer ? colorDeChofer(settings.driver_colors, c.chofer) : COLOR_DE_CAMION_SIN_CHOFER;
-      return [{ id: c.imei, lat: c.lat, lng: c.lng, color, estado: txt.estado, etiqueta: txt.etiqueta, titulo: txt.titulo, lineas: txt.lineas }];
+      return [{ id: c.imei, lat: crudo.lat, lng: crudo.lng, color, estado: txt.estado, etiqueta: txt.etiqueta, titulo: txt.titulo, lineas: txt.lineas }];
     });
     // `pulso` y `healthTick`: «hace X min» se recalcula cada minuto aunque no llegue nada nuevo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rastreadores.disponible, rastreadores.camiones, rastreadores.pulso, capaCamiones, settings.driver_colors, lang, healthTick]);
+  }, [rastreadores.disponible, rastreadores.camiones, rastreadores.pulso, capaCamiones, settings.driver_colors, lang, healthTick, liveDrivers, repartoDeCamiones, verSinAsignar]);
   const camionesSinSenal = camionesEnMapa.filter((c) => c.estado === "stale");
 
   // D-707: el de baja no tiene carril propio; si aún tiene órdenes ese día sale como carril huérfano (carrilesDelDia).
@@ -1276,6 +1304,8 @@ export default function RoutesPage() {
   );
   // En `colorDeChofer` (D-274): la leyenda lee el mismo color que se pinta. Sin chofer, el gris de siempre (`UNASSIGNED_COLOR`).
   const colorFor = (driver: string | null) => colorDeChofer(settings.driver_colors, driver);
+  /** El id del perfil de un chofer de verdad, por su nombre (las rutas van por nombre; los camiones, por id). D-903. */
+  const choferIdDe = (driver: string | null) => (driver ? users.find((x) => x.role === "driver" && x.full_name === driver)?.id ?? null : null);
   // A driver's own capacity, else the fleet-wide default, else the built-in.
   const capacityFor = (driver: string) => settings.driver_capacity?.[driver] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
   // Requisitos del camión (D-418): «Mejor lugar» no le da a un chofer una orden que pide algo que su camión no tiene.
@@ -2345,7 +2375,7 @@ export default function RoutesPage() {
     // with a day's worth of stops. A small box around the point, so the map
     // zooms IN on the truck instead of framing a single coordinate.
     if (locateDriver) {
-      const loc = driverLocations.find((l) => {
+      const loc = posicionesAhora.find((l) => {
         const u = users.find((x) => x.id === l.driver_id);
         return u?.full_name === locateDriver;
       });
@@ -2374,7 +2404,7 @@ export default function RoutesPage() {
     // ruta», D-718), no: su ruta sola, cerrada, sin las tiendas de Ajustes abriendo el encuadre hasta Brownsville.
     return encuadreDeLasRutas(points, selected, byDriver, lanes, storeMarkers, miChofer != null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points, selected, selectedOrders, selRouteCache, selPickup, dayOrders, locateDriver, driverLocations, users, storeMarkers, miChofer]);
+  }, [points, selected, selectedOrders, selRouteCache, selPickup, dayOrders, locateDriver, posicionesAhora, users, storeMarkers, miChofer]);
 
   if (!me) return null;
   if (!soloLectura && !canPlanRoutes(me)) {
@@ -3146,10 +3176,18 @@ export default function RoutesPage() {
               </label>
               {capaCamiones && (
                 <span className="hint" style={{ margin: 0 }} title={camionesSinSenal.map((c) => c.etiqueta).join("\n") || undefined}>
-                  {camionesEnMapa.length - camionesSinSenal.length} {t("reporting", "reportando")}
+                  {/* D-903: cuentan también los camiones que ya van dentro de la marca de su chofer. */}
+                  {camionesEnMapa.length - camionesSinSenal.length + liveDrivers.filter((d) => d.fusion?.camionMin != null).length} {t("reporting", "reportando")}
                   {camionesSinSenal.length > 0 && <b style={{ color: "var(--red)" }}> · {camionesSinSenal.length} {t("no signal", "sin señal")}</b>}
                   {rastreadores.atrasado && <> · ⚠ {t("delayed", "con retraso")}</>}
                 </span>
+              )}
+              {/* D-903: los camiones sin chofer ese día no se pintan (estorban); aquí se piden. Apagado al entrar. */}
+              {capaCamiones && repartoDeCamiones.sinAsignar.length > 0 && (
+                <label data-camiones-sin-asignar={verSinAsignar ? "si" : "no"} title={t("Trucks with no driver this day (parked). Their state is also in Settings → Trucks.", "Camiones sin chofer este día (estacionados). Su estado también está en Ajustes → Camiones.")}>
+                  <input type="checkbox" checked={verSinAsignar} onChange={(e) => setVerSinAsignar(e.target.checked)} />
+                  {t(`unassigned (${repartoDeCamiones.sinAsignar.length})`, `sin asignar (${repartoDeCamiones.sinAsignar.length})`)}
+                </label>
               )}
             </div>
           )}
@@ -3467,6 +3505,12 @@ export default function RoutesPage() {
               </span>
               )}
               {needsDriver && <span className="sema" style={{ background: "var(--accent)", color: "#fff" }}>🧭 {t("route (no driver)", "ruta (sin chofer)")}</span>}
+              {/* «🚛 camión» (D-903): el camión que este chofer lleva ESTE día. Quien planifica lo cambia aquí, en el sitio
+                  (el servidor comprueba el permiso); los demás —el chofer en su ruta, «Ruta de hoy»— lo leen. */}
+              {choferIdDe(u.driver) && camionesDelDia.disponible && (
+                <CamionDelChofer chofer={u.driver} driverId={choferIdDe(u.driver)!} asignado={camionesDelDia.asignaciones.find((a) => a.driverId === choferIdDe(u.driver))}
+                  asignaciones={camionesDelDia.asignaciones} camiones={camionesDelDia.camiones} puedeCambiar={!soloLectura && camionesDelDia.puedeAsignar} asigna={camionesDelDia.asigna} t={t} />
+              )}
               {/* «⚠ sin base» (D-459): era un renglón entero bajo el nombre; el dueño, 2026-10-01, «remueve todo ese texto
                   incesario». El dato no se pierde: una pastilla, con la frase entera al pasar el ratón. */}
               {!tiendaBaseDe(u.key) && stops.length > 0 && (
@@ -3619,7 +3663,7 @@ export default function RoutesPage() {
               )}
               {/* Una sola foto por ruta: en «Cuadrícula» la pinta la desplegada, que es la que tiene la tabla (D-636). */}
               {pngDe === u.key && modoDeTarjeta !== "compacta" && (
-                <FotoDeLaRuta chofer={u.label} fecha={date} laneKey={u.key} stops={stops} color={colorFor(u.driver)} t={t} onClose={() => setPngDe(null)}
+                <FotoDeLaRuta chofer={u.label} fecha={date} laneKey={u.key} stops={stops} color={colorFor(u.driver)} t={t} onClose={() => setPngDe(null)} camion={camionesDelDia.asignaciones.find((a) => a.driverId === choferIdDe(u.driver))?.truck ?? null}
                   points={puntosDeLaRuta(points, u, new Set([...stops, ...hechasDe(u.key)].map((d) => d.id)), { paradas: diaDe(u.key, stops).paradas, color: colorFor(u.driver), coordsDeTienda })} lines={lineasDeLaRuta(lines, u.key)} />
               )}
               {/* En la eficiente, «⚙ Columnas» sube a esta fila (D-655): «todo va a estar en una sola línea». */}

@@ -19,7 +19,8 @@ import { useEtapaEnLaFila } from "@/components/EtapaEnLaFila";
 import { puedeReprogramar } from "@/lib/reprogramar-orden";
 import { printLoadSheets } from "@/lib/slip";
 import { ETAPAS_DE_LA_HOJA_DE_CARGA, ETAPAS_DE_LA_RUTA_DEL_DIA, rutaPorChofer, SIN_CHOFER } from "@/lib/ruta-del-dia";
-import { choferesEnVivo, etiquetaEnVivo } from "@/lib/choferes-en-vivo";
+import { choferesEnVivo, marcaEnVivo } from "@/lib/choferes-en-vivo";
+import { usePosicionesDeChoferes } from "@/lib/tracksolid/useCamionDelDia";
 import { colorDeChofer } from "@/lib/map-legend";
 import { MapView, type MapPoint } from "@/components/MapView";
 import { fmtWindows, orderLabel, seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
@@ -35,8 +36,10 @@ const TABS = [
 ] as const;
 
 export default function WarehousePage() {
-  const { me, users, deliveries, settings, driverLocations, ready, realRole, events, setStage, notify, updateDelivery, addNote, reprogramarOrden } = useData();
+  const { me, users, deliveries, settings, ready, realRole, events, setStage, notify, updateDelivery, addNote, reprogramarOrden } = useData();
   const { lang, t } = usePrefs();
+  // D-903: el teléfono del chofer o el rastreador del camión que lleva hoy, lo mejor de los dos (`posicionesDeChoferes`).
+  const { posiciones: posicionesAhora } = usePosicionesDeChoferes(!!me);
   const confirmAction = useConfirm();
   // Las entregadas que recibió almacén (D-409), para la pastilla de la Ruta del día.
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
@@ -185,9 +188,9 @@ export default function WarehousePage() {
   const enVivo = useMemo(() => {
     const nombrePorId = new Map(users.map((u) => [u.id, u.full_name]));
     const color = (n: string) => colorDeChofer(settings.driver_colors, n);
-    return choferesEnVivo(driverLocations, nombrePorId, color).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));
+    return choferesEnVivo(posicionesAhora, nombrePorId, color).map((c) => marcaEnVivo(c, t));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [driverLocations, users, settings.driver_colors]);
+  }, [posicionesAhora, users, settings.driver_colors]);
 
   // El reparto en dos listas: lo que sale de sus tiendas y lo que ENTRA (D-374). El dueño: *«for
   // warehouse a new view where the loads intertienda going to his store will be visible; these

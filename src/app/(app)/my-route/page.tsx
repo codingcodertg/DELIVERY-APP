@@ -46,6 +46,7 @@ import type { Delivery } from "@/lib/types";
 import { facturasDeLaOrden } from "@/lib/agregar-material";
 import { cargaDe, etiquetaDeCarga, hermanasDe } from "@/lib/cargas-partidas";
 import { useChoferDeLaRuta } from "@/lib/ruta-de-un-chofer";
+import { useCamionDelDia } from "@/lib/tracksolid/useCamionDelDia";
 import { rutaDeSoloLectura } from "@/lib/vista-de-chofer";
 import { AvisoDeInspeccion } from "@/components/inspeccion/AvisoDeInspeccion";
 import { muestraElPlanEnMiRuta } from "@/lib/barra-de-entregas";
@@ -125,6 +126,8 @@ export default function MyRoutePage() {
   const [facturaBuscada, setFacturaBuscada] = useState("");
   const misIds = useMemo(() => new Set(deliveries.filter((d) => d.assigned_driver === driverName).map((d) => d.id)), [deliveries, driverName]);
   const dia = shiftDateISO(todayISO(), desfase);
+  const camionesDeEseDia = useCamionDelDia(dia, { activo: !!chofer });
+  const camionDeEseDia = camionesDeEseDia.asignaciones.find((a) => a.driverId === chofer?.id)?.truck ?? null;
   const stops = useMemo(() => {
     if (!me) return [];
     return routeOrder(paradasDelChofer(deliveries, driverName, dia, "dia"));
@@ -442,6 +445,8 @@ export default function MyRoutePage() {
       <div className="page-head">
         <h2>🧭 {t("My route", "Mi ruta")}</h2>
         <span className="hint">{fmtDate(dia)}</span>
+        {/* D-903: el camión que lleva ese día (el habitual de Ajustes, o el que le puso quien planifica). Solo se lee. */}
+        {camionDeEseDia && <span className="sema" data-mi-camion title={t("Your truck for this day", "Su camión de este día")} style={{ border: "1px solid var(--line)" }}>🚛 {camionDeEseDia}</span>}
         {/* D-881: «Texto grande», encendido por defecto para el chofer; aquí lo apaga (o el admin, en su columna de teléfono). */}
         {(me.role === "driver" || ajeno) && <InterruptorTextoGrande />}
       </div>

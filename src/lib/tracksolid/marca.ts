@@ -59,3 +59,15 @@ export function etiquetaHtmlDelCamion(c: Pick<TruckMarker, "etiqueta" | "estado"
     `font:700 11px/1.2 system-ui,sans-serif;color:${c.estado === "stale" ? "#475569" : "#0f172a"};` +
     `text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,0 0 3px #fff">${escapa(c.etiqueta)}</div>`;
 }
+
+/**
+ * La tarjeta de un chofer que hoy lleva camión (D-903): se abre en el sitio al tocar su marca redonda. Dice qué camión,
+ * qué fuente se está usando (teléfono o rastreador) con la edad de cada una, y —si llevan un rato separados— el aviso.
+ */
+export function tarjetaDelChoferConCamion(c: { titulo: string; lineas: string[]; aviso?: string | null }): string {
+  return `<div data-tarjeta-chofer-camion="${c.aviso ? "aviso" : "ok"}" style="font:13px/1.45 system-ui,sans-serif;color:#111;min-width:200px;max-width:280px">` +
+    `<div style="font-weight:700;margin-bottom:2px">🚚 ${escapa(c.titulo)}</div>` +
+    c.lineas.map((l, i) => `<div style="${i === 1 ? "font-weight:600" : "color:#475569"}">${escapa(l)}</div>`).join("") +
+    (c.aviso ? `<div data-aviso-separados style="margin-top:4px;color:#92400e;background:#fef3c7;border-radius:4px;padding:2px 6px">⚠ ${escapa(c.aviso)}</div>` : "") +
+    `</div>`;
+}

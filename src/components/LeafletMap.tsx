@@ -7,7 +7,7 @@ import { colorZona, ESTILO_ZONA } from "@/lib/delivery-zone";
 import { centroInicial, encuadreFinal } from "@/lib/encuadre-del-mapa";
 import { casaDeTienda, dibujoTienda, estiloTienda, TIENDA_CLASICA, Z_CASITA_DESPACHO, type PapelTienda } from "@/lib/store-pins";
 import { unCamionPorChofer } from "@/lib/recorrido-contra-plan";
-import { etiquetaHtmlDelCamion, LADO_DEL_CAMION, svgDelCamion, tarjetaDelCamion, Z_CAMION, type TruckMarker } from "@/lib/tracksolid/marca";
+import { etiquetaHtmlDelCamion, LADO_DEL_CAMION, svgDelCamion, tarjetaDelCamion, tarjetaDelChoferConCamion, Z_CAMION, type TruckMarker } from "@/lib/tracksolid/marca";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type L = any;
@@ -87,6 +87,9 @@ export interface LiveDriver {
   /** Minutes since the fix; a stale position is faded. */
   ageMin?: number;
   label?: string;
+  /** D-903: el chofer lleva camión hoy. Al tocar la marca se abre esta tarjeta en el sitio (qué fuente se usa y la edad
+   *  de cada una); con `aviso`, la marca lleva además un punto ámbar («teléfono y camión separados»). */
+  tarjeta?: { titulo: string; lineas: string[]; aviso?: string | null };
 }
 
 /** A traced route — e.g. one driver's optimized stop-to-stop path. */
@@ -112,6 +115,14 @@ export interface MapLine {
 
 /** La misma lista vacía en cada render: sin ella, el efecto de los camiones correría siempre. */
 const SIN_CAMIONES: TruckMarker[] = [];
+
+// Leaflet trata una cadena de bindTooltip como HTML. Los nombres de chofer, tienda y camión (este último viene de
+// TrackSolid) son datos: se entregan como nodo de texto para que nunca se interpreten como marcado.
+function soloTexto(texto: string): HTMLElement {
+  const nodo = document.createElement("span");
+  nodo.textContent = texto;
+  return nodo;
+}
 
 export function LeafletMap({
   points = [],
@@ -170,6 +181,8 @@ export function LeafletMap({
   const storeMarkersRef = useRef<Marker[]>([]);
   // Truck markers + accuracy halos, cleared and redrawn as fixes arrive.
   const liveLayerRef = useRef<{ remove: () => void }[]>([]);
+  /** D-903: de qué chofer está abierta la tarjeta «chofer + camión», para reabrirla cuando sus marcas se rehacen. */
+  const liveAbiertoRef = useRef<string | null>(null);
   const trucksRef = useRef(new Map<string, { marker: Marker; firma: string }>());
   const linesRef = useRef<Polyline[]>([]);
   const zoneRef = useRef<LeafletPolygon | null>(null);
@@ -382,7 +395,7 @@ export function LeafletMap({
               iconAnchor: [8 - (p.offset?.x ?? 0), 8 - (p.offset?.y ?? 0)],
             });
         const marker = L.marker([p.lat, p.lng], { icon, opacity: p.dimmed ? 0.35 : 1, zIndexOffset: p.dimmed ? 0 : 500 }).addTo(mapRef.current!);
-        marker.bindTooltip(p.label);
+        marker.bindTooltip(soloTexto(p.label));
         marker.on("click", () => onClickRef.current?.(p.id));
         markersRef.current.push(marker);
       }
@@ -422,7 +435,7 @@ export function LeafletMap({
             });
         const marker = L.marker([s.lat, s.lng], { icon, zIndexOffset: estilo ? estilo.zIndex : Z_CASITA_DESPACHO, interactive: true }).addTo(mapRef.current!);
         // El nombre de la destacada ya va dentro del dibujo; el resto lo enseña al pasar el ratón.
-        if (!estilo?.etiquetaPermanente) marker.bindTooltip(`🏬 ${s.name}`, { permanent: false, direction: "top" });
+        if (!estilo?.etiquetaPermanente) marker.bindTooltip(soloTexto(`🏬 ${s.name}`), { permanent: false, direction: "top" });
         storeMarkersRef.current.push(marker);
       }
     })();
@@ -437,8 +450,11 @@ export function LeafletMap({
     (async () => {
       const L = (await import("leaflet")).default;
       if (cancelled || !mapRef.current) return;
+      // D-903: las marcas se rehacen con cada posición; la tarjeta que estaba abierta se vuelve a abrir en la suya.
+      const abierta = liveAbiertoRef.current;
       liveLayerRef.current.forEach((m) => m.remove());
       liveLayerRef.current = [];
+      liveAbiertoRef.current = null;
       // D-846: UNA marca por chofer, la de su posición más nueva (la misma regla que el mapa de Google).
       for (const d of unCamionPorChofer(liveDrivers)) {
         if (d.lat == null || d.lng == null) continue;
@@ -460,12 +476,20 @@ export function LeafletMap({
           html:
             `<div style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;` +
             `border-radius:50%;background:${shade};border:3px solid #fff;` +
-            `box-shadow:0 2px 8px rgba(0,0,0,.5);font-size:16px;opacity:${opacity}">🚚</div>`,
+            `box-shadow:0 2px 8px rgba(0,0,0,.5);font-size:16px;opacity:${opacity};position:relative"${d.tarjeta ? ` data-chofer-con-camion="${d.tarjeta.aviso ? "aviso" : "ok"}"` : ""}>🚚` +
+            (d.tarjeta?.aviso ? `<span style="position:absolute;right:-5px;top:-5px;width:13px;height:13px;border-radius:50%;background:#f59e0b;border:2px solid #fff;font:700 9px/13px sans-serif;color:#fff;text-align:center">!</span>` : "") +
+            `</div>`,
           iconSize: [34, 34],
           iconAnchor: [17, 17],
         });
         const marker = L.marker([d.lat, d.lng], { icon, zIndexOffset: 1500 }).addTo(mapRef.current!);
-        marker.bindTooltip(d.label ?? d.driver, { direction: "top" });
+        marker.bindTooltip(soloTexto(d.label ?? d.driver), { direction: "top" });
+        if (d.tarjeta) {
+          marker.bindPopup(tarjetaDelChoferConCamion(d.tarjeta), { autoPan: false });
+          if (abierta === d.driver) { marker.openPopup(); liveAbiertoRef.current = d.driver; }
+          marker.on("popupopen", () => { liveAbiertoRef.current = d.driver; });
+          marker.on("popupclose", () => { if (liveAbiertoRef.current === d.driver && mapRef.current?.hasLayer(marker)) liveAbiertoRef.current = null; });
+        }
         liveLayerRef.current.push(marker);
       }
     })();
