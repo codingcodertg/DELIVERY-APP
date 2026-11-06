@@ -62,8 +62,8 @@ describe("faa07047: primero el total, luego cuántas dañadas y cuántas de mues
       scrap_type: "mixed", damaged_pieces: 6, sample_pieces: 2, boxes: 2, pieces_per_box: 4, loose_pieces: 0,
       return_type: "internal", reason: "fell", broken_by: [], crma: null,
     });
-    // Desde 714584e6 el origen ya no es una pregunta: no viaja en answers (va fijo en el cuerpo de la merma).
-    expect(respuestasParaGuardar("scrap", base)).toEqual({ reason: "fell" });
+    // El origen vuelve a ser una pregunta (el pedido 714584e6 fue retirado): viaja otra vez en answers.
+    expect(respuestasParaGuardar("scrap", base)).toEqual({ return_type: "internal", reason: "fell" });
   });
   it("la 254 dejó la pérdida en costo × todas las piezas; la 259 la cambió a solo dañadas (ver merma-roberto-3)", () => {
     expect(perdida(producto.cost, piezasTotales(qty))).toBe(20);
@@ -81,16 +81,18 @@ describe("faa07047: primero el total, luego cuántas dañadas y cuántas de mues
   });
 });
 
-describe("87254659 → 714584e6: el CRMA era obligatorio en devolución; ahora la merma es siempre interna", () => {
-  it("ya no se pregunta el CRMA, ni con un borrador viejo de devolución, y no estorba para enviar", () => {
+describe("87254659 → hilo 714584e6: el CRMA fue obligatorio en devolución (254); ahora es opcional (263)", () => {
+  it("interno: no se pregunta; devolución: se pregunta, pero vacío no estorba para enviar", () => {
     expect(pasosVisibles("scrap", { ...base }).some((p) => p.id === "crma")).toBe(false);
     expect(primerHueco("scrap", base)).toBe(-1);
     const dev = { ...base, return_type: "customer_return" };
-    expect(pasosVisibles("scrap", dev).some((p) => p.id === "crma")).toBe(false);
+    expect(pasosVisibles("scrap", dev).findIndex((p) => p.id === "crma")).toBeGreaterThan(0);
     expect(primerHueco("scrap", dev)).toBe(-1);
+    expect(primerHueco("scrap", { ...dev, crma: "   " })).toBe(-1);
+    expect(primerHueco("scrap", { ...dev, crma: "CR-2291" })).toBe(-1);
   });
-  it("no viaja nunca: ni escrito en un borrador viejo", () => {
-    expect(mermaParaEnviar({ ...base, return_type: "customer_return", crma: " CR-1 " }).crma).toBeNull();
+  it("solo viaja con devolución: si se cambió a interno, lo escrito no se guarda", () => {
+    expect(mermaParaEnviar({ ...base, return_type: "customer_return", crma: " CR-1 " }).crma).toBe("CR-1");
     expect(mermaParaEnviar({ ...base, return_type: "internal", crma: "CR-1" }).crma).toBeNull();
     expect(respuestasParaGuardar("scrap", { ...base, crma: "CR-1" }).crma).toBeUndefined();
   });

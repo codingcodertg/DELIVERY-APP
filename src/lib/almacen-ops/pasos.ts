@@ -50,8 +50,10 @@ export const TIPOS_DE_MERMA: Opcion[] = [
   { v: "mixed", en: "Damaged and sample", es: "Dañado y muestra" },
 ];
 /**
- * De dónde viene la merma. Ya no se pregunta (pedido 714584e6): la merma solo pasa dentro de la empresa, así que los
- * reportes nuevos son siempre «internal» y sin CRMA. Las etiquetas quedan para enseñar los reportes de antes.
+ * De dónde viene la merma. El pedido 714584e6 la quitó del formulario (D-902), pero Roberto lo retiró en el mismo hilo:
+ * «It does apply BUT the CRMA is optional and if CRMA is filled then it sums the loss, if no CRMA then no loss». Así que
+ * se vuelve a preguntar (D-NEXT), el CRMA es opcional y una devolución de cliente sin CRMA no cuenta como pérdida
+ * (ver `cuentaComoPerdida` en perdida.ts y la migración 263).
  */
 export const ORIGENES_DE_MERMA: Opcion[] = [
   { v: "internal", en: "Internal", es: "Interno" }, { v: "customer_return", en: "Customer return", es: "Devolución de cliente" },
@@ -105,9 +107,13 @@ export const PASOS: Record<TipoDeReporte, Paso[]> = {
     { id: "product", tipo: "producto", en: "Which product?", es: "¿Qué producto?" },
     // Primero el total de piezas; luego, de esas, cuántas dañadas y cuántas de muestra (pedido faa07047). Sin piezas sueltas (482720a9).
     { id: "qty", tipo: "cantidad", en: "How many pieces?", es: "¿Cuántas piezas?" },
+    // De vuelta en su sitio (D-893 / D-894), tras retirar Roberto el pedido 714584e6.
+    { id: "return_type", tipo: "opcion", en: "Where did it come from?", es: "¿De dónde viene?", opciones: ORIGENES_DE_MERMA },
     { id: "reason", tipo: "opcion", en: "Reason", es: "Motivo", opciones: [o("fell", "It fell", "Se cayó"), o("strap", "Strap broke", "Se rompió el fleje"), o("forklift", "Forklift", "Montacargas"), o("transportation", "Transportation", "Transporte"), o("other", "Other", "Otro")] },
     { id: "broken_by", tipo: "personas", opcional: true, en: "Who broke it? (optional)", es: "¿Quién lo rompió? (opcional)" },
-    // Sin «¿de dónde viene?» ni CRMA (pedido 714584e6): la merma es siempre interna. Ver ORIGENES_DE_MERMA.
+    // Solo si fue devolución de un cliente (pedido 60bbd7ed). OPCIONAL otra vez (la 254 lo exigía; la 263 ya no): suele
+    // llegar después del reporte y el gerente lo pone desde la tarjeta. Sin CRMA la devolución no cuenta como pérdida.
+    { id: "crma", tipo: "texto", corto: true, opcional: true, si: { paso: "return_type", vale: "customer_return" }, en: "CRMA / claim # (optional)", es: "CRMA / n.º de reclamo (opcional)" },
     FOTO,
     { id: "comments", tipo: "texto", opcional: true, en: "Comments (optional)", es: "Comentarios (opcional)" },
   ],
