@@ -276,7 +276,7 @@ describe("la 263 se aplica ANTES de desplegar: Warehouse Ops 0.4.0 sigue funcion
     const [cuerpo, registro] = SQL.split("-- @ledger-below");
     const sha = createHash("sha256").update(cuerpo, "utf8").digest("hex");
     expect(registro).toContain(`values ('263_merma_crma_opcional.sql', '${sha}')`);
-    expect(SQL).not.toContain("D-NEXT");
+    expect(SQL).not.toContain("D-905");
     expect(SQL).not.toMatch(/D-9\d\d/);
   });
 });

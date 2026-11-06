@@ -50970,3 +50970,9 @@ Sello `deliveries` 1.556.0; repo 1.757.0.
 La persona puede eliminar su propia solicitud de ayuda y un admin cualquiera (borrado suave con quién y cuándo); deja de contar como pendiente; los admins las ven con el filtro Show deleted y pueden restaurarlas; el hilo de una eliminada queda congelado. Pedido de Roberto (help d8a0f7c2). Migración 262.
 
 Sello `deliveries` 1.557.0; repo 1.758.0.
+
+## D-905 · Warehouse Ops: vuelven el origen y el CRMA (opcional) a la merma
+
+Corrige D-902: Roberto había pedido en el hilo ignorar la solicitud de quitar el origen y el CRMA. Vuelven ambas preguntas; el CRMA es opcional; una devolución de cliente suma pérdida solo con CRMA (sin CRMA, 0 dólares); el gerente puede corregir origen y CRMA después y la pérdida lo sigue. La merma interna sigue contando solo piezas dañadas. Migración 263.
+
+Sello `warehouse_ops` 0.5.0; repo 1.759.0.

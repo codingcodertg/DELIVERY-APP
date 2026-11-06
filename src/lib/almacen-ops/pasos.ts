@@ -52,7 +52,7 @@ export const TIPOS_DE_MERMA: Opcion[] = [
 /**
  * De dónde viene la merma. El pedido 714584e6 la quitó del formulario (D-902), pero Roberto lo retiró en el mismo hilo:
  * «It does apply BUT the CRMA is optional and if CRMA is filled then it sums the loss, if no CRMA then no loss». Así que
- * se vuelve a preguntar (D-NEXT), el CRMA es opcional y una devolución de cliente sin CRMA no cuenta como pérdida
+ * se vuelve a preguntar (D-905), el CRMA es opcional y una devolución de cliente sin CRMA no cuenta como pérdida
  * (ver `cuentaComoPerdida` en perdida.ts y la migración 263).
  */
 export const ORIGENES_DE_MERMA: Opcion[] = [
