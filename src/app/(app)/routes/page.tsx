@@ -1,6 +1,6 @@
 "use client";
 
-import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion";
+import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion-hook";
 import { contextoDelGestor } from "@/lib/ayuda-contextos";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { soloActivos } from "@/lib/baja";

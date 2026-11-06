@@ -1,6 +1,6 @@
 "use client";
 
-import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion";
+import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion-hook";
 import { contextoDelAsistente } from "@/lib/ayuda-contextos";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion";
+import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion-hook";
 import { contextoDeOrden } from "@/lib/ayuda-contextos";
 import { lugarDeLaDireccion, lugaresParaEntregarEn } from "@/lib/entregar-en-tienda";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
