@@ -67,7 +67,7 @@ import { avisoDeOptimizar, entradaDeOptimizar, puntosDeLaEntrada, tiemposDeLaRut
 import { baseTrasElCambio, basesPorNombreDelDia, extremosDeLaRuta, type BaseDelDia } from "@/lib/base-del-dia";
 import { useBasesDelDia } from "@/lib/usa-base-del-dia";
 import { BaseDelDiaDelChofer } from "@/components/BaseDelDiaDelChofer";
-import { esVentanaDura } from "@/lib/route-settings";
+import { esVentanaDura, minutosDeHora } from "@/lib/route-settings";
 import { useBasesDeChofer } from "@/lib/usa-bases";
 import { useAjustesDeChofer } from "@/lib/usa-ajustes-de-chofer";
 import { entradaDelDia } from "@/lib/route-plan/entrada";
@@ -132,7 +132,8 @@ import {
 } from "@/lib/arrastre-de-paradas";
 import { ETAPAS_HECHAS, estaEnElCamion, hechasDelChofer, inicioDeLaSecuencia } from "@/lib/mover-parada";
 import { hechasQueSePintan, horaReal, resumenDeEntregas, type FilaPintada } from "@/lib/hechas-del-gestor";
-import { claveDeEta, desvio, filasNuevasDeEtas, mapaDeEtas, textoDelDesvio, type FilaDeEta } from "@/lib/eta-del-plan";
+import { cambiosDeEtas, claveDeEta, claveDelPlan, desvio, filasNuevasDeEtas, hechasFueraDeOrden, mapaDeEtasGuardadas, textoDelDesvio, type EtaGuardada, type FilaDeEta } from "@/lib/eta-del-plan";
+import { minutosReales } from "@/lib/salida-de-la-medida";
 import { textoDelEstadoDelPlan, type EstadoDelPlan } from "@/lib/route-plan/estado-del-plan";
 import {
   cabeEnElPuesto, cambiosDeLaLista, cuentaDePallets, escrituraDeLaLista, gruposDeMismoLugar, listaConEntregasEn, listaConOrdenesEn, llevaEnLaLista, mueveEnLaLista, numeroDePallets,
@@ -1496,11 +1497,11 @@ export default function RoutesPage() {
    *   · `recogida`: lo que dice la «Ciudad de recogida» cuando no es la ciudad de la tienda de la orden (en una P, la TIENDA).
    *   · `sinAviso`: sin el aviso de «solo ciudad» (en una fila ya hecha nunca lo llevó).
    */
-  const celdaDeParada = (c: ColumnaDelGestor, d: Delivery | undefined, como: { tipo: "P" | "D"; llegada: React.ReactNode; recogida?: React.ReactNode; sinAviso?: boolean }) => {
+  const celdaDeParada = (c: ColumnaDelGestor, d: Delivery | undefined, como: { tipo: "P" | "D"; llegada: React.ReactNode; recogida?: React.ReactNode; sinAviso?: boolean; fueraDeOrden?: boolean }) => {
     switch (c.key) {
       case "p_type": return <td key={c.key} title={d?.order_type || undefined}>{d?.order_type || "—"}</td>;
       case "p_eta": return <Fragment key={c.key}>{como.llegada}</Fragment>;
-      case "p_actual": return celdaReal(c.key, d, como.tipo);
+      case "p_actual": return celdaReal(c.key, d, como.tipo, como.fueraDeOrden);
       case "p_ciudad_recogida": return <td key={c.key}>{como.recogida ?? ((d && zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen, settings.order_type_rules)) || "—")}</td>;
       case "p_address": return <td key={c.key} title={d?.delivery_address || undefined}>{(d && ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen)) || "—"}{!como.sinAviso && <AvisoSoloCiudad orden={d} corto />}</td>;
       case "p_windows": return <td key={c.key}>{como.tipo === "D" && d ? fmtWindows(d.delivery_windows) : ""}</td>;
@@ -1672,9 +1673,19 @@ export default function RoutesPage() {
   const delDiaDe = (clave: string): Delivery[] => rutaDelDia.get(clave) ?? [];
   const seMide = (clave: string) => delDiaDe(clave).length > 0 && pasaFiltro(clave) && (modo === "dia" || selected.has(clave));
   const rutasAMedir = [...lanes.filter((l) => selected.has(l.key)), ...lanes.filter((l) => !selected.has(l.key))].map((l) => l.key).filter(seMide);
-  const { finDeLaRuta, routeInfo, routeStats, routeLines, routeEtas, depotCoords, routerInfo, getDepotCoords, baseDeLaRuta, clearRouteFor, reintentaLaMedida, estadoDeLaMedida } = useMedidaDeRutas<Delivery>({
+  // D-906: a qué hora sale cada chofer si aún no ha hecho nada —la entrada de su turno, de Ajustes → Rutas; sin fila, las
+  // 08:00 de siempre— y dónde está su camión ahora (TrackSolid, D-900), si lo tiene enlazado y está a la vista.
+  const entradaDelTurno = useMemo(() => {
+    const nombreDe = new Map(users.map((x) => [x.id, (x.full_name ?? "").trim()]));
+    return new Map(ajustesDeChofer.flatMap((f): [string, number][] => { const m = minutosDeHora(f.shift_start), n = nombreDe.get(f.profile_id); return m != null && n ? [[n, m]] : []; }));
+  }, [ajustesDeChofer, users]);
+  const camionDelChofer = useMemo(() => new Map((rastreadores.disponible ? rastreadores.camiones : []).flatMap((c): [string, { lat: number; lng: number; en: string }][] =>
+    (c.chofer && c.lat != null && c.lng != null && c.posicionEn ? [[c.chofer.trim(), { lat: c.lat, lng: c.lng, en: c.posicionEn }]] : []))), [rastreadores.disponible, rastreadores.camiones]);
+  const { finDeLaRuta, routeInfo, routeStats, routeLines, routeEtas, routeSinHora, depotCoords, routerInfo, getDepotCoords, baseDeLaRuta, clearRouteFor, reintentaLaMedida, estadoDeLaMedida } = useMedidaDeRutas<Delivery>({
     date, porChofer: rutaDelDia, rutasAMedir, seMide,
     listaDe: (clave, delDia) => listaDelDia(diaDe(clave, pendientesDelDia(delDia)).paradas),
+    salidaPrevistaDe: (clave) => entradaDelTurno.get(driverOf(clave).trim()),
+    camionDe: (clave) => camionDelChofer.get(driverOf(clave).trim()) ?? null,
     tiendaBaseDe, coordsDeTienda,
     // Dónde termina cada ruta ese día (166): la vuelta va ahí. Cambiar la salida o el fin vuelve a medir esa ruta.
     tiendaFinDe,
@@ -1683,48 +1694,94 @@ export default function RoutesPage() {
     ...(soloLectura ? { buscaBases: "si_falta" as const } : {}),
     invalida: [rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity, settings.stores],
   });
-  // D-671 (194): la PRIMERA llegada que se midió hoy para cada parada (`delivery_eta_plans`): la «ETA» de lo ya hecho, al
-  // lado de su hora real («Actual»). Se lee la del día que se mira; y se apunta, solo HOY y solo lo que aún no estaba, cada
-  // vez que se mide una ruta: la primera gana (en la base, `on conflict do nothing`). Sin la 194 no se lee ni se apunta.
-  const [etasDelPlan, setEtasDelPlan] = useState<Map<string, string>>(() => new Map());
+  // D-671 (194): la llegada PREVISTA de cada parada (`delivery_eta_plans`): la «ETA» de lo ya hecho, al lado de su hora
+  // real («Actual»). Se lee la del día que se mira; y se apunta, solo HOY, cada vez que se mide una ruta.
+  // D-906 (260): la prevista es la del PLAN VIGENTE. Lo que aún no estaba se apunta; lo pendiente de una ruta cuyo plan
+  // cambió (`claveDelPlan`: otra salida, otro fin u otras paradas u otro orden) se vuelve a apuntar entero, de una sola
+  // medida; con el mismo plan no se toca, y lo ya hecho tampoco (la medida solo trae lo pendiente). Sin la 260 en la base
+  // (`sinPlanVigente`), como con la 194: la primera gana. Sin la 194 no se lee ni se apunta.
+  const [etasDelPlan, setEtasDelPlan] = useState<Map<string, EtaGuardada>>(() => new Map());
   const sinTablaDeEtas = useRef(false);
+  const sinPlanVigente = useRef(false);
+  /** Lee las del día: con las columnas de la 260 si la base las tiene; si no, las de la 194. */
+  const leeLasEtas = async (dia: string): Promise<Map<string, EtaGuardada> | null> => {
+    type Fila = FilaDeEta & { plan_key?: string | null; first_eta?: string | null };
+    if (!sinPlanVigente.current) {
+      const con = await createClient().from("delivery_eta_plans").select("delivery_id, kind, eta, plan_key, first_eta").eq("plan_date", dia).range(0, 4999);
+      if (!con.error) return mapaDeEtasGuardadas((con.data ?? []) as unknown as Fila[]);
+      sinPlanVigente.current = true;
+    }
+    const sin = await createClient().from("delivery_eta_plans").select("delivery_id, kind, eta").eq("plan_date", dia).range(0, 4999);
+    if (sin.error) { sinTablaDeEtas.current = true; return null; }
+    return mapaDeEtasGuardadas((sin.data ?? []) as unknown as Fila[]);
+  };
   useEffect(() => {
     let vivo = true;
     setEtasDelPlan(new Map());
     if (SIN_BASE) return;
-    void createClient().from("delivery_eta_plans").select("delivery_id, kind, eta").eq("plan_date", date).range(0, 4999).then(({ data, error }) => {
-      if (!vivo) return;
-      if (error) { sinTablaDeEtas.current = true; return; }
-      setEtasDelPlan(mapaDeEtas((data ?? []) as FilaDeEta[]));
-    });
+    void leeLasEtas(date).then((m) => { if (vivo && m) setEtasDelPlan(m); });
     return () => { vivo = false; };
   }, [date]);
   const apuntaEtas = !soloLectura && date === todayISO() && !!me && ["admin", "logistics", "manager", "accounting"].includes(me.role);
+  /** La clave del plan de una ruta, de su lista del DÍA tal como está (no cambia porque se haga una parada). */
+  const planDeLaRuta = (clave: string): string =>
+    claveDelPlan(date, clave, `${tiendaBaseDe(clave)?.name ?? ""}>${tiendaFinDe(clave)?.name ?? "·"}`, listaDelDia(diaDe(clave, pendientesDelDia(delDiaDe(clave))).paradas));
   useEffect(() => {
     if (!apuntaEtas || sinTablaDeEtas.current) return;
-    const nuevas = filasNuevasDeEtas(routeEtas, date, etasDelPlan);
-    if (!nuevas.length) return;
-    // En el demo (sin base) se quedan en memoria, con la misma regla: la primera gana.
-    setEtasDelPlan((m) => { const n = new Map(m); for (const f of nuevas) if (!n.has(claveDeEta(f.delivery_id, f.kind))) n.set(claveDeEta(f.delivery_id, f.kind), f.eta); return n; });
-    if (SIN_BASE) return;
-    void createClient().from("delivery_eta_plans").upsert(nuevas, { onConflict: "delivery_id,plan_date,kind", ignoreDuplicates: true }).then(({ error }) => {
-      if (error) { sinTablaDeEtas.current = true; return; }
-      // Otro pudo apuntar antes la misma parada: manda la de la base.
-      void createClient().from("delivery_eta_plans").select("delivery_id, kind, eta").eq("plan_date", date).range(0, 4999)
-        .then(({ data }) => { if (data) setEtasDelPlan(mapaDeEtas(data as FilaDeEta[])); });
+    const CONFLICTO = { onConflict: "delivery_id,plan_date,kind" } as const;
+    if (sinPlanVigente.current) {
+      // La base aún sin la 260: la regla de la 194, la primera gana.
+      const primeras = filasNuevasDeEtas(routeEtas, date, etasDelPlan);
+      if (!primeras.length) return;
+      setEtasDelPlan((m) => { const n = new Map(m); for (const f of primeras) if (!n.has(claveDeEta(f.delivery_id, f.kind))) n.set(claveDeEta(f.delivery_id, f.kind), { eta: f.eta, plan_key: null, first_eta: null }); return n; });
+      void createClient().from("delivery_eta_plans").upsert(primeras, { ...CONFLICTO, ignoreDuplicates: true }).then(({ error }) => {
+        if (error) { sinTablaDeEtas.current = true; return; }
+        // Otro pudo apuntar antes la misma parada: manda la de la base.
+        void leeLasEtas(date).then((m) => { if (m) setEtasDelPlan(m); });
+      });
+      return;
+    }
+    // Solo las rutas cuya medida pintada es la de su forma de AHORA: una medida que va a tirarse no se apunta.
+    const medidas: Record<string, { etas: Record<string, string>; plan: string }> = {};
+    for (const [clave, etas] of Object.entries(routeEtas)) if (estadoDeLaMedida(clave, delDiaDe(clave)) === "medida") medidas[clave] = { etas, plan: planDeLaRuta(clave) };
+    const { nuevas, rehechas } = cambiosDeEtas(medidas, date, etasDelPlan, new Date().toISOString());
+    if (!nuevas.length && !rehechas.length) return;
+    // En el demo (sin base) se quedan en memoria, con la misma regla.
+    setEtasDelPlan((m) => {
+      const n = new Map(m);
+      for (const f of nuevas) if (!n.has(claveDeEta(f.delivery_id, f.kind))) n.set(claveDeEta(f.delivery_id, f.kind), { eta: f.eta, plan_key: f.plan_key, first_eta: f.first_eta });
+      for (const f of rehechas) n.set(claveDeEta(f.delivery_id, f.kind), { eta: f.eta, plan_key: f.plan_key, first_eta: n.get(claveDeEta(f.delivery_id, f.kind))?.first_eta ?? null });
+      return n;
     });
+    if (SIN_BASE) return;
+    void (async () => {
+      const tabla = () => createClient().from("delivery_eta_plans");
+      // Lo nuevo, sin pisar (otro pudo apuntarlo antes); lo rehecho, pisando la prevista y su plan. `first_eta` no va en lo
+      // rehecho: la primera del día se queda como estaba.
+      const a = nuevas.length ? await tabla().upsert(nuevas, { ...CONFLICTO, ignoreDuplicates: true }) : { error: null };
+      const b = !a.error && rehechas.length ? await tabla().upsert(rehechas, CONFLICTO) : { error: null };
+      // La base no tiene (aún) la 260: desde ahora, la regla de la 194. Lo de esta vez se apunta en la siguiente medida.
+      if (a.error || b.error) sinPlanVigente.current = true;
+      const leidas = await leeLasEtas(date);
+      if (leidas) setEtasDelPlan(leidas);
+    })();
   }, [routeEtas, apuntaEtas, date]); // eslint-disable-line react-hooks/exhaustive-deps
-  /** «Actual» (D-671): la hora real de la parada, si ya está hecha, y cuánto se desvió de su llegada prevista. */
-  const celdaReal = (key: string, d: Delivery | undefined, tipo: "P" | "D") => {
+  /** «Actual» (D-671): la hora real de la parada, si ya está hecha, y cuánto se desvió de su llegada prevista. Una parada
+   *  hecha FUERA DEL ORDEN de la lista (D-906, `hechasFueraDeOrden`) no lleva «±min»: lo dice. */
+  const celdaReal = (key: string, d: Delivery | undefined, tipo: "P" | "D", fueraDeOrden = false) => {
     const hecha = !!d && (tipo === "D" ? d.stage === "delivered" : d.stage === "picked_up" || d.stage === "delivered");
     const hora = hecha && d ? horaReal(d, tipo) : null;
     if (!hora) return <td key={key} data-real="" style={{ color: "var(--gray)" }}>{hecha ? "✓" : "—"}</td>;
-    const prevista = d ? etasDelPlan.get(claveDeEta(d.id, tipo)) : undefined;
-    const dif = textoDelDesvio(desvio(prevista, hora), lang === "es");
+    const prevista = d ? etasDelPlan.get(claveDeEta(d.id, tipo))?.eta : undefined;
+    const dif = fueraDeOrden ? null : textoDelDesvio(desvio(prevista, hora), lang === "es");
+    const hizo = tipo === "P" ? { en: "picked up", es: "recogida" } : { en: "delivered", es: "entregada" };
     return (
-      <td key={key} data-real={hora} data-desvio={dif?.tono} style={{ fontWeight: 600, whiteSpace: "nowrap" }}
-        title={prevista ? t(`Estimated ${prevista}, ${tipo === "P" ? "picked up" : "delivered"} ${hora}`, `Prevista ${prevista}, ${tipo === "P" ? "recogida" : "entregada"} ${hora}`) : t("No estimate was recorded for this stop today", "Hoy no quedó apuntada una llegada prevista para esta parada")}>
+      <td key={key} data-real={hora} data-desvio={dif?.tono} data-fuera-de-orden={fueraDeOrden ? "" : undefined} style={{ fontWeight: 600, whiteSpace: "nowrap" }}
+        title={fueraDeOrden
+          ? t(`Done out of the list's order: ${hizo.en} ${hora}, ahead of stops listed before it${prevista ? ` (it was estimated for ${prevista} in its place on the list)` : ""}. The difference isn't shown: it wouldn't mean early or late.`, `Hecha fuera del orden de la lista: ${hizo.es} ${hora}, antes que paradas que van delante${prevista ? ` (en su puesto de la lista estaba prevista para las ${prevista})` : ""}. No se enseña la diferencia: no querría decir antes ni tarde.`)
+          : prevista ? t(`Estimated ${prevista}, ${hizo.en} ${hora}`, `Prevista ${prevista}, ${hizo.es} ${hora}`) : t("No estimate was recorded for this stop today", "Hoy no quedó apuntada una llegada prevista para esta parada")}>
         ✓ {hora}{dif && <span style={{ marginLeft: 4, fontSize: 11, fontWeight: 600, color: dif.tono === "verde" ? "var(--green)" : dif.tono === "ambar" ? "var(--amber)" : "var(--red)" }}>{dif.texto}</span>}
+        {fueraDeOrden && <span style={{ marginLeft: 4, fontSize: 11, fontWeight: 600, color: "var(--gray)" }}>↕ {t("out of order", "fuera de orden")}</span>}
       </td>
     );
   };
@@ -3367,6 +3424,13 @@ export default function RoutesPage() {
         const pintadas = dia.pintadas;
         const entregas = resumenDeEntregas(stops, hechas);
         const hayFilas = stops.length > 0 || hechas.length > 0;
+        // D-906: lo hecho fuera del orden de la lista (delante queda algo sin hacer, o hecho después): su «Actual» lo dice
+        // en vez de un «±min» que no quiere decir nada.
+        const fueraDeOrden = hechasFueraDeOrden(pintadas.map((fp) => {
+          if (!fp.hecha || fp.estado !== "hecho") return { clave: "", hecha: false, real: null };
+          const o = hechasPorId.get(fp.orden);
+          return { clave: claveDeEta(fp.orden, fp.tipo), hecha: true, real: o ? minutosReales(fp.tipo === "D" ? o.pod_delivered_at : o.pickup_gps_at, date) : null };
+        }));
         // ↶ ↷ en la tarjeta (D-459): el historial es uno, global; el botón se enciende si el último movimiento tocó esta ruta.
         const deshace = botonDeVolver(historial, "deshacer", u.key, laneLabel);
         const rehace = botonDeVolver(historial, "rehacer", u.key, laneLabel);
@@ -3388,12 +3452,18 @@ export default function RoutesPage() {
               {/* Lo que movió, sin el «= a bordo»: no cuenta en la carga pendiente. */}
               <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", fontSize: 12 }}>{fp.tipo === "P" ? "+" : "−"}{numeroDePallets(palletsDeLaOrden(d))}</td>
               {colsParadas.map((c) => celdaDeParada(c, d, {
-                tipo: fp.tipo, sinAviso: true,
-                // D-671: la llegada PREVISTA (la primera que se midió hoy, `delivery_eta_plans`); la hora real va en «Actual».
+                tipo: fp.tipo, sinAviso: true, fueraDeOrden: fueraDeOrden.has(claveDeEta(d.id, fp.tipo)),
+                // D-671: la llegada PREVISTA (`delivery_eta_plans`); la hora real va en «Actual». Desde D-906 es la del plan
+                // vigente cuando se hizo la parada, no la primera del día (que queda en el aviso, si fue otra).
                 // Sin «Actual» a la vista, la real sigue aquí, como antes: lo hecho no se queda sin hora.
                 llegada: colsParadas.some((x) => x.key === "p_actual")
-                  ? <td data-hora-prevista={etasDelPlan.get(claveDeEta(d.id, fp.tipo)) ?? ""} data-hora-real={hora ?? ""} style={{ color: "var(--gray)" }}
-                      title={t("Estimated arrival, the first one measured today", "Llegada prevista: la primera que se midió hoy")}>{etasDelPlan.get(claveDeEta(d.id, fp.tipo)) ?? "—"}</td>
+                  ? (() => {
+                      const g = etasDelPlan.get(claveDeEta(d.id, fp.tipo));
+                      const primera = g?.first_eta && g.first_eta !== g.eta ? g.first_eta : null;
+                      return <td data-hora-prevista={g?.eta ?? ""} data-hora-real={hora ?? ""} style={{ color: "var(--gray)" }}
+                        title={!g ? t("No estimate was recorded for this stop today", "Hoy no quedó apuntada una llegada prevista para esta parada")
+                          : t(`Estimated arrival under the route's plan when this stop was done${primera ? ` (first estimate today: ${primera})` : ""}`, `Llegada prevista con el plan de la ruta cuando se hizo esta parada${primera ? ` (la primera de hoy: ${primera})` : ""}`)}>{g?.eta ?? "—"}</td>;
+                    })()
                   : <td data-hora-real={hora ?? ""} style={{ fontWeight: 600 }}>{hecho ? `✓ ${hora ?? t(fp.tipo === "P" ? "picked up" : "delivered", fp.tipo === "P" ? "recogida" : "entregada")}` : `🚚 ${t("on its way", "en camino")}`}</td>,
                 recogida: fp.tipo === "P" ? <b>{(d.store ?? "").trim() || "—"}</b> : undefined,
               }))}
@@ -3824,7 +3894,8 @@ export default function RoutesPage() {
                         const etaP = f.indice != null ? routeEtas[u.key]?.[claveDeRecogida(ordenesDeLaRecogidaMedida(dia.paradas, dia.deFila[k], f.ordenes))] : undefined;
                         // Si no hay hora, por qué (D-456): la tienda sin coordenadas no se mide; con una sola parada y sin base, tampoco.
                         const paradaP = f.indice != null ? lectura.paradas[f.indice] : undefined;
-                        const motivoP: MotivoSinLlegada | null = !paradaP || paradaP.tipo !== "P" ? null : !coordsDeTienda(paradaP.tienda) ? "sin_tienda" : "sin_base";
+                        const claveP = claveDeRecogida(ordenesDeLaRecogidaMedida(dia.paradas, dia.deFila[k], f.ordenes));
+                        const motivoP: MotivoSinLlegada | null = !paradaP || paradaP.tipo !== "P" ? null : !coordsDeTienda(paradaP.tienda) ? "sin_tienda" : routeSinHora[u.key]?.[claveP] ?? "sin_base";
                         const llegadaP = textoDeLaLlegada(etaP, f.indice != null ? medida : "sin_pedir", motivoP, lang === "es");
                         // La TIENDA donde se recoge, sin «Recoger en» (D-447): va en la columna Ciudad de recogida.
                         // D-808: una recogida LIBRE (Otro, Proveedor; D-782) no es una tienda aunque su nombre tecleado lo parezca: la
@@ -3885,7 +3956,7 @@ export default function RoutesPage() {
                       const etaMin = eta ? parseInt(eta.slice(0, 2), 10) * 60 + parseInt(eta.slice(3, 5), 10) : null;
                       const late = etaMin != null && win != null && etaMin > win[1];
                       // Si no hay hora, por qué (D-456): sin pin no se mide; si no, «calculando…» o «sin medida».
-                      const llegada = textoDeLaLlegada(eta, medida, d.delivery_lat == null || d.delivery_lng == null ? "sin_pin" : "sin_base", lang === "es");
+                      const llegada = textoDeLaLlegada(eta, medida, d.delivery_lat == null || d.delivery_lng == null ? "sin_pin" : routeSinHora[u.key]?.[d.id] ?? "sin_base", lang === "es");
                       // Three levels of detail, by where you tap:
                       //   the invoice → open the order itself (the ID until D-408)
                       //   the row  → isolate this stop on the map, with its route

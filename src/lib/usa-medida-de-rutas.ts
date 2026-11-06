@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { relojDeLaRuta, type OrdenDelReloj, type PuntoDelReloj } from "./salida-de-la-medida";
+import { ahoraDelNegocio, enOrdenDeEjecucion, fmtReloj, relojDeLaRuta, type CamionDelReloj, type CoordenadasDelReloj, type MotivoSinHora, type OrdenDelReloj, type PuntoDelReloj } from "./salida-de-la-medida";
 import { serviceMin, RELOAD_MIN } from "@/lib/trip-timing";
 import { MEDIDA_FALLIDA, cuerpoDeLaMedida, firmaDeLaMedida, siguienteMedida, type EstadoDeLaMedida } from "@/lib/medida-de-ruta";
 import { minutosEnCadaParada } from "@/lib/optimiza-la-ruta";
@@ -75,7 +75,7 @@ export interface TripStat {
   /** driveMin + serviceMin: the truck is busy this long. */
   totalMin: number;
   stops: number;
-  /** Leaves the pickup / back at the pickup, "HH:MM". */
+  /** Leaves the pickup / back at the pickup, "HH:MM". Vacía si no se pudo calcular (D-906): la fila de la base no pone hora. */
   start: string;
   end: string;
 }
@@ -91,9 +91,17 @@ export interface MedidaDeLaRuta {
   dayMinutes: number;
   /** Estimated arrival time per stop id, "HH:MM". */
   etas: Record<string, string>;
-  /** Lo que hace falta para rehacer las horas sin volver a llamar al router cuando se hace una parada (D-691). */
-  reloj?: { puntos: PuntoDelReloj[]; legs: number[]; conBase: boolean; vuelve: boolean; fecha: string; driveMin: number };
+  /** Las paradas pendientes a las que no se les puede dar hora, y por qué (D-906): falta un tramo, o es una recogida a
+   *  medias de la que el camión ya se fue. La celda lo dice, no inventa. */
+  sinHora?: Record<string, MotivoSinHora>;
+  /** Lo que hace falta para rehacer las horas sin volver a llamar al router cuando se hace una parada (D-691). Desde
+   *  D-906, con las coordenadas de cada punto, de la base y del fin: el reloj comprueba los tramos con ellas. */
+  reloj?: { puntos: PuntoDelReloj[]; legs: number[]; conBase: boolean; vuelve: boolean; fecha: string; driveMin: number; base?: CoordenadasDelReloj | null; fin?: CoordenadasDelReloj | null };
 }
+
+/** Lo que cambia las horas sin cambiar la medida (D-906): la hora de salida prevista del chofer (su turno, de Ajustes →
+ *  Rutas) y la última posición de su camión (TrackSolid). */
+export interface ExtrasDelReloj { salidaPrevistaMin?: number; camion?: CamionDelReloj | null }
 
 /** Lo que el panel «Choferes y rutas» y la tarjeta pintan de una ruta medida. */
 export interface InfoDeRuta { miles: number; duration_text: string; minutes: number; dayMinutes: number; dayText: string }
@@ -125,8 +133,14 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
   fin?: [number, number] | null;
   coordsDeTienda: (nombre: string | null) => Coords | null; fecha: string;
   pide: (url: string, init: RequestInit) => Promise<{ ok: boolean; json: () => Promise<unknown> }>;
+  /** El instante en que se mide (para las pruebas) y lo que mueve las horas sin medir (`ExtrasDelReloj`). */
+  ahora?: Date; extras?: ExtrasDelReloj;
 }): Promise<{ medida: MedidaDeLaRuta; proveedor: ProveedorDeRuta | null }> {
-  const { lista, base: depot } = e;
+  const { base: depot } = e;
+  // D-906: el camino se pide en el orden en que la ruta se está HACIENDO (lo hecho por su hora real, luego lo pendiente
+  // en el orden de la lista), no en el de la lista: así el tramo «última hecha → primera pendiente» lo da el router. Con la
+  // lista cumplida en orden es la misma lista.
+  const lista = enOrdenDeEjecucion(e.lista, e.ordenes, e.fecha);
   const byId = new Map(e.ordenes.map((d) => [d.id, d]));
   // Lo que el camión pasa parado en cada parada, contado como el optimizador y el motor (D-461): las recogidas seguidas en
   // la misma tienda son UNA visita. Hasta aquí cada fila P sumaba la recarga entera.
@@ -178,29 +192,37 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
     traces = [{ delivery: geom, ret: [] }];
   }
 
-  // Las horas: `horasDeLaMedida` (D-602 y D-691: lo ya hecho ancla el reloj en su hora real).
-  const reloj = { puntos: puntos.map(({ id, servicio, tipo, ordenes }) => ({ id, servicio, tipo, ordenes })), legs, conBase: !!depot, vuelve, fecha: e.fecha, driveMin: data.duration_seconds / 60 };
-  const { etas, stat } = horasDeLaMedida(reloj, e.ordenes);
-  return { medida: { miles: Math.round(data.miles * 10) / 10, seconds: data.duration_seconds, traces, stat: { ...stat, miles: Math.round(data.miles * 10) / 10 }, dayMinutes: stat.totalMin, etas, reloj }, proveedor };
+  // Las horas: `horasDeLaMedida` (D-602, D-691 y D-906: el reloj sale de donde está el camión, el último hecho real).
+  const aPunto = (c: readonly [number, number] | null | undefined): CoordenadasDelReloj | null => (c ? { lat: c[0], lng: c[1] } : null);
+  const reloj = {
+    puntos: puntos.map(({ id, servicio, tipo, ordenes, lat, lng }) => ({ id, servicio, tipo, ordenes, lat, lng })), legs, conBase: !!depot, vuelve, fecha: e.fecha, driveMin: data.duration_seconds / 60,
+    base: aPunto(depot), fin: aPunto(e.fin === undefined ? depot : e.fin),
+  };
+  const { etas, stat, sinHora } = horasDeLaMedida(reloj, e.ordenes, e.ahora, e.extras);
+  return { medida: { miles: Math.round(data.miles * 10) / 10, seconds: data.duration_seconds, traces, stat: { ...stat, miles: Math.round(data.miles * 10) / 10 }, dayMinutes: stat.totalMin, etas, sinHora, reloj }, proveedor };
 }
 
 /** Las llegadas y la tarjeta de una ruta medida, con las paradas hechas TAL COMO ESTÁN ahora: se rehacen sin llamar a nadie
  *  cuando el chofer hace una parada (la forma de la ruta no cambia, D-584). */
-export function horasDeLaMedida(r: NonNullable<MedidaDeLaRuta["reloj"]>, ordenes: readonly OrdenDelReloj[], ahora?: Date): { etas: Record<string, string>; stat: TripStat } {
-  const { etas, salida, clock, servicio } = relojDeLaRuta({ ...r, ordenes, ahora });
+export function horasDeLaMedida(r: NonNullable<MedidaDeLaRuta["reloj"]>, ordenes: readonly OrdenDelReloj[], ahora?: Date, extras?: ExtrasDelReloj): { etas: Record<string, string>; stat: TripStat; sinHora: Record<string, MotivoSinHora> } {
+  const { etas, salida, clock, servicio, sinHora } = relojDeLaRuta({ ...r, ordenes, ahora, ...extras });
   const stat: TripStat = {
     miles: 0, driveMin: r.driveMin, serviceMin: servicio, totalMin: r.driveMin + servicio,
-    stops: r.puntos.length, start: fmtClock(salida), end: fmtClock(clock),
+    // Una hora que no se pudo calcular va vacía: la fila de la base no la pinta (D-906).
+    stops: r.puntos.length, start: salida == null ? "" : fmtReloj(salida), end: clock == null ? "" : fmtReloj(clock),
   };
-  return { etas, stat };
+  return { etas, stat, sinHora };
 }
 
 /** La forma de la ruta que se mide (D-456): la de `firmaDeLaMedida` —fecha, paradas, puestos, pines— MÁS la lista tal como
  *  se pinta. La misma ruta guardada da otra lista si cambia la capacidad del camión (sin posición guardada, las recogidas se
  *  cortan por lo que cabe) o si llega el plan publicado, y la llegada de cada recogida va por su puesto EN la lista: una
  *  medida guardada de la lista de antes pondría las horas en la fila que no es. */
-export function firmaDeLaForma(fecha: string, clave: string, stops: readonly OrdenMedida[], lista: readonly ParadaDeLaLista[], extremos = ""): string {
+export function firmaDeLaForma(fecha: string, clave: string, stops: readonly OrdenMedida[], listaDeLaRuta: readonly ParadaDeLaLista[], extremos = ""): string {
   // `extremos` (166): de dónde sale y dónde termina. Cambiar la salida o el fin de ese día es otra forma, y se vuelve a medir.
+  // D-906: la forma es la del orden en que se está HACIENDO (`enOrdenDeEjecucion`, el que se le pide al router). Hacer una
+  // parada en el orden de la lista no la cambia (D-584); hacerla fuera de orden sí, y esa ruta se vuelve a medir.
+  const lista = enOrdenDeEjecucion(listaDeLaRuta, stops, fecha);
   return `${firmaDeLaMedida(fecha, clave, stops)}|${lista.map((p) => (p.tipo === "P" ? `P${p.ordenes.join("+")}` : `D${p.orden}`)).join(",")}${extremos ? `|${extremos}` : ""}`;
 }
 
@@ -228,14 +250,22 @@ export interface EntradaDeLaMedida<T extends OrdenMedida> {
   /** Buscar la dirección de la base de cada ruta (`/api/geocode-point`): «siempre» (el Gestor, como hasta ahora) o solo si
    *  la tienda base no tiene coordenadas en Ajustes. */
   buscaBases?: "siempre" | "si_falta";
+  /** A qué hora sale ese chofer si aún no ha hecho nada (su turno, en minutos). Sin esto, las 08:00 (D-906). */
+  salidaPrevistaDe?: (clave: string) => number | undefined;
+  /** La última posición del camión de ese chofer (TrackSolid), si la hay (D-906). Solo acorta el primer tramo. */
+  camionDe?: (clave: string) => CamionDelReloj | null;
 }
 
 /** La medida con sus horas rehechas para las órdenes de ahora (lo hecho ancla el reloj). Sin `reloj`, tal cual. */
-export function conHorasDeAhora(m: MedidaDeLaRuta, ordenes: readonly OrdenDelReloj[], ahora?: Date): MedidaDeLaRuta {
+export function conHorasDeAhora(m: MedidaDeLaRuta, ordenes: readonly OrdenDelReloj[], ahora?: Date, extras?: ExtrasDelReloj): MedidaDeLaRuta {
   if (!m.reloj || !m.stat) return m;
-  const { etas, stat } = horasDeLaMedida(m.reloj, ordenes, ahora);
-  return { ...m, etas, stat: { ...stat, miles: m.stat.miles }, dayMinutes: stat.totalMin };
+  const { etas, stat, sinHora } = horasDeLaMedida(m.reloj, ordenes, ahora, extras);
+  return { ...m, etas, sinHora, stat: { ...stat, miles: m.stat.miles }, dayMinutes: stat.totalMin };
 }
+
+/** Cada cuánto se rehacen las horas de HOY sin volver a medir (D-906): el reloj corre, y «ahora» no es el de cuando se
+ *  midió la ruta. Sin llamadas: es la misma medida con otra hora. */
+export const REFRESCO_DE_LAS_HORAS_MS = 60_000;
 
 export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>) {
   const { date, porChofer: byDriver, tiendaBaseDe } = e;
@@ -246,6 +276,8 @@ export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>)
   const [routeStats, setRouteStats] = useState<Record<string, TripStat | null>>({});
   const [routeLines, setRouteLines] = useState<Record<string, TripTrace[]>>({});
   const [routeEtas, setRouteEtas] = useState<Record<string, Record<string, string>>>({});
+  // Las paradas de cada ruta que se quedaron sin hora, y por qué (D-906).
+  const [routeSinHora, setRouteSinHora] = useState<Record<string, Record<string, MotivoSinHora>>>({});
   const [depotCoords, setDepotCoords] = useState<Record<string, [number, number]>>({});
   // Which router actually answered last — so the page can say whether the
   // mileage/ETAs account for traffic (Google) or are free-flow (OSRM fallback).
@@ -253,7 +285,7 @@ export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>)
   const [routerInfo, setRouterInfo] = useState<ProveedorDeRuta | null>(null);
 
   // A newly-viewed date invalidates any measured summary/trace from before.
-  useEffect(() => { setRouteInfo({}); setRouteStats({}); setRouteLines({}); setRouteEtas({}); }, [date]);
+  useEffect(() => { setRouteInfo({}); setRouteStats({}); setRouteLines({}); setRouteEtas({}); setRouteSinHora({}); }, [date]);
 
   const pickupAddressFor = (laneKey: string): string | null => (tiendaBaseDe(laneKey)?.address ?? "").trim() || null;
 
@@ -318,7 +350,9 @@ export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>)
     setRouteStats((p) => { const { [driver]: _drop, ...rest } = p; return rest; });
     setRouteLines((p) => { const { [driver]: _drop, ...rest } = p; return rest; });
     setRouteEtas((p) => { const { [driver]: _drop, ...rest } = p; return rest; });
+    setRouteSinHora((p) => { const { [driver]: _drop, ...rest } = p; return rest; });
   };
+  const extrasDe = (clave: string): ExtrasDelReloj => ({ salidaPrevistaMin: e.salidaPrevistaDe?.(clave), camion: e.camionDe?.(clave) ?? null });
 
   /** Mide la ruta de un chofer TAL COMO ESTÁ —su lista, la que pinta la tabla—. NO reordena ni escribe nada (D-437). */
   const mideLaRuta = async (laneKey: string, stopList: T[]): Promise<MedidaDeLaRuta> => {
@@ -328,7 +362,7 @@ export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>)
     // Y dónde termina (166): la vuelta va a ESA tienda; sin tienda de fin, no vuelve.
     const tiendaFin = tiendaDelFin(laneKey), finC = finDeLaRuta(laneKey);
     const fin: [number, number] | null = !tiendaFin ? null : finC ? [finC.lat, finC.lng] : await getDepotCoords((tiendaFin.address ?? "").trim() || null);
-    const r = await mideLaLista({ lista: e.listaDe(laneKey, stopList), ordenes: stopList, base: depot, fin: depot ? fin : undefined, coordsDeTienda: e.coordsDeTienda, fecha: date, pide: (url, init) => fetch(url, init) });
+    const r = await mideLaLista({ lista: e.listaDe(laneKey, stopList), ordenes: stopList, base: depot, fin: depot ? fin : undefined, coordsDeTienda: e.coordsDeTienda, fecha: date, extras: extrasDe(laneKey), pide: (url, init) => fetch(url, init) });
     if (r.proveedor) lastProviderRef.current = r.proveedor;
     return r.medida;
   };
@@ -336,25 +370,39 @@ export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>)
   /** Pinta lo medido en la tarjeta y el mapa. Solo pinta: la ruta no se toca. */
   const pintaLaMedida = (driver: string, m0: MedidaDeLaRuta) => {
     medidaPintada.current[driver] = m0;
-    const m = conHorasDeAhora(m0, formaActual.current.byDriver.get(driver) ?? []);
+    const m = conHorasDeAhora(m0, formaActual.current.byDriver.get(driver) ?? [], undefined, extrasDe(driver));
     setRouteInfo((p) => ({ ...p, [driver]: { miles: m.miles, duration_text: fmtMinutes(m.seconds / 60), minutes: m.seconds / 60, dayMinutes: m.dayMinutes, dayText: fmtMinutes(m.dayMinutes) } }));
     setRouteStats((p) => ({ ...p, [driver]: m.stat }));
     setRouteLines((p) => ({ ...p, [driver]: m.traces }));
     setRouteEtas((p) => ({ ...p, [driver]: m.etas }));
+    setRouteSinHora((p) => ({ ...p, [driver]: m.sinHora ?? {} }));
   };
 
   // D-691: hacer una parada no cambia la forma (no se vuelve a medir), pero sí las horas de lo que queda: se rehacen de la
   // medida pintada con las órdenes de ahora, sin llamar al router.
+  // D-906: y el reloj corre. Las horas de HOY se rehacen también cada minuto (`REFRESCO_DE_LAS_HORAS_MS`) y cuando llega
+  // otra posición del camión: hasta aquí «ahora» era el de la última vez que cambió una orden, y una pantalla abierta desde
+  // las 08:10 seguía enseñando a las 09:25 las llegadas calculadas a las 08:10.
   const medidaPintada = useRef<Record<string, MedidaDeLaRuta>>({});
+  const [minuto, setMinuto] = useState(0);
+  const esHoy = date === ahoraDelNegocio().fecha;
+  useEffect(() => {
+    if (!esHoy) return;
+    const reloj = setInterval(() => { if (typeof document === "undefined" || document.visibilityState === "visible") setMinuto((n) => n + 1); }, REFRESCO_DE_LAS_HORAS_MS);
+    return () => clearInterval(reloj);
+  }, [esHoy]);
+  const camionesAhora = e.camionDe ? e.rutasAMedir.map((k) => { const c = e.camionDe!(k); return c ? `${k}=${c.lat.toFixed(4)},${c.lng.toFixed(4)}@${String(c.en)}` : ""; }).join("\u0001") : "";
+  const salidasAhora = e.salidaPrevistaDe ? e.rutasAMedir.map((k) => `${k}=${e.salidaPrevistaDe!(k) ?? ""}`).join("\u0001") : "";
   useEffect(() => {
     for (const [k, m0] of Object.entries(medidaPintada.current)) {
       if (!routeInfo[k] || !m0.reloj) continue;
-      const m = conHorasDeAhora(m0, byDriver.get(k) ?? []);
+      const m = conHorasDeAhora(m0, byDriver.get(k) ?? [], undefined, extrasDe(k));
       setRouteEtas((p) => (JSON.stringify(p[k]) === JSON.stringify(m.etas) ? p : { ...p, [k]: m.etas }));
       setRouteStats((p) => (JSON.stringify(p[k]) === JSON.stringify(m.stat) ? p : { ...p, [k]: m.stat }));
+      setRouteSinHora((p) => (JSON.stringify(p[k] ?? {}) === JSON.stringify(m.sinHora ?? {}) ? p : { ...p, [k]: m.sinHora ?? {} }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [byDriver]);
+  }, [byDriver, minuto, camionesAhora, salidasAhora]);
   // Lo último que se pinta, para no pintar una medida que llega tarde: si la ruta cambió mientras se medía (una flecha
   // a mitad), esa medida es de la forma de antes y se tira; la nueva forma se mide aparte.
   const formaActual = useRef({ date, byDriver });
@@ -438,5 +486,5 @@ export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>)
     return e.seMide(clave) ? "calculando" : "sin_pedir";
   };
 
-  return { midiendo, routeInfo, routeStats, routeLines, routeEtas, depotCoords, routerInfo, getDepotCoords, baseDeLaRuta, finDeLaRuta, pickupAddressFor, clearRouteFor, reintentaLaMedida, estadoDeLaMedida };
+  return { midiendo, routeInfo, routeStats, routeLines, routeEtas, routeSinHora, depotCoords, routerInfo, getDepotCoords, baseDeLaRuta, finDeLaRuta, pickupAddressFor, clearRouteFor, reintentaLaMedida, estadoDeLaMedida };
 }

@@ -457,8 +457,10 @@ describe("4 · la llegada estimada, SIEMPRE", () => {
     it("la columna «Llegada» de las filas P y D dice el estado o el motivo, no una raya", () => {
       expect(pagina).toContain("const medida = estadoDeLaMedida(u.key, delDiaDe(u.key));"); // Nota D-584: la medida es del día
       expect(pagina).toContain("const llegadaP = textoDeLaLlegada(etaP, f.indice != null ? medida : \"sin_pedir\", motivoP, lang === \"es\");");
-      expect(pagina).toContain("!coordsDeTienda(paradaP.tienda) ? \"sin_tienda\" : \"sin_base\";");
-      expect(pagina).toContain("const llegada = textoDeLaLlegada(eta, medida, d.delivery_lat == null || d.delivery_lng == null ? \"sin_pin\" : \"sin_base\", lang === \"es\");");
+      // **Puesto al día por D-906 (2026-11-06)**: una parada medida que se queda sin hora dice POR QUÉ (`routeSinHora`: falta
+      // un tramo, o es una recogida sin marcar en una tienda ya visitada); si no, el motivo de siempre.
+      expect(pagina).toContain("!coordsDeTienda(paradaP.tienda) ? \"sin_tienda\" : routeSinHora[u.key]?.[claveP] ?? \"sin_base\";");
+      expect(pagina).toContain("const llegada = textoDeLaLlegada(eta, medida, d.delivery_lat == null || d.delivery_lng == null ? \"sin_pin\" : routeSinHora[u.key]?.[d.id] ?? \"sin_base\", lang === \"es\");");
       expect(pagina).toContain("{llegadaP.texto}</td>");
       expect(pagina).toContain("{llegada.texto}{late ? \" ⚠️\" : \"\"}");
       expect(pagina).not.toContain("{etaP ?? \"—\"}");
