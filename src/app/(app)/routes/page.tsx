@@ -35,6 +35,7 @@ import { rutasConOrdenes } from "@/lib/gestor/rutas-visibles";
 import { alcanceDeChoferes, choferSeVe, choferesConOrden, ordenesPorChofer, type AlcanceDeChoferes } from "@/lib/gestor/choferes-por-tienda";
 import { alAbrirRutas, alPulsarElMapa, MAPA_INICIAL, rutasAbiertas, type EstadoDelMapa } from "@/lib/gestor/mapa-al-abrir-ruta";
 import { textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
+import { ordenesEnElMapa } from "@/lib/gestor/ordenes-en-el-mapa";
 import { diaDeLaRuta } from "@/lib/gestor/numeros-del-dia";
 import { filasDelHorario, paradaDeCadaEntrega } from "@/lib/gestor/zoom-del-horario";
 import { alternaDesplegada, claseDeTarjeta, conAcciones, conCabecera, conCuerpo, desplegadaVigente, type ModoDeTarjeta } from "@/lib/gestor/cuadricula";
@@ -743,6 +744,9 @@ export default function RoutesPage() {
   // The order opened from a stop's ID — the dispatcher wants the order itself,
   // not just its pin.
   const [openOrder, setOpenOrder] = useState<Delivery | null>(null);
+  // «🗺 Ver en mapa» de las tablas de órdenes (ayuda 042c7dc1, Roberto: «When looking at orders would like option to see in
+  // map»): las filas que la lista enseña AHORA, cada una un pin. Vale para «Sin asignar» y «Todas»; no toca el mapa grande.
+  const [ordenesEnMapa, setOrdenesEnMapa] = useState(false);
 
   // Where each driver's phone last reported from, so the dispatcher can see
   // the fleet against the routes they planned.
@@ -2419,6 +2423,46 @@ export default function RoutesPage() {
     cabeceraDeAcciones: string; anchoDeAcciones: number;
     caja: React.RefObject<HTMLDivElement | null>;
   }
+  // El mapa de la lista («🗺 Ver en mapa», ayuda 042c7dc1): las filas VISIBLES —chip, búsqueda y filtros de columna ya
+  // aplicados—, cada una un pin del color de su chofer (gris sin chofer, como en el mapa del Gestor). Pulsar un pin abre la
+  // orden en su tarjeta, aquí mismo (`abreLaOrden`, la misma regla que la factura). Las que no tienen ubicación no se
+  // callan: se cuentan y se listan debajo, y también se abren. No toca rutas ni el mapa de arriba: solo mira.
+  const mapaDeLasOrdenes = (clave: VistaDeOrdenes["clave"], filas: Delivery[]) => {
+    const { puntos, sinUbicacion, encuadre } = ordenesEnElMapa(filas, {
+      coloresDeChofer: settings.driver_colors,
+      etiqueta: (d) => `#${orderLabel(d)}${d.account ? ` — ${d.account}` : ""}${d.assigned_driver ? ` · ${d.assigned_driver}` : ""}`,
+    });
+    const abre = (id: string) => { const d = filas.find((x) => x.id === id); if (d) abreLaOrden(d).onClick?.({ stopPropagation() {} } as React.MouseEvent); };
+    return (
+      <div data-mapa-de-ordenes={clave} style={{ margin: "0 0 10px" }}>
+        <div className="hint" data-cuenta-del-mapa style={{ margin: "0 0 6px" }}>
+          📍 {t(`${puntos.length} of ${filas.length} order(s) on the map`, `${puntos.length} de ${filas.length} orden(es) en el mapa`)}
+          {sinUbicacion.length > 0 && <> · <b style={{ color: "var(--amber-text)" }}>{t(`${sinUbicacion.length} with no location`, `${sinUbicacion.length} sin ubicación`)}</b></>}
+          {puntos.length > 0 && <>{" · "}{t("tap a pin to open the order", "pulse un pin para abrir la orden")}</>}
+        </div>
+        {puntos.length > 0
+          ? <MapView points={puntos} stores={storeMarkers} fitTo={encuadre} height="min(52vh, 420px)" onPointClick={abre} />
+          : <div className="empty" data-mapa-sin-pines>{t("None of these orders has a location yet.", "Ninguna de estas órdenes tiene ubicación todavía.")}</div>}
+        {sinUbicacion.length > 0 && (
+          <div className="card" data-sin-ubicacion={sinUbicacion.length} style={{ margin: "8px 0 0", background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
+            <b style={{ color: "var(--amber-text)" }}>📍 {t(`No location (${sinUbicacion.length})`, `Sin ubicación (${sinUbicacion.length})`)}</b>
+            <span className="hint" style={{ marginTop: 0 }}> — {t("not on the map: they need a delivery address that can be found, or a pin.", "no salen en el mapa: les falta una dirección de entrega que se encuentre, o un pin.")}</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+              {sinUbicacion.map((d) => {
+                const gesto = abreLaOrden(d);
+                return (
+                  <button key={d.id} type="button" className="btn btn-ghost btn-sm" data-orden-sin-ubicacion={d.id} disabled={!gesto.onClick}
+                    title={d.delivery_address || t("No delivery address", "Sin dirección de entrega")} onClick={gesto.onClick}>
+                    #{orderLabel(d)}{d.account ? ` — ${d.account}` : ""}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
   const tablaDeOrdenes = (vista: VistaDeOrdenes) => {
     const { columnas, menu, orden, panel } = vista;
     // «Seleccionar todo» es lo que se VE (con un filtro de columna puesto, solo esas filas, D-360) y se puede marcar: una ya
@@ -2560,6 +2604,11 @@ export default function RoutesPage() {
               {vista.rotuloDelChip(f)} ({vista.cuentas[f]})
             </button>
           ))}
+          <button type="button" className={"btn btn-sm " + (ordenesEnMapa ? "btn-primary" : "btn-ghost")} data-ordenes-en-mapa={vista.clave} aria-pressed={ordenesEnMapa}
+            title={t("See the orders of this list on a map — the same ones, with its filters and search", "Ver en un mapa las órdenes de esta lista — las mismas, con sus filtros y su búsqueda")}
+            onClick={() => setOrdenesEnMapa((v) => !v)}>
+            🗺 {ordenesEnMapa ? t("Hide map", "Ocultar mapa") : t("See on map", "Ver en mapa")}
+          </button>
           {selectedOrders.size > 0 && (
             <>
               <span className="count-tag">{selectedOrders.size} {t("selected", "seleccionadas")}</span>
@@ -2574,6 +2623,7 @@ export default function RoutesPage() {
         ) : (
           <>
           <FiltrosPuestos estado={orden} columnas={menu} lang={lang} t={t} />
+          {ordenesEnMapa && mapaDeLasOrdenes(vista.clave, orden.visibles)}
           {showTop && !soloLectura && (
             <div className="hint" data-pista-de-arrastre style={{ margin: "0 0 6px" }}>✋ {vista.pista}</div>
           )}

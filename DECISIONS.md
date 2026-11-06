@@ -50910,3 +50910,9 @@ Sello `warehouse_ops` 0.2.0; repo 1.747.0.
 El formulario de merma pide primero el total de piezas y luego cuántas están dañadas y cuántas sirven de muestra (deben sumar el total); CRMA obligatorio en devolución de cliente. La pérdida sigue contando todas las piezas. Pedidos de Roberto (help faa07047, 87254659). Migración 254.
 
 Sello `warehouse_ops` 0.3.0; repo 1.748.0.
+
+## D-895 · Gestor de rutas: ver las órdenes de la tabla en un mapa
+
+Botón Ver en mapa en la tabla de órdenes (Sin asignar y Todas): un pin por orden con el color del chofer, respeta los filtros, el pin abre la orden en su tarjeta, y lista aparte las que no tienen ubicación. Pedido de Roberto (help 042c7dc1).
+
+Sello `deliveries` 1.550.0; repo 1.749.0.
