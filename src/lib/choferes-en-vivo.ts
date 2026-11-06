@@ -1,5 +1,6 @@
 import type { DriverLocation } from "@/lib/types";
 import { unCamionPorChofer } from "@/lib/recorrido-contra-plan";
+import { textoDeLaFusion, type PosicionDeChofer } from "@/lib/posicion-del-chofer";
 
 /**
  * Qué choferes están reportando ahora mismo, y dónde (D-289).
@@ -24,6 +25,8 @@ export type ChoferEnVivo = {
   accuracy_m: number | null;
   /** Minutos desde el fijo, para que la pantalla lo diga y el mapa lo desvanezca. */
   ageMin: number;
+  /** D-NEXT: el chofer lleva camión hoy y esta posición sale de fundir su teléfono y el rastreador (`posicionesDeChoferes`). */
+  fusion?: PosicionDeChofer["fusion"];
 };
 
 /**
@@ -35,11 +38,14 @@ export type ChoferEnVivo = {
  *
  * `ahora` entra por parámetro para poder probar la frontera sin esperar una hora.
  *
+ * D-NEXT: las posiciones pueden venir ya fundidas con el rastreador del camión (`posicionesDeChoferes`): entran igual
+ * —una fila por chofer, la misma forma— y lo que dijo la fusión viaja en `fusion` para que la marca lo cuente.
+ *
  * D-846: un chofer, UN camión — el de su posición más nueva —, aunque la lista traiga varias suyas (el dueño: «Solo
  * debería ser 1, que sea el driver en ese momento»).
  */
 export function choferesEnVivo(
-  posiciones: DriverLocation[],
+  posiciones: readonly (DriverLocation | PosicionDeChofer)[],
   nombrePorId: Map<string, string>,
   colorDe: (nombre: string) => string,
   ahora: number = Date.now(),
@@ -49,7 +55,7 @@ export function choferesEnVivo(
     if (!driver) return [];
     const ageMin = (ahora - new Date(loc.recorded_at).getTime()) / 60000;
     if (ageMin > MINUTOS_EN_VIVO) return [];
-    return [{ driver, lat: loc.lat, lng: loc.lng, color: colorDe(driver), accuracy_m: loc.accuracy_m ?? null, ageMin }];
+    return [{ driver, lat: loc.lat, lng: loc.lng, color: colorDe(driver), accuracy_m: loc.accuracy_m ?? null, ageMin, ...("fusion" in loc && loc.fusion ? { fusion: loc.fusion } : {}) }];
   }));
 }
 
@@ -58,5 +64,17 @@ export function etiquetaEnVivo(c: ChoferEnVivo, t: (en: string, es: string) => s
   const cuando = c.ageMin < 1
     ? t("now", "ahora")
     : t(`${Math.round(c.ageMin)} min ago`, `hace ${Math.round(c.ageMin)} min`);
-  return `🚚 ${c.driver} · ${cuando}`;
+  return `🚚 ${c.driver}${c.fusion ? ` (🚛 ${c.fusion.camion.nombre})` : ""} · ${cuando}`;
+}
+
+/**
+ * La marca lista para el mapa (D-NEXT): la etiqueta de siempre y, si el chofer lleva camión hoy, la tarjeta que se abre
+ * en el sitio al tocarla —qué camión, qué fuente se usa y la edad de cada una— y el aviso de «teléfono y camión
+ * separados». Sin camión, exactamente lo de antes: solo la etiqueta.
+ */
+export function marcaEnVivo(c: ChoferEnVivo, t: (en: string, es: string) => string): ChoferEnVivo & { label: string; tarjeta?: { titulo: string; lineas: string[]; aviso: string | null } } {
+  const label = etiquetaEnVivo(c, t);
+  if (!c.fusion) return { ...c, label };
+  const txt = textoDeLaFusion(c.fusion, t);
+  return { ...c, label, tarjeta: { titulo: c.driver, lineas: txt.lineas, aviso: txt.aviso } };
 }

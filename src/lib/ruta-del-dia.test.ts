@@ -359,8 +359,9 @@ describe("la ruta del día en Almacén, de solo lectura (quejas 5 y 7)", () => {
     // camión porque la política de `driver_locations` no dejaba leer a almacén, y prometerlo habría
     // sido pintar un mapa siempre vacío. Con la 121 aplicada, la promesa se puede cumplir, así que
     // el canario cambia de lado en vez de borrarse.
-    expect(pagina).toContain("driverLocations");
-    expect(pagina).toContain("choferesEnVivo(driverLocations");
+    // D-NEXT: las posiciones llegan por `usePosicionesDeChoferes` (el teléfono, fundido con el rastreador del camión).
+    expect(pagina).toContain("usePosicionesDeChoferes(");
+    expect(pagina).toContain("choferesEnVivo(posicionesAhora");
   });
 });
 

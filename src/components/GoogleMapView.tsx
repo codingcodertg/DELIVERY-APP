@@ -7,7 +7,7 @@ import { casaDeTienda, dibujoTiendaUrl, estiloTienda, Z_CASITA_DESPACHO } from "
 import { centroInicial, encuadreFinal } from "@/lib/encuadre-del-mapa";
 import type { LiveDriver, MapLine, MapPoint, StoreMarker } from "@/components/LeafletMap";
 import { unCamionPorChofer } from "@/lib/recorrido-contra-plan";
-import { LADO_DEL_CAMION, svgDelCamion, tarjetaDelCamion, Z_CAMION, type TruckMarker } from "@/lib/tracksolid/marca";
+import { LADO_DEL_CAMION, svgDelCamion, tarjetaDelCamion, tarjetaDelChoferConCamion, Z_CAMION, type TruckMarker } from "@/lib/tracksolid/marca";
 
 // ============================================================
 // The dispatch map, drawn with the Google Maps JavaScript API.
@@ -54,13 +54,16 @@ function storeIcon(): string {
  * busy map. */
 const STALE_GREY = "#8b95a3";
 
-function truckIcon(color: string, stale?: boolean): string {
+function truckIcon(color: string, stale?: boolean, aviso?: boolean): string {
   const fill = stale ? STALE_GREY : color;
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">` +
     `<g opacity="${stale ? 0.75 : 1}">` +
     `<circle cx="18" cy="18" r="14" fill="${fill}" stroke="#fff" stroke-width="3"/>` +
-    `<text x="18" y="24" text-anchor="middle" font-size="16"${stale ? ' opacity="0.65"' : ""}>🚚</text></g></svg>`;
+    `<text x="18" y="24" text-anchor="middle" font-size="16"${stale ? ' opacity="0.65"' : ""}>🚚</text></g>` +
+    // D-NEXT: teléfono y camión llevan un rato separados — un punto ámbar, discreto, en la esquina.
+    (aviso ? `<circle cx="29" cy="7" r="6" fill="#f59e0b" stroke="#fff" stroke-width="2"/><text x="29" y="10.5" text-anchor="middle" font-family="sans-serif" font-size="9" font-weight="700" fill="#fff">!</text>` : "") +
+    `</svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
@@ -123,7 +126,9 @@ export function GoogleMapView({
   const storeMarkersRef = useRef<google.maps.Marker[]>([]);
   const liveRef = useRef<(google.maps.Marker | google.maps.Circle)[]>([]);
   // D-837: los camiones en vivo por chofer, para MOVERLOS en vez de borrarlos y volver a crearlos (parpadeaban).
-  const liveByDriverRef = useRef(new Map<string, { marker: google.maps.Marker; circle: google.maps.Circle | null; icon: string }>());
+  const liveByDriverRef = useRef(new Map<string, { marker: google.maps.Marker; circle: google.maps.Circle | null; icon: string; tarjeta: string | null }>());
+  const liveInfoRef = useRef<google.maps.InfoWindow | null>(null);
+  const liveAbiertoRef = useRef<string | null>(null);
   // D-837: lo último dibujado, para no repintar lo que no cambió.
   const pointsSigRef = useRef("");
   const linesById = useRef(new Map<string, { poly: google.maps.Polyline; borde: google.maps.Polyline | null; estilo: string }>());
@@ -384,14 +389,29 @@ export function GoogleMapView({
     for (const d of unCamionPorChofer(liveDrivers)) {
       if (d.lat == null || d.lng == null) continue;
       const stale = (d.ageMin ?? 0) > 10;
-      const icon = truckIcon(d.color, stale);
+      const icon = truckIcon(d.color, stale, !!d.tarjeta?.aviso);
+      const tarjeta = d.tarjeta ? tarjetaDelChoferConCamion(d.tarjeta) : null;
       const pos = { lat: d.lat, lng: d.lng };
       const conCirculo = !!(d.accuracy_m && d.accuracy_m > 25);
       let it = liveByDriverRef.current.get(d.driver);
       if (!it) {
-        it = { marker: new maps.Marker({ map, position: pos, title: d.label ?? d.driver, zIndex: 1500, icon: { url: icon, anchor: new maps.Point(18, 18) } }), circle: null, icon };
+        it = { marker: new maps.Marker({ map, position: pos, title: d.label ?? d.driver, zIndex: 1500, icon: { url: icon, anchor: new maps.Point(18, 18) } }), circle: null, icon, tarjeta };
+        const nuevo = it;
+        // D-NEXT: con camión hoy, la marca abre su tarjeta en el sitio (sin camión no hay tarjeta y no pasa nada).
+        nuevo.marker.addListener("click", () => {
+          if (!nuevo.tarjeta) return;
+          if (!liveInfoRef.current) {
+            liveInfoRef.current = new maps.InfoWindow({ disableAutoPan: true });
+            liveInfoRef.current.addListener("closeclick", () => { liveAbiertoRef.current = null; });
+          }
+          liveAbiertoRef.current = d.driver;
+          liveInfoRef.current.setContent(nuevo.tarjeta);
+          liveInfoRef.current.open({ map, anchor: nuevo.marker });
+        });
         liveByDriverRef.current.set(d.driver, it);
       } else {
+        it.tarjeta = tarjeta;
+        if (liveAbiertoRef.current === d.driver) { if (tarjeta) liveInfoRef.current?.setContent(tarjeta); else { liveInfoRef.current?.close(); liveAbiertoRef.current = null; } }
         it.marker.setPosition(pos);
         it.marker.setTitle(d.label ?? d.driver);
         if (it.icon !== icon) { it.marker.setIcon({ url: icon, anchor: new maps.Point(18, 18) }); it.icon = icon; }
@@ -405,7 +425,7 @@ export function GoogleMapView({
       liveRef.current.push(it.marker);
       if (it.circle) liveRef.current.push(it.circle);
     }
-    for (const [k, it] of liveByDriverRef.current) if (!vistos.has(k)) { it.marker.setMap(null); it.circle?.setMap(null); liveByDriverRef.current.delete(k); }
+    for (const [k, it] of liveByDriverRef.current) if (!vistos.has(k)) { if (liveAbiertoRef.current === k) { liveInfoRef.current?.close(); liveAbiertoRef.current = null; } it.marker.setMap(null); it.circle?.setMap(null); liveByDriverRef.current.delete(k); }
   }, [liveDrivers, ready]);
 
   // ---- Camiones por su rastreador (TrackSolid, D-900) ----

@@ -16,7 +16,8 @@ import { tramos } from "@/lib/tramos-del-recorrido";
 import { RECARGA_OBLIGATORIA } from "@/lib/app-versions";
 import { recargaObligatoria } from "@/lib/app-update";
 import { colorDeChofer } from "@/lib/map-legend";
-import { choferesEnVivo, etiquetaEnVivo, MINUTOS_EN_VIVO } from "@/lib/choferes-en-vivo";
+import { choferesEnVivo, marcaEnVivo, MINUTOS_EN_VIVO } from "@/lib/choferes-en-vivo";
+import { usePosicionesDeChoferes } from "@/lib/tracksolid/useCamionDelDia";
 
 // ============================================================
 // A driver's day, after the fact: where the truck went, how far, how long it
@@ -63,6 +64,10 @@ function clock(iso: string | null, lang: string): string {
 export default function TrackPage() {
   const { users, deliveries, settings, me, realRole, driverLocations } = useData();
   const { lang, t } = usePrefs();
+  // D-NEXT: «dónde está ahora» sale del teléfono o del rastreador del camión que el chofer lleva hoy, lo mejor de los dos
+  // (`posicionesDeChoferes`). El RECORRIDO del día (la línea) sigue siendo solo del teléfono (`driverLocations`): del
+  // rastreador no se guarda historia.
+  const { posiciones: posicionesAhora } = usePosicionesDeChoferes(!!me);
   const drivers = useMemo(() => soloActivos(users.filter((u) => u.role === "driver")), [users]); // D-707
   const nameById = useMemo(() => new Map(drivers.map((d) => [d.id, d.full_name])), [drivers]);
   const coloresDeChofer = settings.driver_colors;
@@ -202,7 +207,7 @@ export default function TrackPage() {
     const ahora = Date.now();
     return drivers.map((d) => {
       const x = porChofer[d.id] ?? DIA_VACIO;
-      const loc = driverLocations.find((l) => l.driver_id === d.id);
+      const loc = posicionesAhora.find((l) => l.driver_id === d.id);
       const minutos = loc ? (ahora - new Date(loc.recorded_at).getTime()) / 60_000 : null;
       const turnoAbierto = x.turnos.find((s) => !s.ended_at) ?? null;
       const resumen = summarizeTrack(x.fixes);
@@ -213,7 +218,7 @@ export default function TrackPage() {
         cargas: x.hitos.filter((h) => h.kind === "picked_up").length, entregas: x.hitos.filter((h) => h.kind === "delivered").length,
       };
     });
-  }, [drivers, porChofer, driverLocations, esHoy, color]);
+  }, [drivers, porChofer, posicionesAhora, esHoy, color]);
 
   // Somewhere to match a stop against: the day's delivery addresses, plus
   // every store.
@@ -302,8 +307,8 @@ export default function TrackPage() {
     }
     if (!esHoy) return [];
     const nombresVisibles = new Set(idsVisibles.map((id) => nameById.get(id)));
-    return choferesEnVivo(driverLocations, nameById, color).filter((c) => nombresVisibles.has(c.driver)).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));
-  }, [unSolo, cursor, fixes, driverName, lang, esHoy, driverLocations, nameById, idsVisibles, t, color]);
+    return choferesEnVivo(posicionesAhora, nameById, color).filter((c) => nombresVisibles.has(c.driver)).map((c) => marcaEnVivo(c, t));
+  }, [unSolo, cursor, fixes, driverName, lang, esHoy, posicionesAhora, nameById, idsVisibles, t, color]);
 
   const todasLasPosiciones = useMemo(() => idsVisibles.flatMap((id) => (porChofer[id]?.fixes ?? []).map((f) => [f.lat, f.lng] as [number, number])), [idsVisibles, porChofer]);
   const totalPosiciones = todasLasPosiciones.length;

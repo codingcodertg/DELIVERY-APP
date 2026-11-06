@@ -53,8 +53,10 @@ async function fotoDeLaTabla(tabla: HTMLElement): Promise<{ url: string; ancho: 
   return { url: recorte.toDataURL("image/png"), ancho };
 }
 
-export function FotoDeLaRuta({ chofer, fecha, laneKey, stops, points, lines, color, onClose, t }: {
+export function FotoDeLaRuta({ chofer, camion, fecha, laneKey, stops, points, lines, color, onClose, t }: {
   chofer: string;
+  /** El camión que el chofer lleva ese día (D-NEXT), si tiene: va en la cabecera, junto a su nombre. */
+  camion?: string | null;
   fecha: string;
   /** La ruta en el Gestor: su tabla lleva `data-tabla-de-la-ruta={laneKey}`. */
   laneKey: string;
@@ -132,7 +134,7 @@ export function FotoDeLaRuta({ chofer, fecha, laneKey, stops, points, lines, col
       <div className="modal" role="dialog" aria-modal="true" aria-label={t("Route image", "Imagen de la ruta")} style={{ maxWidth: tabla && tabla !== "cargando" ? `min(${tabla.ancho + 32}px, 96vw)` : 720, width: "100%", padding: 0, overflow: "hidden" }}>
         <div ref={hoja} data-hoja-de-la-ruta style={{ background: "#fff", color: "#111", padding: 16 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-            <b style={{ fontSize: 18 }}><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: color, marginRight: 6 }} />🚚 {chofer}</b>
+            <b style={{ fontSize: 18 }}><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: color, marginRight: 6 }} />🚚 {chofer}{camion ? <span data-camion-en-la-foto style={{ fontWeight: 600, fontSize: 14, marginLeft: 8 }}>🚛 {camion}</span> : null}</b>
             <span style={{ fontSize: 14 }}>{fmtDate(fecha)} · {stops.length} {t("stops", "paradas")} · {palletsDeLaFoto(stops)} {t("pallets", "pallets")}</span>
           </div>
           {/* El mapa, cuando el cuadro ya tiene su ancho (el de la tabla): pintado antes, Leaflet se queda con el ancho viejo

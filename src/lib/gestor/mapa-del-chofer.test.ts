@@ -253,7 +253,7 @@ describe("la pantalla acotada no es una pantalla aparte: es la del Gestor", () =
     // deja pasar todo). El acotado de D-506 sigue igual, en el mismo sitio.
     ancla("() => (miChofer != null ? soloMisOrdenes(todasLasDelDia, miChofer) : ordenesPorChofer(todasLasDelDia, alcanceChoferes,");
     ancla("const todos = carrilesDelDia(drivers, bucketNames, dayOrders, hechasPintadas.keys()); return miChofer == null ? todos.filter((l) => l.isBucket || seVeElChofer(l.driver)) : soloMisCarriles(todos, miChofer);");
-    ancla("return (miChofer == null ? todos.filter((c) => seVeElChofer(c.driver)) : soloLoMioPorChofer(todos, miChofer)).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));");
+    ancla("return (miChofer == null ? todos.filter((c) => seVeElChofer(c.driver)) : soloLoMioPorChofer(todos, miChofer)).map((c) => marcaEnVivo(c, t));");
     ancla("const todos = trackingGaps(users, shifts, driverLocations); return miChofer == null ? todos.filter((c) => seVeElChofer(c.driver)) : soloLoMioPorChofer(todos, miChofer);");
     // Acotada es siempre de solo lectura, aunque quien monte la página olvide `<SoloLectura>`.
     ancla("const soloLectura = soloLecturaDeclarada || miChofer != null;");
