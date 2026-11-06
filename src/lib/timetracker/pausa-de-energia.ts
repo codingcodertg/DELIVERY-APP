@@ -25,9 +25,14 @@
  * - `unlock-screen` / `resume` dentro de la gracia → **sigue la misma sesión**, y los segundos de
  *   fuera se suman al contador de inactividad, que `netSeconds` resta de `durationSeconds`. Es
  *   decir: no se cobran, pero la jornada no se rompe.
- * - Más allá de la gracia → se para, que es lo que ya hacía, **y los segundos de fuera se suman
- *   igual**. Esto último importa: un `suspend` congela la página, así que al volver el reloj de
- *   pared ha saltado horas; sin sumarlas a inactividad, el cierre pagaría el sueño entero.
+ * - Más allá de la gracia → **ya no se para** (2026-11-05). Se cierra la fila tal como
+ *   quedó en su último latido antes de dormir y el reloj **sigue en una fila nueva que empieza
+ *   al volver**. El sueño no se paga (D-098): no cae en ninguna fila. Antes aquí se paraba, con
+ *   un aviso de cinco segundos que nadie veía, y la persona seguía trabajando creyendo que el
+ *   reloj corría. Medido en la laptop del dueño el 2026-11-05 (Kernel-Power 506/507): standby
+ *   14:20:52–14:27:04 → la sesión paró a las 14:27:07 y no volvió hasta un Start a mano a las
+ *   14:35:10; standby 16:32:55–18:09:19 → paró al despertar y no hubo nada guardado hasta que
+ *   reabrió el app a las 18:43:57. Unos 43 minutos trabajados sin fila entre los dos.
  * - Si la máquina nunca vuelve (se apagó), no llega ningún aviso y la cierra el cron por falta de
  *   latido, en el último que hubo — como mucho diez segundos después del bloqueo.
  *
@@ -53,7 +58,7 @@ export type AccionDeEnergia =
   | { tipo: "nada" }
   | { tipo: "pausa"; desdeMs: number }
   | { tipo: "sigue"; fueraSegundos: number }
-  | { tipo: "para"; fueraSegundos: number };
+  | { tipo: "fila-nueva"; fueraSegundos: number };
 
 export function accionDeEnergia(args: {
   /** El aviso tal como llega del puente, sin normalizar. */
@@ -85,5 +90,5 @@ export function accionDeEnergia(args: {
   // un «fuera» negativo no resta tiempo pagado ni dispara el cierre.
   const fueraMs = Math.max(0, ahoraMs - pausadoDesdeMs);
   const fueraSegundos = Math.round(fueraMs / 1000);
-  return fueraMs <= graciaMs ? { tipo: "sigue", fueraSegundos } : { tipo: "para", fueraSegundos };
+  return fueraMs <= graciaMs ? { tipo: "sigue", fueraSegundos } : { tipo: "fila-nueva", fueraSegundos };
 }

@@ -399,15 +399,17 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
       if (accion.tipo === "pausa") { pausaDeEnergiaRef.current = accion.desdeMs; return; }
 
       pausaDeEnergiaRef.current = null;
-      // Los segundos de fuera se descuentan SIEMPRE, también al parar: `netSeconds` resta
-      // `idleRef` de `durationSeconds`, y tras un `suspend` el reloj de pared ha saltado.
-      idleRef.current += accion.fueraSegundos;
       if (accion.tipo === "sigue") {
+        // Misma fila: los segundos de fuera van a inactividad, que `netSeconds` resta.
+        idleRef.current += accion.fueraSegundos;
         notify(`Welcome back — ${accion.fueraSegundos}s away wasn't counted. Still on the clock.`);
         return;
       }
-      notify("Tracking stopped — your screen locked or the computer went to sleep.");
-      stopRef.current();
+      // Más allá de la gracia YA NO SE PARA (2026-11-05): parar en silencio al despertar costó
+      // al dueño 8 y 35 minutos el mismo día, con la pantalla en apariencia «corriendo». La fila
+      // vieja se queda como quedó en su último latido antes de dormir y el reloj sigue en una
+      // fila nueva que empieza AHORA: el sueño no cae en ninguna fila (D-098).
+      continuarTrasDormirRef.current(accion.fueraSegundos);
     });
   }, [notify]);
 
@@ -1068,9 +1070,9 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
    * guardado si el reloj no se paró (si se paró, ahora: D-098), y el reloj de pantalla no
    * vuelve a cero —lo ya guardado pasa a `arrastre`—.
    */
-  function continuarEnFilaNueva() {
+  function continuarEnFilaNueva(desdeAhora = false) {
     const ahora = Date.now();
-    const desde = inicioDeContinuacion({ guardadoHastaMs: guardadoHastaRef.current, continuo: continuoRef.current, ahoraMs: ahora });
+    const desde = inicioDeContinuacion({ guardadoHastaMs: guardadoHastaRef.current, continuo: continuoRef.current && !desdeAhora, ahoraMs: ahora });
     ponerArrastre(arrastreRef.current + guardadoNetoRef.current);
     guardadoNetoRef.current = 0;
     guardadoHastaRef.current = null;
@@ -1089,6 +1091,26 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     void (anterior ? updateSession(anterior, { isLive: false }).catch(() => {}) : Promise.resolve())
       .then(() => intentarPendiente());
   }
+
+  /**
+   * Volvió de un sueño o un bloqueo más largo que la gracia (pausa-de-energia.ts). Se sigue
+   * contando en una fila nueva desde ahora, y se dice en pantalla Y con aviso del sistema: lo
+   * que no puede volver a pasar es que cambie algo del reloj sin que la persona se entere.
+   */
+  function continuarTrasDormir(fueraSegundos: number) {
+    if (!runningRef.current || stoppedRef.current) return;
+    const mins = Math.max(1, Math.round(fueraSegundos / 60));
+    const texto = t("track.resumedAfterSleep", { mins: String(mins) });
+    notify(texto);
+    avisoDeSistema(t("track.resumedAfterSleepTitle"), texto);
+    // Sin fila guardada todavía: el aviso de «sin guardar» se ve hasta que entre el INSERT.
+    ultimoGuardadoRef.current = Date.now();
+    marcarSinGuardar(Date.now());
+    // Con un INSERT pendiente ya hay fila en camino: no se abre otra encima.
+    if (sessionIdRef.current) continuarEnFilaNueva(true);
+  }
+  const continuarTrasDormirRef = useRef(continuarTrasDormir);
+  continuarTrasDormirRef.current = continuarTrasDormir;
 
   /**
    * Start no consiguió fila (red caída al despertar, token caducado tras la noche…). Antes:
@@ -1262,6 +1284,8 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
    * salida en la nómina. Si el dueño quiere que también se cierre, es otra decisión suya.
    */
   const paradoPorCorteRef = useRef(false);
+  /** Hora de un paro automático (no lo pulsó la persona). Banner fijo hasta el próximo Start. */
+  const [paradoSolo, setParadoSolo] = useState<number | null>(null);
   const preguntandoCorteRef = useRef(false);
   const [cerca, setCerca] = useState(false);
   // Se pregunta en la VENTANA PREVIA, no al llegar el corte, y esa diferencia es todo el
@@ -1294,6 +1318,9 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
         parar: () => {
           paradoPorCorteRef.current = true;
           notify(t("track.closingForCutoff"));
+          // Un paro que no pulsó la persona se queda escrito en pantalla hasta el próximo Start.
+          setParadoSolo(Date.now());
+          avisoDeSistema(t("track.notRecordingTitle"), t("track.stoppedAuto", { hora: horaCorta(Date.now()) }));
           stopRef.current();
         },
       }).finally(() => { preguntandoCorteRef.current = false; });
@@ -1357,6 +1384,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     // todo el rato que el módulo esté abierto, y con la marca puesta el vigía y el paro por
     // solape darían la segunda sesión por parada.
     stoppedRef.current = false;
+    setParadoSolo(null);
     try {
     try {
       const live = await listLiveSessions();
@@ -1604,6 +1632,12 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
       {" "}
       <Link href="/timetracker">{t("track.goToTimer")}</Link>
     </div>
+  ) : !visible && paradoSolo !== null && !running ? (
+    <div className="banner warn" role="alert">
+      {t("track.stoppedAuto", { hora: horaCorta(paradoSolo) })}
+      {" "}
+      <Link href="/timetracker">{t("track.goToTimer")}</Link>
+    </div>
   ) : null;
 
   if (esAdmin && vista === "punch") {
@@ -1679,8 +1713,13 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
             (D-241). El aviso dice la hora del último guardado bueno y cuántos minutos van sin
             salvar, que es lo que de verdad se juega quien lo lee. Se repinta cada segundo
             porque el tick actualiza el estado del reloj cada segundo. */}
+        {paradoSolo !== null && !running && (
+          <div className="banner warn" role="alert">
+            {t("track.stoppedAuto", { hora: horaCorta(paradoSolo) })}
+          </div>
+        )}
         {sinGuardarDesde !== null && (
-          <div className="banner warn">
+          <div className="banner warn" role="alert">
             {t("track.unsaved", { hora: horaCorta(sinGuardarDesde), mins: String(minutosSinGuardar(sinGuardarDesde, Date.now())) })}
           </div>
         )}
