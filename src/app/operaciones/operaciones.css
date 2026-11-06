@@ -154,3 +154,23 @@ textarea.ops-campo { min-height: 150px; resize: vertical; }
 .ops-tarjeta-perdida { color: var(--red); font-weight: 800; font-size: 18px; }
 
 @media (prefers-reduced-motion: reduce) { .ops-tarjeta:active { transform: none; } }
+
+/* ---- Cerrar / guardar borrador (pedido 4a1123bb), tienda arriba, fuera de catálogo (252) ---- */
+.ops-asistente-barra { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.ops-asistente-acciones { display: flex; gap: 6px; }
+.ops .ops-boton-chico { min-height: 40px; padding: 6px 12px; font-size: 14px; }
+.ops-tienda-arriba { margin: 8px 0 4px; }
+.ops-fuera-de-catalogo {
+  display: inline-block; margin-left: 6px; font-size: 11.5px; font-weight: 700; color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 14%, transparent); border-radius: 999px; padding: 2px 8px;
+}
+.ops-libre, .ops-corregir { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.ops-corregir { grid-column: 1 / -1; padding: 10px; border: 1px solid var(--line); border-radius: 10px; }
+.ops-borradores { margin: 16px 0 0; }
+.ops-borradores h3 { margin: 0 0 8px; font-size: 16px; }
+.ops-borradores ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ops-borradores li { display: flex; align-items: center; gap: 8px; }
+.ops-borrador-abrir {
+  flex: 1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 48px; padding: 8px 12px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px; color: var(--text); text-decoration: none; font-weight: 700;
+}

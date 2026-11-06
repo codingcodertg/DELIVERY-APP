@@ -16,7 +16,35 @@ export type Paso =
   | { id: string; tipo: "producto"; en: string; es: string }
   | { id: string; tipo: "cantidad"; en: string; es: string };
 
-export interface ProductoElegido { id: number; sku: string; name: string; cost: number | null; pieces_per_box: number | null }
+/**
+ * El producto de la merma. `libre` (migración 252): no está en el catálogo; `id` es null, el nombre lo escribió quien
+ * reporta y el costo por pieza es el que puso (o null). Un gerente lo vincula o corrige después.
+ */
+export interface ProductoElegido { id: number | null; sku: string; name: string; cost: number | null; pieces_per_box: number | null; libre?: boolean }
+
+/** Un producto fuera de catálogo a partir de lo que se escribió. */
+export function productoLibre(nombre: string, costo: number | null): ProductoElegido {
+  return { id: null, sku: "", name: nombre.trim(), cost: costo, pieces_per_box: null, libre: true };
+}
+
+export function productoValido(v: unknown): v is ProductoElegido {
+  if (!v || typeof v !== "object") return false;
+  const p = v as ProductoElegido;
+  if (p.libre) return typeof p.name === "string" && p.name.trim().length >= 2 && (p.cost == null || (Number.isFinite(p.cost) && p.cost >= 0));
+  return typeof p.id === "number";
+}
+
+/** Un costo escrito a mano: vacío = null (sin costo), NaN si no es un número ≥ 0 con hasta 2 decimales. */
+export function costoDelCampo(s: string): number | null {
+  const t = s.trim().replace(/^\$/, "");
+  if (t === "") return null;
+  return /^\d+(\.\d{1,2})?$/.test(t) ? Number(t) : NaN;
+}
+
+/** Dañado o muestra: va en la misma pantalla que la cantidad (Roberto, b. 0a7e46f3). */
+export const TIPOS_DE_MERMA: Opcion[] = [
+  { v: "damaged", en: "Damaged", es: "Dañado" }, { v: "sample", en: "Sample", es: "Muestra" },
+];
 export type Respuestas = Record<string, unknown>;
 
 const o = (v: string, en: string, es: string): Opcion => ({ v, en, es });
@@ -64,12 +92,13 @@ export const PASOS: Record<TipoDeReporte, Paso[]> = {
   ],
   scrap: [
     { id: "product", tipo: "producto", en: "Which product?", es: "¿Qué producto?" },
-    { id: "scrap_type", tipo: "opcion", en: "Damaged or sample?", es: "¿Dañado o muestra?", opciones: [o("damaged", "Damaged", "Dañado"), o("sample", "Sample", "Muestra")] },
-    { id: "qty", tipo: "cantidad", en: "How much?", es: "¿Cuánto?" },
+    // «¿Dañado o muestra?» va dentro de «¿Cuánto?» (pedido 0a7e46f3) y ya no hay piezas sueltas (482720a9).
+    { id: "qty", tipo: "cantidad", en: "Damaged or sample, and how much?", es: "¿Dañado o muestra, y cuánto?" },
     { id: "return_type", tipo: "opcion", en: "Where did it come from?", es: "¿De dónde viene?", opciones: [o("internal", "Internal", "Interno"), o("customer_return", "Customer return", "Devolución de cliente")] },
     { id: "reason", tipo: "opcion", en: "Reason", es: "Motivo", opciones: [o("fell", "It fell", "Se cayó"), o("strap", "Strap broke", "Se rompió el fleje"), o("forklift", "Forklift", "Montacargas"), o("transportation", "Transportation", "Transporte"), o("other", "Other", "Otro")] },
     { id: "broken_by", tipo: "personas", opcional: true, en: "Who broke it? (optional)", es: "¿Quién lo rompió? (opcional)" },
-    { id: "crma", tipo: "texto", corto: true, opcional: true, en: "CRMA / claim # (optional)", es: "CRMA / n.º de reclamo (opcional)" },
+    // Solo si fue devolución de un cliente (pedido 60bbd7ed).
+    { id: "crma", tipo: "texto", corto: true, opcional: true, si: { paso: "return_type", vale: "customer_return" }, en: "CRMA / claim # (optional)", es: "CRMA / n.º de reclamo (opcional)" },
     FOTO,
     { id: "comments", tipo: "texto", opcional: true, en: "Comments (optional)", es: "Comentarios (opcional)" },
   ],
@@ -94,8 +123,8 @@ export function pasoCompleto(p: Paso, r: Respuestas): boolean {
     case "opcion": return typeof v === "string" && p.opciones.some((x) => x.v === v);
     case "sino": return v === "yes" || v === "no";
     case "texto": return !!p.opcional || (typeof v === "string" && v.trim().length >= 3);
-    case "producto": return !!v && typeof (v as ProductoElegido).id === "number";
-    case "cantidad": return cantidadesValidas(v as Partial<Cantidades>);
+    case "producto": return productoValido(v);
+    case "cantidad": return cantidadesValidas(v as Partial<Cantidades>) && TIPOS_DE_MERMA.some((x) => x.v === r.scrap_type);
   }
 }
 
@@ -125,6 +154,7 @@ export function empleadosDelReporte(tipo: TipoDeReporte, r: Respuestas): string[
 
 export function etiquetaDeOpcion(tipo: TipoDeReporte, pasoId: string, v: unknown, lang: "en" | "es"): string {
   const p = PASOS[tipo].find((x) => x.id === pasoId);
+  if (tipo === "scrap" && pasoId === "scrap_type") { const x = TIPOS_DE_MERMA.find((y) => y.v === v); return x ? x[lang] : ""; }
   if (p?.tipo === "opcion") { const x = p.opciones.find((y) => y.v === v); if (x) return x[lang]; }
   if (p?.tipo === "sino") return v === "yes" ? (lang === "es" ? "Sí" : "Yes") : v === "no" ? "No" : "";
   return typeof v === "string" ? v : "";

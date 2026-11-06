@@ -50,3 +50,13 @@ export function veLosReportes(q: Quien): boolean {
   if (q.recruiting_role === "admin" || q.recruiting_role === "manager") return true;
   return tieneElModulo(q) && (q.role === "manager" || esSupervisor(q));
 }
+
+/**
+ * ¿Puede corregir el producto de una merma (migración 252)? El admin, o el gerente / supervisor de almacén de esa
+ * tienda con el módulo. La misma regla que `public.warehouse_ops_edit_scrap_product`.
+ */
+export function puedeCorregirMerma(q: Quien, r: { kind: TipoDeReporte; store: string }): boolean {
+  if (r.kind !== "scrap") return false;
+  if (q.role === "admin") return true;
+  return (q.module_access ?? []).includes(MODULO) && (q.role === "manager" || esSupervisor(q)) && esDeSuTienda(q, r.store);
+}

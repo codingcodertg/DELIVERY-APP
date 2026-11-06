@@ -113,7 +113,7 @@ describe("el asistente", () => {
     const r = { product: { id: 7, sku: "S", name: "N", cost: 1, pieces_per_box: 8 }, scrap_type: "damaged",
       qty: { boxes: 1, piecesPerBox: 8, loosePieces: 0 }, return_type: "internal", reason: "fell" };
     expect(primerHueco("scrap", r)).toBe(-1);
-    expect(primerHueco("scrap", { ...r, qty: { boxes: 0, piecesPerBox: 8, loosePieces: 0 } })).toBe(2);
+    expect(primerHueco("scrap", { ...r, qty: { boxes: 0, piecesPerBox: 8, loosePieces: 0 } })).toBe(1);
   });
   it("los empleados del reporte", () => {
     expect(empleadosDelReporte("positive", { employee: "e1" })).toEqual(["e1"]);

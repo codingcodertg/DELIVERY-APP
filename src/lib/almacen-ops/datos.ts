@@ -9,7 +9,7 @@ import type { ProductoElegido, Respuestas } from "./pasos";
 
 export const CUBO = "warehouse-ops";
 
-export interface Persona { id: string; full_name: string; store: string | null }
+export interface Persona { id: string; full_name: string; store: string | null; role?: string | null; module_access?: string[] | null; left_at?: string | null }
 export interface Yo extends Quien { full_name: string }
 
 export interface Reporte {
@@ -36,6 +36,8 @@ export interface Reporte {
   reason: string | null;
   broken_by: string[];
   crma: string | null;
+  /** 252: producto escrito a mano, no está en el catálogo (un gerente lo vincula o corrige). */
+  product_not_in_catalog?: boolean;
 }
 
 export interface Envio {
@@ -45,7 +47,7 @@ export interface Envio {
   answers: Respuestas;
   photos: string[];
   scrap: null | {
-    product_id: number; scrap_type: string; boxes: number; pieces_per_box: number; loose_pieces: number;
+    product_id: number | null; free_name?: string; unit_cost?: number | null; scrap_type: string; boxes: number; pieces_per_box: number; loose_pieces: number;
     return_type: string; reason: string; broken_by: string[]; crma: string | null;
   };
 }
@@ -71,6 +73,19 @@ export async function registrar(sb: SupabaseClient, e: Envio): Promise<string> {
   return data as string;
 }
 
+/** 252: el gerente vincula la merma a un producto del catálogo (productId) o corrige nombre y costo a mano. */
+export async function corregirMerma(sb: SupabaseClient, reporteId: string, c: { productId: number | null; nombre: string; costo: number | null }): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_edit_scrap_product", {
+    p_report: reporteId, p_product_id: c.productId, p_name: c.nombre, p_cost: c.costo,
+  });
+  if (error) throw error;
+}
+
+/** El cuerpo de merma que va a `warehouse_ops_file_report`. Fuera de catálogo: sin product_id, con nombre y costo. */
+export function productoParaEnviar(p: ProductoElegido): { product_id: number | null; free_name?: string; unit_cost?: number | null } {
+  return p.libre || p.id == null ? { product_id: null, free_name: p.name.trim(), unit_cost: p.cost } : { product_id: p.id };
+}
+
 /** Sube una foto (ya comprimida, `data:` JPEG) a la carpeta de quien la saca. Devuelve la ruta dentro del cubo. */
 export async function subirFoto(sb: SupabaseClient, uid: string, dataUrl: string): Promise<string> {
   const blob = await (await fetch(dataUrl)).blob();
@@ -92,11 +107,12 @@ export async function enlacesDeFotos(sb: SupabaseClient, rutas: string[]): Promi
 export const DEMO_TIENDAS = ["McAllen", "Edinburg", "Harlingen"];
 export const DEMO_YO: Yo = { id: "demo-admin", role: "admin", store: "McAllen", full_name: "Demo Admin", module_access: ["warehouse_ops"] };
 export const DEMO_PERSONAS: Persona[] = [
-  { id: "p1", full_name: "Ana García", store: "McAllen" },
-  { id: "p2", full_name: "Luis Treviño", store: "McAllen" },
-  { id: "p3", full_name: "Mario Salinas", store: "Edinburg" },
-  { id: "p4", full_name: "Rosa Peña", store: "Harlingen" },
-  { id: "demo-admin", full_name: "Demo Admin", store: "McAllen" },
+  { id: "p1", full_name: "Ana García", store: "McAllen", role: "warehouse" },
+  { id: "p2", full_name: "Luis Treviño", store: "McAllen", role: "warehouse" },
+  { id: "p3", full_name: "Mario Salinas", store: "Edinburg", role: "warehouse" },
+  { id: "p4", full_name: "Rosa Peña", store: "Harlingen", role: "warehouse" },
+  { id: "p5", full_name: "Sofía Ruiz", store: "McAllen", role: "sales" },
+  { id: "demo-admin", full_name: "Demo Admin", store: "McAllen", role: "admin" },
 ];
 export const DEMO_PRODUCTOS: ProductoElegido[] = [
   { id: 101, sku: "PORC-2448-GRY", name: "Porcelain 24x48 Ash Grey", cost: 9.4, pieces_per_box: 2 },
