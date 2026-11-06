@@ -19,7 +19,7 @@ function memoria(limite = Infinity): Almacen & { datos: Map<string, string> } {
   };
 }
 
-const base = { scrap_type: "damaged", qty: { boxes: 1, piecesPerBox: 4, loosePieces: 0 }, return_type: "internal", reason: "fell" };
+const base = { split: { damaged: 4, sample: 0 }, qty: { boxes: 1, piecesPerBox: 4, loosePieces: 0 }, return_type: "internal", reason: "fell" };
 
 describe("b158a7a5: producto fuera de catálogo", () => {
   it("vale con nombre y costo opcional; no con nombre corto o costo malo", () => {
@@ -63,11 +63,11 @@ describe("b158a7a5: producto fuera de catálogo", () => {
 });
 
 describe("0a7e46f3 y 482720a9: dañado/muestra con la cantidad, sin piezas sueltas", () => {
-  it("no hay paso aparte de dañado o muestra; la cantidad lo pide", () => {
+  it("no hay paso aparte de dañado o muestra; la cantidad lo pide (desde faa07047, como reparto)", () => {
     expect(PASOS.scrap.some((p) => p.id === "scrap_type")).toBe(false);
     const qty = PASOS.scrap.find((p) => p.id === "qty")!;
     expect(pasoCompleto(qty, { qty: base.qty })).toBe(false);
-    expect(pasoCompleto(qty, { qty: base.qty, scrap_type: "sample" })).toBe(true);
+    expect(pasoCompleto(qty, { qty: base.qty, split: { damaged: 0, sample: 4 } })).toBe(true);
     expect(etiquetaDeOpcion("scrap", "scrap_type", "damaged", "es")).toBe("Dañado");
   });
 });

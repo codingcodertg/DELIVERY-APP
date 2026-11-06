@@ -3,7 +3,7 @@
  * Son las de Tile Ops (recon §2), con dos mejoras: «¿cuál?» si el equipo es «Otro», y las piezas sueltas en merma.
  */
 import type { TipoDeReporte } from "./tipos";
-import { cantidadesValidas, type Cantidades } from "./perdida";
+import { cantidadesValidas, piezasTotales, repartoValido, type Cantidades, type Reparto } from "./perdida";
 
 export type Opcion = { v: string; en: string; es: string };
 export type Paso =
@@ -11,7 +11,7 @@ export type Paso =
   | { id: string; tipo: "persona"; en: string; es: string }
   | { id: string; tipo: "opcion"; en: string; es: string; opciones: Opcion[] }
   | { id: string; tipo: "sino"; en: string; es: string }
-  | { id: string; tipo: "texto"; en: string; es: string; opcional?: boolean; corto?: boolean; si?: { paso: string; vale: string } }
+  | { id: string; tipo: "texto"; en: string; es: string; opcional?: boolean; corto?: boolean; min?: number; si?: { paso: string; vale: string } }
   | { id: string; tipo: "foto"; en: string; es: string }
   | { id: string; tipo: "producto"; en: string; es: string }
   | { id: string; tipo: "cantidad"; en: string; es: string };
@@ -41,9 +41,13 @@ export function costoDelCampo(s: string): number | null {
   return /^\d+(\.\d{1,2})?$/.test(t) ? Number(t) : NaN;
 }
 
-/** Dañado o muestra: va en la misma pantalla que la cantidad (Roberto, b. 0a7e46f3). */
+/**
+ * Dañado o muestra. Desde el pedido faa07047 (254) ya no se elige uno: primero el total de piezas y luego cuántas de
+ * cada uno (`r.split`); `scrap_type` queda en damaged / sample / mixed. Los reportes viejos traen solo uno de los dos.
+ */
 export const TIPOS_DE_MERMA: Opcion[] = [
   { v: "damaged", en: "Damaged", es: "Dañado" }, { v: "sample", en: "Sample", es: "Muestra" },
+  { v: "mixed", en: "Damaged and sample", es: "Dañado y muestra" },
 ];
 export type Respuestas = Record<string, unknown>;
 
@@ -92,13 +96,13 @@ export const PASOS: Record<TipoDeReporte, Paso[]> = {
   ],
   scrap: [
     { id: "product", tipo: "producto", en: "Which product?", es: "¿Qué producto?" },
-    // «¿Dañado o muestra?» va dentro de «¿Cuánto?» (pedido 0a7e46f3) y ya no hay piezas sueltas (482720a9).
-    { id: "qty", tipo: "cantidad", en: "Damaged or sample, and how much?", es: "¿Dañado o muestra, y cuánto?" },
+    // Primero el total de piezas; luego, de esas, cuántas dañadas y cuántas de muestra (pedido faa07047). Sin piezas sueltas (482720a9).
+    { id: "qty", tipo: "cantidad", en: "How many pieces?", es: "¿Cuántas piezas?" },
     { id: "return_type", tipo: "opcion", en: "Where did it come from?", es: "¿De dónde viene?", opciones: [o("internal", "Internal", "Interno"), o("customer_return", "Customer return", "Devolución de cliente")] },
     { id: "reason", tipo: "opcion", en: "Reason", es: "Motivo", opciones: [o("fell", "It fell", "Se cayó"), o("strap", "Strap broke", "Se rompió el fleje"), o("forklift", "Forklift", "Montacargas"), o("transportation", "Transportation", "Transporte"), o("other", "Other", "Otro")] },
     { id: "broken_by", tipo: "personas", opcional: true, en: "Who broke it? (optional)", es: "¿Quién lo rompió? (opcional)" },
-    // Solo si fue devolución de un cliente (pedido 60bbd7ed).
-    { id: "crma", tipo: "texto", corto: true, opcional: true, si: { paso: "return_type", vale: "customer_return" }, en: "CRMA / claim # (optional)", es: "CRMA / n.º de reclamo (opcional)" },
+    // Solo si fue devolución de un cliente (pedido 60bbd7ed), y entonces es obligatorio (pedido 87254659; la 254 lo exige).
+    { id: "crma", tipo: "texto", corto: true, min: 1, si: { paso: "return_type", vale: "customer_return" }, en: "CRMA / claim #", es: "CRMA / n.º de reclamo" },
     FOTO,
     { id: "comments", tipo: "texto", opcional: true, en: "Comments (optional)", es: "Comentarios (opcional)" },
   ],
@@ -122,9 +126,12 @@ export function pasoCompleto(p: Paso, r: Respuestas): boolean {
     case "persona": return typeof v === "string" && v.length > 0;
     case "opcion": return typeof v === "string" && p.opciones.some((x) => x.v === v);
     case "sino": return v === "yes" || v === "no";
-    case "texto": return !!p.opcional || (typeof v === "string" && v.trim().length >= 3);
+    case "texto": return !!p.opcional || (typeof v === "string" && v.trim().length >= (p.min ?? 3));
     case "producto": return productoValido(v);
-    case "cantidad": return cantidadesValidas(v as Partial<Cantidades>) && TIPOS_DE_MERMA.some((x) => x.v === r.scrap_type);
+    case "cantidad": {
+      const q = v as Partial<Cantidades>;
+      return cantidadesValidas(q) && repartoValido(piezasTotales(q), r.split as Partial<Reparto> | undefined);
+    }
   }
 }
 

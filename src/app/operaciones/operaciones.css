@@ -87,6 +87,9 @@ textarea.ops-campo { min-height: 150px; resize: vertical; }
 
 .ops-cantidades { display: grid; gap: 12px; }
 .ops-cantidad { display: grid; gap: 6px; font-size: 15px; font-weight: 700; color: var(--ink-soft); }
+.ops-total-piezas { margin: 0; font-size: 17px; font-weight: 800; }
+.ops-reparto { display: grid; gap: 12px; margin: 0; padding: 12px; border: 1px solid var(--line, #d9dee8); border-radius: 12px; min-width: 0; }
+.ops-reparto legend { padding: 0 6px; font-size: 15px; font-weight: 800; }
 .ops-paso-a-paso { display: grid; grid-template-columns: 64px 1fr 64px; gap: 8px; }
 .ops-paso-a-paso .ops-boton { font-size: 24px; padding: 0; }
 .ops-paso-a-paso .ops-campo { text-align: center; font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }

@@ -9,11 +9,11 @@ import { fmtMoney } from "@/lib/utils";
 import { jpegComprimido } from "@/lib/camara-de-varias-fotos";
 import { INFO_DE_TIPO, esDeRrhh, type TipoDeReporte } from "@/lib/almacen-ops/tipos";
 import {
-  TIPOS_DE_MERMA, costoDelCampo, empleadosDelReporte, etiquetaDeOpcion, pasoCompleto, pasosVisibles, primerHueco, productoLibre,
+  costoDelCampo, empleadosDelReporte, etiquetaDeOpcion, pasoCompleto, pasosVisibles, primerHueco, productoLibre,
   respuestasParaGuardar, type Paso, type ProductoElegido, type Respuestas,
 } from "@/lib/almacen-ops/pasos";
-import { enteroDelCampo, perdida, piezasPorCajaInicial, piezasTotales, type Cantidades } from "@/lib/almacen-ops/perdida";
-import { DEMO_PRODUCTOS, buscarProductos, productoParaEnviar, registrar, subirFoto, type Envio } from "@/lib/almacen-ops/datos";
+import { cantidadesValidas, enteroDelCampo, perdida, piezasPorCajaInicial, piezasTotales, repartoAjustado, repartoAlCambiar, repartoValido, type Cantidades, type Reparto } from "@/lib/almacen-ops/perdida";
+import { DEMO_PRODUCTOS, buscarProductos, mermaParaEnviar, productoParaEnviar, registrar, subirFoto, type Envio } from "@/lib/almacen-ops/datos";
 import { personasParaElegir } from "@/lib/almacen-ops/personas";
 import { borrarBorrador, guardarBorrador, hayCambios, leerBorrador } from "@/lib/almacen-ops/borradores";
 import type { Contexto } from "./Operaciones";
@@ -96,11 +96,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
       const p = r.product as ProductoElegido | undefined;
       const envio: Envio = {
         kind: tipo, store: tienda, subjectIds: empleadosDelReporte(tipo, r), answers: respuestasParaGuardar(tipo, r), photos: fotos,
-        scrap: tipo === "scrap" && p && q ? {
-          ...productoParaEnviar(p), scrap_type: String(r.scrap_type), boxes: q.boxes, pieces_per_box: q.piecesPerBox, loose_pieces: 0,
-          return_type: String(r.return_type), reason: String(r.reason), broken_by: (r.broken_by as string[] | undefined) ?? [],
-          crma: typeof r.crma === "string" && r.crma.trim() ? r.crma.trim() : null,
-        } : null,
+        scrap: tipo === "scrap" && p && q ? { ...productoParaEnviar(p), ...mermaParaEnviar(r) } : null,
       };
       if (envio.scrap) { delete envio.answers.broken_by; delete envio.answers.crma; }
       await registrar(sb, envio);
@@ -231,9 +227,10 @@ function textoDeRespuesta(tipo: TipoDeReporte, p: Paso, r: Respuestas, ctx: Cont
       const q = v as Cantidades | undefined;
       if (!q) return "";
       const piezas = piezasTotales(q);
-      const clase = etiquetaDeOpcion("scrap", "scrap_type", r.scrap_type, lang);
       const cuenta = lang === "es" ? `${q.boxes} cajas × ${q.piecesPerBox} = ${piezas} piezas` : `${q.boxes} boxes × ${q.piecesPerBox} = ${piezas} pieces`;
-      return clase ? `${clase} · ${cuenta}` : cuenta;
+      const s = r.split as Reparto | undefined;
+      if (!repartoValido(piezas, s)) return cuenta;
+      return `${cuenta} · ${lang === "es" ? `${s.damaged} dañadas, ${s.sample} de muestra` : `${s.damaged} damaged, ${s.sample} sample`}`;
     }
   }
 }
@@ -297,11 +294,14 @@ function Respuesta({ paso, r, pon, ctx, tienda, onElegirUno }: {
       return <ElegirProducto valor={v as ProductoElegido | undefined} ctx={ctx} onElegir={(p) => {
         pon("product", p);
         const q = r.qty as Cantidades | undefined;
-        pon("qty", { boxes: q?.boxes ?? 1, piecesPerBox: p.libre ? (q?.piecesPerBox ?? 1) : piezasPorCajaInicial(p.pieces_per_box), loosePieces: 0 });
+        const nueva: Cantidades = { boxes: q?.boxes ?? 1, piecesPerBox: p.libre ? (q?.piecesPerBox ?? 1) : piezasPorCajaInicial(p.pieces_per_box), loosePieces: 0 };
+        pon("qty", nueva);
+        // El total pudo cambiar (otras piezas por caja): el reparto dañadas / muestra se vuelve a cuadrar.
+        if (cantidadesValidas(nueva)) pon("split", repartoAjustado(piezasTotales(nueva), r.split as Reparto | undefined, r.scrap_type));
         if (!p.libre) onElegirUno();
       }} />;
     case "cantidad":
-      return <Cantidad r={r} onCambio={(q) => pon("qty", q)} onTipo={(x) => pon("scrap_type", x)} />;
+      return <Cantidad r={r} onCambio={(q) => pon("qty", q)} onReparto={(x) => pon("split", x)} />;
   }
 }
 
@@ -405,29 +405,61 @@ function ElegirProducto({ valor, ctx, onElegir }: { valor: ProductoElegido | und
   );
 }
 
-function Cantidad({ r, onCambio, onTipo }: { r: Respuestas; onCambio: (q: Cantidades) => void; onTipo: (v: string) => void }) {
-  const { t, lang } = usePrefs();
+/**
+ * «¿Cuántas piezas?» (pedido faa07047): primero el total (cajas × piezas por caja) y luego, de esas, cuántas están
+ * dañadas y cuántas sirven de muestra. Al cambiar un número el otro se llena con lo que falta; deben sumar el total.
+ */
+function Cantidad({ r, onCambio, onReparto }: { r: Respuestas; onCambio: (q: Cantidades) => void; onReparto: (x: Reparto) => void }) {
+  const { t } = usePrefs();
   const q: Cantidades = { ...((r.qty as Cantidades | undefined) ?? { boxes: 1, piecesPerBox: 1 }), loosePieces: 0 };
-  const fila = (k: keyof Cantidades, en: string, es: string, min: number) => (
+  const total = cantidadesValidas(q) ? piezasTotales(q) : null;
+  const guardado = r.split as Partial<Reparto> | undefined;
+  const cuadra = total != null && repartoValido(total, guardado);
+  // Al cambiar el total (o al abrir un borrador viejo, que solo traía «dañado» o «muestra») el reparto se cuadra solo.
+  useEffect(() => {
+    if (total != null && !repartoValido(total, guardado)) onReparto(repartoAjustado(total, guardado, r.scrap_type));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [total]);
+  const s: Reparto = { damaged: guardado?.damaged ?? total ?? 0, sample: guardado?.sample ?? 0 };
+  const num = (n: number) => (typeof n === "number" && Number.isFinite(n) ? n : 0);
+  const pasoAPaso = (valor: number, min: number, max: number, pon: (n: number) => void, campo: string) => (
+    <div className="ops-paso-a-paso">
+      <button type="button" className="ops-boton" aria-label={t("Less", "Menos")} onClick={() => pon(Math.min(max, Math.max(min, num(valor) - 1)))}>−</button>
+      <input className="ops-campo" inputMode="numeric" value={typeof valor === "number" && Number.isFinite(valor) ? String(valor) : ""} onChange={(e) => pon(enteroDelCampo(e.target.value))} onFocus={(e) => e.target.select()} data-campo={campo} />
+      <button type="button" className="ops-boton" aria-label={t("More", "Más")} onClick={() => pon(Math.min(max, Math.max(min, num(valor) + 1)))}>+</button>
+    </div>
+  );
+  const fila = (k: "boxes" | "piecesPerBox", en: string, es: string, min: number) => (
     <div className="ops-cantidad" data-cantidad={k}>
       <span>{t(en, es)}</span>
-      <div className="ops-paso-a-paso">
-        <button type="button" className="ops-boton" aria-label={t("Less", "Menos")} onClick={() => onCambio({ ...q, [k]: Math.max(min, (Number.isFinite(q[k]) ? q[k] : min) - 1) })}>−</button>
-        <input className="ops-campo" inputMode="numeric" value={Number.isFinite(q[k]) ? String(q[k]) : ""} onChange={(e) => onCambio({ ...q, [k]: enteroDelCampo(e.target.value) })} />
-        <button type="button" className="ops-boton" aria-label={t("More", "Más")} onClick={() => onCambio({ ...q, [k]: (Number.isFinite(q[k]) ? q[k] : min) + 1 })}>+</button>
-      </div>
+      {pasoAPaso(q[k], min, Number.MAX_SAFE_INTEGER, (n) => onCambio({ ...q, [k]: n }), k)}
+    </div>
+  );
+  const parte = (k: keyof Reparto, en: string, es: string) => (
+    <div className="ops-cantidad" data-cantidad={k}>
+      <span>{t(en, es)}</span>
+      {pasoAPaso(s[k], 0, total ?? 0, (n) => { if (total != null) onReparto(repartoAlCambiar(total, k, n)); }, k)}
     </div>
   );
   return (
     <div className="ops-cantidades">
-      <div className="ops-opciones ops-dos" data-cantidad="scrap_type">
-        {TIPOS_DE_MERMA.map((o) => (
-          <button type="button" key={o.v} className={`ops-opcion${r.scrap_type === o.v ? " elegida" : ""}`} aria-pressed={r.scrap_type === o.v}
-            onClick={() => onTipo(o.v)} data-opcion={o.v}>{lang === "es" ? o.es : o.en}</button>
-        ))}
-      </div>
       {fila("boxes", "Boxes", "Cajas", 0)}
       {fila("piecesPerBox", "Pieces per box", "Piezas por caja", 1)}
+      <p className="ops-total-piezas" data-total-piezas={total ?? ""}>
+        {total == null ? t("Enter at least one piece.", "Pon al menos una pieza.") : t(`Total: ${total} pieces`, `Total: ${total} piezas`)}
+      </p>
+      {total != null && (
+        <fieldset className="ops-reparto" data-reparto={cuadra ? "ok" : "falta"}>
+          <legend>{t(`Of those ${total} pieces, how many are…`, `De esas ${total} piezas, ¿cuántas…`)}</legend>
+          {parte("damaged", "Damaged", "Están dañadas")}
+          {parte("sample", "Can be used as sample", "Sirven de muestra")}
+          {!cuadra && guardado && (
+            <p className="ops-aviso ops-aviso-error" role="alert">
+              {t(`Damaged + sample must add up to ${total}.`, `Dañadas + muestra deben sumar ${total}.`)}
+            </p>
+          )}
+        </fieldset>
+      )}
       <Perdida r={{ ...r, qty: q }} />
     </div>
   );
