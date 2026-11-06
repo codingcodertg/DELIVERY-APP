@@ -141,6 +141,15 @@ export function repartoDeNoLeidos(porSolicitud: ReadonlyMap<string, number>, mis
   return { mias: a, ajenas: b };
 }
 
+/**
+ * Los no leídos sin los de las solicitudes eliminadas (262, D-NEXT): una solicitud eliminada no se lista en ningún
+ * sitio, así que un número suyo en la tarjeta del hub sería un aviso que no lleva a nada.
+ */
+export function sinLasEliminadas(porSolicitud: ReadonlyMap<string, number>, eliminadas: readonly string[]): Map<string, number> {
+  const fuera = new Set(eliminadas);
+  return new Map([...porSolicitud].filter(([id]) => !fuera.has(id)));
+}
+
 /** Los no leídos de cada solicitud, para los contadores de la lista. */
 export function noLeidosPorSolicitud(
   mensajes: readonly Pick<MensajeDeAyuda, "request_id" | "author_id" | "created_at">[],

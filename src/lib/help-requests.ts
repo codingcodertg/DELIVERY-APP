@@ -38,6 +38,11 @@ export type SolicitudDeAyuda = {
   status: EstadoDeSolicitud;
   attended_by: string | null;
   attended_at: string | null;
+  /** Eliminada (262, D-NEXT): cuándo, quién y su nombre. Nulas en una solicitud viva. `undefined` cuando la base aún
+   *  no tiene la 262 y la consulta no las trajo: entonces la pantalla no enseña el botón de eliminar. */
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  deleted_by_name?: string | null;
 };
 
 /**
@@ -65,6 +70,50 @@ export async function leeConUbicacion<T extends { error: { code?: string | null;
 ): Promise<T> {
   const r = await consulta(COLUMNAS_DE_SOLICITUD);
   return faltaLaColumna(r.error) ? consulta(COLUMNAS_SIN_UBICACION) : r;
+}
+
+// ---- Eliminar una solicitud (262, D-NEXT) ---------------------------------------------------------
+//
+// Roberto (admin), 2026-11-06, desde «Mis solicitudes»: «Maybe add option to eliminate request». Había escrito una,
+// se dio cuenta de que no hacía falta («Disregard this request») y no tenía cómo retirarla: seguía abierta en su
+// lista y contando como pendiente en la bandeja. Es un borrado BLANDO: la fila, el hilo y los adjuntos se quedan
+// (son el registro de lo que se pidió), y lo que cambia es que deja de listarse y de contar. Quién puede lo decide
+// la base (262): quien la escribió o un admin eliminan; solo un admin restaura.
+
+/** Las columnas de la 262, que se piden encima de las de la 258. */
+export const COLUMNAS_CON_ELIMINACION = `${COLUMNAS_DE_SOLICITUD}, deleted_at, deleted_by, deleted_by_name`;
+
+/**
+ * Lee solicitudes con todo lo que la base tenga: primero con las columnas de la 262; si no existen, como
+ * `leeConUbicacion` (con la 258 y, si tampoco, sin ella). La 262 se aplica aparte del despliegue, igual que la 258.
+ */
+export async function leeSolicitudes<T extends { error: { code?: string | null; message?: string | null } | null }>(
+  consulta: (columnas: string) => PromiseLike<T>,
+): Promise<T> {
+  const r = await consulta(COLUMNAS_CON_ELIMINACION);
+  return faltaLaColumna(r.error) || /deleted_/.test(r.error?.message ?? "") ? leeConUbicacion(consulta) : r;
+}
+
+/** ¿Está eliminada? Sin la 262 (`deleted_at` sin definir) ninguna lo está. */
+export function estaEliminada(s: Pick<SolicitudDeAyuda, "deleted_at">): boolean {
+  return !!s.deleted_at;
+}
+
+/** ¿La base ya sabe eliminar? La fila trae `deleted_at` (aunque sea nulo) solo si la 262 está aplicada. */
+export function sePuedeEliminar(s: Pick<SolicitudDeAyuda, "deleted_at">): boolean {
+  return s.deleted_at !== undefined;
+}
+
+/** Las vivas por un lado y las eliminadas por otro. Las listas, los contadores y los filtros trabajan con las vivas. */
+export function separaEliminadas<T extends Pick<SolicitudDeAyuda, "deleted_at">>(filas: readonly T[]): { vivas: T[]; eliminadas: T[] } {
+  return { vivas: filas.filter((s) => !estaEliminada(s)), eliminadas: filas.filter(estaEliminada) };
+}
+
+/** Lo que la pantalla pone en una fila al eliminarla o restaurarla, sin volver a leer la lista entera. */
+export function parcheDeEliminacion(elimina: boolean, quien: { id: string; nombre: string | null }, cuando: string) {
+  return elimina
+    ? { deleted_at: cuando, deleted_by: quien.id, deleted_by_name: quien.nombre }
+    : { deleted_at: null, deleted_by: null, deleted_by_name: null };
 }
 
 export type FiltroDeSolicitudes = {
@@ -209,10 +258,12 @@ export function separaPorEstado(filas: SolicitudDeAyuda[]): { pendientes: Solici
 }
 
 /** El filtro de estado de la bandeja (D-615, 2026-10-20; el dueño: «do a filter said done»). */
-export type FiltroDeEstado = "pendientes" | "atendidas" | "todas";
+export type FiltroDeEstado = "pendientes" | "atendidas" | "todas" | "eliminadas";
 
 /** Lo que se lista con cada filtro: pendientes (la lista de trabajo, por defecto), atendidas, o todas (pendientes primero). */
-export function listaSegunEstado(filtro: FiltroDeEstado, partes: { pendientes: SolicitudDeAyuda[]; atendidas: SolicitudDeAyuda[] }): SolicitudDeAyuda[] {
+export function listaSegunEstado(filtro: FiltroDeEstado, partes: { pendientes: SolicitudDeAyuda[]; atendidas: SolicitudDeAyuda[]; eliminadas?: SolicitudDeAyuda[] }): SolicitudDeAyuda[] {
+  // Las eliminadas (262) solo salen cuando se piden: «Todas» son todas las VIVAS.
+  if (filtro === "eliminadas") return partes.eliminadas ?? [];
   if (filtro === "pendientes") return partes.pendientes;
   if (filtro === "atendidas") return partes.atendidas;
   return [...partes.pendientes, ...partes.atendidas];

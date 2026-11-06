@@ -209,7 +209,8 @@ describe("la pantalla usa las reglas y no inserta lo que no puede leer", () => {
 
   it("la caja, los adjuntos y el aviso de reapertura salen de las funciones", () => {
     expect(hilo).toContain("const puede = participaEnElHilo(yo, solicitud);");
-    expect(hilo).toContain("{puede && (");
+    // La caja no sale en el hilo de una solicitud eliminada (262): `soloLectura`.
+    expect(hilo).toContain("{puede && !soloLectura && (");
     expect(hilo).toContain("const adjunta = puedeAdjuntar(yo.id, solicitud);");
     expect(hilo).toContain("onEnviado?.({ reabierta: reabreAlContestar(yo.id, solicitud) });");
     expect(hilo).not.toMatch(/\.role\b/);
@@ -217,7 +218,7 @@ describe("la pantalla usa las reglas y no inserta lo que no puede leer", () => {
 
   it("«Mis solicitudes» enseña solo las propias, también a un admin, y sin el DataProvider de Entregas", () => {
     const pagina = sinComentarios(leer("src/app/home/ayuda/page.tsx"));
-    expect(plano(pagina)).toContain('.from("help_requests").select(COLUMNAS).eq("user_id", uid)');
+    expect(plano(pagina)).toContain('.from("help_requests").select(columnas).eq("user_id", uid)');
     expect(pagina).not.toContain("useData");
     expect(pagina).toContain("await enviaSolicitudDeAyuda({");
     expect(sinComentarios(leer("src/components/HiloDeAyuda.tsx"))).not.toContain("useData");

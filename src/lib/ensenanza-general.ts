@@ -81,6 +81,7 @@ export const RPC_QUE_ESCRIBEN = [
   "revisa_solicitud_de_cliente", "corrige_solicitud_de_cliente", // 242 (D-865): mandan a Revisar y corrigen una solicitud.
   "add_product_relation", "adjust_inventory", "apply_decisions", "apply_master_import", "assign_draft_sku",
   "activar_relevo", "deshacer_relevo", // 256: activan y deshacen una transferencia por relevo.
+  "delete_help_request", "restore_help_request", // 262: eliminan (borrado blando) y restauran una solicitud de ayuda.
   "bulk_resolve_tag", "bulk_update_products", "confirm_external_match", "decide_request", "junta_clientes", "juntar_cargas",
   "leads_set_cap", "link_draft_to_product", "mark_survey_contacted", "merge_products", "partir_carga",
   "promo_set_round_closed", "publish_product", "publish_route_plan", "receive_manual", "receive_po", "rechaza_sugerencia_de_clientes",
