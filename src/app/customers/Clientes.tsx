@@ -36,6 +36,7 @@ import type { Parche } from "@/lib/customers/reglas";
 import { agrupaEnEmpresas, empresasPorTienda, filasDeLaEmpresa, tiendasDeLaEmpresa } from "@/lib/customers/empresas";
 import { alPulsarCabecera, esOrdenInicial, MAX_NIVELES, nivelDeOrden, opcionesDeColumna, ordenDesdeMenu, ORDENES_INICIALES } from "@/lib/customers/cabeceras";
 import { empresasQueSeVen, filtrosQueSeVen, ordenesQueSeVen } from "@/lib/customers/lo-que-se-ve";
+import { filtraPorVendedor, filtrosDeEntrada, TAMANO_INICIAL_DE_CLIENTES } from "@/lib/customers/vista-por-defecto";
 import {
   alternaColumna, celda, claveDeColumnasDeClientes, CLAVE_HEREDADA_DE_COLUMNAS, colocaColumnaDeClientes, columnasAPintar, columnasDelSelector,
   estadoClase, estadoLabel, estaArchivado, FILTRO_INICIAL, motivoLabel, mueveColumnaDeClientes, nombreDeTienda,
@@ -72,7 +73,7 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
   const [filtrosCol, setFiltrosCol] = useState<FiltrosPorColumna>({});
   const [prefCols, setPrefCols] = useState<PreferenciaDeColumnas>(PREFERENCIA_INICIAL);
   // «Mostrar 10/50/100/1000» (sustituye al «Ver más»): orden y filtros van sobre la lista entera; esto solo recorta lo pintado.
-  const [cuantos, setCuantos] = useTamanoDeTabla("clientes");
+  const [cuantos, setCuantos] = useTamanoDeTabla("clientes", TAMANO_INICIAL_DE_CLIENTES);
   const [ficha, setFicha] = useState<Ficha | null>(null);
   // D-779: la ventana «Asignar vendedores» por iniciales (D-684) se quitó: el dueño la pidió solo para la carga inicial.
   // D-685: elegir varios clientes (filas de la base, todas las tiendas de cada empresa marcada) y hacerles lo mismo.
@@ -99,6 +100,15 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
     setEstado({ tipo: "listo" });
   }, [almacen]);
   useEffect(() => { void cargar(); }, [cargar]);
+  // La vista de entrada (`vista-por-defecto`): quien no es admin entra viendo SUS clientes, con el filtro de la columna
+  // «Vendedor de comisión» puesto. Se pone UNA vez, al llegar la lista; después manda lo que la persona haga.
+  const entradaPuesta = useRef(false);
+  useEffect(() => {
+    if (estado.tipo !== "listo" || entradaPuesta.current) return;
+    entradaPuesta.current = true;
+    const deEntrada = filtrosDeEntrada(lista, userId, esAdmin);
+    if (Object.keys(deEntrada).length) setFiltrosCol((f) => (Object.keys(f).length ? f : deEntrada));
+  }, [estado.tipo, lista, userId, esAdmin]);
 
   // D-743 (216): las solicitudes de cliente nuevo. El admin las ve todas (y decide); vendedor y gerente, las suyas.
   const [solicitudes, setSolicitudes] = useState<SolicitudDeCliente[]>([]);
@@ -485,7 +495,15 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
             </thead>
             <tbody>
               {visibles.length === 0 && (
-                <tr data-cli-vacia><td colSpan={colsVisibles.length} className="px-3 py-6 text-center text-slate-500">{porQueVacia()}</td></tr>
+                <tr data-cli-vacia><td colSpan={colsVisibles.length} className="px-3 py-6 text-center text-slate-500">
+                  {porQueVacia()}
+                  {/* Con el filtro de vendedor puesto (el de entrada de quien no es admin), «Ver todos» a un clic. */}
+                  {filtraPorVendedor(filtrosVistos) && (
+                    <Button variant="outline" size="sm" className="ml-2" data-ver-todos onClick={() => setFiltrosCol(({ rep_id: _mios, ...resto }) => resto)}>
+                      {t("Show all customers", "Ver todos los clientes")}
+                    </Button>
+                  )}
+                </td></tr>
               )}
               {visibles.slice(0, cuantos).map(({ clave, filas, principal: c }) => {
                 // D-740: el vendedor abre solo los suyos; los demás se ven y no se abren.

@@ -50922,3 +50922,9 @@ Sello `deliveries` 1.550.0; repo 1.749.0.
 La tarjeta Company map del inicio entra en la misma lista ordenable que las apps (hub_order, clave company-map); queda primera hasta que el admin la mueva. Corrige referencias viejas en mapa-de-apps. Pedido de Roberto (help 10ef60cc).
 
 Sello `deliveries` 1.551.0; repo 1.750.0.
+
+## D-897 · Customers: vista por defecto (mis clientes, A→Z, 10 filas)
+
+Los no-admin abren la lista filtrada a sus clientes (filtro visible de Commission rep, se quita con Clear filters; sin clientes asignados ven todos); orden por cuenta A→Z; la tabla arranca en 10 filas salvo elección propia. Pedido del dueño.
+
+Sello `customers` 0.58.0; repo 1.751.0.
