@@ -172,7 +172,8 @@ describe("104_profile_title.sql", () => {
     // que obliga a venir aquí y leer el comentario de arriba antes de reescribir el guard. Saltó al
     // escribir la 131 (D-315) y por eso dice 131: la 104 dejó de ser la última.
     // La 241 (admin solo de Clientes) la reescribió partiendo de la 131 y añadiendo customers_role.
-    expect(ultima[0]).toBe("241_admin_de_clientes.sql");
+    // La 265 (niveles de Warehouse Ops) la reescribió partiendo de la 241 y añadiendo warehouse_ops_role.
+    expect(ultima[0]).toBe("265_warehouse_ops_niveles.sql");
     for (const [fichero, previas] of defs.slice(0, -1)) {
       const perdidas = [...previas].filter((c) => !ultima[1].has(c));
       expect(perdidas, `${ultima[0]} deja de vigilar lo que vigilaba ${fichero}`).toEqual([]);
@@ -184,6 +185,8 @@ describe("104_profile_title.sql", () => {
     expect(ultima[1].has("visible_stores")).toBe(true);
     // La de la 241: sin ella, cualquiera se haría admin de Clientes a sí mismo.
     expect(ultima[1].has("customers_role")).toBe(true);
+    // La de la 265: sin ella, cualquiera se pondría admin de Warehouse Ops a sí mismo.
+    expect(ultima[1].has("warehouse_ops_role")).toBe(true);
   });
 
   it("el guard cubre las columnas nuevas además de las que ya venían", () => {

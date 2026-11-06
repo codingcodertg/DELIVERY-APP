@@ -37,7 +37,8 @@ describe("el guardián de las columnas: unicidad Y cobertura", () => {
   it("no hay dos módulos apuntando a la misma columna (lo que ya se comprobaba)", () => {
     expect(new Set(columnas).size).toBe(columnas.length);
   });
-  it("y las CUATRO columnas siguen reclamadas, por su nombre", () => {
+  // Cinco desde la 265: Warehouse Ops reclama `warehouse_ops_role` (su nivel dentro de la app).
+  it("y las CINCO columnas siguen reclamadas, por su nombre", () => {
     // Esto es lo que faltaba. Las dos pruebas que ya existen comprueban unicidad, y una ausencia
     // no rompe la unicidad: quitarle el `roleColumn` a un módulo las deja pasar en verde con esa
     // columna sin dueño — y a partir de ahí otro módulo podría reclamarla en silencio, que es
@@ -45,7 +46,7 @@ describe("el guardián de las columnas: unicidad Y cobertura", () => {
     //
     // Se fijan los NOMBRES y no el número: con `toBe(4)`, quitar `role` y añadir otra columna
     // cualquiera volvería a pasar.
-    expect(new Set(columnas)).toEqual(new Set(["role", "recruiting_role", "timetracker_role", "erp_role"]));
+    expect(new Set(columnas)).toEqual(new Set(["role", "recruiting_role", "timetracker_role", "erp_role", "warehouse_ops_role"]));
   });
 });
 

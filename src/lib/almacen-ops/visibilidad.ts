@@ -1,12 +1,13 @@
 /**
- * Operaciones de almacén (D-883, migración 247): quién ve qué. Es la MISMA regla que `public.warehouse_ops_can_see`
- * de la 247; la base es la que manda (RLS) y esto solo decide qué pantalla ofrecer. La prueba lee el SQL para que
- * las dos no se separen.
+ * Operaciones de almacén (D-883, migración 247; niveles: D-NEXT, migración 265): quién ve qué. Es la MISMA regla que
+ * `public.warehouse_ops_can_see` y `public.warehouse_ops_can_manage` de la 265; la base es la que manda (RLS) y esto
+ * solo decide qué pantalla ofrecer. La prueba lee el SQL para que las dos no se separen.
  */
 import type { TipoDeReporte } from "./tipos";
 import { esDeRrhh } from "./tipos";
+import { MODULO, SECCIONES, nivelDe } from "./nivel";
 
-export const MODULO = "warehouse_ops";
+export { MODULO };
 /** El permiso por persona (profiles.permissions) del supervisor de almacén: ve los reportes de su tienda que no son de RR. HH. */
 export const PERMISO_SUPERVISOR = "warehouse_ops_supervisor";
 
@@ -18,6 +19,8 @@ export interface Quien {
   permissions?: string[] | null;
   module_access?: string[] | null;
   recruiting_role?: string | null;
+  /** 265: el nivel escrito dentro de la app (`profiles.warehouse_ops_role`). Null = manda el rol del hub. */
+  warehouse_ops_role?: string | null;
 }
 
 export function tieneElModulo(q: Quien): boolean {
@@ -33,30 +36,36 @@ export function esSupervisor(q: Quien): boolean {
 }
 
 export function puedeVerReporte(q: Quien, r: { kind: TipoDeReporte; store: string; author_id: string }): boolean {
-  if (q.role === "admin") return true;
-  const modulo = (q.module_access ?? []).includes(MODULO);
+  const nivel = nivelDe(q);
+  if (nivel === "admin") return true;
+  if (nivel === "store_admin" && esDeSuTienda(q, r.store)) return true;
   if (esDeRrhh(r.kind)) {
     if (q.recruiting_role === "admin" || q.recruiting_role === "manager") return true;
-    return q.role === "manager" && modulo && esDeSuTienda(q, r.store);
+    return nivel === "full" && q.role === "manager" && esDeSuTienda(q, r.store);
   }
-  if (!modulo) return false;
+  if (nivel === "scrap_only") return r.author_id === q.id && SECCIONES.scrap_only.tipos.includes(r.kind);
+  if (nivel !== "full") return false;
   if (r.author_id === q.id) return true;
   return (q.role === "manager" || esSupervisor(q)) && esDeSuTienda(q, r.store);
 }
 
 /** ¿Se le ofrece la pantalla «Reportes» (la de los gerentes)? */
 export function veLosReportes(q: Quien): boolean {
-  if (q.role === "admin") return true;
+  const nivel = nivelDe(q);
+  if (nivel === "admin" || nivel === "store_admin") return true;
   if (q.recruiting_role === "admin" || q.recruiting_role === "manager") return true;
-  return tieneElModulo(q) && (q.role === "manager" || esSupervisor(q));
+  return nivel === "full" && (q.role === "manager" || esSupervisor(q));
 }
 
 /**
- * ¿Puede corregir el producto de una merma (migración 252)? El admin, o el gerente / supervisor de almacén de esa
- * tienda con el módulo. La misma regla que `public.warehouse_ops_edit_scrap_product`.
+ * ¿Puede corregir una merma (producto: 252; origen y CRMA: 263)? El admin de la app (en sus tiendas si es
+ * `store_admin`), o el gerente / supervisor de almacén de esa tienda con nivel `full`. La misma regla que
+ * `public.warehouse_ops_can_manage`.
  */
 export function puedeCorregirMerma(q: Quien, r: { kind: TipoDeReporte; store: string }): boolean {
   if (r.kind !== "scrap") return false;
-  if (q.role === "admin") return true;
-  return (q.module_access ?? []).includes(MODULO) && (q.role === "manager" || esSupervisor(q)) && esDeSuTienda(q, r.store);
+  const nivel = nivelDe(q);
+  if (nivel === "admin") return true;
+  if (nivel === "store_admin") return esDeSuTienda(q, r.store);
+  return nivel === "full" && (q.role === "manager" || esSupervisor(q)) && esDeSuTienda(q, r.store);
 }

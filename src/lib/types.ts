@@ -42,6 +42,9 @@ export interface Profile {
    * tier. Its own column so an office manager of Deliveries doesn't inherit ERP
    * cost by accident (was keyed on `role` until D-181). See D-181. */
   erp_role?: string | null;
+  /** Nivel INSIDE Warehouse Ops (admin|store_admin|full|scrap_only), migración 265. Null = manda el rol del hub
+   * (`warehouse` solo merma; los demás, todos los reportes). Ver `src/lib/almacen-ops/nivel.ts`. */
+  warehouse_ops_role?: string | null;
   /** Título escrito a mano para ESTA persona, que sustituye a la etiqueta del
    * rol en su pastilla (D-252). Null o vacío = la pastilla es la del rol, como
    * siempre. No se traduce: sale igual en los dos idiomas. Solo un admin lo

@@ -63,7 +63,8 @@ describe("quién ve qué (y la 247 dice lo mismo)", () => {
     expect(veLosReportes(base)).toBe(false);
   });
   it("el supervisor ve lo de su tienda, no lo de RR. HH.", () => {
-    const sup = { ...base, permissions: ["warehouse_ops_supervisor"] };
+    // Desde la 265 el rol `warehouse` sin nivel escrito es «solo merma»; el permiso de supervisor cuenta con «full».
+    const sup = { ...base, permissions: ["warehouse_ops_supervisor"], warehouse_ops_role: "full" };
     expect(puedeVerReporte(sup, ajeno)).toBe(true);
     expect(puedeVerReporte(sup, { ...ajeno, store: "Edinburg" })).toBe(false);
     expect(puedeVerReporte(sup, rrhh)).toBe(false);

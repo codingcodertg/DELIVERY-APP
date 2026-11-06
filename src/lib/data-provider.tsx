@@ -259,6 +259,8 @@ export interface DataState {
   updateUserLeadsAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   updateUserCustomersAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   updateUserWarehouseOpsAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
+  /** D-NEXT (265): el nivel dentro de Warehouse Ops (`profiles.warehouse_ops_role`). No toca la casilla. */
+  updateUserWarehouseOpsRole: (userId: string, nivel: string) => Promise<void>;
   /** Deliveries is granted like any other module since D-100 — `role` stays put. */
   updateUserDeliveriesAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   updateUserTimetrackerAccess: (userId: string, patch: { granted: boolean; timetracker_role: string | null }) => Promise<void>;
@@ -695,8 +697,17 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     // just on `me` in the layout) so the Users page can show/edit another
     // person's module access without a second round trip (D-053, D-064).
     profiles: async () => {
-      const r = await supabase.from("profiles").select("id, full_name, username, role, store, visible_stores, permissions, avatar_url, recruiting_role, module_access, timetracker_role, erp_role, title, title_color, left_at").order("full_name");
-      if (r.data) setUsers(r.data as Profile[]);
+      // El nivel de Warehouse Ops (265) viaja en una lectura APARTE y tolerante: si la columna aún no existe (la
+      // migración se aplica después del merge), meterla en el select de arriba tumbaría la lista entera de usuarios
+      // en todas las apps. Si falla, nadie trae nivel escrito y manda el rol del hub.
+      const [r, niveles] = await Promise.all([
+        supabase.from("profiles").select("id, full_name, username, role, store, visible_stores, permissions, avatar_url, recruiting_role, module_access, timetracker_role, erp_role, title, title_color, left_at").order("full_name"),
+        supabase.from("profiles").select("id, warehouse_ops_role").not("warehouse_ops_role", "is", null),
+      ]);
+      if (r.data) {
+        const nivelDe = new Map(((niveles.error ? [] : niveles.data) ?? []).map((n) => [n.id as string, n.warehouse_ops_role as string | null]));
+        setUsers((r.data as Profile[]).map((u) => ({ ...u, warehouse_ops_role: nivelDe.get(u.id) ?? null })));
+      }
       return r;
     },
     // Teaching mode never loads from the DB — the live (non-training) rows are
@@ -2227,6 +2238,21 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     [supabase, notify, reloadAll, users, logSecurityClient, lang],
   );
 
+  // D-NEXT (265): el nivel dentro de Warehouse Ops. Escribe SOLO `warehouse_ops_role`; la casilla es de la función de
+  // arriba. La base lo valida (check de la 265) y solo deja a un admin del hub (guardia de profiles).
+  const updateUserWarehouseOpsRole = useCallback<DataState["updateUserWarehouseOpsRole"]>(
+    async (userId, nivel) => {
+      const target = users.find((u) => u.id === userId);
+      const before = target?.warehouse_ops_role ?? null;
+      if (before === nivel) return;
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, warehouse_ops_role: nivel } : u)));
+      const { error } = await supabase.from("profiles").update({ warehouse_ops_role: nivel }).eq("id", userId);
+      if (error) { console.error(detalleAConsola(error)); notify(mensajeEscrituraPerfil(error, lang)); reloadAll(); return; }
+      void logSecurityClient(userId, "warehouse_ops_role_changed", change(before, nivel));
+    },
+    [supabase, notify, reloadAll, users, logSecurityClient, lang],
+  );
+
   const updateUserTimetrackerAccess = useCallback<DataState["updateUserTimetrackerAccess"]>(
     async (userId, { granted, timetracker_role }) => {
       const target = users.find((u) => u.id === userId);
@@ -2412,13 +2438,13 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events: effectiveEvents, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
     addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
-    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserDeliveriesAccess, deleteUser,
+    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut, marcaGpsDelTurno,
     incidents, addIncident, removeIncident,
     driverLocations, pushLocation,
     pendingSync: outbox.length, syncing,
-  }), [ready, effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, effectiveDeliveries, ensureDeliveriesSince, effectiveEvents, notifications, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserDeliveriesAccess, deleteUser, availability, addAvailability, removeAvailability, shiftsView, clockIn, clockOut, marcaGpsDelTurno, incidents, addIncident, removeIncident, driverLocations, pushLocation, outbox.length, syncing]);
+  }), [ready, effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, effectiveDeliveries, ensureDeliveriesSince, effectiveEvents, notifications, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, deleteUser, availability, addAvailability, removeAvailability, shiftsView, clockIn, clockOut, marcaGpsDelTurno, incidents, addIncident, removeIncident, driverLocations, pushLocation, outbox.length, syncing]);
 
   return (
     <Ctx.Provider value={value}>
