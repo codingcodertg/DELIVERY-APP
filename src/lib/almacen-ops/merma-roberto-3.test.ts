@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
-import { ORIGENES_DE_MERMA, PASOS, etiquetaDeOpcion, pasosVisibles, primerHueco, respuestasParaGuardar } from "./pasos";
+import { ORIGENES_DE_MERMA, PASOS, etiquetaDeOpcion, pasosVisibles, primerHueco } from "./pasos";
 import { perdida, perdidaDeMerma, repartoDeReporte, totalesPorTienda } from "./perdida";
 import { DEMO_REPORTES, mermaParaEnviar } from "./datos";
 import { TIPOS } from "./tipos";
@@ -26,20 +26,20 @@ describe("0c2fb392: la pérdida solo suma las piezas dañadas", () => {
     expect(perdidaDeMerma(0.335, { damaged: 3, sample: 0 })).toBe(1.01); // a centavos
   });
   it("el formulario (paso y resumen) usa esa cuenta y dice qué piezas contó", () => {
-    expect(ASISTENTE).toContain("const total = perdidaDeMerma(p.cost, s);");
+    expect(ASISTENTE).toContain("const total = perdidaDeMerma(p.cost, s, r);"); // 263: además mira el origen y el CRMA
     expect(ASISTENTE).toContain("damaged pieces × ${fmtMoney(p.cost)} per piece");
     expect(ASISTENTE).toContain("sample not counted");
     expect(ASISTENTE).not.toMatch(/perdida\(p\.cost, piezas\)/);
   });
   it("la tarjeta del reporte y la corrección del gerente también", () => {
     expect(LISTA).toContain('t("Loss (damaged pieces only)", "Pérdida (solo piezas dañadas)")');
-    expect(LISTA).toContain("perdidaDeMerma(c, repartoDeReporte(r))");
+    expect(LISTA).toContain("perdidaDeMerma(c, repartoDeReporte(r), r)"); // 263: además mira el origen y el CRMA
     expect(LISTA).not.toMatch(/perdida\(c, r\.total_pieces/);
     expect(LISTA).toContain("Loss = damaged pieces × the product's cost per piece");
   });
   it("los reportes del demo y los totales por tienda cuadran con la regla", () => {
     for (const r of DEMO_REPORTES.filter((x) => x.kind === "scrap")) {
-      expect(r.total_loss).toBe(perdidaDeMerma(r.unit_cost, repartoDeReporte(r)));
+      expect(r.total_loss).toBe(perdidaDeMerma(r.unit_cost, repartoDeReporte(r), r));
     }
     const ahora = new Date();
     const tot = totalesPorTienda(DEMO_REPORTES.filter((r) => r.kind === "scrap"), ahora);
@@ -63,33 +63,24 @@ describe("0c2fb392: la pérdida solo suma las piezas dañadas", () => {
   });
 });
 
-describe("714584e6: sin «¿de dónde viene?» ni CRMA; la merma es siempre interna", () => {
-  it("el formulario de merma ya no trae esas dos preguntas", () => {
-    expect(PASOS.scrap.map((p) => p.id)).toEqual(["product", "qty", "reason", "broken_by", "photo", "comments"]);
-    for (const r of [{}, { return_type: "customer_return" }, { return_type: "customer_return", crma: "CR-1" }]) {
-      const ids = pasosVisibles("scrap", r).map((p) => p.id);
-      expect(ids).not.toContain("return_type");
-      expect(ids).not.toContain("crma");
-    }
-    expect(primerHueco("scrap", base)).toBe(-1); // se envía sin contestar el origen
-  });
-  it("lo que se envía es siempre interno y sin CRMA, aunque un borrador viejo diga otra cosa", () => {
+// El pedido 714584e6 quitó «¿de dónde viene?» y el CRMA (Warehouse Ops 0.4.0), pero Roberto lo había retirado en el
+// mismo hilo. Las dos preguntas volvieron: ver merma-roberto-4.test.ts. Aquí queda lo que sigue valiendo de la 259.
+describe("714584e6 (retirado por Roberto): la 259 y los reportes que se llenaron con Warehouse Ops 0.4.0", () => {
+  it("un borrador de la 0.4.0 (sin origen) se abre y lo que lleva se manda como interno", () => {
     expect(mermaParaEnviar(base)).toEqual({
       scrap_type: "mixed", damaged_pieces: 27, sample_pieces: 3, boxes: 3, pieces_per_box: 10, loose_pieces: 0,
       return_type: "internal", reason: "forklift", broken_by: [], crma: null,
     });
-    const viejo = mermaParaEnviar({ ...base, return_type: "customer_return", crma: "CR-2291" });
-    expect(viejo.return_type).toBe("internal");
-    expect(viejo.crma).toBeNull();
-    expect(respuestasParaGuardar("scrap", { ...base, return_type: "customer_return", crma: "CR-2291" })).toEqual({ reason: "forklift" });
+    // El resumen le pide el origen antes de enviar (es el único hueco).
+    expect(pasosVisibles("scrap", base)[primerHueco("scrap", base)].id).toBe("return_type");
   });
-  it("los reportes de antes con devolución de cliente o CRMA se siguen enseñando", () => {
+  it("los reportes con devolución de cliente o CRMA se siguen enseñando", () => {
     expect(ORIGENES_DE_MERMA.map((o) => o.v)).toEqual(["internal", "customer_return"]);
     expect(etiquetaDeOpcion("scrap", "return_type", "customer_return", "en")).toBe("Customer return");
     expect(etiquetaDeOpcion("scrap", "return_type", "customer_return", "es")).toBe("Devolución de cliente");
     expect(etiquetaDeOpcion("scrap", "return_type", "internal", "en")).toBe("Internal");
-    expect(LISTA).toContain('{r.return_type === "customer_return" && <>');
-    expect(LISTA).toContain("{r.crma && <><dt>CRMA</dt><dd>{r.crma}</dd></>}");
+    expect(LISTA).toContain('<dt>{t("Where from", "De dónde")}</dt><dd data-origen-reporte={r.return_type ?? ""}>');
+    expect(LISTA).toContain('{(r.crma || r.return_type === "customer_return") && <><dt>CRMA</dt>');
     const r4 = DEMO_REPORTES.find((r) => r.id === "r4")!;
     expect(r4.return_type).toBe("customer_return");
     expect(r4.crma).toBe("CR-2291");

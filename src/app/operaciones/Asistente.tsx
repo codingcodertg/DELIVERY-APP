@@ -14,7 +14,7 @@ import {
   costoDelCampo, empleadosDelReporte, etiquetaDeOpcion, pasoCompleto, pasosVisibles, primerHueco, productoLibre,
   respuestasParaGuardar, type Paso, type ProductoElegido, type Respuestas,
 } from "@/lib/almacen-ops/pasos";
-import { cantidadesValidas, enteroDelCampo, perdidaDeMerma, piezasPorCajaInicial, piezasTotales, repartoAjustado, repartoAlCambiar, repartoValido, type Cantidades, type Reparto } from "@/lib/almacen-ops/perdida";
+import { cantidadesValidas, cuentaComoPerdida, enteroDelCampo, perdidaDeMerma, piezasPorCajaInicial, piezasTotales, repartoAjustado, repartoAlCambiar, repartoValido, type Cantidades, type Reparto } from "@/lib/almacen-ops/perdida";
 import { DEMO_PRODUCTOS, buscarProductos, mermaParaEnviar, productoParaEnviar, registrar, subirFoto, type Envio } from "@/lib/almacen-ops/datos";
 import { personasParaElegir } from "@/lib/almacen-ops/personas";
 import { borrarBorrador, guardarBorrador, hayCambios, leerBorrador } from "@/lib/almacen-ops/borradores";
@@ -267,13 +267,17 @@ function Perdida({ r, grande = false }: { r: Respuestas; grande?: boolean }) {
   const piezas = piezasTotales(q);
   // Solo las dañadas son pérdida (pedido 0c2fb392); las que sirven de muestra no cuentan.
   const s = repartoValido(piezas, r.split as Partial<Reparto> | undefined) ? (r.split as Reparto) : repartoAjustado(piezas, r.split as Partial<Reparto> | undefined, r.scrap_type);
-  const total = perdidaDeMerma(p.cost, s);
+  // Una devolución de cliente sin CRMA no cuenta como pérdida (Roberto, hilo 714584e6; migración 263).
+  const cuenta = cuentaComoPerdida(r);
+  const total = perdidaDeMerma(p.cost, s, r);
   const sinContar = s.sample > 0 ? t(` · ${s.sample} sample not counted`, ` · ${s.sample} de muestra no cuentan`) : "";
   return (
-    <div className={`ops-perdida${grande ? " grande" : ""}`} data-perdida={total ?? ""}>
+    <div className={`ops-perdida${grande ? " grande" : ""}`} data-perdida={total ?? ""} data-cuenta-como-perdida={cuenta ? "si" : "no"}>
       <span className="ops-perdida-cifra">{total == null ? t("No cost", "Sin costo") : fmtMoney(total)}</span>
       <span className="ops-perdida-cuenta">
-        {p.cost == null
+        {!cuenta
+          ? t("No CRMA: not counted as loss. A manager can add the CRMA later and it will count.", "Sin CRMA: no cuenta como pérdida. Un gerente puede poner el CRMA después y entonces contará.")
+          : p.cost == null
           ? p.libre
             ? t("No cost entered; a manager can add it later.", "Sin costo; un gerente lo puede poner después.")
             : t("This product has no cost in the catalog; the loss is saved without a $ amount.", "Este producto no tiene costo en el catálogo; la pérdida se guarda sin monto.")
@@ -309,7 +313,11 @@ function Respuesta({ paso, r, pon, ctx, tienda, onElegirUno }: {
       );
     case "texto":
       return paso.corto
-        ? <input className="ops-campo" value={typeof v === "string" ? v : ""} onChange={(e) => pon(paso.id, e.target.value)} autoFocus data-campo={paso.id} />
+        ? <>
+            <input className="ops-campo" value={typeof v === "string" ? v : ""} onChange={(e) => pon(paso.id, e.target.value)} autoFocus data-campo={paso.id} />
+            {/* El CRMA decide si la devolución cuenta como pérdida: se ve aquí mismo al escribirlo o dejarlo vacío. */}
+            {paso.id === "crma" && <Perdida r={r} />}
+          </>
         : <textarea className="ops-campo" rows={5} value={typeof v === "string" ? v : ""} onChange={(e) => pon(paso.id, e.target.value)} autoFocus data-campo={paso.id}
             placeholder={t("Write what you saw", "Escribe lo que viste")} />;
     case "personas":

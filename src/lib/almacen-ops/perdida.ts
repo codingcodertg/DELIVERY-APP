@@ -114,8 +114,30 @@ export function repartoAlCambiar(total: number, campo: keyof Reparto, valor: num
   return campo === "damaged" ? { damaged: valor, sample: resto } : { damaged: resto, sample: valor };
 }
 
-/** La pérdida en $ de una merma: costo por pieza × piezas dañadas (las de muestra no cuentan). Null sin costo. */
-export function perdidaDeMerma(costoPorPieza: number | null | undefined, x: Reparto): number | null {
+/** De dónde viene una merma y su CRMA: lo que decide si cuenta como pérdida. */
+export interface OrigenDeMerma { return_type?: unknown; crma?: unknown }
+
+/** ¿Trae CRMA? (algo escrito que no sean espacios). */
+export function tieneCrma(crma: unknown): boolean {
+  return typeof crma === "string" && crma.trim().length > 0;
+}
+
+/**
+ * ¿Esta merma cuenta como pérdida? Roberto (hilo 714584e6): «the CRMA is optional and if CRMA is filled then it sums
+ * the loss, if no CRMA then no loss». Leído al pie de la letra: una devolución de cliente SIN CRMA no cuenta; con CRMA
+ * sí; la merma interna (o un reporte viejo sin origen) cuenta siempre. La base hace la misma cuenta en
+ * `warehouse_ops_scrap_loss` (migración 263).
+ */
+export function cuentaComoPerdida(o: OrigenDeMerma | null | undefined): boolean {
+  return !(o && o.return_type === "customer_return" && !tieneCrma(o.crma));
+}
+
+/**
+ * La pérdida en $ de una merma: costo por pieza × piezas dañadas (las de muestra no cuentan). Null sin costo.
+ * Con `origen`: una devolución de cliente sin CRMA es $0 (no cuenta como pérdida), tenga o no costo el producto.
+ */
+export function perdidaDeMerma(costoPorPieza: number | null | undefined, x: Reparto, origen?: OrigenDeMerma | null): number | null {
+  if (!cuentaComoPerdida(origen)) return 0;
   return perdida(costoPorPieza, x.damaged);
 }
 

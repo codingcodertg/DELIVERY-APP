@@ -85,23 +85,34 @@ export async function corregirMerma(sb: SupabaseClient, reporteId: string, c: { 
   if (error) throw error;
 }
 
+/**
+ * 263: el gerente corrige de dónde viene la merma y su CRMA (que es opcional y suele llegar después del reporte). La
+ * base recalcula la pérdida: una devolución de cliente sin CRMA no cuenta; al ponerle el CRMA, cuenta.
+ */
+export async function corregirOrigenDeMerma(sb: SupabaseClient, reporteId: string, c: { origen: "internal" | "customer_return"; crma: string | null }): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_edit_scrap_origin", { p_report: reporteId, p_return_type: c.origen, p_crma: c.crma });
+  if (error) throw error;
+}
+
 /** El cuerpo de merma que va a `warehouse_ops_file_report`. Fuera de catálogo: sin product_id, con nombre y costo. */
 export function productoParaEnviar(p: ProductoElegido): { product_id: number | null; free_name?: string; unit_cost?: number | null } {
   return p.libre || p.id == null ? { product_id: null, free_name: p.name.trim(), unit_cost: p.cost } : { product_id: p.id };
 }
 
 /**
- * Las cuentas de la merma que van a `warehouse_ops_file_report` (254): cajas y el reparto dañadas / muestra. Desde el
- * pedido 714584e6 la merma es siempre interna y sin CRMA, aunque un borrador viejo traiga «devolución de cliente».
+ * Las cuentas de la merma que van a `warehouse_ops_file_report` (254): cajas, el reparto dañadas / muestra, de dónde
+ * viene y el CRMA. El CRMA es opcional y solo viaja si es devolución de cliente (si alguien lo escribió y luego cambió
+ * a «interno», no se guarda). Un borrador de Warehouse Ops 0.4.0 no trae el origen: el resumen lo pide antes de enviar.
  */
 export function mermaParaEnviar(r: Respuestas): Omit<NonNullable<Envio["scrap"]>, "product_id" | "free_name" | "unit_cost"> {
   const q = r.qty as Cantidades;
   const s = r.split as Reparto;
+  const devolucion = r.return_type === "customer_return";
   return {
     scrap_type: tipoDeReparto(s), damaged_pieces: s.damaged, sample_pieces: s.sample,
     boxes: q.boxes, pieces_per_box: q.piecesPerBox, loose_pieces: 0,
-    return_type: "internal", reason: String(r.reason), broken_by: (r.broken_by as string[] | undefined) ?? [],
-    crma: null,
+    return_type: devolucion ? "customer_return" : "internal", reason: String(r.reason), broken_by: (r.broken_by as string[] | undefined) ?? [],
+    crma: devolucion && typeof r.crma === "string" && r.crma.trim() ? r.crma.trim() : null,
   };
 }
 
@@ -147,6 +158,9 @@ export const DEMO_REPORTES: Reporte[] = [
   { ...vacio, id: "r3", created_at: dias(3), kind: "maintenance", store: "Edinburg", author_id: "p3", author_name: "Mario Salinas", subject_ids: [], answers: { equipment: "forklift_2", issue: "repair_needed", description: "Hydraulic leak under the mast" } },
   { ...vacio, id: "r4", created_at: dias(9), kind: "scrap", store: "Edinburg", author_id: "p3", author_name: "Mario Salinas", subject_ids: [], answers: {},
     product_id: 102, product_sku: "CER-1212-WHT", product_name: "Ceramic 12x12 Matte White", scrap_type: "sample", damaged_pieces: 0, sample_pieces: 6, boxes: 0, pieces_per_box: 15, loose_pieces: 6, total_pieces: 6, unit_cost: 0.82, total_loss: 0, return_type: "customer_return", reason: "transportation", broken_by: [], crma: "CR-2291" },
+  // Devolución de cliente SIN CRMA: no cuenta como pérdida hasta que el gerente le ponga el CRMA (263).
+  { ...vacio, id: "r7", created_at: dias(0.5), kind: "scrap", store: "Harlingen", author_id: "p4", author_name: "Rosa Peña", subject_ids: [], answers: {},
+    product_id: 103, product_sku: "MOS-HEX-MAR", product_name: "Hexagon Marble Mosaic", scrap_type: "damaged", damaged_pieces: 4, sample_pieces: 0, boxes: 0, pieces_per_box: 10, loose_pieces: 4, total_pieces: 4, unit_cost: 6.25, total_loss: 0, return_type: "customer_return", reason: "transportation", broken_by: [], crma: null },
   { ...vacio, id: "r5", created_at: dias(2), kind: "positive", store: "McAllen", author_id: "demo-admin", author_name: "Demo Admin", subject_ids: ["p2"], answers: { employee: "p2", category: "safety", description: "Cleared the blocked exit before the delivery came in" } },
   { ...vacio, id: "r6", created_at: dias(4), kind: "insubordination", store: "Harlingen", author_id: "demo-admin", author_name: "Demo Admin", subject_ids: ["p4"], answers: { severity: "minor", description: "Refused to restack the returns cage", verbal_warning: "yes" } },
 ];
