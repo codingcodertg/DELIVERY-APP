@@ -9,14 +9,14 @@ import { formateadorDeFecha } from "@/lib/formateador";
  * Regla: la medida de HOY no puede salir antes de la hora que es. Si ya pasó la hora de salida, sale AHORA; si aún no,
  * a la hora de salida. Otro día (mañana, o uno pasado que se revisa) no tiene «ahora»: la hora de salida.
  *
- * D-NEXT (2026-11-06): «ahora» y «hoy» son los del NEGOCIO (Texas, `BUSINESS_TZ`), no los del reloj de quien mira. Hasta
+ * D-906 (2026-11-06): «ahora» y «hoy» son los del NEGOCIO (Texas, `BUSINESS_TZ`), no los del reloj de quien mira. Hasta
  * aquí se leían con `getHours()` del navegador mientras las horas reales de las paradas se leían en Texas: quien abría
  * el Gestor desde otro huso (Guatemala va una hora por detrás de Texas todo el verano) veía —y APUNTABA en
  * `delivery_eta_plans`— las llegadas de lo pendiente corridas una hora. */
 
 /** La hora a la que se supone que sale el camión si nadie ha hecho nada todavía y su chofer no tiene turno en Ajustes →
  *  Rutas: las 08:00 (`DAY_START_MIN` del Gestor y `SALIDA_POR_DEFECTO_MIN` de optimizar). Con turno, manda su entrada
- *  (`salidaPrevistaMin`, D-NEXT). Medido en 30 días: el primer toque de un chofer es a las 08:34 en el cuartil temprano y
+ *  (`salidaPrevistaMin`, D-906). Medido en 30 días: el primer toque de un chofer es a las 08:34 en el cuartil temprano y
  *  el primer punto de GPS del día a las 08:19 de mediana (11 chofer-días); con 08:20 en vez de 08:00 el error de la
  *  prevista de la mañana baja de 77 a 67 minutos de mediana. No se cambió aquí: es el turno de cada chofer, y se pone en
  *  Ajustes, de donde también lo lee «Armar rutas». */
@@ -39,7 +39,7 @@ export function salidaDeLaMedida(fecha: string, ahora: Date = new Date(), salida
  * Roberto (admin), ruta de Julio Jijon: «Something is still off with the ETAs». ✓P3 recogida en RDZ Pharr a las 09:37, y aun
  * así «Base: salida 10:31» y P1/P2 (pendientes, en la MISMA tienda) a las 10:31. Se hizo que lo hecho anclara el reloj.
  *
- * ---- D-NEXT (2026-11-06): el reloj sigue al camión, no a la lista ----
+ * ---- D-906 (2026-11-06): el reloj sigue al camión, no a la lista ----
  * Roberto otra vez, con la ruta de Ernesto a las 09:25: «Something is off with the times». «Base: salida 01:43», y las
  * paradas pendientes a las 02:04, 02:51 … 07:18 —de madrugada—, mientras lo ya hecho decía «prevista 14:52, real 08:55,
  * −357 min». Ernesto había empezado por el FINAL de su lista (las transferencias de Pharr) y el reloj de D-691 recorría
@@ -277,7 +277,7 @@ export function relojDeLaRuta(e: {
 }
 
 /**
- * Qué parte del tramo le queda al camión (0…1), si ya va de camino (D-NEXT): la distancia que le falta entre la del tramo
+ * Qué parte del tramo le queda al camión (0…1), si ya va de camino (D-906): la distancia que le falta entre la del tramo
  * entero, en línea recta. `null` —el tramo entero, saliendo cuando toque— si no hay posición, no es reciente
  * (`POSICION_RECIENTE_MIN`), faltan coordenadas, los dos puntos son el mismo sitio o el camión aún no salió de la parada
  * anterior. Nunca alarga el tramo.

@@ -75,7 +75,7 @@ export interface TripStat {
   /** driveMin + serviceMin: the truck is busy this long. */
   totalMin: number;
   stops: number;
-  /** Leaves the pickup / back at the pickup, "HH:MM". Vacía si no se pudo calcular (D-NEXT): la fila de la base no pone hora. */
+  /** Leaves the pickup / back at the pickup, "HH:MM". Vacía si no se pudo calcular (D-906): la fila de la base no pone hora. */
   start: string;
   end: string;
 }
@@ -91,15 +91,15 @@ export interface MedidaDeLaRuta {
   dayMinutes: number;
   /** Estimated arrival time per stop id, "HH:MM". */
   etas: Record<string, string>;
-  /** Las paradas pendientes a las que no se les puede dar hora, y por qué (D-NEXT): falta un tramo, o es una recogida a
+  /** Las paradas pendientes a las que no se les puede dar hora, y por qué (D-906): falta un tramo, o es una recogida a
    *  medias de la que el camión ya se fue. La celda lo dice, no inventa. */
   sinHora?: Record<string, MotivoSinHora>;
   /** Lo que hace falta para rehacer las horas sin volver a llamar al router cuando se hace una parada (D-691). Desde
-   *  D-NEXT, con las coordenadas de cada punto, de la base y del fin: el reloj comprueba los tramos con ellas. */
+   *  D-906, con las coordenadas de cada punto, de la base y del fin: el reloj comprueba los tramos con ellas. */
   reloj?: { puntos: PuntoDelReloj[]; legs: number[]; conBase: boolean; vuelve: boolean; fecha: string; driveMin: number; base?: CoordenadasDelReloj | null; fin?: CoordenadasDelReloj | null };
 }
 
-/** Lo que cambia las horas sin cambiar la medida (D-NEXT): la hora de salida prevista del chofer (su turno, de Ajustes →
+/** Lo que cambia las horas sin cambiar la medida (D-906): la hora de salida prevista del chofer (su turno, de Ajustes →
  *  Rutas) y la última posición de su camión (TrackSolid). */
 export interface ExtrasDelReloj { salidaPrevistaMin?: number; camion?: CamionDelReloj | null }
 
@@ -137,7 +137,7 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
   ahora?: Date; extras?: ExtrasDelReloj;
 }): Promise<{ medida: MedidaDeLaRuta; proveedor: ProveedorDeRuta | null }> {
   const { base: depot } = e;
-  // D-NEXT: el camino se pide en el orden en que la ruta se está HACIENDO (lo hecho por su hora real, luego lo pendiente
+  // D-906: el camino se pide en el orden en que la ruta se está HACIENDO (lo hecho por su hora real, luego lo pendiente
   // en el orden de la lista), no en el de la lista: así el tramo «última hecha → primera pendiente» lo da el router. Con la
   // lista cumplida en orden es la misma lista.
   const lista = enOrdenDeEjecucion(e.lista, e.ordenes, e.fecha);
@@ -192,7 +192,7 @@ export async function mideLaLista<T extends OrdenMedida>(e: {
     traces = [{ delivery: geom, ret: [] }];
   }
 
-  // Las horas: `horasDeLaMedida` (D-602, D-691 y D-NEXT: el reloj sale de donde está el camión, el último hecho real).
+  // Las horas: `horasDeLaMedida` (D-602, D-691 y D-906: el reloj sale de donde está el camión, el último hecho real).
   const aPunto = (c: readonly [number, number] | null | undefined): CoordenadasDelReloj | null => (c ? { lat: c[0], lng: c[1] } : null);
   const reloj = {
     puntos: puntos.map(({ id, servicio, tipo, ordenes, lat, lng }) => ({ id, servicio, tipo, ordenes, lat, lng })), legs, conBase: !!depot, vuelve, fecha: e.fecha, driveMin: data.duration_seconds / 60,
@@ -208,7 +208,7 @@ export function horasDeLaMedida(r: NonNullable<MedidaDeLaRuta["reloj"]>, ordenes
   const { etas, salida, clock, servicio, sinHora } = relojDeLaRuta({ ...r, ordenes, ahora, ...extras });
   const stat: TripStat = {
     miles: 0, driveMin: r.driveMin, serviceMin: servicio, totalMin: r.driveMin + servicio,
-    // Una hora que no se pudo calcular va vacía: la fila de la base no la pinta (D-NEXT).
+    // Una hora que no se pudo calcular va vacía: la fila de la base no la pinta (D-906).
     stops: r.puntos.length, start: salida == null ? "" : fmtReloj(salida), end: clock == null ? "" : fmtReloj(clock),
   };
   return { etas, stat, sinHora };
@@ -220,7 +220,7 @@ export function horasDeLaMedida(r: NonNullable<MedidaDeLaRuta["reloj"]>, ordenes
  *  medida guardada de la lista de antes pondría las horas en la fila que no es. */
 export function firmaDeLaForma(fecha: string, clave: string, stops: readonly OrdenMedida[], listaDeLaRuta: readonly ParadaDeLaLista[], extremos = ""): string {
   // `extremos` (166): de dónde sale y dónde termina. Cambiar la salida o el fin de ese día es otra forma, y se vuelve a medir.
-  // D-NEXT: la forma es la del orden en que se está HACIENDO (`enOrdenDeEjecucion`, el que se le pide al router). Hacer una
+  // D-906: la forma es la del orden en que se está HACIENDO (`enOrdenDeEjecucion`, el que se le pide al router). Hacer una
   // parada en el orden de la lista no la cambia (D-584); hacerla fuera de orden sí, y esa ruta se vuelve a medir.
   const lista = enOrdenDeEjecucion(listaDeLaRuta, stops, fecha);
   return `${firmaDeLaMedida(fecha, clave, stops)}|${lista.map((p) => (p.tipo === "P" ? `P${p.ordenes.join("+")}` : `D${p.orden}`)).join(",")}${extremos ? `|${extremos}` : ""}`;
@@ -250,9 +250,9 @@ export interface EntradaDeLaMedida<T extends OrdenMedida> {
   /** Buscar la dirección de la base de cada ruta (`/api/geocode-point`): «siempre» (el Gestor, como hasta ahora) o solo si
    *  la tienda base no tiene coordenadas en Ajustes. */
   buscaBases?: "siempre" | "si_falta";
-  /** A qué hora sale ese chofer si aún no ha hecho nada (su turno, en minutos). Sin esto, las 08:00 (D-NEXT). */
+  /** A qué hora sale ese chofer si aún no ha hecho nada (su turno, en minutos). Sin esto, las 08:00 (D-906). */
   salidaPrevistaDe?: (clave: string) => number | undefined;
-  /** La última posición del camión de ese chofer (TrackSolid), si la hay (D-NEXT). Solo acorta el primer tramo. */
+  /** La última posición del camión de ese chofer (TrackSolid), si la hay (D-906). Solo acorta el primer tramo. */
   camionDe?: (clave: string) => CamionDelReloj | null;
 }
 
@@ -263,7 +263,7 @@ export function conHorasDeAhora(m: MedidaDeLaRuta, ordenes: readonly OrdenDelRel
   return { ...m, etas, sinHora, stat: { ...stat, miles: m.stat.miles }, dayMinutes: stat.totalMin };
 }
 
-/** Cada cuánto se rehacen las horas de HOY sin volver a medir (D-NEXT): el reloj corre, y «ahora» no es el de cuando se
+/** Cada cuánto se rehacen las horas de HOY sin volver a medir (D-906): el reloj corre, y «ahora» no es el de cuando se
  *  midió la ruta. Sin llamadas: es la misma medida con otra hora. */
 export const REFRESCO_DE_LAS_HORAS_MS = 60_000;
 
@@ -276,7 +276,7 @@ export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>)
   const [routeStats, setRouteStats] = useState<Record<string, TripStat | null>>({});
   const [routeLines, setRouteLines] = useState<Record<string, TripTrace[]>>({});
   const [routeEtas, setRouteEtas] = useState<Record<string, Record<string, string>>>({});
-  // Las paradas de cada ruta que se quedaron sin hora, y por qué (D-NEXT).
+  // Las paradas de cada ruta que se quedaron sin hora, y por qué (D-906).
   const [routeSinHora, setRouteSinHora] = useState<Record<string, Record<string, MotivoSinHora>>>({});
   const [depotCoords, setDepotCoords] = useState<Record<string, [number, number]>>({});
   // Which router actually answered last — so the page can say whether the
@@ -380,7 +380,7 @@ export function useMedidaDeRutas<T extends OrdenMedida>(e: EntradaDeLaMedida<T>)
 
   // D-691: hacer una parada no cambia la forma (no se vuelve a medir), pero sí las horas de lo que queda: se rehacen de la
   // medida pintada con las órdenes de ahora, sin llamar al router.
-  // D-NEXT: y el reloj corre. Las horas de HOY se rehacen también cada minuto (`REFRESCO_DE_LAS_HORAS_MS`) y cuando llega
+  // D-906: y el reloj corre. Las horas de HOY se rehacen también cada minuto (`REFRESCO_DE_LAS_HORAS_MS`) y cuando llega
   // otra posición del camión: hasta aquí «ahora» era el de la última vez que cambió una orden, y una pantalla abierta desde
   // las 08:10 seguía enseñando a las 09:25 las llegadas calculadas a las 08:10.
   const medidaPintada = useRef<Record<string, MedidaDeLaRuta>>({});

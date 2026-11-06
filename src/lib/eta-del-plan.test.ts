@@ -30,7 +30,7 @@ describe("lo que se apunta de una medida", () => {
   });
 });
 
-/* D-NEXT (2026-11-06, 260). Roberto: «Something is off with the times». La ruta de Ernesto del 5 de noviembre tenía en
+/* D-906 (2026-11-06, 260). Roberto: «Something is off with the times». La ruta de Ernesto del 5 de noviembre tenía en
  * la columna de la prevista horas de dos planes (08:28 y 11:14) puestas en el orden de un tercero: parada 1 «08:50» con
  * la base saliendo 08:53, paradas 3-4 «13:33», la 5 «12:39», la 6 «08:50». La prevista pasa a ser la del plan vigente. */
 describe("la clave del plan de una ruta", () => {
@@ -136,7 +136,7 @@ describe("el desvío entre la prevista y la real", () => {
 
 describe("el Gestor lo lee, lo apunta y lo pinta", () => {
   const pagina = readFileSync("src/app/(app)/routes/page.tsx", "utf8").split("\r\n").join("\n");
-  // **Puesto al día por D-NEXT (2026-11-06, migración 260)**: la prevista es la del plan vigente. Lo nuevo se sigue apuntando
+  // **Puesto al día por D-906 (2026-11-06, migración 260)**: la prevista es la del plan vigente. Lo nuevo se sigue apuntando
   // sin pisar; lo pendiente de una ruta cuyo plan cambió se rehace (pisando), y sin la 260 en la base vale la regla de la 194.
   it("lee las del día que se mira y apunta solo HOY, quien usa el Gestor: lo nuevo sin pisar, lo de otro plan rehecho", () => {
     expect(pagina).toContain('createClient().from("delivery_eta_plans").select("delivery_id, kind, eta, plan_key, first_eta").eq("plan_date", dia)');
@@ -164,14 +164,14 @@ describe("el Gestor lo lee, lo apunta y lo pinta", () => {
     expect(pagina).toContain("tipo: fp.tipo, sinAviso: true, fueraDeOrden: fueraDeOrden.has(claveDeEta(d.id, fp.tipo)),");
     expect(pagina).toContain('{fueraDeOrden && <span');
   });
-  it("la 260: clave del plan, la primera del día aparte, y permiso para rehacer; sigue sin DELETE y sin `D-NEXT` en el SQL", () => {
+  it("la 260: clave del plan, la primera del día aparte, y permiso para rehacer; sigue sin DELETE y sin `D-906` en el SQL", () => {
     const sql = readFileSync("supabase/migrations/260_eta_del_plan_vigente.sql", "utf8").split("\r\n").join("\n");
     for (const col of ["plan_key text", "first_eta text", "plan_at timestamptz"]) expect(sql).toContain(`add column if not exists ${col}`);
     expect(sql).toContain("update public.delivery_eta_plans set first_eta = eta where first_eta is null;");
     expect(sql).toContain("grant update on public.delivery_eta_plans to authenticated;");
     expect(sql).toContain('create policy "delivery_eta_plans update" on public.delivery_eta_plans for update to authenticated');
     expect(sql).not.toMatch(/grant[^;]*delete[^;]*delivery_eta_plans/i);
-    expect(sql).not.toContain("D-NEXT");
+    expect(sql).not.toContain("D-906");
     expect(sql).toContain("-- @ledger-below\ninsert into public.schema_migrations (name, checksum) values ('260_eta_del_plan_vigente.sql', '");
   });
   it("la 194: una fila por orden, día y parada; sin UPDATE ni DELETE", () => {

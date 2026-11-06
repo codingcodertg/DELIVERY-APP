@@ -50976,3 +50976,9 @@ Sello `deliveries` 1.557.0; repo 1.758.0.
 Corrige D-902: Roberto había pedido en el hilo ignorar la solicitud de quitar el origen y el CRMA. Vuelven ambas preguntas; el CRMA es opcional; una devolución de cliente suma pérdida solo con CRMA (sin CRMA, 0 dólares); el gerente puede corregir origen y CRMA después y la pérdida lo sigue. La merma interna sigue contando solo piezas dañadas. Migración 263.
 
 Sello `warehouse_ops` 0.5.0; repo 1.759.0.
+
+## D-906 · Gestor de rutas: las horas siguen al camión, no a la lista
+
+Las horas pendientes se proyectan desde el último evento real (esté donde esté en la lista), siempre crecen hacia abajo y nunca quedan en el pasado; la salida de base sale del primer evento real; ahora y hoy son hora de Texas; se refrescan cada minuto; un tramo sin tiempo dice sin hora y una recogida a medias dice sin marcar; la hora planeada es la del plan vigente (se rehace al reordenar) y se guarda la primera estimación; paradas hechas fuera de orden lo dicen. Pedido de Roberto (help a88c6b76 y 8e91185c). Migración 260.
+
+Sello `deliveries` 1.558.0; repo 1.760.0.

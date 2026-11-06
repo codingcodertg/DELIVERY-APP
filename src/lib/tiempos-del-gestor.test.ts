@@ -4,7 +4,7 @@ import { conHorasDeAhora, firmaDeLaForma, horasDeLaMedida, mideLaLista } from ".
 import { textoDeLaLlegada } from "./medida-de-ruta";
 import type { ParadaDeLaLista } from "./lista-unica";
 
-/* D-NEXT (2026-11-06) · Roberto (admin), en el Gestor de Rutas a las 09:25: «Something is off with the times». La ruta de
+/* D-906 (2026-11-06) · Roberto (admin), en el Gestor de Rutas a las 09:25: «Something is off with the times». La ruta de
  * Ernesto Castillo decía «Base: salida 01:43» y sus paradas pendientes 02:04, 02:51, 03:11 … 07:18 —de madrugada—; lo ya
  * hecho, «prevista 14:52, real 08:55, −357 min». Ernesto había empezado por el final de su lista.
  *

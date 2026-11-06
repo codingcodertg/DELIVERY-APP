@@ -1673,7 +1673,7 @@ export default function RoutesPage() {
   const delDiaDe = (clave: string): Delivery[] => rutaDelDia.get(clave) ?? [];
   const seMide = (clave: string) => delDiaDe(clave).length > 0 && pasaFiltro(clave) && (modo === "dia" || selected.has(clave));
   const rutasAMedir = [...lanes.filter((l) => selected.has(l.key)), ...lanes.filter((l) => !selected.has(l.key))].map((l) => l.key).filter(seMide);
-  // D-NEXT: a qué hora sale cada chofer si aún no ha hecho nada —la entrada de su turno, de Ajustes → Rutas; sin fila, las
+  // D-906: a qué hora sale cada chofer si aún no ha hecho nada —la entrada de su turno, de Ajustes → Rutas; sin fila, las
   // 08:00 de siempre— y dónde está su camión ahora (TrackSolid, D-900), si lo tiene enlazado y está a la vista.
   const entradaDelTurno = useMemo(() => {
     const nombreDe = new Map(users.map((x) => [x.id, (x.full_name ?? "").trim()]));
@@ -1696,7 +1696,7 @@ export default function RoutesPage() {
   });
   // D-671 (194): la llegada PREVISTA de cada parada (`delivery_eta_plans`): la «ETA» de lo ya hecho, al lado de su hora
   // real («Actual»). Se lee la del día que se mira; y se apunta, solo HOY, cada vez que se mide una ruta.
-  // D-NEXT (260): la prevista es la del PLAN VIGENTE. Lo que aún no estaba se apunta; lo pendiente de una ruta cuyo plan
+  // D-906 (260): la prevista es la del PLAN VIGENTE. Lo que aún no estaba se apunta; lo pendiente de una ruta cuyo plan
   // cambió (`claveDelPlan`: otra salida, otro fin u otras paradas u otro orden) se vuelve a apuntar entero, de una sola
   // medida; con el mismo plan no se toca, y lo ya hecho tampoco (la medida solo trae lo pendiente). Sin la 260 en la base
   // (`sinPlanVigente`), como con la 194: la primera gana. Sin la 194 no se lee ni se apunta.
@@ -1767,7 +1767,7 @@ export default function RoutesPage() {
     })();
   }, [routeEtas, apuntaEtas, date]); // eslint-disable-line react-hooks/exhaustive-deps
   /** «Actual» (D-671): la hora real de la parada, si ya está hecha, y cuánto se desvió de su llegada prevista. Una parada
-   *  hecha FUERA DEL ORDEN de la lista (D-NEXT, `hechasFueraDeOrden`) no lleva «±min»: lo dice. */
+   *  hecha FUERA DEL ORDEN de la lista (D-906, `hechasFueraDeOrden`) no lleva «±min»: lo dice. */
   const celdaReal = (key: string, d: Delivery | undefined, tipo: "P" | "D", fueraDeOrden = false) => {
     const hecha = !!d && (tipo === "D" ? d.stage === "delivered" : d.stage === "picked_up" || d.stage === "delivered");
     const hora = hecha && d ? horaReal(d, tipo) : null;
@@ -3424,7 +3424,7 @@ export default function RoutesPage() {
         const pintadas = dia.pintadas;
         const entregas = resumenDeEntregas(stops, hechas);
         const hayFilas = stops.length > 0 || hechas.length > 0;
-        // D-NEXT: lo hecho fuera del orden de la lista (delante queda algo sin hacer, o hecho después): su «Actual» lo dice
+        // D-906: lo hecho fuera del orden de la lista (delante queda algo sin hacer, o hecho después): su «Actual» lo dice
         // en vez de un «±min» que no quiere decir nada.
         const fueraDeOrden = hechasFueraDeOrden(pintadas.map((fp) => {
           if (!fp.hecha || fp.estado !== "hecho") return { clave: "", hecha: false, real: null };
@@ -3453,7 +3453,7 @@ export default function RoutesPage() {
               <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", fontSize: 12 }}>{fp.tipo === "P" ? "+" : "−"}{numeroDePallets(palletsDeLaOrden(d))}</td>
               {colsParadas.map((c) => celdaDeParada(c, d, {
                 tipo: fp.tipo, sinAviso: true, fueraDeOrden: fueraDeOrden.has(claveDeEta(d.id, fp.tipo)),
-                // D-671: la llegada PREVISTA (`delivery_eta_plans`); la hora real va en «Actual». Desde D-NEXT es la del plan
+                // D-671: la llegada PREVISTA (`delivery_eta_plans`); la hora real va en «Actual». Desde D-906 es la del plan
                 // vigente cuando se hizo la parada, no la primera del día (que queda en el aviso, si fue otra).
                 // Sin «Actual» a la vista, la real sigue aquí, como antes: lo hecho no se queda sin hora.
                 llegada: colsParadas.some((x) => x.key === "p_actual")

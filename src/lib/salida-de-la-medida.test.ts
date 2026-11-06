@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { SALIDA_MIN, ahoraDelNegocio, salidaDeLaMedida } from "./salida-de-la-medida";
 
 // D-602 (2026-10-19) · Ernesto: «Why does ETA say 8 to orders that havent been done yet?». La medida de hoy no sale antes de la hora que es.
-// D-NEXT (2026-11-06): «la hora que es» es la de TEXAS, no la del reloj de quien mira. Las horas van como instantes: el 19
+// D-906 (2026-11-06): «la hora que es» es la de TEXAS, no la del reloj de quien mira. Las horas van como instantes: el 19
 // de octubre Texas está en CDT (UTC−5), así que las 12:40 de Texas son las 17:40Z.
 const EN_TEXAS = (hhmm: string, dia = "2026-10-19") => new Date(`${dia}T${String(Number(hhmm.slice(0, 2)) + 5).padStart(2, "0")}:${hhmm.slice(3)}:00Z`);
 
@@ -23,7 +23,7 @@ describe("la medida de la ruta sale a la hora que es, no siempre a las 08:00", (
     expect(salidaDeLaMedida("2026-10-19", EN_TEXAS("08:30"), 9 * 60)).toBe(9 * 60);
     expect(salidaDeLaMedida("2026-10-19", EN_TEXAS("09:30"), 9 * 60)).toBe(9 * 60 + 30);
   });
-  it("D-NEXT: «hoy» y «ahora» son los de Texas, se mire desde donde se mire (las 23:30 de Texas ya son mañana en UTC)", () => {
+  it("D-906: «hoy» y «ahora» son los de Texas, se mire desde donde se mire (las 23:30 de Texas ya son mañana en UTC)", () => {
     // Un instante: 2026-10-20T04:30Z. En Texas siguen siendo las 23:30 del 19; en UTC (y en Guatemala a las 22:30) no.
     const instante = new Date("2026-10-20T04:30:00Z");
     expect(ahoraDelNegocio(instante)).toEqual({ fecha: "2026-10-19", minutos: 23 * 60 + 30 });
@@ -40,7 +40,7 @@ describe("la medida de la ruta sale a la hora que es, no siempre a las 08:00", (
     expect(hook).toContain('from "./salida-de-la-medida"');
     // D-691: el reloj vive en `relojDeLaRuta` (salida-de-la-medida.ts); sin nada hecho, sale de `salidaDeLaMedida`.
     const reloj = readFileSync(new URL("./salida-de-la-medida.ts", import.meta.url), "utf8");
-    // **Puesto al día por D-NEXT**: el reloj recibe además la salida del turno y el camión (`extras`); sin nada hecho sale
+    // **Puesto al día por D-906**: el reloj recibe además la salida del turno y el camión (`extras`); sin nada hecho sale
     // a la hora prevista y, hoy, no antes de ahora; y una hora que no se sabe va vacía en vez de inventarse.
     expect(hook).toContain("relojDeLaRuta({ ...r, ordenes, ahora, ...extras })");
     expect(reloj).toContain("if (ultimaHora == null) salida = visitados.length ? null : ahoraMin != null ? Math.max(salidaPrevista, ahoraMin) : salidaPrevista;");

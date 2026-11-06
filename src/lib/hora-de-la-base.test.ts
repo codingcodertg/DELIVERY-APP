@@ -13,7 +13,7 @@ const fila = pagina.slice(pagina.indexOf("const filaDeLaBase = "), pagina.indexO
 describe("la hora de la base", () => {
   it("la medida da la salida y la llegada a la base, con el tramo vacío de vuelta", () => {
     // D-691: el reloj vive en `relojDeLaRuta`.
-    // **Puesto al día por D-NEXT (2026-11-06)**: un tramo que falta ya no vale 0 (`?? 0`): la vuelta se suma solo si se sabe,
+    // **Puesto al día por D-906 (2026-11-06)**: un tramo que falta ya no vale 0 (`?? 0`): la vuelta se suma solo si se sabe,
     // y una hora que no se pudo calcular va vacía (la fila de la base no la pinta) en vez de una hora falsa.
     const reloj = readFileSync(join(process.cwd(), "src/lib/salida-de-la-medida.ts"), "utf8").replace(/\s+/g, " ");
     expect(reloj).toContain("if (e.vuelve && clock != null) { const vuelta = viaje(desde, n); clock = vuelta == null ? null : clock + vuelta; }");

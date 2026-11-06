@@ -6,7 +6,7 @@ import { conHorasDeAhora, mideLaLista } from "./usa-medida-de-rutas";
 // RDZ Pharr a las 09:37; aun así «Base: salida 10:31» y P1/P2 (pendientes, misma tienda) a las 10:31: el reloj salía de la
 // base a la hora de medir y recorría lo hecho como si no. Lo hecho ancla el reloj en su hora real y su sitio.
 //
-// **Puesto al día por D-NEXT (2026-11-06)**, con lo que se midió después en los datos de ese mismo día: #FU571, que la
+// **Puesto al día por D-906 (2026-11-06)**, con lo que se midió después en los datos de ese mismo día: #FU571, que la
 // captura enseñaba «pendiente de recoger» en Pharr, se marcó recogida a las 11:09:00 y entregada a las 11:09:31 en
 // Weslaco —iba en el camión desde la mañana, sin marcar—. Por eso una recogida A MEDIAS ya no dice una hora (decía la
 // de «ahora») ni suma su carga otra vez: dice «sin marcar», y la ruta sigue desde donde está el camión. Y «ahora» es un
@@ -76,7 +76,7 @@ describe("la ruta de Julio: lo pendiente sigue desde la última parada hecha, no
     expect(r.etas.FU571).toBe("10:22"); // 09:37 + 15 + 30
   });
   it("la misma ruta medida en el orden de la LISTA (lo pendiente delante de lo hecho): ya no se le resta lo pendiente a la salida", () => {
-    // Hasta D-NEXT: «salida = 09:37 − 10 − 15 − 0 = 09:12» y la recogida pendiente «a las 09:22», en el pasado.
+    // Hasta D-906: «salida = 09:37 − 10 − 15 − 0 = 09:12» y la recogida pendiente «a las 09:22», en el pasado.
     const enLista = [
       { id: "P:FU571,FV215", servicio: 15, tipo: "P" as const, ordenes: ["FU571", "FV215"], lat: 26.19, lng: -98.18 },
       { id: "P:FV182", servicio: 5, tipo: "P" as const, ordenes: ["FV182"], lat: 26.19, lng: -98.18 },

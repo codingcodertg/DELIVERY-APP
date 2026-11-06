@@ -7,7 +7,7 @@
  * (`delivery_eta_plans`, una fila por orden, día y parada), y la tabla enseña esa como «ETA» de lo hecho, con la hora
  * real al lado, en «Actual», y cuánto se desvió.
  *
- * ---- D-NEXT (2026-11-06, migración 260): la prevista es la del PLAN VIGENTE, no la primera del día ----
+ * ---- D-906 (2026-11-06, migración 260): la prevista es la del PLAN VIGENTE, no la primera del día ----
  * Hasta aquí «la primera gana»: la hora que se midió la primera vez se quedaba para siempre, aunque la ruta se
  * reordenara, se le añadieran paradas o se midiera a media mañana. Medido en la ruta de Ernesto del 5 de noviembre (la
  * imagen que tenía el dueño): la base salía 08:53 y la parada 1 decía «prevista 08:50»; las paradas 3-4 «13:33» y la 5
@@ -85,7 +85,7 @@ export function mapaDeEtasGuardadas(filas: readonly (Pick<FilaDeEta, "delivery_i
 }
 
 /**
- * La clave del PLAN de una ruta (D-NEXT): el día, la ruta, de dónde sale y dónde acaba (`extremos`) y sus paradas en el
+ * La clave del PLAN de una ruta (D-906): el día, la ruta, de dónde sale y dónde acaba (`extremos`) y sus paradas en el
  * orden de la LISTA —cada recogida y cada entrega por su orden—. No entra nada que cambie solo porque el día avance: ni
  * la hora, ni qué está hecho, ni el orden en que el chofer las hace. Dos pantallas que miran la misma ruta dan la misma
  * clave. Corta (16 hex) para guardarla en cada fila.
@@ -102,7 +102,7 @@ export function claveDelPlan(fecha: string, ruta: string, extremos: string, list
 }
 
 /**
- * Lo que hay que escribir de lo que se acaba de medir, con la regla de D-NEXT. `medidas`: por ruta, sus llegadas
+ * Lo que hay que escribir de lo que se acaba de medir, con la regla de D-906. `medidas`: por ruta, sus llegadas
  * (`routeEtas[ruta]`: solo trae lo PENDIENTE) y la clave de su plan de ahora.
  *   · `nuevas`: paradas sin apuntar. Se insertan (sin pisar: otro pudo apuntarlas antes).
  *   · `rehechas`: paradas ya apuntadas con OTRO plan (o sin plan: una fila de antes de la 260). Su prevista pasa a ser la
@@ -151,7 +151,7 @@ export function textoDelDesvio(min: number | null, es: boolean): { texto: string
 const MISMO_TOQUE_MIN = 3;
 
 /**
- * Las paradas HECHAS que se hicieron FUERA DEL ORDEN de la lista (D-NEXT): delante de ellas, en la lista, queda una
+ * Las paradas HECHAS que se hicieron FUERA DEL ORDEN de la lista (D-906): delante de ellas, en la lista, queda una
  * parada sin hacer, o una que se hizo claramente después. De ésas no se enseña el «±min» contra la prevista —la
  * prevista era para hacerla en su puesto: «prevista 14:52, real 08:55, −357 min» no es que llegara seis horas antes de
  * tiempo, es que se hizo antes que las de delante—; la celda dice «fuera de orden».
