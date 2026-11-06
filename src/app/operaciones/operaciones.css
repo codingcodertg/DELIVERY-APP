@@ -187,3 +187,7 @@ textarea.ops-campo { min-height: 150px; resize: vertical; }
 .ops-tarjeta-unica .ops-tarjeta-icono { font-size: 40px; }
 .ops-tarjeta-unica .ops-tarjeta-nombre { font-size: 22px; }
 @media (min-width: 720px) { .ops-pie.ops-pie-uno { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---- Fecha del dano (266) ---- */
+.ops-campo-fecha { min-height: 56px; font-size: 18px; }
+.ops-fecha-atajos { display: flex; gap: 8px; margin-top: 10px; }

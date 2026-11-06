@@ -42,7 +42,14 @@ export function enteroDelCampo(s: string): number {
   return /^\d+$/.test(t) ? Number(t) : NaN;
 }
 
-export interface FilaDeMerma { created_at: string; store: string; total_loss: number | null }
+/** `broken_on` (266): el día en que se rompió. Los totales cuentan por ese día; sin él, por el día en que se reportó. */
+export interface FilaDeMerma { created_at: string; store: string; total_loss: number | null; broken_on?: string | null }
+
+/** El instante con el que una merma entra en «esta semana» / «este mes»: el mediodía local del día en que se rompió. */
+function cuandoCuenta(f: FilaDeMerma): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(f.broken_on ?? "");
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12) : new Date(f.created_at);
+}
 
 /** Inicio de la semana (domingo, como Tile Ops) y del mes, en la hora local de `ahora`. */
 export function iniciosDePeriodo(ahora: Date): { semana: Date; mes: Date } {
@@ -59,7 +66,7 @@ export function totalesPorTienda(filas: readonly FilaDeMerma[], ahora: Date): Re
   const out: Record<string, TotalesDeMerma> = {};
   const suma = (k: string, f: FilaDeMerma, v: number) => {
     const t = (out[k] ??= { semana: 0, mes: 0, todo: 0 });
-    const at = new Date(f.created_at);
+    const at = cuandoCuenta(f);
     t.todo += v;
     if (at >= mes) t.mes += v;
     if (at >= semana) t.semana += v;

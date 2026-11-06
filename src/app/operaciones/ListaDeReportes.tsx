@@ -12,6 +12,7 @@ import { DEMO_PRODUCTOS, DEMO_REPORTES, buscarProductos, corregirMerma, corregir
 import { ORIGENES_DE_MERMA, costoDelCampo, type ProductoElegido } from "@/lib/almacen-ops/pasos";
 import { cuentaComoPerdida, perdidaDeMerma, repartoDeReporte } from "@/lib/almacen-ops/perdida";
 import { puedeCorregirMerma, puedeVerReporte } from "@/lib/almacen-ops/visibilidad";
+import { diaDelReporte, fmtDia, ordenPorDia } from "@/lib/almacen-ops/fecha-del-dano";
 import type { Contexto } from "./Operaciones";
 
 const LIMITE = 500;
@@ -36,13 +37,16 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   useEffect(() => {
     let vivo = true;
     (async () => {
-      if (ctx.demo) { setFilas(DEMO_REPORTES.filter((r) => puedeVerReporte(ctx.yo, r)).sort((a, b) => b.created_at.localeCompare(a.created_at))); return; }
+      // 266: la merma se ordena por el día en que se rompió; lo demás, por el día en que se reportó.
+      if (ctx.demo) { setFilas(ordenPorDia(DEMO_REPORTES.filter((r) => puedeVerReporte(ctx.yo, r)))); return; }
       let q = createClient().from("warehouse_reports").select("*").order("created_at", { ascending: false }).limit(LIMITE);
       if (modo === "mios") q = q.eq("author_id", ctx.yo.id);
       const { data, error: e } = await q;
       if (!vivo) return;
       if (e) { setError(e.message); setFilas([]); return; }
-      setFilas((data ?? []).map((r) => ({ ...r, unit_cost: r.unit_cost == null ? null : Number(r.unit_cost), total_loss: r.total_loss == null ? null : Number(r.total_loss) })) as Reporte[]);
+      setFilas(ordenPorDia((data ?? []).map((r) => ({ ...r, unit_cost: r.unit_cost == null ? null : Number(r.unit_cost), total_loss: r.total_loss == null ? null : Number(r.total_loss),
+        // Hasta que se aplique la 266 la fecha del daño viaja dentro de `answers`; después, en su columna.
+        broken_on: r.broken_on ?? (typeof r.answers?.broken_on === "string" ? r.answers.broken_on : null) })) as Reporte[]));
     })();
     return () => { vivo = false; };
   }, [ctx.demo, ctx.yo, modo]);
@@ -52,7 +56,8 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     if (tipo && r.kind !== tipo) return false;
     if (tienda && r.store !== tienda) return false;
     if (empleado && !(r.author_id === empleado || r.subject_ids.includes(empleado) || r.broken_by.includes(empleado))) return false;
-    const dia = r.created_at.slice(0, 10);
+    // El día que cuenta (266): en la merma, cuando se rompió; en lo demás, cuando se reportó (hora de Texas).
+    const dia = diaDelReporte(r);
     if (desde && dia < desde) return false;
     if (hasta && dia > hasta) return false;
     return true;
@@ -102,7 +107,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
               </tbody>
             </table>
           </div>
-          <p className="hint">{t(`Loss = damaged pieces × the product's cost per piece when it was reported (pieces usable as samples are not counted). A customer return without a CRMA is not counted as loss until its CRMA is added. Based on the latest ${LIMITE} reports you can see.`,
+          <p className="hint" data-totales-por="fecha-del-dano">{t("Weeks and months go by the date the material was broken, not the date it was reported. ", "Las semanas y los meses van por el día en que se rompió el material, no por el día en que se reportó. ")}{t(`Loss = damaged pieces × the product's cost per piece when it was reported (pieces usable as samples are not counted). A customer return without a CRMA is not counted as loss until its CRMA is added. Based on the latest ${LIMITE} reports you can see.`,
             `Pérdida = piezas dañadas × el costo por pieza del producto al reportarse (las que sirven de muestra no cuentan). Una devolución de cliente sin CRMA no cuenta como pérdida hasta que se le pone el CRMA. Sobre los últimos ${LIMITE} reportes que puedes ver.`)}</p>
         </div>
       )}
@@ -135,7 +140,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
             <table className="orders">
               <thead>
                 <tr>
-                  <th>{t("When", "Cuándo")}</th><th>{t("Type", "Tipo")}</th><th>{t("Store", "Tienda")}</th>
+                  <th title={t("Scrap: the date it was broken. Others: when it was reported.", "Merma: el día en que se rompió. Los demás: cuándo se reportó.")}>{t("When", "Cuándo")}</th><th>{t("Type", "Tipo")}</th><th>{t("Store", "Tienda")}</th>
                   <th>{t("Filed by", "Lo llenó")}</th><th>{t("Employee", "Empleado")}</th><th>{t("Detail", "Detalle")}</th>
                 </tr>
               </thead>
@@ -147,7 +152,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
                 )}
                 {visibles.map((r) => (
                   <tr key={r.id} onClick={() => setAbierto(r)} className="ops-fila-tabla" data-reporte={r.id}>
-                    <td style={{ whiteSpace: "nowrap" }}>{fmtDateTime(r.created_at)}</td>
+                    <td style={{ whiteSpace: "nowrap" }} data-dia={diaDelReporte(r)}>{r.kind === "scrap" ? fmtDia(diaDelReporte(r), lang) : fmtDateTime(r.created_at)}</td>
                     <td style={{ whiteSpace: "nowrap" }}>{INFO_DE_TIPO[r.kind].emoji} {nombreTipo(r.kind)}</td>
                     <td>{r.store}</td>
                     <td>{r.author_name ?? nombre(r.author_id)}</td>
@@ -188,7 +193,7 @@ function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Contexto; on
   for (const p of PASOS[r.kind]) {
     const v = r.answers[p.id];
     if (v == null || v === "") continue;
-    if (p.tipo === "personas" || p.tipo === "persona") continue;
+    if (p.tipo === "personas" || p.tipo === "persona" || p.tipo === "fecha") continue;
     // En merma, el origen, el motivo y el CRMA ya salen arriba desde sus columnas (las que el gerente puede corregir).
     if (r.kind === "scrap" && (p.id === "return_type" || p.id === "reason" || p.id === "crma")) continue;
     filas.push([(lang === "es" ? p.es : p.en).replace(/ \((optional|opcional)\)$/, ""), p.tipo === "opcion" || p.tipo === "sino" ? etiquetaDeOpcion(r.kind, p.id, v, lang) : String(v)]);
@@ -197,12 +202,13 @@ function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Contexto; on
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-tarjeta-reporte" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-tarjeta={r.id}>
         <h3>{info.emoji} {lang === "es" ? info.es : info.en}</h3>
-        <p className="sub">{fmtDateTime(r.created_at)} · {r.store} · {t("filed by", "lo llenó")} {r.author_name ?? nombre(r.author_id)}</p>
+        <p className="sub">{r.kind === "scrap" ? t("Reported ", "Reportado ") : ""}{fmtDateTime(r.created_at)} · {r.store} · {t("filed by", "lo llenó")} {r.author_name ?? nombre(r.author_id)}</p>
         {esDeRrhh(r.kind) && <p className="ops-tarjeta-rrhh">{t("In the employee's HR file", "En el expediente del empleado")}</p>}
         <dl className="ops-tarjeta-datos">
           {r.subject_ids.length > 0 && <><dt>{t("Employee", "Empleado")}</dt><dd>{r.subject_ids.map(nombre).join(", ")}</dd></>}
           {r.kind === "scrap" && (
             <>
+              <dt>{t("Date broken", "Fecha del daño")}</dt><dd data-fecha-del-dano={diaDelReporte(r)}>{fmtDia(diaDelReporte(r), lang)}</dd>
               <dt>{t("Product", "Producto")}</dt>
               <dd data-producto-reporte={r.product_not_in_catalog ? "libre" : "catalogo"}>
                 {r.product_not_in_catalog

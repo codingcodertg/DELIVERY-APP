@@ -15,7 +15,7 @@ const CSS = lee("src/app/operaciones/operaciones.css");
 
 const producto = { id: 7, sku: "S", name: "N", cost: 1, pieces_per_box: 10 };
 const qty = { boxes: 3, piecesPerBox: 10, loosePieces: 0 }; // 30 piezas, como en la captura de Roberto
-const base = { product: producto, qty, split: { damaged: 27, sample: 3 }, reason: "forklift" };
+const base = { product: producto, qty, split: { damaged: 27, sample: 3 }, reason: "forklift", broken_on: "2020-01-01" }; // 266: la fecha del daño es obligatoria
 
 describe("0c2fb392: la pérdida solo suma las piezas dañadas", () => {
   it("27 dañadas y 3 de muestra a $1.00 son $27.00, no $30.00", () => {

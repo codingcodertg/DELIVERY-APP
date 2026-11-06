@@ -12,8 +12,9 @@ import { jpegComprimido } from "@/lib/camara-de-varias-fotos";
 import { INFO_DE_TIPO, esDeRrhh, type TipoDeReporte } from "@/lib/almacen-ops/tipos";
 import {
   costoDelCampo, empleadosDelReporte, etiquetaDeOpcion, pasoCompleto, pasosVisibles, primerHueco, productoLibre,
-  respuestasParaGuardar, type Paso, type ProductoElegido, type Respuestas,
+  respuestasIniciales, respuestasParaGuardar, type Paso, type ProductoElegido, type Respuestas,
 } from "@/lib/almacen-ops/pasos";
+import { fechaDelDanoValida, fmtDia, hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
 import { cantidadesValidas, cuentaComoPerdida, enteroDelCampo, perdidaDeMerma, piezasPorCajaInicial, piezasTotales, repartoAjustado, repartoAlCambiar, repartoValido, type Cantidades, type Reparto } from "@/lib/almacen-ops/perdida";
 import { DEMO_PRODUCTOS, buscarProductos, mermaParaEnviar, productoParaEnviar, registrar, subirFoto, type Envio } from "@/lib/almacen-ops/datos";
 import { personasParaElegir } from "@/lib/almacen-ops/personas";
@@ -41,12 +42,14 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
     return b && b.tipo === tipo ? b : null;
   });
   const [borradorId, setBorradorId] = useState<string>(() => inicial?.id ?? crypto.randomUUID());
-  const [r, setR] = useState<Respuestas>(() => inicial?.r ?? {});
+  // La merma arranca con la fecha del daño en hoy (Texas), también al reabrir un borrador que no la traía (266).
+  const [arranque] = useState<Respuestas>(() => respuestasIniciales(tipo, inicial?.r));
+  const [r, setR] = useState<Respuestas>(arranque);
   const [i, setI] = useState(() => inicial?.paso ?? 0);
   const [volverAlResumen, setVolverAlResumen] = useState(false);
   const [tienda, setTiendaCruda] = useState(() => (inicial?.tienda && ctx.tiendas.includes(inicial.tienda) ? inicial.tienda
     : ctx.yo.store && ctx.tiendas.includes(ctx.yo.store) ? ctx.yo.store : ctx.tiendas[0] ?? ""));
-  const [guardadoComo, setGuardadoComo] = useState<{ r: Respuestas; tienda: string }>(() => ({ r: inicial?.r ?? {}, tienda: inicial?.tienda ?? tienda }));
+  const [guardadoComo, setGuardadoComo] = useState<{ r: Respuestas; tienda: string }>(() => ({ r: arranque, tienda: inicial?.tienda ?? tienda }));
   const [avisoBorrador, setAvisoBorrador] = useState<string | null>(null);
   const [cerrando, setCerrando] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -63,7 +66,8 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
     paso: paso ? { en: paso.en, es: paso.es } : null, indice: i, total: pasos.length, enResumen, enviado: hecho, tienda,
   }));
   const pon = (id: string, v: unknown) => setR((x) => ({ ...x, [id]: v }));
-  const cambiado = hayCambios(r, guardadoComo.r) || (Object.keys(r).length > 0 && tienda !== guardadoComo.tienda);
+  // «Algo escrito» no cuenta la fecha del daño que se pone sola: cambiar solo la tienda de un reporte en blanco no es un cambio.
+  const cambiado = hayCambios(r, guardadoComo.r) || (hayCambios(r, respuestasIniciales(tipo)) && tienda !== guardadoComo.tienda);
 
   /** Cambiar de tienda quita a la gente elegida que no es del almacén de la nueva (el selector solo muestra esa). */
   const setTienda = (nueva: string) => {
@@ -137,7 +141,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
         {esDeRrhh(tipo) && <p>{t("It was added to the employee's HR file. Only managers and HR can see it.", "Se agregó al expediente del empleado. Solo lo ven los gerentes y RR. HH.")}</p>}
         <div className="ops-hecho-acciones">
           <Link href="/operaciones" className="ops-boton-ancho ops-boton-primario">{t("Done", "Listo")}</Link>
-          <button type="button" className="ops-boton-ancho" onClick={() => { setR({}); setI(0); setGuardadoComo({ r: {}, tienda }); setBorradorId(crypto.randomUUID()); setHecho(false); }}>{t("File another", "Llenar otro")}</button>
+          <button type="button" className="ops-boton-ancho" onClick={() => { const nuevo = respuestasIniciales(tipo); setR(nuevo); setI(0); setGuardadoComo({ r: nuevo, tienda }); setBorradorId(crypto.randomUUID()); setHecho(false); }}>{t("File another", "Llenar otro")}</button>
         </div>
       </section>
     );
@@ -241,6 +245,7 @@ function textoDeRespuesta(tipo: TipoDeReporte, p: Paso, r: Respuestas, ctx: Cont
     case "persona": return typeof v === "string" ? nombreDe(ctx, v) : "";
     case "opcion": case "sino": return etiquetaDeOpcion(tipo, p.id, v, lang);
     case "texto": return typeof v === "string" ? v : "";
+    case "fecha": return typeof v === "string" && v ? fmtDia(v, lang) : "";
     case "foto": { const n = Array.isArray(v) ? v.length : 0; return n ? (lang === "es" ? `${n} foto${n > 1 ? "s" : ""}` : `${n} photo${n > 1 ? "s" : ""}`) : ""; }
     case "producto": {
       const x = v as ProductoElegido | undefined;
@@ -320,6 +325,23 @@ function Respuesta({ paso, r, pon, ctx, tienda, onElegirUno }: {
           </>
         : <textarea className="ops-campo" rows={5} value={typeof v === "string" ? v : ""} onChange={(e) => pon(paso.id, e.target.value)} autoFocus data-campo={paso.id}
             placeholder={t("Write what you saw", "Escribe lo que viste")} />;
+    case "fecha": {
+      const hoy = hoyEnTexas();
+      const dia = typeof v === "string" ? v : "";
+      return (
+        <>
+          <input type="date" className="ops-campo ops-campo-fecha" value={dia} max={hoy} required autoFocus
+            onChange={(e) => pon(paso.id, e.target.value)} data-campo={paso.id} aria-label={lang === "es" ? paso.es : paso.en} />
+          <div className="ops-fecha-atajos">
+            <button type="button" className={`chip${dia === hoy ? " active" : ""}`} onClick={() => pon(paso.id, hoy)} data-fecha="hoy">{t("Today", "Hoy")}</button>
+          </div>
+          {dia !== "" && !fechaDelDanoValida(dia, hoy) && (
+            <p className="ops-aviso ops-aviso-error" role="alert" data-aviso="fecha-futura">{t("The date cannot be in the future.", "La fecha no puede ser futura.")}</p>
+          )}
+          {dia === "" && <p className="hint">{t("Pick the day it was broken.", "Elige el día en que se rompió.")}</p>}
+        </>
+      );
+    }
     case "personas":
     case "persona":
       return <ElegirPersonas multiple={paso.tipo === "personas"} valor={v} onCambio={(x) => { pon(paso.id, x); if (paso.tipo === "persona") onElegirUno(); }} ctx={ctx} tienda={tienda} />;

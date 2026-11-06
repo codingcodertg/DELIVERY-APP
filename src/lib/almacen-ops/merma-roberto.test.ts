@@ -19,7 +19,7 @@ function memoria(limite = Infinity): Almacen & { datos: Map<string, string> } {
   };
 }
 
-const base = { split: { damaged: 4, sample: 0 }, qty: { boxes: 1, piecesPerBox: 4, loosePieces: 0 }, return_type: "internal", reason: "fell" };
+const base = { split: { damaged: 4, sample: 0 }, qty: { boxes: 1, piecesPerBox: 4, loosePieces: 0 }, return_type: "internal", reason: "fell", broken_on: "2020-01-01" }; // 266: la fecha del daño es obligatoria
 
 describe("b158a7a5: producto fuera de catálogo", () => {
   it("vale con nombre y costo opcional; no con nombre corto o costo malo", () => {

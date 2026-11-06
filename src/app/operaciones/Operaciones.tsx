@@ -12,6 +12,7 @@ import { DEMO_PERSONAS, DEMO_TIENDAS, DEMO_YO, faltaLaMigracion, type Persona, t
 import { Asistente } from "./Asistente";
 import { borrarBorrador, listarBorradores, type Borrador } from "@/lib/almacen-ops/borradores";
 import { fmtDateTime } from "@/lib/utils";
+import { esDia, fmtDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { ListaDeReportes } from "./ListaDeReportes";
 
 export type { Vista };
@@ -158,7 +159,11 @@ function Borradores({ ctx }: { ctx: Contexto }) {
             <li key={b.id} data-borrador={b.id}>
               <Link href={`/operaciones/nuevo/${b.tipo}?borrador=${encodeURIComponent(b.id)}`} className="ops-borrador-abrir">
                 <span aria-hidden>{i.emoji}</span> {lang === "es" ? i.es : i.en}
-                <span className="ops-persona-tienda">{b.tienda} · {fmtDateTime(b.guardado)}</span>
+                <span className="ops-persona-tienda">
+                  {b.tienda}
+                  {b.tipo === "scrap" && esDia(b.r.broken_on) && <> · <span data-borrador-fecha={b.r.broken_on}>{t("broken", "se rompió")} {fmtDia(b.r.broken_on, lang)}</span></>}
+                  {" · "}{t("saved", "guardado")} {fmtDateTime(b.guardado)}
+                </span>
               </Link>
               <button type="button" className="ops-boton ops-boton-chico" onClick={() => { borrarBorrador(ctx.yo.id, b.id); setLista(leer()); }}
                 data-accion="borrar-borrador">{t("Delete", "Borrar")}</button>
