@@ -190,6 +190,8 @@ export function LeafletMap({
       const startCenter: [number, number] = center ?? [inicio.lat, inicio.lng];
       // Sin tope de alejamiento (D-587): la región es el encuadre por defecto, no un candado.
       map = L.map(containerRef.current).setView(startCenter, zoom);
+      // Sin el prefijo «Leaflet» (y su bandera) en la esquina; las atribuciones de los mosaicos se quedan.
+      map.attributionControl.setPrefix(false);
       // Free OpenStreetMap tiles (no billing). The Google-tiles proxy at /api/map-tiles is used only where a page asks
       // for it (`mosaicos="google"`: the route PNG, D-678), to keep Map Tiles API charges to a few tiles per photo.
       if (mosaicos === "google") {

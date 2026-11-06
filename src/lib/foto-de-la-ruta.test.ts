@@ -203,3 +203,34 @@ describe("D-863: la foto lleva la fila «🏠 Base: regreso» con su hora", () =
     expect(regreso).toBeLessThan(g.indexOf("</table>", tabla));
   });
 });
+
+// «🇺🇦 Leaflet | Map data © Google»: fuera la palabra Leaflet y la bandera; la atribución del proveedor se queda.
+describe("la esquina del mapa: sin el prefijo de Leaflet, con la atribución de los mosaicos", () => {
+  it("el mapa del gestor y de la foto (LeafletMap) apaga el prefijo y conserva Google y OpenStreetMap", () => {
+    const l = leer("src/components/LeafletMap.tsx");
+    expect(l).toContain("map = L.map(containerRef.current).setView(startCenter, zoom);");
+    expect(l).toContain("map.attributionControl.setPrefix(false);");
+    expect(l).toContain('attribution: "Map data © Google"');
+    expect(l).toContain('attribution: "© OpenStreetMap contributors"');
+    expect(l).not.toContain("attributionControl: false");
+  });
+  it("el mapa de la cuadrilla (CrewMap) también, y conserva Esri", () => {
+    const c = leer("src/components/timetracker/CrewMap.tsx");
+    expect(c).toContain("mapa.attributionControl.setPrefix(false);");
+    expect(c).toContain('attribution: "Imagery © Esri"');
+    expect(c).not.toContain("attributionControl: false");
+  });
+  it("no hay otro mapa de Leaflet en el hub sin revisar", () => {
+    const { readdirSync } = require("node:fs") as typeof import("node:fs");
+    const con: string[] = [];
+    const anda = (d: string) => {
+      for (const e of readdirSync(d, { withFileTypes: true })) {
+        const p = `${d}/${e.name}`;
+        if (e.isDirectory()) anda(p);
+        else if (/\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name) && /\bL\.map\(/.test(leer(p))) con.push(p);
+      }
+    };
+    anda("src");
+    expect(con.sort()).toEqual(["src/components/LeafletMap.tsx", "src/components/timetracker/CrewMap.tsx"]);
+  });
+});
