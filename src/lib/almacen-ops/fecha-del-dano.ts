@@ -1,5 +1,5 @@
 /**
- * Operaciones de almacén (D-NEXT, migración 266): la fecha en que se rompió la merma. El dueño (2026-11-06): «scrap
+ * Operaciones de almacén (D-908, migración 266): la fecha en que se rompió la merma. El dueño (2026-11-06): «scrap
  * needs to be able to input the date it was broken».
  *
  * Es un día (`YYYY-MM-DD`), no una hora: por defecto hoy en Texas, se puede cambiar, es obligatoria y no puede ser un

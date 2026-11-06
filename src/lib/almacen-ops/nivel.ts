@@ -1,5 +1,5 @@
 /**
- * Operaciones de almacén (D-NEXT, migración 265): el NIVEL de cada persona dentro de la app y las SECCIONES que abre.
+ * Operaciones de almacén (D-908, migración 265): el NIVEL de cada persona dentro de la app y las SECCIONES que abre.
  *
  * El dueño (2026-11-06): «francis tiene acceso mismo que admin a todo, y los de warehouse por ahora solo veran la parte
  * de scrap solamente». Hasta hoy la app no tenía escalafón propio: quien tenía la casilla llenaba los siete reportes.

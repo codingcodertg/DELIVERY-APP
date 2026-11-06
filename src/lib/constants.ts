@@ -1034,7 +1034,7 @@ export interface ModuleAccessConfig {
    * may aim at the same column, and absent is not the same as "role". */
   roleColumn?: "recruiting_role" | "timetracker_role" | "role" | "erp_role" | "warehouse_ops_role";
   /**
-   * El valor que el selector enseña cuando la columna está vacía, según el rol del hub (D-NEXT, Warehouse Ops: sin
+   * El valor que el selector enseña cuando la columna está vacía, según el rol del hub (D-908, Warehouse Ops: sin
    * nivel escrito manda el rol del hub, y la base aplica esa misma regla). Ausente = el último de `roleKeys`.
    */
   roleDefault?: (hubRole: UserRole) => string;
@@ -1263,7 +1263,7 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
   {
     key: "warehouse_ops", label_en: "Warehouse Ops", label_es: "Operaciones de almacén",
     alwaysOn: false,
-    // D-883 (247): nació sin escalafón propio. D-NEXT (265): tiene NIVEL (`profiles.warehouse_ops_role`), que dice
+    // D-883 (247): nació sin escalafón propio. D-908 (265): tiene NIVEL (`profiles.warehouse_ops_role`), que dice
     // qué secciones abre y si es admin dentro de la app (en todas las tiendas o solo en las suyas). Sin nivel escrito
     // manda el rol del hub: almacén = solo merma; los demás = todos los reportes. Con «todos los reportes», el manager
     // del hub ve los de su tienda (también RR. HH.) y el supervisor de almacén (permiso por persona) los que no son

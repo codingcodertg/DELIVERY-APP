@@ -8,7 +8,7 @@ import { TIPOS, type TipoDeReporte } from "./tipos";
 import { MODULE_ACCESS } from "@/lib/constants";
 
 /**
- * D-NEXT (migración 265): niveles de Warehouse Ops. El dueño: «francis tiene acceso mismo que admin a todo, y los de
+ * D-908 (migración 265): niveles de Warehouse Ops. El dueño: «francis tiene acceso mismo que admin a todo, y los de
  * warehouse por ahora solo veran la parte de scrap solamente»; y luego «francis solo pharr».
  * La regla vive dos veces (aquí para pintar, en la base para hacerla cumplir); estas pruebas leen el SQL para que no
  * se separen.
@@ -224,7 +224,7 @@ describe("la base dice lo mismo (migración 265)", () => {
   it("lleva su registro", () => {
     expect(SQL).toContain("-- @ledger-below");
     expect(SQL).toContain("values ('265_warehouse_ops_niveles.sql', '");
-    expect(SQL).not.toContain("D-NEXT");
+    expect(SQL).not.toContain("D-908");
   });
 });
 

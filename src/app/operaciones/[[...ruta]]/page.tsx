@@ -16,7 +16,7 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
  *   /operaciones/mis-reportes     lo que llenó quien mira
  *   /operaciones/reportes         la vista de gerentes (todo lo que la RLS deja ver, y la merma)
  *
- * D-NEXT (265): la ruta se comprueba AQUÍ, en el servidor, contra el nivel de quien entra. Quien solo tiene merma y
+ * D-908 (265): la ruta se comprueba AQUÍ, en el servidor, contra el nivel de quien entra. Quien solo tiene merma y
  * escribe a mano /operaciones/nuevo/incident (o /operaciones/reportes) vuelve al inicio sin que se pinte el formulario.
  */
 export default async function Page({ params }: { params: Promise<{ ruta?: string[] }> }) {

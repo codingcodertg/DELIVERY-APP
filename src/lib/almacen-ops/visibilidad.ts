@@ -1,5 +1,5 @@
 /**
- * Operaciones de almacén (D-883, migración 247; niveles: D-NEXT, migración 265): quién ve qué. Es la MISMA regla que
+ * Operaciones de almacén (D-883, migración 247; niveles: D-908, migración 265): quién ve qué. Es la MISMA regla que
  * `public.warehouse_ops_can_see` y `public.warehouse_ops_can_manage` de la 265; la base es la que manda (RLS) y esto
  * solo decide qué pantalla ofrecer. La prueba lee el SQL para que las dos no se separen.
  */

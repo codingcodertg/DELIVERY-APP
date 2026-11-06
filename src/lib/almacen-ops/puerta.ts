@@ -1,5 +1,5 @@
 /**
- * Operaciones de almacén (D-NEXT, migración 265): la puerta de cada ruta. La usa la página del SERVIDOR antes de
+ * Operaciones de almacén (D-908, migración 265): la puerta de cada ruta. La usa la página del SERVIDOR antes de
  * pintar nada (una URL escrita a mano a un formulario oculto no abre) y la pantalla del cliente (el demo). Sin React.
  * La base repite la regla: el guardia de `warehouse_reports` rechaza el tipo y la RLS no devuelve las filas.
  */

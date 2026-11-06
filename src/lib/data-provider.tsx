@@ -259,7 +259,7 @@ export interface DataState {
   updateUserLeadsAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   updateUserCustomersAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   updateUserWarehouseOpsAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
-  /** D-NEXT (265): el nivel dentro de Warehouse Ops (`profiles.warehouse_ops_role`). No toca la casilla. */
+  /** D-908 (265): el nivel dentro de Warehouse Ops (`profiles.warehouse_ops_role`). No toca la casilla. */
   updateUserWarehouseOpsRole: (userId: string, nivel: string) => Promise<void>;
   /** Deliveries is granted like any other module since D-100 — `role` stays put. */
   updateUserDeliveriesAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
@@ -2238,7 +2238,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     [supabase, notify, reloadAll, users, logSecurityClient, lang],
   );
 
-  // D-NEXT (265): el nivel dentro de Warehouse Ops. Escribe SOLO `warehouse_ops_role`; la casilla es de la función de
+  // D-908 (265): el nivel dentro de Warehouse Ops. Escribe SOLO `warehouse_ops_role`; la casilla es de la función de
   // arriba. La base lo valida (check de la 265) y solo deja a un admin del hub (guardia de profiles).
   const updateUserWarehouseOpsRole = useCallback<DataState["updateUserWarehouseOpsRole"]>(
     async (userId, nivel) => {

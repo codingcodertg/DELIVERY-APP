@@ -122,7 +122,7 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
         // Igual: sin `roleColumn`, inalcanzable. Lo fija `customers/modulo.test.ts`.
         return;
       case "warehouse_ops":
-        // D-NEXT (265): su propio nivel, `warehouse_ops_role`. Escribe solo esa columna; la casilla no se toca.
+        // D-908 (265): su propio nivel, `warehouse_ops_role`. Escribe solo esa columna; la casilla no se toca.
         updateUserWarehouseOpsRole(u.id, roleValue);
         return;
       default: { const _exhaustive: never = key; return _exhaustive; }

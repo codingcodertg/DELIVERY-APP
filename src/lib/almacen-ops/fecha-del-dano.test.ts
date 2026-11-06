@@ -8,7 +8,7 @@ import { puedeLlenar, tiposPermitidos } from "./nivel";
 import { guardarBorrador, leerBorrador, type Almacen } from "./borradores";
 
 /**
- * D-NEXT (migración 266): «scrap needs to be able to input the date it was broken». Un día, por defecto hoy en Texas,
+ * D-908 (migración 266): «scrap needs to be able to input the date it was broken». Un día, por defecto hoy en Texas,
  * editable, obligatorio y nunca futuro; en su columna; y las listas, filtros y totales de merma cuentan por ese día.
  */
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").replace(/\r\n/g, "\n");
@@ -194,6 +194,6 @@ describe("la base (migración 266)", () => {
   it("lleva su registro", () => {
     expect(SQL).toContain("-- @ledger-below");
     expect(SQL).toContain("values ('266_merma_fecha_del_dano.sql', '");
-    expect(SQL).not.toContain("D-NEXT");
+    expect(SQL).not.toContain("D-908");
   });
 });
