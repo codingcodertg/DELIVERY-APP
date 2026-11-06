@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { DELIVERIES_CARD, HUB_TOOLS, MODULES, TABS } from "@/lib/constants";
 import { INFO_DE_TIPO, esTipo } from "@/lib/almacen-ops/tipos";
 
@@ -340,7 +339,7 @@ function recorta(s: string, limite: number): string {
  */
 const registro = new Map<string, { partes: Bilingue[]; encima: boolean }>();
 
-function normaliza(partes: readonly ParteDeContexto[]): Bilingue[] {
+export function normaliza(partes: readonly ParteDeContexto[]): Bilingue[] {
   const limpias: Bilingue[] = [];
   for (const p of partes) {
     if (!p) continue;
@@ -378,20 +377,6 @@ export function vaciaContextoDeAyuda(): void {
   registro.clear();
 }
 
-/**
- * Lo que una pantalla publica mientras está montada: su pestaña, su filtro, su ficha abierta, su paso.
- *
- *   useContextoDeAyuda("gestor", [{ en: "Unassigned tab", es: "Pestaña Sin asignar" }, fecha, abierta && `…`]);
- *
- * Lo falso se salta, así que se puede escribir con `&&`. Se vuelve a publicar solo cuando cambia lo que dice, y se
- * retira al desmontar: una pantalla que ya no está no deja su contexto pegado a la siguiente.
- */
-export function useContextoDeAyuda(id: string, partes: readonly ParteDeContexto[], opciones: { encima?: boolean } = {}): void {
-  const clave = JSON.stringify(normaliza(partes));
-  const encima = opciones.encima === true;
-  useEffect(() => { publicaContextoDeAyuda(id, JSON.parse(clave) as Bilingue[], { encima }); }, [id, clave, encima]);
-  useEffect(() => () => retiraContextoDeAyuda(id), [id]);
-}
 
 /**
  * La ubicación entera de una solicitud: ruta + contexto publicado + si está dentro de «Cambiar usuario».

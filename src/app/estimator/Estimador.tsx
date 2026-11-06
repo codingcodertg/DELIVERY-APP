@@ -1,6 +1,6 @@
 "use client";
 
-import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion";
+import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion-hook";
 import { contextoDelEstimador } from "@/lib/ayuda-contextos";
 import type { UserRole } from "@/lib/types";
 import Link from "next/link";

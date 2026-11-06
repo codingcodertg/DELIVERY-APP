@@ -1,6 +1,6 @@
 "use client";
 
-import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion";
+import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion-hook";
 import { contextoDeExpedientes } from "@/lib/ayuda-contextos";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
