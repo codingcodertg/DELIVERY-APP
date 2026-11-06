@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 /**
- * `/api/route-adherence` (D-NEXT): quién entra, y que contesta el apego del día con el mismo motor que los reportes.
+ * `/api/route-adherence` (D-910): quién entra, y que contesta el apego del día con el mismo motor que los reportes.
  *
  * Supabase y TrackSolid son falsos: aquí no hay red. La puerta es la de `/api/tracksolid/trails` (D-909): con Entregas,
  * admin, logística, gerencia y almacén ven a todos; el chofer, solo lo suyo; los demás, 403.

@@ -15,7 +15,7 @@ import { armaDias, sitiosDeLasOrdenes, type DatosCrudos, type DiaArmado, type Fi
 //
 // Lo usan DOS rutas con la misma lectura y el mismo motor, para que den los MISMOS números del mismo día:
 //   · `/api/driver-reports` («Reportes de choferes», un rango de hasta 31 días), y
-//   · `/api/route-adherence` («Plan contra real» del Recorrido, D-NEXT: un día, con el rastro del camión o del teléfono).
+//   · `/api/route-adherence` («Plan contra real» del Recorrido, D-910: un día, con el rastro del camión o del teléfono).
 //
 // CON QUÉ SE LEE. Órdenes, eventos, horas del plan, posiciones del teléfono y pausas: con la SESIÓN de quien pide (su
 // RLS decide). Con la LLAVE DE SERVICIO, y solo después de que la ruta comprobó el rol: qué camión llevó cada chofer

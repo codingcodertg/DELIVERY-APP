@@ -3,7 +3,7 @@ import { MISMO_SITIO_M } from "@/lib/reportes-choferes/dia";
 import { metros, millasDelRastro, minutosEnMovimiento, type FuenteDeRastro, type LatLng, type Rastro } from "@/lib/reportes-choferes/rastro";
 
 // ============================================================
-// APEGO A LA RUTA (D-NEXT): la ruta que se PROGRAMÓ para un chofer un día, contra lo que de verdad hizo.
+// APEGO A LA RUTA (D-910): la ruta que se PROGRAMÓ para un chofer un día, contra lo que de verdad hizo.
 //
 // El dueño, 2026-11-06, mirando el Recorrido: «quiero que se haga una comparación con la ruta que estaba programada y
 // en porcentaje si se adhirió a la ruta y cuánto era las millas y tiempo total programado vs millas reales recorridas».

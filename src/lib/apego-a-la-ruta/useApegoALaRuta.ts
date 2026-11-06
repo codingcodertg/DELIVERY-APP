@@ -6,7 +6,7 @@ import { tocaRefrescar } from "@/lib/tracksolid/useCamiones";
 import { apegosDeLaRespuesta, type ApegoDelChofer } from "./apego";
 
 // ============================================================
-// «Plan contra real» de cada chofer un día, para una pantalla (D-NEXT). Habla con `/api/route-adherence`.
+// «Plan contra real» de cada chofer un día, para una pantalla (D-910). Habla con `/api/route-adherence`.
 //
 // Pregunta al entrar y al cambiar de día. Si el día es HOY, vuelve a preguntar cada 3 minutos mientras la pestaña se ve
 // —el mismo latido con que el Recorrido vuelve a leer el rastro del camión (`useRastrosDeCamiones`, D-909)—, así los

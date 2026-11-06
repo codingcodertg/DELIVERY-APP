@@ -9,7 +9,7 @@ import { BUSINESS_TZ, retentionFloorISO, seesAllHistory, todayISO } from "@/lib/
 import type { Profile, UserRole } from "@/lib/types";
 
 // ============================================================
-// GET /api/route-adherence?date=YYYY-MM-DD — «Plan contra real» del Recorrido (D-NEXT).
+// GET /api/route-adherence?date=YYYY-MM-DD — «Plan contra real» del Recorrido (D-910).
 //
 // Por cada chofer con ruta programada ese día: su apego al orden y al camino, las paradas del plan con lo que se vio
 // de cada una, y las millas y el tiempo planeados contra los reales. Se calcula con el MISMO motor que «Reportes de

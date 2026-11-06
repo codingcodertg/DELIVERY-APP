@@ -5,7 +5,7 @@ import { usePrefs } from "@/lib/prefs";
 import type { ApegoDelChofer } from "@/lib/apego-a-la-ruta/apego";
 
 // ============================================================
-// «Plan contra real» (D-NEXT): lo que el Recorrido enseña de la ruta programada contra lo que el chofer hizo.
+// «Plan contra real» (D-910): lo que el Recorrido enseña de la ruta programada contra lo que el chofer hizo.
 //
 // Dos piezas: el RESUMEN en la tarjeta de cada chofer (el porcentaje de apego, «X de N paradas en orden», millas y
 // tiempo plan/real en una tablita), y el DETALLE cuando se mira a un solo chofer (las barras, las paradas del plan en su

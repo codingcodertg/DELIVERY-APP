@@ -4,7 +4,7 @@ import { informeDelDia, type EntradaDelDia, type OrdenDelDia } from "@/lib/repor
 import { apegoAlCamino, apegoDelDia, apegosDeLaRespuesta, lineaDelPlan, metrosALaLinea, paradasDelPlan, CORREDOR_M, EN_VIVO_MS } from "./apego";
 
 /**
- * «Apego a la ruta» (D-NEXT): la ruta programada contra lo hecho, leída del día de D-907.
+ * «Apego a la ruta» (D-910): la ruta programada contra lo hecho, leída del día de D-907.
  *
  * Los rastros son sintéticos como en `reportes-choferes.test.ts`: el camión manda un punto cada 10 s en marcha. Lo que se
  * prueba es la LECTURA: cómo se cuentan las paradas del plan, el porcentaje, lo fuera de orden y lo saltado, las millas

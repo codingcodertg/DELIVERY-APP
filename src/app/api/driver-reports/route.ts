@@ -16,7 +16,7 @@ import { DIAS_MAX_DE_REPORTES, puedeVerReportesDeChoferes, rangoDeReportes } fro
 // QUIÉN: admin, logística y gerente con Entregas (`puedeVerReportesDeChoferes`). El gerente, solo las órdenes de sus
 // tiendas, con las mismas funciones que el Panel (D-396).
 //
-// La lectura y el armado viven en `reportes-choferes/carga.ts` (D-NEXT), compartidos con `/api/route-adherence` para
+// La lectura y el armado viven en `reportes-choferes/carga.ts` (D-910), compartidos con `/api/route-adherence` para
 // que el Recorrido y este reporte den los mismos números del mismo día. Lo que se lee con sesión y lo que se lee con la
 // llave de servicio está dicho allí.
 // ============================================================
