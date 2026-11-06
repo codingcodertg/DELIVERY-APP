@@ -49,6 +49,13 @@ export const TIPOS_DE_MERMA: Opcion[] = [
   { v: "damaged", en: "Damaged", es: "Dañado" }, { v: "sample", en: "Sample", es: "Muestra" },
   { v: "mixed", en: "Damaged and sample", es: "Dañado y muestra" },
 ];
+/**
+ * De dónde viene la merma. Ya no se pregunta (pedido 714584e6): la merma solo pasa dentro de la empresa, así que los
+ * reportes nuevos son siempre «internal» y sin CRMA. Las etiquetas quedan para enseñar los reportes de antes.
+ */
+export const ORIGENES_DE_MERMA: Opcion[] = [
+  { v: "internal", en: "Internal", es: "Interno" }, { v: "customer_return", en: "Customer return", es: "Devolución de cliente" },
+];
 export type Respuestas = Record<string, unknown>;
 
 const o = (v: string, en: string, es: string): Opcion => ({ v, en, es });
@@ -98,11 +105,9 @@ export const PASOS: Record<TipoDeReporte, Paso[]> = {
     { id: "product", tipo: "producto", en: "Which product?", es: "¿Qué producto?" },
     // Primero el total de piezas; luego, de esas, cuántas dañadas y cuántas de muestra (pedido faa07047). Sin piezas sueltas (482720a9).
     { id: "qty", tipo: "cantidad", en: "How many pieces?", es: "¿Cuántas piezas?" },
-    { id: "return_type", tipo: "opcion", en: "Where did it come from?", es: "¿De dónde viene?", opciones: [o("internal", "Internal", "Interno"), o("customer_return", "Customer return", "Devolución de cliente")] },
     { id: "reason", tipo: "opcion", en: "Reason", es: "Motivo", opciones: [o("fell", "It fell", "Se cayó"), o("strap", "Strap broke", "Se rompió el fleje"), o("forklift", "Forklift", "Montacargas"), o("transportation", "Transportation", "Transporte"), o("other", "Other", "Otro")] },
     { id: "broken_by", tipo: "personas", opcional: true, en: "Who broke it? (optional)", es: "¿Quién lo rompió? (opcional)" },
-    // Solo si fue devolución de un cliente (pedido 60bbd7ed), y entonces es obligatorio (pedido 87254659; la 254 lo exige).
-    { id: "crma", tipo: "texto", corto: true, min: 1, si: { paso: "return_type", vale: "customer_return" }, en: "CRMA / claim #", es: "CRMA / n.º de reclamo" },
+    // Sin «¿de dónde viene?» ni CRMA (pedido 714584e6): la merma es siempre interna. Ver ORIGENES_DE_MERMA.
     FOTO,
     { id: "comments", tipo: "texto", opcional: true, en: "Comments (optional)", es: "Comentarios (opcional)" },
   ],
@@ -162,6 +167,7 @@ export function empleadosDelReporte(tipo: TipoDeReporte, r: Respuestas): string[
 export function etiquetaDeOpcion(tipo: TipoDeReporte, pasoId: string, v: unknown, lang: "en" | "es"): string {
   const p = PASOS[tipo].find((x) => x.id === pasoId);
   if (tipo === "scrap" && pasoId === "scrap_type") { const x = TIPOS_DE_MERMA.find((y) => y.v === v); return x ? x[lang] : ""; }
+  if (tipo === "scrap" && pasoId === "return_type") { const x = ORIGENES_DE_MERMA.find((y) => y.v === v); return x ? x[lang] : ""; }
   if (p?.tipo === "opcion") { const x = p.opciones.find((y) => y.v === v); if (x) return x[lang]; }
   if (p?.tipo === "sino") return v === "yes" ? (lang === "es" ? "Sí" : "Yes") : v === "no" ? "No" : "";
   return typeof v === "string" ? v : "";

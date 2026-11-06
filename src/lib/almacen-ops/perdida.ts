@@ -1,7 +1,8 @@
 /**
  * Operaciones de almacén (D-883, migración 247): la cuenta de la merma.
  *
- * El dueño: la pérdida es **costo por pieza**. Piezas = cajas × piezas por caja + piezas sueltas. El costo se congela
+ * El dueño: la pérdida es **costo por pieza**. Piezas = cajas × piezas por caja + piezas sueltas. Desde el pedido
+ * 0c2fb392 (migración 259) solo cuentan las piezas DAÑADAS: las que sirven de muestra no son pérdida. El costo se congela
  * al reportar (la base copia `erp.products.cost` en `unit_cost`), así que cambiar un precio después no mueve los
  * reportes viejos. La base hace la MISMA cuenta en `warehouse_ops_file_report`; esto es para la pantalla.
  */
@@ -75,8 +76,8 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 
 // ---------------------------------------------------------------------------
 // El reparto (pedido faa07047, migración 254): del total de piezas, cuántas están dañadas y cuántas sirven de muestra.
-// Dañadas + muestra = total. La pérdida en $ NO cambia: sigue siendo costo × TODAS las piezas del reporte, igual que
-// antes (un reporte «muestra» de la 247 ya contaba entero como pérdida).
+// Dañadas + muestra = total. La pérdida en $ es costo × piezas DAÑADAS (pedido 0c2fb392, migración 259): las de muestra
+// no se pierden. Antes de la 259 contaban todas; la 259 recalculó los reportes que ya había.
 // ---------------------------------------------------------------------------
 export interface Reparto { damaged: number; sample: number }
 
@@ -111,6 +112,11 @@ export function repartoAjustado(total: number, previo?: Partial<Reparto> | null,
 export function repartoAlCambiar(total: number, campo: keyof Reparto, valor: number): Reparto {
   const resto = entero(valor) && valor >= 0 && valor <= total ? total - valor : 0;
   return campo === "damaged" ? { damaged: valor, sample: resto } : { damaged: resto, sample: valor };
+}
+
+/** La pérdida en $ de una merma: costo por pieza × piezas dañadas (las de muestra no cuentan). Null sin costo. */
+export function perdidaDeMerma(costoPorPieza: number | null | undefined, x: Reparto): number | null {
+  return perdida(costoPorPieza, x.damaged);
 }
 
 /** Lo que va a `scrap_type`: todo dañado, todo muestra, o de los dos. */

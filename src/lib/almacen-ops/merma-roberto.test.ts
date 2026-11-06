@@ -72,11 +72,11 @@ describe("0a7e46f3 y 482720a9: dañado/muestra con la cantidad, sin piezas suelt
   });
 });
 
-describe("60bbd7ed: el CRMA solo si es devolución de cliente", () => {
-  it("se oculta en interno y aparece en devolución", () => {
+describe("60bbd7ed → 714584e6: el CRMA salía solo en devolución de cliente; ya no se pregunta", () => {
+  it("no aparece en ningún caso", () => {
     expect(pasosVisibles("scrap", { return_type: "internal" }).some((p) => p.id === "crma")).toBe(false);
     expect(pasosVisibles("scrap", {}).some((p) => p.id === "crma")).toBe(false);
-    expect(pasosVisibles("scrap", { return_type: "customer_return" }).some((p) => p.id === "crma")).toBe(true);
+    expect(pasosVisibles("scrap", { return_type: "customer_return" }).some((p) => p.id === "crma")).toBe(false);
   });
 });
 

@@ -122,6 +122,10 @@ textarea.ops-campo { min-height: 150px; resize: vertical; }
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--paper); border-top: 1px solid var(--line);
 }
 @media (min-width: 720px) { .ops-botonera { position: static; padding: 18px 0 0; background: none; border-top: 0; } }
+/* «Guardar borrador» (pedido 78b2e1fc) y su aviso: una fila entera en la botonera. En el teléfono la botonera es fija
+   y ahora mide dos filas, así que el asistente deja más hueco abajo para que no tape lo último. */
+.ops-botonera-entera { grid-column: 1 / -1; margin: 0; }
+@media (max-width: 719.98px) { .ops-asistente { padding-bottom: 64px; } }
 
 .ops-hecho { max-width: 520px; margin: 40px auto; text-align: center; display: grid; gap: 10px; justify-items: center; }
 .ops-hecho-icono { font-size: 54px; }
