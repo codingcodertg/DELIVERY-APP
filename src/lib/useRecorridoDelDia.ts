@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { centralWallToUtc } from "@/lib/clockin/tz";
-import { shiftDateISO } from "@/lib/utils";
+import { leeRecorridoDelTelefono } from "@/lib/recorrido-del-telefono";
+import { eligeRecorrido, type CamionEnVivo } from "@/lib/tracksolid/rastro-en-mapa";
+import { useRastrosDeCamiones } from "@/lib/tracksolid/useRastrosDeCamiones";
 import type { Fix } from "@/lib/track-history";
 import type { DriverLocation } from "@/lib/types";
 
@@ -15,10 +16,13 @@ import type { DriverLocation } from "@/lib/types";
  *
  * Quién ve qué lo dice la base (migración 121): admin, logística, gerente y almacén ven a todos; el chofer, lo suyo; los
  * demás no reciben filas y no se pinta nada.
+ *
+ * D-909: el chofer que ese día lleva un camión con rastreador se dibuja con el rastro DEL CAMIÓN (`useRastrosDeCamiones`),
+ * que no depende de que tenga la app abierta; los demás, con el del teléfono — leído entero, de 1.000 en 1.000
+ * (`leeRecorridoDelTelefono`): antes llegaban solo las primeras 1.000 posiciones del día entre todos.
  */
 
-/** Como el Recorrido (D-832): un día largo a 10 m / 5 s son miles de posiciones por chofer. */
-const FIXES_POR_DIA = 20_000;
+const SIN_CAMIONES_EN_VIVO: readonly (CamionEnVivo & { driverId: string; imei: string })[] = [];
 
 export function useRecorridoDelDia(
   choferes: readonly { id: string; nombre: string }[],
@@ -26,26 +30,22 @@ export function useRecorridoDelDia(
   activo: boolean,
   enVivo: readonly DriverLocation[],
   esHoy: boolean,
+  /** Dónde está ahora el camión de cada chofer (`usePosicionesDeChoferes().camionesDeHoy.posiciones`): la línea llega hasta él. */
+  camionesEnVivo: readonly (CamionEnVivo & { driverId: string; imei: string })[] = SIN_CAMIONES_EN_VIVO,
 ): Record<string, Fix[]> {
   const firma = choferes.map((c) => `${c.id}=${c.nombre}`).sort().join("|");
   const [leido, setLeido] = useState<{ firma: string; fecha: string; porId: Record<string, Fix[]> } | null>(null);
+  const rastrosDeCamion = useRastrosDeCamiones(fecha, activo && !!firma, camionesEnVivo);
 
   useEffect(() => {
     if (!activo || !firma) { setLeido(null); return; }
     let cancelado = false;
     const ids = firma.split("|").map((x) => x.slice(0, x.indexOf("=")));
     (async () => {
-      const from = centralWallToUtc(`${fecha}T00:00`);
-      const to = centralWallToUtc(`${shiftDateISO(fecha, 1)}T00:00`);
-      const { data } = await createClient().from("driver_locations").select("driver_id, lat, lng, accuracy_m, recorded_at")
-        .in("driver_id", ids).gte("recorded_at", from).lt("recorded_at", to)
-        .order("recorded_at", { ascending: true }).limit(FIXES_POR_DIA * Math.max(1, ids.length));
+      const { porId: leidas } = await leeRecorridoDelTelefono(createClient(), ids, fecha);
       if (cancelado) return;
       const porId: Record<string, Fix[]> = {};
-      for (const id of ids) porId[id] = [];
-      for (const r of (data ?? []) as { driver_id: string; lat: number; lng: number; accuracy_m: number | null; recorded_at: string }[]) {
-        porId[r.driver_id]?.push({ lat: r.lat, lng: r.lng, accuracy_m: r.accuracy_m, at: r.recorded_at });
-      }
+      for (const id of ids) porId[id] = leidas[id] ?? [];
       setLeido({ firma, fecha, porId });
     })();
     return () => { cancelado = true; };
@@ -74,10 +74,11 @@ export function useRecorridoDelDia(
     if (!activo || !leido || leido.firma !== firma || leido.fecha !== fecha) return {};
     const nombrePorId = new Map(firma.split("|").map((x) => [x.slice(0, x.indexOf("=")), x.slice(x.indexOf("=") + 1)] as const));
     const out: Record<string, Fix[]> = {};
-    for (const [id, fixes] of Object.entries(leido.porId)) {
+    for (const [id, delTelefono] of Object.entries(leido.porId)) {
       const nombre = nombrePorId.get(id);
+      const { fixes } = eligeRecorrido(delTelefono, rastrosDeCamion.get(id)?.fixes);
       if (nombre && fixes.length) out[nombre] = fixes;
     }
     return out;
-  }, [leido, firma, fecha, activo]);
+  }, [leido, firma, fecha, activo, rastrosDeCamion]);
 }

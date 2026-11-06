@@ -147,7 +147,13 @@ export type ResultadoDeHistorial = {
 export async function historialDeCamiones(
   deps: DepsDeHistorial & { historial: AlmacenDeHistorial | null },
   pedidos: readonly { imei: string; fecha: string }[],
-  opciones: { zona: string; maxLlamadas?: number },
+  opciones: {
+    zona: string; maxLlamadas?: number;
+    /** Cada cuánto se vuelve a pedir un día sin terminar (por defecto 10 min). El mapa en vivo pide menos (D-909). */
+    refrescoDeHoyMs?: number;
+    /** Si TrackSolid no contesta, vale lo guardado aunque esté viejo (el mapa: mejor la línea de hace un rato que ninguna). */
+    aceptaViejo?: boolean;
+  },
 ): Promise<ResultadoDeHistorial> {
   const ahora = (deps.ahora ?? Date.now)(), max = opciones.maxLlamadas ?? 8;
   const dias = new Map<string, PuntoDeRastro[]>();
@@ -157,11 +163,22 @@ export async function historialDeCamiones(
 
   let guardados: DiaDeCamion[] | null = null;
   try { guardados = deps.historial ? await deps.historial.lee(imeis, fechas[0], fechas[fechas.length - 1]) : null; } catch { guardados = null; }
-  for (const g of guardados ?? []) if (g.completo || ahora - g.leidoEn < REFRESCO_DE_HOY_MS) dias.set(`${g.imei}|${g.fecha}`, g.puntos);
+  let llamadas = 0, pendientes = 0;
+  const refresco = opciones.refrescoDeHoyMs ?? REFRESCO_DE_HOY_MS;
+  const viejos = new Map<string, PuntoDeRastro[]>();
+  for (const g of guardados ?? []) {
+    if (g.completo || ahora - g.leidoEn < refresco) dias.set(`${g.imei}|${g.fecha}`, g.puntos);
+    else viejos.set(`${g.imei}|${g.fecha}`, g.puntos);
+  }
+  /** Lo que no se pudo leer ahora: con `aceptaViejo`, lo guardado; siempre cuenta como pendiente. */
+  const sinLeer = (imei: string, fs: readonly string[]) => {
+    pendientes += fs.length;
+    if (!opciones.aceptaViejo) return;
+    for (const f of fs) { const v = viejos.get(`${imei}|${f}`); if (v) dias.set(`${imei}|${f}`, v); }
+  };
 
   const faltan = pedidas.filter((k) => !dias.has(k));
   const hoyMenos = new Date(ahora - DIAS_QUE_GUARDA_TRACKSOLID * DIA_MS).toISOString().slice(0, 10);
-  let llamadas = 0, pendientes = 0;
   for (const imei of imeis) {
     const suyas = faltan.filter((k) => k.startsWith(`${imei}|`)).map((k) => k.slice(imei.length + 1));
     pendientes += suyas.filter((f) => f < hoyMenos).length;
@@ -169,12 +186,12 @@ export async function historialDeCamiones(
       const a = limitesDelDia(v.desde, opciones.zona), b = limitesDelDia(v.hasta, opciones.zona);
       if (!a || !b) { pendientes += v.fechas.length; continue; }
       if (a[0] >= ahora) continue;                                    // días que aún no han empezado: sin rastro, y no es un fallo
-      if (llamadas >= max) { pendientes += v.fechas.length; continue; }
+      if (llamadas >= max) { sinLeer(imei, v.fechas); continue; }
       llamadas++;
       let puntos: PuntoDeRastro[] | null = null;
       try { puntos = await pideHistorial(deps, imei, a[0], b[1]); }
       catch (e) { console.warn("[tracksolid] no se pudo leer el historial:", e instanceof ErrorDeTracksolid ? e.codigo : "error"); }
-      if (!puntos) { pendientes += v.fechas.length; continue; }
+      if (!puntos) { sinLeer(imei, v.fechas); continue; }
       const nuevos: DiaDeCamion[] = [];
       for (const f of v.fechas) {
         const lim = limitesDelDia(f, opciones.zona);

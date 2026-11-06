@@ -144,3 +144,30 @@ describe("cuánto se le pide", () => {
     }
   });
 });
+
+describe("lo que pide el mapa en vivo (D-909)", () => {
+  const HOY = "2026-11-06";
+  const viejo = (minutos: number): DiaDeCamion => ({ imei: IMEI, fecha: HOY, puntos: [{ t: AHORA - 3_600_000, lat: 26.2, lng: -98.2, mph: 10 }], completo: false, leidoEn: AHORA - minutos * 60_000 });
+
+  it("`refrescoDeHoyMs`: con 3 minutos, lo guardado hace 5 se vuelve a pedir; lo de hace 2, no", async () => {
+    const ts = tracksolid();
+    await historialDeCamiones(deps(ts, memoria([viejo(2)])), [{ imei: IMEI, fecha: HOY }], { zona: ZONA, refrescoDeHoyMs: 180_000 });
+    expect(ts.pedidas).toHaveLength(0);
+    await historialDeCamiones(deps(ts, memoria([viejo(5)])), [{ imei: IMEI, fecha: HOY }], { zona: ZONA, refrescoDeHoyMs: 180_000 });
+    expect(ts.pedidas).toHaveLength(1);
+    // Sin la opción siguen siendo 10 minutos: los Reportes no cambian.
+    await historialDeCamiones(deps(ts, memoria([viejo(5)])), [{ imei: IMEI, fecha: HOY }], { zona: ZONA });
+    expect(ts.pedidas).toHaveLength(1);
+  });
+
+  it("`aceptaViejo`: si TrackSolid falla, vale lo guardado aunque esté viejo (y sigue contando como pendiente)", async () => {
+    const ts = tracksolid(1006);
+    const con = await historialDeCamiones(deps(ts, memoria([viejo(40)])), [{ imei: IMEI, fecha: HOY }], { zona: ZONA, aceptaViejo: true });
+    expect(con.pendientes).toBe(1);
+    expect(con.dias.get(`${IMEI}|${HOY}`)).toHaveLength(1);
+    // Sin la opción, como antes: ese día no sale y quien llama usa el teléfono.
+    const sin = await historialDeCamiones(deps(ts, memoria([viejo(40)])), [{ imei: IMEI, fecha: HOY }], { zona: ZONA });
+    expect(sin.pendientes).toBe(1);
+    expect(sin.dias.has(`${IMEI}|${HOY}`)).toBe(false);
+  });
+});

@@ -50994,3 +50994,9 @@ Sello `deliveries` 1.559.0; repo 1.761.0.
 Warehouse Ops ahora tiene un nivel por persona, que un admin cambia en Usuarios: admin, admin de sus tiendas, todos los reportes o solo merma. Francis Lestarpe queda como admin de la app solo en Pharr, y el personal de almacén con cuenta ve únicamente la merma (formulario, borradores y sus reportes); la base y el servidor bloquean lo demás, también por URL directa. La merma pregunta la fecha en que se rompió (hoy en Texas por defecto, nunca futura); la tarjeta la muestra, y la lista de gerentes, sus filtros y los totales de pérdida por tienda cuentan por ese día.
 
 Sello `warehouse_ops` 0.6.0; repo 1.762.0.
+
+## D-909 · Recorrido y Gestor de Rutas: la línea del día llega hasta el camión
+
+La línea de cada chofer se cortaba a media mañana porque solo se leían las primeras 1.000 posiciones del día entre todos; ahora se lee el día entero. Además, el chofer que lleva un camión con rastreador se dibuja con el GPS del camión (hoy y días pasados), que no depende de que tenga la app abierta; sin rastreador se sigue usando el teléfono. La cabecera del mapa dice qué cuenta: puntos del GPS del camión y posiciones del teléfono.
+
+Sello `deliveries` 1.560.0; repo 1.763.0.
