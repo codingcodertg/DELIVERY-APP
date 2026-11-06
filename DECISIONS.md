@@ -50934,3 +50934,9 @@ Sello `customers` 0.58.0; repo 1.751.0.
 Una orden de tienda a tienda puede pasar por una tienda de relevo: el paso a (origen → relevo) y el paso b (relevo → destino) son filas hermanas con relay_step, se leen Tr-<factura>-a/b con la etiqueta Transfer, cada una con su chofer y día. El gestor elige tienda de relevo y día del paso b; b no se recoge hasta que a se entregue; la orden cuenta como entregada con el último paso; se deshace mientras a no se haya recogido. El motor de rutas solo avisa si ambos pasos van el mismo día. Migración 256.
 
 Sello `deliveries` 1.552.0; repo 1.752.0.
+
+## D-899 · Mapas: sin el prefijo Leaflet en la esquina
+
+Los mapas Leaflet del hub (gestor de rutas, PNG de la ruta, mapa de cuadrilla) ya no muestran la palabra Leaflet ni la bandera; las atribuciones de Google, OpenStreetMap y Esri se mantienen. Pedido del dueño.
+
+Sello `deliveries` 1.553.0; repo 1.753.0.

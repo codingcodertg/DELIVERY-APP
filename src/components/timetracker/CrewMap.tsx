@@ -38,6 +38,8 @@ export function CrewMap({ points }: { points: CrewPoint[] }) {
       const L = (mod as unknown as { default?: typeof import("leaflet") }).default ?? mod;
       if (cancelado || !caja.current) return;
       mapa = L.map(caja.current, { scrollWheelZoom: false });
+      // Sin el prefijo «Leaflet» (y su bandera) en la esquina; la atribución de Esri se queda.
+      mapa.attributionControl.setPrefix(false);
       L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         { maxZoom: 21, attribution: "Imagery © Esri" },
