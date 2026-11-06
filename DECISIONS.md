@@ -51000,3 +51000,9 @@ Sello `warehouse_ops` 0.6.0; repo 1.762.0.
 La línea de cada chofer se cortaba a media mañana porque solo se leían las primeras 1.000 posiciones del día entre todos; ahora se lee el día entero. Además, el chofer que lleva un camión con rastreador se dibuja con el GPS del camión (hoy y días pasados), que no depende de que tenga la app abierta; sin rastreador se sigue usando el teléfono. La cabecera del mapa dice qué cuenta: puntos del GPS del camión y posiciones del teléfono.
 
 Sello `deliveries` 1.560.0; repo 1.763.0.
+
+## D-910 · Recorrido: plan contra real (apego a la ruta, millas y tiempo programados contra reales)
+
+En Entregas → Recorrido, la tarjeta de cada chofer muestra qué tanto siguió la ruta que el Gestor de Rutas programó ese día: un porcentaje de apego (paradas hechas en el orden planeado), paradas visitadas, fuera de orden y saltadas, y millas y tiempo total programados contra reales con la diferencia. Al elegir un chofer se abre el detalle «Plan vs real» con cada parada y su estado, y la ruta programada se dibuja punteada junto a la línea real del GPS. Los números salen del mismo motor que los Reportes de choferes y se refrescan cada 3 minutos mientras el día está en vivo; sin ruta programada se indica «No planned route».
+
+Sello `deliveries` 1.561.0; repo 1.764.0.

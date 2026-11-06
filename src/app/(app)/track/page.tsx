@@ -21,6 +21,8 @@ import { usePosicionesDeChoferes } from "@/lib/tracksolid/useCamionDelDia";
 import { useRastrosDeCamiones } from "@/lib/tracksolid/useRastrosDeCamiones";
 import { eligeRecorrido, textoDelConteo, type RecorridoElegido } from "@/lib/tracksolid/rastro-en-mapa";
 import { leeRecorridoDelTelefono } from "@/lib/recorrido-del-telefono";
+import { useApegoALaRuta } from "@/lib/apego-a-la-ruta/useApegoALaRuta";
+import { ApegoEnTarjeta, DetalleDelApego } from "@/components/PlanContraReal";
 
 // ============================================================
 // A driver's day, after the fact: where the truck went, how far, how long it
@@ -92,6 +94,10 @@ export default function TrackPage() {
   const idsVisibles = useMemo(() => driverId === TODOS ? idsDelDia : [driverId], [driverId, idsDelDia]);
   // D-909: el rastro del camión de cada chofer ese día (hoy o un día pasado), con la posición en vivo colgada al final.
   const rastrosDeCamion = useRastrosDeCamiones(fecha, !!me, camionesDeHoy.posiciones);
+  // D-910: «Plan contra real»: la ruta programada de cada chofer ese día contra lo que hizo (el motor de D-907, en el
+  // servidor). Hoy se vuelve a leer cada 3 minutos, detrás del rastro.
+  const apego = useApegoALaRuta(fecha, !!me);
+  const [mostrarPlan, setMostrarPlan] = useState(true);
 
   // D-833: el día de CADA chofer (posiciones, turnos, cargas/entregas), se vea uno o todos. Se carga el día entero de
   // todos de una vez: así pasar de «todos» a uno no vuelve a leer nada.
@@ -259,6 +265,29 @@ export default function TrackPage() {
     return tramos(recorridos[id]?.fixes ?? []).map((t, i) => ({ id: `${id}:seg${i}`, color: t.hueco ? "#8a94a0" : unSolo ? "#2456c9" : color(nombre), positions: t.positions, dashed: t.hueco }));
   }), [idsVisibles, recorridos, nameById, unSolo, color]);
 
+  // D-910: la ruta PLANEADA de cada chofer visible, fina y punteada en su color, con sus paradas numeradas: para
+  // comparar a ojo con la línea de lo que hizo. Se puede esconder.
+  const lineasDelPlan: MapLine[] = useMemo(() => {
+    if (!mostrarPlan) return [];
+    return idsVisibles.flatMap((id) => {
+      const a = apego.porChofer.get(id);
+      if (!a?.hayPlan || a.lineaDelPlan.length < 2) return [];
+      return [{ id: `${id}:plan`, color: color(nameById.get(id) ?? ""), positions: a.lineaDelPlan, dashed: true, weight: 3, dimmed: !unSolo }];
+    });
+  }, [mostrarPlan, idsVisibles, apego.porChofer, color, nameById, unSolo]);
+  const puntosDelPlan: MapPoint[] = useMemo(() => {
+    if (!mostrarPlan) return [];
+    return idsVisibles.flatMap((id) => {
+      const a = apego.porChofer.get(id);
+      if (!a?.hayPlan) return [];
+      const c = color(nameById.get(id) ?? "");
+      return a.paradas.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)).map((p) => ({
+        id: `${id}:plan${p.puesto}`, lat: p.lat, lng: p.lng, color: c, badge: String(p.puesto), dimmed: true,
+        label: `${t("Planned stop", "Parada del plan")} ${p.puesto}${unSolo ? "" : ` · ${a.chofer}`} · ${p.lugar} · ${p.ordenes.map((o) => o.codigo).join(", ")} · ${p.enOrden ? t("in order", "en orden") : p.visitada ? t("out of order", "fuera de orden") : t("not visited", "no visitada")}`,
+      }));
+    });
+  }, [mostrarPlan, idsVisibles, apego.porChofer, color, nameById, unSolo, t]);
+
   const points: MapPoint[] = useMemo(
     () => unSolo ? summary.stops.map((s, i) => ({
       id: `stop${i}`,
@@ -309,9 +338,10 @@ export default function TrackPage() {
     return () => { if (reproRef.current) clearInterval(reproRef.current); };
   }, [reproduciendo, fixes.length]);
   const lineasVisibles: MapLine[] = useMemo(() => {
-    if (!unSolo || cursor == null) return lines;
-    return tramos(fixes.slice(0, cursor + 1)).map((t, i) => ({ id: `rep${i}`, color: t.hueco ? "#8a94a0" : "#2456c9", positions: t.positions, dashed: t.hueco }));
-  }, [unSolo, cursor, fixes, lines]);
+    // D-910: el plan va DEBAJO de lo manejado, para que la línea real se lea encima.
+    if (!unSolo || cursor == null) return [...lineasDelPlan, ...lines];
+    return [...lineasDelPlan, ...tramos(fixes.slice(0, cursor + 1)).map((t, i) => ({ id: `rep${i}`, color: t.hueco ? "#8a94a0" : "#2456c9", positions: t.positions, dashed: t.hueco }))];
+  }, [unSolo, cursor, fixes, lines, lineasDelPlan]);
 
   // D-833: los camiones EN VIVO (la última posición de cada chofer visible, si es de hace menos de una hora). En la
   // reproducción, el camión naranja del momento elegido en su lugar.
@@ -338,7 +368,7 @@ export default function TrackPage() {
     return { camion, telefono };
   }, [idsVisibles, recorridos, rastrosDeCamion]);
   // D-837: los pines del mapa en una lista estable (una lista nueva a cada render los repintaba).
-  const puntosDelMapa = useMemo(() => [...points, ...puntosDeHitos], [points, puntosDeHitos]);
+  const puntosDelMapa = useMemo(() => [...puntosDelPlan, ...points, ...puntosDeHitos], [puntosDelPlan, points, puntosDeHitos]);
   // D-837: el mapa se ENCUADRA al abrir y al cambiar de chofer o de día; una posición nueva en vivo no lo mueve (antes se
   // reencuadraba con cada punto y saltaba). Lo que el usuario acercó o movió, se queda.
   const [encuadre, setEncuadre] = useState<[number, number][]>([]);
@@ -423,6 +453,8 @@ export default function TrackPage() {
               </div>
               {/* D-909: de dónde sale su línea. El nombre del camión es texto de TrackSolid: React lo pinta como texto. */}
               {c.camion && <div className="hint" data-fuente-linea="camion" style={{ marginTop: 2 }}>🚛 {t("Line from the truck's GPS", "Línea del GPS del camión")}: {c.camion}</div>}
+              {/* D-910: la ruta programada contra lo hecho, en la propia tarjeta. */}
+              <ApegoEnTarjeta apego={apego.porChofer.get(c.id)} listo={apego.listo} esHoy={esHoy} />
               {/* D-836: la versión de la app en su teléfono (la reporta el propio teléfono con su turno). */}
               {(() => {
                 const app = [...c.turnos].reverse().find((s) => s.app)?.app ?? null;
@@ -486,6 +518,12 @@ export default function TrackPage() {
         </div>
       )}
 
+      {/* D-910: plan contra real, con el detalle parada a parada. */}
+      {unSolo && (
+        <DetalleDelApego apego={apego.porChofer.get(driverId)} listo={apego.listo} esHoy={esHoy} color={color(driverName)}
+          mostrarPlan={mostrarPlan} onMostrarPlan={setMostrarPlan} />
+      )}
+
       {/* D-832: el turno del día (D-831): de la primera carga a la última entrega. */}
       {unSolo && (
         <div className="card" data-bloque="turnos">
@@ -547,7 +585,15 @@ export default function TrackPage() {
               {cursor != null && <button className="btn btn-ghost btn-sm" onClick={() => { setReproduciendo(false); setCursor(null); }}>{t("Whole day", "Día entero")}</button>}
             </div>
           )}
-          {!unSolo && <div className="hint" style={{ marginTop: 6 }}>{t("Tap a driver card or a line to see just that driver, with the replay.", "Pulsa la tarjeta de un chofer o su línea para ver solo a ese, con la reproducción.")}</div>}
+          {!unSolo && (
+            <div className="hint" style={{ marginTop: 6, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+              <span>{t("Tap a driver card or a line to see just that driver, with the replay.", "Pulsa la tarjeta de un chofer o su línea para ver solo a ese, con la reproducción.")}</span>
+              <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                <input type="checkbox" checked={mostrarPlan} onChange={(e) => setMostrarPlan(e.target.checked)} data-accion="mostrar-plan" />
+                {t("Planned routes (dashed)", "Rutas planeadas (punteadas)")}
+              </label>
+            </div>
+          )}
           </>
         )}
       </div>
