@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TipoDeReporte } from "./tipos";
 import type { Quien } from "./visibilidad";
 import type { ProductoElegido, Respuestas } from "./pasos";
+import { tipoDeReparto, type Cantidades, type Reparto } from "./perdida";
 
 export const CUBO = "warehouse-ops";
 
@@ -36,6 +37,9 @@ export interface Reporte {
   reason: string | null;
   broken_by: string[];
   crma: string | null;
+  /** 254: de `total_pieces`, cuántas dañadas y cuántas de muestra. Null en los reportes de antes (una sola opción). */
+  damaged_pieces?: number | null;
+  sample_pieces?: number | null;
   /** 252: producto escrito a mano, no está en el catálogo (un gerente lo vincula o corrige). */
   product_not_in_catalog?: boolean;
 }
@@ -47,7 +51,7 @@ export interface Envio {
   answers: Respuestas;
   photos: string[];
   scrap: null | {
-    product_id: number | null; free_name?: string; unit_cost?: number | null; scrap_type: string; boxes: number; pieces_per_box: number; loose_pieces: number;
+    product_id: number | null; free_name?: string; unit_cost?: number | null; scrap_type: string; damaged_pieces: number; sample_pieces: number; boxes: number; pieces_per_box: number; loose_pieces: number;
     return_type: string; reason: string; broken_by: string[]; crma: string | null;
   };
 }
@@ -86,6 +90,22 @@ export function productoParaEnviar(p: ProductoElegido): { product_id: number | n
   return p.libre || p.id == null ? { product_id: null, free_name: p.name.trim(), unit_cost: p.cost } : { product_id: p.id };
 }
 
+/**
+ * Las cuentas de la merma que van a `warehouse_ops_file_report` (254): cajas, el reparto dañadas / muestra y el CRMA,
+ * que solo viaja si es devolución de cliente (si alguien lo escribió y luego cambió a «interno», no se guarda).
+ */
+export function mermaParaEnviar(r: Respuestas): Omit<NonNullable<Envio["scrap"]>, "product_id" | "free_name" | "unit_cost"> {
+  const q = r.qty as Cantidades;
+  const s = r.split as Reparto;
+  const devolucion = r.return_type === "customer_return";
+  return {
+    scrap_type: tipoDeReparto(s), damaged_pieces: s.damaged, sample_pieces: s.sample,
+    boxes: q.boxes, pieces_per_box: q.piecesPerBox, loose_pieces: 0,
+    return_type: String(r.return_type), reason: String(r.reason), broken_by: (r.broken_by as string[] | undefined) ?? [],
+    crma: devolucion && typeof r.crma === "string" && r.crma.trim() ? r.crma.trim() : null,
+  };
+}
+
 /** Sube una foto (ya comprimida, `data:` JPEG) a la carpeta de quien la saca. Devuelve la ruta dentro del cubo. */
 export async function subirFoto(sb: SupabaseClient, uid: string, dataUrl: string): Promise<string> {
   const blob = await (await fetch(dataUrl)).blob();
@@ -120,10 +140,10 @@ export const DEMO_PRODUCTOS: ProductoElegido[] = [
   { id: 103, sku: "MOS-HEX-MAR", name: "Hexagon Marble Mosaic", cost: 6.25, pieces_per_box: 10 },
 ];
 const dias = (n: number) => new Date(Date.now() - n * 86400000).toISOString();
-const vacio = { product_id: null, product_sku: null, product_name: null, scrap_type: null, boxes: null, pieces_per_box: null, loose_pieces: null, total_pieces: null, unit_cost: null, total_loss: null, return_type: null, reason: null, broken_by: [], crma: null, photos: [] };
+const vacio = { damaged_pieces: null, sample_pieces: null, product_id: null, product_sku: null, product_name: null, scrap_type: null, boxes: null, pieces_per_box: null, loose_pieces: null, total_pieces: null, unit_cost: null, total_loss: null, return_type: null, reason: null, broken_by: [], crma: null, photos: [] };
 export const DEMO_REPORTES: Reporte[] = [
   { ...vacio, id: "r1", created_at: dias(0.1), kind: "scrap", store: "McAllen", author_id: "p1", author_name: "Ana García", subject_ids: [], answers: { comments: "Pallet slid off the forks" },
-    product_id: 101, product_sku: "PORC-2448-GRY", product_name: "Porcelain 24x48 Ash Grey", scrap_type: "damaged", boxes: 3, pieces_per_box: 2, loose_pieces: 1, total_pieces: 7, unit_cost: 9.4, total_loss: 65.8, return_type: "internal", reason: "forklift", broken_by: ["p2"], crma: null },
+    product_id: 101, product_sku: "PORC-2448-GRY", product_name: "Porcelain 24x48 Ash Grey", scrap_type: "mixed", damaged_pieces: 5, sample_pieces: 2, boxes: 3, pieces_per_box: 2, loose_pieces: 1, total_pieces: 7, unit_cost: 9.4, total_loss: 65.8, return_type: "internal", reason: "forklift", broken_by: ["p2"], crma: null },
   { ...vacio, id: "r2", created_at: dias(1.3), kind: "safety", store: "McAllen", author_id: "p2", author_name: "Luis Treviño", subject_ids: ["p1"], answers: { safety_type: "ppe", description: "Loading without gloves", injured: "no" } },
   { ...vacio, id: "r3", created_at: dias(3), kind: "maintenance", store: "Edinburg", author_id: "p3", author_name: "Mario Salinas", subject_ids: [], answers: { equipment: "forklift_2", issue: "repair_needed", description: "Hydraulic leak under the mast" } },
   { ...vacio, id: "r4", created_at: dias(9), kind: "scrap", store: "Edinburg", author_id: "p3", author_name: "Mario Salinas", subject_ids: [], answers: {},

@@ -10,7 +10,7 @@ import { PASOS, etiquetaDeOpcion } from "@/lib/almacen-ops/pasos";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
 import { DEMO_PRODUCTOS, DEMO_REPORTES, buscarProductos, corregirMerma, enlacesDeFotos, type Reporte } from "@/lib/almacen-ops/datos";
 import { costoDelCampo, type ProductoElegido } from "@/lib/almacen-ops/pasos";
-import { perdida } from "@/lib/almacen-ops/perdida";
+import { perdida, repartoDeReporte } from "@/lib/almacen-ops/perdida";
 import { puedeCorregirMerma, puedeVerReporte } from "@/lib/almacen-ops/visibilidad";
 import type { Contexto } from "./Operaciones";
 
@@ -183,6 +183,7 @@ function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Contexto; on
   }, [r.photos, ctx.demo]);
   const nombre = (id: string) => ctx.personas.find((p) => p.id === id)?.full_name ?? "—";
   const info = INFO_DE_TIPO[r.kind];
+  const reparto = repartoDeReporte(r);
   const filas: [string, string][] = [];
   for (const p of PASOS[r.kind]) {
     const v = r.answers[p.id];
@@ -213,6 +214,8 @@ function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Contexto; on
               </dd>
               {corrigiendo && <CorregirProducto r={r} ctx={ctx} onListo={(n) => { setCorrigiendo(false); if (n) onCambio(n); }} />}
               <dt>{t("Type", "Tipo")}</dt><dd>{etiquetaDeOpcion("scrap", "scrap_type", r.scrap_type, lang)}</dd>
+              <dt>{t("Damaged / sample", "Dañadas / muestra")}</dt>
+              <dd data-reparto-reporte={`${reparto.damaged}/${reparto.sample}`}>{t(`${reparto.damaged} damaged · ${reparto.sample} sample`, `${reparto.damaged} dañadas · ${reparto.sample} de muestra`)}</dd>
               <dt>{t("Quantity", "Cantidad")}</dt><dd>{r.loose_pieces
                 ? t(`${r.boxes} boxes × ${r.pieces_per_box} + ${r.loose_pieces} loose = ${r.total_pieces} pieces`, `${r.boxes} cajas × ${r.pieces_per_box} + ${r.loose_pieces} sueltas = ${r.total_pieces} piezas`)
                 : t(`${r.boxes} boxes × ${r.pieces_per_box} = ${r.total_pieces} pieces`, `${r.boxes} cajas × ${r.pieces_per_box} = ${r.total_pieces} piezas`)}</dd>

@@ -72,3 +72,58 @@ export function totalesPorTienda(filas: readonly FilaDeMerma[], ahora: Date): Re
   return out;
 }
 const r2 = (n: number) => Math.round(n * 100) / 100;
+
+// ---------------------------------------------------------------------------
+// El reparto (pedido faa07047, migración 254): del total de piezas, cuántas están dañadas y cuántas sirven de muestra.
+// Dañadas + muestra = total. La pérdida en $ NO cambia: sigue siendo costo × TODAS las piezas del reporte, igual que
+// antes (un reporte «muestra» de la 247 ya contaba entero como pérdida).
+// ---------------------------------------------------------------------------
+export interface Reparto { damaged: number; sample: number }
+
+/** ¿Cuadra? Enteros, nada negativo y dañadas + muestra = total. */
+export function repartoValido(total: number, x: Partial<Reparto> | null | undefined): x is Reparto {
+  if (!x || !entero(total) || total < 1) return false;
+  const { damaged, sample } = x;
+  return entero(damaged) && entero(sample) && damaged >= 0 && sample >= 0 && damaged + sample === total;
+}
+
+/**
+ * El reparto para un total: conserva las de muestra que ya había (hasta el total) y el resto son dañadas. Sin reparto
+ * previo, todo dañado; o todo muestra si viene de un borrador viejo con la opción única «muestra».
+ */
+export function repartoAjustado(total: number, previo?: Partial<Reparto> | null, tipoViejo?: unknown): Reparto {
+  if (!entero(total) || total < 0) return { damaged: 0, sample: 0 };
+  if (previo && entero(previo.sample) && previo.sample >= 0) {
+    const sample = Math.min(previo.sample, total);
+    return { damaged: total - sample, sample };
+  }
+  if (previo && entero(previo.damaged) && previo.damaged >= 0) {
+    const damaged = Math.min(previo.damaged, total);
+    return { damaged, sample: total - damaged };
+  }
+  return tipoViejo === "sample" ? { damaged: 0, sample: total } : { damaged: total, sample: 0 };
+}
+
+/**
+ * Al escribir uno de los dos números, el otro se llena solo con lo que falta (rápido en el teléfono). Si lo escrito
+ * no es un entero o se pasa del total, se deja tal cual (el paso no avanza) y el otro queda en 0.
+ */
+export function repartoAlCambiar(total: number, campo: keyof Reparto, valor: number): Reparto {
+  const resto = entero(valor) && valor >= 0 && valor <= total ? total - valor : 0;
+  return campo === "damaged" ? { damaged: valor, sample: resto } : { damaged: resto, sample: valor };
+}
+
+/** Lo que va a `scrap_type`: todo dañado, todo muestra, o de los dos. */
+export function tipoDeReparto(x: Reparto): "damaged" | "sample" | "mixed" {
+  return x.sample === 0 ? "damaged" : x.damaged === 0 ? "sample" : "mixed";
+}
+
+/**
+ * El reparto de un reporte guardado. Los de antes de la 254 no traen las dos cuentas: tenían una sola opción
+ * (dañado o muestra) para todas las piezas.
+ */
+export function repartoDeReporte(r: { scrap_type: string | null; total_pieces: number | null; damaged_pieces?: number | null; sample_pieces?: number | null }): Reparto {
+  if (r.damaged_pieces != null && r.sample_pieces != null) return { damaged: r.damaged_pieces, sample: r.sample_pieces };
+  const total = r.total_pieces ?? 0;
+  return r.scrap_type === "sample" ? { damaged: 0, sample: total } : { damaged: total, sample: 0 };
+}
