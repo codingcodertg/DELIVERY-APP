@@ -8,6 +8,8 @@ import { INFO_DE_TIPO, TIPOS, esDeRrhh, type TipoDeReporte } from "@/lib/almacen
 import { tieneElModulo, veLosReportes } from "@/lib/almacen-ops/visibilidad";
 import { DEMO_PERSONAS, DEMO_TIENDAS, DEMO_YO, faltaLaMigracion, type Persona, type Yo } from "@/lib/almacen-ops/datos";
 import { Asistente } from "./Asistente";
+import { borrarBorrador, listarBorradores, type Borrador } from "@/lib/almacen-ops/borradores";
+import { fmtDateTime } from "@/lib/utils";
 import { ListaDeReportes } from "./ListaDeReportes";
 
 export type Vista = { v: "inicio" } | { v: "nuevo"; tipo: TipoDeReporte } | { v: "mios" } | { v: "reportes" };
@@ -38,7 +40,7 @@ export function Operaciones({ vista, demo }: { vista: Vista; demo: boolean }) {
       const [perfil, ajustes, gente, prueba] = await Promise.all([
         sb.from("profiles").select("id, full_name, role, store, visible_stores, permissions, module_access, recruiting_role").eq("id", user.id).maybeSingle(),
         sb.from("settings").select("stores").eq("id", 1).maybeSingle(),
-        sb.from("profiles").select("id, full_name, store").order("full_name"),
+        sb.from("profiles").select("id, full_name, store, role, module_access, left_at").order("full_name"),
         sb.from("warehouse_reports").select("id", { head: true, count: "exact" }).limit(1),
       ]);
       if (!vivo) return;
@@ -101,10 +103,39 @@ function Inicio({ ctx }: { ctx: Contexto }) {
           })}
         </nav>
       )}
+      {llena && <Borradores ctx={ctx} />}
       <div className="ops-pie">
         {llena && <Link href="/operaciones/mis-reportes" className="ops-boton-ancho" data-ir="mios">📄 {t("My reports", "Mis reportes")}</Link>}
         {gerente && <Link href="/operaciones/reportes" className="ops-boton-ancho ops-boton-gerente" data-ir="reportes">🗂️ {t("Reports (managers)", "Reportes (gerentes)")}</Link>}
       </div>
     </>
+  );
+}
+
+/** Los borradores de quien mira (pedido 4a1123bb): se guardan en este aparato y se reabren aquí. */
+function Borradores({ ctx }: { ctx: Contexto }) {
+  const { t, lang } = usePrefs();
+  const [lista, setLista] = useState<Borrador[]>([]);
+  useEffect(() => { setLista(listarBorradores(ctx.yo.id)); }, [ctx.yo.id]);
+  if (lista.length === 0) return null;
+  return (
+    <section className="ops-borradores" data-borradores={lista.length}>
+      <h3>{t("Drafts", "Borradores")}</h3>
+      <ul>
+        {lista.map((b) => {
+          const i = INFO_DE_TIPO[b.tipo];
+          return (
+            <li key={b.id} data-borrador={b.id}>
+              <Link href={`/operaciones/nuevo/${b.tipo}?borrador=${encodeURIComponent(b.id)}`} className="ops-borrador-abrir">
+                <span aria-hidden>{i.emoji}</span> {lang === "es" ? i.es : i.en}
+                <span className="ops-persona-tienda">{b.tienda} · {fmtDateTime(b.guardado)}</span>
+              </Link>
+              <button type="button" className="ops-boton ops-boton-chico" onClick={() => { borrarBorrador(ctx.yo.id, b.id); setLista(listarBorradores(ctx.yo.id)); }}
+                data-accion="borrar-borrador">{t("Delete", "Borrar")}</button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }

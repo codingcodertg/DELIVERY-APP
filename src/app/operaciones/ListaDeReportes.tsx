@@ -8,8 +8,10 @@ import { fmtDateTime, fmtMoney } from "@/lib/utils";
 import { INFO_DE_TIPO, TIPOS, esDeRrhh, type TipoDeReporte } from "@/lib/almacen-ops/tipos";
 import { PASOS, etiquetaDeOpcion } from "@/lib/almacen-ops/pasos";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
-import { DEMO_REPORTES, enlacesDeFotos, type Reporte } from "@/lib/almacen-ops/datos";
-import { puedeVerReporte } from "@/lib/almacen-ops/visibilidad";
+import { DEMO_PRODUCTOS, DEMO_REPORTES, buscarProductos, corregirMerma, enlacesDeFotos, type Reporte } from "@/lib/almacen-ops/datos";
+import { costoDelCampo, type ProductoElegido } from "@/lib/almacen-ops/pasos";
+import { perdida } from "@/lib/almacen-ops/perdida";
+import { puedeCorregirMerma, puedeVerReporte } from "@/lib/almacen-ops/visibilidad";
 import type { Contexto } from "./Operaciones";
 
 const LIMITE = 500;
@@ -151,7 +153,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
                     <td>{r.author_name ?? nombre(r.author_id)}</td>
                     <td>{r.subject_ids.map(nombre).join(", ")}</td>
                     <td className="ops-detalle-corto">{r.kind === "scrap"
-                      ? `${r.product_sku ?? ""} · ${r.total_pieces ?? 0} ${t("pcs", "pzs")} · ${fmtMoney(r.total_loss)}`
+                      ? `${r.product_not_in_catalog ? `${r.product_name ?? ""} (${t("not in catalog", "fuera de catálogo")})` : r.product_sku ?? ""} · ${r.total_pieces ?? 0} ${t("pcs", "pzs")} · ${fmtMoney(r.total_loss)}`
                       : String(r.answers.description ?? "")}</td>
                   </tr>
                 ))}
@@ -161,15 +163,18 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
         </>
       )}
 
-      {abierto && <Tarjeta r={abierto} ctx={ctx} onCerrar={() => setAbierto(null)} />}
+      {abierto && <Tarjeta r={abierto} ctx={ctx} onCerrar={() => setAbierto(null)}
+        onCambio={(n) => { setAbierto(n); setFilas((f) => (f ?? []).map((x) => (x.id === n.id ? n : x))); }} />}
     </section>
   );
 }
 
 /** Un reporte como tarjeta, encima de la lista (regla de la casa: los registros se abren en su sitio). */
-function Tarjeta({ r, ctx, onCerrar }: { r: Reporte; ctx: Contexto; onCerrar: () => void }) {
+function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Contexto; onCerrar: () => void; onCambio: (r: Reporte) => void }) {
   const { t, lang } = usePrefs();
   const [fotos, setFotos] = useState<string[]>([]);
+  const [corrigiendo, setCorrigiendo] = useState(false);
+  const corrige = puedeCorregirMerma(ctx.yo, r);
   useEffect(() => {
     if (ctx.demo || r.photos.length === 0) return;
     let vivo = true;
@@ -195,9 +200,22 @@ function Tarjeta({ r, ctx, onCerrar }: { r: Reporte; ctx: Contexto; onCerrar: ()
           {r.subject_ids.length > 0 && <><dt>{t("Employee", "Empleado")}</dt><dd>{r.subject_ids.map(nombre).join(", ")}</dd></>}
           {r.kind === "scrap" && (
             <>
-              <dt>{t("Product", "Producto")}</dt><dd>{r.product_sku} · {r.product_name}</dd>
+              <dt>{t("Product", "Producto")}</dt>
+              <dd data-producto-reporte={r.product_not_in_catalog ? "libre" : "catalogo"}>
+                {r.product_not_in_catalog
+                  ? <>{r.product_name} <span className="ops-fuera-de-catalogo">{t("Not in catalog", "No está en el catálogo")}</span></>
+                  : <>{r.product_sku} · {r.product_name}</>}
+                {corrige && !corrigiendo && (
+                  <button type="button" className="btn btn-sm" onClick={() => setCorrigiendo(true)} data-accion="corregir-producto">
+                    {r.product_not_in_catalog ? t("Link / edit", "Vincular / editar") : t("Edit", "Editar")}
+                  </button>
+                )}
+              </dd>
+              {corrigiendo && <CorregirProducto r={r} ctx={ctx} onListo={(n) => { setCorrigiendo(false); if (n) onCambio(n); }} />}
               <dt>{t("Type", "Tipo")}</dt><dd>{etiquetaDeOpcion("scrap", "scrap_type", r.scrap_type, lang)}</dd>
-              <dt>{t("Quantity", "Cantidad")}</dt><dd>{t(`${r.boxes} boxes × ${r.pieces_per_box} + ${r.loose_pieces} loose = ${r.total_pieces} pieces`, `${r.boxes} cajas × ${r.pieces_per_box} + ${r.loose_pieces} sueltas = ${r.total_pieces} piezas`)}</dd>
+              <dt>{t("Quantity", "Cantidad")}</dt><dd>{r.loose_pieces
+                ? t(`${r.boxes} boxes × ${r.pieces_per_box} + ${r.loose_pieces} loose = ${r.total_pieces} pieces`, `${r.boxes} cajas × ${r.pieces_per_box} + ${r.loose_pieces} sueltas = ${r.total_pieces} piezas`)
+                : t(`${r.boxes} boxes × ${r.pieces_per_box} = ${r.total_pieces} pieces`, `${r.boxes} cajas × ${r.pieces_per_box} = ${r.total_pieces} piezas`)}</dd>
               <dt>{t("Cost per piece (when reported)", "Costo por pieza (al reportar)")}</dt><dd>{fmtMoney(r.unit_cost)}</dd>
               <dt>{t("Loss", "Pérdida")}</dt><dd className="ops-tarjeta-perdida">{fmtMoney(r.total_loss)}</dd>
               <dt>{t("Where from", "De dónde")}</dt><dd>{etiquetaDeOpcion("scrap", "return_type", r.return_type, lang)}</dd>
@@ -218,6 +236,75 @@ function Tarjeta({ r, ctx, onCerrar }: { r: Reporte; ctx: Contexto; onCerrar: ()
           </div>
         )}
         <div className="modal-actions"><button type="button" className="btn btn-primary" onClick={onCerrar}>{t("Close", "Cerrar")}</button></div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Corregir el producto de una merma (migración 252, pedido b158a7a5): el gerente/supervisor de la tienda o el admin
+ * la vincula a un producto del catálogo, o corrige el nombre y el costo a mano. La base recalcula la pérdida.
+ */
+function CorregirProducto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onListo: (n: Reporte | null) => void }) {
+  const { t } = usePrefs();
+  const [q, setQ] = useState("");
+  const [lista, setLista] = useState<ProductoElegido[]>([]);
+  const [nombre, setNombre] = useState(r.product_name ?? "");
+  const [costo, setCosto] = useState(r.unit_cost == null ? "" : String(r.unit_cost));
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    const texto = q.trim();
+    if (texto.length < 2) { setLista([]); return; }
+    let vivo = true;
+    const id = setTimeout(async () => {
+      try {
+        const res = ctx.demo
+          ? DEMO_PRODUCTOS.filter((p) => (p.sku + " " + p.name).toLowerCase().includes(texto.toLowerCase()))
+          : await buscarProductos(createClient(), texto);
+        if (vivo) setLista(res);
+      } catch (e) { if (vivo) setError(e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e)); }
+    }, 250);
+    return () => { vivo = false; clearTimeout(id); };
+  }, [q, ctx.demo]);
+
+  const total = (c: number | null) => perdida(c, r.total_pieces ?? 0);
+  const guarda = async (p: ProductoElegido | null) => {
+    const c = costoDelCampo(costo);
+    if (!p && (nombre.trim().length < 2 || Number.isNaN(c))) { setError(t("Write a name and a valid cost.", "Escribe un nombre y un costo válido.")); return; }
+    setGuardando(true); setError(null);
+    try {
+      if (!ctx.demo) await corregirMerma(createClient(), r.id, { productId: p?.id ?? null, nombre: p ? p.name : nombre.trim(), costo: p ? p.cost : c });
+      const n: Reporte = p
+        ? { ...r, product_id: p.id, product_sku: p.sku, product_name: p.name, unit_cost: p.cost, total_loss: total(p.cost), product_not_in_catalog: false }
+        : { ...r, product_id: null, product_sku: null, product_name: nombre.trim(), unit_cost: c, total_loss: total(c), product_not_in_catalog: true };
+      onListo(n);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e));
+    } finally { setGuardando(false); }
+  };
+
+  return (
+    <div className="ops-corregir" data-corregir={r.id}>
+      <p className="hint">{t("Link it to a catalog product:", "Vincúlalo a un producto del catálogo:")}</p>
+      <input className="ops-campo" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Product name or SKU", "Nombre o SKU del producto")} data-campo="corregir-buscar" />
+      <div className="ops-opciones">
+        {lista.map((p) => (
+          <button type="button" key={p.id} className="ops-opcion ops-producto" disabled={guardando} onClick={() => void guarda(p)} data-producto={p.id}>
+            <span className="ops-producto-nombre">{p.name}</span>
+            <span className="ops-producto-meta">{p.sku} · {p.cost == null ? t("no cost", "sin costo") : fmtMoney(p.cost)}</span>
+          </button>
+        ))}
+      </div>
+      <p className="hint">{t("Or keep it out of the catalog and fix the name and cost:", "O déjalo fuera del catálogo y corrige nombre y costo:")}</p>
+      <label className="ops-cantidad"><span>{t("Product name", "Nombre del producto")}</span>
+        <input className="ops-campo" value={nombre} onChange={(e) => setNombre(e.target.value)} data-campo="corregir-nombre" /></label>
+      <label className="ops-cantidad"><span>{t("Cost per piece", "Costo por pieza")}</span>
+        <input className="ops-campo" inputMode="decimal" value={costo} onChange={(e) => setCosto(e.target.value)} data-campo="corregir-costo" /></label>
+      {error && <p className="ops-aviso ops-aviso-error" role="alert">{error}</p>}
+      <div className="modal-actions">
+        <button type="button" className="btn" onClick={() => onListo(null)} disabled={guardando}>{t("Cancel", "Cancelar")}</button>
+        <button type="button" className="btn btn-primary" onClick={() => void guarda(null)} disabled={guardando} data-accion="guardar-correccion">{t("Save", "Guardar")}</button>
       </div>
     </div>
   );
