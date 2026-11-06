@@ -1,5 +1,3 @@
-import { IMPERSONACION_MINUTOS } from "@/lib/impersonation";
-
 /**
  * La cookie que guarda la sesión del admin mientras está dentro de otra (D-243).
  *
@@ -25,6 +23,9 @@ import { IMPERSONACION_MINUTOS } from "@/lib/impersonation";
 
 export const COOKIE_RETORNO = "rtg_impersonation_return";
 
+/** Lo que vive la cookie de retorno en el navegador: 7 días. La impersonación dura `IMPERSONACION_MINUTOS`. */
+export const COOKIE_RETORNO_SEGUNDOS = 7 * 24 * 60 * 60;
+
 /** Lo que se guarda: lo mínimo para volver, y cuándo empezó esto. */
 export type SesionDeVuelta = {
   /** El refresh token del admin. Con él se restaura su sesión sin contraseña. */
@@ -43,9 +44,12 @@ export const AJUSTES_COOKIE = {
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax" as const,
   path: "/",
-  // Un minuto más que la impersonación: la cookie tiene que seguir viva justo cuando toca
-  // usarla para devolver al admin, no morirse en el mismo instante.
-  maxAge: (IMPERSONACION_MINUTOS + 1) * 60,
+  // MUCHO más que la impersonación, y a propósito. Antes duraba la hora y un minuto, y ESE fue el
+  // fallo: con el equipo cerrado más de una hora la cookie desaparecía, las cookies `sb-` (que duran
+  // meses) no, y la sesión ajena se quedaba sin marca, sin burbuja y sin vuelta. La caducidad la
+  // decide `inicio` (middleware + burbuja), no el navegador: la cookie tiene que seguir ahí cuando
+  // toque usarla para devolver al admin. Se borra al volver, al caducar y al cerrar sesión.
+  maxAge: COOKIE_RETORNO_SEGUNDOS,
 };
 
 /** Serializa lo que se guarda. Texto plano a propósito, por el motivo de arriba. */

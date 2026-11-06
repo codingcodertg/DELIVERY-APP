@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { apuntarImpersonacion } from "@/lib/impersonation-log";
-import { EVENTO_VOLVER } from "@/lib/impersonation";
+import { EVENTO_VOLVER, MOTIVO_MARCA_PERDIDA, sesionDeEntrarComo } from "@/lib/impersonation";
 import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
 import { revocarSesionImpersonada } from "@/lib/impersonation-revoke";
 
@@ -28,7 +28,8 @@ import { revocarSesionImpersonada } from "@/lib/impersonation-revoke";
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const motivo = url.searchParams.get("motivo") === "expired" ? "expired" : "cutoff";
+  const pedido = url.searchParams.get("motivo");
+  const motivo = pedido === "expired" || pedido === MOTIVO_MARCA_PERDIDA ? pedido : "cutoff";
 
   const galletas = await cookies();
   const guardado = desempaquetar(galletas.get(COOKIE_RETORNO)?.value ?? null);
@@ -41,6 +42,20 @@ export async function GET(request: Request) {
   const alLogin = () => NextResponse.redirect(new URL("/login", url.origin));
 
   if (!guardado) {
+    // Sin vuelta. Si la sesión de aquí la abrió «Entrar como» (la marca se perdió: la cookie
+    // caducó con el equipo cerrado, o la borraron), se revoca en el servidor y se apunta el fin,
+    // para que el registro no se quede con una suplantación «abierta» para siempre.
+    const { data: { session } } = await ssr.auth.getSession().catch(() => ({ data: { session: null } }));
+    if (session && sesionDeEntrarComo(session.access_token)) {
+      await revocarSesionImpersonada(session.access_token);
+      await apuntarImpersonacion({
+        actorId: null,
+        targetId: session.user?.id ?? null,
+        targetName: null,
+        kind: EVENTO_VOLVER,
+        detail: `motivo: ${motivo} · sin cookie de retorno: sesión cerrada`,
+      });
+    }
     // `local`: la sesión que hay en esta cookie puede ser la del VENDEDOR impersonado. Un
     // `signOut()` sin alcance es global en auth-js y lo sacaría también de su teléfono y su PC.
     await ssr.auth.signOut({ scope: "local" }).catch(() => {});

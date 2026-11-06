@@ -50880,3 +50880,9 @@ Sello `customers` 0.56.0; repo 1.742.0.
 El buscador de asociaciones nunca se deshabilita; muestra «La búsqueda falló» si la búsqueda falla, avisa si el perfil no tiene tienda y, sin resultados, dice qué tiendas se buscaron y que clientes de otras tiendas solo los asocia un admin. Reporte de Zulema.
 
 Sello `customers` 0.57.0; repo 1.743.0.
+
+## D-889 · Hub: blindar Cambiar usuario
+
+La cookie de retorno de Entrar como caducaba a los 61 min mientras la sesión de Supabase del suplantado seguía viva; tras dormir la PC el admin quedaba como el usuario sin burbuja. Ahora una sesión de magic link sin cookie válida se revoca y manda a login (security_events), la cookie dura 7 días y el límite de 60 min se sigue aplicando desde inicio.
+
+Sello `deliveries` 1.549.0; repo 1.744.0.

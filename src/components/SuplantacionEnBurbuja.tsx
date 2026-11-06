@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { botonDeVista, estaEnUnMarco } from "@/lib/mobile-preview";
+import { rutaConSesionDeCorreo } from "@/lib/impersonation";
 import {
-  RUTA_DEL_ESTADO, suplantacionDelEstado, textosDeSuplantacion, tocaVolverSolo, volverAMiCuenta,
+  RUTA_DEL_ESTADO, marcaPerdidaDelEstado, suplantacionDelEstado, textosDeSuplantacion, tocaVolverSolo, volverAMiCuenta,
   type Suplantacion,
 } from "@/lib/suplantacion-en-burbuja";
 import type { NamedLocation, Profile } from "@/lib/types";
@@ -64,7 +65,15 @@ export function useSuplantacion() {
     setEnMarco(estaEnUnMarco(window));
     fetch(RUTA_DEL_ESTADO)
       .then((r) => r.json())
-      .then((d: unknown) => { if (vivo) setEstado(suplantacionDelEstado(d, leeCopiaLocal())); })
+      .then((d: unknown) => {
+        if (!vivo) return;
+        // Sesión de «Entrar como» sin marca: nunca se deja a nadie dentro de otra cuenta sin decírselo. Fuera.
+        if (marcaPerdidaDelEstado(d) && !rutaConSesionDeCorreo(window.location.pathname)) {
+          void volverAMiCuenta("expired", { fetch: window.fetch.bind(window), ubicacion: window.location });
+          return;
+        }
+        setEstado(suplantacionDelEstado(d, leeCopiaLocal()));
+      })
       .catch(() => { /* sin respuesta no se pinta nada: no hay nada que prometer */ });
     return () => { vivo = false; };
   }, []);

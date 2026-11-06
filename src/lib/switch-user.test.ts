@@ -128,7 +128,9 @@ describe("el coste de /api/impersonate/state", () => {
   }).join("\n");
 
   it("la salida sin cookie va ANTES de tocar la base", () => {
-    const iSalida = codigo.indexOf("if (!guardado && !(preguntanPorElBoton && activa))");
+    // Sin cookie solo se lee el token local (`getSession`) para detectar una suplantación sin marca; la consulta al
+    // servidor de auth y a `profiles` siguen después de la salida.
+    const iSalida = codigo.indexOf("if (!(preguntanPorElBoton && activa)) return NextResponse.json({});");
     const iAuth = codigo.indexOf("auth.getUser()");
     const iPerfil = codigo.indexOf('.from("profiles")');
     expect(iSalida).toBeGreaterThan(-1);

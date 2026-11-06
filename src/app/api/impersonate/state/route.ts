@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
 import { createClient } from "@/lib/supabase/server";
 import { impersonacionActiva } from "@/lib/impersonation-flag";
-import { esAdmin } from "@/lib/impersonation";
+import { esAdmin, sesionDeEntrarComo } from "@/lib/impersonation";
 import { debeCambiarContrasena } from "@/lib/cambio-obligatorio";
 import { esIdioma } from "@/lib/idioma";
 
@@ -42,9 +42,18 @@ export async function GET(request: Request) {
   // Sin cookie y sin que nadie pregunte por el botón, no hay nada que decir. `impersonacionActiva`
   // es una lectura de entorno: gratis, y por eso puede ir antes de tocar nada.
   const activa = impersonacionActiva();
-  if (!guardado && !(preguntanPorElBoton && activa)) return NextResponse.json({});
-
   const ssr = await createClient();
+
+  if (!guardado) {
+    // Sin cookie, ¿es una suplantación que perdió su marca? Se mira el token (local, sin ida a la
+    // red): si lo abrió «Entrar como», la burbuja tiene que enterarse y sacar a quien esté dentro.
+    const { data: { session } } = await ssr.auth.getSession();
+    if (session && sesionDeEntrarComo(session.access_token)) {
+      return NextResponse.json({ marcaPerdida: true });
+    }
+    if (!(preguntanPorElBoton && activa)) return NextResponse.json({});
+  }
+
   const { data: { user } } = await ssr.auth.getUser();
   if (!user) return NextResponse.json({});
 
