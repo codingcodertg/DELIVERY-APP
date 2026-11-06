@@ -126,7 +126,7 @@ describe("la 259 se aplica antes de desplegar: sigue aceptando lo que manda Ware
     const [cuerpo, registro] = SQL.split("-- @ledger-below");
     const sha = createHash("sha256").update(cuerpo, "utf8").digest("hex");
     expect(registro).toContain(`values ('259_merma_perdida_solo_danadas.sql', '${sha}')`);
-    expect(SQL).not.toContain("D-NEXT");
+    expect(SQL).not.toContain("D-902");
   });
 });
 

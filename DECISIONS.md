@@ -50952,3 +50952,9 @@ Sello `deliveries` 1.554.0; repo 1.754.0.
 Cada solicitud de ayuda guarda y muestra una ubicación legible (app · pantalla · pestaña/filtros · formulario u orden abierta · paso del asistente · Cambiar usuario) y el dispositivo; aparece en el panel de ayuda, el asunto y cuerpo del correo y la campana. Las solicitudes viejas muestran el nombre deducido de la ruta. Migración 258.
 
 Sello `deliveries` 1.555.0; repo 1.755.0.
+
+## D-902 · Warehouse Ops: merma, tercera ronda de Roberto
+
+La pérdida solo suma las piezas dañadas; ningún paso avanza solo (siempre Siguiente); sin el selector de tienda repetido al final; Guardar borrador abajo; se quitan del formulario de merma el origen (interno/devolución) y el CRMA: la merma es siempre interna. Reportes viejos siguen mostrando sus datos. Migración 259.
+
+Sello `warehouse_ops` 0.4.0; repo 1.756.0.
