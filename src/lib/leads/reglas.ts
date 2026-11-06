@@ -55,6 +55,8 @@ export interface Lead {
   touched_at: string | null;
   follow_up_note: string | null;
   follow_up_at: string | null;
+  /** 253 (ayuda e207d9ef): el tipo de la última nota de avance. Las notas viejas no tienen (null u omitido). */
+  follow_up_action?: TipoDeAccion | null;
   last_outcome: Etiqueta | null;
   last_note: string | null;
   last_by: string | null;
@@ -80,6 +82,8 @@ export interface EventoLead {
   kind: TipoDeEvento;
   outcome: Resultado | null;
   note: string | null;
+  /** 253: el tipo de una nota de avance (solo kind = 'progress'). Las viejas, sin tipo. */
+  action?: TipoDeAccion | null;
   actor: string | null;
   actor_name: string | null;
   subject: string | null;
@@ -160,15 +164,50 @@ export type Hecho<T> = { ok: true; valor: T } | { ok: false; motivo: Negativa };
 export function aplicarTomar(lead: Lead, leads: readonly Lead[], yo: Persona, tope: number, ahora: string): Hecho<Lead> {
   const p = puedeTomar(lead, leads, yo.id, tope);
   if (!p.ok) return p;
-  return { ok: true, valor: { ...lead, status: "taken", holder: yo.id, holder_name: yo.name, taken_at: ahora, touched_at: ahora, follow_up_note: null, follow_up_at: null } };
+  return { ok: true, valor: { ...lead, status: "taken", holder: yo.id, holder_name: yo.name, taken_at: ahora, touched_at: ahora, follow_up_note: null, follow_up_action: null, follow_up_at: null } };
 }
 
-/** Lo que hace `lead_note`: la nota de avance. El lead SIGUE abierto y sigue ocupando su puesto. */
-export function aplicarNota(lead: Lead, yo: Persona, nota: string, ahora: string): Hecho<Lead> {
+// ---------------------------------------------------------------------------------------------------------------
+// 253 (ayuda e207d9ef, Roberto): el tipo de acción de la nota de avance
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Los tipos, en el orden en que se eligen. Los mismos valores que el check de la 253. */
+export const TIPOS_DE_ACCION = ["made_contact", "no_answer", "appointment", "quote", "negotiation", "closed", "lost"] as const;
+export type TipoDeAccion = (typeof TIPOS_DE_ACCION)[number];
+
+const ACCION_TXT: Record<TipoDeAccion, { en: string; es: string }> = {
+  made_contact: { en: "Made Contact", es: "Hizo contacto" },
+  no_answer: { en: "Didn't Answer", es: "No contestó" },
+  appointment: { en: "Had Appointment", es: "Tuvo cita" },
+  quote: { en: "Made Quote", es: "Hizo cotización" },
+  negotiation: { en: "Under Negotiation", es: "En negociación" },
+  closed: { en: "Closed", es: "Cerrado" },
+  lost: { en: "Lost", es: "Perdido" },
+};
+
+export const esTipoDeAccion = (v: unknown): v is TipoDeAccion => typeof v === "string" && (TIPOS_DE_ACCION as readonly string[]).includes(v);
+
+export function accionLabel(a: TipoDeAccion, lang: Idioma): string {
+  return ACCION_TXT[a][lang];
+}
+
+/** El color de la píldora: verde lo que avanza, ámbar lo que espera, rojo lo que se cae. */
+export function accionTono(a: TipoDeAccion): "verde" | "ambar" | "rojo" | "azul" {
+  if (a === "closed") return "verde";
+  if (a === "lost") return "rojo";
+  if (a === "no_answer") return "ambar";
+  return "azul";
+}
+
+/** Lo que hace `lead_note`: la nota de avance. El lead SIGUE abierto y sigue ocupando su puesto.
+ *  253: con tipo de acción, la nota es opcional; sin tipo, obligatoria (como antes). */
+export function aplicarNota(lead: Lead, yo: Persona, nota: string, ahora: string, accion: TipoDeAccion | null = null): Hecho<Lead> {
+  if (accion !== null && !esTipoDeAccion(accion)) return { ok: false, motivo: "dato_invalido" };
   const n = notaLimpia(nota);
-  if (!n) return { ok: false, motivo: "falta_nota" };
+  if (!n && accion === null) return { ok: false, motivo: "falta_nota" };
+  if ((nota ?? "").trim().length > NOTA_MAX) return { ok: false, motivo: "dato_invalido" };
   if (lead.status !== "taken" || lead.holder !== yo.id) return { ok: false, motivo: "no_es_tuyo" };
-  return { ok: true, valor: { ...lead, follow_up_note: n, follow_up_at: ahora, touched_at: ahora } };
+  return { ok: true, valor: { ...lead, follow_up_note: n, follow_up_action: accion, follow_up_at: ahora, touched_at: ahora } };
 }
 
 /** Lo que hace `lead_close`: cerrar con resultado y nota obligatoria. Solo quien lo tiene abierto. */
@@ -187,6 +226,7 @@ export function aplicarCerrar(lead: Lead, yo: Persona, resultado: Resultado, not
       taken_at: d.conservaDueno ? lead.taken_at : null,
       follow_up_note: d.conservaDueno ? lead.follow_up_note : null,
       follow_up_at: d.conservaDueno ? lead.follow_up_at : null,
+      follow_up_action: d.conservaDueno ? (lead.follow_up_action ?? null) : null,
       last_outcome: resultado, last_note: n, last_by: yo.id, last_by_name: yo.name, last_at: ahora, touched_at: ahora,
     },
   };
@@ -326,6 +366,8 @@ export interface Filtros {
   coinciden?: boolean;
   /** D-763: texto de fuera del lead que también cuenta al buscar (el cliente cruzado y su vendedor). */
   textoExtra?: (l: Lead) => string;
+  /** 253: por el tipo de la última nota de avance. "sin" = los que no tienen. */
+  accion?: TipoDeAccion | "sin" | "";
 }
 
 const sinAcentos = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -352,6 +394,13 @@ function textoDe(l: Lead, extra?: (l: Lead) => string): string {
  * Los leads del banco que tocan. `libres` = solo lo que se puede tomar. `todas` = todo lo del pool, incluido lo
  * tomado, lo vendido, lo que está en revisión y lo archivado (la pantalla lo pinta apagado).
  */
+/** 253: ¿pasa el filtro por la última acción? Vacío deja pasar todo. */
+export function pasaAccion(l: Pick<Lead, "follow_up_action">, accion: TipoDeAccion | "sin" | "" | undefined): boolean {
+  if (!accion) return true;
+  if (accion === "sin") return !l.follow_up_action;
+  return l.follow_up_action === accion;
+}
+
 export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
   const q = sinAcentos(f.busca.trim());
   return leads.filter((l) => {
@@ -368,6 +417,7 @@ export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
     }
     if (f.tipo && l.project_type !== f.tipo) return false;
     if (f.ciudad && l.site_city !== f.ciudad) return false;
+    if (!pasaAccion(l, f.accion)) return false;
     if (q && !textoDe(l, f.textoExtra).includes(q)) return false;
     return true;
   });

@@ -50886,3 +50886,9 @@ Sello `customers` 0.57.0; repo 1.743.0.
 La cookie de retorno de Entrar como caducaba a los 61 min mientras la sesión de Supabase del suplantado seguía viva; tras dormir la PC el admin quedaba como el usuario sin burbuja. Ahora una sesión de magic link sin cookie válida se revoca y manda a login (security_events), la cookie dura 7 días y el límite de 60 min se sigue aplicando desde inicio.
 
 Sello `deliveries` 1.549.0; repo 1.744.0.
+
+## D-890 · Leads: tipo de acción en la nota de progreso
+
+La nota de progreso exige uno de siete tipos (Made Contact, Didn't Answer, Had Appointment, Made Quote, Under Negotiation, Closed, Lost), mostrado como píldora; filtro por última acción. Pedido de Roberto (help e207d9ef). Migración 253.
+
+Sello `leads` 0.20.0; repo 1.745.0.
