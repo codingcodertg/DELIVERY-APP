@@ -17,7 +17,7 @@ import { BUSINESS_TZ, fmtDate, orderLabel, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 /**
- * TRANSFERENCIA POR RELEVO (D-NEXT, migración 256; la regla, en `lib/relevo`).
+ * TRANSFERENCIA POR RELEVO (D-898, migración 256; la regla, en `lib/relevo`).
  *
  * Dos piezas, las dos aquí para que el Gestor de Rutas solo tenga que nombrarlas:
  *
@@ -230,7 +230,7 @@ export function RelevoDeLaOrden({ pedido, compacto = false, soloLectura = false 
 }
 
 /**
- * Los avisos de los relevos de un conjunto de órdenes, para el Gestor de Rutas (D-NEXT): el paso b agendado antes que el a,
+ * Los avisos de los relevos de un conjunto de órdenes, para el Gestor de Rutas (D-898): el paso b agendado antes que el a,
  * la recogida del b delante de la entrega del a en la misma ruta, y los dos pasos el mismo día en rutas distintas (el motor
  * de rutas ordena cada ruta por su cuenta y no garantiza ese orden). Nada si no hay ninguno.
  */

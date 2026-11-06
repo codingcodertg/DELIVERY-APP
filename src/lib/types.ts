@@ -102,7 +102,7 @@ export interface Delivery {
    * splits: the loaded part becomes e.g. #1001a and the remainder is a new
    * linked order #1001b (same order_no, next letter). Null = never split. */
   order_suffix: string | null;
-  /** Paso de una TRANSFERENCIA POR RELEVO (D-NEXT, migración 256): 1 = paso a (tienda de origen → tienda de relevo),
+  /** Paso de una TRANSFERENCIA POR RELEVO (D-898, migración 256): 1 = paso a (tienda de origen → tienda de relevo),
    * 2 = paso b (tienda de relevo → destino final)… `null`/ausente = no es un relevo (una orden normal o una carga partida).
    * Los pasos son cargas hermanas (misma `order_no`, letra en `order_suffix`) y se nombran «Tr-1111-a». Solo lo escriben
    * las funciones `activar_relevo` / `deshacer_relevo`. Opcional: una base sin la 256 no la trae. */

@@ -1,5 +1,5 @@
 /**
- * Cómo se NOMBRA un paso de una transferencia por relevo (D-NEXT, migración 256). Sin dependencias, porque lo usan
+ * Cómo se NOMBRA un paso de una transferencia por relevo (D-898, migración 256). Sin dependencias, porque lo usan
  * `orderLabel` (lib/utils) y `codeLabel` (lib/order-code), que son la base de todo lo que pinta un número de orden.
  *
  * El dueño, 2026-11-05: una intertienda McAllen → Brownsville que Julio lleva de McAllen a Weslaco y, más tarde, Max de

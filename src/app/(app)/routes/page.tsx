@@ -1492,7 +1492,7 @@ export default function RoutesPage() {
   // pallets de dos cargas, y volver a juntarlas (si las dos siguen pendientes y la suma cabe). La regla vive en
   // lib/cargas-partidas; la base la repite (partir_carga, reparte_cargas, juntar_cargas).
   const cargasDe = (d: Delivery) => { const hermanas = hermanasDe(deliveries, d); return { carga: cargaDe(d, hermanas), otra: laOtraCarga(d, hermanas) }; };
-  // D-NEXT (256): en ese mismo sitio, la TRANSFERENCIA POR RELEVO (`components/RelevoDeLaOrden`): en un paso de relevo
+  // D-898 (256): en ese mismo sitio, la TRANSFERENCIA POR RELEVO (`components/RelevoDeLaOrden`): en un paso de relevo
   // («Tr-1111-a»), su pastilla, que abre la tarjeta del relevo; en una orden de tienda a tienda sin relevo, el «⇄» que lo
   // activa. Un paso de relevo no es «carga 1 de 2» (`cargaDe` da `null`), así que nunca salen las dos cosas.
   const etiquetaDeLaCarga = (d: Delivery) => {
@@ -3184,7 +3184,7 @@ export default function RoutesPage() {
             aprobar={apruebaSolicitud} abrirOrden={setOpenOrder} t={t} />
         )}
       </div>
-      {/* D-NEXT (256): los avisos de las transferencias por relevo (b agendado antes que a; los dos pasos el mismo día). */}
+      {/* D-898 (256): los avisos de las transferencias por relevo (b agendado antes que a; los dos pasos el mismo día). */}
       <AvisosDeRelevo ordenes={deliveries} />
 
       {incidenciasAbiertas && (

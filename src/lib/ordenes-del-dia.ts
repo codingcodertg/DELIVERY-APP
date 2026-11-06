@@ -71,7 +71,7 @@ export type OrdenDelPool = Orden & Pick<Delivery, "assigned_driver" | "order_no"
 export function coincideConLaBusqueda(d: OrdenDelPool, busqueda: string): boolean {
   const q = busqueda.trim().toLowerCase();
   if (!q) return true;
-  // D-NEXT (256): y un paso de relevo, por su etiqueta («tr-1111-a»; `textoDeRelevoParaBuscar`). Buscar «1111» ya
+  // D-898 (256): y un paso de relevo, por su etiqueta («tr-1111-a»; `textoDeRelevoParaBuscar`). Buscar «1111» ya
   // encuentra los dos pasos: comparten número y factura.
   return String(d.order_no).includes(q) || [d.account, d.delivery_address, d.delivery_phone, d.contact, d.store, textoDeRelevoParaBuscar(d)].some((v) => (v || "").toLowerCase().includes(q));
 }

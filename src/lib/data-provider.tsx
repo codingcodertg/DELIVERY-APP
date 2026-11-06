@@ -180,7 +180,7 @@ export interface DataState {
   reparteCargas: (a: string, b: string, palletsA: number) => Promise<boolean>;
   /** Devuelve los pallets de `b` a `a` y borra `b` (queda en `deliveries_borradas`, 142). */
   juntarCargas: (a: string, b: string) => Promise<boolean>;
-  /** TRANSFERENCIA POR RELEVO de una orden de tienda a tienda (D-NEXT, migración 256; regla en `lib/relevo`). La orden pasa
+  /** TRANSFERENCIA POR RELEVO de una orden de tienda a tienda (D-898, migración 256; regla en `lib/relevo`). La orden pasa
    *  a ser el paso a («Tr-1111-a», hasta la tienda de relevo) y nace el paso b («Tr-1111-b», de ahí al destino), que se
    *  recoge el día `fecha`. Devuelve el id del paso b (`null` si no se pudo: la base lo dice, o no tiene la 256). */
   activarRelevo: (id: string, tienda: string, fecha: string) => Promise<string | null>;
@@ -1500,7 +1500,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     return trasLasCargas(error);
   }, [supabase, teaching, notify, trasLasCargas]);
 
-  // ---- Transferencia por relevo (D-NEXT, 256): la base hace el trabajo (`activar_relevo`, `deshacer_relevo`) y dice por
+  // ---- Transferencia por relevo (D-898, 256): la base hace el trabajo (`activar_relevo`, `deshacer_relevo`) y dice por
   // qué no cuando no deja; aquí solo se llama, se traduce el error (`mensajeDelRelevo`) y se recarga.
   const trasElRelevo = useCallback(async (error: { code?: string | null; message: string } | null): Promise<boolean> => {
     if (error) {
@@ -1674,7 +1674,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         );
         if (falta) { notify(falta); return false; }
       }
-      // D-NEXT (256): el paso b de una transferencia por relevo no se recoge (ni se da por entregado) hasta que el paso a
+      // D-898 (256): el paso b de una transferencia por relevo no se recoge (ni se da por entregado) hasta que el paso a
       // esté entregado en la tienda de relevo. Vale para todos, admin incluido; la base lo repite (`guard_relevo`), y es
       // ella quien decide cuando el paso anterior es de otro chofer y esta persona no lo tiene a la vista.
       if (current && entraEnElCamion(current.stage, stage)) {

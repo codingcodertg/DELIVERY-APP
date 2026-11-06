@@ -24,7 +24,7 @@ import {
 } from "./relevo";
 
 /**
- * TRANSFERENCIA POR RELEVO (D-NEXT, migración 256). El dueño, 2026-11-05: una intertienda McAllen → Brownsville que Julio
+ * TRANSFERENCIA POR RELEVO (D-898, migración 256). El dueño, 2026-11-05: una intertienda McAllen → Brownsville que Julio
  * lleva de McAllen a Weslaco y, más tarde, Max de Weslaco a Brownsville; los pasos se llaman «Tr-1111-a» y «Tr-1111-b».
  *
  * Aquí: cómo se nombran (y que una carga partida de las de siempre sigue siendo «1111a»), qué se escribe al activar, la
@@ -369,7 +369,7 @@ describe("la migración 256 dice lo mismo", () => {
     const sha = createHash("sha256").update(cuerpo, "utf8").digest("hex");
     expect(registro.trim()).toBe(`insert into public.schema_migrations (name, checksum) values ('256_transferencia_por_relevo.sql', '${sha}') on conflict (name) do nothing;`);
     expect(sinComentarios).not.toMatch(/^\s*(begin|commit)\s*;/im);
-    expect(sql).not.toMatch(/D-NEXT|D-\d{3}/);
+    expect(sql).not.toMatch(/D-898|D-\d{3}/);
   });
 
   it("una columna nueva y nada más: no reescribe el guard de etapas, ni políticas, ni las funciones de las cargas", () => {

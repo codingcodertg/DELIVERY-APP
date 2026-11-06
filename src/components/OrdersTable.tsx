@@ -274,7 +274,7 @@ const ID_COLUMN: OrderColumn = {
           <>
             #{orderLabel(d)}
             {accionEnLinea}
-            {/* D-NEXT (256): un paso de transferencia por relevo, con su pastilla junto al número. */}
+            {/* D-898 (256): un paso de transferencia por relevo, con su pastilla junto al número. */}
             <PastillaDeRelevo d={d} lang={lang} style={{ marginLeft: 6 }} />
             {/* Status stack, right-aligned: where the order stands, then what
                 it is. Mobile-only; desktop has its own Stage/Type/Store

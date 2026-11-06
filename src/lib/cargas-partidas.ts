@@ -26,7 +26,7 @@ export function hermanasDe<T extends CargaMinima>(todas: readonly T[], d: Pick<C
 }
 
 /** «Carga 1 de 2»: cuál es esta y de cuántas. `null` si la orden no está partida, y también si las hermanas son PASOS DE
- *  RELEVO (D-NEXT, 256): esos van en serie, no son cargas de un mismo viaje, y se nombran «Tr-1111-a» con su pastilla. */
+ *  RELEVO (D-898, 256): esos van en serie, no son cargas de un mismo viaje, y se nombran «Tr-1111-a» con su pastilla. */
 export function cargaDe(d: Pick<CargaMinima, "id">, hermanas: readonly Pick<CargaMinima, "id" | "relay_step">[]): { numero: number; de: number } | null {
   if (hermanas.length < 2 || hermanas.some(esPasoDeRelevo)) return null;
   const numero = hermanas.findIndex((x) => x.id === d.id) + 1;
@@ -57,7 +57,7 @@ const ruteable = (d: { stage?: string }) => !!d.stage && ETAPAS_RUTEABLES.includ
 
 /** ¿Se puede partir esta orden desde el Gestor? Pendiente de ruta, con pallets, y más de los que caben en ese camión. */
 export function sePuedePartir(d: CargaMinima, capacidad: number): boolean {
-  // Un paso de relevo no se parte en cargas (D-NEXT): la base lo rechaza (`RELEVO_FIJO`).
+  // Un paso de relevo no se parte en cargas (D-898): la base lo rechaza (`RELEVO_FIJO`).
   return !esPasoDeRelevo(d) && ruteable(d) && restoPropuesto(palletsDeLaOrden(d), capacidad) != null;
 }
 
@@ -140,7 +140,7 @@ export type OrdenAlGuardar = Pick<Delivery, "assigned_driver" | "stage" | "est_p
  */
 export function cargasAlGuardar(antes: OrdenAlGuardar | null | undefined, cambio: Partial<OrdenAlGuardar>, capacidadDe: (chofer: string) => number, rol: string | null | undefined): number[] {
   if (!antes || !rol || !ROLES_QUE_PARTEN.includes(rol)) return [];
-  if (esPasoDeRelevo(antes)) return [];   // D-NEXT: un paso de relevo no se parte solo
+  if (esPasoDeRelevo(antes)) return [];   // D-898: un paso de relevo no se parte solo
   const despues = { ...antes, ...cambio };
   const chofer = (despues.assigned_driver ?? "").trim();
   if (!chofer || !ruteable(despues)) return [];

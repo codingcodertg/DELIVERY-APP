@@ -46,7 +46,7 @@ export interface FacturaYId { principal: string; id: string | null; esFactura: b
 export function facturaYId(d: Omit<OrdenParaNombrar, "id">): FacturaYId {
   const factura = (d.invoice_num ?? "").trim();
   const codigo = `#${orderLabel(d)}`;
-  // D-NEXT (256): un paso de relevo se nombra «Tr-<factura>-a» también donde lo que nombra la orden es su factura.
+  // D-898 (256): un paso de relevo se nombra «Tr-<factura>-a» también donde lo que nombra la orden es su factura.
   if (factura && esPasoDeRelevo(d)) return { principal: numeroConLetra(factura, d), id: codigo, esFactura: true };
   return factura ? { principal: factura, id: codigo, esFactura: true } : { principal: codigo, id: null, esFactura: false };
 }

@@ -8,7 +8,7 @@ import type { Delivery, NamedLocation } from "./types";
 export { esPasoDeRelevo, etiquetaDeRelevo, letraDelPaso, numeroConLetra, PASTILLA_DE_RELEVO, PREFIJO_DE_RELEVO, mensajeDelRelevo, textoDeRelevoParaBuscar } from "./relevo-etiqueta";
 
 /**
- * TRANSFERENCIA POR RELEVO de una orden tienda-a-tienda (D-NEXT, migración 256).
+ * TRANSFERENCIA POR RELEVO de una orden tienda-a-tienda (D-898, migración 256).
  *
  * El dueño, 2026-11-05: una intertienda va de McAllen a Brownsville; Julio la lleva de McAllen a Weslaco y, más tarde, Max
  * de Weslaco a Brownsville. Quien planifica las rutas elige la tienda de relevo y el día en que se recoge el segundo paso
@@ -276,7 +276,7 @@ export function pasosParaVer(pasos: readonly Delivery[], eventos: readonly Event
 export type AvisoDeRelevo = { tipo: "b_antes_que_a" | "mismo_chofer_al_reves" | "mismo_chofer_sin_orden" | "mismo_dia_otra_ruta"; ids: [string, string] } & Bilingue;
 
 /**
- * Lo que el Gestor avisa de los relevos de un conjunto de órdenes (D-NEXT). Por cada par de pasos seguidos sin terminar:
+ * Lo que el Gestor avisa de los relevos de un conjunto de órdenes (D-898). Por cada par de pasos seguidos sin terminar:
  *   · el paso b está agendado un día ANTERIOR al del a;
  *   · los dos van el mismo día con el MISMO chofer y la recogida del b está antes que la entrega del a en su lista (o
  *     todavía no tienen puesto en la lista, y entonces no se sabe);

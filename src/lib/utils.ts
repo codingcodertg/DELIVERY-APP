@@ -74,14 +74,14 @@ export function fmtDateShort(iso: string | null | undefined, lang: "en" | "es" =
   }).format(d).replace(".", "");
 }
 
-/** Human-facing order id incl. the split-load letter: "FA100", "FA100a". A relay-transfer step (D-NEXT, 256) reads
+/** Human-facing order id incl. the split-load letter: "FA100", "FA100a". A relay-transfer step (D-898, 256) reads
  * "Tr-FA100-a" instead (`numeroConLetra`, lib/relevo-etiqueta).
  * Uses the order_code; falls back to the internal number for legacy rows. */
 export const orderLabel = (d: { order_code?: string | null; order_no: number; order_suffix?: string | null; relay_step?: number | null }) =>
   numeroConLetra(d.order_code || d.order_no, d);
 
 /** What NAMES an order where the invoice comes first: its invoice, or "#<code>" without one (the rule several dialogs
- * wrote inline as `invoice_num || #orderLabel`). A relay-transfer step (D-NEXT, 256) reads "Tr-<invoice>-a". */
+ * wrote inline as `invoice_num || #orderLabel`). A relay-transfer step (D-898, 256) reads "Tr-<invoice>-a". */
 export const nombreDeLaOrden = (d: { invoice_num?: string | null; order_code?: string | null; order_no: number; order_suffix?: string | null; relay_step?: number | null }): string =>
   d.invoice_num ? (esPasoDeRelevo(d) ? numeroConLetra(d.invoice_num.trim(), d) : d.invoice_num) : `#${orderLabel(d)}`;
 

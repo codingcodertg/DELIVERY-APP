@@ -46,9 +46,9 @@ export function notificationsForStage(args: {
   actorRole?: Profile["role"] | null;
   users: Profile[];
   reason?: string | null;
-  /** D-NEXT (256): el nombre de un paso de transferencia por relevo («#Tr-1111-a»). Sin él, el código de siempre. */
+  /** D-898 (256): el nombre de un paso de transferencia por relevo («#Tr-1111-a»). Sin él, el código de siempre. */
   etiqueta?: string | null;
-  /** D-NEXT: es un paso de relevo y después de él quedan más. Entonces «entregado» es «llegó a la tienda de relevo». */
+  /** D-898: es un paso de relevo y después de él quedan más. Entonces «entregado» es «llegó a la tienda de relevo». */
   faltanPasos?: boolean;
 }): NotifSeed[] {
   const { stage, order_no, order_code, delivery_id, creatorId, actorId, actorRole, users, reason, etiqueta, faltanPasos } = args;

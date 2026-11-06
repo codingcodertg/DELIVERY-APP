@@ -266,7 +266,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     return true;
   }, [me, persist, notify]);   // `me` en las dependencias: `addEvent` firma con `me.id` (D-373)
 
-  // ---- Transferencia por relevo (D-NEXT, 256): el demo hace en memoria lo que `activar_relevo` y `deshacer_relevo` hacen
+  // ---- Transferencia por relevo (D-898, 256): el demo hace en memoria lo que `activar_relevo` y `deshacer_relevo` hacen
   // en la base, con las MISMAS reglas (`lib/relevo`): quién puede, qué orden lo admite, qué tienda, qué día.
   const activarRelevo = useCallback<DataState["activarRelevo"]>(async (id, tienda, fecha) => {
     const s = storeRef.current;
@@ -375,7 +375,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       );
       if (falta) { notify(falta); return false; }
     }
-    // D-NEXT (256): la regla del orden del relevo, como el proveedor real (y como `guard_relevo` en la base).
+    // D-898 (256): la regla del orden del relevo, como el proveedor real (y como `guard_relevo` en la base).
     if (cur && entraEnElCamion(cur.stage, stage)) {
       const espera = porQueNoSeRecoge(cur, s.deliveries);
       if (espera) { notify(espera.en); return false; }

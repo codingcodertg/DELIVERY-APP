@@ -102,7 +102,7 @@ export function avisosDeRecogidaSinListo(args: {
  * tienda con el material delante. `null`: no es ese error, y se enseña el de siempre.
  */
 export function mensajeDelGuard(mensaje: string | null | undefined, lang: "en" | "es"): string | null {
-  // D-NEXT (256): el guard del relevo (`RELEVO_…`): el paso b de una transferencia no se recoge antes de que el a esté
+  // D-898 (256): el guard del relevo (`RELEVO_…`): el paso b de una transferencia no se recoge antes de que el a esté
   // entregado. Lo dice `mensajeDelRelevo`; pasa por aquí para que valga al escribir la etapa Y al vaciar la cola sin red.
   const delRelevo = mensajeDelRelevo(mensaje, lang);
   if (delRelevo) return delRelevo;

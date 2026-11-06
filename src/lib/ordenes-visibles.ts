@@ -223,7 +223,7 @@ export function coincideConLaBusqueda(d: Delivery, busqueda: string): boolean {
     // si fue la primera o la segunda, y no encontrarla se lee como que la orden no existe.
     d.order_code, d.order_no, d.account, d.so_num, d.po2, ...facturasDeLaOrden(d), d.store,
     d.delivery_address, d.contact, d.assigned_driver, d.delivery_name, d.pickup_name,
-    // D-NEXT (256): un paso de relevo también se encuentra por su etiqueta entera («tr-1111-a») o por «transfer».
+    // D-898 (256): un paso de relevo también se encuentra por su etiqueta entera («tr-1111-a») o por «transfer».
     textoDeRelevoParaBuscar(d),
   ].map((x) => String(x ?? "").toLowerCase()).join(" ");
   return hay.includes(needle);

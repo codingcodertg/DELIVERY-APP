@@ -167,7 +167,7 @@ export default function MyRoutePage() {
   };
   // «Carga 1 de 2» (D-452, 157): una orden que no cabía en el camión son dos órdenes hermanas, cada una su parada; aquí
   // solo se dice cuál es esta. Se marca con el botón de siempre, por carga.
-  // D-NEXT (256): un paso de TRANSFERENCIA POR RELEVO («Tr-1111-b») no es una carga: lleva su pastilla, que abre la tarjeta
+  // D-898 (256): un paso de TRANSFERENCIA POR RELEVO («Tr-1111-b») no es una carga: lleva su pastilla, que abre la tarjeta
   // del relevo (si el paso anterior ya llegó a la tienda de relevo, quién lo llevó y cuándo).
   const etiquetaDeLaCarga = (d: Delivery) => {
     if (esPasoDeRelevo(d)) return <RelevoDeLaOrden pedido={d} compacto soloLectura />;
