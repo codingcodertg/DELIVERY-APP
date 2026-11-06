@@ -13,6 +13,7 @@ import { textoDelRango, textoDeLaRegla } from "@/lib/fee-formula-text";
 import { LOCAL_ZONE_DEFAULT, LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import type { Settings, UserRole } from "@/lib/types";
 import { RouteEngineSettings } from "@/components/RouteEngineSettings";
+import { TracksolidSettings } from "@/components/TracksolidSettings";
 import { HORAS_NOCHE_ANTES, HORA_NOCHE_ANTES_POR_DEFECTO, laBaseTieneAjustesDeAvisos } from "@/lib/avisos-cliente";
 import { reglasDeAprobacion, ventanasConCupoEditable, type ReglasDeAprobacion } from "@/lib/aprobacion-por-hora-y-cupo";
 import { fmtWindows } from "@/lib/utils";
@@ -169,6 +170,9 @@ export default function SettingsPage() {
       </div>
 
       <RouteEngineSettings />
+
+      {/* Rastreadores GPS de los camiones (TrackSolid, D-900). Se pinta solo si la instalación lo tiene. */}
+      <TracksolidSettings />
 
       <div className="card">
         <h2>⛽ {t("Delivery cost model", "Modelo de costos de entrega")}</h2>
