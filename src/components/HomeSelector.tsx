@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { noLeidosPorSolicitud, repartoDeNoLeidos } from "@/lib/help-thread";
+import { noLeidosPorSolicitud, repartoDeNoLeidos, sinLasEliminadas } from "@/lib/help-thread";
 import { usePrefs } from "@/lib/prefs";
 import { VersionFooter } from "@/components/VersionFooter";
 import { ProfileView } from "@/components/profile/ProfileView";
@@ -95,13 +95,17 @@ export function HomeSelector({ me, suplantando = false, cuenta, soloApps = null 
     let vivo = true;
     void (async () => {
       const supabase = createClient();
-      const [ms, ls, rs] = await Promise.all([
+      const [ms, ls, rs, es] = await Promise.all([
         supabase.from("help_messages").select("request_id, author_id, created_at").order("created_at", { ascending: false }).limit(2000),
         supabase.from("help_reads").select("request_id, read_at").eq("user_id", me.id),
         supabase.from("help_requests").select("id").eq("user_id", me.id),
+        // Las eliminadas (262, D-904) no cuentan. Sin la 262 esta consulta falla (la columna no existe) y se toma
+        // como «ninguna»: el contador sale como salía.
+        supabase.from("help_requests").select("id").not("deleted_at", "is", null),
       ]);
       if (!vivo || ms.error || ls.error || rs.error) return;
-      setSinLeer(repartoDeNoLeidos(noLeidosPorSolicitud(ms.data ?? [], ls.data ?? [], me.id), (rs.data ?? []).map((r) => r.id as string)));
+      const eliminadas = es.error ? [] : (es.data ?? []).map((r) => r.id as string);
+      setSinLeer(repartoDeNoLeidos(sinLasEliminadas(noLeidosPorSolicitud(ms.data ?? [], ls.data ?? [], me.id), eliminadas), (rs.data ?? []).map((r) => r.id as string)));
     })();
     return () => { vivo = false; };
   }, [me.id]);

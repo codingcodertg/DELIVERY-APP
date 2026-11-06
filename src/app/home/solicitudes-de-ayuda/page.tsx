@@ -6,8 +6,11 @@ import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import {
   adjuntosDe, asomoEnLaLista, avisoDeAtendida, filtraSolicitudes, parcheDeEstado, personasDeSolicitudes, quienEscribe,
-  resumenDelEnvio, separaPorEstado, listaSegunEstado, leeConUbicacion, type FiltroDeEstado, type SolicitudDeAyuda,
+  resumenDelEnvio, separaPorEstado, listaSegunEstado, leeSolicitudes, estaEliminada, parcheDeEliminacion, sePuedeEliminar, separaEliminadas,
+  type FiltroDeEstado, type SolicitudDeAyuda,
 } from "@/lib/help-requests";
+import { eliminaSolicitud, mensajeDeEliminar, restauraSolicitud, type ClienteDeEliminar } from "@/lib/help-eliminar";
+import { ConfirmarEliminarSolicitud } from "@/components/ConfirmarEliminarSolicitud";
 import { textoDelDispositivo, ubicacionDeSolicitud } from "@/lib/ayuda-ubicacion";
 import { noLeidosPorSolicitud, type MensajeDeAyuda } from "@/lib/help-thread";
 import { HiloDeAyuda } from "@/components/HiloDeAyuda";
@@ -22,6 +25,11 @@ import { rutaParaCopiar } from "@/lib/ayuda-para-claude";
  *
  * **Los adjuntos se firman al abrirlos**, uno a uno y por cinco minutos. Lo guardado es la clave del
  * cubo; un enlace guardado sería un enlace caducado (D-284).
+ *
+ * **Eliminar y restaurar (262, D-904).** El admin elimina cualquiera (con confirmación, en un modal de la app); la
+ * eliminada sale de Pendientes, Atendidas y Todas —y de sus contadores— y queda en Estado → «Eliminadas», con quién
+ * la eliminó y cuándo, y un botón para restaurarla tal cual estaba. También salen ahí las que eliminó quien las
+ * escribió. Es un borrado blando: la fila, el hilo y los adjuntos siguen guardados.
  */
 
 export default function SolicitudesDeAyudaPage() {
@@ -40,10 +48,16 @@ export default function SolicitudesDeAyudaPage() {
   /** Quién mira, para el hilo (D-311). Esta pantalla ya es solo del admin: lo decide su `layout`. */
   const [yoId, setYoId] = useState<string | null>(null);
   const [sinLeer, setSinLeer] = useState<Map<string, number>>(new Map());
+  /** La que se está a punto de eliminar (el modal de confirmación), y cómo va. */
+  const [porEliminar, setPorEliminar] = useState<SolicitudDeAyuda | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+  const [errorAlEliminar, setErrorAlEliminar] = useState<string | null>(null);
+  const [yoNombre, setYoNombre] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
-    // Con las columnas de la 258 (dónde estaba, aparato) si la base ya las tiene; si no, como antes.
-    const { data, error: e } = await leeConUbicacion((columnas) => createClient()
+    // Con las columnas de la 262 (eliminada) y de la 258 (dónde estaba, aparato) si la base ya las tiene; si no, como
+    // antes. `leeSolicitudes` cae a `leeConUbicacion(` y esta, a las columnas de siempre.
+    const { data, error: e } = await leeSolicitudes((columnas) => createClient()
       .from("help_requests").select(columnas).order("created_at", { ascending: false }).limit(500));
     if (e) { setError(e.message); return; }
     setError(null);
@@ -54,6 +68,9 @@ export default function SolicitudesDeAyudaPage() {
     const uid = sesion.user?.id;
     if (!uid) return;
     setYoId(uid);
+    // El nombre de quien mira, para pintar «eliminada por …» sin recargar. Si falla, la fila lo dice sin nombre.
+    void supabase.from("profiles").select("full_name").eq("id", uid).maybeSingle()
+      .then(({ data: p }) => setYoNombre((p?.full_name as string | null | undefined) ?? null), () => undefined);
     const [{ data: ms }, { data: ls }] = await Promise.all([
       supabase.from("help_messages").select("request_id, author_id, created_at").order("created_at", { ascending: false }).limit(2000),
       supabase.from("help_reads").select("request_id, read_at").eq("user_id", uid),
@@ -70,8 +87,13 @@ export default function SolicitudesDeAyudaPage() {
   // Las atendidas salen de la lista principal y se van al archivo, que se abre a propósito. Antes
   // estaban mezcladas y la única forma de quitarlas de en medio era una casilla que había que marcar
   // cada vez.
-  const { pendientes, atendidas } = useMemo(() => separaPorEstado(visibles), [visibles]);
-  const listadas = useMemo(() => listaSegunEstado(estado, { pendientes, atendidas }), [estado, pendientes, atendidas]);
+  // Las eliminadas (262) se apartan ANTES de separar por estado: una pendiente eliminada ya no es trabajo pendiente,
+  // y no cuenta ni en la pastilla de arriba ni en los números del filtro.
+  const { vivas, eliminadas } = useMemo(() => separaEliminadas(visibles), [visibles]);
+  const { pendientes, atendidas } = useMemo(() => separaPorEstado(vivas), [vivas]);
+  const listadas = useMemo(() => listaSegunEstado(estado, { pendientes, atendidas, eliminadas }), [estado, pendientes, atendidas, eliminadas]);
+  /** ¿La base ya tiene la 262? Sin ella no hay ni botón de eliminar ni filtro de eliminadas. */
+  const hayEliminacion = useMemo(() => (filas ?? []).some(sePuedeEliminar), [filas]);
   const personas = useMemo(() => personasDeSolicitudes(filas ?? []), [filas]);
 
   /**
@@ -124,6 +146,39 @@ export default function SolicitudesDeAyudaPage() {
     setOcupada(null);
   };
 
+  const cierraElModal = useCallback(() => { setPorEliminar(null); setErrorAlEliminar(null); }, []);
+
+  /** Eliminar, ya confirmado en el modal. La base anota quién y cuándo; aquí se pinta sin recargar la lista. */
+  const elimina = async () => {
+    const s = porEliminar;
+    if (!s || eliminando) return;
+    setEliminando(true);
+    setErrorAlEliminar(null);
+    const r = await eliminaSolicitud(createClient() as unknown as ClienteDeEliminar, s.id);
+    setEliminando(false);
+    const fallo = mensajeDeEliminar(r, t);
+    if (fallo) { setErrorAlEliminar(fallo); return; }
+    setFilas((prev) => (prev ?? []).map((x) => (x.id === s.id ? { ...x, ...parcheDeEliminacion(true, { id: yoId ?? "", nombre: yoNombre }, new Date().toISOString()) } : x)));
+    if (abierta === s.id) setAbierta(null);
+    setPorEliminar(null);
+    setAviso(t("Deleted. It's under Status → Deleted if you need it back.", "Eliminada. Está en Estado → Eliminadas por si hace falta restaurarla."));
+  };
+
+  /** Restaurar no pide confirmación: no pierde nada y se deshace volviendo a eliminar. */
+  const restaura = async (s: SolicitudDeAyuda) => {
+    setOcupada(s.id);
+    setAviso(null);
+    const r = await restauraSolicitud(createClient() as unknown as ClienteDeEliminar, s.id);
+    setOcupada(null);
+    const fallo = mensajeDeEliminar(r, t, "restaurar");
+    if (fallo) { setError(fallo); return; }
+    setError(null);
+    setFilas((prev) => (prev ?? []).map((x) => (x.id === s.id ? { ...x, ...parcheDeEliminacion(false, { id: "", nombre: null }, "") } : x)));
+    setAviso(s.status === "atendida"
+      ? t("Restored — it's back under Handled.", "Restaurada — vuelve a estar en Atendidas.")
+      : t("Restored — it's back under Pending.", "Restaurada — vuelve a estar en Pendientes."));
+  };
+
   const fecha = (iso: string) => new Date(iso).toLocaleString(lang === "es" ? "es-MX" : "en-US");
 
   /** Una solicitud, igual en la lista de trabajo y en el archivo: la misma tarjeta, no dos parecidas. */
@@ -134,8 +189,9 @@ export default function SolicitudesDeAyudaPage() {
     // Dónde estaba (D-901): lo que guardó la app al mandarla; en una solicitud de antes, lo que se deduce de su ruta.
     const donde = ubicacionDeSolicitud(s, lang === "es" ? "es" : "en");
     const aparato = textoDelDispositivo(s.device, lang === "es" ? "es" : "en");
+    const eliminada = estaEliminada(s);
     return (
-      <div className="card" key={s.id}>
+      <div className="card" key={s.id} data-solicitud-eliminada={eliminada ? "si" : undefined}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <b>{quienEscribe(s)}</b>
           {s.role_label && <span className="hint" style={{ margin: 0 }}>{s.role_label}</span>}
@@ -143,8 +199,9 @@ export default function SolicitudesDeAyudaPage() {
           <span className="sema" style={{ background: s.status === "atendida" ? "var(--green)" : "var(--amber)", color: "#fff" }}>
             {s.status === "atendida" ? t("Handled", "Atendida") : t("Pending", "Pendiente")}
           </span>
+          {eliminada && <span className="sema" style={{ background: "var(--gray)", color: "#fff" }}>🗑 {t("Deleted", "Eliminada")}</span>}
           {adjuntos.length > 0 && <span className="hint" style={{ margin: 0 }}>📎 {adjuntos.length}</span>}
-          {(sinLeer.get(s.id) ?? 0) > 0 && !abiertaEsta && (
+          {(sinLeer.get(s.id) ?? 0) > 0 && !abiertaEsta && !eliminada && (
             <span className="sema" style={{ background: "var(--red)", color: "#fff" }}>💬 {sinLeer.get(s.id)}</span>
           )}
           <span style={{ flex: 1 }} />
@@ -153,10 +210,31 @@ export default function SolicitudesDeAyudaPage() {
           <button className="btn btn-ghost btn-sm" onClick={() => { setAbierta(abiertaEsta ? null : s.id); if (!abiertaEsta) setSinLeer((m) => { const c = new Map(m); c.delete(s.id); return c; }); }}>
             {abiertaEsta ? t("Hide", "Ocultar") : t("Open", "Abrir")}
           </button>
-          <button className="btn btn-primary btn-sm" disabled={ocupada === s.id} onClick={() => marca(s)}>
-            {s.status === "atendida" ? t("Mark pending", "Marcar pendiente") : t("Mark handled", "Marcar atendida")}
-          </button>
+          {/* Una eliminada no se atiende ni se reabre (la 262 tampoco deja): lo único que se le hace es restaurarla. */}
+          {eliminada ? (
+            <button className="btn btn-primary btn-sm" disabled={ocupada === s.id} onClick={() => void restaura(s)} data-restaurar-solicitud>
+              ↩ {t("Restore", "Restaurar")}
+            </button>
+          ) : (
+            <>
+              <button className="btn btn-primary btn-sm" disabled={ocupada === s.id} onClick={() => marca(s)}>
+                {s.status === "atendida" ? t("Mark pending", "Marcar pendiente") : t("Mark handled", "Marcar atendida")}
+              </button>
+              {sePuedeEliminar(s) && (
+                <button className="btn btn-ghost btn-sm" disabled={ocupada === s.id} data-eliminar-solicitud title={t("Delete this request", "Eliminar esta solicitud")}
+                  onClick={() => { setErrorAlEliminar(null); setPorEliminar(s); }}>
+                  🗑 {t("Delete", "Eliminar")}
+                </button>
+              )}
+            </>
+          )}
         </div>
+        {eliminada && s.deleted_at && (
+          <div className="hint" style={{ margin: "6px 0 0" }} data-eliminada-por>
+            {t("Deleted by", "Eliminada por")} <b>{s.deleted_by_name || (s.deleted_by && s.deleted_by === s.user_id ? quienEscribe(s) : "—")}</b>
+            {s.deleted_by && s.deleted_by === s.user_id ? ` (${t("the sender", "quien la escribió")})` : ""} · {fecha(s.deleted_at)}
+          </div>
+        )}
         {/* Dónde estaba, SIEMPRE a la vista (D-901; el dueño: «to know what they are looking at when they don't send a
             screenshot»): en la lista y con la solicitud abierta. */}
         {donde && (
@@ -182,7 +260,7 @@ export default function SolicitudesDeAyudaPage() {
                 y debajo la caja para contestar. Que conteste el admin no la reabre ni la atiende:
                 atenderla sigue siendo el botón de arriba. Si la persona contesta a una atendida, la
                 base la devuelve a pendiente y aquí aparece otra vez en la lista de trabajo al recargar. */}
-            {yoId && <HiloDeAyuda solicitud={s} yo={{ id: yoId, esAdmin: true }} />}
+            {yoId && <HiloDeAyuda solicitud={s} yo={{ id: yoId, esAdmin: true }} soloLectura={eliminada} />}
             <div className="detail-row"><span className="dk">{t("Where", "Dónde")}</span><span className="dv"><b>{donde?.texto ?? "—"}</b></span></div>
             <div className="detail-row"><span className="dk">{t("Page", "Página")}</span><span className="dv">{s.page || "—"}</span></div>
             {aparato && (
@@ -242,7 +320,9 @@ export default function SolicitudesDeAyudaPage() {
             <select value={estado} onChange={(e) => setEstado(e.target.value as FiltroDeEstado)} data-filtro-estado>
               <option value="pendientes">{t("Pending", "Pendientes")} ({pendientes.length})</option>
               <option value="atendidas">{t("Handled", "Atendidas")} ({atendidas.length})</option>
-              <option value="todas">{t("All", "Todas")} ({visibles.length})</option>
+              <option value="todas">{t("All", "Todas")} ({vivas.length})</option>
+              {/* «Show deleted» (262, D-904): las eliminadas solo salen si se piden. */}
+              {hayEliminacion && <option value="eliminadas">🗑 {t("Show deleted", "Ver eliminadas")} ({eliminadas.length})</option>}
             </select>
           </div>
         </div>
@@ -262,6 +342,11 @@ export default function SolicitudesDeAyudaPage() {
             : listadas.map(tarjeta)}
 
         </>
+      )}
+
+      {porEliminar && (
+        <ConfirmarEliminarSolicitud solicitud={porEliminar} comoAdmin ocupado={eliminando} error={errorAlEliminar}
+          onCancelar={cierraElModal} onConfirmar={() => void elimina()} />
       )}
     </>
   );

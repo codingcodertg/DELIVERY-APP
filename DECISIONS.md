@@ -50964,3 +50964,9 @@ Sello `warehouse_ops` 0.4.0; repo 1.756.0.
 Cada chofer tiene su camión del día (por defecto el habitual; un camión no va con dos choferes el mismo día, se ofrece intercambio). Con camión asignado el mapa muestra un solo marcador con la mejor fuente entre teléfono y rastreador, dice cuál usa y avisa si llevan 3 min separados más de ~1 milla. Los camiones sin chofer ese día no se muestran (interruptor apagado por defecto). Las etiquetas flotantes de Leaflet pasan a texto. Migración 261.
 
 Sello `deliveries` 1.556.0; repo 1.757.0.
+
+## D-904 · Ayuda: eliminar y restaurar solicitudes
+
+La persona puede eliminar su propia solicitud de ayuda y un admin cualquiera (borrado suave con quién y cuándo); deja de contar como pendiente; los admins las ven con el filtro Show deleted y pueden restaurarlas; el hilo de una eliminada queda congelado. Pedido de Roberto (help d8a0f7c2). Migración 262.
+
+Sello `deliveries` 1.557.0; repo 1.758.0.

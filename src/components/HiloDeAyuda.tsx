@@ -26,9 +26,12 @@ const COLUMNAS = "id, request_id, author_id, author_name, body, files, created_a
 /** Cinco minutos: lo que tarda en abrirse una foto, no más (como la vista del admin). */
 const VALIDEZ_AL_ABRIR = 300;
 
-export function HiloDeAyuda({ solicitud, yo, onEnviado }: {
+export function HiloDeAyuda({ solicitud, yo, onEnviado, soloLectura }: {
   solicitud: SolicitudDeAyuda;
   yo: { id: string; esAdmin: boolean };
+  /** Sin caja para contestar: el hilo de una solicitud eliminada (262, D-904) se lee, pero la base no deja escribir
+   *  en él hasta que se restaura. */
+  soloLectura?: boolean;
   /** Tras enviar. `reabierta` = la base acaba de devolverla a pendiente: quien pinta la lista lo refleja. */
   onEnviado?: (info: { reabierta: boolean }) => void;
 }) {
@@ -152,7 +155,7 @@ export function HiloDeAyuda({ solicitud, yo, onEnviado }: {
 
       {error && <div className="hint" style={{ color: "var(--red)" }}>{error}</div>}
 
-      {puede && (
+      {puede && !soloLectura && (
         <div className="hilo-caja">
           <textarea
             rows={2}

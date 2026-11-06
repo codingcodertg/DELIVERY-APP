@@ -7,7 +7,9 @@ import { createClient } from "@/lib/supabase/client";
 import { APP_VERSIONS } from "@/lib/app-versions";
 import { roleLabel } from "@/lib/constants";
 import { LIMITES_DE_ADJUNTOS, mensajeDeAdjunto, validaAdjuntos } from "@/lib/help-attachments";
-import { asomoDelMensaje, type SolicitudDeAyuda } from "@/lib/help-requests";
+import { asomoDelMensaje, leeSolicitudes, sePuedeEliminar, separaEliminadas, type SolicitudDeAyuda } from "@/lib/help-requests";
+import { eliminaSolicitud, mensajeDeEliminar, type ClienteDeEliminar } from "@/lib/help-eliminar";
+import { ConfirmarEliminarSolicitud } from "@/components/ConfirmarEliminarSolicitud";
 import { enviaSolicitudDeAyuda } from "@/lib/help-send";
 import { noLeidosPorSolicitud, RUTA_MIS_SOLICITUDES, type MensajeDeAyuda } from "@/lib/help-thread";
 import { HiloDeAyuda } from "@/components/HiloDeAyuda";
@@ -23,10 +25,12 @@ import type { UserRole } from "@/lib/types";
  *
  * Solo las PROPIAS, también para un admin: aquí el admin es una persona que pidió ayuda. Las de todos
  * las ve en su vista de solicitudes.
+ *
+ * **Eliminar (262, D-904).** Roberto, desde esta pantalla: «Maybe add option to eliminate request» — había escrito
+ * una, luego «Disregard this request», y no tenía cómo retirarla. Cada tarjeta lleva «Eliminar»; se confirma en un
+ * modal de la app y la solicitud sale de la lista, en el estado que esté. No se borra: queda guardada (la base
+ * anota quién y cuándo) y un admin puede restaurarla. Quién puede lo decide la 262, no esta pantalla.
  */
-
-const COLUMNAS =
-  "id, created_at, user_id, sender_name, sender_email, role_label, page, app_version, lang, message, files, email_to, email_ok, email_error, status, attended_by, attended_at";
 
 type Yo = { id: string; esAdmin: boolean; nombre: string | null; role: UserRole };
 
@@ -43,6 +47,10 @@ export default function MisSolicitudesPage() {
   const [ficheros, setFicheros] = useState<File[]>([]);
   const [ocupada, setOcupada] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
+  /** La que se está a punto de eliminar (el modal de confirmación), y cómo va. */
+  const [porEliminar, setPorEliminar] = useState<SolicitudDeAyuda | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+  const [errorAlEliminar, setErrorAlEliminar] = useState<string | null>(null);
 
   const cargar = useCallback(async (abrirLaPrimeraSinLeer = false) => {
     const { data: sesion } = await supabase.auth.getUser();
@@ -52,11 +60,14 @@ export default function MisSolicitudesPage() {
     const role = ((perfil?.role as UserRole | undefined) ?? "sales");
     setYo({ id: uid, esAdmin: role === "admin", nombre: (perfil?.full_name as string | null) ?? null, role });
 
-    const { data, error: e } = await supabase
-      .from("help_requests").select(COLUMNAS).eq("user_id", uid).order("created_at", { ascending: false }).limit(200);
+    // Con las columnas de la 262 (eliminada) y de la 258 si la base ya las tiene; si no, como antes.
+    const { data, error: e } = await leeSolicitudes((columnas) => supabase
+      .from("help_requests").select(columnas).eq("user_id", uid).order("created_at", { ascending: false }).limit(200));
     if (e) { setError(e.message); return; }
     setError(null);
-    const mias = (data ?? []) as SolicitudDeAyuda[];
+    // Las eliminadas no se listan ni cuentan. Se filtran aquí y no en la consulta: la RLS deja leer las propias
+    // (también las eliminadas), y así la misma consulta vale con y sin la 262.
+    const mias = separaEliminadas((data ?? []) as unknown as SolicitudDeAyuda[]).vivas;
     setFilas(mias);
 
     // Los contadores. Si esto falla la lista se enseña igual: un contador no tumba la pantalla.
@@ -110,6 +121,25 @@ export default function MisSolicitudesPage() {
     } else {
       setAviso(t("Couldn't send — please try again.", "No se pudo enviar — intente de nuevo."));
     }
+  };
+
+  const cierraElModal = useCallback(() => { setPorEliminar(null); setErrorAlEliminar(null); }, []);
+
+  const elimina = async () => {
+    const s = porEliminar;
+    if (!s || eliminando) return;
+    setEliminando(true);
+    setErrorAlEliminar(null);
+    const r = await eliminaSolicitud(supabase as unknown as ClienteDeEliminar, s.id);
+    setEliminando(false);
+    const fallo = mensajeDeEliminar(r, t);
+    // Si falla, el modal se queda abierto y lo dice: la solicitud sigue en la lista.
+    if (fallo) { setErrorAlEliminar(fallo); return; }
+    setFilas((prev) => (prev ?? []).filter((x) => x.id !== s.id));
+    setSinLeer((m) => { const c = new Map(m); c.delete(s.id); return c; });
+    if (abierta === s.id) setAbierta(null);
+    setPorEliminar(null);
+    setAviso(t("Request deleted.", "Solicitud eliminada."));
   };
 
   const fecha = (iso: string) => new Date(iso).toLocaleString(lang === "es" ? "es-MX" : "en-US");
@@ -166,6 +196,13 @@ export default function MisSolicitudesPage() {
               <button className="btn btn-ghost btn-sm" onClick={() => { setAbierta(abiertaEsta ? null : s.id); if (!abiertaEsta) setSinLeer((m) => { const c = new Map(m); c.delete(s.id); return c; }); }}>
                 {abiertaEsta ? t("Hide", "Ocultar") : t("Open", "Abrir")}
               </button>
+              {/* Eliminar (262, D-904), en cualquier estado. Sin la 262 aplicada no hay a qué llamar: no se enseña. */}
+              {sePuedeEliminar(s) && (
+                <button className="btn btn-ghost btn-sm" data-eliminar-solicitud title={t("Delete this request", "Eliminar esta solicitud")}
+                  onClick={() => { setErrorAlEliminar(null); setPorEliminar(s); }}>
+                  🗑 {t("Delete", "Eliminar")}
+                </button>
+              )}
             </div>
             {abiertaEsta && yo && (
               <HiloDeAyuda
@@ -179,6 +216,11 @@ export default function MisSolicitudesPage() {
           </div>
         );
       })}
+
+      {porEliminar && (
+        <ConfirmarEliminarSolicitud solicitud={porEliminar} ocupado={eliminando} error={errorAlEliminar}
+          onCancelar={cierraElModal} onConfirmar={() => void elimina()} />
+      )}
     </>
   );
 }
