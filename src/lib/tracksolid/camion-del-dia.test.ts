@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { camionesDelDia, fechaValida, peticionValida, planDeCamion, puedeVerPosicionDeChoferes, repartoParaElMapa, type CamionDeUnDia, type CamionHabitual, type PasoDeCamion } from "./camion-del-dia";
 
-/** Qué camión lleva cada chofer cada día (D-NEXT): el habitual de Ajustes, la excepción del día y la regla de «un camión, un chofer». */
+/** Qué camión lleva cada chofer cada día (D-903): el habitual de Ajustes, la excepción del día y la regla de «un camión, un chofer». */
 
 const T1 = "111111111111111", T2 = "222222222222222", T3 = "333333333333333";
 const ANA = "aaaaaaaa-0000-4000-8000-000000000001", LUIS = "aaaaaaaa-0000-4000-8000-000000000002", EVA = "aaaaaaaa-0000-4000-8000-000000000003";

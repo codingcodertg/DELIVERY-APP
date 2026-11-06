@@ -12,7 +12,7 @@ import { todayISO } from "@/lib/utils";
 import type { UserRole } from "@/lib/types";
 
 // ============================================================
-// /api/tracksolid/assignments — qué camión lleva cada chofer un día, y dónde está ese camión (D-NEXT).
+// /api/tracksolid/assignments — qué camión lleva cada chofer un día, y dónde está ese camión (D-903).
 //
 // GET ?date=YYYY-MM-DD[&live=1]
 //   Quién: cualquiera con el módulo de Entregas. Qué ve cada uno:

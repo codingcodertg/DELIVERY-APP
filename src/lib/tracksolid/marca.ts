@@ -61,7 +61,7 @@ export function etiquetaHtmlDelCamion(c: Pick<TruckMarker, "etiqueta" | "estado"
 }
 
 /**
- * La tarjeta de un chofer que hoy lleva camión (D-NEXT): se abre en el sitio al tocar su marca redonda. Dice qué camión,
+ * La tarjeta de un chofer que hoy lleva camión (D-903): se abre en el sitio al tocar su marca redonda. Dice qué camión,
  * qué fuente se está usando (teléfono o rastreador) con la edad de cada una, y —si llevan un rato separados— el aviso.
  */
 export function tarjetaDelChoferConCamion(c: { titulo: string; lineas: string[]; aviso?: string | null }): string {

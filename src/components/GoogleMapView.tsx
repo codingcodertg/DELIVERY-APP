@@ -61,7 +61,7 @@ function truckIcon(color: string, stale?: boolean, aviso?: boolean): string {
     `<g opacity="${stale ? 0.75 : 1}">` +
     `<circle cx="18" cy="18" r="14" fill="${fill}" stroke="#fff" stroke-width="3"/>` +
     `<text x="18" y="24" text-anchor="middle" font-size="16"${stale ? ' opacity="0.65"' : ""}>🚚</text></g>` +
-    // D-NEXT: teléfono y camión llevan un rato separados — un punto ámbar, discreto, en la esquina.
+    // D-903: teléfono y camión llevan un rato separados — un punto ámbar, discreto, en la esquina.
     (aviso ? `<circle cx="29" cy="7" r="6" fill="#f59e0b" stroke="#fff" stroke-width="2"/><text x="29" y="10.5" text-anchor="middle" font-family="sans-serif" font-size="9" font-weight="700" fill="#fff">!</text>` : "") +
     `</svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
@@ -397,7 +397,7 @@ export function GoogleMapView({
       if (!it) {
         it = { marker: new maps.Marker({ map, position: pos, title: d.label ?? d.driver, zIndex: 1500, icon: { url: icon, anchor: new maps.Point(18, 18) } }), circle: null, icon, tarjeta };
         const nuevo = it;
-        // D-NEXT: con camión hoy, la marca abre su tarjeta en el sitio (sin camión no hay tarjeta y no pasa nada).
+        // D-903: con camión hoy, la marca abre su tarjeta en el sitio (sin camión no hay tarjeta y no pasa nada).
         nuevo.marker.addListener("click", () => {
           if (!nuevo.tarjeta) return;
           if (!liveInfoRef.current) {

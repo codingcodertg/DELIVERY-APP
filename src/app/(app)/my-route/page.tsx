@@ -445,7 +445,7 @@ export default function MyRoutePage() {
       <div className="page-head">
         <h2>🧭 {t("My route", "Mi ruta")}</h2>
         <span className="hint">{fmtDate(dia)}</span>
-        {/* D-NEXT: el camión que lleva ese día (el habitual de Ajustes, o el que le puso quien planifica). Solo se lee. */}
+        {/* D-903: el camión que lleva ese día (el habitual de Ajustes, o el que le puso quien planifica). Solo se lee. */}
         {camionDeEseDia && <span className="sema" data-mi-camion title={t("Your truck for this day", "Su camión de este día")} style={{ border: "1px solid var(--line)" }}>🚛 {camionDeEseDia}</span>}
         {/* D-881: «Texto grande», encendido por defecto para el chofer; aquí lo apaga (o el admin, en su columna de teléfono). */}
         {(me.role === "driver" || ajeno) && <InterruptorTextoGrande />}

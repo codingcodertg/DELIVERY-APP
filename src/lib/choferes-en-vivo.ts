@@ -25,7 +25,7 @@ export type ChoferEnVivo = {
   accuracy_m: number | null;
   /** Minutos desde el fijo, para que la pantalla lo diga y el mapa lo desvanezca. */
   ageMin: number;
-  /** D-NEXT: el chofer lleva camión hoy y esta posición sale de fundir su teléfono y el rastreador (`posicionesDeChoferes`). */
+  /** D-903: el chofer lleva camión hoy y esta posición sale de fundir su teléfono y el rastreador (`posicionesDeChoferes`). */
   fusion?: PosicionDeChofer["fusion"];
 };
 
@@ -38,7 +38,7 @@ export type ChoferEnVivo = {
  *
  * `ahora` entra por parámetro para poder probar la frontera sin esperar una hora.
  *
- * D-NEXT: las posiciones pueden venir ya fundidas con el rastreador del camión (`posicionesDeChoferes`): entran igual
+ * D-903: las posiciones pueden venir ya fundidas con el rastreador del camión (`posicionesDeChoferes`): entran igual
  * —una fila por chofer, la misma forma— y lo que dijo la fusión viaja en `fusion` para que la marca lo cuente.
  *
  * D-846: un chofer, UN camión — el de su posición más nueva —, aunque la lista traiga varias suyas (el dueño: «Solo
@@ -68,7 +68,7 @@ export function etiquetaEnVivo(c: ChoferEnVivo, t: (en: string, es: string) => s
 }
 
 /**
- * La marca lista para el mapa (D-NEXT): la etiqueta de siempre y, si el chofer lleva camión hoy, la tarjeta que se abre
+ * La marca lista para el mapa (D-903): la etiqueta de siempre y, si el chofer lleva camión hoy, la tarjeta que se abre
  * en el sitio al tocarla —qué camión, qué fuente se usa y la edad de cada una— y el aviso de «teléfono y camión
  * separados». Sin camión, exactamente lo de antes: solo la etiqueta.
  */

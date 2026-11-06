@@ -28,7 +28,7 @@ describe("D-832: recorrido del chofer", () => {
     expect(pagina).toContain("useState<string>(TODOS)");
     expect(pagina).toContain('data-bloque="choferes"');
     expect(pagina).toContain('.in("driver_id", idsDelDia)');
-    expect(pagina).toContain("choferesEnVivo(posicionesAhora, nameById, color)"); // D-NEXT: teléfono + rastreador del camión
+    expect(pagina).toContain("choferesEnVivo(posicionesAhora, nameById, color)"); // D-903: teléfono + rastreador del camión
     expect(pagina).toContain("onLineClick={(id) => { const chofer = id.split(\":\")[0];");
     expect(pagina).toContain("const ultima = dia.fixes[dia.fixes.length - 1];");
   });

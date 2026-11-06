@@ -50958,3 +50958,9 @@ Sello `deliveries` 1.555.0; repo 1.755.0.
 La pérdida solo suma las piezas dañadas; ningún paso avanza solo (siempre Siguiente); sin el selector de tienda repetido al final; Guardar borrador abajo; se quitan del formulario de merma el origen (interno/devolución) y el CRMA: la merma es siempre interna. Reportes viejos siguen mostrando sus datos. Migración 259.
 
 Sello `warehouse_ops` 0.4.0; repo 1.756.0.
+
+## D-903 · Entregas: camión del día por chofer y una sola posición (teléfono + rastreador)
+
+Cada chofer tiene su camión del día (por defecto el habitual; un camión no va con dos choferes el mismo día, se ofrece intercambio). Con camión asignado el mapa muestra un solo marcador con la mejor fuente entre teléfono y rastreador, dice cuál usa y avisa si llevan 3 min separados más de ~1 milla. Los camiones sin chofer ese día no se muestran (interruptor apagado por defecto). Las etiquetas flotantes de Leaflet pasan a texto. Migración 261.
+
+Sello `deliveries` 1.556.0; repo 1.757.0.

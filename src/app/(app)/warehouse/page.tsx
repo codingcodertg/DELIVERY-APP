@@ -38,7 +38,7 @@ const TABS = [
 export default function WarehousePage() {
   const { me, users, deliveries, settings, ready, realRole, events, setStage, notify, updateDelivery, addNote, reprogramarOrden } = useData();
   const { lang, t } = usePrefs();
-  // D-NEXT: el teléfono del chofer o el rastreador del camión que lleva hoy, lo mejor de los dos (`posicionesDeChoferes`).
+  // D-903: el teléfono del chofer o el rastreador del camión que lleva hoy, lo mejor de los dos (`posicionesDeChoferes`).
   const { posiciones: posicionesAhora } = usePosicionesDeChoferes(!!me);
   const confirmAction = useConfirm();
   // Las entregadas que recibió almacén (D-409), para la pastilla de la Ruta del día.

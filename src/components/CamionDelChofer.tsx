@@ -7,7 +7,7 @@ import type { CamionAsignado, CamionElegible, ConflictoDeCamion, ResultadoDeAsig
 type T = (en: string, es: string) => string;
 
 /**
- * «🚛 EDINBURG PETERBIL» en la cabecera de la ruta de un chofer (D-NEXT): el camión que lleva ESE día.
+ * «🚛 EDINBURG PETERBIL» en la cabecera de la ruta de un chofer (D-903): el camión que lleva ESE día.
  *
  * Quien planifica rutas lo pulsa y elige en una ventanita, en el sitio: su camión habitual (el de Ajustes), otro, o
  * «sin camión». Si el camión elegido lo lleva otro chofer ese día, no se pisa: se dice quién lo tiene y se ofrece

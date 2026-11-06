@@ -751,7 +751,7 @@ export default function RoutesPage() {
   // Drivers on shift AND reporting — drives the LIVE tag. Recomputed on the
   // same minute tick so the tag clears by itself when a phone goes quiet, not
   // only when a new position happens to arrive.
-  // D-NEXT: dónde está cada chofer AHORA, con la mejor fuente: su teléfono o el rastreador del camión que lleva hoy
+  // D-903: dónde está cada chofer AHORA, con la mejor fuente: su teléfono o el rastreador del camión que lleva hoy
   // (`posicionesDeChoferes`). Misma forma que `driverLocations`; sin TrackSolid es exactamente `driverLocations`.
   // El aviso de «no reporta» (`trackingIssues`, arriba) sigue mirando SOLO el teléfono: que el camión cubra el hueco no
   // quita que haya un teléfono callado que arreglar.
@@ -800,7 +800,7 @@ export default function RoutesPage() {
     setCapaCamiones(ver);
     try { window.localStorage.setItem(CLAVE_CAPA_CAMIONES, ver ? "1" : "0"); } catch { /* sin navegador */ }
   };
-  // El dueño, 2026-11-06 (D-NEXT): un camión que ese día no lleva ningún chofer está estacionado y en el mapa solo estorba.
+  // El dueño, 2026-11-06 (D-903): un camión que ese día no lleva ningún chofer está estacionado y en el mapa solo estorba.
   // Se pintan los ASIGNADOS ese día (`repartoParaElMapa`); los demás, solo con «sin asignar (N)», que nace apagado y no
   // se recuerda: cada vez que se abre el Gestor, el mapa vuelve limpio.
   const [verSinAsignar, setVerSinAsignar] = useState(false);
@@ -813,7 +813,7 @@ export default function RoutesPage() {
   const camionesEnMapa = useMemo<TruckMarker[]>(() => {
     if (!rastreadores.disponible || !capaCamiones) return SIN_CAMIONES_EN_MAPA;
     const ahora = Date.now();
-    // D-NEXT: UNA marca por «chofer + camión». El camión cuya posición ya está fundida en la marca redonda de su chofer
+    // D-903: UNA marca por «chofer + camión». El camión cuya posición ya está fundida en la marca redonda de su chofer
     // no se pinta otra vez como cuadrado. Y el nombre que lleva el cuadrado es el del chofer de HOY, no el habitual.
     const fundidos = new Set(liveDrivers.flatMap((d) => (d.fusion ? [d.fusion.camion.imei] : [])));
     return rastreadores.camiones.flatMap((crudo) => {
@@ -1304,7 +1304,7 @@ export default function RoutesPage() {
   );
   // En `colorDeChofer` (D-274): la leyenda lee el mismo color que se pinta. Sin chofer, el gris de siempre (`UNASSIGNED_COLOR`).
   const colorFor = (driver: string | null) => colorDeChofer(settings.driver_colors, driver);
-  /** El id del perfil de un chofer de verdad, por su nombre (las rutas van por nombre; los camiones, por id). D-NEXT. */
+  /** El id del perfil de un chofer de verdad, por su nombre (las rutas van por nombre; los camiones, por id). D-903. */
   const choferIdDe = (driver: string | null) => (driver ? users.find((x) => x.role === "driver" && x.full_name === driver)?.id ?? null : null);
   // A driver's own capacity, else the fleet-wide default, else the built-in.
   const capacityFor = (driver: string) => settings.driver_capacity?.[driver] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
@@ -3176,13 +3176,13 @@ export default function RoutesPage() {
               </label>
               {capaCamiones && (
                 <span className="hint" style={{ margin: 0 }} title={camionesSinSenal.map((c) => c.etiqueta).join("\n") || undefined}>
-                  {/* D-NEXT: cuentan también los camiones que ya van dentro de la marca de su chofer. */}
+                  {/* D-903: cuentan también los camiones que ya van dentro de la marca de su chofer. */}
                   {camionesEnMapa.length - camionesSinSenal.length + liveDrivers.filter((d) => d.fusion?.camionMin != null).length} {t("reporting", "reportando")}
                   {camionesSinSenal.length > 0 && <b style={{ color: "var(--red)" }}> · {camionesSinSenal.length} {t("no signal", "sin señal")}</b>}
                   {rastreadores.atrasado && <> · ⚠ {t("delayed", "con retraso")}</>}
                 </span>
               )}
-              {/* D-NEXT: los camiones sin chofer ese día no se pintan (estorban); aquí se piden. Apagado al entrar. */}
+              {/* D-903: los camiones sin chofer ese día no se pintan (estorban); aquí se piden. Apagado al entrar. */}
               {capaCamiones && repartoDeCamiones.sinAsignar.length > 0 && (
                 <label data-camiones-sin-asignar={verSinAsignar ? "si" : "no"} title={t("Trucks with no driver this day (parked). Their state is also in Settings → Trucks.", "Camiones sin chofer este día (estacionados). Su estado también está en Ajustes → Camiones.")}>
                   <input type="checkbox" checked={verSinAsignar} onChange={(e) => setVerSinAsignar(e.target.checked)} />
@@ -3505,7 +3505,7 @@ export default function RoutesPage() {
               </span>
               )}
               {needsDriver && <span className="sema" style={{ background: "var(--accent)", color: "#fff" }}>🧭 {t("route (no driver)", "ruta (sin chofer)")}</span>}
-              {/* «🚛 camión» (D-NEXT): el camión que este chofer lleva ESTE día. Quien planifica lo cambia aquí, en el sitio
+              {/* «🚛 camión» (D-903): el camión que este chofer lleva ESTE día. Quien planifica lo cambia aquí, en el sitio
                   (el servidor comprueba el permiso); los demás —el chofer en su ruta, «Ruta de hoy»— lo leen. */}
               {choferIdDe(u.driver) && camionesDelDia.disponible && (
                 <CamionDelChofer chofer={u.driver} driverId={choferIdDe(u.driver)!} asignado={camionesDelDia.asignaciones.find((a) => a.driverId === choferIdDe(u.driver))}

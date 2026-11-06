@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { todayISO } from "@/lib/utils";
 
 /**
- * /api/tracksolid/assignments (D-NEXT): quién puede ver y quién puede cambiar el camión de cada chofer.
+ * /api/tracksolid/assignments (D-903): quién puede ver y quién puede cambiar el camión de cada chofer.
  *
  * Supabase y TrackSolid son falsos: aquí no hay red (la lectura de posiciones sale de la «base», fresca, y la suite
  * falla si alguien llama fuera). Lo que se guarda: cambiar es de quien planifica rutas y se decide EN EL SERVIDOR; la

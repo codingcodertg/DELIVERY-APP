@@ -85,7 +85,7 @@ describe("la regla vive en un solo sitio", () => {
   it("las tres pantallas la importan, y ninguna se escribe la suya", () => {
     for (const p of pantallas) {
       const src = plano(leer(p));
-      // D-NEXT: lo que entra ya viene fundido con el rastreador del camión (`posicionesDeChoferes`), en la misma forma.
+      // D-903: lo que entra ya viene fundido con el rastreador del camión (`posicionesDeChoferes`), en la misma forma.
       expect(src, p).toContain("choferesEnVivo(posicionesAhora");
       // El corte de la hora escrito a mano era lo que había dos veces.
       expect(src, p).not.toContain("ageMin > 60");

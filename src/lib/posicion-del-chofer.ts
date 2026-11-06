@@ -3,7 +3,7 @@ import { estadoDelCamion, minutosDesde, type CamionDeTracksolid } from "@/lib/tr
 import { metrosEntre } from "@/lib/route-plan/llegadas";
 
 // ============================================================
-// UNA posición por chofer, de DOS fuentes: su teléfono y el rastreador de su camión (D-NEXT).
+// UNA posición por chofer, de DOS fuentes: su teléfono y el rastreador de su camión (D-903).
 //
 // El dueño: «give me the option to assign trucks to drivers so the phone and the truck support each other».
 // El teléfono se queda sin datos, sin batería o con la app cerrada; el rastreador del camión no depende de

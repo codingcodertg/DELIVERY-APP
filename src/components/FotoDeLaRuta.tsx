@@ -55,7 +55,7 @@ async function fotoDeLaTabla(tabla: HTMLElement): Promise<{ url: string; ancho: 
 
 export function FotoDeLaRuta({ chofer, camion, fecha, laneKey, stops, points, lines, color, onClose, t }: {
   chofer: string;
-  /** El camión que el chofer lleva ese día (D-NEXT), si tiene: va en la cabecera, junto a su nombre. */
+  /** El camión que el chofer lleva ese día (D-903), si tiene: va en la cabecera, junto a su nombre. */
   camion?: string | null;
   fecha: string;
   /** La ruta en el Gestor: su tabla lleva `data-tabla-de-la-ruta={laneKey}`. */

@@ -1,7 +1,7 @@
 import { IMEI_VALIDO } from "./servicio";
 
 // ============================================================
-// Qué camión lleva cada chofer CADA DÍA (D-NEXT). Sin React, sin red y sin base: solo la regla.
+// Qué camión lleva cada chofer CADA DÍA (D-903). Sin React, sin red y sin base: solo la regla.
 //
 // Dos pisos:
 //   · el camión HABITUAL de cada chofer — el enlace de Ajustes (`tracksolid_devices.driver_id`, 257);

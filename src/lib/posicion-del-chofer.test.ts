@@ -4,7 +4,7 @@ import { MINUTOS_PARA_AVISAR, posicionesDeChoferes, posicionFusionada, textoDeLa
 import type { DriverLocation } from "./types";
 
 /**
- * UNA posición por chofer, de su teléfono y del rastreador de su camión (D-NEXT). Aquí no hay red ni TrackSolid:
+ * UNA posición por chofer, de su teléfono y del rastreador de su camión (D-903). Aquí no hay red ni TrackSolid:
  * las dos fuentes son datos inventados y el reloj entra por parámetro.
  */
 

@@ -7,7 +7,7 @@ import { todayISO } from "@/lib/utils";
 import { REFRESCO_DE_CAMIONES_MS, tocaRefrescar } from "./useCamiones";
 
 // ============================================================
-// El camión de cada chofer un día, para una pantalla (D-NEXT). Habla con `/api/tracksolid/assignments`.
+// El camión de cada chofer un día, para una pantalla (D-903). Habla con `/api/tracksolid/assignments`.
 //
 //   · `useCamionDelDia(fecha)`            — qué camión lleva cada chofer ESE día, y cambiarlo (el selector
 //                                            de la cabecera de la ruta, la hoja PNG, «Mi ruta»).

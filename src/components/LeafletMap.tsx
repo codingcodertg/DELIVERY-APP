@@ -87,7 +87,7 @@ export interface LiveDriver {
   /** Minutes since the fix; a stale position is faded. */
   ageMin?: number;
   label?: string;
-  /** D-NEXT: el chofer lleva camión hoy. Al tocar la marca se abre esta tarjeta en el sitio (qué fuente se usa y la edad
+  /** D-903: el chofer lleva camión hoy. Al tocar la marca se abre esta tarjeta en el sitio (qué fuente se usa y la edad
    *  de cada una); con `aviso`, la marca lleva además un punto ámbar («teléfono y camión separados»). */
   tarjeta?: { titulo: string; lineas: string[]; aviso?: string | null };
 }
@@ -181,7 +181,7 @@ export function LeafletMap({
   const storeMarkersRef = useRef<Marker[]>([]);
   // Truck markers + accuracy halos, cleared and redrawn as fixes arrive.
   const liveLayerRef = useRef<{ remove: () => void }[]>([]);
-  /** D-NEXT: de qué chofer está abierta la tarjeta «chofer + camión», para reabrirla cuando sus marcas se rehacen. */
+  /** D-903: de qué chofer está abierta la tarjeta «chofer + camión», para reabrirla cuando sus marcas se rehacen. */
   const liveAbiertoRef = useRef<string | null>(null);
   const trucksRef = useRef(new Map<string, { marker: Marker; firma: string }>());
   const linesRef = useRef<Polyline[]>([]);
@@ -450,7 +450,7 @@ export function LeafletMap({
     (async () => {
       const L = (await import("leaflet")).default;
       if (cancelled || !mapRef.current) return;
-      // D-NEXT: las marcas se rehacen con cada posición; la tarjeta que estaba abierta se vuelve a abrir en la suya.
+      // D-903: las marcas se rehacen con cada posición; la tarjeta que estaba abierta se vuelve a abrir en la suya.
       const abierta = liveAbiertoRef.current;
       liveLayerRef.current.forEach((m) => m.remove());
       liveLayerRef.current = [];

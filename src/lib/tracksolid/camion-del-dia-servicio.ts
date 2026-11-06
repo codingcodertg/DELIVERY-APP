@@ -3,7 +3,7 @@ import type { CamionDeUnDia, CamionHabitual } from "./camion-del-dia";
 
 // ============================================================
 // Lo que la ruta `/api/tracksolid/assignments` lee de la base para saber qué camión lleva cada chofer un día
-// (D-NEXT). Solo servidor, con la llave de servicio: ni `tracksolid_devices` (257) ni `truck_day_assignments`
+// (D-903). Solo servidor, con la llave de servicio: ni `tracksolid_devices` (257) ni `truck_day_assignments`
 // (261) tienen políticas.
 // ============================================================
 
