@@ -32,18 +32,18 @@ describe("los dos cortes medidos el 2026-10-10", () => {
 });
 
 describe("dónde está la raya", () => {
-  it("justo en la gracia sigue; un milisegundo más para", () => {
+  it("justo en la gracia sigue; un milisegundo más abre fila nueva", () => {
     const en = accionDeEnergia({ evento: "resume", ahoraMs: T0 + GRACIA_DE_ENERGIA_MS, pausadoDesdeMs: T0, corriendo: true });
     const pasado = accionDeEnergia({ evento: "resume", ahoraMs: T0 + GRACIA_DE_ENERGIA_MS + 1, pausadoDesdeMs: T0, corriendo: true });
-    expect([en.tipo, pasado.tipo]).toEqual(["sigue", "para"]);
+    expect([en.tipo, pasado.tipo]).toEqual(["sigue", "fila-nueva"]);
   });
 
-  it("una suspensión de tres horas para Y declara las tres horas como tiempo fuera", () => {
+  it("una suspensión de tres horas abre fila nueva y declara las tres horas como tiempo fuera", () => {
     // Esto es lo que evita que el cierre pague el sueño: al volver de un `suspend` el reloj de
     // pared ha saltado, y `netSeconds` resta inactividad de `durationSeconds`.
     const tresHoras = 3 * 60 * 60_000;
     expect(accionDeEnergia({ evento: "resume", ahoraMs: T0 + tresHoras, pausadoDesdeMs: T0, corriendo: true }))
-      .toEqual({ tipo: "para", fueraSegundos: 10_800 });
+      .toEqual({ tipo: "fila-nueva", fueraSegundos: 10_800 });
   });
 });
 
@@ -83,21 +83,56 @@ describe("lo que no debe pasar", () => {
   });
 });
 
+describe("2026-11-05: despertar ya no para el reloj", () => {
+  // Kernel-Power 506/507 en la laptop del dueño, hora de Chicago.
+  const dia = (h: number, m: number, sec: number) => Date.UTC(2026, 10, 5, h + 6, m, sec);
+
+  it("standby 14:20:52–14:27:04: sigue en fila nueva, no para", () => {
+    const a = accionDeEnergia({ evento: "resume", ahoraMs: dia(14, 27, 4), pausadoDesdeMs: dia(14, 20, 52), corriendo: true });
+    expect(a).toEqual({ tipo: "fila-nueva", fueraSegundos: 372 });
+  });
+
+  it("standby 16:32:55–18:09:19: sigue en fila nueva, y ninguna acción es «para»", () => {
+    const a = accionDeEnergia({ evento: "resume", ahoraMs: dia(18, 9, 19), pausadoDesdeMs: dia(16, 32, 55), corriendo: true });
+    expect(a.tipo).toBe("fila-nueva");
+    for (const evento of [...SE_VA, ...VUELVE]) {
+      for (const fuera of [0, 1_000, GRACIA_DE_ENERGIA_MS + 1, 10 * 60 * 60_000]) {
+        const r = accionDeEnergia({ evento, ahoraMs: T0 + fuera, pausadoDesdeMs: T0, corriendo: true });
+        expect(r.tipo).not.toBe("para");
+      }
+    }
+  });
+});
+
 describe("la pantalla lo usa, y ya no para a la primera", () => {
   it("el cronómetro decide con la función probada y suma el tiempo fuera a inactividad", () => {
     const p = leer("src/components/timetracker/Cronometro.tsx");
     expect(p).toContain("accionDeEnergia(");
-    // Lo que se arregló: antes el `lock-screen` llamaba a `stopRef.current()` en el mismo if.
     expect(p).not.toContain('if (reason !== "suspend" && reason !== "lock-screen") return;');
     const i = p.indexOf("accionDeEnergia(");
-    const tramo = p.slice(i, i + 900);
-    expect(tramo).toContain("idleRef.current += accion.fueraSegundos;");
-    // Sin jsdom no se puede renderizar el componente (vitest corre en `node`), así que lo que se
-    // fija es el texto del discriminador: con un `if (true)` ahí, «para» nunca pararía y ninguna
-    // prueba de la librería se enteraría — se comprobó con ese mutante exacto.
+    const tramo = p.slice(i, i + 1400);
     expect(tramo).toContain('if (accion.tipo === "sigue") {');
-    expect(tramo).toContain("stopRef.current()");
-    // Y que el camino de parar venga DESPUÉS del `return` del de seguir, no antes.
-    expect(tramo.indexOf("stopRef.current()")).toBeGreaterThan(tramo.indexOf('if (accion.tipo === "sigue") {'));
+    expect(tramo).toContain("idleRef.current += accion.fueraSegundos;");
+    // Lo que se arregló el 2026-11-05: el camino largo continúa, no para.
+    expect(tramo).toContain("continuarTrasDormirRef.current(accion.fueraSegundos)");
+    expect(tramo).not.toContain("stopRef.current()");
+  });
+
+  it("la continuación tras dormir arranca AHORA (el sueño no se paga) y se avisa en pantalla y en el sistema", () => {
+    const p = leer("src/components/timetracker/Cronometro.tsx");
+    const i = p.indexOf("function continuarTrasDormir(");
+    const f = p.slice(i, i + 1200);
+    expect(f).toContain("continuarEnFilaNueva(true)");
+    expect(f).toContain("avisoDeSistema(");
+    expect(f).toContain("marcarSinGuardar(");
+    expect(p).toContain("continuo: continuoRef.current && !desdeAhora");
+  });
+
+  it("un paro automático deja un aviso fijo hasta el próximo Start", () => {
+    const p = leer("src/components/timetracker/Cronometro.tsx");
+    expect(p).toContain("setParadoSolo(Date.now())");
+    expect(p).toContain('t("track.stoppedAuto"');
+    const s = p.indexOf("async function start()");
+    expect(p.slice(s, s + 1200)).toContain("setParadoSolo(null)");
   });
 });
