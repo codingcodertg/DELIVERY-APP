@@ -1,5 +1,7 @@
 "use client";
 
+import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion";
+import { contextoDelGestor } from "@/lib/ayuda-contextos";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { soloActivos } from "@/lib/baja";
 import { useData } from "@/lib/data-provider";
@@ -556,6 +558,11 @@ export default function RoutesPage() {
   const [poolFilter, setPoolFilter] = useState<ChipSinAsignar>("dia");
   // Lo mismo para la pestaña «Todas» (D-462): su buscador y su chip, aparte de los de «Sin asignar».
   const [busquedaDeTodas, setBusquedaDeTodas] = useState("");
+  // Lo que una solicitud de ayuda dirá de esta pantalla (D-NEXT): pestaña, chip, fecha y qué ventana hay abierta.
+  useContextoDeAyuda("gestor", contextoDelGestor({
+    pestana: tab, chip: poolFilter, fecha: date, todasLasFechas: allDates, vistaEficiente: vista === "eficiente", soloLectura,
+    planAbierto, incidenciasAbiertas, repartoAbierto, seleccionadas: selectedOrders.size,
+  }));
   // «Todas» ya no tiene chips (D-542): siempre las del día.
   const chipDeTodas: ChipSinAsignar = "dia";
   // Cached pickup→dropoff geometry for selected unassigned loads (drawn on the map).

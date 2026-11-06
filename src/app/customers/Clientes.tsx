@@ -1,5 +1,7 @@
 "use client";
 
+import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion";
+import { contextoDeClientes } from "@/lib/ayuda-contextos";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
@@ -137,6 +139,12 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
   const puedeCrear = puedeEditar || puedeDarDeAlta;
   const [borradores, setBorradores] = useState<BorradorGuardado[]>([]);
   const [verBorradores, setVerBorradores] = useState(false);
+  // Lo que una solicitud de ayuda dirá de esta pantalla (D-NEXT). Del cliente, solo el nombre de la cuenta.
+  useContextoDeAyuda("clientes", contextoDeClientes({
+    ficha: ficha?.tipo === "ver" ? { tipo: "ver", cuenta: ficha.cliente.account, editar: ficha.editar } : ficha ? { tipo: "nuevo" } : null,
+    solicitudes: verSolicitudes, borradores: verBorradores, pidiendoVendedorPara: pidiendo?.account ?? null,
+    buscando: !!filtro.busca?.trim(), elegidos: elegidos.size,
+  }));
   const releeBorradores = useCallback(() => {
     if (!puedeCrear) return;
     setBorradores(leeBorradores(() => window.localStorage, userId));

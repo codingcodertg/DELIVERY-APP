@@ -1,5 +1,7 @@
 "use client";
 
+import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion";
+import { contextoDeOrden } from "@/lib/ayuda-contextos";
 import { lugarDeLaDireccion, lugaresParaEntregarEn } from "@/lib/entregar-en-tienda";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/data-provider";
@@ -198,6 +200,8 @@ export function OrderModal({
   const alcance: AlcanceDeEdicion = alcanceDeEdicion({ rol: me.role, miId: me.id, orden: existing });
   const editable = isNew || (startEditing && alcance !== "nada");
   const [editing, setEditing] = useState(editable);
+  // Una solicitud de ayuda mandada con esta ficha abierta dice de qué orden es (D-NEXT), la abra la pantalla que la abra.
+  useContextoDeAyuda("ficha-de-orden", [contextoDeOrden(existing, editing && !isNew)], { encima: true });
   // «Caso especial: entregar en domingo» (D-658): la casilla y el motivo del aviso de fecha. Solo cuentan para oficina,
   // gerente y admin (`problemaAlAgendar`); tras guardar, la nota al historial (`anotaDomingo`).
   const [casoDomingo, setCasoDomingo] = useState<CasoEspecial>(SIN_CASO_ESPECIAL);

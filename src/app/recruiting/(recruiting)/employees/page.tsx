@@ -1,5 +1,7 @@
 "use client";
 
+import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion";
+import { contextoDeExpedientes } from "@/lib/ayuda-contextos";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
@@ -90,6 +92,11 @@ export default function EmployeeFilesPage() {
   // `me.role` es el rol de RR. HH. (el layout del módulo lo monta así). La barrera de verdad está
   // en las acciones de servidor; esto es para no ofrecer un botón que va a fallar.
   const puedeBaja = puedeDarDeBaja(me?.role);
+  // Lo que una solicitud de ayuda dirá de esta pantalla (D-NEXT): qué lista se ve y de quién es el expediente abierto.
+  useContextoDeAyuda("expedientes", contextoDeExpedientes({
+    estado, buscando: !!buscar.trim(), abierto: abierto ? rows.find((r) => r.id === abierto)?.full_name?.trim() || null : null,
+    dialogo: agregando ? "agregar" : baja ? "baja" : reactivar ? "reactivar" : amonestar ? "amonestar" : queFalta ? "que-falta" : null,
+  }));
 
   const load = useCallback(async () => {
     const r = await listEmployeeFiles();

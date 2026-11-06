@@ -3,6 +3,8 @@ import { CUBO_DE_ADJUNTOS, rutaDeAdjunto } from "@/lib/help-attachments";
 import type { ContactoDeAyuda } from "@/lib/ayuda-flotante";
 import { ROLE_INFO, roleLabel } from "@/lib/constants";
 import type { UserRole } from "@/lib/types";
+import { contextoDeAyuda, dispositivoDeEsteNavegador, ubicacionDeAyuda, type Bilingue, type DispositivoDeAyuda } from "@/lib/ayuda-ubicacion";
+import { RUTA_DEL_ESTADO, suplantacionDelEstado } from "@/lib/suplantacion-en-burbuja";
 
 /**
  * Subir adjuntos y mandar una solicitud de ayuda, en un solo sitio (D-311).
@@ -41,6 +43,31 @@ export type ResultadoDeSolicitud =
   | { tipo: "fallo" }
   | { tipo: "red" };
 
+/**
+ * ¿Está el admin dentro de «Cambiar usuario»? El nombre de la persona en la que entró, o `null`. Se pregunta al mandar:
+ * dentro de una suplantación la sesión ES la de esa persona, y sin decirlo la solicitud parecería suya.
+ */
+async function enQuienEstoy(): Promise<string | null> {
+  try {
+    const res = await fetch(RUTA_DEL_ESTADO);
+    return suplantacionDelEstado(await res.json(), null)?.como ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Lo que la persona tenía delante, recogido en el momento de mandar (D-NEXT): la ruta con sus parámetros, lo que la
+ * pantalla haya publicado (`useContextoDeAyuda`), si está en «Cambiar usuario», y el aparato. Nada de esto puede tumbar
+ * el envío: si algo falla, la solicitud sale con lo que haya.
+ */
+export async function ubicacionAlMandar(pagina: string): Promise<{ ubicacion: Bilingue; dispositivo: DispositivoDeAyuda | null }> {
+  // Los parámetros de la URL solo si la ruta que se manda es la que se está viendo.
+  const consulta = typeof window !== "undefined" && window.location.pathname === pagina ? window.location.search : "";
+  const ubicacion = ubicacionDeAyuda({ pagina: `${pagina}${consulta}`, contexto: contextoDeAyuda(), suplantando: await enQuienEstoy() });
+  return { ubicacion, dispositivo: dispositivoDeEsteNavegador() };
+}
+
 export async function enviaSolicitudDeAyuda(args: {
   userId: string; message: string; ficheros: readonly File[]; page: string;
   senderName: string | null; role: string; appVersion: string; lang: string;
@@ -48,12 +75,14 @@ export async function enviaSolicitudDeAyuda(args: {
   try {
     const subida = await subeAdjuntosDeAyuda(args.userId, args.ficheros);
     if ("fallo" in subida) return { tipo: "subida", fichero: subida.fallo };
+    const { ubicacion, dispositivo } = await ubicacionAlMandar(args.page);
     const res = await fetch("/api/help", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: args.message, page: args.page, senderName: args.senderName,
         role: args.role, appVersion: args.appVersion, lang: args.lang, archivos: subida.subidos,
+        ubicacion, dispositivo,
       }),
     });
     const b = await res.json().catch(() => ({}));

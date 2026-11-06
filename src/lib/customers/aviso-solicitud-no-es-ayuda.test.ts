@@ -39,7 +39,7 @@ describe("una solicitud de cliente nuevo no llega como solicitud de ayuda", () =
     expect(ruta).toContain("s.requested_by !== auth.user.id");
   });
   it("la ayuda de verdad sigue igual", () => {
-    expect(leer("src/app/api/help/route.ts")).toContain("const subject = `Help request from ${who}${roleLabel}`;");
+    expect(leer("src/app/api/help/route.ts")).toContain("const subject = `Help request from ${who}${roleLabel}");   // desde D-NEXT sigue con «— dónde estaba»
   });
   it("la 251 cambia solo el texto en español del alta, sobre la función de la 250, y lleva su registro", () => {
     const sql = leer("supabase/migrations/251_aviso_solicitud_de_cliente_nuevo.sql");

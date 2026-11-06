@@ -1,5 +1,7 @@
 "use client";
 
+import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion";
+import { contextoDelEstimador } from "@/lib/ayuda-contextos";
 import type { UserRole } from "@/lib/types";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -506,6 +508,11 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   // D-796: el idioma de la hoja. De entrada, el del usuario; se cambia en la vista previa, con la hoja a la vista.
   const [idiomaElegido, setIdiomaElegido] = useState<IdiomaDeLaHoja | null>(null);
   const idiomaDeLaHoja: IdiomaDeLaHoja = idiomaElegido ?? (lang === "es" ? "es" : "en");
+  // Lo que una solicitud de ayuda dirá de esta pantalla (D-NEXT): pestaña, qué cotización (su número) y qué hay abierto.
+  useContextoDeAyuda("estimador", contextoDelEstimador({
+    pestana, numero: draft.estimate_num?.trim() || null, guardada: quoteId !== null, lineas: draft.lines.length,
+    vistaPrevia, politicaAbierta, desdeLead: leadId !== null,
+  }));
   const hoja = useMemo(() => hojaDelCliente(draft, tiendaHoja, idiomaDeLaHoja), [draft, tiendaHoja, idiomaDeLaHoja]);
   // Las líneas propias, para ponerlas al lado de las del competidor que el vendedor empareje. Nunca van a la hoja.
   const propias = useMemo(() => lineasPropias(draft.lines), [draft.lines]);

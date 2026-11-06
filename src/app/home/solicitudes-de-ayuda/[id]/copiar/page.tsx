@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { CUBO_DE_ADJUNTOS, type FicheroAdjunto } from "@/lib/help-attachments";
-import type { SolicitudDeAyuda } from "@/lib/help-requests";
+import { leeConUbicacion, type SolicitudDeAyuda } from "@/lib/help-requests";
 import { hiloCompleto, RUTA_SOLICITUDES_ADMIN, type MensajeDeAyuda } from "@/lib/help-thread";
 import {
   documentosDelHilo, esIdDeSolicitud, htmlParaClaude, imagenesDelHilo, nombreDeDescarga, textoParaClaude,
@@ -26,8 +26,6 @@ import {
  * Aquí queda lo que no se puede medir en vitest: el portapapeles, el lienzo y la descarga.
  */
 
-const COLUMNAS =
-  "id, created_at, user_id, sender_name, sender_email, role_label, page, app_version, lang, message, files, email_to, email_ok, email_error, status, attended_by, attended_at";
 
 type Captura = {
   adjunto: FicheroAdjunto;
@@ -104,14 +102,14 @@ export default function CopiarParaClaudePage() {
     void (async () => {
       const supabase = createClient();
       const [{ data: s, error: e1 }, { data: ms }] = await Promise.all([
-        supabase.from("help_requests").select(COLUMNAS).eq("id", id).maybeSingle(),
+        leeConUbicacion((columnas) => supabase.from("help_requests").select(columnas).eq("id", id).maybeSingle()),
         supabase.from("help_messages").select("id, request_id, author_id, author_name, body, files, created_at")
           .eq("request_id", id).order("created_at", { ascending: true }),
       ]);
       if (!vivo) return;
       if (e1) { setError({ texto: e1.message }); return; }
       if (!s) { setError("nada"); return; }
-      setSolicitud(s as SolicitudDeAyuda);
+      setSolicitud(s as unknown as SolicitudDeAyuda);
       setMensajes((ms ?? []) as MensajeDeAyuda[]);
     })();
     return () => { vivo = false; };

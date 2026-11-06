@@ -1,5 +1,7 @@
 "use client";
 
+import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion";
+import { contextoDeEntregas } from "@/lib/ayuda-contextos";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useData } from "@/lib/data-provider";
@@ -481,6 +483,12 @@ export default function OrdersPage() {
     () => filasDeOrdenes(listas, view === "board" ? PASTILLA_TODAS : filter, pasaElPreset, settings.order_type_rules ?? {}),
     [listas, filter, view, pasaElPreset, settings.order_type_rules],
   );
+
+  // Lo que una solicitud de ayuda dirá de esta pantalla (D-NEXT): vista, fechas, etapa, y qué hay abierto encima. La
+  // ficha de la orden se nombra sola (`OrderModal`).
+  useContextoDeAyuda("entregas", contextoDeEntregas({
+    etapa: filter, preset, vista: view, buscando: !!q.trim(), seleccionadas: selected.size, importando: importing, columnasAbiertas: showCols,
+  }));
 
   const presets: { id: Preset; en: string; es: string }[] = [
     { id: "all", en: "All", es: "Todas" },
