@@ -12,7 +12,7 @@ import {
   mapsUrl, negativaTexto, notaLimpia, numero, ordenar, poolInicial, poolLabel, poolsDe, puedeTomar, puestosLibres, RESULTADOS,
   POOL_TODAS, filtroDePool, resumenDeTodas,
   resultadoLabel, sinTocar, SITUACIONES, situacionLabel, tableroPorVendedor, telUrl, valoresDe, veContacto, ventasDe, NOTA_MAX,
-  coincideConCliente, esPrivado,
+  coincideConCliente, esPrivado, accionLabel, accionTono, pasaAccion, TIPOS_DE_ACCION, type TipoDeAccion,
   ORDEN_INICIAL, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, type Resultado, type Situacion, type Vista,
 } from "@/lib/leads/reglas";
 import { cotizacionesPorLead, enlaceACotizacion, enlaceACotizar, idDeParametro, puedeCotizarLead, type CotizacionDeLead } from "@/lib/leads/cotizar";
@@ -68,6 +68,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   // D-798 (el dueño): «todas las categorías que sea default». Antes, «Sirve + podría servir».
   const [categoria, setCategoria] = useState<FiltroCategoria>("todas");
   const [situacion, setSituacion] = useState<Situacion | "">("");
+  const [accionFiltro, setAccionFiltro] = useState<TipoDeAccion | "sin" | "">("");
   const [tipo, setTipo] = useState("");
   const [ciudad, setCiudad] = useState("");
   const [busca, setBusca] = useState("");
@@ -135,7 +136,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   // D-798: los filtros como al entrar; también con el botón «Quitar filtros» (el dueño: «un botón de reset filters para
   // que muestre todo»). El orden no es un filtro y se queda.
   const limpiaFiltros = () => {
-    setVista("libres"); setCategoria("todas"); setSituacion(""); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false);
+    setVista("libres"); setCategoria("todas"); setSituacion(""); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false); setAccionFiltro("");
   };
   const cambiaPestana = (p: Pestana) => {
     setPestana(p);
@@ -162,10 +163,10 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro || cruzadoDeMiTienda(l)), [delBanco, poolFiltro, cruzadoDeMiTienda]);
   const porSituacion = useMemo(() => cuentaPorSituacion(delPool), [delPool]);
   const visibles = useMemo(
-    () => ordenar(filtrar(delBanco, { pool: poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra }), orden),
-    [delBanco, poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra, orden],
+    () => ordenar(filtrar(delBanco, { pool: poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra, accion: accionFiltro }), orden),
+    [delBanco, poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra, accionFiltro, orden],
   );
-  useEffect(() => { setCuantos(TANDA); }, [pool, vista, categoria, tipo, ciudad, busca, situacion, coinciden, orden]);
+  useEffect(() => { setCuantos(TANDA); }, [pool, vista, categoria, tipo, ciudad, busca, situacion, coinciden, accionFiltro, orden]);
 
   if (!yo) return <div className="ld-wrap leads-app"><p className="hint">{t("No session.", "Sin sesión.")}</p></div>;
 
@@ -371,6 +372,10 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                     </select>
                   </label>
                   <label>
+                    {t("Last action", "Última acción")}
+                    <SelectAccion valor={accionFiltro} onCambia={setAccionFiltro} />
+                  </label>
+                  <label>
                     {t("Sort by", "Ordenar por")}
                     <select data-orden value={orden} onChange={(e) => setOrden(e.target.value as Orden)}>
                       <option value="pies">{t("Square feet (largest first)", "Pies² (lo más grande)")}</option>
@@ -444,7 +449,13 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                   <span>{t("Nothing is held in your name yet; a lead you take shows up here.", "Todavía no tienes nada a tu nombre; el lead que tomes sale aquí.")}</span>
                 </div>
               )}
-              <div className="ld-lista" data-lista-mia>{ordenar(mios, "distancia").map((l) => tarjeta(l, "mio"))}</div>
+              {mios.length > 0 && (
+                <label className="ld-filtro-accion">
+                  {t("Last action", "Última acción")}
+                  <SelectAccion valor={accionFiltro} onCambia={setAccionFiltro} />
+                </label>
+              )}
+              <div className="ld-lista" data-lista-mia>{ordenar(mios.filter((l) => pasaAccion(l, accionFiltro)), "distancia").map((l) => tarjeta(l, "mio"))}</div>
               {misVentas.length > 0 && (
                 <>
                   <h2 className="ld-h2">🏆 {t("My sales", "Mis ventas")} ({misVentas.length})</h2>
@@ -533,8 +544,11 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
           <span className="hint"> · {l.last_by_name ?? "—"} · {fecha(l.last_at)}</span>
         </p>
       )}
-      {l.follow_up_note && (mio || yo.admin) && (
-        <p className="ld-avance" data-avance>📝 {l.follow_up_note} <span className="hint">· {fecha(l.follow_up_at)}</span></p>
+      {(l.follow_up_note || l.follow_up_action) && (mio || yo.admin) && (
+        <p className="ld-avance" data-avance>
+          📝 {l.follow_up_action && <PildoraAccion a={l.follow_up_action} />}{l.follow_up_note ? <> {l.follow_up_note}</> : null}{" "}
+          <span className="hint">· {fecha(l.follow_up_at)}</span>
+        </p>
       )}
 
       <p className="ld-dir">
@@ -601,7 +615,7 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
           {historial?.length === 0 && <li className="hint">{t("No history yet.", "Sin historial todavía.")}</li>}
           {historial?.map((e) => (
             <li key={e.id}>
-              <b>{eventoLabel(e, lang)}</b> · {e.subject_name ?? e.actor_name ?? "—"} · {fecha(e.at)}
+              <b>{eventoLabel(e, lang)}</b>{e.action ? <> <PildoraAccion a={e.action} /></> : null} · {e.subject_name ?? e.actor_name ?? "—"} · {fecha(e.at)}
               {e.actor && e.subject && e.actor !== e.subject ? ` · ${t("by", "por")} ${e.actor_name ?? "—"}` : ""}
               {e.note ? <> — «{e.note}»</> : null}
             </li>
@@ -613,6 +627,24 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
 }
 
 /** D-763: la tarjeta del cliente con el que coincide un lead cruzado, dentro de Leads. Solo lectura. */
+/** 253: el filtro por la última acción (lista del banco y Mi pool). */
+function SelectAccion({ valor, onCambia }: { valor: TipoDeAccion | "sin" | ""; onCambia: (v: TipoDeAccion | "sin" | "") => void }) {
+  const { t, lang } = usePrefs();
+  return (
+    <select data-filtro-accion value={valor} onChange={(e) => onCambia(e.target.value as TipoDeAccion | "sin" | "")}>
+      <option value="">{t("All", "Todas")}</option>
+      {TIPOS_DE_ACCION.map((a) => <option key={a} value={a}>{accionLabel(a, lang)}</option>)}
+      <option value="sin">{t("No action yet", "Sin acción")}</option>
+    </select>
+  );
+}
+
+/** 253: el tipo de acción de una nota de avance, como píldora de color. Las notas viejas no tienen y no se pinta. */
+function PildoraAccion({ a }: { a: TipoDeAccion }) {
+  const { lang } = usePrefs();
+  return <span className={`ld-pildora ${accionTono(a)}`} data-pildora-accion={a}>{accionLabel(a, lang)}</span>;
+}
+
 function FichaCruzada({ dialogo, onCerrar }: { dialogo: Extract<Dialogo, { tipo: "cliente" }>; onCerrar: () => void }) {
   const { t } = usePrefs();
   const c = dialogo.cliente;
@@ -656,10 +688,13 @@ function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
   const l = dialogo.lead;
   const [nota, setNota] = useState("");
   const [resultado, setResultado] = useState<Resultado | null>(null);
+  const [accion, setAccion] = useState<TipoDeAccion | null>(null);
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [persona, setPersona] = useState("");
   const [enviando, setEnviando] = useState(false);
   const notaOk = notaLimpia(nota) !== null;
+  // 253 (ayuda e207d9ef): la nota de avance exige un tipo de acción; con tipo, el texto es opcional.
+  const avanceOk = accion !== null && nota.trim().length <= NOTA_MAX;
 
   useEffect(() => {
     if (dialogo.tipo !== "admin" || !admin) return;
@@ -690,12 +725,22 @@ function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
           </>
         )}
         {dialogo.tipo === "nota" && (
-          <p className="hint">
-            {t(
-              "Visited – following up. The lead stays open in your pool and keeps its slot.",
-              "Visitado – en seguimiento. El lead sigue abierto en tu pool y sigue ocupando su puesto.",
-            )}
-          </p>
+          <>
+            <p className="hint">
+              {t(
+                "What did you do? The lead stays open in your pool and keeps its slot.",
+                "¿Qué hiciste? El lead sigue abierto en tu pool y sigue ocupando su puesto.",
+              )}
+            </p>
+            <div className="ld-acciones" role="radiogroup" aria-label={t("Action type", "Tipo de acción")} data-acciones>
+              {TIPOS_DE_ACCION.map((a) => (
+                <button key={a} type="button" role="radio" aria-checked={accion === a} data-accion={a}
+                  className={`ld-pildora ${accionTono(a)}${accion === a ? " on" : ""}`} onClick={() => setAccion(a)}>
+                  {accionLabel(a, lang)}
+                </button>
+              ))}
+            </div>
+          </>
         )}
         {dialogo.tipo === "admin" && (
           <p className="hint">
@@ -703,15 +748,15 @@ function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
           </p>
         )}
         <label className="ld-nota">
-          {dialogo.tipo === "admin" ? t("Note (optional)", "Nota (opcional)") : t("Note (required)", "Nota (obligatoria)")}
+          {dialogo.tipo === "admin" || dialogo.tipo === "nota" ? t("Note (optional)", "Nota (opcional)") : t("Note (required)", "Nota (obligatoria)")}
           <textarea data-nota-texto value={nota} maxLength={NOTA_MAX} rows={4} onChange={(e) => setNota(e.target.value)}
             placeholder={t("What happened: who you spoke with, what they said, what is next…", "Qué pasó: con quién hablaste, qué dijeron, qué sigue…")} />
         </label>
         <div className="ld-botones">
           <button type="button" className="btn btn-ghost" data-cancelar onClick={onCerrar}>{t("Cancel", "Cancelar")}</button>
           {dialogo.tipo === "nota" && (
-            <button type="button" className="btn btn-primary" data-guardar disabled={enviando || !notaOk}
-              onClick={() => void enviar(() => almacen.anotar(l.id, nota), t("Note saved. The lead is still open.", "Nota guardada. El lead sigue abierto."))}>
+            <button type="button" className="btn btn-primary" data-guardar disabled={enviando || !avanceOk}
+              onClick={() => accion && void enviar(() => almacen.anotar(l.id, nota, accion), t("Note saved. The lead is still open.", "Nota guardada. El lead sigue abierto."))}>
               {t("Save note", "Guardar nota")}
             </button>
           )}

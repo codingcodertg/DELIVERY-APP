@@ -393,7 +393,7 @@ describe("11 · la pantalla usa las reglas probadas", () => {
     expect(p).toContain("{donde !== \"mio\" && l.status === \"free\" && (");
   });
   it("el banco se pinta filtrado y ordenado por las funciones, con «libres» y «sirve» de entrada, y en el pool de su tienda", () => {
-    expect(p).toContain("ordenar(filtrar(delBanco, { pool: poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra }), orden)");
+    expect(p).toContain("ordenar(filtrar(delBanco, { pool: poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra, accion: accionFiltro }), orden)");
     expect(p).toContain('useState<Vista>("libres")');
     expect(p).toContain('useState<FiltroCategoria>("todas")'); // D-798: todas por defecto
     // D-491: nace ordenado por pies², de mayor a menor.
@@ -424,9 +424,9 @@ describe("11 · la pantalla usa las reglas probadas", () => {
   it("cerrar y anotar exigen la nota antes de dejar pulsar, y van por el almacén", () => {
     expect(p).toContain("const notaOk = notaLimpia(nota) !== null;");
     expect(p).toContain("disabled={enviando || !notaOk || !resultado}");
-    expect(p).toContain("disabled={enviando || !notaOk}");
+    expect(p).toContain("disabled={enviando || !avanceOk}");
     expect(p).toContain("almacen.cerrar(l.id, resultado, nota)");
-    expect(p).toContain("almacen.anotar(l.id, nota)");
+    expect(p).toContain("almacen.anotar(l.id, nota, accion)");
     expect(p).toContain("almacen.tomar(l.id)");
     expect(p).toContain("{RESULTADOS.map((r) => (");
   });

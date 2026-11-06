@@ -204,6 +204,8 @@ describe("la 162", () => {
     for (const col of COLUMNAS.split(",").map((c) => c.trim())) {
       // D-760: las tres del cruce y la fuente vienen de la 218 (probadas en pool-privado.test.ts).
       if (["source", "customer_match_id", "customer_match_note"].includes(col)) continue;
+      // 253: el tipo de acción viene de la 253 (probado en tipo-de-accion.test.ts).
+      if (col === "follow_up_action") continue;
       expect(tabla, col).toMatch(new RegExp(`\\n  ${col}\\s`));
     }
   });

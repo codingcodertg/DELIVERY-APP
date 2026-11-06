@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { filtroActivos } from "@/lib/baja";
 import { ALCANCE_SIN_REGLA, alcanceDeLaBase, type Alcance } from "./alcance";
-import { negativaDeCodigo, TOPE_POR_DEFECTO, type EstadoLead, type Etiqueta, type EventoLead, type Lead, type Negativa, type Persona, type Resultado } from "./reglas";
+import { negativaDeCodigo, TOPE_POR_DEFECTO, type EstadoLead, type Etiqueta, type EventoLead, type Lead, type Negativa, type Persona, type Resultado, esTipoDeAccion, type TipoDeAccion } from "./reglas";
 
 /**
  * Dónde viven los leads: `public.leads`, `public.lead_events` y `public.lead_settings` (migración 162). Una interfaz
@@ -28,7 +28,8 @@ export interface AlmacenDeLeads {
   /** A quién se le puede asignar un lead: quien tiene el módulo, y los admins. */
   personas(): Promise<Res<Persona[]>>;
   tomar(leadId: string): Promise<Res<Lead>>;
-  anotar(leadId: string, nota: string): Promise<Res<Lead>>;
+  /** 253: con tipo de acción la nota es opcional. */
+  anotar(leadId: string, nota: string, accion?: TipoDeAccion | null): Promise<Res<Lead>>;
   cerrar(leadId: string, resultado: Resultado, nota: string): Promise<Res<Lead>>;
   liberar(leadId: string, nota: string): Promise<Res<Lead>>;
   asignar(leadId: string, persona: string, nota: string): Promise<Res<Lead>>;
@@ -71,7 +72,15 @@ export const COLUMNAS =
   "type_of_work, scope_of_work, square_footage, estimated_cost, est_start_date, est_completion_date, permit_status, " +
   "site_address, site_city, site_zip, owner_name, owner_phone, owner_contact, tenant_name, tenant_phone, " +
   "design_firm_name, design_firm_phone, tdlr_link, status, holder, holder_name, taken_at, touched_at, " +
-  "follow_up_note, follow_up_at, last_outcome, last_note, last_by, last_by_name, last_at, source, customer_match_id, customer_match_note";
+  "follow_up_note, follow_up_at, follow_up_action, last_outcome, last_note, last_by, last_by_name, last_at, source, customer_match_id, customer_match_note";
+
+/** Sin la 253 aplicada (el código llega antes): las mismas columnas sin el tipo de acción. */
+export const COLUMNAS_SIN_253 = COLUMNAS.replace(", follow_up_action", "");
+const EVENTO_COLUMNAS = "id, lead_id, at, kind, outcome, note, action, actor, actor_name, subject, subject_name";
+const EVENTO_COLUMNAS_SIN_253 = EVENTO_COLUMNAS.replace(", action", "");
+
+/** ¿Es «falta una columna» (la 253 no está aplicada)? 42703 de Postgres; PGRST204 de PostgREST. */
+export const faltaLaColumna = (error: { code?: string } | null | undefined): boolean => error?.code === "42703" || error?.code === "PGRST204";
 
 export const PAGINA = 1000;
 export const MAX_PAGINAS = 20;
@@ -102,6 +111,7 @@ export function leadDeLaBase(f: Record<string, unknown>): Lead {
     design_firm_name: texto(f.design_firm_name), design_firm_phone: texto(f.design_firm_phone), tdlr_link: texto(f.tdlr_link),
     status: estado, holder: texto(f.holder), holder_name: texto(f.holder_name), taken_at: texto(f.taken_at),
     touched_at: texto(f.touched_at), follow_up_note: texto(f.follow_up_note), follow_up_at: texto(f.follow_up_at),
+    follow_up_action: esTipoDeAccion(f.follow_up_action) ? f.follow_up_action : null,
     last_outcome: ETIQUETAS.find((e) => e === f.last_outcome) ?? null, last_note: texto(f.last_note),
     last_by: texto(f.last_by), last_by_name: texto(f.last_by_name), last_at: texto(f.last_at),
     // D-760 (218): sin la columna (base vieja) se lee como 'tdlr' y sin cliente.
@@ -113,7 +123,7 @@ export function leadDeLaBase(f: Record<string, unknown>): Lead {
 export function eventoDeLaBase(f: Record<string, unknown>): EventoLead {
   return {
     id: Number(f.id), lead_id: String(f.lead_id), at: String(f.at), kind: f.kind as EventoLead["kind"],
-    outcome: (texto(f.outcome) as Resultado | null), note: texto(f.note), actor: texto(f.actor),
+    outcome: (texto(f.outcome) as Resultado | null), note: texto(f.note), action: esTipoDeAccion(f.action) ? f.action : null, actor: texto(f.actor),
     actor_name: texto(f.actor_name), subject: texto(f.subject), subject_name: texto(f.subject_name),
   };
 }
@@ -133,11 +143,13 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
   };
   const eventos = async (filtro: { lead?: string; kind?: string }): Promise<Res<EventoLead[]>> => {
     const todos: EventoLead[] = [];
+    let columnas = EVENTO_COLUMNAS;
     for (let p = 0; p < MAX_PAGINAS; p++) {
-      let q = supabase.from("lead_events").select("id, lead_id, at, kind, outcome, note, actor, actor_name, subject, subject_name");
+      let q = supabase.from("lead_events").select(columnas);
       if (filtro.lead) q = q.eq("lead_id", filtro.lead);
       if (filtro.kind) q = q.eq("kind", filtro.kind);
       const { data, error } = await q.order("id", { ascending: true }).range(p * PAGINA, (p + 1) * PAGINA - 1);
+      if (error && faltaLaColumna(error) && columnas === EVENTO_COLUMNAS) { columnas = EVENTO_COLUMNAS_SIN_253; p--; continue; }
       if (error) return fallo(error);
       const filas = (data ?? []) as unknown as Record<string, unknown>[];
       todos.push(...filas.map(eventoDeLaBase));
@@ -155,9 +167,11 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
       if (mio.error && !faltaElAlcance(mio.error)) return fallo(mio.error);
       const alcance = mio.error ? ALCANCE_SIN_REGLA : alcanceDeLaBase(mio.data);
       const leads: Lead[] = [];
+      let columnas = COLUMNAS;
       for (let p = 0; p < MAX_PAGINAS; p++) {
-        const { data, error } = await supabase.from("leads").select(COLUMNAS)
+        const { data, error } = await supabase.from("leads").select(columnas)
           .order("tabs_project", { ascending: true }).range(p * PAGINA, (p + 1) * PAGINA - 1);
+        if (error && faltaLaColumna(error) && columnas === COLUMNAS) { columnas = COLUMNAS_SIN_253; p--; continue; }
         if (error) return fallo(error);
         const filas = (data ?? []) as unknown as Record<string, unknown>[];
         leads.push(...filas.map(leadDeLaBase));
@@ -196,7 +210,9 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
       };
     },
     tomar: (leadId) => llamar("lead_take", { p_lead: leadId }),
-    anotar: (leadId, nota) => llamar("lead_note", { p_lead: leadId, p_note: nota }),
+    // Sin tipo se llama a la de dos argumentos: funciona con y sin la 253 aplicada.
+    anotar: (leadId, nota, accion = null) =>
+      accion ? llamar("lead_note", { p_lead: leadId, p_note: nota, p_action: accion }) : llamar("lead_note", { p_lead: leadId, p_note: nota }),
     cerrar: (leadId, resultado, nota) => llamar("lead_close", { p_lead: leadId, p_outcome: resultado, p_note: nota }),
     liberar: (leadId, nota) => llamar("lead_admin_release", { p_lead: leadId, p_note: nota }),
     asignar: (leadId, persona, nota) => llamar("lead_admin_assign", { p_lead: leadId, p_user: persona, p_note: nota }),

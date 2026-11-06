@@ -86,7 +86,7 @@ export function leadsDemo(ahora: Date = new Date()): Lead[] {
   // Los índices 3, 7, 11… son del pool de Brownsville (la tienda de Ana); 0, 4, 8… de Edinburg (la de Beto).
   // Ana tiene 9 abiertos: con uno más llena su pool y el siguiente se le rechaza. Dos llevan semanas sin tocar.
   [0, 4, 1, 15, 19, 23, 27, 31, 35].forEach((i, k) => tomar(i, ana, k < 2 ? 21 + k : 2 + k));
-  leads[19] = { ...leads[19], follow_up_note: "Visité la obra; el contratista decide en dos semanas.", follow_up_at: hace(3), touched_at: hace(3) };
+  leads[19] = { ...leads[19], follow_up_note: "Visité la obra; el contratista decide en dos semanas.", follow_up_action: "appointment", follow_up_at: hace(3), touched_at: hace(3) };
   // Beto tiene 3 abiertos (uno en el pool de Brownsville, para que Ana lo vea bloqueado) y una venta allí mismo.
   tomar(8, beto, 5); tomar(12, beto, 1); tomar(39, beto, 3);
   leads[43] = { ...leads[43], status: "won", holder: beto.id, holder_name: beto.name, taken_at: hace(30), touched_at: hace(12), last_outcome: "sale", last_note: "Vendido: porcelanato para 2,400 sqft.", last_by: beto.id, last_by_name: beto.name, last_at: hace(12) };
@@ -158,12 +158,12 @@ export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
       apunta(l, "taken");
       return guarda(r.valor);
     },
-    async anotar(leadId, nota) {
+    async anotar(leadId, nota, accion = null) {
       const l = busca(leadId);
       if (!l) return no("no_existe");
-      const r = aplicarNota(l, quien(), nota, new Date().toISOString());
+      const r = aplicarNota(l, quien(), nota, new Date().toISOString(), accion);
       if (!r.ok) return no(r.motivo);
-      apunta(l, "progress", { note: r.valor.follow_up_note });
+      apunta(l, "progress", { note: r.valor.follow_up_note, action: r.valor.follow_up_action ?? null });
       return guarda(r.valor);
     },
     async cerrar(leadId, resultado: Resultado, nota) {
@@ -181,7 +181,7 @@ export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
         const ahora = new Date().toISOString();
         apunta(l, "released", { note: n, subject: l.holder, subject_name: l.holder_name });
         return guarda({
-          ...l, status: "free", holder: null, holder_name: null, taken_at: null, follow_up_note: null, follow_up_at: null, touched_at: ahora,
+          ...l, status: "free", holder: null, holder_name: null, taken_at: null, follow_up_note: null, follow_up_action: null, follow_up_at: null, touched_at: ahora,
           ...(n ? { last_outcome: "admin" as const, last_note: n, last_by: yo.id, last_by_name: yo.name, last_at: ahora } : {}),
         });
       });
@@ -192,13 +192,13 @@ export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
         if (!a) return no("dato_invalido");
         const ahora = new Date().toISOString();
         apunta(l, "assigned", { note: notaLimpia(nota), subject: a.id, subject_name: a.name });
-        return guarda({ ...l, status: "taken", holder: a.id, holder_name: a.name, taken_at: ahora, touched_at: ahora, follow_up_note: null, follow_up_at: null });
+        return guarda({ ...l, status: "taken", holder: a.id, holder_name: a.name, taken_at: ahora, touched_at: ahora, follow_up_note: null, follow_up_action: null, follow_up_at: null });
       });
     },
     async archivar(leadId, nota) {
       return soloAdmin(leadId, (l) => {
         apunta(l, "archived", { note: notaLimpia(nota), subject: l.holder, subject_name: l.holder_name });
-        return guarda({ ...l, status: "archived", holder: null, holder_name: null, taken_at: null, follow_up_note: null, follow_up_at: null, touched_at: new Date().toISOString() });
+        return guarda({ ...l, status: "archived", holder: null, holder_name: null, taken_at: null, follow_up_note: null, follow_up_action: null, follow_up_at: null, touched_at: new Date().toISOString() });
       });
     },
     async ponerTope(n) {
