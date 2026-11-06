@@ -3,6 +3,7 @@
 import { GoogleMapView } from "@/components/GoogleMapView";
 import { LeafletMap, type LiveDriver, type MapLine, type MapPoint, type StoreMarker } from "@/components/LeafletMap";
 import { googleMapsEnabled } from "@/lib/google-maps-loader";
+import type { TruckMarker } from "@/lib/tracksolid/marca";
 
 // ============================================================
 // The one map component the app uses.
@@ -13,7 +14,7 @@ import { googleMapsEnabled } from "@/lib/google-maps-loader";
 // an empty box.
 // ============================================================
 
-export type { LiveDriver, MapLine, MapPoint, StoreMarker };
+export type { LiveDriver, MapLine, MapPoint, StoreMarker, TruckMarker };
 
 export interface MapViewProps {
   points?: MapPoint[];
@@ -23,6 +24,8 @@ export interface MapViewProps {
   lines?: MapLine[];
   stores?: StoreMarker[];
   liveDrivers?: LiveDriver[];
+  /** Los camiones por su rastreador GPS (TrackSolid, D-NEXT). Solo el Gestor los pasa; no entran en el encuadre. */
+  trucks?: TruckMarker[];
   onPointClick?: (id: string) => void;
   onLineClick?: (id: string) => void;
   fitTo?: [number, number][];

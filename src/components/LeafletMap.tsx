@@ -7,6 +7,7 @@ import { colorZona, ESTILO_ZONA } from "@/lib/delivery-zone";
 import { centroInicial, encuadreFinal } from "@/lib/encuadre-del-mapa";
 import { casaDeTienda, dibujoTienda, estiloTienda, TIENDA_CLASICA, Z_CASITA_DESPACHO, type PapelTienda } from "@/lib/store-pins";
 import { unCamionPorChofer } from "@/lib/recorrido-contra-plan";
+import { etiquetaHtmlDelCamion, LADO_DEL_CAMION, svgDelCamion, tarjetaDelCamion, Z_CAMION, type TruckMarker } from "@/lib/tracksolid/marca";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type L = any;
@@ -109,12 +110,16 @@ export interface MapLine {
   encima?: boolean;
 }
 
+/** La misma lista vacía en cada render: sin ella, el efecto de los camiones correría siempre. */
+const SIN_CAMIONES: TruckMarker[] = [];
+
 export function LeafletMap({
   points = [],
   zone,
   lines = [],
   stores = [],
   liveDrivers = [],
+  trucks = SIN_CAMIONES,
   onPointClick,
   onLineClick,
   fitTo,
@@ -136,6 +141,8 @@ export function LeafletMap({
   stores?: StoreMarker[];
   /** Drivers currently on shift, drawn where their phone last reported. */
   liveDrivers?: LiveDriver[];
+  /** Los camiones por su rastreador GPS (TrackSolid, D-NEXT). */
+  trucks?: TruckMarker[];
   onPointClick?: (id: string) => void;
   /** Click a traced route — used to focus that route's driver. */
   onLineClick?: (id: string) => void;
@@ -163,6 +170,7 @@ export function LeafletMap({
   const storeMarkersRef = useRef<Marker[]>([]);
   // Truck markers + accuracy halos, cleared and redrawn as fixes arrive.
   const liveLayerRef = useRef<{ remove: () => void }[]>([]);
+  const trucksRef = useRef(new Map<string, { marker: Marker; firma: string }>());
   const linesRef = useRef<Polyline[]>([]);
   const zoneRef = useRef<LeafletPolygon | null>(null);
   // Polylines that need their sideways offset recomputed whenever the map is
@@ -181,6 +189,7 @@ export function LeafletMap({
   // Create the map once.
   useEffect(() => {
     let cancelled = false;
+    const camionesPintados = trucksRef.current;
     let map: LeafletMapInstance | null = null;
     (async () => {
       const L = (await import("leaflet")).default;
@@ -250,6 +259,7 @@ export function LeafletMap({
       hoverMarkerRef.current = null;
       map?.remove();
       mapRef.current = null;
+      camionesPintados.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -461,6 +471,40 @@ export function LeafletMap({
     })();
     return () => { cancelled = true; };
   }, [liveDrivers]);
+
+  // Los camiones de la empresa por su rastreador (TrackSolid, D-NEXT): cuadrado con 🚛, etiqueta debajo y, al tocarlo,
+  // su tarjeta en el sitio. Las marcas se MUEVEN de un refresco a otro (por IMEI), así la tarjeta abierta no se cierra.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const L = (await import("leaflet")).default;
+      if (cancelled || !mapRef.current) return;
+      const vistos = new Set<string>();
+      for (const c of trucks) {
+        vistos.add(c.id);
+        const firma = `${c.color}|${c.estado}|${c.etiqueta}`;
+        const icon = () => L.divIcon({
+          className: "",
+          html: `<div data-camion-tracksolid="${c.estado}" style="position:relative;width:${LADO_DEL_CAMION}px;height:${LADO_DEL_CAMION}px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))">${svgDelCamion(c.color, c.estado)}${etiquetaHtmlDelCamion(c)}</div>`,
+          iconSize: [LADO_DEL_CAMION, LADO_DEL_CAMION],
+          iconAnchor: [17, 19],
+        });
+        let it = trucksRef.current.get(c.id);
+        if (!it) {
+          const marker = L.marker([c.lat, c.lng], { icon: icon(), zIndexOffset: Z_CAMION }).addTo(mapRef.current!);
+          marker.bindPopup(tarjetaDelCamion(c), { autoPan: false });
+          it = { marker, firma };
+          trucksRef.current.set(c.id, it);
+        } else {
+          it.marker.setLatLng([c.lat, c.lng]);
+          if (it.firma !== firma) { it.marker.setIcon(icon()); it.firma = firma; }
+          it.marker.setPopupContent(tarjetaDelCamion(c));
+        }
+      }
+      for (const [k, it] of trucksRef.current) if (!vistos.has(k)) { it.marker.remove(); trucksRef.current.delete(k); }
+    })();
+    return () => { cancelled = true; };
+  }, [trucks]);
 
   // Keep the single "picked" marker in sync (manual pin picker mode).
   useEffect(() => {

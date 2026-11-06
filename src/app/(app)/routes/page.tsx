@@ -26,6 +26,9 @@ import { agendaEnDiaPasado, AVISO_FECHA_PASADA, minFechaDeEntrega } from "@/lib/
 import { maxFechaDeEntrega, problemaAlAgendar, textoDelProblema } from "@/lib/dia-de-entrega";
 import { pideConfirmarMediodia, preguntaSiEsParaHoy } from "@/lib/corte-de-ventas";
 import { colorDeChofer } from "@/lib/map-legend";
+import { COLOR_DE_CAMION_SIN_CHOFER, textoDelCamion } from "@/lib/tracksolid/camiones";
+import { useCamionesDeTracksolid } from "@/lib/tracksolid/useCamiones";
+import type { TruckMarker } from "@/lib/tracksolid/marca";
 import { antecedentesDeRutas } from "@/lib/route-plan/historia";
 import { useRutasDelDia } from "@/lib/usa-rutas-del-dia";
 import { rangoDeRutasDelDia } from "@/lib/rutas-del-dia";
@@ -105,6 +108,9 @@ import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConM
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { BotonDelCamion } from "@/components/BotonDelCamion";
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+/** La capa de camiones de TrackSolid (D-NEXT): la misma lista vacía siempre, y dónde recuerda el navegador si se apagó. */
+const SIN_CAMIONES_EN_MAPA: TruckMarker[] = [];
+const CLAVE_CAPA_CAMIONES = "rtg_capa_camiones";
 import type { Delivery, DriverIncident, Profile } from "@/lib/types";
 import { abanicoDeMarcas } from "@/lib/abanico-de-marcas";
 import { palletsDeLaOrden, sumaPallets } from "@/lib/pallets";
@@ -764,6 +770,32 @@ export default function RoutesPage() {
     return (miChofer == null ? todos.filter((c) => seVeElChofer(c.driver)) : soloLoMioPorChofer(todos, miChofer)).map((c) => ({ ...c, label: etiquetaEnVivo(c, t) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driverLocations, users, settings.driver_colors, veCamiones, miChofer, alcanceChoferes, choferesConParada]);
+
+  // Los camiones de la empresa por su rastreador GPS (TrackSolid, D-NEXT). Es OTRA fuente que los 🚚 de arriba: aquellos
+  // son el teléfono del chofer; estos, el aparato atornillado al camión, que sigue reportando aunque el chofer no fiche.
+  // Solo en la vista de planificación (no en «Ruta de hoy» ni en «Mi ruta»), y solo si la instalación tiene TrackSolid:
+  // si no, `disponible` es false y ni el interruptor se pinta. No entran en `fitTo`: no mueven el encuadre de las rutas.
+  const rastreadores = useCamionesDeTracksolid(!!me && !soloLectura && !soloElMapa && canPlanRoutes(me));
+  const [capaCamiones, setCapaCamiones] = useState(true);
+  useEffect(() => { try { if (window.localStorage.getItem(CLAVE_CAPA_CAMIONES) === "0") setCapaCamiones(false); } catch { /* sin navegador */ } }, []);
+  const alternaCapaCamiones = (ver: boolean) => {
+    setCapaCamiones(ver);
+    try { window.localStorage.setItem(CLAVE_CAPA_CAMIONES, ver ? "1" : "0"); } catch { /* sin navegador */ }
+  };
+  const camionesEnMapa = useMemo<TruckMarker[]>(() => {
+    if (!rastreadores.disponible || !capaCamiones) return SIN_CAMIONES_EN_MAPA;
+    const ahora = Date.now();
+    return rastreadores.camiones.flatMap((c) => {
+      if (c.lat == null || c.lng == null) return [];
+      const txt = textoDelCamion(c, ahora, t, lang);
+      // Enlazado en Ajustes: el color de la ruta de su chofer. Sin enlazar: pizarra, que no es de ninguna ruta.
+      const color = c.chofer ? colorDeChofer(settings.driver_colors, c.chofer) : COLOR_DE_CAMION_SIN_CHOFER;
+      return [{ id: c.imei, lat: c.lat, lng: c.lng, color, estado: txt.estado, etiqueta: txt.etiqueta, titulo: txt.titulo, lineas: txt.lineas }];
+    });
+    // `pulso` y `healthTick`: «hace X min» se recalcula cada minuto aunque no llegue nada nuevo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rastreadores.disponible, rastreadores.camiones, rastreadores.pulso, capaCamiones, settings.driver_colors, lang, healthTick]);
+  const camionesSinSenal = camionesEnMapa.filter((c) => c.estado === "stale");
 
   // D-707: el de baja no tiene carril propio; si aún tiene órdenes ese día sale como carril huérfano (carrilesDelDia).
   const todosLosChoferes = useMemo(() => users.filter((u) => u.role === "driver"), [users]);
@@ -3096,9 +3128,26 @@ export default function RoutesPage() {
             </>);
           }}
         />
-        <div className="card" data-mapa-del-gestor style={{ flex: "3 1 460px", margin: 0, padding: 0, overflow: "hidden" }}>
+        <div className="card" data-mapa-del-gestor style={{ flex: "3 1 460px", margin: 0, padding: 0, overflow: "hidden", position: "relative" }}>
+          {/* La capa de camiones de TrackSolid (D-NEXT): un interruptor flotando sobre el mapa, arriba a la derecha (la
+              esquina que ninguno de los dos mapas usa), para no quitarle alto al mapa ni mover la tabla de la ruta. */}
+          {rastreadores.disponible && (
+            <div className="capa-camiones" data-capa-camiones={capaCamiones ? "si" : "no"}>
+              <label>
+                <input type="checkbox" checked={capaCamiones} onChange={(e) => alternaCapaCamiones(e.target.checked)} />
+                🚛 {t("Trucks", "Camiones")}
+              </label>
+              {capaCamiones && (
+                <span className="hint" style={{ margin: 0 }} title={camionesSinSenal.map((c) => c.etiqueta).join("\n") || undefined}>
+                  {camionesEnMapa.length - camionesSinSenal.length} {t("reporting", "reportando")}
+                  {camionesSinSenal.length > 0 && <b style={{ color: "var(--red)" }}> · {camionesSinSenal.length} {t("no signal", "sin señal")}</b>}
+                  {rastreadores.atrasado && <> · ⚠ {t("delayed", "con retraso")}</>}
+                </span>
+              )}
+            </div>
+          )}
           {/* Más bajo en la eficiente (D-653), para que el mapa y la tabla de la ruta quepan juntos en una pantalla. */}
-          <MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))} onLineClick={onLineClick} fitTo={fitTo} height={eficiente ? "var(--alto-mapa-gestor-eficiente)" : "var(--alto-mapa-gestor)"} onPointClick={(id) => {
+          <MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))} trucks={camionesEnMapa} onLineClick={onLineClick} fitTo={fitTo} height={eficiente ? "var(--alto-mapa-gestor-eficiente)" : "var(--alto-mapa-gestor)"} onPointClick={(id) => {
             // Click any order pin (assigned or pool) to toggle its PU→DEL view.
             const d = dayOrders.find((x) => x.id === id);
             if (d) toggleOrder(d.id);

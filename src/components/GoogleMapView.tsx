@@ -7,6 +7,7 @@ import { casaDeTienda, dibujoTiendaUrl, estiloTienda, Z_CASITA_DESPACHO } from "
 import { centroInicial, encuadreFinal } from "@/lib/encuadre-del-mapa";
 import type { LiveDriver, MapLine, MapPoint, StoreMarker } from "@/components/LeafletMap";
 import { unCamionPorChofer } from "@/lib/recorrido-contra-plan";
+import { LADO_DEL_CAMION, svgDelCamion, tarjetaDelCamion, Z_CAMION, type TruckMarker } from "@/lib/tracksolid/marca";
 
 // ============================================================
 // The dispatch map, drawn with the Google Maps JavaScript API.
@@ -72,12 +73,16 @@ function dashSymbols(maps: typeof google.maps) {
   }];
 }
 
+/** La misma lista vacía en cada render: sin ella, el efecto de los camiones correría siempre. */
+const SIN_CAMIONES: TruckMarker[] = [];
+
 export function GoogleMapView({
   points = [],
   zone,
   lines = [],
   stores = [],
   liveDrivers = [],
+  trucks = SIN_CAMIONES,
   onPointClick,
   onLineClick,
   fitTo,
@@ -95,6 +100,8 @@ export function GoogleMapView({
   lines?: MapLine[];
   stores?: StoreMarker[];
   liveDrivers?: LiveDriver[];
+  /** Los camiones por su rastreador GPS (TrackSolid, D-NEXT). */
+  trucks?: TruckMarker[];
   onPointClick?: (id: string) => void;
   onLineClick?: (id: string) => void;
   fitTo?: [number, number][];
@@ -126,6 +133,9 @@ export function GoogleMapView({
   const pickMarkerRef = useRef<google.maps.Marker | null>(null);
   const hoverMarkerRef = useRef<google.maps.Marker | null>(null);
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
+  const trucksRef = useRef(new Map<string, { marker: google.maps.Marker; firma: string; tarjeta: string }>());
+  const truckInfoRef = useRef<google.maps.InfoWindow | null>(null);
+  const truckAbiertoRef = useRef<string | null>(null);
   const fitSigRef = useRef("");
 
   // Callbacks change every render; keep them in refs so listeners bound once
@@ -397,6 +407,50 @@ export function GoogleMapView({
     }
     for (const [k, it] of liveByDriverRef.current) if (!vistos.has(k)) { it.marker.setMap(null); it.circle?.setMap(null); liveByDriverRef.current.delete(k); }
   }, [liveDrivers, ready]);
+
+  // ---- Camiones por su rastreador (TrackSolid, D-NEXT) ----
+  // Se MUEVEN por IMEI (como los de arriba, D-837). Al tocar uno se abre su tarjeta en el sitio, y un refresco la
+  // actualiza sin cerrarla.
+  useEffect(() => {
+    const maps = mapsRef.current, map = mapRef.current;
+    if (!ready || !maps || !map) return;
+    if (!truckInfoRef.current) {
+      truckInfoRef.current = new maps.InfoWindow({ disableAutoPan: true });
+      truckInfoRef.current.addListener("closeclick", () => { truckAbiertoRef.current = null; });
+    }
+    const info = truckInfoRef.current;
+    const vistos = new Set<string>();
+    for (const c of trucks) {
+      vistos.add(c.id);
+      const firma = `${c.color}|${c.estado}`;
+      const pos = { lat: c.lat, lng: c.lng };
+      const icono = () => ({ url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svgDelCamion(c.color, c.estado))}`, anchor: new maps.Point(17, 19), labelOrigin: new maps.Point(17, LADO_DEL_CAMION + 8) });
+      const etiqueta = { text: c.etiqueta, className: "etiqueta-camion", fontSize: "11px", fontWeight: "700", color: c.estado === "stale" ? "#475569" : "#0f172a" };
+      const it = trucksRef.current.get(c.id);
+      if (!it) {
+        const marker = new maps.Marker({ map, position: pos, zIndex: Z_CAMION, icon: icono(), label: etiqueta });
+        const nuevo = { marker, firma, tarjeta: tarjetaDelCamion(c) };
+        marker.addListener("click", () => {
+          truckAbiertoRef.current = c.id;
+          info.setContent(nuevo.tarjeta);
+          info.open({ map, anchor: marker });
+        });
+        trucksRef.current.set(c.id, nuevo);
+      } else {
+        it.marker.setPosition(pos);
+        it.marker.setLabel(etiqueta);
+        if (it.firma !== firma) { it.marker.setIcon(icono()); it.firma = firma; }
+        it.tarjeta = tarjetaDelCamion(c);
+        if (truckAbiertoRef.current === c.id) info.setContent(it.tarjeta);
+      }
+    }
+    for (const [k, it] of trucksRef.current) {
+      if (vistos.has(k)) continue;
+      if (truckAbiertoRef.current === k) { info.close(); truckAbiertoRef.current = null; }
+      it.marker.setMap(null);
+      trucksRef.current.delete(k);
+    }
+  }, [trucks, ready]);
 
   // ---- Framing ----
   useEffect(() => {
