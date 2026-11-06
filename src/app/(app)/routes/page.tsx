@@ -873,7 +873,7 @@ export default function RoutesPage() {
   // verdad (no las rutas temporales ni las huérfanas) y quien ve camiones (`veCamiones`); la base decide qué filas ve cada
   // rol (121). El dueño: «quiero que la ruta que lleva el driver esté en otro color al de su ruta, para comparar».
   const choferesDelRecorrido = useMemo(() => lanes.filter((l) => !l.isBucket && !l.id.startsWith("orphan:") && !l.id.startsWith("bucket:")).map((l) => ({ id: l.id, nombre: l.driver })), [lanes]);
-  const recorridoDelDia = useRecorridoDelDia(choferesDelRecorrido, date, veCamiones, driverLocations, date === todayISO(), camionesDeLosChoferes.posiciones); // D-NEXT: con camión, su rastro
+  const recorridoDelDia = useRecorridoDelDia(choferesDelRecorrido, date, veCamiones, driverLocations, date === todayISO(), camionesDeLosChoferes.posiciones); // D-909: con camión, su rastro
 
   // Desde qué puesto se numera la ruta de un chofer al moverla a mano: tras lo que ya recogió o entregó en esas fechas, que
   // el Gestor no enseña pero «Mi ruta» sí (D-433, `inicioDeLaSecuencia`).

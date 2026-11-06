@@ -5,7 +5,7 @@ import { summarizeTrack, type Fix } from "@/lib/track-history";
 import { tramos } from "@/lib/tramos-del-recorrido";
 
 /**
- * La línea del día sacada del rastreador del camión (D-NEXT): qué fuente se dibuja, cuánto se adelgaza la línea sin
+ * La línea del día sacada del rastreador del camión (D-909): qué fuente se dibuja, cuánto se adelgaza la línea sin
  * mentir, y cómo llega hasta la marca en vivo. Todo puro: ni red ni reloj.
  */
 

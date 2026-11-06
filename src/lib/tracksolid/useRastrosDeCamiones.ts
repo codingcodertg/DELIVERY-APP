@@ -7,7 +7,7 @@ import { colaConLoVivo, rastrosDeLaRespuesta, type CamionEnVivo, type RastroLeid
 import { tocaRefrescar } from "./useCamiones";
 
 // ============================================================
-// El rastro del camión de cada chofer un día, para una pantalla (D-NEXT). Habla con `/api/tracksolid/trails`.
+// El rastro del camión de cada chofer un día, para una pantalla (D-909). Habla con `/api/tracksolid/trails`.
 //
 // Pregunta al entrar y al cambiar de día. Si el día es HOY, vuelve a preguntar cada 3 minutos mientras la pestaña se
 // ve (el servidor guarda una copia para todos: no es una llamada a TrackSolid por pantalla). Entre una lectura y la

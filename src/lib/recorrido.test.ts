@@ -8,7 +8,7 @@ const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 describe("D-832: recorrido del chofer", () => {
   const pagina = leer("src/app/(app)/track/page.tsx");
   it("lee hasta 20 000 posiciones por día (a 10 m / 5 s un día largo son ~6 000)", () => {
-    // D-NEXT: el tope vive en `recorrido-del-telefono` y es POR CHOFER, leído de 1.000 en 1.000. El `.limit()` de una
+    // D-909: el tope vive en `recorrido-del-telefono` y es POR CHOFER, leído de 1.000 en 1.000. El `.limit()` de una
     // sola petición que había aquí no servía: PostgREST corta en 1.000 filas y la línea se acababa a media mañana.
     expect(leer("src/lib/recorrido-del-telefono.ts")).toContain("export const FIXES_POR_DIA = 20_000;");
     expect(pagina).toContain("leeRecorridoDelTelefono(supabase, idsDelDia, fecha)");

@@ -6,7 +6,7 @@ import type { AlmacenDeToken } from "./token";
 import type { PuntoDeRastro } from "@/lib/reportes-choferes/rastro";
 
 /**
- * GET /api/tracksolid/trails y lo que hay detrás (D-NEXT): quién entra, qué ve cada uno, y cuánto se le pregunta a
+ * GET /api/tracksolid/trails y lo que hay detrás (D-909): quién entra, qué ve cada uno, y cuánto se le pregunta a
  * TrackSolid. Supabase y TrackSolid son falsos: aquí no hay red.
  */
 

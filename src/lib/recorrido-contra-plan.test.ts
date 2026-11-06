@@ -145,7 +145,7 @@ describe("3 · la ruta planeada y lo manejado, en estilos que no se confunden", 
   it("el Gestor, «Ruta de hoy» y el mapa de «Mi ruta» (la misma página) pintan lo manejado encima de lo planeado, sin leyenda (D-520)", () => {
     const p = leer("src/app/(app)/routes/page.tsx");
     expect(p).toContain("return planContraRecorrido(out, lineasDelRecorridoReal(recorridoDelDia, { pasaFiltro, atenuada: isDim }));");
-    // D-NEXT: con la posición en vivo del camión de cada chofer, para que su línea (la del rastreador) llegue hasta él.
+    // D-909: con la posición en vivo del camión de cada chofer, para que su línea (la del rastreador) llegue hasta él.
     expect(p).toContain("const recorridoDelDia = useRecorridoDelDia(choferesDelRecorrido, date, veCamiones, driverLocations, date === todayISO(), camionesDeLosChoferes.posiciones);");
     expect(p).not.toContain("LeyendaPlanContraReal");
   });

@@ -10,7 +10,7 @@ import { BUSINESS_TZ, retentionFloorISO, seesAllHistory, todayISO } from "@/lib/
 import type { UserRole } from "@/lib/types";
 
 // ============================================================
-// GET /api/tracksolid/trails?date=YYYY-MM-DD — por dónde anduvo ese día el camión de cada chofer (D-NEXT).
+// GET /api/tracksolid/trails?date=YYYY-MM-DD — por dónde anduvo ese día el camión de cada chofer (D-909).
 //
 // Es la LÍNEA del mapa en vivo (el Recorrido y el Gestor de Rutas) para los choferes que llevan un camión con
 // rastreador: el rastro del camión, entero, en vez del del teléfono (que calla cuando el chofer cierra la app).

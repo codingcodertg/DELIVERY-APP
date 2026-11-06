@@ -17,7 +17,7 @@ import type { DriverLocation } from "@/lib/types";
  * Quién ve qué lo dice la base (migración 121): admin, logística, gerente y almacén ven a todos; el chofer, lo suyo; los
  * demás no reciben filas y no se pinta nada.
  *
- * D-NEXT: el chofer que ese día lleva un camión con rastreador se dibuja con el rastro DEL CAMIÓN (`useRastrosDeCamiones`),
+ * D-909: el chofer que ese día lleva un camión con rastreador se dibuja con el rastro DEL CAMIÓN (`useRastrosDeCamiones`),
  * que no depende de que tenga la app abierta; los demás, con el del teléfono — leído entero, de 1.000 en 1.000
  * (`leeRecorridoDelTelefono`): antes llegaban solo las primeras 1.000 posiciones del día entre todos.
  */

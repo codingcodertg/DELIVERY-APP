@@ -68,7 +68,7 @@ export default function TrackPage() {
   const { lang, t } = usePrefs();
   // D-903: «dónde está ahora» sale del teléfono o del rastreador del camión que el chofer lleva hoy, lo mejor de los dos
   // (`posicionesDeChoferes`).
-  // D-NEXT: y el RECORRIDO del día (la línea) también: del rastreador del camión si el chofer lleva uno ese día
+  // D-909: y el RECORRIDO del día (la línea) también: del rastreador del camión si el chofer lleva uno ese día
   // (`useRastrosDeCamiones`, más abajo, cuando ya se sabe la fecha); si no, del teléfono (`driver_locations`).
   const { posiciones: posicionesAhora, camionesDeHoy } = usePosicionesDeChoferes(!!me);
   const drivers = useMemo(() => soloActivos(users.filter((u) => u.role === "driver")), [users]); // D-707
@@ -90,7 +90,7 @@ export default function TrackPage() {
   const esHoy = fecha === todayISO();
   const idsDelDia = useMemo(() => drivers.map((d) => d.id), [drivers]);
   const idsVisibles = useMemo(() => driverId === TODOS ? idsDelDia : [driverId], [driverId, idsDelDia]);
-  // D-NEXT: el rastro del camión de cada chofer ese día (hoy o un día pasado), con la posición en vivo colgada al final.
+  // D-909: el rastro del camión de cada chofer ese día (hoy o un día pasado), con la posición en vivo colgada al final.
   const rastrosDeCamion = useRastrosDeCamiones(fecha, !!me, camionesDeHoy.posiciones);
 
   // D-833: el día de CADA chofer (posiciones, turnos, cargas/entregas), se vea uno o todos. Se carga el día entero de
@@ -115,7 +115,7 @@ export default function TrackPage() {
       // fichaje (src/lib/clockin/tz.ts).
       const from = centralWallToUtc(`${fecha}T00:00`);
       const to = centralWallToUtc(`${shiftDateISO(fecha, 1)}T00:00`);
-      // D-NEXT: las posiciones, ENTERAS (`leeRecorridoDelTelefono`). Antes iban en una petición con `.limit()`, y
+      // D-909: las posiciones, ENTERAS (`leeRecorridoDelTelefono`). Antes iban en una petición con `.limit()`, y
       // PostgREST corta en 1.000 filas: llegaban las primeras 1.000 del día entre todos y las líneas se acababan a media mañana.
       const [telefono, t1, h1] = await Promise.all([
         leeRecorridoDelTelefono(supabase, idsDelDia, fecha),
@@ -197,7 +197,7 @@ export default function TrackPage() {
   // Lo del chofer que se mira (uno solo); con «todos», lo de todos donde tenga sentido.
   const unSolo = driverId !== TODOS;
   const dia: DiaDeChofer = porChofer[driverId] ?? DIA_VACIO;
-  // D-NEXT: la línea de cada chofer sale de UNA fuente: el rastreador de su camión si hay rastro suyo ese día; si no,
+  // D-909: la línea de cada chofer sale de UNA fuente: el rastreador de su camión si hay rastro suyo ese día; si no,
   // su teléfono. Todo lo de abajo (líneas, millas, paradas, reproducción) lee de aquí.
   const recorridos = useMemo(() => {
     const out: Record<string, RecorridoElegido> = {};
@@ -327,7 +327,7 @@ export default function TrackPage() {
 
   const todasLasPosiciones = useMemo(() => idsVisibles.flatMap((id) => (recorridos[id]?.fixes ?? []).map((f) => [f.lat, f.lng] as [number, number])), [idsVisibles, recorridos]);
   const totalPosiciones = todasLasPosiciones.length;
-  // D-NEXT: la cabecera dice QUÉ cuenta: los puntos GPS que mandó el rastreador de los camiones que se dibujan (todos,
+  // D-909: la cabecera dice QUÉ cuenta: los puntos GPS que mandó el rastreador de los camiones que se dibujan (todos,
   // no los de la línea simplificada) y las posiciones del teléfono de los choferes que se dibujan con el teléfono.
   const conteo = useMemo(() => {
     let camion = 0, telefono = 0;
@@ -421,7 +421,7 @@ export default function TrackPage() {
               <div className="hint" style={{ marginTop: 2 }}>
                 🛣 {c.millas} mi · ▲ {c.cargas} · ✓ {c.entregas}
               </div>
-              {/* D-NEXT: de dónde sale su línea. El nombre del camión es texto de TrackSolid: React lo pinta como texto. */}
+              {/* D-909: de dónde sale su línea. El nombre del camión es texto de TrackSolid: React lo pinta como texto. */}
               {c.camion && <div className="hint" data-fuente-linea="camion" style={{ marginTop: 2 }}>🚛 {t("Line from the truck's GPS", "Línea del GPS del camión")}: {c.camion}</div>}
               {/* D-836: la versión de la app en su teléfono (la reporta el propio teléfono con su turno). */}
               {(() => {

@@ -2,7 +2,7 @@ import type { Fix } from "@/lib/track-history";
 import { limpiaRastro, metros, METROS_POR_MILLA, rastroUtil, type PuntoDeRastro } from "@/lib/reportes-choferes/rastro";
 
 // ============================================================
-// La LÍNEA del día de un chofer en el mapa en vivo, sacada del rastreador de su camión (D-NEXT).
+// La LÍNEA del día de un chofer en el mapa en vivo, sacada del rastreador de su camión (D-909).
 //
 // El dueño, 2026-11-06, con la captura del Recorrido: «pero mira cómo salen». La línea de Julio se quedaba en su
 // primera entrega y el camión estaba en otra ciudad, sin línea hasta él. Dos causas, medidas ese día:

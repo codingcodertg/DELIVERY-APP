@@ -145,7 +145,7 @@ describe("cuánto se le pide", () => {
   });
 });
 
-describe("lo que pide el mapa en vivo (D-NEXT)", () => {
+describe("lo que pide el mapa en vivo (D-909)", () => {
   const HOY = "2026-11-06";
   const viejo = (minutos: number): DiaDeCamion => ({ imei: IMEI, fecha: HOY, puntos: [{ t: AHORA - 3_600_000, lat: 26.2, lng: -98.2, mph: 10 }], completo: false, leidoEn: AHORA - minutos * 60_000 });
 

@@ -149,7 +149,7 @@ export async function historialDeCamiones(
   pedidos: readonly { imei: string; fecha: string }[],
   opciones: {
     zona: string; maxLlamadas?: number;
-    /** Cada cuánto se vuelve a pedir un día sin terminar (por defecto 10 min). El mapa en vivo pide menos (D-NEXT). */
+    /** Cada cuánto se vuelve a pedir un día sin terminar (por defecto 10 min). El mapa en vivo pide menos (D-909). */
     refrescoDeHoyMs?: number;
     /** Si TrackSolid no contesta, vale lo guardado aunque esté viejo (el mapa: mejor la línea de hace un rato que ninguna). */
     aceptaViejo?: boolean;

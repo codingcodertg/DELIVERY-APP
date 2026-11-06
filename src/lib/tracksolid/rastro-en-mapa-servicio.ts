@@ -7,7 +7,7 @@ import { rastroParaElMapa, type RastroDeCamionEnLaRed } from "./rastro-en-mapa";
 import type { AlmacenDeToken } from "./token";
 
 // ============================================================
-// Los rastros de camión de UN día para el mapa en vivo (D-NEXT). Solo servidor, con la llave de servicio.
+// Los rastros de camión de UN día para el mapa en vivo (D-909). Solo servidor, con la llave de servicio.
 //
 // Qué camión llevó cada chofer ese día lo dice la misma regla de siempre (`camionesDelDia`: el del día; si no, el
 // habitual). El rastro sale de `historialDeCamiones` (D-907): de la base (`truck_track_days`) si está guardado, y de

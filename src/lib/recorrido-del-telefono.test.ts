@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { leeRecorridoDelTelefono, limitesDelDiaDeTrabajo, FIXES_POR_DIA } from "./recorrido-del-telefono";
 
 /**
- * Las posiciones del teléfono de un día, ENTERAS (D-NEXT). PostgREST da 1.000 filas por petición como mucho: la base de
+ * Las posiciones del teléfono de un día, ENTERAS (D-909). PostgREST da 1.000 filas por petición como mucho: la base de
  * mentira hace lo mismo, y la prueba es que aun así llegan todas. Medido el 2026-11-06: 3.415 posiciones, se leían 1.000.
  */
 

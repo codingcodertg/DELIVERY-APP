@@ -4,7 +4,7 @@ import { shiftDateISO } from "@/lib/utils";
 import type { Fix } from "@/lib/track-history";
 
 // ============================================================
-// Las posiciones del TELÉFONO de cada chofer en un día (`driver_locations`), ENTERAS (D-NEXT).
+// Las posiciones del TELÉFONO de cada chofer en un día (`driver_locations`), ENTERAS (D-909).
 //
 // Las dos pantallas que dibujan el recorrido del día (el Recorrido y el Gestor de Rutas) lo leían en UNA petición con
 // `.limit(20 000 × choferes)`. PostgREST no da más de 1.000 filas por petición, pida uno lo que pida, así que llegaban

@@ -1,0 +1,28 @@
+TRACKSOLID EDINBURG PETERBIL: 1154 puntos crudos, 08:23–16:25; para el mapa: 1154 puntos, 94.1 mi, línea de 314 puntos
+TRACKSOLID MCALLEN FREITHLINER: 967 puntos crudos, 07:59–16:25; para el mapa: 967 puntos, 99.2 mi, línea de 244 puntos
+
+== Ernesto Castillo ==
+  teléfono en la base: 1959 posiciones, 08:17–16:26
+  ANTES   (teléfono, primeras 1.000 filas del día + la última en vivo): 360 pts dibujados, 18.8 mi, 08:17–16:26, 1 tramos + 1 punteados, paradas 4, sin determinar 379 min
+  DESPUÉS (camion · EDINBURG PETERBIL · 1154 puntos GPS, 94.1 mi con todos): 314 pts dibujados, 92.7 mi, 08:23–16:25, 1 tramos + 0 punteados, paradas 12, sin determinar 0 min
+  la línea acaba en 26.24680,-98.30429; la última posición guardada del camión es 26.22698,-98.26682 (16:01)
+
+== Julio Jijon ==
+  teléfono en la base: 475 posiciones, 08:02–09:35
+  ANTES   (teléfono, primeras 1.000 filas del día + la última en vivo): 475 pts dibujados, 20.7 mi, 08:02–09:35, 1 tramos + 0 punteados, paradas 2, sin determinar 0 min
+  DESPUÉS (camion · MCALLEN FREITHLINER · 967 puntos GPS, 99.2 mi con todos): 244 pts dibujados, 98.7 mi, 07:59–16:25, 1 tramos + 0 punteados, paradas 8, sin determinar 0 min
+  la línea acaba en 26.17311,-98.00577; la última posición guardada del camión es 26.17342,-98.00125 (14:14)
+
+== Maximo Garza ==
+  teléfono en la base: 1054 posiciones, 08:22–15:55
+  ANTES   (teléfono, primeras 1.000 filas del día + la última en vivo): 167 pts dibujados, 5.9 mi, 08:22–15:55, 2 tramos + 2 punteados, paradas 3, sin determinar 373 min
+  DESPUÉS (telefono): 1054 pts dibujados, 95.1 mi, 08:22–15:55, 5 tramos + 4 punteados, paradas 7, sin determinar 186 min
+
+== Steven ==
+  teléfono en la base: 0 posiciones, -–-
+  ANTES   (teléfono, primeras 1.000 filas del día + la última en vivo): 0 pts dibujados, 0 mi, -–-, 0 tramos + 0 punteados, paradas 0, sin determinar 0 min
+  DESPUÉS (telefono): 0 pts dibujados, 0 mi, -–-, 0 tramos + 0 punteados, paradas 0, sin determinar 0 min
+
+CABECERA antes: «1002 posiciones» · después: «2121 puntos del GPS del camión · 1054 posiciones del teléfono»
+
+PNG: C:/CLAUDE/entregas/wt-rastro-en-mapa/prueba-rastro-2026-11-06.png (3084x1024, 24 teselas)

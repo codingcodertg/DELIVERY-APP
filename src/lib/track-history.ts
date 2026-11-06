@@ -108,7 +108,7 @@ export function cleanFixes(fixes: Fix[]): Fix[] {
  * Rebuild the day: distance covered, time driving, time standing still, and
  * where the standing still happened.
  *
- * `silencioQuietoEsParada` (D-NEXT): for a trail that comes from a TRUCK tracker rather than a phone.
+ * `silencioQuietoEsParada` (D-909): for a trail that comes from a TRUCK tracker rather than a phone.
  */
 export function summarizeTrack(raw: Fix[], opciones: { silencioQuietoEsParada?: boolean } = {}): TrackSummary {
   const fixes = cleanFixes(raw);
@@ -158,7 +158,7 @@ export function summarizeTrack(raw: Fix[], opciones: { silencioQuietoEsParada?: 
       continue;
     }
 
-    // D-NEXT: el rastreador de un CAMIÓN calla con el motor apagado. Un silencio largo que acaba donde empezó no es
+    // D-909: el rastreador de un CAMIÓN calla con el motor apagado. Un silencio largo que acaba donde empezó no es
     // «no se sabe»: el camión estuvo ahí parado. (Con el teléfono no se puede decir lo mismo: pudo ir y volver dormido.)
     if (mins > GAP_MINUTES && opciones.silencioQuietoEsParada && metres < QUIET_SILENCE_M) {
       stoppedMinutes += mins;
