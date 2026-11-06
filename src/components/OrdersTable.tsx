@@ -10,7 +10,7 @@ import { PastillaDeMarca } from "@/components/PastillaDeMarca";
 import { motivoDeAnulacion, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/data-provider";
-import { fmtDate, fmtDateShort, fmtMilitary, fmtMoney, fmtWindows, isOverdue, nombresPorId, orderLabel, orderOwner, palletVariance, storeTag, todayISO } from "@/lib/utils";
+import { fmtDate, fmtDateShort, fmtMilitary, fmtMoney, fmtWindows, isOverdue, nombreDeLaOrden, nombresPorId, orderLabel, orderOwner, palletVariance, storeTag, todayISO } from "@/lib/utils";
 import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { ANCHO_MINIMO } from "@/lib/user-prefs";
 import { columnaExtraTras, columnasEnOrden, enOrdenDePartida, ordenEfectivo } from "@/lib/orden-de-columnas";
@@ -38,6 +38,7 @@ import { gruposPorTienda } from "@/lib/documento-pendiente";
 import type { VistaDeTabla } from "@/lib/filtros-guardados";
 import { etiquetaDePrioridad, prioridadDe, seDestaca, valorDePrioridad } from "@/lib/prioridad";
 import { DocumentoPendiente } from "@/components/DocumentoPendiente";
+import { PastillaDeRelevo } from "@/components/RelevoDeLaOrden";
 import { BarraSuperior } from "@/components/BarraSuperior";
 import type { CancelReason, Delivery, Profile } from "@/lib/types";
 import { IconoDeFotos } from "@/components/IconoDeFotos";
@@ -194,7 +195,7 @@ const ID_COLUMN: OrderColumn = {
   key: "__id",
   en: "ID",
   es: "ID",
-  value: (d, { byInvoice }) => (byInvoice ? (d.invoice_num || orderLabel(d)) : orderLabel(d)),
+  value: (d, { byInvoice }) => (byInvoice ? (d.invoice_num ? nombreDeLaOrden(d) : orderLabel(d)) : orderLabel(d)),
   cell: (d, { lang, byInvoice, recibidas, marcas, accion, me }) => {
     const s = pastillaDeEtapa(d, recibidas, lang, me);
     // En línea con la factura (D-572): el toque no abre la orden. Antes iba debajo del ID y la fila crecía una línea.
@@ -267,12 +268,14 @@ const ID_COLUMN: OrderColumn = {
                   driver shouldn't have to decode an abbreviation. */}
               {d.store && <span className="store-tag">{d.store}</span>}
             </span>
-            <span className="drv-r drv-code">ID #{orderLabel(d)}</span>
+            <span className="drv-r drv-code">ID #{orderLabel(d)} <PastillaDeRelevo d={d} lang={lang} /></span>
           </span>
         ) : (
           <>
             #{orderLabel(d)}
             {accionEnLinea}
+            {/* D-898 (256): un paso de transferencia por relevo, con su pastilla junto al número. */}
+            <PastillaDeRelevo d={d} lang={lang} style={{ marginLeft: 6 }} />
             {/* Status stack, right-aligned: where the order stands, then what
                 it is. Mobile-only; desktop has its own Stage/Type/Store
                 columns. */}

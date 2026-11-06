@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { leePalletsAlRecoger, palletsPorDefecto } from "@/lib/pallets-al-recoger";
-import { orderLabel } from "@/lib/utils";
+import { nombreDeLaOrden } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 /**
@@ -19,7 +19,7 @@ export function PalletsAlRecoger({ pedido, onCancelar, onConfirmar }: {
   const { t } = usePrefs();
   const [texto, setTexto] = useState(() => palletsPorDefecto(pedido));
   const n = leePalletsAlRecoger(texto);
-  const etiqueta = pedido.invoice_num || `#${orderLabel(pedido)}`;
+  const etiqueta = nombreDeLaOrden(pedido);
   const confirmar = () => { if (n != null) onConfirmar(n); };
   return (
     <div className="overlay" data-pallets-al-recoger="" onClick={(e) => { if (e.target === e.currentTarget) onCancelar(); }}>

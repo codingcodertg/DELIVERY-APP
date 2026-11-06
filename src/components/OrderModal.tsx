@@ -18,6 +18,8 @@ import { FranjasDelDia } from "@/components/FranjasDelDia";
 import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
 import { DIAS_DE_BORRADOR, esMia } from "@/lib/ordenes-visibles";
 import { ReprogramarOrden } from "@/components/ReprogramarOrden";
+import { PastillaDeRelevo, RelevoDeLaOrden } from "@/components/RelevoDeLaOrden";
+import { esPasoDeRelevo } from "@/lib/relevo-etiqueta";
 import { puedeReprogramar } from "@/lib/reprogramar-orden";
 import { PedirAsignacion } from "@/components/PedirAsignacion";
 import { esRolQuePide, puedeDecidirSolicitudes } from "@/lib/solicitud-de-asignacion";
@@ -1393,6 +1395,12 @@ export function OrderModal({
     // and no one is accountable for it.
     const claim = claimDelChofer(me, existing.assigned_driver);
 
+    if (!quick && total > 0 && n < total && esPasoDeRelevo(existing)) {
+      // D-898 (256): un paso de relevo se carga ENTERO: no se parte en cargas (la base lo rechaza, `RELEVO_FIJO`).
+      setBusy(false);
+      notify(t(`This is a relay transfer step: it is loaded complete (${total} pallets). It can't be split at pickup.`, `Es un paso de una transferencia por relevo: se carga entero (${total} pallets). No se parte al recoger.`));
+      return;
+    }
     if (!quick && total > 0 && n < total) {
       const mySuffix = existing.order_suffix ?? "a";
       const nextSuffix = String.fromCharCode(mySuffix.charCodeAt(0) + 1);
@@ -1930,6 +1938,8 @@ export function OrderModal({
           <div style={{ flex: 1, minWidth: 0 }}>
             <h3>
               {isNew ? t("New delivery order", "Nueva orden de entrega") : `${t("Order", "Orden")} #${orderLabel(existing!)}`}
+              {/* D-898 (256): un paso de transferencia por relevo lleva su pastilla junto al número («Orden #Tr-1111-a»). */}
+              {!isNew && existing && <PastillaDeRelevo d={existing} lang={lang} style={{ marginLeft: 8 }} />}
               {dirty && <span className="sema" style={{ background: "var(--amber)", color: "#fff", marginLeft: 8 }}>● {t("Unsaved", "Sin guardar")}</span>}
             </h3>
             <div className="sub" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
@@ -2007,6 +2017,13 @@ export function OrderModal({
           {/* «📅 Reprogramar» arriba a la derecha (D-549). El dueño, 2026-10-14: «reprogamar buttom in ther order view put it
               the top right hand side insead» y «all sales people well everybody has the iption to reprogramar». El MISMO
               cuadro del Gestor (D-500); quién puede lo dice `puedeReprogramar` (ventas, solo la suya: `esMia`). */}
+          {/* D-898 (256): «⇄ Transferencia por relevo». En un paso de relevo abre la tarjeta (el estado de la orden entera y
+              cada paso con quién y cuándo); en una orden de tienda a tienda, quien planifica rutas lo activa desde aquí. */}
+          {!editing && existing && (esPasoDeRelevo(existing) || storeToStore) && (
+            <span style={{ flex: "0 0 auto" }} data-relevo-en-ficha>
+              <RelevoDeLaOrden pedido={existing} />
+            </span>
+          )}
           {!editing && existing && puedeReprogramar(me.role, stage, esMia(existing, me)) && (
             <span style={{ flex: "0 0 auto" }} data-reprogramar-en-ficha>
               <ReprogramarOrden pedido={existing} rol={me.role} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} />

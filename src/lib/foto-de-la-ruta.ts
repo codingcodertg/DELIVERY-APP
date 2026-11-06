@@ -2,7 +2,8 @@ import type { MapLine, MapPoint } from "@/components/LeafletMap";
 import { PREFIJO_HECHA, rutaDeLaLinea } from "@/lib/mapa-de-rutas";
 import type { ParadaFisica } from "@/lib/gestor/paradas-numeradas";
 import { facturasDeLaOrden } from "@/lib/agregar-material";
-import { fmtWindows, orderLabel } from "@/lib/utils";
+import { fmtWindows, nombreDeLaOrden, orderLabel } from "@/lib/utils";
+import { esPasoDeRelevo } from "@/lib/relevo-etiqueta";
 import type { Delivery } from "@/lib/types";
 
 // ============================================================
@@ -85,7 +86,8 @@ export interface FilaDeLaFoto { n: number; orden: string; cuenta: string; direcc
 export function filasDeLaFoto(stops: readonly Delivery[]): FilaDeLaFoto[] {
   return stops.map((d, i) => ({
     n: i + 1,
-    orden: facturasDeLaOrden(d).join(", ") || `#${orderLabel(d)}`,
+    // D-898 (256): un paso de transferencia por relevo sale en la hoja como «Tr-<factura>-a», no como la factura sola.
+    orden: esPasoDeRelevo(d) ? nombreDeLaOrden(d) : facturasDeLaOrden(d).join(", ") || `#${orderLabel(d)}`,
     cuenta: d.account || d.delivery_name || "—",
     direccion: d.delivery_address || "—",
     ventana: fmtWindows(d.delivery_windows),

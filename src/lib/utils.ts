@@ -2,6 +2,7 @@ import type { Delivery } from "./types";
 import { parseWindow } from "./dispatch";
 import { ROLE_CAPS } from "./constants";
 import { formateadorDeFecha } from "@/lib/formateador";
+import { esPasoDeRelevo, numeroConLetra } from "./relevo-etiqueta";
 
 /** Deterministic fallback color for a driver with no assigned color yet, so
  * map pins/route markers are still distinguishable before a manager sets
@@ -73,10 +74,16 @@ export function fmtDateShort(iso: string | null | undefined, lang: "en" | "es" =
   }).format(d).replace(".", "");
 }
 
-/** Human-facing order id incl. the split-load letter: "FA100", "FA100a".
+/** Human-facing order id incl. the split-load letter: "FA100", "FA100a". A relay-transfer step (D-898, 256) reads
+ * "Tr-FA100-a" instead (`numeroConLetra`, lib/relevo-etiqueta).
  * Uses the order_code; falls back to the internal number for legacy rows. */
-export const orderLabel = (d: { order_code?: string | null; order_no: number; order_suffix?: string | null }) =>
-  `${d.order_code || d.order_no}${d.order_suffix ?? ""}`;
+export const orderLabel = (d: { order_code?: string | null; order_no: number; order_suffix?: string | null; relay_step?: number | null }) =>
+  numeroConLetra(d.order_code || d.order_no, d);
+
+/** What NAMES an order where the invoice comes first: its invoice, or "#<code>" without one (the rule several dialogs
+ * wrote inline as `invoice_num || #orderLabel`). A relay-transfer step (D-898, 256) reads "Tr-<invoice>-a". */
+export const nombreDeLaOrden = (d: { invoice_num?: string | null; order_code?: string | null; order_no: number; order_suffix?: string | null; relay_step?: number | null }): string =>
+  d.invoice_num ? (esPasoDeRelevo(d) ? numeroConLetra(d.invoice_num.trim(), d) : d.invoice_num) : `#${orderLabel(d)}`;
 
 /** Default base for teaching-mode (sandbox) order numbers. */
 export const TRAINING_ORDER_BASE = 900000;

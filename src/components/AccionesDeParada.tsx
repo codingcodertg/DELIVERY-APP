@@ -13,7 +13,7 @@ import { escrituraDeshacerRecogida, type DeshacerRecogida } from "@/lib/recogida
 import { EVENTO_DEJADO, escrituraDejarEnTienda } from "@/lib/leave-at-store";
 import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { botonesConLlegada } from "@/lib/siguiente-de-mi-ruta";
-import { orderLabel } from "@/lib/utils";
+import { orderLabel, nombreDeLaOrden } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
 // ============================================================
@@ -161,7 +161,7 @@ export function AccionesDeParada({
   const acciones = botonesConLlegada(accionesDeParada(tipo, pedido.stage, marca, deshacer), llegada);
   // El motivo de lo apagado, a la vista: en un teléfono no hay `title` que leer.
   const motivos = [...new Set(acciones.flatMap((b) => (b.apagado ? [t(b.apagado.en, b.apagado.es)] : [])))];
-  const etiqueta = pedido.invoice_num || `#${orderLabel(pedido)}`;
+  const etiqueta = nombreDeLaOrden(pedido);
 
   const marcar = async (kind: string, note: string | null, aviso: string) => {
     if (ocupado || soloLectura) return false;
@@ -229,7 +229,7 @@ export function AccionesDeParada({
       ))}
       {rechazando && (
         <DialogoDeRechazo
-          titulo={`${t("Rejected", "Rechazado")} · ${pedido.invoice_num || `#${orderLabel(pedido)}`}`}
+          titulo={`${t("Rejected", "Rechazado")} · ${nombreDeLaOrden(pedido)}`}
           es={es}
           t={t}
           ocupado={ocupado}

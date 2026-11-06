@@ -39,7 +39,9 @@ import { ordenDelPunto } from "@/lib/mapa-de-rutas";
 import { paradasDeLaRuta, textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
 import { colorDeChofer } from "@/lib/map-legend";
 import { OrderModal } from "@/components/OrderModalLazy";
-import { fmtDate, fmtWindows, orderLabel, shiftDateISO, storeTag, todayISO } from "@/lib/utils";
+import { fmtDate, fmtWindows, orderLabel, shiftDateISO, storeTag, todayISO, nombreDeLaOrden } from "@/lib/utils";
+import { RelevoDeLaOrden } from "@/components/RelevoDeLaOrden";
+import { esPasoDeRelevo } from "@/lib/relevo-etiqueta";
 import type { Delivery } from "@/lib/types";
 import { facturasDeLaOrden } from "@/lib/agregar-material";
 import { cargaDe, etiquetaDeCarga, hermanasDe } from "@/lib/cargas-partidas";
@@ -165,7 +167,14 @@ export default function MyRoutePage() {
   };
   // «Carga 1 de 2» (D-452, 157): una orden que no cabía en el camión son dos órdenes hermanas, cada una su parada; aquí
   // solo se dice cuál es esta. Se marca con el botón de siempre, por carga.
-  const etiquetaDeLaCarga = (d: Delivery) => { const c = cargaDe(d, hermanasDe(deliveries, d)); return c ? <span className="hint" data-carga> · {etiquetaDeCarga(c, lang === "es")}</span> : null; };
+  // D-898 (256): un paso de TRANSFERENCIA POR RELEVO («Tr-1111-b») no es una carga: lleva su pastilla, que abre la tarjeta
+  // del relevo (si el paso anterior ya llegó a la tienda de relevo, quién lo llevó y cuándo).
+  const etiquetaDeLaCarga = (d: Delivery) => {
+    if (esPasoDeRelevo(d)) return <RelevoDeLaOrden pedido={d} compacto soloLectura />;
+    const c = cargaDe(d, hermanasDe(deliveries, d)); return c ? <span className="hint" data-carga> · {etiquetaDeCarga(c, lang === "es")}</span> : null;
+  };
+  /** Lo que nombra la orden en «Mi ruta»: sus facturas, o su código; un paso de relevo, «Tr-<factura>-b». */
+  const nombreEnMiRuta = (d: Delivery) => (esPasoDeRelevo(d) ? nombreDeLaOrden(d) : facturasDeLaOrden(d).join(", ") || `#${orderLabel(d)}`);
 
   /** Abre la ficha de una orden, en un paso o sin paso (tocar el texto de una parada o el mapa). */
   const abrirOrden = (d: Delivery, paso?: "recoger" | "entregar") => { setAbrirEn(paso); setOpen(d); };
@@ -400,7 +409,7 @@ export default function MyRoutePage() {
         <span style={{ flex: 1, minWidth: 0 }}>
           <button onClick={() => setOpen(d)} style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer", background: "none", border: "none", padding: 0, color: "inherit", font: "inherit" }}>
           <span style={{ fontWeight: 700, display: "block" }}>
-            {facturasDeLaOrden(d).join(", ") || `#${orderLabel(d)}`}{etiquetaDeLaCarga(d)}{pastillaDe(d)}
+            {nombreEnMiRuta(d)}{etiquetaDeLaCarga(d)}{pastillaDe(d)}
           </span>
           <span className="hint" style={{ display: "block" }}>
             {d.delivery_address || t("(no address)", "(sin dirección)")}
@@ -528,7 +537,7 @@ export default function MyRoutePage() {
                   quedarse sin forma de abrir el pedido. */}
               <button data-abre-la-orden onClick={() => abrirOrden(next)} style={{ display: "block", width: "100%", textAlign: "left", cursor: "pointer", background: "none", border: "none", padding: 0, color: "inherit", font: "inherit" }}>
                 <span style={{ display: "block", fontWeight: 800, fontSize: 18 }}>
-                  {facturasDeLaOrden(next).join(", ") || `#${orderLabel(next)}`}{etiquetaDeLaCarga(next)}
+                  {nombreEnMiRuta(next)}{etiquetaDeLaCarga(next)}
                 </span>
                 <span style={{ display: "block", marginTop: 2 }}>{next.delivery_address || t("(no address)", "(sin dirección)")}</span>
                 <AvisoSoloCiudad orden={next} />

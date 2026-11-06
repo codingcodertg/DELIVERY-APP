@@ -48,6 +48,9 @@ import { carrilesDelDia, cargaDelPanel, encuadreDeLasRutas, lineasDeLasRutas, pu
 import { listaDelDia, ordenesDeLaRutaDelDia, pendientesDelDia } from "@/lib/recogida-y-ruta-del-dia";
 import { PanelDeChoferes } from "@/components/PanelDeChoferes";
 import { ReprogramarOrden } from "@/components/ReprogramarOrden";
+import { AvisosDeRelevo, RelevoDeLaOrden } from "@/components/RelevoDeLaOrden";
+import { esPasoDeRelevo } from "@/lib/relevo-etiqueta";
+import { isStoreToStore } from "@/lib/required";
 import { puedeReprogramar } from "@/lib/reprogramar-orden";
 import { BandejaDeSolicitudes } from "@/components/BandejaDeSolicitudes";
 import { notaAlAprobar, pasosAlAprobar, puedeDecidirSolicitudes, type SolicitudDeAsignacion } from "@/lib/solicitud-de-asignacion";
@@ -1489,7 +1492,14 @@ export default function RoutesPage() {
   // pallets de dos cargas, y volver a juntarlas (si las dos siguen pendientes y la suma cabe). La regla vive en
   // lib/cargas-partidas; la base la repite (partir_carga, reparte_cargas, juntar_cargas).
   const cargasDe = (d: Delivery) => { const hermanas = hermanasDe(deliveries, d); return { carga: cargaDe(d, hermanas), otra: laOtraCarga(d, hermanas) }; };
-  const etiquetaDeLaCarga = (d: Delivery) => { const c = cargasDe(d).carga; return c ? <span className="hint" data-carga style={{ margin: 0 }}> · {etiquetaDeCarga(c, lang === "es")}</span> : null; };
+  // D-898 (256): en ese mismo sitio, la TRANSFERENCIA POR RELEVO (`components/RelevoDeLaOrden`): en un paso de relevo
+  // («Tr-1111-a»), su pastilla, que abre la tarjeta del relevo; en una orden de tienda a tienda sin relevo, el «⇄» que lo
+  // activa. Un paso de relevo no es «carga 1 de 2» (`cargaDe` da `null`), así que nunca salen las dos cosas.
+  const etiquetaDeLaCarga = (d: Delivery) => {
+    const c = cargasDe(d).carga;
+    if (c) return <span className="hint" data-carga style={{ margin: 0 }}> · {etiquetaDeCarga(c, lang === "es")}</span>;
+    return esPasoDeRelevo(d) || isStoreToStore(d.order_type, settings.order_type_rules) ? <RelevoDeLaOrden pedido={d} compacto soloLectura={soloLectura} /> : null;
+  };
   const parteLaOrden = async (d: Delivery, capacidad: number) => {
     const total = palletsDeLaOrden(d);
     const resto = restoPropuesto(total, capacidad);
@@ -3174,6 +3184,8 @@ export default function RoutesPage() {
             aprobar={apruebaSolicitud} abrirOrden={setOpenOrder} t={t} />
         )}
       </div>
+      {/* D-898 (256): los avisos de las transferencias por relevo (b agendado antes que a; los dos pasos el mismo día). */}
+      <AvisosDeRelevo ordenes={deliveries} />
 
       {incidenciasAbiertas && (
         <div className="overlay" data-ventana-incidencias onClick={(e) => { if (e.target === e.currentTarget) setIncidenciasAbiertas(false); }}>

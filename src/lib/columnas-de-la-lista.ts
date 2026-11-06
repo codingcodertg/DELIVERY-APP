@@ -13,7 +13,7 @@
 import type { Delivery } from "./types";
 
 const TODAS_LAS_COLUMNAS: Record<keyof Delivery, true> = {
-  id: true, order_no: true, order_code: true, order_suffix: true, stage: true, rejected_reason: true,
+  id: true, order_no: true, order_code: true, order_suffix: true, relay_step: true, stage: true, rejected_reason: true,
   canceled_reason: true, canceled_reason_note: true, canceled_by: true, canceled_at: true,
   is_training: true, redelivery_of: true, redelivery_reason: true,
   order_type: true, store: true, po2: true, so_num: true, invoice_num: true, invoices_extra: true, estimate_num: true,
@@ -44,7 +44,7 @@ export const COLUMNAS_PESADAS: readonly (keyof Delivery)[] = ["photos", "photo_m
 /** Las columnas de la lista, separadas por comas, para `.select(...)`. */
 /** Columnas que la base puede no tener todavía (D-722: `plan_rank`, 208): se piden aparte con `leeConOpcionales`, y si
  *  faltan la lista llega sin ellas en vez de no llegar. `photo_count` (177) tiene su propio camino de antes. */
-export const COLUMNAS_OPCIONALES_DE_LA_LISTA: readonly (keyof Delivery)[] = ["plan_rank", "pickup_point_lat", "pickup_point_lng", "customer_id"];
+export const COLUMNAS_OPCIONALES_DE_LA_LISTA: readonly (keyof Delivery)[] = ["plan_rank", "pickup_point_lat", "pickup_point_lng", "customer_id", "relay_step"];
 export const COLUMNAS_DE_LA_LISTA = COLUMNAS_DE_DELIVERY.filter((c) => !COLUMNAS_PESADAS.includes(c) && !COLUMNAS_OPCIONALES_DE_LA_LISTA.includes(c)).join(",");
 
 

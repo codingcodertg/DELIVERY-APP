@@ -6,7 +6,7 @@ import { fechaPropuesta, reprogramacionValida } from "@/lib/reprogramar-orden";
 import { maxFechaDeEntrega, problemaAlAgendar, SIN_CASO_ESPECIAL, type CasoEspecial } from "@/lib/dia-de-entrega";
 import { AvisoDeFecha } from "@/components/AvisoDeFecha";
 import { pideConfirmarMediodia, preguntaSiEsParaHoy } from "@/lib/corte-de-ventas";
-import { orderLabel, todayISO } from "@/lib/utils";
+import { todayISO, nombreDeLaOrden } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 import type { OpcionesDelAviso } from "@/lib/data-provider";
 import { fotoAntesDeReprogramar, MS_AVISO_CON_DESHACER, notaDeDeshacer, type FotoDeReprogramacion } from "@/lib/deshacer-reprogramar";
@@ -83,7 +83,7 @@ export function ReprogramarOrden({ pedido, rol, lang, t, reprogramarOrden, notif
       {abierto && (
         <div className="overlay" data-dialogo-reprogramar onClick={(e) => { if (e.target === e.currentTarget && !guardando) setAbierto(false); }}>
           <div className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 420 }}>
-            <h3 style={{ marginTop: 0 }}>📅 {t("Reschedule", "Reprogramar")} · {pedido.invoice_num || `#${orderLabel(pedido)}`}</h3>
+            <h3 style={{ marginTop: 0 }}>📅 {t("Reschedule", "Reprogramar")} · {nombreDeLaOrden(pedido)}</h3>
             <div className="field">
               <label>{t("New date", "Nueva fecha")}</label>
               <input type="date" data-nueva-fecha value={fecha} min={hoy} max={maxFechaDeEntrega(hoy)} onChange={(e) => setFecha(e.target.value)} />

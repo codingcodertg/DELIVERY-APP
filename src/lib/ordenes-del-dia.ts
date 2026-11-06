@@ -1,5 +1,6 @@
 import type { Delivery } from "@/lib/types";
 import { isOverdue } from "@/lib/utils";
+import { textoDeRelevoParaBuscar } from "@/lib/relevo-etiqueta";
 
 /**
  * Qué órdenes ve el Gestor de Rutas: **cada día es aparte** (D-331).
@@ -70,7 +71,9 @@ export type OrdenDelPool = Orden & Pick<Delivery, "assigned_driver" | "order_no"
 export function coincideConLaBusqueda(d: OrdenDelPool, busqueda: string): boolean {
   const q = busqueda.trim().toLowerCase();
   if (!q) return true;
-  return String(d.order_no).includes(q) || [d.account, d.delivery_address, d.delivery_phone, d.contact, d.store].some((v) => (v || "").toLowerCase().includes(q));
+  // D-898 (256): y un paso de relevo, por su etiqueta («tr-1111-a»; `textoDeRelevoParaBuscar`). Buscar «1111» ya
+  // encuentra los dos pasos: comparten número y factura.
+  return String(d.order_no).includes(q) || [d.account, d.delivery_address, d.delivery_phone, d.contact, d.store, textoDeRelevoParaBuscar(d)].some((v) => (v || "").toLowerCase().includes(q));
 }
 
 /** Las filas que enseña un chip de «Sin asignar», antes de los filtros por columna (que dicen lo suyo en su barra, D-360). */
