@@ -50916,3 +50916,9 @@ Sello `warehouse_ops` 0.3.0; repo 1.748.0.
 Botón Ver en mapa en la tabla de órdenes (Sin asignar y Todas): un pin por orden con el color del chofer, respeta los filtros, el pin abre la orden en su tarjeta, y lista aparte las que no tienen ubicación. Pedido de Roberto (help 042c7dc1).
 
 Sello `deliveries` 1.550.0; repo 1.749.0.
+
+## D-896 · Hub: la tarjeta del Mapa de la empresa también se reordena
+
+La tarjeta Company map del inicio entra en la misma lista ordenable que las apps (hub_order, clave company-map); queda primera hasta que el admin la mueva. Corrige referencias viejas en mapa-de-apps. Pedido de Roberto (help 10ef60cc).
+
+Sello `deliveries` 1.551.0; repo 1.750.0.
