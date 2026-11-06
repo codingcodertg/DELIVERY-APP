@@ -16,7 +16,7 @@ import { DIAS_MAX_DE_REPORTES, rangoDeReportes } from "@/lib/reportes-choferes/p
 import { COLOR_RECORRIDO_REAL, BORDE_RECORRIDO_REAL, ANCHO_RECORRIDO_REAL, ANCHO_PLAN_CON_RECORRIDO } from "@/lib/recorrido-contra-plan";
 
 /**
- * «Reportes de choferes» (D-NEXT) — en el Panel, debajo de «Puntualidad por chofer», con el rango del Panel.
+ * «Reportes de choferes» (D-907) — en el Panel, debajo de «Puntualidad por chofer», con el rango del Panel.
  *
  * El dueño, 2026-11-06: «now that we have more information, I want better reports and metrics for drivers: scheduled
  * route vs real route, estimated time vs real time, time per stop».

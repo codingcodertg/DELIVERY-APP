@@ -14,7 +14,7 @@ import { armaDias, mapaDelDia, sitiosDeLasOrdenes, type DatosCrudos, type FilaDe
 import { DIAS_MAX_DE_REPORTES, puedeVerReportesDeChoferes, rangoDeReportes } from "@/lib/reportes-choferes/permiso";
 
 // ============================================================
-// GET /api/driver-reports?from=YYYY-MM-DD&to=YYYY-MM-DD[&driver=<id>][&map=1] — «Reportes de choferes» (D-NEXT).
+// GET /api/driver-reports?from=YYYY-MM-DD&to=YYYY-MM-DD[&driver=<id>][&map=1] — «Reportes de choferes» (D-907).
 //
 // Devuelve un DÍA por chofer y fecha (`informeDelDia`): sus paradas con lo planeado y lo real, las visitas del rastro,
 // el orden, las millas. Los cuatro reportes de la pantalla se calculan de ahí (`reportes-choferes/metricas`).

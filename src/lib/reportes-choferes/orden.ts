@@ -1,5 +1,5 @@
 /**
- * El orden PLANEADO de las paradas contra el orden en que se HICIERON (D-NEXT, «Reportes de choferes»).
+ * El orden PLANEADO de las paradas contra el orden en que se HICIERON (D-907, «Reportes de choferes»).
  *
  * «Fuera de orden» se cuenta con la medida más benévola que existe: el MENOR número de paradas que habría que mover para
  * que lo hecho quedara en el orden del plan (lo que sobra de la subsecuencia creciente más larga). Hacer primero la última

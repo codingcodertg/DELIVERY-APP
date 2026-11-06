@@ -1,7 +1,7 @@
 import { HUECO_MAX_MIN, metros, type LatLng, type Rastro } from "./rastro";
 
 /**
- * Cuándo LLEGÓ y cuándo SE FUE el vehículo de un sitio, deducido del rastro (D-NEXT, «Reportes de choferes»).
+ * Cuándo LLEGÓ y cuándo SE FUE el vehículo de un sitio, deducido del rastro (D-907, «Reportes de choferes»).
  *
  * La regla, con sus números (los enseña la pantalla):
  *   · **Estar en la parada** = un punto del rastro a 150 m o menos de ella (`RADIO_DE_PARADA_M`): una tienda con su patio,

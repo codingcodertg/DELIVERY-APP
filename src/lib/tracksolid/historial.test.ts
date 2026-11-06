@@ -4,7 +4,7 @@ import type { AlmacenDeToken } from "./token";
 import type { FetchFn } from "./api";
 
 /**
- * El historial de los camiones (D-NEXT): qué se le pide a TrackSolid, cuánto, y qué se guarda. Sin red: `fetch` es falso.
+ * El historial de los camiones (D-907): qué se le pide a TrackSolid, cuánto, y qué se guarda. Sin red: `fetch` es falso.
  * La forma de la respuesta es la que dio TrackSolid de verdad el 2026-11-06 (`jimi.device.track.list`).
  */
 

@@ -484,7 +484,7 @@ export default function DashboardPage() {
           {/* Justo debajo de los KPIs de choferes: mismo rango, y su «A tiempo» mide otra cosa, así que se leen juntos. */}
           <PuntualidadPorChofer desde={from} hasta={to} entregasDelPanel={scoped} eventos={events} usuarios={users} />
 
-          {/* ---------- Reportes de choferes: ruta planeada vs real, estimado vs real, tiempo por parada (D-NEXT) ---------- */}
+          {/* ---------- Reportes de choferes: ruta planeada vs real, estimado vs real, tiempo por parada (D-907) ---------- */}
           {/* Mismo rango que el Panel. El permiso de verdad lo comprueba /api/driver-reports; aquí solo se esconde la tarjeta. */}
           {puedeVerReportesDeChoferes(me) && <ReportesDeChoferes desde={from} hasta={to} />}
 

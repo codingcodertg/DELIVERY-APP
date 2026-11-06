@@ -5,7 +5,7 @@ import { ErrorDeTracksolid, llamaTracksolid, type ConfigDeTracksolid, type Fetch
 import { tokenDeTracksolid, type AlmacenDeToken } from "./token";
 
 // ============================================================
-// Por dónde anduvo cada camión: el HISTORIAL del rastreador (D-NEXT, «Reportes de choferes»). Solo servidor.
+// Por dónde anduvo cada camión: el HISTORIAL del rastreador (D-907, «Reportes de choferes»). Solo servidor.
 //
 // TrackSolid lo guarda y lo da con `jimi.device.track.list`: un rastreador por llamada, como mucho 7 días por
 // llamada, y solo de los últimos 3 meses. Medido el 2026-11-06 con los dos camiones: un punto cada 10 s con el

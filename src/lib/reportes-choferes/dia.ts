@@ -5,7 +5,7 @@ import { durante, permanenciaS, RADIO_DE_PARADA_M, vale, visitasA, type Visita }
 import { comparaOrden } from "./orden";
 
 /**
- * El día de UN chofer, parada a parada (D-NEXT, «Reportes de choferes»): lo planeado contra lo hecho.
+ * El día de UN chofer, parada a parada (D-907, «Reportes de choferes»): lo planeado contra lo hecho.
  *
  * De dónde sale cada cosa (y la pantalla lo dice en cada número):
  *   · **Paradas del día**: las órdenes del chofer con esa fecha de entrega. Cada orden da una ENTREGA y, si se cargó ese

@@ -7,7 +7,7 @@ import { informeDelDia, type InformeDelDia, type OrdenDelDia, type PlanDeParada,
 import { eligeRastro, trazosParaElMapa, type LatLng, type PuntoDeRastro, type Rastro } from "./rastro";
 
 /**
- * De las filas de la base a los días de cada chofer (D-NEXT, «Reportes de choferes»). Sin base ni red: la ruta lee y esto
+ * De las filas de la base a los días de cada chofer (D-907, «Reportes de choferes»). Sin base ni red: la ruta lee y esto
  * arma, para poder probarlo con las filas de una semana de verdad.
  */
 

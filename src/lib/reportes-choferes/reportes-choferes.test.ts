@@ -10,7 +10,7 @@ import { armaDias, sitioDeRecogida, type DatosCrudos, type FilaDeEntrega } from 
 import { puedeVerReportesDeChoferes, rangoDeReportes } from "./permiso";
 
 /**
- * «Reportes de choferes» (D-NEXT): lo que decide cada número.
+ * «Reportes de choferes» (D-907): lo que decide cada número.
  *
  * Los rastros son sintéticos, con las dos formas que se midieron el 2026-11-06 en los datos de verdad: el CAMIÓN manda un
  * punto cada 10 s en marcha y calla parado; el TELÉFONO manda uno cada 30 s y, cuando calla, no se sabe qué pasó.
@@ -449,10 +449,10 @@ describe("reglas de la casa", () => {
     expect(cuerpo.indexOf("puedeVerReportesDeChoferes(")).toBeLessThan(cuerpo.indexOf("conLlaveDeServicio("));
     expect(r).not.toMatch(/access_token|accessToken|appSecret/);
   });
-  it("la 264: registrada, sin D-NEXT, con RLS y sin permisos para el navegador", () => {
+  it("la 264: registrada, sin D-907, con RLS y sin permisos para el navegador", () => {
     const m = lee("supabase/migrations/264_rastro_de_camiones.sql");
     expect(m).toMatch(/-- @ledger-below\r?\ninsert into public\.schema_migrations \(name, checksum\) values \('264_rastro_de_camiones\.sql', '[0-9a-f]{64}'\)/);
-    expect(m).not.toMatch(/D-NEXT/);
+    expect(m).not.toMatch(/D-907/);
     expect(m).toMatch(/create table if not exists public\.truck_track_days/);
     expect(m).toMatch(/enable row level security/);
     expect(m).toMatch(/revoke all on public\.truck_track_days from public, anon, authenticated/);

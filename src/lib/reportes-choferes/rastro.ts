@@ -1,5 +1,5 @@
 /**
- * El RASTRO de un chofer en un día (D-NEXT, «Reportes de choferes»): por dónde anduvo, con su hora.
+ * El RASTRO de un chofer en un día (D-907, «Reportes de choferes»): por dónde anduvo, con su hora.
  *
  * Dos fuentes, y se usa UNA por chofer y día — la mejor que haya, y la pantalla dice cuál:
  *   · `camion`: el historial del rastreador del camión que llevó ese día (TrackSolid, `jimi.device.track.list`). Un punto

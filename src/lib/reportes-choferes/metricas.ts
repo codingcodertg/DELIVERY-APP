@@ -1,7 +1,7 @@
 import type { ClaseDeVisita, InformeDelDia, ParadaDelInforme, VisitaDelInforme } from "./dia";
 
 /**
- * Los números de «Reportes de choferes» (D-NEXT), sacados de los días ya calculados (`informeDelDia`).
+ * Los números de «Reportes de choferes» (D-907), sacados de los días ya calculados (`informeDelDia`).
  *
  * La regla que manda en todo el fichero: **cada número lleva al lado de cuánto dato sale** (`n` y `de`), y un número con
  * poco dato detrás se enseña pero NO se usa para comparar choferes (`fiable: false`). Poco dato es:

@@ -2,7 +2,7 @@ import { tieneAccesoAEntregas } from "@/lib/constants";
 import type { UserRole } from "@/lib/types";
 
 /**
- * Quién ve «Reportes de choferes» (D-NEXT): los mismos tres roles que ven la puntualidad por chofer (D-414) y que leen
+ * Quién ve «Reportes de choferes» (D-907): los mismos tres roles que ven la puntualidad por chofer (D-414) y que leen
  * las posiciones GPS (121) —admin, logística y gerente—, y con el módulo de Entregas. El gerente, además, solo ve las
  * órdenes de SUS tiendas (lo acota la ruta, con `alcanceDelPanel`, como el Panel).
  *

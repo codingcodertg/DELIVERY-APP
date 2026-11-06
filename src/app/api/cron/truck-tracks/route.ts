@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
- * Cron diario: guarda el rastro de cada camión (D-NEXT, «Reportes de choferes»).
+ * Cron diario: guarda el rastro de cada camión (D-907, «Reportes de choferes»).
  *
  * TrackSolid borra el historial a los 3 meses. Los reportes ya guardan (264) cada día que alguien mira; esto guarda
  * también los que nadie miró: los últimos 7 días de cada rastreador enlazado, UNA llamada por camión (lo ya guardado y
