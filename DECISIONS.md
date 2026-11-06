@@ -50940,3 +50940,9 @@ Sello `deliveries` 1.552.0; repo 1.752.0.
 Los mapas Leaflet del hub (gestor de rutas, PNG de la ruta, mapa de cuadrilla) ya no muestran la palabra Leaflet ni la bandera; las atribuciones de Google, OpenStreetMap y Esri se mantienen. Pedido del dueño.
 
 Sello `deliveries` 1.553.0; repo 1.753.0.
+
+## D-900 · Entregas: camiones en vivo desde TrackSolid Pro en el mapa del gestor
+
+Capa Trucks en el mapa del Gestor de rutas con la posición de los rastreadores GPS de los camiones (TrackSolid Pro Open API): estado, velocidad en mph, último reporte y aviso de sin señal tras 15 min; enlace rastreador → chofer/tienda en Ajustes; token y lectura en caché en la base (solo service role). Se oculta si faltan las variables TRACKSOLID_* o la migración 257.
+
+Sello `deliveries` 1.554.0; repo 1.754.0.

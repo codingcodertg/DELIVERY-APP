@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 /**
- * Las dos rutas de TrackSolid (D-NEXT): quién entra y qué sale.
+ * Las dos rutas de TrackSolid (D-900): quién entra y qué sale.
  *
  * Supabase y TrackSolid son falsos: aquí no hay red. Lo que se guarda es la puerta —sin sesión 401, sin
  * `route_plan` 403, enlazar solo el admin— y que, sin las variables o sin la migración 257, la ruta diga

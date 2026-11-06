@@ -2044,7 +2044,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 .copia-claude-aviso { margin: 10px 0 0; font-weight: 600; color: var(--text); }
 .copia-claude-botones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .copia-claude-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
-/* La etiqueta de un camión de TrackSolid en el mapa de Google (D-NEXT): halo blanco para leerse sobre calles. Leaflet pinta el suyo. */
+/* La etiqueta de un camión de TrackSolid en el mapa de Google (D-900): halo blanco para leerse sobre calles. Leaflet pinta el suyo. */
 .etiqueta-camion { text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 3px #fff; white-space: nowrap; }
 /* El interruptor de esa capa, flotando sobre el mapa del Gestor: arriba a la derecha, la esquina que ningún mapa usa. */
 .capa-camiones { position: absolute; top: 8px; right: 8px; z-index: 5; display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 1px 4px rgba(0,0,0,.25); font-size: 12.5px; }

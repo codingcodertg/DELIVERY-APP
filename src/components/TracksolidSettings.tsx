@@ -9,7 +9,7 @@ import { COLOR_DE_CAMION_SIN_CHOFER, textoDelCamion, type CamionDeTracksolid } f
 import { useCamionesDeTracksolid } from "@/lib/tracksolid/useCamiones";
 
 /**
- * Ajustes → «Camiones (rastreadores GPS)» — D-NEXT. Solo el admin (la página ya lo exige, y la ruta también).
+ * Ajustes → «Camiones (rastreadores GPS)» — D-900. Solo el admin (la página ya lo exige, y la ruta también).
  *
  * Cada rastreador de la cuenta de TrackSolid, con dos listas: de qué chofer es y cuál es su tienda base.
  * Enlazado, el camión sale en el mapa del Gestor con el nombre y el color de ese chofer. Sin enlazar sale

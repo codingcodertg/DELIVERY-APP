@@ -108,7 +108,7 @@ import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConM
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { BotonDelCamion } from "@/components/BotonDelCamion";
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
-/** La capa de camiones de TrackSolid (D-NEXT): la misma lista vacía siempre, y dónde recuerda el navegador si se apagó. */
+/** La capa de camiones de TrackSolid (D-900): la misma lista vacía siempre, y dónde recuerda el navegador si se apagó. */
 const SIN_CAMIONES_EN_MAPA: TruckMarker[] = [];
 const CLAVE_CAPA_CAMIONES = "rtg_capa_camiones";
 import type { Delivery, DriverIncident, Profile } from "@/lib/types";
@@ -771,7 +771,7 @@ export default function RoutesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driverLocations, users, settings.driver_colors, veCamiones, miChofer, alcanceChoferes, choferesConParada]);
 
-  // Los camiones de la empresa por su rastreador GPS (TrackSolid, D-NEXT). Es OTRA fuente que los 🚚 de arriba: aquellos
+  // Los camiones de la empresa por su rastreador GPS (TrackSolid, D-900). Es OTRA fuente que los 🚚 de arriba: aquellos
   // son el teléfono del chofer; estos, el aparato atornillado al camión, que sigue reportando aunque el chofer no fiche.
   // Solo en la vista de planificación (no en «Ruta de hoy» ni en «Mi ruta»), y solo si la instalación tiene TrackSolid:
   // si no, `disponible` es false y ni el interruptor se pinta. No entran en `fitTo`: no mueven el encuadre de las rutas.
@@ -3129,7 +3129,7 @@ export default function RoutesPage() {
           }}
         />
         <div className="card" data-mapa-del-gestor style={{ flex: "3 1 460px", margin: 0, padding: 0, overflow: "hidden", position: "relative" }}>
-          {/* La capa de camiones de TrackSolid (D-NEXT): un interruptor flotando sobre el mapa, arriba a la derecha (la
+          {/* La capa de camiones de TrackSolid (D-900): un interruptor flotando sobre el mapa, arriba a la derecha (la
               esquina que ninguno de los dos mapas usa), para no quitarle alto al mapa ni mover la tabla de la ruta. */}
           {rastreadores.disponible && (
             <div className="capa-camiones" data-capa-camiones={capaCamiones ? "si" : "no"}>

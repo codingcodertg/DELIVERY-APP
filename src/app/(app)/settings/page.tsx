@@ -171,7 +171,7 @@ export default function SettingsPage() {
 
       <RouteEngineSettings />
 
-      {/* Rastreadores GPS de los camiones (TrackSolid, D-NEXT). Se pinta solo si la instalación lo tiene. */}
+      {/* Rastreadores GPS de los camiones (TrackSolid, D-900). Se pinta solo si la instalación lo tiene. */}
       <TracksolidSettings />
 
       <div className="card">

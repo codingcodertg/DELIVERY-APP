@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 // ============================================================
-// La firma del Open API de TrackSolid Pro (Jimi IoT) — D-NEXT.
+// La firma del Open API de TrackSolid Pro (Jimi IoT) — D-900.
 //
 // Cada llamada lleva `sign` = MD5 EN MAYÚSCULAS de  secreto + (parámetros ordenados por clave, pegados
 // como clave+valor) + secreto. La hora va en UTC, «yyyy-MM-dd HH:mm:ss», y el servidor de Jimi admite

@@ -1,7 +1,7 @@
 import { firma, marcaDeTiempo } from "./firma";
 
 // ============================================================
-// Las llamadas al Open API de TrackSolid Pro (D-NEXT). Solo servidor.
+// Las llamadas al Open API de TrackSolid Pro (D-900). Solo servidor.
 //
 // Un solo POST con formulario a `/route/rest`; el `method` dice qué se pide. Aquí no hay caché ni
 // reintentos: eso lo deciden `token.ts` y `posiciones.ts`. Lo que sí hay es una regla: **nada de lo

@@ -24,7 +24,7 @@ export interface MapViewProps {
   lines?: MapLine[];
   stores?: StoreMarker[];
   liveDrivers?: LiveDriver[];
-  /** Los camiones por su rastreador GPS (TrackSolid, D-NEXT). Solo el Gestor los pasa; no entran en el encuadre. */
+  /** Los camiones por su rastreador GPS (TrackSolid, D-900). Solo el Gestor los pasa; no entran en el encuadre. */
   trucks?: TruckMarker[];
   onPointClick?: (id: string) => void;
   onLineClick?: (id: string) => void;

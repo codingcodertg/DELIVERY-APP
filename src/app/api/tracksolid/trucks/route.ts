@@ -8,7 +8,7 @@ import { conEnlaces, leeEnlaces } from "@/lib/tracksolid/servicio";
 import type { UserRole } from "@/lib/types";
 
 // ============================================================
-// GET /api/tracksolid/trucks — dónde están los camiones de la empresa, por su rastreador GPS (D-NEXT).
+// GET /api/tracksolid/trucks — dónde están los camiones de la empresa, por su rastreador GPS (D-900).
 //
 // Quién: los que ven la vista de planificación del Gestor de Rutas (`puedeVerCamiones`: Entregas + `route_plan`).
 // Qué NO sale nunca de aquí: las llaves de TrackSolid ni el token. Solo posiciones.

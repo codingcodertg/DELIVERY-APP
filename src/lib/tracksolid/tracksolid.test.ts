@@ -12,7 +12,7 @@ import { svgDelCamion, tarjetaDelCamion } from "./marca";
 import { tocaRefrescar } from "./useCamiones";
 
 /**
- * TrackSolid Pro en el Gestor de Rutas (D-NEXT).
+ * TrackSolid Pro en el Gestor de Rutas (D-900).
  *
  * NINGUNA prueba de aquí sale a la red: `fetch` es siempre uno falso que se inyecta, y la base es una de
  * memoria. Lo que se guarda: la firma (si cambia, Jimi rechaza todo), que el token NO se pida de más (Jimi

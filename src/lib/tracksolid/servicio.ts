@@ -3,7 +3,7 @@ import type { CamionDeTracksolid } from "./camiones";
 import type { PosicionDeCamion } from "./posiciones";
 
 // ============================================================
-// Los enlaces rastreador → chofer / tienda base (`tracksolid_devices`, 257) — D-NEXT. Solo servidor.
+// Los enlaces rastreador → chofer / tienda base (`tracksolid_devices`, 257) — D-900. Solo servidor.
 //
 // La tabla no tiene políticas: se lee y se escribe con la llave de servicio, detrás del permiso que
 // comprueba cada ruta. El enlace guarda el `id` del chofer, no su nombre: si le cambian el nombre, el

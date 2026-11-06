@@ -1,7 +1,7 @@
 import { ErrorDeTracksolid, llamaTracksolid, type ConfigDeTracksolid, type FetchFn } from "./api";
 
 // ============================================================
-// El token de TrackSolid, compartido entre invocaciones (D-NEXT). Solo servidor.
+// El token de TrackSolid, compartido entre invocaciones (D-900). Solo servidor.
 //
 // Jimi deja pedir token **una vez por minuto** y cada uno dura unas 2 horas. La app es serverless: cada
 // invocación nace sin memoria, así que el token vive en la base (`tracksolid_state`, 257, solo llave de

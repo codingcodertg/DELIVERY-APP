@@ -1,7 +1,7 @@
 import type { EstadoDelCamion } from "./camiones";
 
 // ============================================================
-// El dibujo de un camión de TrackSolid en el mapa (D-NEXT). Un solo SVG para los DOS mapas (Leaflet lo
+// El dibujo de un camión de TrackSolid en el mapa (D-900). Un solo SVG para los DOS mapas (Leaflet lo
 // mete en un divIcon, Google como data-URI), igual que `store-pins`: así no pueden decir cosas distintas.
 //
 // Cuadrado redondeado, a propósito distinto del círculo 🚚 de los teléfonos de los choferes: son dos

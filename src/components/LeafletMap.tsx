@@ -141,7 +141,7 @@ export function LeafletMap({
   stores?: StoreMarker[];
   /** Drivers currently on shift, drawn where their phone last reported. */
   liveDrivers?: LiveDriver[];
-  /** Los camiones por su rastreador GPS (TrackSolid, D-NEXT). */
+  /** Los camiones por su rastreador GPS (TrackSolid, D-900). */
   trucks?: TruckMarker[];
   onPointClick?: (id: string) => void;
   /** Click a traced route — used to focus that route's driver. */
@@ -472,7 +472,7 @@ export function LeafletMap({
     return () => { cancelled = true; };
   }, [liveDrivers]);
 
-  // Los camiones de la empresa por su rastreador (TrackSolid, D-NEXT): cuadrado con 🚛, etiqueta debajo y, al tocarlo,
+  // Los camiones de la empresa por su rastreador (TrackSolid, D-900): cuadrado con 🚛, etiqueta debajo y, al tocarlo,
   // su tarjeta en el sitio. Las marcas se MUEVEN de un refresco a otro (por IMEI), así la tarjeta abierta no se cierra.
   useEffect(() => {
     let cancelled = false;

@@ -5,7 +5,7 @@ import { puedeEnlazarCamiones } from "@/lib/tracksolid/camiones";
 import { enlaceValido } from "@/lib/tracksolid/servicio";
 
 // ============================================================
-// PUT /api/tracksolid/links — enlaza un rastreador (IMEI) con un chofer y/o su tienda base (D-NEXT).
+// PUT /api/tracksolid/links — enlaza un rastreador (IMEI) con un chofer y/o su tienda base (D-900).
 //
 // Solo el admin, desde Ajustes. Escribe en `tracksolid_devices` (257) con la llave de servicio: la tabla no
 // tiene políticas. NO toca nada en la cuenta de TrackSolid: el enlace vive solo en esta app.

@@ -3,7 +3,7 @@ import { formateadorDeFecha } from "@/lib/formateador";
 import { BUSINESS_TZ } from "@/lib/utils";
 
 // ============================================================
-// Los camiones de la empresa, vistos por su rastreador GPS (TrackSolid Pro) — D-NEXT.
+// Los camiones de la empresa, vistos por su rastreador GPS (TrackSolid Pro) — D-900.
 //
 // Sin React, sin red y sin llaves: lo usan el servidor (para traducir lo que manda Jimi) y el navegador
 // (para decidir cómo se pinta cada camión). Aquí vive lo que hay que poder probar: las unidades, qué es

@@ -100,7 +100,7 @@ export function GoogleMapView({
   lines?: MapLine[];
   stores?: StoreMarker[];
   liveDrivers?: LiveDriver[];
-  /** Los camiones por su rastreador GPS (TrackSolid, D-NEXT). */
+  /** Los camiones por su rastreador GPS (TrackSolid, D-900). */
   trucks?: TruckMarker[];
   onPointClick?: (id: string) => void;
   onLineClick?: (id: string) => void;
@@ -408,7 +408,7 @@ export function GoogleMapView({
     for (const [k, it] of liveByDriverRef.current) if (!vistos.has(k)) { it.marker.setMap(null); it.circle?.setMap(null); liveByDriverRef.current.delete(k); }
   }, [liveDrivers, ready]);
 
-  // ---- Camiones por su rastreador (TrackSolid, D-NEXT) ----
+  // ---- Camiones por su rastreador (TrackSolid, D-900) ----
   // Se MUEVEN por IMEI (como los de arriba, D-837). Al tocar uno se abre su tarjeta en el sitio, y un refresco la
   // actualiza sin cerrarla.
   useEffect(() => {

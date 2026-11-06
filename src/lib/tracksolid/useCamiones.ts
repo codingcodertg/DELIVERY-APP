@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { CamionDeTracksolid } from "./camiones";
 
 // ============================================================
-// Los camiones de TrackSolid, para una pantalla (D-NEXT).
+// Los camiones de TrackSolid, para una pantalla (D-900).
 //
 // Pregunta al entrar y luego cada ~60 s **mientras la pestaña se ve**. Con la pestaña oculta no pregunta
 // nada; al volver, pregunta enseguida si lo que tiene ya es viejo. El servidor además guarda 30 s, así que

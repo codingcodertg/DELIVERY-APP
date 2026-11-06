@@ -3,7 +3,7 @@ import { camionDesdeJimi, type CamionDeTracksolid, type EquipoCrudo } from "./ca
 import { tokenDeTracksolid, type AlmacenDeToken } from "./token";
 
 // ============================================================
-// Las últimas posiciones de los camiones, con caché (D-NEXT). Solo servidor.
+// Las últimas posiciones de los camiones, con caché (D-900). Solo servidor.
 //
 // Varias pantallas abiertas preguntan cada minuto; a TrackSolid se le pregunta como mucho una vez cada
 // ~30 s. La caché tiene dos pisos: la memoria de la instancia (gratis, pero cada invocación serverless
