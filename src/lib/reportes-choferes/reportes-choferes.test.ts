@@ -446,7 +446,11 @@ describe("reglas de la casa", () => {
     const r = lee("src/app/api/driver-reports/route.ts");
     const cuerpo = r.slice(r.indexOf("export async function GET"));
     expect(cuerpo.indexOf("puedeVerReportesDeChoferes(")).toBeGreaterThan(0);
-    expect(cuerpo.indexOf("puedeVerReportesDeChoferes(")).toBeLessThan(cuerpo.indexOf("conLlaveDeServicio("));
+    // D-NEXT: la lectura (y con ella la llave de servicio) vive en `carga.ts`; la ruta la llama DESPUÉS del rol.
+    expect(cuerpo.indexOf("cargaDias(")).toBeGreaterThan(0);
+    expect(cuerpo.indexOf("puedeVerReportesDeChoferes(")).toBeLessThan(cuerpo.indexOf("cargaDias("));
+    const carga = lee("src/lib/reportes-choferes/carga.ts");
+    expect(carga).not.toMatch(/access_token|accessToken|appSecret/);
     expect(r).not.toMatch(/access_token|accessToken|appSecret/);
   });
   it("la 264: registrada, sin D-907, con RLS y sin permisos para el navegador", () => {
