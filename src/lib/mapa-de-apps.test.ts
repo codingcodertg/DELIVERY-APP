@@ -313,7 +313,7 @@ describe("el hub pinta el mapa con las listas de siempre", () => {
   it("el inicio vuelve a sus tarjetas, con la del mapa, y ya no pinta el mapa", () => {
     const hub = leer("src/components/HomeSelector.tsx");
     expect(hub).toContain('<div className="module-pick-grid">');
-    expect(hub).toContain("<Link href={RUTA_MAPA_DE_LA_EMPRESA} className=\"module-pick-card\" data-hub-mapa>");
+    expect(hub).toContain("<Link key={m.key} href={RUTA_MAPA_DE_LA_EMPRESA} className=\"module-pick-card\" data-hub-mapa>");
     expect(hub).not.toContain("<MapaDeApps");
   });
   it("la página del mapa tiene las mismas puertas que el inicio", () => {
@@ -330,7 +330,8 @@ describe("el hub pinta el mapa con las listas de siempre", () => {
     expect(veElMapa(null)).toBe(false);
   });
   it("la tarjeta del inicio y la página del mapa preguntan veElMapa", () => {
-    expect(leer("src/components/HomeSelector.tsx")).toContain("{veElMapa(me) && (");
+    // Desde que la tarjeta se reordena con las demás, `veElMapa` decide si entra en la lista de tarjetas.
+    expect(leer("src/components/HomeSelector.tsx")).toContain("tarjetasDelHub(available, orden, veElMapa(me))");
     expect(leer("src/app/home/mapa/page.tsx")).toContain('if (!veElMapa(me)) redirect("/home");');
   });
   it("el trazo de la flecha lo decide trazoDe, no el campo `conectada` a pelo", () => {

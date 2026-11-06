@@ -14,7 +14,7 @@ import type { Profile } from "@/lib/types";
 import { veAppsParaInstalar } from "@/lib/hub-apps";
 import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
 import { RUTA_MAPA_DE_LA_EMPRESA, veElMapa } from "@/lib/mapa-de-apps";
-import { guardaOrdenDelHub, leeOrdenDelHub, ordenaModulos, puedeOrdenarElHub } from "@/lib/orden-del-hub";
+import { guardaOrdenDelHub, leeOrdenDelHub, puedeOrdenarElHub, tarjetasDelHub } from "@/lib/orden-del-hub";
 import { colocaColumna } from "@/lib/orden-de-columnas";
 import type { ClienteDePrefs } from "@/lib/user-prefs";
 
@@ -60,20 +60,31 @@ export function HomeSelector({ me, suplantando = false, cuenta, soloApps = null 
       .then((o) => { if (vivo) setOrden(o); });
     return () => { vivo = false; };
   }, [me]);
-  const modulos = ordenaModulos(available, orden);
+  // La tarjeta del mapa de la empresa entra en la misma lista y se arrastra igual (el admin, 2026-11-05: «Allow me to
+  // reorder map as well»); mientras nadie la mueva, sigue primera.
+  const tarjetas = tarjetasDelHub(available, orden, veElMapa(me));
   // D-757 (el dueño: «aquí quiero que solo se arrastre, no con flechas»): se arrastra una tarjeta y se suelta sobre otra,
   // como las cabeceras de Clientes (D-650); el orden es el que ya guardaba el hub. HTML5 drag & drop, de escritorio.
   const [arrastrada, setArrastrada] = useState<string | null>(null);
   const [sobre, setSobre] = useState<string | null>(null);
   const suelta = (destino: string) => {
     if (arrastrada && arrastrada !== destino) {
-      const nuevo = colocaColumna(modulos.map((m) => m.key), arrastrada, destino);
+      const nuevo = colocaColumna(tarjetas.map((m) => m.key), arrastrada, destino);
       setOrden(nuevo);
       void guardaOrdenDelHub(createClient() as unknown as ClienteDePrefs, me.id, nuevo, (k, v) => { try { window.localStorage.setItem(k, v); } catch { /* sin localStorage */ } });
     }
     setArrastrada(null);
     setSobre(null);
   };
+  const arrastre = (key: string) => ({
+    draggable: true,
+    onDragStart: (e: React.DragEvent) => { e.dataTransfer.setData("text/plain", key); e.dataTransfer.effectAllowed = "move"; setArrastrada(key); },
+    onDragOver: (e: React.DragEvent) => { if (arrastrada && arrastrada !== key) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setSobre(key); } },
+    onDragLeave: () => setSobre((s) => (s === key ? null : s)),
+    onDrop: (e: React.DragEvent) => { e.preventDefault(); suelta(key); },
+    onDragEnd: () => { setArrastrada(null); setSobre(null); },
+    style: { cursor: "grab", opacity: arrastrada === key ? 0.4 : 1, outline: sobre === key ? "2px solid var(--accent)" : undefined },
+  });
 
   // Mensajes de ayuda sin leer, en la tarjeta que toca (D-311). El hub no tiene campana, así que
   // este número es la única señal que hay aquí. La RLS ya acota lo que se lee: una persona solo
@@ -136,27 +147,22 @@ export function HomeSelector({ me, suplantando = false, cuenta, soloApps = null 
           {/* El mapa de la empresa (D-554) vive en su propia app, no en el inicio (D-556, el dueño: «el schema que
               hicimos de la app pon lo dentro de una app no asi coomo lo dejaste y trae le diseno al rtb hub denuevo»).
               Solo para el admin (D-561, el dueño: «map app of the schema is just for admin remove it for everybody
-              else»). */}
-          {veElMapa(me) && (
-            <Link href={RUTA_MAPA_DE_LA_EMPRESA} className="module-pick-card" data-hub-mapa>
+              else»). Es una tarjeta más de la lista: va donde el admin la haya dejado y, reordenando, se arrastra como
+              las demás. */}
+          {tarjetas.map((m) => "esElMapa" in m ? (ordenando ? (
+            <div key={m.key} className="module-pick-card" data-hub-mapa {...arrastre(m.key)}>
+              <span className="module-pick-emoji">🗺️</span>
+              <span className="module-pick-label">{t("Company map", "Mapa de la empresa")}</span>
+              <span className="module-pick-desc">⠿ {t("Drag to reorder", "Arrastra para reordenar")}</span>
+            </div>
+          ) : (
+            <Link key={m.key} href={RUTA_MAPA_DE_LA_EMPRESA} className="module-pick-card" data-hub-mapa>
               <span className="module-pick-emoji">🗺️</span>
               <span className="module-pick-label">{t("Company map", "Mapa de la empresa")}</span>
               <span className="module-pick-desc">{t("Every app and how they connect", "Todas las apps y cómo se conectan")}</span>
             </Link>
-          )}
-          {modulos.map((m) => ordenando ? (
-            <div
-              key={m.key}
-              className="module-pick-card"
-              data-hub-app={m.key}
-              draggable
-              onDragStart={(e) => { e.dataTransfer.setData("text/plain", m.key); e.dataTransfer.effectAllowed = "move"; setArrastrada(m.key); }}
-              onDragOver={(e) => { if (arrastrada && arrastrada !== m.key) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setSobre(m.key); } }}
-              onDragLeave={() => setSobre((s) => (s === m.key ? null : s))}
-              onDrop={(e) => { e.preventDefault(); suelta(m.key); }}
-              onDragEnd={() => { setArrastrada(null); setSobre(null); }}
-              style={{ cursor: "grab", opacity: arrastrada === m.key ? 0.4 : 1, outline: sobre === m.key ? "2px solid var(--accent)" : undefined }}
-            >
+          )) : ordenando ? (
+            <div key={m.key} className="module-pick-card" data-hub-app={m.key} {...arrastre(m.key)}>
               <span className="module-pick-emoji">{m.emoji}</span>
               <span className="module-pick-label">{lang === "es" ? m.label_es : m.label_en}</span>
               <span className="module-pick-desc">⠿ {t("Drag to reorder", "Arrastra para reordenar")}</span>

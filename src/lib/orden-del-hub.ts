@@ -9,6 +9,9 @@
  *   `{ "modules": ["deliveries", "customers", ...] }`; y en el navegador (`rtg_hub_order_<id>`) como copia, para que
  *   se vea al instante y para seguir funcionando si la base aún no admite la clave.
  * - Se reordena ARRASTRANDO una tarjeta sobre otra (D-757; antes flechas): el sitio nuevo lo calcula `colocaColumna`.
+ * - La tarjeta «Mapa de la empresa» también se ordena (el admin, 2026-11-05: «Allow me to reorder map as well»): va en
+ *   la misma lista con la clave `company-map`. Mientras no esté en lo guardado sigue PRIMERA, como siempre
+ *   (`tarjetasDelHub`); el primer arrastre guarda la lista entera y desde ahí se queda donde se la deje.
  * - Lo guardado es una lista de claves de módulo. Las que la persona ya no tiene se saltan; las que tiene y no están
  *   en la lista van después, en el orden de siempre: una app nueva aparece al final, no desaparece.
  */
@@ -40,6 +43,21 @@ export function ordenaModulos<T extends { key: string }>(modulos: readonly T[], 
   const conSitio = modulos.filter((m) => pos.has(m.key)).sort((a, b) => pos.get(a.key)! - pos.get(b.key)!);
   const sinSitio = modulos.filter((m) => !pos.has(m.key));
   return [...conSitio, ...sinSitio];
+}
+
+/** La clave de la tarjeta del mapa dentro del orden guardado. No es un módulo: ninguna clave de `MODULES` es esta. */
+export const CLAVE_DEL_MAPA_EN_EL_HUB = "company-map";
+export type TarjetaDelMapa = { key: typeof CLAVE_DEL_MAPA_EN_EL_HUB; esElMapa: true };
+const TARJETA_DEL_MAPA: TarjetaDelMapa = { key: CLAVE_DEL_MAPA_EN_EL_HUB, esElMapa: true };
+
+/**
+ * Las tarjetas grandes del hub, en orden: los módulos y, para quien lo ve (`conMapa`), la del mapa de la empresa.
+ * Si el mapa está en el orden guardado, va donde diga; si no (nadie lo ha movido aún), primero, como antes de poder moverlo.
+ */
+export function tarjetasDelHub<T extends { key: string }>(modulos: readonly T[], orden: readonly string[], conMapa: boolean): (T | TarjetaDelMapa)[] {
+  if (!conMapa) return ordenaModulos(modulos, orden);
+  if (orden.includes(CLAVE_DEL_MAPA_EN_EL_HUB)) return ordenaModulos<T | TarjetaDelMapa>([TARJETA_DEL_MAPA, ...modulos], orden);
+  return [TARJETA_DEL_MAPA, ...ordenaModulos(modulos, orden)];
 }
 
 /** Lee el orden: primero la base; si no se puede, el navegador. */
