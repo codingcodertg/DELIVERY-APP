@@ -142,7 +142,7 @@ export function repartoDeNoLeidos(porSolicitud: ReadonlyMap<string, number>, mis
 }
 
 /**
- * Los no leídos sin los de las solicitudes eliminadas (262, D-NEXT): una solicitud eliminada no se lista en ningún
+ * Los no leídos sin los de las solicitudes eliminadas (262, D-904): una solicitud eliminada no se lista en ningún
  * sitio, así que un número suyo en la tarjeta del hub sería un aviso que no lleva a nada.
  */
 export function sinLasEliminadas(porSolicitud: ReadonlyMap<string, number>, eliminadas: readonly string[]): Map<string, number> {

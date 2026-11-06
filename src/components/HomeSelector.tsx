@@ -99,7 +99,7 @@ export function HomeSelector({ me, suplantando = false, cuenta, soloApps = null 
         supabase.from("help_messages").select("request_id, author_id, created_at").order("created_at", { ascending: false }).limit(2000),
         supabase.from("help_reads").select("request_id, read_at").eq("user_id", me.id),
         supabase.from("help_requests").select("id").eq("user_id", me.id),
-        // Las eliminadas (262, D-NEXT) no cuentan. Sin la 262 esta consulta falla (la columna no existe) y se toma
+        // Las eliminadas (262, D-904) no cuentan. Sin la 262 esta consulta falla (la columna no existe) y se toma
         // como «ninguna»: el contador sale como salía.
         supabase.from("help_requests").select("id").not("deleted_at", "is", null),
       ]);

@@ -26,7 +26,7 @@ import { rutaParaCopiar } from "@/lib/ayuda-para-claude";
  * **Los adjuntos se firman al abrirlos**, uno a uno y por cinco minutos. Lo guardado es la clave del
  * cubo; un enlace guardado sería un enlace caducado (D-284).
  *
- * **Eliminar y restaurar (262, D-NEXT).** El admin elimina cualquiera (con confirmación, en un modal de la app); la
+ * **Eliminar y restaurar (262, D-904).** El admin elimina cualquiera (con confirmación, en un modal de la app); la
  * eliminada sale de Pendientes, Atendidas y Todas —y de sus contadores— y queda en Estado → «Eliminadas», con quién
  * la eliminó y cuándo, y un botón para restaurarla tal cual estaba. También salen ahí las que eliminó quien las
  * escribió. Es un borrado blando: la fila, el hilo y los adjuntos siguen guardados.
@@ -321,7 +321,7 @@ export default function SolicitudesDeAyudaPage() {
               <option value="pendientes">{t("Pending", "Pendientes")} ({pendientes.length})</option>
               <option value="atendidas">{t("Handled", "Atendidas")} ({atendidas.length})</option>
               <option value="todas">{t("All", "Todas")} ({vivas.length})</option>
-              {/* «Show deleted» (262, D-NEXT): las eliminadas solo salen si se piden. */}
+              {/* «Show deleted» (262, D-904): las eliminadas solo salen si se piden. */}
               {hayEliminacion && <option value="eliminadas">🗑 {t("Show deleted", "Ver eliminadas")} ({eliminadas.length})</option>}
             </select>
           </div>

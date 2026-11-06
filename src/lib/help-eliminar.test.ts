@@ -17,7 +17,7 @@ import { ConfirmarEliminarSolicitud } from "@/components/ConfirmarEliminarSolici
 vi.mock("@/lib/prefs", () => ({ usePrefs: () => ({ lang: "en", t: (en: string) => en }) }));
 
 /**
- * Eliminar una solicitud de ayuda (262, D-NEXT). Roberto, desde «Mis solicitudes»: «Maybe add option to eliminate
+ * Eliminar una solicitud de ayuda (262, D-904). Roberto, desde «Mis solicitudes»: «Maybe add option to eliminate
  * request».
  *
  * Ninguna prueba toca la base: el cliente es un doble, y de la migración se mira el texto. La 262 se ensayó aparte,
@@ -246,7 +246,7 @@ describe("la migración 262", () => {
 
   it("lleva su línea de registro y ningún número de decisión (numerar cambiaría el checksum)", () => {
     expect(sql).toMatch(/-- @ledger-below\ninsert into public\.schema_migrations \(name, checksum\) values \('262_ayuda_eliminar_solicitud\.sql', '[0-9a-f]{64}'\) on conflict \(name\) do nothing;/);
-    expect(sql).not.toMatch(/D-NEXT|D-\d{3}/);
+    expect(sql).not.toMatch(/D-904|D-\d{3}/);
   });
 
   it("y el código llama a las funciones que la migración crea", () => {

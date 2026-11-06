@@ -38,7 +38,7 @@ export type SolicitudDeAyuda = {
   status: EstadoDeSolicitud;
   attended_by: string | null;
   attended_at: string | null;
-  /** Eliminada (262, D-NEXT): cuándo, quién y su nombre. Nulas en una solicitud viva. `undefined` cuando la base aún
+  /** Eliminada (262, D-904): cuándo, quién y su nombre. Nulas en una solicitud viva. `undefined` cuando la base aún
    *  no tiene la 262 y la consulta no las trajo: entonces la pantalla no enseña el botón de eliminar. */
   deleted_at?: string | null;
   deleted_by?: string | null;
@@ -72,7 +72,7 @@ export async function leeConUbicacion<T extends { error: { code?: string | null;
   return faltaLaColumna(r.error) ? consulta(COLUMNAS_SIN_UBICACION) : r;
 }
 
-// ---- Eliminar una solicitud (262, D-NEXT) ---------------------------------------------------------
+// ---- Eliminar una solicitud (262, D-904) ---------------------------------------------------------
 //
 // Roberto (admin), 2026-11-06, desde «Mis solicitudes»: «Maybe add option to eliminate request». Había escrito una,
 // se dio cuenta de que no hacía falta («Disregard this request») y no tenía cómo retirarla: seguía abierta en su

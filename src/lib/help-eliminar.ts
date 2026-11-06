@@ -1,5 +1,5 @@
 /**
- * Eliminar y restaurar una solicitud de ayuda (262, D-NEXT): las dos llamadas a la base y qué contestó.
+ * Eliminar y restaurar una solicitud de ayuda (262, D-904): las dos llamadas a la base y qué contestó.
  *
  * Quién puede NO se decide aquí: lo decide la 262 (`delete_help_request` — quien la escribió o un admin;
  * `restore_help_request` — solo un admin). Esto solo traduce la respuesta a algo que la pantalla sabe contar.

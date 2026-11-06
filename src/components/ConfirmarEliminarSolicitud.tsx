@@ -5,7 +5,7 @@ import { usePrefs } from "@/lib/prefs";
 import { asomoEnLaLista, quienEscribe, type SolicitudDeAyuda } from "@/lib/help-requests";
 
 /**
- * «¿Eliminar esta solicitud?» (262, D-NEXT), en la propia pantalla y con el modal de la app: sin el diálogo de confirmación del
+ * «¿Eliminar esta solicitud?» (262, D-904), en la propia pantalla y con el modal de la app: sin el diálogo de confirmación del
  * navegador. Lo abren «Mis solicitudes» (cada persona, las suyas) y la bandeja del admin (cualquiera).
  *
  * Dice lo que va a pasar de verdad: sale de la lista, si estaba abierta deja de contar como pendiente, y no se

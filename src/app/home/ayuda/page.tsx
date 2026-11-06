@@ -26,7 +26,7 @@ import type { UserRole } from "@/lib/types";
  * Solo las PROPIAS, también para un admin: aquí el admin es una persona que pidió ayuda. Las de todos
  * las ve en su vista de solicitudes.
  *
- * **Eliminar (262, D-NEXT).** Roberto, desde esta pantalla: «Maybe add option to eliminate request» — había escrito
+ * **Eliminar (262, D-904).** Roberto, desde esta pantalla: «Maybe add option to eliminate request» — había escrito
  * una, luego «Disregard this request», y no tenía cómo retirarla. Cada tarjeta lleva «Eliminar»; se confirma en un
  * modal de la app y la solicitud sale de la lista, en el estado que esté. No se borra: queda guardada (la base
  * anota quién y cuándo) y un admin puede restaurarla. Quién puede lo decide la 262, no esta pantalla.
@@ -196,7 +196,7 @@ export default function MisSolicitudesPage() {
               <button className="btn btn-ghost btn-sm" onClick={() => { setAbierta(abiertaEsta ? null : s.id); if (!abiertaEsta) setSinLeer((m) => { const c = new Map(m); c.delete(s.id); return c; }); }}>
                 {abiertaEsta ? t("Hide", "Ocultar") : t("Open", "Abrir")}
               </button>
-              {/* Eliminar (262, D-NEXT), en cualquier estado. Sin la 262 aplicada no hay a qué llamar: no se enseña. */}
+              {/* Eliminar (262, D-904), en cualquier estado. Sin la 262 aplicada no hay a qué llamar: no se enseña. */}
               {sePuedeEliminar(s) && (
                 <button className="btn btn-ghost btn-sm" data-eliminar-solicitud title={t("Delete this request", "Eliminar esta solicitud")}
                   onClick={() => { setErrorAlEliminar(null); setPorEliminar(s); }}>
