@@ -168,11 +168,11 @@ export const FLECHAS: Flecha[] = [
     de: "leads", a: "quote-builder", conectada: true,
     evidencia: "conectada (2026-10-15): el botón de la tarjeta del lead, src/app/leads/Leads.tsx:605 «data-crear-cotizacion», " +
       "solo para quien puede, src/lib/leads/cotizar.ts:34 «export function puedeCotizarLead»; el Quote Builder lee el lead " +
-      "y rellena el borrador, src/app/estimator/Estimador.tsx:404 «borradorDesdeLead(que.lead»; la cotización nueva guarda " +
-      "su lead, src/lib/estimator/almacen.ts:226 «export function filaNueva», en la columna " +
+      "y rellena el borrador, src/app/estimator/Estimador.tsx:441 «borradorDesdeLead(que.lead»; la cotización nueva guarda " +
+      "su lead, src/lib/estimator/almacen.ts:232 «export function filaNueva», en la columna " +
       "supabase/migrations/175_cotizacion_de_lead.sql:32 «add column if not exists lead_id»; la cotización dice de qué lead " +
-      "sale, src/app/estimator/Estimador.tsx:583 «data-de-lead=», y el lead cuenta sus cotizaciones, " +
-      "src/app/leads/Leads.tsx:552 «data-cotizaciones=».",
+      "sale, src/app/estimator/Estimador.tsx:644 «data-de-lead=», y el lead cuenta sus cotizaciones, " +
+      "src/app/leads/Leads.tsx:584 «data-cotizaciones=».",
     pendiente: "el enlace guardado (cotización ↔ lead) espera la migración 175; hasta entonces se rellena y se guarda sin enlace",
   },
   { de: "quote-builder", a: "create-invoice", conectada: false, evidencia: `${NO_CONSTRUIDA} (Create Invoice).` },
