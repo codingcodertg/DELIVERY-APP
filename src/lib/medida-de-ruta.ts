@@ -98,7 +98,7 @@ export function siguienteMedida<M>(
  *  esta ruta no se mide ahora (viendo todas las fechas, una ruta sin marcar). */
 export type EstadoDeLaMedida = "medida" | "calculando" | "fallo" | "sin_pedir";
 /** Por qué una parada no puede tener hora aunque la ruta se mida. */
-export type MotivoSinLlegada = "sin_pin" | "sin_tienda" | "sin_base";
+export type MotivoSinLlegada = "sin_pin" | "sin_tienda" | "sin_base" | "sin_tramo" | "sin_marcar";
 
 /**
  * Lo que dice la celda «Llegada» de una parada: su hora si la hay; si no, POR QUÉ no la hay. Una parada sin punto en el mapa
@@ -109,6 +109,11 @@ export function textoDeLaLlegada(eta: string | undefined, estado: EstadoDeLaMedi
   if (motivo === "sin_pin") return { texto: es ? "sin pin" : "no pin", titulo: es ? "La entrega no tiene punto en el mapa: dele una dirección válida en Órdenes" : "The delivery has no map pin: give it a valid address in Orders", falta: true };
   if (motivo === "sin_tienda") return { texto: es ? "tienda sin punto" : "store has no pin", titulo: es ? "La tienda de recogida no tiene coordenadas en Ajustes → Tiendas" : "The pickup store has no coordinates in Settings → Stores", falta: true };
   if (estado === "calculando") return { texto: es ? "calculando…" : "calculating…", falta: true };
+  // D-NEXT: la ruta se midió, pero falta el tiempo de un tramo antes de esta parada: se dice, no se inventa una hora.
+  // D-NEXT: una recogida en una tienda donde el camión ya recogió otras órdenes de esa misma visita, y ésta sin marcar:
+  // no se sabe si va a bordo o se quedó en la tienda. No se le inventa una hora ni se manda al camión de vuelta.
+  if (estado === "medida" && motivo === "sin_marcar") return { texto: es ? "sin marcar" : "not marked", titulo: es ? "El camión ya recogió otras órdenes en esta tienda, pero ésta no está marcada como recogida. Si va en el camión, falta que el chofer la marque «Recogido»; si se quedó en la tienda, mueva esta recogida a donde el camión vuelva por ella." : "The truck already picked up other orders at this store, but this one isn't marked as picked up. If it's on the truck, the driver still has to mark it “Picked up”; if it stayed at the store, move this pickup to where the truck will come back for it.", falta: true };
+  if (estado === "medida" && motivo === "sin_tramo") return { texto: es ? "sin hora" : "no time", titulo: es ? "No se pudo calcular: falta el tiempo de viaje de un tramo de esta ruta antes de esta parada. No se enseña una hora en vez de enseñar una equivocada." : "It couldn't be worked out: the travel time for a leg of this route before this stop is missing. No time is shown rather than a wrong one.", falta: true };
   if (estado === "fallo") return { texto: es ? "sin medida" : "not measured", titulo: es ? "No se pudo medir la ruta (sin red, o el servicio de rutas no contestó). Pulse ↻ en la tarjeta para reintentar." : "The route couldn't be measured (no network, or the routing service didn't answer). Press ↻ on the card to retry.", falta: true };
   if (estado === "medida" && motivo === "sin_base") return { texto: es ? "sin base" : "no base", titulo: es ? "Una sola parada y el chofer no tiene tienda: no hay de dónde salir para medir" : "A single stop and the driver has no store: there's nowhere to leave from", falta: true };
   return { texto: "—", falta: true };
