@@ -1,4 +1,4 @@
-/* D-NEXT (270): la hoja de aprobación de merma. En pantalla, una hoja blanca centrada; al imprimir, solo ella. */
+/* D-921 (270): la hoja de aprobación de merma. En pantalla, una hoja blanca centrada; al imprimir, solo ella. */
 .hoja-aprobacion-pagina { max-width: 1000px; margin: 0 auto; padding: 12px 16px 40px; }
 .hoja-barra { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
 .hoja-aprobacion { background: #fff; color: #111; border: 1px solid var(--line, #ddd); border-radius: 8px; padding: 22px 24px; font-size: 13px; line-height: 1.35; }

@@ -49,7 +49,7 @@ export interface Reporte {
   photo_hashes?: (string | null)[] | null;
   /** 268: merma guardada SIN foto (la apuntaron en papel); queda incompleta hasta que le agreguen la foto. */
   photo_pending?: boolean | null;
-  /** 270 (D-NEXT): la etapa de la merma y sus fechas / actores / adjuntos. No vienen si la 270 no está aplicada. */
+  /** 270 (D-921): la etapa de la merma y sus fechas / actores / adjuntos. No vienen si la 270 no está aplicada. */
   stage?: string | null;
   photographed_at?: string | null;
   approved_at?: string | null;
@@ -118,7 +118,7 @@ export function faltaLaColumna(e: { code?: string | null; message?: string | nul
 }
 
 /**
- * 270 (D-NEXT): mueve la etapa de una merma (aprobada, desechada, ajustada; o un paso atrás si es admin). `prueba` es
+ * 270 (D-921): mueve la etapa de una merma (aprobada, desechada, ajustada; o un paso atrás si es admin). `prueba` es
  * la ruta en el cubo de la hoja firmada (aprobada) o de la captura del sistema (ajustada). La base revisa el orden,
  * quién llama (`warehouse_ops_can_manage`) y que el adjunto venga cuando toca; guarda fecha y actor.
  */

@@ -22,7 +22,7 @@ type Lang = "en" | "es";
 const T = (lang: Lang) => (en: string, es: string) => (lang === "es" ? es : en);
 
 /**
- * D-NEXT (migración 270): la hoja de aprobación de merma, lista para imprimir (`/operaciones/reportes/hoja-de-aprobacion?ids=a,b,c`).
+ * D-921 (migración 270): la hoja de aprobación de merma, lista para imprimir (`/operaciones/reportes/hoja-de-aprobacion?ids=a,b,c`).
  * Roberto: «select rows that will be printed for approval. They will sign the sheet, manager will attach it to that report».
  *
  * Se pinta en el SERVIDOR con la misma puerta que la vista de gerentes (`puedeImprimirHoja` = `veLosReportes`); las

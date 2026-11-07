@@ -51066,3 +51066,9 @@ Sello `warehouse_ops` 0.11.0; repo 1.773.0.
 La pastilla LOCAL / NO LOCAL de la ficha y del cotizador y el aviso «No local — requiere aprobación» leen ahora la misma decisión, con el mismo motivo (pin, o ciudad sin pin), así que no pueden contradecirse; la ciudad se lee de la dirección como ya hacía D-690 (nunca «TX» ni el ZIP). Además «Peñitas» cuenta como local sin pin, con o sin acento, igual que el resto de los pueblos del río. Cierra la ayuda de Francisca Reyes del 26 de octubre.
 
 Sello `deliveries` 1.564.0; repo 1.774.0.
+
+## D-921 · Merma: etapas de aprobación (Documentada → Fotografiada → Aprobada → Desechada → Ajustada) y hoja de aprobación para firmar
+
+Roberto pidió saber en qué etapa va cada merma y poder imprimir una hoja para que Gerencia la firme. En la pestaña Merma de Reportes hay columna y filtro de etapa, casillas para elegir mermas e imprimir la hoja de aprobación (con el recordatorio obligatorio y las firmas), y en la tarjeta el gerente adjunta la hoja firmada (pasa a Aprobada), marca Desechada y sube la captura del sistema (Ajustada); quedan fecha y quién en cada paso. Migración 270.
+
+Sello `warehouse_ops` 0.12.0; repo 1.775.0.

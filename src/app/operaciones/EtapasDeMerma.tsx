@@ -10,7 +10,7 @@ import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@
 import type { Contexto } from "./Operaciones";
 
 /**
- * D-NEXT (migración 270): la etapa de una merma en la lista (chip) y en la tarjeta (línea de tiempo + lo que el
+ * D-921 (migración 270): la etapa de una merma en la lista (chip) y en la tarjeta (línea de tiempo + lo que el
  * gerente hace: adjuntar la hoja firmada → Aprobada; marcar Desechada; subir la captura → Ajustada; admin: deshacer).
  */
 

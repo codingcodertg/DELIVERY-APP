@@ -79,7 +79,7 @@ export const RPC_QUE_ESCRIBEN = [
   "warehouse_ops_edit_scrap_product", // 252: el gerente vincula o corrige el producto de una merma fuera de catálogo.
   "warehouse_ops_edit_scrap_origin", // 263: el gerente corrige el origen (CRMA / nota) de una merma.
   "warehouse_ops_add_photos", "warehouse_ops_set_photo_hashes", // 268 (D-914): agrega la foto a una merma guardada sin ella; rellena las huellas de las fotos de antes.
-  "warehouse_ops_set_scrap_stage", // 270 (D-NEXT): el gerente mueve la etapa de una merma (aprobada / desechada / ajustada; admin deshace).
+  "warehouse_ops_set_scrap_stage", // 270 (D-921): el gerente mueve la etapa de una merma (aprobada / desechada / ajustada; admin deshace).
   "security_touch_device", "security_request_access", // 229 (D-811): registran el dispositivo de la sesión y su solicitud.
   "security_note_web_block", // 232 (D-818): anota que a esta sesión se le cerró la web.
   "security_sign_out_user", // 236 (D-828): cierra todas las sesiones de una persona.

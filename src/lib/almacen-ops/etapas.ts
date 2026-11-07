@@ -1,5 +1,5 @@
 /**
- * Operaciones de almacén (D-NEXT, migración 270): las ETAPAS de una merma y la hoja de aprobación.
+ * Operaciones de almacén (D-921, migración 270): las ETAPAS de una merma y la hoja de aprobación.
  *
  * Roberto (pedido 1aeba1e3, 2026-11-07): «Need a stage column: Documented → Photographed → Approved → Dumped. Need
  * to be able to select rows that will be printed for approval. They will sign the sheet, manager will attach it to

@@ -60,7 +60,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
   const [abierto, setAbierto] = useState<Reporte | null>(null);
-  // D-NEXT (270): filtro por etapa, y la selección de mermas para la hoja de aprobación (solo fotografiadas, sin aprobar).
+  // D-921 (270): filtro por etapa, y la selección de mermas para la hoja de aprobación (solo fotografiadas, sin aprobar).
   const [etapaFiltro, setEtapaFiltro] = useState<Etapa | "">("");
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [adjuntando, setAdjuntando] = useState(false);
@@ -108,7 +108,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const enRango = useMemo(() => (rango ? perdidaEnRango(mermas, rango) : { "*": 0 }), [mermas, rango]);
   const etiqueta = rango ? etiquetaDeRango(rango, lang, hoy) : "—";
   const tiendasDeMerma = Array.from(new Set([...Object.keys(totales), ...Object.keys(enRango)])).filter((k) => k !== "*").sort();
-  // D-NEXT (270): la lista de merma filtrada por etapa, la cuenta por etapa y el desglose de la pérdida del rango por etapa.
+  // D-921 (270): la lista de merma filtrada por etapa, la cuenta por etapa y el desglose de la pérdida del rango por etapa.
   const mermasPorEtapa = useMemo(() => (etapaFiltro ? mermasEnRango.filter((r) => etapaDe(r) === etapaFiltro) : mermasEnRango), [mermasEnRango, etapaFiltro]);
   const cuentaEtapa = (e: Etapa) => mermasEnRango.filter((r) => etapaDe(r) === e).length;
   const porEtapa = useMemo(() => perdidaPorEtapa(mermasEnRango), [mermasEnRango]);
@@ -262,7 +262,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
 /** La tabla de reportes (la de Órdenes, CLAUDE.md); la usan la lista y la pestaña de merma. Cada fila se abre como tarjeta. */
 function TablaDeReportes({ filas, ctx, onAbrir, vacio, repetidas, conEtapa, seleccion, "data-lista": dataLista }: {
   filas: Reporte[]; ctx: Contexto; onAbrir: (r: Reporte) => void; vacio: string; repetidas: Map<string, string[]>; "data-lista": string;
-  /** D-NEXT (270): la columna «Etapa» (pestaña de merma). Sin ella, el chip sale chico junto al detalle. */
+  /** D-921 (270): la columna «Etapa» (pestaña de merma). Sin ella, el chip sale chico junto al detalle. */
   conEtapa?: boolean;
   /** Casillas para la hoja de aprobación: qué ids están marcados, cuáles se pueden marcar, y el cambio. */
   seleccion?: { ids: Set<string>; puede: (r: Reporte) => boolean; alternar: (id: string) => void };
@@ -455,7 +455,7 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Conte
           <p className="hint" data-huellas="calculando">{t("Report from before duplicate detection: the photo fingerprints are being computed now and saved for next time.", "Reporte de antes de la detección de repetidas: las huellas de las fotos se calculan ahora y se guardan para la próxima.")}</p>
         )}
         {agregaFoto && <AgregarFoto r={r} ctx={ctx} onListo={onCambio} />}
-        {/* D-NEXT (270): la línea de etapas y lo que el gerente hace con ella. Sin la 270 (sin columnas) sale solo la línea, sin botones. */}
+        {/* D-921 (270): la línea de etapas y lo que el gerente hace con ella. Sin la 270 (sin columnas) sale solo la línea, sin botones. */}
         {r.kind === "scrap" && <LineaDeEtapas r={r} ctx={ctx} onCambio={onCambio} />}
         {r.kind === "scrap" && !tieneEtapas(r) && puedeCorregirMerma(ctx.yo, r) && <p className="hint" data-sin-270>{t("Approval stages need database migration 270.", "Las etapas de aprobación necesitan la migración 270 de la base.")}</p>}
         <div className="modal-actions"><button type="button" className="btn btn-primary" onClick={onCerrar}>{t("Close", "Cerrar")}</button></div>

@@ -11,7 +11,7 @@ import { DEMO_REPORTES, type Reporte } from "./datos";
 import type { Quien } from "./visibilidad";
 
 /**
- * D-NEXT (migración 270): las etapas de la merma. Roberto (1aeba1e3): «Documented → Photographed → Approved → Dumped»,
+ * D-921 (migración 270): las etapas de la merma. Roberto (1aeba1e3): «Documented → Photographed → Approved → Dumped»,
  * y «Last step will be 'Adjusted'». La regla vive dos veces (aquí para pintar; en la base para hacerla cumplir): estas
  * pruebas leen el SQL y las pantallas para que no se separen.
  */
@@ -81,7 +81,7 @@ describe("la etapa se deriva igual que el trigger (y así se rellenan las de ant
     expect(SQL).toContain("-- @ledger-below");
     const sum = createHash("sha256").update(SQL.split("-- @ledger-below")[0], "utf8").digest("hex");
     expect(SQL).toMatch(new RegExp(`insert into public\\.schema_migrations \\(name, checksum\\) values \\('270_merma_etapas_de_aprobacion\\.sql', '${sum}'\\) on conflict \\(name\\) do nothing;\\r?\\n?$`));
-    expect(SQL).not.toMatch(/D-NEXT/);
+    expect(SQL).not.toMatch(/D-921/);
     expect(SQL).not.toMatch(/^\s*begin;\s*$/m);
   });
 });
