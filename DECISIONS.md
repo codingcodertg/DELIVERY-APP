@@ -51012,3 +51012,9 @@ Sello `deliveries` 1.561.0; repo 1.764.0.
 En Reports → Scrap, los gerentes eligen Hoy, Esta semana, Semana pasada, Este mes, Mes pasado, Últimos 30 días o un De/Hasta propio; la tabla de pérdida por tienda y la lista de merma siguen el rango elegido, contando por la fecha en que se rompió el material. El rango queda en el enlace, así que sobrevive a recargar y se puede compartir.
 
 Sello `warehouse_ops` 0.7.0; repo 1.765.0.
+
+## D-912 · Recorrido: las órdenes se nombran por su número de factura
+
+En Recorrido (Deliveries app, pantalla Recorrido), la lista de cargas y entregas, las entregadas del día, las paradas del plan y los globos del mapa ahora muestran el número de factura en vez del código de orden; sin factura, el código aparece en gris como suplente. Pulsar una factura abre la ficha de la orden ahí mismo. El Panel y los Reportes de choferes no cambian. Pedido por Roberto en la reunión del 6 de noviembre.
+
+Sello `deliveries` 1.562.0; repo 1.766.0.

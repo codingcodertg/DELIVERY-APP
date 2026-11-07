@@ -123,7 +123,7 @@ export function ApegoEnTarjeta({ apego, listo, esHoy }: { apego: ApegoDelChofer 
 export function DetalleDelApego({ apego, listo, esHoy, color, mostrarPlan, onMostrarPlan, abrirOrden }: {
   apego: ApegoDelChofer | undefined; listo: boolean; esHoy: boolean; color: string;
   mostrarPlan: boolean; onMostrarPlan: (v: boolean) => void;
-  /** D-NEXT: abrir la ficha de una orden (por su id) en su sitio. Si devuelve `null`, esa orden no está cargada y no se puede abrir. */
+  /** D-912: abrir la ficha de una orden (por su id) en su sitio. Si devuelve `null`, esa orden no está cargada y no se puede abrir. */
   abrirOrden?: (id: string | undefined) => (() => void) | null;
 }) {
   const { t, lang } = usePrefs();
@@ -190,7 +190,7 @@ export function DetalleDelApego({ apego, listo, esHoy, color, mostrarPlan, onMos
                       <tr key={p.puesto} data-parada-plan={p.puesto} data-estado={p.enOrden ? "en-orden" : p.visitada ? "fuera-de-orden" : p.hecha ? "hecha-sin-rastro" : "no-visitada"}>
                         <td><span style={{ display: "inline-block", minWidth: 20, textAlign: "center", borderRadius: 10, background: color, color: "var(--card)", fontSize: 11, fontWeight: 700, padding: "1px 5px" }}>{p.puesto}</span></td>
                         <td>{p.lugar}</td>
-                        {/* D-NEXT: la orden se nombra por su FACTURA; sin ella, el código en gris. Pulsar abre la ficha. */}
+                        {/* D-912: la orden se nombra por su FACTURA; sin ella, el código en gris. Pulsar abre la ficha. */}
                         <td className="ordno">
                           {p.ordenes.map((o, i) => (
                             <span key={`${o.tipo}:${o.id ?? o.codigo}`}>

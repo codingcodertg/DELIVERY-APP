@@ -4,7 +4,7 @@ import { usePrefs } from "@/lib/prefs";
 import { etiquetaDeOrden, tituloDeEtiqueta, type OrdenNombrable } from "@/lib/etiqueta-de-parada";
 
 /**
- * D-NEXT: el nombre de una orden en el Recorrido: la FACTURA en negrita; sin factura, «#FW171» en gris y más fino, como
+ * D-912: el nombre de una orden en el Recorrido: la FACTURA en negrita; sin factura, «#FW171» en gris y más fino, como
  * suplente (el mismo criterio que la columna del Gestor de Rutas, `data-factura`). El código siempre va en el `title`.
  * Si llega `onAbrir`, es un botón que abre la ficha de la orden en su sitio (regla «abrir en tarjeta»).
  */

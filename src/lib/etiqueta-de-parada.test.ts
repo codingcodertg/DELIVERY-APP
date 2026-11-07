@@ -4,7 +4,7 @@ import { etiquetaDeOrden, textoDeEtiqueta, tituloDeEtiqueta } from "./etiqueta-d
 const t = (en: string) => en;
 const es = (_en: string, es: string) => es;
 
-describe("D-NEXT: la etiqueta de una orden en el Recorrido", () => {
+describe("D-912: la etiqueta de una orden en el Recorrido", () => {
   it("nombra la orden por su factura cuando la tiene", () => {
     const e = etiquetaDeOrden({ invoice_num: " 70412 ", order_code: "FW171" });
     expect(e).toEqual({ texto: "70412", suplente: false, codigo: "FW171", factura: "70412" });
@@ -52,11 +52,11 @@ describe("D-NEXT: la etiqueta de una orden en el Recorrido", () => {
   });
 });
 
-// ---- D-NEXT: dónde se usa en el Recorrido (lectura del fuente, como `recorrido.test.ts`) ----
+// ---- D-912: dónde se usa en el Recorrido (lectura del fuente, como `recorrido.test.ts`) ----
 import { readFileSync } from "node:fs";
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 
-describe("D-NEXT: el Recorrido nombra las órdenes por su factura", () => {
+describe("D-912: el Recorrido nombra las órdenes por su factura", () => {
   const pagina = leer("src/app/(app)/track/page.tsx");
   const plan = leer("src/components/PlanContraReal.tsx");
   it("la lista de cargas y entregas, las entregadas del día y las paradas del plan usan la etiqueta, no el código a secas", () => {

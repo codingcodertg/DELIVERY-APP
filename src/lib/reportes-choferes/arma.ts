@@ -13,7 +13,7 @@ import { eligeRastro, trazosParaElMapa, type LatLng, type PuntoDeRastro, type Ra
 
 export interface FilaDeEntrega {
   id: string; order_code: string | null; order_type: string | null; store: string | null; account: string | null;
-  /** D-NEXT: el número de factura, lo que nombra la parada en el Recorrido (Roberto, logística). Opcional: las pruebas viejas no lo traen. */
+  /** D-912: el número de factura, lo que nombra la parada en el Recorrido (Roberto, logística). Opcional: las pruebas viejas no lo traen. */
   invoice_num?: string | null;
   pickup_name: string | null; delivery_name: string | null; assigned_driver: string | null; delivery_date: string | null; stage: string;
   route_seq: number | null; delivery_windows: string | null; pickup_duration: string | null; delivery_duration: string | null;

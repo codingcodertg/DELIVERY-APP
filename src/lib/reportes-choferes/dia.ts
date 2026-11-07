@@ -36,7 +36,7 @@ export interface PlanDeParada {
 
 export interface OrdenDelDia {
   id: string; codigo: string; tipo: string | null; tienda: string | null; cliente: string | null; etapa: string;
-  /** D-NEXT: número de factura (`invoice_num`), si la orden lo tiene. */
+  /** D-912: número de factura (`invoice_num`), si la orden lo tiene. */
   factura?: string | null;
   recogida: (LatLng & { nombre: string }) | null;
   entrega: (LatLng & { nombre: string }) | null;
@@ -73,7 +73,7 @@ export type ClaseDeVisita = "recogida_tienda" | "recogida_otro" | "entrega_clien
 
 export interface ParadaDelInforme {
   clave: string; ordenId: string; codigo: string; tipo: "P" | "D";
-  /** D-NEXT: número de factura de la orden, si lo tiene. */
+  /** D-912: número de factura de la orden, si lo tiene. */
   factura?: string | null;
   lugar: string; cliente: string | null; tienda: string | null; esTienda: boolean; lat: number | null; lng: number | null;
   hecha: boolean;

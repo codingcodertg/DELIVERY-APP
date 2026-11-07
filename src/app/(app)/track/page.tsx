@@ -42,7 +42,7 @@ import type { Delivery, Profile } from "@/lib/types";
 // a uno solo con su detalle y su reproducción. El dueño: «el mismo view de route manager: están los 3 conductores y
 // yo le doy click para verlos y ver la ruta que hizo, y poder verlos live».
 //
-// D-NEXT: aquí las órdenes se NOMBRAN por su número de factura (`invoice_num`), no por el código FW171 (Roberto,
+// D-912: aquí las órdenes se NOMBRAN por su número de factura (`invoice_num`), no por el código FW171 (Roberto,
 // logística: «Replace ID numbers with invoice numbers in the actual pickups and deliveries list»). Sin factura, el código
 // en gris como suplente. El Panel no cambia. Pulsar una orden abre su ficha aquí mismo (`etiqueta-de-parada.ts`).
 // ============================================================
@@ -106,7 +106,7 @@ export default function TrackPage() {
   // servidor). Hoy se vuelve a leer cada 3 minutos, detrás del rastro.
   const apego = useApegoALaRuta(fecha, !!me);
   const [mostrarPlan, setMostrarPlan] = useState(true);
-  // D-NEXT: la ficha de la orden que se pulsó (lista de cargas y entregas, paradas del plan, entregadas ese día).
+  // D-912: la ficha de la orden que se pulsó (lista de cargas y entregas, paradas del plan, entregadas ese día).
   const [ordenAbierta, setOrdenAbierta] = useState<Delivery | null>(null);
   const porIdDeOrden = useMemo(() => new Map(deliveries.map((d) => [d.id, d])), [deliveries]);
   const abrirOrden = useMemo(() => (id: string | undefined) => {
@@ -266,7 +266,7 @@ export default function TrackPage() {
     }
     for (const d of deliveries) {
       if (d.delivery_lat != null && d.delivery_lng != null) {
-        // D-NEXT: la parada se nombra por la factura; sin ella, «#FW171 (sin factura)».
+        // D-912: la parada se nombra por la factura; sin ella, «#FW171 (sin factura)».
         out.push({ label: `${textoDeEtiqueta(etiquetaDeOrden(d), t)}${d.account ? ` · ${d.account}` : ""}`, lat: d.delivery_lat, lng: d.delivery_lng });
       }
     }
@@ -325,7 +325,7 @@ export default function TrackPage() {
   // D-832: cargas y entregas que el chofer marcó, con la orden a la que pertenecen (si sigue cargada en pantalla).
   const hitosConOrden = useMemo(() => hitos.map((h) => {
     const d = deliveries.find((x) => x.id === h.delivery_id);
-    // D-NEXT: la factura, no el código (el código queda en el título y en la ficha).
+    // D-912: la factura, no el código (el código queda en el título y en la ficha).
     const etiqueta = d ? `${textoDeEtiqueta(etiquetaDeOrden(d), t)}${d.account ? ` · ${d.account}` : ""}` : t("order", "orden");
     const suyas = recorridos[h.driver_id]?.fixes ?? [];
     const fix = suyas.length ? suyas.reduce((mejor, f) => Math.abs(new Date(f.at).getTime() - new Date(h.at).getTime()) < Math.abs(new Date(mejor.at).getTime() - new Date(h.at).getTime()) ? f : mejor) : null;
@@ -631,7 +631,7 @@ export default function TrackPage() {
                     <td style={{ fontVariantNumeric: "tabular-nums" }}>{clock(h.at, lang)}</td>
                     {!unSolo && <td><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: color(h.chofer), marginRight: 6 }} />{h.chofer}</td>}
                     <td>{h.kind === "delivered" ? <b style={{ color: "var(--green)" }}>✓ {t("Delivered", "Entregada")}</b> : <b style={{ color: "var(--accent)" }}>▲ {t("Picked up", "Cargada")}</b>}</td>
-                    {/* D-NEXT: factura (o código en gris) y, aparte, la cuenta. Pulsar abre la ficha de la orden. */}
+                    {/* D-912: factura (o código en gris) y, aparte, la cuenta. Pulsar abre la ficha de la orden. */}
                     <td className="ordno">
                       {h.orden
                         ? <><EtiquetaDeOrden orden={h.orden} onAbrir={abrirOrden(h.orden.id)} />{h.orden.account && <span className="hint" style={{ marginTop: 0, display: "inline", marginLeft: 6, fontWeight: 400 }}>· {h.orden.account}</span>}</>
@@ -714,7 +714,7 @@ export default function TrackPage() {
         </div>
       )}
 
-      {/* D-NEXT: la ficha de la orden pulsada, aquí mismo (nunca salta a otra app). */}
+      {/* D-912: la ficha de la orden pulsada, aquí mismo (nunca salta a otra app). */}
       {ordenAbierta && <OrderModal me={me as Profile} existing={ordenAbierta} startEditing={false} onClose={() => setOrdenAbierta(null)} />}
     </>
   );
