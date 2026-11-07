@@ -51078,3 +51078,9 @@ Sello `warehouse_ops` 0.12.0; repo 1.775.0.
 Al dar de alta un candidato hay un cuarto botón que lo guarda, abre RingCentral con el texto de «¿te puedo llamar?» (copiado también al portapapeles) y deja la línea en su historial; la ficha nueva se abre en el momento. El texto, en inglés y español, ahora se edita en Ajustes de Reclutamiento y sale en el idioma del candidato si se anotó en el prescreening. Pedido por el dueño el 7 de noviembre (migración 271).
 
 Sello `recruiting` 0.77.0; repo 1.776.0.
+
+## D-923 · APK 8 publicada: la cámara del scrap pide permiso y, si se niega, abre la galería
+
+La app Android RDZ Deliveries 8 (1.13.0) ya está en el almacenamiento; el hub la ofrece a los teléfonos con la 6 o la 7. Dentro de la app, al tocar «Tomar la foto» en la merma, si no se había dado el permiso de cámara lo pide; si se niega, avisa y abre la galería en vez de no hacer nada (causa del reporte de Baudelio). Misma firma que la v7.
+
+Sello `deliveries` 1.565.0; repo 1.777.0.
