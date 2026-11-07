@@ -13,6 +13,8 @@ import { eligeRastro, trazosParaElMapa, type LatLng, type PuntoDeRastro, type Ra
 
 export interface FilaDeEntrega {
   id: string; order_code: string | null; order_type: string | null; store: string | null; account: string | null;
+  /** D-912: el número de factura, lo que nombra la parada en el Recorrido (Roberto, logística). Opcional: las pruebas viejas no lo traen. */
+  invoice_num?: string | null;
   pickup_name: string | null; delivery_name: string | null; assigned_driver: string | null; delivery_date: string | null; stage: string;
   route_seq: number | null; delivery_windows: string | null; pickup_duration: string | null; delivery_duration: string | null;
   delivery_lat: number | null; delivery_lng: number | null; pickup_point_lat: number | null; pickup_point_lng: number | null;
@@ -124,7 +126,7 @@ export function armaDias(c: DatosCrudos): DiaArmado[] {
       const entrega = punto(d.delivery_lat, d.delivery_lng);
       const P = plan("P");
       return {
-        id: d.id, codigo: d.order_code ?? d.id.slice(0, 6), tipo: d.order_type, tienda: d.store, cliente: d.account?.trim() || d.delivery_name?.trim() || null, etapa: d.stage,
+        id: d.id, codigo: d.order_code ?? d.id.slice(0, 6), factura: d.invoice_num?.trim() || null, tipo: d.order_type, tienda: d.store, cliente: d.account?.trim() || d.delivery_name?.trim() || null, etapa: d.stage,
         recogida: sitioDeRecogida(d, c.tiendas),
         entrega: entrega ? { ...entrega, nombre: d.delivery_name?.trim() || d.account?.trim() || "Delivery" } : null,
         // La recogida es de este día si se cargó este día, si tiene hora en el plan de este día, o si aún no se cargó.

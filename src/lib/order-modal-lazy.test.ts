@@ -32,7 +32,8 @@ describe("OrderModal se carga en diferido desde un solo punto", () => {
     const paginas = tsx(join(raiz, "src/app")).filter((p) => /OrderModal/.test(readFileSync(p, "utf8")));
     // 8 hasta D-481: «Ruta de hoy» (map/page.tsx) monta la página del Gestor, que es quien abre la ficha.
     // 8 desde D-879: la tarjeta del historial de Clientes (`customers/TarjetaDeTrato.tsx`) abre la ficha en su sitio.
-    expect(paginas.length).toBe(8);
+    // 9 desde D-912: el Recorrido (track/page.tsx) abre la ficha al pulsar una factura en sus listas.
+    expect(paginas.length).toBe(9);
     for (const p of paginas) {
       const src = readFileSync(p, "utf8");
       expect(src, p).toMatch(/from "@\/components\/OrderModalLazy"/);
