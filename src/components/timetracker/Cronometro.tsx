@@ -19,7 +19,7 @@ import { isOverlapError } from "@/lib/timetracker/overlap";
 import { isSessionExpired, isAlreadyRunning, isAuthDenied } from "@/lib/session-guard";
 import { horaCorta, minutosSinGuardar } from "@/lib/timetracker/save-state";
 import {
-  backoffMs, cierreHuerfana, decisionReabrir, esHuerfana, markCovers, PAGE_ORPHAN_CLOSE_NOTE, parseResumeMark, resumeKey, RESUME_MAX_MS,
+  backoffMs, CIERRES_AUTOMATICOS, cierreHuerfana, decisionReabrir, esHuerfana, markCovers, PAGE_ORPHAN_CLOSE_NOTE, parseResumeMark, resumeKey, RESUME_MAX_MS,
   ultimoLatidoDe,
   tickContinuo,
 } from "@/lib/timetracker/live-session";
@@ -34,6 +34,10 @@ import {
   filasPendientesKey, inicioDeContinuacion, inicioSinSolape, leerFilasPendientes, nuevoPendiente, planTrasLatido,
   tocaReintentarPendiente, trasFallo, type FilaPendiente, type Pendiente,
 } from "@/lib/timetracker/no-perder-tiempo";
+import {
+  conTope, estadoVivoAplica, estadoVivoKey, LATIDO_TIMEOUT_MS, parcheDeAlcance, parseEstadoVivo, RACHA_LIMPIA, registrarExito,
+  registrarFallo, segundosHastaSanar, tocaAvisarSistema, tocaRecargar, tocaSanar, type EstadoVivo, type Racha,
+} from "@/lib/timetracker/recuperacion";
 import Link from "next/link";
 
 // ============================================================
@@ -78,7 +82,7 @@ const MOVEMENT_THRESHOLD = 0.005; // >=0.5% of the sampled screen changed = "mov
 export function Cronometro({ visible = true }: { visible?: boolean }) {
   const {
     me, myAssignments: assignments, mySessions: sessions, listLiveSessions, getSession, startSession, updateSession, updateLiveSession,
-    latestScreenshot, screenshotSignedUrl, uploadScreenshot, insertBlankScreenshot, notify,
+    latestScreenshot, screenshotSignedUrl, uploadScreenshot, insertBlankScreenshot, notify, refrescarSesion,
   } = useData();
   const t = useT();
   // Qué mira un admin: su cronómetro o su reloj de fichaje. Para todos los demás lo decide
@@ -126,6 +130,17 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   const LS_RESUME = resumeKey(me.id);
   const resumeMark = (() => {
     try { return parseResumeMark(localStorage.getItem(LS_RESUME), Date.now()); } catch { return null; }
+  })();
+
+  /**
+   * El estado vivo que sobrevive a una recarga suave (D-NEXT, `recuperacion.ts`): lo escribe cada
+   * latido y la propia recarga. Solo vale si es de hace menos de dos minutos: entonces esta misma
+   * app estuvo contando hasta hace un momento y sus números son los buenos. Más viejo, se ignora y
+   * manda D-246 (el hueco no se paga).
+   */
+  const LS_ESTADO_VIVO = estadoVivoKey(me.id);
+  const estadoVivoGuardado = (() => {
+    try { return parseEstadoVivo(localStorage.getItem(LS_ESTADO_VIVO), Date.now()); } catch { return null; }
   })();
 
   const [assignmentId, setAssignmentId] = useState(() => {
@@ -432,14 +447,21 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   // ejemplo). Stop escribe is_live = false a propósito y sigue por updateSession: cerrar tiene
   // que funcionar. Y desde D-241 la cola también reenvía por la vía viva, así que el límite que
   // aquí se daba por conocido —un parche encolado pisando una fila ya cerrada— ya no existe.
+  // Por ref (D-NEXT): el tick corre con un cierre viejo, y si la recuperación rehace el cliente de
+  // Supabase, el latido tiene que salir por el nuevo, no por el atascado.
+  const opsRef = useRef({ updateSession, updateLiveSession });
+  opsRef.current = { updateSession, updateLiveSession };
   async function writeSession(id: string, patch: Partial<Session>, tries = 3, soloViva = false): Promise<EscrituraLatido> {
     for (let i = 0; i < tries; i++) {
       try {
+        const { updateSession, updateLiveSession } = opsRef.current;
         if (!soloViva) { await updateSession(id, patch); return true; }
         // La vía viva dice ADEMÁS si había fila que actualizar (D-241). Cero filas no es un
         // error para PostgREST, así que sin esta respuesta un latido contra una sesión ya
         // cerrada —o ya en nómina— volvía «bien» y el reloj seguía como si guardara.
-        return (await updateLiveSession(id, patch)) ? true : "cerrada";
+        // Con tope (D-NEXT): un `fetch` que se queda colgado tras un cambio de red no es un latido
+        // en vuelo, es un latido perdido, y tiene que contar como fallo para que la racha sane.
+        return (await conTope(updateLiveSession(id, patch), LATIDO_TIMEOUT_MS)) ? true : "cerrada";
       }
       catch (e) {
         // Un solape (082) no se arregla esperando: la base lo va a rechazar igual
@@ -534,6 +556,14 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
         // El umbral y la aritmética del cierre viven en lib/timetracker/live-session.ts, que
         // comparten esta pantalla y el cron que cierra huérfanas (D-195). Eran 5 minutos;
         // son 15 para que un cierre corto (reinicio, actualización) no corte la sesión.
+        // La recarga suave de la recuperación (D-NEXT): si el estado vivo guardado es de ESTA fila y
+        // de hace un momento, se continúa la misma sesión con los números que la app tenía en memoria
+        // —sea la fila viva o huérfana— y el primer latido los lleva a la base. Nada que medir se
+        // perdió: la app estuvo viva contando hasta que se recargó.
+        if (estadoVivoAplica(estadoVivoGuardado, mine.id) && !theirsDe(mine)) {
+          if (await continuarConEstadoVivo(mine, estadoVivoGuardado)) return;
+        }
+
         if (esHuerfana(mine, Date.now())) {
           // **Antes de cerrar, mirar si hay que reabrir** (D-246). Este orden es el arreglo
           // entero: hasta aquí se cerraba y se borraba la marca en el mismo paso, así que la
@@ -699,6 +729,68 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     }, 1000);
   }
 
+  /** ¿La fila la conduce el otro cliente? (D-096) */
+  function theirsDe(s: Session): boolean {
+    const mineKind = isDesktop() ? "desktop" : "timer";
+    return (s.source === "desktop" || s.source === "timer") && s.source !== mineKind;
+  }
+
+  /**
+   * Continuar la MISMA sesión tras una recarga suave (D-NEXT).
+   *
+   * La fila puede estar viva (los latidos fallaban pero el cron aún no la cerró) o cerrada por
+   * el cron (`closed:cron`); un Stop no se deshace nunca. Los contadores salen del estado vivo
+   * guardado, no de la fila: la fila tiene lo de la última escritura buena, y el estado tiene lo
+   * que se midió después. El arranque es el de siempre, así que `Date.now() - startMs` sigue
+   * valiendo lo que marcaba el reloj de arriba. Y el latido de alcance sale ya, no a los diez
+   * segundos. Si la base rechaza la reapertura (092/082), se sigue por el camino de siempre.
+   */
+  async function continuarConEstadoVivo(mine: Session, e: EstadoVivo): Promise<boolean> {
+    if (!mine.isLive && !CIERRES_AUTOMATICOS.includes(mine.liveNote ?? "")) return false;
+    const ahora = Date.now();
+    const alcance = parcheDeAlcance(e, ahora);
+    try {
+      await updateSession(mine.id, { ...alcance, isLive: true });
+    } catch {
+      return false;
+    }
+    sessionIdRef.current = mine.id;
+    filaBaseRef.current = baseDe(mine);
+    startMsRef.current = e.startMs;
+    guardadoHastaRef.current = ahora;
+    guardadoNetoRef.current = alcance.durationSeconds;
+    ponerArrastre(e.arrastre);
+    setRemoteOwner(null);
+    try { localStorage.setItem(LS_LIVE, JSON.stringify({ id: mine.id, startMs: e.startMs, source: mine.source })); } catch { /* ignore */ }
+    try { localStorage.removeItem(LS_RESUME); } catch { /* ignore */ }
+    lunchRef.current = e.lunchSeconds;
+    brkRef.current = e.breakSeconds;
+    idleRef.current = e.idleSeconds;
+    breakEventsRef.current = e.breakEvents.map((b) => ({ ...b }));
+    keystrokesRef.current = e.keystrokes;
+    clicksRef.current = e.clicks;
+    activeSecondsRef.current = e.activeSeconds;
+    lastActTotalRef.current = 0;
+    onBreakRef.current = null;
+    if (mine.assignmentId) setAssignmentId(mine.assignmentId);
+    setMemo(mine.memo || "");
+    setBreaks({ lunch: e.lunchSeconds, brk: e.breakSeconds });
+    setBreakList(breakEventsRef.current);
+    setWorked(alcance.durationSeconds);
+    setOnBreak(null);
+    setRunning(true);
+    desktopStart({ sessionId: mine.id, intervalMin: shotMin });
+    reiniciarContinuidad();
+    conduceRef.current = true;
+    ultimoGuardadoRef.current = ahora;
+    rachaRef.current = registrarExito();
+    setRacha(rachaRef.current);
+    limpiarSinGuardar();
+    beginTicking();
+    notify(t("track.healCaughtUp", { min: String(Math.max(0, Math.round((ahora - (e.guardadoHastaMs ?? ahora)) / 60_000))) }));
+    return true;
+  }
+
   /**
    * Reabrir una sesión que el cron cerró mientras se trabajaba SIN INTERNET (D-197).
    *
@@ -822,7 +914,12 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   useEffect(() => {
     // Al volver la red. Si la sesión sigue viva, `decisionReabrir` dice "sigue-viva" y no pasa
     // nada más: dos lecturas.
-    const h = () => { const id = sessionIdRef.current; if (id && runningRef.current && !remoteOwnerRef.current) void intentarReabrirRef.current(id); };
+    const h = () => {
+      const id = sessionIdRef.current;
+      if (id && runningRef.current && !remoteOwnerRef.current) void intentarReabrirRef.current(id);
+      // Y si había racha de fallos, sanar ya (D-NEXT): la red volvió.
+      if (rachaRef.current.fallos > 0) void sanarRef.current();
+    };
     window.addEventListener("online", h);
     return () => window.removeEventListener("online", h);
   }, []);
@@ -982,6 +1079,8 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
             try { localStorage.setItem(LS_RESUME, JSON.stringify({ sessionId: id, at: Date.now() })); } catch { /* ignore */ }
           }
           const finLatido = Date.now();
+          // El estado vivo, por si hay que recargar (D-NEXT): lo que esta app lleva medido, ahora.
+          guardarEstadoVivo(id);
           void writeSession(id, {
             endMs: finLatido,
             durationSeconds: net,
@@ -1002,6 +1101,13 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
             // dejaba el reloj contando en el vacío con un aviso, y `overlap` llamaba a `stop()`,
             // cuyo parche chocaba igual y se perdía con todo lo contado desde el último latido
             // bueno (D-875). Ahora se continúa en una fila nueva, recortada para no solapar.
+            // La racha de fallos (D-NEXT): un latido que no entró la alarga; tres seguidos sanan.
+            if (r === true) { if (rachaRef.current.fallos) { rachaRef.current = registrarExito(); setRacha(rachaRef.current); } }
+            else if (r === "queued" || r === "auth") {
+              rachaRef.current = registrarFallo(rachaRef.current, Date.now());
+              setRacha(rachaRef.current);
+              if (tocaSanar(rachaRef.current, Date.now())) void sanarRef.current();
+            }
             if (planTrasLatido(r) === "fila-nueva" && !stoppedRef.current) {
               marcarSinGuardar();
               notify(t(r === "overlap" ? "track.overlapContinued" : "track.rowContinued"));
@@ -1054,6 +1160,111 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     setSinGuardarDesde(null);
   }
   function ponerArrastre(seg: number) { arrastreRef.current = seg; setArrastre(seg); }
+
+  // ---- La recuperación (D-NEXT, `recuperacion.ts`) ---------------------------------------
+  const rachaRef = useRef<Racha>(RACHA_LIMPIA);
+  const [racha, setRacha] = useState<Racha>(RACHA_LIMPIA);
+  const sanandoRef = useRef(false);
+  const recargandoRef = useRef(false);
+  const ultimoAvisoSistemaRef = useRef<number | null>(null);
+
+  /** Lo que esta app lleva medido de la fila `id`, en `localStorage`, para que una recarga no lo pierda. */
+  function guardarEstadoVivo(id: string) {
+    // Solo mientras la continuidad se conserve (misma regla que la marca de reanudación): tras un
+    // hueco del reloj local —máquina dormida— lo medido ya no es de fiar y el estado se borra.
+    if (!continuoRef.current) { try { localStorage.removeItem(LS_ESTADO_VIVO); } catch { /* ignore */ } return; }
+    const e: EstadoVivo = {
+      sessionId: id,
+      startMs: startMsRef.current,
+      activeSeconds: activeSecondsRef.current,
+      idleSeconds: idleRef.current,
+      keystrokes: keystrokesRef.current,
+      clicks: clicksRef.current,
+      lunchSeconds: lunchRef.current,
+      breakSeconds: brkRef.current,
+      breakEvents: breakEventsPayload() as BreakEvent[],
+      guardadoHastaMs: guardadoHastaRef.current,
+      guardadoNeto: guardadoNetoRef.current,
+      arrastre: arrastreRef.current,
+      source: filaBaseRef.current?.source ?? null,
+      at: Date.now(),
+    };
+    try { localStorage.setItem(LS_ESTADO_VIVO, JSON.stringify(e)); } catch { /* ignore */ }
+  }
+
+  /**
+   * Sanar (D-NEXT): se llama cuando la racha lo pide y al volver `online`.
+   *
+   *  (a) Sin red no hay nada que hacer: se espera al evento `online`, que vuelve a llamar aquí.
+   *  (b) Se refresca la sesión de Supabase (el JWT caducó durante el corte); si el cliente no
+   *      contesta, el proveedor lo rehace.
+   *  (c) Se reintenta YA con un latido de alcance, con los números que la app tiene en memoria.
+   *  (d) Si lleva más de cinco minutos fallando con red y el sitio contesta, lo roto es esta
+   *      página: recarga suave con el estado vivo guardado (`continuarConEstadoVivo` al montar).
+   */
+  async function sanar() {
+    const id = sessionIdRef.current;
+    if (sanandoRef.current || recargandoRef.current || !id || !runningRef.current || remoteOwnerRef.current || stoppedRef.current) return;
+    sanandoRef.current = true;
+    const ahora = Date.now();
+    rachaRef.current = { ...rachaRef.current, ultimoSanarMs: ahora, etapa: "reconectando" };
+    setRacha(rachaRef.current);
+    try {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return; // (a)
+      await refrescarSesion().catch(() => false);                                    // (b)
+      const el = Math.floor((Date.now() - startMsRef.current) / 1000);
+      const r = await writeSession(id, {                                              // (c)
+        ...parcheDeAlcance({
+          startMs: startMsRef.current, activeSeconds: activeSecondsRef.current, idleSeconds: idleRef.current,
+          keystrokes: keystrokesRef.current, clicks: clicksRef.current, lunchSeconds: lunchRef.current,
+          breakSeconds: brkRef.current, breakEvents: breakEventsRef.current,
+        }, Date.now(), onBreakRef.current ? "break" : "active"),
+        durationSeconds: netSeconds(el),
+      }, 1, true);
+      if (sessionIdRef.current !== id) return;
+      if (r === true) {
+        ultimoGuardadoRef.current = Date.now();
+        guardadoHastaRef.current = ultimoGuardadoRef.current;
+        guardadoNetoRef.current = netSeconds(el);
+        rachaRef.current = registrarExito();
+        setRacha(rachaRef.current);
+        notify(t("track.healCaughtUp", { min: String(minutosSinGuardar(sinGuardarDesdeRef.current ?? ultimoGuardadoRef.current, Date.now())) }));
+        limpiarSinGuardar();
+        return;
+      }
+      if (planTrasLatido(r) === "fila-nueva") return; // el tick lo continúa en otra fila (D-875)
+      rachaRef.current = registrarFallo(rachaRef.current, Date.now());
+      setRacha(rachaRef.current);
+      // (d) ¿Hay red de verdad? Un `fetch` fresco al propio sitio, sin caché ni socket reutilizado.
+      let sitioResponde = false;
+      try {
+        const res = await conTope(fetch("/api/version", { cache: "no-store", keepalive: false }), 10_000);
+        sitioResponde = res.ok;
+      } catch { sitioResponde = false; }
+      if (tocaRecargar(rachaRef.current, Date.now(), { online: navigator.onLine !== false, sitioResponde })) {
+        recargandoRef.current = true;
+        rachaRef.current = { ...rachaRef.current, etapa: "alcanzando" };
+        setRacha(rachaRef.current);
+        guardarEstadoVivo(id);
+        notify(t("track.healReloading"));
+        window.location.reload();
+      }
+    } finally {
+      sanandoRef.current = false;
+    }
+  }
+  const sanarRef = useRef(sanar);
+  sanarRef.current = sanar;
+  // El cascarón de escritorio (RTG Hub 1.3.0+, `desktop/main.js`) ve volver la red desde el proceso
+  // principal y despacha `rtg:sanar` en la página. Se contesta SIEMPRE (`__rtgSanarAck`), haya o
+  // no racha: la respuesta es «estoy viva»; sin ella en 60 s el cascarón recarga sin caché.
+  useEffect(() => {
+    const w = window as unknown as { __rtgSanarEscucha?: boolean; __rtgSanarAck?: number };
+    w.__rtgSanarEscucha = true;
+    const h = () => { w.__rtgSanarAck = Date.now(); if (rachaRef.current.fallos > 0) void sanarRef.current(); };
+    window.addEventListener("rtg:sanar", h);
+    return () => { window.removeEventListener("rtg:sanar", h); w.__rtgSanarEscucha = false; };
+  }, []);
   /** Lo que hay que saber de una fila para abrir la que la continúa. */
   function baseDe(s: Partial<Session> | null | undefined): Partial<Session> | null {
     if (!s) return null;
@@ -1064,6 +1275,8 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   const filaAnteriorIdRef = useRef<string | null>(null);
   // Un Stop que llegó con el INSERT en vuelo: se aplica a la fila en cuanto exista.
   const pararTrasInsertRef = useRef<Partial<Session> | null>(null);
+  // La fila anterior que todavía hay que cerrar antes de que la base acepte la continuación (092).
+  const anteriorPorCerrarRef = useRef<string | null>(null);
 
   /**
    * La fila dejó de aceptar latidos: se continúa en otra (D-875). Arranca donde terminó lo
@@ -1087,9 +1300,11 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     // una sola viva por persona). Se cierra tal como quedó en su último latido bueno —un PATCH
     // de solo `is_live` no toca lo guardado— y después se abre la siguiente. Sobre una fila que
     // ya cerró el cron no cambia nada.
-    const anterior = filaAnteriorIdRef.current;
-    void (anterior ? updateSession(anterior, { isLive: false }).catch(() => {}) : Promise.resolve())
-      .then(() => intentarPendiente());
+    // El cierre ya NO es «fire-and-forget» (D-NEXT): el 2026-11-07 salió con el JWT caducado, volvió
+    // 401 en silencio y la fila nueva chocó con la vieja (092) cada 35 s durante 70 minutos. Ahora
+    // `intentarPendiente` cierra la anterior ANTES de insertar, y vuelve a intentarlo hasta que entre.
+    anteriorPorCerrarRef.current = filaAnteriorIdRef.current;
+    void intentarPendiente();
   }
 
   /**
@@ -1142,6 +1357,12 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
       }
       const base = filaBaseRef.current;
       if (!base?.projectId && !base?.assignmentId) { pendienteRef.current = trasFallo(p, ahora); return; }
+      // Primero cerrar la anterior, con reintento (D-NEXT). Un PATCH de solo `is_live` no toca lo que
+      // guardó su último latido bueno. Mientras no entre, no se inserta: chocaría (092).
+      if (anteriorPorCerrarRef.current) {
+        try { await updateSession(anteriorPorCerrarRef.current, { isLive: false }); anteriorPorCerrarRef.current = null; }
+        catch { pendienteRef.current = trasFallo(p, ahora); return; }
+      }
       // Recortar contra lo ya fichado en vez de chocar (082). Tras varios choques con lo que
       // esta pantalla no ve, el último recurso es arrancar ahora: lo de antes ya está fichado.
       const tramos = misSesionesRef.current
@@ -1190,6 +1411,26 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     } catch (e) {
       const sig = trasFallo(p, Date.now());
       pendienteRef.current = isOverlapError(e) ? { ...sig, solapes: (p.solapes ?? 0) + 1 } : sig;
+      // 092: ya hay una viva mía (D-NEXT). Si la abrió este mismo cliente se cierra en su último
+      // latido bueno y el siguiente intento entra. Si la conduce el otro cliente, no se toca: se
+      // deja de insertar y se mira (D-096).
+      if (isAlreadyRunning(e)) {
+        try {
+          const vivas = await listLiveSessions();
+          const ajena = vivas.find((v) => theirsDe(v));
+          if (ajena) {
+            pendienteRef.current = null;
+            if (tickRef.current) clearInterval(tickRef.current);
+            desktopStop();
+            sessionIdRef.current = ajena.id;
+            setRemoteOwner(ajena.source === "desktop" ? "desktop" : "web");
+            watchRemote(ajena.startMs || Date.now(), ajena.id);
+          } else {
+            for (const v of vivas) await updateSession(v.id, { isLive: false }).catch(() => {});
+            pendienteRef.current = { ...(pendienteRef.current ?? sig), proximoMs: Date.now() + 2_000 };
+          }
+        } catch { /* sin red: el vigía vuelve a intentar */ }
+      }
     } finally {
       insertandoRef.current = false;
     }
@@ -1350,7 +1591,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
         ultimoGuardadoMs: ultimoGuardadoRef.current,
         ahoraMs: ahora,
       });
-      if (estado === "ok") { ultimaAlarmaRef.current = null; return; }
+      if (estado === "ok") { ultimaAlarmaRef.current = null; ultimoAvisoSistemaRef.current = null; return; }
       if (sinGuardarDesdeRef.current === null) {
         sinGuardarDesdeRef.current = ultimoGuardadoRef.current ?? ahora;
         setSinGuardarDesde(sinGuardarDesdeRef.current);
@@ -1358,8 +1599,19 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
       if (tocaSonar(ultimaAlarmaRef.current, ahora)) {
         ultimaAlarmaRef.current = ahora;
         sonarAlarma();
-        avisoDeSistema(t("track.notRecordingTitle"), t("track.notRecording"));
         notify(t("track.notRecording"));
+      }
+      // La notificación de Windows, como mucho una cada diez minutos (D-NEXT): la de las 11:22
+      // del incidente se repitió hasta cansar y no decía nada nuevo.
+      if (tocaAvisarSistema(ultimoAvisoSistemaRef.current, ahora)) {
+        ultimoAvisoSistemaRef.current = ahora;
+        avisoDeSistema(t("track.notRecordingTitle"), t("track.notRecording"));
+      }
+      // Sin latido bueno y conduciendo: aunque los latidos no hayan vuelto con fallo (colgados), la
+      // racha avanza por tiempo y la recuperación se intenta cada diez segundos.
+      if (conduceRef.current && tickRef.current !== null && sessionIdRef.current) {
+        if (rachaRef.current.fallos === 0) { rachaRef.current = registrarFallo(rachaRef.current, ahora); setRacha(rachaRef.current); }
+        if (tocaSanar(rachaRef.current, ahora)) void sanarRef.current();
       }
       if (tocaReintentar({ conduce: conduceRef.current, tickArmado: tickRef.current !== null, ultimoIntentoMs: ultimoReintentoRef.current, ahoraMs: ahora })) {
         ultimoReintentoRef.current = ahora;
@@ -1539,7 +1791,8 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     // writeSession never gives up — it falls back to the offline queue, which flushes on reconnect.
     desktopStop();
     sessionIdRef.current = null;
-    try { localStorage.removeItem(LS_LIVE); localStorage.removeItem(LS_RESUME); } catch { /* ignore */ }
+    try { localStorage.removeItem(LS_LIVE); localStorage.removeItem(LS_RESUME); localStorage.removeItem(LS_ESTADO_VIVO); } catch { /* ignore */ }
+    rachaRef.current = registrarExito(); setRacha(rachaRef.current);
     setRunning(false); onBreakRef.current = null; setOnBreak(null); setIsIdle(false); setCtxApp("");
     setWorked(0); setBreaks({ lunch: 0, brk: 0 }); setBreakList([]);
     setActivePct(0); setMeter(new Array(METER_BARS).fill(false));
@@ -1623,12 +1876,20 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   // retirar aquella app entera.
   if (presencial && !esAdmin) return visible ? <PunchPanel /> : null;
 
+  /** Qué está haciendo la recuperación, al lado del «Sin guardar» (D-NEXT). */
+  const textoDeRacha = (r: Racha): string => {
+    if (r.etapa === "alcanzando") return " " + t("track.healReloading");
+    if (r.fallos === 0) return "";
+    return " " + t("track.healReconnecting", { s: String(segundosHastaSanar(r, Date.now())) });
+  };
+
   // Fuera de «Registrar tiempo» el cronómetro sigue montado pero no se ve (D-470). Lo único
   // que asoma es el aviso de que el reloj no se está guardando, con el camino de vuelta.
   const oculto = visible ? undefined : { display: "none" as const };
   const avisoFuera = !visible && sinGuardarDesde !== null ? (
     <div className="banner warn" role="alert">
       {t("track.unsaved", { hora: horaCorta(sinGuardarDesde), mins: String(minutosSinGuardar(sinGuardarDesde, Date.now())) })}
+      {textoDeRacha(racha)}
       {" "}
       <Link href="/timetracker">{t("track.goToTimer")}</Link>
     </div>
@@ -1721,6 +1982,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
         {sinGuardarDesde !== null && (
           <div className="banner warn" role="alert">
             {t("track.unsaved", { hora: horaCorta(sinGuardarDesde), mins: String(minutosSinGuardar(sinGuardarDesde, Date.now())) })}
+            {textoDeRacha(racha)}
           </div>
         )}
 

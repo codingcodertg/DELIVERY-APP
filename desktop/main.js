@@ -26,7 +26,7 @@
 // del navegador. Quien tenga que cronometrar con capturas sigue usando su cliente.
 // ============================================================
 
-const { app, BrowserWindow, shell, Menu, dialog } = require("electron");
+const { app, BrowserWindow, shell, Menu, dialog, net, powerMonitor } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { crearConfianza } = require("./origenes.js");
@@ -290,7 +290,67 @@ function crearVentana() {
   setTimeout(buscaActualizacion, 15_000);
   setInterval(buscaActualizacion, 4 * 60 * 60 * 1000);
 
+  // ---------------------------------------------------------------------------
+  // Volver de un corte de red sin perder el reloj de Time Tracker (D-NEXT)
+  // ---------------------------------------------------------------------------
+  // El 2026-11-07 el portátil del dueño cambió de red varias veces y los latidos del cronómetro
+  // dejaron de entrar 70 minutos aunque la red volvió a los pocos; la página no se enteró de que
+  // había vuelto. La web ya sana sola (racha de latidos fallidos → `recuperacion.ts`), y esto es
+  // el segundo cinturón desde el proceso principal, que sí ve la red: cada 30 s se mira
+  // `net.isOnline()` (y al despertar del sistema), y al pasar de «sin red» a «con red» se le pide
+  // a la página que sane. Sin `preload` no hay IPC: se despacha un evento `rtg:sanar` en la
+  // página con `executeJavaScript`, y la página contesta dejando `window.__rtgSanarAck`. Si hay
+  // quien escuche (`__rtgSanarEscucha`, lo pone el cronómetro) y en 60 s no contesta, la página
+  // está muerta y se recarga sin caché: el cronómetro guarda su estado vivo en cada latido y
+  // continúa la misma sesión al volver a montarse.
+  vigilarRed(win);
+
   win.on("close", () => guardaEstado(win));
   win.on("resized", () => guardaEstado(win));
   win.on("moved", () => guardaEstado(win));
+}
+
+/** Cada cuánto se mira la red, y cuánto se le da a la página para contestar. */
+const RED_CADA_MS = 30_000;
+const ACK_EN_MS = 60_000;
+
+function vigilarRed(win) {
+  let enLinea = net.isOnline();
+  const mirar = () => {
+    if (win.isDestroyed()) return;
+    const ahora = net.isOnline();
+    if (ahora === enLinea) return;
+    enLinea = ahora;
+    console.log(`[RTG Hub] red: ${ahora ? "vuelve" : "se fue"}`);
+    if (ahora) pedirSanar(win);
+  };
+  const temporizador = setInterval(mirar, RED_CADA_MS);
+  // Al despertar la red suele tardar unos segundos en volver: se mira dos veces.
+  powerMonitor.on("resume", () => { setTimeout(mirar, 5_000); setTimeout(mirar, 20_000); });
+  win.on("closed", () => clearInterval(temporizador));
+}
+
+function pedirSanar(win) {
+  const pedido = Date.now();
+  const js = `(() => {
+    try { window.__rtgSanarPedido = ${pedido}; window.dispatchEvent(new CustomEvent("rtg:sanar", { detail: { at: ${pedido} } })); } catch (e) {}
+    return !!window.__rtgSanarEscucha;
+  })()`;
+  win.webContents.executeJavaScript(js, true)
+    .then((escucha) => {
+      if (!escucha) return; // no es Time Tracker: nada que sanar
+      setTimeout(() => {
+        if (win.isDestroyed()) return;
+        win.webContents.executeJavaScript(`Number(window.__rtgSanarAck || 0) >= ${pedido}`, true)
+          .then((ack) => { if (!ack) recargarSinCache(win, "sin respuesta de la página en 60 s"); })
+          .catch(() => recargarSinCache(win, "la página no contesta"));
+      }, ACK_EN_MS);
+    })
+    .catch(() => recargarSinCache(win, "no se pudo hablar con la página"));
+}
+
+function recargarSinCache(win, motivo) {
+  if (win.isDestroyed()) return;
+  console.log(`[RTG Hub] recarga sin caché: ${motivo}`);
+  win.webContents.reloadIgnoringCache();
 }
