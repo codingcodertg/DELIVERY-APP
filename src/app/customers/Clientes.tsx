@@ -31,6 +31,7 @@ import { claveDelBorradorDelAlta } from "@/lib/customers/borrador-del-alta";
 import { pendientes, type SolicitudDeCliente } from "@/lib/customers/solicitud-de-cliente";
 import { BarraDeSeleccion } from "./BarraDeSeleccion";
 import { MostrarN, useTamanoDeTabla } from "@/components/MostrarN";
+import { filasQueSePintan } from "@/lib/mostrar-n";
 import { alternaEmpresa, empresasElegidas, estaMarcada, marcaTodas } from "@/lib/customers/seleccion";
 import { vendedoresEnOrden, type Vendedor } from "@/lib/customers/vendedores";
 import { columnasDelVendedor, conLosEncontrados, puedeAbrirCliente, RETARDO_DE_BUSQUEDA_MS, seBuscaEnTodaLaEmpresa } from "@/lib/customers/vendedor-por-tienda";
@@ -74,7 +75,7 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
   const [ordenes, setOrdenes] = useState<Orden[]>([...ORDENES_INICIALES]);
   const [filtrosCol, setFiltrosCol] = useState<FiltrosPorColumna>({});
   const [prefCols, setPrefCols] = useState<PreferenciaDeColumnas>(PREFERENCIA_INICIAL);
-  // «Mostrar 10/50/100/1000» (sustituye al «Ver más»): orden y filtros van sobre la lista entera; esto solo recorta lo pintado.
+  // «Mostrar 10/50/100/Todos» (sustituye al «Ver más»; D-918: «Todos» en vez de 1000): orden y filtros van sobre la lista entera; esto solo recorta lo pintado.
   const [cuantos, setCuantos] = useTamanoDeTabla("clientes", TAMANO_INICIAL_DE_CLIENTES);
   const [ficha, setFicha] = useState<Ficha | null>(null);
   // D-779: la ventana «Asignar vendedores» por iniciales (D-684) se quitó: el dueño la pidió solo para la carga inicial.
@@ -513,7 +514,7 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
                   )}
                 </td></tr>
               )}
-              {visibles.slice(0, cuantos).map(({ clave, filas, principal: c }) => {
+              {visibles.slice(0, filasQueSePintan(cuantos, visibles.length)).map(({ clave, filas, principal: c }) => {
                 // D-740: el vendedor abre solo los suyos; los demás se ven y no se abren.
                 const abrible = puedeAbrirCliente(c, { esVendedor, userId });
                 return (
