@@ -49,6 +49,17 @@ export interface Reporte {
   photo_hashes?: (string | null)[] | null;
   /** 268: merma guardada SIN foto (la apuntaron en papel); queda incompleta hasta que le agreguen la foto. */
   photo_pending?: boolean | null;
+  /** 270 (D-NEXT): la etapa de la merma y sus fechas / actores / adjuntos. No vienen si la 270 no está aplicada. */
+  stage?: string | null;
+  photographed_at?: string | null;
+  approved_at?: string | null;
+  approved_by?: string | null;
+  approval_sheet?: string | null;
+  dumped_at?: string | null;
+  dumped_by?: string | null;
+  adjusted_at?: string | null;
+  adjusted_by?: string | null;
+  adjustment_proof?: string | null;
 }
 
 export interface Envio {
@@ -104,6 +115,32 @@ export async function reportesConLaFoto(sb: SupabaseClient, huella: string): Pro
 /** ¿Falta una columna (la 268 aún no se aplicó)? */
 export function faltaLaColumna(e: { code?: string | null; message?: string | null } | null | undefined): boolean {
   return !!e && (e.code === "42703" || e.code === "PGRST204" || /column .* does not exist|photo_hashes|photo_pending/i.test(e.message ?? ""));
+}
+
+/**
+ * 270 (D-NEXT): mueve la etapa de una merma (aprobada, desechada, ajustada; o un paso atrás si es admin). `prueba` es
+ * la ruta en el cubo de la hoja firmada (aprobada) o de la captura del sistema (ajustada). La base revisa el orden,
+ * quién llama (`warehouse_ops_can_manage`) y que el adjunto venga cuando toca; guarda fecha y actor.
+ */
+export async function cambiarEtapa(sb: SupabaseClient, reporteId: string, etapa: string, prueba: string | null = null): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_set_scrap_stage", { p_report: reporteId, p_stage: etapa, p_proof: prueba });
+  if (error) throw error;
+}
+
+/** Los tipos que admite el cubo para la hoja firmada y la captura (la 270 agrega el PDF). */
+export const TIPOS_DE_ADJUNTO = ["image/jpeg", "image/png", "image/webp", "application/pdf"] as const;
+export function tipoDeAdjuntoValido(tipo: string): tipo is (typeof TIPOS_DE_ADJUNTO)[number] {
+  return (TIPOS_DE_ADJUNTO as readonly string[]).includes(tipo);
+}
+
+/** 270: sube la hoja firmada o la captura (imagen o PDF) a la carpeta de quien la sube. Devuelve la ruta dentro del cubo. */
+export async function subirAdjunto(sb: SupabaseClient, uid: string, f: Blob, tipo: string, que: "hoja" | "ajuste"): Promise<string> {
+  if (!tipoDeAdjuntoValido(tipo)) throw new Error("warehouse_ops: adjunto no válido (imagen o PDF)");
+  const ext = tipo === "application/pdf" ? "pdf" : tipo === "image/png" ? "png" : tipo === "image/webp" ? "webp" : "jpg";
+  const ruta = `${uid}/${que}-${crypto.randomUUID()}.${ext}`;
+  const { error } = await sb.storage.from(CUBO).upload(ruta, f, { contentType: tipo, upsert: false });
+  if (error) throw error;
+  return ruta;
 }
 
 export async function registrar(sb: SupabaseClient, e: Envio): Promise<string> {
@@ -187,19 +224,21 @@ export const DEMO_PRODUCTOS: ProductoElegido[] = [
   { id: 103, sku: "MOS-HEX-MAR", name: "Hexagon Marble Mosaic", cost: 6.25, pieces_per_box: 10 },
 ];
 const dias = (n: number) => new Date(Date.now() - n * 86400000).toISOString();
-const vacio = { damaged_pieces: null, sample_pieces: null, product_id: null, product_sku: null, product_name: null, scrap_type: null, boxes: null, pieces_per_box: null, loose_pieces: null, total_pieces: null, unit_cost: null, total_loss: null, return_type: null, reason: null, broken_by: [], crma: null, photos: [], photo_hashes: [], photo_pending: false };
+const vacio = { damaged_pieces: null, sample_pieces: null, product_id: null, product_sku: null, product_name: null, scrap_type: null, boxes: null, pieces_per_box: null, loose_pieces: null, total_pieces: null, unit_cost: null, total_loss: null, return_type: null, reason: null, broken_by: [], crma: null, photos: [], photo_hashes: [], photo_pending: false,
+  stage: null as string | null, photographed_at: null, approved_at: null, approved_by: null, approval_sheet: null, dumped_at: null, dumped_by: null, adjusted_at: null, adjusted_by: null, adjustment_proof: null };
 // 268 (demo): r1 y r4 comparten una foto (misma huella) para ver la marca de «foto repetida»; r7 está guardada sin foto.
 const HUELLA_DEMO = "a".repeat(64);
 const DEMO_FOTOS = { photos: ["demo/1.jpg", "demo/2.jpg"], photo_hashes: [HUELLA_DEMO, "b".repeat(64)] };
 export const DEMO_REPORTES: Reporte[] = [
-  { ...vacio, ...DEMO_FOTOS, id: "r1", created_at: dias(0.1), kind: "scrap", store: "McAllen", author_id: "p1", author_name: "Ana García", subject_ids: [], answers: { comments: "Pallet slid off the forks" },
+  { ...vacio, ...DEMO_FOTOS, stage: "photographed", photographed_at: dias(0.1), id: "r1", created_at: dias(0.1), kind: "scrap", store: "McAllen", author_id: "p1", author_name: "Ana García", subject_ids: [], answers: { comments: "Pallet slid off the forks" },
     product_id: 101, product_sku: "PORC-2448-GRY", product_name: "Porcelain 24x48 Ash Grey", scrap_type: "mixed", damaged_pieces: 5, sample_pieces: 2, boxes: 3, pieces_per_box: 2, loose_pieces: 1, total_pieces: 7, unit_cost: 9.4, total_loss: 47, return_type: "internal", reason: "forklift", broken_by: ["p2"], crma: null },
   { ...vacio, id: "r2", created_at: dias(1.3), kind: "safety", store: "McAllen", author_id: "p2", author_name: "Luis Treviño", subject_ids: ["p1"], answers: { safety_type: "ppe", description: "Loading without gloves", injured: "no" } },
   { ...vacio, id: "r3", created_at: dias(3), kind: "maintenance", store: "Edinburg", author_id: "p3", author_name: "Mario Salinas", subject_ids: [], answers: { equipment: "forklift_2", issue: "repair_needed", description: "Hydraulic leak under the mast" } },
-  { ...vacio, photos: ["demo/3.jpg"], photo_hashes: [HUELLA_DEMO], id: "r4", created_at: dias(9), kind: "scrap", store: "Edinburg", author_id: "p3", author_name: "Mario Salinas", subject_ids: [], answers: {},
+  // 270 (demo): r4 ya fue aprobada y desechada (para ver la línea de tiempo y «ajustar»).
+  { ...vacio, photos: ["demo/3.jpg"], photo_hashes: [HUELLA_DEMO], stage: "dumped", photographed_at: dias(9), approved_at: dias(7), approved_by: "demo-admin", approval_sheet: "demo/hoja.jpg", dumped_at: dias(6), dumped_by: "demo-admin", id: "r4", created_at: dias(9), kind: "scrap", store: "Edinburg", author_id: "p3", author_name: "Mario Salinas", subject_ids: [], answers: {},
     product_id: 102, product_sku: "CER-1212-WHT", product_name: "Ceramic 12x12 Matte White", scrap_type: "sample", damaged_pieces: 0, sample_pieces: 6, boxes: 0, pieces_per_box: 15, loose_pieces: 6, total_pieces: 6, unit_cost: 0.82, total_loss: 0, return_type: "customer_return", reason: "transportation", broken_by: [], crma: "CR-2291" },
   // Devolución de cliente SIN CRMA: no cuenta como pérdida hasta que el gerente le ponga el CRMA (263).
-  { ...vacio, photo_pending: true, id: "r7", created_at: dias(1.5), kind: "scrap", store: "Harlingen", author_id: "p4", author_name: "Rosa Peña", subject_ids: [], answers: {},
+  { ...vacio, photo_pending: true, stage: "documented", id: "r7", created_at: dias(1.5), kind: "scrap", store: "Harlingen", author_id: "p4", author_name: "Rosa Peña", subject_ids: [], answers: {},
     product_id: 103, product_sku: "MOS-HEX-MAR", product_name: "Hexagon Marble Mosaic", scrap_type: "damaged", damaged_pieces: 4, sample_pieces: 0, boxes: 0, pieces_per_box: 10, loose_pieces: 4, total_pieces: 4, unit_cost: 6.25, total_loss: 0, return_type: "customer_return", reason: "transportation", broken_by: [], crma: null },
   { ...vacio, id: "r5", created_at: dias(2), kind: "positive", store: "McAllen", author_id: "demo-admin", author_name: "Demo Admin", subject_ids: ["p2"], answers: { employee: "p2", category: "safety", description: "Cleared the blocked exit before the delivery came in" } },
   { ...vacio, id: "r6", created_at: dias(4), kind: "insubordination", store: "Harlingen", author_id: "demo-admin", author_name: "Demo Admin", subject_ids: ["p4"], answers: { severity: "minor", description: "Refused to restack the returns cage", verbal_warning: "yes" } },

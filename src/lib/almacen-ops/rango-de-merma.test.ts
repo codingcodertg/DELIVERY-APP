@@ -172,7 +172,9 @@ describe("la pantalla", () => {
     expect(lista).toContain("const mermasEnRango = useMemo(() => (rango ? filtrarPorRango(mermas, rango) : []), [mermas, rango]);");
     expect(lista).toContain("const enRango = useMemo(() => (rango ? perdidaEnRango(mermas, rango) : { \"*\": 0 }), [mermas, rango]);");
     expect(lista).toContain('<th className="ops-col-rango">{etiqueta}</th>');
-    expect(lista).toContain('<TablaDeReportes filas={mermasEnRango} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango"');
+    // D-NEXT (270): la lista del rango pasa además por el filtro de etapa (mermasPorEtapa = mermasEnRango sin filtro).
+    expect(lista).toContain("const mermasPorEtapa = useMemo(() => (etapaFiltro ? mermasEnRango.filter((r) => etapaDe(r) === etapaFiltro) : mermasEnRango)");
+    expect(lista).toContain('<TablaDeReportes filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango"');
     expect(lista).toContain("{ATAJOS.map((a) => (");
     expect(lista).toContain('data-campo="rango-desde"');
     expect(lista).toContain('data-campo="rango-hasta"');
