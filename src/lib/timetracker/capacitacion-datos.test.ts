@@ -50,7 +50,7 @@ const ARGS: Record<keyof typeof CLASE_DE_DATO, unknown[]> = {
   updateLiveSession: ["real-s", { memo: "x" }], screenshotSignedUrl: ["a.jpg"], deleteScreenshot: ["sh", "a.jpg"],
   uploadScreenshot: [{ employeeUid: "yo", sessionId: null, blob: new Blob(["x"]), date: null, activityPercent: 5 }],
   insertBlankScreenshot: [{ employeeUid: "yo", sessionId: null, date: null }],
-  updateMyAccount: [{ fullName: "x", city: "", payMethod: "", payDetails: "" }], signOutEverywhere: [], logAudit: ["a", "b"],
+  updateMyAccount: [{ fullName: "x", city: "", payMethod: "", payDetails: "" }], signOutEverywhere: [], refrescarSesion: [], logAudit: ["a", "b"],
   sessionsSince: ["2026-10-01"], sessionsByProject: ["p"], insertSession: [{}], removeSession: ["s"], payrollsForWeek: ["w"],
   insertPayroll: [{}], updatePayroll: ["p", {}], removePayroll: ["p"], insertProject: [{}], updateProject: ["p", {}],
   payRates: [], savePayRate: ["e", { hourlyRate: 20, otMultiplier: 1.5, otWeeklyHours: 40 }], paystubsForPeriod: ["2026-10-02"],
@@ -86,7 +86,8 @@ describe("cada función del proveedor, en práctica", () => {
     const pasan = Object.entries(CLASE_DE_DATO).filter(([, c]) => c === "pasa").map(([k]) => k).sort();
     expect(pasan).toEqual([
       "ensureSessionsSince", "notify", "payRates", "payrollsForWeek", "paystubsForPeriod", "paystubsForYear",
-      "screenshotSignedUrl", "sessionsByProject", "sessionsSince", "signOutEverywhere",
+      // `refrescarSesion` (D-916) solo refresca el token de Supabase: no toca datos.
+      "refrescarSesion", "screenshotSignedUrl", "sessionsByProject", "sessionsSince", "signOutEverywhere",
     ]);
   });
 });
