@@ -51054,3 +51054,9 @@ Sello `warehouse_ops` 0.10.0; repo 1.771.0.
 En la lista de Clientes, el cuarto tamaño del pie de tabla pasa de 1000 a «Todos», que enseña todos los clientes que la persona puede ver; la elección se recuerda como antes y quien tenía 1000 guardado pasa a «Todos». Pedido por Roberto (ayuda 5a2551cc, Customers → lista de clientes).
 
 Sello `customers` 0.59.0; repo 1.772.0.
+
+## D-919 · Merma: motivo de transporte en dos, menos pantallas y recordatorio al enviar
+
+En Warehouse Ops → Nuevo reporte → Merma, «Transporte» ahora distingue si la pieza se dañó mientras la transportaba el cliente o en la entrega de la tienda. El CRMA sale justo después de «¿De dónde viene?», los comentarios justo después del motivo, y la fecha del daño, quién lo rompió y quién lo reportó van en una sola pantalla (de 10 pasos a 7–8). Arriba de «Revisa y envía» aparece el recordatorio de la política: el material no se desecha sin fotos, evidencia guardada y autorización de Gerencia desde la app. Cinco pedidos de Roberto del 7 de noviembre (migración 269).
+
+Sello `warehouse_ops` 0.11.0; repo 1.773.0.

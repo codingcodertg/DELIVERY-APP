@@ -49,7 +49,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
   // La merma arranca con la fecha del daño en hoy (Texas), también al reabrir un borrador que no la traía (266).
   const [arranque] = useState<Respuestas>(() => respuestasIniciales(tipo, inicial?.r));
   const [r, setR] = useState<Respuestas>(arranque);
-  // Un borrador de antes de reordenar la merma (D-NEXT) trae un índice de la lista vieja: se abre igual, sin pasarse del resumen.
+  // Un borrador de antes de reordenar la merma (D-919) trae un índice de la lista vieja: se abre igual, sin pasarse del resumen.
   const [i, setI] = useState(() => pasoInicial(tipo, arranque, inicial?.paso));
   const [volverAlResumen, setVolverAlResumen] = useState(false);
   const [tienda, setTiendaCruda] = useState(() => (inicial?.tienda && ctx.tiendas.includes(inicial.tienda) ? inicial.tienda
@@ -215,7 +215,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
       {enResumen && (
         <div className="ops-resumen">
           <h2>{t("Check and send", "Revisa y envía")}</h2>
-          {/* Roberto, pedido 319a0f18 (D-NEXT): el recordatorio de la política de merma, arriba del resumen. */}
+          {/* Roberto, pedido 319a0f18 (D-919): el recordatorio de la política de merma, arriba del resumen. */}
           {tipo === "scrap" && (
             <p className="ops-recordatorio" role="note" data-recordatorio="merma">
               {t("This form must be filled out every time damaged material is found. The material cannot be discarded until photos have been taken, the evidence saved, and Management's authorization obtained through the app.",
@@ -224,7 +224,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
           )}
           {tipo === "scrap" && <Perdida r={r} grande />}
           <dl>
-            {/* Un grupo (D-NEXT) sale como una fila por campo; todas abren la misma pantalla. */}
+            {/* Un grupo (D-919) sale como una fila por campo; todas abren la misma pantalla. */}
             {pasos.flatMap((p, n) => camposDe(p).filter((c) => seMuestra(c, r)).map((c) => (
               <button type="button" key={c.id} className={`ops-fila${pasoCompleto(c, r) ? "" : " falta"}`} onClick={() => editar(n)} data-editar={c.id}>
                 <dt>{lang === "es" ? c.es : c.en}</dt>
@@ -356,7 +356,7 @@ function Respuesta({ paso, r, pon, ctx, tienda, onElegirUno, onConfirmandoFoto }
   const v = r[paso.id];
   switch (paso.tipo) {
     case "grupo":
-      // Varias preguntas en una pantalla (D-NEXT, pedido fb02f65a): cada campo con su propio título y su propia respuesta.
+      // Varias preguntas en una pantalla (D-919, pedido fb02f65a): cada campo con su propio título y su propia respuesta.
       return (
         <div className="ops-grupo">
           {paso.campos.filter((c) => seMuestra(c, r)).map((c) => (

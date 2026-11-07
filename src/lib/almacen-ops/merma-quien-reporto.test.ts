@@ -24,7 +24,7 @@ const gente = [{ id: "11111111-1111-4111-8111-111111111111", full_name: "Ana Gar
 describe("«¿Quién lo reportó?» en la merma", () => {
   const paso = pasosPlanos("scrap").find((p) => p.id === PASO_QUIEN_REPORTO)!;
 
-  it("va justo después de «¿quién lo rompió?», en la misma pantalla que la fecha (D-NEXT, pedido fb02f65a), la última antes del resumen", () => {
+  it("va justo después de «¿quién lo rompió?», en la misma pantalla que la fecha (D-919, pedido fb02f65a), la última antes del resumen", () => {
     const grupo = PASOS.scrap.find((p) => p.id === PASO_CUANDO_Y_QUIEN)!;
     expect(grupo.tipo).toBe("grupo");
     const ids = grupo.tipo === "grupo" ? grupo.campos.map((p) => p.id) : [];

@@ -10,7 +10,7 @@ import { mermaParaEnviar } from "./datos";
 import { guardarBorrador, leerBorrador, type Almacen } from "./borradores";
 
 /**
- * Los cinco pedidos de Roberto del 2026-11-07 (Warehouse Ops → Nuevo reporte → Merma), D-NEXT:
+ * Los cinco pedidos de Roberto del 2026-11-07 (Warehouse Ops → Nuevo reporte → Merma), D-919:
  *   c8256a2e  «Transporte» se parte en «del cliente» y «entrega de la tienda» (migración 269).
  *   2121eb16  Los comentarios van justo después del motivo.
  *   0516ed1a  El CRMA va justo después de «¿de dónde viene?».

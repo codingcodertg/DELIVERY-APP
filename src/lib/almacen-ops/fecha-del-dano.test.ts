@@ -48,7 +48,7 @@ describe("la fecha vale si es un día de verdad y no es futuro", () => {
 });
 
 describe("el formulario de merma", () => {
-  // D-NEXT: la fecha vive dentro de la pantalla «Cuándo y quién» (fecha + quién lo rompió + quién lo reportó).
+  // D-919: la fecha vive dentro de la pantalla «Cuándo y quién» (fecha + quién lo rompió + quién lo reportó).
   const paso = pasosPlanos("scrap").find((p) => p.id === PASO_FECHA_DEL_DANO)!;
   it("tiene el paso de la fecha, y solo la merma lo tiene", () => {
     expect(paso.tipo).toBe("fecha");

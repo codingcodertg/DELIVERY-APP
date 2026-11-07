@@ -22,7 +22,7 @@ export type Paso =
   | { id: string; tipo: "cantidad"; en: string; es: string }
   // Un día (YYYY-MM-DD), obligatorio y nunca futuro (266: cuándo se rompió la merma).
   | { id: string; tipo: "fecha"; en: string; es: string }
-  // Varias preguntas en UNA pantalla (D-NEXT, pedido fb02f65a de Roberto: «These 3 can be on the same page to reduce
+  // Varias preguntas en UNA pantalla (D-919, pedido fb02f65a de Roberto: «These 3 can be on the same page to reduce
   // # of pages»). Cada campo guarda su propia respuesta bajo su propio id (`r[campo.id]`); el grupo no guarda nada.
   | { id: string; tipo: "grupo"; en: string; es: string; campos: Paso[] };
 
@@ -32,7 +32,7 @@ export const PASO_QUIEN_REPORTO = "reported_by";
 /** El paso de la merma que pregunta cuándo se rompió (266). Va a `warehouse_reports.broken_on`. */
 export const PASO_FECHA_DEL_DANO = "broken_on";
 
-/** La pantalla de la merma que junta fecha + quién lo rompió + quién lo reportó (D-NEXT, pedido fb02f65a). */
+/** La pantalla de la merma que junta fecha + quién lo rompió + quién lo reportó (D-919, pedido fb02f65a). */
 export const PASO_CUANDO_Y_QUIEN = "when_and_who";
 
 /**
@@ -78,7 +78,7 @@ export const ORIGENES_DE_MERMA: Opcion[] = [
   { v: "internal", en: "Internal", es: "Interno" }, { v: "customer_return", en: "Customer return", es: "Devolución de cliente" },
 ];
 /**
- * Por qué se dañó. Roberto (pedido c8256a2e, D-NEXT): «Need to distinguish between customer transportation and if it
+ * Por qué se dañó. Roberto (pedido c8256a2e, D-919): «Need to distinguish between customer transportation and if it
  * was a store's delivery». «Transporte» se parte en dos; el valor viejo `transportation` sigue en la base y se lee
  * como «Transporte (sin especificar)» (MOTIVOS_VIEJOS), pero ya no se puede elegir. Migración 269: el `check` de la
  * columna `reason` admite los dos nuevos.
@@ -150,14 +150,14 @@ export const PASOS: Record<TipoDeReporte, Paso[]> = {
     { id: "qty", tipo: "cantidad", en: "How many pieces?", es: "¿Cuántas piezas?" },
     // De vuelta en su sitio (D-893 / D-894), tras retirar Roberto el pedido 714584e6.
     { id: "return_type", tipo: "opcion", en: "Where did it come from?", es: "¿De dónde viene?", opciones: ORIGENES_DE_MERMA },
-    // El CRMA va JUSTO después del origen (Roberto, pedido 0516ed1a, D-NEXT): solo sale si fue devolución de un cliente
+    // El CRMA va JUSTO después del origen (Roberto, pedido 0516ed1a, D-919): solo sale si fue devolución de un cliente
     // (pedido 60bbd7ed). OPCIONAL (la 254 lo exigía; la 263 ya no): suele llegar después del reporte y el gerente lo
     // pone desde la tarjeta. Sin CRMA la devolución no cuenta como pérdida.
     { id: "crma", tipo: "texto", corto: true, opcional: true, si: { paso: "return_type", vale: "customer_return" }, en: "CRMA / claim # (optional)", es: "CRMA / n.º de reclamo (opcional)" },
     { id: "reason", tipo: "opcion", en: "Reason", es: "Motivo", opciones: MOTIVOS_DE_MERMA },
-    // Los comentarios van JUSTO después del motivo (Roberto, pedido 2121eb16, D-NEXT).
+    // Los comentarios van JUSTO después del motivo (Roberto, pedido 2121eb16, D-919).
     { id: "comments", tipo: "texto", opcional: true, en: "Comments (optional)", es: "Comentarios (opcional)" },
-    // Una sola pantalla con tres campos (Roberto, pedido fb02f65a, D-NEXT); cada uno se guarda igual que antes.
+    // Una sola pantalla con tres campos (Roberto, pedido fb02f65a, D-919); cada uno se guarda igual que antes.
     { id: PASO_CUANDO_Y_QUIEN, tipo: "grupo", en: "When and who", es: "Cuándo y quién", campos: [
       // Cuándo se rompió (pedido del dueño, 266): por defecto hoy en Texas, se puede cambiar, nunca futuro.
       { id: PASO_FECHA_DEL_DANO, tipo: "fecha", en: "What date was it broken?", es: "¿Qué día se rompió?" },
@@ -180,7 +180,7 @@ export function pasosVisibles(tipo: TipoDeReporte, r: Respuestas): Paso[] {
   return PASOS[tipo].filter((p) => seMuestra(p, r));
 }
 
-/** Las preguntas de una pantalla: ella misma, o los campos de un grupo (D-NEXT). */
+/** Las preguntas de una pantalla: ella misma, o los campos de un grupo (D-919). */
 export function camposDe(p: Paso): Paso[] {
   return p.tipo === "grupo" ? p.campos : [p];
 }
@@ -226,7 +226,7 @@ export function primerHuecoSalvoFoto(tipo: TipoDeReporte, r: Respuestas, hoy: st
 }
 
 /**
- * Dónde se abre un borrador (D-NEXT): el índice guardado, pero nunca más allá del resumen. Los borradores de antes
+ * Dónde se abre un borrador (D-919): el índice guardado, pero nunca más allá del resumen. Los borradores de antes
  * de reordenar la merma traen un índice de la lista vieja (que tenía más pantallas); se abren igual, en esa posición
  * o en el resumen, y todas las respuestas se conservan porque viven por id.
  */
