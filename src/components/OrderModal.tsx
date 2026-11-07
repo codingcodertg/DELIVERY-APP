@@ -37,6 +37,8 @@ import { avisosDeAgregarMaterial } from "@/lib/agregar-material-avisos";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
 import { BotonesDeTarifa } from "@/components/BotonesDeTarifa";
+import { AvisoNoLocal, PastillaDeZona } from "@/components/ZonaDeLaEntrega";
+import { zonaDecidida } from "@/lib/zona-decidida";
 import { bloqueoPorTarifaMinima, ofreceDescuento, textoTarifaMinima } from "@/lib/tarifa-minima";
 import { llegaSinTarifa, pideConfirmarTarifa, type EscrituraAlComenzar } from "@/lib/confirmar-tarifa";
 import { ConfirmarTarifaAlComenzar } from "@/components/ConfirmarTarifaAlComenzar";
@@ -572,28 +574,15 @@ export function OrderModal({
   // El botón «Descuento» no se le ofrece a un vendedor en una tienda con tarifa mínima (D-546): «La tarifa es 100
   // minimo. Tenemos que quitarles esa opcion de descuento». Pasar `null` a `BotonesDeTarifa` es lo que lo esconde.
   const descuentoOfrecido = ofreceDescuento(me.role, d.store, settings.stores) ? feeSuggestion.discount : null;
-  /** De dónde sale la zona, para decirlo junto al aviso: un «No local» sin motivo no distingue
-   *  «esta dirección no tiene pin» de «esta entrega está lejos de verdad». */
   /** Unas millas que no pueden ser del Valle, dichas junto a las millas (D-878): 171838 se guardó con 321 mi por 25. */
   const avisoMillas = millasImposibles(d.route_miles) ? (
     <div className="hint" style={{ color: "var(--red)" }}>⚠ {t(
       `${d.route_miles} mi is not a Valley delivery (more than ${MAX_MILLAS_PLAUSIBLES}). The address was probably found in the wrong place: check it and recalculate.`,
       `${d.route_miles} mi no es una entrega del Valle (más de ${MAX_MILLAS_PLAUSIBLES}). La dirección probablemente se ubicó en otro lugar: revísela y vuelva a calcular.`)}</div>
   ) : null;
-  const zoneWhy = feeSuggestion.zoneSource === "pin"
-    // Tres estados, y ninguno advierte ya de perder el punto: desde D-221 el borrador se guarda
-    // con el pedido, así que la advertencia de D-220 («sin guardar todavía») asustaría sobre algo
-    // que ya no ocurre. Y se distingue quién puso el punto, porque «lo colocó usted» sería falso
-    // cuando lo propuso el buscador de direcciones.
-    ? (pinVisible
-        ? (pinDraftSource === "geocoded"
-            ? t("from the point the address search found", "por el punto que encontró la búsqueda de dirección")
-            : t("from the pin you just dropped", "por el pin que acaba de colocar"))
-        : t("from the saved pin", "por el pin guardado"))
-    : feeSuggestion.zoneSource === "city"
-      ? t(`from the address city (${feeSuggestion.city || "not recognized"}) — no pin on this order`,
-          `por la ciudad de la dirección (${feeSuggestion.city || "no reconocida"}) — esta orden no tiene pin`)
-      : "";
+  // La zona, decidida UNA vez para la pastilla y para el aviso (D-NEXT, `zona-decidida.ts`): los dos leen `zona`.
+  const zona = zonaDecidida(feeSuggestion, d.route_miles, t,
+    feeSuggestion.zoneSource === "pin" && pinVisible ? (pinDraftSource === "geocoded" ? "geocoded" : "manual") : null);
   /**
    * Esta orden va a salir sin cobrar nada (D-147).
    *
@@ -2407,12 +2396,7 @@ export function OrderModal({
             {realRole === "admin" && feeSuggestion.breakdown && (
               <FeeBreakdownDetails desglose={feeSuggestion.breakdown} />
             )}
-            {feeSuggestion.needsApproval && (d.delivery_address || "").trim() && (
-              <div className="hint" style={{ color: "var(--amber)", fontWeight: 600, marginTop: 6 }}>
-                ⚠ {t("Not local — requires manager approval.", "No local — requiere aprobación del gerente.")}
-                {zoneWhy && <span style={{ fontWeight: 400, opacity: 0.85 }}> · {zoneWhy}</span>}
-              </div>
-            )}
+            {(d.delivery_address || "").trim() && <AvisoNoLocal zona={zona} t={t} />}
             {feeSuggestion.sameDay && (
               <div className="hint" style={{ color: "var(--amber)", fontWeight: 600, marginTop: 6 }}>
                 ⚡ {t(`Same-day delivery — includes ${fmtMoney(feeSuggestion.sameDaySurcharge)} surcharge.`, `Entrega mismo día — incluye recargo de ${fmtMoney(feeSuggestion.sameDaySurcharge)}.`)}
@@ -2702,14 +2686,11 @@ export function OrderModal({
             {/* Los botones de Lista y Descuento van con el mismo gate que el campo: teclear la tarifa a ciegas es peor. */}
             {tarifaEditable && (d.delivery_address || "").trim() && (
               <div className="card" style={{ marginTop: -4, marginBottom: 10, padding: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <span className="sema" style={{ background: feeSuggestion.zone === "local" ? "var(--green)" : "var(--red)", color: "#fff" }}>
-                    {feeSuggestion.zone === "local" ? t("LOCAL", "LOCAL") : t("NOT LOCAL", "NO LOCAL")}
-                  </span>
-                  {feeSuggestion.city && <span className="hint" style={{ margin: 0 }}>{feeSuggestion.city}</span>}
-                  {zoneWhy && <span className="hint" style={{ margin: 0, opacity: 0.85 }}>· {zoneWhy}</span>}
-                  {d.route_miles != null && <span className="hint" style={{ margin: 0 }}>· {d.route_miles} mi</span>}
-                </div>
+                <PastillaDeZona zona={zona} t={t}>
+                  {zona.city && <span className="hint" style={{ margin: 0 }}>{zona.city}</span>}
+                  {zona.why && <span className="hint" style={{ margin: 0, opacity: 0.85 }}>· {zona.why}</span>}
+                  {zona.miles != null && <span className="hint" style={{ margin: 0 }}>· {zona.miles} mi</span>}
+                </PastillaDeZona>
                 {(feeSuggestion.list != null || feeSuggestion.discount != null) ? (
                   <BotonesDeTarifa tarifa={d.delivery_fee} list={feeSuggestion.list} discount={descuentoOfrecido}
                     elegir={(v) => set("delivery_fee", v)} t={t} />
@@ -2722,12 +2703,7 @@ export function OrderModal({
                 {realRole === "admin" && feeSuggestion.breakdown && (
                   <FeeBreakdownDetails desglose={feeSuggestion.breakdown} />
                 )}
-                {feeSuggestion.needsApproval && (
-                  <div className="hint" style={{ color: "var(--amber)", fontWeight: 600, marginTop: 6 }}>
-                    ⚠ {t("Not local — requires manager approval.", "No local — requiere aprobación del gerente.")}
-                    {zoneWhy && <span style={{ fontWeight: 400, opacity: 0.85 }}> · {zoneWhy}</span>}
-                  </div>
-                )}
+                <AvisoNoLocal zona={zona} t={t} />
                 {feeSuggestion.sameDay && (
                   <div className="hint" style={{ color: "var(--amber)", fontWeight: 600, marginTop: 6 }}>
                     ⚡ {t(`Same-day delivery — includes ${fmtMoney(feeSuggestion.sameDaySurcharge)} surcharge.`, `Entrega mismo día — incluye recargo de ${fmtMoney(feeSuggestion.sameDaySurcharge)}.`)}

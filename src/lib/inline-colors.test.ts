@@ -163,7 +163,11 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // fichero se borró en D-520, con la leyenda («delete the lEGEND ON THE MAP of the app»), y su techo con él.
     "src/components/NotificationBell.tsx": 1,
     "src/components/OfflineBanner.tsx": 1,
-    "src/components/OrderModal.tsx": 9,
+    // Baja de 9 a 8 (D-NEXT): el blanco del texto de la pastilla LOCAL / NO LOCAL se fue con ella a `ZonaDeLaEntrega.tsx`.
+    "src/components/OrderModal.tsx": 8,
+    // 1 (D-NEXT): la pastilla LOCAL / NO LOCAL, blanco sobre el verde o el rojo de la zona, ahora en un solo sitio para
+    // la ficha y el cotizador.
+    "src/components/ZonaDeLaEntrega.tsx": 1,
     "src/components/OrdersTable.tsx": 5,
     // 1 desde D-234: el blanco del texto sobre el azul del boton de reintentar. Todo lo
     // demas de esa pantalla usa `var(--token, #hex)`, que respeta la paleta del modulo

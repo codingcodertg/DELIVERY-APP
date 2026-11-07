@@ -91,9 +91,10 @@ describe("de dónde sale la zona se dice, no se adivina", () => {
     const src = leer("src/components/OrderModal.tsx");
     expect(src).toMatch(/const pinVisible = showPinPicker && pinDraft \? pinDraft : null;/);
     expect(src).toMatch(/pinVisible \? \{ \.\.\.d, delivery_lat: pinVisible\[0\], delivery_lng: pinVisible\[1\] \} : d/);
-    expect(src).toMatch(/const zoneWhy = feeSuggestion\.zoneSource === "pin"/);
-    // Los dos avisos y la insignia dicen el motivo.
-    expect(src.match(/\{zoneWhy &&/g) ?? []).toHaveLength(3);
+    // Desde D-NEXT la zona se decide UNA vez (`zonaDecidida`) y la pastilla y los dos avisos leen esa decisión.
+    expect(src).toMatch(/const zona = zonaDecidida\(feeSuggestion, d\.route_miles, t,/);
+    expect(src.match(/<AvisoNoLocal zona=\{zona\} t=\{t\} \/>/g) ?? []).toHaveLength(2);
+    expect(src.match(/<PastillaDeZona zona=\{zona\} t=\{t\}>/g) ?? []).toHaveLength(1);
     // Y el borrador NO se escribe en el pedido: `dropPin` sigue tocando solo el estado local.
     const dropPin = src.slice(src.indexOf("const dropPin ="), src.indexOf("const savePin ="));
     expect(dropPin).toContain("setPinDraft([lat, lng])");
@@ -104,9 +105,9 @@ describe("de dónde sale la zona se dice, no se adivina", () => {
   it("el «no reconocida» del motivo va en los dos idiomas, no en una variable", () => {
     // La frontera que marcó el auditor: `city` es dato y sale igual en los dos idiomas, pero el
     // respaldo cuando viene vacía SÍ es texto, así que va dentro de cada literal.
-    const src = leer("src/components/OrderModal.tsx");
-    expect(src).toContain('feeSuggestion.city || "not recognized"');
-    expect(src).toContain('feeSuggestion.city || "no reconocida"');
+    const src = leer("src/lib/zona-decidida.ts");
+    expect(src).toContain('s.city || "not recognized"');
+    expect(src).toContain('s.city || "no reconocida"');
   });
   it("`zoneSource` es un código, no una frase: el texto lo elige la pantalla", () => {
     const src = leer("src/lib/pricing.ts");
@@ -121,7 +122,7 @@ describe("de dónde sale la zona se dice, no se adivina", () => {
     // pulsaba «Save pin». Desde D-221 el borrador se guarda con el pedido, así que esa
     // advertencia asustaría sobre algo que ya no ocurre; y «lo colocó usted» sería falso cuando el
     // punto lo propuso el buscador de direcciones.
-    const src = leer("src/components/OrderModal.tsx");
+    const src = leer("src/lib/zona-decidida.ts");
     expect(src).toContain('"from the pin you just dropped"');
     expect(src).toContain('"from the point the address search found"');
     expect(src).toContain('"por el punto que encontró la búsqueda de dirección"');
