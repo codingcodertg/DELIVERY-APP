@@ -19,6 +19,8 @@ import { cuentaComoPerdida, perdidaDeMerma, repartoDeReporte } from "@/lib/almac
 import { puedeCorregirMerma, puedeVerReporte } from "@/lib/almacen-ops/visibilidad";
 import { diaDelReporte, fmtDia, hoyEnTexas, ordenPorDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { ATAJOS, NOMBRE_DE_ATAJO, eleccionAUrl, eleccionDeUrl, etiquetaDeRango, filtrarPorRango, perdidaEnRango, rangoDeAtajo, rangoDeEleccion, type Atajo, type Eleccion } from "@/lib/almacen-ops/rango-de-merma";
+import { ETAPAS, etapaDe, nombreDeEtapa, perdidaPorEtapa, puedeCambiarEtapa, seleccionableParaHoja, tieneEtapas, urlDeHoja, type Etapa } from "@/lib/almacen-ops/etapas";
+import { AdjuntarYMarcar, ChipDeEtapa, LineaDeEtapas } from "./EtapasDeMerma";
 import type { Contexto } from "./Operaciones";
 
 const LIMITE = 500;
@@ -58,6 +60,10 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
   const [abierto, setAbierto] = useState<Reporte | null>(null);
+  // D-921 (270): filtro por etapa, y la selección de mermas para la hoja de aprobación (solo fotografiadas, sin aprobar).
+  const [etapaFiltro, setEtapaFiltro] = useState<Etapa | "">("");
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+  const [adjuntando, setAdjuntando] = useState(false);
 
   useEffect(() => {
     let vivo = true;
@@ -102,6 +108,19 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const enRango = useMemo(() => (rango ? perdidaEnRango(mermas, rango) : { "*": 0 }), [mermas, rango]);
   const etiqueta = rango ? etiquetaDeRango(rango, lang, hoy) : "—";
   const tiendasDeMerma = Array.from(new Set([...Object.keys(totales), ...Object.keys(enRango)])).filter((k) => k !== "*").sort();
+  // D-921 (270): la lista de merma filtrada por etapa, la cuenta por etapa y el desglose de la pérdida del rango por etapa.
+  const mermasPorEtapa = useMemo(() => (etapaFiltro ? mermasEnRango.filter((r) => etapaDe(r) === etapaFiltro) : mermasEnRango), [mermasEnRango, etapaFiltro]);
+  const cuentaEtapa = (e: Etapa) => mermasEnRango.filter((r) => etapaDe(r) === e).length;
+  const porEtapa = useMemo(() => perdidaPorEtapa(mermasEnRango), [mermasEnRango]);
+  const puedeSeleccionar = useCallback((r: Reporte) => seleccionableParaHoja(r) && puedeCambiarEtapa(ctx.yo, r), [ctx.yo]);
+  const seleccionadas = useMemo(() => mermasEnRango.filter((r) => seleccion.has(r.id) && puedeSeleccionar(r)), [mermasEnRango, seleccion, puedeSeleccionar]);
+  const alternar = (id: string) => setSeleccion((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const actualizaFilas = (nuevos: Reporte[]) => {
+    const porId = new Map(nuevos.map((n) => [n.id, n]));
+    setFilas((f) => (f ?? []).map((x) => porId.get(x.id) ?? x));
+    setAbierto((a) => (a && porId.get(a.id)) || a);
+    setSeleccion((s) => { const n = new Set(s); for (const id of porId.keys()) n.delete(id); return n; });
+  };
 
   return (
     <section className="ops-reportes" data-modo={modo}>
@@ -159,12 +178,41 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
               </tbody>
             </table>
           </div>
+          {Object.keys(porEtapa).length > 0 && (
+            <p className="hint ops-desglose-etapas" data-desglose-etapas>
+              {t("In this range: ", "En el rango: ")}
+              <span data-desglose="pendiente">{t("pending approval", "pendiente de aprobar")} <b>{fmtMoney(porEtapa["*"]?.pendiente ?? 0)}</b></span> · <span data-desglose="aprobada">{t("approved", "aprobada")} <b>{fmtMoney(porEtapa["*"]?.aprobada ?? 0)}</b></span> · <span data-desglose="desechada">{t("dumped / adjusted", "desechada / ajustada")} <b>{fmtMoney(porEtapa["*"]?.desechada ?? 0)}</b></span>
+            </p>
+          )}
           <p className="hint" data-totales-por="fecha-del-dano">{t("The range, weeks and months go by the date the material was broken, not the date it was reported. ", "El rango, las semanas y los meses van por el día en que se rompió el material, no por el día en que se reportó. ")}{t(`Loss = damaged pieces × the product's cost per piece when it was reported (pieces usable as samples are not counted). A customer return without a CRMA is not counted as loss until its CRMA is added. Based on the latest ${LIMITE} reports you can see.`,
             `Pérdida = piezas dañadas × el costo por pieza del producto al reportarse (las que sirven de muestra no cuentan). Una devolución de cliente sin CRMA no cuenta como pérdida hasta que se le pone el CRMA. Sobre los últimos ${LIMITE} reportes que puedes ver.`)}</p>
 
           <h3 className="ops-merma-titulo">{t("Scrap in this range", "Merma en el rango")} <span className="count-tag" data-cuenta-rango>{mermasEnRango.length}</span></h3>
-          <TablaDeReportes filas={mermasEnRango} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango"
-            vacio={rango ? t("No scrap broken in this range.", "No se rompió nada en este rango.") : t("Fix the dates to see the list.", "Corrige las fechas para ver la lista.")} />
+          <div className="filters-oneline ops-filtros" role="group" aria-label={t("Stage", "Etapa")} data-filtro-etapas>
+            <button type="button" className={`chip${etapaFiltro === "" ? " active" : ""}`} onClick={() => setEtapaFiltro("")} data-etapa-filtro="">{t("All stages", "Todas las etapas")} <span className="cnt">{mermasEnRango.length}</span></button>
+            {ETAPAS.map((e) => (
+              <button type="button" key={e} className={`chip ops-chip-etapa${etapaFiltro === e ? " active" : ""}`} onClick={() => setEtapaFiltro(etapaFiltro === e ? "" : e)} data-etapa-filtro={e} aria-pressed={etapaFiltro === e}>
+                <span className="ops-etapa ops-etapa-mini" data-etapa={e} aria-hidden /> {nombreDeEtapa(e, lang)} <span className="cnt">{cuentaEtapa(e)}</span>
+              </button>
+            ))}
+          </div>
+          {seleccionadas.length > 0 && (
+            <div className="ops-seleccion" role="region" aria-label={t("Selected for approval", "Seleccionadas para aprobar")} data-seleccion={seleccionadas.length}>
+              <span>{t(`${seleccionadas.length} selected`, `${seleccionadas.length} seleccionada${seleccionadas.length === 1 ? "" : "s"}`)}</span>
+              <a className="btn btn-primary" href={urlDeHoja(seleccionadas.map((r) => r.id))} target="_blank" rel="noreferrer" data-accion="imprimir-hoja">
+                🖨 {t(`Print approval sheet (${seleccionadas.length})`, `Imprimir hoja de aprobación (${seleccionadas.length})`)}
+              </a>
+              <button type="button" className="btn" onClick={() => setAdjuntando((x) => !x)} data-accion="adjuntar-hoja-seleccion">📎 {t(`Attach signed sheet (${seleccionadas.length})`, `Adjuntar hoja firmada (${seleccionadas.length})`)}</button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setSeleccion(new Set()); setAdjuntando(false); }} data-accion="limpiar-seleccion">{t("Clear", "Quitar")}</button>
+            </div>
+          )}
+          {adjuntando && seleccionadas.length > 0 && (
+            <AdjuntarYMarcar reportes={seleccionadas} ctx={ctx} etapa="approved" etiqueta={t("Choose the signed sheet (photo or PDF)", "Elegir la hoja firmada (foto o PDF)")}
+              onListo={(n) => { setAdjuntando(false); actualizaFilas(n); }} onParcial={actualizaFilas} onCancelar={() => setAdjuntando(false)} />
+          )}
+          <TablaDeReportes filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango" conEtapa
+            seleccion={{ ids: seleccion, puede: puedeSeleccionar, alternar }}
+            vacio={rango ? (etapaFiltro ? t("No scrap in that stage in this range.", "No hay merma en esa etapa en este rango.") : t("No scrap broken in this range.", "No se rompió nada en este rango.")) : t("Fix the dates to see the list.", "Corrige las fechas para ver la lista.")} />
         </div>
       )}
 
@@ -212,37 +260,55 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
 }
 
 /** La tabla de reportes (la de Órdenes, CLAUDE.md); la usan la lista y la pestaña de merma. Cada fila se abre como tarjeta. */
-function TablaDeReportes({ filas, ctx, onAbrir, vacio, repetidas, "data-lista": dataLista }: {
+function TablaDeReportes({ filas, ctx, onAbrir, vacio, repetidas, conEtapa, seleccion, "data-lista": dataLista }: {
   filas: Reporte[]; ctx: Contexto; onAbrir: (r: Reporte) => void; vacio: string; repetidas: Map<string, string[]>; "data-lista": string;
+  /** D-921 (270): la columna «Etapa» (pestaña de merma). Sin ella, el chip sale chico junto al detalle. */
+  conEtapa?: boolean;
+  /** Casillas para la hoja de aprobación: qué ids están marcados, cuáles se pueden marcar, y el cambio. */
+  seleccion?: { ids: Set<string>; puede: (r: Reporte) => boolean; alternar: (id: string) => void };
 }) {
   const { t, lang } = usePrefs();
   const nombre = (id: string) => ctx.personas.find((p) => p.id === id)?.full_name ?? "—";
   const nombreTipo = (k: TipoDeReporte) => (lang === "es" ? INFO_DE_TIPO[k].es : INFO_DE_TIPO[k].en);
+  const conCasillas = !!seleccion && filas.some((r) => seleccion.puede(r));
+  const columnas = 6 + (conEtapa ? 1 : 0) + (conCasillas ? 1 : 0);
   return (
     <div className="tbl-scroll tbl-caja">
       <table className="orders" data-lista={dataLista}>
         <thead>
           <tr>
-            <th title={t("Scrap: the date it was broken. Others: when it was reported.", "Merma: el día en que se rompió. Los demás: cuándo se reportó.")}>{t("When", "Cuándo")}</th><th>{t("Type", "Tipo")}</th><th>{t("Store", "Tienda")}</th>
+            {conCasillas && <th className="ops-col-casilla" aria-label={t("Select for the approval sheet", "Marcar para la hoja de aprobación")} />}
+            <th title={t("Scrap: the date it was broken. Others: when it was reported.", "Merma: el día en que se rompió. Los demás: cuándo se reportó.")}>{t("When", "Cuándo")}</th>
+            {conEtapa && <th>{t("Stage", "Etapa")}</th>}
+            <th>{t("Type", "Tipo")}</th><th>{t("Store", "Tienda")}</th>
             <th>{t("Filed by", "Lo llenó")}</th><th>{t("Employee", "Empleado")}</th><th>{t("Detail", "Detalle")}</th>
           </tr>
         </thead>
         <tbody>
-          {filas.length === 0 && <tr><td colSpan={6} className="hint">{vacio}</td></tr>}
+          {filas.length === 0 && <tr><td colSpan={columnas} className="hint">{vacio}</td></tr>}
           {filas.map((r) => (
-            <tr key={r.id} onClick={() => onAbrir(r)} className="ops-fila-tabla" data-reporte={r.id}>
+            <tr key={r.id} onClick={() => onAbrir(r)} className="ops-fila-tabla" data-reporte={r.id} data-etapa={r.kind === "scrap" ? etapaDe(r) : undefined}>
+              {conCasillas && (
+                <td className="ops-col-casilla" onClick={(e) => e.stopPropagation()}>
+                  {seleccion!.puede(r) && (
+                    <input type="checkbox" checked={seleccion!.ids.has(r.id)} onChange={() => seleccion!.alternar(r.id)}
+                      aria-label={t("Select for the approval sheet", "Marcar para la hoja de aprobación")} data-casilla={r.id} />
+                  )}
+                </td>
+              )}
               <td style={{ whiteSpace: "nowrap" }} data-dia={diaDelReporte(r)}>
                 {r.kind === "scrap" ? fmtDia(diaDelReporte(r), lang) : fmtDateTime(r.created_at)}
                 <IconoDeFotos r={r} />
                 <InsigniasDeFoto r={r} repetida={repetidas.has(r.id)} />
               </td>
+              {conEtapa && <td className="ops-col-etapa">{r.kind === "scrap" ? <ChipDeEtapa r={r} /> : "—"}</td>}
               <td style={{ whiteSpace: "nowrap" }}>{INFO_DE_TIPO[r.kind].emoji} {nombreTipo(r.kind)}</td>
               <td>{r.store}</td>
               <td>{r.author_name ?? nombre(r.author_id)}</td>
               <td>{r.subject_ids.map(nombre).join(", ")}</td>
               <td className="ops-detalle-corto">{r.kind === "scrap"
                 ? `${r.product_not_in_catalog ? `${r.product_name ?? ""} (${t("not in catalog", "fuera de catálogo")})` : r.product_sku ?? ""} · ${repartoDeReporte(r).damaged} ${t("damaged", "dañadas")} · ${fmtMoney(r.total_loss)}${cuentaComoPerdida(r) ? "" : ` (${t("no CRMA", "sin CRMA")})`}`
-                : String(r.answers.description ?? "")}</td>
+                : String(r.answers.description ?? "")}{!conEtapa && r.kind === "scrap" && <ChipDeEtapa r={r} conFecha={false} />}</td>
             </tr>
           ))}
         </tbody>
@@ -389,6 +455,9 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Conte
           <p className="hint" data-huellas="calculando">{t("Report from before duplicate detection: the photo fingerprints are being computed now and saved for next time.", "Reporte de antes de la detección de repetidas: las huellas de las fotos se calculan ahora y se guardan para la próxima.")}</p>
         )}
         {agregaFoto && <AgregarFoto r={r} ctx={ctx} onListo={onCambio} />}
+        {/* D-921 (270): la línea de etapas y lo que el gerente hace con ella. Sin la 270 (sin columnas) sale solo la línea, sin botones. */}
+        {r.kind === "scrap" && <LineaDeEtapas r={r} ctx={ctx} onCambio={onCambio} />}
+        {r.kind === "scrap" && !tieneEtapas(r) && puedeCorregirMerma(ctx.yo, r) && <p className="hint" data-sin-270>{t("Approval stages need database migration 270.", "Las etapas de aprobación necesitan la migración 270 de la base.")}</p>}
         <div className="modal-actions"><button type="button" className="btn btn-primary" onClick={onCerrar}>{t("Close", "Cerrar")}</button></div>
       </div>
     </div>

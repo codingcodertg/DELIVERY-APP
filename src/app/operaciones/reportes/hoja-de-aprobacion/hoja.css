@@ -1,0 +1,42 @@
+/* D-921 (270): la hoja de aprobación de merma. En pantalla, una hoja blanca centrada; al imprimir, solo ella. */
+.hoja-aprobacion-pagina { max-width: 1000px; margin: 0 auto; padding: 12px 16px 40px; }
+.hoja-barra { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.hoja-aprobacion { background: #fff; color: #111; border: 1px solid var(--line, #ddd); border-radius: 8px; padding: 22px 24px; font-size: 13px; line-height: 1.35; }
+.hoja-cabecera { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.hoja-cabecera h1 { margin: 0; font-size: 20px; letter-spacing: .02em; text-transform: uppercase; }
+.hoja-cabecera h2 { margin: 2px 0 0; font-size: 15px; font-weight: 600; color: #333; }
+.hoja-datos { display: grid; grid-template-columns: auto auto; gap: 2px 10px; margin: 0; font-size: 12.5px; }
+.hoja-datos dt { font-weight: 600; color: #555; }
+.hoja-datos dd { margin: 0; font-weight: 700; }
+.hoja-recordatorio { display: grid; gap: 4px; margin: 0 0 14px; padding: 10px 12px; border: 1.5px solid #111; border-radius: 6px; font-size: 12.5px; }
+.hoja-recordatorio span[lang="en"] { color: #444; font-size: 11.5px; }
+.hoja-tabla { width: 100%; border-collapse: collapse; font-size: 12px; }
+.hoja-tabla th, .hoja-tabla td { border: 1px solid #333; padding: 5px 6px; text-align: left; vertical-align: top; }
+.hoja-tabla th { background: #eee; font-weight: 700; }
+.hoja-tabla .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hoja-tabla tfoot td { font-weight: 800; background: #f6f6f6; }
+.hoja-folio { font-family: ui-monospace, Menlo, Consolas, monospace; letter-spacing: .04em; }
+.hoja-vacia { text-align: center; color: #666; padding: 18px !important; }
+.hoja-nota { margin: 6px 0 0; font-size: 11px; color: #444; }
+.hoja-firmas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 44px; }
+.hoja-firma { display: grid; gap: 6px; text-align: center; font-size: 12px; font-weight: 600; }
+.hoja-linea { display: block; border-bottom: 1.5px solid #111; height: 28px; }
+.hoja-pie { margin: 22px 0 0; font-size: 11px; color: #555; }
+@media (max-width: 719.98px) {
+  .hoja-aprobacion { padding: 14px; }
+  .hoja-firmas { grid-template-columns: 1fr; gap: 28px; }
+  .hoja-tabla { display: block; overflow-x: auto; }
+}
+@media print {
+  @page { size: letter landscape; margin: 12mm; }
+  body * { visibility: hidden !important; }
+  .hoja-aprobacion, .hoja-aprobacion * { visibility: visible !important; }
+  /* Lo que no es la hoja, ni está dentro, ni la envuelve, sale del flujo (la lección de D-789: escondido seguía paginando en blanco). */
+  body *:not(.hoja-aprobacion):not(.hoja-aprobacion *):not(:has(.hoja-aprobacion)) { display: none !important; }
+  .no-imprimir { display: none !important; }
+  .hoja-aprobacion-pagina { max-width: none; padding: 0; margin: 0; }
+  .hoja-aprobacion { border: none; border-radius: 0; padding: 0; font-size: 12px; }
+  .hoja-tabla { display: table; overflow: visible; }
+  .hoja-firmas { grid-template-columns: repeat(3, minmax(0, 1fr)); page-break-inside: avoid; }
+  .hoja-tabla tr { page-break-inside: avoid; }
+}

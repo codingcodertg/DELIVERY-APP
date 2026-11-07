@@ -234,3 +234,38 @@ textarea.ops-campo { min-height: 150px; resize: vertical; }
   color: var(--text); background: color-mix(in srgb, var(--amber) 16%, var(--card));
   border-left: 5px solid var(--amber);
 }
+
+/* ---- D-921 (270): etapas de la merma (Documentada → Fotografiada → Aprobada → Desechada → Ajustada) y la hoja de aprobación ---- */
+.ops-etapa {
+  display: inline-flex; flex-direction: column; gap: 1px; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; line-height: 1.2;
+  white-space: nowrap; vertical-align: middle; color: var(--etapa, var(--ink-soft)); background: color-mix(in srgb, var(--etapa, var(--gray)) 14%, transparent); border: 1px solid color-mix(in srgb, var(--etapa, var(--gray)) 35%, transparent);
+}
+.ops-etapa-fecha { font-size: 10.5px; font-weight: 600; opacity: .85; }
+.ops-etapa[data-etapa="documented"] { --etapa: var(--gray); }
+.ops-etapa[data-etapa="photographed"] { --etapa: var(--amber); }
+.ops-etapa[data-etapa="approved"] { --etapa: var(--accent); }
+.ops-etapa[data-etapa="dumped"] { --etapa: var(--red); }
+.ops-etapa[data-etapa="adjusted"] { --etapa: var(--green, #1f8f4e); }
+.ops-etapa-mini { display: inline-block; width: 10px; height: 10px; padding: 0; border-radius: 50%; background: var(--etapa, var(--gray)); border: none; vertical-align: middle; }
+.ops-detalle-corto .ops-etapa { margin-left: 6px; padding: 1px 7px; }
+.ops-col-etapa { white-space: nowrap; }
+.ops-col-casilla { width: 32px; text-align: center; }
+.ops-col-casilla input { width: 20px; height: 20px; margin: 0; cursor: pointer; }
+.ops-seleccion { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--card)); font-weight: 700; }
+.ops-desglose-etapas b { font-variant-numeric: tabular-nums; }
+.ops-etapas { margin: 12px 0 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.ops-etapas h4 { margin: 0 0 8px; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+.ops-linea-de-etapas { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ops-linea-de-etapas li { display: grid; grid-template-columns: 14px 1fr; gap: 10px; align-items: start; color: var(--ink-soft); }
+.ops-linea-de-etapas li.hecha { color: var(--text); }
+.ops-etapa-punto { display: block; width: 12px; height: 12px; margin-top: 3px; border-radius: 50%; border: 2px solid var(--gray); background: transparent; }
+.ops-linea-de-etapas li.hecha .ops-etapa-punto { background: var(--accent); border-color: var(--accent); }
+.ops-linea-de-etapas li[data-etapa="dumped"].hecha .ops-etapa-punto { background: var(--red); border-color: var(--red); }
+.ops-linea-de-etapas li[data-etapa="adjusted"].hecha .ops-etapa-punto { background: var(--green, #1f8f4e); border-color: var(--green, #1f8f4e); }
+.ops-etapa-texto { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 13px; }
+.ops-etapa-cuando { font-size: 12px; }
+.ops-adjunto-mini img { height: 48px; width: auto; border-radius: 6px; border: 1px solid var(--line); vertical-align: middle; }
+.ops-adjunto-pdf { font-weight: 700; }
+.ops-etapa-acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+.ops-etapa-acciones .hint { margin: 0; width: 100%; }
+.ops-confirmar p { margin: 0; font-weight: 600; }
