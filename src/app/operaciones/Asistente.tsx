@@ -12,8 +12,8 @@ import { BotonesDeFoto } from "./BotonesDeFoto";
 import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
 import { INFO_DE_TIPO, esDeRrhh, type TipoDeReporte } from "@/lib/almacen-ops/tipos";
 import {
-  costoDelCampo, empleadosDelReporte, etiquetaDeOpcion, pasoCompleto, pasosVisibles, primerHuecoSalvoFoto, productoLibre,
-  respuestasIniciales, respuestasParaGuardar, type Paso, type ProductoElegido, type Respuestas,
+  camposDe, costoDelCampo, empleadosDelReporte, etiquetaDeOpcion, pasoCompleto, pasoInicial, pasosVisibles, primerHuecoSalvoFoto,
+  productoLibre, respuestasIniciales, respuestasParaGuardar, seMuestra, type Paso, type ProductoElegido, type Respuestas,
 } from "@/lib/almacen-ops/pasos";
 import {
   CLAVE_HASHES, CLAVE_PENDIENTE, MAX_FOTOS, avisoDeRepetida, fotosDe, hashesDe, motivoDeBloqueo,
@@ -49,7 +49,8 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
   // La merma arranca con la fecha del daño en hoy (Texas), también al reabrir un borrador que no la traía (266).
   const [arranque] = useState<Respuestas>(() => respuestasIniciales(tipo, inicial?.r));
   const [r, setR] = useState<Respuestas>(arranque);
-  const [i, setI] = useState(() => inicial?.paso ?? 0);
+  // Un borrador de antes de reordenar la merma (D-919) trae un índice de la lista vieja: se abre igual, sin pasarse del resumen.
+  const [i, setI] = useState(() => pasoInicial(tipo, arranque, inicial?.paso));
   const [volverAlResumen, setVolverAlResumen] = useState(false);
   const [tienda, setTiendaCruda] = useState(() => (inicial?.tienda && ctx.tiendas.includes(inicial.tienda) ? inicial.tienda
     : ctx.yo.store && ctx.tiendas.includes(ctx.yo.store) ? ctx.yo.store : ctx.tiendas[0] ?? ""));
@@ -86,7 +87,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
     const conocidos = new Set(ctx.personas.map((p) => p.id));
     setR((x) => {
       const y = { ...x };
-      for (const p of pasosVisibles(tipo, x)) {
+      for (const p of pasosVisibles(tipo, x).flatMap(camposDe)) {
         // Un nombre escrito a mano (D-915, «¿quién lo reportó?») no es de ninguna tienda: se queda.
         if (p.tipo === "personas" && Array.isArray(y[p.id])) y[p.id] = elegidosAlCambiarDeTienda(y[p.id] as string[], deAhi, conocidos);
         if (p.tipo === "persona" && typeof y[p.id] === "string" && !deAhi.has(y[p.id] as string)) delete y[p.id];
@@ -214,14 +215,22 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
       {enResumen && (
         <div className="ops-resumen">
           <h2>{t("Check and send", "Revisa y envía")}</h2>
+          {/* Roberto, pedido 319a0f18 (D-919): el recordatorio de la política de merma, arriba del resumen. */}
+          {tipo === "scrap" && (
+            <p className="ops-recordatorio" role="note" data-recordatorio="merma">
+              {t("This form must be filled out every time damaged material is found. The material cannot be discarded until photos have been taken, the evidence saved, and Management's authorization obtained through the app.",
+                "Este formato debe llenarse cada vez que se detecte material dañado. El material no podrá desecharse hasta que se hayan tomado fotografías, guardado la evidencia y obtenido la autorización de Gerencia a través de la aplicación.")}
+            </p>
+          )}
           {tipo === "scrap" && <Perdida r={r} grande />}
           <dl>
-            {pasos.map((p, n) => (
-              <button type="button" key={p.id} className={`ops-fila${pasoCompleto(p, r) ? "" : " falta"}`} onClick={() => editar(n)} data-editar={p.id}>
-                <dt>{lang === "es" ? p.es : p.en}</dt>
-                <dd>{textoDeRespuesta(tipo, p, r, ctx, lang) || <span className="hint">{pasoCompleto(p, r) ? "—" : p.tipo === "foto" ? t("Missing photo", "Falta la foto") : t("Missing", "Falta")}</span>}</dd>
+            {/* Un grupo (D-919) sale como una fila por campo; todas abren la misma pantalla. */}
+            {pasos.flatMap((p, n) => camposDe(p).filter((c) => seMuestra(c, r)).map((c) => (
+              <button type="button" key={c.id} className={`ops-fila${pasoCompleto(c, r) ? "" : " falta"}`} onClick={() => editar(n)} data-editar={c.id}>
+                <dt>{lang === "es" ? c.es : c.en}</dt>
+                <dd>{textoDeRespuesta(tipo, c, r, ctx, lang) || <span className="hint">{pasoCompleto(c, r) ? "—" : c.tipo === "foto" ? t("Missing photo", "Falta la foto") : t("Missing", "Falta")}</span>}</dd>
               </button>
-            ))}
+            )))}
           </dl>
           {/* La tienda ya se elige arriba (pedido c10078f9); aquí solo queda cuando arriba no sale (una sola tienda). */}
           {ctx.tiendas.length <= 1 && (
@@ -288,6 +297,7 @@ function nombreDe(ctx: Contexto, id: string): string {
 function textoDeRespuesta(tipo: TipoDeReporte, p: Paso, r: Respuestas, ctx: Contexto, lang: "en" | "es"): string {
   const v = r[p.id];
   switch (p.tipo) {
+    case "grupo": return "";
     case "personas": return Array.isArray(v) ? (v as string[]).map((x) => nombreOTexto(ctx.personas, x)).join(", ") : "";
     case "persona": return typeof v === "string" ? nombreDe(ctx, v) : "";
     case "opcion": case "sino": return etiquetaDeOpcion(tipo, p.id, v, lang);
@@ -345,6 +355,19 @@ function Respuesta({ paso, r, pon, ctx, tienda, onElegirUno, onConfirmandoFoto }
   const { t, lang } = usePrefs();
   const v = r[paso.id];
   switch (paso.tipo) {
+    case "grupo":
+      // Varias preguntas en una pantalla (D-919, pedido fb02f65a): cada campo con su propio título y su propia respuesta.
+      return (
+        <div className="ops-grupo">
+          {paso.campos.filter((c) => seMuestra(c, r)).map((c) => (
+            <section key={c.id} className="ops-grupo-campo" data-campo-del-grupo={c.id}>
+              <h3>{lang === "es" ? c.es : c.en}</h3>
+              {"ayuda" in c && c.ayuda && <p className="hint" data-ayuda-del-paso>{lang === "es" ? c.ayuda.es : c.ayuda.en}</p>}
+              <Respuesta paso={c} r={r} pon={pon} ctx={ctx} tienda={tienda} onElegirUno={onElegirUno} onConfirmandoFoto={onConfirmandoFoto} />
+            </section>
+          ))}
+        </div>
+      );
     case "opcion":
       return (
         <div className="ops-opciones">

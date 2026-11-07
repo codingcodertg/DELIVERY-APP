@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { diaDelReporte, diaEnTexas, esDia, fechaDelDanoValida, fmtDia, hoyEnTexas, ordenPorDia } from "./fecha-del-dano";
-import { PASOS, PASO_FECHA_DEL_DANO, pasoCompleto, pasosVisibles, primerHueco, respuestasIniciales, respuestasParaGuardar, etiquetaDeOpcion } from "./pasos";
+import { PASOS, PASO_FECHA_DEL_DANO, pasoCompleto, pasosPlanos, pasosVisibles, primerHueco, respuestasIniciales, respuestasParaGuardar, etiquetaDeOpcion } from "./pasos";
 import { totalesPorTienda } from "./perdida";
 import { puedeLlenar, tiposPermitidos } from "./nivel";
 import { guardarBorrador, leerBorrador, type Almacen } from "./borradores";
@@ -48,16 +48,18 @@ describe("la fecha vale si es un día de verdad y no es futuro", () => {
 });
 
 describe("el formulario de merma", () => {
-  const paso = PASOS.scrap.find((p) => p.id === PASO_FECHA_DEL_DANO)!;
+  // D-919: la fecha vive dentro de la pantalla «Cuándo y quién» (fecha + quién lo rompió + quién lo reportó).
+  const paso = pasosPlanos("scrap").find((p) => p.id === PASO_FECHA_DEL_DANO)!;
   it("tiene el paso de la fecha, y solo la merma lo tiene", () => {
     expect(paso.tipo).toBe("fecha");
     expect(paso.en).toBe("What date was it broken?");
     expect(paso.es).toBe("¿Qué día se rompió?");
-    expect(PASOS.scrap.map((p) => p.id)).toEqual(["product", "photo", "qty", "return_type", "reason", "broken_on", "broken_by", "reported_by", "crma", "comments"]);
+    expect(PASOS.scrap.map((p) => p.id)).toEqual(["product", "photo", "qty", "return_type", "crma", "reason", "comments", "when_and_who"]);
     for (const [tipo, pasos] of Object.entries(PASOS)) {
-      if (tipo !== "scrap") expect(pasos.some((p) => p.tipo === "fecha"), tipo).toBe(false);
+      if (tipo !== "scrap") expect(pasos.flatMap((p) => (p.tipo === "grupo" ? p.campos : [p])).some((p) => p.tipo === "fecha"), tipo).toBe(false);
     }
-    expect(pasosVisibles("scrap", {}).some((p) => p.id === "broken_on")).toBe(true);
+    expect(pasosVisibles("scrap", {}).some((p) => p.id === "when_and_who")).toBe(true);
+    expect(pasosPlanos("scrap").some((p) => p.id === "broken_on")).toBe(true);
   });
   it("arranca en hoy (Texas) y se puede cambiar", () => {
     expect(respuestasIniciales("scrap", null, HOY)).toEqual({ broken_on: HOY });
@@ -69,7 +71,7 @@ describe("el formulario de merma", () => {
     expect(pasoCompleto(paso, {}, HOY)).toBe(false);
     expect(pasoCompleto(paso, { broken_on: "" }, HOY)).toBe(false);
     expect(pasoCompleto(paso, { broken_on: "2026-11-07" }, HOY)).toBe(false);
-    const i = pasosVisibles("scrap", completo).findIndex((p) => p.id === "broken_on");
+    const i = pasosVisibles("scrap", completo).findIndex((p) => p.id === "when_and_who"); // la pantalla que la contiene
     expect(primerHueco("scrap", completo, HOY)).toBe(i);
     expect(primerHueco("scrap", { ...completo, broken_on: "2026-11-07" }, HOY)).toBe(i);
     expect(primerHueco("scrap", { ...completo, broken_on: "2026-11-01" }, HOY)).toBe(-1);
@@ -88,7 +90,7 @@ describe("el formulario de merma", () => {
     const almacen = { role: "warehouse", module_access: ["warehouse_ops"], warehouse_ops_role: "scrap_only" };
     expect(tiposPermitidos(almacen)).toEqual(["scrap"]);
     expect(puedeLlenar(almacen, "scrap")).toBe(true);
-    expect(PASOS.scrap.some((p) => p.id === "broken_on")).toBe(true);
+    expect(pasosPlanos("scrap").some((p) => p.id === "broken_on")).toBe(true);
   });
 });
 

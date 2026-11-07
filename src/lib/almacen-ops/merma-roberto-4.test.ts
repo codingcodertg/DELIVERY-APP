@@ -26,15 +26,15 @@ const devolucion = { ...interno, return_type: "customer_return" };
 const DAN = "coalesce(damaged_pieces, case when scrap_type = 'sample' then 0 else total_pieces end)";
 
 describe("las dos preguntas vuelven a su sitio en el formulario de merma", () => {
-  it("el orden de D-893 / D-894: origen después de la cantidad; CRMA después de quién lo rompió", () => {
-    expect(PASOS.scrap.map((p) => p.id)).toEqual(["product", "photo", "qty", "return_type", "reason", "broken_on", "broken_by", "reported_by", "crma", "comments"]);
+  it("el orden de D-893 / D-894, reordenado por Roberto (D-919): origen después de la cantidad; CRMA justo después del origen", () => {
+    expect(PASOS.scrap.map((p) => p.id)).toEqual(["product", "photo", "qty", "return_type", "crma", "reason", "comments", "when_and_who"]);
     const origen = PASOS.scrap.find((p) => p.id === "return_type")!;
     expect(origen.en).toBe("Where did it come from?");
     expect(origen.tipo === "opcion" && origen.opciones.map((o) => [o.v, o.en])).toEqual([["internal", "Internal"], ["customer_return", "Customer return"]]);
   });
   it("el CRMA solo sale en «Customer return»", () => {
-    expect(pasosVisibles("scrap", interno).map((p) => p.id)).toEqual(["product", "photo", "qty", "return_type", "reason", "broken_on", "broken_by", "reported_by", "comments"]);
-    expect(pasosVisibles("scrap", devolucion).map((p) => p.id)).toEqual(["product", "photo", "qty", "return_type", "reason", "broken_on", "broken_by", "reported_by", "crma", "comments"]);
+    expect(pasosVisibles("scrap", interno).map((p) => p.id)).toEqual(["product", "photo", "qty", "return_type", "reason", "comments", "when_and_who"]);
+    expect(pasosVisibles("scrap", devolucion).map((p) => p.id)).toEqual(["product", "photo", "qty", "return_type", "crma", "reason", "comments", "when_and_who"]);
     expect(pasosVisibles("scrap", {}).some((p) => p.id === "crma")).toBe(false);
   });
   it("el origen sí es obligatorio (como antes de la 0.4.0)", () => {
