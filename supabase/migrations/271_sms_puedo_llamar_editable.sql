@@ -23,3 +23,6 @@ alter table recruiting.settings
 
 comment on column recruiting.settings.sms_puedo_llamar is
   'Plantillas del texto "¿te puedo llamar?" por idioma: {"en": "...", "es": "..."}. Null o idioma vacio = la plantilla de fabrica del codigo. Editable por admin y gerente de RR. HH. en Ajustes.';
+
+-- @ledger-below
+insert into public.schema_migrations (name, checksum) values ('271_sms_puedo_llamar_editable.sql', '7b3e367e9d789cabaa9b7e19a318d29e886ecc98e64953c09073ab3fd5fcdf3b') on conflict (name) do nothing;
