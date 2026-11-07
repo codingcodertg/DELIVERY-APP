@@ -1,5 +1,5 @@
 /**
- * Operaciones de almacén (D-NEXT): el rango de fechas de la merma. El dueño: «on the scrap select date range».
+ * Operaciones de almacén (D-911): el rango de fechas de la merma. El dueño: «on the scrap select date range».
  *
  * En la vista de gerentes (Reportes → pestaña Merma) un selector con atajos —hoy, esta semana, la semana pasada, este
  * mes, el mes pasado, los últimos 30 días— o un rango a mano (Desde / Hasta). El rango manda sobre la lista de merma Y

@@ -8,7 +8,7 @@ import {
 import { hoyEnTexas } from "./fecha-del-dano";
 
 /**
- * D-NEXT: «on the scrap select date range». Atajos y rango a mano, por el día en que se rompió, en días de Texas; manda
+ * D-911: «on the scrap select date range». Atajos y rango a mano, por el día en que se rompió, en días de Texas; manda
  * sobre la lista de merma y sobre la pérdida por tienda; viaja en la URL.
  */
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").replace(/\r\n/g, "\n");

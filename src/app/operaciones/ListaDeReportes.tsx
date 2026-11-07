@@ -28,7 +28,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const { t, lang } = usePrefs();
   const [filas, setFilas] = useState<Reporte[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // D-NEXT: la pestaña y el rango de la merma viven en la URL (?pestana=merma&rango=mes…): aguantan un refresh y se comparten.
+  // D-911: la pestaña y el rango de la merma viven en la URL (?pestana=merma&rango=mes…): aguantan un refresh y se comparten.
   const router = useRouter();
   const ruta = usePathname();
   const params = useSearchParams();
@@ -88,7 +88,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
 
   const mermas = useMemo(() => propias.filter((r) => r.kind === "scrap"), [propias]);
   const totales = useMemo(() => totalesPorTienda(mermas, new Date()), [mermas]);
-  // D-NEXT: el rango elegido manda sobre la lista de merma y sobre la pérdida por tienda; todo por el día en que se rompió.
+  // D-911: el rango elegido manda sobre la lista de merma y sobre la pérdida por tienda; todo por el día en que se rompió.
   const rango = useMemo(() => rangoDeEleccion(eleccion, hoy), [eleccion, hoy]);
   const mermasEnRango = useMemo(() => (rango ? filtrarPorRango(mermas, rango) : []), [mermas, rango]);
   const enRango = useMemo(() => (rango ? perdidaEnRango(mermas, rango) : { "*": 0 }), [mermas, rango]);
