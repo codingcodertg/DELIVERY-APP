@@ -190,7 +190,8 @@ describe("Entregas: colores a pelo por fichero, techo de la decisión", () => {
     // 2 desde D-268: los mismos dos negros que la Cuenta de Entregas tenía, el fondo detrás del video
     // mientras carga. Un video se ve sobre negro en claro y en oscuro, que es la regla de esta tabla
     // para los colores que no cambian con el tema.
-    "src/components/tutorials/TutorialsHub.tsx": 2,
+    // D-NEXT: el reproductor (y sus dos fondos negros) se movió a su propio componente.
+    "src/components/tutorials/ReproductorDeTutorial.tsx": 2,
     // 5 desde D-536: la hoja de «📸 PNG» de la ruta se fotografía para mandarla al chofer, y una imagen que
     // se manda por WhatsApp tiene que salir igual en claro y en oscuro: fondo blanco, texto casi negro, dos
     // grises de las rayas de la tabla y el ámbar del aviso. Es la regla de esta tabla para lo que no cambia

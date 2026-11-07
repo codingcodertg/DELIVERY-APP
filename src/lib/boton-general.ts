@@ -18,7 +18,7 @@ import { olvidaPractica } from "@/lib/practica/fetch-de-practica";
  * o al volver, y la señal de enseñanza que comparten la burbuja y Entregas.
  */
 
-export type OpcionGeneral = "ayuda" | "chat" | "usuario" | "movil" | "ensenanza";
+export type OpcionGeneral = "ayuda" | "chat" | "tutoriales" | "usuario" | "movil" | "ensenanza";
 
 /**
  * De abajo arriba: la primera queda pegada al botón.
@@ -32,12 +32,14 @@ export type OpcionGeneral = "ayuda" | "chat" | "usuario" | "movil" | "ensenanza"
  */
 export function opcionesDelBotonGeneral(a: { adminReal: boolean; switchHabilitado: boolean; suplantando?: boolean; ayudaAqui?: boolean }): OpcionGeneral[] {
   if (a.suplantando) {
-    return a.ayudaAqui === false ? ["usuario", "movil"] : ["ayuda", "chat", "usuario", "movil", "ensenanza"];
+    return a.ayudaAqui === false ? ["usuario", "movil"] : ["ayuda", "chat", "tutoriales", "usuario", "movil", "ensenanza"];
   }
   // D-805 (Roberto: «Ernesto isn't able to go to teaching mode»): el modo enseñanza lo enciende cualquiera, chofer
   // incluido. Es seguro para todos: en Entregas es el entorno de práctica y en las demás apps ninguna escritura llega a la
   // base (D-626). «Cambiar usuario» y «Vista móvil» siguen siendo del admin real.
-  const out: OpcionGeneral[] = ["ayuda", "chat"];
+  // D-NEXT (el dueño y Roberto: «add pop-up notifications or a help menu entry for accessing training resources»): los
+  // Tutoriales salen aquí para todos, con cuántos le faltan por ver.
+  const out: OpcionGeneral[] = ["ayuda", "chat", "tutoriales"];
   if (!a.adminReal) { out.push("ensenanza"); return out; }
   if (a.switchHabilitado) out.push("usuario");
   out.push("movil", "ensenanza");
@@ -63,6 +65,9 @@ export function destinoDeLaApp(pathname: string | null | undefined): string {
   const clave = app === "clockin" ? "timetracker" : app;
   return MODULES.find((m) => m.key === clave)?.href ?? "/";
 }
+
+/** La pantalla de Tutoriales, a donde lleva la opción del menú (D-NEXT). */
+export const RUTA_TUTORIALES = "/home/tutorials";
 
 /** La burbuja pide abrir la Ayuda o el Chat; cada uno sigue siendo su componente (el formulario, el hilo). */
 export const EVENTO_ABRIR_AYUDA = "rtg:abrir-ayuda";

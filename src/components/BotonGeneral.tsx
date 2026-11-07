@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { cuentaSinVer, leeVistos, type ClienteDeVistas } from "@/lib/tutorial-views";
+import type { Tutorial } from "@/lib/types";
 import { appForPath } from "@/lib/app-for-path";
 import { avisoGeneralEnLaRuta } from "@/lib/ensenanza-general";
 import { PrefsConIdioma, usePrefs } from "@/lib/prefs";
@@ -9,7 +13,7 @@ import { ConfirmProvider } from "@/lib/confirm";
 import { ayudaEnLaRuta } from "@/lib/ayuda-flotante";
 import { botonDeVista, enlaceAVistaMovil } from "@/lib/mobile-preview";
 import {
-  EVENTO_ABRIR_AYUDA, EVENTO_ABRIR_CHAT, EVENTO_CHAT_SIN_LEER, EVENTO_ENSENANZA,
+  EVENTO_ABRIR_AYUDA, EVENTO_ABRIR_CHAT, EVENTO_CHAT_SIN_LEER, EVENTO_ENSENANZA, RUTA_TUTORIALES,
   destinoDeLaApp, escribeEnsenanza, leeEnsenanza, opcionesDelBotonGeneral, type OpcionGeneral,
 } from "@/lib/boton-general";
 import { burbujaEnLaRuta, colorDeLaBurbuja, textosDeSuplantacion } from "@/lib/suplantacion-en-burbuja";
@@ -78,6 +82,24 @@ export function BotonGeneral() {
   // Al cambiar de pantalla se cierra, como cualquier menú.
   useEffect(() => { setAbierto(false); setCambiando(false); }, [pathname]);
 
+  // D-NEXT: cuántos tutoriales de su rol le faltan por ver, para la insignia de «Tutoriales». Se pregunta al ABRIR el
+  // menú (no en cada pantalla), una vez por carga; sin sesión, sin la 267 o con fallo, no hay insignia.
+  const [sinVer, setSinVer] = useState<number | null>(null);
+  useEffect(() => {
+    if (!abierto || sinVer !== null) return;
+    let vivo = true;
+    void (async () => {
+      const cliente = createClient();
+      // La sesión local basta para saber quién es (sin viaje al servidor de auth); la RLS acota lo que se lee.
+      const user = (await cliente.auth.getSession()).data.session?.user ?? null;
+      if (!user) { if (vivo) setSinVer(0); return; }
+      const [lista, vistos] = await Promise.all([cliente.rpc("tutorials"), leeVistos(cliente as unknown as ClienteDeVistas, user.id)]);
+      if (!vivo) return;
+      setSinVer(lista.error || !vistos.ok ? 0 : cuentaSinVer((lista.data ?? []) as Tutorial[], vistos.vistos));
+    })();
+    return () => { vivo = false; };
+  }, [abierto, sinVer]);
+
   if (!sale) return null;
 
   const opciones = opcionesDelBotonGeneral({ adminReal: servidor.adminReal, switchHabilitado: servidor.habilitado, suplantando, ayudaAqui });
@@ -118,6 +140,14 @@ export function BotonGeneral() {
             <span aria-hidden>💬</span> {t("Chat", "Chat")}
             {sinLeer > 0 && <span className="chat-badge chat-badge-fila" data-sin-leer={sinLeer}>{sinLeer > 99 ? "99+" : sinLeer}</span>}
           </button>
+        );
+      case "tutoriales":
+        return (
+          <Link key={o} className="fab-opcion" data-opcion={o} role="menuitem" href={RUTA_TUTORIALES} onClick={cierra}
+            title={t("Training videos for your role", "Videos de capacitación para tu rol")}>
+            <span aria-hidden>🎬</span> {t("Tutorials", "Tutoriales")}
+            {(sinVer ?? 0) > 0 && <span className="chat-badge chat-badge-fila" data-tutoriales-sin-ver={sinVer}>{sinVer! > 99 ? "99+" : sinVer}</span>}
+          </Link>
         );
       case "usuario":
         // Dentro de una suplantación, saltar a otra persona (D-307): la lista la da el servidor con la regla del admin de
