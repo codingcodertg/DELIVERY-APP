@@ -76,7 +76,7 @@ describe("D-NEXT: el Recorrido nombra las órdenes por su factura", () => {
   });
   it("pulsar una orden abre su ficha en la misma pantalla", () => {
     expect(pagina).toContain('import { OrderModal } from "@/components/OrderModalLazy";');
-    expect(pagina).toContain("<OrderModal me={me} existing={ordenAbierta}");
+    expect(pagina).toContain("{ordenAbierta && <OrderModal me={me as Profile} existing={ordenAbierta}");
     expect(plan).toContain("abrirOrden?.(o.id)");
   });
   it("la ruta del plan trae la factura y el id de cada orden", () => {

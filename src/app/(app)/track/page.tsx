@@ -26,7 +26,7 @@ import { ApegoEnTarjeta, DetalleDelApego } from "@/components/PlanContraReal";
 import { EtiquetaDeOrden } from "@/components/EtiquetaDeOrden";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { etiquetaDeOrden, textoDeEtiqueta } from "@/lib/etiqueta-de-parada";
-import type { Delivery } from "@/lib/types";
+import type { Delivery, Profile } from "@/lib/types";
 
 // ============================================================
 // A driver's day, after the fact: where the truck went, how far, how long it
@@ -111,8 +111,9 @@ export default function TrackPage() {
   const porIdDeOrden = useMemo(() => new Map(deliveries.map((d) => [d.id, d])), [deliveries]);
   const abrirOrden = useMemo(() => (id: string | undefined) => {
     const d = id ? porIdDeOrden.get(id) : undefined;
-    return d ? () => setOrdenAbierta(d) : null;
-  }, [porIdDeOrden]);
+    // Sin perfil cargado no hay ficha que abrir (la ficha necesita `me`); la etiqueta queda como texto.
+    return d && me ? () => setOrdenAbierta(d) : null;
+  }, [porIdDeOrden, me]);
 
   // D-833: el día de CADA chofer (posiciones, turnos, cargas/entregas), se vea uno o todos. Se carga el día entero de
   // todos de una vez: así pasar de «todos» a uno no vuelve a leer nada.
@@ -714,7 +715,7 @@ export default function TrackPage() {
       )}
 
       {/* D-NEXT: la ficha de la orden pulsada, aquí mismo (nunca salta a otra app). */}
-      {ordenAbierta && me && <OrderModal me={me} existing={ordenAbierta} startEditing={false} onClose={() => setOrdenAbierta(null)} />}
+      {ordenAbierta && <OrderModal me={me as Profile} existing={ordenAbierta} startEditing={false} onClose={() => setOrdenAbierta(null)} />}
     </>
   );
 }
