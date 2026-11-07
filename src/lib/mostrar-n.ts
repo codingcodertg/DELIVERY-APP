@@ -1,6 +1,6 @@
 /**
  * Tamaños del selector «Mostrar 10 / 50 / 100 / Todos» de las tablas del hub (reemplaza al «Ver más»).
- * D-NEXT: «Todos» sustituye al 1000 (Roberto, 2026-11-07: «Instead of 1000 do All»): enseña cada fila que la persona
+ * D-918: «Todos» sustituye al 1000 (Roberto, 2026-11-07: «Instead of 1000 do All»): enseña cada fila que la persona
  * puede ver, sin tope. La lista ya se carga entera (el almacén pagina los cortes de 1.000 de PostgREST), así que «Todos»
  * solo deja de recortar lo pintado.
  */

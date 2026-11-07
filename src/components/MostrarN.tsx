@@ -17,7 +17,7 @@ export function useTamanoDeTabla(clave: string, porDefecto: TamanoDeTabla = 100)
   return [n, elegir];
 }
 
-/** Selector «Mostrar 10 / 50 / 100 / Todos» al pie de una tabla, con «N de M». D-NEXT: «Todos» en vez de 1000. */
+/** Selector «Mostrar 10 / 50 / 100 / Todos» al pie de una tabla, con «N de M». D-918: «Todos» en vez de 1000. */
 export function MostrarN({ valor, onCambio, total }: { valor: TamanoDeTabla; onCambio: (n: TamanoDeTabla) => void; total: number }) {
   const { t } = usePrefs();
   return (

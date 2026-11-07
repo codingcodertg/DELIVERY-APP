@@ -51048,3 +51048,9 @@ Sello `timetracker` 1.18.0; repo 1.770.0.
 En el asistente de merma y en «Agregar foto» ahora hay dos botones, «📷 Tomar la foto» y «🖼 Elegir de la galería», y si la foto no se puede abrir se dice por qué (vacía, HEIC de iPhone, etc.). En la app de Android (APK 8), si no se dio el permiso de cámara la app lo pide y, si se niega, avisa y abre la galería en vez de no hacer nada. Causa: Baudelio usa la app Android (APK 6) y, sin permiso de cámara, el cascarón devolvía nada sin avisar.
 
 Sello `warehouse_ops` 0.10.0; repo 1.771.0.
+
+## D-918 · Clientes: el selector «Mostrar» ofrece «Todos» en vez de 1000
+
+En la lista de Clientes, el cuarto tamaño del pie de tabla pasa de 1000 a «Todos», que enseña todos los clientes que la persona puede ver; la elección se recuerda como antes y quien tenía 1000 guardado pasa a «Todos». Pedido por Roberto (ayuda 5a2551cc, Customers → lista de clientes).
+
+Sello `customers` 0.59.0; repo 1.772.0.

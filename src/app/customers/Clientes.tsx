@@ -75,7 +75,7 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
   const [ordenes, setOrdenes] = useState<Orden[]>([...ORDENES_INICIALES]);
   const [filtrosCol, setFiltrosCol] = useState<FiltrosPorColumna>({});
   const [prefCols, setPrefCols] = useState<PreferenciaDeColumnas>(PREFERENCIA_INICIAL);
-  // «Mostrar 10/50/100/Todos» (sustituye al «Ver más»; D-NEXT: «Todos» en vez de 1000): orden y filtros van sobre la lista entera; esto solo recorta lo pintado.
+  // «Mostrar 10/50/100/Todos» (sustituye al «Ver más»; D-918: «Todos» en vez de 1000): orden y filtros van sobre la lista entera; esto solo recorta lo pintado.
   const [cuantos, setCuantos] = useTamanoDeTabla("clientes", TAMANO_INICIAL_DE_CLIENTES);
   const [ficha, setFicha] = useState<Ficha | null>(null);
   // D-779: la ventana «Asignar vendedores» por iniciales (D-684) se quitó: el dueño la pidió solo para la carga inicial.

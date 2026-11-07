@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { filasQueSePintan, TAMANOS_DE_TABLA, tamanoValido, TODOS } from "./mostrar-n";
 
 describe("mostrar-n", () => {
-  // D-NEXT: Roberto, 2026-11-07: «Instead of 1000 do All».
+  // D-918: Roberto, 2026-11-07: «Instead of 1000 do All».
   it("ofrece 10, 50, 100 y Todos (ya no 1000)", () => expect([...TAMANOS_DE_TABLA]).toEqual([10, 50, 100, "todos"]));
   it("acepta los válidos y cae al de por defecto", () => {
     expect(tamanoValido("50")).toBe(50);
