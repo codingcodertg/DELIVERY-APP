@@ -13,7 +13,8 @@ import { BotonContratar } from "./BotonContratar";
 import { hoyEnBrownsville, instanteDePared, paredDeInstante, sumarDias } from "@/lib/recruiting/hora-de-brownsville";
 import { avisoDeChoque, choquesDeHorario } from "@/lib/recruiting/choque-de-horario";
 import { contactoDelSeguimiento, ofreceSeguimiento, plantillaDeSeguimiento, prepararTextoDeSeguimiento, textoDeSeguimiento } from "@/lib/recruiting/texto-de-seguimiento";
-import { abrirSmsEnRingCentral, avisoTrasAbrir, navegadorReal } from "@/lib/recruiting/abrir-sms";
+import { abrirSmsEnRingCentral, avisoTrasAbrir, copiarAlPortapapeles, navegadorReal } from "@/lib/recruiting/abrir-sms";
+import { contactoDelEnvio, idiomaDelTexto, notaDelAlta, puedeGuardarYEnviar, textoPuedoLlamar } from "@/lib/recruiting/texto-puedo-llamar";
 import { stageOf, LOCATIONS, CALL_AGAIN_TAG, RECOMMENDATIONS, recommendationOf, RECRUITER_MAX_SCORE } from "@/lib/recruiting/constants";
 import type { Candidate, Contact, Interview, InterviewAnswer, RecruiterRecommendation } from "@/lib/recruiting/types";
 import {
@@ -431,12 +432,15 @@ const NEW_CANDIDATE_SOURCE = "Indeed";
 /** digits only, so "+504 9999-8888", "50499998888" and "9999 8888" compare alike */
 const phoneDigits = (p: string | null) => (p || "").replace(/[^0-9]/g, "");
 
+/** Qué pasa tras guardar al candidato nuevo: nada más, abrir la entrevista, o mandar el texto de «¿te puedo llamar?» (D-922). */
+type Despues = "none" | "interview" | "text";
+
 function NewCandidateModal({ close }: { close: () => void }) {
-  const { candidates, roles, stages, me, addCandidate, addContact, notify, uploadResume } = useData();
+  const { candidates, roles, stages, me, settings, addCandidate, addContact, notify, uploadResume } = useData();
   const { t, lang } = usePrefs();
   const ui = useUI();
   /** «Ya hay otra llamada tuya a esa hora» y con qué botón se guardaba, para repetirlo con «Sí, agendar» (D-632). */
-  const [aviso, setAviso] = useState<{ texto: string; thenInterview: boolean } | null>(null);
+  const [aviso, setAviso] = useState<{ texto: string; despues: Despues } | null>(null);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -499,18 +503,26 @@ function NewCandidateModal({ close }: { close: () => void }) {
     ui.openProfile(existingId);
   };
 
-  const save = async (thenInterview: boolean, forzar = false) => {
+  /** El texto de «¿te puedo llamar?» tal y como saldría ahora mismo, con lo escrito en el formulario (D-922). */
+  const textoDelAlta = () =>
+    textoPuedoLlamar({ name: name.trim(), role: role || null, phone: phone.trim() }, me?.full_name ?? "", idiomaDelTexto(language, lang), settings.sms_puedo_llamar);
+
+  const save = async (despues: Despues, forzar = false) => {
     if (saving) return;
     if (!name.trim() || !phone.trim()) {
       notify(t("Name and phone are required", "El nombre y el teléfono son obligatorios"));
       return;
     }
+    // D-922 «Guardar y enviar "¿te puedo llamar?"»: el texto se copia al portapapeles AQUÍ, dentro del clic y antes de
+    // cualquier `await` (el navegador solo deja copiar en el gesto); RingCentral se abre después de guardar, con el
+    // mismo enlace que el botón de la ficha. Sin dígitos en el teléfono, el botón ni se enciende (`puedeGuardarYEnviar`).
+    const sms = despues === "text" ? (() => { const texto = textoDelAlta(); return { texto, copia: copiarAlPortapapeles(texto, navegadorReal()) }; })() : null;
     // La llamada que se agenda al dar de alta: hora de Brownsville, y aviso si ya hay otra tuya a esa hora.
     const phoneIso = phoneDt ? instanteDePared(phoneDt)?.toISOString() ?? null : null;
     if (phoneDt && !phoneIso) { notify(t("Invalid date", "Fecha no válida")); return; }
     if (phoneIso && !forzar) {
       const choques = choquesDeHorario(candidates, { id: null, tipo: "llamada", iso: phoneIso, reclutador: me?.id ?? null, ahora: Date.now() }, terminalKeys(stages));
-      if (choques.length) { setAviso({ texto: avisoDeChoque(choques, "llamada", lang), thenInterview }); return; }
+      if (choques.length) { setAviso({ texto: avisoDeChoque(choques, "llamada", lang), despues }); return; }
     }
     setSaving(true);
     try {
@@ -550,9 +562,18 @@ function NewCandidateModal({ close }: { close: () => void }) {
       });
       if (created) setCreatedId(created.id); // so it can't flag itself as a duplicate
       if (created && resume) await uploadResume(created.id, resume, created.name);
-      notify(t("Candidate registered ✓", "Candidato registrado ✓"));
+      if (created && sms) {
+        // Mismo contacto que deja el botón de la ficha («SMS / sent · can I call?»), con la marca de que nació en el alta;
+        // luego se abre RingCentral con el texto y la ficha nueva queda abierta en su sitio con la línea en el historial.
+        await addContact(created.id, contactoDelEnvio(sms.texto, notaDelAlta(lang)));
+        notify(t("Candidate registered ✓ · ", "Candidato registrado ✓ · ") + avisoTrasAbrir(sms.copia, lang));
+        navegadorReal().abrir(rcSms(created.phone, sms.texto));
+      } else {
+        notify(t("Candidate registered ✓", "Candidato registrado ✓"));
+      }
       close();
-      if (created && thenInterview) ui.openInterview(created.id);
+      if (created && despues === "interview") ui.openInterview(created.id);
+      if (created && despues === "text") ui.openProfile(created.id);
     } finally {
       setSaving(false);
     }
@@ -735,15 +756,23 @@ function NewCandidateModal({ close }: { close: () => void }) {
         )}
 
         {aviso && (
-          <AvisoDeChoque texto={aviso.texto} onCancelar={() => setAviso(null)} onSi={() => { const seguir = aviso.thenInterview; setAviso(null); void save(seguir, true); }} />
+          <AvisoDeChoque texto={aviso.texto} onCancelar={() => setAviso(null)} onSi={() => { const seguir = aviso.despues; setAviso(null); void save(seguir, true); }} />
         )}
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
-          <button className="btn btn-primary" disabled={saving || !!blockingDup || !!aviso} onClick={() => save(false)}>
+          <button className="btn btn-primary" disabled={saving || !!blockingDup || !!aviso} onClick={() => save("none")}>
             {saving ? t("Saving…", "Guardando…") : t("Save candidate", "Guardar candidato")}
           </button>
-          <button className="btn btn-green" disabled={saving || !!blockingDup || !!aviso} onClick={() => save(true)}>
+          <button className="btn btn-green" disabled={saving || !!blockingDup || !!aviso} onClick={() => save("interview")}>
             🎤 {t("Save & start interview", "Guardar e iniciar entrevista")}
+          </button>
+          <button
+            className="btn btn-green"
+            disabled={!puedeGuardarYEnviar({ name, phone, saving, bloqueado: !!blockingDup, avisoPendiente: !!aviso })}
+            title={t("Saves the candidate and opens the text in RingCentral", "Guarda el candidato y abre el texto en RingCentral")}
+            onClick={() => save("text")}
+          >
+            📱 {t("Save & send “Can I call you?”", "Guardar y enviar «¿Te puedo llamar?»")}
           </button>
           <button className="btn btn-ghost" onClick={guardedClose}>{t("Cancel", "Cancelar")}</button>
         </div>

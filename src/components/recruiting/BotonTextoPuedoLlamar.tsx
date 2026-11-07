@@ -4,19 +4,20 @@ import { useState } from "react";
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { abrirSmsEnRingCentral, avisoTrasAbrir, navegadorReal } from "@/lib/recruiting/abrir-sms";
-import { contactoDelEnvio, estadoDelBoton, prepararTextoPuedoLlamar } from "@/lib/recruiting/texto-puedo-llamar";
+import { contactoDelEnvio, estadoDelBoton, idiomaDelTexto, prepararTextoPuedoLlamar } from "@/lib/recruiting/texto-puedo-llamar";
 import type { Candidate } from "@/lib/recruiting/types";
 
 /** «📱 Texto: ¿te puedo llamar?» — manda el texto por el mismo camino que el diálogo de entrevista
  * (enlace a RingCentral + contacto SMS) sin abrir el diálogo, y pasa a «SMS enviado ✓ hh:mm» (D-581). */
 export function BotonTextoPuedoLlamar({ c, className = "btn btn-ghost btn-sm" }: { c: Candidate; className?: string }) {
-  const { contactsFor, addContact, notify, me } = useData();
+  const { contactsFor, addContact, notify, me, settings } = useData();
   const { t, lang } = usePrefs();
   const [error, setError] = useState<string | null>(null);
   const estado = estadoDelBoton(contactsFor(c.id), c.id, lang);
 
   const enviar = async () => {
-    const r = prepararTextoPuedoLlamar(c, contactsFor(c.id), me?.full_name ?? "", lang);
+    // D-922: la plantilla de Ajustes (si la hay) y el idioma del candidato (si lo dijo en el prescreen), si no el de quien pulsa.
+    const r = prepararTextoPuedoLlamar(c, contactsFor(c.id), me?.full_name ?? "", idiomaDelTexto(c.prescreen?.language, lang), settings.sms_puedo_llamar);
     if (!r.ok) {
       setError(t("No phone number", "Sin número de teléfono"));
       return;

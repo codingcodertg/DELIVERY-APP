@@ -237,6 +237,10 @@ export function mergeTemplate(text: string, c: Candidate, recruiter: string): st
   return (text || "")
     .replace(/\{name\}/g, (c.name || "").split(" ")[0])
     .replace(/\{nombre\}/g, (c.name || "").split(" ")[0])
+    // D-922: alias de los de arriba, para las plantillas de «¿te puedo llamar?» editables en Ajustes.
+    .replace(/\{first_name\}/g, (c.name || "").split(" ")[0])
+    .replace(/\{position\}/g, c.role || "")
+    .replace(/\{puesto\}/g, c.role || "")
     .replace(/\{role\}/g, c.role || "")
     .replace(/\{rol\}/g, c.role || "")
     .replace(/\{recruiter\}/g, recruiter || "")

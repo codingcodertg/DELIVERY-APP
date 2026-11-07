@@ -7,8 +7,17 @@
 
 export type ResultadoDeAbrir = { copiado: boolean };
 
+type Navegador = { copiar?: (t: string) => Promise<void>; copiarAhora?: (t: string) => boolean; abrir: (url: string) => void };
+
 /** Copia `texto` al portapapeles (si el navegador deja) y abre `enlace`. Se llama DENTRO del clic, antes de cualquier `await`. */
-export function abrirSmsEnRingCentral(enlace: string, texto: string, nav: { copiar?: (t: string) => Promise<void>; copiarAhora?: (t: string) => boolean; abrir: (url: string) => void }): ResultadoDeAbrir {
+export function abrirSmsEnRingCentral(enlace: string, texto: string, nav: Navegador): ResultadoDeAbrir {
+  const r = copiarAlPortapapeles(texto, nav);
+  nav.abrir(enlace);
+  return r;
+}
+
+/** Solo la copia, sin abrir nada (D-922): para «Guardar y enviar», donde el clic copia y RingCentral se abre tras guardar. */
+export function copiarAlPortapapeles(texto: string, nav: Omit<Navegador, "abrir">): ResultadoDeAbrir {
   let copiado = false;
   // D-717: primero la copia SÍNCRONA (execCommand), que dice de verdad si copió y no depende del permiso del portapapeles;
   // la asíncrona va detrás por si la otra no existe. El dueño: «si ya estoy en el mismo chat … no se copia el mensaje»:
@@ -25,7 +34,6 @@ export function abrirSmsEnRingCentral(enlace: string, texto: string, nav: { copi
       /* la síncrona ya dijo lo suyo */
     }
   }
-  nav.abrir(enlace);
   return { copiado };
 }
 
