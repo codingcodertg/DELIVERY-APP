@@ -210,7 +210,7 @@ describe("la migración 267 y lo que la pantalla espera de ella", () => {
     expect(sql).toMatch(/coalesce\(p\.role, ''\) <> 'admin'/);
     // Nada de D-NEXT en el .sql: el checksum congela el cuerpo.
     expect(sql).not.toMatch(/D-NEXT/);
-    expect(sql).toMatch(/-- @ledger-below\ninsert into public\.schema_migrations \(name, checksum\) values \('267_tutorial_views\.sql', '[0-9a-f]{64}'\)/);
+    expect(sql).toMatch(/-- @ledger-below\r?\ninsert into public\.schema_migrations \(name, checksum\) values \('267_tutorial_views\.sql', '[0-9a-f]{64}'\)/);
   });
 
   it("el conflicto del upsert es la clave primaria de la tabla", () => {
