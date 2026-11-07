@@ -20,7 +20,7 @@ import {
 } from "@/components/CapturaDeAyuda";
 import { enviaSolicitudDeAyuda, pideContactoDeAyuda, rolDeQuienEscribe } from "@/lib/help-send";
 import { RUTA_MIS_SOLICITUDES } from "@/lib/help-thread";
-import { EVENTO_ABRIR_AYUDA } from "@/lib/boton-general";
+import { EVENTO_ABRIR_AYUDA, RUTA_TUTORIALES } from "@/lib/boton-general";
 
 /** Cuánto se ve el aviso de abajo (enviada, no se pudo…), como el de Entregas. */
 const DURACION_DEL_AVISO_MS = 4000;
@@ -347,9 +347,15 @@ export function HelpButton({ sinBurbuja = false }: { sinBurbuja?: boolean } = {}
               )}
             </div>
             {/* Las respuestas llegan a «Mis solicitudes», en el hub: la conversación vive allí (D-311). */}
-            <Link href={RUTA_MIS_SOLICITUDES} className="hint" style={{ display: "inline-block", marginTop: 10 }}>
-              💬 {t("My requests and replies", "Mis solicitudes y respuestas")}
-            </Link>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 10 }}>
+              <Link href={RUTA_MIS_SOLICITUDES} className="hint" style={{ display: "inline-block" }}>
+                💬 {t("My requests and replies", "Mis solicitudes y respuestas")}
+              </Link>
+              {/* D-913: los videos de capacitación, también desde aquí. */}
+              <Link href={RUTA_TUTORIALES} className="hint" data-ayuda-tutoriales style={{ display: "inline-block" }} onClick={close}>
+                🎬 {t("Tutorials", "Tutoriales")}
+              </Link>
+            </div>
             <div className="modal-actions">
               <button className="btn btn-ghost" onClick={close} disabled={busy}>{t("Cancel", "Cancelar")}</button>
               <button className="btn btn-primary" onClick={send} disabled={busy || !msg.trim()}>

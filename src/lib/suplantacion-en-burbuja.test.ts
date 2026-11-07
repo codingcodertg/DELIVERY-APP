@@ -81,17 +81,18 @@ describe("dónde sale y qué lleva", () => {
   });
 
   it("fuera de una suplantación, las opciones de siempre", () => {
-    expect(opcionesDelBotonGeneral({ adminReal: false, switchHabilitado: false })).toEqual(["ayuda", "chat", "ensenanza"]);
-    expect(opcionesDelBotonGeneral({ adminReal: true, switchHabilitado: true })).toEqual(["ayuda", "chat", "usuario", "movil", "ensenanza"]);
-    expect(opcionesDelBotonGeneral({ adminReal: true, switchHabilitado: false })).toEqual(["ayuda", "chat", "movil", "ensenanza"]);
+    // D-913: «Tutoriales» para todos, después del Chat.
+    expect(opcionesDelBotonGeneral({ adminReal: false, switchHabilitado: false })).toEqual(["ayuda", "chat", "tutoriales", "ensenanza"]);
+    expect(opcionesDelBotonGeneral({ adminReal: true, switchHabilitado: true })).toEqual(["ayuda", "chat", "tutoriales", "usuario", "movil", "ensenanza"]);
+    expect(opcionesDelBotonGeneral({ adminReal: true, switchHabilitado: false })).toEqual(["ayuda", "chat", "tutoriales", "movil", "ensenanza"]);
     // Con `suplantando: false` explícito, lo mismo.
     expect(opcionesDelBotonGeneral({ adminReal: true, switchHabilitado: true, suplantando: false, ayudaAqui: true }))
-      .toEqual(["ayuda", "chat", "usuario", "movil", "ensenanza"]);
+      .toEqual(["ayuda", "chat", "tutoriales", "usuario", "movil", "ensenanza"]);
   });
 
   it("dentro: siguen «Cambiar usuario» y «Vista móvil» aunque el servidor diga que no es admin real (lo que llevaba la franja)", () => {
     expect(opcionesDelBotonGeneral({ adminReal: false, switchHabilitado: false, suplantando: true, ayudaAqui: true }))
-      .toEqual(["ayuda", "chat", "usuario", "movil", "ensenanza"]);
+      .toEqual(["ayuda", "chat", "tutoriales", "usuario", "movil", "ensenanza"]);
   });
 
   it("dentro y en una pantalla sin Ayuda: solo las dos de la suplantación", () => {

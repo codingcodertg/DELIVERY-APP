@@ -191,3 +191,15 @@ export function editaTutorial(
   const editado: Tutorial = { ...actual, ...nuevo, added_by: actual.added_by, added_at: actual.added_at };
   return lista.map((t) => (t.id === id ? editado : t));
 }
+
+/** El nombre del grupo de un video, en el idioma de quien mira. Lo usan la pantalla y el aviso al entrar (D-913). */
+export function nombreDeApp(app: GrupoDeTutoriales["app"], t: (en: string, es: string) => string): string {
+  switch (app) {
+    case "deliveries": return t("Deliveries", "Entregas");
+    case "recruiting": return t("HR", "RR. HH.");
+    case "timetracker": return "Time Tracker";
+    case "clockin": return t("Clock-in", "Fichaje");
+    case "erp": return t("Inventory", "Inventario");
+    default: return "General";
+  }
+}

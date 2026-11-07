@@ -4,12 +4,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
-import { tutorialEmbed } from "@/lib/tutorials";
 import {
-  agrupaTutoriales, APPS_DE_TUTORIAL, cambiaApp, editaTutorial, guardaTutoriales, nuevoTutorial,
+  agrupaTutoriales, APPS_DE_TUTORIAL, cambiaApp, editaTutorial, guardaTutoriales, nombreDeApp, nuevoTutorial,
   rolesDesconocidos, rolesParaApp, soloLoVeElAdmin, vocabularioDe,
-  type ClienteDeAjustes, type GrupoDeTutoriales,
+  type ClienteDeAjustes,
 } from "@/lib/tutorials-hub";
+import {
+  leeEstadisticas, leeVistos, marcaVisto, textoDeEstadistica,
+  type ClienteDeVistas, type EstadisticaDeTutorial,
+} from "@/lib/tutorial-views";
+import { ReproductorDeTutorial } from "@/components/tutorials/ReproductorDeTutorial";
 import type { Tutorial, TutorialApp } from "@/lib/types";
 
 /**
@@ -21,6 +25,10 @@ import type { Tutorial, TutorialApp } from "@/lib/types";
  * app desde la 115): a esta pantalla solo le llegan los que quien mira puede ver.
  *
  * Compacta desde D-270: una fila por video, con el reproductor plegado; solo uno abierto a la vez.
+ *
+ * Desde D-913 cada video lleva su estado para quien mira —«Nuevo» si no lo ha visto, «✓ Visto» si sí— leído de
+ * `tutorial_views` (267), y el admin ve además cuántos de su público lo vieron («3 / 12», `tutorial_view_stats`).
+ * Sin la 267 no sale ninguna etiqueta ni conteo: la pantalla es la de antes.
  */
 
 type Entrada = { title: string; url: string; description: string; app: TutorialApp | "general"; roles: string[] };
@@ -33,6 +41,10 @@ export function TutorialsHub({ yo, puedeGestionar }: { yo: string | null; puedeG
   const [abierto, setAbierto] = useState<string | null>(null);
   const [editando, setEditando] = useState<string | null>(null);
   const [anadiendo, setAnadiendo] = useState(false);
+  // D-913: lo que esta persona vio (`null` = la base no lo dijo: sin etiquetas) y el conteo del admin.
+  const [vistos, setVistos] = useState<Set<string> | null>(null);
+  const [marcando, setMarcando] = useState<string | null>(null);
+  const [estadisticas, setEstadisticas] = useState<Map<string, EstadisticaDeTutorial> | null>(null);
 
   const cargar = useCallback(async () => {
     const { data, error: e } = await createClient().rpc("tutorials");
@@ -44,18 +56,35 @@ export function TutorialsHub({ yo, puedeGestionar }: { yo: string | null; puedeG
 
   useEffect(() => { void cargar(); }, [cargar]);
 
+  const cargarVistos = useCallback(async () => {
+    if (!yo) return;
+    const cliente = createClient() as unknown as ClienteDeVistas;
+    const [v, e] = await Promise.all([leeVistos(cliente, yo), puedeGestionar ? leeEstadisticas(cliente) : Promise.resolve(null)]);
+    setVistos(v.ok ? v.vistos : null);
+    setEstadisticas(e);
+  }, [yo, puedeGestionar]);
+
+  useEffect(() => { void cargarVistos(); }, [cargarVistos]);
+
+  const marcarVisto = async (id: string) => {
+    if (!yo) return;
+    setMarcando(id);
+    const r = await marcaVisto(createClient() as unknown as ClienteDeVistas, yo, id, new Date());
+    setMarcando(null);
+    if (!r.ok) {
+      setError(r.motivo === "ensenanza"
+        ? t("In teaching mode nothing is saved.", "En modo enseñanza no se guarda nada.")
+        : t("Could not save. Try again.", "No se pudo guardar. Inténtalo otra vez."));
+      return;
+    }
+    setError(null);
+    setVistos((prev) => { const n = new Set(prev ?? []); n.add(id); return n; });
+    if (puedeGestionar) void cargarVistos();
+  };
+
   const grupos = useMemo(() => agrupaTutoriales(lista ?? [], busca), [lista, busca]);
 
-  const nombreApp = (app: GrupoDeTutoriales["app"]) => {
-    switch (app) {
-      case "deliveries": return t("Deliveries", "Entregas");
-      case "recruiting": return t("HR", "RR. HH.");
-      case "timetracker": return "Time Tracker";
-      case "clockin": return t("Clock-in", "Fichaje");
-      case "erp": return t("Inventory", "Inventario");
-      default: return "General";
-    }
-  };
+  const nombreApp = (app: Parameters<typeof nombreDeApp>[0]) => nombreDeApp(app, t);
 
   const guardar = async (cambio: (actual: Tutorial[]) => Tutorial[]) => {
     const r = await guardaTutoriales(createClient() as unknown as ClienteDeAjustes, cambio);
@@ -146,6 +175,10 @@ export function TutorialsHub({ yo, puedeGestionar }: { yo: string | null; puedeG
                   tut={tut}
                   abierto={abierto === tut.id}
                   onAlternar={() => setAbierto((a) => (a === tut.id ? null : tut.id))}
+                  visto={vistos ? vistos.has(tut.id) : null}
+                  onVisto={yo && vistos ? () => marcarVisto(tut.id) : undefined}
+                  marcando={marcando === tut.id}
+                  estadistica={estadisticas?.get(tut.id)}
                   gestion={puedeGestionar ? { onEditar: () => { setEditando(tut.id); setAbierto(null); }, onQuitar: () => quitar(tut.id) } : undefined}
                 />
               ),
@@ -250,11 +283,17 @@ function FormularioTutorial({ inicial, onGuardar, onCancelar }: {
   );
 }
 
-/** Una fila: título y para quién. El reproductor se abre al tocar. */
-function FilaTutorial({ tut, abierto, onAlternar, gestion }: {
+/** Una fila: título, para quién, y si quien mira ya lo vio («Nuevo» / «✓ Visto», D-913). El reproductor se abre al tocar. */
+function FilaTutorial({ tut, abierto, onAlternar, visto, onVisto, marcando = false, estadistica, gestion }: {
   tut: Tutorial;
   abierto: boolean;
   onAlternar: () => void;
+  /** `null` = la base no dijo nada (sin la 267): sin etiqueta. */
+  visto: boolean | null;
+  onVisto?: () => void | Promise<void>;
+  marcando?: boolean;
+  /** Solo al admin: cuántos de su público lo vieron. */
+  estadistica?: EstadisticaDeTutorial;
   gestion?: { onEditar: () => void; onQuitar: () => void };
 }) {
   const { t, lang } = usePrefs();
@@ -273,6 +312,8 @@ function FilaTutorial({ tut, abierto, onAlternar, gestion }: {
         >
           <span>{abierto ? "▾" : "▸"}</span>
           <b style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tut.title}</b>
+          {visto === false && <span className="hub-tool-badge" data-tutorial-estado="nuevo" style={{ marginLeft: 0 }}>{t("New", "Nuevo")}</span>}
+          {visto === true && <span className="hint" data-tutorial-estado="visto" style={{ fontWeight: 700, color: "var(--green, #1a7f4b)", whiteSpace: "nowrap" }}>✓ {t("Watched", "Visto")}</span>}
           {suyos.length > 0 && (
             <span className="hint" style={{ fontWeight: 400, whiteSpace: "nowrap" }}>
               · {suyos.map((r) => vocabulario.etiqueta(r, lang).split(" — ")[0]).join(", ")}
@@ -281,6 +322,11 @@ function FilaTutorial({ tut, abierto, onAlternar, gestion }: {
         </button>
         {gestion && (
           <>
+            {estadistica && (
+              <span className="hint" data-tutorial-conteo title={t("How many of its audience have watched it", "Cuántos de su público lo han visto")} style={{ whiteSpace: "nowrap" }}>
+                👁 {textoDeEstadistica(estadistica)}
+              </span>
+            )}
             <button className="btn btn-ghost btn-sm" onClick={gestion.onEditar}>{t("Edit", "Editar")}</button>
             <button className="btn btn-ghost btn-sm" title={t("Remove", "Quitar")} onClick={gestion.onQuitar}>✕</button>
           </>
@@ -295,33 +341,7 @@ function FilaTutorial({ tut, abierto, onAlternar, gestion }: {
           {t("Edit and save to remove them.", "Edítalo y guarda para quitarlos.")}
         </div>
       )}
-      {abierto && <Reproductor tut={tut} />}
-    </div>
-  );
-}
-
-/** El video, con un ancho máximo razonable. */
-function Reproductor({ tut }: { tut: Tutorial }) {
-  const { t } = usePrefs();
-  const em = tutorialEmbed(tut.url);
-  return (
-    <div style={{ padding: "6px 8px 4px", maxWidth: 560 }}>
-      {tut.description && <div className="hint" style={{ marginBottom: 6 }}>{tut.description}</div>}
-      {em.kind === "iframe" ? (
-        <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: 10, overflow: "hidden", background: "#000" }}>
-          <iframe
-            src={em.src}
-            title={tut.title}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
-          />
-        </div>
-      ) : em.kind === "file" ? (
-        <video src={em.src} controls style={{ width: "100%", borderRadius: 10, background: "#000" }} />
-      ) : (
-        <a className="btn btn-ghost btn-sm" href={em.src} target="_blank" rel="noopener noreferrer">▶ {t("Open video", "Abrir video")}</a>
-      )}
+      {abierto && <ReproductorDeTutorial tut={tut} visto={visto === true} onVisto={onVisto} ocupado={marcando} />}
     </div>
   );
 }

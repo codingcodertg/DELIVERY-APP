@@ -68,13 +68,16 @@ export const RPC_QUE_SOLO_LEEN = [
   "leads_my_scope", "list_cycle_counts", "list_purchase_orders", "my_point_balance", "my_published_stops",
   "negative_balances", "phone_book", "po_receiving_detail", "product_vocabulary", "purchasing_groups", "reconcile_po",
   "pasos_del_relevo", "reorder_report", "review_tag_facets", "rutas_del_dia", "security_gate", "session_gate", "store_names", "suggest_po_line_matches",
+  "mis_tiendas_de_clientes", // 250 (D-886): las tiendas en las que busca el no admin de Clientes; stable, solo lee.
   "tutorials",
+  "tutorial_view_stats", // 267 (D-913): para el admin, cuántos vieron cada tutorial; stable, solo lee.
 ] as const;
 
 /** Las que escriben: se cortan. Están nombradas solo para que la prueba sepa que alguien las miró. */
 export const RPC_QUE_ESCRIBEN = [
   "warehouse_ops_file_report", // 247 (D-883): crea un reporte de Operaciones de almacén y, en los de RR. HH., su fila del expediente.
   "warehouse_ops_edit_scrap_product", // 252: el gerente vincula o corrige el producto de una merma fuera de catálogo.
+  "warehouse_ops_edit_scrap_origin", // 263: el gerente corrige el origen (CRMA / nota) de una merma.
   "security_touch_device", "security_request_access", // 229 (D-811): registran el dispositivo de la sesión y su solicitud.
   "security_note_web_block", // 232 (D-818): anota que a esta sesión se le cerró la web.
   "security_sign_out_user", // 236 (D-828): cierra todas las sesiones de una persona.
