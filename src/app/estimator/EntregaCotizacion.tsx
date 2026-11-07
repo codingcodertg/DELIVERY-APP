@@ -4,6 +4,8 @@ import { useState } from "react";
 import { AddressInput } from "@/components/AddressInput";
 import { MapView } from "@/components/MapView";
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
+import { AvisoNoLocal, PastillaDeZona } from "@/components/ZonaDeLaEntrega";
+import { zonaDecidida } from "@/lib/zona-decidida";
 import { CampoDecimal } from "@/components/CampoDecimal";
 import { LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
@@ -46,12 +48,8 @@ export function EntregaCotizacion({ entrega, onEntrega, ajustes, admin, t }: {
   const tarifa = tarifaDeLaCotizacion(entrega, ajustes);
   const pin: [number, number] | null = entrega.lat != null && entrega.lng != null ? [entrega.lat, entrega.lng] : null;
 
-  // De dónde sale la zona, como en la ficha: un «No local» sin motivo no distingue «sin pin» de «lejos de verdad».
-  const porQue = tarifa.zoneSource === "pin"
-    ? t("from the map pin", "por el pin del mapa")
-    : tarifa.zoneSource === "city"
-      ? t(`from the address city (${tarifa.city || "not recognized"}) — no pin`, `por la ciudad de la dirección (${tarifa.city || "no reconocida"}) — sin pin`)
-      : "";
+  // La zona, decidida UNA vez para la pastilla y el aviso, con el mismo motivo que la ficha (D-920, `zona-decidida.ts`).
+  const zona = zonaDecidida(tarifa, entrega.miles, t, pin ? (entrega.pin_source === "manual" ? "manual" : "geocoded") : null);
 
   /** Soltar el pin (clic derecho) lo pone y rellena la dirección con la del punto, como `dropPin` de la ficha. */
   const soltarPin = async (lat: number, lng: number) => {
@@ -155,11 +153,10 @@ export function EntregaCotizacion({ entrega, onEntrega, ajustes, admin, t }: {
         </div>
         {errorRuta && <div className="hint" style={{ color: "var(--red)" }} data-error-ruta>{errorRuta}</div>}
         {entrega.address.trim() && (
-          <div className="est-acciones" style={{ marginTop: 8 }} data-zona={tarifa.zone}>
-            <span className="sema" style={{ background: tarifa.zone === "local" ? "var(--green)" : "var(--red)", color: "#fff" }}>
-              {tarifa.zone === "local" ? t("LOCAL", "LOCAL") : t("NOT LOCAL", "NO LOCAL")}
-            </span>
-            {porQue && <span className="hint" style={{ margin: 0, opacity: 0.85 }}>{porQue}</span>}
+          <div style={{ marginTop: 8 }}>
+            <PastillaDeZona zona={zona} t={t}>
+              {zona.why && <span className="hint" style={{ margin: 0, opacity: 0.85 }}>{zona.why}</span>}
+            </PastillaDeZona>
           </div>
         )}
         {hayPrecio ? (
@@ -182,11 +179,7 @@ export function EntregaCotizacion({ entrega, onEntrega, ajustes, admin, t }: {
           <div className="hint" style={{ marginTop: 6 }}>{t("Calculate the route to price this delivery by miles.", "Calcula la ruta para cotizar esta entrega por millas.")}</div>
         ) : null}
         {admin && tarifa.breakdown && <FeeBreakdownDetails desglose={tarifa.breakdown} />}
-        {tarifa.needsApproval && entrega.address.trim() && (
-          <div className="hint" style={{ color: "var(--amber)", fontWeight: 600, marginTop: 6 }} data-no-local>
-            ⚠ {t("Not local — requires manager approval.", "No local — requiere aprobación del gerente.")}
-          </div>
-        )}
+        {entrega.address.trim() && <AvisoNoLocal zona={zona} t={t} />}
         {tarifa.sameDay && (
           <div className="hint" style={{ color: "var(--amber)", fontWeight: 600, marginTop: 6 }}>
             ⚡ {t(`Same-day delivery — includes ${fmtMoney(tarifa.sameDaySurcharge)} surcharge.`, `Entrega mismo día — incluye recargo de ${fmtMoney(tarifa.sameDaySurcharge)}.`)}

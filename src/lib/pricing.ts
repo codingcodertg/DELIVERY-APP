@@ -32,6 +32,8 @@ export const LOCAL_CITIES_DEFAULT = [
   // Los pueblos de la frontera (D-690): «haz ese boundary en la mera frontera». Solo valen como
   // defecto: si Ajustes ya tiene su propia lista, manda la de Ajustes.
   "Hidalgo", "Granjeno", "Progreso", "Los Indios",
+  // Peñitas también está en el río y es un vértice del polígono (D-690); sin pin, «Penitas» salía NO LOCAL (D-920).
+  "Peñitas",
 ];
 
 export function localCities(s?: Partial<Settings> | null): string[] {
@@ -39,11 +41,14 @@ export function localCities(s?: Partial<Settings> | null): string[] {
   return c && c.length ? c : LOCAL_CITIES_DEFAULT;
 }
 
-/** True when `city` is one of the configured local-zone cities (case-insensitive). */
+/** Sin mayúsculas ni acentos: «Peñitas», «Penitas» y «PENITAS» son la misma ciudad (D-920). */
+const claveDeCiudad = (c: string) => c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+
+/** True when `city` is one of the configured local-zone cities (case- and accent-insensitive). */
 export function isLocalCity(city: string, s?: Partial<Settings> | null): boolean {
-  const needle = (city || "").trim().toLowerCase();
+  const needle = claveDeCiudad(city || "");
   if (!needle) return false;
-  return localCities(s).some((c) => c.trim().toLowerCase() === needle);
+  return localCities(s).some((c) => claveDeCiudad(c) === needle);
 }
 
 /**
@@ -290,7 +295,8 @@ export interface FeeSuggestion {
    * tramos**: tiene su propia fila de bases. Antes coincidía con la lista en tres de los cuatro.
    */
   discount: number | null;
-  /** NOT-LOCAL deliveries need manager approval before the price is committed. */
+  /** NOT-LOCAL deliveries need manager approval before the price is committed. Siempre `zone === "nonlocal"`, ni más ni
+   *  menos (D-920): la pastilla y el aviso salen de la misma decisión (`zona-decidida.ts`). Las millas no la cambian. */
   needsApproval: boolean;
   /** The order is for same-day delivery and a surcharge applies. */
   sameDay: boolean;

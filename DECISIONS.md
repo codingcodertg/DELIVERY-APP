@@ -51060,3 +51060,9 @@ Sello `customers` 0.59.0; repo 1.772.0.
 En Warehouse Ops → Nuevo reporte → Merma, «Transporte» ahora distingue si la pieza se dañó mientras la transportaba el cliente o en la entrega de la tienda. El CRMA sale justo después de «¿De dónde viene?», los comentarios justo después del motivo, y la fecha del daño, quién lo rompió y quién lo reportó van en una sola pantalla (de 10 pasos a 7–8). Arriba de «Revisa y envía» aparece el recordatorio de la política: el material no se desecha sin fotos, evidencia guardada y autorización de Gerencia desde la app. Cinco pedidos de Roberto del 7 de noviembre (migración 269).
 
 Sello `warehouse_ops` 0.11.0; repo 1.773.0.
+
+## D-920 · Entregas: la zona LOCAL / NO LOCAL y su aviso salen de una sola decisión
+
+La pastilla LOCAL / NO LOCAL de la ficha y del cotizador y el aviso «No local — requiere aprobación» leen ahora la misma decisión, con el mismo motivo (pin, o ciudad sin pin), así que no pueden contradecirse; la ciudad se lee de la dirección como ya hacía D-690 (nunca «TX» ni el ZIP). Además «Peñitas» cuenta como local sin pin, con o sin acento, igual que el resto de los pueblos del río. Cierra la ayuda de Francisca Reyes del 26 de octubre.
+
+Sello `deliveries` 1.564.0; repo 1.774.0.
