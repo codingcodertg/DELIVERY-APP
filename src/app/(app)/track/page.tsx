@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { MapView, type LiveDriver, type MapLine, type MapPoint } from "@/components/MapView";
 import { NOTA_TURNO_AUTOMATICO } from "@/lib/turno-automatico";
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
-import { orderLabel, retentionFloorISO, seesAllHistory, todayISO, shiftDateISO, fmtDateShort } from "@/lib/utils";
+import { retentionFloorISO, seesAllHistory, todayISO, shiftDateISO, fmtDateShort } from "@/lib/utils";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 import { nameStop, summarizeTrack, type Fix, type TrackSummary } from "@/lib/track-history";
 import { PausasDelDia } from "@/components/PausasDelDia";
@@ -23,6 +23,10 @@ import { eligeRecorrido, textoDelConteo, type RecorridoElegido } from "@/lib/tra
 import { leeRecorridoDelTelefono } from "@/lib/recorrido-del-telefono";
 import { useApegoALaRuta } from "@/lib/apego-a-la-ruta/useApegoALaRuta";
 import { ApegoEnTarjeta, DetalleDelApego } from "@/components/PlanContraReal";
+import { EtiquetaDeOrden } from "@/components/EtiquetaDeOrden";
+import { OrderModal } from "@/components/OrderModalLazy";
+import { etiquetaDeOrden, textoDeEtiqueta } from "@/lib/etiqueta-de-parada";
+import type { Delivery } from "@/lib/types";
 
 // ============================================================
 // A driver's day, after the fact: where the truck went, how far, how long it
@@ -37,6 +41,10 @@ import { ApegoEnTarjeta, DetalleDelApego } from "@/components/PlanContraReal";
 // cargas y entregas); el mapa con TODOS los recorridos del día y los camiones en vivo; se pulsa una tarjeta para ver
 // a uno solo con su detalle y su reproducción. El dueño: «el mismo view de route manager: están los 3 conductores y
 // yo le doy click para verlos y ver la ruta que hizo, y poder verlos live».
+//
+// D-NEXT: aquí las órdenes se NOMBRAN por su número de factura (`invoice_num`), no por el código FW171 (Roberto,
+// logística: «Replace ID numbers with invoice numbers in the actual pickups and deliveries list»). Sin factura, el código
+// en gris como suplente. El Panel no cambia. Pulsar una orden abre su ficha aquí mismo (`etiqueta-de-parada.ts`).
 // ============================================================
 
 /** How many days back the quick-pick strip reaches. */
@@ -98,6 +106,13 @@ export default function TrackPage() {
   // servidor). Hoy se vuelve a leer cada 3 minutos, detrás del rastro.
   const apego = useApegoALaRuta(fecha, !!me);
   const [mostrarPlan, setMostrarPlan] = useState(true);
+  // D-NEXT: la ficha de la orden que se pulsó (lista de cargas y entregas, paradas del plan, entregadas ese día).
+  const [ordenAbierta, setOrdenAbierta] = useState<Delivery | null>(null);
+  const porIdDeOrden = useMemo(() => new Map(deliveries.map((d) => [d.id, d])), [deliveries]);
+  const abrirOrden = useMemo(() => (id: string | undefined) => {
+    const d = id ? porIdDeOrden.get(id) : undefined;
+    return d ? () => setOrdenAbierta(d) : null;
+  }, [porIdDeOrden]);
 
   // D-833: el día de CADA chofer (posiciones, turnos, cargas/entregas), se vea uno o todos. Se carga el día entero de
   // todos de una vez: así pasar de «todos» a uno no vuelve a leer nada.
@@ -250,11 +265,12 @@ export default function TrackPage() {
     }
     for (const d of deliveries) {
       if (d.delivery_lat != null && d.delivery_lng != null) {
-        out.push({ label: `#${orderLabel(d)}${d.account ? ` · ${d.account}` : ""}`, lat: d.delivery_lat, lng: d.delivery_lng });
+        // D-NEXT: la parada se nombra por la factura; sin ella, «#FW171 (sin factura)».
+        out.push({ label: `${textoDeEtiqueta(etiquetaDeOrden(d), t)}${d.account ? ` · ${d.account}` : ""}`, lat: d.delivery_lat, lng: d.delivery_lng });
       }
     }
     return out;
-  }, [settings.stores, deliveries]);
+  }, [settings.stores, deliveries, t]);
 
   const storeMarkers = useStoreMarkers(settings.stores);
 
@@ -283,7 +299,7 @@ export default function TrackPage() {
       const c = color(nameById.get(id) ?? "");
       return a.paradas.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)).map((p) => ({
         id: `${id}:plan${p.puesto}`, lat: p.lat, lng: p.lng, color: c, badge: String(p.puesto), dimmed: true,
-        label: `${t("Planned stop", "Parada del plan")} ${p.puesto}${unSolo ? "" : ` · ${a.chofer}`} · ${p.lugar} · ${p.ordenes.map((o) => o.codigo).join(", ")} · ${p.enOrden ? t("in order", "en orden") : p.visitada ? t("out of order", "fuera de orden") : t("not visited", "no visitada")}`,
+        label: `${t("Planned stop", "Parada del plan")} ${p.puesto}${unSolo ? "" : ` · ${a.chofer}`} · ${p.lugar} · ${p.ordenes.map((o) => textoDeEtiqueta(etiquetaDeOrden(o), t)).join(", ")} · ${p.enOrden ? t("in order", "en orden") : p.visitada ? t("out of order", "fuera de orden") : t("not visited", "no visitada")}`,
       }));
     });
   }, [mostrarPlan, idsVisibles, apego.porChofer, color, nameById, unSolo, t]);
@@ -308,10 +324,11 @@ export default function TrackPage() {
   // D-832: cargas y entregas que el chofer marcó, con la orden a la que pertenecen (si sigue cargada en pantalla).
   const hitosConOrden = useMemo(() => hitos.map((h) => {
     const d = deliveries.find((x) => x.id === h.delivery_id);
-    const etiqueta = d ? `#${orderLabel(d)}${d.account ? ` · ${d.account}` : ""}` : t("order", "orden");
+    // D-NEXT: la factura, no el código (el código queda en el título y en la ficha).
+    const etiqueta = d ? `${textoDeEtiqueta(etiquetaDeOrden(d), t)}${d.account ? ` · ${d.account}` : ""}` : t("order", "orden");
     const suyas = recorridos[h.driver_id]?.fixes ?? [];
     const fix = suyas.length ? suyas.reduce((mejor, f) => Math.abs(new Date(f.at).getTime() - new Date(h.at).getTime()) < Math.abs(new Date(mejor.at).getTime() - new Date(h.at).getTime()) ? f : mejor) : null;
-    return { ...h, chofer: nameById.get(h.driver_id) ?? "", etiqueta, direccion: d?.delivery_address ?? null, lat: d?.delivery_lat ?? fix?.lat ?? null, lng: d?.delivery_lng ?? fix?.lng ?? null };
+    return { ...h, orden: d ?? null, chofer: nameById.get(h.driver_id) ?? "", etiqueta, direccion: d?.delivery_address ?? null, lat: d?.delivery_lat ?? fix?.lat ?? null, lng: d?.delivery_lng ?? fix?.lng ?? null };
   }), [hitos, deliveries, recorridos, nameById, t]);
   const puntosDeHitos: MapPoint[] = useMemo(() => hitosConOrden.filter((h) => h.lat != null && h.lng != null).map((h) => ({
     id: `hito${h.id}`, lat: h.lat as number, lng: h.lng as number,
@@ -521,7 +538,7 @@ export default function TrackPage() {
       {/* D-910: plan contra real, con el detalle parada a parada. */}
       {unSolo && (
         <DetalleDelApego apego={apego.porChofer.get(driverId)} listo={apego.listo} esHoy={esHoy} color={color(driverName)}
-          mostrarPlan={mostrarPlan} onMostrarPlan={setMostrarPlan} />
+          mostrarPlan={mostrarPlan} onMostrarPlan={setMostrarPlan} abrirOrden={abrirOrden} />
       )}
 
       {/* D-832: el turno del día (D-831): de la primera carga a la última entrega. */}
@@ -606,14 +623,19 @@ export default function TrackPage() {
         ) : (
           <div className="tbl-scroll">
             <table className="orders">
-              <thead><tr><th>{t("Time", "Hora")}</th>{!unSolo && <th>{t("Driver", "Chofer")}</th>}<th>{t("What", "Qué")}</th><th>{t("Order", "Orden")}</th><th>{t("Address", "Dirección")}</th></tr></thead>
+              <thead><tr><th>{t("Time", "Hora")}</th>{!unSolo && <th>{t("Driver", "Chofer")}</th>}<th>{t("What", "Qué")}</th><th>{t("Invoice", "Factura")}</th><th>{t("Address", "Dirección")}</th></tr></thead>
               <tbody>
                 {hitosConOrden.map((h) => (
                   <tr key={h.id}>
                     <td style={{ fontVariantNumeric: "tabular-nums" }}>{clock(h.at, lang)}</td>
                     {!unSolo && <td><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: color(h.chofer), marginRight: 6 }} />{h.chofer}</td>}
                     <td>{h.kind === "delivered" ? <b style={{ color: "var(--green)" }}>✓ {t("Delivered", "Entregada")}</b> : <b style={{ color: "var(--accent)" }}>▲ {t("Picked up", "Cargada")}</b>}</td>
-                    <td className="ordno">{h.etiqueta}</td>
+                    {/* D-NEXT: factura (o código en gris) y, aparte, la cuenta. Pulsar abre la ficha de la orden. */}
+                    <td className="ordno">
+                      {h.orden
+                        ? <><EtiquetaDeOrden orden={h.orden} onAbrir={abrirOrden(h.orden.id)} />{h.orden.account && <span className="hint" style={{ marginTop: 0, display: "inline", marginLeft: 6, fontWeight: 400 }}>· {h.orden.account}</span>}</>
+                        : <span className="hint" style={{ marginTop: 0 }}>{h.etiqueta}</span>}
+                    </td>
                     <td>{h.direccion ?? "—"}</td>
                   </tr>
                 ))}
@@ -673,12 +695,12 @@ export default function TrackPage() {
             <div className="tbl-scroll">
               <table className="orders">
                 <thead>
-                  <tr><th>#</th><th>{t("Account", "Cuenta")}</th><th>{t("Address", "Dirección")}</th><th>{t("Delivered", "Entregada")}</th></tr>
+                  <tr><th>{t("Invoice", "Factura")}</th><th>{t("Account", "Cuenta")}</th><th>{t("Address", "Dirección")}</th><th>{t("Delivered", "Entregada")}</th></tr>
                 </thead>
                 <tbody>
                   {done.map((d) => (
                     <tr key={d.id}>
-                      <td className="ordno">#{orderLabel(d)}</td>
+                      <td className="ordno"><EtiquetaDeOrden orden={d} onAbrir={abrirOrden(d.id)} /></td>
                       <td>{d.account || "—"}</td>
                       <td>{d.delivery_address || "—"}</td>
                       <td>{clock(d.pod_delivered_at, lang)}</td>
@@ -690,6 +712,9 @@ export default function TrackPage() {
           )}
         </div>
       )}
+
+      {/* D-NEXT: la ficha de la orden pulsada, aquí mismo (nunca salta a otra app). */}
+      {ordenAbierta && me && <OrderModal me={me} existing={ordenAbierta} startEditing={false} onClose={() => setOrdenAbierta(null)} />}
     </>
   );
 }

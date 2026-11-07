@@ -30,7 +30,7 @@ const TROZO = 150;
 const trozos = <T,>(xs: readonly T[], n: number): T[][] => Array.from({ length: Math.ceil(xs.length / n) }, (_, i) => xs.slice(i * n, i * n + n));
 const sumaDias = (fecha: string, n: number) => new Date(Date.parse(`${fecha}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 
-export const COLUMNAS_DE_ENTREGAS = "id, order_code, order_type, store, account, pickup_name, delivery_name, assigned_driver, delivery_date, stage, route_seq, delivery_windows, pickup_duration, delivery_duration, delivery_lat, delivery_lng, pickup_point_lat, pickup_point_lng, pickup_lat, pickup_lng, pod_lat, pod_lng, pickup_gps_at, pod_delivered_at, is_training";
+export const COLUMNAS_DE_ENTREGAS = "id, order_code, invoice_num, order_type, store, account, pickup_name, delivery_name, assigned_driver, delivery_date, stage, route_seq, delivery_windows, pickup_duration, delivery_duration, delivery_lat, delivery_lng, pickup_point_lat, pickup_point_lng, pickup_lat, pickup_lng, pod_lat, pod_lng, pickup_gps_at, pod_delivered_at, is_training";
 
 export type Chofer = { id: string; full_name: string };
 export type Tienda = { name: string; lat: number; lng: number };

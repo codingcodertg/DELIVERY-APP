@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { usePrefs } from "@/lib/prefs";
 import type { ApegoDelChofer } from "@/lib/apego-a-la-ruta/apego";
+import { EtiquetaDeOrden } from "@/components/EtiquetaDeOrden";
 
 // ============================================================
 // «Plan contra real» (D-910): lo que el Recorrido enseña de la ruta programada contra lo que el chofer hizo.
@@ -119,9 +120,11 @@ export function ApegoEnTarjeta({ apego, listo, esHoy }: { apego: ApegoDelChofer 
 }
 
 /** El detalle cuando se mira a un solo chofer: barras, paradas del plan en su orden, y las definiciones. */
-export function DetalleDelApego({ apego, listo, esHoy, color, mostrarPlan, onMostrarPlan }: {
+export function DetalleDelApego({ apego, listo, esHoy, color, mostrarPlan, onMostrarPlan, abrirOrden }: {
   apego: ApegoDelChofer | undefined; listo: boolean; esHoy: boolean; color: string;
   mostrarPlan: boolean; onMostrarPlan: (v: boolean) => void;
+  /** D-NEXT: abrir la ficha de una orden (por su id) en su sitio. Si devuelve `null`, esa orden no está cargada y no se puede abrir. */
+  abrirOrden?: (id: string | undefined) => (() => void) | null;
 }) {
   const { t, lang } = usePrefs();
   return (
@@ -181,13 +184,21 @@ export function DetalleDelApego({ apego, listo, esHoy, color, mostrarPlan, onMos
               <b>{t("Planned stops, in planned order", "Paradas del plan, en su orden")}</b>
               <div className="tbl-scroll">
                 <table className="orders" style={{ fontSize: 13 }}>
-                  <thead><tr><th>#</th><th>{t("Where", "Dónde")}</th><th>{t("Orders", "Órdenes")}</th><th>ETA</th><th>{t("Arrived", "Llegó")}</th><th>{t("Status", "Estado")}</th></tr></thead>
+                  <thead><tr><th>#</th><th>{t("Where", "Dónde")}</th><th>{t("Invoice", "Factura")}</th><th>ETA</th><th>{t("Arrived", "Llegó")}</th><th>{t("Status", "Estado")}</th></tr></thead>
                   <tbody>
                     {apego.paradas.map((p) => (
                       <tr key={p.puesto} data-parada-plan={p.puesto} data-estado={p.enOrden ? "en-orden" : p.visitada ? "fuera-de-orden" : p.hecha ? "hecha-sin-rastro" : "no-visitada"}>
                         <td><span style={{ display: "inline-block", minWidth: 20, textAlign: "center", borderRadius: 10, background: color, color: "var(--card)", fontSize: 11, fontWeight: 700, padding: "1px 5px" }}>{p.puesto}</span></td>
                         <td>{p.lugar}</td>
-                        <td className="ordno">{p.ordenes.map((o) => `${o.tipo === "P" ? "▲" : "✓"} ${o.codigo}`).join(", ")}</td>
+                        {/* D-NEXT: la orden se nombra por su FACTURA; sin ella, el código en gris. Pulsar abre la ficha. */}
+                        <td className="ordno">
+                          {p.ordenes.map((o, i) => (
+                            <span key={`${o.tipo}:${o.id ?? o.codigo}`}>
+                              {i > 0 && ", "}
+                              <EtiquetaDeOrden orden={o} prefijo={`${o.tipo === "P" ? "▲" : "✓"} `} onAbrir={abrirOrden?.(o.id) ?? null} />
+                            </span>
+                          ))}
+                        </td>
                         <td style={{ fontVariantNumeric: "tabular-nums" }}>{minutoDelDia(p.eta)}</td>
                         <td style={{ fontVariantNumeric: "tabular-nums" }}>{hora(p.llegada, lang)}</td>
                         <td>

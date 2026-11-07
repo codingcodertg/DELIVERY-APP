@@ -46,8 +46,9 @@ describe("las paradas del plan", () => {
     const ps = paradasDelPlan(dia(ORDENES, EN_ORDEN).paradas);
     expect(ps.map((p) => p.puesto)).toEqual([1, 2, 3, 4]);
     expect(ps[0]).toMatchObject({ lugar: "RDZ Pharr", esTienda: true, eta: 490 });
-    expect(ps[0].ordenes).toEqual([{ codigo: "FW1", tipo: "P" }, { codigo: "FW2", tipo: "P" }, { codigo: "FW3", tipo: "P" }]);
-    expect(ps.slice(1).map((p) => p.ordenes)).toEqual([[{ codigo: "FW1", tipo: "D" }], [{ codigo: "FW2", tipo: "D" }], [{ codigo: "FW3", tipo: "D" }]]);
+    // D-NEXT: cada orden viaja con su id y su factura (aquí sin factura), para que el Recorrido la nombre y abra su ficha.
+    expect(ps[0].ordenes).toEqual([{ codigo: "FW1", tipo: "P", id: "fw1", factura: null }, { codigo: "FW2", tipo: "P", id: "fw2", factura: null }, { codigo: "FW3", tipo: "P", id: "fw3", factura: null }]);
+    expect(ps.slice(1).map((p) => p.ordenes)).toEqual([[{ codigo: "FW1", tipo: "D", id: "fw1", factura: null }], [{ codigo: "FW2", tipo: "D", id: "fw2", factura: null }], [{ codigo: "FW3", tipo: "D", id: "fw3", factura: null }]]);
     expect(lineaDelPlan(ps)).toEqual([[TIENDA.lat, TIENDA.lng], [A.lat, A.lng], [B.lat, B.lng], [C.lat, C.lng]]);
   });
 

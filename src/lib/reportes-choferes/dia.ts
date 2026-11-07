@@ -36,6 +36,8 @@ export interface PlanDeParada {
 
 export interface OrdenDelDia {
   id: string; codigo: string; tipo: string | null; tienda: string | null; cliente: string | null; etapa: string;
+  /** D-NEXT: número de factura (`invoice_num`), si la orden lo tiene. */
+  factura?: string | null;
   recogida: (LatLng & { nombre: string }) | null;
   entrega: (LatLng & { nombre: string }) | null;
   /** ¿Entra la recogida en este día? (No, si se cargó otro día.) */
@@ -71,6 +73,8 @@ export type ClaseDeVisita = "recogida_tienda" | "recogida_otro" | "entrega_clien
 
 export interface ParadaDelInforme {
   clave: string; ordenId: string; codigo: string; tipo: "P" | "D";
+  /** D-NEXT: número de factura de la orden, si lo tiene. */
+  factura?: string | null;
   lugar: string; cliente: string | null; tienda: string | null; esTienda: boolean; lat: number | null; lng: number | null;
   hecha: boolean;
   /** Puesto en el plan vigente y en lo hecho (1, 2, 3…; las de una misma visita comparten puesto). */
@@ -172,7 +176,7 @@ export function informeDelDia(e: EntradaDelDia): InformeDelDia {
       const cierre = tipo === "P" ? o.toques.recogio : o.toques.entrego;
       const hecha = tipo === "P" ? !!cierre || ETAPAS_CON_RECOGIDA.has(o.etapa) : !!cierre || o.etapa === "delivered";
       paradas.push({
-        clave: `${tipo}:${o.id}`, ordenId: o.id, codigo: o.codigo, tipo, orden: o, sitio, _visita: null,
+        clave: `${tipo}:${o.id}`, ordenId: o.id, codigo: o.codigo, factura: o.factura ?? null, tipo, orden: o, sitio, _visita: null,
         lugar: punto?.nombre || (tipo === "P" ? o.tienda : o.cliente) || "—", cliente: o.cliente, tienda: sitio != null ? sitios[sitio].tienda : null,
         esTienda: sitio != null && !!sitios[sitio].tienda, lat: punto?.lat ?? null, lng: punto?.lng ?? null, hecha,
         puestoPlan: null, puestoReal: null, primeraEta: plan?.primera ?? null, eta: plan?.eta ?? null, primeraPosterior: false, etaPosterior: false,

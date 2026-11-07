@@ -39,8 +39,9 @@ export interface ParadaDelPlan {
   puesto: number;
   lat: number; lng: number;
   lugar: string;
-  /** Códigos de las órdenes que se atienden en esta parada (FW186…), con su tipo: `P` recogida, `D` entrega. */
-  ordenes: { codigo: string; tipo: "P" | "D" }[];
+  /** Códigos de las órdenes que se atienden en esta parada (FW186…), con su tipo: `P` recogida, `D` entrega.
+   * D-NEXT: con su `id` y su `factura` (número de factura), para que el Recorrido las nombre por la factura y abra la ficha. */
+  ordenes: { codigo: string; tipo: "P" | "D"; id?: string; factura?: string | null }[];
   /** Minuto del día local de la hora estimada del plan. */
   eta: number | null;
   /** Milisegundos de la llegada real, si se vio. */
@@ -143,7 +144,7 @@ export function paradasDelPlan(paradas: readonly ParadaDelInforme[]): ParadaDelP
     return {
       puesto, lat: conSitio.lat ?? NaN, lng: conSitio.lng ?? NaN,
       lugar: conSitio.tienda ?? conSitio.lugar,
-      ordenes: ps.map((p) => ({ codigo: p.codigo, tipo: p.tipo })),
+      ordenes: ps.map((p) => ({ codigo: p.codigo, tipo: p.tipo, id: p.ordenId, factura: p.factura ?? null })),
       eta: ps[0].eta, llegada: visitada ? Math.min(...llegadas) : null, visitada,
       enOrden: visitada && !ps.some((p) => p.llegada != null && p.fueraDeOrden),
       hecha: ps.some((p) => p.hecha), esTienda: ps.some((p) => p.esTienda),
