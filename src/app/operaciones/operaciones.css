@@ -201,3 +201,21 @@ textarea.ops-campo { min-height: 150px; resize: vertical; }
 /* ---- Fecha del dano (266) ---- */
 .ops-campo-fecha { min-height: 56px; font-size: 18px; }
 .ops-fecha-atajos { display: flex; gap: 8px; margin-top: 10px; }
+
+/* ---- 268: foto obligatoria en la merma, «sin foto» (papel) y fotos repetidas ---- */
+.ops-foto-primero { margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--amber) 14%, transparent); border: 1px solid color-mix(in srgb, var(--amber) 40%, var(--line)); }
+.ops-foto-papel { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+.ops-aviso-repetida { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.ops-aviso-repetida p { margin: 0; }
+.ops-aviso-acciones { display: flex; flex-wrap: wrap; gap: 6px; }
+.ops-fotos-lista figure[data-repetida] img { outline: 3px solid var(--red); }
+.ops-icono-fotos { cursor: help; }
+.ops-insignia {
+  display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 700; border-radius: 999px; padding: 2px 8px; white-space: nowrap; vertical-align: middle;
+}
+.ops-insignia-sin-foto { color: var(--amber); background: color-mix(in srgb, var(--amber) 14%, transparent); }
+.ops-insignia-sin-foto.vencida { color: var(--red); background: var(--red-soft); }
+.ops-insignia-repetida { color: var(--red); background: var(--red-soft); }
+.ops-aviso-pendiente { margin: 0 0 10px; border-color: var(--amber); background: color-mix(in srgb, var(--amber) 10%, var(--card)); }
+.ops-agregar-foto { margin-top: 12px; }
+.ops-tarjeta-reporte h3 .ops-icono-fotos { font-size: 16px; }

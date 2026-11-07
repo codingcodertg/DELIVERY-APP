@@ -13,7 +13,9 @@ export type Paso =
   | { id: string; tipo: "opcion"; en: string; es: string; opciones: Opcion[] }
   | { id: string; tipo: "sino"; en: string; es: string }
   | { id: string; tipo: "texto"; en: string; es: string; opcional?: boolean; corto?: boolean; min?: number; si?: { paso: string; vale: string } }
-  | { id: string; tipo: "foto"; en: string; es: string }
+  // `obligatoria` (D-NEXT, 268): la merma no se envía sin al menos una foto; el paso se puede saltar («la tengo en
+  // papel») pero el resumen la marca como faltante y «Enviar» queda apagado hasta que la agreguen.
+  | { id: string; tipo: "foto"; en: string; es: string; obligatoria?: boolean }
   | { id: string; tipo: "producto"; en: string; es: string }
   | { id: string; tipo: "cantidad"; en: string; es: string }
   // Un día (YYYY-MM-DD), obligatorio y nunca futuro (266: cuándo se rompió la merma).
@@ -70,6 +72,8 @@ const o = (v: string, en: string, es: string): Opcion => ({ v, en, es });
 const INVOLUCRADOS: Paso = { id: "involved", tipo: "personas", en: "Who was involved?", es: "¿Quién estuvo involucrado?" };
 const DESCRIPCION: Paso = { id: "description", tipo: "texto", en: "What happened?", es: "¿Qué pasó?" };
 const FOTO: Paso = { id: "photo", tipo: "foto", en: "Add a photo (optional)", es: "Agrega una foto (opcional)" };
+/** La foto de la merma (D-NEXT, 268): primero y obligatoria. Reunión del dueño con Roberto: fotos repetidas y tomadas después de capturar. */
+export const FOTO_DE_MERMA: Paso = { id: "photo", tipo: "foto", obligatoria: true, en: "Take the photo of the pieces first", es: "Primero toma la foto de las piezas" };
 
 export const PASOS: Record<TipoDeReporte, Paso[]> = {
   incident: [
@@ -111,6 +115,9 @@ export const PASOS: Record<TipoDeReporte, Paso[]> = {
   ],
   scrap: [
     { id: "product", tipo: "producto", en: "Which product?", es: "¿Qué producto?" },
+    // La foto va JUSTO después del producto y antes de las cantidades (D-NEXT, 268): se fotografían las piezas antes de
+    // capturar nada más, y sin foto no se envía.
+    FOTO_DE_MERMA,
     // Primero el total de piezas; luego, de esas, cuántas dañadas y cuántas de muestra (pedido faa07047). Sin piezas sueltas (482720a9).
     { id: "qty", tipo: "cantidad", en: "How many pieces?", es: "¿Cuántas piezas?" },
     // De vuelta en su sitio (D-893 / D-894), tras retirar Roberto el pedido 714584e6.
@@ -122,7 +129,6 @@ export const PASOS: Record<TipoDeReporte, Paso[]> = {
     // Solo si fue devolución de un cliente (pedido 60bbd7ed). OPCIONAL otra vez (la 254 lo exigía; la 263 ya no): suele
     // llegar después del reporte y el gerente lo pone desde la tarjeta. Sin CRMA la devolución no cuenta como pérdida.
     { id: "crma", tipo: "texto", corto: true, opcional: true, si: { paso: "return_type", vale: "customer_return" }, en: "CRMA / claim # (optional)", es: "CRMA / n.º de reclamo (opcional)" },
-    FOTO,
     { id: "comments", tipo: "texto", opcional: true, en: "Comments (optional)", es: "Comentarios (opcional)" },
   ],
 };
@@ -141,7 +147,7 @@ export function pasoCompleto(p: Paso, r: Respuestas, hoy: string = hoyEnTexas())
   const v = r[p.id];
   switch (p.tipo) {
     case "fecha": return fechaDelDanoValida(v, hoy);
-    case "foto": return true;
+    case "foto": return !p.obligatoria || (Array.isArray(v) && v.length > 0);
     case "personas": return !!p.opcional || (Array.isArray(v) && v.length > 0);
     case "persona": return typeof v === "string" && v.length > 0;
     case "opcion": return typeof v === "string" && p.opciones.some((x) => x.v === v);
@@ -158,6 +164,11 @@ export function pasoCompleto(p: Paso, r: Respuestas, hoy: string = hoyEnTexas())
 /** El primer paso sin contestar (el resumen no envía con huecos), o -1. */
 export function primerHueco(tipo: TipoDeReporte, r: Respuestas, hoy: string = hoyEnTexas()): number {
   return pasosVisibles(tipo, r).findIndex((p) => !pasoCompleto(p, r, hoy));
+}
+
+/** El primer hueco SIN contar la foto (268): si es -1 y solo falta la foto, la merma se puede guardar «sin foto». */
+export function primerHuecoSalvoFoto(tipo: TipoDeReporte, r: Respuestas, hoy: string = hoyEnTexas()): number {
+  return pasosVisibles(tipo, r).findIndex((p) => p.tipo !== "foto" && !pasoCompleto(p, r, hoy));
 }
 
 /**

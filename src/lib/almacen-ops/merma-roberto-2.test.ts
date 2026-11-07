@@ -9,7 +9,7 @@ const SQL = readFileSync(join(process.cwd(), "supabase/migrations/254_merma_repa
 
 const producto = { id: 7, sku: "S", name: "N", cost: 2.5, pieces_per_box: 4 };
 const qty = { boxes: 2, piecesPerBox: 4, loosePieces: 0 }; // 8 piezas
-const base = { product: producto, qty, split: { damaged: 6, sample: 2 }, return_type: "internal", reason: "fell", broken_on: "2020-01-01" }; // 266: la fecha del daño es obligatoria
+const base = { product: producto, qty, split: { damaged: 6, sample: 2 }, return_type: "internal", reason: "fell", broken_on: "2020-01-01", photo: ["data:image/jpeg;base64,/9j/"] }; // 266: la fecha del daño es obligatoria; 268: y la foto
 const pasoQty = PASOS.scrap.find((p) => p.id === "qty")!;
 
 describe("faa07047: primero el total, luego cuántas dañadas y cuántas de muestra", () => {
@@ -34,7 +34,7 @@ describe("faa07047: primero el total, luego cuántas dañadas y cuántas de mues
     expect(pasoCompleto(pasoQty, { qty, split: { damaged: 6, sample: 2 } })).toBe(true);
     expect(pasoCompleto(pasoQty, { qty, split: { damaged: 6, sample: 3 } })).toBe(false);
     expect(primerHueco("scrap", base)).toBe(-1);
-    expect(primerHueco("scrap", { ...base, qty: { ...qty, boxes: 3 } })).toBe(1);
+    expect(primerHueco("scrap", { ...base, qty: { ...qty, boxes: 3 } })).toBe(2); // 268: la foto va antes de las cantidades
   });
   it("al escribir uno, el otro se llena con lo que falta", () => {
     expect(repartoAlCambiar(8, "sample", 2)).toEqual({ damaged: 6, sample: 2 });

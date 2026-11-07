@@ -112,9 +112,9 @@ describe("el asistente", () => {
   });
   it("merma: producto y cantidades válidas; quién lo rompió es opcional y, en interno, no hay CRMA", () => {
     const r = { product: { id: 7, sku: "S", name: "N", cost: 1, pieces_per_box: 8 }, split: { damaged: 8, sample: 0 },
-      qty: { boxes: 1, piecesPerBox: 8, loosePieces: 0 }, return_type: "internal", reason: "fell", broken_on: "2020-01-01" };
+      qty: { boxes: 1, piecesPerBox: 8, loosePieces: 0 }, return_type: "internal", reason: "fell", broken_on: "2020-01-01", photo: ["data:image/jpeg;base64,/9j/"] }; // 268: la merma ya no se envía sin foto
     expect(primerHueco("scrap", r)).toBe(-1);
-    expect(primerHueco("scrap", { ...r, qty: { boxes: 0, piecesPerBox: 8, loosePieces: 0 } })).toBe(1);
+    expect(primerHueco("scrap", { ...r, qty: { boxes: 0, piecesPerBox: 8, loosePieces: 0 } })).toBe(2);
   });
   it("los empleados del reporte", () => {
     expect(empleadosDelReporte("positive", { employee: "e1" })).toEqual(["e1"]);

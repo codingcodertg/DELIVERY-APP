@@ -15,7 +15,7 @@ const CSS = lee("src/app/operaciones/operaciones.css");
 
 const producto = { id: 7, sku: "S", name: "N", cost: 1, pieces_per_box: 10 };
 const qty = { boxes: 3, piecesPerBox: 10, loosePieces: 0 }; // 30 piezas, como en la captura de Roberto
-const base = { product: producto, qty, split: { damaged: 27, sample: 3 }, reason: "forklift", broken_on: "2020-01-01" }; // 266: la fecha del daño es obligatoria
+const base = { product: producto, qty, split: { damaged: 27, sample: 3 }, reason: "forklift", broken_on: "2020-01-01", photo: ["data:image/jpeg;base64,/9j/"] }; // 266: la fecha del daño es obligatoria; 268: y la foto
 
 describe("0c2fb392: la pérdida solo suma las piezas dañadas", () => {
   it("27 dañadas y 3 de muestra a $1.00 son $27.00, no $30.00", () => {
@@ -139,7 +139,8 @@ describe("6f14b2b3: ningún paso avanza solo; siempre se toca Siguiente", () => 
     // Y el único «+ 1» está dentro de siguiente(), que solo llaman el botón y Enter.
     expect(ASISTENTE).toContain("const siguiente = () => {\n    if (volverAlResumen) { setVolverAlResumen(false); setI(pasos.length); return; }\n    setI((n) => n + 1);\n  };");
     expect(ASISTENTE.match(/siguiente\(\)/g)).toHaveLength(1);
-    expect(ASISTENTE.match(/onClick=\{siguiente\}/g)).toHaveLength(1);
+    // 268: dos botones avanzan a mano: «Siguiente» y «Lo apunté en papel» (la foto obligatoria se puede dejar para después).
+    expect(ASISTENTE.match(/onClick=\{siguiente\}/g)).toHaveLength(2);
   });
   it("vale para los 7 tipos: todos usan el mismo asistente y sus pasos de una opción no saltan", () => {
     expect(TIPOS).toHaveLength(7);

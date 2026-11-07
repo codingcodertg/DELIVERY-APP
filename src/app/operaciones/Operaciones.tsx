@@ -13,6 +13,7 @@ import { Asistente } from "./Asistente";
 import { borrarBorrador, listarBorradores, type Borrador } from "@/lib/almacen-ops/borradores";
 import { fmtDateTime } from "@/lib/utils";
 import { esDia, fmtDia } from "@/lib/almacen-ops/fecha-del-dano";
+import { faltaFoto } from "@/lib/almacen-ops/fotos";
 import { ListaDeReportes } from "./ListaDeReportes";
 
 export type { Vista };
@@ -162,6 +163,8 @@ function Borradores({ ctx }: { ctx: Contexto }) {
                 <span className="ops-persona-tienda">
                   {b.tienda}
                   {b.tipo === "scrap" && esDia(b.r.broken_on) && <> · <span data-borrador-fecha={b.r.broken_on}>{t("broken", "se rompió")} {fmtDia(b.r.broken_on, lang)}</span></>}
+                  {/* 268: un borrador de merma sin foto lo dice; sin ella no se envía. */}
+                  {faltaFoto(b.tipo, b.r) && <> · <span className="ops-insignia ops-insignia-sin-foto" data-borrador-sin-foto>📷 {t("Missing photo", "Falta la foto")}</span></>}
                   {" · "}{t("saved", "guardado")} {fmtDateTime(b.guardado)}
                 </span>
               </Link>

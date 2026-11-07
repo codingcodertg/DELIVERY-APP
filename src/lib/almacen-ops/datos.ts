@@ -7,6 +7,7 @@ import type { TipoDeReporte } from "./tipos";
 import type { Quien } from "./visibilidad";
 import type { ProductoElegido, Respuestas } from "./pasos";
 import { tipoDeReparto, type Cantidades, type Reparto } from "./perdida";
+import type { Repetida } from "./fotos";
 
 export const CUBO = "warehouse-ops";
 
@@ -44,6 +45,10 @@ export interface Reporte {
   sample_pieces?: number | null;
   /** 252: producto escrito a mano, no está en el catálogo (un gerente lo vincula o corrige). */
   product_not_in_catalog?: boolean;
+  /** 268: el SHA-256 de cada foto, alineado con `photos` (null en las de antes de la 268, hasta que alguien abra la tarjeta). */
+  photo_hashes?: (string | null)[] | null;
+  /** 268: merma guardada SIN foto (la apuntaron en papel); queda incompleta hasta que le agreguen la foto. */
+  photo_pending?: boolean | null;
 }
 
 export interface Envio {
@@ -69,6 +74,36 @@ export async function buscarProductos(sb: SupabaseClient, q: string): Promise<Pr
   const { data, error } = await sb.rpc("warehouse_ops_search_products", { q });
   if (error) throw error;
   return ((data ?? []) as ProductoElegido[]).map((p) => ({ ...p, cost: p.cost == null ? null : Number(p.cost) }));
+}
+
+/**
+ * 268: agrega fotos a un reporte ya guardado (la merma «sin foto» que apuntaron en papel). La base exige al menos una,
+ * quita `photo_pending` y guarda las huellas. Solo el autor o quien corrige la merma de esa tienda.
+ */
+export async function agregarFotos(sb: SupabaseClient, reporteId: string, rutas: string[], huellas: string[]): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_add_photos", { p_report: reporteId, p_photos: rutas, p_hashes: huellas });
+  if (error) throw error;
+}
+
+/** 268: guarda las huellas de las fotos de un reporte de antes (se calculan al abrir la tarjeta). Solo rellena huecos. */
+export async function guardarHuellas(sb: SupabaseClient, reporteId: string, huellas: (string | null)[]): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_set_photo_hashes", { p_report: reporteId, p_hashes: huellas });
+  if (error) throw error;
+}
+
+/** 268: ¿otro reporte (que quien mira puede ver) ya usó una foto con esta huella? El más reciente primero. */
+export async function reportesConLaFoto(sb: SupabaseClient, huella: string): Promise<Repetida[]> {
+  const { data, error } = await sb.from("warehouse_reports").select("id, created_at, broken_on, store, product_name")
+    .contains("photo_hashes", [huella]).order("created_at", { ascending: false }).limit(5);
+  // Sin la 268 la columna no existe: no hay huellas que comparar, y no es un error para quien llena.
+  if (error) { if (faltaLaColumna(error)) return []; throw error; }
+  return ((data ?? []) as { id: string; created_at: string; broken_on: string | null; store: string | null; product_name: string | null }[])
+    .map((x) => ({ reporteId: x.id, created_at: x.created_at, broken_on: x.broken_on, store: x.store, product_name: x.product_name }));
+}
+
+/** ¿Falta una columna (la 268 aún no se aplicó)? */
+export function faltaLaColumna(e: { code?: string | null; message?: string | null } | null | undefined): boolean {
+  return !!e && (e.code === "42703" || e.code === "PGRST204" || /column .* does not exist|photo_hashes|photo_pending/i.test(e.message ?? ""));
 }
 
 export async function registrar(sb: SupabaseClient, e: Envio): Promise<string> {
@@ -152,16 +187,19 @@ export const DEMO_PRODUCTOS: ProductoElegido[] = [
   { id: 103, sku: "MOS-HEX-MAR", name: "Hexagon Marble Mosaic", cost: 6.25, pieces_per_box: 10 },
 ];
 const dias = (n: number) => new Date(Date.now() - n * 86400000).toISOString();
-const vacio = { damaged_pieces: null, sample_pieces: null, product_id: null, product_sku: null, product_name: null, scrap_type: null, boxes: null, pieces_per_box: null, loose_pieces: null, total_pieces: null, unit_cost: null, total_loss: null, return_type: null, reason: null, broken_by: [], crma: null, photos: [] };
+const vacio = { damaged_pieces: null, sample_pieces: null, product_id: null, product_sku: null, product_name: null, scrap_type: null, boxes: null, pieces_per_box: null, loose_pieces: null, total_pieces: null, unit_cost: null, total_loss: null, return_type: null, reason: null, broken_by: [], crma: null, photos: [], photo_hashes: [], photo_pending: false };
+// 268 (demo): r1 y r4 comparten una foto (misma huella) para ver la marca de «foto repetida»; r7 está guardada sin foto.
+const HUELLA_DEMO = "a".repeat(64);
+const DEMO_FOTOS = { photos: ["demo/1.jpg", "demo/2.jpg"], photo_hashes: [HUELLA_DEMO, "b".repeat(64)] };
 export const DEMO_REPORTES: Reporte[] = [
-  { ...vacio, id: "r1", created_at: dias(0.1), kind: "scrap", store: "McAllen", author_id: "p1", author_name: "Ana García", subject_ids: [], answers: { comments: "Pallet slid off the forks" },
+  { ...vacio, ...DEMO_FOTOS, id: "r1", created_at: dias(0.1), kind: "scrap", store: "McAllen", author_id: "p1", author_name: "Ana García", subject_ids: [], answers: { comments: "Pallet slid off the forks" },
     product_id: 101, product_sku: "PORC-2448-GRY", product_name: "Porcelain 24x48 Ash Grey", scrap_type: "mixed", damaged_pieces: 5, sample_pieces: 2, boxes: 3, pieces_per_box: 2, loose_pieces: 1, total_pieces: 7, unit_cost: 9.4, total_loss: 47, return_type: "internal", reason: "forklift", broken_by: ["p2"], crma: null },
   { ...vacio, id: "r2", created_at: dias(1.3), kind: "safety", store: "McAllen", author_id: "p2", author_name: "Luis Treviño", subject_ids: ["p1"], answers: { safety_type: "ppe", description: "Loading without gloves", injured: "no" } },
   { ...vacio, id: "r3", created_at: dias(3), kind: "maintenance", store: "Edinburg", author_id: "p3", author_name: "Mario Salinas", subject_ids: [], answers: { equipment: "forklift_2", issue: "repair_needed", description: "Hydraulic leak under the mast" } },
-  { ...vacio, id: "r4", created_at: dias(9), kind: "scrap", store: "Edinburg", author_id: "p3", author_name: "Mario Salinas", subject_ids: [], answers: {},
+  { ...vacio, photos: ["demo/3.jpg"], photo_hashes: [HUELLA_DEMO], id: "r4", created_at: dias(9), kind: "scrap", store: "Edinburg", author_id: "p3", author_name: "Mario Salinas", subject_ids: [], answers: {},
     product_id: 102, product_sku: "CER-1212-WHT", product_name: "Ceramic 12x12 Matte White", scrap_type: "sample", damaged_pieces: 0, sample_pieces: 6, boxes: 0, pieces_per_box: 15, loose_pieces: 6, total_pieces: 6, unit_cost: 0.82, total_loss: 0, return_type: "customer_return", reason: "transportation", broken_by: [], crma: "CR-2291" },
   // Devolución de cliente SIN CRMA: no cuenta como pérdida hasta que el gerente le ponga el CRMA (263).
-  { ...vacio, id: "r7", created_at: dias(0.5), kind: "scrap", store: "Harlingen", author_id: "p4", author_name: "Rosa Peña", subject_ids: [], answers: {},
+  { ...vacio, photo_pending: true, id: "r7", created_at: dias(1.5), kind: "scrap", store: "Harlingen", author_id: "p4", author_name: "Rosa Peña", subject_ids: [], answers: {},
     product_id: 103, product_sku: "MOS-HEX-MAR", product_name: "Hexagon Marble Mosaic", scrap_type: "damaged", damaged_pieces: 4, sample_pieces: 0, boxes: 0, pieces_per_box: 10, loose_pieces: 4, total_pieces: 4, unit_cost: 6.25, total_loss: 0, return_type: "customer_return", reason: "transportation", broken_by: [], crma: null },
   { ...vacio, id: "r5", created_at: dias(2), kind: "positive", store: "McAllen", author_id: "demo-admin", author_name: "Demo Admin", subject_ids: ["p2"], answers: { employee: "p2", category: "safety", description: "Cleared the blocked exit before the delivery came in" } },
   { ...vacio, id: "r6", created_at: dias(4), kind: "insubordination", store: "Harlingen", author_id: "demo-admin", author_name: "Demo Admin", subject_ids: ["p4"], answers: { severity: "minor", description: "Refused to restack the returns cage", verbal_warning: "yes" } },
