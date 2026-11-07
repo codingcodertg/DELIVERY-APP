@@ -368,7 +368,7 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Conte
               <dt>{t("Where from", "De dónde")}</dt><dd data-origen-reporte={r.return_type ?? ""}>{etiquetaDeOpcion("scrap", "return_type", r.return_type, lang) || "—"}</dd>
               <dt>{t("Reason", "Motivo")}</dt><dd>{etiquetaDeOpcion("scrap", "reason", r.reason, lang)}</dd>
               {r.broken_by.length > 0 && <><dt>{t("Broken by", "Lo rompió")}</dt><dd>{r.broken_by.map(nombre).join(", ")}</dd></>}
-              {/* Quién avisó (D-NEXT): va en answers, no en columna. Distinto de quién lo rompió y de quién lo llenó. */}
+              {/* Quién avisó (D-915): va en answers, no en columna. Distinto de quién lo rompió y de quién lo llenó. */}
               {reportadoPor.length > 0 && <><dt>{t("Reported by", "Lo reportó")}</dt><dd data-reportado-por>{reportadoPor.map((x) => nombreOTexto(ctx.personas, x)).join(", ")}</dd></>}
               {(r.crma || r.return_type === "customer_return") && <><dt>CRMA</dt><dd data-crma-reporte={r.crma ?? ""}>{r.crma || t("Not yet", "Todavía no")}</dd></>}
             </>

@@ -28,7 +28,7 @@ export function personasParaElegir<T extends PersonaDeAlmacen>(personas: readonl
 }
 
 /**
- * Lo que se enseña de una entrada de un paso de personas (D-NEXT): el nombre del empleado si es un id conocido; si no,
+ * Lo que se enseña de una entrada de un paso de personas (D-915): el nombre del empleado si es un id conocido; si no,
  * el texto tal cual (un nombre escrito a mano para alguien sin cuenta). Un id que ya no está en la lista sale como «—».
  */
 export function nombreOTexto(personas: readonly Pick<PersonaDeAlmacen, "id" | "full_name">[], x: string): string {

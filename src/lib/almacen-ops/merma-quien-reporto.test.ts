@@ -5,7 +5,7 @@ import { PASOS, PASO_QUIEN_REPORTO, pasoCompleto, pasosVisibles, primerHueco, re
 import { elegidosAlCambiarDeTienda, nombreOTexto } from "./personas";
 
 /**
- * Pedido de Roberto (D-NEXT, tras la primera merma de Baudelio con el formulario nuevo): «It asks who broke it but it
+ * Pedido de Roberto (D-915, tras la primera merma de Baudelio con el formulario nuevo): «It asks who broke it but it
  * should also ask who reported it because maybe another associate told the supervisor that his coworker broke it».
  * Tres personas distintas: quién lo rompió (broken_by, columna), quién lo reportó (answers.reported_by) y quién lo
  * llenó (author_id, que puede ser la cuenta compartida del almacén).

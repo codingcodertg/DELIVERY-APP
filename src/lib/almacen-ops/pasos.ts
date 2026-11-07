@@ -8,7 +8,7 @@ import { fechaDelDanoValida, fmtDia, hoyEnTexas } from "./fecha-del-dano";
 
 export type Opcion = { v: string; en: string; es: string };
 export type Paso =
-  // `libre` (D-NEXT): además de la gente del almacén se puede escribir un nombre a mano (alguien sin cuenta); `ayuda`
+  // `libre` (D-915): además de la gente del almacén se puede escribir un nombre a mano (alguien sin cuenta); `ayuda`
   // es la línea gris bajo la pregunta.
   | { id: string; tipo: "personas"; en: string; es: string; opcional?: boolean; libre?: boolean; ayuda?: { en: string; es: string } }
   | { id: string; tipo: "persona"; en: string; es: string }
@@ -23,7 +23,7 @@ export type Paso =
   // Un día (YYYY-MM-DD), obligatorio y nunca futuro (266: cuándo se rompió la merma).
   | { id: string; tipo: "fecha"; en: string; es: string };
 
-/** El paso de la merma que pregunta quién avisó (D-NEXT). Se queda en `answers.reported_by`; no tiene columna. */
+/** El paso de la merma que pregunta quién avisó (D-915). Se queda en `answers.reported_by`; no tiene columna. */
 export const PASO_QUIEN_REPORTO = "reported_by";
 
 /** El paso de la merma que pregunta cuándo se rompió (266). Va a `warehouse_reports.broken_on`. */
@@ -131,7 +131,7 @@ export const PASOS: Record<TipoDeReporte, Paso[]> = {
     // Cuándo se rompió (pedido del dueño, 266): por defecto hoy en Texas, se puede cambiar, nunca futuro.
     { id: PASO_FECHA_DEL_DANO, tipo: "fecha", en: "What date was it broken?", es: "¿Qué día se rompió?" },
     { id: "broken_by", tipo: "personas", opcional: true, en: "Who broke it? (optional)", es: "¿Quién lo rompió? (opcional)" },
-    // Quién avisó (Roberto, D-NEXT): «maybe another associate told the supervisor that his coworker broke it». Distinto
+    // Quién avisó (Roberto, D-915): «maybe another associate told the supervisor that his coworker broke it». Distinto
     // de quién lo rompió y de quién lo llenó (author_id, que puede ser la cuenta compartida del almacén). Va en
     // `answers.reported_by` (ids de empleados o nombres escritos a mano); nunca se rellena solo.
     { id: PASO_QUIEN_REPORTO, tipo: "personas", opcional: true, libre: true, en: "Who reported it? (optional)", es: "¿Quién lo reportó? (opcional)",

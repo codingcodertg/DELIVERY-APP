@@ -86,7 +86,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
     setR((x) => {
       const y = { ...x };
       for (const p of pasosVisibles(tipo, x)) {
-        // Un nombre escrito a mano (D-NEXT, «¿quién lo reportó?») no es de ninguna tienda: se queda.
+        // Un nombre escrito a mano (D-915, «¿quién lo reportó?») no es de ninguna tienda: se queda.
         if (p.tipo === "personas" && Array.isArray(y[p.id])) y[p.id] = elegidosAlCambiarDeTienda(y[p.id] as string[], deAhi, conocidos);
         if (p.tipo === "persona" && typeof y[p.id] === "string" && !deAhi.has(y[p.id] as string)) delete y[p.id];
       }
@@ -143,7 +143,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
         kind: tipo, store: tienda, subjectIds: empleadosDelReporte(tipo, r), answers, photos: fotos,
         scrap: tipo === "scrap" && p && q ? { ...productoParaEnviar(p), ...mermaParaEnviar(r) } : null,
       };
-      // `broken_by` y `crma` tienen columna propia; `reported_by` (D-NEXT) se queda dentro de `answers`.
+      // `broken_by` y `crma` tienen columna propia; `reported_by` (D-915) se queda dentro de `answers`.
       if (e.scrap) { delete e.answers.broken_by; delete e.answers.crma; }
       await registrar(sb, e);
       borrarBorrador(ctx.yo.id, borradorId);
@@ -410,7 +410,7 @@ function Respuesta({ paso, r, pon, ctx, tienda, onElegirUno, onConfirmandoFoto }
   }
 }
 
-/** `libre` (D-NEXT): además de la lista, lo escrito en el buscador se puede agregar tal cual (alguien sin cuenta). */
+/** `libre` (D-915): además de la lista, lo escrito en el buscador se puede agregar tal cual (alguien sin cuenta). */
 function ElegirPersonas({ multiple, libre = false, valor, onCambio, ctx, tienda }: {
   multiple: boolean; libre?: boolean; valor: unknown; onCambio: (v: string | string[]) => void; ctx: Contexto; tienda: string;
 }) {
