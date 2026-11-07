@@ -351,7 +351,7 @@ export function HelpButton({ sinBurbuja = false }: { sinBurbuja?: boolean } = {}
               <Link href={RUTA_MIS_SOLICITUDES} className="hint" style={{ display: "inline-block" }}>
                 💬 {t("My requests and replies", "Mis solicitudes y respuestas")}
               </Link>
-              {/* D-NEXT: los videos de capacitación, también desde aquí. */}
+              {/* D-913: los videos de capacitación, también desde aquí. */}
               <Link href={RUTA_TUTORIALES} className="hint" data-ayuda-tutoriales style={{ display: "inline-block" }} onClick={close}>
                 🎬 {t("Tutorials", "Tutoriales")}
               </Link>

@@ -7,7 +7,7 @@ import { avanceDeYouTube, sabeAvisarAvance, seDioPorVisto, srcConApiDeYouTube } 
 import type { Tutorial } from "@/lib/types";
 
 /**
- * El reproductor de un tutorial, el MISMO en la pantalla de Tutoriales y en el aviso al entrar (D-NEXT).
+ * El reproductor de un tutorial, el MISMO en la pantalla de Tutoriales y en el aviso al entrar (D-913).
  *
  * Cómo se detecta «visto»:
  * - **YouTube**: el iframe se abre con `enablejsapi=1` y se le manda `{"event":"listening"}`; a partir de ahí el

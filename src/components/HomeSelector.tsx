@@ -140,7 +140,7 @@ export function HomeSelector({ me, suplantando = false, cuenta, soloApps = null 
             </div>
           </div>
         )}
-        {/* D-NEXT: los tutoriales de su rol que aún no vio, al entrar. Decide solo (sesión, aplazado, enseñanza, la 267). */}
+        {/* D-913: los tutoriales de su rol que aún no vio, al entrar. Decide solo (sesión, aplazado, enseñanza, la 267). */}
         <AvisoDeTutoriales me={{ id: me.id, role: me.role }} />
         <p style={{ color: "var(--ink-soft)", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ flex: 1 }}>{t("Which one do you want to open?", "¿Cuál quieres abrir?")}</span>

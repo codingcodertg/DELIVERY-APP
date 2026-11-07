@@ -51018,3 +51018,9 @@ Sello `warehouse_ops` 0.7.0; repo 1.765.0.
 En Recorrido (Deliveries app, pantalla Recorrido), la lista de cargas y entregas, las entregadas del día, las paradas del plan y los globos del mapa ahora muestran el número de factura en vez del código de orden; sin factura, el código aparece en gris como suplente. Pulsar una factura abre la ficha de la orden ahí mismo. El Panel y los Reportes de choferes no cambian. Pedido por Roberto en la reunión del 6 de noviembre.
 
 Sello `deliveries` 1.562.0; repo 1.766.0.
+
+## D-913 · Tutoriales: aviso al entrar y seguimiento de quién vio cada video
+
+Al entrar al hub sale una tarjeta con los videos de capacitación de tu rol que aún no has visto: puedes verlos ahí mismo, marcarlos como vistos o dejarlo para mañana (vuelve cada día hasta que estén todos). «Tutoriales» aparece ahora en el menú de Ayuda con el número de videos pendientes, y en la pantalla de Tutoriales cada video dice «Nuevo» o «Visto» (en YouTube se marca solo al llegar al final). El admin ve, por video, cuántas personas de su público ya lo vieron. Pedido por Roberto en la reunión del 6 de noviembre (migración 267).
+
+Sello `deliveries` 1.563.0; repo 1.767.0.

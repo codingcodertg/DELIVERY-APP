@@ -16,7 +16,7 @@ import { ReproductorDeTutorial } from "@/components/tutorials/ReproductorDeTutor
 import type { Tutorial } from "@/lib/types";
 
 /**
- * «Tutoriales nuevos para ti» (D-NEXT): la tarjeta que sale al entrar al hub cuando hay videos de su rol que la
+ * «Tutoriales nuevos para ti» (D-913): la tarjeta que sale al entrar al hub cuando hay videos de su rol que la
  * persona no ha marcado como vistos. Lista cada uno con «Ver ahora» (el video se abre aquí mismo, en la tarjeta)
  * y «Marcar como visto»; abajo «Recordar mañana» (hasta el día siguiente) y, solo al admin, «No volver a mostrar».
  * No hay cierre definitivo para los demás: vuelve cada día hasta que todo esté visto (lo pedido: «require users to

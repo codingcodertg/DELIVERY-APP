@@ -192,7 +192,7 @@ describe("los caminos hasta los tutoriales", () => {
   });
 
   it("la vista del video no está duplicada: un solo sitio usa tutorialEmbed", () => {
-    // D-NEXT: el reproductor es un componente propio (lo comparten la pantalla y el aviso al entrar).
+    // D-913: el reproductor es un componente propio (lo comparten la pantalla y el aviso al entrar).
     for (const f of ["src/components/TopBar.tsx", "src/app/home/tutorials/page.tsx", "src/components/tutorials/TutorialsHub.tsx", "src/components/tutorials/AvisoDeTutoriales.tsx"]) {
       expect(sinComentarios(leer(f)), f).not.toContain("tutorialEmbed(");
     }

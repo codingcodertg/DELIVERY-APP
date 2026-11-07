@@ -192,7 +192,7 @@ export function editaTutorial(
   return lista.map((t) => (t.id === id ? editado : t));
 }
 
-/** El nombre del grupo de un video, en el idioma de quien mira. Lo usan la pantalla y el aviso al entrar (D-NEXT). */
+/** El nombre del grupo de un video, en el idioma de quien mira. Lo usan la pantalla y el aviso al entrar (D-913). */
 export function nombreDeApp(app: GrupoDeTutoriales["app"], t: (en: string, es: string) => string): string {
   switch (app) {
     case "deliveries": return t("Deliveries", "Entregas");

@@ -26,7 +26,7 @@ import type { Tutorial, TutorialApp } from "@/lib/types";
  *
  * Compacta desde D-270: una fila por video, con el reproductor plegado; solo uno abierto a la vez.
  *
- * Desde D-NEXT cada video lleva su estado para quien mira —«Nuevo» si no lo ha visto, «✓ Visto» si sí— leído de
+ * Desde D-913 cada video lleva su estado para quien mira —«Nuevo» si no lo ha visto, «✓ Visto» si sí— leído de
  * `tutorial_views` (267), y el admin ve además cuántos de su público lo vieron («3 / 12», `tutorial_view_stats`).
  * Sin la 267 no sale ninguna etiqueta ni conteo: la pantalla es la de antes.
  */
@@ -41,7 +41,7 @@ export function TutorialsHub({ yo, puedeGestionar }: { yo: string | null; puedeG
   const [abierto, setAbierto] = useState<string | null>(null);
   const [editando, setEditando] = useState<string | null>(null);
   const [anadiendo, setAnadiendo] = useState(false);
-  // D-NEXT: lo que esta persona vio (`null` = la base no lo dijo: sin etiquetas) y el conteo del admin.
+  // D-913: lo que esta persona vio (`null` = la base no lo dijo: sin etiquetas) y el conteo del admin.
   const [vistos, setVistos] = useState<Set<string> | null>(null);
   const [marcando, setMarcando] = useState<string | null>(null);
   const [estadisticas, setEstadisticas] = useState<Map<string, EstadisticaDeTutorial> | null>(null);
@@ -283,7 +283,7 @@ function FormularioTutorial({ inicial, onGuardar, onCancelar }: {
   );
 }
 
-/** Una fila: título, para quién, y si quien mira ya lo vio («Nuevo» / «✓ Visto», D-NEXT). El reproductor se abre al tocar. */
+/** Una fila: título, para quién, y si quien mira ya lo vio («Nuevo» / «✓ Visto», D-913). El reproductor se abre al tocar. */
 function FilaTutorial({ tut, abierto, onAlternar, visto, onVisto, marcando = false, estadistica, gestion }: {
   tut: Tutorial;
   abierto: boolean;

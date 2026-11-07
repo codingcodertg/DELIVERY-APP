@@ -70,7 +70,7 @@ export const RPC_QUE_SOLO_LEEN = [
   "pasos_del_relevo", "reorder_report", "review_tag_facets", "rutas_del_dia", "security_gate", "session_gate", "store_names", "suggest_po_line_matches",
   "mis_tiendas_de_clientes", // 250 (D-886): las tiendas en las que busca el no admin de Clientes; stable, solo lee.
   "tutorials",
-  "tutorial_view_stats", // 267 (D-NEXT): para el admin, cuántos vieron cada tutorial; stable, solo lee.
+  "tutorial_view_stats", // 267 (D-913): para el admin, cuántos vieron cada tutorial; stable, solo lee.
 ] as const;
 
 /** Las que escriben: se cortan. Están nombradas solo para que la prueba sepa que alguien las miró. */

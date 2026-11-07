@@ -1,7 +1,7 @@
 import type { Tutorial } from "@/lib/types";
 
 /**
- * Quién vio qué tutorial, y el aviso al entrar (D-NEXT, 2026-11-06).
+ * Quién vio qué tutorial, y el aviso al entrar (D-913, 2026-11-06).
  *
  * El pedido (el dueño y Roberto): «Implement tutorial link: add pop-up notifications or a help menu entry for
  * accessing training resources» y «require users to view new videos upon signing in». Tres piezas:

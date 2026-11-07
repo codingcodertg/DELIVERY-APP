@@ -247,7 +247,7 @@ describe("la pantalla", () => {
   it("compacto: el reproductor se abre al tocar, uno a la vez, con ancho máximo", () => {
     expect(hub).toContain("const [abierto, setAbierto] = useState<string | null>(null);");
     expect(hub).toContain("setAbierto((a) => (a === tut.id ? null : tut.id))");
-    // D-NEXT: el reproductor es `ReproductorDeTutorial`, compartido con el aviso al entrar; el ancho máximo vive allí.
+    // D-913: el reproductor es `ReproductorDeTutorial`, compartido con el aviso al entrar; el ancho máximo vive allí.
     expect(hub).toContain("{abierto && <ReproductorDeTutorial tut={tut}");
     expect(readFileSync("src/components/tutorials/ReproductorDeTutorial.tsx", "utf8")).toMatch(/maxWidth: 560/);
   });

@@ -9,7 +9,7 @@ import {
 import { RUTA_TUTORIALES, opcionesDelBotonGeneral } from "./boton-general";
 import type { Tutorial } from "./types";
 
-// D-NEXT (2026-11-06) · el dueño y Roberto: «Implement tutorial link: add pop-up notifications or a help menu entry for
+// D-913 (2026-11-06) · el dueño y Roberto: «Implement tutorial link: add pop-up notifications or a help menu entry for
 // accessing training resources» y «require users to view new videos upon signing in».
 
 const videos: Tutorial[] = [
@@ -208,8 +208,8 @@ describe("la migración 267 y lo que la pantalla espera de ella", () => {
     // Sin los admins del hub en el público, y solo gente sin baja.
     expect(sql).toMatch(/p\.left_at is null/);
     expect(sql).toMatch(/coalesce\(p\.role, ''\) <> 'admin'/);
-    // Nada de D-NEXT en el .sql: el checksum congela el cuerpo.
-    expect(sql).not.toMatch(/D-NEXT/);
+    // Nada de D-913 en el .sql: el checksum congela el cuerpo.
+    expect(sql).not.toMatch(/D-913/);
     expect(sql).toMatch(/-- @ledger-below\r?\ninsert into public\.schema_migrations \(name, checksum\) values \('267_tutorial_views\.sql', '[0-9a-f]{64}'\)/);
   });
 

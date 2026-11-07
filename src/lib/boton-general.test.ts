@@ -17,7 +17,7 @@ const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\/|^\s*\/\/.*$/gm
 describe("las opciones de la burbuja general", () => {
   it("todos: Ayuda y Chat; el admin real: además Cambiar usuario (si está encendido), Vista móvil y Modo enseñanza", () => {
     // D-805: el modo enseñanza también para quien no es admin (un chofer, un vendedor).
-    // D-NEXT: «Tutoriales» para todos, después del Chat.
+    // D-913: «Tutoriales» para todos, después del Chat.
     expect(opcionesDelBotonGeneral({ adminReal: false, switchHabilitado: false })).toEqual(["ayuda", "chat", "tutoriales", "ensenanza"]);
     expect(opcionesDelBotonGeneral({ adminReal: false, switchHabilitado: true })).toEqual(["ayuda", "chat", "tutoriales", "ensenanza"]);
     expect(opcionesDelBotonGeneral({ adminReal: true, switchHabilitado: false })).toEqual(["ayuda", "chat", "tutoriales", "movil", "ensenanza"]);

@@ -82,7 +82,7 @@ export function BotonGeneral() {
   // Al cambiar de pantalla se cierra, como cualquier menú.
   useEffect(() => { setAbierto(false); setCambiando(false); }, [pathname]);
 
-  // D-NEXT: cuántos tutoriales de su rol le faltan por ver, para la insignia de «Tutoriales». Se pregunta al ABRIR el
+  // D-913: cuántos tutoriales de su rol le faltan por ver, para la insignia de «Tutoriales». Se pregunta al ABRIR el
   // menú (no en cada pantalla), una vez por carga; sin sesión, sin la 267 o con fallo, no hay insignia.
   const [sinVer, setSinVer] = useState<number | null>(null);
   useEffect(() => {

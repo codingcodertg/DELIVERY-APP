@@ -81,7 +81,7 @@ describe("dónde sale y qué lleva", () => {
   });
 
   it("fuera de una suplantación, las opciones de siempre", () => {
-    // D-NEXT: «Tutoriales» para todos, después del Chat.
+    // D-913: «Tutoriales» para todos, después del Chat.
     expect(opcionesDelBotonGeneral({ adminReal: false, switchHabilitado: false })).toEqual(["ayuda", "chat", "tutoriales", "ensenanza"]);
     expect(opcionesDelBotonGeneral({ adminReal: true, switchHabilitado: true })).toEqual(["ayuda", "chat", "tutoriales", "usuario", "movil", "ensenanza"]);
     expect(opcionesDelBotonGeneral({ adminReal: true, switchHabilitado: false })).toEqual(["ayuda", "chat", "tutoriales", "movil", "ensenanza"]);

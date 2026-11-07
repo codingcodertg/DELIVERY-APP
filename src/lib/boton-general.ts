@@ -37,7 +37,7 @@ export function opcionesDelBotonGeneral(a: { adminReal: boolean; switchHabilitad
   // D-805 (Roberto: «Ernesto isn't able to go to teaching mode»): el modo enseñanza lo enciende cualquiera, chofer
   // incluido. Es seguro para todos: en Entregas es el entorno de práctica y en las demás apps ninguna escritura llega a la
   // base (D-626). «Cambiar usuario» y «Vista móvil» siguen siendo del admin real.
-  // D-NEXT (el dueño y Roberto: «add pop-up notifications or a help menu entry for accessing training resources»): los
+  // D-913 (el dueño y Roberto: «add pop-up notifications or a help menu entry for accessing training resources»): los
   // Tutoriales salen aquí para todos, con cuántos le faltan por ver.
   const out: OpcionGeneral[] = ["ayuda", "chat", "tutoriales"];
   if (!a.adminReal) { out.push("ensenanza"); return out; }
@@ -66,7 +66,7 @@ export function destinoDeLaApp(pathname: string | null | undefined): string {
   return MODULES.find((m) => m.key === clave)?.href ?? "/";
 }
 
-/** La pantalla de Tutoriales, a donde lleva la opción del menú (D-NEXT). */
+/** La pantalla de Tutoriales, a donde lleva la opción del menú (D-913). */
 export const RUTA_TUTORIALES = "/home/tutorials";
 
 /** La burbuja pide abrir la Ayuda o el Chat; cada uno sigue siendo su componente (el formulario, el hilo). */
