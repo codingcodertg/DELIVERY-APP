@@ -5,7 +5,7 @@ import { ciudadDeEntrega } from "./ciudad-de-entrega";
 import { puntoEnZonaLocal } from "./delivery-zone";
 import { zonaDecidida, motivoDeLaZona } from "./zona-decidida";
 
-// D-NEXT · Francisca Reyes (ayuda 50e906e6, 1.405.0): «DICE QUE NO ES LOCAL PERO SÍ ES». Orden de RDZ Pharr
+// D-920 · Francisca Reyes (ayuda 50e906e6, 1.405.0): «DICE QUE NO ES LOCAL PERO SÍ ES». Orden de RDZ Pharr
 // (1120 E Expressway 83, Pharr) a «3004 E Sabinal Ave, Hidalgo, TX, USA», sin pin, 9.3 mi: salía NO LOCAL · «TX».
 const es = (_en: string, es: string) => es;
 const en = (en: string) => en;

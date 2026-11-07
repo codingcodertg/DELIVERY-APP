@@ -1,7 +1,7 @@
 import type { FeeSuggestion, ZoneSource } from "@/lib/pricing";
 
 /**
- * UNA sola decisión de zona para todo lo que la pinta (D-NEXT).
+ * UNA sola decisión de zona para todo lo que la pinta (D-920).
  *
  * Francisca Reyes (ayuda 50e906e6, 1.405.0): «DICE QUE NO ES LOCAL PERO SÍ ES» — la orden sin pin a «3004 E Sabinal Ave,
  * Hidalgo, TX, USA» salía NO LOCAL con «ciudad (TX)». D-690 arregló la lectura de la ciudad (`ciudadDeEntrega`) y llevó el

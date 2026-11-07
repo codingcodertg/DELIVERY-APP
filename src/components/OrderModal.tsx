@@ -580,7 +580,7 @@ export function OrderModal({
       `${d.route_miles} mi is not a Valley delivery (more than ${MAX_MILLAS_PLAUSIBLES}). The address was probably found in the wrong place: check it and recalculate.`,
       `${d.route_miles} mi no es una entrega del Valle (más de ${MAX_MILLAS_PLAUSIBLES}). La dirección probablemente se ubicó en otro lugar: revísela y vuelva a calcular.`)}</div>
   ) : null;
-  // La zona, decidida UNA vez para la pastilla y para el aviso (D-NEXT, `zona-decidida.ts`): los dos leen `zona`.
+  // La zona, decidida UNA vez para la pastilla y para el aviso (D-920, `zona-decidida.ts`): los dos leen `zona`.
   const zona = zonaDecidida(feeSuggestion, d.route_miles, t,
     feeSuggestion.zoneSource === "pin" && pinVisible ? (pinDraftSource === "geocoded" ? "geocoded" : "manual") : null);
   /**

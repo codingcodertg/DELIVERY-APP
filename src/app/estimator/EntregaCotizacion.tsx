@@ -48,7 +48,7 @@ export function EntregaCotizacion({ entrega, onEntrega, ajustes, admin, t }: {
   const tarifa = tarifaDeLaCotizacion(entrega, ajustes);
   const pin: [number, number] | null = entrega.lat != null && entrega.lng != null ? [entrega.lat, entrega.lng] : null;
 
-  // La zona, decidida UNA vez para la pastilla y el aviso, con el mismo motivo que la ficha (D-NEXT, `zona-decidida.ts`).
+  // La zona, decidida UNA vez para la pastilla y el aviso, con el mismo motivo que la ficha (D-920, `zona-decidida.ts`).
   const zona = zonaDecidida(tarifa, entrega.miles, t, pin ? (entrega.pin_source === "manual" ? "manual" : "geocoded") : null);
 
   /** Soltar el pin (clic derecho) lo pone y rellena la dirección con la del punto, como `dropPin` de la ficha. */

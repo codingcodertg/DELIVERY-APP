@@ -127,7 +127,7 @@ describe("la pantalla usa estas piezas, las de la ficha de Entregas", () => {
     expect(entregaUi).toContain("onClick={() => onEntrega(alternarCargo(entrega, tarifa.list!))}");
     expect(entregaUi).toContain("onClick={() => onEntrega(alternarCargo(entrega, tarifa.discount!))}");
     expect(entregaUi).toContain("{bajoElDescuento(entrega.charge, tarifa) && (");
-    // D-NEXT: el aviso «No local» lo pinta `AvisoNoLocal` desde la misma decisión que la pastilla (`zonaDecidida`).
+    // D-920: el aviso «No local» lo pinta `AvisoNoLocal` desde la misma decisión que la pastilla (`zonaDecidida`).
     expect(entregaUi).toContain("{entrega.address.trim() && <AvisoNoLocal zona={zona} t={t} />}");
   });
   it("las millas (Google) solo con el botón: pedirMillas está dentro de calcular y en ningún efecto", () => {

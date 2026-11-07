@@ -4,7 +4,7 @@ import type { ZonaDecidida } from "@/lib/zona-decidida";
 
 /**
  * La pastilla LOCAL / NO LOCAL y el aviso «No local — requiere aprobación del gerente», leyendo LA MISMA decisión
- * (`zonaDecidida`, D-NEXT). Antes cada sitio —la ficha dos veces, el cotizador— componía los suyos a mano desde
+ * (`zonaDecidida`, D-920). Antes cada sitio —la ficha dos veces, el cotizador— componía los suyos a mano desde
  * `FeeSuggestion`; con un solo dato de entrada no hay forma de que la pastilla diga LOCAL y el aviso «No local».
  *
  * `t` entra como propiedad, igual que en `BotonesDeTarifa`: el componente no sabe de idioma.

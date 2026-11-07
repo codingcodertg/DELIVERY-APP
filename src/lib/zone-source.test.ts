@@ -91,7 +91,7 @@ describe("de dónde sale la zona se dice, no se adivina", () => {
     const src = leer("src/components/OrderModal.tsx");
     expect(src).toMatch(/const pinVisible = showPinPicker && pinDraft \? pinDraft : null;/);
     expect(src).toMatch(/pinVisible \? \{ \.\.\.d, delivery_lat: pinVisible\[0\], delivery_lng: pinVisible\[1\] \} : d/);
-    // Desde D-NEXT la zona se decide UNA vez (`zonaDecidida`) y la pastilla y los dos avisos leen esa decisión.
+    // Desde D-920 la zona se decide UNA vez (`zonaDecidida`) y la pastilla y los dos avisos leen esa decisión.
     expect(src).toMatch(/const zona = zonaDecidida\(feeSuggestion, d\.route_miles, t,/);
     expect(src.match(/<AvisoNoLocal zona=\{zona\} t=\{t\} \/>/g) ?? []).toHaveLength(2);
     expect(src.match(/<PastillaDeZona zona=\{zona\} t=\{t\}>/g) ?? []).toHaveLength(1);
