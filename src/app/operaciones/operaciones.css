@@ -149,9 +149,19 @@ textarea.ops-campo { min-height: 150px; resize: vertical; }
 .ops .num { text-align: right; font-variant-numeric: tabular-nums; }
 
 .ops-merma { display: grid; gap: 12px; }
-.ops-merma-totales { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ops-merma-totales { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .ops-merma-total { display: grid; gap: 2px; padding: 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); font-size: 13px; color: var(--ink-soft); }
 .ops-merma-cifra { font-family: 'Archivo', system-ui, sans-serif; font-size: 22px; font-weight: 800; color: var(--red); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+/* D-911: el rango elegido es la cifra principal; esta semana / este mes / siempre quedan de vistazo. */
+.ops-merma-total-rango { border-color: var(--red); background: color-mix(in srgb, var(--red) 6%, var(--card)); }
+.ops-merma-total-rango .ops-merma-cifra { font-size: 26px; }
+.ops-merma .ops-col-rango { font-weight: 800; white-space: nowrap; }
+.ops-merma-titulo { margin: 4px 0 0; font-size: 16px; }
+.ops-merma .ops-filtros-campos .ops-aviso { margin: 0; padding: 6px 10px; font-size: 13px; }
+@media (max-width: 719.98px) {
+  .ops-merma-totales { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ops-merma-total-rango { grid-column: 1 / -1; }
+}
 
 .ops-tarjeta-reporte .ops-tarjeta-rrhh { display: inline-block; margin: 0 0 10px; }
 .ops-tarjeta-datos { display: grid; grid-template-columns: minmax(110px, auto) 1fr; gap: 6px 14px; margin: 0 0 12px; }

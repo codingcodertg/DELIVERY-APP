@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime, fmtMoney } from "@/lib/utils";
@@ -12,7 +13,8 @@ import { DEMO_PRODUCTOS, DEMO_REPORTES, buscarProductos, corregirMerma, corregir
 import { ORIGENES_DE_MERMA, costoDelCampo, type ProductoElegido } from "@/lib/almacen-ops/pasos";
 import { cuentaComoPerdida, perdidaDeMerma, repartoDeReporte } from "@/lib/almacen-ops/perdida";
 import { puedeCorregirMerma, puedeVerReporte } from "@/lib/almacen-ops/visibilidad";
-import { diaDelReporte, fmtDia, ordenPorDia } from "@/lib/almacen-ops/fecha-del-dano";
+import { diaDelReporte, fmtDia, hoyEnTexas, ordenPorDia } from "@/lib/almacen-ops/fecha-del-dano";
+import { ATAJOS, NOMBRE_DE_ATAJO, eleccionAUrl, eleccionDeUrl, etiquetaDeRango, filtrarPorRango, perdidaEnRango, rangoDeAtajo, rangoDeEleccion, type Atajo, type Eleccion } from "@/lib/almacen-ops/rango-de-merma";
 import type { Contexto } from "./Operaciones";
 
 const LIMITE = 500;
@@ -26,7 +28,26 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const { t, lang } = usePrefs();
   const [filas, setFilas] = useState<Reporte[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pestana, setPestana] = useState<"lista" | "merma">("lista");
+  // D-911: la pestaña y el rango de la merma viven en la URL (?pestana=merma&rango=mes…): aguantan un refresh y se comparten.
+  const router = useRouter();
+  const ruta = usePathname();
+  const params = useSearchParams();
+  const hoy = hoyEnTexas();
+  const pestana: "lista" | "merma" = modo === "todos" && params.get("pestana") === "merma" ? "merma" : "lista";
+  const eleccion = useMemo(() => eleccionDeUrl(params), [params]);
+  const irA = useCallback((cambios: { pestana?: "lista" | "merma"; eleccion?: Eleccion }) => {
+    const q = new URLSearchParams();
+    const p = cambios.pestana ?? pestana;
+    if (p === "merma") q.set("pestana", "merma");
+    for (const [k, v] of Object.entries(eleccionAUrl(cambios.eleccion ?? eleccion))) q.set(k, v);
+    const qs = q.toString();
+    router.replace(qs ? `${ruta}?${qs}` : ruta, { scroll: false });
+  }, [router, ruta, pestana, eleccion]);
+  const setPestana = (p: "lista" | "merma") => irA({ pestana: p });
+  const elegir = (atajo: Atajo) => irA({ eleccion: atajo === "otro"
+    // Al pasar a «a mano» se arranca con el rango del atajo que estaba puesto, para solo ajustar un extremo.
+    ? { atajo, ...(eleccion.atajo === "otro" ? { desde: eleccion.desde, hasta: eleccion.hasta } : rangoDeAtajo(eleccion.atajo, hoy)) }
+    : { atajo, desde: "", hasta: "" } });
   const [tipo, setTipo] = useState<TipoDeReporte | "">("");
   const [tienda, setTienda] = useState("");
   const [empleado, setEmpleado] = useState("");
@@ -63,11 +84,16 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     return true;
   }), [propias, tipo, tienda, empleado, desde, hasta]);
   const cuenta = (k: TipoDeReporte) => propias.filter((r) => r.kind === k).length;
-  const nombre = (id: string) => ctx.personas.find((p) => p.id === id)?.full_name ?? "—";
   const nombreTipo = (k: TipoDeReporte) => (lang === "es" ? INFO_DE_TIPO[k].es : INFO_DE_TIPO[k].en);
 
-  const totales = useMemo(() => totalesPorTienda(propias.filter((r) => r.kind === "scrap"), new Date()), [propias]);
-  const tiendasDeMerma = Object.keys(totales).filter((k) => k !== "*").sort();
+  const mermas = useMemo(() => propias.filter((r) => r.kind === "scrap"), [propias]);
+  const totales = useMemo(() => totalesPorTienda(mermas, new Date()), [mermas]);
+  // D-911: el rango elegido manda sobre la lista de merma y sobre la pérdida por tienda; todo por el día en que se rompió.
+  const rango = useMemo(() => rangoDeEleccion(eleccion, hoy), [eleccion, hoy]);
+  const mermasEnRango = useMemo(() => (rango ? filtrarPorRango(mermas, rango) : []), [mermas, rango]);
+  const enRango = useMemo(() => (rango ? perdidaEnRango(mermas, rango) : { "*": 0 }), [mermas, rango]);
+  const etiqueta = rango ? etiquetaDeRango(rango, lang, hoy) : "—";
+  const tiendasDeMerma = Array.from(new Set([...Object.keys(totales), ...Object.keys(enRango)])).filter((k) => k !== "*").sort();
 
   return (
     <section className="ops-reportes" data-modo={modo}>
@@ -88,7 +114,25 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
 
       {filas && pestana === "merma" && (
         <div className="ops-merma" data-merma>
+          <div className="filters-oneline ops-filtros" role="group" aria-label={t("Date range", "Rango de fechas")} data-rango-atajos>
+            {ATAJOS.map((a) => (
+              <button type="button" key={a} className={`chip${eleccion.atajo === a ? " active" : ""}`} onClick={() => elegir(a)} data-atajo={a} aria-pressed={eleccion.atajo === a}>
+                {lang === "es" ? NOMBRE_DE_ATAJO[a].es : NOMBRE_DE_ATAJO[a].en}
+              </button>
+            ))}
+          </div>
+          {eleccion.atajo === "otro" && (
+            <div className="ops-filtros-campos" data-rango-a-mano>
+              <span className="ops-fecha">{t("From", "Desde")} <input type="date" value={eleccion.desde} max={hoy} onChange={(e) => irA({ eleccion: { ...eleccion, desde: e.target.value } })} aria-label={t("From", "Desde")} data-campo="rango-desde" /></span>
+              <span className="ops-fecha">{t("To", "Hasta")} <input type="date" value={eleccion.hasta} max={hoy} onChange={(e) => irA({ eleccion: { ...eleccion, hasta: e.target.value } })} aria-label={t("To", "Hasta")} data-campo="rango-hasta" /></span>
+              {!rango && <span className="ops-aviso ops-aviso-error" role="alert" data-rango-invalido>{t("“From” must be on or before “To”.", "«Desde» no puede ir después de «Hasta».")}</span>}
+            </div>
+          )}
           <div className="ops-merma-totales">
+            <div className="ops-merma-total ops-merma-total-rango" data-total-rango={enRango["*"]}>
+              <span className="ops-merma-cifra">{fmtMoney(enRango["*"])}</span>
+              <span data-etiqueta-rango>{etiqueta}</span>
+            </div>
             {([["semana", "This week", "Esta semana"], ["mes", "This month", "Este mes"], ["todo", "All time", "Siempre"]] as const).map(([k, en, es]) => (
               <div key={k} className="ops-merma-total">
                 <span className="ops-merma-cifra">{fmtMoney(totales["*"]?.[k] ?? 0)}</span>
@@ -97,18 +141,22 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
             ))}
           </div>
           <div className="tbl-scroll tbl-caja">
-            <table className="orders">
-              <thead><tr><th>{t("Store", "Tienda")}</th><th>{t("This week", "Esta semana")}</th><th>{t("This month", "Este mes")}</th><th>{t("All time", "Siempre")}</th></tr></thead>
+            <table className="orders" data-perdida-por-tienda>
+              <thead><tr><th>{t("Store", "Tienda")}</th><th className="ops-col-rango">{etiqueta}</th><th>{t("This week", "Esta semana")}</th><th>{t("This month", "Este mes")}</th><th>{t("All time", "Siempre")}</th></tr></thead>
               <tbody>
-                {tiendasDeMerma.length === 0 && <tr><td colSpan={4} className="hint">{t("No scrap reported yet.", "Todavía no hay merma reportada.")}</td></tr>}
+                {tiendasDeMerma.length === 0 && <tr><td colSpan={5} className="hint">{t("No scrap reported yet.", "Todavía no hay merma reportada.")}</td></tr>}
                 {tiendasDeMerma.map((s) => (
-                  <tr key={s}><td>{s}</td><td className="num">{fmtMoney(totales[s].semana)}</td><td className="num">{fmtMoney(totales[s].mes)}</td><td className="num">{fmtMoney(totales[s].todo)}</td></tr>
+                  <tr key={s} data-tienda={s}><td>{s}</td><td className="num ops-col-rango" data-perdida-rango={enRango[s] ?? 0}>{fmtMoney(enRango[s] ?? 0)}</td><td className="num">{fmtMoney(totales[s]?.semana ?? 0)}</td><td className="num">{fmtMoney(totales[s]?.mes ?? 0)}</td><td className="num">{fmtMoney(totales[s]?.todo ?? 0)}</td></tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="hint" data-totales-por="fecha-del-dano">{t("Weeks and months go by the date the material was broken, not the date it was reported. ", "Las semanas y los meses van por el día en que se rompió el material, no por el día en que se reportó. ")}{t(`Loss = damaged pieces × the product's cost per piece when it was reported (pieces usable as samples are not counted). A customer return without a CRMA is not counted as loss until its CRMA is added. Based on the latest ${LIMITE} reports you can see.`,
+          <p className="hint" data-totales-por="fecha-del-dano">{t("The range, weeks and months go by the date the material was broken, not the date it was reported. ", "El rango, las semanas y los meses van por el día en que se rompió el material, no por el día en que se reportó. ")}{t(`Loss = damaged pieces × the product's cost per piece when it was reported (pieces usable as samples are not counted). A customer return without a CRMA is not counted as loss until its CRMA is added. Based on the latest ${LIMITE} reports you can see.`,
             `Pérdida = piezas dañadas × el costo por pieza del producto al reportarse (las que sirven de muestra no cuentan). Una devolución de cliente sin CRMA no cuenta como pérdida hasta que se le pone el CRMA. Sobre los últimos ${LIMITE} reportes que puedes ver.`)}</p>
+
+          <h3 className="ops-merma-titulo">{t("Scrap in this range", "Merma en el rango")} <span className="count-tag" data-cuenta-rango>{mermasEnRango.length}</span></h3>
+          <TablaDeReportes filas={mermasEnRango} ctx={ctx} onAbrir={setAbierto} data-lista="merma-en-rango"
+            vacio={rango ? t("No scrap broken in this range.", "No se rompió nada en este rango.") : t("Fix the dates to see the list.", "Corrige las fechas para ver la lista.")} />
         </div>
       )}
 
@@ -136,41 +184,50 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
               <span className="ops-fecha">{t("To", "Hasta")} <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} aria-label={t("To", "Hasta")} /></span>
             </div>
           )}
-          <div className="tbl-scroll tbl-caja">
-            <table className="orders">
-              <thead>
-                <tr>
-                  <th title={t("Scrap: the date it was broken. Others: when it was reported.", "Merma: el día en que se rompió. Los demás: cuándo se reportó.")}>{t("When", "Cuándo")}</th><th>{t("Type", "Tipo")}</th><th>{t("Store", "Tienda")}</th>
-                  <th>{t("Filed by", "Lo llenó")}</th><th>{t("Employee", "Empleado")}</th><th>{t("Detail", "Detalle")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibles.length === 0 && (
-                  <tr><td colSpan={6} className="hint">{modo === "mios"
-                    ? t("You haven't filed any reports yet. Pick one on the Warehouse Ops screen.", "Todavía no has llenado reportes. Elige uno en la pantalla de Operaciones.")
-                    : t("No reports match these filters.", "Ningún reporte coincide con estos filtros.")}</td></tr>
-                )}
-                {visibles.map((r) => (
-                  <tr key={r.id} onClick={() => setAbierto(r)} className="ops-fila-tabla" data-reporte={r.id}>
-                    <td style={{ whiteSpace: "nowrap" }} data-dia={diaDelReporte(r)}>{r.kind === "scrap" ? fmtDia(diaDelReporte(r), lang) : fmtDateTime(r.created_at)}</td>
-                    <td style={{ whiteSpace: "nowrap" }}>{INFO_DE_TIPO[r.kind].emoji} {nombreTipo(r.kind)}</td>
-                    <td>{r.store}</td>
-                    <td>{r.author_name ?? nombre(r.author_id)}</td>
-                    <td>{r.subject_ids.map(nombre).join(", ")}</td>
-                    <td className="ops-detalle-corto">{r.kind === "scrap"
-                      ? `${r.product_not_in_catalog ? `${r.product_name ?? ""} (${t("not in catalog", "fuera de catálogo")})` : r.product_sku ?? ""} · ${repartoDeReporte(r).damaged} ${t("damaged", "dañadas")} · ${fmtMoney(r.total_loss)}${cuentaComoPerdida(r) ? "" : ` (${t("no CRMA", "sin CRMA")})`}`
-                      : String(r.answers.description ?? "")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TablaDeReportes filas={visibles} ctx={ctx} onAbrir={setAbierto} data-lista="todos"
+            vacio={modo === "mios"
+              ? t("You haven't filed any reports yet. Pick one on the Warehouse Ops screen.", "Todavía no has llenado reportes. Elige uno en la pantalla de Operaciones.")
+              : t("No reports match these filters.", "Ningún reporte coincide con estos filtros.")} />
         </>
       )}
 
       {abierto && <Tarjeta r={abierto} ctx={ctx} onCerrar={() => setAbierto(null)}
         onCambio={(n) => { setAbierto(n); setFilas((f) => (f ?? []).map((x) => (x.id === n.id ? n : x))); }} />}
     </section>
+  );
+}
+
+/** La tabla de reportes (la de Órdenes, CLAUDE.md); la usan la lista y la pestaña de merma. Cada fila se abre como tarjeta. */
+function TablaDeReportes({ filas, ctx, onAbrir, vacio, "data-lista": dataLista }: { filas: Reporte[]; ctx: Contexto; onAbrir: (r: Reporte) => void; vacio: string; "data-lista": string }) {
+  const { t, lang } = usePrefs();
+  const nombre = (id: string) => ctx.personas.find((p) => p.id === id)?.full_name ?? "—";
+  const nombreTipo = (k: TipoDeReporte) => (lang === "es" ? INFO_DE_TIPO[k].es : INFO_DE_TIPO[k].en);
+  return (
+    <div className="tbl-scroll tbl-caja">
+      <table className="orders" data-lista={dataLista}>
+        <thead>
+          <tr>
+            <th title={t("Scrap: the date it was broken. Others: when it was reported.", "Merma: el día en que se rompió. Los demás: cuándo se reportó.")}>{t("When", "Cuándo")}</th><th>{t("Type", "Tipo")}</th><th>{t("Store", "Tienda")}</th>
+            <th>{t("Filed by", "Lo llenó")}</th><th>{t("Employee", "Empleado")}</th><th>{t("Detail", "Detalle")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filas.length === 0 && <tr><td colSpan={6} className="hint">{vacio}</td></tr>}
+          {filas.map((r) => (
+            <tr key={r.id} onClick={() => onAbrir(r)} className="ops-fila-tabla" data-reporte={r.id}>
+              <td style={{ whiteSpace: "nowrap" }} data-dia={diaDelReporte(r)}>{r.kind === "scrap" ? fmtDia(diaDelReporte(r), lang) : fmtDateTime(r.created_at)}</td>
+              <td style={{ whiteSpace: "nowrap" }}>{INFO_DE_TIPO[r.kind].emoji} {nombreTipo(r.kind)}</td>
+              <td>{r.store}</td>
+              <td>{r.author_name ?? nombre(r.author_id)}</td>
+              <td>{r.subject_ids.map(nombre).join(", ")}</td>
+              <td className="ops-detalle-corto">{r.kind === "scrap"
+                ? `${r.product_not_in_catalog ? `${r.product_name ?? ""} (${t("not in catalog", "fuera de catálogo")})` : r.product_sku ?? ""} · ${repartoDeReporte(r).damaged} ${t("damaged", "dañadas")} · ${fmtMoney(r.total_loss)}${cuentaComoPerdida(r) ? "" : ` (${t("no CRMA", "sin CRMA")})`}`
+                : String(r.answers.description ?? "")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

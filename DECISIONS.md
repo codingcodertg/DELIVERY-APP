@@ -51006,3 +51006,9 @@ Sello `deliveries` 1.560.0; repo 1.763.0.
 En Entregas → Recorrido, la tarjeta de cada chofer muestra qué tanto siguió la ruta que el Gestor de Rutas programó ese día: un porcentaje de apego (paradas hechas en el orden planeado), paradas visitadas, fuera de orden y saltadas, y millas y tiempo total programados contra reales con la diferencia. Al elegir un chofer se abre el detalle «Plan vs real» con cada parada y su estado, y la ruta programada se dibuja punteada junto a la línea real del GPS. Los números salen del mismo motor que los Reportes de choferes y se refrescan cada 3 minutos mientras el día está en vivo; sin ruta programada se indica «No planned route».
 
 Sello `deliveries` 1.561.0; repo 1.764.0.
+
+## D-911 · Warehouse Ops: rango de fechas en la merma
+
+En Reports → Scrap, los gerentes eligen Hoy, Esta semana, Semana pasada, Este mes, Mes pasado, Últimos 30 días o un De/Hasta propio; la tabla de pérdida por tienda y la lista de merma siguen el rango elegido, contando por la fecha en que se rompió el material. El rango queda en el enlace, así que sobrevive a recargar y se puede compartir.
+
+Sello `warehouse_ops` 0.7.0; repo 1.765.0.
