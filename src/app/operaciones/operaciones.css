@@ -222,3 +222,15 @@ textarea.ops-campo { min-height: 150px; resize: vertical; }
 /* D-917: los dos botones de la foto de merma (cámara y galería), la cámara como principal. */
 .ops-botones-foto { display: grid; gap: 8px; }
 .ops-camara-principal { border-color: var(--accent); border-style: solid; }
+
+/* Varias preguntas en una pantalla (D-NEXT, pedido fb02f65a de Roberto): fecha + quién lo rompió + quién lo reportó. */
+.ops-grupo { display: flex; flex-direction: column; gap: 22px; }
+.ops-grupo-campo h3 { margin: 0 0 8px; font-size: 17px; font-weight: 700; line-height: 1.25; color: var(--text); }
+.ops-grupo-campo .hint { margin-top: -4px; margin-bottom: 8px; }
+
+/* El recordatorio de la política de merma arriba del resumen (D-NEXT, pedido 319a0f18 de Roberto). */
+.ops-recordatorio {
+  margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; font-size: 15px; line-height: 1.4; font-weight: 600;
+  color: var(--text); background: color-mix(in srgb, var(--amber) 16%, var(--card));
+  border-left: 5px solid var(--amber);
+}

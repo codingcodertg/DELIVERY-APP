@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { PASOS, PASO_QUIEN_REPORTO, pasoCompleto, pasosVisibles, primerHueco, respuestasIniciales, respuestasParaGuardar } from "./pasos";
+import { PASOS, PASO_CUANDO_Y_QUIEN, PASO_QUIEN_REPORTO, camposVisibles, pasoCompleto, pasosPlanos, primerHueco, respuestasIniciales, respuestasParaGuardar } from "./pasos";
 import { elegidosAlCambiarDeTienda, nombreOTexto } from "./personas";
 
 /**
@@ -22,12 +22,14 @@ const completo = {
 const gente = [{ id: "11111111-1111-4111-8111-111111111111", full_name: "Ana García" }];
 
 describe("«¿Quién lo reportó?» en la merma", () => {
-  const paso = PASOS.scrap.find((p) => p.id === PASO_QUIEN_REPORTO)!;
+  const paso = pasosPlanos("scrap").find((p) => p.id === PASO_QUIEN_REPORTO)!;
 
-  it("va justo después de «¿quién lo rompió?» y antes del CRMA", () => {
-    const ids = PASOS.scrap.map((p) => p.id);
-    expect(ids.indexOf("reported_by")).toBe(ids.indexOf("broken_by") + 1);
-    expect(ids.indexOf("crma")).toBe(ids.indexOf("reported_by") + 1);
+  it("va justo después de «¿quién lo rompió?», en la misma pantalla que la fecha (D-NEXT, pedido fb02f65a), la última antes del resumen", () => {
+    const grupo = PASOS.scrap.find((p) => p.id === PASO_CUANDO_Y_QUIEN)!;
+    expect(grupo.tipo).toBe("grupo");
+    const ids = grupo.tipo === "grupo" ? grupo.campos.map((p) => p.id) : [];
+    expect(ids).toEqual(["broken_on", "broken_by", "reported_by"]);
+    expect(PASOS.scrap[PASOS.scrap.length - 1].id).toBe(PASO_CUANDO_Y_QUIEN);
     expect(PASO_QUIEN_REPORTO).toBe("reported_by");
   });
 
@@ -37,14 +39,14 @@ describe("«¿Quién lo reportó?» en la merma", () => {
       opcional: true, libre: true, en: "Who reported it? (optional)", es: "¿Quién lo reportó? (opcional)",
       ayuda: { en: "If someone else told you about it, put their name", es: "Si otra persona te avisó, pon su nombre" },
     });
-    expect(PASOS.scrap.find((p) => p.id === "broken_by")).not.toHaveProperty("libre");
+    expect(pasosPlanos("scrap").find((p) => p.id === "broken_by")).not.toHaveProperty("libre");
   });
 
   it("es opcional: «Siguiente» funciona vacío y no deja hueco en el resumen", () => {
     expect(pasoCompleto(paso, {})).toBe(true);
     expect(pasoCompleto(paso, { reported_by: [] })).toBe(true);
     expect(primerHueco("scrap", completo, "2026-11-07")).toBe(-1);
-    expect(pasosVisibles("scrap", completo).map((p) => p.id)).toContain("reported_by");
+    expect(camposVisibles("scrap", completo).map((p) => p.id)).toContain("reported_by");
   });
 
   it("no se rellena solo al empezar un reporte", () => {

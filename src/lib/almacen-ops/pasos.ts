@@ -21,13 +21,19 @@ export type Paso =
   | { id: string; tipo: "producto"; en: string; es: string }
   | { id: string; tipo: "cantidad"; en: string; es: string }
   // Un día (YYYY-MM-DD), obligatorio y nunca futuro (266: cuándo se rompió la merma).
-  | { id: string; tipo: "fecha"; en: string; es: string };
+  | { id: string; tipo: "fecha"; en: string; es: string }
+  // Varias preguntas en UNA pantalla (D-NEXT, pedido fb02f65a de Roberto: «These 3 can be on the same page to reduce
+  // # of pages»). Cada campo guarda su propia respuesta bajo su propio id (`r[campo.id]`); el grupo no guarda nada.
+  | { id: string; tipo: "grupo"; en: string; es: string; campos: Paso[] };
 
 /** El paso de la merma que pregunta quién avisó (D-915). Se queda en `answers.reported_by`; no tiene columna. */
 export const PASO_QUIEN_REPORTO = "reported_by";
 
 /** El paso de la merma que pregunta cuándo se rompió (266). Va a `warehouse_reports.broken_on`. */
 export const PASO_FECHA_DEL_DANO = "broken_on";
+
+/** La pantalla de la merma que junta fecha + quién lo rompió + quién lo reportó (D-NEXT, pedido fb02f65a). */
+export const PASO_CUANDO_Y_QUIEN = "when_and_who";
 
 /**
  * El producto de la merma. `libre` (migración 252): no está en el catálogo; `id` es null, el nombre lo escribió quien
@@ -70,6 +76,23 @@ export const TIPOS_DE_MERMA: Opcion[] = [
  */
 export const ORIGENES_DE_MERMA: Opcion[] = [
   { v: "internal", en: "Internal", es: "Interno" }, { v: "customer_return", en: "Customer return", es: "Devolución de cliente" },
+];
+/**
+ * Por qué se dañó. Roberto (pedido c8256a2e, D-NEXT): «Need to distinguish between customer transportation and if it
+ * was a store's delivery». «Transporte» se parte en dos; el valor viejo `transportation` sigue en la base y se lee
+ * como «Transporte (sin especificar)» (MOTIVOS_VIEJOS), pero ya no se puede elegir. Migración 269: el `check` de la
+ * columna `reason` admite los dos nuevos.
+ */
+export const MOTIVOS_DE_MERMA: Opcion[] = [
+  { v: "fell", en: "It fell", es: "Se cayó" }, { v: "strap", en: "Strap broke", es: "Se rompió el fleje" },
+  { v: "forklift", en: "Forklift", es: "Montacargas" },
+  { v: "transportation_customer", en: "Transportation – customer", es: "Transporte – del cliente" },
+  { v: "transportation_delivery", en: "Transportation – store delivery", es: "Transporte – entrega de la tienda" },
+  { v: "other", en: "Other", es: "Otro" },
+];
+/** Motivos que ya no se eligen pero siguen guardados en reportes viejos. */
+export const MOTIVOS_VIEJOS: Opcion[] = [
+  { v: "transportation", en: "Transportation (unspecified)", es: "Transporte (sin especificar)" },
 ];
 export type Respuestas = Record<string, unknown>;
 
@@ -127,19 +150,24 @@ export const PASOS: Record<TipoDeReporte, Paso[]> = {
     { id: "qty", tipo: "cantidad", en: "How many pieces?", es: "¿Cuántas piezas?" },
     // De vuelta en su sitio (D-893 / D-894), tras retirar Roberto el pedido 714584e6.
     { id: "return_type", tipo: "opcion", en: "Where did it come from?", es: "¿De dónde viene?", opciones: ORIGENES_DE_MERMA },
-    { id: "reason", tipo: "opcion", en: "Reason", es: "Motivo", opciones: [o("fell", "It fell", "Se cayó"), o("strap", "Strap broke", "Se rompió el fleje"), o("forklift", "Forklift", "Montacargas"), o("transportation", "Transportation", "Transporte"), o("other", "Other", "Otro")] },
-    // Cuándo se rompió (pedido del dueño, 266): por defecto hoy en Texas, se puede cambiar, nunca futuro.
-    { id: PASO_FECHA_DEL_DANO, tipo: "fecha", en: "What date was it broken?", es: "¿Qué día se rompió?" },
-    { id: "broken_by", tipo: "personas", opcional: true, en: "Who broke it? (optional)", es: "¿Quién lo rompió? (opcional)" },
-    // Quién avisó (Roberto, D-915): «maybe another associate told the supervisor that his coworker broke it». Distinto
-    // de quién lo rompió y de quién lo llenó (author_id, que puede ser la cuenta compartida del almacén). Va en
-    // `answers.reported_by` (ids de empleados o nombres escritos a mano); nunca se rellena solo.
-    { id: PASO_QUIEN_REPORTO, tipo: "personas", opcional: true, libre: true, en: "Who reported it? (optional)", es: "¿Quién lo reportó? (opcional)",
-      ayuda: { en: "If someone else told you about it, put their name", es: "Si otra persona te avisó, pon su nombre" } },
-    // Solo si fue devolución de un cliente (pedido 60bbd7ed). OPCIONAL otra vez (la 254 lo exigía; la 263 ya no): suele
-    // llegar después del reporte y el gerente lo pone desde la tarjeta. Sin CRMA la devolución no cuenta como pérdida.
+    // El CRMA va JUSTO después del origen (Roberto, pedido 0516ed1a, D-NEXT): solo sale si fue devolución de un cliente
+    // (pedido 60bbd7ed). OPCIONAL (la 254 lo exigía; la 263 ya no): suele llegar después del reporte y el gerente lo
+    // pone desde la tarjeta. Sin CRMA la devolución no cuenta como pérdida.
     { id: "crma", tipo: "texto", corto: true, opcional: true, si: { paso: "return_type", vale: "customer_return" }, en: "CRMA / claim # (optional)", es: "CRMA / n.º de reclamo (opcional)" },
+    { id: "reason", tipo: "opcion", en: "Reason", es: "Motivo", opciones: MOTIVOS_DE_MERMA },
+    // Los comentarios van JUSTO después del motivo (Roberto, pedido 2121eb16, D-NEXT).
     { id: "comments", tipo: "texto", opcional: true, en: "Comments (optional)", es: "Comentarios (opcional)" },
+    // Una sola pantalla con tres campos (Roberto, pedido fb02f65a, D-NEXT); cada uno se guarda igual que antes.
+    { id: PASO_CUANDO_Y_QUIEN, tipo: "grupo", en: "When and who", es: "Cuándo y quién", campos: [
+      // Cuándo se rompió (pedido del dueño, 266): por defecto hoy en Texas, se puede cambiar, nunca futuro.
+      { id: PASO_FECHA_DEL_DANO, tipo: "fecha", en: "What date was it broken?", es: "¿Qué día se rompió?" },
+      { id: "broken_by", tipo: "personas", opcional: true, en: "Who broke it? (optional)", es: "¿Quién lo rompió? (opcional)" },
+      // Quién avisó (Roberto, D-915): «maybe another associate told the supervisor that his coworker broke it». Distinto
+      // de quién lo rompió y de quién lo llenó (author_id, que puede ser la cuenta compartida del almacén). Va en
+      // `answers.reported_by` (ids de empleados o nombres escritos a mano); nunca se rellena solo.
+      { id: PASO_QUIEN_REPORTO, tipo: "personas", opcional: true, libre: true, en: "Who reported it? (optional)", es: "¿Quién lo reportó? (opcional)",
+        ayuda: { en: "If someone else told you about it, put their name", es: "Si otra persona te avisó, pon su nombre" } },
+    ] },
   ],
 };
 
@@ -152,10 +180,26 @@ export function pasosVisibles(tipo: TipoDeReporte, r: Respuestas): Paso[] {
   return PASOS[tipo].filter((p) => seMuestra(p, r));
 }
 
+/** Las preguntas de una pantalla: ella misma, o los campos de un grupo (D-NEXT). */
+export function camposDe(p: Paso): Paso[] {
+  return p.tipo === "grupo" ? p.campos : [p];
+}
+
+/** Todas las preguntas del tipo, con los grupos abiertos (cada campo por separado). */
+export function pasosPlanos(tipo: TipoDeReporte): Paso[] {
+  return PASOS[tipo].flatMap(camposDe);
+}
+
+/** Las preguntas visibles con los grupos abiertos: lo que se guarda y lo que sale en el resumen. */
+export function camposVisibles(tipo: TipoDeReporte, r: Respuestas): Paso[] {
+  return pasosVisibles(tipo, r).flatMap(camposDe).filter((p) => seMuestra(p, r));
+}
+
 /** ¿Está contestado lo bastante para seguir? */
 export function pasoCompleto(p: Paso, r: Respuestas, hoy: string = hoyEnTexas()): boolean {
   const v = r[p.id];
   switch (p.tipo) {
+    case "grupo": return p.campos.every((c) => !seMuestra(c, r) || pasoCompleto(c, r, hoy));
     case "fecha": return fechaDelDanoValida(v, hoy);
     case "foto": return !p.obligatoria || (Array.isArray(v) && v.length > 0);
     case "personas": return !!p.opcional || (Array.isArray(v) && v.length > 0);
@@ -182,6 +226,16 @@ export function primerHuecoSalvoFoto(tipo: TipoDeReporte, r: Respuestas, hoy: st
 }
 
 /**
+ * Dónde se abre un borrador (D-NEXT): el índice guardado, pero nunca más allá del resumen. Los borradores de antes
+ * de reordenar la merma traen un índice de la lista vieja (que tenía más pantallas); se abren igual, en esa posición
+ * o en el resumen, y todas las respuestas se conservan porque viven por id.
+ */
+export function pasoInicial(tipo: TipoDeReporte, r: Respuestas, guardado: number | undefined | null): number {
+  const n = typeof guardado === "number" && Number.isFinite(guardado) && guardado >= 0 ? Math.floor(guardado) : 0;
+  return Math.min(n, pasosVisibles(tipo, r).length);
+}
+
+/**
  * Las respuestas con las que arranca un reporte (266): la merma trae la fecha del daño puesta en hoy (Texas). Un
  * borrador de antes de la 266, o uno guardado con una fecha que ya no vale, también la recibe; una fecha válida que la
  * persona eligió se respeta.
@@ -195,8 +249,8 @@ export function respuestasIniciales(tipo: TipoDeReporte, previas?: Respuestas | 
 /** Lo que va a `answers`: solo lo que se muestra (si «lesión» pasa a «no», su texto no viaja), recortado. */
 export function respuestasParaGuardar(tipo: TipoDeReporte, r: Respuestas): Respuestas {
   const out: Respuestas = {};
-  for (const p of pasosVisibles(tipo, r)) {
-    if (p.tipo === "foto" || p.tipo === "producto" || p.tipo === "cantidad") continue;
+  for (const p of camposVisibles(tipo, r)) {
+    if (p.tipo === "foto" || p.tipo === "producto" || p.tipo === "cantidad" || p.tipo === "grupo") continue;
     const v = r[p.id];
     if (v === undefined || v === "" || (Array.isArray(v) && v.length === 0)) continue;
     out[p.id] = typeof v === "string" ? v.trim() : v;
@@ -212,7 +266,8 @@ export function empleadosDelReporte(tipo: TipoDeReporte, r: Respuestas): string[
 }
 
 export function etiquetaDeOpcion(tipo: TipoDeReporte, pasoId: string, v: unknown, lang: "en" | "es"): string {
-  const p = PASOS[tipo].find((x) => x.id === pasoId);
+  const p = pasosPlanos(tipo).find((x) => x.id === pasoId);
+  if (tipo === "scrap" && pasoId === "reason") { const x = MOTIVOS_DE_MERMA.find((y) => y.v === v) ?? MOTIVOS_VIEJOS.find((y) => y.v === v); return x ? x[lang] : ""; }
   if (tipo === "scrap" && pasoId === "scrap_type") { const x = TIPOS_DE_MERMA.find((y) => y.v === v); return x ? x[lang] : ""; }
   if (tipo === "scrap" && pasoId === "return_type") { const x = ORIGENES_DE_MERMA.find((y) => y.v === v); return x ? x[lang] : ""; }
   if (p?.tipo === "opcion") { const x = p.opciones.find((y) => y.v === v); if (x) return x[lang]; }
