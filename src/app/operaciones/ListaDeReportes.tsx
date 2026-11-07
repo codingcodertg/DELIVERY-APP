@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -11,8 +11,9 @@ import { PASOS, PASO_QUIEN_REPORTO, etiquetaDeOpcion } from "@/lib/almacen-ops/p
 import { nombreOTexto } from "@/lib/almacen-ops/personas";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
 import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, buscarProductos, corregirMerma, corregirOrigenDeMerma, enlacesDeFotos, guardarHuellas, reportesConLaFoto, subirFoto, type Reporte } from "@/lib/almacen-ops/datos";
-import { MAX_FOTOS, avisoDeRepetida, duplicadosPorHuella, etiquetaSinFoto, fotoPendienteVencida, fotosSinHuella, hashDeDataUrl, iconoDeFotos, sha256Hex, sinFoto, type Repetida } from "@/lib/almacen-ops/fotos";
-import { jpegComprimido } from "@/lib/camara-de-varias-fotos";
+import { MAX_FOTOS, avisoDeRepetida, duplicadosPorHuella, etiquetaSinFoto, fotoPendienteVencida, fotosSinHuella, iconoDeFotos, sha256Hex, sinFoto, type Repetida } from "@/lib/almacen-ops/fotos";
+import { BotonesDeFoto } from "./BotonesDeFoto";
+import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
 import { ORIGENES_DE_MERMA, costoDelCampo, type ProductoElegido } from "@/lib/almacen-ops/pasos";
 import { cuentaComoPerdida, perdidaDeMerma, repartoDeReporte } from "@/lib/almacen-ops/perdida";
 import { puedeCorregirMerma, puedeVerReporte } from "@/lib/almacen-ops/visibilidad";
@@ -400,24 +401,29 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Conte
  */
 function AgregarFoto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onListo: (n: Reporte) => void }) {
   const { t, lang } = usePrefs();
-  const ref = useRef<HTMLInputElement>(null);
   const [lista, setLista] = useState<{ jpg: string; huella: string; otros: Repetida[] }[]>([]);
   const [leyendo, setLeyendo] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dia = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? fmtDia(iso, lang) : fmtDateTime(iso));
-  const agrega = async (f: File | undefined) => {
-    if (!f || lista.length >= MAX_FOTOS) return;
+  // D-917: la misma lectura que el asistente (bytes en el acto, decodificador con respaldo, motivo visible y en consola).
+  const agrega = async (f: File, origen: "camara" | "galeria") => {
+    if (lista.length >= MAX_FOTOS) return;
     setLeyendo(true); setError(null);
     try {
-      const img = await createImageBitmap(f);
-      const jpg = jpegComprimido(img, img.width, img.height);
-      img.close();
-      const huella = await hashDeDataUrl(jpg);
+      const leida = await leerFotoDelTelefono(f);
+      if (!leida.ok) {
+        console.error(detalleParaConsola(leida, f, navigator.userAgent, origen));
+        setError(mensajeDeFotoFallida(leida.motivo, lang));
+        return;
+      }
+      const { jpg, huella } = leida;
       const otros = ctx.demo ? [] : await reportesConLaFoto(createClient(), huella).catch(() => [] as Repetida[]);
       setLista((x) => [...x, { jpg, huella, otros: otros.filter((o) => o.reporteId !== r.id) }]);
-    } catch { setError(t("That photo could not be read. Try another one.", "No se pudo leer esa foto. Prueba otra.")); }
-    finally { setLeyendo(false); }
+    } catch (e) {
+      console.error(`[merma/foto] inesperado · origen=${origen} · ua=${navigator.userAgent}`, e);
+      setError(mensajeDeFotoFallida("no-decodifica", lang));
+    } finally { setLeyendo(false); }
   };
   const guarda = async () => {
     if (lista.length === 0) return;
@@ -450,12 +456,10 @@ function AgregarFoto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onListo: 
         <p key={n} className="ops-aviso ops-aviso-error" role="alert" data-aviso="foto-repetida" data-foto={n}>⚠️ {avisoDeRepetida(x.otros[0], lang, dia)} {t("Keep it only if it is the same damage.", "Déjala solo si es el mismo daño.")}</p>
       ))}
       {lista.length < MAX_FOTOS && (
-        <button type="button" className="ops-opcion ops-camara" onClick={() => ref.current?.click()} disabled={leyendo || guardando} data-accion="foto">
-          📷 {leyendo ? t("Reading photo…", "Leyendo la foto…") : t("Take the photo of the pieces", "Tomar la foto de las piezas")}
-        </button>
+        <BotonesDeFoto onFoto={(f, origen) => void agrega(f, origen)} leyendo={leyendo} disabled={guardando}
+          etiquetaCamara={t("Take the photo of the pieces", "Tomar la foto de las piezas")} />
       )}
-      <input ref={ref} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { void agrega(e.target.files?.[0]); e.target.value = ""; }} />
-      {error && <p className="ops-aviso ops-aviso-error" role="alert">{error}</p>}
+      {error && <p className="ops-aviso ops-aviso-error" role="alert" data-aviso="foto-fallida">{error}</p>}
       <div className="modal-actions">
         <button type="button" className="btn btn-primary" onClick={() => void guarda()} disabled={lista.length === 0 || guardando} data-accion="guardar-foto">
           {guardando ? t("Saving…", "Guardando…") : t("Add photo and complete", "Agregar foto y completar")}

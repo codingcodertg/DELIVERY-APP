@@ -8,14 +8,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime, fmtMoney } from "@/lib/utils";
-import { jpegComprimido } from "@/lib/camara-de-varias-fotos";
+import { BotonesDeFoto } from "./BotonesDeFoto";
+import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
 import { INFO_DE_TIPO, esDeRrhh, type TipoDeReporte } from "@/lib/almacen-ops/tipos";
 import {
   costoDelCampo, empleadosDelReporte, etiquetaDeOpcion, pasoCompleto, pasosVisibles, primerHuecoSalvoFoto, productoLibre,
   respuestasIniciales, respuestasParaGuardar, type Paso, type ProductoElegido, type Respuestas,
 } from "@/lib/almacen-ops/pasos";
 import {
-  CLAVE_HASHES, CLAVE_PENDIENTE, MAX_FOTOS, avisoDeRepetida, fotosDe, hashDeDataUrl, hashesDe, motivoDeBloqueo,
+  CLAVE_HASHES, CLAVE_PENDIENTE, MAX_FOTOS, avisoDeRepetida, fotosDe, hashesDe, motivoDeBloqueo,
   puedeEnviar, puedeGuardarSinFoto, type Repetida,
 } from "@/lib/almacen-ops/fotos";
 import { fechaDelDanoValida, fmtDia, hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
@@ -590,7 +591,9 @@ function Fotos({ fotos, huellas, ctx, obligatoria, onCambio, onConfirmando }: {
   fotos: string[]; huellas: string[]; ctx: Contexto; obligatoria: boolean; onCambio: (f: string[], h: string[]) => void; onConfirmando: (x: boolean) => void;
 }) {
   const { t, lang } = usePrefs();
-  const ref = useRef<HTMLInputElement>(null);
+  // D-917: si la pantalla se desmonta a media lectura (o a media pregunta a la base), no se toca su estado.
+  const vivo = useRef(true);
+  useEffect(() => { vivo.current = true; return () => { vivo.current = false; }; }, []);
   const [error, setError] = useState<string | null>(null);
   const [leyendo, setLeyendo] = useState(false);
   // Por posición: los reportes que ya usaron esa foto, hasta que la confirmen («Keep it») o la quiten.
@@ -601,26 +604,32 @@ function Fotos({ fotos, huellas, ctx, obligatoria, onCambio, onConfirmando }: {
   useEffect(() => { onConfirmando(pendientes); }, [pendientes, onConfirmando]);
   useEffect(() => () => onConfirmando(false), [onConfirmando]);
   const dia = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? fmtDia(iso, lang) : fmtDateTime(iso));
-  const agrega = async (f: File | undefined) => {
-    if (!f || fotos.length >= MAX_FOTOS) return;
+  // D-917: `leerFotoDelTelefono` lee los bytes en el acto, decodifica con respaldo y nunca falla en silencio: el motivo
+  // se enseña y va a la consola con el aparato (user agent), para saber qué falló la próxima vez.
+  const agrega = async (f: File, origen: "camara" | "galeria") => {
+    if (fotos.length >= MAX_FOTOS) return;
     setLeyendo(true);
     try {
-      const img = await createImageBitmap(f);
-      const jpg = jpegComprimido(img, img.width, img.height);
-      img.close();
-      const huella = await hashDeDataUrl(jpg);
+      const leida = await leerFotoDelTelefono(f);
+      if (!vivo.current) return;
+      if (!leida.ok) {
+        console.error(detalleParaConsola(leida, f, navigator.userAgent, origen));
+        setError(mensajeDeFotoFallida(leida.motivo, lang, !obligatoria));
+        return;
+      }
+      const { jpg, huella } = leida;
       const n = fotos.length;
       onCambio([...fotos, jpg], [...huellas, huella]);
       setError(null);
       // ¿Ya se usó en este mismo reporte o en otro? (en el demo no hay base que preguntar)
       const enEste = huellas.includes(huella);
       const otros = ctx.demo ? [] : await reportesConLaFoto(createClient(), huella).catch(() => [] as Repetida[]);
+      if (!vivo.current) return;
       if (enEste || otros.length > 0) setRepetidas((x) => ({ ...x, [n]: otros }));
-    } catch {
-      setError(obligatoria
-        ? t("That photo could not be read. Try another one.", "No se pudo leer esa foto. Prueba otra.")
-        : t("That photo could not be read. Try another one, or tap Next to skip.", "No se pudo leer esa foto. Prueba otra, o toca Siguiente para saltarla."));
-    } finally { setLeyendo(false); }
+    } catch (e) {
+      console.error(`[merma/foto] inesperado · origen=${origen} · ua=${navigator.userAgent}`, e);
+      if (vivo.current) setError(mensajeDeFotoFallida("no-decodifica", lang, !obligatoria));
+    } finally { if (vivo.current) setLeyendo(false); }
   };
   const quita = (n: number) => {
     onCambio(fotos.filter((_, m) => m !== n), huellas.filter((_, m) => m !== n));
@@ -671,12 +680,10 @@ function Fotos({ fotos, huellas, ctx, obligatoria, onCambio, onConfirmando }: {
         );
       })}
       {fotos.length < MAX_FOTOS && (
-        <button type="button" className="ops-opcion ops-camara" onClick={() => ref.current?.click()} disabled={leyendo} data-accion="foto">
-          📷 {leyendo ? t("Reading photo…", "Leyendo la foto…") : fotos.length === 0 && obligatoria ? t("Take the photo of the pieces", "Tomar la foto de las piezas") : t("Take or choose a photo", "Tomar o elegir una foto")}
-        </button>
+        <BotonesDeFoto onFoto={(f, origen) => void agrega(f, origen)} leyendo={leyendo}
+          etiquetaCamara={fotos.length === 0 && obligatoria ? t("Take the photo of the pieces", "Tomar la foto de las piezas") : t("Take another photo", "Tomar otra foto")} />
       )}
-      <input ref={ref} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { void agrega(e.target.files?.[0]); e.target.value = ""; }} />
-      {error && <p className="ops-aviso ops-aviso-error">{error}</p>}
+      {error && <p className="ops-aviso ops-aviso-error" role="alert" data-aviso="foto-fallida">{error}</p>}
       {abierto && <Tarjeta r={abierto} ctx={ctx} onCerrar={() => setAbierto(null)} onCambio={setAbierto} />}
     </div>
   );

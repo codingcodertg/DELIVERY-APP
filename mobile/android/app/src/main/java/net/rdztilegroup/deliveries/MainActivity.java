@@ -10,5 +10,8 @@ public class MainActivity extends BridgeActivity {
         // clocks in.
         registerPlugin(BatteryGuardPlugin.class);
         super.onCreate(savedInstanceState);
+        // D-917: the camera of <input capture> when the app has no camera permission (asks; if denied, falls back to
+        // the gallery with a hint instead of doing nothing). Still in onCreate, so its launchers register before onStart.
+        getBridge().getWebView().setWebChromeClient(new CamaraDelFormulario(getBridge()));
     }
 }
