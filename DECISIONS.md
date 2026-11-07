@@ -51024,3 +51024,9 @@ Sello `deliveries` 1.562.0; repo 1.766.0.
 Al entrar al hub sale una tarjeta con los videos de capacitación de tu rol que aún no has visto: puedes verlos ahí mismo, marcarlos como vistos o dejarlo para mañana (vuelve cada día hasta que estén todos). «Tutoriales» aparece ahora en el menú de Ayuda con el número de videos pendientes, y en la pantalla de Tutoriales cada video dice «Nuevo» o «Visto» (en YouTube se marca solo al llegar al final). El admin ve, por video, cuántas personas de su público ya lo vieron. Pedido por Roberto en la reunión del 6 de noviembre (migración 267).
 
 Sello `deliveries` 1.563.0; repo 1.767.0.
+
+## D-914 · Warehouse Ops: merma con foto obligatoria y primero, «guardar sin foto» desde papel, y aviso de fotos repetidas
+
+La merma ahora pide la foto de las piezas justo después del producto y no se envía sin ella; si la apuntaron en papel se puede guardar «sin foto» y queda marcada hasta que le agreguen la foto (el gerente la ve como «Foto pendiente» a las 24 h). En las listas sale una cámara junto a la fecha con cuántas fotos tiene cada reporte. Cada foto lleva su huella: si una ya se usó en otro reporte, el formulario avisa, deja abrir ese reporte y pide confirmar o cambiarla; en la lista ambas filas se marcan «Foto repetida». Acordado con Roberto en la reunión del 6 de noviembre (migración 268).
+
+Sello `warehouse_ops` 0.8.0; repo 1.768.0.

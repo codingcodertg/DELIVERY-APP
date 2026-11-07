@@ -1,5 +1,5 @@
 /**
- * Operaciones de almacén (D-NEXT, migración 268): la foto de la merma es obligatoria, primero, y no se repite.
+ * Operaciones de almacén (D-914, migración 268): la foto de la merma es obligatoria, primero, y no se repite.
  *
  * Reunión del dueño con Roberto (2026-11-06): Francis subió las mismas fotos en varias mermas y las tomaba DESPUÉS de
  * capturar los datos. Lo acordado:

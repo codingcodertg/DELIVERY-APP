@@ -10,7 +10,7 @@ import { FOTO_DE_MERMA, PASOS, pasoCompleto, pasosVisibles, primerHueco, primerH
 import { DEMO_REPORTES } from "./datos";
 
 /**
- * D-NEXT (migración 268): la foto de la merma es obligatoria y va primero; «papel primero» se guarda sin foto y queda
+ * D-914 (migración 268): la foto de la merma es obligatoria y va primero; «papel primero» se guarda sin foto y queda
  * incompleto; icono de cámara con la cuenta; y aviso de foto repetida por huella SHA-256.
  */
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").replace(/\r\n/g, "\n");
@@ -111,7 +111,7 @@ describe("1b. la base también lo exige (migración 268)", () => {
     expect(SQL).toMatch(/Para deshacer:/);
     expect(SQL).not.toMatch(/^\s*(begin|commit);\s*$/m);
     expect(SQL).toMatch(/-- @ledger-below\r?\ninsert into public\.schema_migrations \(name, checksum\) values \('268_merma_foto_obligatoria\.sql', '[0-9a-f]{64}'\)/);
-    expect(SQL).not.toMatch(/D-NEXT/);
+    expect(SQL).not.toMatch(/D-914/);
   });
 });
 

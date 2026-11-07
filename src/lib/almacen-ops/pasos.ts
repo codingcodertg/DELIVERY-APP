@@ -13,7 +13,7 @@ export type Paso =
   | { id: string; tipo: "opcion"; en: string; es: string; opciones: Opcion[] }
   | { id: string; tipo: "sino"; en: string; es: string }
   | { id: string; tipo: "texto"; en: string; es: string; opcional?: boolean; corto?: boolean; min?: number; si?: { paso: string; vale: string } }
-  // `obligatoria` (D-NEXT, 268): la merma no se envía sin al menos una foto; el paso se puede saltar («la tengo en
+  // `obligatoria` (D-914, 268): la merma no se envía sin al menos una foto; el paso se puede saltar («la tengo en
   // papel») pero el resumen la marca como faltante y «Enviar» queda apagado hasta que la agreguen.
   | { id: string; tipo: "foto"; en: string; es: string; obligatoria?: boolean }
   | { id: string; tipo: "producto"; en: string; es: string }
@@ -72,7 +72,7 @@ const o = (v: string, en: string, es: string): Opcion => ({ v, en, es });
 const INVOLUCRADOS: Paso = { id: "involved", tipo: "personas", en: "Who was involved?", es: "¿Quién estuvo involucrado?" };
 const DESCRIPCION: Paso = { id: "description", tipo: "texto", en: "What happened?", es: "¿Qué pasó?" };
 const FOTO: Paso = { id: "photo", tipo: "foto", en: "Add a photo (optional)", es: "Agrega una foto (opcional)" };
-/** La foto de la merma (D-NEXT, 268): primero y obligatoria. Reunión del dueño con Roberto: fotos repetidas y tomadas después de capturar. */
+/** La foto de la merma (D-914, 268): primero y obligatoria. Reunión del dueño con Roberto: fotos repetidas y tomadas después de capturar. */
 export const FOTO_DE_MERMA: Paso = { id: "photo", tipo: "foto", obligatoria: true, en: "Take the photo of the pieces first", es: "Primero toma la foto de las piezas" };
 
 export const PASOS: Record<TipoDeReporte, Paso[]> = {
@@ -115,7 +115,7 @@ export const PASOS: Record<TipoDeReporte, Paso[]> = {
   ],
   scrap: [
     { id: "product", tipo: "producto", en: "Which product?", es: "¿Qué producto?" },
-    // La foto va JUSTO después del producto y antes de las cantidades (D-NEXT, 268): se fotografían las piezas antes de
+    // La foto va JUSTO después del producto y antes de las cantidades (D-914, 268): se fotografían las piezas antes de
     // capturar nada más, y sin foto no se envía.
     FOTO_DE_MERMA,
     // Primero el total de piezas; luego, de esas, cuántas dañadas y cuántas de muestra (pedido faa07047). Sin piezas sueltas (482720a9).
