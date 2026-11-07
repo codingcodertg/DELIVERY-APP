@@ -51036,3 +51036,9 @@ Sello `warehouse_ops` 0.8.0; repo 1.768.0.
 Después de «¿Quién lo rompió?» el reporte de merma pregunta quién avisó (opcional): se elige a alguien del almacén o se escribe el nombre a mano. Se ve en el resumen y en la tarjeta junto a «Lo rompió», aparte de «Lo llenó». Pedido por Roberto el 7 de noviembre tras el primer reporte de Baudelio.
 
 Sello `warehouse_ops` 0.9.0; repo 1.769.0.
+
+## D-916 · Time Tracker: el cronómetro se recupera solo cuando se va y vuelve la red
+
+Si los latidos dejan de entrar (cambio de Wi-Fi, token caducado), el cronómetro espera la red, refresca la sesión y pone al día la fila con lo que llevaba contado; si hace falta, recarga la pantalla sin perder el reloj ni la sesión. Se corrige el bucle del 7 de noviembre: el cierre de la fila anterior fallaba con token caducado y la fila nueva chocaba cada 35 s, dejando 70 min «Sin guardar». El aviso dice qué está haciendo y la notificación de Windows ya no se repite más de una vez cada diez minutos. El cascarón de escritorio (1.3.0) vigila la red y pide sanar al volver.
+
+Sello `timetracker` 1.18.0; repo 1.770.0.

@@ -86,7 +86,7 @@ describe("cada función del proveedor, en práctica", () => {
     const pasan = Object.entries(CLASE_DE_DATO).filter(([, c]) => c === "pasa").map(([k]) => k).sort();
     expect(pasan).toEqual([
       "ensureSessionsSince", "notify", "payRates", "payrollsForWeek", "paystubsForPeriod", "paystubsForYear",
-      // `refrescarSesion` (D-NEXT) solo refresca el token de Supabase: no toca datos.
+      // `refrescarSesion` (D-916) solo refresca el token de Supabase: no toca datos.
       "refrescarSesion", "screenshotSignedUrl", "sessionsByProject", "sessionsSince", "signOutEverywhere",
     ]);
   });

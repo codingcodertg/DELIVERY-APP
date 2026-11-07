@@ -1,5 +1,5 @@
 /**
- * Recuperarse solo cuando los latidos dejan de entrar (D-NEXT, incidente del 2026-11-07).
+ * Recuperarse solo cuando los latidos dejan de entrar (D-916, incidente del 2026-11-07).
  *
  * Lo que pasó, medido en los registros de Supabase (horas UTC; Chicago = UTC−6):
  *

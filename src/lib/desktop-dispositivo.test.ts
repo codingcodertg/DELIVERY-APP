@@ -44,7 +44,7 @@ describe("la cabecera", () => {
     expect(CABECERA).toBe(CABECERA_DISPOSITIVO);
     expect(CABECERA).toBe("x-rtg-device");
   });
-  it("la app la pone solo hacia nuestro sitio, y la versión es la 1.3.0 (D-813 la subió a 1.2.1; D-NEXT, la vigilancia de red, a 1.3.0)", () => {
+  it("la app la pone solo hacia nuestro sitio, y la versión es la 1.3.0 (D-813 la subió a 1.2.1; D-916, la vigilancia de red, a 1.3.0)", () => {
     const main = leer("desktop/main.js");
     expect(main).toContain("if (esNuestro(detalles.url)) requestHeaders[CABECERA] = idInstalacion;");
     expect(main).toContain("webRequest.onBeforeSendHeaders(");

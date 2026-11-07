@@ -132,7 +132,7 @@ describe("2 · el vigía: un reloj que corre sin guardarse se dice", () => {
     const c = codigoDe(CRONOMETRO);
     expect(c).toContain("if (liveHint) ultimoGuardadoRef.current = Date.now();");
     // start, adopción, ya-corriendo, reabrir, reanudar, el arranque pendiente de D-875 (Start
-    // sin fila todavía) y la continuación con estado vivo tras una recarga suave (D-NEXT): siete
+    // sin fila todavía) y la continuación con estado vivo tras una recarga suave (D-916): siete
     // sitios donde pasa a conducir.
     expect(c.split("conduceRef.current = true;").length - 1).toBe(7);
     expect(c.split("ultimoGuardadoRef.current = Date.now();").length - 1).toBeGreaterThanOrEqual(6);

@@ -78,7 +78,7 @@ export interface DataState {
    * closed rows on purpose. Una fila cerrada afecta a CERO filas y no es un error, así que
    * desde D-241 eso se devuelve en vez de callarse. */
   updateLiveSession: (id: string, patch: Partial<Session>) => Promise<boolean>;
-  /** Refresca la sesión de Supabase y dice si hay con qué escribir (D-NEXT). Rehace el cliente si no contesta. */
+  /** Refresca la sesión de Supabase y dice si hay con qué escribir (D-916). Rehace el cliente si no contesta. */
   refrescarSesion: () => Promise<boolean>;
 
   // ---- screenshots (desktop-captured) ----
@@ -201,7 +201,7 @@ function isRlsError(e: unknown): boolean {
 export const SESSIONS_WINDOW_DAYS = 60;
 
 export function DataProvider({ children, me }: { children: React.ReactNode; me: Employee }) {
-  // En estado y no en `useMemo` (D-NEXT): la recuperación puede rehacer el cliente si el que hay se
+  // En estado y no en `useMemo` (D-916): la recuperación puede rehacer el cliente si el que hay se
   // queda atascado. Cambiarlo rehace los callbacks de abajo, que es justo lo que se quiere.
   const [supabase, setSupabase] = useState(() => createClient());
   const [ready, setReady] = useState(false);
@@ -668,7 +668,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     const row = toSnakeRow(patch as Record<string, unknown>);
     const escribe = () => supabase.from("sessions").update(row).eq("id", id);
     let { error } = await escribe();
-    // El mismo reintento con token fresco que ya tenían la vía viva y los insert (D-NEXT). Sin él,
+    // El mismo reintento con token fresco que ya tenían la vía viva y los insert (D-916). Sin él,
     // el cierre de la fila anterior al continuar en otra salía con el JWT caducado durante un corte
     // de red, volvía 401 y nadie lo repetía: la vieja seguía viva y la nueva chocaba (092) para
     // siempre (incidente del 2026-11-07, ver `recuperacion.ts`).
@@ -680,7 +680,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   }, [supabase, forceRefresh]);
 
   /**
-   * Refrescar la sesión de Supabase a petición (D-NEXT, la recuperación del cronómetro). Devuelve si
+   * Refrescar la sesión de Supabase a petición (D-916, la recuperación del cronómetro). Devuelve si
    * hay sesión utilizable. Si el propio cliente no contesta en diez segundos —un `fetch` colgado
    * tras cambiar de red, un candado de `navigator.locks` que nadie soltó— se rehace el cliente
    * entero: la cookie de sesión es la misma, lo que se tira es el estado atascado.

@@ -38,7 +38,7 @@ describe("a quién se le enseña el aviso", () => {
   it("la mínima es la versión que compila `desktop/`, y el instalador se llama como ella", () => {
     const pkg = JSON.parse(readFileSync("desktop/package.json", "utf8")) as { version: string; build: { nsis: { oneClick: boolean; runAfterFinish: boolean } } };
     // La mínima es la última que NO se actualiza sola (1.2.1, D-813). `desktop/` puede ir por delante
-    // (1.3.0, D-NEXT): esas instalaciones se bajan la nueva solas (D-811) y no hay que taparles la app
+    // (1.3.0, D-916): esas instalaciones se bajan la nueva solas (D-811) y no hay que taparles la app
     // con el aviso mientras el instalador nuevo todavía no está publicado.
     expect(versionMenor(pkg.version, ESCRITORIO_MINIMO)).toBe(false);
     expect(INSTALADOR_ESCRITORIO).toBe(`RTG-Hub-Setup-${ESCRITORIO_MINIMO}.exe`);

@@ -291,7 +291,7 @@ function crearVentana() {
   setInterval(buscaActualizacion, 4 * 60 * 60 * 1000);
 
   // ---------------------------------------------------------------------------
-  // Volver de un corte de red sin perder el reloj de Time Tracker (D-NEXT)
+  // Volver de un corte de red sin perder el reloj de Time Tracker (D-916)
   // ---------------------------------------------------------------------------
   // El 2026-11-07 el portátil del dueño cambió de red varias veces y los latidos del cronómetro
   // dejaron de entrar 70 minutos aunque la red volvió a los pocos; la página no se enteró de que
