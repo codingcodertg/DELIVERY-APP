@@ -7,6 +7,7 @@ import { usePrefs } from "@/lib/prefs";
 import { fmtPct, pctToScore } from "@/lib/recruiting/utils";
 import { createClient } from "@/lib/recruiting/supabase/client";
 import { puedeAsignarPreguntasAlPuesto, preguntasActivasPorConjunto } from "@/lib/recruiting/preguntas-del-puesto";
+import { PLANTILLA, plantillaVigente } from "@/lib/recruiting/texto-puedo-llamar";
 
 export default function SettingsPage() {
   const { t } = usePrefs();
@@ -56,6 +57,18 @@ export default function SettingsPage() {
   const [cfLabel, setCfLabel] = useState("");
   const [tplLabel, setTplLabel] = useState("");
   const [tplText, setTplText] = useState("");
+
+  // La plantilla de «¿te puedo llamar?» por idioma (D-NEXT): lo que hay en Ajustes o, si está vacío, la de fábrica.
+  // Guardar un texto igual al de fábrica lo deja en null: así, si algún día cambia la de fábrica, se sigue el cambio.
+  const [pllEn, setPllEn] = useState(plantillaVigente("en", settings.sms_puedo_llamar));
+  const [pllEs, setPllEs] = useState(plantillaVigente("es", settings.sms_puedo_llamar));
+  const savePuedoLlamar = async () => {
+    const en = pllEn.trim(), es = pllEs.trim();
+    const val = { en: en && en !== PLANTILLA.en ? en : null, es: es && es !== PLANTILLA.es ? es : null };
+    await saveSettings({ sms_puedo_llamar: val.en || val.es ? val : null });
+    notify(t("Templates saved ✓", "Plantillas guardadas ✓"));
+  };
+  const resetPuedoLlamar = () => { setPllEn(PLANTILLA.en); setPllEs(PLANTILLA.es); };
 
   const addRole = () => {
     const r = newRole.trim();
@@ -326,6 +339,31 @@ export default function SettingsPage() {
         </div>
         <div style={{ marginTop: 10 }}>
           <button className="btn btn-primary" onClick={() => { if (tplLabel.trim() && tplText.trim()) { addTemplate({ label: tplLabel.trim(), text: tplText.trim() }); setTplLabel(""); setTplText(""); notify(t("Template added ✓", "Plantilla agregada ✓")); } }}>{t("Add template", "Agregar plantilla")}</button>
+        </div>
+      </div>
+
+      <div className="card">
+        <h2>📱 {t("Text “Can I call you?”", "Texto «¿Te puedo llamar?»")}</h2>
+        <div className="hint" style={{ marginTop: -6, marginBottom: 10 }}>
+          {t(
+            "What the “Can I call you?” button sends, from the new-candidate form and from the candidate card. The candidate's language decides which one goes (from the prescreen “Language”); otherwise, yours. Placeholders:",
+            "Lo que manda el botón de «¿Te puedo llamar?», desde el alta de candidato y desde su ficha. Va en el idioma del candidato (del prescreening «Idioma»); si no se sabe, en el tuyo. Marcadores:",
+          )}{" "}
+          {"{recruiter} {first_name} {position} {phone}"}
+        </div>
+        <div className="grid g2">
+          <div>
+            <label>English</label>
+            <textarea rows={4} value={pllEn} onChange={(e) => setPllEn(e.target.value)} />
+          </div>
+          <div>
+            <label>Español</label>
+            <textarea rows={4} value={pllEs} onChange={(e) => setPllEs(e.target.value)} />
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+          <button className="btn btn-primary" onClick={savePuedoLlamar}>{t("Save templates", "Guardar plantillas")}</button>
+          <button className="btn btn-ghost" onClick={resetPuedoLlamar}>{t("Restore defaults", "Volver a las de fábrica")}</button>
         </div>
       </div>
     </div>

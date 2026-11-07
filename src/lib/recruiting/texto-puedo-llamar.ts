@@ -1,4 +1,4 @@
-import type { Candidate, Contact } from "./types";
+import type { Candidate, Contact, PlantillasPuedoLlamar } from "./types";
 import { mergeTemplate, rcCall, rcSms, telClean } from "./utils";
 import { formatoEnBrownsville } from "./hora-de-brownsville";
 import { telefonoEstandar } from "./formato";
@@ -25,9 +25,43 @@ export const PLANTILLA = {
   es: "Hola, le habla {recruiter}, reclutador de Rodriguez Tile Group. Vi su aplicación y me gustaría conversar con usted. ¿Tiene 15 minutos ahora mismo para una breve entrevista telefónica? Si es así, respóndame y le llamo enseguida.",
 } as const;
 
-/** El texto que se manda: la plantilla del idioma de quien pulsa, con los marcadores de `mergeTemplate`. */
-export function textoPuedoLlamar(c: Omit<Cand, "id">, recruiter: string, lang: "en" | "es"): string {
-  return mergeTemplate(PLANTILLA[lang], c as Candidate, recruiter).replace(/\s{2,}/g, " ").trim();
+/* ---- Plantillas editables y «Guardar y enviar» (D-NEXT, 2026-11-07) ----
+ * El dueño: «cuando estoy registrando un nuevo candidato abajo sale Guardar candidato, Guardar e iniciar entrevista y
+ * Cancelar; entonces le vas a poner ahí también Guardar y enviar mensaje de "¿te puedo llamar?"». Mismo camino que el
+ * botón de la ficha (RingCentral + contacto SMS), solo que nace con el candidato. De paso, la plantilla deja de estar
+ * clavada en el código: Ajustes guarda una por idioma en `recruiting.settings.sms_puedo_llamar` (migración 271) y, si
+ * está vacía, vale la de fábrica de arriba (la que dictó el dueño en D-595). Marcadores: {recruiter}, {first_name}/{name},
+ * {position}/{role}, {phone}. */
+
+/** La plantilla que toca: la de Ajustes si tiene texto, si no la de fábrica. */
+export function plantillaVigente(lang: "en" | "es", ajustes?: PlantillasPuedoLlamar | null): string {
+  const propia = (ajustes?.[lang] ?? "").trim();
+  return propia || PLANTILLA[lang];
+}
+
+/** El idioma del texto: el del candidato si lo dijo (prescreen «Idioma»: «español», «spanish», «inglés», «english»…),
+ *  y si no se entiende, el de quien pulsa. */
+export function idiomaDelTexto(idiomaDelCandidato: string | null | undefined, lang: "en" | "es"): "en" | "es" {
+  const d = (idiomaDelCandidato ?? "").toLowerCase();
+  if (/espa|spani|castell/.test(d) && !/ingl|engl/.test(d)) return "es";
+  if (/ingl|engl/.test(d) && !/espa|spani|castell/.test(d)) return "en";
+  return lang;
+}
+
+/** El texto que se manda: la plantilla del idioma, con los marcadores de `mergeTemplate`. */
+export function textoPuedoLlamar(c: Omit<Cand, "id">, recruiter: string, lang: "en" | "es", ajustes?: PlantillasPuedoLlamar | null): string {
+  return mergeTemplate(plantillaVigente(lang, ajustes), c as Candidate, recruiter).replace(/\s{2,}/g, " ").trim();
+}
+
+/** El cuarto botón del alta («Guardar y enviar "¿te puedo llamar?"»): solo con nombre y teléfono con dígitos, sin duplicado
+ *  que bloquee, sin aviso de choque pendiente y sin un guardado en curso. Lo mismo que los otros dos botones, más el teléfono. */
+export function puedeGuardarYEnviar(f: { name: string; phone: string; saving: boolean; bloqueado: boolean; avisoPendiente: boolean }): boolean {
+  return !!f.name.trim() && telClean(f.phone).replace(/\D/g, "").length > 0 && !f.saving && !f.bloqueado && !f.avisoPendiente;
+}
+
+/** La etiqueta del historial del alta: se abrió el compositor de RingCentral con el texto (no hay SMS por servidor). */
+export function notaDelAlta(lang: "en" | "es"): string {
+  return lang === "es" ? "Mensaje preparado al dar de alta: ¿te puedo llamar?" : "Message prepared on registration: can I call you?";
 }
 
 /** Último envío de este texto a este candidato, o null si nunca se mandó (idempotencia por candidato). */
@@ -48,19 +82,20 @@ export function prepararTextoPuedoLlamar(
   contactos: Contact[],
   recruiter: string,
   lang: "en" | "es",
+  ajustes?: PlantillasPuedoLlamar | null,
 ): ResultadoDelBoton {
   if (!telClean(c.phone)) return { ok: false, motivo: "sin-telefono" };
   // D-612 (2026-10-20): ya no se bloquea por un envío anterior. El dueño: «no funciona aún el template … de te puedo llamar
   // … todo eso quiero que se mande». Los intentos de cuando RingCentral salía vacío (D-581…D-604) quedaron registrados y
   // dejaban el botón apagado. El historial sigue (`envioPuedoLlamar`, la etiqueta con la hora); el botón manda siempre.
   void contactos;
-  const texto = textoPuedoLlamar(c, recruiter, lang);
+  const texto = textoPuedoLlamar(c, recruiter, lang, ajustes);
   return { ok: true, texto, enlace: rcSms(c.phone, texto) };
 }
 
 /** El contacto que deja el envío: mismo `type` que el del diálogo, `result` marcado, la nota con el texto. */
-export function contactoDelEnvio(texto: string): Pick<Contact, "type" | "result" | "note"> {
-  return { type: "SMS", result: RESULTADO_PUEDO_LLAMAR, note: texto.slice(0, 80) };
+export function contactoDelEnvio(texto: string, prefijo = ""): Pick<Contact, "type" | "result" | "note"> {
+  return { type: "SMS", result: RESULTADO_PUEDO_LLAMAR, note: (prefijo ? `${prefijo} · ` : "") + texto.slice(0, 80) };
 }
 
 /** Qué pinta el botón según el historial. */
