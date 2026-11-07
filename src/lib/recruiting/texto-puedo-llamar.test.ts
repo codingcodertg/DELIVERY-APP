@@ -76,12 +76,12 @@ describe("texto «¿te puedo llamar?» (D-581)", () => {
   });
 });
 
-// D-NEXT (2026-11-07) · El dueño: «cuando estoy registrando un nuevo candidato … le vas a poner ahí también Guardar y enviar
+// D-922 (2026-11-07) · El dueño: «cuando estoy registrando un nuevo candidato … le vas a poner ahí también Guardar y enviar
 // mensaje de "¿te puedo llamar?"». Plantillas editables en Ajustes, idioma del candidato, y el cuarto botón del alta.
 import { idiomaDelTexto, notaDelAlta, plantillaVigente, puedeGuardarYEnviar } from "./texto-puedo-llamar";
 import { readFileSync } from "node:fs";
 
-describe("«Guardar y enviar ¿te puedo llamar?» y las plantillas de Ajustes (D-NEXT)", () => {
+describe("«Guardar y enviar ¿te puedo llamar?» y las plantillas de Ajustes (D-922)", () => {
   it("la plantilla de Ajustes manda si tiene texto; vacía, null o ausente, vale la de fábrica", () => {
     expect(plantillaVigente("es", null)).toBe(PLANTILLA.es);
     expect(plantillaVigente("en", undefined)).toBe(PLANTILLA.en);
@@ -154,6 +154,6 @@ describe("«Guardar y enviar ¿te puedo llamar?» y las plantillas de Ajustes (D
     // La migración existe y es solo una columna nueva, sin tocar nada más.
     const sql = readFileSync(new URL("../../../supabase/migrations/271_sms_puedo_llamar_editable.sql", import.meta.url), "utf8");
     expect(sql).toContain("add column if not exists sms_puedo_llamar jsonb");
-    expect(sql).not.toMatch(/D-NEXT/);
+    expect(sql).not.toMatch(/D-922/);
   });
 });

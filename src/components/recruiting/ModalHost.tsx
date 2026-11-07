@@ -432,7 +432,7 @@ const NEW_CANDIDATE_SOURCE = "Indeed";
 /** digits only, so "+504 9999-8888", "50499998888" and "9999 8888" compare alike */
 const phoneDigits = (p: string | null) => (p || "").replace(/[^0-9]/g, "");
 
-/** Qué pasa tras guardar al candidato nuevo: nada más, abrir la entrevista, o mandar el texto de «¿te puedo llamar?» (D-NEXT). */
+/** Qué pasa tras guardar al candidato nuevo: nada más, abrir la entrevista, o mandar el texto de «¿te puedo llamar?» (D-922). */
 type Despues = "none" | "interview" | "text";
 
 function NewCandidateModal({ close }: { close: () => void }) {
@@ -503,7 +503,7 @@ function NewCandidateModal({ close }: { close: () => void }) {
     ui.openProfile(existingId);
   };
 
-  /** El texto de «¿te puedo llamar?» tal y como saldría ahora mismo, con lo escrito en el formulario (D-NEXT). */
+  /** El texto de «¿te puedo llamar?» tal y como saldría ahora mismo, con lo escrito en el formulario (D-922). */
   const textoDelAlta = () =>
     textoPuedoLlamar({ name: name.trim(), role: role || null, phone: phone.trim() }, me?.full_name ?? "", idiomaDelTexto(language, lang), settings.sms_puedo_llamar);
 
@@ -513,7 +513,7 @@ function NewCandidateModal({ close }: { close: () => void }) {
       notify(t("Name and phone are required", "El nombre y el teléfono son obligatorios"));
       return;
     }
-    // D-NEXT «Guardar y enviar "¿te puedo llamar?"»: el texto se copia al portapapeles AQUÍ, dentro del clic y antes de
+    // D-922 «Guardar y enviar "¿te puedo llamar?"»: el texto se copia al portapapeles AQUÍ, dentro del clic y antes de
     // cualquier `await` (el navegador solo deja copiar en el gesto); RingCentral se abre después de guardar, con el
     // mismo enlace que el botón de la ficha. Sin dígitos en el teléfono, el botón ni se enciende (`puedeGuardarYEnviar`).
     const sms = despues === "text" ? (() => { const texto = textoDelAlta(); return { texto, copia: copiarAlPortapapeles(texto, navegadorReal()) }; })() : null;

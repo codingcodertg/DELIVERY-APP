@@ -49,10 +49,10 @@ describe("abrir un texto en RingCentral: en el enlace y en el portapapeles", () 
   });
 });
 
-// D-NEXT (2026-11-07) · «Guardar y enviar»: el clic copia; RingCentral se abre después de guardar.
+// D-922 (2026-11-07) · «Guardar y enviar»: el clic copia; RingCentral se abre después de guardar.
 import { copiarAlPortapapeles } from "./abrir-sms";
 
-describe("copiar sin abrir (Guardar y enviar, D-NEXT)", () => {
+describe("copiar sin abrir (Guardar y enviar, D-922)", () => {
   it("copia con la síncrona o la asíncrona y no abre nada; sin ninguna, dice que no copió", () => {
     const pasos: string[] = [];
     expect(copiarAlPortapapeles("hola", { copiarAhora: (t) => { pasos.push("ahora:" + t); return true; } })).toEqual({ copiado: true });

@@ -83,7 +83,7 @@ export interface Settings {
   /** Departamentos que se pueden elegir en el expediente, para el directorio (D-256). */
   departments?: string[];
   scale?: ScaleLevel[]; // global interview scoring scale (1..4)
-  /** D-NEXT: las plantillas del texto «¿te puedo llamar?» por idioma, editables en Ajustes (migración 271).
+  /** D-922: las plantillas del texto «¿te puedo llamar?» por idioma, editables en Ajustes (migración 271).
    *  Falta o vacío = la plantilla de fábrica de `texto-puedo-llamar.ts`. */
   sms_puedo_llamar?: PlantillasPuedoLlamar | null;
 }

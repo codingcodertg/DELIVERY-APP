@@ -16,7 +16,7 @@ export function BotonTextoPuedoLlamar({ c, className = "btn btn-ghost btn-sm" }:
   const estado = estadoDelBoton(contactsFor(c.id), c.id, lang);
 
   const enviar = async () => {
-    // D-NEXT: la plantilla de Ajustes (si la hay) y el idioma del candidato (si lo dijo en el prescreen), si no el de quien pulsa.
+    // D-922: la plantilla de Ajustes (si la hay) y el idioma del candidato (si lo dijo en el prescreen), si no el de quien pulsa.
     const r = prepararTextoPuedoLlamar(c, contactsFor(c.id), me?.full_name ?? "", idiomaDelTexto(c.prescreen?.language, lang), settings.sms_puedo_llamar);
     if (!r.ok) {
       setError(t("No phone number", "Sin número de teléfono"));

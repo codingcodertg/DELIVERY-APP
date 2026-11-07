@@ -51072,3 +51072,9 @@ Sello `deliveries` 1.564.0; repo 1.774.0.
 Roberto pidió saber en qué etapa va cada merma y poder imprimir una hoja para que Gerencia la firme. En la pestaña Merma de Reportes hay columna y filtro de etapa, casillas para elegir mermas e imprimir la hoja de aprobación (con el recordatorio obligatorio y las firmas), y en la tarjeta el gerente adjunta la hoja firmada (pasa a Aprobada), marca Desechada y sube la captura del sistema (Ajustada); quedan fecha y quién en cada paso. Migración 270.
 
 Sello `warehouse_ops` 0.12.0; repo 1.775.0.
+
+## D-922 · Reclutamiento: «Guardar y enviar ¿Te puedo llamar?» al registrar un candidato
+
+Al dar de alta un candidato hay un cuarto botón que lo guarda, abre RingCentral con el texto de «¿te puedo llamar?» (copiado también al portapapeles) y deja la línea en su historial; la ficha nueva se abre en el momento. El texto, en inglés y español, ahora se edita en Ajustes de Reclutamiento y sale en el idioma del candidato si se anotó en el prescreening. Pedido por el dueño el 7 de noviembre (migración 271).
+
+Sello `recruiting` 0.77.0; repo 1.776.0.

@@ -25,7 +25,7 @@ export const PLANTILLA = {
   es: "Hola, le habla {recruiter}, reclutador de Rodriguez Tile Group. Vi su aplicación y me gustaría conversar con usted. ¿Tiene 15 minutos ahora mismo para una breve entrevista telefónica? Si es así, respóndame y le llamo enseguida.",
 } as const;
 
-/* ---- Plantillas editables y «Guardar y enviar» (D-NEXT, 2026-11-07) ----
+/* ---- Plantillas editables y «Guardar y enviar» (D-922, 2026-11-07) ----
  * El dueño: «cuando estoy registrando un nuevo candidato abajo sale Guardar candidato, Guardar e iniciar entrevista y
  * Cancelar; entonces le vas a poner ahí también Guardar y enviar mensaje de "¿te puedo llamar?"». Mismo camino que el
  * botón de la ficha (RingCentral + contacto SMS), solo que nace con el candidato. De paso, la plantilla deja de estar

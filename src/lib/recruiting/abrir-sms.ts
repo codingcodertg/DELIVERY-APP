@@ -16,7 +16,7 @@ export function abrirSmsEnRingCentral(enlace: string, texto: string, nav: Navega
   return r;
 }
 
-/** Solo la copia, sin abrir nada (D-NEXT): para «Guardar y enviar», donde el clic copia y RingCentral se abre tras guardar. */
+/** Solo la copia, sin abrir nada (D-922): para «Guardar y enviar», donde el clic copia y RingCentral se abre tras guardar. */
 export function copiarAlPortapapeles(texto: string, nav: Omit<Navegador, "abrir">): ResultadoDeAbrir {
   let copiado = false;
   // D-717: primero la copia SÍNCRONA (execCommand), que dice de verdad si copió y no depende del permiso del portapapeles;

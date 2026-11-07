@@ -58,7 +58,7 @@ export default function SettingsPage() {
   const [tplLabel, setTplLabel] = useState("");
   const [tplText, setTplText] = useState("");
 
-  // La plantilla de «¿te puedo llamar?» por idioma (D-NEXT): lo que hay en Ajustes o, si está vacío, la de fábrica.
+  // La plantilla de «¿te puedo llamar?» por idioma (D-922): lo que hay en Ajustes o, si está vacío, la de fábrica.
   // Guardar un texto igual al de fábrica lo deja en null: así, si algún día cambia la de fábrica, se sigue el cambio.
   const [pllEn, setPllEn] = useState(plantillaVigente("en", settings.sms_puedo_llamar));
   const [pllEs, setPllEs] = useState(plantillaVigente("es", settings.sms_puedo_llamar));
