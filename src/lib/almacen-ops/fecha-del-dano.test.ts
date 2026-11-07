@@ -53,7 +53,7 @@ describe("el formulario de merma", () => {
     expect(paso.tipo).toBe("fecha");
     expect(paso.en).toBe("What date was it broken?");
     expect(paso.es).toBe("¿Qué día se rompió?");
-    expect(PASOS.scrap.map((p) => p.id)).toEqual(["product", "photo", "qty", "return_type", "reason", "broken_on", "broken_by", "crma", "comments"]);
+    expect(PASOS.scrap.map((p) => p.id)).toEqual(["product", "photo", "qty", "return_type", "reason", "broken_on", "broken_by", "reported_by", "crma", "comments"]);
     for (const [tipo, pasos] of Object.entries(PASOS)) {
       if (tipo !== "scrap") expect(pasos.some((p) => p.tipo === "fecha"), tipo).toBe(false);
     }

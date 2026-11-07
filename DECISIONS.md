@@ -51030,3 +51030,9 @@ Sello `deliveries` 1.563.0; repo 1.767.0.
 La merma ahora pide la foto de las piezas justo después del producto y no se envía sin ella; si la apuntaron en papel se puede guardar «sin foto» y queda marcada hasta que le agreguen la foto (el gerente la ve como «Foto pendiente» a las 24 h). En las listas sale una cámara junto a la fecha con cuántas fotos tiene cada reporte. Cada foto lleva su huella: si una ya se usó en otro reporte, el formulario avisa, deja abrir ese reporte y pide confirmar o cambiarla; en la lista ambas filas se marcan «Foto repetida». Acordado con Roberto en la reunión del 6 de noviembre (migración 268).
 
 Sello `warehouse_ops` 0.8.0; repo 1.768.0.
+
+## D-915 · Merma: ahora pregunta «¿Quién lo reportó?»
+
+Después de «¿Quién lo rompió?» el reporte de merma pregunta quién avisó (opcional): se elige a alguien del almacén o se escribe el nombre a mano. Se ve en el resumen y en la tarjeta junto a «Lo rompió», aparte de «Lo llenó». Pedido por Roberto el 7 de noviembre tras el primer reporte de Baudelio.
+
+Sello `warehouse_ops` 0.9.0; repo 1.769.0.

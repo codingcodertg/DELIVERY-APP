@@ -22,7 +22,7 @@ import { fechaDelDanoValida, fmtDia, hoyEnTexas } from "@/lib/almacen-ops/fecha-
 import { cantidadesValidas, cuentaComoPerdida, enteroDelCampo, perdidaDeMerma, piezasPorCajaInicial, piezasTotales, repartoAjustado, repartoAlCambiar, repartoValido, type Cantidades, type Reparto } from "@/lib/almacen-ops/perdida";
 import { DEMO_PRODUCTOS, buscarProductos, mermaParaEnviar, productoParaEnviar, registrar, reportesConLaFoto, subirFoto, type Envio, type Reporte } from "@/lib/almacen-ops/datos";
 import { Tarjeta } from "./ListaDeReportes";
-import { personasParaElegir } from "@/lib/almacen-ops/personas";
+import { elegidosAlCambiarDeTienda, nombreOTexto, personasParaElegir } from "@/lib/almacen-ops/personas";
 import { borrarBorrador, guardarBorrador, hayCambios, leerBorrador } from "@/lib/almacen-ops/borradores";
 import type { Contexto } from "./Operaciones";
 
@@ -82,10 +82,12 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
   const setTienda = (nueva: string) => {
     setTiendaCruda(nueva);
     const deAhi = new Set(personasParaElegir(ctx.personas, nueva).map((p) => p.id));
+    const conocidos = new Set(ctx.personas.map((p) => p.id));
     setR((x) => {
       const y = { ...x };
       for (const p of pasosVisibles(tipo, x)) {
-        if (p.tipo === "personas" && Array.isArray(y[p.id])) y[p.id] = (y[p.id] as string[]).filter((id) => deAhi.has(id));
+        // Un nombre escrito a mano (D-915, «¿quién lo reportó?») no es de ninguna tienda: se queda.
+        if (p.tipo === "personas" && Array.isArray(y[p.id])) y[p.id] = elegidosAlCambiarDeTienda(y[p.id] as string[], deAhi, conocidos);
         if (p.tipo === "persona" && typeof y[p.id] === "string" && !deAhi.has(y[p.id] as string)) delete y[p.id];
       }
       return y;
@@ -141,6 +143,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
         kind: tipo, store: tienda, subjectIds: empleadosDelReporte(tipo, r), answers, photos: fotos,
         scrap: tipo === "scrap" && p && q ? { ...productoParaEnviar(p), ...mermaParaEnviar(r) } : null,
       };
+      // `broken_by` y `crma` tienen columna propia; `reported_by` (D-915) se queda dentro de `answers`.
       if (e.scrap) { delete e.answers.broken_by; delete e.answers.crma; }
       await registrar(sb, e);
       borrarBorrador(ctx.yo.id, borradorId);
@@ -193,6 +196,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
       {!enResumen && paso && (
         <div className="ops-pregunta" data-paso={paso.id} onKeyDown={enterAvanza}>
           <h2>{lang === "es" ? paso.es : paso.en}</h2>
+          {"ayuda" in paso && paso.ayuda && <p className="hint" data-ayuda-del-paso>{lang === "es" ? paso.ayuda.es : paso.ayuda.en}</p>}
           <Respuesta paso={paso} r={r} pon={pon} ctx={ctx} tienda={tienda} onElegirUno={alElegirUno} onConfirmandoFoto={setConfirmandoFoto} />
           {/* 268: la foto de la merma es obligatoria, pero si la apuntaron en papel pueden seguir y guardarla «sin foto». */}
           {paso.tipo === "foto" && paso.obligatoria && fotosDe(r).length === 0 && (
@@ -283,7 +287,7 @@ function nombreDe(ctx: Contexto, id: string): string {
 function textoDeRespuesta(tipo: TipoDeReporte, p: Paso, r: Respuestas, ctx: Contexto, lang: "en" | "es"): string {
   const v = r[p.id];
   switch (p.tipo) {
-    case "personas": return Array.isArray(v) ? (v as string[]).map((id) => nombreDe(ctx, id)).join(", ") : "";
+    case "personas": return Array.isArray(v) ? (v as string[]).map((x) => nombreOTexto(ctx.personas, x)).join(", ") : "";
     case "persona": return typeof v === "string" ? nombreDe(ctx, v) : "";
     case "opcion": case "sino": return etiquetaDeOpcion(tipo, p.id, v, lang);
     case "texto": return typeof v === "string" ? v : "";
@@ -386,7 +390,8 @@ function Respuesta({ paso, r, pon, ctx, tienda, onElegirUno, onConfirmandoFoto }
     }
     case "personas":
     case "persona":
-      return <ElegirPersonas multiple={paso.tipo === "personas"} valor={v} onCambio={(x) => { pon(paso.id, x); if (paso.tipo === "persona") onElegirUno(); }} ctx={ctx} tienda={tienda} />;
+      return <ElegirPersonas multiple={paso.tipo === "personas"} libre={paso.tipo === "personas" && !!paso.libre} valor={v}
+        onCambio={(x) => { pon(paso.id, x); if (paso.tipo === "persona") onElegirUno(); }} ctx={ctx} tienda={tienda} />;
     case "foto":
       return <Fotos fotos={fotosDe(r)} huellas={hashesDe(r)} ctx={ctx} obligatoria={!!paso.obligatoria}
         onCambio={(f, h) => { pon(paso.id, f); pon(CLAVE_HASHES, h); }} onConfirmando={onConfirmandoFoto} />;
@@ -405,8 +410,9 @@ function Respuesta({ paso, r, pon, ctx, tienda, onElegirUno, onConfirmandoFoto }
   }
 }
 
-function ElegirPersonas({ multiple, valor, onCambio, ctx, tienda }: {
-  multiple: boolean; valor: unknown; onCambio: (v: string | string[]) => void; ctx: Contexto; tienda: string;
+/** `libre` (D-915): además de la lista, lo escrito en el buscador se puede agregar tal cual (alguien sin cuenta). */
+function ElegirPersonas({ multiple, libre = false, valor, onCambio, ctx, tienda }: {
+  multiple: boolean; libre?: boolean; valor: unknown; onCambio: (v: string | string[]) => void; ctx: Contexto; tienda: string;
 }) {
   const { t } = usePrefs();
   const [q, setQ] = useState("");
@@ -417,11 +423,21 @@ function ElegirPersonas({ multiple, valor, onCambio, ctx, tienda }: {
     if (!multiple) return onCambio(id);
     onCambio(elegidos.includes(id) ? elegidos.filter((x) => x !== id) : [...elegidos, id]);
   };
+  const texto = q.trim();
+  const yaEscrito = texto !== "" && elegidos.some((x) => x.toLowerCase() === texto.toLowerCase());
+  const agregaTexto = () => { if (texto && !yaEscrito) { toca(texto); setQ(""); } };
   return (
     <div className="ops-personas">
-      <input className="ops-campo" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Search by name", "Buscar por nombre")} data-campo="buscar-persona" />
-      {multiple && elegidos.length > 0 && <p className="ops-elegidos">{elegidos.map((id) => nombreDe(ctx, id)).join(", ")}</p>}
+      <input className="ops-campo" type="search" value={q} onChange={(e) => setQ(e.target.value)} data-campo="buscar-persona"
+        placeholder={libre ? t("Search by name, or write it", "Buscar por nombre, o escríbelo") : t("Search by name", "Buscar por nombre")}
+        onKeyDown={libre ? (e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); agregaTexto(); } } : undefined} />
+      {multiple && elegidos.length > 0 && <p className="ops-elegidos">{elegidos.map((x) => nombreOTexto(ctx.personas, x)).join(", ")}</p>}
       <div className="ops-opciones">
+        {libre && texto && !yaEscrito && (
+          <button type="button" className="ops-opcion ops-persona" onClick={agregaTexto} data-accion="persona-libre">
+            <span>{t(`Use "${texto}"`, `Usar «${texto}»`)}</span><span className="ops-persona-tienda">{t("No account", "Sin cuenta")}</span>
+          </button>
+        )}
         {lista.map((p) => (
           <button type="button" key={p.id} className={`ops-opcion ops-persona${elegidos.includes(p.id) ? " elegida" : ""}`} aria-pressed={elegidos.includes(p.id)} onClick={() => toca(p.id)} data-persona={p.id}>
             <span>{p.full_name}</span>{p.store && <span className="ops-persona-tienda">{p.store}</span>}

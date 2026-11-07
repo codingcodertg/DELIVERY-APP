@@ -7,7 +7,8 @@ import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime, fmtMoney } from "@/lib/utils";
 import { INFO_DE_TIPO, TIPOS, esDeRrhh, type TipoDeReporte } from "@/lib/almacen-ops/tipos";
-import { PASOS, etiquetaDeOpcion } from "@/lib/almacen-ops/pasos";
+import { PASOS, PASO_QUIEN_REPORTO, etiquetaDeOpcion } from "@/lib/almacen-ops/pasos";
+import { nombreOTexto } from "@/lib/almacen-ops/personas";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
 import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, buscarProductos, corregirMerma, corregirOrigenDeMerma, enlacesDeFotos, guardarHuellas, reportesConLaFoto, subirFoto, type Reporte } from "@/lib/almacen-ops/datos";
 import { MAX_FOTOS, avisoDeRepetida, duplicadosPorHuella, etiquetaSinFoto, fotoPendienteVencida, fotosSinHuella, hashDeDataUrl, iconoDeFotos, sha256Hex, sinFoto, type Repetida } from "@/lib/almacen-ops/fotos";
@@ -314,6 +315,7 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Conte
   const nombre = (id: string) => ctx.personas.find((p) => p.id === id)?.full_name ?? "—";
   const info = INFO_DE_TIPO[r.kind];
   const reparto = repartoDeReporte(r);
+  const reportadoPor = Array.isArray(r.answers[PASO_QUIEN_REPORTO]) ? (r.answers[PASO_QUIEN_REPORTO] as string[]) : [];
   const filas: [string, string][] = [];
   for (const p of PASOS[r.kind]) {
     const v = r.answers[p.id];
@@ -366,6 +368,8 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Conte
               <dt>{t("Where from", "De dónde")}</dt><dd data-origen-reporte={r.return_type ?? ""}>{etiquetaDeOpcion("scrap", "return_type", r.return_type, lang) || "—"}</dd>
               <dt>{t("Reason", "Motivo")}</dt><dd>{etiquetaDeOpcion("scrap", "reason", r.reason, lang)}</dd>
               {r.broken_by.length > 0 && <><dt>{t("Broken by", "Lo rompió")}</dt><dd>{r.broken_by.map(nombre).join(", ")}</dd></>}
+              {/* Quién avisó (D-915): va en answers, no en columna. Distinto de quién lo rompió y de quién lo llenó. */}
+              {reportadoPor.length > 0 && <><dt>{t("Reported by", "Lo reportó")}</dt><dd data-reportado-por>{reportadoPor.map((x) => nombreOTexto(ctx.personas, x)).join(", ")}</dd></>}
               {(r.crma || r.return_type === "customer_return") && <><dt>CRMA</dt><dd data-crma-reporte={r.crma ?? ""}>{r.crma || t("Not yet", "Todavía no")}</dd></>}
             </>
           )}

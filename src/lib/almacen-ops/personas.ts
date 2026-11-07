@@ -26,3 +26,21 @@ export function personasParaElegir<T extends PersonaDeAlmacen>(personas: readonl
     .filter((p) => !n || p.full_name.toLowerCase().includes(n))
     .sort((a, b) => a.full_name.localeCompare(b.full_name));
 }
+
+/**
+ * Lo que se enseña de una entrada de un paso de personas (D-915): el nombre del empleado si es un id conocido; si no,
+ * el texto tal cual (un nombre escrito a mano para alguien sin cuenta). Un id que ya no está en la lista sale como «—».
+ */
+export function nombreOTexto(personas: readonly Pick<PersonaDeAlmacen, "id" | "full_name">[], x: string): string {
+  const p = personas.find((q) => q.id === x);
+  if (p) return p.full_name;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x) ? "—" : x;
+}
+
+/**
+ * Al cambiar la tienda del reporte se quita a la gente elegida que no es del almacén nuevo. Un nombre escrito a mano
+ * (que no es id de nadie) se conserva: no pertenece a ninguna tienda.
+ */
+export function elegidosAlCambiarDeTienda(elegidos: readonly string[], deLaTienda: ReadonlySet<string>, conocidos: ReadonlySet<string>): string[] {
+  return elegidos.filter((x) => deLaTienda.has(x) || !conocidos.has(x));
+}
