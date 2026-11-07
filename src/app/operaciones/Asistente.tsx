@@ -7,21 +7,24 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
-import { fmtMoney } from "@/lib/utils";
+import { fmtDateTime, fmtMoney } from "@/lib/utils";
 import { jpegComprimido } from "@/lib/camara-de-varias-fotos";
 import { INFO_DE_TIPO, esDeRrhh, type TipoDeReporte } from "@/lib/almacen-ops/tipos";
 import {
-  costoDelCampo, empleadosDelReporte, etiquetaDeOpcion, pasoCompleto, pasosVisibles, primerHueco, productoLibre,
+  costoDelCampo, empleadosDelReporte, etiquetaDeOpcion, pasoCompleto, pasosVisibles, primerHuecoSalvoFoto, productoLibre,
   respuestasIniciales, respuestasParaGuardar, type Paso, type ProductoElegido, type Respuestas,
 } from "@/lib/almacen-ops/pasos";
+import {
+  CLAVE_HASHES, CLAVE_PENDIENTE, MAX_FOTOS, avisoDeRepetida, fotosDe, hashDeDataUrl, hashesDe, motivoDeBloqueo,
+  puedeEnviar, puedeGuardarSinFoto, type Repetida,
+} from "@/lib/almacen-ops/fotos";
 import { fechaDelDanoValida, fmtDia, hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
 import { cantidadesValidas, cuentaComoPerdida, enteroDelCampo, perdidaDeMerma, piezasPorCajaInicial, piezasTotales, repartoAjustado, repartoAlCambiar, repartoValido, type Cantidades, type Reparto } from "@/lib/almacen-ops/perdida";
-import { DEMO_PRODUCTOS, buscarProductos, mermaParaEnviar, productoParaEnviar, registrar, subirFoto, type Envio } from "@/lib/almacen-ops/datos";
+import { DEMO_PRODUCTOS, buscarProductos, mermaParaEnviar, productoParaEnviar, registrar, reportesConLaFoto, subirFoto, type Envio, type Reporte } from "@/lib/almacen-ops/datos";
+import { Tarjeta } from "./ListaDeReportes";
 import { personasParaElegir } from "@/lib/almacen-ops/personas";
 import { borrarBorrador, guardarBorrador, hayCambios, leerBorrador } from "@/lib/almacen-ops/borradores";
 import type { Contexto } from "./Operaciones";
-
-const MAX_FOTOS = 3;
 
 /**
  * El asistente de un reporte (D-883, 247): una pregunta por pantalla, con botones grandes para el teléfono; luego el
@@ -54,16 +57,22 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
   const [cerrando, setCerrando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hecho, setHecho] = useState(false);
+  // "enviado": reporte completo; "sin-foto" (268): merma guardada en la base a la espera de la foto (papel primero).
+  const [hecho, setHecho] = useState<false | "enviado" | "sin-foto">(false);
+  // 268: una foto repetida espera a que la confirmen o la quiten antes de seguir.
+  const [confirmandoFoto, setConfirmandoFoto] = useState(false);
   const botonSiguiente = useRef<HTMLButtonElement>(null);
 
   const pasos = pasosVisibles(tipo, r);
   const enResumen = i >= pasos.length;
   const paso = pasos[i];
-  const listo = paso ? pasoCompleto(paso, r) : false;
+  const listo = paso ? pasoCompleto(paso, r) && !confirmandoFoto : false;
+  // 268: por qué no se envía (la foto obligatoria va aparte: su paso se puede saltar «la tengo en papel»).
+  const envio = puedeEnviar(tipo, r, tienda, primerHuecoSalvoFoto(tipo, r));
+  const guardaSinFoto = puedeGuardarSinFoto(tipo, r, tienda, primerHuecoSalvoFoto(tipo, r));
   // Lo que una solicitud de ayuda dirá de esta pantalla (D-901): por qué paso iba (la pregunta, no la respuesta).
   useContextoDeAyuda("asistente-de-operaciones", contextoDelAsistente({
-    paso: paso ? { en: paso.en, es: paso.es } : null, indice: i, total: pasos.length, enResumen, enviado: hecho, tienda,
+    paso: paso ? { en: paso.en, es: paso.es } : null, indice: i, total: pasos.length, enResumen, enviado: hecho === "enviado", tienda,
   }));
   const pon = (id: string, v: unknown) => setR((x) => ({ ...x, [id]: v }));
   // «Algo escrito» no cuenta la fecha del daño que se pone sola: cambiar solo la tienda de un reporte en blanco no es un cambio.
@@ -108,24 +117,34 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
     siguiente();
   };
 
-  const enviar = async () => {
-    if (primerHueco(tipo, r) >= 0 || !tienda) return;
+  /**
+   * Envía el reporte. `sinFoto` (268): la merma que apuntaron en papel se guarda en la base SIN foto y marcada
+   * `photo_pending`; queda incompleta hasta que le agreguen la foto desde «Mis reportes» (o el gerente desde «Reportes»).
+   * Las huellas (SHA-256) de las fotos viajan dentro de `answers` alineadas con las rutas; el trigger de la 268 las
+   * pasa a su columna.
+   */
+  const enviar = async (sinFoto = false) => {
+    if (sinFoto ? !guardaSinFoto : !envio.ok) return;
     setEnviando(true); setError(null);
     try {
-      if (ctx.demo) { await new Promise((ok) => setTimeout(ok, 300)); borrarBorrador(ctx.yo.id, borradorId); setHecho(true); return; }
+      if (ctx.demo) { await new Promise((ok) => setTimeout(ok, 300)); borrarBorrador(ctx.yo.id, borradorId); setHecho(sinFoto ? "sin-foto" : "enviado"); return; }
       const sb = createClient();
       const fotos: string[] = [];
-      for (const f of (r.photo as string[] | undefined) ?? []) fotos.push(await subirFoto(sb, ctx.yo.id, f));
+      const huellas = hashesDe(r);
+      for (const f of fotosDe(r)) fotos.push(await subirFoto(sb, ctx.yo.id, f));
       const q = r.qty as Cantidades | undefined;
       const p = r.product as ProductoElegido | undefined;
-      const envio: Envio = {
-        kind: tipo, store: tienda, subjectIds: empleadosDelReporte(tipo, r), answers: respuestasParaGuardar(tipo, r), photos: fotos,
+      const answers = respuestasParaGuardar(tipo, r);
+      if (fotos.length > 0) answers[CLAVE_HASHES] = fotos.map((_, n) => huellas[n] ?? "");
+      if (sinFoto) answers[CLAVE_PENDIENTE] = true;
+      const e: Envio = {
+        kind: tipo, store: tienda, subjectIds: empleadosDelReporte(tipo, r), answers, photos: fotos,
         scrap: tipo === "scrap" && p && q ? { ...productoParaEnviar(p), ...mermaParaEnviar(r) } : null,
       };
-      if (envio.scrap) { delete envio.answers.broken_by; delete envio.answers.crma; }
-      await registrar(sb, envio);
+      if (e.scrap) { delete e.answers.broken_by; delete e.answers.crma; }
+      await registrar(sb, e);
       borrarBorrador(ctx.yo.id, borradorId);
-      setHecho(true);
+      setHecho(sinFoto ? "sin-foto" : "enviado");
     } catch (e) {
       setError(e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e));
     } finally {
@@ -136,8 +155,10 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
   if (hecho) {
     return (
       <section className="ops-hecho" data-enviado={tipo}>
-        <span className="ops-hecho-icono" aria-hidden>✅</span>
-        <h2>{t("Report sent", "Reporte enviado")}</h2>
+        <span className="ops-hecho-icono" aria-hidden>{hecho === "sin-foto" ? "📷" : "✅"}</span>
+        <h2>{hecho === "sin-foto" ? t("Saved without photo", "Guardado sin foto") : t("Report sent", "Reporte enviado")}</h2>
+        {hecho === "sin-foto" && <p data-aviso="sin-foto">{t("It is incomplete until you add the photo of the pieces. Open it from “My scrap reports” and tap “Add photo”.",
+          "Queda incompleto hasta que agregues la foto de las piezas. Ábrelo desde «Mis reportes de merma» y toca «Agregar foto».")}</p>}
         {esDeRrhh(tipo) && <p>{t("It was added to the employee's HR file. Only managers and HR can see it.", "Se agregó al expediente del empleado. Solo lo ven los gerentes y RR. HH.")}</p>}
         <div className="ops-hecho-acciones">
           <Link href="/operaciones" className="ops-boton-ancho ops-boton-primario">{t("Done", "Listo")}</Link>
@@ -172,7 +193,16 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
       {!enResumen && paso && (
         <div className="ops-pregunta" data-paso={paso.id} onKeyDown={enterAvanza}>
           <h2>{lang === "es" ? paso.es : paso.en}</h2>
-          <Respuesta paso={paso} r={r} pon={pon} ctx={ctx} tienda={tienda} onElegirUno={alElegirUno} />
+          <Respuesta paso={paso} r={r} pon={pon} ctx={ctx} tienda={tienda} onElegirUno={alElegirUno} onConfirmandoFoto={setConfirmandoFoto} />
+          {/* 268: la foto de la merma es obligatoria, pero si la apuntaron en papel pueden seguir y guardarla «sin foto». */}
+          {paso.tipo === "foto" && paso.obligatoria && fotosDe(r).length === 0 && (
+            <div className="ops-foto-papel" data-foto-obligatoria>
+              <p className="hint">{t("The report cannot be sent without a photo of the damaged pieces.", "El reporte no se envía sin una foto de las piezas dañadas.")}</p>
+              <button type="button" className="ops-boton ops-boton-chico" onClick={siguiente} data-accion="foto-despues">
+                {t("I wrote it on paper — I'll add the photo later", "Lo apunté en papel: agrego la foto después")}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -184,7 +214,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
             {pasos.map((p, n) => (
               <button type="button" key={p.id} className={`ops-fila${pasoCompleto(p, r) ? "" : " falta"}`} onClick={() => editar(n)} data-editar={p.id}>
                 <dt>{lang === "es" ? p.es : p.en}</dt>
-                <dd>{textoDeRespuesta(tipo, p, r, ctx, lang) || <span className="hint">{pasoCompleto(p, r) ? "—" : t("Missing", "Falta")}</span>}</dd>
+                <dd>{textoDeRespuesta(tipo, p, r, ctx, lang) || <span className="hint">{pasoCompleto(p, r) ? "—" : p.tipo === "foto" ? t("Missing photo", "Falta la foto") : t("Missing", "Falta")}</span>}</dd>
               </button>
             ))}
           </dl>
@@ -196,6 +226,12 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
                 {ctx.tiendas.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </label>
+          )}
+          {!envio.ok && envio.motivo === "foto" && (
+            <div className="ops-aviso ops-aviso-error" role="status" data-bloqueo="foto">
+              <p>📷 {motivoDeBloqueo("foto", lang)}</p>
+              {guardaSinFoto && <p className="hint">{t("Wrote it on paper? Save it without the photo: it stays incomplete until the photo is added.", "¿Lo apuntaste en papel? Guárdalo sin foto: queda incompleto hasta que le agregues la foto.")}</p>}
+            </div>
           )}
           {error && <p className="ops-aviso ops-aviso-error" role="alert">{t("Not sent: ", "No se envió: ")}{error}</p>}
         </div>
@@ -221,13 +257,19 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
           ? <button type="button" className="ops-boton" onClick={cerrar}>{t("Cancel", "Cancelar")}</button>
           : <button type="button" className="ops-boton" onClick={() => { setVolverAlResumen(false); setI((n) => n - 1); }} disabled={enviando}>{t("Back", "Atrás")}</button>}
         {enResumen
-          ? <button type="button" className="ops-boton ops-boton-primario" onClick={enviar} disabled={enviando || primerHueco(tipo, r) >= 0 || !tienda} data-accion="enviar">
+          ? <button type="button" className="ops-boton ops-boton-primario" onClick={() => void enviar()} disabled={enviando || !envio.ok} data-accion="enviar"
+              title={envio.ok ? undefined : motivoDeBloqueo(envio.motivo, lang)} data-bloqueado={envio.ok ? undefined : envio.motivo}>
               {enviando ? t("Sending…", "Enviando…") : t("Send report", "Enviar reporte")}
             </button>
           : <button type="button" ref={botonSiguiente} className="ops-boton ops-boton-primario" onClick={siguiente} disabled={!listo} data-accion="siguiente">
               {volverAlResumen ? t("Back to summary", "Volver al resumen") : i === pasos.length - 1 ? t("Review", "Revisar") : t("Next", "Siguiente")}
             </button>}
         {/* «Guardar borrador» abajo, con Atrás / Siguiente (pedido 78b2e1fc); «Cerrar» sigue arriba. */}
+        {enResumen && guardaSinFoto && (
+          <button type="button" className="ops-boton ops-botonera-entera" onClick={() => void enviar(true)} disabled={enviando} data-accion="guardar-sin-foto">
+            📷 {enviando ? t("Saving…", "Guardando…") : t("Save without photo (on paper)", "Guardar sin foto (en papel)")}
+          </button>
+        )}
         <button type="button" className="ops-boton ops-boton-chico ops-botonera-entera" onClick={guardar} disabled={enviando || !cambiado} data-accion="guardar-borrador">💾 {t("Save draft", "Guardar borrador")}</button>
       </footer>
     </section>
@@ -292,8 +334,8 @@ function Perdida({ r, grande = false }: { r: Respuestas; grande?: boolean }) {
   );
 }
 
-function Respuesta({ paso, r, pon, ctx, tienda, onElegirUno }: {
-  paso: Paso; r: Respuestas; pon: (id: string, v: unknown) => void; ctx: Contexto; tienda: string; onElegirUno: () => void;
+function Respuesta({ paso, r, pon, ctx, tienda, onElegirUno, onConfirmandoFoto }: {
+  paso: Paso; r: Respuestas; pon: (id: string, v: unknown) => void; ctx: Contexto; tienda: string; onElegirUno: () => void; onConfirmandoFoto: (x: boolean) => void;
 }) {
   const { t, lang } = usePrefs();
   const v = r[paso.id];
@@ -346,7 +388,8 @@ function Respuesta({ paso, r, pon, ctx, tienda, onElegirUno }: {
     case "persona":
       return <ElegirPersonas multiple={paso.tipo === "personas"} valor={v} onCambio={(x) => { pon(paso.id, x); if (paso.tipo === "persona") onElegirUno(); }} ctx={ctx} tienda={tienda} />;
     case "foto":
-      return <Fotos fotos={(v as string[] | undefined) ?? []} onCambio={(x) => pon(paso.id, x)} />;
+      return <Fotos fotos={fotosDe(r)} huellas={hashesDe(r)} ctx={ctx} obligatoria={!!paso.obligatoria}
+        onCambio={(f, h) => { pon(paso.id, f); pon(CLAVE_HASHES, h); }} onConfirmando={onConfirmandoFoto} />;
     case "producto":
       return <ElegirProducto valor={v as ProductoElegido | undefined} ctx={ctx} onElegir={(p) => {
         pon("product", p);
@@ -522,38 +565,103 @@ function Cantidad({ r, onCambio, onReparto }: { r: Respuestas; onCambio: (q: Can
   );
 }
 
-function Fotos({ fotos, onCambio }: { fotos: string[]; onCambio: (f: string[]) => void }) {
-  const { t } = usePrefs();
+/**
+ * Las fotos del reporte. 268: cada una lleva su SHA-256 (de los bytes que se suben, el JPEG comprimido); al agregarla
+ * se pregunta a la base si otro reporte ya la usó y, si sí, se avisa con el reporte (que se abre aquí mismo, como
+ * tarjeta) y se pide confirmar o quitarla. Solo aviso: no bloquea (el dueño decide después si bloquear).
+ */
+function Fotos({ fotos, huellas, ctx, obligatoria, onCambio, onConfirmando }: {
+  fotos: string[]; huellas: string[]; ctx: Contexto; obligatoria: boolean; onCambio: (f: string[], h: string[]) => void; onConfirmando: (x: boolean) => void;
+}) {
+  const { t, lang } = usePrefs();
   const ref = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [leyendo, setLeyendo] = useState(false);
+  // Por posición: los reportes que ya usaron esa foto, hasta que la confirmen («Keep it») o la quiten.
+  const [repetidas, setRepetidas] = useState<Record<number, Repetida[]>>({});
+  const [abierto, setAbierto] = useState<Reporte | null>(null);
+  const [errorAbrir, setErrorAbrir] = useState<string | null>(null);
+  const pendientes = Object.keys(repetidas).length > 0;
+  useEffect(() => { onConfirmando(pendientes); }, [pendientes, onConfirmando]);
+  useEffect(() => () => onConfirmando(false), [onConfirmando]);
+  const dia = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? fmtDia(iso, lang) : fmtDateTime(iso));
   const agrega = async (f: File | undefined) => {
-    if (!f) return;
+    if (!f || fotos.length >= MAX_FOTOS) return;
+    setLeyendo(true);
     try {
       const img = await createImageBitmap(f);
       const jpg = jpegComprimido(img, img.width, img.height);
       img.close();
-      onCambio([...fotos, jpg].slice(0, MAX_FOTOS));
+      const huella = await hashDeDataUrl(jpg);
+      const n = fotos.length;
+      onCambio([...fotos, jpg], [...huellas, huella]);
       setError(null);
+      // ¿Ya se usó en este mismo reporte o en otro? (en el demo no hay base que preguntar)
+      const enEste = huellas.includes(huella);
+      const otros = ctx.demo ? [] : await reportesConLaFoto(createClient(), huella).catch(() => [] as Repetida[]);
+      if (enEste || otros.length > 0) setRepetidas((x) => ({ ...x, [n]: otros }));
     } catch {
-      setError(t("That photo could not be read. Try another one, or tap Next to skip.", "No se pudo leer esa foto. Prueba otra, o toca Siguiente para saltarla."));
-    }
+      setError(obligatoria
+        ? t("That photo could not be read. Try another one.", "No se pudo leer esa foto. Prueba otra.")
+        : t("That photo could not be read. Try another one, or tap Next to skip.", "No se pudo leer esa foto. Prueba otra, o toca Siguiente para saltarla."));
+    } finally { setLeyendo(false); }
+  };
+  const quita = (n: number) => {
+    onCambio(fotos.filter((_, m) => m !== n), huellas.filter((_, m) => m !== n));
+    setRepetidas((x) => {
+      const y: Record<number, Repetida[]> = {};
+      for (const [k, v] of Object.entries(x)) { const m = Number(k); if (m < n) y[m] = v; else if (m > n) y[m - 1] = v; }
+      return y;
+    });
+  };
+  const confirma = (n: number) => setRepetidas((x) => { const y = { ...x }; delete y[n]; return y; });
+  const abre = async (id: string) => {
+    setErrorAbrir(null);
+    try {
+      const { data, error: e } = await createClient().from("warehouse_reports").select("*").eq("id", id).maybeSingle();
+      if (e) throw e;
+      if (!data) { setErrorAbrir(t("That report is not available.", "Ese reporte no está disponible.")); return; }
+      setAbierto({ ...data, unit_cost: data.unit_cost == null ? null : Number(data.unit_cost), total_loss: data.total_loss == null ? null : Number(data.total_loss) } as Reporte);
+    } catch (e) { setErrorAbrir(e instanceof Error ? e.message : String(e)); }
   };
   return (
-    <div className="ops-fotos">
+    <div className="ops-fotos" data-fotos={fotos.length}>
+      {obligatoria && fotos.length === 0 && (
+        <p className="ops-foto-primero" data-foto-primero>{t("Photograph the damaged pieces before entering anything else. At least one photo is required.", "Fotografía las piezas dañadas antes de capturar lo demás. Se necesita al menos una foto.")}</p>
+      )}
       <div className="ops-fotos-lista">
         {fotos.map((f, n) => (
-          <figure key={n}>
+          <figure key={n} data-repetida={repetidas[n] ? "si" : undefined}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={f} alt={t(`Photo ${n + 1}`, `Foto ${n + 1}`)} />
-            <button type="button" className="ops-boton" onClick={() => onCambio(fotos.filter((_, m) => m !== n))}>{t("Remove", "Quitar")}</button>
+            <button type="button" className="ops-boton" onClick={() => quita(n)}>{t("Remove", "Quitar")}</button>
           </figure>
         ))}
       </div>
+      {Object.entries(repetidas).map(([k, lista]) => {
+        const n = Number(k);
+        const otro = lista[0];
+        return (
+          <div key={k} className="ops-aviso ops-aviso-error ops-aviso-repetida" role="alert" data-aviso="foto-repetida" data-foto={n}>
+            <p>⚠️ {otro ? avisoDeRepetida(otro, lang, dia) : t(`Photo ${n + 1} is already in this report.`, `La foto ${n + 1} ya está en este reporte.`)}</p>
+            <p className="hint">{t("Is it the same damage? Keep it. If not, remove it and take a photo of these pieces.", "¿Es el mismo daño? Déjala. Si no, quítala y toma la foto de estas piezas.")}</p>
+            <div className="ops-aviso-acciones">
+              {otro && !ctx.demo && <button type="button" className="ops-boton ops-boton-chico" onClick={() => void abre(otro.reporteId)} data-accion="ver-repetida">{t("View that report", "Ver ese reporte")}</button>}
+              <button type="button" className="ops-boton ops-boton-chico" onClick={() => quita(n)} data-accion="quitar-repetida">{t("Remove photo", "Quitar foto")}</button>
+              <button type="button" className="ops-boton ops-boton-chico ops-boton-primario" onClick={() => confirma(n)} data-accion="confirmar-repetida">{t("Keep it anyway", "Dejarla de todos modos")}</button>
+            </div>
+            {errorAbrir && <p className="hint">{errorAbrir}</p>}
+          </div>
+        );
+      })}
       {fotos.length < MAX_FOTOS && (
-        <button type="button" className="ops-opcion ops-camara" onClick={() => ref.current?.click()} data-accion="foto">📷 {t("Take or choose a photo", "Tomar o elegir una foto")}</button>
+        <button type="button" className="ops-opcion ops-camara" onClick={() => ref.current?.click()} disabled={leyendo} data-accion="foto">
+          📷 {leyendo ? t("Reading photo…", "Leyendo la foto…") : fotos.length === 0 && obligatoria ? t("Take the photo of the pieces", "Tomar la foto de las piezas") : t("Take or choose a photo", "Tomar o elegir una foto")}
+        </button>
       )}
       <input ref={ref} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { void agrega(e.target.files?.[0]); e.target.value = ""; }} />
       {error && <p className="ops-aviso ops-aviso-error">{error}</p>}
+      {abierto && <Tarjeta r={abierto} ctx={ctx} onCerrar={() => setAbierto(null)} onCambio={setAbierto} />}
     </div>
   );
 }

@@ -172,7 +172,7 @@ describe("la pantalla", () => {
     expect(lista).toContain("const mermasEnRango = useMemo(() => (rango ? filtrarPorRango(mermas, rango) : []), [mermas, rango]);");
     expect(lista).toContain("const enRango = useMemo(() => (rango ? perdidaEnRango(mermas, rango) : { \"*\": 0 }), [mermas, rango]);");
     expect(lista).toContain('<th className="ops-col-rango">{etiqueta}</th>');
-    expect(lista).toContain('<TablaDeReportes filas={mermasEnRango} ctx={ctx} onAbrir={setAbierto} data-lista="merma-en-rango"');
+    expect(lista).toContain('<TablaDeReportes filas={mermasEnRango} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango"');
     expect(lista).toContain("{ATAJOS.map((a) => (");
     expect(lista).toContain('data-campo="rango-desde"');
     expect(lista).toContain('data-campo="rango-hasta"');

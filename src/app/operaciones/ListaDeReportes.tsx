@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -9,7 +9,9 @@ import { fmtDateTime, fmtMoney } from "@/lib/utils";
 import { INFO_DE_TIPO, TIPOS, esDeRrhh, type TipoDeReporte } from "@/lib/almacen-ops/tipos";
 import { PASOS, etiquetaDeOpcion } from "@/lib/almacen-ops/pasos";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
-import { DEMO_PRODUCTOS, DEMO_REPORTES, buscarProductos, corregirMerma, corregirOrigenDeMerma, enlacesDeFotos, type Reporte } from "@/lib/almacen-ops/datos";
+import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, buscarProductos, corregirMerma, corregirOrigenDeMerma, enlacesDeFotos, guardarHuellas, reportesConLaFoto, subirFoto, type Reporte } from "@/lib/almacen-ops/datos";
+import { MAX_FOTOS, avisoDeRepetida, duplicadosPorHuella, etiquetaSinFoto, fotoPendienteVencida, fotosSinHuella, hashDeDataUrl, iconoDeFotos, sha256Hex, sinFoto, type Repetida } from "@/lib/almacen-ops/fotos";
+import { jpegComprimido } from "@/lib/camara-de-varias-fotos";
 import { ORIGENES_DE_MERMA, costoDelCampo, type ProductoElegido } from "@/lib/almacen-ops/pasos";
 import { cuentaComoPerdida, perdidaDeMerma, repartoDeReporte } from "@/lib/almacen-ops/perdida";
 import { puedeCorregirMerma, puedeVerReporte } from "@/lib/almacen-ops/visibilidad";
@@ -84,6 +86,10 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     return true;
   }), [propias, tipo, tienda, empleado, desde, hasta]);
   const cuenta = (k: TipoDeReporte) => propias.filter((r) => r.kind === k).length;
+  // 268: qué reportes comparten una foto (misma huella) con otro, entre los que se ven; la marca sale en ambos.
+  const repetidas = useMemo(() => duplicadosPorHuella(propias), [propias]);
+  // 268: mermas guardadas sin foto que ya pasaron 24 h (el gerente las reclama).
+  const pendientesDeFoto = useMemo(() => propias.filter((r) => fotoPendienteVencida(r)).length, [propias]);
   const nombreTipo = (k: TipoDeReporte) => (lang === "es" ? INFO_DE_TIPO[k].es : INFO_DE_TIPO[k].en);
 
   const mermas = useMemo(() => propias.filter((r) => r.kind === "scrap"), [propias]);
@@ -155,7 +161,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
             `Pérdida = piezas dañadas × el costo por pieza del producto al reportarse (las que sirven de muestra no cuentan). Una devolución de cliente sin CRMA no cuenta como pérdida hasta que se le pone el CRMA. Sobre los últimos ${LIMITE} reportes que puedes ver.`)}</p>
 
           <h3 className="ops-merma-titulo">{t("Scrap in this range", "Merma en el rango")} <span className="count-tag" data-cuenta-rango>{mermasEnRango.length}</span></h3>
-          <TablaDeReportes filas={mermasEnRango} ctx={ctx} onAbrir={setAbierto} data-lista="merma-en-rango"
+          <TablaDeReportes filas={mermasEnRango} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango"
             vacio={rango ? t("No scrap broken in this range.", "No se rompió nada en este rango.") : t("Fix the dates to see the list.", "Corrige las fechas para ver la lista.")} />
         </div>
       )}
@@ -184,7 +190,13 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
               <span className="ops-fecha">{t("To", "Hasta")} <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} aria-label={t("To", "Hasta")} /></span>
             </div>
           )}
-          <TablaDeReportes filas={visibles} ctx={ctx} onAbrir={setAbierto} data-lista="todos"
+          {modo === "todos" && pendientesDeFoto > 0 && (
+            <p className="ops-aviso ops-aviso-pendiente" role="status" data-pendientes-de-foto={pendientesDeFoto}>
+              📷 {t(`${pendientesDeFoto} scrap report${pendientesDeFoto === 1 ? "" : "s"} saved on paper more than 24 h ago still without a photo. Ask for the photo; nothing is deleted on its own.`,
+                `${pendientesDeFoto} merma${pendientesDeFoto === 1 ? "" : "s"} guardada${pendientesDeFoto === 1 ? "" : "s"} en papel hace más de 24 h sigue${pendientesDeFoto === 1 ? "" : "n"} sin foto. Pide la foto; nada se borra solo.`)}
+            </p>
+          )}
+          <TablaDeReportes filas={visibles} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="todos"
             vacio={modo === "mios"
               ? t("You haven't filed any reports yet. Pick one on the Warehouse Ops screen.", "Todavía no has llenado reportes. Elige uno en la pantalla de Operaciones.")
               : t("No reports match these filters.", "Ningún reporte coincide con estos filtros.")} />
@@ -198,7 +210,9 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
 }
 
 /** La tabla de reportes (la de Órdenes, CLAUDE.md); la usan la lista y la pestaña de merma. Cada fila se abre como tarjeta. */
-function TablaDeReportes({ filas, ctx, onAbrir, vacio, "data-lista": dataLista }: { filas: Reporte[]; ctx: Contexto; onAbrir: (r: Reporte) => void; vacio: string; "data-lista": string }) {
+function TablaDeReportes({ filas, ctx, onAbrir, vacio, repetidas, "data-lista": dataLista }: {
+  filas: Reporte[]; ctx: Contexto; onAbrir: (r: Reporte) => void; vacio: string; repetidas: Map<string, string[]>; "data-lista": string;
+}) {
   const { t, lang } = usePrefs();
   const nombre = (id: string) => ctx.personas.find((p) => p.id === id)?.full_name ?? "—";
   const nombreTipo = (k: TipoDeReporte) => (lang === "es" ? INFO_DE_TIPO[k].es : INFO_DE_TIPO[k].en);
@@ -215,7 +229,11 @@ function TablaDeReportes({ filas, ctx, onAbrir, vacio, "data-lista": dataLista }
           {filas.length === 0 && <tr><td colSpan={6} className="hint">{vacio}</td></tr>}
           {filas.map((r) => (
             <tr key={r.id} onClick={() => onAbrir(r)} className="ops-fila-tabla" data-reporte={r.id}>
-              <td style={{ whiteSpace: "nowrap" }} data-dia={diaDelReporte(r)}>{r.kind === "scrap" ? fmtDia(diaDelReporte(r), lang) : fmtDateTime(r.created_at)}</td>
+              <td style={{ whiteSpace: "nowrap" }} data-dia={diaDelReporte(r)}>
+                {r.kind === "scrap" ? fmtDia(diaDelReporte(r), lang) : fmtDateTime(r.created_at)}
+                <IconoDeFotos r={r} />
+                <InsigniasDeFoto r={r} repetida={repetidas.has(r.id)} />
+              </td>
               <td style={{ whiteSpace: "nowrap" }}>{INFO_DE_TIPO[r.kind].emoji} {nombreTipo(r.kind)}</td>
               <td>{r.store}</td>
               <td>{r.author_name ?? nombre(r.author_id)}</td>
@@ -231,18 +249,68 @@ function TablaDeReportes({ filas, ctx, onAbrir, vacio, "data-lista": dataLista }
   );
 }
 
-/** Un reporte como tarjeta, encima de la lista (regla de la casa: los registros se abren en su sitio). */
-function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Contexto; onCerrar: () => void; onCambio: (r: Reporte) => void }) {
+/** 268: la cámara junto a la fecha; solo si hay fotos, y el título dice cuántas. Sin icono = sin fotos. */
+function IconoDeFotos({ r }: { r: Pick<Reporte, "photos"> }) {
+  const { lang } = usePrefs();
+  const n = (r.photos ?? []).length;
+  const ic = iconoDeFotos(n, lang);
+  if (!ic.muestra) return null;
+  return <span className="ops-icono-fotos" title={ic.titulo} aria-label={ic.titulo} role="img" data-fotos={n}> 📷</span>;
+}
+
+/** 268: «Falta la foto» / «Foto pendiente» (guardada en papel) y «Foto repetida» (comparte una foto con otro reporte). */
+function InsigniasDeFoto({ r, repetida }: { r: Reporte; repetida: boolean }) {
+  const { t, lang } = usePrefs();
+  const sin = sinFoto(r);
+  if (!sin && !repetida) return null;
+  return (
+    <>
+      {sin && <span className={`ops-insignia ops-insignia-sin-foto${fotoPendienteVencida(r) ? " vencida" : ""}`} data-sin-foto={fotoPendienteVencida(r) ? "vencida" : "si"}>{etiquetaSinFoto(r, lang)}</span>}
+      {repetida && <span className="ops-insignia ops-insignia-repetida" data-foto-repetida title={t("One of its photos is also in another report", "Una de sus fotos también está en otro reporte")}>{t("Duplicate photo", "Foto repetida")}</span>}
+    </>
+  );
+}
+
+/**
+ * Un reporte como tarjeta, encima de la lista (regla de la casa: los registros se abren en su sitio). También la abre
+ * el asistente (268) cuando una foto ya se usó en otro reporte.
+ */
+export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Contexto; onCerrar: () => void; onCambio: (r: Reporte) => void }) {
   const { t, lang } = usePrefs();
   const [fotos, setFotos] = useState<string[]>([]);
   const [corrigiendo, setCorrigiendo] = useState(false);
+  const [huellasCalculadas, setHuellasCalculadas] = useState(false);
   const corrige = puedeCorregirMerma(ctx.yo, r);
+  // 268: el autor o quien corrige la merma le agrega la foto a una guardada «sin foto».
+  const agregaFoto = r.kind === "scrap" && sinFoto(r) && (r.author_id === ctx.yo.id || corrige);
+  const sinHuella = fotosSinHuella(r);
   useEffect(() => {
     if (ctx.demo || r.photos.length === 0) return;
     let vivo = true;
     void enlacesDeFotos(createClient(), r.photos).then((u) => { if (vivo) setFotos(u); });
     return () => { vivo = false; };
   }, [r.photos, ctx.demo]);
+  // 268: las fotos de antes no tienen huella (SQL no puede leer storage): se calcula aquí, al abrir, y se guarda.
+  useEffect(() => {
+    if (ctx.demo || sinHuella === 0 || fotos.length !== r.photos.length || huellasCalculadas) return;
+    let vivo = true;
+    (async () => {
+      try {
+        const nuevas: (string | null)[] = [];
+        for (let n = 0; n < fotos.length; n++) {
+          const ya = r.photo_hashes?.[n];
+          if (ya) { nuevas.push(ya); continue; }
+          const res = await fetch(fotos[n]);
+          nuevas.push(res.ok ? await sha256Hex(await res.arrayBuffer()) : null);
+        }
+        if (!vivo) return;
+        await guardarHuellas(createClient(), r.id, nuevas);
+        if (vivo) { setHuellasCalculadas(true); onCambio({ ...r, photo_hashes: nuevas }); }
+      } catch { /* sin la 268, o sin red: se intenta la próxima vez que se abra */ }
+    })();
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fotos, sinHuella, ctx.demo, huellasCalculadas]);
   const nombre = (id: string) => ctx.personas.find((p) => p.id === id)?.full_name ?? "—";
   const info = INFO_DE_TIPO[r.kind];
   const reparto = repartoDeReporte(r);
@@ -258,8 +326,13 @@ function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Contexto; on
   return (
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-tarjeta-reporte" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-tarjeta={r.id}>
-        <h3>{info.emoji} {lang === "es" ? info.es : info.en}</h3>
+        <h3>{info.emoji} {lang === "es" ? info.es : info.en}<IconoDeFotos r={r} /></h3>
         <p className="sub">{r.kind === "scrap" ? t("Reported ", "Reportado ") : ""}{fmtDateTime(r.created_at)} · {r.store} · {t("filed by", "lo llenó")} {r.author_name ?? nombre(r.author_id)}</p>
+        {sinFoto(r) && (
+          <p className="ops-aviso ops-aviso-error" role="status" data-tarjeta-sin-foto={fotoPendienteVencida(r) ? "vencida" : "si"}>
+            📷 {etiquetaSinFoto(r, lang)} · {t("Saved from paper, without a photo of the pieces. It is incomplete until the photo is added.", "Guardado desde papel, sin foto de las piezas. Está incompleto hasta que se le agregue la foto.")}
+          </p>
+        )}
         {esDeRrhh(r.kind) && <p className="ops-tarjeta-rrhh">{t("In the employee's HR file", "En el expediente del empleado")}</p>}
         <dl className="ops-tarjeta-datos">
           {r.subject_ids.length > 0 && <><dt>{t("Employee", "Empleado")}</dt><dd>{r.subject_ids.map(nombre).join(", ")}</dd></>}
@@ -307,7 +380,82 @@ function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Contexto; on
             {ctx.demo && <p className="hint">{t("Photos are not shown in demo mode.", "En el demo no se enseñan fotos.")}</p>}
           </div>
         )}
+        {r.photos.length > 0 && sinHuella > 0 && !ctx.demo && (
+          <p className="hint" data-huellas="calculando">{t("Report from before duplicate detection: the photo fingerprints are being computed now and saved for next time.", "Reporte de antes de la detección de repetidas: las huellas de las fotos se calculan ahora y se guardan para la próxima.")}</p>
+        )}
+        {agregaFoto && <AgregarFoto r={r} ctx={ctx} onListo={onCambio} />}
         <div className="modal-actions"><button type="button" className="btn btn-primary" onClick={onCerrar}>{t("Close", "Cerrar")}</button></div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 268: agregar la foto a una merma guardada «sin foto» (la apuntaron en papel). Sube, calcula la huella, avisa si la
+ * foto ya está en otro reporte (solo aviso) y llama a `warehouse_ops_add_photos`, que quita `photo_pending`.
+ */
+function AgregarFoto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onListo: (n: Reporte) => void }) {
+  const { t, lang } = usePrefs();
+  const ref = useRef<HTMLInputElement>(null);
+  const [lista, setLista] = useState<{ jpg: string; huella: string; otros: Repetida[] }[]>([]);
+  const [leyendo, setLeyendo] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const dia = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? fmtDia(iso, lang) : fmtDateTime(iso));
+  const agrega = async (f: File | undefined) => {
+    if (!f || lista.length >= MAX_FOTOS) return;
+    setLeyendo(true); setError(null);
+    try {
+      const img = await createImageBitmap(f);
+      const jpg = jpegComprimido(img, img.width, img.height);
+      img.close();
+      const huella = await hashDeDataUrl(jpg);
+      const otros = ctx.demo ? [] : await reportesConLaFoto(createClient(), huella).catch(() => [] as Repetida[]);
+      setLista((x) => [...x, { jpg, huella, otros: otros.filter((o) => o.reporteId !== r.id) }]);
+    } catch { setError(t("That photo could not be read. Try another one.", "No se pudo leer esa foto. Prueba otra.")); }
+    finally { setLeyendo(false); }
+  };
+  const guarda = async () => {
+    if (lista.length === 0) return;
+    setGuardando(true); setError(null);
+    try {
+      let rutas = lista.map((_, n) => `demo/${n}.jpg`);
+      if (!ctx.demo) {
+        const sb = createClient();
+        rutas = [];
+        for (const x of lista) rutas.push(await subirFoto(sb, ctx.yo.id, x.jpg));
+        await agregarFotos(sb, r.id, rutas, lista.map((x) => x.huella));
+      }
+      onListo({ ...r, photos: [...r.photos, ...rutas], photo_hashes: [...(r.photo_hashes ?? r.photos.map(() => null)), ...lista.map((x) => x.huella)], photo_pending: false });
+    } catch (e) { setError(e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e)); }
+    finally { setGuardando(false); }
+  };
+  return (
+    <div className="ops-corregir ops-agregar-foto" data-agregar-foto={r.id}>
+      <p className="hint">{t("Add the photo of the damaged pieces to complete this report.", "Agrega la foto de las piezas dañadas para completar este reporte.")}</p>
+      <div className="ops-fotos-lista">
+        {lista.map((x, n) => (
+          <figure key={n} data-repetida={x.otros.length > 0 ? "si" : undefined}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={x.jpg} alt={t(`Photo ${n + 1}`, `Foto ${n + 1}`)} />
+            <button type="button" className="ops-boton" onClick={() => setLista((l) => l.filter((_, m) => m !== n))}>{t("Remove", "Quitar")}</button>
+          </figure>
+        ))}
+      </div>
+      {lista.map((x, n) => x.otros.length > 0 && (
+        <p key={n} className="ops-aviso ops-aviso-error" role="alert" data-aviso="foto-repetida" data-foto={n}>⚠️ {avisoDeRepetida(x.otros[0], lang, dia)} {t("Keep it only if it is the same damage.", "Déjala solo si es el mismo daño.")}</p>
+      ))}
+      {lista.length < MAX_FOTOS && (
+        <button type="button" className="ops-opcion ops-camara" onClick={() => ref.current?.click()} disabled={leyendo || guardando} data-accion="foto">
+          📷 {leyendo ? t("Reading photo…", "Leyendo la foto…") : t("Take the photo of the pieces", "Tomar la foto de las piezas")}
+        </button>
+      )}
+      <input ref={ref} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { void agrega(e.target.files?.[0]); e.target.value = ""; }} />
+      {error && <p className="ops-aviso ops-aviso-error" role="alert">{error}</p>}
+      <div className="modal-actions">
+        <button type="button" className="btn btn-primary" onClick={() => void guarda()} disabled={lista.length === 0 || guardando} data-accion="guardar-foto">
+          {guardando ? t("Saving…", "Guardando…") : t("Add photo and complete", "Agregar foto y completar")}
+        </button>
       </div>
     </div>
   );

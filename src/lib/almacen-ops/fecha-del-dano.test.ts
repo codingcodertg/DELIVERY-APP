@@ -15,7 +15,7 @@ const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").replace
 const SQL = leer("supabase/migrations/266_merma_fecha_del_dano.sql");
 const HOY = "2026-11-06";
 const completo = { product: { id: 7, sku: "S", name: "N", cost: 1, pieces_per_box: 8 }, split: { damaged: 8, sample: 0 },
-  qty: { boxes: 1, piecesPerBox: 8, loosePieces: 0 }, return_type: "internal", reason: "fell" };
+  qty: { boxes: 1, piecesPerBox: 8, loosePieces: 0 }, return_type: "internal", reason: "fell", photo: ["data:image/jpeg;base64,/9j/"] }; // 268: la merma ya no se envía sin foto
 
 describe("hoy en Texas", () => {
   it("es el día de Texas, no el de UTC ni el del aparato", () => {
@@ -53,7 +53,7 @@ describe("el formulario de merma", () => {
     expect(paso.tipo).toBe("fecha");
     expect(paso.en).toBe("What date was it broken?");
     expect(paso.es).toBe("¿Qué día se rompió?");
-    expect(PASOS.scrap.map((p) => p.id)).toEqual(["product", "qty", "return_type", "reason", "broken_on", "broken_by", "crma", "photo", "comments"]);
+    expect(PASOS.scrap.map((p) => p.id)).toEqual(["product", "photo", "qty", "return_type", "reason", "broken_on", "broken_by", "crma", "comments"]);
     for (const [tipo, pasos] of Object.entries(PASOS)) {
       if (tipo !== "scrap") expect(pasos.some((p) => p.tipo === "fecha"), tipo).toBe(false);
     }
