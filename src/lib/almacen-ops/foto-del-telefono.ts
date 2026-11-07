@@ -1,5 +1,5 @@
 /**
- * D-NEXT: leer la foto que da el teléfono (cámara o galería) sin que falle en silencio.
+ * D-917: leer la foto que da el teléfono (cámara o galería) sin que falle en silencio.
  *
  * Roberto, 2026-11-07, tras la primera merma de Baudelio con el formulario nuevo (D-914): «cuando la estaba haciendo,
  * no lo deja poner la foto. La tiene que [escoger] del carrete». La cámara del asistente no servía; la galería sí.

@@ -51042,3 +51042,9 @@ Sello `warehouse_ops` 0.9.0; repo 1.769.0.
 Si los latidos dejan de entrar (cambio de Wi-Fi, token caducado), el cronómetro espera la red, refresca la sesión y pone al día la fila con lo que llevaba contado; si hace falta, recarga la pantalla sin perder el reloj ni la sesión. Se corrige el bucle del 7 de noviembre: el cierre de la fila anterior fallaba con token caducado y la fila nueva chocaba cada 35 s, dejando 70 min «Sin guardar». El aviso dice qué está haciendo y la notificación de Windows ya no se repite más de una vez cada diez minutos. El cascarón de escritorio (1.3.0) vigila la red y pide sanar al volver.
 
 Sello `timetracker` 1.18.0; repo 1.770.0.
+
+## D-917 · Merma: la foto de la cámara ya no se pierde en silencio; cámara y galería por separado
+
+En el asistente de merma y en «Agregar foto» ahora hay dos botones, «📷 Tomar la foto» y «🖼 Elegir de la galería», y si la foto no se puede abrir se dice por qué (vacía, HEIC de iPhone, etc.). En la app de Android (APK 8), si no se dio el permiso de cámara la app lo pide y, si se niega, avisa y abre la galería en vez de no hacer nada. Causa: Baudelio usa la app Android (APK 6) y, sin permiso de cámara, el cascarón devolvía nada sin avisar.
+
+Sello `warehouse_ops` 0.10.0; repo 1.771.0.

@@ -406,7 +406,7 @@ function AgregarFoto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onListo: 
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dia = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? fmtDia(iso, lang) : fmtDateTime(iso));
-  // D-NEXT: la misma lectura que el asistente (bytes en el acto, decodificador con respaldo, motivo visible y en consola).
+  // D-917: la misma lectura que el asistente (bytes en el acto, decodificador con respaldo, motivo visible y en consola).
   const agrega = async (f: File, origen: "camara" | "galeria") => {
     if (lista.length >= MAX_FOTOS) return;
     setLeyendo(true); setError(null);

@@ -219,6 +219,6 @@ textarea.ops-campo { min-height: 150px; resize: vertical; }
 .ops-aviso-pendiente { margin: 0 0 10px; border-color: var(--amber); background: color-mix(in srgb, var(--amber) 10%, var(--card)); }
 .ops-agregar-foto { margin-top: 12px; }
 .ops-tarjeta-reporte h3 .ops-icono-fotos { font-size: 16px; }
-/* D-NEXT: los dos botones de la foto de merma (cámara y galería), la cámara como principal. */
+/* D-917: los dos botones de la foto de merma (cámara y galería), la cámara como principal. */
 .ops-botones-foto { display: grid; gap: 8px; }
 .ops-camara-principal { border-color: var(--accent); border-style: solid; }

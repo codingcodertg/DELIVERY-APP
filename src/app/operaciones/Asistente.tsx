@@ -591,7 +591,7 @@ function Fotos({ fotos, huellas, ctx, obligatoria, onCambio, onConfirmando }: {
   fotos: string[]; huellas: string[]; ctx: Contexto; obligatoria: boolean; onCambio: (f: string[], h: string[]) => void; onConfirmando: (x: boolean) => void;
 }) {
   const { t, lang } = usePrefs();
-  // D-NEXT: si la pantalla se desmonta a media lectura (o a media pregunta a la base), no se toca su estado.
+  // D-917: si la pantalla se desmonta a media lectura (o a media pregunta a la base), no se toca su estado.
   const vivo = useRef(true);
   useEffect(() => { vivo.current = true; return () => { vivo.current = false; }; }, []);
   const [error, setError] = useState<string | null>(null);
@@ -604,7 +604,7 @@ function Fotos({ fotos, huellas, ctx, obligatoria, onCambio, onConfirmando }: {
   useEffect(() => { onConfirmando(pendientes); }, [pendientes, onConfirmando]);
   useEffect(() => () => onConfirmando(false), [onConfirmando]);
   const dia = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? fmtDia(iso, lang) : fmtDateTime(iso));
-  // D-NEXT: `leerFotoDelTelefono` lee los bytes en el acto, decodifica con respaldo y nunca falla en silencio: el motivo
+  // D-917: `leerFotoDelTelefono` lee los bytes en el acto, decodifica con respaldo y nunca falla en silencio: el motivo
   // se enseña y va a la consola con el aparato (user agent), para saber qué falló la próxima vez.
   const agrega = async (f: File, origen: "camara" | "galeria") => {
     if (fotos.length >= MAX_FOTOS) return;

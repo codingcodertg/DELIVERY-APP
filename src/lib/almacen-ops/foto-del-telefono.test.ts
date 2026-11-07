@@ -9,7 +9,7 @@ import { esHash } from "./fotos";
 import { medidasComprimidas } from "@/lib/camara-de-varias-fotos";
 
 /**
- * D-NEXT (2026-11-07). Roberto, tras la primera merma de Baudelio con el formulario nuevo: «no lo deja poner la foto; la
+ * D-917 (2026-11-07). Roberto, tras la primera merma de Baudelio con el formulario nuevo: «no lo deja poner la foto; la
  * tiene que escoger del carrete». La cámara del asistente fallaba (en la app de Android, sin permiso de cámara no abre
  * nada) y, si algo fallaba al leer, no se decía por qué. Ahora: dos botones (cámara y galería) al mismo `agrega`, los
  * bytes se leen en el acto, decodificador con respaldo, y el motivo se enseña y va a la consola con el aparato.

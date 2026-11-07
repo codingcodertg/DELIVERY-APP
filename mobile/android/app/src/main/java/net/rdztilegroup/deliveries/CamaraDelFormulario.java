@@ -17,7 +17,7 @@ import com.getcapacitor.BridgeWebChromeClient;
 import java.util.Arrays;
 
 /**
- * D-NEXT (2026-11-07): la cámara de un {@code <input type="file" capture="environment">} cuando la app no tiene el
+ * D-917 (2026-11-07): la cámara de un {@code <input type="file" capture="environment">} cuando la app no tiene el
  * permiso de cámara.
  *
  * Baudelio llenó la primera merma del formulario nuevo desde esta app (APK 6, Android 16) y «no lo dejaba poner la

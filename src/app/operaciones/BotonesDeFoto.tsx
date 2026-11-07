@@ -5,7 +5,7 @@ import { usePrefs } from "@/lib/prefs";
 import { AVISO_SI_NO_ABRIO_LA_CAMARA } from "@/lib/almacen-ops/foto-del-telefono";
 
 /**
- * D-NEXT: los dos botones para agregar una foto de merma —«📷 Tomar foto» (la cámara, `capture="environment"`) y
+ * D-917: los dos botones para agregar una foto de merma —«📷 Tomar foto» (la cámara, `capture="environment"`) y
  * «🖼 Elegir de la galería» (sin `capture`)— con sus dos `<input type="file">`, los dos al MISMO `onFoto(file, origen)`.
  * Antes había un solo botón con `capture`, y en la app de Android, si la cámara no abría, no quedaba otra salida.
  *
