@@ -112,3 +112,9 @@ describe("la pantalla usa la tabla Excel solo en la pestaña de merma", () => {
     expect(CSS).toMatch(/\.ops-tabla-excel[^{]*\.num[^{]*\{[^}]*text-align: right/);
   });
 });
+
+it("escaparCsv neutraliza una celda que empieza como fórmula", () => {
+  expect(escaparCsv("=HYPERLINK(\"x\")")).toBe("\"'=HYPERLINK(\"\"x\"\")\"");
+  expect(escaparCsv("-5 cajas")).toBe("\"'-5 cajas\"");
+  expect(escaparCsv("normal")).toBe("\"normal\"");
+});
