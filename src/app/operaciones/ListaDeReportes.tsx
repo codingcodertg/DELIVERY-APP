@@ -198,8 +198,8 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
               <span data-desglose="pendiente">{t("pending approval", "pendiente de aprobar")} <b>{fmtMoney(porEtapa["*"]?.pendiente ?? 0)}</b></span> · <span data-desglose="aprobada">{t("approved", "aprobada")} <b>{fmtMoney(porEtapa["*"]?.aprobada ?? 0)}</b></span> · <span data-desglose="desechada">{t("dumped / adjusted", "desechada / ajustada")} <b>{fmtMoney(porEtapa["*"]?.desechada ?? 0)}</b></span>
             </p>
           )}
-          <p className="hint" data-totales-por="fecha-del-dano">{t("The range, weeks and months go by the date the material was broken, not the date it was reported. ", "El rango, las semanas y los meses van por el día en que se rompió el material, no por el día en que se reportó. ")}{t(`Loss = damaged pieces × the product's cost per piece when it was reported (pieces usable as samples are not counted). A customer return without a CRMA is not counted as loss until its CRMA is added. Based on the latest ${LIMITE} reports you can see.`,
-            `Pérdida = piezas dañadas × el costo por pieza del producto al reportarse (las que sirven de muestra no cuentan). Una devolución de cliente sin CRMA no cuenta como pérdida hasta que se le pone el CRMA. Sobre los últimos ${LIMITE} reportes que puedes ver.`)}</p>
+          <p className="hint" data-totales-por="fecha-del-dano">{t("The range, weeks and months go by the date the material was broken, not the date it was reported. ", "El rango, las semanas y los meses van por el día en que se rompió el material, no por el día en que se reportó. ")}{t(`Loss = damaged pieces × the product's sales price per piece when it was reported (pieces usable as samples are not counted). A customer return without a CRMA is not counted as loss until its CRMA is added. Based on the latest ${LIMITE} reports you can see.`,
+            `Pérdida = piezas dañadas × el precio de venta por pieza del producto al reportarse (las que sirven de muestra no cuentan). Una devolución de cliente sin CRMA no cuenta como pérdida hasta que se le pone el CRMA. Sobre los últimos ${LIMITE} reportes que puedes ver.`)}</p>
 
           <h3 className="ops-merma-titulo">{t("Scrap in this range", "Merma en el rango")} <span className="count-tag" data-cuenta-rango>{mermasEnRango.length}</span></h3>
           <div className="filters-oneline ops-filtros" role="group" aria-label={t("Stage", "Etapa")} data-filtro-etapas>
@@ -383,7 +383,7 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
             const celda = (k: (typeof COLUMNAS_EXCEL)[number]) => {
               if (k.id === "fecha") return <td key={k.id} className="ops-celda-fecha" data-col={k.id} data-dia={c.fecha}>{fmtDia(c.fecha, lang)}</td>;
               if (k.id === "costo") return (
-                <td key={k.id} className="num" data-col={k.id} title={t(`Cost per piece: ${fmtMoney(r.unit_cost)}`, `Costo por pieza: ${fmtMoney(r.unit_cost)}`)} data-cuenta-como-perdida={cuentaComoPerdida(r) ? "si" : "no"}>
+                <td key={k.id} className="num" data-col={k.id} title={t(`Price per piece: ${fmtMoney(r.unit_cost)}`, `Precio por pieza: ${fmtMoney(r.unit_cost)}`)} data-cuenta-como-perdida={cuentaComoPerdida(r) ? "si" : "no"}>
                   {fmtMoney(r.total_loss)}{!cuentaComoPerdida(r) && <span className="hint"> ({t("no CRMA", "sin CRMA")})</span>}
                 </td>
               );
@@ -530,7 +530,7 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Conte
               <dt>{t("Quantity", "Cantidad")}</dt><dd>{r.loose_pieces
                 ? t(`${r.boxes} boxes × ${r.pieces_per_box} + ${r.loose_pieces} loose = ${r.total_pieces} pieces`, `${r.boxes} cajas × ${r.pieces_per_box} + ${r.loose_pieces} sueltas = ${r.total_pieces} piezas`)
                 : t(`${r.boxes} boxes × ${r.pieces_per_box} = ${r.total_pieces} pieces`, `${r.boxes} cajas × ${r.pieces_per_box} = ${r.total_pieces} piezas`)}</dd>
-              <dt>{t("Cost per piece (when reported)", "Costo por pieza (al reportar)")}</dt><dd>{fmtMoney(r.unit_cost)}</dd>
+              <dt>{t("Price per piece (when reported)", "Precio por pieza (al reportar)")}</dt><dd>{fmtMoney(r.unit_cost)}</dd>
               <dt>{t("Loss (damaged pieces only)", "Pérdida (solo piezas dañadas)")}</dt><dd className="ops-tarjeta-perdida" data-perdida-reporte={r.total_loss ?? ""} data-cuenta-como-perdida={cuentaComoPerdida(r) ? "si" : "no"}>
                 {fmtMoney(r.total_loss)}
                 {!cuentaComoPerdida(r) && <span className="hint" data-sin-crma> · {t("No CRMA: not counted as loss", "Sin CRMA: no cuenta como pérdida")}</span>}
@@ -643,7 +643,7 @@ function AgregarFoto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onListo: 
 
 /**
  * Corregir el producto de una merma (migración 252, pedido b158a7a5): el gerente/supervisor de la tienda o el admin
- * la vincula a un producto del catálogo, o corrige el nombre y el costo a mano. La base recalcula la pérdida.
+ * la vincula a un producto del catálogo, o corrige el nombre y el precio a mano. La base recalcula la pérdida.
  */
 function CorregirProducto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onListo: (n: Reporte | null) => void }) {
   const { t } = usePrefs();
@@ -668,11 +668,11 @@ function CorregirProducto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onLi
     return () => { vivo = false; clearTimeout(id); };
   }, [q, ctx.demo]);
 
-  // La misma cuenta que la base (259 y 263): costo × piezas dañadas; $0 en devolución de cliente sin CRMA.
+  // La misma cuenta que la base (259, 263 y 272): precio de venta × piezas dañadas; $0 en devolución de cliente sin CRMA.
   const total = (c: number | null) => perdidaDeMerma(c, repartoDeReporte(r), r);
   const guarda = async (p: ProductoElegido | null) => {
     const c = costoDelCampo(costo);
-    if (!p && (nombre.trim().length < 2 || Number.isNaN(c))) { setError(t("Write a name and a valid cost.", "Escribe un nombre y un costo válido.")); return; }
+    if (!p && (nombre.trim().length < 2 || Number.isNaN(c))) { setError(t("Write a name and a valid price.", "Escribe un nombre y un precio válido.")); return; }
     setGuardando(true); setError(null);
     try {
       if (!ctx.demo) await corregirMerma(createClient(), r.id, { productId: p?.id ?? null, nombre: p ? p.name : nombre.trim(), costo: p ? p.cost : c });
@@ -693,14 +693,14 @@ function CorregirProducto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onLi
         {lista.map((p) => (
           <button type="button" key={p.id} className="ops-opcion ops-producto" disabled={guardando} onClick={() => void guarda(p)} data-producto={p.id}>
             <span className="ops-producto-nombre">{p.name}</span>
-            <span className="ops-producto-meta">{p.sku} · {p.cost == null ? t("no cost", "sin costo") : fmtMoney(p.cost)}</span>
+            <span className="ops-producto-meta">{p.sku} · {p.cost == null ? t("no price", "sin precio") : fmtMoney(p.cost)}</span>
           </button>
         ))}
       </div>
-      <p className="hint">{t("Or keep it out of the catalog and fix the name and cost:", "O déjalo fuera del catálogo y corrige nombre y costo:")}</p>
+      <p className="hint">{t("Or keep it out of the catalog and fix the name and sales price:", "O déjalo fuera del catálogo y corrige nombre y precio de venta:")}</p>
       <label className="ops-cantidad"><span>{t("Product name", "Nombre del producto")}</span>
         <input className="ops-campo" value={nombre} onChange={(e) => setNombre(e.target.value)} data-campo="corregir-nombre" /></label>
-      <label className="ops-cantidad"><span>{t("Cost per piece", "Costo por pieza")}</span>
+      <label className="ops-cantidad"><span>{t("Sales price per piece", "Precio de venta por pieza")}</span>
         <input className="ops-campo" inputMode="decimal" value={costo} onChange={(e) => setCosto(e.target.value)} data-campo="corregir-costo" /></label>
       {error && <p className="ops-aviso ops-aviso-error" role="alert">{error}</p>}
       <div className="modal-actions">
@@ -714,7 +714,7 @@ function CorregirProducto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onLi
 /**
  * Corregir de dónde viene una merma y su CRMA (migración 263). El CRMA es opcional al reportar y suele llegar después:
  * quien puede corregir el producto lo pone (o lo quita) aquí. La base recalcula la pérdida con la misma regla: una
- * devolución de cliente sin CRMA no cuenta como pérdida; con CRMA, costo × piezas dañadas.
+ * devolución de cliente sin CRMA no cuenta como pérdida; con CRMA, precio × piezas dañadas.
  */
 function CorregirOrigen({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onListo: (n: Reporte | null) => void }) {
   const { t, lang } = usePrefs();

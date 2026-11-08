@@ -335,14 +335,14 @@ function Perdida({ r, grande = false }: { r: Respuestas; grande?: boolean }) {
   const sinContar = s.sample > 0 ? t(` · ${s.sample} sample not counted`, ` · ${s.sample} de muestra no cuentan`) : "";
   return (
     <div className={`ops-perdida${grande ? " grande" : ""}`} data-perdida={total ?? ""} data-cuenta-como-perdida={cuenta ? "si" : "no"}>
-      <span className="ops-perdida-cifra">{total == null ? t("No cost", "Sin costo") : fmtMoney(total)}</span>
+      <span className="ops-perdida-cifra">{total == null ? t("No price", "Sin precio") : fmtMoney(total)}</span>
       <span className="ops-perdida-cuenta">
         {!cuenta
           ? t("No CRMA: not counted as loss. A manager can add the CRMA later and it will count.", "Sin CRMA: no cuenta como pérdida. Un gerente puede poner el CRMA después y entonces contará.")
           : p.cost == null
           ? p.libre
-            ? t("No cost entered; a manager can add it later.", "Sin costo; un gerente lo puede poner después.")
-            : t("This product has no cost in the catalog; the loss is saved without a $ amount.", "Este producto no tiene costo en el catálogo; la pérdida se guarda sin monto.")
+            ? t("No price entered; a manager can add it later.", "Sin precio; un gerente lo puede poner después.")
+            : t("This product has no price in the catalog; the loss is saved without a $ amount.", "Este producto no tiene precio en el catálogo; la pérdida se guarda sin monto.")
           : t(`${s.damaged} damaged pieces × ${fmtMoney(p.cost)} per piece`, `${s.damaged} piezas dañadas × ${fmtMoney(p.cost)} por pieza`) + sinContar}
       </span>
     </div>
@@ -516,7 +516,7 @@ function ElegirProducto({ valor, ctx, onElegir }: { valor: ProductoElegido | und
         {lista.map((p) => (
           <button type="button" key={p.id} className={`ops-opcion ops-producto${valor?.id === p.id ? " elegida" : ""}`} onClick={() => { setLibre(false); onElegir(p); }} data-producto={p.id}>
             <span className="ops-producto-nombre">{p.name}</span>
-            <span className="ops-producto-meta">{p.sku} · {p.cost == null ? t("no cost", "sin costo") : t(`${fmtMoney(p.cost)}/piece`, `${fmtMoney(p.cost)}/pieza`)}{p.pieces_per_box ? t(` · ${p.pieces_per_box} per box`, ` · ${p.pieces_per_box} por caja`) : ""}</span>
+            <span className="ops-producto-meta">{p.sku} · {p.cost == null ? t("no price", "sin precio") : t(`${fmtMoney(p.cost)}/piece`, `${fmtMoney(p.cost)}/pieza`)}{p.pieces_per_box ? t(` · ${p.pieces_per_box} per box`, ` · ${p.pieces_per_box} por caja`) : ""}</span>
           </button>
         ))}
         {q.trim().length >= 2 && lista.length === 0 && !error && <p className="hint">{t("No product found. Try the SKU, or add it by hand below.", "No se encontró. Prueba con el SKU, o escríbelo abajo.")}</p>}
@@ -529,15 +529,15 @@ function ElegirProducto({ valor, ctx, onElegir }: { valor: ProductoElegido | und
       </div>
       {libre && (
         <div className="ops-libre" data-libre>
-          <p className="hint">{t("Not in catalog. Write the name and, if you know it, the cost per piece. A manager can link it to the real product later.",
-            "No está en el catálogo. Escribe el nombre y, si lo sabes, el costo por pieza. Un gerente lo vincula al producto real después.")}</p>
+          <p className="hint">{t("Not in catalog. Write the name and, if you know it, the sales price per piece. A manager can link it to the real product later.",
+            "No está en el catálogo. Escribe el nombre y, si lo sabes, el precio de venta por pieza. Un gerente lo vincula al producto real después.")}</p>
           <label className="ops-cantidad"><span>{t("Product name", "Nombre del producto")}</span>
             <input className="ops-campo" value={nombreLibre} onChange={(e) => { setNombreLibre(e.target.value); usaLibre(e.target.value, costo); }} data-campo="producto-libre-nombre" />
           </label>
-          <label className="ops-cantidad"><span>{t("Cost per piece (optional)", "Costo por pieza (opcional)")}</span>
+          <label className="ops-cantidad"><span>{t("Sales price per piece (optional)", "Precio de venta por pieza (opcional)")}</span>
             <input className="ops-campo" inputMode="decimal" value={costo} placeholder="$0.00" onChange={(e) => { setCosto(e.target.value); usaLibre(nombreLibre, e.target.value); }} data-campo="producto-libre-costo" />
           </label>
-          {Number.isNaN(costoNum) && <p className="ops-aviso ops-aviso-error">{t("Write the cost as a number, like 12.50.", "Escribe el costo como número, por ejemplo 12.50.")}</p>}
+          {Number.isNaN(costoNum) && <p className="ops-aviso ops-aviso-error">{t("Write the price as a number, like 12.50.", "Escribe el precio como número, por ejemplo 12.50.")}</p>}
           <button type="button" className="ops-boton" onClick={() => setLibre(false)}>{t("Search the catalog instead", "Mejor buscar en el catálogo")}</button>
         </div>
       )}
