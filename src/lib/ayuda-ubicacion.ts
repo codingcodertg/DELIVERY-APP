@@ -196,6 +196,11 @@ export const APPS_DEL_MAPA: AppDelMapa[] = [
       reportes: b("All reports (managers)", "Todos los reportes (gerentes)"),
       // 273: equipo, lista diaria, refacciones y uso.
       mantenimiento: b("Maintenance", "Mantenimiento"),
+      // 274 (D-929): la hoja de un conteo de inventario (sistema vs contado, firma). D-930: faltaba en el mapa y la
+      // prueba de «toda pantalla con Ayuda tiene nombre» llevaba rojo main desde entonces.
+      "conteos/hoja": b("Inventory count sheet", "Hoja de conteo de inventario"),
+      // La hoja de aprobación de un reporte (gerentes).
+      "reportes/hoja-de-aprobacion": b("Report approval sheet", "Hoja de aprobación del reporte"),
     },
   },
   { prefijo: "/promos", nombre: modulo("promos"), inicio: b("Promotions list", "Lista de promociones"), pantallas: { ":id": b("Promotion", "Promoción") } },

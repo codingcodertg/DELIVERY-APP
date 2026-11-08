@@ -51120,3 +51120,16 @@ Sello `warehouse_ops` 0.16.0; repo 1.782.0.
 Fase 1 de KPIs de almacén (esquema de Roberto, WhatsApp 8 nov). Nueva sección /operaciones/conteos: el gerente abre un conteo por proveedor + medida, proveedor + nota o producto; se congelan qoh (erp.store_products) y precio. Etapas organizing → reviewing_orders → counting → review → adjusted (+ cancelled) con quién y cuándo. Personal: acomodar, confirmar órdenes pendientes con nota, capturar cajas + sueltas con foto y avance. Gerente: diferencia en piezas y $, recontar, hoja imprimible, firmar, subir capturas del ERP para ajustar, cancelar. KPI 30 días: conteos, exactitud, variación $, días a ajustar, por empleado. Migración 274.
 
 Sello `warehouse_ops` 0.17.0; repo 1.783.0.
+
+## D-930 · Cuatro pruebas de puerta al día (hojas de Operaciones, RPC de 273/274, globo de la tienda, segunda geocodificación)
+
+El 2026-11-08 `vitest` cae en main en cuatro ficheros que no son de ninguna rama abierta, y con eso ningún release puede salir en verde. Son pruebas de puerta que se quedaron atrás de decisiones ya fusionadas; ninguna señala un fallo de la app:
+
+1. `ayuda-ubicacion.test.ts`: toda pantalla con burbuja de Ayuda tiene nombre. Faltaban `/operaciones/conteos/hoja` (274, D-929) y `/operaciones/reportes/hoja-de-aprobacion`. Se nombran en el mapa de rutas.
+2. `ensenanza-general.test.ts`: cada `.rpc("…")` de `src/` está clasificada. Las de Mantenimiento (273, D-927) y Conteos (274, D-929) no estaban: `warehouse_ops_count_vendors` y `warehouse_ops_count_products` devuelven tablas y solo leen; las otras trece escriben y se cortan en modo enseñanza.
+3. `casita-debajo-del-pin.test.ts`: el globo de la tienda en Leaflet pasa por `soloTexto(…)` desde que se limpian las marcas; la prueba buscaba la llamada sin ese envoltorio.
+4. `formulario-orden-limpio.test.ts`: desde D-877 la ficha llama a `/api/geocode-point` dos veces (la comprobación antes de guardar y el selector sobre la dirección tecleada); la prueba exigía una. Se afirma dos y que la segunda es `buscarDireccionDelSelector`.
+
+Nada de esto cambia lo que ve nadie. Lo que sí cambia: el CI vuelve a decir la verdad.
+
+Sello `deliveries` 1.567.0; repo 1.784.0.
