@@ -296,6 +296,11 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-kpi-verde { color: var(--green) !important; }
 .ops-kpi-ambar { color: var(--amber) !important; }
 .ops-kpi-rojo { color: var(--red) !important; }
+.ops-kpi-gris { color: var(--ink-soft) !important; }
+/* KPI de entregas (pestaña Entregas de Reportes): la tarjeta grande no se tiñe de rojo; el color lo pone el %. */
+.ops-entregas .ops-merma-total-rango { border-color: var(--line); background: var(--card); }
+.ops-entregas .ops-merma-titulo { margin-top: 14px; }
+.ops-entregas .tbl-caja { margin-top: 8px; }
 .ops-lista-equipo { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .ops-equipo {
   display: flex; align-items: center; gap: 12px; width: 100%; min-height: 72px; padding: 12px 14px; text-align: left;
