@@ -51084,3 +51084,9 @@ Sello `recruiting` 0.77.0; repo 1.776.0.
 La app Android RDZ Deliveries 8 (1.13.0) ya está en el almacenamiento; el hub la ofrece a los teléfonos con la 6 o la 7. Dentro de la app, al tocar «Tomar la foto» en la merma, si no se había dado el permiso de cámara lo pide; si se niega, avisa y abre la galería en vez de no hacer nada (causa del reporte de Baudelio). Misma firma que la v7.
 
 Sello `deliveries` 1.565.0; repo 1.777.0.
+
+## D-924 · Merma: la lista de Reportes se ve como la hoja de Excel de Roberto, con exportar CSV
+
+En Warehouse Ops → Reports → Scrap, la lista «Merma en el rango» es una fila por reporte con las columnas de la hoja de Roberto: Fecha del daño, Código, Descripción, Cantidades (Cajas, Pzas/caja, Total, Muestra, Dañadas, Costo), Cómo, Motivo, Lo rompió, Lo reportó, CRMA # y Comentarios, además de las columnas de siempre. IDK cuando no se sabe quién, NA sin CRMA. Botón Export CSV con las filas visibles. Pedido por WhatsApp el 7 nov.
+
+Sello `warehouse-ops` .1.0; repo 1.778.0.
