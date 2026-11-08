@@ -26,6 +26,8 @@ import { Tarjeta } from "./ListaDeReportes";
 import { elegidosAlCambiarDeTienda, nombreOTexto, personasParaElegir } from "@/lib/almacen-ops/personas";
 import { borrarBorrador, guardarBorrador, hayCambios, leerBorrador } from "@/lib/almacen-ops/borradores";
 import type { Contexto } from "./Operaciones";
+import { CLAVE_NOMBRE_DE_EQUIPO, esEquipoDelInventario, idDeEquipoElegido, opcionesDeEquipo, type Equipo } from "@/lib/almacen-ops/mantenimiento";
+import { DEMO_MANTENIMIENTO } from "@/lib/almacen-ops/mantenimiento-datos";
 
 /**
  * El asistente de un reporte (D-883, 247): una pregunta por pantalla, con botones grandes para el teléfono; luego el
@@ -65,7 +67,9 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
   const [confirmandoFoto, setConfirmandoFoto] = useState(false);
   const botonSiguiente = useRef<HTMLButtonElement>(null);
 
-  const pasos = pasosVisibles(tipo, r);
+  // 273: el reporte de mantenimiento elige el equipo del inventario de la tienda cuando lo hay (si no, las opciones fijas).
+  const equipos = useEquipoDeLaTienda(ctx, tipo === "maintenance");
+  const pasos = conEquipoDelInventario(pasosVisibles(tipo, r), equipos, tienda);
   const enResumen = i >= pasos.length;
   const paso = pasos[i];
   const listo = paso ? pasoCompleto(paso, r) && !confirmandoFoto : false;
@@ -140,6 +144,8 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
       const p = r.product as ProductoElegido | undefined;
       const answers = respuestasParaGuardar(tipo, r);
       if (fotos.length > 0) answers[CLAVE_HASHES] = fotos.map((_, n) => huellas[n] ?? "");
+      // 273: el nombre del equipo del inventario viaja con el reporte, para que las listas lo enseñen sin consultar.
+      if (tipo === "maintenance" && esEquipoDelInventario(r.equipment)) answers[CLAVE_NOMBRE_DE_EQUIPO] = equipos.find((x) => x.id === idDeEquipoElegido(r.equipment))?.name ?? "";
       if (sinFoto) answers[CLAVE_PENDIENTE] = true;
       const e: Envio = {
         kind: tipo, store: tienda, subjectIds: empleadosDelReporte(tipo, r), answers, photos: fotos,
@@ -290,6 +296,30 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
   );
 }
 
+/**
+ * 273: el equipo activo de la tienda para el paso «¿Qué equipo?» del reporte de mantenimiento. Solo se lee en ese
+ * tipo; si la 273 no está aplicada (o falla la lectura) la lista queda vacía y se usan las opciones fijas.
+ */
+function useEquipoDeLaTienda(ctx: Contexto, activo: boolean): Pick<Equipo, "id" | "name" | "store" | "active">[] {
+  const [equipos, setEquipos] = useState<Pick<Equipo, "id" | "name" | "store" | "active">[]>([]);
+  useEffect(() => {
+    if (!activo) return;
+    if (ctx.demo) { setEquipos(DEMO_MANTENIMIENTO.equipos); return; }
+    let vivo = true;
+    createClient().from("warehouse_equipment").select("id, name, store, active").eq("active", true).order("name")
+      .then(({ data }) => { if (vivo && data) setEquipos(data as Pick<Equipo, "id" | "name" | "store" | "active">[]); });
+    return () => { vivo = false; };
+  }, [ctx.demo, activo]);
+  return equipos;
+}
+
+/** El paso «¿Qué equipo?» con las opciones del inventario de la tienda; los demás pasos, tal cual. */
+function conEquipoDelInventario(pasos: Paso[], equipos: readonly Pick<Equipo, "id" | "name" | "store" | "active">[], tienda: string): Paso[] {
+  const opciones = opcionesDeEquipo(equipos, tienda);
+  if (!opciones) return pasos;
+  return pasos.map((p) => (p.tipo === "opcion" && p.id === "equipment" ? { ...p, opciones } : p));
+}
+
 function nombreDe(ctx: Contexto, id: string): string {
   return ctx.personas.find((p) => p.id === id)?.full_name ?? "—";
 }
@@ -300,7 +330,8 @@ function textoDeRespuesta(tipo: TipoDeReporte, p: Paso, r: Respuestas, ctx: Cont
     case "grupo": return "";
     case "personas": return Array.isArray(v) ? (v as string[]).map((x) => nombreOTexto(ctx.personas, x)).join(", ") : "";
     case "persona": return typeof v === "string" ? nombreDe(ctx, v) : "";
-    case "opcion": case "sino": return etiquetaDeOpcion(tipo, p.id, v, lang);
+    case "opcion": { const x = p.opciones.find((o) => o.v === v); return x ? x[lang] : etiquetaDeOpcion(tipo, p.id, v, lang); }
+    case "sino": return etiquetaDeOpcion(tipo, p.id, v, lang);
     case "texto": return typeof v === "string" ? v : "";
     case "fecha": return typeof v === "string" && v ? fmtDia(v, lang) : "";
     case "foto": { const n = Array.isArray(v) ? v.length : 0; return n ? (lang === "es" ? `${n} foto${n > 1 ? "s" : ""}` : `${n} photo${n > 1 ? "s" : ""}`) : ""; }

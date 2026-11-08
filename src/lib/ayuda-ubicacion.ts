@@ -194,6 +194,8 @@ export const APPS_DEL_MAPA: AppDelMapa[] = [
       ...TIPOS_DE_REPORTE,
       "mis-reportes": b("My reports", "Mis reportes"),
       reportes: b("All reports (managers)", "Todos los reportes (gerentes)"),
+      // 273: equipo, lista diaria, refacciones y uso.
+      mantenimiento: b("Maintenance", "Mantenimiento"),
     },
   },
   { prefijo: "/promos", nombre: modulo("promos"), inicio: b("Promotions list", "Lista de promociones"), pantallas: { ":id": b("Promotion", "Promoción") } },

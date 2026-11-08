@@ -283,3 +283,46 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-etapa-acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
 .ops-etapa-acciones .hint { margin: 0; width: 100%; }
 .ops-confirmar p { margin: 0; font-weight: 600; }
+
+/* ---- Mantenimiento (273): equipo, lista diaria, refacciones, uso ---- */
+.ops-mantenimiento { max-width: 760px; margin: 0 auto; }
+.ops-mant-cabeza { margin-bottom: 10px; }
+.ops-mant-cabeza h2 { margin: 0; }
+.ops-boton-mantenimiento { border-color: var(--blue); }
+.ops-cuenta { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 6px; border-radius: 999px; font-size: 11.5px; font-weight: 800; background: var(--line); color: var(--text); }
+.ops-cuenta-roja { background: var(--red); color: #fff; }
+.ops-kpi { margin-bottom: 14px; }
+.ops-kpi .ops-merma-cifra { color: var(--text); }
+.ops-kpi-verde { color: var(--green) !important; }
+.ops-kpi-ambar { color: var(--amber) !important; }
+.ops-kpi-rojo { color: var(--red) !important; }
+.ops-lista-equipo { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ops-equipo {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 72px; padding: 12px 14px; text-align: left;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--text); cursor: pointer; font: inherit;
+}
+.ops-equipo:hover { border-color: var(--accent); }
+.ops-equipo-baja { opacity: .6; }
+.ops-equipo-icono { font-size: 28px; line-height: 1; }
+.ops-equipo-texto { display: grid; gap: 4px; min-width: 0; flex: 1; }
+.ops-equipo-nombre { font-size: 16px; font-weight: 800; }
+.ops-equipo-meta { font-size: 12.5px; color: var(--ink-soft); }
+.ops-equipo-insignias { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ops-insignia-ok { color: var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); }
+.ops-insignia-uso { color: var(--blue); background: color-mix(in srgb, var(--blue) 14%, transparent); }
+.ops-formulario { display: grid; gap: 12px; }
+.ops-formulario .ops-cantidad { margin: 0; }
+.ops-puntos { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 10px; }
+.ops-punto { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.ops-punto[data-resultado="fail"] { border-color: var(--red); background: var(--red-soft); }
+.ops-punto[data-resultado="ok"] { border-color: color-mix(in srgb, var(--green) 50%, var(--line)); }
+.ops-punto-nombre { font-weight: 700; }
+.ops-punto-botones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.ops-opcion-chica { min-height: 44px; padding: 8px 10px; font-size: 14px; }
+.ops-res-ok.elegida { border-color: var(--green); background: color-mix(in srgb, var(--green) 14%, var(--card)); }
+.ops-res-fail.elegida { border-color: var(--red); background: color-mix(in srgb, var(--red) 14%, var(--card)); }
+.ops-campo-nota { margin-top: 2px; }
+.ops-nota-fallo { font-weight: 400; }
+.ops-foto-mini { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+.ops-filtros-espacio { flex: 1; }
+.ops-etapas h4 { margin: 0 0 8px; font-size: 14px; }

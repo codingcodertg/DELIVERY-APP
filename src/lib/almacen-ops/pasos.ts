@@ -98,6 +98,17 @@ export const MOTIVOS_VIEJOS: Opcion[] = [
 ];
 export type Respuestas = Record<string, unknown>;
 
+/**
+ * 273: el paso «¿Qué equipo?» del reporte de mantenimiento admite, además de sus opciones fijas, un equipo del
+ * inventario de la tienda (`warehouse_equipment`): el valor es `eq:<uuid>`. La pantalla cambia las opciones por las
+ * del inventario (mantenimiento.ts); aquí solo se acepta el valor para que el resumen no lo dé por hueco.
+ */
+export const PASO_EQUIPO = "equipment";
+export const PREFIJO_DE_EQUIPO = "eq:";
+export function esEquipoDelInventario(v: unknown): v is string {
+  return typeof v === "string" && v.startsWith(PREFIJO_DE_EQUIPO) && v.length > PREFIJO_DE_EQUIPO.length;
+}
+
 const o = (v: string, en: string, es: string): Opcion => ({ v, en, es });
 const INVOLUCRADOS: Paso = { id: "involved", tipo: "personas", en: "Who was involved?", es: "¿Quién estuvo involucrado?" };
 const DESCRIPCION: Paso = { id: "description", tipo: "texto", en: "What happened?", es: "¿Qué pasó?" };
@@ -206,7 +217,7 @@ export function pasoCompleto(p: Paso, r: Respuestas, hoy: string = hoyEnTexas())
     case "foto": return !p.obligatoria || (Array.isArray(v) && v.length > 0);
     case "personas": return !!p.opcional || (Array.isArray(v) && v.length > 0);
     case "persona": return typeof v === "string" && v.length > 0;
-    case "opcion": return typeof v === "string" && p.opciones.some((x) => x.v === v);
+    case "opcion": return typeof v === "string" && (p.opciones.some((x) => x.v === v) || (p.id === PASO_EQUIPO && esEquipoDelInventario(v)));
     case "sino": return v === "yes" || v === "no";
     case "texto": return !!p.opcional || (typeof v === "string" && v.trim().length >= (p.min ?? 3));
     case "producto": return productoValido(v);
