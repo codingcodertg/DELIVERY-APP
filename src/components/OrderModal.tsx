@@ -77,6 +77,7 @@ import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { suggestDriver, windowConflicts } from "@/lib/dispatch";
 import { checkSchedule } from "@/lib/scheduling";
 import { isStoreToStore, orderTypeRule, missingFields, missingKeys, submitBlockers, textoDeBloqueo, type MissingField } from "@/lib/required";
+import { AVISO_CUENTA_OBLIGATORIA, faltaLaCuenta } from "@/lib/cuenta-obligatoria";
 import { eligeDestino, eligeOrigen, mismaDireccion, opcionesDeDestino, opcionesDeOrigen, origenEsDestino, tiendaDestinoMostrada, eligeRecogida, opcionesDeRecogida } from "@/lib/order-endpoints";
 import { conTiendaDeLaRecogida, esTransferenciaSinVenta } from "@/lib/transferencia-sin-venta";
 import { opcionesDeRecogidaLibre, parcheDePuntoDeRecogida, recogidaLibre } from "@/lib/recogida-libre";
@@ -499,6 +500,8 @@ export function OrderModal({
   const missing = computeMissing(d);
   const missingSet = new Set(missingKeys(d, settings.order_type_rules));
   if (needsSalesRep && !d.assigned_sales_rep) missingSet.add("assigned_sales_rep");
+  // Ventas sin cuenta en una orden de cliente (`cuenta-obligatoria`): el campo se pinta en rojo y el envío lo para `blockSubmit`.
+  if (faltaLaCuenta(me.role, d, settings.order_type_rules)) missingSet.add("account");
 
   // Pickup and delivery can't be the same place — an order that "goes" nowhere. The comparison
   // lives in lib/order-endpoints (D-267), shared with `submitBlockers`, so the save below and the
@@ -628,6 +631,15 @@ export function OrderModal({
    * against without them. Every other required field stays a dismissible
    * warning below. Never called for a draft save. */
   const blockSubmit = (draft: Partial<Delivery>): boolean => {
+    // La cuenta, para ventas en una orden de cliente (`lib/cuenta-obligatoria.ts`): tope duro con su propio aviso, y el
+    // foco va al campo. Vale al crear y al guardar una ya existente que siga sin cuenta.
+    if (faltaLaCuenta(me.role, draft, settings.order_type_rules)) {
+      notify(t(AVISO_CUENTA_OBLIGATORIA.en, AVISO_CUENTA_OBLIGATORIA.es));
+      const campo = fichaRef.current?.querySelector<HTMLInputElement>('input[data-campo="account"]');
+      campo?.scrollIntoView({ block: "center" });
+      campo?.focus();
+      return true;
+    }
     const blockers = submitBlockers(draft, settings.order_type_rules, settings.stores);
     if (!blockers.length) return false;
     // What is MISSING and what CONTRADICTS itself read differently (D-267): «still missing: the
@@ -2644,6 +2656,7 @@ export function OrderModal({
                 fija={{ valor: CUENTA_DE_MOSTRADOR, etiqueta: t(CUENTA_DE_MOSTRADOR_EN, CUENTA_DE_MOSTRADOR) }}
                 disabled={!salesFields}
                 placeholder={t("Select account…", "Seleccione cuenta…")}
+                invalid={missingSet.has("account")}
                 t={t}
               />
               <Txt label={t("Contact name", "Nombre de Contacto")} val={d.contact} on={(v) => set("contact", v)} disabled={!salesFields} invalid={missingSet.has("contact")} />
@@ -4376,9 +4389,11 @@ function Txt({ label, val, on, type = "text", disabled, placeholder, invalid, mi
  * se llama SOLO al confirmar —clic en una sugerencia, Enter o salir del campo—, nunca por tecla. Qué
  * se confirma lo decide `decisionAlConfirmar`, que es lo que se prueba importado.
  */
-function AccountCombo({ val, on, options, marca, fija, disabled, placeholder, t }: {
+function AccountCombo({ val, on, options, marca, fija, disabled, placeholder, invalid, t }: {
   val: unknown; on: (v: string) => void;
   options: string[]; disabled?: boolean; placeholder?: string;
+  /** En rojo, como los demás campos obligatorios que faltan (`cuenta-obligatoria`). */
+  invalid?: boolean;
   /** Una nota junto a la sugerencia: «no está en Clientes» (D-689). */
   marca?: (o: string) => string | null;
   /** Una opción que está SIEMPRE a mano, fuera de la lista: «Venta al mostrador» (D-337). */
@@ -4416,6 +4431,8 @@ function AccountCombo({ val, on, options, marca, fija, disabled, placeholder, t 
       <label>{t("Account", "Cuenta")}</label>
       <input
         role="combobox"
+        data-campo="account"
+        className={invalid ? "invalid" : ""}
         aria-expanded={abierto}
         aria-autocomplete="list"
         aria-controls="cuentas-sugeridas"

@@ -51096,3 +51096,9 @@ Sello `warehouse_ops` 0.13.0; repo 1.778.0.
 Pedido de Roberto (ayuda, 8 nov): los empleados no deben ver el costo del proveedor. Migración 272: warehouse_ops_search_products, _file_report y _edit_scrap_product copian erp.products.price; las mermas ya vinculadas al catálogo se recalcularon con su precio de venta. La pantalla dice «Precio» / «Precio por pieza (al reportar)», la columna de dinero del Excel es «Pérdida $», el aviso es «Sin precio». El motivo strap pasa de «Strap broke» a «Strapped too tight» / «Flejado demasiado apretado» (mismo valor).
 
 Sello `warehouse_ops` 0.14.0; repo 1.779.0.
+
+## D-926 · Deliveries: la cuenta es obligatoria cuando ventas crea o guarda una orden de cliente
+
+Pedido de Roberto (ayuda, 8 nov, Routes Manager con FW140 y FW137 sin cuenta). Regla pura en lib/cuenta-obligatoria.ts: rol sales + orden con cliente detrás (no Intertienda ni proveedor). Bloquea Guardar, «Crear y enviar» y enviar/reenviar con el aviso «Account is required / La cuenta es obligatoria», lleva el foco al campo y lo pinta en rojo. Los borradores no se bloquean. Lista para ampliar a otros roles.
+
+Sello `deliveries` 1.566.0; repo 1.780.0.
