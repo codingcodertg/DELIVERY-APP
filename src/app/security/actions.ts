@@ -8,7 +8,11 @@ import type { EstadoDeDispositivo, TipoDeDispositivo } from "@/lib/security/regl
  * Lo que el admin hace en Security (D-811). Con SU sesión, no con la llave de servicio: la RLS de la 229 es la que
  * decide, y aquí solo se comprueba el rol para contestar con un mensaje en vez de con cero filas.
  */
+/** El demo (D-NEXT) no escribe en ningún sitio: cada acción contesta con este aviso en vez de tocar la base. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 async function admin() {
+  if (LOCAL_MODE) return { ok: false as const, message: "Not available in the demo." };
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, message: "Not signed in." };

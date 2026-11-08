@@ -16,7 +16,12 @@ const NOMBRE = ["Security", "Seguridad"] as const;
  * «Usuarios · permisos»—, y la base dice lo mismo: las tres tablas de la 229 solo las lee y edita `security.is_admin()`.
  * Misma forma que la de Promos: una URL escrita a mano se comprueba aquí en vez de confiarse.
  */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): sin base ni sesión, como Leads y Promos. La persona es el admin inventado. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export default async function SecurityLayout({ children }: { children: React.ReactNode }) {
+  if (LOCAL_MODE) return <><BarraSencilla nombre={NOMBRE} deliveriesRole="admin" moduleAccess={null} persona="Demo" />{children}</>;
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/security");

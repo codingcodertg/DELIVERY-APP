@@ -51133,3 +51133,14 @@ El 2026-11-08 `vitest` cae en main en cuatro ficheros que no son de ninguna rama
 Nada de esto cambia lo que ve nadie. Lo que sí cambia: el CI vuelve a decir la verdad.
 
 Sello `deliveries` 1.567.0; repo 1.784.0.
+## D-NEXT · Seguridad: modo demo (sin base ni sesión) para los tutoriales
+
+El dueño, 2026-11-08, al ver que `/security` mandaba al login en el demo mientras se grababan los vídeos tutoriales del hub: «daselo al demo entonces para que lo haga». Entregas, Clientes, Leads, Promos, Encuestas y el Cotizador ya abren en `NEXT_PUBLIC_LOCAL_MODE=true` sin Supabase; Seguridad no, y sin eso no hay vídeo de Seguridad.
+
+**Qué entra.** El layout de `/security` devuelve la barra del demo (admin inventado) antes de preguntar a Supabase, como hace Leads. La página toma sus filas de `datosDemoDeSeguridad(ahora)` (`src/lib/security/demo-data.ts`): seis dispositivos —escritorio de oficina ligado con la app RTG Hub, dos teléfonos de choferes, una laptop de ventas pendiente con su nota, una tablet de almacén revocada y un escritorio con versión vieja—, sus usos por persona, dos bloqueos web de la semana y la política (dispositivos exigidos, web abierta, el admin exento). Las personas son las de `DEMO_USERS`. Las lecturas de la base quedan en `leerDeLaBase()`, una sola función, y la página elige entre esa y la semilla. El panel no abre el canal en vivo en el demo (el puntito queda apagado) y las acciones de servidor contestan «Not available in the demo.» antes de tocar la base.
+
+**Qué queda fuera.** Aprobar, revocar, renombrar o borrar un dispositivo en el demo no cambia nada: el panel enseña el aviso. El demo tampoco finge el dispositivo propio («este dispositivo» sale vacío, como en un navegador sin cookie).
+
+**Pruebas.** `src/lib/security/demo-data.test.ts` (invariantes de la semilla con fecha fija: cada dispositivo, uso y bloqueo apunta a personas y dispositivos que existen; nada en el futuro; bloqueos dentro de los 7 días; hay un pendiente con solicitante, un revocado, uno ligado y uno con versión vieja) y `src/lib/security/modo-demo.test.ts` (lee el fuente: la rama del demo va ANTES de `createClient()` en el layout, la página solo abre la base dentro de `leerDeLaBase`, el panel guarda el canal, y las siete acciones pasan por la puerta con la guarda).
+
+Sello `deliveries` D-NEXT; repo D-NEXT.

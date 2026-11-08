@@ -4,6 +4,7 @@ import { CABECERA_DISPOSITIVO, dispositivoDeLaPeticion } from "@/lib/security/re
 import { PanelDeSeguridad, type BloqueoFila, type DispositivoFila, type UsoFila, type UsuarioFila } from "./PanelDeSeguridad";
 import { rangoDeApp } from "@/lib/security/version-de-app";
 import { soloActivos } from "@/lib/baja";
+import { datosDemoDeSeguridad, type BloqueoCrudo, type DatosDeSeguridad, type DispositivoCrudo, type PerfilCrudo, type PoliticaCruda, type UsoCrudo } from "@/lib/security/demo-data";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,12 @@ export const dynamic = "force-dynamic";
  * Security (D-811): la lista de dispositivos, quién entra desde cuál y cuándo, y el interruptor. Se lee con la sesión
  * del admin (la RLS de la 229 solo le deja a él). Sin la 229 aplicada, las consultas fallan y la pantalla lo dice.
  */
-export default async function SecurityPage() {
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): las filas salen de `datosDemoDeSeguridad`, no de la base. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
+/** Las cinco lecturas de la base y los perfiles que faltaran por id, tal como las hacía la página; `error` es el primer
+ *  fallo de las tres que importan. Es una función para que el demo pueda no llamarla. */
+async function leerDeLaBase(): Promise<DatosDeSeguridad & { error: string | null }> {
   const supabase = await createClient();
   
   const desde = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
@@ -30,6 +36,16 @@ export default async function SecurityPage() {
   const ids = [...new Set([...(devices ?? []).flatMap((d) => [d.first_user_id, d.last_user_id]), ...(usos ?? []).map((u) => u.user_id), ...(bloqueos ?? []).map((b) => b.user_id)].filter((x): x is string => !!x))];
   const faltan = ids.filter((id) => !(todos ?? []).some((p) => p.id === id));
   const { data: perfiles } = faltan.length ? await supabase.from("profiles").select("id, full_name, role, store").in("id", faltan) : { data: [] as { id: string; full_name: string; role: string; store: string | null }[] };
+  return {
+    policy: (policy as PoliticaCruda | null) ?? null, devices: (devices ?? []) as DispositivoCrudo[], usos: (usos ?? []) as UsoCrudo[],
+    bloqueos: (bloqueos ?? []) as BloqueoCrudo[], todos: (todos ?? []) as PerfilCrudo[],
+    perfiles: (perfiles ?? []).map((p) => ({ ...p, username: null, left_at: null })) as PerfilCrudo[],
+    error,
+  };
+}
+
+export default async function SecurityPage() {
+  const { policy, devices, usos, bloqueos, todos, perfiles, error } = LOCAL_MODE ? { ...datosDemoDeSeguridad(new Date()), error: null } : await leerDeLaBase();
   const porId = new Map([...(todos ?? []), ...(perfiles ?? [])].map((p) => [p.id, p]));
   const nombre = (id: string | null) => (id && porId.get(id)?.full_name) || "—";
 
