@@ -24,7 +24,7 @@ export function ActivosDelEmpleado({ employeeId, deBaja }: { employeeId: string;
   const [liberando, setLiberando] = useState<Activo | null>(null);
 
   const cargar = useCallback(async () => {
-    if (MODO_DEMO) { setActivos([]); return; } // D-NEXT: sin servidor no hay activos.
+    if (MODO_DEMO) { setActivos([]); return; } // D-932: sin servidor no hay activos.
     const r = await listAssets();
     if (!r.ok) { setSinTabla(r.sinTabla); setActivos([]); return; }
     setActivos(r.rows);

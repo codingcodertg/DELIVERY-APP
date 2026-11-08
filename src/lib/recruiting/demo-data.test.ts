@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { semillaRrhh, ADMIN_DEMO } from "./demo-data";
 import { nombreEstandar, telefonoEstandar } from "./formato";
 
-// La semilla del demo de RR. HH. (D-NEXT). `now` fijo: lo que se mide no depende del reloj de la máquina ni de la
+// La semilla del demo de RR. HH. (D-932). `now` fijo: lo que se mide no depende del reloj de la máquina ni de la
 // medianoche UTC del CI (regla «prueba con la fecha real»).
 const AHORA = new Date("2026-11-08T12:00:00");
 const s = semillaRrhh(AHORA);

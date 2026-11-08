@@ -21,7 +21,7 @@ export function HistorialDeRrhh({ employeeId, assetId, recarga = 0, compacto = f
   const [err, setErr] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
-    // D-NEXT: en el demo no hay historial de RR. HH. (vive en el servidor); la tabla sale vacía y no se llama a nada.
+    // D-932: en el demo no hay historial de RR. HH. (vive en el servidor); la tabla sale vacía y no se llama a nada.
     if (MODO_DEMO) { setRows([]); setErr(null); return; }
     const r = await listHistory({ employeeId, assetId });
     if (!r.ok) { setSinTabla(r.sinTabla); setErr(r.sinTabla ? null : r.message); setRows([]); return; }

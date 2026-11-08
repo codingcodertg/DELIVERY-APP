@@ -34,7 +34,7 @@ export function GlobalSearch() {
   const { openProfile } = useUI();
   const { t } = usePrefs();
   const router = useRouter();
-  // D-NEXT: en el demo no hay empleados (viven en el servidor): el buscador es solo de candidatos.
+  // D-932: en el demo no hay empleados (viven en el servidor): el buscador es solo de candidatos.
   const conEmpleados = puedeBuscarEmpleados(me?.role) && !MODO_DEMO;
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);

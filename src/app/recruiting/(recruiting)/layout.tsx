@@ -44,7 +44,7 @@ export const metadata: Metadata = {
 const HUB_DEMO: PerfilDelHub = { id: ADMIN_DEMO.id, full_name: ADMIN_DEMO.full_name ?? "You (Admin)", role: "admin", recruiting_role: "admin", module_access: null, store: null };
 
 export default async function RecruitingLayout({ children }: { children: React.ReactNode }) {
-  // Modo demo (D-NEXT): sin base ni sesión, ANTES de preguntar por el usuario. El mismo armazón que abajo, con el
+  // Modo demo (D-932): sin base ni sesión, ANTES de preguntar por el usuario. El mismo armazón que abajo, con el
   // proveedor del navegador en vez del de Supabase; la persona es el admin inventado, como en Entregas y Leads.
   if (MODO_DEMO) {
     return (

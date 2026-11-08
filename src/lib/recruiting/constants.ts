@@ -2,7 +2,7 @@ import type { Stage } from "./types";
 import type { Settings } from "./types";
 import { DEFAULT_SCALE } from "./utils";
 
-// Los ajustes de partida antes de cargar los de la base (y los del demo, D-NEXT). Vivía en recruiting-data-provider.tsx.
+// Los ajustes de partida antes de cargar los de la base (y los del demo, D-932). Vivía en recruiting-data-provider.tsx.
 export const DEFAULT_SETTINGS: Settings = {
   id: 1,
   app_name: "RECRUIT·HN",

@@ -6,7 +6,7 @@ import { DEFAULT_SETTINGS, DEFAULT_STAGES } from "./constants";
 import { diaEnBrownsville } from "./hora-de-brownsville";
 
 /**
- * La semilla del demo de RR. HH. (D-NEXT): lo que ve quien abre /recruiting con `NEXT_PUBLIC_LOCAL_MODE=true`.
+ * La semilla del demo de RR. HH. (D-932): lo que ve quien abre /recruiting con `NEXT_PUBLIC_LOCAL_MODE=true`.
  *
  * Todo inventado: nombres, teléfonos (956) 555-01NN, correos en minúsculas; nada del dueño. Las fechas salen de `now`,
  * que se pasa como argumento, para que la prueba (`demo-data.test.ts`) las fije y nada dependa del reloj de la máquina.

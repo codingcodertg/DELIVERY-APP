@@ -46,7 +46,7 @@ const COLUMNAS = [
 ] as const;
 
 export default function AssetsPage() {
-  // D-NEXT: esta pantalla vive de acciones de servidor (Supabase); en el demo se dice y no se llama a nada.
+  // D-932: esta pantalla vive de acciones de servidor (Supabase); en el demo se dice y no se llama a nada.
   if (MODO_DEMO) return <AvisoDeDemoDePagina />;
   return <AssetsPageReal />;
 }

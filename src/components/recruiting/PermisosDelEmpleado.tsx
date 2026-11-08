@@ -33,7 +33,7 @@ export function PermisosDelEmpleado({ persona, hub, onClose, onEnlazado }: {
   /** Se creó o cambió la cuenta: el expediente se vuelve a leer. */
   onEnlazado: () => void;
 }) {
-  // D-NEXT: la cuenta del hub se crea en el servidor; en el demo la ventana solo lo dice.
+  // D-932: la cuenta del hub se crea en el servidor; en el demo la ventana solo lo dice.
   if (MODO_DEMO) {
     return (
       <div className="overlay" onClick={onClose}>

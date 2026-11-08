@@ -16,7 +16,7 @@ import { CLAVE_DEMO_RRHH } from "@/lib/recruiting/modo-demo";
 import { semillaRrhh, type SemillaRrhh } from "@/lib/recruiting/demo-data";
 
 // ============================================================
-// MODO DEMO de RR. HH. (D-NEXT) — sin base ni sesión. Todo vive en el navegador (memoria + localStorage), con la
+// MODO DEMO de RR. HH. (D-932) — sin base ni sesión. Todo vive en el navegador (memoria + localStorage), con la
 // MISMA interfaz `DataState` y el MISMO contexto `Ctx` que el proveedor de Supabase: `useData()` no cambia en ninguna
 // pantalla. Calcado de `local-data-provider.tsx` (Entregas). Nada de red: ni Supabase, ni Storage, ni /api.
 // ============================================================

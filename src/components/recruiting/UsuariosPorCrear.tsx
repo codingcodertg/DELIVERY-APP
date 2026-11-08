@@ -20,7 +20,7 @@ export function UsuariosPorCrear() {
   const admin = veSolicitudesDeUsuario(me?.role);
 
   const cargar = useCallback(async () => {
-    if (MODO_DEMO) return; // D-NEXT: las solicitudes viven en el servidor; en el demo el bloque no se pinta.
+    if (MODO_DEMO) return; // D-932: las solicitudes viven en el servidor; en el demo el bloque no se pinta.
     const r = await listUserCreationRequests();
     if (r.ok) setRows(r.rows);
   }, []);

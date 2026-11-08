@@ -1,5 +1,5 @@
 /**
- * Modo demo de RR. HH. (sin base ni sesión), para grabar los tutoriales (D-NEXT).
+ * Modo demo de RR. HH. (sin base ni sesión), para grabar los tutoriales (D-932).
  *
  * El dueño, 2026-11-08: «daselo al demo entonces para que lo haga». Entregas, Clientes y Leads ya arrancan con
  * `NEXT_PUBLIC_LOCAL_MODE=true` sin Supabase; RR. HH. mandaba a /login. La misma bandera, leída en UN sitio, para que

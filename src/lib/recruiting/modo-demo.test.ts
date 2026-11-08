@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Modo demo de RR. HH. (D-NEXT): lee los fuentes y afirma que, con NEXT_PUBLIC_LOCAL_MODE=true, nada de /recruiting
+// Modo demo de RR. HH. (D-932): lee los fuentes y afirma que, con NEXT_PUBLIC_LOCAL_MODE=true, nada de /recruiting
 // toca Supabase ni /api. Cada afirmación cae si se quita la rama correspondiente (el mutante está anotado).
 
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");

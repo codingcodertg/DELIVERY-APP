@@ -62,7 +62,7 @@ import { fichaPedida } from "@/lib/recruiting/busqueda-global";
 type Fila = EmployeeFile & { docKinds: string[]; licencia_vence: string | null };
 
 export default function EmployeeFilesPage() {
-  // D-NEXT: esta pantalla vive de acciones de servidor (Supabase); en el demo se dice y no se llama a nada.
+  // D-932: esta pantalla vive de acciones de servidor (Supabase); en el demo se dice y no se llama a nada.
   if (MODO_DEMO) return <AvisoDeDemoDePagina />;
   return <EmployeeFilesPageReal />;
 }

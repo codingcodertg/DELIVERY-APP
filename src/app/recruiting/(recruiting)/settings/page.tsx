@@ -18,7 +18,7 @@ export default function SettingsPage() {
     addTemplate, deleteTemplate, addCustomField, deleteCustomField, notify,
     addJob, updateJob, deleteJob, addStage, updateStage, deleteStage, updateUserName,
   } = useData();
-  // En el demo (D-NEXT) no se crea el cliente de Supabase: el nombre se guarda por el proveedor, en el navegador.
+  // En el demo (D-932) no se crea el cliente de Supabase: el nombre se guarda por el proveedor, en el navegador.
   const supabase = MODO_DEMO ? null : createClient();
   const [stageLabel, setStageLabel] = useState("");
 

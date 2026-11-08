@@ -46,7 +46,7 @@ export function InPersonScheduleModal({ id, close }: { id: string; close: () => 
   const [aviso, setAviso] = useState<{ texto: string; seguir: () => void } | null>(null);
 
   useEffect(() => {
-    // D-NEXT: en el demo las tiendas son las de la lista fija, sin dirección; no se llama a /api.
+    // D-932: en el demo las tiendas son las de la lista fija, sin dirección; no se llama a /api.
     if (MODO_DEMO) { setTiendas(LOCATIONS.filter((l) => l !== "TBD").map((name) => ({ name, address: "" }))); return; }
     let vivo = true;
     fetch("/api/recruiting/stores")

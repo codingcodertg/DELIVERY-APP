@@ -23,7 +23,7 @@ export function BloqueTimeTracker({ profileId }: { profileId: string | null }) {
 
   useEffect(() => {
     if (!profileId) return;
-    // D-NEXT: las horas viven en el servidor; el demo lo dice en vez de pedirlas.
+    // D-932: las horas viven en el servidor; el demo lo dice en vez de pedirlas.
     if (MODO_DEMO) { setEstado({ k: "error", msg: lang === "es" ? AVISO_DEMO.es : AVISO_DEMO.en }); return; }
     let vivo = true;
     void timeTrackerFor(profileId).then((r) => {

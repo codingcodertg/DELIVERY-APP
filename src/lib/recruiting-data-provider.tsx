@@ -122,7 +122,7 @@ export function useData(): DataState {
   return ctx;
 }
 
-// `DEFAULT_SETTINGS` vive en constants.ts desde D-NEXT: la semilla del demo lo usa sin cargar este fichero.
+// `DEFAULT_SETTINGS` vive en constants.ts desde D-932: la semilla del demo lo usa sin cargar este fichero.
 export { DEFAULT_SETTINGS };
 
 export function DataProvider({ children, me, hub = null }: { children: React.ReactNode; me: Profile | null; hub?: PerfilDelHub | null }) {
