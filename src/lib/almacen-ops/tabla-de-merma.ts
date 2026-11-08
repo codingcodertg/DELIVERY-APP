@@ -107,9 +107,12 @@ export function celdasDeMerma(r: FilaDeMermaExcel, personas: readonly { id: stri
   };
 }
 
-/** Un valor como celda de CSV: siempre entre comillas, con las comillas internas dobladas (RFC 4180). */
+/** Entre comillas, comillas dobladas. Si empieza por = + - @ tab o CR, se antepone un apóstrofo para que Excel no lo
+ * ejecute como fórmula (el comentario lo escribe el empleado). */
 export function escaparCsv(v: string): string {
-  return `"${String(v ?? "").replace(/"/g, "\"\"")}"`;
+  const t = String(v ?? "");
+  const s = /^[=+\-@\t\r]/.test(t) ? "'" + t : t;
+  return `"${s.replace(/"/g, "\"\"")}"`;
 }
 
 /** El CSV completo (encabezado + una línea por merma), separado por comas y con saltos CRLF, que es lo que Excel espera. */

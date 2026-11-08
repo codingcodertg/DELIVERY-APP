@@ -51089,4 +51089,4 @@ Sello `deliveries` 1.565.0; repo 1.777.0.
 
 En Warehouse Ops → Reports → Scrap, la lista «Merma en el rango» es una fila por reporte con las columnas de la hoja de Roberto: Fecha del daño, Código, Descripción, Cantidades (Cajas, Pzas/caja, Total, Muestra, Dañadas, Costo), Cómo, Motivo, Lo rompió, Lo reportó, CRMA # y Comentarios, además de las columnas de siempre. IDK cuando no se sabe quién, NA sin CRMA. Botón Export CSV con las filas visibles. Pedido por WhatsApp el 7 nov.
 
-Sello `warehouse-ops` .1.0; repo 1.778.0.
+Sello `warehouse_ops` 0.13.0; repo 1.778.0.
