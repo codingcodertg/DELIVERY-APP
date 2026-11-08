@@ -51102,3 +51102,9 @@ Sello `warehouse_ops` 0.14.0; repo 1.779.0.
 Pedido de Roberto (ayuda, 8 nov, Routes Manager con FW140 y FW137 sin cuenta). Regla pura en lib/cuenta-obligatoria.ts: rol sales + orden con cliente detrás (no Intertienda ni proveedor). Bloquea Guardar, «Crear y enviar» y enviar/reenviar con el aviso «Account is required / La cuenta es obligatoria», lleva el foco al campo y lo pinta en rojo. Los borradores no se bloquean. Lista para ampliar a otros roles.
 
 Sello `deliveries` 1.566.0; repo 1.780.0.
+
+## D-927 · Warehouse Ops: sección Mantenimiento (equipo, lista diaria, refacciones, bitácora de uso, KPI)
+
+Fase 1 de KPIs de almacén (Roberto y el dueño, WhatsApp 8 nov). Nueva sección /operaciones/mantenimiento: inventario de montacargas y patines por tienda con estado, horómetro y fotos; lista diaria por equipo desde el teléfono (Bien / Falla / N/A; una falla pide nota y deja el equipo en «necesita reparación»); refacciones y herramientas con se necesita → pedida → recibida; bitácora de uso Empezar/Dejar de usar (un uso abierto por equipo); KPI semanal de cumplimiento de listas y equipos por reparar para gestores. El reporte de mantenimiento ofrece el equipo real de la tienda. Personal de almacén: lista, uso y pedir refacción en su tienda; gestores: todo. Migración 273 (tablas warehouse_equipment, warehouse_checklists, warehouse_parts, warehouse_equipment_usage y RPC).
+
+Sello `warehouse_ops` 0.15.0; repo 1.781.0.
