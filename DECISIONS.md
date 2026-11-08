@@ -51153,7 +51153,7 @@ Qué entra: `recruiting-demo-data-provider.tsx`, un proveedor en el navegador (m
 Qué queda fuera, a propósito: crear usuarios reales del hub (Contratar solo cambia la etapa y lo dice), el enlace corto del CV (`resumeLink` devuelve null: lo firma el servidor), los expedientes, los activos, el historial de RR. HH., el Time Tracker del expediente, y cualquier correo, SMS o llamada. `DEFAULT_SETTINGS` pasa de `recruiting-data-provider.tsx` a `lib/recruiting/constants.ts` para que la semilla no cargue el proveedor. Pruebas: `demo-data.test.ts` (invariantes de la semilla con `now` fijo) y `modo-demo.test.ts` (lee los fuentes: la rama antes de la sesión, la lista cerrada de ficheros que tocan el servidor con su guarda en código, el proveedor tipado `DataState` y sin red).
 
 Sello `recruiting` 0.78.0; repo 1.786.0.
-## D-NEXT · Time Tracker: modo demo (sin base ni sesión) para los tutoriales
+## D-933 · Time Tracker: modo demo (sin base ni sesión) para los tutoriales
 
 El dueño, 2026-11-08, al saber que los vídeos tutoriales no podían grabarse en Time Tracker porque `/timetracker` mandaba a `/login?next=/timetracker`: «daselo al demo entonces para que lo haga». Entregas, Clientes y Leads ya abren en modo demo (`NEXT_PUBLIC_LOCAL_MODE=true`) con datos inventados en el navegador; Time Tracker era la que faltaba para grabar con el navegador automatizado.
 
@@ -51161,4 +51161,4 @@ Qué entra: un proveedor en memoria (`timetracker-demo-data-provider.tsx`) con l
 
 Qué queda fuera: capturas de pantalla reales (las del demo son casillas en blanco o un cuadro gris), exportaciones y talones a fichero, el fichaje (sus acciones de servidor van a la base; el modo práctica arranca apagado) y cualquier aviso remoto. Hallazgo de paso, sin tocar: el cronómetro lee el último proyecto elegido de `localStorage` en un inicializador de `useState`, y con esa clave puesta React avisa de hidratación distinta en el primer pintado (pasa igual en producción; en el demo el navegador de grabar nace limpio).
 
-Sello `timetracker` D-NEXT; repo D-NEXT.
+Sello `timetracker` 1.19.0; repo 1.787.0.
