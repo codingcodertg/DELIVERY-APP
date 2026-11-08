@@ -51133,7 +51133,7 @@ El 2026-11-08 `vitest` cae en main en cuatro ficheros que no son de ninguna rama
 Nada de esto cambia lo que ve nadie. Lo que sí cambia: el CI vuelve a decir la verdad.
 
 Sello `deliveries` 1.567.0; repo 1.784.0.
-## D-NEXT · Seguridad: modo demo (sin base ni sesión) para los tutoriales
+## D-931 · Seguridad: modo demo (sin base ni sesión) para los tutoriales
 
 El dueño, 2026-11-08, al ver que `/security` mandaba al login en el demo mientras se grababan los vídeos tutoriales del hub: «daselo al demo entonces para que lo haga». Entregas, Clientes, Leads, Promos, Encuestas y el Cotizador ya abren en `NEXT_PUBLIC_LOCAL_MODE=true` sin Supabase; Seguridad no, y sin eso no hay vídeo de Seguridad.
 
@@ -51143,4 +51143,4 @@ El dueño, 2026-11-08, al ver que `/security` mandaba al login en el demo mientr
 
 **Pruebas.** `src/lib/security/demo-data.test.ts` (invariantes de la semilla con fecha fija: cada dispositivo, uso y bloqueo apunta a personas y dispositivos que existen; nada en el futuro; bloqueos dentro de los 7 días; hay un pendiente con solicitante, un revocado, uno ligado y uno con versión vieja) y `src/lib/security/modo-demo.test.ts` (lee el fuente: la rama del demo va ANTES de `createClient()` en el layout, la página solo abre la base dentro de `leerDeLaBase`, el panel guarda el canal, y las siete acciones pasan por la puerta con la guarda).
 
-Sello `deliveries` D-NEXT; repo D-NEXT.
+Sello `deliveries` 1.568.0; repo 1.785.0.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { datosDemoDeSeguridad } from "./demo-data";
 
-// D-NEXT · La semilla de Seguridad del demo. Con una fecha FIJA: una prueba con la fecha real pasa en local y cae en
+// D-931 · La semilla de Seguridad del demo. Con una fecha FIJA: una prueba con la fecha real pasa en local y cae en
 // el CI tras la medianoche UTC.
 const AHORA = new Date("2026-11-08T18:00:00Z");
 const d = datosDemoDeSeguridad(AHORA);

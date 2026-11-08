@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-// D-NEXT · Seguridad en el demo (`NEXT_PUBLIC_LOCAL_MODE`). El dueño, 2026-11-08: «daselo al demo entonces para que
+// D-931 · Seguridad en el demo (`NEXT_PUBLIC_LOCAL_MODE`). El dueño, 2026-11-08: «daselo al demo entonces para que
 // lo haga». Estas pruebas leen el fuente: lo que se afirma es el ORDEN (la rama del demo va antes de tocar la base),
 // no la presencia de un texto que un comentario también cumpliría.
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");

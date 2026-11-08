@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  * Security (D-811): la lista de dispositivos, quién entra desde cuál y cuándo, y el interruptor. Se lee con la sesión
  * del admin (la RLS de la 229 solo le deja a él). Sin la 229 aplicada, las consultas fallan y la pantalla lo dice.
  */
-/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): las filas salen de `datosDemoDeSeguridad`, no de la base. */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-931): las filas salen de `datosDemoDeSeguridad`, no de la base. */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /** Las cinco lecturas de la base y los perfiles que faltaran por id, tal como las hacía la página; `error` es el primer

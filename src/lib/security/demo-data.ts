@@ -1,7 +1,7 @@
 import { DEMO_USERS } from "@/lib/demo-data";
 
 // ============================================================
-// Seguridad en el DEMO (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT). El dueño, 2026-11-08, al no poder grabar el tutorial de
+// Seguridad en el DEMO (`NEXT_PUBLIC_LOCAL_MODE`, D-931). El dueño, 2026-11-08, al no poder grabar el tutorial de
 // Seguridad porque el demo mandaba al login: «daselo al demo entonces para que lo haga».
 //
 // Las mismas filas que lee `app/security/page.tsx` de la base (`security_policy`, `security_devices`,

@@ -50,7 +50,7 @@ export interface UsuarioFila {
 export const TABLAS_EN_VIVO = ["security_devices", "security_device_users", "security_policy", "security_web_blocks"] as const;
 /** Por si la suscripción se cae sin avisar: un refresco de fondo cada minuto, como red de seguridad. */
 const REFRESCO_DE_FONDO_MS = 60 * 1000;
-/** En el demo (D-NEXT) no hay base que escuchar: el puntito queda apagado y no se abre ningún canal. */
+/** En el demo (D-931) no hay base que escuchar: el puntito queda apagado y no se abre ningún canal. */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /**
