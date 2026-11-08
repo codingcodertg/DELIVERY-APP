@@ -6,6 +6,7 @@ import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { fmtPct, pctToScore } from "@/lib/recruiting/utils";
 import { createClient } from "@/lib/recruiting/supabase/client";
+import { MODO_DEMO } from "@/lib/recruiting/modo-demo";
 import { puedeAsignarPreguntasAlPuesto, preguntasActivasPorConjunto } from "@/lib/recruiting/preguntas-del-puesto";
 import { PLANTILLA, plantillaVigente } from "@/lib/recruiting/texto-puedo-llamar";
 
@@ -15,9 +16,10 @@ export default function SettingsPage() {
     settings, roles, templates, customFields, recruiters, me, jobs, candidates, stagesGuardadas: stages, questionSets, questions,
     saveSettings,
     addTemplate, deleteTemplate, addCustomField, deleteCustomField, notify,
-    addJob, updateJob, deleteJob, addStage, updateStage, deleteStage,
+    addJob, updateJob, deleteJob, addStage, updateStage, deleteStage, updateUserName,
   } = useData();
-  const supabase = createClient();
+  // En el demo (D-932) no se crea el cliente de Supabase: el nombre se guarda por el proveedor, en el navegador.
+  const supabase = MODO_DEMO ? null : createClient();
   const [stageLabel, setStageLabel] = useState("");
 
   const moveStage = (idx: number, dir: -1 | 1) => {
@@ -46,6 +48,7 @@ export default function SettingsPage() {
 
   const saveName = async () => {
     if (!me) return;
+    if (!supabase) { await updateUserName(me.id, displayName); return; }
     // profiles lives in public, not recruiting (this client defaults to recruiting).
     const { error } = await supabase.schema("public").from("profiles").update({ full_name: displayName.trim() }).eq("id", me.id);
     notify(error ? "Error: " + error.message : t("Name saved ✓", "Nombre guardado ✓"));

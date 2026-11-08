@@ -11,6 +11,10 @@ import type { Profile as RecruitingProfile } from "@/lib/recruiting/types";
 import "../recruiting.css";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
+import { DemoDataProvider } from "@/lib/recruiting-demo-data-provider";
+import { ADMIN_DEMO } from "@/lib/recruiting/demo-data";
+import { MODO_DEMO } from "@/lib/recruiting/modo-demo";
+import type { Profile as PerfilDelHub } from "@/lib/types";
 
 // The root layout (app/layout.tsx) sets the browser tab title to "RTG
 // Hub | Order & Dispatch" — correct for (app), never overridden for
@@ -36,7 +40,27 @@ export const metadata: Metadata = {
 // instead of shared, matching the pattern deliveries' own (app)/layout.tsx
 // already uses — this is the second, independent copy of that pattern, not a
 // new one. See D-050/D-052.
+/** El perfil DEL HUB del admin del demo (D-720 lo pide para «Permisos»); mismo id que el admin de Entregas. */
+const HUB_DEMO: PerfilDelHub = { id: ADMIN_DEMO.id, full_name: ADMIN_DEMO.full_name ?? "You (Admin)", role: "admin", recruiting_role: "admin", module_access: null, store: null };
+
 export default async function RecruitingLayout({ children }: { children: React.ReactNode }) {
+  // Modo demo (D-932): sin base ni sesión, ANTES de preguntar por el usuario. El mismo armazón que abajo, con el
+  // proveedor del navegador en vez del de Supabase; la persona es el admin inventado, como en Entregas y Leads.
+  if (MODO_DEMO) {
+    return (
+      <div className="recruiting-module">
+        <AppUpdateBanner app="recruiting" />
+        <DemoDataProvider me={ADMIN_DEMO} hub={HUB_DEMO}>
+          <UIProvider>
+            <TopBar me={ADMIN_DEMO} deliveriesRole="admin" moduleAccess={null} />
+            <div className="wrap">{children}</div>
+            <VersionFooter />
+          </UIProvider>
+        </DemoDataProvider>
+      </div>
+    );
+  }
+
   const supabase = await createClient(); // deliveries' client — public schema, shared identity
   const {
     data: { user },

@@ -648,6 +648,6 @@ describe("D-721: «Permisos» sin identidad repetida, y HR como pestaña directa
   });
 
   it("«AI Developer» está entre los departamentos de partida", () => {
-    expect(leer("src/lib/recruiting-data-provider.tsx")).toContain('"Logística", "AI Developer"]');
+    expect(leer("src/lib/recruiting/constants.ts")).toContain('"Logística", "AI Developer"]'); // D-932: DEFAULT_SETTINGS vive en constants.ts
   });
 });

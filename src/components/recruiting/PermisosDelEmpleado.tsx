@@ -5,11 +5,12 @@ import { ConfirmProvider } from "@/lib/confirm";
 import { DataProvider as ProveedorDelHub, useData as useHub } from "@/lib/data-provider";
 import { UserDialog } from "@/components/UserDialog";
 import { usePrefs } from "@/lib/prefs";
+import { MODO_DEMO } from "@/lib/recruiting/modo-demo";
+import { AvisoDeDemo } from "@/components/recruiting/AvisoDeDemo";
 import { ROLE_ORDER, roleLabel } from "@/lib/constants";
 import { precargaDeEmpleado } from "@/lib/recruiting/usuarios-rrhh";
 import type { Profile, UserRole } from "@/lib/types";
 
-const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 type Persona = { id: string; profile_id: string | null; full_name: string | null; email?: string | null; personal_email?: string | null; store?: string | null };
 
@@ -32,6 +33,17 @@ export function PermisosDelEmpleado({ persona, hub, onClose, onEnlazado }: {
   /** Se creó o cambió la cuenta: el expediente se vuelve a leer. */
   onEnlazado: () => void;
 }) {
+  // D-932: la cuenta del hub se crea en el servidor; en el demo la ventana solo lo dice.
+  if (MODO_DEMO) {
+    return (
+      <div className="overlay" onClick={onClose}>
+        <div className="modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()} data-dialogo="permisos-demo">
+          <AvisoDeDemo />
+          <div style={{ textAlign: "right", marginTop: 12 }}><button className="btn btn-ghost btn-sm" onClick={onClose}>Cerrar · Close</button></div>
+        </div>
+      </div>
+    );
+  }
   return (
     <ConfirmProvider>
       <ProveedorDelHub me={hub}>
@@ -80,7 +92,7 @@ function Cuerpo({ persona, onClose, onEnlazado }: { persona: Persona; onClose: (
     }
     setBusy(false);
     onEnlazado();
-    if (!LOCAL_MODE && res.password) {
+    if (!MODO_DEMO && res.password) {
       setCreado({ signInWith: res.signInWith || res.email || "", password: res.password, canReset: res.can_reset_own_password !== false });
     }
   }
@@ -136,7 +148,7 @@ function Cuerpo({ persona, onClose, onEnlazado }: { persona: Persona; onClose: (
   }
 
   // 3. Sin cuenta: el alta corta, precargada con el expediente.
-  const puedeCrear = LOCAL_MODE ? !!name.trim() : !!name.trim() && (!!email.trim() || !!username.trim());
+  const puedeCrear = MODO_DEMO ? !!name.trim() : !!name.trim() && (!!email.trim() || !!username.trim());
   return (
     <div className="overlay" onClick={onClose}>
       <div className="modal" style={{ maxWidth: 620 }} onClick={(e) => e.stopPropagation()} data-dialogo="crear-cuenta">
@@ -163,7 +175,7 @@ function Cuerpo({ persona, onClose, onEnlazado }: { persona: Persona; onClose: (
               {store && !settings.stores.some((s) => s.name === store) && <option value={store}>{store}</option>}
             </select>
           </div>
-          {!LOCAL_MODE && (
+          {!MODO_DEMO && (
             <div><label>{t("Password", "Contraseña")}</label><input value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t("auto-generate if blank", "auto si vacío")} /></div>
           )}
         </div>

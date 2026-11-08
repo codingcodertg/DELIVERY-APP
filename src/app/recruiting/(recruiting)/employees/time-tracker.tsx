@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
+import { AVISO_DEMO, MODO_DEMO } from "@/lib/recruiting/modo-demo";
 import { timeTrackerFor } from "@/app/recruiting/actions/hr";
 import {
   pagosDelEmpleado, semanasConPago, semanasDeHoras, totalesDeHoras, totalesDePagos, type Pago, type SemanaConPago,
@@ -22,6 +23,8 @@ export function BloqueTimeTracker({ profileId }: { profileId: string | null }) {
 
   useEffect(() => {
     if (!profileId) return;
+    // D-932: las horas viven en el servidor; el demo lo dice en vez de pedirlas.
+    if (MODO_DEMO) { setEstado({ k: "error", msg: lang === "es" ? AVISO_DEMO.es : AVISO_DEMO.en }); return; }
     let vivo = true;
     void timeTrackerFor(profileId).then((r) => {
       if (!vivo) return;
@@ -32,7 +35,7 @@ export function BloqueTimeTracker({ profileId }: { profileId: string | null }) {
       }
     }).catch((e: unknown) => { if (vivo) setEstado({ k: "error", msg: e instanceof Error ? e.message : String(e) }); });
     return () => { vivo = false; };
-  }, [profileId]);
+  }, [profileId, lang]);
 
   const dinero = (n: number) => new Intl.NumberFormat(lang === "es" ? "es-US" : "en-US", { style: "currency", currency: "USD" }).format(n);
   const horas = (n: number) => new Intl.NumberFormat(lang === "es" ? "es-US" : "en-US", { maximumFractionDigits: 2 }).format(n);

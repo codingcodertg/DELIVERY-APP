@@ -6,6 +6,8 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/recruiting-data-provider";
+import { MODO_DEMO } from "@/lib/recruiting/modo-demo";
+import { AvisoDeDemo } from "@/components/recruiting/AvisoDeDemo";
 import {
   accountFactsFor, listEmployeeFiles, getEmployeeDocs, saveEmployeeFile, saveEmployeeDoc, deleteEmployeeDoc,
   listStoreNames, setHubAccess, signDocUrl, uploadDocFile,
@@ -60,6 +62,17 @@ import { fichaPedida } from "@/lib/recruiting/busqueda-global";
 type Fila = EmployeeFile & { docKinds: string[]; licencia_vence: string | null };
 
 export default function EmployeeFilesPage() {
+  // D-932: esta pantalla vive de acciones de servidor (Supabase); en el demo se dice y no se llama a nada.
+  if (MODO_DEMO) return <AvisoDeDemoDePagina />;
+  return <EmployeeFilesPageReal />;
+}
+
+function AvisoDeDemoDePagina() {
+  const { t } = usePrefs();
+  return <AvisoDeDemo titulo={t("Employees", "Empleados")} />;
+}
+
+function EmployeeFilesPageReal() {
   const { t, lang } = usePrefs();
   const { me, notify } = useData();
   const [rows, setRows] = useState<Fila[]>([]);

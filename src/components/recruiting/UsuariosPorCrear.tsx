@@ -3,6 +3,7 @@
 import { formatoEnBrownsville } from "@/lib/recruiting/hora-de-brownsville";
 import { useCallback, useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
+import { MODO_DEMO } from "@/lib/recruiting/modo-demo";
 import { useData } from "@/lib/recruiting-data-provider";
 import { veSolicitudesDeUsuario } from "@/lib/recruiting/contratar";
 import { listUserCreationRequests, markUserCreationDone, type UserCreationRequest } from "@/app/recruiting/actions/contratar";
@@ -19,6 +20,7 @@ export function UsuariosPorCrear() {
   const admin = veSolicitudesDeUsuario(me?.role);
 
   const cargar = useCallback(async () => {
+    if (MODO_DEMO) return; // D-932: las solicitudes viven en el servidor; en el demo el bloque no se pinta.
     const r = await listUserCreationRequests();
     if (r.ok) setRows(r.rows);
   }, []);

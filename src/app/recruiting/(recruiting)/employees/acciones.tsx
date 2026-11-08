@@ -4,6 +4,7 @@ import { type AccionDisciplinaria, motivoDeAmonestacionValido } from "@/lib/recr
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
+import { AVISO_DEMO, MODO_DEMO } from "@/lib/recruiting/modo-demo";
 import { nombreDeDepartamento } from "@/lib/departamentos";
 import { useData } from "@/lib/recruiting-data-provider";
 import {
@@ -50,6 +51,7 @@ export function BajaDialog({
   const listo = !!fecha && (!con159 || !!motivo);
 
   async function confirma() {
+    if (MODO_DEMO) { notify(t(AVISO_DEMO.en, AVISO_DEMO.es)); return; }
     setBusy(true);
     const r = await deactivateEmployee(persona.id, { fecha, motivo: con159 ? motivo : null, nota: con159 ? nota : null });
     setBusy(false);
@@ -150,6 +152,7 @@ export function AmonestarDialog({ persona, tipo = "employee_warning", onDone, on
   const reprimenda = tipo === "employee_reprimand";
   const confirmar = async () => {
     if (!listo) return;
+    if (MODO_DEMO) { alert(t(AVISO_DEMO.en, AVISO_DEMO.es)); return; }
     setBusy(true);
     const r = await registerWarning(persona.id, { motivo, nota, tipo });
     setBusy(false);
@@ -190,6 +193,7 @@ export function ReactivarDialog({
   const [busy, setBusy] = useState(false);
 
   async function confirma() {
+    if (MODO_DEMO) { notify(t(AVISO_DEMO.en, AVISO_DEMO.es)); return; }
     setBusy(true);
     const r = await reactivateEmployee(persona.id);
     setBusy(false);
@@ -239,6 +243,7 @@ export function AgregarDialog({
   const [tiendas, setTiendas] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
+    if (MODO_DEMO) return;
     let vivo = true;
     void listStoreNames().then((r) => { if (vivo && r.ok) setTiendas(r.names); });
     return () => { vivo = false; };
@@ -249,6 +254,7 @@ export function AgregarDialog({
   const alSalir = (k: "phone" | "personal_phone") => () => pon(k, telefonoDeFicha(f[k]) ?? "");
 
   async function agrega() {
+    if (MODO_DEMO) { notify(t(AVISO_DEMO.en, AVISO_DEMO.es)); return; }
     setBusy(true);
     const r = await createEmployeeFile(f);
     setBusy(false);

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
+import { LOCATIONS } from "@/lib/recruiting/constants";
+import { MODO_DEMO } from "@/lib/recruiting/modo-demo";
 import { abrirSmsEnRingCentral, avisoTrasAbrir, navegadorReal } from "@/lib/recruiting/abrir-sms";
 import {
   MARCADORES_DE_LA_CITA, type Tienda,
@@ -44,6 +46,8 @@ export function InPersonScheduleModal({ id, close }: { id: string; close: () => 
   const [aviso, setAviso] = useState<{ texto: string; seguir: () => void } | null>(null);
 
   useEffect(() => {
+    // D-932: en el demo las tiendas son las de la lista fija, sin dirección; no se llama a /api.
+    if (MODO_DEMO) { setTiendas(LOCATIONS.filter((l) => l !== "TBD").map((name) => ({ name, address: "" }))); return; }
     let vivo = true;
     fetch("/api/recruiting/stores")
       .then((r) => (r.ok ? r.json() : { stores: [] }))

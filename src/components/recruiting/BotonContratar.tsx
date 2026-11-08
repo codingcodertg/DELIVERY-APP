@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { usePrefs } from "@/lib/prefs";
+import { MODO_DEMO } from "@/lib/recruiting/modo-demo";
 import { useData } from "@/lib/recruiting-data-provider";
 import { ROLES_DE_INVITE, precargaDeUsuario, puedeContratar, type RolDeInvite } from "@/lib/recruiting/contratar";
 import { closeUserRequestsForFile, hireCandidate } from "@/app/recruiting/actions/contratar";
@@ -64,6 +65,8 @@ export function BotonContratar({ c }: { c: Candidate }) {
     setEnCurso(true);
     try {
       if (etapa && c.status !== etapa.key) await updateCandidate(c.id, { status: etapa.key });
+      // D-932: en el demo se contrata (cambia la etapa) y no hay expediente ni usuario del hub: viven en el servidor.
+      if (MODO_DEMO) { notify(t("Hired ✓ · demo: no employee file or hub user", "Contratado ✓ · demo: sin expediente ni usuario del hub")); setAbierto(false); return; }
       // La solicitud se deja siempre que se quiere usuario: si crear la cuenta falla, es la que queda pendiente.
       const r = await hireCandidate({ candidateId: c.id, requestUser: crear, note: nota });
       if (!r.ok) { notify(r.message); return; }
