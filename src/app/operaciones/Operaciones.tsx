@@ -17,6 +17,8 @@ import { faltaFoto } from "@/lib/almacen-ops/fotos";
 import { ListaDeReportes } from "./ListaDeReportes";
 import { Mantenimiento } from "./Mantenimiento";
 import { veMantenimiento } from "@/lib/almacen-ops/mantenimiento";
+import { Conteos } from "./Conteos";
+import { veConteos } from "@/lib/almacen-ops/conteos";
 
 export type { Vista };
 
@@ -88,6 +90,7 @@ function Pantalla({ vista, ctx }: { vista: Vista; ctx: Contexto }) {
   if (vista.v === "mios") return <ListaDeReportes modo="mios" ctx={ctx} />;
   if (vista.v === "reportes") return <ListaDeReportes modo="todos" ctx={ctx} />;
   if (vista.v === "mantenimiento") return <Mantenimiento ctx={ctx} />;
+  if (vista.v === "conteos") return <Conteos ctx={ctx} />;
   return <Inicio ctx={ctx} />;
 }
 
@@ -101,6 +104,8 @@ function Inicio({ ctx }: { ctx: Contexto }) {
   const gerente = veLosReportes(ctx.yo);
   // 273: la sección de mantenimiento (equipo, lista diaria, refacciones, uso) es de cualquiera con nivel en la app.
   const mantenimiento = veMantenimiento(ctx.yo);
+  // 274: los conteos de inventario (cinco pasos); el personal cuenta, el gerente crea, firma y ajusta.
+  const conteos = veConteos(ctx.yo);
   const nombre = useMemo(() => (ctx.yo.full_name || "").split(/\s+/)[0], [ctx.yo.full_name]);
   return (
     <>
@@ -134,7 +139,8 @@ function Inicio({ ctx }: { ctx: Contexto }) {
         </nav>
       )}
       {llena && <Borradores ctx={ctx} />}
-      <div className={"ops-pie" + ([llena, gerente, mantenimiento].filter(Boolean).length > 1 ? "" : " ops-pie-uno")}>
+      <div className={"ops-pie" + ([llena, gerente, mantenimiento, conteos].filter(Boolean).length > 1 ? "" : " ops-pie-uno")}>
+        {conteos && <Link href="/operaciones/conteos" className="ops-boton-ancho ops-boton-conteos" data-ir="conteos">🔢 {t("Inventory counts", "Conteos de inventario")}</Link>}
         {mantenimiento && <Link href="/operaciones/mantenimiento" className="ops-boton-ancho ops-boton-mantenimiento" data-ir="mantenimiento">🔧 {t("Maintenance", "Mantenimiento")}</Link>}
         {llena && (
           <Link href="/operaciones/mis-reportes" className="ops-boton-ancho" data-ir="mios">

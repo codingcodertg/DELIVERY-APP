@@ -331,3 +331,33 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-foto-mini { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
 .ops-filtros-espacio { flex: 1; }
 .ops-etapas h4 { margin: 0 0 8px; font-size: 14px; }
+
+/* ---- Conteos de inventario (274): lista, tarjeta de cinco pasos, captura por linea ---- */
+.ops-boton-conteos { border-color: var(--accent); }
+.ops-conteos-barra { align-items: center; gap: 10px; margin-bottom: 10px; }
+.ops-conteos-barra .ops-fila { margin: 0; font-size: 13px; }
+.ops-conteos-pie { margin-top: 14px; text-align: center; }
+.ops-kpi-conteos { margin-bottom: 14px; }
+.ops-kpi-gente { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
+.ops-kpi-gris { color: var(--gray) !important; }
+.ops-tarjeta-conteo { max-width: 720px; }
+.ops-linea-de-etapas li.actual .ops-etapa-punto { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+.ops-progreso-conteo { margin: 0 0 10px; }
+.ops-resumen-conteo { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.ops-lineas-conteo { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ops-linea-conteo { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.ops-linea-conteo.contada { border-color: color-mix(in srgb, var(--green) 50%, var(--line)); }
+.ops-linea-conteo.recontar { border-color: var(--amber); background: color-mix(in srgb, var(--amber) 8%, var(--card)); }
+.ops-linea-conteo.con-diferencia { border-color: var(--red); }
+.ops-linea-conteo-boton { all: unset; display: grid; gap: 4px; cursor: pointer; }
+.ops-linea-conteo-boton:disabled { cursor: default; }
+.ops-linea-conteo-nombre { font-weight: 700; }
+.ops-linea-conteo-cifras { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.ops-linea-conteo .btn-ghost { justify-self: end; }
+.ops-campo-grande { font-size: 22px; font-weight: 800; text-align: center; min-height: 52px; }
+.ops-total-linea { margin: 0; text-align: center; font-size: 15px; }
+.ops-total-linea b { font-size: 20px; }
+.ops-sugerencias { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.ops-sugerencias .ops-opcion { text-align: left; }
+.ops-vista-previa .hint { margin-left: auto; }
+.ops-seleccion .btn { margin-left: auto; }
