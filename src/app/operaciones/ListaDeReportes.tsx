@@ -20,6 +20,7 @@ import { puedeCorregirMerma, puedeVerReporte } from "@/lib/almacen-ops/visibilid
 import { diaDelReporte, fmtDia, hoyEnTexas, ordenPorDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { ATAJOS, NOMBRE_DE_ATAJO, eleccionAUrl, eleccionDeUrl, etiquetaDeRango, filtrarPorRango, perdidaEnRango, rangoDeAtajo, rangoDeEleccion, type Atajo, type Eleccion } from "@/lib/almacen-ops/rango-de-merma";
 import { ETAPAS, etapaDe, nombreDeEtapa, perdidaPorEtapa, puedeCambiarEtapa, seleccionableParaHoja, tieneEtapas, urlDeHoja, type Etapa } from "@/lib/almacen-ops/etapas";
+import { COLUMNAS_EXCEL, celdasDeMerma, csvDeMermas, nombreDelCsv } from "@/lib/almacen-ops/tabla-de-merma";
 import { AdjuntarYMarcar, ChipDeEtapa, LineaDeEtapas } from "./EtapasDeMerma";
 import type { Contexto } from "./Operaciones";
 
@@ -121,6 +122,19 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     setAbierto((a) => (a && porId.get(a.id)) || a);
     setSeleccion((s) => { const n = new Set(s); for (const id of porId.keys()) n.delete(id); return n; });
   };
+  // Pedido de Roberto: bajar la lista de merma tal cual se ve (mismas columnas del Excel) para pegarla en su hoja.
+  // Se arma en el navegador (Blob); el nombre lleva la tienda si todas las filas son de la misma, o «all».
+  const exportarCsv = (lista: Reporte[]) => {
+    const tiendas = new Set(lista.map((r) => r.store));
+    const csv = csvDeMermas(lista, ctx.personas, lang);
+    // El BOM hace que Excel lea bien los acentos (ñ, á…) al abrir el archivo con doble clic.
+    const blob = new Blob(["﻿", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = nombreDelCsv(tiendas.size === 1 ? [...tiendas][0] : null, hoy);
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
 
   return (
     <section className="ops-reportes" data-modo={modo}>
@@ -210,7 +224,14 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
             <AdjuntarYMarcar reportes={seleccionadas} ctx={ctx} etapa="approved" etiqueta={t("Choose the signed sheet (photo or PDF)", "Elegir la hoja firmada (foto o PDF)")}
               onListo={(n) => { setAdjuntando(false); actualizaFilas(n); }} onParcial={actualizaFilas} onCancelar={() => setAdjuntando(false)} />
           )}
-          <TablaDeReportes filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango" conEtapa
+          {mermasPorEtapa.length > 0 && (
+            <div className="ops-exportar">
+              <button type="button" className="btn btn-sm" onClick={() => exportarCsv(mermasPorEtapa)} data-accion="exportar-csv" title={t("Download these rows as a CSV file to paste into Excel", "Baja estas filas como CSV para pegarlas en Excel")}>
+                ⬇ {t("Export CSV", "Exportar CSV")} <span className="cnt">{mermasPorEtapa.length}</span>
+              </button>
+            </div>
+          )}
+          <TablaDeMermaExcel filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango" conEtapa
             seleccion={{ ids: seleccion, puede: puedeSeleccionar, alternar }}
             vacio={rango ? (etapaFiltro ? t("No scrap in that stage in this range.", "No hay merma en esa etapa en este rango.") : t("No scrap broken in this range.", "No se rompió nada en este rango.")) : t("Fix the dates to see the list.", "Corrige las fechas para ver la lista.")} />
         </div>
@@ -311,6 +332,88 @@ function TablaDeReportes({ filas, ctx, onAbrir, vacio, repetidas, conEtapa, sele
                 : String(r.answers.description ?? "")}{!conEtapa && r.kind === "scrap" && <ChipDeEtapa r={r} conFecha={false} />}</td>
             </tr>
           ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/**
+ * La lista de merma como el Excel de Roberto (gerente de almacén): una fila por reporte, con las columnas de su hoja
+ * (fecha, código, descripción, cantidades agrupadas, cómo, motivo, lo rompió, lo reportó, CRMA #, comentarios) y las
+ * de siempre (casilla, Cuándo, Etapa, Tipo, Tienda, Lo llenó), que pidió conservar. Encabezado de dos niveles; las
+ * cifras a la derecha; se desplaza de lado dentro de su caja. Cada fila se abre como tarjeta, igual que antes.
+ */
+function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = true, seleccion, "data-lista": dataLista }: {
+  filas: Reporte[]; ctx: Contexto; onAbrir: (r: Reporte) => void; vacio: string; repetidas: Map<string, string[]>; "data-lista": string;
+  conEtapa?: boolean;
+  seleccion?: { ids: Set<string>; puede: (r: Reporte) => boolean; alternar: (id: string) => void };
+}) {
+  const { t, lang } = usePrefs();
+  const nombre = (id: string) => ctx.personas.find((p) => p.id === id)?.full_name ?? "—";
+  const nombreTipo = (k: TipoDeReporte) => (lang === "es" ? INFO_DE_TIPO[k].es : INFO_DE_TIPO[k].en);
+  const conCasillas = !!seleccion && filas.some((r) => seleccion.puede(r));
+  const fijas = 4 + (conEtapa ? 1 : 0) + (conCasillas ? 1 : 0);
+  const grupo = COLUMNAS_EXCEL.filter((c) => c.grupo);
+  const antes = COLUMNAS_EXCEL.filter((c, n) => !c.grupo && n < COLUMNAS_EXCEL.findIndex((x) => x.grupo));
+  const despues = COLUMNAS_EXCEL.filter((c, n) => !c.grupo && n > COLUMNAS_EXCEL.findIndex((x) => x.grupo));
+  const columnas = fijas + COLUMNAS_EXCEL.length;
+  const titulo = (c: (typeof COLUMNAS_EXCEL)[number]) => (lang === "es" ? c.es : c.en);
+  return (
+    <div className="tbl-scroll tbl-caja ops-tabla-excel-caja">
+      <table className="orders ops-tabla-excel" data-lista={dataLista}>
+        <thead>
+          <tr>
+            {conCasillas && <th rowSpan={2} className="ops-col-casilla" aria-label={t("Select for the approval sheet", "Marcar para la hoja de aprobación")} />}
+            <th rowSpan={2} title={t("When it was reported", "Cuándo se reportó")}>{t("When", "Cuándo")}</th>
+            {conEtapa && <th rowSpan={2}>{t("Stage", "Etapa")}</th>}
+            <th rowSpan={2}>{t("Type", "Tipo")}</th><th rowSpan={2}>{t("Store", "Tienda")}</th><th rowSpan={2}>{t("Filed by", "Lo llenó")}</th>
+            {antes.map((c) => <th key={c.id} rowSpan={2} data-col={c.id}>{titulo(c)}</th>)}
+            <th colSpan={grupo.length} className="ops-col-grupo" data-col="cantidades">{t("Quantities", "Cantidades")}</th>
+            {despues.map((c) => <th key={c.id} rowSpan={2} data-col={c.id}>{titulo(c)}</th>)}
+          </tr>
+          <tr>
+            {grupo.map((c) => <th key={c.id} className="num ops-col-subgrupo" data-col={c.id}>{titulo(c)}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {filas.length === 0 && <tr><td colSpan={columnas} className="hint">{vacio}</td></tr>}
+          {filas.map((r) => {
+            const c = celdasDeMerma(r, ctx.personas, lang);
+            const celda = (k: (typeof COLUMNAS_EXCEL)[number]) => {
+              if (k.id === "fecha") return <td key={k.id} className="ops-celda-fecha" data-col={k.id} data-dia={c.fecha}>{fmtDia(c.fecha, lang)}</td>;
+              if (k.id === "costo") return (
+                <td key={k.id} className="num" data-col={k.id} title={t(`Cost per piece: ${fmtMoney(r.unit_cost)}`, `Costo por pieza: ${fmtMoney(r.unit_cost)}`)} data-cuenta-como-perdida={cuentaComoPerdida(r) ? "si" : "no"}>
+                  {fmtMoney(r.total_loss)}{!cuentaComoPerdida(r) && <span className="hint"> ({t("no CRMA", "sin CRMA")})</span>}
+                </td>
+              );
+              if (k.id === "codigo" && r.product_not_in_catalog) return <td key={k.id} data-col={k.id}><span className="ops-fuera-de-catalogo">{t("Not in catalog", "No está en el catálogo")}</span></td>;
+              if (k.id === "comentarios" || k.id === "descripcion") return <td key={k.id} className="ops-celda-texto" data-col={k.id} title={c[k.id]}>{c[k.id]}</td>;
+              return <td key={k.id} className={k.num ? "num" : undefined} data-col={k.id}>{c[k.id]}</td>;
+            };
+            return (
+              <tr key={r.id} onClick={() => onAbrir(r)} className="ops-fila-tabla" data-reporte={r.id} data-etapa={etapaDe(r)}>
+                {conCasillas && (
+                  <td className="ops-col-casilla" onClick={(e) => e.stopPropagation()}>
+                    {seleccion!.puede(r) && (
+                      <input type="checkbox" checked={seleccion!.ids.has(r.id)} onChange={() => seleccion!.alternar(r.id)}
+                        aria-label={t("Select for the approval sheet", "Marcar para la hoja de aprobación")} data-casilla={r.id} />
+                    )}
+                  </td>
+                )}
+                <td style={{ whiteSpace: "nowrap" }} data-reportado={r.created_at}>
+                  {fmtDateTime(r.created_at)}
+                  <IconoDeFotos r={r} />
+                  <InsigniasDeFoto r={r} repetida={repetidas.has(r.id)} />
+                </td>
+                {conEtapa && <td className="ops-col-etapa"><ChipDeEtapa r={r} /></td>}
+                <td style={{ whiteSpace: "nowrap" }}>{INFO_DE_TIPO[r.kind].emoji} {nombreTipo(r.kind)}</td>
+                <td>{r.store}</td>
+                <td>{r.author_name ?? nombre(r.author_id)}</td>
+                {COLUMNAS_EXCEL.map(celda)}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

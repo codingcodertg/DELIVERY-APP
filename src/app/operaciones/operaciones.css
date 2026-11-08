@@ -251,6 +251,20 @@ textarea.ops-campo { min-height: 150px; resize: vertical; }
 .ops-col-etapa { white-space: nowrap; }
 .ops-col-casilla { width: 32px; text-align: center; }
 .ops-col-casilla input { width: 20px; height: 20px; margin: 0; cursor: pointer; }
+/* La lista de merma como el Excel de Roberto: muchas columnas, letra compacta, cifras a la derecha, encabezado de dos
+   niveles («Cantidades» sobre cajas / pzas por caja / total / muestra / dañadas / costo). Se desplaza de lado dentro
+   de `.tbl-scroll` (que ya tiene overflow-x: auto), así que no ensancha la página en el teléfono. */
+.ops-tabla-excel-caja { max-width: 100%; }
+table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
+.ops-tabla-excel th, .ops-tabla-excel td { padding: 6px 8px; white-space: nowrap; }
+.ops-tabla-excel th { vertical-align: bottom; }
+.ops-tabla-excel .num, .ops-tabla-excel th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.ops-tabla-excel .ops-col-grupo { text-align: center; border-bottom: 1px solid var(--line); letter-spacing: .02em; text-transform: uppercase; font-size: 11px; }
+.ops-tabla-excel .ops-col-subgrupo { font-weight: 600; font-size: 11px; }
+.ops-tabla-excel .ops-celda-texto { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.ops-tabla-excel .ops-celda-fecha { font-weight: 700; }
+.ops-exportar { display: flex; justify-content: flex-end; }
+.ops-exportar .btn { display: inline-flex; align-items: center; gap: 6px; }
 .ops-seleccion { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--card)); font-weight: 700; }
 .ops-desglose-etapas b { font-variant-numeric: tabular-nums; }
 .ops-etapas { margin: 12px 0 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
