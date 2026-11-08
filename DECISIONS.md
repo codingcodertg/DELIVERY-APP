@@ -51108,3 +51108,9 @@ Sello `deliveries` 1.566.0; repo 1.780.0.
 Fase 1 de KPIs de almacén (Roberto y el dueño, WhatsApp 8 nov). Nueva sección /operaciones/mantenimiento: inventario de montacargas y patines por tienda con estado, horómetro y fotos; lista diaria por equipo desde el teléfono (Bien / Falla / N/A; una falla pide nota y deja el equipo en «necesita reparación»); refacciones y herramientas con se necesita → pedida → recibida; bitácora de uso Empezar/Dejar de usar (un uso abierto por equipo); KPI semanal de cumplimiento de listas y equipos por reparar para gestores. El reporte de mantenimiento ofrece el equipo real de la tienda. Personal de almacén: lista, uso y pedir refacción en su tienda; gestores: todo. Migración 273 (tablas warehouse_equipment, warehouse_checklists, warehouse_parts, warehouse_equipment_usage y RPC).
 
 Sello `warehouse_ops` 0.15.0; repo 1.781.0.
+
+## D-928 · Warehouse Ops: KPI de entregas, % de órdenes listas antes de que llegue el chofer
+
+Fase 1 de KPIs de almacén (Roberto). Reportes → pestaña Entregas (gerentes): % de órdenes con el último evento ready antes del primer picked_up (empate o sin ready = no lista), por tienda, por día o semana y por empleado (quien marcó ready), mediana de minutos listo→recogida y las 10 peores. Ruta /api/almacen-ops/kpi-entregas de solo lectura, acotada a las tiendas del que pide. Sin migración.
+
+Sello `warehouse_ops` 0.16.0; repo 1.782.0.
