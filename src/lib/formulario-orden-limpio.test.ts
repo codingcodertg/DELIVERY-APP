@@ -119,8 +119,11 @@ describe("1 · «Buscar dirección en el mapa» se quitó; soltar el pin sigue",
     expect(formulario).not.toMatch(/lookupAddress|Look up address on map|Buscar dirección en el mapa"/);
     // Nota 2026-10-18 (D-589, dirección completa): la ficha vuelve a llamar a `/api/geocode-point`, pero UNA vez y desde
     // `direccionesValidas` —para comprobar que el punto cae en la región ANTES de guardar—, no desde un botón de buscar.
+    // Y desde D-877 hay una SEGUNDA, `buscarDireccionDelSelector`: abre el selector sobre la dirección tecleada cuando el
+    // pedido aún no tiene punto (ayuda abde8b1c). Ninguna de las dos es el botón de buscar que se quitó.
     const llamadas = formulario.split('fetch("/api/geocode-point"');
-    expect(llamadas.length - 1).toBe(1);
+    expect(llamadas.length - 1).toBe(2);
+    expect(formulario).toContain("const buscarDireccionDelSelector = async () => {");
     expect(llamadas[0].lastIndexOf("const direccionesValidas = async")).toBeGreaterThan(llamadas[0].lastIndexOf("const save = async"));
     expect(formulario.split("Set exact location on map").length - 1).toBe(2);
     expect(formulario).toContain('const res = await fetch("/api/reverse-geocode", {');

@@ -71,6 +71,7 @@ export const RPC_QUE_SOLO_LEEN = [
   "mis_tiendas_de_clientes", // 250 (D-886): las tiendas en las que busca el no admin de Clientes; stable, solo lee.
   "tutorials",
   "tutorial_view_stats", // 267 (D-913): para el admin, cuántos vieron cada tutorial; stable, solo lee.
+  "warehouse_ops_count_vendors", "warehouse_ops_count_products", // 274 (D-929): proveedores y productos para la hoja de conteo; devuelven tablas, solo leen.
 ] as const;
 
 /** Las que escriben: se cortan. Están nombradas solo para que la prueba sepa que alguien las miró. */
@@ -82,6 +83,12 @@ export const RPC_QUE_ESCRIBEN = [
   "warehouse_ops_set_scrap_stage", // 270 (D-921): el gerente mueve la etapa de una merma (aprobada / desechada / ajustada; admin deshace).
   "security_touch_device", "security_request_access", // 229 (D-811): registran el dispositivo de la sesión y su solicitud.
   "security_note_web_block", // 232 (D-818): anota que a esta sesión se le cerró la web.
+  // 273 (D-927), Mantenimiento: equipo, lista diaria, refacciones y bitácora de uso. Todas escriben.
+  "warehouse_ops_save_equipment", "warehouse_ops_file_checklist", "warehouse_ops_save_part", "warehouse_ops_request_part",
+  "warehouse_ops_start_usage", "warehouse_ops_stop_usage",
+  // 274 (D-929), Conteos de inventario: crear, avanzar, línea, firmar, recontar, ajustar, cancelar. Todas escriben.
+  "warehouse_ops_create_count", "warehouse_ops_count_advance", "warehouse_ops_count_line", "warehouse_ops_count_sign",
+  "warehouse_ops_count_recount", "warehouse_ops_count_adjust", "warehouse_ops_count_cancel",
   "security_sign_out_user", // 236 (D-828): cierra todas las sesiones de una persona.
   "revisa_solicitud_de_cliente", "corrige_solicitud_de_cliente", // 242 (D-865): mandan a Revisar y corrigen una solicitud.
   "add_product_relation", "adjust_inventory", "apply_decisions", "apply_master_import", "assign_draft_sku",

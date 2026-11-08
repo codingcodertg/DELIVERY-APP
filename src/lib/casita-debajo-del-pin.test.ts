@@ -47,7 +47,8 @@ describe("el z de la casita, comparado con el de las capas que la rodean", () =>
     expect(TIENDA_CLASICA).toEqual({ fill: "#0b3d91", diametro: 26, borde: "#fff", grosor: 2 });
     // Y sigue respondiendo al ratón donde no hay pin encima: su nombre se ve al pasar por ella.
     expect(leaflet).toContain("interactive: true }");
-    expect(leaflet).toContain('marker.bindTooltip(`🏬 ${s.name}`');
+    // El texto del globo pasa por `soloTexto` (quita marcas); el nombre sigue saliendo al pasar el ratón.
+    expect(leaflet).toContain('marker.bindTooltip(soloTexto(`🏬 ${s.name}`)');
     expect(google).toContain("title: `🏬 ${s.name}`,");
   });
 });
