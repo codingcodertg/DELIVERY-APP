@@ -51114,3 +51114,9 @@ Sello `warehouse_ops` 0.15.0; repo 1.781.0.
 Fase 1 de KPIs de almacén (Roberto). Reportes → pestaña Entregas (gerentes): % de órdenes con el último evento ready antes del primer picked_up (empate o sin ready = no lista), por tienda, por día o semana y por empleado (quien marcó ready), mediana de minutos listo→recogida y las 10 peores. Ruta /api/almacen-ops/kpi-entregas de solo lectura, acotada a las tiendas del que pide. Sin migración.
 
 Sello `warehouse_ops` 0.16.0; repo 1.782.0.
+
+## D-929 · Warehouse Ops: sección Conteos de inventario (5 pasos, sistema vs contado, firma, ajuste con captura, KPI)
+
+Fase 1 de KPIs de almacén (esquema de Roberto, WhatsApp 8 nov). Nueva sección /operaciones/conteos: el gerente abre un conteo por proveedor + medida, proveedor + nota o producto; se congelan qoh (erp.store_products) y precio. Etapas organizing → reviewing_orders → counting → review → adjusted (+ cancelled) con quién y cuándo. Personal: acomodar, confirmar órdenes pendientes con nota, capturar cajas + sueltas con foto y avance. Gerente: diferencia en piezas y $, recontar, hoja imprimible, firmar, subir capturas del ERP para ajustar, cancelar. KPI 30 días: conteos, exactitud, variación $, días a ajustar, por empleado. Migración 274.
+
+Sello `warehouse_ops` 0.17.0; repo 1.783.0.
