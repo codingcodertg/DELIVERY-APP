@@ -23,9 +23,11 @@ import { ATAJOS, NOMBRE_DE_ATAJO, eleccionAUrl, eleccionDeUrl, etiquetaDeRango, 
 import { ETAPAS, etapaDe, nombreDeEtapa, perdidaPorEtapa, puedeCambiarEtapa, seleccionableParaHoja, tieneEtapas, urlDeHoja, type Etapa } from "@/lib/almacen-ops/etapas";
 import { COLUMNAS_EXCEL, celdasDeMerma, csvDeMermas, nombreDelCsv } from "@/lib/almacen-ops/tabla-de-merma";
 import { AdjuntarYMarcar, ChipDeEtapa, LineaDeEtapas } from "./EtapasDeMerma";
+import { KpiDeEntregas } from "./KpiDeEntregas";
 import type { Contexto } from "./Operaciones";
 
 const LIMITE = 500;
+type Pestana = "lista" | "merma" | "entregas";
 
 /**
  * «Mis reportes» y «Reportes» (D-883, 247). Las filas son las que la RLS deja ver; «Mis reportes» además se queda con
@@ -41,17 +43,19 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const ruta = usePathname();
   const params = useSearchParams();
   const hoy = hoyEnTexas();
-  const pestana: "lista" | "merma" = modo === "todos" && params.get("pestana") === "merma" ? "merma" : "lista";
+  // KPI de entregas (Roberto, fase 1): tercera pestaña, «Entregas», con el mismo selector de rango que la merma.
+  const pedida = params.get("pestana");
+  const pestana: Pestana = modo === "todos" && (pedida === "merma" || pedida === "entregas") ? pedida : "lista";
   const eleccion = useMemo(() => eleccionDeUrl(params), [params]);
-  const irA = useCallback((cambios: { pestana?: "lista" | "merma"; eleccion?: Eleccion }) => {
+  const irA = useCallback((cambios: { pestana?: Pestana; eleccion?: Eleccion }) => {
     const q = new URLSearchParams();
     const p = cambios.pestana ?? pestana;
-    if (p === "merma") q.set("pestana", "merma");
+    if (p !== "lista") q.set("pestana", p);
     for (const [k, v] of Object.entries(eleccionAUrl(cambios.eleccion ?? eleccion))) q.set(k, v);
     const qs = q.toString();
     router.replace(qs ? `${ruta}?${qs}` : ruta, { scroll: false });
   }, [router, ruta, pestana, eleccion]);
-  const setPestana = (p: "lista" | "merma") => irA({ pestana: p });
+  const setPestana = (p: Pestana) => irA({ pestana: p });
   const elegir = (atajo: Atajo) => irA({ eleccion: atajo === "otro"
     // Al pasar a «a mano» se arranca con el rango del atajo que estaba puesto, para solo ajustar un extremo.
     ? { atajo, ...(eleccion.atajo === "otro" ? { desde: eleccion.desde, hasta: eleccion.hasta } : rangoDeAtajo(eleccion.atajo, hoy)) }
@@ -137,6 +141,26 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
+  // El selector de rango (D-911) lo comparten la pestaña de merma y la de entregas.
+  const selectorDeRango = (
+    <>
+      <div className="filters-oneline ops-filtros" role="group" aria-label={t("Date range", "Rango de fechas")} data-rango-atajos>
+        {ATAJOS.map((a) => (
+          <button type="button" key={a} className={`chip${eleccion.atajo === a ? " active" : ""}`} onClick={() => elegir(a)} data-atajo={a} aria-pressed={eleccion.atajo === a}>
+            {lang === "es" ? NOMBRE_DE_ATAJO[a].es : NOMBRE_DE_ATAJO[a].en}
+          </button>
+        ))}
+      </div>
+      {eleccion.atajo === "otro" && (
+        <div className="ops-filtros-campos" data-rango-a-mano>
+          <span className="ops-fecha">{t("From", "Desde")} <input type="date" value={eleccion.desde} max={hoy} onChange={(e) => irA({ eleccion: { ...eleccion, desde: e.target.value } })} aria-label={t("From", "Desde")} data-campo="rango-desde" /></span>
+          <span className="ops-fecha">{t("To", "Hasta")} <input type="date" value={eleccion.hasta} max={hoy} onChange={(e) => irA({ eleccion: { ...eleccion, hasta: e.target.value } })} aria-label={t("To", "Hasta")} data-campo="rango-hasta" /></span>
+          {!rango && <span className="ops-aviso ops-aviso-error" role="alert" data-rango-invalido>{t("“From” must be on or before “To”.", "«Desde» no puede ir después de «Hasta».")}</span>}
+        </div>
+      )}
+    </>
+  );
+
   return (
     <section className="ops-reportes" data-modo={modo}>
       <div className="page-head">
@@ -148,6 +172,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
         <div className="ops-pestanas" role="tablist">
           <button type="button" role="tab" aria-selected={pestana === "lista"} className={`chip${pestana === "lista" ? " active" : ""}`} onClick={() => setPestana("lista")}>{t("All reports", "Todos los reportes")}</button>
           <button type="button" role="tab" aria-selected={pestana === "merma"} className={`chip${pestana === "merma" ? " active" : ""}`} onClick={() => setPestana("merma")} data-pestana="merma">🧱 {t("Scrap", "Merma")}</button>
+          <button type="button" role="tab" aria-selected={pestana === "entregas"} className={`chip${pestana === "entregas" ? " active" : ""}`} onClick={() => setPestana("entregas")} data-pestana="entregas">🚚 {t("Deliveries", "Entregas")}</button>
         </div>
       )}
 
@@ -156,20 +181,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
 
       {filas && pestana === "merma" && (
         <div className="ops-merma" data-merma>
-          <div className="filters-oneline ops-filtros" role="group" aria-label={t("Date range", "Rango de fechas")} data-rango-atajos>
-            {ATAJOS.map((a) => (
-              <button type="button" key={a} className={`chip${eleccion.atajo === a ? " active" : ""}`} onClick={() => elegir(a)} data-atajo={a} aria-pressed={eleccion.atajo === a}>
-                {lang === "es" ? NOMBRE_DE_ATAJO[a].es : NOMBRE_DE_ATAJO[a].en}
-              </button>
-            ))}
-          </div>
-          {eleccion.atajo === "otro" && (
-            <div className="ops-filtros-campos" data-rango-a-mano>
-              <span className="ops-fecha">{t("From", "Desde")} <input type="date" value={eleccion.desde} max={hoy} onChange={(e) => irA({ eleccion: { ...eleccion, desde: e.target.value } })} aria-label={t("From", "Desde")} data-campo="rango-desde" /></span>
-              <span className="ops-fecha">{t("To", "Hasta")} <input type="date" value={eleccion.hasta} max={hoy} onChange={(e) => irA({ eleccion: { ...eleccion, hasta: e.target.value } })} aria-label={t("To", "Hasta")} data-campo="rango-hasta" /></span>
-              {!rango && <span className="ops-aviso ops-aviso-error" role="alert" data-rango-invalido>{t("“From” must be on or before “To”.", "«Desde» no puede ir después de «Hasta».")}</span>}
-            </div>
-          )}
+          {selectorDeRango}
           <div className="ops-merma-totales">
             <div className="ops-merma-total ops-merma-total-rango" data-total-rango={enRango["*"]}>
               <span className="ops-merma-cifra">{fmtMoney(enRango["*"])}</span>
@@ -235,6 +247,13 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
           <TablaDeMermaExcel filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango" conEtapa
             seleccion={{ ids: seleccion, puede: puedeSeleccionar, alternar }}
             vacio={rango ? (etapaFiltro ? t("No scrap in that stage in this range.", "No hay merma en esa etapa en este rango.") : t("No scrap broken in this range.", "No se rompió nada en este rango.")) : t("Fix the dates to see the list.", "Corrige las fechas para ver la lista.")} />
+        </div>
+      )}
+
+      {filas && pestana === "entregas" && (
+        <div className="ops-merma ops-entregas" data-entregas>
+          {selectorDeRango}
+          <KpiDeEntregas rango={rango} ctx={ctx} />
         </div>
       )}
 
