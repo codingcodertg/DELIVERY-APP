@@ -51121,7 +51121,7 @@ Fase 1 de KPIs de almacén (esquema de Roberto, WhatsApp 8 nov). Nueva sección 
 
 Sello `warehouse_ops` 0.17.0; repo 1.783.0.
 
-## D-NEXT · Cuatro pruebas de puerta al día (hojas de Operaciones, RPC de 273/274, globo de la tienda, segunda geocodificación)
+## D-930 · Cuatro pruebas de puerta al día (hojas de Operaciones, RPC de 273/274, globo de la tienda, segunda geocodificación)
 
 El 2026-11-08 `vitest` cae en main en cuatro ficheros que no son de ninguna rama abierta, y con eso ningún release puede salir en verde. Son pruebas de puerta que se quedaron atrás de decisiones ya fusionadas; ninguna señala un fallo de la app:
 
@@ -51132,4 +51132,4 @@ El 2026-11-08 `vitest` cae en main en cuatro ficheros que no son de ninguna rama
 
 Nada de esto cambia lo que ve nadie. Lo que sí cambia: el CI vuelve a decir la verdad.
 
-Sello `deliveries` D-NEXT; repo D-NEXT.
+Sello `deliveries` 1.567.0; repo 1.784.0.

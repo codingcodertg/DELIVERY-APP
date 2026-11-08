@@ -196,7 +196,7 @@ export const APPS_DEL_MAPA: AppDelMapa[] = [
       reportes: b("All reports (managers)", "Todos los reportes (gerentes)"),
       // 273: equipo, lista diaria, refacciones y uso.
       mantenimiento: b("Maintenance", "Mantenimiento"),
-      // 274 (D-929): la hoja de un conteo de inventario (sistema vs contado, firma). D-NEXT: faltaba en el mapa y la
+      // 274 (D-929): la hoja de un conteo de inventario (sistema vs contado, firma). D-930: faltaba en el mapa y la
       // prueba de «toda pantalla con Ayuda tiene nombre» llevaba rojo main desde entonces.
       "conteos/hoja": b("Inventory count sheet", "Hoja de conteo de inventario"),
       // La hoja de aprobación de un reporte (gerentes).
