@@ -4,8 +4,12 @@ import { PayrollTabs } from "@/components/timetracker/PayrollTabs";
 import { periodStartOf } from "@/lib/timetracker/period";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
+import { DEMO_EMPLOYEES, demoSessions, horasPorPersona } from "@/lib/timetracker/demo-data";
+import { addDaysISO } from "@/lib/timetracker/helpers";
 
 export const dynamic = "force-dynamic";
+
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /**
  * Las horas de las dos mitades de la app, por periodo de pago (fase 4 de la fusión).
@@ -49,6 +53,32 @@ export default async function PayrollPage({
   searchParams: Promise<{ period?: string }>;
 }) {
   const { period } = await searchParams;
+  const start = period && /^\d{4}-\d{2}-\d{2}$/.test(period) ? period : periodStartOf(new Date());
+
+  // Modo demo: la cabecera se calcula con la semilla (solo horas cronometradas; fichaje no tiene demo) y las
+  // secciones leen del proveedor en memoria. Antes de tocar la base.
+  if (LOCAL_MODE) {
+    const horas = horasPorPersona(demoSessions(Date.now()), start, addDaysISO(start, 6));
+    const tipoDe = (id: string) => DEMO_EMPLOYEES.find((e) => e.id === id)?.workerType ?? "remote";
+    const sumaDe = (tipo: "inhouse" | "remote") => Array.from(horas).filter(([id]) => tipoDe(id) === tipo).reduce((a, [, h]) => a + h, 0);
+    const total = Array.from(horas.values()).reduce((a, h) => a + h, 0);
+    return (
+      <PayrollTabs
+        period={start}
+        revisar={[]}
+        resumen={{
+          start,
+          error: null,
+          personas: horas.size,
+          fichaje: { total: 0, enSitio: 0, remotos: 0 },
+          proyecto: { total, enSitio: sumaDe("inhouse"), remotos: sumaDe("remote") },
+          aRevisar: [],
+          deducidos: [],
+        }}
+      />
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -69,8 +99,6 @@ export default async function PayrollPage({
 
   // Las horas de todo el mundo son cosa de quien lleva la nómina.
   if (me?.timetracker_role !== "admin") redirect("/timetracker");
-
-  const start = period && /^\d{4}-\d{2}-\d{2}$/.test(period) ? period : periodStartOf(new Date());
 
   // El tipo de trabajador NO está en la vista `period_hours` y no se le añadió: esa vista
   // calcula horas y meterle un dato de configuración la ataría a una tabla que no necesita

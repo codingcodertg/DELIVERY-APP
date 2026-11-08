@@ -19,7 +19,67 @@ import type { Screenshot } from "@/lib/timetracker/types";
 // borrado de una captura sigue restando su tramo de tiempo pagado a la sesión, y la purga de
 // más de 14 días sigue igual. Conserva su propio selector de persona (quien tiene capturas):
 // es una lista distinta de la del log y de la de fotos de fichaje, y ninguna gana (D-186).
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export function TeamDiary() {
+  return LOCAL_MODE ? <TeamDiaryDemo /> : <TeamDiaryReal />;
+}
+
+/**
+ * Modo demo (sin base ni sesión): las capturas y sesiones salen del proveedor en memoria y aquí no se abre
+ * ningún cliente de Supabase —la URL del demo es un marcador y cualquier consulta fallaría—. La purga no
+ * existe en el demo: avisa y nada más. `modo-demo.test.ts` exige que esta función no nombre el cliente.
+ */
+function TeamDiaryDemo() {
+  const { me, allEmployees: users, myScreenshots, mySessions, deleteScreenshot, updateSession, notify } = useData();
+  const t = useT();
+  const [uid, setUid] = useState("");
+
+  async function deleteShot(s: Screenshot) {
+    const forfeitSeconds = (Number(APP_SETTINGS.screenshotIntervalMin) || 10) * 60;
+    const msg = s.sessionId ? t("mgr.shots.delConfirm", { d: fmtHM(forfeitSeconds) }) : t("mgr.shots.delConfirmNoSess");
+    if (!confirm(msg)) return;
+    await deleteScreenshot(s.id, s.path);
+    const sesion = s.sessionId ? mySessions.find((x) => x.id === s.sessionId) : null;
+    if (sesion) {
+      const dur = Math.max(0, sesion.durationSeconds - forfeitSeconds);
+      await updateSession(sesion.id, { durationSeconds: dur, activeSeconds: Math.max(0, Math.min(sesion.activeSeconds, dur)) });
+    }
+  }
+
+  const empIds = Array.from(new Set(myScreenshots.map((s) => s.employeeUid)));
+  const employees = users.filter((u) => empIds.includes(u.id));
+  const activeUid = uid || employees[0]?.id || "";
+  const empShots = myScreenshots.filter((s) => s.employeeUid === activeUid);
+  const empSessions = mySessions.filter((s) => s.employeeUid === activeUid);
+
+  if (me.role !== "admin") return <div className="card"><p className="muted">{t("common.adminsOnly")}</p></div>;
+
+  return (
+    <div className="card">
+      <div className="between">
+        <h2 style={{ margin: 0 }}>{t("mgr.tab.shots")}</h2>
+        <div className="row" style={{ alignItems: "center" }}>
+          <select value={activeUid} onChange={(e) => setUid(e.target.value)} style={{ width: "auto" }}>
+            {employees.length === 0 && <option value="">{t("mgr.shots.noneOpt")}</option>}
+            {employees.map((u) => <option key={u.id} value={u.id}>{u.fullName}</option>)}
+          </select>
+          <button className="btn-ghost btn-sm" onClick={() => notify(t("mgr.shots.purgeNone"))}>{t("mgr.shots.purgeBtn")}</button>
+        </div>
+      </div>
+      {employees.length === 0 ? (
+        <p className="muted" style={{ marginTop: 12 }}>{t("mgr.shots.empty")}</p>
+      ) : (
+        <WorkDiary key={activeUid} shots={empShots} sessions={empSessions} onDelete={deleteShot} summary />
+      )}
+      <p className="small muted" style={{ marginTop: 14 }}>
+        {t("mgr.shots.foot", { d: fmtHM((Number(APP_SETTINGS.screenshotIntervalMin) || 10) * 60) })}
+      </p>
+    </div>
+  );
+}
+
+function TeamDiaryReal() {
   const { me, allEmployees: users, sessionsSince } = useData();
   const t = useT();
   const supabase = useMemo(() => createClient(), []);

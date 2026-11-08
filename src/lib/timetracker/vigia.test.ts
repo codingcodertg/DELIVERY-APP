@@ -47,9 +47,15 @@ describe("1 · el cronómetro vive en el layout, no en su página", () => {
   it("el layout monta al anfitrión, y el anfitrión decide con estas dos funciones", () => {
     const layout = codigoDe(LAYOUT);
     expect(layout).toContain("<CronometroAnfitrion />");
-    // Dentro del proveedor de datos y antes de la pantalla: el cronómetro usa useData().
-    expect(layout.indexOf("<DataProvider")).toBeLessThan(layout.indexOf("<CronometroAnfitrion />"));
-    expect(layout.indexOf("<CronometroAnfitrion />")).toBeLessThan(layout.indexOf("</DataProvider>"));
+    // Dentro del proveedor de datos y antes de la pantalla: el cronómetro usa useData(). Dos armazones desde el
+    // modo demo (DemoDataProvider, antes del real): en cada uno, el anfitrión va entre la apertura y el cierre.
+    for (const proveedor of ["DemoDataProvider", "DataProvider"]) {
+      const abre = layout.indexOf(`<${proveedor} `);
+      expect(abre, proveedor).toBeGreaterThan(-1);
+      const anfitrion = layout.indexOf("<CronometroAnfitrion />", abre);
+      expect(anfitrion, proveedor).toBeGreaterThan(-1);
+      expect(anfitrion, proveedor).toBeLessThan(layout.indexOf(`</${proveedor}>`, abre));
+    }
     const anfitrion = codigoDe(ANFITRION);
     expect(anfitrion).toContain("esRutaDelCronometro(pathname)");
     expect(anfitrion).toContain("debeMontarCronometro({");
