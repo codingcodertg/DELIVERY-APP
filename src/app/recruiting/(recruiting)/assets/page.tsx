@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/recruiting-data-provider";
+import { MODO_DEMO } from "@/lib/recruiting/modo-demo";
+import { AvisoDeDemo } from "@/components/recruiting/AvisoDeDemo";
 import { assignAsset, deleteAsset, listAssets, releaseAsset, saveAsset } from "@/app/recruiting/actions/activos";
 import {
   ESTADOS, TIPOS_DE_TELEFONO, cuentaPorEstado, etiquetaDeEstado, etiquetaDeTipoDeTelefono, porPersona, textoDeTelefono,
@@ -44,6 +46,17 @@ const COLUMNAS = [
 ] as const;
 
 export default function AssetsPage() {
+  // D-NEXT: esta pantalla vive de acciones de servidor (Supabase); en el demo se dice y no se llama a nada.
+  if (MODO_DEMO) return <AvisoDeDemoDePagina />;
+  return <AssetsPageReal />;
+}
+
+function AvisoDeDemoDePagina() {
+  const { t } = usePrefs();
+  return <AvisoDeDemo titulo={t("Company assets", "Activos de la empresa")} />;
+}
+
+function AssetsPageReal() {
   const { t, lang } = usePrefs();
   const { notify } = useData();
   const [rows, setRows] = useState<Activo[]>([]);

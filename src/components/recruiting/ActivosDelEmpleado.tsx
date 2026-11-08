@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
+import { AVISO_DEMO, MODO_DEMO } from "@/lib/recruiting/modo-demo";
 import { useData } from "@/lib/recruiting-data-provider";
 import { assignAsset, listAssets, releaseAsset } from "@/app/recruiting/actions/activos";
 import { etiquetaDeTipoDeTelefono, libres, losDe, textoDeTelefono, type Activo, type TipoDeActivo } from "@/lib/recruiting/activos";
@@ -23,6 +24,7 @@ export function ActivosDelEmpleado({ employeeId, deBaja }: { employeeId: string;
   const [liberando, setLiberando] = useState<Activo | null>(null);
 
   const cargar = useCallback(async () => {
+    if (MODO_DEMO) { setActivos([]); return; } // D-NEXT: sin servidor no hay activos.
     const r = await listAssets();
     if (!r.ok) { setSinTabla(r.sinTabla); setActivos([]); return; }
     setActivos(r.rows);
@@ -30,6 +32,7 @@ export function ActivosDelEmpleado({ employeeId, deBaja }: { employeeId: string;
   useEffect(() => { void cargar(); }, [cargar]);
 
   const corre = async (fn: () => Promise<{ ok: boolean; message?: string }>) => {
+    if (MODO_DEMO) { notify(t(AVISO_DEMO.en, AVISO_DEMO.es)); return; }
     setBusy(true);
     const r = await fn();
     setBusy(false);

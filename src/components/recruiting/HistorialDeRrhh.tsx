@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
+import { MODO_DEMO } from "@/lib/recruiting/modo-demo";
 import { listHistory } from "@/app/recruiting/actions/historial";
 import { esDeEmpleado, etiquetaDeHistorial, type EntradaDeHistorial } from "@/lib/recruiting/historial";
 import { fmtDateTime } from "@/lib/utils";
@@ -20,6 +21,8 @@ export function HistorialDeRrhh({ employeeId, assetId, recarga = 0, compacto = f
   const [err, setErr] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
+    // D-NEXT: en el demo no hay historial de RR. HH. (vive en el servidor); la tabla sale vacía y no se llama a nada.
+    if (MODO_DEMO) { setRows([]); setErr(null); return; }
     const r = await listHistory({ employeeId, assetId });
     if (!r.ok) { setSinTabla(r.sinTabla); setErr(r.sinTabla ? null : r.message); setRows([]); return; }
     setRows(r.rows); setErr(null);

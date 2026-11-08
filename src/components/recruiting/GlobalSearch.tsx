@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useData } from "@/lib/recruiting-data-provider";
 import { useUI } from "@/components/recruiting/ModalHost";
 import { usePrefs } from "@/lib/prefs";
+import { MODO_DEMO } from "@/lib/recruiting/modo-demo";
 import { stageOf } from "@/lib/recruiting/constants";
 import { avatarColor, initials } from "@/lib/recruiting/utils";
 import { buscaEmpleadosParaLaBarra } from "@/app/recruiting/actions/hr";
@@ -33,7 +34,8 @@ export function GlobalSearch() {
   const { openProfile } = useUI();
   const { t } = usePrefs();
   const router = useRouter();
-  const conEmpleados = puedeBuscarEmpleados(me?.role);
+  // D-NEXT: en el demo no hay empleados (viven en el servidor): el buscador es solo de candidatos.
+  const conEmpleados = puedeBuscarEmpleados(me?.role) && !MODO_DEMO;
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);

@@ -25,8 +25,7 @@ import type {
   Stage,
   Template,
 } from "@/lib/recruiting/types";
-import { DEFAULT_SCALE } from "@/lib/recruiting/utils";
-import { DEFAULT_STAGES } from "@/lib/recruiting/constants";
+import { DEFAULT_SETTINGS, DEFAULT_STAGES } from "@/lib/recruiting/constants";
 import { etapasEnIdioma } from "@/lib/recruiting/etapas-idioma";
 import { usePrefs } from "@/lib/prefs";
 import type { Scorecard } from "@/lib/recruiting/scorecards";
@@ -38,7 +37,8 @@ import { contactoDelGuardado, TIPOS_QUE_GUARDAN, yaGuardadoEnRingCentral } from 
 import { notaDelGuardado } from "@/lib/recruiting/agendas-ringcentral";
 import { estandarizaCandidato } from "@/lib/recruiting/formato";
 
-interface DataState {
+/** La interfaz que cumplen el proveedor real y el del demo (`recruiting-demo-data-provider.tsx`). */
+export interface DataState {
   ready: boolean;
   me: Profile | null;
   /** El perfil DEL HUB de quien entra (D-720): `role` es el de Entregas (admin = puede dar permisos), no el de RR. HH. */
@@ -113,7 +113,8 @@ interface DataState {
   deleteStage: (id: string) => Promise<void>;
 }
 
-const Ctx = createContext<DataState | null>(null);
+/** Exportado para que el proveedor del modo demo monte el MISMO contexto: `useData()` no cambia en las pantallas. */
+export const Ctx = createContext<DataState | null>(null);
 
 export function useData(): DataState {
   const ctx = useContext(Ctx);
@@ -121,16 +122,8 @@ export function useData(): DataState {
   return ctx;
 }
 
-const DEFAULT_SETTINGS: Settings = {
-  id: 1,
-  app_name: "RECRUIT·HN",
-  roles: ["Dispatcher", "Customer Service", "Sales"],
-  // «Contabilidad» se fue (D-261): el dueño la fundió en Oficina. Es solo el valor de partida
-  // antes de cargar los ajustes; la lista de verdad vive en la base y la cambia el orquestador.
-  // El rol `accounting` de Entregas no tiene nada que ver con esto y no se toca.
-  departments: ["Ventas", "Almacén", "Oficina", "Choferes", "Logística", "AI Developer"],
-  scale: DEFAULT_SCALE,
-};
+// `DEFAULT_SETTINGS` vive en constants.ts desde D-NEXT: la semilla del demo lo usa sin cargar este fichero.
+export { DEFAULT_SETTINGS };
 
 export function DataProvider({ children, me, hub = null }: { children: React.ReactNode; me: Profile | null; hub?: PerfilDelHub | null }) {
   const supabase = useMemo(() => createClient(), []);

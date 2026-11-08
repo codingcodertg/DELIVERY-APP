@@ -1,4 +1,18 @@
 import type { Stage } from "./types";
+import type { Settings } from "./types";
+import { DEFAULT_SCALE } from "./utils";
+
+// Los ajustes de partida antes de cargar los de la base (y los del demo, D-NEXT). Vivía en recruiting-data-provider.tsx.
+export const DEFAULT_SETTINGS: Settings = {
+  id: 1,
+  app_name: "RECRUIT·HN",
+  roles: ["Dispatcher", "Customer Service", "Sales"],
+  // «Contabilidad» se fue (D-261): el dueño la fundió en Oficina. Es solo el valor de partida
+  // antes de cargar los ajustes; la lista de verdad vive en la base y la cambia el orquestador.
+  // El rol `accounting` de Entregas no tiene nada que ver con esto y no se toca.
+  departments: ["Ventas", "Almacén", "Oficina", "Choferes", "Logística", "AI Developer"],
+  scale: DEFAULT_SCALE,
+};
 
 
 // Fallback stages, used before the DB stages load or if the migration
