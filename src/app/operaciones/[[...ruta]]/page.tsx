@@ -15,6 +15,7 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
  *   /operaciones/nuevo/<tipo>     el asistente de un reporte
  *   /operaciones/mis-reportes     lo que llenó quien mira
  *   /operaciones/reportes         la vista de gerentes (todo lo que la RLS deja ver, y la merma)
+ *   /operaciones/mantenimiento    el equipo, la lista diaria, las refacciones y el uso (273)
  *
  * D-908 (265): la ruta se comprueba AQUÍ, en el servidor, contra el nivel de quien entra. Quien solo tiene merma y
  * escribe a mano /operaciones/nuevo/incident (o /operaciones/reportes) vuelve al inicio sin que se pinte el formulario.
@@ -26,6 +27,7 @@ export default async function Page({ params }: { params: Promise<{ ruta?: string
   else if (ruta[0] === "nuevo" && ruta.length === 2 && esTipo(ruta[1])) vista = { v: "nuevo", tipo: ruta[1] };
   else if (ruta[0] === "mis-reportes" && ruta.length === 1) vista = { v: "mios" };
   else if (ruta[0] === "reportes" && ruta.length === 1) vista = { v: "reportes" };
+  else if (ruta[0] === "mantenimiento" && ruta.length === 1) vista = { v: "mantenimiento" };
   else notFound();
 
   if (!SIN_BASE && vista.v !== "inicio") {

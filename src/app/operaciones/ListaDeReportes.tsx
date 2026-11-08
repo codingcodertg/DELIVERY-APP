@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime, fmtMoney } from "@/lib/utils";
 import { INFO_DE_TIPO, TIPOS, esDeRrhh, type TipoDeReporte } from "@/lib/almacen-ops/tipos";
 import { PASOS, PASO_QUIEN_REPORTO, etiquetaDeOpcion } from "@/lib/almacen-ops/pasos";
+import { etiquetaDeEquipoDelReporte } from "@/lib/almacen-ops/mantenimiento";
 import { nombreOTexto } from "@/lib/almacen-ops/personas";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
 import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, buscarProductos, corregirMerma, corregirOrigenDeMerma, enlacesDeFotos, guardarHuellas, reportesConLaFoto, subirFoto, type Reporte } from "@/lib/almacen-ops/datos";
@@ -493,7 +494,9 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Conte
     if (p.tipo === "personas" || p.tipo === "persona" || p.tipo === "fecha") continue;
     // En merma, el origen, el motivo y el CRMA ya salen arriba desde sus columnas (las que el gerente puede corregir).
     if (r.kind === "scrap" && (p.id === "return_type" || p.id === "reason" || p.id === "crma")) continue;
-    filas.push([(lang === "es" ? p.es : p.en).replace(/ \((optional|opcional)\)$/, ""), p.tipo === "opcion" || p.tipo === "sino" ? etiquetaDeOpcion(r.kind, p.id, v, lang) : String(v)]);
+    // 273: el equipo de un reporte de mantenimiento puede venir del inventario (answers.equipment_name).
+    const texto = p.tipo === "opcion" || p.tipo === "sino" ? etiquetaDeOpcion(r.kind, p.id, v, lang) : String(v);
+    filas.push([(lang === "es" ? p.es : p.en).replace(/ \((optional|opcional)\)$/, ""), r.kind === "maintenance" && p.id === "equipment" ? etiquetaDeEquipoDelReporte(r.answers, texto) : texto]);
   }
   return (
     <div className="overlay" onClick={onCerrar}>

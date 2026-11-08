@@ -15,6 +15,8 @@ import { fmtDateTime } from "@/lib/utils";
 import { esDia, fmtDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { faltaFoto } from "@/lib/almacen-ops/fotos";
 import { ListaDeReportes } from "./ListaDeReportes";
+import { Mantenimiento } from "./Mantenimiento";
+import { veMantenimiento } from "@/lib/almacen-ops/mantenimiento";
 
 export type { Vista };
 
@@ -85,6 +87,7 @@ function Pantalla({ vista, ctx }: { vista: Vista; ctx: Contexto }) {
   if (vista.v === "nuevo") return <Asistente tipo={vista.tipo} ctx={ctx} />;
   if (vista.v === "mios") return <ListaDeReportes modo="mios" ctx={ctx} />;
   if (vista.v === "reportes") return <ListaDeReportes modo="todos" ctx={ctx} />;
+  if (vista.v === "mantenimiento") return <Mantenimiento ctx={ctx} />;
   return <Inicio ctx={ctx} />;
 }
 
@@ -96,6 +99,8 @@ function Inicio({ ctx }: { ctx: Contexto }) {
   const llena = tipos.length > 0;
   const unico = tipos.length === 1 ? tipos[0] : null;
   const gerente = veLosReportes(ctx.yo);
+  // 273: la sección de mantenimiento (equipo, lista diaria, refacciones, uso) es de cualquiera con nivel en la app.
+  const mantenimiento = veMantenimiento(ctx.yo);
   const nombre = useMemo(() => (ctx.yo.full_name || "").split(/\s+/)[0], [ctx.yo.full_name]);
   return (
     <>
@@ -129,7 +134,8 @@ function Inicio({ ctx }: { ctx: Contexto }) {
         </nav>
       )}
       {llena && <Borradores ctx={ctx} />}
-      <div className={"ops-pie" + (llena && gerente ? "" : " ops-pie-uno")}>
+      <div className={"ops-pie" + ([llena, gerente, mantenimiento].filter(Boolean).length > 1 ? "" : " ops-pie-uno")}>
+        {mantenimiento && <Link href="/operaciones/mantenimiento" className="ops-boton-ancho ops-boton-mantenimiento" data-ir="mantenimiento">🔧 {t("Maintenance", "Mantenimiento")}</Link>}
         {llena && (
           <Link href="/operaciones/mis-reportes" className="ops-boton-ancho" data-ir="mios">
             📄 {unico === "scrap" ? t("My scrap reports", "Mis reportes de merma") : t("My reports", "Mis reportes")}

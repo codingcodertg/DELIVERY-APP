@@ -6,8 +6,9 @@
 import type { TipoDeReporte } from "./tipos";
 import { nivelDe, puedeLlenar, tiposPermitidos } from "./nivel";
 import { veLosReportes, type Quien } from "./visibilidad";
+import { veMantenimiento } from "./mantenimiento";
 
-export type Vista = { v: "inicio" } | { v: "nuevo"; tipo: TipoDeReporte } | { v: "mios" } | { v: "reportes" };
+export type Vista = { v: "inicio" } | { v: "nuevo"; tipo: TipoDeReporte } | { v: "mios" } | { v: "reportes" } | { v: "mantenimiento" };
 
 export function vistaPermitida(q: Quien, vista: Vista): boolean {
   switch (vista.v) {
@@ -16,6 +17,8 @@ export function vistaPermitida(q: Quien, vista: Vista): boolean {
     // «Mis reportes» es de quien llena algo; RR. HH. sin el módulo no llena nada.
     case "mios": return tiposPermitidos(q).length > 0;
     case "reportes": return veLosReportes(q);
+    // 273: la sección de mantenimiento es de cualquiera con nivel en la app (el personal llena la lista diaria).
+    case "mantenimiento": return veMantenimiento(q);
   }
 }
 
