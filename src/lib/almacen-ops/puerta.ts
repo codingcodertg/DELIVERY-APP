@@ -7,8 +7,9 @@ import type { TipoDeReporte } from "./tipos";
 import { nivelDe, puedeLlenar, tiposPermitidos } from "./nivel";
 import { veLosReportes, type Quien } from "./visibilidad";
 import { veMantenimiento } from "./mantenimiento";
+import { veConteos } from "./conteos";
 
-export type Vista = { v: "inicio" } | { v: "nuevo"; tipo: TipoDeReporte } | { v: "mios" } | { v: "reportes" } | { v: "mantenimiento" };
+export type Vista = { v: "inicio" } | { v: "nuevo"; tipo: TipoDeReporte } | { v: "mios" } | { v: "reportes" } | { v: "mantenimiento" } | { v: "conteos" };
 
 export function vistaPermitida(q: Quien, vista: Vista): boolean {
   switch (vista.v) {
@@ -19,6 +20,8 @@ export function vistaPermitida(q: Quien, vista: Vista): boolean {
     case "reportes": return veLosReportes(q);
     // 273: la sección de mantenimiento es de cualquiera con nivel en la app (el personal llena la lista diaria).
     case "mantenimiento": return veMantenimiento(q);
+    // 274: los conteos de inventario: el personal hace los pasos 1–3; el gerente crea, firma y ajusta.
+    case "conteos": return veConteos(q);
   }
 }
 
