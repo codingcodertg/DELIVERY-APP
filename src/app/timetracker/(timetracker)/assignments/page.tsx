@@ -6,6 +6,8 @@ import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
 export const dynamic = "force-dynamic";
 
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 /**
  * Asignaciones: tarifas por proyecto Y el horario de la cuadrilla, en dos secciones (D-186).
  *
@@ -15,6 +17,9 @@ export const dynamic = "force-dynamic";
  * se queda la fuerte. Quien solo quiere ver su horario lo tiene en "My Week" y al fichar.
  */
 export default async function AssignmentsPage() {
+  // Modo demo: sin base ni sesión; la persona es el admin inventado y el cuerpo lee del proveedor en memoria.
+  if (LOCAL_MODE) return <AssignmentsTabs />;
+
   const supabase = await createClient();
   const {
     data: { user },

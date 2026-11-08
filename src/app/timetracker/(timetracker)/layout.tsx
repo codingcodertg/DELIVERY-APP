@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { landingRoute } from "@/lib/constants";
 import { DataProvider } from "@/lib/timetracker-data-provider";
+import { DemoDataProvider } from "@/lib/timetracker-demo-data-provider";
+import { ADMIN_DEMO } from "@/lib/timetracker/demo-data";
 import { TopBar } from "@/components/timetracker/TopBar";
 import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 import { TtUpdateBanner } from "@/components/timetracker/UpdateBanner";
@@ -30,7 +32,29 @@ export const metadata: Metadata = {
 // shared, matching the pattern (app)/layout.tsx and recruiting's layout
 // already use independently of each other — this is the third, independent
 // copy of that pattern, not a new one.
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export default async function TimetrackerLayout({ children }: { children: React.ReactNode }) {
+  // Modo demo (sin base ni sesión), para los vídeos tutoriales: el mismo armazón que abajo, con el
+  // proveedor en memoria y el admin inventado. Va ANTES de crear el cliente, como en Entregas y Leads.
+  // La práctica (capacitación) arranca apagada: su cookie no hace falta y sus acciones van a la base.
+  if (LOCAL_MODE) return (
+    <div className="timetracker-module">
+      <AppUpdateBanner app="timetracker" />
+      <CapacitacionProvider inicial={null} uid={ADMIN_DEMO.id}>
+        <DemoDataProvider me={ADMIN_DEMO}>
+          <div className="wrap">
+            <TopBar deliveriesRole="admin" moduleAccess={null} />
+            <TtUpdateBanner />
+            <CronometroAnfitrion />
+            {children}
+          </div>
+        </DemoDataProvider>
+      </CapacitacionProvider>
+      <OfflineIndicator />
+    </div>
+  );
+
   const supabase = await createClient(); // deliveries' client — public schema, shared identity
   const {
     data: { user },

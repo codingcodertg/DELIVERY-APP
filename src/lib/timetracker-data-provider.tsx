@@ -168,7 +168,9 @@ export interface DataState {
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
 }
 
-const Ctx = createContext<DataState | null>(null);
+// Exportado para el proveedor del modo demo (`timetracker-demo-data-provider.tsx`), que monta el MISMO contexto
+// con otros datos y asi `useData()` vale sin cambios en las pantallas; igual que `Ctx` en `data-provider.tsx`.
+export const Ctx = createContext<DataState | null>(null);
 
 export function useData(): DataState {
   const ctx = useContext(Ctx);

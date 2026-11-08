@@ -4,6 +4,8 @@ import { AuditTabs } from "@/components/timetracker/AuditTabs";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 /**
  * Auditoría: puerta de SERVIDOR (D-194), calcada de `assignments/page.tsx` (D-186).
  *
@@ -14,6 +16,9 @@ import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
  * selector de vistas, es `AuditTabs` (cliente).
  */
 export default async function AuditPage() {
+  // Modo demo: sin base ni sesión; la persona es el admin inventado y el cuerpo lee del proveedor en memoria.
+  if (LOCAL_MODE) return <AuditTabs />;
+
   const supabase = await createClient();
   const {
     data: { user },
