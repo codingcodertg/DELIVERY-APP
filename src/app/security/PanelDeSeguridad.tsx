@@ -50,6 +50,8 @@ export interface UsuarioFila {
 export const TABLAS_EN_VIVO = ["security_devices", "security_device_users", "security_policy", "security_web_blocks"] as const;
 /** Por si la suscripción se cae sin avisar: un refresco de fondo cada minuto, como red de seguridad. */
 const REFRESCO_DE_FONDO_MS = 60 * 1000;
+/** En el demo (D-931) no hay base que escuchar: el puntito queda apagado y no se abre ningún canal. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /**
  * D-820: el panel en tiempo real. Se suscribe a las cuatro tablas y, con cualquier cambio, pide al servidor la página
@@ -58,9 +60,11 @@ const REFRESCO_DE_FONDO_MS = 60 * 1000;
  */
 function useEnVivo(): boolean {
   const router = useRouter();
-  const [vivo, setVivo] = useState(false);
+  // En el demo no hay canal que esperar: el puntito nace encendido en vez de quedarse en «conectando…».
+  const [vivo, setVivo] = useState(LOCAL_MODE);
   const pendiente = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
+    if (LOCAL_MODE) return;
     const supabase = createClient();
     const refresca = () => {
       if (pendiente.current) return;
