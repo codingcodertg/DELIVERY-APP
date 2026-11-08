@@ -51090,3 +51090,9 @@ Sello `deliveries` 1.565.0; repo 1.777.0.
 En Warehouse Ops → Reports → Scrap, la lista «Merma en el rango» es una fila por reporte con las columnas de la hoja de Roberto: Fecha del daño, Código, Descripción, Cantidades (Cajas, Pzas/caja, Total, Muestra, Dañadas, Costo), Cómo, Motivo, Lo rompió, Lo reportó, CRMA # y Comentarios, además de las columnas de siempre. IDK cuando no se sabe quién, NA sin CRMA. Botón Export CSV con las filas visibles. Pedido por WhatsApp el 7 nov.
 
 Sello `warehouse_ops` 0.13.0; repo 1.778.0.
+
+## D-925 · Merma: la pérdida se calcula con el precio de venta, no con el costo del proveedor; «Strapped too tight»
+
+Pedido de Roberto (ayuda, 8 nov): los empleados no deben ver el costo del proveedor. Migración 272: warehouse_ops_search_products, _file_report y _edit_scrap_product copian erp.products.price; las mermas ya vinculadas al catálogo se recalcularon con su precio de venta. La pantalla dice «Precio» / «Precio por pieza (al reportar)», la columna de dinero del Excel es «Pérdida $», el aviso es «Sin precio». El motivo strap pasa de «Strap broke» a «Strapped too tight» / «Flejado demasiado apretado» (mismo valor).
+
+Sello `warehouse_ops` 0.14.0; repo 1.779.0.

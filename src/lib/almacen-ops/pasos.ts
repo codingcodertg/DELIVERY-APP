@@ -37,7 +37,9 @@ export const PASO_CUANDO_Y_QUIEN = "when_and_who";
 
 /**
  * El producto de la merma. `libre` (migración 252): no está en el catálogo; `id` es null, el nombre lo escribió quien
- * reporta y el costo por pieza es el que puso (o null). Un gerente lo vincula o corrige después.
+ * reporta y el precio de venta por pieza es el que puso (o null). Un gerente lo vincula o corrige después.
+ * `cost` (migración 272): desde Roberto («most employees should not know of product costs from supplier») guarda el
+ * PRECIO DE VENTA de erp.products.price, no el costo del proveedor; el nombre del campo se queda por las pantallas y la base.
  */
 export interface ProductoElegido { id: number | null; sku: string; name: string; cost: number | null; pieces_per_box: number | null; libre?: boolean }
 
@@ -53,7 +55,7 @@ export function productoValido(v: unknown): v is ProductoElegido {
   return typeof p.id === "number";
 }
 
-/** Un costo escrito a mano: vacío = null (sin costo), NaN si no es un número ≥ 0 con hasta 2 decimales. */
+/** Un precio escrito a mano: vacío = null (sin precio), NaN si no es un número ≥ 0 con hasta 2 decimales. */
 export function costoDelCampo(s: string): number | null {
   const t = s.trim().replace(/^\$/, "");
   if (t === "") return null;
@@ -84,7 +86,7 @@ export const ORIGENES_DE_MERMA: Opcion[] = [
  * columna `reason` admite los dos nuevos.
  */
 export const MOTIVOS_DE_MERMA: Opcion[] = [
-  { v: "fell", en: "It fell", es: "Se cayó" }, { v: "strap", en: "Strap broke", es: "Se rompió el fleje" },
+  { v: "fell", en: "It fell", es: "Se cayó" }, { v: "strap", en: "Strapped too tight", es: "Flejado demasiado apretado" },
   { v: "forklift", en: "Forklift", es: "Montacargas" },
   { v: "transportation_customer", en: "Transportation – customer", es: "Transporte – del cliente" },
   { v: "transportation_delivery", en: "Transportation – store delivery", es: "Transporte – entrega de la tienda" },

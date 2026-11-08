@@ -81,6 +81,7 @@ export function faltaLaMigracion(e: { code?: string | null; message?: string | n
     || /warehouse_reports|warehouse_ops_/.test(e.message ?? "") && /does not exist|schema cache|not find/i.test(e.message ?? "");
 }
 
+/** 272: la RPC devuelve en `cost` el PRECIO DE VENTA (erp.products.price), no el costo del proveedor. */
 export async function buscarProductos(sb: SupabaseClient, q: string): Promise<ProductoElegido[]> {
   const { data, error } = await sb.rpc("warehouse_ops_search_products", { q });
   if (error) throw error;
@@ -151,7 +152,7 @@ export async function registrar(sb: SupabaseClient, e: Envio): Promise<string> {
   return data as string;
 }
 
-/** 252: el gerente vincula la merma a un producto del catálogo (productId) o corrige nombre y costo a mano. */
+/** 252: el gerente vincula la merma a un producto del catálogo (productId) o corrige nombre y precio a mano. */
 export async function corregirMerma(sb: SupabaseClient, reporteId: string, c: { productId: number | null; nombre: string; costo: number | null }): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_edit_scrap_product", {
     p_report: reporteId, p_product_id: c.productId, p_name: c.nombre, p_cost: c.costo,
@@ -168,7 +169,7 @@ export async function corregirOrigenDeMerma(sb: SupabaseClient, reporteId: strin
   if (error) throw error;
 }
 
-/** El cuerpo de merma que va a `warehouse_ops_file_report`. Fuera de catálogo: sin product_id, con nombre y costo. */
+/** El cuerpo de merma que va a `warehouse_ops_file_report`. Fuera de catálogo: sin product_id, con nombre y precio de venta. */
 export function productoParaEnviar(p: ProductoElegido): { product_id: number | null; free_name?: string; unit_cost?: number | null } {
   return p.libre || p.id == null ? { product_id: null, free_name: p.name.trim(), unit_cost: p.cost } : { product_id: p.id };
 }

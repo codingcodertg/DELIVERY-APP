@@ -45,7 +45,7 @@ export interface CeldasDeMerma {
   muestra: string;
   danadas: string;
   costo: string;
-  /** Costo por pieza, para el título (tooltip) de la celda de costo. */
+  /** Precio de venta por pieza (272), para el título (tooltip) de la celda de pérdida. */
   costoUnitario: string;
   como: string;
   motivo: string;
@@ -65,7 +65,7 @@ export const COLUMNAS_EXCEL: { id: keyof CeldasDeMerma; en: string; es: string; 
   { id: "total", en: "Total", es: "Total", num: true, grupo: true },
   { id: "muestra", en: "Sample", es: "Muestra", num: true, grupo: true },
   { id: "danadas", en: "Damaged", es: "Dañadas", num: true, grupo: true },
-  { id: "costo", en: "Cost", es: "Costo", num: true, grupo: true },
+  { id: "costo", en: "$ loss", es: "Pérdida $", num: true, grupo: true },
   { id: "como", en: "How", es: "Cómo" },
   { id: "motivo", en: "Reason", es: "Motivo" },
   { id: "loRompio", en: "Broken by", es: "Lo rompió" },

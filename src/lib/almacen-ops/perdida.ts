@@ -1,10 +1,10 @@
 /**
  * Operaciones de almacén (D-883, migración 247): la cuenta de la merma.
  *
- * El dueño: la pérdida es **costo por pieza**. Piezas = cajas × piezas por caja + piezas sueltas. Desde el pedido
- * 0c2fb392 (migración 259) solo cuentan las piezas DAÑADAS: las que sirven de muestra no son pérdida. El costo se congela
- * al reportar (la base copia `erp.products.cost` en `unit_cost`), así que cambiar un precio después no mueve los
- * reportes viejos. La base hace la MISMA cuenta en `warehouse_ops_file_report`; esto es para la pantalla.
+ * El dueño: la pérdida es **precio por pieza** × piezas. Piezas = cajas × piezas por caja + piezas sueltas. Desde el pedido
+ * 0c2fb392 (migración 259) solo cuentan las piezas DAÑADAS: las que sirven de muestra no son pérdida. El precio se congela
+ * al reportar (la base copia `erp.products.price`, el PRECIO DE VENTA, en `unit_cost`; migración 272, antes era el costo
+ * del proveedor), así que cambiar un precio después no mueve los reportes viejos. La base hace la MISMA cuenta en `warehouse_ops_file_report`; esto es para la pantalla.
  */
 
 export interface Cantidades { boxes: number; piecesPerBox: number; loosePieces: number }
@@ -24,7 +24,7 @@ export function piezasTotales(c: Cantidades): number {
   return c.boxes * c.piecesPerBox + c.loosePieces;
 }
 
-/** La pérdida en $, redondeada a centavos; null si el producto no tiene costo. */
+/** La pérdida en $, redondeada a centavos; null si el producto no tiene precio. */
 export function perdida(costoPorPieza: number | null | undefined, piezas: number): number | null {
   if (costoPorPieza == null || !Number.isFinite(costoPorPieza)) return null;
   return Math.round(costoPorPieza * piezas * 100) / 100;
@@ -140,8 +140,8 @@ export function cuentaComoPerdida(o: OrigenDeMerma | null | undefined): boolean 
 }
 
 /**
- * La pérdida en $ de una merma: costo por pieza × piezas dañadas (las de muestra no cuentan). Null sin costo.
- * Con `origen`: una devolución de cliente sin CRMA es $0 (no cuenta como pérdida), tenga o no costo el producto.
+ * La pérdida en $ de una merma: precio de venta por pieza × piezas dañadas (las de muestra no cuentan). Null sin precio.
+ * Con `origen`: una devolución de cliente sin CRMA es $0 (no cuenta como pérdida), tenga o no precio el producto.
  */
 export function perdidaDeMerma(costoPorPieza: number | null | undefined, x: Reparto, origen?: OrigenDeMerma | null): number | null {
   if (!cuentaComoPerdida(origen)) return 0;
