@@ -19,7 +19,7 @@ import { usePrefs } from "@/lib/prefs";
 import { fallóElRegistro } from "@/lib/security-log-notice";
 import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage, UserRole } from "@/lib/types";
 import { type AppNotification, assignmentNotification, avisoDeReprogramacion, notificationsForStage } from "@/lib/notifications";
-import { canTransition, knownModules } from "@/lib/constants";
+import { canTransition, knownModules, type ModuleAccessKey } from "@/lib/constants";
 import { borrarOrden } from "@/lib/deshacer-y-borrar";
 import { orderOwner, orderLabel, changedFieldsNote, shiftDateISO, todayISO } from "@/lib/utils";
 import { deviceId } from "@/lib/device-id";
@@ -264,6 +264,18 @@ export interface DataState {
   /** Deliveries is granted like any other module since D-100 — `role` stays put. */
   updateUserDeliveriesAccess: (userId: string, patch: { granted: boolean }) => Promise<void>;
   updateUserTimetrackerAccess: (userId: string, patch: { granted: boolean; timetracker_role: string | null }) => Promise<void>;
+  /**
+   * Otorga y/o quita VARIOS módulos a la MISMA persona en UNA sola escritura (D-936). Resuelve el
+   * «lost update» de llamar a los `updateUser…Access` uno por uno en el mismo handler: cada uno leía
+   * el `module_access` del closure (sin refrescar entre llamadas), así que al conceder varios a la
+   * vez cada escritura partía del array viejo y pisaba las anteriores — solo persistía el último.
+   *
+   * Aquí se lee la fila FRESCA de la base una sola vez (`module_access`, `recruiting_role`,
+   * `timetracker_role`), se aplican TODOS los grant/revoke juntos, se ajustan los roles de escalafón
+   * (recruiting → recruiter/null, timetracker → employee/null) cuando esos módulos están en el plan,
+   * y se hace UN solo `update`. Optimista en memoria una vez. Error → avisa, `reloadAll`, `{ ok:false }`.
+   */
+  updateUserModules: (userId: string, cambios: { grant?: ModuleAccessKey[]; revoke?: ModuleAccessKey[] }) => Promise<{ ok: boolean }>;
   deleteUser: (userId: string) => Promise<boolean>;
 
   /** Milestones completed with no signal, still waiting to reach the server.
@@ -2270,6 +2282,85 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     [supabase, notify, reloadAll, users, logSecurityClient, lang],
   );
 
+  // D-936: conceder/quitar VARIOS módulos a la misma persona de una sola vez, sin el «lost update»
+  // de encadenar los updaters de arriba (cada uno leía el module_access del closure). Lee la fila
+  // fresca de la base, compone el array final con TODOS los cambios, ajusta los roles de escalafón y
+  // hace UN solo update. El guard de profiles sigue siendo la autoridad (admin del hub), igual que
+  // en los updaters por módulo.
+  const updateUserModules = useCallback<DataState["updateUserModules"]>(
+    async (userId, cambios) => {
+      const grant = cambios.grant ?? [];
+      const revoke = cambios.revoke ?? [];
+      if (grant.length === 0 && revoke.length === 0) return { ok: true };
+
+      // Fuente de verdad FRESCA de la base, no del estado de React (que no se refresca entre
+      // llamadas de un mismo handler): ahí estaba el lost update.
+      const { data: fresh, error: readErr } = await supabase
+        .from("profiles")
+        .select("module_access, recruiting_role, timetracker_role")
+        .eq("id", userId)
+        .single();
+      if (readErr || !fresh) {
+        console.error(detalleAConsola(readErr));
+        notify(mensajeEscrituraPerfil(readErr, lang));
+        reloadAll();
+        return { ok: false };
+      }
+
+      const actuales = knownModules(fresh.module_access);
+      const antes = new Set(actuales);
+      const set = new Set(actuales);
+      for (const k of grant) set.add(k);
+      for (const k of revoke) set.delete(k);
+      const nextModules = Array.from(set);
+
+      // Roles de escalafón: solo se tocan si su módulo está en el plan (igual que los updaters por
+      // módulo). Conceder conserva el nivel que ya hubiera, o pone el de entrada; quitar lo deja null.
+      const update: Record<string, unknown> = { module_access: nextModules };
+      let nextRecruiting = fresh.recruiting_role ?? null;
+      let nextTimetracker = fresh.timetracker_role ?? null;
+      if (grant.includes("recruiting") || revoke.includes("recruiting")) {
+        nextRecruiting = grant.includes("recruiting") ? (fresh.recruiting_role ?? "recruiter") : null;
+        update.recruiting_role = nextRecruiting;
+      }
+      if (grant.includes("timetracker") || revoke.includes("timetracker")) {
+        nextTimetracker = grant.includes("timetracker") ? (fresh.timetracker_role ?? "employee") : null;
+        update.timetracker_role = nextTimetracker;
+      }
+
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, module_access: nextModules, recruiting_role: nextRecruiting, timetracker_role: nextTimetracker } : u)));
+      const { error } = await supabase.from("profiles").update(update).eq("id", userId);
+      if (error) {
+        console.error(detalleAConsola(error));
+        notify(mensajeEscrituraPerfil(error, lang));
+        reloadAll();
+        return { ok: false };
+      }
+
+      // Una línea de seguridad por cada módulo que de verdad cambió de estado.
+      const KIND: Record<ModuleAccessKey, SecurityKind> = {
+        deliveries: "deliveries_access_changed",
+        recruiting: "recruiting_access_changed",
+        timetracker: "timetracker_access_changed",
+        erp: "erp_access_changed",
+        promos: "promos_access_changed",
+        estimator: "estimator_access_changed",
+        surveys: "surveys_access_changed",
+        leads: "leads_access_changed",
+        customers: "customers_access_changed",
+        warehouse_ops: "warehouse_ops_access_changed",
+      };
+      for (const k of grant) {
+        if (!antes.has(k)) void logSecurityClient(userId, KIND[k], change(String(false), String(true)));
+      }
+      for (const k of revoke) {
+        if (antes.has(k)) void logSecurityClient(userId, KIND[k], change(String(true), String(false)));
+      }
+      return { ok: true };
+    },
+    [supabase, notify, reloadAll, logSecurityClient, lang],
+  );
+
   const deleteUser = useCallback<DataState["deleteUser"]>(
     async (userId) => {
       const res = await fetch("/api/delete-user", {
@@ -2438,13 +2529,13 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events: effectiveEvents, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
     addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
-    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, deleteUser,
+    saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, updateUserModules, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut, marcaGpsDelTurno,
     incidents, addIncident, removeIncident,
     driverLocations, pushLocation,
     pendingSync: outbox.length, syncing,
-  }), [ready, effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, effectiveDeliveries, ensureDeliveriesSince, effectiveEvents, notifications, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, deleteUser, availability, addAvailability, removeAvailability, shiftsView, clockIn, clockOut, marcaGpsDelTurno, incidents, addIncident, removeIncident, driverLocations, pushLocation, outbox.length, syncing]);
+  }), [ready, effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, effectiveDeliveries, ensureDeliveriesSince, effectiveEvents, notifications, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, updateUserModules, deleteUser, availability, addAvailability, removeAvailability, shiftsView, clockIn, clockOut, marcaGpsDelTurno, incidents, addIncident, removeIncident, driverLocations, pushLocation, outbox.length, syncing]);
 
   return (
     <Ctx.Provider value={value}>

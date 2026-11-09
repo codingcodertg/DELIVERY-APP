@@ -49,18 +49,30 @@ export function etiquetaDeModulo(key: string, lang: Lang): string {
   return lang === "es" ? m.label_es : m.label_en;
 }
 
+/** Lo mínimo para saber qué módulos tiene alguien: su rol, el array de módulos y los roles de
+ *  escalafón que, por sí solos, implican el módulo (fila «drifteada», ver `tieneModulo`). */
+export type ConAcceso = Pick<Profile, "role" | "module_access"> &
+  Partial<Pick<Profile, "recruiting_role" | "timetracker_role">>;
+
 /**
  * ¿Esta persona TIENE este módulo? El admin de Entregas los tiene todos (como en la base: `has_*_access()` deja pasar al
  * admin siempre). Para los demás, está en `module_access` (normalizado: 'clockin' cuenta como 'timetracker').
+ *
+ * Además, si la fila quedó «drifteada» —tiene el ROL del escalafón pero el módulo no aparece en `module_access`
+ * (recruiting con `recruiting_role`, timetracker con `timetracker_role`)— se cuenta como que SÍ lo tiene, para que se
+ * vea y se pueda revocar (D-936). La base ya deja entrar a quien tenga el rol; la pantalla debe decir lo mismo.
  */
-export function tieneModulo(u: Pick<Profile, "role" | "module_access">, key: ModuleAccessKey): boolean {
+export function tieneModulo(u: ConAcceso, key: ModuleAccessKey): boolean {
   if (u.role === "admin") return true;
-  return normalizeModules(u.module_access).includes(key);
+  if (normalizeModules(u.module_access).includes(key)) return true;
+  if (key === "recruiting" && u.recruiting_role) return true;
+  if (key === "timetracker" && u.timetracker_role) return true;
+  return false;
 }
 
 /** Los módulos que tiene una persona, de entre un catálogo (por defecto los 8 del gerente), en su orden. */
 export function modulosDeUsuario(
-  u: Pick<Profile, "role" | "module_access">,
+  u: ConAcceso,
   catalogo: readonly ModuleAccessKey[] = MODULOS_DE_GERENTE,
 ): ModuleAccessKey[] {
   return catalogo.filter((k) => tieneModulo(u, k));
@@ -77,7 +89,7 @@ export interface ResumenDeUsuario {
 }
 
 export function resumenDeUsuario(
-  u: Pick<Profile, "id" | "full_name" | "role" | "module_access">,
+  u: Pick<Profile, "id" | "full_name"> & ConAcceso,
   lang: Lang,
   catalogo: readonly ModuleAccessKey[] = MODULOS_DE_GERENTE,
 ): ResumenDeUsuario {
@@ -96,7 +108,7 @@ export function usuariosPorRol<T extends Pick<Profile, "role" | "full_name">>(us
 }
 
 /** Las personas que tienen un módulo, en orden de nombre (el «elige un permiso y ve a quién lo tiene»). */
-export function usuariosConModulo<T extends Pick<Profile, "role" | "module_access" | "full_name">>(
+export function usuariosConModulo<T extends ConAcceso & Pick<Profile, "full_name">>(
   users: readonly T[],
   key: ModuleAccessKey,
 ): T[] {
@@ -110,7 +122,7 @@ export function conteoPorRol(users: readonly Pick<Profile, "role">[]): { role: U
 
 /** Cuántas personas tienen cada uno de los 8 módulos, para la columna «por módulo». */
 export function conteoPorModulo(
-  users: readonly Pick<Profile, "role" | "module_access">[],
+  users: readonly ConAcceso[],
   catalogo: readonly ModuleAccessKey[] = MODULOS_DE_GERENTE,
 ): { key: ModuleAccessKey; n: number }[] {
   return catalogo.map((key) => ({ key, n: users.filter((u) => tieneModulo(u, key)).length }));
@@ -131,7 +143,7 @@ export interface CambioDeModulo {
  * El plan para «dar los 8 de gerente» a varias personas: solo los módulos que a cada quien le FALTAN (no se re-concede lo
  * que ya tiene, para no escribir de más). Al admin no se le toca: ya los tiene todos por su rol.
  */
-export function planDarLosOcho(users: readonly Pick<Profile, "id" | "role" | "module_access">[]): CambioDeModulo[] {
+export function planDarLosOcho(users: readonly (Pick<Profile, "id"> & ConAcceso)[]): CambioDeModulo[] {
   const plan: CambioDeModulo[] = [];
   for (const u of users) {
     if (u.role === "admin") continue;
@@ -147,7 +159,7 @@ export function planDarLosOcho(users: readonly Pick<Profile, "id" | "role" | "mo
  * hace falta: conceder a quien no lo tiene, o quitar a quien sí (nunca al admin, cuyo acceso viene del rol).
  */
 export function planToggleModulo(
-  users: readonly Pick<Profile, "id" | "role" | "module_access">[],
+  users: readonly (Pick<Profile, "id"> & ConAcceso)[],
   key: ModuleAccessKey,
   conceder: boolean,
 ): CambioDeModulo[] {
@@ -157,7 +169,7 @@ export function planToggleModulo(
 }
 
 /** ¿Todas estas personas ya tienen los 8? (para pintar el botón «dar los 8» como hecho/deshabilitado). */
-export function todosTienenLosOcho(users: readonly Pick<Profile, "role" | "module_access">[]): boolean {
+export function todosTienenLosOcho(users: readonly ConAcceso[]): boolean {
   return users.every((u) => MODULOS_DE_GERENTE.every((k) => tieneModulo(u, k)));
 }
 

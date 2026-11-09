@@ -55,27 +55,29 @@ export default function UsuariosYPermisosPage() {
     );
   }
 
-  /** Aplica UN cambio de módulo a UNA persona con el updater que toca. Los módulos con escalafón reciben un nivel por
-   *  defecto al concederlos (RR. HH. → reclutador, Time Tracker → empleado); al quitar, nivel null. */
-  async function aplicar(c: CambioDeModulo) {
-    const g = c.conceder;
-    switch (c.key) {
-      case "deliveries": return data.updateUserDeliveriesAccess(c.userId, { granted: g });
-      case "leads": return data.updateUserLeadsAccess(c.userId, { granted: g });
-      case "promos": return data.updateUserPromosAccess(c.userId, { granted: g });
-      case "customers": return data.updateUserCustomersAccess(c.userId, { granted: g });
-      case "warehouse_ops": return data.updateUserWarehouseOpsAccess(c.userId, { granted: g });
-      case "estimator": return data.updateUserEstimatorAccess(c.userId, { granted: g });
-      case "recruiting": return data.updateUserRecruitingAccess(c.userId, { granted: g, recruiting_role: g ? "recruiter" : null });
-      case "timetracker": return data.updateUserTimetrackerAccess(c.userId, { granted: g, timetracker_role: g ? "employee" : null });
-      default: return;
-    }
+  /** Aplica UN cambio de módulo a UNA persona. Pasa por `updateUserModules` (el mismo camino que el plan en bloque): un
+   *  solo grant o revoke. Así la casilla de «Por usuario» y los botones de bloque comparten la escritura que lee la fila
+   *  fresca y ajusta los roles de escalafón, sin el «lost update» de los updaters por módulo (D-936). */
+  async function aplicar(c: CambioDeModulo): Promise<void> {
+    await data.updateUserModules(c.userId, c.conceder ? { grant: [c.key] } : { revoke: [c.key] });
   }
 
+  /** Agrupa el plan por persona y llama `updateUserModules` UNA vez por cada una, con todos sus grant/revoke juntos: así
+   *  conceder varios módulos a la misma persona ya no se pisa entre sí. Solo da por hecho si TODAS resultaron ok. */
   async function aplicarPlan(plan: CambioDeModulo[], hechoMsg: string) {
     if (plan.length === 0) { notify(t("Nothing to change.", "Nada que cambiar.")); return; }
-    for (const c of plan) await aplicar(c); // uno a uno: cada updater refresca su fila
-    notify(hechoMsg);
+    const porUsuario = new Map<string, { grant: ModuleAccessKey[]; revoke: ModuleAccessKey[] }>();
+    for (const c of plan) {
+      const e = porUsuario.get(c.userId) ?? { grant: [], revoke: [] };
+      (c.conceder ? e.grant : e.revoke).push(c.key);
+      porUsuario.set(c.userId, e);
+    }
+    let todoOk = true;
+    for (const [userId, cambios] of porUsuario) {
+      const { ok } = await data.updateUserModules(userId, cambios);
+      if (!ok) todoOk = false;
+    }
+    notify(todoOk ? hechoMsg : t("Some changes could not be saved.", "Algunos cambios no se pudieron guardar."));
   }
 
   return (

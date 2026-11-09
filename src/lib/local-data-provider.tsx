@@ -554,6 +554,13 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     notify("Not available in demo mode");
   }, [notify]);
 
+  // D-936: cambios de módulo en bloque. Como los updaters por módulo de arriba, en demo no hay nada
+  // que conceder (todo está abierto), así que se contesta igual y se devuelve {ok:false}.
+  const updateUserModules = useCallback<DataState["updateUserModules"]>(async () => {
+    notify("Not available in demo mode");
+    return { ok: false };
+  }, [notify]);
+
   const deleteUser = useCallback<DataState["deleteUser"]>(async (userId) => {
     const s = storeRef.current;
     persist({ ...s, users: s.users.filter((u) => u.id !== userId) });
@@ -648,7 +655,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       return ok;
     },
     reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, setUserIdentity, resetUserPassword,
-    saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, deleteUser,
+    saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, updateUserModules, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
     shifts: store.shifts ?? [], clockIn, clockOut, marcaGpsDelTurno,
     incidents: store.incidents ?? [], addIncident, removeIncident,
