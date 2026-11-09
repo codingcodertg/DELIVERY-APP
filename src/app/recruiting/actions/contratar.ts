@@ -111,6 +111,20 @@ export async function closeUserRequestsForFile(fileId: string): Promise<{ ok: bo
   return { ok: true, cerradas: data?.length ?? 0 };
 }
 
+/**
+ * El id del expediente de un candidato ya contratado, para abrir su perfil («Ver perfil» en la ficha). Busca por
+ * `candidate_id` (201); sin la 201 no se puede enlazar y devuelve `null` (la pantalla manda entonces a la lista).
+ */
+export async function fileIdDeCandidato(candidateId: string): Promise<{ ok: true; fileId: string | null } | { ok: false; message: string }> {
+  const supabase = await createClient();
+  const yo = await rolDeHr(supabase);
+  if (!yo) return { ok: false, message: "Not signed in." };
+  if (!puedeContratar(yo.role)) return { ok: false, message: "Only an HR manager or admin can see employee files." };
+  const r = await supabase.schema("recruiting").from("employee_files").select("id").eq("candidate_id", candidateId).maybeSingle();
+  if (r.error) return falta201(r.error) ? { ok: true, fileId: null } : { ok: false, message: r.error.message };
+  return { ok: true, fileId: (r.data?.id as string | null) ?? null };
+}
+
 export type UserCreationRequest = {
   id: string; employee_file_id: string | null; candidate_id: string | null; full_name: string; note: string | null;
   status: "pending" | "done"; requested_by: string | null; requested_by_name: string | null; requested_at: string;

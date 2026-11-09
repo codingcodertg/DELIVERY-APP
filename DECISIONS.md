@@ -51168,3 +51168,9 @@ Sello `timetracker` 1.19.0; repo 1.787.0.
 Pedido de Roberto (junta 8 nov). En la vista del chofer, recoger una orden que el almacen aun no tenia lista ya no abre sola la ficha encima de la pantalla; estorbaba con las manos ocupadas. La recogida se registra igual (nota y avisos a almacen y logistica); la orden se abre solo al tocar su factura o su numero de parada. Llegue y recoger una carga lista tampoco abren nada. La prueba de entrega al marcar Entregado no cambia.
 
 Sello `deliveries` 1.571.0; repo 1.788.0.
+
+## D-935 · Reclutamiento: arreglos del alta de empleado (no cerrar al clic fuera, abrir perfil, no duplicar, correo único)
+
+Pedidos de Roberto (junta 8 nov; con Maricella salió duplicada). La ficha ya no se cierra ni pierde lo escrito al dar clic fuera durante el alta; al confirmar la contratación lleva directo al perfil del empleado; un candidato ya contratado muestra «Ver perfil» en vez de «Contratar» para no duplicar; y si el correo de trabajo ya pertenece a otra persona, el sistema lo rechaza y dice de quién es, al contratar y al guardar el expediente.
+
+Sello `recruiting` 0.79.0; repo 1.789.0.

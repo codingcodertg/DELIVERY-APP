@@ -15,6 +15,17 @@ export function veSolicitudesDeUsuario(rol: string | null | undefined): boolean 
   return rol === "admin";
 }
 
+/**
+ * Qué botón mostrar en la ficha del candidato. Si ya está en la etapa de contratado hay expediente: se ofrece «Ver
+ * perfil», no «Contratar» otra vez (así no se duplica a alguien por volver a pulsar — lo de Maricella). Si no, «Contratar».
+ */
+export function accionDeContratacion(
+  candidateStatus: string | null | undefined,
+  hiredStageKey: string | null | undefined,
+): "contratar" | "ver-perfil" {
+  return !!hiredStageKey && candidateStatus === hiredStageKey ? "ver-perfil" : "contratar";
+}
+
 /** La ficha nueva a partir del candidato. La fecha de alta es la de hoy en el formato de la columna. */
 export function fichaDesdeCandidato(
   c: { name: string; phone?: string | null; role?: string | null; location?: string | null },

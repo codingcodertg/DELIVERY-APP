@@ -161,8 +161,18 @@ function ProfileModal({ id, close }: { id: string; close: () => void }) {
   const { candidates, stages, recruiters, jobs, customFields, contactsFor, stageHistoryFor, openResumeFile, attachmentsFor, openAttachment, addContact, updateCandidate, notify } = useData();
   const ui = useUI();
   const { t, lang } = usePrefs();
+  // Mientras se captura el correo en «Contratar», un clic fuera no debe cerrar la ficha y perder lo escrito (D-688).
+  const [altaActiva, setAltaActiva] = useState(false);
   const c = candidates.find((x) => x.id === id);
   if (!c) return null;
+
+  const cerrarGuardado = () => {
+    if (altaActiva && !confirm(t(
+      "You're hiring this candidate. Close and lose what you typed?",
+      "Estás contratando a este candidato. ¿Cerrar y perder lo que escribiste?",
+    ))) return;
+    close();
+  };
 
   const s = stageOf(stages, c.status);
   const avg = c.interview?.average ?? null;
@@ -182,7 +192,7 @@ function ProfileModal({ id, close }: { id: string; close: () => void }) {
     ) : null;
 
   return (
-    <div className="overlay" onClick={close}>
+    <div className="overlay" onClick={cerrarGuardado}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 760 }}>
         <div style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
           {c.photo ? (
@@ -343,7 +353,7 @@ function ProfileModal({ id, close }: { id: string; close: () => void }) {
           {c.interview && <button className="btn btn-ghost" onClick={() => { close(); ui.openInterviewView(c.id); }}>👁 {t("View interview", "Ver entrevista")}</button>}
           {c.interview && <button className="btn btn-green" onClick={() => { close(); ui.openResume(c.id); }}>📋 {t("Summary", "Resumen")}</button>}
           <button className="btn btn-ghost" onClick={() => { close(); ui.openEdit(c.id); }}>✏️ {t("Edit", "Editar")}</button>
-          <BotonContratar c={c} />
+          <BotonContratar c={c} onActivoChange={setAltaActiva} />
           {/* reversible, so no confirm — but say what happened, since the row
               vanishes from the default list the moment it is archived */}
           <button
@@ -359,7 +369,7 @@ function ProfileModal({ id, close }: { id: string; close: () => void }) {
           >
             🗄 {c.archived ? t("Unarchive", "Desarchivar") : t("Archive", "Archivar")}
           </button>
-          <button className="btn btn-ghost" onClick={close}>{t("Close", "Cerrar")}</button>
+          <button className="btn btn-ghost" onClick={cerrarGuardado}>{t("Close", "Cerrar")}</button>
         </div>
       </div>
     </div>
