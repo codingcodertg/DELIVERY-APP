@@ -502,9 +502,23 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
     if (ids.length === 0) return;
     setOcupado(true); setAviso(null);
     const r = await apruebaDispositivos(ids);
-    if (!r.ok) setAviso(r.message); else setSeleccionados(new Set());
+    if (!r.ok) setAviso(r.message);
+    else {
+      setSeleccionados(new Set());
+      // Si alguno ya no estaba pendiente (se revocó/aprobó entre medias), se dice, no se finge que se aprobaron todos.
+      if (r.aprobados < ids.length) setAviso(t(`Approved ${r.aprobados} of ${ids.length} (some were no longer pending).`, `Se aprobaron ${r.aprobados} de ${ids.length} (algunos ya no estaban pendientes).`));
+    }
     setOcupado(false);
   };
+  // D-940: la selección en bloque solo vive para los que siguen pendientes; si el panel se refresca (tiempo real) y
+  // uno dejó de serlo, se cae de la selección, para que no quede marcado algo que ya no se puede aprobar en bloque.
+  const idsPendientes = useMemo(() => new Set(dispositivos.filter((d) => d.status === "pending").map((d) => d.id)), [dispositivos]);
+  useEffect(() => {
+    setSeleccionados((prev) => {
+      const n = new Set([...prev].filter((id) => idsPendientes.has(id)));
+      return n.size === prev.size ? prev : n;
+    });
+  }, [idsPendientes]);
   const selDispositivos: Seleccion<DispositivoFila> = { marcados: seleccionados, idDe: (d) => d.id, elegible: (d) => d.status === "pending", alterna: alternaSel, marcaTodos: marcaTodosSel };
 
   const hayAtencion = (dispositivos.some((d) => d.requested_at && d.status !== "approved")) || porActualizar.length > 0 || sitiosNuevos.length > 0;
