@@ -51174,3 +51174,9 @@ Sello `deliveries` 1.571.0; repo 1.788.0.
 Pedidos de Roberto (junta 8 nov; con Maricella salió duplicada). La ficha ya no se cierra ni pierde lo escrito al dar clic fuera durante el alta; al confirmar la contratación lleva directo al perfil del empleado; un candidato ya contratado muestra «Ver perfil» en vez de «Contratar» para no duplicar; y si el correo de trabajo ya pertenece a otra persona, el sistema lo rechaza y dice de quién es, al contratar y al guardar el expediente.
 
 Sello `recruiting` 0.79.0; repo 1.789.0.
+
+## D-936 · Hub: sección Usuarios y Permisos (ver por usuario o por rol, permisos rápidos en bloque) y regla central de alcance por rol
+
+Pedidos 7 y 9 de Roberto (junta 8 nov). Nueva sección admin /settings/usuarios-permisos: ver qué abre cada quien por usuario o por rol/módulo, cambiar permisos a varios a la vez y botón «Dar los 8 de gerente» (deliveries, leads, RR.HH., control de horas, promos, clientes, almacén y quote builder). Ligada al expediente de RR.HH. y a Seguridad. Petición 8: regla central reusable de «alcance por rol» (vendedor ve solo lo suyo, oficina/gerente toda la tienda) en lib/alcance-por-rol.ts, lista para Clientes, Leads y Entregas; la ENFORCE real en la base (RLS) queda pendiente de aprobación (migraciones 278/279) y Promos necesita un campo de dueño. No incluye el candado de contraseña (pendiente).
+
+Sello `deliveries` 1.572.0; repo 1.790.0.
