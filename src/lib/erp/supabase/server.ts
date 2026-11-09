@@ -2,13 +2,16 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { COOKIE_ENSENANZA, valorDeEnsenanza } from "@/lib/ensenanza-general";
 import { fetchDeEnsenanzaConValor } from "@/lib/ensenanza-servidor";
+import { clienteDemoDelErp } from "@/lib/erp/cliente-demo";
+
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /**
  * Server-side Supabase client bound to the user's session cookies.
  * Uses the ANON key + the signed-in user's JWT, so RLS and the cost-masking
  * views apply (decision #29). NEVER use the service role for staff-facing reads.
  */
-export async function createClient() {
+async function clienteReal() {
   const cookieStore = await cookies();
   // Modo enseñanza (D-626): con la cookie puesta, lo que escribe no llega a la base.
   const ensenanza = valorDeEnsenanza(cookieStore.get(COOKIE_ENSENANZA)?.value);
@@ -35,4 +38,10 @@ export async function createClient() {
       },
     }
   );
+}
+
+/** El cliente de las pantallas y acciones de `/erp/**`. Con la bandera apagada es el real; en el demo (D-941), el de la semilla. */
+export async function createClient(): ReturnType<typeof clienteReal> {
+  if (LOCAL_MODE) return clienteDemoDelErp(new Date()) as unknown as Awaited<ReturnType<typeof clienteReal>>;
+  return clienteReal();
 }

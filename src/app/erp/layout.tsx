@@ -6,6 +6,8 @@ import "./erp.css";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export const metadata: Metadata = {
   title: "RTG Inventory",
 };
@@ -27,6 +29,9 @@ export const metadata: Metadata = {
  * should not be able to lock themselves out of the module they administer.
  */
 export default async function ErpLayout({ children }: { children: React.ReactNode }) {
+  // Modo demo (D-941): sin base ni sesión; las pantallas leen la semilla de `lib/erp/demo-data`.
+  if (LOCAL_MODE) return <div data-app="erp">{children}</div>;
+
   const supabase = await createClient(); // deliveries' client — public schema, shared identity
   const {
     data: { user },

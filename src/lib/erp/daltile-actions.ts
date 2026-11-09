@@ -2,6 +2,7 @@
 import { createClient } from "@/lib/erp/supabase/server";
 import { getSessionInfo } from "@/lib/erp/auth";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 // Manager/admin confirm or reject of a Daltile external-ref match. The RPCs
 // enforce the role gate themselves (search_path='' definer); we also check the
@@ -27,4 +28,12 @@ export async function rejectDaltileMatch(refId: number) {
   const { error } = await sb.rpc("reject_external_match", { p_ref_id: refId });
   if (error) throw new Error(error.message);
   revalidatePath("/erp/review/daltile");
+}
+
+/**
+ * El demo (D-941): los dos botones de /erp/review/daltile son un `<form action>`, sin sitio donde enseñar un fallo; lanzar
+ * el aviso cae en la frontera de error, que dice «No se pudo leer tu perfil». Vuelve a la pantalla con el aviso puesto.
+ */
+export async function avisoDaltileDelDemo(): Promise<void> {
+  redirect("/erp/review/daltile?aviso=demo");
 }

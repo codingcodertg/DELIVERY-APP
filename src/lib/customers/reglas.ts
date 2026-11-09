@@ -389,6 +389,18 @@ export function valorDeColumna(c: Cliente, key: ClaveDeColumna, tiendasDe?: (c: 
   return c[key] ?? null;
 }
 
+/**
+ * Lo que se compara de cada lado en «Decidir si se juntan». Sale de las COLUMNAS (D-941): se leía de `CAMPOS`, de donde
+ * el contacto, el teléfono y el correo salieron con D-668, y la pantalla caía con «reading 'en'» en cuanto había un par.
+ */
+export const LADO_DE_JUNTAR: readonly ClaveDeColumna[] = ["unified_account", "contact_name", "phone", "email", "rep_store", "address", "credit_limit"];
+export function filasDelLado(c: Cliente): { key: ClaveDeColumna; en: string; es: string; valor: string | number | null }[] {
+  return LADO_DE_JUNTAR.map((key) => {
+    const columna = COLUMNAS.find((x) => x.key === key);
+    return { key, en: columna?.en ?? key, es: columna?.es ?? key, valor: valorDeColumna(c, key) };
+  });
+}
+
 const rangoEstado = (e: string | null) => { const i = ESTADOS.indexOf(e as Estado); return i < 0 ? ESTADOS.length : i; };
 const rangoHistoria = (h: string | null) => { const i = HISTORIAS.indexOf(h as (typeof HISTORIAS)[number]); return i < 0 ? HISTORIAS.length : i; };
 

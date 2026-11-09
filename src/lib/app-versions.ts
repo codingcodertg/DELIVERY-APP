@@ -29,7 +29,7 @@ export const APP_VERSIONS = {
   // sello de versión no habría tenido qué enseñar en /erp. Empieza en 0.1.0 por la
   // misma razón que recruiting y timetracker — no hay historial independiente que
   // continuar, y un 1.0.0 sería continuidad inventada.
-  erp: "0.25.0",
+  erp: "0.26.0",
   // RTG PROMOS (D-366): modulo nuevo, sin historial que continuar; 0.1.0 como recruiting y el ERP.
   promos: "0.23.1",
   // El Estimador (T-0408): modulo nuevo, sin historial que continuar; 0.1.0 como promos. Lo sube el orquestador.
@@ -41,7 +41,7 @@ export const APP_VERSIONS = {
   // rama porque sin ella /leads no tiene sello de version; los siguientes numeros, el orquestador.
   leads: "0.20.0",
   // Clientes (D-569): la primera, como leads.
-  customers: "0.59.0",
+  customers: "0.60.0",
   // Security (D-811): la primera, como las demás apps nuevas.
   security: "0.12.0",
   // Operaciones de almacén (D-883, migración 247): la primera, como las demás apps nuevas. La entrada la pone la rama

@@ -1,5 +1,8 @@
 import { createBrowserClient } from "@supabase/ssr";
 import { fetchDePracticaDelNavegador } from "@/lib/practica/fetch-de-practica";
+import { clienteDemoDelErp } from "@/lib/erp/cliente-demo";
+
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /**
  * Every .from() here defaults to the `erp` schema (D-090), the same way the
@@ -7,7 +10,7 @@ import { fetchDePracticaDelNavegador } from "@/lib/practica/fetch-de-practica";
  * lives in `public` and needs `.schema("public")` on the calls that read it.
  */
 /** Browser Supabase client (anon key + user session). Used by client components, e.g. login. */
-export function createClient() {
+function clienteReal() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -35,4 +38,10 @@ export function createClient() {
       isSingleton: false,
     }
   );
+}
+
+/** El de las pantallas de cliente de `/erp/**`. Con la bandera apagada es el real; en el demo (D-941), el de la semilla. */
+export function createClient(): ReturnType<typeof clienteReal> {
+  if (LOCAL_MODE) return clienteDemoDelErp(new Date()) as unknown as ReturnType<typeof clienteReal>;
+  return clienteReal();
 }
