@@ -51192,3 +51192,9 @@ Sello `recruiting` 0.80.0; repo 1.791.0.
 Lo marcó la revisión de seguridad. Al conceder varios módulos a la vez (p.ej. «Dar los 8 de gerente» o cambios en bloque) cada escritura partía de la lista vieja y pisaba las anteriores, guardando solo el último. Ahora los permisos de cada persona se leen frescos de la base y todos los cambios van en una sola escritura por usuario. Además, si alguien quedó con el rol de RR.HH. o Time Tracker pero sin el módulo marcado, la pantalla lo muestra como que sí lo tiene y deja revocarlo.
 
 Sello `deliveries` 1.573.0; repo 1.792.0.
+
+## D-939 · Usuarios y Permisos: el log de seguridad registra por acceso efectivo (rol de RR. HH./Time Tracker, no solo el módulo)
+
+Lo marcó la revisión de seguridad. En la escritura en bloque, revocar RR. HH. o Time Tracker a una fila drifteada (rol puesto pero sin el módulo en module_access) cambiaba el acceso pero no dejaba línea en el log. Ahora se registra por acceso efectivo: para esos dos módulos cuenta también el rol de escalafón; los demás módulos siguen por pertenencia.
+
+Sello `deliveries` 1.574.0; repo 1.793.0.
