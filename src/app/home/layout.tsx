@@ -22,7 +22,7 @@ import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 // (it's the one app nobody needs a grant for), so deliveries' version is
 // the least-wrong single answer for a page that isn't really "an app" of
 // its own to begin with.
-/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): sin base ni sesión. */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export default async function HomeLayout({ children }: { children: React.ReactNode }) {

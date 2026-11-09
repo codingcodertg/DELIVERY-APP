@@ -19,7 +19,7 @@ import { perfilDeLaVistaMovil, suplantacionEnCurso } from "@/lib/vista-movil-ser
  * Sin `DataProvider`: esta página no lee órdenes. La app que se prueba corre dentro del marco, con los
  * suyos.
  */
-/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): sin base ni sesión. */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export default async function VistaMovilLayout({ children }: { children: React.ReactNode }) {

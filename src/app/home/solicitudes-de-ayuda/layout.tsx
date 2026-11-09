@@ -11,7 +11,7 @@ import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
  * No es la única puerta: la 120 pone RLS sobre la tabla, así que quien llegue por la API sin ser admin
  * solo ve las suyas. Esta puerta es para que nadie se plante delante de una pantalla vacía.
  */
-/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): sin base ni sesión. */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export default async function SolicitudesLayout({ children }: { children: React.ReactNode }) {

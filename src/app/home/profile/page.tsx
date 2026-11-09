@@ -13,7 +13,7 @@ import { CUENTA_DEMO, PERFIL_DEMO } from "@/lib/home/demo-data";
  * pantalla de Cuenta de Entregas redirige a esta (D-274); por eso se pasa el id de la sesión, que
  * es la fila que la política deja escribir.
  */
-/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): sin base ni sesión. */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export default async function ProfilePage() {

@@ -91,7 +91,7 @@ export function HiloDeAyuda({ solicitud, yo, onEnviado, soloLectura }: {
   const enviar = async () => {
     const cuerpo = cuerpoDelMensaje(escrito);
     if (!cuerpo.ok || enviando) return;
-    // El demo (D-NEXT) no sube adjuntos ni escribe.
+    // El demo (D-940) no sube adjuntos ni escribe.
     if (process.env.NEXT_PUBLIC_LOCAL_MODE === "true") { setError(t("Not available in the demo.", "No disponible en el demo.")); return; }
     setEnviando(true);
     setError(null);

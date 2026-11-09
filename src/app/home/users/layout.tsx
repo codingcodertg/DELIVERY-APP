@@ -21,7 +21,7 @@ import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 // selector at /home doesn't touch deliveries data at all, so mounting its
 // realtime channels there would be paying for something nobody on that page
 // uses — same locality principle D-052 already applied to recruiting.
-/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): sin base ni sesión. */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export default async function HomeUsersLayout({ children }: { children: React.ReactNode }) {

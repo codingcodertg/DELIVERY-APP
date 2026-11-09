@@ -23,7 +23,7 @@ import { CABECERA_DISPOSITIVO, appsEnElTelefono, dispositivoDeLaPeticion, type P
 // these as two distinct expressions (not folding one into the other) is
 // deliberate: mixing "where you land" and "what you're allowed to visit"
 // into one function is exactly the kind of blur that produced D-052's bugs.
-/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): sin base ni sesión. */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export default async function HomePage({

@@ -33,7 +33,7 @@ import type { Tutorial, TutorialApp } from "@/lib/types";
 
 type Entrada = { title: string; url: string; description: string; app: TutorialApp | "general"; roles: string[] };
 
-/** El demo (D-NEXT) no guarda tutoriales ni vistas. */
+/** El demo (D-940) no guarda tutoriales ni vistas. */
 const DEMO = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export function TutorialsHub({ yo, puedeGestionar }: { yo: string | null; puedeGestionar: boolean }) {

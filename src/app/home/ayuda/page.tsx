@@ -98,7 +98,7 @@ export default function MisSolicitudesPage() {
   const enviaNueva = async () => {
     const texto = mensaje.trim();
     if (!texto || !yo || ocupada) return;
-    // El demo (D-NEXT) no envía ni sube nada.
+    // El demo (D-940) no envía ni sube nada.
     if (process.env.NEXT_PUBLIC_LOCAL_MODE === "true") { setAviso(t("Not available in the demo.", "No disponible en el demo.")); return; }
     setOcupada(true);
     setAviso(null);

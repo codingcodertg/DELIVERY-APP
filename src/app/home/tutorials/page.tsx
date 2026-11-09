@@ -10,7 +10,7 @@ import { PERFIL_DEMO } from "@/lib/home/demo-data";
  * Aquí solo se decide si esta persona gestiona. Esconder los botones a quien no es admin es comodidad:
  * la barrera de verdad es la base, donde `settings` solo lo actualiza `is_admin()` (100).
  */
-/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): sin base ni sesión. */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export default async function TutorialsPage() {

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-// D-NEXT · El inicio del Hub en el demo (`NEXT_PUBLIC_LOCAL_MODE`). El dueño, 2026-11-09: «pero quiero que sea de todo,
+// D-940 · El inicio del Hub en el demo (`NEXT_PUBLIC_LOCAL_MODE`). El dueño, 2026-11-09: «pero quiero que sea de todo,
 // todas las appas y todos los procedimientos». Estas pruebas leen el fuente: se afirma el ORDEN (la rama del demo va antes
 // de tocar la base), y que la bandera sea exactamente la del demo.
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");

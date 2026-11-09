@@ -1,7 +1,7 @@
 import { AVISO_DEL_DEMO, directorioDemo, mensajesDemo, PERFIL_DEMO, solicitudesDemo, tutorialesDemo } from "@/lib/home/demo-data";
 
 /**
- * Un cliente de Supabase de mentira para el inicio del Hub en el demo (D-NEXT): contesta las lecturas con la semilla y las
+ * Un cliente de Supabase de mentira para el inicio del Hub en el demo (D-940): contesta las lecturas con la semilla y las
  * escrituras con `AVISO_DEL_DEMO`, sin red. Solo lo que usan las pantallas de `/home/**`; una tabla que no conoce vale como
  * vacía, y las pantallas ya saben pintar eso. Las filas se filtran de verdad: «Mis solicitudes» enseña solo las propias.
  */

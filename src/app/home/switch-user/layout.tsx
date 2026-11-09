@@ -23,7 +23,7 @@ import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
  * El `DataProvider` va aquí y no en el lobby, como en Usuarios: el panel lee la plantilla y las
  * tiendas de él, y el lobby no toca datos de Entregas.
  */
-/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): sin base ni sesión. */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export default async function SwitchUserLayout({ children }: { children: React.ReactNode }) {

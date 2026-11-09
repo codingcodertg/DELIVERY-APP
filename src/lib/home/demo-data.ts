@@ -6,7 +6,7 @@ import type { PersonaDirectorio } from "@/lib/phone-book";
 import type { Profile, Tutorial } from "@/lib/types";
 
 /**
- * La semilla del inicio del Hub en el demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): sin base ni sesión, para capturar el manual.
+ * La semilla del inicio del Hub en el demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión, para capturar el manual.
  * Pura, con `ahora` por argumento. Las personas salen de `DEMO_USERS`; todo lo demás es inventado.
  */
 

@@ -51199,7 +51199,7 @@ Lo marcó la revisión de seguridad. En la escritura en bloque, revocar RR. HH. 
 
 Sello `deliveries` 1.574.0; repo 1.793.0.
 
-## D-NEXT · Inicio del Hub: modo demo (sin base ni sesión) para el manual
+## D-940 · Inicio del Hub: modo demo (sin base ni sesión) para el manual
 
 El dueño, 2026-11-09: «pero quiero que sea de todo, todas las appas y todos los procedimientos», y antes: «daselo al demo entonces para que lo haga». Todo `/home/**` mandaba a `/login` con `NEXT_PUBLIC_LOCAL_MODE=true`, y `/users` redirige ahí; sin esto no se puede capturar el manual del inicio.
 
@@ -51211,4 +51211,4 @@ El dueño, 2026-11-09: «pero quiero que sea de todo, todas las appas y todos lo
 
 **Qué queda fuera.** Las demás apps ya tienen su demo o van aparte. No se tocan ni el middleware (el demo ya se salta la sesión) ni el botón global de ayuda ni el banner de suplantación (`/api/impersonate/state`, `/candidates`), que son de toda la app y siguen llamando a su ruta en el demo, sin efecto en pantalla. Las solicitudes no traen adjuntos. Con la bandera apagada, las ramas reales no cambian.
 
-Sello `deliveries` D-NEXT; repo D-NEXT.
+Sello `deliveries` 1.575.0; repo 1.794.0.

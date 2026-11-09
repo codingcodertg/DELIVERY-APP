@@ -12,7 +12,7 @@ function ConAccesos({ children }: { children: React.ReactNode }) {
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
 }
 
-/** El proveedor de Usuarios y «Cambiar de usuario» en el demo (D-NEXT): el local, sin base ni sesión. */
+/** El proveedor de Usuarios y «Cambiar de usuario» en el demo (D-940): el local, sin base ni sesión. */
 export function ProveedorDemoDelHub({ children }: { children: React.ReactNode }) {
   return <LocalDataProvider me={PERFIL_DEMO}><ConAccesos>{children}</ConAccesos></LocalDataProvider>;
 }

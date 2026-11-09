@@ -55,7 +55,7 @@ export function AvisoDeTutoriales({ me }: { me: { id: string; role: string | nul
     };
     // Con `pendientes: 1` se prueban solo las puertas baratas: si alguna cierra, no se pregunta a la base.
     if (!debeAvisar({ ...base, pendientes: 1 })) return;
-    // El demo (D-NEXT) no pregunta a la base ni abre el aviso encima de lo que se captura para el manual.
+    // El demo (D-940) no pregunta a la base ni abre el aviso encima de lo que se captura para el manual.
     if (process.env.NEXT_PUBLIC_LOCAL_MODE === "true") return;
     void (async () => {
       const cliente = createClient();

@@ -9,7 +9,7 @@ import { perfilDeLaVistaMovil } from "@/lib/vista-movil-servidor";
  * Sin ruta, el marco abre la pantalla de inicio del rol de la sesión (D-516), no siempre la portada: dentro
  * de «Entrar como» un chofer, eso es `/driver`. Para el admin sigue siendo `/`.
  */
-/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): sin base ni sesión. */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export default async function VistaMovilPage({ searchParams }: { searchParams: Promise<{ ruta?: string; ancho?: string }> }) {
