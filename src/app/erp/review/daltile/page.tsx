@@ -4,8 +4,11 @@ import { Header } from "@/components/erp/header";
 import { getSessionInfo } from "@/lib/erp/auth";
 import { createClient } from "@/lib/erp/supabase/server";
 import { unwrap } from "@/lib/erp/db-result";
-import { confirmDaltileMatch, rejectDaltileMatch } from "@/lib/erp/daltile-actions";
+import { avisoDaltileDelDemo, confirmDaltileMatch, rejectDaltileMatch } from "@/lib/erp/daltile-actions";
+import { AVISO_DEL_DEMO } from "@/lib/erp/demo-data";
 import { Tx } from "@/components/erp/tx";
+
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 // G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 // SKU, MPN, nombre, título externo, serie, tamaño, método y código son dato.
@@ -30,7 +33,8 @@ type Prod = { id: number; sku: string; name: string; mpn: string | null };
 // golden record. It reads the app_products view now (id/sku/name/mpn are non-cost
 // and already exposed there, exactly as /requests does), and both reads are
 // unwrapped: a failure raises a visible error instead of an empty, confirmable list.
-export default async function DaltileReviewPage() {
+export default async function DaltileReviewPage({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
+  const { aviso } = await searchParams;
   const session = await getSessionInfo();
   if (!session) redirect("/login");
   if (session.role !== "admin" && session.role !== "manager") redirect("/erp/catalog");
@@ -66,6 +70,8 @@ export default async function DaltileReviewPage() {
         <p className="mt-1 text-sm text-slate-500">
           {refs.length} {refs.length === 1 ? <Tx en="pending suggestion." es="sugerencia pendiente." /> : <Tx en="pending suggestions." es="sugerencias pendientes." />} <Tx en="Confirming a match backfills the product's MPN from the Daltile code (only when empty) via the audited update path. Rejected matches never reappear." es="Confirmar una coincidencia rellena el MPN del producto con el código Daltile (solo si está vacío) por la ruta de actualización auditada. Las rechazadas no vuelven a aparecer." />
         </p>
+
+        {LOCAL_MODE && aviso === "demo" && <p role="status" className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{AVISO_DEL_DEMO}</p>}
 
         <Group title={<><Tx en="High confidence" es="Confianza alta" /> ({high.length})</>} refs={high} pmap={pmap} />
         <Group title={<><Tx en="Name + size suggestions" es="Sugerencias por nombre y tamaño" /> ({low.length})</>} refs={low} pmap={pmap} />
@@ -124,10 +130,10 @@ function Group({
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-2">
-                      <form action={confirmDaltileMatch.bind(null, r.id)}>
+                      <form action={LOCAL_MODE ? avisoDaltileDelDemo : confirmDaltileMatch.bind(null, r.id)}>
                         <button className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700"><Tx en="Confirm" es="Confirmar" /></button>
                       </form>
-                      <form action={rejectDaltileMatch.bind(null, r.id)}>
+                      <form action={LOCAL_MODE ? avisoDaltileDelDemo : rejectDaltileMatch.bind(null, r.id)}>
                         <button className="rounded-md border px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"><Tx en="Reject" es="Rechazar" /></button>
                       </form>
                     </div>

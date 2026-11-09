@@ -51212,3 +51212,19 @@ El dueño, 2026-11-09: «pero quiero que sea de todo, todas las appas y todos lo
 **Qué queda fuera.** Las demás apps ya tienen su demo o van aparte. No se tocan ni el middleware (el demo ya se salta la sesión) ni el botón global de ayuda ni el banner de suplantación (`/api/impersonate/state`, `/candidates`), que son de toda la app y siguen llamando a su ruta en el demo, sin efecto en pantalla. Las solicitudes no traen adjuntos. Con la bandera apagada, las ramas reales no cambian.
 
 Sello `deliveries` 1.575.0; repo 1.794.0.
+
+## D-NEXT · Inventario: modo demo (sin base ni sesión) para el manual
+
+El dueño, 2026-11-09: «pero quiero que sea de todo, todas las appas y todos los procedimientos». Inventario (`/erp/**`, 24 rutas) mandaba al login sin Supabase, y el manual de uso se captura contra el demo (`NEXT_PUBLIC_LOCAL_MODE=true`). Con la bandera apagada, producción no cambia: las ramas reales quedan intactas.
+
+**Qué entra.** Las pantallas de Inventario no ramifican una a una: todas toman `createClient`/`createAdminClient` de `src/lib/erp/supabase/{server,client,admin}.ts`, y esa es la rama. Con la bandera puesta contestan con `clienteDemoDelErp` (`src/lib/erp/cliente-demo.ts`), la misma idea que `clienteDelHub` de D-940, pero aquí las filas se filtran, ordenan y paginan de verdad (`or`, `ilike`, `contains`, `range`, `count`), porque en el manual se busca y se filtra. `src/app/erp/layout.tsx`, el único que usa el cliente del hub, ramifica antes de `createClient()`. Una prueba recorre el árbol de Inventario y exige que ninguna pantalla cree un cliente por otra vía.
+
+**La semilla** (`src/lib/erp/demo-data.ts`): pura, con la fecha por argumento, 21 productos inventados (el 21.º es el `~MERGE` de la fusión de duplicados), tres tiendas, proveedores, cinco órdenes de compra (borrador, enviada, confirmada con discrepancias, parcial para recibir, recibida), solicitudes, conteos y sugerencias de Daltile. Panel, facetas, reorden y analítica se CALCULAN de los productos: lo que dice el panel y lo que se ve en el catálogo no pueden contradecirse en una captura. Las funciones de la base que leen están en `rpcsDemoErp`; las que escriben, las tablas y los archivos contestan `Not available in the demo.`.
+
+**Daltile.** Sus dos botones son un `<form action>` sin sitio para enseñar un fallo: el aviso lanzado caía en la frontera de error, que dice «No se pudo leer tu perfil». En el demo vuelven a la pantalla con `?aviso=demo` y el aviso se pinta. Las demás escrituras devuelven el aviso a su propio hueco de error (medido en el navegador solo en /erp/requests).
+
+**`/customers/juntar`, y esto es un fallo también en producción.** El demo daba «No se pudo leer tu perfil» porque `customers/error.tsx` pinta esa pantalla para CUALQUIER error, y el error era otro: `TypeError: Cannot read properties of undefined (reading 'en')`. `DecidirJuntar` buscaba las etiquetas de cada lado en `CAMPOS` con `find(...)!`, y `contact_name`, `phone` y `email` ya no están ahí (salieron con los contactos de D-668). La pantalla cae en cuanto hay un par que decidir, sea demo o no. Ahora `filasDelLado` (`lib/customers/reglas.ts`) lee de `COLUMNAS` y con `valorDeColumna`, que da el contacto ya separado.
+
+**Qué queda fuera.** Las fuentes de Google (`fonts.googleapis.com`, del layout raíz de toda la app) siguen pidiéndose en el demo; no es Supabase ni es de Inventario. `Salespeople` no enseña números porque la pantalla real tampoco (espera al POS). Sin fotos de producto: `image_url` nulo y el marcador de la propia pantalla, para no pedir nada a la red. Importar ficheros en Inventario (Excel, CSV, PO) llega hasta donde escribe y ahí contesta el aviso; no hay vista previa con datos de ejemplo.
+
+Sello `erp` D-NEXT; repo D-NEXT.

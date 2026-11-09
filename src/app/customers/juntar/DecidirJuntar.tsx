@@ -10,7 +10,7 @@ import { cn } from "@/lib/erp/utils";
 import { almacenDeLaBase, type AlmacenDeClientes } from "@/lib/customers/almacen";
 import { almacenDemo } from "@/lib/customers/demo";
 import { EVENTO_DE_LA_COLA, filasDeLaEmpresa, motivoDeSospechaLabel, paresParaDecidir, vistaPreviaDeJuntar, type ParParaDecidir, type Sugerencia } from "@/lib/customers/empresas";
-import { CAMPOS, dinero, estadoClase, estadoLabel, nombreDeTienda, type Cliente } from "@/lib/customers/reglas";
+import { dinero, estadoClase, estadoLabel, filasDelLado, nombreDeTienda, type Cliente } from "@/lib/customers/reglas";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
 const TANDA = 25;
@@ -158,9 +158,6 @@ export function DecidirJuntar({ demo, puedeEditar }: { demo: boolean; puedeEdita
   );
 }
 
-/** Lo que se compara de cada lado, con las etiquetas de la ficha (`CAMPOS`). */
-const LADO = ["unified_account", "contact_name", "phone", "email", "rep_store", "address", "credit_limit"] as const;
-
 /** Un lado del par: la fila, y las otras tiendas de su empresa si las tiene. */
 function Lado({ c, lista, t }: { c: Cliente; lista: Cliente[]; t: (en: string, es: string) => string }) {
   const otras = filasDeLaEmpresa(lista, c).filter((x) => x.id !== c.id);
@@ -178,11 +175,9 @@ function Lado({ c, lista, t }: { c: Cliente; lista: Cliente[]; t: (en: string, e
         <Link href={`/customers/${c.id}`} className="ml-auto text-xs text-clay-600 hover:underline">#{c.id} {t("details", "ficha")}</Link>
       </div>
       <div className="mb-2 break-words text-base font-semibold text-slate-900">{c.account}</div>
-      {LADO.map((k) => {
-        const campo = CAMPOS.find((x) => x.key === k)!;
-        const v = c[k];
-        return <div key={k}>{fila(t(campo.en, campo.es), v === null || v === undefined ? null : k === "credit_limit" ? dinero(v as number) : String(v))}</div>;
-      })}
+      {filasDelLado(c).map(({ key, en, es, valor }) => (
+        <div key={key}>{fila(t(en, es), valor === null ? null : key === "credit_limit" ? dinero(valor as number) : String(valor))}</div>
+      ))}
       {otras.length > 0 && (
         <p className="mt-2 text-xs text-slate-500">
           {t("Same company in: ", "Misma empresa en: ")}{otras.map((x) => nombreDeTienda(x.store)).join(", ")}

@@ -1,6 +1,9 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { fetchDeEnsenanzaDeLaPeticion } from "@/lib/ensenanza-servidor";
+import { clienteDemoDelErp } from "@/lib/erp/cliente-demo";
+
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /**
  * Service-role Supabase client for TRUSTED server-only operations that the session client can't do —
@@ -40,7 +43,7 @@ export function adminKey(): string {
   return legacy;
 }
 
-export function createAdminClient() {
+function clienteReal() {
   // Bound to the `erp` schema like the other two clients (D-090) — the tables this
   // reaches (products, vendors) live there, not in public.
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, adminKey(), {
@@ -49,4 +52,10 @@ export function createAdminClient() {
     // Modo enseñanza (D-626): ver `lib/supabase/admin.ts`.
     global: { fetch: fetchDeEnsenanzaDeLaPeticion() },
   });
+}
+
+/** Con la bandera apagada, el de servicio; en el demo (D-NEXT), el de la semilla: subir y firmar archivos contesta el aviso. */
+export function createAdminClient(): ReturnType<typeof clienteReal> {
+  if (LOCAL_MODE) return clienteDemoDelErp(new Date()) as unknown as ReturnType<typeof clienteReal>;
+  return clienteReal();
 }
