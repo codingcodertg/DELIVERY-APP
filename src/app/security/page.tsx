@@ -18,9 +18,9 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /** Las cinco lecturas de la base y los perfiles que faltaran por id, tal como las hacía la página; `error` es el primer
  *  fallo de las tres que importan. Es una función para que el demo pueda no llamarla. */
-async function leerDeLaBase(): Promise<DatosDeSeguridad & { error: string | null }> {
+async function leerDeLaBase(): Promise<DatosDeSeguridad & { error: string | null; admin: Profile | null }> {
   const supabase = await createClient();
-  
+
   const desde = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
   const [{ data: policy, error: e1 }, { data: devices, error: e2 }, { data: usos, error: e3 }, { data: bloqueos }, { data: todos }] = await Promise.all([
     supabase.from("security_policy").select("enforced, changed_at, changed_by, web_blocked, web_exempt").eq("id", 1).maybeSingle(),
@@ -37,27 +37,22 @@ async function leerDeLaBase(): Promise<DatosDeSeguridad & { error: string | null
   const ids = [...new Set([...(devices ?? []).flatMap((d) => [d.first_user_id, d.last_user_id]), ...(usos ?? []).map((u) => u.user_id), ...(bloqueos ?? []).map((b) => b.user_id)].filter((x): x is string => !!x))];
   const faltan = ids.filter((id) => !(todos ?? []).some((p) => p.id === id));
   const { data: perfiles } = faltan.length ? await supabase.from("profiles").select("id, full_name, role, store").in("id", faltan) : { data: [] as { id: string; full_name: string; role: string; store: string | null }[] };
+  // D-940: el perfil COMPLETO del admin que entra, con el MISMO cliente (la base se abre una sola vez, aquí): lo necesita
+  // el administrador de permisos para montar el proveedor del hub. En demo no se llega aquí, así que `admin` es null allá.
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: adminRow } = user ? await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle() : { data: null };
   return {
     policy: (policy as PoliticaCruda | null) ?? null, devices: (devices ?? []) as DispositivoCrudo[], usos: (usos ?? []) as UsoCrudo[],
     bloqueos: (bloqueos ?? []) as BloqueoCrudo[], todos: (todos ?? []) as PerfilCrudo[],
     perfiles: (perfiles ?? []).map((p) => ({ ...p, username: null, left_at: null })) as PerfilCrudo[],
-    error,
+    error, admin: (adminRow as Profile | null) ?? null,
   };
 }
 
-/** D-940: el perfil COMPLETO del admin que entra — lo necesita el administrador de permisos para montar el proveedor
- *  del hub (como el expediente de RR. HH.). En demo no hay base: null, y el panel enseña el aviso de demo. */
-async function leerAdmin(): Promise<Profile | null> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-  return (data as Profile | null) ?? null;
-}
-
 export default async function SecurityPage() {
-  const { policy, devices, usos, bloqueos, todos, perfiles, error } = LOCAL_MODE ? { ...datosDemoDeSeguridad(new Date()), error: null } : await leerDeLaBase();
-  const admin = LOCAL_MODE ? null : await leerAdmin();
+  const base = LOCAL_MODE ? { ...datosDemoDeSeguridad(new Date()), error: null } : await leerDeLaBase();
+  const { policy, devices, usos, bloqueos, todos, perfiles, error } = base;
+  const admin: Profile | null = "admin" in base ? base.admin : null;
   const porId = new Map([...(todos ?? []), ...(perfiles ?? [])].map((p) => [p.id, p]));
   const nombre = (id: string | null) => (id && porId.get(id)?.full_name) || "—";
 
