@@ -21,9 +21,8 @@ const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace
 const NUEVAS = ["vista-movil", "switch-user"] as const;
 // «my-help» llegó después (ayuda-chat): «Mis solicitudes», para todos. No es de esta decisión, pero la
 // lista se afirma entera para que ninguna herramienta aparezca o desaparezca sin que una prueba lo diga.
-// «usuarios-permisos» (petición 7/9 de Roberto): admin-only como «users» e IGNORA `suplantando`, así que va en este grupo,
-// no en el de «admin real». Justo tras «users», su hermana.
-const VIEJAS = ["users", "usuarios-permisos", "directory", "tutorials", "my-help", "help-requests"] as const;
+// «usuarios-permisos» (D-936) se SACÓ del hub en D-940 (quedó en standby, mal ubicada): ya no está en esta lista.
+const VIEJAS = ["users", "directory", "tutorials", "my-help", "help-requests"] as const;
 // D-811: Security va la primera y es del admin REAL, como las nuevas.
 const SEGURIDAD = ["security"] as const;
 

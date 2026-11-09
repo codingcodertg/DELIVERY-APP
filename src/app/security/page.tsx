@@ -5,6 +5,7 @@ import { PanelDeSeguridad, type BloqueoFila, type DispositivoFila, type UsoFila,
 import { rangoDeApp } from "@/lib/security/version-de-app";
 import { soloActivos } from "@/lib/baja";
 import { datosDemoDeSeguridad, type BloqueoCrudo, type DatosDeSeguridad, type DispositivoCrudo, type PerfilCrudo, type PoliticaCruda, type UsoCrudo } from "@/lib/security/demo-data";
+import type { Profile } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ async function leerDeLaBase(): Promise<DatosDeSeguridad & { error: string | null
   const [{ data: policy, error: e1 }, { data: devices, error: e2 }, { data: usos, error: e3 }, { data: bloqueos }, { data: todos }] = await Promise.all([
     supabase.from("security_policy").select("enforced, changed_at, changed_by, web_blocked, web_exempt").eq("id", 1).maybeSingle(),
     supabase.from("security_devices").select("id, label, kind, status, user_agent, first_seen_at, last_seen_at, first_user_id, last_user_id, approved_at, revoked_at, notes, bound, requested_at, requested_by, request_note, last_ip, last_place").order("last_seen_at", { ascending: false }).limit(500),
-    supabase.from("security_device_users").select("device_id, user_id, first_seen_at, last_seen_at, seen_count, last_ip, last_place").order("last_seen_at", { ascending: false }).limit(2000),
+    supabase.from("security_device_users").select("device_id, user_id, first_seen_at, last_seen_at, seen_count, last_ip, last_place, last_route").order("last_seen_at", { ascending: false }).limit(2000),
     // D-818 (232): a quién se le cerró la web, últimos 7 días. Sin la 232 viene error y la lista queda vacía: no rompe la pantalla.
     supabase.from("security_web_blocks").select("id, user_id, device_id, user_agent, path, at, ip, place").gte("at", desde).order("at", { ascending: false }).limit(500),
     // D-822: TODOS los usuarios creados, tengan o no dispositivo: para ver quién ya tiene la app nueva y quién nunca entró.
@@ -44,8 +45,19 @@ async function leerDeLaBase(): Promise<DatosDeSeguridad & { error: string | null
   };
 }
 
+/** D-940: el perfil COMPLETO del admin que entra — lo necesita el administrador de permisos para montar el proveedor
+ *  del hub (como el expediente de RR. HH.). En demo no hay base: null, y el panel enseña el aviso de demo. */
+async function leerAdmin(): Promise<Profile | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  return (data as Profile | null) ?? null;
+}
+
 export default async function SecurityPage() {
   const { policy, devices, usos, bloqueos, todos, perfiles, error } = LOCAL_MODE ? { ...datosDemoDeSeguridad(new Date()), error: null } : await leerDeLaBase();
+  const admin = LOCAL_MODE ? null : await leerAdmin();
   const porId = new Map([...(todos ?? []), ...(perfiles ?? [])].map((p) => [p.id, p]));
   const nombre = (id: string | null) => (id && porId.get(id)?.full_name) || "—";
 
@@ -82,5 +94,5 @@ export default async function SecurityPage() {
   const h = await headers();
   const esteDispositivo = dispositivoDeLaPeticion({ cabecera: h.get(CABECERA_DISPOSITIVO), cookie: h.get("cookie") })?.id ?? null;
 
-  return <PanelDeSeguridad enforced={!!policy?.enforced} webBloqueada={!!policy?.web_blocked} exentos={(policy?.web_exempt as string[] | null) ?? []} cambiadaEn={policy?.changed_at ?? null} dispositivos={filas} uso={uso} bloqueados={bloqueados} usuarios={usuarios} esteDispositivo={esteDispositivo} error={error} />;
+  return <PanelDeSeguridad enforced={!!policy?.enforced} webBloqueada={!!policy?.web_blocked} exentos={(policy?.web_exempt as string[] | null) ?? []} cambiadaEn={policy?.changed_at ?? null} dispositivos={filas} uso={uso} bloqueados={bloqueados} usuarios={usuarios} esteDispositivo={esteDispositivo} error={error} admin={admin} />;
 }
