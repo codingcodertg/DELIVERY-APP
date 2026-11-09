@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
-import { createClient } from "@/lib/supabase/client";
+import { clienteDelHub as createClient } from "@/lib/home/cliente-del-hub";
 import {
   adjuntosDe, asomoEnLaLista, avisoDeAtendida, filtraSolicitudes, parcheDeEstado, personasDeSolicitudes, quienEscribe,
   resumenDelEnvio, separaPorEstado, listaSegunEstado, leeSolicitudes, estaEliminada, parcheDeEliminacion, sePuedeEliminar, separaEliminadas,

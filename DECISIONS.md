@@ -51198,3 +51198,17 @@ Sello `deliveries` 1.573.0; repo 1.792.0.
 Lo marcó la revisión de seguridad. En la escritura en bloque, revocar RR. HH. o Time Tracker a una fila drifteada (rol puesto pero sin el módulo en module_access) cambiaba el acceso pero no dejaba línea en el log. Ahora se registra por acceso efectivo: para esos dos módulos cuenta también el rol de escalafón; los demás módulos siguen por pertenencia.
 
 Sello `deliveries` 1.574.0; repo 1.793.0.
+
+## D-NEXT · Inicio del Hub: modo demo (sin base ni sesión) para el manual
+
+El dueño, 2026-11-09: «pero quiero que sea de todo, todas las appas y todos los procedimientos», y antes: «daselo al demo entonces para que lo haga». Todo `/home/**` mandaba a `/login` con `NEXT_PUBLIC_LOCAL_MODE=true`, y `/users` redirige ahí; sin esto no se puede capturar el manual del inicio.
+
+**Qué entra.** Calcado de D-931 (Seguridad). Cada layout y página de servidor de `/home/**` ramifica en `LOCAL_MODE` antes de `createClient()` y pinta la misma pantalla con la semilla pura de `src/lib/home/demo-data.ts`: el admin `u-admin` con todos los módulos, los accesos por módulo de las personas de `DEMO_USERS`, ocho filas de directorio, cinco tutoriales y tres solicitudes de ayuda con su respuesta. Usuarios y «Cambiar de usuario» montan `ProveedorDemoDelHub` (el proveedor local, con los accesos encima).
+
+**El navegador.** Ocho pantallas importan `clienteDelHub as createClient` (`src/lib/home/cliente-del-hub.ts`): con la bandera apagada es `createClient()` y nada más; en el demo, `cliente-demo.ts`, que lee de la semilla y contesta «Not available in the demo.» a toda escritura, sin red. Se importa con el mismo nombre para no tocar el resto de cada pantalla. Lo que no pasa por ese cliente (contraseña, nombre, entrar como otro, enviar solicitud, adjuntos, marcar tutorial) contesta el aviso antes de salir. El aviso emergente de tutoriales no se abre en el demo, para que no tape las capturas.
+
+**`UserDialog`.** El filtro `(m.alwaysOn || !LOCAL_MODE)` escondía en el demo todos los módulos menos Entregas, y los permisos por módulo son lo que va al manual. Se quita: con la bandera apagada esa condición ya era siempre verdadera, y en el demo cada casilla sigue contestando «Not available in demo mode» por el proveedor local. También lo ve la pantalla de crear usuarios de RR. HH., que usa el mismo diálogo.
+
+**Qué queda fuera.** Las demás apps ya tienen su demo o van aparte. No se tocan ni el middleware (el demo ya se salta la sesión) ni el botón global de ayuda ni el banner de suplantación (`/api/impersonate/state`, `/candidates`), que son de toda la app y siguen llamando a su ruta en el demo, sin efecto en pantalla. Las solicitudes no traen adjuntos. Con la bandera apagada, las ramas reales no cambian.
+
+Sello `deliveries` D-NEXT; repo D-NEXT.

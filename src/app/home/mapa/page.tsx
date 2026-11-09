@@ -8,11 +8,17 @@ import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import { MapaDeLaEmpresa } from "@/components/MapaDeLaEmpresa";
 import { veElMapa } from "@/lib/mapa-de-apps";
+import { PERFIL_DEMO } from "@/lib/home/demo-data";
 
 // «🗺️ Mapa de la empresa» (D-556). Las mismas puertas que el inicio del hub (home/page.tsx): sesión, perfil leído en
 // tres desenlaces (D-234), `canReachHub` (D-173) y la cookie de suplantación (D-306). Quien no puede estar en el hub no
 // llega al mapa.
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): sin base ni sesión. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export default async function MapaPage() {
+  if (LOCAL_MODE) return <MapaDeLaEmpresa me={PERFIL_DEMO} suplantando={false} />;
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/home/mapa");

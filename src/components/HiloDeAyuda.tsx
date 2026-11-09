@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
-import { createClient } from "@/lib/supabase/client";
+import { clienteDelHub as createClient } from "@/lib/home/cliente-del-hub";
 import { CUBO_DE_ADJUNTOS, LIMITES_DE_ADJUNTOS, mensajeDeAdjunto, validaAdjuntos } from "@/lib/help-attachments";
 import { subeAdjuntosDeAyuda } from "@/lib/help-send";
 import type { SolicitudDeAyuda } from "@/lib/help-requests";
@@ -91,6 +91,8 @@ export function HiloDeAyuda({ solicitud, yo, onEnviado, soloLectura }: {
   const enviar = async () => {
     const cuerpo = cuerpoDelMensaje(escrito);
     if (!cuerpo.ok || enviando) return;
+    // El demo (D-NEXT) no sube adjuntos ni escribe.
+    if (process.env.NEXT_PUBLIC_LOCAL_MODE === "true") { setError(t("Not available in the demo.", "No disponible en el demo.")); return; }
     setEnviando(true);
     setError(null);
     const adjunta = puedeAdjuntar(yo.id, solicitud);

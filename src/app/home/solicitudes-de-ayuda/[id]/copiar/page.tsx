@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
-import { createClient } from "@/lib/supabase/client";
+import { clienteDelHub as createClient } from "@/lib/home/cliente-del-hub";
 import { CUBO_DE_ADJUNTOS, type FicheroAdjunto } from "@/lib/help-attachments";
 import { leeConUbicacion, type SolicitudDeAyuda } from "@/lib/help-requests";
 import { hiloCompleto, RUTA_SOLICITUDES_ADMIN, type MensajeDeAyuda } from "@/lib/help-thread";

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { identidadVisible } from "@/lib/profile-identity";
 import { ProfileView } from "@/components/profile/ProfileView";
+import { CUENTA_DEMO, PERFIL_DEMO } from "@/lib/home/demo-data";
 
 /**
  * Mi perfil (D-265): una cuenta y una contraseña para todas las apps del hub, y un solo sitio
@@ -12,7 +13,12 @@ import { ProfileView } from "@/components/profile/ProfileView";
  * pantalla de Cuenta de Entregas redirige a esta (D-274); por eso se pasa el id de la sesión, que
  * es la fila que la política deja escribir.
  */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): sin base ni sesión. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export default async function ProfilePage() {
+  if (LOCAL_MODE) return <ProfileView id={PERFIL_DEMO.id} nombre={PERFIL_DEMO.full_name} correo={CUENTA_DEMO.correo} usuario={CUENTA_DEMO.usuario} />;
+
   const supabase = await createClient();
   const {
     data: { user },

@@ -19,7 +19,12 @@ import { perfilDeLaVistaMovil, suplantacionEnCurso } from "@/lib/vista-movil-ser
  * Sin `DataProvider`: esta página no lee órdenes. La app que se prueba corre dentro del marco, con los
  * suyos.
  */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-NEXT): sin base ni sesión. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export default async function VistaMovilLayout({ children }: { children: React.ReactNode }) {
+  if (LOCAL_MODE) return enDemo(children);
+
   const { user, perfil, errorPerfil } = await perfilDeLaVistaMovil();
   if (!user) redirect("/login?next=/home/vista-movil");
 
@@ -35,4 +40,9 @@ export default async function VistaMovilLayout({ children }: { children: React.R
   }
 
   return <div className="wrap">{children}</div>;
+}
+
+/** Lo que pinta la puerta en el demo. */
+function enDemo(hijos: React.ReactNode) {
+  return <div className="wrap">{hijos}</div>;
 }

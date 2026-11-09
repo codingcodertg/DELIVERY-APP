@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
-import { createClient } from "@/lib/supabase/client";
+import { clienteDelHub as createClient } from "@/lib/home/cliente-del-hub";
 import { guardaMiNombre, hayCambioDeNombre } from "@/lib/profile-name";
 import { mensajeDeContrasena, validaCambioDeContrasena, type CodigoContrasena, type MotivoDebil } from "@/lib/profile-password";
 import { PasswordInput } from "@/components/PasswordInput";
@@ -96,6 +96,7 @@ function CambiarNombre({ id, nombre }: { id: string; nombre: string | null }) {
 
   const guardar = async () => {
     if (!hayCambioDeNombre(nombre, valor)) return;
+    if (process.env.NEXT_PUBLIC_LOCAL_MODE === "true") { setAviso({ texto: t("Not available in the demo.", "No disponible en el demo."), ok: false }); return; }
     setAviso(null);
     setOcupado(true);
     try {
@@ -153,6 +154,7 @@ function CambiarContrasena() {
       setAviso({ texto: mensajeDeContrasena(invalido, t), ok: false });
       return;
     }
+    if (process.env.NEXT_PUBLIC_LOCAL_MODE === "true") { setAviso({ texto: t("Not available in the demo.", "No disponible en el demo."), ok: false }); return; }
     setOcupado(true);
     try {
       const r = await fetch("/api/profile/password", {
