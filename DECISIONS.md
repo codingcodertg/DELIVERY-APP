@@ -51272,3 +51272,11 @@ La Fase A (D-944) ya decía quién estaba en vivo y desde qué cliente; esto sub
 Cómo: el latido que cada app manda a `/api/security/seen` lleva ahora la ruta actual, y se reavisa al cambiar de pantalla (antes solo al cargar y cada diez minutos; ahora cada dos, más al navegar). La migración 278 agregó `security_device_users.last_route` y un séptimo parámetro opcional a `security_touch_device`; por ser opcional, la app vieja siguió funcionando mientras tanto. Seguridad lee esa ruta, la traduce a módulo con `appForPath` (el fichaje cuenta como Time Tracker; el hub y la propia pantalla de Seguridad no son un módulo y caen al cliente), y el administrador de permisos muestra el módulo en la lista, en el detalle y en la matriz. Si no hay ruta todavía, se cae al cliente como en la Fase A.
 
 Sello `deliveries` 1.579.0; `security` 0.15.0; repo 1.799.0.
+
+## D-946 · El administrador de permisos se mueve de Seguridad a RR. HH.
+
+Pedido del dueño (9 nov): «ese tab de permisos muévelo al HR mejor». El administrador de permisos (D-944), que vivía en una sección de Seguridad, pasa a ser una pestaña **Permisos** dentro de RR. HH. (grupo HR, solo admin; la página recomprueba que sea admin del hub). De Seguridad se quita la sección, la entrada de la barra de salto y las lecturas que solo servían para eso.
+
+Para que el panel se pueda colocar donde sea sin que cada página lea la base, ahora es **autónomo**: pide él mismo el «en vivo» a un endpoint nuevo `GET /api/security/vivo` (solo admin, misma RLS de la 229). El cálculo de «quién está en vivo y en qué módulo» salió a `src/lib/security/vivo-de-usuarios.ts` (puro, con `appForPath` y `versionDeApp`), que lee `security_device_users.last_route` (278) y `security_devices`. Así el panel solo necesita el perfil del admin, que RR. HH. ya pasa por su proveedor (el mismo que monta «Permisos» en el expediente).
+
+Sello `deliveries` 1.580.0; `recruiting` 0.81.0; `security` 0.16.0; repo 1.800.0.

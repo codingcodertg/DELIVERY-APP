@@ -10,7 +10,7 @@ describe("D-704: RR. HH. en dos menús", () => {
     expect(g).toEqual({
       today: "recruiting", calls: "recruiting", candidates: "recruiting", board: "recruiting", outcomes: "recruiting",
       questions: "recruiting", metrics: "recruiting", calendar: "recruiting",
-      employees: "hr", assets: "hr", settings: null,
+      employees: "hr", assets: "hr", permisos: "hr", settings: null,
     });
   });
 
@@ -22,7 +22,7 @@ describe("D-704: RR. HH. en dos menús", () => {
   it("el admin de RR. HH. ve los dos menús enteros", () => {
     const m = menusDeRrhh(TABS, "admin");
     expect(m.grupos.map((g) => g.grupo)).toEqual(["recruiting", "hr"]);
-    expect(ids(m.grupos[1].items)).toEqual(["employees", "assets"]);
+    expect(ids(m.grupos[1].items)).toEqual(["employees", "assets", "permisos"]);
     expect(ids(m.grupos[0].items)).toHaveLength(8);
     expect(ids(m.sueltas)).toEqual(["settings"]);
   });

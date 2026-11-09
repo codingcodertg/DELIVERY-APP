@@ -73,6 +73,8 @@ export const TABS: { id: string; label: string; href: string; adminOnly?: boolea
   { id: "employees", label: "👤 Employees", href: "/recruiting/employees", roles: ["admin", "manager"], grupo: "hr" },
   // D-730: los correos y números que paga la empresa, con su estado y quién los tiene.
   { id: "assets", label: "🧰 Company assets", href: "/recruiting/assets", roles: ["admin", "manager"], grupo: "hr" },
+  // D-946: el administrador de permisos se movió aquí desde Seguridad. Solo el admin (del hub; la página lo recomprueba).
+  { id: "permisos", label: "🛡 Permissions", href: "/recruiting/permisos", roles: ["admin"], grupo: "hr" },
   // D-694 puso aquí «Crear usuarios»; D-720 la quitó: la cuenta y los permisos se dan desde el expediente («Permisos»).
   { id: "candidates", label: "👥 Candidates", href: "/recruiting", grupo: "recruiting" },
   { id: "board", label: "🗂 Board", href: "/recruiting/board", grupo: "recruiting" },
