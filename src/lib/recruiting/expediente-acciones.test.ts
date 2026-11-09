@@ -170,7 +170,7 @@ describe("«Quitar también el acceso al hub» y «Reactivar no lo devuelve»", 
 
   it("D-709: con cuenta, la baja SIEMPRE apaga la cuenta y libera el correo, en ese orden", () => {
     const cuerpo = accion("deactivateEmployee");
-    expect(cuerpo).toContain("if (!file.profile_id) { await anotaBaja(false); return { ok: true, sinMotivo, accesoQuitado: false }; }"); // D-734: la baja queda en el historial
+    expect(cuerpo).toContain("if (!file.profile_id) { await anotaBaja(false); return { ok: true, sinMotivo, accesoQuitado: false, quitFormGuardado }; }"); // D-734: la baja queda en el historial
     expect(cuerpo).not.toContain("quitarAcceso");
     expect(cuerpo.indexOf("ponAcceso(file.profile_id as string, false)")).toBeGreaterThan(-1);
     expect(cuerpo.indexOf("liberaCredenciales(file.profile_id as string)")).toBeGreaterThan(cuerpo.indexOf("ponAcceso(file.profile_id as string, false)"));

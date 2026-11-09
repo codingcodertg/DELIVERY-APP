@@ -34,6 +34,8 @@ import { COLUMNAS_DE_EMPLEADOS, coincideBusqueda, tablaParaExportar, valorDeEmpl
 import { COLUMNAS_207, OPCIONES_1PW, TIENDA_REMOTA, alternaPuesto, costoMensual, dinero, hayCambios, parcheDeTienda, puestosParaElegir, tienePuesto, tiendaDelSelector } from "@/lib/recruiting/employee-file";
 import { PermisosDelEmpleado } from "@/components/recruiting/PermisosDelEmpleado";
 import { ActivosDelEmpleado } from "@/components/recruiting/ActivosDelEmpleado";
+import { ChecklistDelEmpleado } from "@/components/recruiting/ChecklistDelEmpleado";
+import { QuitFormDelEmpleado } from "@/components/recruiting/QuitFormDelEmpleado";
 import { HistorialDeRrhh } from "@/components/recruiting/HistorialDeRrhh";
 import { ConfirmarConMotivo } from "@/components/recruiting/ConfirmarConMotivo";
 import { revisaUsuarioNuevo } from "@/lib/cambio-de-usuario";
@@ -961,8 +963,18 @@ function Ficha({
       {/* LA CUENTA DEL HUB. Estado leído de Auth, y el botón que quita o devuelve el acceso. Reactivar a
           alguien no lo devuelve: este es el único sitio que lo hace. */}
       {/* D-730: el correo y el número de la empresa que tiene esta persona, y asignar entre los disponibles. */}
+      {/* D-934: pasos del alta y la baja (onboarding/offboarding), marcables, con quién y cuándo. */}
+      <Seccion id="checklist" titulo={t("ONBOARDING / OFFBOARDING", "ALTA / BAJA")}>
+        <ChecklistDelEmpleado employeeId={persona.id} faseInicial={deBaja ? "offboarding" : "onboarding"} />
+      </Seccion>
+
       <Seccion id="activos" titulo={t("COMPANY ASSETS", "ACTIVOS DE LA EMPRESA")}>
-        <ActivosDelEmpleado employeeId={persona.id} deBaja={deBaja} />
+        <ActivosDelEmpleado employeeId={persona.id} deBaja={deBaja} puesto={persona.job_title} esAdmin={puedeBaja} />
+      </Seccion>
+
+      {/* D-935: el formulario de renuncia (quit form) firmado, con el motivo, para protegerse de reclamos de desempleo. */}
+      <Seccion id="quit-form" titulo={t("QUIT FORM", "FORMULARIO DE RENUNCIA")}>
+        <QuitFormDelEmpleado employeeId={persona.id} />
       </Seccion>
 
       {/* D-734: lo que pasó con esta persona: bajas, altas, acceso al hub y sus activos, con quién, cuándo y por qué. */}

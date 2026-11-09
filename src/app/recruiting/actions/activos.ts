@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { parcheAsignar, parcheLiberar, valorDeActivo, type Activo, type EstadoDeActivo, type TipoDeActivo, type TipoDeTelefono } from "@/lib/recruiting/activos";
+import { parcheReasignar } from "@/lib/recruiting/activos-por-puesto";
 import { anotaEnHistorial } from "@/lib/recruiting/historial-escribe";
 import { cambiosDeActivo, detalleDeCambios, motivoValido, textoDeActivoParaHistorial } from "@/lib/recruiting/historial";
 
@@ -37,8 +38,15 @@ function fila(f: Record<string, unknown>, nombres: Map<string, string>): Activo 
     status: f.status as EstadoDeActivo, employee_id: txt(f.employee_id), employee_name: f.employee_id ? (nombres.get(String(f.employee_id)) ?? null) : null,
     last_employee_id: txt(f.last_employee_id), last_employee_name: f.last_employee_id ? (nombres.get(String(f.last_employee_id)) ?? null) : null,
     plan: txt(f.plan), cost_year: typeof f.cost_year === "number" ? f.cost_year : f.cost_year != null ? Number(f.cost_year) : null,
-    note: txt(f.note), updated_at: txt(f.updated_at),
+    note: txt(f.note), position: txt(f.position), updated_at: txt(f.updated_at),
   };
+}
+
+/** El puesto de un expediente, para marcar el activo al asignarlo y poder sugerirlo luego por puesto (D-936). Null si la 159 no está o el expediente no tiene puesto. */
+async function puestoDelExpediente(supabase: Awaited<ReturnType<typeof createClient>>, employeeId: string): Promise<string | null> {
+  const { data } = await supabase.schema("recruiting").from("employee_files").select("job_title").eq("id", employeeId).maybeSingle();
+  const p = (data?.job_title as string | null) ?? null;
+  return (p ?? "").trim() || null;
 }
 
 export async function listAssets(): Promise<{ ok: true; rows: Activo[]; personas: { id: string; full_name: string; date_left: string | null }[] } | { ok: false; message: string; sinTabla: boolean }> {
@@ -146,7 +154,14 @@ export async function assignAsset(assetId: string, employeeId: string): Promise<
   if (!parche) return { ok: false, message: "Only an available asset can be assigned." };
   const { data: ya } = await tabla().select("id").eq("employee_id", employeeId).eq("kind", a.kind).eq("status", "assigned").limit(1);
   if (ya?.length) return { ok: false, message: a.kind === "email" ? "This person already has an email assigned. Release it first." : "This person already has a phone number assigned. Release it first." };
-  const { data, error } = await tabla().update({ ...parche, updated_at: new Date().toISOString(), updated_by: yo.userId }).eq("id", assetId).eq("status", "available").select("id");
+  // D-936 (277): al asignar se marca el puesto del expediente, para poder sugerir el activo cuando entre el relevo del
+  // mismo puesto. Sin la 277 la columna no existe: se reintenta sin ella y la asignación sigue igual.
+  const puesto = await puestoDelExpediente(supabase, employeeId);
+  const sello = { updated_at: new Date().toISOString(), updated_by: yo.userId };
+  let { data, error } = await tabla().update({ ...parche, position: puesto, ...sello }).eq("id", assetId).eq("status", "available").select("id");
+  if (error && (error.code === "42703" || error.code === "PGRST204")) {
+    ({ data, error } = await tabla().update({ ...parche, ...sello }).eq("id", assetId).eq("status", "available").select("id"));
+  }
   if (error) return { ok: false, message: error.message };
   if (!data?.length) return { ok: false, message: "That asset is no longer available." };
   await anotaEnHistorial(supabase, yo.userId, {
@@ -179,6 +194,45 @@ export async function releaseAsset(assetId: string, estado?: EstadoDeActivo, mot
     employeeId: (a.employee_id as string | null) ?? (a.last_employee_id as string | null) ?? null, assetId,
     assetText: textoDeActivoParaHistorial({ kind: a.kind as TipoDeActivo, value: String(a.value), ext: a.ext as string | null }),
     reason: motivo, detail: `${a.status} → ${parche.status}`, data: { de: a.status, a: parche.status },
+  });
+  return { ok: true };
+}
+
+/**
+ * Reasignar por puesto un activo que quedó LIBRE (D-936): de quien se fue a quien entra. Solo el admin de RR. HH. (no el
+ * gerente), como el resto de la baja (D-251). Toma un activo no asignado (disponible, sin uso o pendiente de respaldo), lo
+ * pasa a «asignado» con el nuevo empleado y marca su puesto; queda en el historial como «Reasignado», con de quién venía.
+ */
+export async function reasignarActivo(assetId: string, nuevoEmpleadoId: string): Promise<{ ok: boolean; message?: string }> {
+  const supabase = await createClient();
+  const yo = await quien(supabase);
+  // Reasignar es del admin de RR. HH., no de los gerentes.
+  if (!yo || yo.role !== "admin") return { ok: false, message: "Only an HR admin can reassign an asset." };
+  const tabla = () => supabase.schema("recruiting").from("company_assets");
+  const { data: a, error: e1 } = await tabla().select("id, kind, status, value, ext, last_employee_id, position").eq("id", assetId).maybeSingle();
+  if (e1) return { ok: false, message: e1.message };
+  if (!a) return { ok: false, message: "No such asset." };
+  const puesto = await puestoDelExpediente(supabase, nuevoEmpleadoId);
+  const parche = parcheReasignar({ status: a.status as EstadoDeActivo, position: (a.position as string | null) ?? null }, nuevoEmpleadoId, puesto);
+  if (!parche) return { ok: false, message: "That asset is assigned to someone. Release it first." };
+  // Una persona tiene a lo más un correo y un número a la vez, como al asignar.
+  const { data: ya } = await tabla().select("id").eq("employee_id", nuevoEmpleadoId).eq("kind", a.kind).eq("status", "assigned").limit(1);
+  if (ya?.length) return { ok: false, message: a.kind === "email" ? "This person already has an email assigned. Release it first." : "This person already has a phone number assigned. Release it first." };
+  const deQuien = (a.last_employee_id as string | null) ?? null;
+  const sello = { updated_at: new Date().toISOString(), updated_by: yo.userId };
+  let { data, error } = await tabla().update({ ...parche, ...sello }).eq("id", assetId).neq("status", "assigned").select("id");
+  if (error && (error.code === "42703" || error.code === "PGRST204")) {
+    // Sin la 277 no hay `position`: se reasigna igual, sin marcar el puesto.
+    const { position: _omit, ...sinPuesto } = parche;
+    ({ data, error } = await tabla().update({ ...sinPuesto, ...sello }).eq("id", assetId).neq("status", "assigned").select("id"));
+  }
+  if (error) return { ok: false, message: error.message };
+  if (!data?.length) return { ok: false, message: "That asset is no longer free to reassign." };
+  await anotaEnHistorial(supabase, yo.userId, {
+    kind: "asset_reassigned", employeeId: nuevoEmpleadoId, assetId,
+    assetText: textoDeActivoParaHistorial({ kind: a.kind as TipoDeActivo, value: String(a.value), ext: a.ext as string | null }),
+    detail: deQuien ? `from a previous holder · ${a.status} → assigned` : `${a.status} → assigned`,
+    data: { de_last_employee_id: deQuien, position: parche.position ?? null },
   });
   return { ok: true };
 }

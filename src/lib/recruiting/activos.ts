@@ -34,6 +34,8 @@ export interface Activo {
   plan: string | null;
   cost_year: number | null;
   note: string | null;
+  /** D-936 (277): el puesto al que pertenece el activo (p. ej. «accounts receivable»), para sugerir reasignación. */
+  position?: string | null;
   updated_at: string | null;
 }
 

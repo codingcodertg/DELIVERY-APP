@@ -14,6 +14,8 @@ export const KINDS = [
   "hub_access_removed", "hub_access_restored",
   "asset_created", "asset_edited", "asset_deleted", "asset_assigned", "asset_released", "asset_released_on_leaving",
   "asset_backed_up", "asset_status_changed",
+  // D-936 (277): reasignar por puesto un activo que quedó libre (de quien se fue a quien entra).
+  "asset_reassigned",
   // D-806 (227): la amonestación, dada por el admin o el gerente de RR. HH.; el motivo va en `reason`, la nota en `detail`.
   "employee_warning",
   // D-807 (228): la reprimenda, el grado siguiente; mismo sitio, mismos permisos.
@@ -70,6 +72,7 @@ const ETIQUETAS: Record<TipoDeHistorial, { en: string; es: string }> = {
   asset_released_on_leaving: { en: "Released (deactivation)", es: "Liberado (baja)" },
   asset_backed_up: { en: "Backed up", es: "Respaldado" },
   asset_status_changed: { en: "Status changed", es: "Estado cambiado" },
+  asset_reassigned: { en: "Reassigned", es: "Reasignado" },
   employee_warning: { en: "Warning", es: "Amonestación" },
   employee_reprimand: { en: "Reprimand", es: "Reprimenda" },
   employee_insubordination: { en: "Insubordination (warehouse)", es: "Insubordinación (almacén)" },

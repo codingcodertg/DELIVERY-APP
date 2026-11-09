@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { AVISO_DEMO, MODO_DEMO } from "@/lib/recruiting/modo-demo";
 import { useData } from "@/lib/recruiting-data-provider";
-import { assignAsset, listAssets, releaseAsset } from "@/app/recruiting/actions/activos";
+import { assignAsset, listAssets, reasignarActivo, releaseAsset } from "@/app/recruiting/actions/activos";
 import { etiquetaDeTipoDeTelefono, libres, losDe, textoDeTelefono, type Activo, type TipoDeActivo } from "@/lib/recruiting/activos";
+import { activosDelPuesto } from "@/lib/recruiting/activos-por-puesto";
 import { ConfirmarConMotivo } from "@/components/recruiting/ConfirmarConMotivo";
 
 /**
@@ -13,7 +14,7 @@ import { ConfirmarConMotivo } from "@/components/recruiting/ConfirmarConMotivo";
  * para asignar, un desplegable con SOLO los disponibles de cada tipo. El dueño: «From an employee's profile I can pick an
  * available email and/or phone number and assign it. Only available assets show up when assigning».
  */
-export function ActivosDelEmpleado({ employeeId, deBaja }: { employeeId: string; deBaja: boolean }) {
+export function ActivosDelEmpleado({ employeeId, deBaja, puesto, esAdmin }: { employeeId: string; deBaja: boolean; puesto?: string | null; esAdmin?: boolean }) {
   const { t, lang } = usePrefs();
   const { notify } = useData();
   const [activos, setActivos] = useState<Activo[] | null>(null);
@@ -43,6 +44,10 @@ export function ActivosDelEmpleado({ employeeId, deBaja }: { employeeId: string;
   if (activos === null) return <div className="hint">{t("Loading…", "Cargando…")}</div>;
   if (sinTabla) return <div className="hint" data-aviso="211">{t("Migration 211 is not applied yet.", "Falta aplicar la migración 211.")}</div>;
   const suyos = losDe(activos, employeeId);
+  // D-936: los activos LIBRES del mismo puesto (p. ej. «accounts receivable»), para reasignarlos de un clic al que entra.
+  // Solo del admin de RR. HH., y solo si la persona no está de baja y ya no tiene ese tipo asignado.
+  const delPuesto = esAdmin && !deBaja ? activosDelPuesto(activos, puesto) : [];
+  const sugeridos = delPuesto.filter((a) => !suyos.some((s) => s.kind === a.kind));
 
   const fila = (kind: TipoDeActivo) => {
     const tiene = suyos.find((a) => a.kind === kind) ?? null;
@@ -84,6 +89,26 @@ export function ActivosDelEmpleado({ employeeId, deBaja }: { employeeId: string;
         {t("Releasing an email leaves it pending backup; releasing a number makes it available. Deactivating someone does the same automatically. Everything is kept in the HR history.",
            "Liberar un correo lo deja pendiente de respaldo; liberar un número lo deja disponible. Dar de baja hace lo mismo solo. Todo queda en el historial de RR. HH.")}
       </p>
+      {sugeridos.length > 0 && (
+        <div className="card" data-bloque="activos-del-puesto" style={{ marginTop: 6 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>
+            🔁 {t("Available assets from this position", "Activos disponibles de este puesto")}{puesto ? ` · ${puesto}` : ""}
+          </div>
+          {sugeridos.map((a) => (
+            <div key={a.id} className="mini-row" data-sugerido={a.id} style={{ alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span>{a.kind === "email" ? "✉️ " : "📞 "}{a.kind === "phone" ? `${textoDeTelefono(a)} · ${etiquetaDeTipoDeTelefono(a.phone_type, lang)}` : a.value}</span>
+              <button className="btn btn-primary btn-sm" data-accion="reasignar-activo" disabled={busy}
+                onClick={() => void corre(() => reasignarActivo(a.id, employeeId))}>
+                {t("Reassign", "Reasignar")}
+              </button>
+            </div>
+          ))}
+          <p className="hint">
+            {t("Freed email / number / extension from someone who left this position. Reassigning is HR-admin only.",
+               "Correo / número / extensión que quedaron libres de quien dejó este puesto. Reasignar es solo del admin de RR. HH.")}
+          </p>
+        </div>
+      )}
       {liberando && (
         <ConfirmarConMotivo
           titulo={`${t("Release", "Liberar")} ${liberando.kind === "phone" ? textoDeTelefono(liberando) : liberando.value}?`}

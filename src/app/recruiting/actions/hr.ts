@@ -19,6 +19,7 @@ import { duenoDelCorreo, esCorreoValido, normalizaCorreo } from "@/lib/recruitin
 import { anotaEnHistorial } from "@/lib/recruiting/historial-escribe";
 import { textoDeActivoParaHistorial } from "@/lib/recruiting/historial";
 import type { FilaHoras, FilaLote, FilaTalon } from "@/lib/recruiting/horas-del-expediente";
+import { revisaQuitForm, type DatosQuitForm } from "@/lib/recruiting/quit-form";
 
 /**
  * El expediente de RR. HH. (D-145).
@@ -513,8 +514,8 @@ async function liberaCredenciales(profileId: string): Promise<{ ok: true; libera
  */
 export async function deactivateEmployee(
   fileId: string,
-  datos: { fecha?: string | null; motivo?: string | null; nota?: string | null } = {},
-): Promise<{ ok: boolean; message?: string; sinMotivo?: boolean; accesoQuitado?: boolean; liberadas?: CredencialesLiberadas | null }> {
+  datos: { fecha?: string | null; motivo?: string | null; nota?: string | null; quitForm?: DatosQuitForm | null } = {},
+): Promise<{ ok: boolean; message?: string; sinMotivo?: boolean; accesoQuitado?: boolean; liberadas?: CredencialesLiberadas | null; quitFormGuardado?: boolean }> {
   const acceso = await comoAdminDeHr();
   if (!acceso.ok) return acceso;
   const { supabase, userId } = acceso;
@@ -551,8 +552,25 @@ export async function deactivateEmployee(
   // D-730: sus activos de la empresa: el correo queda «pendiente de respaldo», el número vuelve a «disponible».
   await liberaActivosDeLaBaja(supabase, fileId, userId);
 
+  // D-935: si la baja trae el formulario de renuncia, se guarda aquí mismo. No hunde la baja: si falla, la baja ya está
+  // hecha y el quit form se puede capturar después desde el expediente.
+  let quitFormGuardado = false;
+  if (datos.quitForm) {
+    const rev = revisaQuitForm(datos.quitForm);
+    if (rev.ok) {
+      const { data: actor } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+      const ahora = new Date().toISOString();
+      const { error: eQf } = await supabase.schema("recruiting").from("quit_forms").insert({
+        employee_file_id: fileId, reason: rev.motivo, note: rev.nota, signed_name: rev.firmaNombre,
+        signed_at: rev.firmaFecha, photo_path: rev.fotoPath, created_by: userId,
+        created_by_name: actor?.full_name ?? null, created_at: ahora, updated_at: ahora, updated_by: userId,
+      });
+      quitFormGuardado = !eQf;
+    }
+  }
+
   // D-709: con cuenta, la baja SIEMPRE quita el acceso y libera el correo; ya no es una casilla.
-  if (!file.profile_id) { await anotaBaja(false); return { ok: true, sinMotivo, accesoQuitado: false }; }
+  if (!file.profile_id) { await anotaBaja(false); return { ok: true, sinMotivo, accesoQuitado: false, quitFormGuardado }; }
   const ban = await ponAcceso(file.profile_id as string, false);
   if (!ban.ok) return { ok: false, sinMotivo, message: `Marked as left, but the account could not be disabled: ${ban.message}` };
   const lib = await liberaCredenciales(file.profile_id as string);
@@ -562,7 +580,7 @@ export async function deactivateEmployee(
     await tabla().update({ left_note: nota }).eq("id", fileId);
   }
   await anotaBaja(true);
-  return { ok: true, sinMotivo, accesoQuitado: true, liberadas: lib.liberadas };
+  return { ok: true, sinMotivo, accesoQuitado: true, liberadas: lib.liberadas, quitFormGuardado };
 }
 
 /**
