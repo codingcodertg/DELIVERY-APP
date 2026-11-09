@@ -40,7 +40,7 @@ async function clienteReal() {
   );
 }
 
-/** El cliente de las pantallas y acciones de `/erp/**`. Con la bandera apagada es el real; en el demo (D-NEXT), el de la semilla. */
+/** El cliente de las pantallas y acciones de `/erp/**`. Con la bandera apagada es el real; en el demo (D-941), el de la semilla. */
 export async function createClient(): ReturnType<typeof clienteReal> {
   if (LOCAL_MODE) return clienteDemoDelErp(new Date()) as unknown as Awaited<ReturnType<typeof clienteReal>>;
   return clienteReal();

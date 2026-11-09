@@ -31,7 +31,7 @@ export async function rejectDaltileMatch(refId: number) {
 }
 
 /**
- * El demo (D-NEXT): los dos botones de /erp/review/daltile son un `<form action>`, sin sitio donde enseñar un fallo; lanzar
+ * El demo (D-941): los dos botones de /erp/review/daltile son un `<form action>`, sin sitio donde enseñar un fallo; lanzar
  * el aviso cae en la frontera de error, que dice «No se pudo leer tu perfil». Vuelve a la pantalla con el aviso puesto.
  */
 export async function avisoDaltileDelDemo(): Promise<void> {

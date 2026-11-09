@@ -1,7 +1,7 @@
 import { AVISO_DEL_DEMO, PERFIL_ERP_DEMO, rpcsDemoErp, tablasDemoErp, type Fila } from "@/lib/erp/demo-data";
 
 /**
- * El cliente de Supabase de mentira de Inventario en el demo (D-NEXT), calcado del del Hub (D-940): las lecturas contestan
+ * El cliente de Supabase de mentira de Inventario en el demo (D-941), calcado del del Hub (D-940): las lecturas contestan
  * con la semilla y las escrituras —tablas, funciones y archivos— con `AVISO_DEL_DEMO`, sin red. Los filtros se aplican de
  * verdad, porque en el manual se busca, se filtra y se ordena: un catálogo que no filtra enseñaría una pantalla falsa.
  */

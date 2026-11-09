@@ -54,7 +54,7 @@ function clienteReal() {
   });
 }
 
-/** Con la bandera apagada, el de servicio; en el demo (D-NEXT), el de la semilla: subir y firmar archivos contesta el aviso. */
+/** Con la bandera apagada, el de servicio; en el demo (D-941), el de la semilla: subir y firmar archivos contesta el aviso. */
 export function createAdminClient(): ReturnType<typeof clienteReal> {
   if (LOCAL_MODE) return clienteDemoDelErp(new Date()) as unknown as ReturnType<typeof clienteReal>;
   return clienteReal();

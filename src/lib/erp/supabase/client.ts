@@ -40,7 +40,7 @@ function clienteReal() {
   );
 }
 
-/** El de las pantallas de cliente de `/erp/**`. Con la bandera apagada es el real; en el demo (D-NEXT), el de la semilla. */
+/** El de las pantallas de cliente de `/erp/**`. Con la bandera apagada es el real; en el demo (D-941), el de la semilla. */
 export function createClient(): ReturnType<typeof clienteReal> {
   if (LOCAL_MODE) return clienteDemoDelErp(new Date()) as unknown as ReturnType<typeof clienteReal>;
   return clienteReal();

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { CAMPOS, COLUMNAS, filasDelLado, LADO_DE_JUNTAR, type Cliente } from "@/lib/customers/reglas";
 import { CLIENTES_DEMO } from "@/lib/customers/demo";
 
-// D-NEXT · Inventario en el demo (`NEXT_PUBLIC_LOCAL_MODE`). El dueño, 2026-11-09: «pero quiero que sea de todo, todas las
+// D-941 · Inventario en el demo (`NEXT_PUBLIC_LOCAL_MODE`). El dueño, 2026-11-09: «pero quiero que sea de todo, todas las
 // appas y todos los procedimientos». Las páginas de servidor no ramifican una a una: todas toman `createClient()` de
 // `lib/erp/supabase/*`, y ESA es la rama. Aquí se afirma que la rama va delante y que ninguna pantalla la salta.
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");

@@ -1,5 +1,5 @@
 /**
- * La semilla del modo demo de Inventario (D-NEXT): datos INVENTADOS, ni una tienda, proveedor ni cliente real. Pura y sin
+ * La semilla del modo demo de Inventario (D-941): datos INVENTADOS, ni una tienda, proveedor ni cliente real. Pura y sin
  * azar: la fecha entra por argumento, así una captura de hoy y otra de mañana enseñan lo mismo y las pruebas la fijan.
  *
  * Los agregados (panel, facetas, analítica, reorden) se CALCULAN de los productos, no se escriben a mano: lo que dice el

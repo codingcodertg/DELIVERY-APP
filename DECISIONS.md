@@ -51213,7 +51213,7 @@ El dueño, 2026-11-09: «pero quiero que sea de todo, todas las appas y todos lo
 
 Sello `deliveries` 1.575.0; repo 1.794.0.
 
-## D-NEXT · Inventario: modo demo (sin base ni sesión) para el manual
+## D-941 · Inventario: modo demo (sin base ni sesión) para el manual
 
 El dueño, 2026-11-09: «pero quiero que sea de todo, todas las appas y todos los procedimientos». Inventario (`/erp/**`, 24 rutas) mandaba al login sin Supabase, y el manual de uso se captura contra el demo (`NEXT_PUBLIC_LOCAL_MODE=true`). Con la bandera apagada, producción no cambia: las ramas reales quedan intactas.
 
@@ -51227,4 +51227,4 @@ El dueño, 2026-11-09: «pero quiero que sea de todo, todas las appas y todos lo
 
 **Qué queda fuera.** Las fuentes de Google (`fonts.googleapis.com`, del layout raíz de toda la app) siguen pidiéndose en el demo; no es Supabase ni es de Inventario. `Salespeople` no enseña números porque la pantalla real tampoco (espera al POS). Sin fotos de producto: `image_url` nulo y el marcador de la propia pantalla, para no pedir nada a la red. Importar ficheros en Inventario (Excel, CSV, PO) llega hasta donde escribe y ahí contesta el aviso; no hay vista previa con datos de ejemplo.
 
-Sello `erp` D-NEXT; repo D-NEXT.
+Sello `erp` 0.26.0; repo 1.795.0.
