@@ -51192,3 +51192,11 @@ Sello `recruiting` 0.80.0; repo 1.791.0.
 Lo marcó la revisión de seguridad. Al conceder varios módulos a la vez (p.ej. «Dar los 8 de gerente» o cambios en bloque) cada escritura partía de la lista vieja y pisaba las anteriores, guardando solo el último. Ahora los permisos de cada persona se leen frescos de la base y todos los cambios van en una sola escritura por usuario. Además, si alguien quedó con el rol de RR.HH. o Time Tracker pero sin el módulo marcado, la pantalla lo muestra como que sí lo tiene y deja revocarlo.
 
 Sello `deliveries` 1.573.0; repo 1.792.0.
+
+## D-939 · Hub: al entrar, por defecto todos caen primero en el hub (no directo a su app)
+
+Pedido del dueño (9 nov): «cuando alguien entra al app que caiga en el hub primero». Antes, quien tenía un solo módulo entraba directo a esa app y solo con dos o más veía el selector; ahora todo el que pueda llegar al hub empieza ahí y desde ahí elige. Las únicas excepciones siguen siendo el chofer —va directo a su ruta, su trabajo es manejar, no elegir— y quien no tiene ningún módulo, que va a la pantalla de «sin acceso». La regla vive en un solo sitio (`landingRoute`), apoyada en `canReachHub`, que ya garantiza que el hub nunca es un callejón sin salida (el directorio de la compañía espera a todos).
+
+De paso, arregla dos pruebas que `main` traía en rojo desde D-938: el conteo de escrituras del provider (ahora doce, por `updateUserModules`) y la pantalla «Usuarios y permisos», que tenía burbuja de Ayuda sin nombre en el mapa de ubicaciones.
+
+Sello `deliveries` 1.574.0; repo 1.793.0.

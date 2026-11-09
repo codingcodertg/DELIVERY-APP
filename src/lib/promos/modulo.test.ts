@@ -55,8 +55,8 @@ describe("dónde aterriza quien lo tiene", () => {
     expect(accessibleModules(["promos", "deliveries"])[0].key).toBe("deliveries");
   });
 
-  it("con SOLO promociones se entra directo, y con dos módulos al selector", () => {
-    expect(landingRoute({ role: "manager", module_access: ["promos"] })).toBe("/promos");
+  it("cae en el hub primero (pedido del dueño), con uno o con dos módulos", () => {
+    expect(landingRoute({ role: "manager", module_access: ["promos"] })).toBe("/home");
     expect(landingRoute({ role: "manager", module_access: ["deliveries", "promos"] })).toBe("/home");
   });
 

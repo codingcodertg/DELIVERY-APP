@@ -34,8 +34,8 @@ describe("la tarjeta y la casilla", () => {
   it("knownModules no la tira al escribir (D-217)", () => {
     expect(knownModules(["clockin", "leads"])).toEqual(["leads"]);
   });
-  it("con solo Leads se entra directo; con dos, al hub", () => {
-    expect(landingRoute({ role: "sales", module_access: ["leads"] })).toBe("/leads");
+  it("cae en el hub primero (pedido del dueño), con uno o con dos módulos", () => {
+    expect(landingRoute({ role: "sales", module_access: ["leads"] })).toBe("/home");
     expect(landingRoute({ role: "sales", module_access: ["deliveries", "leads"] })).toBe("/home");
   });
   it("el diálogo de Usuarios escribe por su propia función y no reclama rol", () => {

@@ -220,6 +220,7 @@ export const APPS_DEL_MAPA: AppDelMapa[] = [
       "my-route/mapa": b("My route · Map", "Mi ruta · Mapa"),
       account: b("My account", "Mi cuenta"),
       settings: b("Settings", "Ajustes"),
+      "settings/usuarios-permisos": b("Users & permissions", "Usuarios y permisos"),
       users: b("Users", "Usuarios"),
       summary: b("Summary", "Resumen"),
     },

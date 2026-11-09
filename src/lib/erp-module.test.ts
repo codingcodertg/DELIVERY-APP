@@ -35,8 +35,8 @@ describe("ERP module wiring", () => {
     expect(landingRoute({ role: "admin", module_access: ["deliveries", "erp"] })).toBe("/home");
   });
 
-  it("con SOLO el ERP se entra directo al ERP", () => {
-    expect(landingRoute({ role: "admin", module_access: ["erp"] })).toBe("/erp/catalog");
+  it("con SOLO el ERP ahora cae en el hub primero (pedido del dueño)", () => {
+    expect(landingRoute({ role: "admin", module_access: ["erp"] })).toBe("/home");
   });
 
   it("no le cambia el aterrizaje a un chofer que tenga Entregas", () => {

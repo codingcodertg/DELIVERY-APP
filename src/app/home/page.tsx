@@ -13,9 +13,11 @@ import { CABECERA_DISPOSITIVO, appsEnElTelefono, dispositivoDeLaPeticion, type P
 // The hub. Landing here automatically vs. being ALLOWED to visit are two
 // different questions now (D-056) — they used to be the same one.
 //
-// landingRoute() still answers "where do you land after login", unchanged:
-// an admin with only deliveries still lands on `/` directly, exactly as
-// before. `hasReasonToBeHere` below is the new, separate question — "is
+// landingRoute() answers "where do you land after login". Desde el pedido del
+// dueño (9 nov) ese destino es el hub para casi todos: quien pueda llegar aquí
+// empieza aquí y elige su app, en vez de caer directo en ella. El chofer es la
+// excepción (su ruta) y quien no tiene módulo va a /no-access.
+// `hasReasonToBeHere` below is the new, separate question — "is
 // there anything on this page for you if you navigate here on purpose" —
 // which an admin with 1 module now answers yes to (Users, in HUB_TOOLS)
 // even though their landing route is still their module, not here. Keeping

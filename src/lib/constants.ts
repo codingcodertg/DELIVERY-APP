@@ -352,10 +352,13 @@ export function landingRoute(me: { role: UserRole; module_access?: string[] | nu
   // Desde D-523 su ruta es «Mi ruta» (`roleHome`), no la lista de órdenes de `/driver`.
   if (me.role === "driver" && granted.includes("deliveries")) return roleHome("driver");
   if (granted.length > 1) return "/home";
-  // Un solo módulo: directo a él. Ya no se da por hecho que ese módulo sea Entregas
-  // (D-100) — alguien que solo ficha entra a fichar, no a un tablero de pedidos que
-  // la base le va a devolver vacío.
   if (granted.length === 1) {
+    // POR DEFECTO el hub primero (pedido del dueño, 9 nov): antes, con un solo módulo se
+    // entraba directo a esa app; ahora todo el que pueda llegar al hub empieza ahí y desde
+    // ahí elige. Como el hub nunca es un callejón sin salida (D-256, el directorio espera a
+    // todos), esto es seguro. El único que NO puede llegar es el chofer (canReachHub=false),
+    // y entonces sigue entrando directo a su único módulo — su trabajo es su app, no elegir.
+    if (canReachHub(me)) return "/home";
     if (granted[0] === "deliveries") return roleHome(me.role);
     const m = MODULES.find((x) => x.key === granted[0]);
     if (m) return m.href;

@@ -20,16 +20,14 @@ describe("landingRoute", () => {
     expect(landingRoute({ role: "sales", module_access: ["deliveries", "recruiting"] })).toBe("/home");
   });
 
-  it("con Entregas y nada más, al sitio que le toca por rol", () => {
-    expect(landingRoute({ role: "admin", module_access: ["deliveries"] })).toBe("/");
-    expect(landingRoute({ role: "manager", module_access: ["deliveries"] })).toBe("/");
-    expect(landingRoute({ role: "sales", module_access: ["deliveries"] })).toBe("/");
-    expect(landingRoute({ role: "warehouse", module_access: ["deliveries"] })).toBe("/warehouse");
-    expect(landingRoute({ role: "logistics", module_access: ["deliveries"] })).toBe("/routes");
-  });
-
-  it("con un solo módulo que NO es Entregas, entra directo a ese", () => {
-    expect(landingRoute({ role: "sales", module_access: ["timetracker"] })).toBe("/timetracker");
+  // Pedido del dueño (9 nov): por defecto TODOS caen en el hub primero, no en su app.
+  // La única excepción sigue siendo el chofer (arriba). El hub nunca es callejón sin
+  // salida (D-256), así que hasta quien tiene un solo módulo empieza ahí y elige.
+  it("por defecto, todos caen en el hub primero — también con un solo módulo", () => {
+    for (const role of ["admin", "manager", "sales", "warehouse", "logistics"] as const) {
+      expect(landingRoute({ role, module_access: ["deliveries"] })).toBe("/home");
+    }
+    expect(landingRoute({ role: "sales", module_access: ["timetracker"] })).toBe("/home");
   });
 
   it("sin ningún módulo, a la pantalla que lo explica — no a una vacía", () => {
@@ -126,16 +124,17 @@ describe("MODULE_ACCESS · fichaje ya no es un módulo aparte", () => {
     expect(MODULES.find((m) => m.key === "clockin")).toBeUndefined();
   });
 
-  it("quien solo tenía fichaje entra por Time Tracker, no a /no-access", () => {
+  it("quien solo tenía fichaje no acaba en /no-access por el cambio de nombre", () => {
     // Sin traducir la palabra vieja, un cambio de nombre echaría de la app a gente que
-    // sí tiene derecho a entrar.
-    expect(landingRoute({ role: "sales", module_access: ["clockin"] })).toBe("/timetracker");
+    // sí tiene derecho a entrar. Hoy cae en el hub (pedido del dueño), que ya le reconoce
+    // el módulo; lo que se protege aquí es que NO sea /no-access.
+    expect(landingRoute({ role: "sales", module_access: ["clockin"] })).toBe("/home");
     expect(accessibleModules(["clockin"]).map((m) => m.key)).toEqual(["timetracker"]);
   });
 
   it("y no la duplica si ya tenía las dos", () => {
     expect(accessibleModules(["clockin", "timetracker"]).map((m) => m.key)).toEqual(["timetracker"]);
-    expect(landingRoute({ role: "sales", module_access: ["clockin", "timetracker"] })).toBe("/timetracker");
+    expect(landingRoute({ role: "sales", module_access: ["clockin", "timetracker"] })).toBe("/home");
   });
 
   it("todo módulo sin escalafón trae su propia nota, no la de otro", () => {
