@@ -51214,3 +51214,17 @@ Segundo, el tab de Seguridad se reorganizó para que se vea limpio y se use ráp
 Nada de la seguridad de fondo cambió: misma RLS, mismo tiempo real, mismo demo y las mismas acciones del admin.
 
 Sello `deliveries` 1.575.0; repo 1.794.0.
+
+## D-941 · Seguridad: administrador de permisos con roles por app, y quién está en vivo
+
+Pedido del dueño (9 nov): un solo lugar para ver y poner los permisos de cada persona —y, al lado, en qué app está metida en vivo. La vista «Usuarios y Permisos» que se había sacado a standby (D-940) se reemplaza por esto, ya bien ubicada dentro de Seguridad.
+
+Dentro de Seguridad, nueva sección **Permisos** (solo admin), en dos vistas:
+- **Por persona:** lista buscable (con filtro «solo en vivo»); al elegir a alguien, su detalle con un interruptor por módulo y —lo importante— el **rol por app** para las que tienen escalafón propio: RR. HH. (`recruiting_role`), Time Tracker (`timetracker_role`), Inventario (`erp_role`) y Almacén (`warehouse_ops_role`). El rol de Entregas (identidad) también se edita ahí. Botón «Dar los 8 de gerente».
+- **Matriz:** todas las personas × los diez módulos, con una columna «En vivo».
+
+El «en vivo» de esta fase sale de lo que Seguridad ya sabe, sin migración: quién entró en la última hora y desde qué cliente (App de escritorio / Time Tracker / navegador). Saber el **módulo exacto** en vivo es la siguiente fase (necesita el latido con la ruta, migración 278, aparte).
+
+Todo se escribe con las funciones que ya existían del proveedor del hub (las mismas que usa el expediente de RR. HH.), con su RLS; esta vista solo decide qué tocar. El proveedor del hub se monta solo al abrir el administrador (D-693/695: montarlo siempre mató la memoria en Vercel). A un admin no se le quitan módulos (los tiene por su rol), pero sus roles por app (p. ej. el nivel de costo del Inventario, D-181) sí se ajustan.
+
+Sello `deliveries` 1.576.0; `security` 0.14.0; repo 1.795.0.
