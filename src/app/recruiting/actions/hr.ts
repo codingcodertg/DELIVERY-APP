@@ -15,6 +15,7 @@ import {
 import { LARGO_MAXIMO, aEncontrado, buscaEmpleados, type EmpleadoEncontrado, type EmpleadoParaBuscar } from "@/lib/recruiting/busqueda-global";
 import type { HechosDeCuenta } from "@/lib/recruiting/employee-file";
 import { parcheLiberar, type TipoDeActivo } from "@/lib/recruiting/activos";
+import { duenoDelCorreo, esCorreoValido, normalizaCorreo } from "@/lib/recruiting/correo-unico";
 import { anotaEnHistorial } from "@/lib/recruiting/historial-escribe";
 import { textoDeActivoParaHistorial } from "@/lib/recruiting/historial";
 import type { FilaHoras, FilaLote, FilaTalon } from "@/lib/recruiting/horas-del-expediente";
@@ -227,6 +228,61 @@ export async function getEmployeeDocs(employeeId: string): Promise<
   return { ok: true, docs: (data ?? []) as EmployeeDoc[] };
 }
 
+/**
+ * ¿El correo de trabajo ya es de otra persona? (arreglo de contratación.)
+ *
+ * Mira los correos de los expedientes (contacto, personal, segundo) y el de acceso de las cuentas (`profiles.email`),
+ * ignorando el propio expediente/cuenta que se esté editando. Devuelve quién lo tiene para decirlo con nombre. Es la
+ * misma comprobación que usan «Contratar» (antes de crear la cuenta) y «Guardar datos» del expediente.
+ */
+async function buscaDuenoDelCorreo(
+  supabase: Sb,
+  email: string,
+  opc: { exceptFileId?: string | null; exceptProfileId?: string | null } = {},
+): Promise<{ id: string; nombre: string } | null> {
+  const buscado = normalizaCorreo(email);
+  if (!esCorreoValido(buscado)) return null;
+
+  const { data: files } = await supabase.schema("recruiting").from("employee_files")
+    .select("id, profile_id, full_name, email, personal_email, second_email");
+  const enExpedientes = duenoDelCorreo(
+    buscado,
+    (files ?? []).map((f) => ({
+      id: f.id as string,
+      nombre: (f.full_name as string | null) ?? null,
+      correos: [f.email as string | null, f.personal_email as string | null, f.second_email as string | null],
+    })),
+    [opc.exceptFileId],
+  );
+  if (enExpedientes) return enExpedientes;
+
+  // El correo de ACCESO vive en `profiles` (y en Auth): se lee con la llave de servicio, porque la RLS no deja a
+  // RR. HH. ver la fila de otra persona. Si no hay llave, no se puede comprobar aquí: la creación de la cuenta en
+  // /api/invite sigue rechazando un correo repetido de todas formas.
+  let admin;
+  try { admin = createAdminClient(); } catch { return null; }
+  const { data: perfiles } = await admin.from("profiles").select("id, full_name, email");
+  return duenoDelCorreo(
+    buscado,
+    (perfiles ?? []).map((p) => ({ id: p.id as string, nombre: (p.full_name as string | null) ?? null, correos: [p.email as string | null] })),
+    [opc.exceptProfileId],
+  );
+}
+
+type Sb = Awaited<ReturnType<typeof createClient>>;
+
+/** Acción pública: «¿este correo ya está en uso?». La usa «Contratar» antes de crear la cuenta del hub. */
+export async function correoEnUso(
+  email: string,
+  opc: { exceptFileId?: string | null; exceptProfileId?: string | null } = {},
+): Promise<{ ok: true; enUso: false } | { ok: true; enUso: true; nombre: string } | { ok: false; message: string }> {
+  const supabase = await createClient();
+  const yo = await tier(supabase);
+  if (!yo || !PUEDE.includes(yo.role)) return { ok: false, message: "Employee files are for HR admins and managers." };
+  const dueno = await buscaDuenoDelCorreo(supabase, email, opc);
+  return dueno ? { ok: true, enUso: true, nombre: dueno.nombre } : { ok: true, enUso: false };
+}
+
 /** Guarda la parte de INFO. Crea la fila la primera vez.
  *
  * `fileId` es el id del EXPEDIENTE desde la 106, no el de la cuenta. Para quien ya
@@ -319,6 +375,18 @@ export async function saveEmployeeFile(
     limpio.onepassword = v;
   }
   void COLUMNAS_207;
+
+  // Correo de trabajo único: no se deja guardar un correo que ya es de otra persona (arreglo de contratación). Se
+  // excluye este mismo expediente y su cuenta para que volver a guardar sin cambiar el correo no se señale a sí mismo.
+  if ("email" in patch && esCorreoValido(limpio.email as string | null)) {
+    let exceptProfileId = perfilId;
+    if (!exceptProfileId) {
+      const { data: suyo } = await supabase.schema("recruiting").from("employee_files").select("profile_id").eq("id", fileId).maybeSingle();
+      exceptProfileId = (suyo?.profile_id as string | null) ?? null;
+    }
+    const dueno = await buscaDuenoDelCorreo(supabase, limpio.email as string, { exceptFileId: fileId, exceptProfileId });
+    if (dueno) return { ok: false, message: `That email is already used by ${dueno.nombre}` };
+  }
 
   const { error } = await supabase.schema("recruiting").from("employee_files").upsert(limpio);
   if (error) return { ok: false, message: esColumnaQueFalta(error) ? FALTA_159 : error.message };

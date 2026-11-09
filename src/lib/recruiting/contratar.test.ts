@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ROLES_DE_INVITE, falta201, fichaDesdeCandidato, precargaDeUsuario, puedeContratar, rolDesdePuesto, usuarioSugerido, veSolicitudesDeUsuario, yaPedido } from "./contratar";
+import { ROLES_DE_INVITE, accionDeContratacion, falta201, fichaDesdeCandidato, precargaDeUsuario, puedeContratar, rolDesdePuesto, usuarioSugerido, veSolicitudesDeUsuario, yaPedido } from "./contratar";
 
 describe("contratar", () => {
   it("solo gerente y admin contratan; solo el admin ve la lista", () => {
@@ -26,6 +26,13 @@ describe("contratar", () => {
     expect(falta201(null)).toBe(false);
     expect(yaPedido({ code: "23505" })).toBe(true);
     expect(yaPedido({ code: "42501" })).toBe(false);
+  });
+
+  it("ya contratado ofrece «Ver perfil»; si no, «Contratar»", () => {
+    expect(accionDeContratacion("hired", "hired")).toBe("ver-perfil");
+    expect(accionDeContratacion("inperson", "hired")).toBe("contratar");
+    expect(accionDeContratacion("hired", null)).toBe("contratar");
+    expect(accionDeContratacion(null, "hired")).toBe("contratar");
   });
 });
 
