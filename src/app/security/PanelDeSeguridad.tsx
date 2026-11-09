@@ -19,6 +19,7 @@ import { ESCRITORIO_MINIMO } from "@/lib/desktop-version";
 import { downloadCSV } from "@/lib/utils";
 import { filasACsv, nombreCsv } from "@/lib/security/csv";
 import { PanelDePermisos, type VivoDeUsuario } from "./PanelDePermisos";
+import { appForPath } from "@/lib/app-for-path";
 import type { Profile } from "@/lib/types";
 import "./security.css";
 
@@ -32,7 +33,7 @@ export interface DispositivoFila {
 }
 export interface UsoFila {
   device_id: string; user_id: string; first_seen_at: string; last_seen_at: string; seen_count: number;
-  last_ip?: string | null; last_place?: string | null;
+  last_ip?: string | null; last_place?: string | null; last_route?: string | null;
   persona: string; rol: string; tienda: string | null;
   dispositivo: { id: string; label: string | null; kind: string; status: string; user_agent: string | null } | null;
 }
@@ -90,6 +91,9 @@ function useEnVivo(): boolean {
 
 /** «Activo» = visto en la última hora: lo que el dueño llama «cuántos users están activos». */
 const ACTIVO_MS = 60 * 60 * 1000;
+/** Los módulos que el «en vivo» sabe nombrar (D-942). `appForPath` también devuelve clockin/security/hub: el primero
+ *  cuenta como timetracker, los otros no son un módulo y caen al cliente. */
+const MODULOS_EN_VIVO = new Set(["deliveries", "estimator", "leads", "customers", "promos", "warehouse_ops", "recruiting", "timetracker", "surveys", "erp"]);
 const SEMANA_MS = 7 * 24 * 3600 * 1000;
 
 const TIPO: Record<string, { en: string; es: string; icono: string }> = {
@@ -475,7 +479,13 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
     for (const u of usuarios) {
       const last = u.ultimo;
       const mins = last ? Math.round((ahora - Date.parse(last.last_seen_at)) / 60000) : null;
-      m[u.id] = { online: mins != null && mins * 60000 < ACTIVO_MS, app: estadoDeApp(last, t), mins };
+      const online = mins != null && mins * 60000 < ACTIVO_MS;
+      // D-942 (278): el módulo en vivo sale de la ruta del último «sigo aquí». Sin la 278 o sin la app nueva, viene
+      // vacío y el panel cae al cliente (app de escritorio / Time Tracker / navegador). El fichaje cuenta como Time
+      // Tracker; el hub y la propia Seguridad no son un módulo, así que ahí se cae al cliente.
+      const crudo = online && last?.last_route ? appForPath(last.last_route) : null;
+      const mod = crudo === "clockin" ? "timetracker" : (crudo && MODULOS_EN_VIVO.has(crudo) ? crudo : null);
+      m[u.id] = { online, app: estadoDeApp(last, t), mins, mod };
     }
     return m;
   }, [usuarios, ahora, t]);

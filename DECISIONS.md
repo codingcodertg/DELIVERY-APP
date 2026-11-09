@@ -51228,3 +51228,11 @@ El «en vivo» de esta fase sale de lo que Seguridad ya sabe, sin migración: qu
 Todo se escribe con las funciones que ya existían del proveedor del hub (las mismas que usa el expediente de RR. HH.), con su RLS; esta vista solo decide qué tocar. El proveedor del hub se monta solo al abrir el administrador (D-693/695: montarlo siempre mató la memoria en Vercel). A un admin no se le quitan módulos (los tiene por su rol), pero sus roles por app (p. ej. el nivel de costo del Inventario, D-181) sí se ajustan.
 
 Sello `deliveries` 1.576.0; `security` 0.14.0; repo 1.795.0.
+
+## D-942 · Seguridad: «en vivo» hasta el módulo exacto (latido con la ruta)
+
+La Fase A (D-941) ya decía quién estaba en vivo y desde qué cliente; esto sube el dato al **módulo exacto**: Deliveries, Quote Builder, Almacén, Time Tracker, etc.
+
+Cómo: el latido que cada app manda a `/api/security/seen` lleva ahora la ruta actual, y se reavisa al cambiar de pantalla (antes solo al cargar y cada diez minutos; ahora cada dos, más al navegar). La migración 278 agregó `security_device_users.last_route` y un séptimo parámetro opcional a `security_touch_device`; por ser opcional, la app vieja siguió funcionando mientras tanto. Seguridad lee esa ruta, la traduce a módulo con `appForPath` (el fichaje cuenta como Time Tracker; el hub y la propia pantalla de Seguridad no son un módulo y caen al cliente), y el administrador de permisos muestra el módulo en la lista, en el detalle y en la matriz. Si no hay ruta todavía, se cae al cliente como en la Fase A.
+
+Sello `deliveries` 1.577.0; `security` 0.15.0; repo 1.796.0.

@@ -4,8 +4,10 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { idDelDispositivo } from "@/lib/security/identidad";
 
-/** Cada cuánto se vuelve a decir «sigo aquí», con la pestaña abierta. */
-const CADA_MS = 10 * 60 * 1000;
+/** Cada cuánto se vuelve a decir «sigo aquí», con la pestaña abierta. Dos minutos (D-942): lo bastante fresco para
+ *  que Seguridad vea quién está en vivo y en qué módulo, sin cargar la base con un latido por segundo. Además se
+ *  reavisa al cambiar de ruta, para que el módulo en vivo refleje dónde está la persona ahora. */
+const CADA_MS = 2 * 60 * 1000;
 
 /**
  * La huella del dispositivo (D-811): asegura el id (cookie + localStorage) y avisa a `/api/security/seen` al cargar y
@@ -26,14 +28,16 @@ export function IdentidadDelDispositivo() {
       void fetch("/api/security/seen", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        // El id y el tipo los lee el servidor de la petición (cabecera de la app, o cookie + agente); el cuerpo va vacío.
-        body: "{}",
+        // El id y el tipo los lee el servidor de la petición (cabecera de la app, o cookie + agente). El cuerpo solo
+        // lleva la RUTA actual (D-942), para el «en vivo por módulo» de Seguridad; sin la migración 278 el servidor la
+        // ignora sin romper nada.
+        body: JSON.stringify({ route: pathname }),
         keepalive: true,
       }).catch(() => undefined);
     };
     avisa();
     const t = setInterval(avisa, CADA_MS);
     return () => clearInterval(t);
-  }, [sinSesion]);
+  }, [sinSesion, pathname]);
   return null;
 }

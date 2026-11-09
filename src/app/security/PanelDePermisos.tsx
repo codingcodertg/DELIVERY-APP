@@ -17,7 +17,7 @@ import type { Profile, UserRole } from "@/lib/types";
 
 /** Lo que el panel de Security sabe «en vivo» de cada persona, SIN migración: dentro ahora + la app cliente (D-940 Fase A).
  *  El módulo/pantalla exacto en vivo es la Fase B (necesita el latido con la ruta). */
-export interface VivoDeUsuario { online: boolean; app: string; mins: number | null }
+export interface VivoDeUsuario { online: boolean; app: string; mins: number | null; mod: string | null }
 
 const ICONO: Record<string, string> = {
   deliveries: "🚚", estimator: "🧮", leads: "🎯", customers: "🏢", promos: "🏷️",
@@ -149,7 +149,7 @@ function Cuerpo({ vivo }: { vivo: Record<string, VivoDeUsuario> }) {
                       <span className="perm-meta">
                         <span className="perm-nm">{u.full_name}</span>
                         <span className="perm-ro">{roleLabel(u.role, lang)}{u.store ? ` · ${u.store}` : ""}</span>
-                        <span className={`perm-lv ${on ? "on" : "off"}`}>{on ? `● ${t("Live", "En vivo")} · ${v.app}` : `○ ${haceTexto(v?.mins ?? null, t)}`}</span>
+                        <span className={`perm-lv ${on ? "on" : "off"}`}>{on ? `● ${t("Live", "En vivo")} · ${enVivoTexto(v, lang)}` : `○ ${haceTexto(v?.mins ?? null, t)}`}</span>
                       </span>
                       <span className="perm-cnt">{cuentaModulos(u)}</span>
                     </button>
@@ -202,8 +202,8 @@ function Detalle({ u, vivo, lang, t, ocupado, esAdmin, rolDeApp, onModulo, onRol
       <div className={`perm-now ${on ? "on" : ""}`}>
         <span className="ni">{on ? "🟢" : "🕓"}</span>
         <div style={{ minWidth: 0 }}>
-          <div className="nt">{on ? `${t("Live", "En vivo")} · ${vivo?.app}` : t("Offline", "Fuera de línea")}</div>
-          <div className="nd">{on ? t("Signed in in the last hour", "Dentro en la última hora") : `${t("Last seen", "Última vez")} ${haceTexto(vivo?.mins ?? null, t)}`}</div>
+          <div className="nt">{on ? `${t("Live", "En vivo")} · ${enVivoTexto(vivo, lang)}` : t("Offline", "Fuera de línea")}</div>
+          <div className="nd">{on ? (vivo?.mod ? `${vivo.app} · ${t("in the last hour", "en la última hora")}` : t("Signed in in the last hour", "Dentro en la última hora")) : `${t("Last seen", "Última vez")} ${haceTexto(vivo?.mins ?? null, t)}`}</div>
         </div>
       </div>
 
@@ -285,7 +285,7 @@ function Matriz({ users, allKeys, vivo, lang, t, ocupado, onCell }: {
                   </div>
                 </td>
                 <td style={{ textAlign: "left" }}>
-                  <span className={`perm-livechip ${on ? "on" : "off"}`}>{on ? `● ${v.app}` : `○ ${haceTexto(v?.mins ?? null, t)}`}</span>
+                  <span className={`perm-livechip ${on ? "on" : "off"}`}>{on ? `● ${enVivoTexto(v, lang)}` : `○ ${haceTexto(v?.mins ?? null, t)}`}</span>
                 </td>
                 {allKeys.map((k) => {
                   const has = tieneModulo(u, k);
@@ -306,6 +306,12 @@ function Matriz({ users, allKeys, vivo, lang, t, ocupado, onCell }: {
 }
 
 // ---- helpers de presentación ----
+/** Qué enseñar en el «en vivo»: el MÓDULO exacto (Fase B, migración 278) si se conoce la ruta; si no, el cliente (Fase A). */
+function enVivoTexto(v: VivoDeUsuario | undefined, lang: "en" | "es"): string {
+  if (!v) return "";
+  if (v.mod) return `${ICONO[v.mod] ?? "▫️"} ${etiquetaDeModulo(v.mod as ModuleAccessKey, lang)}`;
+  return v.app;
+}
 function inic(n: string): string { return n.split(" ").slice(0, 2).map((x) => x[0] ?? "").join("").toUpperCase(); }
 function cuentaModulos(u: Profile): number {
   const keys: ModuleAccessKey[] = GRUPOS_DE_PERMISOS.flatMap((g) => g.keys);

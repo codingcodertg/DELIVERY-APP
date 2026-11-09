@@ -17,7 +17,7 @@ export interface DispositivoCrudo {
   bound: boolean; requested_at: string | null; requested_by: string | null; request_note: string | null;
   last_ip: string | null; last_place: string | null;
 }
-export interface UsoCrudo { device_id: string; user_id: string; first_seen_at: string; last_seen_at: string; seen_count: number; last_ip: string | null; last_place: string | null }
+export interface UsoCrudo { device_id: string; user_id: string; first_seen_at: string; last_seen_at: string; seen_count: number; last_ip: string | null; last_place: string | null; last_route?: string | null }
 export interface BloqueoCrudo { id: number; user_id: string; device_id: string | null; user_agent: string | null; path: string | null; at: string; ip: string | null; place: string | null }
 export interface PerfilCrudo { id: string; full_name: string; role: string; store: string | null; username: string | null; left_at: string | null }
 
