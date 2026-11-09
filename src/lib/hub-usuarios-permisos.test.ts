@@ -19,6 +19,15 @@ import type { Profile } from "./types";
 const u = (id: string, full_name: string, role: Profile["role"], module_access: string[] | null = []): Profile =>
   ({ id, full_name, role, module_access } as Profile);
 
+/** Como `u`, pero con los roles de escalafón, para probar la fila «drifteada» (D-936). */
+const uRol = (
+  id: string,
+  full_name: string,
+  role: Profile["role"],
+  module_access: string[] | null,
+  extra: { recruiting_role?: string | null; timetracker_role?: string | null },
+): Profile => ({ id, full_name, role, module_access, ...extra } as Profile);
+
 describe("los 8 módulos de gerente", () => {
   it("son exactamente estos 8, sin surveys ni inventory", () => {
     expect(MODULOS_DE_GERENTE).toEqual([
@@ -49,6 +58,19 @@ describe("tieneModulo / modulosDeUsuario", () => {
   it("'clockin' viejo cuenta como timetracker", () => {
     const v = u("v", "Cleo", "manager", ["clockin"]);
     expect(tieneModulo(v, "timetracker")).toBe(true);
+  });
+  it("fila drifteada: con recruiting_role pero sin el módulo, cuenta como que SÍ lo tiene (D-936)", () => {
+    const v = uRol("v", "Dani", "manager", [], { recruiting_role: "recruiter" });
+    expect(tieneModulo(v, "recruiting")).toBe(true);
+    expect(modulosDeUsuario(v)).toEqual(["recruiting"]);
+    // y así se puede revocar desde el toggle en bloque
+    expect(planToggleModulo([v], "recruiting", false)).toEqual([{ userId: "v", key: "recruiting", conceder: false }]);
+  });
+  it("fila drifteada: con timetracker_role pero sin el módulo, también cuenta", () => {
+    const v = uRol("v", "Eva", "sales", ["deliveries"], { timetracker_role: "employee" });
+    expect(tieneModulo(v, "timetracker")).toBe(true);
+    // dar los 8 ya no se lo re-concede
+    expect(planDarLosOcho([v]).some((p) => p.key === "timetracker")).toBe(false);
   });
 });
 
@@ -103,6 +125,11 @@ describe("permisos rápidos (bulk)", () => {
     expect(plan.every((p) => p.userId === "v")).toBe(true);
     expect(plan.every((p) => p.conceder)).toBe(true);
     expect(plan.map((p) => p.key)).toEqual(["recruiting", "timetracker", "promos", "customers", "warehouse_ops", "estimator"]);
+  });
+  it("dar los 8 a quien no tiene nada: exactamente los 8, en orden", () => {
+    const plan = planDarLosOcho([u("v", "Nil", "sales", [])]);
+    expect(plan.map((p) => p.key)).toEqual([...MODULOS_DE_GERENTE]);
+    expect(plan.every((p) => p.conceder && p.userId === "v")).toBe(true);
   });
   it("toggle de un módulo: solo donde cambia, nunca al admin", () => {
     const users = [

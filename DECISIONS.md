@@ -51186,3 +51186,9 @@ Sello `deliveries` 1.572.0; repo 1.790.0.
 Pedidos de Roberto (junta 8 nov). Checklist de onboarding/offboarding marcable (correo firmado, RingCentral, QuickBooks, SharePoint/app, riesgo del app) con quién y cuándo. Formulario de renuncia: motivo, firma y foto opcional, guardado en el expediente y capturable al dar de baja. Reasignar de un clic correo, teléfono y extensión que dejó libre quien salió del mismo puesto (reservado al admin de RR. HH.). Migraciones 275, 276, 277.
 
 Sello `recruiting` 0.80.0; repo 1.791.0.
+
+## D-938 · Usuarios y Permisos: arregla que al dar varios módulos a la misma persona solo se guardaba el último
+
+Lo marcó la revisión de seguridad. Al conceder varios módulos a la vez (p.ej. «Dar los 8 de gerente» o cambios en bloque) cada escritura partía de la lista vieja y pisaba las anteriores, guardando solo el último. Ahora los permisos de cada persona se leen frescos de la base y todos los cambios van en una sola escritura por usuario. Además, si alguien quedó con el rol de RR.HH. o Time Tracker pero sin el módulo marcado, la pantalla lo muestra como que sí lo tiene y deja revocarlo.
+
+Sello `deliveries` 1.573.0; repo 1.792.0.
