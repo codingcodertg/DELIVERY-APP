@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ConfirmProvider } from "@/lib/confirm";
 import { DataProvider as ProveedorDelHub, useData as useHub } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
@@ -13,11 +13,10 @@ import {
 import {
   GRUPOS_DE_PERMISOS, ROL_POR_DEFECTO, columnaDeRol, etiquetaDeRol, opcionesDeRol, tieneRolPropio,
 } from "@/lib/security/permisos-grupos";
+import { type VivoDeUsuario } from "@/lib/security/vivo-de-usuarios";
 import type { Profile, UserRole } from "@/lib/types";
 
-/** Lo que el panel de Security sabe «en vivo» de cada persona, SIN migración: dentro ahora + la app cliente (D-940 Fase A).
- *  El módulo/pantalla exacto en vivo es la Fase B (necesita el latido con la ruta). */
-export interface VivoDeUsuario { online: boolean; app: string; mins: number | null; mod: string | null }
+export type { VivoDeUsuario };
 
 const ICONO: Record<string, string> = {
   deliveries: "🚚", estimator: "🧮", leads: "🎯", customers: "🏢", promos: "🏷️",
@@ -30,11 +29,19 @@ const ICONO: Record<string, string> = {
  *
  * Es la ventana del hub (como `PermisosDelEmpleado`): el proveedor de datos DEL HUB se monta AQUÍ, y solo cuando el
  * admin la abre (D-693/695: montarlo en toda la página mató la memoria en Vercel). Las escrituras son las del
- * data-provider; esta vista solo decide QUÉ tocar.
+ * data-provider; esta vista solo decide QUÉ tocar. Es AUTÓNOMO (D-946): pide él mismo el «en vivo» a
+ * `/api/security/vivo` al abrirse, así que colocarlo donde sea solo necesita el perfil del admin.
  */
-export function PanelDePermisos({ hub, vivo }: { hub: Profile | null; vivo: Record<string, VivoDeUsuario> }) {
+export function PanelDePermisos({ hub }: { hub: Profile | null }) {
   const { t } = usePrefs();
   const [abierto, setAbierto] = useState(false);
+  const [vivo, setVivo] = useState<Record<string, VivoDeUsuario>>({});
+  useEffect(() => {
+    if (!abierto || MODO_DEMO) return;
+    let activo = true;
+    void fetch("/api/security/vivo").then((r) => (r.ok ? r.json() : null)).then((d) => { if (activo && d?.vivo) setVivo(d.vivo as Record<string, VivoDeUsuario>); }).catch(() => undefined);
+    return () => { activo = false; };
+  }, [abierto]);
 
   if (MODO_DEMO) return <AvisoDeDemo titulo={t("Permissions", "Permisos")} />;
   if (!hub) return null;

@@ -5,7 +5,6 @@ import { PanelDeSeguridad, type BloqueoFila, type DispositivoFila, type UsoFila,
 import { rangoDeApp } from "@/lib/security/version-de-app";
 import { soloActivos } from "@/lib/baja";
 import { datosDemoDeSeguridad, type BloqueoCrudo, type DatosDeSeguridad, type DispositivoCrudo, type PerfilCrudo, type PoliticaCruda, type UsoCrudo } from "@/lib/security/demo-data";
-import type { Profile } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +17,7 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /** Las cinco lecturas de la base y los perfiles que faltaran por id, tal como las hacía la página; `error` es el primer
  *  fallo de las tres que importan. Es una función para que el demo pueda no llamarla. */
-async function leerDeLaBase(): Promise<DatosDeSeguridad & { error: string | null; admin: Profile | null }> {
+async function leerDeLaBase(): Promise<DatosDeSeguridad & { error: string | null }> {
   const supabase = await createClient();
 
   const desde = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
@@ -37,22 +36,16 @@ async function leerDeLaBase(): Promise<DatosDeSeguridad & { error: string | null
   const ids = [...new Set([...(devices ?? []).flatMap((d) => [d.first_user_id, d.last_user_id]), ...(usos ?? []).map((u) => u.user_id), ...(bloqueos ?? []).map((b) => b.user_id)].filter((x): x is string => !!x))];
   const faltan = ids.filter((id) => !(todos ?? []).some((p) => p.id === id));
   const { data: perfiles } = faltan.length ? await supabase.from("profiles").select("id, full_name, role, store").in("id", faltan) : { data: [] as { id: string; full_name: string; role: string; store: string | null }[] };
-  // D-940: el perfil COMPLETO del admin que entra, con el MISMO cliente (la base se abre una sola vez, aquí): lo necesita
-  // el administrador de permisos para montar el proveedor del hub. En demo no se llega aquí, así que `admin` es null allá.
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: adminRow } = user ? await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle() : { data: null };
   return {
     policy: (policy as PoliticaCruda | null) ?? null, devices: (devices ?? []) as DispositivoCrudo[], usos: (usos ?? []) as UsoCrudo[],
     bloqueos: (bloqueos ?? []) as BloqueoCrudo[], todos: (todos ?? []) as PerfilCrudo[],
     perfiles: (perfiles ?? []).map((p) => ({ ...p, username: null, left_at: null })) as PerfilCrudo[],
-    error, admin: (adminRow as Profile | null) ?? null,
+    error,
   };
 }
 
 export default async function SecurityPage() {
-  const base = LOCAL_MODE ? { ...datosDemoDeSeguridad(new Date()), error: null } : await leerDeLaBase();
-  const { policy, devices, usos, bloqueos, todos, perfiles, error } = base;
-  const admin: Profile | null = "admin" in base ? base.admin : null;
+  const { policy, devices, usos, bloqueos, todos, perfiles, error } = LOCAL_MODE ? { ...datosDemoDeSeguridad(new Date()), error: null } : await leerDeLaBase();
   const porId = new Map([...(todos ?? []), ...(perfiles ?? [])].map((p) => [p.id, p]));
   const nombre = (id: string | null) => (id && porId.get(id)?.full_name) || "—";
 
@@ -89,5 +82,5 @@ export default async function SecurityPage() {
   const h = await headers();
   const esteDispositivo = dispositivoDeLaPeticion({ cabecera: h.get(CABECERA_DISPOSITIVO), cookie: h.get("cookie") })?.id ?? null;
 
-  return <PanelDeSeguridad enforced={!!policy?.enforced} webBloqueada={!!policy?.web_blocked} exentos={(policy?.web_exempt as string[] | null) ?? []} cambiadaEn={policy?.changed_at ?? null} dispositivos={filas} uso={uso} bloqueados={bloqueados} usuarios={usuarios} esteDispositivo={esteDispositivo} error={error} admin={admin} />;
+  return <PanelDeSeguridad enforced={!!policy?.enforced} webBloqueada={!!policy?.web_blocked} exentos={(policy?.web_exempt as string[] | null) ?? []} cambiadaEn={policy?.changed_at ?? null} dispositivos={filas} uso={uso} bloqueados={bloqueados} usuarios={usuarios} esteDispositivo={esteDispositivo} error={error} />;
 }

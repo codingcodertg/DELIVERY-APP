@@ -104,6 +104,7 @@ export const APPS_DEL_MAPA: AppDelMapa[] = [
       settings: b("Settings", "Ajustes"),
       "user-creation": b("User creation", "Creación de usuarios"),
       users: b("Users", "Usuarios"),
+      permisos: b("Permissions", "Permisos"),
     },
   },
   {

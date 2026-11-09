@@ -18,9 +18,6 @@ import { APP_VERSIONS } from "@/lib/app-versions";
 import { ESCRITORIO_MINIMO } from "@/lib/desktop-version";
 import { downloadCSV } from "@/lib/utils";
 import { filasACsv, nombreCsv } from "@/lib/security/csv";
-import { PanelDePermisos, type VivoDeUsuario } from "./PanelDePermisos";
-import { appForPath } from "@/lib/app-for-path";
-import type { Profile } from "@/lib/types";
 import "./security.css";
 
 export interface DispositivoFila {
@@ -91,9 +88,6 @@ function useEnVivo(): boolean {
 
 /** «Activo» = visto en la última hora: lo que el dueño llama «cuántos users están activos». */
 const ACTIVO_MS = 60 * 60 * 1000;
-/** Los módulos que el «en vivo» sabe nombrar (D-942). `appForPath` también devuelve clockin/security/hub: el primero
- *  cuenta como timetracker, los otros no son un módulo y caen al cliente. */
-const MODULOS_EN_VIVO = new Set(["deliveries", "estimator", "leads", "customers", "promos", "warehouse_ops", "recruiting", "timetracker", "surveys", "erp"]);
 const SEMANA_MS = 7 * 24 * 3600 * 1000;
 
 const TIPO: Record<string, { en: string; es: string; icono: string }> = {
@@ -249,8 +243,8 @@ function FilaDoble({ clave, estado, seleccion, celdas, acciones, extra, ancho }:
   );
 }
 
-export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiadaEn, dispositivos, uso, bloqueados = [], usuarios = [], esteDispositivo, error, admin = null }: {
-  enforced: boolean; webBloqueada: boolean; exentos?: string[]; cambiadaEn: string | null; dispositivos: DispositivoFila[]; uso: UsoFila[]; bloqueados?: BloqueoFila[]; usuarios?: UsuarioFila[]; esteDispositivo: string | null; error: string | null; admin?: Profile | null;
+export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiadaEn, dispositivos, uso, bloqueados = [], usuarios = [], esteDispositivo, error }: {
+  enforced: boolean; webBloqueada: boolean; exentos?: string[]; cambiadaEn: string | null; dispositivos: DispositivoFila[]; uso: UsoFila[]; bloqueados?: BloqueoFila[]; usuarios?: UsuarioFila[]; esteDispositivo: string | null; error: string | null;
 }) {
   const { t, lang } = usePrefs();
   const vivo = useEnVivo();
@@ -472,24 +466,6 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
   // --- Entradas desde un sitio nuevo (D-822) --------------------------------------------------------------------------------
   const sitiosNuevos = useMemo(() => entradasDesdeSitioNuevo(uso, ahora), [uso, ahora]);
 
-  // D-940 (Fase A): lo «en vivo» que se sabe SIN migración — dentro ahora (última hora) y la app cliente, por usuario.
-  // El módulo/pantalla exacto en vivo es la Fase B (latido con la ruta). Se le pasa al administrador de permisos.
-  const vivoPorUsuario = useMemo<Record<string, VivoDeUsuario>>(() => {
-    const m: Record<string, VivoDeUsuario> = {};
-    for (const u of usuarios) {
-      const last = u.ultimo;
-      const mins = last ? Math.round((ahora - Date.parse(last.last_seen_at)) / 60000) : null;
-      const online = mins != null && mins * 60000 < ACTIVO_MS;
-      // D-942 (278): el módulo en vivo sale de la ruta del último «sigo aquí». Sin la 278 o sin la app nueva, viene
-      // vacío y el panel cae al cliente (app de escritorio / Time Tracker / navegador). El fichaje cuenta como Time
-      // Tracker; el hub y la propia Seguridad no son un módulo, así que ahí se cae al cliente.
-      const crudo = online && last?.last_route ? appForPath(last.last_route) : null;
-      const mod = crudo === "clockin" ? "timetracker" : (crudo && MODULOS_EN_VIVO.has(crudo) ? crudo : null);
-      m[u.id] = { online, app: estadoDeApp(last, t), mins, mod };
-    }
-    return m;
-  }, [usuarios, ahora, t]);
-
   // --- Salud del sistema (D-830): los números que el dueño quiere ver de un vistazo, sacados de lo que ya está en pantalla.
   const salud = useMemo(() => {
     const dia = ahora - 24 * 3600_000;
@@ -562,7 +538,6 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
         <a href="#sec-resumen">{t("Overview", "Resumen")}</a>
         <a href="#sec-usuarios">{t("Users", "Usuarios")} <span className="cnt">{usuarios.length}</span></a>
         <a href="#sec-dispositivos">{t("Devices", "Dispositivos")} <span className="cnt">{dispositivos.length}</span></a>
-        {admin && <a href="#sec-permisos">{t("Permissions", "Permisos")}</a>}
         <a href="#sec-actividad">{t("Activity", "Actividad")}</a>
       </nav>
 
@@ -804,16 +779,6 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
       </section>
 
       {/* ===================== PERMISOS (D-940 Fase A) ===================== */}
-      {admin && (
-        <section id="sec-permisos" className="sec-sec">
-          <div className="sec-sec-head">
-            <h2>🛡 {t("Permissions", "Permisos")}</h2>
-            <span className="sec-sub">· {t("what each person can open, the role per app, and who is live", "qué puede abrir cada quien, el rol por app, y quién está en vivo")}</span>
-          </div>
-          <PanelDePermisos hub={admin} vivo={vivoPorUsuario} />
-        </section>
-      )}
-
       {/* ===================== ACTIVIDAD ===================== */}
       <section id="sec-actividad" className="sec-sec">
         <div className="sec-sub-sec">
