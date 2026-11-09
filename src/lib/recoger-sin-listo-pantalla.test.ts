@@ -33,15 +33,16 @@ describe("«Recogido» sin «listo»: un cuadro pequeño con motivo, no la ficha
     expect(esRecogidaSinListo(nota)).toBe(true);
   });
 
-  it("puerta: Mi ruta abre el cuadro con la librería y, al confirmar, recoge con la escritura de la ficha y abre la ficha; el aviso de «se avisa a…» ya no está", () => {
+  it("puerta: Mi ruta abre el cuadro con la librería y, al confirmar, recoge con la escritura de la ficha SIN abrirla sola; el aviso de «se avisa a…» ya no está", () => {
     const pagina = readFileSync(new URL("../app/(app)/my-route/page.tsx", import.meta.url), "utf8");
     expect(pagina).toContain('from "@/lib/recoger-sin-listo-pantalla"');
     expect(pagina).toContain('if (accion === "recoger" && abreElCuadroSinListo(d.stage)) { setSinListoDe(d); return; }');
     expect(pagina).toContain("<RecogerSinListo pedido={sinListoDe}");
     expect(pagina).toContain("notaDeRecogidaSinListo(nota, escritura.note, lang)");
     expect(pagina).toContain("pushNotifs(avisosDeRecogidaSinListo(");
-    // Tras confirmar, la ficha (para ver los detalles), sin paso abierto.
-    expect(pagina).toMatch(/notify\(t\("Picked up — the warehouse and logistics were notified"[^\n]*\n\s*abrirOrden\(d\);/);
+    // D-934 (Roberto): tras confirmar la recogida sin listo, la ficha YA NO se abre sola (estorba con las manos ocupadas).
+    expect(pagina).toMatch(/notify\(t\("Picked up — the warehouse and logistics were notified"[^\n]*\n\s*\};/);
+    expect(pagina).not.toMatch(/notify\(t\("Picked up — the warehouse and logistics were notified"[^\n]*\n\s*abrirOrden\(d\);/);
     const ficha = readFileSync(new URL("../components/OrderModal.tsx", import.meta.url), "utf8");
     expect(ficha).not.toContain("and logistics will be notified in the app.");
     expect(ficha).not.toContain("Logistics will be notified in the app.");
