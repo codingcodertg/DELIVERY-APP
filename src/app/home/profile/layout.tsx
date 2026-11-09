@@ -10,7 +10,12 @@ import { createClient } from "@/lib/supabase/server";
  * enlace hasta aquí: si esta página le cerrara la puerta, el chofer se quedaría sin forma de
  * cambiar su propia contraseña.
  */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export default async function ProfileLayout({ children }: { children: React.ReactNode }) {
+  if (LOCAL_MODE) return <div className="wrap">{children}</div>;
+
   const supabase = await createClient();
   const {
     data: { user },

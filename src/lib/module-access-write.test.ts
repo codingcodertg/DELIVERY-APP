@@ -94,8 +94,9 @@ describe("las nueve escrituras del provider filtran, y el select trae erp_role",
     expect(tramo).not.toMatch(/notify\(error\.message\)/);
     // Once desde la 265: `updateUserWarehouseOpsRole` escribe el nivel de Warehouse Ops (solo esa columna, sin tocar
     // `module_access`: por eso las escrituras que pasan por `knownModules` siguen siendo diez).
-    expect(tramo.match(/notify\(mensajeEscrituraPerfil\(error, lang\)\)/g) ?? []).toHaveLength(11);
-    expect(tramo.match(/console\.error\(detalleAConsola\(error\)\)/g) ?? []).toHaveLength(11);
+    // Doce desde D-938: `updateUserModules` guarda varios módulos de una vez, con el mismo aviso y el mismo detalle.
+    expect(tramo.match(/notify\(mensajeEscrituraPerfil\(error, lang\)\)/g) ?? []).toHaveLength(12);
+    expect(tramo.match(/console\.error\(detalleAConsola\(error\)\)/g) ?? []).toHaveLength(12);
   });
 });
 

@@ -217,6 +217,7 @@ export const APPS_DEL_MAPA: AppDelMapa[] = [
     inicio: b("Main page (orders)", "Página principal (órdenes)"),
     pantallas: {
       ...PESTANAS_DE_ENTREGAS,
+      "settings/usuarios-permisos": b("Settings · Users and permissions", "Ajustes · Usuarios y permisos"),
       "my-route/mapa": b("My route · Map", "Mi ruta · Mapa"),
       account: b("My account", "Mi cuenta"),
       settings: b("Settings", "Ajustes"),

@@ -10,7 +10,12 @@ import { createClient } from "@/lib/supabase/server";
  * campana le llevaría a un sitio al que no puede entrar. Qué solicitudes ve cada uno lo decide la RLS
  * de la 120 y la 126, no esta puerta.
  */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export default async function AyudaLayout({ children }: { children: React.ReactNode }) {
+  if (LOCAL_MODE) return <div className="wrap">{children}</div>;
+
   const supabase = await createClient();
   const {
     data: { user },

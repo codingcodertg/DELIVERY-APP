@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { DataProvider } from "@/lib/data-provider";
 import { ConfirmProvider } from "@/lib/confirm";
+import { ProveedorDemoDelHub } from "@/components/ProveedorDemoDelHub";
 import { landingRoute } from "@/lib/constants";
 import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
 import type { Profile } from "@/lib/types";
@@ -22,7 +23,12 @@ import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
  * El `DataProvider` va aquí y no en el lobby, como en Usuarios: el panel lee la plantilla y las
  * tiendas de él, y el lobby no toca datos de Entregas.
  */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export default async function SwitchUserLayout({ children }: { children: React.ReactNode }) {
+  if (LOCAL_MODE) return enDemo(children);
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -54,4 +60,9 @@ export default async function SwitchUserLayout({ children }: { children: React.R
       </DataProvider>
     </ConfirmProvider>
   );
+}
+
+/** Lo que pinta la puerta en el demo. */
+function enDemo(hijos: React.ReactNode) {
+  return <ConfirmProvider><ProveedorDemoDelHub><div className="wrap">{hijos}</div></ProveedorDemoDelHub></ConfirmProvider>;
 }

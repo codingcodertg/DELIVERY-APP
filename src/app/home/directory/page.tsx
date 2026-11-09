@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
 import { nombreDeDepartamento } from "@/lib/departamentos";
-import { createClient } from "@/lib/supabase/client";
+import { clienteDelHub as createClient } from "@/lib/home/cliente-del-hub";
 import {
   buscaPersonas, departamentosDe, grupoDe, mailtoHref, personasDe, saltaDepartamentos, telHref,
   tiendasDelDirectorio, type GrupoTienda, type PersonaDirectorio,

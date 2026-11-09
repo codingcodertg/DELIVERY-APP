@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
-import { createClient } from "@/lib/supabase/client";
+import { clienteDelHub as createClient } from "@/lib/home/cliente-del-hub";
 import { APP_VERSIONS } from "@/lib/app-versions";
 import { roleLabel } from "@/lib/constants";
 import { LIMITES_DE_ADJUNTOS, mensajeDeAdjunto, validaAdjuntos } from "@/lib/help-attachments";
@@ -98,6 +98,8 @@ export default function MisSolicitudesPage() {
   const enviaNueva = async () => {
     const texto = mensaje.trim();
     if (!texto || !yo || ocupada) return;
+    // El demo (D-940) no envía ni sube nada.
+    if (process.env.NEXT_PUBLIC_LOCAL_MODE === "true") { setAviso(t("Not available in the demo.", "No disponible en el demo.")); return; }
     setOcupada(true);
     setAviso(null);
     // A dónde va el correo lo decide el servidor con Ajustes (D-530, `destinoDeAyuda`): aquí se leía

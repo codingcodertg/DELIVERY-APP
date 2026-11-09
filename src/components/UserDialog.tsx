@@ -359,7 +359,7 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
             demo mode ever had), so the loop stays outside the !LOCAL_MODE
             check — each block decides for itself via its own alwaysOn/key. */}
         <div className="section-label">{t("Modules & permissions", "Módulos y permisos")}</div>
-        {MODULE_ACCESS.filter((m) => (m.alwaysOn || !LOCAL_MODE) && (m.offeredTo?.(u.role) ?? true)).map((m) => {
+        {MODULE_ACCESS.filter((m) => (m.offeredTo?.(u.role) ?? true)).map((m) => {
           // Generic lookup by roleColumn, not a hardcoded fallback to one
           // module's field — a third module here needed a real fix, not
           // another `: u.recruiting_role` clause (that bug would have shown

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { puedeGestionarTutoriales } from "@/lib/tutorials-hub";
 import { TutorialsHub } from "@/components/tutorials/TutorialsHub";
+import { PERFIL_DEMO } from "@/lib/home/demo-data";
 
 /**
  * Tutoriales (D-268): los videos de cómo usar cada app, agrupados por app, para todo el que tenga
@@ -9,7 +10,12 @@ import { TutorialsHub } from "@/components/tutorials/TutorialsHub";
  * Aquí solo se decide si esta persona gestiona. Esconder los botones a quien no es admin es comodidad:
  * la barrera de verdad es la base, donde `settings` solo lo actualiza `is_admin()` (100).
  */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export default async function TutorialsPage() {
+  if (LOCAL_MODE) return <TutorialsHub yo={PERFIL_DEMO.id} puedeGestionar={puedeGestionarTutoriales(PERFIL_DEMO.role)} />;
+
   const supabase = await createClient();
   const {
     data: { user },

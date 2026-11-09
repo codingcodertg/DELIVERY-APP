@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
 import { accessibleModules, canReachHub, HUB_TOOLS, landingRoute } from "@/lib/constants";
 import { HomeSelector } from "@/components/HomeSelector";
+import { CUENTA_DEMO, PERFIL_DEMO } from "@/lib/home/demo-data";
 import type { Profile } from "@/lib/types";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
@@ -22,11 +23,16 @@ import { CABECERA_DISPOSITIVO, appsEnElTelefono, dispositivoDeLaPeticion, type P
 // these as two distinct expressions (not folding one into the other) is
 // deliberate: mixing "where you land" and "what you're allowed to visit"
 // into one function is exactly the kind of blur that produced D-052's bugs.
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export default async function HomePage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  if (LOCAL_MODE) return <HomeSelector me={PERFIL_DEMO} suplantando={false} cuenta={CUENTA_DEMO} soloApps={null} />;
+
   const sp = await searchParams;
   const supabase = await createClient();
   const {

@@ -9,7 +9,12 @@ import { createClient } from "@/lib/supabase/server";
  * tutoriales en la «Cuenta» de Entregas, que sí tiene. Esa sección se va y queda un enlace hasta aquí:
  * si esta página le cerrara la puerta, se quedaría sin videos.
  */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export default async function TutorialsLayout({ children }: { children: React.ReactNode }) {
+  if (LOCAL_MODE) return <div className="wrap">{children}</div>;
+
   const supabase = await createClient();
   const {
     data: { user },

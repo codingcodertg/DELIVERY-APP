@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DataProvider } from "@/lib/data-provider";
 import { ConfirmProvider } from "@/lib/confirm";
+import { ProveedorDemoDelHub } from "@/components/ProveedorDemoDelHub";
 import { landingRoute } from "@/lib/constants";
 import type { Profile } from "@/lib/types";
 import { ProfileReadError } from "@/components/ProfileReadError";
@@ -20,7 +21,18 @@ import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 // selector at /home doesn't touch deliveries data at all, so mounting its
 // realtime channels there would be paying for something nobody on that page
 // uses — same locality principle D-052 already applied to recruiting.
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export default async function HomeUsersLayout({ children }: { children: React.ReactNode }) {
+  if (LOCAL_MODE) return (
+      <ConfirmProvider>
+        <ProveedorDemoDelHub>
+          <div className="wrap">{children}</div>
+        </ProveedorDemoDelHub>
+      </ConfirmProvider>
+    );
+
   const supabase = await createClient();
   const {
     data: { user },

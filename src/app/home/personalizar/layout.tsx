@@ -10,7 +10,12 @@ import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
  * (D-173), pero el idioma y el tema también son suyos. Entra desde el menú de su nombre en Entregas;
  * si esta página le cerrara la puerta, se quedaría sin forma de cambiar de idioma.
  */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export default async function PersonalizarLayout({ children }: { children: React.ReactNode }) {
+  if (LOCAL_MODE) return <div className="wrap">{children}</div>;
+
   const supabase = await createClient();
   const {
     data: { user },

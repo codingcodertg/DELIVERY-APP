@@ -20,6 +20,8 @@ export default function SwitchUserPage() {
   const [habilitado, setHabilitado] = useState<boolean | null>(null);
 
   useEffect(() => {
+    // El demo (D-940) no pregunta a ningún servidor: el panel se enseña y entrar contesta el aviso.
+    if (process.env.NEXT_PUBLIC_LOCAL_MODE === "true") { setHabilitado(true); return; }
     let vivo = true;
     fetch("/api/impersonate/state?ask=switch")
       .then((r) => r.json())

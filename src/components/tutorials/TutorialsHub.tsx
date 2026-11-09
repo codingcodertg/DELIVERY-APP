@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
-import { createClient } from "@/lib/supabase/client";
+import { clienteDelHub as createClient } from "@/lib/home/cliente-del-hub";
 import {
   agrupaTutoriales, APPS_DE_TUTORIAL, cambiaApp, editaTutorial, guardaTutoriales, nombreDeApp, nuevoTutorial,
   rolesDesconocidos, rolesParaApp, soloLoVeElAdmin, vocabularioDe,
@@ -32,6 +32,9 @@ import type { Tutorial, TutorialApp } from "@/lib/types";
  */
 
 type Entrada = { title: string; url: string; description: string; app: TutorialApp | "general"; roles: string[] };
+
+/** El demo (D-940) no guarda tutoriales ni vistas. */
+const DEMO = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export function TutorialsHub({ yo, puedeGestionar }: { yo: string | null; puedeGestionar: boolean }) {
   const { t } = usePrefs();
@@ -68,6 +71,7 @@ export function TutorialsHub({ yo, puedeGestionar }: { yo: string | null; puedeG
 
   const marcarVisto = async (id: string) => {
     if (!yo) return;
+    if (DEMO) { setError(t("Not available in the demo.", "No disponible en el demo.")); return; }
     setMarcando(id);
     const r = await marcaVisto(createClient() as unknown as ClienteDeVistas, yo, id, new Date());
     setMarcando(null);
@@ -87,6 +91,7 @@ export function TutorialsHub({ yo, puedeGestionar }: { yo: string | null; puedeG
   const nombreApp = (app: Parameters<typeof nombreDeApp>[0]) => nombreDeApp(app, t);
 
   const guardar = async (cambio: (actual: Tutorial[]) => Tutorial[]) => {
+    if (DEMO) { setError(t("Not available in the demo.", "No disponible en el demo.")); return false; }
     const r = await guardaTutoriales(createClient() as unknown as ClienteDeAjustes, cambio);
     if (!r.ok) {
       setError(

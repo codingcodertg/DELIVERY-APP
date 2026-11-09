@@ -65,6 +65,7 @@ export function SwitchUserPanel({ users, tiendas, onClose, enPagina = false, mod
       );
     if (!await confirmAction(pregunta, { confirmLabel: modo === "saltar" ? t("Switch", "Cambiar") : t("Sign in as", "Entrar como") })) return;
 
+    if (process.env.NEXT_PUBLIC_LOCAL_MODE === "true") { setError(t("Not available in the demo.", "No disponible en el demo.")); return; }
     setEntrando(id);
     setError(null);
     try {

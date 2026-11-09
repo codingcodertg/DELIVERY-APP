@@ -13,7 +13,12 @@ import { createClient } from "@/lib/supabase/server";
  * Sin `DataProvider`: esta pantalla no toca nada de Entregas. Montarlo aquí abriría sus
  * canales de tiempo real para alguien que a lo mejor ni tiene ese módulo.
  */
+/** El demo (`NEXT_PUBLIC_LOCAL_MODE`, D-940): sin base ni sesión. */
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
 export default async function DirectoryLayout({ children }: { children: React.ReactNode }) {
+  if (LOCAL_MODE) return <div className="wrap">{children}</div>;
+
   const supabase = await createClient();
   const {
     data: { user },
