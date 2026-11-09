@@ -51162,3 +51162,9 @@ Qué entra: un proveedor en memoria (`timetracker-demo-data-provider.tsx`) con l
 Qué queda fuera: capturas de pantalla reales (las del demo son casillas en blanco o un cuadro gris), exportaciones y talones a fichero, el fichaje (sus acciones de servidor van a la base; el modo práctica arranca apagado) y cualquier aviso remoto. Hallazgo de paso, sin tocar: el cronómetro lee el último proyecto elegido de `localStorage` en un inicializador de `useState`, y con esa clave puesta React avisa de hidratación distinta en el primer pintado (pasa igual en producción; en el demo el navegador de grabar nace limpio).
 
 Sello `timetracker` 1.19.0; repo 1.787.0.
+
+## D-930 · Deliveries: al marcar Recogido ya no se abre sola la ficha de la orden
+
+Pedido de Roberto (junta 8 nov). En la vista del chofer, recoger una orden que el almacen aun no tenia lista ya no abre sola la ficha encima de la pantalla; estorbaba con las manos ocupadas. La recogida se registra igual (nota y avisos a almacen y logistica); la orden se abre solo al tocar su factura o su numero de parada. Llegue y recoger una carga lista tampoco abren nada. La prueba de entrega al marcar Entregado no cambia.
+
+Sello `deliveries` 1.571.0; repo 1.788.0.
