@@ -230,8 +230,11 @@ export default function MyRoutePage() {
   /**
    * «🚚 Recogido» sin «listo», desde el cuadro del motivo (D-603): la MISMA escritura que «Recoger de todos modos» de la
    * ficha (D-527): la nota con su prefijo, el evento `picked_up`, el GPS sin bloquear, y el aviso en la campana al almacén
-   * de esa tienda y a logística. Al terminar, la ficha, para ver los detalles (Ernesto: «After they confirm pickup, now it
-   * can open up the order to see the details»).
+   * de esa tienda y a logística.
+   *
+   * D-934 (Roberto, 2026-11-09): **ya NO abre la ficha sola al recoger.** «Que no se abra sola al llegar o recoger: estorba
+   * cuando trae otras cosas en mano.» Antes (D-603) terminaba con `abrirOrden(d)` para ver los detalles; se quitó. El chofer
+   * abre la orden cuando quiere, tocando su factura o su número de parada.
    */
   const recogerSinListoDeUnToque = async (d: Delivery, nota: string) => {
     if (soloLectura || recogiendo || !me) return;
@@ -249,7 +252,6 @@ export default function MyRoutePage() {
       etiqueta: `#${orderLabel(d)}`, nota, chofer: me.full_name,
     }));
     notify(t("Picked up — the warehouse and logistics were notified", "Recogida — se avisó al almacén y a logística"));
-    abrirOrden(d);
   };
   const adjuntarTardio = async (id: string, pendiente: Promise<GeoStamp | null>) => {
     const gps = await pendiente;
