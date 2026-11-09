@@ -83,10 +83,12 @@ describe("ningún componente de RR. HH. llama al servidor sin la guarda del demo
       "src/app/recruiting/(recruiting)/settings/page.tsx",
       "src/components/recruiting/ActivosDelEmpleado.tsx",
       "src/components/recruiting/BotonContratar.tsx",
+      "src/components/recruiting/ChecklistDelEmpleado.tsx",
       "src/components/recruiting/GlobalSearch.tsx",
       "src/components/recruiting/HistorialDeRrhh.tsx",
       "src/components/recruiting/InPersonScheduleModal.tsx",
       "src/components/recruiting/PermisosDelEmpleado.tsx",
+      "src/components/recruiting/QuitFormDelEmpleado.tsx",
       "src/components/recruiting/UsuariosPorCrear.tsx",
     ]);
   });

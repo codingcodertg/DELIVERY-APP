@@ -12,12 +12,12 @@ const entrada = (p: Partial<EntradaDeHistorial>): EntradaDeHistorial => ({
 });
 
 describe("historial de RR. HH. (D-734)", () => {
-  it("cada kind de la librería está en el check de la migración que lo define (212, y la 227 que suma la amonestación), y al revés", () => {
-    // D-806 (227): el check vigente es el de la 227, que repite la lista de la 212 y suma employee_warning.
-    const sql = readFileSync(join(process.cwd(), "supabase/migrations/247_operaciones_de_almacen.sql"), "utf8");
+  it("cada kind de la librería está en el check de la migración vigente (la 277, que repite la lista y suma asset_reassigned), y al revés", () => {
+    // D-936 (277): el check vigente es el de la 277, que repite la lista de la 247 y suma asset_reassigned.
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/277_reasignar_activos_por_puesto.sql"), "utf8");
     const enSql = [...sql.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).filter((k) => (KINDS as readonly string[]).includes(k) || k.includes("_"));
     for (const k of KINDS) expect(enSql, k).toContain(k);
-    const desde = sql.indexOf("hr_history_kind_check check (kind in ("); // D-883 (247): la 247 tiene otros «kind in (» antes.
+    const desde = sql.indexOf("hr_history_kind_check check (kind in ("); // la 277 tiene su propio «kind in (» en el check.
     const check = sql.slice(desde, sql.indexOf("))", desde));
     const enCheck = [...check.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
     expect(enCheck.sort()).toEqual([...KINDS].sort());

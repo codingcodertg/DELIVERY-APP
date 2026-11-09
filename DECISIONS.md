@@ -51180,3 +51180,9 @@ Sello `recruiting` 0.79.0; repo 1.789.0.
 Pedidos 7 y 9 de Roberto (junta 8 nov). Nueva sección admin /settings/usuarios-permisos: ver qué abre cada quien por usuario o por rol/módulo, cambiar permisos a varios a la vez y botón «Dar los 8 de gerente» (deliveries, leads, RR.HH., control de horas, promos, clientes, almacén y quote builder). Ligada al expediente de RR.HH. y a Seguridad. Petición 8: regla central reusable de «alcance por rol» (vendedor ve solo lo suyo, oficina/gerente toda la tienda) en lib/alcance-por-rol.ts, lista para Clientes, Leads y Entregas; la ENFORCE real en la base (RLS) queda pendiente de aprobación (migraciones 278/279) y Promos necesita un campo de dueño. No incluye el candado de contraseña (pendiente).
 
 Sello `deliveries` 1.572.0; repo 1.790.0.
+
+## D-937 · RR. HH.: checklist de alta y baja, formulario de renuncia y reasignar activos por puesto
+
+Pedidos de Roberto (junta 8 nov). Checklist de onboarding/offboarding marcable (correo firmado, RingCentral, QuickBooks, SharePoint/app, riesgo del app) con quién y cuándo. Formulario de renuncia: motivo, firma y foto opcional, guardado en el expediente y capturable al dar de baja. Reasignar de un clic correo, teléfono y extensión que dejó libre quien salió del mismo puesto (reservado al admin de RR. HH.). Migraciones 275, 276, 277.
+
+Sello `recruiting` 0.80.0; repo 1.791.0.
