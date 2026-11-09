@@ -51163,7 +51163,7 @@ Qué queda fuera: capturas de pantalla reales (las del demo son casillas en blan
 
 Sello `timetracker` 1.19.0; repo 1.787.0.
 
-## D-930 · Deliveries: al marcar Recogido ya no se abre sola la ficha de la orden
+## D-934 · Deliveries: al marcar Recogido ya no se abre sola la ficha de la orden
 
 Pedido de Roberto (junta 8 nov). En la vista del chofer, recoger una orden que el almacen aun no tenia lista ya no abre sola la ficha encima de la pantalla; estorbaba con las manos ocupadas. La recogida se registra igual (nota y avisos a almacen y logistica); la orden se abre solo al tocar su factura o su numero de parada. Llegue y recoger una carga lista tampoco abren nada. La prueba de entrega al marcar Entregado no cambia.
 
