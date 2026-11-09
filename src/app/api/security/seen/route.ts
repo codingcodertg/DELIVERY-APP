@@ -23,7 +23,10 @@ export async function POST(req: Request) {
   const kind = d.ligado ? "desktop" : tipoPorAgente(ua) === "phone" ? "phone" : "browser";
   // D-822 (234): y desde dónde: la IP y la ciudad que Vercel deduce de ella.
   const { ip, lugar } = lugarDeLaPeticion(req.headers);
-  const { error } = await auth.supabase.rpc("security_touch_device", { p_device: d.id, p_user_agent: ua, p_kind: kind, p_bound: d.ligado, p_ip: ip, p_place: lugar });
+  // D-942 (278): y la RUTA en la que está, para el «en vivo por módulo» de Seguridad. Solo del cuerpo, saneada.
+  let route: string | null = null;
+  try { const b = (await req.json()) as { route?: unknown }; if (typeof b?.route === "string") route = b.route.slice(0, 200); } catch { /* cuerpo vacío o no-JSON */ }
+  const { error } = await auth.supabase.rpc("security_touch_device", { p_device: d.id, p_user_agent: ua, p_kind: kind, p_bound: d.ligado, p_ip: ip, p_place: lugar, p_route: route });
   // Sin la 229 aplicada la función no existe: no es un fallo de quien navega.
   if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 200 });
   return NextResponse.json({ ok: true });

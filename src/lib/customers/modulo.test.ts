@@ -40,7 +40,7 @@ describe("la tarjeta y la casilla", () => {
     expect(knownModules(["clockin", "customers"])).toEqual(["customers"]);
   });
   it("con solo Clientes se entra directo; con dos, al hub", () => {
-    expect(landingRoute({ role: "sales", module_access: ["customers"] })).toBe("/customers");
+    expect(landingRoute({ role: "sales", module_access: ["customers"] })).toBe("/home");
     expect(landingRoute({ role: "sales", module_access: ["deliveries", "customers"] })).toBe("/home");
   });
   it("el diálogo de Usuarios escribe por su propia función y no reclama rol", () => {

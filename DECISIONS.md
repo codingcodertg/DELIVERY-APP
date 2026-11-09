@@ -51228,3 +51228,47 @@ El dueño, 2026-11-09: «pero quiero que sea de todo, todas las appas y todos lo
 **Qué queda fuera.** Las fuentes de Google (`fonts.googleapis.com`, del layout raíz de toda la app) siguen pidiéndose en el demo; no es Supabase ni es de Inventario. `Salespeople` no enseña números porque la pantalla real tampoco (espera al POS). Sin fotos de producto: `image_url` nulo y el marcador de la propia pantalla, para no pedir nada a la red. Importar ficheros en Inventario (Excel, CSV, PO) llega hasta donde escribe y ahí contesta el aviso; no hay vista previa con datos de ejemplo.
 
 Sello `erp` 0.26.0; repo 1.795.0.
+
+## D-942 · Hub: al entrar, por defecto todos caen primero en el hub (no directo a su app)
+
+Pedido del dueño (9 nov): «cuando alguien entra al app que caiga en el hub primero». Antes, quien tenía un solo módulo entraba directo a esa app y solo con dos o más veía el selector; ahora todo el que pueda llegar al hub empieza ahí y desde ahí elige. Las únicas excepciones siguen siendo el chofer —va directo a su ruta, su trabajo es manejar, no elegir— y quien no tiene ningún módulo, que va a la pantalla de «sin acceso». La regla vive en un solo sitio (`landingRoute`), apoyada en `canReachHub`, que ya garantiza que el hub nunca es un callejón sin salida (el directorio de la compañía espera a todos).
+
+De paso, arregla dos pruebas que `main` traía en rojo desde D-938: el conteo de escrituras del provider (ahora doce, por `updateUserModules`) y la pantalla «Usuarios y permisos», que tenía burbuja de Ayuda sin nombre en el mapa de ubicaciones.
+
+Sello `deliveries` 1.576.0; repo 1.796.0.
+
+## D-943 · Seguridad: tab reorganizado y más limpio; «Usuarios y Permisos» sale del hub a standby
+
+Dos cosas que pidió el dueño (9 nov). Primero, la vista «Usuarios y Permisos» (D-936) estaba mal ubicada, colgando de Entregas; se **saca del hub y queda en standby** (la página sigue existiendo en `/settings/usuarios-permisos`, pero ya nada la enlaza, como la lista vieja de usuarios). Lo de «ver en qué está metido cada usuario» se decidirá después, ya dentro de Seguridad.
+
+Segundo, el tab de Seguridad se reorganizó para que se vea limpio y se use rápido, en una sola página pero navegable:
+- Una **barra de salto** pegada arriba (Resumen · Usuarios · Dispositivos · Actividad) para no scrollear a ciegas.
+- **Resumen** junta lo de un vistazo: los KPIs —ahora **clicables**, cada uno salta a su lista ya filtrada (p. ej. «sin entrar 7 días» abre Usuarios con ese filtro; «por aprobar» abre Dispositivos en pendientes)—, las **alertas de acción** (solicitudes, apps viejas, entradas desde sitio nuevo) juntas y arriba, y los dos interruptores (regla y web) con sus excepciones.
+- **Usuarios**, **Dispositivos** y **Actividad** (dentro ahora + bloqueados en la web) como secciones claras, cada una con su título y sus acciones a la derecha.
+- Nuevo: **exportar a CSV** las listas de Usuarios y Dispositivos (con la inyección de fórmulas neutralizada, como en Scrap), filtros rápidos de Usuarios («sin entrar 7d», «sin app nueva») y **aprobar dispositivos en bloque** (seleccionar varios pendientes y aprobarlos de un tiro).
+
+Nada de la seguridad de fondo cambió: misma RLS, mismo tiempo real, mismo demo y las mismas acciones del admin.
+
+Sello `deliveries` 1.577.0; `security` 0.13.0; repo 1.797.0.
+
+## D-944 · Seguridad: administrador de permisos con roles por app, y quién está en vivo
+
+Pedido del dueño (9 nov): un solo lugar para ver y poner los permisos de cada persona —y, al lado, en qué app está metida en vivo. La vista «Usuarios y Permisos» que se había sacado a standby (D-943) se reemplaza por esto, ya bien ubicada dentro de Seguridad.
+
+Dentro de Seguridad, nueva sección **Permisos** (solo admin), en dos vistas:
+- **Por persona:** lista buscable (con filtro «solo en vivo»); al elegir a alguien, su detalle con un interruptor por módulo y —lo importante— el **rol por app** para las que tienen escalafón propio: RR. HH. (`recruiting_role`), Time Tracker (`timetracker_role`), Inventario (`erp_role`) y Almacén (`warehouse_ops_role`). El rol de Entregas (identidad) también se edita ahí. Botón «Dar los 8 de gerente».
+- **Matriz:** todas las personas × los diez módulos, con una columna «En vivo».
+
+El «en vivo» de esta fase sale de lo que Seguridad ya sabe, sin migración: quién entró en la última hora y desde qué cliente (App de escritorio / Time Tracker / navegador). Saber el **módulo exacto** en vivo es la siguiente fase (necesita el latido con la ruta, migración 278, aparte).
+
+Todo se escribe con las funciones que ya existían del proveedor del hub (las mismas que usa el expediente de RR. HH.), con su RLS; esta vista solo decide qué tocar. El proveedor del hub se monta solo al abrir el administrador (D-693/695: montarlo siempre mató la memoria en Vercel). A un admin no se le quitan módulos (los tiene por su rol), pero sus roles por app (p. ej. el nivel de costo del Inventario, D-181) sí se ajustan.
+
+Sello `deliveries` 1.578.0; `security` 0.14.0; repo 1.798.0.
+
+## D-945 · Seguridad: «en vivo» hasta el módulo exacto (latido con la ruta)
+
+La Fase A (D-944) ya decía quién estaba en vivo y desde qué cliente; esto sube el dato al **módulo exacto**: Deliveries, Quote Builder, Almacén, Time Tracker, etc.
+
+Cómo: el latido que cada app manda a `/api/security/seen` lleva ahora la ruta actual, y se reavisa al cambiar de pantalla (antes solo al cargar y cada diez minutos; ahora cada dos, más al navegar). La migración 278 agregó `security_device_users.last_route` y un séptimo parámetro opcional a `security_touch_device`; por ser opcional, la app vieja siguió funcionando mientras tanto. Seguridad lee esa ruta, la traduce a módulo con `appForPath` (el fichaje cuenta como Time Tracker; el hub y la propia pantalla de Seguridad no son un módulo y caen al cliente), y el administrador de permisos muestra el módulo en la lista, en el detalle y en la matriz. Si no hay ruta todavía, se cae al cliente como en la Fase A.
+
+Sello `deliveries` 1.579.0; `security` 0.15.0; repo 1.799.0.

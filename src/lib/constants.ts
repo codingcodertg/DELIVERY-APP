@@ -352,10 +352,13 @@ export function landingRoute(me: { role: UserRole; module_access?: string[] | nu
   // Desde D-523 su ruta es «Mi ruta» (`roleHome`), no la lista de órdenes de `/driver`.
   if (me.role === "driver" && granted.includes("deliveries")) return roleHome("driver");
   if (granted.length > 1) return "/home";
-  // Un solo módulo: directo a él. Ya no se da por hecho que ese módulo sea Entregas
-  // (D-100) — alguien que solo ficha entra a fichar, no a un tablero de pedidos que
-  // la base le va a devolver vacío.
   if (granted.length === 1) {
+    // POR DEFECTO el hub primero (pedido del dueño, 9 nov): antes, con un solo módulo se
+    // entraba directo a esa app; ahora todo el que pueda llegar al hub empieza ahí y desde
+    // ahí elige. Como el hub nunca es un callejón sin salida (D-256, el directorio espera a
+    // todos), esto es seguro. El único que NO puede llegar es el chofer (canReachHub=false),
+    // y entonces sigue entrando directo a su único módulo — su trabajo es su app, no elegir.
+    if (canReachHub(me)) return "/home";
     if (granted[0] === "deliveries") return roleHome(me.role);
     const m = MODULES.find((x) => x.key === granted[0]);
     if (m) return m.href;
@@ -645,19 +648,9 @@ export const HUB_TOOLS: HubTool[] = [
     desc_es: "El expediente de cada empleado en RRHH: cuenta del hub y permisos",
     visible: (me) => me.role === "admin",
   },
-  {
-    // «Usuarios y Permisos» (petición 7/9 de Roberto, junta 8 nov): la vista estilo QuickBooks, separada de la lista
-    // general de usuarios. Ver por usuario o por rol/módulo, y permisos rápidos en bloque. Solo el admin, como las demás
-    // herramientas de administración. La página enlaza con el expediente de RR. HH. y con Seguridad.
-    key: "usuarios-permisos",
-    href: "/settings/usuarios-permisos",
-    emoji: "🛡",
-    label_en: "Users & Permissions",
-    label_es: "Usuarios y Permisos",
-    desc_en: "By user or by role/module, and quick bulk permission changes",
-    desc_es: "Por usuario o por rol/módulo, y cambios rápidos de permisos en bloque",
-    visible: (me) => me.role === "admin",
-  },
+  // «Usuarios y Permisos» (D-936) quedó EN STANDBY por petición del dueño (9 nov): la vista está mal ubicada aquí, en
+  // Entregas. La página sigue existiendo en /settings/usuarios-permisos pero NADA la enlaza (como la lista vieja de
+  // /home/users). Cuando el tab de Seguridad quede limpio (D-940), se decide cómo meter ahí lo de «qué ve cada usuario».
   {
     key: "directory",
     href: "/home/directory",

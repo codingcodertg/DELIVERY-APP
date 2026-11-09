@@ -39,6 +39,24 @@ export async function cambiaEstadoDeDispositivo(id: string, estado: Exclude<Esta
   return { ok: true };
 }
 
+/** Aprobar VARIOS dispositivos de un tiro (D-940, selección en bloque en la tabla). Una sola escritura con `.in`,
+ *  la misma RLS y el mismo rastro (quién y cuándo) que aprobar uno. Devuelve cuántos quedaron aprobados. */
+export async function apruebaDispositivos(ids: string[]): Promise<{ ok: true; aprobados: number } | { ok: false; message: string }> {
+  const a = await admin();
+  if (!a.ok) return a;
+  const limpias = [...new Set(ids.filter((x) => /^[0-9a-f-]{36}$/i.test(x)))];
+  if (limpias.length === 0) return { ok: true, aprobados: 0 };
+  const ahora = new Date().toISOString();
+  // Solo aprueba los que SIGUEN pendientes: si uno se revocó entre que se marcó y se envió (TOCTOU), no se
+  // «re-aprueba» sin querer. Re-aprobar un revocado es una acción aparte, con su propio botón por fila.
+  const { error, data } = await a.supabase.from("security_devices")
+    .update({ status: "approved", approved_by: a.user.id, approved_at: ahora, revoked_by: null, revoked_at: null })
+    .in("id", limpias).eq("status", "pending").select("id");
+  if (error) return { ok: false, message: error.message };
+  revalidatePath("/security");
+  return { ok: true, aprobados: data?.length ?? 0 };
+}
+
 /** El nombre y el tipo: «Sales McAllen 1», computadora o teléfono. */
 export async function renombraDispositivo(id: string, label: string, kind: TipoDeDispositivo, notes?: string): Promise<R> {
   const a = await admin();
