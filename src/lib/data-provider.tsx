@@ -2350,11 +2350,15 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         customers: "customers_access_changed",
         warehouse_ops: "warehouse_ops_access_changed",
       };
-      for (const k of grant) {
-        if (!antes.has(k)) void logSecurityClient(userId, KIND[k], change(String(false), String(true)));
-      }
-      for (const k of revoke) {
-        if (antes.has(k)) void logSecurityClient(userId, KIND[k], change(String(true), String(false)));
+      // Se registra por ACCESO EFECTIVO, no solo por la pertenencia al modulo: en RR. HH. y
+      // Time Tracker el acceso tambien lo da el rol de escalafon, asi que una fila drifteada
+      // (rol puesto pero sin el modulo) que se revoca si cambia el acceso y debe quedar en el log.
+      for (const k of new Set([...grant, ...revoke])) {
+        let antesEf = antes.has(k);
+        let despuesEf = set.has(k);
+        if (k === "recruiting") { antesEf = antesEf || !!fresh.recruiting_role; despuesEf = despuesEf || !!nextRecruiting; }
+        if (k === "timetracker") { antesEf = antesEf || !!fresh.timetracker_role; despuesEf = despuesEf || !!nextTimetracker; }
+        if (antesEf !== despuesEf) void logSecurityClient(userId, KIND[k], change(String(antesEf), String(despuesEf)));
       }
       return { ok: true };
     },
