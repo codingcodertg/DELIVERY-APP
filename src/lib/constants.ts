@@ -648,19 +648,9 @@ export const HUB_TOOLS: HubTool[] = [
     desc_es: "El expediente de cada empleado en RRHH: cuenta del hub y permisos",
     visible: (me) => me.role === "admin",
   },
-  {
-    // «Usuarios y Permisos» (petición 7/9 de Roberto, junta 8 nov): la vista estilo QuickBooks, separada de la lista
-    // general de usuarios. Ver por usuario o por rol/módulo, y permisos rápidos en bloque. Solo el admin, como las demás
-    // herramientas de administración. La página enlaza con el expediente de RR. HH. y con Seguridad.
-    key: "usuarios-permisos",
-    href: "/settings/usuarios-permisos",
-    emoji: "🛡",
-    label_en: "Users & Permissions",
-    label_es: "Usuarios y Permisos",
-    desc_en: "By user or by role/module, and quick bulk permission changes",
-    desc_es: "Por usuario o por rol/módulo, y cambios rápidos de permisos en bloque",
-    visible: (me) => me.role === "admin",
-  },
+  // «Usuarios y Permisos» (D-936) quedó EN STANDBY por petición del dueño (9 nov): la vista está mal ubicada aquí, en
+  // Entregas. La página sigue existiendo en /settings/usuarios-permisos pero NADA la enlaza (como la lista vieja de
+  // /home/users). Cuando el tab de Seguridad quede limpio (D-940), se decide cómo meter ahí lo de «qué ve cada usuario».
   {
     key: "directory",
     href: "/home/directory",

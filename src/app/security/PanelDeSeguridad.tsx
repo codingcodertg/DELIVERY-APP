@@ -12,10 +12,13 @@ import type { ValorDeCelda } from "@/lib/orden-y-filtro";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
-import { borraDispositivo, cambiaEstadoDeDispositivo, cambiaExcepcionesWeb, cambiaPolitica, cambiaPoliticaWeb, cierraSesionesDe, renombraDispositivo } from "./actions";
+import { apruebaDispositivos, borraDispositivo, cambiaEstadoDeDispositivo, cambiaExcepcionesWeb, cambiaPolitica, cambiaPoliticaWeb, cierraSesionesDe, renombraDispositivo } from "./actions";
 import { ROLES_SOLO_ESCRITORIO } from "@/lib/security/reglas";
 import { APP_VERSIONS } from "@/lib/app-versions";
 import { ESCRITORIO_MINIMO } from "@/lib/desktop-version";
+import { downloadCSV } from "@/lib/utils";
+import { filasACsv, nombreCsv } from "@/lib/security/csv";
+import "./security.css";
 
 export interface DispositivoFila {
   id: string; label: string | null; kind: string; status: string; user_agent: string | null;
@@ -85,6 +88,7 @@ function useEnVivo(): boolean {
 
 /** «Activo» = visto en la última hora: lo que el dueño llama «cuántos users están activos». */
 const ACTIVO_MS = 60 * 60 * 1000;
+const SEMANA_MS = 7 * 24 * 3600 * 1000;
 
 const TIPO: Record<string, { en: string; es: string; icono: string }> = {
   desktop: { en: "RTG Hub app", es: "App RTG Hub", icono: "🖥️" },
@@ -126,13 +130,22 @@ type Columna = ColumnaConMenu & { ancho: number };
 type T = (en: string, es: string) => string;
 const ES_FECHA = /^\d{4}-\d{2}-\d{2}T/;
 
+/** La selección en bloque de una tabla (D-940): una casilla al frente de cada fila elegible. */
+interface Seleccion<F> {
+  marcados: Set<string>;
+  idDe: (f: F) => string;
+  elegible: (f: F) => boolean;
+  alterna: (id: string) => void;
+  marcaTodos: (ids: string[]) => void;
+}
+
 /**
- * D-821: la tabla de Deliveries (Órdenes, D-275) con todo lo suyo, para las tres listas de Security: buscador,
+ * D-821: la tabla de Deliveries (Órdenes, D-275) con todo lo suyo, para las listas de Security: buscador,
  * menú por columna para ordenar y filtrar (`CabeceraConMenu`), los filtros puestos como chips, anchos ajustables que
  * se recuerdan (`useColWidthMap`), y las mismas clases (`orders`, `tbl-scroll tbl-caja`). Lo que cambia por tabla:
- * las columnas, cómo se saca el valor de cada celda y cómo se pinta.
+ * las columnas, cómo se saca el valor de cada celda y cómo se pinta. D-940: opcional, una casilla de selección al frente.
  */
-function TablaDeSecurity<F>({ id, filas, columnas, valorDe, textoDe, claveDe, celda, extra, acciones, anchoDeAcciones = 0, vacio, chips, lang, t }: {
+function TablaDeSecurity<F>({ id, filas, columnas, valorDe, textoDe, claveDe, celda, extra, acciones, anchoDeAcciones = 0, vacio, chips, lang, t, seleccion }: {
   id: string; filas: readonly F[]; columnas: readonly Columna[];
   valorDe: (clave: string, fila: F) => ValorDeCelda;
   /** Lo que el buscador mira de cada fila. */
@@ -147,6 +160,7 @@ function TablaDeSecurity<F>({ id, filas, columnas, valorDe, textoDe, claveDe, ce
   /** Lo que va junto al buscador (los chips de estado). */
   chips?: ReactNode;
   lang: "en" | "es"; t: T;
+  seleccion?: Seleccion<F>;
 }) {
   const [buscar, setBuscar] = useState("");
   const q = buscar.trim().toLowerCase();
@@ -154,7 +168,11 @@ function TablaDeSecurity<F>({ id, filas, columnas, valorDe, textoDe, claveDe, ce
   const orden = useOrdenYFiltro(buscadas, valorDe);
   const colw = useColWidthMap(`security-${id}-anchos`, 140, { minimo: 60 });
   const ancho = (c: Columna) => colw.widthOf(c.key, c.ancho);
-  const anchos = [...columnas.map(ancho), ...(acciones ? [anchoDeAcciones] : [])];
+  const anchoSel = seleccion ? 38 : 0;
+  const anchos = [...(seleccion ? [anchoSel] : []), ...columnas.map(ancho), ...(acciones ? [anchoDeAcciones] : [])];
+  const totalCols = columnas.length + (seleccion ? 1 : 0) + (acciones ? 1 : 0);
+  const idsElegibles = seleccion ? orden.visibles.filter((f) => seleccion.elegible(f)).map((f) => seleccion.idDe(f)) : [];
+  const todosMarcados = seleccion ? idsElegibles.length > 0 && idsElegibles.every((x) => seleccion.marcados.has(x)) : false;
   return (
     <>
       <div className="filters" style={{ alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -168,11 +186,18 @@ function TablaDeSecurity<F>({ id, filas, columnas, valorDe, textoDe, claveDe, ce
       <div className="tbl-scroll tbl-fit tbl-caja">
         <table className="orders tbl-resize" style={anchoDeTabla(anchos)} data-tabla={id}>
           <colgroup>
+            {seleccion && <col style={{ width: anchoSel }} />}
             {columnas.map((c) => <col key={c.key} style={{ width: ancho(c) }} />)}
             {acciones && <col style={{ width: anchoDeAcciones }} />}
           </colgroup>
           <thead>
             <tr>
+              {seleccion && (
+                <th>
+                  <input type="checkbox" aria-label={t("Select all", "Seleccionar todo")} data-sel-todos checked={todosMarcados}
+                    disabled={idsElegibles.length === 0} onChange={() => seleccion.marcaTodos(idsElegibles)} />
+                </th>
+              )}
               {columnas.map((c) => (
                 <th key={c.key}>
                   <CabeceraConMenu estado={orden} col={c} lang={lang} t={t} />
@@ -183,13 +208,22 @@ function TablaDeSecurity<F>({ id, filas, columnas, valorDe, textoDe, claveDe, ce
             </tr>
           </thead>
           <tbody>
-            {orden.visibles.length === 0 && <tr><td colSpan={columnas.length + (acciones ? 1 : 0)} className="hint">{vacio}</td></tr>}
+            {orden.visibles.length === 0 && <tr><td colSpan={totalCols} className="hint">{vacio}</td></tr>}
             {orden.visibles.map((f) => {
               const ex = extra?.(f);
               const fila = f as F & { id?: string | number; status?: string };
+              const selCelda = seleccion ? (
+                <td style={{ textAlign: "center" }}>
+                  {seleccion.elegible(f) && (
+                    <input type="checkbox" data-sel-fila={seleccion.idDe(f)} checked={seleccion.marcados.has(seleccion.idDe(f))}
+                      onChange={() => seleccion.alterna(seleccion.idDe(f))} />
+                  )}
+                </td>
+              ) : null;
               return (
-                <FilaDoble key={claveDe(f)} clave={claveDe(f)} estado={fila.status} celdas={columnas.map((c) => <td key={c.key}>{celda(c.key, f)}</td>)}
-                  acciones={acciones ? <td style={{ whiteSpace: "nowrap" }}>{acciones(f)}</td> : null} extra={ex} ancho={columnas.length + (acciones ? 1 : 0)} />
+                <FilaDoble key={claveDe(f)} clave={claveDe(f)} estado={fila.status} seleccion={selCelda}
+                  celdas={columnas.map((c) => <td key={c.key}>{celda(c.key, f)}</td>)}
+                  acciones={acciones ? <td style={{ whiteSpace: "nowrap" }}>{acciones(f)}</td> : null} extra={ex} ancho={totalCols} />
               );
             })}
           </tbody>
@@ -200,10 +234,10 @@ function TablaDeSecurity<F>({ id, filas, columnas, valorDe, textoDe, claveDe, ce
   );
 }
 
-function FilaDoble({ clave, estado, celdas, acciones, extra, ancho }: { clave: string; estado?: string; celdas: ReactNode; acciones: ReactNode; extra: ReactNode; ancho: number }) {
+function FilaDoble({ clave, estado, seleccion, celdas, acciones, extra, ancho }: { clave: string; estado?: string; seleccion?: ReactNode; celdas: ReactNode; acciones: ReactNode; extra: ReactNode; ancho: number }) {
   return (
     <>
-      <tr data-fila={clave} data-estado={estado}>{celdas}{acciones}</tr>
+      <tr data-fila={clave} data-estado={estado}>{seleccion}{celdas}{acciones}</tr>
       {extra && <tr data-edicion={clave}><td colSpan={ancho}>{extra}</td></tr>}
     </>
   );
@@ -226,9 +260,12 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
   };
   const [aviso, setAviso] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<"todos" | "actualizar" | EstadoDeDispositivo>("todos");
+  const [filtroUsuarios, setFiltroUsuarios] = useState<"todos" | "sin-entrar" | "sin-app">("todos");
   const [editando, setEditando] = useState<string | null>(null);
   const [confirmaInterruptor, setConfirmaInterruptor] = useState(false);
   const [confirmaWeb, setConfirmaWeb] = useState(false);
+  // D-940: dispositivos marcados para aprobar en bloque.
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
   // D-826: a quién añadir a las excepciones de la web (solo roles bloqueados que aún no están).
   const [nuevoExento, setNuevoExento] = useState("");
   const exentosConNombre = exentos.map((id) => ({ id, persona: usuarios.find((u) => u.id === id)?.persona ?? id.slice(0, 8) }));
@@ -236,6 +273,7 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
   const fecha = useCallback((s: string | null) => s ? new Date(s).toLocaleString(lang === "es" ? "es-MX" : "en-US", { dateStyle: "short", timeStyle: "short" }) : "—", [lang]);
   const fechaOTexto = useCallback((v: ValorDeCelda) => typeof v === "string" && ES_FECHA.test(v) ? fecha(v) : String(v ?? "—"), [fecha]);
   const ahora = Date.now();
+  const hoy = new Date().toISOString().slice(0, 10);
   const tipoTexto = useCallback((kind: string) => { const x = TIPO[kind] ?? TIPO.browser; return `${x.icono} ${t(x.en, x.es)}`; }, [t]);
   const estadoTexto = useCallback((status: string) => { const x = ESTADO[status] ?? ESTADO.pending; return t(x.en, x.es); }, [t]);
 
@@ -245,6 +283,9 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
     if (!r.ok) setAviso(r.message ?? "Error");
     setOcupado(false);
   };
+
+  // D-940: ir a una sección (y, de paso, dejar puesto un filtro). Lo usan los KPIs de arriba.
+  const irA = useCallback((id: string) => { document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); }, []);
 
   // --- Dispositivos -------------------------------------------------------------------------------------------------
   const porActualizar = useMemo(() => dispositivos.filter((d) => versionDeApp(d.user_agent).actualizar), [dispositivos]);
@@ -418,242 +459,327 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
     }
   };
   const conAppNueva = usuarios.filter((p) => estadoDeApp(p.mejor ?? p.ultimo, t).startsWith("✓")).length;
+  const sinEntrar7d = useMemo(() => usuarios.filter((p) => !p.ultimo || Date.parse(p.ultimo.last_seen_at) < ahora - SEMANA_MS), [usuarios, ahora]);
+  const sinAppNueva = useMemo(() => usuarios.filter((p) => !estadoDeApp(p.mejor ?? p.ultimo, t).startsWith("✓")), [usuarios, t]);
+  const usuariosFiltrados = useMemo(() => filtroUsuarios === "sin-entrar" ? sinEntrar7d : filtroUsuarios === "sin-app" ? sinAppNueva : usuarios, [filtroUsuarios, usuarios, sinEntrar7d, sinAppNueva]);
 
   // --- Entradas desde un sitio nuevo (D-822) --------------------------------------------------------------------------------
   const sitiosNuevos = useMemo(() => entradasDesdeSitioNuevo(uso, ahora), [uso, ahora]);
 
   // --- Salud del sistema (D-830): los números que el dueño quiere ver de un vistazo, sacados de lo que ya está en pantalla.
   const salud = useMemo(() => {
-    const dia = ahora - 24 * 3600_000, semana = ahora - 7 * 24 * 3600_000;
+    const dia = ahora - 24 * 3600_000;
     const escritorios = dispositivos.filter((d) => versionDeApp(d.user_agent).app === "desktop" && d.status !== "revoked");
     return {
       escritoriosAlDia: escritorios.filter((d) => !versionDeApp(d.user_agent).actualizar).length,
       escritoriosAtras: escritorios.filter((d) => versionDeApp(d.user_agent).actualizar).length,
-      sinEntrar7d: usuarios.filter((p) => !p.ultimo || Date.parse(p.ultimo.last_seen_at) < semana).length,
+      sinEntrar7d: sinEntrar7d.length,
       pendientes: dispositivos.filter((d) => d.status === "pending").length,
       bloqueos24h: bloqueados.filter((b) => Date.parse(b.at) > dia).length,
     };
-  }, [dispositivos, usuarios, bloqueados, ahora]);
+  }, [dispositivos, sinEntrar7d, bloqueados, ahora]);
+
+  // D-940: exportar la lista (ya filtrada por los chips) a CSV, como en Scrap.
+  const exporta = useCallback(<F,>(base: string, columnas: readonly Columna[], filas: readonly F[], valorDe: (clave: string, f: F) => ValorDeCelda) => {
+    const cab = columnas.map((c) => t(c.en, c.es));
+    const rows = filas.map((f) => columnas.map((c) => {
+      const v = valorDe(c.key, f);
+      return typeof v === "string" && ES_FECHA.test(v) ? fecha(v) : (v ?? "");
+    }));
+    downloadCSV(nombreCsv(base, hoy), filasACsv(cab, rows));
+  }, [t, fecha, hoy]);
+
+  // D-940: selección en bloque de dispositivos (solo los pendientes).
+  const alternaSel = useCallback((id: string) => setSeleccionados((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; }), []);
+  const marcaTodosSel = useCallback((ids: string[]) => setSeleccionados((s) => {
+    const n = new Set(s);
+    const todos = ids.length > 0 && ids.every((x) => n.has(x));
+    if (todos) ids.forEach((x) => n.delete(x)); else ids.forEach((x) => n.add(x));
+    return n;
+  }), []);
+  const apruebaSeleccionados = async () => {
+    const ids = [...seleccionados];
+    if (ids.length === 0) return;
+    setOcupado(true); setAviso(null);
+    const r = await apruebaDispositivos(ids);
+    if (!r.ok) setAviso(r.message); else setSeleccionados(new Set());
+    setOcupado(false);
+  };
+  const selDispositivos: Seleccion<DispositivoFila> = { marcados: seleccionados, idDe: (d) => d.id, elegible: (d) => d.status === "pending", alterna: alternaSel, marcaTodos: marcaTodosSel };
+
+  const hayAtencion = (dispositivos.some((d) => d.requested_at && d.status !== "approved")) || porActualizar.length > 0 || sitiosNuevos.length > 0;
 
   return (
-    <div className="container" style={{ padding: "16px 20px", maxWidth: 1400 }}>
-      <h1 style={{ margin: "0 0 4px" }}>
-        🔐 {t("Security", "Seguridad")}{" "}
-        <span className="hint" data-en-vivo={vivo ? "si" : "no"} title={vivo ? t("Updates by itself when anything changes", "Se actualiza solo cuando algo cambia") : t("Connecting… refreshes every minute meanwhile", "Conectando… mientras tanto se refresca cada minuto")}
-          style={{ fontSize: 13, fontWeight: 400, color: vivo ? "var(--green)" : "var(--amber)" }}>
+    <div className="container sec" style={{ padding: "16px 20px", maxWidth: 1400 }}>
+      <div className="sec-head">
+        <h1>🔐 {t("Security", "Seguridad")}</h1>
+        <span className="sec-vivo hint" data-en-vivo={vivo ? "si" : "no"} title={vivo ? t("Updates by itself when anything changes", "Se actualiza solo cuando algo cambia") : t("Connecting… refreshes every minute meanwhile", "Conectando… mientras tanto se refresca cada minuto")}
+          style={{ color: vivo ? "var(--green)" : "var(--amber)" }}>
           ● {vivo ? t("live", "en vivo") : t("connecting…", "conectando…")}
         </span>
-      </h1>
-      <p className="hint" style={{ marginTop: 0 }}>
-        {t("Registered devices, who signs in from where, and the device rule switch.", "Dispositivos registrados, quién entra desde dónde, y el interruptor de la regla por dispositivo.")}
-      </p>
-      {/* D-830: salud del sistema de un vistazo. Rojo = hay algo que hacer. */}
-      <div className="kpi-grid" data-bloque="salud" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
-        <div className="kpi" data-kpi="version" title={Object.entries(APP_VERSIONS).map(([k, v]) => `${k} ${v}`).join(" · ")}>
-          <b style={{ fontSize: 18 }}>{APP_VERSIONS.deliveries}</b><span>{t("Deliveries published", "Deliveries publicada")} · Security {APP_VERSIONS.security}</span>
-        </div>
-        <div className="kpi" data-kpi="escritorio" style={salud.escritoriosAtras ? { borderColor: "var(--red)" } : undefined}>
-          <b style={salud.escritoriosAtras ? { color: "var(--red)" } : { color: "var(--green)" }}>{salud.escritoriosAlDia}<span style={{ fontSize: 14, color: "var(--gray)" }}> / {salud.escritoriosAlDia + salud.escritoriosAtras}</span></b>
-          <span>{t(`Desktop apps on ${ESCRITORIO_MINIMO}`, `Apps de escritorio en ${ESCRITORIO_MINIMO}`)}{salud.escritoriosAtras ? ` · ${salud.escritoriosAtras} ${t("behind", "atrás")}` : ""}</span>
-        </div>
-        <div className="kpi" data-kpi="dentro"><b>{dentro.length}</b><span>{t("Signed in (last hour)", "Dentro (última hora)")}</span></div>
-        <div className="kpi" data-kpi="sin-entrar" style={salud.sinEntrar7d ? { borderColor: "var(--amber)" } : undefined}>
-          <b>{salud.sinEntrar7d}</b><span>{t("Users with no sign-in in 7 days", "Usuarios sin entrar en 7 días")}</span>
-        </div>
-        <div className="kpi" data-kpi="pendientes" style={salud.pendientes ? { borderColor: "var(--amber)" } : undefined}>
-          <b>{salud.pendientes}</b><span>{t("Devices pending approval", "Dispositivos por aprobar")}</span>
-        </div>
-        <div className="kpi" data-kpi="bloqueos" style={salud.bloqueos24h ? { borderColor: "var(--red)" } : undefined}>
-          <b>{salud.bloqueos24h}</b><span>{t("Web blocks (24 h)", "Bloqueos web (24 h)")}</span>
-        </div>
-        <div className="kpi" data-kpi="sitios-nuevos" style={sitiosNuevos.length ? { borderColor: "var(--red)" } : undefined}>
-          <b style={sitiosNuevos.length ? { color: "var(--red)" } : undefined}>{sitiosNuevos.length}</b><span>{t("New-device sign-ins (7 d)", "Entradas desde sitio nuevo (7 d)")}</span>
-        </div>
       </div>
-      {error && <div className="card" style={{ borderColor: "var(--red)" }}>{t("Could not read the security tables (is migration 229 applied?):", "No se pudieron leer las tablas de seguridad (¿está aplicada la 229?):")} {error}</div>}
-      {aviso && <div className="card" style={{ borderColor: "var(--red)" }}>{aviso}</div>}
 
-      {/* Los dos interruptores, lado a lado */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: 12 }}>
-        <div className="card" data-bloque="politica" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", margin: 0, borderColor: enforced ? "var(--green)" : "var(--line)" }}>
-          <span className="badge" data-politica={enforced ? "on" : "off"} style={{ background: enforced ? "var(--tint-green)" : "var(--tint-amber, #fff4d6)", color: enforced ? "var(--green)" : "var(--amber)" }}>
-            {enforced ? t("RULE ON", "REGLA ENCENDIDA") : t("RULE OFF", "REGLA APAGADA")}
-          </span>
-          <span style={{ flex: 1, minWidth: 220 }}>
-            {enforced
-              ? t("Managers, sales, office and logistics only get in from approved devices. Admin, warehouse and drivers are not limited.", "Managers, ventas, oficina y logística solo entran desde dispositivos aprobados. Admin, almacén y choferes no tienen límite.")
-              : t("Nothing is blocked yet. Devices are being registered so the list is ready when you turn it on.", "Todavía no se bloquea nada. Los dispositivos se van registrando para que la lista esté lista cuando la enciendas.")}
-            {cambiadaEn && <span className="hint" style={{ marginLeft: 6 }}>({t("changed", "cambiada")} {fecha(cambiadaEn)})</span>}
-          </span>
-          {!confirmaInterruptor ? (
-            <button className={enforced ? "btn btn-danger" : "btn btn-green"} disabled={ocupado || !!error} data-accion="interruptor" onClick={() => setConfirmaInterruptor(true)}>
-              {enforced ? t("Turn off", "Apagar") : t("Turn on", "Encender")}
-            </button>
-          ) : (
-            <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <b>{enforced ? t("Turn the rule off?", "¿Apagar la regla?") : t("Turn the rule on for everyone now?", "¿Encender la regla para todos ahora?")}</b>
-              <button className="btn btn-sm btn-green" disabled={ocupado} data-accion="interruptor-confirma" onClick={() => { void corre(() => cambiaPolitica(!enforced)); setConfirmaInterruptor(false); }}>{t("Yes", "Sí")}</button>
-              <button className="btn btn-sm btn-ghost" onClick={() => setConfirmaInterruptor(false)}>{t("No", "No")}</button>
-            </span>
-          )}
-        </div>
+      {/* Barra de salto: una sola página, pero navegable */}
+      <nav className="sec-nav" aria-label={t("Jump to section", "Saltar a sección")}>
+        <a href="#sec-resumen">{t("Overview", "Resumen")}</a>
+        <a href="#sec-usuarios">{t("Users", "Usuarios")} <span className="cnt">{usuarios.length}</span></a>
+        <a href="#sec-dispositivos">{t("Devices", "Dispositivos")} <span className="cnt">{dispositivos.length}</span></a>
+        <a href="#sec-actividad">{t("Activity", "Actividad")}</a>
+      </nav>
 
-        {/* D-816: la web bloqueada para manager, sales, logistics y accounting */}
-        <div className="card" data-bloque="web" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", margin: 0, borderColor: webBloqueada ? "var(--green)" : "var(--line)" }}>
-          <span className="badge" data-web={webBloqueada ? "bloqueada" : "abierta"} style={{ background: webBloqueada ? "var(--tint-green)" : "var(--tint-amber, #fff4d6)", color: webBloqueada ? "var(--green)" : "var(--amber)" }}>
-            {webBloqueada ? t("WEB BLOCKED", "WEB BLOQUEADA") : t("WEB OPEN", "WEB ABIERTA")}
-          </span>
-          <span style={{ flex: 1, minWidth: 220 }}>
-            {webBloqueada
-              ? t("Managers, sales, logistics and accounting only get in from the RTG Hub desktop app (and from a phone, Time Tracker only). In a browser they see «The web app is no longer available».", "Managers, ventas, logística y contabilidad solo entran desde la app de escritorio RTG Hub (y desde el teléfono, solo Time Tracker). En un navegador ven «La web app ya no está disponible».")
-              : t("Managers, sales, logistics and accounting can still use the hub from any browser.", "Managers, ventas, logística y contabilidad todavía pueden usar el hub desde cualquier navegador.")}
-          </span>
-          {!confirmaWeb ? (
-            <button className={webBloqueada ? "btn btn-danger" : "btn btn-green"} disabled={ocupado || !!error} data-accion="web" onClick={() => setConfirmaWeb(true)}>
-              {webBloqueada ? t("Open the web", "Abrir la web") : t("Block the web", "Bloquear la web")}
-            </button>
-          ) : (
-            <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <b>{webBloqueada ? t("Open the web app again for everyone?", "¿Abrir la web otra vez para todos?") : t("Block the web for managers, sales, logistics and accounting now?", "¿Bloquear la web para managers, ventas, logística y contabilidad ahora?")}</b>
-              <button className="btn btn-sm btn-green" disabled={ocupado} data-accion="web-confirma" onClick={() => { void corre(() => cambiaPoliticaWeb(!webBloqueada)); setConfirmaWeb(false); }}>{t("Yes", "Sí")}</button>
-              <button className="btn btn-sm btn-ghost" onClick={() => setConfirmaWeb(false)}>{t("No", "No")}</button>
-            </span>
-          )}
-          {/* D-826: las excepciones: personas que entran por la web aunque su rol esté bloqueado */}
-          <div data-bloque="excepciones-web" style={{ flexBasis: "100%", display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--line)", paddingTop: 8 }}>
-            <span className="hint" style={{ margin: 0 }}>{t("Exceptions (they can use the web):", "Excepciones (sí pueden usar la web):")}</span>
-            {exentosConNombre.length === 0 && <span className="hint" style={{ margin: 0 }}>—</span>}
-            {exentosConNombre.map((e) => (
-              <span key={e.id} className="chip on" data-exento={e.id}>
-                {e.persona}
-                <button type="button" className="btn btn-sm btn-ghost" style={{ padding: "0 4px", marginLeft: 4 }} disabled={ocupado} title={t("Remove", "Quitar")} data-accion="quitar-exento"
-                  onClick={() => void corre(() => cambiaExcepcionesWeb(exentos.filter((x) => x !== e.id)))}>✕</button>
-              </span>
-            ))}
-            <select value={nuevoExento} onChange={(e) => setNuevoExento(e.target.value)} data-campo="nuevo-exento" style={{ maxWidth: 240 }}>
-              <option value="">{t("Add person…", "Añadir persona…")}</option>
-              {candidatosAExento.map((u) => <option key={u.id} value={u.id}>{u.persona} · {u.rol}</option>)}
-            </select>
-            <button type="button" className="btn btn-sm" disabled={ocupado || !nuevoExento} data-accion="anadir-exento"
-              onClick={() => { void corre(() => cambiaExcepcionesWeb([...exentos, nuevoExento])); setNuevoExento(""); }}>+ {t("Add", "Añadir")}</button>
+      {error && <div className="card" style={{ borderColor: "var(--red)", margin: 0 }}>{t("Could not read the security tables (is migration 229 applied?):", "No se pudieron leer las tablas de seguridad (¿está aplicada la 229?):")} {error}</div>}
+      {aviso && <div className="card" style={{ borderColor: "var(--red)", margin: 0 }}>{aviso}</div>}
+
+      {/* ===================== RESUMEN ===================== */}
+      <section id="sec-resumen" className="sec-sec">
+        {/* D-830: salud del sistema de un vistazo; D-940: cada tarjeta salta a su lista. Rojo = hay algo que hacer. */}
+        <div className="kpi-grid" data-bloque="salud" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
+          <div className="kpi" data-kpi="version" title={Object.entries(APP_VERSIONS).map(([k, v]) => `${k} ${v}`).join(" · ")}>
+            <b style={{ fontSize: 18 }}>{APP_VERSIONS.deliveries}</b><span>{t("Deliveries published", "Deliveries publicada")} · Security {APP_VERSIONS.security}</span>
           </div>
-        </div>
-      </div>
-
-      {/* Solicitudes: quien se quedó fuera y pidió entrar */}
-      {dispositivos.some((d) => d.requested_at && d.status !== "approved") && (
-        <div className="card" data-bloque="solicitudes" style={{ borderColor: "var(--amber)", marginTop: 12 }}>
-          <b>🔔 {t("Authorization requests", "Solicitudes de autorización")}</b>
-          <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
-            {dispositivos.filter((d) => d.requested_at && d.status !== "approved").map((d) => (
-              <li key={d.id} data-solicitud={d.id} style={{ marginBottom: 4 }}>
-                <b>{d.solicitante}</b> · {TIPO[d.kind]?.icono} {nombreDe(d)} · {fecha(d.requested_at)}
-                {d.request_note && <> — <i>«{d.request_note}»</i></>}
-                <button className="btn btn-sm btn-green" style={{ marginLeft: 8 }} disabled={ocupado} data-accion="aprobar-solicitud"
-                  onClick={() => void corre(() => cambiaEstadoDeDispositivo(d.id, "approved"))}>✓ {t("Approve", "Aprobar")}</button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* D-815: quién va con una app vieja */}
-      {porActualizar.length > 0 && (
-        <div className="card" data-bloque="por-actualizar" style={{ borderColor: "var(--red)", marginTop: 12 }}>
-          <b>⚠️ {t(`${porActualizar.length} device(s) with an old app`, `${porActualizar.length} dispositivo(s) con app vieja`)}</b>
-          <span className="hint" style={{ marginLeft: 6 }}>
-            {t("They see a full-screen «Update now» and cannot work until they do. Last seen:", "Ven «Actualizar ahora» a pantalla completa y no pueden trabajar hasta hacerlo. Última vez:")}
-          </span>
-          <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
-            {porActualizar.slice(0, 20).map((d) => (
-              <li key={d.id} data-por-actualizar={d.id}>{TIPO[d.kind]?.icono} <b>{nombreDe(d)}</b> · <Version ua={d.user_agent} /> · {d.ultimo} · {fecha(d.last_seen_at)}</li>
-            ))}
-            {porActualizar.length > 20 && <li className="hint">… {porActualizar.length - 20} {t("more", "más")}</li>}
-          </ul>
-        </div>
-      )}
-
-      {/* D-822: «avísame si ellos quieren ingresar desde otro lado» */}
-      {sitiosNuevos.length > 0 && (
-        <div className="card" data-bloque="sitios-nuevos" style={{ borderColor: "var(--red)", marginTop: 12 }}>
-          <b>🚨 {t(`${sitiosNuevos.length} sign-in(s) from a new device in the last 7 days`, `${sitiosNuevos.length} entrada(s) desde un dispositivo nuevo en los últimos 7 días`)}</b>
-          <span className="hint" style={{ marginLeft: 6 }}>
-            {t("People who already had a device and showed up on another one. Check the place: if it is not the store, revoke it.", "Gente que ya tenía un dispositivo y apareció en otro. Mira el lugar: si no es la tienda, revócalo.")}
-          </span>
-          <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
-            {sitiosNuevos.slice(0, 20).map((u) => (
-              <li key={`${u.device_id}:${u.user_id}`} data-sitio-nuevo={u.user_id}>
-                <b>{u.persona}</b> ({u.rol}{u.tienda ? ` · ${u.tienda}` : ""}) · {u.dispositivo ? `${TIPO[u.dispositivo.kind]?.icono ?? ""} ${nombreDe(u.dispositivo)}` : "—"}
-                {u.dispositivo && <> · <Version ua={u.dispositivo.user_agent} /></>} · 📍 {u.last_place ?? u.last_ip ?? t("unknown place", "lugar desconocido")} · {fecha(u.first_seen_at)}
-                {u.dispositivo && u.dispositivo.status === "approved" && (
-                  <button className="btn btn-sm btn-danger" style={{ marginLeft: 8 }} disabled={ocupado} data-accion="revocar-sitio-nuevo" onClick={() => void corre(() => cambiaEstadoDeDispositivo(u.device_id, "revoked"))}>✕ {t("Revoke", "Revocar")}</button>
-                )}
-              </li>
-            ))}
-            {sitiosNuevos.length > 20 && <li className="hint">… {sitiosNuevos.length - 20} {t("more", "más")}</li>}
-          </ul>
-        </div>
-      )}
-
-      {/* D-822: todos los usuarios creados */}
-      <h2 style={{ margin: "18px 0 6px" }}>👥 {t("Users", "Usuarios")} <span className="cnt">{usuarios.length}</span> <span className="hint" style={{ fontWeight: 400, fontSize: 13 }}>· {t(`${conAppNueva} with the new app`, `${conAppNueva} con la app nueva`)}</span></h2>
-      <TablaDeSecurity id="usuarios" filas={usuarios} columnas={colsUsuarios} valorDe={valorUsuario} textoDe={textoUsuario} claveDe={(p) => p.id}
-        celda={celdaUsuario} vacio={t("No users.", "No hay usuarios.")} lang={lang} t={t} anchoDeAcciones={150}
-        acciones={(p) => (
-          <button className="btn btn-sm btn-ghost" disabled={ocupado} data-accion="cerrar-sesiones" title={t("Signs them out of every device and app", "Lo saca de todos sus dispositivos y apps")}
-            onClick={() => void cierraSesiones(p)}>
-            {cerradas?.id === p.id ? t(`✓ ${cerradas.n} closed`, `✓ ${cerradas.n} cerradas`) : t("⏏ Sign out all", "⏏ Cerrar sesiones")}
+          <button type="button" className="kpi sec-kpi" data-kpi="escritorio" data-estado={salud.escritoriosAtras ? "alerta" : undefined} onClick={() => { setFiltro("actualizar"); irA("sec-dispositivos"); }}>
+            <b style={salud.escritoriosAtras ? { color: "var(--red)" } : { color: "var(--green)" }}>{salud.escritoriosAlDia}<span style={{ fontSize: 14, color: "var(--gray)" }}> / {salud.escritoriosAlDia + salud.escritoriosAtras}</span></b>
+            <span>{t(`Desktop apps on ${ESCRITORIO_MINIMO}`, `Apps de escritorio en ${ESCRITORIO_MINIMO}`)}{salud.escritoriosAtras ? ` · ${salud.escritoriosAtras} ${t("behind", "atrás")}` : ""}</span>
           </button>
-        )} />
+          <button type="button" className="kpi sec-kpi" data-kpi="dentro" onClick={() => irA("sec-actividad")}><b>{dentro.length}</b><span>{t("Signed in (last hour)", "Dentro (última hora)")}</span></button>
+          <button type="button" className="kpi sec-kpi" data-kpi="sin-entrar" data-estado={salud.sinEntrar7d ? "aviso" : undefined} onClick={() => { setFiltroUsuarios("sin-entrar"); irA("sec-usuarios"); }}>
+            <b>{salud.sinEntrar7d}</b><span>{t("Users with no sign-in in 7 days", "Usuarios sin entrar en 7 días")}</span>
+          </button>
+          <button type="button" className="kpi sec-kpi" data-kpi="pendientes" data-estado={salud.pendientes ? "aviso" : undefined} onClick={() => { setFiltro("pending"); irA("sec-dispositivos"); }}>
+            <b>{salud.pendientes}</b><span>{t("Devices pending approval", "Dispositivos por aprobar")}</span>
+          </button>
+          <button type="button" className="kpi sec-kpi" data-kpi="bloqueos" data-estado={salud.bloqueos24h ? "alerta" : undefined} onClick={() => irA("sec-actividad")}>
+            <b>{salud.bloqueos24h}</b><span>{t("Web blocks (24 h)", "Bloqueos web (24 h)")}</span>
+          </button>
+          <button type="button" className="kpi sec-kpi" data-kpi="sitios-nuevos" data-estado={sitiosNuevos.length ? "alerta" : undefined} onClick={() => irA(hayAtencion ? "sec-atencion" : "sec-actividad")}>
+            <b style={sitiosNuevos.length ? { color: "var(--red)" } : undefined}>{sitiosNuevos.length}</b><span>{t("New-device sign-ins (7 d)", "Entradas desde sitio nuevo (7 d)")}</span>
+          </button>
+        </div>
 
-      {/* Dentro ahora: visto en la última hora */}
-      <h2 style={{ margin: "18px 0 6px" }}>{t("Signed in now (seen in the last hour)", "Dentro ahora (vistos en la última hora)")} <span className="cnt">{dentro.length}</span></h2>
-      <TablaDeSecurity id="activos" filas={dentro} columnas={colsDentro} valorDe={valorDentro} textoDe={textoDentro} claveDe={(u) => u.user_id}
-        celda={celdaDentro} vacio={t("Nobody in the last hour.", "Nadie en la última hora.")} lang={lang} t={t} />
+        {/* D-940: lo que hay que hacer AHORA, junto y arriba */}
+        {hayAtencion && (
+          <div id="sec-atencion" className="sec-attn" style={{ marginTop: 12 }}>
+            {/* Solicitudes: quien se quedó fuera y pidió entrar */}
+            {dispositivos.some((d) => d.requested_at && d.status !== "approved") && (
+              <div className="card" data-bloque="solicitudes" style={{ borderColor: "var(--amber)" }}>
+                <b>🔔 {t("Authorization requests", "Solicitudes de autorización")}</b>
+                <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                  {dispositivos.filter((d) => d.requested_at && d.status !== "approved").map((d) => (
+                    <li key={d.id} data-solicitud={d.id} style={{ marginBottom: 4 }}>
+                      <b>{d.solicitante}</b> · {TIPO[d.kind]?.icono} {nombreDe(d)} · {fecha(d.requested_at)}
+                      {d.request_note && <> — <i>«{d.request_note}»</i></>}
+                      <button className="btn btn-sm btn-green" style={{ marginLeft: 8 }} disabled={ocupado} data-accion="aprobar-solicitud"
+                        onClick={() => void corre(() => cambiaEstadoDeDispositivo(d.id, "approved"))}>✓ {t("Approve", "Aprobar")}</button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-      {/* D-818: a quién se le cerró la web, últimos 7 días */}
-      {(webBloqueada || bloqueados.length > 0) && (
-        <>
-          <h2 style={{ margin: "18px 0 6px" }}>🚫 {t("Blocked on the web (last 7 days)", "Bloqueados en la web (últimos 7 días)")} <span className="cnt">{bloqueadosPorPersona.length}</span></h2>
-          <TablaDeSecurity id="bloqueados-web" filas={bloqueadosPorPersona} columnas={colsBloqueados} valorDe={valorBloqueado} textoDe={textoBloqueado} claveDe={(b) => b.user_id}
-            celda={celdaBloqueado} vacio={t("Nobody has been blocked yet.", "Todavía no se le cerró la web a nadie.")} lang={lang} t={t} />
-        </>
-      )}
+            {/* D-815: quién va con una app vieja */}
+            {porActualizar.length > 0 && (
+              <div className="card" data-bloque="por-actualizar" style={{ borderColor: "var(--red)" }}>
+                <b>⚠️ {t(`${porActualizar.length} device(s) with an old app`, `${porActualizar.length} dispositivo(s) con app vieja`)}</b>
+                <span className="hint" style={{ marginLeft: 6 }}>
+                  {t("They see a full-screen «Update now» and cannot work until they do. Last seen:", "Ven «Actualizar ahora» a pantalla completa y no pueden trabajar hasta hacerlo. Última vez:")}
+                </span>
+                <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                  {porActualizar.slice(0, 20).map((d) => (
+                    <li key={d.id} data-por-actualizar={d.id}>{TIPO[d.kind]?.icono} <b>{nombreDe(d)}</b> · <Version ua={d.user_agent} /> · {d.ultimo} · {fecha(d.last_seen_at)}</li>
+                  ))}
+                  {porActualizar.length > 20 && <li className="hint">… {porActualizar.length - 20} {t("more", "más")}</li>}
+                </ul>
+              </div>
+            )}
 
-      {/* Dispositivos */}
-      <h2 style={{ margin: "18px 0 6px" }}>{t("Devices", "Dispositivos")} <span className="cnt">{dispositivos.length}</span></h2>
-      <TablaDeSecurity id="dispositivos" filas={lista} columnas={colsDispositivos} valorDe={valorDispositivo} textoDe={textoDispositivo} claveDe={(d) => d.id}
-        celda={celdaDispositivo} vacio={t("No devices here.", "No hay dispositivos aquí.")} lang={lang} t={t} anchoDeAcciones={190}
-        chips={
-          <div className="ld-vistas" role="group" style={{ margin: 0 }}>
-            {(["todos", "pending", "approved", "revoked", "actualizar"] as const).map((k) => (
-              <button key={k} type="button" className={`chip${filtro === k ? " on" : ""}`} data-filtro-estado={k} onClick={() => setFiltro(k)}>
-                {k === "todos" ? t("All", "Todos") : k === "actualizar" ? `⚠️ ${t("Need to update", "Por actualizar")}` : t(ESTADO[k].en, ESTADO[k].es)}{" "}
-                <span className="cnt">{k === "todos" ? dispositivos.length : k === "actualizar" ? porActualizar.length : cuenta(k)}</span>
-              </button>
-            ))}
+            {/* D-822: «avísame si ellos quieren ingresar desde otro lado» */}
+            {sitiosNuevos.length > 0 && (
+              <div className="card" data-bloque="sitios-nuevos" style={{ borderColor: "var(--red)" }}>
+                <b>🚨 {t(`${sitiosNuevos.length} sign-in(s) from a new device in the last 7 days`, `${sitiosNuevos.length} entrada(s) desde un dispositivo nuevo en los últimos 7 días`)}</b>
+                <span className="hint" style={{ marginLeft: 6 }}>
+                  {t("People who already had a device and showed up on another one. Check the place: if it is not the store, revoke it.", "Gente que ya tenía un dispositivo y apareció en otro. Mira el lugar: si no es la tienda, revócalo.")}
+                </span>
+                <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                  {sitiosNuevos.slice(0, 20).map((u) => (
+                    <li key={`${u.device_id}:${u.user_id}`} data-sitio-nuevo={u.user_id}>
+                      <b>{u.persona}</b> ({u.rol}{u.tienda ? ` · ${u.tienda}` : ""}) · {u.dispositivo ? `${TIPO[u.dispositivo.kind]?.icono ?? ""} ${nombreDe(u.dispositivo)}` : "—"}
+                      {u.dispositivo && <> · <Version ua={u.dispositivo.user_agent} /></>} · 📍 {u.last_place ?? u.last_ip ?? t("unknown place", "lugar desconocido")} · {fecha(u.first_seen_at)}
+                      {u.dispositivo && u.dispositivo.status === "approved" && (
+                        <button className="btn btn-sm btn-danger" style={{ marginLeft: 8 }} disabled={ocupado} data-accion="revocar-sitio-nuevo" onClick={() => void corre(() => cambiaEstadoDeDispositivo(u.device_id, "revoked"))}>✕ {t("Revoke", "Revocar")}</button>
+                      )}
+                    </li>
+                  ))}
+                  {sitiosNuevos.length > 20 && <li className="hint">… {sitiosNuevos.length - 20} {t("more", "más")}</li>}
+                </ul>
+              </div>
+            )}
           </div>
-        }
-        acciones={(d) => (
-          <span style={{ display: "inline-flex", gap: 4 }}>
-            {d.status !== "approved" && (
-              <button className="btn btn-sm btn-green" disabled={ocupado} data-accion="aprobar" onClick={() => void corre(() => cambiaEstadoDeDispositivo(d.id, "approved"))}>✓ {t("Approve", "Aprobar")}</button>
-            )}
-            {d.status === "approved" && (
-              <button className="btn btn-sm btn-danger" disabled={ocupado} data-accion="revocar" onClick={() => void corre(() => cambiaEstadoDeDispositivo(d.id, "revoked"))}>✕ {t("Revoke", "Revocar")}</button>
-            )}
-            <button className="btn btn-sm btn-ghost" data-accion="editar" onClick={() => setEditando(editando === d.id ? null : d.id)}>✏️</button>
-            {d.status !== "approved" && (
-              <button className="btn btn-sm btn-ghost" disabled={ocupado} data-accion="borrar" title={t("Delete (never approved)", "Borrar (nunca aprobado)")} onClick={() => void corre(() => borraDispositivo(d.id))}>🗑</button>
-            )}
-          </span>
         )}
-        extra={(d) => editando === d.id ? <EdicionDeDispositivo d={d} ocupado={ocupado} corre={corre} cierra={() => setEditando(null)} /> : null}
-      />
-      <p className="hint">
-        {t("A device is registered the first time someone opens the hub from it; it starts as pending. The code is what a blocked person sees on their screen.",
-          "Un dispositivo se registra la primera vez que alguien abre el hub desde él; nace pendiente. El código es lo que ve en su pantalla una persona bloqueada.")}
-      </p>
+
+        {/* Los dos interruptores, lado a lado */}
+        <div className="sec-switches" style={{ marginTop: 12 }}>
+          <div className="card" data-bloque="politica" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", borderColor: enforced ? "var(--green)" : "var(--line)" }}>
+            <span className="badge" data-politica={enforced ? "on" : "off"} style={{ background: enforced ? "var(--tint-green)" : "var(--tint-amber, #fff4d6)", color: enforced ? "var(--green)" : "var(--amber)" }}>
+              {enforced ? t("RULE ON", "REGLA ENCENDIDA") : t("RULE OFF", "REGLA APAGADA")}
+            </span>
+            <span style={{ flex: 1, minWidth: 220 }}>
+              {enforced
+                ? t("Managers, sales, office and logistics only get in from approved devices. Admin, warehouse and drivers are not limited.", "Managers, ventas, oficina y logística solo entran desde dispositivos aprobados. Admin, almacén y choferes no tienen límite.")
+                : t("Nothing is blocked yet. Devices are being registered so the list is ready when you turn it on.", "Todavía no se bloquea nada. Los dispositivos se van registrando para que la lista esté lista cuando la enciendas.")}
+              {cambiadaEn && <span className="hint" style={{ marginLeft: 6 }}>({t("changed", "cambiada")} {fecha(cambiadaEn)})</span>}
+            </span>
+            {!confirmaInterruptor ? (
+              <button className={enforced ? "btn btn-danger" : "btn btn-green"} disabled={ocupado || !!error} data-accion="interruptor" onClick={() => setConfirmaInterruptor(true)}>
+                {enforced ? t("Turn off", "Apagar") : t("Turn on", "Encender")}
+              </button>
+            ) : (
+              <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <b>{enforced ? t("Turn the rule off?", "¿Apagar la regla?") : t("Turn the rule on for everyone now?", "¿Encender la regla para todos ahora?")}</b>
+                <button className="btn btn-sm btn-green" disabled={ocupado} data-accion="interruptor-confirma" onClick={() => { void corre(() => cambiaPolitica(!enforced)); setConfirmaInterruptor(false); }}>{t("Yes", "Sí")}</button>
+                <button className="btn btn-sm btn-ghost" onClick={() => setConfirmaInterruptor(false)}>{t("No", "No")}</button>
+              </span>
+            )}
+          </div>
+
+          {/* D-816: la web bloqueada para manager, sales, logistics y accounting */}
+          <div className="card" data-bloque="web" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", borderColor: webBloqueada ? "var(--green)" : "var(--line)" }}>
+            <span className="badge" data-web={webBloqueada ? "bloqueada" : "abierta"} style={{ background: webBloqueada ? "var(--tint-green)" : "var(--tint-amber, #fff4d6)", color: webBloqueada ? "var(--green)" : "var(--amber)" }}>
+              {webBloqueada ? t("WEB BLOCKED", "WEB BLOQUEADA") : t("WEB OPEN", "WEB ABIERTA")}
+            </span>
+            <span style={{ flex: 1, minWidth: 220 }}>
+              {webBloqueada
+                ? t("Managers, sales, logistics and accounting only get in from the RTG Hub desktop app (and from a phone, Time Tracker only). In a browser they see «The web app is no longer available».", "Managers, ventas, logística y contabilidad solo entran desde la app de escritorio RTG Hub (y desde el teléfono, solo Time Tracker). En un navegador ven «La web app ya no está disponible».")
+                : t("Managers, sales, logistics and accounting can still use the hub from any browser.", "Managers, ventas, logística y contabilidad todavía pueden usar el hub desde cualquier navegador.")}
+            </span>
+            {!confirmaWeb ? (
+              <button className={webBloqueada ? "btn btn-danger" : "btn btn-green"} disabled={ocupado || !!error} data-accion="web" onClick={() => setConfirmaWeb(true)}>
+                {webBloqueada ? t("Open the web", "Abrir la web") : t("Block the web", "Bloquear la web")}
+              </button>
+            ) : (
+              <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <b>{webBloqueada ? t("Open the web app again for everyone?", "¿Abrir la web otra vez para todos?") : t("Block the web for managers, sales, logistics and accounting now?", "¿Bloquear la web para managers, ventas, logística y contabilidad ahora?")}</b>
+                <button className="btn btn-sm btn-green" disabled={ocupado} data-accion="web-confirma" onClick={() => { void corre(() => cambiaPoliticaWeb(!webBloqueada)); setConfirmaWeb(false); }}>{t("Yes", "Sí")}</button>
+                <button className="btn btn-sm btn-ghost" onClick={() => setConfirmaWeb(false)}>{t("No", "No")}</button>
+              </span>
+            )}
+            {/* D-826: las excepciones: personas que entran por la web aunque su rol esté bloqueado */}
+            <div data-bloque="excepciones-web" style={{ flexBasis: "100%", display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--line)", paddingTop: 8 }}>
+              <span className="hint" style={{ margin: 0 }}>{t("Exceptions (they can use the web):", "Excepciones (sí pueden usar la web):")}</span>
+              {exentosConNombre.length === 0 && <span className="hint" style={{ margin: 0 }}>—</span>}
+              {exentosConNombre.map((e) => (
+                <span key={e.id} className="chip on" data-exento={e.id}>
+                  {e.persona}
+                  <button type="button" className="btn btn-sm btn-ghost" style={{ padding: "0 4px", marginLeft: 4 }} disabled={ocupado} title={t("Remove", "Quitar")} data-accion="quitar-exento"
+                    onClick={() => void corre(() => cambiaExcepcionesWeb(exentos.filter((x) => x !== e.id)))}>✕</button>
+                </span>
+              ))}
+              <select value={nuevoExento} onChange={(e) => setNuevoExento(e.target.value)} data-campo="nuevo-exento" style={{ maxWidth: 240 }}>
+                <option value="">{t("Add person…", "Añadir persona…")}</option>
+                {candidatosAExento.map((u) => <option key={u.id} value={u.id}>{u.persona} · {u.rol}</option>)}
+              </select>
+              <button type="button" className="btn btn-sm" disabled={ocupado || !nuevoExento} data-accion="anadir-exento"
+                onClick={() => { void corre(() => cambiaExcepcionesWeb([...exentos, nuevoExento])); setNuevoExento(""); }}>+ {t("Add", "Añadir")}</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===================== USUARIOS ===================== */}
+      <section id="sec-usuarios" className="sec-sec">
+        <div className="sec-sec-head">
+          <h2>👥 {t("Users", "Usuarios")}</h2>
+          <span className="cnt">{usuarios.length}</span>
+          <span className="sec-sub">· {t(`${conAppNueva} with the new app`, `${conAppNueva} con la app nueva`)}</span>
+          <div className="sec-acciones">
+            <button className="btn btn-sm btn-ghost" data-accion="exporta-usuarios" onClick={() => exporta("seguridad-usuarios", colsUsuarios, usuariosFiltrados, valorUsuario)}>⬇ {t("Export CSV", "Exportar CSV")}</button>
+          </div>
+        </div>
+        <TablaDeSecurity id="usuarios" filas={usuariosFiltrados} columnas={colsUsuarios} valorDe={valorUsuario} textoDe={textoUsuario} claveDe={(p) => p.id}
+          celda={celdaUsuario} vacio={t("No users.", "No hay usuarios.")} lang={lang} t={t} anchoDeAcciones={150}
+          chips={
+            <div className="ld-vistas" role="group" style={{ margin: 0 }}>
+              {(["todos", "sin-entrar", "sin-app"] as const).map((k) => (
+                <button key={k} type="button" className={`chip${filtroUsuarios === k ? " on" : ""}`} data-filtro-usuario={k} onClick={() => setFiltroUsuarios(k)}>
+                  {k === "todos" ? t("All", "Todos") : k === "sin-entrar" ? t("No sign-in 7d", "Sin entrar 7d") : t("No new app", "Sin app nueva")}{" "}
+                  <span className="cnt">{k === "todos" ? usuarios.length : k === "sin-entrar" ? sinEntrar7d.length : sinAppNueva.length}</span>
+                </button>
+              ))}
+            </div>
+          }
+          acciones={(p) => (
+            <button className="btn btn-sm btn-ghost" disabled={ocupado} data-accion="cerrar-sesiones" title={t("Signs them out of every device and app", "Lo saca de todos sus dispositivos y apps")}
+              onClick={() => void cierraSesiones(p)}>
+              {cerradas?.id === p.id ? t(`✓ ${cerradas.n} closed`, `✓ ${cerradas.n} cerradas`) : t("⏏ Sign out all", "⏏ Cerrar sesiones")}
+            </button>
+          )} />
+      </section>
+
+      {/* ===================== DISPOSITIVOS ===================== */}
+      <section id="sec-dispositivos" className="sec-sec">
+        <div className="sec-sec-head">
+          <h2>💻 {t("Devices", "Dispositivos")}</h2>
+          <span className="cnt">{dispositivos.length}</span>
+          <div className="sec-acciones">
+            <button className="btn btn-sm btn-ghost" data-accion="exporta-dispositivos" onClick={() => exporta("seguridad-dispositivos", colsDispositivos, lista, valorDispositivo)}>⬇ {t("Export CSV", "Exportar CSV")}</button>
+          </div>
+        </div>
+        {seleccionados.size > 0 && (
+          <div className="sec-bulk" data-bloque="aprobar-bloque">
+            <b>{t(`${seleccionados.size} selected`, `${seleccionados.size} seleccionados`)}</b>
+            <button className="btn btn-sm btn-green" disabled={ocupado} data-accion="aprobar-seleccionados" onClick={() => void apruebaSeleccionados()}>✓ {t("Approve selected", "Aprobar seleccionados")}</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => setSeleccionados(new Set())}>{t("Clear", "Limpiar")}</button>
+          </div>
+        )}
+        <TablaDeSecurity id="dispositivos" filas={lista} columnas={colsDispositivos} valorDe={valorDispositivo} textoDe={textoDispositivo} claveDe={(d) => d.id}
+          celda={celdaDispositivo} vacio={t("No devices here.", "No hay dispositivos aquí.")} lang={lang} t={t} anchoDeAcciones={190} seleccion={selDispositivos}
+          chips={
+            <div className="ld-vistas" role="group" style={{ margin: 0 }}>
+              {(["todos", "pending", "approved", "revoked", "actualizar"] as const).map((k) => (
+                <button key={k} type="button" className={`chip${filtro === k ? " on" : ""}`} data-filtro-estado={k} onClick={() => setFiltro(k)}>
+                  {k === "todos" ? t("All", "Todos") : k === "actualizar" ? `⚠️ ${t("Need to update", "Por actualizar")}` : t(ESTADO[k].en, ESTADO[k].es)}{" "}
+                  <span className="cnt">{k === "todos" ? dispositivos.length : k === "actualizar" ? porActualizar.length : cuenta(k)}</span>
+                </button>
+              ))}
+            </div>
+          }
+          acciones={(d) => (
+            <span style={{ display: "inline-flex", gap: 4 }}>
+              {d.status !== "approved" && (
+                <button className="btn btn-sm btn-green" disabled={ocupado} data-accion="aprobar" onClick={() => void corre(() => cambiaEstadoDeDispositivo(d.id, "approved"))}>✓ {t("Approve", "Aprobar")}</button>
+              )}
+              {d.status === "approved" && (
+                <button className="btn btn-sm btn-danger" disabled={ocupado} data-accion="revocar" onClick={() => void corre(() => cambiaEstadoDeDispositivo(d.id, "revoked"))}>✕ {t("Revoke", "Revocar")}</button>
+              )}
+              <button className="btn btn-sm btn-ghost" data-accion="editar" onClick={() => setEditando(editando === d.id ? null : d.id)}>✏️</button>
+              {d.status !== "approved" && (
+                <button className="btn btn-sm btn-ghost" disabled={ocupado} data-accion="borrar" title={t("Delete (never approved)", "Borrar (nunca aprobado)")} onClick={() => void corre(() => borraDispositivo(d.id))}>🗑</button>
+              )}
+            </span>
+          )}
+          extra={(d) => editando === d.id ? <EdicionDeDispositivo d={d} ocupado={ocupado} corre={corre} cierra={() => setEditando(null)} /> : null}
+        />
+        <p className="hint">
+          {t("A device is registered the first time someone opens the hub from it; it starts as pending. The code is what a blocked person sees on their screen.",
+            "Un dispositivo se registra la primera vez que alguien abre el hub desde él; nace pendiente. El código es lo que ve en su pantalla una persona bloqueada.")}
+        </p>
+      </section>
+
+      {/* ===================== ACTIVIDAD ===================== */}
+      <section id="sec-actividad" className="sec-sec">
+        <div className="sec-sub-sec">
+          <h3>{t("Signed in now (seen in the last hour)", "Dentro ahora (vistos en la última hora)")} <span className="cnt">{dentro.length}</span></h3>
+          <TablaDeSecurity id="activos" filas={dentro} columnas={colsDentro} valorDe={valorDentro} textoDe={textoDentro} claveDe={(u) => u.user_id}
+            celda={celdaDentro} vacio={t("Nobody in the last hour.", "Nadie en la última hora.")} lang={lang} t={t} />
+        </div>
+
+        {(webBloqueada || bloqueados.length > 0) && (
+          <div className="sec-sub-sec">
+            <h3>🚫 {t("Blocked on the web (last 7 days)", "Bloqueados en la web (últimos 7 días)")} <span className="cnt">{bloqueadosPorPersona.length}</span></h3>
+            <TablaDeSecurity id="bloqueados-web" filas={bloqueadosPorPersona} columnas={colsBloqueados} valorDe={valorBloqueado} textoDe={textoBloqueado} claveDe={(b) => b.user_id}
+              celda={celdaBloqueado} vacio={t("Nobody has been blocked yet.", "Todavía no se le cerró la web a nadie.")} lang={lang} t={t} />
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -1,0 +1,110 @@
+/* Security (D-940): sistema visual del panel. Se apoya en .card / .kpi / .btn / .chip de globals;
+   aquí solo va lo propio de esta pantalla: la barra de salto, el área de "atención", las cabeceras
+   de sección con sus acciones a la derecha, y los KPI clicables. Colores por tokens, nunca literales. */
+
+.sec {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Cabecera de la página */
+.sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+.sec-head h1 { margin: 0; }
+.sec-vivo { font-size: 13px; font-weight: 400; }
+
+/* Barra de salto: pegada arriba, deja ir a cada sección sin perder el scroll */
+.sec-nav {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  margin: -4px 0 0;
+  background: var(--bg, #fff);
+  border-bottom: 1px solid var(--line, #e5e7eb);
+}
+.sec-nav a {
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg, #111);
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line, #e5e7eb);
+}
+.sec-nav a:hover { background: var(--hover, rgba(0, 0, 0, 0.04)); }
+.sec-nav a .cnt { opacity: 0.6; margin-left: 4px; }
+
+/* KPIs clicables: el mismo .kpi de globals, pero botón, con afordancia y foco visible */
+.sec-kpi {
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  width: 100%;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.sec-kpi:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
+.sec-kpi:focus-visible { outline: 2px solid var(--accent, #2563eb); outline-offset: 2px; }
+.sec-kpi[aria-disabled="true"] { cursor: default; }
+.sec-kpi[aria-disabled="true"]:hover { transform: none; box-shadow: none; }
+.sec-kpi[data-estado="alerta"] { border-color: var(--red); }
+.sec-kpi[data-estado="aviso"] { border-color: var(--amber); }
+
+/* Área de "atención": lo que hay que hacer ahora, junto y arriba */
+.sec-attn { display: flex; flex-direction: column; gap: 10px; }
+.sec-attn:empty { display: none; }
+.sec-attn .card { margin: 0; }
+
+/* Interruptores lado a lado */
+.sec-switches {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 12px;
+}
+.sec-switches .card { margin: 0; }
+
+/* Secciones (Usuarios, Dispositivos, Actividad) */
+.sec-sec { scroll-margin-top: 56px; }
+.sec-sec-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 8px 0 6px;
+}
+.sec-sec-head h2 { margin: 0; font-size: 18px; }
+.sec-sec-head .cnt {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray, #6b7280);
+  background: var(--hover, rgba(0, 0, 0, 0.04));
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.sec-sec-head .sec-sub { font-size: 13px; font-weight: 400; color: var(--gray, #6b7280); }
+.sec-sec-head .sec-acciones { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* Barra de selección en bloque (aprobar varios dispositivos) */
+.sec-bulk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  border: 1px solid var(--accent, #2563eb);
+  border-radius: 8px;
+  background: var(--tint-blue, rgba(37, 99, 235, 0.08));
+  margin: 6px 0;
+}
+
+.sec-sub-sec { margin-top: 14px; }
+.sec-sub-sec h3 { margin: 0 0 6px; font-size: 15px; }

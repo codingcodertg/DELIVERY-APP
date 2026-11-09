@@ -51200,3 +51200,17 @@ Pedido del dueño (9 nov): «cuando alguien entra al app que caiga en el hub pri
 De paso, arregla dos pruebas que `main` traía en rojo desde D-938: el conteo de escrituras del provider (ahora doce, por `updateUserModules`) y la pantalla «Usuarios y permisos», que tenía burbuja de Ayuda sin nombre en el mapa de ubicaciones.
 
 Sello `deliveries` 1.574.0; repo 1.793.0.
+
+## D-940 · Seguridad: tab reorganizado y más limpio; «Usuarios y Permisos» sale del hub a standby
+
+Dos cosas que pidió el dueño (9 nov). Primero, la vista «Usuarios y Permisos» (D-936) estaba mal ubicada, colgando de Entregas; se **saca del hub y queda en standby** (la página sigue existiendo en `/settings/usuarios-permisos`, pero ya nada la enlaza, como la lista vieja de usuarios). Lo de «ver en qué está metido cada usuario» se decidirá después, ya dentro de Seguridad.
+
+Segundo, el tab de Seguridad se reorganizó para que se vea limpio y se use rápido, en una sola página pero navegable:
+- Una **barra de salto** pegada arriba (Resumen · Usuarios · Dispositivos · Actividad) para no scrollear a ciegas.
+- **Resumen** junta lo de un vistazo: los KPIs —ahora **clicables**, cada uno salta a su lista ya filtrada (p. ej. «sin entrar 7 días» abre Usuarios con ese filtro; «por aprobar» abre Dispositivos en pendientes)—, las **alertas de acción** (solicitudes, apps viejas, entradas desde sitio nuevo) juntas y arriba, y los dos interruptores (regla y web) con sus excepciones.
+- **Usuarios**, **Dispositivos** y **Actividad** (dentro ahora + bloqueados en la web) como secciones claras, cada una con su título y sus acciones a la derecha.
+- Nuevo: **exportar a CSV** las listas de Usuarios y Dispositivos (con la inyección de fórmulas neutralizada, como en Scrap), filtros rápidos de Usuarios («sin entrar 7d», «sin app nueva») y **aprobar dispositivos en bloque** (seleccionar varios pendientes y aprobarlos de un tiro).
+
+Nada de la seguridad de fondo cambió: misma RLS, mismo tiempo real, mismo demo y las mismas acciones del admin.
+
+Sello `deliveries` 1.575.0; repo 1.794.0.
