@@ -163,7 +163,9 @@ describe("quién mueve la etapa", () => {
     expect(seleccionableParaHoja({ ...conFoto, kind: "safety" })).toBe(false);
   });
   it("la pantalla: casillas solo para quien gestiona; sin la 270 la tarjeta no ofrece botones", () => {
-    expect(LISTA).toContain("seleccionableParaHoja(r) && puedeCambiarEtapa(ctx.yo, r)");
+    // D-963: la selección se amplió a cualquier merma gestionable (para desechar/ajustar en bloque); agrupar filtra a fotografiadas aparte.
+    expect(LISTA).toContain('r.kind === "scrap" && puedeCambiarEtapa(ctx.yo, r)');
+    expect(LISTA).toContain("seleccionadas.filter((r) => seleccionableParaHoja(r))");
     expect(ETAPAS_TSX).toContain("const gestiona = puedeCambiarEtapa(ctx.yo, r);");
     expect(ETAPAS_TSX).toContain("{gestiona && !accion && (");
     expect(ETAPAS_TSX).not.toMatch(/(?<![\w.`])confirm\(/);

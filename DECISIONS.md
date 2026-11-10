@@ -51451,3 +51451,17 @@ Pedido del dueño (10 nov): en la práctica el gerente y el supervisor firman en
 Migración 283 additive (create-or-replace); 237/280/281/282 intactas; el trigger de invalidación de firmas de la 281 se conserva.
 
 Sello `warehouse_ops` 0.23.0; repo 1.816.0.
+
+## D-963 · Merma: marcar Dump/Adjust en bloque (una foto para varias) y selección parcial en el grupo
+
+Pedido del dueño (10 nov). En la pestaña Merma, con varios reportes seleccionados:
+- **«Marcar como desechadas (N)»**: pasa a `dumped` las elegibles (las que están en `approved`); las demás se **saltan con un resumen** (cuántas y por qué), no error.
+- **«Marcar como ajustadas (N)» con UNA sola foto**: sube la evidencia **una vez** y aplica `adjusted` + esa misma prueba a todas las elegibles (`dumped`→`adjusted`), sea en la lista o en un subconjunto del grupo.
+- **Selección parcial dentro de un grupo**: casillas por fila en la hoja del grupo para desechar/ajustar solo algunas; el grupo se queda.
+- Auto-refresh tras cada acción.
+
+Sin migración: reusa `warehouse_ops_set_scrap_stage` en bucle (`aplicarEtapa`), con elegibilidad por etapa calculada en `src/lib/almacen-ops/bloque.ts` (con pruebas). `puedeSeleccionar` se amplió a cualquier merma gestionable (combínalo con los chips de etapa: filtra «Aprobada» → Seleccionar todos → «Marcar como desechadas»).
+
+De paso: se corrige el **checksum del archivo de la migración 283** (D-962). Su autochequeo se disparaba con su propio comentario (el texto «personas distintas» dentro de la función); se reescribió el comentario. La 283 ya aplicada en la base usa el checksum nuevo (`3b7f1ca7…`); este cambio solo alinea el archivo de `main`.
+
+Sello `warehouse_ops` 0.24.0; repo 1.817.0.
