@@ -285,35 +285,31 @@ function Detalle({ u, vivo, lang, t, ocupado, esAdmin, tiendas, rolDeApp, onModu
         </select>
       </div>
 
+      {/* D-952: sin encabezados de grupo — una sola lista de apps (el dueño: «no hagas grupos de las apps»). */}
       <div className="perm-groups">
-        {GRUPOS_DE_PERMISOS.map((g) => (
-          <div className="perm-grp" key={g.titulo_en}>
-            <h4>{lang === "es" ? g.titulo_es : g.titulo_en}</h4>
-            <div className="perm-mods">
-              {g.keys.map((key) => {
-                const has = tieneModulo(u, key);
-                const conRol = tieneRolPropio(key) && has;
-                const rolActual = rolDeApp(u, key);
-                return (
-                  <div className={`perm-mod ${has ? "on" : ""}`} key={key} data-mod={key}>
-                    <span className="perm-mic">{ICONO[key] ?? "▫️"}</span>
-                    <span className="perm-mx">
-                      <span className="perm-mt">{etiquetaDeModulo(key, lang)}</span>
-                      {conRol && (
-                        <select className="perm-mrole" value={rolActual ?? (ROL_POR_DEFECTO[key] ?? "")} disabled={ocupado} data-rol={key}
-                          onChange={(e) => onRolApp(key, e.target.value)}>
-                          {opcionesDeRol(key).map((r) => <option key={r} value={r}>{etiquetaDeRol(key, r, lang)}</option>)}
-                        </select>
-                      )}
-                    </span>
-                    <button className="perm-sw" role="switch" aria-checked={has} aria-label={etiquetaDeModulo(key, lang)}
-                      disabled={ocupado || esAdmin} data-sw={key} onClick={() => onModulo(key, !has)} />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+        <div className="perm-mods">
+          {GRUPOS_DE_PERMISOS.flatMap((g) => g.keys).map((key) => {
+            const has = tieneModulo(u, key);
+            const conRol = tieneRolPropio(key) && has;
+            const rolActual = rolDeApp(u, key);
+            return (
+              <div className={`perm-mod ${has ? "on" : ""}`} key={key} data-mod={key}>
+                <span className="perm-mic">{ICONO[key] ?? "▫️"}</span>
+                <span className="perm-mx">
+                  <span className="perm-mt">{etiquetaDeModulo(key, lang)}</span>
+                  {conRol && (
+                    <select className="perm-mrole" value={rolActual ?? (ROL_POR_DEFECTO[key] ?? "")} disabled={ocupado} data-rol={key}
+                      onChange={(e) => onRolApp(key, e.target.value)}>
+                      {opcionesDeRol(key).map((r) => <option key={r} value={r}>{etiquetaDeRol(key, r, lang)}</option>)}
+                    </select>
+                  )}
+                </span>
+                <button className="perm-sw" role="switch" aria-checked={has} aria-label={etiquetaDeModulo(key, lang)}
+                  disabled={ocupado || esAdmin} data-sw={key} onClick={() => onModulo(key, !has)} />
+              </div>
+            );
+          })}
+        </div>
         {esAdmin && <p className="hint">{t("Admins have every module through their role; app roles (cost, tiers) can still be set above.", "Los administradores tienen todos los módulos por su rol; los roles por app (costo, niveles) sí se pueden ajustar arriba.")}</p>}
       </div>
 
