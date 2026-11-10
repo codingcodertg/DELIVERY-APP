@@ -383,3 +383,12 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-firma figcaption { font-size: 11px; color: var(--muted, var(--fg)); margin-top: 4px; }
 .ops-firma-slot { font-size: 12px; font-weight: 700; display: block; }
 .ops-firma-vacia { border-style: dashed; color: var(--muted, var(--fg)); display: flex; align-items: center; min-height: 72px; }
+
+/* 281: grupos de aprobación de merma. El ícono de fotos de cada fila de la hoja, el chip de estado y el archivo. */
+.ops-icono-fotos { border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 2px 7px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.ops-icono-fotos:hover { border-color: var(--red); }
+.ops-etapa-chip { padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-size: 12px; font-weight: 600; }
+.ops-etapa-chip.ops-grupo-aprobado { border-color: var(--green, #16a34a); color: var(--green, #16a34a); }
+.ops-grupos { display: grid; gap: 6px; margin-top: 10px; }
+.ops-grupos-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ops-grupos-lista li { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 6px 0; border-top: 1px solid var(--line); }

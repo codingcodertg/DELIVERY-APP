@@ -9,6 +9,7 @@ import type { ProductoElegido, Respuestas } from "./pasos";
 import { tipoDeReparto, type Cantidades, type Reparto } from "./perdida";
 import type { Repetida } from "./fotos";
 import type { FirmaDeMerma, SlotDeFirma } from "./firmas";
+import type { GrupoDeMerma } from "./grupos";
 
 export const CUBO = "warehouse-ops";
 
@@ -159,6 +160,72 @@ export async function firmasDeReporte(sb: SupabaseClient, reporteId: string): Pr
     .select("slot, signer_id, signer_name, signed_at, signature_png").eq("report_id", reporteId);
   if (error) { if (faltaLaMigracion(error) || faltaLaColumna(error)) return []; throw error; }
   return (data ?? []) as FirmaDeMerma[];
+}
+
+// ---------------------------------------------------------------------------
+// 281: GRUPOS de aprobación (firmar y aprobar varias mermas de una vez)
+// ---------------------------------------------------------------------------
+
+/** 281: crea un grupo con las mermas marcadas (todas de la misma tienda, fotografiadas, sin aprobar y sin grupo). Devuelve su id. */
+export async function crearGrupoDeMerma(sb: SupabaseClient, nombre: string, reporteIds: string[]): Promise<string> {
+  const { data, error } = await sb.rpc("warehouse_ops_create_scrap_group", { p_name: nombre, p_report_ids: reporteIds });
+  if (error) throw error;
+  return data as string;
+}
+
+/** 281: firma un espacio del grupo (gerente/supervisor) con el dibujo. La base exige dos personas distintas y que gestione la tienda. */
+export async function firmarGrupo(sb: SupabaseClient, grupoId: string, slot: SlotDeFirma, png: string): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_sign_scrap_group", { p_group: grupoId, p_slot: slot, p_png: png });
+  if (error) throw error;
+}
+
+/** 281: quita una firma del grupo (quien la puso, o el admin), solo mientras no esté aprobado. */
+export async function quitarFirmaGrupo(sb: SupabaseClient, grupoId: string, slot: SlotDeFirma): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_unsign_scrap_group", { p_group: grupoId, p_slot: slot });
+  if (error) throw error;
+}
+
+/** 281: aprueba el grupo (pasa TODAS sus mermas a aprobada). La base exige las dos firmas distintas. */
+export async function aprobarGrupo(sb: SupabaseClient, grupoId: string): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_approve_scrap_group", { p_group: grupoId });
+  if (error) throw error;
+}
+
+/** 281: las firmas de un grupo CON el dibujo (`signature_png`), para la hoja y el PDF. */
+export async function firmasDeGrupo(sb: SupabaseClient, grupoId: string): Promise<FirmaDeMerma[]> {
+  const { data, error } = await sb.from("warehouse_scrap_group_signatures")
+    .select("slot, signer_id, signer_name, signed_at, signature_png").eq("group_id", grupoId);
+  if (error) { if (faltaLaMigracion(error) || faltaLaColumna(error)) return []; throw error; }
+  return (data ?? []) as FirmaDeMerma[];
+}
+
+/** 281: un grupo con sus mermas y sus firmas (con dibujo), para la hoja de aprobación digital. */
+export async function grupoConReportes(sb: SupabaseClient, grupoId: string): Promise<{ grupo: GrupoDeMerma; reportes: Reporte[] } | null> {
+  const { data: g, error: eG } = await sb.from("warehouse_scrap_groups")
+    .select("id, name, store, created_by_name, created_at, approved_at, approved_by").eq("id", grupoId).maybeSingle();
+  if (eG) { if (faltaLaMigracion(eG)) return null; throw eG; }
+  if (!g) return null;
+  const [{ data: filas }, firmas] = await Promise.all([
+    sb.from("warehouse_reports").select("*").eq("scrap_group_id", grupoId).eq("kind", "scrap"),
+    firmasDeGrupo(sb, grupoId),
+  ]);
+  const reportes = ((filas ?? []) as Reporte[]).map((r) => ({
+    ...r, unit_cost: r.unit_cost == null ? null : Number(r.unit_cost), total_loss: r.total_loss == null ? null : Number(r.total_loss),
+  }));
+  return { grupo: { ...(g as Omit<GrupoDeMerma, "firmas" | "n_reportes">), firmas, n_reportes: reportes.length }, reportes };
+}
+
+/** 281: los grupos recientes de una tienda (o todas) para el archivo; firmas sin dibujo y cuántas mermas trae cada uno. */
+export async function listarGrupos(sb: SupabaseClient, store?: string, limite = 50): Promise<GrupoDeMerma[]> {
+  let q = sb.from("warehouse_scrap_groups")
+    .select("id, name, store, created_by_name, created_at, approved_at, approved_by, firmas:warehouse_scrap_group_signatures(slot, signer_id, signer_name, signed_at), reportes:warehouse_reports(id)")
+    .order("created_at", { ascending: false }).limit(limite);
+  if (store) q = q.eq("store", store);
+  const { data, error } = await q;
+  if (error) { if (faltaLaMigracion(error)) return []; throw error; }
+  return ((data ?? []) as unknown as (GrupoDeMerma & { reportes?: { id: string }[] })[]).map((g) => ({
+    ...g, n_reportes: Array.isArray(g.reportes) ? g.reportes.length : 0,
+  }));
 }
 
 /** Los tipos que admite el cubo para la hoja firmada y la captura (la 270 agrega el PDF). */

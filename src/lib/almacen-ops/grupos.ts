@@ -1,0 +1,60 @@
+/**
+ * Operaciones de almacén — GRUPOS de aprobación de merma (migración 281).
+ *
+ * El dueño (10 nov): seleccionar varias mermas, crear un grupo con nombre, firmarlo UNA vez (gerente + supervisor) y con
+ * eso aprobar todas a la vez; el grupo queda archivado. Es un camino ADICIONAL: la firma por reporte (280) sigue. Un
+ * grupo NO se puede aprobar sin las dos firmas de personas distintas (lo exige la base en `warehouse_ops_approve_scrap_group`).
+ *
+ * Regla PURA (sin React, sin red). Reusa los ayudantes de firmas por reporte (`firmas.ts`): las firmas del grupo tienen
+ * la misma forma (`FirmaDeMerma`).
+ */
+import { firmasFaltantes, nombreDeSlot, tieneAmbasFirmas, type FirmaDeMerma } from "./firmas";
+import type { Lang } from "./etapas";
+
+export interface GrupoDeMerma {
+  id: string;
+  name: string;
+  store: string;
+  created_by_name: string | null;
+  created_at: string;
+  approved_at: string | null;
+  approved_by: string | null;
+  /** Cuántas mermas trae (para la lista de archivo). */
+  n_reportes?: number;
+  /** Las dos firmas (en la lista, sin el dibujo; con `signature_png` al abrir la hoja). */
+  firmas?: readonly FirmaDeMerma[] | null;
+}
+
+type EstadoFirmas = Pick<GrupoDeMerma, "approved_at" | "firmas">;
+
+/** ¿Ya está aprobado el grupo? */
+export function grupoAprobado(g: Pick<GrupoDeMerma, "approved_at">): boolean {
+  return !!g.approved_at;
+}
+
+/** ¿Se puede aprobar ya? No aprobado y con las dos firmas distintas. (La base lo vuelve a exigir.) */
+export function puedeAprobarGrupo(g: EstadoFirmas): boolean {
+  return !grupoAprobado(g) && tieneAmbasFirmas(g.firmas);
+}
+
+/** ¿El grupo está «En revisión» (requiere firma)? No aprobado y le falta alguna firma. */
+export function grupoRequiereFirma(g: EstadoFirmas): boolean {
+  return !grupoAprobado(g) && !tieneAmbasFirmas(g.firmas);
+}
+
+/**
+ * El aviso del estado del grupo para la lista/archivo:
+ *   - aprobado → «Aprobado»
+ *   - las dos firmas pero sin aprobar → «Listo para aprobar»
+ *   - falta firma → «Pendiente: firma del …»
+ */
+export function estadoDelGrupo(g: EstadoFirmas, lang: Lang): string {
+  if (grupoAprobado(g)) return lang === "es" ? "Aprobado" : "Approved";
+  const faltan = firmasFaltantes(g.firmas);
+  if (faltan.length === 0) return lang === "es" ? "Listo para aprobar" : "Ready to approve";
+  const nombres = faltan.map((s) => nombreDeSlot(s, lang));
+  if (lang === "es") {
+    return faltan.length === 2 ? "Pendiente de firma (gerente y supervisor)" : `Pendiente: firma del ${nombres[0].toLowerCase()}`;
+  }
+  return faltan.length === 2 ? "Pending signature (manager and supervisor)" : `Pending: ${nombres[0].toLowerCase()} signature`;
+}

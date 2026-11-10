@@ -51398,3 +51398,15 @@ Dos solicitudes de ayuda de Roberto (10 nov, desde `/operaciones/reportes`):
 2. **«Remove; Redundant».** La tablita de totales por tienda (Tienda · rango · Esta semana · Este mes · Siempre) repetía las cuatro tarjetas grandes cuando hay una sola tienda. Ahora solo se muestra con **más de una** tienda (con varias sí aporta el desglose).
 
 Sello `warehouse_ops` 0.20.0; repo 1.812.0.
+
+## D-959 · Merma: grupos de aprobación (firmar una vez por varios reportes, hoja digital con fotos)
+
+Pedido del dueño (10 nov): poder **seleccionar varios reportes de merma, crear un grupo con nombre y aprobarlo/firmarlo una sola vez para todos**, y que el grupo **quede archivado** para revisión futura — como la hoja de impresión que ya agrupaba, pero persistente y firmada en la app.
+
+**Flujo:** en Reportes → Merma, se eligen reportes fotografiados y se toca **«Iniciar aprobación (N)»**; se nombra el grupo y se abre la **hoja de aprobación digital** (`?grupo=<id>`), donde desaparecen los no seleccionados. La hoja es como la imprimible (encabezado, tienda, fecha, # reportes, el texto obligatorio, la tabla con Total y las áreas de firma) pero **interactiva**: cada fila tiene un **ícono de fotos** que abre las imágenes de ese reporte, y hay **dos recuadros de firma** (Gerente y Supervisor). Con las **dos firmas (de personas distintas)** el grupo se aprueba y **todos sus reportes pasan a Aprobado** de un jalón. **Sin las dos firmas no se aprueba** (tope en app y base). El grupo queda guardado y se puede reabrir (solo lectura) e imprimir; hay una lista de grupos en la pestaña de merma.
+
+La firma **individual por reporte** (D-957) sigue existiendo; los grupos son un camino adicional.
+
+**Migración 281 (`281_merma_grupos_de_aprobacion.sql`) — la aplica el dueño con `!`:** tabla `warehouse_scrap_groups`, columna `warehouse_reports.scrap_group_id`, tabla `warehouse_scrap_group_signatures` (RLS de solo lectura; escritura solo por RPC), + las RPC `warehouse_ops_create_scrap_group` / `sign_scrap_group` / `unsign_scrap_group` / `approve_scrap_group` (security-definer, aprobar exige las dos firmas distintas). El trigger de invalidación de la 280 ahora también limpia las firmas del grupo si cambia el contenido de un miembro. 237 y 280 intactas.
+
+Sello `warehouse_ops` 0.21.0; repo 1.813.0.
