@@ -178,7 +178,8 @@ describe("la lista: columna, filtro por etapa, selección, desglose de la pérdi
     expect(LISTA).toContain('data-lista="merma-en-rango" conEtapa');
     expect(LISTA).toContain("Print approval sheet (${seleccionadas.length})");
     expect(LISTA).toContain("Attach signed sheet (${seleccionadas.length})");
-    expect(LISTA).toContain("href={urlDeHoja(seleccionadas.map((r) => r.id))}");
+    // Imprimir es ahora un diálogo en la app (no abre otra página): monta <HojaImprimible> con las seleccionadas.
+    expect(LISTA).toContain("<HojaImprimible reportes={seleccionadas}");
     // «Mis reportes» y la lista general: el chip chico, solo lectura, junto al detalle.
     expect(LISTA).toContain('{!conEtapa && r.kind === "scrap" && <ChipDeEtapa r={r} conFecha={false} />}');
   });

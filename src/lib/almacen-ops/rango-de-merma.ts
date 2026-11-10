@@ -24,7 +24,7 @@ export const NOMBRE_DE_ATAJO: Record<Atajo, { en: string; es: string }> = {
   mes: { en: "This month", es: "Este mes" },
   "mes-pasado": { en: "Last month", es: "El mes pasado" },
   "30-dias": { en: "Last 30 days", es: "Últimos 30 días" },
-  otro: { en: "Custom", es: "A mano" },
+  otro: { en: "📅 Date range", es: "📅 Rango de fechas" },
 };
 
 export function esAtajo(v: unknown): v is Atajo {
