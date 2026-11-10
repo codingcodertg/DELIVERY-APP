@@ -45,13 +45,16 @@ export function Operaciones({ vista, demo }: { vista: Vista; demo: boolean }) {
       const sb = createClient();
       const { data: { user } } = await sb.auth.getUser();
       if (!user) return;
-      const [perfil, ajustes, gente, prueba, nivel] = await Promise.all([
+      const [perfil, ajustes, gente, prueba, nivel, expedientes] = await Promise.all([
         sb.from("profiles").select("id, full_name, role, store, visible_stores, permissions, module_access, recruiting_role").eq("id", user.id).maybeSingle(),
         sb.from("settings").select("stores").eq("id", 1).maybeSingle(),
         sb.from("profiles").select("id, full_name, store, role, module_access, left_at").order("full_name"),
         sb.from("warehouse_reports").select("id", { head: true, count: "exact" }).limit(1),
         // 265: el nivel dentro de la app. Lectura aparte y tolerante: si la columna aún no existe, manda el rol del hub.
         leerNivelEscrito(sb, user.id),
+        // 284: empleados de almacén SIN cuenta del Hub (solo expediente). Tolerante: si la 284 no está aplicada, el RPC
+        // no existe y la lista sigue solo con los `profiles`.
+        sb.rpc("warehouse_ops_people"),
       ]);
       if (!vivo) return;
       if (faltaLaMigracion(prueba.error)) { setCarga({ estado: "falta-247" }); return; }
@@ -59,7 +62,13 @@ export function Operaciones({ vista, demo }: { vista: Vista; demo: boolean }) {
       if (error || !perfil.data) { setCarga({ estado: "error", mensaje: error?.message ?? "profile" }); return; }
       const yo = { ...perfil.data, full_name: perfil.data.full_name ?? "", warehouse_ops_role: nivel } as Yo;
       const todas = ((ajustes.data?.stores ?? []) as { name?: string | null }[]).map((s) => (s.name ?? "").trim()).filter(Boolean);
-      const personas = ((gente.data ?? []) as Persona[]).filter((p) => (p.full_name ?? "").trim());
+      const deProfiles = ((gente.data ?? []) as Persona[]).map((p) => ({ ...p, fuente: "profile" as const })).filter((p) => (p.full_name ?? "").trim());
+      // 284: suma los expedientes sin usuario, sin duplicar a quien ya tiene profile (por nombre).
+      const nombresConCuenta = new Set(deProfiles.map((p) => (p.full_name ?? "").trim().toLowerCase()));
+      const deExpediente = ((expedientes.data ?? []) as { id: string; full_name: string | null; store: string | null }[])
+        .filter((e) => (e.full_name ?? "").trim() && !nombresConCuenta.has((e.full_name ?? "").trim().toLowerCase()))
+        .map((e): Persona => ({ id: e.id, full_name: (e.full_name ?? "").trim(), store: e.store, fuente: "expediente" }));
+      const personas = [...deProfiles, ...deExpediente].sort((a, b) => a.full_name.localeCompare(b.full_name));
       // 265: el admin de la app «solo en sus tiendas» no elige ni filtra otra tienda (la base se lo rechaza igual).
       setCarga({ estado: "listo", ctx: { demo, yo, tiendas: tiendasPara(yo, todas), personas } });
     })();
