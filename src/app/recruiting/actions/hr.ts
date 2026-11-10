@@ -594,18 +594,37 @@ export async function darDeBajaPorPerfil(profileId: string, motivo?: string | nu
   const acceso = await comoAdminDeHr();
   if (!acceso.ok) return acceso;
   if (profileId === acceso.userId) return { ok: false, message: "You can't deactivate your own account." };
+  // Validar como en el camino de siempre: motivo conocido (o vacío) y fecha AAAA-MM-DD.
+  if (normalizaMotivoBaja(motivo) === undefined) return { ok: false, message: "Unknown reason for leaving." };
   const hoy = (fecha ?? hoyEnBrownsville()).slice(0, 10);
-  const { data: file } = await acceso.supabase.schema("recruiting").from("employee_files").select("id").eq("profile_id", profileId).maybeSingle();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(hoy)) return { ok: false, message: "Bad date." };
+
+  let admin;
+  try { admin = createAdminClient(); } catch { return { ok: false, message: "SUPABASE_SERVICE_ROLE_KEY is missing." }; }
+
+  // El expediente se busca con el cliente de SERVICIO (que la RLS no lo esconda) y SIN fail-open: si la consulta falla,
+  // se corta —no se cae al camino destructivo pensando que «no hay expediente».
+  const { data: file, error: eFile } = await admin.schema("recruiting").from("employee_files").select("id").eq("profile_id", profileId).maybeSingle();
+  if (eFile) return { ok: false, message: eFile.message };
   if (file?.id) return deactivateEmployee(file.id as string, { fecha: hoy, motivo: motivo ?? null });
-  // Sin expediente: solo la cuenta del hub. Deshabilitar + liberar + marcar baja en el perfil (servicio, por la RLS).
+
+  // Sin expediente: solo cuenta del hub. No se da de baja a un admin por este atajo (que nadie apague a un dueño).
+  const { data: destino, error: ePerfil } = await admin.from("profiles").select("role").eq("id", profileId).maybeSingle();
+  if (ePerfil) return { ok: false, message: ePerfil.message };
+  if (!destino) return { ok: false, message: "No such profile." };
+  if (destino.role === "admin") return { ok: false, message: "Can't deactivate an admin from here." };
+
   const ban = await ponAcceso(profileId, false);
   if (!ban.ok) return { ok: false, message: ban.message };
-  await liberaCredenciales(profileId);
-  try {
-    const admin = createAdminClient();
-    const { error } = await admin.from("profiles").update({ left_at: hoy }).eq("id", profileId);
-    if (error) return { ok: false, message: `Account disabled, but left date not set: ${error.message}` };
-  } catch { return { ok: false, message: "SUPABASE_SERVICE_ROLE_KEY is missing." }; }
+  const lib = await liberaCredenciales(profileId);
+  if (!lib.ok) return { ok: false, message: `Account disabled, but the email could not be freed: ${lib.message}` };
+  const { error: eUpd } = await admin.from("profiles").update({ left_at: hoy }).eq("id", profileId);
+  if (eUpd) return { ok: false, message: `Account disabled, but left date not set: ${eUpd.message}` };
+  // Rastro (repudiación): quién dio de baja a quién, cuándo y por qué, aunque no haya expediente.
+  await anotaEnHistorial(acceso.supabase, acceso.userId, {
+    kind: "employee_deactivated", employeeId: null, reason: motivo ?? null,
+    detail: `${hoy} · sin expediente · hub access removed`, data: { profileId, fecha: hoy, motivo: motivo ?? null, accesoQuitado: true },
+  });
   return { ok: true };
 }
 
