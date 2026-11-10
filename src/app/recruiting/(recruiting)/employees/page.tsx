@@ -187,6 +187,8 @@ function EmployeeFilesPageReal() {
       <div className="page-head" data-cabecera-de-empleados>
         <h2>👤 {t("Employees", "Empleados")} <span className="count-tag">{orden.visibles.length}</span></h2>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {/* D-949: atajo al administrador de permisos (misma pestaña de HR, solo admin). */}
+          {me?.role === "admin" && <a className="btn btn-ghost" href="/recruiting/permisos" data-accion="ir-permisos">🛡 {t("Permissions", "Permisos")}</a>}
           <button className="btn btn-ghost" data-exporta="excel" disabled={!orden.visibles.length} onClick={() => exporta("excel")}>📊 Excel</button>
           <button className="btn btn-ghost" data-exporta="csv" disabled={!orden.visibles.length} onClick={() => exporta("csv")}>⬇ CSV</button>
           <button className="btn btn-primary" data-accion="agregar" onClick={() => setAgregando(true)}>

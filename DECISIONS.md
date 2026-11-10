@@ -51298,3 +51298,9 @@ Sello `deliveries` 1.581.0; `recruiting` 0.82.0; `security` 0.17.0; repo 1.801.0
 Pedido del dueño (9 nov): «las ubicaciones que sean dropdown y múltiple choice». Además de la **tienda base** (un dropdown, D-947), el detalle de cada persona tiene ahora **«Ubicaciones que ve»**: un dropdown de casillas (opción múltiple) con las tiendas de Datos. Vacío = todas; marcadas = solo esas (como la lista que ya existía en el diálogo de Usuarios, D-315). Para un supervisor de varias tiendas, se le marcan las suyas. Guarda con `updateUserVisibleStores`, con los mismos helpers (`tiendasMarcadas`, `normalizaTienda`) y la misma semántica que el resto de la app.
 
 Sello `deliveries` 1.582.0; `recruiting` 0.83.0; `security` 0.18.0; repo 1.802.0.
+
+## D-949 · Permisos: abre de una vez y se llega desde Empleados
+
+Dos ajustes del dueño (9 nov). El administrador de permisos (RR. HH. → Permisos) **ya no pide «Abrir»**: es una página dedicada, así que monta el proveedor del hub al cargar y se ve la lista de una vez (quitada la tarjeta intermedia que además repetía el título). Y en **Empleados** hay ahora un botón **🛡 Permisos** (solo admin) que lleva a esta página.
+
+Sello `deliveries` 1.583.0; `recruiting` 0.84.0; `security` 0.19.0; repo 1.803.0.

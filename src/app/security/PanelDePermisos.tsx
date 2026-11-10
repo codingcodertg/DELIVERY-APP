@@ -35,30 +35,19 @@ const ICONO: Record<string, string> = {
  */
 export function PanelDePermisos({ hub }: { hub: Profile | null }) {
   const { t } = usePrefs();
-  const [abierto, setAbierto] = useState(false);
   const [vivo, setVivo] = useState<Record<string, VivoDeUsuario>>({});
   useEffect(() => {
-    if (!abierto || MODO_DEMO) return;
+    if (MODO_DEMO) return;
     let activo = true;
     void fetch("/api/security/vivo").then((r) => (r.ok ? r.json() : null)).then((d) => { if (activo && d?.vivo) setVivo(d.vivo as Record<string, VivoDeUsuario>); }).catch(() => undefined);
     return () => { activo = false; };
-  }, [abierto]);
+  }, []);
 
   if (MODO_DEMO) return <AvisoDeDemo titulo={t("Permissions", "Permisos")} />;
   if (!hub) return null;
 
-  if (!abierto) {
-    return (
-      <div className="card" style={{ margin: 0 }}>
-        <b>🛡 {t("Permissions manager", "Administrador de permisos")}</b>
-        <p className="hint" style={{ margin: "4px 0 10px" }}>
-          {t("What each person can open — including the role per app — and who is live right now.",
-            "Qué puede abrir cada persona —incluido el rol por app— y quién está en vivo ahora mismo.")}
-        </p>
-        <button className="btn" data-accion="abrir-permisos" onClick={() => setAbierto(true)}>{t("Open", "Abrir")}</button>
-      </div>
-    );
-  }
+  // D-949: abierto de una vez, sin botón. Es una página dedicada (RR. HH. → Permisos), no un layout ancho, así que
+  // montar el proveedor del hub al cargar es como abrir el expediente de un empleado: una sola página, a propósito.
   return (
     <ConfirmProvider>
       <ProveedorDelHub me={hub}>
