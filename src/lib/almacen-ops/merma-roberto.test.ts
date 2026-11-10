@@ -97,6 +97,16 @@ describe("fec8a78d: el selector solo muestra al almacén de la tienda del report
     expect(personasParaElegir(gente, "McAllen", "an").map((p) => p.id)).toEqual(["1"]);
     expect(esDelAlmacen({ id: "x", full_name: "x", store: "A", role: "admin", module_access: ["warehouse_ops"] })).toBe(false);
   });
+  it("284: un expediente sin cuenta (fuente «expediente») es del almacén y se puede elegir; de baja no", () => {
+    const conExpediente = [
+      { id: "1", full_name: "Ana", store: "McAllen", role: "warehouse" },
+      { id: "e1", full_name: "Zoe", store: "McAllen", fuente: "expediente" as const },
+      { id: "e2", full_name: "Yago", store: "McAllen", fuente: "expediente" as const, left_at: "2026-10-01" },
+    ];
+    expect(esDelAlmacen({ id: "e1", full_name: "Zoe", store: "McAllen", fuente: "expediente" })).toBe(true);
+    expect(esDelAlmacen({ id: "e2", full_name: "Yago", store: "McAllen", fuente: "expediente", left_at: "2026-10-01" })).toBe(false);
+    expect(personasParaElegir(conExpediente, "McAllen").map((p) => p.id)).toEqual(["1", "e1"]);
+  });
 });
 
 describe("4a1123bb: borradores por usuario", () => {

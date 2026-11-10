@@ -13,7 +13,7 @@ import type { GrupoDeMerma } from "./grupos";
 
 export const CUBO = "warehouse-ops";
 
-export interface Persona { id: string; full_name: string; store: string | null; role?: string | null; module_access?: string[] | null; left_at?: string | null }
+export interface Persona { id: string; full_name: string; store: string | null; role?: string | null; module_access?: string[] | null; left_at?: string | null; fuente?: "profile" | "expediente" }
 export interface Yo extends Quien { full_name: string }
 
 export interface Reporte {

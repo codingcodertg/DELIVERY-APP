@@ -72,6 +72,7 @@ export const RPC_QUE_SOLO_LEEN = [
   "tutorials",
   "tutorial_view_stats", // 267 (D-913): para el admin, cuántos vieron cada tutorial; stable, solo lee.
   "warehouse_ops_count_vendors", "warehouse_ops_count_products", // 274 (D-929): proveedores y productos para la hoja de conteo; devuelven tablas, solo leen.
+  "warehouse_ops_people", // 284: empleados de almacén sin cuenta (solo expediente) para el selector de merma; solo lee.
 ] as const;
 
 /** Las que escriben: se cortan. Están nombradas solo para que la prueba sepa que alguien las miró. */

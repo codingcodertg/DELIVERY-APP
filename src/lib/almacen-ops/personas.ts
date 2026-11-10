@@ -12,10 +12,14 @@ export interface PersonaDeAlmacen {
   role?: string | null;
   module_access?: string[] | null;
   left_at?: string | null;
+  /** 284: de dónde viene. "expediente" = empleado de almacén sin cuenta del Hub (solo RR. HH.). */
+  fuente?: "profile" | "expediente";
 }
 
 export function esDelAlmacen(p: PersonaDeAlmacen): boolean {
   if (p.left_at) return false;
+  // 284: un expediente sin usuario ya viene filtrado por el RPC (`warehouse_ops_people`): es gente de almacén.
+  if (p.fuente === "expediente") return true;
   return p.role === "warehouse" || (p.role !== "admin" && (p.module_access ?? []).includes(MODULO));
 }
 

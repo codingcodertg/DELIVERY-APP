@@ -51465,3 +51465,13 @@ Sin migración: reusa `warehouse_ops_set_scrap_stage` en bucle (`aplicarEtapa`),
 De paso: se corrige el **checksum del archivo de la migración 283** (D-962). Su autochequeo se disparaba con su propio comentario (el texto «personas distintas» dentro de la función); se reescribió el comentario. La 283 ya aplicada en la base usa el checksum nuevo (`3b7f1ca7…`); este cambio solo alinea el archivo de `main`.
 
 Sello `warehouse_ops` 0.24.0; repo 1.817.0.
+
+## D-964 · Merma: el selector de empleados incluye expedientes sin user (warehouse sin cuenta)
+
+El selector de «quién reportó / quién lo rompió» en merma solo mostraba `profiles` (usuarios del Hub), así que los empleados de almacén **sin cuenta** no aparecían aunque tuvieran expediente. Ahora también salen los **expedientes de almacén sin user y activos** (profile_id nulo, sin baja).
+
+Como la RLS de `recruiting.employee_files` (migración 094) solo deja leer a RR.HH., se agregó un **RPC security-definer `warehouse_ops_people()`** (migración 284) que devuelve **solo** `(id, full_name, store)` de los expedientes sin user/activos con puesto de almacén (warehouse/inventory/driver/almacén/merma), y solo a quien tiene nivel de operaciones de almacén — nada de correo/teléfono/pago. `Operaciones.tsx` junta profiles + expedientes (de-dup por nombre, gana el profile) y, si la 284 no está aplicada, cae a solo profiles sin romper.
+
+Se crearon de paso 3 expedientes de almacén que faltaban (Emmanuel Ramirez · Brownsville, Juan Carlos Castanon · Pharr, Luis · Edinburg). Las columnas de personas de `warehouse_reports` (`subject_ids`, `broken_by`, `reported_by`) no tienen FK, así que guardar un id de expediente es seguro.
+
+Sello `warehouse_ops` 0.25.0; repo 1.818.0.
