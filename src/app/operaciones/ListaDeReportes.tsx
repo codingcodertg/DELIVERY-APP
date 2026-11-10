@@ -11,7 +11,9 @@ import { PASOS, PASO_QUIEN_REPORTO, etiquetaDeOpcion } from "@/lib/almacen-ops/p
 import { etiquetaDeEquipoDelReporte } from "@/lib/almacen-ops/mantenimiento";
 import { nombreOTexto } from "@/lib/almacen-ops/personas";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
-import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, buscarProductos, corregirMerma, corregirOrigenDeMerma, enlacesDeFotos, guardarHuellas, reportesConLaFoto, subirFoto, type Reporte } from "@/lib/almacen-ops/datos";
+import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, enlacesDeFotos, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type Reporte } from "@/lib/almacen-ops/datos";
+import { estadoDelGrupo, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
+import { HojaDeGrupo } from "./HojaDeGrupo";
 import { MAX_FOTOS, avisoDeRepetida, duplicadosPorHuella, etiquetaSinFoto, fotoPendienteVencida, fotosSinHuella, iconoDeFotos, sha256Hex, sinFoto, type Repetida } from "@/lib/almacen-ops/fotos";
 import { BotonesDeFoto } from "./BotonesDeFoto";
 import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
@@ -60,6 +62,16 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     router.replace(qs ? `${ruta}?${qs}` : ruta, { scroll: false });
   }, [router, ruta, pestana, eleccion]);
   const setPestana = (p: Pestana) => irA({ pestana: p });
+  // 281: un grupo de aprobación abierto vive en la URL (?grupo=<id>): aguanta refresh y se comparte. Solo en «Reportes».
+  const grupoId = modo === "todos" ? params.get("grupo") : null;
+  const abrirGrupo = useCallback((id: string) => router.replace(`${ruta}?pestana=merma&grupo=${encodeURIComponent(id)}`, { scroll: false }), [router, ruta]);
+  const [grupos, setGrupos] = useState<GrupoDeMerma[]>([]);
+  useEffect(() => {
+    if (ctx.demo || modo !== "todos" || pestana !== "merma" || grupoId) return;
+    let vivo = true;
+    void listarGrupos(createClient()).then((g) => { if (vivo) setGrupos(g); }).catch(() => { /* sin 281: no hay grupos */ });
+    return () => { vivo = false; };
+  }, [ctx.demo, modo, pestana, grupoId]);
   const elegir = (atajo: Atajo) => irA({ eleccion: atajo === "otro"
     // Al pasar a «a mano» se arranca con el rango del atajo que estaba puesto, para solo ajustar un extremo.
     ? { atajo, ...(eleccion.atajo === "otro" ? { desde: eleccion.desde, hasta: eleccion.hasta } : rangoDeAtajo(eleccion.atajo, hoy)) }
@@ -193,6 +205,17 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     }
   };
 
+  // 281: crear un grupo de aprobación con las mermas marcadas y abrir su hoja digital (firmar y aprobar de una vez).
+  const iniciarAprobacion = async () => {
+    const nombre = window.prompt(t("Name this approval group", "Nombra este grupo de aprobación"), "");
+    if (nombre == null || !nombre.trim()) return;
+    try {
+      const id = await crearGrupoDeMerma(createClient(), nombre.trim(), seleccionadas.map((r) => r.id));
+      setSeleccion(new Set());
+      abrirGrupo(id);
+    } catch (e) { setError((e as Error).message); }
+  };
+
   // El selector de rango (D-911) lo comparten la pestaña de merma y la de entregas.
   const selectorDeRango = (
     <>
@@ -211,6 +234,13 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
         </div>
       )}
     </>
+  );
+
+  // 281: con un grupo abierto (?grupo=…), la pantalla muestra SOLO su hoja de aprobación (los demás reportes se ocultan).
+  if (grupoId) return (
+    <section className="ops-reportes" data-modo={modo} data-grupo-abierto={grupoId}>
+      <HojaDeGrupo grupoId={grupoId} ctx={ctx} onSalir={() => irA({ pestana: "merma" })} />
+    </section>
   );
 
   return (
@@ -281,7 +311,11 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
           {seleccionadas.length > 0 && (
             <div className="ops-seleccion" role="region" aria-label={t("Selected for approval", "Seleccionadas para aprobar")} data-seleccion={seleccionadas.length}>
               <span>{t(`${seleccionadas.length} selected`, `${seleccionadas.length} seleccionada${seleccionadas.length === 1 ? "" : "s"}`)}</span>
-              <a className="btn btn-primary" href={urlDeHoja(seleccionadas.map((r) => r.id))} target="_blank" rel="noreferrer" data-accion="imprimir-hoja">
+              {/* 281: crear un grupo, firmarlo (gerente + supervisor) y aprobar todas de una vez — la vía principal. */}
+              <button type="button" className="btn btn-primary" onClick={() => void iniciarAprobacion()} data-accion="iniciar-aprobacion">
+                ✅ {t(`Start approval (${seleccionadas.length})`, `Iniciar aprobación (${seleccionadas.length})`)}
+              </button>
+              <a className="btn" href={urlDeHoja(seleccionadas.map((r) => r.id))} target="_blank" rel="noreferrer" data-accion="imprimir-hoja">
                 🖨 {t(`Print approval sheet (${seleccionadas.length})`, `Imprimir hoja de aprobación (${seleccionadas.length})`)}
               </a>
               <button type="button" className="btn" onClick={() => setAdjuntando((x) => !x)} data-accion="adjuntar-hoja-seleccion">📎 {t(`Attach signed sheet (${seleccionadas.length})`, `Adjuntar hoja firmada (${seleccionadas.length})`)}</button>
@@ -305,6 +339,20 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
           <TablaDeMermaExcel filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango" conEtapa
             seleccion={{ ids: seleccion, puede: puedeSeleccionar, alternar }}
             vacio={rango ? (etapaFiltro ? t("No scrap in that stage in this range.", "No hay merma en esa etapa en este rango.") : t("No scrap broken in this range.", "No se rompió nada en este rango.")) : t("Fix the dates to see the list.", "Corrige las fechas para ver la lista.")} />
+          {/* 281: archivo de grupos de aprobación — abre la hoja digital de cada uno (firmas + fotos). */}
+          {grupos.length > 0 && (
+            <div className="ops-grupos" data-grupos={grupos.length}>
+              <h3 className="ops-merma-titulo">{t("Approval groups", "Grupos de aprobación")} <span className="count-tag">{grupos.length}</span></h3>
+              <ul className="ops-grupos-lista">
+                {grupos.map((g) => (
+                  <li key={g.id} data-grupo={g.id}>
+                    <button type="button" className="btn btn-sm" onClick={() => abrirGrupo(g.id)} data-abrir-grupo={g.id}>🗂 {g.name}</button>
+                    <span className="hint">{t(`${g.n_reportes ?? 0} reports`, `${g.n_reportes ?? 0} reportes`)} · {g.store} · <span data-estado-grupo={g.id}>{estadoDelGrupo(g, lang)}</span></span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 

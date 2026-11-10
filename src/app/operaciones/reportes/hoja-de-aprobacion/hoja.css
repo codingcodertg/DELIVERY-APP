@@ -22,6 +22,10 @@
 .hoja-firma { display: grid; gap: 6px; text-align: center; font-size: 12px; font-weight: 600; }
 .hoja-linea { display: block; border-bottom: 1.5px solid #111; height: 28px; }
 .hoja-pie { margin: 22px 0 0; font-size: 11px; color: #555; }
+/* 281: la hoja digital de un grupo — dos firmas (gerente + supervisor) dibujadas en la app. */
+.hoja-firmas-digital { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.hoja-firma-img { display: block; height: 48px; width: auto; max-width: 100%; margin: 0 auto; object-fit: contain; }
+.hoja-firma-quien { font-size: 11px; font-weight: 600; color: #555; }
 @media (max-width: 719.98px) {
   .hoja-aprobacion { padding: 14px; }
   .hoja-firmas { grid-template-columns: 1fr; gap: 28px; }
