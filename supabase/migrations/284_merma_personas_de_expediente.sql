@@ -29,6 +29,8 @@ create or replace function public.warehouse_ops_people()
        or e.department ilike '%warehouse%' or e.department ilike '%almac%'
      )
      and public.warehouse_ops_level_of(auth.uid()) is not null
+     -- Acota por tienda, como el resto del modulo (revisión de seguridad): solo la(s) tienda(s) del que llama; el admin pasa.
+     and public.warehouse_ops_in_store(e.store)
 $$;
 revoke all on function public.warehouse_ops_people() from public, anon;
 grant execute on function public.warehouse_ops_people() to authenticated;
@@ -53,7 +55,10 @@ begin
   if position('warehouse_ops_level_of' in f) = 0 then
     raise exception '284: warehouse_ops_people debe exigir nivel de Operaciones de almacen';
   end if;
+  if position('warehouse_ops_in_store' in f) = 0 then
+    raise exception '284: warehouse_ops_people debe acotar por tienda (warehouse_ops_in_store)';
+  end if;
 end $chk$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('284_merma_personas_de_expediente.sql', 'ced975b55375cc85202a4beddabb2514fedf77510bcc068c2eccbfc38e8051fc') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('284_merma_personas_de_expediente.sql', '56f934545d68b23d1c9eb7e5090fbf57f159239e73d4233cdb60dbf496171516') on conflict (name) do nothing;
