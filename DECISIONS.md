@@ -51324,3 +51324,11 @@ Sello `deliveries` 1.585.0; `recruiting` 0.86.0; `security` 0.21.0; repo 1.805.0
 El dueño: «no hagas grupos de las apps, solo quería lo de afuera (Aplicar Vendedor / Cambiar perfil)». En el detalle, las apps se muestran ahora en una sola lista plana, sin los encabezados BASE / VENTAS / OPERACIONES / OFICINA / OTROS. El botón de perfil y el dropdown de cambiar perfil quedan igual.
 
 Sello `deliveries` 1.586.0; `recruiting` 0.87.0; `security` 0.22.0; repo 1.806.0.
+
+## D-953 · Routes Manager: borradores de ruta nombrados (Opción 1/2/3), solo admin y logística
+
+Pedido del dueño (9 nov): poder guardar varias versiones de las rutas de un día y cambiar entre ellas; hoy el planificador solo arma UN borrador temporal que se pierde al publicar o recargar. Ahora, en Routes Manager, admin y logística pueden **guardar la ruta actual como un borrador con nombre**, **cargar** cualquiera (escribe de vuelta chofer + orden de cada parada) y **borrarlos**. Nueva tabla `route_drafts` (migración 279): guarda la foto `[{id, assigned_driver, route_seq}]` por día; NO toca `deliveries` por sí sola. RLS solo admin/logística (la forma de la 128). Cargar pasa por la RLS y el guard de siempre; si una orden ya avanzó y la base la niega, para y lo dice (no deja a medias). Si la 279 no está aplicada, la pantalla lo avisa y no rompe.
+
+De paso (config, sin código): Steven quedó marcado como **no-ruteable** (de respaldo), así «Armar rutas» y «Asignar a…» usan por defecto solo los tres choferes de planta; para incluirlo un día se le prende «rutea» en Ajustes → choferes.
+
+Sello `deliveries` 1.587.0; repo 1.807.0.
