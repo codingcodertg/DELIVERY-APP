@@ -269,6 +269,22 @@ export async function corregirOrigenDeMerma(sb: SupabaseClient, reporteId: strin
   if (error) throw error;
 }
 
+/**
+ * 285: editar TODO un reporte de merma (admin/gerente), aun ya aprobado. Solo van las claves que cambian; la base
+ * recalcula la pérdida, revierte la aprobación (vuelve a «pendiente de firma») y borra las firmas por el trigger.
+ */
+export type ParcheDeMerma = Partial<{
+  product_id: number | null; product_sku: string | null; product_name: string; product_not_in_catalog: boolean;
+  scrap_type: string; boxes: number | null; pieces_per_box: number | null; loose_pieces: number | null;
+  total_pieces: number | null; damaged_pieces: number | null; sample_pieces: number | null; unit_cost: number | null;
+  return_type: string; reason: string | null; crma: string | null; broken_on: string | null; broken_by: string[];
+  answers: Record<string, unknown>;
+}>;
+export async function editarReporteDeMerma(sb: SupabaseClient, reporteId: string, parche: ParcheDeMerma): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_edit_scrap_report", { p_report: reporteId, p_patch: parche });
+  if (error) throw error;
+}
+
 /** El cuerpo de merma que va a `warehouse_ops_file_report`. Fuera de catálogo: sin product_id, con nombre y precio de venta. */
 export function productoParaEnviar(p: ProductoElegido): { product_id: number | null; free_name?: string; unit_cost?: number | null } {
   return p.libre || p.id == null ? { product_id: null, free_name: p.name.trim(), unit_cost: p.cost } : { product_id: p.id };

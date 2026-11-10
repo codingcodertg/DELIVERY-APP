@@ -407,3 +407,13 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 /* «Seleccionar todos» arriba de la tabla de merma (dueño, 10 nov). */
 .ops-seleccionar-todos { margin: 2px 0 6px; }
 .ops-col-casilla input[type="checkbox"] { cursor: pointer; }
+
+/* 285: editar todo un reporte de merma (admin/gerente). Solo layout; los colores salen de .ops-corregir / tokens. */
+.ops-editar-barra { margin: 4px 0 8px; }
+.ops-editar-campos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+.ops-editar-campos label { display: grid; gap: 2px; font-size: 13px; }
+.ops-editar-ancho { grid-column: 1 / -1; }
+.ops-editar-rotos { margin: 10px 0 0; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.ops-editar-rotos legend { font-size: 12px; padding: 0 4px; }
+.ops-editar-persona { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
+@media (max-width: 560px) { .ops-editar-campos { grid-template-columns: minmax(0, 1fr); } }
