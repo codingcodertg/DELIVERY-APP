@@ -51358,3 +51358,17 @@ Pedido del dueño (10 nov): cualquier orden —cliente, intertienda o transfer�
 **Caminos cubiertos:** la ficha (crear, enviar, guardar, borrador, solo-la-fecha, enviar un borrador y reenviar una rechazada), 📅 Reprogramar, la celda del Gestor y la fecha en bloque. **Duplicar** una orden ahora también nace para mañana (antes nacía hoy), para cumplir «todas salen para mañana siempre».
 
 Sello `deliveries` 1.589.0; repo 1.809.0.
+
+## D-956 · Merma: Reports con todas las columnas y descargar el reporte en PDF
+
+Pedido del dueño (10 nov): «cuando me meto a Reports la primera página no tiene todas las columnas, pero en Merma sí; quiero que se vean todas», y «de paso que cree reporte en PDF también».
+
+**Todas las columnas:** la pestaña «Reports/lista» usaba la tabla simple de 6 columnas; la de «Merma» ya usaba la tabla completa (estilo Excel, `COLUMNAS_EXCEL`). Ahora la lista también usa la **tabla completa cuando las filas son de merma** (o el filtro de tipo es «scrap»). Las listas con otros tipos (mantenimiento, conteos, RR. HH.) siguen con la tabla simple, porque esas columnas son solo de merma y romperían esas filas.
+
+**PDF:** junto al export CSV hay un botón **Descargar PDF / Download PDF** que baja el reporte de merma del rango y filtros actuales, con las mismas columnas y celdas del CSV, en horizontal, con empresa, título, subtítulo (rango + tienda) y la línea de total. Lógica de datos en un helper puro (`src/lib/almacen-ops/pdf-de-merma.ts`, con prueba); el dibujo del PDF se hace en el cliente con `jspdf` + `jspdf-autotable`, cargados de forma diferida al tocar el botón.
+
+**Seguridad:** se fijó `jspdf` en **4.2.1** (no la 3.0.4 que trae el `npm audit fix` por defecto): la ≤4.2.0 tenía 2 vulnerabilidades críticas (path traversal, inyección en PDF) y varias high. Con la 4.2.1 el audit de producción vuelve a sus 8 preexistentes (solo las que rompen al arreglarse), sin críticas nuevas.
+
+Esto es solo la vista. La firma en la app (gerente crea+firma, supervisor firma; sin las dos firmas no se aprueba; aviso «pendiente de firma»; vista «En revisión») va en el siguiente PR, con su migración.
+
+Sello `warehouse_ops` 0.18.0; repo 1.810.0.

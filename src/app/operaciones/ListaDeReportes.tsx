@@ -22,6 +22,7 @@ import { diaDelReporte, fmtDia, hoyEnTexas, ordenPorDia } from "@/lib/almacen-op
 import { ATAJOS, NOMBRE_DE_ATAJO, eleccionAUrl, eleccionDeUrl, etiquetaDeRango, filtrarPorRango, perdidaEnRango, rangoDeAtajo, rangoDeEleccion, type Atajo, type Eleccion } from "@/lib/almacen-ops/rango-de-merma";
 import { ETAPAS, etapaDe, nombreDeEtapa, perdidaPorEtapa, puedeCambiarEtapa, seleccionableParaHoja, tieneEtapas, urlDeHoja, type Etapa } from "@/lib/almacen-ops/etapas";
 import { COLUMNAS_EXCEL, celdasDeMerma, csvDeMermas, nombreDelCsv } from "@/lib/almacen-ops/tabla-de-merma";
+import { datosPdfDeMerma } from "@/lib/almacen-ops/pdf-de-merma";
 import { AdjuntarYMarcar, ChipDeEtapa, LineaDeEtapas } from "./EtapasDeMerma";
 import { KpiDeEntregas } from "./KpiDeEntregas";
 import type { Contexto } from "./Operaciones";
@@ -100,6 +101,11 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     return true;
   }), [propias, tipo, tienda, empleado, desde, hasta]);
   const cuenta = (k: TipoDeReporte) => propias.filter((r) => r.kind === k).length;
+  // Pedido del dueño (10 nov): en «Reportes» quiero ver TODAS las columnas (las del Excel), como en la pestaña de merma.
+  // Solo cuando lo que se ve es puro scrap (filtro en «Merma» o todas las filas son merma): el Excel es específico de
+  // merma, así que una lista mezclada o de otro tipo sigue con la tabla simple, para no romper los demás reportes.
+  const listaSoloMerma = visibles.length > 0 && visibles.every((r) => r.kind === "scrap");
+  const listaUsaExcel = tipo === "scrap" || listaSoloMerma;
   // 268: qué reportes comparten una foto (misma huella) con otro, entre los que se ven; la marca sale en ambos.
   const repetidas = useMemo(() => duplicadosPorHuella(propias), [propias]);
   // 268: mermas guardadas sin foto que ya pasaron 24 h (el gerente las reclama).
@@ -139,6 +145,38 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     a.href = url; a.download = nombreDelCsv(tiendas.size === 1 ? [...tiendas][0] : null, hoy);
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  // Mismo reporte, en PDF (pedido del dueño, 10 nov). La librería (`jspdf` + autotable) se carga diferida al tocar el
+  // botón, como `@zumer/snapdom`, para no cargarla en cada visita. Las columnas son las del Excel/CSV, para que cuadren.
+  const [generandoPdf, setGenerandoPdf] = useState(false);
+  const descargarPdf = async (lista: Reporte[], conRango: boolean) => {
+    if (lista.length === 0 || generandoPdf) return;
+    setGenerandoPdf(true);
+    try {
+      const tiendas = new Set(lista.map((r) => r.store));
+      const d = datosPdfDeMerma(lista, ctx.personas, lang, {
+        rango: conRango && rango ? etiqueta : null,
+        tienda: tiendas.size === 1 ? [...tiendas][0] : null,
+        hoy,
+      });
+      const [{ jsPDF }, auto] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
+      const autoTable = auto.default;
+      const doc = new jsPDF({ orientation: "landscape" });
+      doc.setFontSize(14); doc.text(d.empresa, 14, 14);
+      doc.setFontSize(11); doc.text(d.titulo, 14, 21);
+      doc.setFontSize(9); doc.text(d.subtitulo, 14, 27);
+      autoTable(doc, {
+        head: [d.encabezados], body: d.filas, startY: 31,
+        styles: { fontSize: 7, cellPadding: 1.5, overflow: "linebreak" },
+        headStyles: { fillColor: [31, 41, 55] },
+      });
+      const finalY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 31;
+      doc.setFontSize(10);
+      doc.text(`${d.etiquetaTotal}: ${fmtMoney(d.total)}`, 14, finalY + 8);
+      doc.save(d.nombreArchivo);
+    } finally {
+      setGenerandoPdf(false);
+    }
   };
 
   // El selector de rango (D-911) lo comparten la pestaña de merma y la de entregas.
@@ -242,6 +280,9 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
               <button type="button" className="btn btn-sm" onClick={() => exportarCsv(mermasPorEtapa)} data-accion="exportar-csv" title={t("Download these rows as a CSV file to paste into Excel", "Baja estas filas como CSV para pegarlas en Excel")}>
                 ⬇ {t("Export CSV", "Exportar CSV")} <span className="cnt">{mermasPorEtapa.length}</span>
               </button>
+              <button type="button" className="btn btn-sm" onClick={() => void descargarPdf(mermasPorEtapa, true)} disabled={generandoPdf} data-accion="exportar-pdf" title={t("Download these rows as a PDF report", "Baja estas filas como un reporte PDF")}>
+                📄 {generandoPdf ? t("Generating…", "Generando…") : t("Download PDF", "Descargar PDF")} <span className="cnt">{mermasPorEtapa.length}</span>
+              </button>
             </div>
           )}
           <TablaDeMermaExcel filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango" conEtapa
@@ -287,10 +328,25 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
                 `${pendientesDeFoto} merma${pendientesDeFoto === 1 ? "" : "s"} guardada${pendientesDeFoto === 1 ? "" : "s"} en papel hace más de 24 h sigue${pendientesDeFoto === 1 ? "" : "n"} sin foto. Pide la foto; nada se borra solo.`)}
             </p>
           )}
-          <TablaDeReportes filas={visibles} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="todos"
-            vacio={modo === "mios"
-              ? t("You haven't filed any reports yet. Pick one on the Warehouse Ops screen.", "Todavía no has llenado reportes. Elige uno en la pantalla de Operaciones.")
-              : t("No reports match these filters.", "Ningún reporte coincide con estos filtros.")} />
+          {listaUsaExcel && visibles.length > 0 && (
+            <div className="ops-exportar">
+              <button type="button" className="btn btn-sm" onClick={() => exportarCsv(visibles)} data-accion="exportar-csv" title={t("Download these rows as a CSV file to paste into Excel", "Baja estas filas como CSV para pegarlas en Excel")}>
+                ⬇ {t("Export CSV", "Exportar CSV")} <span className="cnt">{visibles.length}</span>
+              </button>
+              <button type="button" className="btn btn-sm" onClick={() => void descargarPdf(visibles, false)} disabled={generandoPdf} data-accion="exportar-pdf" title={t("Download these rows as a PDF report", "Baja estas filas como un reporte PDF")}>
+                📄 {generandoPdf ? t("Generating…", "Generando…") : t("Download PDF", "Descargar PDF")} <span className="cnt">{visibles.length}</span>
+              </button>
+            </div>
+          )}
+          {listaUsaExcel
+            ? <TablaDeMermaExcel filas={visibles} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="todos" conEtapa
+                vacio={modo === "mios"
+                  ? t("You haven't filed any reports yet. Pick one on the Warehouse Ops screen.", "Todavía no has llenado reportes. Elige uno en la pantalla de Operaciones.")
+                  : t("No reports match these filters.", "Ningún reporte coincide con estos filtros.")} />
+            : <TablaDeReportes filas={visibles} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="todos"
+                vacio={modo === "mios"
+                  ? t("You haven't filed any reports yet. Pick one on the Warehouse Ops screen.", "Todavía no has llenado reportes. Elige uno en la pantalla de Operaciones.")
+                  : t("No reports match these filters.", "Ningún reporte coincide con estos filtros.")} />}
         </>
       )}
 
