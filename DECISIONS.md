@@ -51439,3 +51439,15 @@ Batch del dueño (10 nov) sobre Operaciones de almacén → Reportes. Todo UI/fl
 Colateral: el aviso de «merma sin foto >24h» vivía solo en la lista «Todos los reportes» que se quitó; si se quiere, se mueve a la pestaña Merma (aparte).
 
 Sello `warehouse_ops` 0.22.0; repo 1.815.0.
+
+## D-962 · Merma: una persona puede firmar ambos lados, se aprueba solo al firmar los dos, y auto-refresh
+
+Pedido del dueño (10 nov): en la práctica el gerente y el supervisor firman en el MISMO aparato (el gerente le pasa el teléfono al de almacén). Por eso:
+
+1. **Se quita la regla de «dos personas distintas»** (migración 283, `create or replace` de `warehouse_ops_sign_scrap`, `set_scrap_stage`, `sign_scrap_group`, `approve_scrap_group`): la misma cuenta puede firmar los dos espacios. **Sigue intacto el tope duro: sin las DOS firmas no se aprueba** — solo se quitó el requisito de que fueran personas distintas y el clic manual de aprobar. Revierte esa parte de D-957/D-959.
+2. **Aprobación automática**: al poner la segunda firma, el RPC aprueba solo (reporte individual → `approved`; grupo → aprobado y todos sus reportes a `approved`). Los botones de «Aprobar» quedan como respaldo inofensivo.
+3. **Auto-refresh**: al volver de la hoja de grupo / tras firmar, la lista y los contadores se actualizan solos (sin Ctrl+R).
+
+Migración 283 additive (create-or-replace); 237/280/281/282 intactas; el trigger de invalidación de firmas de la 281 se conserva.
+
+Sello `warehouse_ops` 0.23.0; repo 1.816.0.

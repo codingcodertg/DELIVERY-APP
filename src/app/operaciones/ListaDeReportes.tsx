@@ -117,7 +117,9 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
         broken_on: r.broken_on ?? (typeof r.answers?.broken_on === "string" ? r.answers.broken_on : null) })) as Reporte[]));
     })();
     return () => { vivo = false; };
-  }, [ctx.demo, ctx.yo, modo]);
+    // 283: `grupoId` entra en las dependencias para que al volver de la hoja de un grupo (se quita `?grupo`) se relea la
+    // lista: así una merma recién aprobada en grupo se ve al instante, sin tener que dar Ctrl+R.
+  }, [ctx.demo, ctx.yo, modo, grupoId]);
 
   const propias = useMemo(() => (filas ?? []).filter((r) => modo === "todos" || (r.author_id === ctx.yo.id && !esDeRrhh(r.kind))), [filas, modo, ctx.yo.id]);
   // «Mis reportes» filtra solo por tipo (los filtros de tienda/empleado/fecha eran de la lista «Todos», ya retirada).

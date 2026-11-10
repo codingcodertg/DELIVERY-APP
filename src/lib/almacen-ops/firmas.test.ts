@@ -30,7 +30,7 @@ describe("firmaDe / slotFirmado / firmasFaltantes", () => {
   });
 });
 
-describe("tieneAmbasFirmas: dos firmas de personas distintas", () => {
+describe("tieneAmbasFirmas: las dos firmas (283: ya no hace falta que sean distintas)", () => {
   it("con las dos, de distintas personas → true", () => {
     expect(tieneAmbasFirmas([f("gerente", "u1"), f("supervisor", "u2")])).toBe(true);
   });
@@ -38,21 +38,18 @@ describe("tieneAmbasFirmas: dos firmas de personas distintas", () => {
     expect(tieneAmbasFirmas([f("gerente", "u1")])).toBe(false);
     expect(tieneAmbasFirmas([])).toBe(false);
   });
-  it("las dos pero de la MISMA persona → false", () => {
-    expect(tieneAmbasFirmas([f("gerente", "u1"), f("supervisor", "u1")])).toBe(false);
-  });
-  it("sin signer_id → false", () => {
-    expect(tieneAmbasFirmas([{ ...f("gerente", "u1"), signer_id: null }, f("supervisor", "u2")])).toBe(false);
+  it("283: las dos de la MISMA persona también valen → true", () => {
+    expect(tieneAmbasFirmas([f("gerente", "u1"), f("supervisor", "u1")])).toBe(true);
   });
 });
 
-describe("puedeFirmarSlot: distinto firmante y sin pisar", () => {
-  it("slot libre, no firmó el otro → sí", () => {
+describe("puedeFirmarSlot: 283 la misma persona puede firmar ambos, sin pisar la de otro", () => {
+  it("slot libre → sí", () => {
     expect(puedeFirmarSlot([], "gerente", "u1")).toBe(true);
     expect(puedeFirmarSlot([f("gerente", "u1")], "supervisor", "u2")).toBe(true);
   });
-  it("si ya firmó el OTRO slot, no puede firmar este (dos personas distintas)", () => {
-    expect(puedeFirmarSlot([f("gerente", "u1")], "supervisor", "u1")).toBe(false);
+  it("283: aunque ya haya firmado el OTRO slot, puede firmar este (misma persona, dos espacios)", () => {
+    expect(puedeFirmarSlot([f("gerente", "u1")], "supervisor", "u1")).toBe(true);
   });
   it("no puede pisar la firma de otra persona en el mismo slot, pero sí re-firmar la suya", () => {
     expect(puedeFirmarSlot([f("gerente", "u2")], "gerente", "u1")).toBe(false);

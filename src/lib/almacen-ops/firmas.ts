@@ -2,9 +2,10 @@
  * Operaciones de almacén — firmas de aprobación de merma (D-9xx, migración 280).
  *
  * El dueño (10 nov): el gerente crea el reporte y lo firma; el supervisor lo revisa y lo firma. Una merma NO se puede
- * aprobar sin las DOS firmas, y de dos personas distintas. Mientras falte una, queda «pendiente de firma» y sale en la
- * vista «En revisión». Esta es la regla PURA (sin React, sin red); la MISMA que exige la base en `warehouse_ops_set_scrap_stage`
- * y `warehouse_ops_sign_scrap` (280). La base es la que manda; esto decide qué ofrecer y qué avisar.
+ * aprobar sin las DOS firmas. Pueden firmarse en el mismo aparato (el gerente le pasa el equipo al supervisor), así que
+ * la MISMA persona puede llenar los dos espacios (283: ya no se exige que sean dos cuentas distintas). Mientras falte una,
+ * queda «pendiente de firma» y sale en la vista «En revisión». Con las dos, se aprueba sola (283). Esta es la regla PURA
+ * (sin React, sin red); la MISMA que la base (`warehouse_ops_sign_scrap`/`warehouse_ops_set_scrap_stage`, 280/283).
  */
 import type { Etapa, FilaConEtapa, Lang } from "./etapas";
 import { etapaDe } from "./etapas";
@@ -50,24 +51,19 @@ export function firmasFaltantes(firmas: readonly FirmaDeMerma[] | null | undefin
   return SLOTS_DE_FIRMA.filter((s) => !slotFirmado(firmas, s));
 }
 
-/** ¿Están las DOS firmas y son de personas DISTINTAS? (la misma regla que la base para aprobar). */
+/** ¿Están las DOS firmas? (la misma regla que la base para aprobar; 283: ya no hace falta que sean personas distintas). */
 export function tieneAmbasFirmas(firmas: readonly FirmaDeMerma[] | null | undefined): boolean {
-  const g = firmaDe(firmas, "gerente");
-  const s = firmaDe(firmas, "supervisor");
-  if (!g || !s) return false;
-  // Dos personas distintas: si por lo que sea faltara el id, no se da por bueno.
-  return !!g.signer_id && !!s.signer_id && g.signer_id !== s.signer_id;
+  return !!firmaDe(firmas, "gerente") && !!firmaDe(firmas, "supervisor");
 }
 
 /**
- * ¿Puede ESTA persona firmar ese slot? El slot está libre (o es su propia firma), no firmó ya el OTRO slot (dos
- * personas distintas) y puede gestionar (eso lo decide quien llama con `puedeCorregirMerma`/`puedeCambiarEtapa`, no aquí).
+ * ¿Puede ESTA persona firmar ese slot? El slot está libre o es su propia firma. 283: la misma persona SÍ puede firmar
+ * los dos espacios (el gerente y el supervisor firman en el mismo aparato), así que ya no se bloquea por haber firmado el
+ * otro. Solo no se pisa la firma de OTRA persona en este mismo espacio. Gestionar lo decide quien llama (`puedeCambiarEtapa`).
  */
 export function puedeFirmarSlot(firmas: readonly FirmaDeMerma[] | null | undefined, slot: SlotDeFirma, yoId: string): boolean {
   const propia = firmaDe(firmas, slot);
   if (propia && propia.signer_id && propia.signer_id !== yoId) return false; // ya la firmó otra persona
-  const otro = firmaDe(firmas, slot === "gerente" ? "supervisor" : "gerente");
-  if (otro && otro.signer_id === yoId) return false; // ya firmó el otro espacio
   return true;
 }
 
@@ -80,7 +76,7 @@ export function requiereFirma(r: FilaConEtapa & { firmas?: readonly FirmaDeMerma
   return etapaDe(r) === "photographed" && !tieneAmbasFirmas(r.firmas);
 }
 
-/** ¿Se puede aprobar ya? Fotografiada y con las dos firmas distintas. (La base lo vuelve a exigir.) */
+/** ¿Se puede aprobar ya? Fotografiada y con las dos firmas. (La base lo vuelve a exigir, y con las dos aprueba sola; 283.) */
 export function puedeAprobar(r: FilaConEtapa & { firmas?: readonly FirmaDeMerma[] | null }): boolean {
   if (r.kind !== "scrap") return false;
   return etapaDe(r) === "photographed" && tieneAmbasFirmas(r.firmas);

@@ -3,7 +3,7 @@
  *
  * El dueño (10 nov): seleccionar varias mermas, crear un grupo con nombre, firmarlo UNA vez (gerente + supervisor) y con
  * eso aprobar todas a la vez; el grupo queda archivado. Es un camino ADICIONAL: la firma por reporte (280) sigue. Un
- * grupo NO se puede aprobar sin las dos firmas de personas distintas (lo exige la base en `warehouse_ops_approve_scrap_group`).
+ * grupo NO se puede aprobar sin las dos firmas; con las dos se aprueba solo (283) y las puede poner la misma persona.
  *
  * Regla PURA (sin React, sin red). Reusa los ayudantes de firmas por reporte (`firmas.ts`): las firmas del grupo tienen
  * la misma forma (`FirmaDeMerma`).
@@ -32,7 +32,7 @@ export function grupoAprobado(g: Pick<GrupoDeMerma, "approved_at">): boolean {
   return !!g.approved_at;
 }
 
-/** ¿Se puede aprobar ya? No aprobado y con las dos firmas distintas. (La base lo vuelve a exigir.) */
+/** ¿Se puede aprobar ya? No aprobado y con las dos firmas. (La base lo vuelve a exigir, y con las dos aprueba solo; 283.) */
 export function puedeAprobarGrupo(g: EstadoFirmas): boolean {
   return !grupoAprobado(g) && tieneAmbasFirmas(g.firmas);
 }

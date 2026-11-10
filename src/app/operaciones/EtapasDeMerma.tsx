@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime } from "@/lib/utils";
 import { ETAPAS, actorDeEtapa, etapaDe, fechaDeEtapa, fechaDeLaEtapaActual, nombreDeEtapa, puedeCambiarEtapa, puedeDeshacerEtapa, siguienteEtapa, type Etapa } from "@/lib/almacen-ops/etapas";
 import { aprobarMerma, cambiarEtapa, enlacesDeFotos, firmarMerma, firmasDeReporte, quitarFirma, subirAdjunto, subirFoto, tipoDeAdjuntoValido, type Reporte } from "@/lib/almacen-ops/datos";
-import { SLOTS_DE_FIRMA, firmaDe, mensajePendienteDeFirma, nombreDeSlot, puedeAprobar, puedeFirmarSlot, requiereFirma, type FirmaDeMerma, type SlotDeFirma } from "@/lib/almacen-ops/firmas";
+import { SLOTS_DE_FIRMA, firmaDe, mensajePendienteDeFirma, nombreDeSlot, puedeAprobar, puedeFirmarSlot, requiereFirma, tieneAmbasFirmas, type FirmaDeMerma, type SlotDeFirma } from "@/lib/almacen-ops/firmas";
 import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
 import { FirmaPad } from "./FirmaPad";
 import type { Contexto } from "./Operaciones";
@@ -61,8 +61,11 @@ function PanelDeFirmas({ r, ctx, firmas, onFirmas, onAprobado }: {
     try {
       if (!ctx.demo) await firmarMerma(createClient(), r.id, slot, png);
       const otras = firmas.filter((f) => f.slot !== slot);
-      onFirmas([...otras, { slot, signer_id: ctx.yo.id, signer_name: ctx.yo.full_name, signed_at: new Date().toISOString(), signature_png: png }]);
+      const nuevas = [...otras, { slot, signer_id: ctx.yo.id, signer_name: ctx.yo.full_name, signed_at: new Date().toISOString(), signature_png: png }];
+      onFirmas(nuevas);
       setFirmando(null);
+      // 283: con las DOS firmas la base aprueba sola; se refleja aquí (sin paso aparte de «Aprobar»).
+      if (tieneAmbasFirmas(nuevas)) onAprobado(conEtapa(r, "approved", null, new Date().toISOString(), ctx.yo.id));
     } catch (e) { setError(mensajeDeError(e)); } finally { setGuardando(false); }
   };
   const quita = async (slot: SlotDeFirma) => {
@@ -84,8 +87,8 @@ function PanelDeFirmas({ r, ctx, firmas, onFirmas, onAprobado }: {
 
   return (
     <section className="ops-corregir" data-firmas-panel>
-      <p className="hint">{t("Two signatures are required to approve: the manager and the warehouse supervisor (two different people). It can't be approved until both have signed.",
-        "Para aprobar hacen falta las dos firmas: el gerente y el supervisor de almacén (dos personas distintas). No se puede aprobar hasta que las dos estén.")}</p>
+      <p className="hint">{t("Two signatures are required to approve: the manager and the warehouse supervisor — both can sign on this device. It approves on its own once both have signed.",
+        "Para aprobar hacen falta las dos firmas: el gerente y el supervisor de almacén; las dos se pueden firmar en este mismo aparato. Con las dos puestas, se aprueba sola.")}</p>
       {firmando && (
         <FirmaPad etiqueta={t(`Sign as ${nombreDeSlot(firmando, lang)}`, `Firmar como ${nombreDeSlot(firmando, lang)}`)}
           guardando={guardando} onCancelar={() => setFirmando(null)} onFirmar={(png) => void firma(firmando, png)} />
