@@ -64,26 +64,19 @@ revoke all on public.warehouse_report_signatures from anon;
 -- este firmada), las firmas quedan obsoletas: este trigger las BORRA, asi vuelve a "pendiente de firma" y hay que volver
 -- a firmar lo nuevo antes de aprobar. Solo mira columnas de contenido firmado; los cambios de etapa (approved_at, etc.)
 -- NO disparan el borrado. Cubre cualquier via de edicion, la de hoy y la que venga.
+-- Lógica INVERTIDA (revisión de seguridad): en vez de vigilar una lista de columnas de contenido —fácil de dejar
+-- incompleta—, se borra ante CUALQUIER cambio salvo las columnas de etapa/auditoría de la lista blanca. Así cubre
+-- también `photos`, `photo_hashes`, `broken_on`, `answers`, `store`, etc., y cualquier columna que se agregue mañana.
+-- OJO: la lista blanca debe traer TODAS las columnas que escribe `warehouse_ops_set_scrap_stage` al cambiar de etapa,
+-- o una aprobación normal borraría las firmas que acaba de exigir. `jsonb - texto[]` ignora claves que no existan.
 create or replace function public.warehouse_ops_wipe_sigs_on_edit()
   returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  auditoria text[] := array['stage', 'photographed_at', 'approved_at', 'approved_by', 'approval_sheet',
+    'dumped_at', 'dumped_by', 'adjusted_at', 'adjusted_by', 'adjustment_proof', 'edited_by', 'edited_at'];
 begin
-  if NEW.kind = 'scrap' and (
-       NEW.product_id is distinct from OLD.product_id
-    or NEW.product_name is distinct from OLD.product_name
-    or NEW.product_sku is distinct from OLD.product_sku
-    or NEW.unit_cost is distinct from OLD.unit_cost
-    or NEW.total_loss is distinct from OLD.total_loss
-    or NEW.boxes is distinct from OLD.boxes
-    or NEW.pieces_per_box is distinct from OLD.pieces_per_box
-    or NEW.loose_pieces is distinct from OLD.loose_pieces
-    or NEW.total_pieces is distinct from OLD.total_pieces
-    or NEW.damaged_pieces is distinct from OLD.damaged_pieces
-    or NEW.sample_pieces is distinct from OLD.sample_pieces
-    or NEW.scrap_type is distinct from OLD.scrap_type
-    or NEW.return_type is distinct from OLD.return_type
-    or NEW.crma is distinct from OLD.crma
-    or NEW.broken_by is distinct from OLD.broken_by
-  ) then
+  if NEW.kind = 'scrap'
+     and (to_jsonb(NEW) - auditoria) is distinct from (to_jsonb(OLD) - auditoria) then
     delete from public.warehouse_report_signatures where report_id = NEW.id;
   end if;
   return NEW;
@@ -300,4 +293,4 @@ begin
 end $chk$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('280_merma_firmas_de_aprobacion.sql', '7bbc1997c4cb5bb3a7cec282b35c7a5ba366ceb575d4c8753f888b64cf5e91e4') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('280_merma_firmas_de_aprobacion.sql', '690a68fe1dd22b87bdf4afa3c0b637c2101023d53545e177e301b62bd974bc94') on conflict (name) do nothing;
