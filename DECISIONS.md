@@ -51485,3 +51485,11 @@ RPC `warehouse_ops_edit_scrap_report(p_report, p_patch jsonb)` (migración 285, 
 UI: botón **«Editar reporte»** en la tarjeta, solo para admin/gerente, con formulario precargado y aviso bilingüe de que al editar se borran las firmas y habrá que aprobar de nuevo; solo manda los campos que cambian (no borra firmas si no hubo cambios). El vínculo al catálogo sigue por «Vincular/editar» aparte; el formulario nuevo pone nombre libre.
 
 Sello `warehouse_ops` 0.26.0; repo 1.819.0.
+
+## D-966 · Merma: el modo enseñanza funciona (los cambios no rompen, se simulan suave)
+
+El dueño: en modo enseñanza, al hacer un cambio en merma no servía. Causa: el cliente de Supabase ya simula las escrituras de TABLA en práctica, pero las de **RPC** y las **subidas de archivo** se cortan con un 403 `{code:"ENSENANZA"}`; merma no reconocía ese corte y lo mostraba como error rojo (merma usa RPC para casi todo).
+
+Arreglo (sin tocar el corte del servidor ni `RPC_QUE_ESCRIBEN`): nuevo helper `src/lib/practica/es-corte.ts` (`esCorteDePractica`, clase `CorteDePractica`), y en `almacen-ops/datos.ts` cada escritura tolera el corte: las que no devuelven id lo **tragan** (el `await` resuelve y corre la UI optimista que ya existía para demo — la etapa se mueve, la firma aparece, el auto-aprobar se refleja; un error de verdad sigue lanzando). `subirAdjunto`/`subirFoto` devuelven una ruta centinela. Las que devuelven id (`crearGrupoDeMerma`, `registrar`) lanzan `CorteDePractica`, y sus pantallas lo manejan suave: crear reporte va a la pantalla de «enviado» como en demo; crear grupo limpia la selección y avisa «en práctica no se guardan los grupos», sin navegar. El aviso global de práctica ya salía en `/operaciones` (está en el layout).
+
+Sello `warehouse_ops` 0.27.0; repo 1.820.0.

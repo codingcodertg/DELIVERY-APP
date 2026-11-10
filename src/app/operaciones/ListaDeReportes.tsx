@@ -12,6 +12,7 @@ import { etiquetaDeEquipoDelReporte } from "@/lib/almacen-ops/mantenimiento";
 import { nombreOTexto, personasParaElegir } from "@/lib/almacen-ops/personas";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
 import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, editarReporteDeMerma, enlacesDeFotos, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type ParcheDeMerma, type Reporte } from "@/lib/almacen-ops/datos";
+import { esCorteDePractica } from "@/lib/practica/es-corte";
 import { estadoDelGrupo, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
 import { HojaDeGrupo } from "./HojaDeGrupo";
 import { HojaImprimible } from "./HojaImprimible";
@@ -232,7 +233,11 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
       const id = await crearGrupoDeMerma(createClient(), nombre, elegibles.map((r) => r.id));
       setSeleccion(new Set());
       abrirGrupo(id);
-    } catch (e) { setError((e as Error).message); }
+    } catch (e) {
+      // En práctica (modo enseñanza) no se crean grupos de verdad: se avisa suave, no es un error. El aviso global ya salió.
+      if (esCorteDePractica(e)) { setSeleccion(new Set()); setAvisoBloque(t("In practice, groups aren't saved.", "En práctica no se guardan los grupos.")); return; }
+      setError((e as Error).message);
+    }
   };
 
   // Acciones en bloque: marcar varias como desechadas (approved→dumped) o ajustadas (dumped→adjusted, con una sola foto).
