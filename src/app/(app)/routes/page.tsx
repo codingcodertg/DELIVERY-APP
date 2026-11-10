@@ -73,6 +73,7 @@ import { useAjustesDeChofer } from "@/lib/usa-ajustes-de-chofer";
 import { entradaDelDia } from "@/lib/route-plan/entrada";
 import { entradaDelReparto, reparteEntre, type Reparto } from "@/lib/route-engine";
 import { ajustesConBaseDelPerfil, choferesParaRepartir, etiquetaDelReparto, listaDeLasParadas, matrizDelGestor, movimientosDelReparto, paradasDeLaLista, puntosDelReparto, resumenDelReparto, textoDeNoRepartir } from "@/lib/reparto-desde-el-gestor";
+import { BorradoresDeRuta } from "./BorradoresDeRuta";
 import type { Foto } from "@/lib/arrastre-de-paradas";
 import { driverOf, orderLaneKey as orderLaneKeyPure, planMerge } from "@/lib/route-lanes";
 import { COLUMN_WIDTHS, anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
@@ -2966,6 +2967,10 @@ export default function RoutesPage() {
               title={t("Build today's routes automatically: plan the day as a draft, adjust it and publish it", "Armar las rutas del día automáticamente: planificar el día en borrador, ajustarlo y publicarlo")}>
               🧭 {t("Build routes", "Armar rutas")} {planAbierto ? "▾" : "▸"}
             </button>
+          )}
+          {/* D-953: borradores de ruta (Opción 1/2/3), solo admin y logística. */}
+          {!soloLectura && !!me && ["admin", "logistics"].includes(me.role) && (
+            <BorradoresDeRuta day={date} t={t} />
           )}
           {puedeArmarRutas && estadoPlan && (() => {
             const e = textoDelEstadoDelPlan(estadoPlan, lang === "es");
