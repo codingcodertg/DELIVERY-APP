@@ -19,6 +19,16 @@ describe("285: editar todo un reporte de merma (admin/gerente)", () => {
   it("revierte la aprobación al editar (vuelve a pendiente de firma)", () => {
     expect(SQL).toContain("approved_at = null");
   });
+  it("editar una merma desechada/ajustada exige admin", () => {
+    expect(SQL).toContain("in ('dumped', 'adjusted')");
+    expect(SQL).toContain("in ('admin', 'store_admin')");
+  });
+  it("rechaza el guardado sin cambios (no borra firmas por un abrir+guardar)", () => {
+    expect(SQL).toContain("nada que cambiar");
+  });
+  it("el producto de catálogo sale de erp.products, no del cliente", () => {
+    expect(SQL).toContain("from erp.products");
+  });
   it("no la puede ejecutar anon", () => {
     expect(SQL).toContain("revoke all on function public.warehouse_ops_edit_scrap_report(uuid, jsonb) from public, anon;");
   });
