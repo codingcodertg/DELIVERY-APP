@@ -60,7 +60,7 @@ export function ChatFlotante({ sinBurbuja = false }: { sinBurbuja?: boolean } = 
       if (!p || !vivo) return;
       setYo({ id: p.id, full_name: p.full_name ?? "", store: p.store ?? null, role: p.role ?? null });
       const [{ data: cs }, { data: ms }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, store, role, title, left_at").order("full_name"),
+        supabase.from("perfiles_publicos").select("id, full_name, store, role, title, left_at").order("full_name"),
         supabase.from("chat_messages").select("id, from_user, to_user, body, created_at, read_at").order("created_at", { ascending: false }).limit(500),
       ]);
       if (!vivo) return;

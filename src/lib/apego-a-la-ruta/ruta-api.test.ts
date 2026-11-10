@@ -43,6 +43,8 @@ function base(apuntaEn: string[], filas: Record<string, unknown>) {
 const FILAS = {
   "settings:una": { stores: [{ name: "RDZ Pharr", lat: 26.2041, lng: -98.1686 }], order_type_rules: {} },
   profiles: [{ id: ANA, full_name: "Ana" }, { id: BETO, full_name: "Beto" }],
+  // 287: la lista de choferes sale de la vista pública; el chequeo de rol (maybeSingle) sigue en `profiles`.
+  perfiles_publicos: [{ id: ANA, full_name: "Ana" }, { id: BETO, full_name: "Beto" }],
   deliveries: [ORDEN, ORDEN_SIN_PLAN],
   order_events: [
     { delivery_id: "o1", kind: "picked_up", created_by: ANA, created_at: `${AYER}T14:20:00Z` },

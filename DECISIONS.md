@@ -51503,3 +51503,13 @@ Migración 286: elimina esas políticas abiertas (y las duplicadas), dejando sol
 De la auditoría: **M2** (tablas de choferes `driver_availability/shifts/incidents`) ya estaba corregida (hoy exigen `has_deliveries_access()`), no hizo falta tocarla. Queda **M1** (`profiles` legible por todos) como el punto pendiente, que requiere un enfoque aparte (vista pública o privilegios de columna) por leerse el nombre en toda la app.
 
 Sello `erp` 0.26.1; repo 1.821.0.
+
+## D-968 · Seguridad (M1): vista pública de `profiles` + cerrar la lectura de la tabla
+
+Revisión de seguridad. `public.profiles` tenía `SELECT using(true)`: cualquier autenticado leía TODO de todos, incluidos `permissions`, `username` y `active_session_id`. Se cierra la lectura sensible sin romper que el nombre se vea en toda la app.
+
+Migración 287: vista `public.perfiles_publicos` (`security_barrier`, SOLO LECTURA — revoke all + grant select, con autochequeo de que no sea escribible, para que no se use como atajo para escribir en `profiles` saltándose la RLS) que expone los campos de display/lógica MENOS los sensibles. La política de SELECT de `profiles` pasa a **propia fila + admin + RR.HH.**. Las lecturas de OTROS para mostrar nombre/rol se movieron a la vista (~20 sitios, incl. el `data-provider` central con fallback); las propias, las de admin/RR.HH. y las security-definer/service-role siguen en la tabla.
+
+**Riesgo/rollout:** el efecto es RLS en runtime (no lo cubre el CI). Se aplica la 287 **junto con** el deploy y se verifica en vivo por rol (que salgan nombres en choferes/asignados/merma/chat/listas; que uno vea sus propios permisos; que admin/RR.HH. sigan viendo usuario/permisos de todos). Por eso este cambio NO se auto-mergeó: se libera cuando el dueño pueda vigilarlo.
+
+Sello `deliveries` 1.591.0; repo 1.822.0.

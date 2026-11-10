@@ -374,7 +374,9 @@ describe("las pantallas", () => {
   });
 
   it("el proveedor baja la columna, o el diálogo pintaría las casillas siempre vacías", () => {
-    expect(proveedor).toContain("role, store, visible_stores, permissions");
+    // 287: visible_stores viaja en la vista pública (lista de gente); permissions se lee aparte de profiles.
+    expect(proveedor).toContain("role, store, visible_stores, avatar_url");
+    expect(proveedor).toContain('.select("id, username, permissions")');
   });
 
   it("y el cambio queda en el registro de seguridad, como los demás privilegios", () => {

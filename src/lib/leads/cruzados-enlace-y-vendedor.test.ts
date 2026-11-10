@@ -15,7 +15,7 @@ describe("el almacén", () => {
     expect(a).toContain("clientesCruzados(ids: readonly number[]): Promise<Res<Map<number, ClienteCruzado>>>;");
     expect(a).toContain('supabase.schema("erp").from("customers").select(COLUMNAS_CRUZADO).in("id", unicos)');
     for (const col of ["contact_name", "phone", "email", "address", "terms", "credit_limit", "notes"]) expect(a).toMatch(new RegExp(`COLUMNAS_CRUZADO = "[^"]*\\b${col}\\b`));
-    expect(a).toContain('supabase.from("profiles").select("id, full_name").in("id", reps)');
+    expect(a).toContain('supabase.from("perfiles_publicos").select("id, full_name").in("id", reps)');
     expect(a).toContain("if (!unicos.length) return { ok: true, valor: mapa };");
   });
   it("el demo contesta vacío", async () => {

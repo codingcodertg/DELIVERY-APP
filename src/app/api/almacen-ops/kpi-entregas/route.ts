@@ -73,7 +73,7 @@ export async function GET(req: Request) {
   const quienes = [...new Set(ordenes.map((o) => o.quienMarco).filter((x): x is string => !!x))];
   const nombres = new Map<string, string>();
   for (const t of trozos(quienes, TROZO_DE_IDS)) {
-    const { data } = await supabase.from("profiles").select("id, full_name").in("id", t);
+    const { data } = await supabase.from("perfiles_publicos").select("id, full_name").in("id", t);
     for (const p of (data ?? []) as { id: string; full_name: string | null }[]) if ((p.full_name ?? "").trim()) nombres.set(p.id, (p.full_name ?? "").trim());
   }
 

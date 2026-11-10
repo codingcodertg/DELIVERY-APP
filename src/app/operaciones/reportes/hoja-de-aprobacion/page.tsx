@@ -54,7 +54,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ i
     if (ids.length > 0) {
       const [{ data: filas }, { data: gente }] = await Promise.all([
         supabase.from("warehouse_reports").select("*").in("id", ids).eq("kind", "scrap"),
-        supabase.from("profiles").select("id, full_name"),
+        supabase.from("perfiles_publicos").select("id, full_name"),
       ]);
       reportes = ((filas ?? []) as Reporte[]).map((r) => ({ ...r, total_loss: r.total_loss == null ? null : Number(r.total_loss) }));
       personas = ((gente ?? []) as { id: string; full_name: string | null }[]).map((p) => ({ id: p.id, full_name: p.full_name ?? "" }));

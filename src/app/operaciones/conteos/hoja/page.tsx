@@ -54,7 +54,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ i
         if (!puedeGestionarConteo({ id: user.id, ...perfil, role: perfil.role ?? "sales", warehouse_ops_role: nivel }, conteo.store)) redirect("/operaciones/conteos");
         const [{ data: ls }, { data: gente }] = await Promise.all([
           supabase.from("warehouse_count_lines").select("*").eq("count_id", id).order("position"),
-          supabase.from("profiles").select("id, full_name"),
+          supabase.from("perfiles_publicos").select("id, full_name"),
         ]);
         lineas = ((ls ?? []) as Record<string, unknown>[]).map(lineaDeLaFila);
         personas = ((gente ?? []) as { id: string; full_name: string | null }[]).map((p) => ({ id: p.id, full_name: p.full_name ?? "" }));

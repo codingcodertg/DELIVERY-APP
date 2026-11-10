@@ -258,11 +258,14 @@ describe("la pantalla", () => {
     expect(await leerNivelEscrito(conNivel, "u")).toBe("store_admin");
     const revienta = { from: () => { throw new Error("red"); } };
     expect(await leerNivelEscrito(revienta, "u")).toBeNull();
-    // Y la lista de usuarios del hub no lleva la columna en su select principal (la tumbaría en todas las apps).
+    // 287 (seguridad M1): la lista de usuarios del hub sale de la vista pública `perfiles_publicos`, que incluye
+    // `warehouse_ops_role` y NO expone las columnas sensibles (permissions/username, que se leen aparte de `profiles`).
     const proveedor = leer("src/lib/data-provider.tsx");
-    const principal = /\.from\("profiles"\)\.select\("(id, full_name, username[^"]+)"\)/.exec(proveedor)![1];
-    expect(principal).not.toContain("warehouse_ops_role");
-    expect(proveedor).toContain('.select("id, warehouse_ops_role")');
+    const principal = /\.from\(VISTA_PUBLICA\)\.select\("(id, full_name[^"]+)"\)/.exec(proveedor)![1];
+    expect(principal).toContain("warehouse_ops_role");
+    expect(principal).not.toContain("permissions");
+    expect(principal).not.toContain("username");
+    expect(proveedor).toContain('.select("id, username, permissions")');
   });
 });
 

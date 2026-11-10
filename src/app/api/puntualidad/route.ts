@@ -43,7 +43,7 @@ export async function GET(req: Request) {
 
   const [ajustes, choferes] = await Promise.all([
     supabase.from("settings").select("stores, order_type_rules").eq("id", 1).maybeSingle(),
-    supabase.from("profiles").select("id, full_name").eq("role", "driver"),
+    supabase.from("perfiles_publicos").select("id, full_name").eq("role", "driver"),
   ]);
   if (ajustes.error || choferes.error) return NextResponse.json({ error: "Could not read settings.", detail: (ajustes.error ?? choferes.error)?.message }, { status: 500 });
 

@@ -228,7 +228,7 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
       const ids = [...new Set(filas.map((f) => f.requested_by).filter(Boolean))];
       if (ids.length) {
         try {
-          const { data: perfiles } = await sb.schema("public").from("profiles").select("id, full_name").in("id", ids);
+          const { data: perfiles } = await sb.schema("public").from("perfiles_publicos").select("id, full_name").in("id", ids);
           const nombre = new Map(((perfiles ?? []) as { id: string; full_name: string | null }[]).map((p) => [p.id, p.full_name]));
           for (const f of filas) f.requested_name = nombre.get(f.requested_by) ?? null;
         } catch { /* sin nombres */ }
@@ -278,7 +278,7 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
       const ids = [...new Set(filas.flatMap((f) => [f.by, f.requested_by, ...vendedoresDelHistorial(f)]).filter((x): x is string => !!x))];
       if (ids.length) {
         try {
-          const { data: perfiles } = await sb.schema("public").from("profiles").select("id, full_name").in("id", ids);
+          const { data: perfiles } = await sb.schema("public").from("perfiles_publicos").select("id, full_name").in("id", ids);
           const nombre = new Map(((perfiles ?? []) as { id: string; full_name: string | null }[]).map((p) => [p.id, p.full_name]));
           for (const f of filas) { f.by_name = f.by ? nombre.get(f.by) ?? null : null; f.requested_name = f.requested_by ? nombre.get(f.requested_by) ?? null : null; }
           // D-874: el vendedor del cambio, con su nombre en vez del uuid.
@@ -367,7 +367,7 @@ export function almacenDeLaBase(sb: SupabaseClient<any, "erp", "erp">): AlmacenD
     async vendedores() {
       // Los perfiles son de `public`, no de `erp`. Si no se pueden leer, la lista sale igual, sin nombres (el id).
       try {
-        const { data, error } = await sb.schema("public").from("profiles").select("id, full_name, left_at").eq("role", "sales").order("full_name");
+        const { data, error } = await sb.schema("public").from("perfiles_publicos").select("id, full_name, left_at").eq("role", "sales").order("full_name");
         if (error) return fallo(error);
         const todos = (data ?? []) as { id: string; full_name: string | null; left_at: string | null }[];
         nombres = nombresDeVendedores(todos.map((p) => ({ id: p.id, full_name: p.full_name ?? "" })));

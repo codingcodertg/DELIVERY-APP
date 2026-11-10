@@ -91,7 +91,7 @@ describe("el almacén", () => {
     const v = await almacenDeLaBase(sb).vendedores();
     expect(v.ok && v.valor).toEqual([{ id: "u-ana", full_name: "Ana" }]);
     expect(llamadas.find((l) => l.tipo === "schema")?.args).toEqual(["public"]);
-    expect(llamadas.find((l) => l.tipo === "from")?.args).toEqual(["profiles"]);
+    expect(llamadas.find((l) => l.tipo === "from")?.args).toEqual(["perfiles_publicos"]);
     expect(llamadas.find((l) => l.tipo === "eq")?.args).toEqual(["role", "sales"]);
     const lista = await almacenDeLaBase(sb).leer();
     expect(lista.ok && lista.valor[0]).toMatchObject({ rep_id: "u-ana", rep_name: "Ana" });

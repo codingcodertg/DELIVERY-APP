@@ -297,7 +297,7 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeCotizaciones
 
     async vendedores() {
       // Como Clientes (`almacen.vendedores()`): perfiles con rol de vendedor, solo los que no están de baja.
-      const { data, error } = await supabase.from("profiles").select("id, full_name, store, left_at").eq("role", "sales").order("full_name");
+      const { data, error } = await supabase.from("perfiles_publicos").select("id, full_name, store, left_at").eq("role", "sales").order("full_name");
       if (error) return fallo(error);
       const filas = soloActivos((data ?? []) as { id: string; full_name: string | null; store: string | null; left_at: string | null }[]);
       return { ok: true, valor: filas.map((p) => ({ id: p.id, full_name: p.full_name ?? "", store: p.store?.trim() || null })) };

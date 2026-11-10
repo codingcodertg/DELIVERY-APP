@@ -712,13 +712,23 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       // El nivel de Warehouse Ops (265) viaja en una lectura APARTE y tolerante: si la columna aún no existe (la
       // migración se aplica después del merge), meterla en el select de arriba tumbaría la lista entera de usuarios
       // en todas las apps. Si falla, nadie trae nivel escrito y manda el rol del hub.
-      const [r, niveles] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, username, role, store, visible_stores, permissions, avatar_url, recruiting_role, module_access, timetracker_role, erp_role, title, title_color, left_at").order("full_name"),
-        supabase.from("profiles").select("id, warehouse_ops_role").not("warehouse_ops_role", "is", null),
-      ]);
+      // 287 (seguridad M1): la LISTA de gente sale de la vista `perfiles_publicos` (sin `permissions`/`username`), que
+      // cualquiera puede leer. Lo sensible (username/permissions) se trae aparte de `profiles`: la RLS devuelve la propia
+      // fila a todos y TODAS a admin/RR. HH., y se mezcla por id. Si la vista aún no existe (287 sin aplicar), cae a la
+      // tabla (que pre-287 sigue abierta) para no romper el arranque.
+      const esVistaAusente = (e: { code?: string | null; message?: string | null } | null) =>
+        !!e && /perfiles_publicos|does not exist|schema cache|42P01|PGRST20\d/i.test(`${e.code ?? ""} ${e.message ?? ""}`);
+      // La vista `perfiles_publicos` no está en los tipos generados; se usa el nombre casteado a "profiles" (misma forma).
+      const VISTA_PUBLICA = "perfiles_publicos" as unknown as "profiles";
+      let r = await supabase.from(VISTA_PUBLICA).select("id, full_name, role, store, visible_stores, avatar_url, recruiting_role, module_access, timetracker_role, erp_role, customers_role, warehouse_ops_role, title, title_color, left_at").order("full_name");
+      if (esVistaAusente(r.error)) r = await supabase.from("profiles").select("id, full_name, role, store, visible_stores, avatar_url, recruiting_role, module_access, timetracker_role, erp_role, customers_role, warehouse_ops_role, title, title_color, left_at").order("full_name");
+      const sens = await supabase.from("profiles").select("id, username, permissions");
       if (r.data) {
-        const nivelDe = new Map(((niveles.error ? [] : niveles.data) ?? []).map((n) => [n.id as string, n.warehouse_ops_role as string | null]));
-        setUsers((r.data as Profile[]).map((u) => ({ ...u, warehouse_ops_role: nivelDe.get(u.id) ?? null })));
+        const sensDe = new Map(((sens.error ? [] : sens.data) ?? []).map((s) => [s.id as string, s as { username?: string | null; permissions?: string[] | null }]));
+        setUsers((r.data as (Profile & { username?: string | null; permissions?: string[] | null })[]).map((u) => {
+          const s = sensDe.get(u.id);
+          return { ...u, username: u.username ?? s?.username ?? null, permissions: u.permissions ?? s?.permissions ?? [] } as Profile;
+        }));
       }
       return r;
     },

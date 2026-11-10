@@ -48,7 +48,7 @@ export function Operaciones({ vista, demo }: { vista: Vista; demo: boolean }) {
       const [perfil, ajustes, gente, prueba, nivel, expedientes] = await Promise.all([
         sb.from("profiles").select("id, full_name, role, store, visible_stores, permissions, module_access, recruiting_role").eq("id", user.id).maybeSingle(),
         sb.from("settings").select("stores").eq("id", 1).maybeSingle(),
-        sb.from("profiles").select("id, full_name, store, role, module_access, left_at").order("full_name"),
+        sb.from("perfiles_publicos").select("id, full_name, store, role, module_access, left_at").order("full_name"),
         sb.from("warehouse_reports").select("id", { head: true, count: "exact" }).limit(1),
         // 265: el nivel dentro de la app. Lectura aparte y tolerante: si la columna aún no existe, manda el rol del hub.
         leerNivelEscrito(sb, user.id),
