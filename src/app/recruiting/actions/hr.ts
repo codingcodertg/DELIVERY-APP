@@ -3,6 +3,7 @@
 import { type AccionDisciplinaria, esAccionDisciplinaria, motivoDeAmonestacionValido } from "@/lib/recruiting/historial";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hoyEnBrownsville } from "@/lib/recruiting/hora-de-brownsville";
 import { isSyntheticEmail } from "@/lib/username";
 import { aliasDeBaja, credencialesAGuardar, hayQueLiberar, notaConCredenciales, type CredencialesLiberadas } from "@/lib/credenciales-liberadas";
 import {
@@ -581,6 +582,31 @@ export async function deactivateEmployee(
   }
   await anotaBaja(true);
   return { ok: true, sinMotivo, accesoQuitado: true, liberadas: lib.liberadas, quitFormGuardado };
+}
+
+/**
+ * D-951: dar de baja desde el administrador de permisos, con el ID DEL PERFIL (no el del expediente). Si la persona tiene
+ * expediente de RR. HH., reusa `deactivateEmployee` (fecha + motivo + cuenta deshabilitada + correo liberado + historial,
+ * todo igual). Si no tiene expediente (solo cuenta del hub), deshabilita la cuenta, libera su correo y marca
+ * `profiles.left_at` para que desaparezca de las listas de gente activa. Conserva el historial en ambos casos.
+ */
+export async function darDeBajaPorPerfil(profileId: string, motivo?: string | null, fecha?: string | null): Promise<{ ok: boolean; message?: string }> {
+  const acceso = await comoAdminDeHr();
+  if (!acceso.ok) return acceso;
+  if (profileId === acceso.userId) return { ok: false, message: "You can't deactivate your own account." };
+  const hoy = (fecha ?? hoyEnBrownsville()).slice(0, 10);
+  const { data: file } = await acceso.supabase.schema("recruiting").from("employee_files").select("id").eq("profile_id", profileId).maybeSingle();
+  if (file?.id) return deactivateEmployee(file.id as string, { fecha: hoy, motivo: motivo ?? null });
+  // Sin expediente: solo la cuenta del hub. Deshabilitar + liberar + marcar baja en el perfil (servicio, por la RLS).
+  const ban = await ponAcceso(profileId, false);
+  if (!ban.ok) return { ok: false, message: ban.message };
+  await liberaCredenciales(profileId);
+  try {
+    const admin = createAdminClient();
+    const { error } = await admin.from("profiles").update({ left_at: hoy }).eq("id", profileId);
+    if (error) return { ok: false, message: `Account disabled, but left date not set: ${error.message}` };
+  } catch { return { ok: false, message: "SUPABASE_SERVICE_ROLE_KEY is missing." }; }
+  return { ok: true };
 }
 
 /**

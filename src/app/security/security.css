@@ -181,3 +181,7 @@ table.perm-matrix thead th.who{z-index:2;background:var(--surface-2,var(--bg))}
 .perm-check{display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:7px;cursor:pointer;font-size:13px}
 .perm-check:hover{background:var(--hover,rgba(0,0,0,.04))}
 .perm-check input{width:auto}
+
+/* Permisos (D-951): dar de baja */
+.perm-baja{padding:12px 14px;border-top:1px solid var(--line);margin-top:2px}
+.perm-baja-box{display:flex;gap:8px;align-items:center;flex-wrap:wrap}

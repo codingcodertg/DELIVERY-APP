@@ -8,13 +8,15 @@ import { MODO_DEMO } from "@/lib/recruiting/modo-demo";
 import { AvisoDeDemo } from "@/components/recruiting/AvisoDeDemo";
 import { ROLE_ORDER, roleLabel, type ModuleAccessKey } from "@/lib/constants";
 import {
-  MODULOS_DE_GERENTE, colorDeRol, etiquetaDeModulo, planDarLosOcho, tieneModulo,
+  colorDeRol, etiquetaDeModulo, tieneModulo,
 } from "@/lib/hub-usuarios-permisos";
 import {
   GRUPOS_DE_PERMISOS, PERFILES_DE_ROL, ROL_POR_DEFECTO, columnaDeRol, etiquetaDeRol, opcionesDeRol, tieneRolPropio, type PerfilDeRol,
 } from "@/lib/security/permisos-grupos";
 import { type VivoDeUsuario } from "@/lib/security/vivo-de-usuarios";
 import { normalizaTienda, tiendasMarcadas } from "@/lib/visibilidad-tienda";
+import { MOTIVOS_BAJA } from "@/lib/recruiting/employee-file";
+import { darDeBajaPorPerfil } from "@/app/recruiting/actions/hr";
 import type { Profile, UserRole } from "@/lib/types";
 import "./security.css";
 
@@ -189,7 +191,7 @@ function Cuerpo({ vivo }: { vivo: Record<string, VivoDeUsuario> }) {
                 onStore={(s) => void corre(() => hub.updateUserStore(actual.id, s))}
                 onVisibleStores={(ss) => void corre(() => hub.updateUserVisibleStores(actual.id, ss))}
                 onPerfil={(p) => { if (window.confirm(t(`Apply the "${lang === "es" ? p.label_es : p.label_en}" profile to ${actual.full_name}? It sets the role and grants that profile's apps.`, `¿Aplicar el perfil «${p.label_es}» a ${actual.full_name}? Pone el rol y concede las apps de ese perfil.`))) void corre(async () => { await aplicaPerfil(actual, p); notify(t(`Applied: ${p.label_en}.`, `Aplicado: ${p.label_es}.`)); }); }}
-                onDarLosOcho={() => void corre(async () => { const grant = MODULOS_DE_GERENTE.filter((k) => !tieneModulo(actual, k)); if (grant.length) { const { ok } = await hub.updateUserModules(actual.id, { grant }); notify(ok ? t("Done: the 8 manager modules.", "Hecho: los 8 de gerente.") : t("Could not save.", "No se pudo guardar.")); } })}
+                onBaja={(motivo) => void corre(async () => { const r = await darDeBajaPorPerfil(actual.id, motivo); if (r.ok) { notify(t(`${actual.full_name} was deactivated.`, `${actual.full_name} fue dado de baja.`)); setSel(null); } else notify(r.message ?? "Error"); })}
               />
             )}
           </div>
@@ -202,14 +204,17 @@ function Cuerpo({ vivo }: { vivo: Record<string, VivoDeUsuario> }) {
   );
 }
 
-function Detalle({ u, vivo, lang, t, ocupado, esAdmin, tiendas, rolDeApp, onModulo, onRolApp, onRolDeliveries, onStore, onVisibleStores, onPerfil, onDarLosOcho }: {
+function Detalle({ u, vivo, lang, t, ocupado, esAdmin, tiendas, rolDeApp, onModulo, onRolApp, onRolDeliveries, onStore, onVisibleStores, onPerfil, onBaja }: {
   u: Profile; vivo: VivoDeUsuario | undefined; lang: "en" | "es"; t: (en: string, es: string) => string; ocupado: boolean; esAdmin: boolean; tiendas: string[];
   rolDeApp: (u: Profile, key: ModuleAccessKey) => string | null;
   onModulo: (key: ModuleAccessKey, on: boolean) => void; onRolApp: (key: ModuleAccessKey, role: string) => void;
-  onRolDeliveries: (role: UserRole) => void; onStore: (store: string | null) => void; onVisibleStores: (stores: string[]) => void; onPerfil: (perfil: PerfilDeRol) => void; onDarLosOcho: () => void;
+  onRolDeliveries: (role: UserRole) => void; onStore: (store: string | null) => void; onVisibleStores: (stores: string[]) => void; onPerfil: (perfil: PerfilDeRol) => void; onBaja: (motivo: string | null) => void;
 }) {
   const on = !!vivo?.online;
   const marcadas = tiendasMarcadas(u);
+  const perfilDeSuRol = PERFILES_DE_ROL.find((p) => p.role === u.role && p.id !== "regional") ?? null;
+  const [bajaOpen, setBajaOpen] = useState(false);
+  const [motivoBaja, setMotivoBaja] = useState("");
   return (
     <>
       <div className="perm-dhead">
@@ -266,11 +271,16 @@ function Detalle({ u, vivo, lang, t, ocupado, esAdmin, tiendas, rolDeApp, onModu
       </div>
 
       <div className="perm-quick">
-        <button className="btn btn-sm btn-green" disabled={ocupado || esAdmin} data-accion="dar-ocho" onClick={onDarLosOcho}>★ {t("Give the 8 manager modules", "Dar los 8 de gerente")}</button>
-        {/* D-947: perfiles por rol — pone el rol y concede sus apps de un tiro (Vendedor, Almacén, …, Supervisor regional). */}
-        <select className="perm-mrole" aria-label={t("Apply a role profile", "Aplicar perfil de rol")} disabled={ocupado || esAdmin} data-campo="perfil" value=""
+        {/* D-951: el botón prominente es el perfil DEL ROL QUE YA TIENE la persona (a un vendedor, el de vendedor; no el de gerente). */}
+        {perfilDeSuRol && (
+          <button className="btn btn-sm btn-green" disabled={ocupado} data-accion="perfil-de-su-rol" onClick={() => onPerfil(perfilDeSuRol)}>
+            ★ {t("Apply", "Aplicar")} {lang === "es" ? perfilDeSuRol.label_es : perfilDeSuRol.label_en}
+          </button>
+        )}
+        {/* El dropdown sigue, para CAMBIAR a otro rol o al Supervisor regional. */}
+        <select className="perm-mrole" aria-label={t("Change to another role profile", "Cambiar a otro perfil")} disabled={ocupado} data-campo="perfil" value=""
           onChange={(e) => { const p = PERFILES_DE_ROL.find((x) => x.id === e.target.value); e.currentTarget.value = ""; if (p) onPerfil(p); }}>
-          <option value="">{t("Apply role profile…", "Aplicar perfil de rol…")}</option>
+          <option value="">{t("Change to another profile…", "Cambiar a otro perfil…")}</option>
           {PERFILES_DE_ROL.map((p) => <option key={p.id} value={p.id}>{lang === "es" ? p.label_es : p.label_en}</option>)}
         </select>
       </div>
@@ -305,6 +315,24 @@ function Detalle({ u, vivo, lang, t, ocupado, esAdmin, tiendas, rolDeApp, onModu
           </div>
         ))}
         {esAdmin && <p className="hint">{t("Admins have every module through their role; app roles (cost, tiers) can still be set above.", "Los administradores tienen todos los módulos por su rol; los roles por app (costo, niveles) sí se pueden ajustar arriba.")}</p>}
+      </div>
+
+      {/* D-951: dar de baja a alguien que ya no trabaja — marca la salida, lo saca de las listas y le cierra el acceso. */}
+      <div className="perm-baja">
+        {!bajaOpen ? (
+          <button className="btn btn-sm btn-danger" data-accion="dar-baja" onClick={() => setBajaOpen(true)}>⏻ {t("Deactivate (no longer works here)", "Dar de baja (ya no trabaja aquí)")}</button>
+        ) : (
+          <div className="perm-baja-box">
+            <span className="hint" style={{ margin: 0 }}>{t("Reason", "Motivo")}:</span>
+            <select className="perm-mrole" value={motivoBaja} disabled={ocupado} onChange={(e) => setMotivoBaja(e.target.value)}>
+              <option value="">{t("(optional)", "(opcional)")}</option>
+              {MOTIVOS_BAJA.map((m) => <option key={m.key} value={m.key}>{lang === "es" ? m.es : m.en}</option>)}
+            </select>
+            <button className="btn btn-sm btn-danger" disabled={ocupado} data-accion="confirma-baja"
+              onClick={() => { if (window.confirm(t(`Deactivate ${u.full_name}? They lose access and leave the active lists. History is kept.`, `¿Dar de baja a ${u.full_name}? Pierde el acceso y sale de las listas de gente activa. Se conserva el historial.`))) { onBaja(motivoBaja || null); setBajaOpen(false); } }}>{t("Confirm deactivation", "Confirmar baja")}</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => setBajaOpen(false)}>{t("Cancel", "Cancelar")}</button>
+          </div>
+        )}
       </div>
     </>
   );
