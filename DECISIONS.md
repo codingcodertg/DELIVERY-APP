@@ -51318,3 +51318,9 @@ Dos cosas del dueño (9 nov). El botón de perfil ahora es **el del rol que la p
 Y en el detalle hay ahora **«Dar de baja»** (para empleados que ya no trabajan): marca la salida, lo saca de las listas de gente activa y **le cierra el acceso**, conservando el historial — exactamente la baja de RR. HH. que ya existía. Reusa `deactivateEmployee` cuando hay expediente; si solo hay cuenta del hub, deshabilita la cuenta, libera el correo y marca `profiles.left_at`. Solo un admin de RR. HH., con confirmación y motivo opcional; no te puedes dar de baja a ti mismo.
 
 Sello `deliveries` 1.585.0; `recruiting` 0.86.0; `security` 0.21.0; repo 1.805.0.
+
+## D-952 · Permisos: la lista de apps sin encabezados de grupo
+
+El dueño: «no hagas grupos de las apps, solo quería lo de afuera (Aplicar Vendedor / Cambiar perfil)». En el detalle, las apps se muestran ahora en una sola lista plana, sin los encabezados BASE / VENTAS / OPERACIONES / OFICINA / OTROS. El botón de perfil y el dropdown de cambiar perfil quedan igual.
+
+Sello `deliveries` 1.586.0; `recruiting` 0.87.0; `security` 0.22.0; repo 1.806.0.
