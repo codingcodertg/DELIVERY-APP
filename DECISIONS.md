@@ -51280,3 +51280,15 @@ Pedido del dueño (9 nov): «ese tab de permisos muévelo al HR mejor». El admi
 Para que el panel se pueda colocar donde sea sin que cada página lea la base, ahora es **autónomo**: pide él mismo el «en vivo» a un endpoint nuevo `GET /api/security/vivo` (solo admin, misma RLS de la 229). El cálculo de «quién está en vivo y en qué módulo» salió a `src/lib/security/vivo-de-usuarios.ts` (puro, con `appForPath` y `versionDeApp`), que lee `security_device_users.last_route` (278) y `security_devices`. Así el panel solo necesita el perfil del admin, que RR. HH. ya pasa por su proveedor (el mismo que monta «Permisos» en el expediente).
 
 Sello `deliveries` 1.580.0; `recruiting` 0.81.0; `security` 0.16.0; repo 1.800.0.
+
+## D-947 · Permisos: perfiles por rol de un clic, Supervisor regional, y la tienda como dropdown
+
+Al dueño le gustó «Dar los 8 de gerente» y pidió lo mismo por rol. En el administrador de permisos (RR. HH. → Permisos), el detalle de cada persona tiene ahora:
+
+- **Aplicar perfil de rol** (dropdown): pone el rol de Entregas y concede su juego de módulos por defecto de un tiro — **Vendedor** (Entregas, Quote Builder, Leads, Clientes), **Almacén** (Entregas, Almacén Ops), **Oficina** (Entregas, Clientes), **Gerente de Logística**, **Chofer**, **Gerente de Oficina (los 8)**, y **Supervisor regional**. Es aditivo (no le quita lo que ya tuviera) y pide confirmación. El botón «Dar los 8 de gerente» se queda.
+- **Supervisor regional**: no es un rol nuevo en la base; es Gerente de Oficina + la capacidad «ve todas las tiendas» (D-559). Para un gerente de varias tiendas.
+- **Tienda**: dejó de ser solo lectura; ahora es un **dropdown** (las tiendas de Datos) que guarda `profiles.store` al vuelo.
+
+Los perfiles viven en `src/lib/security/permisos-grupos.ts` (puros, con prueba); las escrituras son las del proveedor del hub que ya existían (rol, módulos, nivel por app, permisos, tienda).
+
+Sello `deliveries` 1.581.0; `recruiting` 0.82.0; `security` 0.17.0; repo 1.801.0.
