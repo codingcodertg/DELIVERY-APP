@@ -81,6 +81,7 @@ export const RPC_QUE_ESCRIBEN = [
   "warehouse_ops_edit_scrap_origin", // 263: el gerente corrige el origen (CRMA / nota) de una merma.
   "warehouse_ops_add_photos", "warehouse_ops_set_photo_hashes", // 268 (D-914): agrega la foto a una merma guardada sin ella; rellena las huellas de las fotos de antes.
   "warehouse_ops_set_scrap_stage", // 270 (D-921): el gerente mueve la etapa de una merma (aprobada / desechada / ajustada; admin deshace).
+  "warehouse_ops_sign_scrap", "warehouse_ops_unsign_scrap", // 280 (D-957): firma / quita la firma (gerente + supervisor) de la merma; sin las dos no se aprueba.
   "security_touch_device", "security_request_access", // 229 (D-811): registran el dispositivo de la sesión y su solicitud.
   "security_note_web_block", // 232 (D-818): anota que a esta sesión se le cerró la web.
   // 273 (D-927), Mantenimiento: equipo, lista diaria, refacciones y bitácora de uso. Todas escriben.
