@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { pideRecuperacion } from "@/lib/password-recovery";
+import { limita, respuesta429 } from "@/lib/rate-limit";
 
 /**
  * Pide el correo de «olvidé mi contraseña» desde el servidor (D-263).
@@ -11,8 +12,8 @@ import { pideRecuperacion } from "@/lib/password-recovery";
  * `code_challenge`, así que Supabase genera el enlace de toda la vida, que vuelve con la sesión en el
  * fragmento.
  *
- * El correo lo sigue mandando Supabase, con su plantilla y su propio límite de envíos. Esta ruta no
- * manda nada por su cuenta, y por eso no necesita limitador propio.
+ * El correo lo sigue mandando Supabase, con su plantilla y su propio límite de envíos. Aun así, la ruta lleva su
+ * propio limitador por IP (282): es un endpoint sin sesión, y así no se puede martillar el envío ni sondear cuentas.
  *
  * Contesta lo mismo exista o no la cuenta: la lógica y el porqué están en `pideRecuperacion`.
  */
@@ -20,6 +21,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+  // Ruta sin sesión: el limitador por IP es la defensa principal contra abuso del envío de recuperación.
+  const lim = await limita(req, { clave: "forgot", max: 5, ventanaSeg: 900 });
+  if (!lim.ok) return respuesta429(lim.reset);
+
   let body: { email?: unknown } = {};
   try { body = await req.json(); } catch { /* un cuerpo roto se trata como correo ausente */ }
 

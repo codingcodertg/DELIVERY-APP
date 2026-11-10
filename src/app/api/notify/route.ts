@@ -3,6 +3,7 @@ import { emailConfigured } from "@/lib/email";
 import { proveedorReal } from "@/lib/mensajeria";
 
 import { requireDeliveries } from "@/lib/api-auth";
+import { limita, respuesta429 } from "@/lib/rate-limit";
 
 // ============================================================
 // Outbound customer notifications (#21) — email / SMS at key delivery stages.
@@ -54,6 +55,10 @@ export async function POST(req: Request) {
   // dominio de la empresa, y hasta ahora valía cualquier sesión — la de quien solo ficha incluida.
   const auth = await requireDeliveries();
   if (!auth.ok) return auth.response;
+
+  // Manda SMS/correo DE VERDAD (cuesta dinero): tope por IP.
+  const lim = await limita(req, { clave: "notify", max: 60, ventanaSeg: 60 });
+  if (!lim.ok) return respuesta429(lim.reset);
 
   let body: NotifyBody;
   try {

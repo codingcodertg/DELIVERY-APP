@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
+import { limita, respuesta429 } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cacheEnSupabase, type ClienteDeCache } from "@/lib/route-times/cache-supabase";
 import { proveedorEstimado, proveedorGoogle, proveedorOSRM, type FetchFn, type ProveedorDeTiempos } from "@/lib/route-times/proveedores";
@@ -27,6 +28,8 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const lim = await limita(req, { clave: "route-matrix", max: 30, ventanaSeg: 60 });
+  if (!lim.ok) return respuesta429(lim.reset);
   const { supabase, user } = auth;
 
   let cuerpo: unknown = null;

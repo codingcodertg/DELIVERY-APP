@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logSecurity } from "@/lib/security-log-server";
+import { limita, respuesta429 } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   // 1) Caller must be a signed-in admin.
@@ -20,6 +21,8 @@ export async function POST(req: Request) {
   if (me?.role !== "admin") {
     return NextResponse.json({ error: "Only admins can delete users." }, { status: 403 });
   }
+  const lim = await limita(req, { clave: "delete-user", max: 20, ventanaSeg: 60 });
+  if (!lim.ok) return respuesta429(lim.reset);
 
   // 2) Validate.
   let body: { userId?: string };

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logSecurity } from "@/lib/security-log-server";
 import { emailForUsername, isValidUsername, normalizeUsername } from "@/lib/username";
+import { limita, respuesta429 } from "@/lib/rate-limit";
 
 const ROLES = ["admin", "manager", "sales", "warehouse", "driver", "logistics", "accounting"] as const;
 type Role = (typeof ROLES)[number];
@@ -32,6 +33,8 @@ export async function POST(req: Request) {
   if (me?.role !== "admin") {
     return NextResponse.json({ error: "Only admins can add users." }, { status: 403 });
   }
+  const lim = await limita(req, { clave: "invite", max: 20, ventanaSeg: 60 });
+  if (!lim.ok) return respuesta429(lim.reset);
 
   // 2) Validate input.
   let body: { email?: string; username?: string; full_name?: string; role?: string; password?: string; store?: string | null };

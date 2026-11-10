@@ -51410,3 +51410,15 @@ La firma **individual por reporte** (D-957) sigue existiendo; los grupos son un 
 **Migración 281 (`281_merma_grupos_de_aprobacion.sql`) — la aplica el dueño con `!`:** tabla `warehouse_scrap_groups`, columna `warehouse_reports.scrap_group_id`, tabla `warehouse_scrap_group_signatures` (RLS de solo lectura; escritura solo por RPC), + las RPC `warehouse_ops_create_scrap_group` / `sign_scrap_group` / `unsign_scrap_group` / `approve_scrap_group` (security-definer, aprobar exige las dos firmas distintas). El trigger de invalidación de la 280 ahora también limpia las firmas del grupo si cambia el contenido de un miembro. 237 y 280 intactas.
 
 Sello `warehouse_ops` 0.21.0; repo 1.813.0.
+
+## D-960 · Seguridad: rate limiting por IP en las rutas que gastan dinero y las sensibles
+
+Revisión de seguridad (punto 13). Hasta ahora ninguna ruta `/api` tenía límite propio; el login ya lo limita Supabase de su lado, pero las rutas que llaman servicios de pago (SMS, llamadas, geocodificación, mapas, optimización de rutas) y las sensibles (recuperar contraseña, invitar, borrar usuario, reset, impersonar, ayuda) estaban sin tope.
+
+**Limitador respaldado en Postgres, sin infra nueva:** tabla `public.rate_limits` + RPC atómica `check_rate_limit(bucket, max, window)` (migración 282, security-definer, RLS sin políticas: solo la RPC escribe). Helper `src/lib/rate-limit.ts` `limita(req, {clave, max, ventanaSeg})` que arma el cubo por IP (`x-forwarded-for`) y llama la RPC con el cliente de servicio. **Falla-abierto a propósito:** si la base falla o la 282 no está aplicada, deja pasar (un corte del limitador no puede tumbar el app ni el login); se registra en el log.
+
+Límites por IP (por minuto salvo nota): notify 60 · call(POST) 30 · geocode 60 · geocode-point 120 · reverse-geocode 120 · distance 60 · places 300 · optimize-route 30 · route-matrix 30 · route-plan(POST) 60 · map-tiles 1200 · help 10 · invite/delete-user/reset-password/impersonate 20 · **auth/forgot 5 por 15 min** (sin sesión, el limitador es la defensa principal). El GET de `call` (sondeo de estado) queda libre; solo el POST (que hace la llamada real) se limita.
+
+Nota: para `map-tiles` el limitador agrega una consulta por tile sin caché; a futuro conviene moverlo al firewall/CDN de Vercel en vez de la base. El login no se cubre desde la app (va directo del navegador a Supabase Auth).
+
+Sello `deliveries` 1.590.0; repo 1.814.0.

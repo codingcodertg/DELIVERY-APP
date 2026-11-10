@@ -7,6 +7,7 @@ import { puedeEntrarComo, detalleDelRastro, EVENTO_ENTRAR } from "@/lib/imperson
 import { apuntarImpersonacion } from "@/lib/impersonation-log";
 import { AJUSTES_COOKIE, COOKIE_RETORNO, empaquetar } from "@/lib/impersonation-cookie";
 import { impersonacionActiva } from "@/lib/impersonation-flag";
+import { limita, respuesta429 } from "@/lib/rate-limit";
 
 /**
  * Entrar como otra persona (D-243).
@@ -45,6 +46,8 @@ export async function POST(request: Request) {
   const ssr = await createSSRClient();
   const { data: { user } } = await ssr.auth.getUser();
   if (!user) return NextResponse.json({ error: "sin_sesion" }, { status: 401 });
+  const lim = await limita(request, { clave: "impersonate", max: 20, ventanaSeg: 60 });
+  if (!lim.ok) return respuesta429(lim.reset);
 
   const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, adminKey(), {
     auth: { autoRefreshToken: false, persistSession: false },
