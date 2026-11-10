@@ -27,7 +27,8 @@ import { ATAJOS, NOMBRE_DE_ATAJO, eleccionAUrl, eleccionDeUrl, etiquetaDeRango, 
 import { ETAPAS, etapaDe, nombreDeEtapa, perdidaPorEtapa, puedeCambiarEtapa, seleccionableParaHoja, tieneEtapas, type Etapa } from "@/lib/almacen-ops/etapas";
 import { COLUMNAS_EXCEL, celdasDeMerma, csvDeMermas, nombreDelCsv } from "@/lib/almacen-ops/tabla-de-merma";
 import { datosPdfDeMerma } from "@/lib/almacen-ops/pdf-de-merma";
-import { AdjuntarYMarcar, ChipDeEtapa, LineaDeEtapas } from "./EtapasDeMerma";
+import { AdjuntarYMarcar, ChipDeEtapa, LineaDeEtapas, aplicarEtapa, ErrorParcial } from "./EtapasDeMerma";
+import { particionaPorEtapa, resumenDeBloque } from "@/lib/almacen-ops/bloque";
 import { KpiDeEntregas } from "./KpiDeEntregas";
 import type { Contexto } from "./Operaciones";
 
@@ -147,11 +148,17 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const mermasPorEtapa = useMemo(() => (etapaFiltro ? mermasEnRango.filter((r) => etapaDe(r) === etapaFiltro) : mermasEnRango), [mermasEnRango, etapaFiltro]);
   const cuentaEtapa = (e: Etapa) => mermasEnRango.filter((r) => etapaDe(r) === e).length;
   const porEtapa = useMemo(() => perdidaPorEtapa(mermasEnRango), [mermasEnRango]);
-  const puedeSeleccionar = useCallback((r: Reporte) => seleccionableParaHoja(r) && puedeCambiarEtapa(ctx.yo, r), [ctx.yo]);
+  // Se puede marcar cualquier merma que uno gestione (no solo las fotografiadas): así la misma selección sirve para
+  // agrupar (solo las fotografiadas se agrupan), para desechar (las aprobadas) y para ajustar (las desechadas). Cada
+  // acción filtra por su etapa y avisa qué omite.
+  const puedeSeleccionar = useCallback((r: Reporte) => r.kind === "scrap" && puedeCambiarEtapa(ctx.yo, r), [ctx.yo]);
   const seleccionadas = useMemo(() => mermasEnRango.filter((r) => seleccion.has(r.id) && puedeSeleccionar(r)), [mermasEnRango, seleccion, puedeSeleccionar]);
   const alternar = (id: string) => setSeleccion((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  // Acciones en bloque (dueño, 10 nov): cuáles de las seleccionadas pueden desechar/ajustar (están en la etapa previa).
+  const paraDesechar = useMemo(() => particionaPorEtapa(seleccionadas, "dumped"), [seleccionadas]);
+  const paraAjustar = useMemo(() => particionaPorEtapa(seleccionadas, "adjusted"), [seleccionadas]);
   // «Seleccionar todos» (dueño, 10 nov): antes no había forma de marcar todo. Marca/limpia de un golpe TODAS las mermas
-  // seleccionables que se ven ahora (las del filtro de etapa actual); respeta `puedeSeleccionar` (solo fotografiadas, etc.).
+  // seleccionables que se ven ahora (las del filtro de etapa actual).
   const seleccionables = useMemo(() => mermasPorEtapa.filter((r) => puedeSeleccionar(r)), [mermasPorEtapa, puedeSeleccionar]);
   const todasSeleccionadas = seleccionables.length > 0 && seleccionables.every((r) => seleccion.has(r.id));
   const algunaSeleccionada = seleccionables.some((r) => seleccion.has(r.id));
@@ -217,13 +224,31 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   // El nombre del grupo es la fecha y hora de creación (dueño, 10 nov): sin preguntar nada, así cada grupo se identifica
   // por cuándo se armó.
   const iniciarAprobacion = async () => {
-    if (seleccionadas.length === 0) return;
+    // Solo se agrupan las fotografiadas (sin aprobar); si hay otras marcadas, se ignoran para esto.
+    const elegibles = seleccionadas.filter((r) => seleccionableParaHoja(r));
+    if (elegibles.length === 0) { setAvisoBloque(t("Pick photographed reports to group.", "Marca reportes fotografiados para agrupar.")); return; }
     const nombre = fmtDateTime(new Date().toISOString());
     try {
-      const id = await crearGrupoDeMerma(createClient(), nombre, seleccionadas.map((r) => r.id));
+      const id = await crearGrupoDeMerma(createClient(), nombre, elegibles.map((r) => r.id));
       setSeleccion(new Set());
       abrirGrupo(id);
     } catch (e) { setError((e as Error).message); }
+  };
+
+  // Acciones en bloque: marcar varias como desechadas (approved→dumped) o ajustadas (dumped→adjusted, con una sola foto).
+  const [avisoBloque, setAvisoBloque] = useState<string | null>(null);
+  const [ajustandoBloque, setAjustandoBloque] = useState(false);
+  const marcarDesechadas = async () => {
+    const { elegibles, omitidos } = paraDesechar;
+    if (elegibles.length === 0) { setAvisoBloque(resumenDeBloque("dumped", 0, omitidos.length, lang)); return; }
+    try {
+      const hechos = await aplicarEtapa(ctx, elegibles, "dumped", null);
+      actualizaFilas(hechos);
+      setAvisoBloque(resumenDeBloque("dumped", hechos.length, omitidos.length, lang));
+    } catch (e) {
+      if (e instanceof ErrorParcial) { actualizaFilas(e.hechos); setAvisoBloque(e.message); }
+      else setAvisoBloque((e as Error).message);
+    }
   };
 
   // El selector de rango (D-911) lo comparten la pestaña de merma y la de entregas.
@@ -331,12 +356,21 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
                 🖨 {t(`Print approval sheet (${seleccionadas.length})`, `Imprimir hoja de aprobación (${seleccionadas.length})`)}
               </button>
               <button type="button" className="btn" onClick={() => setAdjuntando((x) => !x)} data-accion="adjuntar-hoja-seleccion">📎 {t(`Attach signed sheet (${seleccionadas.length})`, `Adjuntar hoja firmada (${seleccionadas.length})`)}</button>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setSeleccion(new Set()); setAdjuntando(false); }} data-accion="limpiar-seleccion">{t("Clear", "Quitar")}</button>
+              {/* En bloque (dueño, 10 nov): desechar las aprobadas, ajustar las desechadas (una sola foto para todas). */}
+              <button type="button" className="btn" disabled={paraDesechar.elegibles.length === 0} onClick={() => { setAjustandoBloque(false); void marcarDesechadas(); }} data-accion="desechar-bloque">🗑 {t(`Mark as dumped (${paraDesechar.elegibles.length})`, `Marcar como desechadas (${paraDesechar.elegibles.length})`)}</button>
+              <button type="button" className="btn" disabled={paraAjustar.elegibles.length === 0} onClick={() => { setAvisoBloque(null); setAdjuntando(false); setAjustandoBloque((x) => !x); }} data-accion="ajustar-bloque" aria-pressed={ajustandoBloque}>🧾 {t(`Mark as adjusted (${paraAjustar.elegibles.length})`, `Marcar como ajustadas (${paraAjustar.elegibles.length})`)}</button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setSeleccion(new Set()); setAdjuntando(false); setAjustandoBloque(false); setAvisoBloque(null); }} data-accion="limpiar-seleccion">{t("Clear", "Quitar")}</button>
             </div>
           )}
+          {avisoBloque && <div className="hint" role="status" data-aviso-bloque>{avisoBloque}</div>}
           {adjuntando && seleccionadas.length > 0 && (
             <AdjuntarYMarcar reportes={seleccionadas} ctx={ctx} etapa="approved" etiqueta={t("Choose the signed sheet (photo or PDF)", "Elegir la hoja firmada (foto o PDF)")}
               onListo={(n) => { setAdjuntando(false); actualizaFilas(n); }} onParcial={actualizaFilas} onCancelar={() => setAdjuntando(false)} />
+          )}
+          {ajustandoBloque && paraAjustar.elegibles.length > 0 && (
+            <AdjuntarYMarcar reportes={paraAjustar.elegibles} ctx={ctx} etapa="adjusted" etiqueta={t("Choose the system screenshot (one photo for all)", "Elegir la captura del sistema (una foto para todas)")}
+              onListo={(n) => { setAjustandoBloque(false); actualizaFilas(n); setAvisoBloque(resumenDeBloque("adjusted", n.length, paraAjustar.omitidos.length, lang)); }}
+              onParcial={actualizaFilas} onCancelar={() => setAjustandoBloque(false)} />
           )}
           {mermasPorEtapa.length > 0 && (
             <div className="ops-exportar">

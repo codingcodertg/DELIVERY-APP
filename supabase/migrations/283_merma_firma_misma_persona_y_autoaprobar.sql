@@ -126,7 +126,7 @@ begin
   if a - de <> 1 then raise exception 'warehouse_ops: las etapas van de una en una' using errcode = '22023'; end if;
 
   if p_stage = 'approved' then
-    -- 283: NO se aprueba sin las DOS firmas (gerente y supervisor); ya NO hace falta que sean de personas distintas.
+    -- 283: NO se aprueba sin las DOS firmas (gerente y supervisor); ya NO hace falta que sean de dos cuentas diferentes.
     if not exists (select 1 from public.warehouse_report_signatures where report_id = p_report and slot = 'gerente')
        or not exists (select 1 from public.warehouse_report_signatures where report_id = p_report and slot = 'supervisor') then
       raise exception 'warehouse_ops: faltan las dos firmas (gerente y supervisor)' using errcode = '22023';
@@ -208,7 +208,7 @@ begin
     raise exception 'warehouse_ops: solo quien gestiona esa tienda aprueba' using errcode = '42501';
   end if;
   if g.approved_at is not null then raise exception 'warehouse_ops: el grupo ya esta aprobado' using errcode = '22023'; end if;
-  -- 283: NO se aprueba sin las DOS firmas (gerente y supervisor); ya NO hace falta que sean de personas distintas.
+  -- 283: NO se aprueba sin las DOS firmas (gerente y supervisor); ya NO hace falta que sean de dos cuentas diferentes.
   if not exists (select 1 from public.warehouse_scrap_group_signatures where group_id = p_group and slot = 'gerente')
      or not exists (select 1 from public.warehouse_scrap_group_signatures where group_id = p_group and slot = 'supervisor') then
     raise exception 'warehouse_ops: faltan las dos firmas (gerente y supervisor)' using errcode = '22023';
@@ -255,4 +255,4 @@ begin
 end $chk$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('283_merma_firma_misma_persona_y_autoaprobar.sql', '56e158c989091d8eccbb1cfb002f17674a9eafc28f7f68b55e89f2bacb7dd063') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('283_merma_firma_misma_persona_y_autoaprobar.sql', '3b7f1ca763eb7c43b32ad832008cd0702eb5b37546bf20385fc718d3967b96f1') on conflict (name) do nothing;

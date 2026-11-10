@@ -14,6 +14,8 @@ import { etiquetaDeOpcion } from "@/lib/almacen-ops/pasos";
 import { repartoDeReporte } from "@/lib/almacen-ops/perdida";
 import { fmtDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { puedeCorregirMerma } from "@/lib/almacen-ops/visibilidad";
+import { particionaPorEtapa, resumenDeBloque } from "@/lib/almacen-ops/bloque";
+import { aplicarEtapa, AdjuntarYMarcar, ErrorParcial } from "./EtapasDeMerma";
 import { FirmaPad } from "./FirmaPad";
 import { VisorDeFotos } from "./VisorDeFotos";
 import { Tarjeta } from "./ListaDeReportes";
@@ -34,6 +36,10 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
   const [ocupado, setOcupado] = useState(false);
   const [firmando, setFirmando] = useState<null | "gerente" | "supervisor">(null);
   const [fotosDe, setFotosDe] = useState<Reporte | null>(null);
+  // Selección parcial dentro del grupo (dueño, 10 nov): marcar algunos miembros y desecharlos/ajustarlos en bloque.
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [avisoB, setAvisoB] = useState<string | null>(null);
+  const [ajustB, setAjustB] = useState(false);
   // Click en el folio: abre el reporte en la app para revisarlo (dueño, 10 nov), sin salir de la hoja.
   const [verReporte, setVerReporte] = useState<Reporte | null>(null);
 
@@ -70,6 +76,28 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
   const nombre = (id: string) => ctx.personas.find((p) => p.id === id)?.full_name ?? "";
   const filas = filasDeHoja(reportes, nombre, (m) => etiquetaDeOpcion("scrap", "reason", m, lang) || (m ?? ""), (r) => repartoDeReporte(r).damaged);
 
+  // Subconjunto marcado y a qué puede pasar (desechar = las aprobadas; ajustar = las desechadas, con una sola foto).
+  const selReportes = reportes.filter((r) => sel.has(r.id));
+  const bDesechar = particionaPorEtapa(selReportes, "dumped");
+  const bAjustar = particionaPorEtapa(selReportes, "adjusted");
+  const alternarSel = (id: string) => setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  // Las casillas para desechar/ajustar en bloque salen cuando el grupo ya está aprobado (sus mermas están en «approved»
+  // y de ahí pueden ir a desechada → ajustada) y quien mira gestiona.
+  const conCasillas = gestiona && aprobado;
+  const marcarDesechadasG = async () => {
+    const { elegibles, omitidos } = bDesechar;
+    if (elegibles.length === 0) { setAvisoB(resumenDeBloque("dumped", 0, omitidos.length, lang)); return; }
+    setOcupado(true); setError(null);
+    try {
+      const h = await aplicarEtapa(ctx, elegibles, "dumped", null);
+      setAvisoB(resumenDeBloque("dumped", h.length, omitidos.length, lang));
+      setSel(new Set());
+      await recarga();
+    } catch (e) {
+      if (e instanceof ErrorParcial) { setAvisoB(e.message); await recarga(); } else setError((e as Error).message);
+    } finally { setOcupado(false); }
+  };
+
   return (
     <div className="ops-merma" data-hoja-grupo={grupo.id}>
       <div className="hoja-barra no-imprimir">
@@ -97,9 +125,27 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
           <span lang="en">{RECORDATORIO_EN}</span>
         </p>
 
+        {conCasillas && sel.size > 0 && (
+          <div className="ops-seleccion no-imprimir" role="region" data-seleccion-grupo={sel.size}>
+            <span>{t(`${sel.size} selected`, `${sel.size} seleccionada${sel.size === 1 ? "" : "s"}`)}</span>
+            <button type="button" className="btn" disabled={ocupado || bDesechar.elegibles.length === 0} onClick={() => { setAjustB(false); void marcarDesechadasG(); }} data-accion="desechar-bloque-grupo">🗑 {t(`Mark as dumped (${bDesechar.elegibles.length})`, `Marcar como desechadas (${bDesechar.elegibles.length})`)}</button>
+            <button type="button" className="btn" disabled={ocupado || bAjustar.elegibles.length === 0} onClick={() => { setAvisoB(null); setAjustB((x) => !x); }} data-accion="ajustar-bloque-grupo" aria-pressed={ajustB}>🧾 {t(`Mark as adjusted (${bAjustar.elegibles.length})`, `Marcar como ajustadas (${bAjustar.elegibles.length})`)}</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setSel(new Set()); setAjustB(false); setAvisoB(null); }}>{t("Clear", "Quitar")}</button>
+          </div>
+        )}
+        {avisoB && <div className="hint no-imprimir" role="status" data-aviso-bloque-grupo>{avisoB}</div>}
+        {ajustB && bAjustar.elegibles.length > 0 && (
+          <div className="no-imprimir">
+            <AdjuntarYMarcar reportes={bAjustar.elegibles} ctx={ctx} etapa="adjusted" etiqueta={t("Choose the system screenshot (one photo for all)", "Elegir la captura del sistema (una foto para todas)")}
+              onListo={(n) => { setAjustB(false); setSel(new Set()); setAvisoB(resumenDeBloque("adjusted", n.length, bAjustar.omitidos.length, lang)); void recarga(); }}
+              onParcial={() => void recarga()} onCancelar={() => setAjustB(false)} />
+          </div>
+        )}
+
         <table className="hoja-tabla" data-hoja-filas={filas.length}>
           <thead>
             <tr>
+              {conCasillas && <th className="no-imprimir" aria-label={t("Select", "Marcar")} />}
               <th>#</th><th aria-label={t("Photos", "Fotos")} className="no-imprimir" />
               <th>{t("Folio", "Folio")}</th>
               <th>{t("Date broken", "Fecha del daño")}</th>
@@ -117,6 +163,7 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
               const conFoto = !!r && r.photos.length > 0;
               return (
                 <tr key={f.id} data-hoja-reporte={f.id}>
+                  {conCasillas && <td className="no-imprimir ops-col-casilla">{r && <input type="checkbox" checked={sel.has(f.id)} onChange={() => alternarSel(f.id)} aria-label={t("Select", "Marcar")} data-marca-grupo={f.id} />}</td>}
                   <td>{n + 1}</td>
                   <td className="no-imprimir">
                     {conFoto && (
@@ -137,10 +184,10 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
                 </tr>
               );
             })}
-            {filas.length === 0 && <tr><td colSpan={10} className="hoja-vacia">{t("No reports in this group.", "No hay reportes en este grupo.")}</td></tr>}
+            {filas.length === 0 && <tr><td colSpan={conCasillas ? 11 : 10} className="hoja-vacia">{t("No reports in this group.", "No hay reportes en este grupo.")}</td></tr>}
           </tbody>
           {filas.length > 0 && (
-            <tfoot><tr><td colSpan={6} className="num">{t("Total", "Total")}</td><td className="num" data-hoja-total>{fmtMoney(totalDeHoja(filas))}</td><td colSpan={3} /></tr></tfoot>
+            <tfoot><tr><td colSpan={conCasillas ? 7 : 6} className="num">{t("Total", "Total")}</td><td className="num" data-hoja-total>{fmtMoney(totalDeHoja(filas))}</td><td colSpan={3} /></tr></tfoot>
           )}
         </table>
         {filas.some((f) => f.producto.endsWith(" *")) && <p className="hoja-nota">* {t("Product not in the catalog (name as written).", "Producto fuera del catálogo (nombre tal como se escribió).")}</p>}
