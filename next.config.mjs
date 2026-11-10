@@ -38,6 +38,29 @@ const nextConfig = {
   // para siempre, y si algún día hay que deshacer la mudanza no habría forma de decirle a
   // un teléfono que la olvide. Se puede endurecer a permanente cuando esto lleve meses en
   // pie y ya no queden accesos directos viejos.
+  // Cabeceras de seguridad (auditoría de seguridad, PR 1). Hasta ahora no había ninguna.
+  //
+  // OJO con dos cosas del propio Hub, por eso NO van más estrictas:
+  //  - La preview móvil (`VistaMovil.tsx`) mete el Hub en un iframe del MISMO origen. Por eso
+  //    X-Frame-Options va `SAMEORIGIN` (no DENY) y el CSP solo pone `frame-ancestors 'self'`.
+  //    No pongo un CSP de contenido completo (default-src/script-src) aquí a propósito: el layout
+  //    inyecta un script inline (el tema), usamos Google Maps y el realtime (wss) de Supabase, y
+  //    un CSP mal puesto tumba el Hub a las 7am. Eso va en un PR aparte, probado con report-only.
+  //  - Cámara y GPS se usan (fichaje, fotos de entrega), así que el Permissions-Policy los PERMITE
+  //    a sí mismo; lo que no se usa (micrófono, pagos, USB...) va cerrado.
+  async headers() {
+    const seguridad = [
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+      { key: "Permissions-Policy", value: "geolocation=(self), camera=(self), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(self)" },
+      { key: "X-DNS-Prefetch-Control", value: "on" },
+    ];
+    return [{ source: "/:path*", headers: seguridad }];
+  },
+
   async redirects() {
     return [
       // G-3 (D-201): un enlace viejo del fichaje daba TRES saltos —/clock-in/X → /timetracker/clock-in/X
