@@ -132,7 +132,6 @@ describe("la lista y los filtros van por el día en que se rompió", () => {
   });
   it("la pantalla usa esas funciones para ordenar, filtrar, la columna y la tarjeta", () => {
     const lista = leer("src/app/operaciones/ListaDeReportes.tsx");
-    expect(lista).toContain("const dia = diaDelReporte(r);");
     expect(lista).not.toContain("r.created_at.slice(0, 10)");
     expect(lista.match(/ordenPorDia\(/g) ?? []).toHaveLength(2);
     expect(lista).toContain('r.kind === "scrap" ? fmtDia(diaDelReporte(r), lang) : fmtDateTime(r.created_at)');

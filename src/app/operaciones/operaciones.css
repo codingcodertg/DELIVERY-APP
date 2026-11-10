@@ -392,3 +392,18 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-grupos { display: grid; gap: 6px; margin-top: 10px; }
 .ops-grupos-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .ops-grupos-lista li { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 6px 0; border-top: 1px solid var(--line); }
+
+/* Visor de fotos en la app (dueño, 10 nov): miniaturas que abren un overlay con ‹ ›, sin pestañas externas. */
+.ops-foto-mini { padding: 0; border: 0; background: none; cursor: zoom-in; line-height: 0; border-radius: 10px; }
+.ops-foto-mini:focus-visible { outline: 2px solid var(--accent, #2563eb); outline-offset: 2px; }
+.ops-visor-overlay { display: grid; place-items: center; }
+.ops-visor { display: flex; align-items: center; gap: 10px; max-width: 96vw; flex-wrap: wrap; justify-content: center; }
+.ops-visor-img { max-width: min(90vw, 1100px); max-height: 80vh; object-fit: contain; border-radius: 8px; background: var(--card); }
+.ops-visor-nav { font-size: 28px; line-height: 1; padding: 4px 14px; }
+.ops-visor-pie { flex-basis: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+/* Folio clickeable en la hoja del grupo: abre el reporte para revisarlo. */
+.ops-folio-link { padding: 0; border: 0; background: none; color: var(--accent, #2563eb); cursor: pointer; font: inherit; text-decoration: underline; }
+
+/* «Seleccionar todos» arriba de la tabla de merma (dueño, 10 nov). */
+.ops-seleccionar-todos { margin: 2px 0 6px; }
+.ops-col-casilla input[type="checkbox"] { cursor: pointer; }

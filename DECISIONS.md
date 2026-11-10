@@ -51422,3 +51422,20 @@ Límites por IP (por minuto salvo nota): notify 60 · call(POST) 30 · geocode 6
 Nota: para `map-tiles` el limitador agrega una consulta por tile sin caché; a futuro conviene moverlo al firewall/CDN de Vercel en vez de la base. El login no se cubre desde la app (va directo del navegador a Supabase Auth).
 
 Sello `deliveries` 1.590.0; repo 1.814.0.
+
+## D-961 · Merma: vistas y flujo (sin "Todos los reportes", rango a mano, pestaña Groups, fotos y hoja dentro de la app, Select all)
+
+Batch del dueño (10 nov) sobre Operaciones de almacén → Reportes. Todo UI/flujo, sin tocar base ni reglas de firma:
+
+1. **Quitada la pestaña «Todos los reportes»**: en la vista de gerentes quedan solo **Merma** (por defecto) y **Entregas**. La lista mezclada se conserva solo en «Mis reportes». Mantenimiento y Conteos no cambian (tienen sus propias vistas).
+2. **Rango de fechas a mano**: el atajo «otro» se llama ahora **📅 Rango de fechas / Date range** y muestra los campos Desde/Hasta.
+3. **Pestaña «Groups»** al final de los filtros de etapa: ahí viven los grupos de aprobación (archivo), en vez de salir debajo.
+4. **Nombre del grupo = fecha y hora** de creación (automático; ya no se escribe a mano).
+5. **Imprimir = diálogo dentro de la app** (`HojaImprimible`), ya no manda a otra página.
+6. **Visor de fotos dentro de la app** (`VisorDeFotos`): las fotos abren en un overlay con ‹ ›, nunca en pestaña externa — en la tarjeta del reporte y en la hoja de grupo.
+7. **Click en el folio** abre el reporte en la app (tarjeta) para revisarlo.
+8. **Select all**: casilla en el encabezado (tri-estado) + botón «Seleccionar todos (N)» arriba de la tabla, enlazados a la selección existente.
+
+Colateral: el aviso de «merma sin foto >24h» vivía solo en la lista «Todos los reportes» que se quitó; si se quiere, se mueve a la pestaña Merma (aparte).
+
+Sello `warehouse_ops` 0.22.0; repo 1.815.0.

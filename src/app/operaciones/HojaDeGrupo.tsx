@@ -15,6 +15,8 @@ import { repartoDeReporte } from "@/lib/almacen-ops/perdida";
 import { fmtDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { puedeCorregirMerma } from "@/lib/almacen-ops/visibilidad";
 import { FirmaPad } from "./FirmaPad";
+import { VisorDeFotos } from "./VisorDeFotos";
+import { Tarjeta } from "./ListaDeReportes";
 import type { Contexto } from "./Operaciones";
 import "./reportes/hoja-de-aprobacion/hoja.css";
 
@@ -32,6 +34,8 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
   const [ocupado, setOcupado] = useState(false);
   const [firmando, setFirmando] = useState<null | "gerente" | "supervisor">(null);
   const [fotosDe, setFotosDe] = useState<Reporte | null>(null);
+  // Click en el folio: abre el reporte en la app para revisarlo (dueño, 10 nov), sin salir de la hoja.
+  const [verReporte, setVerReporte] = useState<Reporte | null>(null);
 
   const recarga = useCallback(async () => {
     if (ctx.demo) { setCargando(false); setError(t("Groups are not available in demo mode.", "Los grupos no están en el modo demo.")); return; }
@@ -120,7 +124,9 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
                         title={t("See photos", "Ver fotos")} aria-label={t(`See ${r!.photos.length} photos`, `Ver ${r!.photos.length} fotos`)}>📷 {r!.photos.length}</button>
                     )}
                   </td>
-                  <td className="hoja-folio">{f.folio}</td>
+                  <td className="hoja-folio">{r
+                    ? <button type="button" className="ops-folio-link" onClick={() => setVerReporte(r)} data-abrir-reporte={f.id} title={t("Open this report", "Abrir este reporte")}>{f.folio}</button>
+                    : f.folio}</td>
                   <td>{fmtDia(f.dia, lang)}</td>
                   <td>{f.producto}</td>
                   <td className="num">{f.danadas}</td>
@@ -185,6 +191,8 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
       </article>
 
       {fotosDe && <ModalDeFotos r={fotosDe} ctx={ctx} onCerrar={() => setFotosDe(null)} />}
+      {verReporte && <Tarjeta r={verReporte} ctx={ctx} onCerrar={() => setVerReporte(null)}
+        onCambio={(n) => { setVerReporte(n); setReportes((rs) => rs.map((x) => (x.id === n.id ? n : x))); }} />}
     </div>
   );
 }
@@ -204,14 +212,7 @@ function ModalDeFotos({ r, ctx, onCerrar }: { r: Reporte; ctx: Contexto; onCerra
       <div className="modal ops-tarjeta-reporte" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-fotos-reporte={r.id}>
         <h3>📷 {r.product_name ?? t("Photos", "Fotos")}</h3>
         <p className="sub">{fmtDia(r.broken_on ?? r.created_at.slice(0, 10), lang)} · {r.store}</p>
-        <div className="ops-fotos-lista">
-          {fotos.map((u, n) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <a key={n} href={u} target="_blank" rel="noreferrer"><img src={u} alt={t(`Photo ${n + 1}`, `Foto ${n + 1}`)} /></a>
-          ))}
-          {ctx.demo && <p className="hint">{t("Photos are not shown in demo mode.", "En el demo no se enseñan fotos.")}</p>}
-          {!ctx.demo && fotos.length === 0 && <p className="hint">{t("No photos.", "Sin fotos.")}</p>}
-        </div>
+        <VisorDeFotos fotos={fotos} demo={ctx.demo} />
         <div className="modal-actions"><button type="button" className="btn btn-primary" onClick={onCerrar}>{t("Close", "Cerrar")}</button></div>
       </div>
     </div>

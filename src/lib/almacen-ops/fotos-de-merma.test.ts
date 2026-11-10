@@ -236,10 +236,9 @@ describe("4. foto repetida: la huella SHA-256", () => {
     // La base no rechaza huellas repetidas.
     expect(SQL).not.toMatch(/unique.*photo_hashes/i);
   });
-  it("en la lista, la insignia sale en las filas y el gerente ve cuántas mermas llevan más de 24 h sin foto", () => {
+  it("en la lista, la insignia de foto (repetida / sin foto) sale en las filas y se puede agregar la foto", () => {
     const lista = leer("src/app/operaciones/ListaDeReportes.tsx");
     expect(lista).toMatch(/data-foto-repetida/);
-    expect(lista).toMatch(/data-pendientes-de-foto/);
     expect(lista).toMatch(/data-agregar-foto/);
   });
 });

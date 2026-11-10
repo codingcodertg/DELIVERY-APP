@@ -14,6 +14,8 @@ import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
 import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, enlacesDeFotos, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type Reporte } from "@/lib/almacen-ops/datos";
 import { estadoDelGrupo, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
 import { HojaDeGrupo } from "./HojaDeGrupo";
+import { HojaImprimible } from "./HojaImprimible";
+import { VisorDeFotos } from "./VisorDeFotos";
 import { MAX_FOTOS, avisoDeRepetida, duplicadosPorHuella, etiquetaSinFoto, fotoPendienteVencida, fotosSinHuella, iconoDeFotos, sha256Hex, sinFoto, type Repetida } from "@/lib/almacen-ops/fotos";
 import { BotonesDeFoto } from "./BotonesDeFoto";
 import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
@@ -22,7 +24,7 @@ import { cuentaComoPerdida, perdidaDeMerma, repartoDeReporte } from "@/lib/almac
 import { puedeCorregirMerma, puedeVerReporte } from "@/lib/almacen-ops/visibilidad";
 import { diaDelReporte, fmtDia, hoyEnTexas, ordenPorDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { ATAJOS, NOMBRE_DE_ATAJO, eleccionAUrl, eleccionDeUrl, etiquetaDeRango, filtrarPorRango, perdidaEnRango, rangoDeAtajo, rangoDeEleccion, type Atajo, type Eleccion } from "@/lib/almacen-ops/rango-de-merma";
-import { ETAPAS, etapaDe, nombreDeEtapa, perdidaPorEtapa, puedeCambiarEtapa, seleccionableParaHoja, tieneEtapas, urlDeHoja, type Etapa } from "@/lib/almacen-ops/etapas";
+import { ETAPAS, etapaDe, nombreDeEtapa, perdidaPorEtapa, puedeCambiarEtapa, seleccionableParaHoja, tieneEtapas, type Etapa } from "@/lib/almacen-ops/etapas";
 import { COLUMNAS_EXCEL, celdasDeMerma, csvDeMermas, nombreDelCsv } from "@/lib/almacen-ops/tabla-de-merma";
 import { datosPdfDeMerma } from "@/lib/almacen-ops/pdf-de-merma";
 import { AdjuntarYMarcar, ChipDeEtapa, LineaDeEtapas } from "./EtapasDeMerma";
@@ -30,7 +32,9 @@ import { KpiDeEntregas } from "./KpiDeEntregas";
 import type { Contexto } from "./Operaciones";
 
 const LIMITE = 500;
-type Pestana = "lista" | "merma" | "entregas" | "revision";
+// «Todos los reportes» (lista) se retiró de «Reportes» (dueño, 10 nov): solo Merma y Entregas. La vista «Mis reportes»
+// (modo="mios") sigue usando la tabla de la lista, pero sin pestañas. La merma es la pestaña por defecto.
+type Pestana = "merma" | "entregas" | "revision";
 // La fila cruda de PostgREST: como `Reporte`, pero `answers` puede traer claves extra (p. ej. `broken_on` antes de la
 // 266) y las firmas vienen embebidas. Se mapea a `Reporte` al leer. 280.
 type ReporteCrudo = Omit<Reporte, "answers"> & { answers: Reporte["answers"] & Record<string, unknown> };
@@ -51,12 +55,12 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const hoy = hoyEnTexas();
   // KPI de entregas (Roberto, fase 1): tercera pestaña, «Entregas», con el mismo selector de rango que la merma.
   const pedida = params.get("pestana");
-  const pestana: Pestana = modo === "todos" && (pedida === "merma" || pedida === "entregas" || pedida === "revision") ? pedida : "lista";
+  const pestana: Pestana = (pedida === "merma" || pedida === "entregas" || pedida === "revision") ? pedida : "merma";
   const eleccion = useMemo(() => eleccionDeUrl(params), [params]);
   const irA = useCallback((cambios: { pestana?: Pestana; eleccion?: Eleccion }) => {
     const q = new URLSearchParams();
     const p = cambios.pestana ?? pestana;
-    if (p !== "lista") q.set("pestana", p);
+    if (p !== "merma") q.set("pestana", p);
     for (const [k, v] of Object.entries(eleccionAUrl(cambios.eleccion ?? eleccion))) q.set(k, v);
     const qs = q.toString();
     router.replace(qs ? `${ruta}?${qs}` : ruta, { scroll: false });
@@ -77,15 +81,15 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     ? { atajo, ...(eleccion.atajo === "otro" ? { desde: eleccion.desde, hasta: eleccion.hasta } : rangoDeAtajo(eleccion.atajo, hoy)) }
     : { atajo, desde: "", hasta: "" } });
   const [tipo, setTipo] = useState<TipoDeReporte | "">("");
-  const [tienda, setTienda] = useState("");
-  const [empleado, setEmpleado] = useState("");
-  const [desde, setDesde] = useState("");
-  const [hasta, setHasta] = useState("");
   const [abierto, setAbierto] = useState<Reporte | null>(null);
   // D-921 (270): filtro por etapa, y la selección de mermas para la hoja de aprobación (solo fotografiadas, sin aprobar).
   const [etapaFiltro, setEtapaFiltro] = useState<Etapa | "">("");
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [adjuntando, setAdjuntando] = useState(false);
+  // «Groups» (dueño, 10 nov): una opción más al lado de los filtros de etapa; muestra el archivo de grupos en vez de la tabla.
+  const [verGrupos, setVerGrupos] = useState(false);
+  // «Imprimir hoja» como diálogo en la app (dueño, 10 nov), en vez de abrir otra página.
+  const [imprimirHoja, setImprimirHoja] = useState(false);
 
   useEffect(() => {
     let vivo = true;
@@ -116,16 +120,8 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   }, [ctx.demo, ctx.yo, modo]);
 
   const propias = useMemo(() => (filas ?? []).filter((r) => modo === "todos" || (r.author_id === ctx.yo.id && !esDeRrhh(r.kind))), [filas, modo, ctx.yo.id]);
-  const visibles = useMemo(() => propias.filter((r) => {
-    if (tipo && r.kind !== tipo) return false;
-    if (tienda && r.store !== tienda) return false;
-    if (empleado && !(r.author_id === empleado || r.subject_ids.includes(empleado) || r.broken_by.includes(empleado))) return false;
-    // El día que cuenta (266): en la merma, cuando se rompió; en lo demás, cuando se reportó (hora de Texas).
-    const dia = diaDelReporte(r);
-    if (desde && dia < desde) return false;
-    if (hasta && dia > hasta) return false;
-    return true;
-  }), [propias, tipo, tienda, empleado, desde, hasta]);
+  // «Mis reportes» filtra solo por tipo (los filtros de tienda/empleado/fecha eran de la lista «Todos», ya retirada).
+  const visibles = useMemo(() => propias.filter((r) => !tipo || r.kind === tipo), [propias, tipo]);
   const cuenta = (k: TipoDeReporte) => propias.filter((r) => r.kind === k).length;
   // Pedido del dueño (10 nov): en «Reportes» quiero ver TODAS las columnas (las del Excel), como en la pestaña de merma.
   // Solo cuando lo que se ve es puro scrap (filtro en «Merma» o todas las filas son merma): el Excel es específico de
@@ -135,7 +131,6 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   // 268: qué reportes comparten una foto (misma huella) con otro, entre los que se ven; la marca sale en ambos.
   const repetidas = useMemo(() => duplicadosPorHuella(propias), [propias]);
   // 268: mermas guardadas sin foto que ya pasaron 24 h (el gerente las reclama).
-  const pendientesDeFoto = useMemo(() => propias.filter((r) => fotoPendienteVencida(r)).length, [propias]);
   const nombreTipo = (k: TipoDeReporte) => (lang === "es" ? INFO_DE_TIPO[k].es : INFO_DE_TIPO[k].en);
 
   const mermas = useMemo(() => propias.filter((r) => r.kind === "scrap"), [propias]);
@@ -153,6 +148,17 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const puedeSeleccionar = useCallback((r: Reporte) => seleccionableParaHoja(r) && puedeCambiarEtapa(ctx.yo, r), [ctx.yo]);
   const seleccionadas = useMemo(() => mermasEnRango.filter((r) => seleccion.has(r.id) && puedeSeleccionar(r)), [mermasEnRango, seleccion, puedeSeleccionar]);
   const alternar = (id: string) => setSeleccion((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  // «Seleccionar todos» (dueño, 10 nov): antes no había forma de marcar todo. Marca/limpia de un golpe TODAS las mermas
+  // seleccionables que se ven ahora (las del filtro de etapa actual); respeta `puedeSeleccionar` (solo fotografiadas, etc.).
+  const seleccionables = useMemo(() => mermasPorEtapa.filter((r) => puedeSeleccionar(r)), [mermasPorEtapa, puedeSeleccionar]);
+  const todasSeleccionadas = seleccionables.length > 0 && seleccionables.every((r) => seleccion.has(r.id));
+  const algunaSeleccionada = seleccionables.some((r) => seleccion.has(r.id));
+  const alternarTodas = () => setSeleccion((s) => {
+    const n = new Set(s);
+    if (todasSeleccionadas) for (const r of seleccionables) n.delete(r.id);
+    else for (const r of seleccionables) n.add(r.id);
+    return n;
+  });
   const actualizaFilas = (nuevos: Reporte[]) => {
     const porId = new Map(nuevos.map((n) => [n.id, n]));
     setFilas((f) => (f ?? []).map((x) => porId.get(x.id) ?? x));
@@ -206,11 +212,13 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   };
 
   // 281: crear un grupo de aprobación con las mermas marcadas y abrir su hoja digital (firmar y aprobar de una vez).
+  // El nombre del grupo es la fecha y hora de creación (dueño, 10 nov): sin preguntar nada, así cada grupo se identifica
+  // por cuándo se armó.
   const iniciarAprobacion = async () => {
-    const nombre = window.prompt(t("Name this approval group", "Nombra este grupo de aprobación"), "");
-    if (nombre == null || !nombre.trim()) return;
+    if (seleccionadas.length === 0) return;
+    const nombre = fmtDateTime(new Date().toISOString());
     try {
-      const id = await crearGrupoDeMerma(createClient(), nombre.trim(), seleccionadas.map((r) => r.id));
+      const id = await crearGrupoDeMerma(createClient(), nombre, seleccionadas.map((r) => r.id));
       setSeleccion(new Set());
       abrirGrupo(id);
     } catch (e) { setError((e as Error).message); }
@@ -252,7 +260,6 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
 
       {modo === "todos" && (
         <div className="ops-pestanas" role="tablist">
-          <button type="button" role="tab" aria-selected={pestana === "lista"} className={`chip${pestana === "lista" ? " active" : ""}`} onClick={() => setPestana("lista")}>{t("All reports", "Todos los reportes")}</button>
           <button type="button" role="tab" aria-selected={pestana === "merma"} className={`chip${pestana === "merma" ? " active" : ""}`} onClick={() => setPestana("merma")} data-pestana="merma">🧱 {t("Scrap", "Merma")}</button>
           <button type="button" role="tab" aria-selected={pestana === "entregas"} className={`chip${pestana === "entregas" ? " active" : ""}`} onClick={() => setPestana("entregas")} data-pestana="entregas">🚚 {t("Deliveries", "Entregas")}</button>
         </div>
@@ -261,7 +268,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
       {error && <p className="ops-aviso ops-aviso-error">{error}</p>}
       {filas === null && <p className="hint">{t("Loading…", "Cargando…")}</p>}
 
-      {filas && pestana === "merma" && (
+      {filas && modo === "todos" && pestana === "merma" && (
         <div className="ops-merma" data-merma>
           {selectorDeRango}
           <div className="ops-merma-totales">
@@ -301,13 +308,16 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
 
           <h3 className="ops-merma-titulo">{t("Scrap in this range", "Merma en el rango")} <span className="count-tag" data-cuenta-rango>{mermasEnRango.length}</span></h3>
           <div className="filters-oneline ops-filtros" role="group" aria-label={t("Stage", "Etapa")} data-filtro-etapas>
-            <button type="button" className={`chip${etapaFiltro === "" ? " active" : ""}`} onClick={() => setEtapaFiltro("")} data-etapa-filtro="">{t("All stages", "Todas las etapas")} <span className="cnt">{mermasEnRango.length}</span></button>
+            <button type="button" className={`chip${!verGrupos && etapaFiltro === "" ? " active" : ""}`} onClick={() => { setVerGrupos(false); setEtapaFiltro(""); }} data-etapa-filtro="">{t("All stages", "Todas las etapas")} <span className="cnt">{mermasEnRango.length}</span></button>
             {ETAPAS.map((e) => (
-              <button type="button" key={e} className={`chip ops-chip-etapa${etapaFiltro === e ? " active" : ""}`} onClick={() => setEtapaFiltro(etapaFiltro === e ? "" : e)} data-etapa-filtro={e} aria-pressed={etapaFiltro === e}>
+              <button type="button" key={e} className={`chip ops-chip-etapa${!verGrupos && etapaFiltro === e ? " active" : ""}`} onClick={() => { setVerGrupos(false); setEtapaFiltro(etapaFiltro === e ? "" : e); }} data-etapa-filtro={e} aria-pressed={!verGrupos && etapaFiltro === e}>
                 <span className="ops-etapa ops-etapa-mini" data-etapa={e} aria-hidden /> {nombreDeEtapa(e, lang)} <span className="cnt">{cuentaEtapa(e)}</span>
               </button>
             ))}
+            {/* «Groups» (dueño, 10 nov): al lado de las etapas; muestra el archivo de grupos en vez de la tabla. */}
+            <button type="button" className={`chip${verGrupos ? " active" : ""}`} onClick={() => setVerGrupos((v) => !v)} data-filtro-grupos aria-pressed={verGrupos}>🗂 {t("Groups", "Grupos")} <span className="cnt">{grupos.length}</span></button>
           </div>
+          {!verGrupos && <>
           {seleccionadas.length > 0 && (
             <div className="ops-seleccion" role="region" aria-label={t("Selected for approval", "Seleccionadas para aprobar")} data-seleccion={seleccionadas.length}>
               <span>{t(`${seleccionadas.length} selected`, `${seleccionadas.length} seleccionada${seleccionadas.length === 1 ? "" : "s"}`)}</span>
@@ -315,9 +325,9 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
               <button type="button" className="btn btn-primary" onClick={() => void iniciarAprobacion()} data-accion="iniciar-aprobacion">
                 ✅ {t(`Start approval (${seleccionadas.length})`, `Iniciar aprobación (${seleccionadas.length})`)}
               </button>
-              <a className="btn" href={urlDeHoja(seleccionadas.map((r) => r.id))} target="_blank" rel="noreferrer" data-accion="imprimir-hoja">
+              <button type="button" className="btn" onClick={() => setImprimirHoja(true)} data-accion="imprimir-hoja">
                 🖨 {t(`Print approval sheet (${seleccionadas.length})`, `Imprimir hoja de aprobación (${seleccionadas.length})`)}
-              </a>
+              </button>
               <button type="button" className="btn" onClick={() => setAdjuntando((x) => !x)} data-accion="adjuntar-hoja-seleccion">📎 {t(`Attach signed sheet (${seleccionadas.length})`, `Adjuntar hoja firmada (${seleccionadas.length})`)}</button>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setSeleccion(new Set()); setAdjuntando(false); }} data-accion="limpiar-seleccion">{t("Clear", "Quitar")}</button>
             </div>
@@ -336,34 +346,47 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
               </button>
             </div>
           )}
+          {/* «Seleccionar todos» arriba de la tabla (dueño): marca de un golpe todas las seleccionables del filtro. */}
+          {seleccionables.length > 0 && (
+            <div className="ops-seleccionar-todos" data-seleccionar-todos={seleccionables.length}>
+              <button type="button" className="btn btn-sm" onClick={alternarTodas} data-accion="seleccionar-todos" aria-pressed={todasSeleccionadas}>
+                {todasSeleccionadas
+                  ? `☑ ${t("Clear", "Quitar")}`
+                  : `☐ ${t(`Select all (${seleccionables.length})`, `Seleccionar todos (${seleccionables.length})`)}`}
+              </button>
+            </div>
+          )}
           <TablaDeMermaExcel filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango" conEtapa
-            seleccion={{ ids: seleccion, puede: puedeSeleccionar, alternar }}
+            seleccion={{ ids: seleccion, puede: puedeSeleccionar, alternar, todas: todasSeleccionadas, algunas: algunaSeleccionada, alternarTodas }}
             vacio={rango ? (etapaFiltro ? t("No scrap in that stage in this range.", "No hay merma en esa etapa en este rango.") : t("No scrap broken in this range.", "No se rompió nada en este rango.")) : t("Fix the dates to see the list.", "Corrige las fechas para ver la lista.")} />
-          {/* 281: archivo de grupos de aprobación — abre la hoja digital de cada uno (firmas + fotos). */}
-          {grupos.length > 0 && (
+          </>}
+          {/* 281: archivo de grupos de aprobación — abre la hoja digital de cada uno (firmas + fotos). Vive bajo «Groups». */}
+          {verGrupos && (
             <div className="ops-grupos" data-grupos={grupos.length}>
               <h3 className="ops-merma-titulo">{t("Approval groups", "Grupos de aprobación")} <span className="count-tag">{grupos.length}</span></h3>
-              <ul className="ops-grupos-lista">
-                {grupos.map((g) => (
-                  <li key={g.id} data-grupo={g.id}>
-                    <button type="button" className="btn btn-sm" onClick={() => abrirGrupo(g.id)} data-abrir-grupo={g.id}>🗂 {g.name}</button>
-                    <span className="hint">{t(`${g.n_reportes ?? 0} reports`, `${g.n_reportes ?? 0} reportes`)} · {g.store} · <span data-estado-grupo={g.id}>{estadoDelGrupo(g, lang)}</span></span>
-                  </li>
-                ))}
-              </ul>
+              {grupos.length === 0
+                ? <p className="hint" data-sin-grupos>{t("No approval groups yet. Select scrap reports and press «Start approval» to create one.", "Todavía no hay grupos. Selecciona mermas y toca «Iniciar aprobación» para crear uno.")}</p>
+                : <ul className="ops-grupos-lista">
+                    {grupos.map((g) => (
+                      <li key={g.id} data-grupo={g.id}>
+                        <button type="button" className="btn btn-sm" onClick={() => abrirGrupo(g.id)} data-abrir-grupo={g.id}>🗂 {g.name}</button>
+                        <span className="hint">{t(`${g.n_reportes ?? 0} reports`, `${g.n_reportes ?? 0} reportes`)} · {g.store} · <span data-estado-grupo={g.id}>{estadoDelGrupo(g, lang)}</span></span>
+                      </li>
+                    ))}
+                  </ul>}
             </div>
           )}
         </div>
       )}
 
-      {filas && pestana === "entregas" && (
+      {filas && modo === "todos" && pestana === "entregas" && (
         <div className="ops-merma ops-entregas" data-entregas>
           {selectorDeRango}
           <KpiDeEntregas rango={rango} ctx={ctx} />
         </div>
       )}
 
-      {filas && pestana === "lista" && (
+      {filas && modo === "mios" && (
         <>
           <div className="filters-oneline ops-filtros">
             <button type="button" className={`chip${tipo === "" ? " active" : ""}`} onClick={() => setTipo("")}>{t("All", "Todos")} <span className="cnt">{propias.length}</span></button>
@@ -373,26 +396,6 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
               </button>
             ))}
           </div>
-          {modo === "todos" && (
-            <div className="ops-filtros-campos">
-              <select value={tienda} onChange={(e) => setTienda(e.target.value)} aria-label={t("Store", "Tienda")}>
-                <option value="">{t("All stores", "Todas las tiendas")}</option>
-                {ctx.tiendas.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <select value={empleado} onChange={(e) => setEmpleado(e.target.value)} aria-label={t("Employee", "Empleado")}>
-                <option value="">{t("Any employee", "Cualquier empleado")}</option>
-                {ctx.personas.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
-              </select>
-              <span className="ops-fecha">{t("From", "Desde")} <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} aria-label={t("From", "Desde")} /></span>
-              <span className="ops-fecha">{t("To", "Hasta")} <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} aria-label={t("To", "Hasta")} /></span>
-            </div>
-          )}
-          {modo === "todos" && pendientesDeFoto > 0 && (
-            <p className="ops-aviso ops-aviso-pendiente" role="status" data-pendientes-de-foto={pendientesDeFoto}>
-              📷 {t(`${pendientesDeFoto} scrap report${pendientesDeFoto === 1 ? "" : "s"} saved on paper more than 24 h ago still without a photo. Ask for the photo; nothing is deleted on its own.`,
-                `${pendientesDeFoto} merma${pendientesDeFoto === 1 ? "" : "s"} guardada${pendientesDeFoto === 1 ? "" : "s"} en papel hace más de 24 h sigue${pendientesDeFoto === 1 ? "" : "n"} sin foto. Pide la foto; nada se borra solo.`)}
-            </p>
-          )}
           {listaUsaExcel && visibles.length > 0 && (
             <div className="ops-exportar">
               <button type="button" className="btn btn-sm" onClick={() => exportarCsv(visibles)} data-accion="exportar-csv" title={t("Download these rows as a CSV file to paste into Excel", "Baja estas filas como CSV para pegarlas en Excel")}>
@@ -417,6 +420,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
 
       {abierto && <Tarjeta r={abierto} ctx={ctx} onCerrar={() => setAbierto(null)}
         onCambio={(n) => { setAbierto(n); setFilas((f) => (f ?? []).map((x) => (x.id === n.id ? n : x))); }} />}
+      {imprimirHoja && seleccionadas.length > 0 && <HojaImprimible reportes={seleccionadas} ctx={ctx} onCerrar={() => setImprimirHoja(false)} />}
     </section>
   );
 }
@@ -488,7 +492,9 @@ function TablaDeReportes({ filas, ctx, onAbrir, vacio, repetidas, conEtapa, sele
 function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = true, seleccion, "data-lista": dataLista }: {
   filas: Reporte[]; ctx: Contexto; onAbrir: (r: Reporte) => void; vacio: string; repetidas: Map<string, string[]>; "data-lista": string;
   conEtapa?: boolean;
-  seleccion?: { ids: Set<string>; puede: (r: Reporte) => boolean; alternar: (id: string) => void };
+  seleccion?: { ids: Set<string>; puede: (r: Reporte) => boolean; alternar: (id: string) => void;
+    /** Casilla del encabezado «seleccionar todos»: si todas/algunas están marcadas y la acción para alternarlas. */
+    todas?: boolean; algunas?: boolean; alternarTodas?: () => void };
 }) {
   const { t, lang } = usePrefs();
   const nombre = (id: string) => ctx.personas.find((p) => p.id === id)?.full_name ?? "—";
@@ -505,7 +511,16 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
       <table className="orders ops-tabla-excel" data-lista={dataLista}>
         <thead>
           <tr>
-            {conCasillas && <th rowSpan={2} className="ops-col-casilla" aria-label={t("Select for the approval sheet", "Marcar para la hoja de aprobación")} />}
+            {conCasillas && (
+              <th rowSpan={2} className="ops-col-casilla">
+                {seleccion!.alternarTodas && (
+                  <input type="checkbox" checked={!!seleccion!.todas}
+                    ref={(el) => { if (el) el.indeterminate = !!seleccion!.algunas && !seleccion!.todas; }}
+                    onChange={seleccion!.alternarTodas} data-casilla-todas
+                    aria-label={t("Select all", "Seleccionar todos")} title={t("Select all", "Seleccionar todos")} />
+                )}
+              </th>
+            )}
             <th rowSpan={2} title={t("When it was reported", "Cuándo se reportó")}>{t("When", "Cuándo")}</th>
             {conEtapa && <th rowSpan={2}>{t("Stage", "Etapa")}</th>}
             <th rowSpan={2}>{t("Type", "Tipo")}</th><th rowSpan={2}>{t("Store", "Tienda")}</th><th rowSpan={2}>{t("Filed by", "Lo llenó")}</th>
@@ -688,15 +703,7 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Conte
           )}
           {filas.map(([k, v]) => <div key={k} className="ops-par"><dt>{k}</dt><dd>{v}</dd></div>)}
         </dl>
-        {r.photos.length > 0 && (
-          <div className="ops-fotos-lista">
-            {fotos.map((u, n) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <a key={n} href={u} target="_blank" rel="noreferrer"><img src={u} alt={t(`Photo ${n + 1}`, `Foto ${n + 1}`)} /></a>
-            ))}
-            {ctx.demo && <p className="hint">{t("Photos are not shown in demo mode.", "En el demo no se enseñan fotos.")}</p>}
-          </div>
-        )}
+        {r.photos.length > 0 && <VisorDeFotos fotos={fotos} demo={ctx.demo} />}
         {r.photos.length > 0 && sinHuella > 0 && !ctx.demo && (
           <p className="hint" data-huellas="calculando">{t("Report from before duplicate detection: the photo fingerprints are being computed now and saved for next time.", "Reporte de antes de la detección de repetidas: las huellas de las fotos se calculan ahora y se guardan para la próxima.")}</p>
         )}
