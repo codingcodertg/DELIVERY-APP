@@ -9,9 +9,9 @@ import { fmtDateTime, fmtMoney } from "@/lib/utils";
 import { INFO_DE_TIPO, TIPOS, esDeRrhh, type TipoDeReporte } from "@/lib/almacen-ops/tipos";
 import { PASOS, PASO_QUIEN_REPORTO, etiquetaDeOpcion } from "@/lib/almacen-ops/pasos";
 import { etiquetaDeEquipoDelReporte } from "@/lib/almacen-ops/mantenimiento";
-import { nombreOTexto } from "@/lib/almacen-ops/personas";
+import { nombreOTexto, personasParaElegir } from "@/lib/almacen-ops/personas";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
-import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, enlacesDeFotos, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type Reporte } from "@/lib/almacen-ops/datos";
+import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, editarReporteDeMerma, enlacesDeFotos, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type ParcheDeMerma, type Reporte } from "@/lib/almacen-ops/datos";
 import { estadoDelGrupo, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
 import { HojaDeGrupo } from "./HojaDeGrupo";
 import { HojaImprimible } from "./HojaImprimible";
@@ -19,7 +19,7 @@ import { VisorDeFotos } from "./VisorDeFotos";
 import { MAX_FOTOS, avisoDeRepetida, duplicadosPorHuella, etiquetaSinFoto, fotoPendienteVencida, fotosSinHuella, iconoDeFotos, sha256Hex, sinFoto, type Repetida } from "@/lib/almacen-ops/fotos";
 import { BotonesDeFoto } from "./BotonesDeFoto";
 import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
-import { ORIGENES_DE_MERMA, costoDelCampo, type ProductoElegido } from "@/lib/almacen-ops/pasos";
+import { ORIGENES_DE_MERMA, TIPOS_DE_MERMA, MOTIVOS_DE_MERMA, costoDelCampo, type ProductoElegido } from "@/lib/almacen-ops/pasos";
 import { cuentaComoPerdida, perdidaDeMerma, repartoDeReporte } from "@/lib/almacen-ops/perdida";
 import { puedeCorregirMerma, puedeVerReporte } from "@/lib/almacen-ops/visibilidad";
 import { diaDelReporte, fmtDia, hoyEnTexas, ordenPorDia } from "@/lib/almacen-ops/fecha-del-dano";
@@ -642,6 +642,7 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Conte
   const { t, lang } = usePrefs();
   const [fotos, setFotos] = useState<string[]>([]);
   const [corrigiendo, setCorrigiendo] = useState(false);
+  const [editando, setEditando] = useState(false);
   const [huellasCalculadas, setHuellasCalculadas] = useState(false);
   const corrige = puedeCorregirMerma(ctx.yo, r);
   // 268: el autor o quien corrige la merma le agrega la foto a una guardada «sin foto».
@@ -694,6 +695,12 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Conte
       <div className="modal ops-tarjeta-reporte" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-tarjeta={r.id}>
         <h3>{info.emoji} {lang === "es" ? info.es : info.en}<IconoDeFotos r={r} /></h3>
         <p className="sub">{r.kind === "scrap" ? t("Reported ", "Reportado ") : ""}{fmtDateTime(r.created_at)} · {r.store} · {t("filed by", "lo llenó")} {r.author_name ?? nombre(r.author_id)}</p>
+        {r.kind === "scrap" && corrige && (
+          <div className="ops-editar-barra">
+            <button type="button" className="btn btn-sm" onClick={() => setEditando((v) => !v)} data-accion="editar-reporte">✏️ {t("Edit report", "Editar reporte")}</button>
+          </div>
+        )}
+        {editando && <EditarReporteDeMerma r={r} ctx={ctx} onListo={(n) => { setEditando(false); if (n) onCambio(n); }} />}
         {sinFoto(r) && (
           <p className="ops-aviso ops-aviso-error" role="status" data-tarjeta-sin-foto={fotoPendienteVencida(r) ? "vencida" : "si"}>
             📷 {etiquetaSinFoto(r, lang)} · {t("Saved from paper, without a photo of the pieces. It is incomplete until the photo is added.", "Guardado desde papel, sin foto de las piezas. Está incompleto hasta que se le agregue la foto.")}
@@ -748,6 +755,104 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Conte
         {r.kind === "scrap" && <LineaDeEtapas r={r} ctx={ctx} onCambio={onCambio} />}
         {r.kind === "scrap" && !tieneEtapas(r) && puedeCorregirMerma(ctx.yo, r) && <p className="hint" data-sin-270>{t("Approval stages need database migration 270.", "Las etapas de aprobación necesitan la migración 270 de la base.")}</p>}
         <div className="modal-actions"><button type="button" className="btn btn-primary" onClick={onCerrar}>{t("Close", "Cerrar")}</button></div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 285: editar TODO un reporte de merma (admin/gerente), aun ya aprobado. Solo se envían los campos que cambian; la base
+ * recalcula la pérdida, revierte la aprobación (vuelve a «pendiente de firma») y borra las firmas por el trigger. Un
+ * almacenista no ve este botón (la puerta es `puedeCorregirMerma`).
+ */
+function EditarReporteDeMerma({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onListo: (n: Reporte | null) => void }) {
+  const { t, lang } = usePrefs();
+  const txt = (v: unknown) => (v == null ? "" : String(v));
+  const num = (v: number | null | undefined) => (v == null ? "" : String(v));
+  const [productName, setProductName] = useState(r.product_name ?? "");
+  const [scrapType, setScrapType] = useState(r.scrap_type ?? "");
+  const [boxes, setBoxes] = useState(num(r.boxes));
+  const [perBox, setPerBox] = useState(num(r.pieces_per_box));
+  const [loose, setLoose] = useState(num(r.loose_pieces));
+  const [damaged, setDamaged] = useState(num(r.damaged_pieces));
+  const [sample, setSample] = useState(num(r.sample_pieces));
+  const [cost, setCost] = useState(num(r.unit_cost));
+  const [returnType, setReturnType] = useState(r.return_type ?? "");
+  const [reason, setReason] = useState(r.reason ?? "");
+  const [crma, setCrma] = useState(r.crma ?? "");
+  const [brokenOn, setBrokenOn] = useState(diaDelReporte(r));
+  const [comments, setComments] = useState(txt(r.answers?.comments));
+  const inicialRotos = (r.broken_by ?? []).slice().sort();
+  const [brokenBy, setBrokenBy] = useState<string[]>(r.broken_by ?? []);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const opciones = (o: { v: string; en: string; es: string }) => (lang === "es" ? o.es : o.en);
+  const personas = personasParaElegir(ctx.personas, r.store);
+  const nEntero = (s: string) => (s.trim() === "" ? null : Math.trunc(Number(s)));
+
+  const guarda = async () => {
+    setGuardando(true); setError(null);
+    try {
+      const nBoxes = nEntero(boxes), nPer = nEntero(perBox), nLoose = nEntero(loose);
+      const total = (nBoxes ?? 0) * (nPer ?? 0) + (nLoose ?? 0);
+      const parche: ParcheDeMerma = {};
+      if (productName.trim() !== (r.product_name ?? "")) { parche.product_name = productName.trim(); parche.product_not_in_catalog = true; parche.product_id = null; parche.product_sku = null; }
+      if (scrapType !== (r.scrap_type ?? "")) parche.scrap_type = scrapType;
+      if (nBoxes !== r.boxes) parche.boxes = nBoxes;
+      if (nPer !== r.pieces_per_box) parche.pieces_per_box = nPer;
+      if (nLoose !== r.loose_pieces) parche.loose_pieces = nLoose;
+      if ((nBoxes !== r.boxes || nPer !== r.pieces_per_box || nLoose !== r.loose_pieces)) parche.total_pieces = total;
+      if (nEntero(damaged) !== r.damaged_pieces) parche.damaged_pieces = nEntero(damaged);
+      if (nEntero(sample) !== r.sample_pieces) parche.sample_pieces = nEntero(sample);
+      const nCost = cost.trim() === "" ? null : Number(cost);
+      if (nCost !== r.unit_cost) parche.unit_cost = nCost;
+      if (returnType !== (r.return_type ?? "")) parche.return_type = returnType;
+      if (reason !== (r.reason ?? "")) parche.reason = reason;
+      if (crma.trim() !== (r.crma ?? "")) parche.crma = crma.trim() || null;
+      if (brokenOn !== diaDelReporte(r)) parche.broken_on = brokenOn || null;
+      if (comments.trim() !== txt(r.answers?.comments)) parche.answers = { comments: comments.trim() };
+      if (JSON.stringify(brokenBy.slice().sort()) !== JSON.stringify(inicialRotos)) parche.broken_by = brokenBy;
+      if (Object.keys(parche).length === 0) { onListo(null); return; }
+      if (!ctx.demo) await editarReporteDeMerma(createClient(), r.id, parche);
+      // Refresca el reporte desde la base (pérdida y etapa recalculadas; firmas borradas).
+      let fresco: Reporte = { ...r };
+      if (!ctx.demo) {
+        const { data } = await createClient().from("warehouse_reports").select("*").eq("id", r.id).maybeSingle();
+        if (data) fresco = { ...(data as Reporte), unit_cost: data.unit_cost == null ? null : Number(data.unit_cost), total_loss: data.total_loss == null ? null : Number(data.total_loss), broken_on: (data.broken_on as string | null) ?? null, firmas: null };
+      }
+      onListo(fresco);
+    } catch (e) { setError(e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e)); }
+    finally { setGuardando(false); }
+  };
+
+  return (
+    <div className="ops-corregir ops-editar-reporte" data-editar-reporte={r.id}>
+      <p className="hint ops-aviso-reeditar" data-aviso-reeditar>⚠️ {t("Editing clears the signatures: it will need to be approved again.", "Editar borra las firmas: habrá que aprobarlo de nuevo.")}</p>
+      <div className="ops-editar-campos">
+        <label>{t("Product / description", "Producto / descripción")}<input className="ops-campo" value={productName} onChange={(e) => setProductName(e.target.value)} maxLength={200} data-campo="editar-nombre" /></label>
+        <label>{t("Type", "Tipo")}<select className="ops-campo" value={scrapType} onChange={(e) => setScrapType(e.target.value)} data-campo="editar-tipo">{TIPOS_DE_MERMA.map((o) => <option key={o.v} value={o.v}>{opciones(o)}</option>)}</select></label>
+        <label>{t("Boxes", "Cajas")}<input className="ops-campo" type="number" inputMode="numeric" value={boxes} onChange={(e) => setBoxes(e.target.value)} data-campo="editar-cajas" /></label>
+        <label>{t("Pieces / box", "Piezas / caja")}<input className="ops-campo" type="number" inputMode="numeric" value={perBox} onChange={(e) => setPerBox(e.target.value)} data-campo="editar-por-caja" /></label>
+        <label>{t("Loose", "Sueltas")}<input className="ops-campo" type="number" inputMode="numeric" value={loose} onChange={(e) => setLoose(e.target.value)} data-campo="editar-sueltas" /></label>
+        <label>{t("Damaged", "Dañadas")}<input className="ops-campo" type="number" inputMode="numeric" value={damaged} onChange={(e) => setDamaged(e.target.value)} data-campo="editar-danadas" /></label>
+        <label>{t("Sample", "Muestra")}<input className="ops-campo" type="number" inputMode="numeric" value={sample} onChange={(e) => setSample(e.target.value)} data-campo="editar-muestra" /></label>
+        <label>{t("Price / piece", "Precio / pieza")}<input className="ops-campo" type="number" inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} data-campo="editar-precio" /></label>
+        <label>{t("Where from", "De dónde")}<select className="ops-campo" value={returnType} onChange={(e) => setReturnType(e.target.value)} data-campo="editar-origen">{ORIGENES_DE_MERMA.map((o) => <option key={o.v} value={o.v}>{opciones(o)}</option>)}</select></label>
+        <label>{t("Reason", "Motivo")}<select className="ops-campo" value={reason} onChange={(e) => setReason(e.target.value)} data-campo="editar-motivo"><option value="">—</option>{MOTIVOS_DE_MERMA.map((o) => <option key={o.v} value={o.v}>{opciones(o)}</option>)}</select></label>
+        <label>CRMA<input className="ops-campo" value={crma} onChange={(e) => setCrma(e.target.value)} data-campo="editar-crma" /></label>
+        <label>{t("Date broken", "Fecha del daño")}<input className="ops-campo" type="date" value={brokenOn} onChange={(e) => setBrokenOn(e.target.value)} data-campo="editar-fecha" /></label>
+        <label className="ops-editar-ancho">{t("Comments", "Comentarios")}<input className="ops-campo" value={comments} onChange={(e) => setComments(e.target.value)} data-campo="editar-comentarios" /></label>
+      </div>
+      <fieldset className="ops-editar-rotos" data-campo="editar-rompio">
+        <legend>{t("Broken by", "Lo rompió")}</legend>
+        {personas.map((p) => (
+          <label key={p.id} className="ops-editar-persona"><input type="checkbox" checked={brokenBy.includes(p.id)} onChange={(e) => setBrokenBy((xs) => e.target.checked ? [...xs, p.id] : xs.filter((x) => x !== p.id))} /> {p.full_name}</label>
+        ))}
+      </fieldset>
+      {error && <p className="ops-aviso ops-aviso-error" role="alert" data-aviso="editar-fallo">{error}</p>}
+      <div className="modal-actions">
+        <button type="button" className="btn" onClick={() => onListo(null)} disabled={guardando}>{t("Cancel", "Cancelar")}</button>
+        <button type="button" className="btn btn-primary" onClick={() => void guarda()} disabled={guardando} data-accion="guardar-edicion">{guardando ? t("Saving…", "Guardando…") : t("Save changes", "Guardar cambios")}</button>
       </div>
     </div>
   );

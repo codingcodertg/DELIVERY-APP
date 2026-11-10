@@ -51475,3 +51475,13 @@ Como la RLS de `recruiting.employee_files` (migración 094) solo deja leer a RR.
 Se crearon de paso 3 expedientes de almacén que faltaban (Emmanuel Ramirez · Brownsville, Juan Carlos Castanon · Pharr, Luis · Edinburg). Las columnas de personas de `warehouse_reports` (`subject_ids`, `broken_by`, `reported_by`) no tienen FK, así que guardar un id de expediente es seguro.
 
 Sello `warehouse_ops` 0.25.0; repo 1.818.0.
+
+## D-965 · Merma: admin y gerente pueden editar todo un reporte ya enviado (incluso aprobado)
+
+Solicitudes de ayuda (Roberto: «need to be able to edit as admin and manager... write the full description name»; Baudelio: «how can I edit when the report has been sent already»). Ahora **admin y gerente pueden editar cualquier campo** de un reporte de merma ya enviado —incluso aprobado—; un almacenista (scrap_only) sigue sin poder tras enviar.
+
+RPC `warehouse_ops_edit_scrap_report(p_report, p_patch jsonb)` (migración 285, security-definer, puerta `warehouse_ops_can_manage`): aplica solo las claves del parche (producto/sku/nombre/fuera-de-catálogo, tipo, cajas/piezas/sueltas/total, dañadas/muestra, costo, origen, motivo, CRMA, fecha del daño, quién lo rompió, y el merge de `answers` incluidos comentarios), **recalcula `total_loss`**, y **revierte la aprobación**: limpia approved_/dumped_/ajustado_ → el trigger de etapa recalcula `stage`→`photographed` y el trigger de contenido (280/281) **borra las firmas** (del reporte y, si estaba en grupo, las del grupo). Vuelve a «pendiente de firma». Registrada en `ensenanza-general`.
+
+UI: botón **«Editar reporte»** en la tarjeta, solo para admin/gerente, con formulario precargado y aviso bilingüe de que al editar se borran las firmas y habrá que aprobar de nuevo; solo manda los campos que cambian (no borra firmas si no hubo cambios). El vínculo al catálogo sigue por «Vincular/editar» aparte; el formulario nuevo pone nombre libre.
+
+Sello `warehouse_ops` 0.26.0; repo 1.819.0.
