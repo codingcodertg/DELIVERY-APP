@@ -51493,3 +51493,13 @@ El dueño: en modo enseñanza, al hacer un cambio en merma no servía. Causa: el
 Arreglo (sin tocar el corte del servidor ni `RPC_QUE_ESCRIBEN`): nuevo helper `src/lib/practica/es-corte.ts` (`esCorteDePractica`, clase `CorteDePractica`), y en `almacen-ops/datos.ts` cada escritura tolera el corte: las que no devuelven id lo **tragan** (el `await` resuelve y corre la UI optimista que ya existía para demo — la etapa se mueve, la firma aparece, el auto-aprobar se refleja; un error de verdad sigue lanzando). `subirAdjunto`/`subirFoto` devuelven una ruta centinela. Las que devuelven id (`crearGrupoDeMerma`, `registrar`) lanzan `CorteDePractica`, y sus pantallas lo manejan suave: crear reporte va a la pantalla de «enviado» como en demo; crear grupo limpia la selección y avisa «en práctica no se guardan los grupos», sin navegar. El aviso global de práctica ya salía en `/operaciones` (está en el layout).
 
 Sello `warehouse_ops` 0.27.0; repo 1.820.0.
+
+## D-967 · Seguridad (M3): cerrar las lecturas abiertas del catálogo/precios/inventario del ERP
+
+Revisión de seguridad. `erp.categories`, `erp.vendors`, `erp.store_products`, `erp.lots`, `erp.price_history` e `erp.inventory_movements` tenían la puerta de módulo `has_erp_access()` **y además** políticas `SELECT using(true)`. Como las políticas permisivas se suman (OR), cualquier usuario autenticado —aunque no tuviera el módulo ERP— podía **leer costos, precios, proveedores e inventario**.
+
+Migración 286: elimina esas políticas abiertas (y las duplicadas), dejando solo la puerta `has_erp_access()` (ALL, que cubre el SELECT). Se verificó que fuera de `/erp` nada lee esas tablas (merma usa `erp.products` por un RPC security-definer aparte), así que no rompe otros módulos. Autochequeo: ninguna queda con `SELECT using(true)` y todas conservan `has_erp_access()`.
+
+De la auditoría: **M2** (tablas de choferes `driver_availability/shifts/incidents`) ya estaba corregida (hoy exigen `has_deliveries_access()`), no hizo falta tocarla. Queda **M1** (`profiles` legible por todos) como el punto pendiente, que requiere un enfoque aparte (vista pública o privilegios de columna) por leerse el nombre en toda la app.
+
+Sello `erp` 0.26.1; repo 1.821.0.
