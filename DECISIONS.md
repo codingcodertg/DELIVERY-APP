@@ -51332,3 +51332,17 @@ Pedido del dueño (9 nov): poder guardar varias versiones de las rutas de un dí
 De paso (config, sin código): Steven quedó marcado como **no-ruteable** (de respaldo), así «Armar rutas» y «Asignar a…» usan por defecto solo los tres choferes de planta; para incluirlo un día se le prende «rutea» en Ajustes → choferes.
 
 Sello `deliveries` 1.587.0; repo 1.807.0.
+
+## D-954 · Seguridad PR 1: Next al parche (RCE), `npm audit fix` y cabeceras de seguridad
+
+Primera tanda de la revisión de seguridad que pidió el dueño (10 nov). Tres cosas, ninguna toca la base de datos:
+
+**1. Next.js al último parche 15 (15.5.19 → 15.5.29).** La versión que había (15.5.24) tenía un RCE **sin autenticar** vía la optimización de imágenes (SVG), más cache poisoning y un DoS de Server Actions (GHSA-2464-fhr4-w9xw y otros). El parche va dentro de 15.x, sin cambio mayor.
+
+**2. `npm audit fix` sin `--force`.** Parchea los HIGH no-breaking: `sharp`, `undici` (incluía un bypass de validación de certificado TLS), `postcss` parcial, `source-map-js` y tooling de dev. De 21 vulnerabilidades a 14. Las que quedan **se dejaron a propósito**: su único «arreglo» es romper (bajar `@vercel/blob`/`exceljs` de versión, o subir a Next 16 por `postcss`, que además es de build, no de runtime). Se harán cuando haya release con parche hacia adelante.
+
+**3. Cabeceras de seguridad** en `next.config.mjs` (antes no había ninguna): `X-Frame-Options: SAMEORIGIN`, CSP `frame-ancestors 'self'` (anti-clickjacking), `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Strict-Transport-Security` (HSTS 2 años) y `Permissions-Policy`. Va `SAMEORIGIN` y no `DENY` porque la preview móvil mete el Hub en un iframe del mismo origen; y el `Permissions-Policy` **permite cámara y GPS a sí mismo** porque el fichaje y las fotos de entrega los usan. El CSP de contenido completo (script-src/default-src) se deja para un PR aparte, probado con report-only, para no tumbar el Hub.
+
+Lo que NO entró en este PR (va en los siguientes): rate limiting (login + rutas que gastan dinero), cerrar la lectura ancha de `profiles`/choferes/catálogo ERP (migración), y mensajes de error genéricos en las ~12 rutas que hoy devuelven el `error.message` de Supabase.
+
+Sello `deliveries` 1.588.0; repo 1.808.0.
