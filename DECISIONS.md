@@ -51304,3 +51304,9 @@ Sello `deliveries` 1.582.0; `recruiting` 0.83.0; `security` 0.18.0; repo 1.802.0
 Dos ajustes del dueño (9 nov). El administrador de permisos (RR. HH. → Permisos) **ya no pide «Abrir»**: es una página dedicada, así que monta el proveedor del hub al cargar y se ve la lista de una vez (quitada la tarjeta intermedia que además repetía el título). Y en **Empleados** hay ahora un botón **🛡 Permisos** (solo admin) que lleva a esta página.
 
 Sello `deliveries` 1.583.0; `recruiting` 0.84.0; `security` 0.19.0; repo 1.803.0.
+
+## D-950 · Permisos: arregla el estilo cuando se abre desde RR. HH.
+
+El panel se veía en crudo (lista con viñetas, sin tarjetas ni switches) al abrirlo en RR. HH.: su hoja de estilos (`security.css`) la importaba solo la pantalla de Seguridad, así que fuera de ahí no cargaba. Ahora `PanelDePermisos` importa su propio CSS, y se ve igual en cualquier sitio donde se monte.
+
+Sello `deliveries` 1.584.0; `recruiting` 0.85.0; `security` 0.20.0; repo 1.804.0.
