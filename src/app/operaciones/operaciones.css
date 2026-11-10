@@ -8,6 +8,9 @@
    seguridad/incidentes, morado para RR. HH., azul para mantenimiento, rojo para merma— que se leen de un vistazo. */
 
 .ops { max-width: 1180px; margin: 0 auto; padding: 16px 16px 120px; }
+/* Las listas de reportes traen la tabla ancha (todas las columnas del Excel): usan más ancho para no dejar el hueco
+   vacío a los lados que reportó el dueño (ayuda, 10 nov). Las demás vistas siguen a 1180. */
+.ops[data-operaciones="reportes"], .ops[data-operaciones="mios"] { max-width: min(1760px, 100%); }
 .ops .hint { color: var(--gray); }
 
 /* ---- Saludo ---- */

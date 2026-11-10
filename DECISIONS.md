@@ -51388,3 +51388,13 @@ Reemplaza el paso de la 270 de «adjuntar la hoja de aprobación firmada» para 
 Componente nuevo `FirmaPad.tsx` (lienzo, sin dependencia nueva). Si la 280 no está aplicada, la pantalla lo nota y no ofrece firmar; la lista sigue funcionando.
 
 Sello `warehouse_ops` 0.19.0; repo 1.811.0.
+
+## D-958 · Merma/Reports: la lista usa más ancho y se quita el desglose por tienda redundante (ayuda de Roberto)
+
+Dos solicitudes de ayuda de Roberto (10 nov, desde `/operaciones/reportes`):
+
+1. **«this report needs to be wider, there's a lot of empty space on screen».** La página de Operaciones estaba topada a `max-width: 1180px` y centrada, así que la tabla de reportes (con todas las columnas del Excel, D-956) dejaba mucho margen vacío a los lados. Ahora las vistas de reportes (`data-operaciones="reportes"` y `"mios"`) usan hasta `min(1760px, 100%)`; las demás vistas siguen a 1180.
+
+2. **«Remove; Redundant».** La tablita de totales por tienda (Tienda · rango · Esta semana · Este mes · Siempre) repetía las cuatro tarjetas grandes cuando hay una sola tienda. Ahora solo se muestra con **más de una** tienda (con varias sí aporta el desglose).
+
+Sello `warehouse_ops` 0.20.0; repo 1.812.0.

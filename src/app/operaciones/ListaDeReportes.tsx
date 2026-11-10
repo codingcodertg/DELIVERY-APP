@@ -246,17 +246,20 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
               </div>
             ))}
           </div>
+          {/* El desglose por tienda solo aporta con MÁS DE UNA tienda: con una sola repite las tarjetas de arriba
+              (ayuda de Roberto, 10 nov: «Remove; Redundant»). Con varias, se sigue mostrando. */}
+          {tiendasDeMerma.length > 1 && (
           <div className="tbl-scroll tbl-caja">
             <table className="orders" data-perdida-por-tienda>
               <thead><tr><th>{t("Store", "Tienda")}</th><th className="ops-col-rango">{etiqueta}</th><th>{t("This week", "Esta semana")}</th><th>{t("This month", "Este mes")}</th><th>{t("All time", "Siempre")}</th></tr></thead>
               <tbody>
-                {tiendasDeMerma.length === 0 && <tr><td colSpan={5} className="hint">{t("No scrap reported yet.", "Todavía no hay merma reportada.")}</td></tr>}
                 {tiendasDeMerma.map((s) => (
                   <tr key={s} data-tienda={s}><td>{s}</td><td className="num ops-col-rango" data-perdida-rango={enRango[s] ?? 0}>{fmtMoney(enRango[s] ?? 0)}</td><td className="num">{fmtMoney(totales[s]?.semana ?? 0)}</td><td className="num">{fmtMoney(totales[s]?.mes ?? 0)}</td><td className="num">{fmtMoney(totales[s]?.todo ?? 0)}</td></tr>
                 ))}
               </tbody>
             </table>
           </div>
+          )}
           {Object.keys(porEtapa).length > 0 && (
             <p className="hint ops-desglose-etapas" data-desglose-etapas>
               {t("In this range: ", "En el rango: ")}
