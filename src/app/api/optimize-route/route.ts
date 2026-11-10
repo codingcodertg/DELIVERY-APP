@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { computeRoute, METERS_PER_MILE, type RoutePoint } from "@/lib/google-routes";
 
 import { requireUser } from "@/lib/api-auth";
+import { limita, respuesta429 } from "@/lib/rate-limit";
 
 // ============================================================
 // Best visiting order for a driver's stops on a given day, plus the real
@@ -111,6 +112,8 @@ export async function POST(req: Request) {
   // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const lim = await limita(req, { clave: "optimize-route", max: 30, ventanaSeg: 60 });
+  if (!lim.ok) return respuesta429(lim.reset);
 
   let body: { stops?: RoutePoint[]; roundtrip?: boolean; date?: string | null; traffic_optimal?: boolean; optimize?: boolean };
   try {

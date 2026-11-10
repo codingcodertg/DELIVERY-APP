@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/api-auth";
+import { limita, respuesta429 } from "@/lib/rate-limit";
 
 // ============================================================
 // Live places lookup for the Market Map — queries OpenStreetMap in real time
@@ -132,6 +133,8 @@ export async function GET(req: Request) {
   // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const lim = await limita(req, { clave: "places", max: 300, ventanaSeg: 60 });
+  if (!lim.ok) return respuesta429(lim.reset);
 
   const category = new URL(req.url).searchParams.get("category") ?? "flooring";
   const build = CATEGORY_QUERY[category];

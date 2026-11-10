@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/api-auth";
+import { limita, respuesta429 } from "@/lib/rate-limit";
 import { MAX_MILLAS_PLAUSIBLES, boundsGoogleRGV, millasImposibles, puntoEnElValle } from "@/lib/distancia-plausible";
 
 // ============================================================
@@ -181,6 +182,8 @@ export async function POST(req: Request) {
   // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const lim = await limita(req, { clave: "distance", max: 60, ventanaSeg: 60 });
+  if (!lim.ok) return respuesta429(lim.reset);
 
   let body: { origin?: string; destination?: string };
   try {

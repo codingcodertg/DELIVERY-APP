@@ -7,6 +7,7 @@ import { enlaceParaCopiar, htmlDelCorreoDeAyuda } from "@/lib/ayuda-para-claude"
 import { origenPublico } from "@/lib/avisos-cliente-envio";
 
 import { requireUser } from "@/lib/api-auth";
+import { limita, respuesta429 } from "@/lib/rate-limit";
 import { limpiaDispositivo, limpiaUbicacion, nombreDeRuta, textoDelDispositivo } from "@/lib/ayuda-ubicacion";
 import { faltaLaColumna } from "@/lib/help-requests";
 
@@ -86,6 +87,8 @@ export async function POST(req: Request) {
   // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const lim = await limita(req, { clave: "help", max: 10, ventanaSeg: 60 });
+  if (!lim.ok) return respuesta429(lim.reset);
 
   let body: HelpBody;
   try {

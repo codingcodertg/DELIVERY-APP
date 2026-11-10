@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/api-auth";
+import { limita, respuesta429 } from "@/lib/rate-limit";
 import { esDeTexasGoogle, esDeTexasMapbox, esDeTexasOSM, sugerenciasDePlaces, urlDeGoogleGeocode, urlDeMapbox, urlDeOSM } from "@/lib/busqueda-de-direccion";
 
 // ============================================================
@@ -71,6 +72,8 @@ export async function POST(req: Request) {
   // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  const lim = await limita(req, { clave: "geocode", max: 60, ventanaSeg: 60 });
+  if (!lim.ok) return respuesta429(lim.reset);
 
   let body: { q?: string };
   try {

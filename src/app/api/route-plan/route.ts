@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { filtroActivos } from "@/lib/baja";
 import { requireUser } from "@/lib/api-auth";
+import { limita, respuesta429 } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BUSINESS_TZ } from "@/lib/utils";
 import { unavailableDriverNames } from "@/lib/dispatch";
@@ -95,6 +96,8 @@ export async function POST(req: Request) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
   const { supabase, user } = auth;
+  const lim = await limita(req, { clave: "route-plan", max: 60, ventanaSeg: 60 });
+  if (!lim.ok) return respuesta429(lim.reset);
 
   let fecha = "";
   try { fecha = String(((await req.json()) as { date?: unknown }).date ?? ""); } catch { /* cae en la validación */ }

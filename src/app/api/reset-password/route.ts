@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logSecurity } from "@/lib/security-log-server";
 import { PONER_MARCA } from "@/lib/cambio-obligatorio";
+import { limita, respuesta429 } from "@/lib/rate-limit";
 
 // ============================================================
 // An admin sets a new password for someone who can't reset their own.
@@ -39,6 +40,8 @@ export async function POST(req: Request) {
   if (me?.role !== "admin") {
     return NextResponse.json({ error: "Only admins can reset passwords." }, { status: 403 });
   }
+  const lim = await limita(req, { clave: "reset-password", max: 20, ventanaSeg: 60 });
+  if (!lim.ok) return respuesta429(lim.reset);
 
   let body: { id?: string };
   try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid body." }, { status: 400 }); }
