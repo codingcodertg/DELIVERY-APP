@@ -51310,3 +51310,11 @@ Sello `deliveries` 1.583.0; `recruiting` 0.84.0; `security` 0.19.0; repo 1.803.0
 El panel se veía en crudo (lista con viñetas, sin tarjetas ni switches) al abrirlo en RR. HH.: su hoja de estilos (`security.css`) la importaba solo la pantalla de Seguridad, así que fuera de ahí no cargaba. Ahora `PanelDePermisos` importa su propio CSS, y se ve igual en cualquier sitio donde se monte.
 
 Sello `deliveries` 1.584.0; `recruiting` 0.85.0; `security` 0.20.0; repo 1.804.0.
+
+## D-951 · Permisos: el preset es el del rol que ya tiene, y «Dar de baja» desde el panel
+
+Dos cosas del dueño (9 nov). El botón de perfil ahora es **el del rol que la persona YA tiene**: a un vendedor le sale «Aplicar Vendedor», a un gerente «Gerente de Oficina (8)» — ya no el de gerente para todos. El dropdown sigue, pero para **cambiar** a otro rol (o a Supervisor regional). A un admin no le sale botón (no hay perfil que aplicar).
+
+Y en el detalle hay ahora **«Dar de baja»** (para empleados que ya no trabajan): marca la salida, lo saca de las listas de gente activa y **le cierra el acceso**, conservando el historial — exactamente la baja de RR. HH. que ya existía. Reusa `deactivateEmployee` cuando hay expediente; si solo hay cuenta del hub, deshabilita la cuenta, libera el correo y marca `profiles.left_at`. Solo un admin de RR. HH., con confirmación y motivo opcional; no te puedes dar de baja a ti mismo.
+
+Sello `deliveries` 1.585.0; `recruiting` 0.86.0; `security` 0.21.0; repo 1.805.0.
