@@ -1,6 +1,6 @@
 {
   "name": "rtg-hub",
-  "version": "1.809.0",
+  "version": "1.810.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -24,6 +24,8 @@
     "clsx": "^2.1.1",
     "decimal.js": "^10.6.0",
     "exceljs": "^4.4.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.9",
     "leaflet": "^1.9.4",
     "next": "^15.5.29",
     "qrcode": "^1.5.4",
