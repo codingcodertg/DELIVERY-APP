@@ -22,6 +22,7 @@ import {
 import { fechaDelDanoValida, fmtDia, hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
 import { cantidadesValidas, cuentaComoPerdida, enteroDelCampo, perdidaDeMerma, piezasPorCajaInicial, piezasTotales, repartoAjustado, repartoAlCambiar, repartoValido, type Cantidades, type Reparto } from "@/lib/almacen-ops/perdida";
 import { DEMO_PRODUCTOS, buscarProductos, mermaParaEnviar, productoParaEnviar, registrar, reportesConLaFoto, subirFoto, type Envio, type Reporte } from "@/lib/almacen-ops/datos";
+import { esCorteDePractica } from "@/lib/practica/es-corte";
 import { Tarjeta } from "./ListaDeReportes";
 import { elegidosAlCambiarDeTienda, nombreOTexto, personasParaElegir } from "@/lib/almacen-ops/personas";
 import { borrarBorrador, guardarBorrador, hayCambios, leerBorrador } from "@/lib/almacen-ops/borradores";
@@ -157,6 +158,8 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
       borrarBorrador(ctx.yo.id, borradorId);
       setHecho(sinFoto ? "sin-foto" : "enviado");
     } catch (e) {
+      // En práctica (modo enseñanza) no se guarda de verdad: se da por enviado igual que en demo. El aviso global ya salió.
+      if (esCorteDePractica(e)) { borrarBorrador(ctx.yo.id, borradorId); setHecho(sinFoto ? "sin-foto" : "enviado"); return; }
       setError(e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e));
     } finally {
       setEnviando(false);

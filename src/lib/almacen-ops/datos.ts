@@ -10,6 +10,7 @@ import { tipoDeReparto, type Cantidades, type Reparto } from "./perdida";
 import type { Repetida } from "./fotos";
 import type { FirmaDeMerma, SlotDeFirma } from "./firmas";
 import type { GrupoDeMerma } from "./grupos";
+import { esCorteDePractica, CorteDePractica } from "@/lib/practica/es-corte";
 
 export const CUBO = "warehouse-ops";
 
@@ -99,13 +100,13 @@ export async function buscarProductos(sb: SupabaseClient, q: string): Promise<Pr
  */
 export async function agregarFotos(sb: SupabaseClient, reporteId: string, rutas: string[], huellas: string[]): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_add_photos", { p_report: reporteId, p_photos: rutas, p_hashes: huellas });
-  if (error) throw error;
+  if (error && !esCorteDePractica(error)) throw error;
 }
 
 /** 268: guarda las huellas de las fotos de un reporte de antes (se calculan al abrir la tarjeta). Solo rellena huecos. */
 export async function guardarHuellas(sb: SupabaseClient, reporteId: string, huellas: (string | null)[]): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_set_photo_hashes", { p_report: reporteId, p_hashes: huellas });
-  if (error) throw error;
+  if (error && !esCorteDePractica(error)) throw error;
 }
 
 /** 268: ¿otro reporte (que quien mira puede ver) ya usó una foto con esta huella? El más reciente primero. */
@@ -130,7 +131,7 @@ export function faltaLaColumna(e: { code?: string | null; message?: string | nul
  */
 export async function cambiarEtapa(sb: SupabaseClient, reporteId: string, etapa: string, prueba: string | null = null): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_set_scrap_stage", { p_report: reporteId, p_stage: etapa, p_proof: prueba });
-  if (error) throw error;
+  if (error && !esCorteDePractica(error)) throw error;
 }
 
 /**
@@ -140,13 +141,13 @@ export async function cambiarEtapa(sb: SupabaseClient, reporteId: string, etapa:
  */
 export async function firmarMerma(sb: SupabaseClient, reporteId: string, slot: SlotDeFirma, png: string): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_sign_scrap", { p_report: reporteId, p_slot: slot, p_png: png });
-  if (error) throw error;
+  if (error && !esCorteDePractica(error)) throw error;
 }
 
 /** 280: quita una firma (quien la puso, o el admin de la app), solo mientras la merma no esté aprobada. */
 export async function quitarFirma(sb: SupabaseClient, reporteId: string, slot: SlotDeFirma): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_unsign_scrap", { p_report: reporteId, p_slot: slot });
-  if (error) throw error;
+  if (error && !esCorteDePractica(error)) throw error;
 }
 
 /** 280: aprueba la merma (pasa a `approved`). La base exige las dos firmas; ya no hay hoja adjunta. */
@@ -169,26 +170,26 @@ export async function firmasDeReporte(sb: SupabaseClient, reporteId: string): Pr
 /** 281: crea un grupo con las mermas marcadas (todas de la misma tienda, fotografiadas, sin aprobar y sin grupo). Devuelve su id. */
 export async function crearGrupoDeMerma(sb: SupabaseClient, nombre: string, reporteIds: string[]): Promise<string> {
   const { data, error } = await sb.rpc("warehouse_ops_create_scrap_group", { p_name: nombre, p_report_ids: reporteIds });
-  if (error) throw error;
+  if (error) { if (esCorteDePractica(error)) throw new CorteDePractica(); throw error; }
   return data as string;
 }
 
 /** 281: firma un espacio del grupo (gerente/supervisor) con el dibujo. La base exige dos personas distintas y que gestione la tienda. */
 export async function firmarGrupo(sb: SupabaseClient, grupoId: string, slot: SlotDeFirma, png: string): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_sign_scrap_group", { p_group: grupoId, p_slot: slot, p_png: png });
-  if (error) throw error;
+  if (error && !esCorteDePractica(error)) throw error;
 }
 
 /** 281: quita una firma del grupo (quien la puso, o el admin), solo mientras no esté aprobado. */
 export async function quitarFirmaGrupo(sb: SupabaseClient, grupoId: string, slot: SlotDeFirma): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_unsign_scrap_group", { p_group: grupoId, p_slot: slot });
-  if (error) throw error;
+  if (error && !esCorteDePractica(error)) throw error;
 }
 
 /** 281: aprueba el grupo (pasa TODAS sus mermas a aprobada). La base exige las dos firmas distintas. */
 export async function aprobarGrupo(sb: SupabaseClient, grupoId: string): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_approve_scrap_group", { p_group: grupoId });
-  if (error) throw error;
+  if (error && !esCorteDePractica(error)) throw error;
 }
 
 /** 281: las firmas de un grupo CON el dibujo (`signature_png`), para la hoja y el PDF. */
@@ -240,7 +241,7 @@ export async function subirAdjunto(sb: SupabaseClient, uid: string, f: Blob, tip
   const ext = tipo === "application/pdf" ? "pdf" : tipo === "image/png" ? "png" : tipo === "image/webp" ? "webp" : "jpg";
   const ruta = `${uid}/${que}-${crypto.randomUUID()}.${ext}`;
   const { error } = await sb.storage.from(CUBO).upload(ruta, f, { contentType: tipo, upsert: false });
-  if (error) throw error;
+  if (error) { if (esCorteDePractica(error)) return "practica/en-practica.jpg"; throw error; }
   return ruta;
 }
 
@@ -248,7 +249,7 @@ export async function registrar(sb: SupabaseClient, e: Envio): Promise<string> {
   const { data, error } = await sb.rpc("warehouse_ops_file_report", {
     p_kind: e.kind, p_store: e.store, p_subject_ids: e.subjectIds, p_answers: e.answers, p_photos: e.photos, p_scrap: e.scrap,
   });
-  if (error) throw error;
+  if (error) { if (esCorteDePractica(error)) throw new CorteDePractica(); throw error; }
   return data as string;
 }
 
@@ -257,7 +258,7 @@ export async function corregirMerma(sb: SupabaseClient, reporteId: string, c: { 
   const { error } = await sb.rpc("warehouse_ops_edit_scrap_product", {
     p_report: reporteId, p_product_id: c.productId, p_name: c.nombre, p_cost: c.costo,
   });
-  if (error) throw error;
+  if (error && !esCorteDePractica(error)) throw error;
 }
 
 /**
@@ -266,7 +267,7 @@ export async function corregirMerma(sb: SupabaseClient, reporteId: string, c: { 
  */
 export async function corregirOrigenDeMerma(sb: SupabaseClient, reporteId: string, c: { origen: "internal" | "customer_return"; crma: string | null }): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_edit_scrap_origin", { p_report: reporteId, p_return_type: c.origen, p_crma: c.crma });
-  if (error) throw error;
+  if (error && !esCorteDePractica(error)) throw error;
 }
 
 /**
@@ -282,7 +283,7 @@ export type ParcheDeMerma = Partial<{
 }>;
 export async function editarReporteDeMerma(sb: SupabaseClient, reporteId: string, parche: ParcheDeMerma): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_edit_scrap_report", { p_report: reporteId, p_patch: parche });
-  if (error) throw error;
+  if (error && !esCorteDePractica(error)) throw error;
 }
 
 /** El cuerpo de merma que va a `warehouse_ops_file_report`. Fuera de catálogo: sin product_id, con nombre y precio de venta. */
@@ -312,7 +313,7 @@ export async function subirFoto(sb: SupabaseClient, uid: string, dataUrl: string
   const blob = await (await fetch(dataUrl)).blob();
   const ruta = `${uid}/${crypto.randomUUID()}.jpg`;
   const { error } = await sb.storage.from(CUBO).upload(ruta, blob, { contentType: "image/jpeg", upsert: false });
-  if (error) throw error;
+  if (error) { if (esCorteDePractica(error)) return "practica/en-practica.jpg"; throw error; }
   return ruta;
 }
 
