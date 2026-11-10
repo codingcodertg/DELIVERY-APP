@@ -16,6 +16,7 @@ import {
 import { type VivoDeUsuario } from "@/lib/security/vivo-de-usuarios";
 import { normalizaTienda, tiendasMarcadas } from "@/lib/visibilidad-tienda";
 import type { Profile, UserRole } from "@/lib/types";
+import "./security.css";
 
 export type { VivoDeUsuario };
 
