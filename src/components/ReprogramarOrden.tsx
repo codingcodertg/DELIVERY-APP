@@ -5,7 +5,7 @@ import { useConfirm } from "@/lib/confirm";
 import { fechaPropuesta, reprogramacionValida } from "@/lib/reprogramar-orden";
 import { maxFechaDeEntrega, problemaAlAgendar, SIN_CASO_ESPECIAL, type CasoEspecial } from "@/lib/dia-de-entrega";
 import { AvisoDeFecha } from "@/components/AvisoDeFecha";
-import { pideConfirmarMediodia, preguntaSiEsParaHoy } from "@/lib/corte-de-ventas";
+import { pideConfirmarMismoDia, preguntaMismoDia } from "@/lib/same-day";
 import { todayISO, nombreDeLaOrden } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 import type { OpcionesDelAviso } from "@/lib/data-provider";
@@ -40,8 +40,8 @@ export function ReprogramarOrden({ pedido, rol, lang, t, reprogramarOrden, notif
   const abrir = () => { setFecha(fechaPropuesta(pedido.delivery_date, hoy)); setNota(""); setCaso(SIN_CASO_ESPECIAL); setAbierto(true); };
   const guardar = async () => {
     if (!valida || guardando) return;
-    // Ventas, pasadas las 12 en Texas, reprogramando para HOY: «¿Seguro que esta orden es para hoy?» (`corte-de-ventas`).
-    if (pideConfirmarMediodia(fecha, pedido.delivery_date, { rol }) && !(await preguntaSiEsParaHoy(confirmAction, t))) return;
+    // Quien no asigna, reprogramando para HOY: «¿Seguro? contacta a logística» (`same-day`). Logística y admin, sin aviso.
+    if (pideConfirmarMismoDia(fecha, pedido.delivery_date, { rol }) && !(await preguntaMismoDia(confirmAction, t))) return;
     setGuardando(true);
     // D-861: la foto de ANTES, para el «Deshacer» del aviso (fecha y, si la 172 la saca de la ruta, chofer y posición).
     const foto = fotoAntesDeReprogramar(pedido);

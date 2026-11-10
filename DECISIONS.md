@@ -51346,3 +51346,15 @@ Primera tanda de la revisión de seguridad que pidió el dueño (10 nov). Tres c
 Lo que NO entró en este PR (va en los siguientes): rate limiting (login + rutas que gastan dinero), cerrar la lectura ancha de `profiles`/choferes/catálogo ERP (migración), y mensajes de error genéricos en las ~12 rutas que hoy devuelven el `error.message` de Supabase.
 
 Sello `deliveries` 1.588.0; repo 1.808.0.
+
+## D-955 · «Mismo día»: toda orden nace para mañana; poner hoy pregunta (reemplaza el corte de las 12)
+
+Pedido del dueño (10 nov): cualquier orden —cliente, intertienda o transfer— por defecto sale para **mañana, siempre**. Si alguien la cambia para **hoy**, antes de guardar se le pregunta con el diálogo de la app: *«¿Seguro? Contacta al gerente de logística para asignarla. Nota: por ser a última hora, puede reprogramarse para mañana.»* (EN/ES), con «Sí, para hoy» / «Cambiar fecha». **No bloquea.**
+
+**Quién:** a todos MENOS **logística y admin** (son quienes asignan; ellos ponen hoy sin aviso). **Cuándo:** a cualquier hora (ya no «pasadas las 12»). La fecha por defecto es mañana en Texas saltando el domingo (`fechaPorDefectoManana` = `saltaDomingo(mananaEnTexas())`).
+
+**Reemplaza el corte de las 12 de D-845** (`corte-de-ventas`), que solo tocaba a ventas y solo pasadas las 12. Se retiró toda su lógica de pantalla; el módulo `corte-de-ventas.ts` queda solo con el registro de la **migración 237 EN ESPERA** (sin tocar: su `.sql` y checksum siguen congelados, `MENSAJE_DE_LA_237` intacto). Nueva lógica pura en `src/lib/same-day.ts` (hora/día siempre en Texas).
+
+**Caminos cubiertos:** la ficha (crear, enviar, guardar, borrador, solo-la-fecha, enviar un borrador y reenviar una rechazada), 📅 Reprogramar, la celda del Gestor y la fecha en bloque. **Duplicar** una orden ahora también nace para mañana (antes nacía hoy), para cumplir «todas salen para mañana siempre».
+
+Sello `deliveries` 1.589.0; repo 1.809.0.

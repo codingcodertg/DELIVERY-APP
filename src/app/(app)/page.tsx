@@ -31,7 +31,7 @@ import { ImportOrdersModal } from "@/components/ImportOrdersModal";
 import { awaitingDriver, daysBetween, deliveryColumns, downloadCSV, LATE_GRACE_DAYS, orderLabel, isOverdue, isPendingUrgent, isToday, isTomorrow, orderOwner, toCSV, seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
 import { AVISO_FECHA_PASADA, fechaDeEntregaPasada, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
 import { maxFechaDeEntrega, problemaAlAgendar, textoDelProblema } from "@/lib/dia-de-entrega";
-import { pideConfirmarMediodia, preguntaSiEsParaHoy } from "@/lib/corte-de-ventas";
+import { pideConfirmarMismoDia, preguntaMismoDia } from "@/lib/same-day";
 import { exportExcelByEmployee, exportPDFByEmployee } from "@/lib/export";
 import { ventasVeLaOrden } from "@/lib/visibilidad-ventas";
 import { tiendasDeAlmacen } from "@/lib/almacen";
@@ -594,8 +594,8 @@ export default function OrdersPage() {
     // Ni domingo ni un año imposible (D-658), sin caso especial: la tanda no lleva casilla ni motivo.
     const problemaDeLaFecha = problemaAlAgendar(date, null, { rol: me?.role });
     if (problemaDeLaFecha) { const m = textoDelProblema(problemaDeLaFecha, me?.role, { sinCasilla: true }); notify(t(m.en, m.es)); return; }
-    // La tanda es de gerente, admin y logística; si algún día llega a ventas, pasadas las 12 y para hoy, se pregunta (`corte-de-ventas`).
-    if (pideConfirmarMediodia(date, null, { rol: me?.role }) && !(await preguntaSiEsParaHoy(confirmAction, t))) return;
+    // La tanda es de gerente, admin y logística; si algún día llega a quien no asigna y la pone para hoy, se pregunta (`same-day`).
+    if (pideConfirmarMismoDia(date, null, { rol: me?.role }) && !(await preguntaMismoDia(confirmAction, t))) return;
     return cambioEnBloque(
     { en: `Set the delivery date to ${date}?`, es: `¿Fijar la fecha de entrega en ${date}?` },
     { delivery_date: date },

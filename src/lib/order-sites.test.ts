@@ -227,7 +227,7 @@ describe("el modal y los dos proveedores usan esto", () => {
   const modal = leer("src/components/OrderModal.tsx");
 
   it("el modal abre, cambia de tipo, elige las dos puntas y registra la re-entrega con estas funciones", () => {
-    expect(modal).toContain("setD((p) => borradorInicial(p, contextoDelUsuario));");
+    expect(modal).toContain("const b = borradorInicial(p, contextoDelUsuario); return b.delivery_date ? b : { ...b, delivery_date: fechaPorDefectoManana() };");
     expect(modal).toContain("const withTypeDefaults = (p: Draft, newType: string): Draft => aplicaTipo(p, newType, contextoDelUsuario);");
     // Los dos selectores de tipo, el atajo «Es para un cliente» de office (D-439) y la cuenta que trae
     // su tipo pasan por ahí.

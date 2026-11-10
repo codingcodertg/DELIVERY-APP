@@ -621,7 +621,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       // D-861: el «Deshacer» del aviso vuelve a un estado que ya estuvo: sin las reglas de agendar (el demo no saca de la ruta).
       const deshacer = !!opciones?.deshacer;
       // La misma regla que el proveedor de verdad (D-658): ni domingo sin el caso especial ni un año imposible.
-      // Ventas, pasadas las 12, para hoy: aquí ya no se bloquea; lo pregunta la pantalla (`ReprogramarOrden`, `corte-de-ventas`).
+      // Una orden para hoy (mismo día): aquí no se bloquea; lo pregunta la pantalla (`ReprogramarOrden`, `same-day`).
       const problema = deshacer ? null : problemaAlAgendar(fecha, antes, { rol: me?.role, caso });
       if (problema) { const m = textoDelProblema(problema, me?.role); notify(lang === "es" ? m.es : m.en); return false; }
       const ok = await updateDelivery(id, { delivery_date: fecha });

@@ -26,7 +26,7 @@ import { printRouteManifest } from "@/lib/manifest";
 import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, nombresPorId, orderLabel, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
 import { agendaEnDiaPasado, AVISO_FECHA_PASADA, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
 import { maxFechaDeEntrega, problemaAlAgendar, textoDelProblema } from "@/lib/dia-de-entrega";
-import { pideConfirmarMediodia, preguntaSiEsParaHoy } from "@/lib/corte-de-ventas";
+import { pideConfirmarMismoDia, preguntaMismoDia } from "@/lib/same-day";
 import { colorDeChofer } from "@/lib/map-legend";
 import { COLOR_DE_CAMION_SIN_CHOFER, textoDelCamion } from "@/lib/tracksolid/camiones";
 import { repartoParaElMapa } from "@/lib/tracksolid/camion-del-dia";
@@ -728,8 +728,8 @@ export default function RoutesPage() {
     // Ni domingo ni un año imposible (D-658). La celda no tiene la casilla del caso especial: el aviso dice dónde está.
     const problemaDeLaFecha = problemaAlAgendar(delivery_date, actual, { rol: me?.role });
     if (problemaDeLaFecha) { const m = textoDelProblema(problemaDeLaFecha, me?.role, { sinCasilla: true }); notify(t(m.en, m.es)); return; }
-    // Ventas con el Gestor por permiso suelto, pasadas las 12, para hoy: se pregunta, no se bloquea (`corte-de-ventas`).
-    if (pideConfirmarMediodia(delivery_date, actual, { rol: me?.role }) && !(await preguntaSiEsParaHoy(confirmAction, t))) return;
+    // Con el Gestor por permiso suelto, quien no asigna y pone hoy: se pregunta, no se bloquea (`same-day`). Logística/admin, no.
+    if (pideConfirmarMismoDia(delivery_date, actual, { rol: me?.role }) && !(await preguntaMismoDia(confirmAction, t))) return;
     return updateDelivery(id, { delivery_date });
   };
 
