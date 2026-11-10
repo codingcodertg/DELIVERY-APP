@@ -37,7 +37,7 @@ export function BorradoresDeRuta({ day, t }: { day: string; t: (en: string, es: 
         🗂 {t("Drafts", "Borradores")} {abierto ? "▾" : "▸"}
       </button>
       {abierto && (
-        <div className="card" data-panel-borradores style={{ position: "absolute", zIndex: 20, marginTop: 34, minWidth: 320, maxWidth: 420, boxShadow: "0 8px 24px rgba(0,0,0,.15)" }}>
+        <div className="card" data-panel-borradores style={{ position: "absolute", zIndex: 20, marginTop: 34, minWidth: 320, maxWidth: 420 }}>
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
             <input value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={60} placeholder={t("Name (e.g. Option 1)", "Nombre (ej. Opción 1)")}
               style={{ flex: 1, minWidth: 0, fontSize: 13, padding: "7px 9px", borderRadius: 8, border: "1px solid var(--line)" }} />
