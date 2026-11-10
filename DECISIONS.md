@@ -51381,6 +51381,8 @@ Reemplaza el paso de la 270 de «adjuntar la hoja de aprobación firmada» para 
 
 **Tope duro en los DOS lados:** la app no ofrece aprobar hasta tener las dos firmas, y la base lo exige también — la RPC `warehouse_ops_set_scrap_stage` lanza si falta alguna o si ambas son de la misma persona, así que no se puede saltar. Lógica pura en `src/lib/almacen-ops/firmas.ts` (la MISMA regla que la base).
 
+**Las firmas valen para el contenido que se firmó (revisión de seguridad, 280):** un trigger borra las firmas si después se corrige el producto, el costo, las piezas, el tipo, el origen/CRMA o quién lo rompió (los `warehouse_ops_edit_scrap_*` no miran la etapa), y también se borran al deshacer una aprobación. Así no se puede aprobar con firmas que ya no reflejan el reporte: vuelve a «Pendiente de firma». Queda anotado que, como el módulo no tiene un rol «supervisor» propio, los dos espacios los firma gente con `warehouse_ops_can_manage` (control de dos personas distintas), no un rol específico por espacio; si se quiere separación estricta de roles habría que crear ese rol.
+
 **Migración 280 (`280_merma_firmas_de_aprobacion.sql`) — la aplica el dueño con `!`:** tabla `warehouse_report_signatures` (una fila por reporte+slot, el PNG como data URL, RLS de solo lectura para quien ve el reporte; se escribe solo por las RPC security-definer), + `warehouse_ops_sign_scrap` / `warehouse_ops_unsign_scrap` / la `set_scrap_stage` endurecida. La 237 no se toca.
 
 Componente nuevo `FirmaPad.tsx` (lienzo, sin dependencia nueva). Si la 280 no está aplicada, la pantalla lo nota y no ofrece firmar; la lista sigue funcionando.

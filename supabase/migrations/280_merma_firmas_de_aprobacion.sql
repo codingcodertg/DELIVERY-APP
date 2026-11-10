@@ -59,6 +59,39 @@ create policy "warehouse report signatures read" on public.warehouse_report_sign
   ));
 revoke all on public.warehouse_report_signatures from anon;
 
+-- 2b. Una firma vale para el CONTENIDO que se firmo. Si despues se corrige el producto, el costo, las piezas, el tipo,
+-- el origen/CRMA o quien lo rompio (los RPC `warehouse_ops_edit_scrap_*` no miran la etapa: corrigen una merma aunque ya
+-- este firmada), las firmas quedan obsoletas: este trigger las BORRA, asi vuelve a "pendiente de firma" y hay que volver
+-- a firmar lo nuevo antes de aprobar. Solo mira columnas de contenido firmado; los cambios de etapa (approved_at, etc.)
+-- NO disparan el borrado. Cubre cualquier via de edicion, la de hoy y la que venga.
+create or replace function public.warehouse_ops_wipe_sigs_on_edit()
+  returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if NEW.kind = 'scrap' and (
+       NEW.product_id is distinct from OLD.product_id
+    or NEW.product_name is distinct from OLD.product_name
+    or NEW.product_sku is distinct from OLD.product_sku
+    or NEW.unit_cost is distinct from OLD.unit_cost
+    or NEW.total_loss is distinct from OLD.total_loss
+    or NEW.boxes is distinct from OLD.boxes
+    or NEW.pieces_per_box is distinct from OLD.pieces_per_box
+    or NEW.loose_pieces is distinct from OLD.loose_pieces
+    or NEW.total_pieces is distinct from OLD.total_pieces
+    or NEW.damaged_pieces is distinct from OLD.damaged_pieces
+    or NEW.sample_pieces is distinct from OLD.sample_pieces
+    or NEW.scrap_type is distinct from OLD.scrap_type
+    or NEW.return_type is distinct from OLD.return_type
+    or NEW.crma is distinct from OLD.crma
+    or NEW.broken_by is distinct from OLD.broken_by
+  ) then
+    delete from public.warehouse_report_signatures where report_id = NEW.id;
+  end if;
+  return NEW;
+end $$;
+drop trigger if exists warehouse_reports_wipe_sigs on public.warehouse_reports;
+create trigger warehouse_reports_wipe_sigs after update on public.warehouse_reports
+  for each row execute function public.warehouse_ops_wipe_sigs_on_edit();
+
 -- 3. Firmar un slot
 create or replace function public.warehouse_ops_sign_scrap(p_report uuid, p_slot text, p_png text)
   returns void
@@ -191,6 +224,9 @@ begin
       approval_sheet = case when r.stage = 'approved' then null else approval_sheet end,
       edited_by = yo, edited_at = now()
     where id = p_report;
+    -- Al deshacer una aprobacion (approved -> photographed) se quitan las firmas: volver a aprobar exige firmar de nuevo,
+    -- no revivir unas firmas viejas que quiza ya no reflejan el reporte.
+    if r.stage = 'approved' then delete from public.warehouse_report_signatures where report_id = p_report; end if;
     return;
   end if;
 
@@ -253,7 +289,15 @@ begin
   if position('personas distintas' in f) = 0 or position('warehouse_ops_can_manage(r.store)' in f) = 0 then
     raise exception '280: sign_scrap no exige firmantes distintos o no revisa la puerta de gestion';
   end if;
+  -- Las firmas se invalidan si cambia el contenido (trigger) o si se deshace la aprobacion (rollback).
+  if not exists (select 1 from pg_trigger where tgname = 'warehouse_reports_wipe_sigs' and not tgisinternal) then
+    raise exception '280: falta el trigger que borra las firmas al editar el contenido firmado';
+  end if;
+  f := pg_get_functiondef('public.warehouse_ops_set_scrap_stage(uuid, text, text)'::regprocedure);
+  if position('delete from public.warehouse_report_signatures where report_id = p_report' in f) = 0 then
+    raise exception '280: al deshacer una aprobacion no se borran las firmas';
+  end if;
 end $chk$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('280_merma_firmas_de_aprobacion.sql', '6af49dde95e15c5116c974ee171169ee74da9343be39a8aa4c5708e2c4079b01') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('280_merma_firmas_de_aprobacion.sql', '7bbc1997c4cb5bb3a7cec282b35c7a5ba366ceb575d4c8753f888b64cf5e91e4') on conflict (name) do nothing;
