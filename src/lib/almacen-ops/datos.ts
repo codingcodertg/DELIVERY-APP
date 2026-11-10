@@ -8,6 +8,7 @@ import type { Quien } from "./visibilidad";
 import type { ProductoElegido, Respuestas } from "./pasos";
 import { tipoDeReparto, type Cantidades, type Reparto } from "./perdida";
 import type { Repetida } from "./fotos";
+import type { FirmaDeMerma, SlotDeFirma } from "./firmas";
 
 export const CUBO = "warehouse-ops";
 
@@ -60,6 +61,9 @@ export interface Reporte {
   adjusted_at?: string | null;
   adjusted_by?: string | null;
   adjustment_proof?: string | null;
+  /** 280: las firmas de aprobación (gerente + supervisor). En la lista vienen sin el dibujo (`signature_png`); se trae
+   * aparte para la tarjeta / el PDF. No vienen si la 280 no está aplicada. */
+  firmas?: FirmaDeMerma[] | null;
 }
 
 export interface Envio {
@@ -126,6 +130,35 @@ export function faltaLaColumna(e: { code?: string | null; message?: string | nul
 export async function cambiarEtapa(sb: SupabaseClient, reporteId: string, etapa: string, prueba: string | null = null): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_set_scrap_stage", { p_report: reporteId, p_stage: etapa, p_proof: prueba });
   if (error) throw error;
+}
+
+/**
+ * 280: firma un espacio de la merma (gerente o supervisor) con el dibujo (`data:` PNG). La base revisa que sea una
+ * merma fotografiada, que quien llama gestione esa tienda, que firme como él mismo y que las dos firmas sean de
+ * personas distintas.
+ */
+export async function firmarMerma(sb: SupabaseClient, reporteId: string, slot: SlotDeFirma, png: string): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_sign_scrap", { p_report: reporteId, p_slot: slot, p_png: png });
+  if (error) throw error;
+}
+
+/** 280: quita una firma (quien la puso, o el admin de la app), solo mientras la merma no esté aprobada. */
+export async function quitarFirma(sb: SupabaseClient, reporteId: string, slot: SlotDeFirma): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_unsign_scrap", { p_report: reporteId, p_slot: slot });
+  if (error) throw error;
+}
+
+/** 280: aprueba la merma (pasa a `approved`). La base exige las dos firmas; ya no hay hoja adjunta. */
+export async function aprobarMerma(sb: SupabaseClient, reporteId: string): Promise<void> {
+  await cambiarEtapa(sb, reporteId, "approved", null);
+}
+
+/** 280: las firmas de un reporte CON el dibujo (`signature_png`), para la tarjeta y el PDF. */
+export async function firmasDeReporte(sb: SupabaseClient, reporteId: string): Promise<FirmaDeMerma[]> {
+  const { data, error } = await sb.from("warehouse_report_signatures")
+    .select("slot, signer_id, signer_name, signed_at, signature_png").eq("report_id", reporteId);
+  if (error) { if (faltaLaMigracion(error) || faltaLaColumna(error)) return []; throw error; }
+  return (data ?? []) as FirmaDeMerma[];
 }
 
 /** Los tipos que admite el cubo para la hoja firmada y la captura (la 270 agrega el PDF). */
@@ -226,17 +259,17 @@ export const DEMO_PRODUCTOS: ProductoElegido[] = [
 ];
 const dias = (n: number) => new Date(Date.now() - n * 86400000).toISOString();
 const vacio = { damaged_pieces: null, sample_pieces: null, product_id: null, product_sku: null, product_name: null, scrap_type: null, boxes: null, pieces_per_box: null, loose_pieces: null, total_pieces: null, unit_cost: null, total_loss: null, return_type: null, reason: null, broken_by: [], crma: null, photos: [], photo_hashes: [], photo_pending: false,
-  stage: null as string | null, photographed_at: null, approved_at: null, approved_by: null, approval_sheet: null, dumped_at: null, dumped_by: null, adjusted_at: null, adjusted_by: null, adjustment_proof: null };
+  stage: null as string | null, photographed_at: null, approved_at: null, approved_by: null, approval_sheet: null, dumped_at: null, dumped_by: null, adjusted_at: null, adjusted_by: null, adjustment_proof: null, firmas: [] as FirmaDeMerma[] };
 // 268 (demo): r1 y r4 comparten una foto (misma huella) para ver la marca de «foto repetida»; r7 está guardada sin foto.
 const HUELLA_DEMO = "a".repeat(64);
 const DEMO_FOTOS = { photos: ["demo/1.jpg", "demo/2.jpg"], photo_hashes: [HUELLA_DEMO, "b".repeat(64)] };
 export const DEMO_REPORTES: Reporte[] = [
-  { ...vacio, ...DEMO_FOTOS, stage: "photographed", photographed_at: dias(0.1), id: "r1", created_at: dias(0.1), kind: "scrap", store: "McAllen", author_id: "p1", author_name: "Ana García", subject_ids: [], answers: { comments: "Pallet slid off the forks" },
+  { ...vacio, ...DEMO_FOTOS, stage: "photographed", photographed_at: dias(0.1), firmas: [{ slot: "gerente", signer_id: "demo-admin", signer_name: "Demo Admin", signed_at: dias(0.05) }], id: "r1", created_at: dias(0.1), kind: "scrap", store: "McAllen", author_id: "p1", author_name: "Ana García", subject_ids: [], answers: { comments: "Pallet slid off the forks" },
     product_id: 101, product_sku: "PORC-2448-GRY", product_name: "Porcelain 24x48 Ash Grey", scrap_type: "mixed", damaged_pieces: 5, sample_pieces: 2, boxes: 3, pieces_per_box: 2, loose_pieces: 1, total_pieces: 7, unit_cost: 9.4, total_loss: 47, return_type: "internal", reason: "forklift", broken_by: ["p2"], crma: null },
   { ...vacio, id: "r2", created_at: dias(1.3), kind: "safety", store: "McAllen", author_id: "p2", author_name: "Luis Treviño", subject_ids: ["p1"], answers: { safety_type: "ppe", description: "Loading without gloves", injured: "no" } },
   { ...vacio, id: "r3", created_at: dias(3), kind: "maintenance", store: "Edinburg", author_id: "p3", author_name: "Mario Salinas", subject_ids: [], answers: { equipment: "forklift_2", issue: "repair_needed", description: "Hydraulic leak under the mast" } },
   // 270 (demo): r4 ya fue aprobada y desechada (para ver la línea de tiempo y «ajustar»).
-  { ...vacio, photos: ["demo/3.jpg"], photo_hashes: [HUELLA_DEMO], stage: "dumped", photographed_at: dias(9), approved_at: dias(7), approved_by: "demo-admin", approval_sheet: "demo/hoja.jpg", dumped_at: dias(6), dumped_by: "demo-admin", id: "r4", created_at: dias(9), kind: "scrap", store: "Edinburg", author_id: "p3", author_name: "Mario Salinas", subject_ids: [], answers: {},
+  { ...vacio, photos: ["demo/3.jpg"], photo_hashes: [HUELLA_DEMO], stage: "dumped", photographed_at: dias(9), approved_at: dias(7), approved_by: "demo-admin", approval_sheet: null, firmas: [{ slot: "gerente", signer_id: "demo-admin", signer_name: "Demo Admin", signed_at: dias(7.1) }, { slot: "supervisor", signer_id: "p3", signer_name: "Mario Salinas", signed_at: dias(7) }], dumped_at: dias(6), dumped_by: "demo-admin", id: "r4", created_at: dias(9), kind: "scrap", store: "Edinburg", author_id: "p3", author_name: "Mario Salinas", subject_ids: [], answers: {},
     product_id: 102, product_sku: "CER-1212-WHT", product_name: "Ceramic 12x12 Matte White", scrap_type: "sample", damaged_pieces: 0, sample_pieces: 6, boxes: 0, pieces_per_box: 15, loose_pieces: 6, total_pieces: 6, unit_cost: 0.82, total_loss: 0, return_type: "customer_return", reason: "transportation", broken_by: [], crma: "CR-2291" },
   // Devolución de cliente SIN CRMA: no cuenta como pérdida hasta que el gerente le ponga el CRMA (263).
   { ...vacio, photo_pending: true, stage: "documented", id: "r7", created_at: dias(1.5), kind: "scrap", store: "Harlingen", author_id: "p4", author_name: "Rosa Peña", subject_ids: [], answers: {},

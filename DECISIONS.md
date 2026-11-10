@@ -51372,3 +51372,17 @@ Pedido del dueño (10 nov): «cuando me meto a Reports la primera página no tie
 Esto es solo la vista. La firma en la app (gerente crea+firma, supervisor firma; sin las dos firmas no se aprueba; aviso «pendiente de firma»; vista «En revisión») va en el siguiente PR, con su migración.
 
 Sello `warehouse_ops` 0.18.0; repo 1.810.0.
+
+## D-957 · Merma: aprobación con dos firmas dibujadas en la app (gerente + supervisor)
+
+Pedido del dueño (10 nov): el **gerente crea el reporte y lo firma**; el **supervisor de almacén lo ve y lo firma**. Una merma **NO se puede aprobar sin las DOS firmas**, y de **dos personas distintas**. Mientras falte una, queda «Pendiente de firma» (dice de quién falta) y aparece en la vista **«En revisión»** (= los reportes que todavía requieren firma). Las firmas (PNG dibujado con el dedo/mouse) salen en el PDF / la hoja.
+
+Reemplaza el paso de la 270 de «adjuntar la hoja de aprobación firmada» para la etapa `approved`; `adjusted` sigue igual (sube la captura del sistema). Como el módulo no tiene roles «gerente/supervisor» aparte, las dos firmas las ponen usuarios con permiso de gestionar merma (`warehouse_ops_can_manage`), en dos espacios: **Gerente** y **Supervisor**, y tienen que ser dos personas distintas.
+
+**Tope duro en los DOS lados:** la app no ofrece aprobar hasta tener las dos firmas, y la base lo exige también — la RPC `warehouse_ops_set_scrap_stage` lanza si falta alguna o si ambas son de la misma persona, así que no se puede saltar. Lógica pura en `src/lib/almacen-ops/firmas.ts` (la MISMA regla que la base).
+
+**Migración 280 (`280_merma_firmas_de_aprobacion.sql`) — la aplica el dueño con `!`:** tabla `warehouse_report_signatures` (una fila por reporte+slot, el PNG como data URL, RLS de solo lectura para quien ve el reporte; se escribe solo por las RPC security-definer), + `warehouse_ops_sign_scrap` / `warehouse_ops_unsign_scrap` / la `set_scrap_stage` endurecida. La 237 no se toca.
+
+Componente nuevo `FirmaPad.tsx` (lienzo, sin dependencia nueva). Si la 280 no está aplicada, la pantalla lo nota y no ofrece firmar; la lista sigue funcionando.
+
+Sello `warehouse_ops` 0.19.0; repo 1.811.0.

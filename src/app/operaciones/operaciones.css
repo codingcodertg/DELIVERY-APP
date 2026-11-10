@@ -361,3 +361,22 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-sugerencias .ops-opcion { text-align: left; }
 .ops-vista-previa .hint { margin-left: auto; }
 .ops-seleccion .btn { margin-left: auto; }
+
+/* Firmas de aprobación (280): el pad de firma dibujada, el aviso de pendiente y las firmas en la tarjeta. */
+.ops-firma-pad { color: var(--fg); }
+.ops-firma-canvas {
+  width: 100%; height: 160px; touch-action: none; cursor: crosshair; display: block;
+  background: var(--card); border: 1px dashed var(--line); border-radius: 10px; color: var(--fg);
+}
+.ops-firma-aviso {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+  color: var(--amber-text, var(--amber)); background: color-mix(in srgb, var(--amber) 14%, transparent);
+  border-radius: 999px; padding: 2px 10px;
+}
+.ops-firmas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+.ops-firma { border: 1px solid var(--line); border-radius: 10px; padding: 8px; min-width: 160px; background: var(--card); }
+.ops-firma figure { margin: 0; }
+.ops-firma img { max-width: 220px; max-height: 90px; display: block; background: #fff; border-radius: 6px; }
+.ops-firma figcaption { font-size: 11px; color: var(--muted, var(--fg)); margin-top: 4px; }
+.ops-firma-slot { font-size: 12px; font-weight: 700; display: block; }
+.ops-firma-vacia { border-style: dashed; color: var(--muted, var(--fg)); display: flex; align-items: center; min-height: 72px; }

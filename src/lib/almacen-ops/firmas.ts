@@ -1,0 +1,114 @@
+/**
+ * Operaciones de almacén — firmas de aprobación de merma (D-9xx, migración 280).
+ *
+ * El dueño (10 nov): el gerente crea el reporte y lo firma; el supervisor lo revisa y lo firma. Una merma NO se puede
+ * aprobar sin las DOS firmas, y de dos personas distintas. Mientras falte una, queda «pendiente de firma» y sale en la
+ * vista «En revisión». Esta es la regla PURA (sin React, sin red); la MISMA que exige la base en `warehouse_ops_set_scrap_stage`
+ * y `warehouse_ops_sign_scrap` (280). La base es la que manda; esto decide qué ofrecer y qué avisar.
+ */
+import type { Etapa, FilaConEtapa, Lang } from "./etapas";
+import { etapaDe } from "./etapas";
+
+/** Los dos espacios de firma de una merma, en orden (primero el gerente, luego el supervisor). */
+export const SLOTS_DE_FIRMA = ["gerente", "supervisor"] as const;
+export type SlotDeFirma = (typeof SLOTS_DE_FIRMA)[number];
+
+export function esSlotDeFirma(v: unknown): v is SlotDeFirma {
+  return typeof v === "string" && (SLOTS_DE_FIRMA as readonly string[]).includes(v);
+}
+
+/** Una firma guardada. `signature_png` (el dibujo) puede NO venir en la lista (se trae aparte para el PDF/tarjeta). */
+export interface FirmaDeMerma {
+  slot: SlotDeFirma;
+  signer_id: string | null;
+  signer_name: string | null;
+  signed_at: string;
+  signature_png?: string | null;
+}
+
+export const ETIQUETA_DE_SLOT: Record<SlotDeFirma, { en: string; es: string }> = {
+  gerente: { en: "Manager", es: "Gerente" },
+  supervisor: { en: "Supervisor", es: "Supervisor" },
+};
+
+export function nombreDeSlot(slot: SlotDeFirma, lang: Lang): string {
+  return lang === "es" ? ETIQUETA_DE_SLOT[slot].es : ETIQUETA_DE_SLOT[slot].en;
+}
+
+/** La firma de un slot (o undefined si ese espacio sigue en blanco). */
+export function firmaDe(firmas: readonly FirmaDeMerma[] | null | undefined, slot: SlotDeFirma): FirmaDeMerma | undefined {
+  return (firmas ?? []).find((f) => f.slot === slot);
+}
+
+/** ¿Está firmado ese slot? */
+export function slotFirmado(firmas: readonly FirmaDeMerma[] | null | undefined, slot: SlotDeFirma): boolean {
+  return !!firmaDe(firmas, slot);
+}
+
+/** Los slots que todavía faltan por firmar, en orden (gerente primero). */
+export function firmasFaltantes(firmas: readonly FirmaDeMerma[] | null | undefined): SlotDeFirma[] {
+  return SLOTS_DE_FIRMA.filter((s) => !slotFirmado(firmas, s));
+}
+
+/** ¿Están las DOS firmas y son de personas DISTINTAS? (la misma regla que la base para aprobar). */
+export function tieneAmbasFirmas(firmas: readonly FirmaDeMerma[] | null | undefined): boolean {
+  const g = firmaDe(firmas, "gerente");
+  const s = firmaDe(firmas, "supervisor");
+  if (!g || !s) return false;
+  // Dos personas distintas: si por lo que sea faltara el id, no se da por bueno.
+  return !!g.signer_id && !!s.signer_id && g.signer_id !== s.signer_id;
+}
+
+/**
+ * ¿Puede ESTA persona firmar ese slot? El slot está libre (o es su propia firma), no firmó ya el OTRO slot (dos
+ * personas distintas) y puede gestionar (eso lo decide quien llama con `puedeCorregirMerma`/`puedeCambiarEtapa`, no aquí).
+ */
+export function puedeFirmarSlot(firmas: readonly FirmaDeMerma[] | null | undefined, slot: SlotDeFirma, yoId: string): boolean {
+  const propia = firmaDe(firmas, slot);
+  if (propia && propia.signer_id && propia.signer_id !== yoId) return false; // ya la firmó otra persona
+  const otro = firmaDe(firmas, slot === "gerente" ? "supervisor" : "gerente");
+  if (otro && otro.signer_id === yoId) return false; // ya firmó el otro espacio
+  return true;
+}
+
+/**
+ * ¿Esta merma REQUIERE firma (está «En revisión»)? Es una merma ya fotografiada (lista para aprobar) a la que le falta
+ * una de las dos firmas. Una documentada (sin foto) aún no entra; una aprobada/desechada/ajustada ya salió.
+ */
+export function requiereFirma(r: FilaConEtapa & { firmas?: readonly FirmaDeMerma[] | null }): boolean {
+  if (r.kind !== "scrap") return false;
+  return etapaDe(r) === "photographed" && !tieneAmbasFirmas(r.firmas);
+}
+
+/** ¿Se puede aprobar ya? Fotografiada y con las dos firmas distintas. (La base lo vuelve a exigir.) */
+export function puedeAprobar(r: FilaConEtapa & { firmas?: readonly FirmaDeMerma[] | null }): boolean {
+  if (r.kind !== "scrap") return false;
+  return etapaDe(r) === "photographed" && tieneAmbasFirmas(r.firmas);
+}
+
+/** El aviso «Pendiente: firma del …» para la lista y la tarjeta. null si no aplica (no es merma, o ya tiene las dos). */
+export function mensajePendienteDeFirma(
+  r: FilaConEtapa & { firmas?: readonly FirmaDeMerma[] | null },
+  lang: Lang,
+): string | null {
+  if (!requiereFirma(r)) return null;
+  const faltan = firmasFaltantes(r.firmas);
+  const nombres = faltan.map((s) => nombreDeSlot(s, lang));
+  if (lang === "es") {
+    return faltan.length === 2 ? "Pendiente de firma (gerente y supervisor)" : `Pendiente: firma del ${nombres[0].toLowerCase()}`;
+  }
+  return faltan.length === 2 ? "Pending signature (manager and supervisor)" : `Pending: ${nombres[0].toLowerCase()} signature`;
+}
+
+/** Valida que un dibujo de firma sea un data URL de imagen no vacío (lo que acepta la base). */
+export function firmaValida(png: string | null | undefined): png is string {
+  return typeof png === "string" && png.trim().length > 0 && png.startsWith("data:image/");
+}
+
+/** Para la vista «En revisión»: filtra las mermas que aún requieren firma. */
+export function soloEnRevision<T extends FilaConEtapa & { firmas?: readonly FirmaDeMerma[] | null }>(filas: readonly T[]): T[] {
+  return filas.filter((r) => requiereFirma(r));
+}
+
+/** La etapa objetivo al firmar/aprobar: siempre `approved` (lo demás no se firma). Útil para el gate de la pantalla. */
+export const ETAPA_AL_APROBAR: Etapa = "approved";

@@ -28,7 +28,10 @@ import { KpiDeEntregas } from "./KpiDeEntregas";
 import type { Contexto } from "./Operaciones";
 
 const LIMITE = 500;
-type Pestana = "lista" | "merma" | "entregas";
+type Pestana = "lista" | "merma" | "entregas" | "revision";
+// La fila cruda de PostgREST: como `Reporte`, pero `answers` puede traer claves extra (p. ej. `broken_on` antes de la
+// 266) y las firmas vienen embebidas. Se mapea a `Reporte` al leer. 280.
+type ReporteCrudo = Omit<Reporte, "answers"> & { answers: Reporte["answers"] & Record<string, unknown> };
 
 /**
  * «Mis reportes» y «Reportes» (D-883, 247). Las filas son las que la RLS deja ver; «Mis reportes» además se queda con
@@ -46,7 +49,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const hoy = hoyEnTexas();
   // KPI de entregas (Roberto, fase 1): tercera pestaña, «Entregas», con el mismo selector de rango que la merma.
   const pedida = params.get("pestana");
-  const pestana: Pestana = modo === "todos" && (pedida === "merma" || pedida === "entregas") ? pedida : "lista";
+  const pestana: Pestana = modo === "todos" && (pedida === "merma" || pedida === "entregas" || pedida === "revision") ? pedida : "lista";
   const eleccion = useMemo(() => eleccionDeUrl(params), [params]);
   const irA = useCallback((cambios: { pestana?: Pestana; eleccion?: Eleccion }) => {
     const q = new URLSearchParams();
@@ -77,11 +80,22 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     (async () => {
       // 266: la merma se ordena por el día en que se rompió; lo demás, por el día en que se reportó.
       if (ctx.demo) { setFilas(ordenPorDia(DEMO_REPORTES.filter((r) => puedeVerReporte(ctx.yo, r)))); return; }
-      let q = createClient().from("warehouse_reports").select("*").order("created_at", { ascending: false }).limit(LIMITE);
-      if (modo === "mios") q = q.eq("author_id", ctx.yo.id);
-      const { data, error: e } = await q;
+      // 280: traemos las firmas de aprobación embebidas (sin el dibujo, para la lista). Si la 280 no está aplicada, la
+      // relación no existe y PostgREST falla: se reintenta con `select("*")` a secas, y la pantalla sigue sin firmas.
+      const sb = createClient();
+      const EMBED = "*, firmas:warehouse_report_signatures(slot, signer_id, signer_name, signed_at)";
+      const arma = async (cols: string): Promise<{ data: ReporteCrudo[] | null; error: { code?: string | null; message?: string | null } | null }> => {
+        let q = sb.from("warehouse_reports").select(cols).order("created_at", { ascending: false }).limit(LIMITE);
+        if (modo === "mios") q = q.eq("author_id", ctx.yo.id);
+        const res = await q;
+        return { data: res.data as unknown as ReporteCrudo[] | null, error: res.error };
+      };
+      let { data, error: e } = await arma(EMBED);
+      if (e && /warehouse_report_signatures|relationship|schema cache|PGRST200/i.test(`${e.code ?? ""} ${e.message ?? ""}`)) {
+        ({ data, error: e } = await arma("*"));
+      }
       if (!vivo) return;
-      if (e) { setError(e.message); setFilas([]); return; }
+      if (e) { setError(e.message ?? "error"); setFilas([]); return; }
       setFilas(ordenPorDia((data ?? []).map((r) => ({ ...r, unit_cost: r.unit_cost == null ? null : Number(r.unit_cost), total_loss: r.total_loss == null ? null : Number(r.total_loss),
         // Hasta que se aplique la 266 la fecha del daño viaja dentro de `answers`; después, en su columna.
         broken_on: r.broken_on ?? (typeof r.answers?.broken_on === "string" ? r.answers.broken_on : null) })) as Reporte[]));
