@@ -14,6 +14,7 @@ import {
   GRUPOS_DE_PERMISOS, PERFILES_DE_ROL, ROL_POR_DEFECTO, columnaDeRol, etiquetaDeRol, opcionesDeRol, tieneRolPropio, type PerfilDeRol,
 } from "@/lib/security/permisos-grupos";
 import { type VivoDeUsuario } from "@/lib/security/vivo-de-usuarios";
+import { normalizaTienda, tiendasMarcadas } from "@/lib/visibilidad-tienda";
 import type { Profile, UserRole } from "@/lib/types";
 
 export type { VivoDeUsuario };
@@ -196,6 +197,7 @@ function Cuerpo({ vivo }: { vivo: Record<string, VivoDeUsuario> }) {
                 onRolApp={(k, r) => void corre(() => cambiaRol(actual, k, r))}
                 onRolDeliveries={(r) => void corre(() => hub.updateUserRole(actual.id, r))}
                 onStore={(s) => void corre(() => hub.updateUserStore(actual.id, s))}
+                onVisibleStores={(ss) => void corre(() => hub.updateUserVisibleStores(actual.id, ss))}
                 onPerfil={(p) => { if (window.confirm(t(`Apply the "${lang === "es" ? p.label_es : p.label_en}" profile to ${actual.full_name}? It sets the role and grants that profile's apps.`, `¿Aplicar el perfil «${p.label_es}» a ${actual.full_name}? Pone el rol y concede las apps de ese perfil.`))) void corre(async () => { await aplicaPerfil(actual, p); notify(t(`Applied: ${p.label_en}.`, `Aplicado: ${p.label_es}.`)); }); }}
                 onDarLosOcho={() => void corre(async () => { const grant = MODULOS_DE_GERENTE.filter((k) => !tieneModulo(actual, k)); if (grant.length) { const { ok } = await hub.updateUserModules(actual.id, { grant }); notify(ok ? t("Done: the 8 manager modules.", "Hecho: los 8 de gerente.") : t("Could not save.", "No se pudo guardar.")); } })}
               />
@@ -210,13 +212,14 @@ function Cuerpo({ vivo }: { vivo: Record<string, VivoDeUsuario> }) {
   );
 }
 
-function Detalle({ u, vivo, lang, t, ocupado, esAdmin, tiendas, rolDeApp, onModulo, onRolApp, onRolDeliveries, onStore, onPerfil, onDarLosOcho }: {
+function Detalle({ u, vivo, lang, t, ocupado, esAdmin, tiendas, rolDeApp, onModulo, onRolApp, onRolDeliveries, onStore, onVisibleStores, onPerfil, onDarLosOcho }: {
   u: Profile; vivo: VivoDeUsuario | undefined; lang: "en" | "es"; t: (en: string, es: string) => string; ocupado: boolean; esAdmin: boolean; tiendas: string[];
   rolDeApp: (u: Profile, key: ModuleAccessKey) => string | null;
   onModulo: (key: ModuleAccessKey, on: boolean) => void; onRolApp: (key: ModuleAccessKey, role: string) => void;
-  onRolDeliveries: (role: UserRole) => void; onStore: (store: string | null) => void; onPerfil: (perfil: PerfilDeRol) => void; onDarLosOcho: () => void;
+  onRolDeliveries: (role: UserRole) => void; onStore: (store: string | null) => void; onVisibleStores: (stores: string[]) => void; onPerfil: (perfil: PerfilDeRol) => void; onDarLosOcho: () => void;
 }) {
   const on = !!vivo?.online;
+  const marcadas = tiendasMarcadas(u);
   return (
     <>
       <div className="perm-dhead">
@@ -244,11 +247,31 @@ function Detalle({ u, vivo, lang, t, ocupado, esAdmin, tiendas, rolDeApp, onModu
           </select>
         </div>
         <div className="perm-field">
-          <label>{t("Store", "Tienda")}</label>
+          <label>{t("Home store", "Tienda base")}</label>
           <select className="perm-mrole" style={{ maxWidth: "none" }} value={u.store ?? ""} disabled={ocupado} data-campo="tienda" onChange={(e) => onStore(e.target.value || null)}>
             <option value="">{t("All / none", "Todas / ninguna")}</option>
             {tiendas.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
+        </div>
+        {/* D-948: las ubicaciones que ve, dropdown de opción múltiple (vacío = todas). Para supervisores de varias tiendas. */}
+        <div className="perm-field">
+          <label>{t("Stores this person sees", "Ubicaciones que ve")}</label>
+          <details className="perm-multi" data-campo="tiendas-ve">
+            <summary>{marcadas.length === 0 ? t("All stores", "Todas las tiendas") : `${marcadas.length} ${t("stores", "tiendas")}`}</summary>
+            <div className="perm-multi-list">
+              {tiendas.map((s) => {
+                const puesta = marcadas.some((n) => normalizaTienda(n) === normalizaTienda(s));
+                return (
+                  <label key={s} className="perm-check">
+                    <input type="checkbox" checked={puesta} disabled={ocupado}
+                      onChange={(e) => onVisibleStores(e.target.checked ? [...marcadas, s] : marcadas.filter((n) => normalizaTienda(n) !== normalizaTienda(s)))} />
+                    <span>{s}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </details>
+          <div className="hint" style={{ margin: "4px 0 0" }}>{marcadas.length === 0 ? t("Empty = every store.", "Vacío = todas las tiendas.") : t("Only the checked ones.", "Solo las marcadas.")}</div>
         </div>
       </div>
 
