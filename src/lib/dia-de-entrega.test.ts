@@ -218,7 +218,8 @@ describe("todos los sitios que escriben delivery_date usan la regla", () => {
   it("la ficha: los dos selectores llevan `max` y el aviso con la casilla; duplicar no nace en domingo", () => {
     expect(modal.split("min={minFechaDeEntrega()} max={maxFechaDeEntrega()} />").length - 1).toBe(2);
     expect(modal.split("<AvisoDeFecha fecha={d.delivery_date} actual={existing?.delivery_date} rol={me.role} caso={casoDomingo} onCaso={setCasoDomingo} t={t} />").length - 1).toBe(2);
-    expect(modal).toContain("borradorDuplicado(existing, saltaDomingo(todayISO()))");
+    // Duplicar nace para mañana (`fechaPorDefectoManana`, que salta el domingo), como toda orden nueva (same-day).
+    expect(modal).toContain("borradorDuplicado(existing, fechaPorDefectoManana())");
   });
   it("«📅 Reprogramar»: el cuadro no se enciende con domingo sin caso especial y manda la casilla", () => {
     const cuadro = leer("src/components/ReprogramarOrden.tsx");

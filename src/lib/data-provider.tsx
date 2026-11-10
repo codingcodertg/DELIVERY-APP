@@ -1815,7 +1815,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       const problema = deshacer ? null : problemaAlAgendar(fecha, antes, { rol: me?.role, caso });
       // Ni domingo sin el caso especial ni un año imposible (D-658). Aquí pasan el 📅 de cada fila y «Reprogramar a …»
       // de Recomendaciones: un solo sitio para los dos. La función de la base (173) no lo mira.
-      // Ventas, pasadas las 12, para hoy: aquí ya no se bloquea; lo pregunta la pantalla (`ReprogramarOrden`, `corte-de-ventas`).
+      // Una orden para hoy (mismo día): aquí no se bloquea; lo pregunta la pantalla (`ReprogramarOrden`, `same-day`).
       if (problema) { const m = textoDelProblema(problema, me?.role); notify(lang === "es" ? m.es : m.en); return false; }
       // Si la 172 la sacó de la ruta, la devuelve con su chofer y su posición (el guard decide si este rol puede).
       // Solo en el camino de la base: el de respaldo (y el modo enseñanza) no pasa por la 172 y no le quita el chofer.

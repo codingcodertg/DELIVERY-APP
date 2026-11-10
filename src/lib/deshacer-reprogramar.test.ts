@@ -37,12 +37,12 @@ describe("«Deshacer» en el aviso de reprogramar (D-861)", () => {
     expect(MS_AVISO_CON_DESHACER).toBeGreaterThanOrEqual(8000);
   });
 
-  it("el cuadro 📅 lo ofrece y deshace por la misma función, sin la pregunta del mediodía (D-848)", () => {
+  it("el cuadro 📅 lo ofrece y deshace por la misma función, sin la pregunta de mismo día (D-848)", () => {
     const c = leer("src/components/ReprogramarOrden.tsx");
     expect(c).toContain("const foto = fotoAntesDeReprogramar(pedido);");
     expect(c).toContain("reprogramarOrden(foto.id, foto.delivery_date, notaDeDeshacer(lang), lang, undefined, { deshacer: foto })");
     const deshacer = c.slice(c.indexOf("const deshacer = async"), c.indexOf("notify(t(`Rescheduled to"));
-    expect(deshacer).not.toContain("preguntaSiEsParaHoy");
+    expect(deshacer).not.toContain("preguntaMismoDia");
     expect(c).toContain("`Deshecho: vuelve a ${foto.delivery_date}`");
   });
 

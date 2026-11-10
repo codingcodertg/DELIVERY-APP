@@ -1,7 +1,7 @@
 import {
   cambiaLaFecha, esDomingo, problemaDeFecha, puedeAutorizarDomingo, textoDelProblema, type CasoEspecial,
 } from "@/lib/dia-de-entrega";
-import { AVISO_CORTE_VENTAS, pideConfirmarMediodia } from "@/lib/corte-de-ventas";
+import { AVISO_MISMO_DIA, pideConfirmarMismoDia } from "@/lib/same-day";
 
 /**
  * El aviso debajo de un selector de fecha de entrega (D-658): «Los domingos no hay entregas» y, para oficina, gerente
@@ -12,8 +12,9 @@ import { AVISO_CORTE_VENTAS, pideConfirmarMediodia } from "@/lib/corte-de-ventas
  * Sin estado propio: la casilla y el motivo los guarda quien lo monta, que es quien escribe la fecha y la nota.
  * Solo sale cuando la fecha es nueva o cambia, como el tope al guardar.
  *
- * Y a ventas, pasadas las 12 del mediodía en Texas, una fecha de hoy trae aquí mismo un consejo (en ámbar, sin casilla):
- * que se asegure de que es para hoy. No bloquea; al guardar se le pregunta una vez (`corte-de-ventas`).
+ * Y a quien no asigna (todos menos logística y admin), una fecha de HOY trae aquí mismo un consejo (en ámbar, sin
+ * casilla): que contacte a logística, porque a última hora quizá se reprograme. No bloquea; al guardar se le pregunta
+ * una vez (`same-day`).
  */
 export function AvisoDeFecha({ fecha, actual, rol, caso, onCaso, t, hoy, ahora }: {
   fecha: string | null | undefined;
@@ -30,11 +31,11 @@ export function AvisoDeFecha({ fecha, actual, rol, caso, onCaso, t, hoy, ahora }
   if (!cambiaLaFecha(fecha, actual)) return null;
   const imposible = problemaDeFecha(fecha, { hoy }) === "fecha_imposible";
   // El año imposible y el domingo se dicen antes: tienen su propio aviso (y el domingo, su casilla).
-  if (!imposible && !esDomingo(fecha) && pideConfirmarMediodia(fecha, actual, { rol, ahora })) {
+  if (!imposible && !esDomingo(fecha) && pideConfirmarMismoDia(fecha, actual, { rol, ahora })) {
     return (
-      <div data-aviso-fecha="corte-ventas" role="status"
+      <div data-aviso-fecha="mismo-dia" role="status"
         style={{ margin: "6px 0 12px", padding: "10px 12px", borderRadius: 8, background: "var(--amber-soft)", border: "1px solid var(--amber)", fontSize: 13, minWidth: 0 }}>
-        <div style={{ fontWeight: 700 }}>🕛 {t(AVISO_CORTE_VENTAS.en, AVISO_CORTE_VENTAS.es)}</div>
+        <div style={{ fontWeight: 700 }}>⚠️ {t(AVISO_MISMO_DIA.en, AVISO_MISMO_DIA.es)}</div>
       </div>
     );
   }

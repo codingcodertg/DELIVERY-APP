@@ -28,8 +28,8 @@ import { esRolQuePide, puedeDecidirSolicitudes } from "@/lib/solicitud-de-asigna
 import { facturaNuevaAlEditar, notaAlJuntar, ofreceJuntar, parcheAlJuntar, puedeJuntarEn } from "@/lib/juntar-intertienda";
 import { useJuntarExistente } from "@/components/PreguntaJuntarExistente";
 import { agendaEnDiaPasado, AVISO_FECHA_PASADA, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
-import { pideConfirmarMediodia, preguntaSiEsParaHoy } from "@/lib/corte-de-ventas";
-import { maxFechaDeEntrega, notaDeDomingo, problemaAlAgendar, saltaDomingo, SIN_CASO_ESPECIAL, textoDelProblema, usaCasoEspecial, type CasoEspecial } from "@/lib/dia-de-entrega";
+import { pideConfirmarMismoDia, preguntaMismoDia, fechaPorDefectoManana } from "@/lib/same-day";
+import { maxFechaDeEntrega, notaDeDomingo, problemaAlAgendar, SIN_CASO_ESPECIAL, textoDelProblema, usaCasoEspecial, type CasoEspecial } from "@/lib/dia-de-entrega";
 import { AvisoDeFecha } from "@/components/AvisoDeFecha";
 import { alcanceDeEdicion, parcheSoloFecha, type AlcanceDeEdicion } from "@/lib/edicion-de-ventas";
 import { avisoDeFacturaEnOtraOrden, escrituraDeAgregarMaterial, facturasDeLaOrden, MAX_LARGO_FACTURA, notaDeAgregarMaterial, problemaDeFactura } from "@/lib/agregar-material";
@@ -622,7 +622,9 @@ export function OrderModal({
     defaultedRef.current = true;
     // `borradorInicial` (D-276): the rep's store as Sold From, except when that would make a store
     // move go to its own store — which is exactly what office roles got, by default, until then.
-    setD((p) => borradorInicial(p, contextoDelUsuario));
+    // Y la fecha por defecto: MAÑANA, siempre (el dueño, 2026-11-10, `same-day`). Si la ponen para hoy, al guardar se
+    // pregunta. Se calcula al abrir (no al cargar el módulo) y nunca pisa una fecha que ya traiga el borrador.
+    setD((p) => { const b = borradorInicial(p, contextoDelUsuario); return b.delivery_date ? b : { ...b, delivery_date: fechaPorDefectoManana() }; });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNew, settings.order_types.length, me.role]);
 
@@ -659,10 +661,10 @@ export function OrderModal({
   };
   /**
    * Ventas, pasadas las 12 en Texas, poniendo HOY (o mandando a programar para hoy, `agenda`): se le pregunta UNA vez por
-   * guardado «¿Seguro que esta orden es para hoy?» (`corte-de-ventas`; D-845 ya no bloquea). `false` = «Cambiar fecha».
+   * guardado «¿Seguro? contacta a logística» (`same-day`; no bloquea). `false` = «Cambiar fecha». Logística/admin, exentos.
    */
-  const siguePorMediodia = async (nueva: string | null | undefined, { agenda = false }: { agenda?: boolean } = {}): Promise<boolean> =>
-    !pideConfirmarMediodia(nueva, existing?.delivery_date, { rol: me.role, agenda }) || preguntaSiEsParaHoy(confirmAction, t);
+  const sigueParaHoy = async (nueva: string | null | undefined, { agenda = false }: { agenda?: boolean } = {}): Promise<boolean> =>
+    !pideConfirmarMismoDia(nueva, existing?.delivery_date, { rol: me.role, agenda }) || preguntaMismoDia(confirmAction, t);
   /** Tras guardar una fecha en domingo con el caso especial: la nota en el historial de la orden (D-658). */
   const anotaDomingo = async (id: string, nueva: string | null | undefined, actual: string | null | undefined) => {
     if (usaCasoEspecial(nueva, actual, { rol: me.role, caso: casoDomingo })) await addNote(id, notaDeDomingo(me.full_name, casoDomingo.motivo, lang));
@@ -676,8 +678,8 @@ export function OrderModal({
     if (agendaEnDiaPasado(draft.delivery_date, existing?.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return false; }
     // Ni domingo (salvo el caso especial de la oficina) ni un año imposible (D-658). Tope duro, sin «¿continuar?».
     if (fechaNoVale(draft.delivery_date)) return false;
-    // Ventas, pasadas las 12, para hoy: «¿Seguro que esta orden es para hoy?» (`corte-de-ventas`). Una vez por envío.
-    if (!(await siguePorMediodia(draft.delivery_date))) return false;
+    // Para hoy (mismo día), quien no asigna: «¿Seguro? contacta a logística» (`same-day`). Una vez por envío.
+    if (!(await sigueParaHoy(draft.delivery_date))) return false;
     // La tarifa mínima de la tienda, para ventas (D-546). Tope duro, sin «¿continuar?»: es lo que el dueño quitó.
     const bajoMinimo = bloqueoPorTarifaMinima({ rol: me.role, tienda: draft.store, tiendas: settings.stores, tipo: draft.order_type, reglas: settings.order_type_rules, tarifa: draft.delivery_fee });
     if (bajoMinimo) { const m = textoTarifaMinima(bajoMinimo); notify(t(m.en, m.es)); return false; }
@@ -850,7 +852,7 @@ export function OrderModal({
       if (!d.delivery_date) { notify(t("Pick a delivery date.", "Elija una fecha de entrega.")); return; }
       if (agendaEnDiaPasado(d.delivery_date, existing!.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
       if (fechaNoVale(d.delivery_date)) return;
-      if (!(await siguePorMediodia(d.delivery_date))) return;
+      if (!(await sigueParaHoy(d.delivery_date))) return;
       setBusy(true);
       const ok = await updateDelivery(existing!.id, parcheSoloFecha(d));
       if (ok) await anotaDomingo(existing!.id, d.delivery_date, existing!.delivery_date);
@@ -878,7 +880,7 @@ export function OrderModal({
     // imposible (D-658): enviarlo después no vuelve a escribir la fecha.
     if ((payload.stage ?? "draft") === "draft" && agendaEnDiaPasado(payload.delivery_date, existing?.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
     if ((payload.stage ?? "draft") === "draft" && fechaNoVale(payload.delivery_date)) return;
-    if ((payload.stage ?? "draft") === "draft" && !(await siguePorMediodia(payload.delivery_date))) return;
+    if ((payload.stage ?? "draft") === "draft" && !(await sigueParaHoy(payload.delivery_date))) return;
     // Completas y dentro de la región, también en un borrador (D-589). Con `busy`: puede ir a buscar el punto.
     setBusy(true);
     const direcciones = await direccionesValidas(payload);
@@ -1110,8 +1112,8 @@ export function OrderModal({
     // Un borrador guardado ANTES de D-589 puede llevar la dirección a medias: no sale del borrador así.
     if (esEnvioDeBorrador(existing.stage, to) && !direccionesCompletasDe(existing)) return;
     // Enviar un borrador o reenviar una rechazada (`esEnvioDeBorrador` cubre las dos) AGENDA aunque no se toque la fecha:
-    // ventas, pasadas las 12 en Texas, con la fecha de hoy, confirma que es para hoy (`corte-de-ventas`).
-    if (esEnvioDeBorrador(existing.stage, to) && !(await siguePorMediodia(existing.delivery_date, { agenda: true }))) return;
+    // enviar a programar una orden con fecha de hoy, quien no asigna: confirma que es para hoy (`same-day`).
+    if (esEnvioDeBorrador(existing.stage, to) && !(await sigueParaHoy(existing.delivery_date, { agenda: true }))) return;
     // Enviar un borrador que iba a aprobarse solo: hora y cupo se miran de nuevo al pulsar (D-639). Si alguno salta,
     // va a aprobación con el motivo, que se apunta en el historial y le llega a la oficina en el aviso.
     if (esEnvioDeBorrador(existing.stage, to) && to === "approved") {
@@ -1679,7 +1681,7 @@ export function OrderModal({
   // en `lib/order-duplicate` (D-286), que es donde se puede leer y probar.
   const duplicate = async () => {
     if (!existing) return;
-    const payload: Draft = borradorDuplicado(existing, saltaDomingo(todayISO()));
+    const payload: Draft = borradorDuplicado(existing, fechaPorDefectoManana());
     // El PO y el SO se copian a propósito, así que la copia puede chocar con una orden que ya existe:
     // misma cuenta, misma fecha y mismo PO. Se avisa ANTES de crearla y se deja seguir, como el aviso
     // de factura duplicada. No se mete en `passesChecks`: ese camino es el de enviar, y esto es crear.
