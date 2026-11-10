@@ -23,10 +23,10 @@ describe("grupos de aprobación de merma", () => {
     expect(puedeAprobarGrupo(g)).toBe(false);
   });
 
-  it("dos firmas de la MISMA persona: no basta", () => {
+  it("283: dos firmas de la MISMA persona ya bastan", () => {
     const g = grupo({ firmas: [firma("gerente", "a"), firma("supervisor", "a")] });
-    expect(puedeAprobarGrupo(g)).toBe(false);
-    expect(grupoRequiereFirma(g)).toBe(true);
+    expect(puedeAprobarGrupo(g)).toBe(true);
+    expect(grupoRequiereFirma(g)).toBe(false);
   });
 
   it("dos firmas de personas distintas: se puede aprobar", () => {
