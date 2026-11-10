@@ -11,7 +11,7 @@ import {
   MODULOS_DE_GERENTE, colorDeRol, etiquetaDeModulo, planDarLosOcho, tieneModulo,
 } from "@/lib/hub-usuarios-permisos";
 import {
-  GRUPOS_DE_PERMISOS, ROL_POR_DEFECTO, columnaDeRol, etiquetaDeRol, opcionesDeRol, tieneRolPropio,
+  GRUPOS_DE_PERMISOS, PERFILES_DE_ROL, ROL_POR_DEFECTO, columnaDeRol, etiquetaDeRol, opcionesDeRol, tieneRolPropio, type PerfilDeRol,
 } from "@/lib/security/permisos-grupos";
 import { type VivoDeUsuario } from "@/lib/security/vivo-de-usuarios";
 import type { Profile, UserRole } from "@/lib/types";
@@ -70,7 +70,8 @@ export function PanelDePermisos({ hub }: { hub: Profile | null }) {
 function Cuerpo({ vivo }: { vivo: Record<string, VivoDeUsuario> }) {
   const { t, lang } = usePrefs();
   const hub = useHub();
-  const { ready, users, notify } = hub;
+  const { ready, users, notify, settings } = hub;
+  const tiendas = useMemo(() => (settings?.stores ?? []).map((s) => s.name), [settings]);
   const [vista, setVista] = useState<"persona" | "matriz">("persona");
   const [sel, setSel] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -112,6 +113,25 @@ function Cuerpo({ vivo }: { vivo: Record<string, VivoDeUsuario> }) {
     else if (key === "timetracker") await hub.updateUserTimetrackerAccess(u.id, { granted: true, timetracker_role: role });
     else if (key === "erp") await hub.updateUserErpAccess(u.id, { granted: true, erp_role: role });
     else if (key === "warehouse_ops") await hub.updateUserWarehouseOpsRole(u.id, role);
+  }
+
+  /** Concede UN módulo (sin el candado de admin de toggleModulo): lo usa «aplicar perfil». */
+  async function concede(u: Profile, key: ModuleAccessKey) {
+    if (key === "deliveries") { await hub.updateUserModules(u.id, { grant: ["deliveries"] }); return; }
+    if (!tieneRolPropio(key)) { await hub.updateUserModules(u.id, { grant: [key] }); return; }
+    const def = ROL_POR_DEFECTO[key] ?? opcionesDeRol(key)[0] ?? null;
+    if (key === "recruiting") await hub.updateUserRecruitingAccess(u.id, { granted: true, recruiting_role: rolDeApp(u, key) ?? def });
+    else if (key === "timetracker") await hub.updateUserTimetrackerAccess(u.id, { granted: true, timetracker_role: rolDeApp(u, key) ?? def });
+    else if (key === "erp") await hub.updateUserErpAccess(u.id, { granted: true, erp_role: rolDeApp(u, key) ?? def });
+    else if (key === "warehouse_ops") { await hub.updateUserWarehouseOpsAccess(u.id, { granted: true }); if (!rolDeApp(u, key) && def) await hub.updateUserWarehouseOpsRole(u.id, def); }
+  }
+
+  /** «Aplicar perfil de rol» (D-947): pone el rol de Entregas y concede su juego de módulos; algunos suman una capacidad
+   *  (Supervisor regional = ve todas las tiendas). Aditivo: no le quita a la persona lo que ya tenía de más. */
+  async function aplicaPerfil(u: Profile, perfil: PerfilDeRol) {
+    await hub.updateUserRole(u.id, perfil.role);
+    for (const k of perfil.modules) await concede(u, k);
+    if (perfil.caps.length) await hub.updateUserPermissions(u.id, [...new Set([...(u.permissions ?? []), ...perfil.caps])]);
   }
 
   const rolDeApp = (u: Profile, key: ModuleAccessKey): string | null => {
@@ -170,11 +190,13 @@ function Cuerpo({ vivo }: { vivo: Record<string, VivoDeUsuario> }) {
           {/* Detalle */}
           <div className="perm-detail">
             {!actual ? <div className="hint" style={{ padding: 16 }}>{t("Pick a person.", "Elige una persona.")}</div> : (
-              <Detalle u={actual} vivo={vivo[actual.id]} lang={lang} t={t} ocupado={ocupado}
+              <Detalle u={actual} vivo={vivo[actual.id]} lang={lang} t={t} ocupado={ocupado} tiendas={tiendas}
                 esAdmin={actual.role === "admin"} rolDeApp={rolDeApp}
                 onModulo={(k, on) => void corre(() => toggleModulo(actual, k, on))}
                 onRolApp={(k, r) => void corre(() => cambiaRol(actual, k, r))}
                 onRolDeliveries={(r) => void corre(() => hub.updateUserRole(actual.id, r))}
+                onStore={(s) => void corre(() => hub.updateUserStore(actual.id, s))}
+                onPerfil={(p) => { if (window.confirm(t(`Apply the "${lang === "es" ? p.label_es : p.label_en}" profile to ${actual.full_name}? It sets the role and grants that profile's apps.`, `¿Aplicar el perfil «${p.label_es}» a ${actual.full_name}? Pone el rol y concede las apps de ese perfil.`))) void corre(async () => { await aplicaPerfil(actual, p); notify(t(`Applied: ${p.label_en}.`, `Aplicado: ${p.label_es}.`)); }); }}
                 onDarLosOcho={() => void corre(async () => { const grant = MODULOS_DE_GERENTE.filter((k) => !tieneModulo(actual, k)); if (grant.length) { const { ok } = await hub.updateUserModules(actual.id, { grant }); notify(ok ? t("Done: the 8 manager modules.", "Hecho: los 8 de gerente.") : t("Could not save.", "No se pudo guardar.")); } })}
               />
             )}
@@ -188,11 +210,11 @@ function Cuerpo({ vivo }: { vivo: Record<string, VivoDeUsuario> }) {
   );
 }
 
-function Detalle({ u, vivo, lang, t, ocupado, esAdmin, rolDeApp, onModulo, onRolApp, onRolDeliveries, onDarLosOcho }: {
-  u: Profile; vivo: VivoDeUsuario | undefined; lang: "en" | "es"; t: (en: string, es: string) => string; ocupado: boolean; esAdmin: boolean;
+function Detalle({ u, vivo, lang, t, ocupado, esAdmin, tiendas, rolDeApp, onModulo, onRolApp, onRolDeliveries, onStore, onPerfil, onDarLosOcho }: {
+  u: Profile; vivo: VivoDeUsuario | undefined; lang: "en" | "es"; t: (en: string, es: string) => string; ocupado: boolean; esAdmin: boolean; tiendas: string[];
   rolDeApp: (u: Profile, key: ModuleAccessKey) => string | null;
   onModulo: (key: ModuleAccessKey, on: boolean) => void; onRolApp: (key: ModuleAccessKey, role: string) => void;
-  onRolDeliveries: (role: UserRole) => void; onDarLosOcho: () => void;
+  onRolDeliveries: (role: UserRole) => void; onStore: (store: string | null) => void; onPerfil: (perfil: PerfilDeRol) => void; onDarLosOcho: () => void;
 }) {
   const on = !!vivo?.online;
   return (
@@ -223,12 +245,21 @@ function Detalle({ u, vivo, lang, t, ocupado, esAdmin, rolDeApp, onModulo, onRol
         </div>
         <div className="perm-field">
           <label>{t("Store", "Tienda")}</label>
-          <input className="perm-mrole" style={{ maxWidth: "none" }} value={u.store ?? "—"} disabled readOnly />
+          <select className="perm-mrole" style={{ maxWidth: "none" }} value={u.store ?? ""} disabled={ocupado} data-campo="tienda" onChange={(e) => onStore(e.target.value || null)}>
+            <option value="">{t("All / none", "Todas / ninguna")}</option>
+            {tiendas.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
         </div>
       </div>
 
       <div className="perm-quick">
         <button className="btn btn-sm btn-green" disabled={ocupado || esAdmin} data-accion="dar-ocho" onClick={onDarLosOcho}>★ {t("Give the 8 manager modules", "Dar los 8 de gerente")}</button>
+        {/* D-947: perfiles por rol — pone el rol y concede sus apps de un tiro (Vendedor, Almacén, …, Supervisor regional). */}
+        <select className="perm-mrole" aria-label={t("Apply a role profile", "Aplicar perfil de rol")} disabled={ocupado || esAdmin} data-campo="perfil" value=""
+          onChange={(e) => { const p = PERFILES_DE_ROL.find((x) => x.id === e.target.value); e.currentTarget.value = ""; if (p) onPerfil(p); }}>
+          <option value="">{t("Apply role profile…", "Aplicar perfil de rol…")}</option>
+          {PERFILES_DE_ROL.map((p) => <option key={p.id} value={p.id}>{lang === "es" ? p.label_es : p.label_en}</option>)}
+        </select>
       </div>
 
       <div className="perm-groups">
