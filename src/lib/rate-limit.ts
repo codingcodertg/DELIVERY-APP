@@ -1,5 +1,17 @@
 import "server-only";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@supabase/supabase-js";
+
+/**
+ * Cliente de servicio CRUDO, SIN el wrapper de modo enseñanza (a diferencia de `createAdminClient`). El limitador NO
+ * puede depender de la cookie de demo que el cliente controla: si pasara por ese wrapper, cualquiera podría poner la
+ * cookie y apagar el limitador (p. ej. para martillar «olvidé mi contraseña»). Su contabilidad siempre llega a la base.
+ */
+function clienteDelLimitador() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY (server env var).");
+  return createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+}
 
 /**
  * Limitador de peticiones por IP, respaldado en Postgres (RPC `check_rate_limit`, migración 282). Para las rutas `/api`
@@ -38,7 +50,7 @@ export interface OpcionesLimite {
 export async function limita(req: Request, opts: OpcionesLimite): Promise<{ ok: true } | { ok: false; reset: number }> {
   const bucket = `${opts.clave}:${ipDe(req)}`;
   try {
-    const admin = createAdminClient();
+    const admin = clienteDelLimitador();
     const { data, error } = await admin.rpc("check_rate_limit", {
       p_bucket: bucket,
       p_max: opts.max,

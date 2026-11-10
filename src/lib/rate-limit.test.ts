@@ -1,14 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock del cliente de servicio: cada prueba decide qué devuelve la RPC.
+// Mock del cliente de servicio CRUDO (el limitador usa createClient directo, sin el wrapper de enseñanza): cada prueba
+// decide qué devuelve la RPC.
 const rpc = vi.fn();
-vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ rpc }) }));
+vi.mock("@supabase/supabase-js", () => ({ createClient: () => ({ rpc }) }));
 
 import { ipDe, limita, respuesta429 } from "./rate-limit";
 
 const pet = (headers: Record<string, string>) => new Request("https://x/api/notify", { headers });
 
-beforeEach(() => { rpc.mockReset(); });
+beforeEach(() => {
+  rpc.mockReset();
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://x.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "svc-test";
+});
 
 describe("ipDe", () => {
   it("toma el primer salto de x-forwarded-for", () => {

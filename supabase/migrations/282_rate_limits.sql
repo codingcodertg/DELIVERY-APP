@@ -47,8 +47,10 @@ begin
     returning hits into h;
   return jsonb_build_object('allowed', h <= p_max, 'hits', h, 'limit', p_max, 'reset', extract(epoch from w) + p_window_seconds);
 end $$;
-revoke all on function public.check_rate_limit(text, int, int) from public;
-grant execute on function public.check_rate_limit(text, int, int) to authenticated, anon;
+-- Solo el rol de servicio la ejecuta (el limitador la llama con el cliente de servicio). Ni anon ni authenticated:
+-- si un usuario pudiera llamarla directo, podria inflar/envenenar los contadores de otros (revisión de seguridad).
+revoke all on function public.check_rate_limit(text, int, int) from public, anon, authenticated;
+grant execute on function public.check_rate_limit(text, int, int) to service_role;
 
 -- ===========================================================================
 -- Autocomprobacion
@@ -69,7 +71,11 @@ begin
   if position('on conflict (bucket, window_start)' in f) = 0 then
     raise exception '282: check_rate_limit no es atomica (falta el upsert)';
   end if;
+  if has_function_privilege('anon', 'public.check_rate_limit(text, int, int)', 'execute')
+     or has_function_privilege('authenticated', 'public.check_rate_limit(text, int, int)', 'execute') then
+    raise exception '282: check_rate_limit no debe ser ejecutable por anon/authenticated (solo service_role)';
+  end if;
 end $chk$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('282_rate_limits.sql', '8641ebaf1bb14151e4deb12c24c55a0437c2b08f499befa3ccf55c1cea4401c6') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('282_rate_limits.sql', '069769c05588ce407b40d22956132def9901ceb885d7092d9ddbc132650c1a2c') on conflict (name) do nothing;
