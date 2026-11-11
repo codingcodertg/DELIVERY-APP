@@ -1,5 +1,5 @@
 import {
-  canApprove, canTransition, etapaAnterior, preparaEnLaFicha, puedeAnular, puedeDeshacer,
+  almacenRechaza, canApprove, canTransition, etapaAnterior, preparaEnLaFicha, puedeAnular, puedeDeshacer,
   puedeEntregarYa, STAGES,
 } from "@/lib/constants";
 import { pideConfirmarTarifa } from "@/lib/confirmar-tarifa";
@@ -100,7 +100,9 @@ function confirmacionDelSalto(
       // «Enviar» de ventas con sus comprobaciones: se queda allí.
       return desde === "pending" && canApprove(yo) ? null : undefined;
     case "rejected":
-      return desde === "pending" && canApprove(yo) ? "motivo_rechazo" : undefined;
+      if (desde === "pending" && canApprove(yo)) return "motivo_rechazo";
+      // D-995 (295): almacén rechaza lo que no puede preparar, en sus tiendas, con motivo; vuelve a ventas.
+      return almacenRechaza(yo.role, desde, deMiTienda) ? "motivo_rechazo" : undefined;
     default:
       // `picked_up` hacia delante («Recoger»), `pending` desde borrador/rechazada («Enviar»), `draft`: en la ficha.
       return undefined;

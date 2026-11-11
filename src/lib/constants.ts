@@ -1357,9 +1357,12 @@ const LEGAL_TRANSITIONS: Record<Stage, Stage[]> = {
   // `picked_up` desde `approved` y `fulfilling` es «Recoger de todos modos» del chofer, con nota (D-527, migración 168).
   // Quién lo da lo dice `puedeRecogerSinListo` (recogida-del-chofer.ts), espejo del guard; sin la 168 la base lo rechaza
   // y el chofer lee «Aún no disponible… avisa a la oficina» (`mensajeDelGuard`), no un error de Postgres.
-  approved:   ["fulfilling", "pending", "canceled", "delivered", "picked_up"],   // pending = manager "unlock"
+  // `rejected` desde `approved`/`fulfilling` (D-995, migración 295): almacén RECHAZA una orden que no puede preparar, con
+  // motivo; vuelve a ventas como cualquier rechazada. Quién lo da lo dice `almacenRechaza`. Antes almacén la marcaba
+  // «entregada» para quitarla de su lista (ayuda de Antonio Ruiz, 11 nov).
+  approved:   ["fulfilling", "pending", "canceled", "delivered", "picked_up", "rejected"],   // pending = manager "unlock"
   // `approved` es el paso atrás de office/gerente (D-361, 139); quién lo da lo dice `puedeDeshacer`.
-  fulfilling: ["ready", "approved", "canceled", "delivered", "picked_up"],
+  fulfilling: ["ready", "approved", "canceled", "delivered", "picked_up", "rejected"],
   // `fulfilling` es la vuelta de almacén cuando marcó listo por error (D-287). La base ya la
   // permitía —la rama de warehouse del guard acepta ready → fulfilling— y era esta lista la que
   // no la tenía, así que el camino de vuelta no existía en la app.
@@ -1372,6 +1375,15 @@ const LEGAL_TRANSITIONS: Record<Stage, Stage[]> = {
   delivered:  ["picked_up"],
   canceled:   [],
 };
+
+/**
+ * Almacén RECHAZA una orden que no puede preparar (D-995, migración 295): desde «Aprobada» o «Preparando», en una orden
+ * de SUS tiendas, con motivo obligatorio. Vuelve a ventas como «Rechazada» (la misma que da quien aprueba), que la
+ * corrige y la reenvía. Espejo de la rama de almacén de `guard_delivery_stage` (295).
+ */
+export function almacenRechaza(r: UserRole, stage: Stage, deMiTienda: boolean): boolean {
+  return r === "warehouse" && deMiTienda && (stage === "approved" || stage === "fulfilling");
+}
 
 export function canTransition(from: Stage, to: Stage): boolean {
   return LEGAL_TRANSITIONS[from]?.includes(to) ?? false;
