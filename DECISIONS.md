@@ -51756,3 +51756,15 @@ Roberto (reunión, 11 nov): «Pending means it has not been approved yet, but it
 - En la tarjeta del reporte, la línea de etapas lleva el paso «⏳ Pendiente — en un grupo de aprobación» entre Fotografiada y Aprobada, con el botón «🗂 Grupo» que abre la hoja del grupo en tarjeta. En la tabla, la columna «Grupo» ya enlaza al grupo.
 
 Sello `warehouse_ops` 0.39.0; repo 1.845.0.
+
+## D-993 · Rutas: lo entregado se queda en su puesto (el orden original de la ruta)
+
+Roberto (11 nov, reunión): «Since it moved this to the top, I don't know what the original route was… even if they mark delivered and they skipped some, keep it in the order they were in originally».
+
+Por qué pasaba: desde D-433 las pendientes se numeraban justo DESPUÉS de lo último entregado (`inicioDeLaSecuencia`). Las entregadas no se reescribían, pero en cuanto alguien movía una parada (flechas, arrastrar, «Mejor lugar», repartir, Optimizar) las pendientes pasaban a puestos más altos que todas las entregadas, y en el Gestor (que intercala lo hecho por su `route_seq`) todo lo entregado subía arriba del todo. El orden planeado se perdía.
+
+Ahora (`numeracionConHechas` / `puestoEn` en `mover-parada.ts`): lo entregado se queda en SU puesto y las pendientes llenan los puestos LIBRES, en su nuevo orden, desde el primer puesto de la ruta. Se usa en las escrituras del Gestor (`guardaLaLista`, «Mejor lugar», repartir, Optimizar), en los dos proveedores (`reorderStops`) y en la foto de deshacer. Las entregadas siguen sin reescribirse; el «siguiente» del chofer no cambia (es la primera pendiente).
+
+Lo de hoy: las rutas que ya se renumeraron antes de este cambio (p. ej. la de Ernesto del 11 nov, entregadas en 7–10 y pendientes desde 11) no recuperan el orden de antes: no se guardaba aparte. Desde ahora no se vuelve a perder.
+
+Sello `deliveries` 1.597.0; repo 1.846.0.

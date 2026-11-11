@@ -1,3 +1,4 @@
+import { puestoEn, type Numeracion } from "@/lib/mover-parada";
 import { costeDeLaRuta, mejorLugar, type LatLng, type ParadaDeRuta } from "@/lib/mejor-lugar";
 
 /**
@@ -145,12 +146,12 @@ export function fotoDe(paradas: readonly ParadaDelGantt[]): Foto {
  * viajes. Lo que no está en `ids` no cambia. Es lo que escriben las flechas y lo que escribe soltar.
  * `desde` (D-433): el primer puesto, el mismo que se le dio a `reorderStops` (las flechas numeran tras lo ya hecho).
  */
-export function fotoTrasReordenar(antes: Foto, ids: readonly string[], loadNoById?: Record<string, number | null>, desde = 0, pickupSeqById?: Record<string, number | null>): Foto {
+export function fotoTrasReordenar(antes: Foto, ids: readonly string[], loadNoById?: Record<string, number | null>, desde: Numeracion = 0, pickupSeqById?: Record<string, number | null>): Foto {
   const f: Foto = { ...antes };
   ids.forEach((id, i) => {
     const era = f[id] ?? { assigned_driver: null, route_seq: null, load_no: null };
     f[id] = {
-      ...era, route_seq: desde + i, load_no: loadNoById ? (loadNoById[id] ?? null) : era.load_no,
+      ...era, route_seq: puestoEn(desde, i), load_no: loadNoById ? (loadNoById[id] ?? null) : era.load_no,
       ...(pickupSeqById ? { pickup_seq: pickupSeqById[id] ?? null } : {}),
     };
   });

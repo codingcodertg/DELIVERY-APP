@@ -1,5 +1,6 @@
 "use client";
 
+import { puestoEn, type Numeracion } from "@/lib/mover-parada";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Ctx, type AccionDelAviso, type DataState, type OpcionesDelAviso } from "@/lib/data-provider";
 import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage } from "@/lib/types";
@@ -196,7 +197,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
   // whole new sequence lands at once.
   const reorderStops = useCallback<DataState["reorderStops"]>(async (orderedIds, loadNoById, loadAuto, desde = 0, pickupSeqById) => {
     const s = storeRef.current;
-    const seqById = new Map(orderedIds.map((id, i) => [id, desde + i]));
+    const seqById = new Map(orderedIds.map((id, i) => [id, puestoEn(desde, i)]));
     persist({
       ...s,
       deliveries: s.deliveries.map((c) =>

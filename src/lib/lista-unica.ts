@@ -1,4 +1,5 @@
 import { palletsDeLaOrden } from "./pallets";
+import { puestoEn, type Numeracion } from "./mover-parada";
 
 /**
  * La ruta de un chofer como UNA SOLA LISTA de paradas (D-443): recogidas (P) y entregas (D) intercaladas, sin viajes.
@@ -529,7 +530,7 @@ export interface EscrituraDeLaLista {
  * delante de la entrega de puesto `k`, la `j`-ésima (desde 0) va en `k − (m − j) / (m + 1)`. Todas las órdenes de una misma
  * parada P llevan el mismo número. Se redondea a la diezmilésima.
  */
-export function escrituraDeLaLista(paradas: readonly ParadaDeLaLista[], desde: number): EscrituraDeLaLista {
+export function escrituraDeLaLista(paradas: readonly ParadaDeLaLista[], desde: Numeracion): EscrituraDeLaLista {
   const ids: string[] = [];
   const pickupSeqById: Record<string, number> = {};
   const loadNoById: Record<string, null> = {};
@@ -541,11 +542,11 @@ export function escrituraDeLaLista(paradas: readonly ParadaDeLaLista[], desde: n
   };
   for (const p of paradas) {
     if (p.tipo === "P") { racha.push(p.ordenes); continue; }
-    cierra(desde + ids.length);
+    cierra(puestoEn(desde, ids.length));
     ids.push(p.orden);
     loadNoById[p.orden] = null;
   }
-  cierra(desde + ids.length);
+  cierra(puestoEn(desde, ids.length));
   return { ids, pickupSeqById, loadNoById };
 }
 

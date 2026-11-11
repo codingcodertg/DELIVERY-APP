@@ -218,7 +218,7 @@ describe("la pantalla del Gestor usa «Mejor lugar»", () => {
   it("escribe la lista con la nueva dentro: la nueva con su chofer, su puesto y su recogida, y la lista entera con `reorderStops`", () => {
     expect(cuerpo).toContain("const nueva = listaConEntregasEn(lista, ids, [...paradas, d]);");
     expect(cuerpo).toContain("const e = escrituraDeLaLista(nueva, desde);");
-    expect(cuerpo).toContain("await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: desde + e.ids.indexOf(d.id), load_no: null, ...(recogidas ? { pickup_seq: recogidas[d.id] ?? null } : {}) });");
+    expect(cuerpo).toContain("await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: puestoEn(desde, e.ids.indexOf(d.id)), load_no: null, ...(recogidas ? { pickup_seq: recogidas[d.id] ?? null } : {}) });");
     expect(cuerpo).toContain("await reorderStops(e.ids, e.loadNoById, undefined, desde, recogidas);");
   });
   it("la siguiente orden ya ve a la anterior dentro (se colocan una detrás de otra)", () => {

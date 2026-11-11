@@ -200,7 +200,7 @@ describe("2 · arrastrar para armar rutas a mano", () => {
       expect(arrastre).toContain("}, movidas))) return;");
       const guarda = trozo("const guardaLaLista = async (", "/** La fila de la Base");
       expect(guarda).toContain("traidas: readonly Delivery[] = []): Promise<boolean> => {");
-      expect(guarda).toContain("if (!(await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: desde + e.ids.indexOf(d.id), load_no: null,");
+      expect(guarda).toContain("if (!(await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: puestoEn(desde, e.ids.indexOf(d.id)), load_no: null,");
       expect(guarda).toContain("for (const d of traidas) despues[d.id] = { ...despues[d.id], assigned_driver: laneKey };");
       expect(guarda).toContain("await anotaMovimiento(etiqueta, [laneKey, ...origenes], antes, despues);");
     });
