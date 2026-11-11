@@ -176,10 +176,10 @@ describe("agendar entrevista presencial al terminar la entrevista (D-585)", () =
   });
 });
 
-// D-NEXT · El dueño, 2026-11-10, con la captura del SMS rechazado («Your message is too long»): «hay que acortar eso mira
+// D-970 · El dueño, 2026-11-10, con la captura del SMS rechazado («Your message is too long»): «hay que acortar eso mira
 // eso del mapa creo que esta muy largo». La dirección que guarda Datos → Tiendas viene del geocodificador, con colonia,
 // condado y país; el enlace largo la repetía entera con %20 y %2C.
-describe("dirección y mapa cortos en el SMS (D-NEXT)", () => {
+describe("dirección y mapa cortos en el SMS (D-970)", () => {
   const geocodificada = "1120, East Expressway 83, L R Bell Colonia, Pharr, Hidalgo County, Texas, 78577, United States";
   it("la dirección pierde país, condado y colonia; «Texas» queda «TX» con su código postal, y el número va con la calle", () => {
     expect(direccionCorta(geocodificada)).toBe("1120 East Expressway 83, Pharr, TX 78577");

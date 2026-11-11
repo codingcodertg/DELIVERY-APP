@@ -85,14 +85,14 @@ export const MARCADORES_DE_LA_CITA = "{when} {day} {date} {time} {place} {addres
 export function enlacesDeMapa(address: string | null | undefined): string {
   const q = direccionCorta(address);
   if (!q) return "";
-  // D-NEXT: el enlace corto de Google Maps (`maps.google.com/?q=`), con los espacios como «+» y las comas tal cual. El
+  // D-970: el enlace corto de Google Maps (`maps.google.com/?q=`), con los espacios como «+» y las comas tal cual. El
   // largo (`/maps/search/?api=1&query=` con todo en %20/%2C) triplicaba la dirección y el SMS volvía a pasar del límite
   // («Your message is too long», el dueño, 2026-11-10: «hay que acortar eso mira eso del mapa creo que esta muy largo»).
   const e = q.split(/\s+/).map((w) => encodeURIComponent(w).replace(/%2C/gi, ",")).join("+");
   return `Google Maps: https://maps.google.com/?q=${e}`;
 }
 
-/** La dirección para el candidato, sin lo que no le sirve para llegar (D-NEXT): sin el país («United States [of America]»),
+/** La dirección para el candidato, sin lo que no le sirve para llegar (D-970): sin el país («United States [of America]»),
  *  sin el condado («Hidalgo County»), sin la colonia que añade el geocodificador («L R Bell Colonia»), con «Texas» → «TX»
  *  y sin la coma entre el número y la calle («1120, East…» → «1120 East…»). Lo que no reconoce lo deja igual. */
 export function direccionCorta(address: string | null | undefined): string {

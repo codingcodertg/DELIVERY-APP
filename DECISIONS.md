@@ -51512,7 +51512,7 @@ Endurecimiento. **CSRF (#16):** en `src/middleware.ts`, una petición **mutante*
 
 Sello `deliveries` 1.591.0; repo 1.822.0.
 
-## D-NEXT · RR. HH.: el SMS de la entrevista presencial lleva la dirección corta y el enlace corto de Google Maps
+## D-970 · RR. HH.: el SMS de la entrevista presencial lleva la dirección corta y el enlace corto de Google Maps
 
 El dueño, 2026-11-10, con la captura del texto de confirmación rechazado por RingCentral («Your message is too long. Shorten it and try again.»): «hay que acortar eso mira eso del mapa creo que esta muy largo mira como podemos hacer».
 
@@ -51524,4 +51524,4 @@ La dirección de la tienda sale de Datos → Tiendas tal como la dejó el geocod
 
 **Pruebas.** `agendar-presencial.test.ts`: la dirección geocodificada queda corta, el enlace es el corto y sin %20/%2C, y el texto de la tienda queda por debajo de 560 caracteres. 4 de 4 mutantes caen (enlace largo de vuelta, sin quitar el condado, `{address}` sin acortar, mapa con la dirección larga).
 
-Sello `recruiting` D-NEXT; repo D-NEXT.
+Sello `recruiting` 0.88.0; repo 1.823.0.
