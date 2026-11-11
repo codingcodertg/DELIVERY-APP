@@ -49,7 +49,7 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
     // Modo enseñanza: el grupo vive en memoria (grupos-de-practica); no se lee la base.
     if (esGrupoDePractica(grupoId)) {
       const g = grupoDePractica(grupoId);
-      if (!g) { setError(t("This practice group is gone (practice groups disappear when you reload).", "Este grupo de práctica ya no está (desaparecen al recargar).")); setGrupo(null); }
+      if (!g) { setError(t("This practice group is gone (practice groups are cleared when you leave teaching mode or press «Clear practice»).", "Este grupo de práctica ya no está (se borran al salir del modo enseñanza o con «Borrar práctica»).")); setGrupo(null); }
       else { setGrupo(g.grupo); setReportes(g.reportes); setError(null); }
       setCargando(false); return;
     }

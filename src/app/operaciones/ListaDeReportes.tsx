@@ -15,7 +15,9 @@ import { nombreOTexto, personasParaElegir } from "@/lib/almacen-ops/personas";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
 import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, editarReporteDeMerma, enlacesDeFotos, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type ParcheDeMerma, type Reporte } from "@/lib/almacen-ops/datos";
 import { esCorteDePractica } from "@/lib/practica/es-corte";
-import { crearGrupoDePractica, gruposDePractica } from "@/lib/practica/grupos-de-practica";
+import { borrarPractica, cargaPractica, esGrupoDePractica, grupoDePracticaPorReporte, gruposDePractica } from "@/lib/practica/grupos-de-practica";
+import { crearBorradorDeGrupo, esBorradorDeGrupo, listarBorradoresDeGrupo } from "@/lib/almacen-ops/borradores-de-grupo";
+import { HojaBorrador } from "./HojaBorrador";
 import { ensenanzaDelNavegador } from "@/lib/ensenanza-general";
 import { avisoYaEnGrupo, esErrorDeYaEnGrupo, estadoDelGrupo, filtrarGrupos, seleccionadasEnGrupo, type FiltroDeGrupos, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
 import { HojaDeGrupo } from "./HojaDeGrupo";
@@ -85,14 +87,19 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const grupoId = modo === "todos" ? params.get("grupo") : null;
   const abrirGrupo = useCallback((id: string) => router.replace(`${ruta}?pestana=merma&grupo=${encodeURIComponent(id)}`, { scroll: false }), [router, ruta]);
   const [grupos, setGrupos] = useState<GrupoDeMerma[]>([]);
+  const [recargaGrupos, setRecargaGrupos] = useState(0);
   useEffect(() => {
     if (ctx.demo || modo !== "todos" || pestana !== "merma" || grupoId) return;
     let vivo = true;
-    // En práctica se suman los grupos de mentira de esta pestaña (no están en la base).
-    void listarGrupos(createClient()).then((g) => { if (vivo) setGrupos([...gruposDePractica(), ...g]); })
-      .catch(() => { if (vivo) setGrupos(gruposDePractica()); /* sin 281: no hay grupos */ });
+    // Práctica (11 nov): los grupos de práctica se guardan en este navegador por persona; al salir del modo enseñanza
+    // se borran. Borradores (11 nov): los grupos sin guardar salen con la etiqueta «Borrador».
+    cargaPractica(ctx.yo.id);
+    if (!ensenanzaDelNavegador()) borrarPractica(ctx.yo.id);
+    const extra = () => [...borradoresComoGrupos(ctx.yo.id), ...gruposDePractica()];
+    void listarGrupos(createClient()).then((g) => { if (vivo) setGrupos([...extra(), ...g]); })
+      .catch(() => { if (vivo) setGrupos(extra()); /* sin 281: no hay grupos */ });
     return () => { vivo = false; };
-  }, [ctx.demo, modo, pestana, grupoId]);
+  }, [ctx.demo, ctx.yo.id, modo, pestana, grupoId, recargaGrupos]);
   const elegir = (atajo: Atajo) => irA({ eleccion: atajo === "otro"
     // Al pasar a «a mano» se arranca con el rango del atajo que estaba puesto, para solo ajustar un extremo.
     ? { atajo, ...(eleccion.atajo === "otro" ? { desde: eleccion.desde, hasta: eleccion.hasta } : rangoDeAtajo(eleccion.atajo, hoy)) }
@@ -255,25 +262,11 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     if (elegibles.length === 0) { setAvisoBloque(t("Pick photographed reports to group.", "Marca reportes fotografiados para agrupar.")); return; }
     if (seleccionadasEnGrupo(elegibles).length > 0) { setAvisoBloque(avisoYaEnGrupo(seleccionadasEnGrupo(elegibles).length, lang)); return; }
     const nombre = fmtDateTime(new Date().toISOString());
-    // Modo enseñanza (dueño, 10 nov): el grupo se crea de mentira en esta pestaña y se puede firmar y aprobar; nada
-    // llega a la base y no sale el aviso de «no se puede practicar».
-    if (ensenanzaDelNavegador()) {
-      const id = crearGrupoDePractica(nombre, elegibles, ctx.yo.full_name);
-      setSeleccion(new Set());
-      setAvisoBloque(t("Practice group: it is not saved and disappears when you reload.", "Grupo de práctica: no se guarda y desaparece al recargar."));
-      abrirGrupo(id);
-      return;
-    }
-    try {
-      const id = await crearGrupoDeMerma(createClient(), nombre, elegibles.map((r) => r.id));
-      setSeleccion(new Set());
-      abrirGrupo(id);
-    } catch (e) {
-      // En práctica (modo enseñanza) no se crean grupos de verdad: se avisa suave, no es un error. El aviso global ya salió.
-      if (esCorteDePractica(e)) { setSeleccion(new Set()); setAvisoBloque(t("In practice, groups aren't saved.", "En práctica no se guardan los grupos.")); return; }
-      if (esErrorDeYaEnGrupo(e)) { setAvisoBloque(avisoYaEnGrupo(Math.max(1, yaEnGrupo.length), lang)); return; }
-      setError((e as Error).message);
-    }
+    // Dueño, 11 nov: «Iniciar aprobación» abre la hoja como BORRADOR (no se crea en la base hasta «Guardar grupo»).
+    // En práctica, Guardar crea el grupo de práctica.
+    const id = crearBorradorDeGrupo(ctx.yo.id, nombre, elegibles);
+    setSeleccion(new Set());
+    abrirGrupo(id);
   };
 
   // Acciones en bloque: marcar varias como desechadas (approved→dumped) o ajustadas (dumped→adjusted, con una sola foto).
@@ -455,10 +448,17 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
                     {gruposVisibles.map((g) => (
                       <li key={g.id} data-grupo={g.id}>
                         <button type="button" className="btn btn-sm" onClick={() => abrirGrupo(g.id)} data-abrir-grupo={g.id}>🗂 {g.name}</button>
-                        <span className="hint">{t(`${g.n_reportes ?? 0} reports`, `${g.n_reportes ?? 0} reportes`)} · {g.store} · <span data-estado-grupo={g.id}>{estadoDelGrupo(g, lang)}</span></span>
+                        {esBorradorDeGrupo(g.id) && <span className="ops-etiqueta-borrador" data-borrador>📝 {t("Draft", "Borrador")}</span>}
+                        {esGrupoDePractica(g.id) && <span className="ops-etiqueta-borrador" data-practica>🎓 {t("Practice", "Práctica")}</span>}
+                        <span className="hint">{t(`${g.n_reportes ?? 0} reports`, `${g.n_reportes ?? 0} reportes`)} · {g.store} · <span data-estado-grupo={g.id}>{esBorradorDeGrupo(g.id) ? t("Not saved yet", "Aún sin guardar") : estadoDelGrupo(g, lang)}</span></span>
                       </li>
                     ))}
                   </ul>}
+              {grupos.some((g) => esGrupoDePractica(g.id)) && (
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => { borrarPractica(ctx.yo.id); setRecargaGrupos((n) => n + 1); }} data-accion="borrar-practica">
+                  🧹 {t("Clear practice", "Borrar práctica")}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -510,7 +510,11 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
       {grupoId && (
         <div className="overlay" onClick={() => irA({ pestana: "merma" })}>
           <div className="modal ops-tarjeta-grupo" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-grupo-abierto={grupoId}>
-            <HojaDeGrupo grupoId={grupoId} ctx={ctx} onSalir={() => irA({ pestana: "merma" })} />
+            {esBorradorDeGrupo(grupoId)
+              ? <HojaBorrador borradorId={grupoId} ctx={ctx} reportesDisponibles={mermas}
+                  onSalir={() => { setRecargaGrupos((n) => n + 1); irA({ pestana: "merma" }); }}
+                  onGuardado={(id) => { setRecargaGrupos((n) => n + 1); abrirGrupo(id); }} />
+              : <HojaDeGrupo grupoId={grupoId} ctx={ctx} onSalir={() => irA({ pestana: "merma" })} />}
           </div>
         </div>
       )}
@@ -620,6 +624,7 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
   });
   const claseArrastre = (c: ColumnaDeMerma) => "ops-cabecera-arrastrable" + (arrastrando === c.key ? " ops-cabecera-arrastrando" : "");
   const ordenSelector = normalizaPrefs(prefs).orden.map((k) => disponibles.find((d) => d.key === k)).filter((c): c is ColumnaDeMerma => !!c);
+  const deGrupoDePractica = grupoDePracticaPorReporte();
   const celdaFija = (r: Reporte, key: string) => {
     switch (key) {
       case "reportada": return (
@@ -630,13 +635,17 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
         </td>
       );
       case "etapa": return <td key={key} className="ops-col-etapa"><ChipDeEtapa r={r} /></td>;
-      case "grupo": return (
-        <td key={key} className="ops-col-grupo-merma" data-grupo-de={r.scrap_group_id ?? ""}>
-          {r.scrap_group_id
-            ? <button type="button" className="ops-folio-link" onClick={(e) => { e.stopPropagation(); onAbrirGrupo?.(r.scrap_group_id!); }} title={t("Open this group", "Abrir este grupo")}>🗂 {nombreDeGrupo.get(r.scrap_group_id) ?? t("Group", "Grupo")}</button>
-            : <span className="hint">—</span>}
-        </td>
-      );
+      case "grupo": {
+        // En práctica (11 nov) también sale el grupo de práctica de la merma (no está en la base).
+        const gid = r.scrap_group_id ?? deGrupoDePractica.get(r.id) ?? null;
+        return (
+          <td key={key} className="ops-col-grupo-merma" data-grupo-de={gid ?? ""}>
+            {gid
+              ? <button type="button" className="ops-folio-link" onClick={(e) => { e.stopPropagation(); onAbrirGrupo?.(gid); }} title={t("Open this group", "Abrir este grupo")}>🗂 {nombreDeGrupo.get(gid) ?? t("Group", "Grupo")}</button>
+              : <span className="hint">—</span>}
+          </td>
+        );
+      }
       case "tipo": return <td key={key} style={{ whiteSpace: "nowrap" }}>{INFO_DE_TIPO[r.kind].emoji} {nombreTipo(r.kind)}</td>;
       case "tienda": return <td key={key}>{r.store}</td>;
       case "lleno": return <td key={key}>{r.author_name ?? nombre(r.author_id)}</td>;
@@ -1206,4 +1215,12 @@ function CorregirOrigen({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onList
       </div>
     </div>
   );
+}
+
+/** Los borradores de grupo de esta persona, con forma de grupo para la lista de «Grupos» (etiqueta «Borrador»). */
+function borradoresComoGrupos(uid: string): GrupoDeMerma[] {
+  return listarBorradoresDeGrupo(uid).map((b) => ({
+    id: b.id, name: b.nombre, store: b.store, created_by_name: null, created_at: b.creado,
+    approved_at: null, approved_by: null, n_reportes: b.reportes.length, firmas: [],
+  }));
 }
