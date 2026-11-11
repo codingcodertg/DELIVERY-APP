@@ -176,7 +176,7 @@ describe("quién mueve la etapa", () => {
 describe("la lista: columna, filtro por etapa, selección, desglose de la pérdida", () => {
   it("la pestaña de merma lleva la columna «Etapa», el filtro y el botón de imprimir (N)", () => {
     expect(LISTA).toContain("data-filtro-etapas");
-    expect(LISTA).toContain("{ETAPAS.map((e) => (");
+    expect(LISTA).toContain("{ETAPAS_VISIBLES.map((e) => (");
     expect(LISTA).toContain('data-lista="merma-en-rango" conEtapa');
     expect(LISTA).toContain("Print approval sheet (${paraHoja.length})");
     expect(LISTA).toContain("Attach signed sheet (${paraHoja.length})");

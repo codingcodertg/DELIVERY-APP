@@ -260,6 +260,8 @@ textarea.ops-campo { min-height: 150px; resize: vertical; }
 .ops-etapa-fecha { font-size: 10.5px; font-weight: 600; opacity: .85; }
 .ops-etapa[data-etapa="documented"] { --etapa: var(--gray); }
 .ops-etapa[data-etapa="photographed"] { --etapa: var(--amber); }
+/* «⏳ Pendiente» (en grupo, sin aprobar; Roberto 11 nov): entre fotografiada y aprobada. */
+.ops-etapa[data-etapa="pending"] { --etapa: var(--purple, var(--accent)); }
 .ops-etapa[data-etapa="approved"] { --etapa: var(--accent); }
 .ops-etapa[data-etapa="dumped"] { --etapa: var(--red); }
 .ops-etapa[data-etapa="adjusted"] { --etapa: var(--green, #1f8f4e); }
@@ -291,6 +293,7 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-linea-de-etapas li.hecha { color: var(--text); }
 .ops-etapa-punto { display: block; width: 12px; height: 12px; margin-top: 3px; border-radius: 50%; border: 2px solid var(--gray); background: transparent; }
 .ops-linea-de-etapas li.hecha .ops-etapa-punto { background: var(--accent); border-color: var(--accent); }
+.ops-linea-de-etapas li[data-etapa="pending"].hecha .ops-etapa-punto { background: var(--purple, var(--accent)); border-color: var(--purple, var(--accent)); }
 .ops-linea-de-etapas li[data-etapa="dumped"].hecha .ops-etapa-punto { background: var(--red); border-color: var(--red); }
 .ops-linea-de-etapas li[data-etapa="adjusted"].hecha .ops-etapa-punto { background: var(--green, #1f8f4e); border-color: var(--green, #1f8f4e); }
 .ops-etapa-texto { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 13px; }

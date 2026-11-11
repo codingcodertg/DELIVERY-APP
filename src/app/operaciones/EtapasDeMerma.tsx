@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime } from "@/lib/utils";
-import { ETAPAS, actorDeEtapa, etapaDe, fechaDeEtapa, fechaDeLaEtapaActual, nombreDeEtapa, puedeCambiarEtapa, puedeDeshacerEtapa, siguienteEtapa, type Etapa } from "@/lib/almacen-ops/etapas";
+import { ETAPAS, actorDeEtapa, etapaDe, etapaVisible, nombreDeEtapaVisible, fechaDeEtapa, fechaDeLaEtapaActual, nombreDeEtapa, puedeCambiarEtapa, puedeDeshacerEtapa, siguienteEtapa, type Etapa } from "@/lib/almacen-ops/etapas";
 import { aprobarMerma, cambiarEtapa, enlacesDeFotos, firmarMerma, firmasDeReporte, quitarFirma, subirAdjunto, subirFoto, tipoDeAdjuntoValido, type Reporte } from "@/lib/almacen-ops/datos";
 import { SLOTS_DE_FIRMA, firmaDe, mensajePendienteDeFirma, nombreDeSlot, puedeAprobar, puedeFirmarSlot, requiereFirma, tieneAmbasFirmas, type FirmaDeMerma, type SlotDeFirma } from "@/lib/almacen-ops/firmas";
 import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
@@ -21,16 +21,14 @@ import type { Contexto } from "./Operaciones";
 export function ChipDeEtapa({ r, conFecha = true }: { r: Reporte; conFecha?: boolean }) {
   const { lang } = usePrefs();
   if (r.kind !== "scrap") return null;
-  const e = etapaDe(r);
+  // «⏳ Pendiente» (Roberto, 11 nov): en un grupo y sin aprobar — etapa derivada entre «Fotografiada» y «Aprobada».
+  const e = etapaVisible(r);
   const f = fechaDeLaEtapaActual(r);
+  const nombreE = nombreDeEtapaVisible(e, lang);
   return (
-    <span className="ops-etapa" data-etapa={e} title={nombreDeEtapa(e, lang)}>
-      <span className="ops-etapa-nombre">{nombreDeEtapa(e, lang)}</span>
+    <span className="ops-etapa" data-etapa={e} title={nombreE}>
+      <span className="ops-etapa-nombre">{e === "pending" ? "⏳ " : ""}{nombreE}</span>
       {conFecha && f && <span className="ops-etapa-fecha">{fmtDateTime(f)}</span>}
-      {/* 292 (dueño, 10 nov): la etapa pendiente, a la vista — todavía sin aprobar (le faltan firmas / aprobación). */}
-      {conFecha && (e === "documented" || e === "photographed") && (
-        <span className="ops-etapa-pendiente" data-etapa-pendiente>⏳ {lang === "es" ? "Pendiente de aprobación" : "Pending approval"}</span>
-      )}
     </span>
   );
 }
@@ -244,7 +242,20 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
           const f = fechaDeEtapa(r, e);
           const quien = nombre(actorDeEtapa(r, e));
           const hecha = ETAPAS.indexOf(e) <= ETAPAS.indexOf(actual) && (f != null || e === "documented");
-          return (
+          // «⏳ Pendiente» (Roberto, 11 nov): si la merma está en un grupo, entre «Fotografiada» y «Aprobada» va el paso
+          // «Pendiente (en grupo)», con el grupo a la mano — se abre en tarjeta, sin salir del reporte.
+          const pasoPendiente = e === "approved" && r.scrap_group_id ? (
+            <li key="pending" data-etapa="pending" data-hecha="si" className="hecha">
+              <span className="ops-etapa-punto" aria-hidden />
+              <span className="ops-etapa-texto">
+                <strong>⏳ {nombreDeEtapaVisible("pending", lang)}</strong>
+                <span className="ops-etapa-cuando">{t("In an approval group", "En un grupo de aprobación")}</span>
+                <button type="button" className="ops-icono-fotos" onClick={() => setHojaDeGrupo(r.scrap_group_id!)} data-ver-grupo={r.scrap_group_id}
+                  title={t("Open the group", "Abrir el grupo")}>🗂 {t("Group", "Grupo")}</button>
+              </span>
+            </li>
+          ) : null;
+          return (<Fragment key={e}>{pasoPendiente}
             <li key={e} data-etapa={e} data-hecha={hecha ? "si" : "no"} className={hecha ? "hecha" : ""}>
               <span className="ops-etapa-punto" aria-hidden />
               <span className="ops-etapa-texto">
@@ -261,7 +272,7 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
                 {e === "adjusted" && <Adjunto ruta={r.adjustment_proof} alt={t("System screenshot", "Captura del sistema")} />}
               </span>
             </li>
-          );
+          </Fragment>);
         })}
       </ol>
       {hojaDeGrupo && (

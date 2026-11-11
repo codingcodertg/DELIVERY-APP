@@ -51745,3 +51745,14 @@ Roberto (11 nov, captura): en Reportes → Merma la página entera se salía de 
 Ahora `.ops-merma` usa `grid-template-columns: minmax(0, 1fr)` y sus hijos `min-width: 0`: la columna mide lo que la pantalla y la tabla se desplaza DENTRO de su caja. Verificado en local: el ancho de la página = el de la ventana; la caja de la tabla desplaza sus ~2450 px.
 
 Sello `warehouse_ops` 0.38.0; repo 1.844.0.
+
+## D-992 · Merma: «⏳ Pendiente» = en un grupo y sin aprobar, entre Fotografiada y Aprobada
+
+Roberto (reunión, 11 nov): «Pending means it has not been approved yet, but it's been assigned a group… right now it's saying everything, it's kind of the same as All. And also pending bubble goes between photographed and approved… and I need the group picture here too».
+
+- «⏳ Pendiente» es una etapa DERIVADA de la pantalla (la base no cambia): la merma ya está en un grupo de aprobación (`scrap_group_id`, o en un grupo de práctica sin aprobar en modo enseñanza) y todavía no está aprobada. Antes contaba toda merma sin aprobar.
+- El botón va entre «Fotografiada» y «Aprobada»; «Fotografiada» ya no cuenta las que están en grupo, así las cuentas suman bien (`ETAPAS_VISIBLES` / `etapaVisible` en `etapas.ts`).
+- La etiqueta de etapa de la tabla dice «⏳ Pendiente» para esas mermas.
+- En la tarjeta del reporte, la línea de etapas lleva el paso «⏳ Pendiente — en un grupo de aprobación» entre Fotografiada y Aprobada, con el botón «🗂 Grupo» que abre la hoja del grupo en tarjeta. En la tabla, la columna «Grupo» ya enlaza al grupo.
+
+Sello `warehouse_ops` 0.39.0; repo 1.845.0.

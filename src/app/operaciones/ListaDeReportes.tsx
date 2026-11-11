@@ -31,7 +31,7 @@ import { cuentaComoPerdida, perdidaDeMerma, repartoDeReporte } from "@/lib/almac
 import { puedeCorregirMerma, puedeExportar, puedeVerReporte, veLosReportes } from "@/lib/almacen-ops/visibilidad";
 import { diaDelReporte, fmtDia, hoyEnTexas, ordenPorDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { ATAJOS_DEL_MENU, NOMBRE_DE_ATAJO, eleccionAUrl, eleccionDeUrl, etiquetaDeRango, filtrarPorRango, perdidaEnRango, rangoDeAtajo, rangoDeEleccion, type Atajo, type Eleccion } from "@/lib/almacen-ops/rango-de-merma";
-import { ETAPAS, etapaDe, nombreDeEtapa, pendienteDeAprobar, perdidaPorEtapa, puedeCambiarEtapa, seleccionableParaHoja, tieneEtapas, type Etapa } from "@/lib/almacen-ops/etapas";
+import { ETAPAS, ETAPAS_VISIBLES, etapaDe, etapaVisible, nombreDeEtapa, nombreDeEtapaVisible, perdidaPorEtapa, puedeCambiarEtapa, seleccionableParaHoja, tieneEtapas, type Etapa, type EtapaVisible } from "@/lib/almacen-ops/etapas";
 import { COLUMNAS_EXCEL, celdasDeMerma, csvDeMermas, nombreDelCsv } from "@/lib/almacen-ops/tabla-de-merma";
 import { COLUMNAS_DE_MERMA, PREFS_INICIALES, alternaColumna, columnasVisibles, fmtDiaCorto, mueveColumna, normalizaPrefs, ordenPropio, sueltaColumna, tramosDeCabecera, type ColumnaDeMerma, type PrefsDeColumnas } from "@/lib/almacen-ops/columnas-de-merma";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
@@ -107,7 +107,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const [tipo, setTipo] = useState<TipoDeReporte | "">("");
   const [abierto, setAbierto] = useState<Reporte | null>(null);
   // D-921 (270): filtro por etapa, y la selección de mermas para la hoja de aprobación (solo fotografiadas, sin aprobar).
-  const [etapaFiltro, setEtapaFiltro] = useState<Etapa | "" | "pendiente">("");
+  const [etapaFiltro, setEtapaFiltro] = useState<EtapaVisible | "">("");
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [adjuntando, setAdjuntando] = useState(false);
   // «Groups» (dueño, 10 nov): una opción más al lado de los filtros de etapa; muestra el archivo de grupos en vez de la tabla.
@@ -171,9 +171,17 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const etiqueta = rango ? etiquetaDeRango(rango, lang, hoy) : "—";
   const tiendasDeMerma = Array.from(new Set([...Object.keys(totales), ...Object.keys(enRango)])).filter((k) => k !== "*").sort();
   // D-921 (270): la lista de merma filtrada por etapa, la cuenta por etapa y el desglose de la pérdida del rango por etapa.
-  const mermasPorEtapa = useMemo(() => (etapaFiltro === "pendiente" ? mermasEnRango.filter(pendienteDeAprobar)
-    : etapaFiltro ? mermasEnRango.filter((r) => etapaDe(r) === etapaFiltro) : mermasEnRango), [mermasEnRango, etapaFiltro]);
-  const cuentaEtapa = (e: Etapa) => mermasEnRango.filter((r) => etapaDe(r) === e).length;
+  // «⏳ Pendiente» (Roberto, 11 nov): en un grupo y sin aprobar — etapa DERIVADA entre «Fotografiada» y «Aprobada».
+  // En práctica, las mermas de un grupo de práctica sin aprobar cuentan igual (no traen scrap_group_id).
+  const enPractica = useMemo(() => {
+    const s = new Set<string>();
+    const aprobados = new Set(gruposDePractica().filter((g) => g.approved_at).map((g) => g.id));
+    grupoDePracticaPorReporte().forEach((g, id) => { if (!aprobados.has(g)) s.add(id); });
+    return s;
+  }, [grupos]); // se recalcula cuando cambia la lista de grupos (incluye los de práctica)
+  const mermasPorEtapa = useMemo(() => (etapaFiltro ? mermasEnRango.filter((r) => etapaVisible(r, enPractica) === etapaFiltro) : mermasEnRango),
+    [mermasEnRango, etapaFiltro, enPractica]);
+  const cuentaEtapa = (e: EtapaVisible) => mermasEnRango.filter((r) => etapaVisible(r, enPractica) === e).length;
   // (El desglose por etapa en texto se quitó: dueño, 10 nov. `perdidaPorEtapa` sigue probada en su módulo.)
   // Se puede marcar cualquier merma que uno gestione (no solo las fotografiadas): así la misma selección sirve para
   // agrupar (solo las fotografiadas se agrupan), para desechar (las aprobadas) y para ajustar (las desechadas). Cada
@@ -361,11 +369,10 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
           <h3 className="ops-merma-titulo">{t("Scrap in this range", "Merma en el rango")} <span className="count-tag" data-cuenta-rango>{mermasEnRango.length}</span></h3>
           <div className="filters-oneline ops-filtros" role="group" aria-label={t("Stage", "Etapa")} data-filtro-etapas>
             <button type="button" className={`chip${!verGrupos && etapaFiltro === "" ? " active" : ""}`} onClick={() => { setVerGrupos(false); setEtapaFiltro(""); }} data-etapa-filtro="">{t("All stages", "Todas las etapas")} <span className="cnt">{mermasEnRango.length}</span></button>
-            {/* «⏳ Pendiente» (dueño, 11 nov): lo que espera aprobación (documentada o fotografiada, con o sin grupo). */}
-            <button type="button" className={`chip${!verGrupos && etapaFiltro === "pendiente" ? " active" : ""}`} onClick={() => { setVerGrupos(false); setEtapaFiltro(etapaFiltro === "pendiente" ? "" : "pendiente"); }} data-etapa-filtro="pendiente" aria-pressed={!verGrupos && etapaFiltro === "pendiente"}>⏳ {t("Pending", "Pendiente")} <span className="cnt">{mermasEnRango.filter(pendienteDeAprobar).length}</span></button>
-            {ETAPAS.map((e) => (
+            {/* «⏳ Pendiente» va entre «Fotografiada» y «Aprobada» (Roberto, 11 nov): en grupo, sin aprobar. */}
+            {ETAPAS_VISIBLES.map((e) => (
               <button type="button" key={e} className={`chip ops-chip-etapa${!verGrupos && etapaFiltro === e ? " active" : ""}`} onClick={() => { setVerGrupos(false); setEtapaFiltro(etapaFiltro === e ? "" : e); }} data-etapa-filtro={e} aria-pressed={!verGrupos && etapaFiltro === e}>
-                <span className="ops-etapa ops-etapa-mini" data-etapa={e} aria-hidden /> {nombreDeEtapa(e, lang)} <span className="cnt">{cuentaEtapa(e)}</span>
+                {e === "pending" ? "⏳ " : <span className="ops-etapa ops-etapa-mini" data-etapa={e} aria-hidden />} {nombreDeEtapaVisible(e, lang)} <span className="cnt">{cuentaEtapa(e)}</span>
               </button>
             ))}
             {/* «Groups» (dueño, 10 nov): al lado de las etapas; muestra el archivo de grupos en vez de la tabla. */}
