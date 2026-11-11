@@ -355,6 +355,17 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
             ))}
             {/* «Groups» (dueño, 10 nov): al lado de las etapas; muestra el archivo de grupos en vez de la tabla. */}
             <button type="button" className={`chip${verGrupos ? " active" : ""}`} onClick={() => setVerGrupos((v) => !v)} data-filtro-grupos aria-pressed={verGrupos}>🗂 {t("Groups", "Grupos")} <span className="cnt">{grupos.length}</span></button>
+            {/* Exportar en la MISMA fila que las etapas (dueño, 10 nov: quitar el espacio muerto sobre la tabla). */}
+            {!verGrupos && mermasPorEtapa.length > 0 && (
+              <span className="ops-exportar ops-exportar-en-fila">
+                <button type="button" className="btn btn-sm" onClick={() => exportarCsv(mermasPorEtapa)} data-accion="exportar-csv" title={t("Download these rows as a CSV file to paste into Excel", "Baja estas filas como CSV para pegarlas en Excel")}>
+                  ⬇ {t("Export CSV", "Exportar CSV")} <span className="cnt">{mermasPorEtapa.length}</span>
+                </button>
+                <button type="button" className="btn btn-sm" onClick={() => void descargarPdf(mermasPorEtapa, true)} disabled={generandoPdf} data-accion="exportar-pdf" title={t("Download these rows as a PDF report", "Baja estas filas como un reporte PDF")}>
+                  📄 {generandoPdf ? t("Generating…", "Generando…") : t("Download PDF", "Descargar PDF")} <span className="cnt">{mermasPorEtapa.length}</span>
+                </button>
+              </span>
+            )}
           </div>
           {!verGrupos && <>
           {seleccionadas.length > 0 && (
@@ -384,27 +395,9 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
               onListo={(n) => { setAjustandoBloque(false); actualizaFilas(n); setAvisoBloque(resumenDeBloque("adjusted", n.length, paraAjustar.omitidos.length, lang)); }}
               onParcial={actualizaFilas} onCancelar={() => setAjustandoBloque(false)} />
           )}
-          {mermasPorEtapa.length > 0 && (
-            <div className="ops-exportar">
-              <button type="button" className="btn btn-sm" onClick={() => exportarCsv(mermasPorEtapa)} data-accion="exportar-csv" title={t("Download these rows as a CSV file to paste into Excel", "Baja estas filas como CSV para pegarlas en Excel")}>
-                ⬇ {t("Export CSV", "Exportar CSV")} <span className="cnt">{mermasPorEtapa.length}</span>
-              </button>
-              <button type="button" className="btn btn-sm" onClick={() => void descargarPdf(mermasPorEtapa, true)} disabled={generandoPdf} data-accion="exportar-pdf" title={t("Download these rows as a PDF report", "Baja estas filas como un reporte PDF")}>
-                📄 {generandoPdf ? t("Generating…", "Generando…") : t("Download PDF", "Descargar PDF")} <span className="cnt">{mermasPorEtapa.length}</span>
-              </button>
-            </div>
-          )}
-          {/* «Seleccionar todos» arriba de la tabla (dueño): marca de un golpe todas las seleccionables del filtro. */}
-          {seleccionables.length > 0 && (
-            <div className="ops-seleccionar-todos" data-seleccionar-todos={seleccionables.length}>
-              <button type="button" className="btn btn-sm" onClick={alternarTodas} data-accion="seleccionar-todos" aria-pressed={todasSeleccionadas}>
-                {todasSeleccionadas
-                  ? `☑ ${t("Clear", "Quitar")}`
-                  : `☐ ${t(`Select all (${seleccionables.length})`, `Seleccionar todos (${seleccionables.length})`)}`}
-              </button>
-            </div>
-          )}
+          {/* «Seleccionar todos» vive SOLO en la casilla del encabezado (dueño, 10 nov: el botón de arriba era redundante). */}
           <TablaDeMermaExcel filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango" conEtapa
+            grupos={grupos} onAbrirGrupo={abrirGrupo}
             seleccion={{ ids: seleccion, puede: puedeSeleccionar, alternar, todas: todasSeleccionadas, algunas: algunaSeleccionada, alternarTodas }}
             vacio={rango ? (etapaFiltro ? t("No scrap in that stage in this range.", "No hay merma en esa etapa en este rango.") : t("No scrap broken in this range.", "No se rompió nada en este rango.")) : t("Fix the dates to see the list.", "Corrige las fechas para ver la lista.")} />
           </>}
@@ -546,8 +539,10 @@ function TablaDeReportes({ filas, ctx, onAbrir, vacio, repetidas, conEtapa, sele
  * de siempre (casilla, Cuándo, Etapa, Tipo, Tienda, Lo llenó), que pidió conservar. Encabezado de dos niveles; las
  * cifras a la derecha; se desplaza de lado dentro de su caja. Cada fila se abre como tarjeta, igual que antes.
  */
-function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = true, seleccion, "data-lista": dataLista }: {
+function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = true, seleccion, grupos, onAbrirGrupo, "data-lista": dataLista }: {
   filas: Reporte[]; ctx: Contexto; onAbrir: (r: Reporte) => void; vacio: string; repetidas: Map<string, string[]>; "data-lista": string;
+  /** Con la lista de grupos sale la columna «Grupo» (a qué grupo de aprobación pertenece cada merma). */
+  grupos?: readonly GrupoDeMerma[]; onAbrirGrupo?: (id: string) => void;
   conEtapa?: boolean;
   seleccion?: { ids: Set<string>; puede: (r: Reporte) => boolean; alternar: (id: string) => void;
     /** Casilla del encabezado «seleccionar todos»: si todas/algunas están marcadas y la acción para alternarlas. */
@@ -557,7 +552,10 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
   const nombre = (id: string) => ctx.personas.find((p) => p.id === id)?.full_name ?? "—";
   const nombreTipo = (k: TipoDeReporte) => (lang === "es" ? INFO_DE_TIPO[k].es : INFO_DE_TIPO[k].en);
   const conCasillas = !!seleccion && filas.some((r) => seleccion.puede(r));
-  const fijas = 4 + (conEtapa ? 1 : 0) + (conCasillas ? 1 : 0);
+  // A qué grupo de aprobación pertenece cada merma (dueño, 10 nov): columna «Grupo» con su nombre (clic = abre el grupo).
+  const conGrupo = !!grupos;
+  const nombreDeGrupo = new Map((grupos ?? []).map((g) => [g.id, g.name]));
+  const fijas = 4 + (conEtapa ? 1 : 0) + (conCasillas ? 1 : 0) + (conGrupo ? 1 : 0);
   const grupo = COLUMNAS_EXCEL.filter((c) => c.grupo);
   const antes = COLUMNAS_EXCEL.filter((c, n) => !c.grupo && n < COLUMNAS_EXCEL.findIndex((x) => x.grupo));
   const despues = COLUMNAS_EXCEL.filter((c, n) => !c.grupo && n > COLUMNAS_EXCEL.findIndex((x) => x.grupo));
@@ -578,8 +576,9 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
                 )}
               </th>
             )}
-            <th rowSpan={2} title={t("When it was reported", "Cuándo se reportó")}>{t("When", "Cuándo")}</th>
+            <th rowSpan={2} title={t("Date and time it was reported in the app", "Día y hora en que se reportó en la app")}>{t("Date reported", "Fecha reportada")}</th>
             {conEtapa && <th rowSpan={2}>{t("Stage", "Etapa")}</th>}
+            {conGrupo && <th rowSpan={2} data-col="grupo">{t("Group", "Grupo")}</th>}
             <th rowSpan={2}>{t("Type", "Tipo")}</th><th rowSpan={2}>{t("Store", "Tienda")}</th><th rowSpan={2}>{t("Filed by", "Lo llenó")}</th>
             {antes.map((c) => <th key={c.id} rowSpan={2} data-col={c.id}>{titulo(c)}</th>)}
             <th colSpan={grupo.length} className="ops-col-grupo" data-col="cantidades">{t("Quantities", "Cantidades")}</th>
@@ -620,6 +619,13 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
                   <InsigniasDeFoto r={r} repetida={repetidas.has(r.id)} />
                 </td>
                 {conEtapa && <td className="ops-col-etapa"><ChipDeEtapa r={r} /></td>}
+                {conGrupo && (
+                  <td className="ops-col-grupo-merma" data-grupo-de={r.scrap_group_id ?? ""}>
+                    {r.scrap_group_id
+                      ? <button type="button" className="ops-folio-link" onClick={(e) => { e.stopPropagation(); onAbrirGrupo?.(r.scrap_group_id!); }} title={t("Open this group", "Abrir este grupo")}>🗂 {nombreDeGrupo.get(r.scrap_group_id) ?? t("Group", "Grupo")}</button>
+                      : <span className="hint">—</span>}
+                  </td>
+                )}
                 <td style={{ whiteSpace: "nowrap" }}>{INFO_DE_TIPO[r.kind].emoji} {nombreTipo(r.kind)}</td>
                 <td>{r.store}</td>
                 <td>{r.author_name ?? nombre(r.author_id)}</td>

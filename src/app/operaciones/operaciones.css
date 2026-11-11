@@ -427,3 +427,7 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-editar-rotos legend { font-size: 12px; padding: 0 4px; }
 .ops-editar-persona { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
 @media (max-width: 560px) { .ops-editar-campos { grid-template-columns: minmax(0, 1fr); } }
+
+/* Exportar CSV/PDF en la misma fila que las etapas (sin fila propia sobre la tabla). */
+.ops-exportar-en-fila { margin-left: auto; display: inline-flex; gap: 6px; }
+.ops-col-grupo-merma { white-space: nowrap; }

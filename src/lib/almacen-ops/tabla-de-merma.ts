@@ -57,7 +57,8 @@ export interface CeldasDeMerma {
 
 /** Las columnas del Excel, en el orden de la hoja de Roberto; `grupo` marca las que van bajo «Cantidades». */
 export const COLUMNAS_EXCEL: { id: keyof CeldasDeMerma; en: string; es: string; num?: boolean; grupo?: boolean }[] = [
-  { id: "fecha", en: "Date", es: "Fecha" },
+  // El día en que se ROMPIÓ (no el de reporte; ese va en «Fecha reportada»). Dueño, 10 nov: que se distingan las dos.
+  { id: "fecha", en: "Date broken", es: "Fecha del daño" },
   { id: "codigo", en: "Item code", es: "Código" },
   { id: "descripcion", en: "Item description", es: "Descripción" },
   { id: "cajas", en: "Boxes", es: "Cajas", num: true, grupo: true },

@@ -20,6 +20,8 @@ export interface Yo extends Quien { full_name: string }
 export interface Reporte {
   id: string;
   created_at: string;
+  /** 281: el grupo de aprobación al que pertenece (null = en ninguno). */
+  scrap_group_id?: string | null;
   kind: TipoDeReporte;
   store: string;
   author_id: string;

@@ -9,6 +9,7 @@ import { aprobarMerma, cambiarEtapa, enlacesDeFotos, firmarMerma, firmasDeReport
 import { SLOTS_DE_FIRMA, firmaDe, mensajePendienteDeFirma, nombreDeSlot, puedeAprobar, puedeFirmarSlot, requiereFirma, tieneAmbasFirmas, type FirmaDeMerma, type SlotDeFirma } from "@/lib/almacen-ops/firmas";
 import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
 import { FirmaPad } from "./FirmaPad";
+import { HojaDeGrupo } from "./HojaDeGrupo";
 import type { Contexto } from "./Operaciones";
 
 /**
@@ -298,6 +299,7 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [r.id, ctx.demo]);
   const adjuntos = [r.approval_sheet, r.adjustment_proof].filter((x): x is string => !!x);
+  const [hojaDeGrupo, setHojaDeGrupo] = useState<string | null>(null);
   useEffect(() => {
     if (ctx.demo || adjuntos.length === 0) return;
     let vivo = true;
@@ -337,12 +339,25 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
                 {hecha && f && <span className="ops-etapa-cuando">{fmtDateTime(f)}{quien && ` · ${quien}`}</span>}
                 {!hecha && <span className="ops-etapa-cuando hint">{t("pending", "pendiente")}</span>}
                 {e === "approved" && <Adjunto ruta={r.approval_sheet} alt={t("Signed approval sheet", "Hoja de aprobación firmada")} />}
+                {/* Dueño, 10 nov: si la merma es de un grupo, su documento es la hoja firmada del GRUPO (con todos sus
+                    renglones). El ícono la abre en tarjeta, sin salir del reporte. */}
+                {e === "approved" && hecha && r.scrap_group_id && (
+                  <button type="button" className="ops-icono-fotos" onClick={() => setHojaDeGrupo(r.scrap_group_id!)} data-ver-hoja-grupo={r.scrap_group_id}
+                    title={t("See the signed group sheet", "Ver la hoja firmada del grupo")}>📄 {t("Signed sheet", "Hoja firmada")}</button>
+                )}
                 {e === "adjusted" && <Adjunto ruta={r.adjustment_proof} alt={t("System screenshot", "Captura del sistema")} />}
               </span>
             </li>
           );
         })}
       </ol>
+      {hojaDeGrupo && (
+        <div className="overlay" onClick={() => setHojaDeGrupo(null)}>
+          <div className="modal ops-tarjeta-grupo" onClick={(ev) => ev.stopPropagation()} role="dialog" aria-modal="true" data-hoja-del-reporte={hojaDeGrupo}>
+            <HojaDeGrupo grupoId={hojaDeGrupo} ctx={ctx} onSalir={() => setHojaDeGrupo(null)} />
+          </div>
+        </div>
+      )}
       {gestiona && !accion && (
         <div className="ops-etapa-acciones">
           {siguiente === "dumped" && <button type="button" className="btn btn-primary" onClick={() => setAccion("dumped")} data-accion="marcar-desechada">🗑 {t("Mark as Dumped", "Marcar como Desechada")}</button>}
