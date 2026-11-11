@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BotonCasa } from "@/components/BotonCasa";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
@@ -37,7 +38,7 @@ export function ProfileView({ id, nombre, correo, usuario, onCerrar, onPersonali
         <h2>👤 {t("My profile", "Mi perfil")}</h2>
         {onCerrar
           ? <button type="button" className="btn btn-ghost btn-sm" data-cerrar-tarjeta onClick={onCerrar}>{t("Close", "Cerrar")}</button>
-          : <Link href="/home" className="btn btn-ghost btn-sm">{t("Back to hub", "Volver al hub")}</Link>}
+          : <BotonCasa />}
       </div>
 
       <div className="card">

@@ -110,7 +110,7 @@ describe("los otros módulos: medidos, no supuestos", () => {
     // admin cumple `canReachHub` porque Usuarios es una herramienta de hub visible para él. O
     // sea que quien puede ver ese enlace puede, por definición, llegar al hub.
     expect(leer("src/app/home/users/layout.tsx")).toContain('if (me.role !== "admin") redirect(landingRoute(me));');
-    expect(leer("src/app/home/users/page.tsx")).toContain('href="/home"');
+    expect(leer("src/app/home/users/page.tsx")).toContain("<BotonCasa />");
     expect(canReachHub({ role: "admin", module_access: [] })).toBe(true);
   });
 });

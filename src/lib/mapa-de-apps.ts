@@ -17,7 +17,7 @@
  *     antes (`accessibleModules` + `HUB_TOOLS` visibles): el mapa no amplía el acceso de nadie;
  *   - qué apps de las de antes no salen en el mapa y van a «Otras apps».
  */
-import { accessibleModules, HUB_TOOLS, roleHome, type HubTool, type ModuleInfo } from "@/lib/constants";
+import { accessibleModules, herramientasDelLanzador, HUB_TOOLS, roleHome, type HubTool, type ModuleInfo } from "@/lib/constants";
 import { canSeeCost, erpTier } from "@/lib/erp/domain/roles";
 import type { UserRole } from "@/lib/types";
 
@@ -93,7 +93,12 @@ export const CASILLAS: Casilla[] = [
   // Abre el CATÁLOGO, como la tarjeta del hub y /erp (D-644): el dueño, «en inventory catalog is default view». Con
   // /erp/inventory, el admin y el gerente caían en la pestaña de conteos. Y se llama «Inventario», como la app (D-622).
   { key: "erp-inventory", panel: "vendors", fila: 2, columna: 3, emoji: "🧱", label_en: "Inventory", label_es: "Inventario", existe: true, destino: { tipo: "modulo", clave: "erp", ruta: "/erp/catalog" } },
+  // 2026-11-11 (el dueño: «re-haz el mapa con las apps que hemos hecho»): Operaciones de almacén (D-883, 247) — merma,
+  // conteos, mantenimiento —, junto a Inventario porque toma de ahí el producto y su precio.
+  { key: "warehouse-ops", panel: "vendors", fila: 2, columna: 4, emoji: "🏭", label_en: "Warehouse Ops", label_es: "Operaciones de almacén", existe: true, destino: { tipo: "modulo", clave: "warehouse_ops" } },
   // ---- Clientes: Sales Order encima de Quote Builder; Refunds & Credits arriba a la derecha; fila 2, el flujo de venta.
+  // 2026-11-11: RTG PROMOS (promociones para clientes) ya existe; arriba de Leads.
+  { key: "promos", panel: "customers", fila: 1, columna: 1, emoji: "🎟️", label_en: "RTG PROMOS", label_es: "RTG PROMOS", existe: true, destino: { tipo: "modulo", clave: "promos" } },
   { key: "sales-order", panel: "customers", fila: 1, columna: 2, emoji: "🗒️", label_en: "Sales Order", label_es: "Orden de venta", existe: false },
   { key: "refunds-credits", panel: "customers", fila: 1, columna: 6, emoji: "↩️", label_en: "Refunds & Credits", label_es: "Reembolsos y créditos", existe: false },
   { key: "leads", panel: "customers", fila: 2, columna: 1, emoji: "🎯", label_en: "Leads", label_es: "Leads", existe: true, destino: { tipo: "modulo", clave: "leads" } },
@@ -110,6 +115,8 @@ export const CASILLAS: Casilla[] = [
   { key: "help-requests", panel: "employees", fila: 1, columna: 5, emoji: "🆘", label_en: "Help Requests", label_es: "Solicitudes de ayuda", existe: true, destino: { tipo: "herramienta", claves: ["help-requests", "my-help"] } },
   { key: "tutorials", panel: "employees", fila: 1, columna: 6, emoji: "🎬", label_en: "Tutorials", label_es: "Tutoriales", existe: true, destino: { tipo: "herramienta", claves: ["tutorials"] } },
   { key: "phone-book", panel: "employees", fila: 1, columna: 7, emoji: "📇", label_en: "Company Phone Book", label_es: "Directorio de la compañía", existe: true, destino: { tipo: "herramienta", claves: ["directory"] } },
+  // 2026-11-11: Security / Permisos (D-811) — quién entra a qué app; solo el admin real (como su tarjeta del hub).
+  { key: "security", panel: "employees", fila: 1, columna: 8, emoji: "🔐", label_en: "Security & Permissions", label_es: "Seguridad y permisos", existe: true, destino: { tipo: "herramienta", claves: ["security"] } },
 ];
 
 export interface Flecha {
@@ -147,6 +154,14 @@ export const FLECHAS: Flecha[] = [
   },
   { de: "receive-inventory", a: "enter-bills", conectada: false, evidencia: `${NO_CONSTRUIDA} (Enter Bills).` },
   { de: "enter-bills", a: "pay-bills", conectada: false, evidencia: `${NO_CONSTRUIDA} (las dos).` },
+  {
+    // 2026-11-11: la merma elige su producto del catálogo del ERP y toma su precio de venta (la pérdida sale de ahí).
+    de: "erp-inventory", a: "warehouse-ops", conectada: true,
+    evidencia: "conectada (2026-11-11): el selector de producto de la merma busca en el catálogo del ERP, " +
+      "src/lib/almacen-ops/datos.ts:93 «export async function buscarProductos», con la RPC " +
+      "supabase/migrations/247_operaciones_de_almacen.sql:165 «create or replace function public.warehouse_ops_search_products(q text)», " +
+      "y el precio que guarda la merma es el de venta del producto, supabase/migrations/272_merma_precio_de_venta.sql:41 «from erp.products p».",
+  },
   // ---- La que cruza (forma 50, girada 270°: apunta hacia ARRIBA, de Sales Order a Purchase Orders, como en QuickBooks).
   {
     de: "sales-order", a: "purchase-orders", conectada: false,
@@ -254,7 +269,7 @@ export function alcanceDe(me: { role: UserRole; module_access?: string[] | null;
   return {
     role: me.role,
     modulos: accessibleModules(me.module_access),
-    herramientas: HUB_TOOLS.filter((t) => t.visible(me)),
+    herramientas: herramientasDelLanzador(HUB_TOOLS.filter((t) => t.visible(me))),
     veCompras: veComprasDe(me),
   };
 }

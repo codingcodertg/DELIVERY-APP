@@ -30,11 +30,11 @@ describe("el hub", () => {
 });
 
 describe("los dos componentes", () => {
-  it("en tarjeta enseñan «Cerrar»; en su página, «Volver al hub»", () => {
+  it("en tarjeta enseñan «Cerrar»; en su página, la casita (BotonCasa, 2026-11-11)", () => {
     for (const f of ["src/components/profile/ProfileView.tsx", "src/components/profile/Personalizador.tsx"]) {
       const c = sinComentarios(leer(f));
       expect(c, f).toContain('? <button type="button" className="btn btn-ghost btn-sm" data-cerrar-tarjeta onClick={onCerrar}>{t("Close", "Cerrar")}</button>');
-      expect(c, f).toContain(': <Link href="/home" className="btn btn-ghost btn-sm">{t("Back to hub", "Volver al hub")}</Link>}');
+      expect(c, f).toContain(": <BotonCasa />}");
     }
   });
   it("sus páginas siguen existiendo (menú del nombre en cada app, TabGate)", () => {

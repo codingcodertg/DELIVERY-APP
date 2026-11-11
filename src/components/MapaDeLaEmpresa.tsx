@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { BotonCasa } from "@/components/BotonCasa";
 import { usePrefs } from "@/lib/prefs";
-import { accessibleModules, HUB_TOOLS } from "@/lib/constants";
+import { accessibleModules, herramientasDelLanzador, HUB_TOOLS } from "@/lib/constants";
 import type { Profile } from "@/lib/types";
 import { MapaDeApps } from "@/components/MapaDeApps";
 import { veComprasDe } from "@/lib/mapa-de-apps";
@@ -18,13 +18,11 @@ import { veComprasDe } from "@/lib/mapa-de-apps";
 export function MapaDeLaEmpresa({ me, suplantando }: { me: Profile; suplantando: boolean }) {
   const { t, lang } = usePrefs();
   const available = accessibleModules(me.module_access);
-  const tools = HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando }));
+  const tools = herramientasDelLanzador(HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando })));
   return (
     <div className="auth-wrap">
       <div className="auth-card hub-mapa-card">
-        <Link href="/home" className="hub-profile-link" data-mapa-volver>
-          ← {t("Back to the hub", "Volver al inicio")}
-        </Link>
+        <BotonCasa className="hub-mapa-casa" />
         <h1>🗺️ {t("Company map", "Mapa de la empresa")}</h1>
         {/* `veCompras` (D-558): Purchase Orders y Receive Inventory abren pantallas del ERP que rebotan a quien no tiene
             el nivel de compras (`erp_role` manager/admin, que la página lee); a esa persona, con candado. */}

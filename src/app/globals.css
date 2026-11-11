@@ -1099,7 +1099,7 @@ table.orders th.th-cae-detras { box-shadow: inset -3px 0 0 var(--accent); backgr
 .mapa-panel-enlace { color: inherit; text-decoration: none; }
 .mapa-panel-enlace:hover, .mapa-panel-enlace:focus-visible { text-decoration: underline; }
 .mapa-rejilla { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr) 28px) minmax(0, 1fr); align-items: start; }
-.mapa-fila-libre { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.mapa-fila-libre { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
 .mapa-celda { min-width: 0; display: flex; justify-content: center; }
 .mapa-casilla {
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; width: 100%; min-width: 0;
@@ -2069,3 +2069,9 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
   html, body { margin: 0; }
   body { padding: 12mm; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 }
+
+/* La casita para volver al inicio fuera de la barra de las apps (BotonCasa, 2026-11-11): el estándar de la app en vez de
+   «← Volver al hub / al inicio». Misma casa que la barra (`tab-casa`), en botón cuadrado. */
+.boton-casa { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; font-size: 22px; line-height: 1; border: 1px solid var(--line); border-radius: 10px; background: var(--card); text-decoration: none; flex-shrink: 0; }
+.boton-casa:hover { border-color: var(--blue); }
+.boton-casa.hub-mapa-casa { margin-bottom: 10px; }

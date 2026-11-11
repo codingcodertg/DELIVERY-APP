@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { BotonCasa } from "@/components/BotonCasa";
 import { usePrefs } from "@/lib/prefs";
 import { OPCIONES_DE_IDIOMA, OPCIONES_DE_TEMA } from "@/lib/personalizar";
 
@@ -26,7 +26,7 @@ export function Personalizador({ onCerrar }: {
         <h2>🎨 {t("Customize", "Personalizar")}</h2>
         {onCerrar
           ? <button type="button" className="btn btn-ghost btn-sm" data-cerrar-tarjeta onClick={onCerrar}>{t("Close", "Cerrar")}</button>
-          : <Link href="/home" className="btn btn-ghost btn-sm">{t("Back to hub", "Volver al hub")}</Link>}
+          : <BotonCasa />}
       </div>
       <p className="hint" style={{ marginTop: 0, marginBottom: 14 }}>
         {t(
