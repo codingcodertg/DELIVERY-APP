@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { BotonCasa } from "@/components/BotonCasa";
 import { usePrefs } from "@/lib/prefs";
 import { nombreDeDepartamento } from "@/lib/departamentos";
 import { clienteDelHub as createClient } from "@/lib/home/cliente-del-hub";
@@ -84,7 +84,7 @@ export default function DirectoryPage() {
     <>
       <div className="page-head">
         <h2>📇 {t("Company phone book", "Directorio de la compañía")}</h2>
-        <Link href="/home" className="btn btn-ghost btn-sm">{t("Back to hub", "Volver al hub")}</Link>
+        <BotonCasa />
       </div>
 
       <div className="card">

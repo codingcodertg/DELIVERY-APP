@@ -729,6 +729,18 @@ export const HUB_TOOLS: HubTool[] = [
   },
 ];
 
+/**
+ * 2026-11-11 (el dueño): «Vista móvil» y «Cambiar de usuario» ya viven en el menú del botón «?» de ayuda; en el inicio
+ * (y en el mapa) sobraban. Siguen siendo herramientas (su ruta, su puerta y el menú «?» no cambian): solo salen del
+ * lanzador del hub.
+ */
+export const HERRAMIENTAS_SOLO_EN_AYUDA: ReadonlySet<string> = new Set(["vista-movil", "switch-user"]);
+
+/** Las herramientas que se pintan en el inicio del hub (y en el mapa): las visibles, menos las que viven en el «?». */
+export function herramientasDelLanzador<T extends { key: string }>(tools: readonly T[]): T[] {
+  return tools.filter((t) => !HERRAMIENTAS_SOLO_EN_AYUDA.has(t.key));
+}
+
 // ---- Apps que se instalan --------------------------------------------------
 //
 // El hub las ofrece para descargar (D-167). Hasta ahora el APK de los choferes se repartía

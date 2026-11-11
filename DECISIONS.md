@@ -51643,3 +51643,13 @@ Pedidos del dueño (10 nov):
 La 292 la aplica el dueño. Sin aplicarla, la app no se rompe: el almacén ve el botón de Reportes, pero la base solo le devuelve sus propias mermas, como hasta hoy.
 
 Sello `warehouse_ops` 0.34.0; repo 1.835.0.
+
+## D-983 · Hub: la casita en vez de «Volver al hub/inicio», mapa con las apps de hoy, y el inicio sin Vista móvil ni Cambiar de usuario
+
+El dueño (11 nov): «volver al inicio cámbialo por la casita y haz eso throughout el app… porque eso es lo standard en el app, y re-haz el mapa con las apps que hemos hecho y con lo que están conectadas».
+
+- **La casita es el estándar para volver al inicio.** Las apps ya la tenían en su barra (`HubHomeLink`, D-643). Las páginas del hub que no llevan barra tenían un enlace de texto «← Volver al hub / al inicio»; ahora todas usan el mismo botón 🏠 (`src/components/BotonCasa.tsx`, clase `boton-casa`, «Inicio»/«Home»). Son el Mapa, el Directorio, Ayuda y Solicitudes de ayuda, Tutoriales, Perfil, Personalizar, Usuarios, Cambiar de usuario y la Vista móvil.
+- **Mapa de la empresa re-hecho con lo que existe hoy.** Entran tres apps que ya existían pero no estaban dibujadas: **Operaciones de almacén** (junto a Inventario, en Proveedores), **RTG PROMOS** (en Clientes) y **Seguridad y permisos** (en Empleados). La flecha nueva **Inventario → Operaciones de almacén** es continua y conectada: la merma toma su producto del catálogo del ERP y su precio de venta (evidencia con `fichero:línea` comprobada por la prueba). Las demás flechas siguen igual de honestas: Leads → Quote Builder conectada; las de facturas, pagos y órdenes de venta siguen por conectar. Las casillas grises son las mismas siete. La prueba de rutas ahora reconoce las rutas `[[...x]]` (/operaciones).
+- **El inicio, sin «Vista móvil» ni «Cambiar de usuario».** Ya viven en el menú del botón «?»; en el lanzador (y en «Otras apps» del mapa) sobraban. Siguen siendo herramientas, con su ruta y su puerta (`HERRAMIENTAS_SOLO_EN_AYUDA` / `herramientasDelLanzador` en `constants.ts`).
+
+Sello `deliveries` 1.594.0; repo 1.836.0.

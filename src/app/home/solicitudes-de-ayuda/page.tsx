@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { BotonCasa } from "@/components/BotonCasa";
 import Link from "next/link";
 import { usePrefs } from "@/lib/prefs";
 import { clienteDelHub as createClient } from "@/lib/home/cliente-del-hub";
@@ -295,7 +296,7 @@ export default function SolicitudesDeAyudaPage() {
             {pendientes.length} {t("pending", "pendientes")}
           </span>
         )}
-        <Link href="/home" className="btn btn-ghost btn-sm">{t("Back to hub", "Volver al hub")}</Link>
+        <BotonCasa />
       </div>
 
       <div className="card">

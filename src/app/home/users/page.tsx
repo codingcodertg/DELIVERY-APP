@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BotonCasa } from "@/components/BotonCasa";
 import { UsersManager } from "@/components/UsersManager";
 import { usePrefs } from "@/lib/prefs";
 
@@ -17,9 +18,7 @@ export default function UsersPage() {
     <UsersManager
       header={
         <div className="card" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <Link href="/home" className="hint" style={{ textDecoration: "none", marginTop: 0 }}>
-            ← {t("Back to hub", "Volver al hub")}
-          </Link>
+          <BotonCasa />
           <Link href="/recruiting/employees" className="hint" style={{ textDecoration: "none", marginTop: 0 }} data-enlace="employees">
             👤 {t("HR → Employees (permissions live in each file)", "RR. HH. → Empleados (los permisos están en cada expediente)")}
           </Link>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { BotonCasa } from "@/components/BotonCasa";
 import { usePrefs } from "@/lib/prefs";
 import { clienteDelHub as createClient } from "@/lib/home/cliente-del-hub";
 import { APP_VERSIONS } from "@/lib/app-versions";
@@ -153,7 +153,7 @@ export default function MisSolicitudesPage() {
         <h2>💬 {t("My help requests", "Mis solicitudes de ayuda")}</h2>
         {total > 0 && <span className="sema" style={{ background: "var(--amber)", color: "#fff" }}>{total} {t("unread", "sin leer")}</span>}
         <button className="btn btn-primary btn-sm" onClick={() => setNueva((v) => !v)}>+ {t("New request", "Nueva solicitud")}</button>
-        <Link href="/home" className="btn btn-ghost btn-sm">{t("Back to hub", "Volver al hub")}</Link>
+        <BotonCasa />
       </div>
 
       {nueva && (

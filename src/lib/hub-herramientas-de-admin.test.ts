@@ -85,7 +85,7 @@ describe("el lobby sabe si se está suplantando, una vez y en el servidor", () =
   });
 
   it("y el selector se lo pasa a cada herramienta", () => {
-    expect(selector).toContain("const tools = HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando }));");
+    expect(selector).toContain("const tools = herramientasDelLanzador(HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando })));");
   });
 });
 

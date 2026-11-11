@@ -9,7 +9,7 @@ import { VersionFooter } from "@/components/VersionFooter";
 import { ProfileView } from "@/components/profile/ProfileView";
 import { Personalizador } from "@/components/profile/Personalizador";
 import { AvisoDeTutoriales } from "@/components/tutorials/AvisoDeTutoriales";
-import { accessibleModules, HUB_TOOLS, INSTALLABLE_APPS, roleHome } from "@/lib/constants";
+import { accessibleModules, herramientasDelLanzador, HUB_TOOLS, INSTALLABLE_APPS, roleHome } from "@/lib/constants";
 import { puedeEntrarAClientes } from "@/lib/customers/reglas";
 import type { Profile } from "@/lib/types";
 import { veAppsParaInstalar } from "@/lib/hub-apps";
@@ -43,7 +43,7 @@ export function HomeSelector({ me, suplantando = false, cuenta, soloApps = null 
     // D-811: lo que el middleware va a rebotar no se ofrece.
     .filter((m) => soloApps === null || soloApps.includes(m.key));
   // `suplantando` lo decide el servidor (home/page.tsx) y solo lo miran las herramientas del admin real.
-  const tools = HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando }));
+  const tools = herramientasDelLanzador(HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando })));
   // The deliveries card's own href is a placeholder ("/") — it's the same
   // ModuleInfo entry used by the app switcher and everywhere else, but where
   // deliveries actually lands depends on the person's role (warehouse -> its

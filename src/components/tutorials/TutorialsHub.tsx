@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { BotonCasa } from "@/components/BotonCasa";
 import { usePrefs } from "@/lib/prefs";
 import { clienteDelHub as createClient } from "@/lib/home/cliente-del-hub";
 import {
@@ -131,7 +131,7 @@ export function TutorialsHub({ yo, puedeGestionar }: { yo: string | null; puedeG
     <>
       <div className="page-head">
         <h2>🎬 {t("Tutorials", "Tutoriales")}</h2>
-        <Link href="/home" className="btn btn-ghost btn-sm">{t("Back to hub", "Volver al hub")}</Link>
+        <BotonCasa />
       </div>
 
       <div className="card" style={{ padding: "10px 14px" }}>

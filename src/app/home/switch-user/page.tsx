@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { BotonCasa } from "@/components/BotonCasa";
 import { SwitchUserPanel } from "@/components/SwitchUserPanel";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
@@ -34,7 +34,7 @@ export default function SwitchUserPage() {
     <div className="card" style={{ maxWidth: 680, margin: "24px auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 12 }}>
         <h2 style={{ margin: 0 }}>⇄ {t("Switch user", "Cambiar de usuario")}</h2>
-        <Link href="/home" className="btn btn-ghost btn-sm">◂ {t("Back to hub", "Volver al hub")}</Link>
+        <BotonCasa />
       </div>
       <p className="hint" style={{ marginTop: 0 }}>
         {t(

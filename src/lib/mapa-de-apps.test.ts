@@ -19,7 +19,11 @@ function rutasDelRepo(): Set<string> {
     for (const f of readdirSync(dir)) {
       const p = join(dir, f);
       if (statSync(p).isDirectory()) recorrer(p, /^\(.*\)$/.test(f) ? partes : [...partes, f]);
-      else if (f === "page.tsx") out.add("/" + partes.join("/"));
+      else if (f === "page.tsx") {
+        out.add("/" + partes.join("/"));
+        // Un «[[...x]]» (catch-all OPCIONAL) también responde en la carpeta de arriba: /operaciones/[[...ruta]] → /operaciones.
+        if (/^\[\[\.\.\..+\]\]$/.test(partes[partes.length - 1] ?? "")) out.add("/" + partes.slice(0, -1).join("/"));
+      }
     }
   };
   recorrer(join(process.cwd(), "src/app"), []);
@@ -38,13 +42,14 @@ function hrefsPosibles(c: Casilla): string[] {
 }
 
 // Nota D-558: Purchase Orders y Receive Inventory pasan de gris a color (abren las del ERP); antes, once y nueve.
-const COLOR = ["purchase-orders", "receive-inventory", "deliveries", "erp-inventory", "leads", "quote-builder", "users", "hr", "time-tracker", "surveys", "help-requests", "tutorials", "phone-book"];
+// 2026-11-11 (re-hacer el mapa con las apps hechas): + Operaciones de almacén, RTG PROMOS y Seguridad y permisos.
+const COLOR = ["purchase-orders", "receive-inventory", "deliveries", "erp-inventory", "warehouse-ops", "leads", "promos", "quote-builder", "users", "hr", "time-tracker", "surveys", "help-requests", "tutorials", "phone-book", "security"];
 const GRIS = ["enter-bills", "pay-bills", "sales-order", "refunds-credits", "create-invoice", "receive-payments", "record-deposits"];
 
 const TODO = ["deliveries", "recruiting", "timetracker", "erp", "promos", "estimator", "surveys", "leads"];
 
 describe("las casillas del diagrama del jefe", () => {
-  it("trece de color (existen) y siete grises (aún no): las del jefe más las dos del ERP (D-558)", () => {
+  it("dieciséis de color (existen) y siete grises (aún no): las del jefe, las dos del ERP (D-558) y las tres de 2026-11-11", () => {
     expect(CASILLAS.filter((c) => c.existe).map((c) => c.key).sort()).toEqual([...COLOR].sort());
     expect(CASILLAS.filter((c) => !c.existe).map((c) => c.key).sort()).toEqual([...GRIS].sort());
   });
@@ -87,9 +92,9 @@ describe("las casillas del diagrama del jefe", () => {
 });
 
 describe("las flechas no mienten", () => {
-  it("son las diez del diagrama, con su sentido", () => {
+  it("las diez del diagrama más Inventario → Operaciones de almacén (2026-11-11), con su sentido", () => {
     expect(FLECHAS.map((f) => `${f.de}>${f.a}`).sort()).toEqual([
-      "create-invoice>receive-payments", "deliveries>receive-inventory", "enter-bills>pay-bills", "leads>quote-builder",
+      "create-invoice>receive-payments", "deliveries>receive-inventory", "enter-bills>pay-bills", "erp-inventory>warehouse-ops", "leads>quote-builder",
       "purchase-orders>deliveries", "quote-builder>create-invoice", "quote-builder>sales-order", "receive-inventory>enter-bills",
       "receive-payments>record-deposits", "sales-order>purchase-orders",
     ]);
@@ -97,11 +102,11 @@ describe("las flechas no mienten", () => {
 
   // Nota D-558: antes «hoy ninguna está conectada (medido el 2026-10-14)». Ahora una, Leads → Quote Builder, y la
   // leyenda dice «1 de 10». Las demás siguen diciendo por qué no (las dos del ERP re-medidas el 2026-10-15).
-  it("hoy solo Leads → Quote Builder está conectada, y cada una dice por qué sí o por qué no", () => {
-    expect(FLECHAS.filter((f) => f.conectada).map((f) => `${f.de}>${f.a}`)).toEqual(["leads>quote-builder"]);
-    expect(FLECHAS.filter((f) => trazoDe(f) === "conectada")).toHaveLength(1);
+  it("conectadas: Leads → Quote Builder e Inventario → Operaciones de almacén; cada una dice por qué sí o por qué no", () => {
+    expect(FLECHAS.filter((f) => f.conectada).map((f) => `${f.de}>${f.a}`).sort()).toEqual(["erp-inventory>warehouse-ops", "leads>quote-builder"]);
+    expect(FLECHAS.filter((f) => trazoDe(f) === "conectada")).toHaveLength(2);
     for (const f of FLECHAS) {
-      const patron = f.conectada ? /^conectada \(2026-10-15\)/ : /^no existe \(2026-10-1[45]\)/;
+      const patron = f.conectada ? /^conectada \(2026-1[01]-1[15]\)/ : /^no existe \(2026-10-1[45]\)/;
       expect([f.de, f.a, patron.test(f.evidencia)]).toEqual([f.de, f.a, true]);
     }
   });
@@ -114,10 +119,11 @@ describe("las flechas no mienten", () => {
     expect(FLECHAS.filter((x) => x.pendiente).map((x) => x.a)).toEqual(["quote-builder"]);
   });
 
-  it("la evidencia de la conectada apunta a líneas reales: cada `fichero:línea «texto»` contiene ese texto", () => {
-    const f = FLECHAS.find((x) => x.de === "leads" && x.a === "quote-builder")!;
-    const citas = [...f.evidencia.matchAll(/(\S+\.(?:tsx?|sql)):(\d+) «([^»]+)»/g)];
-    expect(citas.length).toBeGreaterThanOrEqual(6);
+  it("la evidencia de cada conectada apunta a líneas reales: cada `fichero:línea «texto»` contiene ese texto", () => {
+    const leads = FLECHAS.find((x) => x.de === "leads" && x.a === "quote-builder")!;
+    expect([...leads.evidencia.matchAll(/(\S+\.(?:tsx?|sql)):(\d+) «([^»]+)»/g)].length).toBeGreaterThanOrEqual(6);
+    const citas = FLECHAS.filter((x) => x.conectada).flatMap((x) => [...x.evidencia.matchAll(/(\S+\.(?:tsx?|sql)):(\d+) «([^»]+)»/g)]);
+    expect(citas.length).toBeGreaterThanOrEqual(9);
     for (const [, fichero, linea, texto] of citas) {
       const l = readFileSync(join(process.cwd(), fichero), "utf8").split(/\r?\n/)[Number(linea) - 1] ?? "";
       expect([fichero, linea, l.includes(texto)]).toEqual([fichero, linea, true]);
@@ -262,11 +268,14 @@ describe("el acceso es el del hub de antes", () => {
     }
   });
 
-  it("«Otras apps»: RTG PROMOS, y las herramientas del admin real que el mapa no dibuja", () => {
-    expect(otrasApps(al("sales", ["deliveries", "promos"])).map((o) => o.key)).toEqual(["promos"]);
+  it("«Otras apps»: las herramientas del admin real que el mapa no dibuja", () => {
+    // 2026-11-11: RTG PROMOS ya tiene casilla; deja de ir en «Otras apps».
+    expect(otrasApps(al("sales", ["deliveries", "promos"])).map((o) => o.key)).toEqual([]);
     // D-811: Security es del admin real, y el mapa no la dibuja.
     // «usuarios-permisos» (D-936) se sacó del hub en D-940 (standby), así que ya no aparece en «Otras apps».
-    expect(otrasApps(al("admin", ["deliveries"])).map((o) => o.key)).toEqual(["security", "my-help", "vista-movil", "switch-user"]);
+    // 2026-11-11: Security ya tiene casilla en Empleados.
+    // 2026-11-11: «Vista móvil» y «Cambiar de usuario» viven solo en el «?» (herramientasDelLanzador).
+    expect(otrasApps(al("admin", ["deliveries"])).map((o) => o.key)).toEqual(["my-help"]);
     expect(otrasApps(al("admin", ["deliveries"], true)).map((o) => o.key)).toEqual(["my-help"]);
     expect(otrasApps(al("sales", ["deliveries"]))).toEqual([]);
   });
@@ -285,8 +294,8 @@ describe("en el teléfono", () => {
   });
 
   it("primero la fila principal, de izquierda a derecha", () => {
-    expect(secuenciaMovil("vendors").map((p) => p.casilla.key)).toEqual(["purchase-orders", "deliveries", "receive-inventory", "enter-bills", "pay-bills", "erp-inventory"]);
-    expect(secuenciaMovil("customers").map((p) => p.casilla.key)).toEqual(["leads", "quote-builder", "create-invoice", "receive-payments", "record-deposits", "sales-order", "refunds-credits"]);
+    expect(secuenciaMovil("vendors").map((p) => p.casilla.key)).toEqual(["purchase-orders", "deliveries", "receive-inventory", "enter-bills", "pay-bills", "erp-inventory", "warehouse-ops"]);
+    expect(secuenciaMovil("customers").map((p) => p.casilla.key)).toEqual(["leads", "quote-builder", "create-invoice", "receive-payments", "record-deposits", "promos", "sales-order", "refunds-credits"]);
   });
 
   it("un chevrón solo une dos pasos que tienen flecha", () => {
@@ -304,7 +313,7 @@ describe("el hub pinta el mapa con las listas de siempre", () => {
   it("el mapa vive en su página y recibe los mismos `available` y `tools` que el inicio", () => {
     const pagina = leer("src/components/MapaDeLaEmpresa.tsx");
     expect(pagina).toContain("const available = accessibleModules(me.module_access);");
-    expect(pagina).toContain("const tools = HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando }));");
+    expect(pagina).toContain("const tools = herramientasDelLanzador(HUB_TOOLS.filter((tool) => tool.visible({ ...me, suplantando })));");
     // Nota D-558: más `veCompras`, del `erp_role` que la página lee, para las dos casillas de compras del ERP.
     expect(pagina).toContain("<MapaDeApps alcance={{ role: me.role, modulos: available, herramientas: tools, veCompras: veComprasDe(me) }}");
     expect(leer("src/app/home/mapa/page.tsx")).toContain('.select("id, full_name, role, module_access, erp_role")');

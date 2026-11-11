@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
+import { BotonCasa } from "@/components/BotonCasa";
 import { useRouter } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { TAMANOS_MOVIL, enlaceAVistaMovil, rutaParaElMarco } from "@/lib/mobile-preview";
@@ -49,7 +49,7 @@ export function VistaMovil({ rutaInicial, rutaDeInicio = "/", anchoInicial }: { 
     <>
       <div className="page-head">
         <h2>📱 {t("Mobile view", "Vista móvil")}</h2>
-        <Link href="/home" className="btn btn-ghost btn-sm">{t("Back to hub", "Volver al hub")}</Link>
+        <BotonCasa />
       </div>
 
       <div className="card">
