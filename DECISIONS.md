@@ -51532,3 +51532,13 @@ La dirección de la tienda sale de Datos → Tiendas tal como la dejó el geocod
 **Pruebas.** `agendar-presencial.test.ts`: la dirección geocodificada queda corta, el enlace es el corto y sin %20/%2C, y el texto de la tienda queda por debajo de 560 caracteres. 4 de 4 mutantes caen (enlace largo de vuelta, sin quitar el condado, `{address}` sin acortar, mapa con la dirección larga).
 
 Sello `recruiting` 0.88.0; repo 1.824.0.
+
+## D-972 · Entregas: opción de "fecha pendiente" al programar una orden
+
+Pedido del dueño (foto de WhatsApp): poder **programar una entrega sin fecha** (pendiente), para agendarla después; hoy toda orden nueva nace con fecha (mañana, D-955), así que no había forma de dejarla pendiente (lo resolvían agendando al jueves).
+
+En la ficha de orden, un checkbox **"Fecha pendiente (se agenda después) / Pending date (schedule later)"** bajo el campo de fecha: al marcarlo, `delivery_date` queda nulo; la fecha y la ventana se vacían/deshabilitan y no se marcan como faltantes; la orden se puede guardar, enviar y **aprobar sin fecha**. Al desmarcarlo vuelve el selector (por defecto mañana). Las órdenes sin fecha caen solas en la vista "Expiradas y sin fecha" del Gestor, donde logística les pone día (D-331) — sin plomería nueva. Donde se muestra la fecha, una orden sin fecha dice "Fecha pendiente". Sin migración (`delivery_date` ya era nulable).
+
+Nota: duplicar una orden sigue naciendo para mañana (no arrastra "pendiente").
+
+Sello `deliveries` 1.592.0; repo 1.825.0.
