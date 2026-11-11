@@ -51600,3 +51600,15 @@ El dueño: en modo enseñanza, «Iniciar aprobación» salía con el aviso de «
 Ahora, con el modo enseñanza prendido, el grupo se crea DE MENTIRA en la memoria de la pestaña (`src/lib/practica/grupos-de-practica.ts`, ids `practica-…`): sale en «Grupos», se abre en tarjeta, se firma (gerente y supervisor), se quita una firma, y con las dos firmas se aprueba solo, como la 283. No se llama a la base, así que no sale el aviso morado, y nada se guarda. Al recargar, los grupos de práctica desaparecen (se avisa al crearlos).
 
 Sello `warehouse_ops` 0.31.0; repo 1.832.0.
+
+## D-980 · Merma: tabla con «Grupo» y las dos fechas; hoja firmada del grupo desde el reporte
+
+Pedidos del dueño (10 nov) sobre la tabla de «Merma en el rango» y la tarjeta del reporte:
+
+- **Columna «Grupo»**: a qué grupo de aprobación pertenece cada merma (su nombre; clic = abre el grupo en tarjeta). «—» si no está en ninguno.
+- **Las dos fechas con nombre claro**: «Fecha reportada» (día y hora en que se reportó en la app) y «Fecha del daño» (el día en que se rompió; antes decía solo «Fecha»). También en el CSV y el PDF.
+- **Sin el botón «Seleccionar todos» de arriba**: era redundante con la casilla del encabezado de la tabla, que se queda.
+- **Menos espacio muerto**: Exportar CSV / Descargar PDF suben a la fila de las etapas en vez de tener fila propia.
+- **Hoja firmada en la tarjeta del reporte**: si la merma es de un grupo y ya está Aprobada, junto a «Aprobada» sale «📄 Hoja firmada», que abre en tarjeta la hoja del grupo con todos sus renglones y las firmas. Ese es el documento que respalda la aprobación de esa merma.
+
+Sello `warehouse_ops` 0.32.0; repo 1.833.0.
