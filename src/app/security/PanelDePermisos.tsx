@@ -19,6 +19,7 @@ import { normalizaTienda, tiendasMarcadas } from "@/lib/visibilidad-tienda";
 import { MOTIVOS_BAJA } from "@/lib/recruiting/employee-file";
 import { darDeBajaPorPerfil } from "@/app/recruiting/actions/hr";
 import { estaDadoDeBaja } from "@/lib/baja";
+import { nivelPorDefecto } from "@/lib/almacen-ops/nivel";
 import type { Profile, UserRole } from "@/lib/types";
 import "./security.css";
 
@@ -104,7 +105,10 @@ function Cuerpo({ vivo, usoPorApp }: { vivo: Record<string, VivoDeUsuario>; usoP
       if (key === "recruiting") await hub.updateUserRecruitingAccess(u.id, { granted: on, recruiting_role: on ? (u.recruiting_role ?? def) : null });
       else if (key === "timetracker") await hub.updateUserTimetrackerAccess(u.id, { granted: on, timetracker_role: on ? (u.timetracker_role ?? def) : null });
       else if (key === "erp") await hub.updateUserErpAccess(u.id, { granted: on, erp_role: on ? (u.erp_role ?? def) : null });
-      else if (key === "warehouse_ops") { await hub.updateUserWarehouseOpsAccess(u.id, { granted: on }); if (on && !u.warehouse_ops_role && def) await hub.updateUserWarehouseOpsRole(u.id, def); }
+      // Warehouse Ops: prender la casilla NO escribe nivel. Sin nivel escrito manda el rol del hub (`nivelPorDefecto`:
+      // warehouse → solo merma, gerente → todos los reportes). Antes escribía «scrap_only» fijo y dejaba a los gerentes
+      // sin ver los reportes de su tienda (dueño, 10 nov: Rosa, Patricia y 4 más).
+      else if (key === "warehouse_ops") await hub.updateUserWarehouseOpsAccess(u.id, { granted: on });
       return;
     }
     await hub.updateUserModules(u.id, on ? { grant: [key] } : { revoke: [key] });
@@ -125,7 +129,8 @@ function Cuerpo({ vivo, usoPorApp }: { vivo: Record<string, VivoDeUsuario>; usoP
     if (key === "recruiting") await hub.updateUserRecruitingAccess(u.id, { granted: true, recruiting_role: rolDeApp(u, key) ?? def });
     else if (key === "timetracker") await hub.updateUserTimetrackerAccess(u.id, { granted: true, timetracker_role: rolDeApp(u, key) ?? def });
     else if (key === "erp") await hub.updateUserErpAccess(u.id, { granted: true, erp_role: rolDeApp(u, key) ?? def });
-    else if (key === "warehouse_ops") { await hub.updateUserWarehouseOpsAccess(u.id, { granted: true }); if (!rolDeApp(u, key) && def) await hub.updateUserWarehouseOpsRole(u.id, def); }
+    // Igual que en toggleModulo: sin escribir nivel (manda el rol del hub; un gerente ve los reportes de su tienda).
+    else if (key === "warehouse_ops") await hub.updateUserWarehouseOpsAccess(u.id, { granted: true });
   }
 
   /** «Aplicar perfil de rol» (D-947): pone el rol de Entregas y concede su juego de módulos; algunos suman una capacidad
@@ -316,7 +321,7 @@ function Detalle({ u, vivo, uso, lang, t, ocupado, esAdmin, tiendas, rolDeApp, o
                     </span>
                   )}
                   {conRol && (
-                    <select className="perm-mrole" value={rolActual ?? (ROL_POR_DEFECTO[key] ?? "")} disabled={ocupado} data-rol={key}
+                    <select className="perm-mrole" value={rolActual ?? (key === "warehouse_ops" ? nivelPorDefecto(u.role) : (ROL_POR_DEFECTO[key] ?? ""))} disabled={ocupado} data-rol={key}
                       onChange={(e) => onRolApp(key, e.target.value)}>
                       {opcionesDeRol(key).map((r) => <option key={r} value={r}>{etiquetaDeRol(key, r, lang)}</option>)}
                     </select>

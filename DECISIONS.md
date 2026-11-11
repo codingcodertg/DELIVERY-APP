@@ -51584,3 +51584,11 @@ Sello `warehouse_ops` 0.29.0; repo 1.829.0.
 El dueño: el «Volver a Operaciones» de la pantalla de Reportes se veía como enlace subrayado a la derecha. Ahora es un botón (`btn`, sin subrayado, con «←») a la izquierda del título.
 
 Sello `warehouse_ops` 0.30.0; repo 1.830.0.
+
+## D-978 · Permisos: dar Warehouse Ops ya no pone «Solo merma» a los gerentes
+
+El dueño: un gerente seguía sin ver los reportes de merma de su tienda. La bitácora lo explicó: al prender Warehouse Ops (o aplicar un perfil de rol) en el panel de Permisos, el panel escribía el nivel fijo `scrap_only` a cualquiera. Así quedaron en «Solo merma» Rosa, Patricia, Damaris, Carlos, Juan Briseño y Roberto (10 nov), y «Solo merma» no abre la vista de Reportes.
+
+Ahora prender la casilla NO escribe nivel: sin nivel escrito manda el rol del hub (`nivelPorDefecto`: `warehouse` → solo merma; gerente → todos los reportes, ve los de su tienda). El selector de nivel del panel enseña ese valor real en vez de «Solo merma». Un nivel se sigue pudiendo escoger a mano. Los 6 gerentes se devolvieron al nivel por defecto con un ajuste de datos.
+
+Sello `security` 0.24.0; repo 1.831.0.
