@@ -51511,3 +51511,11 @@ Endurecimiento. **CSRF (#16):** en `src/middleware.ts`, una petición **mutante*
 **Errores genéricos:** `src/lib/api-error.ts` `errorAlCliente(...)` registra el detalle real en el servidor y devuelve `{error: <genérico>}` (conserva el campo `error`). Aplicado en las ~12 rutas que la auditoría nombró + otras que filtraban `error.message` de la base (delete-user, notify, places, recruiting/*, etc.), conservando los mensajes de app accionables.
 
 Sello `deliveries` 1.591.0; repo 1.822.0.
+
+## D-970 · Seguridad (#18): tope de tamaño y tipo a los buckets de subida que no lo tenían
+
+Revisión de seguridad. Los buckets de subida principales (help-files, delivery-photos, delivery-files, warehouse-ops, estimator) **ya** tenían `file_size_limit` + `allowed_mime_types` (el límite real del lado del servidor), así que lo que la auditoría nombró (help/delivery) ya estaba cubierto. Faltaban algunos internos sin tope.
+
+Migración 288 (solo `UPDATE storage.buckets`): pone tope de tamaño generoso y lista de tipos a los que estaban sin configurar — imágenes (`exception-photos`, `product-images`, `timetracker-screenshots`: 10 MB, solo imágenes) y documentos (`customer-files`, `hr-docs`, `resumes`, `po-docs`: 25 MB, la lista de tipos ya probada en delivery-files). `app` (instaladores de escritorio) se deja. Tamaños/tipos generosos a propósito, para no romper subidas existentes. Autochequeo: ninguno queda sin tope.
+
+Sello repo 1.823.0.
