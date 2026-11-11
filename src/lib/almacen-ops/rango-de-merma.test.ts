@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  ATAJOS, ATAJO_INICIAL, NOMBRE_DE_ATAJO, diaEnRango, eleccionAUrl, eleccionDeUrl, esAtajo, etiquetaDeRango, filtrarPorRango,
+  ATAJOS, ATAJOS_DEL_MENU, ATAJO_INICIAL, NOMBRE_DE_ATAJO, diaEnRango, eleccionAUrl, eleccionDeUrl, esAtajo, etiquetaDeRango, filtrarPorRango,
   perdidaEnRango, rangoAManoValido, rangoDeAtajo, rangoDeEleccion, sumarDias,
 } from "./rango-de-merma";
 import { hoyEnTexas } from "./fecha-del-dano";
@@ -45,12 +45,16 @@ describe("los atajos dan el rango esperado, contado desde hoy en Texas", () => {
     expect(rangoDeAtajo("otro", HOY, { desde: "2026-10-01", hasta: "2026-10-31" })).toEqual({ desde: "2026-10-01", hasta: "2026-10-31" });
     expect(rangoDeAtajo("otro", HOY, { desde: "ayer", hasta: "2026-02-30" })).toEqual({ desde: "", hasta: "" });
   });
-  it("hay siete atajos, con nombre en los dos idiomas, y el inicial es este mes", () => {
-    expect(ATAJOS).toEqual(["hoy", "semana", "semana-pasada", "mes", "mes-pasado", "30-dias", "otro"]);
+  it("hay ocho atajos (11 nov: + «ayer»), con nombre en los dos idiomas, y el inicial es este mes", () => {
+    expect(ATAJOS).toEqual(["hoy", "ayer", "semana", "semana-pasada", "mes", "mes-pasado", "30-dias", "otro"]);
+    expect(ATAJOS_DEL_MENU[0]).toBe("otro");
+    expect(rangoDeAtajo("ayer", "2026-11-11")).toEqual({ desde: "2026-11-10", hasta: "2026-11-10" });
+    expect(rangoDeAtajo("ayer", "2026-11-01")).toEqual({ desde: "2026-10-31", hasta: "2026-10-31" });
     for (const a of ATAJOS) { expect(NOMBRE_DE_ATAJO[a].en).toBeTruthy(); expect(NOMBRE_DE_ATAJO[a].es).toBeTruthy(); }
     expect(ATAJO_INICIAL).toBe("mes");
     expect(esAtajo("mes")).toBe(true);
-    expect(esAtajo("ayer")).toBe(false);
+    expect(esAtajo("ayer")).toBe(true);
+    expect(esAtajo("anteayer")).toBe(false);
   });
 });
 
@@ -82,7 +86,7 @@ describe("la URL", () => {
     expect(eleccionDeUrl(params({ rango: "otro", desde: "2026-10-01", hasta: "2026-10-31" }))).toEqual({ atajo: "otro", desde: "2026-10-01", hasta: "2026-10-31" });
   });
   it("un atajo que no existe o días mal escritos no rompen nada", () => {
-    expect(eleccionDeUrl(params({ rango: "ayer", desde: "2026-10-01" }))).toEqual({ atajo: "mes", desde: "", hasta: "" });
+    expect(eleccionDeUrl(params({ rango: "anteayer", desde: "2026-10-01" }))).toEqual({ atajo: "mes", desde: "", hasta: "" });
     expect(eleccionDeUrl(params({ rango: "otro", desde: "x", hasta: "2026-13-01" }))).toEqual({ atajo: "otro", desde: "", hasta: "" });
     // Con un atajo puesto, Desde/Hasta sueltos se ignoran.
     expect(eleccionDeUrl(params({ rango: "hoy", desde: "2020-01-01" }))).toEqual({ atajo: "hoy", desde: "", hasta: "" });
@@ -175,10 +179,10 @@ describe("la pantalla", () => {
     expect(lista).toContain("const enRango = useMemo(() => (rango ? perdidaEnRango(mermas, rango) : { \"*\": 0 }), [mermas, rango]);");
     expect(lista).toContain('<th className="ops-col-rango">{etiqueta}</th>');
     // D-921 (270): la lista del rango pasa además por el filtro de etapa (mermasPorEtapa = mermasEnRango sin filtro).
-    expect(lista).toContain("const mermasPorEtapa = useMemo(() => (etapaFiltro ? mermasEnRango.filter((r) => etapaDe(r) === etapaFiltro) : mermasEnRango)");
+    expect(lista).toContain(": etapaFiltro ? mermasEnRango.filter((r) => etapaDe(r) === etapaFiltro) : mermasEnRango), [mermasEnRango, etapaFiltro]);");
     // La lista de merma es la tabla tipo Excel de Roberto (tabla-de-merma.ts); la de todos los reportes sigue siendo TablaDeReportes.
     expect(lista).toContain('<TablaDeMermaExcel filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango"');
-    expect(lista).toContain("{ATAJOS.map((a) => (");
+    expect(lista).toContain("{ATAJOS_DEL_MENU.map((a) => (");
     expect(lista).toContain('data-campo="rango-desde"');
     expect(lista).toContain('data-campo="rango-hasta"');
     expect(lista).toContain("data-rango-invalido");

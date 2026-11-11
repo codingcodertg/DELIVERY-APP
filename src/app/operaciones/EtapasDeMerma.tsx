@@ -46,97 +46,6 @@ export function AvisoPendienteDeFirma({ r }: { r: Reporte }) {
 const mensajeDeError = (e: unknown) => (e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e));
 
 /**
- * El panel de las dos firmas (gerente + supervisor) de una merma fotografiada. Cada espacio: la firma (dibujo + nombre
- * + fecha) o un botón para firmar (si quien mira gestiona y puede firmar ese espacio). Cuando están las dos, aparece
- * «Aprobar». La base vuelve a exigir las dos firmas distintas.
- */
-function PanelDeFirmas({ r, ctx, firmas, onFirmas, onAprobado }: {
-  r: Reporte; ctx: Contexto; firmas: FirmaDeMerma[];
-  onFirmas: (f: FirmaDeMerma[]) => void; onAprobado: (n: Reporte) => void;
-}) {
-  const { t, lang } = usePrefs();
-  const [firmando, setFirmando] = useState<SlotDeFirma | null>(null);
-  const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const gestiona = puedeCambiarEtapa(ctx.yo, r);
-  const conFirmas = { ...r, firmas };
-
-  const firma = async (slot: SlotDeFirma, png: string) => {
-    setGuardando(true); setError(null);
-    try {
-      if (!ctx.demo) await firmarMerma(createClient(), r.id, slot, png);
-      const otras = firmas.filter((f) => f.slot !== slot);
-      const nuevas = [...otras, { slot, signer_id: ctx.yo.id, signer_name: ctx.yo.full_name, signed_at: new Date().toISOString(), signature_png: png }];
-      onFirmas(nuevas);
-      setFirmando(null);
-      // 283: con las DOS firmas la base aprueba sola; se refleja aquí (sin paso aparte de «Aprobar»).
-      if (tieneAmbasFirmas(nuevas)) onAprobado(conEtapa(r, "approved", null, new Date().toISOString(), ctx.yo.id));
-    } catch (e) { setError(mensajeDeError(e)); } finally { setGuardando(false); }
-  };
-  const quita = async (slot: SlotDeFirma) => {
-    setGuardando(true); setError(null);
-    try {
-      if (!ctx.demo) await quitarFirma(createClient(), r.id, slot);
-      onFirmas(firmas.filter((f) => f.slot !== slot));
-    } catch (e) { setError(mensajeDeError(e)); } finally { setGuardando(false); }
-  };
-  const aprueba = async () => {
-    setGuardando(true); setError(null);
-    try {
-      if (!ctx.demo) await aprobarMerma(createClient(), r.id);
-      onAprobado(conEtapa(r, "approved", null, new Date().toISOString(), ctx.yo.id));
-    } catch (e) { setError(mensajeDeError(e)); } finally { setGuardando(false); }
-  };
-
-  const nombre = (id: string | null) => (id ? ctx.personas.find((p) => p.id === id)?.full_name ?? "—" : "—");
-
-  return (
-    <section className="ops-corregir" data-firmas-panel>
-      <p className="hint">{t("Two signatures are required to approve: the manager and the warehouse supervisor — both can sign on this device. It approves on its own once both have signed.",
-        "Para aprobar hacen falta las dos firmas: el gerente y el supervisor de almacén; las dos se pueden firmar en este mismo aparato. Con las dos puestas, se aprueba sola.")}</p>
-      {firmando && (
-        <FirmaPad etiqueta={t(`Sign as ${nombreDeSlot(firmando, lang)}`, `Firmar como ${nombreDeSlot(firmando, lang)}`)}
-          guardando={guardando} onCancelar={() => setFirmando(null)} onFirmar={(png) => void firma(firmando, png)} />
-      )}
-      {!firmando && (
-        <div className="ops-firmas">
-          {SLOTS_DE_FIRMA.map((slot) => {
-            const f = firmaDe(firmas, slot);
-            return (
-              <div key={slot} className={"ops-firma" + (f ? "" : " ops-firma-vacia")} data-firma-slot={slot}>
-                <span className="ops-firma-slot">{nombreDeSlot(slot, lang)}</span>
-                {f ? (
-                  <figure>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {f.signature_png ? <img src={f.signature_png} alt={nombreDeSlot(slot, lang)} /> : <span className="hint">✍ {t("signed", "firmada")}</span>}
-                    <figcaption>{f.signer_name ?? nombre(f.signer_id)}{f.signed_at ? ` · ${fmtDateTime(f.signed_at)}` : ""}</figcaption>
-                    {gestiona && (f.signer_id === ctx.yo.id) && (
-                      <button type="button" className="btn btn-ghost btn-sm" disabled={guardando} onClick={() => void quita(slot)} data-accion={`quitar-firma-${slot}`}>↩ {t("Remove my signature", "Quitar mi firma")}</button>
-                    )}
-                  </figure>
-                ) : gestiona && puedeFirmarSlot(firmas, slot, ctx.yo.id) ? (
-                  <button type="button" className="btn btn-primary btn-sm" disabled={guardando} onClick={() => { setError(null); setFirmando(slot); }} data-accion={`firmar-${slot}`}>✍ {t("Sign", "Firmar")}</button>
-                ) : (
-                  <span className="hint">{t("awaiting signature", "falta firma")}</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {error && <p className="ops-aviso ops-aviso-error" role="alert">{error}</p>}
-      {!firmando && gestiona && (
-        <div className="modal-actions">
-          <button type="button" className="btn btn-primary" disabled={guardando || !puedeAprobar(conFirmas)} onClick={() => void aprueba()} data-accion="aprobar-merma">
-            {guardando ? t("Saving…", "Guardando…") : t("Approve", "Aprobar")}
-          </button>
-        </div>
-      )}
-    </section>
-  );
-}
-
-/**
  * Sube la hoja firmada o la captura: una imagen pasa por el mismo lector que las fotos de merma (D-917: bytes en el
  * acto, JPEG comprimido); un PDF se sube tal cual. Devuelve la ruta en el cubo.
  */
@@ -370,9 +279,12 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
           {actual === "documented" && <p className="hint">{t("Add the photo first; then it can go to approval.", "Primero la foto; después puede ir a aprobación.")}</p>}
         </div>
       )}
-      {/* La aprobación es por firma (280): fotografiada → firman gerente y supervisor → Aprobar. */}
-      {actual === "photographed" && !accion && (requiereFirma(conFirmas) || gestiona || firmas.length > 0) && (
-        <PanelDeFirmas r={r} ctx={ctx} firmas={firmas} onFirmas={setFirmas} onAprobado={(n) => onCambio(n)} />
+      {/* Dueño (11 nov, ayuda 4499c4a4): «no se puede firmar algo que no se ha agrupado». La firma por reporte (280) ya
+          no se ofrece aquí: una merma se aprueba SOLO en un grupo (281), cuya hoja firman gerente y supervisor. */}
+      {actual === "photographed" && !accion && (
+        <p className="hint" data-aprobar-en-grupo>{r.scrap_group_id
+          ? t("This report is in an approval group: it is signed and approved on the group's sheet.", "Esta merma está en un grupo de aprobación: se firma y se aprueba en la hoja del grupo.")
+          : t("To approve it, select it in the table and press «Start approval» to put it in a group; the group's sheet is what gets signed.", "Para aprobarla, márcala en la tabla y toca «Iniciar aprobación» para ponerla en un grupo; lo que se firma es la hoja del grupo.")}</p>
       )}
       {error && <p className="ops-aviso ops-aviso-error" role="alert">{error}</p>}
       {accion === "dumped" && <ConfirmarDesechada r={r} ctx={ctx} onListo={(n) => { setAccion(null); onCambio(n); }} onCancelar={() => setAccion(null)} />}

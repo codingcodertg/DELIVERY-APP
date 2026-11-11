@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { HUECO_DE_LA_BARRA } from "@/components/BarraDeApp";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -28,9 +28,12 @@ import { ORIGENES_DE_MERMA, TIPOS_DE_MERMA, MOTIVOS_DE_MERMA, costoDelCampo, typ
 import { cuentaComoPerdida, perdidaDeMerma, repartoDeReporte } from "@/lib/almacen-ops/perdida";
 import { puedeCorregirMerma, puedeExportar, puedeVerReporte, veLosReportes } from "@/lib/almacen-ops/visibilidad";
 import { diaDelReporte, fmtDia, hoyEnTexas, ordenPorDia } from "@/lib/almacen-ops/fecha-del-dano";
-import { ATAJOS, NOMBRE_DE_ATAJO, eleccionAUrl, eleccionDeUrl, etiquetaDeRango, filtrarPorRango, perdidaEnRango, rangoDeAtajo, rangoDeEleccion, type Atajo, type Eleccion } from "@/lib/almacen-ops/rango-de-merma";
-import { ETAPAS, etapaDe, nombreDeEtapa, perdidaPorEtapa, puedeCambiarEtapa, seleccionableParaHoja, tieneEtapas, type Etapa } from "@/lib/almacen-ops/etapas";
+import { ATAJOS_DEL_MENU, NOMBRE_DE_ATAJO, eleccionAUrl, eleccionDeUrl, etiquetaDeRango, filtrarPorRango, perdidaEnRango, rangoDeAtajo, rangoDeEleccion, type Atajo, type Eleccion } from "@/lib/almacen-ops/rango-de-merma";
+import { ETAPAS, etapaDe, nombreDeEtapa, pendienteDeAprobar, perdidaPorEtapa, puedeCambiarEtapa, seleccionableParaHoja, tieneEtapas, type Etapa } from "@/lib/almacen-ops/etapas";
 import { COLUMNAS_EXCEL, celdasDeMerma, csvDeMermas, nombreDelCsv } from "@/lib/almacen-ops/tabla-de-merma";
+import { COLUMNAS_DE_MERMA, PREFS_INICIALES, alternaColumna, columnasVisibles, fmtDiaCorto, mueveColumna, normalizaPrefs, ordenPropio, sueltaColumna, tramosDeCabecera, type ColumnaDeMerma, type PrefsDeColumnas } from "@/lib/almacen-ops/columnas-de-merma";
+import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
+import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { datosPdfDeMerma } from "@/lib/almacen-ops/pdf-de-merma";
 import { AdjuntarYMarcar, ChipDeEtapa, LineaDeEtapas, aplicarEtapa, ErrorParcial } from "./EtapasDeMerma";
 import { particionaPorEtapa, resumenDeBloque } from "@/lib/almacen-ops/bloque";
@@ -97,7 +100,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const [tipo, setTipo] = useState<TipoDeReporte | "">("");
   const [abierto, setAbierto] = useState<Reporte | null>(null);
   // D-921 (270): filtro por etapa, y la selección de mermas para la hoja de aprobación (solo fotografiadas, sin aprobar).
-  const [etapaFiltro, setEtapaFiltro] = useState<Etapa | "">("");
+  const [etapaFiltro, setEtapaFiltro] = useState<Etapa | "" | "pendiente">("");
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [adjuntando, setAdjuntando] = useState(false);
   // «Groups» (dueño, 10 nov): una opción más al lado de los filtros de etapa; muestra el archivo de grupos en vez de la tabla.
@@ -161,7 +164,8 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const etiqueta = rango ? etiquetaDeRango(rango, lang, hoy) : "—";
   const tiendasDeMerma = Array.from(new Set([...Object.keys(totales), ...Object.keys(enRango)])).filter((k) => k !== "*").sort();
   // D-921 (270): la lista de merma filtrada por etapa, la cuenta por etapa y el desglose de la pérdida del rango por etapa.
-  const mermasPorEtapa = useMemo(() => (etapaFiltro ? mermasEnRango.filter((r) => etapaDe(r) === etapaFiltro) : mermasEnRango), [mermasEnRango, etapaFiltro]);
+  const mermasPorEtapa = useMemo(() => (etapaFiltro === "pendiente" ? mermasEnRango.filter(pendienteDeAprobar)
+    : etapaFiltro ? mermasEnRango.filter((r) => etapaDe(r) === etapaFiltro) : mermasEnRango), [mermasEnRango, etapaFiltro]);
   const cuentaEtapa = (e: Etapa) => mermasEnRango.filter((r) => etapaDe(r) === e).length;
   // (El desglose por etapa en texto se quitó: dueño, 10 nov. `perdidaPorEtapa` sigue probada en su módulo.)
   // Se puede marcar cualquier merma que uno gestione (no solo las fotografiadas): así la misma selección sirve para
@@ -300,13 +304,8 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const selectorDeRango = (
     <div className="ops-fila-de-filtros" data-fila-de-filtros>
       {pestanas}
-      <div className="filters-oneline ops-filtros" role="group" aria-label={t("Date range", "Rango de fechas")} data-rango-atajos>
-        {ATAJOS.map((a) => (
-          <button type="button" key={a} className={`chip${eleccion.atajo === a ? " active" : ""}`} onClick={() => elegir(a)} data-atajo={a} aria-pressed={eleccion.atajo === a}>
-            {lang === "es" ? NOMBRE_DE_ATAJO[a].es : NOMBRE_DE_ATAJO[a].en}
-          </button>
-        ))}
-      </div>
+      {/* Dueño, 11 nov: los atajos de fecha pasan a UN botón «📅» con su menú (primero el rango personalizado). */}
+      <MenuDeFecha eleccion={eleccion} etiqueta={etiqueta} onElegir={elegir} />
       {eleccion.atajo === "otro" && (
         <div className="ops-filtros-campos" data-rango-a-mano>
           <span className="ops-fecha">{t("From", "Desde")} <input type="date" value={eleccion.desde} max={hoy} onChange={(e) => irA({ eleccion: { ...eleccion, desde: e.target.value } })} aria-label={t("From", "Desde")} data-campo="rango-desde" /></span>
@@ -369,6 +368,8 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
           <h3 className="ops-merma-titulo">{t("Scrap in this range", "Merma en el rango")} <span className="count-tag" data-cuenta-rango>{mermasEnRango.length}</span></h3>
           <div className="filters-oneline ops-filtros" role="group" aria-label={t("Stage", "Etapa")} data-filtro-etapas>
             <button type="button" className={`chip${!verGrupos && etapaFiltro === "" ? " active" : ""}`} onClick={() => { setVerGrupos(false); setEtapaFiltro(""); }} data-etapa-filtro="">{t("All stages", "Todas las etapas")} <span className="cnt">{mermasEnRango.length}</span></button>
+            {/* «⏳ Pendiente» (dueño, 11 nov): lo que espera aprobación (documentada o fotografiada, con o sin grupo). */}
+            <button type="button" className={`chip${!verGrupos && etapaFiltro === "pendiente" ? " active" : ""}`} onClick={() => { setVerGrupos(false); setEtapaFiltro(etapaFiltro === "pendiente" ? "" : "pendiente"); }} data-etapa-filtro="pendiente" aria-pressed={!verGrupos && etapaFiltro === "pendiente"}>⏳ {t("Pending", "Pendiente")} <span className="cnt">{mermasEnRango.filter(pendienteDeAprobar).length}</span></button>
             {ETAPAS.map((e) => (
               <button type="button" key={e} className={`chip ops-chip-etapa${!verGrupos && etapaFiltro === e ? " active" : ""}`} onClick={() => { setVerGrupos(false); setEtapaFiltro(etapaFiltro === e ? "" : e); }} data-etapa-filtro={e} aria-pressed={!verGrupos && etapaFiltro === e}>
                 <span className="ops-etapa ops-etapa-mini" data-etapa={e} aria-hidden /> {nombreDeEtapa(e, lang)} <span className="cnt">{cuentaEtapa(e)}</span>
@@ -600,86 +601,172 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
   // A qué grupo de aprobación pertenece cada merma (dueño, 10 nov): columna «Grupo» con su nombre (clic = abre el grupo).
   const conGrupo = !!grupos;
   const nombreDeGrupo = new Map((grupos ?? []).map((g) => [g.id, g.name]));
-  const fijas = 4 + (conEtapa ? 1 : 0) + (conCasillas ? 1 : 0) + (conGrupo ? 1 : 0);
-  const grupo = COLUMNAS_EXCEL.filter((c) => c.grupo);
-  const antes = COLUMNAS_EXCEL.filter((c, n) => !c.grupo && n < COLUMNAS_EXCEL.findIndex((x) => x.grupo));
-  const despues = COLUMNAS_EXCEL.filter((c, n) => !c.grupo && n > COLUMNAS_EXCEL.findIndex((x) => x.grupo));
-  const columnas = fijas + COLUMNAS_EXCEL.length;
-  const titulo = (c: (typeof COLUMNAS_EXCEL)[number]) => (lang === "es" ? c.es : c.en);
+  // Columnas a gusto (dueño, 11 nov): ⚙ Columnas (mostrar/ocultar, ↑ ↓, restablecer) y arrastrar la cabecera. Cada quien
+  // guarda lo suyo en este navegador. La casilla de selección va siempre primero. El CSV/PDF siguen con todas.
+  const { prefs, setPrefs } = usePrefsDeColumnas(ctx.yo.id);
+  const [arrastrando, setArrastrando] = useState<string | null>(null);
+  const disponibles = COLUMNAS_DE_MERMA.filter((c) => (c.key !== "etapa" || conEtapa) && (c.key !== "grupo" || conGrupo));
+  const visibles = columnasVisibles(prefs).filter((c) => disponibles.some((d) => d.key === c.key));
+  const tramos = tramosDeCabecera(visibles);
+  const columnas = visibles.length + (conCasillas ? 1 : 0);
+  const titulo = (c: ColumnaDeMerma) => (lang === "es" ? c.es : c.en);
+  const arrastre = (c: ColumnaDeMerma) => ({
+    draggable: true,
+    onDragStart: (e: React.DragEvent) => { setArrastrando(c.key); e.dataTransfer.effectAllowed = "move"; },
+    onDragOver: (e: React.DragEvent) => { if (arrastrando) e.preventDefault(); },
+    onDrop: (e: React.DragEvent) => { e.preventDefault(); if (arrastrando) setPrefs(sueltaColumna(prefs, arrastrando, c.key)); setArrastrando(null); },
+    onDragEnd: () => setArrastrando(null),
+    title: t("Drag to move this column", "Arrastra para mover esta columna"),
+  });
+  const claseArrastre = (c: ColumnaDeMerma) => "ops-cabecera-arrastrable" + (arrastrando === c.key ? " ops-cabecera-arrastrando" : "");
+  const ordenSelector = normalizaPrefs(prefs).orden.map((k) => disponibles.find((d) => d.key === k)).filter((c): c is ColumnaDeMerma => !!c);
+  const celdaFija = (r: Reporte, key: string) => {
+    switch (key) {
+      case "reportada": return (
+        <td key={key} style={{ whiteSpace: "nowrap" }} data-reportado={r.created_at}>
+          {fmtDateTime(r.created_at)}
+          <IconoDeFotos r={r} />
+          <InsigniasDeFoto r={r} repetida={repetidas.has(r.id)} />
+        </td>
+      );
+      case "etapa": return <td key={key} className="ops-col-etapa"><ChipDeEtapa r={r} /></td>;
+      case "grupo": return (
+        <td key={key} className="ops-col-grupo-merma" data-grupo-de={r.scrap_group_id ?? ""}>
+          {r.scrap_group_id
+            ? <button type="button" className="ops-folio-link" onClick={(e) => { e.stopPropagation(); onAbrirGrupo?.(r.scrap_group_id!); }} title={t("Open this group", "Abrir este grupo")}>🗂 {nombreDeGrupo.get(r.scrap_group_id) ?? t("Group", "Grupo")}</button>
+            : <span className="hint">—</span>}
+        </td>
+      );
+      case "tipo": return <td key={key} style={{ whiteSpace: "nowrap" }}>{INFO_DE_TIPO[r.kind].emoji} {nombreTipo(r.kind)}</td>;
+      case "tienda": return <td key={key}>{r.store}</td>;
+      case "lleno": return <td key={key}>{r.author_name ?? nombre(r.author_id)}</td>;
+      default: return null;
+    }
+  };
   return (
-    <div className="tbl-scroll tbl-caja ops-tabla-excel-caja">
-      <table className="orders ops-tabla-excel" data-lista={dataLista}>
-        <thead>
-          <tr>
-            {conCasillas && (
-              <th rowSpan={2} className="ops-col-casilla">
-                {seleccion!.alternarTodas && (
-                  <input type="checkbox" checked={!!seleccion!.todas}
-                    ref={(el) => { if (el) el.indeterminate = !!seleccion!.algunas && !seleccion!.todas; }}
-                    onChange={seleccion!.alternarTodas} data-casilla-todas
-                    aria-label={t("Select all", "Seleccionar todos")} title={t("Select all", "Seleccionar todos")} />
-                )}
-              </th>
-            )}
-            <th rowSpan={2} title={t("Date and time it was reported in the app", "Día y hora en que se reportó en la app")}>{t("Date reported", "Fecha reportada")}</th>
-            {conEtapa && <th rowSpan={2}>{t("Stage", "Etapa")}</th>}
-            {conGrupo && <th rowSpan={2} data-col="grupo">{t("Group", "Grupo")}</th>}
-            <th rowSpan={2}>{t("Type", "Tipo")}</th><th rowSpan={2}>{t("Store", "Tienda")}</th><th rowSpan={2}>{t("Filed by", "Lo llenó")}</th>
-            {antes.map((c) => <th key={c.id} rowSpan={2} data-col={c.id}>{titulo(c)}</th>)}
-            <th colSpan={grupo.length} className="ops-col-grupo" data-col="cantidades">{t("Quantities", "Cantidades")}</th>
-            {despues.map((c) => <th key={c.id} rowSpan={2} data-col={c.id}>{titulo(c)}</th>)}
-          </tr>
-          <tr>
-            {grupo.map((c) => <th key={c.id} className="num ops-col-subgrupo" data-col={c.id}>{titulo(c)}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {filas.length === 0 && <tr><td colSpan={columnas} className="hint">{vacio}</td></tr>}
-          {filas.map((r) => {
-            const c = celdasDeMerma(r, ctx.personas, lang);
-            const celda = (k: (typeof COLUMNAS_EXCEL)[number]) => {
-              if (k.id === "fecha") return <td key={k.id} className="ops-celda-fecha" data-col={k.id} data-dia={c.fecha}>{fmtDia(c.fecha, lang)}</td>;
-              if (k.id === "costo") return (
-                <td key={k.id} className="num" data-col={k.id} title={t(`Price per piece: ${fmtMoney(r.unit_cost)}`, `Precio por pieza: ${fmtMoney(r.unit_cost)}`)} data-cuenta-como-perdida={cuentaComoPerdida(r) ? "si" : "no"}>
-                  {fmtMoney(r.total_loss)}{!cuentaComoPerdida(r) && <span className="hint"> ({t("no CRMA", "sin CRMA")})</span>}
-                </td>
+    <div className="ops-tabla-excel-con-columnas">
+      <div className="ops-columnas-barra">
+        <SelectorDeColumnas
+          columnas={ordenSelector}
+          elegidas={visibles.map((c) => c.key)}
+          onAlterna={(k) => setPrefs(alternaColumna(prefs, k))}
+          rotulo={titulo} t={t}
+          titulo={t("Show and order columns", "Mostrar y ordenar columnas")}
+          nota={t("Drag a column header to move it. Saved in this browser.", "Arrastra la cabecera de una columna para moverla. Se guarda en este navegador.")}
+          mover={{
+            seMueve: (k, d) => { const o = ordenSelector.map((c) => c.key); const i = o.indexOf(k) + d; return i >= 0 && i < o.length; },
+            onMueve: (k, d) => setPrefs(mueveColumna(prefs, k, d)),
+            ordenPropio: ordenPropio(prefs),
+            onRestablece: () => setPrefs(PREFS_INICIALES),
+          }}
+        />
+      </div>
+      <div className="tbl-scroll tbl-caja ops-tabla-excel-caja">
+        <table className="orders ops-tabla-excel" data-lista={dataLista}>
+          <thead>
+            <tr>
+              {conCasillas && (
+                <th rowSpan={2} className="ops-col-casilla">
+                  {seleccion!.alternarTodas && (
+                    <input type="checkbox" checked={!!seleccion!.todas}
+                      ref={(el) => { if (el) el.indeterminate = !!seleccion!.algunas && !seleccion!.todas; }}
+                      onChange={seleccion!.alternarTodas} data-casilla-todas
+                      aria-label={t("Select all", "Seleccionar todos")} title={t("Select all", "Seleccionar todos")} />
+                  )}
+                </th>
+              )}
+              {tramos.map((tr, n) => tr.tipo === "suelta"
+                ? <th key={tr.col.key} rowSpan={2} data-col={tr.col.key} className={claseArrastre(tr.col)} {...arrastre(tr.col)}>{titulo(tr.col)}</th>
+                : <th key={`cant-${n}`} colSpan={tr.cols.length} className="ops-col-grupo" data-col="cantidades">{t("Quantities", "Cantidades")}</th>)}
+            </tr>
+            <tr>
+              {tramos.flatMap((tr) => (tr.tipo === "cantidades" ? tr.cols : [])).map((c) => (
+                <th key={c.key} data-col={c.key} className={"num ops-col-subgrupo " + claseArrastre(c)} {...arrastre(c)}>{titulo(c)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filas.length === 0 && <tr><td colSpan={columnas} className="hint">{vacio}</td></tr>}
+            {filas.map((r) => {
+              const c = celdasDeMerma(r, ctx.personas, lang);
+              const celda = (k: (typeof COLUMNAS_EXCEL)[number]) => {
+                // La fecha del daño corta (dueño, 11 nov): MM/DD/YY en los dos idiomas.
+                if (k.id === "fecha") return <td key={k.id} className="ops-celda-fecha" data-col={k.id} data-dia={c.fecha}>{fmtDiaCorto(c.fecha)}</td>;
+                if (k.id === "costo") return (
+                  <td key={k.id} className="num" data-col={k.id} title={t(`Price per piece: ${fmtMoney(r.unit_cost)}`, `Precio por pieza: ${fmtMoney(r.unit_cost)}`)} data-cuenta-como-perdida={cuentaComoPerdida(r) ? "si" : "no"}>
+                    {fmtMoney(r.total_loss)}{!cuentaComoPerdida(r) && <span className="hint"> ({t("no CRMA", "sin CRMA")})</span>}
+                  </td>
+                );
+                if (k.id === "codigo" && r.product_not_in_catalog) return <td key={k.id} data-col={k.id}><span className="ops-fuera-de-catalogo">{t("Not in catalog", "No está en el catálogo")}</span></td>;
+                if (k.id === "comentarios" || k.id === "descripcion") return <td key={k.id} className="ops-celda-texto" data-col={k.id} title={c[k.id]}>{c[k.id]}</td>;
+                return <td key={k.id} className={k.num ? "num" : undefined} data-col={k.id}>{c[k.id]}</td>;
+              };
+              return (
+                <tr key={r.id} onClick={() => onAbrir(r)} className={"ops-fila-tabla" + (enConflicto?.has(r.id) ? " ops-fila-en-grupo-conflicto" : "")} data-reporte={r.id} data-etapa={etapaDe(r)}>
+                  {conCasillas && (
+                    <td className="ops-col-casilla" onClick={(e) => e.stopPropagation()}>
+                      {seleccion!.puede(r) && (
+                        <input type="checkbox" checked={seleccion!.ids.has(r.id)} onChange={() => seleccion!.alternar(r.id)}
+                          aria-label={t("Select for the approval sheet", "Marcar para la hoja de aprobación")} data-casilla={r.id} />
+                      )}
+                    </td>
+                  )}
+                  {visibles.map((col) => {
+                    const ex = COLUMNAS_EXCEL.find((k) => k.id === col.key);
+                    return ex ? celda(ex) : celdaFija(r, col.key);
+                  })}
+                </tr>
               );
-              if (k.id === "codigo" && r.product_not_in_catalog) return <td key={k.id} data-col={k.id}><span className="ops-fuera-de-catalogo">{t("Not in catalog", "No está en el catálogo")}</span></td>;
-              if (k.id === "comentarios" || k.id === "descripcion") return <td key={k.id} className="ops-celda-texto" data-col={k.id} title={c[k.id]}>{c[k.id]}</td>;
-              return <td key={k.id} className={k.num ? "num" : undefined} data-col={k.id}>{c[k.id]}</td>;
-            };
-            return (
-              <tr key={r.id} onClick={() => onAbrir(r)} className={"ops-fila-tabla" + (enConflicto?.has(r.id) ? " ops-fila-en-grupo-conflicto" : "")} data-reporte={r.id} data-etapa={etapaDe(r)}>
-                {conCasillas && (
-                  <td className="ops-col-casilla" onClick={(e) => e.stopPropagation()}>
-                    {seleccion!.puede(r) && (
-                      <input type="checkbox" checked={seleccion!.ids.has(r.id)} onChange={() => seleccion!.alternar(r.id)}
-                        aria-label={t("Select for the approval sheet", "Marcar para la hoja de aprobación")} data-casilla={r.id} />
-                    )}
-                  </td>
-                )}
-                <td style={{ whiteSpace: "nowrap" }} data-reportado={r.created_at}>
-                  {fmtDateTime(r.created_at)}
-                  <IconoDeFotos r={r} />
-                  <InsigniasDeFoto r={r} repetida={repetidas.has(r.id)} />
-                </td>
-                {conEtapa && <td className="ops-col-etapa"><ChipDeEtapa r={r} /></td>}
-                {conGrupo && (
-                  <td className="ops-col-grupo-merma" data-grupo-de={r.scrap_group_id ?? ""}>
-                    {r.scrap_group_id
-                      ? <button type="button" className="ops-folio-link" onClick={(e) => { e.stopPropagation(); onAbrirGrupo?.(r.scrap_group_id!); }} title={t("Open this group", "Abrir este grupo")}>🗂 {nombreDeGrupo.get(r.scrap_group_id) ?? t("Group", "Grupo")}</button>
-                      : <span className="hint">—</span>}
-                  </td>
-                )}
-                <td style={{ whiteSpace: "nowrap" }}>{INFO_DE_TIPO[r.kind].emoji} {nombreTipo(r.kind)}</td>
-                <td>{r.store}</td>
-                <td>{r.author_name ?? nombre(r.author_id)}</td>
-                {COLUMNAS_EXCEL.map(celda)}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/** Las columnas elegidas por quien mira, guardadas en este navegador (si el navegador no deja, se usa lo de siempre). */
+function usePrefsDeColumnas(yo: string) {
+  const clave = `rtg:merma:columnas:${yo}`;
+  const [prefs, setEstado] = useState<PrefsDeColumnas>(PREFS_INICIALES);
+  useEffect(() => {
+    try { const v = localStorage.getItem(clave); if (v) setEstado(normalizaPrefs(JSON.parse(v))); } catch { /* sin almacenamiento */ }
+  }, [clave]);
+  const setPrefs = (p: PrefsDeColumnas) => {
+    const n = normalizaPrefs(p);
+    setEstado(n);
+    try { localStorage.setItem(clave, JSON.stringify(n)); } catch { /* sin almacenamiento: dura hasta recargar */ }
+  };
+  return { prefs, setPrefs };
+}
+
+/**
+ * «📅 Elegir fecha» (dueño, 11 nov): un botón con la elección actual («📅 Este mes», o el rango si es personalizado) que
+ * abre el menú: primero «Rango personalizado» (abre Desde / Hasta), luego Hoy, Ayer, Esta semana… Se cierra con un clic
+ * fuera o con Escape; con teclado, Tab recorre las opciones.
+ */
+function MenuDeFecha({ eleccion, etiqueta, onElegir }: { eleccion: Eleccion; etiqueta: string; onElegir: (a: Atajo) => void }) {
+  const { t, lang } = usePrefs();
+  const [abierto, setAbierto] = useState(false);
+  const caja = useRef<HTMLDivElement>(null);
+  useCierraAlSalir(abierto, () => setAbierto(false), () => [caja.current]);
+  const nombre = (a: Atajo) => (lang === "es" ? NOMBRE_DE_ATAJO[a].es : NOMBRE_DE_ATAJO[a].en);
+  const actual = eleccion.atajo === "otro" ? etiqueta : nombre(eleccion.atajo);
+  return (
+    <div ref={caja} className="ops-menu-fecha" data-rango-atajos>
+      <button type="button" className="chip active" aria-haspopup="menu" aria-expanded={abierto} onClick={() => setAbierto((v) => !v)} data-accion="elegir-fecha"
+        title={t("Pick date", "Elegir fecha")}>📅 {actual} ▾</button>
+      {abierto && (
+        <div className="ops-menu-fecha-lista" role="menu">
+          {ATAJOS_DEL_MENU.map((a) => (
+            <button type="button" role="menuitemradio" aria-checked={eleccion.atajo === a} key={a}
+              className={"ops-menu-fecha-opcion" + (eleccion.atajo === a ? " activa" : "")}
+              onClick={() => { onElegir(a); setAbierto(false); }} data-atajo={a}>
+              {a === "otro" ? "📅 " : ""}{nombre(a)}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

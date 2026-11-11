@@ -23,8 +23,11 @@ export function HojaImprimible({ reportes, ctx, onCerrar }: { reportes: Reporte[
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-hoja-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-hoja-imprimible={reportes.length}>
         <div className="hoja-barra no-imprimir">
-          <button type="button" className="btn btn-ghost" onClick={onCerrar}>← {t("Close", "Cerrar")}</button>
-          <button type="button" className="btn btn-primary" onClick={() => window.print()} data-accion="imprimir-hoja-modal">🖨 {t("Print", "Imprimir")}</button>
+          {/* Dueño, 11 nov: Imprimir y Cerrar arriba a la derecha, Cerrar al final. */}
+          <span className="hoja-barra-acciones">
+            <button type="button" className="btn btn-primary" onClick={() => window.print()} data-accion="imprimir-hoja-modal">🖨 {t("Print", "Imprimir")}</button>
+            <button type="button" className="btn btn-ghost" onClick={onCerrar}>✕ {t("Close", "Cerrar")}</button>
+          </span>
         </div>
         <article className="hoja-aprobacion">
           <header className="hoja-cabecera">

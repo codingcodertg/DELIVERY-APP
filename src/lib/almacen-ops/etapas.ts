@@ -285,3 +285,13 @@ export function tiendasDeHoja(filas: readonly { tienda: string }[]): string {
 export function totalDeHoja(filas: readonly { perdida: number | null }[]): number {
   return filas.reduce((s, f) => s + (Number(f.perdida ?? 0) || 0), 0);
 }
+
+
+/**
+ * «⏳ Pendiente» (dueño, 11 nov: «falta el pending tab en scrap»): las mermas que todavía esperan aprobación — documentadas
+ * o fotografiadas, estén o no ya en un grupo pendiente de firma.
+ */
+export function pendienteDeAprobar(r: Parameters<typeof etapaDe>[0]): boolean {
+  const e = etapaDe(r);
+  return e === "documented" || e === "photographed";
+}

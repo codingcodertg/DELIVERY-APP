@@ -12,19 +12,22 @@
 import { diaDelReporte, esDia, hoyEnTexas } from "./fecha-del-dano";
 import { formateadorDeFecha } from "@/lib/formateador";
 
-export const ATAJOS = ["hoy", "semana", "semana-pasada", "mes", "mes-pasado", "30-dias", "otro"] as const;
+export const ATAJOS = ["hoy", "ayer", "semana", "semana-pasada", "mes", "mes-pasado", "30-dias", "otro"] as const;
+/** El orden del menú «📅 Elegir fecha» (dueño, 11 nov): primero el rango personalizado, luego los atajos. */
+export const ATAJOS_DEL_MENU: readonly Atajo[] = ["otro", "hoy", "ayer", "semana", "semana-pasada", "mes", "mes-pasado", "30-dias"];
 export type Atajo = (typeof ATAJOS)[number];
 /** Con lo que abre la pantalla si la URL no dice otra cosa. */
 export const ATAJO_INICIAL: Atajo = "mes";
 
 export const NOMBRE_DE_ATAJO: Record<Atajo, { en: string; es: string }> = {
   hoy: { en: "Today", es: "Hoy" },
+  ayer: { en: "Yesterday", es: "Ayer" },
   semana: { en: "This week", es: "Esta semana" },
   "semana-pasada": { en: "Last week", es: "La semana pasada" },
   mes: { en: "This month", es: "Este mes" },
   "mes-pasado": { en: "Last month", es: "El mes pasado" },
   "30-dias": { en: "Last 30 days", es: "Últimos 30 días" },
-  otro: { en: "📅 Date range", es: "📅 Rango de fechas" },
+  otro: { en: "Custom date range", es: "Rango personalizado" },
 };
 
 export function esAtajo(v: unknown): v is Atajo {
@@ -54,6 +57,7 @@ const ultimoDelMes = (dia: string) => { const f = aFecha(dia); return aDia(new D
 export function rangoDeAtajo(atajo: Atajo, hoy: string = hoyEnTexas(), aMano: Partial<Rango> = {}): Rango {
   switch (atajo) {
     case "hoy": return { desde: hoy, hasta: hoy };
+    case "ayer": { const d = sumarDias(hoy, -1); return { desde: d, hasta: d }; }
     case "semana": return { desde: domingoDe(hoy), hasta: hoy };
     case "semana-pasada": { const dom = domingoDe(hoy); return { desde: sumarDias(dom, -7), hasta: sumarDias(dom, -1) }; }
     case "mes": return { desde: primeroDelMes(hoy), hasta: hoy };

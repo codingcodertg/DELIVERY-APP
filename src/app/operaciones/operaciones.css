@@ -174,7 +174,7 @@ textarea.ops-campo { min-height: 150px; resize: vertical; }
    relleno (la hoja ya trae el suyo). La barra «Cerrar» queda arriba a la derecha, como una tarjeta. */
 .modal.ops-tarjeta-grupo { max-width: 960px; padding: 14px 16px; }
 .modal.ops-tarjeta-grupo .ops-merma { gap: 10px; }
-.modal.ops-tarjeta-grupo .hoja-barra { justify-content: flex-end; }
+.modal.ops-tarjeta-grupo .hoja-barra { justify-content: space-between; align-items: center; }
 
 .ops-tarjeta-reporte .ops-tarjeta-rrhh { display: inline-block; margin: 0 0 10px; }
 .ops-tarjeta-datos { display: grid; grid-template-columns: minmax(110px, auto) 1fr; gap: 6px 14px; margin: 0 0 12px; }
@@ -467,3 +467,21 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-fila-en-grupo-conflicto > td { background: color-mix(in srgb, var(--amber) 16%, var(--card)); }
 .ops-fila-en-grupo-conflicto > td:first-child { box-shadow: inset 4px 0 0 var(--amber); }
 .ops-aviso-en-grupo { flex-basis: 100%; font-weight: 700; font-size: 13px; color: var(--amber); }
+
+/* «📅 Elegir fecha» (dueño, 11 nov): un botón con su menú en vez de la fila de atajos. */
+.ops-menu-fecha { position: relative; display: inline-block; }
+.ops-menu-fecha-lista {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 30; min-width: 220px; max-width: calc(100vw - 32px);
+  display: grid; padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--text) 18%, transparent);
+}
+.ops-menu-fecha-opcion { text-align: left; padding: 8px 10px; border: 0; background: none; border-radius: 6px; font: inherit; cursor: pointer; color: var(--text); }
+.ops-menu-fecha-opcion:hover, .ops-menu-fecha-opcion:focus-visible { background: color-mix(in srgb, var(--text) 8%, transparent); }
+.ops-menu-fecha-opcion.activa { font-weight: 700; }
+
+/* Columnas a gusto de la tabla de merma: ⚙ arriba a la derecha y cabeceras que se arrastran. */
+.ops-columnas-barra { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+.ops-cabecera-arrastrable { cursor: grab; }
+.ops-cabecera-arrastrando { opacity: .5; }
+/* Imprimir y Cerrar juntos arriba a la derecha de la hoja (dueño, 11 nov). */
+.hoja-barra-acciones { margin-left: auto; display: inline-flex; gap: 8px; align-items: center; }

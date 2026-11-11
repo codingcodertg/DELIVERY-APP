@@ -51661,3 +51661,19 @@ El dueño (11 nov): que el RTG Hub (y el Time Tracker) arranquen solos al prende
 La app de escritorio 1.4.0 se registra para abrir al iniciar sesión en Windows (`app.setLoginItemSettings({ openAtLogin: true })`). Lo hace UNA sola vez, la primera vez que corre esa versión, y lo anota en `arranque.json` (userData). Después manda lo que la persona elija en Configuración de Windows → Aplicaciones → Inicio: si lo apaga ahí, la app no se lo vuelve a prender. Solo en la app instalada (no con `npm start`). Las instaladas reciben la 1.4.0 por la actualización automática (D-811).
 
 Repo 1.837.0 (la app de escritorio va aparte, 1.4.0).
+
+## D-985 · Ayudas del 11 nov: merma se firma solo en grupo, chip «⏳ Pendiente», Leads sin candado
+
+Solicitudes de ayuda y pedido del dueño (11 nov):
+
+- **Operaciones de almacén · Reportes (gerentes) · tarjeta de una merma** (ayuda 4499c4a4, el dueño viendo como Rosa Salazar): «no se puede firmar algo que no se ha agrupado». La tarjeta de una merma fotografiada ya NO ofrece las firmas por reporte (gerente / supervisor) ni «Aprobar» (280). Una merma se aprueba solo en un grupo (281): la tarjeta lo dice («márcala en la tabla y toca Iniciar aprobación…», o «está en un grupo: se firma en la hoja del grupo»). Las reglas de la base no cambian.
+- **Merma · chip «⏳ Pendiente»** (dueño: «falta el pending tab en scrap»): junto a «Todas las etapas», con su cuenta: las mermas que esperan aprobación (documentadas o fotografiadas, con o sin grupo). Mismo chip en la vista del almacén. Regla pura `pendienteDeAprobar` en `etapas.ts`, con prueba.
+- **Leads · pestaña STXP Pool** (ayuda 006dff63, Sergio Ledezma: «cambiar emoji candado, confunde»): la pestaña pasa de 🔒 a 🏪 y el estado «Tomado» de 🔒 a 📌. No hay nada bloqueado, el candado confundía.
+- **RTG PROMOS · Promo Noviembre** (ayuda 6d354cc5, Sergio, Edinburg: «¿por qué no me sale precio?»): no es un error. Por D-812 el precio es por grupo de tiendas y en esta ronda solo se cargó el de Brownsville (66 productos); Edinburg tiene 0. Hace falta cargar los precios de Edinburg con «Precios por tamaño» (o `scripts/promos-precios-por-tamano.mjs`). Sin cambio de código.
+
+- **Merma · «📅 Elegir fecha»**: la fila de atajos (Hoy · Esta semana · … · Rango de fechas) pasa a UN botón con la elección actual («📅 Este mes», o el rango) y su menú: primero «Rango personalizado» (Desde / Hasta), luego Hoy, **Ayer** (nuevo), Esta semana, La semana pasada, Este mes, El mes pasado, Últimos 30 días. Cierra con clic fuera o Escape. La misma lógica de `eleccion` y la URL (`?rango=ayer`).
+- **Merma · columnas a gusto**: «⚙ Columnas» sobre la tabla (el `SelectorDeColumnas` de Rutas, con ↑ ↓ y «Restablecer orden») para mostrar/ocultar cada columna, y arrastrar la cabecera para moverla. Se guarda por persona en este navegador. Si una columna de cantidades sale del bloque, el rótulo «Cantidades» abarca cada tramo seguido. El CSV/PDF siguen con todas. Reglas puras en `columnas-de-merma.ts`, con prueba.
+- **Merma · «Fecha del daño» corta**: MM/DD/YY (11/11/26) en la tabla, en los dos idiomas (`fmtDiaCorto`).
+- **Hoja del grupo**: sin botón «Aprobar grupo» ni el aviso repetido de abajo (con la segunda firma se aprueba solo, 283; lo que falta lo dice el chip de arriba). «🖨 Imprimir» y «✕ Cerrar» arriba a la derecha, Cerrar al final; igual en la hoja imprimible.
+
+Sello `warehouse_ops` 0.35.0, `leads` 0.21.0; repo 1.838.0.
