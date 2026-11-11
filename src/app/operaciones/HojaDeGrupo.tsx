@@ -110,9 +110,12 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
   return (
     <div className="ops-merma" data-hoja-grupo={grupo.id}>
       <div className="hoja-barra no-imprimir">
-        <button type="button" className="btn btn-ghost" onClick={onSalir}>✕ {t("Close", "Cerrar")}</button>
+        {/* Dueño, 11 nov: el estado a la izquierda; Imprimir y Cerrar arriba a la derecha (Cerrar al final). */}
         <span className={`ops-etapa-chip${aprobado ? " ops-grupo-aprobado" : ""}`} data-grupo-estado={aprobado ? "aprobado" : "pendiente"}>{estadoDelGrupo(grupo, lang)}</span>
-        <button type="button" className="btn" onClick={() => window.print()} data-accion="imprimir-grupo">🖨 {t("Print", "Imprimir")}</button>
+        <span className="hoja-barra-acciones">
+          <button type="button" className="btn" onClick={() => window.print()} data-accion="imprimir-grupo">🖨 {t("Print", "Imprimir")}</button>
+          <button type="button" className="btn btn-ghost" onClick={onSalir} data-accion="cerrar-grupo">✕ {t("Close", "Cerrar")}</button>
+        </span>
       </div>
       {error && <p className="ops-aviso ops-aviso-error no-imprimir">{error}</p>}
 
@@ -238,15 +241,8 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
             })} />
         )}
 
-        {!aprobado && gestiona && (
-          <div className="ops-exportar no-imprimir">
-            <button type="button" className="btn btn-primary" disabled={ocupado || !puedeAprobarGrupo(grupo)} data-accion="aprobar-grupo"
-              onClick={() => void corre(async () => { if (practica) aprobarGrupoDePractica(grupo.id, ctx.yo.id); else await aprobarGrupo(createClient(), grupo.id); })}>
-              ✅ {t("Approve group", "Aprobar grupo")}
-            </button>
-            {!puedeAprobarGrupo(grupo) && <span className="hint" data-falta-firma>{estadoDelGrupo(grupo, lang)}</span>}
-          </div>
-        )}
+        {/* Dueño (11 nov): sin botón «Aprobar grupo» ni aviso abajo — con la segunda firma el grupo se aprueba solo (283;
+            en práctica también, `firmarGrupoDePractica`). Lo que falta ya lo dice el chip de arriba. */}
         {aprobado && <p className="hoja-pie" data-grupo-aprobado>{t("Approved — all reports in this group are now Approved.", "Aprobado — todas las mermas de este grupo quedaron Aprobadas.")}{grupo.approved_by ? ` · ${nombre(grupo.approved_by)}` : ""}</p>}
       </article>
 

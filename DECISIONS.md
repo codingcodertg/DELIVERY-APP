@@ -51671,4 +51671,9 @@ Solicitudes de ayuda y pedido del dueño (11 nov):
 - **Leads · pestaña STXP Pool** (ayuda 006dff63, Sergio Ledezma: «cambiar emoji candado, confunde»): la pestaña pasa de 🔒 a 🏪 y el estado «Tomado» de 🔒 a 📌. No hay nada bloqueado, el candado confundía.
 - **RTG PROMOS · Promo Noviembre** (ayuda 6d354cc5, Sergio, Edinburg: «¿por qué no me sale precio?»): no es un error. Por D-812 el precio es por grupo de tiendas y en esta ronda solo se cargó el de Brownsville (66 productos); Edinburg tiene 0. Hace falta cargar los precios de Edinburg con «Precios por tamaño» (o `scripts/promos-precios-por-tamano.mjs`). Sin cambio de código.
 
+- **Merma · «📅 Elegir fecha»**: la fila de atajos (Hoy · Esta semana · … · Rango de fechas) pasa a UN botón con la elección actual («📅 Este mes», o el rango) y su menú: primero «Rango personalizado» (Desde / Hasta), luego Hoy, **Ayer** (nuevo), Esta semana, La semana pasada, Este mes, El mes pasado, Últimos 30 días. Cierra con clic fuera o Escape. La misma lógica de `eleccion` y la URL (`?rango=ayer`).
+- **Merma · columnas a gusto**: «⚙ Columnas» sobre la tabla (el `SelectorDeColumnas` de Rutas, con ↑ ↓ y «Restablecer orden») para mostrar/ocultar cada columna, y arrastrar la cabecera para moverla. Se guarda por persona en este navegador. Si una columna de cantidades sale del bloque, el rótulo «Cantidades» abarca cada tramo seguido. El CSV/PDF siguen con todas. Reglas puras en `columnas-de-merma.ts`, con prueba.
+- **Merma · «Fecha del daño» corta**: MM/DD/YY (11/11/26) en la tabla, en los dos idiomas (`fmtDiaCorto`).
+- **Hoja del grupo**: sin botón «Aprobar grupo» ni el aviso repetido de abajo (con la segunda firma se aprueba solo, 283; lo que falta lo dice el chip de arriba). «🖨 Imprimir» y «✕ Cerrar» arriba a la derecha, Cerrar al final; igual en la hoja imprimible.
+
 Sello `warehouse_ops` 0.35.0, `leads` 0.21.0; repo 1.838.0.
