@@ -8,7 +8,7 @@
  * Regla PURA (sin React, sin red). Reusa los ayudantes de firmas por reporte (`firmas.ts`): las firmas del grupo tienen
  * la misma forma (`FirmaDeMerma`).
  */
-import { firmasFaltantes, nombreDeSlot, tieneAmbasFirmas, type FirmaDeMerma } from "./firmas";
+import { firmasFaltantes, nombreDeSlot, tieneAmbasFirmas, type FirmaDeMerma, type SlotDeFirma } from "./firmas";
 import type { Lang } from "./etapas";
 import { diaEnTexas } from "./fecha-del-dano";
 
@@ -76,4 +76,44 @@ export function filtrarGrupos<G extends Pick<GrupoDeMerma, "approved_at" | "crea
     const dia = diaEnTexas(g.created_at);
     return dia >= rango.desde && dia <= rango.hasta;
   });
+}
+
+/**
+ * 292 (dueño, 10 nov: «the warehouse should be able to see what is pending for his signature»): qué espacio de firma
+ * le toca a cada quien. El gerente firma «gerente»; el supervisor de almacén (permiso `warehouse_ops_supervisor`) y el
+ * personal de almacén miran «supervisor»; el admin, cualquiera de los dos. Solo decide QUÉ SE LE MUESTRA: quién puede
+ * firmar de verdad lo sigue diciendo la base (`warehouse_ops_can_manage`), sin cambios.
+ */
+export function slotsQueMeTocan(q: { role: string; permissions?: string[] | null }): readonly SlotDeFirma[] {
+  if (q.role === "admin") return ["gerente", "supervisor"];
+  if ((q.permissions ?? []).includes("warehouse_ops_supervisor") || q.role === "warehouse") return ["supervisor"];
+  if (q.role === "manager") return ["gerente"];
+  return [];
+}
+
+/** Los grupos de SU tienda, sin aprobar, a los que les falta la firma que le toca (lo más viejo primero). */
+export function gruposPendientesDeMiFirma<G extends Pick<GrupoDeMerma, "approved_at" | "firmas" | "store" | "created_at">>(
+  grupos: readonly G[], q: { role: string; store?: string | null; visible_stores?: string[] | null; permissions?: string[] | null },
+): G[] {
+  const mios = slotsQueMeTocan(q);
+  const deMiTienda = (s: string) => q.role === "admin" || q.store === s || (q.visible_stores ?? []).includes(s);
+  return grupos
+    .filter((g) => !grupoAprobado(g) && deMiTienda(g.store) && firmasFaltantes(g.firmas).some((s) => mios.includes(s)))
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+}
+
+/** Las marcadas que YA están en un grupo de aprobación (no se pueden meter en otro; dueño, 10 nov). */
+export function seleccionadasEnGrupo<R extends { scrap_group_id?: string | null }>(seleccionadas: readonly R[]): R[] {
+  return seleccionadas.filter((r) => !!r.scrap_group_id);
+}
+
+/** El aviso amable cuando una marcada ya está en un grupo (también sustituye el error crudo de la base). */
+export function avisoYaEnGrupo(n: number, lang: Lang): string {
+  if (lang === "es") return n > 1 ? `${n} de tus seleccionadas ya están en un grupo: deselecciónalas para avanzar.` : "Una de tus seleccionadas ya está en un grupo: deselecciónala para avanzar.";
+  return n > 1 ? `${n} of your selected reports are already in a group — unselect them to continue.` : "One of your selected reports is already in a group — unselect it to continue.";
+}
+
+/** ¿Es el error de la base de «ya tiene grupo / no se puede agrupar»? */
+export function esErrorDeYaEnGrupo(e: unknown): boolean {
+  return /sin grupo/i.test(String((e as { message?: unknown } | null)?.message ?? e ?? ""));
 }

@@ -35,7 +35,7 @@ describe("0c2fb392: la pérdida solo suma las piezas dañadas", () => {
     expect(LISTA).toContain('t("Loss (damaged pieces only)", "Pérdida (solo piezas dañadas)")');
     expect(LISTA).toContain("perdidaDeMerma(c, repartoDeReporte(r), r)"); // 263: además mira el origen y el CRMA
     expect(LISTA).not.toMatch(/perdida\(c, r\.total_pieces/);
-    expect(LISTA).toContain("Loss = damaged pieces × the product's sales price per piece");
+    // (La explicación «Pérdida = …» se quitó de la pantalla: dueño, 10 nov.)
   });
   it("los reportes del demo y los totales por tienda cuadran con la regla", () => {
     for (const r of DEMO_REPORTES.filter((x) => x.kind === "scrap")) {

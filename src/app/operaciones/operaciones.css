@@ -167,8 +167,8 @@ textarea.ops-campo { min-height: 150px; resize: vertical; }
 }
 
 /* «Volver a Operaciones» como botón a la izquierda del título (dueño, 10 nov). */
-.ops-cabeza-reportes { justify-content: flex-start; gap: 12px; }
-.ops-volver, .ops-volver:hover { text-decoration: none; }
+
+
 
 /* Grupo de aprobación en tarjeta (10 nov): más ancha que el modal normal para que quepa la hoja, y sin doble
    relleno (la hoja ya trae el suyo). La barra «Cerrar» queda arriba a la derecha, como una tarjeta. */
@@ -431,3 +431,39 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 /* Exportar CSV/PDF en la misma fila que las etapas (sin fila propia sobre la tabla). */
 .ops-exportar-en-fila { margin-left: auto; display: inline-flex; gap: 6px; }
 .ops-col-grupo-merma { white-space: nowrap; }
+
+/* 292: la etapa pendiente dentro del chip (sin aprobar todavía) y la lista «Pendiente de tu firma» del inicio. */
+.ops-etapa-pendiente { display: block; font-size: 10.5px; font-weight: 600; opacity: .85; }
+.ops-pendientes-firma h3 { margin: 0 0 8px; font-size: 15px; }
+
+/* ---- Reportes más compacto (dueño, 10 nov: «pega más eso para ahorrar espacio») ---- */
+/* «Volver» y el título viven en la barra azul, junto a la casa (hueco de BarraDeApp). */
+.topbar-hueco:empty { display: none; }
+.topbar-hueco { display: flex; align-items: center; min-width: 0; }
+.ops-cabeza-reportes { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.topbar .ops-cabeza-reportes h2 { margin: 0; font-size: 16px; color: inherit; }
+.topbar .ops-cabeza-reportes .count-tag { background: color-mix(in srgb, currentColor 18%, transparent); color: inherit; }
+.ops-volver {
+  display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border-radius: 999px;
+  font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap;
+  color: inherit; border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+  background: color-mix(in srgb, currentColor 8%, transparent); transition: background .15s, border-color .15s;
+}
+.ops-volver:hover, .ops-volver:focus-visible { text-decoration: none; background: color-mix(in srgb, currentColor 18%, transparent); border-color: currentColor; }
+/* Las pestañas y los atajos del rango, en un renglón. */
+.ops-fila-de-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.ops-fila-de-filtros .ops-pestanas { margin: 0; }
+.ops-fila-de-filtros .ops-filtros-campos { flex-basis: 100%; }
+.ops-reportes .ops-merma { gap: 8px; }
+.ops-reportes .ops-merma-total { padding: 7px 10px; font-size: 12px; border-radius: 10px; }
+.ops-reportes .ops-merma-cifra { font-size: 18px; }
+.ops-reportes .ops-merma-total-rango .ops-merma-cifra { font-size: 21px; }
+@media (max-width: 719.98px) {
+  .ops-volver { padding: 4px 10px; font-size: 12px; }
+  .topbar .ops-cabeza-reportes h2 { font-size: 14px; }
+}
+
+/* Marcada que ya está en un grupo (dueño, 10 nov): el renglón se resalta y la barra avisa cuál quitar. */
+.ops-fila-en-grupo-conflicto > td { background: color-mix(in srgb, var(--amber) 16%, var(--card)); }
+.ops-fila-en-grupo-conflicto > td:first-child { box-shadow: inset 4px 0 0 var(--amber); }
+.ops-aviso-en-grupo { flex-basis: 100%; font-weight: 700; font-size: 13px; color: var(--amber); }

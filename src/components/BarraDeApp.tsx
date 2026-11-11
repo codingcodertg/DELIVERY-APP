@@ -23,6 +23,9 @@ import type { UserRole } from "@/lib/types";
  * Las clases conservan el nombre de Entregas (`entregas-marca`, `entregas-barra-resto`): las reglas del teléfono
  * (D-545) ya colgaban de ellas, y el ERP las usaba desde D-622.
  */
+/** El id del hueco de la barra (junto a la casa) donde una pantalla puede poner su «Volver» y su título. */
+export const HUECO_DE_LA_BARRA = "hueco-de-la-barra";
+
 export function BarraDeApp({ nombre, deliveriesRole, moduleAccess, claseDelResto, children }: {
   nombre: string;
   /** El rol de ENTREGAS (la columna `role`), nunca el de la app: es el que decide la casa (ver `ModuleSwitcher`). */
@@ -37,6 +40,9 @@ export function BarraDeApp({ nombre, deliveriesRole, moduleAccess, claseDelResto
       <div className="entregas-marca">
         <h1>{nombre}</h1>
         <HubHomeLink deliveriesRole={deliveriesRole} moduleAccess={moduleAccess} />
+        {/* Hueco para que una pantalla ponga su «Volver» y su título junto a la casa (Operaciones → Reportes, dueño
+            10 nov: ahorrar el renglón de abajo). Vacío no ocupa nada. Se llena con un portal (`HUECO_DE_LA_BARRA`). */}
+        <div className="topbar-hueco" id={HUECO_DE_LA_BARRA} />
       </div>
       <div className={"entregas-barra-resto" + (claseDelResto ? " " + claseDelResto : "")}>{children}</div>
     </div>

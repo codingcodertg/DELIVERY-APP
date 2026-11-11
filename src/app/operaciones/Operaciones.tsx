@@ -5,7 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { INFO_DE_TIPO, esDeRrhh } from "@/lib/almacen-ops/tipos";
-import { veLosReportes } from "@/lib/almacen-ops/visibilidad";
+import { veLosReportes, veReportesDeLaTienda } from "@/lib/almacen-ops/visibilidad";
+import { estadoDelGrupo, gruposPendientesDeMiFirma, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
+import { listarGrupos } from "@/lib/almacen-ops/datos";
+import { HojaDeGrupo } from "./HojaDeGrupo";
 import { leerNivelEscrito, tiposPermitidos } from "@/lib/almacen-ops/nivel";
 import { tiendasPara, vistaPermitida, type Vista } from "@/lib/almacen-ops/puerta";
 import { DEMO_PERSONAS, DEMO_TIENDAS, DEMO_YO, faltaLaMigracion, type Persona, type Yo } from "@/lib/almacen-ops/datos";
@@ -111,6 +114,8 @@ function Inicio({ ctx }: { ctx: Contexto }) {
   const llena = tipos.length > 0;
   const unico = tipos.length === 1 ? tipos[0] : null;
   const gerente = veLosReportes(ctx.yo);
+  // 292: el almacén también ve los reportes de su tienda (sin exportar ni KPI).
+  const deLaTienda = !gerente && veReportesDeLaTienda(ctx.yo);
   // 273: la sección de mantenimiento (equipo, lista diaria, refacciones, uso) es de cualquiera con nivel en la app.
   const mantenimiento = veMantenimiento(ctx.yo);
   // 274: los conteos de inventario (cinco pasos); el personal cuenta, el gerente crea, firma y ajusta.
@@ -148,7 +153,8 @@ function Inicio({ ctx }: { ctx: Contexto }) {
         </nav>
       )}
       {llena && <Borradores ctx={ctx} />}
-      <div className={"ops-pie" + ([llena, gerente, mantenimiento, conteos].filter(Boolean).length > 1 ? "" : " ops-pie-uno")}>
+      <PendientesDeMiFirma ctx={ctx} />
+      <div className={"ops-pie" + ([llena, gerente || deLaTienda, mantenimiento, conteos].filter(Boolean).length > 1 ? "" : " ops-pie-uno")}>
         {conteos && <Link href="/operaciones/conteos" className="ops-boton-ancho ops-boton-conteos" data-ir="conteos">🔢 {t("Inventory counts", "Conteos de inventario")}</Link>}
         {mantenimiento && <Link href="/operaciones/mantenimiento" className="ops-boton-ancho ops-boton-mantenimiento" data-ir="mantenimiento">🔧 {t("Maintenance", "Mantenimiento")}</Link>}
         {llena && (
@@ -157,8 +163,51 @@ function Inicio({ ctx }: { ctx: Contexto }) {
           </Link>
         )}
         {gerente && <Link href="/operaciones/reportes" className="ops-boton-ancho ops-boton-gerente" data-ir="reportes">🗂️ {t("Reports (managers)", "Reportes (gerentes)")}</Link>}
+        {deLaTienda && <Link href="/operaciones/reportes" className="ops-boton-ancho ops-boton-gerente" data-ir="reportes">🗂️ {t("Store reports", "Reportes de la tienda")}</Link>}
       </div>
     </>
+  );
+}
+
+/**
+ * 292 (dueño, 10 nov): lo que está pendiente de MI firma — los grupos de aprobación de mi tienda a los que les falta el
+ * espacio que me toca (supervisor de almacén: «supervisor»; gerente: «gerente»). Cada uno se abre EN TARJETA (la hoja
+ * digital del grupo), sin salir del inicio. Firmar lo decide la base como siempre (`warehouse_ops_can_manage`); quien
+ * no puede firmar ve la hoja sin el botón. Antes de la 292 la base no le devuelve los grupos al almacén: la lista sale
+ * vacía y no se muestra nada.
+ */
+function PendientesDeMiFirma({ ctx }: { ctx: Contexto }) {
+  const { t, lang } = usePrefs();
+  const [grupos, setGrupos] = useState<GrupoDeMerma[]>([]);
+  const [abierto, setAbierto] = useState<string | null>(null);
+  const [vuelta, setVuelta] = useState(0);
+  useEffect(() => {
+    if (ctx.demo) return;
+    let vivo = true;
+    void listarGrupos(createClient()).then((g) => { if (vivo) setGrupos(g); }).catch(() => { /* sin acceso o sin 281: nada */ });
+    return () => { vivo = false; };
+  }, [ctx.demo, vuelta]);
+  const pendientes = useMemo(() => gruposPendientesDeMiFirma(grupos, ctx.yo), [grupos, ctx.yo]);
+  if (pendientes.length === 0 && !abierto) return null;
+  return (
+    <section className="ops-borradores ops-pendientes-firma" data-pendientes-de-firma={pendientes.length}>
+      <h3>✍ {t("Pending your signature", "Pendiente de tu firma")} <span className="count-tag">{pendientes.length}</span></h3>
+      <ul className="ops-grupos-lista">
+        {pendientes.map((g) => (
+          <li key={g.id} data-pendiente-grupo={g.id}>
+            <button type="button" className="btn btn-sm" onClick={() => setAbierto(g.id)} data-abrir-pendiente={g.id}>🗂 {g.name}</button>
+            <span className="hint">{t(`${g.n_reportes ?? 0} reports`, `${g.n_reportes ?? 0} reportes`)} · {g.store} · {estadoDelGrupo(g, lang)}</span>
+          </li>
+        ))}
+      </ul>
+      {abierto && (
+        <div className="overlay" onClick={() => { setAbierto(null); setVuelta((n) => n + 1); }}>
+          <div className="modal ops-tarjeta-grupo" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-grupo-abierto={abierto}>
+            <HojaDeGrupo grupoId={abierto} ctx={ctx} onSalir={() => { setAbierto(null); setVuelta((n) => n + 1); }} />
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

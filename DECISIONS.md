@@ -51623,3 +51623,23 @@ Pedidos del dueño (10 nov):
 - **Solo el admin cambia de tienda al reportar.** En el formulario de merma (y los demás del asistente), quien no es admin del hub ni admin de la app reporta siempre en su tienda; se le muestra «Tienda: X» sin selector.
 
 Sello `warehouse_ops` 0.33.0; repo 1.834.0.
+
+## D-982 · Operaciones: cada quien ve los reportes de su tienda; lo pendiente de mi firma; Reportes más compacto
+
+Pedidos del dueño (10 nov):
+
+- **«Todos pueden ver todos los reportes en su tienda solamente».** Migración **292** (`create or replace` de `public.warehouse_ops_can_see`): de lo que no es de RR. HH., cualquiera con nivel en la app ve los reportes de SU tienda (`store` o `visible_stores`). «Solo merma» sigue limitado a la merma. RR. HH. (zona, insubordinación, positivo) no cambia. **Quién firma y quién aprueba no cambia** (`warehouse_ops_can_manage` intacta): firman el supervisor de almacén y el gerente de la tienda, como hoy. En la app, `puedeVerReporte` repite la regla; el almacén entra a «Reportes de la tienda» (`veReportesDeLaTienda`) y ve la merma de su tienda.
+- **El almacén no exporta.** Sin «Exportar CSV» ni «Descargar PDF» (`puedeExportar` = gerencia), y sin la pestaña de Entregas (KPI).
+- **«Mis reportes» con la etapa, y la etapa pendiente a la vista.** La lista mixta también lleva la columna «Etapa» cuando hay merma. El chip de una merma documentada o fotografiada dice «⏳ Pendiente de aprobación».
+- **Lo pendiente de MI firma.** En el inicio de Operaciones, «Pendiente de tu firma» lista los grupos de aprobación de mi tienda a los que les falta el espacio que me toca: supervisor de almacén y personal de almacén → «supervisor»; gerente → «gerente»; admin → los dos. Cada uno se abre EN TARJETA (la hoja digital del grupo) y se firma ahí si la base lo permite. Antes de aplicar la 292 la base no le devuelve los grupos al almacén y la sección no sale (sin error).
+- **Sin el texto bajo los totales** («quita todo ese texto»): se quitaron el desglose «En el rango: pendiente de aprobar… · aprobada… · desechada / ajustada…» y la explicación de cómo se cuentan los totales.
+- **«Volver a Operaciones» y el título suben a la barra azul**, junto a la casa (un hueco nuevo en `BarraDeApp`, llenado con un portal): botón tipo píldora claro sobre la barra, con estado al pasar el ratón. Se quita el renglón de abajo.
+- **Más compacto («pega más eso»):** las pestañas Merma/Entregas y los atajos del rango van en un renglón (se doblan en el teléfono), menos espacio hasta los totales, y tarjetas de totales más bajas con cifras un poco más chicas.
+
+- **Marcada que ya está en un grupo.** Si entre las marcadas hay una que ya está en un grupo pendiente, «Iniciar aprobación» ya no llama a la base (antes salía el error crudo «solo mermas fotografiadas, sin aprobar y sin grupo»). La barra avisa «Una de tus seleccionadas ya está en un grupo: deselecciónala para avanzar.» (en plural si son varias), apaga «Iniciar aprobación», «Imprimir hoja» y «Adjuntar hoja», y resalta en ámbar el renglón de cada una. Ese error de la base también se traduce al mismo aviso.
+
+**Revisión de seguridad de la 292:** ampliar `can_see` amplía también las funciones que escriben y lo usaban como única puerta. Se revisaron todas las de `public` que lo llaman. `warehouse_ops_add_photos`, `warehouse_ops_set_scrap_stage`, `warehouse_ops_sign_scrap`, `warehouse_ops_unsign_scrap` y `warehouse_ops_sign_scrap_group` ya exigen autor o `warehouse_ops_can_manage`, así que no cambian. `warehouse_ops_set_photo_hashes` solo miraba `can_see`: en la misma 292 gana la puerta de autor o gerente de la tienda (si no, cualquiera del almacén podría rellenar las huellas de las fotos de la merma de otro). La autocomprobación de la 292 falla si alguna función SECURITY DEFINER que escribe queda con `can_see` como única puerta. Ninguna política de escritura usa `can_see`.
+
+La 292 la aplica el dueño. Sin aplicarla, la app no se rompe: el almacén ve el botón de Reportes, pero la base solo le devuelve sus propias mermas, como hasta hoy.
+
+Sello `warehouse_ops` 0.34.0; repo 1.835.0.

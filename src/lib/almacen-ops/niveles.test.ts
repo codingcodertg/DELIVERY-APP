@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { INFO_DE_NIVEL, NIVELES, SECCIONES, esAdminDeLaApp, leerNivelEscrito, nivelDe, nivelPorDefecto, puedeLlenar, tiposPermitidos } from "./nivel";
 import { tiendasPara, vistaPermitida, type Vista } from "./puerta";
-import { puedeCorregirMerma, puedeVerReporte, veLosReportes, type Quien } from "./visibilidad";
+import { puedeCorregirMerma, puedeExportar, puedeVerReporte, veLosReportes, veReportesDeLaTienda, type Quien } from "./visibilidad";
 import { TIPOS, type TipoDeReporte } from "./tipos";
 import { MODULE_ACCESS } from "@/lib/constants";
 
@@ -61,26 +61,30 @@ describe("el personal de almacén: solo merma", () => {
       expect(veLosReportes(q)).toBe(false);
       expect(esAdminDeLaApp(q)).toBe(false);
     });
-    it(`${q.id}: la URL escrita a mano de otro formulario o de la vista de gerentes no abre`, () => {
+    it(`${q.id}: la URL escrita a mano de otro formulario no abre; «Reportes» sí (292: la merma de su tienda)`, () => {
       for (const k of LOS_OTROS_SEIS) expect(vistaPermitida(q, { v: "nuevo", tipo: k }), k).toBe(false);
-      expect(vistaPermitida(q, { v: "reportes" })).toBe(false);
+      expect(vistaPermitida(q, { v: "reportes" })).toBe(true);
+      expect(veReportesDeLaTienda(q)).toBe(true);
+      expect(puedeExportar(q)).toBe(false);
       expect(vistaPermitida(q, { v: "nuevo", tipo: "scrap" })).toBe(true);
       expect(vistaPermitida(q, { v: "mios" })).toBe(true);
       expect(vistaPermitida(q, { v: "inicio" })).toBe(true);
     });
-    it(`${q.id}: ve SUS mermas y nada más (ni un incidente suyo de antes, ni la merma de otro)`, () => {
+    it(`${q.id}: 292 — ve la merma de SU tienda (de cualquiera), nada de otra tienda, y solo merma`, () => {
       expect(puedeVerReporte(q, reporte("scrap", q.store!, q.id))).toBe(true);
-      expect(puedeVerReporte(q, reporte("scrap", q.store!, "otro"))).toBe(false);
+      expect(puedeVerReporte(q, reporte("scrap", q.store!, "otro"))).toBe(true);
+      expect(puedeVerReporte(q, reporte("scrap", "OTRA TIENDA", "otro"))).toBe(false);
       expect(puedeVerReporte(q, reporte("incident", q.store!, q.id))).toBe(false);
       expect(puedeVerReporte(q, reporte("maintenance", q.store!, q.id))).toBe(false);
       expect(puedeVerReporte(q, reporte("insubordination", q.store!, q.id))).toBe(false);
       expect(puedeCorregirMerma(q, { kind: "scrap", store: q.store! })).toBe(false);
     });
   }
-  it("el permiso de supervisor no le abre nada mientras su nivel sea solo merma", () => {
+  it("el permiso de supervisor no le abre la gerencia mientras su nivel sea solo merma (292: sí ve la merma de su tienda)", () => {
     const sup = { ...almacen, permissions: ["warehouse_ops_supervisor"] };
     expect(veLosReportes(sup)).toBe(false);
-    expect(puedeVerReporte(sup, reporte("scrap", "RDZ McAllen", "otro"))).toBe(false);
+    expect(puedeVerReporte(sup, reporte("scrap", sup.store!, "otro"))).toBe(true);
+    expect(puedeVerReporte(sup, reporte("scrap", "OTRA TIENDA", "otro"))).toBe(false);
     expect(puedeCorregirMerma(sup, { kind: "scrap", store: "RDZ McAllen" })).toBe(false);
   });
   it("sin el módulo no entra a nada", () => {
@@ -142,10 +146,11 @@ describe("los demás quedan como estaban", () => {
     expect(puedeCorregirMerma(gerente, { kind: "scrap", store: "RDZ Edinburg" })).toBe(true);
     expect(veLosReportes(gerente)).toBe(true);
   });
-  it("cualquier otro rol con el módulo: los siete y solo lo suyo que no es de RR. HH.", () => {
+  it("cualquier otro rol con el módulo: los siete y (292) lo de su tienda que no es de RR. HH.", () => {
     expect(tiposPermitidos(ventas)).toEqual([...TIPOS]);
     expect(puedeVerReporte(ventas, reporte("incident", "RDZ Pharr", "v"))).toBe(true);
-    expect(puedeVerReporte(ventas, reporte("incident", "RDZ Pharr", "otro"))).toBe(false);
+    expect(puedeVerReporte(ventas, reporte("incident", "RDZ Pharr", "otro"))).toBe(true);
+    expect(puedeVerReporte(ventas, reporte("incident", "RDZ McAllen", "otro"))).toBe(false);
     expect(puedeVerReporte(ventas, reporte("positive", "RDZ Pharr", "v"))).toBe(false);
     expect(veLosReportes(ventas)).toBe(false);
   });
@@ -292,5 +297,23 @@ describe("Usuarios: el admin cambia el nivel sin tocar código", () => {
     const prov = leer("src/lib/data-provider.tsx");
     expect(prov).toContain('.update({ warehouse_ops_role: nivel }).eq("id", userId)');
     expect(prov).toContain('"warehouse_ops_role_changed"');
+  });
+});
+
+describe("292: todos los de la tienda ven los reportes de su tienda (la base)", () => {
+  const SQL292 = leer("supabase/migrations/292_almacen_ve_su_tienda.sql");
+  it("solo reescribe warehouse_ops_can_see con la regla de la tienda; RR. HH. y quién firma no cambian", () => {
+    expect(SQL292).toContain("create or replace function public.warehouse_ops_can_see(r_kind text, r_store text, r_author uuid)");
+    expect(SQL292).toContain("or (n.nivel in ('scrap_only', 'full') and t.mia and (n.nivel <> 'scrap_only' or r_kind = any(public.warehouse_ops_kinds_of(n.nivel))))");
+    expect(SQL292).toContain("security definer");
+    expect(SQL292).toContain("or (n.nivel = 'full' and p.role = 'manager' and t.mia)");
+    // Quién firma/aprueba no se toca (no se redefine can_manage).
+    expect(SQL292).not.toContain("create or replace function public.warehouse_ops_can_manage");
+    // Revisión de seguridad: la única escritura que solo miraba can_see gana la puerta de autor o gerente.
+    expect(SQL292).toContain("create or replace function public.warehouse_ops_set_photo_hashes(p_report uuid, p_hashes text[])");
+    expect(SQL292).toContain("if not (r.author_id = yo or public.warehouse_ops_can_manage(r.store)) then");
+    expect(SQL292).toContain("hay una funcion que escribe con warehouse_ops_can_see como unica puerta");
+    expect(SQL292).toContain("-- @ledger-below");
+    expect(SQL292).toContain("values ('292_almacen_ve_su_tienda.sql', '");
   });
 });

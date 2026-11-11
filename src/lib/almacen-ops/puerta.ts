@@ -5,7 +5,7 @@
  */
 import type { TipoDeReporte } from "./tipos";
 import { nivelDe, puedeLlenar, tiposPermitidos } from "./nivel";
-import { veLosReportes, type Quien } from "./visibilidad";
+import { veReportesDeLaTienda, type Quien } from "./visibilidad";
 import { veMantenimiento } from "./mantenimiento";
 import { veConteos } from "./conteos";
 
@@ -17,7 +17,8 @@ export function vistaPermitida(q: Quien, vista: Vista): boolean {
     case "nuevo": return puedeLlenar(q, vista.tipo);
     // «Mis reportes» es de quien llena algo; RR. HH. sin el módulo no llena nada.
     case "mios": return tiposPermitidos(q).length > 0;
-    case "reportes": return veLosReportes(q);
+    // 292: también el almacén, con los reportes de su tienda (sin exportar ni KPI).
+    case "reportes": return veReportesDeLaTienda(q);
     // 273: la sección de mantenimiento es de cualquiera con nivel en la app (el personal llena la lista diaria).
     case "mantenimiento": return veMantenimiento(q);
     // 274: los conteos de inventario: el personal hace los pasos 1–3; el gerente crea, firma y ajusta.
