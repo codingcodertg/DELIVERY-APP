@@ -307,7 +307,12 @@ describe("292: todos los de la tienda ven los reportes de su tienda (la base)", 
     expect(SQL292).toContain("or (n.nivel in ('scrap_only', 'full') and t.mia and (n.nivel <> 'scrap_only' or r_kind = any(public.warehouse_ops_kinds_of(n.nivel))))");
     expect(SQL292).toContain("security definer");
     expect(SQL292).toContain("or (n.nivel = 'full' and p.role = 'manager' and t.mia)");
-    expect(SQL292).not.toContain("warehouse_ops_can_manage(");
+    // Quién firma/aprueba no se toca (no se redefine can_manage).
+    expect(SQL292).not.toContain("create or replace function public.warehouse_ops_can_manage");
+    // Revisión de seguridad: la única escritura que solo miraba can_see gana la puerta de autor o gerente.
+    expect(SQL292).toContain("create or replace function public.warehouse_ops_set_photo_hashes(p_report uuid, p_hashes text[])");
+    expect(SQL292).toContain("if not (r.author_id = yo or public.warehouse_ops_can_manage(r.store)) then");
+    expect(SQL292).toContain("hay una funcion que escribe con warehouse_ops_can_see como unica puerta");
     expect(SQL292).toContain("-- @ledger-below");
     expect(SQL292).toContain("values ('292_almacen_ve_su_tienda.sql', '");
   });

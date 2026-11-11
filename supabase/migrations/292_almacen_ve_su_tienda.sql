@@ -10,8 +10,22 @@
 -- autor nulo) ya se ven desde el almacén de la tienda, para que el supervisor vea lo que le falta firmar. QUIÉN FIRMA y
 -- QUIÉN APRUEBA no cambia: eso es `warehouse_ops_can_manage`, intacta.
 --
--- Solo `create or replace` de `public.warehouse_ops_can_see` (misma firma, mismo SECURITY DEFINER y search_path).
--- 237/238/239 en espera, intactas. Para deshacer: volver a aplicar la definición de la 265.
+-- `create or replace` de `public.warehouse_ops_can_see` (misma firma, mismo SECURITY DEFINER y search_path).
+--
+-- ESCRITURAS (revisión de seguridad): ampliar `can_see` amplía también toda función SECURITY DEFINER que escribe y la
+-- usaba como ÚNICA puerta. Se revisaron todas las de `public` que llaman a `warehouse_ops_can_see`:
+--   · warehouse_ops_add_photos       escribe; ya exige autor o `warehouse_ops_can_manage`. Sin cambio.
+--   · warehouse_ops_set_scrap_stage  escribe; ya exige `warehouse_ops_can_manage`. Sin cambio.
+--   · warehouse_ops_sign_scrap       escribe; ya exige `warehouse_ops_can_manage`. Sin cambio.
+--   · warehouse_ops_unsign_scrap     escribe; ya exige `warehouse_ops_can_manage`. Sin cambio.
+--   · warehouse_ops_sign_scrap_group escribe; ya exige `warehouse_ops_can_manage`. Sin cambio.
+--   · warehouse_ops_set_photo_hashes escribe y SOLO miraba `can_see` → aquí gana la misma puerta que add_photos
+--     (autor o quien gestiona la tienda). Sin esto, tras la 292 cualquiera del almacén de la tienda podría rellenar las
+--     huellas de las fotos de la merma de otro.
+-- Ninguna política de escritura (insert/update/delete) usa `can_see`; las de lectura son las que se amplían a propósito.
+--
+-- 237/238/239 en espera, intactas. Para deshacer: volver a aplicar la definición de la 265 (y la de la 268 para
+-- warehouse_ops_set_photo_hashes).
 
 create or replace function public.warehouse_ops_can_see(r_kind text, r_store text, r_author uuid)
 returns boolean
@@ -49,6 +63,43 @@ as $function$
   ), false);
 $function$;
 
+-- Escritura: las huellas de las fotos solo las pone el autor o quien gestiona la tienda (igual que add_photos, 268).
+create or replace function public.warehouse_ops_set_photo_hashes(p_report uuid, p_hashes text[])
+returns void
+language plpgsql
+security definer
+set search_path to 'public'
+as $function$
+declare
+  yo uuid := auth.uid();
+  r record;
+  n int;
+  nuevas text[];
+begin
+  select * into r from public.warehouse_reports where id = p_report;
+  if r.id is null then raise exception 'warehouse_ops: reporte desconocido'; end if;
+  if yo is null or not public.warehouse_ops_can_see(r.kind, r.store, r.author_id) then
+    raise exception 'warehouse_ops: sin acceso' using errcode = '42501';
+  end if;
+  if not (r.author_id = yo or public.warehouse_ops_can_manage(r.store)) then
+    raise exception 'warehouse_ops: solo quien lo lleno o el gerente de la tienda pone las huellas' using errcode = '42501';
+  end if;
+  n := cardinality(coalesce(r.photos, '{}'));
+  if n = 0 then return; end if;
+  -- Las huellas vienen alineadas con las fotos: ni mas ni menos.
+  if cardinality(coalesce(p_hashes, '{}')) <> n then
+    raise exception 'warehouse_ops: las huellas no cuadran con las fotos (% fotos)', n using errcode = '22023';
+  end if;
+  -- Solo rellena huecos: una huella guardada no se cambia.
+  nuevas := (select coalesce(array_agg(case
+                when (coalesce(r.photo_hashes, '{}'))[i] ~ '^[0-9a-f]{64}$' then (coalesce(r.photo_hashes, '{}'))[i]
+                when (coalesce(p_hashes, '{}'))[i] ~ '^[0-9a-f]{64}$' then (coalesce(p_hashes, '{}'))[i]
+              end), '{}') from generate_series(1, n) i);
+  if nuevas is distinct from r.photo_hashes then
+    update public.warehouse_reports set photo_hashes = nuevas where id = p_report;
+  end if;
+end $function$;
+
 -- ===========================================================================
 -- Autocomprobacion
 -- ===========================================================================
@@ -65,7 +116,21 @@ begin
   if position('''zone'', ''insubordination'', ''positive''' in d) = 0 then
     raise exception '292: se perdio la regla de RR. HH.';
   end if;
+  -- Ninguna funcion que ESCRIBE puede quedarse con can_see como unica puerta.
+  select pg_get_functiondef('public.warehouse_ops_set_photo_hashes(uuid,text[])'::regprocedure) into d;
+  if position('r.author_id = yo or public.warehouse_ops_can_manage(r.store)' in d) = 0 then
+    raise exception '292: warehouse_ops_set_photo_hashes sigue sin la puerta de autor o gerente';
+  end if;
+  if exists (
+    select 1 from pg_proc p join pg_namespace s on s.oid = p.pronamespace
+     where s.nspname = 'public' and p.prosecdef
+       and p.prosrc ilike '%warehouse_ops_can_see%'
+       and p.prosrc ~* '\m(insert|update|delete)\M'
+       and p.prosrc not ilike '%warehouse_ops_can_manage%'
+  ) then
+    raise exception '292: hay una funcion que escribe con warehouse_ops_can_see como unica puerta';
+  end if;
 end $chk$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('292_almacen_ve_su_tienda.sql', 'e42dc1b24d06db0b024d14eb2ea21a8776f3fba3e7345356f7f95e68eff97796') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('292_almacen_ve_su_tienda.sql', '5ff07bfe013055cd44dc473b646831f77dc8a007c97a52afc3f037742d56228b') on conflict (name) do nothing;

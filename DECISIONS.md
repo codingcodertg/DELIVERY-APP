@@ -51636,6 +51636,8 @@ Pedidos del dueño (10 nov):
 - **«Volver a Operaciones» y el título suben a la barra azul**, junto a la casa (un hueco nuevo en `BarraDeApp`, llenado con un portal): botón tipo píldora claro sobre la barra, con estado al pasar el ratón. Se quita el renglón de abajo.
 - **Más compacto («pega más eso»):** las pestañas Merma/Entregas y los atajos del rango van en un renglón (se doblan en el teléfono), menos espacio hasta los totales, y tarjetas de totales más bajas con cifras un poco más chicas.
 
+**Revisión de seguridad de la 292:** ampliar `can_see` amplía también las funciones que escriben y lo usaban como única puerta. Se revisaron todas las de `public` que lo llaman. `warehouse_ops_add_photos`, `warehouse_ops_set_scrap_stage`, `warehouse_ops_sign_scrap`, `warehouse_ops_unsign_scrap` y `warehouse_ops_sign_scrap_group` ya exigen autor o `warehouse_ops_can_manage`, así que no cambian. `warehouse_ops_set_photo_hashes` solo miraba `can_see`: en la misma 292 gana la puerta de autor o gerente de la tienda (si no, cualquiera del almacén podría rellenar las huellas de las fotos de la merma de otro). La autocomprobación de la 292 falla si alguna función SECURITY DEFINER que escribe queda con `can_see` como única puerta. Ninguna política de escritura usa `can_see`.
+
 La 292 la aplica el dueño. Sin aplicarla, la app no se rompe: el almacén ve el botón de Reportes, pero la base solo le devuelve sus propias mermas, como hasta hoy.
 
 Sello `warehouse_ops` 0.34.0; repo 1.835.0.
