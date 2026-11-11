@@ -28,7 +28,6 @@ create policy "app_last_seen read" on public.app_last_seen for select to authent
   using (
     (select auth.uid()) = user_id
     or (select public.is_admin())
-    or (select public.has_recruiting_access())
   );
 revoke all on public.app_last_seen from anon;
 
@@ -44,7 +43,7 @@ declare
   v_ip    text := nullif(left(coalesce(p_ip, ''), 64), '');
   v_place text := nullif(left(coalesce(p_place, ''), 120), '');
   v_route text := nullif(left(coalesce(p_route, ''), 200), '');
-  v_app   text := nullif(left(coalesce(p_app, ''), 40), '');
+  v_app   text := case when p_app in ('deliveries','estimator','leads','customers','promos','warehouse_ops','recruiting','timetracker','surveys','erp') then p_app end;
 begin
   if auth.uid() is null then return; end if;
   if p_device is null or length(p_device) < 8 or length(p_device) > 64 then return; end if;
@@ -98,4 +97,4 @@ begin
 end $chk$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('289_uso_por_app.sql', 'e2e77008cf54be195e3fee9dd77674332ab5422540202f47ecb7fb0c5cf7b213') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('289_uso_por_app.sql', '09031d86c93c6f6c7eaec985352e966b21e2fcc6f69955fa2e42df04ffb27020') on conflict (name) do nothing;
