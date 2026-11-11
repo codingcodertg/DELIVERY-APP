@@ -115,6 +115,21 @@ function guardaEstado(win) {
   } catch { /* que no se recuerde el tamaño no es motivo para romper nada */ }
 }
 
+/**
+ * Abrir al iniciar Windows (dueño, 11 nov: «que el RTG Hub haga launch on startup»). Se prende UNA vez, la primera
+ * vez que corre esta versión; luego manda lo que la persona elija en Configuración de Windows → Aplicaciones →
+ * Inicio (si lo apaga ahí, no se lo volvemos a prender). Solo en la app instalada, no con `npm start`.
+ */
+const ARRANQUE = () => path.join(app.getPath("userData"), "arranque.json");
+function abrirAlIniciarLaPrimeraVez() {
+  if (!app.isPackaged || process.platform !== "win32") return;
+  try { if (JSON.parse(fs.readFileSync(ARRANQUE(), "utf8")).decidido) return; } catch { /* primera vez */ }
+  try {
+    app.setLoginItemSettings({ openAtLogin: true });
+    fs.writeFileSync(ARRANQUE(), JSON.stringify({ decidido: true, cuando: new Date().toISOString() }));
+  } catch { /* sin permiso o sin carpeta: se intenta otra vez al siguiente arranque */ }
+}
+
 /** Una sola ventana por máquina: abrir el acceso directo dos veces enfoca la que ya está. */
 const unica = app.requestSingleInstanceLock();
 if (!unica) {
@@ -127,7 +142,7 @@ if (!unica) {
       win.focus();
     }
   });
-  app.whenReady().then(crearVentana);
+  app.whenReady().then(() => { abrirAlIniciarLaPrimeraVez(); crearVentana(); });
   app.on("window-all-closed", () => app.quit());
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) crearVentana();

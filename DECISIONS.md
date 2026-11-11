@@ -51653,3 +51653,11 @@ El dueño (11 nov): «volver al inicio cámbialo por la casita y haz eso through
 - **El inicio, sin «Vista móvil» ni «Cambiar de usuario».** Ya viven en el menú del botón «?»; en el lanzador (y en «Otras apps» del mapa) sobraban. Siguen siendo herramientas, con su ruta y su puerta (`HERRAMIENTAS_SOLO_EN_AYUDA` / `herramientasDelLanzador` en `constants.ts`).
 
 Sello `deliveries` 1.594.0; repo 1.836.0.
+
+## D-984 · RTG Hub de escritorio: se abre al iniciar Windows
+
+El dueño (11 nov): que el RTG Hub (y el Time Tracker) arranquen solos al prender la computadora.
+
+La app de escritorio 1.4.0 se registra para abrir al iniciar sesión en Windows (`app.setLoginItemSettings({ openAtLogin: true })`). Lo hace UNA sola vez, la primera vez que corre esa versión, y lo anota en `arranque.json` (userData). Después manda lo que la persona elija en Configuración de Windows → Aplicaciones → Inicio: si lo apaga ahí, la app no se lo vuelve a prender. Solo en la app instalada (no con `npm start`). Las instaladas reciben la 1.4.0 por la actualización automática (D-811).
+
+Repo 1.837.0 (la app de escritorio va aparte, 1.4.0).
