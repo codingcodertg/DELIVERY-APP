@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import type { Stage } from "./types";
 import {
   ETAPA_PRESENCIAL, RESULTADO_AGENDADA, RESULTADO_CONFIRMACION,
-  MARCADORES_DE_LA_CITA, enlacesDeMapa,
+  MARCADORES_DE_LA_CITA, enlacesDeMapa, direccionCorta,
   contactoDeLaCita, contactoDeLaConfirmacion, etapaTrasAgendar, fechaYHora, lugaresParaAgendar, plantillaDeAjustes,
   prepararConfirmacionPresencial, textoConfirmacionPresencial, tiendaDelLugar, validarFechaPresencial,
 } from "./agendar-presencial";
@@ -66,13 +66,13 @@ describe("agendar entrevista presencial al terminar la entrevista (D-585)", () =
     const es = textoConfirmacionPresencial(cand, cita, "Andrés", "es", tiendas, null, hoyEs19);
     expect(es).toBe(
       "Hola, le habla Andrés, reclutador de Rodriguez Tile Group. Gracias por su tiempo. Le confirmo su entrevista presencial para mañana a las 10:30 a.m. en nuestra oficina:\n\n"
-      + "Rodriguez Tile Group\n100 Main St, McAllen, TX\nGoogle Maps: https://www.google.com/maps/search/?api=1&query=100%20Main%20St%2C%20McAllen%2C%20TX\n\n"
+      + "Rodriguez Tile Group\n100 Main St, McAllen, TX\nGoogle Maps: https://maps.google.com/?q=100+Main+St,+McAllen,+TX\n\n"
       + "Por favor llegue unos minutos antes y traiga una identificación. Cualquier duda o si necesita cambiar la hora, respóndame a este número.\n\n"
       + "Nos vemos mañana,\nAndrés\nRodriguez Tile Group",
     );
     const en = textoConfirmacionPresencial(cand, cita, "Andrés", "en", tiendas, null, hoyEs19);
     expect(en).toContain("Hello, this is Andrés, recruiter at Rodriguez Tile Group.");
-    expect(en).toContain("for tomorrow at 10:30 AM at our office:\n\nRodriguez Tile Group\n100 Main St, McAllen, TX\nGoogle Maps: https://www.google.com/maps/search/?api=1&query=100%20Main%20St%2C%20McAllen%2C%20TX\n\n");
+    expect(en).toContain("for tomorrow at 10:30 AM at our office:\n\nRodriguez Tile Group\n100 Main St, McAllen, TX\nGoogle Maps: https://maps.google.com/?q=100+Main+St,+McAllen,+TX\n\n");
     // D-764: sin Waze, que con los dos enlaces el SMS pasaba del largo del chat.
     expect(es).not.toContain("waze");
     expect(en).not.toContain("waze");
@@ -173,5 +173,29 @@ describe("agendar entrevista presencial al terminar la entrevista (D-585)", () =
     const vista = readFileSync(new URL("../../components/recruiting/InterviewView.tsx", import.meta.url), "utf8");
     expect(vista).toContain("schedule(c.id)");
     expect(modal).toContain("schedule={setInPersonId}");
+  });
+});
+
+// D-NEXT · El dueño, 2026-11-10, con la captura del SMS rechazado («Your message is too long»): «hay que acortar eso mira
+// eso del mapa creo que esta muy largo». La dirección que guarda Datos → Tiendas viene del geocodificador, con colonia,
+// condado y país; el enlace largo la repetía entera con %20 y %2C.
+describe("dirección y mapa cortos en el SMS (D-NEXT)", () => {
+  const geocodificada = "1120, East Expressway 83, L R Bell Colonia, Pharr, Hidalgo County, Texas, 78577, United States";
+  it("la dirección pierde país, condado y colonia; «Texas» queda «TX» con su código postal, y el número va con la calle", () => {
+    expect(direccionCorta(geocodificada)).toBe("1120 East Expressway 83, Pharr, TX 78577");
+    expect(direccionCorta("200 University Dr, Edinburg, TX")).toBe("200 University Dr, Edinburg, TX");
+    expect(direccionCorta("1120, East Expressway 83, Pharr, Texas, 78577, United States of America")).toBe("1120 East Expressway 83, Pharr, TX 78577");
+    expect(direccionCorta("")).toBe("");
+  });
+  it("el enlace es el corto de Google Maps, sin %20 ni %2C, y abre la misma dirección corta", () => {
+    expect(enlacesDeMapa(geocodificada)).toBe("Google Maps: https://maps.google.com/?q=1120+East+Expressway+83,+Pharr,+TX+78577");
+    expect(enlacesDeMapa(geocodificada)).not.toMatch(/%20|%2C|search\/\?api/);
+    expect(enlacesDeMapa("  ")).toBe("");
+  });
+  it("el texto de la tienda con esa dirección queda por debajo de 560 caracteres (la misma cita con la dirección larga pasaba de 700) y lleva la dirección corta", () => {
+    const t = textoConfirmacionPresencial(cand, { ...cita, lugar: "Pharr" }, "ANDRES UGARTE", "es", [{ name: "RDZ Pharr", address: geocodificada }], null, ahora);
+    expect(t).toContain("Rodriguez Tile Group\n1120 East Expressway 83, Pharr, TX 78577\nGoogle Maps: https://maps.google.com/?q=");
+    expect(t).not.toContain("Hidalgo County");
+    expect(t.length).toBeLessThan(560);
   });
 });
