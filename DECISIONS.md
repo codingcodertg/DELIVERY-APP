@@ -51737,3 +51737,11 @@ Arreglos:
 Las marcas que se hicieron en práctica no se recuperan: se vuelven a marcar.
 
 Sello `deliveries` 1.596.0; repo 1.843.0.
+
+## D-991 · Merma: la página ya no se corre de lado
+
+Roberto (11 nov, captura): en Reportes → Merma la página entera se salía de la pantalla hacia la derecha (la barra azul quedaba cortada). La pestaña de Merma es una cuadrícula de una columna, y una columna de cuadrícula crece hasta el ancho mínimo de su contenido: la tabla ancha (todas las columnas del Excel) la estiraba a ~2450 px en una pantalla de 1225, y con ella los totales, los filtros y la barra.
+
+Ahora `.ops-merma` usa `grid-template-columns: minmax(0, 1fr)` y sus hijos `min-width: 0`: la columna mide lo que la pantalla y la tabla se desplaza DENTRO de su caja. Verificado en local: el ancho de la página = el de la ventana; la caja de la tabla desplaza sus ~2450 px.
+
+Sello `warehouse_ops` 0.38.0; repo 1.844.0.
