@@ -462,3 +462,8 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
   .ops-volver { padding: 4px 10px; font-size: 12px; }
   .topbar .ops-cabeza-reportes h2 { font-size: 14px; }
 }
+
+/* Marcada que ya está en un grupo (dueño, 10 nov): el renglón se resalta y la barra avisa cuál quitar. */
+.ops-fila-en-grupo-conflicto > td { background: color-mix(in srgb, var(--amber) 16%, var(--card)); }
+.ops-fila-en-grupo-conflicto > td:first-child { box-shadow: inset 4px 0 0 var(--amber); }
+.ops-aviso-en-grupo { flex-basis: 100%; font-weight: 700; font-size: 13px; color: var(--amber); }

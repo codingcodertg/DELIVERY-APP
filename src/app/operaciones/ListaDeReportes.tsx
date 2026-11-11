@@ -17,7 +17,7 @@ import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, buscarProductos, corregirM
 import { esCorteDePractica } from "@/lib/practica/es-corte";
 import { crearGrupoDePractica, gruposDePractica } from "@/lib/practica/grupos-de-practica";
 import { ensenanzaDelNavegador } from "@/lib/ensenanza-general";
-import { estadoDelGrupo, filtrarGrupos, type FiltroDeGrupos, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
+import { avisoYaEnGrupo, esErrorDeYaEnGrupo, estadoDelGrupo, filtrarGrupos, seleccionadasEnGrupo, type FiltroDeGrupos, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
 import { HojaDeGrupo } from "./HojaDeGrupo";
 import { HojaImprimible } from "./HojaImprimible";
 import { VisorDeFotos } from "./VisorDeFotos";
@@ -171,6 +171,10 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const seleccionadas = useMemo(() => mermasEnRango.filter((r) => seleccion.has(r.id) && puedeSeleccionar(r)), [mermasEnRango, seleccion, puedeSeleccionar]);
   // Las marcadas que todavía van a la hoja de aprobación (fotografiadas, sin aprobar).
   const paraHoja = useMemo(() => seleccionadas.filter((r) => seleccionableParaHoja(r)), [seleccionadas]);
+  // Dueño, 10 nov: una marcada que YA está en un grupo no puede ir a otro — se avisa, se apagan las acciones de la hoja
+  // y su renglón se resalta para que sepa cuál quitar (antes salía el error crudo de la base).
+  const yaEnGrupo = useMemo(() => seleccionadasEnGrupo(paraHoja), [paraHoja]);
+  const idsEnConflicto = useMemo(() => new Set(yaEnGrupo.map((r) => r.id)), [yaEnGrupo]);
   const alternar = (id: string) => setSeleccion((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   // Acciones en bloque (dueño, 10 nov): cuáles de las seleccionadas pueden desechar/ajustar (están en la etapa previa).
   const paraDesechar = useMemo(() => particionaPorEtapa(seleccionadas, "dumped"), [seleccionadas]);
@@ -245,6 +249,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     // Solo se agrupan las fotografiadas (sin aprobar); si hay otras marcadas, se ignoran para esto.
     const elegibles = seleccionadas.filter((r) => seleccionableParaHoja(r));
     if (elegibles.length === 0) { setAvisoBloque(t("Pick photographed reports to group.", "Marca reportes fotografiados para agrupar.")); return; }
+    if (seleccionadasEnGrupo(elegibles).length > 0) { setAvisoBloque(avisoYaEnGrupo(seleccionadasEnGrupo(elegibles).length, lang)); return; }
     const nombre = fmtDateTime(new Date().toISOString());
     // Modo enseñanza (dueño, 10 nov): el grupo se crea de mentira en esta pestaña y se puede firmar y aprobar; nada
     // llega a la base y no sale el aviso de «no se puede practicar».
@@ -262,6 +267,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     } catch (e) {
       // En práctica (modo enseñanza) no se crean grupos de verdad: se avisa suave, no es un error. El aviso global ya salió.
       if (esCorteDePractica(e)) { setSeleccion(new Set()); setAvisoBloque(t("In practice, groups aren't saved.", "En práctica no se guardan los grupos.")); return; }
+      if (esErrorDeYaEnGrupo(e)) { setAvisoBloque(avisoYaEnGrupo(Math.max(1, yaEnGrupo.length), lang)); return; }
       setError((e as Error).message);
     }
   };
@@ -391,13 +397,14 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
                   solo con fotografiadas (sin aprobar); desechar con aprobadas; ajustar con desechadas. */}
               {paraHoja.length > 0 && <>
                 {/* 281: crear un grupo, firmarlo (gerente + supervisor) y aprobar todas de una vez — la vía principal. */}
-                <button type="button" className="btn btn-primary" onClick={() => void iniciarAprobacion()} data-accion="iniciar-aprobacion">
+                {yaEnGrupo.length > 0 && <span className="ops-aviso-en-grupo" role="alert" data-aviso-ya-en-grupo={yaEnGrupo.length}>⚠ {avisoYaEnGrupo(yaEnGrupo.length, lang)}</span>}
+                <button type="button" className="btn btn-primary" disabled={yaEnGrupo.length > 0} onClick={() => void iniciarAprobacion()} data-accion="iniciar-aprobacion">
                   ✅ {t(`Start approval (${paraHoja.length})`, `Iniciar aprobación (${paraHoja.length})`)}
                 </button>
-                <button type="button" className="btn" onClick={() => setImprimirHoja(true)} data-accion="imprimir-hoja">
+                <button type="button" className="btn" disabled={yaEnGrupo.length > 0} onClick={() => setImprimirHoja(true)} data-accion="imprimir-hoja">
                   🖨 {t(`Print approval sheet (${paraHoja.length})`, `Imprimir hoja de aprobación (${paraHoja.length})`)}
                 </button>
-                <button type="button" className="btn" onClick={() => setAdjuntando((x) => !x)} data-accion="adjuntar-hoja-seleccion">📎 {t(`Attach signed sheet (${paraHoja.length})`, `Adjuntar hoja firmada (${paraHoja.length})`)}</button>
+                <button type="button" className="btn" disabled={yaEnGrupo.length > 0} onClick={() => setAdjuntando((x) => !x)} data-accion="adjuntar-hoja-seleccion">📎 {t(`Attach signed sheet (${paraHoja.length})`, `Adjuntar hoja firmada (${paraHoja.length})`)}</button>
               </>}
               {/* En bloque (dueño, 10 nov): desechar las aprobadas, ajustar las desechadas (una sola foto para todas). */}
               {paraDesechar.elegibles.length > 0 && <button type="button" className="btn" onClick={() => { setAjustandoBloque(false); void marcarDesechadas(); }} data-accion="desechar-bloque">🗑 {t(`Mark as dumped (${paraDesechar.elegibles.length})`, `Marcar como desechadas (${paraDesechar.elegibles.length})`)}</button>}
@@ -420,7 +427,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
           )}
           {/* «Seleccionar todos» vive SOLO en la casilla del encabezado (dueño, 10 nov: el botón de arriba era redundante). */}
           <TablaDeMermaExcel filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango" conEtapa
-            grupos={grupos} onAbrirGrupo={abrirGrupo}
+            grupos={grupos} onAbrirGrupo={abrirGrupo} enConflicto={idsEnConflicto}
             seleccion={{ ids: seleccion, puede: puedeSeleccionar, alternar, todas: todasSeleccionadas, algunas: algunaSeleccionada, alternarTodas }}
             vacio={rango ? (etapaFiltro ? t("No scrap in that stage in this range.", "No hay merma en esa etapa en este rango.") : t("No scrap broken in this range.", "No se rompió nada en este rango.")) : t("Fix the dates to see the list.", "Corrige las fechas para ver la lista.")} />
           </>}
@@ -575,10 +582,12 @@ function TablaDeReportes({ filas, ctx, onAbrir, vacio, repetidas, conEtapa, sele
  * de siempre (casilla, Cuándo, Etapa, Tipo, Tienda, Lo llenó), que pidió conservar. Encabezado de dos niveles; las
  * cifras a la derecha; se desplaza de lado dentro de su caja. Cada fila se abre como tarjeta, igual que antes.
  */
-function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = true, seleccion, grupos, onAbrirGrupo, "data-lista": dataLista }: {
+function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = true, seleccion, grupos, onAbrirGrupo, enConflicto, "data-lista": dataLista }: {
   filas: Reporte[]; ctx: Contexto; onAbrir: (r: Reporte) => void; vacio: string; repetidas: Map<string, string[]>; "data-lista": string;
   /** Con la lista de grupos sale la columna «Grupo» (a qué grupo de aprobación pertenece cada merma). */
   grupos?: readonly GrupoDeMerma[]; onAbrirGrupo?: (id: string) => void;
+  /** Marcadas que ya están en un grupo: su renglón se resalta para que se quiten de la selección. */
+  enConflicto?: ReadonlySet<string>;
   conEtapa?: boolean;
   seleccion?: { ids: Set<string>; puede: (r: Reporte) => boolean; alternar: (id: string) => void;
     /** Casilla del encabezado «seleccionar todos»: si todas/algunas están marcadas y la acción para alternarlas. */
@@ -640,7 +649,7 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
               return <td key={k.id} className={k.num ? "num" : undefined} data-col={k.id}>{c[k.id]}</td>;
             };
             return (
-              <tr key={r.id} onClick={() => onAbrir(r)} className="ops-fila-tabla" data-reporte={r.id} data-etapa={etapaDe(r)}>
+              <tr key={r.id} onClick={() => onAbrir(r)} className={"ops-fila-tabla" + (enConflicto?.has(r.id) ? " ops-fila-en-grupo-conflicto" : "")} data-reporte={r.id} data-etapa={etapaDe(r)}>
                 {conCasillas && (
                   <td className="ops-col-casilla" onClick={(e) => e.stopPropagation()}>
                     {seleccion!.puede(r) && (

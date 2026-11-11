@@ -101,3 +101,19 @@ export function gruposPendientesDeMiFirma<G extends Pick<GrupoDeMerma, "approved
     .filter((g) => !grupoAprobado(g) && deMiTienda(g.store) && firmasFaltantes(g.firmas).some((s) => mios.includes(s)))
     .sort((a, b) => a.created_at.localeCompare(b.created_at));
 }
+
+/** Las marcadas que YA están en un grupo de aprobación (no se pueden meter en otro; dueño, 10 nov). */
+export function seleccionadasEnGrupo<R extends { scrap_group_id?: string | null }>(seleccionadas: readonly R[]): R[] {
+  return seleccionadas.filter((r) => !!r.scrap_group_id);
+}
+
+/** El aviso amable cuando una marcada ya está en un grupo (también sustituye el error crudo de la base). */
+export function avisoYaEnGrupo(n: number, lang: Lang): string {
+  if (lang === "es") return n > 1 ? `${n} de tus seleccionadas ya están en un grupo: deselecciónalas para avanzar.` : "Una de tus seleccionadas ya está en un grupo: deselecciónala para avanzar.";
+  return n > 1 ? `${n} of your selected reports are already in a group — unselect them to continue.` : "One of your selected reports is already in a group — unselect it to continue.";
+}
+
+/** ¿Es el error de la base de «ya tiene grupo / no se puede agrupar»? */
+export function esErrorDeYaEnGrupo(e: unknown): boolean {
+  return /sin grupo/i.test(String((e as { message?: unknown } | null)?.message ?? e ?? ""));
+}
