@@ -51578,3 +51578,9 @@ El dueño: Patricia Hernández (gerente de Brownsville) salía en «¿Quién lo 
 Ahora ese selector (en el asistente y en «Editar reporte») solo muestra rol `warehouse` y expedientes de almacén sin cuenta (`esDelPiso` en `src/lib/almacen-ops/personas.ts`). «¿Quién lo reportó?» sigue igual: ofrece también a los gerentes con el módulo. Los reportes viejos que ya tienen a un gerente en «lo rompió» no cambian.
 
 Sello `warehouse_ops` 0.29.0; repo 1.829.0.
+
+## D-977 · Reportes de Operaciones: «Volver a Operaciones» como botón a la izquierda
+
+El dueño: el «Volver a Operaciones» de la pantalla de Reportes se veía como enlace subrayado a la derecha. Ahora es un botón (`btn`, sin subrayado, con «←») a la izquierda del título.
+
+Sello `warehouse_ops` 0.30.0; repo 1.830.0.

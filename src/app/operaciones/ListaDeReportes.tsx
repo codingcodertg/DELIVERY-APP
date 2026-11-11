@@ -278,9 +278,10 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
 
   return (
     <section className="ops-reportes" data-modo={modo}>
-      <div className="page-head">
+      {/* Dueño, 10 nov: «Volver» como botón, a la izquierda (antes era un enlace subrayado a la derecha). */}
+      <div className="page-head ops-cabeza-reportes">
+        <Link href="/operaciones" className="btn ops-volver" data-accion="volver-a-operaciones">← {t("Back to Warehouse Ops", "Volver a Operaciones")}</Link>
         <h2>{modo === "mios" ? t("My reports", "Mis reportes") : t("Reports", "Reportes")} <span className="count-tag">{visibles.length}</span></h2>
-        <Link href="/operaciones" className="btn btn-ghost">{t("Back to Warehouse Ops", "Volver a Operaciones")}</Link>
       </div>
 
       {modo === "todos" && (

@@ -166,6 +166,10 @@ textarea.ops-campo { min-height: 150px; resize: vertical; }
   .ops-merma-total-rango { grid-column: 1 / -1; }
 }
 
+/* «Volver a Operaciones» como botón a la izquierda del título (dueño, 10 nov). */
+.ops-cabeza-reportes { justify-content: flex-start; gap: 12px; }
+.ops-volver, .ops-volver:hover { text-decoration: none; }
+
 /* Grupo de aprobación en tarjeta (10 nov): más ancha que el modal normal para que quepa la hoja, y sin doble
    relleno (la hoja ya trae el suyo). La barra «Cerrar» queda arriba a la derecha, como una tarjeta. */
 .modal.ops-tarjeta-grupo { max-width: 960px; padding: 14px 16px; }
