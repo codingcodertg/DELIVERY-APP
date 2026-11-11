@@ -107,6 +107,12 @@ describe("fec8a78d: el selector solo muestra al almacén de la tienda del report
     expect(esDelAlmacen({ id: "e2", full_name: "Yago", store: "McAllen", fuente: "expediente", left_at: "2026-10-01" })).toBe(false);
     expect(personasParaElegir(conExpediente, "McAllen").map((p) => p.id)).toEqual(["1", "e1"]);
   });
+  it("10 nov (Patricia): «¿quién lo rompió?» solo muestra el piso — el gerente con el módulo no sale", () => {
+    const conExpediente = [...gente, { id: "e1", full_name: "Zoe", store: "McAllen", fuente: "expediente" as const }];
+    expect(personasParaElegir(conExpediente, "McAllen", "", true).map((p) => p.id)).toEqual(["1", "e1"]);
+    // «¿quién lo reportó?» sigue ofreciendo al gerente
+    expect(personasParaElegir(conExpediente, "McAllen").map((p) => p.id)).toEqual(["1", "5", "e1"]);
+  });
 });
 
 describe("4a1123bb: borradores por usuario", () => {

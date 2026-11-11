@@ -23,10 +23,18 @@ export function esDelAlmacen(p: PersonaDeAlmacen): boolean {
   return p.role === "warehouse" || (p.role !== "admin" && (p.module_access ?? []).includes(MODULO));
 }
 
-export function personasParaElegir<T extends PersonaDeAlmacen>(personas: readonly T[], tienda: string, busqueda = ""): T[] {
+/**
+ * «¿Quién lo rompió?» (dueño, 10 nov: Patricia, gerente de Brownsville, salía ahí): solo gente del PISO del almacén —
+ * rol `warehouse` o expediente de almacén sin cuenta—. Un gerente con el módulo puede reportar, pero no rompe material.
+ */
+export function esDelPiso(p: PersonaDeAlmacen): boolean {
+  return esDelAlmacen(p) && (p.fuente === "expediente" || p.role === "warehouse");
+}
+
+export function personasParaElegir<T extends PersonaDeAlmacen>(personas: readonly T[], tienda: string, busqueda = "", soloPiso = false): T[] {
   const n = busqueda.trim().toLowerCase();
   return personas
-    .filter((p) => p.store === tienda && esDelAlmacen(p))
+    .filter((p) => p.store === tienda && (soloPiso ? esDelPiso(p) : esDelAlmacen(p)))
     .filter((p) => !n || p.full_name.toLowerCase().includes(n))
     .sort((a, b) => a.full_name.localeCompare(b.full_name));
 }

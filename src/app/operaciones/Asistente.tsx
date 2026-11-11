@@ -448,7 +448,7 @@ function Respuesta({ paso, r, pon, ctx, tienda, onElegirUno, onConfirmandoFoto }
     }
     case "personas":
     case "persona":
-      return <ElegirPersonas multiple={paso.tipo === "personas"} libre={paso.tipo === "personas" && !!paso.libre} valor={v}
+      return <ElegirPersonas multiple={paso.tipo === "personas"} libre={paso.tipo === "personas" && !!paso.libre} soloPiso={paso.id === "broken_by"} valor={v}
         onCambio={(x) => { pon(paso.id, x); if (paso.tipo === "persona") onElegirUno(); }} ctx={ctx} tienda={tienda} />;
     case "foto":
       return <Fotos fotos={fotosDe(r)} huellas={hashesDe(r)} ctx={ctx} obligatoria={!!paso.obligatoria}
@@ -469,14 +469,15 @@ function Respuesta({ paso, r, pon, ctx, tienda, onElegirUno, onConfirmandoFoto }
 }
 
 /** `libre` (D-915): además de la lista, lo escrito en el buscador se puede agregar tal cual (alguien sin cuenta). */
-function ElegirPersonas({ multiple, libre = false, valor, onCambio, ctx, tienda }: {
-  multiple: boolean; libre?: boolean; valor: unknown; onCambio: (v: string | string[]) => void; ctx: Contexto; tienda: string;
+function ElegirPersonas({ multiple, libre = false, soloPiso = false, valor, onCambio, ctx, tienda }: {
+  multiple: boolean; libre?: boolean; soloPiso?: boolean; valor: unknown; onCambio: (v: string | string[]) => void; ctx: Contexto; tienda: string;
 }) {
   const { t } = usePrefs();
   const [q, setQ] = useState("");
   const elegidos = multiple ? ((valor as string[] | undefined) ?? []) : typeof valor === "string" ? [valor] : [];
   // Solo la gente del almacén de la tienda del reporte, aunque quien llena sea admin (pedido fec8a78d).
-  const lista = useMemo(() => personasParaElegir(ctx.personas, tienda, q).slice(0, 60), [ctx.personas, q, tienda]);
+  // «¿Quién lo rompió?»: solo el piso (sin gerentes).
+  const lista = useMemo(() => personasParaElegir(ctx.personas, tienda, q, soloPiso).slice(0, 60), [ctx.personas, q, tienda, soloPiso]);
   const toca = (id: string) => {
     if (!multiple) return onCambio(id);
     onCambio(elegidos.includes(id) ? elegidos.filter((x) => x !== id) : [...elegidos, id]);
