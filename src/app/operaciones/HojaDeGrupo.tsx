@@ -64,7 +64,7 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
   if (cargando) return <p className="hint" data-grupo-cargando>{t("Loading…", "Cargando…")}</p>;
   if (error && !grupo) return (
     <div className="ops-merma">
-      <button type="button" className="btn btn-ghost" onClick={onSalir}>← {t("Back to scrap", "Volver a la merma")}</button>
+      <button type="button" className="btn btn-ghost" onClick={onSalir}>✕ {t("Close", "Cerrar")}</button>
       <p className="ops-aviso ops-aviso-error">{error}</p>
     </div>
   );
@@ -101,7 +101,7 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
   return (
     <div className="ops-merma" data-hoja-grupo={grupo.id}>
       <div className="hoja-barra no-imprimir">
-        <button type="button" className="btn btn-ghost" onClick={onSalir}>← {t("Back to scrap", "Volver a la merma")}</button>
+        <button type="button" className="btn btn-ghost" onClick={onSalir}>✕ {t("Close", "Cerrar")}</button>
         <span className={`ops-etapa-chip${aprobado ? " ops-grupo-aprobado" : ""}`} data-grupo-estado={aprobado ? "aprobado" : "pendiente"}>{estadoDelGrupo(grupo, lang)}</span>
         <button type="button" className="btn" onClick={() => window.print()} data-accion="imprimir-grupo">🖨 {t("Print", "Imprimir")}</button>
       </div>
