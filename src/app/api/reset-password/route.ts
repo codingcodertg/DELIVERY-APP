@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { logSecurity } from "@/lib/security-log-server";
 import { PONER_MARCA } from "@/lib/cambio-obligatorio";
 import { limita, respuesta429 } from "@/lib/rate-limit";
+import { errorAlCliente } from "@/lib/api-error";
 
 // ============================================================
 // An admin sets a new password for someone who can't reset their own.
@@ -56,7 +57,7 @@ export async function POST(req: Request) {
   // Y con la marca de «cámbiala al entrar» (D-486), en la misma llamada: esta contraseña la ha
   // visto el admin, así que no se queda. `user_metadata` se fusiona, no se reemplaza.
   const { error } = await admin.auth.admin.updateUserById(id, { password, user_metadata: PONER_MARCA });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return errorAlCliente("reset-password", error, 500, "Could not reset the password.");
 
   // The record is that a reset HAPPENED, never what it produced.
   const { data: prof } = await admin.from("profiles").select("full_name").eq("id", id).maybeSingle();

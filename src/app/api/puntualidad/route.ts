@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
+import { errorAlCliente } from "@/lib/api-error";
 import { BUSINESS_TZ } from "@/lib/utils";
 import { alcanceDelPanel, ordenesDelPanel } from "@/lib/panel-por-tienda";
 import type { OrderTypeRules } from "@/lib/required";
@@ -45,13 +46,13 @@ export async function GET(req: Request) {
     supabase.from("settings").select("stores, order_type_rules").eq("id", 1).maybeSingle(),
     supabase.from("profiles").select("id, full_name").eq("role", "driver"),
   ]);
-  if (ajustes.error || choferes.error) return NextResponse.json({ error: "Could not read settings.", detail: (ajustes.error ?? choferes.error)?.message }, { status: 500 });
+  if (ajustes.error || choferes.error) return errorAlCliente("puntualidad", ajustes.error ?? choferes.error, 500, "Could not read settings.");
 
   // Las entregas del rango (por fecha de entrega), paginadas; y acotadas a las tiendas de quien pide.
   const leidas = await todasLasFilas<EntregaParaPuntualidad & { store: string | null; pickup_name: string | null; delivery_name: string | null; order_type: string | null }>((a, b) =>
     supabase.from("deliveries").select("id, stage, delivery_date, delivery_windows, assigned_driver, pod_delivered_at, is_training, store, pickup_name, delivery_name, order_type")
       .eq("stage", "delivered").gte("delivery_date", desde).lte("delivery_date", hasta).not("assigned_driver", "is", null).order("id").range(a, b));
-  if (leidas.error) return NextResponse.json({ error: "Could not read the deliveries.", detail: leidas.error }, { status: 500 });
+  if (leidas.error) return errorAlCliente("puntualidad", leidas.error, 500, "Could not read the deliveries.");
   const alcance = alcanceDelPanel(yo as Pick<Profile, "role" | "store" | "permissions">, (ajustes.data?.stores ?? []) as NamedLocation[]);
   const entregas = ordenesDelPanel(leidas.filas as never[], alcance, ajustes.data?.order_type_rules as OrderTypeRules | undefined) as typeof leidas.filas;
   const ids = entregas.map((d) => d.id);
@@ -60,19 +61,19 @@ export async function GET(req: Request) {
   const eventos: EventoDeEntrega[] = [];
   for (const t of trozos(ids, TROZO_DE_IDS)) {
     const { data, error } = await supabase.from("order_events").select("delivery_id, kind, created_by, created_at").eq("kind", "delivered").in("delivery_id", t);
-    if (error) return NextResponse.json({ error: "Could not read the order history.", detail: error.message }, { status: 500 });
+    if (error) return errorAlCliente("puntualidad", error, 500, "Could not read the order history.");
     eventos.push(...((data ?? []) as EventoDeEntrega[]));
   }
 
   // Los planes PUBLICADOS del rango y sus paradas (llegada por GPS ya guardada, y millas del plan).
   const { data: planes, error: alLeerPlanes } = await supabase.from("route_plans").select("id, plan_date").eq("status", "published").gte("plan_date", desde).lte("plan_date", hasta);
-  if (alLeerPlanes) return NextResponse.json({ error: "Could not read the plans.", detail: alLeerPlanes.message }, { status: 500 });
+  if (alLeerPlanes) return errorAlCliente("puntualidad", alLeerPlanes, 500, "Could not read the plans.");
   const fechaDelPlan = new Map((planes ?? []).map((p) => [p.id as string, String(p.plan_date)]));
   const paradas: ParadaPublicada[] = [];
   for (const t of trozos([...fechaDelPlan.keys()], TROZO_DE_IDS)) {
     const r = await todasLasFilas<{ plan_id: string; driver_id: string | null; delivery_id: string | null; kind: "P" | "D"; actual_arrival_at: string | null; leg_miles: number | null }>((a, b) =>
       supabase.from("route_plan_stops").select("plan_id, driver_id, delivery_id, kind, actual_arrival_at, leg_miles").in("plan_id", t).order("id").range(a, b));
-    if (r.error) return NextResponse.json({ error: "Could not read the stops.", detail: r.error }, { status: 500 });
+    if (r.error) return errorAlCliente("puntualidad", r.error, 500, "Could not read the stops.");
     paradas.push(...r.filas.map((p) => ({ ...p, plan_date: fechaDelPlan.get(p.plan_id) ?? "" })));
   }
 
@@ -85,7 +86,7 @@ export async function GET(req: Request) {
   if (delInforme.length) {
     const r = await todasLasFilas<Posicion>((a, b) =>
       supabase.from("driver_locations").select("driver_id, lat, lng, accuracy_m, recorded_at").in("driver_id", delInforme).gte("recorded_at", inicio).lt("recorded_at", fin).order("recorded_at").range(a, b));
-    if (r.error) return NextResponse.json({ error: "Could not read the GPS positions.", detail: r.error }, { status: 500 });
+    if (r.error) return errorAlCliente("puntualidad", r.error, 500, "Could not read the GPS positions.");
     // Cortado por el tope: un rastro a medias daría menos millas de las hechas. Mejor ninguna cifra que una falsa.
     rastroCortado = r.cortado;
     posiciones = r.cortado ? null : r.filas;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorAlCliente } from "@/lib/api-error";
 import { emailConfigured } from "@/lib/email";
 import { proveedorReal } from "@/lib/mensajeria";
 
@@ -83,6 +84,6 @@ export async function POST(req: Request) {
     if (r.dryRun) return NextResponse.json({ ok: false, dryRun: true, reason: r.motivo });
     return NextResponse.json({ error: r.error }, { status: 502 });
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorAlCliente("notify", e, 500, "Could not send the notification.");
   }
 }

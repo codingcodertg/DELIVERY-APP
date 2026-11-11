@@ -51503,3 +51503,11 @@ Migración 286: elimina esas políticas abiertas (y las duplicadas), dejando sol
 De la auditoría: **M2** (tablas de choferes `driver_availability/shifts/incidents`) ya estaba corregida (hoy exigen `has_deliveries_access()`), no hizo falta tocarla. Queda **M1** (`profiles` legible por todos) como el punto pendiente, que requiere un enfoque aparte (vista pública o privilegios de columna) por leerse el nombre en toda la app.
 
 Sello `erp` 0.26.1; repo 1.821.0.
+
+## D-969 · Seguridad: CSRF (chequeo de Origin) en el middleware + mensajes de error genéricos
+
+Endurecimiento. **CSRF (#16):** en `src/middleware.ts`, una petición **mutante** (POST/PUT/PATCH/DELETE) a `/api` que **trae la cookie de sesión** de Supabase y cuyo **Origin viene y NO coincide** con el propio → **403** (`src/lib/csrf.ts`). Si Origin/Referer **faltan**, se permite (un CSRF de navegador siempre manda Origin; así no se rompe el GPS nativo en segundo plano del shell de Capacitor, el desktop ni llamadas servidor-a-servidor). Las GET no se tocan; cron/bearer, públicas por token y webhooks no traen la cookie, así que quedan exentas solas. El desktop y el shell móvil cargan el sitio remoto → mismo origen → pasan.
+
+**Errores genéricos:** `src/lib/api-error.ts` `errorAlCliente(...)` registra el detalle real en el servidor y devuelve `{error: <genérico>}` (conserva el campo `error`). Aplicado en las ~12 rutas que la auditoría nombró + otras que filtraban `error.message` de la base (delete-user, notify, places, recruiting/*, etc.), conservando los mensajes de app accionables.
+
+Sello `deliveries` 1.591.0; repo 1.822.0.

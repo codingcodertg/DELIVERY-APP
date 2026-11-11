@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorAlCliente } from "@/lib/api-error";
 import { requireUser } from "@/lib/api-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { NamedLocation } from "@/lib/types";
@@ -18,11 +19,11 @@ export async function GET() {
   if (!auth.ok) return auth.response;
 
   const { data: rrhh, error } = await auth.supabase.schema("recruiting").from("settings").select("id").eq("id", 1).maybeSingle();
-  if (error) return NextResponse.json({ error: error.message }, { status: 503 });
+  if (error) return errorAlCliente("recruiting-stores", error, 503);
   if (!rrhh) return NextResponse.json({ error: "No HR access" }, { status: 403 });
 
   const { data, error: e2 } = await createAdminClient().from("settings").select("stores").eq("id", 1).maybeSingle();
-  if (e2) return NextResponse.json({ error: e2.message }, { status: 503 });
+  if (e2) return errorAlCliente("recruiting-stores", e2, 503);
   const stores = ((data?.stores ?? []) as NamedLocation[])
     .filter((s) => s.name?.trim() && s.address?.trim())
     .map((s) => ({ name: s.name.trim(), address: s.address.trim() }));

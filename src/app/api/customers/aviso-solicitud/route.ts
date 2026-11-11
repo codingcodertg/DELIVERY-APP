@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorAlCliente } from "@/lib/api-error";
 import { resendFrom } from "@/lib/email";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createErpClient } from "@/lib/erp/supabase/server";
@@ -65,6 +66,6 @@ export async function POST(req: Request) {
     if (!res.ok) return NextResponse.json({ error: `email send failed (${res.status})` }, { status: 502 });
     return NextResponse.json({ ok: true, to });
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorAlCliente("customers-aviso-solicitud", e, 500);
   }
 }

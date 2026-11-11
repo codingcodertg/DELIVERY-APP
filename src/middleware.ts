@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { CABECERA_DE_CORTE, COOKIE_ENSENANZA, apiQueNoSePractica, valorDeEnsenanza } from "@/lib/ensenanza-general";
 import { mensajeDeLoQueNoSePractica } from "@/lib/practica/mensajes";
+import { esApiMutante, mismoOrigen, respuestaCsrf, traeCookieDeSesion } from "@/lib/csrf";
 
 /**
  * EN `src/`, Y ESO ES EL ARREGLO (D-119).
@@ -26,6 +27,11 @@ export async function middleware(request: NextRequest) {
   if (idioma && apiQueNoSePractica(request.method, request.nextUrl.pathname)) {
     const mensaje = mensajeDeLoQueNoSePractica(idioma);
     return NextResponse.json({ error: mensaje, message: mensaje, code: "ENSENANZA" }, { status: 403, headers: { [CABECERA_DE_CORTE]: "cortado" } });
+  }
+  // CSRF (D-969): una ruta /api que cambia algo y viene CON la cookie de sesión tiene que venir del mismo origen. Lo que
+  // no trae esa cookie (cron/bearer, públicos por token, descargas) no se toca: no hay sesión que forjar. Las GET, tampoco.
+  if (esApiMutante(request.method, request.nextUrl.pathname) && traeCookieDeSesion(request.cookies.getAll()) && !mismoOrigen(request)) {
+    return respuestaCsrf();
   }
   return await updateSession(request);
 }

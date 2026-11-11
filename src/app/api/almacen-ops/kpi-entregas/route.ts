@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
+import { errorAlCliente } from "@/lib/api-error";
 import { todasLasFilas } from "@/lib/puntualidad";
 import { leerNivelEscrito } from "@/lib/almacen-ops/nivel";
 import { veLosReportes } from "@/lib/almacen-ops/visibilidad";
@@ -61,8 +62,8 @@ export async function GET(req: Request) {
       qo,
       supabase.from("order_events").select("delivery_id, kind, created_by, created_at").eq("kind", KIND_LISTA).in("delivery_id", t),
     ]);
-    if (o.error) return NextResponse.json({ error: "Could not read the deliveries.", detail: o.error.message }, { status: 500 });
-    if (l.error) return NextResponse.json({ error: "Could not read the order history.", detail: l.error.message }, { status: 500 });
+    if (o.error) return errorAlCliente("kpi-entregas", o.error, 500, "Could not read the deliveries.");
+    if (l.error) return errorAlCliente("kpi-entregas", l.error, 500, "Could not read the order history.");
     entregas.push(...((o.data ?? []) as EntregaDelKpi[]));
     listas.push(...((l.data ?? []) as EventoDeOrden[]));
   }

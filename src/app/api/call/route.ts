@@ -3,6 +3,7 @@ import { ringcentralConfigured, ringcentralRingOut, ringcentralRingOutStatus, ri
 
 import { requireDeliveries } from "@/lib/api-auth";
 import { limita, respuesta429 } from "@/lib/rate-limit";
+import { errorAlCliente } from "@/lib/api-error";
 
 // ============================================================
 // Click-to-call via RingCentral RingOut (#driver "Call client" on desktop).
@@ -29,7 +30,7 @@ export async function GET(req: Request) {
     try {
       return NextResponse.json({ ok: true, ...(await ringcentralRingOutStatus(id)) });
     } catch (e) {
-      return NextResponse.json({ error: (e as Error).message }, { status: 502 });
+      return errorAlCliente("call", e, 502, "The call could not be placed.");
     }
   }
   return NextResponse.json({
@@ -68,7 +69,7 @@ export async function POST(req: Request) {
     const { id, status } = await ringcentralRingOut(from, to);
     return NextResponse.json({ ok: true, id, status, from });
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 502 });
+    return errorAlCliente("call", e, 502, "The call could not be placed.");
   }
 }
 
@@ -85,6 +86,6 @@ export async function DELETE(req: Request) {
     await ringcentralRingOutCancel(id);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 502 });
+    return errorAlCliente("call", e, 502, "The call could not be placed.");
   }
 }

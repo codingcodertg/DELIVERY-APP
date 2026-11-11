@@ -51,7 +51,8 @@ describe("cableado", () => {
     const ing = leer("src/app/api/gps/ingest/route.ts");
     expect(ing).toContain("verificaLlaveDeGps(");
     expect(ing).toContain('createAdminClient().from("driver_locations").insert(filas)');
-    expect(ing).toContain("status: 503");
+    // 5xx (nunca 400) si falla lo nuestro: ahora vía errorAlCliente (D-969, no filtra el detalle de la BD al cliente).
+    expect(ing).toMatch(/errorAlCliente\("gps\/ingest", \w+, 503/);
   });
   it("la página usa la subida de Android si la APK la tiene, y entonces no sube nada ella", () => {
     const h = leer("src/lib/useLiveLocation.ts");

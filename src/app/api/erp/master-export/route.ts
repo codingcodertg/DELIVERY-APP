@@ -54,7 +54,7 @@ export async function GET() {
     let qb = supabase.from("app_products").select(select).order("sku", { ascending: true }).limit(CHUNK);
     if (last !== null) qb = qb.gt("sku", last);
     const { data, error } = await qb;
-    if (error) return new Response(`Export failed: ${error.message}`, { status: 500 });
+    if (error) { console.error("[erp/master-export]", error.message); return new Response("Export failed.", { status: 500 }); }
     const batch = (data ?? []) as unknown as Row[];
     rows.push(...batch);
     if (batch.length < CHUNK) break;

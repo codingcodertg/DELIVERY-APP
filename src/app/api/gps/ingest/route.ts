@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { errorAlCliente } from "@/lib/api-error";
 import { filasDeIngesta, verificaLlaveDeGps } from "@/lib/gps-token";
 
 // D-838: donde la app Android sube las posiciones SOLA, sin la página (que Android congela con el teléfono bloqueado).
@@ -19,9 +20,9 @@ export async function POST(req: Request) {
   try {
     const { error } = await createAdminClient().from("driver_locations").insert(filas);
     // 5xx = la app lo reintenta; nunca 400 por un fallo nuestro, que la app tiraría el lote.
-    if (error) return NextResponse.json({ error: error.message }, { status: 503 });
+    if (error) return errorAlCliente("gps/ingest", error, 503, "Could not save locations.");
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "insert failed" }, { status: 503 });
+    return errorAlCliente("gps/ingest", e, 503, "Could not save locations.");
   }
   return NextResponse.json({ ok: true, n: filas.length });
 }

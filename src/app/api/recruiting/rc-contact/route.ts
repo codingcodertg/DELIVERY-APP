@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorAlCliente } from "@/lib/api-error";
 import { requireUser } from "@/lib/api-auth";
 import { ringcentralAddContact, ringcentralConfigured, ringcentralContacts } from "@/lib/ringcentral";
 import { cuerpoDelContacto, nombreParaRingCentral, yaEstaEnLaAgenda } from "@/lib/recruiting/contacto-ringcentral";
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
 
   const { data: c, error } = await auth.supabase.schema("recruiting").from("candidates")
     .select("id, name, phone, role, location").eq("id", id).maybeSingle();
-  if (error) return NextResponse.json({ error: error.message }, { status: 503 });
+  if (error) return errorAlCliente("recruiting-rc-contact", error, 503);
   if (!c) return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
 
   const cuerpo = cuerpoDelContacto(c);
