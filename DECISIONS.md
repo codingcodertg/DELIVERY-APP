@@ -51716,3 +51716,11 @@ Pedidos del dueño (11 nov):
 - **Grupos de práctica guardados** («en training no me está salvando los grupos»). Antes vivían solo en la memoria de la pestaña. Ahora se guardan en este navegador por persona (con sus mermas y firmas): aguantan recargar y cerrar, salen en «Grupos» con la etiqueta «🎓 Práctica» y con los filtros Pendientes/Aprobados, y la columna «Grupo» de la tabla los muestra. Se borran al salir del modo enseñanza o con «🧹 Borrar práctica». Nunca van a la base. Prueba con un almacenamiento falso.
 
 Sello `warehouse_ops` 0.37.0; repo 1.841.0.
+
+## D-989 · Merma: el reporte acepta a los empleados de almacén sin cuenta (migración 294)
+
+Bug en producción (Roberto, 11 nov, Pharr): una merma con «¿Quién lo rompió?» = Juan Carlos Castanon no se podía enviar («warehouse_ops: empleado desconocido»). La 284 puso a los empleados sin cuenta del Hub (expedientes de RR. HH.) en el selector, pero `warehouse_ops_file_report` seguía validando los ids solo contra `profiles`.
+
+La 294 hace que las dos validaciones de empleados del reporte acepten también un expediente que `warehouse_ops_people()` le ofrece a quien llama: sin usuario, sin baja, de almacén y de su tienda (la misma regla del selector). El resto de la función no cambia: se reescribe desde su definición actual sustituyendo solo esas dos condiciones, y la migración comprueba que fueron dos.
+
+Repo 1.842.0.
