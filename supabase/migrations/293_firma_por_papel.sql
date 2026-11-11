@@ -12,7 +12,8 @@
 --      un candado de fila (for update) para que dos firmas a la vez no se crucen.
 --   3. Aprobar (auto-aprobar al firmar, approve_scrap_group, set_scrap_stage->approved) exige dos firmantes distintos
 --      salvo que sea el admin del hub (warehouse_ops_dos_firmas_validas).
---   4. Datos: se borran las firmas dobles de una misma persona (no admin) en grupos/mermas AUN sin aprobar.
+--   4. Datos (solo grupos/mermas AUN sin aprobar): se borran las firmas de quien ya no puede firmar ese espacio y las
+--      dobles de una misma persona (no admin). Aprobar tambien revisa el papel de cada firmante al momento.
 --
 -- Sigue intacto: warehouse_ops_can_manage, el auto-aprobar con las dos firmas (283), no pisar la firma de otra persona,
 -- grants y security definer. 237/238/239 no se tocan.
@@ -32,6 +33,19 @@ $$;
 revoke all on function public.warehouse_ops_can_sign_slot(text) from public, anon;
 grant execute on function public.warehouse_ops_can_sign_slot(text) to authenticated;
 
+-- ¿Esta persona puede firmar este espacio, segun su papel AHORA? (la misma regla que can_sign_slot, para cualquier id)
+create or replace function public.warehouse_ops_firmante_valido(p_user uuid, p_slot text)
+  returns boolean
+  language sql stable security definer set search_path = public as $$
+  select coalesce((
+    select p.role = 'admin'
+        or (p_slot = 'gerente' and p.role = 'manager')
+        or (p_slot = 'supervisor' and 'warehouse_ops_supervisor' = any(coalesce(p.permissions, '{}')))
+    from public.profiles p where p.id = p_user
+  ), false);
+$$;
+revoke all on function public.warehouse_ops_firmante_valido(uuid, text) from public, anon, authenticated;
+
 -- ¿Las dos firmas valen para aprobar? Estan las dos Y son de personas distintas, salvo que la misma sea admin del hub.
 -- (Revision de seguridad: aun con el candado, la aprobacion vuelve a exigirlo, por si dos llamadas se cruzan.)
 create or replace function public.warehouse_ops_dos_firmas_validas(p_group uuid, p_report uuid)
@@ -43,6 +57,9 @@ create or replace function public.warehouse_ops_dos_firmas_validas(p_group uuid,
     select slot, signer_id from public.warehouse_report_signatures where p_report is not null and report_id = p_report
   ), ger as (select signer_id from f where slot = 'gerente'), sup as (select signer_id from f where slot = 'supervisor')
   select exists (select 1 from ger) and exists (select 1 from sup)
+     -- Cada firma, de alguien que HOY puede firmar ese espacio (una firma vieja de la regla anterior no cuenta).
+     and public.warehouse_ops_firmante_valido((select signer_id from ger limit 1), 'gerente')
+     and public.warehouse_ops_firmante_valido((select signer_id from sup limit 1), 'supervisor')
      and (
        (select signer_id from ger limit 1) is distinct from (select signer_id from sup limit 1)
        or exists (select 1 from public.profiles p where p.id = (select signer_id from ger limit 1) and p.role = 'admin')
@@ -265,8 +282,21 @@ grant execute on function public.warehouse_ops_set_scrap_stage(uuid, text, text)
 -- 5. Datos: firmas dobles de una misma persona (no admin del hub) en grupos o mermas que AUN no se aprueban -> se
 --    borra la del espacio que no le toca por su papel (si le tocan los dos o ninguno, la de supervisor). Lo aprobado no se toca.
 do $datos$
-declare n_g int; n_r int;
+declare n_g int; n_r int; n_eg int; n_er int;
 begin
+  -- a) Firmas en grupos/mermas AUN sin aprobar de alguien que, con la regla nueva, no puede firmar ese espacio.
+  with borra as (
+    delete from public.warehouse_scrap_group_signatures s using public.warehouse_scrap_groups g
+     where g.id = s.group_id and g.approved_at is null and not public.warehouse_ops_firmante_valido(s.signer_id, s.slot)
+    returning 1
+  ) select count(*) into n_eg from borra;
+  with borra as (
+    delete from public.warehouse_report_signatures s using public.warehouse_reports r
+     where r.id = s.report_id and r.approved_at is null and not public.warehouse_ops_firmante_valido(s.signer_id, s.slot)
+    returning 1
+  ) select count(*) into n_er from borra;
+  raise notice '293: firmas de quien ya no puede firmar ese espacio (sin aprobar): % en grupos, % en mermas', n_eg, n_er;
+  -- b) Dobles de una misma persona (no admin) que queden.
   with dobles as (
     select s.group_id, s.signer_id
       from public.warehouse_scrap_group_signatures s
@@ -326,10 +356,19 @@ begin
       raise exception '293: % aprueba sin exigir dos firmantes distintos', f;
     end if;
   end loop;
+  if position('warehouse_ops_firmante_valido' in pg_get_functiondef('public.warehouse_ops_dos_firmas_validas(uuid, uuid)'::regprocedure)) = 0 then
+    raise exception '293: aprobar no revisa que cada firmante pueda firmar su espacio hoy';
+  end if;
+  if exists (select 1 from public.warehouse_scrap_group_signatures s join public.warehouse_scrap_groups g on g.id = s.group_id
+              where g.approved_at is null and not public.warehouse_ops_firmante_valido(s.signer_id, s.slot))
+     or exists (select 1 from public.warehouse_report_signatures s join public.warehouse_reports r on r.id = s.report_id
+              where r.approved_at is null and not public.warehouse_ops_firmante_valido(s.signer_id, s.slot)) then
+    raise exception '293: quedan firmas sin aprobar de quien no puede firmar ese espacio';
+  end if;
   if has_function_privilege('anon', 'public.warehouse_ops_can_sign_slot(text)', 'execute') then
     raise exception '293: anon ejecuta can_sign_slot';
   end if;
 end $chk$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('293_firma_por_papel.sql', '340196f1a0d6be16fc4df1beea89c5c92c148541ea437f47a58949768b451872') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('293_firma_por_papel.sql', '385ae1a1ab9da7e00d55dc4b0885d0661ae085233410adde760db425d5db3883') on conflict (name) do nothing;
