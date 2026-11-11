@@ -24,6 +24,7 @@ import { esSuyaParaAnular, ordenesVisibles } from "@/lib/ordenes-visibles";
 import { alternaTodasLasVisibles } from "@/lib/marcar-todas";
 import { cuentasDeOrdenes, filasDeOrdenes } from "@/lib/filas-de-ordenes";
 import { PESTANA_ATRASADAS } from "@/lib/atrasadas";
+import { PESTANA_FECHA_PENDIENTE } from "@/lib/fecha-pendiente-pestana";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { OrdersBoard } from "@/components/OrdersBoard";
 import { OrderModal } from "@/components/OrderModalLazy";
@@ -517,7 +518,9 @@ export default function OrdersPage() {
       ? t("Invoice pending", "Factura pendiente")
       : key === PESTANA_ATRASADAS
         ? t("Outdated", "Expiradas")
-        : stageLabel(key, lang);
+        : key === PESTANA_FECHA_PENDIENTE
+          ? t("Pending Delivery Date", "Fecha pendiente")
+          : stageLabel(key, lang);
   // Aplicar un filtro guardado: lo que se pueda, tal cual; lo que no, fuera y dicho. Pulsar el encendido lo apaga: quita los
   // filtros de columna y el orden, como pulsar la pastilla de etapa encendida vuelve a «Todas» (D-313).
   const aplicaGuardado = (g: FiltroGuardado, encendido: boolean) => {

@@ -47,7 +47,8 @@ export const PESTANA_DOCUMENTO_PENDIENTE = "doc_pending";
  * pastilla diciendo otro número: la confusión que D-380 quitó.
  */
 export function presetAlElegirPastilla<P extends string>(clave: string, presetActual: P, todas: P): P {
-  return clave === PESTANA_DOCUMENTO_PENDIENTE || clave === PESTANA_ATRASADAS ? todas : presetActual;
+  // «Fecha pendiente» (D-994) también: sin día, «Hoy» o «Mañana» la dejarían vacía.
+  return clave === PESTANA_DOCUMENTO_PENDIENTE || clave === PESTANA_ATRASADAS || clave === "pending-date" ? todas : presetActual;
 }
 
 /** Etapas en las que todavía no se espera el documento, o ya da igual. */

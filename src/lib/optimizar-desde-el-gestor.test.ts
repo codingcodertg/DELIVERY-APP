@@ -182,7 +182,9 @@ describe("2 · lo que se le pasa al optimizador: puntos, pallets, VENTANAS y min
     const optimizar = trozo("const optimizaLaRuta = async (laneKey: string) => {", "// Friendly display name for a lane key.");
     // **Puesto al día por la base del día (166, 2026-10-11)**: y dónde termina ese día (`fin`).
     expect(optimizar).toContain("const entrada = entradaDeOptimizar({ lista, ordenes: stops, base, fin: finParaEstimar(laneKey), capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda, esEstrecha: (ventana) => esVentanaDura(ventana, settings), salidaMin: DAY_START_MIN, });");
-    expect(optimizar).toContain("const r = optimizaLaLista({ ...entrada, tiempos: tiempos?.tiempos ?? null });");
+    expect(optimizar).toContain("const r = optimizaLaLista({ ...entrada, recogidaDesde, tiempos: tiempos?.tiempos ?? null });");
+    // D-994: el paso b de un relevo espera a su paso a (+1 h).
+    expect(optimizar).toContain("recogidaDesdeDelRelevo(dayOrders, (id) => etaDeEntregaEn(routeEtas, id))");
   });
 });
 

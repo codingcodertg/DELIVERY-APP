@@ -69,6 +69,9 @@ export interface EntradaDeOptimizar {
   capacidad: number | null;
   /** La ventana de cada ENTREGA, en el mismo orden que `paradas` (`null`: sin ventana, o es una recogida). Sin la lista, ninguna. */
   ventanas?: readonly (VentanaDeEntrega | null)[];
+  /** D-994: para cada RECOGIDA, el minuto desde el que se puede empezar a cargar (`null`: cuando llegue). El paso b de un
+   *  relevo espera a que el paso a llegue a la tienda, más `MARGEN_DEL_RELEVO_MIN`. Sin la lista, ninguna espera. */
+  recogidaDesde?: readonly (number | null)[];
   /** Minutos de servicio de cada parada: descargar en una entrega, cargar esa orden en una recogida. Sin la lista, 0. */
   servicios?: readonly (number | null)[];
   /** A qué hora sale de la base, en minutos desde la medianoche. Por defecto, las 08:00. */
@@ -160,6 +163,8 @@ interface Problema {
   servicio: Int32Array;
   abre: Float64Array;
   cierra: Float64Array;
+  /** D-994: para una recogida, desde qué minuto se puede cargar (−∞: cuando llegue). */
+  desde: Float64Array;
   estrecha: boolean[];
   lugares: number;
   base: number;
@@ -205,6 +210,7 @@ function problemaDe(e: EntradaDeOptimizar): Problema {
   const sitio = new Int32Array(m), visita = new Int32Array(m).fill(-1), antes = new Int32Array(m).fill(-1);
   const cambio = new Int32Array(m), servicio = new Int32Array(m);
   const abre = new Float64Array(m).fill(-Infinity), cierra = new Float64Array(m).fill(Infinity);
+  const desde = new Float64Array(m).fill(-Infinity);
   const esP: boolean[] = [], estrecha: boolean[] = [];
   const recogidaDe = new Map<string, number>();
   const visitaDe = new Map<string, number>();
@@ -215,6 +221,8 @@ function problemaDe(e: EntradaDeOptimizar): Problema {
     cambio[i] = centesimas(e.cambios[i] ?? 0);
     servicio[i] = entero(e.servicios?.[i]);
     if (p.tipo === "P") {
+      const d = e.recogidaDesde?.[i];
+      if (d != null && Number.isFinite(d)) desde[i] = Math.round(d);
       for (const id of p.ordenes) recogidaDe.set(id, i);
       const tienda = (p.tienda ?? "").trim().toLowerCase();
       if (tienda) {
@@ -250,7 +258,7 @@ function problemaDe(e: EntradaDeOptimizar): Problema {
     }
   }
   return {
-    m, esP, antes, sitio, visita, visitas: visitaDe.size, cambio, servicio, abre, cierra, estrecha, lugares: L, base, fin, min, cmi,
+    m, esP, antes, sitio, visita, visitas: visitaDe.size, cambio, servicio, abre, cierra, desde, estrecha, lugares: L, base, fin, min, cmi,
     cap: e.capacidad != null && e.capacidad > 0 ? centesimas(e.capacidad) : null,
     salida: Math.round(e.salidaMin ?? SALIDA_POR_DEFECTO_MIN), recarga: Math.max(0, Math.round(e.recargaMinimaMin ?? RELOAD_MIN)),
     cargaInicial, tolerancia: e.tolerancia ?? TOLERANCIA_DE_PASO,
@@ -279,6 +287,13 @@ function mide(pr: Problema, orden: ArrayLike<number>, n: number, nota: Nota, tar
     if (pr.esP[i]) {
       const v = pr.visita[i];
       let suma = 0;
+      // D-994: si alguna carga de esta visita aún no está en la tienda (paso b de un relevo), el camión espera a que llegue.
+      for (let q = k; q < n; q++) {
+        const r = orden[q];
+        if (q > k && !(v >= 0 && pr.esP[r] && pr.visita[r] === v)) break;
+        if (reloj < pr.desde[r]) reloj = pr.desde[r];
+        if (v < 0) break;
+      }
       do {
         const q = orden[k];
         suma += pr.servicio[q];
@@ -798,12 +813,13 @@ function exacta(pr: Problema, cota: Nota, tope: number, banda: Nota | null = nul
           let pen = et.pen, u: number, v: number, cmi = et.cmi, paseo = et.paseo, nuevaVisita = -1;
           const nuevoSitio = s >= 0 ? s : sitio;
           if (pr.esP[k] && visita >= 0 && pr.visita[k] === visita) {
-            // La misma visita a la tienda: no se mueve; solo se carga más.
-            u = et.u; v = et.v + pr.servicio[k]; nuevaVisita = visita;
+            // La misma visita a la tienda: no se mueve; solo se carga más (D-994: esperando, si esa carga aún no llegó).
+            const d = pr.desde[k];
+            u = d + recarga > et.u ? d + recarga : et.u; v = (d > et.v ? d : et.v) + pr.servicio[k]; nuevaVisita = visita;
           } else {
             let t = ahora;
             if (s >= 0 && sitio >= 0 && sitio !== s) { t += pr.min[sitio * L + s]; cmi += pr.cmi[sitio * L + s]; if (carga > 0) paseo += carga * pr.cmi[sitio * L + s]; }
-            if (pr.esP[k]) { u = t + recarga; v = t + pr.servicio[k]; nuevaVisita = pr.visita[k]; }
+            if (pr.esP[k]) { if (t < pr.desde[k]) t = pr.desde[k]; u = t + recarga; v = t + pr.servicio[k]; nuevaVisita = pr.visita[k]; }
             else {
               const inicio = t < pr.abre[k] ? pr.abre[k] : t;
               const retraso = inicio - pr.cierra[k];
