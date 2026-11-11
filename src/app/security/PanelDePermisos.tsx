@@ -18,6 +18,7 @@ import { estadoDeApp, type UsoPorApp, type UsoPorAppDeTodos } from "@/lib/securi
 import { normalizaTienda, tiendasMarcadas } from "@/lib/visibilidad-tienda";
 import { MOTIVOS_BAJA } from "@/lib/recruiting/employee-file";
 import { darDeBajaPorPerfil } from "@/app/recruiting/actions/hr";
+import { estaDadoDeBaja } from "@/lib/baja";
 import type { Profile, UserRole } from "@/lib/types";
 import "./security.css";
 
@@ -82,6 +83,8 @@ function Cuerpo({ vivo, usoPorApp }: { vivo: Record<string, VivoDeUsuario>; usoP
     const term = q.trim().toLowerCase();
     return [...users]
       .filter((u) => {
+        // Los dados de baja salen de la lista de gente activa (D-951): tienen left_at puesto.
+        if (estaDadoDeBaja(u.left_at)) return false;
         if (rolf === "__live") return vivo[u.id]?.online;
         if (rolf && u.role !== rolf) return false;
         return !term || (u.full_name + " " + (u.username ?? "")).toLowerCase().includes(term);
