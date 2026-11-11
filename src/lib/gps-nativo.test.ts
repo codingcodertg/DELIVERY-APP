@@ -50,7 +50,10 @@ describe("cableado", () => {
     expect(tok).toContain('if (perfil?.role !== "driver")');
     const ing = leer("src/app/api/gps/ingest/route.ts");
     expect(ing).toContain("verificaLlaveDeGps(");
-    expect(ing).toContain('createAdminClient().from("driver_locations").insert(filas)');
+    // D-990: cliente de servicio CRUDO (la llave del turno autentica; la cookie del modo enseñanza no corta las posiciones).
+    expect(ing).toContain('servicio().from("driver_locations").insert(filas)');
+    expect(ing).toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(ing).not.toContain("createAdminClient");
     // 5xx (nunca 400) si falla lo nuestro: ahora vía errorAlCliente (D-969, no filtra el detalle de la BD al cliente).
     expect(ing).toMatch(/errorAlCliente\("gps\/ingest", \w+, 503/);
   });

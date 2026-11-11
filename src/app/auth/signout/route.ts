@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { COOKIE_RETORNO } from "@/lib/impersonation-cookie";
 import { COOKIE_CAPACITACION, RUTA_DE_LA_COOKIE } from "@/lib/timetracker/capacitacion";
+import { COOKIE_ENSENANZA } from "@/lib/ensenanza-general";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -21,5 +22,8 @@ export async function POST(request: Request) {
   // compartido, quien entre después tiene que fichar de verdad. La cookie vive en `/timetracker`, y
   // por eso se borra con esa ruta: borrarla solo por nombre no tocaría la del navegador.
   (await cookies()).delete({ name: COOKIE_CAPACITACION, path: RUTA_DE_LA_COOKIE });
+  // D-990: y el modo enseñanza general (D-626) tampoco: un chofer que se quedó en práctica perdía sus marcas sin saberlo,
+  // y «cerrar sesión y volver a entrar» no lo sacaba. La bandera de localStorage la apaga la pantalla de login.
+  (await cookies()).delete({ name: COOKIE_ENSENANZA, path: "/" });
   return NextResponse.redirect(new URL("/login", request.url), { status: 303 });
 }

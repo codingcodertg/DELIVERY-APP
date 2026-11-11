@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@supabase/supabase-js";
 import { errorAlCliente } from "@/lib/api-error";
 import { filasDeIngesta, verificaLlaveDeGps } from "@/lib/gps-token";
 
@@ -7,6 +7,17 @@ import { filasDeIngesta, verificaLlaveDeGps } from "@/lib/gps-token";
 // Sin sesión: se autentica con la llave del turno (`/api/gps/token`), que solo deja escribir posiciones de su chofer.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// D-990: cliente de servicio CRUDO, no el cliente admin envuelto. Este punto se autentica con la llave del turno del chofer
+// (no con la sesión del navegador), así que la cookie del modo enseñanza no tiene nada que decir aquí. Con el cliente
+// envuelto, un teléfono que se quedó en práctica perdía TODAS sus posiciones (403 «ENSENANZA» que la app reintentaba sin
+// fin: 486 rechazos en 3 h el 11 nov, Ernesto).
+function servicio() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const llave = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !llave) throw new Error("Missing Supabase service configuration.");
+  return createClient(url, llave, { auth: { autoRefreshToken: false, persistSession: false } });
+}
 
 export async function POST(req: Request) {
   const auth = req.headers.get("authorization") ?? "";
@@ -18,7 +29,7 @@ export async function POST(req: Request) {
   const filas = filasDeIngesta(driverId, body);
   if (!filas.length) return NextResponse.json({ ok: true, n: 0 });
   try {
-    const { error } = await createAdminClient().from("driver_locations").insert(filas);
+    const { error } = await servicio().from("driver_locations").insert(filas);
     // 5xx = la app lo reintenta; nunca 400 por un fallo nuestro, que la app tiraría el lote.
     if (error) return errorAlCliente("gps/ingest", error, 503, "Could not save locations.");
   } catch (e) {

@@ -8,6 +8,7 @@ import { usePrefs } from "@/lib/prefs";
 import { PasswordInput } from "@/components/PasswordInput";
 import { VersionFooter } from "@/components/VersionFooter";
 import { destinoAlEntrar } from "@/lib/auth-redirect";
+import { escribeEnsenanza, leeEnsenanza } from "@/lib/boton-general";
 import {
   loadAccounts, saveAccounts, upsertAccount, removeAccount, type RememberedAccount,
 } from "@/lib/remembered-accounts";
@@ -28,7 +29,13 @@ import {
 export default function LoginPage() {
   const supabase = createClient();
   const router = useRouter();
-  const { t } = usePrefs();
+  const { t, lang } = usePrefs();
+  // D-990: entrar empieza SIN modo enseñanza. La cookie la borra «Cerrar sesión»; la bandera de este aparato
+  // (localStorage) se apaga aquí, o la volvería a poner la siguiente pantalla (un chofer se quedó en práctica así).
+  useEffect(() => {
+    try { if (leeEnsenanza(localStorage)) escribeEnsenanza(localStorage, false, { doc: document, idioma: lang }); } catch { /* sin almacenamiento */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
