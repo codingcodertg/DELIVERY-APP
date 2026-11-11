@@ -51562,3 +51562,11 @@ Vista `public.perfiles_publicos` (`security_barrier`, SOLO LECTURA — revoke al
 **Rollout en DOS fases, sin ventana** (el efecto es RLS en runtime, no lo cubre el CI): migración **290** crea la vista (inofensiva, la tabla sigue abierta) → se despliega el código que lee la vista → se verifica por rol → migración **291** cierra la tabla → se verifica otra vez. Si algo falla, se revierte solo la 291 (vuelve la política abierta). Por eso este cambio se aplica con el dueño mirando, no en automático.
 
 Sello `deliveries` 1.593.0; repo 1.827.0.
+
+## D-975 · Merma: el grupo de aprobación se abre EN TARJETA, no en otra pantalla
+
+El dueño: al tocar un grupo en «Grupos de aprobación» la app saltaba a otra pantalla (la hoja reemplazaba toda la lista). Pedido de siempre en la app: abrir en tarjeta/modal en su sitio, sin saltar.
+
+Ahora la hoja digital del grupo (`HojaDeGrupo`) se muestra en un `.overlay`/`.modal` encima de la lista de merma, igual que la tarjeta de un reporte o el visor de fotos. La lista queda detrás y vuelve al cerrar. Se conserva el `?grupo=<id>` en la URL (aguanta refresh y se puede compartir), pero ya no reemplaza la pantalla. La barra superior de la hoja pasó de «← Volver a la merma» a «✕ Cerrar», y el fondo cierra al tocarlo. Tarjeta más ancha (`.modal.ops-tarjeta-grupo`, 960px) para que quepa la tabla.
+
+Sello `warehouse_ops` 0.28.0; repo 1.828.0.

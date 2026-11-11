@@ -276,13 +276,6 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     </>
   );
 
-  // 281: con un grupo abierto (?grupo=…), la pantalla muestra SOLO su hoja de aprobación (los demás reportes se ocultan).
-  if (grupoId) return (
-    <section className="ops-reportes" data-modo={modo} data-grupo-abierto={grupoId}>
-      <HojaDeGrupo grupoId={grupoId} ctx={ctx} onSalir={() => irA({ pestana: "merma" })} />
-    </section>
-  );
-
   return (
     <section className="ops-reportes" data-modo={modo}>
       <div className="page-head">
@@ -461,6 +454,15 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
 
       {abierto && <Tarjeta r={abierto} ctx={ctx} onCerrar={() => setAbierto(null)}
         onCambio={(n) => { setAbierto(n); setFilas((f) => (f ?? []).map((x) => (x.id === n.id ? n : x))); }} />}
+      {/* 281 → 10 nov (dueño): el grupo se abre EN TARJETA (overlay), como todo en la app, sin saltar de pantalla.
+          Sigue viviendo en la URL (?grupo=…): aguanta refresh y se puede compartir, pero ya no reemplaza la lista. */}
+      {grupoId && (
+        <div className="overlay" onClick={() => irA({ pestana: "merma" })}>
+          <div className="modal ops-tarjeta-grupo" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-grupo-abierto={grupoId}>
+            <HojaDeGrupo grupoId={grupoId} ctx={ctx} onSalir={() => irA({ pestana: "merma" })} />
+          </div>
+        </div>
+      )}
       {imprimirHoja && seleccionadas.length > 0 && <HojaImprimible reportes={seleccionadas} ctx={ctx} onCerrar={() => setImprimirHoja(false)} />}
     </section>
   );
