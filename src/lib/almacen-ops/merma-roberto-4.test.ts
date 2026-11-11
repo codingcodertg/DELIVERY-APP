@@ -286,7 +286,7 @@ describe("lo demás de la 0.4.0 se queda", () => {
     expect(ASISTENTE).not.toMatch(/setTimeout\(\(\) => setI\(/);
     const botonera = ASISTENTE.slice(ASISTENTE.indexOf('<footer className="ops-botonera">'), ASISTENTE.indexOf("</footer>"));
     expect(botonera).toContain('data-accion="guardar-borrador"');
-    expect(ASISTENTE).toContain("{ctx.tiendas.length <= 1 && (\n            <label className=\"ops-tienda\">");
+    expect(ASISTENTE).toContain("{cambiaTienda && ctx.tiendas.length <= 1 && (\n            <label className=\"ops-tienda\">");
   });
   it("la pérdida sigue siendo solo de las piezas dañadas", () => {
     expect(perdidaDeMerma(0.82, { damaged: 0, sample: 6 }, { return_type: "customer_return", crma: "CR-2291" })).toBe(0);

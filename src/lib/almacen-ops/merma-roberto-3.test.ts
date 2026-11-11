@@ -161,8 +161,8 @@ describe("6f14b2b3: ningún paso avanza solo; siempre se toca Siguiente", () => 
 
 describe("c10078f9: la tienda no se repite abajo del resumen", () => {
   it("con varias tiendas solo sale el selector de arriba; con una sola, el del resumen", () => {
-    expect(ASISTENTE).toContain("{ctx.tiendas.length > 1 && (\n          <label className=\"ops-tienda ops-tienda-arriba\">");
-    expect(ASISTENTE).toContain("{ctx.tiendas.length <= 1 && (\n            <label className=\"ops-tienda\">");
+    expect(ASISTENTE).toContain("{cambiaTienda && ctx.tiendas.length > 1 && (\n          <label className=\"ops-tienda ops-tienda-arriba\">");
+    expect(ASISTENTE).toContain("{cambiaTienda && ctx.tiendas.length <= 1 && (\n            <label className=\"ops-tienda\">");
     expect(ASISTENTE.match(/data-campo="tienda(-arriba)?"/g)).toHaveLength(2);
   });
 });

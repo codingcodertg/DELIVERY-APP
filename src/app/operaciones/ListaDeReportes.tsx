@@ -15,7 +15,7 @@ import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, buscarProductos, corregirM
 import { esCorteDePractica } from "@/lib/practica/es-corte";
 import { crearGrupoDePractica, gruposDePractica } from "@/lib/practica/grupos-de-practica";
 import { ensenanzaDelNavegador } from "@/lib/ensenanza-general";
-import { estadoDelGrupo, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
+import { estadoDelGrupo, filtrarGrupos, type FiltroDeGrupos, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
 import { HojaDeGrupo } from "./HojaDeGrupo";
 import { HojaImprimible } from "./HojaImprimible";
 import { VisorDeFotos } from "./VisorDeFotos";
@@ -146,6 +146,9 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   // D-911: el rango elegido manda sobre la lista de merma y sobre la pérdida por tienda; todo por el día en que se rompió.
   const rango = useMemo(() => rangoDeEleccion(eleccion, hoy), [eleccion, hoy]);
   const mermasEnRango = useMemo(() => (rango ? filtrarPorRango(mermas, rango) : []), [mermas, rango]);
+  const [estadoGrupos, setEstadoGrupos] = useState<FiltroDeGrupos>("todos");
+  const [verTodosGrupos, setVerTodosGrupos] = useState(false);
+  const gruposVisibles = useMemo(() => filtrarGrupos(grupos, estadoGrupos, rango, verTodosGrupos), [grupos, estadoGrupos, rango, verTodosGrupos]);
   const enRango = useMemo(() => (rango ? perdidaEnRango(mermas, rango) : { "*": 0 }), [mermas, rango]);
   const etiqueta = rango ? etiquetaDeRango(rango, lang, hoy) : "—";
   const tiendasDeMerma = Array.from(new Set([...Object.keys(totales), ...Object.keys(enRango)])).filter((k) => k !== "*").sort();
@@ -158,6 +161,8 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   // acción filtra por su etapa y avisa qué omite.
   const puedeSeleccionar = useCallback((r: Reporte) => r.kind === "scrap" && puedeCambiarEtapa(ctx.yo, r), [ctx.yo]);
   const seleccionadas = useMemo(() => mermasEnRango.filter((r) => seleccion.has(r.id) && puedeSeleccionar(r)), [mermasEnRango, seleccion, puedeSeleccionar]);
+  // Las marcadas que todavía van a la hoja de aprobación (fotografiadas, sin aprobar).
+  const paraHoja = useMemo(() => seleccionadas.filter((r) => seleccionableParaHoja(r)), [seleccionadas]);
   const alternar = (id: string) => setSeleccion((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   // Acciones en bloque (dueño, 10 nov): cuáles de las seleccionadas pueden desechar/ajustar (están en la etapa previa).
   const paraDesechar = useMemo(() => particionaPorEtapa(seleccionadas, "dumped"), [seleccionadas]);
@@ -371,23 +376,30 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
           {seleccionadas.length > 0 && (
             <div className="ops-seleccion" role="region" aria-label={t("Selected for approval", "Seleccionadas para aprobar")} data-seleccion={seleccionadas.length}>
               <span>{t(`${seleccionadas.length} selected`, `${seleccionadas.length} seleccionada${seleccionadas.length === 1 ? "" : "s"}`)}</span>
-              {/* 281: crear un grupo, firmarlo (gerente + supervisor) y aprobar todas de una vez — la vía principal. */}
-              <button type="button" className="btn btn-primary" onClick={() => void iniciarAprobacion()} data-accion="iniciar-aprobacion">
-                ✅ {t(`Start approval (${seleccionadas.length})`, `Iniciar aprobación (${seleccionadas.length})`)}
-              </button>
-              <button type="button" className="btn" onClick={() => setImprimirHoja(true)} data-accion="imprimir-hoja">
-                🖨 {t(`Print approval sheet (${seleccionadas.length})`, `Imprimir hoja de aprobación (${seleccionadas.length})`)}
-              </button>
-              <button type="button" className="btn" onClick={() => setAdjuntando((x) => !x)} data-accion="adjuntar-hoja-seleccion">📎 {t(`Attach signed sheet (${seleccionadas.length})`, `Adjuntar hoja firmada (${seleccionadas.length})`)}</button>
+              {/* Dueño, 10 nov: solo salen las acciones que aplican a lo marcado. Aprobar / imprimir hoja / adjuntar hoja
+                  solo con fotografiadas (sin aprobar); desechar con aprobadas; ajustar con desechadas. */}
+              {paraHoja.length > 0 && <>
+                {/* 281: crear un grupo, firmarlo (gerente + supervisor) y aprobar todas de una vez — la vía principal. */}
+                <button type="button" className="btn btn-primary" onClick={() => void iniciarAprobacion()} data-accion="iniciar-aprobacion">
+                  ✅ {t(`Start approval (${paraHoja.length})`, `Iniciar aprobación (${paraHoja.length})`)}
+                </button>
+                <button type="button" className="btn" onClick={() => setImprimirHoja(true)} data-accion="imprimir-hoja">
+                  🖨 {t(`Print approval sheet (${paraHoja.length})`, `Imprimir hoja de aprobación (${paraHoja.length})`)}
+                </button>
+                <button type="button" className="btn" onClick={() => setAdjuntando((x) => !x)} data-accion="adjuntar-hoja-seleccion">📎 {t(`Attach signed sheet (${paraHoja.length})`, `Adjuntar hoja firmada (${paraHoja.length})`)}</button>
+              </>}
               {/* En bloque (dueño, 10 nov): desechar las aprobadas, ajustar las desechadas (una sola foto para todas). */}
-              <button type="button" className="btn" disabled={paraDesechar.elegibles.length === 0} onClick={() => { setAjustandoBloque(false); void marcarDesechadas(); }} data-accion="desechar-bloque">🗑 {t(`Mark as dumped (${paraDesechar.elegibles.length})`, `Marcar como desechadas (${paraDesechar.elegibles.length})`)}</button>
-              <button type="button" className="btn" disabled={paraAjustar.elegibles.length === 0} onClick={() => { setAvisoBloque(null); setAdjuntando(false); setAjustandoBloque((x) => !x); }} data-accion="ajustar-bloque" aria-pressed={ajustandoBloque}>🧾 {t(`Mark as adjusted (${paraAjustar.elegibles.length})`, `Marcar como ajustadas (${paraAjustar.elegibles.length})`)}</button>
+              {paraDesechar.elegibles.length > 0 && <button type="button" className="btn" onClick={() => { setAjustandoBloque(false); void marcarDesechadas(); }} data-accion="desechar-bloque">🗑 {t(`Mark as dumped (${paraDesechar.elegibles.length})`, `Marcar como desechadas (${paraDesechar.elegibles.length})`)}</button>}
+              {paraAjustar.elegibles.length > 0 && <button type="button" className="btn" onClick={() => { setAvisoBloque(null); setAdjuntando(false); setAjustandoBloque((x) => !x); }} data-accion="ajustar-bloque" aria-pressed={ajustandoBloque}>🧾 {t(`Mark as adjusted (${paraAjustar.elegibles.length})`, `Marcar como ajustadas (${paraAjustar.elegibles.length})`)}</button>}
+              {paraHoja.length === 0 && paraDesechar.elegibles.length === 0 && paraAjustar.elegibles.length === 0 && (
+                <span className="hint" data-sin-acciones>{t("Nothing to do with these: they are already done.", "No hay acción para estas: ya están terminadas.")}</span>
+              )}
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setSeleccion(new Set()); setAdjuntando(false); setAjustandoBloque(false); setAvisoBloque(null); }} data-accion="limpiar-seleccion">{t("Clear", "Quitar")}</button>
             </div>
           )}
           {avisoBloque && <div className="hint" role="status" data-aviso-bloque>{avisoBloque}</div>}
-          {adjuntando && seleccionadas.length > 0 && (
-            <AdjuntarYMarcar reportes={seleccionadas} ctx={ctx} etapa="approved" etiqueta={t("Choose the signed sheet (photo or PDF)", "Elegir la hoja firmada (foto o PDF)")}
+          {adjuntando && paraHoja.length > 0 && (
+            <AdjuntarYMarcar reportes={paraHoja} ctx={ctx} etapa="approved" etiqueta={t("Choose the signed sheet (photo or PDF)", "Elegir la hoja firmada (foto o PDF)")}
               onListo={(n) => { setAdjuntando(false); actualizaFilas(n); }} onParcial={actualizaFilas} onCancelar={() => setAdjuntando(false)} />
           )}
           {ajustandoBloque && paraAjustar.elegibles.length > 0 && (
@@ -403,12 +415,25 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
           </>}
           {/* 281: archivo de grupos de aprobación — abre la hoja digital de cada uno (firmas + fotos). Vive bajo «Groups». */}
           {verGrupos && (
-            <div className="ops-grupos" data-grupos={grupos.length}>
-              <h3 className="ops-merma-titulo">{t("Approval groups", "Grupos de aprobación")} <span className="count-tag">{grupos.length}</span></h3>
-              {grupos.length === 0
-                ? <p className="hint" data-sin-grupos>{t("No approval groups yet. Select scrap reports and press «Start approval» to create one.", "Todavía no hay grupos. Selecciona mermas y toca «Iniciar aprobación» para crear uno.")}</p>
+            <div className="ops-grupos" data-grupos={gruposVisibles.length}>
+              <h3 className="ops-merma-titulo">{t("Approval groups", "Grupos de aprobación")} <span className="count-tag">{gruposVisibles.length}</span></h3>
+              {/* Dueño, 10 nov: pendientes / aprobados; el rango de fechas de arriba también filtra, con «Ver todos». */}
+              <div className="filters-oneline ops-filtros" role="group" aria-label={t("Group status", "Estado del grupo")} data-filtro-estado-grupos>
+                {([["todos", "All", "Todos"], ["pendientes", "Pending", "Pendientes"], ["aprobados", "Approved", "Aprobados"]] as const).map(([k, en, es]) => (
+                  <button type="button" key={k} className={`chip${estadoGrupos === k ? " active" : ""}`} onClick={() => setEstadoGrupos(k)} aria-pressed={estadoGrupos === k} data-estado-grupos={k}>
+                    {t(en, es)} <span className="cnt">{filtrarGrupos(grupos, k, rango, verTodosGrupos).length}</span>
+                  </button>
+                ))}
+                <button type="button" className={`chip${verTodosGrupos ? " active" : ""}`} onClick={() => setVerTodosGrupos((v) => !v)} aria-pressed={verTodosGrupos} data-ver-todos-grupos>
+                  {verTodosGrupos ? t("Only this date range", "Solo este rango") : t("See all dates", "Ver todos")}
+                </button>
+              </div>
+              {gruposVisibles.length === 0
+                ? <p className="hint" data-sin-grupos>{grupos.length === 0
+                    ? t("No approval groups yet. Select scrap reports and press «Start approval» to create one.", "Todavía no hay grupos. Selecciona mermas y toca «Iniciar aprobación» para crear uno.")
+                    : t("No groups match. Try «See all dates».", "Ningún grupo coincide. Prueba «Ver todos».")}</p>
                 : <ul className="ops-grupos-lista">
-                    {grupos.map((g) => (
+                    {gruposVisibles.map((g) => (
                       <li key={g.id} data-grupo={g.id}>
                         <button type="button" className="btn btn-sm" onClick={() => abrirGrupo(g.id)} data-abrir-grupo={g.id}>🗂 {g.name}</button>
                         <span className="hint">{t(`${g.n_reportes ?? 0} reports`, `${g.n_reportes ?? 0} reportes`)} · {g.store} · <span data-estado-grupo={g.id}>{estadoDelGrupo(g, lang)}</span></span>
@@ -470,7 +495,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
           </div>
         </div>
       )}
-      {imprimirHoja && seleccionadas.length > 0 && <HojaImprimible reportes={seleccionadas} ctx={ctx} onCerrar={() => setImprimirHoja(false)} />}
+      {imprimirHoja && paraHoja.length > 0 && <HojaImprimible reportes={paraHoja} ctx={ctx} onCerrar={() => setImprimirHoja(false)} />}
     </section>
   );
 }

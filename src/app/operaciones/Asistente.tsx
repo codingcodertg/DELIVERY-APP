@@ -55,7 +55,10 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
   // Un borrador de antes de reordenar la merma (D-919) trae un índice de la lista vieja: se abre igual, sin pasarse del resumen.
   const [i, setI] = useState(() => pasoInicial(tipo, arranque, inicial?.paso));
   const [volverAlResumen, setVolverAlResumen] = useState(false);
-  const [tienda, setTiendaCruda] = useState(() => (inicial?.tienda && ctx.tiendas.includes(inicial.tienda) ? inicial.tienda
+  // Dueño, 10 nov: «nobody can switch store, only admin». Quien no es admin reporta SIEMPRE en su tienda.
+  const cambiaTienda = ctx.yo.role === "admin" || ctx.yo.warehouse_ops_role === "admin";
+  const [tienda, setTiendaCruda] = useState(() => (!cambiaTienda && ctx.yo.store ? ctx.yo.store
+    : inicial?.tienda && ctx.tiendas.includes(inicial.tienda) ? inicial.tienda
     : ctx.yo.store && ctx.tiendas.includes(ctx.yo.store) ? ctx.yo.store : ctx.tiendas[0] ?? ""));
   const [guardadoComo, setGuardadoComo] = useState<{ r: Respuestas; tienda: string }>(() => ({ r: arranque, tienda: inicial?.tienda ?? tienda }));
   const [avisoBorrador, setAvisoBorrador] = useState<string | null>(null);
@@ -191,7 +194,8 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
             <button type="button" className="ops-boton ops-boton-chico" onClick={cerrar} disabled={enviando} data-accion="cerrar">✕ {t("Close", "Cerrar")}</button>
           </span>
         </div>
-        {ctx.tiendas.length > 1 && (
+        {!cambiaTienda && tienda && <p className="hint ops-tienda-arriba" data-tienda-fija>{t("Store", "Tienda")}: <b>{tienda}</b></p>}
+        {cambiaTienda && ctx.tiendas.length > 1 && (
           <label className="ops-tienda ops-tienda-arriba">
             <span>{t("Store", "Tienda")}</span>
             <select value={tienda} onChange={(e) => setTienda(e.target.value)} data-campo="tienda-arriba">
@@ -242,7 +246,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
             )))}
           </dl>
           {/* La tienda ya se elige arriba (pedido c10078f9); aquí solo queda cuando arriba no sale (una sola tienda). */}
-          {ctx.tiendas.length <= 1 && (
+          {cambiaTienda && ctx.tiendas.length <= 1 && (
             <label className="ops-tienda">
               <span>{t("Store", "Tienda")}</span>
               <select value={tienda} onChange={(e) => setTienda(e.target.value)} data-campo="tienda">

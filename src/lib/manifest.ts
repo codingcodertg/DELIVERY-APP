@@ -1,3 +1,4 @@
+import { ESTILO_IMPRESION_LIMPIA } from "@/lib/impresion-limpia";
 import type { Delivery, Settings } from "@/lib/types";
 import type { Lang } from "@/lib/prefs";
 import { orderLabel } from "@/lib/utils";
@@ -75,8 +76,8 @@ export function printRouteManifest(
       .win{width:96px;font-weight:700;} .pal{width:52px;font-weight:700;text-align:center;} .phone{width:120px;}
       .rcv{width:150px;} .rcv-line{border-bottom:1px solid #9aa3b0;height:26px;margin-bottom:3px;} .rcv span{font-size:10px;color:#9aa3b0;}
       .foot{margin-top:18px;font-size:11px;color:#9aa3b0;text-align:center;}
-      @media print{body{padding:10px;} @page{size:portrait;margin:12mm;}}
-    </style></head><body>
+      @media print{body{padding:10px;} @page{size:portrait;margin:0;}}
+    </style>${ESTILO_IMPRESION_LIMPIA}</head><body>
     <div class="head">
       <div>
         <div class="brand">${esc(settings.app_name)}</div>

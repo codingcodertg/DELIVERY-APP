@@ -51612,3 +51612,14 @@ Pedidos del dueño (10 nov) sobre la tabla de «Merma en el rango» y la tarjeta
 - **Hoja firmada en la tarjeta del reporte**: si la merma es de un grupo y ya está Aprobada, junto a «Aprobada» sale «📄 Hoja firmada», que abre en tarjeta la hoja del grupo con todos sus renglones y las firmas. Ese es el documento que respalda la aprobación de esa merma.
 
 Sello `warehouse_ops` 0.32.0; repo 1.833.0.
+
+## D-981 · Impresión limpia en toda la app + merma: acciones según etapa, filtro de grupos, tienda fija
+
+Pedidos del dueño (10 nov):
+
+- **Nada impreso lleva la URL de la app, el título ni la fecha del navegador.** Auditoría de toda la app: todo `@page` va con margen 0 (sin sitio, el navegador no pinta su cabecera ni su pie) y el margen lo pone el cuerpo (12 mm, repetido en cada hoja). Regla general en `globals.css`, y `src/lib/impresion-limpia.ts` para las ventanas de impresión que no cargan `globals.css`: manifiesto de ruta, comprobante, hojas de carga, talones de pago y exportación. La hoja de aprobación de merma pasa a margen 0; la cotización del Estimador ya lo tenía (D-789) y no dobla el margen. Una prueba (`impresion-limpia.test.ts`) falla si algún `@page` vuelve a tener margen o una ventana de impresión no trae la regla.
+- **La barra de seleccionadas solo muestra lo que aplica.** «Iniciar aprobación», «Imprimir hoja» y «Adjuntar hoja» solo con mermas fotografiadas (sin aprobar), y cuentan solo esas. «Desechar» sale solo si hay aprobadas y «Ajustar» solo si hay desechadas. Si ya están todas terminadas, la barra lo dice.
+- **Filtro de Grupos:** chips Todos / Pendientes / Aprobados. El rango de fechas de arriba también filtra los grupos (día de creación, en Texas), con un botón «Ver todos» para quitar el rango.
+- **Solo el admin cambia de tienda al reportar.** En el formulario de merma (y los demás del asistente), quien no es admin del hub ni admin de la app reporta siempre en su tienda; se le muestra «Tienda: X» sin selector.
+
+Sello `warehouse_ops` 0.33.0; repo 1.834.0.

@@ -32,7 +32,7 @@
   .hoja-tabla { display: block; overflow-x: auto; }
 }
 @media print {
-  @page { size: letter landscape; margin: 12mm; }
+  @page { size: letter landscape; margin: 0; }
   body * { visibility: hidden !important; }
   .hoja-aprobacion, .hoja-aprobacion * { visibility: visible !important; }
   /* Lo que no es la hoja, ni está dentro, ni la envuelve, sale del flujo (la lección de D-789: escondido seguía paginando en blanco). */
