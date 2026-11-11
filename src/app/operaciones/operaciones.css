@@ -485,3 +485,5 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-cabecera-arrastrando { opacity: .5; }
 /* Imprimir y Cerrar juntos arriba a la derecha de la hoja (dueño, 11 nov). */
 .hoja-barra-acciones { margin-left: auto; display: inline-flex; gap: 8px; align-items: center; }
+/* Etiquetas «Borrador» / «Práctica» en la lista de Grupos (11 nov). */
+.ops-etiqueta-borrador { display: inline-block; margin: 0 6px; font-size: 12px; font-weight: 700; color: var(--amber); background: color-mix(in srgb, var(--amber) 14%, transparent); border-radius: 999px; padding: 1px 8px; }

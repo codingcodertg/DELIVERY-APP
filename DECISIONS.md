@@ -51707,3 +51707,12 @@ En la base, **migración 293** (`293_firma_por_papel.sql`): nueva `warehouse_ops
 Hoy ningún perfil activo tiene el permiso de supervisor de almacén: hasta que se le dé a alguien en Permisos, el espacio «supervisor» solo lo puede firmar el admin del hub.
 
 Sello `warehouse_ops` 0.36.0; repo 1.840.0.
+
+## D-988 · Merma: el grupo nace como borrador (se guarda con «💾 Guardar grupo»); los grupos de práctica ya no se pierden
+
+Pedidos del dueño (11 nov):
+
+- **Grupo en borrador.** «Iniciar aprobación» ya no crea el grupo en la base: abre su hoja como **borrador** con «💾 Guardar grupo», «🗑 Descartar» y «✕ Cerrar». Solo Guardar llama a `create_scrap_group`; después la hoja es la de siempre y ahí firman gerente y supervisor. En el borrador las firmas salen apagadas («Guarda el grupo para firmar»). Si se cierra sin guardar, queda como borrador en este navegador, por persona, y sale en «Grupos» con la etiqueta «📝 Borrador» para reabrirlo. Al reabrirlo se vuelven a leer las mermas y se quitan, con aviso, las que ya están en un grupo o ya no esperan aprobación. En práctica, Guardar crea el grupo de práctica. Reglas puras en `borradores-de-grupo.ts`, con prueba.
+- **Grupos de práctica guardados** («en training no me está salvando los grupos»). Antes vivían solo en la memoria de la pestaña. Ahora se guardan en este navegador por persona (con sus mermas y firmas): aguantan recargar y cerrar, salen en «Grupos» con la etiqueta «🎓 Práctica» y con los filtros Pendientes/Aprobados, y la columna «Grupo» de la tabla los muestra. Se borran al salir del modo enseñanza o con «🧹 Borrar práctica». Nunca van a la base. Prueba con un almacenamiento falso.
+
+Sello `warehouse_ops` 0.37.0; repo 1.841.0.
