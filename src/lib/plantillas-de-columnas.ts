@@ -66,7 +66,7 @@ export const TOPE_DE_LA_BASE = 8192;
  * escritura fallaría en silencio.
  */
 export const BYTES_DE_UN_ROL_LLENO = 697;
-export const RESERVA_PARA_LO_DEMAS = 800;
+export const RESERVA_PARA_LO_DEMAS = 1000;   // 11 nov: 18 columnas, un rol lleno ya pesa 889 (antes 800 bastaba)
 export const cabeEnLaFila = (valor: Record<string, unknown>): boolean => bytesEnLaBase(valor) + RESERVA_PARA_LO_DEMAS < TOPE_DE_LA_BASE;
 
 const clave = (nombre: string) => nombre.trim().toLowerCase();

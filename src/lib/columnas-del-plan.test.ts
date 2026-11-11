@@ -5,7 +5,7 @@ import { ORDEN_DE_PARTIDA } from "./orden-de-columnas";
 import {
   COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, ORDEN_DE_PARTIDA_DEL_GESTOR, SOLO_DE_LA_ENTREGA, alternaColumna, columnaDeOrdenes,
   columnasDeLaTabla, columnasDePlantillaDelGestor, columnasDelSelector, conColumnasNuevas, fotoDePlantillaDelGestor, mueveEnElGestor,
-  ordenDeLaTabla, ordenDePlantillaDelGestor, restableceOrdenDelGestor, seVeEnLaRecogida, tieneOrdenPropio,
+  ordenDeLaTabla, ordenDePlantillaDelGestor, restableceOrdenDelGestor, seVeEnLaRecogida, tieneOrdenPropio, SOLO_EN_ORDENES,
 } from "./routes-columns";
 import { CLAVES_DE_PREFERENCIA, CLAVE_DE_COLUMNAS_DEL_GESTOR } from "./user-prefs";
 
@@ -24,12 +24,14 @@ const PROPIAS = ["pl_horas", "pl_ventana", "pl_tramo"];
 const DELANTE = ["pl_clase", "pl_ciudad_recogida", "pl_ciudad_entrega"];   // y la de entrega desde D-435
 
 describe("las columnas: las de Órdenes, en el orden de Órdenes", () => {
-  it("la tabla del plan tiene TODAS las de Órdenes en el orden de partida de Órdenes, y detrás las tres propias del plan", () => {
-    // Desde D-434, delante, las dos que Órdenes no tiene.
-    expect(ORDEN_DE_PARTIDA_DEL_GESTOR.plan).toEqual([...DELANTE, ...ORDEN_DE_PARTIDA.map((k) => `pl_${k}`), ...PROPIAS]);
+  it("la tabla del plan tiene TODAS las de Órdenes (menos las SOLO_EN_ORDENES) en el orden de partida de Órdenes, y detrás las tres propias del plan", () => {
+    // Desde D-434, delante, las dos que Órdenes no tiene. Desde el 11 nov, sin «Pick up» ni «Input Date» (solo de Órdenes).
+    expect([...SOLO_EN_ORDENES]).toEqual(["pickup_from", "input_date"]);
+    const heredadas = ORDEN_DE_PARTIDA.filter((k) => !SOLO_EN_ORDENES.has(k));
+    expect(ORDEN_DE_PARTIDA_DEL_GESTOR.plan).toEqual([...DELANTE, ...heredadas.map((k) => `pl_${k}`), ...PROPIAS]);
     // Cada una pinta la celda de SU columna de Órdenes.
     const catalogo = ORDEN_DE_PARTIDA.map((key) => ({ key }));
-    for (const k of ORDEN_DE_PARTIDA) expect(columnaDeOrdenes(`pl_${k}`, catalogo)?.key, k).toBe(k);
+    for (const k of heredadas) expect(columnaDeOrdenes(`pl_${k}`, catalogo)?.key, k).toBe(k);
     for (const k of [...DELANTE, ...PROPIAS]) expect(columnaDeOrdenes(k, catalogo), k).toBeUndefined();
   });
 

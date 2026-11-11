@@ -160,7 +160,7 @@ describe("el tope de la base: `pg_column_size(value) < 8192` (136)", () => {
   ];
   for (const [nombreDelCaso, valor, medido] of casos) {
     it(`da lo que midió Postgres: ${nombreDelCaso} → ${medido}`, () => {
-      expect(ORD).toHaveLength(16);                                                              // si el regex perdiera columnas, el caso mentiría (16 desde D-652, «rep»)
+      expect(ORD).toHaveLength(18);                                                              // si el regex perdiera columnas, el caso mentiría (18 desde la ayuda del 11 nov: «pickup» e «input»)
       expect(O14.every((k) => ORD.includes(k))).toBe(true);
       expect(bytesEnLaBase(valor)).toBe(medido);
     });
@@ -174,13 +174,13 @@ describe("el tope de la base: `pg_column_size(value) < 8192` (136)", () => {
     const A15 = Object.fromEntries(["__id", ...ORD].map((k) => [k, 800]));
     const rol15 = (n: number) => valorDeColumnas({ visibles: { logistics: ORD }, orden: { logistics: ORD }, anchos: { logistics: A15 },
       plantillas: Array.from({ length: n }, (_, i) => ({ n: nombre(i), v: ORD, o: ORD, a: A15 })) });
-    expect(bytesEnLaBase(rol15(0))).toBe(772);                 // D-652 («rep»): 745 → 772
-    expect(RESERVA_PARA_LO_DEMAS).toBeGreaterThan(bytesEnLaBase(rol15(0)));
-    // D-652 («rep», 16 columnas): 9 llenas pesan 7 600 (+ 800 = 8 400 > 8 192): en este peor caso caben 8 y la novena la para
-    // la guarda, que lo dice al guardar. Antes (15 columnas): 7 357, cabían 9.
-    expect(bytesEnLaBase(rol15(9))).toBe(7600);
-    expect(cabeEnLaFila(rol15(8))).toBe(true);
-    expect(cabeEnLaFila(rol15(9))).toBe(false);
+        expect(bytesEnLaBase(rol15(0))).toBe(889);                 // D-652 («rep»): 745 → 772; 11 nov («pickup_from», «input_date», 18 columnas): 889
+    expect(RESERVA_PARA_LO_DEMAS).toBeGreaterThan(bytesEnLaBase(rol15(0)));   // por eso la reserva pasó de 800 a 1000
+    // 18 columnas: 7 plantillas con TODAS las columnas pesan 7 045 (+ 1 000 < 8 192, caben) y 8 pesan 7 921 (no): en este peor
+    // caso caben 7 y la octava la para la guarda, que lo dice al guardar. Antes (16, D-652): cabían 8; (15): 9. Lo normal, de sobra.
+    expect(bytesEnLaBase(rol15(7))).toBe(7045);
+    expect(cabeEnLaFila(rol15(7))).toBe(true);
+    expect(cabeEnLaFila(rol15(8))).toBe(false);
   });
   it("la guarda deja sitio para lo demás: en el peor caso caben 9 plantillas llenas, la décima no; lo normal, las 10 con holgura", () => {
     expect(TOPE_DE_LA_BASE).toBe(8192);

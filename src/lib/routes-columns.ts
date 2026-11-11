@@ -26,6 +26,9 @@
 
 import { ORDEN_DE_PARTIDA, mueveColumna, ordenEfectivo } from "./orden-de-columnas";
 
+/** Columnas de Órdenes que el plan del Gestor NO hereda (ver la tabla del plan). */
+export const SOLO_EN_ORDENES: ReadonlySet<string> = new Set(["pickup_from", "input_date"]);
+
 /**
  * Lo que la tabla del plan enseña de partida (D-434), en este orden tras el ID fijo. El dueño, 2026-09-28: «quiero que haya
  * una columna solo para el id, lueg osi es builder, inter tienda o vventa al mostrador, luego la ciudad donde se recoje, y el
@@ -200,7 +203,9 @@ function columnasDelPlan(): ColumnaDelGestor[] {
     // D-435: la ciudad a donde se ENTREGA, la de la columna «Ciudad de entrega» de «Sin asignar» (D-408, `ciudadDeEntrega`
     // con las ciudades conocidas de D-423). No es la «Dirección de entrega» de Órdenes (`pl_address`, la dirección entera).
     { key: "pl_ciudad_entrega", en: "Plan: Delivery city", es: "Plan: Ciudad de entrega", tablas: ["plan"], ancho: 110 },
-    ...ORDEN_DE_PARTIDA.map((k): ColumnaDelGestor => ({
+    // «Pick up» e «Input Date» (11 nov) son solo de Órdenes: el plan ya tiene su «Ciudad de recogida», y heredarlas
+    // pasaba al Gestor de 60 claves guardadas (52 + 8 marcas) a 62, más allá del tope de una lista y del de 8 KB.
+    ...ORDEN_DE_PARTIDA.filter((k) => !SOLO_EN_ORDENES.has(k)).map((k): ColumnaDelGestor => ({
       key: `pl_${k}`, en: `Plan: ${rotulo[k]?.[0] ?? k}`, es: `Plan: ${rotulo[k]?.[1] ?? k}`, tablas: ["plan"], ancho: 100, deOrdenes: k,
       ...(seVen.has(`pl_${k}`) ? {} : { oculta: true as const }),
     })),

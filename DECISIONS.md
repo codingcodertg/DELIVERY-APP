@@ -51677,3 +51677,19 @@ Solicitudes de ayuda y pedido del dueño (11 nov):
 - **Hoja del grupo**: sin botón «Aprobar grupo» ni el aviso repetido de abajo (con la segunda firma se aprueba solo, 283; lo que falta lo dice el chip de arriba). «🖨 Imprimir» y «✕ Cerrar» arriba a la derecha, Cerrar al final; igual en la hoja imprimible.
 
 Sello `warehouse_ops` 0.35.0, `leads` 0.21.0; repo 1.838.0.
+
+## D-986 · Entregas: recogida correcta en el Gestor, columnas «Pick up» e «Input Date» en Órdenes
+
+Tres ayudas de Roberto (11 nov):
+
+- **App de Entregas → Gestor de Rutas → pestaña Rutas:** «says mcallen but its weslaco». La parada de recogida YA HECHA del tramo b de un relevo (Tr-149025-b, #FW507) decía «RDZ McAllen» en «Ciudad de recogida». Los datos estaban bien (`pickup_name` = RDZ Weslaco); la fila de una parada ya hecha pintaba la tienda DUEÑA de la orden (`store`) en vez de dónde se recoge. Ahora pinta `pickup_name` y usa `store` solo si no hay. Las paradas pendientes ya lo hacían bien.
+- **App de Entregas → página principal (Órdenes), vista de tabla:** dos columnas nuevas en ⚙ Columnas:
+  - **«Pick up»**: dónde se recoge (`pickup_name`, o la tienda si no hay).
+  - **«Input Date»**: el día en que se capturó la orden, con orden y filtro.
+
+  Ninguna sale por defecto; cada quien las marca.
+- **El plan del Gestor NO hereda esas dos columnas** (`SOLO_EN_ORDENES`). Ya tiene su «Ciudad de recogida», y heredarlas lo pasaba de 60 claves guardadas (52 + 8 marcas) a 62. Con eso se pasaba del tope de una lista (`MAX_COLUMNAS` = 60: la lista de quien tiene todo marcado se desechaba sin aviso) y, en el peor caso de 6 roles, del límite de 8 KB de la fila.
+- **Reserva de la guarda de plantillas: 800 → 1 000 bytes.** Un rol con las 18 columnas de Órdenes pesa 889. En el peor caso (todas las columnas en cada plantilla) caben 7 plantillas llenas en vez de 8; lo normal, de sobra.
+- **De paso:** la prueba de la app de escritorio esperaba la versión 1.3.0; D-984 la subió a 1.4.0.
+
+Sello `deliveries` 1.595.0; repo 1.839.0.
