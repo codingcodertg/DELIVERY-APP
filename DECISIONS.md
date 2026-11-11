@@ -51724,3 +51724,16 @@ Bug en producción (Roberto, 11 nov, Pharr): una merma con «¿Quién lo rompió
 La 294 hace que las dos validaciones de empleados del reporte acepten también un expediente que `warehouse_ops_people()` le ofrece a quien llama: sin usuario, sin baja, de almacén y de su tienda (la misma regla del selector). El resto de la función no cambia: se reescribe desde su definición actual sustituyendo solo esas dos condiciones, y la migración comprueba que fueron dos.
 
 Repo 1.842.0.
+
+## D-990 · Choferes: el modo enseñanza ya no se come las entregas ni el GPS
+
+Incidente en producción (11 nov, Ernesto Castillo): marcaba «recogido» y «entregado» y Roberto no veía nada. Su teléfono estaba en **modo enseñanza** (D-626/D-628): las marcas se simulaban y nunca llegaban a la base, y su GPS se rechazaba (486 rechazos «ENSENANZA» en 3 h). «Cerrar sesión y volver a entrar» no lo sacaba: ni la cookie `rtg_ensenanza` ni la bandera de localStorage se borraban al salir, y la bandera volvía a poner la cookie.
+
+Arreglos:
+- **GPS:** `/api/gps/ingest` usa un cliente de servicio crudo. Se autentica con la llave del turno del chofer, así que la cookie de práctica no tiene nada que decir ahí; las posiciones siempre se guardan.
+- **Cerrar sesión** borra la cookie del modo enseñanza, y la **pantalla de login** apaga la bandera de ese aparato. Entrar empieza siempre sin práctica.
+- **Un chofer de verdad nunca queda en práctica:** si su rol real es `driver` y lo trae prendido, se apaga solo. Un admin «viendo como» chofer sí puede practicar.
+
+Las marcas que se hicieron en práctica no se recuperan: se vuelven a marcar.
+
+Sello `deliveries` 1.596.0; repo 1.843.0.
