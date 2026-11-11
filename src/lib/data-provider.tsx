@@ -405,6 +405,12 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     window.dispatchEvent(new CustomEvent(EVENTO_ENSENANZA));
   }, [lang]);
 
+  // D-990: un CHOFER de verdad (no un admin «viendo como» chofer) nunca queda en práctica: en ruta, una marca de
+  // «recogido/entregado» que solo se simula es una entrega perdida. Si lo trae prendido, se apaga solo.
+  useEffect(() => {
+    if (realRole === "driver" && teaching) setTeaching(false);
+  }, [realRole, teaching, setTeaching]);
+
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [users, setUsers] = useState<Profile[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
