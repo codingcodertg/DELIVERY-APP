@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { HUECO_DE_LA_BARRA } from "@/components/BarraDeApp";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -24,7 +26,7 @@ import { BotonesDeFoto } from "./BotonesDeFoto";
 import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
 import { ORIGENES_DE_MERMA, TIPOS_DE_MERMA, MOTIVOS_DE_MERMA, costoDelCampo, type ProductoElegido } from "@/lib/almacen-ops/pasos";
 import { cuentaComoPerdida, perdidaDeMerma, repartoDeReporte } from "@/lib/almacen-ops/perdida";
-import { puedeCorregirMerma, puedeVerReporte } from "@/lib/almacen-ops/visibilidad";
+import { puedeCorregirMerma, puedeExportar, puedeVerReporte, veLosReportes } from "@/lib/almacen-ops/visibilidad";
 import { diaDelReporte, fmtDia, hoyEnTexas, ordenPorDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { ATAJOS, NOMBRE_DE_ATAJO, eleccionAUrl, eleccionDeUrl, etiquetaDeRango, filtrarPorRango, perdidaEnRango, rangoDeAtajo, rangoDeEleccion, type Atajo, type Eleccion } from "@/lib/almacen-ops/rango-de-merma";
 import { ETAPAS, etapaDe, nombreDeEtapa, perdidaPorEtapa, puedeCambiarEtapa, seleccionableParaHoja, tieneEtapas, type Etapa } from "@/lib/almacen-ops/etapas";
@@ -71,6 +73,12 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   }, [router, ruta, pestana, eleccion]);
   const setPestana = (p: Pestana) => irA({ pestana: p });
   // 281: un grupo de aprobación abierto vive en la URL (?grupo=<id>): aguanta refresh y se comparte. Solo en «Reportes».
+  // 292: el almacén ve la merma de su tienda en «Reportes», pero sin exportar ni el KPI de entregas (eso es de gerencia).
+  const gerencia = veLosReportes(ctx.yo);
+  // El hueco de la barra azul (junto a la casa) donde suben «Volver» y el título; se busca después de montar.
+  const [hueco, setHueco] = useState<HTMLElement | null>(null);
+  useEffect(() => { setHueco(document.getElementById(HUECO_DE_LA_BARRA)); }, []);
+  const exporta = puedeExportar(ctx.yo);
   const grupoId = modo === "todos" ? params.get("grupo") : null;
   const abrirGrupo = useCallback((id: string) => router.replace(`${ruta}?pestana=merma&grupo=${encodeURIComponent(id)}`, { scroll: false }), [router, ruta]);
   const [grupos, setGrupos] = useState<GrupoDeMerma[]>([]);
@@ -155,7 +163,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   // D-921 (270): la lista de merma filtrada por etapa, la cuenta por etapa y el desglose de la pérdida del rango por etapa.
   const mermasPorEtapa = useMemo(() => (etapaFiltro ? mermasEnRango.filter((r) => etapaDe(r) === etapaFiltro) : mermasEnRango), [mermasEnRango, etapaFiltro]);
   const cuentaEtapa = (e: Etapa) => mermasEnRango.filter((r) => etapaDe(r) === e).length;
-  const porEtapa = useMemo(() => perdidaPorEtapa(mermasEnRango), [mermasEnRango]);
+  // (El desglose por etapa en texto se quitó: dueño, 10 nov. `perdidaPorEtapa` sigue probada en su módulo.)
   // Se puede marcar cualquier merma que uno gestione (no solo las fotografiadas): así la misma selección sirve para
   // agrupar (solo las fotografiadas se agrupan), para desechar (las aprobadas) y para ajustar (las desechadas). Cada
   // acción filtra por su etapa y avisa qué omite.
@@ -274,9 +282,18 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     }
   };
 
+  // 292: la pestaña de Entregas (KPI) es de gerencia; el almacén solo ve la merma de su tienda.
+  // Dueño, 10 nov («pega más eso»): las pestañas y los atajos del rango van en UN renglón (se doblan en el teléfono).
+  const pestanas = modo === "todos" && gerencia ? (
+    <div className="ops-pestanas" role="tablist">
+      <button type="button" role="tab" aria-selected={pestana === "merma"} className={`chip${pestana === "merma" ? " active" : ""}`} onClick={() => setPestana("merma")} data-pestana="merma">🧱 {t("Scrap", "Merma")}</button>
+      <button type="button" role="tab" aria-selected={pestana === "entregas"} className={`chip${pestana === "entregas" ? " active" : ""}`} onClick={() => setPestana("entregas")} data-pestana="entregas">🚚 {t("Deliveries", "Entregas")}</button>
+    </div>
+  ) : null;
   // El selector de rango (D-911) lo comparten la pestaña de merma y la de entregas.
   const selectorDeRango = (
-    <>
+    <div className="ops-fila-de-filtros" data-fila-de-filtros>
+      {pestanas}
       <div className="filters-oneline ops-filtros" role="group" aria-label={t("Date range", "Rango de fechas")} data-rango-atajos>
         {ATAJOS.map((a) => (
           <button type="button" key={a} className={`chip${eleccion.atajo === a ? " active" : ""}`} onClick={() => elegir(a)} data-atajo={a} aria-pressed={eleccion.atajo === a}>
@@ -291,23 +308,24 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
           {!rango && <span className="ops-aviso ops-aviso-error" role="alert" data-rango-invalido>{t("“From” must be on or before “To”.", "«Desde» no puede ir después de «Hasta».")}</span>}
         </div>
       )}
-    </>
+    </div>
   );
 
   return (
     <section className="ops-reportes" data-modo={modo}>
       {/* Dueño, 10 nov: «Volver» como botón, a la izquierda (antes era un enlace subrayado a la derecha). */}
-      <div className="page-head ops-cabeza-reportes">
-        <Link href="/operaciones" className="btn ops-volver" data-accion="volver-a-operaciones">← {t("Back to Warehouse Ops", "Volver a Operaciones")}</Link>
-        <h2>{modo === "mios" ? t("My reports", "Mis reportes") : t("Reports", "Reportes")} <span className="count-tag">{visibles.length}</span></h2>
-      </div>
+      {/* Dueño, 10 nov: «Volver» y el título suben a la barra azul, junto a la casa (ahorra un renglón). Si la barra no
+          está (no debería pasar), se quedan aquí arriba como antes. */}
+      {(() => {
+        const cabeza = (
+          <div className="ops-cabeza-reportes" data-cabeza-reportes>
+            <Link href="/operaciones" className="ops-volver" data-accion="volver-a-operaciones">← {t("Back to Warehouse Ops", "Volver a Operaciones")}</Link>
+            <h2>{modo === "mios" ? t("My reports", "Mis reportes") : t("Reports", "Reportes")} <span className="count-tag">{visibles.length}</span></h2>
+          </div>
+        );
+        return hueco ? createPortal(cabeza, hueco) : <div className="page-head">{cabeza}</div>;
+      })()}
 
-      {modo === "todos" && (
-        <div className="ops-pestanas" role="tablist">
-          <button type="button" role="tab" aria-selected={pestana === "merma"} className={`chip${pestana === "merma" ? " active" : ""}`} onClick={() => setPestana("merma")} data-pestana="merma">🧱 {t("Scrap", "Merma")}</button>
-          <button type="button" role="tab" aria-selected={pestana === "entregas"} className={`chip${pestana === "entregas" ? " active" : ""}`} onClick={() => setPestana("entregas")} data-pestana="entregas">🚚 {t("Deliveries", "Entregas")}</button>
-        </div>
-      )}
 
       {error && <p className="ops-aviso ops-aviso-error">{error}</p>}
       {filas === null && <p className="hint">{t("Loading…", "Cargando…")}</p>}
@@ -341,15 +359,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
             </table>
           </div>
           )}
-          {Object.keys(porEtapa).length > 0 && (
-            <p className="hint ops-desglose-etapas" data-desglose-etapas>
-              {t("In this range: ", "En el rango: ")}
-              <span data-desglose="pendiente">{t("pending approval", "pendiente de aprobar")} <b>{fmtMoney(porEtapa["*"]?.pendiente ?? 0)}</b></span> · <span data-desglose="aprobada">{t("approved", "aprobada")} <b>{fmtMoney(porEtapa["*"]?.aprobada ?? 0)}</b></span> · <span data-desglose="desechada">{t("dumped / adjusted", "desechada / ajustada")} <b>{fmtMoney(porEtapa["*"]?.desechada ?? 0)}</b></span>
-            </p>
-          )}
-          <p className="hint" data-totales-por="fecha-del-dano">{t("The range, weeks and months go by the date the material was broken, not the date it was reported. ", "El rango, las semanas y los meses van por el día en que se rompió el material, no por el día en que se reportó. ")}{t(`Loss = damaged pieces × the product's sales price per piece when it was reported (pieces usable as samples are not counted). A customer return without a CRMA is not counted as loss until its CRMA is added. Based on the latest ${LIMITE} reports you can see.`,
-            `Pérdida = piezas dañadas × el precio de venta por pieza del producto al reportarse (las que sirven de muestra no cuentan). Una devolución de cliente sin CRMA no cuenta como pérdida hasta que se le pone el CRMA. Sobre los últimos ${LIMITE} reportes que puedes ver.`)}</p>
-
+          {/* Dueño, 10 nov: «quita todo ese texto» — sin el desglose por etapa ni la explicación de los totales. */}
           <h3 className="ops-merma-titulo">{t("Scrap in this range", "Merma en el rango")} <span className="count-tag" data-cuenta-rango>{mermasEnRango.length}</span></h3>
           <div className="filters-oneline ops-filtros" role="group" aria-label={t("Stage", "Etapa")} data-filtro-etapas>
             <button type="button" className={`chip${!verGrupos && etapaFiltro === "" ? " active" : ""}`} onClick={() => { setVerGrupos(false); setEtapaFiltro(""); }} data-etapa-filtro="">{t("All stages", "Todas las etapas")} <span className="cnt">{mermasEnRango.length}</span></button>
@@ -361,7 +371,8 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
             {/* «Groups» (dueño, 10 nov): al lado de las etapas; muestra el archivo de grupos en vez de la tabla. */}
             <button type="button" className={`chip${verGrupos ? " active" : ""}`} onClick={() => setVerGrupos((v) => !v)} data-filtro-grupos aria-pressed={verGrupos}>🗂 {t("Groups", "Grupos")} <span className="cnt">{grupos.length}</span></button>
             {/* Exportar en la MISMA fila que las etapas (dueño, 10 nov: quitar el espacio muerto sobre la tabla). */}
-            {!verGrupos && mermasPorEtapa.length > 0 && (
+            {/* 292: el almacén no exporta (dueño: «warehouse people don't need pdf or csv reports»). */}
+            {!verGrupos && exporta && mermasPorEtapa.length > 0 && (
               <span className="ops-exportar ops-exportar-en-fila">
                 <button type="button" className="btn btn-sm" onClick={() => exportarCsv(mermasPorEtapa)} data-accion="exportar-csv" title={t("Download these rows as a CSV file to paste into Excel", "Baja estas filas como CSV para pegarlas en Excel")}>
                   ⬇ {t("Export CSV", "Exportar CSV")} <span className="cnt">{mermasPorEtapa.length}</span>
@@ -445,7 +456,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
         </div>
       )}
 
-      {filas && modo === "todos" && pestana === "entregas" && (
+      {filas && modo === "todos" && gerencia && pestana === "entregas" && (
         <div className="ops-merma ops-entregas" data-entregas>
           {selectorDeRango}
           <KpiDeEntregas rango={rango} ctx={ctx} />
@@ -462,7 +473,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
               </button>
             ))}
           </div>
-          {listaUsaExcel && visibles.length > 0 && (
+          {listaUsaExcel && exporta && visibles.length > 0 && (
             <div className="ops-exportar">
               <button type="button" className="btn btn-sm" onClick={() => exportarCsv(visibles)} data-accion="exportar-csv" title={t("Download these rows as a CSV file to paste into Excel", "Baja estas filas como CSV para pegarlas en Excel")}>
                 ⬇ {t("Export CSV", "Exportar CSV")} <span className="cnt">{visibles.length}</span>
@@ -477,7 +488,7 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
                 vacio={modo === "mios"
                   ? t("You haven't filed any reports yet. Pick one on the Warehouse Ops screen.", "Todavía no has llenado reportes. Elige uno en la pantalla de Operaciones.")
                   : t("No reports match these filters.", "Ningún reporte coincide con estos filtros.")} />
-            : <TablaDeReportes filas={visibles} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="todos"
+            : <TablaDeReportes filas={visibles} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="todos" conEtapa={visibles.some((r) => r.kind === "scrap")}
                 vacio={modo === "mios"
                   ? t("You haven't filed any reports yet. Pick one on the Warehouse Ops screen.", "Todavía no has llenado reportes. Elige uno en la pantalla de Operaciones.")
                   : t("No reports match these filters.", "Ningún reporte coincide con estos filtros.")} />}

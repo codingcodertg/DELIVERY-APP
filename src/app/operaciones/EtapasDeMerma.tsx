@@ -27,6 +27,10 @@ export function ChipDeEtapa({ r, conFecha = true }: { r: Reporte; conFecha?: boo
     <span className="ops-etapa" data-etapa={e} title={nombreDeEtapa(e, lang)}>
       <span className="ops-etapa-nombre">{nombreDeEtapa(e, lang)}</span>
       {conFecha && f && <span className="ops-etapa-fecha">{fmtDateTime(f)}</span>}
+      {/* 292 (dueño, 10 nov): la etapa pendiente, a la vista — todavía sin aprobar (le faltan firmas / aprobación). */}
+      {conFecha && (e === "documented" || e === "photographed") && (
+        <span className="ops-etapa-pendiente" data-etapa-pendiente>⏳ {lang === "es" ? "Pendiente de aprobación" : "Pending approval"}</span>
+      )}
     </span>
   );
 }

@@ -51623,3 +51623,19 @@ Pedidos del dueño (10 nov):
 - **Solo el admin cambia de tienda al reportar.** En el formulario de merma (y los demás del asistente), quien no es admin del hub ni admin de la app reporta siempre en su tienda; se le muestra «Tienda: X» sin selector.
 
 Sello `warehouse_ops` 0.33.0; repo 1.834.0.
+
+## D-982 · Operaciones: cada quien ve los reportes de su tienda; lo pendiente de mi firma; Reportes más compacto
+
+Pedidos del dueño (10 nov):
+
+- **«Todos pueden ver todos los reportes en su tienda solamente».** Migración **292** (`create or replace` de `public.warehouse_ops_can_see`): de lo que no es de RR. HH., cualquiera con nivel en la app ve los reportes de SU tienda (`store` o `visible_stores`). «Solo merma» sigue limitado a la merma. RR. HH. (zona, insubordinación, positivo) no cambia. **Quién firma y quién aprueba no cambia** (`warehouse_ops_can_manage` intacta): firman el supervisor de almacén y el gerente de la tienda, como hoy. En la app, `puedeVerReporte` repite la regla; el almacén entra a «Reportes de la tienda» (`veReportesDeLaTienda`) y ve la merma de su tienda.
+- **El almacén no exporta.** Sin «Exportar CSV» ni «Descargar PDF» (`puedeExportar` = gerencia), y sin la pestaña de Entregas (KPI).
+- **«Mis reportes» con la etapa, y la etapa pendiente a la vista.** La lista mixta también lleva la columna «Etapa» cuando hay merma. El chip de una merma documentada o fotografiada dice «⏳ Pendiente de aprobación».
+- **Lo pendiente de MI firma.** En el inicio de Operaciones, «Pendiente de tu firma» lista los grupos de aprobación de mi tienda a los que les falta el espacio que me toca: supervisor de almacén y personal de almacén → «supervisor»; gerente → «gerente»; admin → los dos. Cada uno se abre EN TARJETA (la hoja digital del grupo) y se firma ahí si la base lo permite. Antes de aplicar la 292 la base no le devuelve los grupos al almacén y la sección no sale (sin error).
+- **Sin el texto bajo los totales** («quita todo ese texto»): se quitaron el desglose «En el rango: pendiente de aprobar… · aprobada… · desechada / ajustada…» y la explicación de cómo se cuentan los totales.
+- **«Volver a Operaciones» y el título suben a la barra azul**, junto a la casa (un hueco nuevo en `BarraDeApp`, llenado con un portal): botón tipo píldora claro sobre la barra, con estado al pasar el ratón. Se quita el renglón de abajo.
+- **Más compacto («pega más eso»):** las pestañas Merma/Entregas y los atajos del rango van en un renglón (se doblan en el teléfono), menos espacio hasta los totales, y tarjetas de totales más bajas con cifras un poco más chicas.
+
+La 292 la aplica el dueño. Sin aplicarla, la app no se rompe: el almacén ve el botón de Reportes, pero la base solo le devuelve sus propias mermas, como hasta hoy.
+
+Sello `warehouse_ops` 0.34.0; repo 1.835.0.

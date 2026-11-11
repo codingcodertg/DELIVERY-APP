@@ -200,7 +200,7 @@ describe("la lista: columna, filtro por etapa, selección, desglose de la pérdi
     expect(d["*"]).toEqual({ pendiente: 30, aprobada: 5, desechada: 8 });
     expect(d.A).toEqual({ pendiente: 30, aprobada: 0, desechada: 1 });
     expect(d.B).toEqual({ pendiente: 0, aprobada: 5, desechada: 7 });
-    expect(LISTA).toContain("data-desglose-etapas");
+    expect(LISTA).not.toContain("data-desglose-etapas"); // dueño, 10 nov: «quita todo ese texto»
   });
 });
 

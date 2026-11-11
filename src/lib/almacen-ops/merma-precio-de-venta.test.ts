@@ -54,7 +54,7 @@ describe("272: la merma toma el precio de venta, no el costo del proveedor", () 
     expect(ASISTENTE).toContain('t("Sales price per piece (optional)", "Precio de venta por pieza (opcional)")');
     expect(LISTA).toContain('t("Price per piece (when reported)", "Precio por pieza (al reportar)")');
     expect(LISTA).toContain('t("Sales price per piece", "Precio de venta por pieza")');
-    expect(LISTA).toContain("the product's sales price per piece when it was reported");
+    // (La explicación de los totales se quitó de la pantalla: dueño, 10 nov, «quita todo ese texto».)
     for (const s of [ASISTENTE, LISTA]) {
       // Ningún texto de pantalla dice «cost» (el campo `p.cost` del código sí puede aparecer dentro de un ${...}).
       expect(s).not.toMatch(/t\("[^"]*(?<!\.)\b[Cc]ost\b[^"]*",/);

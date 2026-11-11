@@ -131,7 +131,7 @@ describe("la regla sale en todos los sitios donde se calcula o se enseña la pé
   });
   it("la fila de la lista y la explicación de los totales", () => {
     expect(LISTA).toContain('${fmtMoney(r.total_loss)}${cuentaComoPerdida(r) ? "" : ` (${t("no CRMA", "sin CRMA")})`}');
-    expect(LISTA).toContain("A customer return without a CRMA is not counted as loss until its CRMA is added.");
+    // (La explicación de los totales se quitó de la pantalla: dueño, 10 nov. La regla sigue en la fila: «sin CRMA».)
   });
   it("la corrección de producto del gerente recalcula con el origen y el CRMA del reporte", () => {
     expect(LISTA).toContain("const total = (c: number | null) => perdidaDeMerma(c, repartoDeReporte(r), r);");
