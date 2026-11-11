@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { errorAlCliente } from "@/lib/api-error";
 import { codeBand, nextOrderCode } from "@/lib/order-code";
 
 /**
@@ -27,7 +28,7 @@ export async function GET() {
   const { data, error } = await admin.from("deliveries")
     .select("order_code").eq("is_training", false)
     .gte("order_code", band.prefix + "000").lte("order_code", band.prefix + "999z");
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return errorAlCliente("next-order-code", error, 500);
   const codes = ((data ?? []) as { order_code: string | null }[]).map((r) => r.order_code);
   return NextResponse.json({ code: nextOrderCode(codes, new Date()) });
 }

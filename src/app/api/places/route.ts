@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorAlCliente } from "@/lib/api-error";
 
 import { requireUser } from "@/lib/api-auth";
 import { limita, respuesta429 } from "@/lib/rate-limit";
@@ -200,6 +201,6 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ places, count: places.length, source: "osm" });
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorAlCliente("places", e, 500, "Lookup failed.");
   }
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorAlCliente } from "@/lib/api-error";
 import { requireUser } from "@/lib/api-auth";
 import { secretoDelCv, tokenDelCv, urlDelCv } from "@/lib/recruiting/enlace-corto-del-cv";
 
@@ -15,7 +16,7 @@ export async function POST(req: Request) {
   const id = typeof body?.candidateId === "string" ? body.candidateId : "";
   if (!id) return NextResponse.json({ error: "candidateId required" }, { status: 400 });
   const { data: c, error } = await auth.supabase.schema("recruiting").from("candidates").select("id, resume_path").eq("id", id).maybeSingle();
-  if (error) return NextResponse.json({ error: error.message }, { status: 503 });
+  if (error) return errorAlCliente("recruiting-cv-link", error, 503);
   if (!c) return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
   if (!c.resume_path) return NextResponse.json({ url: null });
   const token = tokenDelCv(c.id, secretoDelCv());

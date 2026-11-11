@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { errorAlCliente } from "@/lib/api-error";
 import { fcmConfigured, sendPush } from "@/lib/fcm";
 import { KIND_CHAT, cuerpoValido, llevaPush, textoDelAviso } from "@/lib/chat/chat";
 
@@ -26,11 +27,11 @@ export async function POST(req: Request) {
   if (to === auth.user.id) return NextResponse.json({ error: "cannot message yourself" }, { status: 400 });
 
   const { data: yo, error: e0 } = await auth.supabase.from("profiles").select("id, full_name, role").eq("id", auth.user.id).maybeSingle();
-  if (e0 || !yo) return NextResponse.json({ error: e0?.message ?? "No profile" }, { status: 503 });
+  if (e0 || !yo) return errorAlCliente("chat/send", e0 ?? "No profile", 503);
 
   const { data: msg, error } = await auth.supabase.from("chat_messages")
     .insert({ from_user: auth.user.id, to_user: to, body }).select("id, created_at").single();
-  if (error || !msg) return NextResponse.json({ error: error?.message ?? "Not saved" }, { status: 400 });
+  if (error || !msg) return errorAlCliente("chat/send", error ?? "Not saved", 400, "Message not saved.");
 
   const admin = createAdminClient();
   const aviso = textoDelAviso(yo.full_name, body);

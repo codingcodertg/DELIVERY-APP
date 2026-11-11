@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { errorAlCliente } from "@/lib/api-error";
 import { ocupadasPorVentana, reglasDeAprobacion, type FilaDeCupo } from "@/lib/aprobacion-por-hora-y-cupo";
 
 /**
@@ -28,6 +29,6 @@ export async function GET(req: Request) {
   const { data, error } = await admin.from("deliveries")
     .select("id, store, delivery_windows, stage, is_training")
     .eq("delivery_date", fecha); // todas: «todo el día» las suma (D-712)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return errorAlCliente("cupo-de-la-manana", error, 500);
   return NextResponse.json({ ocupadas: ocupadasPorVentana((data ?? []) as FilaDeCupo[], reglas, excluir) });
 }

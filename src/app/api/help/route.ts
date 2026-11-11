@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { resendFrom } from "@/lib/email";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { errorAlCliente } from "@/lib/api-error";
 import { CUBO_DE_ADJUNTOS, LIMITES_DE_ADJUNTOS, VALIDEZ_DEL_ENLACE, esMiRuta, lineasDeAdjuntos } from "@/lib/help-attachments";
 import { destinoDeAyuda, type ContactoDeAyuda } from "@/lib/ayuda-flotante";
 import { enlaceParaCopiar, htmlDelCorreoDeAyuda } from "@/lib/ayuda-para-claude";
@@ -162,7 +163,7 @@ export async function POST(req: Request) {
   // Guardar es lo importante: si ni eso se pudo, se dice, en vez de mandar un correo que nadie podrá
   // volver a encontrar.
   if (errorAlGuardar) {
-    return NextResponse.json({ error: "could not save the request", detail: errorAlGuardar.message }, { status: 500 });
+    return errorAlCliente("help", errorAlGuardar, 500, "could not save the request");
   }
 
   /** El resultado del envío, sobre la fila recién creada. Con la llave de servicio: la política de la
@@ -236,6 +237,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, to });
   } catch (e) {
     await anotaElEnvio(false, (e as Error).message);
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorAlCliente("help", e, 500, "Could not send the request.");
   }
 }

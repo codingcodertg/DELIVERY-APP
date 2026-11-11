@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorAlCliente } from "@/lib/api-error";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logSecurity } from "@/lib/security-log-server";
@@ -57,7 +58,7 @@ export async function POST(req: Request) {
   try {
     const { error } = await admin.auth.admin.deleteUser(userId);
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return errorAlCliente("delete-user", error, 400, "Could not delete the user.");
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
