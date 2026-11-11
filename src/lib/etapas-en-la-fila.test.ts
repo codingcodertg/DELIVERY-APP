@@ -30,11 +30,12 @@ const mapa = (role: UserRole, stage: Stage, deMiTienda = false, tipo = "Customer
 const tabla = (role: UserRole, deMiTienda = false) => Object.fromEntries(ETAPAS.map((s) => [s, mapa(role, s, deMiTienda)]));
 
 describe("qué etapas ofrece la burbuja, rol por rol, medido contra el guard (173)", () => {
-  it("almacén en su tienda: adelante (comenzar, listo) y un paso atrás con motivo; nunca anular, aprobar ni entregar", () => {
+  it("almacén en su tienda: adelante (comenzar, listo), un paso atrás con motivo y RECHAZAR con motivo (295); nunca anular, aprobar ni entregar", () => {
     expect(tabla("warehouse", true)).toEqual({
       draft: {}, pending: {}, rejected: {}, canceled: {},
-      approved:   { fulfilling: "tarifa" },
-      fulfilling: { ready: "pallets", approved: "motivo_deshacer" },
+      // 295 (ayuda de Antonio Ruiz): rechaza lo que no puede preparar; vuelve a ventas.
+      approved:   { fulfilling: "tarifa", rejected: "motivo_rechazo" },
+      fulfilling: { ready: "pallets", approved: "motivo_deshacer", rejected: "motivo_rechazo" },
       // «Recoger» (→ picked_up) se queda en la ficha: GPS, cargas partidas y chofer.
       ready:      { fulfilling: "motivo_deshacer" },
       // «Marcar entregado» de almacén lleva firma: en la ficha (y «Recibir» en la fila de Recepción, D-409).

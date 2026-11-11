@@ -51785,3 +51785,16 @@ Tres ayudas de Roberto (Entregas):
 **3. Pestaña «Pending Delivery Date» (11 nov, Órdenes, vista de tabla):** «Need to add a tab saying Pending Delivery Date». Al final de las pastillas, después de «Invoice pending» (donde la marcó), con su número: las órdenes sin día de entrega que no están entregadas ni anuladas (`src/lib/fecha-pendiente-pestana.ts`). Al pulsarla, el chip de fecha pasa a «Todas» (sin día, «Hoy» la dejaría vacía).
 
 Sello `deliveries` 1.598.0; repo 1.847.0.
+
+## D-995 · Entregas · Almacén: almacén puede RECHAZAR una orden (migración 295)
+
+Ayuda de Antonio Ruiz (almacén, McAllen, 11 nov, Entregas · Almacén): «necesito opción de rechazar porque lo estoy poniendo entregado para que se quite». Almacén no tenía cómo devolver una orden que no puede preparar (en su captura: una Intertienda «Aprobado (nuevo)» con factura pendiente), así que la marcaba **entregada** para sacarla de su lista. Eso deja entregas falsas en los reportes.
+
+Ahora la burbuja de «Etapa» de la fila de Almacén ofrece **Rechazada…** desde «Aprobada» y «Preparando», solo en órdenes de SUS tiendas, con el mismo diálogo de motivo obligatorio que usa quien aprueba. La orden vuelve a ventas como «Rechazada» (sale de la lista de almacén), ventas lee el motivo en la orden, la corrige y la reenvía. No es una etapa nueva: es la misma rechazada de siempre.
+
+- Cliente: `almacenRechaza` (constants.ts) y `LEGAL_TRANSITIONS` con `approved/fulfilling → rejected`; `saltosEnLaFila` la ofrece con `motivo_rechazo`.
+- Base (295): la rama de almacén de `guard_delivery_stage` acepta esos dos saltos con `rejected_reason` no vacío y `orden_de_mis_tiendas`; se reescribe desde la definición actual insertando solo ese bloque. **Hasta aplicar la 295, la base rechaza el salto** (almacén verá el error de siempre).
+
+Las órdenes que almacén ya marcó entregadas para quitarlas no se tocan: las revisa el dueño.
+
+Sello `deliveries` 1.599.0; repo 1.848.0.
