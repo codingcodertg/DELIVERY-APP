@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  SLOTS_DE_FIRMA, esSlotDeFirma, firmaDe, slotFirmado, firmasFaltantes, tieneAmbasFirmas, puedeFirmarSlot,
+  SLOTS_DE_FIRMA, esSlotDeFirma, slotsQuePuedoFirmar, firmaDe, slotFirmado, firmasFaltantes, tieneAmbasFirmas, puedeFirmarSlot,
   requiereFirma, puedeAprobar, mensajePendienteDeFirma, firmaValida, soloEnRevision, type FirmaDeMerma,
 } from "./firmas";
 
@@ -109,5 +109,25 @@ describe("firmaValida", () => {
     expect(firmaValida("")).toBe(false);
     expect(firmaValida(null)).toBe(false);
     expect(firmaValida("hola")).toBe(false);
+  });
+});
+
+describe("11 nov: gerente firma «gerente», supervisor «supervisor»; nadie los dos (salvo admin)", () => {
+  const gerente = { role: "manager" };
+  const sup = { role: "warehouse", permissions: ["warehouse_ops_supervisor"] };
+  const admin = { role: "admin" };
+  it("cada quien su espacio", () => {
+    expect(slotsQuePuedoFirmar(gerente)).toEqual(["gerente"]);
+    expect(slotsQuePuedoFirmar(sup)).toEqual(["supervisor"]);
+    expect(slotsQuePuedoFirmar(admin)).toEqual(["gerente", "supervisor"]);
+    expect(slotsQuePuedoFirmar({ role: "warehouse" })).toEqual([]);
+    expect(puedeFirmarSlot([], "supervisor", "g1", gerente)).toBe(false);
+    expect(puedeFirmarSlot([], "gerente", "s1", sup)).toBe(false);
+    expect(puedeFirmarSlot([], "gerente", "g1", gerente)).toBe(true);
+  });
+  it("la misma persona no llena los dos; el admin sí puede", () => {
+    const ambos = { role: "manager", permissions: ["warehouse_ops_supervisor"] };
+    expect(puedeFirmarSlot([f("gerente", "u1")], "supervisor", "u1", ambos)).toBe(false);
+    expect(puedeFirmarSlot([f("gerente", "a1")], "supervisor", "a1", admin)).toBe(true);
   });
 });

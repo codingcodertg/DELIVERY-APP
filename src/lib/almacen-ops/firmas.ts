@@ -61,10 +61,33 @@ export function tieneAmbasFirmas(firmas: readonly FirmaDeMerma[] | null | undefi
  * los dos espacios (el gerente y el supervisor firman en el mismo aparato), así que ya no se bloquea por haber firmado el
  * otro. Solo no se pisa la firma de OTRA persona en este mismo espacio. Gestionar lo decide quien llama (`puedeCambiarEtapa`).
  */
-export function puedeFirmarSlot(firmas: readonly FirmaDeMerma[] | null | undefined, slot: SlotDeFirma, yoId: string): boolean {
+export function puedeFirmarSlot(
+  firmas: readonly FirmaDeMerma[] | null | undefined, slot: SlotDeFirma, yoId: string,
+  quien?: { role: string; permissions?: readonly string[] | null },
+): boolean {
   const propia = firmaDe(firmas, slot);
   if (propia && propia.signer_id && propia.signer_id !== yoId) return false; // ya la firmó otra persona
+  if (!quien) return true;
+  // Dueño, 11 nov (revierte la parte de D-962 «la misma persona firma los dos»): el gerente firma SOLO «gerente» y el
+  // supervisor de almacén SOLO «supervisor»; nadie llena los dos. El admin del hub puede firmar cualquiera (respaldo).
+  if (!slotsQuePuedoFirmar(quien).includes(slot)) return false;
+  if (quien.role !== "admin") {
+    const otra = firmaDe(firmas, slot === "gerente" ? "supervisor" : "gerente");
+    if (otra && otra.signer_id === yoId) return false;
+  }
   return true;
+}
+
+/**
+ * Qué espacio PUEDE firmar cada quien (dueño, 11 nov; misma regla que `warehouse_ops_can_sign_slot` de la 293):
+ * admin del hub → los dos; gerente → «gerente»; supervisor de almacén (permiso `warehouse_ops_supervisor`) → «supervisor».
+ */
+export function slotsQuePuedoFirmar(q: { role: string; permissions?: readonly string[] | null }): SlotDeFirma[] {
+  if (q.role === "admin") return ["gerente", "supervisor"];
+  const out: SlotDeFirma[] = [];
+  if (q.role === "manager") out.push("gerente");
+  if ((q.permissions ?? []).includes("warehouse_ops_supervisor")) out.push("supervisor");
+  return out;
 }
 
 /**
