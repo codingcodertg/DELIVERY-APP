@@ -171,6 +171,12 @@ table.perm-matrix thead th.who{z-index:2;background:var(--surface-2,var(--bg))}
 .perm-livechip.on{color:var(--green);background:var(--tint-green,rgba(31,157,97,.1))}
 .perm-livechip.off{color:var(--gray,#6b7280)}
 
+/* 289: punto verde/gris por app (uso) en el detalle de permisos. Verde = live o usada en ≤2 días; gris = +2 días. */
+.perm-uso{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600}
+.perm-uso-pt{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.perm-uso.verde{color:var(--green)}
+.perm-uso.gris{color:var(--gray,#6b7280)}
+
 /* Permisos (D-948): ubicaciones que ve, dropdown de opción múltiple */
 .perm-multi{position:relative}
 .perm-multi>summary{list-style:none;cursor:pointer;font:inherit;font-size:14px;color:var(--ink,inherit);background:var(--surface,#fff);border:1px solid var(--line-strong,var(--line));border-radius:9px;padding:9px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px}

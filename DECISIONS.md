@@ -51542,3 +51542,13 @@ En la ficha de orden, un checkbox **"Fecha pendiente (se agenda después) / Pend
 Nota: duplicar una orden sigue naciendo para mañana (no arrastra "pendiente").
 
 Sello `deliveries` 1.592.0; repo 1.825.0.
+
+## D-973 · Permisos: punto verde/gris por app (último uso) en el panel
+
+Pedido del dueño: en el panel de Permisos, por cada app habilitada de una persona, un punto como el indicador "live" de arriba — **verde** si la usa (live ahora o en los últimos 2 días), **gris** si lleva **+2 días** sin usarla, con la **última vez** que entró.
+
+Se registra el **último uso por (persona, app)**: tabla `public.app_last_seen` (migración 289), que llena el latido — `security_touch_device` gana un 8.º parámetro opcional `p_app` y hace upsert cuando llega un módulo real; `/api/security/seen` deriva la app de la ruta (con `appForPath`, saltando hub/login/no-módulos) y la manda, así que no hubo que cambiar el cliente. `/api/security/vivo` (solo admin/RR.HH.) ahora también devuelve `usoPorApp`; si la 289 no está aplicada, cae a vacío → todo gris "nunca", sin romper.
+
+Lógica pura `src/lib/security/uso-por-app.ts` (`estadoDeApp`, umbral `DIAS_FRESCO = 2`). En `PanelDePermisos`, cada app habilitada muestra 🟢 "Activa" o ⚪ "hace N d" (sin colores inline; usa `--green`/`--gray`). De paso, el panel ya NO lista a los dados de baja (los que tienen `left_at`): salen de la lista de gente activa, como promete el texto de la baja (D-951).
+
+Sello `security` 0.23.0; repo 1.826.0.
