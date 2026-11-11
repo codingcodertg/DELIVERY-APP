@@ -277,7 +277,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
             )}
             {veStxp && (
               <button type="button" role="tab" aria-selected={pestana === "privado"} className={`chip${pestana === "privado" ? " on" : ""}`} data-pestana="privado" onClick={() => cambiaPestana("privado")}>
-                🔒 {t("STXP Pool", "STXP Pool")} <span className="cnt" data-privados>{privados.length}</span>
+                🏪 {t("STXP Pool", "STXP Pool")} <span className="cnt" data-privados>{privados.length}</span>
               </button>
             )}
             </div>
@@ -539,7 +539,7 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
 
       {l.status !== "free" && (
         <p className={`ld-dueno ${l.status}`} data-dueno>
-          {l.status === "won" ? "🏆" : l.status === "taken" ? "🔒" : "⏸"} {estadoLabel(l.status, lang)}
+          {l.status === "won" ? "🏆" : l.status === "taken" ? "📌" : "⏸"} {estadoLabel(l.status, lang)}
           {l.holder_name ? ` · ${mio ? t("you", "tú") : l.holder_name}` : ""}
           {l.taken_at && l.status === "taken" ? ` · ${t("since", "desde")} ${fecha(l.taken_at)}` : ""}
         </p>
