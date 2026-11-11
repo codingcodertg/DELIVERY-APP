@@ -86,7 +86,7 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
     const ids = Array.from(new Set((decisiones ?? []).map((d) => d.decided_by as string | null).filter((x): x is string => !!x)));
     if (ids.length) {
       try {
-        const { data: perfiles } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+        const { data: perfiles } = await supabase.from("perfiles_publicos").select("id, full_name").in("id", ids);
         for (const p of perfiles ?? []) nombres[p.id as string] = ((p.full_name as string | null) || "—").trim();
       } catch { /* sin nombres: el panel dice «alguien» y sigue */ }
     }

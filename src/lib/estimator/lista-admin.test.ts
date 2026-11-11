@@ -234,8 +234,10 @@ describe("lo que se le pide a la base", () => {
     expect(filtroDeTextoPostgrest("  ")).toBeNull();
     expect(filtroDeTextoPostgrest('a,b) "c" 50%_')).toBe('estimate_num.ilike."*a,b) c 50\\%\\_*",customer->>full_name.ilike."*a,b) c 50\\%\\_*"');
   });
-  it("las columnas de la lista: con el dueño por su clave foránea y SIN la entrega (lleva la dirección)", () => {
-    expect(COLUMNAS_DE_LA_LISTA).toContain("owner:profiles!estimator_quotes_owner_id_fkey(full_name)");
+  it("las columnas de la lista: el dueño por su id (M1/290: ya no por embed de profiles, la tabla quedó cerrada) y SIN la entrega (lleva la dirección)", () => {
+    // El nombre del dueño se busca aparte en `perfiles_publicos`; aquí solo viaja `owner_id`, no un embed de profiles.
+    expect(COLUMNAS_DE_LA_LISTA).not.toContain("owner:profiles");
+    expect(COLUMNAS_DE_LA_LISTA.split(",").map((c) => c.trim())).toContain("owner_id");
     expect(COLUMNAS_DE_LA_LISTA).toContain("created_at");
     expect(COLUMNAS_DE_LA_LISTA.split(",").map((c) => c.trim())).not.toContain("delivery");
   });

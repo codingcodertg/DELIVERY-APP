@@ -709,18 +709,33 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     // just on `me` in the layout) so the Users page can show/edit another
     // person's module access without a second round trip (D-053, D-064).
     profiles: async () => {
-      // El nivel de Warehouse Ops (265) viaja en una lectura APARTE y tolerante: si la columna aún no existe (la
-      // migración se aplica después del merge), meterla en el select de arriba tumbaría la lista entera de usuarios
-      // en todas las apps. Si falla, nadie trae nivel escrito y manda el rol del hub.
-      const [r, niveles] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, username, role, store, visible_stores, permissions, avatar_url, recruiting_role, module_access, timetracker_role, erp_role, title, title_color, left_at").order("full_name"),
-        supabase.from("profiles").select("id, warehouse_ops_role").not("warehouse_ops_role", "is", null),
-      ]);
-      if (r.data) {
-        const nivelDe = new Map(((niveles.error ? [] : niveles.data) ?? []).map((n) => [n.id as string, n.warehouse_ops_role as string | null]));
-        setUsers((r.data as Profile[]).map((u) => ({ ...u, warehouse_ops_role: nivelDe.get(u.id) ?? null })));
+      // M1 (290): la LISTA de gente (nombre/rol/tienda… de TODOS) viene de la VISTA pública `perfiles_publicos`, que no
+      // expone lo sensible. Los campos sensibles (`username`, `permissions`) se leen APARTE de `profiles`: la RLS
+      // devuelve todas las filas para admin/RR. HH. (sus paneles los necesitan) y solo la propia para los demás. Se
+      // juntan por id. `warehouse_ops_role` ya va en la vista.
+      const pub = await supabase.from("perfiles_publicos")
+        .select("id, full_name, role, store, visible_stores, avatar_url, recruiting_role, module_access, timetracker_role, erp_role, customers_role, warehouse_ops_role, title, title_color, left_at")
+        .order("full_name");
+      if (pub.error) {
+        // La vista aún no existe (290 sin aplicar, p. ej. deploy antes de la migración): se cae a la tabla como antes,
+        // con el nivel de Warehouse Ops en una lectura aparte y tolerante (265).
+        const [r, niveles] = await Promise.all([
+          supabase.from("profiles").select("id, full_name, username, role, store, visible_stores, permissions, avatar_url, recruiting_role, module_access, timetracker_role, erp_role, title, title_color, left_at").order("full_name"),
+          supabase.from("profiles").select("id, warehouse_ops_role").not("warehouse_ops_role", "is", null),
+        ]);
+        if (r.data) {
+          const nivelDe = new Map(((niveles.error ? [] : niveles.data) ?? []).map((n) => [n.id as string, n.warehouse_ops_role as string | null]));
+          setUsers((r.data as Profile[]).map((u) => ({ ...u, warehouse_ops_role: nivelDe.get(u.id) ?? null })));
+        }
+        return r;
       }
-      return r;
+      const sens = await supabase.from("profiles").select("id, username, permissions");
+      const sensDe = new Map(((sens.error ? [] : sens.data) ?? []).map((s) => [s.id as string, s as { username: string | null; permissions: string[] | null }]));
+      setUsers((pub.data as Profile[]).map((u) => {
+        const s = sensDe.get(u.id);
+        return { ...u, username: s?.username ?? null, permissions: s?.permissions ?? [] } as Profile;
+      }));
+      return pub;
     },
     // Teaching mode never loads from the DB — the live (non-training) rows are
     // always the base, and the sandbox lives only in the local overlay.
