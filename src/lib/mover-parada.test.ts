@@ -73,7 +73,7 @@ describe("la pantalla: la tarjeta del chofer en el Gestor", () => {
   const guarda = cuerpoDe(pagina, "const guardaLaLista = async (", "\n  };\n");
   it("el inicio de la ruta sale de lo ya hecho del chofer en las fechas de sus paradas", () => {
     expect(pagina).toContain("hechasDelChofer(deliveries, laneKey, new Set(stops.map((s) => s.delivery_date ?? null)));");
-    expect(pagina).toContain("const inicioDeLaRuta = (laneKey: string, stops: Delivery[]) => inicioDeLaSecuencia(hechasDeLaRuta(laneKey, stops));");
+    expect(pagina).toContain("const inicioDeLaRuta = (laneKey: string, stops: Delivery[]) => numeracionConHechas(hechasDeLaRuta(laneKey, stops), stops.filter((s) => !ETAPAS_FIJAS.has(s.stage)));"); // D-992
   });
   it("guardar la lista numera tras lo ya hecho, escribe la lista ENTERA y entra en deshacer con la foto de lo escrito", () => {
     expect(guarda).toContain("const desde = inicioDeLaRuta(laneKey, stops);");
@@ -88,9 +88,9 @@ describe("la pantalla: la tarjeta del chofer en el Gestor", () => {
 
 describe("los dos proveedores numeran desde `desde`", () => {
   it("con base", () => {
-    expect(lee("data-provider.tsx")).toContain("const seqById = new Map(orderedIds.map((id, i) => [id, desde + i]));");
+    expect(lee("data-provider.tsx")).toContain("const seqById = new Map(orderedIds.map((id, i) => [id, puestoEn(desde, i)]));");
   });
   it("el demo", () => {
-    expect(lee("local-data-provider.tsx")).toContain("const seqById = new Map(orderedIds.map((id, i) => [id, desde + i]));");
+    expect(lee("local-data-provider.tsx")).toContain("const seqById = new Map(orderedIds.map((id, i) => [id, puestoEn(desde, i)]));");
   });
 });

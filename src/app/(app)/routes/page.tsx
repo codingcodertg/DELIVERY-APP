@@ -131,7 +131,7 @@ import {
   HISTORIAL_VACIO, objetivoDe, planDeSoltar, porQueNoSuelta, sellosDe, textoDeChoques, textoDePrevia, trasVolver,
   type Destino, type Direccion, type FilaFresca, type Historial, type ParadaDelGantt, type RutaDelGantt,
 } from "@/lib/arrastre-de-paradas";
-import { ETAPAS_HECHAS, estaEnElCamion, hechasDelChofer, inicioDeLaSecuencia } from "@/lib/mover-parada";
+import { ETAPAS_FIJAS, ETAPAS_HECHAS, estaEnElCamion, hechasDelChofer, numeracionConHechas, puestoEn } from "@/lib/mover-parada";
 import { hechasQueSePintan, horaReal, resumenDeEntregas, type FilaPintada } from "@/lib/hechas-del-gestor";
 import { cambiosDeEtas, claveDeEta, claveDelPlan, desvio, filasNuevasDeEtas, hechasFueraDeOrden, mapaDeEtasGuardadas, textoDelDesvio, type EtaGuardada, type FilaDeEta } from "@/lib/eta-del-plan";
 import { minutosReales } from "@/lib/salida-de-la-medida";
@@ -882,7 +882,9 @@ export default function RoutesPage() {
   // saber si la ruta sigue siendo la publicada (D-433, `lecturaConLoHecho`).
   const hechasDeLaRuta = (laneKey: string, stops: Delivery[]) =>
     hechasDelChofer(deliveries, laneKey, new Set(stops.map((s) => s.delivery_date ?? null)));
-  const inicioDeLaRuta = (laneKey: string, stops: Delivery[]) => inicioDeLaSecuencia(hechasDeLaRuta(laneKey, stops));
+  // D-992: lo hecho se queda en SU puesto y las pendientes llenan los puestos libres (antes se numeraban tras lo último
+  // hecho, y todo lo entregado subía arriba del todo en cuanto alguien movía una parada).
+  const inicioDeLaRuta = (laneKey: string, stops: Delivery[]) => numeracionConHechas(hechasDeLaRuta(laneKey, stops), stops.filter((s) => !ETAPAS_FIJAS.has(s.stage)));
   // La parada recién movida se resalta un momento, para que se vea a dónde fue (D-433). La clave es la de su fila
   // (`claveDeLaFila`): el id de la orden en una entrega, «P:» y sus órdenes en una recogida.
   const [recienMovida, setRecienMovida] = useState<string | null>(null);
@@ -927,7 +929,7 @@ export default function RoutesPage() {
     const origenes = [...new Set(traidas.map((d) => orderLaneKey(d)).filter((k): k is string => !!k && k !== laneKey))];
     const quedanEnOrigen = origenes.flatMap((k) => (byDriver.get(k) ?? []).filter((x) => !traidas.some((y) => y.id === x.id)));
     for (const d of traidas) {
-      if (!(await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: desde + e.ids.indexOf(d.id), load_no: null, ...(recogidas ? { pickup_seq: recogidas[d.id] ?? null } : {}) }))) return false;
+      if (!(await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: puestoEn(desde, e.ids.indexOf(d.id)), load_no: null, ...(recogidas ? { pickup_seq: recogidas[d.id] ?? null } : {}) }))) return false;
     }
     origenes.forEach((k) => clearRouteFor(k));
     // One guarded operation for the whole new sequence: the list updates locally right away and is held there until every
@@ -2011,7 +2013,7 @@ export default function RoutesPage() {
         const e = escrituraDeLaLista(nueva, desde);
         const recogidas = hayRecogidaGuardada ? e.pickupSeqById : undefined;
         clearRouteFor(laneKey);
-        await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: desde + e.ids.indexOf(d.id), load_no: null, ...(recogidas ? { pickup_seq: recogidas[d.id] ?? null } : {}) });
+        await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: puestoEn(desde, e.ids.indexOf(d.id)), load_no: null, ...(recogidas ? { pickup_seq: recogidas[d.id] ?? null } : {}) });
         await reorderStops(e.ids, e.loadNoById, undefined, desde, recogidas);
         const aviso = avisoDelHueco({
           orden: orderLabel(d), ruta: laneLabel(laneKey), hueco: r.hueco,
@@ -2024,7 +2026,7 @@ export default function RoutesPage() {
         addNote(d.id, `Best fit: ${aviso.en}`);
         const porId = new Map([...paradas, d].map((x) => [x.id, x]));
         paradas = e.ids.map((id, i) => ({
-          ...porId.get(id)!, assigned_driver: laneKey, route_seq: desde + i, load_no: null,
+          ...porId.get(id)!, assigned_driver: laneKey, route_seq: puestoEn(desde, i), load_no: null,
           ...(recogidas ? { pickup_seq: recogidas[id] ?? null } : {}),
         }));
         lista = nueva;
@@ -2102,7 +2104,7 @@ export default function RoutesPage() {
       for (const d of traidas) {
         const origen = orderLaneKey(d);
         if (origen && origen !== laneKey) { tocadas.add(origen); clearRouteFor(origen); }
-        if (!(await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: desde + e.ids.indexOf(d.id), load_no: null, ...(recogidas ? { pickup_seq: recogidas[d.id] ?? null } : {}) }))) return false;
+        if (!(await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: puestoEn(desde, e.ids.indexOf(d.id)), load_no: null, ...(recogidas ? { pickup_seq: recogidas[d.id] ?? null } : {}) }))) return false;
         addNote(d.id, `Assigned to ${laneKey} by “Assign to…” (engine)${d.assigned_driver ? ` (from ${d.assigned_driver})` : ""}`);
       }
       if (!(await reorderStops(e.ids, e.loadNoById, undefined, desde, recogidas))) return false;

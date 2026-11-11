@@ -1,5 +1,6 @@
 "use client";
 
+import { puestoEn, type Numeracion } from "@/lib/mover-parada";
 import { esDeLaOrden, pideEnUnaOrden } from "@/lib/customers/abrir-trato";
 import { falloAlTomar, mensajeDelFallo, sePuedeBuscar, type OrdenParaTomar } from "@/lib/tomar-orden";
 import { soloActivos } from "@/lib/baja";
@@ -169,7 +170,7 @@ export interface DataState {
    * con ello en «Mi ruta». Sin darlo, 0, como siempre. */
   /** `pickupSeqById` (D-443): where each order's pickup goes in the list. Only pass it when the database has the column
    *  (`tienePosicionDeRecogida`): writing a column that doesn't exist fails the whole update. */
-  reorderStops: (orderedIds: string[], loadNoById?: Record<string, number | null>, loadAuto?: boolean, desde?: number, pickupSeqById?: Record<string, number | null>) => Promise<boolean>;
+  reorderStops: (orderedIds: string[], loadNoById?: Record<string, number | null>, loadAuto?: boolean, desde?: Numeracion, pickupSeqById?: Record<string, number | null>) => Promise<boolean>;
   /** Las CARGAS de una orden que no cabe en el camión (D-452, migración 157): órdenes hermanas `#Xa`, `#Xb`.
    *  `partirCarga` mueve `resto` pallets de la orden `id` a una carga hermana NUEVA y devuelve su id (`null` si no se
    *  pudo: la base lo dice, o no tiene la 157). */
@@ -1467,7 +1468,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
   const reorderStops = useCallback<DataState["reorderStops"]>(
     async (orderedIds, loadNoById, loadAuto, desde = 0, pickupSeqById) => {
       if (!orderedIds.length) return true;
-      const seqById = new Map(orderedIds.map((id, i) => [id, desde + i]));
+      const seqById = new Map(orderedIds.map((id, i) => [id, puestoEn(desde, i)]));
       // The full patch for one stop: its new position, plus its truckload when
       // whole truckloads are being reordered.
       const patchFor = (id: string): Partial<Delivery> => ({

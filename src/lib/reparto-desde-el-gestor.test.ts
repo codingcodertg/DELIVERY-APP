@@ -199,7 +199,7 @@ describe("la pantalla usa cada pieza (se alimenta de quien llama)", () => {
     expect(guarda).toContain("const desde = inicioDeLaRuta(laneKey, stops);");
     expect(guarda).toContain("const e = escrituraDeLaLista(lista, desde);");
     expect(guarda).toContain("const recogidas = hayRecogidaGuardada ? e.pickupSeqById : undefined;");
-    expect(guarda).toContain("if (!(await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: desde + e.ids.indexOf(d.id), load_no: null, ...(recogidas ? { pickup_seq: recogidas[d.id] ?? null } : {}) }))) return false;");
+    expect(guarda).toContain("if (!(await updateDelivery(d.id, { assigned_driver: laneKey, route_seq: puestoEn(desde, e.ids.indexOf(d.id)), load_no: null, ...(recogidas ? { pickup_seq: recogidas[d.id] ?? null } : {}) }))) return false;");
     expect(guarda).toContain("if (!(await reorderStops(e.ids, e.loadNoById, undefined, desde, recogidas))) return false;");
     expect(guarda).toContain("despues = fotoTrasReordenar(despues, e.ids, e.loadNoById, desde, recogidas);");
     expect(guarda).toContain("if (origen && origen !== laneKey) { tocadas.add(origen); clearRouteFor(origen); }");

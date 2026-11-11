@@ -43,6 +43,38 @@ export function inicioDeLaSecuencia(hechas: readonly { route_seq?: number | null
   return max + 1;
 }
 
+/**
+ * D-992 (Roberto, 11 nov: «even if they mark delivered and they skipped some, keep it in the order they were in
+ * originally»): la numeración de las pendientes ya NO empieza tras lo último hecho (eso subía todo lo entregado arriba del
+ * todo en cuanto alguien movía una parada). Las hechas se quedan en SU puesto y las pendientes ocupan los puestos libres,
+ * en orden, desde el primero de la ruta. Las hechas no se reescriben.
+ *
+ * `Numeracion`: un número (puestos seguidos desde ahí, como antes) o `{ desde, ocupados }` (se saltan los ocupados).
+ */
+export type Numeracion = number | { desde: number; ocupados: readonly number[] };
+
+/** El puesto (`route_seq`) de la i-ésima pendiente. */
+export function puestoEn(n: Numeracion, i: number): number {
+  if (typeof n === "number") return n + i;
+  const ocupados = new Set(n.ocupados);
+  let v = n.desde, k = -1;
+  for (;;) {
+    if (!ocupados.has(v)) { k += 1; if (k === i) return v; }
+    v += 1;
+  }
+}
+
+/** La numeración de una ruta con lo ya hecho en su sitio: empieza en el primer puesto de la ruta (hechas o pendientes) y
+ *  salta los puestos de las hechas. Sin puestos guardados, desde 0. */
+export function numeracionConHechas(
+  hechas: readonly { route_seq?: number | null }[], pendientes: readonly { route_seq?: number | null }[],
+): Numeracion {
+  const ocupados = hechas.map((h) => h.route_seq).filter((x): x is number => x != null);
+  const todos = [...ocupados, ...pendientes.map((p) => p.route_seq).filter((x): x is number => x != null)];
+  const desde = todos.length ? Math.max(0, Math.min(...todos)) : 0;
+  return ocupados.length ? { desde, ocupados } : desde;
+}
+
 /** Lo ya hecho de un chofer en esas fechas (las de las paradas que se mueven). */
 export function hechasDelChofer<T extends { assigned_driver?: string | null; delivery_date?: string | null; stage: string }>(
   todas: readonly T[], chofer: string, fechas: ReadonlySet<string | null>,
