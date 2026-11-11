@@ -17,6 +17,7 @@ import { puedeCorregirMerma } from "@/lib/almacen-ops/visibilidad";
 import { particionaPorEtapa, resumenDeBloque } from "@/lib/almacen-ops/bloque";
 import { aplicarEtapa, AdjuntarYMarcar, ErrorParcial } from "./EtapasDeMerma";
 import { FirmaPad } from "./FirmaPad";
+import { aprobarGrupoDePractica, esGrupoDePractica, firmarGrupoDePractica, grupoDePractica, quitarFirmaDePractica } from "@/lib/practica/grupos-de-practica";
 import { VisorDeFotos } from "./VisorDeFotos";
 import { Tarjeta } from "./ListaDeReportes";
 import type { Contexto } from "./Operaciones";
@@ -43,7 +44,15 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
   // Click en el folio: abre el reporte en la app para revisarlo (dueño, 10 nov), sin salir de la hoja.
   const [verReporte, setVerReporte] = useState<Reporte | null>(null);
 
+  const practica = esGrupoDePractica(grupoId);
   const recarga = useCallback(async () => {
+    // Modo enseñanza: el grupo vive en memoria (grupos-de-practica); no se lee la base.
+    if (esGrupoDePractica(grupoId)) {
+      const g = grupoDePractica(grupoId);
+      if (!g) { setError(t("This practice group is gone (practice groups disappear when you reload).", "Este grupo de práctica ya no está (desaparecen al recargar).")); setGrupo(null); }
+      else { setGrupo(g.grupo); setReportes(g.reportes); setError(null); }
+      setCargando(false); return;
+    }
     if (ctx.demo) { setCargando(false); setError(t("Groups are not available in demo mode.", "Los grupos no están en el modo demo.")); return; }
     try {
       const r = await grupoConReportes(createClient(), grupoId);
@@ -211,7 +220,7 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
                 )}
                 {fm && !aprobado && gestiona && fm.signer_id === ctx.yo.id && (
                   <button type="button" className="btn btn-ghost btn-sm no-imprimir" disabled={ocupado} data-accion="quitar-firma-grupo" data-slot={slot}
-                    onClick={() => void corre(() => quitarFirmaGrupo(createClient(), grupo.id, slot))}>{t("Remove", "Quitar")}</button>
+                    onClick={() => void corre(async () => { if (practica) quitarFirmaDePractica(grupo.id, slot); else await quitarFirmaGrupo(createClient(), grupo.id, slot); })}>{t("Remove", "Quitar")}</button>
                 )}
               </div>
             );
@@ -222,13 +231,17 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
           <FirmaPad etiqueta={t(`Draw the ${nombreDeSlot(firmando, lang).toLowerCase()} signature`, `Dibuja la firma del ${nombreDeSlot(firmando, lang).toLowerCase()}`)}
             guardando={ocupado}
             onCancelar={() => setFirmando(null)}
-            onFirmar={(png) => void corre(async () => { await firmarGrupo(createClient(), grupo.id, firmando, png); setFirmando(null); })} />
+            onFirmar={(png) => void corre(async () => {
+              if (practica) firmarGrupoDePractica(grupo.id, firmando, png, { id: ctx.yo.id, nombre: ctx.yo.full_name });
+              else await firmarGrupo(createClient(), grupo.id, firmando, png);
+              setFirmando(null);
+            })} />
         )}
 
         {!aprobado && gestiona && (
           <div className="ops-exportar no-imprimir">
             <button type="button" className="btn btn-primary" disabled={ocupado || !puedeAprobarGrupo(grupo)} data-accion="aprobar-grupo"
-              onClick={() => void corre(() => aprobarGrupo(createClient(), grupo.id))}>
+              onClick={() => void corre(async () => { if (practica) aprobarGrupoDePractica(grupo.id, ctx.yo.id); else await aprobarGrupo(createClient(), grupo.id); })}>
               ✅ {t("Approve group", "Aprobar grupo")}
             </button>
             {!puedeAprobarGrupo(grupo) && <span className="hint" data-falta-firma>{estadoDelGrupo(grupo, lang)}</span>}

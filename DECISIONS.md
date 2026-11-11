@@ -51592,3 +51592,11 @@ El dueño: un gerente seguía sin ver los reportes de merma de su tienda. La bit
 Ahora prender la casilla NO escribe nivel: sin nivel escrito manda el rol del hub (`nivelPorDefecto`: `warehouse` → solo merma; gerente → todos los reportes, ve los de su tienda). El selector de nivel del panel enseña ese valor real en vez de «Solo merma». Un nivel se sigue pudiendo escoger a mano. Los 6 gerentes se devolvieron al nivel por defecto con un ajuste de datos.
 
 Sello `security` 0.24.0; repo 1.831.0.
+
+## D-979 · Merma: los grupos de aprobación se pueden practicar en modo enseñanza
+
+El dueño: en modo enseñanza, «Iniciar aprobación» salía con el aviso de «esto no se puede practicar» y no creaba el grupo (D-966 lo dejaba como no-op).
+
+Ahora, con el modo enseñanza prendido, el grupo se crea DE MENTIRA en la memoria de la pestaña (`src/lib/practica/grupos-de-practica.ts`, ids `practica-…`): sale en «Grupos», se abre en tarjeta, se firma (gerente y supervisor), se quita una firma, y con las dos firmas se aprueba solo, como la 283. No se llama a la base, así que no sale el aviso morado, y nada se guarda. Al recargar, los grupos de práctica desaparecen (se avisa al crearlos).
+
+Sello `warehouse_ops` 0.31.0; repo 1.832.0.
