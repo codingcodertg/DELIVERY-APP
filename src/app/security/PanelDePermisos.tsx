@@ -14,6 +14,7 @@ import {
   GRUPOS_DE_PERMISOS, PERFILES_DE_ROL, ROL_POR_DEFECTO, columnaDeRol, etiquetaDeRol, opcionesDeRol, tieneRolPropio, type PerfilDeRol,
 } from "@/lib/security/permisos-grupos";
 import { type VivoDeUsuario } from "@/lib/security/vivo-de-usuarios";
+import { estadoDeApp, type UsoPorApp, type UsoPorAppDeTodos } from "@/lib/security/uso-por-app";
 import { normalizaTienda, tiendasMarcadas } from "@/lib/visibilidad-tienda";
 import { MOTIVOS_BAJA } from "@/lib/recruiting/employee-file";
 import { darDeBajaPorPerfil } from "@/app/recruiting/actions/hr";
@@ -39,10 +40,15 @@ const ICONO: Record<string, string> = {
 export function PanelDePermisos({ hub }: { hub: Profile | null }) {
   const { t } = usePrefs();
   const [vivo, setVivo] = useState<Record<string, VivoDeUsuario>>({});
+  const [usoPorApp, setUsoPorApp] = useState<UsoPorAppDeTodos>({});
   useEffect(() => {
     if (MODO_DEMO) return;
     let activo = true;
-    void fetch("/api/security/vivo").then((r) => (r.ok ? r.json() : null)).then((d) => { if (activo && d?.vivo) setVivo(d.vivo as Record<string, VivoDeUsuario>); }).catch(() => undefined);
+    void fetch("/api/security/vivo").then((r) => (r.ok ? r.json() : null)).then((d) => {
+      if (!activo || !d) return;
+      if (d.vivo) setVivo(d.vivo as Record<string, VivoDeUsuario>);
+      if (d.usoPorApp) setUsoPorApp(d.usoPorApp as UsoPorAppDeTodos);
+    }).catch(() => undefined);
     return () => { activo = false; };
   }, []);
 
@@ -54,13 +60,13 @@ export function PanelDePermisos({ hub }: { hub: Profile | null }) {
   return (
     <ConfirmProvider>
       <ProveedorDelHub me={hub}>
-        <Cuerpo vivo={vivo} />
+        <Cuerpo vivo={vivo} usoPorApp={usoPorApp} />
       </ProveedorDelHub>
     </ConfirmProvider>
   );
 }
 
-function Cuerpo({ vivo }: { vivo: Record<string, VivoDeUsuario> }) {
+function Cuerpo({ vivo, usoPorApp }: { vivo: Record<string, VivoDeUsuario>; usoPorApp: UsoPorAppDeTodos }) {
   const { t, lang } = usePrefs();
   const hub = useHub();
   const { ready, users, notify, settings } = hub;
@@ -183,7 +189,7 @@ function Cuerpo({ vivo }: { vivo: Record<string, VivoDeUsuario> }) {
           {/* Detalle */}
           <div className="perm-detail">
             {!actual ? <div className="hint" style={{ padding: 16 }}>{t("Pick a person.", "Elige una persona.")}</div> : (
-              <Detalle u={actual} vivo={vivo[actual.id]} lang={lang} t={t} ocupado={ocupado} tiendas={tiendas}
+              <Detalle u={actual} vivo={vivo[actual.id]} uso={usoPorApp[actual.id]} lang={lang} t={t} ocupado={ocupado} tiendas={tiendas}
                 esAdmin={actual.role === "admin"} rolDeApp={rolDeApp}
                 onModulo={(k, on) => void corre(() => toggleModulo(actual, k, on))}
                 onRolApp={(k, r) => void corre(() => cambiaRol(actual, k, r))}
@@ -204,8 +210,8 @@ function Cuerpo({ vivo }: { vivo: Record<string, VivoDeUsuario> }) {
   );
 }
 
-function Detalle({ u, vivo, lang, t, ocupado, esAdmin, tiendas, rolDeApp, onModulo, onRolApp, onRolDeliveries, onStore, onVisibleStores, onPerfil, onBaja }: {
-  u: Profile; vivo: VivoDeUsuario | undefined; lang: "en" | "es"; t: (en: string, es: string) => string; ocupado: boolean; esAdmin: boolean; tiendas: string[];
+function Detalle({ u, vivo, uso, lang, t, ocupado, esAdmin, tiendas, rolDeApp, onModulo, onRolApp, onRolDeliveries, onStore, onVisibleStores, onPerfil, onBaja }: {
+  u: Profile; vivo: VivoDeUsuario | undefined; uso: UsoPorApp | undefined; lang: "en" | "es"; t: (en: string, es: string) => string; ocupado: boolean; esAdmin: boolean; tiendas: string[];
   rolDeApp: (u: Profile, key: ModuleAccessKey) => string | null;
   onModulo: (key: ModuleAccessKey, on: boolean) => void; onRolApp: (key: ModuleAccessKey, role: string) => void;
   onRolDeliveries: (role: UserRole) => void; onStore: (store: string | null) => void; onVisibleStores: (stores: string[]) => void; onPerfil: (perfil: PerfilDeRol) => void; onBaja: (motivo: string | null) => void;
@@ -292,11 +298,20 @@ function Detalle({ u, vivo, lang, t, ocupado, esAdmin, tiendas, rolDeApp, onModu
             const has = tieneModulo(u, key);
             const conRol = tieneRolPropio(key) && has;
             const rolActual = rolDeApp(u, key);
+            // 289: punto verde/gris por app — verde si está live ahí o la usó en ≤2 días; gris con la última vez si no.
+            const est = has ? estadoDeApp(uso?.[key], !!vivo?.online && vivo?.mod === key) : null;
             return (
               <div className={`perm-mod ${has ? "on" : ""}`} key={key} data-mod={key}>
                 <span className="perm-mic">{ICONO[key] ?? "▫️"}</span>
                 <span className="perm-mx">
                   <span className="perm-mt">{etiquetaDeModulo(key, lang)}</span>
+                  {est && (
+                    <span className={`perm-uso ${est.estado}`} data-uso={est.estado}
+                      title={est.estado === "verde" ? t("Active", "Activa") : t("Not used in a while", "Sin usar hace rato")}>
+                      <span className="perm-uso-pt" aria-hidden />
+                      {est.estado === "verde" ? t("Active", "Activa") : haceTexto(est.mins, t)}
+                    </span>
+                  )}
                   {conRol && (
                     <select className="perm-mrole" value={rolActual ?? (ROL_POR_DEFECTO[key] ?? "")} disabled={ocupado} data-rol={key}
                       onChange={(e) => onRolApp(key, e.target.value)}>

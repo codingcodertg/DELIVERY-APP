@@ -2,8 +2,20 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
 import { dispositivoDeLaPeticion, tipoPorAgente } from "@/lib/security/reglas";
 import { lugarDeLaPeticion } from "@/lib/security/lugar";
+import { appForPath } from "@/lib/app-for-path";
 
 export const runtime = "nodejs";
+
+/** Los módulos cuyo uso se sella en `app_last_seen` (289). `clockin` cuenta como Time Tracker; el hub/login/seguridad no
+ *  son un módulo y no se sellan (si no, aterrizar en el hub contaría como usar Entregas). Misma lista que el «en vivo». */
+const MODULOS_DE_USO = new Set(["deliveries", "estimator", "leads", "customers", "promos", "warehouse_ops", "recruiting", "timetracker", "surveys", "erp"]);
+/** La app (módulo) de una ruta, para el último uso por app; null si es el hub/login/seguridad o no es un módulo. */
+function appDeLaRuta(route: string | null): string | null {
+  if (!route || route === "/" || route === "/home" || route.startsWith("/login") || route.startsWith("/no-access")) return null;
+  const crudo = appForPath(route);
+  const m = crudo === "clockin" ? "timetracker" : crudo;
+  return MODULOS_DE_USO.has(m) ? m : null;
+}
 
 /**
  * «Este dispositivo acaba de usarse» (D-811). Lo manda `IdentidadDelDispositivo` al cargar y cada diez minutos. Con la
@@ -26,7 +38,8 @@ export async function POST(req: Request) {
   // D-942 (278): y la RUTA en la que está, para el «en vivo por módulo» de Seguridad. Solo del cuerpo, saneada.
   let route: string | null = null;
   try { const b = (await req.json()) as { route?: unknown }; if (typeof b?.route === "string") route = b.route.slice(0, 200); } catch { /* cuerpo vacío o no-JSON */ }
-  const { error } = await auth.supabase.rpc("security_touch_device", { p_device: d.id, p_user_agent: ua, p_kind: kind, p_bound: d.ligado, p_ip: ip, p_place: lugar, p_route: route });
+  // 289: y la APP donde está (derivada de la ruta), para el "último uso por app" del panel de permisos.
+  const { error } = await auth.supabase.rpc("security_touch_device", { p_device: d.id, p_user_agent: ua, p_kind: kind, p_bound: d.ligado, p_ip: ip, p_place: lugar, p_route: route, p_app: appDeLaRuta(route) });
   // Sin la 229 aplicada la función no existe: no es un fallo de quien navega.
   if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 200 });
   return NextResponse.json({ ok: true });
