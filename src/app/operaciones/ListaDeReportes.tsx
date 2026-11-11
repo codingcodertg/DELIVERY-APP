@@ -13,6 +13,8 @@ import { nombreOTexto, personasParaElegir } from "@/lib/almacen-ops/personas";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
 import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, editarReporteDeMerma, enlacesDeFotos, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type ParcheDeMerma, type Reporte } from "@/lib/almacen-ops/datos";
 import { esCorteDePractica } from "@/lib/practica/es-corte";
+import { crearGrupoDePractica, gruposDePractica } from "@/lib/practica/grupos-de-practica";
+import { ensenanzaDelNavegador } from "@/lib/ensenanza-general";
 import { estadoDelGrupo, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
 import { HojaDeGrupo } from "./HojaDeGrupo";
 import { HojaImprimible } from "./HojaImprimible";
@@ -75,7 +77,9 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   useEffect(() => {
     if (ctx.demo || modo !== "todos" || pestana !== "merma" || grupoId) return;
     let vivo = true;
-    void listarGrupos(createClient()).then((g) => { if (vivo) setGrupos(g); }).catch(() => { /* sin 281: no hay grupos */ });
+    // En práctica se suman los grupos de mentira de esta pestaña (no están en la base).
+    void listarGrupos(createClient()).then((g) => { if (vivo) setGrupos([...gruposDePractica(), ...g]); })
+      .catch(() => { if (vivo) setGrupos(gruposDePractica()); /* sin 281: no hay grupos */ });
     return () => { vivo = false; };
   }, [ctx.demo, modo, pestana, grupoId]);
   const elegir = (atajo: Atajo) => irA({ eleccion: atajo === "otro"
@@ -229,6 +233,15 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
     const elegibles = seleccionadas.filter((r) => seleccionableParaHoja(r));
     if (elegibles.length === 0) { setAvisoBloque(t("Pick photographed reports to group.", "Marca reportes fotografiados para agrupar.")); return; }
     const nombre = fmtDateTime(new Date().toISOString());
+    // Modo enseñanza (dueño, 10 nov): el grupo se crea de mentira en esta pestaña y se puede firmar y aprobar; nada
+    // llega a la base y no sale el aviso de «no se puede practicar».
+    if (ensenanzaDelNavegador()) {
+      const id = crearGrupoDePractica(nombre, elegibles, ctx.yo.full_name);
+      setSeleccion(new Set());
+      setAvisoBloque(t("Practice group: it is not saved and disappears when you reload.", "Grupo de práctica: no se guarda y desaparece al recargar."));
+      abrirGrupo(id);
+      return;
+    }
     try {
       const id = await crearGrupoDeMerma(createClient(), nombre, elegibles.map((r) => r.id));
       setSeleccion(new Set());
