@@ -1,6 +1,7 @@
 // exceljs se carga al pulsar "Excel", no con el tablero (G-20, D-209): estático entraba entero
 // en el chunk inicial de `/` (265 kB de ruta) para un botón que casi nadie pulsa. Mismo patrón que
 // lib/erp/export.ts. El tipo se importa aparte porque `import type` no pesa nada.
+import { ESTILO_IMPRESION_LIMPIA } from "@/lib/impresion-limpia";
 import type { WorksheetProperties } from "exceljs";
 import type { Delivery, Profile } from "@/lib/types";
 import { stageLabel } from "@/lib/constants";
@@ -147,7 +148,7 @@ export function exportPDFByEmployee(deliveries: Delivery[], users: Profile[], la
       th{background:#152238;color:#fff;}
       tr.redel td{background:#fff7ec;}
       @media print{summary{-webkit-print-color-adjust:exact;print-color-adjust:exact;} th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
-    </style></head>
+    </style>${ESTILO_IMPRESION_LIMPIA}</head>
     <body>
       <h1>RDZ · ${title}</h1>
       <div class="sub">${stamp()} · ${deliveries.length} ${lang === "es" ? "órdenes en total" : "orders total"}</div>

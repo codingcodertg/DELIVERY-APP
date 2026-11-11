@@ -17,6 +17,7 @@
 // Un talón guardado es una FOTO: no se recalcula nunca (ver `decideTalones`).
 // ============================================================
 
+import { ESTILO_IMPRESION_LIMPIA } from "@/lib/impresion-limpia";
 import { computePay, projectWeekStart, weekStartISO } from "@/lib/timetracker/helpers";
 import { sumaDeAjustes, totalConAjustes } from "@/lib/timetracker/total-de-nomina";
 import type { Assignment, PayrollAdjustment, Project, Session } from "@/lib/timetracker/types";
@@ -447,7 +448,7 @@ export function htmlDeTalones(items: { talon: TalonDePago; acumulado: Acumulado 
       tr.sub td{font-weight:700;} tr.neto td{font-weight:800;font-size:16px;border-top:2px solid #152238;}
       .pie{margin-top:18px;font-size:12px;color:#4a5568;text-align:center;}
       @media print{.talon{padding:14px;}}
-    </style></head><body>
+    </style>${ESTILO_IMPRESION_LIMPIA}</head><body>
     ${items.map((i) => seccionDelTalon(i.talon, empresa, i.acumulado, lang)).join("")}
     <script>window.onload=function(){setTimeout(function(){window.print();},200);};</script>
     </body></html>`;

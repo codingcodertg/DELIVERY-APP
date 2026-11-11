@@ -10,6 +10,7 @@
  */
 import { firmasFaltantes, nombreDeSlot, tieneAmbasFirmas, type FirmaDeMerma } from "./firmas";
 import type { Lang } from "./etapas";
+import { diaEnTexas } from "./fecha-del-dano";
 
 export interface GrupoDeMerma {
   id: string;
@@ -57,4 +58,22 @@ export function estadoDelGrupo(g: EstadoFirmas, lang: Lang): string {
     return faltan.length === 2 ? "Pendiente de firma (gerente y supervisor)" : `Pendiente: firma del ${nombres[0].toLowerCase()}`;
   }
   return faltan.length === 2 ? "Pending signature (manager and supervisor)" : `Pending: ${nombres[0].toLowerCase()} signature`;
+}
+
+export type FiltroDeGrupos = "todos" | "pendientes" | "aprobados";
+
+/**
+ * La lista de «Grupos» (dueño, 10 nov): filtra por estado (pendientes de firma/aprobación o ya aprobados) y, salvo que
+ * pidan «Ver todos», por el rango de fechas elegido arriba (el día en Texas en que se creó el grupo).
+ */
+export function filtrarGrupos<G extends Pick<GrupoDeMerma, "approved_at" | "created_at">>(
+  grupos: readonly G[], estado: FiltroDeGrupos, rango: { desde: string; hasta: string } | null, verTodos: boolean,
+): G[] {
+  return grupos.filter((g) => {
+    if (estado === "pendientes" && grupoAprobado(g)) return false;
+    if (estado === "aprobados" && !grupoAprobado(g)) return false;
+    if (verTodos || !rango) return true;
+    const dia = diaEnTexas(g.created_at);
+    return dia >= rango.desde && dia <= rango.hasta;
+  });
 }

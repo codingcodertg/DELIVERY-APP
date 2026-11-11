@@ -1,3 +1,4 @@
+import { ESTILO_IMPRESION_LIMPIA } from "@/lib/impresion-limpia";
 import type { Delivery, Profile, Settings } from "@/lib/types";
 import type { Lang } from "@/lib/prefs";
 import { stageLabel } from "@/lib/constants";
@@ -84,7 +85,7 @@ export function htmlDelComprobante(d: Delivery, settings: Settings, users: Profi
       .pod-sig-empty{border:1px dashed #dfe5ee;border-radius:8px;padding:20px;text-align:center;color:#9aa3b0;font-size:12px;}
       .foot{margin-top:26px;font-size:11px;color:#9aa3b0;text-align:center;}
       @media print{body{padding:12px;}}
-    </style></head><body>
+    </style>${ESTILO_IMPRESION_LIMPIA}</head><body>
     <div class="head">
       <div>
         <div class="brand">${esc(settings.app_name)}</div>
@@ -256,7 +257,7 @@ export function htmlDeLasHojasDeCarga(orders: Delivery[], settings: Settings, la
       .sign{display:flex;gap:30px;margin-top:34px;}
       .sign>div{flex:1;border-top:1px solid #152238;padding-top:6px;font-size:12px;color:#6b7686;}
       @media print{.sheet{padding:12px;}}
-    </style></head><body>
+    </style>${ESTILO_IMPRESION_LIMPIA}</head><body>
     ${pages || `<section class="sheet"><div class="empty">${T("No orders for this day.", "No hay órdenes para este día.")}</div></section>`}
     <script>window.onload=function(){setTimeout(function(){window.print();},200);};</script>
     </body></html>`;

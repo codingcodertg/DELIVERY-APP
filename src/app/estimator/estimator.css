@@ -123,4 +123,6 @@
      de la hoja, no se imprime (D-425). */
   .est-competencia, .est-competencia * { display: none !important; }
   @page { margin: 0; }
+  /* La hoja ya trae su margen (16 mm): sin el relleno general del cuerpo (globals.css), para no doblarlo. */
+  body:has(.hoja-cliente) { padding: 0; }
 }
