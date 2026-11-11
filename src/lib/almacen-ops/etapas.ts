@@ -288,10 +288,28 @@ export function totalDeHoja(filas: readonly { perdida: number | null }[]): numbe
 
 
 /**
- * «⏳ Pendiente» (dueño, 11 nov: «falta el pending tab en scrap»): las mermas que todavía esperan aprobación — documentadas
- * o fotografiadas, estén o no ya en un grupo pendiente de firma.
+ * «⏳ Pendiente» (Roberto, 11 nov, reunión): «Pending means it has not been approved yet, but it's been assigned a
+ * group». Es una etapa DERIVADA de la pantalla (la base no la guarda): la merma ya está en un grupo de aprobación y todavía
+ * no está aprobada. Va entre «Fotografiada» y «Aprobada». `enPractica` = ids que están en un grupo de práctica (modo
+ * enseñanza), que no llegan a la base y por eso no traen `scrap_group_id`.
  */
-export function pendienteDeAprobar(r: Parameters<typeof etapaDe>[0]): boolean {
+type ConGrupo = Parameters<typeof etapaDe>[0] & { id?: string; scrap_group_id?: string | null };
+export function pendienteDeAprobar(r: ConGrupo, enPractica?: ReadonlySet<string>): boolean {
   const e = etapaDe(r);
-  return e === "documented" || e === "photographed";
+  if (e !== "documented" && e !== "photographed") return false;
+  return !!r.scrap_group_id || (!!r.id && !!enPractica?.has(r.id));
+}
+
+/** Las etapas que enseña la pantalla: las de la base con «pending» (en grupo, sin aprobar) entre fotografiada y aprobada. */
+export const ETAPAS_VISIBLES = ["documented", "photographed", "pending", "approved", "dumped", "adjusted"] as const;
+export type EtapaVisible = (typeof ETAPAS_VISIBLES)[number];
+
+/** La etapa que se enseña: «pending» si está en un grupo sin aprobar; si no, la de la base. */
+export function etapaVisible(r: ConGrupo, enPractica?: ReadonlySet<string>): EtapaVisible {
+  return pendienteDeAprobar(r, enPractica) ? "pending" : etapaDe(r);
+}
+
+export function nombreDeEtapaVisible(e: EtapaVisible, lang: Lang): string {
+  if (e === "pending") return lang === "es" ? "Pendiente" : "Pending";
+  return nombreDeEtapa(e, lang);
 }
