@@ -51570,3 +51570,11 @@ El dueño: al tocar un grupo en «Grupos de aprobación» la app saltaba a otra 
 Ahora la hoja digital del grupo (`HojaDeGrupo`) se muestra en un `.overlay`/`.modal` encima de la lista de merma, igual que la tarjeta de un reporte o el visor de fotos. La lista queda detrás y vuelve al cerrar. Se conserva el `?grupo=<id>` en la URL (aguanta refresh y se puede compartir), pero ya no reemplaza la pantalla. La barra superior de la hoja pasó de «← Volver a la merma» a «✕ Cerrar», y el fondo cierra al tocarlo. Tarjeta más ancha (`.modal.ops-tarjeta-grupo`, 960px) para que quepa la tabla.
 
 Sello `warehouse_ops` 0.28.0; repo 1.828.0.
+
+## D-976 · Merma: «¿Quién lo rompió?» solo ofrece gente del piso del almacén
+
+El dueño: Patricia Hernández (gerente de Brownsville) salía en «¿Quién lo rompió?». Un gerente con el módulo Warehouse Ops puede REPORTAR merma, pero no es quien rompe el material.
+
+Ahora ese selector (en el asistente y en «Editar reporte») solo muestra rol `warehouse` y expedientes de almacén sin cuenta (`esDelPiso` en `src/lib/almacen-ops/personas.ts`). «¿Quién lo reportó?» sigue igual: ofrece también a los gerentes con el módulo. Los reportes viejos que ya tienen a un gerente en «lo rompió» no cambian.
+
+Sello `warehouse_ops` 0.29.0; repo 1.829.0.

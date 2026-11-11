@@ -794,7 +794,7 @@ function EditarReporteDeMerma({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; 
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const opciones = (o: { v: string; en: string; es: string }) => (lang === "es" ? o.es : o.en);
-  const personas = personasParaElegir(ctx.personas, r.store);
+  const personas = personasParaElegir(ctx.personas, r.store, "", true); // «quién lo rompió»: solo el piso
   const nEntero = (s: string) => (s.trim() === "" ? null : Math.trunc(Number(s)));
 
   const guarda = async () => {
