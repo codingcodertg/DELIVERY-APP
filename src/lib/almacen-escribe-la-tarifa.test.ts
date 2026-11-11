@@ -46,7 +46,10 @@ describe("no se abre de rebote ningún otro campo de ventas", () => {
     // 25 desde D-416 (avisos al cliente, 150): correo, preferencia e idioma del cliente, los tres de `salesFields`.
     // 26 al juntar D-418 (151): las casillas de «Requisitos del camión», igual (una sola expresión dentro del `map`).
     // 22 desde D-436: se quitan de la ficha la prioridad y los tres de avisos al cliente (el dueño no los pidió ahí).
-    expect((ficha.match(/disabled=\{!salesFields\}/g) ?? []).length).toBe(22);
+    // 20 con «Fecha pendiente»: la Fecha de Entrega y su ventana pasan a `disabled={!salesFields || fechaPendiente}`
+    // (misma puerta de ventas + se deshabilitan cuando la orden queda sin fecha). Siguen colgando de salesFields.
+    expect((ficha.match(/disabled=\{!salesFields\}/g) ?? []).length).toBe(20);
+    expect((ficha.match(/disabled=\{!salesFields \|\| fechaPendiente\}/g) ?? []).length).toBe(2);
     expect((ficha.match(/disabled=\{!tarifaEditable\}/g) ?? []).length).toBe(1);
   });
   it("los campos que son de ventas y NO de la tarifa siguen cerrados para almacén", () => {
@@ -56,7 +59,8 @@ describe("no se abre de rebote ningún otro campo de ventas", () => {
       const control = lineas.filter((l) => l.includes(`label={t("${etiqueta}"`) && /<(Txt|Sel|WindowSel)/.test(l));
       expect(control.length, `${etiqueta}: controles encontrados`).toBeGreaterThan(0);
       for (const l of control) {
-        expect(l, etiqueta).toContain("disabled={!salesFields}");
+        // Gated on salesFields (la Fecha de Entrega añade «|| fechaPendiente», sigue colgando de salesFields).
+        expect(l, etiqueta).toContain("!salesFields");
         expect(l, etiqueta).not.toContain("tarifaEditable");
       }
     }

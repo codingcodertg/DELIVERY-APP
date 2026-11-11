@@ -90,15 +90,18 @@ describe("la ficha (OrderModal) usa la regla, no canEditFields a secas", () => {
     expect(ficha).toContain('{editing && !soloFecha && paso === "completo" && missing.length > 0 && (');
     // …y en su lugar hay UN campo: la fecha, habilitado.
     const bloque = ficha.slice(ficha.indexOf("{soloFecha && ("), ficha.indexOf('{editing && !soloFecha && paso === "completo" && ('));
-    expect(bloque).toContain('<Txt label={t("New delivery date", "Nueva fecha de entrega")} type="date" val={d.delivery_date} on={(v) => set("delivery_date", v)}');
-    expect(bloque).not.toContain("disabled=");
+    expect(bloque).toContain('<Txt label={t("New delivery date", "Nueva fecha de entrega")} type="date" val={fechaPendiente ? "" : d.delivery_date} on={(v) => set("delivery_date", v)}');
+    // La casilla «Fecha pendiente» también está en este bloque (deja la orden sin fecha).
+    expect(bloque).toContain('data-campo="fecha-pendiente"');
     expect(bloque).toContain("Solo puede cambiar la fecha de entrega de esta orden");
   });
 
-  it("al guardar viaja solo la fecha, por parcheSoloFecha, y sin fecha no se guarda", () => {
+  it("al guardar viaja solo la fecha, por parcheSoloFecha; con «Fecha pendiente» se guarda sin fecha", () => {
     expect(ficha).toContain('if (!isNew && alcance === "solo_fecha") {');
     expect(ficha).toContain("const ok = await updateDelivery(existing!.id, parcheSoloFecha(d));");
-    expect(ficha).toContain('if (!d.delivery_date) { notify(t("Pick a delivery date.", "Elija una fecha de entrega.")); return; }');
+    // Ya NO se exige fecha: con fecha pendiente (null) se guarda sin día; con fecha, se valida día pasado.
+    expect(ficha).not.toContain('if (!d.delivery_date) { notify(t("Pick a delivery date.", "Elija una fecha de entrega.")); return; }');
+    expect(ficha).toContain("if (d.delivery_date && agendaEnDiaPasado(d.delivery_date, existing!.delivery_date))");
   });
 
   it("el botón «Editar» y «Cancelar edición» salen del alcance, y el botón dice «Editar fecha» cuando es solo eso", () => {

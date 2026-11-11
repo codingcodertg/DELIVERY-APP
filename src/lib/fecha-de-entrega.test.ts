@@ -52,7 +52,8 @@ describe("todos los sitios que escriben delivery_date usan la regla", () => {
     expect(i).toBeGreaterThan(-1);
     const cabeza = modal.slice(i, modal.indexOf("const miss = computeMissing(draft);", i));
     expect(cabeza).toContain("if (agendaEnDiaPasado(draft.delivery_date, existing?.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return false; }");
-    expect(modal).toContain("if (agendaEnDiaPasado(d.delivery_date, existing!.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }");
+    // «Solo la fecha»: con fecha puesta valida día pasado; con «Fecha pendiente» (null) se guarda sin día (se salta la regla).
+    expect(modal).toContain("if (d.delivery_date && agendaEnDiaPasado(d.delivery_date, existing!.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }");
     // Los dos botones (borrador→enviar y crear) pasan por passesChecks.
     expect(modal.split("await passesChecks(payload").length - 1).toBe(2);
   });

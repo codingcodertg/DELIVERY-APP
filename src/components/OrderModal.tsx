@@ -491,7 +491,10 @@ export function OrderModal({
   // ---- Required fields (#31) — see lib/required.ts for the rules ----
   // Live list of what's still missing, used to highlight the empty fields.
   const computeMissing = (draft: Draft): MissingField[] => {
-    const base = missingFields(draft, settings.order_type_rules);
+    // «Fecha pendiente» (sin fecha, a propósito): no se cuenta la fecha ni la ventana como «faltante» — es válido
+    // dejarlas en blanco; logística le pone el día después.
+    const base = missingFields(draft, settings.order_type_rules)
+      .filter((m) => !(!draft.delivery_date && (m.key === "delivery_date" || m.key === "delivery_windows")));
     if (needsSalesRep && !draft.assigned_sales_rep) {
       return [...base, { key: "assigned_sales_rep", en: "User", es: "Usuario" }];
     }
@@ -499,6 +502,7 @@ export function OrderModal({
   };
   const missing = computeMissing(d);
   const missingSet = new Set(missingKeys(d, settings.order_type_rules));
+  if (!d.delivery_date) { missingSet.delete("delivery_date"); missingSet.delete("delivery_windows"); }
   if (needsSalesRep && !d.assigned_sales_rep) missingSet.add("assigned_sales_rep");
   // Ventas sin cuenta en una orden de cliente (`cuenta-obligatoria`): el campo se pinta en rojo y el envío lo para `blockSubmit`.
   if (faltaLaCuenta(me.role, d, settings.order_type_rules)) missingSet.add("account");
@@ -849,8 +853,9 @@ export function OrderModal({
     // Ventas en una orden suya ya enviada: viaja SOLO la fecha (D-480). No pasa por los avisos de campos obligatorios ni
     // de duplicados: no cambia nada de lo que esos avisos miran.
     if (!isNew && alcance === "solo_fecha") {
-      if (!d.delivery_date) { notify(t("Pick a delivery date.", "Elija una fecha de entrega.")); return; }
-      if (agendaEnDiaPasado(d.delivery_date, existing!.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
+      // Con «Fecha pendiente» marcada (sin fecha) se guarda sin día: la orden queda pendiente y logística la agenda.
+      // Con una fecha puesta, las validaciones de siempre (día pasado, domingo, mismo día).
+      if (d.delivery_date && agendaEnDiaPasado(d.delivery_date, existing!.delivery_date)) { notify(t(AVISO_FECHA_PASADA.en, AVISO_FECHA_PASADA.es)); return; }
       if (fechaNoVale(d.delivery_date)) return;
       if (!(await sigueParaHoy(d.delivery_date))) return;
       setBusy(true);
@@ -1802,6 +1807,12 @@ export function OrderModal({
   const salesFields = editing && alcance === "todo" && (isNew || me.role === "sales" || me.role === "admin" || ordersLikeOfficeManager(me.role));
   /** Ventas cambiando SOLO la fecha de una orden suya (D-480): un campo en vez del formulario. */
   const soloFecha = editing && !isNew && alcance === "solo_fecha";
+  // Fecha pendiente (pedido del dueño): programar una orden sin fecha todavía; logística le pone el día después
+  // (cae sola en la vista «Expiradas y sin fecha» del Gestor). Pendiente = sin `delivery_date`. Marcar la casilla
+  // la deja en null; desmarcarla vuelve a mañana (el default de same-day). Como una orden nueva nace con fecha,
+  // el null solo aparece al marcar esto o al abrir una orden que ya estaba sin fecha.
+  const fechaPendiente = !d.delivery_date;
+  const alternarFechaPendiente = (pendiente: boolean) => set("delivery_date", pendiente ? null : fechaPorDefectoManana());
   // True when an existing order is being pushed to a LATER delivery date (a
   // reprogram) — the cue to offer the "deliver first thing in the morning" flag.
   const rescheduledForward = !!existing?.delivery_date && !!d.delivery_date && d.delivery_date > existing.delivery_date;
@@ -2001,7 +2012,7 @@ export function OrderModal({
                           entrega hoy o mañana, no en 2027, y cada pastilla de más es
                           la que hace que la fila se parta en dos. */}
                       <span className="hdr-chip">
-                        📅 {existing?.delivery_date ? fmtDateShort(existing.delivery_date, lang) : "—"}
+                        📅 {existing?.delivery_date ? fmtDateShort(existing.delivery_date, lang) : t("Pending date", "Fecha pendiente")}
                         {" · "}{fmtWindows(existing?.delivery_windows)}
                       </span>
                       <span className="hdr-chip">📦 {existing?.actual_pallets ?? existing?.est_pallets ?? "—"}</span>
@@ -2110,7 +2121,7 @@ export function OrderModal({
                     {([
                       [t("Account", "Cuenta"), existing.account || "—"],
                       [t("Delivery Fee", "Costo de Entrega"), existing.delivery_fee == null ? "—" : fmtMoney(existing.delivery_fee)],
-                      [t("Delivery Date", "Fecha de Entrega"), existing.delivery_date || "—"],
+                      [t("Delivery Date", "Fecha de Entrega"), existing.delivery_date || t("Pending date", "Fecha pendiente")],
                       [t("Delivery Windows", "Ventana de Entrega"), fmtWindows(existing.delivery_windows)],
                       ...(filaFacturaOEstimacion(existing, documento) ? [[t("Invoice / Estimate #", "Factura / Estimación #"), filaFacturaOEstimacion(existing, documento)!]] : []),
                       // Las facturas AÑADIDAS después (D-339), solo cuando hay alguna: la orden lleva más
@@ -2432,9 +2443,13 @@ export function OrderModal({
                  "Solo puede cambiar la fecha de entrega de esta orden. Lo demás queda como está.")}
             </div>
             <div className="grid g2">
-              <Txt label={t("New delivery date", "Nueva fecha de entrega")} type="date" val={d.delivery_date} on={(v) => set("delivery_date", v)} invalid={!d.delivery_date} min={minFechaDeEntrega()} max={maxFechaDeEntrega()} />
+              <Txt label={t("New delivery date", "Nueva fecha de entrega")} type="date" val={fechaPendiente ? "" : d.delivery_date} on={(v) => set("delivery_date", v)} disabled={fechaPendiente} invalid={!fechaPendiente && !d.delivery_date} min={minFechaDeEntrega()} max={maxFechaDeEntrega()} />
             </div>
-            <AvisoDeFecha fecha={d.delivery_date} actual={existing?.delivery_date} rol={me.role} caso={casoDomingo} onCaso={setCasoDomingo} t={t} />
+            <label className="check" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, cursor: "pointer" }} data-campo="fecha-pendiente">
+              <input type="checkbox" checked={fechaPendiente} onChange={(e) => alternarFechaPendiente(e.target.checked)} />
+              <span>{t("Pending date (schedule later)", "Fecha pendiente (se agenda después)")}</span>
+            </label>
+            {!fechaPendiente && <AvisoDeFecha fecha={d.delivery_date} actual={existing?.delivery_date} rol={me.role} caso={casoDomingo} onCaso={setCasoDomingo} t={t} />}
             <FranjasDelDia
               franjas={franjas} actual={d.delivery_windows} es={lang === "es"} onElige={null}
               vaAAprobacion={() => false}
@@ -2515,10 +2530,16 @@ export function OrderModal({
             )}
             {/* ---- Schedule ---- */}
             <div className="grid g2">
-              <Txt label={t("Delivery Date", "Fecha de Entrega")} type="date" val={d.delivery_date} on={(v) => set("delivery_date", v)} disabled={!salesFields} invalid={missingSet.has("delivery_date")} min={minFechaDeEntrega()} max={maxFechaDeEntrega()} />
-              <WindowSel val={d.delivery_windows} fecha={d.delivery_date} on={(v) => set("delivery_windows", v)} disabled={!salesFields} invalid={missingSet.has("delivery_windows")} t={t} />
+              <Txt label={t("Delivery Date", "Fecha de Entrega")} type="date" val={fechaPendiente ? "" : d.delivery_date} on={(v) => set("delivery_date", v)} disabled={!salesFields || fechaPendiente} invalid={!fechaPendiente && missingSet.has("delivery_date")} min={minFechaDeEntrega()} max={maxFechaDeEntrega()} />
+              <WindowSel val={d.delivery_windows} fecha={d.delivery_date} on={(v) => set("delivery_windows", v)} disabled={!salesFields || fechaPendiente} invalid={!fechaPendiente && missingSet.has("delivery_windows")} t={t} />
             </div>
-            {salesFields && <AvisoDeFecha fecha={d.delivery_date} actual={existing?.delivery_date} rol={me.role} caso={casoDomingo} onCaso={setCasoDomingo} t={t} />}
+            {salesFields && (
+              <label className="check" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, cursor: "pointer" }} data-campo="fecha-pendiente">
+                <input type="checkbox" checked={fechaPendiente} onChange={(e) => alternarFechaPendiente(e.target.checked)} />
+                <span>{t("Pending date (schedule later)", "Fecha pendiente (se agenda después)")}</span>
+              </label>
+            )}
+            {salesFields && !fechaPendiente && <AvisoDeFecha fecha={d.delivery_date} actual={existing?.delivery_date} rol={me.role} caso={casoDomingo} onCaso={setCasoDomingo} t={t} />}
             <FranjasDelDia
               franjas={franjas} actual={d.delivery_windows} es={lang === "es"}
               onElige={salesFields ? (v) => set("delivery_windows", v) : null}
