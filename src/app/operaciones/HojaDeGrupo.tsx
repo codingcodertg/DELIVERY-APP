@@ -208,7 +208,7 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
         <section className="hoja-firmas hoja-firmas-digital">
           {SLOTS_DE_FIRMA.map((slot) => {
             const fm = firmaDe(firmas, slot);
-            const puede = !aprobado && gestiona && puedeFirmarSlot(firmas, slot, ctx.yo.id);
+            const puede = !aprobado && gestiona && puedeFirmarSlot(firmas, slot, ctx.yo.id, ctx.yo);
             return (
               <div className="hoja-firma" key={slot} data-firma-grupo={slot}>
                 {firmaValida(fm?.signature_png)

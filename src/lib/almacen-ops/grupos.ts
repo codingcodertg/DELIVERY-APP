@@ -8,7 +8,7 @@
  * Regla PURA (sin React, sin red). Reusa los ayudantes de firmas por reporte (`firmas.ts`): las firmas del grupo tienen
  * la misma forma (`FirmaDeMerma`).
  */
-import { firmasFaltantes, nombreDeSlot, tieneAmbasFirmas, type FirmaDeMerma, type SlotDeFirma } from "./firmas";
+import { firmasFaltantes, nombreDeSlot, slotsQuePuedoFirmar, tieneAmbasFirmas, type FirmaDeMerma, type SlotDeFirma } from "./firmas";
 import type { Lang } from "./etapas";
 import { diaEnTexas } from "./fecha-del-dano";
 
@@ -85,10 +85,8 @@ export function filtrarGrupos<G extends Pick<GrupoDeMerma, "approved_at" | "crea
  * firmar de verdad lo sigue diciendo la base (`warehouse_ops_can_manage`), sin cambios.
  */
 export function slotsQueMeTocan(q: { role: string; permissions?: string[] | null }): readonly SlotDeFirma[] {
-  if (q.role === "admin") return ["gerente", "supervisor"];
-  if ((q.permissions ?? []).includes("warehouse_ops_supervisor") || q.role === "warehouse") return ["supervisor"];
-  if (q.role === "manager") return ["gerente"];
-  return [];
+  // 11 nov: la MISMA regla que la firma (`slotsQuePuedoFirmar`, migración 293): solo se le muestra lo que puede firmar.
+  return slotsQuePuedoFirmar(q);
 }
 
 /** Los grupos de SU tienda, sin aprobar, a los que les falta la firma que le toca (lo más viejo primero). */

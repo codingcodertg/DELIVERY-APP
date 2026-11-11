@@ -51693,3 +51693,15 @@ Tres ayudas de Roberto (11 nov):
 - **De paso:** la prueba de la app de escritorio esperaba la versión 1.3.0; D-984 la subió a 1.4.0.
 
 Sello `deliveries` 1.595.0; repo 1.839.0.
+
+## D-987 · Merma: el gerente firma «gerente» y el supervisor «supervisor»; nadie llena los dos (migración 293)
+
+El dueño (11 nov) revierte la parte de D-962 que dejaba a la misma persona firmar los dos espacios: un **gerente** firma SOLO el espacio «gerente» y un **supervisor de almacén** (permiso `warehouse_ops_supervisor`) SOLO «supervisor». Un gerente no firma como supervisor ni al revés, y la misma persona ya no llena los dos.
+
+**Respaldo (el dueño lo puede vetar):** el **admin del hub** puede firmar cualquiera de los dos espacios, incluso ambos.
+
+En la base, **migración 293** (`293_firma_por_papel.sql`): nueva `warehouse_ops_can_sign_slot(slot)` y las dos funciones de firma (`warehouse_ops_sign_scrap_group`, y `warehouse_ops_sign_scrap` por reporte, 280) la exigen; además rechazan que quien firma ya tenga el otro espacio (salvo el admin del hub). Sigue: `warehouse_ops_can_manage`, el auto-aprobar con las dos firmas (283), no pisar la firma de otra persona. En la app, `puedeFirmarSlot` / `slotsQuePuedoFirmar` (`firmas.ts`) con la misma regla: el botón «Firmar» solo sale en el espacio que te toca, y «Pendiente de tu firma» enseña solo esos.
+
+Hoy ningún perfil activo tiene el permiso de supervisor de almacén: hasta que se le dé a alguien en Permisos, el espacio «supervisor» solo lo puede firmar el admin del hub.
+
+Sello `warehouse_ops` 0.36.0; repo 1.840.0.
