@@ -122,6 +122,9 @@ export const ORDER_COLUMNS: OrderColumn[] = [
     } },
   { key: "type", en: "Type", es: "Tipo", value: (d) => d.order_type, cell: (d) => d.order_type || "—" },
   { key: "store", en: "Store", es: "Tienda", value: (d) => d.store, cell: (d) => d.store || "—" },
+  // Ayuda de Roberto (11 nov, «Add Pick up column»): DÓNDE se recoge la orden (`pickup_name`: la tienda o el punto de
+  // recogida; en un relevo, el tramo b recoge donde dejó el a). Sin `pickup_name`, la tienda de la orden.
+  { key: "pickup_from", en: "Pick up", es: "Recogida", value: (d) => (d.pickup_name || d.store) ?? null, cell: (d) => d.pickup_name || d.store || "—" },
   { key: "account", en: "Account", es: "Cuenta", value: (d) => d.account, cell: (d) => d.account || "—" },
   { key: "so", en: "SO #", es: "SO #", value: (d) => d.so_num, cell: (d) => d.so_num || "—" },
   { key: "po", en: "PO #", es: "PO #", value: (d) => d.po2, cell: (d) => d.po2 || "—" },
@@ -141,6 +144,10 @@ export const ORDER_COLUMNS: OrderColumn[] = [
       );
     },
   },
+  // Ayuda de Roberto (11 nov, «Add input date column option»): el día en que se capturó la orden (`input_date`), opcional
+  // en ⚙ Columnas como las demás; se ordena y filtra por fecha.
+  { key: "input_date", en: "Input Date", es: "Fecha de captura", value: (d) => d.input_date ?? null,
+    filterLabel: (v) => fmtDate(v as string | null), cell: (d) => (d.input_date ? fmtDate(d.input_date) : "—") },
   { key: "windows", en: "Windows", es: "Ventanas", value: (d) => d.delivery_windows, cell: (d) => fmtWindows(d.delivery_windows) },
   { key: "pallets", en: "Pallets", es: "Pallets", value: (d) => d.actual_pallets ?? d.est_pallets ?? null, cell: (d, { t }) => {
       const v = palletVariance(d);

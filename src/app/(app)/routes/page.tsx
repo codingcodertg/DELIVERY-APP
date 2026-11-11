@@ -3470,7 +3470,9 @@ export default function RoutesPage() {
                           : t(`Estimated arrival under the route's plan when this stop was done${primera ? ` (first estimate today: ${primera})` : ""}`, `Llegada prevista con el plan de la ruta cuando se hizo esta parada${primera ? ` (la primera de hoy: ${primera})` : ""}`)}>{g?.eta ?? "—"}</td>;
                     })()
                   : <td data-hora-real={hora ?? ""} style={{ fontWeight: 600 }}>{hecho ? `✓ ${hora ?? t(fp.tipo === "P" ? "picked up" : "delivered", fp.tipo === "P" ? "recogida" : "entregada")}` : `🚚 ${t("on its way", "en camino")}`}</td>,
-                recogida: fp.tipo === "P" ? <b>{(d.store ?? "").trim() || "—"}</b> : undefined,
+                // Ayuda de Roberto (11 nov, «says mcallen but its weslaco»): la recogida hecha va donde se RECOGIÓ (`pickup_name`,
+                // p. ej. el tramo b de un relevo recoge en Weslaco), no la tienda dueña de la orden; `store` solo de respaldo.
+                recogida: fp.tipo === "P" ? <b>{(d.pickup_name ?? "").trim() || (d.store ?? "").trim() || "—"}</b> : undefined,
               }))}
               <td className="celda-acciones" />
             </tr>
