@@ -51511,3 +51511,17 @@ Endurecimiento. **CSRF (#16):** en `src/middleware.ts`, una petición **mutante*
 **Errores genéricos:** `src/lib/api-error.ts` `errorAlCliente(...)` registra el detalle real en el servidor y devuelve `{error: <genérico>}` (conserva el campo `error`). Aplicado en las ~12 rutas que la auditoría nombró + otras que filtraban `error.message` de la base (delete-user, notify, places, recruiting/*, etc.), conservando los mensajes de app accionables.
 
 Sello `deliveries` 1.591.0; repo 1.822.0.
+
+## D-NEXT · RR. HH.: el SMS de la entrevista presencial lleva la dirección corta y el enlace corto de Google Maps
+
+El dueño, 2026-11-10, con la captura del texto de confirmación rechazado por RingCentral («Your message is too long. Shorten it and try again.»): «hay que acortar eso mira eso del mapa creo que esta muy largo mira como podemos hacer».
+
+La dirección de la tienda sale de Datos → Tiendas tal como la dejó el geocodificador («1120, East Expressway 83, L R Bell Colonia, Pharr, Hidalgo County, Texas, 78577, United States»), y el enlace la repetía entera con %20 y %2C (`google.com/maps/search/?api=1&query=…`). D-764 ya había quitado Waze por lo mismo; no bastó.
+
+**Qué cambia.** `direccionCorta()` (`src/lib/recruiting/agendar-presencial.ts`) quita país, condado y colonia, deja «Texas» como «TX» con su código postal y junta el número con la calle: «1120 East Expressway 83, Pharr, TX 78577». Esa dirección va en `{address}` y en el enlace, que pasa a ser el corto de Google Maps: `https://maps.google.com/?q=1120+East+Expressway+83,+Pharr,+TX+78577`. Medido con la cita de la captura: el texto pasa de 681 a 510 caracteres. Lo que el arreglo no reconoce lo deja igual; una dirección ya corta no cambia.
+
+**Qué no cambia.** La plantilla y el resto del texto. Si una plantilla de Ajustes es muy larga, puede seguir pasando del límite.
+
+**Pruebas.** `agendar-presencial.test.ts`: la dirección geocodificada queda corta, el enlace es el corto y sin %20/%2C, y el texto de la tienda queda por debajo de 560 caracteres. 4 de 4 mutantes caen (enlace largo de vuelta, sin quitar el condado, `{address}` sin acortar, mapa con la dirección larga).
+
+Sello `recruiting` D-NEXT; repo D-NEXT.
