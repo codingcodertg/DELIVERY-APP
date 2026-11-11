@@ -191,14 +191,14 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
       const reps = [...new Set(filas.map((f) => f.rep_id).filter((r): r is string => !!r))];
       const nombre = new Map<string, string>();
       if (reps.length) {
-        const { data: perfiles } = await supabase.from("profiles").select("id, full_name").in("id", reps);
+        const { data: perfiles } = await supabase.from("perfiles_publicos").select("id, full_name").in("id", reps);
         for (const p of (perfiles ?? []) as { id: string; full_name: string | null }[]) if (p.full_name) nombre.set(p.id, p.full_name);
       }
       for (const f of filas) mapa.set(Number(f.id), { ...f, id: Number(f.id), credit_limit: f.credit_limit == null ? null : Number(f.credit_limit), rep_name: f.rep_id ? (nombre.get(f.rep_id) ?? null) : null });
       return { ok: true, valor: mapa };
     },
     async personas() {
-      const { data, error } = await supabase.from("profiles").select("id, full_name, store, role, module_access").or(filtroActivos()); // D-707
+      const { data, error } = await supabase.from("perfiles_publicos").select("id, full_name, store, role, module_access").or(filtroActivos()); // D-707
       if (error) return fallo(error);
       const filas = (data ?? []) as { id: string; full_name: string | null; store: string | null; role: string | null; module_access: string[] | null }[];
       return {

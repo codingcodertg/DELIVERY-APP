@@ -56,7 +56,7 @@ describe("quién votó qué", () => {
   it("la página lee quién y cuándo, sin llave de servicio; la pastilla abre el panel", () => {
     const p = leer("src/app/promos/[id]/page.tsx");
     expect(p).toContain('const veVotos = rol === "admin" || esDecisor;');
-    expect(p).toContain('await supabase.from("profiles").select("id, full_name").in("id", ids);');
+    expect(p).toContain('await supabase.from("perfiles_publicos").select("id, full_name").in("id", ids);');
     expect(leer("src/app/promos/[id]/TablaDeRonda.tsx")).toContain("onClick={(e) => { e.stopPropagation(); setVotosDe(fila.code); }}");
   });
 });

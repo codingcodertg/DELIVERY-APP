@@ -10,12 +10,12 @@ const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
 describe("el almacén", () => {
-  it("lee los clientes cruzados de erp.customers y el nombre del vendedor de profiles; sin ids, nada", () => {
+  it("lee los clientes cruzados de erp.customers y el nombre del vendedor de perfiles_publicos (M1/290); sin ids, nada", () => {
     const a = sinComentarios(leer("src/lib/leads/almacen.ts"));
     expect(a).toContain("clientesCruzados(ids: readonly number[]): Promise<Res<Map<number, ClienteCruzado>>>;");
     expect(a).toContain('supabase.schema("erp").from("customers").select(COLUMNAS_CRUZADO).in("id", unicos)');
     for (const col of ["contact_name", "phone", "email", "address", "terms", "credit_limit", "notes"]) expect(a).toMatch(new RegExp(`COLUMNAS_CRUZADO = "[^"]*\\b${col}\\b`));
-    expect(a).toContain('supabase.from("profiles").select("id, full_name").in("id", reps)');
+    expect(a).toContain('supabase.from("perfiles_publicos").select("id, full_name").in("id", reps)');
     expect(a).toContain("if (!unicos.length) return { ok: true, valor: mapa };");
   });
   it("el demo contesta vacío", async () => {

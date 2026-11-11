@@ -51552,3 +51552,13 @@ Se registra el **último uso por (persona, app)**: tabla `public.app_last_seen` 
 Lógica pura `src/lib/security/uso-por-app.ts` (`estadoDeApp`, umbral `DIAS_FRESCO = 2`). En `PanelDePermisos`, cada app habilitada muestra 🟢 "Activa" o ⚪ "hace N d" (sin colores inline; usa `--green`/`--gray`). De paso, el panel ya NO lista a los dados de baja (los que tienen `left_at`): salen de la lista de gente activa, como promete el texto de la baja (D-951).
 
 Sello `security` 0.23.0; repo 1.826.0.
+
+## D-974 · Seguridad (M1): vista pública de `profiles` + cerrar la lectura (en dos fases)
+
+Revisión de seguridad. `public.profiles` tenía `SELECT using(true)`: cualquier autenticado leía TODO de todos, incluidos `permissions`, `username` y `active_session_id`. Se cierra la lectura sensible sin romper que el nombre se vea en toda la app.
+
+Vista `public.perfiles_publicos` (`security_barrier`, SOLO LECTURA — revoke all + grant select, con autochequeo de no-escribible para que no se use como atajo para escribir en `profiles` saltándose la RLS) que expone los campos de display/lógica MENOS los sensibles. La política SELECT de `profiles` pasa a **propia fila + admin + RR. HH.**. Las lecturas de OTROS para mostrar nombre/rol se movieron a la vista (incl. el `data-provider` central con fallback); las propias, las de admin/RR. HH. y las security-definer/service-role siguen en la tabla.
+
+**Rollout en DOS fases, sin ventana** (el efecto es RLS en runtime, no lo cubre el CI): migración **290** crea la vista (inofensiva, la tabla sigue abierta) → se despliega el código que lee la vista → se verifica por rol → migración **291** cierra la tabla → se verifica otra vez. Si algo falla, se revierte solo la 291 (vuelve la política abierta). Por eso este cambio se aplica con el dueño mirando, no en automático.
+
+Sello `deliveries` 1.593.0; repo 1.827.0.

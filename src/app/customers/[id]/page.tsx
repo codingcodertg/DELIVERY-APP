@@ -62,7 +62,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
   const cliente: Cliente = clienteDeLaBase(data as unknown as Record<string, unknown>);
   // D-683 (198): el nombre de su vendedor, que la ficha enseña en vez del id.
   if (cliente.rep_id) {
-    const { data: rep } = await supabase.from("profiles").select("full_name").eq("id", cliente.rep_id).maybeSingle();
+    const { data: rep } = await supabase.from("perfiles_publicos").select("full_name").eq("id", cliente.rep_id).maybeSingle();
     cliente.rep_name = rep?.full_name ?? null;
   }
   // Las otras tiendas de la misma empresa (189): las pestañas de la ficha. Sin la 189 no hay company_id y es ella sola.

@@ -121,7 +121,7 @@ export async function cargaDias(p: PeticionDeDias): Promise<DiasCargados | Error
   const { supabase, desde, hasta } = p;
   const [ajustes, gente] = await Promise.all([
     supabase.from("settings").select("stores, order_type_rules").eq("id", 1).maybeSingle(),
-    supabase.from("profiles").select("id, full_name").eq("role", "driver"),
+    supabase.from("perfiles_publicos").select("id, full_name").eq("role", "driver"),
   ]);
   if (ajustes.error || gente.error) return { error: "Could not read settings.", detail: (ajustes.error ?? gente.error)?.message, status: 500 };
   const choferes = (gente.data ?? []) as Chofer[];

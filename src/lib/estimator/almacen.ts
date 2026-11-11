@@ -177,7 +177,7 @@ export function borradorDeFila(fila: Record<string, unknown>): QuoteDraft {
 
 /** Las columnas de la lista de todas: sin `delivery` (lleva la dirección) y con el dueño por su clave foránea. */
 export const COLUMNAS_DE_LA_LISTA =
-  "id, estimate_num, owner_id, store, customer, lines, print_count, printed_at, created_at, updated_at, owner:profiles!estimator_quotes_owner_id_fkey(full_name)";
+  "id, estimate_num, owner_id, store, customer, lines, print_count, printed_at, created_at, updated_at";
 
 /**
  * De una fila de `estimator_quotes` (con el dueño embebido) a lo que lista la pestaña de todas. El total se calcula
@@ -297,7 +297,7 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeCotizaciones
 
     async vendedores() {
       // Como Clientes (`almacen.vendedores()`): perfiles con rol de vendedor, solo los que no están de baja.
-      const { data, error } = await supabase.from("profiles").select("id, full_name, store, left_at").eq("role", "sales").order("full_name");
+      const { data, error } = await supabase.from("perfiles_publicos").select("id, full_name, store, left_at").eq("role", "sales").order("full_name");
       if (error) return fallo(error);
       const filas = soloActivos((data ?? []) as { id: string; full_name: string | null; store: string | null; left_at: string | null }[]);
       return { ok: true, valor: filas.map((p) => ({ id: p.id, full_name: p.full_name ?? "", store: p.store?.trim() || null })) };
@@ -349,7 +349,16 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeCotizaciones
         .order("id", { ascending: false })
         .range(desde, hasta);
       if (error) return fallo(error);
-      return { ok: true, valor: cortaTanda(((data ?? []) as Record<string, unknown>[]).map(resumenDeFila)) };
+      // M1 (290): el nombre del dueño ya no viene por embed de `profiles` (la tabla quedó cerrada); se busca por la
+      // vista pública `perfiles_publicos` y se inyecta como `owner.full_name` para que `resumenDeFila` no cambie.
+      const filas = (data ?? []) as Record<string, unknown>[];
+      const ids = [...new Set(filas.map((f) => f.owner_id).filter((x): x is string => typeof x === "string"))];
+      let nombres = new Map<string, string | null>();
+      if (ids.length) {
+        const { data: ps } = await supabase.from("perfiles_publicos").select("id, full_name").in("id", ids);
+        nombres = new Map(((ps ?? []) as { id: string; full_name: string | null }[]).map((p) => [p.id, p.full_name]));
+      }
+      return { ok: true, valor: cortaTanda(filas.map((f) => resumenDeFila({ ...f, owner: { full_name: nombres.get(f.owner_id as string) ?? null } }))) };
     },
   };
 }
