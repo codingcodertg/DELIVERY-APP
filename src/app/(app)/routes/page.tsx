@@ -52,6 +52,7 @@ import { botonDelCamion } from "@/lib/gestor/boton-del-camion";
 import { serviceMin } from "@/lib/trip-timing";
 import { pintaElTrazoDelPlan, textoDeLaLlegada, type MotivoSinLlegada } from "@/lib/medida-de-ruta";
 import { DAY_START_MIN, useMedidaDeRutas, claveDeRecogida, ordenesDeLaRecogidaMedida } from "@/lib/usa-medida-de-rutas";
+import { MARGEN_DEL_RELEVO_MIN, conRecogidaDesde, etaDeEntregaEn, etaDeRecogidaEn, llegadasDelPlan, pasoAnteriorPorId, recogidaDesdeDelRelevo, relevosAntesDeTiempo } from "@/lib/relevo-a-tiempo";
 import { carrilesDelDia, cargaDelPanel, encuadreDeLasRutas, lineasDeLasRutas, puntosDeLasRutas, rutaDeLaLinea, rutasPorChofer, type CarrilDeRuta } from "@/lib/mapa-de-rutas";
 import { listaDelDia, ordenesDeLaRutaDelDia, pendientesDelDia } from "@/lib/recogida-y-ruta-del-dia";
 import { PanelDeChoferes } from "@/components/PanelDeChoferes";
@@ -60,6 +61,7 @@ import { AvisosDeRelevo, RelevoDeLaOrden } from "@/components/RelevoDeLaOrden";
 import { esPasoDeRelevo } from "@/lib/relevo-etiqueta";
 import { isStoreToStore } from "@/lib/required";
 import { puedeReprogramar } from "@/lib/reprogramar-orden";
+import { ReprogramarVarias } from "@/components/ReprogramarVarias";
 import { BandejaDeSolicitudes } from "@/components/BandejaDeSolicitudes";
 import { notaAlAprobar, pasosAlAprobar, puedeDecidirSolicitudes, type SolicitudDeAsignacion } from "@/lib/solicitud-de-asignacion";
 import { optimizaLaLista } from "@/lib/optimiza-la-ruta";
@@ -1168,11 +1170,18 @@ export default function RoutesPage() {
       lista, ordenes: stops, base, fin: finParaEstimar(laneKey), capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda,
       esEstrecha: (ventana) => esVentanaDura(ventana, settings), salidaMin: DAY_START_MIN,
     });
+    // D-994: el paso b de un relevo no se recoge antes de que llegue su paso a (+1 h): esa recogida espera en la tienda.
+    const desdeDelRelevo = recogidaDesdeDelRelevo(dayOrders, (id) => etaDeEntregaEn(routeEtas, id));
+    const recogidaDesde = entrada.paradas.map((p) => {
+      if (p.tipo !== "P") return null;
+      const v = p.ordenes.map((id) => desdeDelRelevo.get(id)).filter((x): x is number => x != null);
+      return v.length ? Math.max(...v) : null;
+    });
     setOptimizando(laneKey);
     try {
       const tiempos = await tiemposDeLaRuta(puntosDeLaEntrada(entrada), tiemposPedidos.current, (puntos) =>
         fetch("/api/route-matrix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ puntos }) }));
-      const r = optimizaLaLista({ ...entrada, tiempos: tiempos?.tiempos ?? null });
+      const r = optimizaLaLista({ ...entrada, recogidaDesde, tiempos: tiempos?.tiempos ?? null });
       const porId = new Map(stops.map((d) => [d.id, d]));
       const aviso = avisoDeOptimizar({
         ruta: laneLabel(laneKey), r, tiempos, hayBase: !!base, pallets: numeroDePallets, sinRecogidas: !hayRecogidaGuardada,
@@ -2130,7 +2139,23 @@ export default function RoutesPage() {
       const tiempos = await tiemposDeLaRuta(Object.values(puntos), tiemposPedidos.current, (pts) =>
         fetch("/api/route-matrix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ puntos: pts }) }));
       const medida = matrizDelGestor(puntos, tiempos?.tiempos ?? null);
-      const r = reparteEntre({ ...peticion, entrada: { ...diaParaElMotor.entrada, matriz: medida.matriz }, parametros: diaParaElMotor.parametros });
+      // D-994: el paso b de un relevo no se recoge antes de que llegue su paso a (+1 h). Primero con las llegadas que ya hay
+      // en las rutas; si el paso a también se repartió aquí, con la llegada que le dio el motor, y se vuelve a repartir.
+      const desdeFuera = recogidaDesdeDelRelevo(dayOrders, (id) => etaDeEntregaEn(routeEtas, id));
+      const repartir = (desde: ReadonlyMap<string, number>) => reparteEntre({ ...peticion, entrada: { ...diaParaElMotor.entrada, ordenes: conRecogidaDesde(diaParaElMotor.entrada.ordenes, desde), matriz: medida.matriz }, parametros: diaParaElMotor.parametros });
+      let r = repartir(desdeFuera);
+      {
+        const llegadas = llegadasDelPlan(r.plan.rutas);
+        const desde = new Map(desdeFuera);
+        let cambio = false;
+        for (const [b, a] of pasoAnteriorPorId(dayOrders)) {
+          const llega = llegadas.get(a.id);
+          if (llega == null || a.stage === "delivered") continue;
+          const v = llega + MARGEN_DEL_RELEVO_MIN;
+          if ((desde.get(b) ?? -Infinity) < v) { desde.set(b, v); cambio = true; }
+        }
+        if (cambio) r = repartir(desde);
+      }
       const porId = new Map(dayOrders.map((d) => [d.id, d]));
       const nombreDe = (id: string) => { const d = porId.get(id); return d ? facturaYId(d).principal : id.slice(0, 6); };
       const movimientos = movimientosDelReparto(r, (id) => porId.get(id)?.assigned_driver ?? null);
@@ -2163,6 +2188,10 @@ export default function RoutesPage() {
                 title={t("Hand the checked orders to several drivers at once; the engine decides who gets each one and where", "Repartir las marcadas entre varios choferes de una vez; el motor decide a quién le toca cada una y dónde")}>
                 {abierto ? "▾" : "▸"} {t("Assign to several drivers…", "Asignar a varios choferes…")}
               </button>}
+          {/* D-994 (Roberto: «reschedule multiple at a time»): una fecha nueva —o «Fecha pendiente»— para todas las marcadas. */}
+          <ReprogramarVarias key={seleccionDelReparto.map((d) => d.id).join(",")} marcadas={seleccionDelReparto} rol={me?.role} meId={me?.id} lang={lang} t={t}
+            reprogramarOrden={(id, f, nota, l) => reprogramarOrden(id, f, nota, l)} updateDelivery={updateDelivery} addNote={addNote} notify={notify}
+            onListo={() => { setMarcadas(new Set()); clearSelection(); }} />
         </div>
         {abierto && (
           <>
@@ -3545,6 +3574,10 @@ export default function RoutesPage() {
           const etaMin = eta ? parseInt(eta.slice(0, 2), 10) * 60 + parseInt(eta.slice(3, 5), 10) : null;
           return etaMin != null && win != null && etaMin > win[1];
         });
+        // D-994: un paso b de relevo que esta ruta recoge antes de que llegue su paso a (+1 h), o sin saber cuándo llega.
+        const enEstaRuta = new Set(stops.map((d) => d.id));
+        const relevosTarde = relevosAntesDeTiempo(dayOrders, (id) => etaDeRecogidaEn({ [u.key]: routeEtas[u.key] }, id), (id) => etaDeEntregaEn(routeEtas, id))
+          .filter((x) => enEstaRuta.has(x.paso));
         // Tapping anywhere on the card that isn't a stop row drops the
         // single-stop focus, so the map goes back to this driver's whole day.
         // That's the "tap outside" way back out.
@@ -3757,6 +3790,22 @@ export default function RoutesPage() {
                 <div className="hint" style={{ marginTop: 2 }}>
                   {lateStops.slice(0, 6).map((d) => `#${orderLabel(d)}${d.account ? ` (${d.account})` : ""}`).join(", ")}{lateStops.length > 6 ? "…" : ""}
                   {" — "}{t("reorder the stops or move some to another driver.", "reordene las paradas o mueva algunas a otro chofer.")}
+                </div>
+              </div>
+            )}
+            {relevosTarde.length > 0 && (
+              <div className="card" data-relevo-antes-de-tiempo style={{ marginBottom: 8, background: "var(--red-soft)", borderColor: "var(--red)" }}>
+                <b style={{ color: "var(--red)" }}>⚠️ {t(`${relevosTarde.length} relay pickup(s) before leg A arrives`, `${relevosTarde.length} recogida(s) de relevo antes de que llegue el paso a`)}</b>
+                <div className="hint" style={{ marginTop: 2 }}>
+                  {relevosTarde.slice(0, 6).map((x) => {
+                    const b = dayOrders.find((d) => d.id === x.paso);
+                    const hh = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+                    const nombre = b ? `#${orderLabel(b)}` : x.paso.slice(0, 6);
+                    return x.llegadaDelAnterior == null
+                      ? t(`${nombre}: pickup ${hh(x.recogida)}, leg A has no ETA on any route`, `${nombre}: recoge ${hh(x.recogida)}, el paso a no tiene hora en ninguna ruta`)
+                      : t(`${nombre}: pickup ${hh(x.recogida)}, leg A arrives ${hh(x.llegadaDelAnterior)}`, `${nombre}: recoge ${hh(x.recogida)}, el paso a llega ${hh(x.llegadaDelAnterior)}`);
+                  }).join(" · ")}
+                  {" — "}{t(`leave at least ${MARGEN_DEL_RELEVO_MIN} min after leg A arrives (Optimize and Distribute already do).`, `deje al menos ${MARGEN_DEL_RELEVO_MIN} min después de que llegue el paso a (Optimizar y Repartir ya lo hacen).`)}
                 </div>
               </div>
             )}

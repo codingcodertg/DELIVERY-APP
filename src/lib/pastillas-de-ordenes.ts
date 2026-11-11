@@ -1,5 +1,6 @@
 import { PESTANA_DOCUMENTO_PENDIENTE } from "@/lib/documento-pendiente";
 import { PESTANA_ATRASADAS } from "@/lib/atrasadas";
+import { PESTANA_FECHA_PENDIENTE } from "@/lib/fecha-pendiente-pestana";
 
 /**
  * La fila de pastillas de Órdenes: cuáles salen, en qué orden y cuál está encendida (D-313).
@@ -69,6 +70,8 @@ export function pastillasDeOrdenes(args: {
   // La del documento pendiente (D-310), igual: siempre (D-436). Quien no tiene tienda la veía siempre desde D-404.
   void pendientesSinTienda;
   salida.push(pastilla(PESTANA_DOCUMENTO_PENDIENTE, "chip-pend"));
+  // «Pending Delivery Date» (D-994, Roberto), la última, también siempre: las órdenes programadas sin día.
+  salida.push(pastilla(PESTANA_FECHA_PENDIENTE, "chip-pend"));
 
   return salida;
 }

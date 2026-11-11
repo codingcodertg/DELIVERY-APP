@@ -51,6 +51,10 @@ export interface OrdenEntrada {
   builder?: boolean;
   servicioRecogidaMin: number;
   servicioEntregaMin: number;
+  /** D-994: no se puede EMPEZAR a recoger antes de este minuto (si el camión llega antes, espera). Lo usa el paso b de un
+   *  relevo: la carga no está en la tienda de relevo hasta que el paso a llega (más el margen, `MARGEN_DEL_RELEVO_MIN`).
+   *  Sin él, nada cambia. */
+  recogidaDesde?: number | null;
   /** El chofer que ya puso una persona: se respeta el CHOFER; la posición la decide el motor. */
   choferFijado?: string | null;
   /** La recogida ya ocurrió: la carga va en el camión de `choferFijado` desde el principio, y solo queda

@@ -250,6 +250,12 @@ export function evaluaRuta(chofer: ChoferEntrada, paradas: readonly ParadaRef[],
         }
         servicio = Math.max(parametros.recargaMinimaMin, suma);
       }
+      // D-994: el paso b de un relevo no se recoge antes de que el paso a llegue a la tienda (más el margen): si el camión
+      // llega antes, ESPERA ahí. La espera cuenta como jornada, así que el motor prefiere poner la recogida más tarde.
+      if (o.recogidaDesde != null && Number.isFinite(o.recogidaDesde) && inicio < o.recogidaDesde) {
+        espera = o.recogidaDesde - inicio;
+        inicio = o.recogidaDesde;
+      }
       if (recogidas.has(o.id)) viola("precedencia", o.id, "recogida dos veces");
       recogidas.add(o.id);
       carga += aCentesimas(o.pallets);

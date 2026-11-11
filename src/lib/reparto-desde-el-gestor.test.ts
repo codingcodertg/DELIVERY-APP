@@ -184,7 +184,9 @@ describe("la pantalla usa cada pieza (se alimenta de quien llama)", () => {
     expect(reparte).toContain("const puntos = puntosDelReparto(entradaDelReparto(peticion).entrada, diaParaElMotor.puntos);");
     expect(reparte).toContain("const tiempos = await tiemposDeLaRuta(Object.values(puntos), tiemposPedidos.current, (pts) => fetch(\"/api/route-matrix\",");
     expect(reparte).toContain("const medida = matrizDelGestor(puntos, tiempos?.tiempos ?? null);");
-    expect(reparte).toContain("const r = reparteEntre({ ...peticion, entrada: { ...diaParaElMotor.entrada, matriz: medida.matriz }, parametros: diaParaElMotor.parametros });");
+    // D-994: con la espera del relevo (`conRecogidaDesde`), y una segunda pasada si el paso a también se repartió aquí.
+    expect(reparte).toContain("reparteEntre({ ...peticion, entrada: { ...diaParaElMotor.entrada, ordenes: conRecogidaDesde(diaParaElMotor.entrada.ordenes, desde), matriz: medida.matriz }, parametros: diaParaElMotor.parametros })");
+    expect(reparte).toContain("if (cambio) r = repartir(desde);");
   });
   it("antes de escribir, el resumen: se confirma con él delante; si nada se puede asignar, solo se avisa y no se escribe", () => {
     expect(reparte).toContain("const resumen = resumenDelReparto({ r, nombreDe, movimientos, medida, totalSeleccionadas: seleccionadas.length });");

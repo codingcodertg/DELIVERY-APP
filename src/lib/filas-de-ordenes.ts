@@ -3,6 +3,7 @@ import type { OrderTypeRules } from "@/lib/required";
 import { facturaPendiente, PESTANA_DOCUMENTO_PENDIENTE } from "@/lib/documento-pendiente";
 import { PESTANA_ATRASADAS } from "@/lib/atrasadas";
 import { PASTILLA_TODAS } from "@/lib/pastillas-de-ordenes";
+import { ordenesSinFecha, PESTANA_FECHA_PENDIENTE } from "@/lib/fecha-pendiente-pestana";
 
 /**
  * Las filas de la tabla de Órdenes y las cuentas de sus pastillas, **escritas una vez** (D-384).
@@ -43,6 +44,8 @@ export function filasDeOrdenes(
 ): Delivery[] {
   // «Outdated» no es una etapa: enseña las atrasadas de TODAS las etapas abiertas.
   if (filtro === PESTANA_ATRASADAS) return listas.atrasadas.filter(pasaElPreset);
+  // «Fecha pendiente» (D-994): las que esperan su día, de todas las etapas vivas. Sin día, el chip de fecha no las corta.
+  if (filtro === PESTANA_FECHA_PENDIENTE) return ordenesSinFecha(listas.visibles, listas.conPendientes);
   // Tampoco la de factura pendiente: enseña toda orden sin factura (D-465), de todas las etapas vivas.
   if (filtro === PESTANA_DOCUMENTO_PENDIENTE) {
     return listas.conPendientes.filter((d) => facturaPendiente(d, reglas) && pasaElPreset(d));
@@ -70,5 +73,6 @@ export function cuentasDeOrdenes(
   const pendientes = listas.conPendientes.filter((d) => facturaPendiente(d, reglas));
   c[PESTANA_DOCUMENTO_PENDIENTE] = (filtro === PESTANA_DOCUMENTO_PENDIENTE ? pendientes.filter(pasaElPreset) : pendientes).length;
   c[PESTANA_ATRASADAS] = (filtro === PESTANA_ATRASADAS ? listas.atrasadas.filter(pasaElPreset) : listas.atrasadas).length;
+  c[PESTANA_FECHA_PENDIENTE] = ordenesSinFecha(listas.visibles, listas.conPendientes).length;
   return c;
 }

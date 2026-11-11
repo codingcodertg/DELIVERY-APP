@@ -51768,3 +51768,20 @@ Ahora (`numeracionConHechas` / `puestoEn` en `mover-parada.ts`): lo entregado se
 Lo de hoy: las rutas que ya se renumeraron antes de este cambio (p. ej. la de Ernesto del 11 nov, entregadas en 7–10 y pendientes desde 11) no recuperan el orden de antes: no se guardaba aparte. Desde ahora no se vuelve a perder.
 
 Sello `deliveries` 1.597.0; repo 1.846.0.
+
+## D-994 · Gestor de Rutas: el paso b de un relevo nunca antes que el a (+1 h); reprogramar varias; pestaña «Pending Delivery Date»
+
+Tres ayudas de Roberto (Entregas):
+
+**1. Relevos (9 nov, Gestor → Rutas, «Repartir órdenes» abierto):** «need to make sure that it doesnt put B before A. Maybe for safety have an hour gap between them». En su captura, Tr-149025-b se recogía en RDZ Weslaco a las 14:44 y el paso a llegaba a Weslaco después. La causa: ni el motor (Repartir, Armar, Mejor lugar) ni Optimizar sabían que la carga del paso b no está en la tienda de relevo hasta que llega el paso a; solo la base lo frenaba al marcar «recogido» (256).
+- Regla nueva (`src/lib/relevo-a-tiempo.ts`): la recogida del paso b empieza, como pronto, a la llegada estimada del paso a + `MARGEN_DEL_RELEVO_MIN` (60). Paso a ya entregado: sin espera. Paso a sin hora en ninguna ruta: no se inventa, se avisa.
+- **Motor** (`OrdenEntrada.recogidaDesde`, `evalua.ts`): si el camión llega antes, ESPERA en la tienda; la espera cuenta como jornada, así que el motor prefiere poner esa recogida más tarde y hacer antes otras cosas.
+- **Optimizar** (`EntradaDeOptimizar.recogidaDesde`): lo mismo en la cuenta y en la búsqueda exacta.
+- **Repartir órdenes**: con las llegadas que ya hay en las rutas; si el paso a también se repartió en esa misma pasada, con la llegada que le dio el motor, y se reparte otra vez.
+- **Aviso rojo en la tarjeta de la ruta** cuando la llegada medida a la recogida del b cae antes de la llegada del a + 1 h, o el a no tiene hora.
+
+**2. Reprogramar varias (11 nov, Gestor → Rutas):** «Would like to be able to reschedule multiple at a time». Con órdenes marcadas, la barra de seleccionadas lleva «📅 Reprogramar N»: una fecha para todas, o «Fecha pendiente» (sin día, D-972), y una nota que queda en el historial de cada una. Cada una se guarda como la de una sola fila (`reprogramar_orden`, 173; sin día, quitando la fecha y anotándolo). Las entregadas, anuladas, no permitidas para el rol o ya en esa fecha se saltan y se dice cuántas (`src/lib/reprogramar-varias.ts`).
+
+**3. Pestaña «Pending Delivery Date» (11 nov, Órdenes, vista de tabla):** «Need to add a tab saying Pending Delivery Date». Al final de las pastillas, después de «Invoice pending» (donde la marcó), con su número: las órdenes sin día de entrega que no están entregadas ni anuladas (`src/lib/fecha-pendiente-pestana.ts`). Al pulsarla, el chip de fecha pasa a «Todas» (sin día, «Hoy» la dejaría vacía).
+
+Sello `deliveries` 1.598.0; repo 1.847.0.
