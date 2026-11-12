@@ -1,3 +1,4 @@
+import { LATIDO_DB_MS } from "./latido-db";
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import {
@@ -82,8 +83,9 @@ describe("1 · el cronómetro vive en el layout, no en su página", () => {
 describe("2 · el vigía: un reloj que corre sin guardarse se dice", () => {
   const base = { corriendo: true, ajeno: false };
 
-  it("el incidente: 16:30:29, un minuto y un segundo sin latido → avisa", () => {
-    expect(estadoVigia({ ...base, ultimoGuardadoMs: SALIO_A_CAPTURAS, ahoraMs: SALIO_A_CAPTURAS + 61_000 })).toBe("sin-latido");
+  it("el incidente: 16:30:29 sin latido → avisa pasado el umbral (D-1006: 3 min, no 1, porque se guarda cada 2)", () => {
+    expect(estadoVigia({ ...base, ultimoGuardadoMs: SALIO_A_CAPTURAS, ahoraMs: SALIO_A_CAPTURAS + 121_000 })).toBe("ok");
+    expect(estadoVigia({ ...base, ultimoGuardadoMs: SALIO_A_CAPTURAS, ahoraMs: SALIO_A_CAPTURAS + 181_000 })).toBe("sin-latido");
     // Y a las 19:41 llevaba 3 h 12 min así, sin que nada lo dijera.
     expect(Math.round((VOLVIO - SALIO_A_CAPTURAS) / 60_000)).toBe(192);
     expect(estadoVigia({ ...base, ultimoGuardadoMs: SALIO_A_CAPTURAS, ahoraMs: VOLVIO })).toBe("sin-latido");
@@ -106,6 +108,8 @@ describe("2 · el vigía: un reloj que corre sin guardarse se dice", () => {
   it("avisa mucho antes de que la base la dé por huérfana", () => {
     // Si el umbral fuera el del freno (15 min), el aviso llegaría cuando ya no hay nada que salvar.
     expect(VIGIA_MAX_MS).toBeLessThanOrEqual(LATIDO_MAX_MS / 5);
+    // D-1006: nunca por debajo del intervalo normal de guardado (falsa alarma «no está registrando»).
+    expect(VIGIA_MAX_MS).toBeGreaterThan(LATIDO_DB_MS);
   });
 
   it("el sonido: al detectarlo y cada cinco minutos, no cada cinco segundos", () => {
