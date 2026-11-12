@@ -51830,3 +51830,17 @@ Reunión con Roberto (11 nov, noche). Tres decisiones:
   - Su autocomprobación falla si queda alguna merma sin aprobar dentro de un grupo aprobado.
 
 Sello `warehouse_ops` 0.41.0; repo 1.851.0.
+## D-999 · Gestor de Rutas: marcar varias funciona con todo tipo de fila
+
+Roberto (reunión del 11 nov): «be able to click on multiple so I don't have to go one by one… it only works for deliveries».
+
+Antes:
+- Solo las filas de **entrega** (D) de cada ruta tenían casilla. Las de **recogida** (P) —intertienda, relevos, recogidas en otra tienda— no se podían marcar.
+- La barra de seleccionadas solo contaba lo que se puede **repartir hoy** (de ese día y en etapa de ruta). Una orden de otra fecha, sin fecha («Fecha pendiente») o ya en camino ni siquiera hacía aparecer la barra, así que tampoco se podía reprogramar en bloque (D-994).
+
+Ahora:
+- Las filas de **recogida** también tienen casilla; marcan sus órdenes (si una recogida lleva varias, la casilla queda a medias cuando solo algunas están marcadas).
+- Lo marcado es cualquier fila (`lasMarcadas`, `src/lib/seleccion-multiple.ts`), de cualquier fecha, tipo o etapa. Cada acción toma lo suyo: **repartir** sigue siendo solo lo de ese día en etapa de ruta (`lasRepartibles`), y la barra dice cuántas marcadas no se reparten; **reprogramar** toma todas y salta, con su resumen, las que su regla no permite (entregadas, anuladas, no permitidas para el rol). Las reglas de relevos (D-994) no cambian.
+- Si nada de lo marcado se reparte, la barra sale igual, con «Reprogramar» y «Quitar selección».
+
+Sello `deliveries` 1.601.0; repo 1.852.0.
