@@ -363,6 +363,20 @@ export function nombreDeEtapaVisible(e: EtapaVisible, lang: Lang): string {
  * Si el paso existe pero quien mira no lo puede dar, «lo-sigue-el-gerente».
  */
 export type SiguientePaso = "foto" | "iniciar-aprobacion" | "abrir-grupo" | "desechar" | "ajustar" | "lo-sigue-el-gerente" | null;
+/**
+ * ¿Puede INICIAR la aprobación (armar el grupo)? Reunión 11 nov, 11 PM: solo el GERENTE de la tienda, el store_admin y
+ * el admin. El supervisor de almacén firma su línea, abre el grupo, desecha y ajusta, pero no arma el grupo. Misma regla
+ * que `warehouse_ops_can_start_approval` (297).
+ */
+export function puedeIniciarAprobacion(q: Quien, r: { kind: TipoDeReporte; store: string }): boolean {
+  if (r.kind !== "scrap") return false;
+  const n = nivelDe(q);
+  const mia = q.store === r.store || (q.visible_stores ?? []).includes(r.store);
+  if (n === "admin") return true;
+  if (n === "store_admin") return mia;
+  return n === "full" && q.role === "manager" && mia;
+}
+
 export function siguientePasoDeMerma(
   q: Quien,
   r: { kind: TipoDeReporte; store: string; author_id?: string | null; scrap_group_id?: string | null; photos?: readonly string[] | null } & FilaConEtapa,
@@ -372,12 +386,12 @@ export function siguientePasoDeMerma(
   const gestiona = puedeCambiarEtapa(q, r);
   if (e === "documented") {
     const sinFotos = !(r.photos && r.photos.length > 0);
-    if (!sinFotos) return gestiona ? "iniciar-aprobacion" : "lo-sigue-el-gerente";
+    if (!sinFotos) return puedeIniciarAprobacion(q, r) ? "iniciar-aprobacion" : "lo-sigue-el-gerente";
     return r.author_id === q.id || puedeCorregirMerma(q, r) ? "foto" : "lo-sigue-el-gerente";
   }
   if (e === "photographed") {
     if (r.scrap_group_id) return "abrir-grupo";
-    return gestiona ? "iniciar-aprobacion" : "lo-sigue-el-gerente";
+    return puedeIniciarAprobacion(q, r) ? "iniciar-aprobacion" : "lo-sigue-el-gerente";
   }
   if (e === "approved") return gestiona ? "desechar" : "lo-sigue-el-gerente";
   if (e === "dumped") return gestiona ? "ajustar" : "lo-sigue-el-gerente";

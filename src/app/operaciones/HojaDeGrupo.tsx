@@ -136,25 +136,8 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
       <div className="hoja-barra no-imprimir">
         {/* Dueño, 11 nov: el estado a la izquierda; Imprimir y Cerrar arriba a la derecha (Cerrar al final). */}
         <span className={`ops-etapa-chip${aprobado ? " ops-grupo-aprobado" : ""}`} data-grupo-estado={aprobado ? "aprobado" : "pendiente"}>{estadoDelGrupo(grupo, lang)}</span>
-        <span className="hoja-barra-acciones">
-          {editaGrupo && <button type="button" className="btn btn-ghost" disabled={ocupado} onClick={() => setConfirmaBorrar(true)} data-accion="borrar-grupo">🗑 {t("Delete group", "Borrar grupo")}</button>}
-          {/* Reunión 11 nov: imprimir solo la hoja ya aprobada. */}
-          {aprobado && <button type="button" className="btn" onClick={() => window.print()} data-accion="imprimir-grupo">🖨 {t("Print", "Imprimir")}</button>}
-          <button type="button" className="btn btn-ghost" onClick={onSalir} data-accion="cerrar-grupo">✕ {t("Close", "Cerrar")}</button>
-        </span>
       </div>
       {error && <p className="ops-aviso ops-aviso-error no-imprimir">{error}</p>}
-      {confirmaBorrar && editaGrupo && (
-        <div className="ops-aviso no-imprimir" role="alertdialog" data-confirma-borrar-grupo>
-          <p>{t(`Delete this group? Its ${reportes.length} report(s) go back to «Photographed», without a group, and the signatures are cleared.`,
-            `¿Borrar este grupo? Sus ${reportes.length} merma(s) vuelven a «Fotografiada», sin grupo, y las firmas se borran.`)}</p>
-          <div className="ops-etapa-acciones">
-            <button type="button" className="btn btn-danger" disabled={ocupado} onClick={() => void borrar()} data-accion="confirmar-borrar-grupo">{t("Yes, delete group", "Sí, borrar grupo")}</button>
-            <button type="button" className="btn btn-ghost" disabled={ocupado} onClick={() => setConfirmaBorrar(false)}>{t("Cancel", "Cancelar")}</button>
-          </div>
-        </div>
-      )}
-
       <article className="hoja-aprobacion">
         <header className="hoja-cabecera">
           <div>
@@ -287,6 +270,25 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
             en práctica también, `firmarGrupoDePractica`). Lo que falta ya lo dice el chip de arriba. */}
         {aprobado && <p className="hoja-pie" data-grupo-aprobado>{t("Approved — all reports in this group are now Approved.", "Aprobado — todas las mermas de este grupo quedaron Aprobadas.")}{grupo.approved_by ? ` · ${nombre(grupo.approved_by)}` : ""}</p>}
       </article>
+
+      {/* Reunión 11 nov, 11 PM: los botones de acción ABAJO, como en el resto de la app (Cerrar al final). */}
+      {confirmaBorrar && editaGrupo && (
+        <div className="ops-aviso no-imprimir" role="alertdialog" data-confirma-borrar-grupo>
+          <p>{t(`Delete this group? Its ${reportes.length} report(s) go back to «Photographed», without a group, and the signatures are cleared.`,
+            `¿Borrar este grupo? Sus ${reportes.length} merma(s) vuelven a «Fotografiada», sin grupo, y las firmas se borran.`)}</p>
+          <div className="ops-etapa-acciones">
+            <button type="button" className="btn btn-danger" disabled={ocupado} onClick={() => void borrar()} data-accion="confirmar-borrar-grupo">{t("Yes, delete group", "Sí, borrar grupo")}</button>
+            <button type="button" className="btn btn-ghost" disabled={ocupado} onClick={() => setConfirmaBorrar(false)}>{t("Cancel", "Cancelar")}</button>
+          </div>
+        </div>
+      )}
+
+      <div className="modal-actions no-imprimir" data-acciones-grupo>
+        {editaGrupo && <button type="button" className="btn btn-ghost" disabled={ocupado} onClick={() => setConfirmaBorrar(true)} data-accion="borrar-grupo">🗑 {t("Delete group", "Borrar grupo")}</button>}
+        {/* Reunión 11 nov: imprimir solo la hoja ya aprobada. */}
+        {aprobado && <button type="button" className="btn" onClick={() => window.print()} data-accion="imprimir-grupo">🖨 {t("Print", "Imprimir")}</button>}
+        <button type="button" className="btn btn-primary" onClick={onSalir} data-accion="cerrar-grupo">✕ {t("Close", "Cerrar")}</button>
+      </div>
 
       {fotosDe && <ModalDeFotos r={fotosDe} ctx={ctx} onCerrar={() => setFotosDe(null)} />}
       {verReporte && <Tarjeta r={verReporte} ctx={ctx} onCerrar={() => setVerReporte(null)}

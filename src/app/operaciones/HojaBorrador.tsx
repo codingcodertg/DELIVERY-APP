@@ -63,12 +63,6 @@ export function HojaBorrador({ borradorId, ctx, reportesDisponibles, onSalir, on
     <div className="ops-merma" data-hoja-borrador={borrador.id}>
       <div className="hoja-barra no-imprimir">
         <span className="ops-etapa-chip" data-grupo-estado="borrador">📝 {t("Draft — not saved yet", "Borrador — aún no se guarda")}</span>
-        <span className="hoja-barra-acciones">
-          <button type="button" className="btn btn-primary" disabled={ocupado || elegibles.length === 0} onClick={() => void guardar()} data-accion="guardar-grupo">💾 {t("Save group", "Guardar grupo")}</button>
-          <button type="button" className="btn" disabled={ocupado} onClick={descartar} data-accion="descartar-borrador">🗑 {t("Discard", "Descartar")}</button>
-          {/* Reunión 11 nov: en el borrador solo Guardar o Descartar (sin Imprimir ni Cerrar). Tocar fuera de la tarjeta
-              lo deja como borrador. */}
-        </span>
       </div>
       {quitadas > 0 && <p className="hint no-imprimir" role="status" data-borrador-quitadas={quitadas}>{t(
         `${quitadas} report(s) were removed from this draft: they are already in a group or no longer waiting for approval.`,
@@ -116,6 +110,12 @@ export function HojaBorrador({ borradorId, ctx, reportesDisponibles, onSalir, on
           ))}
         </section>
       </article>
+      {/* Reunión 11 nov: en el borrador solo Guardar o Descartar (sin Imprimir ni Cerrar), ABAJO como el resto de la app.
+          Tocar fuera de la tarjeta lo deja como borrador. */}
+      <div className="modal-actions no-imprimir" data-acciones-borrador>
+        <button type="button" className="btn" disabled={ocupado} onClick={descartar} data-accion="descartar-borrador">🗑 {t("Discard", "Descartar")}</button>
+        <button type="button" className="btn btn-primary" disabled={ocupado || elegibles.length === 0} onClick={() => void guardar()} data-accion="guardar-grupo">💾 {t("Save group", "Guardar grupo")}</button>
+      </div>
     </div>
   );
 }

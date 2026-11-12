@@ -51895,3 +51895,17 @@ Cambios:
 - **Recarga tras publicar:** ya tenía espera aleatoria de 0–5 min (D-563, `SOFT_RELOAD_JITTER_MAX_MS`) y consulta de versión cada 5 min; no se cambió. Lo que más ayuda aquí es publicar en lotes.
 
 Sellos `timetracker` 1.20.0 y `security` 0.25.0; repo 1.857.0.
+## D-1005 · Merma: solo el gerente inicia la aprobación, historial, «Desechada» de un toque, botones abajo y borrar reportes de prueba (297)
+
+Reunión con Roberto (11 nov, 11 PM):
+
+- **Iniciar la aprobación (armar el grupo) es solo del gerente de la tienda, del store_admin y del admin.** El supervisor de almacén (Bio) firma su línea (293), abre el grupo, desecha y ajusta, saca mermas de un grupo pendiente y quita su firma (296), pero ya no arma el grupo: le sale «Lo sigue el gerente» y no ve «Iniciar aprobación» en la barra de seleccionadas. En la base, `warehouse_ops_create_scrap_group` usa la nueva `warehouse_ops_can_start_approval` (sin el supervisor).
+- **«🕘 Historial» en la tarjeta de la merma**, plegable y solo lectura: alta, etapas, fotos, grupo (agregada / sacada), firmas (puestas / quitadas) y ediciones de campos (antes → después). Desde la 297 lo anota la base (`warehouse_report_log`, por triggers; misma visibilidad que el reporte); de antes se deriva de la fila (alta y fecha/actor de cada etapa). Regla pura en `src/lib/almacen-ops/historial.ts`.
+- **«Marcar como Desechada» de un toque**, sin la segunda confirmación (el admin puede deshacer).
+- **Botones de acción abajo**, junto a Cerrar, en la tarjeta del reporte (Editar reporte, Borrar reporte, Cerrar), en la hoja del grupo (Borrar grupo, Imprimir, Cerrar) y en el borrador (Descartar, Guardar grupo).
+- **Borrar un reporte de prueba:** solo el admin (del hub o de la app), con confirmación en la tarjeta. Se borra con sus fotos; si estaba en un grupo pendiente sale de él (las firmas del grupo se borran; el grupo vacío se borra). Si su grupo ya está aprobado se rechaza: primero hay que deshacer la aprobación. RPC `warehouse_ops_delete_scrap_report`.
+- **Modo enseñanza:** todo sigue funcionando; borrar en práctica solo lo quita de la lista, sin tocar la base.
+
+Sin la 297 aplicada: el supervisor ya no ve «Iniciar aprobación» (la base aún lo dejaría), el historial muestra lo derivado de la fila y «Borrar reporte» avisa que falta la migración.
+
+Sello `warehouse_ops` 0.44.0; repo 1.858.0.

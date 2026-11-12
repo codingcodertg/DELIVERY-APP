@@ -172,31 +172,16 @@ export function AdjuntarYMarcar({ reportes, ctx, etapa, etiqueta, onListo, onCan
   );
 }
 
-/** Confirmación en la propia tarjeta (nunca `confirm()`): «¿Ya se tiró a la basura?». */
-function ConfirmarDesechada({ r, ctx, onListo, onCancelar }: { r: Reporte; ctx: Contexto; onListo: (n: Reporte) => void; onCancelar: () => void }) {
-  const { t } = usePrefs();
-  const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const marca = async () => {
-    setGuardando(true); setError(null);
-    try { onListo((await aplicarEtapa(ctx, [r], "dumped", null))[0]); } catch (e) { setError(mensajeDeError(e)); } finally { setGuardando(false); }
-  };
-  return (
-    <div className="ops-corregir ops-confirmar" role="alertdialog" data-confirmar="dumped">
-      <p>{t("Mark as Dumped: the approved material was thrown in the trash. The date and your name are recorded.", "Marcar como Desechada: el material aprobado ya se tiró a la basura. Quedan la fecha y tu nombre.")}</p>
-      {error && <p className="ops-aviso ops-aviso-error" role="alert">{error}</p>}
-      <div className="modal-actions">
-        <button type="button" className="btn" onClick={onCancelar} disabled={guardando}>{t("Not yet", "Todavía no")}</button>
-        <button type="button" className="btn btn-primary" onClick={() => void marca()} disabled={guardando} data-accion="confirmar-dumped">{guardando ? t("Saving…", "Guardando…") : t("Yes, it was dumped", "Sí, ya se tiró")}</button>
-      </div>
-    </div>
-  );
-}
-
 /** La línea de tiempo de la tarjeta: cada etapa con su fecha, quién, y la miniatura de la hoja / la captura. */
 export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto; onCambio: (n: Reporte) => void }) {
   const { t, lang } = usePrefs();
-  const [accion, setAccion] = useState<"dumped" | "adjusted" | null>(null);
+  const [accion, setAccion] = useState<"adjusted" | null>(null);
+  const [desechando, setDesechando] = useState(false);
+  // Reunión 11 nov, 11 PM: «Marcar como Desechada» de un toque, sin la segunda confirmación (el admin puede deshacer).
+  const desechar = async () => {
+    setDesechando(true); setError(null);
+    try { onCambio((await aplicarEtapa(ctx, [r], "dumped", null))[0]); } catch (e) { setError(mensajeDeError(e)); } finally { setDesechando(false); }
+  };
   const [error, setError] = useState<string | null>(null);
   const [enlaces, setEnlaces] = useState<Record<string, string>>({});
   const [firmas, setFirmas] = useState<FirmaDeMerma[]>(r.firmas ?? []);
@@ -313,7 +298,7 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
       )}
       {gestiona && !accion && (
         <div className="ops-etapa-acciones">
-          {siguiente === "dumped" && <button type="button" className="btn btn-primary" onClick={() => setAccion("dumped")} data-accion="marcar-desechada">🗑 {t("Mark as Dumped", "Marcar como Desechada")}</button>}
+          {siguiente === "dumped" && <button type="button" className="btn btn-primary" disabled={desechando} onClick={() => void desechar()} data-accion="marcar-desechada">🗑 {desechando ? t("Saving…", "Guardando…") : t("Mark as Dumped", "Marcar como Desechada")}</button>}
           {siguiente === "adjusted" && <button type="button" className="btn btn-primary" onClick={() => setAccion("adjusted")} data-accion="subir-captura">🧾 {t("Mark as Adjusted", "Marcar como Ajustada")}</button>}
           {deshace && <button type="button" className="btn btn-ghost btn-sm" onClick={() => void deshacer()} data-accion="deshacer-etapa">↩ {t("Undo last stage", "Deshacer la última etapa")}</button>}
           {actual === "documented" && <p className="hint">{t("Add the photo first; then it can go to approval.", "Primero la foto; después puede ir a aprobación.")}</p>}
@@ -346,7 +331,6 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
         </div>
       )}
       {error && <p className="ops-aviso ops-aviso-error" role="alert">{error}</p>}
-      {accion === "dumped" && <ConfirmarDesechada r={r} ctx={ctx} onListo={(n) => { setAccion(null); onCambio(n); }} onCancelar={() => setAccion(null)} />}
       {accion === "adjusted" && <AdjuntarYMarcar reportes={[r]} ctx={ctx} etapa="adjusted" etiqueta={t("Choose the system screenshot", "Elegir la captura del sistema")}
         onListo={(n) => { setAccion(null); onCambio(n[0]); }} onCancelar={() => setAccion(null)} />}
     </section>

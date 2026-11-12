@@ -13,12 +13,14 @@ import { PASOS, PASO_QUIEN_REPORTO, etiquetaDeOpcion } from "@/lib/almacen-ops/p
 import { etiquetaDeEquipoDelReporte } from "@/lib/almacen-ops/mantenimiento";
 import { nombreOTexto, personasParaElegir } from "@/lib/almacen-ops/personas";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
-import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, editarReporteDeMerma, enlacesDeFotos, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type ParcheDeMerma, type Reporte } from "@/lib/almacen-ops/datos";
+import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, borrarReporteDeMerma, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, editarReporteDeMerma, enlacesDeFotos, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type ParcheDeMerma, type Reporte } from "@/lib/almacen-ops/datos";
 import { esCorteDePractica } from "@/lib/practica/es-corte";
 import { borrarPractica, cargaPractica, esGrupoDePractica, grupoDePracticaPorReporte, gruposDePractica } from "@/lib/practica/grupos-de-practica";
 import { crearBorradorDeGrupo, esBorradorDeGrupo, listarBorradoresDeGrupo } from "@/lib/almacen-ops/borradores-de-grupo";
 import { HojaBorrador } from "./HojaBorrador";
 import { ensenanzaDelNavegador } from "@/lib/ensenanza-general";
+import { nivelDe } from "@/lib/almacen-ops/nivel";
+import { HistorialDeMerma } from "./HistorialDeMerma";
 import { avisoYaEnGrupo, esErrorDeYaEnGrupo, estadoDelGrupo, filtrarGrupos, seleccionadasEnGrupo, type FiltroDeGrupos, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
 import { HojaDeGrupo } from "./HojaDeGrupo";
 import { HojaImprimible } from "./HojaImprimible";
@@ -38,7 +40,7 @@ import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { datosPdfDeMerma } from "@/lib/almacen-ops/pdf-de-merma";
 import { AdjuntarYMarcar, ChipDeEtapa, LineaDeEtapas, aplicarEtapa, ErrorParcial } from "./EtapasDeMerma";
-import { documentoDeGrupo, esAdminParaDeshacer } from "@/lib/almacen-ops/etapas";
+import { documentoDeGrupo, esAdminParaDeshacer, puedeIniciarAprobacion } from "@/lib/almacen-ops/etapas";
 import { particionaParaDeshacer, particionaPorEtapa, resumenDeBloque, resumenDeDeshacer } from "@/lib/almacen-ops/bloque";
 import { KpiDeEntregas } from "./KpiDeEntregas";
 import type { Contexto } from "./Operaciones";
@@ -194,7 +196,8 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
   const puedeSeleccionar = useCallback((r: Reporte) => r.kind === "scrap" && puedeCambiarEtapa(ctx.yo, r), [ctx.yo]);
   const seleccionadas = useMemo(() => mermasEnRango.filter((r) => seleccion.has(r.id) && puedeSeleccionar(r)), [mermasEnRango, seleccion, puedeSeleccionar]);
   // Las marcadas que todavía van a la hoja de aprobación (fotografiadas, sin aprobar).
-  const paraHoja = useMemo(() => seleccionadas.filter((r) => seleccionableParaHoja(r)), [seleccionadas]);
+  // Reunión 11 nov, 11 PM: solo el gerente / store_admin / admin inicia la aprobación (el supervisor no arma el grupo).
+  const paraHoja = useMemo(() => seleccionadas.filter((r) => seleccionableParaHoja(r) && puedeIniciarAprobacion(ctx.yo, r)), [seleccionadas, ctx.yo]);
   // Dueño, 10 nov: una marcada que YA está en un grupo no puede ir a otro — se avisa, se apagan las acciones de la hoja
   // y su renglón se resalta para que sepa cuál quitar (antes salía el error crudo de la base).
   const yaEnGrupo = useMemo(() => seleccionadasEnGrupo(paraHoja), [paraHoja]);
@@ -540,7 +543,8 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
       )}
 
       {abierto && <Tarjeta r={abierto} ctx={ctx} onCerrar={() => setAbierto(null)}
-        onCambio={(n) => { setAbierto(n); setFilas((f) => (f ?? []).map((x) => (x.id === n.id ? n : x))); }} />}
+        onCambio={(n) => { setAbierto(n); setFilas((f) => (f ?? []).map((x) => (x.id === n.id ? n : x))); }}
+        onBorrado={(id) => { setFilas((f) => (f ?? []).filter((x) => x.id !== id)); setSeleccion((s) => { const n = new Set(s); n.delete(id); return n; }); }} />}
       {/* 281 → 10 nov (dueño): el grupo se abre EN TARJETA (overlay), como todo en la app, sin saltar de pantalla.
           Sigue viviendo en la URL (?grupo=…): aguanta refresh y se puede compartir, pero ya no reemplaza la lista. */}
       {grupoId && (
@@ -845,8 +849,23 @@ function InsigniasDeFoto({ r, repetida }: { r: Reporte; repetida: boolean }) {
  * Un reporte como tarjeta, encima de la lista (regla de la casa: los registros se abren en su sitio). También la abre
  * el asistente (268) cuando una foto ya se usó en otro reporte.
  */
-export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Contexto; onCerrar: () => void; onCambio: (r: Reporte) => void }) {
+export function Tarjeta({ r, ctx, onCerrar, onCambio, onBorrado }: { r: Reporte; ctx: Contexto; onCerrar: () => void; onCambio: (r: Reporte) => void;
+  /** 297: el admin borró este reporte de prueba; quien abrió la tarjeta lo quita de su lista. */
+  onBorrado?: (id: string) => void }) {
   const { t, lang } = usePrefs();
+  // 297 (reunión 11 nov, 11 PM): el admin borra un reporte de merma que no es real («Test»), con confirmación aquí mismo.
+  const borra = r.kind === "scrap" && nivelDe(ctx.yo) === "admin";
+  const [confirmaBorrar, setConfirmaBorrar] = useState(false);
+  const [borrando, setBorrando] = useState(false);
+  const [errorBorrar, setErrorBorrar] = useState<string | null>(null);
+  const borrar = async () => {
+    setBorrando(true); setErrorBorrar(null);
+    try {
+      if (!ctx.demo && !ensenanzaDelNavegador()) await borrarReporteDeMerma(createClient(), r.id);
+      onBorrado?.(r.id);
+      onCerrar();
+    } catch (e) { setErrorBorrar((e as Error).message); } finally { setBorrando(false); }
+  };
   const [fotos, setFotos] = useState<string[]>([]);
   const [corrigiendo, setCorrigiendo] = useState(false);
   const [editando, setEditando] = useState(false);
@@ -904,12 +923,6 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Conte
       <div className="modal ops-tarjeta-reporte" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-tarjeta={r.id}>
         <h3>{info.emoji} {lang === "es" ? info.es : info.en}<IconoDeFotos r={r} /></h3>
         <p className="sub">{r.kind === "scrap" ? t("Reported ", "Reportado ") : ""}{fmtDateTime(r.created_at)} · {r.store} · {t("filed by", "lo llenó")} {r.author_name ?? nombre(r.author_id)}</p>
-        {r.kind === "scrap" && corrige && (
-          <div className="ops-editar-barra">
-            <button type="button" className="btn btn-sm" onClick={() => setEditando((v) => !v)} data-accion="editar-reporte">✏️ {t("Edit report", "Editar reporte")}</button>
-          </div>
-        )}
-        {editando && <EditarReporteDeMerma r={r} ctx={ctx} onListo={(n) => { setEditando(false); if (n) onCambio(n); }} />}
         {sinFoto(r) && (
           <p className="ops-aviso ops-aviso-error" role="status" data-tarjeta-sin-foto={fotoPendienteVencida(r) ? "vencida" : "si"}>
             📷 {etiquetaSinFoto(r, lang)} · {t("Saved from paper, without a photo of the pieces. It is incomplete until the photo is added.", "Guardado desde papel, sin foto de las piezas. Está incompleto hasta que se le agregue la foto.")}
@@ -961,9 +974,27 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Conte
         )}
         {agregaFoto && <AgregarFoto r={r} ctx={ctx} onListo={onCambio} />}
         {/* D-921 (270): la línea de etapas y lo que el gerente hace con ella. Sin la 270 (sin columnas) sale solo la línea, sin botones. */}
+        {r.kind === "scrap" && <HistorialDeMerma r={r} ctx={ctx} />}
         {r.kind === "scrap" && <LineaDeEtapas r={r} ctx={ctx} onCambio={onCambio} />}
         {r.kind === "scrap" && !tieneEtapas(r) && puedeCorregirMerma(ctx.yo, r) && <p className="hint" data-sin-270>{t("Approval stages need database migration 270.", "Las etapas de aprobación necesitan la migración 270 de la base.")}</p>}
-        <div className="modal-actions"><button type="button" className="btn btn-primary" onClick={onCerrar}>{t("Close", "Cerrar")}</button></div>
+        {editando && <EditarReporteDeMerma r={r} ctx={ctx} onListo={(n) => { setEditando(false); if (n) onCambio(n); }} />}
+        {confirmaBorrar && (
+          <div className="ops-aviso" role="alertdialog" data-confirma-borrar-reporte>
+            <p>{t("Delete this report? Only for reports that aren't real (tests). It's removed for good, with its photos; if it's in a pending group it leaves the group.",
+              "¿Borrar este reporte? Solo para reportes que no son reales (pruebas). Se borra para siempre, con sus fotos; si está en un grupo pendiente, sale del grupo.")}</p>
+            {errorBorrar && <p className="ops-aviso ops-aviso-error" role="alert">{errorBorrar}</p>}
+            <div className="ops-etapa-acciones">
+              <button type="button" className="btn btn-danger" disabled={borrando} onClick={() => void borrar()} data-accion="confirmar-borrar-reporte">{borrando ? t("Deleting…", "Borrando…") : t("Yes, delete", "Sí, borrar")}</button>
+              <button type="button" className="btn btn-ghost" disabled={borrando} onClick={() => setConfirmaBorrar(false)}>{t("Cancel", "Cancelar")}</button>
+            </div>
+          </div>
+        )}
+        {/* Reunión 11 nov, 11 PM: los botones ABAJO, como en el resto de la app (Cerrar al final). */}
+        <div className="modal-actions" data-acciones-tarjeta>
+          {r.kind === "scrap" && corrige && <button type="button" className="btn" onClick={() => setEditando((v) => !v)} data-accion="editar-reporte">✏️ {t("Edit report", "Editar reporte")}</button>}
+          {borra && !confirmaBorrar && <button type="button" className="btn btn-ghost" onClick={() => setConfirmaBorrar(true)} data-accion="borrar-reporte">🗑 {t("Delete report", "Borrar reporte")}</button>}
+          <button type="button" className="btn btn-primary" onClick={onCerrar}>{t("Close", "Cerrar")}</button>
+        </div>
       </div>
     </div>
   );
