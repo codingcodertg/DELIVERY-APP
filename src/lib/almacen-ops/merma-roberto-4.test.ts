@@ -30,7 +30,7 @@ describe("las dos preguntas vuelven a su sitio en el formulario de merma", () =>
     expect(PASOS.scrap.map((p) => p.id)).toEqual(["product", "photo", "qty", "return_type", "crma", "reason", "comments", "when_and_who"]);
     const origen = PASOS.scrap.find((p) => p.id === "return_type")!;
     expect(origen.en).toBe("Where did it come from?");
-    expect(origen.tipo === "opcion" && origen.opciones.map((o) => [o.v, o.en])).toEqual([["internal", "Internal"], ["customer_return", "Customer return"]]);
+    expect(origen.tipo === "opcion" && origen.opciones.map((o) => [o.v, o.en])).toEqual([["internal", "Internal"], ["customer_return", "Customer return"], ["supplier", "Supplier"]]);
   });
   it("el CRMA solo sale en «Customer return»", () => {
     expect(pasosVisibles("scrap", interno).map((p) => p.id)).toEqual(["product", "photo", "qty", "return_type", "reason", "comments", "when_and_who"]);

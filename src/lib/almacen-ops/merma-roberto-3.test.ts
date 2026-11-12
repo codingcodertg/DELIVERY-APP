@@ -75,7 +75,7 @@ describe("714584e6 (retirado por Roberto): la 259 y los reportes que se llenaron
     expect(pasosVisibles("scrap", base)[primerHueco("scrap", base)].id).toBe("return_type");
   });
   it("los reportes con devolución de cliente o CRMA se siguen enseñando", () => {
-    expect(ORIGENES_DE_MERMA.map((o) => o.v)).toEqual(["internal", "customer_return"]);
+    expect(ORIGENES_DE_MERMA.map((o) => o.v)).toEqual(["internal", "customer_return", "supplier"]);
     expect(etiquetaDeOpcion("scrap", "return_type", "customer_return", "en")).toBe("Customer return");
     expect(etiquetaDeOpcion("scrap", "return_type", "customer_return", "es")).toBe("Devolución de cliente");
     expect(etiquetaDeOpcion("scrap", "return_type", "internal", "en")).toBe("Internal");
