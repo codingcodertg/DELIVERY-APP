@@ -38,6 +38,7 @@ import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { datosPdfDeMerma } from "@/lib/almacen-ops/pdf-de-merma";
 import { AdjuntarYMarcar, ChipDeEtapa, LineaDeEtapas, aplicarEtapa, ErrorParcial } from "./EtapasDeMerma";
+import { documentoDeGrupo, esAdminParaDeshacer } from "@/lib/almacen-ops/etapas";
 import { particionaParaDeshacer, particionaPorEtapa, resumenDeBloque, resumenDeDeshacer } from "@/lib/almacen-ops/bloque";
 import { KpiDeEntregas } from "./KpiDeEntregas";
 import type { Contexto } from "./Operaciones";
@@ -199,7 +200,8 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   const paraDesechar = useMemo(() => particionaPorEtapa(seleccionadas, "dumped"), [seleccionadas]);
   const paraAjustar = useMemo(() => particionaPorEtapa(seleccionadas, "adjusted"), [seleccionadas]);
   // 296 (dueño, 11 nov: «an option to undo»): regresar un paso a las marcadas (cada una desde su etapa).
-  const paraDeshacer = useMemo(() => particionaParaDeshacer(seleccionadas), [seleccionadas]);
+  // Deshacer en bloque: SOLO admin (reunión 11 nov; la 296 lo exige igual en la base).
+  const paraDeshacer = useMemo(() => particionaParaDeshacer(esAdminParaDeshacer(ctx.yo) ? seleccionadas : []), [seleccionadas, ctx.yo]);
   // «Seleccionar todos» (dueño, 10 nov): antes no había forma de marcar todo. Marca/limpia de un golpe TODAS las mermas
   // seleccionables que se ven ahora (las del filtro de etapa actual).
   const seleccionables = useMemo(() => mermasPorEtapa.filter((r) => puedeSeleccionar(r)), [mermasPorEtapa, puedeSeleccionar]);
@@ -419,10 +421,8 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
                 <button type="button" className="btn btn-primary" disabled={yaEnGrupo.length > 0} onClick={() => void iniciarAprobacion()} data-accion="iniciar-aprobacion">
                   ✅ {t(`Start approval (${paraHoja.length})`, `Iniciar aprobación (${paraHoja.length})`)}
                 </button>
-                <button type="button" className="btn" disabled={yaEnGrupo.length > 0} onClick={() => setImprimirHoja(true)} data-accion="imprimir-hoja">
-                  🖨 {t(`Print approval sheet (${paraHoja.length})`, `Imprimir hoja de aprobación (${paraHoja.length})`)}
-                </button>
-                <button type="button" className="btn" disabled={yaEnGrupo.length > 0} onClick={() => setAdjuntando((x) => !x)} data-accion="adjuntar-hoja-seleccion">📎 {t(`Attach signed sheet (${paraHoja.length})`, `Adjuntar hoja firmada (${paraHoja.length})`)}</button>
+                {/* Reunión 11 nov: UNA sola acción para aprobar. Imprimir y adjuntar hoja quedan solo para lo ya aprobado
+                    (hoja del grupo aprobado), no aquí. */}
               </>}
               {/* En bloque (dueño, 10 nov): desechar las aprobadas, ajustar las desechadas (una sola foto para todas). */}
               {paraDesechar.elegibles.length > 0 && <button type="button" className="btn" onClick={() => { setAjustandoBloque(false); void marcarDesechadas(); }} data-accion="desechar-bloque">🗑 {t(`Mark as dumped (${paraDesechar.elegibles.length})`, `Marcar como desechadas (${paraDesechar.elegibles.length})`)}</button>}
@@ -667,7 +667,10 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
         return (
           <td key={key} className="ops-col-grupo-merma" data-grupo-de={gid ?? ""}>
             {gid
-              ? <button type="button" className="ops-folio-link" onClick={(e) => { e.stopPropagation(); onAbrirGrupo?.(gid); }} title={t("Open this group", "Abrir este grupo")}>🗂 {nombreDeGrupo.get(gid) ?? t("Group", "Grupo")}</button>
+              // Reunión 11 nov: o la hoja firmada (ya aprobada) o el grupo (pendiente), nunca los dos.
+              ? (documentoDeGrupo(r, gid) === "hoja-firmada"
+                  ? <button type="button" className="ops-folio-link" onClick={(e) => { e.stopPropagation(); onAbrirGrupo?.(gid); }} title={t("See the signed group sheet", "Ver la hoja firmada del grupo")} data-hoja-firmada={gid}>📄 {t("Signed sheet", "Hoja firmada")}</button>
+                  : <button type="button" className="ops-folio-link" onClick={(e) => { e.stopPropagation(); onAbrirGrupo?.(gid); }} title={t("Open this group", "Abrir este grupo")}>🗂 {nombreDeGrupo.get(gid) ?? t("Group", "Grupo")}</button>)
               : <span className="hint">—</span>}
           </td>
         );

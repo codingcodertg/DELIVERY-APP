@@ -51817,3 +51817,16 @@ El dueño (11 nov): «in scrap report I need an option to undo». Eligió las cu
 Base (296): `warehouse_ops_remove_from_scrap_group` y `warehouse_ops_delete_scrap_group` nuevas; `warehouse_ops_set_scrap_stage` y `warehouse_ops_unsign_scrap_group` reescritas. Todo lo que toca un grupo bloquea primero el grupo y luego sus mermas (FOR UPDATE), en el mismo orden que la firma. Antes de aplicar la 296, sacar/borrar avisan que la opción no está activada y deshacer la etapa sigue siendo solo del admin. Funciona también en modo enseñanza (grupos de práctica).
 
 Sello `warehouse_ops` 0.40.0; repo 1.850.0.
+
+## D-998 · Merma: deshacer solo admin (el gerente, lo pendiente), aprobar en un solo botón, un solo estado de grupo
+
+Reunión con Roberto (11 nov, noche). Tres decisiones:
+
+- **Deshacer.** Deshacer una etapa (aprobada / desechada / ajustada), uno por uno o en bloque, es **solo del admin** (admin de la app o store_admin en sus tiendas). El gerente/supervisor solo deshace lo **pendiente**: sacar una merma de un grupo sin aprobar, borrar el grupo pendiente y quitar su propia firma (D-997). Como la 296 todavía no estaba aplicada, se corrigió en la misma 296: `warehouse_ops_set_scrap_stage` exige nivel admin/store_admin para retroceder. En la app, `puedeDeshacerEtapa` y «↩ Deshacer un paso» quedan solo para admin (`esAdminParaDeshacer`).
+- **Aprobar, más simple.** En la barra de seleccionadas queda una sola acción: «✅ Iniciar aprobación». Sin «Imprimir hoja de aprobación» ni «Adjuntar hoja firmada» ahí. El grupo en borrador solo tiene «💾 Guardar grupo» y «Descartar» (sin Cerrar; tocar fuera lo deja como borrador). «Imprimir» sale solo en la hoja de un grupo ya aprobado, junto a «Cerrar».
+- **Un solo estado, nunca los dos.** Una merma enseña «📄 Hoja firmada» si su grupo ya está aprobado, o «🗂 Grupo» (⏳ Pendiente) si no, en la columna Grupo y en la tarjeta (`documentoDeGrupo`, una sola regla para todas las vistas).
+  - **El bug que vio Roberto** («Aprobado» en un lado y «Pendiente» en otro) era de datos. El deshacer de antes de la 296 regresaba la merma a «fotografiada», pero la dejaba dentro de su grupo aprobado, y había 3 así.
+  - La 296 trae un paso de datos que las saca de su grupo, igual que hará el nuevo deshacer. El grupo conserva su aprobación, y si queda vacío se borra.
+  - Su autocomprobación falla si queda alguna merma sin aprobar dentro de un grupo aprobado.
+
+Sello `warehouse_ops` 0.41.0; repo 1.851.0.
