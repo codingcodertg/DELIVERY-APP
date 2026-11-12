@@ -35,7 +35,7 @@ import type { CancelReason, Delivery, Profile, Stage } from "@/lib/types";
 // ============================================================
 
 /** Qué confirma el salto antes de escribir. `null`: nada, se escribe al elegirlo. */
-export type ConfirmacionDelSalto = "tarifa" | "pallets" | "anular" | "motivo_rechazo" | "motivo_entrega" | "motivo_deshacer" | null;
+export type ConfirmacionDelSalto = "tarifa" | "pallets" | "tarifa_y_pallets" | "anular" | "motivo_rechazo" | "motivo_entrega" | "motivo_deshacer" | null;
 
 export interface SaltoDeEtapa {
   destino: Stage;
@@ -65,7 +65,29 @@ export function saltosEnLaFila(yo: QuienElige, pedido: OrdenDeLaFila, reglas: Or
     const c = confirmacionDelSalto(yo, pedido, reglas, deMiTienda, destino);
     if (c !== undefined) saltos.push({ destino, confirmacion: c });
   }
+  // Saltarse «Preparando» (reunión del 11 nov, idea de Pablo y Carlos en McAllen): de «Aprobada» directo a «Lista». La
+  // base no tiene ese salto (el guard de almacén solo acepta approved → fulfilling → ready), así que la app escribe LOS
+  // DOS pasos seguidos, cada uno con su nota de siempre («Tarifa confirmada» al comenzar y «Pallets confirmadas» al
+  // marcar lista): por eso pide las dos cosas en un solo diálogo. Va en su lugar del orden de `STAGES`.
+  const salto = saltoDirectoALista(yo, pedido);
+  if (salto) {
+    const i = saltos.findIndex((x) => indiceDeEtapa(x.destino) > indiceDeEtapa("ready"));
+    if (i < 0) saltos.push(salto); else saltos.splice(i, 0, salto);
+  }
   return saltos;
+}
+
+const indiceDeEtapa = (e: Stage) => STAGES.findIndex((x) => x.key === e);
+
+/**
+ * ¿Se ofrece «Lista» directo desde «Aprobada»? Solo a quien ya prepara en la ficha (almacén y los que pueden comenzar),
+ * y solo cuando los dos pasos normales existen: approved → fulfilling y fulfilling → ready. Siempre pide tarifa Y pallets
+ * (la tarifa la escribe `escribeComenzar` solo si el tipo de orden cobra; los pallets siempre).
+ */
+export function saltoDirectoALista(yo: QuienElige, pedido: OrdenDeLaFila): SaltoDeEtapa | null {
+  if (pedido.stage !== "approved" || !preparaEnLaFicha(yo)) return null;
+  if (!canTransition("approved", "fulfilling") || !canTransition("fulfilling", "ready")) return null;
+  return { destino: "ready", confirmacion: "tarifa_y_pallets" };
 }
 
 /** `undefined`: el salto no se ofrece. Si se ofrece, qué confirma (o `null`). */

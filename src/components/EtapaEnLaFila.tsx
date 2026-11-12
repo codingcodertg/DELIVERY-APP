@@ -9,6 +9,7 @@ import { orderLabel } from "@/lib/utils";
 import { motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { ordenDeMisTiendas } from "@/lib/deshacer-y-borrar";
 import { escribeComenzar, escribeListo } from "@/lib/pasos-de-bodega";
+import { pideConfirmarTarifa, type EscrituraAlComenzar } from "@/lib/confirmar-tarifa";
 import { notaDelSalto, saltosEnLaFila, type SaltoDeEtapa } from "@/lib/etapas-en-la-fila";
 import { ConfirmarTarifaAlComenzar } from "@/components/ConfirmarTarifaAlComenzar";
 import { ConfirmarPallets } from "@/components/ConfirmarPallets";
@@ -40,6 +41,9 @@ export function useEtapaEnLaFila(): { celda: (d: Delivery, pastilla: Pastilla, b
   const { me, settings, setStage, notify, realRole } = useData();
   const { lang, t } = usePrefs();
   const [abierto, setAbierto] = useState<{ pedido: Delivery; salto: SaltoDeEtapa } | null>(null);
+  // Saltarse «Preparando» (reunión del 11 nov): la tarifa ya confirmada mientras se piden los pallets. `undefined` = aún
+  // no se pide / no hace falta; `null` = el tipo de orden no cobra.
+  const [tarifaDelSalto, setTarifaDelSalto] = useState<EscrituraAlComenzar | null | undefined>(undefined);
   // La orden que se está guardando: su selector se apaga hasta que vuelve la escritura.
   const [guardando, setGuardando] = useState<string | null>(null);
 
@@ -58,6 +62,7 @@ export function useEtapaEnLaFila(): { celda: (d: Delivery, pastilla: Pastilla, b
   };
 
   const elegir = (pedido: Delivery, salto: SaltoDeEtapa) => {
+    setTarifaDelSalto(undefined);
     if (salto.confirmacion) { setAbierto({ pedido, salto }); return; }
     // Sin confirmación: comenzar un tipo que no cobra (la escritura de la ficha sin diálogo), aprobar o desbloquear.
     if (salto.destino === "fulfilling") { void escribe(pedido, salto, () => escribeComenzar(setStage, pedido.id, null, t)); return; }
@@ -91,8 +96,32 @@ export function useEtapaEnLaFila(): { celda: (d: Delivery, pastilla: Pastilla, b
   if (abierto) {
     const { pedido, salto } = abierto;
     const ocupado = guardando === pedido.id;
-    const cerrar = () => setAbierto(null);
+    const cerrar = () => { setAbierto(null); setTarifaDelSalto(undefined); };
     switch (salto.confirmacion) {
+      case "tarifa_y_pallets": {
+        // Primero la tarifa (si el tipo de orden cobra), luego los pallets; al confirmar, los DOS pasos de siempre, en
+        // orden: approved → fulfilling con «Tarifa confirmada» y fulfilling → ready con «Pallets confirmadas». Si el
+        // primero falla, el segundo no se intenta.
+        const cobra = pideConfirmarTarifa(pedido, settings.order_type_rules);
+        if (cobra && tarifaDelSalto === undefined) {
+          dialogo = (
+            <ConfirmarTarifaAlComenzar pedido={pedido} sugerencia={suggestDeliveryFee(pedido, settings)} adminReal={realRole === "admin"} ocupado={ocupado}
+              onCancelar={cerrar} onConfirmar={(escritura) => setTarifaDelSalto(escritura)} />
+          );
+          break;
+        }
+        const tarifa = cobra ? tarifaDelSalto ?? null : null;
+        dialogo = (
+          <ConfirmarPallets pedido={pedido} ocupado={ocupado} onDescartar={cerrar}
+            onConfirmar={(escritura) => void escribe(pedido, salto, async () => {
+              const comenzo = await escribeComenzar(setStage, pedido.id, tarifa, t);
+              if (!comenzo) return false;
+              return escribeListo(setStage, pedido.id, escritura, t);
+            }, [tarifa ? t(tarifa.nota.en, tarifa.nota.es) : null, t(escritura.nota.en, escritura.nota.es)].filter(Boolean).join(" · "))}
+            onInvalido={() => notify(t("Enter the confirmed pallet count.", "Ingrese la cantidad confirmada de pallets."))} />
+        );
+        break;
+      }
       case "tarifa":
         dialogo = (
           <ConfirmarTarifaAlComenzar pedido={pedido} sugerencia={suggestDeliveryFee(pedido, settings)} adminReal={realRole === "admin"} ocupado={ocupado}
