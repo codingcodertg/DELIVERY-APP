@@ -101,3 +101,23 @@ export function aprobarGrupoDePractica(id: string, quien: string): void {
   g.grupo = { ...g.grupo, approved_at: new Date().toISOString(), approved_by: quien };
   persiste();
 }
+
+/** 296 en práctica: saca una merma de un grupo pendiente (se borran las firmas; si queda vacío, se borra el grupo). */
+export function sacarDeGrupoDePractica(id: string, reporteId: string): void {
+  const g = grupos.get(id);
+  if (!g || g.grupo.approved_at) return;
+  const reportes = g.reportes.filter((r) => r.id !== reporteId);
+  if (reportes.length === g.reportes.length) return;
+  if (reportes.length === 0) { grupos.delete(id); persiste(); return; }
+  g.reportes = reportes;
+  g.grupo = { ...g.grupo, firmas: [], n_reportes: reportes.length };
+  persiste();
+}
+
+/** 296 en práctica: borra un grupo pendiente entero. */
+export function borrarGrupoDePractica(id: string): void {
+  const g = grupos.get(id);
+  if (!g || g.grupo.approved_at) return;
+  grupos.delete(id);
+  persiste();
+}

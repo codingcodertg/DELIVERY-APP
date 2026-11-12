@@ -152,9 +152,12 @@ describe("quién mueve la etapa", () => {
   it("deshacer: solo admin / store_admin, y solo si hay algo que deshacer", () => {
     expect(puedeDeshacerEtapa(admin, aprobada)).toBe(true);
     expect(puedeDeshacerEtapa(francis, aprobada)).toBe(true);
-    expect(puedeDeshacerEtapa(gerente, aprobada)).toBe(false);
+    // 296: el gerente de la tienda también deshace (antes solo admin / store_admin).
+    expect(puedeDeshacerEtapa(gerente, aprobada)).toBe(true);
     expect(puedeDeshacerEtapa(admin, conFoto)).toBe(false);
     expect(puedeDeshacerEtapa(admin, base)).toBe(false);
+    expect(puedeDeshacerEtapa(gerenteOtraTienda, aprobada)).toBe(false);
+    expect(puedeDeshacerEtapa(almacen, aprobada)).toBe(false);
   });
   it("para la hoja se marcan las fotografiadas sin aprobar, nada más", () => {
     expect(seleccionableParaHoja(conFoto)).toBe(true);

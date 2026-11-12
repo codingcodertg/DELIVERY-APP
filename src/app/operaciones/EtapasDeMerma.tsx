@@ -91,7 +91,8 @@ export function conEtapa(r: Reporte, etapa: Etapa, prueba: string | null, ahora:
     // Deshacer un paso: se borra lo de la etapa que se deshace.
     if (actual === "adjusted") Object.assign(n, { adjusted_at: null, adjusted_by: null, adjustment_proof: null });
     if (actual === "dumped") Object.assign(n, { dumped_at: null, dumped_by: null });
-    if (actual === "approved") Object.assign(n, { approved_at: null, approved_by: null, approval_sheet: null });
+    // 296: deshacer la aprobación saca la merma de su grupo (lo mismo que hace la base).
+    if (actual === "approved") Object.assign(n, { approved_at: null, approved_by: null, approval_sheet: null, scrap_group_id: null });
     return n;
   }
   if (etapa === "approved") Object.assign(n, { approved_at: ahora, approved_by: yo, approval_sheet: prueba });

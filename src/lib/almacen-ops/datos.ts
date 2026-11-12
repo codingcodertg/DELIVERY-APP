@@ -188,6 +188,26 @@ export async function quitarFirmaGrupo(sb: SupabaseClient, grupoId: string, slot
   if (error && !esCorteDePractica(error)) throw error;
 }
 
+/** Antes de aplicar la 296 la función no existe (PGRST202): un aviso claro en vez del error crudo. */
+function sinLaMigracion296(error: { code?: string; message?: string }): Error | typeof error {
+  if (error.code === "PGRST202" || /could not find the function/i.test(error.message ?? "")) {
+    return new Error("Esta opción todavía no está activada (falta la migración 296). / This option isn't enabled yet (migration 296 pending).");
+  }
+  return error;
+}
+
+/** 296: saca UNA merma de su grupo pendiente (vuelve a fotografiada; las firmas del grupo se borran). */
+export async function sacarDeGrupo(sb: SupabaseClient, reporteId: string): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_remove_from_scrap_group", { p_report: reporteId });
+  if (error && !esCorteDePractica(error)) throw sinLaMigracion296(error);
+}
+
+/** 296: borra un grupo pendiente entero (sus mermas vuelven a fotografiada, sin grupo). */
+export async function borrarGrupo(sb: SupabaseClient, grupoId: string): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_delete_scrap_group", { p_group: grupoId });
+  if (error && !esCorteDePractica(error)) throw sinLaMigracion296(error);
+}
+
 /** 281: aprueba el grupo (pasa TODAS sus mermas a aprobada). La base exige las dos firmas distintas. */
 export async function aprobarGrupo(sb: SupabaseClient, grupoId: string): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_approve_scrap_group", { p_group: grupoId });
