@@ -51854,3 +51854,9 @@ Pedidos del dueño (11 nov):
 - **«⏳ Pendiente de aprobación» siempre en la línea de etapas**, entre «Fotografiada» y «Aprobada»: por llegar si aún no está en un grupo; el paso actual, con el enlace al grupo, si está en uno pendiente; hecho si ya se aprobó.
 
 Sello `warehouse_ops` 0.42.0; repo 1.853.0.
+
+## D-1001 · Merma: el botón para agregar la foto sale en cualquier merma sin foto
+
+El dueño (12 nov): la tarjeta de una merma sin foto decía «Siguiente paso: agregar la foto (botón de arriba)», pero no había ningún botón. El formulario de la foto solo salía en las guardadas «sin foto» (`photo_pending`, «la apunté en papel»); el paso «foto» (D-1000) sale en cualquier merma sin fotos. Ahora el formulario sale con el mismo criterio: merma sin fotos, para su autor o quien gestiona la tienda. La base ya lo permitía (`warehouse_ops_add_photos`: `photo_pending` o sin fotos), así que no hay migración.
+
+Sello `warehouse_ops` 0.43.0; repo 1.854.0.
