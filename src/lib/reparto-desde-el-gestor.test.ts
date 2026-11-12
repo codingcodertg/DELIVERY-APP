@@ -162,7 +162,9 @@ describe("la pantalla usa cada pieza (se alimenta de quien llama)", () => {
 
   it("lo que se reparte es lo marcado en cualquier tabla (`selectedOrders` ∪ `marcadas`), pendiente y de ESTE día", () => {
     expect(pagina).toContain("const [marcadas, setMarcadas] = useState<Set<string>>(new Set());");
-    expect(pagina).toContain("() => dayOrders.filter((d) => d.delivery_date === date && ROUTE_STAGES.includes(d.stage) && (selectedOrders.has(d.id) || marcadas.has(d.id))),");
+    // D-998: lo marcado es cualquier fila; repartir toma solo lo de ESTE día en etapa de ruta (`lasRepartibles`).
+    expect(pagina).toContain("() => lasRepartibles(lasMarcadas(dayOrders, selectedOrders, marcadas), date, ROUTE_STAGES),");
+    expect(pagina).toContain("const seleccionMarcada = useMemo(() => lasMarcadas(deliveries, selectedOrders, marcadas)");
   });
   it("el día entra al motor por `entradaDelDia` —las mismas reglas que «Armar rutas»— con las seleccionadas libres y los choferes con la base del perfil si no tienen la de Ajustes", () => {
     expect(pagina).toContain("import { entradaDelDia } from \"@/lib/route-plan/entrada\";");
@@ -222,15 +224,15 @@ describe("la pantalla usa cada pieza (se alimenta de quien llama)", () => {
     expect(seccion).toContain("<input type=\"checkbox\" data-elige-para-repartir={c.id} disabled={!c.puede || repartiendo} checked={c.puede && elegidosDelReparto.has(c.id)}");
     expect(seccion).toContain("const porque = c.motivo ? textoDeNoRepartir(c.motivo) : null;");
     expect(seccion).toContain("{c.nombre}{c.motivo === \"ruta_bloqueada\" ? \" 🔒\" : \"\"}");
-    expect(seccion).toContain("<button className=\"btn btn-primary\" data-reparte disabled={!elegidos.length || n === 0 || repartiendo || moviendo} onClick={() => void reparte()}");
+    expect(seccion).toContain("<button className=\"btn btn-primary\" data-reparte disabled={!elegidos.length || nRepartir === 0 || repartiendo || moviendo} onClick={() => void reparte()}");
     expect(seccion).toContain("const elegidos = choferesDelReparto.filter((c) => c.puede && elegidosDelReparto.has(c.id));");
   });
   it("dónde sale: dentro del recuadro «Elige conductor» (plegada), sola cuando no hay nada sin asignar marcado, y en «Rutas» con algo marcado; nunca una barra arriba (D-459)", () => {
     // Puesto al día por D-481: nada de esto en «Ruta de hoy» (solo lectura).
-    const recuadro = trozo("{!soloLectura && poolSelectedCount > 0 && ( <div className=\"card\" data-elige-conductor", "{!soloLectura && poolSelectedCount === 0 && seleccionDelReparto.length > 0 && recuadroDeReparto()}");
-    expect(recuadro).toContain("{seleccionDelReparto.length > 0 && seccionDeReparto(false)}");
+    const recuadro = trozo("{!soloLectura && poolSelectedCount > 0 && ( <div className=\"card\" data-elige-conductor", "{!soloLectura && poolSelectedCount === 0 && seleccionMarcada.length > 0 && recuadroDeReparto()}");
+    expect(recuadro).toContain("{seleccionMarcada.length > 0 && seccionDeReparto(false)}");
     expect(recuadro.indexOf("data-nueva-ruta-del-recuadro")).toBeLessThan(recuadro.indexOf("seccionDeReparto(false)"));
-    expect(pagina).toContain("{!soloLectura && tab === \"routes\" && seleccionDelReparto.length > 0 && recuadroDeReparto()}");
+    expect(pagina).toContain("{!soloLectura && tab === \"routes\" && seleccionMarcada.length > 0 && recuadroDeReparto()}");
     expect(pagina).toContain("<div className=\"card\" data-recuadro-de-reparto role=\"group\"");
     expect(pagina).toContain("style={{ position: \"sticky\", bottom: 8, zIndex: 6, margin: \"10px 0 0\", padding: \"12px 14px\", border: \"2px solid var(--accent)\", background: \"var(--accent-soft)\", maxWidth: \"100%\", boxSizing: \"border-box\" }}> {seccionDeReparto(true)}");
     expect(seccion).toContain(": <button className=\"btn btn-ghost btn-sm\" data-abre-reparto aria-expanded={abierto} onClick={() => setRepartoAbierto((v) => !v)}");
