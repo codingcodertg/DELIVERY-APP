@@ -51860,3 +51860,13 @@ Sello `warehouse_ops` 0.42.0; repo 1.853.0.
 El dueño (12 nov): la tarjeta de una merma sin foto decía «Siguiente paso: agregar la foto (botón de arriba)», pero no había ningún botón. El formulario de la foto solo salía en las guardadas «sin foto» (`photo_pending`, «la apunté en papel»); el paso «foto» (D-1000) sale en cualquier merma sin fotos. Ahora el formulario sale con el mismo criterio: merma sin fotos, para su autor o quien gestiona la tienda. La base ya lo permitía (`warehouse_ops_add_photos`: `photo_pending` o sin fotos), así que no hay migración.
 
 Sello `warehouse_ops` 0.43.0; repo 1.854.0.
+
+## D-1002 · RR. HH.: no se crea un candidato que ya existe (la base manda, no la lista del navegador)
+
+Reunión del 11 nov: candidatos de Indeed duplicados. En la base había dos personas repetidas: **Itiel de Leon** (dos registros el 11 nov, a las 3:26 PM y 8:50 PM) y **Vidal Contreras / Contereas** (24 y 30 de julio). Armando Resendez y Bianca Sanchez tienen un solo registro.
+
+Causa: el alta («Nuevo candidato») y la importación CSV ya buscaban duplicados por teléfono y nombre, pero solo en la lista que el navegador tenía cargada. Con una pestaña abierta desde antes, o con otro reclutador dando de alta a la misma persona, esa lista estaba vieja y se insertaba otro registro. Editar a un candidato nunca creaba registros: no era la causa.
+
+Arreglo: `addCandidate` pregunta a la base, justo antes de insertar, por el mismo teléfono (solo dígitos, en cualquier formato) o el mismo nombre normalizado (`src/lib/recruiting/candidato-duplicado.ts`). Si ya existe, no crea otro: devuelve el existente con `yaExistia`. El alta lo trata como «Aplicó de nuevo» (nota en su historial, el CV nuevo a su ficha) y abre su perfil; la importación lo cuenta como duplicado. Los duplicados que ya existen NO se tocaron: el dueño decide cómo unirlos.
+
+Sello `recruiting` 0.89.0; repo 1.855.0.

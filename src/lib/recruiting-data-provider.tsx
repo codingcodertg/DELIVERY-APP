@@ -1,5 +1,6 @@
 "use client";
 
+import { buscaDuplicado, patronNombre, patronTel } from "@/lib/recruiting/candidato-duplicado";
 import {
   createContext,
   useCallback,
@@ -65,7 +66,9 @@ export interface DataState {
   toast: string;
   notify: (msg: string) => void;
   // candidate CRUD
-  addCandidate: (c: Partial<Candidate>) => Promise<Candidate | null>;
+  /** Crea al candidato; si la BASE ya tiene a esa persona (mismo teléfono o nombre), NO crea otro: devuelve el existente
+   *  con `yaExistia: true` (reunión 11 nov, duplicados de Indeed). */
+  addCandidate: (c: Partial<Candidate>) => Promise<(Candidate & { yaExistia?: boolean }) | null>;
   updateCandidate: (id: string, patch: Partial<Candidate>) => Promise<void>;
   deleteCandidate: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
@@ -404,6 +407,19 @@ export function DataProvider({ children, me, hub = null }: { children: React.Rea
     async (c) => {
       // D-610: nombre, teléfono y correo con el formato estándar, entre por donde entre.
       const payload = { ...estandarizaCandidato(c), created_by: me?.id ?? null };
+      // Antes de crear, se pregunta a la BASE (no a la lista del navegador, que puede estar vieja) si ya está esa
+      // persona: mismo teléfono en cualquier formato, o mismo nombre. Si está, se devuelve la existente.
+      const pTel = patronTel(payload.phone ?? null);
+      const pNom = patronNombre(payload.name ?? null);
+      const [porTel, porNom] = await Promise.all([
+        pTel ? supabase.from("candidates").select("*").ilike("phone", pTel).limit(25) : Promise.resolve({ data: [] as Candidate[] }),
+        pNom ? supabase.from("candidates").select("*").ilike("name", pNom).limit(25) : Promise.resolve({ data: [] as Candidate[] }),
+      ]);
+      const existente = buscaDuplicado([...((porTel.data ?? []) as Candidate[]), ...((porNom.data ?? []) as Candidate[])], payload);
+      if (existente) {
+        setCandidates((prev) => (prev.some((x) => x.id === existente.id) ? prev : [existente, ...prev]));
+        return { ...existente, yaExistia: true };
+      }
       const { data, error } = await supabase.from("candidates").insert(payload).select().single();
       if (error) {
         notify("Error: " + error.message);

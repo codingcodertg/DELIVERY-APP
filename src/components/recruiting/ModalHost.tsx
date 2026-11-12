@@ -570,6 +570,14 @@ function NewCandidateModal({ close }: { close: () => void }) {
         prescreen,
         phone_date: phoneIso,
       });
+      // La base ya lo tenía (la lista de esta pestaña estaba vieja): mismo trato que el duplicado de arriba.
+      if (created?.yaExistia) {
+        await addContact(created.id, { type: "Note", note: t("Applied again", "Aplicó de nuevo") });
+        if (resume) await uploadResume(created.id, resume, created.name);
+        notify(t("Already registered — opening their profile", "Ya estaba registrado — abriendo su perfil"));
+        openExisting(created.id);
+        return;
+      }
       if (created) setCreatedId(created.id); // so it can't flag itself as a duplicate
       if (created && resume) await uploadResume(created.id, resume, created.name);
       if (created && sms) {
