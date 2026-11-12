@@ -208,6 +208,38 @@ export async function borrarGrupo(sb: SupabaseClient, grupoId: string): Promise<
   if (error && !esCorteDePractica(error)) throw sinLaMigracion296(error);
 }
 
+/** 297: una entrada del historial de un reporte (lo llenan triggers de la base; la app solo lee). */
+export interface EntradaDeHistorial {
+  at: string;
+  actor_name: string | null;
+  kind: "created" | "stage" | "photos" | "group" | "signature" | "edited" | string;
+  detail: Record<string, unknown>;
+}
+
+/** 297: el historial de un reporte. Sin la 297 la tabla no existe: lista vacía (la tarjeta deriva lo básico). */
+export async function historialDeReporte(sb: SupabaseClient, reporteId: string): Promise<EntradaDeHistorial[]> {
+  const { data, error } = await sb.from("warehouse_report_log").select("at, actor_name, kind, detail").eq("report_id", reporteId).order("at");
+  if (error) return [];
+  return (data ?? []) as EntradaDeHistorial[];
+}
+
+/**
+ * 297: borra un reporte de merma de prueba (solo admin). Devuelve las rutas de sus archivos y los quita del
+ * almacenamiento (si eso falla, el reporte ya está borrado y no se insiste). En práctica no se borra nada de verdad.
+ */
+export async function borrarReporteDeMerma(sb: SupabaseClient, reporteId: string): Promise<void> {
+  const { data, error } = await sb.rpc("warehouse_ops_delete_scrap_report", { p_report: reporteId });
+  if (error) {
+    if (esCorteDePractica(error)) return;
+    if (/function .*warehouse_ops_delete_scrap_report|PGRST202|schema cache/i.test(`${error.code ?? ""} ${error.message ?? ""}`)) {
+      throw new Error("Borrar reportes necesita la migración 297. / Deleting reports needs migration 297.");
+    }
+    throw error;
+  }
+  const rutas = ((data as string[] | null) ?? []).filter(Boolean);
+  if (rutas.length) { try { await sb.storage.from(CUBO).remove(rutas); } catch { /* el reporte ya no existe; los archivos quedan huérfanos */ } }
+}
+
 /** 281: aprueba el grupo (pasa TODAS sus mermas a aprobada). La base exige las dos firmas distintas. */
 export async function aprobarGrupo(sb: SupabaseClient, grupoId: string): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_approve_scrap_group", { p_group: grupoId });

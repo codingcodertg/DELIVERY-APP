@@ -172,7 +172,9 @@ describe("quién mueve la etapa", () => {
     expect(ETAPAS_TSX).toContain("const gestiona = puedeCambiarEtapa(ctx.yo, r);");
     expect(ETAPAS_TSX).toContain("{gestiona && !accion && (");
     expect(ETAPAS_TSX).not.toMatch(/(?<![\w.`])confirm\(/);
-    expect(ETAPAS_TSX).toContain('data-confirmar="dumped"');
+    // Reunión 11 nov, 11 PM: «Desechada» de un toque, sin la segunda confirmación.
+    expect(ETAPAS_TSX).not.toContain('data-confirmar="dumped"');
+    expect(ETAPAS_TSX).toContain("onClick={() => void desechar()}");
   });
 });
 
