@@ -113,7 +113,7 @@ describe("3 · la vista eficiente: pestañas en la fila del panel, y la tabla pe
     antesQue(pagina, '<div ref={panelFijoRef} className="panel-fijo-del-gestor"', "<div data-barra-de-vistas");
     antesQue(pagina, "<div data-barra-de-vistas", "<div data-contenido-de-la-pestana>");
     antesQue(pagina, "<div data-contenido-de-la-pestana>", "<div data-tarjetas-de-ruta=");
-    expect(pagina).toContain("{!soloLectura && tab === \"routes\" && seleccionDelReparto.length > 0 && recuadroDeReparto()} </div> </div>");
+    expect(pagina).toContain("{!soloLectura && tab === \"routes\" && seleccionMarcada.length > 0 && recuadroDeReparto()} </div> </div>");
   });
   it("el mapa no se esconde en la eficiente, y lo que solo es de la completa no sale", () => {
     expect(pagina).toContain("const showTop = eficiente || estadoDelMapa.visible;");
