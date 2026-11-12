@@ -51880,3 +51880,18 @@ La base no tiene el salto approved → ready (el guard de almacén solo acepta a
 Helper puro `saltoDirectoALista` en `src/lib/etapas-en-la-fila.ts`, con prueba (`salto-directo-a-lista.test.ts`); la tabla de saltos por rol (`etapas-en-la-fila.test.ts`) suma «Lista» desde «Aprobada» para quien prepara.
 
 Sello `deliveries` 1.602.0; repo 1.856.0.
+
+## D-1004 · Menos escrituras en la base (aviso de Supabase: «running out of Disk IO Budget»)
+
+Supabase avisó (11 nov, 10:10 PM) que el proyecto se está comiendo su presupuesto de Disk IO. Las lecturas casi no tocan disco (la base cabe en memoria); lo que pesa son las escrituras pequeñas que se repiten todo el día. En 120 días de estadísticas, lo más grande:
+
+- **El cronómetro de Time Tracker** actualizaba `timetracker.sessions` cada 10 s por persona: ~236 000 UPDATE (~234 MB de WAL), con diferencia el mayor gasto.
+- Altas y bajas de suscripciones de realtime (~104 000 + 104 000), sobre todo al recargar las páginas tras cada publicación.
+- El latido de dispositivos de Seguridad (`security_touch_device`): ~22 000 UPDATE en `security_devices` y otros tantos en `security_device_users`.
+
+Cambios:
+- **Time Tracker:** el reloj sigue contando cada segundo y guarda su estado local cada 10 s (sin base); a la base va **como mucho cada 120 s** (`LATIDO_DB_MS`, `src/lib/timetracker/latido-db.ts`). Parar, descanso/comida (`toggleBreak`), fila nueva y cerrar la página (`pagehide` + sendBeacon) siguen guardando al instante; el cron cierra una sesión solo tras 15 min sin latido. Las cuentas de tiempo activo y pago no cambian. La app de escritorio no escribe sesiones por su cuenta.
+- **Latido de dispositivos:** cada **5 min** (antes 2 min) y, al cambiar de ruta, solo si pasó 1 min (`src/lib/security/latido-dispositivo.ts`). «En vivo» en Seguridad usa una ventana de 60 min, así que no cambia.
+- **Recarga tras publicar:** ya tenía espera aleatoria de 0–5 min (D-563, `SOFT_RELOAD_JITTER_MAX_MS`) y consulta de versión cada 5 min; no se cambió. Lo que más ayuda aquí es publicar en lotes.
+
+Sellos `timetracker` 1.20.0 y `security` 0.25.0; repo 1.857.0.

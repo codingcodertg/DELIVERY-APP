@@ -3,15 +3,15 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { idDelDispositivo } from "@/lib/security/identidad";
+import { LATIDO_DISPOSITIVO_MS, tocaAvisar } from "@/lib/security/latido-dispositivo";
 
-/** Cada cuánto se vuelve a decir «sigo aquí», con la pestaña abierta. Dos minutos (D-942): lo bastante fresco para
- *  que Seguridad vea quién está en vivo y en qué módulo, sin cargar la base con un latido por segundo. Además se
- *  reavisa al cambiar de ruta, para que el módulo en vivo refleje dónde está la persona ahora. */
-const CADA_MS = 2 * 60 * 1000;
+/** Cada cuánto se vuelve a decir «sigo aquí»: 5 min (D-1004, Disk IO; antes 2 min, D-942). Al cambiar de ruta se
+ *  reavisa solo si pasó 1 min desde el último, para que el módulo en vivo siga a la persona sin un UPDATE por clic. */
+let ultimoAviso: number | null = null;
 
 /**
  * La huella del dispositivo (D-811): asegura el id (cookie + localStorage) y avisa a `/api/security/seen` al cargar y
- * cada diez minutos. No pinta nada y no bloquea nada: lo que bloquea es el middleware con `security_gate`. En las
+ * cada cinco minutos. No pinta nada y no bloquea nada: lo que bloquea es el middleware con `security_gate`. En las
  * pantallas sin sesión (login, el enlace del cliente) la ruta contesta 401 y aquí se ignora. En modo demo
  * (`NEXT_PUBLIC_LOCAL_MODE`) no hay servidor que lo reciba: no se avisa, y así la consola queda limpia para grabar.
  */
@@ -24,7 +24,10 @@ export function IdentidadDelDispositivo() {
     if (sinSesion) return;
     const id = idDelDispositivo(typeof window === "undefined" ? null : window);
     if (!id) return;
-    const avisa = () => {
+    const avisa = (porRuta: boolean) => {
+      const ahora = Date.now();
+      if (!tocaAvisar(ultimoAviso, ahora, porRuta)) return;
+      ultimoAviso = ahora;
       void fetch("/api/security/seen", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -35,8 +38,8 @@ export function IdentidadDelDispositivo() {
         keepalive: true,
       }).catch(() => undefined);
     };
-    avisa();
-    const t = setInterval(avisa, CADA_MS);
+    avisa(true);
+    const t = setInterval(() => avisa(false), LATIDO_DISPOSITIVO_MS);
     return () => clearInterval(t);
   }, [sinSesion, pathname]);
   return null;

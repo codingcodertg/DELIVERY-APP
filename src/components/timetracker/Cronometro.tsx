@@ -1,5 +1,6 @@
 "use client";
 
+import { tocaGuardarEnBase } from "@/lib/timetracker/latido-db";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
@@ -993,6 +994,8 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   function beginTicking() {
       // Nunca dos ticks a la vez (D-470): la adopción ahora puede repetirse.
       if (tickRef.current) clearInterval(tickRef.current);
+      // D-1004: una fila (o una adopción) nueva guarda en su primer latido, sin esperar 120 s.
+      ultimoLatidoDbRef.current = null;
       tickRef.current = setInterval(async () => {
         const ahora = Date.now();
         // Se pregunta AHORA y no se lee el estado de React (D-470). El tick que arma la
@@ -1081,6 +1084,9 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
           const finLatido = Date.now();
           // El estado vivo, por si hay que recargar (D-916): lo que esta app lleva medido, ahora.
           guardarEstadoVivo(id);
+          // D-1004 (Disk IO): lo local sigue cada 10 s; la base, como mucho cada LATIDO_DB_MS (120 s).
+          if (!tocaGuardarEnBase(ultimoLatidoDbRef.current, finLatido)) return;
+          ultimoLatidoDbRef.current = finLatido;
           void writeSession(id, {
             endMs: finLatido,
             durationSeconds: net,
@@ -1146,6 +1152,8 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   // que lee el tick —corre dentro de un setInterval y no ve el estado nuevo— y el estado es el
   // que pinta el aviso. `ultimoGuardadoRef` es el suelo: la última escritura que sí entró.
   const ultimoGuardadoRef = useRef<number | null>(null);
+  // D-1004: cuándo fue el último latido mandado a la base (null = el próximo tick guarda).
+  const ultimoLatidoDbRef = useRef<number | null>(null);
   const sinGuardarDesdeRef = useRef<number | null>(null);
   const [sinGuardarDesde, setSinGuardarDesde] = useState<number | null>(null);
 
