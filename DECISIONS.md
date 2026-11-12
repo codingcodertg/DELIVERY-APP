@@ -51798,3 +51798,9 @@ Ahora la burbuja de «Etapa» de la fila de Almacén ofrece **Rechazada…** des
 Las órdenes que almacén ya marcó entregadas para quitarlas no se tocan: las revisa el dueño.
 
 Sello `deliveries` 1.599.0; repo 1.848.0.
+
+## D-996 · Órdenes: «Input Date» corta y con hora
+
+El dueño (11 nov): en la tabla de Órdenes, la columna «Input Date» (D-986) decía «Nov 09 2026»; ahora dice **«11/09/26 1:15pm»**: fecha corta MM/DD/YY con la hora de captura (`input_time`, HHMM) en formato de 12 horas. Sin hora sale solo la fecha. El filtro de la columna sigue agrupando por día. Formateador puro `fmtCaptura` en `src/lib/fecha-de-captura.ts`, con prueba.
+
+Sello `deliveries` 1.600.0; repo 1.849.0.
