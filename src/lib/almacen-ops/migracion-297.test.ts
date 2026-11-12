@@ -21,4 +21,14 @@ describe("297: gerente inicia, historial, borrar", () => {
     expect(f).toContain("for update");
     expect(f).toContain("approved_at is not null");
   });
+  it("borrar: no devuelve archivos que otro reporte sigue usando (captura de Ajustada compartida, hoja firmada)", () => {
+    const f = sql.slice(sql.indexOf("create or replace function public.warehouse_ops_delete_scrap_report"));
+    const borra = f.indexOf("delete from public.warehouse_reports where id = r.id");
+    const filtra = f.indexOf("where not exists (select 1 from public.warehouse_reports x");
+    expect(borra).toBeGreaterThan(0);
+    expect(filtra).toBeGreaterThan(borra); // se filtra DESPUÉS de borrar la fila, así el propio reporte no cuenta
+    expect(f).toContain("x.adjustment_proof = f");
+    expect(f).toContain("x.approval_sheet = f");
+    expect(f).toContain("f = any(coalesce(x.photos, '{}'))");
+  });
 });

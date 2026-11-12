@@ -180,6 +180,13 @@ begin
   if r.scrap_group_id is not null and not exists (select 1 from public.warehouse_reports where scrap_group_id = r.scrap_group_id) then
     delete from public.warehouse_scrap_groups where id = r.scrap_group_id;
   end if;
+  -- Los archivos se COMPARTEN entre reportes (una captura de «Ajustada» para muchos, D-963; una hoja firmada adjunta a
+  -- varios): solo se devuelven para borrar los que ya NINGÚN otro reporte usa. Va después del delete, en la misma
+  -- transacción, así el reporte borrado ya no cuenta.
+  select coalesce(array_agg(distinct f), '{}') into fotos
+    from unnest(fotos) f
+   where not exists (select 1 from public.warehouse_reports x
+                      where f = any(coalesce(x.photos, '{}')) or x.approval_sheet = f or x.adjustment_proof = f);
   return fotos;
 end $$;
 revoke all on function public.warehouse_ops_delete_scrap_report(uuid) from public, anon;
@@ -211,7 +218,10 @@ begin
   if position('for update' in f) = 0 or position('approved_at is not null' in f) = 0 then
     raise exception '297: delete_scrap_report debe bloquear la fila y rechazar grupos aprobados';
   end if;
+  if position('x.adjustment_proof = f' in f) = 0 or position('x.approval_sheet = f' in f) = 0 then
+    raise exception '297: delete_scrap_report no debe devolver archivos que otro reporte sigue usando';
+  end if;
 end $chk$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('297_merma_gerente_inicia_historial_borrar.sql', '9c8ee4a500ac21c874b63f09b62672ce32d1dc4cb4a612dc5decd164d713e69a') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('297_merma_gerente_inicia_historial_borrar.sql', '9e50eddfb9220bf51536a3c7c7649b3e9b3fcd748b71cbc951770e656eca8e2e') on conflict (name) do nothing;
