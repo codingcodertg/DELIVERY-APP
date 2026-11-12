@@ -34,7 +34,7 @@ describe("qué etapas ofrece la burbuja, rol por rol, medido contra el guard (17
     expect(tabla("warehouse", true)).toEqual({
       draft: {}, pending: {}, rejected: {}, canceled: {},
       // 295 (ayuda de Antonio Ruiz): rechaza lo que no puede preparar; vuelve a ventas.
-      approved:   { fulfilling: "tarifa", rejected: "motivo_rechazo" },
+      approved:   { fulfilling: "tarifa", ready: "tarifa_y_pallets", rejected: "motivo_rechazo" },
       fulfilling: { ready: "pallets", approved: "motivo_deshacer", rejected: "motivo_rechazo" },
       // «Recoger» (→ picked_up) se queda en la ficha: GPS, cargas partidas y chofer.
       ready:      { fulfilling: "motivo_deshacer" },
@@ -46,7 +46,7 @@ describe("qué etapas ofrece la burbuja, rol por rol, medido contra el guard (17
   it("almacén en una orden de OTRA tienda: solo adelante y la vuelta de una recogida; el guard rechaza deshacer fuera de su tienda (142)", () => {
     expect(tabla("warehouse", false)).toEqual({
       draft: {}, pending: {}, rejected: {}, canceled: {},
-      approved:   { fulfilling: "tarifa" },
+      approved:   { fulfilling: "tarifa", ready: "tarifa_y_pallets" },
       fulfilling: { ready: "pallets" },
       ready:      {},
       picked_up:  { ready: "motivo_deshacer" },
@@ -58,7 +58,7 @@ describe("qué etapas ofrece la burbuja, rol por rol, medido contra el guard (17
       draft:      { canceled: "anular" },
       pending:    { approved: null, rejected: "motivo_rechazo", canceled: "anular" },
       rejected:   { canceled: "anular" },
-      approved:   { pending: null, fulfilling: "tarifa", delivered: "motivo_entrega", canceled: "anular" },
+      approved:   { pending: null, fulfilling: "tarifa", ready: "tarifa_y_pallets", delivered: "motivo_entrega", canceled: "anular" },
       fulfilling: { approved: "motivo_deshacer", ready: "pallets", delivered: "motivo_entrega", canceled: "anular" },
       ready:      { fulfilling: "motivo_deshacer", delivered: "motivo_entrega", canceled: "anular" },
       picked_up:  { ready: "motivo_deshacer", delivered: "motivo_entrega" },
@@ -81,7 +81,7 @@ describe("qué etapas ofrece la burbuja, rol por rol, medido contra el guard (17
       draft:      { canceled: "anular" },
       pending:    { approved: null, rejected: "motivo_rechazo", canceled: "anular" },
       rejected:   { canceled: "anular" },
-      approved:   { pending: null, fulfilling: "tarifa", delivered: "motivo_entrega", canceled: "anular" },
+      approved:   { pending: null, fulfilling: "tarifa", ready: "tarifa_y_pallets", delivered: "motivo_entrega", canceled: "anular" },
       fulfilling: { approved: "motivo_deshacer", ready: "pallets", delivered: "motivo_entrega", canceled: "anular" },
       ready:      { fulfilling: "motivo_deshacer", delivered: "motivo_entrega", canceled: "anular" },
       // D-676 (196): `picked_up → canceled` existe ahora como salto (para el chofer), y el admin, que ya podía, lo ve.

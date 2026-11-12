@@ -51870,3 +51870,13 @@ Causa: el alta («Nuevo candidato») y la importación CSV ya buscaban duplicado
 Arreglo: `addCandidate` pregunta a la base, justo antes de insertar, por el mismo teléfono (solo dígitos, en cualquier formato) o el mismo nombre normalizado (`src/lib/recruiting/candidato-duplicado.ts`). Si ya existe, no crea otro: devuelve el existente con `yaExistia`. El alta lo trata como «Aplicó de nuevo» (nota en su historial, el CV nuevo a su ficha) y abre su perfil; la importación lo cuenta como duplicado. Los duplicados que ya existen NO se tocaron: el dueño decide cómo unirlos.
 
 Sello `recruiting` 0.89.0; repo 1.855.0.
+
+## D-1003 · Almacén: saltarse «Preparando» pide tarifa y pallets juntos
+
+Reunión del 11 nov con Roberto (idea de Pablo y Carlos, McAllen): en Entregas → Almacén, la burbuja de «Etapa» de una orden «Aprobada» ahora ofrece también **«Lista»** directo. Al elegirla, la app pide **las dos cosas** que pedirían los dos pasos: primero la tarifa de entrega (solo si el tipo de orden cobra, igual que hoy al comenzar) y luego los pallets confirmados.
+
+La base no tiene el salto approved → ready (el guard de almacén solo acepta approved → fulfilling → ready), así que **no hay migración**: la app escribe los DOS pasos de siempre, en orden, cada uno con su nota («Tarifa confirmada $X» al comenzar, «Pallets confirmadas: N» al marcar lista) y sus columnas. Así reportes y cobros quedan igual que con el camino normal. Si el primer paso falla, el segundo no se intenta. El camino de dos pasos no cambia.
+
+Helper puro `saltoDirectoALista` en `src/lib/etapas-en-la-fila.ts`, con prueba (`salto-directo-a-lista.test.ts`); la tabla de saltos por rol (`etapas-en-la-fila.test.ts`) suma «Lista» desde «Aprobada» para quien prepara.
+
+Sello `deliveries` 1.602.0; repo 1.856.0.
