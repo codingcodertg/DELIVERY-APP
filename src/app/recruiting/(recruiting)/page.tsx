@@ -102,7 +102,7 @@ export default function CandidatesPage() {
       const key = telClean(phone);
       if (dupOf(phone, email) || seen.has(key)) { dups++; continue; }
       seen.add(key);
-      await addCandidate(
+      const hecho = await addCandidate(
         base({
           name,
           phone,
@@ -112,6 +112,8 @@ export default function CandidatesPage() {
           home_location: homeLocation || null,
         }),
       );
+      // La base ya lo tenía aunque esta lista no: cuenta como duplicado, no como nuevo.
+      if (hecho?.yaExistia) { dups++; continue; }
       added++;
     }
     setCsv("");
