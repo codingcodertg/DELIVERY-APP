@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { stageLabel } from "@/lib/constants";
+import { fmtCaptura } from "@/lib/fecha-de-captura";
 import { estadoDeLaCabecera } from "@/lib/marcar-todas";
 import { idsRecibidasPorAlmacen, pastillaDeEtapa, type Pastilla } from "@/lib/recibir";
 import { marcasDeParadas, type MarcaDeParada } from "@/lib/acciones-parada";
@@ -147,7 +148,8 @@ export const ORDER_COLUMNS: OrderColumn[] = [
   // Ayuda de Roberto (11 nov, «Add input date column option»): el día en que se capturó la orden (`input_date`), opcional
   // en ⚙ Columnas como las demás; se ordena y filtra por fecha.
   { key: "input_date", en: "Input Date", es: "Fecha de captura", value: (d) => d.input_date ?? null,
-    filterLabel: (v) => fmtDate(v as string | null), cell: (d) => (d.input_date ? fmtDate(d.input_date) : "—") },
+    // Corta, con hora (Roberto, 11 nov): «11/09/26 1:15pm».
+    filterLabel: (v) => fmtCaptura(v as string | null, null), cell: (d) => fmtCaptura(d.input_date, d.input_time) },
   { key: "windows", en: "Windows", es: "Ventanas", value: (d) => d.delivery_windows, cell: (d) => fmtWindows(d.delivery_windows) },
   { key: "pallets", en: "Pallets", es: "Pallets", value: (d) => d.actual_pallets ?? d.est_pallets ?? null, cell: (d, { t }) => {
       const v = palletVariance(d);
