@@ -5,7 +5,7 @@ import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { fmtMoney } from "@/lib/utils";
 import {
-  aprobarGrupo, enlacesDeFotos, firmarGrupo, grupoConReportes, quitarFirmaGrupo, type Reporte,
+  aprobarGrupo, borrarGrupo, enlacesDeFotos, firmarGrupo, grupoConReportes, quitarFirmaGrupo, sacarDeGrupo, type Reporte,
 } from "@/lib/almacen-ops/datos";
 import { firmaDe, firmaValida, nombreDeSlot, puedeFirmarSlot, SLOTS_DE_FIRMA, type FirmaDeMerma } from "@/lib/almacen-ops/firmas";
 import { estadoDelGrupo, grupoAprobado, puedeAprobarGrupo, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
@@ -17,7 +17,8 @@ import { puedeCorregirMerma } from "@/lib/almacen-ops/visibilidad";
 import { particionaPorEtapa, resumenDeBloque } from "@/lib/almacen-ops/bloque";
 import { aplicarEtapa, AdjuntarYMarcar, ErrorParcial } from "./EtapasDeMerma";
 import { FirmaPad } from "./FirmaPad";
-import { aprobarGrupoDePractica, esGrupoDePractica, firmarGrupoDePractica, grupoDePractica, quitarFirmaDePractica } from "@/lib/practica/grupos-de-practica";
+import { aprobarGrupoDePractica, borrarGrupoDePractica, esGrupoDePractica, firmarGrupoDePractica, grupoDePractica, quitarFirmaDePractica, sacarDeGrupoDePractica } from "@/lib/practica/grupos-de-practica";
+import { esAdminDeLaApp } from "@/lib/almacen-ops/nivel";
 import { VisorDeFotos } from "./VisorDeFotos";
 import { Tarjeta } from "./ListaDeReportes";
 import type { Contexto } from "./Operaciones";
@@ -43,6 +44,8 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
   const [ajustB, setAjustB] = useState(false);
   // Click en el folio: abre el reporte en la app para revisarlo (dueño, 10 nov), sin salir de la hoja.
   const [verReporte, setVerReporte] = useState<Reporte | null>(null);
+  // 296: confirmar «Borrar grupo» en la propia hoja (los diálogos del navegador no se usan).
+  const [confirmaBorrar, setConfirmaBorrar] = useState(false);
 
   const practica = esGrupoDePractica(grupoId);
   const recarga = useCallback(async () => {
@@ -93,6 +96,27 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
   // Las casillas para desechar/ajustar en bloque salen cuando el grupo ya está aprobado (sus mermas están en «approved»
   // y de ahí pueden ir a desechada → ajustada) y quien mira gestiona.
   const conCasillas = gestiona && aprobado;
+  // 296 (dueño, 11 nov: «an option to undo»): con el grupo PENDIENTE, quien gestiona puede sacar una merma o borrar el
+  // grupo; las mermas vuelven a «Fotografiada». Ya aprobado, se deshace la etapa desde la tarjeta de cada merma.
+  const editaGrupo = gestiona && !aprobado;
+  const conColumnaExtra = conCasillas || editaGrupo;
+  const sacar = (r: Reporte) => {
+    const ultima = reportes.length <= 1;
+    void corre(async () => {
+      if (practica) sacarDeGrupoDePractica(grupo.id, r.id);
+      else await sacarDeGrupo(createClient(), r.id);
+      setAvisoB(t("Removed from the group: it is back to «Photographed». The group's signatures were cleared.", "Se sacó del grupo: volvió a «Fotografiada». Las firmas del grupo se borraron."));
+      if (ultima) onSalir();
+    });
+  };
+  const borrar = async () => {
+    setOcupado(true); setError(null);
+    try {
+      if (practica) borrarGrupoDePractica(grupo.id);
+      else await borrarGrupo(createClient(), grupo.id);
+      onSalir();
+    } catch (e) { setError((e as Error).message); setOcupado(false); }
+  };
   const marcarDesechadasG = async () => {
     const { elegibles, omitidos } = bDesechar;
     if (elegibles.length === 0) { setAvisoB(resumenDeBloque("dumped", 0, omitidos.length, lang)); return; }
@@ -113,11 +137,22 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
         {/* Dueño, 11 nov: el estado a la izquierda; Imprimir y Cerrar arriba a la derecha (Cerrar al final). */}
         <span className={`ops-etapa-chip${aprobado ? " ops-grupo-aprobado" : ""}`} data-grupo-estado={aprobado ? "aprobado" : "pendiente"}>{estadoDelGrupo(grupo, lang)}</span>
         <span className="hoja-barra-acciones">
+          {editaGrupo && <button type="button" className="btn btn-ghost" disabled={ocupado} onClick={() => setConfirmaBorrar(true)} data-accion="borrar-grupo">🗑 {t("Delete group", "Borrar grupo")}</button>}
           <button type="button" className="btn" onClick={() => window.print()} data-accion="imprimir-grupo">🖨 {t("Print", "Imprimir")}</button>
           <button type="button" className="btn btn-ghost" onClick={onSalir} data-accion="cerrar-grupo">✕ {t("Close", "Cerrar")}</button>
         </span>
       </div>
       {error && <p className="ops-aviso ops-aviso-error no-imprimir">{error}</p>}
+      {confirmaBorrar && editaGrupo && (
+        <div className="ops-aviso no-imprimir" role="alertdialog" data-confirma-borrar-grupo>
+          <p>{t(`Delete this group? Its ${reportes.length} report(s) go back to «Photographed», without a group, and the signatures are cleared.`,
+            `¿Borrar este grupo? Sus ${reportes.length} merma(s) vuelven a «Fotografiada», sin grupo, y las firmas se borran.`)}</p>
+          <div className="ops-etapa-acciones">
+            <button type="button" className="btn btn-danger" disabled={ocupado} onClick={() => void borrar()} data-accion="confirmar-borrar-grupo">{t("Yes, delete group", "Sí, borrar grupo")}</button>
+            <button type="button" className="btn btn-ghost" disabled={ocupado} onClick={() => setConfirmaBorrar(false)}>{t("Cancel", "Cancelar")}</button>
+          </div>
+        </div>
+      )}
 
       <article className="hoja-aprobacion">
         <header className="hoja-cabecera">
@@ -158,6 +193,7 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
           <thead>
             <tr>
               {conCasillas && <th className="no-imprimir" aria-label={t("Select", "Marcar")} />}
+              {editaGrupo && <th className="no-imprimir" aria-label={t("Remove from group", "Sacar del grupo")} />}
               <th>#</th><th aria-label={t("Photos", "Fotos")} className="no-imprimir" />
               <th>{t("Folio", "Folio")}</th>
               <th>{t("Date broken", "Fecha del daño")}</th>
@@ -176,6 +212,10 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
               return (
                 <tr key={f.id} data-hoja-reporte={f.id}>
                   {conCasillas && <td className="no-imprimir ops-col-casilla">{r && <input type="checkbox" checked={sel.has(f.id)} onChange={() => alternarSel(f.id)} aria-label={t("Select", "Marcar")} data-marca-grupo={f.id} />}</td>}
+                  {editaGrupo && <td className="no-imprimir">{r && (
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={ocupado} onClick={() => sacar(r)} data-accion="sacar-del-grupo" data-sacar={f.id}
+                      title={t("Remove from the group (back to «Photographed»)", "Sacar del grupo (vuelve a «Fotografiada»)")}>↩ {t("Remove", "Sacar")}</button>
+                  )}</td>}
                   <td>{n + 1}</td>
                   <td className="no-imprimir">
                     {conFoto && (
@@ -196,10 +236,10 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
                 </tr>
               );
             })}
-            {filas.length === 0 && <tr><td colSpan={conCasillas ? 11 : 10} className="hoja-vacia">{t("No reports in this group.", "No hay reportes en este grupo.")}</td></tr>}
+            {filas.length === 0 && <tr><td colSpan={conColumnaExtra ? 11 : 10} className="hoja-vacia">{t("No reports in this group.", "No hay reportes en este grupo.")}</td></tr>}
           </tbody>
           {filas.length > 0 && (
-            <tfoot><tr><td colSpan={conCasillas ? 7 : 6} className="num">{t("Total", "Total")}</td><td className="num" data-hoja-total>{fmtMoney(totalDeHoja(filas))}</td><td colSpan={3} /></tr></tfoot>
+            <tfoot><tr><td colSpan={conColumnaExtra ? 7 : 6} className="num">{t("Total", "Total")}</td><td className="num" data-hoja-total>{fmtMoney(totalDeHoja(filas))}</td><td colSpan={3} /></tr></tfoot>
           )}
         </table>
         {filas.some((f) => f.producto.endsWith(" *")) && <p className="hoja-nota">* {t("Product not in the catalog (name as written).", "Producto fuera del catálogo (nombre tal como se escribió).")}</p>}
@@ -221,9 +261,10 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
                   <button type="button" className="btn btn-sm btn-primary no-imprimir" disabled={ocupado} data-accion="firmar-grupo" data-slot={slot}
                     onClick={() => setFirmando(slot)}>✍ {t(`Sign as ${nombreDeSlot(slot, lang).toLowerCase()}`, `Firmar como ${nombreDeSlot(slot, lang).toLowerCase()}`)}</button>
                 )}
-                {fm && !aprobado && gestiona && fm.signer_id === ctx.yo.id && (
+                {/* 296: quita SU firma quien firmó (y el admin de la app, cualquiera), antes de aprobarse; también en práctica. */}
+                {fm && !aprobado && gestiona && (fm.signer_id === ctx.yo.id || esAdminDeLaApp(ctx.yo)) && (
                   <button type="button" className="btn btn-ghost btn-sm no-imprimir" disabled={ocupado} data-accion="quitar-firma-grupo" data-slot={slot}
-                    onClick={() => void corre(async () => { if (practica) quitarFirmaDePractica(grupo.id, slot); else await quitarFirmaGrupo(createClient(), grupo.id, slot); })}>{t("Remove", "Quitar")}</button>
+                    onClick={() => void corre(async () => { if (practica) quitarFirmaDePractica(grupo.id, slot); else await quitarFirmaGrupo(createClient(), grupo.id, slot); })}>{t("Remove signature", "Quitar firma")}</button>
                 )}
               </div>
             );

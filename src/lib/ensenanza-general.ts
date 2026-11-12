@@ -86,6 +86,7 @@ export const RPC_QUE_ESCRIBEN = [
   "warehouse_ops_sign_scrap", "warehouse_ops_unsign_scrap", // 280 (D-957): firma / quita la firma (gerente + supervisor) de la merma; sin las dos no se aprueba.
   // 281 (D-959): grupos de aprobación — crear, firmar/quitar firma y aprobar un grupo (aprueba todas sus mermas).
   "warehouse_ops_create_scrap_group", "warehouse_ops_sign_scrap_group", "warehouse_ops_unsign_scrap_group", "warehouse_ops_approve_scrap_group",
+  "warehouse_ops_remove_from_scrap_group", "warehouse_ops_delete_scrap_group",
   "check_rate_limit", // 282: suma el contador del limitador de peticiones por IP. Escribe; en enseñanza se corta y el limitador falla abierto.
   "security_touch_device", "security_request_access", // 229 (D-811): registran el dispositivo de la sesión y su solicitud.
   "security_note_web_block", // 232 (D-818): anota que a esta sesión se le cerró la web.

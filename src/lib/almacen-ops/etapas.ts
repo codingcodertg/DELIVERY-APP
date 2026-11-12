@@ -153,10 +153,18 @@ export function puedeCambiarEtapa(q: Quien, r: { kind: TipoDeReporte; store: str
   return r.kind === "scrap" && tieneEtapas(r) && puedeCorregirMerma(q, r);
 }
 
-/** ¿Puede deshacer un paso (admin de la app: `admin` o `store_admin` en sus tiendas)? */
+/**
+ * ¿Puede deshacer un paso? 296 (dueño, 11 nov: «an option to undo»): quien gestiona la merma de esa tienda (admin de la
+ * app, store_admin, o gerente / supervisor de almacén), no solo el admin. Un paso, y nunca hasta «documentada».
+ */
 export function puedeDeshacerEtapa(q: Quien, r: { kind: TipoDeReporte; store: string } & FilaConEtapa): boolean {
-  const n = nivelDe(q);
-  return (n === "admin" || n === "store_admin") && puedeCambiarEtapa(q, r) && etapaDe(r) !== "documented" && etapaDe(r) !== "photographed";
+  return puedeCambiarEtapa(q, r) && etapaDe(r) !== "documented" && etapaDe(r) !== "photographed";
+}
+
+/** La etapa a la que regresa «deshacer un paso» (la de antes), o null si no se puede deshacer. */
+export function etapaAlDeshacer(r: FilaConEtapa): Etapa | null {
+  const i = ETAPAS.indexOf(etapaDe(r));
+  return i >= 2 ? ETAPAS[i - 1] : null;
 }
 
 /** ¿Se puede marcar para la hoja de aprobación? Merma con foto que todavía nadie aprobó. */

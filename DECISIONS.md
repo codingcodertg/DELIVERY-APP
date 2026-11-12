@@ -51804,3 +51804,16 @@ Sello `deliveries` 1.599.0; repo 1.848.0.
 El dueño (11 nov): en la tabla de Órdenes, la columna «Input Date» (D-986) decía «Nov 09 2026»; ahora dice **«11/09/26 1:15pm»**: fecha corta MM/DD/YY con la hora de captura (`input_time`, HHMM) en formato de 12 horas. Sin hora sale solo la fecha. El filtro de la columna sigue agrupando por día. Formateador puro `fmtCaptura` en `src/lib/fecha-de-captura.ts`, con prueba.
 
 Sello `deliveries` 1.600.0; repo 1.849.0.
+
+## D-997 · Merma: opciones para deshacer (sacar del grupo, borrar grupo, deshacer etapa, en bloque, quitar firma) — migración 296
+
+El dueño (11 nov): «in scrap report I need an option to undo». Eligió las cuatro:
+
+- **Sacar una merma de un grupo pendiente** («↩ Sacar» en cada renglón de la hoja del grupo) y **borrar el grupo pendiente** («🗑 Borrar grupo», con confirmación en la hoja). Las mermas vuelven a «Fotografiada», sin grupo. Una firma de grupo cubre un conjunto concreto de mermas: si el conjunto cambia, las firmas del grupo se borran y hay que firmar otra vez. Si se saca la última, el grupo se borra. Con el grupo ya aprobado no se puede (para eso está deshacer la etapa).
+- **Deshacer la etapa también para el gerente** (y el supervisor de almacén con nivel «Todos los reportes»), no solo el admin: la misma puerta que mover la etapa (`warehouse_ops_can_manage`). Un paso a la vez, nunca hasta «Documentada». **Deshacer «Aprobada» de una merma que venía de un grupo la saca del grupo** (queda fotografiada y suelta): el grupo conserva su aprobación para las demás, porque esas sí se firmaron y aprobaron; si se queda vacío, se borra.
+- **Deshacer en bloque:** con mermas marcadas, «↩ Deshacer un paso (N)» regresa cada una desde su propia etapa (ajustada → desechada → aprobada → fotografiada); las que no tienen qué deshacer se omiten y el aviso lo dice.
+- **Quitar la firma:** quien firmó puede quitar SU firma mientras el grupo no esté aprobado («Quitar firma»), y el admin de la app cualquiera; ya existía en la base y ahora la fila del grupo se bloquea como al firmar (293).
+
+Base (296): `warehouse_ops_remove_from_scrap_group` y `warehouse_ops_delete_scrap_group` nuevas; `warehouse_ops_set_scrap_stage` y `warehouse_ops_unsign_scrap_group` reescritas. Todo lo que toca un grupo bloquea primero el grupo y luego sus mermas (FOR UPDATE), en el mismo orden que la firma. Antes de aplicar la 296, sacar/borrar avisan que la opción no está activada y deshacer la etapa sigue siendo solo del admin. Funciona también en modo enseñanza (grupos de práctica).
+
+Sello `warehouse_ops` 0.40.0; repo 1.850.0.

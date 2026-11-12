@@ -38,7 +38,7 @@ import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { datosPdfDeMerma } from "@/lib/almacen-ops/pdf-de-merma";
 import { AdjuntarYMarcar, ChipDeEtapa, LineaDeEtapas, aplicarEtapa, ErrorParcial } from "./EtapasDeMerma";
-import { particionaPorEtapa, resumenDeBloque } from "@/lib/almacen-ops/bloque";
+import { particionaParaDeshacer, particionaPorEtapa, resumenDeBloque, resumenDeDeshacer } from "@/lib/almacen-ops/bloque";
 import { KpiDeEntregas } from "./KpiDeEntregas";
 import type { Contexto } from "./Operaciones";
 
@@ -198,6 +198,8 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   // Acciones en bloque (dueño, 10 nov): cuáles de las seleccionadas pueden desechar/ajustar (están en la etapa previa).
   const paraDesechar = useMemo(() => particionaPorEtapa(seleccionadas, "dumped"), [seleccionadas]);
   const paraAjustar = useMemo(() => particionaPorEtapa(seleccionadas, "adjusted"), [seleccionadas]);
+  // 296 (dueño, 11 nov: «an option to undo»): regresar un paso a las marcadas (cada una desde su etapa).
+  const paraDeshacer = useMemo(() => particionaParaDeshacer(seleccionadas), [seleccionadas]);
   // «Seleccionar todos» (dueño, 10 nov): antes no había forma de marcar todo. Marca/limpia de un golpe TODAS las mermas
   // seleccionables que se ven ahora (las del filtro de etapa actual).
   const seleccionables = useMemo(() => mermasPorEtapa.filter((r) => puedeSeleccionar(r)), [mermasPorEtapa, puedeSeleccionar]);
@@ -280,6 +282,21 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
   // Acciones en bloque: marcar varias como desechadas (approved→dumped) o ajustadas (dumped→adjusted, con una sola foto).
   const [avisoBloque, setAvisoBloque] = useState<string | null>(null);
   const [ajustandoBloque, setAjustandoBloque] = useState(false);
+  const deshacerBloque = async () => {
+    const { porDestino, omitidos } = paraDeshacer;
+    let hechas = 0;
+    try {
+      for (const [destino, lista] of porDestino) {
+        const h = await aplicarEtapa(ctx, lista, destino, null);
+        actualizaFilas(h);
+        hechas += h.length;
+      }
+      setAvisoBloque(resumenDeDeshacer(hechas, omitidos.length, lang));
+    } catch (e) {
+      if (e instanceof ErrorParcial) { actualizaFilas(e.hechos); setAvisoBloque(e.message); }
+      else setAvisoBloque((e as Error).message);
+    }
+  };
   const marcarDesechadas = async () => {
     const { elegibles, omitidos } = paraDesechar;
     if (elegibles.length === 0) { setAvisoBloque(resumenDeBloque("dumped", 0, omitidos.length, lang)); return; }
@@ -410,7 +427,9 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
               {/* En bloque (dueño, 10 nov): desechar las aprobadas, ajustar las desechadas (una sola foto para todas). */}
               {paraDesechar.elegibles.length > 0 && <button type="button" className="btn" onClick={() => { setAjustandoBloque(false); void marcarDesechadas(); }} data-accion="desechar-bloque">🗑 {t(`Mark as dumped (${paraDesechar.elegibles.length})`, `Marcar como desechadas (${paraDesechar.elegibles.length})`)}</button>}
               {paraAjustar.elegibles.length > 0 && <button type="button" className="btn" onClick={() => { setAvisoBloque(null); setAdjuntando(false); setAjustandoBloque((x) => !x); }} data-accion="ajustar-bloque" aria-pressed={ajustandoBloque}>🧾 {t(`Mark as adjusted (${paraAjustar.elegibles.length})`, `Marcar como ajustadas (${paraAjustar.elegibles.length})`)}</button>}
-              {paraHoja.length === 0 && paraDesechar.elegibles.length === 0 && paraAjustar.elegibles.length === 0 && (
+              {paraDeshacer.elegibles.length > 0 && <button type="button" className="btn btn-ghost" onClick={() => { setAjustandoBloque(false); setAdjuntando(false); void deshacerBloque(); }} data-accion="deshacer-bloque"
+                title={t("Move each selected report back one stage", "Regresa cada merma marcada a su etapa anterior")}>↩ {t(`Undo one step (${paraDeshacer.elegibles.length})`, `Deshacer un paso (${paraDeshacer.elegibles.length})`)}</button>}
+              {paraHoja.length === 0 && paraDesechar.elegibles.length === 0 && paraAjustar.elegibles.length === 0 && paraDeshacer.elegibles.length === 0 && (
                 <span className="hint" data-sin-acciones>{t("Nothing to do with these: they are already done.", "No hay acción para estas: ya están terminadas.")}</span>
               )}
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setSeleccion(new Set()); setAdjuntando(false); setAjustandoBloque(false); setAvisoBloque(null); }} data-accion="limpiar-seleccion">{t("Clear", "Quitar")}</button>
