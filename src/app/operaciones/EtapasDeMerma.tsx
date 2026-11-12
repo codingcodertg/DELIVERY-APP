@@ -4,7 +4,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime } from "@/lib/utils";
-import { ETAPAS, actorDeEtapa, etapaDe, etapaVisible, nombreDeEtapaVisible, fechaDeEtapa, fechaDeLaEtapaActual, nombreDeEtapa, puedeCambiarEtapa, puedeDeshacerEtapa, siguienteEtapa, type Etapa } from "@/lib/almacen-ops/etapas";
+import { ETAPAS, actorDeEtapa, etapaDe, etapaVisible, documentoDeGrupo, nombreDeEtapaVisible, fechaDeEtapa, fechaDeLaEtapaActual, nombreDeEtapa, puedeCambiarEtapa, puedeDeshacerEtapa, siguienteEtapa, type Etapa } from "@/lib/almacen-ops/etapas";
 import { aprobarMerma, cambiarEtapa, enlacesDeFotos, firmarMerma, firmasDeReporte, quitarFirma, subirAdjunto, subirFoto, tipoDeAdjuntoValido, type Reporte } from "@/lib/almacen-ops/datos";
 import { SLOTS_DE_FIRMA, firmaDe, mensajePendienteDeFirma, nombreDeSlot, puedeAprobar, puedeFirmarSlot, requiereFirma, tieneAmbasFirmas, type FirmaDeMerma, type SlotDeFirma } from "@/lib/almacen-ops/firmas";
 import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
@@ -245,7 +245,7 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
           const hecha = ETAPAS.indexOf(e) <= ETAPAS.indexOf(actual) && (f != null || e === "documented");
           // «⏳ Pendiente» (Roberto, 11 nov): si la merma está en un grupo, entre «Fotografiada» y «Aprobada» va el paso
           // «Pendiente (en grupo)», con el grupo a la mano — se abre en tarjeta, sin salir del reporte.
-          const pasoPendiente = e === "approved" && r.scrap_group_id ? (
+          const pasoPendiente = e === "approved" && documentoDeGrupo(r) === "grupo" ? (
             <li key="pending" data-etapa="pending" data-hecha="si" className="hecha">
               <span className="ops-etapa-punto" aria-hidden />
               <span className="ops-etapa-texto">
@@ -266,7 +266,7 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
                 {e === "approved" && <Adjunto ruta={r.approval_sheet} alt={t("Signed approval sheet", "Hoja de aprobación firmada")} />}
                 {/* Dueño, 10 nov: si la merma es de un grupo, su documento es la hoja firmada del GRUPO (con todos sus
                     renglones). El ícono la abre en tarjeta, sin salir del reporte. */}
-                {e === "approved" && hecha && r.scrap_group_id && (
+                {e === "approved" && documentoDeGrupo(r) === "hoja-firmada" && (
                   <button type="button" className="ops-icono-fotos" onClick={() => setHojaDeGrupo(r.scrap_group_id!)} data-ver-hoja-grupo={r.scrap_group_id}
                     title={t("See the signed group sheet", "Ver la hoja firmada del grupo")}>📄 {t("Signed sheet", "Hoja firmada")}</button>
                 )}

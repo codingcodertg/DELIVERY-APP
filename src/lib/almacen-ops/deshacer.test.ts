@@ -22,3 +22,24 @@ describe("296 · deshacer un paso", () => {
     expect(resumenDeDeshacer(1, 0, "en")).toBe("1 moved back one step");
   });
 });
+
+import { documentoDeGrupo, esAdminParaDeshacer } from "./etapas";
+
+describe("reunión 11 nov · un solo estado de grupo y deshacer solo admin", () => {
+  it("o la hoja firmada (aprobada en adelante) o el grupo (pendiente), nunca los dos", () => {
+    const g = (stage: string) => ({ ...m("x", stage), scrap_group_id: "g1" });
+    expect(documentoDeGrupo(g("photographed"))).toBe("grupo");
+    expect(documentoDeGrupo(g("approved"))).toBe("hoja-firmada");
+    expect(documentoDeGrupo(g("dumped"))).toBe("hoja-firmada");
+    expect(documentoDeGrupo(m("x", "approved"))).toBeNull();
+    // grupo de práctica (no está en la base)
+    expect(documentoDeGrupo(m("x", "photographed"), "practica-1")).toBe("grupo");
+  });
+  it("deshacer etapa: admin / store_admin sí, gerente no", () => {
+    const q = (role: string, nivel: string | null) => ({ id: "u", role, store: "A", module_access: ["warehouse_ops"], warehouse_ops_role: nivel });
+    expect(esAdminParaDeshacer(q("admin", null))).toBe(true);
+    expect(esAdminParaDeshacer(q("manager", "store_admin"))).toBe(true);
+    expect(esAdminParaDeshacer(q("manager", null))).toBe(false);
+    expect(esAdminParaDeshacer(q("warehouse", null))).toBe(false);
+  });
+});

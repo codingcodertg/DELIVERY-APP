@@ -152,8 +152,8 @@ describe("quién mueve la etapa", () => {
   it("deshacer: solo admin / store_admin, y solo si hay algo que deshacer", () => {
     expect(puedeDeshacerEtapa(admin, aprobada)).toBe(true);
     expect(puedeDeshacerEtapa(francis, aprobada)).toBe(true);
-    // 296: el gerente de la tienda también deshace (antes solo admin / store_admin).
-    expect(puedeDeshacerEtapa(gerente, aprobada)).toBe(true);
+    // Reunión 11 nov: deshacer una etapa vuelve a ser SOLO de admin / store_admin; el gerente solo deshace lo pendiente.
+    expect(puedeDeshacerEtapa(gerente, aprobada)).toBe(false);
     expect(puedeDeshacerEtapa(admin, conFoto)).toBe(false);
     expect(puedeDeshacerEtapa(admin, base)).toBe(false);
     expect(puedeDeshacerEtapa(gerenteOtraTienda, aprobada)).toBe(false);
@@ -177,14 +177,14 @@ describe("quién mueve la etapa", () => {
 });
 
 describe("la lista: columna, filtro por etapa, selección, desglose de la pérdida", () => {
-  it("la pestaña de merma lleva la columna «Etapa», el filtro y el botón de imprimir (N)", () => {
+  it("la pestaña de merma lleva la columna «Etapa» y el filtro; aprobar es UNA acción (reunión 11 nov)", () => {
     expect(LISTA).toContain("data-filtro-etapas");
     expect(LISTA).toContain("{ETAPAS_VISIBLES.map((e) => (");
     expect(LISTA).toContain('data-lista="merma-en-rango" conEtapa');
-    expect(LISTA).toContain("Print approval sheet (${paraHoja.length})");
-    expect(LISTA).toContain("Attach signed sheet (${paraHoja.length})");
-    // Imprimir es ahora un diálogo en la app (no abre otra página): monta <HojaImprimible> con las seleccionadas.
-    expect(LISTA).toContain("<HojaImprimible reportes={paraHoja}");
+    // Reunión 11 nov: en la barra solo «Iniciar aprobación»; imprimir / adjuntar hoja quedan para lo ya aprobado.
+    expect(LISTA).toContain("Start approval (${paraHoja.length})");
+    expect(LISTA).not.toContain("Print approval sheet (${paraHoja.length})");
+    expect(LISTA).not.toContain("Attach signed sheet (${paraHoja.length})");
     // «Mis reportes» y la lista general: el chip chico, solo lectura, junto al detalle.
     expect(LISTA).toContain('{!conEtapa && r.kind === "scrap" && <ChipDeEtapa r={r} conFecha={false} />}');
   });

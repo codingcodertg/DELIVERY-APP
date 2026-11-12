@@ -7,10 +7,12 @@
 --      entero (`warehouse_ops_delete_scrap_group`). Las mermas vuelven a «fotografiada», sin grupo. Una firma de grupo
 --      cubre un conjunto concreto de mermas: si el conjunto cambia, las firmas del grupo se borran. Con el grupo ya
 --      aprobado no se puede (para eso está deshacer la etapa, punto 2).
---   2. DESHACER LA ETAPA también para el gerente (antes solo admin / store_admin). Sigue siendo un paso a la vez y nunca
---      hasta «documentada». Deshacer «aprobada» de una merma que venía de un grupo la SACA de ese grupo (vuelve a
---      fotografiada y suelta): el grupo conserva su aprobación para las demás; si se queda vacío, se borra.
---   3. Deshacer en bloque: la app llama a la misma función por cada merma (no necesita nada aquí).
+--   2. DESHACER LA ETAPA (aprobada / desechada / ajustada): SOLO admin (admin de la app o store_admin en sus tiendas).
+--      Reunión con Roberto (11 nov): «undo solo para admins; los gerentes solo deshacen lo pendiente» — o sea, los puntos
+--      1 y 4. Sigue siendo un paso a la vez y nunca hasta «documentada». Deshacer «aprobada» de una merma que venía de un
+--      grupo la SACA de ese grupo (vuelve a fotografiada y suelta): el grupo conserva su aprobación para las demás; si se
+--      queda vacío, se borra.
+--   3. Deshacer en bloque (solo admin): la app llama a la misma función por cada merma (no necesita nada aquí).
 --   4. QUITAR LA FIRMA propia de un grupo antes de aprobarse: `warehouse_ops_unsign_scrap_group` ya existía; ahora
 --      bloquea la fila del grupo (FOR UPDATE) como la firma (293), para que firmar y quitar no se pisen.
 --
@@ -107,7 +109,11 @@ begin
   if a = de then raise exception 'warehouse_ops: ya esta en esa etapa' using errcode = '22023'; end if;
 
   if a < de then
-    -- 296: deshacer lo puede quien gestiona la tienda (la puerta de arriba). Un paso, y nunca hasta 'documented'.
+    -- 296 (reunión 11 nov): deshacer una etapa es SOLO de admin (admin de la app, o store_admin: la puerta de arriba ya
+    -- lo limita a sus tiendas). El gerente solo deshace lo pendiente (sacar del grupo / borrar grupo / quitar su firma).
+    if coalesce(public.warehouse_ops_level_of(yo), '') not in ('admin', 'store_admin') then
+      raise exception 'warehouse_ops: deshacer una etapa es solo para el admin' using errcode = '42501';
+    end if;
     if de - a <> 1 or p_stage = 'documented' then
       raise exception 'warehouse_ops: se deshace un paso a la vez' using errcode = '22023';
     end if;
@@ -190,6 +196,28 @@ revoke all on function public.warehouse_ops_delete_scrap_group(uuid) from public
 grant execute on function public.warehouse_ops_remove_from_scrap_group(uuid) to authenticated;
 grant execute on function public.warehouse_ops_delete_scrap_group(uuid) to authenticated;
 
+-- ---------------------------------------------------------------------------------------------------------------
+-- 5. Datos: mermas que se deshicieron ANTES de esta migración (el deshacer viejo las regresaba a «fotografiada» pero
+--    las dejaba en su grupo aprobado). Roberto las vio «Aprobado» en el grupo y «Pendiente» en la merma a la vez
+--    (reunión 11 nov). Con la regla de arriba, deshacer la aprobación saca la merma del grupo: se hace lo mismo con las
+--    que ya estaban así. El grupo conserva su aprobación para las demás; si se queda vacío, se borra.
+-- ---------------------------------------------------------------------------------------------------------------
+do $datos$
+declare n int; vacios int;
+begin
+  update public.warehouse_reports r set scrap_group_id = null
+    from public.warehouse_scrap_groups g
+   where g.id = r.scrap_group_id and g.approved_at is not null
+     and coalesce(r.stage, 'documented') in ('documented', 'photographed');
+  get diagnostics n = row_count;
+  delete from public.warehouse_scrap_group_signatures s
+   where not exists (select 1 from public.warehouse_reports r where r.scrap_group_id = s.group_id);
+  delete from public.warehouse_scrap_groups g
+   where not exists (select 1 from public.warehouse_reports r where r.scrap_group_id = g.id);
+  get diagnostics vacios = row_count;
+  raise notice '296: % merma(s) deshechas salieron de su grupo aprobado; % grupo(s) vacio(s) borrado(s)', n, vacios;
+end $datos$;
+
 -- ===========================================================================
 -- Autocomprobacion
 -- ===========================================================================
@@ -201,8 +229,8 @@ begin
     raise exception '296: anon no debe ejecutar las funciones de deshacer';
   end if;
   f := pg_get_functiondef('public.warehouse_ops_set_scrap_stage(uuid,text,text)'::regprocedure);
-  if position('level_of' in f) > 0 then
-    raise exception '296: deshacer la etapa ya no depende del nivel admin';
+  if position('not in (''admin'', ''store_admin'')' in f) = 0 then
+    raise exception '296: deshacer la etapa debe exigir nivel admin / store_admin';
   end if;
   if position('warehouse_ops_can_manage(r.store)' in f) = 0 then
     raise exception '296: cambiar la etapa sigue exigiendo gestionar la tienda';
@@ -225,7 +253,11 @@ begin
       raise exception '296: solo quien gestiona la tienda cambia el grupo';
     end if;
   end loop;
+  if exists (select 1 from public.warehouse_reports r join public.warehouse_scrap_groups g on g.id = r.scrap_group_id
+             where g.approved_at is not null and coalesce(r.stage, 'documented') in ('documented', 'photographed')) then
+    raise exception '296: no debe quedar una merma sin aprobar dentro de un grupo aprobado';
+  end if;
 end $chk$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('296_merma_deshacer.sql', 'b244f9b3ce7531d549ba24d179b27bd379e7bed3691ad43cf8e3ba3eb582e72f') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('296_merma_deshacer.sql', '53be19f3051c05bf3baa009a9805c4fb84f93e76b7be0e9d4682bcea8a9c3df0') on conflict (name) do nothing;

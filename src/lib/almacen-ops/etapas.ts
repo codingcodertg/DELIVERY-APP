@@ -157,8 +157,23 @@ export function puedeCambiarEtapa(q: Quien, r: { kind: TipoDeReporte; store: str
  * ¿Puede deshacer un paso? 296 (dueño, 11 nov: «an option to undo»): quien gestiona la merma de esa tienda (admin de la
  * app, store_admin, o gerente / supervisor de almacén), no solo el admin. Un paso, y nunca hasta «documentada».
  */
+/**
+ * Deshacer una etapa (aprobada / desechada / ajustada) es SOLO de admin: admin de la app o store_admin (reunión con
+ * Roberto, 11 nov: «undo solo para admins; los gerentes solo deshacen lo pendiente»). El gerente sí saca mermas de un
+ * grupo pendiente, borra el grupo pendiente y quita su firma (`puedeDeshacerPendiente`). Misma regla que la 296.
+ */
+export function esAdminParaDeshacer(q: Quien): boolean {
+  const n = nivelDe(q);
+  return n === "admin" || n === "store_admin";
+}
+
 export function puedeDeshacerEtapa(q: Quien, r: { kind: TipoDeReporte; store: string } & FilaConEtapa): boolean {
-  return puedeCambiarEtapa(q, r) && etapaDe(r) !== "documented" && etapaDe(r) !== "photographed";
+  return esAdminParaDeshacer(q) && puedeCambiarEtapa(q, r) && etapaDe(r) !== "documented" && etapaDe(r) !== "photographed";
+}
+
+/** Lo pendiente (sacar de un grupo sin aprobar / borrar el grupo / quitar su firma): quien gestiona la tienda. */
+export function puedeDeshacerPendiente(q: Quien, r: { kind: TipoDeReporte; store: string }): boolean {
+  return puedeCorregirMerma(q, r);
 }
 
 /** La etapa a la que regresa «deshacer un paso» (la de antes), o null si no se puede deshacer. */
@@ -306,6 +321,21 @@ export function pendienteDeAprobar(r: ConGrupo, enPractica?: ReadonlySet<string>
   const e = etapaDe(r);
   if (e !== "documented" && e !== "photographed") return false;
   return !!r.scrap_group_id || (!!r.id && !!enPractica?.has(r.id));
+}
+
+/**
+ * EL estado de una merma respecto a su grupo, para TODAS las vistas (reunión 11 nov: «o la hoja firmada o el grupo,
+ * nunca los dos»). Sale de la etapa de la propia merma, la misma fuente que el chip de etapa:
+ *   - "hoja-firmada": está en un grupo y ya está aprobada (o desechada / ajustada) → «📄 Hoja firmada».
+ *   - "grupo": está en un grupo y todavía no se aprueba → «🗂 Grupo» (= «⏳ Pendiente»).
+ *   - null: no está en ningún grupo.
+ * `grupoId` deja pasar el grupo de práctica (modo enseñanza), que no vive en la base.
+ */
+export function documentoDeGrupo(r: ConGrupo, grupoId?: string | null): "hoja-firmada" | "grupo" | null {
+  const g = grupoId ?? r.scrap_group_id ?? null;
+  if (!g) return null;
+  const e = etapaDe(r);
+  return e === "documented" || e === "photographed" ? "grupo" : "hoja-firmada";
 }
 
 /** Las etapas que enseña la pantalla: las de la base con «pending» (en grupo, sin aprobar) entre fotografiada y aprobada. */

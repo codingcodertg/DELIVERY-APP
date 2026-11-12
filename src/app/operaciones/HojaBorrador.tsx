@@ -66,7 +66,8 @@ export function HojaBorrador({ borradorId, ctx, reportesDisponibles, onSalir, on
         <span className="hoja-barra-acciones">
           <button type="button" className="btn btn-primary" disabled={ocupado || elegibles.length === 0} onClick={() => void guardar()} data-accion="guardar-grupo">💾 {t("Save group", "Guardar grupo")}</button>
           <button type="button" className="btn" disabled={ocupado} onClick={descartar} data-accion="descartar-borrador">🗑 {t("Discard", "Descartar")}</button>
-          <button type="button" className="btn btn-ghost" onClick={onSalir} data-accion="cerrar-borrador">✕ {t("Close", "Cerrar")}</button>
+          {/* Reunión 11 nov: en el borrador solo Guardar o Descartar (sin Imprimir ni Cerrar). Tocar fuera de la tarjeta
+              lo deja como borrador. */}
         </span>
       </div>
       {quitadas > 0 && <p className="hint no-imprimir" role="status" data-borrador-quitadas={quitadas}>{t(

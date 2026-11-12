@@ -138,7 +138,8 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
         <span className={`ops-etapa-chip${aprobado ? " ops-grupo-aprobado" : ""}`} data-grupo-estado={aprobado ? "aprobado" : "pendiente"}>{estadoDelGrupo(grupo, lang)}</span>
         <span className="hoja-barra-acciones">
           {editaGrupo && <button type="button" className="btn btn-ghost" disabled={ocupado} onClick={() => setConfirmaBorrar(true)} data-accion="borrar-grupo">🗑 {t("Delete group", "Borrar grupo")}</button>}
-          <button type="button" className="btn" onClick={() => window.print()} data-accion="imprimir-grupo">🖨 {t("Print", "Imprimir")}</button>
+          {/* Reunión 11 nov: imprimir solo la hoja ya aprobada. */}
+          {aprobado && <button type="button" className="btn" onClick={() => window.print()} data-accion="imprimir-grupo">🖨 {t("Print", "Imprimir")}</button>}
           <button type="button" className="btn btn-ghost" onClick={onSalir} data-accion="cerrar-grupo">✕ {t("Close", "Cerrar")}</button>
         </span>
       </div>
