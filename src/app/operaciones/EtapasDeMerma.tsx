@@ -4,12 +4,16 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime } from "@/lib/utils";
-import { ETAPAS, actorDeEtapa, etapaDe, etapaVisible, documentoDeGrupo, nombreDeEtapaVisible, fechaDeEtapa, fechaDeLaEtapaActual, nombreDeEtapa, puedeCambiarEtapa, puedeDeshacerEtapa, siguienteEtapa, type Etapa } from "@/lib/almacen-ops/etapas";
-import { aprobarMerma, cambiarEtapa, enlacesDeFotos, firmarMerma, firmasDeReporte, quitarFirma, subirAdjunto, subirFoto, tipoDeAdjuntoValido, type Reporte } from "@/lib/almacen-ops/datos";
-import { SLOTS_DE_FIRMA, firmaDe, mensajePendienteDeFirma, nombreDeSlot, puedeAprobar, puedeFirmarSlot, requiereFirma, tieneAmbasFirmas, type FirmaDeMerma, type SlotDeFirma } from "@/lib/almacen-ops/firmas";
+import { ETAPAS, actorDeEtapa, etapaDe, etapaVisible, documentoDeGrupo, nombreDeEtapaVisible, fechaDeEtapa, fechaDeLaEtapaActual, nombreDeEtapa, puedeCambiarEtapa, puedeDeshacerEtapa, siguienteEtapa, siguientePasoDeMerma, type Etapa } from "@/lib/almacen-ops/etapas";
+import { aprobarMerma, cambiarEtapa, enlacesDeFotos, listarGrupos, firmarMerma, firmasDeReporte, quitarFirma, subirAdjunto, subirFoto, tipoDeAdjuntoValido, type Reporte } from "@/lib/almacen-ops/datos";
+import { SLOTS_DE_FIRMA, firmaDe, firmasFaltantes, mensajePendienteDeFirma, nombreDeSlot, puedeAprobar, puedeFirmarSlot, requiereFirma, tieneAmbasFirmas, type FirmaDeMerma, type SlotDeFirma } from "@/lib/almacen-ops/firmas";
 import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
 import { FirmaPad } from "./FirmaPad";
 import { HojaDeGrupo } from "./HojaDeGrupo";
+import { HojaBorrador } from "./HojaBorrador";
+import { crearBorradorDeGrupo } from "@/lib/almacen-ops/borradores-de-grupo";
+import { slotsQueMeTocan } from "@/lib/almacen-ops/grupos";
+import { esGrupoDePractica, grupoDePractica } from "@/lib/practica/grupos-de-practica";
 import type { Contexto } from "./Operaciones";
 
 /**
@@ -212,6 +216,24 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
   }, [r.id, ctx.demo]);
   const adjuntos = [r.approval_sheet, r.adjustment_proof].filter((x): x is string => !!x);
   const [hojaDeGrupo, setHojaDeGrupo] = useState<string | null>(null);
+  // Siguiente paso (dueño, 11 nov) y lo que necesita: el borrador de grupo con esta sola merma y, si está en un grupo
+  // pendiente, si me falta firmar alguna línea que me toca.
+  const paso = siguientePasoDeMerma(ctx.yo, r);
+  const [borrador, setBorrador] = useState<string | null>(null);
+  const iniciarAprobacionAqui = () => setBorrador(crearBorradorDeGrupo(ctx.yo.id, fmtDateTime(new Date().toISOString()), [r]));
+  const [faltaMiFirma, setFaltaMiFirma] = useState(false);
+  useEffect(() => {
+    if (paso !== "abrir-grupo" || !r.scrap_group_id || ctx.demo) { setFaltaMiFirma(false); return; }
+    const mios = slotsQueMeTocan(ctx.yo);
+    if (mios.length === 0) { setFaltaMiFirma(false); return; }
+    let vivo = true;
+    const grupo = esGrupoDePractica(r.scrap_group_id) ? grupoDePractica(r.scrap_group_id)?.grupo ?? null : null;
+    const decide = (firmas: readonly FirmaDeMerma[] | null | undefined) => { if (vivo) setFaltaMiFirma(firmasFaltantes(firmas).some((s) => mios.includes(s))); };
+    if (grupo) decide(grupo.firmas);
+    else void listarGrupos(createClient()).then((gs) => decide(gs.find((g) => g.id === r.scrap_group_id)?.firmas)).catch(() => {});
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paso, r.scrap_group_id, ctx.demo, hojaDeGrupo]);
   useEffect(() => {
     if (ctx.demo || adjuntos.length === 0) return;
     let vivo = true;
@@ -243,16 +265,22 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
           const f = fechaDeEtapa(r, e);
           const quien = nombre(actorDeEtapa(r, e));
           const hecha = ETAPAS.indexOf(e) <= ETAPAS.indexOf(actual) && (f != null || e === "documented");
-          // «⏳ Pendiente» (Roberto, 11 nov): si la merma está en un grupo, entre «Fotografiada» y «Aprobada» va el paso
-          // «Pendiente (en grupo)», con el grupo a la mano — se abre en tarjeta, sin salir del reporte.
-          const pasoPendiente = e === "approved" && documentoDeGrupo(r) === "grupo" ? (
-            <li key="pending" data-etapa="pending" data-hecha="si" className="hecha">
+          // «⏳ Pendiente de aprobación» (dueño, 11 nov): SIEMPRE entre «Fotografiada» y «Aprobada». Por llegar si aún no
+          // está en un grupo; el paso actual (con el grupo a la mano, en tarjeta) si está en uno pendiente; hecho si ya se aprobó.
+          const enGrupoPendiente = documentoDeGrupo(r) === "grupo";
+          const pendienteHecho = ["approved", "dumped", "adjusted"].includes(actual);
+          const pasoPendiente = e === "approved" ? (
+            <li key="pending" data-etapa="pending" data-hecha={pendienteHecho || enGrupoPendiente ? "si" : "no"}
+              className={pendienteHecho || enGrupoPendiente ? "hecha" : ""} data-paso-actual={enGrupoPendiente ? "si" : undefined}>
               <span className="ops-etapa-punto" aria-hidden />
               <span className="ops-etapa-texto">
-                <strong>⏳ {nombreDeEtapaVisible("pending", lang)}</strong>
-                <span className="ops-etapa-cuando">{t("In an approval group", "En un grupo de aprobación")}</span>
-                <button type="button" className="ops-icono-fotos" onClick={() => setHojaDeGrupo(r.scrap_group_id!)} data-ver-grupo={r.scrap_group_id}
-                  title={t("Open the group", "Abrir el grupo")}>🗂 {t("Group", "Grupo")}</button>
+                <strong>⏳ {t("Pending approval", "Pendiente de aprobación")}</strong>
+                {enGrupoPendiente && <>
+                  <span className="ops-etapa-cuando">{t("In an approval group", "En un grupo de aprobación")}</span>
+                  <button type="button" className="ops-icono-fotos" onClick={() => setHojaDeGrupo(r.scrap_group_id!)} data-ver-grupo={r.scrap_group_id}
+                    title={t("Open the group", "Abrir el grupo")}>🗂 {t("Group", "Grupo")}</button>
+                </>}
+                {!enGrupoPendiente && !pendienteHecho && <span className="ops-etapa-cuando hint">{t("pending", "pendiente")}</span>}
               </span>
             </li>
           ) : null;
@@ -291,12 +319,31 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
           {actual === "documented" && <p className="hint">{t("Add the photo first; then it can go to approval.", "Primero la foto; después puede ir a aprobación.")}</p>}
         </div>
       )}
-      {/* Dueño (11 nov, ayuda 4499c4a4): «no se puede firmar algo que no se ha agrupado». La firma por reporte (280) ya
-          no se ofrece aquí: una merma se aprueba SOLO en un grupo (281), cuya hoja firman gerente y supervisor. */}
-      {actual === "photographed" && !accion && (
-        <p className="hint" data-aprobar-en-grupo>{r.scrap_group_id
-          ? t("This report is in an approval group: it is signed and approved on the group's sheet.", "Esta merma está en un grupo de aprobación: se firma y se aprueba en la hoja del grupo.")
-          : t("To approve it, select it in the table and press «Start approval» to put it in a group; the group's sheet is what gets signed.", "Para aprobarla, márcala en la tabla y toca «Iniciar aprobación» para ponerla en un grupo; lo que se firma es la hoja del grupo.")}</p>
+      {/* Dueño, 11 nov: «abrir la orden y continuar los pasos». El siguiente paso, ahí mismo y para quien puede darlo
+          (la merma se aprueba SOLO en un grupo: aquí se inicia el borrador del grupo o se abre el grupo para firmar). */}
+      {!accion && paso === "iniciar-aprobacion" && (
+        <div className="ops-etapa-acciones">
+          <button type="button" className="btn btn-primary" onClick={iniciarAprobacionAqui} data-accion="iniciar-aprobacion-tarjeta">✅ {t("Start approval", "Iniciar aprobación")}</button>
+        </div>
+      )}
+      {!accion && paso === "abrir-grupo" && (
+        <div className="ops-etapa-acciones">
+          <button type="button" className="btn btn-primary" onClick={() => setHojaDeGrupo(r.scrap_group_id!)} data-accion="abrir-grupo-para-firmar">
+            🗂 {slotsQueMeTocan(ctx.yo).length > 0 ? t("Open group to sign", "Abrir grupo para firmar") : t("Open group", "Abrir grupo")}
+          </button>
+          {faltaMiFirma && <span className="ops-falta-mi-firma" data-falta-mi-firma>✍ {t("Your signature is missing", "Falta tu firma")}</span>}
+        </div>
+      )}
+      {!accion && paso === "foto" && <p className="hint" data-paso-foto>📷 {t("Next step: add the photo of the pieces (button above).", "Siguiente paso: agregar la foto de las piezas (botón de arriba).")}</p>}
+      {!accion && paso === "lo-sigue-el-gerente" && <p className="hint" data-lo-sigue-el-gerente>{t("The manager takes it from here.", "Lo sigue el gerente.")}</p>}
+      {borrador && (
+        <div className="overlay" onClick={() => setBorrador(null)}>
+          <div className="modal ops-tarjeta-grupo" onClick={(ev) => ev.stopPropagation()} role="dialog" aria-modal="true" data-borrador-desde-tarjeta={borrador}>
+            <HojaBorrador borradorId={borrador} ctx={ctx} reportesDisponibles={[r]}
+              onSalir={() => setBorrador(null)}
+              onGuardado={(id) => { setBorrador(null); onCambio({ ...r, scrap_group_id: id }); setHojaDeGrupo(id); }} />
+          </div>
+        </div>
       )}
       {error && <p className="ops-aviso ops-aviso-error" role="alert">{error}</p>}
       {accion === "dumped" && <ConfirmarDesechada r={r} ctx={ctx} onListo={(n) => { setAccion(null); onCambio(n); }} onCancelar={() => setAccion(null)} />}

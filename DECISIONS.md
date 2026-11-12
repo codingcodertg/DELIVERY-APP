@@ -51844,3 +51844,13 @@ Ahora:
 - Si nada de lo marcado se reparte, la barra sale igual, con «Reprogramar» y «Quitar selección».
 
 Sello `deliveries` 1.601.0; repo 1.852.0.
+
+## D-1000 · Operaciones: «Reportes» es una sola vista (Mis reportes / Todos) y la tarjeta ofrece el siguiente paso
+
+Pedidos del dueño (11 nov):
+
+- **Una sola vista «Reportes».** «Mis reportes» y «Reportes de la tienda» / «Reportes (gerentes)» se unen: un solo botón en el inicio y, adentro, un filtro de dos opciones: **Mis reportes** (los que yo reporté) y **Todos** (lo que la base me deja ver de mi tienda). Por defecto, Todos. Quien solo puede ver lo suyo ve lo suyo, sin filtro. Todo lo demás de la vista de la tienda se queda igual (merma, etapas, Pendiente, grupos, columnas, fecha; CSV/PDF y la pestaña de Entregas solo para quien ya los tenía). La ruta vieja `/operaciones/mis-reportes` lleva a `/operaciones/reportes?ver=mios`.
+- **Abrir la merma y continuar los pasos.** La tarjeta de la merma ofrece el siguiente paso ahí mismo, con las reglas de siempre (`siguientePasoDeMerma`): sin foto → agregar la foto; fotografiada sin grupo → «✅ Iniciar aprobación» (abre el borrador del grupo con esa merma; «Guardar grupo» lo crea); en un grupo pendiente → «🗂 Abrir grupo para firmar», con «Falta tu firma» si le toca una línea sin firmar; aprobada → «Marcar como Desechada»; desechada → «Marcar como Ajustada». A quien no le toca, «Lo sigue el gerente». Nada sale de la pantalla: tarjetas sobre tarjetas. Funciona en modo enseñanza.
+- **«⏳ Pendiente de aprobación» siempre en la línea de etapas**, entre «Fotografiada» y «Aprobada»: por llegar si aún no está en un grupo; el paso actual, con el enlace al grupo, si está en uno pendiente; hecho si ya se aprobó.
+
+Sello `warehouse_ops` 0.42.0; repo 1.853.0.

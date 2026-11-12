@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -94,13 +95,25 @@ export function Operaciones({ vista, demo }: { vista: Vista; demo: boolean }) {
   );
 }
 
+/**
+ * «Reportes» (dueño, 11 nov: «merge my report con store reports… un filtro que diga my reports y all reports, punto»):
+ * una sola vista. Quien ve los reportes de su tienda tiene el filtro Mis reportes / Todos (por defecto Todos; `?ver=mios`
+ * para los suyos). Quien solo puede ver los suyos ve los suyos, sin filtro.
+ */
+function ReportesUnidos({ ctx }: { ctx: Contexto }) {
+  const ver = useSearchParams().get("ver");
+  const deLaTienda = veReportesDeLaTienda(ctx.yo);
+  const modo = !deLaTienda || ver === "mios" ? "mios" : "todos";
+  return <ListaDeReportes key={modo} modo={modo} ctx={ctx} filtro={deLaTienda} />;
+}
+
 function Pantalla({ vista, ctx }: { vista: Vista; ctx: Contexto }) {
   // La página del servidor ya devolvió al inicio a quien no puede; esto cubre el demo y un nivel que cambió con la
   // pantalla abierta. La base lo rechaza igual (265).
   if (!vistaPermitida(ctx.yo, vista)) return <Inicio ctx={ctx} />;
   if (vista.v === "nuevo") return <Asistente tipo={vista.tipo} ctx={ctx} />;
   if (vista.v === "mios") return <ListaDeReportes modo="mios" ctx={ctx} />;
-  if (vista.v === "reportes") return <ListaDeReportes modo="todos" ctx={ctx} />;
+  if (vista.v === "reportes") return <ReportesUnidos ctx={ctx} />;
   if (vista.v === "mantenimiento") return <Mantenimiento ctx={ctx} />;
   if (vista.v === "conteos") return <Conteos ctx={ctx} />;
   return <Inicio ctx={ctx} />;
@@ -154,16 +167,13 @@ function Inicio({ ctx }: { ctx: Contexto }) {
       )}
       {llena && <Borradores ctx={ctx} />}
       <PendientesDeMiFirma ctx={ctx} />
-      <div className={"ops-pie" + ([llena, gerente || deLaTienda, mantenimiento, conteos].filter(Boolean).length > 1 ? "" : " ops-pie-uno")}>
+      <div className={"ops-pie" + ([llena || gerente || deLaTienda, mantenimiento, conteos].filter(Boolean).length > 1 ? "" : " ops-pie-uno")}>
         {conteos && <Link href="/operaciones/conteos" className="ops-boton-ancho ops-boton-conteos" data-ir="conteos">🔢 {t("Inventory counts", "Conteos de inventario")}</Link>}
         {mantenimiento && <Link href="/operaciones/mantenimiento" className="ops-boton-ancho ops-boton-mantenimiento" data-ir="mantenimiento">🔧 {t("Maintenance", "Mantenimiento")}</Link>}
-        {llena && (
-          <Link href="/operaciones/mis-reportes" className="ops-boton-ancho" data-ir="mios">
-            📄 {unico === "scrap" ? t("My scrap reports", "Mis reportes de merma") : t("My reports", "Mis reportes")}
-          </Link>
+        {/* Dueño, 11 nov: un solo botón; adentro, el filtro Mis reportes / Todos. */}
+        {(llena || gerente || deLaTienda) && (
+          <Link href="/operaciones/reportes" className="ops-boton-ancho ops-boton-gerente" data-ir="reportes">🗂️ {t("Reports", "Reportes")}</Link>
         )}
-        {gerente && <Link href="/operaciones/reportes" className="ops-boton-ancho ops-boton-gerente" data-ir="reportes">🗂️ {t("Reports (managers)", "Reportes (gerentes)")}</Link>}
-        {deLaTienda && <Link href="/operaciones/reportes" className="ops-boton-ancho ops-boton-gerente" data-ir="reportes">🗂️ {t("Store reports", "Reportes de la tienda")}</Link>}
       </div>
     </>
   );

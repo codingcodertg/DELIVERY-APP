@@ -18,7 +18,9 @@ export function vistaPermitida(q: Quien, vista: Vista): boolean {
     // «Mis reportes» es de quien llena algo; RR. HH. sin el módulo no llena nada.
     case "mios": return tiposPermitidos(q).length > 0;
     // 292: también el almacén, con los reportes de su tienda (sin exportar ni KPI).
-    case "reportes": return veReportesDeLaTienda(q);
+    // Dueño, 11 nov: «Reportes» es una sola vista (Mis reportes / Todos). Entra quien ve los de su tienda o quien llena
+    // algo; este último ve solo los suyos.
+    case "reportes": return veReportesDeLaTienda(q) || tiposPermitidos(q).length > 0;
     // 273: la sección de mantenimiento es de cualquiera con nivel en la app (el personal llena la lista diaria).
     case "mantenimiento": return veMantenimiento(q);
     // 274: los conteos de inventario: el personal hace los pasos 1–3; el gerente crea, firma y ajusta.

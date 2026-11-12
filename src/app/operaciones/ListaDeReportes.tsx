@@ -56,7 +56,11 @@ type ReporteCrudo = Omit<Reporte, "answers"> & { answers: Reporte["answers"] & R
  * las que llenó quien mira (sin las de RR. HH., que el autor no ve). Cada fila se abre como tarjeta aquí mismo.
  * La tabla es la de Órdenes (CLAUDE.md): `table.orders` dentro de `.tbl-scroll.tbl-caja` (sin anchos que se arrastran, como el historial de RR. HH.), chips con `.cnt`.
  */
-export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Contexto }) {
+export function ListaDeReportes({ modo, ctx, filtro = false }: {
+  modo: "mios" | "todos"; ctx: Contexto;
+  /** Dueño, 11 nov: la vista única «Reportes» con el filtro Mis reportes / Todos (solo para quien ve su tienda). */
+  filtro?: boolean;
+}) {
   const { t, lang } = usePrefs();
   const [filas, setFilas] = useState<Reporte[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -345,7 +349,13 @@ export function ListaDeReportes({ modo, ctx }: { modo: "mios" | "todos"; ctx: Co
         const cabeza = (
           <div className="ops-cabeza-reportes" data-cabeza-reportes>
             <Link href="/operaciones" className="ops-volver" data-accion="volver-a-operaciones">← {t("Back to Warehouse Ops", "Volver a Operaciones")}</Link>
-            <h2>{modo === "mios" ? t("My reports", "Mis reportes") : t("Reports", "Reportes")} <span className="count-tag">{visibles.length}</span></h2>
+            <h2>{filtro || modo === "todos" ? t("Reports", "Reportes") : t("My reports", "Mis reportes")} <span className="count-tag">{visibles.length}</span></h2>
+            {filtro && (
+              <span className="ops-filtro-mios" role="group" aria-label={t("Show", "Mostrar")} data-filtro-mios>
+                <Link href="/operaciones/reportes?ver=mios" className={`chip${modo === "mios" ? " active" : ""}`} aria-pressed={modo === "mios"} data-ver="mios">{t("My reports", "Mis reportes")}</Link>
+                <Link href="/operaciones/reportes" className={`chip${modo === "todos" ? " active" : ""}`} aria-pressed={modo === "todos"} data-ver="todos">{t("All reports", "Todos")}</Link>
+              </span>
+            )}
           </div>
         );
         return hueco ? createPortal(cabeza, hueco) : <div className="page-head">{cabeza}</div>;

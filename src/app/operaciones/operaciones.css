@@ -494,3 +494,8 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .hoja-barra-acciones { margin-left: auto; display: inline-flex; gap: 8px; align-items: center; }
 /* Etiquetas «Borrador» / «Práctica» en la lista de Grupos (11 nov). */
 .ops-etiqueta-borrador { display: inline-block; margin: 0 6px; font-size: 12px; font-weight: 700; color: var(--amber); background: color-mix(in srgb, var(--amber) 14%, transparent); border-radius: 999px; padding: 1px 8px; }
+
+/* Filtro Mis reportes / Todos de la vista única «Reportes» (dueño, 11 nov). */
+.ops-filtro-mios { display: inline-flex; gap: 6px; margin-left: 4px; }
+.ops-filtro-mios .chip { text-decoration: none; }
+.ops-falta-mi-firma { align-self: center; font-weight: 600; color: var(--amber); }

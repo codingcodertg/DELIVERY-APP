@@ -351,3 +351,35 @@ export function nombreDeEtapaVisible(e: EtapaVisible, lang: Lang): string {
   if (e === "pending") return lang === "es" ? "Pendiente" : "Pending";
   return nombreDeEtapa(e, lang);
 }
+
+/**
+ * El siguiente paso de una merma para quien la abre (dueño, 11 nov: «abrir la orden y continuar los pasos»). La tarjeta
+ * ofrece ESE paso ahí mismo, con las reglas de siempre:
+ *   - sin foto → «foto» (quien la reportó, o quien corrige la merma de esa tienda);
+ *   - fotografiada y sin grupo → «iniciar-aprobacion» (quien gestiona la merma de la tienda);
+ *   - en un grupo pendiente → «abrir-grupo» (cualquiera que la ve: la hoja dice quién firma);
+ *   - aprobada → «desechar»; desechada → «ajustar» (quien gestiona);
+ *   - ajustada → null (terminó).
+ * Si el paso existe pero quien mira no lo puede dar, «lo-sigue-el-gerente».
+ */
+export type SiguientePaso = "foto" | "iniciar-aprobacion" | "abrir-grupo" | "desechar" | "ajustar" | "lo-sigue-el-gerente" | null;
+export function siguientePasoDeMerma(
+  q: Quien,
+  r: { kind: TipoDeReporte; store: string; author_id?: string | null; scrap_group_id?: string | null; photos?: readonly string[] | null } & FilaConEtapa,
+): SiguientePaso {
+  if (r.kind !== "scrap") return null;
+  const e = etapaDe(r);
+  const gestiona = puedeCambiarEtapa(q, r);
+  if (e === "documented") {
+    const sinFotos = !(r.photos && r.photos.length > 0);
+    if (!sinFotos) return gestiona ? "iniciar-aprobacion" : "lo-sigue-el-gerente";
+    return r.author_id === q.id || puedeCorregirMerma(q, r) ? "foto" : "lo-sigue-el-gerente";
+  }
+  if (e === "photographed") {
+    if (r.scrap_group_id) return "abrir-grupo";
+    return gestiona ? "iniciar-aprobacion" : "lo-sigue-el-gerente";
+  }
+  if (e === "approved") return gestiona ? "desechar" : "lo-sigue-el-gerente";
+  if (e === "dumped") return gestiona ? "ajustar" : "lo-sigue-el-gerente";
+  return null;
+}

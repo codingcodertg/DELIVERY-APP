@@ -26,7 +26,9 @@ export default async function Page({ params }: { params: Promise<{ ruta?: string
   let vista: Vista;
   if (ruta.length === 0) vista = { v: "inicio" };
   else if (ruta[0] === "nuevo" && ruta.length === 2 && esTipo(ruta[1])) vista = { v: "nuevo", tipo: ruta[1] };
-  else if (ruta[0] === "mis-reportes" && ruta.length === 1) vista = { v: "mios" };
+  // Dueño, 11 nov: «Mis reportes» y «Reportes de la tienda» son UNA vista con el filtro Mis reportes / Todos. La ruta
+  // vieja sigue funcionando: lleva a la vista unida con «Mis reportes».
+  else if (ruta[0] === "mis-reportes" && ruta.length === 1) redirect("/operaciones/reportes?ver=mios");
   else if (ruta[0] === "reportes" && ruta.length === 1) vista = { v: "reportes" };
   else if (ruta[0] === "mantenimiento" && ruta.length === 1) vista = { v: "mantenimiento" };
   else if (ruta[0] === "conteos" && ruta.length === 1) vista = { v: "conteos" };
