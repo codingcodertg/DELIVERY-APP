@@ -51909,3 +51909,9 @@ Reunión con Roberto (11 nov, 11 PM):
 Sin la 297 aplicada: el supervisor ya no ve «Iniciar aprobación» (la base aún lo dejaría), el historial muestra lo derivado de la fila y «Borrar reporte» avisa que falta la migración.
 
 Sello `warehouse_ops` 0.44.0; repo 1.858.0.
+
+## D-1006 · Time Tracker: el vigía ya no da falsa alarma de «no está registrando»
+
+Incidente (12 nov): tras D-1004 (el cronómetro guarda en la base como mucho cada 120 s para bajar el Disk IO), el vigía de D-470 seguía avisando si pasaba más de 60 s sin un guardado bueno, así que sonaba «no está registrando» en cada hueco normal entre guardados. `VIGIA_MAX_MS` pasa a 180 s (un guardado de 120 s + 60 s de margen) y una prueba exige que nunca quede por debajo de `LATIDO_DB_MS`. Un reloj que de verdad deja de guardar se sigue avisando, a los 3 min en vez de a 1.
+
+Sello `timetracker` 1.21.0; repo 1.859.0.

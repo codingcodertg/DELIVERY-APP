@@ -43,8 +43,12 @@ export function debeMontarCronometro(args: { visible: boolean; presencial: boole
 
 // ---- 2. El vigía ------------------------------------------------------------------------
 
-/** Sin un guardado bueno durante más de esto con el reloj corriendo, se avisa. Seis latidos. */
-export const VIGIA_MAX_MS = 60_000;
+/**
+ * Sin un guardado bueno durante más de esto con el reloj corriendo, se avisa. D-1006: desde D-1004 el cronómetro guarda
+ * en la base como mucho cada 120 s (`LATIDO_DB_MS`, para bajar el Disk IO); con el umbral viejo de 60 s el vigía daba
+ * «no está registrando» en cada hueco normal entre guardados. Ahora: un guardado de 120 s + 60 s de margen.
+ */
+export const VIGIA_MAX_MS = 180_000;
 /** Cada cuánto mira el vigía. Va en su propio intervalo: no depende de que el tick viva. */
 export const VIGIA_CADA_MS = 5_000;
 /** Cada cuánto se repite el sonido mientras siga sin guardarse. */
