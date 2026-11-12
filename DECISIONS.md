@@ -51915,3 +51915,13 @@ Sello `warehouse_ops` 0.44.0; repo 1.858.0.
 Incidente (12 nov): tras D-1004 (el cronómetro guarda en la base como mucho cada 120 s para bajar el Disk IO), el vigía de D-470 seguía avisando si pasaba más de 60 s sin un guardado bueno, así que sonaba «no está registrando» en cada hueco normal entre guardados. `VIGIA_MAX_MS` pasa a 180 s (un guardado de 120 s + 60 s de margen) y una prueba exige que nunca quede por debajo de `LATIDO_DB_MS`. Un reloj que de verdad deja de guardar se sigue avisando, a los 3 min en vez de a 1.
 
 Sello `timetracker` 1.21.0; repo 1.859.0.
+
+## D-1007 · Merma: nuevo origen «Proveedor» (migración 298)
+
+Roberto (12 nov): «On scrap we need to add supplier as an option, besides internal and customer». El «¿De dónde viene?» de la merma suma **Proveedor / Supplier** (material que llegó dañado del proveedor) a Interno y Devolución de cliente. Sale en el formulario, la tarjeta, la columna «Cómo» de la tabla, el CSV/PDF, la corrección de origen y la edición completa.
+
+**Pérdida:** cuenta igual que «Interno» (precio × piezas dañadas). El CRMA sigue siendo solo de la devolución de cliente. El dueño puede cambiarlo si el daño de proveedor se acredita de vuelta (entonces sería como la devolución sin CRMA: /usr/bin/bash hasta que se confirme).
+
+Migración 298: el CHECK de `warehouse_reports.return_type` admite 'supplier', y `warehouse_ops_file_report` y `warehouse_ops_edit_scrap_origin` aceptan 'supplier'. Se reescriben desde su definición actual sustituyendo solo esa condición (como la 294). `warehouse_ops_edit_scrap_report` (285) valida por el CHECK y no cambia. Antes de aplicarla, guardar una merma con origen Proveedor da error en la base.
+
+Sello `warehouse_ops` 0.45.0; repo 1.860.0.

@@ -78,6 +78,8 @@ export const TIPOS_DE_MERMA: Opcion[] = [
  */
 export const ORIGENES_DE_MERMA: Opcion[] = [
   { v: "internal", en: "Internal", es: "Interno" }, { v: "customer_return", en: "Customer return", es: "Devolución de cliente" },
+  // 298 (Roberto, 12 nov): material que llegó dañado del proveedor. Cuenta como pérdida igual que «internal».
+  { v: "supplier", en: "Supplier", es: "Proveedor" },
 ];
 /**
  * Por qué se dañó. Roberto (pedido c8256a2e, D-919): «Need to distinguish between customer transportation and if it

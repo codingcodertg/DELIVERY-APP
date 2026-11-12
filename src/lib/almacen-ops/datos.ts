@@ -319,7 +319,13 @@ export async function corregirMerma(sb: SupabaseClient, reporteId: string, c: { 
  * 263: el gerente corrige de dónde viene la merma y su CRMA (que es opcional y suele llegar después del reporte). La
  * base recalcula la pérdida: una devolución de cliente sin CRMA no cuenta; al ponerle el CRMA, cuenta.
  */
-export async function corregirOrigenDeMerma(sb: SupabaseClient, reporteId: string, c: { origen: "internal" | "customer_return"; crma: string | null }): Promise<void> {
+export type TipoDeOrigen = "internal" | "customer_return" | "supplier";
+/** El origen guardado, normalizado (algo desconocido cuenta como «internal», como antes de la 298). */
+export function origenDeMerma(v: unknown): TipoDeOrigen {
+  return v === "customer_return" || v === "supplier" ? v : "internal";
+}
+
+export async function corregirOrigenDeMerma(sb: SupabaseClient, reporteId: string, c: { origen: TipoDeOrigen; crma: string | null }): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_edit_scrap_origin", { p_report: reporteId, p_return_type: c.origen, p_crma: c.crma });
   if (error && !esCorteDePractica(error)) throw error;
 }
@@ -353,11 +359,12 @@ export function productoParaEnviar(p: ProductoElegido): { product_id: number | n
 export function mermaParaEnviar(r: Respuestas): Omit<NonNullable<Envio["scrap"]>, "product_id" | "free_name" | "unit_cost"> {
   const q = r.qty as Cantidades;
   const s = r.split as Reparto;
-  const devolucion = r.return_type === "customer_return";
+  const origen = origenDeMerma(r.return_type);
+  const devolucion = origen === "customer_return";
   return {
     scrap_type: tipoDeReparto(s), damaged_pieces: s.damaged, sample_pieces: s.sample,
     boxes: q.boxes, pieces_per_box: q.piecesPerBox, loose_pieces: 0,
-    return_type: devolucion ? "customer_return" : "internal", reason: String(r.reason), broken_by: (r.broken_by as string[] | undefined) ?? [],
+    return_type: origen, reason: String(r.reason), broken_by: (r.broken_by as string[] | undefined) ?? [],
     crma: devolucion && typeof r.crma === "string" && r.crma.trim() ? r.crma.trim() : null,
   };
 }

@@ -13,7 +13,7 @@ import { PASOS, PASO_QUIEN_REPORTO, etiquetaDeOpcion } from "@/lib/almacen-ops/p
 import { etiquetaDeEquipoDelReporte } from "@/lib/almacen-ops/mantenimiento";
 import { nombreOTexto, personasParaElegir } from "@/lib/almacen-ops/personas";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
-import { DEMO_PRODUCTOS, DEMO_REPORTES, agregarFotos, borrarReporteDeMerma, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, editarReporteDeMerma, enlacesDeFotos, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type ParcheDeMerma, type Reporte } from "@/lib/almacen-ops/datos";
+import { DEMO_PRODUCTOS, origenDeMerma, type TipoDeOrigen, DEMO_REPORTES, agregarFotos, borrarReporteDeMerma, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, editarReporteDeMerma, enlacesDeFotos, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type ParcheDeMerma, type Reporte } from "@/lib/almacen-ops/datos";
 import { esCorteDePractica } from "@/lib/practica/es-corte";
 import { borrarPractica, cargaPractica, esGrupoDePractica, grupoDePracticaPorReporte, gruposDePractica } from "@/lib/practica/grupos-de-practica";
 import { crearBorradorDeGrupo, esBorradorDeGrupo, listarBorradoresDeGrupo } from "@/lib/almacen-ops/borradores-de-grupo";
@@ -1249,7 +1249,7 @@ function CorregirProducto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onLi
  */
 function CorregirOrigen({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onListo: (n: Reporte | null) => void }) {
   const { t, lang } = usePrefs();
-  const [origen, setOrigen] = useState<"internal" | "customer_return">(r.return_type === "customer_return" ? "customer_return" : "internal");
+  const [origen, setOrigen] = useState<TipoDeOrigen>(origenDeMerma(r.return_type));
   const [crma, setCrma] = useState(r.crma ?? "");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1268,7 +1268,7 @@ function CorregirOrigen({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onList
     <div className="ops-corregir" data-corregir-origen={r.id}>
       <p className="hint">{t("Where it came from and its CRMA / claim #:", "De dónde viene y su CRMA / n.º de reclamo:")}</p>
       <label className="ops-cantidad"><span>{t("Where from", "De dónde")}</span>
-        <select className="ops-campo" value={origen} onChange={(e) => setOrigen(e.target.value === "customer_return" ? "customer_return" : "internal")} data-campo="corregir-origen">
+        <select className="ops-campo" value={origen} onChange={(e) => setOrigen(origenDeMerma(e.target.value))} data-campo="corregir-origen">
           {ORIGENES_DE_MERMA.map((o) => <option key={o.v} value={o.v}>{lang === "es" ? o.es : o.en}</option>)}
         </select></label>
       {origen === "customer_return" && (
