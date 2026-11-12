@@ -853,7 +853,9 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio }: { r: Reporte; ctx: Conte
   const [huellasCalculadas, setHuellasCalculadas] = useState(false);
   const corrige = puedeCorregirMerma(ctx.yo, r);
   // 268: el autor o quien corrige la merma le agrega la foto a una guardada «sin foto».
-  const agregaFoto = r.kind === "scrap" && sinFoto(r) && (r.author_id === ctx.yo.id || corrige);
+  // D-1001 (dueño, 12 nov: «dice add a photo pero no hay ningún botón»): el formulario de la foto sale en CUALQUIER merma
+  // sin fotos, no solo en la guardada «sin foto» (photo_pending); es el mismo criterio que el paso «foto» de la tarjeta.
+  const agregaFoto = r.kind === "scrap" && (sinFoto(r) || (r.photos ?? []).length === 0) && (r.author_id === ctx.yo.id || corrige);
   const sinHuella = fotosSinHuella(r);
   useEffect(() => {
     if (ctx.demo || r.photos.length === 0) return;
