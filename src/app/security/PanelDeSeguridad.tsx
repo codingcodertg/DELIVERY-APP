@@ -526,7 +526,7 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
   return (
     <div className="container sec" style={{ padding: "16px 20px", maxWidth: 1400 }}>
       <div className="sec-head">
-        <h1>🔐 {t("Security", "Seguridad")}</h1>
+        <h1>🔐 {t("Central Hub Monitoring", "Central Hub Monitoring")}</h1>
         <span className="sec-vivo hint" data-en-vivo={vivo ? "si" : "no"} title={vivo ? t("Updates by itself when anything changes", "Se actualiza solo cuando algo cambia") : t("Connecting… refreshes every minute meanwhile", "Conectando… mientras tanto se refresca cada minuto")}
           style={{ color: vivo ? "var(--green)" : "var(--amber)" }}>
           ● {vivo ? t("live", "en vivo") : t("connecting…", "conectando…")}

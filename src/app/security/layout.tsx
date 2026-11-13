@@ -7,9 +7,9 @@ import type { UserRole } from "@/lib/types";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 
-export const metadata: Metadata = { title: "Security" };
+export const metadata: Metadata = { title: "Central Hub Monitoring" };
 
-const NOMBRE = ["Security", "Seguridad"] as const;
+const NOMBRE = ["Central Hub Monitoring", "Central Hub Monitoring"] as const;
 
 /**
  * La puerta de Security (D-811): solo el admin. No va por `module_access` a propósito —es una herramienta del hub, como

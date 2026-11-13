@@ -33,7 +33,7 @@ export function BloqueadoEnDispositivo({ codigo }: { codigo: string }) {
         )}
         {estado === "enviada" ? (
           <p data-solicitud="enviada" style={{ color: "var(--green)", fontWeight: 600 }}>
-            {t("Request sent. Your administrator will see it in Security.", "Solicitud enviada. Tu administrador la verá en Seguridad.")}
+            {t("Request sent. Your administrator will see it in Central Hub Monitoring.", "Solicitud enviada. Tu administrador la verá en Central Hub Monitoring.")}
           </p>
         ) : (
           <div style={{ display: "grid", gap: 8, textAlign: "left" }}>

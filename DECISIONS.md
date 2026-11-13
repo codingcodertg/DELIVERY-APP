@@ -51954,3 +51954,17 @@ Ayudas del 12 nov en Operaciones → Reportes → Merma:
 - **Rosa, «scroll bar on top not bottom»:** una barra horizontal también arriba de la tabla, sincronizada con la de abajo.
 
 Sello `warehouse_ops` 0.47.0; repo 1.863.0.
+
+## D-1011 · «Security» se llama ahora «Central Hub Monitoring»
+
+El dueño (12 nov): la app «Security» / «Seguridad» («Seguridad y permisos» en el mapa) pasa a llamarse **Central Hub Monitoring**, en los dos idiomas. Solo cambian los textos visibles:
+- el nombre de la app en el lanzador y en Permisos (`MODULE_ACCESS`);
+- la barra superior, el título de la pestaña del navegador y el encabezado del panel;
+- el mapa de la empresa;
+- el botón de Usuarios y permisos y su descripción;
+- la ubicación que guardan las solicitudes de ayuda;
+- el aviso de «dispositivo bloqueado».
+
+Las claves internas no cambian (módulo `security`, ruta `/security`, tablas `security_*`, archivos), así que los permisos y los datos siguen igual.
+
+Sello `security` 0.26.0; `deliveries` 1.605.0; repo 1.864.0.
