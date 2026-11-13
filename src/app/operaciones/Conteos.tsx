@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError, mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
@@ -31,7 +32,7 @@ import { CerrarX } from "./CerrarX";
  */
 
 type Carga = { estado: "cargando" } | { estado: "falta-274" } | { estado: "error"; mensaje: string } | { estado: "listo"; datos: Datos };
-const mensajeDeError = (e: unknown) => (e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e));
+/* mensajeDeError: el compartido de @/lib/mensaje-de-error (D-1021) */
 type Pon = (f: (d: Datos) => Datos) => void;
 
 export function Conteos({ ctx }: { ctx: Contexto }) {
@@ -47,7 +48,7 @@ export function Conteos({ ctx }: { ctx: Contexto }) {
     let vivo = true;
     leerConteos(createClient())
       .then((d) => { if (vivo) setCarga({ estado: "listo", datos: d }); })
-      .catch((e) => { if (vivo) setCarga(faltaLa274(e) ? { estado: "falta-274" } : { estado: "error", mensaje: mensajeDeError(e) }); });
+      .catch((e) => { if (vivo) setCarga(faltaLa274(e) ? { estado: "falta-274" } : { estado: "error", mensaje: mensajeDeErrorAlCargar(e) }); });
     return () => { vivo = false; };
   }, [ctx.demo]);
 

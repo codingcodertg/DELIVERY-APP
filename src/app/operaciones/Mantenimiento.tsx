@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError, mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
@@ -33,7 +34,7 @@ import { tiposPermitidos } from "@/lib/almacen-ops/nivel";
 
 type Carga = { estado: "cargando" } | { estado: "falta-273" } | { estado: "error"; mensaje: string } | { estado: "listo"; datos: Datos };
 type Pestana = "equipo" | "refacciones";
-const mensajeDeError = (e: unknown) => (e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e));
+/* mensajeDeError: el compartido de @/lib/mensaje-de-error (D-1021) */
 
 export function Mantenimiento({ ctx }: { ctx: Contexto }) {
   const { t } = usePrefs();
@@ -46,7 +47,7 @@ export function Mantenimiento({ ctx }: { ctx: Contexto }) {
     let vivo = true;
     leerMantenimiento(createClient())
       .then((d) => { if (vivo) setCarga({ estado: "listo", datos: d }); })
-      .catch((e) => { if (vivo) setCarga(faltaLa273(e) ? { estado: "falta-273" } : { estado: "error", mensaje: mensajeDeError(e) }); });
+      .catch((e) => { if (vivo) setCarga(faltaLa273(e) ? { estado: "falta-273" } : { estado: "error", mensaje: mensajeDeErrorAlCargar(e) }); });
     return () => { vivo = false; };
   }, [ctx.demo]);
 

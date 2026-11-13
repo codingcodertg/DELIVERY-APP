@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError, mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -147,7 +148,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
         ({ data, error: e } = await arma("*"));
       }
       if (!vivo) return;
-      if (e) { setError(e.message ?? "error"); setFilas([]); return; }
+      if (e) { setError(mensajeDeErrorAlCargar(e)); setFilas([]); return; }
       setFilas(ordenPorDia((data ?? []).map((r) => ({ ...r, unit_cost: r.unit_cost == null ? null : Number(r.unit_cost), total_loss: r.total_loss == null ? null : Number(r.total_loss),
         // Hasta que se aplique la 266 la fecha del daño viaja dentro de `answers`; después, en su columna.
         broken_on: r.broken_on ?? (typeof r.answers?.broken_on === "string" ? r.answers.broken_on : null) })) as Reporte[]));
@@ -249,7 +250,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
         setFilas((f) => (f ?? []).filter((x) => x.id !== r.id));
         setSeleccion((s) => { const n = new Set(s); n.delete(r.id); return n; });
       } catch (e) {
-        fallos.push({ id: r.id, nombre: `${r.product_name ?? r.product_sku ?? t("Report", "Reporte")} · ${fmtDia(diaDelReporte(r), lang)}`, motivo: e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e) });
+        fallos.push({ id: r.id, nombre: `${r.product_name ?? r.product_sku ?? t("Report", "Reporte")} · ${fmtDia(diaDelReporte(r), lang)}`, motivo: mensajeDeError(e) });
       }
     }
     setConfirmaBorrarBloque(false); setBorrandoBloque(false);
@@ -339,7 +340,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
       setAvisoBloque(resumenDeDeshacer(hechas, omitidos.length, lang));
     } catch (e) {
       if (e instanceof ErrorParcial) { actualizaFilas(e.hechos); setAvisoBloque(e.message); }
-      else setAvisoBloque((e as Error).message);
+      else setAvisoBloque(mensajeDeError(e));
     }
   };
   const marcarDesechadas = async () => {
@@ -351,7 +352,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
       setAvisoBloque(resumenDeBloque("dumped", hechos.length, omitidos.length, lang));
     } catch (e) {
       if (e instanceof ErrorParcial) { actualizaFilas(e.hechos); setAvisoBloque(e.message); }
-      else setAvisoBloque((e as Error).message);
+      else setAvisoBloque(mensajeDeError(e));
     }
   };
 
@@ -1057,7 +1058,7 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio, onBorrado }: { r: Reporte;
       if (!ctx.demo && !ensenanzaDelNavegador()) await borrarReporteDeMerma(createClient(), r.id);
       onBorrado?.(r.id);
       onCerrar();
-    } catch (e) { setErrorBorrar((e as Error).message); } finally { setBorrando(false); }
+    } catch (e) { setErrorBorrar(mensajeDeError(e)); } finally { setBorrando(false); }
   };
   const [fotos, setFotos] = useState<string[]>([]);
   const [corrigiendo, setCorrigiendo] = useState(false);
@@ -1272,7 +1273,7 @@ function EditarReporteDeMerma({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; 
         if (data) fresco = { ...(data as Reporte), unit_cost: data.unit_cost == null ? null : Number(data.unit_cost), total_loss: data.total_loss == null ? null : Number(data.total_loss), broken_on: (data.broken_on as string | null) ?? null, firmas: null };
       }
       onListo(fresco);
-    } catch (e) { setError(e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e)); }
+    } catch (e) { setError(mensajeDeError(e)); }
     finally { setGuardando(false); }
   };
 
@@ -1366,7 +1367,7 @@ function AgregarFoto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onListo: 
         await agregarFotos(sb, r.id, rutas, lista.map((x) => x.huella));
       }
       onListo({ ...r, photos: [...r.photos, ...rutas], photo_hashes: [...(r.photo_hashes ?? r.photos.map(() => null)), ...lista.map((x) => x.huella)], photo_pending: false });
-    } catch (e) { setError(e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e)); }
+    } catch (e) { setError(mensajeDeError(e)); }
     finally { setGuardando(false); }
   };
   return (
@@ -1420,7 +1421,7 @@ function CorregirProducto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onLi
           ? DEMO_PRODUCTOS.filter((p) => (p.sku + " " + p.name).toLowerCase().includes(texto.toLowerCase()))
           : await buscarProductos(createClient(), texto);
         if (vivo) setLista(res);
-      } catch (e) { if (vivo) setError(e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e)); }
+      } catch (e) { if (vivo) setError(mensajeDeError(e)); }
     }, 250);
     return () => { vivo = false; clearTimeout(id); };
   }, [q, ctx.demo]);
@@ -1438,7 +1439,7 @@ function CorregirProducto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onLi
         : { ...r, product_id: null, product_sku: null, product_name: nombre.trim(), unit_cost: c, total_loss: total(c), product_not_in_catalog: true };
       onListo(n);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e));
+      setError(mensajeDeError(e));
     } finally { setGuardando(false); }
   };
 
@@ -1487,7 +1488,7 @@ function CorregirOrigen({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onList
       if (!ctx.demo) await corregirOrigenDeMerma(createClient(), r.id, { origen, crma: nuevo.crma });
       onListo({ ...r, ...nuevo, total_loss: total });
     } catch (e) {
-      setError(e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e));
+      setError(mensajeDeError(e));
     } finally { setGuardando(false); }
   };
   return (

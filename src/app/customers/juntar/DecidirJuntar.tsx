@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError, mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
@@ -32,8 +33,8 @@ export function DecidirJuntar({ demo, puedeEditar }: { demo: boolean; puedeEdita
 
   const cargar = useCallback(async () => {
     const [l, s] = await Promise.all([almacen.leer(), almacen.sugerencias()]);
-    if (!l.ok) { setEstado(l.sinTabla ? { tipo: "sinTabla" } : { tipo: "error", texto: l.error }); return; }
-    if (!s.ok) { setEstado(s.sinTabla ? { tipo: "sinTabla" } : { tipo: "error", texto: s.error }); return; }
+    if (!l.ok) { setEstado(l.sinTabla ? { tipo: "sinTabla" } : { tipo: "error", texto: mensajeDeErrorAlCargar(l.error) }); return; }
+    if (!s.ok) { setEstado(s.sinTabla ? { tipo: "sinTabla" } : { tipo: "error", texto: mensajeDeErrorAlCargar(s.error) }); return; }
     setLista(l.valor);
     setSugs(s.valor);
     setEstado({ tipo: "listo" });
@@ -48,7 +49,7 @@ export function DecidirJuntar({ demo, puedeEditar }: { demo: boolean; puedeEdita
     const r = await almacen.juntar(p.a.id, p.b.id);
     if (!r.ok) {
       setOcupado(null);
-      setAviso({ tono: "rojo", texto: (r.sinPermiso ? t("Not merged (no permission): ", "No se juntaron (sin permiso): ") : t("Not merged: ", "No se juntaron: ")) + r.error });
+      setAviso({ tono: "rojo", texto: (r.sinPermiso ? t("Not merged (no permission): ", "No se juntaron (sin permiso): ") : t("Not merged: ", "No se juntaron: ")) + mensajeDeError(r.error) });
       return;
     }
     await cargar();
@@ -61,7 +62,7 @@ export function DecidirJuntar({ demo, puedeEditar }: { demo: boolean; puedeEdita
     setAviso(null);
     const r = await almacen.rechazar(p.sugerencia.id);
     setOcupado(null);
-    if (!r.ok) { setAviso({ tono: "rojo", texto: t("Not saved: ", "No se guardó: ") + r.error }); return; }
+    if (!r.ok) { setAviso({ tono: "rojo", texto: t("Not saved: ", "No se guardó: ") + mensajeDeError(r.error) }); return; }
     setSugs((s) => s.filter((x) => x.id !== p.sugerencia.id));
     window.dispatchEvent(new Event(EVENTO_DE_LA_COLA));
     setAviso({ tono: "verde", texto: t("Marked as not the same ✓", "Marcados como distintos ✓") });

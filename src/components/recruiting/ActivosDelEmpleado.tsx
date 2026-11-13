@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError } from "@/lib/mensaje-de-error";
 import { useCallback, useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { AVISO_DEMO, MODO_DEMO } from "@/lib/recruiting/modo-demo";
@@ -37,7 +38,7 @@ export function ActivosDelEmpleado({ employeeId, deBaja, puesto, esAdmin }: { em
     setBusy(true);
     const r = await fn();
     setBusy(false);
-    if (!r.ok) { notify("Error: " + (r.message ?? "")); return; }
+    if (!r.ok) { notify(mensajeDeError(r.message)); return; }
     await cargar();
   };
 

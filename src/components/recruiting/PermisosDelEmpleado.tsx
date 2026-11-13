@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError } from "@/lib/mensaje-de-error";
 import { useState } from "react";
 import { ConfirmProvider } from "@/lib/confirm";
 import { DataProvider as ProveedorDelHub, useData as useHub } from "@/lib/data-provider";
@@ -78,7 +79,7 @@ function Cuerpo({ persona, onClose, onEnlazado }: { persona: Persona; onClose: (
       full_name: name.trim(), role, password: password.trim() || undefined,
       ...(store ? { store } : {}),
     });
-    if (!res.ok) { setBusy(false); notify("Error: " + (res.error ?? "")); return; }
+    if (!res.ok) { setBusy(false); notify(mensajeDeError(res.error)); return; }
     // El enlace con el expediente va por /api, no con `actions/hr` (tumbaba el build: D-702).
     if (!res.id) {
       notify(t("User created, but its id did not come back: link the employee file by hand.", "Usuario creado, pero no volvió su id: enlaza el expediente a mano."));

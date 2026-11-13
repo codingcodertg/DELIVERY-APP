@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -64,7 +65,7 @@ export function Operaciones({ vista, demo }: { vista: Vista; demo: boolean }) {
       if (!vivo) return;
       if (faltaLaMigracion(prueba.error)) { setCarga({ estado: "falta-247" }); return; }
       const error = perfil.error ?? ajustes.error ?? gente.error ?? prueba.error;
-      if (error || !perfil.data) { setCarga({ estado: "error", mensaje: error?.message ?? "profile" }); return; }
+      if (error || !perfil.data) { setCarga({ estado: "error", mensaje: mensajeDeErrorAlCargar(error) }); return; }
       const yo = { ...perfil.data, full_name: perfil.data.full_name ?? "", warehouse_ops_role: nivel } as Yo;
       const todas = ((ajustes.data?.stores ?? []) as { name?: string | null }[]).map((s) => (s.name ?? "").trim()).filter(Boolean);
       const deProfiles = ((gente.data ?? []) as Persona[]).map((p) => ({ ...p, fuente: "profile" as const })).filter((p) => (p.full_name ?? "").trim());

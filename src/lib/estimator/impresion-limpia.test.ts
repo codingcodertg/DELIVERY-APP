@@ -15,8 +15,14 @@ describe("la cotización impresa, limpia", () => {
     expect(print).toMatch(/\.hoja-cliente \{[^}]*padding: 16mm;/);
   });
   it("lo que no es la hoja se quita del flujo, no solo se esconde; la hoja deja de flotar", () => {
-    expect(print).toContain("body *:not(.hoja-cliente):not(.hoja-cliente *):not(:has(.hoja-cliente)) { display: none !important; }");
+    expect(print).toContain("body:has(.est-vista-previa) *:not(.hoja-cliente):not(.hoja-cliente *):not(:has(.hoja-cliente)) { display: none !important; }");
     expect(print).toMatch(/\.hoja-cliente \{ position: static;/);
     expect(print).not.toContain("position: absolute");
+  });
+  it("D-1021: solo actúa donde la vista previa existe (el CSS se queda cargado al pasar a otra app)", () => {
+    // Suelto («body * { visibility: hidden }») dejaba en blanco lo que se imprimiera en otra app tras pasar por aquí.
+    expect(print).not.toMatch(/(^|[\s;{}])body\s*>?\s*\*/);
+    expect(print).toContain("body:has(.est-vista-previa) * { visibility: hidden !important; }");
+    expect(print).toContain("body:has(.est-vista-previa) { padding: 0; }");
   });
 });

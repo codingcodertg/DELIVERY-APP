@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError } from "@/lib/mensaje-de-error";
 import { useState } from "react";
 import Link from "next/link";
 import { useData } from "@/lib/recruiting-data-provider";
@@ -51,7 +52,7 @@ export default function SettingsPage() {
     if (!supabase) { await updateUserName(me.id, displayName); return; }
     // profiles lives in public, not recruiting (this client defaults to recruiting).
     const { error } = await supabase.schema("public").from("profiles").update({ full_name: displayName.trim() }).eq("id", me.id);
-    notify(error ? "Error: " + error.message : t("Name saved ✓", "Nombre guardado ✓"));
+    notify(error ? mensajeDeError(error) : t("Name saved ✓", "Nombre guardado ✓"));
   };
 
   const [appName, setAppName] = useState(settings.app_name);

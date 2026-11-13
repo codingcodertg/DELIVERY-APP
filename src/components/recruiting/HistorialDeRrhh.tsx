@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import { useCallback, useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { MODO_DEMO } from "@/lib/recruiting/modo-demo";
@@ -24,7 +25,7 @@ export function HistorialDeRrhh({ employeeId, assetId, recarga = 0, compacto = f
     // D-932: en el demo no hay historial de RR. HH. (vive en el servidor); la tabla sale vacía y no se llama a nada.
     if (MODO_DEMO) { setRows([]); setErr(null); return; }
     const r = await listHistory({ employeeId, assetId });
-    if (!r.ok) { setSinTabla(r.sinTabla); setErr(r.sinTabla ? null : r.message); setRows([]); return; }
+    if (!r.ok) { setSinTabla(r.sinTabla); setErr(r.sinTabla ? null : mensajeDeErrorAlCargar(r.message)); setRows([]); return; }
     setRows(r.rows); setErr(null);
   }, [employeeId, assetId]);
   useEffect(() => { void cargar(); }, [cargar, recarga]);

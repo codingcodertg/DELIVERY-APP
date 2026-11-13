@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError, mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { useVistaDeColumnas } from "@/lib/use-vista-de-columnas";
 import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion-hook";
@@ -117,7 +118,7 @@ function EmployeeFilesPageReal() {
 
   const load = useCallback(async () => {
     const r = await listEmployeeFiles();
-    if (!r.ok) setErr(r.message);
+    if (!r.ok) setErr(mensajeDeErrorAlCargar(r.message));
     else { setErr(null); setRows(r.rows); setCon159(r.campos159); setCon207(r.campos207); }
     setCargando(false);
   }, []);
@@ -165,7 +166,7 @@ function EmployeeFilesPageReal() {
     const nombre = "empleados_" + (estado === "bajas" ? "dados_de_baja_" : "") + hoyLocalISO();
     if (como === "csv") downloadCSV(nombre + ".csv", toCSV(tabla.cabeceras, tabla.filas));
     else exportaTablaExcel(nombre + ".xlsx", t("Employees", "Empleados"), tabla.cabeceras, tabla.filas)
-      .catch((e: unknown) => notify(t("Could not export: ", "No se pudo exportar: ") + ((e as { message?: string })?.message ?? "")));
+      .catch((e: unknown) => notify(t("Could not export: ", "No se pudo exportar: ") + mensajeDeError(e)));
   };
 
   const porId = (id: string | null) => rows.find((r) => r.id === id) ?? null;
@@ -493,7 +494,7 @@ function Ficha({
     try {
       const res = await fetch("/api/reset-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: persona.profile_id }) });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { notify("Error: " + (data.error || res.statusText)); return; }
+      if (!res.ok) { notify(mensajeDeError(data.error || "")); return; }
       setContrasenaNueva(data.password ?? null);
     } finally { setBusy(false); }
   };
@@ -585,7 +586,7 @@ function Ficha({
     setBusy(false);
     notify(r.ok
       ? (encendida ? t("Hub access restored ✓", "Acceso al hub devuelto ✓") : t("Hub access removed ✓", "Acceso al hub quitado ✓"))
-      : "Error: " + (r.message ?? ""));
+      : mensajeDeError(r.message));
     if (r.ok) void cargaCuenta();
   }
 
@@ -603,7 +604,7 @@ function Ficha({
     try {
       const res = await fetch("/api/user-identity", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: persona.profile_id, username: revisionUsuario.usuario }) });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { notify("Error: " + (data.error || res.statusText)); return; }
+      if (!res.ok) { notify(mensajeDeError(data.error || "")); return; }
       notify(t(`Username changed to «${revisionUsuario.usuario}» ✓`, `Usuario cambiado a «${revisionUsuario.usuario}» ✓`));
       setUsuarioNuevo(null);
       void cargaCuenta();
@@ -616,7 +617,7 @@ function Ficha({
     // ahí pinta un "Cargando…" eterno que se lee como que la pantalla está rota. El
     // error se dice aparte, con su motivo.
     setDocs(r.ok ? r.docs : []);
-    if (!r.ok) notify("Error: " + r.message);
+    if (!r.ok) notify(mensajeDeError(r.message));
   }, [persona.id, notify]);
 
   useEffect(() => { void cargaDocs(); }, [cargaDocs]);
@@ -649,7 +650,7 @@ function Ficha({
       days_off: info.days_off === "" ? null : Number(info.days_off),
     });
     setBusy(false);
-    notify(r.ok ? t("Saved ✓", "Guardado ✓") : "Error: " + (r.message ?? ""));
+    notify(r.ok ? t("Saved ✓", "Guardado ✓") : mensajeDeError(r.message));
     if (r.ok) { setGuardado(info); setEditando(false); setSaliendo(false); onSaved(); }
     return r.ok;
   }
@@ -1195,7 +1196,7 @@ function Bloque({
     fd.set("employeeId", employeeId);
     fd.set("kind", kind);
     const r = await uploadDocFile(fd);
-    if (!r.ok) { notify("Error: " + (r.message ?? "")); return null; }
+    if (!r.ok) { notify(mensajeDeError(r.message)); return null; }
     return r.path ?? null;
   }
 
@@ -1203,7 +1204,7 @@ function Bloque({
     setBusy(true);
     const r = await fn();
     setBusy(false);
-    if (!r.ok) { notify("Error: " + (r.message ?? "")); return false; }
+    if (!r.ok) { notify(mensajeDeError(r.message)); return false; }
     onChange();
     return true;
   }

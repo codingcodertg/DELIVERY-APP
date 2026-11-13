@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError } from "@/lib/mensaje-de-error";
 import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion-hook";
 import { contextoDelAsistente } from "@/lib/ayuda-contextos";
 import Link from "next/link";
@@ -167,7 +168,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
     } catch (e) {
       // En práctica (modo enseñanza) no se guarda de verdad: se da por enviado igual que en demo. El aviso global ya salió.
       if (esCorteDePractica(e)) { borrarBorrador(ctx.yo.id, borradorId); setHecho(sinFoto ? "sin-foto" : "enviado"); return; }
-      setError(e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e));
+      setError(mensajeDeError(e));
     } finally {
       setEnviando(false);
     }
@@ -551,7 +552,7 @@ function ElegirProducto({ valor, ctx, onElegir }: { valor: ProductoElegido | und
           : await buscarProductos(createClient(), texto);
         if (vivo) { setLista(res); setError(null); }
       } catch (e) {
-        if (vivo) setError(e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e));
+        if (vivo) setError(mensajeDeError(e));
       }
     }, 250);
     return () => { vivo = false; clearTimeout(id); };
@@ -722,7 +723,7 @@ function Fotos({ fotos, huellas, ctx, obligatoria, onCambio, onConfirmando }: {
       if (e) throw e;
       if (!data) { setErrorAbrir(t("That report is not available.", "Ese reporte no está disponible.")); return; }
       setAbierto({ ...data, unit_cost: data.unit_cost == null ? null : Number(data.unit_cost), total_loss: data.total_loss == null ? null : Number(data.total_loss) } as Reporte);
-    } catch (e) { setErrorAbrir(e instanceof Error ? e.message : String(e)); }
+    } catch (e) { setErrorAbrir(mensajeDeError(e)); }
   };
   return (
     <div className="ops-fotos" data-fotos={fotos.length}>

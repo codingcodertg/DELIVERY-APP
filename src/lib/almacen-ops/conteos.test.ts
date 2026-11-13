@@ -169,11 +169,19 @@ describe("la hoja y la lectura", () => {
     expect(idDeHoja("abc")).toBeNull();
     expect(idDeHoja(undefined)).toBeNull();
   });
-  it("faltaLa274 reconoce la tabla o la RPC que la API no conoce", () => {
-    expect(faltaLa274({ code: "42P01" })).toBe(true);
-    expect(faltaLa274({ code: "PGRST202", message: "Could not find the function public.warehouse_ops_count_line" })).toBe(true);
+  it("faltaLa274: solo cuando la TABLA de conteos no existe (D-1021)", () => {
+    expect(faltaLa274({ code: "42P01", message: 'relation "public.warehouse_counts" does not exist' })).toBe(true);
+    expect(faltaLa274({ code: "PGRST205", message: "Could not find the table 'public.warehouse_counts' in the schema cache" })).toBe(true);
+    expect(faltaLa274({ code: "42P01", message: 'relation "public.warehouse_count_lines" does not exist' })).toBe(true);
     expect(faltaLa274({ message: "relation \"public.warehouse_counts\" does not exist" })).toBe(true);
+    // Lo que antes daba un «Muy pronto» falso, con la 274 ya aplicada:
+    expect(faltaLa274({ code: "42P01" })).toBe(false);
+    expect(faltaLa274({ code: "42P01", message: 'relation "public.otra_tabla" does not exist' })).toBe(false);
+    expect(faltaLa274({ code: "PGRST202", message: "Could not find the function public.warehouse_ops_count_line" })).toBe(false);
+    expect(faltaLa274({ code: "42883", message: "operator does not exist: uuid = text" })).toBe(false);
+    expect(faltaLa274({ code: "42703", message: "column warehouse_counts.stage does not exist" })).toBe(false);
     expect(faltaLa274({ code: "42501", message: "warehouse_ops: sin acceso" })).toBe(false);
+    expect(faltaLa274({ message: "TypeError: Failed to fetch" })).toBe(false);
     expect(faltaLa274(null)).toBe(false);
   });
 });

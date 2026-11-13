@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError, mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { AlmacenDeClientes } from "@/lib/customers/almacen";
 import { avisoDelBuscador, candidatosParaAsociar, planDeCambios, tiendasEnTexto, type Asociado, type AsociacionPendiente, type EmpresaParaAsociar } from "@/lib/customers/asociaciones";
@@ -66,7 +67,7 @@ export function AsociacionesDelCliente({ cliente, almacen, lista = [], editable 
       if (!vivo) return;
       if (r.ok) { setAsociados(r.valor); setSinInstalar(false); }
       else if (r.sinTabla) { setAsociados([]); setSinInstalar(true); }
-      else { setAsociados([]); setError(r.error); }
+      else { setAsociados([]); setError(mensajeDeErrorAlCargar(r.error)); }
     });
     if (almacen.asociacionesPendientes) {
       void almacen.asociacionesPendientes(empresa).then((r) => { if (vivo) setPendientes(r.ok ? r.valor : []); });
@@ -114,7 +115,7 @@ export function AsociacionesDelCliente({ cliente, almacen, lista = [], editable 
     setOcupado(false);
     if (!r.ok) {
       setError(r.duplicado ? t("Already associated or already waiting for approval.", "Ya están asociados o ya esperan aprobación.")
-        : r.sinPermiso ? t("You can't make that change (only customers of your store).", "No puedes hacer ese cambio (solo clientes de tu tienda).") : r.error);
+        : r.sinPermiso ? t("You can't make that change (only customers of your store).", "No puedes hacer ese cambio (solo clientes de tu tienda).") : mensajeDeError(r.error));
       return;
     }
     setElegidas([]); setQuitar([]); setNota(""); setBusca("");

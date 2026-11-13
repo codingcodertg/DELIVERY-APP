@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError } from "@/lib/mensaje-de-error";
 import { useState } from "react";
 import { Button } from "@/components/erp/ui/button";
 import { cn } from "@/lib/erp/utils";
@@ -36,7 +37,7 @@ export function BarraDeSeleccion({ ids, empresas, totalVisibles, vendedores, alm
     setAviso(null);
     const r = await almacen.guardarVarios(ids, parche);
     setOcupado(false);
-    if (!r.ok) { setAviso({ ok: false, texto: t("Not saved: ", "No se guardó: ") + r.error }); return; }
+    if (!r.ok) { setAviso({ ok: false, texto: t("Not saved: ", "No se guardó: ") + mensajeDeError(r.error) }); return; }
     onGuardados(ids, parche);
     setAviso({ ok: true, texto: hecho(r.valor) });
   };

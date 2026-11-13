@@ -1,3 +1,4 @@
+import { imprimeDocumento } from "@/lib/slip";
 import { ESTILO_IMPRESION_LIMPIA } from "@/lib/impresion-limpia";
 import type { Delivery, Settings } from "@/lib/types";
 import type { Lang } from "@/lib/prefs";
@@ -109,8 +110,7 @@ export function printRouteManifest(
     <script>window.onload=function(){setTimeout(function(){window.print();},150);};</script>
     </body></html>`;
 
-  const w = window.open("", "_blank");
-  if (!w) return;
-  w.document.write(html);
-  w.document.close();
+  // D-1021: por el marco oculto de `imprimeDocumento` (D-287), no por `window.open("")`: en la app de escritorio esa
+  // ventana se deniega (about:blank no es un origen propio) y el botón no hacía nada, sin decirlo.
+  imprimeDocumento(html);
 }

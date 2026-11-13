@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -135,12 +136,18 @@ function TarjetaDeCotizacion({ trato, me, enlace, onCerrar }: { trato: Trato; me
       if (DEMO && !r.ok) r = await almacen.cargar("demo-q-0");
       if (!vivo) return;
       if (r.ok) setQ(r.valor);
-      else setError(r.error === "not visible" ? t("This quote is not visible to you.", "Esta cotización no está visible para ti.") : r.error);
+      else setError(r.error === "not visible" ? t("This quote is not visible to you.", "Esta cotización no está visible para ti.") : mensajeDeErrorAlCargar(r.error));
     })();
     return () => { vivo = false; };
   }, [trato.id, me, t]);
   const hoja = useMemo(() => (q ? hojaDelCliente(q.draft, q.store, lang === "es" ? "es" : "en") : null), [q, lang]);
-  const pie = enlace ? <a href={enlace} className="text-clay-600 hover:underline" data-abrir-en-cotizador>{t("Open in Quote Builder ↗", "Abrir en Cotizador ↗")}</a> : null;
+  // D-1021: la cotización se imprime desde su tarjeta (solo la hoja del cliente; ver el @media print de clientes.css).
+  const pie = (
+    <>
+      {hoja && <button type="button" className="btn btn-primary tarjeta-imprimir" data-imprimir-cotizacion onClick={() => window.print()}>🖨️ {t("Print", "Imprimir")}</button>}
+      {enlace && <a href={enlace} className="text-clay-600 hover:underline" data-abrir-en-cotizador>{t("Open in Quote Builder ↗", "Abrir en Cotizador ↗")}</a>}
+    </>
+  );
   return (
     <Marco titulo={`${t("Quote", "Cotización")} #${trato.numero}`} onCerrar={onCerrar} ancho pie={pie}>
       <p className="hint">{t("Read-only: the customer sheet as it prints.", "Solo lectura: la hoja del cliente tal como se imprime.")}</p>
@@ -183,7 +190,7 @@ function Marco({ titulo, onCerrar, children, pie, ancho = false }: { titulo: str
           <button type="button" className="btn btn-ghost" onClick={onCerrar} aria-label={t("Close", "Cerrar")}>✕</button>
         </div>
         {children}
-        {pie && <div className="hint" style={{ marginTop: 12 }}>{pie}</div>}
+        {pie && <div className="hint tarjeta-pie">{pie}</div>}
       </div>
     </div>
   );

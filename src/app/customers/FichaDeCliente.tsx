@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError, mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/erp/ui/badge";
 import { Button } from "@/components/erp/ui/button";
@@ -458,7 +459,7 @@ function ArchivosDeLaFicha({ cliente, almacen, puedeEditar, t }: { cliente: Clie
     const r = await almacen.subirArchivo(cliente.id, fichero, clase);
     setSubiendo(false);
     if (entrada.current) entrada.current.value = "";
-    if (!r.ok) { setAviso(t("Not uploaded: ", "No se subió: ") + r.error); return; }
+    if (!r.ok) { setAviso(t("Not uploaded: ", "No se subió: ") + mensajeDeError(r.error)); return; }
     setArchivos((a) => [r.valor, ...(a ?? [])]);
   };
   const abre = async (a: ArchivoDeCliente) => {
@@ -466,12 +467,12 @@ function ArchivosDeLaFicha({ cliente, almacen, puedeEditar, t }: { cliente: Clie
     const ventana = window.open("about:blank", "_blank");
     const r = await almacen.enlaceDeArchivo(a);
     if (r.ok && ventana) ventana.location.href = r.valor;
-    else { ventana?.close(); setAviso(t("Could not open it: ", "No se pudo abrir: ") + (r.ok ? "" : r.error)); }
+    else { ventana?.close(); setAviso(t("Could not open it: ", "No se pudo abrir: ") + (r.ok ? "" : mensajeDeErrorAlCargar(r.error))); }
   };
   const quita = async (a: ArchivoDeCliente) => {
     if (!window.confirm(t(`Remove «${a.name}»?`, `¿Quitar «${a.name}»?`))) return;
     const r = await almacen.quitarArchivo(a);
-    if (!r.ok) { setAviso(t("Not removed: ", "No se quitó: ") + r.error); return; }
+    if (!r.ok) { setAviso(t("Not removed: ", "No se quitó: ") + mensajeDeError(r.error)); return; }
     setArchivos((x) => (x ?? []).filter((y) => y.id !== a.id));
   };
   const falta = archivos !== null && faltaElFormulario(cliente, archivos);
@@ -859,7 +860,7 @@ export function FichaEnVentana({ cliente, hermanas, lista = [], onCambia, puedeE
         : t("That account already exists in that store.", "Esa cuenta ya existe en esa tienda.")
       : r.sinPermiso
         ? t("Not saved: the database did not accept the change (no permission).", "No se guardó: la base no aceptó el cambio (sin permiso).")
-        : t("Not saved: ", "No se guardó: ") + r.error;
+        : t("Not saved: ", "No se guardó: ") + mensajeDeError(r.error);
 
   /** Escribe y pinta lo que devolvió la base; en rojo lo que no se guardó. */
   const aplicar = async (escritura: () => ReturnType<AlmacenDeClientes["guardar"]>, hecho: string): Promise<boolean> => {
