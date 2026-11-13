@@ -1,8 +1,7 @@
--- 306_pausas_recibo_despues.sql — «Recibos después» (D-548): la parada de gasolina se registra en el momento, y su recibo se
+-- 306_pausas_recibo_despues.sql — «Recibos después»: la parada de gasolina se registra en el momento, y su recibo se
 -- sube después, sin tocar la hora ni el lugar. Además, nadie crea paradas de atrás, y una parada cerrada solo cambia su recibo.
 --
--- El dueño, 2026-11-13: «drivers log stops at the end of the day just to attach receipts… stops must still be logged IN THE
--- MOMENT (the purpose is to know why they went off route and lost time), but receipts can be uploaded LATER».
+-- Pedido del 2026-11-13 (resumen, no es cita): las paradas se registran en el momento, para saber por qué se salió de la ruta y cuánto tiempo se perdió; el recibo puede subirse después.
 --
 -- Qué cambia:
 -- 1) Se quita `pausas_gasolina_con_recibo`: una parada de gasolina puede cerrarse SIN recibo. Queda pendiente (recibo_foto
@@ -98,4 +97,4 @@ begin
 end $$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('306_pausas_recibo_despues.sql', '0de24d33de9722699fa4bd1a666fab1f6c1282a0ea76012e6f193564679d857f') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('306_pausas_recibo_despues.sql', '83fcc63a714ee99d98a2d7738c73057ff6c9189835210e751446877afd0ca356') on conflict (name) do nothing;

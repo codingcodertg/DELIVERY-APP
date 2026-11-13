@@ -20,10 +20,10 @@ import {
 // aquí se pinta y se escribe.
 //
 // El recibo de la gasolina se pide al pulsar «Finish stop», no al registrar la parada (D-523 deja la foto opcional al
-// empezar). D-548 (2026-11-13): el recibo ya NO es obligatorio para cerrar. Lo que falta sale en «🧾 Recibos pendientes»,
+// empezar). Cambio del 2026-11-13: el recibo ya NO es obligatorio para cerrar. Lo que falta sale en «🧾 Recibos pendientes»,
 // del día que se mira (hoy o ayer), y se sube con «📷 Añadir recibo» sin tocar la hora ni el lugar de la parada.
 //
-// D-549 (2026-11-13): la parada abierta se busca sin importar el día. Si es vieja, se enseña con su hora de cierre y se
+// Cambio del 2026-11-13: la parada abierta se busca sin importar el día. Si es vieja, se enseña con su hora de cierre y se
 // cierra a esa hora (nunca a «ahora»).
 // ============================================================
 
@@ -223,7 +223,7 @@ function DialogoDeParada({ es, t, ocupado, error, onCancelar, onConfirmar }: {
 
 /**
  * Al terminar la gasolina: la foto del recibo (la cámara del teléfono, o un archivo), y si quiere, el monto y los galones.
- * Sin foto la parada se cierra igual (D-548): el recibo queda pendiente, o se marca «No tengo recibo» a propósito.
+ * Sin foto la parada se cierra igual (2026-11-13): el recibo queda pendiente, o se marca «No tengo recibo» a propósito.
  */
 export function DialogoDeRecibo({ t, ocupado, error, fotoYaTomada, onCancelar, onConfirmar }: {
   t: (en: string, es: string) => string; ocupado: boolean; error: string | null;
@@ -284,7 +284,7 @@ export function DialogoDeRecibo({ t, ocupado, error, fotoYaTomada, onCancelar, o
   );
 }
 
-/** «📷 Añadir recibo» de una parada ya registrada (D-548): la foto con cámara o galería, y monto y galones opcionales. */
+/** «📷 Añadir recibo» de una parada ya registrada (2026-11-13): la foto con cámara o galería, y monto y galones opcionales. */
 function DialogoDeReciboPendiente({ p, t, ocupado, error, onCancelar, onConfirmar }: {
   p: Pausa; t: (en: string, es: string) => string; ocupado: boolean; error: string | null;
   onCancelar: () => void; onConfirmar: (entrada: { foto: string | null; monto: string; galones: string }) => void;

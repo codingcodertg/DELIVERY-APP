@@ -59,7 +59,7 @@ describe("al seguir: la gasolina pide recibo", () => {
     expect(MOTIVOS_DE_PAUSA.filter((m) => pideRecibo(m.clave)).map((m) => m.clave)).toEqual(["gas"]);
   });
   it("sin foto y sin «No tengo recibo», no se puede seguir", () => {
-    // D-548: sin foto y sin «no tengo», la parada se cierra con el recibo pendiente (no se bloquea).
+    // Cambio del 2026-11-13: sin foto y sin «no tengo», la parada se cierra con el recibo pendiente (no se bloquea).
     expect(cierreDePausa("gas", vacio)).toEqual({ recibo_foto: null, recibo_monto: null, recibo_galones: null, sin_recibo: false });
   });
   it("con la foto, se sigue; monto y galones si los puso", () => {
@@ -193,7 +193,7 @@ describe("la base: la 167 y el gancho que la lee", () => {
     expect(gancho).toContain('export const TABLA_DE_PAUSAS = "pausas_del_chofer";');
     expect(sql).toContain("create table if not exists public.pausas_del_chofer (");
     expect(gancho).toContain('if (error) { setEstado(faltaLaTabla(error) ? "sin-tabla" : "error"); return; }');
-    // D-549: la parada abierta se busca sin importar el día (ayer seguía abierta y no salía en «Hoy»).
+    // Cambio del 2026-11-13: la parada abierta se busca sin importar el día (ayer seguía abierta y no salía en «Hoy»).
     expect(gancho).toContain('sb.from(TABLA_DE_PAUSAS).select("*").eq("driver_id", driverId).is("termino_at", null)');
     // En el demo y en el modo enseñanza, en el navegador: nada de lo que se practica llega a la base.
     expect(gancho).toContain("const local = SIN_BASE || !!opciones.practica;");
@@ -202,7 +202,7 @@ describe("la base: la 167 y el gancho que la lee", () => {
     expect(sql).toContain("constraint pausas_motivo check (motivo in ('restroom', 'gas', 'food', 'traffic', 'other'))");
     expect(sql).toContain("constraint pausas_otro_con_texto check (motivo <> 'other' or length(btrim(coalesce(nota, ''))) >= 3)");
     expect(sql).toContain("constraint pausas_gasolina_con_recibo check (motivo <> 'gas' or termino_at is null or recibo_foto is not null or sin_recibo)");
-    // D-548: la 306 la quita (la de gasolina puede cerrarse sin recibo).
+    // Cambio del 2026-11-13: la 306 la quita (la de gasolina puede cerrarse sin recibo).
     expect(leer("supabase/migrations/306_pausas_recibo_despues.sql")).toContain("drop constraint if exists pausas_gasolina_con_recibo");
     expect(sql).toContain("create unique index if not exists pausas_del_chofer_una_abierta on public.pausas_del_chofer (driver_id) where termino_at is null;");
   });
@@ -247,8 +247,8 @@ describe("los motivos que elige el chofer", () => {
   });
 });
 
-// D-548 / D-549 (2026-11-13). Ernesto: parada de gasolina abierta desde el 4 de noviembre a las 09:14 (CST, UTC-6).
-describe("paradas viejas y recibos pendientes (D-548, D-549)", () => {
+// Cambio del 2026-11-13. Caso real del 4 de noviembre: parada de gasolina abierta desde el 4 de noviembre a las 09:14 (CST, UTC-6).
+describe("paradas viejas y recibos pendientes (cambio del 2026-11-13)", () => {
   const abiertaEl = (iso: string, extra: Partial<PausaDelChofer> = {}) => pausa({ empezo_at: iso, created_at: iso, ...extra });
   const ahoraDeAhora = new Date("2026-11-13T18:00:00.000Z");
 

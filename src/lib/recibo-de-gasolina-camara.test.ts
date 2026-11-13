@@ -61,7 +61,7 @@ describe("«▶ Seguir» trae la foto que tomó al registrar la parada", () => {
     expect(html).toContain("data-foto-camara");
     expect(html).toContain("data-foto-galeria");
     expect(html).toContain("data-sin-recibo");
-    // D-548: sin foto ya se puede seguir (el recibo queda pendiente), con el aviso de que se sube después.
+    // Cambio del 2026-11-13: sin foto ya se puede seguir (el recibo queda pendiente), con el aviso de que se sube después.
     expect(html.match(/<button data-confirmar-recibo="true"[^>]*>/)![0]).not.toContain("disabled");
     expect(html).toContain("data-recibo-despues");
   });

@@ -99,8 +99,7 @@ export const pideRecibo = (motivo: MotivoDePausa): boolean => motivo === "gas";
 /**
  * Lo que se guarda al pulsar «▶ Seguir», o por qué no se puede todavía (monto o galones escritos mal).
  *
- * D-548 (2026-11-13), el dueño: *«drivers log stops at the end of the day just to attach receipts… stops must be logged
- * in the moment, receipts later»*. Por eso la gasolina ya **no exige el recibo para cerrar**: sin foto y sin «No tengo
+ * Cambio del 2026-11-13 (resumen del pedido, no es cita). Por eso la gasolina ya **no exige el recibo para cerrar**: sin foto y sin «No tengo
  * recibo», la parada se cierra con el recibo PENDIENTE (`recibo_foto` null, `sin_recibo` false), y aparece en «Recibos
  * pendientes» para subirlo después. «No tengo recibo» sigue siendo una respuesta a propósito y queda anotada.
  * Las demás se cierran sin preguntar nada: lo que se escribiera de recibo en una que no es de gasolina no se guarda.
@@ -118,7 +117,7 @@ export function cierreDePausa(
   return { recibo_foto: null, recibo_monto: monto, recibo_galones: galones, sin_recibo: !!entrada.sinRecibo };
 }
 
-/** Lo que se guarda al subir el recibo de una parada que ya está registrada (D-548). Solo recibo: nada de horas ni lugar. */
+/** Lo que se guarda al subir el recibo de una parada que ya está registrada (2026-11-13). Solo recibo: nada de horas ni lugar. */
 export function reciboTardio(
   entrada: { foto: string | null; monto: string; galones: string },
 ): { recibo_foto: string; recibo_monto: number | null; recibo_galones: number | null } | { falta: "foto" | "monto" | "galones" } {
@@ -134,7 +133,7 @@ export function reciboTardio(
 export const sinReciboTodavia = (p: Pick<PausaDelChofer, "motivo" | "recibo_foto" | "sin_recibo">): boolean =>
   pideRecibo(p.motivo) && !p.recibo_foto && !p.sin_recibo;
 
-/** Las de un día que aún no tienen recibo, de la más vieja a la más nueva (D-548). */
+/** Las de un día que aún no tienen recibo, de la más vieja a la más nueva (2026-11-13). */
 export function recibosPendientes(pausas: readonly PausaDelChofer[]): PausaDelChofer[] {
   return pausas.filter(sinReciboTodavia).sort((a, b) => a.empezo_at.localeCompare(b.empezo_at));
 }
@@ -171,7 +170,7 @@ export function esParadaVieja(p: Pick<PausaDelChofer, "empezo_at" | "termino_at"
 }
 
 /**
- * La hora con la que se cierra una parada VIEJA (D-549): su inicio más el tope, o la medianoche que cierra su día si esa
+ * La hora con la que se cierra una parada VIEJA (2026-11-13): su inicio más el tope, o la medianoche que cierra su día si esa
  * llega antes; nunca antes del inicio. Así una parada de la noche anterior queda con una duración razonable, no con los
  * días que pasaron hasta que el chofer abrió la app.
  */

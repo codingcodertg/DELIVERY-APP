@@ -14,7 +14,7 @@ import {
  * Leer y escribir las pausas de UN chofer (D-520). Lo usan «Mi ruta» (las suyas) y el Recorrido de logística (las del
  * chofer y el día que se miran).
  *
- * Dos lecturas (D-549, 2026-11-13): las paradas del DÍA que se mira, y LA parada abierta, sea del día que sea. La de
+ * Dos lecturas (cambio del 2026-11-13): las paradas del DÍA que se mira, y LA parada abierta, sea del día que sea. La de
  * ayer seguía abierta y no salía en «Hoy»: no se podía terminar y tampoco empezar otra (la base solo deja una abierta).
  *
  * - **Con base**: la tabla `public.pausas_del_chofer` de la 167, con su RLS (306 para los recibos pendientes). Sin la 167
@@ -150,7 +150,7 @@ export function usePausasDelChofer(driverId: string | null | undefined, dia: str
   const seguir = useCallback((p: PausaDelChofer, cierre: CierreDePausa): Promise<ResultadoDePausa> =>
     actualiza(p, { termino_at: horaDeCierreDe(p), ...cierre }), [actualiza]);
 
-  /** El recibo que llega después (D-548): solo fotos y cifras de una parada de gasolina; nunca fechas ni lugar. */
+  /** El recibo que llega después (2026-11-13): solo fotos y cifras de una parada de gasolina; nunca fechas ni lugar. */
   const recibir = useCallback((p: PausaDelChofer, recibo: ReciboDePausa): Promise<ResultadoDePausa> =>
     actualiza(p, { recibo_foto: recibo.recibo_foto, recibo_monto: recibo.recibo_monto, recibo_galones: recibo.recibo_galones, sin_recibo: false }),
   [actualiza]);
