@@ -1074,7 +1074,6 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio, onBorrado }: { r: Reporte;
         {r.photos.length > 0 && sinHuella > 0 && !ctx.demo && (
           <p className="hint" data-huellas="calculando">{t("Report from before duplicate detection: the photo fingerprints are being computed now and saved for next time.", "Reporte de antes de la detección de repetidas: las huellas de las fotos se calculan ahora y se guardan para la próxima.")}</p>
         )}
-        {agregaFoto && <AgregarFoto r={r} ctx={ctx} onListo={onCambio} />}
         {/* D-921 (270): la línea de etapas y lo que el gerente hace con ella. Sin la 270 (sin columnas) sale solo la línea, sin botones. */}
         {r.kind === "scrap" && <HistorialDeMerma r={r} ctx={ctx} />}
         {r.kind === "scrap" && <LineaDeEtapas r={r} ctx={ctx} onCambio={onCambio} />}
@@ -1091,6 +1090,8 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio, onBorrado }: { r: Reporte;
             </div>
           </div>
         )}
+        {/* Dueño, 12 nov: tomar foto / galería, más chico y ABAJO, justo arriba de Editar · Borrar · Cerrar. */}
+        {agregaFoto && <AgregarFoto r={r} ctx={ctx} onListo={onCambio} />}
         {/* Reunión 11 nov, 11 PM: los botones ABAJO, como en el resto de la app (Cerrar al final). */}
         <div className="modal-actions" data-acciones-tarjeta>
           {r.kind === "scrap" && corrige && <button type="button" className="btn" onClick={() => setEditando((v) => !v)} data-accion="editar-reporte">✏️ {t("Edit report", "Editar reporte")}</button>}
