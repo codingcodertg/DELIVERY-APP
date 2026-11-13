@@ -30,7 +30,7 @@ import {
   estadoVigia, parcheDeStop, pararPorCorteSiToca, tocaReintentar, tocaSonar, VIGIA_CADA_MS,
 } from "@/lib/timetracker/vigia";
 import { avisoDeSistema, sonarAlarma } from "@/lib/timetracker/alarma";
-import { accionDeEnergia } from "@/lib/timetracker/pausa-de-energia";
+import { accionDeEnergia, suenoEntreTicks } from "@/lib/timetracker/pausa-de-energia";
 import {
   filasPendientesKey, inicioDeContinuacion, inicioSinSolape, leerFilasPendientes, nuevoPendiente, planTrasLatido,
   tocaReintentarPendiente, trasFallo, type FilaPendiente, type Pendiente,
@@ -404,16 +404,19 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   remoteOwnerRef.current = remoteOwner;
   const pausaDeEnergiaRef = useRef<number | null>(null);
   useEffect(() => {
-    return desktopOnPower((reason) => {
+    return desktopOnPower((reason, at) => {
       const accion = accionDeEnergia({
         evento: reason,
-        ahoraMs: Date.now(),
+        // El instante que manda el escritorio (cuándo se durmió de verdad), no cuándo llegó el aviso:
+        // con el renderer congelado el aviso llega después de despertar.
+        ahoraMs: at ?? Date.now(),
         pausadoDesdeMs: pausaDeEnergiaRef.current,
         corriendo: runningRef.current,
       });
       if (accion.tipo === "nada") return;
       if (accion.tipo === "pausa") { pausaDeEnergiaRef.current = accion.desdeMs; return; }
 
+      const paradoEnMs = pausaDeEnergiaRef.current;
       pausaDeEnergiaRef.current = null;
       if (accion.tipo === "sigue") {
         // Misma fila: los segundos de fuera van a inactividad, que `netSeconds` resta.
@@ -425,7 +428,8 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
       // al dueño 8 y 35 minutos el mismo día, con la pantalla en apariencia «corriendo». La fila
       // vieja se queda como quedó en su último latido antes de dormir y el reloj sigue en una
       // fila nueva que empieza AHORA: el sueño no cae en ninguna fila (D-098).
-      continuarTrasDormirRef.current(accion.fueraSegundos);
+      continuarTrasDormirRef.current(accion.fueraSegundos, paradoEnMs ?? undefined);
+      reiniciarContinuidad();
     });
   }, [notify]);
 
@@ -1004,6 +1008,17 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
         // actividad como un navegador —solo teclas y clics DENTRO de esta ventana— y salía con
         // 0 % mientras las capturas decían 40 o 60.
         const enEscritorio = isDesktop();
+        // Sueño (2026-11-13): el aviso del sistema llega tarde o no llega, pero el hueco entre
+        // ticks sí. Con fila viva se corta aquí; con INSERT pendiente lo mira intentarPendiente.
+        const sueno = suenoDesdeUltimoTick(ahora);
+        if (sueno && runningRef.current && !stoppedRef.current) {
+          if (sessionIdRef.current) {
+            lastTickRef.current = ahora;
+            void cortarPorSueno(sueno.ultimoLatidoMs, sueno.fueraMs);
+            return;
+          }
+          if (pendienteRef.current) { void intentarPendiente(); return; }
+        }
         if (!tickContinuo(lastTickRef.current, ahora)) {
           // Hueco mayor que el que la base tolera sin latido: el reloj local se paró. La noche
           // de la máquina dormida no se paga por la puerta de atrás (D-098).
@@ -1320,10 +1335,46 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
    * contando en una fila nueva desde ahora, y se dice en pantalla Y con aviso del sistema: lo
    * que no puede volver a pasar es que cambie algo del reloj sin que la persona se entere.
    */
-  function continuarTrasDormir(fueraSegundos: number) {
+  /**
+   * Hueco de sueño desde el último tick (solo escritorio; umbral en pausa-de-energia.ts). El tick
+   * y el INSERT pendiente lo miran: lo primero que llegue al despertar lo corta.
+   */
+  function suenoDesdeUltimoTick(ahora: number) {
+    return isDesktop() ? suenoEntreTicks({ prevMs: lastTickRef.current, ahoraMs: ahora }) : null;
+  }
+
+  /**
+   * Un sueño con la fila viva: se guarda lo último que se sabe que corrió (su último tick, no
+   * ahora) y el reloj sigue en una fila nueva desde que despierta. El sueño no se paga (D-098).
+   */
+  async function cortarPorSueno(ultimoMs: number, fueraMs: number) {
+    const id = sessionIdRef.current;
+    if (!id) return;
+    const net = netSeconds(Math.floor((ultimoMs - startMsRef.current) / 1000));
+    await writeSession(id, {
+      endMs: ultimoMs,
+      durationSeconds: net,
+      activeSeconds: activeSecondsRef.current,
+      idleSeconds: idleRef.current,
+      keystrokes: keystrokesRef.current,
+      clicks: clicksRef.current,
+      lunchSeconds: lunchRef.current,
+      breakSeconds: brkRef.current,
+      breakEvents: breakEventsPayload(),
+    }, 3, true);
+    guardadoHastaRef.current = ultimoMs;
+    guardadoNetoRef.current = net;
+    // El tick ya tomó el sueño: una pausa de energía que llegue después no debe abrir otra fila.
+    pausaDeEnergiaRef.current = null;
+    reiniciarContinuidad();
+    continuarTrasDormirRef.current(Math.round(fueraMs / 1000), ultimoMs);
+  }
+
+  function continuarTrasDormir(fueraSegundos: number, paradoMs?: number) {
     if (!runningRef.current || stoppedRef.current) return;
     const mins = Math.max(1, Math.round(fueraSegundos / 60));
-    const texto = t("track.resumedAfterSleep", { mins: String(mins) });
+    const hora = horaCorta(paradoMs ?? Date.now() - fueraSegundos * 1000);
+    const texto = t("track.resumedAfterSleep", { mins: String(mins), hora });
     notify(texto);
     avisoDeSistema(t("track.resumedAfterSleepTitle"), texto);
     // Sin fila guardada todavía: el aviso de «sin guardar» se ve hasta que entre el INSERT.
@@ -1359,6 +1410,12 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     if (!p || insertandoRef.current || stoppedRef.current) return;
     insertandoRef.current = true;
     const ahora = Date.now();
+    // Sueño desde el último tick (2026-11-13). La marca queda EN el pendiente: un reintento tras un
+    // fallo ya no mira el reloj, y el tramo dormido no vuelve a entrar.
+    if (p.hastaMs == null) {
+      const s = suenoDesdeUltimoTick(ahora);
+      if (s) { p.hastaMs = s.ultimoLatidoMs; p.fueraMs = s.fueraMs; lastTickRef.current = ahora; }
+    }
     try {
       if (!filaBaseRef.current && filaAnteriorIdRef.current) {
         try { filaBaseRef.current = baseDe(await getSession(filaAnteriorIdRef.current)); } catch { /* se reintenta */ }
@@ -1379,7 +1436,11 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
       const desde = (p.solapes ?? 0) >= 3 ? ahora : inicioSinSolape(p.desdeMs, ahora, tramos);
       if (desde === null) { pendienteRef.current = trasFallo(p, ahora); return; }
       if (desde !== startMsRef.current && desde > startMsRef.current) startMsRef.current = desde;
-      const el = Math.max(0, Math.floor((ahora - desde) / 1000));
+      // Sueño antes de que entrara la fila (2026-11-13): la fila para en el último tick vivo y el
+      // reloj sigue en otra desde que despierta. El tramo dormido no entra (D-098).
+      const sueno = p.hastaMs != null && p.fueraMs != null ? { ultimoLatidoMs: p.hastaMs, fueraMs: p.fueraMs } : null;
+      const fin = sueno ? Math.max(desde, sueno.ultimoLatidoMs) : ahora;
+      const el = Math.max(0, Math.floor((fin - desde) / 1000));
       const row = await startSession({
         ...base,
         employeeUid: me.id,
@@ -1387,7 +1448,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
         weekOf: weekStartISO(desde),
         date: dateISO(desde),
         startMs: desde,
-        endMs: ahora,
+        endMs: fin,
         durationSeconds: netSeconds(el),
         activeSeconds: activeSecondsRef.current,
         idleSeconds: idleRef.current,
@@ -1411,11 +1472,16 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
       sessionIdRef.current = row.id;
       try { localStorage.setItem(LS_LIVE, JSON.stringify({ id: row.id, startMs: desde, source: base.source })); } catch { /* ignore */ }
       ultimoGuardadoRef.current = Date.now();
-      guardadoHastaRef.current = ahora;
+      guardadoHastaRef.current = fin;
       guardadoNetoRef.current = netSeconds(el);
       limpiarSinGuardar();
       desktopStart({ sessionId: row.id, intervalMin: shotMin });
       notify(t("track.savingAgain"));
+      if (sueno) {
+        pausaDeEnergiaRef.current = null;
+        reiniciarContinuidad();
+        continuarTrasDormirRef.current(Math.round(sueno.fueraMs / 1000), sueno.ultimoLatidoMs);
+      }
     } catch (e) {
       const sig = trasFallo(p, Date.now());
       pendienteRef.current = isOverlapError(e) ? { ...sig, solapes: (p.solapes ?? 0) + 1 } : sig;

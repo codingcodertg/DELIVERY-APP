@@ -99,7 +99,15 @@ export function inicioSinSolape(desdeMs: number, hastaMs: number, otras: Tramo[]
  * Un INSERT que todavía no entró. El reloj ya cuenta desde `desdeMs`; la fila llega cuando la
  * base conteste. Mientras tanto, se reintenta con la espera de `backoffMs` (2, 4, 8, 16, 30 s…).
  */
-export type Pendiente = { desdeMs: number; intento: number; proximoMs: number; solapes?: number };
+export type Pendiente = {
+  desdeMs: number;
+  intento: number;
+  proximoMs: number;
+  solapes?: number;
+  /** Sueño detectado antes de entrar la fila: el tramo cuenta hasta aquí, no hasta el INSERT. */
+  hastaMs?: number;
+  fueraMs?: number;
+};
 
 export function nuevoPendiente(desdeMs: number, ahoraMs: number): Pendiente {
   return { desdeMs, intento: 0, proximoMs: ahoraMs };
