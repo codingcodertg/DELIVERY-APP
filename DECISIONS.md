@@ -51925,3 +51925,12 @@ Roberto (12 nov): «On scrap we need to add supplier as an option, besides inter
 Migración 298: el CHECK de `warehouse_reports.return_type` admite 'supplier', y `warehouse_ops_file_report` y `warehouse_ops_edit_scrap_origin` aceptan 'supplier'. Se reescriben desde su definición actual sustituyendo solo esa condición (como la 294). `warehouse_ops_edit_scrap_report` (285) valida por el CHECK y no cambia. Antes de aplicarla, guardar una merma con origen Proveedor da error en la base.
 
 Sello `warehouse_ops` 0.45.0; repo 1.860.0.
+
+## D-1008 · Merma: imprimir un grupo ⏳ Pendiente; la burbuja «?» ya no tapa las tarjetas
+
+Dos pedidos del dueño (12 nov):
+
+- **Imprimir un grupo pendiente.** Desde D-998 «🖨 Imprimir» salía solo en grupos aprobados. Ahora también en un grupo GUARDADO y sin aprobar, para quien gestiona la merma de esa tienda: gerente, supervisor de almacén (también firma en papel), store_admin o admin (`puedeImprimirGrupo` en `grupos.ts`). La hoja impresa lleva arriba la banda **«⏳ PENDIENTE DE APROBACIÓN»** y las líneas de firma vacías de gerente y supervisor para firmar a mano. Un borrador (sin guardar) sigue sin imprimirse. Se mantiene la impresión limpia (sin URL ni fecha).
+- **La burbuja de ayuda «?» tapaba los botones de abajo de una tarjeta** (captura en el teléfono: encima de «Marcar como Desechada» / «Deshacer la última etapa»). Con una tarjeta abierta (`.overlay`) la burbuja se hace chica y semitransparente (vuelve al pasar el dedo/ratón o con el foco) y toda tarjeta deja al final un hueco del tamaño de la burbuja + la barra del sistema, para que lo último siempre pueda subir por encima. La burbuja ahora respeta la barra del sistema del teléfono (safe area). Sin tarjeta abierta no cambia nada; abierta, su menú se ve completo.
+
+Sello `warehouse_ops` 0.46.0; `deliveries` 1.603.0; repo 1.861.0.

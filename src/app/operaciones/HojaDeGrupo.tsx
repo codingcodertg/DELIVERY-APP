@@ -8,7 +8,7 @@ import {
   aprobarGrupo, borrarGrupo, enlacesDeFotos, firmarGrupo, grupoConReportes, quitarFirmaGrupo, sacarDeGrupo, type Reporte,
 } from "@/lib/almacen-ops/datos";
 import { firmaDe, firmaValida, nombreDeSlot, puedeFirmarSlot, SLOTS_DE_FIRMA, type FirmaDeMerma } from "@/lib/almacen-ops/firmas";
-import { estadoDelGrupo, grupoAprobado, puedeAprobarGrupo, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
+import { estadoDelGrupo, grupoAprobado, puedeAprobarGrupo, puedeImprimirGrupo, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
 import { EMPRESA, RECORDATORIO_EN, RECORDATORIO_ES, filasDeHoja, tiendasDeHoja, totalDeHoja } from "@/lib/almacen-ops/etapas";
 import { etiquetaDeOpcion } from "@/lib/almacen-ops/pasos";
 import { repartoDeReporte } from "@/lib/almacen-ops/perdida";
@@ -139,6 +139,13 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
       </div>
       {error && <p className="ops-aviso ops-aviso-error no-imprimir">{error}</p>}
       <article className="hoja-aprobacion">
+        {/* Impresa sin aprobar (dueño, 12 nov): que se vea en el papel que falta la aprobación; las líneas de firma
+            vacías de abajo son para firmar a mano. */}
+        {!aprobado && (
+          <p className="hoja-banda-pendiente" data-hoja-pendiente>
+            ⏳ {lang === "es" ? "PENDIENTE DE APROBACIÓN" : "PENDING APPROVAL — PENDIENTE DE APROBACIÓN"}
+          </p>
+        )}
         <header className="hoja-cabecera">
           <div>
             <h1>{EMPRESA}</h1>
@@ -285,8 +292,8 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
 
       <div className="modal-actions no-imprimir" data-acciones-grupo>
         {editaGrupo && <button type="button" className="btn btn-ghost" disabled={ocupado} onClick={() => setConfirmaBorrar(true)} data-accion="borrar-grupo">🗑 {t("Delete group", "Borrar grupo")}</button>}
-        {/* Reunión 11 nov: imprimir solo la hoja ya aprobada. */}
-        {aprobado && <button type="button" className="btn" onClick={() => window.print()} data-accion="imprimir-grupo">🖨 {t("Print", "Imprimir")}</button>}
+        {/* Aprobada: quien la ve. Pendiente (dueño, 12 nov): quien gestiona la tienda, para firmarla en papel. */}
+        {puedeImprimirGrupo({ aprobado, gestiona }) && <button type="button" className="btn" onClick={() => window.print()} data-accion="imprimir-grupo">🖨 {t("Print", "Imprimir")}</button>}
         <button type="button" className="btn btn-primary" onClick={onSalir} data-accion="cerrar-grupo">✕ {t("Close", "Cerrar")}</button>
       </div>
 

@@ -1975,6 +1975,31 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 @media (max-width: 640px) {
   .fab-general-caja { right: 14px; bottom: 14px; }
 }
+/* La burbuja respeta la barra del sistema del teléfono (muesca / barra de gestos). */
+.fab-general-caja {
+  right: max(20px, calc(env(safe-area-inset-right, 0px) + 12px));
+  bottom: max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px));
+}
+@media (max-width: 640px) {
+  .fab-general-caja {
+    right: max(14px, calc(env(safe-area-inset-right, 0px) + 8px));
+    bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) + 8px));
+  }
+}
+/* D-1008 (dueño, 12 nov: «Help button sometimes gets in the way»): con una tarjeta abierta (`.overlay`), la burbuja
+   tapaba los botones de abajo de la tarjeta («Marcar como Desechada», «Deshacer la última etapa»…). Mientras hay
+   una tarjeta: (1) la burbuja se hace chica y semitransparente —se recupera al pasar el dedo/ratón o con el foco—, y
+   (2) la tarjeta deja al final un hueco del tamaño de la burbuja, así lo último siempre puede subir por encima de ella.
+   Sin tarjeta abierta, nada cambia. La burbuja abierta (su menú) siempre se ve completa. */
+:root:has(.overlay) .fab-general-caja:not(:has(.fab-menu)) .fab-general:not(.suplantando) {
+  width: 36px; height: 36px; font-size: 16px; opacity: .55;
+}
+:root:has(.overlay) .fab-general-caja:not(:has(.fab-menu)) .fab-general:hover,
+:root:has(.overlay) .fab-general-caja:not(:has(.fab-menu)) .fab-general:focus-visible { opacity: 1; }
+.overlay .modal { padding-bottom: calc(22px + 56px + env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 640px) {
+  .overlay .modal { padding-bottom: calc(14px + 52px + env(safe-area-inset-bottom, 0px)); }
+}
 
 /* ---------------------------------------------------------------------------
    «Entrar como» en la burbuja (D-859, 2026-11-04). Ya no hay franja arriba: mientras se está dentro de otra
@@ -2050,7 +2075,8 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 .copia-claude-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 /* La etiqueta de un camión de TrackSolid en el mapa de Google (D-900): halo blanco para leerse sobre calles. Leaflet pinta el suyo. */
 .etiqueta-camion { text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 3px #fff; white-space: nowrap; }
-/* El interruptor de esa capa, flotando sobre el mapa del Gestor: arriba a la derecha, la esquina que ningún mapa usa. */
+
+/* El interruptor de esa capa, flotando sobre el mapa del Gestor: arriba a la derecha, la esquina que ningún mapa usa. */
 .capa-camiones { position: absolute; top: 8px; right: 8px; z-index: 5; display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 1px 4px rgba(0,0,0,.25); font-size: 12.5px; }
 .capa-camiones label { display: inline-flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; white-space: nowrap; text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 600; color: var(--text); }
 .capa-camiones input { width: auto; margin: 0; }
