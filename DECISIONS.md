@@ -52136,3 +52136,13 @@ Sello `erp` 0.27.0; repo 1.876.0.
 Si hay órdenes marcadas (las casillas) en la tabla de un chofer y se arrastra una de ellas, todas las marcadas de esa lista se mueven juntas, cada una con su recogida y su entrega y en su orden relativo; la fila sin marcar se mueve sola, como antes. Las flechas ↑ ↓ de una fila marcada mueven el bloque un puesto. El bloque se escribe con el mismo camino que una fila suelta (una sola escritura y un solo movimiento para deshacer). Reglas que se mantienen: la recogida antes que su entrega, un paso b de relevo no se adelanta a la entrega de su paso a (D-994), y las entregadas no se mueven. La lógica está en `src/lib/arrastre-multiple.ts`.
 Con dos o más marcadas el arrastre muestra un «N órdenes» al lado del puntero. Pruebas: `arrastre-multiple.test.ts`.
 Sello `deliveries` 1.612.0; repo 1.877.0.
+
+## D-1025 · Operaciones: arreglos de la revisión de diseño
+
+Seis arreglos de la revisión de diseño de Warehouse Ops, con clases y tokens que ya existían (sin estilos en línea).
+Asistente en el teléfono: la botonera deja hueco a la derecha para el «?» de ayuda, que tapaba «Guardar borrador»; «Cerrar» y «Guardar borrador» miden 44 px. En el primer paso sale «Cancelar» y «Siguiente» va a todo el ancho (la «✕ Cerrar» de arriba sigue).
+Merma en el teléfono: la fila de etapas es una sola línea que se desliza, no cuatro renglones.
+«Exportar CSV» y «Descargar PDF» son botones (`.btn .btn-sm`) junto a «⚙ Columnas», con los mismos `data-accion` y la misma condición de exportación (almacén no exporta).
+Encabezados numéricos de la tabla por tienda alineados a la derecha (`th.num`).
+Visto en pantalla (demo local, 390 y 1280 px) en /operaciones/reportes y /operaciones/nuevo/scrap: los seis cambios se ven como se pidieron.
+Sello `warehouse_ops` 0.53.0; repo 1.878.0.
