@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { accionDeEnergia, GRACIA_DE_ENERGIA_MS, SE_VA, VUELVE } from "./pausa-de-energia";
+import { accionDeEnergia, GRACIA_DE_ENERGIA_MS, HUECO_DORMIDO_MS, SE_VA, suenoEntreTicks, VUELVE } from "./pausa-de-energia";
 
 /**
  * D-510 · Un parpadeo de energía no termina la jornada.
@@ -114,8 +114,21 @@ describe("la pantalla lo usa, y ya no para a la primera", () => {
     expect(tramo).toContain('if (accion.tipo === "sigue") {');
     expect(tramo).toContain("idleRef.current += accion.fueraSegundos;");
     // Lo que se arregló el 2026-11-05: el camino largo continúa, no para.
-    expect(tramo).toContain("continuarTrasDormirRef.current(accion.fueraSegundos)");
+    expect(tramo).toContain("continuarTrasDormirRef.current(accion.fueraSegundos, paradoEnMs ?? undefined)");
     expect(tramo).not.toContain("stopRef.current()");
+  });
+
+  it("el tick corta el sueño por su cuenta (el aviso del sistema puede llegar tarde o no llegar)", () => {
+    const p = leer("src/components/timetracker/Cronometro.tsx");
+    const i = p.indexOf("const sueno = suenoDesdeUltimoTick(ahora);");
+    expect(i).toBeGreaterThan(0);
+    const tramo = p.slice(i, i + 500);
+    expect(tramo).toContain("void cortarPorSueno(sueno.ultimoLatidoMs, sueno.fueraMs);");
+    expect(tramo).toContain("lastTickRef.current = ahora;");
+    // El INSERT pendiente guarda el corte en el propio pendiente: un reintento no vuelve a mirar el reloj.
+    const j = p.indexOf("if (p.hastaMs == null) {");
+    expect(j).toBeGreaterThan(0);
+    expect(p.slice(j, j + 300)).toContain("p.hastaMs = s.ultimoLatidoMs;");
   });
 
   it("la continuación tras dormir arranca AHORA (el sueño no se paga) y se avisa en pantalla y en el sistema", () => {
@@ -134,5 +147,52 @@ describe("la pantalla lo usa, y ya no para a la primera", () => {
     expect(p).toContain('t("track.stoppedAuto"');
     const s = p.indexOf("async function start()");
     expect(p.slice(s, s + 1200)).toContain("setParadoSolo(null)");
+  });
+});
+
+// ---- Sueño entre ticks (2026-11-13) --------------------------------------------------------
+
+
+describe("suenoEntreTicks · el reloj no cuenta el sueño aunque el aviso llegue tarde", () => {
+  const t0 = Date.UTC(2026, 10, 13, 0, 0, 0);
+  const s = (n: number) => n * 1000;
+
+  it("un tick normal (1 s) no es sueño", () => {
+    expect(suenoEntreTicks({ prevMs: t0, ahoraMs: t0 + s(1) })).toBeNull();
+  });
+
+  it("el hueco de 2 min de escritura en lote (D-1004) cuenta como antes", () => {
+    expect(suenoEntreTicks({ prevMs: t0, ahoraMs: t0 + s(120) })).toBeNull();
+  });
+
+  it("una pestaña estrangulada (un tick por minuto) cuenta como antes", () => {
+    expect(suenoEntreTicks({ prevMs: t0, ahoraMs: t0 + s(60) })).toBeNull();
+  });
+
+  it("una caída de red de 4 min, con el reloj vivo, cuenta", () => {
+    expect(suenoEntreTicks({ prevMs: t0, ahoraMs: t0 + s(4 * 60) })).toBeNull();
+  });
+
+  it("justo en el umbral todavía cuenta; un ms más ya es sueño", () => {
+    expect(suenoEntreTicks({ prevMs: t0, ahoraMs: t0 + HUECO_DORMIDO_MS })).toBeNull();
+    expect(suenoEntreTicks({ prevMs: t0, ahoraMs: t0 + HUECO_DORMIDO_MS + 1 })).not.toBeNull();
+  });
+
+  it("8 h de sueño: se corta en el último tick vivo y no suma nada del hueco", () => {
+    const eight = s(8 * 3600 + 25 * 60);
+    const r = suenoEntreTicks({ prevMs: t0, ahoraMs: t0 + eight });
+    expect(r).toEqual({ ultimoLatidoMs: t0, fueraMs: eight });
+  });
+
+  it("el reloj que retrocede no es sueño y no produce tiempo negativo", () => {
+    expect(suenoEntreTicks({ prevMs: t0, ahoraMs: t0 - s(3600) })).toBeNull();
+  });
+
+  it("el primer tick (sin anterior) no es sueño", () => {
+    expect(suenoEntreTicks({ prevMs: null, ahoraMs: t0 })).toBeNull();
+  });
+
+  it("el umbral se puede fijar", () => {
+    expect(suenoEntreTicks({ prevMs: t0, ahoraMs: t0 + s(90), umbralMs: s(60) })).not.toBeNull();
   });
 });

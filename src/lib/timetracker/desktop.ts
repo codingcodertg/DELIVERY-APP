@@ -32,7 +32,7 @@ type DesktopBridge = {
   onShot: (cb: (data: DesktopShotData) => void) => () => void;
   getActivity: () => Promise<{ keystrokes: number; clicks: number; moves: number }>;
   getContext?: () => Promise<{ app: string; title: string; movement: number } | null>;
-  onPower?: (cb: (reason: string) => void) => () => void;
+  onPower?: (cb: (reason: string, at?: number) => void) => () => void;
   getVersion?: () => Promise<string>;
   notifyShotStatus?: (status: string) => Promise<boolean>;
   onUpdate?: (cb: (u: DesktopUpdateState) => void) => () => void;
@@ -102,7 +102,7 @@ export async function desktopGetContext() {
 
 // Subscribe to OS lock/sleep events. Returns an unsubscribe function; no-ops
 // on web.
-export function desktopOnPower(cb: (reason: string) => void): () => void {
+export function desktopOnPower(cb: (reason: string, at?: number) => void): () => void {
   if (!isDesktop() || !window.ttDesktop!.onPower) return () => {};
   try { return window.ttDesktop!.onPower!(cb); } catch { return () => {}; }
 }

@@ -92,3 +92,42 @@ export function accionDeEnergia(args: {
   const fueraSegundos = Math.round(fueraMs / 1000);
   return fueraMs <= graciaMs ? { tipo: "sigue", fueraSegundos } : { tipo: "fila-nueva", fueraSegundos };
 }
+
+// ---- Sueño entre ticks (sin evento del sistema) ------------------------------------------
+
+/**
+ * Hueco entre dos ticks a partir del cual el equipo se durmió (2026-11-13).
+ *
+ * El reloj cuenta `ahora − inicio`, así que cualquier hueco entre ticks entra en la fila. Los
+ * avisos de `powerMonitor` llegan tarde —el renderer está congelado mientras el equipo duerme—,
+ * y entonces la pausa empieza al despertar y no al dormir: 8 h 25 min pagadas (D-510 no basta
+ * solo). Por eso el propio tick también mira el hueco.
+ *
+ * El número sale del ritmo real del código, no de una cifra suelta:
+ *  · el tick corre cada 1 s; una pestaña en segundo plano, estrangulada, despierta cada minuto;
+ *  · las escrituras van cada 120 s (`LATIDO_DB_MS`) y los reintentos de red crecen hasta 30 s;
+ *  · el cron cierra a los 15 min sin latido (`LATIDO_MAX_MS`), que es el techo de lo que el
+ *    sistema ya tolera como «no se paga».
+ * Cinco minutos quedan por encima de todo eso y muy por debajo de cualquier sueño real.
+ */
+export const HUECO_DORMIDO_MS = GRACIA_DE_ENERGIA_MS;
+
+/**
+ * ¿Se durmió el equipo entre el tick anterior y este?
+ *
+ * `null` si no: el primer tick, un hueco normal (un minuto de pestaña estrangulada, una caída de
+ * red, cualquier cosa hasta el umbral) o un reloj que retrocedió (no se resta ni se corta nada).
+ * Si sí: `ultimoLatidoMs` es el último instante en que el reloj seguro estaba corriendo. Ahí se
+ * para la fila; lo que pasó después no se paga (D-098).
+ */
+export function suenoEntreTicks(args: {
+  prevMs: number | null;
+  ahoraMs: number;
+  umbralMs?: number;
+}): { ultimoLatidoMs: number; fueraMs: number } | null {
+  const { prevMs, ahoraMs } = args;
+  if (prevMs === null || !Number.isFinite(prevMs) || !Number.isFinite(ahoraMs)) return null;
+  const hueco = ahoraMs - prevMs;
+  if (hueco <= (args.umbralMs ?? HUECO_DORMIDO_MS)) return null;
+  return { ultimoLatidoMs: prevMs, fueraMs: hueco };
+}
