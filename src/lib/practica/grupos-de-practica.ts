@@ -20,7 +20,10 @@ export const claveDePractica = (uid: string) => `rtg:practica:grupos:${uid}`;
 function almacenDelNavegador(): Almacen | null {
   try { return typeof window !== "undefined" ? window.localStorage : null; } catch { return null; }
 }
+/** Evento que avisa a las pantallas abiertas de que cambió algún grupo de práctica (D-1021: la lista se refresca sola). */
+export const EVENTO_PRACTICA_GRUPOS = "rtg:practica:grupos";
 function persiste(): void {
+  try { if (typeof window !== "undefined") window.dispatchEvent(new Event(EVENTO_PRACTICA_GRUPOS)); } catch { /* sin ventana */ }
   if (!dueno?.a) return;
   try { dueno.a.setItem(claveDePractica(dueno.uid), JSON.stringify([...grupos.values()])); } catch { /* sin espacio: queda en memoria */ }
 }
@@ -120,4 +123,23 @@ export function borrarGrupoDePractica(id: string): void {
   if (!g || g.grupo.approved_at) return;
   grupos.delete(id);
   persiste();
+}
+
+/**
+ * D-1021 (revisión en pantalla): en práctica, aprobar un grupo no dejaba rastro en la lista — la merma volvía a verse
+ * «Fotografiada» y no se podía seguir practicando (desechar, ajustar, ver la hoja firmada). Las mermas de un grupo de
+ * práctica YA aprobado se enseñan aprobadas, ligadas a ese grupo. Solo cambia lo que se ve: la base no se toca.
+ */
+export function conAprobacionDePractica<R extends { id: string; stage?: string | null; approved_at?: string | null; approved_by?: string | null; scrap_group_id?: string | null }>(reportes: readonly R[]): R[] {
+  const de = new Map<string, GrupoDeMerma>();
+  for (const e of grupos.values()) for (const r of e.reportes) de.set(r.id, e.grupo);
+  if (de.size === 0) return reportes as R[];
+  return reportes.map((r) => {
+    const g = de.get(r.id);
+    if (!g || r.approved_at || (r.stage && r.stage !== "photographed")) return r;
+    // Grupo de práctica aún PENDIENTE: la merma queda ligada a él, como una real. Sin esto la tabla decía «Fotografiada»
+    // (y el chip «Pendiente» la contaba), y al marcarla dejaba «Iniciar aprobación» otra vez, sin el aviso de «ya está en un grupo».
+    if (!g.approved_at) return r.scrap_group_id ? r : { ...r, scrap_group_id: g.id };
+    return { ...r, stage: "approved", approved_at: g.approved_at, approved_by: g.approved_by, scrap_group_id: g.id };
+  });
 }
