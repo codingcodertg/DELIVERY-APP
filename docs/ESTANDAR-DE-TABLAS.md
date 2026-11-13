@@ -59,13 +59,15 @@ fallar la prueba (y el CI). La lista de PENDIENTES es deuda conocida: solo puede
 
 ## Inventario (12 nov 2026)
 
-83 archivos pintan una tabla: **10 cumplen el estándar** (5 con implementación propia y 5 con las piezas comunes), **20 exentas** y **53 pendientes**.
+67 archivos del código pintan una tabla con `<table`: **12 cumplen el estándar** (5 con implementación propia y 7 con las piezas comunes), **22 exentas** y **33 pendientes**. Además, **16 tablas usan `<TablaEstandar>` sin `<table` escrito** (las 12 del ERP de PR #857 y 4 de la tanda del 12 nov 2026: Métricas, tiempo del expediente, historial de RR. HH. y Encuestas), que por eso no cuentan arriba.
 
 Convertidas el 12 nov 2026 con `<TablaEstandar>`: Solicitudes de cliente e Historial de tratos (Clientes), «Por
-vendedor» y «Por GOV Pool» (Leads), la Bitácora de seguridad del hub (`src/components/SecurityLog.tsx`). Completadas
-con `useVistaDeColumnas` (ya tenían ▾ y anchos; ganaron ⚙ y mover): Empleados y Activos (RR. HH.) y las listas de
-Central Hub Monitoring. Pendiente por app: Time Tracker 18, ERP 14, Entregas 13, RR. HH. 4, Quote Builder 2,
-Operaciones 1, Encuestas 1 — se convierten por tandas, empezando por las listas de uso diario.
+vendedor» y «Por GOV Pool» (Leads), la Bitácora de seguridad del hub (`src/components/SecurityLog.tsx`), el historial de
+RR. HH., las tablas de tiempo del expediente, las tres de Métricas de RR. HH. y la de Encuestas (ambas). Completadas
+con `useVistaDeColumnas` (ya tenían ▾ y anchos; ganaron ⚙ y mover): Empleados y Activos (RR. HH.), las listas de
+Central Hub Monitoring y la lista de cotizaciones del Quote Builder. Productos de la competencia (Quote Builder) tiene ⚙,
+mover y anchos, pero no ▾, porque es una tabla de edición. Pendiente por app: Time Tracker 18, Entregas 13, ERP 1
+(`review-queue`), Operaciones 1 — se convierten por tandas, empezando por las listas de uso diario.
 
 | App | Archivo | Estado | Nota |
 |---|---|---|---|
@@ -107,16 +109,16 @@ Operaciones 1, Encuestas 1 — se convierten por tandas, empezando por las lista
 | Entregas | `src/app/(app)/settings/page.tsx` | ⏳ pendiente |  |
 | Entregas | `src/app/(app)/track/page.tsx` | ⏳ pendiente |  |
 | Entregas | `src/app/(app)/warehouse/page.tsx` | ⏳ pendiente |  |
-| ERP | `src/app/erp/analytics/categories/page.tsx` | ⏳ pendiente |  |
-| ERP | `src/app/erp/analytics/vendors/page.tsx` | ⏳ pendiente |  |
-| ERP | `src/app/erp/purchasing/orders/page.tsx` | ⏳ pendiente |  |
-| ERP | `src/app/erp/review/daltile/page.tsx` | ⏳ pendiente |  |
-| Quote Builder | `src/app/estimator/ProductosCompetencia.tsx` | ⏳ pendiente |  |
-| Quote Builder | `src/app/estimator/TodasLasCotizaciones.tsx` | ⏳ pendiente |  |
+| ERP | `src/app/erp/analytics/categories/page.tsx` | ✅ estándar | PR #857 |
+| ERP | `src/app/erp/analytics/vendors/page.tsx` | ✅ estándar | PR #857 |
+| ERP | `src/app/erp/purchasing/orders/page.tsx` | ✅ estándar | PR #857 |
+| ERP | `src/app/erp/review/daltile/page.tsx` | ✅ estándar | PR #857 |
+| Quote Builder | `src/app/estimator/ProductosCompetencia.tsx` | ✅ estándar (sin ▾) | tabla de edición: ⚙, cabeceras que se mueven y anchos; sin ▾ porque cada celda es un campo y la comparación va bajo su fila |
+| Quote Builder | `src/app/estimator/TodasLasCotizaciones.tsx` | ✅ estándar | ya tenía ▾ y ganó ⚙, mover cabeceras y anchos (`useVistaDeColumnas`) |
 | Operaciones | `src/app/operaciones/KpiDeEntregas.tsx` | ⏳ pendiente |  |
-| RR. HH. | `src/app/recruiting/(recruiting)/employees/time-tracker.tsx` | ⏳ pendiente |  |
-| RR. HH. | `src/app/recruiting/(recruiting)/metrics/page.tsx` | ⏳ pendiente |  |
-| Encuestas | `src/app/surveys/Encuestas.tsx` | ⏳ pendiente |  |
+| RR. HH. | `src/app/recruiting/(recruiting)/employees/time-tracker.tsx` | ✅ estándar | semanas y pagos del expediente; los totales van en una línea debajo |
+| RR. HH. | `src/app/recruiting/(recruiting)/metrics/page.tsx` | ✅ estándar | tres tablas (fuentes, puestos, proceso); la del proceso ya no pinta el punto de color de cada etapa |
+| Encuestas | `src/app/surveys/Encuestas.tsx` | ✅ estándar | dos tablas; en el teléfono siguen siendo tarjetas (`.enc-tabla`) |
 | Time Tracker | `src/app/timetracker/(timetracker)/insights/page.tsx` | ⏳ pendiente |  |
 | Time Tracker | `src/app/timetracker/(timetracker)/people/page.tsx` | ⏳ pendiente |  |
 | Time Tracker | `src/app/timetracker/(timetracker)/requests/page.tsx` | ⏳ pendiente |  |
@@ -127,18 +129,18 @@ Operaciones 1, Encuestas 1 — se convierten por tandas, empezando por las lista
 | Entregas / compartido | `src/components/PuntualidadPorChofer.tsx` | ⏳ pendiente |  |
 | Entregas / compartido | `src/components/ReportesDeChoferes.tsx` | ⏳ pendiente |  |
 | Entregas / compartido | `src/components/RutaDelPlan.tsx` | ⏳ pendiente |  |
-| ERP | `src/components/erp/inventory-console.tsx` | ⏳ pendiente |  |
-| ERP | `src/components/erp/item/qoh-panel.tsx` | ⏳ pendiente |  |
-| ERP | `src/components/erp/po-reconcile.tsx` | ⏳ pendiente |  |
-| ERP | `src/components/erp/product-detail.tsx` | ⏳ pendiente |  |
-| ERP | `src/components/erp/purchasing-groups.tsx` | ⏳ pendiente |  |
-| ERP | `src/components/erp/receiving.tsx` | ⏳ pendiente |  |
-| ERP | `src/components/erp/reorder-panel.tsx` | ⏳ pendiente |  |
-| ERP | `src/components/erp/request-review.tsx` | ⏳ pendiente |  |
+| ERP | `src/components/erp/inventory-console.tsx` | ✅ estándar | PR #857 |
+| ERP | `src/components/erp/item/qoh-panel.tsx` | ✅ estándar | PR #857 |
+| ERP | `src/components/erp/po-reconcile.tsx` | ✅ estándar | PR #857 |
+| ERP | `src/components/erp/product-detail.tsx` | ✅ estándar | PR #857 |
+| ERP | `src/components/erp/purchasing-groups.tsx` | ✅ estándar | PR #857 |
+| ERP | `src/components/erp/receiving.tsx` | ✅ estándar | PR #857 |
+| ERP | `src/components/erp/reorder-panel.tsx` | ✅ estándar | PR #857 |
+| ERP | `src/components/erp/request-review.tsx` | ➖ exenta | campo / actual / propuesto: tres columnas dentro de una tarjeta |
 | ERP | `src/components/erp/review-queue.tsx` | ⏳ pendiente |  |
-| ERP | `src/components/erp/uom-assistant.tsx` | ⏳ pendiente |  |
-| RR. HH. | `src/components/recruiting/HistorialDeRrhh.tsx` | ⏳ pendiente |  |
-| RR. HH. | `src/components/recruiting/ModalHost.tsx` | ⏳ pendiente |  |
+| ERP | `src/components/erp/uom-assistant.tsx` | ✅ estándar | PR #857 |
+| RR. HH. | `src/components/recruiting/HistorialDeRrhh.tsx` | ✅ estándar | historial de RR. HH.; cada variante (todo, empleado, activo) tiene su vista guardada |
+| RR. HH. | `src/components/recruiting/ModalHost.tsx` | ➖ exenta | «Comparar candidatos»: matriz atributo × candidato (como la comparación de Entregas) |
 | Time Tracker | `src/components/timetracker/AssignmentsPanel.tsx` | ⏳ pendiente |  |
 | Time Tracker | `src/components/timetracker/AuditTabs.tsx` | ⏳ pendiente |  |
 | Time Tracker | `src/components/timetracker/ClockinApprovals.tsx` | ⏳ pendiente |  |

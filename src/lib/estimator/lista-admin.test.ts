@@ -369,11 +369,12 @@ describe("la pantalla", () => {
     expect(pestana).toContain("const orden = useOrdenYFiltro(filas, valorDe, ORDEN_INICIAL);");
     expect(pestana).toContain("const valorDe = useCallback((clave: string, c: CotizacionResumen) => valorDeColumna(clave, c, t), [t]);");
     expect(pestana).toContain("<FiltrosPuestos estado={orden} columnas={columnas} lang={lang} t={t} />");
-    expect(pestana).toContain("{columnas.map((c) => <th key={c.key}><CabeceraConMenu estado={orden} col={c} lang={lang} t={t} /></th>)}");
+    expect(pestana).toContain("<CabeceraConMenu estado={orden} col={c} lang={lang} t={t} />");
+    expect(pestana).toContain("{vista.visibles.map((c) => (");
     expect(pestana).toContain("<MenuDeColumnaAbierto estado={orden} columnas={columnas} lang={lang} t={t} />");
-    expect(pestana).toContain('<table className="orders" data-todas-tabla');
+    expect(pestana).toContain('<table className="orders tbl-resize" style={{ ...anchoDeTabla(anchos), minWidth: 0 }} data-todas-tabla');
     expect(pestana).toContain(") : orden.visibles.map((c) => (");
-    expect(pestana).toContain("<td data-cotizacion-estado>{textoDeEstado(c, t)}</td>");
+    expect(pestana).toContain("<td key={clave} data-cotizacion-estado>{textoDeEstado(c, t)}</td>");
     // Sin desplegables ni cajas propias: ni <select> ni etiquetas de campo.
     expect(pestana).not.toContain("<select");
     expect(pestana).not.toContain('className="field"');

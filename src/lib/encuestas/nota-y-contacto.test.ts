@@ -97,10 +97,11 @@ describe("la pantalla enseña la nota y el contacto sin nombre", () => {
   const p = leer("src/app/surveys/Encuestas.tsx");
   it("las notas salen de notasDe sobre lo filtrado, y la nota va en las dos tablas", () => {
     expect(p).toContain("notasDe(visibles)");
-    expect(p.match(/\{f\.note \?\? ""\}/g) ?? []).toHaveLength(2);
+    expect(p.match(/key: "nota"/g) ?? []).toHaveLength(2);
+    expect(p.split("valor: (f) => f.note }").length - 1).toBe(2);
   });
   it("el nombre se pinta con nombreDeContacto en la lista de contacto y en la de todas", () => {
-    expect(p).toContain("{nombreDeContacto(f, lang)}</td>");
+    expect(p).toContain("{nombreDeContacto(f, lang)}</span>");
     expect(p).toContain("[nombreDeContacto(f, lang), f.contact_phone, f.contact_email]");
     expect(p).not.toContain("<td>{f.contact_name}</td>");
   });

@@ -3,6 +3,7 @@
 import { mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import { useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
+import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
 import { AVISO_DEMO, MODO_DEMO } from "@/lib/recruiting/modo-demo";
 import { timeTrackerFor } from "@/app/recruiting/actions/hr";
 import {
@@ -69,6 +70,31 @@ function Contenido({ filas, pagos, avisos, dinero, horas }: {
   const th = totalesDeHoras(filas);
   const tp = totalesDePagos(pagos);
 
+  // Las columnas son de la tabla estándar (▾, ⚙, mover, anchos); los totales van en una línea debajo.
+  const columnas: ColumnaEstandar<SemanaConPago>[] = [
+    { key: "semana", en: "Week", es: "Semana", ancho: 200, fija: true, valor: (f) => f.desde,
+      celda: (f) => (
+        <>
+          {f.desde}{f.hasta ? ` – ${f.hasta}` : ""}
+          {f.revisar && (
+            <span className="badge" style={{ marginLeft: 6 }}
+              title={t("Has both clock-in and project hours this week; they are not added together.",
+                "Tiene fichaje y horas de proyecto esta semana; no se suman.")}>
+              {t("review", "revisar")}
+            </span>
+          )}
+        </>
+      ) },
+    { key: "fichaje", en: "Clock-in hours", es: "Horas de fichaje", ancho: 150, numerico: true, valor: (f) => f.fichaje || null, celda: (f) => (f.fichaje ? horas(f.fichaje) : "—") },
+    { key: "proyecto", en: "Project hours", es: "Horas de proyecto", ancho: 150, numerico: true, valor: (f) => f.proyecto || null, celda: (f) => (f.proyecto ? horas(f.proyecto) : "—") },
+    { key: "pago", en: "Paid", es: "Pago", ancho: 120, numerico: true, valor: (f) => f.pago?.monto ?? null, celda: (f) => (f.pago ? dinero(f.pago.monto) : "—") },
+    { key: "metodo", en: "Method", es: "Método", ancho: 130, valor: (f) => f.pago?.metodo ?? null },
+    { key: "estado", en: "Status", es: "Estado", ancho: 130, valor: (f) => (!f.pago ? t("no payment", "sin pago") : f.pago.pagado ? t("paid", "pagado") : t("pending", "pendiente")),
+      celda: (f) => (!f.pago ? (
+        <span className="hint" style={{ marginTop: 0 }}>{t("no payment", "sin pago")}</span>
+      ) : f.pago.pagado ? t("paid", "pagado") : t("pending", "pendiente")) },
+  ];
+
   return (
     <>
       {avisos.length > 0 && (
@@ -79,52 +105,20 @@ function Contenido({ filas, pagos, avisos, dinero, horas }: {
       {filas.length === 0 ? (
         <div className="hint" style={{ marginTop: 0 }}>{t("No tracked hours or payments.", "Sin horas ni pagos registrados.")}</div>
       ) : (
-        <div style={{ overflowX: "auto", maxHeight: 360, overflowY: "auto", marginBottom: 12 }}>
-          <table data-tabla="semanas-y-pagos">
-            <thead>
-              <tr>
-                <th>{t("Week", "Semana")}</th>
-                <th>{t("Clock-in hours", "Horas de fichaje")}</th>
-                <th>{t("Project hours", "Horas de proyecto")}</th>
-                <th>{t("Paid", "Pago")}</th>
-                <th>{t("Method", "Método")}</th>
-                <th>{t("Status", "Estado")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filas.map((f) => (
-                <tr key={`${f.desde}-${f.pago?.origen ?? "sin"}-${f.pago?.id ?? ""}`} data-semana={f.desde}>
-                  <td>
-                    {f.desde}{f.hasta ? ` – ${f.hasta}` : ""}
-                    {f.revisar && (
-                      <span className="badge" style={{ marginLeft: 6 }}
-                        title={t("Has both clock-in and project hours this week; they are not added together.",
-                          "Tiene fichaje y horas de proyecto esta semana; no se suman.")}>
-                        {t("review", "revisar")}
-                      </span>
-                    )}
-                  </td>
-                  <td>{f.fichaje ? horas(f.fichaje) : "—"}</td>
-                  <td>{f.proyecto ? horas(f.proyecto) : "—"}</td>
-                  <td>{f.pago ? dinero(f.pago.monto) : "—"}</td>
-                  <td>{f.pago?.metodo ?? "—"}</td>
-                  <td>{!f.pago ? (
-                    <span className="hint" style={{ marginTop: 0 }}>{t("no payment", "sin pago")}</span>
-                  ) : f.pago.pagado ? t("paid", "pagado") : t("pending", "pendiente")}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <th>{t("Total", "Total")} · {th.semanas} {t("weeks", "semanas")}</th>
-                <th>{horas(th.fichaje)}</th>
-                <th>{horas(th.proyecto)}</th>
-                <th>{dinero(tp.pagado)}</th>
-                <th colSpan={2}>{tp.pendiente > 0 ? `${t("pending", "pendiente")} ${dinero(tp.pendiente)}` : ""}</th>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+        <>
+          <TablaEstandar
+            id="rrhh-expediente-time-tracker"
+            data-tabla="semanas-y-pagos"
+            sinCaja
+            filas={filas}
+            claveDe={(f) => `${f.desde}-${f.pago?.origen ?? "sin"}-${f.pago?.id ?? ""}`}
+            columnas={columnas}
+          />
+          <div className="hint" data-totales-time-tracker>
+            {t("Total", "Total")} · {th.semanas} {t("weeks", "semanas")} · {t("Clock-in", "Fichaje")} {horas(th.fichaje)} · {t("Project", "Proyecto")} {horas(th.proyecto)} · {t("Paid", "Pagado")} {dinero(tp.pagado)}
+            {tp.pendiente > 0 ? ` · ${t("pending", "pendiente")} ${dinero(tp.pendiente)}` : ""}
+          </div>
+        </>
       )}
     </>
   );

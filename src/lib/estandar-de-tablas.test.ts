@@ -38,6 +38,7 @@ const EXENTAS: readonly string[] = [
   "src/components/RouteEngineSettings.tsx", // ajustes clave/valor
   "src/components/TracksolidSettings.tsx", // ajustes clave/valor
   "src/components/recruiting/ChecklistDelEmpleado.tsx", // checklist dentro del expediente
+  "src/components/recruiting/ModalHost.tsx", // «Comparar candidatos»: matriz atributo × candidato, como ComparaConLaHoja (2 columnas fijas por diseño)
   "src/components/recruiting/QuitFormDelEmpleado.tsx", // formulario de baja (se imprime)
   "src/app/customers/HistorialDelCliente.tsx", // detalle de cambios campo/antes/después dentro de una tarjeta
 ];
@@ -51,12 +52,7 @@ const PENDIENTES: readonly string[] = [
   "src/app/(app)/settings/page.tsx",
   "src/app/(app)/track/page.tsx",
   "src/app/(app)/warehouse/page.tsx",
-  "src/app/estimator/ProductosCompetencia.tsx",
-  "src/app/estimator/TodasLasCotizaciones.tsx",
   "src/app/operaciones/KpiDeEntregas.tsx",
-  "src/app/recruiting/(recruiting)/employees/time-tracker.tsx",
-  "src/app/recruiting/(recruiting)/metrics/page.tsx",
-  "src/app/surveys/Encuestas.tsx",
   "src/app/timetracker/(timetracker)/insights/page.tsx",
   "src/app/timetracker/(timetracker)/people/page.tsx",
   "src/app/timetracker/(timetracker)/requests/page.tsx",
@@ -68,8 +64,6 @@ const PENDIENTES: readonly string[] = [
   "src/components/ReportesDeChoferes.tsx",
   "src/components/RutaDelPlan.tsx",
   "src/components/erp/review-queue.tsx",
-  "src/components/recruiting/HistorialDeRrhh.tsx",
-  "src/components/recruiting/ModalHost.tsx",
   "src/components/timetracker/AssignmentsPanel.tsx",
   "src/components/timetracker/AuditTabs.tsx",
   "src/components/timetracker/ClockinApprovals.tsx",
@@ -112,6 +106,6 @@ describe("estándar de tablas: toda tabla usa las columnas de Órdenes", () => {
     expect(yaCumplen, "Ya usan el estándar: quítalos de PENDIENTES").toEqual([]);
   });
   it("la deuda no crece", () => {
-    expect(PENDIENTES.length).toBeLessThanOrEqual(40);
+    expect(PENDIENTES.length).toBeLessThanOrEqual(33);
   });
 });

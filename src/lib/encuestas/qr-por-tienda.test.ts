@@ -76,8 +76,8 @@ describe("la tienda en el panel", () => {
     const pagina = readFileSync(new URL("../../app/surveys/page.tsx", import.meta.url), "utf8");
     expect(pantalla).toContain("<TarjetaQr tienda={null} />");
     expect(pantalla).toContain("{tiendas.map((nombre) => <TarjetaQr key={nombre} tienda={nombre} />)}");
-    expect(pantalla.split('<th>{t("Store", "Tienda")}</th>').length - 1).toBe(2);
-    expect(pantalla.split('<td>{f.store ?? "—"}</td>').length - 1).toBe(2);
+    expect(pantalla.split('{ key: "tienda", en: "Store", es: "Tienda"').length - 1).toBe(2);
+    expect(pantalla.split("valor: (f) => f.store ?? null").length - 1).toBe(2);
     expect(pagina).toContain('.from("settings").select("stores").eq("id", 1).maybeSingle()');
     expect(pagina).toContain("nombresDeTiendas(demoSettings().stores)");
   });

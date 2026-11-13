@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, type ReactNode } from "react";
+import { useCallback, useMemo, type CSSProperties, type ReactNode } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto } from "@/components/CabeceraConMenu";
@@ -47,6 +47,7 @@ export interface ColumnaEstandar<F> {
 
 export function TablaEstandar<F>({
   id, columnas, filas, claveDe, onFila, vacio, acciones, anchoDeAcciones = 120, claseDeFila, barra, sinCaja, "data-tabla": dataTabla,
+  ordenInicial, claseTabla, estiloTabla,
 }: {
   /** Único en toda la app: con él se guarda la vista de cada persona. */
   id: string;
@@ -66,12 +67,18 @@ export function TablaEstandar<F>({
   /** Sin la caja de alto fijo con cabecera pegada (tablas chicas dentro de una tarjeta). */
   sinCaja?: boolean;
   "data-tabla"?: string;
+  /** Con qué orden nace (p. ej. por pies cuadrados, de mayor a menor); el menú de la columna lo cambia como siempre. */
+  ordenInicial?: { clave: string; direccion: "asc" | "desc" };
+  /** Clases extra del `<table>` (p. ej. para una vista de tarjetas en el teléfono). */
+  claseTabla?: string;
+  /** Estilos extra del `<table>` (variables CSS; el ancho lo sigue poniendo el estándar). */
+  estiloTabla?: CSSProperties;
 }) {
   const { t, lang } = usePrefs();
   const idioma: "en" | "es" = lang === "es" ? "es" : "en";
   const porClave = useMemo(() => new Map(columnas.map((c) => [c.key, c])), [columnas]);
   const valorDe = useCallback((clave: string, f: F) => porClave.get(clave)?.valor(f) ?? null, [porClave]);
-  const orden = useOrdenYFiltro(filas, valorDe);
+  const orden = useOrdenYFiltro(filas, valorDe, ordenInicial);
   const colw = useColWidthMap(claveDeAnchos(id), 140, { minimo: 48 });
   const ancho = (c: ColumnaEstandar<F>) => colw.widthOf(c.key, c.ancho);
 
@@ -93,7 +100,7 @@ export function TablaEstandar<F>({
           t={t} />
       </div>
       <div className={"tbl-scroll tbl-fit" + (sinCaja ? "" : " tbl-caja")}>
-        <table className="orders tbl-resize" style={anchoDeTabla(anchos)} data-tabla={dataTabla ?? id}>
+        <table className={"orders tbl-resize" + (claseTabla ? " " + claseTabla : "")} style={{ ...anchoDeTabla(anchos), ...estiloTabla }} data-tabla={dataTabla ?? id}>
           <colgroup>
             {visibles.map((c) => <col key={c.key} style={{ width: ancho(c) }} />)}
             {acciones && <col style={{ width: anchoDeAcciones }} />}

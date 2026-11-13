@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
+import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
+import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
+import { claveDeAnchos } from "@/lib/tabla-estandar";
+import { useVistaDeColumnas } from "@/lib/use-vista-de-columnas";
 import type { AlmacenDeCotizaciones } from "@/lib/estimator/almacen";
 import { filtraEstimados, masNuevoPrimero, type AlmacenDeCompetencia, type EstimadoDeCompetencia } from "@/lib/estimator/competencia";
 import {
@@ -22,6 +26,9 @@ type Yo = { id: string; name: string; admin: boolean; store?: string | null };
  * El calendario del Panel (`dashboard/page.tsx`), tal cual: ◀ Desde Hasta ▶ · Hoy · Esta semana · Este mes · Mes pasado,
  * y aquí además «Todo». El dueño (2026-10-06): «PON EL CALENDARIO QUE SIEMPRE HEMOS PEUSTO». Las cuentas, en `lista-admin`.
  */
+/** Ancho de partida de cada columna (px); la persona lo cambia arrastrando el borde. */
+const ANCHO_DE: Record<string, number> = { fecha: 110, estimado: 130, vendedor: 160, tienda: 140, cliente: 220, sf: 90, total: 110, price_match: 170, estado: 170 };
+
 export function RangoDelPanel({ rango, onRango, t }: { rango: RangoDeFechas; onRango: (r: RangoDeFechas) => void; t: T }) {
   const hoy = todayISO();
   const encendido = atajoEncendido(rango);
@@ -141,6 +148,26 @@ export function TodasLasCotizaciones({ almacen, competencia, me, t, lang, onAbri
           : { ...c })),
     [alcance],
   );
+  // ⚙ y arrastrar cabeceras (`useVistaDeColumnas`) y anchos por persona: la lista ya tenía su ▾ propio (docs/ESTANDAR-DE-TABLAS.md).
+  const claveTabla = "estimator-cotizaciones-" + (todas ? "todas" : "mias");
+  const vista = useVistaDeColumnas(claveTabla, columnas, orden.cerrar);
+  const colw = useColWidthMap(claveDeAnchos(claveTabla), 140, { minimo: 48 });
+  const anchos = [...vista.visibles.map((c) => colw.widthOf(c.key, ANCHO_DE[c.key] ?? 140)), 90];
+  // Una celda por columna visible, en su orden: cada una pinta lo suyo (los atributos de prueba van con cada una).
+  const celdaDeLista = (clave: string, c: CotizacionResumen) => {
+    switch (clave) {
+      case "fecha": return <td key={clave}>{fechaDeCelda(c.created_at)}</td>;
+      case "estimado": return <td key={clave}><b>{c.estimate_num || "—"}</b></td>;
+      case "vendedor": return <td key={clave} data-cotizacion-vendedor>{c.owner_name ?? (c.owner_id ? "?" : t("(no owner)", "(sin dueño)"))}</td>;
+      case "tienda": return <td key={clave} data-cotizacion-tienda>{c.store ?? t("No store", "Sin tienda")}</td>;
+      case "cliente": return <td key={clave} data-cotizacion-cliente>{c.customer_name || "—"}</td>;
+      case "sf": return <td key={clave} style={{ textAlign: "right" }} data-cotizacion-sf>{c.sf > 0 ? numero(c.sf, 2) : "—"}</td>;
+      case "total": return <td key={clave} style={{ textAlign: "right" }} data-cotizacion-total>{dinero(c.total)}</td>;
+      case "price_match": return <td key={clave} data-cotizacion-price-match>{celdaDePriceMatch(c) && <span className="est-pm">🏷️ {celdaDePriceMatch(c)}</span>}</td>;
+      case "estado": return <td key={clave} data-cotizacion-estado>{textoDeEstado(c, t)}</td>;
+      default: return <td key={clave} />;
+    }
+  };
 
   const estimadosVisibles = useMemo(
     () => filtraCompetenciaComoLaTabla(estimados, filtro, orden.filtros, (e, texto) => filtraEstimados([e], { tienda: "", texto }).length > 0),
@@ -199,6 +226,10 @@ export function TodasLasCotizaciones({ almacen, competencia, me, t, lang, onAbri
               <RangoDelPanel rango={rango} onRango={ponRango} t={t} />
             </div>
             <FiltrosPuestos estado={orden} columnas={columnas} lang={lang} t={t} />
+            <div className="tabla-estandar-barra">
+              <SelectorDeColumnas {...vista.selector} rotulo={(c) => (lang === "es" ? c.es : c.en)}
+                titulo={t("Columns of this table", "Columnas de esta tabla")} nota={t("Saved for you on this browser.", "Se guarda para ti en este navegador.")} t={t} />
+            </div>
             {estado === "cargando" ? (
               <p className="hint">{t("Loading…", "Cargando…")}</p>
             ) : filas.length === 0 ? (
@@ -206,28 +237,31 @@ export function TodasLasCotizaciones({ almacen, competencia, me, t, lang, onAbri
                 {filtrando ? t("Nothing matches the filter.", "Nada coincide con el filtro.") : t("No saved quotes yet.", "Todavía no hay cotizaciones guardadas.")}
               </p>
             ) : (
-              <div className="tbl-scroll">
-                <table className="orders" data-todas-tabla style={{ minWidth: 0 }}>
+              <div className="tbl-scroll tbl-fit">
+                <table className="orders tbl-resize" style={{ ...anchoDeTabla(anchos), minWidth: 0 }} data-todas-tabla>
+                  <colgroup>
+                    {vista.visibles.map((c) => <col key={c.key} style={{ width: colw.widthOf(c.key, ANCHO_DE[c.key] ?? 140) }} />)}
+                    <col style={{ width: 90 }} />
+                  </colgroup>
                   <thead>
                     <tr>
-                      {columnas.map((c) => <th key={c.key}><CabeceraConMenu estado={orden} col={c} lang={lang} t={t} /></th>)}
+                      {vista.visibles.map((c) => (
+                        <th key={c.key} data-col={c.key} {...vista.th(c.key)} title={t("Drag to move the column", "Arrastra para mover la columna")}>
+                          <CabeceraConMenu estado={orden} col={c} lang={lang} t={t} />
+                          <span className="col-resizer" {...vista.asa}
+                            onMouseDown={colw.startResize(c.key, ANCHO_DE[c.key] ?? 140)} onDoubleClick={() => colw.resetCol(c.key)}
+                            title={t("Drag to change the width; double-click to reset", "Arrastra para cambiar el ancho; doble clic para restablecer")} data-asa-de={c.key} />
+                        </th>
+                      ))}
                       <th />
                     </tr>
                   </thead>
                   <tbody>
                     {orden.visibles.length === 0 ? (
-                      <tr><td colSpan={columnas.length + 1} className="empty" data-todas-vacia>{t("No rows match the current filters.", "Ninguna fila coincide con los filtros actuales.")}</td></tr>
+                      <tr><td colSpan={vista.visibles.length + 1} className="empty" data-todas-vacia>{t("No rows match the current filters.", "Ninguna fila coincide con los filtros actuales.")}</td></tr>
                     ) : orden.visibles.map((c) => (
                       <tr key={c.id} data-cotizacion={c.id} className="clickable" onClick={() => onAbrir(c.id)}>
-                        <td>{fechaDeCelda(c.created_at)}</td>
-                        <td><b>{c.estimate_num || "—"}</b></td>
-                        {todas && <td data-cotizacion-vendedor>{c.owner_name ?? (c.owner_id ? "?" : t("(no owner)", "(sin dueño)"))}</td>}
-                        <td data-cotizacion-tienda>{c.store ?? t("No store", "Sin tienda")}</td>
-                        <td data-cotizacion-cliente>{c.customer_name || "—"}</td>
-                        <td style={{ textAlign: "right" }} data-cotizacion-sf>{c.sf > 0 ? numero(c.sf, 2) : "—"}</td>
-                        <td style={{ textAlign: "right" }} data-cotizacion-total>{dinero(c.total)}</td>
-                        <td data-cotizacion-price-match>{celdaDePriceMatch(c) && <span className="est-pm">🏷️ {celdaDePriceMatch(c)}</span>}</td>
-                        <td data-cotizacion-estado>{textoDeEstado(c, t)}</td>
+                        {vista.visibles.map((col) => celdaDeLista(col.key, c))}
                         <td>
                           <button type="button" className="btn btn-ghost btn-sm" data-cotizacion-abrir onClick={(e) => { e.stopPropagation(); onAbrir(c.id); }}>
                             {t("Open", "Abrir")}

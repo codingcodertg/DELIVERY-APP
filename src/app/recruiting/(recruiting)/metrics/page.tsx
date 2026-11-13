@@ -5,6 +5,7 @@ import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { fmtPct, scoreOf } from "@/lib/recruiting/utils";
 import { formatoEnBrownsville } from "@/lib/recruiting/hora-de-brownsville";
+import { TablaEstandar } from "@/components/TablaEstandar";
 
 export default function MetricsPage() {
   const { candidates, recruiters, stages, settings } = useData();
@@ -253,24 +254,18 @@ export default function MetricsPage() {
 
           <div className="card">
             <h2>🎯 {t("Source effectiveness", "Efectividad por fuente")}</h2>
-            <div style={{ overflowX: "auto" }}>
-              <table className="cmp-tbl">
-                <thead>
-                  <tr><th>{t("Source", "Fuente")}</th><th>{t("Candidates", "Candidatos")}</th><th>{t("Hired", "Contratados")}</th><th>{t("Hire rate", "Tasa contratación")}</th><th>{t("Avg score", "Puntaje prom.")}</th></tr>
-                </thead>
-                <tbody>
-                  {srcStats.map((s) => (
-                    <tr key={s.name}>
-                      <td className="rowh">{s.name}</td>
-                      <td>{s.total}</td>
-                      <td style={{ color: "var(--green)" }}>{s.hired}</td>
-                      <td style={{ fontWeight: 700 }}>{s.rate}%</td>
-                      <td style={{ color: "var(--amber)" }}>{fmtPct(s.avg)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <TablaEstandar
+              id="rrhh-metricas-fuentes"
+              filas={srcStats}
+              claveDe={(s) => s.name}
+              columnas={[
+                { key: "fuente", en: "Source", es: "Fuente", ancho: 200, fija: true, valor: (s) => s.name, clase: "font-medium" },
+                { key: "candidatos", en: "Candidates", es: "Candidatos", ancho: 120, numerico: true, valor: (s) => s.total },
+                { key: "contratados", en: "Hired", es: "Contratados", ancho: 120, numerico: true, valor: (s) => s.hired, celda: (s) => <span style={{ color: "var(--green)" }}>{s.hired}</span> },
+                { key: "tasa", en: "Hire rate", es: "Tasa contratación", ancho: 150, numerico: true, valor: (s) => s.rate, celda: (s) => <b>{s.rate}%</b> },
+                { key: "puntaje", en: "Avg score", es: "Puntaje prom.", ancho: 130, numerico: true, valor: (s) => s.avg, etiqueta: (v) => (typeof v === "number" ? fmtPct(v) : "—"), celda: (s) => <span style={{ color: "var(--amber)" }}>{fmtPct(s.avg)}</span> },
+              ]}
+            />
             <div className="hint">{t("Which channels actually convert to hires — not just volume.", "Qué canales realmente convierten en contrataciones — no solo volumen.")}</div>
           </div>
 
@@ -307,64 +302,42 @@ export default function MetricsPage() {
 
           <div className="card">
             <h2>📈 {t("Performance by position", "Rendimiento por puesto")}</h2>
-            <div style={{ overflowX: "auto" }}>
-              <table className="cmp-tbl">
-                <thead>
-                  <tr>
-                    <th>{t("Position", "Puesto")}</th>
-                    <th>{t("Candidates", "Candidatos")}</th>
-                    <th>{t("In pipeline", "En proceso")}</th>
-                    <th>{t("Interviewed", "Entrevistados")}</th>
-                    <th>{t("Avg score", "Puntaje prom.")}</th>
-                    <th>{t("Hired", "Contratados")}</th>
-                    <th>{t("Hire rate", "Tasa contratación")}</th>
-                    <th>{t("Discarded", "Descartados")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {roleStats.map((r) => (
-                    <tr key={r.name}>
-                      <td className="rowh">{r.name}</td>
-                      <td>{r.total}</td>
-                      <td>{r.active}</td>
-                      <td>{r.interviewed}</td>
-                      <td style={{ color: "var(--amber)" }}>{fmtPct(r.avg)}</td>
-                      <td style={{ color: "var(--green)" }}>{r.hired}</td>
-                      <td style={{ fontWeight: 700 }}>{r.rate}%</td>
-                      <td style={{ color: "var(--red)" }}>{r.discarded} <span style={{ color: "var(--gray)", fontWeight: 400 }}>({r.discardRate}%)</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <TablaEstandar
+                id="rrhh-metricas-puestos"
+                filas={roleStats}
+                claveDe={(r) => r.name}
+                columnas={[
+                  { key: "puesto", en: "Position", es: "Puesto", ancho: 200, fija: true, valor: (r) => r.name, clase: "font-medium" },
+                  { key: "candidatos", en: "Candidates", es: "Candidatos", ancho: 120, numerico: true, valor: (r) => r.total },
+                  { key: "proceso", en: "In pipeline", es: "En proceso", ancho: 120, numerico: true, valor: (r) => r.active },
+                  { key: "entrevistados", en: "Interviewed", es: "Entrevistados", ancho: 130, numerico: true, valor: (r) => r.interviewed },
+                  { key: "puntaje", en: "Avg score", es: "Puntaje prom.", ancho: 130, numerico: true, valor: (r) => r.avg, etiqueta: (v) => (typeof v === "number" ? fmtPct(v) : "—"), celda: (r) => <span style={{ color: "var(--amber)" }}>{fmtPct(r.avg)}</span> },
+                  { key: "contratados", en: "Hired", es: "Contratados", ancho: 120, numerico: true, valor: (r) => r.hired, celda: (r) => <span style={{ color: "var(--green)" }}>{r.hired}</span> },
+                  { key: "tasa", en: "Hire rate", es: "Tasa contratación", ancho: 150, numerico: true, valor: (r) => r.rate, celda: (r) => <b>{r.rate}%</b> },
+                  { key: "descartados", en: "Discarded", es: "Descartados", ancho: 150, numerico: true, valor: (r) => r.discarded, celda: (r) => <span style={{ color: "var(--red)" }}>{r.discarded} <span style={{ color: "var(--gray)", fontWeight: 400 }}>({r.discardRate}%)</span></span> },
+                ]}
+              />
             <div className="hint">{t("Which positions are hard to fill — low hire rate or high discard rate means the pipeline for that role needs attention.", "Qué puestos cuesta llenar — una tasa baja de contratación o alta de descarte indica que ese puesto necesita atención.")}</div>
           </div>
 
           <div className="card">
             <h2>🔻 {t("Pipeline by position", "Proceso por puesto")}</h2>
-            <div style={{ overflowX: "auto" }}>
-              <table className="cmp-tbl">
-                <thead>
-                  <tr>
-                    <th>{t("Position", "Puesto")}</th>
-                    {funnelStages.map((s) => (
-                      <th key={s.key}><span className="dot" style={{ background: s.color }} /> {s.label}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {roleStats.map((r) => (
-                    <tr key={r.name}>
-                      <td className="rowh">{r.name}</td>
-                      {funnelStages.map((s) => {
-                        const n = (byRole[r.name] || []).filter((c) => c.status === s.key).length;
-                        return <td key={s.key} style={{ color: n ? "var(--ink)" : "var(--gray)", fontWeight: n ? 700 : 400 }}>{n}</td>;
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <TablaEstandar
+                id="rrhh-metricas-proceso"
+                filas={roleStats}
+                claveDe={(r) => r.name}
+                columnas={[
+                  { key: "puesto", en: "Position", es: "Puesto", ancho: 200, fija: true, valor: (r) => r.name, clase: "font-medium" },
+                  ...funnelStages.map((s) => ({
+                    key: "etapa-" + s.key, en: s.label, es: s.label, ancho: 130, numerico: true,
+                    valor: (r: (typeof roleStats)[number]) => (byRole[r.name] || []).filter((c) => c.status === s.key).length,
+                    celda: (r: (typeof roleStats)[number]) => {
+                      const n = (byRole[r.name] || []).filter((c) => c.status === s.key).length;
+                      return <span style={{ color: n ? "var(--ink)" : "var(--gray)", fontWeight: n ? 700 : 400 }}>{n}</span>;
+                    },
+                  })),
+                ]}
+              />
             <div className="hint">{t("Where each position's candidates are sitting right now.", "Dónde están parados ahora mismo los candidatos de cada puesto.")}</div>
           </div>
         </div>
