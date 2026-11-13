@@ -1,7 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
+import { rotulo } from "@/components/erp/rotulo";
 import { cn } from "@/lib/erp/utils";
 import {
   searchProducts,
@@ -108,6 +110,23 @@ export function InventoryConsole({
     setNegatives(n);
   }
 
+  const columnasDeSaldos = useMemo<ColumnaEstandar<NegativeBalance>[]>(() => [
+    { key: "producto", ...rotulo(t("Product", "Producto")), ancho: 320, fija: true, valor: (n) => n.name,
+      celda: (n) => <><Link href={`/erp/product/${n.product_id}`} className="font-medium text-clay-700 hover:underline">{n.name}</Link> <span className="font-mono text-xs text-slate-400">{n.sku}</span></> },
+    { key: "tienda", ...rotulo(t("Store", "Tienda")), ancho: 180, valor: (n) => stores.find((s) => s.id === n.store_id)?.name ?? n.store_id },
+    { key: "qoh", ...rotulo(t("QOH", "QOH")), ancho: 110, numerico: true, valor: (n) => Number(n.qoh), celda: (n) => <span className="font-medium text-red-600">{qty(n.qoh)}</span> },
+  ], [stores, t]);
+  const columnasDeConteos = useMemo<ColumnaEstandar<CycleCountRow>[]>(() => [
+    { key: "producto", ...rotulo(t("Product", "Producto")), ancho: 320, fija: true, valor: (c) => c.name,
+      celda: (c) => <><Link href={`/erp/product/${c.product_id}`} className="font-medium text-clay-700 hover:underline">{c.name}</Link> <span className="font-mono text-xs text-slate-400">{c.sku}</span></> },
+    { key: "tienda", ...rotulo(t("Store", "Tienda")), ancho: 180, valor: (c) => stores.find((s) => s.id === c.store_id)?.name ?? c.store_id },
+    { key: "sistema", ...rotulo(t("System", "Sistema")), ancho: 110, numerico: true, valor: (c) => Number(c.system_qty), celda: (c) => <span className="text-slate-500">{qty(c.system_qty)}</span> },
+    { key: "contado", ...rotulo(t("Counted", "Contado")), ancho: 110, numerico: true, valor: (c) => Number(c.counted_qty), celda: (c) => qty(c.counted_qty) },
+    { key: "diferencia", ...rotulo(t("Variance", "Diferencia")), ancho: 120, numerico: true, valor: (c) => Number(c.variance),
+      celda: (c) => <span className={Number(c.variance) !== 0 ? "font-medium text-amber-700" : "text-slate-400"}>{Number(c.variance) > 0 ? "+" : ""}{qty(c.variance)}</span> },
+    { key: "estado", ...rotulo(t("Status", "Estado")), ancho: 130, valor: (c) => c.status,
+      celda: (c) => <span className={cn("rounded-full border px-2 py-0.5 text-xs font-medium", c.status === "reconciled" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700")}>{c.status}</span> },
+  ], [stores, t]);
   return (
     <div className="space-y-5">
       <div className="grid gap-5 lg:grid-cols-2">
@@ -122,21 +141,8 @@ export function InventoryConsole({
         {negatives.length === 0 ? (
           <p className="p-4 text-sm text-slate-500">{t("No negative on-hand balances. ✓", "No hay saldos negativos en existencia. ✓")}</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
-                <tr><th className="px-4 py-2 font-medium">{t("Product", "Producto")}</th><th className="px-4 py-2 font-medium">{t("Store", "Tienda")}</th><th className="px-4 py-2 text-right font-medium">QOH</th></tr>
-              </thead>
-              <tbody>
-                {negatives.map((n) => (
-                  <tr key={`${n.product_id}-${n.store_id}`} className="border-t border-slate-100">
-                    <td className="px-4 py-2"><Link href={`/erp/product/${n.product_id}`} className="font-medium text-clay-700 hover:underline">{n.name}</Link> <span className="font-mono text-xs text-slate-400">{n.sku}</span></td>
-                    <td className="px-4 py-2 text-slate-600">{storeName(n.store_id)}</td>
-                    <td className="px-4 py-2 text-right font-medium tabular-nums text-red-600">{qty(n.qoh)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="px-3 pb-2">
+            <TablaEstandar id="erp-saldos-negativos" filas={negatives} claveDe={(n) => `${n.product_id}-${n.store_id}`} columnas={columnasDeSaldos} sinCaja />
           </div>
         )}
       </section>
@@ -148,30 +154,8 @@ export function InventoryConsole({
         {counts.length === 0 ? (
           <p className="p-4 text-sm text-slate-500">{t("No cycle counts recorded yet.", "Aún no hay conteos cíclicos registrados.")}</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-2 font-medium">{t("Product", "Producto")}</th><th className="px-4 py-2 font-medium">{t("Store", "Tienda")}</th>
-                  <th className="px-4 py-2 text-right font-medium">{t("System", "Sistema")}</th><th className="px-4 py-2 text-right font-medium">{t("Counted", "Contado")}</th>
-                  <th className="px-4 py-2 text-right font-medium">{t("Variance", "Diferencia")}</th><th className="px-4 py-2 font-medium">{t("Status", "Estado")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {counts.map((c) => (
-                  <tr key={c.id} className="border-t border-slate-100">
-                    <td className="px-4 py-2"><Link href={`/erp/product/${c.product_id}`} className="font-medium text-clay-700 hover:underline">{c.name}</Link> <span className="font-mono text-xs text-slate-400">{c.sku}</span></td>
-                    <td className="px-4 py-2 text-slate-600">{storeName(c.store_id)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums text-slate-500">{qty(c.system_qty)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{qty(c.counted_qty)}</td>
-                    <td className={cn("px-4 py-2 text-right tabular-nums", Number(c.variance) !== 0 ? "font-medium text-amber-700" : "text-slate-400")}>{Number(c.variance) > 0 ? "+" : ""}{qty(c.variance)}</td>
-                    <td className="px-4 py-2">
-                      <span className={cn("rounded-full border px-2 py-0.5 text-xs font-medium", c.status === "reconciled" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700")}>{c.status}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="px-3 pb-2">
+            <TablaEstandar id="erp-conteos-ciclicos" filas={counts} claveDe={(c) => String(c.id)} columnas={columnasDeConteos} sinCaja />
           </div>
         )}
       </section>

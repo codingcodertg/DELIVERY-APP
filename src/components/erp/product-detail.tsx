@@ -1,6 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
+import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
+import { rotulo } from "@/components/erp/rotulo";
 import { Badge } from "@/components/erp/ui/badge";
 import { money } from "@/lib/erp/utils";
 import { recordStatusClass, statusLabel } from "@/lib/erp/status";
@@ -167,6 +170,27 @@ export function ProductDetail({
   const mgrTag = <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">{t("mgr only", "solo gerente")}</span>;
   const phase2 = <span className="text-sm text-slate-400">{t("Populates in Phase 2.", "Se rellena en la fase 2.")}</span>;
 
+  const columnasDeLotes = useMemo<ColumnaEstandar<(typeof lots)[number]>[]>(() => [
+    { key: "lote", ...rotulo(t("Lot #", "Lote #")), ancho: 140, fija: true, valor: (l) => (l.lot_number ?? null) as string | null,
+      celda: (l) => <span className="font-mono text-xs text-slate-600">{val(l.lot_number)}</span> },
+    { key: "recibido", ...rotulo(t("Received", "Recibido")), ancho: 130, valor: (l) => l.received_date,
+      etiqueta: (v) => (v ? new Date(String(v)).toLocaleDateString() : "—"),
+      celda: (l) => (l.received_date ? new Date(l.received_date).toLocaleDateString() : "—") },
+    { key: "estado", ...rotulo(t("Status", "Estado")), ancho: 120, valor: (l) => (l.status ?? null) as string | null, celda: (l) => <span className="text-slate-600">{val(l.status)}</span> },
+    { key: "base", ...rotulo(t("Base", "Base")), ancho: 110, numerico: true, valor: (l) => l.base_cost, celda: (l) => <span className="text-slate-500">{money(l.base_cost)}</span> },
+    { key: "flete", ...rotulo(t("Freight", "Flete")), ancho: 110, numerico: true, valor: (l) => l.freight_cost, celda: (l) => <span className="text-slate-500">{money(l.freight_cost)}</span> },
+    { key: "arancel", ...rotulo(t("Duty", "Arancel")), ancho: 110, numerico: true, valor: (l) => l.duty_cost, celda: (l) => <span className="text-slate-500">{money(l.duty_cost)}</span> },
+    { key: "destino", ...rotulo(t("Landed cost", "Costo en destino")), ancho: 140, numerico: true, valor: (l) => l.landed_cost, celda: (l) => <span className="font-medium">{money(l.landed_cost)}</span> },
+  ], [val, t]);
+  const columnasDeHistorial = useMemo<ColumnaEstandar<(typeof history)[number]>[]>(() => [
+    { key: "desde", ...rotulo(t("Effective from", "Vigente desde")), ancho: 140, fija: true, valor: (h) => h.effective_from,
+      etiqueta: (v) => (v ? new Date(String(v)).toLocaleDateString() : "—"), celda: (h) => new Date(h.effective_from).toLocaleDateString() },
+    { key: "tienda", ...rotulo(t("Store", "Tienda")), ancho: 160, valor: (h) => (h.store_id ? storeName(h.store_id) : t("all", "todas")) },
+    { key: "precio", ...rotulo(t("Price", "Precio")), ancho: 110, numerico: true, valor: (h) => h.price, celda: (h) => money(h.price) },
+    { key: "costo", ...rotulo(t("Cost", "Costo")), ancho: 110, numerico: true, valor: (h) => h.cost, celda: (h) => <span className="text-slate-500">{money(h.cost)}</span> },
+    { key: "fuente", ...rotulo(t("Source", "Fuente")), ancho: 140, valor: (h) => (h.source ?? null) as string | null, celda: (h) => <span className="text-slate-500">{val(h.source)}</span> },
+  ], [storeName, t, val]);
+
   return (
     <main className="mx-auto max-w-screen-2xl px-4 py-6">
       <Link href="/erp/catalog" className="text-sm text-clay-600 hover:underline">{t("← Catalog", "← Catálogo")}</Link>
@@ -324,34 +348,7 @@ export function ProductDetail({
           {lots.length > 0 && (
             <div className="mt-4">
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t("Lots / receipts", "Lotes / recepciones")}</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
-                    <tr>
-                      <th className="py-1.5 pr-4 font-medium">{t("Lot #", "Lote #")}</th>
-                      <th className="py-1.5 pr-4 font-medium">{t("Received", "Recibido")}</th>
-                      <th className="py-1.5 pr-4 font-medium">{t("Status", "Estado")}</th>
-                      <th className="py-1.5 pr-4 text-right font-medium">{t("Base", "Base")}</th>
-                      <th className="py-1.5 pr-4 text-right font-medium">{t("Freight", "Flete")}</th>
-                      <th className="py-1.5 pr-4 text-right font-medium">{t("Duty", "Arancel")}</th>
-                      <th className="py-1.5 pr-4 text-right font-medium">{t("Landed cost", "Costo en destino")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lots.map((l) => (
-                      <tr key={l.id} className="border-t border-slate-100">
-                        <td className="py-1.5 pr-4 font-mono text-xs text-slate-600">{val(l.lot_number)}</td>
-                        <td className="py-1.5 pr-4">{l.received_date ? new Date(l.received_date).toLocaleDateString() : "—"}</td>
-                        <td className="py-1.5 pr-4 text-slate-600">{val(l.status)}</td>
-                        <td className="py-1.5 pr-4 text-right tabular-nums text-slate-500">{money(l.base_cost)}</td>
-                        <td className="py-1.5 pr-4 text-right tabular-nums text-slate-500">{money(l.freight_cost)}</td>
-                        <td className="py-1.5 pr-4 text-right tabular-nums text-slate-500">{money(l.duty_cost)}</td>
-                        <td className="py-1.5 pr-4 text-right tabular-nums font-medium">{money(l.landed_cost)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <TablaEstandar id="erp-lotes" filas={lots} claveDe={(l) => String(l.id)} columnas={columnasDeLotes} sinCaja />
             </div>
           )}
 
@@ -360,28 +357,7 @@ export function ProductDetail({
             {history.length === 0 ? (
               <p className="text-sm text-slate-500">{t("No price history.", "Sin historial de precios.")}</p>
             ) : (
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
-                  <tr>
-                    <th className="py-1.5 pr-4 font-medium">{t("Effective from", "Vigente desde")}</th>
-                    <th className="py-1.5 pr-4 font-medium">{t("Store", "Tienda")}</th>
-                    <th className="py-1.5 pr-4 text-right font-medium">{t("Price", "Precio")}</th>
-                    <th className="py-1.5 pr-4 text-right font-medium">{t("Cost", "Costo")}</th>
-                    <th className="py-1.5 pr-4 font-medium">{t("Source", "Fuente")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.map((h) => (
-                    <tr key={h.id} className="border-t border-slate-100">
-                      <td className="py-1.5 pr-4">{new Date(h.effective_from).toLocaleDateString()}</td>
-                      <td className="py-1.5 pr-4">{h.store_id ? storeName(h.store_id) : t("all", "todas")}</td>
-                      <td className="py-1.5 pr-4 text-right tabular-nums">{money(h.price)}</td>
-                      <td className="py-1.5 pr-4 text-right tabular-nums text-slate-500">{money(h.cost)}</td>
-                      <td className="py-1.5 pr-4 text-slate-500">{val(h.source)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <TablaEstandar id="erp-historial-precios" filas={history} claveDe={(h) => String(h.id)} columnas={columnasDeHistorial} sinCaja />
             )}
           </div>
         </Section>

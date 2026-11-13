@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
+import { rotulo } from "@/components/erp/rotulo";
 import { cn, money } from "@/lib/erp/utils";
 import {
   getPoReceiving,
@@ -134,6 +136,38 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
     await load(detail.po_id); // refresh received/remaining
   }
 
+  const columnasDeLineas = useMemo<ColumnaEstandar<PoReceiving["lines"][number]>[]>(() => [
+    { key: "linea", ...rotulo(t("Line", "Línea")), ancho: 70, valor: (l) => l.line_no, celda: (l) => <span className="text-slate-500">{l.line_no ?? "—"}</span> },
+    { key: "producto", ...rotulo(t("Product", "Producto")), ancho: 320, fija: true, envuelve: true, valor: (l) => l.name ?? l.sku ?? l.vendor_item_no ?? l.description,
+      celda: (l) => <>
+        {l.product_id ? (
+          <Link href={`/erp/product/${l.product_id}`} className="font-medium text-clay-700 hover:underline">
+            {l.name ?? l.sku ?? l.vendor_item_no ?? "—"}
+          </Link>
+        ) : (
+          <span className="text-amber-700">{l.description ?? l.vendor_item_no ?? "—"} · {t("not linked", "sin enlazar")}</span>
+        )}
+        <div className="font-mono text-xs text-slate-400">{l.sku ?? l.vendor_item_no ?? ""}</div>
+      </> },
+    { key: "pedido", ...rotulo(t("Ordered", "Pedido")), ancho: 110, numerico: true, valor: (l) => l.qty, celda: (l) => l.qty ?? "—" },
+    { key: "recibido", ...rotulo(t("Received", "Recibido")), ancho: 110, numerico: true, valor: (l) => l.received_qty, celda: (l) => <span className="text-slate-500">{l.received_qty}</span> },
+    { key: "pendiente", ...rotulo(t("Remaining", "Pendiente")), ancho: 110, numerico: true, valor: (l) => l.remaining, celda: (l) => l.remaining },
+    { key: "costo", ...rotulo(t("Unit cost", "Costo unitario")), ancho: 120, numerico: true, valor: (l) => l.unit_rate, celda: (l) => <span className="text-slate-500">{money(l.unit_rate)}</span> },
+    { key: "ahora", ...rotulo(t("Receive now", "Recibir ahora")), ancho: 130, numerico: true, valor: () => null,
+      celda: (l) => l.product_id ? (
+        <input
+          value={qtys[l.po_line_id] ?? ""}
+          onChange={(e) => setQtys((p) => ({ ...p, [l.po_line_id]: e.target.value }))}
+          inputMode="decimal"
+          className="h-8 w-24 rounded-md border border-slate-300 bg-white px-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
+        />
+      ) : (
+        <Link href={`/erp/purchasing/orders/${detail?.po_id}`} className="text-xs text-clay-700 hover:underline">
+          {t("link product →", "enlazar producto →")}
+        </Link>
+      ) },
+  ], [t, qtys, detail]);
+
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 bg-slate-50 px-4 py-2.5">
@@ -197,55 +231,8 @@ function PoReceive({ pos, stores, initialPoId }: { pos: PoOption[]; stores: Stor
 
         {detail && (
           <>
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-400">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">{t("Line", "Línea")}</th>
-                    <th className="px-3 py-2 font-medium">{t("Product", "Producto")}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t("Ordered", "Pedido")}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t("Received", "Recibido")}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t("Remaining", "Pendiente")}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t("Unit cost", "Costo unitario")}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t("Receive now", "Recibir ahora")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {detail.lines.map((l) => (
-                    <tr key={l.po_line_id} className="border-t border-slate-100">
-                      <td className="px-3 py-2 text-slate-500">{l.line_no ?? "—"}</td>
-                      <td className="px-3 py-2">
-                        {l.product_id ? (
-                          <Link href={`/erp/product/${l.product_id}`} className="font-medium text-clay-700 hover:underline">
-                            {l.name ?? l.sku ?? l.vendor_item_no ?? "—"}
-                          </Link>
-                        ) : (
-                          <span className="text-amber-700">{l.description ?? l.vendor_item_no ?? "—"} · {t("not linked", "sin enlazar")}</span>
-                        )}
-                        <div className="font-mono text-xs text-slate-400">{l.sku ?? l.vendor_item_no ?? ""}</div>
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">{l.qty ?? "—"}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-slate-500">{l.received_qty}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{l.remaining}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-slate-500">{money(l.unit_rate)}</td>
-                      <td className="px-3 py-2 text-right">
-                        {l.product_id ? (
-                          <input
-                            value={qtys[l.po_line_id] ?? ""}
-                            onChange={(e) => setQtys((p) => ({ ...p, [l.po_line_id]: e.target.value }))}
-                            inputMode="decimal"
-                            className="h-8 w-24 rounded-md border border-slate-300 bg-white px-2 text-right text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
-                          />
-                        ) : (
-                          <Link href={`/erp/purchasing/orders/${detail.po_id}`} className="text-xs text-clay-700 hover:underline">
-                            {t("link product →", "enlazar producto →")}
-                          </Link>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="rounded-lg border border-slate-200 px-3 pb-2">
+              <TablaEstandar id="erp-recepcion-lineas" filas={detail.lines} claveDe={(l) => String(l.po_line_id)} columnas={columnasDeLineas} sinCaja />
             </div>
 
             <div className="flex items-center justify-end gap-3">

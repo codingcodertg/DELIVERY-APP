@@ -8,6 +8,7 @@ import { AnalyticsControls } from "@/components/erp/analytics-controls";
 import { ChartCard, BarList } from "@/components/erp/charts";
 import { money } from "@/lib/erp/utils";
 import { Tx } from "@/components/erp/tx";
+import { TablaDeAnalitica } from "@/components/erp/tablas-de-paginas";
 
 // G-10 (D-204): server component; el texto sale por la hoja <Tx en es /> y las consultas se quedan aquí.
 // Los proveedores son dato; `period` es el valor del selector y sale tal cual.
@@ -41,45 +42,7 @@ export default async function VendorAnalytics({ searchParams }: { searchParams: 
           </ChartCard>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium"><Tx en="Vendor" es="Proveedor" /></th>
-                  <th className="px-4 py-2.5 text-right font-medium"><Tx en="Net sales" es="Ventas netas" /></th>
-                  <th className="px-4 py-2.5 text-right font-medium"><Tx en="Units" es="Unidades" /></th>
-                  <th className="px-4 py-2.5 text-right font-medium">GM</th>
-                  <th className="px-4 py-2.5 text-right font-medium"><Tx en="Sales margin" es="Margen de ventas" /></th>
-                  <th className="px-4 py-2.5 text-right font-medium"><Tx en="Products" es="Productos" /></th>
-                  <th className="px-4 py-2.5 text-right font-medium"><Tx en="Inv. value" es="Valor inv." /></th>
-                  <th className="px-4 py-2.5 text-right font-medium"><Tx en="List margin" es="Margen de lista" /></th>
-                  <th className="px-4 py-2.5 text-right font-medium"><Tx en="Below cost" es="Bajo costo" /></th>
-                  <th className="px-4 py-2.5 text-right font-medium"><Tx en="Needs review" es="Requiere revisión" /></th>
-                </tr>
-              </thead>
-              <tbody>
-                {vendors.length === 0 && (
-                  <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-500"><Tx en="No vendor data." es="Sin datos de proveedores." /></td></tr>
-                )}
-                {vendors.map((r) => (
-                  <tr key={r.vendor_id} className="border-t border-slate-100 hover:bg-slate-50/60">
-                    <td className="px-4 py-2.5 font-medium text-slate-800">{r.vendor}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">{money(r.net_sales)}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-500">{r.units.toLocaleString()}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">{money(r.gm)}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">{pct(r.margin_pct)}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-500">{r.product_count.toLocaleString()}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-500">{money(r.inventory_value)}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-500">{pct(r.avg_margin_pct)}</td>
-                    <td className={`px-4 py-2.5 text-right tabular-nums ${r.below_cost > 0 ? "text-red-600" : "text-slate-400"}`}>{r.below_cost}</td>
-                    <td className={`px-4 py-2.5 text-right tabular-nums ${r.needs_review > 0 ? "text-amber-700" : "text-slate-400"}`}>{r.needs_review}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <TablaDeAnalitica id="erp-analitica-proveedores" de="proveedor" filas={vendors.map((r) => ({ ...r, nombre: r.vendor, clave: String(r.vendor_id) }))} />
         <p className="mt-3 text-xs text-slate-400"><Tx en="Top 30 by net sales." es="Los 30 primeros por ventas netas." /> <b><Tx en="Sales margin" es="Margen de ventas" /></b> <Tx en="= realized (actual sale prices − COGS);" es="= realizado (precios reales de venta − COGS);" /> <b><Tx en="List margin" es="Margen de lista" /></b> <Tx en="= catalog avg (list price vs cost). Inv. value = QOH × product cost." es="= promedio del catálogo (precio de lista frente a costo). Valor inv. = QOH × costo del producto." /></p>
       </main>
     </>

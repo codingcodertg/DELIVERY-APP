@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
+import { rotulo } from "@/components/erp/rotulo";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/erp/ui/button";
@@ -74,73 +76,48 @@ export function UomAssistant({ rows, onEdit }: { rows: ReviewRow[]; onEdit: (id:
     });
   }
 
+  const columnas = useMemo<ColumnaEstandar<Candidate>[]>(() => [
+    { key: "producto", ...rotulo(t("Product", "Producto")), ancho: 320, fija: true, envuelve: true, valor: (c) => c.r.name,
+      celda: ({ r, mates, outlier }) => <>
+        <Link href={`/erp/product/${r.id}`} className="font-medium text-slate-900 hover:text-clay-700">{r.name}</Link>
+        <div className="font-mono text-xs text-slate-400">{r.sku}</div>
+        {outlier && (
+          <div className="mt-0.5 text-xs text-amber-700">
+            {mates.length === 1 ? t("Outlier vs 1 line-mate", "Atípico frente a 1 compañero de línea") : t(`Outlier vs ${mates.length} line-mates`, `Atípico frente a ${mates.length} compañeros de línea`)} ({t("median", "mediana")} {money(medianOf(mates))})
+          </div>
+        )}
+      </> },
+    { key: "precio", ...rotulo(t("Price", "Precio")), ancho: 110, numerico: true, valor: (c) => c.r.price, celda: (c) => money(c.r.price) },
+    { key: "costo", ...rotulo(t("Cost", "Costo")), ancho: 110, numerico: true, valor: (c) => c.r.cost, celda: (c) => money(c.r.cost) },
+    { key: "razon", ...rotulo(t("Cost÷Price", "Costo÷Precio")), ancho: 120, numerico: true, valor: (c) => c.s.flag.ratio ?? null,
+      celda: (c) => <span className="font-medium text-amber-700">{c.s.flag.ratio == null ? "—" : `${c.s.flag.ratio.toFixed(1)}×`}</span> },
+    { key: "arreglo", ...rotulo(t("Suggested fix", "Arreglo sugerido")), ancho: 360, envuelve: true, valor: (c) => c.s.rationale,
+      celda: ({ s }) => s.proposedCost != null ? (
+        <>
+          {t("Set cost →", "Poner costo →")} <span className="font-medium">{money(s.proposedCost)}</span>
+          {s.proposedBaseUnit ? <>, {t("unit →", "unidad →")} <span className="font-medium">{s.proposedBaseUnit}</span></> : null}
+          <div className="text-xs text-slate-400">{s.rationale}</div>
+        </>
+      ) : <span className="text-slate-500">{s.rationale}</span> },
+  ], [t]);
+
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 bg-amber-50/60 px-4 py-3 text-sm text-amber-800">
         <strong>{t("Unit-of-measure check.", "Revisión de unidad de medida.")}</strong> {t("A cost ≥ 1.5× the price across a line is the signature of a per-box cost stapled to a per-unit price. These are", "Un costo ≥ 1.5× el precio en toda una línea es la firma de un costo por caja pegado a un precio por unidad. Son")} <em>{t("suggestions", "sugerencias")}</em> {t("— review and apply; nothing changes on its own, and every applied fix goes through the audited update path (price_history captured).", "— revisa y aplica; nada cambia solo, y cada arreglo aplicado pasa por la ruta de actualización auditada (queda en price_history).")}
       </div>
       {err && <p className="px-4 py-2 text-sm text-red-600">{err}</p>}
-      <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-          <tr>
-            <th className="px-3 py-2.5 font-medium">{t("Product", "Producto")}</th>
-            <th className="px-3 py-2.5 text-right font-medium">{t("Price", "Precio")}</th>
-            <th className="px-3 py-2.5 text-right font-medium">{t("Cost", "Costo")}</th>
-            <th className="px-3 py-2.5 text-right font-medium">{t("Cost÷Price", "Costo÷Precio")}</th>
-            <th className="px-3 py-2.5 font-medium">{t("Suggested fix", "Arreglo sugerido")}</th>
-            <th className="px-3 py-2.5"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {visible.map(({ r, s, mates, outlier }) => (
-            <tr key={r.id} className="border-t border-slate-100 align-top hover:bg-slate-50/60">
-              <td className="px-3 py-2">
-                <Link href={`/erp/product/${r.id}`} className="font-medium text-slate-900 hover:text-clay-700">{r.name}</Link>
-                <div className="font-mono text-xs text-slate-400">{r.sku}</div>
-                {outlier && (
-                  <div className="mt-0.5 text-xs text-amber-700">
-                    {mates.length === 1 ? t("Outlier vs 1 line-mate", "Atípico frente a 1 compañero de línea") : t(`Outlier vs ${mates.length} line-mates`, `Atípico frente a ${mates.length} compañeros de línea`)} ({t("median", "mediana")} {money(medianOf(mates))})
-                  </div>
-                )}
-              </td>
-              <td className="px-3 py-2 text-right tabular-nums">{money(r.price)}</td>
-              <td className="px-3 py-2 text-right tabular-nums text-slate-500">{money(r.cost)}</td>
-              <td className="px-3 py-2 text-right font-medium tabular-nums text-amber-700">
-                {s.flag.ratio == null ? "—" : `${s.flag.ratio.toFixed(1)}×`}
-              </td>
-              <td className="max-w-sm px-3 py-2 text-slate-600">
-                {s.proposedCost != null ? (
-                  <>
-                    {t("Set cost →", "Poner costo →")} <span className="font-medium">{money(s.proposedCost)}</span>
-                    {s.proposedBaseUnit ? (
-                      <>
-                        , {t("unit →", "unidad →")} <span className="font-medium">{s.proposedBaseUnit}</span>
-                      </>
-                    ) : null}
-                    <div className="text-xs text-slate-400">{s.rationale}</div>
-                  </>
-                ) : (
-                  <span className="text-slate-500">{s.rationale}</span>
-                )}
-              </td>
-              <td className="px-3 py-2 text-right">
-                {s.proposedCost != null ? (
-                  <Button size="sm" disabled={isPending && pendingId === r.id} onClick={() => apply({ r, s, mates, outlier })}>
-                    {isPending && pendingId === r.id ? t("Applying…", "Aplicando…") : t("Apply fix", "Aplicar arreglo")}
-                  </Button>
-                ) : (
-                  <Button variant="outline" size="sm" onClick={() => onEdit(r.id)}>{t("Review", "Revisar")}</Button>
-                )}
-              </td>
-            </tr>
-          ))}
-          {visible.length === 0 && (
-            <tr>
-              <td colSpan={6} className="p-8 text-center text-slate-500">{t("No likely unit-of-measure errors. 🎉", "Sin errores probables de unidad de medida. 🎉")}</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      <div className="px-3 pb-2">
+        <TablaEstandar id="erp-unidad-de-medida" filas={visible} claveDe={(c) => String(c.r.id)} columnas={columnas} sinCaja anchoDeAcciones={150}
+          vacio={t("No likely unit-of-measure errors. 🎉", "Sin errores probables de unidad de medida. 🎉")}
+          acciones={(c) => c.s.proposedCost != null ? (
+            <Button size="sm" disabled={isPending && pendingId === c.r.id} onClick={() => apply(c)}>
+              {isPending && pendingId === c.r.id ? t("Applying…", "Aplicando…") : t("Apply fix", "Aplicar arreglo")}
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => onEdit(c.r.id)}>{t("Review", "Revisar")}</Button>
+          )} />
+      </div>
     </div>
   );
 }
