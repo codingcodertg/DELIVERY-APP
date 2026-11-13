@@ -52263,3 +52263,11 @@ Recibos después (pedido del jefe): la parada se sigue registrando en el momento
 Migración 306: quita la constraint de recibo obligatorio, insert solo con hora de ahora (±2 min), y trigger: nunca cambian chofer, motivo, nota ni inicio; abierta, el término va entre el inicio y ahora (+10 min por teléfonos adelantados); cerrada, solo el recibo.
 Visto en pantalla (demo, 390 px, letra normal y grande): la vieja con su hora de cierre, la lista de pendientes y Añadir recibo.
 Sello `deliveries` 1.614.0; repo 1.885.0.
+
+## D-1033 · Gestor de Rutas: mover una pendiente con entregadas en medio ya no las cambia de sitio
+
+Caso del dueño (13 nov): bajar la D5 detrás de la D6, con cuatro paradas ya hechas entre las dos, parecía un intercambio. Causa: `numeracionConHechas` (D-992) volvía a numerar las pendientes desde el primer puesto libre, y las hechas quedaban corridas detrás de la que se movía.
+Ahora, si hay hechas en la ruta y todas las pendientes tienen puesto, las pendientes conservan sus propios puestos en el orden nuevo: la que se mueve toma el puesto de la otra y las hechas no cambian de vecinos. Sin hechas, sigue la regla de D-992.
+«No se mueven las recogidas»: no se reprodujo (flechas y arrastre funcionan en demo; la migración 154 está aplicada y `deliveries.pickup_seq` existe). Falta el caso exacto del dueño.
+Pruebas con la tarjeta del dueño (8). Visto en pantalla (demo, 1500 px): antes y después del movimiento con hechas en medio.
+Sello `deliveries` 1.615.0; repo 1.886.0.
