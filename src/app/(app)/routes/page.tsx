@@ -143,6 +143,7 @@ import {
   cabeEnElPuesto, cambiosDeLaLista, cuentaDePallets, escrituraDeLaLista, gruposDeMismoLugar, listaConEntregasEn, listaConOrdenesEn, llevaEnLaLista, mueveEnLaLista, numeroDePallets,
   textoDeLaCuenta, textoDelExceso, tienePosicionDeRecogida, type FilaDeCuenta, type ParadaDeLaLista,
 } from "@/lib/lista-unica";
+import { flechaDelBloque, mueveBloque, ordenesDelBloque, type OpcionesDelBloque } from "@/lib/arrastre-multiple";
 import { alRepartir, cargaDe, etiquetaDeCarga, hermanasDe, laOtraCarga, restoPropuesto, sePuedenJuntar, sePuedePartir } from "@/lib/cargas-partidas";
 import { useRequisitosDelCamion } from "@/lib/usa-requisitos";
 import { useZonasDeChofer } from "@/lib/usa-zonas";
@@ -1005,6 +1006,20 @@ export default function RoutesPage() {
       `No se movió: ${d} ${n} se entregaría antes de recogerla. Una entrega va siempre después de su recogida.`,
     ));
   };
+  /** D-1024: los relevos del día (paso b → paso a), para que un bloque de marcadas no ponga la recogida de un paso b antes
+   *  de la entrega de su paso a (la misma regla que D-994). */
+  const opcionesDelBloque = (): OpcionesDelBloque => ({ relevos: new Map([...pasoAnteriorPorId(dayOrders)].map(([b, a]) => [b, a.id])) });
+  /** D-1024: «No se movió» del bloque: la precedencia o el relevo, con la orden que lo impide. */
+  const avisaDelBloque = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta, r: { motivo: string; orden?: string }) => {
+    if (r.motivo === "precedencia" && r.orden) avisaDeLaPrecedencia(laneKey, stops, lectura, r.orden);
+    if (r.motivo !== "relevo" || !r.orden) return;
+    const o = stops.find((x) => x.id === r.orden);
+    const n = o ? facturaYId(o).principal : "";
+    notify(t(
+      `Not moved: ${n} is the second leg of a transfer and would be picked up before its first leg arrives.`,
+      `No se movió: ${n} es el paso b de una transferencia y se recogería antes de que llegue su paso a.`,
+    ));
+  };
   const mueveParada = async (laneKey: string, indice: number, dir: -1 | 1) => {
     const stops = byDriver.get(laneKey) ?? [];
     const lectura = lecturaDe(laneKey, stops);
@@ -1013,6 +1028,17 @@ export default function RoutesPage() {
     const etiquetaDe = (i: number) => etiquetaDelDia(laneKey, stops, lectura, (f) => f.indice === i);
     if (p.tipo === "P" && !hayRecogidaGuardada) {
       notify(t("Moving a pickup needs the database update (migration 154). Deliveries can be moved; pickups follow the usual rule.", "Mover una recogida necesita la actualización de la base (migración 154). Las entregas sí se mueven; las recogidas siguen la regla de siempre."));
+      return;
+    }
+    // D-1024: si la fila es de una orden marcada y hay otra marcada en la lista, la flecha mueve el BLOQUE de marcadas un puesto.
+    const bloque = ordenesDelBloque(lectura.paradas, marcadas, indice);
+    if (bloque) {
+      const rb = flechaDelBloque(lectura.paradas, bloque, dir, opcionesDelBloque());
+      if (!rb.ok) { avisaDelBloque(laneKey, stops, lectura, rb); return; }
+      const n = bloque.length;
+      if (!(await guardaLaLista(laneKey, stops, rb.paradas, { en: `${n} orders ${dir < 0 ? "up" : "down"}`, es: `${n} órdenes ${dir < 0 ? "arriba" : "abajo"}` }))) return;
+      senalaLaMovida(claveDeLaFila(p));
+      notify(t(`${n} orders moved ${dir < 0 ? "up" : "down"} one place`, `${n} órdenes movidas ${dir < 0 ? "arriba" : "abajo"} un puesto`));
       return;
     }
     const r = mueveEnLaLista(lectura.paradas, indice, dir);
@@ -1073,6 +1099,21 @@ export default function RoutesPage() {
         if (pulsadoEnControl.current) { e.preventDefault(); return; }
         e.dataTransfer.setData("text/plain", a.tipo === "orden" ? a.id : `${a.ruta}#${a.indice}`);
         e.dataTransfer.effectAllowed = "move";
+        // D-1024: con varias órdenes marcadas en esta lista, lo que sigue al puntero es «N órdenes» (el bloque que se mueve).
+        if (a.tipo === "parada") {
+          const stops = byDriver.get(a.ruta) ?? [];
+          const bloque = ordenesDelBloque(lecturaDe(a.ruta, stops).paradas, marcadas, a.indice);
+          if (bloque) {
+            const g = document.createElement("span");
+            g.className = "badge";
+            g.textContent = t(`${bloque.length} orders`, `${bloque.length} órdenes`);
+            g.style.position = "fixed";
+            g.style.top = "-1000px";
+            document.body.appendChild(g);
+            e.dataTransfer.setDragImage(g, 0, 0);
+            window.setTimeout(() => g.remove(), 0);
+          }
+        }
         setArrastrado(a);
       },
       onDragEnd: () => { setArrastrado(null); setSobre(null); },
@@ -1108,7 +1149,9 @@ export default function RoutesPage() {
     if (!p) return;
     const etiqueta = etiquetaDelDia(a.ruta, stops, lectura, (f) => f.indice === a.indice);
     const ids = p.tipo === "P" ? p.ordenes : [p.orden];
-    const movidas = stops.filter((d) => ids.includes(d.id));
+    // D-1024: si hay varias órdenes marcadas en esta lista, van TODAS (en su orden de lista), no solo la arrastrada.
+    const bloque = ordenesDelBloque(lectura.paradas, marcadas, a.indice);
+    const movidas = (bloque ?? ids).flatMap((id) => { const d = stops.find((x) => x.id === id); return d ? [d] : []; });
     const nombre = movidas.map((d) => facturaYId(d).principal).join(" · ");
     /** «⚠ se pasa en N parada(s)»: la capacidad avisa, no bloquea. */
     const avisoDeExceso = (lista: readonly ParadaDeLaLista[], suyas: readonly Delivery[], ruta: string) => {
@@ -1121,6 +1164,15 @@ export default function RoutesPage() {
         // Sobre la tarjeta o el panel de su propio chofer no hay puesto que tomar.
         if (indice == null) return;
         if (p.tipo === "P" && !hayRecogidaGuardada) { notify(t("Moving a pickup needs the database update (migration 154).", "Mover una recogida necesita la actualización de la base (migración 154).")); return; }
+        if (bloque) {
+          // D-1024: el bloque de marcadas va a este puesto (antes de la fila si sube, detrás si baja), en una sola escritura.
+          const rb = mueveBloque(lectura.paradas, bloque, indice, opcionesDelBloque());
+          if (!rb.ok) { avisaDelBloque(a.ruta, stops, lectura, rb); return; }
+          if (!(await guardaLaLista(destino, stops, rb.paradas, { en: `${bloque.length} orders → stop ${indice + 1}`, es: `${bloque.length} órdenes → parada ${indice + 1}` }))) return;
+          senalaLaMovida(claveDeLaFila(p));
+          notify(t(`${bloque.length} orders → stop ${indice + 1} of ${rb.paradas.length}.`, `${bloque.length} órdenes → parada ${indice + 1} de ${rb.paradas.length}.`));
+          return;
+        }
         const r = llevaEnLaLista(lectura.paradas, a.indice, indice);
         if (!r.ok) { if (r.motivo === "precedencia") avisaDeLaPrecedencia(a.ruta, stops, lectura, r.orden); return; }
         if (!(await guardaLaLista(destino, stops, r.paradas, { en: `${etiqueta} ${nombre} → stop ${indice + 1}`, es: `${etiqueta} ${nombre} → parada ${indice + 1}` }))) return;
