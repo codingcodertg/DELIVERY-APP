@@ -1,5 +1,6 @@
 "use client";
 
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { useRef, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { getLang, useT } from "@/lib/timetracker/i18n";
@@ -193,22 +194,15 @@ export default function TeamRequestsPage() {
       <div className="card">
         <h2>{t("mgr.req.history")}</h2>
         {history.length === 0 ? <p className="muted">{t("mgr.req.noHistory")}</p> : (
-          <table>
-            <thead><tr><th>{t("mgr.asn.employee")}</th><th>{t("mgr.req.colType")}</th><th>{t("mgr.req.colDetail")}</th><th>{t("mgr.req.colStatus")}</th></tr></thead>
-            <tbody>
-              {history.map((r) => {
-                const p = r.payload as Record<string, unknown>;
-                return (
-                  <tr key={r.id}>
-                    <td>{p.employeeName as string}</td>
-                    <td>{rLabel(r.type)}</td>
-                    <td className="small muted">{projName(p.assignmentId as string, r.employeeUid)} · {p.date as string}{r.type !== "delete" && p.hours ? " · " + p.hours + " h" : ""}</td>
-                    <td>{r.status === "approved" ? <span className="pill on">{t("mgr.req.approved")}</span> : <span className="pill off">{t("mgr.req.rejected")}</span>}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <TablaEstandar id="tt-solicitudes-del-equipo" filas={history} claveDe={(r) => String(r.id)}
+            columnas={[
+              { key: "empleado", en: t("mgr.asn.employee"), es: t("mgr.asn.employee"), ancho: 200, fija: true, valor: (r) => (r.payload as Record<string, unknown>).employeeName as string },
+              { key: "tipo", en: t("mgr.req.colType"), es: t("mgr.req.colType"), ancho: 150, valor: (r) => rLabel(r.type) },
+              { key: "detalle", en: t("mgr.req.colDetail"), es: t("mgr.req.colDetail"), ancho: 380, clase: "small muted",
+                valor: (r) => { const p = r.payload as Record<string, unknown>; return projName(p.assignmentId as string, r.employeeUid) + " · " + String(p.date) + (r.type !== "delete" && p.hours ? " · " + String(p.hours) + " h" : ""); } },
+              { key: "estado", en: t("mgr.req.colStatus"), es: t("mgr.req.colStatus"), ancho: 130, valor: (r) => (r.status === "approved" ? t("mgr.req.approved") : t("mgr.req.rejected")),
+                celda: (r) => (r.status === "approved" ? <span className="pill on">{t("mgr.req.approved")}</span> : <span className="pill off">{t("mgr.req.rejected")}</span>) },
+            ]} />
         )}
       </div>
 

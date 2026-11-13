@@ -1,5 +1,6 @@
 "use client";
 
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { useEffect, useState } from "react";
 import type { getMyDay } from "@/app/timetracker/clock-in/actions/clock";
 import { useAccionesDeFichar } from "@/components/timetracker/Capacitacion";
@@ -46,36 +47,31 @@ export function FichajesDeHoy({ d, cifras }: { d: DiaDeFichaje; cifras: boolean 
       {d.today.length === 0 && d.breaks.length === 0 ? (
         <p className="muted">{t("emp.punch.nothingToday")}</p>
       ) : (
-        <table>
-          <thead><tr><th>{t("emp.punch.colWhat")}</th><th>{t("emp.punch.colIn")}</th><th>{t("emp.punch.colOut")}</th><th style={{ textAlign: "right" }}>{t("emp.punch.colTime")}</th></tr></thead>
-          <tbody>
-            {/* Fichajes y descansos EN UNA SOLA tabla, ordenados por hora. Antes solo salían
-                los fichajes, así que un almuerzo de 40 minutos no aparecía por ninguna parte.
-                En dos tablas habría que reconstruir el día mentalmente; así se lee de arriba
-                abajo tal como pasó: entré, comí, volví, salí a repartir. */}
-            {[
-              ...d.today.map((e) => ({
-                k: e.id, orden: e.clockInAt, que: t("emp.punch.shift"), cls: "on",
-                desde: e.clockInAt, hasta: e.clockOutAt, min: e.minutes,
-              })),
-              ...d.breaks.map((b) => ({
-                k: b.id, orden: b.leftAt,
-                que: b.reason === "lunch" ? t("emp.punch.lunchRow") : t("emp.punch.outRow"),
-                cls: b.reason === "lunch" ? "wait" : "",
-                desde: b.leftAt, hasta: b.returnedAt, min: b.minutes,
-              })),
-            ]
-              .sort((a, b) => a.orden.localeCompare(b.orden))
-              .map((r) => (
-                <tr key={r.k}>
-                  <td className="nowrap"><span className={`pill ${r.cls}`}>{r.que}</span></td>
-                  <td className="nowrap">{hhmm(r.desde)}</td>
-                  <td className="nowrap">{r.hasta ? hhmm(r.hasta) : <span className="pill wait">{t("emp.punch.open")}</span>}</td>
-                  <td className="nowrap" style={{ textAlign: "right" }}>{horasYMinutos(r.min)}</td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
+        <TablaEstandar id="tt-fichajes-de-hoy" claveDe={(r) => r.k}
+          filas={[
+            // Fichajes y descansos EN UNA SOLA tabla, ordenados por hora. Antes solo salían
+            // los fichajes, así que un almuerzo de 40 minutos no aparecía por ninguna parte.
+            // En dos tablas habría que reconstruir el día mentalmente; así se lee de arriba
+            // abajo tal como pasó: entré, comí, volví, salí a repartir.
+            ...d.today.map((e) => ({
+              k: e.id, orden: e.clockInAt, que: t("emp.punch.shift"), cls: "on",
+              desde: e.clockInAt, hasta: e.clockOutAt, min: e.minutes,
+            })),
+            ...d.breaks.map((b) => ({
+              k: b.id, orden: b.leftAt,
+              que: b.reason === "lunch" ? t("emp.punch.lunchRow") : t("emp.punch.outRow"),
+              cls: b.reason === "lunch" ? "wait" : "",
+              desde: b.leftAt, hasta: b.returnedAt, min: b.minutes,
+            })),
+          ].sort((a, b) => a.orden.localeCompare(b.orden))}
+          columnas={[
+            { key: "que", en: t("emp.punch.colWhat"), es: t("emp.punch.colWhat"), ancho: 180, valor: (r) => r.que,
+              celda: (r) => <span className={"pill " + r.cls}>{r.que}</span> },
+            { key: "desde", en: t("emp.punch.colIn"), es: t("emp.punch.colIn"), ancho: 120, valor: (r) => r.desde, celda: (r) => hhmm(r.desde) },
+            { key: "hasta", en: t("emp.punch.colOut"), es: t("emp.punch.colOut"), ancho: 120, valor: (r) => r.hasta ?? null,
+              celda: (r) => (r.hasta ? hhmm(r.hasta) : <span className="pill wait">{t("emp.punch.open")}</span>) },
+            { key: "tiempo", en: t("emp.punch.colTime"), es: t("emp.punch.colTime"), ancho: 130, numerico: true, valor: (r) => r.min, celda: (r) => horasYMinutos(r.min) },
+          ]} />
       )}
       {(d.lunchMinutes > 0 || d.outMinutes > 0) && (
         // El total del día, por separado: comer y salir a repartir no son lo mismo ni para

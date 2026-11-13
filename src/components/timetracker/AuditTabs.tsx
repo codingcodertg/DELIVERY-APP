@@ -1,5 +1,6 @@
 "use client";
 
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { useMemo, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
@@ -83,19 +84,18 @@ export function AuditTabs() {
           <summary style={{ cursor: "pointer", fontWeight: 700 }}>
             {d === "unknown" ? t("mgr.audit.unknownDate") : fmtDayLong(d)} <span className="chip" style={{ marginLeft: 6 }}>{byDay.get(d)!.length}</span>
           </summary>
-          <table style={{ marginTop: 6 }}>
-            <thead><tr><th>{t("mgr.audit.time")}</th><th>{t("mgr.audit.who")}</th><th>{t("mgr.audit.action")}</th><th>{t("mgr.audit.detail")}</th></tr></thead>
-            <tbody>
-              {byDay.get(d)!.map((it) => (
-                <tr key={it.id}>
-                  <td className="small nowrap">{it.at ? fmtDT(new Date(it.at).getTime(), { hour: "2-digit", minute: "2-digit" }) : "…"}</td>
-                  <td className="small">{(it.who && uMap.get(it.who)?.fullName) || "—"}</td>
-                  <td className="small"><span className="chip">{it.action}</span></td>
-                  <td className="small muted">{it.detail}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ marginTop: 6 }}>
+            <TablaEstandar id="tt-auditoria" filas={byDay.get(d)!} claveDe={(it) => String(it.id)}
+              columnas={[
+                { key: "hora", en: t("mgr.audit.time"), es: t("mgr.audit.time"), ancho: 110, clase: "small nowrap", valor: (it) => it.at ?? null,
+                  celda: (it) => (it.at ? fmtDT(new Date(it.at).getTime(), { hour: "2-digit", minute: "2-digit" }) : "…") },
+                { key: "quien", en: t("mgr.audit.who"), es: t("mgr.audit.who"), ancho: 200, clase: "small", valor: (it) => (it.who && uMap.get(it.who)?.fullName) || null },
+                { key: "accion", en: t("mgr.audit.action"), es: t("mgr.audit.action"), ancho: 180, clase: "small", valor: (it) => it.action,
+                  celda: (it) => <span className="chip">{it.action}</span> },
+                { key: "detalle", en: t("mgr.audit.detail"), es: t("mgr.audit.detail"), ancho: 380, clase: "small muted", envuelve: true, valor: (it) => it.detail ?? null,
+                  celda: (it) => it.detail },
+              ]} />
+          </div>
         </details>
       ))}
     </div>

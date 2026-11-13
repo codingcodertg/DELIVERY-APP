@@ -1,5 +1,6 @@
 "use client";
 
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { useEffect, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { getLang, useT } from "@/lib/timetracker/i18n";
@@ -138,30 +139,18 @@ export default function MyWeekPage() {
       {!tablas ? null : rows.length === 0 ? (
         <p className="muted" style={{ marginTop: 14 }}>{t("emp.week.noTime")}</p>
       ) : (
-        <table style={{ marginTop: 14 }}>
-          <thead>
-            <tr>
-              <th>{t("emp.week.colProject")}</th>
-              <th className="right">{t("emp.week.colHours")}</th>
-              <th className="right">{t("emp.week.colRegular")}</th>
-              <th className="right">{t("emp.week.colOvertime")}</th>
-              <th className="right">{t("emp.week.colOverLimit")}</th>
-              {secciones.dinero && <th className="right">{t("emp.week.colPay")}</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.aid}>
-                <td>{r.proj.name}</td>
-                <td className="right nowrap">{(r.sec / 3600).toFixed(2)}</td>
-                <td className="right nowrap">{r.calc.reg.toFixed(2)}</td>
-                <td className="right nowrap">{r.calc.ot.toFixed(2)}</td>
-                <td className="right nowrap" style={{ color: r.calc.overLimit > 0 ? "var(--tt-danger)" : "inherit" }}>{r.calc.overLimit.toFixed(2)}</td>
-                {secciones.dinero && <td className="right nowrap">{money(r.calc.pay)}</td>}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{ marginTop: 14 }}>
+          <TablaEstandar id="tt-semana-proyectos" filas={rows} claveDe={(r) => r.aid}
+            columnas={[
+              { key: "proyecto", en: t("emp.week.colProject"), es: t("emp.week.colProject"), ancho: 260, fija: true, valor: (r) => r.proj.name },
+              { key: "horas", en: t("emp.week.colHours"), es: t("emp.week.colHours"), ancho: 110, numerico: true, valor: (r) => r.sec / 3600, celda: (r) => (r.sec / 3600).toFixed(2) },
+              { key: "regular", en: t("emp.week.colRegular"), es: t("emp.week.colRegular"), ancho: 110, numerico: true, valor: (r) => r.calc.reg, celda: (r) => r.calc.reg.toFixed(2) },
+              { key: "extra", en: t("emp.week.colOvertime"), es: t("emp.week.colOvertime"), ancho: 110, numerico: true, valor: (r) => r.calc.ot, celda: (r) => r.calc.ot.toFixed(2) },
+              { key: "sobre", en: t("emp.week.colOverLimit"), es: t("emp.week.colOverLimit"), ancho: 130, numerico: true, valor: (r) => r.calc.overLimit,
+                celda: (r) => <span style={{ color: r.calc.overLimit > 0 ? "var(--tt-danger)" : "inherit" }}>{r.calc.overLimit.toFixed(2)}</span> },
+              ...(secciones.dinero ? [{ key: "pago", en: t("emp.week.colPay"), es: t("emp.week.colPay"), ancho: 120, numerico: true, valor: (r: (typeof rows)[number]) => r.calc.pay, celda: (r: (typeof rows)[number]) => money(r.calc.pay) }] : []),
+            ]} />
+        </div>
       )}
 
       {tablas && <>
@@ -183,27 +172,26 @@ export default function MyWeekPage() {
                 <b className="nowrap">{fmtClock(d.sec)}</b>
               </div>
               {open && (
-                <table style={{ marginTop: 8 }}>
-                  <thead><tr><th>{t("emp.week.colInOut")}</th><th>{t("emp.week.colProject")}</th><th>{t("emp.week.colNote")}</th><th className="right">{t("emp.week.colDuration")}</th></tr></thead>
-                  <tbody>
-                    {d.items.map((s) => {
-                      const a = aMap.get(s.assignmentId ?? "");
-                      return (
-                        <tr key={s.id}>
-                          <td className="small nowrap">{s.startMs ? fmtTime(s.startMs) : "—"} → {s.endMs ? fmtTime(s.endMs) : "—"}</td>
-                          <td className="small">{projectName(a)}</td>
-                          <td className="small muted">
+                <div style={{ marginTop: 8 }}>
+                  <TablaEstandar id="tt-semana-entradas" filas={d.items} claveDe={(s) => String(s.id)}
+                    columnas={[
+                      { key: "entrada", en: t("emp.week.colInOut"), es: t("emp.week.colInOut"), ancho: 200, clase: "small nowrap",
+                        valor: (s) => (s.startMs ? fmtTime(s.startMs) : "—") + " → " + (s.endMs ? fmtTime(s.endMs) : "—") },
+                      { key: "proyecto", en: t("emp.week.colProject"), es: t("emp.week.colProject"), ancho: 220, clase: "small",
+                        valor: (s) => projectName(aMap.get(s.assignmentId ?? "")) },
+                      { key: "nota", en: t("emp.week.colNote"), es: t("emp.week.colNote"), ancho: 280, clase: "small muted", envuelve: true, valor: (s) => s.memo || null,
+                        celda: (s) => (
+                          <>
                             {s.memo || "—"}
                             {s.source === "manual" ? <span className="pill on" style={{ marginLeft: 6 }}>{t("emp.week.pillAdded")}</span>
                               : s.source === "adjusted" ? <span className="pill wait" style={{ marginLeft: 6 }}>{t("emp.week.pillAdjusted")}</span> : null}
                             {breaksText(s) && <div className="small muted" style={{ marginTop: 2 }}>{breaksText(s)}</div>}
-                          </td>
-                          <td className="right nowrap small">{fmtClock(s.durationSeconds)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                          </>
+                        ) },
+                      { key: "duracion", en: t("emp.week.colDuration"), es: t("emp.week.colDuration"), ancho: 120, numerico: true,
+                        valor: (s) => s.durationSeconds, celda: (s) => fmtClock(s.durationSeconds) },
+                    ]} />
+                </div>
               )}
             </div>
           );

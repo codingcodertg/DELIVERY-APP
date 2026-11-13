@@ -178,6 +178,16 @@
 .timetracker-module .topbar .account-link:hover,.timetracker-module .topbar .account-link.active{background:rgba(255,255,255,.14)}
 .timetracker-module .col-menu .col-opt{background:transparent;color:var(--text);padding:6px 8px;font-size:13px;font-weight:500;border-radius:6px;text-decoration:none}
 .timetracker-module .col-menu .col-opt:hover{background:var(--card-hover);filter:none}
+/* La tabla estándar (docs/ESTANDAR-DE-TABLAS.md): el ▾ y el nombre de cada cabecera son controles de la tabla, no
+   botones de acción. Sin el azul de arriba: van con el color de cabecera del módulo (--tt-muted). Los ↑ ↓ del ⚙
+   Columnas van como botoncitos con el borde del módulo. */
+.timetracker-module .tabla-estandar th button{background:none;border:none;box-shadow:none;border-radius:4px;padding:0;margin:0;font:inherit;text-transform:inherit;letter-spacing:inherit;color:var(--tt-muted);text-decoration:none}
+.timetracker-module .tabla-estandar th button:hover{background:none;filter:none;text-decoration:underline}
+.timetracker-module .tabla-estandar th .th-filter-btn{padding:2px 6px;font-size:16px;line-height:1;font-weight:800}
+.timetracker-module .tabla-estandar th .th-filter-btn:hover{background:var(--tt-chip);color:var(--tt-txt);text-decoration:none}
+.timetracker-module .tabla-estandar th .th-filter-btn.on{color:var(--tt-accent)}
+.timetracker-module .tabla-estandar-barra .col-menu button{background:var(--tt-panel2);color:var(--tt-txt);box-shadow:inset 0 0 0 1px var(--tt-line);border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600}
+.timetracker-module .tabla-estandar-barra .col-menu button:hover{background:var(--tt-chip);filter:none}
 /* La campana: su panel cuelga del borde derecho de la campana. Hasta D-528 iba escrito en línea en NotificationBell. */
 .timetracker-module .tt-campana{position:relative}
 .timetracker-module .tt-campana-panel{position:absolute;right:0;top:calc(100% + 6px);z-index:60;width:320px}

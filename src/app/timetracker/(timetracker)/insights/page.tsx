@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { useData } from "@/lib/timetracker-data-provider";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 import { addWeeks, computePay, fmtISOday, money, thisWeekStart, weekStartISO } from "@/lib/timetracker/helpers";
@@ -26,7 +27,6 @@ export default function InsightsPage() {
   // here does real work for someone who fails the check.
   const startISO = addWeeks(thisWeekStart(), -(WEEKS - 1));
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [sort, setSort] = useState<{ key: "name" | "hours" | "activity" | "cost"; dir: "asc" | "desc" }>({ key: "hours", dir: "desc" });
   useEffect(() => { sessionsSince(startISO).then(setSessions); }, [startISO, sessionsSince]);
 
   const uMap = useMemo(() => new Map(users.map((u) => [u.id, u])), [users]);
@@ -84,11 +84,8 @@ export default function InsightsPage() {
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const monthEnding = now.getDate() > daysInMonth - 3;
 
-  const sorted = empRows.slice().sort((a, b) => {
-    const d = sort.dir === "asc" ? 1 : -1;
-    if (sort.key === "name") return d * a.name.localeCompare(b.name);
-    return d * (a[sort.key] - b[sort.key]);
-  });
+  // Orden de partida: las que más horas tienen arriba. Después la persona ordena con ▾ en cada cabecera.
+  const porHoras = empRows.slice().sort((a, b) => b.hours - a.hours);
   const maxHours = Math.max(1, ...empRows.map((r) => r.hours));
 
   // Las horas de un presencial sin proyecto cuentan bajo su tienda y su puesto (D-493), una fila por
@@ -110,11 +107,6 @@ export default function InsightsPage() {
   if (otherProj > 0) topProj.push({ name: t("mgr.ins.other"), hours: otherProj });
   const maxProj = Math.max(1, ...topProj.map((r) => r.hours));
 
-  const hdr = (key: "name" | "hours" | "activity" | "cost", label: string, right?: boolean) => (
-    <th className={right ? "right" : ""} style={{ cursor: "pointer" }} onClick={() => setSort((s) => ({ key, dir: s.key === key && s.dir === "desc" ? "asc" : "desc" }))}>
-      {label}{sort.key === key ? (sort.dir === "desc" ? " ↓" : " ↑") : ""}
-    </th>
-  );
   const actColor = (p: number) => (p >= 60 ? "var(--tt-accent2)" : p >= 25 ? "var(--tt-warn)" : "var(--tt-danger)");
 
   if (me.role !== "admin") return <div className="card"><p className="muted">{t("common.adminsOnly")}</p></div>;
@@ -147,25 +139,21 @@ export default function InsightsPage() {
       <div className="card">
         <div className="between"><h2 style={{ margin: 0 }}>{t("mgr.ins.empWeek")}</h2><span className="small muted">{t("mgr.ins.tracking", { n: empRows.length })}</span></div>
         {empRows.length === 0 ? <p className="muted" style={{ marginTop: 10 }}>{t("mgr.ins.noTime")}</p> : (
-          <div style={{ overflowX: "auto", marginTop: 8 }}>
-            <table>
-              <thead><tr>{hdr("name", t("mgr.ins.colEmp"))}{hdr("hours", t("mgr.ins.colHours"), true)}<th>{t("mgr.ins.colLoad")}</th>{hdr("activity", t("mgr.ins.colActivity"), true)}{hdr("cost", t("mgr.ins.colPay"), true)}</tr></thead>
-              <tbody>
-                {sorted.map((r) => (
-                  <tr key={r.uid}>
-                    <td className="nowrap">{r.name}</td>
-                    <td className="right nowrap">{r.hours.toFixed(2)}</td>
-                    <td style={{ minWidth: 120 }}>
-                      <div style={{ background: "var(--tt-line)", borderRadius: 6, height: 8, overflow: "hidden" }}>
-                        <div style={{ width: (r.hours / maxHours) * 100 + "%", height: "100%", background: "var(--tt-accent)" }} />
-                      </div>
-                    </td>
-                    <td className="right nowrap"><span style={{ color: actColor(r.activity), fontWeight: 700 }}>{r.activity}%</span></td>
-                    <td className="right nowrap">{money(r.cost)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ marginTop: 8 }}>
+            <TablaEstandar id="tt-insights-personas" filas={porHoras} claveDe={(r) => r.uid}
+              columnas={[
+                { key: "nombre", en: t("mgr.ins.colEmp"), es: t("mgr.ins.colEmp"), ancho: 220, fija: true, valor: (r) => r.name, clase: "nowrap" },
+                { key: "horas", en: t("mgr.ins.colHours"), es: t("mgr.ins.colHours"), ancho: 110, numerico: true, valor: (r) => r.hours, celda: (r) => r.hours.toFixed(2) },
+                { key: "carga", en: t("mgr.ins.colLoad"), es: t("mgr.ins.colLoad"), ancho: 180, valor: (r) => Math.round((r.hours / maxHours) * 100),
+                  celda: (r) => (
+                    <div style={{ background: "var(--tt-line)", borderRadius: 6, height: 8, overflow: "hidden", minWidth: 120 }}>
+                      <div style={{ width: (r.hours / maxHours) * 100 + "%", height: "100%", background: "var(--tt-accent)" }} />
+                    </div>
+                  ) },
+                { key: "actividad", en: t("mgr.ins.colActivity"), es: t("mgr.ins.colActivity"), ancho: 120, numerico: true, valor: (r) => r.activity,
+                  celda: (r) => <span style={{ color: actColor(r.activity), fontWeight: 700 }}>{r.activity}%</span> },
+                { key: "pago", en: t("mgr.ins.colPay"), es: t("mgr.ins.colPay"), ancho: 130, numerico: true, valor: (r) => r.cost, celda: (r) => money(r.cost) },
+              ]} />
           </div>
         )}
       </div>

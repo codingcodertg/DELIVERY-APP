@@ -53,11 +53,6 @@ const PENDIENTES: readonly string[] = [
   "src/app/(app)/track/page.tsx",
   "src/app/(app)/warehouse/page.tsx",
   "src/app/operaciones/KpiDeEntregas.tsx",
-  "src/app/timetracker/(timetracker)/insights/page.tsx",
-  "src/app/timetracker/(timetracker)/people/page.tsx",
-  "src/app/timetracker/(timetracker)/requests/page.tsx",
-  "src/app/timetracker/(timetracker)/team-requests/page.tsx",
-  "src/app/timetracker/(timetracker)/week/page.tsx",
   "src/components/PausasDelDia.tsx",
   "src/components/PlanContraReal.tsx",
   "src/components/PuntualidadPorChofer.tsx",
@@ -65,18 +60,17 @@ const PENDIENTES: readonly string[] = [
   "src/components/RutaDelPlan.tsx",
   "src/components/erp/review-queue.tsx",
   "src/components/timetracker/AssignmentsPanel.tsx",
-  "src/components/timetracker/AuditTabs.tsx",
-  "src/components/timetracker/ClockinApprovals.tsx",
+  // Tablas sin encabezado por día: igual que MySections.
   "src/components/timetracker/EmployeeWeek.tsx",
-  "src/components/timetracker/FichajesDeHoy.tsx",
   "src/components/timetracker/GeofenceSection.tsx",
+  // La tabla de sesiones se edita en su propia fila. El recibo de pago (.rcpt-print) SE IMPRIME: queda sin estándar a propósito.
   "src/components/timetracker/ManagerReports.tsx",
+  // Tablas sin encabezado (horario de la semana y notas): hay que decidir cómo se titulan antes de convertirlas.
   "src/components/timetracker/MySections.tsx",
+  // Nómina: cada fila se edita y se despliega con la bitácora del turno (fila de ancho completo).
   "src/components/timetracker/PayrollTimesheets.tsx",
   "src/components/timetracker/ScheduleWeek.tsx",
-  "src/components/timetracker/TimeOffRequests.tsx",
   "src/components/timetracker/TripPanel.tsx",
-  "src/components/timetracker/VehiclesSection.tsx",
 ];
 
 const raiz = process.cwd();
@@ -106,6 +100,6 @@ describe("estándar de tablas: toda tabla usa las columnas de Órdenes", () => {
     expect(yaCumplen, "Ya usan el estándar: quítalos de PENDIENTES").toEqual([]);
   });
   it("la deuda no crece", () => {
-    expect(PENDIENTES.length).toBeLessThanOrEqual(33);
+    expect(PENDIENTES.length).toBeLessThanOrEqual(23);
   });
 });

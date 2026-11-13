@@ -1,5 +1,6 @@
 "use client";
 
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { getLang, useT } from "@/lib/timetracker/i18n";
@@ -147,6 +148,16 @@ export default function MyRequestsPage() {
   }
 
   const sorted = requests.slice().sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  // Lo que dice «Detalle» (una baja solo dice el día) y el texto del estado: lo mismo que se pinta, y lo que se ordena y filtra.
+  const detalleDe = (r: (typeof sorted)[number]): string => {
+    const p = (r.payload || {}) as Record<string, unknown>;
+    const proj = nombreDelProyecto(p.assignmentId, "");
+    return r.type === "delete"
+      ? `${proj} · ${p.date}`
+      : `${proj} · ${p.date} · ${p.fromTime || ""}-${p.toTime || ""} (${p.hours} h)`;
+  };
+  const estadoDe = (r: (typeof sorted)[number]): string =>
+    r.status === "pending" ? t("emp.req.pending") : r.status === "approved" ? t("emp.req.approved") : t("emp.req.rejected");
 
   return (
     <>
@@ -265,29 +276,15 @@ export default function MyRequestsPage() {
       <div className="card">
         <h2>{t("emp.req.myTitle")}</h2>
         {sorted.length === 0 ? <p className="muted">{t("emp.req.none")}</p> : (
-          <table>
-            <thead><tr><th>{t("emp.req.colType")}</th><th>{t("emp.req.colDetail")}</th><th>{t("emp.req.colStatus")}</th></tr></thead>
-            <tbody>
-              {sorted.map((r) => {
-                const p = (r.payload || {}) as Record<string, unknown>;
-                const proj = nombreDelProyecto(p.assignmentId, "");
-                const det = r.type === "delete"
-                  ? `${proj} · ${p.date}`
-                  : `${proj} · ${p.date} · ${p.fromTime || ""}-${p.toTime || ""} (${p.hours} h)`;
-                return (
-                  <tr key={r.id}>
-                    <td>{r.type ? label(r.type) : "—"}</td>
-                    <td className="small muted">{det}</td>
-                    <td>
-                      {r.status === "pending" ? <span className="pill wait">{t("emp.req.pending")}</span>
-                        : r.status === "approved" ? <span className="pill on">{t("emp.req.approved")}</span>
-                        : <span className="pill off">{t("emp.req.rejected")}</span>}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <TablaEstandar id="tt-mis-solicitudes" filas={sorted} claveDe={(r) => String(r.id)}
+            columnas={[
+              { key: "tipo", en: t("emp.req.colType"), es: t("emp.req.colType"), ancho: 150, valor: (r) => (r.type ? label(r.type) : null) },
+              { key: "detalle", en: t("emp.req.colDetail"), es: t("emp.req.colDetail"), ancho: 420, clase: "small muted", valor: (r) => detalleDe(r) },
+              { key: "estado", en: t("emp.req.colStatus"), es: t("emp.req.colStatus"), ancho: 140, valor: (r) => estadoDe(r),
+                celda: (r) => r.status === "pending" ? <span className="pill wait">{t("emp.req.pending")}</span>
+                  : r.status === "approved" ? <span className="pill on">{t("emp.req.approved")}</span>
+                  : <span className="pill off">{t("emp.req.rejected")}</span> },
+            ]} />
         )}
       </div>
       </>

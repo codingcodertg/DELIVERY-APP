@@ -1,5 +1,6 @@
 "use client";
 
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { useCallback, useEffect, useState } from "react";
 import { getPendingForInbox, reviewTimeOff } from "@/app/timetracker/clock-in/actions/timeoff";
 import { resolveException } from "@/app/timetracker/clock-in/actions/exceptions";
@@ -81,25 +82,22 @@ export function ClockinApprovals({ onCount }: { onCount?: (n: number) => void })
       {off.length === 0 ? (
         <p className="small muted" style={{ marginTop: 0 }}>{t("mgr.inbox.nothingPending")}</p>
       ) : (
-        <table className="orders">
-          <thead><tr><th>{t("mgr.inbox.colPerson")}</th><th>{t("mgr.inbox.colType")}</th><th>{t("mgr.inbox.colDates")}</th><th>{t("mgr.inbox.colNote")}</th><th /></tr></thead>
-          <tbody>
-            {off.map((r) => (
-              <tr key={r.id}>
-                <td>{r.nombre}</td>
-                <td>{offLabel(t, r.type)}</td>
-                <td>{r.start_date}{r.end_date !== r.start_date ? ` → ${r.end_date}` : ""}</td>
-                <td className="small muted">{r.note || "—"}</td>
-                <td style={{ whiteSpace: "nowrap" }}>
-                  <button className="btn-ok btn-sm" disabled={busy === r.id}
-                    onClick={() => act(r.id, () => reviewTimeOff({ id: r.id, decision: "approved" }))}>{t("mgr.inbox.approve")}</button>{" "}
-                  <button className="btn-danger btn-sm" disabled={busy === r.id}
-                    onClick={() => act(r.id, () => reviewTimeOff({ id: r.id, decision: "denied" }))}>{t("mgr.inbox.deny")}</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <TablaEstandar id="tt-bandeja-ausencias" filas={off} claveDe={(r) => String(r.id)} anchoDeAcciones={170}
+          columnas={[
+            { key: "persona", en: t("mgr.inbox.colPerson"), es: t("mgr.inbox.colPerson"), ancho: 200, fija: true, valor: (r) => r.nombre },
+            { key: "tipo", en: t("mgr.inbox.colType"), es: t("mgr.inbox.colType"), ancho: 170, valor: (r) => offLabel(t, r.type) },
+            { key: "fechas", en: t("mgr.inbox.colDates"), es: t("mgr.inbox.colDates"), ancho: 230,
+              valor: (r) => r.start_date + (r.end_date !== r.start_date ? " → " + r.end_date : "") },
+            { key: "nota", en: t("mgr.inbox.colNote"), es: t("mgr.inbox.colNote"), ancho: 260, clase: "small muted", envuelve: true, valor: (r) => r.note || null },
+          ]}
+          acciones={(r) => (
+            <>
+              <button className="btn-ok btn-sm" disabled={busy === r.id}
+                onClick={() => act(r.id, () => reviewTimeOff({ id: r.id, decision: "approved" }))}>{t("mgr.inbox.approve")}</button>{" "}
+              <button className="btn-danger btn-sm" disabled={busy === r.id}
+                onClick={() => act(r.id, () => reviewTimeOff({ id: r.id, decision: "denied" }))}>{t("mgr.inbox.deny")}</button>
+            </>
+          )} />
       )}
 
       <div className="hr" />
@@ -110,23 +108,18 @@ export function ClockinApprovals({ onCount }: { onCount?: (n: number) => void })
       {exc.length === 0 ? (
         <p className="small muted">{t("mgr.inbox.nothingPending")}</p>
       ) : (
-        <table className="orders">
-          <thead><tr><th>{t("mgr.inbox.colPerson")}</th><th>{t("mgr.inbox.colWhat")}</th><th>{t("mgr.inbox.colReason")}</th><th>{t("mgr.inbox.colWhen")}</th><th /></tr></thead>
-          <tbody>
-            {exc.map((r) => (
-              <tr key={r.id}>
-                <td>{r.nombre}</td>
-                <td>{excLabel(t, r.type)}</td>
-                <td className="small muted">{r.note || r.reason || "—"}</td>
-                <td className="small muted">{new Date(r.created_at).toLocaleString()}</td>
-                <td>
-                  <button className="btn-ghost btn-sm" disabled={busy === r.id}
-                    onClick={() => act(r.id, () => resolveException(r.id))}>{t("mgr.inbox.markSeen")}</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <TablaEstandar id="tt-bandeja-excepciones" filas={exc} claveDe={(r) => String(r.id)} anchoDeAcciones={140}
+          columnas={[
+            { key: "persona", en: t("mgr.inbox.colPerson"), es: t("mgr.inbox.colPerson"), ancho: 200, fija: true, valor: (r) => r.nombre },
+            { key: "que", en: t("mgr.inbox.colWhat"), es: t("mgr.inbox.colWhat"), ancho: 200, valor: (r) => excLabel(t, r.type) },
+            { key: "motivo", en: t("mgr.inbox.colReason"), es: t("mgr.inbox.colReason"), ancho: 280, clase: "small muted", envuelve: true, valor: (r) => r.note || r.reason || null },
+            { key: "cuando", en: t("mgr.inbox.colWhen"), es: t("mgr.inbox.colWhen"), ancho: 180, clase: "small muted", valor: (r) => r.created_at,
+              celda: (r) => new Date(r.created_at).toLocaleString() },
+          ]}
+          acciones={(r) => (
+            <button className="btn-ghost btn-sm" disabled={busy === r.id}
+              onClick={() => act(r.id, () => resolveException(r.id))}>{t("mgr.inbox.markSeen")}</button>
+          )} />
       )}
     </>
   );

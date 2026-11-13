@@ -1,5 +1,6 @@
 "use client";
 
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { useCallback, useEffect, useState } from "react";
 import { useAccionesDeFichar } from "@/components/timetracker/Capacitacion";
 import { getLang, useT } from "@/lib/timetracker/i18n";
@@ -121,28 +122,25 @@ export function TimeOffRequests() {
         {rows.length === 0 ? (
           <p className="muted">{t("emp.off.none")}</p>
         ) : (
-          <table>
-            <thead><tr><th>{t("emp.off.type")}</th><th>{t("emp.off.colDays")}</th><th>{t("emp.off.colStatus")}</th></tr></thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>{LABEL[r.type] ? (lang === "es" ? LABEL[r.type].es : LABEL[r.type].en) : r.type}</td>
-                  <td className="small muted">
+          <TablaEstandar id="tt-mis-ausencias" filas={rows} claveDe={(r) => String(r.id)}
+            columnas={[
+              { key: "tipo", en: t("emp.off.type"), es: t("emp.off.type"), ancho: 180, valor: (r) => (LABEL[r.type] ? (lang === "es" ? LABEL[r.type].es : LABEL[r.type].en) : r.type) },
+              { key: "dias", en: t("emp.off.colDays"), es: t("emp.off.colDays"), ancho: 380, clase: "small muted", envuelve: true,
+                valor: (r) => dias(r) + (r.note ? ` · “${r.note}”` : "") + (r.manager_comment ? ` · ${t("emp.off.manager")}: “${r.manager_comment}”` : ""),
+                celda: (r) => (
+                  <>
                     {dias(r)}
                     {r.note ? ` · “${r.note}”` : ""}
                     {/* El comentario del encargado es la razón por la que alguien vuelve a
                         esta pantalla después de que le contesten. Va con la fila, no escondido. */}
                     {r.manager_comment ? ` · ${t("emp.off.manager")}: “${r.manager_comment}”` : ""}
-                  </td>
-                  <td>
-                    {r.status === "pending" ? <span className="pill wait">{t("emp.off.pending")}</span>
-                      : r.status === "approved" ? <span className="pill on">{t("emp.off.approved")}</span>
-                      : <span className="pill off">{t("emp.off.denied")}</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </>
+                ) },
+              { key: "estado", en: t("emp.off.colStatus"), es: t("emp.off.colStatus"), ancho: 150, valor: (r) => r.status,
+                celda: (r) => (r.status === "pending" ? <span className="pill wait">{t("emp.off.pending")}</span>
+                  : r.status === "approved" ? <span className="pill on">{t("emp.off.approved")}</span>
+                  : <span className="pill off">{t("emp.off.denied")}</span>) },
+            ]} />
         )}
       </div>
     </>

@@ -1,5 +1,6 @@
 "use client";
 
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { useCallback, useEffect, useState } from "react";
 import { listVehicles, addVehicle, setVehicleActive } from "@/app/timetracker/clock-in/actions/vehicles";
 import { useT } from "@/lib/timetracker/i18n";
@@ -73,24 +74,22 @@ export function VehiclesSection() {
       ) : flota.length === 0 ? (
         <p className="small muted">{t("mgr.veh.none")}</p>
       ) : (
-        <table className="orders" style={{ marginTop: 12 }}>
-          <thead><tr><th>{t("mgr.veh.colVehicle")}</th><th>{t("mgr.veh.colPlate")}</th><th /><th /></tr></thead>
-          <tbody>
-            {flota.map((v) => (
-              <tr key={v.id} className={v.active ? undefined : "atenuado"}>
-                <td>{v.name}</td>
-                <td className="small muted">{v.plate || "—"}</td>
-                <td>{v.active ? <span className="pill on">{t("mgr.veh.active")}</span> : <span className="pill off">{t("mgr.veh.off")}</span>}</td>
-                <td style={{ whiteSpace: "nowrap" }}>
-                  <button className="btn-ghost btn-sm" disabled={busy}
-                    onClick={() => corre(() => setVehicleActive(v.id, !v.active))}>
-                    {v.active ? t("mgr.veh.turnOff") : t("mgr.veh.turnOn")}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{ marginTop: 12 }}>
+          <TablaEstandar id="tt-vehiculos" filas={flota} claveDe={(v) => String(v.id)} anchoDeAcciones={150}
+            claseDeFila={(v) => (v.active ? undefined : "atenuado")}
+            columnas={[
+              { key: "vehiculo", en: t("mgr.veh.colVehicle"), es: t("mgr.veh.colVehicle"), ancho: 260, fija: true, valor: (v) => v.name },
+              { key: "placa", en: t("mgr.veh.colPlate"), es: t("mgr.veh.colPlate"), ancho: 150, clase: "small muted", valor: (v) => v.plate || null },
+              { key: "estado", en: t("mgr.veh.colStatus"), es: t("mgr.veh.colStatus"), ancho: 150, valor: (v) => (v.active ? t("mgr.veh.active") : t("mgr.veh.off")),
+                celda: (v) => (v.active ? <span className="pill on">{t("mgr.veh.active")}</span> : <span className="pill off">{t("mgr.veh.off")}</span>) },
+            ]}
+            acciones={(v) => (
+              <button className="btn-ghost btn-sm" disabled={busy}
+                onClick={() => corre(() => setVehicleActive(v.id, !v.active))}>
+                {v.active ? t("mgr.veh.turnOff") : t("mgr.veh.turnOn")}
+              </button>
+            )} />
+        </div>
       )}
     </>
   );
