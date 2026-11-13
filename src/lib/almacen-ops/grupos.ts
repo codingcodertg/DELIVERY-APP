@@ -115,3 +115,14 @@ export function avisoYaEnGrupo(n: number, lang: Lang): string {
 export function esErrorDeYaEnGrupo(e: unknown): boolean {
   return /sin grupo/i.test(String((e as { message?: unknown } | null)?.message ?? e ?? ""));
 }
+
+/**
+ * ¿Sale «🖨 Imprimir» en la hoja de un grupo? (dueño, 12 nov: «give manager permission to print the ⏳ Pendiente group»).
+ * Aprobado: lo imprime quien lo ve (como desde D-998). Pendiente (guardado, sin aprobar): quien gestiona la merma de
+ * esa tienda —gerente, supervisor de almacén, store_admin o admin— para firmarlo en papel. Un borrador (sin guardar)
+ * nunca se imprime: todavía no es un grupo.
+ */
+export function puedeImprimirGrupo(g: { aprobado: boolean; gestiona: boolean; borrador?: boolean }): boolean {
+  if (g.borrador) return false;
+  return g.aprobado || g.gestiona;
+}

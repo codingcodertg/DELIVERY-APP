@@ -23,6 +23,9 @@
 .hoja-linea { display: block; border-bottom: 1.5px solid #111; height: 28px; }
 .hoja-pie { margin: 22px 0 0; font-size: 11px; color: #555; }
 /* 281: la hoja digital de un grupo — dos firmas (gerente + supervisor) dibujadas en la app. */
+/* Hoja de un grupo sin aprobar (dueño, 12 nov): banda que se ve en pantalla Y en el papel. Negro sobre blanco con
+   borde grueso, para que salga igual en cualquier impresora (sin depender de colores de fondo). */
+.hoja-banda-pendiente { margin: 0 0 14px; padding: 8px 12px; border: 2.5px solid #111; text-align: center; font-weight: 800; letter-spacing: .12em; font-size: 15px; }
 .hoja-firmas-digital { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .hoja-firma-img { display: block; height: 48px; width: auto; max-width: 100%; margin: 0 auto; object-fit: contain; }
 .hoja-firma-quien { font-size: 11px; font-weight: 600; color: #555; }
