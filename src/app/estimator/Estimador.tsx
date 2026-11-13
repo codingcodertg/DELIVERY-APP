@@ -34,6 +34,7 @@ import {
   POLITICA_CASILLA, POLITICA_CASILLA_ES, POLITICA_PARRAFOS, POLITICA_PARRAFOS_ES, POLITICA_TITULO, POLITICA_TITULO_ES, sePuedeGenerar, sePuedePedirLaCopia,
 } from "@/lib/estimator/politica";
 import { puedeVerLista, puedeVerTodas, type Pestana } from "@/lib/estimator/lista-admin";
+import { CalculadoraDeMaterial } from "./CalculadoraDeMaterial";
 import { alternarPriceMatch, etiquetaPriceMatch, igualaPrecio, ponCompetidor, ponPrecioCompetidor, sePuedeIgualar, tienePriceMatch } from "@/lib/estimator/price-match";
 import { borradorDesdeLead, decidirRelleno, idDeParametro, nombreDeLead, vinculoDeLead } from "@/lib/leads/cotizar";
 import { enlaceDeLaBase, enlaceDemo, type AlmacenDelEnlace } from "@/lib/leads/enlace";
@@ -572,7 +573,13 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
             📚 {puedeVerTodas(me) ? t("All quotes (admin)", "Todas las cotizaciones (admin)") : t("My quotes", "Mis cotizaciones")}
           </button>
         )}
+        <button type="button" role="tab" aria-selected={pestana === "calculadora"} data-pestana="calculadora"
+          className={"btn btn-sm " + (pestana === "calculadora" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("calculadora")}>
+          🧱 {t("Material calculator", "Calculadora de material")}
+        </button>
       </div>
+
+      {pestana === "calculadora" && <CalculadoraDeMaterial />}
 
       {/* La `key` la monta de nuevo si «Ver como» cambia de persona: otra persona, otro alcance, otros filtros. */}
       {pestana === "todas" && puedeVerLista(me) && (

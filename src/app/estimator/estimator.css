@@ -34,6 +34,54 @@
 .est-radios input { width: auto; }
 .est-total { font-family: 'Archivo', sans-serif; font-size: 20px; font-weight: 800; }
 .est-pestanas { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 16px; }
+
+/* ---- La calculadora de material (la plantilla de Excel): azul = capturar, verde = a vender. Los tokens de la app ---- */
+.calc-wrap { min-width: 0; }
+.calc-wrap .card h2 { margin: 0 0 10px; font-size: 17px; }
+.calc-wrap .card h3 { margin: 14px 0 8px; font-size: 14px; }
+.calc-wrap .calc-leyenda { margin: 6px 0 0; }
+.calc-leyenda-azul { color: var(--blue, #2563eb); font-weight: 700; }
+.calc-leyenda-verde { color: var(--green, #1f9d61); font-weight: 700; }
+.calc-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.calc-grid-2 { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.calc-wrap .field { min-width: 0; }
+/* Lo que el tipo de proyecto no usa: atenuado, pero sigue editable (nota B46 de la hoja). */
+.calc-no-aplica > label, .calc-no-aplica .calc-entrada, .calc-no-aplica > select { opacity: .55; }
+.calc-no-aplica .calc-aplica { opacity: .8; }
+.calc-aplica { display: block; font-size: 11.5px; margin-top: 3px; line-height: 1.35; overflow-wrap: anywhere; }
+.calc-wrap .calc-entrada {
+  width: 100%; min-width: 0; background: var(--accent-soft); border: 1px solid var(--blue, #2563eb);
+  color: var(--ink); border-radius: 8px; padding: 7px 9px; font: inherit; font-size: 14px;
+}
+.calc-wrap .calc-entrada:focus { outline: 2px solid var(--blue, #2563eb); outline-offset: 1px; }
+.calc-wrap .calc-check { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: normal; margin: 4px 0 0; cursor: pointer; }
+.calc-wrap .calc-check input { width: auto; }
+.calc-salpicadero { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.calc-salpicadero.calc-no-aplica h3 { opacity: .6; }
+.calc-nota { font-size: 12.5px; color: var(--ink-soft); margin: 10px 0 0; line-height: 1.45; }
+.calc-nota-sheet { border-left: 3px solid var(--line); padding-left: 10px; }
+.calc-nota-tabla { margin: 0 0 8px; font-size: 12.5px; }
+.calc-cab { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.calc-cab h2 { margin: 0 !important; }
+/* La cantidad a vender: verde y en negrita, como la columna E de la hoja. */
+.calc-venta { display: inline-block; background: var(--green-soft); color: var(--green, #1f9d61); font-weight: 800; border-radius: 6px; padding: 2px 8px; font-variant-numeric: tabular-nums; }
+.calc-notas { margin-top: 12px; font-size: 12.5px; color: var(--ink-soft); }
+.calc-notas p { margin: 0 0 6px; line-height: 1.45; }
+.calc-stats { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+.calc-stat { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--paper); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.calc-stat b { font-family: 'Archivo', sans-serif; font-size: 20px; }
+.calc-ajustes summary, .calc-glosario summary { cursor: pointer; list-style-position: outside; }
+.calc-ajustes-lista { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); margin-top: 10px; }
+.calc-ajuste { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--paper); }
+.calc-ajuste > label { font-size: 12.5px; }
+.calc-glosario-bloque { margin-top: 10px; }
+.calc-glosario-bloque h3 { margin: 0 0 4px; font-size: 13px; }
+.calc-glosario-fila { display: grid; grid-template-columns: minmax(160px, 1fr) 2fr; gap: 8px; padding: 5px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.calc-glosario-fila dt { font-weight: 700; }
+.calc-glosario-fila dd { margin: 0; color: var(--ink-soft); }
+@media (max-width: 560px) {
+  .calc-glosario-fila { grid-template-columns: 1fr; gap: 2px; }
+}
 .est-acciones { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .est-faltas { margin: 8px 0 0; padding-left: 18px; font-size: 13px; color: var(--red, #d64545); }
 .est-politica p { font-size: 13.5px; margin: 0 0 10px; }
