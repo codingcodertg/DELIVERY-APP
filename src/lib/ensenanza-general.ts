@@ -57,6 +57,7 @@ export { valorDeCapacitacion as valorDeEnsenanza };
  * lista o en la de abajo, para que una nueva no se cuele sin que alguien decida.
  */
 export const RPC_QUE_SOLO_LEEN = [
+  "monitor_salud", // 300 (D-1012): la salud del sistema en Central Hub Monitoring; solo el admin, solo lee.
   "warehouse_ops_search_products", // 247 (D-883): busca productos para la merma; stable, solo lee.
   "cuentas_de_clientes", // 203: las cuentas de Clientes para el formulario de orden; solo lee.
   "busca_clientes_en_toda_la_empresa", // 215 (D-740): la búsqueda del vendedor en toda la empresa; solo lee.
@@ -77,6 +78,7 @@ export const RPC_QUE_SOLO_LEEN = [
 
 /** Las que escriben: se cortan. Están nombradas solo para que la prueba sepa que alguien las miró. */
 export const RPC_QUE_ESCRIBEN = [
+  "monitor_reiniciar_estadisticas", // 300 (D-1012): reinicia pg_stat_statements para medir el ritmo de escrituras de ahora.
   "warehouse_ops_file_report", // 247 (D-883): crea un reporte de Operaciones de almacén y, en los de RR. HH., su fila del expediente.
   "warehouse_ops_edit_scrap_product", // 252: el gerente vincula o corrige el producto de una merma fuera de catálogo.
   "warehouse_ops_edit_scrap_origin", // 263: el gerente corrige el origen (CRMA / nota) de una merma.

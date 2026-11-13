@@ -536,6 +536,8 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
       {/* Barra de salto: una sola página, pero navegable */}
       <nav className="sec-nav" aria-label={t("Jump to section", "Saltar a sección")}>
         <a href="#sec-resumen">{t("Overview", "Resumen")}</a>
+        {/* D-1012: la salud de Supabase y Vercel (Disk IO, escrituras, archivos, publicaciones). */}
+        <a href="/security/salud" data-salud-link>📊 {t("System health", "Salud del sistema")}</a>
         <a href="#sec-usuarios">{t("Users", "Usuarios")} <span className="cnt">{usuarios.length}</span></a>
         <a href="#sec-dispositivos">{t("Devices", "Dispositivos")} <span className="cnt">{dispositivos.length}</span></a>
         <a href="#sec-actividad">{t("Activity", "Actividad")}</a>
