@@ -52033,3 +52033,11 @@ Reunión con Roberto (12 nov, 8:52 PM EST), la parte de Operaciones de almacén.
 No verificado en pantalla: el navegador de pruebas no estaba disponible en esta sesión, así que lo de 360–400 px queda comprobado por código y pruebas, no a la vista.
 
 Sello `warehouse_ops` 0.50.0; `deliveries` 1.607.0 (la burbuja de «entrar como» y `SelectorDeColumnas` son de todas las apps); repo 1.869.0.
+
+## D-1017 · APK 9 publicada: «Tomar foto» abre la cámara del teléfono en Android
+
+La app Android RDZ Deliveries 9 (1.14.0) ya está en el almacenamiento (`app/RDZ-Deliveries.apk`, 3 582 656 bytes, sha256 `91592ae9…c8be3`, comprobada tras subirla; la 8 queda respaldada en la laptop). Trae el `<queries>` de `IMAGE_CAPTURE` que añadió D-1016: en Android 11+ la cáscara no «veía» la app de cámara y «📷 Tomar foto» abría el selector de archivos (Baudelio, reunión del 12 nov). Con la APK 9 el botón abre la cámara del teléfono; con una APK anterior sigue la cámara de dentro de la app (D-1016).
+
+Los tres números iguales, como pide D-638: `versionCode` 9 / `versionName` 1.14.0, `RDZDeliveries/9` y `LATEST_APK_VERSION_CODE` = 9. Misma firma que las anteriores (SHA-256 del certificado `585d3306…4928f`), así que se instala encima sin perder la sesión. Los teléfonos con una APK anterior ven el aviso «Hay una nueva versión». No se probó en un teléfono: no había ninguno conectado.
+
+Sello `deliveries` 1.608.0; repo 1.870.0.
