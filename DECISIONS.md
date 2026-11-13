@@ -52310,3 +52310,11 @@ Para verlas en el demo local, las acciones del servidor de fichaje devuelven dat
 Solo cambia el marcado: horas y pagos iguales (Informes: 193.50 h y $3,174.00 antes y después en el demo).
 Visto en pantalla (demo, tema oscuro): Nómina, Horario, Viajes, Mi horario, Semana del empleado, Geocercas, Asignaciones e Informes a 1280; Nómina, Horario e Informes a 390.
 Sello `timetracker` 1.26.0; repo 1.891.0.
+
+## D-1039 · ERP: la cola de revisión con el estándar de tablas, sin perder la virtualización
+
+La cola de revisión pasa a `TablaEstandar` (▾, ⚙, mover y anchos). `TablaEstandar` gana tres props opcionales y aditivas: `virtual` (pinta solo las filas visibles, con relleno arriba y abajo; ordenar y filtrar van antes, sobre todas las filas recibidas), `seleccion` (casillas; la de la cabecera marca lo que la tabla lista, la misma regla que tenía la cola) y `filtrosIniciales`. Sin ellas el marcado es idéntico (prueba contra el HTML anterior).
+Se mantiene el paginado en servidor de 250 con contador exacto: el ▾ de una columna ordena y filtra las 250 cargadas, no toda la cola. Cargar la cola entera cambiaría ese paginado; queda así.
+En teléfono la caja no tiene alto fijo, así que se pintan las 250 (como antes).
+Visto en pantalla (demo con 1,205 marcadas): 1280 con orden, filtro y 77 seleccionadas; 390.
+Sello `erp` 0.28.0; repo 1.892.0.
