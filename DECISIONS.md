@@ -52223,3 +52223,27 @@ No son causa: el margen de 60 min del relevo (solo 6 órdenes de relevo en el pe
 - Los reordenamientos a mano siguen sin dejar rastro (pendiente de D-834): con ellos se podría medir qué deshace el despachador después de optimizar.
 
 Sello `deliveries` 1.613.0; repo 1.882.0.
+
+
+## D-1030 · Time Tracker: no cuenta el tiempo con la computadora dormida
+
+**Fecha:** 2026-11-13 · **Pedido por:** el dueño («se quedó prendido, solo cerré la tapa, y sumó 8 horas») · **Migración:** 305 (escrita, **sin aplicar**)
+
+**Causa, medida.** El reloj cuenta `ahora − inicio` en cada tick de un segundo. Un hueco entre ticks —la computadora dormida— entraba entero en la fila: `tickContinuo` lo detectaba y solo apagaba la marca de continuidad; el tiempo se seguía contando. Los avisos de `powerMonitor` (`suspend`, `lock-screen`) llegan al renderer **después** de despertar, porque el renderer duerme con el equipo; la pausa empezaba al despertar y no contaba nada. Y el INSERT pendiente (sin fila todavía) escribía `ahora − desde` al entrar, así que un sueño antes de que entrara la fila también se pagaba.
+
+**Caso del dueño (solo lectura).** Sesión `25a25300…`: 00:11:25 → 08:36:41 CT del 13 de noviembre, 30 316 s contados (8 h 25 min), **52 s activos**, sin capturas en ese tramo (la última de la noche es de las 23:48:41 y la siguiente de las 08:36:45), y el contador de teclas apenas se movió (3 141 → 3 156 en todo el tramo). La fila se insertó a las 08:36:38: el INSERT pendiente de esa hora arrastraba el inicio de las 00:11. **Minutos de más: 504** (de los 505 del tramo, menos los 52 s de actividad al despertar). Sin corregir: lo decide el dueño.
+
+**Arreglo.**
+- `suenoEntreTicks` (`pausa-de-energia.ts`), umbral `HUECO_DORMIDO_MS = 5 min`. Solo en escritorio. Hueco mayor: la fila para en el **último tick vivo** (no en ahora) y el reloj sigue en una fila nueva desde que despierta; el sueño no se paga (D-098).
+- El tick corta la fila viva (`cortarPorSueno`). Si el INSERT está pendiente, `intentarPendiente` corta el tramo **dentro del propio pendiente** (`hastaMs`), así un reintento no vuelve a mirar el reloj ni a pagar el tramo.
+- Los avisos de energía usan la hora que manda el proceso principal del escritorio (cambio en el repo `timetracker`, PR #2): el renderer congelado no fija la hora de la pausa.
+- Al volver, el mensaje dice a qué hora se detuvo el tiempo.
+- **Migración 305** (`sessions_corta_salto_de_latido`): en una fila viva, un latido con `end_ms` más de 16 min después del último guardado no la crece: la cierra en ese último latido (`live_note` = `closed:guard`). Es el mismo límite de 15 min del cron de huérfanas, más 60 s. Defensa en profundidad para clientes sin actualizar.
+
+**Lo que no cambia.** Huecos de hasta 5 min (red caída con el reloj vivo, pestaña estrangulada) siguen contando como antes. El cálculo de pago del tiempo trabajado no cambia.
+
+**Consecuencia aceptada:** una pausa de energía de menos de 5 min sigue contando (no se distingue de un parpadeo). Si el dueño quiere cortar desde 2 min, es un número en `HUECO_DORMIDO_MS`.
+
+**Pendiente:** aplicar la migración 305 (decisión del dueño, con el checksum en el ledger ya escrito); corregir la sesión de 504 min si lo decide; publicar una nueva versión de escritorio para que el aviso con hora real llegue a las computadoras (el corte del hueco entre ticks ya va con el sitio web, sin instalar nada).
+
+Sello `timetracker` 1.24.0; repo 1.883.0.
