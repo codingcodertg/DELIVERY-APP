@@ -153,7 +153,7 @@ describe("6f14b2b3: ningún paso avanza solo; siempre se toca Siguiente", () => 
     expect(ASISTENTE.match(/onElegirUno\(\)/g)).toHaveLength(4);
   });
   it("Siguiente queda a un toque: el foco va al botón y Enter en un campo corto avanza", () => {
-    expect(ASISTENTE).toContain('ref={botonSiguiente} className="ops-boton ops-boton-primario" onClick={siguiente}');
+    expect(ASISTENTE).toContain('ref={botonSiguiente} className={`ops-boton ops-boton-primario${i === 0 ? " ops-botonera-entera" : ""}`} onClick={siguiente}');
     expect(ASISTENTE).toContain('<div className="ops-pregunta" data-paso={paso.id} onKeyDown={enterAvanza}>');
     expect(ASISTENTE).toContain('if (e.key !== "Enter" || !listo || !(el instanceof HTMLInputElement) || el.type === "search" || el.type === "file") return;');
   });

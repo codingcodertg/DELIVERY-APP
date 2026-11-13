@@ -435,8 +435,6 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-editar-persona { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
 @media (max-width: 560px) { .ops-editar-campos { grid-template-columns: minmax(0, 1fr); } }
 
-/* Exportar CSV/PDF en la misma fila que las etapas (sin fila propia sobre la tabla). */
-.ops-exportar-en-fila { margin-left: auto; display: inline-flex; gap: 6px; }
 .ops-col-grupo-merma { white-space: nowrap; }
 
 /* 292: la etapa pendiente dentro del chip (sin aprobar todavía) y la lista «Pendiente de tu firma» del inicio. */
@@ -616,3 +614,22 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops .ops-seleccion [data-accion="limpiar-seleccion"] { margin-left: auto; }
 /* 9. El «Editar» que va dentro del renglón del producto: centrado con el texto, con aire. */
 .ops dd .btn { vertical-align: middle; margin-left: 6px; }
+
+/* ---- Revisión de diseño (D-1024): arreglos de Operaciones ---- */
+/* 1. El «?» de ayuda flotante tapaba el final de la botonera del asistente («Guardar borrador»): en el teléfono
+      la botonera deja hueco a la derecha. */
+@media (max-width: 719.98px) { .ops-botonera { padding-right: 88px; } }
+/* 2. «Cerrar» (arriba) y «Guardar borrador» (abajo) del asistente: 44 px de alto en el teléfono. */
+@media (max-width: 719.98px) {
+  .ops-asistente-acciones .ops-boton-chico, .ops-botonera .ops-boton-chico { min-height: 44px; }
+}
+/* 3. Merma: la fila de etapas es UNA sola línea que se desliza a los lados en el teléfono (no se dobla en 4 renglones). */
+@media (max-width: 719.98px) {
+  .ops-merma .ops-filtros[data-filtro-etapas] { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; scrollbar-width: thin; }
+  .ops-merma .ops-filtros[data-filtro-etapas] > .chip { flex: 0 0 auto; }
+}
+/* 4. Exportar CSV / PDF: botones junto a «⚙ Columnas» (a la derecha, antes del selector). */
+.ops-columnas-barra > .ops-exportar { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.ops-columnas-barra > .ops-exportar + * { margin-left: 6px; }
+/* 5. Encabezados de columnas numéricas: alineados a la derecha como sus números. */
+.ops th.num { text-align: right; font-variant-numeric: tabular-nums; }

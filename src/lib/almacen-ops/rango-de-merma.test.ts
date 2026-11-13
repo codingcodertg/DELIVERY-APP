@@ -177,7 +177,7 @@ describe("la pantalla", () => {
   it("el rango manda sobre la lista de merma y sobre la pérdida por tienda, y la tabla lleva la etiqueta del rango", () => {
     expect(lista).toContain("const mermasEnRango = useMemo(() => (rango ? filtrarPorRango(mermas, rango) : []), [mermas, rango]);");
     expect(lista).toContain("const enRango = useMemo(() => (rango ? perdidaEnRango(mermas, rango) : { \"*\": 0 }), [mermas, rango]);");
-    expect(lista).toContain('<th className="ops-col-rango">{etiqueta}</th>');
+    expect(lista).toContain('<th className="num ops-col-rango">{etiqueta}</th>');
     // D-921 (270): la lista del rango pasa además por el filtro de etapa (mermasPorEtapa = mermasEnRango sin filtro).
     expect(lista).toContain("(etapaFiltro ? mermasEnRango.filter((r) => etapaVisible(r, enPractica) === etapaFiltro) : mermasEnRango)");
     // La lista de merma es la tabla tipo Excel de Roberto (tabla-de-merma.ts); la de todos los reportes sigue siendo TablaDeReportes.

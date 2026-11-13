@@ -390,6 +390,18 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
     </div>
   );
 
+  // 4: Exportar CSV / PDF de la merma en rango: botones junto a «⚙ Columnas». 292: el almacén no exporta.
+  const botonesDeExportar = exporta && mermasPorEtapa.length > 0 ? (
+    <span className="ops-exportar">
+      <button type="button" className="btn btn-sm" onClick={() => exportarCsv(mermasPorEtapa)} data-accion="exportar-csv" title={t("Download these rows as a CSV file to paste into Excel", "Baja estas filas como CSV para pegarlas en Excel")}>
+        ⬇ {t("Export CSV", "Exportar CSV")} <span className="cnt">{mermasPorEtapa.length}</span>
+      </button>
+      <button type="button" className="btn btn-sm" onClick={() => void descargarPdf(mermasPorEtapa, true)} disabled={generandoPdf} data-accion="exportar-pdf" title={t("Download these rows as a PDF report", "Baja estas filas como un reporte PDF")}>
+        📄 {generandoPdf ? t("Generating…", "Generando…") : t("Download PDF", "Descargar PDF")} <span className="cnt">{mermasPorEtapa.length}</span>
+      </button>
+    </span>
+  ) : null;
+
   return (
     <section className="ops-reportes" data-modo={modo}>
       {/* Dueño, 10 nov: «Volver» como botón, a la izquierda (antes era un enlace subrayado a la derecha). */}
@@ -435,7 +447,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
           {tiendasDeMerma.length > 1 && (
           <div className="tbl-scroll tbl-caja">
             <table className="orders" data-perdida-por-tienda>
-              <thead><tr><th>{t("Store", "Tienda")}</th><th className="ops-col-rango">{etiqueta}</th><th>{t("This week", "Esta semana")}</th><th>{t("This month", "Este mes")}</th><th>{t("All time", "Siempre")}</th></tr></thead>
+              <thead><tr><th>{t("Store", "Tienda")}</th><th className="num ops-col-rango">{etiqueta}</th><th className="num">{t("This week", "Esta semana")}</th><th className="num">{t("This month", "Este mes")}</th><th className="num">{t("All time", "Siempre")}</th></tr></thead>
               <tbody>
                 {tiendasDeMerma.map((s) => (
                   <tr key={s} data-tienda={s}><td>{s}</td><td className="num ops-col-rango" data-perdida-rango={enRango[s] ?? 0}>{fmtMoney(enRango[s] ?? 0)}</td><td className="num">{fmtMoney(totales[s]?.semana ?? 0)}</td><td className="num">{fmtMoney(totales[s]?.mes ?? 0)}</td><td className="num">{fmtMoney(totales[s]?.todo ?? 0)}</td></tr>
@@ -456,18 +468,6 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
             ))}
             {/* «Groups» (dueño, 10 nov): al lado de las etapas; muestra el archivo de grupos en vez de la tabla. */}
             <button type="button" className={`chip${verGrupos ? " active" : ""}`} onClick={() => setVerGrupos((v) => !v)} data-filtro-grupos aria-pressed={verGrupos}>🗂 {t("Groups", "Grupos")} <span className="cnt">{grupos.length}</span></button>
-            {/* Exportar en la MISMA fila que las etapas (dueño, 10 nov: quitar el espacio muerto sobre la tabla). */}
-            {/* 292: el almacén no exporta (dueño: «warehouse people don't need pdf or csv reports»). */}
-            {!verGrupos && exporta && mermasPorEtapa.length > 0 && (
-              <span className="ops-exportar ops-exportar-en-fila">
-                <button type="button" className="btn btn-sm" onClick={() => exportarCsv(mermasPorEtapa)} data-accion="exportar-csv" title={t("Download these rows as a CSV file to paste into Excel", "Baja estas filas como CSV para pegarlas en Excel")}>
-                  ⬇ {t("Export CSV", "Exportar CSV")} <span className="cnt">{mermasPorEtapa.length}</span>
-                </button>
-                <button type="button" className="btn btn-sm" onClick={() => void descargarPdf(mermasPorEtapa, true)} disabled={generandoPdf} data-accion="exportar-pdf" title={t("Download these rows as a PDF report", "Baja estas filas como un reporte PDF")}>
-                  📄 {generandoPdf ? t("Generating…", "Generando…") : t("Download PDF", "Descargar PDF")} <span className="cnt">{mermasPorEtapa.length}</span>
-                </button>
-              </span>
-            )}
           </div>
           {!verGrupos && <>
           {seleccionadas.length > 0 && (
@@ -526,7 +526,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
           )}
           {/* «Seleccionar todos» vive SOLO en la casilla del encabezado (dueño, 10 nov: el botón de arriba era redundante). */}
           <TablaDeMermaExcel filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango" conEtapa
-            grupos={grupos} onAbrirGrupo={abrirGrupo} enConflicto={idsEnConflicto} onVisibles={setALaVista}
+            grupos={grupos} onAbrirGrupo={abrirGrupo} enConflicto={idsEnConflicto} onVisibles={setALaVista} exportacion={botonesDeExportar}
             seleccion={{ ids: seleccion, puede: puedeSeleccionar, alternar, todas: todasSeleccionadas, algunas: algunaSeleccionada, alternarTodas }}
             vacio={rango ? (etapaFiltro ? t("No scrap in that stage in this range.", "No hay merma en esa etapa en este rango.") : t("No scrap broken in this range.", "No se rompió nada en este rango.")) : t("Fix the dates to see the list.", "Corrige las fechas para ver la lista.")} />
           </>}
@@ -732,7 +732,7 @@ function useEsTelefono(): boolean {
   return es;
 }
 
-function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = true, seleccion, grupos, onAbrirGrupo, enConflicto, onVisibles, "data-lista": dataLista }: {
+function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = true, seleccion, grupos, onAbrirGrupo, enConflicto, exportacion, onVisibles, "data-lista": dataLista }: {
   /** Avisa qué renglones se ven tras la búsqueda y los filtros (para que «seleccionar todos» marque solo esos). */
   onVisibles?: (ids: Set<string>) => void;
   filas: Reporte[]; ctx: Contexto; onAbrir: (r: Reporte) => void; vacio: string; repetidas: Map<string, string[]>; "data-lista": string;
@@ -740,6 +740,8 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
   grupos?: readonly GrupoDeMerma[]; onAbrirGrupo?: (id: string) => void;
   /** Marcadas que ya están en un grupo: su renglón se resalta para que se quiten de la selección. */
   enConflicto?: ReadonlySet<string>;
+  /** Botones de exportar (CSV / PDF) que van en la barra, junto a «⚙ Columnas». */
+  exportacion?: React.ReactNode;
   conEtapa?: boolean;
   seleccion?: { ids: Set<string>; puede: (r: Reporte) => boolean; alternar: (id: string) => void;
     /** Casilla del encabezado «seleccionar todos»: si todas/algunas están marcadas y la acción para alternarlas. */
@@ -888,6 +890,8 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
             {Object.keys(orden.filtros).length > 0 && <> · <button type="button" className="ops-folio-link" onClick={orden.limpiarTodo}>{t("Clear filters", "Quitar filtros")}</button></>}
           </span>
         )}
+        {/* 4: Exportar CSV / PDF van junto a «⚙ Columnas» (los pone la vista que llama; 292: el almacén no exporta). */}
+        {exportacion}
         <SelectorDeColumnas
           columnas={ordenSelector}
           elegidas={visibles.map((c) => c.key)}

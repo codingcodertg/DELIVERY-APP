@@ -285,15 +285,14 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
 
       <footer className="ops-botonera">
         {avisoBorrador && <p className="ops-aviso ops-botonera-entera" role="status" data-aviso="borrador">{avisoBorrador}</p>}
-        {i === 0
-          ? <button type="button" className="ops-boton" onClick={cerrar}>{t("Cancel", "Cancelar")}</button>
-          : <button type="button" className="ops-boton" onClick={() => { setVolverAlResumen(false); setI((n) => n - 1); }} disabled={enviando}>{t("Back", "Atrás")}</button>}
+        {/* Primer paso: «✕ Cerrar» (arriba) ya cancela; abajo solo queda «Siguiente», a todo el ancho. */}
+        {i !== 0 && <button type="button" className="ops-boton" onClick={() => { setVolverAlResumen(false); setI((n) => n - 1); }} disabled={enviando}>{t("Back", "Atrás")}</button>}
         {enResumen
           ? <button type="button" className="ops-boton ops-boton-primario" onClick={() => void enviar()} disabled={enviando || !envio.ok} data-accion="enviar"
               title={envio.ok ? undefined : motivoDeBloqueo(envio.motivo, lang)} data-bloqueado={envio.ok ? undefined : envio.motivo}>
               {enviando ? t("Sending…", "Enviando…") : t("Send report", "Enviar reporte")}
             </button>
-          : <button type="button" ref={botonSiguiente} className="ops-boton ops-boton-primario" onClick={siguiente} disabled={!listo} data-accion="siguiente">
+          : <button type="button" ref={botonSiguiente} className={`ops-boton ops-boton-primario${i === 0 ? " ops-botonera-entera" : ""}`} onClick={siguiente} disabled={!listo} data-accion="siguiente">
               {volverAlResumen ? t("Back to summary", "Volver al resumen") : i === pasos.length - 1 ? t("Review", "Revisar") : t("Next", "Siguiente")}
             </button>}
         {/* «Guardar borrador» abajo, con Atrás / Siguiente (pedido 78b2e1fc); «Cerrar» sigue arriba. */}
