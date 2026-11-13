@@ -50,7 +50,6 @@ const PENDIENTES: readonly string[] = [
   "src/app/operaciones/KpiDeEntregas.tsx",
   "src/components/PlanContraReal.tsx",
   "src/components/RutaDelPlan.tsx",
-  "src/components/erp/review-queue.tsx",
 ];
 
 const raiz = process.cwd();

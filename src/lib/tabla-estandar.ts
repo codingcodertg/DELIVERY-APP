@@ -51,3 +51,12 @@ export function mueveEnOrden(orden: readonly string[], clave: string, delta: -1 
 
 export const claveDeVista = (id: string) => `rtg:tabla:${id}:vista`;
 export const claveDeAnchos = (id: string) => `rtg:tabla:${id}:anchos`;
+
+/**
+ * La casilla de «todas» de una tabla con selección (`TablaEstandar`, prop `seleccion`): si todas las filas que la tabla
+ * lista ahora ya están marcadas, la quita (vacía); si no, marca esas. Igual que la cola de revisión del ERP desde siempre.
+ */
+export function alternaTodas(clavesListadas: readonly string[], marcadas: ReadonlySet<string>): Set<string> {
+  const todas = clavesListadas.length > 0 && clavesListadas.every((k) => marcadas.has(k));
+  return todas ? new Set() : new Set(clavesListadas);
+}

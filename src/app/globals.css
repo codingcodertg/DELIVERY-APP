@@ -2136,3 +2136,6 @@ table.tbl-resize td.celda-suelta { white-space: normal; overflow: visible; }
 .sema.sema-sensible { background: var(--red); color: #fff; }
 .sema.sema-normal { background: var(--card-hover); color: var(--ink-soft); }
 .tabla-estandar table.orders td.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Selección (prop `seleccion`): la casilla de la primera columna, y las filas marcadas en azul suave. */
+.tabla-estandar th.tabla-estandar-sel, .tabla-estandar td.tabla-estandar-sel { text-align: center; padding-left: 6px; padding-right: 6px; }
+.tabla-estandar tr.fila-marcada > td { background: color-mix(in srgb, var(--blue) 10%, transparent); }

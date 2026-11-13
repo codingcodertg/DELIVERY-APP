@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import Link from "next/link";
 import { Badge } from "@/components/erp/ui/badge";
 import { Button } from "@/components/erp/ui/button";
@@ -18,6 +17,7 @@ import { BulkBar } from "@/components/erp/bulk-bar";
 import { UomAssistant } from "@/components/erp/uom-assistant";
 import { suggestUomFix } from "@/lib/erp/domain/uom";
 import { usePrefs } from "@/lib/prefs";
+import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
 
 export type ReviewRow = {
   id: number;
@@ -89,7 +89,8 @@ export function ReviewQueue({
   const searchParams = useSearchParams();
   const { t } = usePrefs();
   const [drawerId, setDrawerId] = useState<number | null>(null);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  // Claves de `TablaEstandar` (el id de cada producto, como texto).
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [uomMode, setUomMode] = useState(false);
@@ -121,36 +122,8 @@ export function ReviewQueue({
   );
 
   const issues = useMemo(() => facets.map((f) => [f.tag, f.n] as const), [facets]);
-  const filtered = rows; // the server already applied issue + q
   const pageCount = Math.max(1, Math.ceil(matching / pageSize));
 
-  // PRF-06: virtualize the rendered rows. Spacer <tr>s rather than a div-grid rewrite, so the existing
-  // table markup and styling are untouched; measureElement handles the variable row height that
-  // wrapping issue-tags produce.
-  const parentRef = useRef<HTMLDivElement>(null);
-  const virtualizer = useVirtualizer({
-    count: filtered.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 56,
-    overscan: 10,
-  });
-  const vItems = virtualizer.getVirtualItems();
-  const padTop = vItems.length ? vItems[0].start : 0;
-  const padBottom = vItems.length ? virtualizer.getTotalSize() - vItems[vItems.length - 1].end : 0;
-
-  function toggle(id: number) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-  const allSelected = filtered.length > 0 && filtered.every((r) => selected.has(r.id));
-  function toggleAll() {
-    if (allSelected) setSelected(new Set());
-    else setSelected(new Set(filtered.map((r) => r.id)));
-  }
   function applyState(s: Record<string, unknown>) {
     setParams({
       issue: typeof s.issue === "string" ? s.issue : null,
@@ -158,23 +131,59 @@ export function ReviewQueue({
       page: null,
     });
   }
-  function doResolve(id: number, tag: string) {
+  const doResolve = useCallback((id: number, tag: string) => {
     setErr(null);
     startTransition(async () => {
       const res = await resolveTag(id, tag);
       if (!res.ok) setErr(failText(res, t));
       else router.refresh();
     });
-  }
+  }, [router, t]);
   function exportSelection(fmt: "csv" | "xlsx") {
-    const sel = filtered.filter((r) => selected.has(r.id));
+    const sel = rows.filter((r) => selected.has(String(r.id)));
     const headers = ["SKU", "Name", "Status", "Category", "Vendor", "Price", ...(canSeeCost ? ["Cost", "Margin %"] : []), "Issues"];
     const data = sel.map((r) => [r.sku, r.name, r.status, r.category_path ?? "", r.vendor_name ?? "", r.price ?? "", ...(canSeeCost ? [r.cost ?? "", r.margin_pct ?? ""] : []), r.review_tags.join("; ")]);
     if (fmt === "csv") exportCsv("rtg-review-selection.csv", headers, data);
     else exportXlsx("rtg-review-selection.xlsx", "Review", headers, data);
   }
 
-  const cols = canSeeCost ? 8 : 6;
+  // Las columnas de la cola (estándar de tablas: ▾ ordenar y filtrar, ⚙, mover, anchos). Ordenar y filtrar actúan
+  // sobre las filas cargadas de la página (ver PRF-01 arriba: la cola completa vive en el servidor).
+  const columnas = useMemo<ColumnaEstandar<ReviewRow>[]>(() => [
+    {
+      key: "producto", en: "Product", es: "Producto", ancho: 320, fija: true,
+      valor: (r) => r.name,
+      celda: (r) => (
+        <>
+          <Link href={`/erp/product/${r.id}`} className="font-medium text-slate-900 hover:text-clay-700">{r.name}</Link>
+          <div className="font-mono text-xs text-slate-400">{r.sku}</div>
+        </>
+      ),
+    },
+    {
+      key: "estado", en: "Status", es: "Estado", ancho: 130,
+      valor: (r) => t(statusLabel(r.status).en, statusLabel(r.status).es),
+      celda: (r) => <Badge className={commercialStatusClass(r.status)}>{t(statusLabel(r.status).en, statusLabel(r.status).es)}</Badge>,
+    },
+    {
+      key: "problemas", en: "Issues", es: "Problemas", ancho: 260, envuelve: true,
+      valor: (r) => r.review_tags.join(", ") || null,
+      celda: (r) => (
+        <div className="flex flex-wrap gap-1">
+          {r.review_tags.map((tag) => (
+            <button key={tag} type="button" disabled={pending} onClick={() => doResolve(r.id, tag)} title={t("Resolve (clear this tag)", "Resolver (quitar esta etiqueta)")} className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium hover:line-through disabled:opacity-50", TAG_PILL)}>
+              {tag} <span className="text-amber-500">×</span>
+            </button>
+          ))}
+        </div>
+      ),
+    },
+    { key: "precio", en: "Price", es: "Precio", ancho: 110, numerico: true, valor: (r) => r.price, celda: (r) => money(r.price) },
+    ...(canSeeCost ? [
+      { key: "costo", en: "Cost", es: "Costo", ancho: 110, numerico: true, valor: (r: ReviewRow) => r.cost, celda: (r: ReviewRow) => <span className="text-slate-500">{money(r.cost)}</span> },
+      { key: "margen", en: "Margin", es: "Margen", ancho: 100, numerico: true, valor: (r: ReviewRow) => r.margin_pct, celda: (r: ReviewRow) => <span className="text-slate-500">{r.margin_pct == null ? "—" : `${r.margin_pct}%`}</span> },
+    ] : []),
+  ], [canSeeCost, t, pending, doResolve]);
 
   return (
     <div>
@@ -213,65 +222,17 @@ export function ReviewQueue({
       {uomMode ? (
         <UomAssistant rows={rows} onEdit={(id) => setDrawerId(id)} />
       ) : (
-      <div ref={parentRef} className="max-h-[70vh] overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 z-10 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="w-10 px-3 py-2.5">
-                <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-clay-500" aria-label={t("Select all", "Seleccionar todo")} />
-              </th>
-              <th className="px-3 py-2.5 font-medium">{t("Product", "Producto")}</th>
-              <th className="px-3 py-2.5 font-medium">{t("Status", "Estado")}</th>
-              <th className="px-3 py-2.5 font-medium">{t("Issues", "Problemas")}</th>
-              <th className="px-3 py-2.5 text-right font-medium">{t("Price", "Precio")}</th>
-              {canSeeCost && <th className="px-3 py-2.5 text-right font-medium">{t("Cost", "Costo")}</th>}
-              {canSeeCost && <th className="px-3 py-2.5 text-right font-medium">{t("Margin", "Margen")}</th>}
-              <th className="px-3 py-2.5"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {padTop > 0 && <tr aria-hidden style={{ height: padTop }} />}
-            {vItems.map((vi) => {
-              const r = filtered[vi.index];
-              return (
-              <tr key={r.id} data-index={vi.index} ref={virtualizer.measureElement} className={cn("border-t border-slate-100 align-top", selected.has(r.id) ? "bg-clay-50/50" : "hover:bg-slate-50/60")}>
-                <td className="px-3 py-2">
-                  <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} className="accent-clay-500" />
-                </td>
-                <td className="px-3 py-2">
-                  <Link href={`/erp/product/${r.id}`} className="font-medium text-slate-900 hover:text-clay-700">{r.name}</Link>
-                  <div className="font-mono text-xs text-slate-400">{r.sku}</div>
-                </td>
-                <td className="px-3 py-2">
-                  <Badge className={commercialStatusClass(r.status)}>{t(statusLabel(r.status).en, statusLabel(r.status).es)}</Badge>
-                </td>
-                <td className="px-3 py-2">
-                  <div className="flex flex-wrap gap-1">
-                    {r.review_tags.map((tag) => (
-                      <button key={tag} type="button" disabled={pending} onClick={() => doResolve(r.id, tag)} title={t("Resolve (clear this tag)", "Resolver (quitar esta etiqueta)")} className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium hover:line-through disabled:opacity-50", TAG_PILL)}>
-                        {tag} <span className="text-amber-500">×</span>
-                      </button>
-                    ))}
-                  </div>
-                </td>
-                <td className="px-3 py-2 text-right tabular-nums">{money(r.price)}</td>
-                {canSeeCost && <td className="px-3 py-2 text-right tabular-nums text-slate-500">{money(r.cost)}</td>}
-                {canSeeCost && <td className="px-3 py-2 text-right tabular-nums text-slate-500">{r.margin_pct == null ? "—" : `${r.margin_pct}%`}</td>}
-                <td className="px-3 py-2 text-right">
-                  <Button variant="outline" size="sm" onClick={() => setDrawerId(r.id)}>{t("Edit", "Editar")}</Button>
-                </td>
-              </tr>
-              );
-            })}
-            {padBottom > 0 && <tr aria-hidden style={{ height: padBottom }} />}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={cols} className="p-8 text-center text-slate-500">{t("Nothing flagged here. 🎉", "Nada marcado aquí. 🎉")}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+        <TablaEstandar
+          id="erp-cola-revision"
+          columnas={columnas}
+          filas={rows}
+          claveDe={(r) => String(r.id)}
+          vacio={t("Nothing flagged here. 🎉", "Nada marcado aquí. 🎉")}
+          acciones={(r) => <Button variant="outline" size="sm" onClick={() => setDrawerId(r.id)}>{t("Edit", "Editar")}</Button>}
+          claseDeFila={(r) => (selected.has(String(r.id)) ? "fila-marcada" : undefined)}
+          virtual={{ alto: 56, sobra: 10 }}
+          seleccion={{ marcadas: selected, onCambia: setSelected }}
+        />
       )}
 
       {pageCount > 1 && !uomMode && (
@@ -301,7 +262,7 @@ export function ReviewQueue({
       )}
 
       {drawerId !== null && <ProductDrawer productId={drawerId} canEdit={canSeeCost} canSeeCost={canSeeCost} onClose={() => setDrawerId(null)} />}
-      {selected.size > 0 && <BulkBar ids={[...selected]} canEdit={canSeeCost} onClear={() => setSelected(new Set())} onExport={exportSelection} />}
+      {selected.size > 0 && <BulkBar ids={[...selected].map(Number)} canEdit={canSeeCost} onClear={() => setSelected(new Set())} onExport={exportSelection} />}
     </div>
   );
 }

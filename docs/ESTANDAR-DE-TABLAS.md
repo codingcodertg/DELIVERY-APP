@@ -46,6 +46,11 @@ import { TablaEstandar } from "@/components/TablaEstandar";
   `<th>` para arrastrarlo (`th(key)`). Ejemplos: Empleados y Activos de RR. HH., Central Hub Monitoring.
 - En teléfono la tabla se desliza de lado dentro de su caja; si tu pantalla ya tiene una vista de tarjetas para
   teléfono, consérvala.
+- **Listas largas** (`virtual={{ alto, sobra }}`): pinta solo las filas visibles, con filas de relleno arriba y abajo.
+  Ordenar y filtrar siguen actuando sobre todas las filas que se le pasan, antes de virtualizar. Sin la prop, todo igual.
+  Requiere la caja con desplazamiento (no `sinCaja`). La cola de revisión del ERP lo usa (PRF-06).
+- **Selección** (`seleccion={{ marcadas, onCambia }}`): casillas en la primera columna; la de la cabecera marca o quita
+  las filas que la tabla lista ahora (`alternaTodas`, `src/lib/tabla-estandar.ts`). Sin la prop, no hay casillas.
 - **Forma reducida** (sin ▾, con ⚙, mover y anchos): para tablas que se EDITAN en su propia fila o despliegan una fila de
   ancho completo. Time Tracker: `src/components/timetracker/TablaReducida.tsx` (Nómina: turnos + bitácora; Informes:
   detalle editable). Cada una lleva un `id` propio por tabla que se pinta a la vez, porque la vista se guarda con él.
@@ -69,8 +74,7 @@ vendedor» y «Por GOV Pool» (Leads), la Bitácora de seguridad del hub (`src/c
 RR. HH., las tablas de tiempo del expediente, las tres de Métricas de RR. HH. y la de Encuestas (ambas). Completadas
 con `useVistaDeColumnas` (ya tenían ▾ y anchos; ganaron ⚙ y mover): Empleados y Activos (RR. HH.), las listas de
 Central Hub Monitoring y la lista de cotizaciones del Quote Builder. Productos de la competencia (Quote Builder) tiene ⚙,
-mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tanda 1, 12 nov 2026): Insights, Personas, Mis solicitudes, Solicitudes del equipo, Semana, Bandeja de fichajes, Fichajes de hoy, Ausencias, Vehículos y Auditoría. Time Tracker (tanda 2, 13 nov 2026): Asignaciones, Semana del empleado, Geocercas, Informes, Mis secciones, Nómina, Horario y Viajes. Entregas (tanda 13 nov 2026, `TablaEstandar`): Panel (las 5 tablas), Almacén (una por chofer), Recorrido del chofer (3), Cuentas, Auditoría, Reportes de choferes (5 pestañas y el día del chofer), Pausas del día y Puntualidad por chofer; los totales van en `totales` (pie de la tabla, sin ordenar). Pendiente por app: Time Tracker 0, Entregas 5, ERP 1
-(`review-queue`, pendiente: su tabla virtualiza las filas a propósito, PRF-06), Operaciones 1 — se convierten por tandas, empezando por las listas de uso diario.
+mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tanda 1, 12 nov 2026): Insights, Personas, Mis solicitudes, Solicitudes del equipo, Semana, Bandeja de fichajes, Fichajes de hoy, Ausencias, Vehículos y Auditoría. Time Tracker (tanda 2, 13 nov 2026): Asignaciones, Semana del empleado, Geocercas, Informes, Mis secciones, Nómina, Horario y Viajes. Entregas (tanda 13 nov 2026, `TablaEstandar`): Panel (las 5 tablas), Almacén (una por chofer), Recorrido del chofer (3), Cuentas, Auditoría, Reportes de choferes (5 pestañas y el día del chofer), Pausas del día y Puntualidad por chofer; los totales van en `totales` (pie de la tabla, sin ordenar). Pendiente por app: Time Tracker 0, Entregas 5, ERP 0, Operaciones 1 — se convierten por tandas, empezando por las listas de uso diario.
 
 | App | Archivo | Estado | Nota |
 |---|---|---|---|
@@ -140,7 +144,7 @@ mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tand
 | ERP | `src/components/erp/receiving.tsx` | ✅ estándar | PR #857 |
 | ERP | `src/components/erp/reorder-panel.tsx` | ✅ estándar | PR #857 |
 | ERP | `src/components/erp/request-review.tsx` | ➖ exenta | campo / actual / propuesto: tres columnas dentro de una tarjeta |
-| ERP | `src/components/erp/review-queue.tsx` | ⏳ pendiente |  |
+| ERP | `src/components/erp/review-queue.tsx` | ✅ estándar | cola de revisión: `TablaEstandar` con `virtual` (PRF-06) y `seleccion`; ▾ y ordenar actúan sobre las filas cargadas de la página (PRF-01) |
 | ERP | `src/components/erp/uom-assistant.tsx` | ✅ estándar | PR #857 |
 | RR. HH. | `src/components/recruiting/HistorialDeRrhh.tsx` | ✅ estándar | historial de RR. HH.; cada variante (todo, empleado, activo) tiene su vista guardada |
 | RR. HH. | `src/components/recruiting/ModalHost.tsx` | ➖ exenta | «Comparar candidatos»: matriz atributo × candidato (como la comparación de Entregas) |
