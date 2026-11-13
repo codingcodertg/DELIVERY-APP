@@ -117,7 +117,7 @@ export default async function SaludPage() {
             <table className="orders">
               <thead><tr><th>Qué</th><th className="num">Veces</th><th className="num">Por hora</th><th className="num">Escrito (WAL)</th></tr></thead>
               <tbody>
-                {esc.escrituras.map((e, i) => (
+                {(esc.escrituras ?? []).map((e, i) => (
                   <tr key={i}><td title={e.consulta}>{etiquetaDeConsulta(e.consulta)}</td><td className="num">{num(e.calls)}</td><td className="num">{horas ? num(e.calls / horas) : "—"}</td><td className="num">{bytes(e.wal_bytes)}</td></tr>
                 ))}
               </tbody>
@@ -132,7 +132,7 @@ export default async function SaludPage() {
           <table className="orders">
             <thead><tr><th>Bucket</th><th className="num">Archivos</th><th className="num">Total</th><th className="num">Últimos 7 días</th><th className="num">Últimos 30 días</th></tr></thead>
             <tbody>
-              {arc.buckets.map((x) => (
+              {(arc.buckets ?? []).map((x) => (
                 <tr key={x.bucket} className={x.bucket === "timetracker-screenshots" ? "salud-destacada" : undefined}>
                   <td>{x.bucket}</td><td className="num">{num(x.archivos)}</td><td className="num">{bytes(x.bytes)}</td><td className="num">{bytes(x.bytes_7d)}</td><td className="num">{bytes(x.bytes_30d)}</td>
                 </tr>
@@ -150,13 +150,13 @@ export default async function SaludPage() {
             <div className="tbl-scroll tbl-caja">
               <table className="orders">
                 <thead><tr><th>Tablas más grandes</th><th className="num">Tamaño</th></tr></thead>
-                <tbody>{bd.tablas.map((t) => <tr key={t.nombre}><td>{t.nombre}</td><td className="num">{bytes(t.bytes)}</td></tr>)}</tbody>
+                <tbody>{(bd.tablas ?? []).map((t) => <tr key={t.nombre}><td>{t.nombre}</td><td className="num">{bytes(t.bytes)}</td></tr>)}</tbody>
               </table>
             </div>
             <div className="tbl-scroll tbl-caja">
               <table className="orders">
                 <thead><tr><th>Tablas más movidas</th><th className="num">Cambios</th><th className="num">Muertas</th><th>Último autovacuum</th></tr></thead>
-                <tbody>{bd.movidas.map((t) => <tr key={t.tabla}><td>{t.tabla}</td><td className="num">{num(t.cambios)}</td><td className="num">{num(t.muertas)}</td><td>{fecha(t.last_autovacuum)}</td></tr>)}</tbody>
+                <tbody>{(bd.movidas ?? []).map((t) => <tr key={t.tabla}><td>{t.tabla}</td><td className="num">{num(t.cambios)}</td><td className="num">{num(t.muertas)}</td><td>{fecha(t.last_autovacuum)}</td></tr>)}</tbody>
               </table>
             </div>
           </div>
