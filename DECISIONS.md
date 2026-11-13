@@ -52279,3 +52279,9 @@ Migración 307: cuatro funciones pequeñas, solo admin (escrituras, archivos, ba
 Cada lectura corre aparte con su tiempo máximo (base 7 s, Metrics API 6 s, Vercel y Compute 8 s); una que falla deja sin datos solo sus tarjetas. Sin datos = tarjeta gris con el motivo, sin frases de «va bien». El error crudo ya no sale (`mensajeDeError`).
 No visto en pantalla: en demo la página no tiene base que medir.
 Sello `security` 0.29.0; repo 1.887.0.
+
+## D-1035 · Salud del sistema: la página ya no truena («Something went wrong»)
+
+Tras aplicar la 307, abrir Salud del sistema daba «Something went wrong» (registro de Vercel: `TypeError: Cannot read properties of undefined (reading 'map')` en /security/salud). Causa: `monitor_salud_archivos` devuelve la lista de buckets directa y la página esperaba `{ buckets }` (D-1034).
+Arreglo: el servidor acepta las dos formas, y cada tabla de la página usa una lista vacía si falta el dato, para que un dato raro nunca tumbe la página entera.
+Sello `security` 0.30.0; repo 1.888.0.

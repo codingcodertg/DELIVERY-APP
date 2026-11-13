@@ -158,7 +158,10 @@ export async function leerSalud(supabase: SupabaseClient, forzar = false): Promi
   if (!forzar && cache && Date.now() < cache.expira) return cache.salud;
   const [escrituras, archivos, base, revision, disco, compute, vercel] = await Promise.all([
     llamaMonitor<EscriturasDB>(supabase, "monitor_salud_escrituras", "307"),
-    llamaMonitor<ArchivosDB>(supabase, "monitor_salud_archivos", "307"),
+    // monitor_salud_archivos (307) devuelve la lista de buckets directa (jsonb array), no { buckets }.
+    llamaMonitor<ArchivosDB | ArchivosDB["buckets"]>(supabase, "monitor_salud_archivos", "307").then((p): Parte<ArchivosDB> => ({
+      ...p, datos: p.datos == null ? null : Array.isArray(p.datos) ? { buckets: p.datos } : { buckets: p.datos.buckets ?? [] },
+    })),
     llamaMonitor<BaseDB>(supabase, "monitor_salud_base", "307"),
     llamaMonitor<RevisionDB>(supabase, "monitor_salud_revision", "307"),
     leeDisco(), leeCompute(), leeVercel(),
