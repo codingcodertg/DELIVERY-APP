@@ -85,7 +85,7 @@ export function EmployeeWeek({ employeeId }: { employeeId: string }) {
                 celda: (r) => <>{hhmm(r.desde)} – {r.hasta ? hhmm(r.hasta) : <span className="pill wait">{t("mgr.ew.open")}</span>}</>, clase: "small nowrap" },
               { key: "tiempo", en: t("emp.punch.colTime"), es: t("emp.punch.colTime"), ancho: 110, numerico: true, valor: (r) => r.min,
                 celda: (r) => horas(r.min), clase: "num small nowrap" },
-              { key: "aviso", en: "Notice", es: "Aviso", ancho: 160, valor: (r) => r.aviso,
+              { key: "aviso", en: t("mgr.ew.colNotice"), es: t("mgr.ew.colNotice"), ancho: 160, valor: (r) => r.aviso,
                 celda: (r) => (r.aviso ? <span className="pill off">{r.aviso}</span> : null), clase: "small" },
             ]} />
         </div>

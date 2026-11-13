@@ -107,7 +107,7 @@
 @media(max-width:520px){
   .timetracker-module .pay-card{padding:18px}
   .timetracker-module .pay-n{font-size:34px}
-  .timetracker-module .pay-nav{width:100%;justify-content:space-between}
+  .timetracker-module .pay-nav{width:100%;justify-content:space-between} .timetracker-module .pay-nav .btn{white-space:nowrap;padding:6px 8px} .timetracker-module .pay-range{font-size:12px;padding:0 4px}
 }
 .timetracker-module .pill{font-size:11px;padding:2px 8px;border-radius:999px}
 .timetracker-module .pill.on{background:#12351f;color:#5df0a5}

@@ -1,6 +1,8 @@
 "use server";
 
 import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
+import { demoPayrollPeriod, demoEmployeeWeek } from "./demo-local";
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 import { canManageEmployee, isPeriodLocked, periodStartOf, type Me } from "@/lib/clockin/mgrScope";
@@ -299,6 +301,7 @@ export async function getPayrollPeriod(periodStart: string): Promise<
     }
   | { ok: false; message: string }
 > {
+  if (LOCAL_MODE) return demoPayrollPeriod(periodStart);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(periodStart)) return { ok: false, message: "Bad period." };
   const ctx = await mgrCtx();
   if (!ctx.ok) return ctx;
@@ -404,6 +407,7 @@ export async function getEmployeeWeek(employeeId: string, periodStart?: string):
     }
   | { ok: false; message: string }
 > {
+  if (LOCAL_MODE) return demoEmployeeWeek(employeeId, periodStart);
   const ctx = await mgrCtx();
   if (!ctx.ok) return ctx;
   if (!(await canManageEmployee(ctx.supabase, ctx.me, employeeId))) {

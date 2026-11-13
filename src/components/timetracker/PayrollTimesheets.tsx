@@ -410,7 +410,7 @@ export function PayrollTimesheets({ period, revisar }: {
                         <TablaReducida id={`tt-nomina-turnos-${id}`} claveDe={(e) => e.id} filas={suyas}
                           columnas={[
                             { key: "dia", en: t("mgr.rep.colDay"), es: t("mgr.rep.colDay"), ancho: 150, celda: (e) => <span className="small nowrap">{fmtDia(e.clock_in_at)}</span> },
-                            { key: "turno", en: "Shift", es: "Turno", ancho: 200,
+                            { key: "turno", en: t("mgr.pay.colShift"), es: t("mgr.pay.colShift"), ancho: 200,
                               celda: (e) => (
                                 <span className="small nowrap">
                                   {fmtHora(e.clock_in_at)} – {e.clock_out_at ? fmtHora(e.clock_out_at) : <span className="pill wait">open</span>}

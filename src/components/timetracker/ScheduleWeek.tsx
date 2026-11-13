@@ -276,7 +276,7 @@ export function ScheduleWeek() {
                   { key: "dia", en: t("mgr.rep.colDay"), es: t("mgr.rep.colDay"), ancho: 170, valor: (s) => s.shift_date, etiqueta: (v) => fmtDayLong(String(v)),
                     celda: (s) => <>{fmtDayLong(s.shift_date)}{s.shift_date === hoy ? t("mgr.sch.today") : ""}</> },
                   { key: "persona", en: t("mgr.sch.person"), es: t("mgr.sch.person"), ancho: 200, valor: (s) => nombreDe.get(s.employee_id) ?? t("mgr.sch.unknown") },
-                  { key: "turno", en: "Shift", es: "Turno", ancho: 180, valor: (s) => s.start_time,
+                  { key: "turno", en: t("mgr.sch.colShift"), es: t("mgr.sch.colShift"), ancho: 180, valor: (s) => s.start_time,
                     celda: (s) => <>{s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}{s.lunch_minutes ? ` · 🍽 ${s.lunch_minutes}m` : ""}</>, clase: "small muted nowrap" },
                 ]}
                 acciones={(s) => (

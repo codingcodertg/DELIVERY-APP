@@ -133,7 +133,7 @@ export function TripPanel({
               { key: "parada", en: t("emp.trip.stop"), es: t("emp.trip.stop"), ancho: 200, valor: (s) => s.label || t("emp.trip.stop") },
               { key: "horas", en: t("emp.week.colInOut"), es: t("emp.week.colInOut"), ancho: 170, valor: (s) => s.arrivedAt,
                 celda: (s) => `${hhmm(s.arrivedAt)}${s.departedAt ? ` – ${hhmm(s.departedAt)}` : ""}`, clase: "small muted nowrap" },
-              { key: "estado", en: "Status", es: "Estado", ancho: 140, valor: (s) => (s.departedAt ? null : t("emp.trip.hereNow")),
+              { key: "estado", en: t("emp.trip.colState"), es: t("emp.trip.colState"), ancho: 140, valor: (s) => (s.departedAt ? null : t("emp.trip.hereNow")),
                 celda: (s) => (!s.departedAt ? <span className="pill wait">{t("emp.trip.hereNow")}</span> : null) },
             ]} />
         </div>

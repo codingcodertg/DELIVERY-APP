@@ -87,7 +87,7 @@ export function GeofenceSection() {
                   clase: "small muted" },
                 { key: "margen", en: t("mgr.geo.colPadding"), es: t("mgr.geo.colPadding"), ancho: 110, numerico: true,
                   valor: (f) => f.padding_meters ?? null, celda: (f) => (f.padding_meters != null ? `${f.padding_meters} m` : "—"), clase: "num small muted" },
-                { key: "estado", en: "Status", es: "Estado", ancho: 120,
+                { key: "estado", en: t("mgr.geo.colState"), es: t("mgr.geo.colState"), ancho: 120,
                   valor: (f) => (f.active ? t("mgr.geo.active") : t("mgr.geo.off")),
                   celda: (f) => (f.active ? <span className="pill on">{t("mgr.geo.active")}</span> : <span className="pill off">{t("mgr.geo.off")}</span>) },
               ]}

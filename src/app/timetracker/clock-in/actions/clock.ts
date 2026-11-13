@@ -1,6 +1,8 @@
 "use server";
 
 import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
+import { demoMyDay } from "./demo-local";
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import { hoyEnBrownsville } from "@/lib/recruiting/hora-de-brownsville";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { sitioDelFichaje, type ClienteDeSitios } from "@/lib/clockin/sitio-del-fichaje";
@@ -689,6 +691,7 @@ export async function getMyDay(): Promise<
     }
   | { ok: false; message: string }
 > {
+  if (LOCAL_MODE) return demoMyDay();
   const ctx = await getAuthed();
   if (!ctx.ok) return { ok: false, message: "Not signed in." };
   const { supabase, user, profile } = ctx;

@@ -1,6 +1,8 @@
 "use server";
 
 import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
+import { demoScheduleWeek } from "./demo-local";
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import type { AnySupabase } from "@/lib/clockin/supabase/types";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { payPeriodDates, currentAndNextPeriodDates, patternRowsForDates, presetRowsForDates, cleanPattern, centralDateStr, type WeekPattern, type PresetType } from "@/lib/clockin/schedule";
@@ -294,6 +296,7 @@ export async function getScheduleWeek(periodStart?: string): Promise<
     }
   | { ok: false; message: string }
 > {
+  if (LOCAL_MODE) return demoScheduleWeek(periodStart);
   const ctx = await clockinManagerCtx();
   if (!ctx.ok) return ctx;
   const { supabase, me } = ctx;
