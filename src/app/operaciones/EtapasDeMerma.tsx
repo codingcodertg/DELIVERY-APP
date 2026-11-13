@@ -208,6 +208,27 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
   const paso = siguientePasoDeMerma(ctx.yo, r);
   const [borrador, setBorrador] = useState<string | null>(null);
   const iniciarAprobacionAqui = () => setBorrador(crearBorradorDeGrupo(ctx.yo.id, fmtDateTime(new Date().toISOString()), [r]));
+  /**
+   * D-1021 (revisión en pantalla; Roberto, 12 nov: «this app needs a reload to see the change»): al cerrar la hoja del
+   * grupo abierta DESDE la tarjeta, la merma se vuelve a leer — pudo aprobarse (segunda firma), salir del grupo o
+   * quedarse sin él. Antes la tarjeta y la lista seguían diciendo «Pendiente» hasta recargar la página.
+   */
+  const cerrarHoja = async () => {
+    const gid = hojaDeGrupo;
+    setHojaDeGrupo(null);
+    if (!gid) return;
+    if (esGrupoDePractica(gid)) {
+      const g = grupoDePractica(gid);
+      if (!g || !g.reportes.some((x) => x.id === r.id)) onCambio({ ...r, scrap_group_id: null });
+      else if (g.grupo.approved_at && !r.approved_at) onCambio({ ...r, stage: "approved", approved_at: g.grupo.approved_at, approved_by: g.grupo.approved_by, scrap_group_id: gid });
+      return;
+    }
+    if (ctx.demo) return;
+    try {
+      const { data } = await createClient().from("warehouse_reports").select("*").eq("id", r.id).maybeSingle();
+      if (data) onCambio({ ...r, ...(data as Reporte), unit_cost: data.unit_cost == null ? null : Number(data.unit_cost), total_loss: data.total_loss == null ? null : Number(data.total_loss), firmas: r.firmas });
+    } catch { /* sin red: se queda lo que había; al recargar se ve */ }
+  };
   const [faltaMiFirma, setFaltaMiFirma] = useState(false);
   useEffect(() => {
     if (paso !== "abrir-grupo" || !r.scrap_group_id || ctx.demo) { setFaltaMiFirma(false); return; }
@@ -246,7 +267,10 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
   };
   return (
     <section className="ops-etapas" data-etapas={actual}>
-      <h4>{t("Stage", "Etapa")} · <ChipDeEtapa r={r} conFecha={false} /> <AvisoPendienteDeFirma r={conFirmas} /></h4>
+      {/* D-1021 (revisión en pantalla): aquí salía «✍ Pendiente: firma del supervisor» de las firmas POR REPORTE (280), que
+          ya no existen en la pantalla (la merma se firma solo en la hoja de su grupo, D-985). El aviso confundía: una
+          merma suelta no espera firma de nadie. Lo que falta lo dicen el paso «Pendiente de aprobación» y «Falta tu firma». */}
+      <h4><span>{t("Stage", "Etapa")}</span> <ChipDeEtapa r={r} conFecha={false} /></h4>
       <ol className="ops-linea-de-etapas">
         {ETAPAS.map((e) => {
           const f = fechaDeEtapa(r, e);
@@ -292,10 +316,10 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
         })}
       </ol>
       {hojaDeGrupo && (
-        <div className="overlay" onClick={() => setHojaDeGrupo(null)}>
+        <div className="overlay" onClick={() => void cerrarHoja()}>
           <div className="modal ops-tarjeta-grupo" onClick={(ev) => ev.stopPropagation()} role="dialog" aria-modal="true" data-hoja-del-reporte={hojaDeGrupo}>
-            <CerrarX onCerrar={() => setHojaDeGrupo(null)} />
-            <HojaDeGrupo grupoId={hojaDeGrupo} ctx={ctx} onSalir={() => setHojaDeGrupo(null)} />
+            <CerrarX onCerrar={() => void cerrarHoja()} />
+            <HojaDeGrupo grupoId={hojaDeGrupo} ctx={ctx} onSalir={() => void cerrarHoja()} />
           </div>
         </div>
       )}

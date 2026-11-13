@@ -9,7 +9,7 @@ import { etiquetaDeOpcion } from "@/lib/almacen-ops/pasos";
 import { repartoDeReporte } from "@/lib/almacen-ops/perdida";
 import { DEMO_PERSONAS, DEMO_REPORTES, type Reporte } from "@/lib/almacen-ops/datos";
 import { EMPRESA, RECORDATORIO_EN, RECORDATORIO_ES, filasDeHoja, idsDeConsulta, puedeImprimirHoja, tiendasDeHoja, totalDeHoja } from "@/lib/almacen-ops/etapas";
-import { fmtDia } from "@/lib/almacen-ops/fecha-del-dano";
+import { diaEnTexas, fmtDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { fmtMoney } from "@/lib/utils";
 import { BotonImprimir } from "./BotonImprimir";
 import "./hoja.css";
@@ -81,7 +81,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ i
           </div>
           <dl className="hoja-datos">
             <dt>{t("Store", "Tienda")}</dt><dd data-hoja-tienda>{tiendasDeHoja(filas)}</dd>
-            <dt>{t("Date", "Fecha")}</dt><dd data-hoja-fecha>{fmtDia(hoy.toISOString().slice(0, 10), lang)}</dd>
+            <dt>{t("Date", "Fecha")}</dt><dd data-hoja-fecha>{fmtDia(diaEnTexas(hoy), lang)}</dd>
             <dt>{t("Reports", "Reportes")}</dt><dd>{filas.length}</dd>
           </dl>
         </header>

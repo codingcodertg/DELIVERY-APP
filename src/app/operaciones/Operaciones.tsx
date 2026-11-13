@@ -44,6 +44,19 @@ export function Operaciones({ vista, demo }: { vista: Vista; demo: boolean }) {
     ? { estado: "listo", ctx: { demo, yo: DEMO_YO, tiendas: DEMO_TIENDAS, personas: DEMO_PERSONAS } }
     : { estado: "cargando" });
 
+  // Solo en demo (NEXT_PUBLIC_LOCAL_MODE): para revisar la pantalla como otro rol sin base, `localStorage["rtg:demo:yo"]`
+  // (JSON parcial de `Yo`: role, store, warehouse_ops_role, permissions…) se mezcla con el usuario demo. En producción
+  // esto no corre: `demo` es falso y quién eres lo dice la base.
+  useEffect(() => {
+    if (!demo) return;
+    try {
+      const crudo = localStorage.getItem("rtg:demo:yo");
+      if (!crudo) return;
+      const yo = { ...DEMO_YO, ...(JSON.parse(crudo) as Partial<Yo>) };
+      setCarga({ estado: "listo", ctx: { demo, yo, tiendas: yo.role === "admin" ? DEMO_TIENDAS : DEMO_TIENDAS.filter((x) => x === yo.store), personas: DEMO_PERSONAS } });
+    } catch { /* override roto: se queda el admin demo */ }
+  }, [demo]);
+
   useEffect(() => {
     if (demo) return;
     let vivo = true;

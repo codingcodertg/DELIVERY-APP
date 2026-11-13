@@ -556,3 +556,63 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 /* El inicio: Conteos ya es una tarjeta más; la bitácora de mantenimiento se abre desde su sección. */
 .ops-t-conteos { --familia: var(--accent); }
 .ops-mant-bitacora { margin: 0 0 10px; }
+
+/* ==== Revisión en pantalla (D-1021, 12 nov) ==== */
+/* 1. El chip elegido NO se veía elegido: todo Operaciones marca `.chip.active`, y globals.css solo pinta `.chip.on`.
+      Mismo aspecto que el `.chip.on` de Entregas (pestañas, etapas, Mis reportes / Todos, filtros de grupos). */
+.chip.active { background: var(--text); color: var(--paper); border-color: var(--text); } /* como Entregas: se lee en claro y en oscuro */
+.chip.active .cnt { opacity: .85; }
+.topbar .chip.active { background: #fff; color: var(--ink); border-color: #fff; } /* la barra es oscura en los dos temas (como su `color: #fff`) */
+/* El botón de fecha abre un menú; no es un filtro encendido: no se pinta como elegido (eran tres píldoras oscuras seguidas). */
+.chip.active[aria-haspopup="menu"] { background: var(--card); color: var(--text); border-color: var(--line); }
+.topbar .ops-filtro-mios .chip:not(.active) { background: transparent; color: inherit; border-color: color-mix(in srgb, currentColor 45%, transparent); }
+/* 2. Un `.btn` sin variante no tiene fondo ni borde en globals.css y salía como texto suelto («Exportar CSV»,
+      «Editar reporte», «Quitar»…). En Operaciones, el botón secundario es el contorneado neutro. */
+.ops .btn:not(.btn-primary):not(.btn-ghost):not(.btn-danger) { background: var(--card); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+.ops .btn:not(.btn-primary):not(.btn-ghost):not(.btn-danger):hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--ink-soft); }
+/* 3. Teléfono: los totales, el del rango a todo el ancho y los otros tres en un renglón (antes quedaba uno huérfano). */
+@media (max-width: 719.98px) {
+  .ops-reportes .ops-merma-totales { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ops-reportes .ops-merma-total-rango { grid-column: 1 / -1; }
+  .ops-reportes .ops-merma-total { padding: 6px 8px; }
+  .ops-reportes .ops-merma-cifra { font-size: 15px; }
+}
+.ops-volver-corto { display: none; }
+/* 4. Teléfono: «Volver · Reportes · Mis reportes / Todos» apretaba la barra y cortaba el nombre de la app
+      («OPERACI…»). En pantalla angosta baja a su propio renglón dentro de la barra, en una sola línea. */
+@media (max-width: 719.98px) {
+  /* El hueco sale de la fila del nombre y se acuesta abajo, a todo el ancho de la barra, que le hace sitio. No se toca
+     la marca (nombre + casa): sus tamaños viven una sola vez en globals.css (barra-igual.test.ts). */
+  .topbar:has(.topbar-hueco:not(:empty)) { position: relative; padding-bottom: 62px; }
+  .topbar .topbar-hueco:not(:empty) { position: absolute; left: 12px; right: 12px; bottom: 9px; }
+  .ops-volver-largo { display: none; }
+  .ops-volver-corto { display: inline; }
+  .topbar .ops-cabeza-reportes { flex-wrap: nowrap; gap: 8px; width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .topbar .ops-cabeza-reportes h2 { white-space: nowrap; }
+  .topbar .ops-filtro-mios { margin-left: auto; flex-shrink: 0; }
+  .topbar .ops-filtro-mios .chip { white-space: nowrap; }
+}
+/* 5. «Borrar práctica» se estiraba a todo el ancho (hijo de una rejilla): es una acción menor, a su tamaño y a la izquierda. */
+.ops-grupos > .btn { justify-self: start; }
+/* 6. Teléfono: los chips medían 36 px de alto; el dedo pide 44 (pestañas, etapas, Mis reportes / Todos, filtros de grupos). */
+@media (max-width: 719.98px) {
+  .ops .chip, .topbar .ops-cabeza-reportes .chip, .topbar .ops-volver { min-height: 44px; display: inline-flex; align-items: center; }
+}
+/* 7. Teléfono: lo que se toca con el dedo mide 44 px (los botones medían 32–36, la ✕ 38, la casilla 20 y la ▾ 24×20).
+      La celda entera de la casilla marca el renglón, así no hay que atinarle al cuadrito. */
+@media (max-width: 719.98px) {
+  .ops .btn, .ops .ops-busca-merma, .ops .ops-filtro-tienda { min-height: 44px; }
+  .ops .ops-cerrar-x { width: 44px; height: 44px; }
+  .ops .ops-col-casilla { width: 44px; min-width: 44px; cursor: pointer; }
+  .ops .ops-col-casilla input { width: 24px; height: 24px; }
+  .ops .th-filter-btn { min-width: 44px; min-height: 44px; }
+  .ops .ops-icono-fotos { min-height: 36px; padding: 6px 10px; }
+  .ops .ops-folio-link { display: inline-block; min-width: 44px; padding: 10px 6px; }
+  .ops .ops-pastilla-persona button { min-width: 44px; min-height: 44px; }
+}
+/* 8. Barra de selección: cada botón traía `margin-left: auto` y quedaban regados por todo el ancho. Las acciones van
+      juntas, pegadas a la cuenta, y solo «Quitar» se va a la derecha. */
+.ops .ops-seleccion .btn { margin-left: 0; }
+.ops .ops-seleccion [data-accion="limpiar-seleccion"] { margin-left: auto; }
+/* 9. El «Editar» que va dentro del renglón del producto: centrado con el texto, con aire. */
+.ops dd .btn { vertical-align: middle; margin-left: 6px; }

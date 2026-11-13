@@ -21,6 +21,7 @@
 import type { TipoDeReporte } from "./tipos";
 import { puedeCorregirMerma, veLosReportes, type Quien } from "./visibilidad";
 import { nivelDe } from "./nivel";
+import { diaEnTexas } from "./fecha-del-dano";
 import { cajasDanadas, rompioEscrito } from "./tabla-de-merma";
 
 export const ETAPAS = ["documented", "photographed", "approved", "dumped", "adjusted"] as const;
@@ -292,7 +293,8 @@ export function filasDeHoja(
   return reportes.filter((r) => r.kind === "scrap").map((r) => ({
     id: r.id,
     folio: folioCorto(r.id),
-    dia: r.broken_on ?? r.created_at.slice(0, 10),
+    // El día en TEXAS: con `slice(0, 10)` (día UTC) una merma reportada después de las 6 PM salía con fecha de mañana.
+    dia: r.broken_on ?? diaEnTexas(r.created_at),
     producto: r.product_not_in_catalog ? `${r.product_name ?? ""} *` : [r.product_sku, r.product_name].filter(Boolean).join(" · "),
     danadas: danadasDe(r),
     cajas: cajasDanadas(danadasDe(r), r.pieces_per_box),

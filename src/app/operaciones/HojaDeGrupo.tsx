@@ -13,7 +13,7 @@ import { estadoDelGrupo, grupoAprobado, puedeAprobarGrupo, puedeImprimirGrupo, t
 import { EMPRESA, RECORDATORIO_EN, RECORDATORIO_ES, filasDeHoja, tiendasDeHoja, totalDeHoja } from "@/lib/almacen-ops/etapas";
 import { etiquetaDeOpcion } from "@/lib/almacen-ops/pasos";
 import { repartoDeReporte } from "@/lib/almacen-ops/perdida";
-import { fmtDia } from "@/lib/almacen-ops/fecha-del-dano";
+import { diaEnTexas, fmtDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { puedeCorregirMerma } from "@/lib/almacen-ops/visibilidad";
 import { particionaPorEtapa, resumenDeBloque } from "@/lib/almacen-ops/bloque";
 import { aplicarEtapa, AdjuntarYMarcar, ErrorParcial } from "./EtapasDeMerma";
@@ -166,7 +166,7 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
           </div>
           <dl className="hoja-datos">
             <dt>{t("Store", "Tienda")}</dt><dd data-hoja-tienda>{tiendasDeHoja(filas) || grupo.store}</dd>
-            <dt>{t("Date", "Fecha")}</dt><dd data-hoja-fecha>{fmtDia((grupo.approved_at ?? grupo.created_at).slice(0, 10), lang)}</dd>
+            <dt>{t("Date", "Fecha")}</dt><dd data-hoja-fecha>{fmtDia(diaEnTexas(grupo.approved_at ?? grupo.created_at), lang)}</dd>
             <dt>{t("Reports", "Reportes")}</dt><dd>{filas.length}</dd>
           </dl>
         </header>
@@ -298,8 +298,10 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
       {/* Reunión 11 nov, 11 PM: los botones de acción ABAJO, como en el resto de la app (Cerrar al final). */}
       {confirmaBorrar && editaGrupo && (
         <div className="ops-aviso no-imprimir" role="alertdialog" data-confirma-borrar-grupo>
-          <p>{t(`Delete this group? Its ${reportes.length} report(s) go back to «Photographed», without a group, and the signatures are cleared.`,
-            `¿Borrar este grupo? Sus ${reportes.length} merma(s) vuelven a «Fotografiada», sin grupo, y las firmas se borran.`)}</p>
+          <p>{reportes.length === 1
+            ? t("Delete this group? Its report goes back to «Photographed», without a group, and the signatures are cleared.", "¿Borrar este grupo? Su merma vuelve a «Fotografiada», sin grupo, y las firmas se borran.")
+            : t(`Delete this group? Its ${reportes.length} reports go back to «Photographed», without a group, and the signatures are cleared.`,
+              `¿Borrar este grupo? Sus ${reportes.length} mermas vuelven a «Fotografiada», sin grupo, y las firmas se borran.`)}</p>
           <div className="ops-etapa-acciones">
             <button type="button" className="btn btn-danger" disabled={ocupado} onClick={() => void borrar()} data-accion="confirmar-borrar-grupo">{t("Yes, delete group", "Sí, borrar grupo")}</button>
             <button type="button" className="btn btn-ghost" disabled={ocupado} onClick={() => setConfirmaBorrar(false)}>{t("Cancel", "Cancelar")}</button>
@@ -334,7 +336,7 @@ function ModalDeFotos({ r, ctx, onCerrar }: { r: Reporte; ctx: Contexto; onCerra
       <div className="modal ops-tarjeta-reporte" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-fotos-reporte={r.id}>
         <CerrarX onCerrar={onCerrar} />
         <h3>📷 {r.product_name ?? t("Photos", "Fotos")}</h3>
-        <p className="sub">{fmtDia(r.broken_on ?? r.created_at.slice(0, 10), lang)} · {r.store}</p>
+        <p className="sub">{fmtDia(r.broken_on ?? diaEnTexas(r.created_at), lang)} · {r.store}</p>
         <VisorDeFotos fotos={fotos} demo={ctx.demo} />
         <div className="modal-actions"><button type="button" className="btn btn-primary" onClick={onCerrar}>{t("Close", "Cerrar")}</button></div>
       </div>

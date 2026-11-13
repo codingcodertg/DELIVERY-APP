@@ -17,7 +17,7 @@ import { nombreOTexto, personasParaElegir } from "@/lib/almacen-ops/personas";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
 import { DEMO_PRODUCTOS, origenDeMerma, type TipoDeOrigen, DEMO_REPORTES, agregarFotos, borrarReporteDeMerma, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, editarReporteDeMerma, enlacesDeFotos, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type ParcheDeMerma, type Reporte } from "@/lib/almacen-ops/datos";
 import { esCorteDePractica } from "@/lib/practica/es-corte";
-import { borrarPractica, cargaPractica, esGrupoDePractica, grupoDePracticaPorReporte, gruposDePractica } from "@/lib/practica/grupos-de-practica";
+import { EVENTO_PRACTICA_GRUPOS, borrarPractica, cargaPractica, conAprobacionDePractica, esGrupoDePractica, grupoDePracticaPorReporte, gruposDePractica } from "@/lib/practica/grupos-de-practica";
 import { crearBorradorDeGrupo, esBorradorDeGrupo, listarBorradoresDeGrupo } from "@/lib/almacen-ops/borradores-de-grupo";
 import { HojaBorrador } from "./HojaBorrador";
 import { ensenanzaDelNavegador } from "@/lib/ensenanza-general";
@@ -102,17 +102,25 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
   const [grupos, setGrupos] = useState<GrupoDeMerma[]>([]);
   const [recargaGrupos, setRecargaGrupos] = useState(0);
   useEffect(() => {
-    if (ctx.demo || modo !== "todos" || pestana !== "merma" || grupoId) return;
+    if (modo !== "todos" || pestana !== "merma" || grupoId) return;
     let vivo = true;
     // Práctica (11 nov): los grupos de práctica se guardan en este navegador por persona; al salir del modo enseñanza
     // se borran. Borradores (11 nov): los grupos sin guardar salen con la etiqueta «Borrador».
     cargaPractica(ctx.yo.id);
     if (!ensenanzaDelNavegador()) borrarPractica(ctx.yo.id);
     const extra = () => [...borradoresComoGrupos(ctx.yo.id), ...gruposDePractica()];
+    // En demo no hay base, pero los borradores y los grupos de práctica (de este navegador) sí se enseñan.
+    if (ctx.demo) { setGrupos(extra()); return; }
     void listarGrupos(createClient()).then((g) => { if (vivo) setGrupos([...extra(), ...g]); })
       .catch(() => { if (vivo) setGrupos(extra()); /* sin 281: no hay grupos */ });
     return () => { vivo = false; };
   }, [ctx.demo, ctx.yo.id, modo, pestana, grupoId, recargaGrupos]);
+  // D-1021: un grupo de práctica que cambia (se firma, se aprueba, se borra) desde una tarjeta refresca la lista sola.
+  useEffect(() => {
+    const alCambiar = () => setRecargaGrupos((n) => n + 1);
+    window.addEventListener(EVENTO_PRACTICA_GRUPOS, alCambiar);
+    return () => window.removeEventListener(EVENTO_PRACTICA_GRUPOS, alCambiar);
+  }, []);
   const elegir = (atajo: Atajo) => irA({ eleccion: atajo === "otro"
     // Al pasar a «a mano» se arranca con el rango del atajo que estaba puesto, para solo ajustar un extremo.
     ? { atajo, ...(eleccion.atajo === "otro" ? { desde: eleccion.desde, hasta: eleccion.hasta } : rangoDeAtajo(eleccion.atajo, hoy)) }
@@ -172,7 +180,9 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
   // 268: mermas guardadas sin foto que ya pasaron 24 h (el gerente las reclama).
   const nombreTipo = (k: TipoDeReporte) => (lang === "es" ? INFO_DE_TIPO[k].es : INFO_DE_TIPO[k].en);
 
-  const mermas = useMemo(() => propias.filter((r) => r.kind === "scrap"), [propias]);
+  // D-1021: en práctica, las mermas de un grupo de práctica ya aprobado se ven aprobadas (`conAprobacionDePractica`).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const mermas = useMemo(() => conAprobacionDePractica(propias.filter((r) => r.kind === "scrap")), [propias, grupos]);
   const totales = useMemo(() => totalesPorTienda(mermas, new Date()), [mermas]);
   // D-911: el rango elegido manda sobre la lista de merma y sobre la pérdida por tienda; todo por el día en que se rompió.
   const rango = useMemo(() => rangoDeEleccion(eleccion, hoy), [eleccion, hoy]);
@@ -388,7 +398,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
       {(() => {
         const cabeza = (
           <div className="ops-cabeza-reportes" data-cabeza-reportes>
-            <Link href="/operaciones" className="ops-volver" data-accion="volver-a-operaciones">← {t("Back to Warehouse Ops", "Volver a Operaciones")}</Link>
+            <Link href="/operaciones" className="ops-volver" data-accion="volver-a-operaciones" aria-label={t("Back to Warehouse Ops", "Volver a Operaciones")}>← <span className="ops-volver-largo">{t("Back to Warehouse Ops", "Volver a Operaciones")}</span><span className="ops-volver-corto" aria-hidden>{t("Back", "Volver")}</span></Link>
             <h2>{filtro || modo === "todos" ? t("Reports", "Reportes") : t("My reports", "Mis reportes")} <span className="count-tag">{visibles.length}</span></h2>
             {filtro && (
               <span className="ops-filtro-mios" role="group" aria-label={t("Show", "Mostrar")} data-filtro-mios>
@@ -545,7 +555,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
                         <button type="button" className="btn btn-sm" onClick={() => abrirGrupo(g.id)} data-abrir-grupo={g.id}>🗂 {g.name}</button>
                         {esBorradorDeGrupo(g.id) && <span className="ops-etiqueta-borrador" data-borrador>📝 {t("Draft", "Borrador")}</span>}
                         {esGrupoDePractica(g.id) && <span className="ops-etiqueta-borrador" data-practica>🎓 {t("Practice", "Práctica")}</span>}
-                        <span className="hint">{t(`${g.n_reportes ?? 0} reports`, `${g.n_reportes ?? 0} reportes`)} · {g.store} · <span data-estado-grupo={g.id}>{esBorradorDeGrupo(g.id) ? t("Not saved yet", "Aún sin guardar") : estadoDelGrupo(g, lang)}</span></span>
+                        <span className="hint">{(g.n_reportes ?? 0) === 1 ? t("1 report", "1 reporte") : t(`${g.n_reportes ?? 0} reports`, `${g.n_reportes ?? 0} reportes`)} · {g.store} · <span data-estado-grupo={g.id}>{esBorradorDeGrupo(g.id) ? t("Not saved yet", "Aún sin guardar") : estadoDelGrupo(g, lang)}</span></span>
                       </li>
                     ))}
                   </ul>}
@@ -680,7 +690,7 @@ function TablaDeReportes({ filas, ctx, onAbrir, vacio, repetidas, conEtapa, sele
           {filas.map((r) => (
             <tr key={r.id} onClick={() => onAbrir(r)} className="ops-fila-tabla" data-reporte={r.id} data-etapa={r.kind === "scrap" ? etapaDe(r) : undefined}>
               {conCasillas && (
-                <td className="ops-col-casilla" onClick={(e) => e.stopPropagation()}>
+                <td className="ops-col-casilla" onClick={(e) => { e.stopPropagation(); if (e.target === e.currentTarget && seleccion!.puede(r)) seleccion!.alternar(r.id); }}>
                   {seleccion!.puede(r) && (
                     <input type="checkbox" checked={seleccion!.ids.has(r.id)} onChange={() => seleccion!.alternar(r.id)}
                       aria-label={t("Select for the approval sheet", "Marcar para la hoja de aprobación")} data-casilla={r.id} />
@@ -806,7 +816,9 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
     onVisibles?.(new Set(idsVisibles === "" ? [] : idsVisibles.split(",")));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idsVisibles]);
-  const columnasConMenu: ColumnaConMenu[] = visibles.map((c) => ({ key: c.key, en: c.en, es: c.es, numerico: !!COLUMNAS_EXCEL.find((k) => k.id === c.key)?.num }));
+  // «Fecha reportada» filtra y ordena por el ISO, pero en el menú se lee como en la celda (salía «2026-11-04T04:03:53.772Z»).
+  const columnasConMenu: ColumnaConMenu[] = visibles.map((c) => ({ key: c.key, en: c.en, es: c.es, numerico: !!COLUMNAS_EXCEL.find((k) => k.id === c.key)?.num,
+    ...(c.key === "reportada" ? { etiqueta: (v: ValorDeCelda) => (typeof v === "string" ? fmtDateTime(v) : String(v ?? "")) } : {}) }));
   const cabecera = (c: ColumnaDeMerma) => <CabeceraConMenu estado={orden} col={columnasConMenu.find((x) => x.key === c.key) ?? { key: c.key, en: c.en, es: c.es }} lang={lang} t={t} />;
   // Rosa (12 nov): «scroll bar on top not bottom»: una barra horizontal también ARRIBA de la tabla, sincronizada con la de
   // abajo (con muchas filas, la de abajo queda lejísimos).
@@ -941,7 +953,7 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
               return (
                 <tr key={r.id} onClick={() => onAbrir(r)} className={"ops-fila-tabla" + (enConflicto?.has(r.id) ? " ops-fila-en-grupo-conflicto" : "")} data-reporte={r.id} data-etapa={etapaDe(r)}>
                   {conCasillas && (
-                    <td className="ops-col-casilla" onClick={(e) => e.stopPropagation()}>
+                    <td className="ops-col-casilla" onClick={(e) => { e.stopPropagation(); if (e.target === e.currentTarget && seleccion!.puede(r)) seleccion!.alternar(r.id); }}>
                       {seleccion!.puede(r) && (
                         <input type="checkbox" checked={seleccion!.ids.has(r.id)} onChange={() => seleccion!.alternar(r.id)}
                           aria-label={t("Select for the approval sheet", "Marcar para la hoja de aprobación")} data-casilla={r.id} />
