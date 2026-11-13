@@ -5,6 +5,7 @@ import { usePrefs } from "@/lib/prefs";
 import { BUSINESS_TZ } from "@/lib/utils";
 import { puntualidadPorChofer, rangoValido, DIAS_MAX_DEL_RANGO, type FilaDePuntualidad } from "@/lib/puntualidad";
 import type { Delivery, OrderEvent, Profile } from "@/lib/types";
+import { TablaEstandar } from "@/components/TablaEstandar";
 
 /**
  * «Puntualidad por chofer» (D-414) — en el Panel, bajo «KPIs de choferes y flota», con el rango del Panel.
@@ -90,40 +91,30 @@ export function PuntualidadPorChofer({ desde, hasta, entregasDelPanel, eventos, 
           {filas.length === 0 ? (
             <div className="empty">{t("No deliveries with a driver in this range.", "No hay entregas con chofer en este rango.")}</div>
           ) : (
-            <div className="tbl-scroll" style={{ border: "none" }}>
-              <table className="orders" style={{ minWidth: 820, fontVariantNumeric: "tabular-nums" }}>
-                <thead>
-                  <tr>
-                    <th>{t("Driver", "Chofer")}</th>
-                    <th>{t("Delivered", "Entregadas")}</th>
-                    <th title={t("GPS arrival · driver's own tap", "Llegada por GPS · toque del propio chofer")}>{t("Real time (GPS · tap)", "Hora real (GPS · toque)")}</th>
-                    <th title={t("Marked by someone else · no time at all", "La marcó otra persona · sin ninguna hora")}>{t("No real time", "Sin hora real")}</th>
-                    <th>{t("On time", "A tiempo")}</th>
-                    <th>{t("Late", "Tarde")}</th>
-                    <th title={t("Average and worst delay, over the late ones only", "Retraso medio y peor, solo de las que llegaron tarde")}>{t("Delay (avg · worst)", "Retraso (medio · peor)")}</th>
-                    <th title={t("Sum of legs in the published plans · days with a plan", "Suma de tramos de los planes publicados · días con plan")}>{t("Plan miles", "Millas del plan")}</th>
-                    <th title={t("From the GPS track, gaps not counted · days with a track", "Del rastro GPS, sin contar los huecos · días con rastro")}>{t("GPS miles", "Millas GPS")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filas.map((f) => (
-                    <tr key={f.chofer} data-fila-puntualidad={f.chofer}>
-                      <td style={{ fontWeight: 700 }}>{f.chofer}</td>
-                      <td>{f.entregas}</td>
-                      <td>{f.conGPS} · {f.conToque}</td>
-                      <td style={f.sinDato.la_marco_otra_persona + f.sinDato.sin_hora > 0 ? { color: "var(--amber-text)" } : undefined}>{f.sinDato.la_marco_otra_persona} · {f.sinDato.sin_hora}</td>
-                      <td style={f.pctATiempo != null ? { fontWeight: 700, color: f.pctATiempo >= 90 ? "var(--green)" : "var(--amber-text)" } : undefined}
-                        title={f.antesDeAbrir ? t(`${f.antesDeAbrir} before the window opened`, `${f.antesDeAbrir} antes de que abriera la ventana`) : undefined}>
-                        {f.medidas ? `${f.aTiempo} / ${f.medidas} (${f.pctATiempo}%)` : "—"}{f.sinVentana ? <span className="hint" style={{ margin: 0 }}> {t(`+${f.sinVentana} no window`, `+${f.sinVentana} sin ventana`)}</span> : null}
-                      </td>
-                      <td style={f.tarde ? { color: "var(--red)" } : undefined}>{f.medidas ? f.tarde : "—"}</td>
-                      <td>{f.retrasoMedioMin == null ? "—" : `${min(f.retrasoMedioMin)} · ${min(f.retrasoMaxMin)}`}</td>
-                      <td>{f.millasPlan == null ? "—" : `${f.millasPlan} mi · ${f.diasConPlan} ${t("d", "d")}`}</td>
-                      <td>{f.millasGPS == null ? "—" : `${f.millasGPS} mi · ${f.diasConRastro} ${t("d", "d")}`}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            // Estándar de tablas (`TablaEstandar`): ▾ ⚙ mover y anchos. Las cifras son las mismas que antes.
+            // La tabla es más ancha que la tarjeta: se desliza dentro de su caja (si no, la barra del ⚙ se sale).
+            <div style={{ minWidth: 0, maxWidth: "100%", overflowX: "auto" }}>
+            <TablaEstandar id="puntualidad-choferes" sinCaja data-tabla="puntualidad-choferes" filas={filas} claveDe={(f) => f.chofer}
+              columnas={[
+                { key: "chofer", en: "Driver", es: "Chofer", ancho: 160, fija: true, valor: (f) => f.chofer, celda: (f) => <strong>{f.chofer}</strong> },
+                { key: "entregadas", en: "Delivered", es: "Entregadas", ancho: 110, numerico: true, valor: (f) => f.entregas },
+                { key: "horareal", en: "Real time (GPS · tap)", es: "Hora real (GPS · toque)", ancho: 150, valor: (f) => f.conGPS, celda: (f) => `${f.conGPS} · ${f.conToque}`, },
+                { key: "sinhora", en: "No real time", es: "Sin hora real", ancho: 130, valor: (f) => f.sinDato.la_marco_otra_persona + f.sinDato.sin_hora, celda: (f) => (
+                  <span style={f.sinDato.la_marco_otra_persona + f.sinDato.sin_hora > 0 ? { color: "var(--amber-text)" } : undefined}>{f.sinDato.la_marco_otra_persona} · {f.sinDato.sin_hora}</span>
+                ) },
+                { key: "atiempo", en: "On time", es: "A tiempo", ancho: 170, valor: (f) => f.pctATiempo, celda: (f) => (
+                  <span style={f.pctATiempo != null ? { fontWeight: 700, color: f.pctATiempo >= 90 ? "var(--green)" : "var(--amber-text)" } : undefined}
+                    title={f.antesDeAbrir ? t(`${f.antesDeAbrir} before the window opened`, `${f.antesDeAbrir} antes de que abriera la ventana`) : undefined}>
+                    {f.medidas ? `${f.aTiempo} / ${f.medidas} (${f.pctATiempo}%)` : "—"}{f.sinVentana ? <span className="hint" style={{ margin: 0 }}> {t(`+${f.sinVentana} no window`, `+${f.sinVentana} sin ventana`)}</span> : null}
+                  </span>
+                ) },
+                { key: "tarde", en: "Late", es: "Tarde", ancho: 90, numerico: true, valor: (f) => (f.medidas ? f.tarde : null), celda: (f) => (
+                  <span style={f.tarde ? { color: "var(--red)" } : undefined}>{f.medidas ? f.tarde : "—"}</span>
+                ) },
+                { key: "retraso", en: "Delay (avg · worst)", es: "Retraso (medio · peor)", ancho: 150, valor: (f) => f.retrasoMedioMin, celda: (f) => (f.retrasoMedioMin == null ? "—" : `${min(f.retrasoMedioMin)} · ${min(f.retrasoMaxMin)}`) },
+                { key: "millasplan", en: "Plan miles", es: "Millas del plan", ancho: 150, valor: (f) => f.millasPlan, celda: (f) => (f.millasPlan == null ? "—" : `${f.millasPlan} mi · ${f.diasConPlan} ${t("d", "d")}`) },
+                { key: "millasgps", en: "GPS miles", es: "Millas GPS", ancho: 140, valor: (f) => f.millasGPS, celda: (f) => (f.millasGPS == null ? "—" : `${f.millasGPS} mi · ${f.diasConRastro} ${t("d", "d")}`) },
+              ]} />
             </div>
           )}
         </div>

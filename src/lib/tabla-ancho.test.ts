@@ -81,6 +81,7 @@ describe("a quién le pasaba y quién se beneficia", () => {
     // **Nueve** con D-821: las listas de Security (una sola pieza, `TablaDeSecurity`, con su marco).
     // **Diez** con el estándar de tablas (12 nov 2026): `TablaEstandar`, la pieza con la que se hace toda tabla nueva.
     // **Once** con la lista de cotizaciones del Quote Builder (12 nov 2026): gana ⚙ y anchos por persona, y con ellos el marco.
-    expect(marcos).toBe(11);
+    // **Nueve** con D-1037: Cuentas y la «Ruta del día» de Almacén pasan a `TablaEstandar`, que ya trae su marco; se van sus dos marcos propios.
+    expect(marcos).toBe(9);
   });
 });

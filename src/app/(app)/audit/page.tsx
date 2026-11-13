@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { SecurityLog } from "@/components/SecurityLog";
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { useRouter } from "next/navigation";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
@@ -102,34 +103,16 @@ export default function AuditPage() {
         <div className="empty">{t("No activity recorded yet.", "Aún no hay actividad registrada.")}</div>
       ) : (
         <div className="card" style={{ padding: 0 }}>
-          <div className="tbl-scroll" style={{ border: "none" }}>
-            <table className="orders" style={{ minWidth: 640 }}>
-              <thead>
-                <tr>
-                  <th>{t("When", "Cuándo")}</th>
-                  <th>{t("Order", "Orden")}</th>
-                  <th>{t("Action", "Acción")}</th>
-                  <th>{t("By", "Por")}</th>
-                  <th>{t("Note", "Nota")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr
-                    key={r.id}
-                    className={r.label ? "clickable" : ""}
-                    onClick={() => r.label && router.push(`/?order=${r.delivery_id}`)}
-                  >
-                    <td style={{ whiteSpace: "nowrap" }}>{fmtDateTime(r.at)}</td>
-                    <td className="ordno">{r.label ? `#${r.label}` : "—"}</td>
-                    <td><span className="sema" style={{ background: r.kind === KIND_RECIBIDA ? RECIBIDO_COLOR : stageInfo(r.kind).color, color: "#fff" }}>{actionLabel(r.kind, lang)}</span></td>
-                    <td>{r.by}</td>
-                    <td style={{ color: "var(--gray)" }}>{r.note || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* Estándar de tablas (`TablaEstandar`): ▾ ⚙ mover y anchos. */}
+          <TablaEstandar id="auditoria-ordenes" sinCaja data-tabla="auditoria-ordenes" filas={rows} claveDe={(r) => String(r.id)}
+            onFila={(r) => { if (r.label) router.push(`/?order=${r.delivery_id}`); }}
+            columnas={[
+              { key: "cuando", en: "When", es: "Cuándo", ancho: 170, valor: (r) => r.at, celda: (r) => fmtDateTime(r.at) },
+              { key: "orden", en: "Order", es: "Orden", ancho: 110, valor: (r) => r.label, clase: "ordno", celda: (r) => (r.label ? `#${r.label}` : "—") },
+              { key: "accion", en: "Action", es: "Acción", ancho: 170, valor: (r) => actionLabel(r.kind, lang), celda: (r) => <span className="sema" style={{ background: r.kind === KIND_RECIBIDA ? RECIBIDO_COLOR : stageInfo(r.kind).color, color: "#fff" }}>{actionLabel(r.kind, lang)}</span> },
+              { key: "por", en: "By", es: "Por", ancho: 160, valor: (r) => r.by },
+              { key: "nota", en: "Note", es: "Nota", ancho: 260, envuelve: true, valor: (r) => r.note, celda: (r) => <span style={{ color: "var(--gray)" }}>{r.note || "—"}</span> },
+            ]} />
         </div>
       )}
     

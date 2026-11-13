@@ -66,8 +66,8 @@ vendedor» y «Por GOV Pool» (Leads), la Bitácora de seguridad del hub (`src/c
 RR. HH., las tablas de tiempo del expediente, las tres de Métricas de RR. HH. y la de Encuestas (ambas). Completadas
 con `useVistaDeColumnas` (ya tenían ▾ y anchos; ganaron ⚙ y mover): Empleados y Activos (RR. HH.), las listas de
 Central Hub Monitoring y la lista de cotizaciones del Quote Builder. Productos de la competencia (Quote Builder) tiene ⚙,
-mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tanda 1, 12 nov 2026): Insights, Personas, Mis solicitudes, Solicitudes del equipo, Semana, Bandeja de fichajes, Fichajes de hoy, Ausencias, Vehículos y Auditoría. Pendiente por app: Time Tracker 8, Entregas 13, ERP 1
-(`review-queue`), Operaciones 1 — se convierten por tandas, empezando por las listas de uso diario.
+mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tanda 1, 12 nov 2026): Insights, Personas, Mis solicitudes, Solicitudes del equipo, Semana, Bandeja de fichajes, Fichajes de hoy, Ausencias, Vehículos y Auditoría. Entregas (tanda 13 nov 2026, `TablaEstandar`): Panel (las 5 tablas), Almacén (una por chofer), Recorrido del chofer (3), Cuentas, Auditoría, Reportes de choferes (5 pestañas y el día del chofer), Pausas del día y Puntualidad por chofer; los totales van en `totales` (pie de la tabla, sin ordenar). Pendiente por app: Time Tracker 8, Entregas 5, ERP 1
+(`review-queue`, pendiente: su tabla virtualiza las filas a propósito, PRF-06), Operaciones 1 — se convierten por tandas, empezando por las listas de uso diario.
 
 | App | Archivo | Estado | Nota |
 |---|---|---|---|
@@ -101,14 +101,14 @@ mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tand
 | RR. HH. | `src/components/recruiting/ChecklistDelEmpleado.tsx` | ➖ exenta | checklist dentro del expediente |
 | RR. HH. | `src/components/recruiting/QuitFormDelEmpleado.tsx` | ➖ exenta | formulario de baja (se imprime) |
 | Clientes | `src/app/customers/HistorialDelCliente.tsx` | ➖ exenta | detalle de cambios campo/antes/después dentro de una tarjeta |
-| Entregas | `src/app/(app)/accounts/page.tsx` | ⏳ pendiente |  |
-| Entregas | `src/app/(app)/audit/page.tsx` | ⏳ pendiente |  |
-| Entregas | `src/app/(app)/dashboard/page.tsx` | ⏳ pendiente |  |
+| Entregas | `src/app/(app)/accounts/page.tsx` | ✅ estándar | 13 nov 2026 |
+| Entregas | `src/app/(app)/audit/page.tsx` | ✅ estándar | 13 nov 2026 |
+| Entregas | `src/app/(app)/dashboard/page.tsx` | ✅ estándar | 13 nov 2026 |
 | Entregas | `src/app/(app)/data/page.tsx` | ⏳ pendiente |  |
 | Entregas | `src/app/(app)/market/page.tsx` | ⏳ pendiente |  |
 | Entregas | `src/app/(app)/settings/page.tsx` | ⏳ pendiente |  |
-| Entregas | `src/app/(app)/track/page.tsx` | ⏳ pendiente |  |
-| Entregas | `src/app/(app)/warehouse/page.tsx` | ⏳ pendiente |  |
+| Entregas | `src/app/(app)/track/page.tsx` | ✅ estándar | 13 nov 2026 |
+| Entregas | `src/app/(app)/warehouse/page.tsx` | ✅ estándar | 13 nov 2026 |
 | ERP | `src/app/erp/analytics/categories/page.tsx` | ✅ estándar | PR #857 |
 | ERP | `src/app/erp/analytics/vendors/page.tsx` | ✅ estándar | PR #857 |
 | ERP | `src/app/erp/purchasing/orders/page.tsx` | ✅ estándar | PR #857 |
@@ -124,10 +124,10 @@ mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tand
 | Time Tracker | `src/app/timetracker/(timetracker)/requests/page.tsx` | ✅ estándar |  |
 | Time Tracker | `src/app/timetracker/(timetracker)/team-requests/page.tsx` | ✅ estándar |  |
 | Time Tracker | `src/app/timetracker/(timetracker)/week/page.tsx` | ✅ estándar |  |
-| Entregas / compartido | `src/components/PausasDelDia.tsx` | ⏳ pendiente |  |
+| Entregas / compartido | `src/components/PausasDelDia.tsx` | ✅ estándar | 13 nov 2026 |
 | Entregas / compartido | `src/components/PlanContraReal.tsx` | ⏳ pendiente |  |
-| Entregas / compartido | `src/components/PuntualidadPorChofer.tsx` | ⏳ pendiente |  |
-| Entregas / compartido | `src/components/ReportesDeChoferes.tsx` | ⏳ pendiente |  |
+| Entregas / compartido | `src/components/PuntualidadPorChofer.tsx` | ✅ estándar | 13 nov 2026 |
+| Entregas / compartido | `src/components/ReportesDeChoferes.tsx` | ✅ estándar | 13 nov 2026 |
 | Entregas / compartido | `src/components/RutaDelPlan.tsx` | ⏳ pendiente |  |
 | ERP | `src/components/erp/inventory-console.tsx` | ✅ estándar | PR #857 |
 | ERP | `src/components/erp/item/qoh-panel.tsx` | ✅ estándar | PR #857 |

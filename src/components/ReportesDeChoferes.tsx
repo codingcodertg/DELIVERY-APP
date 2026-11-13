@@ -6,6 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { fmtDate } from "@/lib/utils";
 import { formateadorDeFecha } from "@/lib/formateador";
 import { cargaSnapdom } from "@/components/CapturaDeAyuda";
+import { TablaEstandar } from "@/components/TablaEstandar";
 import type { MapLine, MapPoint } from "@/components/LeafletMap";
 import type { FuenteDeHora, InformeDelDia, MotivoSinHora, ParadaDelInforme } from "@/lib/reportes-choferes/dia";
 import {
@@ -132,12 +133,13 @@ export function ReportesDeChoferes({ desde, hasta, carga = pide }: { desde: stri
     }
   };
 
-  const celda = (x: Medida, texto: (v: number) => string) => (
-    <td style={x.fiable ? undefined : { color: "var(--gray)" }} title={x.fiable ? undefined : t(`Thin data: ${x.n} of ${x.de}. Shown, but not used to compare drivers.`, `Poco dato: ${x.n} de ${x.de}. Se enseña, pero no se usa para comparar choferes.`)}>
+  // Una medida de la tarjeta del chofer, dentro de su celda de `TablaEstandar`: el número, su muestra y su puesto.
+  const medida = (x: Medida, texto: (v: number) => string) => (
+    <span style={x.fiable ? undefined : { color: "var(--gray)" }} title={x.fiable ? undefined : t(`Thin data: ${x.n} of ${x.de}. Shown, but not used to compare drivers.`, `Poco dato: ${x.n} de ${x.de}. Se enseña, pero no se usa para comparar choferes.`)}>
       <span style={{ fontWeight: x.fiable ? 700 : 400 }}>{x.valor == null ? "—" : texto(x.valor)}</span>
       {x.puesto != null && <span className="count-tag" style={{ marginLeft: 4 }}>#{x.puesto}</span>}
       <span className="hint" style={{ margin: 0, display: "block", fontSize: 11 }}>{x.n}/{x.de}{!x.fiable && x.n > 0 ? ` · ${t("thin", "poco dato")}` : ""}</span>
-    </td>
+    </span>
   );
 
   const resumenEst = (titulo: string, e: EstimadoContraReal) => (
@@ -215,36 +217,25 @@ export function ReportesDeChoferes({ desde, hasta, carga = pide }: { desde: stri
           {dias.length === 0 && <div className="empty">{t("No orders with a driver in this range.", "No hay órdenes con chofer en este rango.")}</div>}
 
           {dias.length > 0 && pestana === "ruta" && (
-            <div className="tbl-scroll" style={{ border: "none" }}>
-              <table className="orders" style={{ minWidth: 980, fontVariantNumeric: "tabular-nums" }}>
-                <thead><tr>
-                  <th>{t("Date", "Fecha")}</th><th>{t("Driver", "Chofer")}</th><th>{t("Real route from", "Ruta real según")}</th>
-                  <th title={t("Done · with a real time · total", "Hechas · con hora real · total")}>{t("Stops", "Paradas")}</th>
-                  <th title={t("Stops out of the planned order, of those that can be compared", "Paradas fuera del orden planeado, de las que se pueden comparar")}>{t("Out of order", "Fuera de orden")}</th>
-                  <th>{t("Plan: miles · drive", "Plan: millas · manejo")}</th>
-                  <th title={t("From the GPS trail, between the first and last arrival at a stop", "Del rastro GPS, entre la primera y la última llegada a una parada")}>{t("Real: miles · drive", "Real: millas · manejo")}</th>
-                  <th>{t("Day miles", "Millas del día")}</th><th>{t("Left at", "Salió")}</th>
-                  <th title={t("Stopped 5+ min away from every stop and store, declared breaks not counted", "Parado 5 min o más lejos de toda parada y tienda, sin contar las pausas declaradas")}>{t("Stopped off-route", "Parado fuera de ruta")}</th>
-                </tr></thead>
-                <tbody>
-                  {dias.map((d) => (
-                    <tr key={`${d.fecha}|${d.chofer}`} data-dia-de-chofer={`${d.fecha}|${d.chofer}`} style={{ cursor: d.choferId ? "pointer" : undefined }}
-                      title={t("Open the day: map and stops", "Abrir el día: mapa y paradas")} onClick={() => d.choferId && setAbierto({ fecha: d.fecha, choferId: d.choferId })}>
-                      <td>{fmtDate(d.fecha)}</td>
-                      <td style={{ fontWeight: 700 }}>{d.chofer}</td>
-                      <td style={d.rastro.fuente ? undefined : { color: "var(--amber-text)" }}>{tx.rastro(d)}</td>
-                      <td>{d.paradas.filter((p) => p.hecha).length} · {d.paradas.filter((p) => p.llegada != null).length} · {d.paradas.length}</td>
-                      <td style={d.orden.fueraDeOrden ? { color: "var(--amber-text)", fontWeight: 700 } : undefined}>{d.orden.comparadas < 2 ? "—" : `${d.orden.fueraDeOrden} / ${d.orden.comparadas}`}</td>
-                      <td>{d.plan.millas == null ? "—" : `${d.plan.millas} mi · ${dura(d.plan.minutos)}`}{d.plan.tramosEstimados > 0 && <span className="hint" style={{ margin: 0 }} title={t("Legs not in the planner's cache: straight line × 1.3 at 30 mph", "Tramos que no están en la caché del planificador: recta × 1,3 a 30 mph")}> ~{d.plan.tramosEstimados}/{d.plan.tramos}</span>}</td>
-                      <td>{d.real.millasEntreParadas == null ? "—" : `${d.real.millasEntreParadas} mi · ${dura(d.real.minutosManejando)}`}</td>
-                      <td>{d.real.millasDelDia == null ? "—" : `${d.real.millasDelDia} mi`}</td>
-                      <td>{hora(d.real.primeraSalida)}</td>
-                      <td>{d.parado.minutos == null ? "—" : d.parado.veces ? `${dura(d.parado.minutos)} · ${d.parado.veces}×` : "0"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            // Estándar de tablas (`TablaEstandar`). Pulsar un renglón abre el día en una tarjeta (mapa y paradas).
+            <TablaEstandar id="reportes-ruta" data-tabla="reportes-ruta" sinCaja filas={dias} claveDe={(d) => `${d.fecha}|${d.chofer}`}
+              onFila={(d) => { if (d.choferId) setAbierto({ fecha: d.fecha, choferId: d.choferId }); }}
+              columnas={[
+                { key: "fecha", en: "Date", es: "Fecha", ancho: 110, valor: (d) => d.fecha, celda: (d) => fmtDate(d.fecha) },
+                { key: "chofer", en: "Driver", es: "Chofer", ancho: 160, fija: true, valor: (d) => d.chofer, celda: (d) => <strong>{d.chofer}</strong> },
+                { key: "rastro", en: "Real route from", es: "Ruta real según", ancho: 170, valor: (d) => tx.rastro(d), celda: (d) => <span style={d.rastro.fuente ? undefined : { color: "var(--amber-text)" }}>{tx.rastro(d)}</span> },
+                { key: "paradas", en: "Stops", es: "Paradas", ancho: 130, valor: (d) => d.paradas.filter((p) => p.hecha).length, celda: (d) => `${d.paradas.filter((p) => p.hecha).length} · ${d.paradas.filter((p) => p.llegada != null).length} · ${d.paradas.length}` },
+                { key: "fuera", en: "Out of order", es: "Fuera de orden", ancho: 120, numerico: true, valor: (d) => (d.orden.comparadas < 2 ? null : d.orden.fueraDeOrden), celda: (d) => (
+                  <span style={d.orden.fueraDeOrden ? { color: "var(--amber-text)", fontWeight: 700 } : undefined}>{d.orden.comparadas < 2 ? "—" : `${d.orden.fueraDeOrden} / ${d.orden.comparadas}`}</span>
+                ) },
+                { key: "plan", en: "Plan: miles · drive", es: "Plan: millas · manejo", ancho: 170, valor: (d) => d.plan.millas, celda: (d) => (
+                  <>{d.plan.millas == null ? "—" : `${d.plan.millas} mi · ${dura(d.plan.minutos)}`}{d.plan.tramosEstimados > 0 && <span className="hint" style={{ margin: 0 }} title={t("Legs not in the planner's cache: straight line × 1.3 at 30 mph", "Tramos que no están en la caché del planificador: recta × 1,3 a 30 mph")}> ~{d.plan.tramosEstimados}/{d.plan.tramos}</span>}</>
+                ) },
+                { key: "real", en: "Real: miles · drive", es: "Real: millas · manejo", ancho: 170, valor: (d) => d.real.millasEntreParadas, celda: (d) => (d.real.millasEntreParadas == null ? "—" : `${d.real.millasEntreParadas} mi · ${dura(d.real.minutosManejando)}`) },
+                { key: "millasdia", en: "Day miles", es: "Millas del día", ancho: 110, numerico: true, valor: (d) => d.real.millasDelDia, celda: (d) => (d.real.millasDelDia == null ? "—" : `${d.real.millasDelDia} mi`) },
+                { key: "salio", en: "Left at", es: "Salió", ancho: 90, valor: (d) => d.real.primeraSalida, celda: (d) => hora(d.real.primeraSalida) },
+                { key: "parado", en: "Stopped off-route", es: "Parado fuera de ruta", ancho: 170, valor: (d) => d.parado.minutos, celda: (d) => (d.parado.minutos == null ? "—" : d.parado.veces ? `${dura(d.parado.minutos)} · ${d.parado.veces}×` : "0") },
+              ]} />
           )}
 
           {dias.length > 0 && pestana === "tiempo" && (
@@ -253,34 +244,30 @@ export function ReportesDeChoferes({ desde, hasta, carga = pide }: { desde: stri
                 {resumenEst(t("Against the first estimate of the day", "Contra la primera estimación del día"), estPrimera)}
                 {resumenEst(t("Against the current plan", "Contra el plan vigente"), estPlan)}
               </div>
-              <div className="tbl-scroll" style={{ border: "none", maxHeight: 520 }}>
-                <table className="orders" style={{ minWidth: 980, fontVariantNumeric: "tabular-nums" }}>
-                  <thead><tr>
-                    <th>{t("Date", "Fecha")}</th><th>{t("Driver", "Chofer")}</th><th title={t("Position in the plan → position really done", "Puesto en el plan → puesto en que se hizo")}>#</th>
-                    <th>{t("Stop", "Parada")}</th><th>{t("First est.", "1ª estim.")}</th><th>{t("Plan", "Plan")}</th><th>{t("Arrived", "Llegó")}</th><th>{t("Left", "Salió")}</th>
-                    <th>{t("Source", "Fuente")}</th><th>{t("vs first", "vs 1ª")}</th><th>{t("vs plan", "vs plan")}</th>
-                  </tr></thead>
-                  <tbody>
-                    {paradas.map((p) => {
-                      const cuenta = "min" in difDe(p, "plan");
-                      return (
-                        <tr key={`${p.fecha}|${p.chofer}|${p.clave}`} data-parada-de-reporte={p.clave}>
-                          <td>{fmtDate(p.fecha)}</td><td>{p.chofer}</td>
-                          <td style={p.fueraDeOrden ? { color: "var(--amber-text)", fontWeight: 700 } : undefined} title={p.fueraDeOrden ? t("Done out of the planned order", "Hecha fuera del orden planeado") : undefined}>{p.puestoPlan ?? "—"}→{p.puestoReal ?? "—"}</td>
-                          <td><b>{p.tipo === "P" ? t("Pickup", "Recogida") : t("Delivery", "Entrega")}</b> {p.codigo} · {p.lugar}</td>
-                          <td>{hhmm(p.primeraEta)}</td><td>{hhmm(p.eta)}</td><td>{hora(p.llegada)}</td><td>{p.fuente === "toque_cierre" ? "—" : hora(p.salida)}</td>
-                          <td style={p.fuente ? undefined : { color: "var(--gray)" }}>{p.fuente ? tx.fuente(p.fuente) : tx.motivo(p.motivo)}</td>
-                          <td style={cuenta ? undefined : { color: "var(--gray)" }}>{signo(p.difPrimera)}</td>
-                          <td style={cuenta ? { fontWeight: 700, color: p.difPlan != null && p.difPlan > 30 ? "var(--red)" : p.difPlan != null && p.difPlan > 15 ? "var(--amber-text)" : "var(--green)" } : { color: "var(--gray)" }}
-                            title={cuenta ? undefined : t("Not counted in the summary (out of order, or the estimate was written after the stop)", "No cuenta en el resumen (fuera de orden, o la estimación se escribió después de la parada)")}>
-                            {signo(p.difPlan)}{p.fueraDeOrden && p.difPlan != null ? ` (${t("out of order", "fuera de orden")})` : ""}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <TablaEstandar id="reportes-tiempo" data-tabla="reportes-tiempo" sinCaja filas={paradas} claveDe={(p) => `${p.fecha}|${p.chofer}|${p.clave}`}
+                columnas={[
+                  { key: "fecha", en: "Date", es: "Fecha", ancho: 110, valor: (p) => p.fecha, celda: (p) => fmtDate(p.fecha) },
+                  { key: "chofer", en: "Driver", es: "Chofer", ancho: 150, fija: true, valor: (p) => p.chofer },
+                  { key: "puesto", en: "#", es: "#", ancho: 90, valor: (p) => p.puestoPlan ?? null, celda: (p) => (
+                    <span style={p.fueraDeOrden ? { color: "var(--amber-text)", fontWeight: 700 } : undefined} title={p.fueraDeOrden ? t("Done out of the planned order", "Hecha fuera del orden planeado") : undefined}>{p.puestoPlan ?? "—"}→{p.puestoReal ?? "—"}</span>
+                  ) },
+                  { key: "parada", en: "Stop", es: "Parada", ancho: 260, valor: (p) => `${p.codigo} ${p.lugar}`, celda: (p) => <><b>{p.tipo === "P" ? t("Pickup", "Recogida") : t("Delivery", "Entrega")}</b> {p.codigo} · {p.lugar}</> },
+                  { key: "primera", en: "First est.", es: "1ª estim.", ancho: 90, valor: (p) => p.primeraEta, celda: (p) => hhmm(p.primeraEta) },
+                  { key: "plan", en: "Plan", es: "Plan", ancho: 80, valor: (p) => p.eta, celda: (p) => hhmm(p.eta) },
+                  { key: "llego", en: "Arrived", es: "Llegó", ancho: 90, valor: (p) => p.llegada, celda: (p) => hora(p.llegada) },
+                  { key: "salio", en: "Left", es: "Salió", ancho: 90, valor: (p) => p.salida, celda: (p) => (p.fuente === "toque_cierre" ? "—" : hora(p.salida)) },
+                  { key: "fuente", en: "Source", es: "Fuente", ancho: 170, valor: (p) => (p.fuente ? tx.fuente(p.fuente) : tx.motivo(p.motivo)), celda: (p) => <span style={p.fuente ? undefined : { color: "var(--gray)" }}>{p.fuente ? tx.fuente(p.fuente) : tx.motivo(p.motivo)}</span> },
+                  { key: "vsprimera", en: "vs first", es: "vs 1ª", ancho: 90, numerico: true, valor: (p) => p.difPrimera, celda: (p) => <span style={"min" in difDe(p, "plan") ? undefined : { color: "var(--gray)" }}>{signo(p.difPrimera)}</span> },
+                  { key: "vsplan", en: "vs plan", es: "vs plan", ancho: 130, numerico: true, valor: (p) => p.difPlan, celda: (p) => {
+                    const cuenta = "min" in difDe(p, "plan");
+                    return (
+                      <span style={cuenta ? { fontWeight: 700, color: p.difPlan != null && p.difPlan > 30 ? "var(--red)" : p.difPlan != null && p.difPlan > 15 ? "var(--amber-text)" : "var(--green)" } : { color: "var(--gray)" }}
+                        title={cuenta ? undefined : t("Not counted in the summary (out of order, or the estimate was written after the stop)", "No cuenta en el resumen (fuera de orden, o la estimación se escribió después de la parada)")}>
+                        {signo(p.difPlan)}{p.fueraDeOrden && p.difPlan != null ? ` (${t("out of order", "fuera de orden")})` : ""}
+                      </span>
+                    );
+                  } },
+                ]} />
             </>
           )}
 
@@ -296,39 +283,33 @@ export function ReportesDeChoferes({ desde, hasta, carga = pide }: { desde: stri
                 {t(`${visitas.filter((v) => !v.truncada).length} visit(s) measured from arrival to departure by GPS. ${visitas.filter((v) => v.truncada).length} more are not counted: the vehicle was already there when the trail starts, or still there when it ends. Stops without a GPS visit have no time at the stop (a tap can't tell). “Planner assumes” is the service time the planner budgets for those same visits.`,
                   `${visitas.filter((v) => !v.truncada).length} visita(s) medidas de la llegada a la salida por GPS. ${visitas.filter((v) => v.truncada).length} más no cuentan: el vehículo ya estaba ahí cuando empieza el rastro, o seguía ahí cuando acaba. Las paradas sin visita por GPS no tienen tiempo en la parada (un toque no lo dice). «El plan supone» es el tiempo de servicio que el planificador reserva para esas mismas visitas.`)}
               </div>
-              <div className="tbl-scroll" style={{ border: "none" }}>
-                <table className="orders" style={{ minWidth: 760, fontVariantNumeric: "tabular-nums" }}>
-                  <thead><tr>
-                    <th>{grupo === "clase" ? t("Stop type", "Tipo de parada") : grupo === "tienda" ? t("Store", "Tienda") : grupo === "cliente" ? t("Customer", "Cliente") : t("Driver", "Chofer")}</th>
-                    <th>{t("Visits", "Visitas")}</th><th>{t("Median", "Mediana")}</th><th>{t("Average", "Media")}</th><th title={t("9 of 10 visits take this or less", "9 de cada 10 visitas duran esto o menos")}>P90</th><th>{t("Longest", "La más larga")}</th>
-                    <th>{t("Planner assumes", "El plan supone")}</th><th>{t("Outliers", "Atípicas")}</th>
-                  </tr></thead>
-                  <tbody>
-                    {filasDeTiempo.map((f) => (
-                      <tr key={f.clave} data-fila-de-tiempo={f.clave} style={f.fiable ? undefined : { color: "var(--gray)" }} title={f.fiable ? undefined : t(`Thin data: fewer than ${MINIMO_DE_CASOS} visits.`, `Poco dato: menos de ${MINIMO_DE_CASOS} visitas.`)}>
-                        <td style={{ fontWeight: 700 }}>{grupo === "clase" ? tx.clase(f.clave) : f.clave}</td>
-                        <td>{f.n}{!f.fiable && ` · ${t("thin", "poco dato")}`}</td><td style={{ fontWeight: 700 }}>{dura(f.medianaMin)}</td><td>{dura(f.mediaMin)}</td><td>{dura(f.p90Min)}</td><td>{dura(f.maxMin)}</td>
-                        <td>{dura(f.planeadoMin)}</td><td>{f.atipicas || "—"}</td>
-                      </tr>
-                    ))}
-                    {filasDeTiempo.length === 0 && <tr><td colSpan={8}>{t("No visits measured by GPS in this group.", "No hay visitas medidas por GPS en este grupo.")}</td></tr>}
-                  </tbody>
-                </table>
-              </div>
+              <TablaEstandar id="reportes-tiempo-parada" data-tabla="reportes-tiempo-parada" sinCaja filas={filasDeTiempo} claveDe={(f) => f.clave}
+                vacio={t("No visits measured by GPS in this group.", "No hay visitas medidas por GPS en este grupo.")}
+                columnas={[
+                  { key: "grupo", en: grupo === "clase" ? "Stop type" : grupo === "tienda" ? "Store" : grupo === "cliente" ? "Customer" : "Driver", es: grupo === "clase" ? "Tipo de parada" : grupo === "tienda" ? "Tienda" : grupo === "cliente" ? "Cliente" : "Chofer", ancho: 180, fija: true,
+                    valor: (f) => (grupo === "clase" ? tx.clase(f.clave) : f.clave), celda: (f) => <span style={f.fiable ? { fontWeight: 700 } : { color: "var(--gray)" }} title={f.fiable ? undefined : t(`Thin data: fewer than ${MINIMO_DE_CASOS} visits.`, `Poco dato: menos de ${MINIMO_DE_CASOS} visitas.`)}>{grupo === "clase" ? tx.clase(f.clave) : f.clave}</span> },
+                  { key: "visitas", en: "Visits", es: "Visitas", ancho: 110, numerico: true, valor: (f) => f.n, celda: (f) => <span style={f.fiable ? undefined : { color: "var(--gray)" }}>{f.n}{!f.fiable && ` · ${t("thin", "poco dato")}`}</span> },
+                  { key: "mediana", en: "Median", es: "Mediana", ancho: 100, numerico: true, valor: (f) => f.medianaMin, celda: (f) => <span style={{ fontWeight: 700 }}>{dura(f.medianaMin)}</span> },
+                  { key: "media", en: "Average", es: "Media", ancho: 100, numerico: true, valor: (f) => f.mediaMin, celda: (f) => dura(f.mediaMin) },
+                  { key: "p90", en: "P90", es: "P90", ancho: 90, numerico: true, valor: (f) => f.p90Min, celda: (f) => dura(f.p90Min) },
+                  { key: "maxima", en: "Longest", es: "La más larga", ancho: 110, numerico: true, valor: (f) => f.maxMin, celda: (f) => dura(f.maxMin) },
+                  { key: "planeado", en: "Planner assumes", es: "El plan supone", ancho: 130, numerico: true, valor: (f) => f.planeadoMin, celda: (f) => dura(f.planeadoMin) },
+                  { key: "atipicas", en: "Outliers", es: "Atípicas", ancho: 100, numerico: true, valor: (f) => f.atipicas, celda: (f) => f.atipicas || "—" },
+                ]} />
               {visitas.some((v) => v.atipica) && (
                 <div data-atipicas>
                   <b style={{ fontSize: 13 }}>{t("Unusually long stops", "Paradas más largas de lo normal")}</b>
-                  <div className="tbl-scroll" style={{ border: "none" }}>
-                    <table className="orders" style={{ minWidth: 640, fontVariantNumeric: "tabular-nums" }}>
-                      <tbody>
-                        {visitas.filter((v) => v.atipica).sort((a, b) => b.minutos - a.minutos).map((v) => (
-                          <tr key={`${v.fecha}|${v.chofer}|${v.llegada}`}>
-                            <td>{fmtDate(v.fecha)}</td><td>{v.chofer}</td><td>{tx.clase(v.clase)}</td><td>{v.lugar}</td><td>{hora(v.llegada)}–{hora(v.salida)}</td><td style={{ fontWeight: 700 }}>{dura(v.minutos)}</td><td className="hint">{t("planner", "plan")} {dura(v.minPlaneados)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <TablaEstandar id="reportes-atipicas" data-tabla="reportes-atipicas" sinCaja filas={visitas.filter((v) => v.atipica).sort((a, b) => b.minutos - a.minutos)}
+                    claveDe={(v) => `${v.fecha}|${v.chofer}|${v.llegada}`}
+                    columnas={[
+                      { key: "fecha", en: "Date", es: "Fecha", ancho: 110, valor: (v) => v.fecha, celda: (v) => fmtDate(v.fecha) },
+                      { key: "chofer", en: "Driver", es: "Chofer", ancho: 150, fija: true, valor: (v) => v.chofer },
+                      { key: "clase", en: "Stop type", es: "Tipo de parada", ancho: 140, valor: (v) => tx.clase(v.clase) },
+                      { key: "lugar", en: "Place", es: "Lugar", ancho: 220, valor: (v) => v.lugar },
+                      { key: "horario", en: "Time", es: "Horario", ancho: 130, valor: (v) => v.llegada, celda: (v) => `${hora(v.llegada)}–${hora(v.salida)}` },
+                      { key: "minutos", en: "Minutes", es: "Minutos", ancho: 100, numerico: true, valor: (v) => v.minutos, celda: (v) => <span style={{ fontWeight: 700 }}>{dura(v.minutos)}</span> },
+                      { key: "plan", en: "Planner", es: "Plan", ancho: 110, numerico: true, valor: (v) => v.minPlaneados, celda: (v) => <span className="hint">{t("planner", "plan")} {dura(v.minPlaneados)}</span> },
+                    ]} />
                 </div>
               )}
             </>
@@ -340,40 +321,24 @@ export function ReportesDeChoferes({ desde, hasta, carga = pide }: { desde: stri
                 {t("Under each number: how many cases it comes from, of how many could have been measured. Grey = thin data: shown, not compared. A “#1” appears only where two or more drivers have enough data for that measure.",
                   "Debajo de cada número: de cuántos casos sale, de cuántos se podían medir. Gris = poco dato: se enseña, no se compara. El «#1» solo aparece donde dos o más choferes tienen dato suficiente en esa medida.")}
               </div>
-              <div className="tbl-scroll" style={{ border: "none" }}>
-                <table className="orders" style={{ minWidth: 1100, fontVariantNumeric: "tabular-nums" }}>
-                  <thead><tr>
-                    <th>{t("Driver", "Chofer")}</th>
-                    <th title={t("Days with orders · days with a GPS trail (truck + phone)", "Días con órdenes · días con rastro GPS (camión + teléfono)")}>{t("Days", "Días")}</th>
-                    <th title={t("Done · total", "Hechas · total")}>{t("Stops", "Paradas")}</th>
-                    <th>{t("Miles", "Millas")}</th>
-                    <th title={t("Typical time the truck leaves the store where the day starts", "Hora típica a la que el camión sale de la tienda donde empieza el día")}>{t("First departure", "Primera salida")}</th>
-                    <th title={t("Deliveries arriving by the end of the customer's window", "Entregas que llegan antes del fin de la ventana del cliente")}>{t("On time (window)", "A tiempo (ventana)")}</th>
-                    <th title={t("Stops done in order, arriving within 30 min of the current plan", "Paradas hechas en orden que llegan a 30 min o menos del plan vigente")}>{t("Within 30 min of plan", "A 30 min del plan")}</th>
-                    <th title={t("Median GPS time at a customer delivery", "Mediana del tiempo por GPS en una entrega a cliente")}>{t("Time per delivery", "Tiempo por entrega")}</th>
-                    <th title={t("Of the driver's own closing taps whose place is known, how many were made at the stop", "De los toques de cierre del propio chofer cuyo lugar se conoce, cuántos se hicieron en la parada")}>{t("Taps at the stop", "Toques en la parada")}</th>
-                    <th>{t("Out of order", "Fuera de orden")}</th>
-                    <th title={t("Average per day with a dense GPS trail", "Media por día con rastro GPS denso")}>{t("Stopped off-route", "Parado fuera de ruta")}</th>
-                  </tr></thead>
-                  <tbody>
-                    {tarjetas.map((x) => (
-                      <tr key={x.chofer} data-tarjeta-de-chofer={x.chofer}>
-                        <td style={{ fontWeight: 700 }}>{x.chofer}</td>
-                        <td>{x.dias}<span className="hint" style={{ margin: 0, display: "block", fontSize: 11 }}>GPS {x.diasConRastro} ({x.diasConCamion}+{x.diasConTelefono})</span></td>
-                        <td>{x.paradasHechas} · {x.paradas}<span className="hint" style={{ margin: 0, display: "block", fontSize: 11 }}>{t("real time", "con hora")} {x.paradasConHora} (GPS {x.paradasPorRastro})</span></td>
-                        {celda(x.medidas.millasPorDia, () => `${x.millas ?? "—"} mi`)}
-                        {celda(x.medidas.primeraSalidaMin, (v) => hhmm(v))}
-                        {celda(x.medidas.aTiempo, (v) => `${v}%`)}
-                        {celda(x.medidas.dentroDe30, (v) => `${v}%`)}
-                        {celda(x.medidas.minPorEntrega, (v) => dura(v))}
-                        {celda(x.medidas.toquesEnLaParada, (v) => `${v}%`)}
-                        {celda(x.medidas.fueraDeOrden, (v) => `${v}%`)}
-                        {celda(x.medidas.paradoMinPorDia, (v) => `${dura(v)}/${t("day", "día")}`)}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <TablaEstandar id="reportes-tarjeta" data-tabla="reportes-tarjeta" sinCaja filas={tarjetas} claveDe={(x) => x.chofer}
+                columnas={[
+                  { key: "chofer", en: "Driver", es: "Chofer", ancho: 150, fija: true, valor: (x) => x.chofer, celda: (x) => <strong>{x.chofer}</strong> },
+                  { key: "dias", en: "Days", es: "Días", ancho: 120, numerico: true, valor: (x) => x.dias, celda: (x) => (
+                    <span title={t("Days with orders · days with a GPS trail (truck + phone)", "Días con órdenes · días con rastro GPS (camión + teléfono)")}>{x.dias}<span className="hint" style={{ margin: 0, display: "block", fontSize: 11 }}>GPS {x.diasConRastro} ({x.diasConCamion}+{x.diasConTelefono})</span></span>
+                  ) },
+                  { key: "paradas", en: "Stops", es: "Paradas", ancho: 140, numerico: true, valor: (x) => x.paradasHechas, celda: (x) => (
+                    <span title={t("Done · total", "Hechas · total")}>{x.paradasHechas} · {x.paradas}<span className="hint" style={{ margin: 0, display: "block", fontSize: 11 }}>{t("real time", "con hora")} {x.paradasConHora} (GPS {x.paradasPorRastro})</span></span>
+                  ) },
+                  { key: "millas", en: "Miles", es: "Millas", ancho: 130, numerico: true, valor: (x) => x.medidas.millasPorDia.valor, celda: (x) => medida(x.medidas.millasPorDia, () => `${x.millas ?? "—"} mi`) },
+                  { key: "primera", en: "First departure", es: "Primera salida", ancho: 130, numerico: true, valor: (x) => x.medidas.primeraSalidaMin.valor, celda: (x) => medida(x.medidas.primeraSalidaMin, (v) => hhmm(v)) },
+                  { key: "atiempo", en: "On time (window)", es: "A tiempo (ventana)", ancho: 140, numerico: true, valor: (x) => x.medidas.aTiempo.valor, celda: (x) => medida(x.medidas.aTiempo, (v) => `${v}%`) },
+                  { key: "dentro30", en: "Within 30 min of plan", es: "A 30 min del plan", ancho: 150, numerico: true, valor: (x) => x.medidas.dentroDe30.valor, celda: (x) => medida(x.medidas.dentroDe30, (v) => `${v}%`) },
+                  { key: "pordel", en: "Time per delivery", es: "Tiempo por entrega", ancho: 140, numerico: true, valor: (x) => x.medidas.minPorEntrega.valor, celda: (x) => medida(x.medidas.minPorEntrega, (v) => dura(v)) },
+                  { key: "toques", en: "Taps at the stop", es: "Toques en la parada", ancho: 140, numerico: true, valor: (x) => x.medidas.toquesEnLaParada.valor, celda: (x) => medida(x.medidas.toquesEnLaParada, (v) => `${v}%`) },
+                  { key: "fuera", en: "Out of order", es: "Fuera de orden", ancho: 130, numerico: true, valor: (x) => x.medidas.fueraDeOrden.valor, celda: (x) => medida(x.medidas.fueraDeOrden, (v) => `${v}%`) },
+                  { key: "parado", en: "Stopped off-route", es: "Parado fuera de ruta", ancho: 150, numerico: true, valor: (x) => x.medidas.paradoMinPorDia.valor, celda: (x) => medida(x.medidas.paradoMinPorDia, (v) => `${dura(v)}/${t("day", "día")}`) },
+                ]} />
             </>
           )}
         </div>
@@ -454,7 +419,6 @@ function DiaDelChofer({ fecha, choferId, zona, inicial, carga, onClose, t }: {
     setOcupado(false);
   };
 
-  const th = { padding: "4px 6px", textAlign: "left" as const }, td = { padding: "4px 6px" };
   return (
     <div className="overlay" data-dia-del-chofer onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal" role="dialog" aria-modal="true" aria-label={t("Driver's day", "Día del chofer")} style={{ maxWidth: 1040, width: "100%", padding: 0, overflow: "hidden" }}>
@@ -484,32 +448,30 @@ function DiaDelChofer({ fecha, choferId, zona, inicial, carga, onClose, t }: {
             <span><span style={{ display: "inline-block", width: 22, borderTop: `3px solid ${COLOR_RECORRIDO_REAL}`, verticalAlign: "middle", marginRight: 4 }} />{t("Really driven (GPS)", "Lo manejado de verdad (GPS)")}</span>
             <span>{t("Pin number = position in the plan", "Número de la marca = puesto en el plan")}</span>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 10, fontSize: 12.5, fontVariantNumeric: "tabular-nums" }} data-paradas-del-dia>
-            <thead><tr style={{ borderBottom: "2px solid var(--line)" }}>
-              <th style={th}>{t("Plan→Real", "Plan→Real")}</th><th style={th}>{t("Stop", "Parada")}</th><th style={th}>{t("First est.", "1ª estim.")}</th><th style={th}>{t("Plan", "Plan")}</th>
-              <th style={th}>{t("Arrived", "Llegó")}</th><th style={th}>{t("Left", "Salió")}</th><th style={th}>{t("At stop", "En parada")}</th><th style={th}>{t("Source", "Fuente")}</th><th style={th}>{t("vs plan", "vs plan")}</th><th style={th}>{t("Driver's tap", "Toque del chofer")}</th>
-            </tr></thead>
-            <tbody>
-              {paradas.map((p: ParadaDelInforme) => {
+          {/* Estándar de tablas (`TablaEstandar`), dentro de la tarjeta del día. */}
+          <div style={{ marginTop: 10 }}>
+          <TablaEstandar id="reportes-dia-chofer" data-tabla="reportes-dia-chofer" sinCaja filas={paradas} claveDe={(p) => p.clave}
+            columnas={[
+              { key: "plan", en: "Plan→Real", es: "Plan→Real", ancho: 100, numerico: true, valor: (p) => p.puestoPlan, celda: (p) => <b style={{ color: p.fueraDeOrden ? "var(--amber-text)" : undefined }}>{p.puestoPlan ?? "—"}→{p.puestoReal ?? "—"}</b> },
+              { key: "parada", en: "Stop", es: "Parada", ancho: 260, fija: true, valor: (p) => `${p.codigo} ${p.lugar}`, celda: (p) => <><b style={{ color: p.tipo === "P" ? COLOR_RECOGIDA : COLOR_ENTREGA }}>{p.tipo === "P" ? t("Pickup", "Recogida") : t("Delivery", "Entrega")}</b> {p.codigo} · {p.lugar}</> },
+              { key: "primera", en: "First est.", es: "1ª estim.", ancho: 90, valor: (p) => p.primeraEta, celda: (p) => hhmm(p.primeraEta) },
+              { key: "plan", en: "Plan", es: "Plan", ancho: 80, valor: (p) => p.eta, celda: (p) => hhmm(p.eta) },
+              { key: "llego", en: "Arrived", es: "Llegó", ancho: 90, valor: (p) => p.llegada, celda: (p) => hora(p.llegada) },
+              { key: "salio", en: "Left", es: "Salió", ancho: 90, valor: (p) => p.salida, celda: (p) => (p.fuente === "toque_cierre" ? "—" : hora(p.salida)) },
+              { key: "enparada", en: "At stop", es: "En parada", ancho: 110, numerico: true, valor: (p) => (p.visita != null ? d?.visitas[p.visita]?.minutos ?? null : null), celda: (p) => {
                 const v = p.visita != null ? d?.visitas[p.visita] : null;
-                return (
-                  <tr key={p.clave} style={{ borderBottom: "1px solid var(--line)", verticalAlign: "top" }}>
-                    <td style={{ ...td, fontWeight: 800, color: p.fueraDeOrden ? "var(--amber-text)" : undefined }}>{p.puestoPlan ?? "—"}→{p.puestoReal ?? "—"}</td>
-                    <td style={td}><b style={{ color: p.tipo === "P" ? COLOR_RECOGIDA : COLOR_ENTREGA }}>{p.tipo === "P" ? t("Pickup", "Recogida") : t("Delivery", "Entrega")}</b> {p.codigo} · {p.lugar}</td>
-                    <td style={td}>{hhmm(p.primeraEta)}</td><td style={td}>{hhmm(p.eta)}</td>
-                    <td style={td}>{hora(p.llegada)}</td><td style={td}>{p.fuente === "toque_cierre" ? "—" : hora(p.salida)}</td>
-                    <td style={td}>{v ? `${dura(v.minutos)}${v.truncada ? "*" : ""}` : "—"}</td>
-                    <td style={{ ...td, color: p.fuente ? undefined : "var(--gray)" }}>{p.fuente ? tx.fuente(p.fuente) : tx.motivo(p.motivo)}</td>
-                    <td style={td}>{signo(p.difPlan)}{p.fueraDeOrden ? ` · ${t("out of order", "fuera de orden")}` : ""}</td>
-                    <td style={{ ...td, color: p.toque?.enLaParada === false ? "var(--amber-text)" : undefined }}>
-                      {p.toque ? `${hora(p.toque.t)} · ${p.toque.enLaParada == null ? t("place unknown", "lugar desconocido") : p.toque.enLaParada ? t("at the stop", "en la parada") : t("away", "lejos")}${p.toque.metros != null ? ` (${p.toque.metros >= 1000 ? `${(p.toque.metros / 1609.344).toFixed(1)} mi` : `${p.toque.metros} m`})` : ""}`
-                        : p.toqueDeOtraPersona ? t("someone else", "otra persona") : "—"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                return v ? `${dura(v.minutos)}${v.truncada ? "*" : ""}` : "—";
+              } },
+              { key: "fuente", en: "Source", es: "Fuente", ancho: 170, valor: (p) => (p.fuente ? tx.fuente(p.fuente) : tx.motivo(p.motivo)), celda: (p) => <span style={{ color: p.fuente ? undefined : "var(--gray)" }}>{p.fuente ? tx.fuente(p.fuente) : tx.motivo(p.motivo)}</span> },
+              { key: "vsplan", en: "vs plan", es: "vs plan", ancho: 130, numerico: true, valor: (p) => p.difPlan, celda: (p) => `${signo(p.difPlan)}${p.fueraDeOrden ? ` · ${t("out of order", "fuera de orden")}` : ""}` },
+              { key: "toque", en: "Driver's tap", es: "Toque del chofer", ancho: 240, valor: (p) => p.toque?.t ?? null, celda: (p) => (
+                <span style={{ color: p.toque?.enLaParada === false ? "var(--amber-text)" : undefined }}>
+                  {p.toque ? `${hora(p.toque.t)} · ${p.toque.enLaParada == null ? t("place unknown", "lugar desconocido") : p.toque.enLaParada ? t("at the stop", "en la parada") : t("away", "lejos")}${p.toque.metros != null ? ` (${p.toque.metros >= 1000 ? `${(p.toque.metros / 1609.344).toFixed(1)} mi` : `${p.toque.metros} m`})` : ""}`
+                    : p.toqueDeOtraPersona ? t("someone else", "otra persona") : "—"}
+                </span>
+              ) },
+            ]} />
+          </div>
           {d?.visitas.some((v) => v.truncada) && <div style={{ fontSize: 11.5, color: "var(--gray)", marginTop: 4 }}>* {t("The vehicle was already there when the trail starts, or still there when it ends.", "El vehículo ya estaba ahí cuando empieza el rastro, o seguía ahí cuando acaba.")}</div>}
           <div data-fuera-de-la-foto style={{ display: "flex", gap: 8, marginTop: 12, justifyContent: "flex-end" }}>
             <button type="button" className="btn btn-ghost" onClick={onClose}>{t("Close", "Cerrar")}</button>

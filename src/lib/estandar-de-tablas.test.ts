@@ -44,19 +44,11 @@ const EXENTAS: readonly string[] = [
 ];
 /** Deuda del 12 nov 2026. Solo puede ENCOGER: al convertir una, se quita de aquí. */
 const PENDIENTES: readonly string[] = [
-  "src/app/(app)/accounts/page.tsx",
-  "src/app/(app)/audit/page.tsx",
-  "src/app/(app)/dashboard/page.tsx",
   "src/app/(app)/data/page.tsx",
   "src/app/(app)/market/page.tsx",
   "src/app/(app)/settings/page.tsx",
-  "src/app/(app)/track/page.tsx",
-  "src/app/(app)/warehouse/page.tsx",
   "src/app/operaciones/KpiDeEntregas.tsx",
-  "src/components/PausasDelDia.tsx",
   "src/components/PlanContraReal.tsx",
-  "src/components/PuntualidadPorChofer.tsx",
-  "src/components/ReportesDeChoferes.tsx",
   "src/components/RutaDelPlan.tsx",
   "src/components/erp/review-queue.tsx",
   "src/components/timetracker/AssignmentsPanel.tsx",

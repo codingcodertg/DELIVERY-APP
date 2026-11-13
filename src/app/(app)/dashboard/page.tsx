@@ -15,6 +15,7 @@ import { PuntualidadPorChofer } from "@/components/PuntualidadPorChofer";
 import { ReportesDeChoferes } from "@/components/ReportesDeChoferes";
 import { puedeVerReportesDeChoferes } from "@/lib/reportes-choferes/permiso";
 import { EncuestaDelPanel } from "@/components/EncuestaDelPanel";
+import { TablaEstandar } from "@/components/TablaEstandar";
 
 // Matches the Routes Manager / Map default when a driver has no capacity set.
 const DEFAULT_CAPACITY = 12;
@@ -222,6 +223,17 @@ export default function DashboardPage() {
 
   const openOrder = (id: string) => router.push(`/?order=${id}`);
 
+  // Tablas de choferes y tienda: `TablaEstandar` (▾ ⚙ mover y anchos). Mismos números y formatos que antes.
+  const num1 = (n: number) => n.toLocaleString(lang === "es" ? "es-MX" : "en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const tiempoDe = (min: number | null | undefined) => (min == null ? "—" : fmtDuration(min * 60_000));
+  const estDe = (f: { paradasEstimadas: number; millasEstimadas: number; paradasSinDato: number }) => (
+    <span title={f.paradasSinDato ? t(`${f.paradasSinDato} stop(s) without data (0 mi)`, `${f.paradasSinDato} parada(s) sin dato (0 mi)`) : undefined}>
+      {f.paradasEstimadas === 0 ? "—" : `${num1(f.millasEstimadas)} (${f.paradasEstimadas})`}
+      {f.paradasSinDato > 0 && <span style={{ color: "var(--amber)", fontWeight: 700 }}> ⚠️</span>}
+    </span>
+  );
+  const pctTexto = (v: number | null) => (v == null ? "—" : `${num1(v)} %`);
+
   return (
     <>
       {/* Above the KPIs on purpose: these are the things nothing else would
@@ -357,39 +369,24 @@ export default function DashboardPage() {
             {gas.filas.length === 0 ? (
               <div className="empty">{t("No delivered orders in this range.", "Sin órdenes entregadas en este rango.")}</div>
             ) : (
-              <div className="tbl-scroll" style={{ border: "none" }}>
-                <table className="orders" style={{ minWidth: 560, fontVariantNumeric: "tabular-nums" }}>
-                  <thead>
-                    <tr>
-                      <th>{t("Store", "Tienda")}</th>
-                      <th>{t("Stops", "Paradas")}</th>
-                      <th>{t("Orders", "Órdenes")}</th>
-                      <th>{t("Miles", "Millas")}</th>
-                      <th>{t("Of which est.", "De ellas est.")}</th>
-                      <th>{t("% of fuel", "% del gas")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...gas.filas, gas.total].map((f, i) => {
-                      const esTotal = i === gas.filas.length;
-                      const negrita = esTotal ? { fontWeight: 800 } : undefined;
-                      return (
-                        <tr key={f.tienda} data-gas-tienda={f.tienda} style={esTotal ? { borderTop: "2px solid var(--line)" } : undefined}>
-                          <td style={{ fontWeight: 700, ...negrita }}>{esTotal ? t("Total", "Total") : f.tienda}</td>
-                          <td style={negrita}>{f.paradas}</td>
-                          <td style={negrita}>{f.ordenes}</td>
-                          <td style={negrita}>{f.millas.toLocaleString(lang === "es" ? "es-MX" : "en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</td>
-                          <td style={negrita} title={f.paradasSinDato ? t(`${f.paradasSinDato} stop(s) without data (0 mi)`, `${f.paradasSinDato} parada(s) sin dato (0 mi)`) : undefined}>
-                            {f.paradasEstimadas === 0 ? "—" : `${f.millasEstimadas.toLocaleString(lang === "es" ? "es-MX" : "en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} (${f.paradasEstimadas})`}
-                            {f.paradasSinDato > 0 && <span style={{ color: "var(--amber)", fontWeight: 700 }}> ⚠️</span>}
-                          </td>
-                          <td style={{ fontWeight: 800, ...negrita }}>{f.pctGas == null ? "—" : `${f.pctGas.toLocaleString(lang === "es" ? "es-MX" : "en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <TablaEstandar id="dash-millas-tienda" sinCaja data-tabla="dash-millas-tienda" filas={gas.filas} claveDe={(f) => f.tienda}
+                columnas={[
+                  { key: "tienda", en: "Store", es: "Tienda", ancho: 180, fija: true, valor: (f) => f.tienda, celda: (f) => <strong>{f.tienda}</strong> },
+                  { key: "paradas", en: "Stops", es: "Paradas", ancho: 90, numerico: true, valor: (f) => f.paradas },
+                  { key: "ordenes", en: "Orders", es: "Órdenes", ancho: 90, numerico: true, valor: (f) => f.ordenes },
+                  { key: "millas", en: "Miles", es: "Millas", ancho: 100, numerico: true, valor: (f) => f.millas, celda: (f) => num1(f.millas) },
+                  { key: "est", en: "Of which est.", es: "De ellas est.", ancho: 150, numerico: true, valor: (f) => f.millasEstimadas, celda: (f) => estDe(f) },
+                  { key: "gas", en: "% of fuel", es: "% del gas", ancho: 110, numerico: true, valor: (f) => f.pctGas, celda: (f) => <strong>{pctTexto(f.pctGas)}</strong> },
+                ]}
+                totales={{
+                  tienda: t("Total", "Total"),
+                  paradas: <strong>{gas.total.paradas}</strong>,
+                  ordenes: <strong>{gas.total.ordenes}</strong>,
+                  millas: <strong>{num1(gas.total.millas)}</strong>,
+                  est: <strong>{estDe(gas.total)}</strong>,
+                  gas: <strong>{pctTexto(gas.total.pctGas)}</strong>,
+                }} />
+
             )}
           </div>
 
@@ -413,69 +410,51 @@ export default function DashboardPage() {
                   <Kpi n={fleet.totalRedeliveries || "—"} label={t("Redeliveries", "Reenvíos")} tone={fleet.totalRedeliveries > 0 ? "red" : undefined} small />
                   <Kpi n={fleet.totalGpsOff || "—"} label={t("GPS-off deliveries", "Entregas GPS lejos")} tone={fleet.totalGpsOff > 0 ? "red" : undefined} small />
                 </div>
-                <div className="tbl-scroll" style={{ border: "none" }}>
-                  <table className="orders" style={{ minWidth: 760, fontVariantNumeric: "tabular-nums" }}>
-                    <thead>
-                      <tr>
-                        <th>{t("Driver", "Chofer")}</th>
-                        <th>{t("Orders", "Órdenes")}</th>
-                        <th>{t("Delivered", "Entregadas")}</th>
-                        <th>{t("On-time", "A tiempo")}</th>
-                        <th>{t("Avg delay", "Retraso prom.")}</th>
-                        <th>{t("Stops/route", "Paradas/ruta")}</th>
-                        <th>{t("Miles", "Millas")}</th>
-                        <th>{t("Revenue", "Ingresos")}</th>
-                        <th>{t("$/mi", "$/mi")}</th>
-                        <th>{t("Util.", "Util.")}</th>
-                        <th>{t("Fuel", "Comb.")}</th>
-                        <th>{t("Cost/del", "Costo/ent")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {drivers.map((d) => {
-                        const rank = rankByDriver.get(d.driver);
-                        return (
-                        <tr key={d.driver}>
-                          <td style={{ fontWeight: 700 }}>
-                            {rank != null && (
-                              <span className="sema" title={t("On-time rank vs peers", "Ranking de puntualidad vs pares")} style={{ marginRight: 6, background: rank === 1 ? "var(--green)" : "var(--line)", color: rank === 1 ? "#fff" : "var(--muted)" }}>#{rank}</span>
-                            )}
-                            {d.driver}
-                          </td>
-                          <td>{d.orders}</td>
-                          <td>{d.delivered}</td>
-                          <td style={d.onTimePct != null && fleet.avgOnTime != null ? (d.onTimePct >= fleet.avgOnTime ? { color: "var(--green)", fontWeight: 700 } : { color: "var(--amber)", fontWeight: 700 }) : undefined} title={fleet.avgOnTime != null ? `${t("Fleet avg", "Prom. flota")} ${fleet.avgOnTime}%` : undefined}>{d.onTimePct == null ? "—" : `${d.onTimePct}%`}</td>
-                          <td style={d.avgDelayMin ? { color: "var(--red)" } : undefined}>{d.avgDelayMin == null ? "—" : `${d.avgDelayMin}m`}</td>
-                          <td>{d.avgStops}</td>
-                          <td>{d.miles}</td>
-                          <td>{fmtMoney(d.revenue)}</td>
-                          <td>{d.revPerMile == null ? "—" : fmtMoney(d.revPerMile)}</td>
-                          <td style={d.utilizationPct != null && d.utilizationPct > 100 ? { color: "var(--red)", fontWeight: 700 } : undefined}>{d.utilizationPct == null ? "—" : `${d.utilizationPct}%`}</td>
-                          <td>{d.fuelCost == null ? "—" : fmtMoney(d.fuelCost)}</td>
-                          <td>{d.costPerDelivery == null ? "—" : fmtMoney(d.costPerDelivery)}</td>
-                        </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr style={{ borderTop: "2px solid var(--line)", fontWeight: 700 }}>
-                        <td>{t("Fleet avg", "Prom. flota")}</td>
-                        <td>{drivers.reduce((s, d) => s + d.orders, 0)}</td>
-                        <td>{drivers.reduce((s, d) => s + d.delivered, 0)}</td>
-                        <td>{fleet.avgOnTime == null ? "—" : `${fleet.avgOnTime}%`}</td>
-                        <td>—</td>
-                        <td>—</td>
-                        <td>{sumaMillas(drivers, (d) => d.miles)}</td>
-                        <td>{fmtMoney(fleet.revenue)}</td>
-                        <td>{fleet.revPerMile == null ? "—" : fmtMoney(fleet.revPerMile)}</td>
-                        <td>{fleet.avgUtil == null ? "—" : `${fleet.avgUtil}%`}</td>
-                        <td>{fleet.fuelCost == null ? "—" : fmtMoney(fleet.fuelCost)}</td>
-                        <td>{fleet.avgCostPer == null ? "—" : fmtMoney(fleet.avgCostPer)}</td>
-                        
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
+                <TablaEstandar id="dash-kpis-choferes" sinCaja data-tabla="dash-kpis-choferes" filas={drivers} claveDe={(d) => d.driver}
+                  columnas={[
+                    { key: "chofer", en: "Driver", es: "Chofer", ancho: 180, fija: true, valor: (d) => d.driver, celda: (d) => {
+                      const rank = rankByDriver.get(d.driver);
+                      return (
+                        <strong>
+                          {rank != null && (
+                            <span className="sema" title={t("On-time rank vs peers", "Ranking de puntualidad vs pares")} style={{ marginRight: 6, background: rank === 1 ? "var(--green)" : "var(--line)", color: rank === 1 ? "#fff" : "var(--muted)" }}>#{rank}</span>
+                          )}
+                          {d.driver}
+                        </strong>
+                      );
+                    } },
+                    { key: "ordenes", en: "Orders", es: "Órdenes", ancho: 90, numerico: true, valor: (d) => d.orders },
+                    { key: "entregadas", en: "Delivered", es: "Entregadas", ancho: 110, numerico: true, valor: (d) => d.delivered },
+                    { key: "atiempo", en: "On-time", es: "A tiempo", ancho: 100, numerico: true, valor: (d) => d.onTimePct, celda: (d) => (
+                      <span style={d.onTimePct != null && fleet.avgOnTime != null ? (d.onTimePct >= fleet.avgOnTime ? { color: "var(--green)", fontWeight: 700 } : { color: "var(--amber)", fontWeight: 700 }) : undefined} title={fleet.avgOnTime != null ? `${t("Fleet avg", "Prom. flota")} ${fleet.avgOnTime}%` : undefined}>{d.onTimePct == null ? "—" : `${d.onTimePct}%`}</span>
+                    ) },
+                    { key: "retraso", en: "Avg delay", es: "Retraso prom.", ancho: 110, numerico: true, valor: (d) => d.avgDelayMin, celda: (d) => (
+                      <span style={d.avgDelayMin ? { color: "var(--red)" } : undefined}>{d.avgDelayMin == null ? "—" : `${d.avgDelayMin}m`}</span>
+                    ) },
+                    { key: "paradas", en: "Stops/route", es: "Paradas/ruta", ancho: 110, numerico: true, valor: (d) => d.avgStops },
+                    { key: "millas", en: "Miles", es: "Millas", ancho: 90, numerico: true, valor: (d) => d.miles },
+                    { key: "ingresos", en: "Revenue", es: "Ingresos", ancho: 110, numerico: true, valor: (d) => d.revenue, celda: (d) => fmtMoney(d.revenue) },
+                    { key: "dolarmi", en: "$/mi", es: "$/mi", ancho: 90, numerico: true, valor: (d) => d.revPerMile, celda: (d) => (d.revPerMile == null ? "—" : fmtMoney(d.revPerMile)) },
+                    { key: "util", en: "Util.", es: "Util.", ancho: 90, numerico: true, valor: (d) => d.utilizationPct, celda: (d) => (
+                      <span style={d.utilizationPct != null && d.utilizationPct > 100 ? { color: "var(--red)", fontWeight: 700 } : undefined}>{d.utilizationPct == null ? "—" : `${d.utilizationPct}%`}</span>
+                    ) },
+                    { key: "comb", en: "Fuel", es: "Comb.", ancho: 100, numerico: true, valor: (d) => d.fuelCost, celda: (d) => (d.fuelCost == null ? "—" : fmtMoney(d.fuelCost)) },
+                    { key: "costo", en: "Cost/del", es: "Costo/ent", ancho: 110, numerico: true, valor: (d) => d.costPerDelivery, celda: (d) => (d.costPerDelivery == null ? "—" : fmtMoney(d.costPerDelivery)) },
+                  ]}
+                  totales={{
+                    chofer: t("Fleet avg", "Prom. flota"),
+                    ordenes: drivers.reduce((s, d) => s + d.orders, 0),
+                    entregadas: drivers.reduce((s, d) => s + d.delivered, 0),
+                    atiempo: fleet.avgOnTime == null ? "—" : `${fleet.avgOnTime}%`,
+                    retraso: "—",
+                    paradas: "—",
+                    millas: sumaMillas(drivers, (d) => d.miles),
+                    ingresos: fmtMoney(fleet.revenue),
+                    dolarmi: fleet.revPerMile == null ? "—" : fmtMoney(fleet.revPerMile),
+                    util: fleet.avgUtil == null ? "—" : `${fleet.avgUtil}%`,
+                    comb: fleet.fuelCost == null ? "—" : fmtMoney(fleet.fuelCost),
+                    costo: fleet.avgCostPer == null ? "—" : fmtMoney(fleet.avgCostPer),
+                  }} />
               </>
             )}
           </div>
@@ -504,34 +483,20 @@ export default function DashboardPage() {
             {idle.length === 0 ? (
               <div className="empty">{t("No shifts clocked in this range.", "Sin turnos registrados en este rango.")}</div>
             ) : (
-              <div className="tbl-scroll" style={{ border: "none" }}>
-                <table className="orders" style={{ minWidth: 560, fontVariantNumeric: "tabular-nums" }}>
-                  <thead>
-                    <tr>
-                      <th>{t("Driver", "Chofer")}</th>
-                      <th>{t("On-clock", "En turno")}</th>
-                      <th>{t("Active", "Activo")}</th>
-                      <th>{t("Idle", "Inactivo")}</th>
-                      <th>{t("Active %", "% Activo")}</th>
-                      <th>{t("Deliv/hr", "Entr/h")}</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {idle.map((d) => (
-                      <tr key={d.driver}>
-                        <td style={{ fontWeight: 700 }}>{d.driver}</td>
-                        <td>{fmtDuration(d.onClockMin * 60_000)}</td>
-                        <td>{fmtDuration(d.activeMin * 60_000)}</td>
-                        <td style={d.activePct != null && d.activePct < 50 ? { color: "var(--amber)", fontWeight: 700 } : undefined}>{fmtDuration(d.idleMin * 60_000)}</td>
-                        <td style={d.activePct != null && d.activePct < 50 ? { color: "var(--amber)", fontWeight: 700 } : undefined}>{d.activePct == null ? "—" : `${d.activePct}%`}</td>
-                        <td>{d.perActiveHr == null ? "—" : d.perActiveHr}</td>
-                        <td>{d.open && <span className="sema" style={{ background: "var(--green)", color: "#fff" }}>{t("On the clock", "En turno")}</span>}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <TablaEstandar id="dash-ociosidad" sinCaja data-tabla="dash-ociosidad" filas={idle} claveDe={(d) => d.driver}
+                columnas={[
+                  { key: "chofer", en: "Driver", es: "Chofer", ancho: 180, fija: true, valor: (d) => d.driver, celda: (d) => <strong>{d.driver}</strong> },
+                  { key: "enturno", en: "On-clock", es: "En turno", ancho: 110, numerico: true, valor: (d) => d.onClockMin, celda: (d) => fmtDuration(d.onClockMin * 60_000) },
+                  { key: "activo", en: "Active", es: "Activo", ancho: 110, numerico: true, valor: (d) => d.activeMin, celda: (d) => fmtDuration(d.activeMin * 60_000) },
+                  { key: "inactivo", en: "Idle", es: "Inactivo", ancho: 110, numerico: true, valor: (d) => d.idleMin, celda: (d) => (
+                    <span style={d.activePct != null && d.activePct < 50 ? { color: "var(--amber)", fontWeight: 700 } : undefined}>{fmtDuration(d.idleMin * 60_000)}</span>
+                  ) },
+                  { key: "pctactivo", en: "Active %", es: "% Activo", ancho: 100, numerico: true, valor: (d) => d.activePct, celda: (d) => (
+                    <span style={d.activePct != null && d.activePct < 50 ? { color: "var(--amber)", fontWeight: 700 } : undefined}>{d.activePct == null ? "—" : `${d.activePct}%`}</span>
+                  ) },
+                  { key: "entrh", en: "Deliv/hr", es: "Entr/h", ancho: 100, numerico: true, valor: (d) => d.perActiveHr, celda: (d) => (d.perActiveHr == null ? "—" : d.perActiveHr) },
+                  { key: "reloj", en: "Status", es: "Estado", ancho: 130, valor: (d) => (d.open ? t("On the clock", "En turno") : null), celda: (d) => (d.open ? <span className="sema" style={{ background: "var(--green)", color: "#fff" }}>{t("On the clock", "En turno")}</span> : null) },
+                ]} />
             )}
           </div>
 
@@ -547,36 +512,25 @@ export default function DashboardPage() {
             {quality.length === 0 ? (
               <div className="empty">{t("No driver orders in this range.", "Sin órdenes de chofer en este rango.")}</div>
             ) : (
-              <div className="tbl-scroll" style={{ border: "none" }}>
-                <table className="orders" style={{ minWidth: 860, fontVariantNumeric: "tabular-nums" }}>
-                  <thead>
-                    <tr>
-                      <th>{t("Driver", "Chofer")}</th>
-                      <th title={t("Departure → pickup", "Salida → recogida")}>{t("Drive→pickup", "A recoger")}</th>
-                      <th title={t("Pickup → delivered", "Recogida → entregado")}>{t("Transit", "Tránsito")}</th>
-                      <th title={t("Arrived → delivered (service time)", "Llegada → entregado (tiempo de servicio)")}>{t("Dwell", "En parada")}</th>
-                      <th title={t("Deliveries with a signature or photo", "Entregas con firma o foto")}>{t("POD %", "% Comp.")}</th>
-                      <th title={t("Second-attempt deliveries", "Entregas en segundo intento")}>{t("Redeliv.", "Reenvíos")}</th>
-                      <th title={t("Loaded fewer pallets than ordered", "Cargó menos pallets de las pedidas")}>{t("Short loads", "Carga corta")}</th>
-                      <th title={t("Deliveries stamped far from the destination address", "Entregas marcadas lejos de la dirección de destino")}>{t("GPS off", "GPS lejos")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {quality.map((d) => (
-                      <tr key={d.driver}>
-                        <td style={{ fontWeight: 700 }}>{d.driver}</td>
-                        <td>{d.avgDriveToPickupMin == null ? "—" : fmtDuration(d.avgDriveToPickupMin * 60_000)}</td>
-                        <td>{d.avgTransitMin == null ? "—" : fmtDuration(d.avgTransitMin * 60_000)}</td>
-                        <td>{d.avgDwellMin == null ? "—" : fmtDuration(d.avgDwellMin * 60_000)}</td>
-                        <td style={d.podCompliancePct != null && d.podCompliancePct < 90 ? { color: "var(--amber)", fontWeight: 700 } : undefined}>{d.podCompliancePct == null ? "—" : `${d.podCompliancePct}%`}</td>
-                        <td style={d.redeliveries ? { color: "var(--red)", fontWeight: 700 } : undefined}>{d.redeliveries || "—"}{d.redeliveryPct ? ` (${d.redeliveryPct}%)` : ""}</td>
-                        <td style={d.shortLoads ? { color: "var(--amber)", fontWeight: 700 } : undefined}>{d.shortLoads || "—"}</td>
-                        <td style={d.podGpsFar ? { color: "var(--red)", fontWeight: 700 } : undefined} title={d.podGpsChecked ? `${d.podGpsFar}/${d.podGpsChecked} ${t("checked", "verificadas")}` : t("no GPS data yet", "sin datos GPS aún")}>{d.podGpsChecked === 0 ? "—" : (d.podGpsFar || "0")}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <TablaEstandar id="dash-calidad-choferes" sinCaja data-tabla="dash-calidad-choferes" filas={quality} claveDe={(d) => d.driver}
+                columnas={[
+                  { key: "chofer", en: "Driver", es: "Chofer", ancho: 180, fija: true, valor: (d) => d.driver, celda: (d) => <strong>{d.driver}</strong> },
+                  { key: "acargar", en: "Drive→pickup", es: "A recoger", ancho: 120, numerico: true, valor: (d) => d.avgDriveToPickupMin, celda: (d) => tiempoDe(d.avgDriveToPickupMin) },
+                  { key: "transito", en: "Transit", es: "Tránsito", ancho: 110, numerico: true, valor: (d) => d.avgTransitMin, celda: (d) => tiempoDe(d.avgTransitMin) },
+                  { key: "parada", en: "Dwell", es: "En parada", ancho: 110, numerico: true, valor: (d) => d.avgDwellMin, celda: (d) => tiempoDe(d.avgDwellMin) },
+                  { key: "pod", en: "POD %", es: "% Comp.", ancho: 100, numerico: true, valor: (d) => d.podCompliancePct, celda: (d) => (
+                    <span style={d.podCompliancePct != null && d.podCompliancePct < 90 ? { color: "var(--amber)", fontWeight: 700 } : undefined}>{d.podCompliancePct == null ? "—" : `${d.podCompliancePct}%`}</span>
+                  ) },
+                  { key: "reenvios", en: "Redeliv.", es: "Reenvíos", ancho: 110, numerico: true, valor: (d) => d.redeliveries, celda: (d) => (
+                    <span style={d.redeliveries ? { color: "var(--red)", fontWeight: 700 } : undefined}>{d.redeliveries || "—"}{d.redeliveryPct ? ` (${d.redeliveryPct}%)` : ""}</span>
+                  ) },
+                  { key: "cargacorta", en: "Short loads", es: "Carga corta", ancho: 110, numerico: true, valor: (d) => d.shortLoads, celda: (d) => (
+                    <span style={d.shortLoads ? { color: "var(--amber)", fontWeight: 700 } : undefined}>{d.shortLoads || "—"}</span>
+                  ) },
+                  { key: "gpslejos", en: "GPS off", es: "GPS lejos", ancho: 100, numerico: true, valor: (d) => d.podGpsFar, celda: (d) => (
+                    <span style={d.podGpsFar ? { color: "var(--red)", fontWeight: 700 } : undefined} title={d.podGpsChecked ? `${d.podGpsFar}/${d.podGpsChecked} ${t("checked", "verificadas")}` : t("no GPS data yet", "sin datos GPS aún")}>{d.podGpsChecked === 0 ? "—" : (d.podGpsFar || "0")}</span>
+                  ) },
+                ]} />
             )}
           </div>
 
@@ -586,28 +540,13 @@ export default function DashboardPage() {
             {repStats.length === 0 ? (
               <div className="empty">{t("No orders logged this month.", "Sin órdenes registradas este mes.")}</div>
             ) : (
-              <div className="tbl-scroll" style={{ border: "none" }}>
-                <table className="orders" style={{ minWidth: 480 }}>
-                  <thead>
-                    <tr>
-                      <th>{t("User", "Usuario")}</th>
-                      <th>{t("Deliveries", "Entregas")}</th>
-                      <th>{t("Charged total", "Total cobrado")}</th>
-                      <th>{t("Avg $/delivery", "Prom. $/entrega")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {repStats.map((r) => (
-                      <tr key={r.rep}>
-                        <td style={{ fontWeight: 700 }}>{r.rep}</td>
-                        <td>{r.deliveries}</td>
-                        <td>{fmtMoney(r.chargedTotal)}</td>
-                        <td>{fmtMoney(r.avgPerDelivery)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <TablaEstandar id="dash-usuarios-mes" sinCaja data-tabla="dash-usuarios-mes" filas={repStats} claveDe={(r) => r.rep}
+                columnas={[
+                  { key: "usuario", en: "User", es: "Usuario", ancho: 180, fija: true, valor: (r) => r.rep, celda: (r) => <strong>{r.rep}</strong> },
+                  { key: "entregas", en: "Deliveries", es: "Entregas", ancho: 110, numerico: true, valor: (r) => r.deliveries },
+                  { key: "cobrado", en: "Charged total", es: "Total cobrado", ancho: 130, numerico: true, valor: (r) => r.chargedTotal, celda: (r) => fmtMoney(r.chargedTotal) },
+                  { key: "promedio", en: "Avg $/delivery", es: "Prom. $/entrega", ancho: 140, numerico: true, valor: (r) => r.avgPerDelivery, celda: (r) => fmtMoney(r.avgPerDelivery) },
+                ]} />
             )}
           </div>
 

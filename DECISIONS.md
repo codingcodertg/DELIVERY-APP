@@ -52293,3 +52293,11 @@ El dueño (13 nov): las tarjetas de aviso estorbaban. Ahora cada ruta muestra un
 Pendiente: el recuadro de reparto de la pestaña Rutas sigue sticky; las tarjetas plegadas no muestran el ícono.
 Visto en pantalla (demo, 1500 y 390 px): ícono, aviso abierto y el panel debajo de la tabla.
 Sello `deliveries` 1.616.0; repo 1.889.0.
+
+## D-1037 · Tablas estándar: Entregas (Dashboard, Almacén, Recorrido, Cuentas, Auditoría, Reportes de choferes)
+
+Ocho pantallas (16 tablas) pasan a `TablaEstandar` (▾, ⚙ Columnas, arrastrar y anchos): Dashboard (5), Almacén «Day's route» (una por chofer; «#» es el puesto y no cambia al ordenar), Recorrido del chofer (3), Cuentas, Auditoría, Reportes de choferes (5 pestañas), Paradas del día y Puntualidad por chofer. `TablaEstandar` gana `totales` (fila de pie, sin ordenar).
+Solo cambia el marcado; cifras y cálculos iguales. La revisión en pantalla encontró y arregló dos fallas: ⚙ fuera de la tarjeta en Puntualidad, y Almacén a 390 px moviendo toda la página de lado.
+Visto en pantalla (demo): Dashboard 1280 y 390, Almacén 1280 y 390, Puntualidad. No visto con filas: Recorrido, Reportes de choferes y Paradas del día (el demo no tiene GPS).
+Pendientes (7): Datos, Market, Ajustes, KPI de entregas, Plan contra real, Ruta del plan, y la cola de revisión del ERP (virtualiza filas; falta decidir).
+Sello `deliveries` 1.617.0; repo 1.890.0.
