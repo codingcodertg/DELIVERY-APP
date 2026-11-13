@@ -47,7 +47,7 @@ export interface ColumnaEstandar<F> {
 
 export function TablaEstandar<F>({
   id, columnas, filas, claveDe, onFila, vacio, acciones, anchoDeAcciones = 120, claseDeFila, barra, sinCaja, "data-tabla": dataTabla,
-  ordenInicial, claseTabla, estiloTabla,
+  ordenInicial, claseTabla, estiloTabla, totales,
 }: {
   /** Único en toda la app: con él se guarda la vista de cada persona. */
   id: string;
@@ -73,6 +73,8 @@ export function TablaEstandar<F>({
   claseTabla?: string;
   /** Estilos extra del `<table>` (variables CSS; el ancho lo sigue poniendo el estándar). */
   estiloTabla?: CSSProperties;
+  /** Una fila de totales al pie (`<tfoot>`), por clave de columna. No se ordena ni se filtra; las columnas sin clave van vacías. */
+  totales?: Readonly<Record<string, ReactNode>>;
 }) {
   const { t, lang } = usePrefs();
   const idioma: "en" | "es" = lang === "es" ? "es" : "en";
@@ -143,6 +145,16 @@ export function TablaEstandar<F>({
               </tr>
             ))}
           </tbody>
+          {totales && (
+            <tfoot>
+              <tr className="tabla-estandar-totales" data-totales={id} style={{ borderTop: "2px solid var(--line)", fontWeight: 700 }}>
+                {visibles.map((c) => (
+                  <td key={c.key} data-col={c.key} className={c.numerico ? "num" : undefined}>{totales[c.key] ?? null}</td>
+                ))}
+                {acciones && <td />}
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
       <MenuDeColumnaAbierto estado={orden} columnas={columnas} lang={idioma} t={t} />

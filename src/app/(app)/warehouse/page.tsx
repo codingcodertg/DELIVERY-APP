@@ -13,6 +13,7 @@ import { idsRecibidasPorAlmacen, pastillaDeEtapa, puedeRecibir, recibirOrden } f
 import { IconoDeFotos } from "@/components/IconoDeFotos";
 import { useConfirm } from "@/lib/confirm";
 import { OrdersTable } from "@/components/OrdersTable";
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { ReprogramarOrden } from "@/components/ReprogramarOrden";
 import { useEtapaEnLaFila } from "@/components/EtapaEnLaFila";
@@ -374,45 +375,27 @@ export default function WarehousePage() {
                   {g.paradas.length} {t("stops", "paradas")} · {g.pallets} {t("pallets", "pallets")}
                 </span>
               </div>
-              <div className="tbl-scroll tbl-fit" style={{ marginTop: 8 }}>
-                <table className="orders tbl-resize" style={{ minWidth: 620 }}>
-                  <thead>
-                    <tr>
-                      <th style={{ width: 34 }}>#</th>
-                      <th style={{ textAlign: "left" }}>{t("Order", "Orden")}</th>
-                      <th style={{ textAlign: "left" }}>{t("Account", "Cuenta")}</th>
-                      <th style={{ textAlign: "left" }}>{t("Address", "Dirección")}</th>
-                      <th style={{ textAlign: "left" }}>{t("Window", "Ventana")}</th>
-                      <th style={{ textAlign: "left" }}>{t("Pallets", "Pallets")}</th>
-                      <th style={{ textAlign: "left" }}>{t("Stage", "Etapa")}</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {g.paradas.map((d, i) => (
-                      <tr key={d.id} className="clickable" onClick={() => setOpen(d)}>
-                        <td>{i + 1}</td>
-                        <td><b>#{orderLabel(d)}</b></td>
-                        <td>{d.account || d.delivery_name || "—"}</td>
-                        <td>{d.delivery_address || "—"}</td>
-                        <td>{fmtWindows(d.delivery_windows)}</td>
-                        <td>{d.actual_pallets ?? d.est_pallets ?? "—"}</td>
-                        {/* La pastilla, con el color de la etapa y las clases de Órdenes (D-380).
-                            Sin ella, ahora que las entregadas se quedan, una parada terminada se
-                            leería igual que una que sigue esperando camión. */}
-                        <td className="td-pastillas">
-                          {(() => {
-                            // «Received» si la recibió almacén (D-409); si no, su etapa, como siempre.
-                            const p = pastillaDeEtapa(d, recibidas, lang, me);
-                            return <span className="sema" style={{ background: p.color, color: "#fff" }}>{p.texto}<IconoDeFotos p={p} /></span>;
-                          })()}
-                        </td>
-                        {/* «📅 Reprogramar» (D-534), sin abrir la ficha: el toque no abre la orden. */}
-                        <td onClick={(e) => e.stopPropagation()}>{reprogramar(d)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              {/* Estándar de tablas (`TablaEstandar`): ▾ ⚙ mover y anchos. «#» es el número de parada en la ruta
+                  (no cambia al ordenar). La etapa lleva su pastilla (D-380) y «📅 Reprogramar» (D-534) no abre la ficha. */}
+              <div style={{ marginTop: 8 }}>
+                <TablaEstandar id="almacen-paradas" sinCaja data-tabla="almacen-paradas" filas={g.paradas} claveDe={(d) => d.id}
+                  onFila={(d) => setOpen(d)}
+                  columnas={[
+                    { key: "parada", en: "#", es: "#", ancho: 50, numerico: true, valor: (d) => g.paradas.indexOf(d) + 1 },
+                    { key: "orden", en: "Order", es: "Orden", ancho: 120, fija: true, valor: (d) => orderLabel(d), celda: (d) => <b>#{orderLabel(d)}</b> },
+                    { key: "cuenta", en: "Account", es: "Cuenta", ancho: 180, valor: (d) => d.account || d.delivery_name || null },
+                    { key: "direccion", en: "Address", es: "Dirección", ancho: 240, valor: (d) => d.delivery_address || null },
+                    { key: "ventana", en: "Window", es: "Ventana", ancho: 130, valor: (d) => fmtWindows(d.delivery_windows) || null },
+                    { key: "pallets", en: "Pallets", es: "Pallets", ancho: 90, numerico: true, valor: (d) => d.actual_pallets ?? d.est_pallets ?? null },
+                    {
+                      key: "etapa", en: "Stage", es: "Etapa", ancho: 170, clase: "td-pastillas",
+                      // La pastilla, con el color de la etapa y las clases de Órdenes (D-380). «Received» si la recibió
+                      // almacén (D-409); si no, su etapa. Sin ella, una parada terminada se leería igual que una en espera.
+                      valor: (d) => pastillaDeEtapa(d, recibidas, lang, me).texto,
+                      celda: (d) => { const p = pastillaDeEtapa(d, recibidas, lang, me); return <span className="sema" style={{ background: p.color, color: "#fff" }}>{p.texto}<IconoDeFotos p={p} /></span>; },
+                    },
+                  ]}
+                  acciones={(d) => reprogramar(d)} anchoDeAcciones={130} />
               </div>
             </div>
           ))}

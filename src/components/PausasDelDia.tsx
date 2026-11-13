@@ -5,6 +5,7 @@ import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { mapLink } from "@/lib/geo";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { usePausasDelChofer } from "@/lib/usePausasDelChofer";
 import { minutosDePausa, nombreDelMotivo } from "@/lib/pausas-del-chofer";
 
@@ -35,43 +36,28 @@ export function PausasDelDia({ driverId, fecha, clock }: { driverId: string; fec
       ) : pausas.length === 0 ? (
         <div className="empty">{t("The driver didn't log any stop that day.", "El chofer no registró ninguna parada ese día.")}</div>
       ) : (
-        <div className="tbl-scroll">
-          <table className="orders">
-            <thead>
-              <tr>
-                <th>{t("Why", "Motivo")}</th>
-                <th>{t("From", "Desde")}</th>
-                <th>{t("Until", "Hasta")}</th>
-                <th>{t("Time", "Tiempo")}</th>
-                <th>{t("Note", "Nota")}</th>
-                <th>{t("Where", "Dónde")}</th>
-                <th>{t("Receipt", "Recibo")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pausas.map((p) => (
-                <tr key={p.id} data-pausa={p.motivo}>
-                  <td><b>{nombreDelMotivo(p.motivo, lang)}</b></td>
-                  <td>{clock(p.empezo_at)}</td>
-                  <td>{p.termino_at ? clock(p.termino_at) : <b style={{ color: "var(--amber-text)" }}>{t("still stopped", "sigue parado")}</b>}</td>
-                  <td>{fmtMin(minutosDePausa(p))}</td>
-                  <td>{p.nota ?? "—"}</td>
-                  <td>{p.lat != null && p.lng != null ? <a href={mapLink(p.lat, p.lng)} target="_blank" rel="noopener noreferrer">📍 {t("Map", "Mapa")}</a> : "—"}</td>
-                  <td data-recibo>
-                    {p.recibo_foto ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.recibo_foto} alt={t("Gas receipt", "Recibo de gasolina")} onClick={() => setViendo(p.recibo_foto)}
-                        style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 6, cursor: "pointer", verticalAlign: "middle" }} />
-                    ) : p.sin_recibo ? <span className="hint" style={{ margin: 0 }}>{t("No receipt (driver said)", "Sin recibo (lo dijo el chofer)")}</span> : null}
-                    {p.recibo_monto != null && <span style={{ marginLeft: 6 }}>${Number(p.recibo_monto).toFixed(2)}</span>}
-                    {p.recibo_galones != null && <span className="hint" style={{ marginLeft: 6 }}>{p.recibo_galones} gal</span>}
-                    {!p.recibo_foto && !p.sin_recibo && p.recibo_monto == null && p.recibo_galones == null && "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        // Estándar de tablas (`TablaEstandar`): ▾ ⚙ mover y anchos.
+        <TablaEstandar id="pausas-del-dia" sinCaja data-tabla="pausas-del-dia" filas={pausas} claveDe={(p) => p.id}
+          columnas={[
+            { key: "motivo", en: "Why", es: "Motivo", ancho: 150, fija: true, valor: (p) => nombreDelMotivo(p.motivo, lang), celda: (p) => <b>{nombreDelMotivo(p.motivo, lang)}</b> },
+            { key: "desde", en: "From", es: "Desde", ancho: 90, valor: (p) => p.empezo_at, celda: (p) => clock(p.empezo_at) },
+            { key: "hasta", en: "Until", es: "Hasta", ancho: 110, valor: (p) => p.termino_at, celda: (p) => (p.termino_at ? clock(p.termino_at) : <b style={{ color: "var(--amber-text)" }}>{t("still stopped", "sigue parado")}</b>) },
+            { key: "tiempo", en: "Time", es: "Tiempo", ancho: 100, numerico: true, valor: (p) => minutosDePausa(p), celda: (p) => fmtMin(minutosDePausa(p)) },
+            { key: "nota", en: "Note", es: "Nota", ancho: 200, envuelve: true, valor: (p) => p.nota },
+            { key: "donde", en: "Where", es: "Dónde", ancho: 110, valor: (p) => (p.lat != null && p.lng != null ? 1 : null), celda: (p) => (p.lat != null && p.lng != null ? <a href={mapLink(p.lat, p.lng)} target="_blank" rel="noopener noreferrer">📍 {t("Map", "Mapa")}</a> : "—") },
+            { key: "recibo", en: "Receipt", es: "Recibo", ancho: 200, valor: (p) => p.recibo_monto ?? null, celda: (p) => (
+              <span data-recibo>
+                {p.recibo_foto ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.recibo_foto} alt={t("Gas receipt", "Recibo de gasolina")} onClick={() => setViendo(p.recibo_foto)}
+                    style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 6, cursor: "pointer", verticalAlign: "middle" }} />
+                ) : p.sin_recibo ? <span className="hint" style={{ margin: 0 }}>{t("No receipt (driver said)", "Sin recibo (lo dijo el chofer)")}</span> : null}
+                {p.recibo_monto != null && <span style={{ marginLeft: 6 }}>${Number(p.recibo_monto).toFixed(2)}</span>}
+                {p.recibo_galones != null && <span className="hint" style={{ marginLeft: 6 }}>{p.recibo_galones} gal</span>}
+                {!p.recibo_foto && !p.sin_recibo && p.recibo_monto == null && p.recibo_galones == null && "—"}
+              </span>
+            ) },
+          ]} />
       )}
       {viendo && <PhotoLightbox photos={[viendo]} index={0} onIndex={() => {}} onClose={() => setViendo(null)} t={t} />}
     </div>

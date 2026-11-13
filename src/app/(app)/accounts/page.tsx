@@ -6,7 +6,7 @@ import { usePrefs } from "@/lib/prefs";
 import { stageInfo, stageLabel } from "@/lib/constants";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { deliveryColumns, downloadCSV, fmtDate, fmtMoney, isOverdue, orderLabel, orderOwner, toCSV, todayISO } from "@/lib/utils";
-import { anchoDeTabla, useColWidths } from "@/lib/use-col-widths";
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { useConfirm } from "@/lib/confirm";
 import type { AccountRecord, Delivery, Settings } from "@/lib/types";
 import { isStoreToStore } from "@/lib/required";
@@ -45,8 +45,6 @@ export default function AccountsPage() {
   const [q, setQ] = useState("");
   const [picked, setPicked] = useState<string | null>(null);
   const [open, setOpen] = useState<Delivery | null>(null);
-  // Excel-style resizable columns for the accounts list.
-  const acctCols = useColWidths("rtg_accounts", [220, 90, 80, 110, 90, 90, 100, 140]);
 
   // Per-user customer visibility (set on the Users page). Admin always "all".
   const myScope: "all" | "own" = me?.role === "admin" ? "all" : (settings.customer_scope?.[me?.id ?? ""] ?? "all");
@@ -150,7 +148,6 @@ export default function AccountsPage() {
     <>
       <div className="page-head">
         <h2>{t("Accounts", "Cuentas")} <span className="count-tag">{rows.length}</span></h2>
-        <button className="btn btn-ghost btn-sm" onClick={acctCols.reset} title={t("Reset column widths", "Restablecer anchos")}>↔ {t("Reset columns", "Restablecer columnas")}</button>
       </div>
 
       {/* Manage the saved customer records that auto-fill orders. */}
@@ -182,37 +179,20 @@ export default function AccountsPage() {
       ) : rows.length === 0 ? (
         <div className="empty">{t("No accounts match.", "No hay cuentas que coincidan.")}</div>
       ) : (
-        <div className="tbl-scroll tbl-fit">
-          <table className="orders tbl-resize" style={anchoDeTabla(acctCols.widths)}>
-            <colgroup>{acctCols.widths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
-            <thead>
-              <tr>
-                <th>{t("Account", "Cuenta")}<span className="col-resizer" onMouseDown={acctCols.startResize(0)} /></th>
-                <th>{t("Orders", "Órdenes")}<span className="col-resizer" onMouseDown={acctCols.startResize(1)} /></th>
-                <th>{t("Open", "Abiertas")}<span className="col-resizer" onMouseDown={acctCols.startResize(2)} /></th>
-                <th>{t("Delivered", "Entregadas")}<span className="col-resizer" onMouseDown={acctCols.startResize(3)} /></th>
-                <th>{t("Overdue", "Expiradas")}<span className="col-resizer" onMouseDown={acctCols.startResize(4)} /></th>
-                <th>{t("Pallets", "Pallets")}<span className="col-resizer" onMouseDown={acctCols.startResize(5)} /></th>
-                <th>{t("Fees", "Cobros")}<span className="col-resizer" onMouseDown={acctCols.startResize(6)} /></th>
-                <th>{t("Last delivery", "Última entrega")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((a) => (
-                <tr key={a.name} className="clickable" onClick={() => setPicked(a.name)}>
-                  <td style={{ fontWeight: 700 }}>{a.name}</td>
-                  <td>{a.total}</td>
-                  <td>{a.active || "—"}</td>
-                  <td>{a.delivered || "—"}</td>
-                  <td style={a.overdue ? { color: "var(--red)", fontWeight: 700 } : undefined}>{a.overdue || "—"}</td>
-                  <td>{a.pallets || "—"}</td>
-                  <td>{a.fees ? fmtMoney(a.fees) : "—"}</td>
-                  <td>{a.lastDate ? fmtDate(a.lastDate) : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        // Estándar de tablas (`TablaEstandar`): ▾ ⚙ mover y anchos. Pulsar una cuenta abre su detalle en la misma pantalla.
+        <TablaEstandar id="cuentas-lista" filas={rows} claveDe={(a) => a.name} onFila={(a) => setPicked(a.name)}
+          columnas={[
+            { key: "cuenta", en: "Account", es: "Cuenta", ancho: 220, fija: true, valor: (a) => a.name, celda: (a) => <strong>{a.name}</strong> },
+            { key: "ordenes", en: "Orders", es: "Órdenes", ancho: 90, numerico: true, valor: (a) => a.total },
+            { key: "abiertas", en: "Open", es: "Abiertas", ancho: 90, numerico: true, valor: (a) => a.active, celda: (a) => a.active || "—" },
+            { key: "entregadas", en: "Delivered", es: "Entregadas", ancho: 110, numerico: true, valor: (a) => a.delivered, celda: (a) => a.delivered || "—" },
+            { key: "expiradas", en: "Overdue", es: "Expiradas", ancho: 100, numerico: true, valor: (a) => a.overdue, celda: (a) => (
+              <span style={a.overdue ? { color: "var(--red)", fontWeight: 700 } : undefined}>{a.overdue || "—"}</span>
+            ) },
+            { key: "pallets", en: "Pallets", es: "Pallets", ancho: 90, numerico: true, valor: (a) => a.pallets, celda: (a) => a.pallets || "—" },
+            { key: "cobros", en: "Fees", es: "Cobros", ancho: 110, numerico: true, valor: (a) => a.fees, celda: (a) => (a.fees ? fmtMoney(a.fees) : "—") },
+            { key: "ultima", en: "Last delivery", es: "Última entrega", ancho: 140, valor: (a) => a.lastDate, celda: (a) => (a.lastDate ? fmtDate(a.lastDate) : "—") },
+          ]} />
       )}
     </>
   );

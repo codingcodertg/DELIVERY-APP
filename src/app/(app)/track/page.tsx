@@ -24,6 +24,7 @@ import { leeRecorridoDelTelefono } from "@/lib/recorrido-del-telefono";
 import { useApegoALaRuta } from "@/lib/apego-a-la-ruta/useApegoALaRuta";
 import { ApegoEnTarjeta, DetalleDelApego } from "@/components/PlanContraReal";
 import { EtiquetaDeOrden } from "@/components/EtiquetaDeOrden";
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { etiquetaDeOrden, textoDeEtiqueta } from "@/lib/etiqueta-de-parada";
 import type { Delivery, Profile } from "@/lib/types";
@@ -622,27 +623,19 @@ export default function TrackPage() {
         {hitosConOrden.length === 0 ? (
           <div className="empty">{t("Nothing marked from the app that day.", "Nada marcado desde la app ese día.")}</div>
         ) : (
-          <div className="tbl-scroll">
-            <table className="orders">
-              <thead><tr><th>{t("Time", "Hora")}</th>{!unSolo && <th>{t("Driver", "Chofer")}</th>}<th>{t("What", "Qué")}</th><th>{t("Invoice", "Factura")}</th><th>{t("Address", "Dirección")}</th></tr></thead>
-              <tbody>
-                {hitosConOrden.map((h) => (
-                  <tr key={h.id}>
-                    <td style={{ fontVariantNumeric: "tabular-nums" }}>{clock(h.at, lang)}</td>
-                    {!unSolo && <td><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: color(h.chofer), marginRight: 6 }} />{h.chofer}</td>}
-                    <td>{h.kind === "delivered" ? <b style={{ color: "var(--green)" }}>✓ {t("Delivered", "Entregada")}</b> : <b style={{ color: "var(--accent)" }}>▲ {t("Picked up", "Cargada")}</b>}</td>
-                    {/* D-912: factura (o código en gris) y, aparte, la cuenta. Pulsar abre la ficha de la orden. */}
-                    <td className="ordno">
-                      {h.orden
-                        ? <><EtiquetaDeOrden orden={h.orden} onAbrir={abrirOrden(h.orden.id)} />{h.orden.account && <span className="hint" style={{ marginTop: 0, display: "inline", marginLeft: 6, fontWeight: 400 }}>· {h.orden.account}</span>}</>
-                        : <span className="hint" style={{ marginTop: 0 }}>{h.etiqueta}</span>}
-                    </td>
-                    <td>{h.direccion ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          // Estándar de tablas (`TablaEstandar`): ▾ ⚙ mover y anchos. Pulsar la factura abre la ficha de la orden.
+          <TablaEstandar id="track-hitos" data-tabla="track-hitos" filas={hitosConOrden} claveDe={(h) => String(h.id)}
+            columnas={[
+              { key: "hora", en: "Time", es: "Hora", ancho: 90, valor: (h) => h.at, celda: (h) => clock(h.at, lang) },
+              ...(!unSolo ? [{ key: "chofer", en: "Driver", es: "Chofer", ancho: 160, valor: (h: (typeof hitosConOrden)[number]) => h.chofer, celda: (h: (typeof hitosConOrden)[number]) => <><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: color(h.chofer), marginRight: 6 }} />{h.chofer}</> }] : []),
+              { key: "que", en: "What", es: "Qué", ancho: 130, valor: (h) => (h.kind === "delivered" ? t("Delivered", "Entregada") : t("Picked up", "Cargada")), celda: (h) => (h.kind === "delivered" ? <b style={{ color: "var(--green)" }}>✓ {t("Delivered", "Entregada")}</b> : <b style={{ color: "var(--accent)" }}>▲ {t("Picked up", "Cargada")}</b>) },
+              // D-912: factura (o código en gris) y, aparte, la cuenta.
+              { key: "factura", en: "Invoice", es: "Factura", ancho: 260, clase: "ordno", valor: (h) => (h.orden ? textoDeEtiqueta(etiquetaDeOrden(h.orden), t) : h.etiqueta),
+                celda: (h) => (h.orden
+                  ? <><EtiquetaDeOrden orden={h.orden} onAbrir={abrirOrden(h.orden.id)} />{h.orden.account && <span className="hint" style={{ marginTop: 0, display: "inline", marginLeft: 6, fontWeight: 400 }}>· {h.orden.account}</span>}</>
+                  : <span className="hint" style={{ marginTop: 0 }}>{h.etiqueta}</span>) },
+              { key: "direccion", en: "Address", es: "Dirección", ancho: 260, valor: (h) => h.direccion },
+            ]} />
         )}
       </div>
 
@@ -656,33 +649,18 @@ export default function TrackPage() {
           {summary.stops.length === 0 ? (
             <div className="empty">{t("No stop long enough to record.", "Ninguna parada lo bastante larga para registrarse.")}</div>
           ) : (
-            <div className="tbl-scroll">
-              <table className="orders">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>{t("Where", "Dónde")}</th>
-                    <th>{t("Arrived", "Llegó")}</th>
-                    <th>{t("Left", "Salió")}</th>
-                    <th>{t("Time there", "Tiempo ahí")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {summary.stops.map((s, i) => (
-                    <tr key={i}>
-                      <td>{i + 1}</td>
-                      {/* Only named when a known address is genuinely close. A
-                          stop labelled with a customer half a mile away would be
-                          worse than no label. */}
-                      <td>{nameStop(s, places) ?? <span className="hint">{t("Unnamed", "Sin nombre")}</span>}</td>
-                      <td>{clock(s.from, lang)}</td>
-                      <td>{clock(s.to, lang)}</td>
-                      <td><b>{fmtMin(s.minutes)}</b></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            // Estándar de tablas (`TablaEstandar`). «#» es el número de la parada en el recorrido.
+            <TablaEstandar id="track-paradas" data-tabla="track-paradas" filas={summary.stops} claveDe={(s) => `${s.from}|${s.to}`}
+              columnas={[
+                { key: "n", en: "#", es: "#", ancho: 50, numerico: true, valor: (s) => summary.stops.indexOf(s) + 1 },
+                // Only named when a known address is genuinely close. A
+                // stop labelled with a customer half a mile away would be
+                // worse than no label.
+                { key: "donde", en: "Where", es: "Dónde", ancho: 260, valor: (s) => nameStop(s, places) ?? null, celda: (s) => nameStop(s, places) ?? <span className="hint">{t("Unnamed", "Sin nombre")}</span> },
+                { key: "llego", en: "Arrived", es: "Llegó", ancho: 110, valor: (s) => s.from, celda: (s) => clock(s.from, lang) },
+                { key: "salio", en: "Left", es: "Salió", ancho: 110, valor: (s) => s.to, celda: (s) => clock(s.to, lang) },
+                { key: "tiempo", en: "Time there", es: "Tiempo ahí", ancho: 120, numerico: true, valor: (s) => s.minutes, celda: (s) => <b>{fmtMin(s.minutes)}</b> },
+              ]} />
           )}
         </div>
       )}
@@ -693,23 +671,13 @@ export default function TrackPage() {
           {done.length === 0 ? (
             <div className="empty">{t("Nothing delivered.", "Nada entregado.")}</div>
           ) : (
-            <div className="tbl-scroll">
-              <table className="orders">
-                <thead>
-                  <tr><th>{t("Invoice", "Factura")}</th><th>{t("Account", "Cuenta")}</th><th>{t("Address", "Dirección")}</th><th>{t("Delivered", "Entregada")}</th></tr>
-                </thead>
-                <tbody>
-                  {done.map((d) => (
-                    <tr key={d.id}>
-                      <td className="ordno"><EtiquetaDeOrden orden={d} onAbrir={abrirOrden(d.id)} /></td>
-                      <td>{d.account || "—"}</td>
-                      <td>{d.delivery_address || "—"}</td>
-                      <td>{clock(d.pod_delivered_at, lang)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <TablaEstandar id="track-entregadas" data-tabla="track-entregadas" filas={done} claveDe={(d) => d.id}
+              columnas={[
+                { key: "factura", en: "Invoice", es: "Factura", ancho: 220, fija: true, clase: "ordno", valor: (d) => textoDeEtiqueta(etiquetaDeOrden(d), t), celda: (d) => <EtiquetaDeOrden orden={d} onAbrir={abrirOrden(d.id)} /> },
+                { key: "cuenta", en: "Account", es: "Cuenta", ancho: 180, valor: (d) => d.account || null },
+                { key: "direccion", en: "Address", es: "Dirección", ancho: 260, valor: (d) => d.delivery_address || null },
+                { key: "entregada", en: "Delivered", es: "Entregada", ancho: 110, valor: (d) => d.pod_delivered_at, celda: (d) => clock(d.pod_delivered_at, lang) },
+              ]} />
           )}
         </div>
       )}

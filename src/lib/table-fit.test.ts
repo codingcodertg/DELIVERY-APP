@@ -98,8 +98,10 @@ describe("quién lleva la clase", () => {
     // Sube a siete con D-730: la tabla de «Company assets» de RR. HH.
     // Sube a ocho con D-821: `TablaDeSecurity` (una pieza para las listas de Security).
     // Sube a nueve con la lista de cotizaciones del Quote Builder (12 nov 2026): ⚙ y anchos por persona, con su marco.
-    expect(conResize).toBe(9);
-    expect(conFit).toBe(9);
+    // Baja a siete con la tanda de 13 nov 2026: Almacén (una tabla por chofer) y Cuentas pasan a `TablaEstandar`, que pone su
+    // marco en el componente y no en cada página (`src/components/TablaEstandar.tsx`).
+    expect(conResize).toBe(7);
+    expect(conFit).toBe(7);
     expect(fitSinResize, "un `tbl-fit` sobre una tabla que no es `tbl-resize`").toEqual([]);
   });
   it("los demás `.tbl-scroll` del repo se quedan como estaban", () => {
