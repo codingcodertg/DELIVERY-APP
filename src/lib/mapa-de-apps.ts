@@ -116,7 +116,7 @@ export const CASILLAS: Casilla[] = [
   { key: "tutorials", panel: "employees", fila: 1, columna: 6, emoji: "🎬", label_en: "Tutorials", label_es: "Tutoriales", existe: true, destino: { tipo: "herramienta", claves: ["tutorials"] } },
   { key: "phone-book", panel: "employees", fila: 1, columna: 7, emoji: "📇", label_en: "Company Phone Book", label_es: "Directorio de la compañía", existe: true, destino: { tipo: "herramienta", claves: ["directory"] } },
   // 2026-11-11: Security / Permisos (D-811) — quién entra a qué app; solo el admin real (como su tarjeta del hub).
-  { key: "security", panel: "employees", fila: 1, columna: 8, emoji: "🔐", label_en: "Security & Permissions", label_es: "Seguridad y permisos", existe: true, destino: { tipo: "herramienta", claves: ["security"] } },
+  { key: "security", panel: "employees", fila: 1, columna: 8, emoji: "🔐", label_en: "Central Hub Monitoring", label_es: "Central Hub Monitoring", existe: true, destino: { tipo: "herramienta", claves: ["security"] } },
 ];
 
 export interface Flecha {

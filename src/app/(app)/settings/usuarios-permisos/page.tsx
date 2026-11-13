@@ -27,7 +27,7 @@ import {
  * «Usuarios y Permisos» (petición 7 y 9 de Roberto, junta 8 nov). Estilo QuickBooks: ver POR USUARIO (qué módulos tiene)
  * o POR ROL / módulo (elige uno y ve a esas personas), más PERMISOS RÁPIDOS en bloque con el botón «dar los 8 de gerente».
  *
- * NO duplica la lista general de usuarios ni «company assets»: enlaza con el expediente de RR. HH. y con Seguridad. La
+ * NO duplica la lista general de usuarios ni «company assets»: enlaza con el expediente de RR. HH. y con Central Hub Monitoring. La
  * regla de qué puede hacer cada quien vive en `src/lib/hub-usuarios-permisos.ts` (puro, con pruebas); esta página solo la
  * pinta y aplica los cambios con los `updateUser…Access` del data-provider.
  *
@@ -89,8 +89,8 @@ export default function UsuariosYPermisosPage() {
 
       <p className="hint" style={{ marginTop: 0 }}>
         {t(
-          "By user (what each person can open), by role or module (who has it), and quick bulk changes. Links to each employee's HR file and to Security.",
-          "Por usuario (qué puede abrir cada quien), por rol o módulo (quién lo tiene) y cambios rápidos en bloque. Enlaza con el expediente de RR. HH. de cada empleado y con Seguridad.",
+          "By user (what each person can open), by role or module (who has it), and quick bulk changes. Links to each employee's HR file and to Central Hub Monitoring.",
+          "Por usuario (qué puede abrir cada quien), por rol o módulo (quién lo tiene) y cambios rápidos en bloque. Enlaza con el expediente de RR. HH. de cada empleado y con Central Hub Monitoring.",
         )}
       </p>
 
@@ -179,7 +179,7 @@ function FichaDeUsuario({ u, lang, t, aplicar }: { u: Users[number]; lang: Lang;
 
       <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
         <Link className="btn" href={`/recruiting/employees?user=${u.id}`}>📁 {t("HR file", "Expediente de RR. HH.")}</Link>
-        <Link className="btn" href="/security">🔐 {t("Security", "Seguridad")}</Link>
+        <Link className="btn" href="/security">🔐 {t("Central Hub Monitoring", "Central Hub Monitoring")}</Link>
       </div>
     </>
   );

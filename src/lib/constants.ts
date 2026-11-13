@@ -628,8 +628,8 @@ export const HUB_TOOLS: HubTool[] = [
     key: "security",
     href: "/security",
     emoji: "🔐",
-    label_en: "Security",
-    label_es: "Seguridad",
+    label_en: "Central Hub Monitoring",
+    label_es: "Central Hub Monitoring",
     desc_en: "Registered devices, who signs in from where, and the device rule",
     desc_es: "Dispositivos registrados, quién entra desde dónde, y la regla por dispositivo",
     // Del admin REAL: dentro de «entrar como» no se enseña, como las demás herramientas de seguridad.
