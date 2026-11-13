@@ -1584,6 +1584,8 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
     align-items: center; gap: 5px 10px; width: 100%;
   }
   .drv-l { justify-self: start; min-width: 0; }
+  /* D-1018: el motivo del rechazo, a lo ancho de la tarjeta del teléfono. */
+  .drv-motivo { grid-column: 1 / -1; font-size: 12.5px; color: var(--red); overflow-wrap: anywhere; line-height: 1.3; }
   .drv-r {
     justify-self: end; text-align: right;
     font-size: 12.5px; font-weight: 700; color: var(--ink-soft);
@@ -1623,7 +1625,7 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
      everyone quotes, and the order code underneath it. Dropping the code here
      would leave no way to read it at all on a desktop. */
   .drv-head { display: block; text-align: left; }
-  .drv-head .drv-l, .drv-head .drv-r:not(.drv-inv):not(.drv-code) { display: none; }
+  .drv-head .drv-l, .drv-head .drv-r:not(.drv-inv):not(.drv-code), .drv-head .drv-motivo { display: none; }
   .drv-head .drv-inv, .drv-head .drv-code { display: block; text-align: left; }
   .drv-head .drv-code { font-size: 11px; font-weight: 600; color: var(--gray); }
   /* The desktop column is a column, not a card: three invoices spelled out
@@ -2112,3 +2114,6 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 .boton-casa { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; font-size: 22px; line-height: 1; border: 1px solid var(--line); border-radius: 10px; background: var(--card); text-decoration: none; flex-shrink: 0; }
 .boton-casa:hover { border-color: var(--blue); }
 .boton-casa.hub-mapa-casa { margin-bottom: 10px; }
+
+/* D-1018: el motivo de una orden rechazada, junto a su pastilla en la tabla de Órdenes: una línea, recortada (entero en el title). */
+.motivo-de-rechazo-en-fila { display: block; max-width: 100%; margin-left: 0 !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

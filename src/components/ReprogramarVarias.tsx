@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { maxFechaDeEntrega } from "@/lib/dia-de-entrega";
 import { fechaPropuesta } from "@/lib/reprogramar-orden";
-import { resumenDeReprogramarVarias, separaParaReprogramar } from "@/lib/reprogramar-varias";
+import { enOrdenDeRelevo, resumenDeReprogramarVarias, separaParaReprogramar } from "@/lib/reprogramar-varias";
+import { notaDeArrastre, planDeFechaDelRelevo } from "@/lib/relevo-fechas";
 import { orderOwner, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
@@ -12,8 +13,10 @@ import type { Delivery } from "@/lib/types";
  * Cada una se guarda como la de una sola fila: con fecha, por `reprogramarOrden` (la función de la base, 173, que deja la
  * nota en el historial); sin fecha, quitando el día y anotándolo (el camino de «Fecha pendiente», D-972).
  */
-export function ReprogramarVarias({ marcadas, rol, meId, lang, t, reprogramarOrden, updateDelivery, addNote, notify, onListo }: {
+export function ReprogramarVarias({ marcadas, todas, rol, meId, lang, t, reprogramarOrden, updateDelivery, addNote, notify, onListo }: {
   marcadas: readonly Delivery[];
+  /** Todas las órdenes a la vista: para la regla de fechas del relevo (D-1018) al dejar un paso sin día. */
+  todas?: readonly Delivery[];
   rol: string | null | undefined;
   meId: string | null | undefined;
   lang: "en" | "es";
@@ -38,10 +41,15 @@ export function ReprogramarVarias({ marcadas, rol, meId, lang, t, reprogramarOrd
     if (!valida || guardando) return;
     setGuardando(true);
     let movidas = 0, fallidas = 0;
-    for (const d of pueden) {
+    // D-1018: los pasos de un relevo se guardan en el orden que deja cada escritura válida (el b nunca antes que el a).
+    for (const d of enOrdenDeRelevo(pueden, destino)) {
       let ok: unknown;
       if (destino) ok = await reprogramarOrden(d.id, destino, nota.trim(), lang);
       else {
+        // Sin día: los pasos siguientes del relevo que tengan día se quedan sin día con él.
+        for (const x of planDeFechaDelRelevo(d, null, todas ?? marcadas).arrastra) {
+          if ((await updateDelivery(x.id, { delivery_date: null })) !== false) addNote(x.id, notaDeArrastre(null, lang));
+        }
         ok = await updateDelivery(d.id, { delivery_date: null });
         if (ok !== false) addNote(d.id, `Delivery date set to pending (bulk reschedule from Routes Manager): ${nota.trim()}`);
       }
