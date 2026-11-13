@@ -354,7 +354,8 @@ describe("el motivo se ve", () => {
   it("y el admin edita la lista en Datos, donde la clave no se toca", () => {
     expect(datos).toContain("<CancelReasonsEditor settings={settings} deliveries={deliveries} save={save} t={t} />");
     expect(datos).toContain("const key = r.key || claveDesdeEtiqueta(en || es, fuera.map((x) => x.key));");
-    expect(datos).toContain("!MOTIVOS_QUE_NO_SE_BORRAN.includes(r.key) && (");
+    // Desde el estándar de tablas (TablaReducida): el botón de quitar sale solo si el motivo se puede borrar.
+    expect(datos).toContain("!MOTIVOS_QUE_NO_SE_BORRAN.includes(rows[i].key) ? (");
   });
 });
 

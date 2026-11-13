@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { SecurityLog } from "@/components/SecurityLog";
 import { TablaEstandar } from "@/components/TablaEstandar";
-import { useRouter } from "next/navigation";
+import { OrderModal } from "@/components/OrderModalLazy";
+import type { Delivery } from "@/lib/types";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { stageInfo, stageLabel } from "@/lib/constants";
@@ -32,11 +33,13 @@ function actionLabel(kind: string, lang: "en" | "es"): string {
 export default function AuditPage() {
   const { me, events, deliveries, users, ready } = useData();
   const { lang, t } = usePrefs();
-  const router = useRouter();
+  // La orden de la fila se abre EN TARJETA (la misma ficha de Órdenes y del Gestor de Rutas), sin salir de Auditoría.
+  const [abierta, setAbierta] = useState<Delivery | null>(null);
   const [q, setQ] = useState("");
   const [kind, setKind] = useState("all");
 
   const codeById = useMemo(() => new Map(deliveries.map((d) => [d.id, orderLabel(d)])), [deliveries]);
+  const deliveryById = useMemo(() => new Map(deliveries.map((d) => [d.id, d])), [deliveries]);
   const nameById = useMemo(() => new Map(users.map((u) => [u.id, u.full_name])), [users]);
 
   const kinds = useMemo(() => Array.from(new Set(events.map((e) => e.kind))).sort(), [events]);
@@ -105,7 +108,7 @@ export default function AuditPage() {
         <div className="card" style={{ padding: 0 }}>
           {/* Estándar de tablas (`TablaEstandar`): ▾ ⚙ mover y anchos. */}
           <TablaEstandar id="auditoria-ordenes" sinCaja data-tabla="auditoria-ordenes" filas={rows} claveDe={(r) => String(r.id)}
-            onFila={(r) => { if (r.label) router.push(`/?order=${r.delivery_id}`); }}
+            onFila={(r) => { const d = deliveryById.get(r.delivery_id); if (d) setAbierta(d); }}
             columnas={[
               { key: "cuando", en: "When", es: "Cuándo", ancho: 170, valor: (r) => r.at, celda: (r) => fmtDateTime(r.at) },
               { key: "orden", en: "Order", es: "Orden", ancho: 110, valor: (r) => r.label, clase: "ordno", celda: (r) => (r.label ? `#${r.label}` : "—") },
@@ -116,6 +119,8 @@ export default function AuditPage() {
         </div>
       )}
     
+      {abierta && <OrderModal me={me} existing={abierta} startEditing={false} onClose={() => setAbierta(null)} />}
+
       {/* Order history is above; this is the other kind of "who did what" —
           who changed someone's access. Admin-only, and it renders nothing for
           anyone else. */}

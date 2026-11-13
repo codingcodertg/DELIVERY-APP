@@ -169,7 +169,8 @@ describe("la pantalla dice lo mismo que la base", () => {
   });
 
   it("el admin puede marcar la cuenta en Datos", () => {
-    expect(datos).toContain('t("Office approval", "Aprobación de oficina")');
+    // Columna del estándar (TablaReducida): el rótulo va como par en/es de la columna.
+    expect(datos).toContain('en: "Office approval", es: "Aprobación de oficina"');
     expect(datos).toContain("update(i, { requires_approval: e.target.checked })");
   });
 

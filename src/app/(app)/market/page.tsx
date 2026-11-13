@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { MapView, type MapPoint } from "@/components/MapView";
+import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
 import { downloadCSV, toCSV } from "@/lib/utils";
 
 // ============================================================
@@ -94,7 +95,8 @@ export default function MarketPage() {
   const [show, setShow] = useState<Record<Klass, boolean>>({ rtg: true, competitor: true, bigbox: true, hardware: true });
   const [q, setQ] = useState("");
   const [view, setView] = useState<"list" | "city" | "type">("list");
-  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "name", dir: 1 });
+  // El orden de partida de la lista (por nombre) y el de la exportación CSV. Las cabeceras ordenan con su ▾ (`TablaEstandar`).
+  const [sort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "name", dir: 1 });
   const [selId, setSelId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "tagged" | Status>("all");
 
@@ -222,9 +224,6 @@ export default function MarketPage() {
     });
   }, [filtered, sort, distById]);
 
-  const toggleSort = (key: SortKey) =>
-    setSort((s) => (s.key === key ? { key, dir: (s.dir === 1 ? -1 : 1) as 1 | -1 } : { key, dir: 1 }));
-
   const prospects = settings.prospect_status ?? {};
   const setStatus = (id: string, s: Status | "") => {
     const next = { ...prospects };
@@ -272,21 +271,24 @@ export default function MarketPage() {
 
   const legend = KLASS_ORDER.map((k) => ({ k, en: KLASS_LABEL[k].en, es: KLASS_LABEL[k].es }));
 
-  // A reusable row for the tables (list + grouped views).
-  const Row = ({ p }: { p: Place & { klass: Klass } }) => (
-    <tr className={"clickable" + (selId === p.id ? " row-selected" : "")} style={{ cursor: "pointer" }} onClick={() => setSelId(p.id)}>
-      <td style={{ fontWeight: 700 }}>
+  // Las columnas de las tablas (lista y vistas por grupo): ▾ ordena y filtra, ⚙ muestra u oculta, arrastrar mueve.
+  const colsEmpresas: ColumnaEstandar<Place & { klass: Klass }>[] = [
+    { key: "empresa", en: "Company", es: "Empresa", ancho: 260, fija: true, valor: (p) => p.name, celda: (p) => (
+      <span style={{ fontWeight: 700 }}>
         <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: COLORS[p.klass], marginRight: 7, verticalAlign: "middle" }} />
         {p.name}
         {prospects[p.id] && <span className="sema" style={{ background: STATUS_META[prospects[p.id]!.status].color, color: "#fff", marginLeft: 6 }}>{t(STATUS_META[prospects[p.id]!.status].en, STATUS_META[prospects[p.id]!.status].es)}</span>}
-      </td>
-      <td>{t(KLASS_LABEL[p.klass].en, KLASS_LABEL[p.klass].es)}</td>
-      <td>{p.city || "—"}</td>
-      <td style={{ fontVariantNumeric: "tabular-nums" }}>{p.rating != null ? `★ ${p.rating.toFixed(1)}` : "—"}</td>
-      <td style={{ fontVariantNumeric: "tabular-nums" }}>{p.klass !== "rtg" && distById.get(p.id) ? `${distById.get(p.id)!.miles} mi` : "—"}</td>
-      <td>{p.phone ? <a className="link-tel" href={`tel:${p.phone}`}>{p.phone}</a> : "—"}</td>
-      <td><a href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`} target="_blank" rel="noopener noreferrer" title={t("Open in Maps", "Abrir en Mapas")}>🧭</a></td>
-    </tr>
+      </span>
+    ) },
+    { key: "tipo", en: "Type", es: "Tipo", ancho: 150, valor: (p) => t(KLASS_LABEL[p.klass].en, KLASS_LABEL[p.klass].es) },
+    { key: "ciudad", en: "City", es: "Ciudad", ancho: 140, valor: (p) => p.city || null },
+    { key: "calif", en: "Rating", es: "Calif.", ancho: 110, numerico: true, valor: (p) => p.rating, celda: (p) => (p.rating != null ? `★ ${p.rating.toFixed(1)}` : "—") },
+    { key: "dist", en: "Dist.", es: "Dist.", ancho: 100, numerico: true, valor: (p) => (p.klass !== "rtg" && distById.get(p.id) ? distById.get(p.id)!.miles : null), celda: (p) => (p.klass !== "rtg" && distById.get(p.id) ? `${distById.get(p.id)!.miles} mi` : "—") },
+    { key: "telefono", en: "Phone", es: "Teléfono", ancho: 150, valor: (p) => p.phone || null, celda: (p) => (p.phone ? <a className="link-tel" href={`tel:${p.phone}`}>{p.phone}</a> : "—") },
+  ];
+  // Una fila abre su selección (la tarjeta de abajo); el 🧭 abre el mapa externo y no selecciona.
+  const acMapa = (p: Place) => (
+    <a href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`} target="_blank" rel="noopener noreferrer" title={t("Open in Maps", "Abrir en Mapas")}>🧭</a>
   );
 
   if (!me) return null;
@@ -426,24 +428,9 @@ export default function MarketPage() {
         ) : filtered.length === 0 ? (
           <div className="empty">{t("No companies match. Adjust filters or search.", "Nada coincide. Ajuste filtros o búsqueda.")}</div>
         ) : view === "list" ? (
-          <div className="tbl-scroll" style={{ border: "none" }}>
-            <table className="orders" style={{ minWidth: 620 }}>
-              <thead>
-                <tr>
-                  {([["name", t("Company", "Empresa")], ["type", t("Type", "Tipo")], ["city", t("City", "Ciudad")], ["rating", t("Rating", "Calif.")], ["distance", t("Dist.", "Dist.")]] as [SortKey, string][]).map(([k, lbl]) => (
-                    <th key={k} className="clickable" onClick={() => toggleSort(k)} style={{ cursor: "pointer", whiteSpace: "nowrap" }}>
-                      {lbl}{sort.key === k ? (sort.dir === 1 ? " ▲" : " ▼") : ""}
-                    </th>
-                  ))}
-                  <th>{t("Phone", "Teléfono")}</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map((p) => <Row key={p.id} p={p} />)}
-              </tbody>
-            </table>
-          </div>
+          <TablaEstandar id="market-empresas" filas={sorted} claveDe={(p) => p.id} columnas={colsEmpresas}
+            onFila={(p) => setSelId(p.id)} claseDeFila={(p) => (selId === p.id ? "row-selected" : undefined)}
+            acciones={acMapa} anchoDeAcciones={64} sinCaja />
         ) : (
           // Grouped by city or by type.
           (() => {
@@ -461,17 +448,9 @@ export default function MarketPage() {
                       {view === "type" && groups.get(k)![0] && <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: COLORS[groups.get(k)![0].klass], marginRight: 7, verticalAlign: "middle" }} />}
                       {k} <span className="count-tag">{groups.get(k)!.length}</span>
                     </h3>
-                    <div className="tbl-scroll" style={{ border: "none" }}>
-                      <table className="orders" style={{ minWidth: 620 }}>
-                        <thead>
-                          <tr>
-                            <th>{t("Company", "Empresa")}</th><th>{t("Type", "Tipo")}</th><th>{t("City", "Ciudad")}</th>
-                            <th>{t("Rating", "Calif.")}</th><th>{t("Dist.", "Dist.")}</th><th>{t("Phone", "Teléfono")}</th><th></th>
-                          </tr>
-                        </thead>
-                        <tbody>{groups.get(k)!.map((p) => <Row key={p.id} p={p} />)}</tbody>
-                      </table>
-                    </div>
+                    <TablaEstandar id={`market-por-${view}-${keys.indexOf(k)}`} filas={groups.get(k)!} claveDe={(p) => p.id} columnas={colsEmpresas}
+                      onFila={(p) => setSelId(p.id)} claseDeFila={(p) => (selId === p.id ? "row-selected" : undefined)}
+                      acciones={acMapa} anchoDeAcciones={64} sinCaja />
                   </div>
                 ))}
               </div>

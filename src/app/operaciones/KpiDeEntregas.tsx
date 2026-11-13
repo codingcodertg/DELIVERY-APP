@@ -8,6 +8,7 @@ import { fmtDia, hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
 import { etiquetaDeRango, sumarDias, type Rango } from "@/lib/almacen-ops/rango-de-merma";
 import { DIAS_MAX_DEL_RANGO, colorDelPct, type Grupo, type GrupoDeEmpleado, type OrdenEvaluada } from "@/lib/almacen-ops/kpi-entregas";
 import type { Contexto } from "./Operaciones";
+import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
 
 /** Lo que devuelve `/api/almacen-ops/kpi-entregas`. */
 interface Respuesta {
@@ -76,6 +77,10 @@ export function KpiDeEntregas({ rango, ctx }: { rango: Rango | null; ctx: Contex
   const min = (m: number | null) => (m === null ? "—" : `${m} min`);
   const porPeriodo = periodo === "dia" ? d.porDia : d.porSemana;
   const nombreDelPeriodo = (clave: string) => (periodo === "dia" ? fmtDia(clave, lang) : `${t("Week of", "Semana del")} ${fmtDia(clave, lang)}`);
+  // Las tablas (estándar de tablas): ▾, ⚙ y anchos como en Órdenes. Las cifras son las mismas que antes.
+  const colsTienda = columnasDeGrupo<Grupo>({ key: "tienda", en: "Store", es: "Tienda", valor: (g) => g.clave });
+  const colsPeriodo = columnasDeGrupo<Grupo>({ key: "periodo", en: periodo === "dia" ? "Day" : "Week", es: periodo === "dia" ? "Día" : "Semana", valor: (g) => g.clave, celda: (g) => nombreDelPeriodo(g.clave) });
+  const colsEmpleado = columnasDeGrupo<GrupoDeEmpleado>({ key: "empleado", en: "Employee", es: "Empleado", valor: (g) => g.nombre });
 
   return (
     <div data-kpi-entregas data-kpi-pct={tot.pct ?? ""} data-kpi-color={color}>
@@ -108,89 +113,55 @@ export function KpiDeEntregas({ rango, ctx }: { rango: Rango | null; ctx: Contex
       </p>
 
       <h3 className="ops-merma-titulo">{t("By store", "Por tienda")}</h3>
-      <div className="tbl-scroll tbl-caja">
-        <table className="orders" data-kpi-por-tienda>
-          <thead><tr><th>{t("Store", "Tienda")}</th><th className="num">{t("Ready on time", "A tiempo")}</th><th className="num">{t("Not ready", "No listas")}</th><th className="num">{t("Never marked", "Sin marcar")}</th><th className="num">{t("Total", "Total")}</th><th className="num">{t("Median", "Mediana")}</th></tr></thead>
-          <tbody>
-            {d.porTienda.length === 0 && <tr><td colSpan={6} className="hint">{t("No orders picked up in this range.", "No se recogió ninguna orden en este rango.")}</td></tr>}
-            {d.porTienda.map((g) => (
-              <tr key={g.clave} data-tienda={g.clave}>
-                <td>{g.clave}</td>
-                <td className={`num ops-kpi-${colorDelPct(g.pct)}`} data-pct={g.pct ?? ""}><b>{pct(g)}</b> <span className="ops-persona-tienda">({g.aTiempo})</span></td>
-                <td className="num">{g.tarde}</td>
-                <td className="num">{g.sinMarcar}</td>
-                <td className="num">{g.total}</td>
-                <td className="num">{min(g.medianaMin)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <TablaEstandar id="kpi-por-tienda" data-tabla="kpi-por-tienda" filas={d.porTienda} claveDe={(g) => g.clave}
+        columnas={colsTienda}
+        vacio={t("No orders picked up in this range.", "No se recogió ninguna orden en este rango.")} />
 
       <h3 className="ops-merma-titulo">{t("By period", "Por periodo")}</h3>
       <div className="filters-oneline ops-filtros" role="group" aria-label={t("Period", "Periodo")} data-periodo>
         <button type="button" className={`chip${periodo === "dia" ? " active" : ""}`} onClick={() => setPeriodo("dia")} aria-pressed={periodo === "dia"} data-periodo-opcion="dia">{t("By day", "Por día")}</button>
         <button type="button" className={`chip${periodo === "semana" ? " active" : ""}`} onClick={() => setPeriodo("semana")} aria-pressed={periodo === "semana"} data-periodo-opcion="semana">{t("By week", "Por semana")}</button>
       </div>
-      <div className="tbl-scroll tbl-caja">
-        <table className="orders" data-kpi-por-periodo={periodo}>
-          <thead><tr><th>{periodo === "dia" ? t("Day", "Día") : t("Week", "Semana")}</th><th className="num">{t("Ready on time", "A tiempo")}</th><th className="num">{t("Not ready", "No listas")}</th><th className="num">{t("Never marked", "Sin marcar")}</th><th className="num">{t("Total", "Total")}</th><th className="num">{t("Median", "Mediana")}</th></tr></thead>
-          <tbody>
-            {porPeriodo.length === 0 && <tr><td colSpan={6} className="hint">{t("No orders picked up in this range.", "No se recogió ninguna orden en este rango.")}</td></tr>}
-            {porPeriodo.map((g) => (
-              <tr key={g.clave} data-periodo-clave={g.clave}>
-                <td>{nombreDelPeriodo(g.clave)}</td>
-                <td className={`num ops-kpi-${colorDelPct(g.pct)}`}><b>{pct(g)}</b> <span className="ops-persona-tienda">({g.aTiempo})</span></td>
-                <td className="num">{g.tarde}</td>
-                <td className="num">{g.sinMarcar}</td>
-                <td className="num">{g.total}</td>
-                <td className="num">{min(g.medianaMin)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <TablaEstandar id={`kpi-por-periodo-${periodo}`} data-tabla={`kpi-por-periodo-${periodo}`} filas={porPeriodo} claveDe={(g) => g.clave}
+        columnas={colsPeriodo}
+        vacio={t("No orders picked up in this range.", "No se recogió ninguna orden en este rango.")} />
 
       <h3 className="ops-merma-titulo">{t("By warehouse employee", "Por empleado del almacén")} <span className="count-tag">{d.porEmpleado.length}</span></h3>
       <p className="hint">{t("Who marked the order “ready” (the last mark). Orders picked up without a “ready” mark belong to nobody and are not here.", "Quién marcó la orden como «lista» (la última marca). Las recogidas sin marca de «lista» no son de nadie y no salen aquí.")}</p>
-      <div className="tbl-scroll tbl-caja">
-        <table className="orders" data-kpi-por-empleado>
-          <thead><tr><th>{t("Employee", "Empleado")}</th><th className="num">{t("Ready on time", "A tiempo")}</th><th className="num">{t("Marked late", "Marcadas tarde")}</th><th className="num">{t("Orders", "Órdenes")}</th><th className="num">{t("Median", "Mediana")}</th></tr></thead>
-          <tbody>
-            {d.porEmpleado.length === 0 && <tr><td colSpan={5} className="hint">{t("Nobody marked an order ready in this range.", "Nadie marcó una orden como lista en este rango.")}</td></tr>}
-            {d.porEmpleado.map((g) => (
-              <tr key={g.clave} data-empleado={g.clave}>
-                <td>{g.nombre}</td>
-                <td className={`num ops-kpi-${colorDelPct(g.pct)}`} data-pct={g.pct ?? ""}><b>{pct(g)}</b> <span className="ops-persona-tienda">({g.aTiempo})</span></td>
-                <td className="num">{g.tarde}</td>
-                <td className="num">{g.total}</td>
-                <td className="num">{min(g.medianaMin)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <TablaEstandar id="kpi-por-empleado" data-tabla="kpi-por-empleado" filas={d.porEmpleado} claveDe={(g) => g.clave}
+        columnas={colsEmpleado}
+        vacio={t("Nobody marked an order ready in this range.", "Nadie marcó una orden como lista en este rango.")} />
 
       <h3 className="ops-merma-titulo">{t("Worst 10 orders", "Las 10 peores órdenes")}</h3>
-      <div className="tbl-scroll tbl-caja">
-        <table className="orders" data-kpi-peores>
-          <thead><tr><th>{t("Invoice", "Factura")}</th><th>{t("Store", "Tienda")}</th><th className="num">{t("Minutes late", "Minutos tarde")}</th><th>{t("Picked up", "Recogida")}</th><th>{t("Marked ready by", "La marcó lista")}</th></tr></thead>
-          <tbody>
-            {d.peores.length === 0 && <tr><td colSpan={5} className="hint">{t("Every order was ready on time.", "Todas las órdenes estuvieron listas a tiempo.")}</td></tr>}
-            {d.peores.map((o) => (
-              <tr key={o.id} data-orden={o.id}>
-                <td>{o.factura}</td>
-                <td>{o.tienda}</td>
-                <td className="num ops-kpi-rojo" data-minutos={o.minutos ?? ""}>{o.minutos === null ? t("never marked", "nunca marcada") : `${-o.minutos} min`}</td>
-                <td>{fmtDateTime(o.recogidaEn)}</td>
-                <td>{o.quienMarcoNombre ?? (o.quienMarco ? "—" : t("nobody", "nadie"))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <TablaEstandar id="kpi-peores" data-tabla="kpi-peores" filas={d.peores} claveDe={(o) => o.id}
+        columnas={[
+          { key: "factura", en: "Invoice", es: "Factura", valor: (o) => o.factura },
+          { key: "tienda", en: "Store", es: "Tienda", valor: (o) => o.tienda },
+          { key: "minutos", en: "Minutes late", es: "Minutos tarde", numerico: true, valor: (o) => (o.minutos === null ? null : -o.minutos), celda: (o) => (
+            <span className="ops-kpi-rojo" data-minutos={o.minutos ?? ""}>{o.minutos === null ? t("never marked", "nunca marcada") : `${-o.minutos} min`}</span>
+          ) },
+          { key: "recogida", en: "Picked up", es: "Recogida", valor: (o) => o.recogidaEn, etiqueta: (v) => (typeof v === "string" ? fmtDateTime(v) : ""), celda: (o) => fmtDateTime(o.recogidaEn) },
+          { key: "marcola", en: "Marked ready by", es: "La marcó lista", valor: (o) => o.quienMarcoNombre ?? (o.quienMarco ? "—" : t("nobody", "nadie")) },
+        ]}
+        vacio={t("Every order was ready on time.", "Todas las órdenes estuvieron listas a tiempo.")} />
     </div>
   );
+}
+
+/** Las cinco cifras de un grupo (tienda, día, semana, empleado): las mismas columnas en las cuatro tablas. */
+function columnasDeGrupo<G extends Grupo>(primera: ColumnaEstandar<G>): ColumnaEstandar<G>[] {
+  const pctDe = (g: Grupo) => (g.pct === null ? "—" : `${g.pct}%`);
+  const minDe = (m: number | null) => (m === null ? "—" : `${m} min`);
+  return [
+    primera,
+    { key: "aTiempo", en: "Ready on time", es: "A tiempo", numerico: true, valor: (g) => g.pct, celda: (g) => (
+      <span className={`ops-kpi-${colorDelPct(g.pct)}`}><b>{pctDe(g)}</b> <span className="ops-persona-tienda">({g.aTiempo})</span></span>
+    ) },
+    { key: "tarde", en: "Not ready", es: "No listas", numerico: true, valor: (g) => g.tarde },
+    { key: "sinMarcar", en: "Never marked", es: "Sin marcar", numerico: true, valor: (g) => g.sinMarcar },
+    { key: "total", en: "Total", es: "Total", numerico: true, valor: (g) => g.total },
+    { key: "mediana", en: "Median", es: "Mediana", numerico: true, valor: (g) => g.medianaMin, celda: (g) => minDe(g.medianaMin) },
+  ];
 }
 
 /** Datos de muestra para el modo demo (sin base). */

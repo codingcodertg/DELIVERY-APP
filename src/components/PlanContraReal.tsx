@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { usePrefs } from "@/lib/prefs";
 import type { ApegoDelChofer } from "@/lib/apego-a-la-ruta/apego";
 import { EtiquetaDeOrden } from "@/components/EtiquetaDeOrden";
+import { TablaEstandar } from "@/components/TablaEstandar";
 
 // ============================================================
 // «Plan contra real» (D-910): lo que el Recorrido enseña de la ruta programada contra lo que el chofer hizo.
@@ -182,37 +183,35 @@ export function DetalleDelApego({ apego, listo, esHoy, color, mostrarPlan, onMos
 
             <div style={{ flex: 1, minWidth: 260 }}>
               <b>{t("Planned stops, in planned order", "Paradas del plan, en su orden")}</b>
-              <div className="tbl-scroll">
-                <table className="orders" style={{ fontSize: 13 }}>
-                  <thead><tr><th>#</th><th>{t("Where", "Dónde")}</th><th>{t("Invoice", "Factura")}</th><th>ETA</th><th>{t("Arrived", "Llegó")}</th><th>{t("Status", "Estado")}</th></tr></thead>
-                  <tbody>
-                    {apego.paradas.map((p) => (
-                      <tr key={p.puesto} data-parada-plan={p.puesto} data-estado={p.enOrden ? "en-orden" : p.visitada ? "fuera-de-orden" : p.hecha ? "hecha-sin-rastro" : "no-visitada"}>
-                        <td><span style={{ display: "inline-block", minWidth: 20, textAlign: "center", borderRadius: 10, background: color, color: "var(--card)", fontSize: 11, fontWeight: 700, padding: "1px 5px" }}>{p.puesto}</span></td>
-                        <td>{p.lugar}</td>
-                        {/* D-912: la orden se nombra por su FACTURA; sin ella, el código en gris. Pulsar abre la ficha. */}
-                        <td className="ordno">
-                          {p.ordenes.map((o, i) => (
-                            <span key={`${o.tipo}:${o.id ?? o.codigo}`}>
-                              {i > 0 && ", "}
-                              <EtiquetaDeOrden orden={o} prefijo={`${o.tipo === "P" ? "▲" : "✓"} `} onAbrir={abrirOrden?.(o.id) ?? null} />
-                            </span>
-                          ))}
-                        </td>
-                        <td style={{ fontVariantNumeric: "tabular-nums" }}>{minutoDelDia(p.eta)}</td>
-                        <td style={{ fontVariantNumeric: "tabular-nums" }}>{hora(p.llegada, lang)}</td>
-                        <td>
-                          {p.enOrden ? <b style={{ color: "var(--green)" }}>✓ {t("in order", "en orden")}</b>
-                            : p.visitada ? <b style={{ color: "var(--amber-text)" }}>↕ {t("out of order", "fuera de orden")}</b>
-                            : p.hecha ? <span className="hint" style={{ marginTop: 0 }}>{t("closed in the app, not seen there", "cerrada en la app, no se vio ahí")}</span>
-                            : esHoy && apego.real.enVivo ? <span className="hint" style={{ marginTop: 0 }}>{t("pending", "pendiente")}</span>
-                            : <b style={{ color: "var(--red)" }}>✕ {t("not visited", "no visitada")}</b>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {/* Estándar de tablas (`TablaEstandar`): ▾, ⚙ y anchos. Las cifras y la orden de las paradas son las mismas. */}
+              <TablaEstandar id="plan-contra-real-paradas" data-tabla="plan-contra-real-paradas" sinCaja
+                estiloTabla={{ fontSize: 13 }} filas={apego.paradas} claveDe={(p) => String(p.puesto)}
+                columnas={[
+                  { key: "puesto", en: "#", es: "#", ancho: 56, fija: true, valor: (p) => p.puesto, celda: (p) => (
+                    <span style={{ display: "inline-block", minWidth: 20, textAlign: "center", borderRadius: 10, background: color, color: "var(--card)", fontSize: 11, fontWeight: 700, padding: "1px 5px" }}>{p.puesto}</span>
+                  ) },
+                  { key: "donde", en: "Where", es: "Dónde", ancho: 170, valor: (p) => p.lugar },
+                  // D-912: la orden se nombra por su FACTURA; sin ella, el código en gris. Pulsar abre la ficha.
+                  { key: "factura", en: "Invoice", es: "Factura", ancho: 190, valor: (p) => p.ordenes.map((o) => o.codigo).join(", "), celda: (p) => (
+                    <span className="ordno">
+                      {p.ordenes.map((o, i) => (
+                        <span key={`${o.tipo}:${o.id ?? o.codigo}`}>
+                          {i > 0 && ", "}
+                          <EtiquetaDeOrden orden={o} prefijo={`${o.tipo === "P" ? "▲" : "✓"} `} onAbrir={abrirOrden?.(o.id) ?? null} />
+                        </span>
+                      ))}
+                    </span>
+                  ) },
+                  { key: "eta", en: "ETA", es: "ETA", ancho: 80, valor: (p) => p.eta, celda: (p) => <span style={{ fontVariantNumeric: "tabular-nums" }}>{minutoDelDia(p.eta)}</span> },
+                  { key: "llego", en: "Arrived", es: "Llegó", ancho: 90, valor: (p) => p.llegada, celda: (p) => <span style={{ fontVariantNumeric: "tabular-nums" }}>{hora(p.llegada, lang)}</span> },
+                  { key: "estado", en: "Status", es: "Estado", ancho: 170, valor: (p) => (p.enOrden ? t("in order", "en orden") : p.visitada ? t("out of order", "fuera de orden") : p.hecha ? t("closed in the app, not seen there", "cerrada en la app, no se vio ahí") : esHoy && apego.real.enVivo ? t("pending", "pendiente") : t("not visited", "no visitada")), celda: (p) => (
+                    p.enOrden ? <b style={{ color: "var(--green)" }}>✓ {t("in order", "en orden")}</b>
+                      : p.visitada ? <b style={{ color: "var(--amber-text)" }}>↕ {t("out of order", "fuera de orden")}</b>
+                      : p.hecha ? <span className="hint" style={{ marginTop: 0 }}>{t("closed in the app, not seen there", "cerrada en la app, no se vio ahí")}</span>
+                      : esHoy && apego.real.enVivo ? <span className="hint" style={{ marginTop: 0 }}>{t("pending", "pendiente")}</span>
+                      : <b style={{ color: "var(--red)" }}>✕ {t("not visited", "no visitada")}</b>
+                  ) },
+                ]} />
             </div>
           </div>
 
