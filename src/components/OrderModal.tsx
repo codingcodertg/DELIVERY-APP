@@ -63,7 +63,8 @@ import { PhotoUpload } from "@/components/PhotoUpload";
 import { AdjuntosDeLaOrden } from "@/components/AdjuntosDeLaOrden";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { SignaturePad } from "@/components/SignaturePad";
-import { MapView } from "@/components/MapView";
+import { MapView, type StoreMarker } from "@/components/MapView";
+import { mapaDeLaOrden } from "@/lib/orden-en-el-mapa";
 import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { MenuDeAcciones } from "@/components/MenuDeAcciones";
 import { accionesDeLaFicha, type IdDeAccion, type Texto } from "@/lib/acciones-de-la-ficha";
@@ -2185,6 +2186,8 @@ export function OrderModal({
               }}>🔗 {t("Copy tracking link", "Copiar enlace")}</button>
             </div>
             )}
+            {/* «📍 Ver en el mapa» (Roberto, ayuda 62770f89): la orden en un mapa aquí mismo, en la ficha, sin salir. */}
+            <VerEnElMapa orden={existing} tiendas={tiendasDelMapa} t={t} />
             {canDeliver(me) && me.role !== "driver" && existing.delivery_address && (
               <NavButtons
                 origin={(existing.pickup_address || settings.stores.find((s) => s.name === existing.store)?.address || existing.store || "").trim()}
@@ -4342,6 +4345,24 @@ function ShareTracking({
       ) : (
         <div className="hint">{t("Add a delivery phone number to text the customer their tracking link.", "Agregue un teléfono de entrega para enviar el enlace de seguimiento al cliente.")}</div>
       )}
+    </div>
+  );
+}
+
+// «📍 Ver en el mapa» (ayuda 62770f89, 12 nov): abre, dentro de la ficha, un mapa con el pin de la entrega y la tienda de
+// recogida. Nada navega fuera (regla del dueño «abrir en tarjeta»). Sin punto de entrega, lo dice.
+function VerEnElMapa({ orden, tiendas, t }: { orden: Delivery; tiendas: StoreMarker[]; t: (en: string, es: string) => string }) {
+  const [abierto, setAbierto] = useState(false);
+  const m = mapaDeLaOrden(orden, tiendas);
+  return (
+    <div style={{ marginTop: 10 }} data-ver-en-el-mapa={orden.id}>
+      <button type="button" className={"btn btn-sm " + (abierto ? "btn-primary" : "btn-ghost")} aria-pressed={abierto}
+        onClick={() => setAbierto((v) => !v)} data-accion="ver-en-el-mapa">
+        📍 {abierto ? t("Hide map", "Ocultar mapa") : t("Show on map", "Ver en el mapa")}
+      </button>
+      {abierto && (m.sinUbicacion
+        ? <div className="hint" data-sin-ubicacion-orden style={{ marginTop: 6 }}>{t("This order has no location on the map yet (no pin for the delivery address).", "Esta orden todavía no tiene ubicación en el mapa (la dirección de entrega no tiene pin).")}</div>
+        : <div style={{ marginTop: 8 }}><MapView points={m.puntos} stores={tiendas} fitTo={m.encuadre} height="min(45vh, 340px)" /></div>)}
     </div>
   );
 }

@@ -51934,3 +51934,11 @@ Dos pedidos del dueño (12 nov):
 - **La burbuja de ayuda «?» tapaba los botones de abajo de una tarjeta** (captura en el teléfono: encima de «Marcar como Desechada» / «Deshacer la última etapa»). Con una tarjeta abierta (`.overlay`) la burbuja se hace chica y semitransparente (vuelve al pasar el dedo/ratón o con el foco) y toda tarjeta deja al final un hueco del tamaño de la burbuja + la barra del sistema, para que lo último siempre pueda subir por encima. La burbuja ahora respeta la barra del sistema del teléfono (safe area). Sin tarjeta abierta no cambia nada; abierta, su menú se ve completo.
 
 Sello `warehouse_ops` 0.46.0; `deliveries` 1.603.0; repo 1.861.0.
+
+## D-1009 · Ficha de la orden: «📍 Ver en el mapa»
+
+Roberto (ayuda 62770f89, 12 nov, Gestor de Rutas → «Sin asignar», ficha de la orden abierta): «Still need the option to be able to open order on map». D-895 (ayuda 042c7dc1) dio el mapa de la TABLA de órdenes, pero con una orden abierta no había cómo verla en el mapa.
+
+Ahora la ficha de cualquier orden ya creada (desde el Gestor, en todas sus pestañas, y desde la tabla de Órdenes) tiene «📍 Ver en el mapa»: abre, dentro de la misma ficha, un mapa con el pin de la entrega y la tienda de recogida en el encuadre. No navega a otra pantalla (regla «abrir en tarjeta»). Si la dirección de entrega no tiene pin, lo dice. Regla pura `mapaDeLaOrden` en `src/lib/orden-en-el-mapa.ts`, con prueba.
+
+Sello `deliveries` 1.604.0; repo 1.862.0.
