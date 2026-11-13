@@ -13,6 +13,7 @@ import { textoDelRango, textoDeLaRegla } from "@/lib/fee-formula-text";
 import { LOCAL_ZONE_DEFAULT, LOCAL_ZONE_LATLNG } from "@/lib/delivery-zone";
 import type { Settings, UserRole } from "@/lib/types";
 import { RouteEngineSettings } from "@/components/RouteEngineSettings";
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { TracksolidSettings } from "@/components/TracksolidSettings";
 import { HORAS_NOCHE_ANTES, HORA_NOCHE_ANTES_POR_DEFECTO, laBaseTieneAjustesDeAvisos } from "@/lib/avisos-cliente";
 import { reglasDeAprobacion, ventanasConCupoEditable, type ReglasDeAprobacion } from "@/lib/aprobacion-por-hora-y-cupo";
@@ -747,33 +748,17 @@ function LocalZonePricing({ settings, saveSettings, notify, t }: {
             `Solo lectura: estas reglas viven en el código. Las millas son de recorrido y todo resultado se redondea a $${REDONDEO}.`,
           )}
         </div>
-        <div style={{ overflowX: "auto", marginTop: 8 }}>
-          {/* `orders` es la clase de tabla de esta app —`tbl` no existe en el CSS y habría
-              salido sin estilo—, con `tbl-resize` para que no herede el `min-width: 820px`
-              que esa clase trae para las tablas de pedidos. */}
-          <table className="orders tbl-resize" style={{ minWidth: 420 }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: "left" }}>{t("Zone", "Zona")}</th>
-                <th style={{ textAlign: "left" }}>{t("Distance", "Distancia")}</th>
-                <th style={{ textAlign: "left" }}>{t("List", "Lista")}</th>
-                <th style={{ textAlign: "left" }}>{t("Discount", "Descuento")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filasDeLaFormula().map((f) => (
-                <tr key={f.tramo}>
-                  <td>{f.zona === "local" ? t("Local", "Local") : t("Not local", "No local")}</td>
-                  <td>{textoDelRango(t, f.desde, f.hasta)}</td>
-                  {/* Las dos columnas salen de las dos filas de bases (D-317): las cuatro filas
-                      dicen dos números distintos. Hasta aquí, tres de las cuatro repetían el mismo
-                      en las dos, y eso es lo que el dueño leyó como que el descuento no aparecía. */}
-                  <td>{textoDeLaRegla(t, f.lista.base, f.lista.factor, f.lista.minimo)}</td>
-                  <td>{textoDeLaRegla(t, f.descuento.base, f.descuento.factor, f.descuento.minimo)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Estándar de tablas (`TablaEstandar`): solo lectura, con ▾, ⚙ y anchos. Las dos columnas de precio salen de las
+            dos filas de bases (D-317): las cuatro filas dicen dos números distintos, y eso es lo que el dueño leyó como
+            que el descuento no aparecía. */}
+        <div style={{ marginTop: 8 }}>
+          <TablaEstandar id="ajustes-formula-tarifa" filas={filasDeLaFormula()} claveDe={(f) => f.tramo}
+            columnas={[
+              { key: "zona", en: "Zone", es: "Zona", ancho: 150, fija: true, valor: (f) => (f.zona === "local" ? t("Local", "Local") : t("Not local", "No local")) },
+              { key: "distancia", en: "Distance", es: "Distancia", ancho: 200, valor: (f) => textoDelRango(t, f.desde, f.hasta) },
+              { key: "lista", en: "List", es: "Lista", ancho: 220, valor: (f) => textoDeLaRegla(t, f.lista.base, f.lista.factor, f.lista.minimo) },
+              { key: "descuento", en: "Discount", es: "Descuento", ancho: 220, valor: (f) => textoDeLaRegla(t, f.descuento.base, f.descuento.factor, f.descuento.minimo) },
+            ]} />
         </div>
         <div className="hint" style={{ marginTop: 6 }}>
           {t(

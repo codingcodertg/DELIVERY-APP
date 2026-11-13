@@ -54,6 +54,8 @@ import { TablaEstandar } from "@/components/TablaEstandar";
 - **Forma reducida** (sin ▾, con ⚙, mover y anchos): para tablas que se EDITAN en su propia fila o despliegan una fila de
   ancho completo. Time Tracker: `src/components/timetracker/TablaReducida.tsx` (Nómina: turnos + bitácora; Informes:
   detalle editable). Cada una lleva un `id` propio por tabla que se pinta a la vez, porque la vista se guarda con él.
+  Entregas (13 nov 2026): los tres editores de Datos (cuentas, motivos de anulación, tipos de orden) — sus celdas son
+  campos, y ordenar mientras se teclea movería la fila. `TablaReducida` cuenta como estándar en la prueba.
 
 ## Qué NO necesita el estándar
 
@@ -67,14 +69,14 @@ fallar la prueba (y el CI). La lista de PENDIENTES es deuda conocida: solo puede
 
 ## Inventario (12 nov 2026)
 
-67 archivos del código pintan una tabla con `<table`: **30 cumplen el estándar** (5 con implementación propia y 25 con las piezas comunes), **22 exentas** y **15 pendientes**. Además, **16 tablas usan `<TablaEstandar>` sin `<table` escrito** (las 12 del ERP de PR #857 y 4 de la tanda del 12 nov 2026: Métricas, tiempo del expediente, historial de RR. HH. y Encuestas), que por eso no cuentan arriba.
+67 archivos del código pintan una tabla con `<table`: **30 cumplen el estándar** (5 con implementación propia y 25 con las piezas comunes), **22 exentas** y **15 pendientes** (cifras de la foto del 12 nov; desde la tanda del 13 nov la lista viva es la de la prueba: **2 pendientes**, `RutaDelPlan` y `review-queue`). Además, **16 tablas usan `<TablaEstandar>` sin `<table` escrito** (las 12 del ERP de PR #857 y 4 de la tanda del 12 nov 2026: Métricas, tiempo del expediente, historial de RR. HH. y Encuestas), que por eso no cuentan arriba.
 
 Convertidas el 12 nov 2026 con `<TablaEstandar>`: Solicitudes de cliente e Historial de tratos (Clientes), «Por
 vendedor» y «Por GOV Pool» (Leads), la Bitácora de seguridad del hub (`src/components/SecurityLog.tsx`), el historial de
 RR. HH., las tablas de tiempo del expediente, las tres de Métricas de RR. HH. y la de Encuestas (ambas). Completadas
 con `useVistaDeColumnas` (ya tenían ▾ y anchos; ganaron ⚙ y mover): Empleados y Activos (RR. HH.), las listas de
 Central Hub Monitoring y la lista de cotizaciones del Quote Builder. Productos de la competencia (Quote Builder) tiene ⚙,
-mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tanda 1, 12 nov 2026): Insights, Personas, Mis solicitudes, Solicitudes del equipo, Semana, Bandeja de fichajes, Fichajes de hoy, Ausencias, Vehículos y Auditoría. Time Tracker (tanda 2, 13 nov 2026): Asignaciones, Semana del empleado, Geocercas, Informes, Mis secciones, Nómina, Horario y Viajes. Entregas (tanda 13 nov 2026, `TablaEstandar`): Panel (las 5 tablas), Almacén (una por chofer), Recorrido del chofer (3), Cuentas, Auditoría, Reportes de choferes (5 pestañas y el día del chofer), Pausas del día y Puntualidad por chofer; los totales van en `totales` (pie de la tabla, sin ordenar). Pendiente por app: Time Tracker 0, Entregas 5, ERP 0, Operaciones 1 — se convierten por tandas, empezando por las listas de uso diario.
+mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tanda 1, 12 nov 2026): Insights, Personas, Mis solicitudes, Solicitudes del equipo, Semana, Bandeja de fichajes, Fichajes de hoy, Ausencias, Vehículos y Auditoría. Time Tracker (tanda 2, 13 nov 2026): Asignaciones, Semana del empleado, Geocercas, Informes, Mis secciones, Nómina, Horario y Viajes. Entregas (tanda 13 nov 2026, `TablaEstandar`): Panel (las 5 tablas), Almacén (una por chofer), Recorrido del chofer (3), Cuentas, Auditoría, Reportes de choferes (5 pestañas y el día del chofer), Pausas del día y Puntualidad por chofer; los totales van en `totales` (pie de la tabla, sin ordenar). Entregas y Operaciones (tanda 13 nov 2026): Datos (los tres editores, en forma reducida), Mercado (lista y vistas por grupo), Ajustes (la fórmula de la tarifa, solo lectura), KPI de Entregas (sus cuatro tablas) y el plan contra real (la tabla de paradas; la matriz plan/real/± de cada tarjeta es una comparación de tres columnas, como `ComparaConLaHoja`, y se queda). Pendiente por app: Time Tracker 0, Entregas 1 (`RutaDelPlan`, ver su fila), ERP 0 (`review-queue` con `virtual`, D-1039), Operaciones 0 — se convierten por tandas, empezando por las listas de uso diario.
 
 | App | Archivo | Estado | Nota |
 |---|---|---|---|
@@ -111,9 +113,9 @@ mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tand
 | Entregas | `src/app/(app)/accounts/page.tsx` | ✅ estándar | 13 nov 2026 |
 | Entregas | `src/app/(app)/audit/page.tsx` | ✅ estándar | 13 nov 2026 |
 | Entregas | `src/app/(app)/dashboard/page.tsx` | ✅ estándar | 13 nov 2026 |
-| Entregas | `src/app/(app)/data/page.tsx` | ⏳ pendiente |  |
-| Entregas | `src/app/(app)/market/page.tsx` | ⏳ pendiente |  |
-| Entregas | `src/app/(app)/settings/page.tsx` | ⏳ pendiente |  |
+| Entregas | `src/app/(app)/data/page.tsx` | ✅ estándar | 13 nov 2026: los tres editores en forma reducida (`TablaReducida`), sin ▾ |
+| Entregas | `src/app/(app)/market/page.tsx` | ✅ estándar | 13 nov 2026: el orden de la exportación CSV sigue el de partida (por nombre), no el ▾ |
+| Entregas | `src/app/(app)/settings/page.tsx` | ✅ estándar | 13 nov 2026: la fórmula de la tarifa (solo lectura) |
 | Entregas | `src/app/(app)/track/page.tsx` | ✅ estándar | 13 nov 2026 |
 | Entregas | `src/app/(app)/warehouse/page.tsx` | ✅ estándar | 13 nov 2026 |
 | ERP | `src/app/erp/analytics/categories/page.tsx` | ✅ estándar | PR #857 |
@@ -122,7 +124,7 @@ mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tand
 | ERP | `src/app/erp/review/daltile/page.tsx` | ✅ estándar | PR #857 |
 | Quote Builder | `src/app/estimator/ProductosCompetencia.tsx` | ✅ estándar (sin ▾) | tabla de edición: ⚙, cabeceras que se mueven y anchos; sin ▾ porque cada celda es un campo y la comparación va bajo su fila |
 | Quote Builder | `src/app/estimator/TodasLasCotizaciones.tsx` | ✅ estándar | ya tenía ▾ y ganó ⚙, mover cabeceras y anchos (`useVistaDeColumnas`) |
-| Operaciones | `src/app/operaciones/KpiDeEntregas.tsx` | ⏳ pendiente |  |
+| Operaciones | `src/app/operaciones/KpiDeEntregas.tsx` | ✅ estándar | 13 nov 2026: sus cuatro tablas, solo lectura |
 | RR. HH. | `src/app/recruiting/(recruiting)/employees/time-tracker.tsx` | ✅ estándar | semanas y pagos del expediente; los totales van en una línea debajo |
 | RR. HH. | `src/app/recruiting/(recruiting)/metrics/page.tsx` | ✅ estándar | tres tablas (fuentes, puestos, proceso); la del proceso ya no pinta el punto de color de cada etapa |
 | Encuestas | `src/app/surveys/Encuestas.tsx` | ✅ estándar | dos tablas; en el teléfono siguen siendo tarjetas (`.enc-tabla`) |
@@ -132,7 +134,7 @@ mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tand
 | Time Tracker | `src/app/timetracker/(timetracker)/team-requests/page.tsx` | ✅ estándar |  |
 | Time Tracker | `src/app/timetracker/(timetracker)/week/page.tsx` | ✅ estándar |  |
 | Entregas / compartido | `src/components/PausasDelDia.tsx` | ✅ estándar | 13 nov 2026 |
-| Entregas / compartido | `src/components/PlanContraReal.tsx` | ⏳ pendiente |  |
+| Entregas / compartido | `src/components/PlanContraReal.tsx` | ✅ estándar | 13 nov 2026: la tabla de paradas; la matriz plan/real/± de la tarjeta se queda (comparación) |
 | Entregas / compartido | `src/components/PuntualidadPorChofer.tsx` | ✅ estándar | 13 nov 2026 |
 | Entregas / compartido | `src/components/ReportesDeChoferes.tsx` | ✅ estándar | 13 nov 2026 |
 | Entregas / compartido | `src/components/RutaDelPlan.tsx` | ⏳ pendiente |  |

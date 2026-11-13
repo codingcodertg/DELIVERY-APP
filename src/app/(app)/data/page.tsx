@@ -13,6 +13,7 @@ import { leeDedicados } from "@/lib/gestor/choferes-por-tienda";
 import { claveDesdeEtiqueta, motivosDeAnulacion, MOTIVOS_QUE_NO_SE_BORRAN } from "@/lib/cancel-reasons";
 import { CUENTA_DE_MOSTRADOR, CUENTA_DE_MOSTRADOR_EN, esCuentaDeMostrador } from "@/lib/customer-type";
 import { telefonoEstandar } from "@/lib/recruiting/formato";
+import { TablaReducida } from "@/components/timetracker/TablaReducida";
 
 // ============================================================
 // Data — the reusable reference lists behind the order form: pickup points,
@@ -156,40 +157,29 @@ function AccountsEditor({
           "Elegir una cuenta en una orden autocompleta su contacto + teléfono. Marque una cuenta de sucursal (interna) como “Intertienda” y el tipo de orden será Intertienda por defecto — de lo contrario Customer. Marque “Aprobación de oficina” y las órdenes de esa cuenta siempre nacen Pendientes, aunque la tienda apruebe sola. Siempre editable en la orden.",
         )}
       </p>
-      <div className="tbl-scroll" style={{ border: "none" }}>
-        <table className="orders" style={{ minWidth: 620 }}>
-          <thead>
-            <tr>
-              <th>{t("Account", "Cuenta")}</th>
-              <th>{t("Contact", "Contacto")}</th>
-              <th>{t("Phone", "Teléfono")}</th>
-              <th style={{ textAlign: "center" }}>{t("Intertienda", "Intertienda")}</th>
-              <th style={{ textAlign: "center" }}>{t("Office approval", "Aprobación de oficina")}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i}>
-                <td><input value={r.name} onChange={(e) => update(i, { name: e.target.value })} placeholder={t("Account name", "Nombre de cuenta")} style={{ minWidth: 150 }} /></td>
-                <td><input value={r.contact} onChange={(e) => update(i, { contact: e.target.value })} placeholder={t("Contact name", "Contacto")} /></td>
-                <td><input value={r.phone} onChange={(e) => update(i, { phone: e.target.value })} placeholder={t("Phone", "Teléfono")} /></td>
-                <td style={{ textAlign: "center" }}>
-                  <input type="checkbox" checked={r.intertienda} onChange={(e) => update(i, { intertienda: e.target.checked })} aria-label={t("Intertienda branch account", "Cuenta de sucursal Intertienda")} />
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  <input type="checkbox" checked={r.requires_approval} onChange={(e) => update(i, { requires_approval: e.target.checked })}
-                    aria-label={t("This account always needs office approval", "Esta cuenta siempre requiere aprobación de oficina")} />
-                </td>
-                <td><button className="btn btn-ghost btn-sm" onClick={() => remove(i)} title={t("Remove", "Quitar")}>✕</button></td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr><td colSpan={6} className="hint" style={{ padding: 12 }}>{t("No saved accounts yet — add one, or save one from an order.", "Aún no hay cuentas — agregue una o guárdela desde una orden.")}</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Forma reducida del estándar (`TablaReducida`): las filas se EDITAN en su sitio, así que sin ▾. */}
+      {rows.length === 0 && <p className="hint" style={{ padding: 12 }}>{t("No saved accounts yet — add one, or save one from an order.", "Aún no hay cuentas — agregue una o guárdela desde una orden.")}</p>}
+      {rows.length > 0 && (
+        <TablaReducida id="datos-cuentas" sinCaja filas={rows.map((_, i) => i)} claveDe={(i) => String(i)}
+          columnas={[
+            { key: "cuenta", en: "Account", es: "Cuenta", ancho: 210, fija: true, celda: (i) => <input value={rows[i].name} onChange={(e) => update(i, { name: e.target.value })} placeholder={t("Account name", "Nombre de cuenta")} style={{ minWidth: 150 }} /> },
+            { key: "contacto", en: "Contact", es: "Contacto", ancho: 170, celda: (i) => <input value={rows[i].contact} onChange={(e) => update(i, { contact: e.target.value })} placeholder={t("Contact name", "Contacto")} /> },
+            { key: "telefono", en: "Phone", es: "Teléfono", ancho: 160, celda: (i) => <input value={rows[i].phone} onChange={(e) => update(i, { phone: e.target.value })} placeholder={t("Phone", "Teléfono")} /> },
+            { key: "intertienda", en: "Intertienda", es: "Intertienda", ancho: 120, numerico: true, celda: (i) => (
+              <div style={{ textAlign: "center" }}>
+                <input type="checkbox" checked={rows[i].intertienda} onChange={(e) => update(i, { intertienda: e.target.checked })} aria-label={t("Intertienda branch account", "Cuenta de sucursal Intertienda")} />
+              </div>
+            ) },
+            { key: "aprobacion", en: "Office approval", es: "Aprobación de oficina", ancho: 160, numerico: true, celda: (i) => (
+              <div style={{ textAlign: "center" }}>
+                <input type="checkbox" checked={rows[i].requires_approval} onChange={(e) => update(i, { requires_approval: e.target.checked })}
+                  aria-label={t("This account always needs office approval", "Esta cuenta siempre requiere aprobación de oficina")} />
+              </div>
+            ) },
+          ]}
+          acciones={(i) => <button className="btn btn-ghost btn-sm" onClick={() => remove(i)} title={t("Remove", "Quitar")}>✕</button>}
+          anchoDeAcciones={64} />
+      )}
       <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center" }}>
         <button className="btn btn-ghost" onClick={add}>+ {t("Add account", "Agregar cuenta")}</button>
         <button className="btn btn-primary" onClick={commit} disabled={!dirty}>{t("Save changes", "Guardar cambios")}</button>
@@ -270,44 +260,29 @@ function CancelReasonsEditor({
           "Por qué se anuló una orden, elegido de esta lista. En la orden se guarda la clave, no la etiqueta — renombrar una etiqueta no reescribe lo ya registrado. «Otro» siempre pide texto libre, y no se puede quitar.",
         )}
       </p>
-      <div className="tbl-scroll" style={{ border: "none" }}>
-        <table className="orders" style={{ minWidth: 720 }}>
-          <thead>
-            <tr>
-              <th>{t("English", "Inglés")}</th>
-              <th>{t("Spanish", "Español")}</th>
-              <th>{t("Key (saved on the order)", "Clave (lo que se guarda)")}</th>
-              <th style={{ textAlign: "center" }}>{t("Asks why", "Pide texto")}</th>
-              <th style={{ textAlign: "center" }}>{t("In use", "En uso")}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={r.key || `nueva-${i}`}>
-                <td><input value={r.en} onChange={(e) => update(i, { en: e.target.value })} placeholder={t("Reason", "Motivo")} /></td>
-                <td><input value={r.es} onChange={(e) => update(i, { es: e.target.value })} placeholder={t("Reason", "Motivo")} /></td>
-                <td className="hint" style={{ fontFamily: "monospace" }}>{r.key || t("- on save -", "- al guardar -")}</td>
-                <td style={{ textAlign: "center" }}>
-                  <input
-                    type="checkbox"
-                    checked={r.free_text === true}
-                    disabled={r.key === "other"}
-                    onChange={(e) => update(i, { free_text: e.target.checked })}
-                    aria-label={t("Asks why", "Pide texto")}
-                  />
-                </td>
-                <td style={{ textAlign: "center" }}>{usadas.get(r.key) ?? 0}</td>
-                <td>
-                  {!MOTIVOS_QUE_NO_SE_BORRAN.includes(r.key) && (
-                    <button className="btn btn-ghost btn-sm" onClick={() => remove(i)} title={t("Remove", "Quitar")}>x</button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Forma reducida del estándar (`TablaReducida`): las filas se EDITAN en su sitio, así que sin ▾. */}
+      <TablaReducida id="datos-motivos-anulacion" sinCaja filas={rows.map((_, i) => i)} claveDe={(i) => String(i)}
+        columnas={[
+          { key: "ingles", en: "English", es: "Inglés", ancho: 240, fija: true, celda: (i) => <input value={rows[i].en} onChange={(e) => update(i, { en: e.target.value })} placeholder={t("Reason", "Motivo")} /> },
+          { key: "espanol", en: "Spanish", es: "Español", ancho: 240, celda: (i) => <input value={rows[i].es} onChange={(e) => update(i, { es: e.target.value })} placeholder={t("Reason", "Motivo")} /> },
+          { key: "clave", en: "Key (saved on the order)", es: "Clave (lo que se guarda)", ancho: 220, celda: (i) => <span className="hint" style={{ fontFamily: "monospace" }}>{rows[i].key || t("- on save -", "- al guardar -")}</span> },
+          { key: "pideTexto", en: "Asks why", es: "Pide texto", ancho: 110, numerico: true, celda: (i) => (
+            <div style={{ textAlign: "center" }}>
+              <input
+                type="checkbox"
+                checked={rows[i].free_text === true}
+                disabled={rows[i].key === "other"}
+                onChange={(e) => update(i, { free_text: e.target.checked })}
+                aria-label={t("Asks why", "Pide texto")}
+              />
+            </div>
+          ) },
+          { key: "enUso", en: "In use", es: "En uso", ancho: 100, numerico: true, celda: (i) => usadas.get(rows[i].key) ?? 0 },
+        ]}
+        acciones={(i) => (!MOTIVOS_QUE_NO_SE_BORRAN.includes(rows[i].key) ? (
+          <button className="btn btn-ghost btn-sm" onClick={() => remove(i)} title={t("Remove", "Quitar")}>x</button>
+        ) : null)}
+        anchoDeAcciones={64} />
       <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center" }}>
         <button className="btn btn-ghost" onClick={add}>+ {t("Add reason", "Agregar motivo")}</button>
         <button className="btn btn-primary" onClick={commit} disabled={!dirty}>{t("Save changes", "Guardar cambios")}</button>
@@ -370,52 +345,42 @@ function OrderTypesRulesEditor({
           "Renombre los tipos y defina qué requiere cada uno. “Entre tiendas” es un movimiento sucursal a sucursal — el destino es otra tienda y no se pide contacto/teléfono del cliente. La referencia de documento define qué papeleo se requiere.",
         )}
       </p>
-      <div className="tbl-scroll" style={{ border: "none" }}>
-        <table className="orders" style={{ minWidth: 780 }}>
-          <thead>
-            <tr>
-              <th>{t("Name", "Nombre")}</th>
-              <th style={{ textAlign: "center" }}>{t("Store-to-store", "Entre tiendas")}</th>
-              <th style={{ textAlign: "center" }} title={t("The rep's own store is the destination (receiving); Sold From is chosen.", "La tienda del vendedor es el destino (recibe); Vendido Desde se elige.")}>{t("Rep store = dest.", "Tienda = destino")}</th>
-              <th style={{ textAlign: "center" }} title={t("Sales can pick ANY store as Sold From, not only their own.", "Ventas puede elegir CUALQUIER tienda como Vendido Desde, no solo la suya.")}>{t("Any origin", "Origen libre")}</th>
-              <th>{t("Document reference", "Referencia de documento")}</th>
-              <th style={{ textAlign: "center" }}>{t("In use", "En uso")}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i}>
-                <td><input value={r.name} onChange={(e) => update(i, { name: e.target.value })} placeholder={t("Type name", "Nombre del tipo")} style={{ minWidth: 150 }} /></td>
-                <td style={{ textAlign: "center" }}>
-                  <input type="checkbox" checked={r.storeToStore} onChange={(e) => update(i, { storeToStore: e.target.checked })} aria-label={t("Store-to-store", "Entre tiendas")} />
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  <input type="checkbox" checked={r.homeIsDestination} onChange={(e) => update(i, { homeIsDestination: e.target.checked })} aria-label={t("Rep store is destination", "Tienda del vendedor es destino")} />
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  <input type="checkbox" checked={r.anyOrigin} onChange={(e) => update(i, { anyOrigin: e.target.checked })} aria-label={t("Any origin", "Origen libre")} />
-                </td>
-                <td>
-                  <select value={r.docRef} onChange={(e) => update(i, { docRef: e.target.value as OrderTypeRule["docRef"] })} style={{ width: "auto" }}>
-                    <option value="invoice">{t("Invoice # required", "Factura # requerida")}</option>
-                    <option value="any">{t("Any one of PO# / SO# / Invoice#", "Cualquiera de PO# / SO# / Factura #")}</option>
-                    <option value="po">{t("PO # required", "PO # requerido")}</option>
-                    <option value="none">{t("No document required (fields still shown)", "Sin documento requerido (los campos se siguen viendo)")}</option>
-                    <option value="estimate">{t("Estimate # (single field)", "Estimación # (campo único)")}</option>
-                    <option value="hidden">{t("No paperwork — hide Invoice/PO/SO", "Sin papeles — esconder Factura/PO/SO")}</option>
-                  </select>
-                </td>
-                <td style={{ textAlign: "center" }}>{usage.get(r.name.trim()) ?? 0}</td>
-                <td><button className="btn btn-ghost btn-sm" onClick={() => remove(i)} title={t("Remove", "Quitar")}>✕</button></td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr><td colSpan={7} className="hint" style={{ padding: 12 }}>{t("No order types — add one below.", "Sin tipos de orden — agregue uno abajo.")}</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Forma reducida del estándar (`TablaReducida`): las filas se EDITAN en su sitio, así que sin ▾. */}
+      {rows.length === 0 && <p className="hint" style={{ padding: 12 }}>{t("No order types — add one below.", "Sin tipos de orden — agregue uno abajo.")}</p>}
+      {rows.length > 0 && (
+        <TablaReducida id="datos-tipos-de-orden" sinCaja filas={rows.map((_, i) => i)} claveDe={(i) => String(i)}
+          columnas={[
+            { key: "nombre", en: "Name", es: "Nombre", ancho: 210, fija: true, celda: (i) => <input value={rows[i].name} onChange={(e) => update(i, { name: e.target.value })} placeholder={t("Type name", "Nombre del tipo")} style={{ minWidth: 150 }} /> },
+            { key: "entreTiendas", en: "Store-to-store", es: "Entre tiendas", ancho: 130, numerico: true, celda: (i) => (
+              <div style={{ textAlign: "center" }}>
+                <input type="checkbox" checked={rows[i].storeToStore} onChange={(e) => update(i, { storeToStore: e.target.checked })} aria-label={t("Store-to-store", "Entre tiendas")} />
+              </div>
+            ) },
+            { key: "tiendaDestino", en: "Rep store = dest.", es: "Tienda = destino", ancho: 150, numerico: true, celda: (i) => (
+              <div style={{ textAlign: "center" }} title={t("The rep's own store is the destination (receiving); Sold From is chosen.", "La tienda del vendedor es el destino (recibe); Vendido Desde se elige.")}>
+                <input type="checkbox" checked={rows[i].homeIsDestination} onChange={(e) => update(i, { homeIsDestination: e.target.checked })} aria-label={t("Rep store is destination", "Tienda del vendedor es destino")} />
+              </div>
+            ) },
+            { key: "origenLibre", en: "Any origin", es: "Origen libre", ancho: 120, numerico: true, celda: (i) => (
+              <div style={{ textAlign: "center" }} title={t("Sales can pick ANY store as Sold From, not only their own.", "Ventas puede elegir CUALQUIER tienda como Vendido Desde, no solo la suya.")}>
+                <input type="checkbox" checked={rows[i].anyOrigin} onChange={(e) => update(i, { anyOrigin: e.target.checked })} aria-label={t("Any origin", "Origen libre")} />
+              </div>
+            ) },
+            { key: "referencia", en: "Document reference", es: "Referencia de documento", ancho: 260, celda: (i) => (
+              <select value={rows[i].docRef} onChange={(e) => update(i, { docRef: e.target.value as OrderTypeRule["docRef"] })} style={{ width: "auto" }}>
+                <option value="invoice">{t("Invoice # required", "Factura # requerida")}</option>
+                <option value="any">{t("Any one of PO# / SO# / Invoice#", "Cualquiera de PO# / SO# / Factura #")}</option>
+                <option value="po">{t("PO # required", "PO # requerido")}</option>
+                <option value="none">{t("No document required (fields still shown)", "Sin documento requerido (los campos se siguen viendo)")}</option>
+                <option value="estimate">{t("Estimate # (single field)", "Estimación # (campo único)")}</option>
+                <option value="hidden">{t("No paperwork — hide Invoice/PO/SO", "Sin papeles — esconder Factura/PO/SO")}</option>
+              </select>
+            ) },
+            { key: "enUso", en: "In use", es: "En uso", ancho: 100, numerico: true, celda: (i) => <div style={{ textAlign: "center" }}>{usage.get(rows[i].name.trim()) ?? 0}</div> },
+          ]}
+          acciones={(i) => <button className="btn btn-ghost btn-sm" onClick={() => remove(i)} title={t("Remove", "Quitar")}>✕</button>}
+          anchoDeAcciones={64} />
+      )}
       <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center" }}>
         <button className="btn btn-ghost" onClick={add}>+ {t("Add type", "Agregar tipo")}</button>
         <button className="btn btn-primary" onClick={commit} disabled={!dirty}>{t("Save changes", "Guardar cambios")}</button>

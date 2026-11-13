@@ -313,6 +313,7 @@ describe("los dos precios llegan a las tres pantallas", () => {
   it("la tabla de Ajustes pinta las dos columnas, cada una con su suelo", () => {
     expect(ajustes).toContain("f.lista.minimo");
     expect(ajustes).toContain("f.descuento.minimo");
-    expect(ajustes).toContain('{t("Discount", "Descuento")}');
+    // La tabla es TablaEstandar: el rótulo va como par en/es de la columna.
+    expect(ajustes).toContain('en: "Discount", es: "Descuento"');
   });
 });

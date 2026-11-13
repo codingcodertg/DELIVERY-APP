@@ -52318,3 +52318,11 @@ Se mantiene el paginado en servidor de 250 con contador exacto: el ▾ de una co
 En teléfono la caja no tiene alto fijo, así que se pintan las 250 (como antes).
 Visto en pantalla (demo con 1,205 marcadas): 1280 con orden, filtro y 77 seleccionadas; 390.
 Sello `erp` 0.28.0; repo 1.892.0.
+
+## D-1040 · Tablas estándar: Datos, Mercado, Ajustes, KPI de Entregas y plan contra real; Auditoría abre la orden en tarjeta
+
+Pasan al estándar: Mercado (lista y vistas por ciudad/tipo), Ajustes (la fórmula de la tarifa), KPI de Entregas (sus cuatro tablas, cifras iguales) y la tabla de paradas del plan contra real. Datos (cuentas, motivos de anulación, tipos de orden) usa `TablaReducida` (⚙ y anchos, sin ▾): son filas que se editan. La matriz plan/real/± de cada tarjeta se queda (comparación de tres columnas, como `ComparaConLaHoja`).
+Auditoría: la fila ya no lleva a otra página; abre la orden en la misma tarjeta que Órdenes y el Gestor (`OrderModal`), regla «abrir en tarjeta».
+Queda una sola pendiente en toda la app: `RutaDelPlan`, cuyas columnas son las plantillas del Gestor; falta decidir si las plantillas y el ⚙ del estándar son uno solo. La exportación CSV de Mercado sigue el orden por nombre, no el elegido con ▾.
+Visto en pantalla (demo): Datos 1280 y 390, Ajustes, KPI de Entregas 1280 y 390, Auditoría con la tarjeta abierta. Sin datos en el demo: Mercado (el servicio de mapas no responde desde el sandbox) y el plan contra real.
+Sello `deliveries` 1.618.0; `warehouse_ops` 0.54.0; repo 1.893.0.

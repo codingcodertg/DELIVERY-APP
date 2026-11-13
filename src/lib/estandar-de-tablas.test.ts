@@ -44,11 +44,9 @@ const EXENTAS: readonly string[] = [
 ];
 /** Deuda del 12 nov 2026. Solo puede ENCOGER: al convertir una, se quita de aquí. */
 const PENDIENTES: readonly string[] = [
-  "src/app/(app)/data/page.tsx",
-  "src/app/(app)/market/page.tsx",
-  "src/app/(app)/settings/page.tsx",
-  "src/app/operaciones/KpiDeEntregas.tsx",
-  "src/components/PlanContraReal.tsx",
+  // RutaDelPlan: sus columnas son las del Gestor (plantillas, ⚙ de la página, `columnasDeLaTabla("plan")`) y tres pruebas
+  // fijan su marcado; además trae filas «Base» (salida y regreso) y un ajuste por fila que TablaEstandar no tiene. Se
+  // convierte cuando el dueño decida si las plantillas del Gestor y el ⚙ del estándar son uno solo.
   "src/components/RutaDelPlan.tsx",
 ];
 
@@ -62,7 +60,8 @@ function tsx(dir: string): string[] {
 const conTabla = tsx(join(raiz, "src"))
   .map((p) => ({ ruta: p.slice(raiz.length + 1).replace(/\\/g, "/"), texto: readFileSync(p, "utf8") }))
   .filter((f) => f.texto.includes("<table"));
-const usaElEstandar = (t: string) => t.includes("TablaEstandar") || t.includes("useVistaDeColumnas");
+// `TablaReducida` es la forma reducida del mismo estándar (docs/ESTANDAR-DE-TABLAS.md): para tablas que se editan en su fila.
+const usaElEstandar = (t: string) => t.includes("TablaEstandar") || t.includes("TablaReducida") || t.includes("useVistaDeColumnas");
 
 describe("estándar de tablas: toda tabla usa las columnas de Órdenes", () => {
   it("ninguna tabla nueva se sale del estándar", () => {
@@ -81,6 +80,7 @@ describe("estándar de tablas: toda tabla usa las columnas de Órdenes", () => {
   it("la deuda no crece", () => {
     // 23 al 12 nov; 8 de Time Tracker convertidas (tanda 2, 13 nov 2026: Asignaciones, Semana del empleado, Geocercas,
     // Informes, Mis secciones, Nómina, Horario, Viajes) → 15.
-    expect(PENDIENTES.length).toBeLessThanOrEqual(15);
+    // Tanda 13 nov 2026 (Datos, Mercado, Ajustes, KPI de Entregas y el plan contra real): 15 → 2 (RutaDelPlan, review-queue).
+    expect(PENDIENTES.length).toBeLessThanOrEqual(1);
   });
 });
