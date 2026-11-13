@@ -349,7 +349,9 @@ describe("6 · la pantalla usa cada pieza (se alimenta de quien llama)", () => {
   it("la medida recibe el fin; Optimizar, «Mejor lugar» y el horario le pasan el fin; «Asignar a…», lo del día; el mapa, la «F»", () => {
     expect(pagina).toContain("tiendaBaseDe, coordsDeTienda, // Dónde termina cada ruta ese día (166): la vuelta va ahí. Cambiar la salida o el fin vuelve a medir esa ruta. tiendaFinDe,");
     expect(pagina).toContain("const finParaEstimar = (laneKey: string): { lat: number; lng: number } | null | undefined => (tiendaFinDe(laneKey) ? finDeLaRuta(laneKey) ?? undefined : null);");
-    expect(trozo("const optimizaLaRuta = async (laneKey: string) => {", "// Friendly display name for a lane key.")).toContain("lista, ordenes: stops, base, fin: finParaEstimar(laneKey),");
+    expect(trozo("const optimizaLaRuta = async (laneKey: string) => {", "// Friendly display name for a lane key.")).toContain("const finDeSiempre = finParaEstimar(laneKey);");
+    // **Puesto al día por D-1029**: con la ruta de hoy a medias sale de donde quedó el camión, y el fin sigue siendo el del día (o la base).
+    expect(trozo("const optimizaLaRuta = async (laneKey: string) => {", "// Friendly display name for a lane key.")).toContain("fin: arranque && base && finDeSiempre === undefined ? base : finDeSiempre,");
     expect(pagina).toContain("mejorLugar({ viajes: [entregas.map(aParada)], nueva: aParada(d), base, fin: finParaEstimar(laneKey),");
     expect(pagina).toContain("base: baseDeLaRuta(l.key), fin: finParaEstimar(l.key),");
     expect(trozo("const diaParaElMotor = useMemo(() => {", "const choferesDelReparto")).toContain("basesDelDia: basesDelDia.bases,");

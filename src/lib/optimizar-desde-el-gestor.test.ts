@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { NextResponse } from "next/server";
 import type { ParadaDeLaLista } from "./lista-unica";
 import { optimizaLaLista, type ResultadoDeOptimizar } from "./optimiza-la-ruta";
+import { optimizaSinEmpeorar } from "./optimiza-sin-empeorar";
 import {
   avisoDeOptimizar, basesPorNombre, entradaDeOptimizar, formaDeLosPuntos, MAX_PUNTOS_DE_UNA_RUTA, puntosDeLaEntrada, puntosDeLaPeticion, tiemposDeLaRuta,
   tiendaBaseDelChofer, type TiemposPedidos,
@@ -181,8 +182,12 @@ describe("2 · lo que se le pasa al optimizador: puntos, pallets, VENTANAS y min
   it("la pantalla arma así la entrada: su lista, sus órdenes, su base, su capacidad, las ventanas duras de Ajustes y las 08:00", () => {
     const optimizar = trozo("const optimizaLaRuta = async (laneKey: string) => {", "// Friendly display name for a lane key.");
     // **Puesto al día por la base del día (166, 2026-10-11)**: y dónde termina ese día (`fin`).
-    expect(optimizar).toContain("const entrada = entradaDeOptimizar({ lista, ordenes: stops, base, fin: finParaEstimar(laneKey), capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda, esEstrecha: (ventana) => esVentanaDura(ventana, settings), salidaMin: DAY_START_MIN, });");
-    expect(optimizar).toContain("const r = optimizaLaLista({ ...entrada, recogidaDesde, tiempos: tiempos?.tiempos ?? null });");
+    // **Puesto al día por D-1029**: sale de la base a las 08:00 SALVO con la ruta de hoy ya a medias (de donde quedó el camión, a
+    // la hora que es); y el orden lo decide `optimizaSinEmpeorar`, que nunca devuelve algo peor que lo que hay.
+    expect(optimizar).toContain("const arranque = arranqueDeLoPendiente({ hechos: [...hechasDe(laneKey), ...stops], fecha: date, hoy: ahoraDelNegocio(), salidaMin: DAY_START_MIN, coordsDeTienda, fechaDe: (x) => ahoraDelNegocio(x).fecha });");
+    expect(optimizar).toContain("const entrada = entradaDeOptimizar({ lista, ordenes: stops, base: arranque && base ? arranque.punto : base, fin: arranque && base && finDeSiempre === undefined ? base : finDeSiempre, capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda, esEstrecha: (ventana) => esVentanaDura(ventana, settings), salidaMin: arranque && base ? arranque.salidaMin : DAY_START_MIN, });");
+    expect(optimizar).toContain("const r = optimizaSinEmpeorar({ ...entrada, recogidaDesde, tiempos: tiempos?.tiempos ?? null });");
+    expect(optimizar).not.toContain("optimizaLaLista(");
     // D-994: el paso b de un relevo espera a su paso a (+1 h).
     expect(optimizar).toContain("recogidaDesdeDelRelevo(dayOrders, (id) => etaDeEntregaEn(routeEtas, id))");
   });
@@ -424,44 +429,47 @@ describe("4 · `/api/route-matrix`: quién puede, qué valida y cuánto llama", 
 
 // =====================================================================================================================
 describe("5 · el aviso al terminar dice lo ganado, y lo que queda mal", () => {
-  const medida = (millas: number, minutos: number, tarde: ResultadoDeOptimizar["antes"]["tarde"] = [], exceso = 0) => ({ millas, minutos, manejoMin: 0, exceso, tarde, cargaPalletMi: 0 });
+  const medida = (millas: number, minutos: number, tarde: ResultadoDeOptimizar["antes"]["tarde"] = [], exceso = 0) => ({ millas, centiMillas: Math.round(millas * 100), minutos, manejoMin: 0, esperaMin: 0, exceso, tarde, cargaPalletMi: 0 });
   const aviso = (r: Partial<ResultadoDeOptimizar> & Pick<ResultadoDeOptimizar, "antes" | "despues">, extra: Partial<Parameters<typeof avisoDeOptimizar>[0]> = {}) => avisoDeOptimizar({
     ruta: "Chofer Uno", r: { cambio: true, sinPunto: 0, exacta: true, medida: "real", ...r }, tiempos: { proveedor: "google" }, hayBase: true,
     nombreDe: (id) => `F-${id}`, pallets: (n) => String(n), ...extra,
   });
 
-  it("«−12.4 mi · −18 min»: lo ganado, con su signo, y si es el mejor orden que existe o el mejor que se encontró", () => {
+  // **Puesto al día por D-1029** (el dueño, 2026-11-12: «agrega más millas y aumenta el tiempo estimado»): el aviso enseña el
+  // ANTES → DESPUÉS de lo que pinta la tarjeta —millas, y la jornada de manejo + parado, sin esperas—, y ya no promete «el mejor
+  // orden posible»: Optimizar no compra puntualidad con millas.
+  it("«169.1 → 156.7 mi (−12.4) · 7 h 26 min → 7 h 8 min (−18 min)»: antes → después, como lo enseña la tarjeta", () => {
     const a = aviso({ antes: medida(169.1, 446), despues: medida(156.7, 428) });
-    expect(a.es).toBe("🧭 Chofer Uno optimizada: −12.4 mi · −18 min (el mejor orden posible). Ctrl+Z lo deshace.");
-    expect(a.en).toBe("🧭 Chofer Uno optimized: −12.4 mi · −18 min (the best possible order). Ctrl+Z undoes it.");
-    expect(aviso({ antes: medida(169.1, 446), despues: medida(156.7, 428), exacta: false }).es).toContain("−12.4 mi · −18 min (el mejor orden que se encontró).");
+    expect(a.es).toBe("🧭 Chofer Uno optimizada: 169.1 → 156.7 mi (−12.4) · 7 h 26 min → 7 h 8 min (−18 min). Ctrl+Z lo deshace.");
+    expect(a.en).toBe("🧭 Chofer Uno optimized: 169.1 → 156.7 mi (−12.4) · 7 h 26 min → 7 h 8 min (−18 min). Ctrl+Z undoes it.");
   });
-  it("si para llegar a tiempo la jornada se alarga, lo dice con su «+», y dice lo que se ganó a cambio", () => {
-    const a = aviso({ antes: medida(161.4, 424, [{ orden: "7", minutos: 91, estrecha: true }]), despues: medida(156.7, 428, [{ orden: "3", minutos: 41, estrecha: true }]) });
-    expect(a.es).toBe("🧭 Chofer Uno optimizada: −4.7 mi · +4 min (el mejor orden posible). ⚠ Aún llega tarde a 1 entrega(s): F-3 41 min — ningún orden lo evita (antes: 1, 91 min). Ctrl+Z lo deshace.");
-    expect(a.en).toContain("−4.7 mi · +4 min (the best possible order). ⚠ Still late for 1 delivery(ies): F-3 41 min — no order avoids it (before: 1, 91 min).");
+  it("la jornada del aviso es la de la TARJETA: las esperas (ventana que no abre, relevo) no cuentan", () => {
+    // 446 min con 30 de espera → 416 de tarjeta; 428 con 0 → 428: la tarjeta SUBE 12 aunque la jornada con esperas baje 18.
+    const a = aviso({ antes: { ...medida(169.1, 446), esperaMin: 30 }, despues: medida(156.7, 428) });
+    expect(a.es).toContain("169.1 → 156.7 mi (−12.4) · 6 h 56 min → 7 h 8 min (+12 min).");
   });
-  it("si queda alguna entrega tarde, dice CUÁL y por cuánto; y si no es exacta, no promete que no se pueda evitar", () => {
+  it("si queda alguna entrega tarde, dice CUÁL y por cuánto, y por qué no se arregló: costaría millas o tiempo", () => {
     const tarde = [{ orden: "3", minutos: 41, estrecha: true }, { orden: "9", minutos: 5, estrecha: false }];
-    expect(aviso({ antes: medida(100, 300, tarde), despues: medida(90, 280, tarde) }).es).toContain("⚠ Aún llega tarde a 2 entrega(s): F-3 41 min, F-9 5 min — ningún orden lo evita (antes: 2, 46 min).");
-    expect(aviso({ antes: medida(100, 300, tarde), despues: medida(90, 280, tarde), exacta: false }).es).toContain("— no se encontró un orden que lo evite (antes: 2, 46 min).");
+    expect(aviso({ antes: medida(100, 300, tarde), despues: medida(90, 280, tarde) }).es).toContain("⚠ Aún llega tarde a 2 entrega(s): F-3 41 min, F-9 5 min — evitarlo costaría más millas o más tiempo (antes: 2, 46 min).");
+    expect(aviso({ antes: medida(100, 300, tarde), despues: medida(90, 280, tarde) }).en).toContain("⚠ Still late for 2 delivery(ies): F-3 41 min, F-9 5 min — avoiding it would cost more miles or more time (before: 2, 46 min).");
+    expect(aviso({ antes: medida(100, 300, tarde), despues: medida(90, 280, tarde) }).es).not.toContain("ningún orden lo evita");
   });
   it("si deja de llegar tarde, lo dice como lo ganado que es", () => {
     const a = aviso({ antes: medida(166.8, 498, [{ orden: "1", minutos: 300, estrecha: true }, { orden: "2", minutos: 42, estrecha: true }]), despues: medida(122.2, 428) });
-    expect(a.es).toBe("🧭 Chofer Uno optimizada: −44.6 mi · −70 min (el mejor orden posible). Ya ninguna entrega llega tarde (antes 2, 342 min). Ctrl+Z lo deshace.");
+    expect(a.es).toBe("🧭 Chofer Uno optimizada: 166.8 → 122.2 mi (−44.6) · 8 h 18 min → 7 h 8 min (−70 min). Ya ninguna entrega llega tarde (antes 2, 342 min). Ctrl+Z lo deshace.");
   });
   it("la capacidad: si sigue pasándose, cuánto; si deja de pasarse, también", () => {
-    expect(aviso({ antes: medida(100, 300, [], 3), despues: medida(120, 340, [], 1.5) }).es).toContain("+20.0 mi · +40 min (el mejor orden posible). ⚠ sigue pasándose de la capacidad en 1.5 (antes 3).");
-    expect(aviso({ antes: medida(100, 300, [], 3), despues: medida(120, 340) }).es).toContain("El camión ya no se pasa de su capacidad (se pasaba en 3).");
+    expect(aviso({ antes: medida(100, 300, [], 3), despues: medida(90, 280, [], 1.5) }).es).toContain("100.0 → 90.0 mi (−10.0) · 5 h → 4 h 40 min (−20 min). ⚠ sigue pasándose de la capacidad en 1.5 (antes 3).");
+    expect(aviso({ antes: medida(100, 300, [], 3), despues: medida(90, 280) }).es).toContain("El camión ya no se pasa de su capacidad (se pasaba en 3).");
   });
-  it("si no hay nada mejor: «ya está en el mejor orden», con lo que mide, y que no se cambió nada", () => {
+  it("si no hay nada que mejore sin empeorar: «ya está en buen orden», con sus números, y que no se cambió nada", () => {
     const igual = medida(156.7, 428);
-    expect(aviso({ antes: igual, despues: igual, cambio: false }).es).toBe("🧭 Chofer Uno: ya está en el mejor orden posible (156.7 mi · 428 min). No se cambió nada.");
-    expect(aviso({ antes: igual, despues: igual, cambio: false, exacta: false }).es).toContain("ya está en el mejor orden que se encontró (156.7 mi · 428 min). No se cambió nada.");
-    expect(aviso({ antes: igual, despues: igual, cambio: false }).en).toBe("🧭 Chofer Uno: already in the best possible order (156.7 mi · 428 min). Nothing changed.");
+    expect(aviso({ antes: igual, despues: igual, cambio: false }).es).toBe("🧭 Chofer Uno: ya está en buen orden (156.7 mi · 7 h 8 min). No se cambió nada: ningún orden baja las millas o el tiempo sin empeorar otra cosa.");
+    expect(aviso({ antes: igual, despues: igual, cambio: false, exacta: false }).es).toBe("🧭 Chofer Uno: ya está en buen orden (156.7 mi · 7 h 8 min). No se cambió nada: no se encontró un orden que baje las millas o el tiempo sin empeorar otra cosa.");
+    expect(aviso({ antes: igual, despues: igual, cambio: false }).en).toBe("🧭 Chofer Uno: already in good order (156.7 mi · 7 h 8 min). Nothing changed: no order lowers the miles or the time without making something else worse.");
     // Y si aun así llega tarde a algo, lo dice igual (sin el «antes»: no cambió nada).
     const tarde = medida(156.7, 428, [{ orden: "3", minutos: 41, estrecha: true }]);
-    expect(aviso({ antes: tarde, despues: tarde, cambio: false }).es).toBe("🧭 Chofer Uno: ya está en el mejor orden posible (156.7 mi · 428 min). No se cambió nada. ⚠ Aún llega tarde a 1 entrega(s): F-3 41 min — ningún orden lo evita.");
+    expect(aviso({ antes: tarde, despues: tarde, cambio: false }).es).toBe("🧭 Chofer Uno: ya está en buen orden (156.7 mi · 7 h 8 min). No se cambió nada: ningún orden baja las millas o el tiempo sin empeorar otra cosa. ⚠ Aún llega tarde a 1 entrega(s): F-3 41 min — evitarlo costaría más millas o más tiempo.");
   });
   it("si NO hubo tiempos por calles —no contestó, contestó el estimado, o faltó algún tramo—, dice que es línea recta", () => {
     const r = { antes: medida(100, 300), despues: medida(90, 280) };
@@ -487,7 +495,10 @@ describe("5 · el aviso al terminar dice lo ganado, y lo que queda mal", () => {
     const tiempos: Record<string, Record<string, { minutos: number; millas: number }>> = {};
     for (const a of xs) for (const b of xs) if (a !== b) (tiempos[claveDePunto(en(a))] ??= {})[claveDePunto(en(b))] = { minutos: Math.abs(a - b), millas: Math.abs(a - b) };
     const r = optimizaLaLista({ paradas: [P("1"), P("2"), P("3"), D("1"), D("2"), D("3")], puntos: [en(0), en(0), en(0), en(30), en(10), en(20)], cambios: [1, 1, 1, -1, -1, -1], base: en(0), capacidad: 10, tiempos });
-    expect(aviso(r).es).toBe("🧭 Chofer Uno optimizada: −20.0 mi · −20 min (el mejor orden posible). Ctrl+Z lo deshace.");
+    expect(aviso(r).es).toMatch(/^🧭 Chofer Uno optimizada: 80\.0 → 60\.0 mi \(−20\.0\) · .+ → .+ \(−20 min\)\. Ctrl\+Z lo deshace\.$/);
+    // Y lo mismo por el camino de la pantalla (D-1029): `optimizaSinEmpeorar` da ese orden, y nunca uno peor.
+    const s = optimizaSinEmpeorar({ paradas: [P("1"), P("2"), P("3"), D("1"), D("2"), D("3")], puntos: [en(0), en(0), en(0), en(30), en(10), en(20)], cambios: [1, 1, 1, -1, -1, -1], base: en(0), capacidad: 10, tiempos });
+    expect(aviso(s).es).toBe(aviso(r).es);
   });
   it("la pantalla dice ESE aviso, con la factura como nombre de cada orden; y solo guarda si cambió", () => {
     const optimizar = trozo("const optimizaLaRuta = async (laneKey: string) => {", "// Friendly display name for a lane key.");

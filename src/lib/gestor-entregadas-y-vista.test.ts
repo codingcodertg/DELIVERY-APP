@@ -172,7 +172,10 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       const optimiza = trozo("const optimizaLaRuta = async (laneKey: string) => {", "// Friendly display name for a lane key.");
       expect(optimiza).toContain("const stops = byDriver.get(laneKey) ?? [];");
       expect(optimiza).toContain("const lista = lecturaDe(laneKey, stops).paradas;");
-      expect(optimiza).not.toContain("hechasDe(");
+      // **Puesto al día por D-1029**: lo hecho se mira UNA vez y solo para saber dónde quedó el camión (de dónde sale lo
+      // pendiente); lo que se ordena y se guarda sigue siendo `stops`.
+      expect(optimiza.split("hechasDe(").length - 1).toBe(1);
+      expect(optimiza).toContain("arranqueDeLoPendiente({ hechos: [...hechasDe(laneKey), ...stops],");
       const guarda = trozo("const guardaLaLista = async (", "/** La fila de la Base");
       expect(guarda).toContain("const desde = inicioDeLaRuta(laneKey, stops);");      // numera TRAS lo hecho, sin reescribirlo
       expect(pagina).toContain("const dayOrders = useMemo(() => ordenesDelDia(deliveries, date, modo, ROUTE_STAGES), [deliveries, date, modo]);");

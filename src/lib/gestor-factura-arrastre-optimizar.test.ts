@@ -342,14 +342,17 @@ describe("3 · «🧭 Optimizar» una ruta", () => {
       const candado = optimizar.indexOf("if (bloqueada(laneKey)) {");
       expect(candado).toBeGreaterThan(-1);
       expect(optimizar.indexOf("está bloqueada — Optimizar no la toca")).toBeGreaterThan(candado);
-      expect(optimizar.indexOf("const r = optimizaLaLista({")).toBeGreaterThan(optimizar.indexOf("return;", candado));
+      // **Puesto al día por D-1029**: el orden lo decide `optimizaSinEmpeorar` (nunca peor que lo que hay).
+      expect(optimizar.indexOf("const r = optimizaSinEmpeorar({")).toBeGreaterThan(optimizar.indexOf("return;", candado));
     });
     it("optimiza SOLO la lista de esa ruta, con sus puntos, sus pallets, su base y su capacidad", () => {
       // **Puesto al día por D-461**: lo que se le pasa lo arma `entradaDeOptimizar` (que añade ventanas y minutos de servicio).
       expect(optimizar).toContain("const lista = lecturaDe(laneKey, stops).paradas;");
       expect(optimizar).toContain("const base = baseDeLaRuta(laneKey);");
       // **Puesto al día por la base del día (166, 2026-10-11)**: también le pasa dónde TERMINA la ruta ese día (`finParaEstimar`).
-      expect(optimizar).toContain("lista, ordenes: stops, base, fin: finParaEstimar(laneKey), capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda,");
+      // **Puesto al día por D-1029**: con la ruta de hoy a medias, lo pendiente sale de donde quedó el camión (`arranqueDeLoPendiente`).
+      expect(optimizar).toContain("const finDeSiempre = finParaEstimar(laneKey);");
+      expect(optimizar).toContain("lista, ordenes: stops, base: arranque && base ? arranque.punto : base, fin: arranque && base && finDeSiempre === undefined ? base : finDeSiempre, capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda,");
     });
     it("el ORDEN se decide en el navegador, sin pedírselo a nadie; lo único que se pide son los tiempos por calles, una vez", () => {
       // **Reemplazado en parte por D-461**: D-456 no llamaba a nadie («ni una petición») y medía en línea recta. Ahora pide

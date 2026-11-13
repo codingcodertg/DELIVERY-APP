@@ -174,11 +174,19 @@ const conSigno = (n: number, decimales: number): string => {
   return r === 0 ? "0" : `${r < 0 ? MENOS : "+"}${Math.abs(r).toFixed(decimales)}`;
 };
 const suma = (tarde: ResultadoDeOptimizar["antes"]["tarde"]) => tarde.reduce((s, t) => s + t.minutos, 0);
+/** La jornada como la cuenta la TARJETA de la ruta (D-1029): manejo + parado, sin las esperas. */
+const jornada = (m: ResultadoDeOptimizar["antes"]): number => m.minutos - (m.esperaMin ?? 0);
+/** «5 h 52 min», como la tarjeta (`fmtMinutes`). */
+const horas = (min: number): string => {
+  const m = Math.max(0, Math.round(min)), h = Math.floor(m / 60), r = m % 60;
+  return m < 60 ? `${m} min` : r ? `${h} h ${r} min` : `${h} h`;
+};
 
 /**
- * Lo que dice el Gestor tras «🧭 Optimizar», en los dos idiomas. Primero LO GANADO —«−12.4 mi · −18 min»—, y si es el mejor
- * orden que existe o el mejor que se encontró; después lo que importa más que las millas: la capacidad, y si queda alguna
- * entrega fuera de su ventana (cuál y por cuánto). Y con qué se midió: si no hubo tiempos por calles, lo dice.
+ * Lo que dice el Gestor tras «🧭 Optimizar», en los dos idiomas. Primero el ANTES → DESPUÉS de lo que enseña la tarjeta
+ * (D-1029: «169.1 → 156.7 mi (−12.4) · 7 h 26 min → 7 h 8 min (−18 min)»; la jornada es la de la tarjeta, manejo + parado);
+ * después la capacidad, y si queda alguna entrega fuera de su ventana (cuál y por cuánto). Y con qué se midió: si no hubo
+ * tiempos por calles, lo dice. Si no hay un orden que mejore algo sin empeorar nada: «ya está en buen orden», con sus números.
  */
 export function avisoDeOptimizar(args: {
   ruta: string;
@@ -196,7 +204,8 @@ export function avisoDeOptimizar(args: {
   const porCalles = !!args.tiempos && args.tiempos.proveedor !== "estimado" && r.medida === "real";
   const cuales = r.despues.tarde.map((t) => `${args.nombreDe(t.orden)} ${t.minutos} min`).join(", ");
   const nA = r.antes.tarde.length, nD = r.despues.tarde.length;
-  const noHayOtro = r.exacta ? { en: "no order avoids it", es: "ningún orden lo evita" } : { en: "no order found that avoids it", es: "no se encontró un orden que lo evite" };
+  // D-1029: Optimizar ya no compra puntualidad con millas ni con tiempo, así que «ningún orden lo evita» dejó de ser verdad.
+  const noHayOtro = { en: "avoiding it would cost more miles or more time", es: "evitarlo costaría más millas o más tiempo" };
   const tarde = nD > 0
     ? { en: ` ⚠ Still late for ${nD} delivery(ies): ${cuales} — ${noHayOtro.en}${r.cambio ? ` (before: ${nA}, ${suma(r.antes.tarde)} min)` : ""}.`,
         es: ` ⚠ Aún llega tarde a ${nD} entrega(s): ${cuales} — ${noHayOtro.es}${r.cambio ? ` (antes: ${nA}, ${suma(r.antes.tarde)} min)` : ""}.` }
@@ -213,19 +222,20 @@ export function avisoDeOptimizar(args: {
     es: (r.sinPunto ? ` ${r.sinPunto} parada(s) sin punto en el mapa no cuentan.` : "") + (args.hayBase ? "" : " Sin base: medida como ruta abierta."),
   };
   if (!r.cambio) {
-    const ya = r.exacta ? { en: "already in the best possible order", es: "ya está en el mejor orden posible" } : { en: "already in the best order found", es: "ya está en el mejor orden que se encontró" };
+    const porque = r.exacta
+      ? { en: "no order lowers the miles or the time without making something else worse", es: "ningún orden baja las millas o el tiempo sin empeorar otra cosa" }
+      : { en: "no order was found that lowers the miles or the time without making something else worse", es: "no se encontró un orden que baje las millas o el tiempo sin empeorar otra cosa" };
     return {
-      en: `🧭 ${ruta}: ${ya.en} (${r.antes.millas.toFixed(1)} mi · ${r.antes.minutos} min). Nothing changed.${tarde.en}${exceso.en}${medida.en}${notas.en}`,
-      es: `🧭 ${ruta}: ${ya.es} (${r.antes.millas.toFixed(1)} mi · ${r.antes.minutos} min). No se cambió nada.${tarde.es}${exceso.es}${medida.es}${notas.es}`,
+      en: `🧭 ${ruta}: already in good order (${r.antes.millas.toFixed(1)} mi · ${horas(jornada(r.antes))}). Nothing changed: ${porque.en}.${tarde.en}${exceso.en}${medida.en}${notas.en}`,
+      es: `🧭 ${ruta}: ya está en buen orden (${r.antes.millas.toFixed(1)} mi · ${horas(jornada(r.antes))}). No se cambió nada: ${porque.es}.${tarde.es}${exceso.es}${medida.es}${notas.es}`,
     };
   }
-  const ganado = `${conSigno(r.despues.millas - r.antes.millas, 1)} mi · ${conSigno(r.despues.minutos - r.antes.minutos, 0)} min`;
-  const cual = r.exacta ? { en: "the best possible order", es: "el mejor orden posible" } : { en: "the best order found", es: "el mejor orden que se encontró" };
+  const ganado = `${r.antes.millas.toFixed(1)} → ${r.despues.millas.toFixed(1)} mi (${conSigno(r.despues.millas - r.antes.millas, 1)}) · ${horas(jornada(r.antes))} → ${horas(jornada(r.despues))} (${conSigno(jornada(r.despues) - jornada(r.antes), 0)} min)`;
   const sin154 = args.sinRecogidas
     ? { en: " Only the delivery order was saved: pickups need the database update (154).", es: " Solo se guardó el orden de las entregas: las recogidas necesitan la actualización de la base (154)." }
     : { en: "", es: "" };
   return {
-    en: `🧭 ${ruta} optimized: ${ganado} (${cual.en}).${exceso.en}${tarde.en}${medida.en} Ctrl+Z undoes it.${notas.en}${sin154.en}`,
-    es: `🧭 ${ruta} optimizada: ${ganado} (${cual.es}).${exceso.es}${tarde.es}${medida.es} Ctrl+Z lo deshace.${notas.es}${sin154.es}`,
+    en: `🧭 ${ruta} optimized: ${ganado}.${exceso.en}${tarde.en}${medida.en} Ctrl+Z undoes it.${notas.en}${sin154.en}`,
+    es: `🧭 ${ruta} optimizada: ${ganado}.${exceso.es}${tarde.es}${medida.es} Ctrl+Z lo deshace.${notas.es}${sin154.es}`,
   };
 }

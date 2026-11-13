@@ -1,5 +1,6 @@
 import { FACTOR_DE_RODEO, MILLAS_POR_HORA_ESTIMADAS, millasEnLineaRecta } from "@/lib/route-times/proveedores";
 import { RELOAD_MIN } from "@/lib/trip-timing";
+import { TOLERANCIA_DE_PASO } from "@/lib/route-engine/de-paso";
 
 /**
  * «📍 Mejor lugar» del Gestor de Rutas (D-411): meter UNA orden en la ruta de un chofer, en el hueco más barato, sin
@@ -22,9 +23,13 @@ import { RELOAD_MIN } from "@/lib/trip-timing";
  * los huecos igual que lo haría la carretera en casi todos los casos, y cuesta cero. Llamar a Google por cada hueco serían
  * decenas de peticiones de pago por clic. Las millas y la hora que enseña el aviso son esta estimación, y se dice.
  *
- * **Ventanas, si se puede.** Primero el hueco que añade MENOS minutos tarde a la ruta (sumando todas sus paradas: meter una
- * parada puede retrasar las de detrás); a igualdad, el que añade menos millas; a igualdad, el primero. Llegar antes de que
- * abra la ventana espera a que abra, como en OptimoRoute (`twFrom`).
+ * **Ventanas, si no cuestan un rodeo (D-1029).** Hasta D-1029 ganaba SIEMPRE el hueco que añadía menos minutos tarde, por
+ * muchas millas que costara; el dueño, 2026-11-12: «agrega más millas y aumenta el tiempo estimado». Medido en las rutas
+ * hechas a mano (`patrones-de-despacho.json`): el equipo pone pronto las ventanas estrechas, pero no da un rodeo por ellas
+ * (el 80 % de las «0830-1000» se entrega después de las 10:00). Ahora: de los huecos que añaden CASI las mismas millas que
+ * el más corto —hasta `MILLAS_DE_MAS_POR_LA_VENTANA` más—, el que añade menos minutos tarde a la ruta (sumando todas sus
+ * paradas: meter una parada puede retrasar las de detrás); a igualdad, el de menos millas; a igualdad, el primero. Un hueco
+ * que cuesta más millas que eso no se elige por puntual que sea. Llegar antes de que abra la ventana espera a que abra.
  *
  * **Sin viajes (D-443).** El Gestor ya no parte la ruta en viajes: le pasa la lista entera como UN viaje y, en `admite`,
  * si en cada puesto cabe la orden nueva recogida justo delante de su entrega (la carga a bordo en ese punto + sus pallets,
@@ -148,6 +153,13 @@ export function costeDeLaRuta(
   return { millas, tardeMin, llegadas };
 }
 
+/**
+ * Lo más que «📍 Mejor lugar» añade, en millas, sobre el hueco más corto para no llegar tarde a una ventana (D-1029). Es
+ * el mismo «casi lo mismo» de D-464 (`TOLERANCIA_DE_PASO.millas`: 3 millas), la única banda de millas que el dueño ha dado
+ * por buena. Con 0, la ventana solo decide a empate de millas.
+ */
+export const MILLAS_DE_MAS_POR_LA_VENTANA = TOLERANCIA_DE_PASO.millas;
+
 const palletsDe = (viaje: readonly ParadaDeRuta[]) => viaje.reduce((n, p) => n + (p.pallets || 0), 0);
 
 /** El hueco más barato para `nueva` en la ruta. No escribe nada. */
@@ -178,9 +190,11 @@ export function mejorLugar(e: EntradaDeMejorLugar): ResultadoDeMejorLugar {
   // en ninguno (así lo que se escribe es lo que la pantalla vuelve a partir).
   if (!huecos.length && e.admite) mira(false);
   if (!huecos.length) prueba(e.viajes.length, 0, [...e.viajes.map((x) => [...x]), [e.nueva]], true);
-  const ordenados = [...huecos].sort((a, b) =>
-    a.tardeExtraMin - b.tardeExtraMin || a.millasExtra - b.millasExtra || a.viaje - b.viaje || a.puesto - b.puesto);
   const porMillas = [...huecos].sort((a, b) => a.millasExtra - b.millasExtra || a.viaje - b.viaje || a.puesto - b.puesto)[0];
+  // D-1029: la ventana decide solo entre los huecos que cuestan casi lo mismo que el más corto; los demás, detrás, por millas.
+  const cerca = (h: Hueco) => (h.millasExtra <= porMillas.millasExtra + MILLAS_DE_MAS_POR_LA_VENTANA ? 0 : 1);
+  const ordenados = [...huecos].sort((a, b) =>
+    cerca(a) - cerca(b) || (cerca(a) ? 0 : a.tardeExtraMin - b.tardeExtraMin) || a.millasExtra - b.millasExtra || a.viaje - b.viaje || a.puesto - b.puesto);
   return { ok: true, hueco: ordenados[0], huecosMirados: huecos.length, siguiente: ordenados[1] ?? null, masCorto: porMillas === ordenados[0] ? null : porMillas };
 }
 

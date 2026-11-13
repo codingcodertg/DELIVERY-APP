@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { avisoDelHueco, costeDeLaRuta, escrituraDelHueco, mejorLugar, millasEstimadas, type ParadaDeRuta } from "./mejor-lugar";
+import { avisoDelHueco, costeDeLaRuta, escrituraDelHueco, mejorLugar, MILLAS_DE_MAS_POR_LA_VENTANA, millasEstimadas, type ParadaDeRuta } from "./mejor-lugar";
 import { splitIntoTrips } from "./dispatch";
 import { cambiosDeLaLista, cargaAntesDeLaEntrega, listaConEntregasEn, listaDelChofer } from "./lista-unica";
 import { FACTOR_DE_RODEO, millasEnLineaRecta } from "./route-times/proveedores";
@@ -48,23 +48,46 @@ describe("dónde entra", () => {
     expect(r.ok && r.huecosMirados).toBe(2);
   });
 
-  it("las ventanas, si se puede: el hueco más corto retrasaría una ventana estrecha, y elige el que no retrasa a nadie", () => {
+  it("las ventanas, si no cuestan un rodeo (D-1029): entre huecos que miden casi lo mismo, el que no retrasa a nadie", () => {
     const Bv = p("B", 29.7, -95.1, [480, 530]);
     const Cn = p("C", 29.9, -95.35);
-    const X = p("X", 29.705, -95.35);
+    // X, al lado de B: delante o detrás de B son casi las mismas millas, pero delante hace llegar tarde a B.
+    const X = p("X", 29.701, -95.11);
     const sinVentana = mejorLugar({ viajes: [[{ ...Bv, ventana: null }, Cn]], nueva: X, base: BASE, capacidad: 12, inicioMin: 480 });
     const conVentana = mejorLugar({ viajes: [[Bv, Cn]], nueva: X, base: BASE, capacidad: 12, inicioMin: 480 });
     // Por millas, delante de B…
     expect(sinVentana.ok && sinVentana.hueco.puesto).toBe(0);
-    // …pero eso haría llegar tarde a B: con la ventana, va al final, sin retrasos nuevos.
-    expect(conVentana.ok && conVentana.hueco.puesto).toBe(2);
+    // …pero eso haría llegar tarde a B: con la ventana, va detrás, sin retrasos nuevos y sin rodeo.
+    expect(conVentana.ok && conVentana.hueco.puesto).toBe(1);
     expect(conVentana.ok && conVentana.hueco.tardeExtraMin).toBe(0);
     // Y el porqué: el más corto era el de delante de B, y retrasaba.
     expect(conVentana.ok && conVentana.masCorto).toMatchObject({ viaje: 0, puesto: 0 });
     expect(conVentana.ok && conVentana.masCorto!.tardeExtraMin).toBeGreaterThan(0);
+    expect(conVentana.ok && conVentana.hueco.millasExtra - conVentana.masCorto!.millasExtra).toBeLessThanOrEqual(MILLAS_DE_MAS_POR_LA_VENTANA);
     expect(sinVentana.ok && sinVentana.masCorto).toBeNull();
+  });
+
+  it("D-1029 · «agrega más millas»: por no llegar tarde a una ventana no se da un rodeo — gana el hueco corto", () => {
+    // El caso de la prueba de D-411, que elegía el final de la ruta (sin retrasos) aunque costara muchas más millas.
+    const Bv = p("B", 29.7, -95.1, [480, 530]);
+    const Cn = p("C", 29.9, -95.35);
+    const X = p("X", 29.705, -95.35);
+    const r = mejorLugar({ viajes: [[Bv, Cn]], nueva: X, base: BASE, capacidad: 12, inicioMin: 480 });
+    if (!r.ok) throw new Error("sin hueco");
+    const antes = costeDeLaRuta([[Bv, Cn]], BASE, 480).millas;
+    const alFinal = costeDeLaRuta([[Bv, Cn, X]], BASE, 480);
     const delante = costeDeLaRuta([[X, Bv, Cn]], BASE, 480);
+    // El puntual (al final) cuesta más que la banda sobre el corto (delante de B, que llega tarde a B).
+    expect(alFinal.tardeMin).toBe(0);
     expect(delante.tardeMin).toBeGreaterThan(0);
+    expect(alFinal.millas - delante.millas).toBeGreaterThan(MILLAS_DE_MAS_POR_LA_VENTANA);
+    // Gana el corto, y lo dice: llega tarde.
+    expect(r.hueco).toMatchObject({ viaje: 0, puesto: 0 });
+    expect(r.hueco.millasExtra).toBeCloseTo(delante.millas - antes, 6);
+    expect(r.hueco.tardeExtraMin).toBeGreaterThan(0);
+    expect(r.masCorto).toBeNull();
+    // Ningún hueco elegido añade más millas que el más corto + la banda, sea cual sea la ventana.
+    expect(r.hueco.millasExtra).toBeLessThanOrEqual(delante.millas - antes + MILLAS_DE_MAS_POR_LA_VENTANA);
   });
 
   it("una orden sin pin no se coloca: lo dice", () => {
