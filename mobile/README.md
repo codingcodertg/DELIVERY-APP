@@ -179,6 +179,8 @@ Cuando sí toque publicar uno:
 3. Sube `LATEST_APK_VERSION_CODE` en `src/lib/app-update.ts`.
 4. Compila el release y súbelo al bucket público `app` de Supabase, con el
    mismo nombre `RDZ-Deliveries.apk`.
+   Súbelo con `Content-Type: application/vnd.android.package-archive`: desde la
+   migración 303 el bucket solo acepta ese tipo, y hasta 50 MB.
 5. Despliega la web.
 
 Los tres números deben coincidir. Con eso, cada chofer con una versión vieja

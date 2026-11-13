@@ -52053,3 +52053,20 @@ El dueño pidió arreglar lo que salió de la auditoría del 12 nov «y que func
 - **«Recogida» sin chofer — sin cambio, a decisión del dueño.** Son 7 (6 Intertienda, 1 Customer), todas marcadas por almacén o gerente desde la cola de Almacén, que entrega la mercancía al camión de otra tienda sin chofer asignado en la app. Exigir chofer en la base rompería ese camino.
 
 Sello `deliveries` 1.609.0; repo 1.871.0.
+
+## D-1019 · Seguridad de la base: anon ya no ejecuta las funciones internas (migración 303)
+
+Auditoría del 12 nov (advisor de seguridad de Supabase). El dueño: «fix everything, but make sure it works». Una sola migración, **303**, hecha para no romper nada:
+
+- **Funciones que `anon` podía ejecutar (120 SECURITY DEFINER).** A **115** se les quita el EXECUTE de `public` y de `anon`; `authenticated` y `service_role` lo conservan con un GRANT explícito, así que nada cambia para quien inició sesión ni para el servidor. 38 son funciones de trigger (nadie necesita EXECUTE para que un trigger dispare) y 77 son RPCs y helpers de permisos (`is_admin`, `has_*_access`, las RPC de `erp`, `timetracker.purge_old_screenshots`…). Evidencia de que un visitante sin sesión no las usa: anon solo tiene USAGE en el esquema `public` (y ni siquiera permiso sobre sus tablas); ninguna aparece en políticas RLS que apliquen a anon/public, vistas, CHECKs, defaults, índices ni funciones invocables por anon; y ni el Hub ni las apps hermanas (rtg-clock-in, timetracker, recruiting-app, rtg-erp, rtg-encuesta, tile-ops-app) las llaman sin sesión.
+- **Se quedan 5** ejecutables por anon, porque aparecen en políticas RLS con rol `public` (Postgres las evalúa también para anon): `public.current_user_role`, `public.current_recruiting_role` y, por revisar, `clockin.auth_company_id`, `clockin.auth_is_manager`, `clockin.auth_is_owner` (anon no llega hoy al esquema `clockin`; se dejan por prudencia).
+- **search_path fijo** en las 8 funciones que no lo tenían (devuelven lo mismo).
+- **Bucket `app`** (la APK de Entregas): solo acepta `application/vnd.android.package-archive` y baja de 200 MB a 50 MB. Las descargas no cambian; al publicar una APK hay que subirla con ese Content-Type (anotado en `mobile/README.md`).
+- **Dos políticas** (`delivery files insert`, `ucr_insert`) usan `(select auth.uid())`: misma regla, evaluada una vez por consulta.
+- **`public.perfiles_publicos`** sale en el advisor como vista SECURITY DEFINER: es a propósito (290, M1; solo lectura y sin columnas sensibles). No se toca.
+
+**Cómo se comprobó antes de entregarla:** el ensayo del propio `aplica-migracion.mjs` (corre entera y hace ROLLBACK) pasó con su autocomprobación; y un segundo ensayo, también con ROLLBACK, comparó 45 consultas como anon y como 5 usuarios reales (admin, gerente, almacén, ventas, chofer) antes y después: los usuarios con sesión dieron exactamente lo mismo (incluidas las dos políticas: con su propio id pasan, con el de otro no) y lo único que cambió fue que anon recibe «permission denied» en los 12 helpers de `public` que antes le contestaban `false`. Para repetirlo: `node scripts/db/verifica-anon-303.mjs` (solo lectura; sirve antes y después de aplicar). El rollback va comentado al final de la migración.
+
+**Fuera de esta migración (segundo pase, sobre `authenticated`):** 248 SECURITY DEFINER son ejecutables por cualquier usuario con sesión. Candidatas a revisar primero, porque no tienen chequeo interno de rol: `timetracker.purge_old_screenshots(interval)` (borra capturas; hoy la puede llamar cualquier empleado con sesión — el cron la corre como dueño y no necesita ese permiso), `erp.dashboard_stats()`, `erp.master_import_diff(jsonb, jsonb)`, `erp.match_product_by_mpn(text, bigint)`, `erp.qoh_drift_alert()`, `public.store_auto_approves(text)`, y las 38 funciones de trigger (authenticated tampoco necesita EXECUTE). Convención para lo nuevo: toda función SECURITY DEFINER lleva su `revoke all … from public, anon` (el permiso por defecto del esquema `public` se lo da a anon).
+
+Repo 1.872.0 (sin cambio de apps: migración, script de verificación y prueba).
