@@ -52001,3 +52001,14 @@ Ahora, cuando la merma viene de **Proveedor**, el paso «Motivo» ofrece: Se cay
 - Regla pura `motivosDeMerma(origen)` en `src/lib/almacen-ops/pasos.ts`, con prueba.
 
 Sello `warehouse_ops` 0.49.0; repo 1.867.0.
+
+## D-1015 · Entregas y Leads: decisiones de la reunión del 12 nov con Roberto
+
+- **El admin elige a cualquiera como vendedor de la orden, él incluido.** El desplegable «Usuario» de la ficha ofrecía solo a quien puede vender (los de la tienda de la orden); Roberto, admin, no podía ponerse. Para el admin la lista son todos los usuarios activos (`vendedoresParaLaOrden(..., cualquiera)`); los demás roles, igual que antes.
+- **El tipo «Other» no exige tienda.** Un tipo de origen libre (`anyOrigin`, D-537) ya no marca «Tienda (Vendido desde)» como faltante. La columna `store` ya admitía nulo y no hay `check` ni función que la exija, así que no hay migración. Ojo: una orden sin tienda no pertenece a la vista «de mi tienda» de nadie; la ve quien ve todas (admin, logística).
+- **«Todo el día» es la primera ventana de entrega** (y el sábado, «Sábado todo el día»).
+- **Leads: el STXP Pool (South Texas Permit) va primero**, antes del GOV Pool. No existe un pool aparte de «permits»: no se inventó.
+- **Sin cambio, a propósito:** la ficha no dejó guardar una dirección a medias («falta la ciudad»). Es la regla D-589 del dueño (una dirección incompleta se geocodificó a 1.500 millas). Para «dirección por confirmar» ya existe elegir SOLO la ciudad (D-454: «Raymondville, TX»), que se guarda y sale marcada «solo ciudad». No se aflojó D-589.
+- **Pendiente:** el guion de respuesta para «¿de dónde sacaron mi número?» — Leads no tiene un área de guiones y el texto no se dio; falta que Roberto lo pase.
+
+Sello `deliveries` 1.606.0; `leads` 0.22.0; repo 1.868.0.

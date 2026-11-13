@@ -264,6 +264,12 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
         <>
           <div className="ld-pestanas">
             <div className="ld-segmento" role="tablist">
+            {/* D-1015 (Roberto, 12 nov): el STXP Pool (South Texas Permit) va PRIMERO; después GOV y lo demás. */}
+            {veStxp && (
+              <button type="button" role="tab" aria-selected={pestana === "privado"} className={`chip${pestana === "privado" ? " on" : ""}`} data-pestana="privado" onClick={() => cambiaPestana("privado")}>
+                🏪 {t("STXP Pool", "STXP Pool")} <span className="cnt" data-privados>{privados.length}</span>
+              </button>
+            )}
             <button type="button" role="tab" aria-selected={pestana === "banco"} className={`chip${pestana === "banco" ? " on" : ""}`} data-pestana="banco" onClick={() => cambiaPestana("banco")}>
               🏦 {t("GOV Pool", "GOV Pool")}
             </button>
@@ -273,11 +279,6 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
             {yo.admin && (
               <button type="button" role="tab" aria-selected={pestana === "admin"} className={`chip${pestana === "admin" ? " on" : ""}`} data-pestana="admin" onClick={() => cambiaPestana("admin")}>
                 🛠 Admin{colaDeRevision(leads).length > 0 ? <span className="cnt">{colaDeRevision(leads).length}</span> : null}
-              </button>
-            )}
-            {veStxp && (
-              <button type="button" role="tab" aria-selected={pestana === "privado"} className={`chip${pestana === "privado" ? " on" : ""}`} data-pestana="privado" onClick={() => cambiaPestana("privado")}>
-                🏪 {t("STXP Pool", "STXP Pool")} <span className="cnt" data-privados>{privados.length}</span>
               </button>
             )}
             </div>
