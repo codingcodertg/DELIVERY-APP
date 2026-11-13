@@ -32,6 +32,7 @@ const EXENTAS: readonly string[] = [
   "src/components/erp/po-upload.tsx", // vista previa de carga
   "src/components/erp/po-ingest.tsx", // vista previa de carga
   "src/components/erp/master-round-trip.tsx", // vista previa de carga
+  "src/components/erp/request-review.tsx", // tabla campo / actual / propuesto (3 columnas) dentro de la tarjeta de una solicitud
   "src/components/ComparaConLaHoja.tsx", // comparación lado a lado (2 columnas fijas)
   "src/components/FotoDeLaRuta.tsx", // imagen de la ruta para compartir (se exporta como PNG)
   "src/components/RouteEngineSettings.tsx", // ajustes clave/valor
@@ -50,10 +51,6 @@ const PENDIENTES: readonly string[] = [
   "src/app/(app)/settings/page.tsx",
   "src/app/(app)/track/page.tsx",
   "src/app/(app)/warehouse/page.tsx",
-  "src/app/erp/analytics/categories/page.tsx",
-  "src/app/erp/analytics/vendors/page.tsx",
-  "src/app/erp/purchasing/orders/page.tsx",
-  "src/app/erp/review/daltile/page.tsx",
   "src/app/estimator/ProductosCompetencia.tsx",
   "src/app/estimator/TodasLasCotizaciones.tsx",
   "src/app/operaciones/KpiDeEntregas.tsx",
@@ -70,16 +67,7 @@ const PENDIENTES: readonly string[] = [
   "src/components/PuntualidadPorChofer.tsx",
   "src/components/ReportesDeChoferes.tsx",
   "src/components/RutaDelPlan.tsx",
-  "src/components/erp/inventory-console.tsx",
-  "src/components/erp/item/qoh-panel.tsx",
-  "src/components/erp/po-reconcile.tsx",
-  "src/components/erp/product-detail.tsx",
-  "src/components/erp/purchasing-groups.tsx",
-  "src/components/erp/receiving.tsx",
-  "src/components/erp/reorder-panel.tsx",
-  "src/components/erp/request-review.tsx",
   "src/components/erp/review-queue.tsx",
-  "src/components/erp/uom-assistant.tsx",
   "src/components/recruiting/HistorialDeRrhh.tsx",
   "src/components/recruiting/ModalHost.tsx",
   "src/components/timetracker/AssignmentsPanel.tsx",
@@ -124,6 +112,6 @@ describe("estándar de tablas: toda tabla usa las columnas de Órdenes", () => {
     expect(yaCumplen, "Ya usan el estándar: quítalos de PENDIENTES").toEqual([]);
   });
   it("la deuda no crece", () => {
-    expect(PENDIENTES.length).toBeLessThanOrEqual(53);
+    expect(PENDIENTES.length).toBeLessThanOrEqual(40);
   });
 });

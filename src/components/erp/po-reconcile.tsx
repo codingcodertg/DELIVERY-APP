@@ -1,6 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
+import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
+import { rotulo } from "@/components/erp/rotulo";
 import { cn, money } from "@/lib/erp/utils";
 import { PoLineLink } from "@/components/erp/po-line-link";
 import { usePrefs } from "@/lib/prefs";
@@ -126,6 +129,35 @@ export function PoReconcile({ data, canEdit }: { data: ReconData; canEdit: boole
   const { po, ack, lines, summary } = data;
   const hasGap = summary.has_discrepancies;
 
+  const filas = useMemo(() => lines.map((l, i) => ({ ...l, i })), [lines]);
+  const columnas = useMemo<ColumnaEstandar<ReconLine & { i: number }>[]>(() => [
+    { key: "articulo", ...rotulo(t("Item", "Artículo")), ancho: 260, fija: true, envuelve: true, valor: (l) => l.mpn ?? l.description,
+      celda: (l) => <>
+        <div className="font-mono text-xs text-slate-500">{l.mpn ?? "—"}</div>
+        <div className="max-w-xs truncate text-slate-700">{l.description ?? "—"}</div>
+        {l.line_status !== "matched" && (
+          <span className="mt-0.5 inline-block rounded bg-red-100 px-1 text-xs text-red-700">
+            {l.line_status === "po_only" ? t("on PO only", "solo en la OC") : t("on proforma only", "solo en la proforma")}
+          </span>
+        )}
+      </> },
+    { key: "producto", ...rotulo(t("Product", "Producto")), ancho: 180, valor: (l) => l.product_id,
+      celda: (l) => <span className="text-xs">
+        <PoLineLink poLineId={l.po_line_id} productId={l.product_id} label={l.mpn ?? l.description ?? t("product", "producto")} canEdit={canEdit} />
+      </span> },
+    { key: "poqty", ...rotulo(t("PO qty", "Cant. OC")), ancho: 120, numerico: true, valor: (l) => l.po_qty,
+      celda: (l) => (l.po_qty == null ? "—" : `${n(l.po_qty, 0)} ${l.po_uom ?? ""}`) },
+    { key: "popi2", ...rotulo(t("PO $/PI2*", "OC $/PI2*")), ancho: 120, numerico: true, valor: (l) => l.po_unit_per_pi2, celda: (l) => unit(l.po_unit_per_pi2) },
+    { key: "ackpi2", ...rotulo(t("Ack $/PI2", "Conf. $/PI2")), ancho: 120, numerico: true, valor: (l) => l.ack_unit_price, celda: (l) => <span className="text-slate-600">{unit(l.ack_unit_price)}</span> },
+    { key: "precio", ...rotulo(t("Price Δ", "Precio Δ")), ancho: 110, numerico: true, valor: (l) => l.price_pct, celda: (l) => <Flag on={l.price_flag}>{pct(l.price_pct)}</Flag> },
+    { key: "cantidad", ...rotulo(t("Qty Δ (box)", "Cant. Δ (cajas)")), ancho: 120, numerico: true, valor: (l) => l.qty_diff,
+      celda: (l) => <Flag on={l.qty_flag}>{l.qty_diff == null ? "—" : `${l.qty_diff > 0 ? "+" : ""}${n(l.qty_diff, 0)}`}</Flag> },
+    { key: "importeOc", ...rotulo(t("PO amt", "Importe OC")), ancho: 120, numerico: true, valor: (l) => l.po_amount, celda: (l) => <span className="text-slate-600">{money(l.po_amount)}</span> },
+    { key: "importeAck", ...rotulo(t("Ack amt", "Importe conf.")), ancho: 120, numerico: true, valor: (l) => l.ack_amount, celda: (l) => <span className="text-slate-600">{money(l.ack_amount)}</span> },
+    { key: "importeDif", ...rotulo(t("Amount Δ", "Importe Δ")), ancho: 120, numerico: true, valor: (l) => l.total_diff,
+      celda: (l) => <Flag on={l.total_flag}>{l.total_diff == null ? "—" : money(l.total_diff)}</Flag> },
+  ], [t, canEdit]);
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -216,63 +248,9 @@ export function PoReconcile({ data, canEdit }: { data: ReconData; canEdit: boole
 
       {/* Per-line reconciliation */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
-                <th className="px-3 py-2 font-medium">{t("Item", "Artículo")}</th>
-                <th className="px-3 py-2 font-medium">{t("Product", "Producto")}</th>
-                <th className="px-3 py-2 text-right font-medium" title={t("PO order quantity", "Cantidad pedida en la OC")}>{t("PO qty", "Cant. OC")}</th>
-                <th className="px-3 py-2 text-right font-medium" title={t("PO rate, normalized to the proforma's per-PI2 unit via sf_per_box", "Tarifa de la OC, normalizada a la unidad por PI2 de la proforma vía sf_per_box")}>{t("PO $/PI2*", "OC $/PI2*")}</th>
-                <th className="px-3 py-2 text-right font-medium">{t("Ack $/PI2", "Conf. $/PI2")}</th>
-                <th className="px-3 py-2 text-right font-medium">{t("Price Δ", "Precio Δ")}</th>
-                <th className="px-3 py-2 text-right font-medium" title={t("Acknowledged boxes vs ordered boxes", "Cajas confirmadas frente a cajas pedidas")}>{t("Qty Δ (box)", "Cant. Δ (cajas)")}</th>
-                <th className="px-3 py-2 text-right font-medium">{t("PO amt", "Importe OC")}</th>
-                <th className="px-3 py-2 text-right font-medium">{t("Ack amt", "Importe conf.")}</th>
-                <th className="px-3 py-2 text-right font-medium">{t("Amount Δ", "Importe Δ")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((l, i) => {
-                const flagged = l.price_flag || l.qty_flag || l.total_flag || l.line_status !== "matched";
-                return (
-                  <tr key={i} className={cn("border-t border-slate-100 align-top", flagged && "bg-red-50/40")}>
-                    <td className="px-3 py-2">
-                      <div className="font-mono text-xs text-slate-500">{l.mpn ?? "—"}</div>
-                      <div className="max-w-xs truncate text-slate-700">{l.description ?? "—"}</div>
-                      {l.line_status !== "matched" && (
-                        <span className="mt-0.5 inline-block rounded bg-red-100 px-1 text-xs text-red-700">
-                          {l.line_status === "po_only" ? t("on PO only", "solo en la OC") : t("on proforma only", "solo en la proforma")}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-xs">
-                      <PoLineLink
-                        poLineId={l.po_line_id}
-                        productId={l.product_id}
-                        label={l.mpn ?? l.description ?? t("product", "producto")}
-                        canEdit={canEdit}
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
-                      {l.po_qty == null ? "—" : `${n(l.po_qty, 0)} ${l.po_uom ?? ""}`}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-slate-600">{unit(l.po_unit_per_pi2)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-slate-600">{unit(l.ack_unit_price)}</td>
-                    <td className="px-3 py-2 text-right"><Flag on={l.price_flag}>{pct(l.price_pct)}</Flag></td>
-                    <td className="px-3 py-2 text-right">
-                      <Flag on={l.qty_flag}>
-                        {l.qty_diff == null ? "—" : `${l.qty_diff > 0 ? "+" : ""}${n(l.qty_diff, 0)}`}
-                      </Flag>
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-slate-600">{money(l.po_amount)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-slate-600">{money(l.ack_amount)}</td>
-                    <td className="px-3 py-2 text-right"><Flag on={l.total_flag}>{l.total_diff == null ? "—" : money(l.total_diff)}</Flag></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="px-3 pb-2">
+          <TablaEstandar id="erp-conciliacion-oc" filas={filas} claveDe={(l) => String(l.i)} columnas={columnas} sinCaja
+            claseDeFila={(l) => (l.price_flag || l.qty_flag || l.total_flag || l.line_status !== "matched" ? "bg-red-50/40" : undefined)} />
         </div>
       </div>
       <p className="text-xs leading-relaxed text-slate-400">

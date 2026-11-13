@@ -52123,3 +52123,10 @@ El dueño, tras la auditoría del 12 nov: «make sure it works». Entre el 10 y 
 Pruebas: `grupos-de-practica-en-lista.test.ts` (grupo de práctica pendiente / aprobado / borrado, día de Texas en la hoja, estilo del chip elegido y de los 44 px).
 
 Sello `warehouse_ops` 0.52.0; repo 1.875.0.
+
+## D-1023 · ERP: tablas con el estándar de Órdenes
+
+El dueño pidió que las tablas del ERP tengan lo de Órdenes: ▾ para ordenar y filtrar, ⚙ para elegir columnas, cabeceras que se arrastran y anchos guardados por persona. Se convirtieron 12 de las 14 tablas del ERP con `TablaEstandar` (analítica por categoría y proveedor, Órdenes de compra, revisión Daltile, inventario, existencias por tienda, conciliación de OC, lotes e historial de precios, grupos de compra, reorden, recepción y unidad de medida). Las consultas, cifras, exportaciones y permisos no cambian: las páginas de servidor solo pasan sus filas a la tabla de cliente (`src/components/erp/tablas-de-paginas.tsx` para las páginas).
+Exenta con su porqué: la tabla campo / actual / propuesto de `request-review.tsx`. Pendiente: la cola de revisión (`review-queue.tsx`), que necesita casillas de selección y virtualización que `TablaEstandar` aún no trae.
+Visto en pantalla (demo local, 1280 y 390 px): ▾ y ⚙ en Órdenes, Inventario, ficha de producto y analítica; la página no se desborda.
+Sello `erp` 0.27.0; repo 1.876.0.

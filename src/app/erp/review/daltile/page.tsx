@@ -7,6 +7,7 @@ import { unwrap } from "@/lib/erp/db-result";
 import { avisoDaltileDelDemo, confirmDaltileMatch, rejectDaltileMatch } from "@/lib/erp/daltile-actions";
 import { AVISO_DEL_DEMO } from "@/lib/erp/demo-data";
 import { Tx } from "@/components/erp/tx";
+import { TablaDeDaltile } from "@/components/erp/tablas-de-paginas";
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
@@ -73,8 +74,8 @@ export default async function DaltileReviewPage({ searchParams }: { searchParams
 
         {LOCAL_MODE && aviso === "demo" && <p role="status" className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{AVISO_DEL_DEMO}</p>}
 
-        <Group title={<><Tx en="High confidence" es="Confianza alta" /> ({high.length})</>} refs={high} pmap={pmap} />
-        <Group title={<><Tx en="Name + size suggestions" es="Sugerencias por nombre y tamaño" /> ({low.length})</>} refs={low} pmap={pmap} />
+        <Group id="erp-daltile-alta" title={<><Tx en="High confidence" es="Confianza alta" /> ({high.length})</>} refs={high} pmap={pmap} />
+        <Group id="erp-daltile-baja" title={<><Tx en="Name + size suggestions" es="Sugerencias por nombre y tamaño" /> ({low.length})</>} refs={low} pmap={pmap} />
         {refs.length === 0 && (
           <div className="mt-6 rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-500">
             <Tx en="Nothing to review — run the match job to generate suggestions." es="Nada que revisar — ejecuta el trabajo de coincidencias para generar sugerencias." />
@@ -86,8 +87,9 @@ export default async function DaltileReviewPage({ searchParams }: { searchParams
 }
 
 function Group({
-  title, refs, pmap,
+  id, title, refs, pmap,
 }: {
+  id: string;
   title: React.ReactNode;
   refs: Ref[];
   pmap: Map<number, Prod>;
@@ -96,54 +98,14 @@ function Group({
   return (
     <section className="mt-6">
       <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{title}</h2>
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-xs text-slate-500">
-            <tr>
-              <th className="px-3 py-2 text-left font-medium"><Tx en="ERP product" es="Producto ERP" /></th>
-              <th className="px-3 py-2 text-left font-medium">→ Daltile</th>
-              <th className="px-3 py-2 text-left font-medium"><Tx en="Method" es="Método" /></th>
-              <th className="px-3 py-2 text-right font-medium"><Tx en="Actions" es="Acciones" /></th>
-            </tr>
-          </thead>
-          <tbody>
-            {refs.map((r) => {
-              const p = pmap.get(r.product_id);
-              return (
-                <tr key={r.id} className="border-t border-slate-100 align-top">
-                  <td className="px-3 py-2">
-                    <Link href={`/erp/product/${r.product_id}`} className="font-medium text-clay-600 hover:underline">
-                      {p?.name ?? `#${r.product_id}`}
-                    </Link>
-                    <div className="font-mono text-xs text-slate-400">{p?.sku}{p?.mpn ? ` · mpn ${p.mpn}` : <> · <Tx en="no mpn" es="sin mpn" /></>}</div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="font-medium">{r.external_title ?? "—"}</div>
-                    <div className="text-xs text-slate-500">{[r.series_name, r.nominal_size].filter(Boolean).join(" · ")}</div>
-                    {r.external_url && (
-                      <a href={r.external_url} target="_blank" rel="noopener nofollow" className="text-xs text-clay-600 hover:underline">daltile.com ↗</a>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-slate-500">
-                    {r.match_method} · <Tx en="code" es="código" /> {r.external_sku}
-                    {r.match_confidence != null ? ` · ${Math.round(r.match_confidence * 100)}%` : ""}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex justify-end gap-2">
-                      <form action={LOCAL_MODE ? avisoDaltileDelDemo : confirmDaltileMatch.bind(null, r.id)}>
-                        <button className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700"><Tx en="Confirm" es="Confirmar" /></button>
-                      </form>
-                      <form action={LOCAL_MODE ? avisoDaltileDelDemo : rejectDaltileMatch.bind(null, r.id)}>
-                        <button className="rounded-md border px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"><Tx en="Reject" es="Rechazar" /></button>
-                      </form>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <TablaDeDaltile id={id} filas={refs.map((r) => {
+        const p = pmap.get(r.product_id);
+        return {
+          ...r, nombre: p?.name ?? `#${r.product_id}`, sku: p?.sku ?? null, mpn: p?.mpn ?? null,
+          confirmar: LOCAL_MODE ? avisoDaltileDelDemo : confirmDaltileMatch.bind(null, r.id),
+          rechazar: LOCAL_MODE ? avisoDaltileDelDemo : rejectDaltileMatch.bind(null, r.id),
+        };
+      })} />
     </section>
   );
 }

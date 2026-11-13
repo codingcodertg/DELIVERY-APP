@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
+import { rotulo } from "@/components/erp/rotulo";
 import { cn, money } from "@/lib/erp/utils";
 import { productImageUrl } from "@/lib/erp/images";
 import { usePrefs } from "@/lib/prefs";
@@ -82,6 +84,39 @@ export function PurchasingGroups({
     [groups, sort]
   );
 
+  // «Más barato» = el primero al ordenar por costo (como antes); con el ▾ de la tabla la fila se mueve, la marca no.
+  const masBarato = (g: PGroup, m: PMember) => canSeeCost && sort === "cost" && g.members[0]?.id === m.id && m.cost != null;
+  const grupoDe = useMemo(() => new Map(sorted.flatMap((g) => g.members.map((m) => [m.id, g] as const))), [sorted]);
+  const columnas = useMemo<ColumnaEstandar<PMember>[]>(() => [
+    { key: "producto", ...rotulo(t("Product", "Producto")), ancho: 320, fija: true, envuelve: true, valor: (m) => m.name,
+      celda: (m) => {
+        const g = grupoDe.get(m.id);
+        const barato = !!g && masBarato(g, m);
+        return (
+          <div className="flex items-center gap-2">
+            <Thumb path={m.image} alt={m.sku} />
+            <div className="min-w-0">
+              <Link href={`/erp/product/${m.id}`} className="block truncate font-medium text-slate-900 hover:text-clay-700">{m.name}</Link>
+              <div className="font-mono text-xs text-slate-400">{m.sku}{barato && <span className="ml-2 rounded bg-emerald-100 px-1 font-sans text-emerald-700">{t("cheapest", "más barato")}</span>}</div>
+            </div>
+          </div>
+        );
+      } },
+    { key: "proveedor", ...rotulo(t("Vendor", "Proveedor")), ancho: 180, valor: (m) => m.vendor },
+    ...(canSeeCost ? [{ key: "costo", ...rotulo(t("Cost", "Costo")), ancho: 110, numerico: true, valor: (m: PMember) => m.cost, celda: (m: PMember) => <span className="font-medium">{money(m.cost)}</span> }] : []),
+    { key: "ultimo", ...rotulo(t("Last price", "Último precio")), ancho: 130, numerico: true, envuelve: true, valor: (m) => m.last_price,
+      celda: (m) => <>{money(m.last_price)}<div className="text-xs text-slate-400">{dateStr(m.last_price_date)}</div></> },
+    { key: "plazo", ...rotulo(t("Lead time", "Plazo")), ancho: 100, numerico: true, valor: (m) => m.lead_time_days, celda: (m) => (m.lead_time_days == null ? "—" : `${m.lead_time_days}d`) },
+    { key: "moq", ...rotulo(t("MOQ", "MOQ")), ancho: 90, numerico: true, valor: (m) => m.moq, celda: (m) => num(m.moq) },
+    { key: "qoh", ...rotulo(t("QOH*", "QOH*")), ancho: 130, numerico: true, valor: (m) => m.qoh,
+      celda: (m) => <>
+        <span className={belowReorder(m) ? "font-medium text-amber-700" : "text-slate-400"}>{num(m.qoh)}</span>
+        {belowReorder(m) && <span className="ml-1 rounded bg-amber-50 px-1 text-[10px] font-medium text-amber-700 ring-1 ring-amber-200" title={t(`At/below reorder point (${num(m.reorder_point)})`, `En o bajo el punto de reorden (${num(m.reorder_point)})`)}>{t("reorder", "reordenar")}</span>}
+      </> },
+    { key: "reorden", ...rotulo(t("Reorder", "Reorden")), ancho: 190, valor: (m) => reorderText(m) },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [canSeeCost, sort, grupoDe, t]);
+
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
@@ -117,59 +152,9 @@ export function PurchasingGroups({
                   {g.member_count} {t("sources", "fuentes")}
                 </span>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">{t("Product", "Producto")}</th>
-                      <th className="px-3 py-2 font-medium">{t("Vendor", "Proveedor")}</th>
-                      {canSeeCost && <th className="px-3 py-2 text-right font-medium">{t("Cost", "Costo")}</th>}
-                      <th className="px-3 py-2 text-right font-medium">{t("Last price", "Último precio")}</th>
-                      <th className="px-3 py-2 text-right font-medium">{t("Lead time", "Plazo")}</th>
-                      <th className="px-3 py-2 text-right font-medium">MOQ</th>
-                      <th className="px-3 py-2 text-right font-medium">QOH*</th>
-                      <th className="px-3 py-2 font-medium">{t("Reorder", "Reorden")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {g.members.map((m, i) => {
-                      const cheapest = canSeeCost && sort === "cost" && i === 0 && m.cost != null;
-                      return (
-                        <tr key={m.id} className={cn("border-t border-slate-100", cheapest && "bg-emerald-50/50")}>
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <Thumb path={m.image} alt={m.sku} />
-                              <div className="min-w-0">
-                                <Link href={`/erp/product/${m.id}`} className="block truncate font-medium text-slate-900 hover:text-clay-700">
-                                  {m.name}
-                                </Link>
-                                <div className="font-mono text-xs text-slate-400">
-                                  {m.sku}
-                                  {cheapest && <span className="ml-2 rounded bg-emerald-100 px-1 font-sans text-emerald-700">{t("cheapest", "más barato")}</span>}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-3 py-2 text-slate-600">{m.vendor ?? "—"}</td>
-                          {canSeeCost && <td className="px-3 py-2 text-right font-medium tabular-nums">{money(m.cost)}</td>}
-                          <td className="px-3 py-2 text-right tabular-nums text-slate-500">
-                            {money(m.last_price)}
-                            <div className="text-xs text-slate-400">{dateStr(m.last_price_date)}</div>
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">{m.lead_time_days == null ? "—" : `${m.lead_time_days}d`}</td>
-                          <td className="px-3 py-2 text-right tabular-nums text-slate-500">{num(m.moq)}</td>
-                          <td className="px-3 py-2 text-right">
-                            <span className={cn("tabular-nums", belowReorder(m) ? "font-medium text-amber-700" : "text-slate-400")}>{num(m.qoh)}</span>
-                            {belowReorder(m) && (
-                              <span className="ml-1 rounded bg-amber-50 px-1 text-[10px] font-medium text-amber-700 ring-1 ring-amber-200" title={t(`At/below reorder point (${num(m.reorder_point)})`, `En o bajo el punto de reorden (${num(m.reorder_point)})`)}>{t("reorder", "reordenar")}</span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2 text-xs text-slate-500">{reorderText(m)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="px-3 pb-2">
+                <TablaEstandar id="erp-grupos-de-compra" filas={g.members} claveDe={(m) => String(m.id)} columnas={columnas} sinCaja
+                  claseDeFila={(m) => (masBarato(g, m) ? "bg-emerald-50/50" : undefined)} />
               </div>
             </section>
           ))}
