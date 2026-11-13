@@ -58,7 +58,9 @@ import { carrilesDelDia, cargaDelPanel, encuadreDeLasRutas, lineasDeLasRutas, pu
 import { listaDelDia, ordenesDeLaRutaDelDia, pendientesDelDia } from "@/lib/recogida-y-ruta-del-dia";
 import { PanelDeChoferes } from "@/components/PanelDeChoferes";
 import { ReprogramarOrden } from "@/components/ReprogramarOrden";
-import { AvisosDeRelevo, RelevoDeLaOrden } from "@/components/RelevoDeLaOrden";
+import { RelevoDeLaOrden } from "@/components/RelevoDeLaOrden";
+import { IconoDeAvisos, type AvisoDeLaRuta } from "@/components/IconoDeAvisos";
+import { avisosDeRelevo, type AvisoDeRelevo } from "@/lib/relevo";
 import { esPasoDeRelevo } from "@/lib/relevo-etiqueta";
 import { isStoreToStore } from "@/lib/required";
 import { puedeReprogramar } from "@/lib/reprogramar-orden";
@@ -1497,6 +1499,13 @@ export default function RoutesPage() {
   );
   // Sin nada marcado el recuadro se va, y lo que se pulsó en él se olvida: la próxima tanda vuelve a preguntar (D-395).
   useEffect(() => { if (poolSelectedCount === 0) setConductorPulsado(null); }, [poolSelectedCount]);
+  // El recuadro «Elige conductor» va en el flujo, debajo de la tabla: al abrirse (y solo entonces) la página baja hasta él.
+  // «nearest»: si ya se ve entero, no se mueve.
+  const elegeRef = useRef<HTMLDivElement>(null);
+  const elegeAbierto = !soloLectura && poolSelectedCount > 0;
+  useEffect(() => {
+    if (elegeAbierto) elegeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [elegeAbierto]);
 
   // Search + saved filter over the unassigned pool. La misma función que da el número de cada chip (D-393).
   const unassignedShown = useMemo(() => filasSinAsignar(deliveries, date, modo, ROUTE_STAGES, poolFilter, orderSearch), [deliveries, date, modo, poolFilter, orderSearch]);
@@ -2636,6 +2645,20 @@ export default function RoutesPage() {
     : wideRoutes
     ? shownDrivers.map((u) => [u, "ancha"])
     : [...shownDrivers.map((u): [Lane, ModoDeTarjeta] => [u, "compacta"]), ...shownDrivers.filter((u) => u.key === rutaDesplegada).map((u): [Lane, ModoDeTarjeta] => [u, "desplegada"])];
+  // Los avisos de los relevos (`avisosDeRelevo`) van en el «⚠ N» de la ruta que los lleva (las dos, si son dos choferes).
+  // Si ninguna de esas rutas tiene su cuerpo a la vista, van al «⚠ N» de la barra, que es de toda la página.
+  const avisosDeRelevoDelDia = avisosDeRelevo(deliveries.filter(esPasoDeRelevo));
+  const cartasConCuerpo = tarjetasDeRuta.filter(([u, m]) => conCuerpo(m, isCollapsed(u.key)));
+  const relevosDeLaCarta = new Map<string, AvisoDeRelevo[]>();
+  const relevosSinCarta: AvisoDeRelevo[] = [];
+  for (const a of avisosDeRelevoDelDia) {
+    const llevan = cartasConCuerpo.filter(([u]) => {
+      const ids = new Set([...(byDriver.get(u.key) ?? []), ...hechasDe(u.key)].map((d) => d.id));
+      return a.ids.some((id) => ids.has(id));
+    });
+    if (llevan.length === 0) { relevosSinCarta.push(a); continue; }
+    for (const [u] of llevan) relevosDeLaCarta.set(u.key, [...(relevosDeLaCarta.get(u.key) ?? []), a]);
+  }
   const scheduledCount = dayOrders.length - unassigned.length;
   // Aquí se armaba la leyenda del mapa (D-274; en «Ruta de hoy», D-467, y en «Mi ruta», D-514). Fuera en toda la app desde
   // D-520. El dueño, 2026-10-11: «delete the lEGEND ON THE MAP of the app».
@@ -2910,10 +2933,9 @@ export default function RoutesPage() {
           </>
         )}
         {/* «Elige conductor para N órdenes» (D-395): sustituye al antiguo desplegable «Asignar selección a…» y al botón
-            «Auto-asignar selección» de la barra de arriba (ya no hay Auto-asignar, D-437). Va DESPUÉS de la tabla y pegado al borde de abajo de la ventana
-            (`sticky`): arriba de la tabla quedaba debajo del mapa, que también es `sticky`, en cuanto se bajaba a marcar
-            una fila. Mientras se baja cubre las filas que pasan por detrás, pero al final de la tabla vuelve a su sitio,
-            así que ninguna fila queda tapada para siempre. */}
+            «Auto-asignar selección» de la barra de arriba (ya no hay Auto-asignar, D-437). Va DESPUÉS de la tabla, en el flujo
+            normal: ni `sticky` ni `fixed`, para que no tape la tabla ni la barra de búsqueda (el dueño, con captura). Al abrirse,
+            la página baja hasta él (ver `elegeRef`). `scrollMarginBottom` deja el hueco de la burbuja de Ayuda. */}
         {/* Lo que hizo «📍 Mejor lugar» (D-411): dónde entró cada orden y por qué. Se queda hasta cerrarlo o marcar otra
             cosa —el aviso de abajo dura 2,6 s y esto es lo que hay que leer—, en el sitio del recuadro, que ya se fue. */}
         {avisoMejorLugar && poolSelectedCount === 0 && (
@@ -2926,8 +2948,8 @@ export default function RoutesPage() {
           </div>
         )}
         {!soloLectura && poolSelectedCount > 0 && (
-          <div className="card" data-elige-conductor role="group" aria-label={t(`Choose a driver for ${poolSelectedCount} orders`, `Elige conductor para ${poolSelectedCount} órdenes`)}
-            style={{ position: "sticky", bottom: 8, zIndex: 6, margin: "10px 0 0", padding: "12px 14px", border: "2px solid var(--accent)", background: "var(--accent-soft)", maxWidth: "100%", boxSizing: "border-box" }}>
+          <div className="card" data-elige-conductor role="group" ref={elegeRef} aria-label={t(`Choose a driver for ${poolSelectedCount} orders`, `Elige conductor para ${poolSelectedCount} órdenes`)}
+            style={{ margin: "10px 0 0", padding: "12px 14px", border: "2px solid var(--accent)", background: "var(--accent-soft)", maxWidth: "100%", boxSizing: "border-box", scrollMarginBottom: "var(--hueco-de-ayuda)" }}>
             <b style={{ display: "block", fontSize: 15, marginBottom: 8 }}>
               👉 {poolSelectedCount === 1
                 ? t("Choose a driver for 1 order", "Elige conductor para 1 orden")
@@ -3440,14 +3462,14 @@ export default function RoutesPage() {
           ⚠ <span className="rotulo-de-la-franja">{t("Incidents", "Incidencias")}</span> ({incidents.length})
         </button>
         )}
+        {/* Los avisos de relevo que no son de ninguna ruta a la vista: el mismo «⚠ N» y su panel, en la barra. */}
+        {relevosSinCarta.length > 0 && <IconoDeAvisos avisos={relevosSinCarta.map((a) => ({ clave: a.tipo + a.ids.join(), titulo: `⇄ ${a[lang]}`, detalle: null }))} t={t} />}
         {/* 📥 Solicitudes de asignación (D-560, 176): las que piden ventas, Office y gerente; logística y admin deciden. */}
         {!soloLectura && puedeDecidirSolicitudes(me?.role) && (
           <BandejaDeSolicitudes ordenes={deliveriesLeidas} usuarios={users} choferes={drivers.map((u) => u.full_name)}
             aprobar={apruebaSolicitud} abrirOrden={setOpenOrder} t={t} />
         )}
       </div>
-      {/* D-898 (256): los avisos de las transferencias por relevo (b agendado antes que a; los dos pasos el mismo día). */}
-      <AvisosDeRelevo ordenes={deliveries} />
 
       {incidenciasAbiertas && (
         <div className="overlay" data-ventana-incidencias onClick={(e) => { if (e.target === e.currentTarget) setIncidenciasAbiertas(false); }}>
@@ -3656,6 +3678,38 @@ export default function RoutesPage() {
         // Tapping anywhere on the card that isn't a stop row drops the
         // single-stop focus, so the map goes back to this driver's whole day.
         // That's the "tap outside" way back out.
+        // Los avisos de esta ruta, para su «⚠ N» de la cabecera (solo si la tarjeta lleva cuerpo; ver `cartasConCuerpo`).
+        const noPin = stops.filter((d) => d.delivery_lat == null);
+        const avisosDeLaCarta: AvisoDeLaRuta[] = [
+          ...(lateStops.length > 0 ? [{ clave: "tarde", titulo: t(`${lateStops.length} stop(s) will miss their delivery window`, `${lateStops.length} parada(s) no llegarán a tiempo a su ventana`),
+            detalle: <>
+              {lateStops.slice(0, 6).map((d) => `#${orderLabel(d)}${d.account ? ` (${d.account})` : ""}`).join(", ")}{lateStops.length > 6 ? "…" : ""}
+              {" — "}{t("reorder the stops or move some to another driver.", "reordene las paradas o mueva algunas a otro chofer.")}
+            </> }] : []),
+          ...(relevosTarde.length > 0 ? [{ clave: "relevo-antes-de-tiempo", titulo: t(`${relevosTarde.length} relay pickup(s) before leg A arrives`, `${relevosTarde.length} recogida(s) de relevo antes de que llegue el paso a`),
+            detalle: <>
+              {relevosTarde.slice(0, 6).map((x) => {
+                const b = dayOrders.find((d) => d.id === x.paso);
+                const hh = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+                const nombre = b ? `#${orderLabel(b)}` : x.paso.slice(0, 6);
+                return x.llegadaDelAnterior == null
+                  ? t(`${nombre}: pickup ${hh(x.recogida)}, leg A has no ETA on any route`, `${nombre}: recoge ${hh(x.recogida)}, el paso a no tiene hora en ninguna ruta`)
+                  : t(`${nombre}: pickup ${hh(x.recogida)}, leg A arrives ${hh(x.llegadaDelAnterior)}`, `${nombre}: recoge ${hh(x.recogida)}, el paso a llega ${hh(x.llegadaDelAnterior)}`);
+              }).join(" · ")}
+              {" — "}{t(`leave at least ${MARGEN_DEL_RELEVO_MIN} min after leg A arrives (Optimize and Distribute already do).`, `deje al menos ${MARGEN_DEL_RELEVO_MIN} min después de que llegue el paso a (Optimizar y Repartir ya lo hacen).`)}
+            </> }] : []),
+          ...(noPin.length > 0 ? [{ clave: "sin-pin", titulo: t(`${missingPins} stop(s) aren't on the map yet, so the route skips them.`, `${missingPins} parada(s) aún no están en el mapa, así que la ruta las omite.`),
+            detalle: <>
+              {noPin.map((d) => `#${orderLabel(d)}${d.account ? ` (${d.account})` : ""}${d.delivery_address ? "" : " — " + t("no delivery address", "sin dirección de entrega")}`).join(", ")}
+              {" — "}{t("give each a valid delivery address (or drop a map pin) on the Orders page so it geocodes.", "dé a cada una una dirección de entrega válida (o coloque un pin) en Órdenes para que se ubique.")}
+            </> }] : []),
+          ...(stops.some(ordenSoloCiudad) ? [{ clave: "solo-ciudad", titulo: t(AVISO_SOLO_CIUDAD.en, AVISO_SOLO_CIUDAD.es),
+            detalle: <>
+              {stops.filter(ordenSoloCiudad).map((d) => `#${orderLabel(d)}${d.account ? ` (${d.account})` : ""} — ${d.delivery_address}`).join(" · ")}
+              {" — "}{t("the pin is the city centre. Get the street address before the driver leaves.", "el pin es el centro de la ciudad. Consiga la dirección con calle antes de que salga el chofer.")}
+            </> }] : []),
+          ...(relevosDeLaCarta.get(u.key) ?? []).map((a) => ({ clave: a.tipo + a.ids.join(), titulo: `⇄ ${a[lang]}`, detalle: null })),
+        ];
         return (
           <div className={claseDeTarjeta(modoDeTarjeta, desplegadaAqui)} key={`${modoDeTarjeta}-${u.id}`} data-tarjeta-de-ruta={u.key} data-modo-de-tarjeta={modoDeTarjeta} {...sueltaAqui(u.key, null)}
             style={{ margin: 0, gridColumn: modoDeTarjeta === "desplegada" ? "1 / -1" : undefined, outline: sobre === claveDeSoltar(u.key, null) ? "2px dashed var(--accent)" : undefined, outlineOffset: -2 }}
@@ -3777,6 +3831,8 @@ export default function RoutesPage() {
                 </button>
               )}
               </>)}
+              {/* El «⚠ N» de los avisos de la ruta: después de las pastillas. Sin cuerpo (la compacta) no hay avisos que mostrar. */}
+              {!sinCuerpo && <IconoDeAvisos avisos={avisosDeLaCarta} t={t} />}
               <span style={{ flex: 1 }} />
               {/* Aquí iba «🚚 Capacidad del camión [10] trm», un campo que guardaba en cada tecla: ahora es el botón «🚚 10»,
                   al final de la fila (D-655, abajo). */}
@@ -3859,62 +3915,7 @@ export default function RoutesPage() {
               {camion && <BotonDelCamion capacidad={capacity} puedeCambiar={camion === "pulsable"} onGuarda={(v) => setCapacity(u.driver, v)} t={t} />}
             </div>
             {!sinCuerpo && <>
-            {lateStops.length > 0 && (
-              <div className="card" style={{ marginBottom: 8, background: "var(--red-soft)", borderColor: "var(--red)" }}>
-                <b style={{ color: "var(--red)" }}>⚠️ {t(`${lateStops.length} stop(s) will miss their delivery window`, `${lateStops.length} parada(s) no llegarán a tiempo a su ventana`)}</b>
-                <div className="hint" style={{ marginTop: 2 }}>
-                  {lateStops.slice(0, 6).map((d) => `#${orderLabel(d)}${d.account ? ` (${d.account})` : ""}`).join(", ")}{lateStops.length > 6 ? "…" : ""}
-                  {" — "}{t("reorder the stops or move some to another driver.", "reordene las paradas o mueva algunas a otro chofer.")}
-                </div>
-              </div>
-            )}
-            {relevosTarde.length > 0 && (
-              <div className="card" data-relevo-antes-de-tiempo style={{ marginBottom: 8, background: "var(--red-soft)", borderColor: "var(--red)" }}>
-                <b style={{ color: "var(--red)" }}>⚠️ {t(`${relevosTarde.length} relay pickup(s) before leg A arrives`, `${relevosTarde.length} recogida(s) de relevo antes de que llegue el paso a`)}</b>
-                <div className="hint" style={{ marginTop: 2 }}>
-                  {relevosTarde.slice(0, 6).map((x) => {
-                    const b = dayOrders.find((d) => d.id === x.paso);
-                    const hh = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
-                    const nombre = b ? `#${orderLabel(b)}` : x.paso.slice(0, 6);
-                    return x.llegadaDelAnterior == null
-                      ? t(`${nombre}: pickup ${hh(x.recogida)}, leg A has no ETA on any route`, `${nombre}: recoge ${hh(x.recogida)}, el paso a no tiene hora en ninguna ruta`)
-                      : t(`${nombre}: pickup ${hh(x.recogida)}, leg A arrives ${hh(x.llegadaDelAnterior)}`, `${nombre}: recoge ${hh(x.recogida)}, el paso a llega ${hh(x.llegadaDelAnterior)}`);
-                  }).join(" · ")}
-                  {" — "}{t(`leave at least ${MARGEN_DEL_RELEVO_MIN} min after leg A arrives (Optimize and Distribute already do).`, `deje al menos ${MARGEN_DEL_RELEVO_MIN} min después de que llegue el paso a (Optimizar y Repartir ya lo hacen).`)}
-                </div>
-              </div>
-            )}
-            {/* Tres renglones se fueron de aquí (D-459; el dueño, 2026-10-01, «remueve todo ese texto incesario»): «Total (desde
-                la base y de regreso)…», que repetía las millas y la jornada de la cabecera; «Este chofer no tiene tienda
-                asignada…» y «Aún sin orden guardado…», que ahora son las pastillas «⚠ sin base» y «sin orden guardado» junto al
-                nombre, con la frase entera al pasar. Los avisos de problema real de abajo (no llega a su ventana, parada sin
-                pin, solo ciudad) se quedan.
-                El «💡 supera la capacidad, por eso recarga entre cargas» se fue con los viajes (D-443): la lista ya lleva sus
-                recargas, y la parada donde se pasa lo dice en su fila. */}
-            {missingPins > 0 && (() => {
-              const noPin = stops.filter((d) => d.delivery_lat == null);
-              return (
-                <div className="card" style={{ marginBottom: 8, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
-                  <b style={{ color: "var(--amber-text)" }}>📍 {t(`${missingPins} stop(s) aren't on the map yet, so the route skips them.`, `${missingPins} parada(s) aún no están en el mapa, así que la ruta las omite.`)}</b>
-                  <div className="hint" style={{ marginTop: 2 }}>
-                    {noPin.map((d) => `#${orderLabel(d)}${d.account ? ` (${d.account})` : ""}${d.delivery_address ? "" : " — " + t("no delivery address", "sin dirección de entrega")}`).join(", ")}
-                    {" — "}{t("give each a valid delivery address (or drop a map pin) on the Orders page so it geocodes.", "dé a cada una una dirección de entrega válida (o coloque un pin) en Órdenes para que se ubique.")}
-                  </div>
-                </div>
-              );
-            })()}
-            {/* Las paradas de este chofer cuya dirección es SOLO una ciudad (D-454). Va aquí, fuera de la tabla, porque
-                la columna «Ciudad de entrega» se puede quitar y el aviso no puede depender de qué columnas eligió nadie:
-                el punto de esas paradas es el centro de la ciudad, y el chofer no debe salir sin la dirección. */}
-            {stops.some(ordenSoloCiudad) && (
-              <div className="card" data-solo-ciudad-ruta style={{ marginBottom: 8, background: "var(--amber-soft)", borderColor: "var(--amber)" }}>
-                <b style={{ color: "var(--amber-text)" }}>⚠ {t(AVISO_SOLO_CIUDAD.en, AVISO_SOLO_CIUDAD.es)}</b>
-                <div className="hint" style={{ marginTop: 2 }}>
-                  {stops.filter(ordenSoloCiudad).map((d) => `#${orderLabel(d)}${d.account ? ` (${d.account})` : ""} — ${d.delivery_address}`).join(" · ")}
-                  {" — "}{t("the pin is the city centre. Get the street address before the driver leaves.", "el pin es el centro de la ciudad. Consiga la dirección con calle antes de que salga el chofer.")}
-                </div>
-              </div>
-            )}
+            {/* Los avisos de la ruta (tarde, relevo, sin pin, solo ciudad) no van aquí: van en su «⚠ N» de la cabecera. */}
             {hayFilas && !soloLectura && !eficienteAqui && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
                 {/* La línea «✋ Arrastre una fila…» (D-456) se fue (D-459): es el `title` de la cabecera de la tabla. */}

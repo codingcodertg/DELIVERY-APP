@@ -215,7 +215,8 @@ describe("el sitio de la burbuja", () => {
     expect(zDeLaBurbuja).toBe(1000);
     const gestor = leer("src/app/(app)/routes/page.tsx");
     const pegados = [...gestor.matchAll(/position: "sticky", bottom: 8, zIndex: (\d+)/g)].map((m) => Number(m[1]));
-    expect(pegados.length).toBe(3);
+    // El recuadro «Elige conductor» dejó de ser pegado (va en el flujo, debajo de la tabla): quedan dos.
+    expect(pegados.length).toBe(2);
     for (const z of pegados) expect(zDeLaBurbuja).toBeGreaterThan(z);
     expect(leer("src/components/erp/bulk-bar.tsx")).toContain('className="fixed inset-x-0 bottom-4 z-40');
     expect(zDeLaBurbuja).toBeGreaterThan(40);
