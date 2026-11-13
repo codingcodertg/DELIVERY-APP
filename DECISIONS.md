@@ -51989,3 +51989,15 @@ Sello `security` 0.27.0; repo 1.865.0.
 El dueño (12 nov): en la tarjeta de una merma sin foto, la parte de «Tomar foto / Elegir de la galería» salía grande y a media tarjeta. Ahora va ABAJO, después del historial y la línea de etapas, justo arriba de «Editar reporte · Borrar reporte · Cerrar», y los dos botones son chicos y van lado a lado. Solo en la tarjeta: en el asistente de un reporte nuevo siguen grandes. El aviso del paso dice «los botones de foto están abajo».
 
 Sello `warehouse_ops` 0.48.0; repo 1.866.0.
+
+## D-1014 · Merma de proveedor: un solo motivo «Transporte»
+
+Roberto (ayuda 88364dac, 12 nov, Operaciones → Reporte nuevo → Merma, paso «Motivo», marcando los dos transportes): «Supplier just needs one saying Transportation». Con origen «Proveedor» (D-1007) no aplican «Transporte – del cliente» ni «Transporte – entrega de la tienda».
+
+Ahora, cuando la merma viene de **Proveedor**, el paso «Motivo» ofrece: Se cayó · Flejado demasiado apretado · Montacargas · **Transporte** · Otro. Interno y Devolución de cliente siguen con los dos transportes. Lo leído así: la captura marca los dos transportes, así que se cambian por uno y los demás motivos se quedan; si el dueño quiere que con proveedor salga SOLO «Transporte», es quitar los otros de `motivosDeMerma`.
+
+- El valor es `transportation`, el motivo viejo de antes de D-919, que el `check` de la columna ya admite (269): **sin migración**. Su etiqueta pasa de «Transporte (sin especificar)» a «Transporte» (también en los 3 reportes viejos que lo traen).
+- Si se cambia el origen después de elegir motivo y ese motivo no vale para el origen nuevo, el paso queda incompleto y el asistente lo vuelve a pedir. En «Editar reporte», el selector de motivo sigue al origen y se vacía si deja de valer.
+- Regla pura `motivosDeMerma(origen)` en `src/lib/almacen-ops/pasos.ts`, con prueba.
+
+Sello `warehouse_ops` 0.49.0; repo 1.867.0.

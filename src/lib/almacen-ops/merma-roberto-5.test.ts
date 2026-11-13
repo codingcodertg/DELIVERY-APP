@@ -67,8 +67,8 @@ describe("c8256a2e: transporte del cliente o entrega de la tienda", () => {
   it("el valor viejo «transportation» ya no se elige, pero se sigue leyendo", () => {
     expect(MOTIVOS_DE_MERMA.some((o) => o.v === "transportation")).toBe(false);
     expect(MOTIVOS_VIEJOS.map((o) => o.v)).toEqual(["transportation"]);
-    expect(etiquetaDeOpcion("scrap", "reason", "transportation", "en")).toBe("Transportation (unspecified)");
-    expect(etiquetaDeOpcion("scrap", "reason", "transportation", "es")).toBe("Transporte (sin especificar)");
+    expect(etiquetaDeOpcion("scrap", "reason", "transportation", "en")).toBe("Transportation");
+    expect(etiquetaDeOpcion("scrap", "reason", "transportation", "es")).toBe("Transporte");
     expect(etiquetaDeOpcion("scrap", "reason", "transportation_delivery", "es")).toBe("Transporte – entrega de la tienda");
     expect(etiquetaDeOpcion("scrap", "reason", "basura", "en")).toBe("");
     // Un borrador viejo con «transportation» vuelve a preguntar el motivo (ya no es una opción válida).

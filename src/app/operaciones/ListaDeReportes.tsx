@@ -27,7 +27,7 @@ import { VisorDeFotos } from "./VisorDeFotos";
 import { MAX_FOTOS, avisoDeRepetida, duplicadosPorHuella, etiquetaSinFoto, fotoPendienteVencida, fotosSinHuella, iconoDeFotos, sha256Hex, sinFoto, type Repetida } from "@/lib/almacen-ops/fotos";
 import { BotonesDeFoto } from "./BotonesDeFoto";
 import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
-import { ORIGENES_DE_MERMA, TIPOS_DE_MERMA, MOTIVOS_DE_MERMA, costoDelCampo, type ProductoElegido } from "@/lib/almacen-ops/pasos";
+import { ORIGENES_DE_MERMA, TIPOS_DE_MERMA, MOTIVOS_VIEJOS, motivosDeMerma, costoDelCampo, type ProductoElegido } from "@/lib/almacen-ops/pasos";
 import { cuentaComoPerdida, perdidaDeMerma, repartoDeReporte } from "@/lib/almacen-ops/perdida";
 import { puedeCorregirMerma, puedeExportar, puedeVerReporte, veLosReportes } from "@/lib/almacen-ops/visibilidad";
 import { diaDelReporte, fmtDia, hoyEnTexas, ordenPorDia } from "@/lib/almacen-ops/fecha-del-dano";
@@ -1180,8 +1180,8 @@ function EditarReporteDeMerma({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; 
         <label>{t("Damaged", "Dañadas")}<input className="ops-campo" type="number" inputMode="numeric" value={damaged} onChange={(e) => setDamaged(e.target.value)} data-campo="editar-danadas" /></label>
         <label>{t("Sample", "Muestra")}<input className="ops-campo" type="number" inputMode="numeric" value={sample} onChange={(e) => setSample(e.target.value)} data-campo="editar-muestra" /></label>
         <label>{t("Price / piece", "Precio / pieza")}<input className="ops-campo" type="number" inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} data-campo="editar-precio" /></label>
-        <label>{t("Where from", "De dónde")}<select className="ops-campo" value={returnType} onChange={(e) => setReturnType(e.target.value)} data-campo="editar-origen">{ORIGENES_DE_MERMA.map((o) => <option key={o.v} value={o.v}>{opciones(o)}</option>)}</select></label>
-        <label>{t("Reason", "Motivo")}<select className="ops-campo" value={reason} onChange={(e) => setReason(e.target.value)} data-campo="editar-motivo"><option value="">—</option>{MOTIVOS_DE_MERMA.map((o) => <option key={o.v} value={o.v}>{opciones(o)}</option>)}</select></label>
+        <label>{t("Where from", "De dónde")}<select className="ops-campo" value={returnType} onChange={(e) => { const o = e.target.value; setReturnType(o); if (reason && !motivosDeMerma(o).some((m) => m.v === reason)) setReason(""); }} data-campo="editar-origen">{ORIGENES_DE_MERMA.map((o) => <option key={o.v} value={o.v}>{opciones(o)}</option>)}</select></label>
+        <label>{t("Reason", "Motivo")}<select className="ops-campo" value={reason} onChange={(e) => setReason(e.target.value)} data-campo="editar-motivo"><option value="">—</option>{[...motivosDeMerma(returnType), ...MOTIVOS_VIEJOS.filter((o) => o.v === reason && !motivosDeMerma(returnType).some((m) => m.v === o.v))].map((o) => <option key={o.v} value={o.v}>{opciones(o)}</option>)}</select></label>
         <label>CRMA<input className="ops-campo" value={crma} onChange={(e) => setCrma(e.target.value)} data-campo="editar-crma" /></label>
         <label>{t("Date broken", "Fecha del daño")}<input className="ops-campo" type="date" value={brokenOn} onChange={(e) => setBrokenOn(e.target.value)} data-campo="editar-fecha" /></label>
         <label className="ops-editar-ancho">{t("Comments", "Comentarios")}<input className="ops-campo" value={comments} onChange={(e) => setComments(e.target.value)} data-campo="editar-comentarios" /></label>
