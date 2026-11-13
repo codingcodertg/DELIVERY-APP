@@ -61,7 +61,9 @@ describe("«▶ Seguir» trae la foto que tomó al registrar la parada", () => {
     expect(html).toContain("data-foto-camara");
     expect(html).toContain("data-foto-galeria");
     expect(html).toContain("data-sin-recibo");
-    expect(html.match(/<button data-confirmar-recibo="true"[^>]*>/)![0]).toContain("disabled");
+    // D-548: sin foto ya se puede seguir (el recibo queda pendiente), con el aviso de que se sube después.
+    expect(html.match(/<button data-confirmar-recibo="true"[^>]*>/)![0]).not.toContain("disabled");
+    expect(html).toContain("data-recibo-despues");
   });
 });
 
@@ -77,8 +79,9 @@ describe("al registrar la parada de gasolina", () => {
 
   it("la foto se guarda al empezar, y solo en la de gasolina (la base no la admite en otra)", () => {
     expect(c).toContain("const r = await empezar({ motivo, nota, recibo_foto: pideRecibo(motivo) ? foto : null }, gps);");
-    expect(h).toContain(".insert({ driver_id: driverId, ...inicio, recibo_foto: inicio.recibo_foto ?? null, ...ubicacion })");
-    expect(h).toContain("recibo_foto: inicio.recibo_foto ?? null, recibo_monto: null");
+    expect(h).toContain("const nueva = { driver_id: driverId, ...inicio, recibo_foto: inicio.recibo_foto ?? null, ...ubicacion };");
+    expect(h).toContain(".insert(nueva)");
+    expect(h).toContain("recibo_monto: null, recibo_galones: null, sin_recibo: false");
   });
 
   it("«Seguir» le pasa al recibo la foto de la parada abierta, y el recibo usa cámara y galería", () => {
