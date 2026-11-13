@@ -1,5 +1,6 @@
 "use client";
 
+import { notaDeArrastre, planDeFechaDelRelevo } from "@/lib/relevo-fechas";
 import { puestoEn, type Numeracion } from "@/lib/mover-parada";
 import { esDeLaOrden, pideEnUnaOrden } from "@/lib/customers/abrir-trato";
 import { falloAlTomar, mensajeDelFallo, sePuedeBuscar, type OrdenParaTomar } from "@/lib/tomar-orden";
@@ -1343,7 +1344,8 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
 
       const { error } = await supabase.from("deliveries").update(patch).eq("id", id);
       if (error) {
-        if (!opts?.quiet) notify("Error: " + error.message);
+        // D-1018: lo que rechaza el guard del relevo (fechas, 302; orden, 256) se dice en claro, no como error de la base.
+        if (!opts?.quiet) notify(mensajeDelRelevo(error.message, lang) ?? "Error: " + error.message);
         return false;
       }
       setDeliveries((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
@@ -1839,6 +1841,17 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       // de Recomendaciones: un solo sitio para los dos. La función de la base (173) no lo mira.
       // Una orden para hoy (mismo día): aquí no se bloquea; lo pregunta la pantalla (`ReprogramarOrden`, `same-day`).
       if (problema) { const m = textoDelProblema(problema, me?.role); notify(lang === "es" ? m.es : m.en); return false; }
+      // D-1018: un paso de relevo nunca queda con día anterior al del paso que le precede; y si este se va más tarde que
+      // los que le siguen, esos se mueven con él (del último al primero). La base lo repite (302, `guard_relevo_fecha`).
+      if (!deshacer) {
+        const paso = deliveries.find((c) => c.id === id);
+        const plan = paso ? planDeFechaDelRelevo(paso, fecha, deliveries) : null;
+        if (plan?.bloqueo) { notify(plan.bloqueo[lang]); return false; }
+        for (const x of plan?.arrastra ?? []) {
+          if (!(await updateDelivery(x.id, { delivery_date: x.fecha }))) return false;
+          await addNote(x.id, notaDeArrastre(x.fecha, lang));
+        }
+      }
       // Si la 172 la sacó de la ruta, la devuelve con su chofer y su posición (el guard decide si este rol puede).
       // Solo en el camino de la base: el de respaldo (y el modo enseñanza) no pasa por la 172 y no le quita el chofer.
       const devuelveLaRuta = async () => {

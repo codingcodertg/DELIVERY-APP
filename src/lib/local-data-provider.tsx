@@ -1,5 +1,6 @@
 "use client";
 
+import { notaDeArrastre, planDeFechaDelRelevo } from "@/lib/relevo-fechas";
 import { puestoEn, type Numeracion } from "@/lib/mover-parada";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Ctx, type AccionDelAviso, type DataState, type OpcionesDelAviso } from "@/lib/data-provider";
@@ -625,6 +626,17 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       // Una orden para hoy (mismo día): aquí no se bloquea; lo pregunta la pantalla (`ReprogramarOrden`, `same-day`).
       const problema = deshacer ? null : problemaAlAgendar(fecha, antes, { rol: me?.role, caso });
       if (problema) { const m = textoDelProblema(problema, me?.role); notify(lang === "es" ? m.es : m.en); return false; }
+      // D-1018: la misma regla de fechas del relevo que el proveedor de verdad.
+      if (!deshacer) {
+        const todas = storeRef.current.deliveries;
+        const paso = todas.find((c) => c.id === id);
+        const plan = paso ? planDeFechaDelRelevo(paso, fecha, todas) : null;
+        if (plan?.bloqueo) { notify(plan.bloqueo[lang]); return false; }
+        for (const x of plan?.arrastra ?? []) {
+          if (!(await updateDelivery(x.id, { delivery_date: x.fecha }))) return false;
+          await addNote(x.id, notaDeArrastre(x.fecha, lang));
+        }
+      }
       const ok = await updateDelivery(id, { delivery_date: fecha });
       if (ok) await addNote(id, notaDeReprogramacion(antes, fecha, nota, lang));
       if (ok && !deshacer && caso && usaCasoEspecial(fecha, antes, { rol: me?.role, caso })) await addNote(id, notaDeDomingo(me?.full_name, caso.motivo, lang));

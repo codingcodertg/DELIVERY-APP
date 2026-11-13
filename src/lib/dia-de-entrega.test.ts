@@ -236,7 +236,9 @@ describe("todos los sitios que escriben delivery_date usan la regla", () => {
       const antesDeEscribir = cuerpo.slice(0, cuerpo.indexOf("updateDelivery(id, { delivery_date: fecha })"));
       expect(antesDeEscribir).toContain("const problema = deshacer ? null : problemaAlAgendar(fecha, antes, { rol: me?.role, caso });");
       expect(antesDeEscribir).toContain("if (problema) {");
-      expect(cuerpo.slice(0, 2000)).toContain("notaDeDomingo(me?.full_name, caso.motivo, lang)");
+      // D-1018: el cuerpo creció con la regla de fechas del relevo, que va ANTES de escribir.
+      expect(antesDeEscribir).toContain("planDeFechaDelRelevo(paso, fecha, ");
+      expect(cuerpo.slice(0, 3200)).toContain("notaDeDomingo(me?.full_name, caso.motivo, lang)");
     }
   });
   it("el Gestor (celda de fecha) y la fecha en bloque de Órdenes, sin casilla", () => {

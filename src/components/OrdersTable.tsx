@@ -95,12 +95,15 @@ export const ORDER_COLUMNS: OrderColumn[] = [
       const p = pastillaDeEtapa(d, recibidas, lang, me);
       // Una anulada lleva su motivo al lado, no escondido en la ficha: en la lista es donde se ve que
       // media tarde de órdenes se cayó por duplicadas (122).
-      const porQue = d.stage === "canceled" ? motivoDeAnulacion(d, motivos ?? [], lang) : "";
+      // D-1018: una rechazada también lleva su motivo al lado (almacén la rechaza desde D-995 y ventas tiene que ver por qué
+      // sin abrir la ficha). En una línea, recortado por CSS; entero en el `title`.
+      const rechazo = d.stage === "rejected" ? (d.rejected_reason ?? "").trim() : "";
+      const porQue = d.stage === "canceled" ? motivoDeAnulacion(d, motivos ?? [], lang) : rechazo;
       const burbuja = <span className="sema" title={p.texto} style={{ background: p.color, color: "#fff" }}>{p.texto}<IconoDeFotos p={p} /></span>;
       return (
         <>
           {celdaDeEtapa ? celdaDeEtapa(d, p, burbuja) : burbuja}
-          {porQue && <span style={{ color: "var(--gray)", marginLeft: 6, fontSize: 12 }}>{porQue}</span>}
+          {porQue && <span data-motivo-de-etapa={d.stage} className={rechazo ? "motivo-de-rechazo-en-fila" : undefined} title={rechazo || undefined} style={{ color: "var(--gray)", marginLeft: 6, fontSize: 12 }}>{porQue}</span>}
           <PastillaDeMarca m={marcas?.get(d.id)} lang={lang} />
         </>
       );
@@ -278,6 +281,10 @@ const ID_COLUMN: OrderColumn = {
               {d.store && <span className="store-tag">{d.store}</span>}
             </span>
             <span className="drv-r drv-code">ID #{orderLabel(d)} <PastillaDeRelevo d={d} lang={lang} /></span>
+            {/* D-1018: en el teléfono la rechazada dice por qué en su tarjeta (en la tabla va junto a la pastilla de etapa). */}
+            {d.stage === "rejected" && (d.rejected_reason ?? "").trim() && (
+              <span className="drv-motivo" data-motivo-de-rechazo>{lang === "es" ? "Motivo: " : "Reason: "}{(d.rejected_reason ?? "").trim()}</span>
+            )}
           </span>
         ) : (
           <>

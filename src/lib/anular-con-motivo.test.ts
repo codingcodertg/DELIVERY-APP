@@ -346,7 +346,8 @@ describe("el motivo se ve", () => {
   });
 
   it("y en la lista, al lado de la etapa", () => {
-    expect(tabla).toContain('const porQue = d.stage === "canceled" ? motivoDeAnulacion(d, motivos ?? [], lang) : "";');
+    // D-1018: la rechazada también lleva su motivo al lado (antes, cadena vacía para todo lo que no fuera anulada).
+    expect(tabla).toContain('const porQue = d.stage === "canceled" ? motivoDeAnulacion(d, motivos ?? [], lang) : rechazo;');
     expect(tabla).toContain("motivos: motivosDeAnulacion(settings)");
   });
 

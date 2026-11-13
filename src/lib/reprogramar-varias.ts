@@ -41,3 +41,18 @@ export function resumenDeReprogramarVarias(
   if (n.mismaFecha) { en.push(`${n.mismaFecha} already had that date.`); es.push(`${n.mismaFecha} ya tenían esa fecha.`); }
   return { en: en.join(" "), es: es.join(" ") };
 }
+
+/**
+ * D-1018: el orden en que se guardan las marcadas cuando entre ellas hay pasos de un relevo. Si el día se ATRASA (o se
+ * quita), primero los pasos posteriores (b antes que a); si se ADELANTA, primero los anteriores. Así cada escritura es
+ * válida por sí sola para la regla «el paso b nunca antes que el a». Lo que no es relevo conserva su orden.
+ */
+export function enOrdenDeRelevo<T extends ParaReprogramar & { relay_step?: number | null }>(pueden: readonly T[], fecha: string | null): T[] {
+  const peso = (d: T) => {
+    const n = d.relay_step ?? 0;
+    if (!n) return 0;
+    const seAtrasa = fecha === null || (d.delivery_date ?? "").slice(0, 10) < fecha;
+    return seAtrasa ? -n : n;
+  };
+  return pueden.map((d, i) => ({ d, i })).sort((x, y) => peso(x.d) - peso(y.d) || x.i - y.i).map((x) => x.d);
+}

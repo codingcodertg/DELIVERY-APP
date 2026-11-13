@@ -2203,7 +2203,7 @@ export default function RoutesPage() {
                 `${fueraDelReparto} no se reparten este día (otra fecha, sin fecha o ya en camino); sí se pueden reprogramar.`)}
             </span>
           )}
-          <ReprogramarVarias key={seleccionMarcada.map((d) => d.id).join(",")} marcadas={seleccionMarcada} rol={me?.role} meId={me?.id} lang={lang} t={t}
+          <ReprogramarVarias key={seleccionMarcada.map((d) => d.id).join(",")} marcadas={seleccionMarcada} todas={deliveries} rol={me?.role} meId={me?.id} lang={lang} t={t}
             reprogramarOrden={(id, f, nota, l) => reprogramarOrden(id, f, nota, l)} updateDelivery={updateDelivery} addNote={addNote} notify={notify}
             onListo={() => { setMarcadas(new Set()); clearSelection(); }} />
           {nRepartir === 0 && <button className="btn btn-ghost btn-sm" data-quita-seleccion onClick={() => { setMarcadas(new Set()); clearSelection(); }}>✕ {t("Clear selection", "Quitar selección")}</button>}

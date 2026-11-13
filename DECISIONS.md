@@ -52041,3 +52041,15 @@ La app Android RDZ Deliveries 9 (1.14.0) ya está en el almacenamiento (`app/RDZ
 Los tres números iguales, como pide D-638: `versionCode` 9 / `versionName` 1.14.0, `RDZDeliveries/9` y `LATEST_APK_VERSION_CODE` = 9. Misma firma que las anteriores (SHA-256 del certificado `585d3306…4928f`), así que se instala encima sin perder la sesión. Los teléfonos con una APK anterior ven el aviso «Hay una nueva versión». No se probó en un teléfono: no había ninguno conectado.
 
 Sello `deliveries` 1.608.0; repo 1.870.0.
+
+## D-1018 · Entregas (auditoría): fechas de un relevo, motivo del rechazo a la vista
+
+El dueño pidió arreglar lo que salió de la auditoría del 12 nov «y que funcione». De los hallazgos de Entregas, revisados contra el código y los datos de producción:
+
+- **Relevos — el paso b nunca antes que el a, también entre DÍAS (nuevo).** D-994 cuidaba el mismo día; reprogramar no miraba al otro paso. Regla pura `planDeFechaDelRelevo` (`src/lib/relevo-fechas.ts`): un paso con día no puede quedar antes del anterior (ni tener día si el anterior no lo tiene) mientras ese no esté entregado; y si un paso se va más tarde que los siguientes (o a «Fecha pendiente»), los siguientes que no han salido se mueven con él, con nota en su historial. La usan `reprogramarOrden` (el 📅 de la fila, Recomendaciones, «Reprogramar N») en los dos proveedores y «Reprogramar N → Fecha pendiente»; «Reprogramar N» guarda los pasos en el orden que deja cada escritura válida (`enOrdenDeRelevo`). La base lo repite con un disparador aparte (migración **302**, `guard_relevo_fecha`, al cambiar `delivery_date`), y su rechazo se dice en claro (`mensajeDelRelevo`). Hoy no hay ningún relevo vivo con las fechas cruzadas (las órdenes 1549 y 1559 que citó la auditoría no son relevos: están listas para el 13 con chofer).
+- **Rechazada por almacén (D-995) — el motivo a la vista (nuevo).** En la tabla de Órdenes va junto a la pastilla «Rechazado», en una línea (entero al pasar el cursor); en la tarjeta del teléfono, una línea «Motivo: …». Lo demás ya existía: pastilla «Rechazado» para ventas, gerente, contabilidad, admin y logística; el motivo en la ficha; «Reenviar»; y el Gestor no lista rechazadas.
+- **Vencidas — ya existía, no se duplicó.** La pastilla roja «Outdated / Atrasadas» de Órdenes (D-384/D-404/D-436) junta toda orden abierta con fecha pasada, borradores incluidos; el Gestor avisa «N expiradas · N sin fecha» con «Verlas»; «Fecha pendiente» (D-994) junta las sin día; y Órdenes ya tiene fecha, anular y entregar en bloque. No se cambia ningún dato solo.
+- **Entregada sin comprobante — ya existía.** El historial de la orden (`order_events`) guarda quién la marcó y cuándo, y «Marcar entregada ya» pide motivo obligatorio (D-361); en bloque deja la nota con el nombre de quien lo hizo.
+- **«Recogida» sin chofer — sin cambio, a decisión del dueño.** Son 7 (6 Intertienda, 1 Customer), todas marcadas por almacén o gerente desde la cola de Almacén, que entrega la mercancía al camión de otra tienda sin chofer asignado en la app. Exigir chofer en la base rompería ese camino.
+
+Sello `deliveries` 1.609.0; repo 1.871.0.
