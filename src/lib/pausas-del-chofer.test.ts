@@ -330,4 +330,25 @@ describe("la base de los recibos después (306)", () => {
     expect(cuerpo.split("\n").filter((l) => !/^\s*--/.test(l)).join("\n")).not.toMatch(/^\s*(begin|commit)\s*;/im);
     expect(sql).toMatch(/-- @ledger-below\ninsert into public\.schema_migrations \(name, checksum\) values \('306_pausas_recibo_despues\.sql', '[0-9a-f]{64}'\)/);
   });
+  it("el trigger: nunca cambian quién, por qué, nota, inicio ni alta; una abierta solo cierra entre inicio y ahora", () => {
+    expect(sql).toContain("before update on public.pausas_del_chofer");
+    expect(sql).toContain("new.driver_id is distinct from old.driver_id");
+    expect(sql).toContain("new.motivo is distinct from old.motivo");
+    expect(sql).toContain("new.nota is distinct from old.nota");
+    expect(sql).toContain("new.empezo_at is distinct from old.empezo_at");
+    expect(sql).toContain("new.created_at is distinct from old.created_at");
+    expect(sql).toContain("new.termino_at < old.empezo_at or new.termino_at > now() + interval '10 minutes'");
+  });
+  it("el trigger: una cerrada solo cambia el recibo, y la comprobación da el trigger por puesto", () => {
+    expect(sql).toContain("new.termino_at is distinct from old.termino_at");
+    expect(sql).toContain("new.sin_recibo is distinct from old.sin_recibo");
+    expect(sql).toContain("if new.recibo_foto is null then");
+    expect(sql).toContain("do $chk$");
+    expect(sql).toContain("pg_trigger where tgname = 'pausas_solo_recibo_al_cerrar'");
+  });
+  it("el cierre de una parada vieja nunca queda después de ahora", () => {
+    const ahora = new Date("2026-11-13T18:00:00.000Z");
+    expect(Date.parse(horaDeCierreDeVieja("2026-11-04T15:14:21.720Z"))).toBeLessThanOrEqual(ahora.getTime());
+    expect(Date.parse(horaDeCierreDeVieja("2026-11-12T23:50:00.000Z"))).toBeLessThanOrEqual(ahora.getTime());
+  });
 });
