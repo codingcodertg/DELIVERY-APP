@@ -97,8 +97,9 @@ describe("quién lleva la clase", () => {
     const { conResize, conFit, fitSinResize } = contenedores();
     // Sube a siete con D-730: la tabla de «Company assets» de RR. HH.
     // Sube a ocho con D-821: `TablaDeSecurity` (una pieza para las listas de Security).
-    expect(conResize).toBe(8);
-    expect(conFit).toBe(8);
+    // Sube a nueve con la lista de cotizaciones del Quote Builder (12 nov 2026): ⚙ y anchos por persona, con su marco.
+    expect(conResize).toBe(9);
+    expect(conFit).toBe(9);
     expect(fitSinResize, "un `tbl-fit` sobre una tabla que no es `tbl-resize`").toEqual([]);
   });
   it("los demás `.tbl-scroll` del repo se quedan como estaban", () => {

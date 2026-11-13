@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
+import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
+import { claveDeAnchos } from "@/lib/tabla-estandar";
+import { useVistaDeColumnas } from "@/lib/use-vista-de-columnas";
 import { CampoDecimal } from "@/components/CampoDecimal";
 import { dinero, numero } from "@/lib/estimator/modelo";
 import { TOPES_DE_TEXTO } from "@/lib/estimator/competencia";
@@ -63,6 +67,23 @@ export function TablaDeProductos({ lectura, editable, propias, t, onFila, onQuit
   lectura: LecturaDeCompetencia; editable: boolean; propias?: LineaPropia[]; t: T;
   onFila?: (id: string, patch: Partial<ProductoDeCompetencia>) => void; onQuitar?: (id: string) => void;
 }) {
+  // Columnas de la tabla estándar: ⚙ y arrastrar cabeceras, y anchos por persona (`useVistaDeColumnas`). Sin ▾: cada
+  // celda es un campo que se edita, y una fila lleva su comparación debajo; ordenar mientras se teclea movería las filas.
+  const columnas: { key: string; en: string; es: string; ancho: number }[] = [
+    { key: "descripcion", en: "Description", es: "Descripción", ancho: 220 },
+    { key: "marca", en: "Brand", es: "Marca", ancho: 120 },
+    { key: "sku", en: "SKU", es: "SKU", ancho: 110 },
+    { key: "cantidad", en: "Qty", es: "Cant.", ancho: 90 },
+    { key: "unidad", en: "Unit", es: "Unidad", ancho: 90 },
+    { key: "precio", en: "Unit price", es: "Precio unit.", ancho: 110 },
+    { key: "total", en: "Line total", es: "Total línea", ancho: 110 },
+    ...(propias ? [{ key: "nuestra", en: "Our line", es: "Nuestra línea", ancho: 160 }] : []),
+  ];
+  const claveTabla = "estimator-productos-competencia" + (propias ? "-con-propias" : "");
+  const vista = useVistaDeColumnas(claveTabla, columnas);
+  const colw = useColWidthMap(claveDeAnchos(claveTabla), 140, { minimo: 48 });
+  const extra = editable ? 1 : 0;
+
   if (!lectura.items.length) {
     return <p className="hint" data-productos-vacia>{t("No products yet.", "Todavía no hay productos.")}</p>;
   }
@@ -77,19 +98,51 @@ export function TablaDeProductos({ lectura, editable, propias, t, onFila, onQuit
       ? <CampoDecimal value={p[k]} style={{ minWidth: 80 }} data-prod={k} onValor={(v) => onFila?.(p.id, { [k]: v })} />
       : <span data-prod={k}>{p[k] === null ? "—" : k === "quantity" ? numero(p[k]!, Number.isInteger(p[k]!) ? 0 : 2) : k === "unit_price" ? precio(p[k]) : dinero(p[k]!)}</span>
   );
+  // Una celda por columna visible, en su orden.
+  const celda = (clave: string, p: ProductoDeCompetencia, propia: LineaPropia | null) => {
+    switch (clave) {
+      case "descripcion": return <td key={clave}>{txt(p, "description", TOPES_DE_LECTURA.descripcion, 180)}</td>;
+      case "marca": return <td key={clave}>{txt(p, "brand", TOPES_DE_LECTURA.marca, 90)}</td>;
+      case "sku": return <td key={clave}>{txt(p, "sku", TOPES_DE_LECTURA.sku, 90)}</td>;
+      case "cantidad": return <td key={clave}>{num(p, "quantity")}</td>;
+      case "unidad": return <td key={clave}>{txt(p, "unit", TOPES_DE_LECTURA.unidad, 60)}</td>;
+      case "precio": return <td key={clave}>{num(p, "unit_price")}</td>;
+      case "total": return <td key={clave}>{num(p, "line_total")}</td>;
+      case "nuestra": return (
+        <td key={clave}>
+          {editable ? (
+            <select value={propia?.id ?? ""} data-emparejar style={{ minWidth: 140 }}
+              onChange={(e) => onFila?.(p.id, { matched_line_id: e.target.value || null })}>
+              <option value="">{t("— not matched —", "— sin emparejar —")}</option>
+              {(propias ?? []).map((l) => <option key={l.id} value={l.id}>{l.etiqueta}</option>)}
+            </select>
+          ) : (propia?.etiqueta ?? "—")}
+        </td>
+      );
+      default: return <td key={clave} />;
+    }
+  };
   return (
     <div className="est-prod-tabla" data-productos-tabla>
-      <table>
+      <div className="tabla-estandar-barra">
+        <SelectorDeColumnas {...vista.selector} rotulo={(c) => t(c.en, c.es)}
+          titulo={t("Columns of this table", "Columnas de esta tabla")} nota={t("Saved for you on this browser.", "Se guarda para ti en este navegador.")} t={t} />
+      </div>
+      <table className="tbl-resize" style={anchoDeTabla([...vista.visibles.map((c) => colw.widthOf(c.key, c.ancho)), ...(editable ? [60] : [])])}>
+        <colgroup>
+          {vista.visibles.map((c) => <col key={c.key} style={{ width: colw.widthOf(c.key, c.ancho) }} />)}
+          {editable && <col style={{ width: 60 }} />}
+        </colgroup>
         <thead>
           <tr>
-            <th>{t("Description", "Descripción")}</th>
-            <th>{t("Brand", "Marca")}</th>
-            <th>SKU</th>
-            <th>{t("Qty", "Cant.")}</th>
-            <th>{t("Unit", "Unidad")}</th>
-            <th>{t("Unit price", "Precio unit.")}</th>
-            <th>{t("Line total", "Total línea")}</th>
-            {propias && <th>{t("Our line", "Nuestra línea")}</th>}
+            {vista.visibles.map((c) => (
+              <th key={c.key} data-col={c.key} {...vista.th(c.key)} title={t("Drag to move the column", "Arrastra para mover la columna")}>
+                {t(c.en, c.es)}
+                <span className="col-resizer" {...vista.asa}
+                  onMouseDown={colw.startResize(c.key, c.ancho)} onDoubleClick={() => colw.resetCol(c.key)}
+                  title={t("Drag to change the width; double-click to reset", "Arrastra para cambiar el ancho; doble clic para restablecer")} data-asa-de={c.key} />
+              </th>
+            ))}
             {editable && <th />}
           </tr>
         </thead>
@@ -98,31 +151,14 @@ export function TablaDeProductos({ lectura, editable, propias, t, onFila, onQuit
             const propia = propias ? lineaEmparejada(p, propias) : null;
             return [
               <tr key={p.id} data-producto={p.id}>
-                <td>{txt(p, "description", TOPES_DE_LECTURA.descripcion, 180)}</td>
-                <td>{txt(p, "brand", TOPES_DE_LECTURA.marca, 90)}</td>
-                <td>{txt(p, "sku", TOPES_DE_LECTURA.sku, 90)}</td>
-                <td>{num(p, "quantity")}</td>
-                <td>{txt(p, "unit", TOPES_DE_LECTURA.unidad, 60)}</td>
-                <td>{num(p, "unit_price")}</td>
-                <td>{num(p, "line_total")}</td>
-                {propias && (
-                  <td>
-                    {editable ? (
-                      <select value={propia?.id ?? ""} data-emparejar style={{ minWidth: 140 }}
-                        onChange={(e) => onFila?.(p.id, { matched_line_id: e.target.value || null })}>
-                        <option value="">{t("— not matched —", "— sin emparejar —")}</option>
-                        {propias.map((l) => <option key={l.id} value={l.id}>{l.etiqueta}</option>)}
-                      </select>
-                    ) : (propia?.etiqueta ?? "—")}
-                  </td>
-                )}
+                {vista.visibles.map((c) => celda(c.key, p, propia))}
                 {editable && (
                   <td><button type="button" className="btn btn-danger btn-sm" data-prod-quitar title={t("Remove row", "Quitar fila")} onClick={() => onQuitar?.(p.id)}>✕</button></td>
                 )}
               </tr>,
               propia && (
                 <tr key={`${p.id}-lado`} className="est-prod-fila-lado">
-                  <td colSpan={8 + (editable ? 1 : 0)}><LadoALado p={p} propia={propia} t={t} /></td>
+                  <td colSpan={vista.visibles.length + extra}><LadoALado p={p} propia={propia} t={t} /></td>
                 </tr>
               ),
             ];

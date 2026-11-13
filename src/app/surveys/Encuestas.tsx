@@ -12,6 +12,7 @@ import {
   tablaCsv, textosOther, type RespuestaEncuesta,
 } from "@/lib/encuestas/resumen";
 import { TarjetaQr } from "@/components/encuestas/QrDeLaEncuesta";
+import { TablaEstandar } from "@/components/TablaEstandar";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
 
@@ -297,45 +298,40 @@ export function Encuestas({ demo, tiendas }: { demo: boolean; tiendas: string[] 
                 {t("Customers who leave a phone or email to be called show up here.", "Aquí salen los clientes que dejan teléfono o correo para que los llamen.")}
               </p>
             ) : (
-              <div className="tbl-scroll">
-                <table className="orders enc-tabla" data-contactar style={etiquetas([["Date", "Fecha"], ["Store", "Tienda"], ["Name", "Nombre"], ["Phone", "Teléfono"], ["Email", "Correo"], ["Selected and rating", "Eligió y calificó"], ["Other", "Otro"], ["Note", "Nota"], ["Contacted", "Contactado"]])}>
-                  <thead>
-                    <tr>
-                      <th>{t("Date", "Fecha")}</th><th>{t("Store", "Tienda")}</th><th>{t("Name", "Nombre")}</th><th>{t("Phone", "Teléfono")}</th><th>{t("Email", "Correo")}</th>
-                      <th>{t("Selected and rating", "Eligió y calificó")}</th><th>{t("Other", "Otro")}</th><th>{t("Note", "Nota")}</th>
-                      <th>{t("Contacted", "Contactado")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {contactar.map((f) => (
-                      <tr key={f.id} className={f.contacted ? "enc-contactado" : undefined} data-estado-contacto={f.contacted ? "hecho" : "pendiente"}>
-                        <td>{fechaHora(f.created_at)}</td>
-                        <td>{f.store ?? "—"}</td>
-                        <td className={f.contact_name ? undefined : "hint"}>{nombreDeContacto(f, lang)}</td>
-                        <td>{f.contact_phone ?? "—"}</td>
-                        <td>{f.contact_email ? <a href={`mailto:${f.contact_email}`}>{f.contact_email}</a> : "—"}</td>
-                        <td style={{ whiteSpace: "normal" }}>{eleccionesDe(f, lang)}</td>
-                        <td style={{ whiteSpace: "normal" }}>{f.other_text ?? ""}</td>
-                        <td style={{ whiteSpace: "pre-wrap" }}>{f.note ?? ""}</td>
-                        <td>
-                          {f.contacted ? (
-                            <>
-                              <span>✓ {f.contacted_at ? fechaHora(f.contacted_at) : ""}</span>{" "}
-                              <button type="button" className="btn btn-ghost btn-sm" disabled={marcando === f.id} onClick={() => void marcar(f, false)}>
-                                {t("Undo", "Deshacer")}
-                              </button>
-                            </>
-                          ) : (
-                            <button type="button" className="btn btn-green btn-sm" data-marcar={f.id} disabled={marcando === f.id} onClick={() => void marcar(f, true)}>
-                              {t("Mark contacted", "Marcar contactado")}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <TablaEstandar
+                id="encuestas-contactar"
+                data-tabla="encuestas-contactar"
+                claseTabla="enc-tabla"
+                estiloTabla={etiquetas([["Date", "Fecha"], ["Store", "Tienda"], ["Name", "Nombre"], ["Phone", "Teléfono"], ["Email", "Correo"], ["Selected and rating", "Eligió y calificó"], ["Other", "Otro"], ["Note", "Nota"], ["Contacted", "Contactado"]])}
+                filas={contactar}
+                claveDe={(f) => f.id}
+                claseDeFila={(f) => (f.contacted ? "enc-contactado" : "enc-sin-contactar")}
+                vacio={t("Nobody has asked yet.", "Nadie lo ha pedido todavía.")}
+                columnas={[
+                  { key: "fecha", en: "Date", es: "Fecha", ancho: 150, valor: (f) => f.created_at, celda: (f) => fechaHora(f.created_at) },
+                  { key: "tienda", en: "Store", es: "Tienda", ancho: 130, valor: (f) => f.store ?? null },
+                  { key: "nombre", en: "Name", es: "Nombre", ancho: 160, valor: (f) => nombreDeContacto(f, lang), celda: (f) => <span className={f.contact_name ? undefined : "hint"}>{nombreDeContacto(f, lang)}</span> },
+                  { key: "telefono", en: "Phone", es: "Teléfono", ancho: 130, valor: (f) => f.contact_phone },
+                  { key: "correo", en: "Email", es: "Correo", ancho: 200, valor: (f) => f.contact_email, celda: (f) => (f.contact_email ? <a href={`mailto:${f.contact_email}`}>{f.contact_email}</a> : "—") },
+                  { key: "eligio", en: "Selected and rating", es: "Eligió y calificó", ancho: 220, envuelve: true, valor: (f) => eleccionesDe(f, lang) },
+                  { key: "otro", en: "Other", es: "Otro", ancho: 160, envuelve: true, valor: (f) => f.other_text },
+                  { key: "nota", en: "Note", es: "Nota", ancho: 220, envuelve: true, valor: (f) => f.note },
+                  { key: "contactado", en: "Contacted", es: "Contactado", ancho: 200,
+                    valor: (f) => (f.contacted ? t("Contacted", "Contactado") : t("Pending", "Pendiente")),
+                    celda: (f) => (f.contacted ? (
+                      <>
+                        <span>✓ {f.contacted_at ? fechaHora(f.contacted_at) : ""}</span>{" "}
+                        <button type="button" className="btn btn-ghost btn-sm" disabled={marcando === f.id} onClick={() => void marcar(f, false)}>
+                          {t("Undo", "Deshacer")}
+                        </button>
+                      </>
+                    ) : (
+                      <button type="button" className="btn btn-green btn-sm" data-marcar={f.id} disabled={marcando === f.id} onClick={() => void marcar(f, true)}>
+                        {t("Mark contacted", "Marcar contactado")}
+                      </button>
+                    )) },
+                ]}
+              />
             )}
           </div>
 
@@ -354,29 +350,27 @@ export function Encuestas({ demo, tiendas }: { demo: boolean; tiendas: string[] 
                   : t("Nobody has answered the survey yet.", "Nadie ha contestado la encuesta todavía.")}
               </p>
             ) : (
-              <div className="tbl-scroll">
-                <table className="orders enc-tabla" data-todas style={etiquetas([["Date", "Fecha"], ["Store", "Tienda"], ["Selected and rating", "Eligió y calificó"], ["Other", "Otro"], ["Note", "Nota"], ["Contact", "Contacto"], ["Contacted", "Contactado"]])}>
-                  <thead>
-                    <tr>
-                      <th>{t("Date", "Fecha")}</th><th>{t("Store", "Tienda")}</th><th>{t("Selected and rating", "Eligió y calificó")}</th><th>{t("Other", "Otro")}</th>
-                      <th>{t("Note", "Nota")}</th><th>{t("Contact", "Contacto")}</th><th>{t("Contacted", "Contactado")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visibles.map((f) => (
-                      <tr key={f.id}>
-                        <td>{fechaHora(f.created_at)}</td>
-                        <td>{f.store ?? "—"}</td>
-                        <td style={{ whiteSpace: "normal" }}>{eleccionesDe(f, lang)}</td>
-                        <td style={{ whiteSpace: "normal" }}>{f.other_text ?? ""}</td>
-                        <td style={{ whiteSpace: "pre-wrap" }}>{f.note ?? ""}</td>
-                        <td>{f.wants_contact ? [nombreDeContacto(f, lang), f.contact_phone, f.contact_email].filter(Boolean).join(" · ") : t("No", "No")}</td>
-                        <td data-estado-contacto={f.wants_contact ? (f.contacted ? "hecho" : "pendiente") : undefined}>{f.wants_contact ? (f.contacted ? "✓" : t("Pending", "Pendiente")) : ""}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <TablaEstandar
+                id="encuestas-todas"
+                data-tabla="encuestas-todas"
+                claseTabla="enc-tabla"
+                estiloTabla={etiquetas([["Date", "Fecha"], ["Store", "Tienda"], ["Selected and rating", "Eligió y calificó"], ["Other", "Otro"], ["Note", "Nota"], ["Contact", "Contacto"], ["Contacted", "Contactado"]])}
+                filas={visibles}
+                claveDe={(f) => f.id}
+                claseDeFila={(f) => (f.wants_contact ? (f.contacted ? "enc-hecho" : "enc-pendiente") : undefined)}
+                vacio={t("No responses in this range.", "Sin respuestas en este rango.")}
+                columnas={[
+                  { key: "fecha", en: "Date", es: "Fecha", ancho: 150, valor: (f) => f.created_at, celda: (f) => fechaHora(f.created_at) },
+                  { key: "tienda", en: "Store", es: "Tienda", ancho: 130, valor: (f) => f.store ?? null },
+                  { key: "eligio", en: "Selected and rating", es: "Eligió y calificó", ancho: 220, envuelve: true, valor: (f) => eleccionesDe(f, lang) },
+                  { key: "otro", en: "Other", es: "Otro", ancho: 160, envuelve: true, valor: (f) => f.other_text },
+                  { key: "nota", en: "Note", es: "Nota", ancho: 220, envuelve: true, valor: (f) => f.note },
+                  { key: "contacto", en: "Contact", es: "Contacto", ancho: 260, valor: (f) => (f.wants_contact ? [nombreDeContacto(f, lang), f.contact_phone, f.contact_email].filter(Boolean).join(" · ") : t("No", "No")) },
+                  { key: "contactado", en: "Contacted", es: "Contactado", ancho: 130,
+                    valor: (f) => (f.wants_contact ? (f.contacted ? "✓" : t("Pending", "Pendiente")) : null),
+                    celda: (f) => (f.wants_contact ? (f.contacted ? "✓" : t("Pending", "Pendiente")) : "") },
+                ]}
+              />
             )}
           </div>
         </>

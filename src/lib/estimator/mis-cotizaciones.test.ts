@@ -202,8 +202,8 @@ describe("la pantalla", () => {
     expect(pestana).toContain("const e = await competencia.listarTodos(subidoPorDelAlcance(alcance));");
     expect(pestana).toContain("(alcance ? columnasDeLaLista(alcance) : []).map((c) => (");
     expect(pestana).toContain("const orden = useOrdenYFiltro(filas, valorDe, ORDEN_INICIAL);");
-    expect(pestana).toContain("{todas && <td data-cotizacion-vendedor>");
-    expect(pestana).toContain('<td style={{ textAlign: "right" }} data-cotizacion-sf>{c.sf > 0 ? numero(c.sf, 2) : "—"}</td>');
+    expect(pestana).toContain('case "vendedor": return <td key={clave} data-cotizacion-vendedor>');
+    expect(pestana).toContain('<td key={clave} style={{ textAlign: "right" }} data-cotizacion-sf>{c.sf > 0 ? numero(c.sf, 2) : "—"}</td>');
   });
   it("la pestaña del Estimador se ofrece con puedeVerLista, con su nombre por rol, y se monta de nuevo al cambiar de persona", () => {
     expect(pantalla).toContain("{puedeVerLista(me) && (");

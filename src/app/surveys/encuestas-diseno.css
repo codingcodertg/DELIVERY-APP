@@ -81,12 +81,12 @@
 /* ---- Tablas: filas bajas, alternas, hover, fecha pegada a la izquierda (desde tablet; en el teléfono, tarjetas) ---- */
 .encuestas-app .enc-tabla .btn-sm { padding: 2px 8px; font-size: 11.5px; line-height: 1.3; }
 /* Estado de contacto: un punto de su color delante (ámbar pendiente, verde hecho). */
-.encuestas-app td[data-estado-contacto]::before,
-.encuestas-app [data-contactar] tr[data-estado-contacto] td:last-child::before {
+.encuestas-app [data-tabla="encuestas-contactar"] tr.enc-sin-contactar td:last-child::before,
+.encuestas-app [data-tabla="encuestas-todas"] tr.enc-pendiente td:last-child::before {
   content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; vertical-align: 1px; background: var(--amber);
 }
-.encuestas-app td[data-estado-contacto="hecho"]::before,
-.encuestas-app [data-contactar] tr[data-estado-contacto="hecho"] td:last-child::before { background: var(--green); }
+.encuestas-app [data-tabla="encuestas-contactar"] tr.enc-contactado td:last-child::before,
+.encuestas-app [data-tabla="encuestas-todas"] tr.enc-hecho td:last-child::before { background: var(--green); }
 
 @media (min-width: 641px) {
   .encuestas-app .enc-tabla { font-size: 12.5px; min-width: 760px; }
@@ -98,10 +98,9 @@
   .encuestas-app .enc-tabla th:first-child { z-index: 2; background: var(--paper); }
   .encuestas-app .enc-tabla tbody tr:nth-child(even) td:first-child { background: color-mix(in srgb, var(--paper) 60%, var(--card)); }
   .encuestas-app .enc-tabla tbody tr:hover td:first-child { background: var(--card-hover); }
-  .encuestas-app [data-contactar] tr[data-estado-contacto="pendiente"] td:first-child { box-shadow: inset 3px 0 0 var(--amber), inset -1px 0 0 var(--line); }
+  .encuestas-app [data-tabla="encuestas-contactar"] tr.enc-sin-contactar td:first-child { box-shadow: inset 3px 0 0 var(--amber), inset -1px 0 0 var(--line); }
   /* Las notas largas no se aprietan en una columna de tres palabras. */
-  .encuestas-app .enc-tabla td[style*="pre-wrap"] { min-width: 180px; max-width: 320px; }
-  .encuestas-app .enc-tabla td[style*="normal"] { min-width: 150px; }
+  .encuestas-app .enc-tabla td.celda-suelta { min-width: 150px; max-width: 320px; }
 }
 
 /* ---- Tablet ---- */
@@ -126,33 +125,33 @@
   .encuestas-app .kpi span { white-space: normal; font-size: 11.5px; line-height: 1.25; }
 
   .encuestas-app .tbl-scroll:has(.enc-tabla) { border: 0; background: none; overflow: visible; }
-  .encuestas-app .enc-tabla { display: block; min-width: 0; }
+  .encuestas-app .enc-tabla { display: block; min-width: 0; width: 100% !important; }
   .encuestas-app .enc-tabla thead { display: none; }
   .encuestas-app .enc-tabla tbody { display: block; }
   .encuestas-app .enc-tabla tr {
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2px 10px;
     padding: 8px 10px; margin-bottom: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--card);
   }
-  .encuestas-app [data-contactar] tr[data-estado-contacto="pendiente"] { box-shadow: inset 3px 0 0 var(--amber); }
-  .encuestas-app .enc-tabla td { display: block; padding: 0; border: 0; white-space: normal; overflow-wrap: anywhere; font-size: 13px; grid-column: 1 / -1; }
+  .encuestas-app [data-tabla="encuestas-contactar"] tr.enc-sin-contactar { box-shadow: inset 3px 0 0 var(--amber); }
+  .encuestas-app .enc-tabla td { display: block; padding: 0; border: 0; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; font-size: 13px; grid-column: 1 / -1; }
   .encuestas-app .enc-tabla td:empty { display: none; }
   .encuestas-app .enc-tabla td:nth-child(1) { grid-column: 1; font-weight: 700; }
   .encuestas-app .enc-tabla td:nth-child(2) { grid-column: 2; text-align: right; color: var(--ink-soft); }
-  .encuestas-app [data-contactar] td:nth-child(3) { grid-column: 1; }
-  .encuestas-app [data-contactar] td:nth-child(4) { grid-column: 2; text-align: right; }
+  .encuestas-app [data-tabla="encuestas-contactar"] td:nth-child(3) { grid-column: 1; }
+  .encuestas-app [data-tabla="encuestas-contactar"] td:nth-child(4) { grid-column: 2; text-align: right; }
   /* La etiqueta de cada celda larga, de las variables que la tabla trae en su idioma. */
-  .encuestas-app [data-todas] td:nth-child(n+3)::before,
-  .encuestas-app [data-contactar] td:nth-child(n+6)::before {
+  .encuestas-app [data-tabla="encuestas-todas"] td:nth-child(n+3)::before,
+  .encuestas-app [data-tabla="encuestas-contactar"] td:nth-child(n+6)::before {
     display: block; font-size: 11px; font-weight: 600; color: var(--gray); margin: 2px 0 0;
   }
-  .encuestas-app [data-todas] td:nth-child(3)::before { content: var(--enc-l3); }
-  .encuestas-app [data-todas] td:nth-child(4)::before { content: var(--enc-l4); }
-  .encuestas-app [data-todas] td:nth-child(5)::before { content: var(--enc-l5); }
-  .encuestas-app [data-todas] td:nth-child(6)::before { content: var(--enc-l6); }
-  .encuestas-app [data-contactar] td:nth-child(6)::before { content: var(--enc-l6); }
-  .encuestas-app [data-contactar] td:nth-child(7)::before { content: var(--enc-l7); }
-  .encuestas-app [data-contactar] td:nth-child(8)::before { content: var(--enc-l8); }
+  .encuestas-app [data-tabla="encuestas-todas"] td:nth-child(3)::before { content: var(--enc-l3); }
+  .encuestas-app [data-tabla="encuestas-todas"] td:nth-child(4)::before { content: var(--enc-l4); }
+  .encuestas-app [data-tabla="encuestas-todas"] td:nth-child(5)::before { content: var(--enc-l5); }
+  .encuestas-app [data-tabla="encuestas-todas"] td:nth-child(6)::before { content: var(--enc-l6); }
+  .encuestas-app [data-tabla="encuestas-contactar"] td:nth-child(6)::before { content: var(--enc-l6); }
+  .encuestas-app [data-tabla="encuestas-contactar"] td:nth-child(7)::before { content: var(--enc-l7); }
+  .encuestas-app [data-tabla="encuestas-contactar"] td:nth-child(8)::before { content: var(--enc-l8); }
   .encuestas-app .enc-tabla td:last-child { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
   .encuestas-app .enc-tabla td:last-child .btn-sm { min-height: 44px; padding: 8px 14px; font-size: 13px; flex: 1 1 140px; }
-  .encuestas-app [data-todas] td[data-estado-contacto] { margin-top: 0; }
+  .encuestas-app [data-tabla="encuestas-todas"] td:last-child { margin-top: 0; }
 }

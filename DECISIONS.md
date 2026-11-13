@@ -52146,3 +52146,11 @@ Merma en el teléfono: la fila de etapas es una sola línea que se desliza, no c
 Encabezados numéricos de la tabla por tienda alineados a la derecha (`th.num`).
 Visto en pantalla (demo local, 390 y 1280 px) en /operaciones/reportes y /operaciones/nuevo/scrap: los seis cambios se ven como se pidieron.
 Sello `warehouse_ops` 0.53.0; repo 1.878.0.
+
+## D-1026 · Tablas estándar: RR. HH., Encuestas y Quote Builder
+
+Las tablas que faltaban por el estándar de Órdenes pasan a `TablaEstandar` o completan su marcado con `useVistaDeColumnas`: el historial de RR. HH., las tablas de tiempo del expediente, las tres de Métricas de RR. HH., las dos de Encuestas, la lista de cotizaciones y los productos de la competencia del Quote Builder. Se cambia solo el marcado de la tabla: consultas, cifras, exportaciones, permisos y hojas impresas no cambian.
+Exentas con su porqué: la matriz «Comparar candidatos» de `ModalHost.tsx` (atributo × candidato). Los productos de la competencia tienen ⚙, mover y anchos, pero no ▾: cada celda es un campo que se edita.
+En Encuestas, el teléfono sigue viendo tarjetas; la prueba de «Teléfono» baja de 14 a 13 porque una cabecera pasó a la definición de columnas, con el mismo texto.
+Visto en pantalla (demo local): ▾ y ⚙ en Métricas y Encuestas; sin desborde horizontal de la página en 390 px.
+Sello `recruiting` 0.92.0; `surveys` 0.11.0; `estimator` 0.32.0; repo 1.879.0.
