@@ -1,5 +1,7 @@
 "use client";
 
+import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
+import { useVistaDeColumnas } from "@/lib/use-vista-de-columnas";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/recruiting-data-provider";
@@ -113,7 +115,10 @@ function AssetsPageReal() {
   }, [lang]);
   const orden = useOrdenYFiltro(visibles, valorDe);
   const colw = useColWidthMap("rrhh-activos-anchos", 140, { minimo: 60 });
-  const columnas = COLUMNAS.filter((c) => vista === "phone" ? c.key !== "plan" && c.key !== "cost_year" : c.key !== "ext" && c.key !== "phone_type");
+  const columnas = useMemo(() => COLUMNAS.filter((c) => vista === "phone" ? c.key !== "plan" && c.key !== "cost_year" : c.key !== "ext" && c.key !== "phone_type"), [vista]);
+  // Estándar de tablas (docs/ESTANDAR-DE-TABLAS.md): ⚙ Columnas y arrastrar la cabecera, por persona y por vista.
+  const vistaCols = useVistaDeColumnas(`rrhh-activos-${vista}`, columnas, orden.cerrar);
+  const cols = vistaCols.visibles;
   const ancho = (c: { key: string; ancho: number }) => colw.widthOf(c.key, c.ancho);
   const activas = personas.filter((p) => !p.date_left);
   const vistaPersonas = useMemo(() => porPersona(rows, activas), [rows, activas]);
@@ -188,19 +193,23 @@ function AssetsPageReal() {
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", margin: "6px 0" }}>
               <FiltrosPuestos estado={orden} columnas={columnas} lang={lang} t={t} />
+              <span style={{ marginLeft: "auto" }}>
+                <SelectorDeColumnas {...vistaCols.selector} rotulo={(c) => (lang === "es" ? c.es : c.en)}
+                  titulo={t("Columns of this table", "Columnas de esta tabla")} nota={t("Saved for you on this browser.", "Se guarda para ti en este navegador.")} t={t} />
+              </span>
             </div>
             <div className="tbl-scroll tbl-fit tbl-caja">
-              <table className="orders tbl-resize" style={anchoDeTabla([...columnas.map(ancho), 230])} data-tabla-de-activos={vista}>
+              <table className="orders tbl-resize" style={anchoDeTabla([...cols.map(ancho), 230])} data-tabla-de-activos={vista}>
                 <colgroup>
-                  {columnas.map((c) => <col key={c.key} style={{ width: ancho(c) }} />)}
+                  {cols.map((c) => <col key={c.key} style={{ width: ancho(c) }} />)}
                   <col style={{ width: 230 }} />
                 </colgroup>
                 <thead>
                   <tr>
-                    {columnas.map((c) => (
-                      <th key={c.key}>
+                    {cols.map((c) => (
+                      <th key={c.key} {...vistaCols.th(c.key)}>
                         <CabeceraConMenu estado={orden} col={c} lang={lang} t={t} />
-                        <span className="col-resizer" onMouseDown={colw.startResize(c.key, c.ancho)} onDoubleClick={() => colw.resetCol(c.key)} data-asa-de={c.key} />
+                        <span className="col-resizer" {...vistaCols.asa} onMouseDown={colw.startResize(c.key, c.ancho)} onDoubleClick={() => colw.resetCol(c.key)} data-asa-de={c.key} />
                       </th>
                     ))}
                     <th />
@@ -208,12 +217,12 @@ function AssetsPageReal() {
                 </thead>
                 <tbody>
                   {orden.visibles.length === 0 && (
-                    <tr><td colSpan={columnas.length + 1} className="hint">{t("Nothing here.", "Nada por aquí.")}</td></tr>
+                    <tr><td colSpan={cols.length + 1} className="hint">{t("Nothing here.", "Nada por aquí.")}</td></tr>
                   )}
                   {orden.visibles.map((a) => (
                     <tr key={a.id} data-activo={a.id} data-abre-detalle onClick={() => setDetalleId(a.id)} style={{ cursor: "pointer" }}
                       title={t("Open details and history", "Abrir detalle e historial")}>
-                      {columnas.map((c) => (
+                      {cols.map((c) => (
                         <td key={c.key} style={c.key === "value" ? { fontWeight: 700 } : undefined}>
                           {c.key === "status" ? <InsigniaDeEstado estado={a.status} lang={lang} />
                             : c.key === "cost_year" ? (a.cost_year != null ? `$${a.cost_year.toFixed(2)}` : "—")
@@ -421,4 +430,4 @@ function AsignarActivo({ activo, personas, busy, onClose, onAssign }: {
     </div>
   );
 }
-
+

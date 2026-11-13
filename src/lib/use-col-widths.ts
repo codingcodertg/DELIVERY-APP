@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 // Excel-style resizable table columns. Keeps a width per column (persisted per
 // table in localStorage) and hands back a mousedown handler for a drag handle
@@ -117,10 +117,13 @@ export interface OpcionesDeAncho { deLaPersona?: Record<string, number> | null; 
 
 export function useColWidthMap(storageKey: string, defaultWidth = 150, opciones: OpcionesDeAncho = {}) {
   const minimo = opciones.minimo ?? 16;
-  const [widths, setWidths] = useState<Record<string, number>>(() => {
-    try { const raw = localStorage.getItem(storageKey); if (raw) return JSON.parse(raw); } catch { /* ignore */ }
-    return {};
-  });
+  // Los anchos guardados se leen DESPUÉS de montar (y antes de pintar), no en el estado inicial: cuando el servidor ya
+  // pintó la tabla, React no corrige los `style` del HTML del servidor aunque el estado del cliente traiga otros, y el
+  // ancho guardado no se aplicaba al recargar (visto en Central Hub Monitoring, 12 nov 2026).
+  const [widths, setWidths] = useState<Record<string, number>>({});
+  useLayoutEffect(() => {
+    try { const raw = localStorage.getItem(storageKey); if (raw) setWidths(JSON.parse(raw)); } catch { /* ignore */ }
+  }, [storageKey]);
   // Lo último pintado, para avisar al soltar sin meter un efecto dentro de un `setState`.
   const ultimos = useRef(widths);
   ultimos.current = widths;

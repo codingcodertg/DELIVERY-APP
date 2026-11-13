@@ -1,5 +1,6 @@
 "use client";
 
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion-hook";
 import { contextoDeLeads } from "@/lib/ayuda-contextos";
 import Link from "next/link";
@@ -846,23 +847,23 @@ function Admin({ leads, tope, almacen, tarjeta, demo, onTope }: {
       <div className="card" data-bloque="vendedores">
         <h2>👥 {t("By salesperson", "Por vendedor")}</h2>
         {vendedores.length === 0 ? <p className="hint">{t("Nobody has taken a lead yet.", "Nadie ha tomado un lead todavía.")}</p> : (
-          <div className="tbl-scroll">
-            <table className="orders" data-por-vendedor>
-              <thead><tr><th>{t("Salesperson", "Vendedor")}</th><th data-numero>{t("Open", "Abiertos")}</th><th data-numero>{t("Closed", "Cerrados")}</th><th data-numero>{t("Sales", "Ventas")}</th></tr></thead>
-              <tbody>{vendedores.map((v) => <tr key={v.id}><td>{v.nombre}</td><td data-numero>{v.abiertos}</td><td data-numero>{v.cerrados}</td><td data-numero>{v.ventas}</td></tr>)}</tbody>
-            </table>
-          </div>
+          <TablaEstandar id="leads-por-vendedor" data-tabla="por-vendedor" sinCaja filas={vendedores} claveDe={(v) => String(v.id)} columnas={[
+            { key: "nombre", en: "Salesperson", es: "Vendedor", ancho: 220, fija: true, valor: (v) => v.nombre },
+            { key: "abiertos", en: "Open", es: "Abiertos", ancho: 110, numerico: true, valor: (v) => v.abiertos },
+            { key: "cerrados", en: "Closed", es: "Cerrados", ancho: 110, numerico: true, valor: (v) => v.cerrados },
+            { key: "ventas", en: "Sales", es: "Ventas", ancho: 110, numerico: true, valor: (v) => v.ventas },
+          ]} />
         )}
       </div>
 
       <div className="card" data-bloque="pools">
         <h2>🏬 {t("By GOV Pool", "Por GOV Pool")}</h2>
-        <div className="tbl-scroll">
-          <table className="orders" data-por-pool>
-            <thead><tr><th>{t("GOV Pool", "GOV Pool")}</th><th data-numero>{t("Free", "Libres")}</th><th data-numero>{t("Taken", "Tomados")}</th><th data-numero>Total</th></tr></thead>
-            <tbody>{poolsDe(leads).map((p) => <tr key={p.pool}><td>{poolLabel(p.pool, lang)}</td><td data-numero>{p.libres}</td><td data-numero>{p.tomados}</td><td data-numero>{p.total}</td></tr>)}</tbody>
-          </table>
-        </div>
+        <TablaEstandar id="leads-por-pool" data-tabla="por-pool" sinCaja filas={poolsDe(leads)} claveDe={(p) => String(p.pool)} columnas={[
+          { key: "pool", en: "GOV Pool", es: "GOV Pool", ancho: 220, fija: true, valor: (p) => poolLabel(p.pool, lang) },
+          { key: "libres", en: "Free", es: "Libres", ancho: 110, numerico: true, valor: (p) => p.libres },
+          { key: "tomados", en: "Taken", es: "Tomados", ancho: 110, numerico: true, valor: (p) => p.tomados },
+          { key: "total", en: "Total", es: "Total", ancho: 110, numerico: true, valor: (p) => p.total },
+        ]} />
       </div>
 
       <div className="card ld-ancho-total" data-bloque="sin-tocar">

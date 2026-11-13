@@ -1,8 +1,10 @@
 "use client";
 
+import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
+import { useVistaDeColumnas } from "@/lib/use-vista-de-columnas";
 import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion-hook";
 import { contextoDeExpedientes } from "@/lib/ayuda-contextos";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Fragment, Suspense, useCallback, useEffect, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { useData } from "@/lib/recruiting-data-provider";
@@ -154,6 +156,9 @@ function EmployeeFilesPageReal() {
   }, (en, es) => (lang === "es" ? es : en)), [con159, lang]);
   const orden = useOrdenYFiltro(visibles, valorDe);
   const colw = useColWidthMap("rrhh-empleados-anchos", 130, { minimo: 60 });
+  // Estándar de tablas (docs/ESTANDAR-DE-TABLAS.md): ⚙ Columnas y arrastrar la cabecera, por persona.
+  const vistaCols = useVistaDeColumnas("rrhh-empleados", COLUMNAS_DE_EMPLEADOS, orden.cerrar);
+  const cols = vistaCols.visibles;
   const ancho = (c: { key: string; ancho: number }) => colw.widthOf(c.key, c.ancho);
   const exporta = (como: "csv" | "excel") => {
     const tabla = tablaParaExportar(COLUMNAS_DE_EMPLEADOS, orden.visibles, valorDe, lang);
@@ -255,20 +260,24 @@ function EmployeeFilesPageReal() {
           <>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", margin: "6px 0" }}>
             <FiltrosPuestos estado={orden} columnas={COLUMNAS_DE_EMPLEADOS} lang={lang} t={t} />
+            <span style={{ marginLeft: "auto" }}>
+              <SelectorDeColumnas {...vistaCols.selector} rotulo={(c) => (lang === "es" ? c.es : c.en)}
+                titulo={t("Columns of this table", "Columnas de esta tabla")} nota={t("Saved for you on this browser.", "Se guarda para ti en este navegador.")} t={t} />
+            </span>
           </div>
           {/* D-725: la tabla con las clases de la de Órdenes (`orders`: cabecera pegada, filas, tipografía) y su caja. */}
           <div className="tbl-scroll tbl-fit tbl-caja">
-          <table className="orders tbl-resize" style={anchoDeTabla([...COLUMNAS_DE_EMPLEADOS.map(ancho), 170])} data-tabla-de-empleados>
+          <table className="orders tbl-resize" style={anchoDeTabla([...cols.map(ancho), 170])} data-tabla-de-empleados>
             <colgroup>
-              {COLUMNAS_DE_EMPLEADOS.map((c) => <col key={c.key} style={{ width: ancho(c) }} />)}
+              {cols.map((c) => <col key={c.key} style={{ width: ancho(c) }} />)}
               <col style={{ width: 170 }} />
             </colgroup>
             <thead>
               <tr>
-                {COLUMNAS_DE_EMPLEADOS.map((c) => (
-                  <th key={c.key}>
+                {cols.map((c) => (
+                  <th key={c.key} {...vistaCols.th(c.key)}>
                     <CabeceraConMenu estado={orden} col={c} lang={lang} t={t} />
-                    <span className="col-resizer" onMouseDown={colw.startResize(c.key, c.ancho)} onDoubleClick={() => colw.resetCol(c.key)}
+                    <span className="col-resizer" {...vistaCols.asa} onMouseDown={colw.startResize(c.key, c.ancho)} onDoubleClick={() => colw.resetCol(c.key)}
                       title={t("Drag to change the width; double-click to reset", "Arrastra para cambiar el ancho; doble clic para restablecer")} data-asa-de={c.key} />
                   </th>
                 ))}
@@ -277,7 +286,7 @@ function EmployeeFilesPageReal() {
             </thead>
             <tbody>
               {orden.visibles.length === 0 && (
-                <tr><td colSpan={COLUMNAS_DE_EMPLEADOS.length + 1} className="hint">{t("Nobody matches these column filters.", "Nadie coincide con los filtros de columna.")}</td></tr>
+                <tr><td colSpan={cols.length + 1} className="hint">{t("Nobody matches these column filters.", "Nadie coincide con los filtros de columna.")}</td></tr>
               )}
               {orden.visibles.map((r) => {
                 const pend = faltan(r);
@@ -290,6 +299,10 @@ function EmployeeFilesPageReal() {
                     aria-label={t("Open file of ", "Abrir expediente de ") + r.full_name}
                     onClick={() => setAbierto(r.id)}
                     onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setAbierto(r.id); } }}>
+                    {(() => {
+                      // Estándar de tablas: cada celda por su clave, para pintar solo las columnas que la persona ve y en su orden.
+                      const celdas: Record<string, ReactNode> = {
+                        full_name: (
                     <td style={{ fontWeight: 700 }} title={r.full_name}>
                       {r.full_name}
                       {deBaja && (
@@ -308,13 +321,29 @@ function EmployeeFilesPageReal() {
                         </span>
                       )}
                     </td>
+                        ),
+                        job_title: (
                     <td>{r.job_title || "—"}</td>
+                        ),
+                        department: (
                     <td>{nombreDeDepartamento(r.department, lang) || "—"}</td>
+                        ),
+                        store: (
                     <td>{tiendaVisible(r) || "—"}</td>
+                        ),
+                        phone: (
                     <td>{telefonoDeFicha(r.phone) || "—"}</td>
+                        ),
+                        ringcentral_ext: (
                     <td>{r.ringcentral_ext || "—"}</td>
+                        ),
+                        date_hired: (
                     <td>{r.date_hired || "—"}</td>
+                        ),
+                        date_left: (
                     <td>{r.date_left || "—"}</td>
+                        ),
+                        cuenta: (
                     <td>
                       {tieneUsuario(r) ? (
                         <span className="badge" data-insignia="usuario" style={{ background: "var(--tint-green)", color: "var(--green)" }}>
@@ -322,6 +351,8 @@ function EmployeeFilesPageReal() {
                         </span>
                       ) : <span className="hint" style={{ marginTop: 0 }}>{t("No user", "Sin usuario")}</span>}
                     </td>
+                        ),
+                        expediente: (
                     <td>
                       {/* Qué campos le faltan a la ficha, no cuántos tiene: es lo único que se viene a buscar. */}
                       {sinLlenar.length === 0 ? (
@@ -339,6 +370,8 @@ function EmployeeFilesPageReal() {
                         </button>
                       )}
                     </td>
+                        ),
+                        papeles: (
                     <td>
                       {/* Lo que FALTA, no lo que hay: un expediente completo no hace falta
                           mirarlo, y listar los cinco papeles presentes escondería el que no
@@ -357,6 +390,11 @@ function EmployeeFilesPageReal() {
                         </span>
                       )}
                     </td>
+
+                        ),
+                      };
+                      return cols.map((c) => <Fragment key={c.key}>{celdas[c.key]}</Fragment>);
+                    })()}
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                       {/* D-705: «Dar de baja» y «Reactivar» ya no están en la fila: se dan desde dentro del expediente.
                           D-720: «Crear usuario» tampoco: es «Permisos», dentro del expediente. */}

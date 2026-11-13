@@ -441,7 +441,8 @@ describe("11 · la pantalla usa las reglas probadas", () => {
     expect(p).toContain("const cola = colaDeRevision(leads);");
     expect(p).toContain("const vendedores = tableroPorVendedor(leads, cierres);");
     expect(p).toContain("const viejos = sinTocar(leads, dias, new Date());");
-    expect(p).toContain("poolsDe(leads).map((p) =>");
+    // Desde el estándar de tablas (12 nov 2026) los pools van en una `TablaEstandar`.
+    expect(p).toContain("filas={poolsDe(leads)}");
   });
   it("sin la 162 lo dice, tiene cómo volver al hub, y los enlaces son maps, tel y TDLR", () => {
     expect(p).toContain('r.sinTabla ? { tipo: "sinTabla" }');

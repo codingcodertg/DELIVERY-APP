@@ -260,6 +260,15 @@ reutilizar sus piezas: `page-head` con el título y su `count-tag`, `BuscadorCon
 `table.orders tbl-resize` dentro de `.tbl-scroll.tbl-fit.tbl-caja`, y Excel/CSV con lo que se ve. Ancho fluido:
 la tabla ocupa la pantalla entera, no un contenedor estrecho. No se inventa otra forma de tabla.
 
+**Tablas: el estándar es el de Órdenes** (dueño, 2026-11-12: «en toda la app las columnas… siempre que se cree una
+nueva app sea el mismo estilo de columnas que es lo de Deliveries app»). Toda tabla de datos trae: ▾ para ordenar y
+filtrar por valores, ⚙ para elegir columnas, cabeceras que se arrastran para moverlas, bordes que se arrastran para
+el ancho (doble clic lo restablece), y todo guardado por persona. Una tabla nueva se hace con `<TablaEstandar>`
+(`src/components/TablaEstandar.tsx`); una que ya tiene su marcado se completa con `useVistaDeColumnas`. Guía, ejemplo
+para copiar e inventario: `docs/ESTANDAR-DE-TABLAS.md`. Lo vigila `src/lib/estandar-de-tablas.test.ts`: un `.tsx`
+nuevo con una tabla que no use el estándar hace fallar el CI; las exenciones (hojas impresas, matrices, vistas
+previas) se apuntan ahí con su porqué, y la lista de PENDIENTES solo puede encoger.
+
 ## El formato de los datos es uno en todas las apps — regla permanente
 
 El dueño, 2026-10-28, literal: *«Phone numbers: one consistent format everywhere … with extension shown as "ext. 123".

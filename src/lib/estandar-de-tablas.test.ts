@@ -1,0 +1,129 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+/**
+ * EL ESTÁNDAR DE TABLAS (dueño, 12 nov 2026; guía en docs/ESTANDAR-DE-TABLAS.md): toda tabla de datos usa el sistema
+ * de columnas de Órdenes. Esta prueba mira cada `.tsx` de `src/` que pinta una tabla y exige que:
+ *   · use `TablaEstandar` o `useVistaDeColumnas` (el estándar), o
+ *   · esté en PROPIO (ya lo cumple con su propia implementación), o
+ *   · esté en EXENTAS (con su porqué), o
+ *   · esté en PENDIENTES (deuda conocida: se va vaciando; NO se le agrega nada nuevo).
+ * Una tabla NUEVA que no use el estándar hace fallar esta prueba: úsalo, o justifica la exención aquí.
+ */
+const PROPIO: readonly string[] = [
+  "src/components/OrdersTable.tsx", // la tabla de Órdenes: el origen del estándar
+  "src/app/(app)/routes/page.tsx", // Gestor de Rutas (D-360/D-379/D-410)
+  "src/app/customers/Clientes.tsx", // Clientes: orden en niveles, filtros, ⚙ y anchos propios (D-650)
+  "src/app/promos/[id]/TablaDeRonda.tsx", // Promos: ronda con ⚙, mover, anchos por rol (D-385)
+  "src/app/operaciones/ListaDeReportes.tsx", // Merma: ▾, ⚙, arrastre (D-1010/D-1016)
+];
+const EXENTAS: readonly string[] = [
+  "src/app/estimator/HojaCliente.tsx", // hoja impresa para el cliente
+  "src/app/operaciones/HojaDeGrupo.tsx", // hoja de aprobación (se imprime; trae su ⚙ de hoja)
+  "src/app/operaciones/ColumnasDeHoja.tsx", // piezas de la hoja de aprobación
+  "src/app/operaciones/reportes/hoja-de-aprobacion/page.tsx", // hoja impresa
+  "src/app/operaciones/conteos/hoja/page.tsx", // hoja impresa de conteo
+  "src/app/security/PanelDePermisos.tsx", // matriz persona × app (no es una lista de columnas)
+  "src/app/security/salud/page.tsx", // monitor de solo lectura: tablas chicas de cifras
+  "src/components/ImportOrdersModal.tsx", // vista previa de importación
+  "src/components/UsersImportModal.tsx", // vista previa de importación
+  "src/components/erp/decisions-upload.tsx", // vista previa de carga
+  "src/components/erp/po-upload.tsx", // vista previa de carga
+  "src/components/erp/po-ingest.tsx", // vista previa de carga
+  "src/components/erp/master-round-trip.tsx", // vista previa de carga
+  "src/components/ComparaConLaHoja.tsx", // comparación lado a lado (2 columnas fijas)
+  "src/components/FotoDeLaRuta.tsx", // imagen de la ruta para compartir (se exporta como PNG)
+  "src/components/RouteEngineSettings.tsx", // ajustes clave/valor
+  "src/components/TracksolidSettings.tsx", // ajustes clave/valor
+  "src/components/recruiting/ChecklistDelEmpleado.tsx", // checklist dentro del expediente
+  "src/components/recruiting/QuitFormDelEmpleado.tsx", // formulario de baja (se imprime)
+  "src/app/customers/HistorialDelCliente.tsx", // detalle de cambios campo/antes/después dentro de una tarjeta
+];
+/** Deuda del 12 nov 2026. Solo puede ENCOGER: al convertir una, se quita de aquí. */
+const PENDIENTES: readonly string[] = [
+  "src/app/(app)/accounts/page.tsx",
+  "src/app/(app)/audit/page.tsx",
+  "src/app/(app)/dashboard/page.tsx",
+  "src/app/(app)/data/page.tsx",
+  "src/app/(app)/market/page.tsx",
+  "src/app/(app)/settings/page.tsx",
+  "src/app/(app)/track/page.tsx",
+  "src/app/(app)/warehouse/page.tsx",
+  "src/app/erp/analytics/categories/page.tsx",
+  "src/app/erp/analytics/vendors/page.tsx",
+  "src/app/erp/purchasing/orders/page.tsx",
+  "src/app/erp/review/daltile/page.tsx",
+  "src/app/estimator/ProductosCompetencia.tsx",
+  "src/app/estimator/TodasLasCotizaciones.tsx",
+  "src/app/operaciones/KpiDeEntregas.tsx",
+  "src/app/recruiting/(recruiting)/employees/time-tracker.tsx",
+  "src/app/recruiting/(recruiting)/metrics/page.tsx",
+  "src/app/surveys/Encuestas.tsx",
+  "src/app/timetracker/(timetracker)/insights/page.tsx",
+  "src/app/timetracker/(timetracker)/people/page.tsx",
+  "src/app/timetracker/(timetracker)/requests/page.tsx",
+  "src/app/timetracker/(timetracker)/team-requests/page.tsx",
+  "src/app/timetracker/(timetracker)/week/page.tsx",
+  "src/components/PausasDelDia.tsx",
+  "src/components/PlanContraReal.tsx",
+  "src/components/PuntualidadPorChofer.tsx",
+  "src/components/ReportesDeChoferes.tsx",
+  "src/components/RutaDelPlan.tsx",
+  "src/components/erp/inventory-console.tsx",
+  "src/components/erp/item/qoh-panel.tsx",
+  "src/components/erp/po-reconcile.tsx",
+  "src/components/erp/product-detail.tsx",
+  "src/components/erp/purchasing-groups.tsx",
+  "src/components/erp/receiving.tsx",
+  "src/components/erp/reorder-panel.tsx",
+  "src/components/erp/request-review.tsx",
+  "src/components/erp/review-queue.tsx",
+  "src/components/erp/uom-assistant.tsx",
+  "src/components/recruiting/HistorialDeRrhh.tsx",
+  "src/components/recruiting/ModalHost.tsx",
+  "src/components/timetracker/AssignmentsPanel.tsx",
+  "src/components/timetracker/AuditTabs.tsx",
+  "src/components/timetracker/ClockinApprovals.tsx",
+  "src/components/timetracker/EmployeeWeek.tsx",
+  "src/components/timetracker/FichajesDeHoy.tsx",
+  "src/components/timetracker/GeofenceSection.tsx",
+  "src/components/timetracker/ManagerReports.tsx",
+  "src/components/timetracker/MySections.tsx",
+  "src/components/timetracker/PayrollTimesheets.tsx",
+  "src/components/timetracker/ScheduleWeek.tsx",
+  "src/components/timetracker/TimeOffRequests.tsx",
+  "src/components/timetracker/TripPanel.tsx",
+  "src/components/timetracker/VehiclesSection.tsx",
+];
+
+const raiz = process.cwd();
+function tsx(dir: string): string[] {
+  return readdirSync(dir).flatMap((n) => {
+    const p = join(dir, n);
+    return statSync(p).isDirectory() ? tsx(p) : /\.tsx$/.test(n) && !/\.test\.tsx$/.test(n) ? [p] : [];
+  });
+}
+const conTabla = tsx(join(raiz, "src"))
+  .map((p) => ({ ruta: p.slice(raiz.length + 1).replace(/\\/g, "/"), texto: readFileSync(p, "utf8") }))
+  .filter((f) => f.texto.includes("<table"));
+const usaElEstandar = (t: string) => t.includes("TablaEstandar") || t.includes("useVistaDeColumnas");
+
+describe("estándar de tablas: toda tabla usa las columnas de Órdenes", () => {
+  it("ninguna tabla nueva se sale del estándar", () => {
+    const fuera = conTabla
+      .filter((f) => !usaElEstandar(f.texto) && !PROPIO.includes(f.ruta) && !EXENTAS.includes(f.ruta) && !PENDIENTES.includes(f.ruta))
+      .map((f) => f.ruta);
+    expect(fuera, "Usa <TablaEstandar> (docs/ESTANDAR-DE-TABLAS.md) o justifica la exención en esta prueba").toEqual([]);
+  });
+  it("las listas están al día: lo que ya cumple o ya no existe no se queda apuntado", () => {
+    const rutas = new Set(conTabla.map((f) => f.ruta));
+    const sobran = [...PROPIO, ...EXENTAS, ...PENDIENTES].filter((r) => !rutas.has(r));
+    expect(sobran, "Quita de las listas los archivos que ya no pintan una tabla").toEqual([]);
+    const yaCumplen = PENDIENTES.filter((r) => usaElEstandar(conTabla.find((f) => f.ruta === r)?.texto ?? ""));
+    expect(yaCumplen, "Ya usan el estándar: quítalos de PENDIENTES").toEqual([]);
+  });
+  it("la deuda no crece", () => {
+    expect(PENDIENTES.length).toBeLessThanOrEqual(53);
+  });
+});

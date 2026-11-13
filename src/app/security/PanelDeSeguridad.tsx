@@ -1,5 +1,7 @@
 "use client";
 
+import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
+import { useVistaDeColumnas } from "@/lib/use-vista-de-columnas";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
@@ -166,11 +168,14 @@ function TablaDeSecurity<F>({ id, filas, columnas, valorDe, textoDe, claveDe, ce
   const q = buscar.trim().toLowerCase();
   const buscadas = useMemo(() => q ? filas.filter((f) => textoDe(f).toLowerCase().includes(q)) : filas, [filas, q, textoDe]);
   const orden = useOrdenYFiltro(buscadas, valorDe);
+  // Estándar de tablas (docs/ESTANDAR-DE-TABLAS.md): ⚙ Columnas y arrastrar la cabecera, por persona.
+  const vista = useVistaDeColumnas(`security-${id}`, columnas, orden.cerrar);
+  const cols = vista.visibles;
   const colw = useColWidthMap(`security-${id}-anchos`, 140, { minimo: 60 });
   const ancho = (c: Columna) => colw.widthOf(c.key, c.ancho);
   const anchoSel = seleccion ? 38 : 0;
-  const anchos = [...(seleccion ? [anchoSel] : []), ...columnas.map(ancho), ...(acciones ? [anchoDeAcciones] : [])];
-  const totalCols = columnas.length + (seleccion ? 1 : 0) + (acciones ? 1 : 0);
+  const anchos = [...(seleccion ? [anchoSel] : []), ...cols.map(ancho), ...(acciones ? [anchoDeAcciones] : [])];
+  const totalCols = cols.length + (seleccion ? 1 : 0) + (acciones ? 1 : 0);
   const idsElegibles = seleccion ? orden.visibles.filter((f) => seleccion.elegible(f)).map((f) => seleccion.idDe(f)) : [];
   const todosMarcados = seleccion ? idsElegibles.length > 0 && idsElegibles.every((x) => seleccion.marcados.has(x)) : false;
   return (
@@ -179,6 +184,10 @@ function TablaDeSecurity<F>({ id, filas, columnas, valorDe, textoDe, claveDe, ce
         <BuscadorConBorrar maxWidth={260} valor={buscar} onValor={setBuscar} placeholder={t("Search…", "Buscar…")} />
         {chips}
         <span className="hint" style={{ margin: 0 }}>{orden.visibles.length} / {filas.length}</span>
+        <span style={{ marginLeft: "auto" }}>
+          <SelectorDeColumnas {...vista.selector} rotulo={(c) => (lang === "es" ? c.es : c.en)}
+            titulo={t("Columns of this table", "Columnas de esta tabla")} nota={t("Saved for you on this browser.", "Se guarda para ti en este navegador.")} t={t} />
+        </span>
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", margin: "6px 0" }}>
         <FiltrosPuestos estado={orden} columnas={columnas} lang={lang} t={t} />
@@ -187,7 +196,7 @@ function TablaDeSecurity<F>({ id, filas, columnas, valorDe, textoDe, claveDe, ce
         <table className="orders tbl-resize" style={anchoDeTabla(anchos)} data-tabla={id}>
           <colgroup>
             {seleccion && <col style={{ width: anchoSel }} />}
-            {columnas.map((c) => <col key={c.key} style={{ width: ancho(c) }} />)}
+            {cols.map((c) => <col key={c.key} style={{ width: ancho(c) }} />)}
             {acciones && <col style={{ width: anchoDeAcciones }} />}
           </colgroup>
           <thead>
@@ -198,10 +207,10 @@ function TablaDeSecurity<F>({ id, filas, columnas, valorDe, textoDe, claveDe, ce
                     disabled={idsElegibles.length === 0} onChange={() => seleccion.marcaTodos(idsElegibles)} />
                 </th>
               )}
-              {columnas.map((c) => (
-                <th key={c.key}>
+              {cols.map((c) => (
+                <th key={c.key} {...vista.th(c.key)}>
                   <CabeceraConMenu estado={orden} col={c} lang={lang} t={t} />
-                  <span className="col-resizer" onMouseDown={colw.startResize(c.key, c.ancho)} onDoubleClick={() => colw.resetCol(c.key)} data-asa-de={c.key} />
+                  <span className="col-resizer" {...vista.asa} onMouseDown={colw.startResize(c.key, c.ancho)} onDoubleClick={() => colw.resetCol(c.key)} data-asa-de={c.key} />
                 </th>
               ))}
               {acciones && <th />}
@@ -222,7 +231,7 @@ function TablaDeSecurity<F>({ id, filas, columnas, valorDe, textoDe, claveDe, ce
               ) : null;
               return (
                 <FilaDoble key={claveDe(f)} clave={claveDe(f)} estado={fila.status} seleccion={selCelda}
-                  celdas={columnas.map((c) => <td key={c.key}>{celda(c.key, f)}</td>)}
+                  celdas={cols.map((c) => <td key={c.key}>{celda(c.key, f)}</td>)}
                   acciones={acciones ? <td style={{ whiteSpace: "nowrap" }}>{acciones(f)}</td> : null} extra={ex} ancho={totalCols} />
               );
             })}

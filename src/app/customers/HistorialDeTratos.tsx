@@ -7,6 +7,7 @@ import type { TratosLeidos } from "@/lib/customers/tratos-de-la-base";
 import { diaDeTexas, mezclaTratos, type FiltroDeTratos, type Trato } from "@/lib/customers/tratos";
 import { stageInfo, stageLabel } from "@/lib/constants";
 import { fmtDateShort } from "@/lib/utils";
+import { TablaEstandar } from "@/components/TablaEstandar";
 
 type T = (en: string, es: string) => string;
 
@@ -22,6 +23,7 @@ const dinero = (n: number | null): string => (n === null ? "—" : `$${n.toLocal
  * cada tabla con la sesión de quien mira. Estructura mínima (tabla y clases de siempre) para que el rediseño la vista.
  */
 export function HistorialDeTratos({ cliente, almacen, t }: { cliente: { id: number; account: string }; almacen: AlmacenDeClientes; t: T }) {
+  const idioma = t("en", "es") as "en" | "es";
   const [leido, setLeido] = useState<TratosLeidos | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<FiltroDeTratos>("todo");
@@ -68,45 +70,29 @@ export function HistorialDeTratos({ cliente, almacen, t }: { cliente: { id: numb
         )}
         {leido && filas.length === 0 && <p className="text-xs text-slate-400">{t("Nothing recorded with this customer yet.", "Aún no hay nada con este cliente.")}</p>}
         {filas.length > 0 && (
-          <div className="tbl-scroll">
-            <table className="orders" data-filas-de-tratos>
-              <thead>
-                <tr>
-                  <th>{t("Date", "Fecha")}</th>
-                  <th>{t("Type", "Tipo")}</th>
-                  <th>#</th>
-                  <th>{t("Invoice", "Factura")}</th>
-                  <th>{t("Status", "Estado")}</th>
-                  <th>{t("Store", "Tienda")}</th>
-                  <th>{t("Driver", "Chofer")}</th>
-                  <th className="text-right">{t("Amount", "Monto")}</th>
-                  <th className="text-right">{t("Pallets", "Tarimas")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filas.map((x) => (
-                  <tr key={`${x.clase}-${x.id}`} data-trato={x.id} data-clase={x.clase} className="cursor-pointer" onClick={(e) => { if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === "TD") setAbierto(x); }}>
-                    <td>{fmtDateShort(diaDeTexas(x.fecha), t("en", "es") as "en" | "es") || "—"}</td>
-                    <td>{x.clase === "orden" ? `🚚 ${t("Order", "Orden")}` : `🧾 ${t("Quote", "Cotización")}`}</td>
-                    <td>
-                      <button type="button" className="text-clay-600 hover:underline" data-abre-trato onClick={() => setAbierto(x)}
-                        aria-label={`${x.clase === "orden" ? t("Open order", "Abrir orden") : t("Open quote", "Abrir cotización")} ${x.numero}`}>{x.numero}</button>
-                    </td>
-                    <td>{x.factura ?? "—"}</td>
-                    <td>
-                      {x.clase === "orden"
-                        ? <span className="sema" style={{ background: stageInfo(x.estado).color, color: "#fff" }}>{t(stageLabel(x.estado, "en"), stageLabel(x.estado, "es"))}</span>
-                        : x.estado === "printed" ? t("Printed", "Impresa") : t("Draft", "Borrador")}
-                    </td>
-                    <td>{x.tienda ?? "—"}</td>
-                    <td>{x.chofer ?? "—"}</td>
-                    <td className="text-right">{dinero(x.monto)}</td>
-                    <td className="text-right">{x.tarimas ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TablaEstandar id="clientes-historial-de-tratos" data-tabla="filas-de-tratos" sinCaja filas={filas} claveDe={(x) => `${x.clase}-${x.id}`} onFila={(x) => setAbierto(x)}
+            columnas={[
+              { key: "fecha", en: "Date", es: "Fecha", ancho: 110, valor: (x) => diaDeTexas(x.fecha) || null,
+                etiqueta: (v) => fmtDateShort(String(v ?? ""), idioma) || "—",
+                celda: (x) => fmtDateShort(diaDeTexas(x.fecha), idioma) || "—" },
+              { key: "tipo", en: "Type", es: "Tipo", ancho: 120, valor: (x) => (x.clase === "orden" ? t("Order", "Orden") : t("Quote", "Cotización")),
+                celda: (x) => (x.clase === "orden" ? `🚚 ${t("Order", "Orden")}` : `🧾 ${t("Quote", "Cotización")}`) },
+              { key: "numero", en: "#", es: "#", ancho: 110, fija: true, valor: (x) => String(x.numero),
+                celda: (x) => (
+                  <button type="button" className="text-clay-600 hover:underline" data-abre-trato onClick={(e) => { e.stopPropagation(); setAbierto(x); }}
+                    aria-label={`${x.clase === "orden" ? t("Open order", "Abrir orden") : t("Open quote", "Abrir cotización")} ${x.numero}`}>{x.numero}</button>
+                ) },
+              { key: "factura", en: "Invoice", es: "Factura", ancho: 120, valor: (x) => x.factura ?? null },
+              { key: "estado", en: "Status", es: "Estado", ancho: 130,
+                valor: (x) => (x.clase === "orden" ? t(stageLabel(x.estado, "en"), stageLabel(x.estado, "es")) : x.estado === "printed" ? t("Printed", "Impresa") : t("Draft", "Borrador")),
+                celda: (x) => (x.clase === "orden"
+                  ? <span className="sema" style={{ background: stageInfo(x.estado).color, color: "#fff" }}>{t(stageLabel(x.estado, "en"), stageLabel(x.estado, "es"))}</span>
+                  : x.estado === "printed" ? t("Printed", "Impresa") : t("Draft", "Borrador")) },
+              { key: "tienda", en: "Store", es: "Tienda", ancho: 130, valor: (x) => x.tienda ?? null },
+              { key: "chofer", en: "Driver", es: "Chofer", ancho: 130, valor: (x) => x.chofer ?? null },
+              { key: "monto", en: "Amount", es: "Monto", ancho: 110, numerico: true, valor: (x) => x.monto ?? null, celda: (x) => dinero(x.monto) },
+              { key: "tarimas", en: "Pallets", es: "Tarimas", ancho: 90, numerico: true, valor: (x) => x.tarimas ?? null },
+            ]} />
         )}
       </div>
       {abierto && <TarjetaDeTrato trato={abierto} onCerrar={() => { setAbierto(null); setLectura((n) => n + 1); }} />}
