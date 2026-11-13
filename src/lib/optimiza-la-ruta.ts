@@ -37,6 +37,11 @@ import { RELOAD_MIN } from "./trip-timing";
  *     de entregar algo que cargó allí la vez anterior, lo carga la segunda vez, mientras eso no llegue tarde a nada ni alargue
  *     la jornada más que la banda de `TOLERANCIA_DE_PASO`.
  *
+ * D-1029 — «peor», aquí, es por ESTA vara (capacidad, ventanas, jornada con esperas, millas), que no es la que mira el
+ * despachador en la tarjeta: medido en 90 rutas hechas a mano, 22 salían con más millas o más jornada de tarjeta. El botón
+ * del Gestor ya no llama a esto a secas sino a `optimizaSinEmpeorar` (`optimiza-sin-empeorar.ts`), que le pone los
+ * `topes` de «nunca peor» y la guarda final.
+ *
  * Nunca devuelve algo peor que lo que hay: si no encuentra nada mejor, lo dice y no toca nada. Una parada sin punto en el
  * mapa (una entrega sin pin, una tienda sin coordenadas en Ajustes) no suma camino: se queda en la lista, donde las reglas la
  * dejen, y se cuenta en `sinPunto`.
@@ -88,16 +93,26 @@ export interface EntradaDeOptimizar {
   sinBusquedaLocal?: boolean;
   /** La banda de «casi lo mismo» del criterio de carga. Por defecto, `TOLERANCIA_DE_PASO`; con 0 y 0, solo decide a empate. */
   tolerancia?: ToleranciaDePaso;
+  /** D-1029 — los TOPES de «nunca peor»: ningún orden que pase de estas millas, o de estos minutos de jornada como los
+   *  cuenta la TARJETA (manejo + parado, sin esperas), vale; cuenta como el peor de los excesos. Los pone
+   *  `optimizaSinEmpeorar` con lo que mide la ruta tal como está. Sin ellos, como siempre. */
+  topes?: { millas?: number | null; tarjetaMin?: number | null };
 }
 
 /** Lo que mide una lista en un orden dado. */
 export interface MedidaDeLaLista {
   /** Millas del recorrido, a la décima: base → paradas → base (o de la primera a la última, sin base). */
   millas: number;
+  /** Las mismas millas SIN redondear, en centésimas (la cuenta entera del optimizador). Para comparar dos órdenes sin que
+   *  el redondeo a la décima decida (D-1029). */
+  centiMillas: number;
   /** Minutos de la jornada: desde que sale hasta que vuelve, con manejo, cargas, descargas y esperas. */
   minutos: number;
   /** De ellos, al volante. */
   manejoMin: number;
+  /** De ellos, ESPERANDO: a que abra una ventana, o a que llegue el paso a de un relevo (D-994). La tarjeta de la ruta no
+   *  los cuenta: su jornada es `minutos − esperaMin` (manejo + parado). */
+  esperaMin: number;
   /** Pallets por encima de la capacidad, sumados parada a parada. */
   exceso: number;
   /** Las entregas que llegan después de cerrar su ventana, en el orden de la lista. */
@@ -179,6 +194,9 @@ interface Problema {
   cargaInicial: number;
   /** La banda del criterio de carga: minutos de más (de la jornada de referencia) y centésimas de milla de más. */
   tolerancia: ToleranciaDePaso;
+  /** D-1029: los topes de «nunca peor», en centésimas de milla y en minutos de tarjeta. `Infinity`: sin tope. */
+  topeCmi: number;
+  topeTarjeta: number;
   /** Cuántos tramos entre lugares distintos salieron de la matriz, y cuántos hubo que estimar. */
   reales: number;
   estimados: number;
@@ -262,6 +280,8 @@ function problemaDe(e: EntradaDeOptimizar): Problema {
     cap: e.capacidad != null && e.capacidad > 0 ? centesimas(e.capacidad) : null,
     salida: Math.round(e.salidaMin ?? SALIDA_POR_DEFECTO_MIN), recarga: Math.max(0, Math.round(e.recargaMinimaMin ?? RELOAD_MIN)),
     cargaInicial, tolerancia: e.tolerancia ?? TOLERANCIA_DE_PASO,
+    topeCmi: e.topes?.millas != null && Number.isFinite(e.topes.millas) ? centesimas(e.topes.millas) : Infinity,
+    topeTarjeta: e.topes?.tarjetaMin != null && Number.isFinite(e.topes.tarjetaMin) ? Math.round(e.topes.tarjetaMin) : Infinity,
     reales, estimados,
   };
 }
@@ -276,7 +296,7 @@ function problemaDe(e: EntradaDeOptimizar): Problema {
  */
 function mide(pr: Problema, orden: ArrayLike<number>, n: number, nota: Nota, tarde?: (i: number, minutos: number) => void): number {
   const { lugares: L, cap } = pr;
-  let reloj = pr.salida, sitio = pr.base, carga = pr.cargaInicial, exceso = 0, tE = 0, tA = 0, cmi = 0, manejo = 0, paseo = 0;
+  let reloj = pr.salida, sitio = pr.base, carga = pr.cargaInicial, exceso = 0, tE = 0, tA = 0, cmi = 0, manejo = 0, paseo = 0, espera = 0;
   for (let k = 0; k < n; ) {
     const i = orden[k];
     const s = pr.sitio[i];
@@ -291,7 +311,7 @@ function mide(pr: Problema, orden: ArrayLike<number>, n: number, nota: Nota, tar
       for (let q = k; q < n; q++) {
         const r = orden[q];
         if (q > k && !(v >= 0 && pr.esP[r] && pr.visita[r] === v)) break;
-        if (reloj < pr.desde[r]) reloj = pr.desde[r];
+        if (reloj < pr.desde[r]) { espera += pr.desde[r] - reloj; reloj = pr.desde[r]; }
         if (v < 0) break;
       }
       do {
@@ -304,6 +324,7 @@ function mide(pr: Problema, orden: ArrayLike<number>, n: number, nota: Nota, tar
       reloj += suma > pr.recarga ? suma : pr.recarga;
     } else {
       const inicio = reloj < pr.abre[i] ? pr.abre[i] : reloj;
+      espera += inicio - reloj;
       const retraso = inicio - pr.cierra[i];
       if (retraso > 0) { if (pr.estrecha[i]) tE += retraso; else tA += retraso; if (tarde) tarde(i, retraso); }
       reloj = inicio + pr.servicio[i];
@@ -313,10 +334,19 @@ function mide(pr: Problema, orden: ArrayLike<number>, n: number, nota: Nota, tar
     }
   }
   if (pr.fin >= 0 && sitio >= 0 && sitio !== pr.fin) { const t = pr.min[sitio * L + pr.fin]; reloj += t; manejo += t; cmi += pr.cmi[sitio * L + pr.fin]; if (carga > 0) paseo += carga * pr.cmi[sitio * L + pr.fin]; }
+  // D-1029: pasar de un tope de «nunca peor» es el peor de los excesos: ningún orden así le gana a uno que no se pasa.
+  if (cmi > pr.topeCmi) exceso += (cmi - pr.topeCmi) * FUERA_DE_TOPE;
+  if (reloj - pr.salida - espera > pr.topeTarjeta) exceso += (reloj - pr.salida - espera - pr.topeTarjeta) * FUERA_DE_TOPE;
+  esperaDeLaUltimaMedida = espera;
   nota[0] = exceso; nota[1] = tE; nota[2] = tA; nota[3] = reloj - pr.salida; nota[4] = cmi; nota[5] = paseo;
   return manejo;
 }
 
+/** Lo que pesa cada centésima de milla o minuto por encima de un tope (D-1029), en la casilla del exceso: más que cualquier
+ *  exceso de pallets real (un camión de 30 pallets pasado entero en 40 paradas no llega a 200 000 centésimas). */
+const FUERA_DE_TOPE = 1_000_000;
+/** Los minutos de espera de lo último que midió `mide` (no caben en la nota, que es de seis). Solo lo lee `medidaDe`. */
+let esperaDeLaUltimaMedida = 0;
 /** ¿`a` es mejor que `b`? En orden: exceso, tarde en ventana estrecha, tarde en las demás, minutos, millas. (La carga no entra:
  *  es la vara de las búsquedas, que necesitan un orden entre dos listas; la carga decide aparte, en una banda, `eligeDePaso`.) */
 const mejorNota = (a: Nota, b: Nota): boolean => {
@@ -799,6 +829,8 @@ function exacta(pr: Problema, cota: Nota, tope: number, banda: Nota | null = nul
         // ¿Puede acabar mejor que lo que ya se tiene? Con lo de esta visita sumado a lo cargado.
         const conLaVisita = enEstaVisita ? Math.max(et.u, et.v + enEstaVisita) : ahora;
         if (et.pen > penCota) continue;
+        // D-1029: lo andado más lo mínimo que queda ya pasa del tope de millas: no llega a nada que valga.
+        if (et.cmi + millasQueQuedan > pr.topeCmi) continue;
         // Con banda, lo que ya pasea no baja: si no le gana a la cota por el margen, no llega a nada que valga.
         if (banda && et.paseo + paseoQueQueda > paseoTope) continue;
         if (et.pen === penCota) {
@@ -867,6 +899,7 @@ function exacta(pr: Problema, cota: Nota, tope: number, banda: Nota | null = nul
       if (et.pen > penCota) continue;
       const t = (et.u > et.v ? et.u : et.v) + (vuelve ? pr.min[sitio * L + pr.fin] : 0) - pr.salida;
       const cmi = et.cmi + (vuelve ? pr.cmi[sitio * L + pr.fin] : 0);
+      if (cmi > pr.topeCmi) continue;
       const paseo = et.paseo + (vuelve && cargaFinal > 0 ? cargaFinal * pr.cmi[sitio * L + pr.fin] : 0);
       const exceso = Math.floor(et.pen / PESO_EXCESO), resto = et.pen - exceso * PESO_EXCESO, tE = Math.floor(resto / PESO_ESTRECHA);
       llegadas.push({ et, nota: [exceso, tE, resto - tE * PESO_ESTRECHA, t, cmi, paseo] });
@@ -918,7 +951,11 @@ function medidaDe(pr: Problema, e: EntradaDeOptimizar, orden: readonly number[])
     const p = e.paradas[i];
     if (p.tipo === "D") tarde.push({ orden: p.orden, minutos, estrecha: pr.estrecha[i] });
   });
-  return { nota, medida: { millas: Math.round(nota[4] / 10) / 10, minutos: nota[3], manejoMin, exceso: nota[0] / 100, tarde, cargaPalletMi: Math.round(nota[5] / 1000) / 10 } };
+  const esperaMin = esperaDeLaUltimaMedida;
+  // Lo que se ENSEÑA es el exceso de pallets, sin la marca de pasarse de un tope (D-1029): se mide otra vez sin topes.
+  let exceso = nota[0];
+  if (exceso >= FUERA_DE_TOPE) { const sin: Nota = notaVacia(); mide({ ...pr, topeCmi: Infinity, topeTarjeta: Infinity }, orden, orden.length, sin); exceso = sin[0]; }
+  return { nota, medida: { millas: Math.round(nota[4] / 10) / 10, centiMillas: nota[4], minutos: nota[3], manejoMin, esperaMin, exceso: exceso / 100, tarde, cargaPalletMi: Math.round(nota[5] / 1000) / 10 } };
 }
 
 /**
@@ -1013,19 +1050,22 @@ export function optimizaLaLista(e: EntradaDeOptimizar): ResultadoDeOptimizar {
   let local: Hallado = e.sinBusquedaLocal ? { orden: actual, nota: antes.nota } : arranques(pr, actual, cuenta);
   const tope = e.topeDeLaExacta ?? TOPE_DE_LA_EXACTA;
   const ex = exacta(pr, local.nota, tope);
-  let elegida = local.orden, nota = local.nota, etiquetas = ex.etiquetas, etiquetasDeLaBanda = 0, completa = ex.completa;
+  let elegida = local.orden, nota = local.nota, etiquetas = ex.etiquetas, etiquetasDeLaBanda = 0, completa = ex.completa, sinGarantia = false;
   // El mejor orden por la vara de siempre (jornada y millas), sin la carga: el ancla de la banda (D-464 y D-651).
   let ancla = local.nota;
   if (ex.completa) {
     // El mejor orden está (es `ex.orden`, o lo que ya se tenía). Ahora, en su banda, el que menos carga pasea (D-464):
     // primero bajando desde él, y luego la exacta otra vez, acotada a la banda, que lo confirma o lo mejora si cabe en el tope.
-    const mejor: Hallado = ex.orden ? { orden: ex.orden, nota: medidaDe(pr, e, ex.orden).nota } : local;
+    let mejor: Hallado = ex.orden ? { orden: ex.orden, nota: medidaDe(pr, e, ex.orden).nota } : local;
+    // D-1029: la exacta poda por el tope de millas, pero no sabe del de la tarjeta (no lleva las esperas en sus etiquetas).
+    // Si lo suyo se pasa de él, vale lo de la búsqueda local, que sí lo mide; y ya no es «el mejor orden que existe».
+    if (ex.orden && mejorNota(local.nota, mejor.nota)) { mejor = local; sinGarantia = true; }
     ancla = mejor.nota;
     const conMenosCarga = e.sinBusquedaLocal ? mejor : bajaLaCarga(pr, mejor, cuenta);
     // Con su propio tope: lo que la vara de siempre gastó no se le descuenta (medido: con el tope compartido, tres rutas
     // reales de 10 y 11 órdenes que salían exactas dejaban de serlo; con el suyo, una, la de 11, que necesita 1,7 millones).
     const ex2 = exacta(pr, conMenosCarga.nota, tope, mejor.nota);
-    etiquetas += ex2.etiquetas; etiquetasDeLaBanda = ex2.etiquetas; completa = ex2.completa;
+    etiquetas += ex2.etiquetas; etiquetasDeLaBanda = ex2.etiquetas; completa = ex2.completa && !sinGarantia;
     // Y entre el mejor orden, lo que bajó la local y lo que encontró la exacta en la banda, lo que dice el criterio (con su margen).
     const candidatas: Hallado[] = [mejor, conMenosCarga, ...(ex2.orden ? [{ orden: ex2.orden, nota: medidaDe(pr, e, ex2.orden).nota }] : [])];
     const k = eligeDePaso(pr, candidatas.map((c) => c.nota));

@@ -65,7 +65,8 @@ import { puedeReprogramar } from "@/lib/reprogramar-orden";
 import { ReprogramarVarias } from "@/components/ReprogramarVarias";
 import { BandejaDeSolicitudes } from "@/components/BandejaDeSolicitudes";
 import { notaAlAprobar, pasosAlAprobar, puedeDecidirSolicitudes, type SolicitudDeAsignacion } from "@/lib/solicitud-de-asignacion";
-import { optimizaLaLista } from "@/lib/optimiza-la-ruta";
+import { arranqueDeLoPendiente, optimizaSinEmpeorar } from "@/lib/optimiza-sin-empeorar";
+import { ahoraDelNegocio } from "@/lib/salida-de-la-medida";
 import { avisoDeOptimizar, entradaDeOptimizar, puntosDeLaEntrada, tiemposDeLaRuta, type TiemposPedidos } from "@/lib/optimizar-desde-el-gestor";
 import { baseTrasElCambio, basesPorNombreDelDia, extremosDeLaRuta, type BaseDelDia } from "@/lib/base-del-dia";
 import { useBasesDelDia } from "@/lib/usa-base-del-dia";
@@ -1204,8 +1205,10 @@ export default function RoutesPage() {
   //   · sale de la BASE del chofer (`baseDeLaRuta`) y vuelve a ella;
   //   · mide POR CALLES: una petición de matriz por pulsación (`/api/route-matrix`), y ninguna si esta forma de la ruta ya se
   //     pidió (`tiemposPedidos`). Si no contesta, estima en línea recta y el aviso lo dice;
-  //   · el orden lo decide `optimizaLaLista`: primero que el camión no se pase, después que ninguna entrega llegue fuera de
-  //     su ventana, y después la jornada más corta. Exacto si la ruta es pequeña; si no, lo mejor que encuentra;
+  //   · el orden lo decide `optimizaSinEmpeorar` (D-1029; el dueño, 2026-11-12: «más bien agrega más millas y aumenta el
+  //     tiempo estimado»): NUNCA más millas ni más jornada de tarjeta que lo que hay, ni más retraso ni más exceso. Primero lo
+  //     que arregla un retraso o un exceso sin costar nada; si no, la jornada y las millas más cortas sin retrasar más a nadie.
+  //     Si no hay nada así, no toca la ruta y dice «ya está en buen orden»;
   //   · se guarda por `guardaLaLista` (Ctrl+Z lo deshace) y la medida de siempre pone las llegadas. Con candado 🔒 no
   //     optimiza, y lo dice. El aviso dice lo ganado (`avisoDeOptimizar`).
   const [optimizando, setOptimizando] = useState<string | null>(null);
@@ -1219,9 +1222,13 @@ export default function RoutesPage() {
     const stops = byDriver.get(laneKey) ?? [];
     const lista = lecturaDe(laneKey, stops).paradas;
     const base = baseDeLaRuta(laneKey);
+    // D-1029: con la ruta de HOY ya a medias, lo pendiente sale de donde quedó el camión y a la hora que es, no de la base a
+    // las 08:00; y termina donde terminaba (la base, o el fin de ese día).
+    const arranque = arranqueDeLoPendiente({ hechos: [...hechasDe(laneKey), ...stops], fecha: date, hoy: ahoraDelNegocio(), salidaMin: DAY_START_MIN, coordsDeTienda, fechaDe: (x) => ahoraDelNegocio(x).fecha });
+    const finDeSiempre = finParaEstimar(laneKey);
     const entrada = entradaDeOptimizar({
-      lista, ordenes: stops, base, fin: finParaEstimar(laneKey), capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda,
-      esEstrecha: (ventana) => esVentanaDura(ventana, settings), salidaMin: DAY_START_MIN,
+      lista, ordenes: stops, base: arranque && base ? arranque.punto : base, fin: arranque && base && finDeSiempre === undefined ? base : finDeSiempre, capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda,
+      esEstrecha: (ventana) => esVentanaDura(ventana, settings), salidaMin: arranque && base ? arranque.salidaMin : DAY_START_MIN,
     });
     // D-994: el paso b de un relevo no se recoge antes de que llegue su paso a (+1 h): esa recogida espera en la tienda.
     const desdeDelRelevo = recogidaDesdeDelRelevo(dayOrders, (id) => etaDeEntregaEn(routeEtas, id));
@@ -1234,7 +1241,8 @@ export default function RoutesPage() {
     try {
       const tiempos = await tiemposDeLaRuta(puntosDeLaEntrada(entrada), tiemposPedidos.current, (puntos) =>
         fetch("/api/route-matrix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ puntos }) }));
-      const r = optimizaLaLista({ ...entrada, recogidaDesde, tiempos: tiempos?.tiempos ?? null });
+      // D-1029: nunca peor que lo que hay, medido como lo enseña la tarjeta (millas, y jornada de manejo + parado).
+      const r = optimizaSinEmpeorar({ ...entrada, recogidaDesde, tiempos: tiempos?.tiempos ?? null });
       const porId = new Map(stops.map((d) => [d.id, d]));
       const aviso = avisoDeOptimizar({
         ruta: laneLabel(laneKey), r, tiempos, hayBase: !!base, pallets: numeroDePallets, sinRecogidas: !hayRecogidaGuardada,

@@ -1,0 +1,83 @@
+{
+  "generado": "2026-11-13",
+  "nota": "Lo medido en las rutas hechas a mano (produccion, solo lectura) con scripts/rutas/vuelca.mjs y src/lib/rutas-a-mano.backtest.test.ts (RUTAS_ESCRIBE=1). Porcentajes enteros. Es la evidencia de las reglas de D-1029 (optimiza-sin-empeorar.ts, mejor-lugar.ts); no se lee en tiempo de ejecucion para decidir nada.",
+  "periodo": {
+    "desde": "2026-09-29",
+    "hasta": "2026-11-13",
+    "rutas": 90,
+    "rutasDe3OMas": 79
+  },
+  "ventanas": {
+    "estrechas": [
+      "0830-1000",
+      "0830-1200"
+    ],
+    "entregadasTardePct": {
+      "0830-1000": 80,
+      "0830-1730": 2,
+      "0830-1200": 52,
+      "1200-1730": 6,
+      "0830-1530": 21
+    },
+    "entregasMedidas": {
+      "0830-1000": 84,
+      "0830-1730": 113,
+      "0830-1200": 44,
+      "1200-1730": 16,
+      "0830-1530": 14
+    },
+    "medianaDeRetrasoMin": {
+      "0830-1000": 146,
+      "0830-1730": 23,
+      "0830-1200": 164,
+      "1200-1730": 28,
+      "0830-1530": 32
+    },
+    "estrechaEnElPrimerTercioPct": 69,
+    "otrasEnElPrimerTercioPct": 27,
+    "rutasQueYaLleganTardeEnElPlanPct": 33
+  },
+  "capacidad": {
+    "rutasSobreLaCapacidadPct": 14,
+    "rutasSobre12Pct": 4,
+    "picoMediano": 8,
+    "picoP90": 11
+  },
+  "forma": {
+    "laBaseEsLaPrimeraParadaPct": 96,
+    "todasLasRecogidasAntesPct": 3,
+    "vuelveAUnaTiendaPct": 77,
+    "recogidaJuntoAOtraDeSuTiendaPct": 73,
+    "zonasSeguidasPct": 52,
+    "laMasLejanaPrimeroPct": 12,
+    "laMasCercanaPrimeroPct": 18,
+    "laUltimaEnLaMitadCercanaPct": 75,
+    "posicionMediaIntertienda": 0.59,
+    "posicionMediaCliente": 0.43,
+    "intertiendaSueltaYRecogeEnLaMismaVisitaPct": 37
+  },
+  "choferDeCasaPorTiendaPct": {
+    "RDZ Brownsville": 89,
+    "RDZ Pharr": 73,
+    "RDZ McAllen": 80
+  },
+  "optimizar": {
+    "rutas": 90,
+    "antes": {
+      "empeoraba": 22,
+      "millasDeMas": 466,
+      "mejoraba": 45,
+      "igualaba": 23,
+      "millas": 8727
+    },
+    "despues": {
+      "empeora": 0,
+      "mejora": 55,
+      "iguala": 35,
+      "millas": 8244
+    },
+    "humano": {
+      "millas": 9207
+    }
+  }
+}

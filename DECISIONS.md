@@ -52175,3 +52175,51 @@ Sello `recruiting` 0.92.0; `surveys` 0.11.0; `estimator` 0.32.0; repo 1.879.0.
 **Pendiente, decisión del dueño:** aplicar la migración 304 (sin ella, el cron falla con 502 y no borra nada: no existe `capturas_vencidas`). Después, correr `purga-atrasada.mjs --escribe` para liberar los ~2 GB. Mientras tanto, el job antiguo de pg_cron sigue programado y fallando cada noche; si se quita, lo decide el dueño. La función conserva su SQL viejo, pero ya solo la ejecuta pg_cron (corre como `postgres`).
 
 Sello `timetracker` 1.23.0; repo 1.880.0.
+
+## D-1029 · Motor de rutas: «🧭 Optimizar» nunca deja la ruta peor que la del despachador (millas y tiempo de la tarjeta)
+
+**Pedido (el dueño, 12 nov):** «vuelve a analizar cómo hemos hecho las rutas y aprende, y haz que el motor de asignar automáticamente sea mejor, que lo haga igual que nosotros, porque el botón de optimizar no funciona: más bien agrega más millas y aumenta el tiempo estimado».
+
+**Lo que se midió (producción, solo lectura; `scripts/rutas/vuelca.mjs` + `rutas-a-mano.backtest.test.ts`):** las 90 rutas con orden guardado del 29 sep al 13 nov (3 choferes; 71 «limpias», con puestos sin repetir), cada una medida con la cuenta del propio optimizador y los tiempos de la caché de la matriz (sin tráfico; lo que falta, estimado). Las millas y la jornada son las que enseña la tarjeta (manejo + parado).
+
+| | millas | jornada de tarjeta | vs. la ruta hecha a mano |
+| --- | --- | --- | --- |
+| hecha a mano | 9 207 | 472 h | — |
+| Optimizar de antes (D-461) | 8 727 | 449 h | mejora 45 · iguala 23 · **empeora 22** (20 con más millas, +466 mi; 18 con más jornada) |
+| Optimizar de ahora | **8 244** | **438 h** | mejora 55 · iguala 35 · **empeora 0** |
+
+En las 71 limpias el de antes ni siquiera ahorraba en conjunto (6 617 → 6 615 mi: lo que quitaba en unas lo ponía en otras; empeoraba 14); el de ahora las deja en 6 200 mi y empeora 0.
+
+**Por qué empeoraba** (no era una búsqueda atascada: casi todas salían «exactas»; optimizaba otra cosa que lo que el despachador mira):
+1. **Las ventanas mandaban sobre las millas** (11 de las 22). El equipo no las trata así: de las entregas «0830-1000» hechas en su día, el **80 %** se entregó después de las 10:00 (mediana, 146 min después); de las «0830-1200», el 52 %. Las ponen pronto (69 % en el primer tercio de la ruta, contra 27 % de las demás) pero no dan un rodeo por ellas. Ej.: 30 oct, 5 órdenes: 91.1 mi / 4 h 35 → 110.6 mi / 5 h 19 por 25 minutos de retraso en una ventana.
+2. **La capacidad mandaba sobre todo** (7 de las 22), y el 14 % de las rutas hechas a mano pasa de 10 pallets a bordo en algún tramo (4 % de 12). Ej.: 16 oct, 12 órdenes: 138.3 mi / 5 h 47 → 220.1 mi / 7 h 02 por **0.2 pallets**; 4 nov, 8 órdenes: 111.9 → 191.3 mi por 2 pallets.
+3. **Minutos antes que millas, y contaba esperas que la tarjeta no cuenta.** Su «jornada» incluye esperar a que abra una ventana o a que llegue un relevo (D-994); la de la tarjeta, no. Ej.: 13 nov, 8 órdenes: 123.8 mi / 6 h 17 → 166.2 mi / 6 h 56 (para él era «mejor»: 459 → 443 min con esperas). 10 nov: +13.7 mi por 13 min.
+4. **La banda de «de paso»** (D-464: hasta 5 % más de jornada y 3 millas más que el MEJOR orden) también podía quedar por encima de la ruta del despachador.
+5. **A media jornada contaba desde la base a las 08:00**, con el camión ya en otra ciudad; la tarjeta mide desde lo último hecho (D-906). (No se puede medir con lo guardado; se ve en el código.)
+
+No son causa: el margen de 60 min del relevo (solo 6 órdenes de relevo en el periodo, desde el 11 nov) ni la numeración de D-993.
+
+**Qué cambia:**
+- **`optimiza-sin-empeorar.ts` (`optimizaSinEmpeorar`), lo que llama el botón.** Sobre el mismo optimizador, con dos **topes** que la búsqueda respeta por dentro (`EntradaDeOptimizar.topes`: la exacta poda por millas; pasarse cuenta como el peor exceso): ningún orden con más millas ni con más jornada de tarjeta que el de ahora. Dos pasadas: (1) si la ruta llega tarde a algo o se pasa de carga, lo que lo **arregla sin costar nada**; (2) si no, **como el despachador**: lo que su ruta ya hace vale —una entrega que ya llegaba tarde no puede llegar más tarde, las que van a tiempo siguen a tiempo, y el camión lleva hasta lo que ya llevaba en su tramo más cargado— y dentro de eso, menos jornada y menos millas. Al final, **la guarda** (`noEsPeor`), con las ventanas y la capacidad de verdad: ni más millas, ni más jornada (de tarjeta y con esperas), ni más retraso, ni más exceso. Lo que no la pasa no se guarda.
+- **El aviso** dice el antes → después de la tarjeta: «🧭 Ernesto optimizada: 123.7 → 93.6 mi (−30.1) · 6 h 41 min → 5 h 52 min (−49 min)». Si no hay nada que mejore sin empeorar: «ya está en buen orden (156.7 mi · 7 h 8 min). No se cambió nada». Y de un retraso que queda ya no dice «ningún orden lo evita» sino «evitarlo costaría más millas o más tiempo».
+- **Ruta de hoy a medias** (`arranqueDeLoPendiente`): lo pendiente sale de donde quedó el camión (la última entrega o recogida de hoy) y a la hora que es; termina donde terminaba.
+- **«📍 Mejor lugar»** (`mejor-lugar.ts`): ganaba siempre el hueco con menos minutos tarde, costara las millas que costara. Ahora la ventana decide solo entre los huecos que añaden casi las mismas millas que el más corto (`MILLAS_DE_MAS_POR_LA_VENTANA` = las 3 millas de D-464).
+- **`patrones-de-despacho.json`**: lo medido, con su fecha (se regenera con `RUTAS_ESCRIBE=1`); una prueba avisa si las premisas dejan de valer (p. ej. si las ventanas estrechas empiezan a cumplirse).
+
+**Esto sustituye**, para el botón, el orden de prioridades de D-461 («capacidad, ventanas, jornada, millas») y acota D-464/D-651 (siguen, dentro de los topes). `optimizaLaLista` sin topes no cambia: sus pruebas, sus casos reales y sus tiempos son los mismos. «Armar rutas» y «Repartir órdenes» (`route-engine`) no se tocaron.
+
+**Cómo arma las rutas el equipo (lo demás que se midió, 79 rutas de 3+ órdenes):** la base es la primera parada en el 96 % de las rutas que cargan en ella; casi nunca cargan todo al principio (3 %): intercalan, y el 77 % vuelve a una tienda ya visitada; el 73 % de las recogidas va pegada a otra de su misma tienda; la última entrega cae en la mitad cercana a la base en el 75 %; no hay un sentido fijo (la más lejana primero 12 %, la más cercana 18 %); las intertienda van más tarde que los clientes (posición media 0.59 contra 0.43) y en el 37 % se sueltan y se recoge en la misma visita; las zonas van seguidas solo en el 52 %. Cada tienda va con el chofer de casa: Brownsville 89 %, McAllen 80 %, Pharr 73 % (Edinburg y Weslaco se reparten). Rutas medias: 6–7 órdenes y 15–17 pallets los dos de Hidalgo (≈ 95–100 mi, 5.5–6 h); 4.5 órdenes y 10 pallets el de Brownsville (≈ 120 mi, 4 h).
+
+**Visto en pantalla** (demo local, Chrome sin cabeza, `/routes`, vista ancha, 1500 px): «Optimize» en las cuatro rutas del demo. Tres cambiaron con su aviso antes → después («Carlos R. optimized: 58.7 → 57.1 mi (−1.6) · 4 h 56 min → 4 h 52 min (−4 min)…»); la cuarta y la segunda pulsación de las otras: «already in good order (57.1 mi · 4 h 52 min). Nothing changed…». Sin errores de consola. **No se vio:** los números de la TARJETA al lado (en local la medida de la tarjeta y los tiempos por calles contestan 401: la tarjeta dice «not measured» y el aviso dice «medido en línea recta»); «Mejor lugar» y la ruta a medias, solo en pruebas.
+
+**Pruebas:** `optimiza-sin-empeorar.test.ts` (cada causa en pequeño; la guarda; 60 rutas inventadas nunca peores; contra la fuerza bruta; el arranque a medias), `rutas-a-mano.backtest.test.ts` (22 rutas reales anonimizadas, `rutas-a-mano-anon.json`: el de antes empeora y el de ahora nunca; y el repaso completo con `RUTAS_DATOS`), `mejor-lugar.test.ts`, y los avisos y textos de pantalla puestos al día.
+
+**Pendiente / para decidir el dueño:**
+- La tarjeta mide con Google (con tráfico) y Optimizar con la matriz (sin tráfico): pueden diferir en unas décimas de milla. Unificar la fuente es otro cambio.
+- **«Repartir órdenes» y «Armar rutas» no cambian aquí.** Ya aprenden qué chofer lleva cada tienda (D-834); siguen tratando ventanas y capacidad como en D-461. Aplicarles esta misma regla es el paso siguiente.
+- La capacidad de Ajustes (10) no es la que usa el equipo (pasan de 10 en el 14 % de las rutas): ¿subirla a 12, o dejarla como aviso?
+- Las ventanas «0830-1000» casi nunca se cumplen (80 % tarde): ¿son una promesa al cliente o una preferencia? Hoy el sistema las trata como preferencia que no se compra con millas.
+- Optimizar no cambia unos minutos por unas décimas de milla (13 nov, otra ruta: 20 min menos por 0.5 mi más, y no la toca). Si se quiere esa tolerancia, es un número.
+- Los reordenamientos a mano siguen sin dejar rastro (pendiente de D-834): con ellos se podría medir qué deshace el despachador después de optimizar.
+
+Sello `deliveries` 1.613.0; repo 1.882.0.
