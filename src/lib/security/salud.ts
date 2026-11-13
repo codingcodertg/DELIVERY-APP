@@ -1,3 +1,5 @@
+import { mensajeDeError } from "@/lib/mensaje-de-error";
+
 /**
  * «Salud del sistema» de Central Hub Monitoring (D-1012). Lógica PURA (sin red ni React): nombres legibles de las
  * sentencias que más escriben, lectura del texto Prometheus de la Metrics API de Supabase, ritmos, y el semáforo con
@@ -170,6 +172,14 @@ export function nivelPorPiso(v: number | null | undefined, amarillo: number, roj
 const fmt1 = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 1 });
 const fmt0 = (n: number) => Math.round(n).toLocaleString("es-MX");
 
+/** Sin lectura: la tarjeta no dice si va bien o mal. Nunca se pinta como sana. */
+export const SIN_LECTURA = "Sin lectura: esto no dice si va bien o mal.";
+
+/** Tarjeta sin datos: gris, con la razón en plano. */
+export function sinDatos(motivo: string | null | undefined, por = "sin lectura"): string {
+  return `No data — ${motivo ?? por}`;
+}
+
 export interface EntradaDeVeredictos {
   ritmoDisco: RitmoDeDisco | null;
   discoConfigurado: boolean;
@@ -187,6 +197,14 @@ export interface EntradaDeVeredictos {
   sinRls: number | null;
   definerAnon: number | null;
   compute: string | null;
+  /** Por qué no hay datos de cada grupo (texto ya en español, sin jerga). Null = sin motivo conocido. */
+  motivoBase?: string | null;
+  motivoEscrituras?: string | null;
+  motivoArchivos?: string | null;
+  motivoRevision?: string | null;
+  motivoDisco?: string | null;
+  motivoVercel?: string | null;
+  motivoCompute?: string | null;
 }
 
 export function veredictos(e: EntradaDeVeredictos): Veredicto[] {
@@ -205,7 +223,7 @@ export function veredictos(e: EntradaDeVeredictos): Veredicto[] {
   } else {
     v.push({
       id: "disco", titulo: "Disk IO del servidor", nivel: "gris",
-      valor: e.discoConfigurado ? "Midiendo… vuelve a cargar en 1 minuto para tener el ritmo." : "Sin lectura de la Metrics API.",
+      valor: sinDatos(e.motivoDisco ?? (e.discoConfigurado ? "midiendo; vuelve a cargar en 1 minuto" : "la Metrics API no está configurada")),
       queHacer: "El presupuesto exacto de Disk IO solo sale en el panel de Supabase (Reports → Database → Disk IO). Mientras, guíate por «Escrituras por hora».",
     });
   }
@@ -218,9 +236,9 @@ export function veredictos(e: EntradaDeVeredictos): Veredicto[] {
     const n = orden[Math.max(orden.indexOf(n1), orden.indexOf(n2))];
     v.push({
       id: "escrituras", titulo: "Escrituras a la base por hora", nivel: n,
-      valor: e.escriturasHora === null ? "Sin datos" : `${fmt0(e.escriturasHora)} por hora · ${fmt1(e.walMBHora ?? 0)} MB/h`,
-      queHacer: n === "verde" || n === "gris"
-        ? "Ritmo sano. Reinicia las estadísticas después de un cambio grande para medir el ritmo nuevo."
+      valor: e.escriturasHora === null ? sinDatos(e.motivoEscrituras, "sin estadísticas de la base") : `${fmt0(e.escriturasHora)} por hora · ${fmt1(e.walMBHora ?? 0)} MB/h`,
+      queHacer: n === "gris" ? SIN_LECTURA
+        : n === "verde" ? "Ritmo sano. Reinicia las estadísticas después de un cambio grande para medir el ritmo nuevo."
         : `Escribe de más${e.principalEscritor ? `: empieza por «${e.principalEscritor}»` : ""}. Que guarde menos seguido o en lote.`,
     });
   }
@@ -230,10 +248,10 @@ export function veredictos(e: EntradaDeVeredictos): Veredicto[] {
     const n = e.deploys24h === null ? "gris" : nivelPorUmbral(e.deploys24h, DEPLOYS_DIA_AMARILLO, DEPLOYS_DIA_ROJO);
     v.push({
       id: "deploys", titulo: "Publicaciones en 24 h", nivel: n,
-      valor: e.deploys24h === null ? "Configura VERCEL_TOKEN para verlas" : `${e.deploys24h}${e.deploysFallidos24h ? ` · ${e.deploysFallidos24h} fallidas` : ""}`,
+      valor: e.deploys24h === null ? sinDatos(e.motivoVercel, "VERCEL_TOKEN no está configurado") : `${e.deploys24h}${e.deploysFallidos24h ? ` · ${e.deploysFallidos24h} fallidas` : ""}`,
       queHacer: n === "rojo" || n === "amarillo"
         ? "Cada publicación recarga a todos los que tienen la app abierta: junta cambios y publica menos veces al día."
-        : n === "gris" ? "Agrega VERCEL_TOKEN en Vercel para contar las publicaciones." : "Bien: pocas publicaciones.",
+        : n === "gris" ? SIN_LECTURA : "Bien: pocas publicaciones.",
     });
   }
 
@@ -242,9 +260,9 @@ export function veredictos(e: EntradaDeVeredictos): Veredicto[] {
     const n = nivelPorUmbral(e.archivosGBMes, ARCHIVOS_GB_MES_AMARILLO, ARCHIVOS_GB_MES_ROJO);
     v.push({
       id: "archivos", titulo: "Archivos: crecimiento", nivel: n,
-      valor: e.archivosGBMes === null ? "Sin datos" : `${fmt1(e.archivosGBMes)} GB en 30 días${e.capturasGBMes !== null ? ` (capturas de Time Tracker: ${fmt1(e.capturasGBMes)} GB)` : ""}`,
-      queHacer: n === "verde" || n === "gris"
-        ? "Crecimiento normal."
+      valor: e.archivosGBMes === null ? sinDatos(e.motivoArchivos, "sin datos de archivos") : `${fmt1(e.archivosGBMes)} GB en 30 días${e.capturasGBMes !== null ? ` (capturas de Time Tracker: ${fmt1(e.capturasGBMes)} GB)` : ""}`,
+      queHacer: n === "gris" ? SIN_LECTURA
+        : n === "verde" ? "Crecimiento normal."
         : `Las capturas de Time Tracker crecen ${fmt1(e.capturasGBMes ?? 0)} GB/mes: define cuántos días guardarlas y borra las viejas.`,
     });
   }
@@ -254,8 +272,8 @@ export function veredictos(e: EntradaDeVeredictos): Veredicto[] {
     const n = nivelPorUmbral(e.baseGB, BASE_GB_AMARILLO, BASE_GB_ROJO);
     v.push({
       id: "base", titulo: "Tamaño de la base", nivel: n,
-      valor: e.baseGB === null ? "Sin datos" : `${fmt1(e.baseGB * 1024)} MB`,
-      queHacer: n === "verde" || n === "gris" ? "Muy por debajo de lo incluido." : "La base se acerca al límite del plan: revisa tablas grandes y bitácoras.",
+      valor: e.baseGB === null ? sinDatos(e.motivoBase, "sin datos de la base") : `${fmt1(e.baseGB * 1024)} MB`,
+      queHacer: n === "gris" ? SIN_LECTURA : n === "verde" ? "Muy por debajo de lo incluido." : "La base se acerca al límite del plan: revisa tablas grandes y bitácoras.",
     });
   }
 
@@ -265,34 +283,83 @@ export function veredictos(e: EntradaDeVeredictos): Veredicto[] {
     const n = nivelPorUmbral(frac, CONEXIONES_AMARILLO, CONEXIONES_ROJO);
     v.push({
       id: "conexiones", titulo: "Conexiones en uso", nivel: n,
-      valor: frac === null ? "Sin datos" : `${e.conexiones} de ${e.conexionesMax}`,
-      queHacer: n === "verde" || n === "gris" ? "Holgado." : "Muchas conexiones abiertas: revisa procesos colgados o sube el tamaño del servidor.",
+      valor: frac === null ? sinDatos(e.motivoBase, "sin datos de la base") : `${e.conexiones} de ${e.conexionesMax}`,
+      queHacer: n === "gris" ? SIN_LECTURA : n === "verde" ? "Holgado." : "Muchas conexiones abiertas: revisa procesos colgados o sube el tamaño del servidor.",
     });
     const nc = nivelPorPiso(e.cache, CACHE_AMARILLO, CACHE_ROJO);
     v.push({
       id: "cache", titulo: "Aciertos de caché", nivel: nc,
-      valor: e.cache === null ? "Sin datos" : `${fmt1(e.cache)} %`,
-      queHacer: nc === "verde" || nc === "gris" ? "Casi todo se lee de memoria: bien." : "La base lee mucho de disco: faltan índices o el servidor tiene poca memoria.",
+      valor: e.cache === null ? sinDatos(e.motivoBase, "sin datos de la base") : `${fmt1(e.cache)} %`,
+      queHacer: nc === "gris" ? SIN_LECTURA : nc === "verde" ? "Casi todo se lee de memoria: bien." : "La base lee mucho de disco: faltan índices o el servidor tiene poca memoria.",
     });
   }
 
   // 7. Revisión rápida de seguridad.
   {
-    const malos = (e.sinRls ?? 0) + (e.definerAnon ?? 0);
     const n: Nivel = e.sinRls === null ? "gris" : e.sinRls > 0 ? "rojo" : (e.definerAnon ?? 0) > 0 ? "amarillo" : "verde";
     v.push({
       id: "seguridad", titulo: "Revisión rápida de seguridad", nivel: n,
-      valor: e.sinRls === null ? "Sin datos" : `${e.sinRls} tablas sin RLS · ${e.definerAnon ?? 0} funciones que se llaman sin sesión`,
-      queHacer: malos === 0 ? "Sin hallazgos en esta revisión rápida." : "Quita a «anon» el permiso de ejecutar las funciones internas y prende RLS donde falte.",
+      valor: e.sinRls === null ? sinDatos(e.motivoRevision, "sin datos de la revisión") : `${e.sinRls} tablas sin RLS · ${e.definerAnon ?? 0} funciones que se llaman sin sesión`,
+      queHacer: n === "gris" ? SIN_LECTURA
+        : n === "verde" ? "Sin hallazgos en esta revisión rápida."
+        : "Quita a «anon» el permiso de ejecutar las funciones internas y prende RLS donde falte.",
     });
   }
 
   // 8. Tamaño del servidor.
   v.push({
     id: "compute", titulo: "Tamaño del servidor (Compute)", nivel: e.compute ? "verde" : "gris",
-    valor: e.compute ?? "Configura SUPABASE_ACCESS_TOKEN para verlo",
-    queHacer: "Un servidor más grande trae más presupuesto de Disk IO, más memoria y más conexiones, a cambio de más costo al mes. Primero baja las escrituras; sube solo si el aviso sigue.",
+    valor: e.compute ?? sinDatos(e.motivoCompute, "SUPABASE_ACCESS_TOKEN no está configurado"),
+    queHacer: e.compute
+      ? "Un servidor más grande trae más presupuesto de Disk IO, más memoria y más conexiones, a cambio de más costo al mes. Primero baja las escrituras; sube solo si el aviso sigue."
+      : SIN_LECTURA,
   });
 
   return v;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Partes independientes: cada lectura tiene su propio tiempo máximo y su propio error. Una que falla no tumba las demás.
+// ---------------------------------------------------------------------------------------------------------------
+
+export interface Parte<T> {
+  datos: T | null;
+  /** Razón en español, lista para mostrar en la tarjeta. Null si la lectura salió bien. */
+  error: string | null;
+}
+
+export class TiempoAgotado extends Error {
+  constructor() { super("tiempo agotado"); this.name = "TiempoAgotado"; }
+}
+
+/** Fallo que ya viene con su frase en español (p. ej. «la Metrics API respondió 500»): se muestra tal cual. */
+export class MotivoPlano extends Error {
+  constructor(public readonly motivo: string) { super(motivo); this.name = "MotivoPlano"; }
+}
+
+/** Motivo en plano de un fallo: el tiempo agotado tiene su frase; los errores de la base pasan por mensajeDeError. */
+export function motivoDeFallo(e: unknown, ms: number): string {
+  if (e instanceof MotivoPlano) return e.motivo;
+  const m = e instanceof Error ? e.message : typeof e === "string" ? e : "";
+  if (e instanceof TiempoAgotado || /tiempo agotado/i.test(m)) return `no respondió en ${Math.round(ms / 1000)} s`;
+  return mensajeDeError(e, "es", "cargar");
+}
+
+/**
+ * Corre UNA lectura con su tiempo máximo. Nunca lanza: devuelve datos o un motivo. Así una lectura que falla no
+ * bloquea a las demás (la página las pide todas con Promise.all sobre esta función).
+ */
+export async function ejecutaParte<T>(trabajo: () => Promise<T>, ms: number): Promise<Parte<T>> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const datos = await Promise.race([
+      trabajo(),
+      new Promise<never>((_, no) => { timer = setTimeout(() => no(new TiempoAgotado()), ms); }),
+    ]);
+    return { datos, error: null };
+  } catch (e) {
+    return { datos: null, error: motivoDeFallo(e, ms) };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }

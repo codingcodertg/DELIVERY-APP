@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   etiquetaDeConsulta, horasDesde, muestraDeDisco, nivelPorPiso, nivelPorUmbral, porHora, ritmoDeDisco, veredictos,
-  DEPLOYS_DIA_ROJO, type EntradaDeVeredictos,
+  ejecutaParte, MotivoPlano, DEPLOYS_DIA_ROJO, type EntradaDeVeredictos,
 } from "./salud";
 
 const base: EntradaDeVeredictos = {
@@ -9,6 +9,9 @@ const base: EntradaDeVeredictos = {
   deploys24h: null, deploysFallidos24h: null, archivosGBMes: null, capturasGBMes: null, baseGB: null,
   conexiones: null, conexionesMax: null, cache: null, sinRls: null, definerAnon: null, compute: null,
 };
+
+/** Frases que dicen «va bien». Una tarjeta sin datos no puede llevar ninguna. */
+const FRASES_SANAS = /Ritmo sano|Holgado|Sin hallazgos|Bien:|Muy por debajo|Casi todo se lee|Crecimiento normal|El disco va holgado/;
 
 describe("salud del sistema (lógica pura)", () => {
   it("nombra las sentencias que más escriben", () => {
@@ -72,5 +75,61 @@ describe("salud del sistema (lógica pura)", () => {
     const a = veredictos({ ...base, archivosGBMes: 4, capturasGBMes: 3.5 }).find((x) => x.id === "archivos")!;
     expect(a.nivel).toBe("rojo");
     expect(a.queHacer).toMatch(/cuántos días guardarlas/);
+  });
+
+  it("sin datos: TODAS las tarjetas son grises, dicen «No data — …» y ninguna lleva consejo de «va bien»", () => {
+    const v = veredictos(base);
+    expect(v.length).toBeGreaterThanOrEqual(8);
+    for (const x of v) {
+      expect(x.nivel, x.id).toBe("gris");
+      expect(x.valor, x.id).toMatch(/^No data — /);
+      expect(`${x.valor} ${x.queHacer}`, x.id).not.toMatch(FRASES_SANAS);
+    }
+  });
+
+  it("sin datos por la base: el motivo de cada grupo sale en su tarjeta, y el consejo no cambia a sano", () => {
+    const v = veredictos({ ...base, motivoBase: "tardó demasiado. Intenta de nuevo.", motivoEscrituras: "tardó demasiado. Intenta de nuevo.", motivoRevision: "falta aplicar la migración 307" });
+    const esc = v.find((x) => x.id === "escrituras")!;
+    expect(esc.valor).toBe("No data — tardó demasiado. Intenta de nuevo.");
+    expect(v.find((x) => x.id === "seguridad")!.valor).toBe("No data — falta aplicar la migración 307");
+    expect(esc.nivel).toBe("gris");
+    expect(`${esc.valor} ${esc.queHacer}`).not.toMatch(FRASES_SANAS);
+  });
+
+  it("con datos sanos, sí aparece el consejo de «va bien»", () => {
+    const v = veredictos({ ...base, escriturasHora: 10, walMBHora: 1, sinRls: 0, definerAnon: 0, baseGB: 0.1, cache: 99.9, conexiones: 2, conexionesMax: 60, archivosGBMes: 0.1 });
+    expect(v.find((x) => x.id === "escrituras")!.queHacer).toMatch(/Ritmo sano/);
+    expect(v.find((x) => x.id === "seguridad")!.queHacer).toMatch(/Sin hallazgos/);
+  });
+});
+
+describe("cada lectura por separado (ejecutaParte)", () => {
+  it("una lectura que falla no tumba a las demás", async () => {
+    const [mala, buena] = await Promise.all([
+      ejecutaParte(async () => { throw new Error("boom interno"); }, 1000),
+      ejecutaParte(async () => ({ ok: 1 }), 1000),
+    ]);
+    expect(mala.datos).toBeNull();
+    expect(mala.error).toBeTruthy();
+    expect(buena).toEqual({ datos: { ok: 1 }, error: null });
+  });
+
+  it("el tiempo agotado tiene su propio mensaje y no bloquea", async () => {
+    const t = Date.now();
+    const r = await ejecutaParte(() => new Promise<never>(() => {}), 300);
+    expect(r.datos).toBeNull();
+    expect(r.error).toBe("no respondió en 0 s");
+    expect(Date.now() - t).toBeLessThan(2000);
+  });
+
+  it("el error crudo de la base («canceling statement due to statement timeout») no llega a la pantalla", async () => {
+    const r = await ejecutaParte(async () => { throw { message: "canceling statement due to statement timeout", code: "57014" }; }, 1000);
+    expect(r.error).toBe("Tardó demasiado. Intenta de nuevo.");
+    expect(r.error).not.toMatch(/canceling|statement|timeout/i);
+  });
+
+  it("un fallo con motivo ya en español se muestra tal cual", async () => {
+    const r = await ejecutaParte(async () => { throw new MotivoPlano("la Metrics API respondió 503"); }, 1000);
+    expect(r.error).toBe("la Metrics API respondió 503");
   });
 });
