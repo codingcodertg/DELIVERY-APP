@@ -52154,3 +52154,22 @@ Exentas con su porqué: la matriz «Comparar candidatos» de `ModalHost.tsx` (at
 En Encuestas, el teléfono sigue viendo tarjetas; la prueba de «Teléfono» baja de 14 a 13 porque una cabecera pasó a la definición de columnas, con el mismo texto.
 Visto en pantalla (demo local): ▾ y ⚙ en Métricas y Encuestas; sin desborde horizontal de la página en 390 px.
 Sello `recruiting` 0.92.0; `surveys` 0.11.0; `estimator` 0.32.0; repo 1.879.0.
+
+## D-1027 · Time Tracker: la purga de capturas vuelve a funcionar
+
+**Fecha:** 2026-11-12 · **Origen:** auditoría del bucket `timetracker-screenshots` (2,3 GB con objetos desde el 20 de agosto) · **Migración:** 304 (escrita, **sin aplicar**)
+
+**Causa, medida.** La purga de los 14 días (migración 060: `timetracker.purge_old_screenshots`, programada en pg_cron a las 03:00 UTC) borraba `storage.objects` con SQL directo. Supabase bloquea ese borrado (`Direct deletion from storage tables is not allowed. Use the Storage API instead.`). Las 20 últimas corridas de `cron.job_run_details` (del 25 de octubre al 13 de noviembre) están `failed` con ese mensaje: no se borró nada. Además, la función es SECURITY DEFINER sin chequeo de rol: `authenticated` la podía ejecutar (anon ya no, desde 303). Ninguna pantalla ni ruta la llama con `.rpc()`.
+
+**Números (13 de noviembre, llave de servicio):** bucket con 6.864 archivos y 2,28 GB. Vencidos (más de 14 días): 5.949 archivos (2,05 GB), de 20 de agosto a 30 de octubre. Filas vencidas: 6.692 (5.874 con archivo, 818 sin archivo). Huérfanos: 75 archivos sin fila (0,02 GB).
+
+**Arreglo.**
+- `src/lib/timetracker/purga-capturas.ts` y `/api/cron/purga-capturas` (`vercel.json`, 03:00 UTC, mismo `cronAuthorized` y `?verify=1` que el resto de crons): borra los archivos por la API de Storage en lotes de 100 y **la fila solo después de que su archivo se haya borrado**. Como mucho 500 filas por corrida. Idempotente. La retención es `RETENCION_CAPTURAS_DIAS = 14`.
+- Migración 304 (`304_timetracker_purga_solo_servidor.sql`, sin aplicar): quita EXECUTE de `public`, `anon` y `authenticated` sobre `timetracker.purge_old_screenshots(interval)`; `service_role` lo conserva; un bloque `do` aborta si algo no quedó así.
+- `scripts/timetracker/purga-atrasada.mjs`: barre el atraso (los 5.949 archivos y sus filas, y los huérfanos). Sin `--escribe` solo reporta. Se corrió en modo reporte y no borró nada.
+
+**Corrección de seguridad (revisión del 12 de noviembre, antes del merge).** La primera versión del cron decidía con la fila: `path` y `taken_at` de `timetracker.screenshots`, que los empleados pueden escribir, y borraba con la llave de servicio. Un empleado podía poner en una fila la ruta de otro (o de cualquier archivo) con una fecha vieja, y la purga lo borraba. Ahora: (1) la antigüedad es el `created_at` del OBJETO en Storage, listado por sesión (`<uid>/<session>/`); una fila vieja con archivo reciente no borra nada; (2) una fila solo borra su propio archivo: la ruta debe ser `<employee_uid de la fila>/<session>/<archivo>`, sin `..`, sin barra inicial ni invertida, y lo que no cuadra se cuenta como `rechazadas` y no se toca. Pruebas: `rutaDeCapturaValida`, dueño ajeno, recorrido, archivo reciente con fila vieja, fallo de listado y de borrado. El script one-off también deja de borrar filas cuyo archivo sigue en el bucket.
+
+**Pendiente, decisión del dueño:** correr `purga-atrasada.mjs --escribe` para liberar los ~2 GB. Mientras tanto, el job antiguo de pg_cron sigue programado y fallando cada noche; si se quita, lo decide el dueño. La función conserva su SQL viejo, pero ya solo la ejecuta pg_cron (corre como `postgres`).
+
+Sello `timetracker` 1.23.0; repo 1.880.0.
