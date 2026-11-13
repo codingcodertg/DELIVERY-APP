@@ -6,34 +6,30 @@ import { timetrackerRestHeaders, type FetchLike } from "./live-session-cron";
  * Por qué existe: la purga vieja era `timetracker.purge_old_screenshots` (migración 060), programada en pg_cron. Borraba
  * `storage.objects` con SQL directo, y Supabase lo bloquea («Direct deletion from storage tables is not allowed»): cada
  * noche fallaba y en 2,2 GB de capturas no se borró nada. Aquí los archivos se borran por la API de Storage (la única vía
- * permitida), en lotes, y la fila de `timetracker.screenshots` solo sale DESPUÉS de que su archivo se haya borrado.
+ * permitida), y la fila de `timetracker.screenshots` sale después, por su ruta.
  *
- * Reglas de seguridad (revisión del 12 nov):
- * - La antigüedad la manda el `created_at` del OBJETO en Storage, no la fecha de la fila (`taken_at`): los empleados
- *   pueden escribir filas, así que una fila con fecha vieja no basta para borrar un archivo reciente.
- * - Una fila solo puede borrar su propio archivo: la ruta debe ser `<employee_uid de la fila>/<session>/<archivo>`.
- *   Sin `..`, sin barra inicial, sin barras invertidas, y exactamente tres partes. Lo que no cuadra se CUENTA como
- *   rechazado y no se borra nada.
- * - Los archivos se listan por sesión (`<uid>/<session>/`) y el borrado solo va sobre nombres que la listación de la
- *   propia carpeta devuelve: nunca sobre rutas que vienen de la fila sin confirmar.
- *
- * Idempotente y acotada: como mucho `LIMITE_CAPTURAS_POR_CORRIDA` filas y `MAX_SESIONES_POR_CORRIDA` listados por
- * corrida, para no pasar del límite de tiempo de la ruta. El archivo huérfano (sin fila) no lo ve esta purga: lo
- * barre `scripts/timetracker/purga-atrasada.mjs` desde el listado completo del bucket.
+ * Reglas (revisión de seguridad del 12 nov):
+ * - Las LAS CANDIDATAS salen de `storage.objects` (bucket `timetracker-screenshots`, `created_at` anterior al corte),
+ *   por la función `timetracker.capturas_vencidas` (migración 304, solo service_role). Las filas NO deciden nada: un
+ *   empleado puede escribirlas, y una fila falsa no puede borrar ni bloquear la purga.
+ * - La forma de la ruta se filtra EN LA BASE (`<uid>/<session>/<archivo>`, sin `..`, barras invertidas ni barra inicial),
+ *   antes del LIMIT: una ruta rara no ocupa sitio en el lote ni puede dejar a las demás sin purgar. Aquí se vuelve a
+ *   comprobar en memoria (`candidatasDeStorage`) como defensa.
+ * - Idempotente: lo que se borró ya no sale como candidato. Acotada a `LIMITE_CAPTURAS_POR_CORRIDA` archivos por corrida.
+ * - Después de borrar un archivo, se borran las filas cuya `path` es ese archivo. Una fila nunca borra un archivo.
  *
  * `fetchImpl` se inyecta para probarlo con datos sintéticos, sin red (igual que `live-session-cron.ts`).
  */
 
 /** Días que se guardan las capturas. Igual que el texto de la pantalla; cambiarlo exige cambiar ese texto y DECISIONS. */
 export const RETENCION_CAPTURAS_DIAS = 14;
-/** Tope de filas por corrida del cron. */
+/** Tope de archivos por corrida del cron. */
 export const LIMITE_CAPTURAS_POR_CORRIDA = 500;
-/** Tope de listados de carpeta (una por sesión) por corrida. */
-export const MAX_SESIONES_POR_CORRIDA = 100;
 export const BUCKET_CAPTURAS = "timetracker-screenshots";
-/** Nombres por llamada a la API de Storage (y ids por llamada a PostgREST): lotes que no alargan la URL ni el cuerpo. */
+/** Función SQL (migración 304) que lista las candidatas desde storage.objects. */
+export const FUNCION_CANDIDATAS = "capturas_vencidas";
+/** Nombres por llamada a la API de Storage y por llamada a PostgREST: lotes que no alargan la URL ni el cuerpo. */
 const LOTE = 100;
-const PAGINA = 1000;
 
 /** Instante (ms) antes del cual una captura ya vence. Pura. */
 export function corteCapturas(now: number, dias: number = RETENCION_CAPTURAS_DIAS): number {
@@ -48,21 +44,36 @@ export function enLotes<T>(items: readonly T[], n: number): T[][] {
 }
 
 /**
- * ¿Es esta ruta una captura legítima de ESTE empleado? Forma `<employee_uid>/<session>/<archivo>`, sin `..`, sin barra
- * inicial ni invertida, sin partes vacías. Pura.
+ * ¿Es esta ruta una captura de ESTE empleado? Forma `<employee_uid>/<session>/<archivo>`, sin `..`, sin barra inicial ni
+ * invertida, sin partes vacías. Pura. (La misma forma que filtra la función SQL de la migración 304.)
  */
 export function rutaDeCapturaValida(path: string | null | undefined, employeeUid: string | null | undefined): boolean {
   if (!path || !employeeUid) return false;
-  if (path.startsWith("/") || path.includes("\\") || path.includes("..")) return false;
+  if (path.startsWith("/") || path.includes("\\") || path.includes("..") || path.includes('"')) return false;
   const partes = path.split("/");
   if (partes.length !== 3 || partes.some((p) => p === "")) return false;
   return partes[0] === employeeUid;
 }
 
-/** Carpeta de sesión (`<uid>/<session>/`) de una ruta ya validada. Pura. */
-export function carpetaDeRuta(path: string): string {
-  const [uid, sesion] = path.split("/");
-  return `${uid}/${sesion}/`;
+/**
+ * Candidatas a borrar, a partir de los objetos que devuelve la base: solo rutas con forma de captura, anteriores al
+ * corte según el `created_at` DEL OBJETO, ordenadas de más viejo a más nuevo y acotadas al límite. Pura.
+ */
+export function candidatasDeStorage(
+  objetos: ReadonlyArray<{ name: string; created_at: string | null }>,
+  corteMs: number,
+  limite: number,
+): { path: string; created_at: string }[] {
+  const out: { path: string; created_at: string }[] = [];
+  for (const o of objetos) {
+    if (!o.created_at) continue;
+    const t = Date.parse(o.created_at);
+    if (!Number.isFinite(t) || t >= corteMs) continue;
+    if (!rutaDeCapturaValida(o.name, o.name.split("/")[0])) continue;
+    out.push({ path: o.name, created_at: o.created_at });
+  }
+  out.sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+  return out.slice(0, limite);
 }
 
 export type ResultadoPurga = {
@@ -70,24 +81,17 @@ export type ResultadoPurga = {
   retencionDias: number;
   /** Fecha de corte (ISO): los archivos con `created_at` anterior vencen. */
   corte: string;
-  /** Filas vencidas leídas en esta corrida (como mucho el límite). */
+  /** Candidatas que devolvió la base (con forma de captura y vencidas), como mucho el límite. */
   encontradas: number;
-  /** Filas sin ruta, o cuyo archivo ya no está en Storage: solo se borra la fila. */
-  sinArchivo: number;
-  /** Filas cuya ruta no es de su empleado (o es sospechosa): no se toca nada. */
+  /** Objetos que la base devolvió y que no tienen forma de captura: no se tocan. */
   rechazadas: number;
-  /** Filas cuyo archivo es reciente en Storage aunque la fila sea vieja: no se toca nada. */
-  recientes: number;
   /** Archivos borrados de Storage. */
   archivosBorrados: number;
-  /** Filas borradas. */
+  /** Filas de `timetracker.screenshots` borradas con su archivo. */
   filasBorradas: number;
-  /** Filas cuyo borrado (de archivo o de fila) falló o no se pudo listar; siguen para la próxima corrida. */
+  /** Archivos o filas cuyo borrado falló; siguen para la próxima corrida. */
   fallidas: number;
 };
-
-type FilaCaptura = { id: string; path: string | null; employee_uid: string | null };
-type Objeto = { name: string; created_at: string | null };
 
 export async function purgaCapturas(opts: {
   url: string;
@@ -105,90 +109,44 @@ export async function purgaCapturas(opts: {
   const corte = new Date(corteMs).toISOString();
   const res: ResultadoPurga = {
     ok: false, retencionDias: RETENCION_CAPTURAS_DIAS, corte, encontradas: 0,
-    sinArchivo: 0, rechazadas: 0, recientes: 0, archivosBorrados: 0, filasBorradas: 0, fallidas: 0,
+    rechazadas: 0, archivosBorrados: 0, filasBorradas: 0, fallidas: 0,
   };
   const storageH = { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
 
-  // 1) Candidatas: filas viejas por `taken_at`. Solo sirven para encontrar candidatas; NO deciden el borrado del archivo.
-  const r = await f(
-    `${url}/rest/v1/screenshots?select=id,path,employee_uid&taken_at=lt.${encodeURIComponent(corte)}&order=taken_at.asc&limit=${limite}`,
-    { headers: H, cache: "no-store" },
-  );
+  // 1) Candidatas desde storage.objects (función de la migración 304; el perfil timetracker la encuentra).
+  const r = await f(`${url}/rest/v1/rpc/${FUNCION_CANDIDATAS}`, {
+    method: "POST",
+    headers: H,
+    body: JSON.stringify({ corte, limite }),
+    cache: "no-store",
+  });
   if (!r.ok) return res;
   const raw = await r.json();
-  const filas = (Array.isArray(raw) ? raw : []).filter(
-    (x): x is FilaCaptura => !!x && typeof (x as FilaCaptura).id === "string",
+  const objetos = (Array.isArray(raw) ? raw : []).filter(
+    (x): x is { name: string; created_at: string | null } => !!x && typeof x.name === "string",
   );
-  res.encontradas = filas.length;
+  const cands = candidatasDeStorage(objetos, corteMs, limite);
+  res.encontradas = cands.length;
+  res.rechazadas = objetos.length - cands.length;
 
-  const borrarFilas = async (ids: string[]) => {
-    for (const lote of enLotes(ids, LOTE)) {
-      const d = await f(`${url}/rest/v1/screenshots?id=in.(${lote.join(",")})`, {
-        method: "DELETE",
-        headers: { ...H, Prefer: "return=minimal" },
-      });
-      if (d.ok) res.filasBorradas += lote.length; else res.fallidas += lote.length;
-    }
-  };
+  // 2) Por lotes: el archivo por la API de Storage; sus filas solo si el archivo salió bien.
+  for (const lote of enLotes(cands.map((c) => c.path), LOTE)) {
+    const s = await f(`${url}/storage/v1/object/${BUCKET_CAPTURAS}`, {
+      method: "DELETE",
+      headers: storageH,
+      body: JSON.stringify({ prefixes: lote }),
+    });
+    if (!s.ok) { res.fallidas += lote.length; continue; }
+    res.archivosBorrados += lote.length;
 
-  // 2) Clasificar: sin ruta, ruta ajena/sospechosa, o ruta propia agrupada por carpeta de sesión.
-  const sinRuta: string[] = [];
-  const porCarpeta = new Map<string, FilaCaptura[]>();
-  for (const x of filas) {
-    if (!x.path) { sinRuta.push(x.id); continue; }
-    if (!rutaDeCapturaValida(x.path, x.employee_uid)) { res.rechazadas++; continue; }
-    const c = carpetaDeRuta(x.path);
-    if (!porCarpeta.has(c)) {
-      if (porCarpeta.size >= MAX_SESIONES_POR_CORRIDA) continue; // sin tiempo para listar más: la próxima corrida
-      porCarpeta.set(c, []);
-    }
-    porCarpeta.get(c)!.push(x);
-  }
-  res.sinArchivo = sinRuta.length;
-  await borrarFilas(sinRuta);
-
-  // 3) Por cada sesión: listar SU carpeta en Storage (con paginación) y decidir con el created_at del objeto.
-  const sinArchivoEnStorage: string[] = [];
-  for (const [carpeta, filasDeCarpeta] of porCarpeta) {
-    const objetos: Objeto[] = [];
-    let listado = true;
-    for (let offset = 0; ; offset += PAGINA) {
-      const l = await f(`${url}/storage/v1/object/list/${BUCKET_CAPTURAS}`, {
-        method: "POST",
-        headers: storageH,
-        body: JSON.stringify({ prefix: carpeta, limit: PAGINA, offset, sortBy: { column: "name", order: "asc" } }),
-      });
-      if (!l.ok) { listado = false; break; }
-      const items = (await l.json()) as Array<{ name: string; id: string | null; created_at: string | null }>;
-      for (const it of items) if (it.id !== null) objetos.push({ name: it.name, created_at: it.created_at });
-      if (items.length < PAGINA) break;
-    }
-    if (!listado) { res.fallidas += filasDeCarpeta.length; continue; }
-
-    const porNombre = new Map(objetos.map((o) => [`${carpeta}${o.name}`, o]));
-    const aBorrar: FilaCaptura[] = [];
-    for (const x of filasDeCarpeta) {
-      const o = porNombre.get(x.path!);
-      if (!o) { sinArchivoEnStorage.push(x.id); continue; }            // no hay archivo: solo la fila
-      const creado = o.created_at ? Date.parse(o.created_at) : NaN;
-      if (!Number.isFinite(creado)) { res.rechazadas++; continue; }   // sin fecha fiable: no se toca
-      if (creado >= corteMs) { res.recientes++; continue; }           // archivo reciente: no se toca
-      aBorrar.push(x);
-    }
-    res.sinArchivo += sinArchivoEnStorage.length;
-    await borrarFilas(sinArchivoEnStorage.splice(0));
-
-    // 4) Archivo primero (API de Storage); la fila solo si su lote de archivos salió bien.
-    for (const lote of enLotes(aBorrar, LOTE)) {
-      const s = await f(`${url}/storage/v1/object/${BUCKET_CAPTURAS}`, {
-        method: "DELETE",
-        headers: storageH,
-        body: JSON.stringify({ prefixes: lote.map((x) => x.path) }),
-      });
-      if (!s.ok) { res.fallidas += lote.length; continue; }
-      res.archivosBorrados += lote.length;
-      await borrarFilas(lote.map((x) => x.id));
-    }
+    const enLista = lote.map((p) => `"${p}"`).join(",");
+    const d = await f(`${url}/rest/v1/screenshots?path=in.(${encodeURIComponent(enLista)})`, {
+      method: "DELETE",
+      headers: { ...H, Prefer: "return=representation" },
+    });
+    if (!d.ok) { res.fallidas += lote.length; continue; }
+    const borradas = await d.json();
+    res.filasBorradas += Array.isArray(borradas) ? borradas.length : 0;
   }
 
   res.ok = res.fallidas === 0;

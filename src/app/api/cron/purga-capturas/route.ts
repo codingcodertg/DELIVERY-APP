@@ -25,7 +25,7 @@ export async function GET(req: Request) {
   });
   console.log(
     `[cron purga-capturas] encontradas=${out.encontradas} archivos=${out.archivosBorrados} filas=${out.filasBorradas} ` +
-      `sinArchivo=${out.sinArchivo} rechazadas=${out.rechazadas} recientes=${out.recientes} fallidas=${out.fallidas} ok=${out.ok}`,
+      `rechazadas=${out.rechazadas} fallidas=${out.fallidas} ok=${out.ok}`,
   );
   return NextResponse.json(out, { status: out.ok ? 200 : 502 });
 }
