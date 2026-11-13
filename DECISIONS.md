@@ -51942,3 +51942,15 @@ Roberto (ayuda 62770f89, 12 nov, Gestor de Rutas → «Sin asignar», ficha de l
 Ahora la ficha de cualquier orden ya creada (desde el Gestor, en todas sus pestañas, y desde la tabla de Órdenes) tiene «📍 Ver en el mapa»: abre, dentro de la misma ficha, un mapa con el pin de la entrega y la tienda de recogida en el encuadre. No navega a otra pantalla (regla «abrir en tarjeta»). Si la dirección de entrega no tiene pin, lo dice. Regla pura `mapaDeLaOrden` en `src/lib/orden-en-el-mapa.ts`, con prueba.
 
 Sello `deliveries` 1.604.0; repo 1.862.0.
+
+## D-1010 · Merma: buscar, ordenar y filtrar; columnas de la hoja; borrar también el gerente; barra de desplazamiento arriba
+
+Ayudas del 12 nov en Operaciones → Reportes → Merma:
+
+- **Roberto, «filter and sort»:** cada cabecera de la tabla de merma tiene el ▾ de Órdenes (`CabeceraConMenu` + `useOrdenYFiltro`): ordenar y filtrar por valores. Convive con «⚙ Columnas» y con arrastrar la cabecera.
+- **Roberto, «search bar»:** buscador sobre la tabla, sin acentos y por palabras: producto, SKU, folio, quién la llenó / rompió / reportó, comentarios, motivo, origen, CRMA, tienda y nombre del grupo (`busqueda-de-merma.ts`). Muestra «N de M» y «Quitar filtros».
+- **Roberto, «select what columns the report will show»** (en el borrador del grupo): «⚙ Columnas» también en la HOJA de aprobación (borrador, hoja del grupo e imprimible). El «#» siempre va; las columnas ocultas tampoco se imprimen; se guarda por persona en este navegador (`columnas-de-hoja.ts`).
+- **Roberto, «delete as admin and manager»:** borrar un reporte (297) ahora también lo hace el gerente de esa tienda (`puedeBorrarMerma` = la misma puerta que iniciar la aprobación; el supervisor no), desde la tarjeta y **en bloque** desde la barra de seleccionadas, con confirmación. Migración **299**: reescribe `warehouse_ops_delete_scrap_report` desde su definición actual cambiando solo la puerta (`warehouse_ops_can_start_approval(r.store)`); se quedan las salvaguardas de la 297 (grupo aprobado bloqueado, archivos compartidos nunca se borran). Hasta aplicar la 299, al gerente la base le contesta que solo el admin borra.
+- **Rosa, «scroll bar on top not bottom»:** una barra horizontal también arriba de la tabla, sincronizada con la de abajo.
+
+Sello `warehouse_ops` 0.47.0; repo 1.863.0.

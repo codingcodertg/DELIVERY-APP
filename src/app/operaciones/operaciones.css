@@ -506,3 +506,12 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-historial-lista { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .ops-historial-lista li { display: grid; grid-template-columns: minmax(120px, auto) 1fr; gap: 10px; font-size: 13px; }
 .ops-historial-cuando { color: var(--gray); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Ayudas del 12 nov (Reportes → Merma): buscador, barra de desplazamiento también arriba (Rosa) y confirmación de
+   borrar en bloque. */
+.ops-columnas-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ops-busca-merma { flex: 1 1 260px; min-width: 0; max-width: 420px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); font: inherit; }
+.ops-columnas-barra > [data-cuenta-busqueda] { margin-right: auto; }
+.ops-scroll-arriba { overflow-x: auto; overflow-y: hidden; height: 14px; margin-bottom: 2px; }
+.ops-scroll-arriba > div { height: 1px; }
+.ops-confirma-borrar { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; font-weight: 600; color: var(--red); }

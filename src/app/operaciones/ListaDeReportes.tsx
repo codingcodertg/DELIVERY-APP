@@ -19,7 +19,6 @@ import { borrarPractica, cargaPractica, esGrupoDePractica, grupoDePracticaPorRep
 import { crearBorradorDeGrupo, esBorradorDeGrupo, listarBorradoresDeGrupo } from "@/lib/almacen-ops/borradores-de-grupo";
 import { HojaBorrador } from "./HojaBorrador";
 import { ensenanzaDelNavegador } from "@/lib/ensenanza-general";
-import { nivelDe } from "@/lib/almacen-ops/nivel";
 import { HistorialDeMerma } from "./HistorialDeMerma";
 import { avisoYaEnGrupo, esErrorDeYaEnGrupo, estadoDelGrupo, filtrarGrupos, seleccionadasEnGrupo, type FiltroDeGrupos, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
 import { HojaDeGrupo } from "./HojaDeGrupo";
@@ -40,7 +39,11 @@ import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { datosPdfDeMerma } from "@/lib/almacen-ops/pdf-de-merma";
 import { AdjuntarYMarcar, ChipDeEtapa, LineaDeEtapas, aplicarEtapa, ErrorParcial } from "./EtapasDeMerma";
-import { documentoDeGrupo, esAdminParaDeshacer, puedeIniciarAprobacion } from "@/lib/almacen-ops/etapas";
+import { documentoDeGrupo, esAdminParaDeshacer, puedeBorrarMerma, puedeIniciarAprobacion } from "@/lib/almacen-ops/etapas";
+import { coincideBusqueda } from "@/lib/almacen-ops/busqueda-de-merma";
+import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
+import { CabeceraConMenu, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
+import type { ValorDeCelda } from "@/lib/orden-y-filtro";
 import { particionaParaDeshacer, particionaPorEtapa, resumenDeBloque, resumenDeDeshacer } from "@/lib/almacen-ops/bloque";
 import { KpiDeEntregas } from "./KpiDeEntregas";
 import type { Contexto } from "./Operaciones";
@@ -209,6 +212,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
   // 296 (dueño, 11 nov: «an option to undo»): regresar un paso a las marcadas (cada una desde su etapa).
   // Deshacer en bloque: SOLO admin (reunión 11 nov; la 296 lo exige igual en la base).
   const paraDeshacer = useMemo(() => particionaParaDeshacer(esAdminParaDeshacer(ctx.yo) ? seleccionadas : []), [seleccionadas, ctx.yo]);
+  const paraBorrar = useMemo(() => seleccionadas.filter((r) => puedeBorrarMerma(ctx.yo, r)), [seleccionadas, ctx.yo]);
   // «Seleccionar todos» (dueño, 10 nov): antes no había forma de marcar todo. Marca/limpia de un golpe TODAS las mermas
   // seleccionables que se ven ahora (las del filtro de etapa actual).
   const seleccionables = useMemo(() => mermasPorEtapa.filter((r) => puedeSeleccionar(r)), [mermasPorEtapa, puedeSeleccionar]);
@@ -220,6 +224,27 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
     else for (const r of seleccionables) n.add(r.id);
     return n;
   });
+  // 299 (ayuda de Roberto, 12 nov: «delete as admin and manager»): borrar en bloque las marcadas que esta persona puede
+  // borrar (admin, o gerente de esa tienda), con confirmación en la misma barra. En práctica solo se quitan de la lista.
+  const [confirmaBorrarBloque, setConfirmaBorrarBloque] = useState(false);
+  const [borrandoBloque, setBorrandoBloque] = useState(false);
+  const borrarBloque = async (lista: Reporte[]) => {
+    setBorrandoBloque(true); setAvisoBloque(null);
+    const hechos: string[] = []; let fallo: string | null = null;
+    for (const r of lista) {
+      try {
+        if (!ctx.demo && !ensenanzaDelNavegador()) await borrarReporteDeMerma(createClient(), r.id);
+        hechos.push(r.id);
+      } catch (e) { fallo = (e as Error).message; }
+    }
+    const fuera = new Set(hechos);
+    setFilas((f) => (f ?? []).filter((x) => !fuera.has(x.id)));
+    setSeleccion((s) => { const n = new Set(s); for (const id of hechos) n.delete(id); return n; });
+    setConfirmaBorrarBloque(false); setBorrandoBloque(false);
+    setAvisoBloque(fallo
+      ? t(`${hechos.length} deleted; ${lista.length - hechos.length} could not be deleted: ${fallo}`, `${hechos.length} borrada(s); ${lista.length - hechos.length} no se pudo(pudieron) borrar: ${fallo}`)
+      : t(`${hechos.length} deleted.`, `${hechos.length} borrada(s).`));
+  };
   const actualizaFilas = (nuevos: Reporte[]) => {
     const porId = new Map(nuevos.map((n) => [n.id, n]));
     setFilas((f) => (f ?? []).map((x) => porId.get(x.id) ?? x));
@@ -442,10 +467,20 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
               {paraAjustar.elegibles.length > 0 && <button type="button" className="btn" onClick={() => { setAvisoBloque(null); setAdjuntando(false); setAjustandoBloque((x) => !x); }} data-accion="ajustar-bloque" aria-pressed={ajustandoBloque}>🧾 {t(`Mark as adjusted (${paraAjustar.elegibles.length})`, `Marcar como ajustadas (${paraAjustar.elegibles.length})`)}</button>}
               {paraDeshacer.elegibles.length > 0 && <button type="button" className="btn btn-ghost" onClick={() => { setAjustandoBloque(false); setAdjuntando(false); void deshacerBloque(); }} data-accion="deshacer-bloque"
                 title={t("Move each selected report back one stage", "Regresa cada merma marcada a su etapa anterior")}>↩ {t(`Undo one step (${paraDeshacer.elegibles.length})`, `Deshacer un paso (${paraDeshacer.elegibles.length})`)}</button>}
-              {paraHoja.length === 0 && paraDesechar.elegibles.length === 0 && paraAjustar.elegibles.length === 0 && paraDeshacer.elegibles.length === 0 && (
+              {paraHoja.length === 0 && paraDesechar.elegibles.length === 0 && paraAjustar.elegibles.length === 0 && paraDeshacer.elegibles.length === 0 && paraBorrar.length === 0 && (
                 <span className="hint" data-sin-acciones>{t("Nothing to do with these: they are already done.", "No hay acción para estas: ya están terminadas.")}</span>
               )}
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setSeleccion(new Set()); setAdjuntando(false); setAjustandoBloque(false); setAvisoBloque(null); }} data-accion="limpiar-seleccion">{t("Clear", "Quitar")}</button>
+              {paraBorrar.length > 0 && !confirmaBorrarBloque && (
+                <button type="button" className="btn btn-ghost" onClick={() => setConfirmaBorrarBloque(true)} data-accion="borrar-bloque">🗑 {t(`Delete (${paraBorrar.length})`, `Borrar (${paraBorrar.length})`)}</button>
+              )}
+              {confirmaBorrarBloque && paraBorrar.length > 0 && (
+                <span className="ops-confirma-borrar" role="alert" data-confirma-borrar-bloque>
+                  {t(`Delete ${paraBorrar.length} report(s)? This can't be undone.`, `¿Borrar ${paraBorrar.length} reporte(s)? No se puede deshacer.`)}
+                  <button type="button" className="btn btn-danger btn-sm" disabled={borrandoBloque} onClick={() => void borrarBloque(paraBorrar)} data-accion="confirmar-borrar-bloque">{borrandoBloque ? t("Deleting…", "Borrando…") : t("Yes, delete", "Sí, borrar")}</button>
+                  <button type="button" className="btn btn-ghost btn-sm" disabled={borrandoBloque} onClick={() => setConfirmaBorrarBloque(false)}>{t("Cancel", "Cancelar")}</button>
+                </span>
+              )}
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setSeleccion(new Set()); setAdjuntando(false); setAjustandoBloque(false); setAvisoBloque(null); setConfirmaBorrarBloque(false); }} data-accion="limpiar-seleccion">{t("Clear", "Quitar")}</button>
             </div>
           )}
           {avisoBloque && <div className="hint" role="status" data-aviso-bloque>{avisoBloque}</div>}
@@ -665,6 +700,57 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
   const claseArrastre = (c: ColumnaDeMerma) => "ops-cabecera-arrastrable" + (arrastrando === c.key ? " ops-cabecera-arrastrando" : "");
   const ordenSelector = normalizaPrefs(prefs).orden.map((k) => disponibles.find((d) => d.key === k)).filter((c): c is ColumnaDeMerma => !!c);
   const deGrupoDePractica = grupoDePracticaPorReporte();
+  // Ayudas de Roberto (12 nov): «search bar to find things» y «filter and sort». La búsqueda va primero (sin acentos,
+  // cada palabra en algún campo); luego el orden y los filtros por columna (el ▾ de cada cabecera, como en Órdenes).
+  const [busca, setBusca] = useState("");
+  const nombreGrupoDe = (r: Reporte) => { const gid = r.scrap_group_id ?? deGrupoDePractica.get(r.id) ?? null; return gid ? (nombreDeGrupo.get(gid) ?? "") : ""; };
+  const filasBuscadas = useMemo(() => (busca.trim() === "" ? filas : filas.filter((r) => {
+    const c = celdasDeMerma(r, ctx.personas, lang);
+    return coincideBusqueda([r.product_name, r.product_sku, c.codigo, c.descripcion, r.id.slice(0, 8), r.author_name ?? nombre(r.author_id),
+      c.loRompio, c.loReporto, c.comentarios, c.motivo, c.como, c.crma, r.store, nombreGrupoDe(r)], busca);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  })), [filas, busca, ctx.personas, lang, grupos]);
+  const valorDe = useCallback((key: string, r: Reporte): ValorDeCelda => {
+    switch (key) {
+      case "reportada": return r.created_at;
+      case "etapa": return nombreDeEtapaVisible(etapaVisible(r), lang);
+      case "grupo": return nombreGrupoDe(r) || null;
+      case "tipo": return lang === "es" ? INFO_DE_TIPO[r.kind].es : INFO_DE_TIPO[r.kind].en;
+      case "tienda": return r.store;
+      case "lleno": return r.author_name ?? nombre(r.author_id);
+    }
+    if (key === "costo") return r.total_loss ?? null;
+    const c = celdasDeMerma(r, ctx.personas, lang) as unknown as Record<string, string>;
+    const ex = COLUMNAS_EXCEL.find((k) => k.id === key);
+    const v = c[key] ?? "";
+    if (ex?.num) { const n = Number(String(v).replace(/[^0-9.-]/g, "")); return v === "" || Number.isNaN(n) ? null : n; }
+    return v === "" ? null : v;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctx.personas, lang, grupos]);
+  const orden = useOrdenYFiltro(filasBuscadas, valorDe);
+  const columnasConMenu: ColumnaConMenu[] = visibles.map((c) => ({ key: c.key, en: c.en, es: c.es, numerico: !!COLUMNAS_EXCEL.find((k) => k.id === c.key)?.num }));
+  const cabecera = (c: ColumnaDeMerma) => <CabeceraConMenu estado={orden} col={columnasConMenu.find((x) => x.key === c.key) ?? { key: c.key, en: c.en, es: c.es }} lang={lang} t={t} />;
+  // Rosa (12 nov): «scroll bar on top not bottom»: una barra horizontal también ARRIBA de la tabla, sincronizada con la de
+  // abajo (con muchas filas, la de abajo queda lejísimos).
+  const cajaRef = useRef<HTMLDivElement>(null);
+  const arribaRef = useRef<HTMLDivElement>(null);
+  const [anchoTabla, setAnchoTabla] = useState(0);
+  useEffect(() => {
+    const caja = cajaRef.current;
+    if (!caja) return;
+    const mide = () => setAnchoTabla(caja.scrollWidth > caja.clientWidth + 1 ? caja.scrollWidth : 0);
+    mide();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(mide) : null;
+    ro?.observe(caja);
+    const tabla = caja.querySelector("table"); if (tabla) ro?.observe(tabla);
+    return () => ro?.disconnect();
+  }, [visibles.length, orden.visibles.length]);
+  const sincroniza = (de: "arriba" | "abajo") => {
+    const a = arribaRef.current, b = cajaRef.current;
+    if (!a || !b) return;
+    if (de === "arriba" && b.scrollLeft !== a.scrollLeft) b.scrollLeft = a.scrollLeft;
+    if (de === "abajo" && a.scrollLeft !== b.scrollLeft) a.scrollLeft = b.scrollLeft;
+  };
   const celdaFija = (r: Reporte, key: string) => {
     switch (key) {
       case "reportada": return (
@@ -698,6 +784,14 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
   return (
     <div className="ops-tabla-excel-con-columnas">
       <div className="ops-columnas-barra">
+        <input type="search" className="ops-busca-merma" value={busca} onChange={(e) => setBusca(e.target.value)} data-busca-merma
+          placeholder={t("Search product, SKU, folio, person, comment…", "Buscar producto, SKU, folio, persona, comentario…")}
+          aria-label={t("Search scrap reports", "Buscar en la merma")} />
+        {(busca.trim() !== "" || Object.keys(orden.filtros).length > 0) && (
+          <span className="hint" data-cuenta-busqueda>{t(`${orden.visibles.length} of ${filas.length}`, `${orden.visibles.length} de ${filas.length}`)}
+            {Object.keys(orden.filtros).length > 0 && <> · <button type="button" className="ops-folio-link" onClick={orden.limpiarTodo}>{t("Clear filters", "Quitar filtros")}</button></>}
+          </span>
+        )}
         <SelectorDeColumnas
           columnas={ordenSelector}
           elegidas={visibles.map((c) => c.key)}
@@ -713,7 +807,12 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
           }}
         />
       </div>
-      <div className="tbl-scroll tbl-caja ops-tabla-excel-caja">
+      {anchoTabla > 0 && (
+        <div className="ops-scroll-arriba" ref={arribaRef} onScroll={() => sincroniza("arriba")} aria-hidden data-scroll-arriba>
+          <div style={{ width: anchoTabla }} />
+        </div>
+      )}
+      <div className="tbl-scroll tbl-caja ops-tabla-excel-caja" ref={cajaRef} onScroll={() => sincroniza("abajo")}>
         <table className="orders ops-tabla-excel" data-lista={dataLista}>
           <thead>
             <tr>
@@ -728,18 +827,19 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
                 </th>
               )}
               {tramos.map((tr, n) => tr.tipo === "suelta"
-                ? <th key={tr.col.key} rowSpan={2} data-col={tr.col.key} className={claseArrastre(tr.col)} {...arrastre(tr.col)}>{titulo(tr.col)}</th>
+                ? <th key={tr.col.key} rowSpan={2} data-col={tr.col.key} className={claseArrastre(tr.col)} {...arrastre(tr.col)}>{cabecera(tr.col)}</th>
                 : <th key={`cant-${n}`} colSpan={tr.cols.length} className="ops-col-grupo" data-col="cantidades">{t("Quantities", "Cantidades")}</th>)}
             </tr>
             <tr>
               {tramos.flatMap((tr) => (tr.tipo === "cantidades" ? tr.cols : [])).map((c) => (
-                <th key={c.key} data-col={c.key} className={"num ops-col-subgrupo " + claseArrastre(c)} {...arrastre(c)}>{titulo(c)}</th>
+                <th key={c.key} data-col={c.key} className={"num ops-col-subgrupo " + claseArrastre(c)} {...arrastre(c)}>{cabecera(c)}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filas.length === 0 && <tr><td colSpan={columnas} className="hint">{vacio}</td></tr>}
-            {filas.map((r) => {
+            {filas.length > 0 && orden.visibles.length === 0 && <tr><td colSpan={columnas} className="hint" data-sin-coincidencias>{t("Nothing matches the search or filters.", "Nada coincide con la búsqueda o los filtros.")}</td></tr>}
+            {orden.visibles.map((r) => {
               const c = celdasDeMerma(r, ctx.personas, lang);
               const celda = (k: (typeof COLUMNAS_EXCEL)[number]) => {
                 // La fecha del daño corta (dueño, 11 nov): MM/DD/YY en los dos idiomas.
@@ -773,6 +873,7 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
           </tbody>
         </table>
       </div>
+      <MenuDeColumnaAbierto estado={orden} columnas={columnasConMenu} lang={lang} t={t} />
     </div>
   );
 }
@@ -854,7 +955,8 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio, onBorrado }: { r: Reporte;
   onBorrado?: (id: string) => void }) {
   const { t, lang } = usePrefs();
   // 297 (reunión 11 nov, 11 PM): el admin borra un reporte de merma que no es real («Test»), con confirmación aquí mismo.
-  const borra = r.kind === "scrap" && nivelDe(ctx.yo) === "admin";
+  // 299 (ayuda de Roberto, 12 nov): también el gerente de esa tienda, no solo el admin.
+  const borra = puedeBorrarMerma(ctx.yo, r);
   const [confirmaBorrar, setConfirmaBorrar] = useState(false);
   const [borrando, setBorrando] = useState(false);
   const [errorBorrar, setErrorBorrar] = useState<string | null>(null);
