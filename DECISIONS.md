@@ -52326,3 +52326,10 @@ Auditoría: la fila ya no lleva a otra página; abre la orden en la misma tarjet
 Queda una sola pendiente en toda la app: `RutaDelPlan`, cuyas columnas son las plantillas del Gestor; falta decidir si las plantillas y el ⚙ del estándar son uno solo. La exportación CSV de Mercado sigue el orden por nombre, no el elegido con ▾.
 Visto en pantalla (demo): Datos 1280 y 390, Ajustes, KPI de Entregas 1280 y 390, Auditoría con la tarjeta abierta. Sin datos en el demo: Mercado (el servicio de mapas no responde desde el sandbox) y el plan contra real.
 Sello `deliveries` 1.618.0; `warehouse_ops` 0.54.0; repo 1.893.0.
+
+## D-1041 · Quote Builder: pestaña «Calculadora de material» (la hoja de Excel de Rodriguez Tile)
+
+Nueva pestaña en el Quote Builder, para todos los que lo abren: el vendedor mete el tipo de proyecto (Shower / Flooring Only / Wall Only), medidas, loseta, backsplash y orilla de trim, y ve en vivo cuánto vender de los 17 materiales, con las áreas calculadas. Fórmulas copiadas celda por celda de `Rodriguez_Tile_Calculator_Supply_Aligned.xlsx` (`src/lib/estimator/calculadora-material.ts`, con la celda en cada comentario); con los valores de ejemplo da lo mismo que la hoja (pruebas). Los ajustes de producto se editan en un panel plegable y se guardan solo en el navegador de quien los cambia (sin base); «Copiar lista» copia cantidad, unidad y material. Tabla con `TablaReducida`.
+Observaciones de la hoja, sin tocar: C11/C12, C6, C40 y C43 de Product Settings no los usa ninguna fórmula; Water Shield cuenta envases de C14 galones; el thinset dice 50 lb en la unidad y 44 lb en las notas.
+Visto en pantalla (demo) a 1280 y 390.
+Sello `estimator` 0.33.0; repo 1.894.0.
