@@ -50,7 +50,7 @@ vi.mock("@/lib/confirm", () => ({ useConfirm: () => async () => true }));
 vi.mock("@/lib/usePausasDelChofer", () => ({
   usePausasDelChofer: (...args: unknown[]) => {
     estado.pausasPedidas.push(args);
-    return { pausas: estado.pausas, estado: "lista", empezar: async () => ({ ok: true }), seguir: async () => ({ ok: true }), ubicarTarde: async () => {} };
+    return { pausas: estado.pausas, abierta: (estado.pausas as { termino_at: string | null }[]).find((p) => !p.termino_at) ?? null, estado: "lista", empezar: async () => ({ ok: true }), seguir: async () => ({ ok: true }), recibir: async () => ({ ok: true }), ubicarTarde: async () => {} };
   },
 }));
 
@@ -258,7 +258,7 @@ describe("«Mi ruta» pintada (D-520)", () => {
     // Las paradas que pide son las de SU chofer y de hoy.
     expect(estado.pausasPedidas.at(-1)?.slice(0, 2)).toEqual(["u-carlos", HOY]);
   });
-  it("parado: «⏸ Stopped: ⛽ Gas · hora» con «▶ Continue», en vez del botón", async () => {
+  it("parado: «⏸ Stopped: ⛽ Gas · hora» con «✔ Finish stop», en vez del botón", async () => {
     const abierta: PausaDelChofer = {
       id: "p1", driver_id: "u-carlos", motivo: "gas", nota: null, empezo_at: new Date().toISOString(), termino_at: null,
       lat: null, lng: null, precision_m: null, recibo_foto: null, recibo_monto: null, recibo_galones: null, sin_recibo: false, created_at: "",
@@ -267,7 +267,7 @@ describe("«Mi ruta» pintada (D-520)", () => {
     const html = await pinta();
     expect(html).toContain('data-pausa-abierta="gas"');
     expect(html).toContain("⏸ Stopped: ⛽ Gas · ");
-    expect(html).toContain("▶ Continue");
+    expect(html).toContain("✔ Finish stop");
     expect(html).not.toContain("⏸ Log a stop");
   });
   it("quien no es chofer va a su inicio, no a «Not available»", async () => {

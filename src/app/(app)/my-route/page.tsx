@@ -481,7 +481,7 @@ export default function MyRoutePage() {
 
       {/* «⏸ Registrar parada» (D-520): baño, gasolina (con su recibo), comida, tráfico. Mientras está parado, la tarjeta
           dice en qué y desde cuándo, con «▶ Seguir». Desde D-541 y D-547 se eligen solo gasolina, comida y otro. */}
-      <PausaDelChofer driverId={chofer?.id} soloLectura={soloLectura} />
+      <PausaDelChofer driverId={chofer?.id} soloLectura={soloLectura} dia={dia} />
 
       {/* El orden planeado por el motor, si hay un plan publicado de hoy (D-324). Solo informa: lo que se
           hace sigue saliendo de las órdenes asignadas, abajo. */}

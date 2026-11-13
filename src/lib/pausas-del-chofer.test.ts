@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   LS_PAUSAS, MOTIVOS_DE_PAUSA, MOTIVOS_PARA_ELEGIR, cierreDePausa, guardaPausasLocales, horaDeCierre, inicioDePausa, leePausasLocales,
   minutosDePausa, nombreDelMotivo, numeroOpcional, pausaAbierta, pideRecibo, textoDePausaAbierta, type PausaDelChofer,
+  diaDelNegocio, esParadaVieja, finDelDiaDe, horaDeCierreDe, horaDeCierreDeVieja, recibosPendientes, reciboTardio,
 } from "@/lib/pausas-del-chofer";
 
 // ============================================================
@@ -21,7 +22,7 @@ vi.mock("@/lib/prefs", () => ({ usePrefs: () => ({ t: (en: string) => en, lang: 
 vi.mock("@/lib/usePausasDelChofer", () => ({
   usePausasDelChofer: (...args: unknown[]) => {
     estado.pedidas.push(args);
-    return { pausas: estado.pausas, estado: estado.estado, empezar: async () => ({ ok: true }), seguir: async () => ({ ok: true }), ubicarTarde: async () => {} };
+    return { pausas: estado.pausas, abierta: (estado.pausas as { termino_at: string | null }[]).find((p) => !p.termino_at) ?? null, estado: estado.estado, empezar: async () => ({ ok: true }), seguir: async () => ({ ok: true }), recibir: async () => ({ ok: true }), ubicarTarde: async () => {} };
   },
 }));
 
@@ -58,7 +59,8 @@ describe("al seguir: la gasolina pide recibo", () => {
     expect(MOTIVOS_DE_PAUSA.filter((m) => pideRecibo(m.clave)).map((m) => m.clave)).toEqual(["gas"]);
   });
   it("sin foto y sin «No tengo recibo», no se puede seguir", () => {
-    expect(cierreDePausa("gas", vacio)).toEqual({ falta: "recibo" });
+    // Cambio del 2026-11-13: sin foto y sin «no tengo», la parada se cierra con el recibo pendiente (no se bloquea).
+    expect(cierreDePausa("gas", vacio)).toEqual({ recibo_foto: null, recibo_monto: null, recibo_galones: null, sin_recibo: false });
   });
   it("con la foto, se sigue; monto y galones si los puso", () => {
     expect(cierreDePausa("gas", { ...vacio, foto: "data:image/jpeg;base64,AA", monto: "$54.30", galones: "15,2" }))
@@ -131,7 +133,7 @@ describe("el botón en «Mi ruta»", async () => {
     expect(html).toContain('data-pausa-abierta="gas"');
     expect(html).toContain("⏸ Stopped: ⛽ Gas · ");
     expect(html).toContain("Pemex de la 10");
-    expect(html).toMatch(/<button[^>]*data-seguir="true"[^>]*>▶ Continue/);
+    expect(html).toMatch(/<button[^>]*data-seguir="true"[^>]*>✔ Finish stop/);
     expect(pinta({ driverId: "u1", soloLectura: true })).toMatch(/data-seguir="true"[^>]*disabled=""/);
   });
   it("el cableado: «Seguir» en la gasolina abre el recibo, en lo demás cierra; los dos cuadros confirman con la regla", () => {
@@ -150,7 +152,7 @@ describe("el botón en «Mi ruta»", async () => {
     expect(c).toContain("if (!gps) void eventual.then((tarde) => { if (tarde) void ubicarTarde(r.pausa.id, tarde); });");
   });
   it("«Mi ruta» lo monta con SU chofer (el de la ruta que se mira) y en solo lectura si es de otro", () => {
-    expect(leer("src/app/(app)/my-route/page.tsx")).toContain("<PausaDelChofer driverId={chofer?.id} soloLectura={soloLectura} />");
+    expect(leer("src/app/(app)/my-route/page.tsx")).toContain("<PausaDelChofer driverId={chofer?.id} soloLectura={soloLectura} dia={dia} />");
   });
 });
 
@@ -191,6 +193,8 @@ describe("la base: la 167 y el gancho que la lee", () => {
     expect(gancho).toContain('export const TABLA_DE_PAUSAS = "pausas_del_chofer";');
     expect(sql).toContain("create table if not exists public.pausas_del_chofer (");
     expect(gancho).toContain('if (error) { setEstado(faltaLaTabla(error) ? "sin-tabla" : "error"); return; }');
+    // Cambio del 2026-11-13: la parada abierta se busca sin importar el día (ayer seguía abierta y no salía en «Hoy»).
+    expect(gancho).toContain('sb.from(TABLA_DE_PAUSAS).select("*").eq("driver_id", driverId).is("termino_at", null)');
     // En el demo y en el modo enseñanza, en el navegador: nada de lo que se practica llega a la base.
     expect(gancho).toContain("const local = SIN_BASE || !!opciones.practica;");
   });
@@ -198,6 +202,8 @@ describe("la base: la 167 y el gancho que la lee", () => {
     expect(sql).toContain("constraint pausas_motivo check (motivo in ('restroom', 'gas', 'food', 'traffic', 'other'))");
     expect(sql).toContain("constraint pausas_otro_con_texto check (motivo <> 'other' or length(btrim(coalesce(nota, ''))) >= 3)");
     expect(sql).toContain("constraint pausas_gasolina_con_recibo check (motivo <> 'gas' or termino_at is null or recibo_foto is not null or sin_recibo)");
+    // Cambio del 2026-11-13: la 306 la quita (la de gasolina puede cerrarse sin recibo).
+    expect(leer("supabase/migrations/306_pausas_recibo_despues.sql")).toContain("drop constraint if exists pausas_gasolina_con_recibo");
     expect(sql).toContain("create unique index if not exists pausas_del_chofer_una_abierta on public.pausas_del_chofer (driver_id) where termino_at is null;");
   });
   it("RLS: el chofer las suyas (y solo la abierta se toca); admin, logística y gerentes leen; nadie borra", () => {
@@ -238,5 +244,111 @@ describe("los motivos que elige el chofer", () => {
   });
   it("el botón pinta MOTIVOS_PARA_ELEGIR", () => {
     expect(readFileSync("src/components/PausaDelChofer.tsx", "utf8")).toContain("{MOTIVOS_PARA_ELEGIR.map((m) => (");
+  });
+});
+
+// Cambio del 2026-11-13. Caso real del 4 de noviembre: parada de gasolina abierta desde el 4 de noviembre a las 09:14 (CST, UTC-6).
+describe("paradas viejas y recibos pendientes (cambio del 2026-11-13)", () => {
+  const abiertaEl = (iso: string, extra: Partial<PausaDelChofer> = {}) => pausa({ empezo_at: iso, created_at: iso, ...extra });
+  const ahoraDeAhora = new Date("2026-11-13T18:00:00.000Z");
+
+  it("el día del negocio es el de Central, no el de UTC", () => {
+    expect(diaDelNegocio("2026-11-05T05:50:00.000Z")).toBe("2026-11-04");
+    expect(diaDelNegocio("2026-11-05T06:10:00.000Z")).toBe("2026-11-05");
+    expect(finDelDiaDe("2026-11-04T15:14:21.720Z")).toBe("2026-11-05T06:00:00.000Z");
+  });
+
+  it("una parada de otro día sigue abierta es vieja; una de hoy con menos del tope no", () => {
+    expect(esParadaVieja(abiertaEl("2026-11-04T15:14:21.720Z"), ahoraDeAhora)).toBe(true);
+    expect(esParadaVieja(abiertaEl("2026-11-13T15:00:00.000Z"), new Date("2026-11-13T16:00:00.000Z"))).toBe(false);
+    // Hoy, pero ya pasaron más de 3 h desde que empezó.
+    expect(esParadaVieja(abiertaEl("2026-11-13T15:00:00.000Z"), new Date("2026-11-13T19:00:00.000Z"))).toBe(true);
+    // Una cerrada nunca es vieja.
+    expect(esParadaVieja(abiertaEl("2026-11-04T15:14:21.720Z", { termino_at: "2026-11-04T16:00:00.000Z" }), ahoraDeAhora)).toBe(false);
+  });
+
+  it("la hora de cierre de una vieja es inicio + tope, o la medianoche de su día si llega antes; nunca «ahora»", () => {
+    // 09:14 CST + 3 h = 12:14 CST, antes de medianoche.
+    expect(horaDeCierreDeVieja("2026-11-04T15:14:21.720Z")).toBe("2026-11-04T18:14:21.720Z");
+    // 23:50 CST: la medianoche (00:00 CST del día siguiente) llega antes que las 3 h.
+    expect(horaDeCierreDeVieja("2026-11-05T05:50:00.000Z")).toBe("2026-11-05T06:00:00.000Z");
+    // Nunca antes del inicio.
+    expect(horaDeCierreDeVieja("2026-11-05T05:59:59.000Z")).toBe("2026-11-05T06:00:00.000Z");
+  });
+
+  it("al seguir: una vieja se cierra a su hora de cierre, una de hoy a ahora", () => {
+    const vieja = abiertaEl("2026-11-04T15:14:21.720Z");
+    expect(horaDeCierreDe(vieja, ahoraDeAhora)).toBe("2026-11-04T18:14:21.720Z");
+    const deHoy = abiertaEl("2026-11-13T17:30:00.000Z");
+    expect(horaDeCierreDe(deHoy, new Date("2026-11-13T17:40:00.000Z"))).toBe("2026-11-13T17:40:00.000Z");
+  });
+
+  it("la de gasolina sin recibo es pendiente; con «no tengo» o con foto ya no", () => {
+    const sinNada = pausa({ motivo: "gas" });
+    expect(recibosPendientes([sinNada]).map((p) => p.id)).toEqual(["p1"]);
+    expect(recibosPendientes([pausa({ motivo: "gas", sin_recibo: true })])).toEqual([]);
+    expect(recibosPendientes([pausa({ motivo: "gas", recibo_foto: "data:image/jpeg;base64,AA" })])).toEqual([]);
+    // Las de baño, comida u otro no piden recibo.
+    expect(recibosPendientes([pausa({ motivo: "food" }), pausa({ motivo: "restroom" })])).toEqual([]);
+  });
+
+  it("la lista va de la más vieja a la más nueva", () => {
+    const pendientes = recibosPendientes([
+      pausa({ id: "b", empezo_at: "2026-11-13T16:00:00.000Z" }),
+      pausa({ id: "a", empezo_at: "2026-11-13T15:00:00.000Z" }),
+    ]);
+    expect(pendientes.map((p) => p.id)).toEqual(["a", "b"]);
+  });
+
+  it("cerrar una gasolina sin foto la deja pendiente (no se bloquea); monto mal escrito sí", () => {
+    expect(cierreDePausa("gas", { foto: null, monto: "", galones: "", sinRecibo: false }))
+      .toEqual({ recibo_foto: null, recibo_monto: null, recibo_galones: null, sin_recibo: false });
+    expect(cierreDePausa("gas", { foto: null, monto: "abc", galones: "", sinRecibo: false })).toEqual({ falta: "monto" });
+  });
+
+  it("el recibo que llega después: foto obligatoria, cifras opcionales y numéricas", () => {
+    expect(reciboTardio({ foto: null, monto: "", galones: "" })).toEqual({ falta: "foto" });
+    expect(reciboTardio({ foto: "data:image/jpeg;base64,AA", monto: "$54,30", galones: "" }))
+      .toEqual({ recibo_foto: "data:image/jpeg;base64,AA", recibo_monto: 54.3, recibo_galones: null });
+    expect(reciboTardio({ foto: "data:image/jpeg;base64,AA", monto: "", galones: "x" })).toEqual({ falta: "galones" });
+  });
+});
+
+describe("la base de los recibos después (306)", () => {
+  const sql = readFileSync(join(process.cwd(), "supabase/migrations/306_pausas_recibo_despues.sql"), "utf8").split("\r\n").join("\n");
+  it("quita la constraint de gasolina, y el alta solo es de ahora", () => {
+    expect(sql).toContain("alter table public.pausas_del_chofer drop constraint if exists pausas_gasolina_con_recibo;");
+    expect(sql).toContain("and empezo_at between now() - interval '2 minutes' and now() + interval '2 minutes');");
+  });
+  it("update: la abierta, o una cerrada de gasolina sin recibo; y el trigger deja cambiar solo el recibo", () => {
+    expect(sql).toContain("and (termino_at is null or (motivo = 'gas' and recibo_foto is null and sin_recibo = false)))");
+    expect(sql).toContain("before update on public.pausas_del_chofer");
+    expect(sql).toContain("if new.recibo_foto is null then");
+  });
+  it("sin begin/commit y con su línea de registro tras el marcador", () => {
+    const cuerpo = sql.slice(0, sql.indexOf("-- @ledger-below"));
+    expect(cuerpo.split("\n").filter((l) => !/^\s*--/.test(l)).join("\n")).not.toMatch(/^\s*(begin|commit)\s*;/im);
+    expect(sql).toMatch(/-- @ledger-below\ninsert into public\.schema_migrations \(name, checksum\) values \('306_pausas_recibo_despues\.sql', '[0-9a-f]{64}'\)/);
+  });
+  it("el trigger: nunca cambian quién, por qué, nota, inicio ni alta; una abierta solo cierra entre inicio y ahora", () => {
+    expect(sql).toContain("before update on public.pausas_del_chofer");
+    expect(sql).toContain("new.driver_id is distinct from old.driver_id");
+    expect(sql).toContain("new.motivo is distinct from old.motivo");
+    expect(sql).toContain("new.nota is distinct from old.nota");
+    expect(sql).toContain("new.empezo_at is distinct from old.empezo_at");
+    expect(sql).toContain("new.created_at is distinct from old.created_at");
+    expect(sql).toContain("new.termino_at < old.empezo_at or new.termino_at > now() + interval '10 minutes'");
+  });
+  it("el trigger: una cerrada solo cambia el recibo, y la comprobación da el trigger por puesto", () => {
+    expect(sql).toContain("new.termino_at is distinct from old.termino_at");
+    expect(sql).toContain("new.sin_recibo is distinct from old.sin_recibo");
+    expect(sql).toContain("if new.recibo_foto is null then");
+    expect(sql).toContain("do $chk$");
+    expect(sql).toContain("pg_trigger where tgname = 'pausas_solo_recibo_al_cerrar'");
+  });
+  it("el cierre de una parada vieja nunca queda después de ahora", () => {
+    const ahora = new Date("2026-11-13T18:00:00.000Z");
+    expect(Date.parse(horaDeCierreDeVieja("2026-11-04T15:14:21.720Z"))).toBeLessThanOrEqual(ahora.getTime());
+    expect(Date.parse(horaDeCierreDeVieja("2026-11-12T23:50:00.000Z"))).toBeLessThanOrEqual(ahora.getTime());
   });
 });
