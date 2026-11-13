@@ -52130,3 +52130,9 @@ El dueño pidió que las tablas del ERP tengan lo de Órdenes: ▾ para ordenar 
 Exenta con su porqué: la tabla campo / actual / propuesto de `request-review.tsx`. Pendiente: la cola de revisión (`review-queue.tsx`), que necesita casillas de selección y virtualización que `TablaEstandar` aún no trae.
 Visto en pantalla (demo local, 1280 y 390 px): ▾ y ⚙ en Órdenes, Inventario, ficha de producto y analítica; la página no se desborda.
 Sello `erp` 0.27.0; repo 1.876.0.
+
+## D-1024 · Gestor de Rutas: arrastrar varias órdenes marcadas juntas
+
+Si hay órdenes marcadas (las casillas) en la tabla de un chofer y se arrastra una de ellas, todas las marcadas de esa lista se mueven juntas, cada una con su recogida y su entrega y en su orden relativo; la fila sin marcar se mueve sola, como antes. Las flechas ↑ ↓ de una fila marcada mueven el bloque un puesto. El bloque se escribe con el mismo camino que una fila suelta (una sola escritura y un solo movimiento para deshacer). Reglas que se mantienen: la recogida antes que su entrega, un paso b de relevo no se adelanta a la entrega de su paso a (D-994), y las entregadas no se mueven. La lógica está en `src/lib/arrastre-multiple.ts`.
+Con dos o más marcadas el arrastre muestra un «N órdenes» al lado del puntero. Pruebas: `arrastre-multiple.test.ts`.
+Sello `deliveries` 1.612.0; repo 1.877.0.
