@@ -52285,3 +52285,11 @@ Sello `security` 0.29.0; repo 1.887.0.
 Tras aplicar la 307, abrir Salud del sistema daba «Something went wrong» (registro de Vercel: `TypeError: Cannot read properties of undefined (reading 'map')` en /security/salud). Causa: `monitor_salud_archivos` devuelve la lista de buckets directa y la página esperaba `{ buckets }` (D-1034).
 Arreglo: el servidor acepta las dos formas, y cada tabla de la página usa una lista vacía si falta el dato, para que un dato raro nunca tumbe la página entera.
 Sello `security` 0.30.0; repo 1.888.0.
+
+## D-1036 · Gestor de Rutas: los avisos van en un ícono rojo, y «Elige conductor» ya no tapa
+
+El dueño (13 nov): las tarjetas de aviso estorbaban. Ahora cada ruta muestra un «⚠ N» rojo en su cabecera (solo si hay avisos); al pasar el ratón o con foco se abren flotando sin empujar la tabla, clic los fija, Esc o clic fuera los cierra; en teléfono, se tocan. Se movieron: ventanas que no se alcanzan, recogidas de relevo antes del paso a, paradas sin pin, solo ciudad, y los «⇄ … van el mismo día en rutas distintas» (en el ícono de cada ruta que involucran; si ninguna se ve, en un «⚠ N» de la barra). No cambia cómo se calculan.
+«Elige conductor» (Sin asignar) ya no es sticky: va debajo de la tabla y la página baja hasta él solo al abrirse.
+Pendiente: el recuadro de reparto de la pestaña Rutas sigue sticky; las tarjetas plegadas no muestran el ícono.
+Visto en pantalla (demo, 1500 y 390 px): ícono, aviso abierto y el panel debajo de la tabla.
+Sello `deliveries` 1.616.0; repo 1.889.0.
