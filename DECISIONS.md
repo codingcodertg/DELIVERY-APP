@@ -52254,3 +52254,12 @@ Solo cambia el marcado. Números, cálculo de pago, exportaciones y el recibo im
 Pendientes (8): Asignaciones, Nómina, Reportes de gerente, Horario, Geocercas, Viajes, Mis secciones y Semana por día. La prueba baja de 33 a 23.
 Visto en pantalla (demo local): Semana y Personas, claro y oscuro; ▾ y ⚙ legibles; sin desborde de la página en 390 px.
 Sello `timetracker` 1.25.0; repo 1.884.0.
+
+## D-1032 · Paradas del chofer: la abierta de otro día aparece y el recibo se sube después
+
+Causa del error «duplicate key … pausas_del_chofer_una_abierta» (Ernesto, 13 nov): la pantalla solo leía las paradas del día que se mira, y él tenía una de gasolina abierta desde el 4 nov que no veía; no podía terminarla ni abrir otra.
+Ahora la parada abierta se lee sea del día que sea. Una vieja (de otro día o con más de 3 h) se cierra a min(inicio + 3 h, medianoche de su día), nunca «ahora», al terminarla o al empezar otra. Errores en claro (`mensajeDeError`).
+Recibos después (pedido del jefe): la parada se sigue registrando en el momento; cerrar una gasolina sin foto ya no se bloquea y queda en «🧾 Recibos pendientes» (hoy o ayer) con «📷 Añadir recibo». No se pueden registrar paradas de días pasados.
+Migración 306: quita la constraint de recibo obligatorio, insert solo con hora de ahora (±2 min), y trigger: nunca cambian chofer, motivo, nota ni inicio; abierta, el término va entre el inicio y ahora (+10 min por teléfonos adelantados); cerrada, solo el recibo.
+Visto en pantalla (demo, 390 px, letra normal y grande): la vieja con su hora de cierre, la lista de pendientes y Añadir recibo.
+Sello `deliveries` 1.614.0; repo 1.885.0.
