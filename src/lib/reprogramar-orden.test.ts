@@ -39,7 +39,7 @@ describe("«📅 Reprogramar» en el Gestor (D-500)", () => {
     expect(wh).toContain("<ReprogramarOrden pedido={d} rol={me?.role} lang={lang} t={t} reprogramarOrden={reprogramarOrden} notify={notify} compacto />");
     expect(wh.split("accionDeFila={reprogramar}").length - 1).toBe(1);
     expect(wh).toContain("const repro = reprogramar(d);");
-    expect(wh).toContain("<td onClick={(e) => e.stopPropagation()}>{reprogramar(d)}</td>");
+    expect(wh).toContain("acciones={(d) => reprogramar(d)}");
   });
 
   it("la fecha que propone: el día siguiente al más tarde entre hoy y la que tiene", () => {

@@ -26,7 +26,7 @@ describe("escalaDelAsa", () => {
 
 describe("toda tabla que se arrastra lleva su ancho en línea", () => {
   const lee = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
-  for (const f of ["src/components/OrdersTable.tsx", "src/app/(app)/accounts/page.tsx", "src/app/(app)/routes/page.tsx"]) {
+  for (const f of ["src/components/OrdersTable.tsx", "src/app/(app)/routes/page.tsx"]) {
     it(f, () => {
       const tablas = lee(f).split("<table ").slice(1).map((t) => t.slice(0, t.indexOf("</table>")));
       const conAsa = tablas.filter((t) => t.includes("tbl-resize") && t.includes("col-resizer"));

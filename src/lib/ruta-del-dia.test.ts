@@ -350,7 +350,7 @@ describe("la ruta del día en Almacén, de solo lectura (quejas 5 y 7)", () => {
 
   it("es de solo lectura: abre la orden, pero no cambia nada desde ahí", () => {
     const vista = pagina.slice(pagina.indexOf("ruta.map((g)"), pagina.indexOf("</tbody>"));
-    expect(vista).toContain("onClick={() => setOpen(d)}");
+    expect(vista).toContain("onFila={(d) => setOpen(d)}");
     expect(vista).not.toMatch(/setStage|updateDelivery|reorderStops/);
   });
 
