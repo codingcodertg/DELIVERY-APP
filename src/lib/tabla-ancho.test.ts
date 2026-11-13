@@ -79,6 +79,7 @@ describe("a quién le pasaba y quién se beneficia", () => {
     // **Siete** con D-706: la tabla de Empleados de RR. HH., como la de Órdenes.
     // **Ocho** con D-730: la tabla de «Company assets» de RR. HH.
     // **Nueve** con D-821: las listas de Security (una sola pieza, `TablaDeSecurity`, con su marco).
-    expect(marcos).toBe(9);
+    // **Diez** con el estándar de tablas (12 nov 2026): `TablaEstandar`, la pieza con la que se hace toda tabla nueva.
+    expect(marcos).toBe(10);
   });
 });

@@ -2117,3 +2117,12 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 
 /* D-1018: el motivo de una orden rechazada, junto a su pastilla en la tabla de Órdenes: una línea, recortada (entero en el title). */
 .motivo-de-rechazo-en-fila { display: block; max-width: 100%; margin-left: 0 !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* La TABLA ESTANDAR (docs/ESTANDAR-DE-TABLAS.md): la barra de arriba (lo de cada pantalla a la izquierda, Columnas a
+   la derecha). La tabla en si usa las clases de Ordenes (orders tbl-resize, th-cell, col-resizer). */
+.tabla-estandar-barra { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 6px 0; }
+.tabla-estandar-barra-izq { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; flex: 1; }
+.tabla-estandar th.th-arrastrable { cursor: grab; }
+table.tbl-resize td.celda-suelta { white-space: normal; overflow: visible; }
+.sema.sema-sensible { background: var(--red); color: #fff; }
+.sema.sema-normal { background: var(--card-hover); color: var(--ink-soft); }
+.tabla-estandar table.orders td.num { text-align: right; font-variant-numeric: tabular-nums; }

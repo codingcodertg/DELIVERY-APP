@@ -1,5 +1,6 @@
 "use client";
 
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { useEffect, useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
@@ -73,44 +74,18 @@ export function SecurityLog() {
       )}
 
       {!!rows?.length && (
-        <div className="tbl-scroll">
-          <table className="orders" style={{ minWidth: 640 }}>
-            <thead>
-              <tr>
-                <th>{t("When", "Cuándo")}</th>
-                <th>{t("What", "Qué")}</th>
-                <th>{t("To whom", "A quién")}</th>
-                <th>{t("Change", "Cambio")}</th>
-                <th>{t("By", "Por")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td style={{ whiteSpace: "nowrap" }}>
-                    {new Date(r.created_at).toLocaleString(lang === "es" ? "es-MX" : "en-US", { timeZone: "America/Chicago" })}
-                  </td>
-                  <td>
-                    <span
-                      className="sema"
-                      style={isSensitive(r.kind)
-                        ? { background: "var(--red)", color: "#fff" }
-                        : { background: "var(--card-hover)", color: "var(--ink-soft)" }}
-                    >
-                      {securityLabel(r.kind, lang)}
-                    </span>
-                  </td>
-                  {/* The stored name, not a lookup: a removed account has no
-                      profile left to look up, and that entry is the one most
-                      worth being able to read later. */}
-                  <td>{r.target_name ?? (r.target_id ? nameById.get(r.target_id) ?? "—" : "—")}</td>
-                  <td className="hint" style={{ marginTop: 0 }}>{r.detail ?? "—"}</td>
-                  <td>{r.actor_id ? nameById.get(r.actor_id) ?? "—" : t("system", "sistema")}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TablaEstandar id="hub-bitacora-de-seguridad" filas={rows} claveDe={(r) => String(r.id)} sinCaja columnas={[
+          { key: "cuando", en: "When", es: "Cuándo", ancho: 170, valor: (r) => r.created_at,
+            etiqueta: (v) => new Date(String(v)).toLocaleDateString(lang === "es" ? "es-MX" : "en-US", { timeZone: "America/Chicago" }),
+            celda: (r) => new Date(r.created_at).toLocaleString(lang === "es" ? "es-MX" : "en-US", { timeZone: "America/Chicago" }) },
+          { key: "que", en: "What", es: "Qué", ancho: 220, valor: (r) => securityLabel(r.kind, lang),
+            celda: (r) => <span className={"sema " + (isSensitive(r.kind) ? "sema-sensible" : "sema-normal")}>{securityLabel(r.kind, lang)}</span> },
+          // The stored name, not a lookup: a removed account has no profile left to look up, and that entry is the
+          // one most worth being able to read later.
+          { key: "quien", en: "To whom", es: "A quién", ancho: 180, valor: (r) => r.target_name ?? (r.target_id ? nameById.get(r.target_id) ?? null : null) },
+          { key: "cambio", en: "Change", es: "Cambio", ancho: 280, envuelve: true, valor: (r) => r.detail ?? null },
+          { key: "por", en: "By", es: "Por", ancho: 160, valor: (r) => (r.actor_id ? nameById.get(r.actor_id) ?? null : t("system", "sistema")) },
+        ]} />
       )}
     </div>
   );

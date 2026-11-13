@@ -1,5 +1,6 @@
 "use client";
 
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/erp/ui/input";
 import { cn } from "@/lib/erp/utils";
@@ -127,33 +128,17 @@ export function SolicitudesDeCliente({ inicial = null, solicitudes, clientes, es
                 </button>
               ))}
             </div>
-            <div className="tbl-scroll mt-3 max-h-[60vh]">
-              <table className="orders" style={{ minWidth: 640 }} data-tabla-de-solicitudes>
-                <thead>
-                  <tr>
-                    <th>{t("Type", "Clase")}</th>
-                    <th>{t("Account", "Cuenta")}</th>
-                    <th>{t("Store", "Tienda")}</th>
-                    <th>{t("Requested by", "Pidió")}</th>
-                    <th>{t("Date", "Fecha")}</th>
-                    <th>{t("Status", "Estado")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filas.map((x) => (
-                    <tr key={x.id} className="clickable" onClick={() => abre(x.id)} data-solicitud={x.id} data-estado={x.status} data-clase={x.kind}
-                      tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abre(x.id); } }}>
-                      <td><Clase s={x} t={t} /></td>
-                      <td className="font-medium text-slate-900">{cuentaDe(x)}</td>
-                      <td>{tiendasDe(x)}</td>
-                      <td>{x.requested_name ?? x.requested_by.slice(0, 8)}</td>
-                      <td className="tabular-nums">{x.created_at.slice(0, 10)}</td>
-                      <td><Estado status={x.status} t={t} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {filas.length === 0 && <p className="py-6 text-center text-sm text-slate-500" data-cli-vacia>{vaciaPorEstado(filtro, solicitudes.length, esAdmin, t)}</p>}
+            <div className="mt-3">
+              <TablaEstandar id="clientes-solicitudes" data-tabla="tabla-de-solicitudes" filas={filas} claveDe={(x) => String(x.id)} onFila={(x) => abre(x.id)}
+                vacio={vaciaPorEstado(filtro, solicitudes.length, esAdmin, t)}
+                columnas={[
+                  { key: "clase", en: "Type", es: "Clase", ancho: 150, valor: (x) => x.kind, celda: (x) => <Clase s={x} t={t} /> },
+                  { key: "cuenta", en: "Account", es: "Cuenta", ancho: 220, fija: true, valor: (x) => cuentaDe(x), clase: "font-medium text-slate-900" },
+                  { key: "tienda", en: "Store", es: "Tienda", ancho: 150, valor: (x) => tiendasDe(x) },
+                  { key: "pidio", en: "Requested by", es: "Pidió", ancho: 160, valor: (x) => x.requested_name ?? x.requested_by.slice(0, 8) },
+                  { key: "fecha", en: "Date", es: "Fecha", ancho: 110, clase: "tabular-nums", valor: (x) => x.created_at.slice(0, 10) },
+                  { key: "estado", en: "Status", es: "Estado", ancho: 130, valor: (x) => t(ETIQUETA_DE_ESTADO[x.status].en, ETIQUETA_DE_ESTADO[x.status].es), celda: (x) => <Estado status={x.status} t={t} /> },
+                ]} />
             </div>
           </>
         )}
