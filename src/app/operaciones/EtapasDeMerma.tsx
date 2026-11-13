@@ -319,7 +319,7 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
           {faltaMiFirma && <span className="ops-falta-mi-firma" data-falta-mi-firma>✍ {t("Your signature is missing", "Falta tu firma")}</span>}
         </div>
       )}
-      {!accion && paso === "foto" && <p className="hint" data-paso-foto>📷 {t("Next step: add the photo of the pieces (the photo buttons are right above).", "Siguiente paso: agregar la foto de las piezas (los botones de foto están justo arriba).")}</p>}
+      {!accion && paso === "foto" && <p className="hint" data-paso-foto>📷 {t("Next step: add the photo of the pieces (the photo buttons are below).", "Siguiente paso: agregar la foto de las piezas (los botones de foto están abajo).")}</p>}
       {!accion && paso === "lo-sigue-el-gerente" && <p className="hint" data-lo-sigue-el-gerente>{t("The manager takes it from here.", "Lo sigue el gerente.")}</p>}
       {borrador && (
         <div className="overlay" onClick={() => setBorrador(null)}>

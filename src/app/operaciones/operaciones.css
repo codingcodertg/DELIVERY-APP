@@ -515,3 +515,10 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-scroll-arriba { overflow-x: auto; overflow-y: hidden; height: 14px; margin-bottom: 2px; }
 .ops-scroll-arriba > div { height: 1px; }
 .ops-confirma-borrar { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; font-weight: 600; color: var(--red); }
+
+/* D-1013 (dueño, 12 nov): en la TARJETA del reporte, tomar foto / galería va abajo y chico: dos botones lado a lado,
+   no las losas grandes del asistente (ahí no se tocan). */
+.ops-tarjeta-reporte .ops-agregar-foto { margin-top: 10px; padding: 8px; gap: 6px; }
+.ops-tarjeta-reporte .ops-agregar-foto .ops-botones-foto { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.ops-tarjeta-reporte .ops-agregar-foto .ops-botones-foto > .hint { grid-column: 1 / -1; }
+.ops-tarjeta-reporte .ops-agregar-foto .ops-opcion.ops-camara { min-height: 36px; padding: 6px 8px; font-size: 13px; font-weight: 600; }

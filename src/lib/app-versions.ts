@@ -46,7 +46,7 @@ export const APP_VERSIONS = {
   security: "0.27.0",
   // Operaciones de almacén (D-883, migración 247): la primera, como las demás apps nuevas. La entrada la pone la rama
   // porque sin ella /operaciones no tiene sello de versión; los siguientes números, el orquestador.
-  warehouse_ops: "0.47.0",
+  warehouse_ops: "0.48.0",
 } as const;
 
 export type AppKey = keyof typeof APP_VERSIONS;

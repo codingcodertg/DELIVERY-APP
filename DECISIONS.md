@@ -51983,3 +51983,9 @@ El dueño (12 nov), tras el correo de Supabase «Your project is running out of 
 Todo se lee en el servidor (las llaves nunca llegan al navegador) y se guarda 5 min en memoria para no gastar el Disk IO que se vigila. Migración **300**: `monitor_salud()` (solo lee) y `monitor_reiniciar_estadisticas()`, SECURITY DEFINER, solo admin, sin permiso para anon. Hasta aplicarla, la pantalla dice que falta la 300 y enseña solo lo de la Metrics API, Vercel y Compute.
 
 Sello `security` 0.27.0; repo 1.865.0.
+
+## D-1013 · Merma: tomar foto / galería, más chico y abajo en la tarjeta del reporte
+
+El dueño (12 nov): en la tarjeta de una merma sin foto, la parte de «Tomar foto / Elegir de la galería» salía grande y a media tarjeta. Ahora va ABAJO, después del historial y la línea de etapas, justo arriba de «Editar reporte · Borrar reporte · Cerrar», y los dos botones son chicos y van lado a lado. Solo en la tarjeta: en el asistente de un reporte nuevo siguen grandes. El aviso del paso dice «los botones de foto están abajo».
+
+Sello `warehouse_ops` 0.48.0; repo 1.866.0.
