@@ -52271,3 +52271,11 @@ Ahora, si hay hechas en la ruta y todas las pendientes tienen puesto, las pendie
 «No se mueven las recogidas»: no se reprodujo (flechas y arrastre funcionan en demo; la migración 154 está aplicada y `deliveries.pickup_seq` existe). Falta el caso exacto del dueño.
 Pruebas con la tarjeta del dueño (8). Visto en pantalla (demo, 1500 px): antes y después del movimiento con hechas en medio.
 Sello `deliveries` 1.615.0; repo 1.886.0.
+
+## D-1034 · Salud del sistema: cada tarjeta con su lectura; sin datos nunca parece sano
+
+Hoy 9:42 AM la página salió toda en «Sin datos» con «canceling statement due to statement timeout». Causa: una sola llamada `monitor_salud` (300) daba todas las tarjetas; leía `pg_stat_statements` tres veces y bajo carga pasó el límite de 8 s del rol `authenticated` (5 cancelaciones en los registros). Ahora tarda menos de 1 s.
+Migración 307: cuatro funciones pequeñas, solo admin (escrituras, archivos, base, revisión); una sola lectura de `pg_stat_statements` con `work_mem` 64 MB. `monitor_salud` queda sin uso.
+Cada lectura corre aparte con su tiempo máximo (base 7 s, Metrics API 6 s, Vercel y Compute 8 s); una que falla deja sin datos solo sus tarjetas. Sin datos = tarjeta gris con el motivo, sin frases de «va bien». El error crudo ya no sale (`mensajeDeError`).
+No visto en pantalla: en demo la página no tiene base que medir.
+Sello `security` 0.29.0; repo 1.887.0.

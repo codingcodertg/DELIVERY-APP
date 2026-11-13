@@ -213,3 +213,5 @@ table.perm-matrix thead th.who{z-index:2;background:var(--surface-2,var(--bg))}
 .salud-gris { border-left-color: var(--line); }
 .salud-nota { margin-top: -6px; }
 .salud-destacada td { font-weight: 700; }
+
+.salud-sin-datos { border-left: 3px solid var(--line); padding-left: 10px; color: var(--gray); }
