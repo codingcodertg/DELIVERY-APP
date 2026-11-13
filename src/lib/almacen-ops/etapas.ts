@@ -377,6 +377,14 @@ export function puedeIniciarAprobacion(q: Quien, r: { kind: TipoDeReporte; store
   return n === "full" && q.role === "manager" && mia;
 }
 
+/**
+ * ¿Puede borrar este reporte de merma? 299 (ayuda de Roberto, 12 nov: «delete as admin and manager»): el admin y el
+ * gerente de esa tienda (la misma puerta que iniciar la aprobación; el supervisor no). La base lo vuelve a exigir.
+ */
+export function puedeBorrarMerma(q: Quien, r: { kind: TipoDeReporte; store: string }): boolean {
+  return puedeIniciarAprobacion(q, r);
+}
+
 export function siguientePasoDeMerma(
   q: Quien,
   r: { kind: TipoDeReporte; store: string; author_id?: string | null; scrap_group_id?: string | null; photos?: readonly string[] | null } & FilaConEtapa,

@@ -22,6 +22,8 @@ import { esAdminDeLaApp } from "@/lib/almacen-ops/nivel";
 import { VisorDeFotos } from "./VisorDeFotos";
 import { Tarjeta } from "./ListaDeReportes";
 import type { Contexto } from "./Operaciones";
+import { SelectorDeColumnasDeHoja, useColumnasDeHoja } from "./ColumnasDeHoja";
+import { tramoDelTotal } from "@/lib/almacen-ops/columnas-de-hoja";
 import "./reportes/hoja-de-aprobacion/hoja.css";
 
 /**
@@ -31,6 +33,8 @@ import "./reportes/hoja-de-aprobacion/hoja.css";
  */
 export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: Contexto; onSalir: () => void }) {
   const { t, lang } = usePrefs();
+  // Ayuda de Roberto (12 nov): qué columnas lleva la hoja (las ocultas tampoco se imprimen).
+  const cols = useColumnasDeHoja(ctx.yo.id);
   const [grupo, setGrupo] = useState<GrupoDeMerma | null>(null);
   const [reportes, setReportes] = useState<Reporte[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -99,7 +103,6 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
   // 296 (dueño, 11 nov: «an option to undo»): con el grupo PENDIENTE, quien gestiona puede sacar una merma o borrar el
   // grupo; las mermas vuelven a «Fotografiada». Ya aprobado, se deshace la etapa desde la tarjeta de cada merma.
   const editaGrupo = gestiona && !aprobado;
-  const conColumnaExtra = conCasillas || editaGrupo;
   const sacar = (r: Reporte) => {
     const ultima = reportes.length <= 1;
     void corre(async () => {
@@ -131,11 +134,15 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
     } finally { setOcupado(false); }
   };
 
+  // Celdas fijas de la izquierda: casilla (si hay), «Sacar» (si se edita), «#» y fotos.
+  const fijasIzq = (conCasillas ? 1 : 0) + (editaGrupo ? 1 : 0) + 2;
+  const tramoTotal = tramoDelTotal(cols.ocultas, fijasIzq);
   return (
     <div className="ops-merma" data-hoja-grupo={grupo.id}>
       <div className="hoja-barra no-imprimir">
         {/* Dueño, 11 nov: el estado a la izquierda; Imprimir y Cerrar arriba a la derecha (Cerrar al final). */}
         <span className={`ops-etapa-chip${aprobado ? " ops-grupo-aprobado" : ""}`} data-grupo-estado={aprobado ? "aprobado" : "pendiente"}>{estadoDelGrupo(grupo, lang)}</span>
+        <SelectorDeColumnasDeHoja ocultas={cols.ocultas} alterna={cols.alterna} lang={lang} t={t} />
       </div>
       {error && <p className="ops-aviso ops-aviso-error no-imprimir">{error}</p>}
       <article className="hoja-aprobacion">
@@ -186,14 +193,14 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
               {conCasillas && <th className="no-imprimir" aria-label={t("Select", "Marcar")} />}
               {editaGrupo && <th className="no-imprimir" aria-label={t("Remove from group", "Sacar del grupo")} />}
               <th>#</th><th aria-label={t("Photos", "Fotos")} className="no-imprimir" />
-              <th>{t("Folio", "Folio")}</th>
-              <th>{t("Date broken", "Fecha del daño")}</th>
-              <th>{t("Product", "Producto")}</th>
-              <th className="num">{t("Damaged pcs", "Pzas dañadas")}</th>
-              <th className="num">{t("Loss", "Pérdida")}</th>
-              <th>{t("Reason", "Motivo")}</th>
-              <th>{t("Broken by", "Lo rompió")}</th>
-              <th>{t("Reported by", "Lo reportó")}</th>
+              {cols.ve("folio") && <th>{t("Folio", "Folio")}</th>}
+              {cols.ve("dia") && <th>{t("Date broken", "Fecha del daño")}</th>}
+              {cols.ve("producto") && <th>{t("Product", "Producto")}</th>}
+              {cols.ve("danadas") && <th className="num">{t("Damaged pcs", "Pzas dañadas")}</th>}
+              {cols.ve("perdida") && <th className="num">{t("Loss", "Pérdida")}</th>}
+              {cols.ve("motivo") && <th>{t("Reason", "Motivo")}</th>}
+              {cols.ve("rompio") && <th>{t("Broken by", "Lo rompió")}</th>}
+              {cols.ve("reporto") && <th>{t("Reported by", "Lo reportó")}</th>}
             </tr>
           </thead>
           <tbody>
@@ -214,23 +221,25 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
                         title={t("See photos", "Ver fotos")} aria-label={t(`See ${r!.photos.length} photos`, `Ver ${r!.photos.length} fotos`)}>📷 {r!.photos.length}</button>
                     )}
                   </td>
-                  <td className="hoja-folio">{r
+                  {cols.ve("folio") && <td className="hoja-folio">{r
                     ? <button type="button" className="ops-folio-link" onClick={() => setVerReporte(r)} data-abrir-reporte={f.id} title={t("Open this report", "Abrir este reporte")}>{f.folio}</button>
-                    : f.folio}</td>
-                  <td>{fmtDia(f.dia, lang)}</td>
-                  <td>{f.producto}</td>
-                  <td className="num">{f.danadas}</td>
-                  <td className="num">{fmtMoney(f.perdida)}</td>
-                  <td>{f.motivo}</td>
-                  <td>{f.rompio}</td>
-                  <td>{f.reporto}</td>
+                    : f.folio}</td>}
+                  {cols.ve("dia") && <td>{fmtDia(f.dia, lang)}</td>}
+                  {cols.ve("producto") && <td>{f.producto}</td>}
+                  {cols.ve("danadas") && <td className="num">{f.danadas}</td>}
+                  {cols.ve("perdida") && <td className="num">{fmtMoney(f.perdida)}</td>}
+                  {cols.ve("motivo") && <td>{f.motivo}</td>}
+                  {cols.ve("rompio") && <td>{f.rompio}</td>}
+                  {cols.ve("reporto") && <td>{f.reporto}</td>}
                 </tr>
               );
             })}
-            {filas.length === 0 && <tr><td colSpan={conColumnaExtra ? 11 : 10} className="hoja-vacia">{t("No reports in this group.", "No hay reportes en este grupo.")}</td></tr>}
+            {filas.length === 0 && <tr><td colSpan={fijasIzq + 8 - cols.ocultas.length} className="hoja-vacia">{t("No reports in this group.", "No hay reportes en este grupo.")}</td></tr>}
           </tbody>
           {filas.length > 0 && (
-            <tfoot><tr><td colSpan={conColumnaExtra ? 7 : 6} className="num">{t("Total", "Total")}</td><td className="num" data-hoja-total>{fmtMoney(totalDeHoja(filas))}</td><td colSpan={3} /></tr></tfoot>
+            <tfoot>{tramoTotal
+              ? <tr><td colSpan={tramoTotal.antes} className="num">{t("Total", "Total")}</td><td className="num" data-hoja-total>{fmtMoney(totalDeHoja(filas))}</td>{tramoTotal.despues > 0 && <td colSpan={tramoTotal.despues} />}</tr>
+              : <tr><td colSpan={fijasIzq + 8 - cols.ocultas.length} className="num" data-hoja-total>{t("Total", "Total")}: {fmtMoney(totalDeHoja(filas))}</td></tr>}</tfoot>
           )}
         </table>
         {filas.some((f) => f.producto.endsWith(" *")) && <p className="hoja-nota">* {t("Product not in the catalog (name as written).", "Producto fuera del catálogo (nombre tal como se escribió).")}</p>}
