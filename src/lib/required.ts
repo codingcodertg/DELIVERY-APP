@@ -87,7 +87,8 @@ export function missingFields(d: Partial<Delivery>, rules?: OrderTypeRules): Mis
 
   if (!filled(d.order_type)) out.push({ key: "order_type", en: "Order Type", es: "Tipo de Orden" });
   // Una transferencia no vende (D-741): «Vendido desde» no existe en la ficha y no se exige; `store` sigue a la recogida.
-  if (!filled(d.store) && !esTransferenciaSinVenta(orderTypeRule(d.order_type, rules))) out.push({ key: "store", en: "Store (Sold From)", es: "Tienda (Vendido Desde)" });
+  // D-1015 (Roberto, 12 nov): el tipo de origen libre («Other», `anyOrigin`) tampoco exige tienda: no vende desde ninguna.
+  if (!filled(d.store) && !esTransferenciaSinVenta(orderTypeRule(d.order_type, rules)) && orderTypeRule(d.order_type, rules).anyOrigin !== true) out.push({ key: "store", en: "Store (Sold From)", es: "Tienda (Vendido Desde)" });
   if (!filled(d.pickup_name)) out.push({ key: "pickup_name", en: "Pickup warehouse", es: "Almacén de recolección" });
   if (!filled(d.pickup_address)) out.push({ key: "pickup_address", en: "Pickup Address", es: "Dirección de Recolección" });
   // Dropoff Name is optional **en una entrega a cliente** — ahí lo que importa es la dirección, y el

@@ -476,7 +476,7 @@ export function OrderModal({
   // Los vendedores que se ofrecen son los de la tienda DE LA ORDEN (`d.store`), no los de quien mira, y
   // «vendedor» es quien puede crear órdenes —no solo el rol `sales`—, que es lo que deja a un gerente que
   // vende elegirse a sí mismo (D-290). La regla entera vive en lib/sales-reps.
-  const salesReps = useMemo(() => vendedoresParaLaOrden(users, d.store, d.assigned_sales_rep, settings.stores), [users, d.store, d.assigned_sales_rep, settings.stores]);
+  const salesReps = useMemo(() => vendedoresParaLaOrden(users, d.store, d.assigned_sales_rep, settings.stores, me.role === "admin"), [users, d.store, d.assigned_sales_rep, settings.stores, me.role]);
   /** Los motivos de anulación vigentes: los que el admin dejó en Datos, o los sembrados (122). */
   const motivos = useMemo(() => motivosDeAnulacion(settings), [settings]);
   /** Un vendedor con tienda vende desde la suya; si su tienda trabaja con otras, también desde esas

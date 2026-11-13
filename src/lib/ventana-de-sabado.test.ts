@@ -66,13 +66,14 @@ describe("«es sábado» no depende de la zona horaria de quien lo pregunte", ()
 
 describe("qué se ofrece cada día", () => {
   it("entre semana: todas menos la de sábado", () => {
-    expect(valores(VIERNES)).toEqual(["0830-1000", "0830-1200", "1200-1730", WEEKDAY_ALL_DAY_WINDOW]);
+    // D-1015: «todo el día» va primero.
+    expect(valores(VIERNES)).toEqual([WEEKDAY_ALL_DAY_WINDOW, "0830-1000", "0830-1200", "1200-1730"]);
     expect(valores(VIERNES)).not.toContain(SATURDAY_WINDOW);
     expect(valores(DOMINGO)).not.toContain(SATURDAY_WINDOW);
   });
 
   it("sábado: la de sábado, y nada que termine después de su cierre", () => {
-    expect(valores(SABADO)).toEqual(["0830-1000", "0830-1200", SATURDAY_WINDOW]);
+    expect(valores(SABADO)).toEqual([SATURDAY_WINDOW, "0830-1000", "0830-1200"]);
     // Las dos que se caen, y por qué: una es la «todo el día» del otro tipo de día, la otra termina
     // a las 5:30 y el sábado se cierra a las 3:30.
     expect(valores(SABADO)).not.toContain(WEEKDAY_ALL_DAY_WINDOW);

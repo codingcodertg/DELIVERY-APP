@@ -81,7 +81,14 @@ export function vendedoresParaLaOrden<T extends Candidato>(
   tiendaDeLaOrden: string | null | undefined,
   actual?: string | null,
   tiendas: readonly NamedLocation[] = [],
+  /** D-1015 (Roberto, 12 nov): el admin elige a CUALQUIER usuario activo —él incluido—, no solo a los vendedores. */
+  cualquiera = false,
 ): T[] {
+  if (cualquiera) {
+    const todos = soloActivos(users);
+    const suelto = actual && !todos.some((u) => u.id === actual) ? users.filter((u) => u.id === actual) : [];
+    return [...todos, ...suelto].sort(porNombre);
+  }
   // D-707: el de baja no se ofrece; el que ya tiene puesto la orden sí se queda (`suelto`, de la lista completa).
   const activos = soloActivos(users);
   const deLaTienda = vendedoresDeLaTienda(activos, tiendaDeLaOrden, tiendas);
