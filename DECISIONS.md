@@ -51968,3 +51968,18 @@ El dueño (12 nov): la app «Security» / «Seguridad» («Seguridad y permisos�
 Las claves internas no cambian (módulo `security`, ruta `/security`, tablas `security_*`, archivos), así que los permisos y los datos siguen igual.
 
 Sello `security` 0.26.0; `deliveries` 1.605.0; repo 1.864.0.
+
+## D-1012 · Central Hub Monitoring: «📊 Salud del sistema» (Supabase + Vercel)
+
+El dueño (12 nov), tras el correo de Supabase «Your project is running out of Disk IO Budget»: un monitor dentro de Central Hub Monitoring (antes Security, D-1011) para ver si vamos bien o hay que optimizar. Nueva pantalla `/security/salud`, solo el admin del hub (el layout de /security ya lo exige, y la base otra vez).
+
+- **Renglón principal: Disk IO.** El porcentaje exacto del «Disk IO Budget» solo lo da el panel de Supabase (enlace directo a Reports → Database y a Infraestructura). Aquí se ve lo real más cercano: el disco del servidor desde la Metrics API de Supabase (`/customer/v1/privileged/metrics`, Basic `service_role`): fracción del tiempo ocupado y MB/s leídos y escritos, entre dos lecturas (la primera deja la muestra; «Medir de nuevo» da el ritmo). Más nuestro indicador: escrituras por hora y MB de WAL por hora desde el último reinicio de pg_stat_statements, con «lo que más escribe» con nombres legibles (Time Tracker, tokens, realtime, GPS…). Botón para reiniciar esas estadísticas, con confirmación, y medir el ritmo de ahora.
+- **Base:** tamaño, 10 tablas más grandes, conexiones contra el máximo, aciertos de caché, tablas más movidas con tuplas muertas y último autovacuum, y una revisión rápida de seguridad (tablas sin RLS, políticas SELECT abiertas, funciones SECURITY DEFINER que anon puede ejecutar).
+- **Archivos:** por bucket, total y lo subido en 7 y 30 días; las capturas de Time Tracker resaltadas.
+- **Vercel** (si existe `VERCEL_TOKEN`): publicaciones a producción en 24 h y 7 días, fallidas y la última.
+- **Compute** (si existe `SUPABASE_ACCESS_TOKEN`): el tamaño del servidor (Management API `GET /v1/projects/{ref}/billing/addons`), con qué cambia al subirlo.
+- **Semáforo** verde / amarillo / rojo por renglón con su «qué hacer»; umbrales como constantes en `src/lib/security/salud.ts` (lógica pura, con prueba).
+
+Todo se lee en el servidor (las llaves nunca llegan al navegador) y se guarda 5 min en memoria para no gastar el Disk IO que se vigila. Migración **300**: `monitor_salud()` (solo lee) y `monitor_reiniciar_estadisticas()`, SECURITY DEFINER, solo admin, sin permiso para anon. Hasta aplicarla, la pantalla dice que falta la 300 y enseña solo lo de la Metrics API, Vercel y Compute.
+
+Sello `security` 0.27.0; repo 1.865.0.

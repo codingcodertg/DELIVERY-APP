@@ -191,3 +191,25 @@ table.perm-matrix thead th.who{z-index:2;background:var(--surface-2,var(--bg))}
 /* Permisos (D-951): dar de baja */
 .perm-baja{padding:12px 14px;border-top:1px solid var(--line);margin-top:2px}
 .perm-baja-box{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* ---- Salud del sistema (D-1012) ---- */
+.salud { padding-top: 16px; padding-bottom: 32px; max-width: 1200px; display: grid; gap: 14px; }
+.salud h2 { margin: 10px 0 0; font-size: 17px; }
+.salud-botones { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.salud-confirma { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.salud-grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.salud-dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 10px; }
+.salud-dos > * { min-width: 0; }
+.salud-tarjeta { border: 1px solid var(--line); border-left-width: 5px; border-radius: 10px; padding: 12px 14px; background: var(--card); display: grid; gap: 4px; min-width: 0; }
+.salud-tarjeta header { font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.salud-punto { width: 10px; height: 10px; border-radius: 50%; background: var(--gray); flex-shrink: 0; }
+.salud-valor { margin: 0; font-size: 15px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.salud-que-hacer { margin: 0; font-size: 13px; color: var(--gray); }
+.salud-principal { padding: 16px 18px; }
+.salud-principal .salud-valor { font-size: 18px; font-weight: 700; }
+.salud-verde { border-left-color: var(--green); } .salud-verde .salud-punto { background: var(--green); }
+.salud-amarillo { border-left-color: var(--amber); } .salud-amarillo .salud-punto { background: var(--amber); }
+.salud-rojo { border-left-color: var(--red); } .salud-rojo .salud-punto { background: var(--red); }
+.salud-gris { border-left-color: var(--line); }
+.salud-nota { margin-top: -6px; }
+.salud-destacada td { font-weight: 700; }
