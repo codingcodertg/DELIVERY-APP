@@ -5,6 +5,7 @@ import { getGeofences, setSiteActive } from "@/app/timetracker/clock-in/actions/
 import { GeofenceMap, type Fence } from "./GeofenceMap";
 import { GeofenceEditor } from "./GeofenceEditor";
 import { useT } from "@/lib/timetracker/i18n";
+import { TablaEstandar } from "@/components/TablaEstandar";
 
 /**
  * Las geocercas de las tiendas, dentro de Ajustes de Time Tracker: verlas, encenderlas,
@@ -74,33 +75,32 @@ export function GeofenceSection() {
       ) : (
         <>
           <GeofenceMap fences={sites} />
-          <table className="orders" style={{ marginTop: 12 }}>
-            <thead>
-              <tr><th>{t("mgr.geo.colSite")}</th><th>{t("mgr.geo.colShape")}</th><th style={{ textAlign: "right" }}>{t("mgr.geo.colPadding")}</th><th /><th /></tr>
-            </thead>
-            <tbody>
-              {sites.map((f) => (
-                <tr key={f.id} className={f.active ? undefined : "atenuado"}>
-                  <td>{f.name}</td>
-                  <td className="small muted">
-                    {f.boundary && f.boundary.length >= 3
-                      ? t("mgr.geo.outlinePoints", { n: f.boundary.length })
-                      : t("mgr.geo.circleRadius", { r: f.radius_meters ?? "?" })}
-                  </td>
-                  <td style={{ textAlign: "right" }} className="small muted">
-                    {f.padding_meters != null ? `${f.padding_meters} m` : "—"}
-                  </td>
-                  <td>{f.active ? <span className="pill on">{t("mgr.geo.active")}</span> : <span className="pill off">{t("mgr.geo.off")}</span>}</td>
-                  <td style={{ whiteSpace: "nowrap" }}>
-                    <button className="btn-ghost btn-sm" disabled={busy === f.id} onClick={() => toggle(f)}>
-                      {f.active ? t("mgr.geo.turnOff") : t("mgr.geo.turnOn")}
-                    </button>{" "}
-                    <button className="btn-ghost btn-sm" onClick={() => setEditing(f.id)}>{t("mgr.geo.editOutline")}</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ marginTop: 12 }}>
+            <TablaEstandar id="tt-geocercas" claveDe={(f) => f.id} filas={sites}
+              claseDeFila={(f) => (f.active ? undefined : "atenuado")}
+              columnas={[
+                { key: "sitio", en: t("mgr.geo.colSite"), es: t("mgr.geo.colSite"), ancho: 200, valor: (f) => f.name },
+                { key: "forma", en: t("mgr.geo.colShape"), es: t("mgr.geo.colShape"), ancho: 200,
+                  valor: (f) => (f.boundary && f.boundary.length >= 3
+                    ? t("mgr.geo.outlinePoints", { n: f.boundary.length })
+                    : t("mgr.geo.circleRadius", { r: f.radius_meters ?? "?" })),
+                  clase: "small muted" },
+                { key: "margen", en: t("mgr.geo.colPadding"), es: t("mgr.geo.colPadding"), ancho: 110, numerico: true,
+                  valor: (f) => f.padding_meters ?? null, celda: (f) => (f.padding_meters != null ? `${f.padding_meters} m` : "—"), clase: "num small muted" },
+                { key: "estado", en: t("mgr.geo.colState"), es: t("mgr.geo.colState"), ancho: 120,
+                  valor: (f) => (f.active ? t("mgr.geo.active") : t("mgr.geo.off")),
+                  celda: (f) => (f.active ? <span className="pill on">{t("mgr.geo.active")}</span> : <span className="pill off">{t("mgr.geo.off")}</span>) },
+              ]}
+              acciones={(f) => (
+                <>
+                  <button className="btn-ghost btn-sm" disabled={busy === f.id} onClick={() => toggle(f)}>
+                    {f.active ? t("mgr.geo.turnOff") : t("mgr.geo.turnOn")}
+                  </button>{" "}
+                  <button className="btn-ghost btn-sm" onClick={() => setEditing(f.id)}>{t("mgr.geo.editOutline")}</button>
+                </>
+              )}
+              anchoDeAcciones={210} />
+          </div>
         </>
       )}
     </>

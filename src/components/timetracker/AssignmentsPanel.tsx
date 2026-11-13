@@ -6,6 +6,7 @@ import { useData } from "@/lib/timetracker-data-provider";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS, money } from "@/lib/timetracker/helpers";
 import { necesitaProyecto, seOfreceParaAsignar, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { Modal } from "./Modal";
 
 /**
@@ -139,36 +140,33 @@ export function AssignmentsPanel() {
           <button onClick={startNew}>{t("mgr.asn.newBtn")}</button>
         </div>
         {assignments.length === 0 ? <p className="muted">{t("mgr.asn.empty")}</p> : (
-          <table>
-            <thead>
-              <tr>
-                <th>{t("mgr.asn.employee")}</th><th>{t("mgr.asn.project")}</th><th className="right">{t("mgr.asn.colRate")}</th><th className="right">{t("mgr.asn.colOt")}</th>
-                <th className="right">{t("mgr.asn.colOtAfter")}</th><th className="right">{t("mgr.asn.colLimit")}</th><th>{t("mgr.asn.colPay")}</th><th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {assignments.map((a) => (
-                <tr key={a.id}>
-                  <td>
+          <TablaEstandar id="tt-tarifas-asignaciones" claveDe={(a) => a.id} filas={assignments}
+            columnas={[
+              { key: "persona", en: t("mgr.asn.employee"), es: t("mgr.asn.employee"), ancho: 190, valor: (a) => uMap.get(a.employeeUid)?.fullName || "—",
+                celda: (a) => (
+                  <>
                     {uMap.get(a.employeeUid)?.fullName || "—"}
                     {uMap.has(a.employeeUid) && !necesitaProyecto(uMap.get(a.employeeUid)) && (
                       <span className="pill on" style={{ marginLeft: 6 }}>{t("mgr.asn.inhousePill")}</span>
                     )}
-                  </td>
-                  <td>{pMap.get(a.projectId)?.name || t("mgr.asn.deletedProject")}</td>
-                  <td className="right nowrap">{money(a.hourlyRate)}</td>
-                  <td className="right nowrap">{money(a.overtimeRate)}</td>
-                  <td className="right nowrap">{a.overtimeThreshold == null ? "—" : a.overtimeThreshold + "h"}</td>
-                  <td className="right nowrap">{a.weeklyLimit == null ? "—" : a.weeklyLimit + "h"}</td>
-                  <td className="small muted">{a.paymentMethod || "—"}</td>
-                  <td className="right nowrap">
-                    <button className="btn-ghost btn-sm" onClick={() => startEdit(a)}>{t("common.edit")}</button>{" "}
-                    <button className="btn-danger btn-sm" onClick={() => { if (confirm(t("mgr.asn.removeConfirm"))) removeAssignment(a.id); }}>{t("common.remove")}</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </>
+                ) },
+              { key: "proyecto", en: t("mgr.asn.project"), es: t("mgr.asn.project"), ancho: 170, valor: (a) => pMap.get(a.projectId)?.name || t("mgr.asn.deletedProject") },
+              { key: "tarifa", en: t("mgr.asn.colRate"), es: t("mgr.asn.colRate"), ancho: 90, numerico: true, valor: (a) => a.hourlyRate, celda: (a) => money(a.hourlyRate) },
+              { key: "extra", en: t("mgr.asn.colOt"), es: t("mgr.asn.colOt"), ancho: 90, numerico: true, valor: (a) => a.overtimeRate, celda: (a) => money(a.overtimeRate) },
+              { key: "despues", en: t("mgr.asn.colOtAfter"), es: t("mgr.asn.colOtAfter"), ancho: 100, numerico: true, valor: (a) => a.overtimeThreshold,
+                celda: (a) => (a.overtimeThreshold == null ? "—" : a.overtimeThreshold + "h") },
+              { key: "limite", en: t("mgr.asn.colLimit"), es: t("mgr.asn.colLimit"), ancho: 90, numerico: true, valor: (a) => a.weeklyLimit,
+                celda: (a) => (a.weeklyLimit == null ? "—" : a.weeklyLimit + "h") },
+              { key: "pago", en: t("mgr.asn.colPay"), es: t("mgr.asn.colPay"), ancho: 120, valor: (a) => a.paymentMethod || null, clase: "small muted" },
+            ]}
+            acciones={(a) => (
+              <>
+                <button className="btn-ghost btn-sm" onClick={() => startEdit(a)}>{t("common.edit")}</button>{" "}
+                <button className="btn-danger btn-sm" onClick={() => { if (confirm(t("mgr.asn.removeConfirm"))) removeAssignment(a.id); }}>{t("common.remove")}</button>
+              </>
+            )}
+            anchoDeAcciones={160} />
         )}
       </div>
 
@@ -177,19 +175,11 @@ export function AssignmentsPanel() {
         <div className="card">
           <h2 style={{ marginTop: 0 }}>{t("mgr.asn.inhouseTitle")}</h2>
           <p className="small muted" style={{ marginTop: 0 }}>{t("mgr.asn.inhouseNote")}</p>
-          <table>
-            <thead>
-              <tr><th>{t("mgr.asn.employee")}</th><th>{t("mgr.asn.colStore")}</th></tr>
-            </thead>
-            <tbody>
-              {presenciales.map((u) => (
-                <tr key={u.id}>
-                  <td>{u.fullName}</td>
-                  <td>{tiendaYPuesto(u, lang)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <TablaEstandar id="tt-tarifas-presenciales" sinCaja claveDe={(u) => u.id} filas={presenciales}
+            columnas={[
+              { key: "persona", en: t("mgr.asn.employee"), es: t("mgr.asn.employee"), ancho: 220, valor: (u) => u.fullName },
+              { key: "tienda", en: t("mgr.asn.colStore"), es: t("mgr.asn.colStore"), ancho: 260, valor: (u) => tiendaYPuesto(u, lang) },
+            ]} />
         </div>
       )}
     </>

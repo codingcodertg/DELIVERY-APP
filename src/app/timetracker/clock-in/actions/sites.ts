@@ -1,6 +1,8 @@
 "use server";
 
 import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
+import { demoGeofences } from "./demo-local";
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 
@@ -124,6 +126,7 @@ export async function getGeofences(): Promise<
     }[] }
   | { ok: false; message: string }
 > {
+  if (LOCAL_MODE) return demoGeofences();
   const ctx = await clockinManagerCtx();
   if (!ctx.ok) return ctx;
   const { data, error } = await ctx.supabase

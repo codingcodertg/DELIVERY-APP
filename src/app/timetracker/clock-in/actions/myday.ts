@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
+import { demoMiHorario, demoMisNotas, demoBoletin } from "./demo-local";
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import { centralDateStr, payPeriodDates } from "@/lib/clockin/schedule";
 import { attachLunch, type LunchRow } from "@/lib/clockin/payroll";
 import { scoreWeek, longLunchesByEmployee } from "@/lib/clockin/scorecard";
@@ -36,6 +38,7 @@ export type MiHorario = {
 };
 
 export async function getMySchedule(): Promise<{ ok: true; data: MiHorario } | { ok: false; message: string }> {
+  if (LOCAL_MODE) return demoMiHorario();
   const ctx = await yo();
   if (!ctx.ok) return ctx;
   // La semana de PAGO, no la natural: es la que usa el horario que le arma su encargado, y
@@ -86,6 +89,7 @@ export async function getMySchedule(): Promise<{ ok: true; data: MiHorario } | {
 export async function getMyNotes(): Promise<
   { ok: true; notes: { id: string; note: string; created_at: string }[] } | { ok: false; message: string }
 > {
+  if (LOCAL_MODE) return demoMisNotas();
   const ctx = await yo();
   if (!ctx.ok) return ctx;
   const { data, error } = await ctx.supabase
@@ -120,6 +124,7 @@ export type MiBoletin = {
 };
 
 export async function getMyScorecard(): Promise<{ ok: true; data: MiBoletin } | { ok: false; message: string }> {
+  if (LOCAL_MODE) return demoBoletin();
   const ctx = await yo();
   if (!ctx.ok) return ctx;
   // Desde el principio del mes, como la pantalla que sustituye: un boletín de una semana

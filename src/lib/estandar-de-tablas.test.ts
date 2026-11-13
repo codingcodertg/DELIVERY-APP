@@ -51,18 +51,6 @@ const PENDIENTES: readonly string[] = [
   "src/components/PlanContraReal.tsx",
   "src/components/RutaDelPlan.tsx",
   "src/components/erp/review-queue.tsx",
-  "src/components/timetracker/AssignmentsPanel.tsx",
-  // Tablas sin encabezado por día: igual que MySections.
-  "src/components/timetracker/EmployeeWeek.tsx",
-  "src/components/timetracker/GeofenceSection.tsx",
-  // La tabla de sesiones se edita en su propia fila. El recibo de pago (.rcpt-print) SE IMPRIME: queda sin estándar a propósito.
-  "src/components/timetracker/ManagerReports.tsx",
-  // Tablas sin encabezado (horario de la semana y notas): hay que decidir cómo se titulan antes de convertirlas.
-  "src/components/timetracker/MySections.tsx",
-  // Nómina: cada fila se edita y se despliega con la bitácora del turno (fila de ancho completo).
-  "src/components/timetracker/PayrollTimesheets.tsx",
-  "src/components/timetracker/ScheduleWeek.tsx",
-  "src/components/timetracker/TripPanel.tsx",
 ];
 
 const raiz = process.cwd();
@@ -92,6 +80,8 @@ describe("estándar de tablas: toda tabla usa las columnas de Órdenes", () => {
     expect(yaCumplen, "Ya usan el estándar: quítalos de PENDIENTES").toEqual([]);
   });
   it("la deuda no crece", () => {
-    expect(PENDIENTES.length).toBeLessThanOrEqual(23);
+    // 23 al 12 nov; 8 de Time Tracker convertidas (tanda 2, 13 nov 2026: Asignaciones, Semana del empleado, Geocercas,
+    // Informes, Mis secciones, Nómina, Horario, Viajes) → 15.
+    expect(PENDIENTES.length).toBeLessThanOrEqual(15);
   });
 });

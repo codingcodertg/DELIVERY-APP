@@ -6,6 +6,7 @@ import { useAccionesDeFichar } from "@/components/timetracker/Capacitacion";
 import { APP_SETTINGS } from "@/lib/timetracker/helpers";
 import { useT } from "@/lib/timetracker/i18n";
 import { odometroDeRegreso } from "@/lib/clockin/visitas";
+import { TablaEstandar } from "@/components/TablaEstandar";
 
 /**
  * Los viajes de vehículo, dentro de Registrar tiempo (D-136).
@@ -126,19 +127,16 @@ export function TripPanel({
       {aviso && <div className="banner warn">{aviso}</div>}
 
       {d.stops.length > 0 && (
-        <table style={{ marginTop: 10 }}>
-          <tbody>
-            {d.stops.map((s) => (
-              <tr key={s.id}>
-                <td>{s.label || t("emp.trip.stop")}</td>
-                <td className="small muted nowrap">
-                  {hhmm(s.arrivedAt)}{s.departedAt ? ` – ${hhmm(s.departedAt)}` : ""}
-                </td>
-                <td>{!s.departedAt && <span className="pill wait">{t("emp.trip.hereNow")}</span>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{ marginTop: 10 }}>
+          <TablaEstandar id="tt-paradas-viaje" sinCaja claveDe={(s) => s.id} filas={d.stops}
+            columnas={[
+              { key: "parada", en: t("emp.trip.stop"), es: t("emp.trip.stop"), ancho: 200, valor: (s) => s.label || t("emp.trip.stop") },
+              { key: "horas", en: t("emp.week.colInOut"), es: t("emp.week.colInOut"), ancho: 170, valor: (s) => s.arrivedAt,
+                celda: (s) => `${hhmm(s.arrivedAt)}${s.departedAt ? ` – ${hhmm(s.departedAt)}` : ""}`, clase: "small muted nowrap" },
+              { key: "estado", en: t("emp.trip.colState"), es: t("emp.trip.colState"), ancho: 140, valor: (s) => (s.departedAt ? null : t("emp.trip.hereNow")),
+                celda: (s) => (!s.departedAt ? <span className="pill wait">{t("emp.trip.hereNow")}</span> : null) },
+            ]} />
+        </div>
       )}
 
       {/* Llegar y salir de una parada son dos botones distintos a propósito: el tiempo

@@ -5,6 +5,7 @@ import { getMySchedule, getMyScorecard, type MiHorario, type MiBoletin } from "@
 import { useAccionesDeFichar } from "@/components/timetracker/Capacitacion";
 import { fmtDayLong } from "@/lib/timetracker/helpers";
 import { useT } from "@/lib/timetracker/i18n";
+import { TablaEstandar } from "@/components/TablaEstandar";
 
 /**
  * Mi horario, mis notas y mi boletín — desplegables dentro de Registrar tiempo (D-129).
@@ -81,26 +82,21 @@ function MiHorarioSec() {
                 {t("emp.my.approvedOff")} {datos.off.map((o) => `${o.type} ${o.start_date}→${o.end_date}`).join(" · ")}
               </div>
             )}
-            <table style={{ marginTop: 10 }}>
-              <tbody>
-                {datos.week.map((d) => {
-                  // `turno` y no `t`: `t` es el traductor de esta pantalla, y una variable
-                  // con ese nombre aquí dentro lo tapaba. Lo dijo el compilador; sin
-                  // TypeScript habría sido un "t is not a function" en el móvil de alguien.
-                  const turno = datos.shifts.find((x) => x.shift_date === d);
-                  return (
-                    <tr key={d} style={d === hoy ? { fontWeight: 700 } : undefined}>
-                      <td className="nowrap">{fmtDayLong(d)}{d === hoy ? t("emp.my.today") : ""}</td>
-                      <td className="nowrap">{turno ? `${hhmm(turno.start_time)}–${hhmm(turno.end_time)}` : <span className="muted">—</span>}</td>
-                      <td className="small muted nowrap">
-                        {turno?.lunch_minutes ? `🍽 ${turno.lunch_minutes}m` : ""}
-                        {turno?.site ? ` · ${turno.site}` : ""}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div style={{ marginTop: 10 }}>
+              <TablaEstandar id="tt-mi-horario" sinCaja claveDe={(d) => d} filas={datos.week}
+                columnas={[
+                  { key: "dia", en: t("mgr.rep.colDay"), es: t("mgr.rep.colDay"), ancho: 170, valor: (d) => d, etiqueta: (v) => fmtDayLong(String(v)),
+                    celda: (d) => <span className="nowrap" style={d === hoy ? { fontWeight: 700 } : undefined}>{fmtDayLong(d)}{d === hoy ? t("emp.my.today") : ""}</span> },
+                  { key: "turno", en: t("emp.my.colShift"), es: t("emp.my.colShift"), ancho: 150,
+                    valor: (d) => { const turno = datos.shifts.find((x) => x.shift_date === d); return turno ? `${hhmm(turno.start_time)}–${hhmm(turno.end_time)}` : null; },
+                    celda: (d) => { const turno = datos.shifts.find((x) => x.shift_date === d); return turno ? `${hhmm(turno.start_time)}–${hhmm(turno.end_time)}` : <span className="muted">—</span>; },
+                    clase: "nowrap" },
+                  { key: "extras", en: t("emp.my.colExtras"), es: t("emp.my.colExtras"), ancho: 180,
+                    valor: (d) => { const turno = datos.shifts.find((x) => x.shift_date === d); return turno ? [turno.lunch_minutes ? `🍽 ${turno.lunch_minutes}m` : "", turno.site ? ` · ${turno.site}` : ""].join("") || null : null; },
+                    celda: (d) => { const turno = datos.shifts.find((x) => x.shift_date === d); return turno ? <>{turno.lunch_minutes ? `🍽 ${turno.lunch_minutes}m` : ""}{turno.site ? ` · ${turno.site}` : ""}</> : null; },
+                    clase: "small muted nowrap" },
+                ]} />
+            </div>
           </>
         )}
       </details>
@@ -150,16 +146,13 @@ function MisNotasSec() {
         {datos && (datos.length === 0
           ? <p className="muted" style={{ marginTop: 10 }}>{t("emp.my.noNotes")}</p>
           : (
-            <table style={{ marginTop: 10 }}>
-              <tbody>
-                {datos.map((n) => (
-                  <tr key={n.id}>
-                    <td className="small muted nowrap">{n.created_at.slice(0, 10)}</td>
-                    <td>{n.note}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div style={{ marginTop: 10 }}>
+              <TablaEstandar id="tt-mis-notas" sinCaja claveDe={(n) => n.id} filas={datos}
+                columnas={[
+                  { key: "fecha", en: t("emp.my.colDate"), es: t("emp.my.colDate"), ancho: 130, valor: (n) => n.created_at.slice(0, 10), clase: "small muted nowrap" },
+                  { key: "nota", en: t("emp.week.colNote"), es: t("emp.week.colNote"), ancho: 320, valor: (n) => n.note, envuelve: true },
+                ]} />
+            </div>
           ))}
       </details>
     </div>

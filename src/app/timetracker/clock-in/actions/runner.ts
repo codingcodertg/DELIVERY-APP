@@ -1,6 +1,8 @@
 "use server";
 
 import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
+import { demoMyTrip } from "./demo-local";
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
 import { odometroDeRegreso } from "@/lib/clockin/visitas";
 
@@ -378,6 +380,7 @@ export async function getMyTrip(): Promise<
     }
   | { ok: false; message: string }
 > {
+  if (LOCAL_MODE) return demoMyTrip();
   const ctx = await authed();
   if (!ctx.ok) return ctx;
   const { supabase, user, profile } = ctx;

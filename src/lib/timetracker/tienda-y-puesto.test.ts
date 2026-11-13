@@ -205,9 +205,11 @@ describe("Nómina › Remoto (tabla, detalle, CSV, recibo y «Agregar entrada»)
   const rep = leer("src/components/timetracker/ManagerReports.tsx");
   it("cada línea se nombra con nombreDeLinea y la persona de la fila", () => {
     expect(rep).toContain("nombreDeLinea(a ? pMap.get(a.projectId)?.name : null, uMap.get(uid), lang, sinProyecto);");
-    // Dos veces: la tabla del grupo y el recibo.
-    expect(rep.split('<td>{nombreDe(l.a, uid, "(deleted)")}</td>').length - 1).toBe(2);
-    expect(rep).toContain('const proj = nombreDeLinea(s.projectId ? pMap.get(s.projectId)?.name : null, uMap.get(s.employeeUid), lang, "—");');
+    // Las líneas del grupo van por la tabla estándar (valor: nombreDe…); el recibo impreso sigue con su <td> a mano.
+    expect(rep).toContain('valor: (l) => nombreDe(l.a, uid, "(deleted)")');
+    expect(rep.split('<td>{nombreDe(l.a, uid, "(deleted)")}</td>').length - 1).toBe(1);
+    // Detalle del tramo (forma reducida): el proyecto se nombra en su celda.
+    expect(rep).toContain('nombreDeLinea(s.projectId ? pMap.get(s.projectId)?.name : null, uMap.get(s.employeeUid), lang, "—")');
   });
   it("el CSV y el recibo: nombre y lugar (la tienda del presencial)", () => {
     expect(rep).toContain('status, nombreDe(l.a, uid, "(deleted)"), lugarDe(l.a, uid), (l.g.sec / 3600).toFixed(2),');
@@ -255,8 +257,9 @@ describe("Asignaciones: el presencial, marcado y sin ofrecerlo", () => {
   it("los presenciales salen aparte, con «Presencial — su tienda y su puesto» y la etiqueta de cada uno", () => {
     expect(asn).toContain("const presenciales = soloActivos(users).filter((u) => !necesitaProyecto(u));");
     expect(asn).toContain('<h2 style={{ marginTop: 0 }}>{t("mgr.asn.inhouseTitle")}</h2>');
-    expect(asn).toContain("<td>{tiendaYPuesto(u, lang)}</td>");
-    expect(asn).toContain('<th>{t("mgr.asn.colStore")}</th>');
+    // Tabla estándar (TablaEstandar): la celda y el rótulo van en columnas (valor / en, es).
+    expect(asn).toContain("valor: (u) => tiendaYPuesto(u, lang)");
+    expect(asn).toContain('en: t("mgr.asn.colStore")');
     expect(DICT.es["mgr.asn.inhouseTitle"]).toBe("Presencial — su tienda y su puesto");
   });
   it("una asignación que ya tuviera un presencial se marca, no se esconde", () => {

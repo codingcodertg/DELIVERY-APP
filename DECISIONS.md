@@ -52301,3 +52301,12 @@ Solo cambia el marcado; cifras y cálculos iguales. La revisión en pantalla enc
 Visto en pantalla (demo): Dashboard 1280 y 390, Almacén 1280 y 390, Puntualidad. No visto con filas: Recorrido, Reportes de choferes y Paradas del día (el demo no tiene GPS).
 Pendientes (7): Datos, Market, Ajustes, KPI de entregas, Plan contra real, Ruta del plan, y la cola de revisión del ERP (virtualiza filas; falta decidir).
 Sello `deliveries` 1.617.0; repo 1.890.0.
+
+## D-1038 · Tablas estándar: las últimas 8 de Time Tracker
+
+Asignaciones, Semana del empleado, Geocercas, Mis secciones, Horario, Viajes y las líneas de Informes pasan a `TablaEstandar`. Nómina y el detalle de Informes usan `TablaReducida` (⚙, mover y anchos, sin ▾): sus filas se editan ahí mismo y ordenar las movería mientras alguien escribe. El recibo impreso (`.rcpt-print`) no se toca. Time Tracker queda sin pendientes.
+Cambios visibles: Semana del empleado y Horario eran una caja por día y ahora son una tabla con columna «Día» (hoy dice «hoy»); Mis secciones gana encabezados. En teléfono, «next →» de Nómina ya no se sale de la tarjeta.
+Para verlas en el demo local, las acciones del servidor de fichaje devuelven datos de ejemplo solo con `NEXT_PUBLIC_LOCAL_MODE=true` (`demo-local.ts`), como ya hacía la página de Nómina; en producción no cambia nada.
+Solo cambia el marcado: horas y pagos iguales (Informes: 193.50 h y $3,174.00 antes y después en el demo).
+Visto en pantalla (demo, tema oscuro): Nómina, Horario, Viajes, Mi horario, Semana del empleado, Geocercas, Asignaciones e Informes a 1280; Nómina, Horario e Informes a 390.
+Sello `timetracker` 1.26.0; repo 1.891.0.
