@@ -21,11 +21,35 @@ describe("impresión limpia en toda la app", () => {
     const malos: string[] = [];
     for (const f of archivos(raiz)) {
       const txt = readFileSync(f, "utf8");
-      for (const m of txt.matchAll(/@page\s*\{([^}]*)\}/g)) {
+      for (const m of txt.matchAll(/@page(?:\s+[\w-]+)?\s*\{([^}]*)\}/g)) {
         if (!/margin\s*:\s*0\s*;?/.test(m[1])) malos.push(`${f.slice(raiz.length)}: ${m[0]}`);
       }
     }
     expect(malos).toEqual([]);
+  });
+  it("D-1021: ninguna hoja de estilos esconde TODA la página al imprimir sin atarse a su propia hoja", () => {
+    // Next deja cargado el CSS de una ruta al pasar a otra sin recargar. Un «body * { display: none }» suelto en el
+    // @media print de una app deja en blanco lo que se imprime en las demás (así salía en blanco la cotización después
+    // de pasar por Operaciones). Tiene que ir atado: «body:has(.mi-hoja) * { … }». Lo mismo un `@page` con tamaño: con
+    // nombre (`@page mi-hoja { … }` + `page: mi-hoja`), o le cambia el papel a todas las apps.
+    const malos: string[] = [];
+    for (const f of archivos(raiz).filter((x) => x.endsWith(".css"))) {
+      const txt = readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      for (const m of txt.matchAll(/(?:^|[;{}])\s*((?:html\s+)?body\s*>?\s*\*[^{}]*)\{[^}]*(?:visibility\s*:\s*hidden|display\s*:\s*none)/g)) {
+        malos.push(`${f.slice(raiz.length)}: ${m[1].trim()}`);
+      }
+      for (const m of txt.matchAll(/@page\s*\{([^}]*)\}/g)) {
+        if (/\bsize\s*:/.test(m[1])) malos.push(`${f.slice(raiz.length)}: ${m[0]}`);
+      }
+    }
+    expect(malos).toEqual([]);
+  });
+  it("D-1021: manifiesto y exportación imprimen por el marco oculto (en la app de escritorio no hay window.open)", () => {
+    for (const f of ["lib/export.ts", "lib/manifest.ts"]) {
+      const txt = readFileSync(join(raiz, f), "utf8");
+      expect({ f, abre: /=\s*window\.open\(/.test(txt) }).toEqual({ f, abre: false });
+      expect(txt).toContain("imprimeDocumento(html)");
+    }
   });
   it("globals.css pone la regla general", () => {
     const g = readFileSync(join(raiz, "app/globals.css"), "utf8");

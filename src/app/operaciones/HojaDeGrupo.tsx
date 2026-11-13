@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError } from "@/lib/mensaje-de-error";
 import { useCallback, useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -66,7 +67,7 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
       const r = await grupoConReportes(createClient(), grupoId);
       if (!r) { setError(t("This group no longer exists, or migration 281 is not applied yet.", "Este grupo ya no existe, o falta aplicar la migración 281.")); setGrupo(null); }
       else { setGrupo(r.grupo); setReportes(r.reportes); setError(null); }
-    } catch (e) { setError((e as Error).message); }
+    } catch (e) { setError(mensajeDeError(e)); }
     setCargando(false);
   }, [grupoId, ctx.demo, t]);
 
@@ -74,7 +75,7 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
 
   const corre = async (f: () => Promise<void>) => {
     setOcupado(true); setError(null);
-    try { await f(); await recarga(); } catch (e) { setError((e as Error).message); }
+    try { await f(); await recarga(); } catch (e) { setError(mensajeDeError(e)); }
     setOcupado(false);
   };
 
@@ -119,7 +120,7 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
       if (practica) borrarGrupoDePractica(grupo.id);
       else await borrarGrupo(createClient(), grupo.id);
       onSalir();
-    } catch (e) { setError((e as Error).message); setOcupado(false); }
+    } catch (e) { setError(mensajeDeError(e)); setOcupado(false); }
   };
   const marcarDesechadasG = async () => {
     const { elegibles, omitidos } = bDesechar;
@@ -131,7 +132,7 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
       setSel(new Set());
       await recarga();
     } catch (e) {
-      if (e instanceof ErrorParcial) { setAvisoB(e.message); await recarga(); } else setError((e as Error).message);
+      if (e instanceof ErrorParcial) { setAvisoB(e.message); await recarga(); } else setError(mensajeDeError(e));
     } finally { setOcupado(false); }
   };
 

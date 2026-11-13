@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError } from "@/lib/mensaje-de-error";
 import { useCallback, useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { AVISO_DEMO, MODO_DEMO } from "@/lib/recruiting/modo-demo";
@@ -38,7 +39,7 @@ export function ChecklistDelEmpleado({ employeeId, faseInicial }: { employeeId: 
     setBusy(true);
     const r = await setChecklistItem({ employeeId, phase: fase, itemKey, status });
     setBusy(false);
-    if (!r.ok) { notify("Error: " + (r.message ?? "")); return; }
+    if (!r.ok) { notify(mensajeDeError(r.message)); return; }
     await cargar();
   };
 

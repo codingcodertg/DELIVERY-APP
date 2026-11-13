@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import { useEffect, useState } from "react";
 import type { AlmacenDeClientes } from "@/lib/customers/almacen";
 import { cambiosDelHistorial, CLASE_DE_HISTORIAL, CLASES_DE_UN_VALOR, type HistorialDeCliente } from "@/lib/customers/edicion-como-solicitud";
@@ -27,7 +28,7 @@ export function HistorialDelCliente({ clienteId, almacen, t }: { clienteId: numb
     void almacen.historial(clienteId).then((r) => {
       if (!vivo) return;
       if (r.ok) setFilas(r.valor);
-      else setError(r.sinTabla ? t("The history is not available yet (migration 221).", "El historial aún no está disponible (migración 221).") : r.error);
+      else setError(r.sinTabla ? t("The history is not available yet (migration 221).", "El historial aún no está disponible (migración 221).") : mensajeDeErrorAlCargar(r.error));
     });
     return () => { vivo = false; };
   }, [abierto, clienteId, almacen, t]);

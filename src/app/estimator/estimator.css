@@ -108,21 +108,26 @@
    layout raíz (el sello de versión, el aviso del cierre, el de «entraste como»), que esta pantalla no
    controla, sin tener que conocerlo uno por uno. */
 @media print {
-  body * { visibility: hidden !important; }
-  .hoja-cliente, .hoja-cliente * { visibility: visible !important; }
+  /* D-1021: atado a que la vista previa EXISTA (`body:has(.est-vista-previa)`). El CSS de una app se queda cargado al
+     pasar a otra sin recargar; suelto, este bloque dejaba en blanco lo que se imprimiera en otra app (y el de otras
+     apps dejaba en blanco la cotización: lo que reportaron los vendedores). */
+  body:has(.est-vista-previa) * { visibility: hidden !important; }
+  body:has(.est-vista-previa) .hoja-cliente, body:has(.est-vista-previa) .hoja-cliente * { visibility: visible !important; }
   /* D-789 (el dueño, con el PDF de una cotización de 5 páginas, 4 en blanco: «REMOVE»): lo que no es la hoja, ni
      está dentro, ni la envuelve, se QUITA del flujo, no solo se esconde. Escondido seguía ocupando su sitio y el
      formulario entero salía como páginas vacías detrás de la hoja. */
-  body *:not(.hoja-cliente):not(.hoja-cliente *):not(:has(.hoja-cliente)) { display: none !important; }
+  body:has(.est-vista-previa) *:not(.hoja-cliente):not(.hoja-cliente *):not(:has(.hoja-cliente)) { display: none !important; }
   .est-vista-previa { position: static !important; background: none !important; padding: 0 !important; overflow: visible !important; }
   /* La hoja ya no flota: sin hermanos no hay nada que tapar, y en el flujo normal pagina como un documento. El
      margen de página lo lleva ELLA (16 mm), porque `@page` va a cero: con margen de página el navegador imprime
      su cabecera y su pie (fecha, título de la pestaña, URL y «1/5»), y el dueño mandó quitarlos. */
-  .hoja-cliente { position: static; width: 100%; max-width: none; border: none; box-shadow: none; padding: 16mm; }
+  .est-vista-previa .hoja-cliente { position: static; width: 100%; max-width: none; border: none; box-shadow: none; padding: 16mm; }
+  /* Ningún ancestro recorta la hoja (alto fijo, overflow, fixed): pagina como un documento. */
+  body:has(.est-vista-previa) :has(.hoja-cliente) { position: static !important; overflow: visible !important; height: auto !important; max-height: none !important; }
   /* El estimado de la competencia, además, fuera del todo: aunque alguien lo metiera algún día dentro
      de la hoja, no se imprime (D-425). */
   .est-competencia, .est-competencia * { display: none !important; }
   @page { margin: 0; }
   /* La hoja ya trae su margen (16 mm): sin el relleno general del cuerpo (globals.css), para no doblarlo. */
-  body:has(.hoja-cliente) { padding: 0; }
+  body:has(.est-vista-previa) { padding: 0; }
 }

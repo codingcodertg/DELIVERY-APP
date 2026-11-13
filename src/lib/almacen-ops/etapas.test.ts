@@ -259,7 +259,7 @@ describe("la hoja de aprobación impresa", () => {
     // Imprimir con window.print() desde un botón, y el CSS deja solo la hoja.
     expect(lee("src/app/operaciones/reportes/hoja-de-aprobacion/BotonImprimir.tsx")).toContain("window.print()");
     expect(CSS_HOJA).toContain("@media print");
-    expect(CSS_HOJA).toContain(".hoja-aprobacion, .hoja-aprobacion * { visibility: visible !important; }");
+    expect(CSS_HOJA).toContain("body:has(.hoja-aprobacion) .hoja-aprobacion * { visibility: visible !important; }");
   });
   it("el cubo admite el PDF de la hoja escaneada y deja ver la hoja y la captura a quien ve el reporte", () => {
     expect(SQL).toContain("'application/pdf'");

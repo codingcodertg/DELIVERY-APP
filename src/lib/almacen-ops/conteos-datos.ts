@@ -5,12 +5,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Alcance, AlcanceElegido, Conteo, EtapaDeConteo, Linea } from "./conteos";
 
-/** ¿Falta aplicar la 274? (tabla o función que la API no conoce). */
+/**
+ * ¿Falta aplicar la 274? Solo cuando la base dice que la TABLA de conteos no existe (D-1021).
+ *
+ * Antes cualquier 42P01 / PGRST202 / PGRST205 / 42883 pintaba «Muy pronto», aunque la 274 ya estuviera aplicada: una
+ * función u operador que falta, otra tabla que no existe o un caché de esquema a medias no son «falta la 274». Ahora
+ * tiene que ser el código de «tabla desconocida» (42P01 de Postgres, PGRST205 de la API) Y nombrar `warehouse_counts` o
+ * `warehouse_count_lines`; lo demás sale como error, con su mensaje (mensajeDeError).
+ */
 export function faltaLa274(e: { code?: string | null; message?: string | null } | null | undefined): boolean {
   if (!e) return false;
-  return e.code === "42P01" || e.code === "PGRST205" || e.code === "PGRST202" || e.code === "42883"
-    || (/warehouse_counts|warehouse_count_lines|warehouse_ops_(count_\w+|create_count)/.test(e.message ?? "")
-        && /does not exist|schema cache|not find/i.test(e.message ?? ""));
+  const m = e.message ?? "";
+  const nombraLaTabla = /warehouse_count(s|_lines)(?![a-z_])/.test(m);
+  if (e.code === "42P01" || e.code === "PGRST205") return nombraLaTabla;
+  if (e.code) return false;
+  return nombraLaTabla && /relation .* does not exist|could not find the table/i.test(m);
 }
 
 export interface Conteos { conteos: Conteo[]; lineas: Linea[] }

@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError } from "@/lib/mensaje-de-error";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
@@ -111,7 +112,7 @@ export function BotonContratar({ c, onActivoChange }: { c: Candidate; onActivoCh
       if (MODO_DEMO) { notify(t("Hired ✓ · demo: no employee file or hub user", "Contratado ✓ · demo: sin expediente ni usuario del hub")); setAbierto(false); return; }
       // La solicitud se deja siempre que se quiere usuario: si crear la cuenta falla, es la que queda pendiente.
       const r = await hireCandidate({ candidateId: c.id, requestUser: crear, note: nota });
-      if (!r.ok) { notify(r.message); return; }
+      if (!r.ok) { notify(mensajeDeError(r.message)); return; }
       setFileIdHecho(r.fileId);
       let msg = r.creado ? t("Hired ✓ — employee file created", "Contratado ✓ — expediente creado")
         : t("Hired ✓ — employee file already existed", "Contratado ✓ — el expediente ya existía");

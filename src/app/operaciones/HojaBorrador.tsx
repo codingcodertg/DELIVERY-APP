@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError } from "@/lib/mensaje-de-error";
 import { useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -54,7 +55,7 @@ export function HojaBorrador({ borradorId, ctx, reportesDisponibles, onSalir, on
       borrarBorradorDeGrupo(ctx.yo.id, borrador.id);
       onGuardado(id);
     } catch (e) {
-      setError(esErrorDeYaEnGrupo(e) ? avisoYaEnGrupo(1, lang) : (e as Error).message);
+      setError(esErrorDeYaEnGrupo(e) ? avisoYaEnGrupo(1, lang) : mensajeDeError(e));
     } finally { setOcupado(false); }
   };
   const descartar = () => { borrarBorradorDeGrupo(ctx.yo.id, borrador.id); onSalir(); };

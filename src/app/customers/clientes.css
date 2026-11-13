@@ -314,3 +314,26 @@
   .cli-asociaciones-buscador { max-width: none; }
   .cli-asociaciones-buscador > input { height: 40px; font-size: 16px; }
 }
+
+/* D-1021: imprimir la cotización desde su tarjeta (Clientes → historial). Solo la hoja del cliente, en papel blanco con
+   texto oscuro SIEMPRE (también en modo oscuro), sin cabecera ni pie del navegador (`@page` va a cero en globals.css y el
+   margen lo lleva la hoja). Atado a que la tarjeta exista: el CSS se queda cargado al pasar a otra app. */
+.tarjeta-pie { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.tarjeta-imprimir { margin-right: auto; }
+@media print {
+  body:has(.tarjeta-cotizacion .hoja-cliente) * { visibility: hidden !important; }
+  body:has(.tarjeta-cotizacion .hoja-cliente) .hoja-cliente, body:has(.tarjeta-cotizacion .hoja-cliente) .hoja-cliente * { visibility: visible !important; }
+  body:has(.tarjeta-cotizacion .hoja-cliente) *:not(.hoja-cliente):not(.hoja-cliente *):not(:has(.hoja-cliente)) { display: none !important; }
+  body:has(.tarjeta-cotizacion .hoja-cliente) :has(.hoja-cliente) {
+    position: static !important; overflow: visible !important; height: auto !important; max-height: none !important; min-height: 0 !important;
+    max-width: none !important; width: auto !important; margin: 0 !important; padding: 0 !important; border: 0 !important;
+    background: #fff !important; box-shadow: none !important; display: block !important;
+  }
+  body:has(.tarjeta-cotizacion .hoja-cliente) .tarjeta-cotizacion .hoja-cliente {
+    background: #fff !important; color: #111 !important; border: none; border-radius: 0; max-width: none; margin: 0; padding: 16mm; font-size: 12px;
+  }
+  /* La hoja ya trae su margen (16 mm): sin el relleno general del cuerpo, para no doblarlo. */
+  body:has(.tarjeta-cotizacion .hoja-cliente) { padding: 0 !important; background: #fff !important; }
+  body:has(.tarjeta-cotizacion .hoja-cliente) .hoja-cliente * { color: #111 !important; border-color: #999 !important; }
+  body:has(.tarjeta-cotizacion .hoja-cliente) .hoja-cliente .hc-validez { border-color: #111 !important; }
+}

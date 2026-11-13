@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError } from "@/lib/mensaje-de-error";
 import { TablaEstandar } from "@/components/TablaEstandar";
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/erp/ui/input";
@@ -194,7 +195,7 @@ function TarjetaDeSolicitud({ s, actual, esAdmin, revision, almacen, onVolver, o
     setOcupada(true);
     const r = await fn();
     setOcupada(false);
-    if (!r.ok) { onFallo(t(prefijo[0], prefijo[1]) + r.error); return; }
+    if (!r.ok) { onFallo(t(prefijo[0], prefijo[1]) + mensajeDeError(r.error)); return; }
     onHecho(hecho, true);
   };
   /** Guarda la corrección en la solicitud (242). Sin cambios no escribe nada. */
@@ -204,7 +205,7 @@ function TarjetaDeSolicitud({ s, actual, esAdmin, revision, almacen, onVolver, o
     setOcupada(true);
     const r = await almacen.corregirSolicitud(s.id, correccion.payload);
     setOcupada(false);
-    if (!r.ok) { onFallo(t("Corrections not saved: ", "No se guardó la corrección: ") + r.error); return false; }
+    if (!r.ok) { onFallo(t("Corrections not saved: ", "No se guardó la corrección: ") + mensajeDeError(r.error)); return false; }
     return true;
   };
   const aprobar = async () => {
@@ -222,7 +223,7 @@ function TarjetaDeSolicitud({ s, actual, esAdmin, revision, almacen, onVolver, o
     setOcupada(true);
     const r = await almacen.aprobarSolicitud(s.id);
     setOcupada(false);
-    if (!r.ok) { onFallo(t("Not approved: ", "No se aprobó: ") + r.error); return; }
+    if (!r.ok) { onFallo(t("Not approved: ", "No se aprobó: ") + mensajeDeError(r.error)); return; }
     onHecho(t(`Approved ✓ ${r.valor.length} customer row(s) created.`, `Aprobada ✓ ${r.valor.length} fila(s) de cliente creadas.`), true);
   };
   const rechazar = () => corre(() => almacen.rechazarSolicitud(s.id, nota.trim()), ["Not denied: ", "No se rechazó: "], t("Denied. The requester sees your note.", "Rechazada. Quien la pidió ve tu nota."));

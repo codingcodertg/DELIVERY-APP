@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import { useEffect, useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { fmtDateTime } from "@/lib/utils";
@@ -56,7 +57,7 @@ export function KpiDeEntregas({ rango, ctx }: { rango: Rango | null; ctx: Contex
         if (!r.ok || !j.ok) { setCarga({ estado: "error", mensaje: j.error ?? `HTTP ${r.status}` }); return; }
         setCarga({ estado: "listo", datos: j as Respuesta });
       } catch (e) {
-        if (vivo) setCarga({ estado: "error", mensaje: e instanceof Error ? e.message : String(e) });
+        if (vivo) setCarga({ estado: "error", mensaje: mensajeDeErrorAlCargar(e) });
       }
     })();
     return () => { vivo = false; };

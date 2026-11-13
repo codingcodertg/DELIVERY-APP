@@ -277,8 +277,9 @@
 .timetracker-module .rcpt-print .muted{color:#666}
 .timetracker-module .rcpt-print th{color:#666}
 .timetracker-module .rcpt-print td,.timetracker-module .rcpt-print th{border-bottom:1px solid #ddd}
+/* D-1021: atado a que el talón esté abierto; suelto, dejaba en blanco lo que se imprimiera en otra app tras pasar por aquí. */
 @media print{
-  body>*{visibility:hidden}
+  body:has(.timetracker-module .rcpt-overlay)>*{visibility:hidden}
   .timetracker-module .rcpt-overlay,.timetracker-module .rcpt-overlay *{visibility:visible}
   .timetracker-module .rcpt-overlay{position:absolute;top:0;left:0;background:#fff;padding:0;display:block}
   .timetracker-module .rcpt-print{margin:0;max-width:100%;border-radius:0}

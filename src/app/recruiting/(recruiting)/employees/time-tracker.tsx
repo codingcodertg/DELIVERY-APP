@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import { useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { AVISO_DEMO, MODO_DEMO } from "@/lib/recruiting/modo-demo";
@@ -28,7 +29,7 @@ export function BloqueTimeTracker({ profileId }: { profileId: string | null }) {
     let vivo = true;
     void timeTrackerFor(profileId).then((r) => {
       if (!vivo) return;
-      if (!r.ok) setEstado({ k: "error", msg: r.message });
+      if (!r.ok) setEstado({ k: "error", msg: mensajeDeErrorAlCargar(r.message) });
       else {
         const pagos = pagosDelEmpleado(r.lotes, r.talones);
         setEstado({ k: "listo", filas: semanasConPago(semanasDeHoras(r.horas), pagos), pagos, avisos: r.avisos });

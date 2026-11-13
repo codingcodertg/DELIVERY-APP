@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError } from "@/lib/mensaje-de-error";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -46,7 +47,7 @@ export function AvisoPendienteDeFirma({ r }: { r: Reporte }) {
   return <span className="ops-firma-aviso" data-firma-pendiente title={m}>✍ {m}</span>;
 }
 
-const mensajeDeError = (e: unknown) => (e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e));
+/* mensajeDeError: el compartido de @/lib/mensaje-de-error (D-1021) */
 
 /**
  * Sube la hoja firmada o la captura: una imagen pasa por el mismo lector que las fotos de merma (D-917: bytes en el

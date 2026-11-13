@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import type { AlmacenDeClientes } from "@/lib/customers/almacen";
@@ -36,7 +37,7 @@ export function HistorialDeTratos({ cliente, almacen, t }: { cliente: { id: numb
     setError(null);
     void almacen.tratos({ id: cliente.id, account: cliente.account }).then((r) => {
       if (!vivo) return;
-      if (r.ok) setLeido(r.valor); else setError(r.error);
+      if (r.ok) setLeido(r.valor); else setError(mensajeDeErrorAlCargar(r.error));
     });
     return () => { vivo = false; };
   }, [cliente.id, cliente.account, almacen, lectura]);

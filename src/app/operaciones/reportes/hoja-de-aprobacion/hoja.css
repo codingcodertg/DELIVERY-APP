@@ -34,13 +34,28 @@
   .hoja-firmas { grid-template-columns: 1fr; gap: 28px; }
   .hoja-tabla { display: block; overflow-x: auto; }
 }
+/* D-1021: TODO lo de impresión de esta hoja va atado a que la hoja EXISTA en la página (`body:has(.hoja-aprobacion)`).
+   Next no quita el CSS de una app al pasar a otra sin recargar: con las reglas sueltas, quien pasaba por Operaciones y
+   luego imprimía una cotización (u otra cosa) veía la hoja EN BLANCO, porque «lo que no es .hoja-aprobacion» era todo.
+   El apaisado va en una página con nombre por lo mismo: un `@page` suelto volvía apaisada cualquier impresión. */
+@page hoja-de-aprobacion { size: letter landscape; margin: 0; }
 @media print {
-  @page { size: letter landscape; margin: 0; }
-  body * { visibility: hidden !important; }
-  .hoja-aprobacion, .hoja-aprobacion * { visibility: visible !important; }
+  .hoja-aprobacion { page: hoja-de-aprobacion; }
+  body:has(.hoja-aprobacion) * { visibility: hidden !important; }
+  body:has(.hoja-aprobacion) .hoja-aprobacion, body:has(.hoja-aprobacion) .hoja-aprobacion * { visibility: visible !important; }
   /* Lo que no es la hoja, ni está dentro, ni la envuelve, sale del flujo (la lección de D-789: escondido seguía paginando en blanco). */
-  body *:not(.hoja-aprobacion):not(.hoja-aprobacion *):not(:has(.hoja-aprobacion)) { display: none !important; }
+  body:has(.hoja-aprobacion) *:not(.hoja-aprobacion):not(.hoja-aprobacion *):not(:has(.hoja-aprobacion)) { display: none !important; }
+  /* D-1021: la hoja abierta EN TARJETA (overlay fijo) no paginaba: un elemento `fixed` no entra en el flujo de
+     impresión, así que salía a media página y un grupo largo se cortaba en la primera hoja. Al imprimir, ningún
+     ancestro flota, recorta ni estrecha la hoja (el margen lo pone el cuerpo, 12 mm, globals.css). */
+  body:has(.hoja-aprobacion) *:has(.hoja-aprobacion) {
+    position: static !important; overflow: visible !important; height: auto !important; max-height: none !important; min-height: 0 !important;
+    max-width: none !important; width: auto !important; margin: 0 !important; padding: 0 !important; border: 0 !important;
+    background: none !important; box-shadow: none !important; display: block !important;
+  }
   .no-imprimir { display: none !important; }
+  /* El folio es un enlace en pantalla; en papel, texto como el resto (salía azul y subrayado). */
+  .hoja-aprobacion a, .hoja-aprobacion .ops-folio-link { color: inherit !important; text-decoration: none !important; }
   .hoja-aprobacion-pagina { max-width: none; padding: 0; margin: 0; }
   .hoja-aprobacion { border: none; border-radius: 0; padding: 0; font-size: 12px; }
   .hoja-tabla { display: table; overflow: visible; }

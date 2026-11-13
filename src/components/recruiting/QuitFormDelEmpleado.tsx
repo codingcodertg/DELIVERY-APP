@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError } from "@/lib/mensaje-de-error";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { AVISO_DEMO, MODO_DEMO } from "@/lib/recruiting/modo-demo";
@@ -49,12 +50,12 @@ export function QuitFormDelEmpleado({ employeeId }: { employeeId: string }) {
       const fd = new FormData();
       fd.set("file", f); fd.set("employeeId", employeeId); fd.set("kind", "quit_form");
       const up = await uploadDocFile(fd);
-      if (!up.ok) { setBusy(false); notify("Error: " + (up.message ?? "")); return; }
+      if (!up.ok) { setBusy(false); notify(mensajeDeError(up.message)); return; }
       fotoPath = up.path ?? null;
     }
     const r = await saveQuitForm(employeeId, { motivo, nota, firmaNombre: firma, firmaFecha: fecha, fotoPath });
     setBusy(false);
-    if (!r.ok) { notify("Error: " + (r.message ?? "")); return; }
+    if (!r.ok) { notify(mensajeDeError(r.message)); return; }
     setMotivo(""); setNota(""); setFirma(""); setFecha(""); if (fileRef.current) fileRef.current.value = "";
     setAbierto(false);
     await cargar();

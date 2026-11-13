@@ -1,6 +1,7 @@
 // exceljs se carga al pulsar "Excel", no con el tablero (G-20, D-209): estático entraba entero
 // en el chunk inicial de `/` (265 kB de ruta) para un botón que casi nadie pulsa. Mismo patrón que
 // lib/erp/export.ts. El tipo se importa aparte porque `import type` no pesa nada.
+import { imprimeDocumento } from "@/lib/slip";
 import { ESTILO_IMPRESION_LIMPIA } from "@/lib/impresion-limpia";
 import type { WorksheetProperties } from "exceljs";
 import type { Delivery, Profile } from "@/lib/types";
@@ -156,10 +157,9 @@ export function exportPDFByEmployee(deliveries: Delivery[], users: Profile[], la
       <script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script>
     </body></html>`;
 
-  const w = window.open("", "_blank");
-  if (!w) return;
-  w.document.write(html);
-  w.document.close();
+  // D-1021: por el marco oculto de `imprimeDocumento` (D-287), no por `window.open("")`: en la app de escritorio esa
+  // ventana se deniega (about:blank no es un origen propio) y el botón no hacía nada, sin decirlo.
+  imprimeDocumento(html);
 }
 
 function triggerDownload(blob: Blob, filename: string) {

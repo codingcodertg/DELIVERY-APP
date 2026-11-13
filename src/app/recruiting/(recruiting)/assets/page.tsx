@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError, mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { useVistaDeColumnas } from "@/lib/use-vista-de-columnas";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -78,7 +79,7 @@ function AssetsPageReal() {
 
   const cargar = useCallback(async () => {
     const r = await listAssets();
-    if (!r.ok) { setErr(r.message); setEstado(r.sinTabla ? "sinTabla" : "error"); return; }
+    if (!r.ok) { setErr(mensajeDeErrorAlCargar(r.message)); setEstado(r.sinTabla ? "sinTabla" : "error"); return; }
     setRows(r.rows); setPersonas(r.personas); setErr(null); setEstado("listo");
   }, []);
   useEffect(() => { void cargar(); }, [cargar]);
@@ -87,7 +88,7 @@ function AssetsPageReal() {
     setBusy(true);
     const r = await fn();
     setBusy(false);
-    if (!r.ok) { notify("Error: " + (r.message ?? "")); return false; }
+    if (!r.ok) { notify(mensajeDeError(r.message)); return false; }
     await cargar();
     setRecargaHistorial((n) => n + 1);
     return true;

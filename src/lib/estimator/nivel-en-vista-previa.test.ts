@@ -26,8 +26,8 @@ describe("el nivel de detalle", () => {
   });
   it("al imprimir no sale: solo la hoja es visible", () => {
     const css = leer("src/app/estimator/estimator.css");
-    expect(css).toContain("body * { visibility: hidden !important; }");
-    expect(css).toContain(".hoja-cliente, .hoja-cliente * { visibility: visible !important; }");
+    expect(css).toContain("body:has(.est-vista-previa) * { visibility: hidden !important; }");
+    expect(css).toContain("body:has(.est-vista-previa) .hoja-cliente * { visibility: visible !important; }");
     expect(css).toContain(".est-vista-previa .est-radios label { background: #fff; }");
   });
 });

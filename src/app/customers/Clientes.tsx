@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
 import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion-hook";
 import { contextoDeClientes } from "@/lib/ayuda-contextos";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -98,7 +99,7 @@ export function Clientes({ demo, puedeEditar, puedeDarDeAlta = false, esAdmin = 
 
   const cargar = useCallback(async () => {
     const r = await almacen.leer();
-    if (!r.ok) { setEstado(r.sinTabla ? { tipo: "sinTabla" } : { tipo: "error", texto: r.error }); return; }
+    if (!r.ok) { setEstado(r.sinTabla ? { tipo: "sinTabla" } : { tipo: "error", texto: mensajeDeErrorAlCargar(r.error) }); return; }
     setLista(r.valor);
     setEstado({ tipo: "listo" });
   }, [almacen]);

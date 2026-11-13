@@ -199,7 +199,9 @@ describe("la pantalla imprime ESTA hoja y nada más", () => {
   });
   it("al imprimir se esconde todo lo que no sea la hoja", () => {
     const css = leer("src/app/estimator/estimator.css");
-    expect(css).toMatch(/@media print \{\s*body \* \{ visibility: hidden !important; \}\s*\.hoja-cliente, \.hoja-cliente \* \{ visibility: visible !important; \}/);
+    // D-1021: atado a la vista previa, para no dejar en blanco lo que se imprima en otra app.
+    expect(css).toContain("body:has(.est-vista-previa) * { visibility: hidden !important; }");
+    expect(css).toContain("body:has(.est-vista-previa) .hoja-cliente, body:has(.est-vista-previa) .hoja-cliente * { visibility: visible !important; }");
     expect(leer("src/app/estimator/layout.tsx")).toContain('import "./estimator.css";');
   });
 });

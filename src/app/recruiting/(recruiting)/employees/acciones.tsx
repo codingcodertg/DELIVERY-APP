@@ -1,5 +1,6 @@
 "use client";
 
+import { mensajeDeError } from "@/lib/mensaje-de-error";
 import { type AccionDisciplinaria, motivoDeAmonestacionValido } from "@/lib/recruiting/historial";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -55,7 +56,7 @@ export function BajaDialog({
     setBusy(true);
     const r = await deactivateEmployee(persona.id, { fecha, motivo: con159 ? motivo : null, nota: con159 ? nota : null });
     setBusy(false);
-    if (!r.ok) { notify("Error: " + (r.message ?? "")); if (r.message?.startsWith("Marked as left")) onDone(); return; }
+    if (!r.ok) { notify(mensajeDeError(r.message)); if (r.message?.startsWith("Marked as left")) onDone(); return; }
     const partes = [yaDeBaja ? t("Leaving details saved ✓", "Baja corregida ✓") : t("Marked as left ✓", "Dado de baja ✓")];
     if (casilla.visible) {
       partes.push(r.accesoQuitado
@@ -156,7 +157,7 @@ export function AmonestarDialog({ persona, tipo = "employee_warning", onDone, on
     setBusy(true);
     const r = await registerWarning(persona.id, { motivo, nota, tipo });
     setBusy(false);
-    if (!r.ok) { alert(r.message ?? t("Could not register the warning", "No se pudo registrar la amonestación")); return; }
+    if (!r.ok) { alert(r.message ? mensajeDeError(r.message) : t("Could not register the warning", "No se pudo registrar la amonestación")); return; }
     onDone(reprimenda ? t("Reprimand registered ✓", "Reprimenda registrada ✓") : t("Warning registered ✓", "Amonestación registrada ✓"));
   };
   return (
@@ -197,7 +198,7 @@ export function ReactivarDialog({
     setBusy(true);
     const r = await reactivateEmployee(persona.id);
     setBusy(false);
-    if (!r.ok) { notify("Error: " + (r.message ?? "")); return; }
+    if (!r.ok) { notify(mensajeDeError(r.message)); return; }
     notify(r.tieneCuenta
       ? t("Reactivated ✓ · set a new email/username in Users: the old ones were freed", "Reactivado ✓ · pon un correo/usuario nuevo en Usuarios: los anteriores se liberaron")
       : t("Reactivated ✓", "Reactivado ✓"));
@@ -258,7 +259,7 @@ export function AgregarDialog({
     setBusy(true);
     const r = await createEmployeeFile(f);
     setBusy(false);
-    if (!r.ok) { notify("Error: " + r.message); return; }
+    if (!r.ok) { notify(mensajeDeError(r.message)); return; }
     notify(t("Employee added ✓ — finish their file", "Empleado agregado ✓ — completa su ficha"));
     onDone(r.id);
   }
