@@ -49,13 +49,20 @@ export function inicioDeLaSecuencia(hechas: readonly { route_seq?: number | null
  * todo en cuanto alguien movía una parada). Las hechas se quedan en SU puesto y las pendientes ocupan los puestos libres,
  * en orden, desde el primero de la ruta. Las hechas no se reescriben.
  *
- * `Numeracion`: un número (puestos seguidos desde ahí, como antes) o `{ desde, ocupados }` (se saltan los ocupados).
+ * `Numeracion`: un número (puestos seguidos desde ahí, como antes), `{ desde, ocupados }` (se saltan los ocupados) o `{ puestos }`
+ * (los puestos que ya tenían las pendientes, en orden: las hechas no cambian de vecinos).
  */
-export type Numeracion = number | { desde: number; ocupados: readonly number[] };
+export type Numeracion = number | { desde: number; ocupados: readonly number[] } | { puestos: readonly number[] };
 
 /** El puesto (`route_seq`) de la i-ésima pendiente. */
 export function puestoEn(n: Numeracion, i: number): number {
   if (typeof n === "number") return n + i;
+  if ("puestos" in n) {
+    if (i < n.puestos.length) return n.puestos[i];
+    // Más paradas que puestos guardados (una nueva, sin puesto): siguen detrás del último.
+    const ultimo = n.puestos.length ? n.puestos[n.puestos.length - 1] : -1;
+    return ultimo + (i - n.puestos.length) + 1;
+  }
   const ocupados = new Set(n.ocupados);
   let v = n.desde, k = -1;
   for (;;) {
@@ -70,7 +77,14 @@ export function numeracionConHechas(
   hechas: readonly { route_seq?: number | null }[], pendientes: readonly { route_seq?: number | null }[],
 ): Numeracion {
   const ocupados = hechas.map((h) => h.route_seq).filter((x): x is number => x != null);
-  const todos = [...ocupados, ...pendientes.map((p) => p.route_seq).filter((x): x is number => x != null)];
+  const seqsPendientes = pendientes.map((p) => p.route_seq);
+  // Con hechas en la ruta y todas las pendientes con puesto, las pendientes conservan SUS puestos, en el orden nuevo: las
+  // hechas no cambian de vecinos al mover una pendiente (el dueño, 2026-11-13: mover el D5 detrás del D6 no debe pasar las
+  // entregadas de sitio). Así, una pendiente que sube o baja toma el puesto que dejó la otra, y las hechas quedan donde estaban.
+  if (ocupados.length && seqsPendientes.length && seqsPendientes.every((x) => x != null) && new Set(seqsPendientes).size === seqsPendientes.length) {
+    return { puestos: (seqsPendientes as number[]).slice().sort((a, b) => a - b) };
+  }
+  const todos = [...ocupados, ...seqsPendientes.filter((x): x is number => x != null)];
   const desde = todos.length ? Math.max(0, Math.min(...todos)) : 0;
   return ocupados.length ? { desde, ocupados } : desde;
 }
