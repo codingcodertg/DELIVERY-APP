@@ -170,9 +170,10 @@ describe("el aviso se ve: buscador, ficha, Gestor, Mi ruta y la parada del chofe
     expect(g.split("{!como.sinAviso && <AvisoSoloCiudad orden={d} corto />}").length - 1).toBe(1);
     expect(g.split("<AvisoSoloCiudad").length - 1).toBe(1);
     expect(g.split("sinAviso: true").length - 1).toBe(1);
-    expect(g).toContain("{stops.some(ordenSoloCiudad) && (");
+    // Desde el «⚠ N» de la cabecera (`avisosDeLaCarta`), ya no una tarjeta rosa entre la cabecera y la tabla.
+    expect(g).toContain("...(stops.some(ordenSoloCiudad) ? [{ clave: \"solo-ciudad\"");
     expect(g).toContain("{stops.filter(ordenSoloCiudad).map((d) =>");
-    expect(g).toContain("data-solo-ciudad-ruta");
+    expect(g).not.toContain("data-solo-ciudad-ruta");
   });
   it("Mi ruta: en la siguiente parada y en cada parada de la lista", () => {
     const r = leer("src/app/(app)/my-route/page.tsx");

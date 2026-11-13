@@ -417,7 +417,7 @@ describe("8 · sin el texto de sobra en la tarjeta de cada ruta («remueve todo 
     expect(pagina).toContain('<tr data-pista-de-arrastre title={t("Drag a row to another position, or onto another driver, to move it. The ↑ ↓ arrows still work."');
     expect(pagina).toContain('<span className="hint" data-ayuda-del-mapa tabIndex={0}');
   });
-  it("los avisos de problema real se QUEDAN: no llega a su ventana, parada sin pin, solo ciudad, se pasa de capacidad", () => {
-    for (const queda of ["stop(s) will miss their delivery window", "stop(s) aren't on the map yet, so the route skips them.", "data-solo-ciudad-ruta", "data-exceso-en-la-ruta", "data-no-acaba-en-cero"]) expect(pagina, queda).toContain(queda);
+  it("los avisos de problema real se QUEDAN (ahora en su «⚠ N» de la cabecera, `avisosDeLaCarta`): no llega a su ventana, parada sin pin, solo ciudad, se pasa de capacidad", () => {
+    for (const queda of ["stop(s) will miss their delivery window", "stop(s) aren't on the map yet, so the route skips them.", "clave: \"solo-ciudad\"", "data-exceso-en-la-ruta", "data-no-acaba-en-cero"]) expect(pagina, queda).toContain(queda);
   });
 });

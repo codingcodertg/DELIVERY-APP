@@ -76,13 +76,19 @@ describe("la pantalla del Gestor pinta el recuadro con estas funciones", () => {
     expect(pagina).toContain("checked={o.clave === conductorElegido} onChange={() => setConductorPulsado(o.clave)}");
     expect(pagina).toContain("`${o.paradas} paradas`)} · {o.pallets}/{o.capacidad}");
   });
-  it("va DESPUÉS de la tabla y pegado abajo (`sticky`): arriba quedaba debajo del mapa, que también es `sticky`", () => {
+  // Antes iba `sticky` abajo de la ventana y tapaba la tabla y la barra de búsqueda (captura del dueño). Ahora va en el flujo,
+  // debajo de la tabla, y al abrirse la página baja hasta él (`scrollIntoView`, «nearest», solo al abrirse).
+  it("va DESPUÉS de la tabla, en el flujo normal: ni `sticky` ni `fixed`, y baja la página hasta él al abrirse", () => {
     // Puesto al día por D-462: la tabla y el recuadro se pintan desde `tablaDeOrdenes`, para «Sin asignar» y «Todas»; el
     // estado del menú llega en `vista.orden` (antes `ordenSinAsignar`, que sigue siendo el de «Sin asignar»).
     const menu = pagina.indexOf("<MenuDeColumnaAbierto estado={orden}");
     expect(menu).toBeGreaterThan(-1);
     expect(pagina.indexOf("data-elige-conductor role=\"group\"")).toBeGreaterThan(menu);
-    expect(pagina).toContain("style={{ position: \"sticky\", bottom: 8, zIndex: 6,");
+    const recuadro = pagina.slice(pagina.indexOf("data-elige-conductor role=\"group\""), pagina.indexOf("data-elige-conductor role=\"group\"") + 700);
+    expect(recuadro).not.toMatch(/position: \"(sticky|fixed)\"/);
+    expect(recuadro).toContain("scrollMarginBottom: \"var(--hueco-de-ayuda)\"");
+    expect(pagina).toContain("elegeRef.current?.scrollIntoView({ block: \"nearest\", behavior: \"smooth\" });");
+    expect(pagina).toContain("const elegeAbierto = !soloLectura && poolSelectedCount > 0;");
   });
   it("sin choferes lo dice, en vez de un recuadro vacío", () => {
     expect(pagina).toContain("{opcionesDelRecuadro.length === 0 ? ( <div className=\"hint\" data-sin-choferes");

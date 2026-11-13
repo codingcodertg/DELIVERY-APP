@@ -229,22 +229,6 @@ export function RelevoDeLaOrden({ pedido, compacto = false, soloLectura = false 
   );
 }
 
-/**
- * Los avisos de los relevos de un conjunto de órdenes, para el Gestor de Rutas (D-898): el paso b agendado antes que el a,
- * la recogida del b delante de la entrega del a en la misma ruta, y los dos pasos el mismo día en rutas distintas (el motor
- * de rutas ordena cada ruta por su cuenta y no garantiza ese orden). Nada si no hay ninguno.
- */
-export function AvisosDeRelevo({ ordenes }: { ordenes: readonly Delivery[] }) {
-  const { lang } = usePrefs();
-  const avisos = useMemo(() => avisosDeRelevo(ordenes.filter(esPasoDeRelevo)), [ordenes]);
-  if (!avisos.length) return null;
-  return (
-    <div data-avisos-de-relevo role="status" style={{ border: "1px solid var(--amber)", background: "var(--amber-soft)", color: "var(--amber-text)", borderRadius: 10, padding: "8px 12px", margin: "8px 0", display: "grid", gap: 4, fontSize: 13 }}>
-      {avisos.map((a) => <span key={a.tipo + a.ids.join()} data-aviso-de-relevo={a.tipo}>⚠ ⇄ {a[lang]}</span>)}
-    </div>
-  );
-}
-
 /** El día y el chofer de un paso que aún no salió (el b), para quien planifica. Guarda con la escritura normal de la orden. */
 function CambiaElPaso({ paso, minimo, choferes, lang, t, guardar }: {
   paso: Delivery; minimo: string; choferes: string[]; lang: "en" | "es";
