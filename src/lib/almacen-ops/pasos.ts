@@ -94,10 +94,25 @@ export const MOTIVOS_DE_MERMA: Opcion[] = [
   { v: "transportation_delivery", en: "Transportation – store delivery", es: "Transporte – entrega de la tienda" },
   { v: "other", en: "Other", es: "Otro" },
 ];
-/** Motivos que ya no se eligen pero siguen guardados en reportes viejos. */
-export const MOTIVOS_VIEJOS: Opcion[] = [
-  { v: "transportation", en: "Transportation (unspecified)", es: "Transporte (sin especificar)" },
-];
+/**
+ * «Transporte» a secas. Era el motivo viejo (antes de partirlo en dos, D-919) y desde D-1014 es además el motivo de
+ * transporte de una merma de PROVEEDOR (Roberto, ayuda 88364dac: «Supplier just needs one saying Transportation»): con
+ * un proveedor no hay «del cliente» ni «entrega de la tienda». El valor `transportation` ya lo admite el `check` de la
+ * columna (269), así que no hace falta migración.
+ */
+export const MOTIVO_TRANSPORTE: Opcion = { v: "transportation", en: "Transportation", es: "Transporte" };
+/** Motivos que no están en la lista general pero se leen igual (reportes viejos y mermas de proveedor). */
+export const MOTIVOS_VIEJOS: Opcion[] = [MOTIVO_TRANSPORTE];
+/** Los motivos que se ofrecen según de dónde viene la merma: con proveedor, un solo «Transporte» en vez de los dos. */
+export function motivosDeMerma(origen: unknown): Opcion[] {
+  if (origen !== "supplier") return MOTIVOS_DE_MERMA;
+  const salida: Opcion[] = [];
+  for (const m of MOTIVOS_DE_MERMA) {
+    if (m.v === "transportation_customer") salida.push(MOTIVO_TRANSPORTE);
+    else if (m.v !== "transportation_delivery") salida.push(m);
+  }
+  return salida;
+}
 export type Respuestas = Record<string, unknown>;
 
 /**
@@ -192,7 +207,11 @@ export function seMuestra(p: Paso, r: Respuestas): boolean {
 }
 
 export function pasosVisibles(tipo: TipoDeReporte, r: Respuestas): Paso[] {
-  return PASOS[tipo].filter((p) => seMuestra(p, r));
+  const visibles = PASOS[tipo].filter((p) => seMuestra(p, r));
+  if (tipo !== "scrap") return visibles;
+  // D-1014: el paso «Motivo» ofrece los motivos del origen elegido. Un motivo que no vale para ese origen (se cambió el
+  // origen después) deja el paso incompleto, así que el asistente lo vuelve a pedir en vez de guardarlo.
+  return visibles.map((p) => (p.tipo === "opcion" && p.id === "reason" ? { ...p, opciones: motivosDeMerma(r.return_type) } : p));
 }
 
 /** Las preguntas de una pantalla: ella misma, o los campos de un grupo (D-919). */
