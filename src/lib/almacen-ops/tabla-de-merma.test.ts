@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { COLUMNAS_EXCEL, celdasDeMerma, csvDeMermas, escaparCsv, nombreDelCsv, type FilaDeMermaExcel } from "./tabla-de-merma";
+import { COLUMNAS_EXCEL, cajasDanadas, celdasDeMerma, csvDeMermas, escaparCsv, nombreDelCsv, type FilaDeMermaExcel } from "./tabla-de-merma";
 
 /**
  * Pedido de Roberto (gerente de almacén): la lista de merma de Reportes → Merma debe verse como su Excel, una fila por
@@ -23,7 +23,7 @@ const base: FilaDeMermaExcel = {
 
 describe("celdas del Excel de merma", () => {
   it("mapea cada campo del reporte a su columna, en el orden de la hoja de Roberto", () => {
-    expect(COLUMNAS_EXCEL.map((c) => c.en)).toEqual(["Date broken", "Item code", "Item description", "Boxes", "Pcs/box", "Total", "Sample", "Damaged", "$ loss", "How", "Reason", "Broken by", "Reported by", "CRMA #", "Comments"]);
+    expect(COLUMNAS_EXCEL.map((c) => c.en)).toEqual(["Date broken", "Item code", "Item description", "Boxes", "Pcs/box", "Total", "Sample", "Damaged pcs", "Damaged boxes", "$ loss", "How", "Reason", "Broken by", "Reported by", "CRMA #", "Comments"]);
     const c = celdasDeMerma(base, personas, "en");
     expect(c.fecha).toBe("2026-11-03"); // la fecha del daño, no la del reporte
     expect(c.codigo).toBe("PORC-2448-GRY");
@@ -31,6 +31,14 @@ describe("celdas del Excel de merma", () => {
     expect([c.cajas, c.piezasPorCaja, c.total, c.muestra, c.danadas]).toEqual(["3", "2", "7", "2", "5"]);
     expect(c.costo).toBe("47.00");
     expect(c.costoUnitario).toBe("9.40");
+    // 12 nov: «Cajas dañadas» = piezas dañadas ÷ piezas por caja, a 2 decimales (5 ÷ 2 = 2.5).
+    expect(c.cajasDanadas).toBe("2.5");
+    expect(cajasDanadas(10, 3)).toBe("3.33");
+    expect(cajasDanadas(6, 3)).toBe("2");
+    expect(cajasDanadas(0, 4)).toBe("0");
+    expect(cajasDanadas(5, 0)).toBe(""); // sin piezas por caja no se puede decir
+    expect(cajasDanadas(5, null)).toBe("");
+    expect(cajasDanadas(null, 4)).toBe("");
     expect(c.como).toBe("Internal");
     expect(c.motivo).toBe("Forklift");
     expect(c.loRompio).toBe("Luis Treviño");
@@ -76,8 +84,8 @@ describe("CSV de merma", () => {
   it("arma encabezado + una línea por merma con las mismas columnas de la tabla, separado por comas y CRLF", () => {
     const csv = csvDeMermas([base, { ...base, crma: "CR-1", return_type: "customer_return" }], personas, "en");
     const lineas = csv.split("\r\n");
-    expect(lineas[0]).toBe('"Date broken","Item code","Item description","Boxes","Pcs/box","Total","Sample","Damaged","$ loss","How","Reason","Broken by","Reported by","CRMA #","Comments"');
-    expect(lineas[1]).toBe('"2026-11-03","PORC-2448-GRY","Porcelain 24x48 Ash Grey","3","2","7","2","5","47.00","Internal","Forklift","Luis Treviño","Ana García, Pedro (sin cuenta)","NA","Pallet slid off the forks, ""ouch"""');
+    expect(lineas[0]).toBe('"Date broken","Item code","Item description","Boxes","Pcs/box","Total","Sample","Damaged pcs","Damaged boxes","$ loss","How","Reason","Broken by","Reported by","CRMA #","Comments"');
+    expect(lineas[1]).toBe('"2026-11-03","PORC-2448-GRY","Porcelain 24x48 Ash Grey","3","2","7","2","5","2.5","47.00","Internal","Forklift","Luis Treviño","Ana García, Pedro (sin cuenta)","NA","Pallet slid off the forks, ""ouch"""');
     expect(lineas[2]).toContain('"Customer return"');
     expect(lineas[2]).toContain('"CR-1"');
     expect(lineas).toHaveLength(4); // 1 + 2 + la línea vacía final

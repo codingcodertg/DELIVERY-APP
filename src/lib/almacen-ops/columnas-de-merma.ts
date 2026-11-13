@@ -23,7 +23,37 @@ export const COLUMNAS_DE_MERMA: readonly ColumnaDeMerma[] = [
 export const ORDEN_INICIAL: readonly string[] = COLUMNAS_DE_MERMA.map((c) => c.key);
 
 export interface PrefsDeColumnas { orden: string[]; ocultas: string[] }
-export const PREFS_INICIALES: PrefsDeColumnas = { orden: [...ORDEN_INICIAL], ocultas: [] };
+/**
+ * Lo que sale OCULTO mientras la persona no elija otra cosa (reunión con Roberto, 12 nov): «Tipo» y «Tienda» —la lista
+ * es solo de merma y casi todos ven una sola tienda—; siguen en ⚙ Columnas. En el TELÉFONO de alguien de almacén se
+ * ocultan además «Grupo» y «Fecha del daño», para que la tabla quepa.
+ */
+export function ocultasPorDefecto(o: { telefonoDeAlmacen?: boolean } = {}): string[] {
+  return o.telefonoDeAlmacen ? ["tipo", "tienda", "grupo", "fecha"] : ["tipo", "tienda"];
+}
+export const PREFS_INICIALES: PrefsDeColumnas = { orden: [...ORDEN_INICIAL], ocultas: ocultasPorDefecto() };
+export function prefsIniciales(o: { telefonoDeAlmacen?: boolean } = {}): PrefsDeColumnas {
+  return { orden: [...ORDEN_INICIAL], ocultas: ocultasPorDefecto(o) };
+}
+
+/**
+ * Dónde se guardan. La clave lleva «v2» porque cambió lo que sale por defecto: con la clave vieja, quien nunca tocó nada
+ * tenía guardado «nada oculto» y no habría visto el cambio. El teléfono de almacén guarda lo suyo aparte (`:tel`).
+ */
+export const clavePrefsDeMerma = (uid: string, telefonoDeAlmacen = false) => `rtg:merma:columnas:v2:${uid}${telefonoDeAlmacen ? ":tel" : ""}`;
+export const clavePrefsDeMermaVieja = (uid: string) => `rtg:merma:columnas:${uid}`;
+
+/**
+ * Lo que se usa al abrir: lo guardado en la clave nueva tal cual; si no hay, el ORDEN que la persona ya tenía (clave
+ * vieja) con lo que ocultó entonces MÁS lo oculto por defecto de ahora; y si tampoco, lo de fábrica.
+ */
+export function prefsAlAbrir(nuevo: unknown, viejo: unknown, o: { telefonoDeAlmacen?: boolean } = {}): PrefsDeColumnas {
+  if (nuevo && typeof nuevo === "object") return normalizaPrefs(nuevo as Partial<PrefsDeColumnas>);
+  const base = prefsIniciales(o);
+  if (!viejo || typeof viejo !== "object") return base;
+  const v = normalizaPrefs(viejo as Partial<PrefsDeColumnas>);
+  return { orden: v.orden, ocultas: [...new Set([...v.ocultas, ...base.ocultas])] };
+}
 
 /** Limpia lo guardado: quita claves que ya no existen y agrega al final las nuevas. */
 export function normalizaPrefs(p: Partial<PrefsDeColumnas> | null | undefined): PrefsDeColumnas {
@@ -66,10 +96,12 @@ export function sueltaColumna(p: PrefsDeColumnas, desde: string, sobre: string):
   return { ...p, orden };
 }
 
-export function ordenPropio(p: PrefsDeColumnas): boolean {
+export function ordenPropio(p: PrefsDeColumnas, porDefecto: readonly string[] = PREFS_INICIALES.ocultas): boolean {
   const o = normalizaPrefs(p).orden;
-  return o.some((k, i) => k !== ORDEN_INICIAL[i]) || p.ocultas.length > 0;
+  const distintas = p.ocultas.length !== porDefecto.length || p.ocultas.some((k) => !porDefecto.includes(k));
+  return o.some((k, i) => k !== ORDEN_INICIAL[i]) || distintas;
 }
+
 
 /**
  * La primera fila de la cabecera: cada columna suelta ocupa dos filas; cada tramo seguido de columnas de cantidades

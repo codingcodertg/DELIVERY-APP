@@ -20,6 +20,7 @@ import { esDia, fmtDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { faltaFoto } from "@/lib/almacen-ops/fotos";
 import { ListaDeReportes } from "./ListaDeReportes";
 import { Mantenimiento } from "./Mantenimiento";
+import { CerrarX } from "./CerrarX";
 import { veMantenimiento } from "@/lib/almacen-ops/mantenimiento";
 import { Conteos } from "./Conteos";
 import { veConteos } from "@/lib/almacen-ops/conteos";
@@ -134,6 +135,7 @@ function Inicio({ ctx }: { ctx: Contexto }) {
   // 274: los conteos de inventario (cinco pasos); el personal cuenta, el gerente crea, firma y ajusta.
   const conteos = veConteos(ctx.yo);
   const nombre = useMemo(() => (ctx.yo.full_name || "").split(/\s+/)[0], [ctx.yo.full_name]);
+  const conTablero = llena && !unico;
   return (
     <>
       <header className="ops-saludo">
@@ -152,7 +154,9 @@ function Inicio({ ctx }: { ctx: Contexto }) {
       )}
       {llena && !unico && (
         <nav className="ops-tablero" aria-label={t("Reports", "Reportes")}>
-          {tipos.map((k) => {
+          {/* Reunión 12 nov: «Mantenimiento» salía DOS veces (la tarjeta «Bitácora de mantenimiento» y el botón de
+              abajo). Queda UNA tarjeta, la de la sección; el formulario de la bitácora se abre desde dentro de ella. */}
+          {tipos.filter((k) => !(k === "maintenance" && mantenimiento)).map((k) => {
             const i = INFO_DE_TIPO[k];
             return (
               <Link key={k} href={`/operaciones/nuevo/${k}`} className={`ops-tarjeta ops-t-${k}`} data-tipo={k}>
@@ -163,13 +167,30 @@ function Inicio({ ctx }: { ctx: Contexto }) {
               </Link>
             );
           })}
+          {mantenimiento && (
+            <Link href="/operaciones/mantenimiento" className="ops-tarjeta ops-t-maintenance" data-ir="mantenimiento">
+              <span className="ops-tarjeta-icono" aria-hidden>🔧</span>
+              <span className="ops-tarjeta-nombre">{t("Maintenance", "Mantenimiento")}</span>
+              <span className="ops-tarjeta-desc">{t("Forklifts and pallet jacks: checklist, log, parts", "Montacargas y patines: lista diaria, bitácora, refacciones")}</span>
+            </Link>
+          )}
+          {/* Reunión 12 nov: «Conteos de inventario» sube aquí, con las tarjetas de los reportes. */}
+          {conteos && (
+            <Link href="/operaciones/conteos" className="ops-tarjeta ops-t-conteos" data-ir="conteos">
+              <span className="ops-tarjeta-icono" aria-hidden>🔢</span>
+              <span className="ops-tarjeta-nombre">{t("Inventory counts", "Conteos de inventario")}</span>
+              <span className="ops-tarjeta-desc">{t("Count, sign and adjust", "Contar, firmar y ajustar")}</span>
+            </Link>
+          )}
         </nav>
       )}
       {llena && <Borradores ctx={ctx} />}
       <PendientesDeMiFirma ctx={ctx} />
-      <div className={"ops-pie" + ([llena || gerente || deLaTienda, mantenimiento, conteos].filter(Boolean).length > 1 ? "" : " ops-pie-uno")}>
-        {conteos && <Link href="/operaciones/conteos" className="ops-boton-ancho ops-boton-conteos" data-ir="conteos">🔢 {t("Inventory counts", "Conteos de inventario")}</Link>}
-        {mantenimiento && <Link href="/operaciones/mantenimiento" className="ops-boton-ancho ops-boton-mantenimiento" data-ir="mantenimiento">🔧 {t("Maintenance", "Mantenimiento")}</Link>}
+      {/* Con el tablero a la vista, Conteos y Mantenimiento ya son tarjetas de arriba; aquí solo quedan para quien no
+          tiene tablero (una sola tarjeta: el personal de almacén). */}
+      <div className={"ops-pie" + ([llena || gerente || deLaTienda, mantenimiento && !conTablero, conteos && !conTablero].filter(Boolean).length > 1 ? "" : " ops-pie-uno")}>
+        {conteos && !conTablero && <Link href="/operaciones/conteos" className="ops-boton-ancho ops-boton-conteos" data-ir="conteos">🔢 {t("Inventory counts", "Conteos de inventario")}</Link>}
+        {mantenimiento && !conTablero && <Link href="/operaciones/mantenimiento" className="ops-boton-ancho ops-boton-mantenimiento" data-ir="mantenimiento">🔧 {t("Maintenance", "Mantenimiento")}</Link>}
         {/* Dueño, 11 nov: un solo botón; adentro, el filtro Mis reportes / Todos. */}
         {(llena || gerente || deLaTienda) && (
           <Link href="/operaciones/reportes" className="ops-boton-ancho ops-boton-gerente" data-ir="reportes">🗂️ {t("Reports", "Reportes")}</Link>
@@ -213,6 +234,7 @@ function PendientesDeMiFirma({ ctx }: { ctx: Contexto }) {
       {abierto && (
         <div className="overlay" onClick={() => { setAbierto(null); setVuelta((n) => n + 1); }}>
           <div className="modal ops-tarjeta-grupo" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-grupo-abierto={abierto}>
+            <CerrarX onCerrar={() => { setAbierto(null); setVuelta((n) => n + 1); }} />
             <HojaDeGrupo grupoId={abierto} ctx={ctx} onSalir={() => { setAbierto(null); setVuelta((n) => n + 1); }} />
           </div>
         </div>

@@ -13,7 +13,7 @@ import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@
 import { INFO_DE_TIPO, esDeRrhh, type TipoDeReporte } from "@/lib/almacen-ops/tipos";
 import {
   camposDe, costoDelCampo, empleadosDelReporte, etiquetaDeOpcion, pasoCompleto, pasoInicial, pasosVisibles, primerHuecoSalvoFoto,
-  productoLibre, respuestasIniciales, respuestasParaGuardar, seMuestra, type Paso, type ProductoElegido, type Respuestas,
+  productoLibre, respuestasIniciales, respuestasParaGuardar, seMuestra, separaRompio, CLAVE_ROMPIO_TEXTO, type Paso, type ProductoElegido, type Respuestas,
 } from "@/lib/almacen-ops/pasos";
 import {
   CLAVE_HASHES, CLAVE_PENDIENTE, MAX_FOTOS, avisoDeRepetida, fotosDe, hashesDe, motivoDeBloqueo,
@@ -135,6 +135,7 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
    * Las huellas (SHA-256) de las fotos viajan dentro de `answers` alineadas con las rutas; el trigger de la 268 las
    * pasa a su columna.
    */
+  const esPersona = (x: string) => ctx.personas.some((p) => p.id === x);
   const enviar = async (sinFoto = false) => {
     if (sinFoto ? !guardaSinFoto : !envio.ok) return;
     setEnviando(true); setError(null);
@@ -153,10 +154,13 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
       if (sinFoto) answers[CLAVE_PENDIENTE] = true;
       const e: Envio = {
         kind: tipo, store: tienda, subjectIds: empleadosDelReporte(tipo, r), answers, photos: fotos,
-        scrap: tipo === "scrap" && p && q ? { ...productoParaEnviar(p), ...mermaParaEnviar(r) } : null,
+        scrap: tipo === "scrap" && p && q ? { ...productoParaEnviar(p), ...mermaParaEnviar(r, esPersona) } : null,
       };
       // `broken_by` y `crma` tienen columna propia; `reported_by` (D-915) se queda dentro de `answers`.
+      // 12 nov: los nombres escritos a mano de «quién lo rompió» (sin cuenta) van en `answers.broken_by_text`.
+      const escritos = e.scrap ? separaRompio(r.broken_by, esPersona).textos : [];
       if (e.scrap) { delete e.answers.broken_by; delete e.answers.crma; }
+      if (escritos.length > 0) e.answers[CLAVE_ROMPIO_TEXTO] = escritos;
       await registrar(sb, e);
       borrarBorrador(ctx.yo.id, borradorId);
       setHecho(sinFoto ? "sin-foto" : "enviado");
@@ -494,7 +498,16 @@ function ElegirPersonas({ multiple, libre = false, soloPiso = false, valor, onCa
       <input className="ops-campo" type="search" value={q} onChange={(e) => setQ(e.target.value)} data-campo="buscar-persona"
         placeholder={libre ? t("Search by name, or write it", "Buscar por nombre, o escríbelo") : t("Search by name", "Buscar por nombre")}
         onKeyDown={libre ? (e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); agregaTexto(); } } : undefined} />
-      {multiple && elegidos.length > 0 && <p className="ops-elegidos">{elegidos.map((x) => nombreOTexto(ctx.personas, x)).join(", ")}</p>}
+      {/* Reunión 12 nov («I need to be able to remove the name»): cada elegido es una pastilla con su ✕. */}
+      {multiple && elegidos.length > 0 && (
+        <p className="ops-elegidos ops-elegidos-pastillas" data-elegidos={elegidos.length}>
+          {elegidos.map((x) => (
+            <span key={x} className="ops-pastilla-persona">{nombreOTexto(ctx.personas, x)}
+              <button type="button" onClick={() => toca(x)} aria-label={t(`Remove ${nombreOTexto(ctx.personas, x)}`, `Quitar a ${nombreOTexto(ctx.personas, x)}`)} data-quitar-persona={x}>✕</button>
+            </span>
+          ))}
+        </p>
+      )}
       <div className="ops-opciones">
         {libre && texto && !yaEscrito && (
           <button type="button" className="ops-opcion ops-persona" onClick={agregaTexto} data-accion="persona-libre">

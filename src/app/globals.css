@@ -2038,6 +2038,17 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 @media (max-width: 640px) {
   :root:has(.fab-general-caja.suplantando) { --hueco-de-ayuda: 124px; }
 }
+/* Reunión de Operaciones de almacén, 12 nov: en el TELÉFONO las dos pastillas de «entrar como» (la roja «Volver a mi
+   usuario» y la naranja «Estás como …») tapaban la pantalla. Cerrada, la burbuja queda en UNA pastilla chica naranja
+   (👤 ?): el color sigue diciendo que se está dentro de otra persona. Al tocarla se abre como siempre, con el nombre
+   entero y el botón rojo para volver. En pantallas anchas no cambia nada. */
+@media (max-width: 640px) {
+  .fab-general-caja.suplantando:not(:has(.fab-menu)) .fab-volver { display: none; }
+  .fab-general-caja.suplantando:not(:has(.fab-menu)) .fab-general.suplantando { height: 38px; padding: 0 10px; gap: 4px; font-size: 16px; }
+  .fab-general-caja.suplantando:not(:has(.fab-menu)) .fab-suplantando-texto { font-size: 0; }
+  .fab-general-caja.suplantando:not(:has(.fab-menu)) .fab-suplantando-texto > span { font-size: 15px; }
+  :root:has(.fab-general-caja.suplantando) { --hueco-de-ayuda: 72px; }
+}
 
 /* La línea de «de qué va» en cada solicitud de la bandeja (D-624, 2026-10-21): una sola línea cortada con «…», del ancho
    de la tarjeta, que abre la solicitud al pulsarla. */

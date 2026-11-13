@@ -9,7 +9,8 @@ import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime, fmtMoney } from "@/lib/utils";
 import { INFO_DE_TIPO, TIPOS, esDeRrhh, type TipoDeReporte } from "@/lib/almacen-ops/tipos";
-import { PASOS, PASO_QUIEN_REPORTO, etiquetaDeOpcion } from "@/lib/almacen-ops/pasos";
+import { CLAVE_ROMPIO_TEXTO, PASOS, PASO_QUIEN_REPORTO, etiquetaDeOpcion } from "@/lib/almacen-ops/pasos";
+import { CerrarX } from "./CerrarX";
 import { etiquetaDeEquipoDelReporte } from "@/lib/almacen-ops/mantenimiento";
 import { nombreOTexto, personasParaElegir } from "@/lib/almacen-ops/personas";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
@@ -33,8 +34,9 @@ import { puedeCorregirMerma, puedeExportar, puedeVerReporte, veLosReportes } fro
 import { diaDelReporte, fmtDia, hoyEnTexas, ordenPorDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { ATAJOS_DEL_MENU, NOMBRE_DE_ATAJO, eleccionAUrl, eleccionDeUrl, etiquetaDeRango, filtrarPorRango, perdidaEnRango, rangoDeAtajo, rangoDeEleccion, type Atajo, type Eleccion } from "@/lib/almacen-ops/rango-de-merma";
 import { ETAPAS, ETAPAS_VISIBLES, etapaDe, etapaVisible, nombreDeEtapa, nombreDeEtapaVisible, perdidaPorEtapa, puedeCambiarEtapa, seleccionableParaHoja, tieneEtapas, type Etapa, type EtapaVisible } from "@/lib/almacen-ops/etapas";
-import { COLUMNAS_EXCEL, celdasDeMerma, csvDeMermas, nombreDelCsv } from "@/lib/almacen-ops/tabla-de-merma";
-import { COLUMNAS_DE_MERMA, PREFS_INICIALES, alternaColumna, columnasVisibles, fmtDiaCorto, mueveColumna, normalizaPrefs, ordenPropio, sueltaColumna, tramosDeCabecera, type ColumnaDeMerma, type PrefsDeColumnas } from "@/lib/almacen-ops/columnas-de-merma";
+import { COLUMNAS_EXCEL, celdasDeMerma, csvDeMermas, nombreDelCsv, rompioEscrito } from "@/lib/almacen-ops/tabla-de-merma";
+import { COLUMNAS_DE_MERMA, alternaColumna, clavePrefsDeMerma, clavePrefsDeMermaVieja, columnasVisibles, fmtDiaCorto, mueveColumna, normalizaPrefs, ocultasPorDefecto, ordenPropio, prefsAlAbrir, prefsIniciales, sueltaColumna, tramosDeCabecera, type ColumnaDeMerma, type PrefsDeColumnas } from "@/lib/almacen-ops/columnas-de-merma";
+import { useOrdenDeColumnas } from "./useOrdenDeColumnas";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { datosPdfDeMerma } from "@/lib/almacen-ops/pdf-de-merma";
@@ -197,7 +199,12 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
   // agrupar (solo las fotografiadas se agrupan), para desechar (las aprobadas) y para ajustar (las desechadas). Cada
   // acción filtra por su etapa y avisa qué omite.
   const puedeSeleccionar = useCallback((r: Reporte) => r.kind === "scrap" && puedeCambiarEtapa(ctx.yo, r), [ctx.yo]);
-  const seleccionadas = useMemo(() => mermasEnRango.filter((r) => seleccion.has(r.id) && puedeSeleccionar(r)), [mermasEnRango, seleccion, puedeSeleccionar]);
+  // Reunión 12 nov: «Seleccionar todos» marcaba TAMBIÉN lo que la búsqueda o un filtro de columna tenían escondido. La
+  // tabla avisa qué renglones enseña (`onVisibles`) y aquí todo —la casilla de la cabecera, la cuenta de la barra y las
+  // acciones en bloque— va solo sobre eso: nunca se borra ni se aprueba un renglón que no se está viendo.
+  const [aLaVista, setALaVista] = useState<Set<string> | null>(null);
+  const seVe = useCallback((id: string) => !aLaVista || aLaVista.has(id), [aLaVista]);
+  const seleccionadas = useMemo(() => mermasPorEtapa.filter((r) => seleccion.has(r.id) && puedeSeleccionar(r) && seVe(r.id)), [mermasPorEtapa, seleccion, puedeSeleccionar, seVe]);
   // Las marcadas que todavía van a la hoja de aprobación (fotografiadas, sin aprobar).
   // Reunión 11 nov, 11 PM: solo el gerente / store_admin / admin inicia la aprobación (el supervisor no arma el grupo).
   const paraHoja = useMemo(() => seleccionadas.filter((r) => seleccionableParaHoja(r) && puedeIniciarAprobacion(ctx.yo, r)), [seleccionadas, ctx.yo]);
@@ -215,7 +222,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
   const paraBorrar = useMemo(() => seleccionadas.filter((r) => puedeBorrarMerma(ctx.yo, r)), [seleccionadas, ctx.yo]);
   // «Seleccionar todos» (dueño, 10 nov): antes no había forma de marcar todo. Marca/limpia de un golpe TODAS las mermas
   // seleccionables que se ven ahora (las del filtro de etapa actual).
-  const seleccionables = useMemo(() => mermasPorEtapa.filter((r) => puedeSeleccionar(r)), [mermasPorEtapa, puedeSeleccionar]);
+  const seleccionables = useMemo(() => mermasPorEtapa.filter((r) => puedeSeleccionar(r) && seVe(r.id)), [mermasPorEtapa, puedeSeleccionar, seVe]);
   const todasSeleccionadas = seleccionables.length > 0 && seleccionables.every((r) => seleccion.has(r.id));
   const algunaSeleccionada = seleccionables.some((r) => seleccion.has(r.id));
   const alternarTodas = () => setSeleccion((s) => {
@@ -228,22 +235,26 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
   // borrar (admin, o gerente de esa tienda), con confirmación en la misma barra. En práctica solo se quitan de la lista.
   const [confirmaBorrarBloque, setConfirmaBorrarBloque] = useState(false);
   const [borrandoBloque, setBorrandoBloque] = useState(false);
+  // Reunión 12 nov («borré 5 y no pasó nada»): la base se negaba —estaban en un grupo YA APROBADO— y el motivo salía
+  // en una línea gris, solo el del último. Ahora cada renglón borrado desaparece EN EL ACTO (uno por uno, sin esperar
+  // al resto) y los que no se pudieron salen en un aviso ROJO, uno por reporte, con su motivo.
+  const [fallosDeBorrado, setFallosDeBorrado] = useState<{ id: string; nombre: string; motivo: string }[]>([]);
   const borrarBloque = async (lista: Reporte[]) => {
-    setBorrandoBloque(true); setAvisoBloque(null);
-    const hechos: string[] = []; let fallo: string | null = null;
+    setBorrandoBloque(true); setAvisoBloque(null); setFallosDeBorrado([]);
+    let hechos = 0; const fallos: { id: string; nombre: string; motivo: string }[] = [];
     for (const r of lista) {
       try {
         if (!ctx.demo && !ensenanzaDelNavegador()) await borrarReporteDeMerma(createClient(), r.id);
-        hechos.push(r.id);
-      } catch (e) { fallo = (e as Error).message; }
+        hechos++;
+        setFilas((f) => (f ?? []).filter((x) => x.id !== r.id));
+        setSeleccion((s) => { const n = new Set(s); n.delete(r.id); return n; });
+      } catch (e) {
+        fallos.push({ id: r.id, nombre: `${r.product_name ?? r.product_sku ?? t("Report", "Reporte")} · ${fmtDia(diaDelReporte(r), lang)}`, motivo: e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e) });
+      }
     }
-    const fuera = new Set(hechos);
-    setFilas((f) => (f ?? []).filter((x) => !fuera.has(x.id)));
-    setSeleccion((s) => { const n = new Set(s); for (const id of hechos) n.delete(id); return n; });
     setConfirmaBorrarBloque(false); setBorrandoBloque(false);
-    setAvisoBloque(fallo
-      ? t(`${hechos.length} deleted; ${lista.length - hechos.length} could not be deleted: ${fallo}`, `${hechos.length} borrada(s); ${lista.length - hechos.length} no se pudo(pudieron) borrar: ${fallo}`)
-      : t(`${hechos.length} deleted.`, `${hechos.length} borrada(s).`));
+    setFallosDeBorrado(fallos);
+    setAvisoBloque(hechos > 0 || fallos.length === 0 ? t(`${hechos} deleted.`, `${hechos} borrada(s).`) : null);
   };
   const actualizaFilas = (nuevos: Reporte[]) => {
     const porId = new Map(nuevos.map((n) => [n.id, n]));
@@ -484,6 +495,15 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
             </div>
           )}
           {avisoBloque && <div className="hint" role="status" data-aviso-bloque>{avisoBloque}</div>}
+          {fallosDeBorrado.length > 0 && (
+            <div className="ops-aviso ops-aviso-error ops-fallos-de-borrado" role="alert" data-fallos-de-borrado={fallosDeBorrado.length}>
+              <strong>{t(`${fallosDeBorrado.length} could not be deleted:`, `${fallosDeBorrado.length} no se pudo(pudieron) borrar:`)}</strong>
+              <ul>
+                {fallosDeBorrado.map((f) => <li key={f.id} data-fallo-de={f.id}><b>{f.nombre}</b>: {f.motivo}</li>)}
+              </ul>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFallosDeBorrado([])}>{t("OK", "Entendido")}</button>
+            </div>
+          )}
           {adjuntando && paraHoja.length > 0 && (
             <AdjuntarYMarcar reportes={paraHoja} ctx={ctx} etapa="approved" etiqueta={t("Choose the signed sheet (photo or PDF)", "Elegir la hoja firmada (foto o PDF)")}
               onListo={(n) => { setAdjuntando(false); actualizaFilas(n); }} onParcial={actualizaFilas} onCancelar={() => setAdjuntando(false)} />
@@ -495,7 +515,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
           )}
           {/* «Seleccionar todos» vive SOLO en la casilla del encabezado (dueño, 10 nov: el botón de arriba era redundante). */}
           <TablaDeMermaExcel filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango" conEtapa
-            grupos={grupos} onAbrirGrupo={abrirGrupo} enConflicto={idsEnConflicto}
+            grupos={grupos} onAbrirGrupo={abrirGrupo} enConflicto={idsEnConflicto} onVisibles={setALaVista}
             seleccion={{ ids: seleccion, puede: puedeSeleccionar, alternar, todas: todasSeleccionadas, algunas: algunaSeleccionada, alternarTodas }}
             vacio={rango ? (etapaFiltro ? t("No scrap in that stage in this range.", "No hay merma en esa etapa en este rango.") : t("No scrap broken in this range.", "No se rompió nada en este rango.")) : t("Fix the dates to see the list.", "Corrige las fechas para ver la lista.")} />
           </>}
@@ -585,6 +605,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
       {grupoId && (
         <div className="overlay" onClick={() => irA({ pestana: "merma" })}>
           <div className="modal ops-tarjeta-grupo" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-grupo-abierto={grupoId}>
+            <CerrarX onCerrar={() => irA({ pestana: "merma" })} />
             {esBorradorDeGrupo(grupoId)
               ? <HojaBorrador borradorId={grupoId} ctx={ctx} reportesDisponibles={mermas}
                   onSalir={() => { setRecargaGrupos((n) => n + 1); irA({ pestana: "merma" }); }}
@@ -611,16 +632,46 @@ function TablaDeReportes({ filas, ctx, onAbrir, vacio, repetidas, conEtapa, sele
   const nombreTipo = (k: TipoDeReporte) => (lang === "es" ? INFO_DE_TIPO[k].es : INFO_DE_TIPO[k].en);
   const conCasillas = !!seleccion && filas.some((r) => seleccion.puede(r));
   const columnas = 6 + (conEtapa ? 1 : 0) + (conCasillas ? 1 : 0);
+  // Reunión 12 nov: las columnas se arrastran igual en todas las tablas de la app (como en Órdenes y en la de merma).
+  const cols = useOrdenDeColumnas(`rtg:ops:reportes:orden:${ctx.yo.id}`, COLUMNAS_DE_LISTA.map((c) => c.key));
+  const aLaVista = cols.orden.filter((k) => k !== "etapa" || conEtapa);
+  const celda = (r: Reporte, k: string) => {
+    switch (k) {
+      case "cuando": return (
+        <td key={k} className="ops-celda-fecha" data-dia={diaDelReporte(r)}>
+          {r.kind === "scrap" ? fmtDia(diaDelReporte(r), lang) : fmtDateTime(r.created_at)}
+          <IconoDeFotos r={r} repetida={repetidas.has(r.id)} />
+          <InsigniasDeFoto r={r} />
+        </td>
+      );
+      case "etapa": return <td key={k} className="ops-col-etapa">{r.kind === "scrap" ? <ChipDeEtapa r={r} /> : "—"}</td>;
+      case "tipo": return <td key={k} className="ops-celda-fecha">{INFO_DE_TIPO[r.kind].emoji} {nombreTipo(r.kind)}</td>;
+      case "tienda": return <td key={k}>{r.store}</td>;
+      case "lleno": return <td key={k}>{r.author_name ?? nombre(r.author_id)}</td>;
+      case "empleado": return <td key={k}>{r.subject_ids.map(nombre).join(", ")}</td>;
+      case "detalle": return (
+        <td key={k} className="ops-detalle-corto">{r.kind === "scrap"
+          ? `${r.product_not_in_catalog ? `${r.product_name ?? ""} (${t("not in catalog", "fuera de catálogo")})` : r.product_sku ?? ""} · ${repartoDeReporte(r).damaged} ${t("damaged", "dañadas")} · ${fmtMoney(r.total_loss)}${cuentaComoPerdida(r) ? "" : ` (${t("no CRMA", "sin CRMA")})`}`
+          : String(r.answers.description ?? "")}{!conEtapa && r.kind === "scrap" && <ChipDeEtapa r={r} conFecha={false} />}</td>
+      );
+      default: return null;
+    }
+  };
   return (
     <div className="tbl-scroll tbl-caja">
       <table className="orders" data-lista={dataLista}>
         <thead>
           <tr>
             {conCasillas && <th className="ops-col-casilla" aria-label={t("Select for the approval sheet", "Marcar para la hoja de aprobación")} />}
-            <th title={t("Scrap: the date it was broken. Others: when it was reported.", "Merma: el día en que se rompió. Los demás: cuándo se reportó.")}>{t("When", "Cuándo")}</th>
-            {conEtapa && <th>{t("Stage", "Etapa")}</th>}
-            <th>{t("Type", "Tipo")}</th><th>{t("Store", "Tienda")}</th>
-            <th>{t("Filed by", "Lo llenó")}</th><th>{t("Employee", "Empleado")}</th><th>{t("Detail", "Detalle")}</th>
+            {aLaVista.map((k) => {
+              const c = COLUMNAS_DE_LISTA.find((x) => x.key === k)!;
+              return (
+                <th key={k} data-col={k} className={cols.clase(k)} {...cols.arrastre(k)}
+                  title={k === "cuando" ? t("Scrap: the date it was broken. Others: when it was reported. Drag to move this column.", "Merma: el día en que se rompió. Los demás: cuándo se reportó. Arrastra para mover esta columna.") : t("Drag to move this column", "Arrastra para mover esta columna")}>
+                  {t(c.en, c.es)}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -635,19 +686,7 @@ function TablaDeReportes({ filas, ctx, onAbrir, vacio, repetidas, conEtapa, sele
                   )}
                 </td>
               )}
-              <td style={{ whiteSpace: "nowrap" }} data-dia={diaDelReporte(r)}>
-                {r.kind === "scrap" ? fmtDia(diaDelReporte(r), lang) : fmtDateTime(r.created_at)}
-                <IconoDeFotos r={r} />
-                <InsigniasDeFoto r={r} repetida={repetidas.has(r.id)} />
-              </td>
-              {conEtapa && <td className="ops-col-etapa">{r.kind === "scrap" ? <ChipDeEtapa r={r} /> : "—"}</td>}
-              <td style={{ whiteSpace: "nowrap" }}>{INFO_DE_TIPO[r.kind].emoji} {nombreTipo(r.kind)}</td>
-              <td>{r.store}</td>
-              <td>{r.author_name ?? nombre(r.author_id)}</td>
-              <td>{r.subject_ids.map(nombre).join(", ")}</td>
-              <td className="ops-detalle-corto">{r.kind === "scrap"
-                ? `${r.product_not_in_catalog ? `${r.product_name ?? ""} (${t("not in catalog", "fuera de catálogo")})` : r.product_sku ?? ""} · ${repartoDeReporte(r).damaged} ${t("damaged", "dañadas")} · ${fmtMoney(r.total_loss)}${cuentaComoPerdida(r) ? "" : ` (${t("no CRMA", "sin CRMA")})`}`
-                : String(r.answers.description ?? "")}{!conEtapa && r.kind === "scrap" && <ChipDeEtapa r={r} conFecha={false} />}</td>
+              {aLaVista.map((k) => celda(r, k))}
             </tr>
           ))}
         </tbody>
@@ -662,7 +701,29 @@ function TablaDeReportes({ filas, ctx, onAbrir, vacio, repetidas, conEtapa, sele
  * de siempre (casilla, Cuándo, Etapa, Tipo, Tienda, Lo llenó), que pidió conservar. Encabezado de dos niveles; las
  * cifras a la derecha; se desplaza de lado dentro de su caja. Cada fila se abre como tarjeta, igual que antes.
  */
-function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = true, seleccion, grupos, onAbrirGrupo, enConflicto, "data-lista": dataLista }: {
+/** Las columnas de la tabla simple de reportes («Mis reportes»), en el orden de siempre. */
+const COLUMNAS_DE_LISTA = [
+  { key: "cuando", en: "When", es: "Cuándo" }, { key: "etapa", en: "Stage", es: "Etapa" }, { key: "tipo", en: "Type", es: "Tipo" },
+  { key: "tienda", en: "Store", es: "Tienda" }, { key: "lleno", en: "Filed by", es: "Lo llenó" },
+  { key: "empleado", en: "Employee", es: "Empleado" }, { key: "detalle", en: "Detail", es: "Detalle" },
+] as const;
+
+/** ¿Pantalla de teléfono? (≤ 640 px, el mismo corte que el resto de la app). En el servidor y al montar, no. */
+function useEsTelefono(): boolean {
+  const [es, setEs] = useState(false);
+  useEffect(() => {
+    const m = window.matchMedia("(max-width: 640px)");
+    const mira = () => setEs(m.matches);
+    mira();
+    m.addEventListener("change", mira);
+    return () => m.removeEventListener("change", mira);
+  }, []);
+  return es;
+}
+
+function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = true, seleccion, grupos, onAbrirGrupo, enConflicto, onVisibles, "data-lista": dataLista }: {
+  /** Avisa qué renglones se ven tras la búsqueda y los filtros (para que «seleccionar todos» marque solo esos). */
+  onVisibles?: (ids: Set<string>) => void;
   filas: Reporte[]; ctx: Contexto; onAbrir: (r: Reporte) => void; vacio: string; repetidas: Map<string, string[]>; "data-lista": string;
   /** Con la lista de grupos sale la columna «Grupo» (a qué grupo de aprobación pertenece cada merma). */
   grupos?: readonly GrupoDeMerma[]; onAbrirGrupo?: (id: string) => void;
@@ -682,7 +743,11 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
   const nombreDeGrupo = new Map((grupos ?? []).map((g) => [g.id, g.name]));
   // Columnas a gusto (dueño, 11 nov): ⚙ Columnas (mostrar/ocultar, ↑ ↓, restablecer) y arrastrar la cabecera. Cada quien
   // guarda lo suyo en este navegador. La casilla de selección va siempre primero. El CSV/PDF siguen con todas.
-  const { prefs, setPrefs } = usePrefsDeColumnas(ctx.yo.id);
+  // Reunión 12 nov: «Tipo» y «Tienda» salen ocultas mientras nadie las pida; en el teléfono de alguien de almacén,
+  // además «Grupo» y «Fecha del daño» (la tabla no cabía).
+  const telefonoDeAlmacen = useEsTelefono() && ctx.yo.role === "warehouse";
+  const porDefecto = ocultasPorDefecto({ telefonoDeAlmacen });
+  const { prefs, setPrefs } = usePrefsDeColumnas(ctx.yo.id, telefonoDeAlmacen);
   const [arrastrando, setArrastrando] = useState<string | null>(null);
   const disponibles = COLUMNAS_DE_MERMA.filter((c) => (c.key !== "etapa" || conEtapa) && (c.key !== "grupo" || conGrupo));
   const visibles = columnasVisibles(prefs).filter((c) => disponibles.some((d) => d.key === c.key));
@@ -704,12 +769,18 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
   // cada palabra en algún campo); luego el orden y los filtros por columna (el ▾ de cada cabecera, como en Órdenes).
   const [busca, setBusca] = useState("");
   const nombreGrupoDe = (r: Reporte) => { const gid = r.scrap_group_id ?? deGrupoDePractica.get(r.id) ?? null; return gid ? (nombreDeGrupo.get(gid) ?? "") : ""; };
-  const filasBuscadas = useMemo(() => (busca.trim() === "" ? filas : filas.filter((r) => {
+  // Reunión 12 nov: la columna «Tienda» sale oculta, así que quien ve VARIAS tiendas (un admin) tiene aquí su filtro.
+  const tiendas = useMemo(() => Array.from(new Set(filas.map((r) => r.store))).sort(), [filas]);
+  const [tiendaElegida, setTienda] = useState("");
+  const tienda = tiendas.length > 1 && tiendas.includes(tiendaElegida) ? tiendaElegida : "";
+  const filasBuscadas = useMemo(() => (busca.trim() === "" && tienda === "" ? filas : filas.filter((r) => {
+    if (tienda !== "" && r.store !== tienda) return false;
+    if (busca.trim() === "") return true;
     const c = celdasDeMerma(r, ctx.personas, lang);
     return coincideBusqueda([r.product_name, r.product_sku, c.codigo, c.descripcion, r.id.slice(0, 8), r.author_name ?? nombre(r.author_id),
       c.loRompio, c.loReporto, c.comentarios, c.motivo, c.como, c.crma, r.store, nombreGrupoDe(r)], busca);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  })), [filas, busca, ctx.personas, lang, grupos]);
+  })), [filas, busca, tienda, ctx.personas, lang, grupos]);
   const valorDe = useCallback((key: string, r: Reporte): ValorDeCelda => {
     switch (key) {
       case "reportada": return r.created_at;
@@ -728,6 +799,12 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctx.personas, lang, grupos]);
   const orden = useOrdenYFiltro(filasBuscadas, valorDe);
+  // Qué se ve, hacia arriba (para «seleccionar todos»). La clave es el texto de los ids: el efecto corre solo si cambian.
+  const idsVisibles = orden.visibles.map((r) => r.id).join(",");
+  useEffect(() => {
+    onVisibles?.(new Set(idsVisibles === "" ? [] : idsVisibles.split(",")));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsVisibles]);
   const columnasConMenu: ColumnaConMenu[] = visibles.map((c) => ({ key: c.key, en: c.en, es: c.es, numerico: !!COLUMNAS_EXCEL.find((k) => k.id === c.key)?.num }));
   const cabecera = (c: ColumnaDeMerma) => <CabeceraConMenu estado={orden} col={columnasConMenu.find((x) => x.key === c.key) ?? { key: c.key, en: c.en, es: c.es }} lang={lang} t={t} />;
   // Rosa (12 nov): «scroll bar on top not bottom»: una barra horizontal también ARRIBA de la tabla, sincronizada con la de
@@ -756,8 +833,8 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
       case "reportada": return (
         <td key={key} style={{ whiteSpace: "nowrap" }} data-reportado={r.created_at}>
           {fmtDateTime(r.created_at)}
-          <IconoDeFotos r={r} />
-          <InsigniasDeFoto r={r} repetida={repetidas.has(r.id)} />
+          <IconoDeFotos r={r} repetida={repetidas.has(r.id)} />
+          <InsigniasDeFoto r={r} />
         </td>
       );
       case "etapa": return <td key={key} className="ops-col-etapa"><ChipDeEtapa r={r} /></td>;
@@ -787,7 +864,13 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
         <input type="search" className="ops-busca-merma" value={busca} onChange={(e) => setBusca(e.target.value)} data-busca-merma
           placeholder={t("Search product, SKU, folio, person, comment…", "Buscar producto, SKU, folio, persona, comentario…")}
           aria-label={t("Search scrap reports", "Buscar en la merma")} />
-        {(busca.trim() !== "" || Object.keys(orden.filtros).length > 0) && (
+        {tiendas.length > 1 && (
+          <select className="ops-filtro-tienda" value={tienda} onChange={(e) => setTienda(e.target.value)} data-filtro-tienda aria-label={t("Store", "Tienda")}>
+            <option value="">{t("All stores", "Todas las tiendas")}</option>
+            {tiendas.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        )}
+        {(busca.trim() !== "" || tienda !== "" || Object.keys(orden.filtros).length > 0) && (
           <span className="hint" data-cuenta-busqueda>{t(`${orden.visibles.length} of ${filas.length}`, `${orden.visibles.length} de ${filas.length}`)}
             {Object.keys(orden.filtros).length > 0 && <> · <button type="button" className="ops-folio-link" onClick={orden.limpiarTodo}>{t("Clear filters", "Quitar filtros")}</button></>}
           </span>
@@ -798,12 +881,13 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
           onAlterna={(k) => setPrefs(alternaColumna(prefs, k))}
           rotulo={titulo} t={t}
           titulo={t("Show and order columns", "Mostrar y ordenar columnas")}
-          nota={t("Drag a column header to move it. Saved in this browser.", "Arrastra la cabecera de una columna para moverla. Se guarda en este navegador.")}
+          nota={t("Drag a column header (or a row of this list) to move it. Saved in this browser.", "Arrastra la cabecera de una columna (o un renglón de esta lista) para moverla. Se guarda en este navegador.")}
           mover={{
             seMueve: (k, d) => { const o = ordenSelector.map((c) => c.key); const i = o.indexOf(k) + d; return i >= 0 && i < o.length; },
             onMueve: (k, d) => setPrefs(mueveColumna(prefs, k, d)),
-            ordenPropio: ordenPropio(prefs),
-            onRestablece: () => setPrefs(PREFS_INICIALES),
+            ordenPropio: ordenPropio(prefs, porDefecto),
+            onRestablece: () => setPrefs(prefsIniciales({ telefonoDeAlmacen })),
+            onSuelta: (desde, sobre) => setPrefs(sueltaColumna(prefs, desde, sobre)),
           }}
         />
       </div>
@@ -879,12 +963,13 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
 }
 
 /** Las columnas elegidas por quien mira, guardadas en este navegador (si el navegador no deja, se usa lo de siempre). */
-function usePrefsDeColumnas(yo: string) {
-  const clave = `rtg:merma:columnas:${yo}`;
-  const [prefs, setEstado] = useState<PrefsDeColumnas>(PREFS_INICIALES);
+function usePrefsDeColumnas(yo: string, telefonoDeAlmacen: boolean) {
+  const clave = clavePrefsDeMerma(yo, telefonoDeAlmacen);
+  const [prefs, setEstado] = useState<PrefsDeColumnas>(() => prefsIniciales({ telefonoDeAlmacen }));
   useEffect(() => {
-    try { const v = localStorage.getItem(clave); if (v) setEstado(normalizaPrefs(JSON.parse(v))); } catch { /* sin almacenamiento */ }
-  }, [clave]);
+    const lee = (k: string): unknown => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; } };
+    setEstado(prefsAlAbrir(lee(clave), lee(clavePrefsDeMermaVieja(yo)), { telefonoDeAlmacen }));
+  }, [clave, yo, telefonoDeAlmacen]);
   const setPrefs = (p: PrefsDeColumnas) => {
     const n = normalizaPrefs(p);
     setEstado(n);
@@ -925,25 +1010,31 @@ function MenuDeFecha({ eleccion, etiqueta, onElegir }: { eleccion: Eleccion; eti
 }
 
 /** 268: la cámara junto a la fecha; solo si hay fotos, y el título dice cuántas. Sin icono = sin fotos. */
-function IconoDeFotos({ r }: { r: Pick<Reporte, "photos"> }) {
-  const { lang } = usePrefs();
+function IconoDeFotos({ r, repetida = false }: { r: Pick<Reporte, "photos">;
+  /** Reunión 12 nov: la foto repetida ya no es un letrero: la cámara sale ROJA (y el título lo explica). */
+  repetida?: boolean }) {
+  const { t, lang } = usePrefs();
   const n = (r.photos ?? []).length;
   const ic = iconoDeFotos(n, lang);
   if (!ic.muestra) return null;
+  if (repetida) {
+    const titulo = `${ic.titulo} · ${t("Duplicate photo: one of its photos is also in another report", "Foto repetida: una de sus fotos también está en otro reporte")}`;
+    return (
+      <span className="ops-icono-fotos ops-camara-repetida" title={titulo} aria-label={titulo} role="img" data-fotos={n} data-foto-repetida>
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="currentColor">
+          <path d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9Zm3 5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z" />
+        </svg>
+      </span>
+    );
+  }
   return <span className="ops-icono-fotos" title={ic.titulo} aria-label={ic.titulo} role="img" data-fotos={n}> 📷</span>;
 }
 
-/** 268: «Falta la foto» / «Foto pendiente» (guardada en papel) y «Foto repetida» (comparte una foto con otro reporte). */
-function InsigniasDeFoto({ r, repetida }: { r: Reporte; repetida: boolean }) {
-  const { t, lang } = usePrefs();
-  const sin = sinFoto(r);
-  if (!sin && !repetida) return null;
-  return (
-    <>
-      {sin && <span className={`ops-insignia ops-insignia-sin-foto${fotoPendienteVencida(r) ? " vencida" : ""}`} data-sin-foto={fotoPendienteVencida(r) ? "vencida" : "si"}>{etiquetaSinFoto(r, lang)}</span>}
-      {repetida && <span className="ops-insignia ops-insignia-repetida" data-foto-repetida title={t("One of its photos is also in another report", "Una de sus fotos también está en otro reporte")}>{t("Duplicate photo", "Foto repetida")}</span>}
-    </>
-  );
+/** 268: «Falta la foto» / «Foto pendiente» (guardada en papel). La «foto repetida» ahora es la cámara roja (`IconoDeFotos`). */
+function InsigniasDeFoto({ r }: { r: Reporte }) {
+  const { lang } = usePrefs();
+  if (!sinFoto(r)) return null;
+  return <span className={`ops-insignia ops-insignia-sin-foto${fotoPendienteVencida(r) ? " vencida" : ""}`} data-sin-foto={fotoPendienteVencida(r) ? "vencida" : "si"}>{etiquetaSinFoto(r, lang)}</span>;
 }
 
 /**
@@ -1023,6 +1114,7 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio, onBorrado }: { r: Reporte;
   return (
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-tarjeta-reporte" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-tarjeta={r.id}>
+        <CerrarX onCerrar={onCerrar} />
         <h3>{info.emoji} {lang === "es" ? info.es : info.en}<IconoDeFotos r={r} /></h3>
         <p className="sub">{r.kind === "scrap" ? t("Reported ", "Reportado ") : ""}{fmtDateTime(r.created_at)} · {r.store} · {t("filed by", "lo llenó")} {r.author_name ?? nombre(r.author_id)}</p>
         {sinFoto(r) && (
@@ -1062,7 +1154,8 @@ export function Tarjeta({ r, ctx, onCerrar, onCambio, onBorrado }: { r: Reporte;
               </dd>
               <dt>{t("Where from", "De dónde")}</dt><dd data-origen-reporte={r.return_type ?? ""}>{etiquetaDeOpcion("scrap", "return_type", r.return_type, lang) || "—"}</dd>
               <dt>{t("Reason", "Motivo")}</dt><dd>{etiquetaDeOpcion("scrap", "reason", r.reason, lang)}</dd>
-              {r.broken_by.length > 0 && <><dt>{t("Broken by", "Lo rompió")}</dt><dd>{r.broken_by.map(nombre).join(", ")}</dd></>}
+              {/* Reunión 12 nov: «lo rompió» también admite un nombre ESCRITO (va en answers, como «lo reportó»). */}
+              {(r.broken_by.length > 0 || rompioEscrito(r.answers).length > 0) && <><dt>{t("Broken by", "Lo rompió")}</dt><dd data-lo-rompio>{[...r.broken_by.map(nombre), ...rompioEscrito(r.answers)].join(", ")}</dd></>}
               {/* Quién avisó (D-915): va en answers, no en columna. Distinto de quién lo rompió y de quién lo llenó. */}
               {reportadoPor.length > 0 && <><dt>{t("Reported by", "Lo reportó")}</dt><dd data-reportado-por>{reportadoPor.map((x) => nombreOTexto(ctx.personas, x)).join(", ")}</dd></>}
               {(r.crma || r.return_type === "customer_return") && <><dt>CRMA</dt><dd data-crma-reporte={r.crma ?? ""}>{r.crma || t("Not yet", "Todavía no")}</dd></>}
@@ -1127,6 +1220,15 @@ function EditarReporteDeMerma({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; 
   const [comments, setComments] = useState(txt(r.answers?.comments));
   const inicialRotos = (r.broken_by ?? []).slice().sort();
   const [brokenBy, setBrokenBy] = useState<string[]>(r.broken_by ?? []);
+  // Reunión 12 nov: nombres ESCRITOS de quien lo rompió (alguien que no está en la lista). Van en `answers`.
+  const escritosIniciales = rompioEscrito(r.answers);
+  const [escritos, setEscritos] = useState<string[]>(escritosIniciales);
+  const [escribiendo, setEscribiendo] = useState("");
+  const agregaEscrito = () => {
+    const n = escribiendo.trim().replace(/\s+/g, " ");
+    if (n !== "" && !escritos.some((x) => x.toLowerCase() === n.toLowerCase())) setEscritos((xs) => [...xs, n]);
+    setEscribiendo("");
+  };
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const opciones = (o: { v: string; en: string; es: string }) => (lang === "es" ? o.es : o.en);
@@ -1153,7 +1255,13 @@ function EditarReporteDeMerma({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; 
       if (reason !== (r.reason ?? "")) parche.reason = reason;
       if (crma.trim() !== (r.crma ?? "")) parche.crma = crma.trim() || null;
       if (brokenOn !== diaDelReporte(r)) parche.broken_on = brokenOn || null;
-      if (comments.trim() !== txt(r.answers?.comments)) parche.answers = { comments: comments.trim() };
+      // La base FUNDE `answers` con lo que ya había: solo viajan las claves que cambian.
+      const respuestas: Record<string, unknown> = {};
+      if (comments.trim() !== txt(r.answers?.comments)) respuestas.comments = comments.trim();
+      const pendiente = escribiendo.trim().replace(/\s+/g, " ");
+      const escritosFinales = pendiente !== "" && !escritos.some((x) => x.toLowerCase() === pendiente.toLowerCase()) ? [...escritos, pendiente] : escritos;
+      if (JSON.stringify(escritosFinales) !== JSON.stringify(escritosIniciales)) respuestas[CLAVE_ROMPIO_TEXTO] = escritosFinales;
+      if (Object.keys(respuestas).length > 0) parche.answers = respuestas;
       if (JSON.stringify(brokenBy.slice().sort()) !== JSON.stringify(inicialRotos)) parche.broken_by = brokenBy;
       if (Object.keys(parche).length === 0) { onListo(null); return; }
       if (!ctx.demo) await editarReporteDeMerma(createClient(), r.id, parche);
@@ -1191,6 +1299,21 @@ function EditarReporteDeMerma({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; 
         {personas.map((p) => (
           <label key={p.id} className="ops-editar-persona"><input type="checkbox" checked={brokenBy.includes(p.id)} onChange={(e) => setBrokenBy((xs) => e.target.checked ? [...xs, p.id] : xs.filter((x) => x !== p.id))} /> {p.full_name}</label>
         ))}
+        {escritos.length > 0 && (
+          <p className="ops-elegidos ops-elegidos-pastillas" data-rompio-escritos>
+            {escritos.map((n) => (
+              <span key={n} className="ops-pastilla-persona">{n}
+                <button type="button" onClick={() => setEscritos((xs) => xs.filter((x) => x !== n))} aria-label={t(`Remove ${n}`, `Quitar a ${n}`)} data-quitar-persona>✕</button>
+              </span>
+            ))}
+          </p>
+        )}
+        <span className="ops-editar-escrito">
+          <input className="ops-campo" value={escribiendo} onChange={(e) => setEscribiendo(e.target.value)} maxLength={80} data-campo="editar-rompio-escrito"
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); agregaEscrito(); } }}
+            placeholder={t("Someone not on the list? Type the name", "¿No está en la lista? Escribe el nombre")} />
+          <button type="button" className="btn btn-sm" onClick={agregaEscrito} disabled={escribiendo.trim() === ""} data-accion="agregar-rompio-escrito">＋ {t("Add", "Agregar")}</button>
+        </span>
       </fieldset>
       {error && <p className="ops-aviso ops-aviso-error" role="alert" data-aviso="editar-fallo">{error}</p>}
       <div className="modal-actions">

@@ -8,6 +8,7 @@ import type { Reporte } from "@/lib/almacen-ops/datos";
 import type { Contexto } from "./Operaciones";
 import { SelectorDeColumnasDeHoja, TablaDeHoja, useColumnasDeHoja } from "./ColumnasDeHoja";
 import "./reportes/hoja-de-aprobacion/hoja.css";
+import { CerrarX } from "./CerrarX";
 
 /**
  * Hoja de aprobación imprimible, EN LA APP (dueño, 10 nov): antes «Imprimir» abría otra página (`/…/hoja-de-aprobacion`),
@@ -22,6 +23,7 @@ export function HojaImprimible({ reportes, ctx, onCerrar }: { reportes: Reporte[
   return (
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-hoja-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-hoja-imprimible={reportes.length}>
+        <CerrarX onCerrar={onCerrar} />
         <div className="hoja-barra no-imprimir">
           {/* Dueño, 11 nov: Imprimir y Cerrar arriba a la derecha, Cerrar al final. */}
           <SelectorDeColumnasDeHoja ocultas={cols.ocultas} alterna={cols.alterna} lang={lang} t={t} />

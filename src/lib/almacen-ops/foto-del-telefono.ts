@@ -24,6 +24,36 @@ import { hashDeDataUrl } from "./fotos";
 
 export type Lang = "en" | "es";
 
+/**
+ * Reunión 12 nov («en Android la cámara no abre»). La causa: la cáscara de Android (APK ≤ 8, `targetSdk` 34) no declara
+ * `<queries>` para `android.media.action.IMAGE_CAPTURE`, así que en Android 11+ Capacitor pregunta «¿hay app de
+ * cámara?» (`resolveActivity`), el sistema contesta que no (visibilidad de paquetes) y cae, SIN AVISAR, al selector de
+ * archivos: «📷 Tomar foto» abría la galería. El permiso de cámara (D-917, D-923) no tenía que ver.
+ *
+ * El manifiesto ya lleva el `<queries>` y sale en la APK 9. Mientras tanto —y en los teléfonos que tarden en
+ * actualizar— dentro de una APK anterior «Tomar foto» abre la cámara DENTRO de la app (`getUserMedia`), que sí funciona.
+ */
+export const APK_CON_CAMARA_DEL_FORMULARIO = 9;
+
+/** ¿«Tomar foto» debe abrir la cámara de dentro de la app en vez del `<input capture>`? Solo en una APK vieja. */
+export function usaCamaraDentroDeLaApp(userAgent: string | null | undefined, hayCamaraEnVivo: boolean): boolean {
+  const m = /RDZDeliveries\/(\d+)/.exec(userAgent ?? "");
+  if (!m) return false;
+  return Number(m[1]) < APK_CON_CAMARA_DEL_FORMULARIO && hayCamaraEnVivo;
+}
+
+/** Una foto `data:image/jpeg;base64,…` (la de la cámara de dentro de la app) como `File`, para el mismo camino que el `<input>`. */
+export function ficheroDeDataUrl(dataUrl: string, nombre = "camara.jpg"): File | null {
+  const m = /^data:([^;,]+);base64,(.+)$/.exec(dataUrl);
+  if (!m) return null;
+  try {
+    const crudo = atob(m[2]);
+    const bytes = new Uint8Array(crudo.length);
+    for (let i = 0; i < crudo.length; i++) bytes[i] = crudo.charCodeAt(i);
+    return new File([bytes], nombre, { type: m[1] });
+  } catch { return null; }
+}
+
 /** Por qué no se pudo usar la foto. */
 export type MotivoDeFoto =
   /** El fichero llegó sin bytes (la cámara de Android a veces devuelve un fichero de 0 bytes). */

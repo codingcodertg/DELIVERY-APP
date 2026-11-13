@@ -522,3 +522,37 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-tarjeta-reporte .ops-agregar-foto .ops-botones-foto { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .ops-tarjeta-reporte .ops-agregar-foto .ops-botones-foto > .hint { grid-column: 1 / -1; }
 .ops-tarjeta-reporte .ops-agregar-foto .ops-opcion.ops-camara { min-height: 36px; padding: 6px 8px; font-size: 13px; font-weight: 600; }
+
+/* ===========================================================================
+   Reunión con Roberto, 12 nov (8:52 PM). Solo tokens: sale igual en claro y en oscuro.
+   =========================================================================== */
+/* El buscador SIEMPRE a la izquierda: antes la barra empujaba todo a la derecha cuando no salía la cuenta «N de M».
+   Lo último de la barra (⚙ Columnas) es lo único que se va a la derecha. */
+.ops-columnas-barra { justify-content: flex-start; }
+.ops-columnas-barra > .ops-busca-merma { order: -1; }
+.ops-columnas-barra > [data-cuenta-busqueda] { margin-right: 0; }
+.ops-columnas-barra > :last-child { margin-left: auto; }
+.ops-filtro-tienda { flex: 0 1 auto; min-width: 0; max-width: 200px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); font: inherit; }
+/* La foto repetida ya no es un letrero: la cámara sale ROJA (el título dice por qué). */
+.ops-icono-fotos.ops-camara-repetida { color: var(--red); border-color: var(--red); background: var(--red-soft); margin-left: 4px; display: inline-flex; align-items: center; vertical-align: middle; }
+.ops-celda-fecha { white-space: nowrap; }
+/* Los fallos al borrar en bloque: uno por reporte, con su motivo. */
+.ops-fallos-de-borrado { display: grid; gap: 6px; padding: 10px 12px; font-size: 13.5px; }
+.ops-fallos-de-borrado ul { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
+.ops-fallos-de-borrado .btn { justify-self: start; }
+/* «Lo rompió» / «Lo reportó»: cada nombre elegido es una pastilla con su ✕ para quitarlo. */
+.ops-elegidos.ops-elegidos-pastillas { display: flex; flex-wrap: wrap; gap: 6px; flex-basis: 100%; }
+.ops-pastilla-persona { display: inline-flex; align-items: center; gap: 4px; padding: 4px 4px 4px 10px; border-radius: 999px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); font-size: 14px; font-weight: 700; }
+.ops-pastilla-persona button { width: 28px; height: 28px; border: 0; border-radius: 999px; background: transparent; color: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+.ops-pastilla-persona button:hover { background: var(--card); }
+.ops-editar-escrito { display: flex; gap: 6px; flex: 1 1 100%; align-items: center; }
+.ops-editar-escrito .ops-campo { flex: 1 1 auto; min-width: 0; }
+/* La ✕ de arriba a la derecha de toda tarjeta (`CerrarX`): pegada arriba aunque la tarjeta sea larga; la tarjeta deja
+   su franja para que no tape el título. El renglón mide 0 de alto: el botón sube a la franja con `transform`. */
+.overlay .modal:has(> .ops-cerrar-fila) { padding-top: 46px; }
+.ops-cerrar-fila { position: sticky; top: 46px; z-index: 6; height: 0; display: flex; justify-content: flex-end; pointer-events: none; }
+.ops-cerrar-x { pointer-events: auto; flex: none; width: 38px; height: 38px; transform: translateY(-40px); margin-right: -6px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--text); font-size: 17px; font-weight: 800; line-height: 1; cursor: pointer; box-shadow: 0 2px 8px rgba(10,20,40,.2); }
+.ops-cerrar-x:hover, .ops-cerrar-x:focus-visible { border-color: var(--accent); color: var(--accent); }
+/* El inicio: Conteos ya es una tarjeta más; la bitácora de mantenimiento se abre desde su sección. */
+.ops-t-conteos { --familia: var(--accent); }
+.ops-mant-bitacora { margin: 0 0 10px; }

@@ -39,7 +39,8 @@ describe("«¿Quién lo reportó?» en la merma", () => {
       opcional: true, libre: true, en: "Who reported it? (optional)", es: "¿Quién lo reportó? (opcional)",
       ayuda: { en: "If someone else told you about it, put their name", es: "Si otra persona te avisó, pon su nombre" },
     });
-    expect(pasosPlanos("scrap").find((p) => p.id === "broken_by")).not.toHaveProperty("libre");
+    // Reunión 12 nov: «¿quién lo rompió?» también admite un nombre escrito a mano.
+    expect(pasosPlanos("scrap").find((p) => p.id === "broken_by")).toHaveProperty("libre", true);
   });
 
   it("es opcional: «Siguiente» funciona vacío y no deja hueco en el resumen", () => {
@@ -83,6 +84,6 @@ describe("«¿Quién lo reportó?» en la merma", () => {
     expect(reporto).toBeGreaterThan(rompio);
     expect(LISTA).toContain("data-reportado-por");
     expect(LISTA).toContain('t("filed by", "lo llenó")');
-    expect(LISTA).toContain('t("Filed by", "Lo llenó")');
+    expect(LISTA).toContain('en: "Filed by", es: "Lo llenó"');
   });
 });

@@ -3,13 +3,15 @@
  * (ayuda de Roberto, 12 nov: «need to be able to select what columns the report will show», en el borrador del grupo).
  * El «#» siempre va. Se guarda por persona en este navegador; lo que se oculta tampoco se imprime.
  */
-export type ClaveDeHoja = "folio" | "dia" | "producto" | "danadas" | "perdida" | "motivo" | "rompio" | "reporto";
+export type ClaveDeHoja = "folio" | "dia" | "producto" | "danadas" | "cajas" | "perdida" | "motivo" | "rompio" | "reporto";
 
 export const COLUMNAS_DE_HOJA: readonly { key: ClaveDeHoja; en: string; es: string; num?: true }[] = [
   { key: "folio", en: "Folio", es: "Folio" },
   { key: "dia", en: "Date broken", es: "Fecha del daño" },
   { key: "producto", en: "Product", es: "Producto" },
   { key: "danadas", en: "Damaged pcs", es: "Pzas dañadas", num: true },
+  // Reunión 12 nov: también por CAJA (es como se revisa antes de tirar).
+  { key: "cajas", en: "Damaged boxes", es: "Cajas dañadas", num: true },
   { key: "perdida", en: "Loss", es: "Pérdida", num: true },
   { key: "motivo", en: "Reason", es: "Motivo" },
   { key: "rompio", en: "Broken by", es: "Lo rompió" },

@@ -37,9 +37,15 @@ export function SelectorDeColumnas<C extends { key: string; en: string; es: stri
    * decide la página (`mueveEnElGestor`): aquí solo se pinta. `columnas` llega ya en el orden de la persona. Una columna
    * `fija` sale con la casilla marcada y apagada: se mueve, no se quita.
    */
-  mover?: { seMueve: (key: string, delta: -1 | 1) => boolean; onMueve: (key: string, delta: -1 | 1) => void; ordenPropio: boolean; onRestablece: () => void };
+  mover?: { seMueve: (key: string, delta: -1 | 1) => boolean; onMueve: (key: string, delta: -1 | 1) => void; ordenPropio: boolean; onRestablece: () => void;
+    /**
+     * ARRASTRAR un renglón de la lista y soltarlo sobre otro (reunión de Operaciones de almacén, 12 nov: «igual que las
+     * cabeceras»). Opcional: quien no lo pasa sigue solo con ↑ ↓. Las flechas se quedan: en el teléfono no hay arrastre.
+     */
+    onSuelta?: (desde: string, sobre: string) => void };
 }) {
   const [abierto, setAbierto] = useState(false);
+  const [arrastrada, setArrastrada] = useState<string | null>(null);
   const caja = useRef<HTMLDivElement>(null);
   useCierraAlSalir(abierto, () => setAbierto(false), () => [caja.current]);
   return (
@@ -53,7 +59,14 @@ export function SelectorDeColumnas<C extends { key: string; en: string; es: stri
           </div>
           {plantillas && <PlantillasDeColumnas {...plantillas} t={t} />}
           {columnas.map((c) => mover ? (
-            <div key={c.key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div key={c.key} style={{ display: "flex", alignItems: "center", gap: 4, opacity: arrastrada === c.key ? 0.5 : undefined, cursor: mover.onSuelta ? "grab" : undefined }}
+              data-renglon-columna={c.key}
+              draggable={mover.onSuelta ? true : undefined}
+              onDragStart={mover.onSuelta ? (e) => { setArrastrada(c.key); e.dataTransfer.setData("text/plain", c.key); e.dataTransfer.effectAllowed = "move"; } : undefined}
+              onDragOver={mover.onSuelta ? (e) => { if (arrastrada) e.preventDefault(); } : undefined}
+              onDrop={mover.onSuelta ? (e) => { e.preventDefault(); if (arrastrada && arrastrada !== c.key) mover.onSuelta!(arrastrada, c.key); setArrastrada(null); } : undefined}
+              onDragEnd={mover.onSuelta ? () => setArrastrada(null) : undefined}>
+              {mover.onSuelta && <span aria-hidden="true" className="hint">⠿</span>}
               <label className="col-opt" style={{ flex: 1 }} title={c.fija ? t("Always shown", "Siempre visible") : undefined}>
                 <input type="checkbox" checked={!!c.fija || elegidas.includes(c.key)} disabled={!!c.fija} onChange={() => onAlterna(c.key)} />
                 {rotulo(c)}

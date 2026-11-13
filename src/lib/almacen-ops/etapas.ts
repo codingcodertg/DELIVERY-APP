@@ -21,6 +21,7 @@
 import type { TipoDeReporte } from "./tipos";
 import { puedeCorregirMerma, veLosReportes, type Quien } from "./visibilidad";
 import { nivelDe } from "./nivel";
+import { cajasDanadas, rompioEscrito } from "./tabla-de-merma";
 
 export const ETAPAS = ["documented", "photographed", "approved", "dumped", "adjusted"] as const;
 export type Etapa = (typeof ETAPAS)[number];
@@ -272,6 +273,8 @@ export interface FilaDeHoja {
   dia: string;
   producto: string;
   danadas: number;
+  /** Cajas dañadas (piezas dañadas ÷ piezas por caja), ya en texto; vacío si no se sabe. */
+  cajas: string;
   perdida: number | null;
   motivo: string;
   rompio: string;
@@ -281,7 +284,7 @@ export interface FilaDeHoja {
 
 /** Las filas de la hoja, ya con nombres. Solo merma; lo que no es merma se descarta aunque venga en la URL. */
 export function filasDeHoja(
-  reportes: readonly { id: string; kind: string; store: string; created_at: string; broken_on?: string | null; product_sku: string | null; product_name: string | null; product_not_in_catalog?: boolean; total_loss: number | null; reason: string | null; broken_by: string[]; author_id: string; author_name: string | null; scrap_type: string | null; total_pieces: number | null; damaged_pieces?: number | null; sample_pieces?: number | null }[],
+  reportes: readonly { id: string; kind: string; store: string; created_at: string; broken_on?: string | null; product_sku: string | null; product_name: string | null; product_not_in_catalog?: boolean; total_loss: number | null; reason: string | null; broken_by: string[]; author_id: string; author_name: string | null; scrap_type: string | null; total_pieces: number | null; damaged_pieces?: number | null; sample_pieces?: number | null; pieces_per_box?: number | null; answers?: Record<string, unknown> | null }[],
   nombre: (id: string) => string,
   etiquetaDeMotivo: (motivo: string | null) => string,
   danadasDe: (r: { scrap_type: string | null; total_pieces: number | null; damaged_pieces?: number | null; sample_pieces?: number | null }) => number,
@@ -292,9 +295,10 @@ export function filasDeHoja(
     dia: r.broken_on ?? r.created_at.slice(0, 10),
     producto: r.product_not_in_catalog ? `${r.product_name ?? ""} *` : [r.product_sku, r.product_name].filter(Boolean).join(" · "),
     danadas: danadasDe(r),
+    cajas: cajasDanadas(danadasDe(r), r.pieces_per_box),
     perdida: r.total_loss,
     motivo: etiquetaDeMotivo(r.reason),
-    rompio: r.broken_by.map(nombre).filter(Boolean).join(", ") || "—",
+    rompio: [...r.broken_by.map(nombre), ...rompioEscrito(r.answers)].filter(Boolean).join(", ") || "—",
     reporto: r.author_name ?? nombre(r.author_id),
     tienda: r.store,
   }));

@@ -24,8 +24,10 @@ describe("columnas de la hoja de aprobación", () => {
     expect(normalizaOcultasDeHoja(null)).toEqual([]);
   });
   it("el pie «Total» va bajo «Pérdida»; sin ella, en su propia fila", () => {
-    expect(tramoDelTotal([], 1)).toEqual({ antes: 5, despues: 3 });
-    expect(tramoDelTotal(["folio", "rompio"], 1)).toEqual({ antes: 4, despues: 2 });
+    // 12 nov: «Cajas dañadas» va antes de «Pérdida», así que hay una celda más a la izquierda del total.
+    expect(tramoDelTotal([], 1)).toEqual({ antes: 6, despues: 3 });
+    expect(tramoDelTotal(["folio", "rompio"], 1)).toEqual({ antes: 5, despues: 2 });
+    expect(tramoDelTotal(["cajas"], 1)).toEqual({ antes: 5, despues: 3 });
     expect(tramoDelTotal(["perdida"], 1)).toBeNull();
   });
 });
