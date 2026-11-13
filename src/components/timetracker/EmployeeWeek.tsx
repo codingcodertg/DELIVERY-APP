@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getEmployeeWeek } from "@/app/timetracker/clock-in/actions/reports";
 import { APP_SETTINGS, fmtDayLong } from "@/lib/timetracker/helpers";
 import { useT } from "@/lib/timetracker/i18n";
+import { TablaEstandar } from "@/components/TablaEstandar";
 
 /**
  * La semana de una persona, desplegada desde su fila en Empleados (D-135).
@@ -58,9 +59,7 @@ export function EmployeeWeek({ employeeId }: { employeeId: string }) {
     })),
   ].sort((a, b) => a.cuando.localeCompare(b.cuando));
 
-  const porDia = new Map<string, typeof filas>();
-  filas.forEach((f) => porDia.set(dia(f.cuando), [...(porDia.get(dia(f.cuando)) ?? []), f]));
-
+  // Una sola tabla, con el día en su columna: antes eran una por día, y cada una pedía su propia vista guardada.
   return (
     <div className="box" style={{ marginTop: 8 }}>
       <div className="between">
@@ -75,27 +74,21 @@ export function EmployeeWeek({ employeeId }: { employeeId: string }) {
       {filas.length === 0 ? (
         <p className="muted small" style={{ marginTop: 8 }}>{t("mgr.ew.nothing")}</p>
       ) : (
-        d.period.map((f) => {
-          const delDia = porDia.get(f);
-          if (!delDia) return null;
-          return (
-            <div key={f} style={{ marginTop: 10 }}>
-              <div className="small" style={{ fontWeight: 700 }}>{fmtDayLong(f)}</div>
-              <table>
-                <tbody>
-                  {delDia.map((r) => (
-                    <tr key={r.k}>
-                      <td className="nowrap"><span className={`pill ${r.cls}`}>{r.que}</span></td>
-                      <td className="small nowrap">{hhmm(r.desde)} – {r.hasta ? hhmm(r.hasta) : <span className="pill wait">{t("mgr.ew.open")}</span>}</td>
-                      <td className="small nowrap">{horas(r.min)}</td>
-                      <td className="small">{r.aviso && <span className="pill off">{r.aviso}</span>}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          );
-        })
+        <div style={{ marginTop: 10 }}>
+          <TablaEstandar id={`tt-semana-empleado-${employeeId}`} claveDe={(r) => r.k} filas={filas} sinCaja
+            columnas={[
+              { key: "dia", en: t("mgr.rep.colDay"), es: t("mgr.rep.colDay"), ancho: 150, valor: (r) => dia(r.cuando), etiqueta: (v) => fmtDayLong(String(v)),
+                celda: (r) => fmtDayLong(dia(r.cuando)) },
+              { key: "que", en: t("emp.punch.colWhat"), es: t("emp.punch.colWhat"), ancho: 170, valor: (r) => r.que,
+                celda: (r) => <span className={`pill ${r.cls}`}>{r.que}</span> },
+              { key: "horario", en: t("emp.week.colInOut"), es: t("emp.week.colInOut"), ancho: 170, valor: (r) => r.desde,
+                celda: (r) => <>{hhmm(r.desde)} – {r.hasta ? hhmm(r.hasta) : <span className="pill wait">{t("mgr.ew.open")}</span>}</>, clase: "small nowrap" },
+              { key: "tiempo", en: t("emp.punch.colTime"), es: t("emp.punch.colTime"), ancho: 110, numerico: true, valor: (r) => r.min,
+                celda: (r) => horas(r.min), clase: "num small nowrap" },
+              { key: "aviso", en: "Notice", es: "Aviso", ancho: 160, valor: (r) => r.aviso,
+                celda: (r) => (r.aviso ? <span className="pill off">{r.aviso}</span> : null), clase: "small" },
+            ]} />
+        </div>
       )}
     </div>
   );

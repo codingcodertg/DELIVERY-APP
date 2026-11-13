@@ -1,7 +1,8 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BitacoraDelDia } from "./BitacoraDelDia";
+import { TablaReducida } from "./TablaReducida";
 import {
   addEntry, deleteEntry, editEntry, getPayrollPeriod,
   approveTimesheet, unapproveTimesheet, ownerSignoff, revokeSignoff,
@@ -404,40 +405,39 @@ export function PayrollTimesheets({ period, revisar }: {
                         </button>
                       </div>
 
-                      <table style={{ marginTop: 8 }}>
-                        <tbody>
-                          {suyas.map((e) => (
-                            <Fragment key={e.id}>
-                            <tr>
-                              <td className="small nowrap">{fmtDia(e.clock_in_at)}</td>
-                              <td className="small nowrap">
-                                {fmtHora(e.clock_in_at)} – {e.clock_out_at ? fmtHora(e.clock_out_at) : <span className="pill wait">open</span>}
-                              </td>
-                              <td className="small nowrap">{hrs(entryMinutes(e))} h</td>
-                              <td className="small muted">
-                                {e.manual ? <span className="chip">manual</span> : null}
-                                {e.edit_note ? ` ${e.edit_note}` : ""}
-                              </td>
-                              <td className="nowrap">
-                                {!d.signedOff && (
-                                  <>
-                                    <button className="btn-ghost btn-sm" onClick={() => empiezaEdicion(e)}>Edit</button>{" "}
-                                    <button className="btn-ghost btn-sm" disabled={busy}
-                                      onClick={() => { if (confirm("Delete this entry?")) void corre(() => deleteEntry(e.id)); }}>
-                                      Delete
-                                    </button>
-                                  </>
-                                )}
-                              </td>
-                            </tr>
-                            {/* D-758: la bitácora del turno, plegada: entrada, comida, visitas y salida con sus fotos. */}
-                            <tr className="bitacora-fila">
-                              <td colSpan={5}><BitacoraDelDia entryId={e.id} /></td>
-                            </tr>
-                            </Fragment>
-                          ))}
-                        </tbody>
-                      </table>
+                      <div style={{ marginTop: 8 }}>
+                        {/* Forma reducida (TablaReducida): cada turno se edita en su fila y despliega su bitácora (D-758), así que sin ▾. */}
+                        <TablaReducida id={`tt-nomina-turnos-${id}`} claveDe={(e) => e.id} filas={suyas}
+                          columnas={[
+                            { key: "dia", en: t("mgr.rep.colDay"), es: t("mgr.rep.colDay"), ancho: 150, celda: (e) => <span className="small nowrap">{fmtDia(e.clock_in_at)}</span> },
+                            { key: "turno", en: "Shift", es: "Turno", ancho: 200,
+                              celda: (e) => (
+                                <span className="small nowrap">
+                                  {fmtHora(e.clock_in_at)} – {e.clock_out_at ? fmtHora(e.clock_out_at) : <span className="pill wait">open</span>}
+                                </span>
+                              ) },
+                            { key: "horas", en: t("mgr.rep.colHours"), es: t("mgr.rep.colHours"), ancho: 110, numerico: true, celda: (e) => <span className="small nowrap">{hrs(entryMinutes(e))} h</span> },
+                            { key: "nota", en: t("mgr.rep.colNote"), es: t("mgr.rep.colNote"), ancho: 240, envuelve: true,
+                              celda: (e) => (
+                                <span className="small muted">
+                                  {e.manual ? <span className="chip">manual</span> : null}
+                                  {e.edit_note ? ` ${e.edit_note}` : ""}
+                                </span>
+                              ) },
+                          ]}
+                          acciones={(e) => !d.signedOff && (
+                            <>
+                              <button className="btn-ghost btn-sm" onClick={() => empiezaEdicion(e)}>Edit</button>{" "}
+                              <button className="btn-ghost btn-sm" disabled={busy}
+                                onClick={() => { if (confirm("Delete this entry?")) void corre(() => deleteEntry(e.id)); }}>
+                                Delete
+                              </button>
+                            </>
+                          )}
+                          anchoDeAcciones={150}
+                          /* D-758: la bitácora del turno, plegada: entrada, comida, visitas y salida con sus fotos. */
+                          subFila={(e) => <BitacoraDelDia entryId={e.id} />} />
+                      </div>
 
                       {editando && suyas.some((e) => e.id === editando) &&
                         formulario(

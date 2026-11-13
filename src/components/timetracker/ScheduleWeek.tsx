@@ -6,6 +6,7 @@ import { adminClock } from "@/app/timetracker/clock-in/actions/clock";
 import { fmtDayLong, addDaysISO, dateISO } from "@/lib/timetracker/helpers";
 import { useT } from "@/lib/timetracker/i18n";
 import { Modal } from "./Modal";
+import { TablaEstandar } from "@/components/TablaEstandar";
 
 /**
  * El horario de la cuadrilla, dentro de Time Tracker (D-121).
@@ -267,41 +268,25 @@ export function ScheduleWeek() {
               <h2 style={{ margin: 0 }}>📍 {g.name}</h2>
               <span className="chip">{g.shifts.length}</span>
             </div>
-            {d.week.map((dia) => {
-              const delDia = g.shifts
-                .filter((s) => s.shift_date === dia)
-                .sort((a, b) => a.start_time.localeCompare(b.start_time));
-              return (
-                <div key={dia} className="box" style={{ marginTop: 10, ...(dia === hoy ? { borderColor: "var(--tt-accent)" } : {}) }}>
-                  <div className="small" style={{ fontWeight: 700 }}>
-                    {fmtDayLong(dia)}{dia === hoy ? t("mgr.sch.today") : ""}
-                  </div>
-                  {delDia.length === 0 ? (
-                    <div className="small muted">—</div>
-                  ) : (
-                    <table style={{ marginTop: 6 }}>
-                      <tbody>
-                        {delDia.map((s) => (
-                          <tr key={s.id}>
-                            <td>{nombreDe.get(s.employee_id) ?? t("mgr.sch.unknown")}</td>
-                            <td className="small muted nowrap">
-                              {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}
-                              {s.lunch_minutes ? ` · 🍽 ${s.lunch_minutes}m` : ""}
-                            </td>
-                            <td className="nowrap" style={{ textAlign: "right" }}>
-                              <button className="btn-ghost btn-sm" disabled={busy}
-                                onClick={() => { if (confirm(t("mgr.sch.delConfirm"))) void corre(() => deleteShift(s.id), t("mgr.sch.deleted")); }}>
-                                {t("common.delete")}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              );
-            })}
+            {/* Una tabla por tienda, con el día en su columna (antes, una caja por día). Ordenada por día y hora. */}
+            <div style={{ marginTop: 10 }}>
+              <TablaEstandar id={`tt-horario-cuadrilla-${g.key}`} sinCaja claveDe={(s) => s.id}
+                filas={[...g.shifts].sort((a, b) => a.shift_date.localeCompare(b.shift_date) || a.start_time.localeCompare(b.start_time))}
+                columnas={[
+                  { key: "dia", en: t("mgr.rep.colDay"), es: t("mgr.rep.colDay"), ancho: 170, valor: (s) => s.shift_date, etiqueta: (v) => fmtDayLong(String(v)),
+                    celda: (s) => <>{fmtDayLong(s.shift_date)}{s.shift_date === hoy ? t("mgr.sch.today") : ""}</> },
+                  { key: "persona", en: t("mgr.sch.person"), es: t("mgr.sch.person"), ancho: 200, valor: (s) => nombreDe.get(s.employee_id) ?? t("mgr.sch.unknown") },
+                  { key: "turno", en: "Shift", es: "Turno", ancho: 180, valor: (s) => s.start_time,
+                    celda: (s) => <>{s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}{s.lunch_minutes ? ` · 🍽 ${s.lunch_minutes}m` : ""}</>, clase: "small muted nowrap" },
+                ]}
+                acciones={(s) => (
+                  <button className="btn-ghost btn-sm" disabled={busy}
+                    onClick={() => { if (confirm(t("mgr.sch.delConfirm"))) void corre(() => deleteShift(s.id), t("mgr.sch.deleted")); }}>
+                    {t("common.delete")}
+                  </button>
+                )}
+                anchoDeAcciones={110} />
+            </div>
           </div>
         ))
       )}

@@ -14,6 +14,8 @@ import { sumaDeAjustes, totalConAjustes, totalPagado } from "@/lib/timetracker/t
 import { necesitaProyecto, nombreDeLinea, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
 import { isOverlapError } from "@/lib/timetracker/overlap";
 import { Modal } from "./Modal";
+import { TablaReducida } from "./TablaReducida";
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { telefonoEstandar } from "@/lib/recruiting/formato";
 
 // Ported (D-071) from timetracker-clean's manager/ManagerReports.jsx — the
@@ -350,20 +352,17 @@ export function ManagerReports({ period }: { period: string }) {
         </div>
 
         {lines.length > 0 && (
-          <table style={{ marginTop: 8 }}>
-            <thead><tr><th>{t("mgr.rep.colProject")}</th><th className="right">{t("mgr.rep.colHours")}</th><th className="right">{t("mgr.rep.colRegular")}</th><th className="right">{t("mgr.rep.colOT")}</th><th className="right">{t("mgr.rep.colPay")}</th></tr></thead>
-            <tbody>
-              {lines.map((l) => (
-                <tr key={l.aid}>
-                  <td>{nombreDe(l.a, uid, "(deleted)")}</td>
-                  <td className="right nowrap">{(l.g.sec / 3600).toFixed(2)}</td>
-                  <td className="right nowrap">{l.calc.reg.toFixed(2)}</td>
-                  <td className="right nowrap">{l.calc.ot.toFixed(2)}</td>
-                  <td className="right nowrap">{money(l.calc.pay)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ marginTop: 8 }}>
+            {/* Una tabla por grupo (cada una con su id, para que no se pisen las vistas guardadas). */}
+            <TablaEstandar id={`tt-informes-lineas-${gid}`} sinCaja claveDe={(l) => l.aid} filas={lines}
+              columnas={[
+                { key: "proyecto", en: t("mgr.rep.colProject"), es: t("mgr.rep.colProject"), ancho: 220, valor: (l) => nombreDe(l.a, uid, "(deleted)") },
+                { key: "horas", en: t("mgr.rep.colHours"), es: t("mgr.rep.colHours"), ancho: 110, numerico: true, valor: (l) => l.g.sec / 3600, celda: (l) => (l.g.sec / 3600).toFixed(2) },
+                { key: "regular", en: t("mgr.rep.colRegular"), es: t("mgr.rep.colRegular"), ancho: 110, numerico: true, valor: (l) => l.calc.reg, celda: (l) => l.calc.reg.toFixed(2) },
+                { key: "extra", en: t("mgr.rep.colOT"), es: t("mgr.rep.colOT"), ancho: 110, numerico: true, valor: (l) => l.calc.ot, celda: (l) => l.calc.ot.toFixed(2) },
+                { key: "pago", en: t("mgr.rep.colPay"), es: t("mgr.rep.colPay"), ancho: 120, numerico: true, valor: (l) => l.calc.pay, celda: (l) => money(l.calc.pay) },
+              ]} />
+          </div>
         )}
 
         <div style={{ marginTop: 8 }}>
@@ -409,24 +408,21 @@ export function ManagerReports({ period }: { period: string }) {
         )}
 
         {expanded === gid && sec > 0 && (
-          <table style={{ marginTop: 6 }}>
-            <thead><tr><th>{t("mgr.rep.colDay")}</th><th>{t("mgr.rep.colProject")}</th><th>{t("mgr.rep.colNote")}</th><th className="right">{t("mgr.rep.colDuration")}</th></tr></thead>
-            <tbody>
-              {sess.slice().sort((a, c) => (a.startMs || 0) - (c.startMs || 0)).map((s) => {
-                const proj = nombreDeLinea(s.projectId ? pMap.get(s.projectId)?.name : null, uMap.get(s.employeeUid), lang, "—");
-                if (editId === s.id) return (
-                  <tr key={s.id}>
-                    <td className="small nowrap"><input type="date" value={ed.date} onChange={(e) => setEd((p) => ({ ...p, date: e.target.value }))} style={{ padding: "4px 6px" }} /></td>
-                    <td className="small">{proj}</td>
-                    <td className="small"><div className="row"><input type="time" value={ed.from} onChange={(e) => setEd((p) => ({ ...p, from: e.target.value }))} style={{ padding: "4px 6px", width: "auto" }} /><input type="time" value={ed.to} onChange={(e) => setEd((p) => ({ ...p, to: e.target.value }))} style={{ padding: "4px 6px", width: "auto" }} /></div></td>
-                    <td className="right small nowrap"><button className="btn-ok btn-sm" style={{ padding: "2px 8px" }} onClick={() => saveEditEntry(s)}>{t("common.save")}</button> <button className="btn-ghost btn-sm" style={{ padding: "2px 8px" }} onClick={() => setEditId(null)}>{t("common.cancel")}</button></td>
-                  </tr>
-                );
-                return (
-                  <tr key={s.id}>
-                    <td className="small nowrap">{s.startMs ? fmtDT(s.startMs, { weekday: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</td>
-                    <td className="small">{proj}</td>
-                    <td className="small muted">
+          <div style={{ marginTop: 6 }}>
+            {/* Forma reducida (TablaReducida): cada tramo se edita en su propia fila, así que sin ▾. */}
+            <TablaReducida id={`tt-informes-detalle-${gid}`} claveDe={(s) => s.id}
+              filas={sess.slice().sort((a, c) => (a.startMs || 0) - (c.startMs || 0))}
+              columnas={[
+                { key: "dia", en: t("mgr.rep.colDay"), es: t("mgr.rep.colDay"), ancho: 170, celda: (s) => (editId === s.id
+                  ? <input type="date" value={ed.date} onChange={(e) => setEd((p) => ({ ...p, date: e.target.value }))} style={{ padding: "4px 6px" }} />
+                  : <span className="small nowrap">{s.startMs ? fmtDT(s.startMs, { weekday: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</span>) },
+                { key: "proyecto", en: t("mgr.rep.colProject"), es: t("mgr.rep.colProject"), ancho: 180, celda: (s) => (
+                  <span className="small">{nombreDeLinea(s.projectId ? pMap.get(s.projectId)?.name : null, uMap.get(s.employeeUid), lang, "—")}</span>
+                ) },
+                { key: "nota", en: t("mgr.rep.colNote"), es: t("mgr.rep.colNote"), ancho: 260, envuelve: true, celda: (s) => (editId === s.id
+                  ? <div className="row small"><input type="time" value={ed.from} onChange={(e) => setEd((p) => ({ ...p, from: e.target.value }))} style={{ padding: "4px 6px", width: "auto" }} /><input type="time" value={ed.to} onChange={(e) => setEd((p) => ({ ...p, to: e.target.value }))} style={{ padding: "4px 6px", width: "auto" }} /></div>
+                  : (
+                    <span className="small muted">
                       {s.memo || "—"}
                       {s.source === "adjusted" ? <span className="pill wait" style={{ marginLeft: 6 }}>{t("mgr.rep.adjusted")}</span> : s.source === "manual" ? <span className="pill on" style={{ marginLeft: 6 }}>{t("mgr.rep.added")}</span> : null}
                       {breaksText(s) && <div className="small muted" style={{ marginTop: 2 }}>{breaksText(s)}</div>}
@@ -437,16 +433,25 @@ export function ManagerReports({ period }: { period: string }) {
                           {(s.idleSeconds || 0) > 0 ? <> · 💤 {fmtClock(s.idleSeconds)} {t("mgr.rep.wIdle")}</> : null}
                         </div>
                       )}
-                    </td>
-                    <td className="right small nowrap">
-                      {fmtClock(s.durationSeconds)}
-                      {!b && <> <button className="btn-ghost btn-sm" style={{ marginLeft: 6, padding: "2px 6px" }} onClick={() => { setEditId(s.id); setEd({ date: s.date ?? "", from: hhmm(s.startMs), to: hhmm(s.endMs || s.startMs) }); }}>{t("common.edit")}</button><button className="btn-danger btn-sm" style={{ marginLeft: 4, padding: "2px 6px" }} onClick={() => deleteEntry(s)}>×</button></>}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </span>
+                  )) },
+                { key: "duracion", en: t("mgr.rep.colDuration"), es: t("mgr.rep.colDuration"), ancho: 110, numerico: true, celda: (s) => (
+                  editId === s.id ? null : <span className="small nowrap">{fmtClock(s.durationSeconds)}</span>
+                ) },
+              ]}
+              acciones={b ? undefined : (s) => (editId === s.id ? (
+                <>
+                  <button className="btn-ok btn-sm" style={{ padding: "2px 8px" }} onClick={() => saveEditEntry(s)}>{t("common.save")}</button>{" "}
+                  <button className="btn-ghost btn-sm" style={{ padding: "2px 8px" }} onClick={() => setEditId(null)}>{t("common.cancel")}</button>
+                </>
+              ) : (
+                <>
+                  <button className="btn-ghost btn-sm" style={{ marginLeft: 6, padding: "2px 6px" }} onClick={() => { setEditId(s.id); setEd({ date: s.date ?? "", from: hhmm(s.startMs), to: hhmm(s.endMs || s.startMs) }); }}>{t("common.edit")}</button>
+                  <button className="btn-danger btn-sm" style={{ marginLeft: 4, padding: "2px 6px" }} onClick={() => deleteEntry(s)}>×</button>
+                </>
+              ))}
+              anchoDeAcciones={150} />
+          </div>
         )}
       </div>
     );
@@ -547,6 +552,7 @@ export function ManagerReports({ period }: { period: string }) {
 
       <p className="small muted" style={{ marginTop: 14 }}>{t("mgr.rep.foot")}</p>
 
+      {/* EL TALÓN (.rcpt-print) SE IMPRIME: su tabla queda como está, sin el estándar de tablas, a propósito. No tocar. */}
       {receipt && (
         <div className="rcpt-overlay" onClick={() => setReceipt(null)}>
           <div className="rcpt-print" onClick={(e) => e.stopPropagation()}>

@@ -46,6 +46,9 @@ import { TablaEstandar } from "@/components/TablaEstandar";
   `<th>` para arrastrarlo (`th(key)`). Ejemplos: Empleados y Activos de RR. HH., Central Hub Monitoring.
 - En teléfono la tabla se desliza de lado dentro de su caja; si tu pantalla ya tiene una vista de tarjetas para
   teléfono, consérvala.
+- **Forma reducida** (sin ▾, con ⚙, mover y anchos): para tablas que se EDITAN en su propia fila o despliegan una fila de
+  ancho completo. Time Tracker: `src/components/timetracker/TablaReducida.tsx` (Nómina: turnos + bitácora; Informes:
+  detalle editable). Cada una lleva un `id` propio por tabla que se pinta a la vez, porque la vista se guarda con él.
 
 ## Qué NO necesita el estándar
 
@@ -59,14 +62,14 @@ fallar la prueba (y el CI). La lista de PENDIENTES es deuda conocida: solo puede
 
 ## Inventario (12 nov 2026)
 
-67 archivos del código pintan una tabla con `<table`: **22 cumplen el estándar** (5 con implementación propia y 17 con las piezas comunes), **22 exentas** y **23 pendientes**. Además, **16 tablas usan `<TablaEstandar>` sin `<table` escrito** (las 12 del ERP de PR #857 y 4 de la tanda del 12 nov 2026: Métricas, tiempo del expediente, historial de RR. HH. y Encuestas), que por eso no cuentan arriba.
+67 archivos del código pintan una tabla con `<table`: **30 cumplen el estándar** (5 con implementación propia y 25 con las piezas comunes), **22 exentas** y **15 pendientes**. Además, **16 tablas usan `<TablaEstandar>` sin `<table` escrito** (las 12 del ERP de PR #857 y 4 de la tanda del 12 nov 2026: Métricas, tiempo del expediente, historial de RR. HH. y Encuestas), que por eso no cuentan arriba.
 
 Convertidas el 12 nov 2026 con `<TablaEstandar>`: Solicitudes de cliente e Historial de tratos (Clientes), «Por
 vendedor» y «Por GOV Pool» (Leads), la Bitácora de seguridad del hub (`src/components/SecurityLog.tsx`), el historial de
 RR. HH., las tablas de tiempo del expediente, las tres de Métricas de RR. HH. y la de Encuestas (ambas). Completadas
 con `useVistaDeColumnas` (ya tenían ▾ y anchos; ganaron ⚙ y mover): Empleados y Activos (RR. HH.), las listas de
 Central Hub Monitoring y la lista de cotizaciones del Quote Builder. Productos de la competencia (Quote Builder) tiene ⚙,
-mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tanda 1, 12 nov 2026): Insights, Personas, Mis solicitudes, Solicitudes del equipo, Semana, Bandeja de fichajes, Fichajes de hoy, Ausencias, Vehículos y Auditoría. Entregas (tanda 13 nov 2026, `TablaEstandar`): Panel (las 5 tablas), Almacén (una por chofer), Recorrido del chofer (3), Cuentas, Auditoría, Reportes de choferes (5 pestañas y el día del chofer), Pausas del día y Puntualidad por chofer; los totales van en `totales` (pie de la tabla, sin ordenar). Pendiente por app: Time Tracker 8, Entregas 5, ERP 1
+mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tanda 1, 12 nov 2026): Insights, Personas, Mis solicitudes, Solicitudes del equipo, Semana, Bandeja de fichajes, Fichajes de hoy, Ausencias, Vehículos y Auditoría. Time Tracker (tanda 2, 13 nov 2026): Asignaciones, Semana del empleado, Geocercas, Informes, Mis secciones, Nómina, Horario y Viajes. Entregas (tanda 13 nov 2026, `TablaEstandar`): Panel (las 5 tablas), Almacén (una por chofer), Recorrido del chofer (3), Cuentas, Auditoría, Reportes de choferes (5 pestañas y el día del chofer), Pausas del día y Puntualidad por chofer; los totales van en `totales` (pie de la tabla, sin ordenar). Pendiente por app: Time Tracker 0, Entregas 5, ERP 1
 (`review-queue`, pendiente: su tabla virtualiza las filas a propósito, PRF-06), Operaciones 1 — se convierten por tandas, empezando por las listas de uso diario.
 
 | App | Archivo | Estado | Nota |
@@ -141,16 +144,16 @@ mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tand
 | ERP | `src/components/erp/uom-assistant.tsx` | ✅ estándar | PR #857 |
 | RR. HH. | `src/components/recruiting/HistorialDeRrhh.tsx` | ✅ estándar | historial de RR. HH.; cada variante (todo, empleado, activo) tiene su vista guardada |
 | RR. HH. | `src/components/recruiting/ModalHost.tsx` | ➖ exenta | «Comparar candidatos»: matriz atributo × candidato (como la comparación de Entregas) |
-| Time Tracker | `src/components/timetracker/AssignmentsPanel.tsx` | ⏳ pendiente |  |
+| Time Tracker | `src/components/timetracker/AssignmentsPanel.tsx` | ✅ estándar | tanda 2 (13 nov 2026) |
 | Time Tracker | `src/components/timetracker/AuditTabs.tsx` | ✅ estándar |  |
 | Time Tracker | `src/components/timetracker/ClockinApprovals.tsx` | ✅ estándar |  |
-| Time Tracker | `src/components/timetracker/EmployeeWeek.tsx` | ⏳ pendiente |  |
+| Time Tracker | `src/components/timetracker/EmployeeWeek.tsx` | ✅ estándar | tanda 2 (13 nov 2026) |
 | Time Tracker | `src/components/timetracker/FichajesDeHoy.tsx` | ✅ estándar |  |
-| Time Tracker | `src/components/timetracker/GeofenceSection.tsx` | ⏳ pendiente |  |
-| Time Tracker | `src/components/timetracker/ManagerReports.tsx` | ⏳ pendiente |  |
-| Time Tracker | `src/components/timetracker/MySections.tsx` | ⏳ pendiente |  |
-| Time Tracker | `src/components/timetracker/PayrollTimesheets.tsx` | ⏳ pendiente |  |
-| Time Tracker | `src/components/timetracker/ScheduleWeek.tsx` | ⏳ pendiente |  |
+| Time Tracker | `src/components/timetracker/GeofenceSection.tsx` | ✅ estándar | tanda 2 (13 nov 2026) |
+| Time Tracker | `src/components/timetracker/ManagerReports.tsx` | ✅ estándar | tanda 2 (13 nov 2026); Nómina e Informes: forma reducida en sus filas editables (`TablaReducida`), el recibo impreso queda como está |
+| Time Tracker | `src/components/timetracker/MySections.tsx` | ✅ estándar | tanda 2 (13 nov 2026) |
+| Time Tracker | `src/components/timetracker/PayrollTimesheets.tsx` | ✅ estándar | tanda 2 (13 nov 2026); Nómina e Informes: forma reducida en sus filas editables (`TablaReducida`), el recibo impreso queda como está |
+| Time Tracker | `src/components/timetracker/ScheduleWeek.tsx` | ✅ estándar | tanda 2 (13 nov 2026) |
 | Time Tracker | `src/components/timetracker/TimeOffRequests.tsx` | ✅ estándar |  |
-| Time Tracker | `src/components/timetracker/TripPanel.tsx` | ⏳ pendiente |  |
+| Time Tracker | `src/components/timetracker/TripPanel.tsx` | ✅ estándar | tanda 2 (13 nov 2026) |
 | Time Tracker | `src/components/timetracker/VehiclesSection.tsx` | ✅ estándar |  |
