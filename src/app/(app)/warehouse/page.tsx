@@ -352,7 +352,7 @@ export default function WarehousePage() {
            dónde va el camión ahora mismo: esas posiciones (la tabla driver_locations) solo las
            leen admin, logística y gerencia, y abrirlas es otra decisión. Se puede abrir una orden
            desde aquí, que es el mismo modal de siempre y con los mismos permisos. */
-        <div style={{ display: "grid", gap: 12 }}>
+        <div style={{ display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1fr)" }}>
           {ruta.length === 0 && <div className="empty">{t("Nothing on this day's route.", "Nada en la ruta de este día.")}</div>}
           {puntos.length > 0 && (
             <div>
@@ -377,7 +377,8 @@ export default function WarehousePage() {
               </div>
               {/* Estándar de tablas (`TablaEstandar`): ▾ ⚙ mover y anchos. «#» es el número de parada en la ruta
                   (no cambia al ordenar). La etapa lleva su pastilla (D-380) y «📅 Reprogramar» (D-534) no abre la ficha. */}
-              <div style={{ marginTop: 8 }}>
+              {/* Se desliza dentro de su tarjeta en el teléfono (si no, la página entera se mueve de lado). */}
+              <div style={{ marginTop: 8, minWidth: 0, maxWidth: "100%", overflowX: "auto" }}>
                 <TablaEstandar id="almacen-paradas" sinCaja data-tabla="almacen-paradas" filas={g.paradas} claveDe={(d) => d.id}
                   onFila={(d) => setOpen(d)}
                   columnas={[

@@ -92,6 +92,8 @@ export function PuntualidadPorChofer({ desde, hasta, entregasDelPanel, eventos, 
             <div className="empty">{t("No deliveries with a driver in this range.", "No hay entregas con chofer en este rango.")}</div>
           ) : (
             // Estándar de tablas (`TablaEstandar`): ▾ ⚙ mover y anchos. Las cifras son las mismas que antes.
+            // La tabla es más ancha que la tarjeta: se desliza dentro de su caja (si no, la barra del ⚙ se sale).
+            <div style={{ minWidth: 0, maxWidth: "100%", overflowX: "auto" }}>
             <TablaEstandar id="puntualidad-choferes" sinCaja data-tabla="puntualidad-choferes" filas={filas} claveDe={(f) => f.chofer}
               columnas={[
                 { key: "chofer", en: "Driver", es: "Chofer", ancho: 160, fija: true, valor: (f) => f.chofer, celda: (f) => <strong>{f.chofer}</strong> },
@@ -113,6 +115,7 @@ export function PuntualidadPorChofer({ desde, hasta, entregasDelPanel, eventos, 
                 { key: "millasplan", en: "Plan miles", es: "Millas del plan", ancho: 150, valor: (f) => f.millasPlan, celda: (f) => (f.millasPlan == null ? "—" : `${f.millasPlan} mi · ${f.diasConPlan} ${t("d", "d")}`) },
                 { key: "millasgps", en: "GPS miles", es: "Millas GPS", ancho: 140, valor: (f) => f.millasGPS, celda: (f) => (f.millasGPS == null ? "—" : `${f.millasGPS} mi · ${f.diasConRastro} ${t("d", "d")}`) },
               ]} />
+            </div>
           )}
         </div>
       )}
