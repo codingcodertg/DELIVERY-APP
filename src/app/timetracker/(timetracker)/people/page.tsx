@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { useState } from "react";
+import { TablaEstandar } from "@/components/TablaEstandar";
 import { soloActivos } from "@/lib/baja";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
@@ -60,88 +61,76 @@ export default function ManagerPeoplePage() {
         page — this screen is only each employee&apos;s tracking setup.
       </p>
       {others.length === 0 && <div className="banner info">{t("mgr.ppl.onlyUser")}</div>}
-      <div style={{ overflowX: "auto" }}>
-        <table>
-          <thead>
-            <tr>
-              <th>{t("mgr.ppl.colName")}</th><th>{t("mgr.ppl.colCity")}</th><th>{t("mgr.ppl.colPayTo")}</th>
-              <th>{t("mgr.ppl.colType")}</th><th>{t("mgr.ppl.colTracking")}</th><th>{t("mgr.ppl.colBreak")}</th><th>{t("mgr.ppl.colStatus")}</th><th />
-            </tr>
-          </thead>
-          <tbody>
-            {activos.map((u) => {
-              const inactive = u.active === false;
-              return (
-                <Fragment key={u.id}>
-                <tr className={inactive ? "atenuado" : undefined}>
-                  <td className="nowrap">
-                    {/* Presencial contra remoto de un vistazo (D-128). Son dos nóminas
-                        distintas —asistencia contra tiempo cronometrado— y hasta ahora había
-                        que abrir el desplegable de cada fila para saber cuál era cuál. */}
-                    <span
-                      title={effWorkerType(u) === "inhouse" ? "In-house" : "Remote"}
-                      style={{
-                        display: "inline-block", width: 8, height: 8, borderRadius: 999,
-                        marginRight: 8, verticalAlign: "middle",
-                        background: effWorkerType(u) === "inhouse" ? "var(--tt-accent2)" : "var(--tt-accent)",
-                      }}
-                    />
-                    {u.fullName}{u.id === me.id && <span className="muted">{t("mgr.ppl.you")}</span>}
-                  </td>
-                  <td className="muted">{u.city || "—"}</td>
-                  <td className="small muted">{u.payMethod ? u.payMethod + (u.payDetails ? " · " + u.payDetails : "") : "—"}</td>
-                  <td>
-                    <select value={u.workerType || ""} style={{ width: "auto", minWidth: 120 }} onChange={(e) => setField(u.id, "workerType", e.target.value)}>
-                      <option value="">{t("mgr.ppl.default")}</option>
-                      <option value="remote">{t("track.remote")}</option>
-                      <option value="inhouse">{t("track.inhouse")}</option>
-                    </select>
-                  </td>
-                  <td>
-                    <select value={u.trackMode || ""} style={{ width: "auto", minWidth: 150 }} onChange={(e) => setField(u.id, "trackMode", e.target.value)}>
-                      <option value="">{t("mgr.ppl.default")}</option>
-                      <option value="activity">{t("mgr.ppl.trackActivity")}</option>
-                      <option value="inout">{t("mgr.ppl.trackInout")}</option>
-                    </select>
-                  </td>
-                  <td>
-                    <select value={u.breaksEnabled == null ? "" : (u.breaksEnabled ? "yes" : "no")} style={{ width: "auto", minWidth: 110 }} onChange={(e) => setBreaks(u.id, e.target.value)}>
-                      <option value="">{t("mgr.ppl.default")}</option>
-                      <option value="yes">{t("common.yes")}</option>
-                      <option value="no">{t("common.no")}</option>
-                    </select>
-                  </td>
-                  <td className="nowrap">
-                    {inactive
-                      ? <span className="pill off" title={t("mgr.ppl.pendingHint")}>{t("mgr.ppl.inactive")}</span>
-                      : <span className="pill on">{t("mgr.ppl.active")}</span>}
-                    {u.id !== me.id && (
-                      <button className="btn-ghost btn-sm" style={{ marginLeft: 6 }} onClick={() => toggleActive(u)}>
-                        {inactive ? t("mgr.ppl.activate") : t("mgr.ppl.deactivate")}
-                      </button>
-                    )}
-                  </td>
-                  <td className="nowrap">
-                    {/* La semana de esa persona, ahí mismo. Era "Today's Crew", que obligaba a
-                        apuntarse el nombre, salir de aquí y buscarlo en otra pantalla. */}
-                    <button className="btn-ghost btn-sm" onClick={() => setAbierta((x) => (x === u.id ? null : u.id))}>
-                      {abierta === u.id ? "Hide week" : "📅 Week"}
-                    </button>
-                  </td>
-                </tr>
-                {abierta === u.id && (
-                  <tr>
-                    <td colSpan={8} style={{ background: "var(--tt-panel2)" }}>
-                      <EmployeeWeek employeeId={u.id} />
-                    </td>
-                  </tr>
+      <TablaEstandar id="tt-personas" filas={activos} claveDe={(u) => u.id} anchoDeAcciones={130}
+        claseDeFila={(u) => (u.active === false ? "atenuado" : undefined)}
+        columnas={[
+          { key: "nombre", en: t("mgr.ppl.colName"), es: t("mgr.ppl.colName"), ancho: 240, fija: true, clase: "nowrap", valor: (u) => u.fullName,
+            // Presencial contra remoto de un vistazo (D-128). Son dos nóminas distintas.
+            celda: (u) => (
+              <>
+                <span
+                  title={effWorkerType(u) === "inhouse" ? "In-house" : "Remote"}
+                  style={{
+                    display: "inline-block", width: 8, height: 8, borderRadius: 999,
+                    marginRight: 8, verticalAlign: "middle",
+                    background: effWorkerType(u) === "inhouse" ? "var(--tt-accent2)" : "var(--tt-accent)",
+                  }}
+                />
+                {u.fullName}{u.id === me.id && <span className="muted">{t("mgr.ppl.you")}</span>}
+              </>
+            ) },
+          { key: "ciudad", en: t("mgr.ppl.colCity"), es: t("mgr.ppl.colCity"), ancho: 140, clase: "muted", valor: (u) => u.city || null },
+          { key: "pagar", en: t("mgr.ppl.colPayTo"), es: t("mgr.ppl.colPayTo"), ancho: 220, clase: "small muted",
+            valor: (u) => (u.payMethod ? u.payMethod + (u.payDetails ? " · " + u.payDetails : "") : null) },
+          { key: "tipo", en: t("mgr.ppl.colType"), es: t("mgr.ppl.colType"), ancho: 170, valor: (u) => u.workerType || null,
+            celda: (u) => (
+              <select value={u.workerType || ""} style={{ width: "auto", minWidth: 120 }} onChange={(e) => setField(u.id, "workerType", e.target.value)}>
+                <option value="">{t("mgr.ppl.default")}</option>
+                <option value="remote">{t("track.remote")}</option>
+                <option value="inhouse">{t("track.inhouse")}</option>
+              </select>
+            ) },
+          { key: "seguimiento", en: t("mgr.ppl.colTracking"), es: t("mgr.ppl.colTracking"), ancho: 190, valor: (u) => u.trackMode || null,
+            celda: (u) => (
+              <select value={u.trackMode || ""} style={{ width: "auto", minWidth: 150 }} onChange={(e) => setField(u.id, "trackMode", e.target.value)}>
+                <option value="">{t("mgr.ppl.default")}</option>
+                <option value="activity">{t("mgr.ppl.trackActivity")}</option>
+                <option value="inout">{t("mgr.ppl.trackInout")}</option>
+              </select>
+            ) },
+          { key: "descansos", en: t("mgr.ppl.colBreak"), es: t("mgr.ppl.colBreak"), ancho: 150, valor: (u) => (u.breaksEnabled == null ? null : u.breaksEnabled ? "yes" : "no"),
+            celda: (u) => (
+              <select value={u.breaksEnabled == null ? "" : (u.breaksEnabled ? "yes" : "no")} style={{ width: "auto", minWidth: 110 }} onChange={(e) => setBreaks(u.id, e.target.value)}>
+                <option value="">{t("mgr.ppl.default")}</option>
+                <option value="yes">{t("common.yes")}</option>
+                <option value="no">{t("common.no")}</option>
+              </select>
+            ) },
+          { key: "estado", en: t("mgr.ppl.colStatus"), es: t("mgr.ppl.colStatus"), ancho: 260, clase: "nowrap", valor: (u) => (u.active === false ? t("mgr.ppl.inactive") : t("mgr.ppl.active")),
+            celda: (u) => (
+              <>
+                {u.active === false
+                  ? <span className="pill off" title={t("mgr.ppl.pendingHint")}>{t("mgr.ppl.inactive")}</span>
+                  : <span className="pill on">{t("mgr.ppl.active")}</span>}
+                {u.id !== me.id && (
+                  <button className="btn-ghost btn-sm" style={{ marginLeft: 6 }} onClick={() => toggleActive(u)}>
+                    {u.active === false ? t("mgr.ppl.activate") : t("mgr.ppl.deactivate")}
+                  </button>
                 )}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              </>
+            ) },
+        ]}
+        // La semana de esa persona, ahí mismo: abajo de la tabla (una fila desplegable no cabe en el estándar).
+        acciones={(u) => (
+          <button className="btn-ghost btn-sm" onClick={() => setAbierta((x) => (x === u.id ? null : u.id))}>
+            {abierta === u.id ? "Hide week" : "📅 Week"}
+          </button>
+        )} />
+      {abierta !== null && activos.some((u) => u.id === abierta) && (
+        <div className="box" style={{ marginTop: 10, background: "var(--tt-panel2)" }}>
+          <EmployeeWeek employeeId={abierta} />
+        </div>
+      )}
       <p className="small muted" style={{ marginTop: 10 }}>{t("mgr.ppl.foot")}</p>
     </div>
   );

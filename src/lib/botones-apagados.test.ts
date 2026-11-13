@@ -76,8 +76,8 @@ describe("en toda la app: lo inactivo apaga su TEXTO, no sus botones", () => {
     expect(malos).toEqual([]);
   });
   it("las filas que se apagaban ahora llevan la clase", () => {
-    expect(leer("src/app/timetracker/(timetracker)/people/page.tsx")).toContain('<tr className={inactive ? "atenuado" : undefined}>');
-    expect(leer("src/components/timetracker/VehiclesSection.tsx")).toContain('<tr key={v.id} className={v.active ? undefined : "atenuado"}>');
+    expect(leer("src/app/timetracker/(timetracker)/people/page.tsx")).toContain('claseDeFila={(u) => (u.active === false ? "atenuado" : undefined)}');
+    expect(leer("src/components/timetracker/VehiclesSection.tsx")).toContain('claseDeFila={(v) => (v.active ? undefined : "atenuado")}');
     expect(leer("src/components/timetracker/GeofenceSection.tsx")).toContain('<tr key={f.id} className={f.active ? undefined : "atenuado"}>');
     expect(leer("src/app/recruiting/(recruiting)/employees/page.tsx")).toContain('className={"fila-abre" + (deBaja ? " atenuado" : "")}');
     expect(leer("src/app/recruiting/(recruiting)/questions/page.tsx")).toContain('className={"q-block" + (q.active ? "" : " atenuado")}');

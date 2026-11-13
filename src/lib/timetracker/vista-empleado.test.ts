@@ -91,8 +91,8 @@ describe("4 · «Mi semana» del empleado: solo horas, y ahí el boletín y los 
     expect(semana).toContain("{secciones.dinero && paidTotal > 0 && <div");
     expect(semana).toContain('{secciones.dinero && <div className="stat"><div className="n">{money(totalPay)}</div><div className="l">{t("emp.week.estPay")}</div></div>}');
     expect(semana).toContain('{secciones.dinero && <div className="stat"><div className="n">{money(paidTotal)}</div><div className="l">{t("emp.week.paidSoFar")}</div></div>}');
-    expect(semana).toContain('{secciones.dinero && <th className="right">{t("emp.week.colPay")}</th>}');
-    expect(semana).toContain('{secciones.dinero && <td className="right nowrap">{money(r.calc.pay)}</td>}');
+    // La columna de pago de la tabla estándar (TablaEstandar) solo entra si `dinero`: la guarda va en su misma línea.
+    expect(semana).toContain('...(secciones.dinero ? [{ key: "pago", en: t("emp.week.colPay")');
     // Ningún money(...) suelto fuera de esas guardas.
     const sueltos = semana.split("\n").filter((l) => l.includes("money(") && !l.includes("secciones.dinero") && !l.includes("import"));
     expect(sueltos.filter((l) => !l.includes("paidThisWeek"))).toEqual([]);

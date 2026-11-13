@@ -52247,3 +52247,10 @@ Sello `deliveries` 1.613.0; repo 1.882.0.
 **Pendiente:** aplicar la migración 305 (decisión del dueño, con el checksum en el ledger ya escrito); corregir la sesión de 504 min si lo decide; publicar una nueva versión de escritorio para que el aviso con hora real llegue a las computadoras (el corte del hueco entre ticks ya va con el sitio web, sin instalar nada).
 
 Sello `timetracker` 1.24.0; repo 1.883.0.
+## D-1031 · Tablas estándar: Time Tracker
+
+Diez tablas de Time Tracker pasan a `TablaEstandar` (▾ para ordenar y filtrar, ⚙ Columnas, arrastrar cabeceras y bordes): Insights, Personas, Mis solicitudes, Solicitudes del equipo, Semana, Bandeja de fichajes, Fichajes de hoy, Ausencias, Vehículos y Auditoría.
+Solo cambia el marcado. Números, cálculo de pago, exportaciones y el recibo impreso (`.rcpt-print`, exento a propósito) no se tocan; la columna de pago de Semana sigue detrás de `dinero`. Personas: la semana de quien se despliega aparece debajo de la tabla, porque una fila desplegable no cabe en el estándar.
+Pendientes (8): Asignaciones, Nómina, Reportes de gerente, Horario, Geocercas, Viajes, Mis secciones y Semana por día. La prueba baja de 33 a 23.
+Visto en pantalla (demo local): Semana y Personas, claro y oscuro; ▾ y ⚙ legibles; sin desborde de la página en 390 px.
+Sello `timetracker` 1.25.0; repo 1.884.0.

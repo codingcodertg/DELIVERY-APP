@@ -59,14 +59,14 @@ fallar la prueba (y el CI). La lista de PENDIENTES es deuda conocida: solo puede
 
 ## Inventario (12 nov 2026)
 
-67 archivos del código pintan una tabla con `<table`: **12 cumplen el estándar** (5 con implementación propia y 7 con las piezas comunes), **22 exentas** y **33 pendientes**. Además, **16 tablas usan `<TablaEstandar>` sin `<table` escrito** (las 12 del ERP de PR #857 y 4 de la tanda del 12 nov 2026: Métricas, tiempo del expediente, historial de RR. HH. y Encuestas), que por eso no cuentan arriba.
+67 archivos del código pintan una tabla con `<table`: **22 cumplen el estándar** (5 con implementación propia y 17 con las piezas comunes), **22 exentas** y **23 pendientes**. Además, **16 tablas usan `<TablaEstandar>` sin `<table` escrito** (las 12 del ERP de PR #857 y 4 de la tanda del 12 nov 2026: Métricas, tiempo del expediente, historial de RR. HH. y Encuestas), que por eso no cuentan arriba.
 
 Convertidas el 12 nov 2026 con `<TablaEstandar>`: Solicitudes de cliente e Historial de tratos (Clientes), «Por
 vendedor» y «Por GOV Pool» (Leads), la Bitácora de seguridad del hub (`src/components/SecurityLog.tsx`), el historial de
 RR. HH., las tablas de tiempo del expediente, las tres de Métricas de RR. HH. y la de Encuestas (ambas). Completadas
 con `useVistaDeColumnas` (ya tenían ▾ y anchos; ganaron ⚙ y mover): Empleados y Activos (RR. HH.), las listas de
 Central Hub Monitoring y la lista de cotizaciones del Quote Builder. Productos de la competencia (Quote Builder) tiene ⚙,
-mover y anchos, pero no ▾, porque es una tabla de edición. Pendiente por app: Time Tracker 18, Entregas 13, ERP 1
+mover y anchos, pero no ▾, porque es una tabla de edición. Time Tracker (tanda 1, 12 nov 2026): Insights, Personas, Mis solicitudes, Solicitudes del equipo, Semana, Bandeja de fichajes, Fichajes de hoy, Ausencias, Vehículos y Auditoría. Pendiente por app: Time Tracker 8, Entregas 13, ERP 1
 (`review-queue`), Operaciones 1 — se convierten por tandas, empezando por las listas de uso diario.
 
 | App | Archivo | Estado | Nota |
@@ -119,11 +119,11 @@ mover y anchos, pero no ▾, porque es una tabla de edición. Pendiente por app:
 | RR. HH. | `src/app/recruiting/(recruiting)/employees/time-tracker.tsx` | ✅ estándar | semanas y pagos del expediente; los totales van en una línea debajo |
 | RR. HH. | `src/app/recruiting/(recruiting)/metrics/page.tsx` | ✅ estándar | tres tablas (fuentes, puestos, proceso); la del proceso ya no pinta el punto de color de cada etapa |
 | Encuestas | `src/app/surveys/Encuestas.tsx` | ✅ estándar | dos tablas; en el teléfono siguen siendo tarjetas (`.enc-tabla`) |
-| Time Tracker | `src/app/timetracker/(timetracker)/insights/page.tsx` | ⏳ pendiente |  |
-| Time Tracker | `src/app/timetracker/(timetracker)/people/page.tsx` | ⏳ pendiente |  |
-| Time Tracker | `src/app/timetracker/(timetracker)/requests/page.tsx` | ⏳ pendiente |  |
-| Time Tracker | `src/app/timetracker/(timetracker)/team-requests/page.tsx` | ⏳ pendiente |  |
-| Time Tracker | `src/app/timetracker/(timetracker)/week/page.tsx` | ⏳ pendiente |  |
+| Time Tracker | `src/app/timetracker/(timetracker)/insights/page.tsx` | ✅ estándar |  |
+| Time Tracker | `src/app/timetracker/(timetracker)/people/page.tsx` | ✅ estándar |  |
+| Time Tracker | `src/app/timetracker/(timetracker)/requests/page.tsx` | ✅ estándar |  |
+| Time Tracker | `src/app/timetracker/(timetracker)/team-requests/page.tsx` | ✅ estándar |  |
+| Time Tracker | `src/app/timetracker/(timetracker)/week/page.tsx` | ✅ estándar |  |
 | Entregas / compartido | `src/components/PausasDelDia.tsx` | ⏳ pendiente |  |
 | Entregas / compartido | `src/components/PlanContraReal.tsx` | ⏳ pendiente |  |
 | Entregas / compartido | `src/components/PuntualidadPorChofer.tsx` | ⏳ pendiente |  |
@@ -142,15 +142,15 @@ mover y anchos, pero no ▾, porque es una tabla de edición. Pendiente por app:
 | RR. HH. | `src/components/recruiting/HistorialDeRrhh.tsx` | ✅ estándar | historial de RR. HH.; cada variante (todo, empleado, activo) tiene su vista guardada |
 | RR. HH. | `src/components/recruiting/ModalHost.tsx` | ➖ exenta | «Comparar candidatos»: matriz atributo × candidato (como la comparación de Entregas) |
 | Time Tracker | `src/components/timetracker/AssignmentsPanel.tsx` | ⏳ pendiente |  |
-| Time Tracker | `src/components/timetracker/AuditTabs.tsx` | ⏳ pendiente |  |
-| Time Tracker | `src/components/timetracker/ClockinApprovals.tsx` | ⏳ pendiente |  |
+| Time Tracker | `src/components/timetracker/AuditTabs.tsx` | ✅ estándar |  |
+| Time Tracker | `src/components/timetracker/ClockinApprovals.tsx` | ✅ estándar |  |
 | Time Tracker | `src/components/timetracker/EmployeeWeek.tsx` | ⏳ pendiente |  |
-| Time Tracker | `src/components/timetracker/FichajesDeHoy.tsx` | ⏳ pendiente |  |
+| Time Tracker | `src/components/timetracker/FichajesDeHoy.tsx` | ✅ estándar |  |
 | Time Tracker | `src/components/timetracker/GeofenceSection.tsx` | ⏳ pendiente |  |
 | Time Tracker | `src/components/timetracker/ManagerReports.tsx` | ⏳ pendiente |  |
 | Time Tracker | `src/components/timetracker/MySections.tsx` | ⏳ pendiente |  |
 | Time Tracker | `src/components/timetracker/PayrollTimesheets.tsx` | ⏳ pendiente |  |
 | Time Tracker | `src/components/timetracker/ScheduleWeek.tsx` | ⏳ pendiente |  |
-| Time Tracker | `src/components/timetracker/TimeOffRequests.tsx` | ⏳ pendiente |  |
+| Time Tracker | `src/components/timetracker/TimeOffRequests.tsx` | ✅ estándar |  |
 | Time Tracker | `src/components/timetracker/TripPanel.tsx` | ⏳ pendiente |  |
-| Time Tracker | `src/components/timetracker/VehiclesSection.tsx` | ⏳ pendiente |  |
+| Time Tracker | `src/components/timetracker/VehiclesSection.tsx` | ✅ estándar |  |
