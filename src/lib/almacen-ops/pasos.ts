@@ -28,6 +28,20 @@ export type Paso =
 
 /** El paso de la merma que pregunta quién avisó (D-915). Se queda en `answers.reported_by`; no tiene columna. */
 export const PASO_QUIEN_REPORTO = "reported_by";
+/**
+ * Reunión 12 nov (Roberto: «this one allows me to say Bill, but this one doesn't»): «¿Quién lo rompió?» también acepta
+ * un nombre escrito a mano (alguien sin cuenta). La columna `broken_by` es uuid[], así que los ids van ahí y los
+ * nombres escritos van en `answers.broken_by_text` (como `reported_by`, que vive entero en `answers`).
+ */
+export const CLAVE_ROMPIO_TEXTO = "broken_by_text";
+const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Parte lo elegido en «¿Quién lo rompió?»: ids de empleados (a la columna) y nombres escritos (a `answers`). */
+export function separaRompio(v: unknown, esPersona: (x: string) => boolean = () => false): { ids: string[]; textos: string[] } {
+  const lista = Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim() !== "") : [];
+  // Es un empleado si está en la lista de gente (en el demo los ids no son UUID) o si tiene forma de UUID.
+  const esId = (x: string) => esPersona(x) || ES_UUID.test(x);
+  return { ids: lista.filter(esId), textos: lista.filter((x) => !esId(x)).map((x) => x.trim()) };
+}
 
 /** El paso de la merma que pregunta cuándo se rompió (266). Va a `warehouse_reports.broken_on`. */
 export const PASO_FECHA_DEL_DANO = "broken_on";
@@ -191,7 +205,7 @@ export const PASOS: Record<TipoDeReporte, Paso[]> = {
     { id: PASO_CUANDO_Y_QUIEN, tipo: "grupo", en: "When and who", es: "Cuándo y quién", campos: [
       // Cuándo se rompió (pedido del dueño, 266): por defecto hoy en Texas, se puede cambiar, nunca futuro.
       { id: PASO_FECHA_DEL_DANO, tipo: "fecha", en: "What date was it broken?", es: "¿Qué día se rompió?" },
-      { id: "broken_by", tipo: "personas", opcional: true, en: "Who broke it? (optional)", es: "¿Quién lo rompió? (opcional)" },
+      { id: "broken_by", tipo: "personas", opcional: true, libre: true, en: "Who broke it? (optional)", es: "¿Quién lo rompió? (opcional)" },
       // Quién avisó (Roberto, D-915): «maybe another associate told the supervisor that his coworker broke it». Distinto
       // de quién lo rompió y de quién lo llenó (author_id, que puede ser la cuenta compartida del almacén). Va en
       // `answers.reported_by` (ids de empleados o nombres escritos a mano); nunca se rellena solo.

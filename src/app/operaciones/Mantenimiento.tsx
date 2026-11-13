@@ -22,6 +22,8 @@ import {
   type Mantenimiento as Datos,
 } from "@/lib/almacen-ops/mantenimiento-datos";
 import type { Contexto } from "./Operaciones";
+import { CerrarX } from "./CerrarX";
+import { tiposPermitidos } from "@/lib/almacen-ops/nivel";
 
 /**
  * La sección «Mantenimiento» de Operaciones de almacén (273): el equipo de la tienda con su estado, la lista diaria
@@ -56,6 +58,12 @@ export function Mantenimiento({ ctx }: { ctx: Contexto }) {
         <h2>🔧 {t("Maintenance", "Mantenimiento")}</h2>
         <Link href="/operaciones" className="ops-boton ops-boton-chico" data-accion="volver">← {t("Back", "Volver")}</Link>
       </header>
+      {/* Reunión 12 nov: la «Bitácora de mantenimiento» (el formulario) ya no es otra tarjeta en el inicio: se abre aquí. */}
+      {tiposPermitidos(ctx.yo).includes("maintenance") && (
+        <p className="ops-mant-bitacora">
+          <Link href="/operaciones/nuevo/maintenance" className="ops-boton ops-boton-chico" data-ir="bitacora-de-mantenimiento">📝 {t("New maintenance log entry", "Nueva entrada en la bitácora")}</Link>
+        </p>
+      )}
       {ctx.tiendas.length > 1 && (
         <label className="ops-tienda ops-tienda-arriba">
           <span>{t("Store", "Tienda")}</span>
@@ -248,6 +256,7 @@ function TarjetaEquipo({ e, ctx, datos, pon, onCerrar }: { e: Equipo; ctx: Conte
   return (
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-tarjeta-reporte" onClick={(x) => x.stopPropagation()} role="dialog" aria-modal="true" data-tarjeta-equipo={e.id}>
+        <CerrarX onCerrar={onCerrar} />
         <h3>{INFO_DE_CLASE[e.kind].emoji} {e.name} <InsigniaDeEstado e={e} /></h3>
         <p className="sub">{lang === "es" ? INFO_DE_CLASE[e.kind].es : INFO_DE_CLASE[e.kind].en} · {e.store}{!e.active && <> · <strong>{t("Retired", "De baja")}</strong></>}</p>
         {ultimaFallida && e.status === "needs_repair" && (
@@ -354,6 +363,7 @@ function FormEquipo({ inicial, ctx, onCerrar, onGuardado }: { inicial: EquipoEdi
   return (
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-tarjeta-reporte" onClick={(x) => x.stopPropagation()} role="dialog" aria-modal="true" data-form-equipo={e.id ?? "nuevo"}>
+        <CerrarX onCerrar={onCerrar} />
         <h3>{e.id ? t("Edit equipment", "Editar equipo") : t("Add equipment", "Dar de alta equipo")}</h3>
         <p className="sub">{e.store}</p>
         <div className="ops-formulario">
@@ -438,6 +448,7 @@ function FormLista({ e, ctx, onCerrar, onGuardada }: { e: Equipo; ctx: Contexto;
   return (
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-tarjeta-reporte" onClick={(x) => x.stopPropagation()} role="dialog" aria-modal="true" data-form-lista={e.id}>
+        <CerrarX onCerrar={onCerrar} />
         <h3>✅ {t("Daily checklist", "Lista diaria")} · {e.name}</h3>
         <p className="sub">{fmtDia(hoyEnTexas(), lang)} · {t("Tap OK, Fail or N/A on each item. A fail needs a note.", "Toca Bien, Falla o N/A en cada punto. Una falla necesita nota.")}</p>
         <div className="ops-exportar"><button type="button" className="btn btn-sm" onClick={todoBien} data-accion="todo-bien">{t("All OK", "Todo bien")}</button></div>
@@ -504,6 +515,7 @@ function FormTerminarUso({ uso, e, ctx, onCerrar, onCerrado }: { uso: Uso; e: Eq
   return (
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-tarjeta-reporte" onClick={(x) => x.stopPropagation()} role="dialog" aria-modal="true" data-form-terminar={uso.id}>
+        <CerrarX onCerrar={onCerrar} />
         <h3>■ {t("Stop using", "Dejar de usar")} · {e.name}</h3>
         <p className="sub">{t("Since", "Desde")} {fmtDateTime(uso.started_at)} · {duracionDeUso(uso, lang)}</p>
         <label className="ops-cantidad"><span>{t("Hour meter now (optional)", "Horómetro ahora (opcional)")}</span><input className="ops-campo" inputMode="decimal" value={horometro} onChange={(x) => setHorometro(x.target.value)} data-campo="horometro-fin" autoFocus /></label>
@@ -610,6 +622,7 @@ function TarjetaPieza({ p, ctx, equipos, onCerrar, onCambio }: { p: Pieza; ctx: 
   return (
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-tarjeta-reporte" onClick={(x) => x.stopPropagation()} role="dialog" aria-modal="true" data-tarjeta-pieza={p.id}>
+        <CerrarX onCerrar={onCerrar} />
         <h3>{p.name} <InsigniaDePieza p={p} /></h3>
         <p className="sub">{lang === "es" ? INFO_DE_CLASE_DE_PIEZA[p.kind].es : INFO_DE_CLASE_DE_PIEZA[p.kind].en} · {p.store}{eq ? ` · ${eq.name}` : ""}</p>
         <dl className="ops-tarjeta-datos">
@@ -667,6 +680,7 @@ function FormPedirPieza({ ctx, tienda, equipos, equipoId, pieza, onCerrar, onGua
   return (
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-tarjeta-reporte" onClick={(x) => x.stopPropagation()} role="dialog" aria-modal="true" data-form-pedir={pieza?.id ?? "nueva"}>
+        <CerrarX onCerrar={onCerrar} />
         <h3>🧩 {t("Request a part", "Pedir refacción")}</h3>
         <p className="sub">{tienda} · {t("Your manager will see it as “Needed”.", "Tu gerente la verá como «Se necesita».")}</p>
         <div className="ops-formulario">
@@ -730,6 +744,7 @@ function FormPieza({ inicial, tienda, ctx, equipos, onCerrar, onGuardada }: { in
   return (
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-tarjeta-reporte" onClick={(x) => x.stopPropagation()} role="dialog" aria-modal="true" data-form-pieza={inicial?.id ?? "nueva"}>
+        <CerrarX onCerrar={onCerrar} />
         <h3>{inicial ? t("Edit part / tool", "Editar refacción / herramienta") : t("Add part / tool", "Dar de alta refacción / herramienta")}</h3>
         <p className="sub">{tienda}</p>
         <div className="ops-formulario">

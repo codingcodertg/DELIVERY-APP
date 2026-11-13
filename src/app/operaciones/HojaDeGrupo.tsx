@@ -23,7 +23,8 @@ import { VisorDeFotos } from "./VisorDeFotos";
 import { Tarjeta } from "./ListaDeReportes";
 import type { Contexto } from "./Operaciones";
 import { SelectorDeColumnasDeHoja, useColumnasDeHoja } from "./ColumnasDeHoja";
-import { tramoDelTotal } from "@/lib/almacen-ops/columnas-de-hoja";
+import { COLUMNAS_DE_HOJA, tramoDelTotal } from "@/lib/almacen-ops/columnas-de-hoja";
+import { CerrarX } from "./CerrarX";
 import "./reportes/hoja-de-aprobacion/hoja.css";
 
 /**
@@ -140,9 +141,13 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
   return (
     <div className="ops-merma" data-hoja-grupo={grupo.id}>
       <div className="hoja-barra no-imprimir">
-        {/* Dueño, 11 nov: el estado a la izquierda; Imprimir y Cerrar arriba a la derecha (Cerrar al final). */}
+        {/* Dueño, 11 nov: el estado a la izquierda. Reunión 12 nov: «Imprimir» sube AQUÍ ARRIBA (lo demás sigue abajo). */}
         <span className={`ops-etapa-chip${aprobado ? " ops-grupo-aprobado" : ""}`} data-grupo-estado={aprobado ? "aprobado" : "pendiente"}>{estadoDelGrupo(grupo, lang)}</span>
-        <SelectorDeColumnasDeHoja ocultas={cols.ocultas} alterna={cols.alterna} lang={lang} t={t} />
+        <span className="hoja-barra-acciones">
+          {/* Aprobada: quien la ve. Pendiente (dueño, 12 nov): quien gestiona la tienda, para firmarla en papel. */}
+          {puedeImprimirGrupo({ aprobado, gestiona }) && <button type="button" className="btn btn-primary btn-sm" onClick={() => window.print()} data-accion="imprimir-grupo">🖨 {t("Print", "Imprimir")}</button>}
+          <SelectorDeColumnasDeHoja ocultas={cols.ocultas} alterna={cols.alterna} lang={lang} t={t} />
+        </span>
       </div>
       {error && <p className="ops-aviso ops-aviso-error no-imprimir">{error}</p>}
       <article className="hoja-aprobacion">
@@ -196,7 +201,8 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
               {cols.ve("folio") && <th>{t("Folio", "Folio")}</th>}
               {cols.ve("dia") && <th>{t("Date broken", "Fecha del daño")}</th>}
               {cols.ve("producto") && <th>{t("Product", "Producto")}</th>}
-              {cols.ve("danadas") && <th className="num">{t("Damaged pcs", "Pzas dañadas")}</th>}
+              {cols.ve("danadas") && <th className="num">{t("Damaged pcs", "Dañadas (pzas)")}</th>}
+              {cols.ve("cajas") && <th className="num">{t("Damaged boxes", "Cajas dañadas")}</th>}
               {cols.ve("perdida") && <th className="num">{t("Loss", "Pérdida")}</th>}
               {cols.ve("motivo") && <th>{t("Reason", "Motivo")}</th>}
               {cols.ve("rompio") && <th>{t("Broken by", "Lo rompió")}</th>}
@@ -227,6 +233,7 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
                   {cols.ve("dia") && <td>{fmtDia(f.dia, lang)}</td>}
                   {cols.ve("producto") && <td>{f.producto}</td>}
                   {cols.ve("danadas") && <td className="num">{f.danadas}</td>}
+                  {cols.ve("cajas") && <td className="num">{f.cajas}</td>}
                   {cols.ve("perdida") && <td className="num">{fmtMoney(f.perdida)}</td>}
                   {cols.ve("motivo") && <td>{f.motivo}</td>}
                   {cols.ve("rompio") && <td>{f.rompio}</td>}
@@ -234,12 +241,12 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
                 </tr>
               );
             })}
-            {filas.length === 0 && <tr><td colSpan={fijasIzq + 8 - cols.ocultas.length} className="hoja-vacia">{t("No reports in this group.", "No hay reportes en este grupo.")}</td></tr>}
+            {filas.length === 0 && <tr><td colSpan={fijasIzq + COLUMNAS_DE_HOJA.length - cols.ocultas.length} className="hoja-vacia">{t("No reports in this group.", "No hay reportes en este grupo.")}</td></tr>}
           </tbody>
           {filas.length > 0 && (
             <tfoot>{tramoTotal
               ? <tr><td colSpan={tramoTotal.antes} className="num">{t("Total", "Total")}</td><td className="num" data-hoja-total>{fmtMoney(totalDeHoja(filas))}</td>{tramoTotal.despues > 0 && <td colSpan={tramoTotal.despues} />}</tr>
-              : <tr><td colSpan={fijasIzq + 8 - cols.ocultas.length} className="num" data-hoja-total>{t("Total", "Total")}: {fmtMoney(totalDeHoja(filas))}</td></tr>}</tfoot>
+              : <tr><td colSpan={fijasIzq + COLUMNAS_DE_HOJA.length - cols.ocultas.length} className="num" data-hoja-total>{t("Total", "Total")}: {fmtMoney(totalDeHoja(filas))}</td></tr>}</tfoot>
           )}
         </table>
         {filas.some((f) => f.producto.endsWith(" *")) && <p className="hoja-nota">* {t("Product not in the catalog (name as written).", "Producto fuera del catálogo (nombre tal como se escribió).")}</p>}
@@ -301,8 +308,6 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
 
       <div className="modal-actions no-imprimir" data-acciones-grupo>
         {editaGrupo && <button type="button" className="btn btn-ghost" disabled={ocupado} onClick={() => setConfirmaBorrar(true)} data-accion="borrar-grupo">🗑 {t("Delete group", "Borrar grupo")}</button>}
-        {/* Aprobada: quien la ve. Pendiente (dueño, 12 nov): quien gestiona la tienda, para firmarla en papel. */}
-        {puedeImprimirGrupo({ aprobado, gestiona }) && <button type="button" className="btn" onClick={() => window.print()} data-accion="imprimir-grupo">🖨 {t("Print", "Imprimir")}</button>}
         <button type="button" className="btn btn-primary" onClick={onSalir} data-accion="cerrar-grupo">✕ {t("Close", "Cerrar")}</button>
       </div>
 
@@ -326,6 +331,7 @@ function ModalDeFotos({ r, ctx, onCerrar }: { r: Reporte; ctx: Contexto; onCerra
   return (
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-tarjeta-reporte" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-fotos-reporte={r.id}>
+        <CerrarX onCerrar={onCerrar} />
         <h3>📷 {r.product_name ?? t("Photos", "Fotos")}</h3>
         <p className="sub">{fmtDia(r.broken_on ?? r.created_at.slice(0, 10), lang)} · {r.store}</p>
         <VisorDeFotos fotos={fotos} demo={ctx.demo} />

@@ -52012,3 +52012,24 @@ Sello `warehouse_ops` 0.49.0; repo 1.867.0.
 - **Pendiente:** el guion de respuesta para «¿de dónde sacaron mi número?» — Leads no tiene un área de guiones y el texto no se dio; falta que Roberto lo pase.
 
 Sello `deliveries` 1.606.0; `leads` 0.22.0; repo 1.868.0.
+
+## D-1016 · Operaciones de almacén / Merma: decisiones de la reunión del 12 nov con Roberto
+
+Reunión con Roberto (12 nov, 8:52 PM EST), la parte de Operaciones de almacén. Doce puntos, un solo PR.
+
+1. **«Borré 5 reportes y no pasó nada».** La causa, medida en los datos: los reportes de prueba que quedaban («Test», «testing») están en un grupo YA APROBADO («Nov 11 11:29 PM») y la base se niega a borrarlos (297/299: «su grupo ya está aprobado; primero deshaz la aprobación»). Los que sí se podían borrar se borraron; de los otros, la pantalla enseñaba el motivo en una línea gris, y solo el del último. Ahora: cada reporte borrado sale de la lista EN EL ACTO (uno por uno) y los que no se pudieron salen en un aviso rojo, uno por reporte, con su motivo. Migración **301** (sin aplicar: la aplica el dueño): el ADMIN puede borrar un reporte aunque su grupo esté aprobado (el gerente sigue sin poder; el grupo conserva sus firmas, y si queda vacío se borra), y cada borrado deja historial en `warehouse_deleted_reports` (quién, cuándo y la copia del reporte; solo lectura, solo admin). Hasta aplicarla, la app se comporta como hoy y el aviso rojo explica por qué.
+2. **«Seleccionar todos» marca solo lo que se ve.** Con la búsqueda o un filtro de columna puestos, la casilla de la cabecera marcaba también lo escondido. La tabla avisa qué renglones enseña y la selección, la cuenta de la barra y las acciones en bloque van solo sobre esos.
+3. **El buscador, siempre a la izquierda.** La barra empujaba todo a la derecha cuando no salía la cuenta «N de M».
+4. **Foto repetida = cámara roja.** El letrero «Foto repetida» se quita; la cámara de la fila sale roja y su título explica por qué.
+5. **Dos columnas de daño:** «Dañadas (pzas)» y «Cajas dañadas» (dañadas ÷ piezas por caja, redondeado a 2 decimales; vacío si no hay piezas por caja) en la tabla, la hoja de aprobación (grupo, borrador e imprimible), el CSV y el PDF.
+6. **«Imprimir» arriba** en la hoja del grupo, junto a «⚙ Columnas»; Borrar grupo y Cerrar siguen abajo. El folio ya se elegía en «⚙ Columnas» de la hoja.
+7. **«¿Quién lo rompió?» admite un nombre escrito**, como «¿Quién lo reportó?», y cada nombre elegido es una pastilla con su ✕. Los empleados siguen en la columna `broken_by` (uuid[]); los nombres escritos van en `answers.broken_by_text`. Sin migración: `warehouse_ops_file_report` guarda `answers` tal cual y la edición lo funde. Salen juntos donde sale «Lo rompió» (tabla, tarjeta, hoja, CSV, PDF, búsqueda) y se editan en «Editar reporte».
+8. **«Tipo» y «Tienda» ocultas por defecto** en la tabla de merma (siguen en «⚙ Columnas»). Quien ve varias tiendas tiene un filtro de tienda junto al buscador. La clave del navegador pasa a `rtg:merma:columnas:v2:` (conserva el orden que cada quien ya tenía).
+9. **Teléfono.** (a) Toda tarjeta de Operaciones lleva una ✕ arriba a la derecha, pegada aunque la tarjeta sea larga (`CerrarX`); tocar fuera sigue cerrando. (b) Las dos pastillas de «entrar como» (roja y naranja) quedan, en pantallas de hasta 640 px, en UNA pastilla naranja chica; al tocarla se abre como siempre, con el botón rojo para volver. (c) En el teléfono de alguien de almacén la tabla de merma oculta además «Grupo» y «Fecha del daño».
+10. **Inicio.** «Mantenimiento» salía dos veces (la tarjeta «Bitácora de mantenimiento» y el botón de abajo): queda una tarjeta, la de la sección, y la bitácora se llena desde dentro («📝 Nueva entrada en la bitácora»). «Conteos de inventario» sube con las tarjetas.
+11. **La cámara en Android.** La causa no era el permiso (D-917, D-923): a la cáscara le falta `<queries>` para `android.media.action.IMAGE_CAPTURE`; en Android 11+ Capacitor pregunta si hay app de cámara, el sistema contesta que no y cae, sin avisar, al selector de archivos. Web (ya): dentro de una APK anterior a la 9, «Tomar foto» abre la cámara de dentro de la app (`getUserMedia`, la de las fotos de entrega). Nativo: el manifiesto ya lleva `<queries>`; **hay que compilar y publicar la APK 9** (subir a la vez `versionCode`, `appendUserAgent` y `LATEST_APK_VERSION_CODE`).
+12. **Columnas que se arrastran**, como en Órdenes: la tabla de merma ya lo hacía por la cabecera; ahora también los renglones de su «⚙ Columnas» y la cabecera de la tabla simple de «Mis reportes» (`useOrdenDeColumnas`).
+
+No verificado en pantalla: el navegador de pruebas no estaba disponible en esta sesión, así que lo de 360–400 px queda comprobado por código y pruebas, no a la vista.
+
+Sello `warehouse_ops` 0.50.0; `deliveries` 1.607.0 (la burbuja de «entrar como» y `SelectorDeColumnas` son de todas las apps); repo 1.869.0.

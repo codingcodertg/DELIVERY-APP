@@ -171,7 +171,10 @@ describe("3. el icono de cámara junto a la fecha", () => {
   });
   it("la lista lo pone en la celda de la fecha y la tarjeta en su cabecera", () => {
     const lista = leer("src/app/operaciones/ListaDeReportes.tsx");
-    expect(lista).toMatch(/data-dia=\{diaDelReporte\(r\)\}>[\s\S]{0,200}<IconoDeFotos r=\{r\} \/>/);
+    expect(lista).toMatch(/data-dia=\{diaDelReporte\(r\)\}>[\s\S]{0,200}<IconoDeFotos r=\{r\} repetida=\{repetidas\.has\(r\.id\)\} \/>/);
+    // Reunión 12 nov: la foto repetida es la cámara ROJA (ya no un letrero), con la explicación en el título.
+    expect(lista).toContain("ops-camara-repetida");
+    expect(lista).not.toContain("ops-insignia-repetida");
     expect(lista).toMatch(/<h3>\{info\.emoji\} \{lang === "es" \? info\.es : info\.en\}<IconoDeFotos r=\{r\} \/><\/h3>/);
   });
 });

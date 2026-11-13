@@ -59,6 +59,7 @@ export function TablaDeHoja({ filas, ve, ocultas, lang, t, vacio }: {
       case "dia": return <td key={k}>{fmtDia(f.dia, lang)}</td>;
       case "producto": return <td key={k}>{f.producto}</td>;
       case "danadas": return <td key={k} className="num">{f.danadas}</td>;
+      case "cajas": return <td key={k} className="num">{f.cajas}</td>;
       case "perdida": return <td key={k} className="num">{fmtMoney(f.perdida)}</td>;
       case "motivo": return <td key={k}>{f.motivo}</td>;
       case "rompio": return <td key={k}>{f.rompio}</td>;

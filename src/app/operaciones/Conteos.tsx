@@ -21,6 +21,7 @@ import {
   leerProductosDelAlcance, leerProveedores, lineaDeLaFila, mandarARecontar, registrarLinea, type Conteos as Datos, type ProductoDeConteo, type Proveedor,
 } from "@/lib/almacen-ops/conteos-datos";
 import type { Contexto } from "./Operaciones";
+import { CerrarX } from "./CerrarX";
 
 /**
  * La sección «Conteos de inventario» de Operaciones de almacén (274): la lista de conteos de la tienda con su paso, la
@@ -262,6 +263,7 @@ function FormNuevoConteo({ ctx, tienda, onCerrar, onCreado }: { ctx: Contexto; t
   return (
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-tarjeta-reporte" onClick={(x) => x.stopPropagation()} role="dialog" aria-modal="true" data-form-conteo>
+        <CerrarX onCerrar={onCerrar} />
         <h3>{t("New count", "Nuevo conteo")}</h3>
         <p className="sub">{tienda}</p>
         <div className="ops-formulario">
@@ -391,6 +393,7 @@ function TarjetaConteo({ c, lineas, ctx, pon, onCerrar }: { c: Conteo; lineas: L
   return (
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-tarjeta-reporte ops-tarjeta-conteo" onClick={(x) => x.stopPropagation()} role="dialog" aria-modal="true" data-tarjeta-conteo={c.id} data-etapa={c.stage}>
+        <CerrarX onCerrar={onCerrar} />
         <h3>{INFO_DE_ALCANCE[c.scope_kind].emoji} {c.title} <ChipDeEtapa e={c.stage} /></h3>
         <p className="sub">{c.store} · {lineas.length} {t("products", "productos")} · {t("opened by", "lo abrió")} {c.created_by_name ?? nombre(c.created_by)} · {fmtDateTime(c.created_at)}</p>
 
@@ -655,6 +658,7 @@ function FormLinea({ l, ctx, onCerrar, onGuardada }: { l: Linea; ctx: Contexto; 
   return (
     <div className="overlay" onClick={onCerrar}>
       <div className="modal ops-tarjeta-reporte" onClick={(x) => x.stopPropagation()} role="dialog" aria-modal="true" data-form-linea={l.id}>
+        <CerrarX onCerrar={onCerrar} />
         <h3><span className="hoja-folio">{l.sku}</span></h3>
         <p className="sub">{l.name}{l.size_in ? ` · ${l.size_in}` : ""}</p>
         {l.recount_requested && <p className="ops-aviso ops-aviso-pendiente" data-recontar>↩ {t("Manager asked for a recount", "El gerente pidió recontar")}{l.recount_note && `: ${l.recount_note}`}</p>}

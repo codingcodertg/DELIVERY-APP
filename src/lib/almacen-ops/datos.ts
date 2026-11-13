@@ -5,7 +5,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TipoDeReporte } from "./tipos";
 import type { Quien } from "./visibilidad";
-import type { ProductoElegido, Respuestas } from "./pasos";
+import { separaRompio, type ProductoElegido, type Respuestas } from "./pasos";
 import { tipoDeReparto, type Cantidades, type Reparto } from "./perdida";
 import type { Repetida } from "./fotos";
 import type { FirmaDeMerma, SlotDeFirma } from "./firmas";
@@ -356,7 +356,10 @@ export function productoParaEnviar(p: ProductoElegido): { product_id: number | n
  * viene y el CRMA. El CRMA es opcional y solo viaja si es devolución de cliente (si alguien lo escribió y luego cambió
  * a «interno», no se guarda). Un borrador de Warehouse Ops 0.4.0 no trae el origen: el resumen lo pide antes de enviar.
  */
-export function mermaParaEnviar(r: Respuestas): Omit<NonNullable<Envio["scrap"]>, "product_id" | "free_name" | "unit_cost"> {
+export function mermaParaEnviar(r: Respuestas,
+  /** 12 nov: con esto, de «quién lo rompió» solo viajan a la columna los EMPLEADOS; los nombres escritos van en `answers`. */
+  esPersona?: (x: string) => boolean,
+): Omit<NonNullable<Envio["scrap"]>, "product_id" | "free_name" | "unit_cost"> {
   const q = r.qty as Cantidades;
   const s = r.split as Reparto;
   const origen = origenDeMerma(r.return_type);
@@ -364,7 +367,7 @@ export function mermaParaEnviar(r: Respuestas): Omit<NonNullable<Envio["scrap"]>
   return {
     scrap_type: tipoDeReparto(s), damaged_pieces: s.damaged, sample_pieces: s.sample,
     boxes: q.boxes, pieces_per_box: q.piecesPerBox, loose_pieces: 0,
-    return_type: origen, reason: String(r.reason), broken_by: (r.broken_by as string[] | undefined) ?? [],
+    return_type: origen, reason: String(r.reason), broken_by: esPersona ? separaRompio(r.broken_by, esPersona).ids : ((r.broken_by as string[] | undefined) ?? []),
     crma: devolucion && typeof r.crma === "string" && r.crma.trim() ? r.crma.trim() : null,
   };
 }

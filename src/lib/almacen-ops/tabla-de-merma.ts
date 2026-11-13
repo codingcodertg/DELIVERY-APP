@@ -4,7 +4,7 @@
  * que ya tenía la tabla (Cuándo, Etapa, Tipo, Tienda, Lo llenó). Aquí van las funciones puras: fila → celdas y el CSV
  * para que lo pegue en Excel. Sin React: lo importan la pantalla y las pruebas.
  */
-import { PASO_QUIEN_REPORTO, etiquetaDeOpcion } from "./pasos";
+import { CLAVE_ROMPIO_TEXTO, PASO_QUIEN_REPORTO, etiquetaDeOpcion } from "./pasos";
 import { nombreOTexto } from "./personas";
 import { repartoDeReporte } from "./perdida";
 import { diaDelReporte } from "./fecha-del-dano";
@@ -44,6 +44,8 @@ export interface CeldasDeMerma {
   total: string;
   muestra: string;
   danadas: string;
+  /** Cajas dañadas = piezas dañadas ÷ piezas por caja (reunión 12 nov: antes de tirar se revisa por caja). */
+  cajasDanadas: string;
   costo: string;
   /** Precio de venta por pieza (272), para el título (tooltip) de la celda de pérdida. */
   costoUnitario: string;
@@ -65,7 +67,9 @@ export const COLUMNAS_EXCEL: { id: keyof CeldasDeMerma; en: string; es: string; 
   { id: "piezasPorCaja", en: "Pcs/box", es: "Pzas/caja", num: true, grupo: true },
   { id: "total", en: "Total", es: "Total", num: true, grupo: true },
   { id: "muestra", en: "Sample", es: "Muestra", num: true, grupo: true },
-  { id: "danadas", en: "Damaged", es: "Dañadas", num: true, grupo: true },
+  // Reunión 12 nov (Roberto): dos columnas — piezas dañadas y CAJAS dañadas (lo que se revisa afuera antes de tirar).
+  { id: "danadas", en: "Damaged pcs", es: "Dañadas (pzas)", num: true, grupo: true },
+  { id: "cajasDanadas", en: "Damaged boxes", es: "Cajas dañadas", num: true, grupo: true },
   { id: "costo", en: "$ loss", es: "Pérdida $", num: true, grupo: true },
   { id: "como", en: "How", es: "Cómo" },
   { id: "motivo", en: "Reason", es: "Motivo" },
@@ -74,6 +78,22 @@ export const COLUMNAS_EXCEL: { id: keyof CeldasDeMerma; en: string; es: string; 
   { id: "crma", en: "CRMA #", es: "CRMA #" },
   { id: "comentarios", en: "Comments", es: "Comentarios" },
 ];
+
+/**
+ * Cajas dañadas = piezas dañadas ÷ piezas por caja, con hasta 2 decimales y sin ceros de sobra («1», «0.5», «1.33»).
+ * Sin piezas por caja (o cero) no se puede saber: sale vacío. No se redondea a enteros: media caja rota es media caja.
+ */
+export function cajasDanadas(danadas: number | null | undefined, piezasPorCaja: number | null | undefined): string {
+  const d = Number(danadas), p = Number(piezasPorCaja);
+  if (danadas == null || !Number.isFinite(d) || !Number.isFinite(p) || p <= 0) return "";
+  return String(Math.round((d / p) * 100) / 100);
+}
+
+/** Los nombres escritos a mano de «¿Quién lo rompió?» (gente sin cuenta; reunión 12 nov). Van en `answers`. */
+export function rompioEscrito(answers: Record<string, unknown> | null | undefined): string[] {
+  const v = answers?.[CLAVE_ROMPIO_TEXTO];
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim() !== "").map((x) => x.trim()) : [];
+}
 
 const numero = (v: number | null | undefined): string => (v == null || !Number.isFinite(Number(v)) ? "" : String(v));
 const dinero = (v: number | null | undefined): string => (v == null || !Number.isFinite(Number(v)) ? "" : Number(v).toFixed(2));
@@ -85,7 +105,7 @@ const dinero = (v: number | null | undefined): string => (v == null || !Number.i
 export function celdasDeMerma(r: FilaDeMermaExcel, personas: readonly { id: string; full_name: string }[], lang: Lang): CeldasDeMerma {
   const reparto = repartoDeReporte(r);
   const nombres = (ids: unknown): string => (Array.isArray(ids) ? (ids as string[]).map((x) => nombreOTexto(personas, x)).filter((x) => x && x !== "—") : []).join(", ");
-  const loRompio = nombres(r.broken_by);
+  const loRompio = [nombres(r.broken_by), ...rompioEscrito(r.answers)].filter(Boolean).join(", ");
   const loReporto = nombres(r.answers?.[PASO_QUIEN_REPORTO]);
   const comentarios = r.answers?.comments;
   return {
@@ -97,6 +117,7 @@ export function celdasDeMerma(r: FilaDeMermaExcel, personas: readonly { id: stri
     total: numero(r.total_pieces),
     muestra: String(reparto.sample),
     danadas: String(reparto.damaged),
+    cajasDanadas: cajasDanadas(reparto.damaged, r.pieces_per_box),
     costo: dinero(r.total_loss),
     costoUnitario: dinero(r.unit_cost),
     como: etiquetaDeOpcion("scrap", "return_type", r.return_type, lang),

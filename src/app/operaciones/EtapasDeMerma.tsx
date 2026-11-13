@@ -15,6 +15,7 @@ import { crearBorradorDeGrupo } from "@/lib/almacen-ops/borradores-de-grupo";
 import { slotsQueMeTocan } from "@/lib/almacen-ops/grupos";
 import { esGrupoDePractica, grupoDePractica } from "@/lib/practica/grupos-de-practica";
 import type { Contexto } from "./Operaciones";
+import { CerrarX } from "./CerrarX";
 
 /**
  * D-921 (migración 270): la etapa de una merma en la lista (chip) y en la tarjeta (línea de tiempo + lo que el
@@ -292,6 +293,7 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
       {hojaDeGrupo && (
         <div className="overlay" onClick={() => setHojaDeGrupo(null)}>
           <div className="modal ops-tarjeta-grupo" onClick={(ev) => ev.stopPropagation()} role="dialog" aria-modal="true" data-hoja-del-reporte={hojaDeGrupo}>
+            <CerrarX onCerrar={() => setHojaDeGrupo(null)} />
             <HojaDeGrupo grupoId={hojaDeGrupo} ctx={ctx} onSalir={() => setHojaDeGrupo(null)} />
           </div>
         </div>
@@ -324,6 +326,7 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
       {borrador && (
         <div className="overlay" onClick={() => setBorrador(null)}>
           <div className="modal ops-tarjeta-grupo" onClick={(ev) => ev.stopPropagation()} role="dialog" aria-modal="true" data-borrador-desde-tarjeta={borrador}>
+            <CerrarX onCerrar={() => setBorrador(null)} />
             <HojaBorrador borradorId={borrador} ctx={ctx} reportesDisponibles={[r]}
               onSalir={() => setBorrador(null)}
               onGuardado={(id) => { setBorrador(null); onCambio({ ...r, scrap_group_id: id }); setHojaDeGrupo(id); }} />

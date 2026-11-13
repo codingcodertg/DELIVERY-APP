@@ -237,7 +237,7 @@ describe("la hoja de aprobación impresa", () => {
       { ...conFoto, id: "aaaaaaaa-0000-0000-0000-000000000003", kind: "safety", store: "McAllen", total_loss: 999 },
     ], nombre, (m) => (m === "forklift" ? "Montacargas" : m ?? ""), (r) => (r.damaged_pieces ?? r.total_pieces ?? 0));
     expect(filas).toHaveLength(2);
-    expect(filas[0]).toEqual({ id: "aaaaaaaa-0000-0000-0000-000000000001", folio: "AAAAAAAA", dia: "2026-11-05", producto: "PORC-1 · Porcelain", danadas: 5, perdida: 47, motivo: "Montacargas", rompio: "Luis Treviño", reporto: "Ana García", tienda: "McAllen" });
+    expect(filas[0]).toEqual({ id: "aaaaaaaa-0000-0000-0000-000000000001", folio: "AAAAAAAA", dia: "2026-11-05", producto: "PORC-1 · Porcelain", danadas: 5, cajas: "2.5", perdida: 47, motivo: "Montacargas", rompio: "Luis Treviño", reporto: "Ana García", tienda: "McAllen" });
     expect(filas[1]).toMatchObject({ dia: "2026-11-06", producto: "Libre *", danadas: 3, perdida: null, rompio: "—", reporto: "Ana", tienda: "Edinburg" });
     expect(tiendasDeHoja(filas)).toBe("McAllen / Edinburg");
     expect(totalDeHoja(filas)).toBe(47);
