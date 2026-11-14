@@ -26,7 +26,7 @@ const ME_DEMO = "rtg_deliveries_local_me";
  * `promo_can_see_private()`. Sin eso, el demo le enseñaría el costo a un vendedor y estaría
  * mintiendo sobre lo único que el módulo se pasó una migración entera cerrando.
  */
-export function RondaDemo({ ronda }: { ronda: { id: string; label: string; closed_at: string | null } }) {
+export function RondaDemo({ ronda }: { ronda: { id: string; label: string; closed_at: string | null; uploaded_at?: string | null; subidaPor?: { nombre: string | null } | null } }) {
   const [rol, setRol] = useState<string | null>(null);
 
   useEffect(() => {

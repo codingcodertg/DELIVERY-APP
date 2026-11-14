@@ -20,6 +20,7 @@ import {
 import { cuentaDeVotos, votosDelProducto, type DecisionConAutor } from "@/lib/promos/votos";
 import { formateadorDeFecha } from "@/lib/formateador";
 import { BUSINESS_TZ } from "@/lib/utils";
+import { fechaDeSubida, lineaDeSubida, tooltipDeQoh } from "@/lib/promos/fecha-subida";
 
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
@@ -46,7 +47,15 @@ const claveDelOrdenDePromos = (rol: string) => `rtg_promos_orden_${rol}`;
 export function TablaDeRonda({
   ronda, productos, decisiones, rol, userId, grupo, esDecisor, esAdmin, gruposDelLibro, rondas, veVotos = false, nombres = {},
 }: {
-  ronda: { id: string; label: string; closed_at: string | null };
+  ronda: {
+    id: string;
+    label: string;
+    closed_at: string | null;
+    /** Cuándo se subió el archivo: la foto de las existencias (QOH). Null = no se sabe. */
+    uploaded_at?: string | null;
+    /** Quién la subió: `nombre` null = sin usuario (la cargó el script); "" = hay usuario sin nombre. */
+    subidaPor?: { nombre: string | null } | null;
+  };
   productos: ProductoDeCatalogo[];
   decisiones: DecisionDeGrupo[];
   rol: string | null;
@@ -65,6 +74,11 @@ export function TablaDeRonda({
 }) {
   const { lang, t } = usePrefs();
   const router = useRouter();
+  // Las existencias (QOH) son la foto de la subida, no un dato en vivo: la fecha va a la vista y al tooltip de la cabecera QOH.
+  const lineaSubida = ronda.uploaded_at
+    ? lineaDeSubida({ iso: ronda.uploaded_at, lang, nombre: ronda.subidaPor ? ronda.subidaPor.nombre : null })
+    : null;
+  const tituloQoh = ronda.uploaded_at ? tooltipDeQoh(ronda.uploaded_at, lang) : undefined;
   // D-840: el producto cuyo panel de votos está abierto.
   const [votosDe, setVotosDe] = useState<string | null>(null);
   const supabase = useMemo(() => createClient(), []);
@@ -406,6 +420,12 @@ export function TablaDeRonda({
         <div className="promos-cabecera-fila">
           <h1 className="promos-titulo">🏷️ {ronda.label}</h1>
           {rondaCerrada && <span className="sema" style={{ background: "var(--gray)", color: "#fff" }}>{t("Closed", "Cerrada")}</span>}
+          {lineaSubida && (
+            <p className="promos-subida" data-subida>
+              <span>{lineaSubida}</span>
+              <span className="promos-subida-nota">{t("QOH as of upload; not live", "Existencias al subir el archivo; no se actualizan")}</span>
+            </p>
+          )}
           <div className="promos-cabecera-acciones">
             {/* El selector que sustituye a la lista de rondas (D-375). Solo sale si hay MAS DE UNA:
                 con una sola ronda seria un desplegable de un elemento, que es justo el clic de mas que
@@ -420,7 +440,7 @@ export function TablaDeRonda({
               >
                 {rondas.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.label}{r.closed_at ? t(" · closed", " · cerrada") : ""}
+                    {r.label} · {fechaDeSubida(r.uploaded_at, lang, false)}{r.closed_at ? t(" · closed", " · cerrada") : ""}
                   </option>
                 ))}
               </select>
@@ -657,7 +677,7 @@ export function TablaDeRonda({
                 </th>
               )}
               {columnasConMenu.map((c) => (
-                <th key={c.key} data-col={c.key} data-numero={c.numerico || undefined}>
+                <th key={c.key} data-col={c.key} data-numero={c.numerico || undefined} title={c.key === "qoh" || c.key.startsWith("qoh_") ? tituloQoh : undefined}>
                   <CabeceraConMenu estado={orden} col={c} lang={lang} t={t} />
                   <span
                     className="col-resizer"
