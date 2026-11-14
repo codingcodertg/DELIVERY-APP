@@ -52367,5 +52367,6 @@ Sello `estimator` 0.35.0; `recruiting` 0.93.0; `erp` 0.29.0; `customers` 0.63.0;
 ## D-1047 · RR. HH.: exportar todos los campos del expediente
 
 Pedido de Roberto: descargar toda la información, no solo las columnas de la tabla. En Expedientes de empleados, junto a «Excel · Visible columns» y «CSV · Visible columns» (las de siempre), hay «Excel · All fields» y «CSV · All fields»: todos los campos del expediente, en el orden de las secciones de la tarjeta, con encabezados en inglés y español, para las filas a la vista (búsqueda, filtros y pestaña activos/bajas). Incluye los calculados (costo mensual, Tot Score, estado, cuenta del hub, papeles que faltan). Fuera: `profile_id` y `left_by` (ids internos; salen su estado y su nombre) y la lista cruda de documentos. Una prueba obliga a clasificar cada campo nuevo (exportado o excluido con motivo). Mismo acceso que la pantalla (admin y gerente de RR. HH.). En el teléfono, la fila de botones ya se deslizaba de lado y ahora es más larga.
+El CSV (el de toda la app, `toCSV`) antepone una comilla al texto que empieza por = + - @, para que Excel no lo abra como fórmula (lo pidió la revisión de seguridad).
 Visto en pantalla (demo con filas de prueba): descargas y encabezados revisados.
 Sello `recruiting` 0.94.0; repo 1.897.0.
