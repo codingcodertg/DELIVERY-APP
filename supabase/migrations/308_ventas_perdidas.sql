@@ -66,6 +66,13 @@ create index if not exists estimator_lost_sales_fecha_idx on public.estimator_lo
 create or replace function public.estimator_lost_sales_guard()
   returns trigger language plpgsql security definer set search_path = public as $$
 begin
+  -- Al editar (o al quitar), el autor, su nombre y la fecha no cambian: nadie se apropia de una fila ni la atribuye a otro.
+  if tg_op = 'UPDATE' then
+    new.created_by := old.created_by;
+    new.created_by_name := old.created_by_name;
+    new.created_at := old.created_at;
+    return new;
+  end if;
   -- Si hay sesion, la fila es de quien la inserta, sin importar lo que mande el navegador.
   if auth.uid() is not null then
     new.created_by := auth.uid();
@@ -76,7 +83,7 @@ begin
 end $$;
 
 drop trigger if exists estimator_lost_sales_guard on public.estimator_lost_sales;
-create trigger estimator_lost_sales_guard before insert on public.estimator_lost_sales
+create trigger estimator_lost_sales_guard before insert or update on public.estimator_lost_sales
   for each row execute function public.estimator_lost_sales_guard();
 
 -- ---------------------------------------------------------------------------
