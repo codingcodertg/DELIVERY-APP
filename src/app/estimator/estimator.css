@@ -186,7 +186,7 @@
 .vis-wrap .card h3 { margin: 0 0 8px; font-size: 14px; }
 .vis-grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); align-items: start; }
 .vis-columna-escena, .vis-columna-controles { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.vis-lienzo { position: relative; width: 100%; height: 540px; min-height: 360px; border-radius: 10px; overflow: hidden; background: #e8e6e1; }
+.vis-lienzo { position: relative; width: 100%; height: 520px; min-height: 360px; border-radius: 10px; overflow: hidden; background: #e8e6e1; }
 .vis-botones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
 .vis-paso { display: flex; flex-direction: column; gap: 6px; }
 .vis-paso label { font-size: 13px; }
@@ -196,6 +196,8 @@
 .vis-capa { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-radius: 8px; padding: 2px 4px; min-height: 40px; min-width: 0; }
 .vis-capa-nombre > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 .vis-capa-ver { flex: 0 0 auto; }
+.vis-wrap label { text-transform: none; letter-spacing: normal; }
+.vis-wrap .vis-capa-ver { display: inline-flex; align-items: center; gap: 6px; width: auto; min-width: 0; flex: 0 0 auto; white-space: nowrap; font-size: 12px; font-weight: 600; }
 .vis-capa-activa { background: rgba(37, 99, 235, 0.08); }
 .vis-capa-nombre { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 6px 4px; cursor: pointer; font: inherit; color: inherit; }
 .vis-num { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; }
@@ -212,7 +214,7 @@
 .vis-medidas-grid { margin-top: 10px; }
 @media (max-width: 760px) {
   .vis-grid { grid-template-columns: minmax(0, 1fr); }
-  .vis-lienzo { height: 62vh; min-height: 340px; }
+  .vis-lienzo { height: 60vh; min-height: 300px; max-height: 60vh; }
   .vis-botones .btn { min-height: 40px; }
   .vis-capa { min-height: 44px; }
 }

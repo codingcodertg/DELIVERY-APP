@@ -40,7 +40,7 @@ export interface EspecLoseta {
 }
 
 export const ESPEC_POR_DEFECTO: { pared: EspecLoseta; piso: EspecLoseta; salpicadero: EspecLoseta } = {
-  pared: { fuente: "marmol-blanco", tamano: "24x48", patron: "apilado", lechada: "blanca", juntaIn: 0.125 },
+  pared: { fuente: "marmol-blanco", tamano: "24x48", patron: "apilado", lechada: "gris", juntaIn: 0.125 },
   piso: { fuente: "hexagonal", tamano: "12x24", patron: "apilado", lechada: "gris", juntaIn: 0.0625 },
   salpicadero: { fuente: "metro", tamano: "8x8", patron: "medio", lechada: "blanca", juntaIn: 0.0625 },
 };
@@ -111,10 +111,31 @@ export function pintaLoseta(spec: EspecLoseta, foto: CanvasImageSource | null, h
       } else {
         pintaPreset(ctx, spec.fuente === "foto" ? "marmol-blanco" : spec.fuente, x, y, tw - junta, th - junta, pxPorPulg, rng);
       }
+      if (!(spec.fuente === "foto" && foto)) variacion(ctx, x, y, tw - junta, th - junta, rng);
       ctx.restore();
+      bisel(ctx, x, y, tw - junta, th - junta, pxPorPulg);
     }
   }
   return { canvas, bloqueIn: bloque };
+}
+
+/** Cada loseta sale un poco más clara o más oscura: se notan como piezas distintas. */
+function variacion(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, rng: () => number): void {
+  ctx.globalAlpha = 0.03 + rng() * 0.05;
+  ctx.fillStyle = rng() > 0.5 ? "#ffffff" : "#000000";
+  ctx.fillRect(x, y, w, h);
+  ctx.globalAlpha = 1;
+}
+
+/** Luz arriba-izquierda y sombra abajo-derecha: el canto de la pieza. */
+function bisel(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, px: number): void {
+  const g = Math.max(1.5, px * 0.08);
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.fillRect(x, y, w, g);
+  ctx.fillRect(x, y, g, h);
+  ctx.fillStyle = "rgba(0,0,0,0.14)";
+  ctx.fillRect(x, y + h - g, w, g);
+  ctx.fillRect(x + w - g, y, g, h);
 }
 
 function semillaDe(spec: EspecLoseta): number {
@@ -138,8 +159,8 @@ function pintaPreset(
   ctx: CanvasRenderingContext2D, preset: PresetId, x: number, y: number, w: number, h: number, px: number, rng: () => number,
 ): void {
   switch (preset) {
-    case "marmol-blanco": return marmol(ctx, x, y, w, h, px, rng, "#f2f1ed", "#8e8e8e", 0.35);
-    case "marmol-gris": return marmol(ctx, x, y, w, h, px, rng, "#8f9296", "#d7d9dc", 0.45);
+    case "marmol-blanco": return marmol(ctx, x, y, w, h, px, rng, "#f5f4f0", "#7d8189", 0.6);
+    case "marmol-gris": return marmol(ctx, x, y, w, h, px, rng, "#8a8d92", "#e4e6e9", 0.7);
     case "madera": return madera(ctx, x, y, w, h, px, rng);
     case "hexagonal": return hexagonos(ctx, x, y, w, h, px, rng);
     case "metro": return metro(ctx, x, y, w, h, px);
@@ -157,8 +178,8 @@ function marmol(
   const venas = 5 + Math.floor(rng() * 4);
   for (let i = 0; i < venas; i++) {
     ctx.strokeStyle = vena;
-    ctx.globalAlpha = alfa * (0.5 + rng() * 0.5);
-    ctx.lineWidth = px * (0.02 + rng() * 0.05);
+    ctx.globalAlpha = alfa * (0.6 + rng() * 0.4);
+    ctx.lineWidth = px * (0.05 + rng() * 0.12);
     ctx.beginPath();
     let cx = x + rng() * w, cy = y + rng() * h;
     ctx.moveTo(cx, cy);

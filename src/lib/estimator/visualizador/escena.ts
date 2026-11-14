@@ -1,17 +1,17 @@
 /**
- * La escena 3D de la regadera (three.js), toda procedural: cajas y superficies, sin modelos de archivo.
+ * La escena 3D de la regadera (three.js), toda procedural: cajas y losas, sin modelos de archivo.
  *
- * Las paredes son cajas apiladas hacia afuera (loseta, adhesivo, impermeabilizante, panel, membrana, postes), así el
- * corte diagonal de «Corte» deja ver las capas como en la lámina. La base son superficies con la altura que da la
- * pendiente. Cada capa lleva sus objetos: mostrar, ocultar, resaltar y el paso a paso son solo cambios de visibilidad
- * o de emisión; la geometría se reconstruye solo cuando cambian medidas o losetas.
+ * Paredes y base son sólidos (cajas y losas con grosor real), así el corte deja ver las capas como en la lámina. El corte
+ * es un plano diagonal que quita la esquina del frente a la izquierda; cada capa tiene su propio desplazamiento, así que
+ * cada una termina un poco antes que la de adentro (poste → tablero → malla → impermeable → adhesivo → loseta).
+ * Mostrar, ocultar, resaltar y el paso a paso son solo cambios de visibilidad o de emisión.
  */
 
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CAPAS, ORDEN_DE_INSTALACION, type IdCapa } from "@/lib/estimator/visualizador/capas";
 import {
-  alturaDeLaPendiente, bloqueDeLaLoseta, bloqueDelPatron, distanciaNormalizada, extremosExpuestos, juntasDePaneles,
+  alturaDeLaPendiente, distanciaNormalizada, extremosExpuestos, juntasDePaneles,
   panelesDePared, paredesDeLaDisposicion, repeticionDeLaSuperficie, tamanoEnPulgadas, tornillosEnPanel,
   type DimensionesEscena, type Pared,
 } from "@/lib/estimator/visualizador/geometria";
@@ -31,16 +31,29 @@ const T = {
   poste_separacion: 1.3333, // 16 in
 } as const;
 
-/** Color de cada capa (el número de la lámina), y el de las partes que no van en la lista. */
-const COLOR_BORDE = {
+const COLOR = {
   loseta: "#e9e7e1",
-  cuerpo: "#c4bcae",
   madera: "#8b5e34",
   metal: "#9aa0a6",
   silicon: "#4338ca",
   rojo: "#c62828",
   poste: "#d4b48c",
-  verde: "#2f855a",
+  pared: "#ece7dd",
+  encimera: "#e5e1d8",
+};
+
+/**
+ * Desplazamiento del corte por capa (se suma a la base del corte). Mayor = la capa llega más lejos antes de cortarse.
+ * La loseta llega más lejos, luego el adhesivo, el impermeable, el panel y al final el poste: la escalera de la lámina.
+ */
+const DESPLAZAMIENTO_CORTE: Record<string, number> = {
+  "loseta-pared": 0.14, "loseta-piso": 0.14, salpicadero: 0.14, perfiles: 0.14,
+  boquilla: 0.12, silicon: 0.12,
+  adhesivo: 0.10, niveladores: 0.10,
+  impermeable: 0.08,
+  tablero: 0.05, malla: 0.05, tornillos: 0.05,
+  membrana: 0.02, "mortero-final": 0.02, marco: 0.02,
+  "base-mortero": 0, coladera: 0, base: 0,
 };
 
 export type SuperficieId = "pared" | "piso" | "salpicadero";
@@ -87,39 +100,48 @@ export interface EstadoVista {
 export class EscenaRegadera {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
-  private camera = new THREE.PerspectiveCamera(34, 1, 0.02, 200);
+  private camera = new THREE.PerspectiveCamera(34, 1, 0.02, 400);
   private controls: OrbitControls;
+  private sol: THREE.DirectionalLight;
   private raiz = new THREE.Group();
   private capas = new Map<IdCapa, CapaVista>();
   private materiales = new Set<THREE.Material>();
   private geometrias = new Set<THREE.BufferGeometry>();
   private texCache = new Map<string, TexturaCache>();
   private texUsadas = new Set<string>();
-  private plano = new THREE.Plane(new THREE.Vector3(-1, 0, -1).normalize(), 0);
   private estado: EstadoVista = { visibles: new Set(ORDEN_DE_INSTALACION), paso: ORDEN_DE_INSTALACION.length, seleccion: null, corte: false };
   private dimsVista: { L: number; W: number; H: number } | null = null;
   private frame = 0;
   private texAdhesivo: TexturaCache | null = null;
   private vistaInicial = true;
+  private aspectoEncuadre = 0;
+  /** El lavabo de afuera: no entra en el encuadre (el sujeto es la regadera). */
+  private vanidad: THREE.Object3D | null = null;
 
   constructor(private canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.localClippingEnabled = true;
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.35;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.setClearColor(0xe8e6e1, 1);
     this.scene.background = new THREE.Color(0xe8e6e1);
-    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8576, 1.25));
-    const sol = new THREE.DirectionalLight(0xffffff, 1.5);
-    sol.position.set(6, 12, 9);
-    this.scene.add(sol);
+    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x9a9585, 1.7));
+    this.sol = new THREE.DirectionalLight(0xffffff, 2.2);
+    this.sol.castShadow = true;
+    this.sol.shadow.mapSize.set(2048, 2048);
+    this.sol.shadow.bias = -0.0008;
+    this.sol.shadow.normalBias = 0.01;
+    this.scene.add(this.sol, this.sol.target);
     this.scene.add(this.raiz);
     for (const c of CAPAS) this.capas.set(c.id, { objetos: [], materiales: [], color: c.color });
 
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.1;
-    this.controls.minDistance = 1;
-    this.controls.maxDistance = 90;
     this.controls.addEventListener("change", () => this.pideRender());
     this.redimensiona();
   }
@@ -134,6 +156,9 @@ export class EscenaRegadera {
     for (const [clave, t] of this.texCache) {
       if (!this.texUsadas.has(clave)) { t.tex.dispose(); this.texCache.delete(clave); }
     }
+    this.raiz.traverse((o) => {
+      if (o instanceof THREE.Mesh || o instanceof THREE.InstancedMesh) { o.castShadow = true; o.receiveShadow = true; }
+    });
     this.aplicaEstado();
     if (this.vistaInicial || cambioDeMedidas) {
       this.resetVista();
@@ -149,14 +174,47 @@ export class EscenaRegadera {
     this.pideRender();
   }
 
+  /** Encuadra toda la regadera (con la caja de su contenido) en la vista, desde el frente a tres cuartos. */
   resetVista(): void {
-    const { L, W, H } = this.dimsVista ?? { L: 5, W: 3, H: 8 };
-    const centro = new THREE.Vector3(L / 2, H * 0.42, W / 2);
-    const dist = Math.max(L, W, H) * 2.1 + 1.5;
-    const dir = new THREE.Vector3(0.45, 0.4, 1).normalize(); // desde el frente abierto de la ducha
-    this.camera.position.copy(centro).addScaledVector(dir, dist);
+    // La caja de la regadera (sin el lavabo): se busca la distancia que la deja ocupando ~80% del lienzo.
+    const caja = new THREE.Box3();
+    for (const h of this.raiz.children) if (h !== this.vanidad) caja.expandByObject(h);
+    if (caja.isEmpty()) return;
+    const centro = caja.getCenter(new THREE.Vector3());
+    const radio = caja.getSize(new THREE.Vector3()).length() / 2;
+    const esquinas: THREE.Vector3[] = [];
+    for (const x of [caja.min.x, caja.max.x]) for (const y of [caja.min.y, caja.max.y]) for (const z of [caja.min.z, caja.max.z]) esquinas.push(new THREE.Vector3(x, y, z));
+    const dir = new THREE.Vector3(0.6, 0.42, 1).normalize();
+    const vfov = THREE.MathUtils.degToRad(this.camera.fov);
+    let distancia = radio / (0.8 * Math.sin(vfov / 2));
+    this.camera.near = Math.max(0.01, distancia / 60);
+    this.camera.far = distancia * 20;
+    this.camera.updateProjectionMatrix();
+    for (let it = 0; it < 14; it++) {
+      this.camera.position.copy(centro).addScaledVector(dir, distancia);
+      this.camera.lookAt(centro);
+      this.camera.updateMatrixWorld();
+      let m = 0;
+      for (const c of esquinas) {
+        const p = c.clone().project(this.camera);
+        m = Math.max(m, Math.abs(p.x), Math.abs(p.y));
+      }
+      if (m <= 0 || Math.abs(m - 0.8) < 0.01) break;
+      distancia *= m / 0.8;
+    }
+    this.camera.position.copy(centro).addScaledVector(dir, distancia);
+    this.camera.lookAt(centro);
+    this.camera.updateMatrixWorld();
     this.controls.target.copy(centro);
+    this.controls.minDistance = radio * 0.35;
+    this.controls.maxDistance = radio * 6;
     this.controls.update();
+    this.sol.target.position.copy(centro);
+    this.sol.position.copy(centro).add(new THREE.Vector3(6, 12, 9));
+    const r = radio * 1.4;
+    Object.assign(this.sol.shadow.camera, { left: -r, right: r, top: r, bottom: -r, near: 0.5, far: distancia * 4 });
+    this.sol.shadow.camera.updateProjectionMatrix();
+    this.aspectoEncuadre = this.camera.aspect;
     this.pideRender();
   }
 
@@ -166,6 +224,7 @@ export class EscenaRegadera {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    if (this.dimsVista && Math.abs(this.camera.aspect - this.aspectoEncuadre) > 0.02) this.resetVista();
     this.pideRender();
   }
 
@@ -221,11 +280,19 @@ export class EscenaRegadera {
         }
       }
     });
-    // Corte diagonal: se deja la mitad de atrás (la de la coladera) y se quita la esquina de enfrente, como en la lámina.
-    const { L, W } = this.dimsVista ?? { L: 5, W: 3 };
-    this.plano.constant = corte ? ((L + W) / 2) / Math.SQRT2 : 1e6;
+    // Corte diagonal por la esquina de enfrente a la izquierda: se conserva z - x ≤ k. Cada material tiene su k.
+    const kBase = (this.dimsVista?.W ?? 3) * 0.45;
+    const planos = new Map<number, THREE.Plane>();
     for (const m of this.materiales) {
-      m.clippingPlanes = corte ? [this.plano] : null;
+      if (!corte) { m.clippingPlanes = null; m.needsUpdate = true; continue; }
+      const k = kBase + ((m.userData.corte as number | undefined) ?? 0);
+      let p = planos.get(k);
+      if (!p) {
+        // distancia = (x - z)/√2 + k/√2 ≥ 0  ⇔  z - x ≤ k
+        p = new THREE.Plane(new THREE.Vector3(1, 0, -1).normalize(), k / Math.SQRT2);
+        planos.set(k, p);
+      }
+      m.clippingPlanes = [p];
       m.needsUpdate = true;
     }
   }
@@ -240,10 +307,13 @@ export class EscenaRegadera {
     this.geometrias.clear();
     for (const v of this.capas.values()) { v.objetos = []; v.materiales = []; }
     this.texUsadas = new Set();
+    this.vanidad = null;
   }
 
-  private mat(id: IdCapa | null, p: THREE.MeshStandardMaterialParameters): THREE.MeshStandardMaterial {
+  /** Material de una capa. `clave` decide el desplazamiento del corte (por defecto, la capa). */
+  private mat(id: IdCapa | null, p: THREE.MeshStandardMaterialParameters, clave?: string): THREE.MeshStandardMaterial {
     const m = new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0, ...p });
+    m.userData.corte = DESPLAZAMIENTO_CORTE[clave ?? id ?? "base"] ?? 0;
     this.materiales.add(m);
     if (id) this.capas.get(id)?.materiales.push(m);
     return m;
@@ -301,7 +371,7 @@ export class EscenaRegadera {
     const conDrenaje = proyecto === "Shower";
 
     // Base estructural: el piso de madera bajo la cama, siempre visible (no es una capa de la lista).
-    const madera = this.mat(null, { color: COLOR_BORDE.madera, roughness: 0.9 });
+    const madera = this.mat(null, { color: COLOR.madera, roughness: 0.9 }, "base");
     const base = new THREE.Mesh(this.geo(new THREE.BoxGeometry(L + 2, 0.5, W + 2)), madera);
     base.position.set(L / 2, -0.25, W / 2);
     this.raiz.add(base);
@@ -310,20 +380,73 @@ export class EscenaRegadera {
     if (conPared) {
       const paredes = paredesDeLaDisposicion(disposicion, L, W);
       const expuestos = extremosExpuestos(paredes);
-      paredes.forEach((p, idx) => {
-        this.raiz.add(this.construyePared(p, e, H, idx === 0));
-        // Perfiles de los extremos a la vista.
+      paredes.forEach((p) => {
+        this.raiz.add(this.construyePared(p, e, H));
         for (const ex of expuestos.filter((x) => x.pared === p.nombre)) {
           this.raiz.add(this.perfilDeExtremo(p, ex.extremo, H));
         }
       });
+      this.vanidad = this.construyeVanidad(e, L, H);
+      this.raiz.add(this.vanidad);
     }
+  }
+
+  /**
+   * Una losa con grosor real entre dos superficies: arriba `fTop`, abajo `fBot`, y cuatro costados. La cara de arriba va en
+   * el grupo 0 (con la textura de la loseta); el resto, en el grupo 1 (color liso).
+   */
+  private losa(L: number, W: number, fTop: (x: number, z: number) => number, fBot: (x: number, z: number) => number): THREE.BufferGeometry {
+    const nx = Math.min(48, Math.max(6, Math.ceil((L * 12) / 4)));
+    const nz = Math.min(48, Math.max(6, Math.ceil((W * 12) / 4)));
+    const pos: number[] = [];
+    const uv: number[] = [];
+    const grilla = (f: (x: number, z: number) => number): number => {
+      const b = pos.length / 3;
+      for (let j = 0; j <= nz; j++) for (let i = 0; i <= nx; i++) {
+        const x = (L * i) / nx, z = (W * j) / nz;
+        pos.push(x, f(x, z), z);
+        uv.push(i / nx, j / nz);
+      }
+      return b;
+    };
+    const top = grilla(fTop), bot = grilla(fBot);
+    const id = (b: number, i: number, j: number) => b + j * (nx + 1) + i;
+    const idx: number[] = [];
+    // Cada triángulo se orienta según la normal que se le pide, para que la cara quede hacia afuera.
+    const tri = (a: number, b: number, c: number, out: number[]) => {
+      const ux = pos[b * 3] - pos[a * 3], uy = pos[b * 3 + 1] - pos[a * 3 + 1], uz = pos[b * 3 + 2] - pos[a * 3 + 2];
+      const vx = pos[c * 3] - pos[a * 3], vy = pos[c * 3 + 1] - pos[a * 3 + 1], vz = pos[c * 3 + 2] - pos[a * 3 + 2];
+      const cx = uy * vz - uz * vy, cy = uz * vx - ux * vz, cz = ux * vy - uy * vx;
+      if (cx * out[0] + cy * out[1] + cz * out[2] < 0) idx.push(a, c, b); else idx.push(a, b, c);
+    };
+    const quad = (a: number, b: number, c: number, d: number, out: number[]) => { tri(a, b, c, out); tri(a, c, d, out); };
+    const topIni = idx.length;
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) quad(id(top, i, j), id(top, i + 1, j), id(top, i + 1, j + 1), id(top, i, j + 1), [0, 1, 0]);
+    const topFin = idx.length;
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) quad(id(bot, i, j), id(bot, i, j + 1), id(bot, i + 1, j + 1), id(bot, i + 1, j), [0, -1, 0]);
+    for (let i = 0; i < nx; i++) {
+      quad(id(top, i, 0), id(bot, i, 0), id(bot, i + 1, 0), id(top, i + 1, 0), [0, 0, -1]);
+      quad(id(top, i, nz), id(top, i + 1, nz), id(bot, i + 1, nz), id(bot, i, nz), [0, 0, 1]);
+    }
+    for (let j = 0; j < nz; j++) {
+      quad(id(top, 0, j), id(top, 0, j + 1), id(bot, 0, j + 1), id(bot, 0, j), [-1, 0, 0]);
+      quad(id(top, nx, j), id(bot, nx, j), id(bot, nx, j + 1), id(top, nx, j + 1), [1, 0, 0]);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    g.setIndex(idx);
+    g.addGroup(topIni, topFin - topIni, 0);
+    g.addGroup(topFin, idx.length - topFin, 1);
+    g.computeVertexNormals();
+    return this.geo(g);
   }
 
   private construyePiso(e: EntradaEscena, L: number, W: number, conDrenaje: boolean): void {
     const dn = (x: number, z: number) => distanciaNormalizada(x, z, L, W);
     const grosorPre = (x: number, z: number) => alturaDeLaPendiente(dn(x, z), e.preslopeIn);
     const grosorBed = (x: number, z: number) => alturaDeLaPendiente(dn(x, z), e.morteroIn);
+    const cero = () => 0;
     const hPre = grosorPre;
     const hLiner = (x: number, z: number) => hPre(x, z) + T.liner;
     const hBed = (x: number, z: number) => hLiner(x, z) + grosorBed(x, z);
@@ -332,54 +455,60 @@ export class EscenaRegadera {
     const hTile = (x: number, z: number) => hTS(x, z) + T.loseta;
     const hGrout = (x: number, z: number) => hTile(x, z) - 0.002;
 
-    const nx = Math.min(48, Math.max(6, Math.ceil((L * 12) / 4)));
-    const nz = Math.min(48, Math.max(6, Math.ceil((W * 12) / 4)));
-    const superficie = (fn: (x: number, z: number) => number): THREE.BufferGeometry => {
-      const g = new THREE.PlaneGeometry(L, W, nx, nz);
-      g.rotateX(-Math.PI / 2);
-      g.translate(L / 2, 0, W / 2);
-      const pos = g.getAttribute("position") as THREE.BufferAttribute;
-      for (let i = 0; i < pos.count; i++) pos.setY(i, fn(pos.getX(i), pos.getZ(i)));
-      g.computeVertexNormals();
-      return this.geo(g);
-    };
-
-    // 0. Base con pendiente.
-    const pre = new THREE.Mesh(superficie(hPre), this.mat("base-mortero", { color: "#a8a29e", side: THREE.DoubleSide }));
+    // 0. Base con pendiente: losa con grosor, sobre la estructura de madera.
+    const pre = new THREE.Mesh(this.losa(L, W, hPre, cero), [
+      this.mat("base-mortero", { color: "#a8a29e", roughness: 0.95 }),
+      this.mat("base-mortero", { color: "#8f8a85", roughness: 0.95 }),
+    ]);
     this.raiz.add(pre); this.reg("base-mortero", pre);
 
     // Coladera (solo en la ducha).
     if (conDrenaje) this.raiz.add(this.drenaje(L, W, hPre(L / 2, W / 2)));
 
     // 1. Membrana.
-    const membrana = new THREE.Mesh(superficie(hLiner), this.mat("membrana", { color: "#2b5fd9", side: THREE.DoubleSide, roughness: 0.8 }));
+    const membrana = new THREE.Mesh(this.losa(L, W, hLiner, hPre), [
+      this.mat("membrana", { color: "#2b5fd9", roughness: 0.8 }),
+      this.mat("membrana", { color: "#1e4bb8", roughness: 0.8 }),
+    ]);
     this.raiz.add(membrana); this.reg("membrana", membrana);
 
-    // 4. Cama final.
-    const bed = new THREE.Mesh(superficie(hBed), this.mat("mortero-final", { color: "#c9b99a", side: THREE.DoubleSide, roughness: 0.95 }));
+    // 4. Cama final de mortero.
+    const bed = new THREE.Mesh(this.losa(L, W, hBed, hLiner), [
+      this.mat("mortero-final", { color: "#c9b99a", roughness: 0.95 }),
+      this.mat("mortero-final", { color: "#b5a78a", roughness: 0.95 }),
+    ]);
     this.raiz.add(bed); this.reg("mortero-final", bed);
 
     // 6. Impermeabilizante del piso (rojo).
-    const wpMat = this.mat("impermeable", { color: COLOR_BORDE.rojo, side: THREE.DoubleSide, roughness: 0.5 });
-    const wp = new THREE.Mesh(superficie(hWP), wpMat);
+    const wp = new THREE.Mesh(this.losa(L, W, hWP, hBed), [
+      this.mat("impermeable", { color: COLOR.rojo, roughness: 0.5 }),
+      this.mat("impermeable", { color: "#9f1c1c", roughness: 0.5 }),
+    ]);
     this.raiz.add(wp); this.reg("impermeable", wp);
 
-    // 7. Adhesivo con surcos de peine.
+    // 7. Adhesivo con surcos de peine (la cara de arriba lleva el relieve).
     const ads = this.texturaAdhesivo();
-    const tsGeo = superficie(hTS);
-    this.escalaUV(tsGeo, (L * 12) / ads.bloque.anchoIn, (W * 12) / ads.bloque.altoIn);
-    const tsMesh = new THREE.Mesh(tsGeo, this.mat("adhesivo", { color: "#ffffff", map: ads.tex, side: THREE.DoubleSide, roughness: 0.9 }));
-    this.raiz.add(tsMesh); this.reg("adhesivo", tsMesh);
+    const adsGeo = this.losa(L, W, hTS, hWP);
+    this.escalaUV(adsGeo, (L * 12) / ads.bloque.anchoIn, (W * 12) / ads.bloque.altoIn);
+    const adhesivo = new THREE.Mesh(adsGeo, [
+      this.mat("adhesivo", { color: "#ffffff", map: ads.tex, roughness: 0.9 }),
+      this.mat("adhesivo", { color: "#d9d3c3", roughness: 0.9 }),
+    ]);
+    this.raiz.add(adhesivo); this.reg("adhesivo", adhesivo);
 
-    // Loseta de piso y boquilla del piso (la boquilla va justo debajo de la loseta, visible por las juntas).
+    // Loseta de piso (losa: la cara de arriba con la textura, con sus juntas transparentes).
     const piso = this.textura("piso", e.espec.piso, e.fotos.piso, false);
-    const pisoGeo = superficie(hTile);
+    const pisoGeo = this.losa(L, W, hTile, hTS);
     const { x: rx, y: ry } = repeticionDeLaSuperficie(piso.bloque, L, W);
     this.escalaUV(pisoGeo, rx, ry);
-    const pisoMesh = new THREE.Mesh(pisoGeo, this.mat("loseta-piso", { color: "#ffffff", map: piso.tex, alphaTest: 0.5, roughness: 0.3 }));
+    const pisoMesh = new THREE.Mesh(pisoGeo, [
+      this.mat("loseta-piso", { color: "#ffffff", map: piso.tex, alphaTest: 0.5, roughness: 0.3 }),
+      this.mat("loseta-piso", { color: COLOR.loseta, roughness: 0.3 }),
+    ]);
     this.raiz.add(pisoMesh); this.reg("loseta-piso", pisoMesh);
 
-    const grout = new THREE.Mesh(superficie(hGrout), this.mat("boquilla", { color: colorDeLechada(e.espec.piso.lechada), side: THREE.DoubleSide, roughness: 0.85 }));
+    // Boquilla del piso: justo debajo de la loseta, visible por sus juntas.
+    const grout = new THREE.Mesh(this.superficie(L, W, hGrout), this.mat("boquilla", { color: colorDeLechada(e.espec.piso.lechada), side: THREE.DoubleSide, roughness: 0.85 }));
     this.raiz.add(grout); this.reg("boquilla", grout);
 
     // Niveladores y cuñas en las intersecciones de la cuadrícula de loseta.
@@ -405,10 +534,23 @@ export class EscenaRegadera {
     }
   }
 
+  /** Una superficie plana con altura por punto (la boquilla), sin grosor: queda dentro de la losa de loseta. */
+  private superficie(L: number, W: number, fn: (x: number, z: number) => number): THREE.BufferGeometry {
+    const nx = Math.min(48, Math.max(6, Math.ceil((L * 12) / 4)));
+    const nz = Math.min(48, Math.max(6, Math.ceil((W * 12) / 4)));
+    const g = new THREE.PlaneGeometry(L, W, nx, nz);
+    g.rotateX(-Math.PI / 2);
+    g.translate(L / 2, 0, W / 2);
+    const pos = g.getAttribute("position") as THREE.BufferAttribute;
+    for (let i = 0; i < pos.count; i++) pos.setY(i, fn(pos.getX(i), pos.getZ(i)));
+    g.computeVertexNormals();
+    return this.geo(g);
+  }
+
   private drenaje(L: number, W: number, yBase: number): THREE.Group {
     const g = new THREE.Group();
-    const cuerpo = new THREE.Mesh(this.geo(new THREE.CylinderGeometry(0.1, 0.1, 0.25, 22)), this.mat("coladera", { color: COLOR_BORDE.metal, metalness: 0.4, roughness: 0.5 }));
-    cuerpo.position.set(L / 2, yBase - 0.12, W / 2);
+    const cuerpo = new THREE.Mesh(this.geo(new THREE.CylinderGeometry(0.1, 0.1, 0.3, 22)), this.mat("coladera", { color: COLOR.metal, metalness: 0.4, roughness: 0.5 }));
+    cuerpo.position.set(L / 2, yBase - 0.15, W / 2);
     const rejilla = new THREE.Mesh(this.geo(new THREE.BoxGeometry(0.26, 0.006, 0.26)), this.mat("coladera", { color: "#2b2f36", metalness: 0.3, roughness: 0.4 }));
     rejilla.position.set(L / 2, yBase + 0.003, W / 2);
     g.add(cuerpo, rejilla);
@@ -416,8 +558,8 @@ export class EscenaRegadera {
     return g;
   }
 
-  /** Una pared: el marco local (x a lo largo, y arriba, z hacia adentro del cuarto) y las capas de adentro hacia afuera. */
-  private construyePared(p: Pared, e: EntradaEscena, H: number, esTrasera: boolean): THREE.Group {
+  /** Una pared: el marco local (x a lo largo, y arriba, z hacia afuera) y las capas de adentro hacia afuera. */
+  private construyePared(p: Pared, e: EntradaEscena, H: number): THREE.Group {
     const ejeX = new THREE.Vector3(p.fin.x - p.inicio.x, 0, p.fin.z - p.inicio.z).normalize();
     const ejeY = new THREE.Vector3(0, 1, 0);
     const ejeZ = new THREE.Vector3().crossVectors(ejeX, ejeY);
@@ -431,7 +573,7 @@ export class EscenaRegadera {
     const zA = (a: number) => -s * a;
     const caraDentro = s > 0 ? 4 : 5; // índice de la cara +z/-z del BoxGeometry que mira al cuarto
 
-    // id = null: la pieza no es de ninguna capa de la lista (postes): siempre visible.
+    // id = null: la pieza no es de ninguna capa de la lista (el poste va con la clave «marco»).
     const caja = (id: IdCapa | null, ancho: number, alto: number, prof: number, x: number, y: number, a0: number,
       mats: THREE.Material | THREE.Material[]): THREE.Mesh => {
       const geom = this.geo(new THREE.BoxGeometry(ancho, alto, prof));
@@ -448,38 +590,37 @@ export class EscenaRegadera {
     const aLiner = aPanel + T.panel;
     const aPoste = aLiner + T.liner;
 
-    // 10/9. Azulejo de pared (cara de dentro con la textura; la boquilla va detrás, visible por las juntas).
+    // Azulejo de pared (la cara de dentro con la textura; la boquilla va detrás, visible por las juntas).
     const loseta = this.textura("pared", e.espec.pared, e.fotos.pared, false);
-    const bordeLoseta = this.mat("loseta-pared", { color: COLOR_BORDE.loseta, roughness: 0.3 });
+    const bordeLoseta = this.mat("loseta-pared", { color: COLOR.loseta, roughness: 0.3 });
     const matLoseta = this.mat("loseta-pared", { color: "#ffffff", map: loseta.tex, alphaTest: 0.5, roughness: 0.3 });
     const arrLoseta = Array.from({ length: 6 }, () => bordeLoseta);
     arrLoseta[caraDentro] = matLoseta;
     const mLoseta = caja("loseta-pared", largo, H, T.loseta, largo / 2, H / 2, aTile, arrLoseta);
-    const sxL = (largo * 12) / loseta.bloque.anchoIn, syL = (H * 12) / loseta.bloque.altoIn;
-    this.escalaUV(mLoseta.geometry, sxL, syL, (n) => Math.abs(n.z) > 0.5);
+    this.escalaUV(mLoseta.geometry, (largo * 12) / loseta.bloque.anchoIn, (H * 12) / loseta.bloque.altoIn, (n) => Math.abs(n.z) > 0.5);
 
     // Boquilla: detrás de la loseta, visible por sus juntas.
-    const boquilla = this.mat("boquilla", { color: colorDeLechada(e.espec.pared.lechada), roughness: 0.85 });
-    caja("boquilla", largo, H, T.loseta - 0.006, largo / 2, H / 2, aTile + 0.006, boquilla);
+    caja("boquilla", largo, H, T.loseta - 0.006, largo / 2, H / 2, aTile + 0.006,
+      this.mat("boquilla", { color: colorDeLechada(e.espec.pared.lechada), roughness: 0.85 }));
 
-    // 7. Adhesivo con surcos.
+    // Adhesivo con surcos.
     const adh = this.texturaAdhesivo();
     const arrAdh = Array.from({ length: 6 }, () => this.mat("adhesivo", { color: "#d9d3c3", roughness: 0.9 }));
     arrAdh[caraDentro] = this.mat("adhesivo", { color: "#ffffff", map: adh.tex, roughness: 0.9 });
     const mAdh = caja("adhesivo", largo, H, T.adhesivo, largo / 2, H / 2, aAdh, arrAdh);
     this.escalaUV(mAdh.geometry, (largo * 12) / adh.bloque.anchoIn, (H * 12) / adh.bloque.altoIn, (n) => Math.abs(n.z) > 0.5);
 
-    // 6. Impermeabilizante rojo.
-    caja("impermeable", largo, H, T.impermeable, largo / 2, H / 2, aWP, this.mat("impermeable", { color: COLOR_BORDE.rojo, roughness: 0.5 }));
+    // Impermeabilizante rojo.
+    caja("impermeable", largo, H, T.impermeable, largo / 2, H / 2, aWP, this.mat("impermeable", { color: COLOR.rojo, roughness: 0.5 }));
 
-    // 2. Paneles de tablero: uno por panel (las juntas se ven como cortes).
+    // Paneles de tablero: uno por panel (las juntas se ven como cortes).
     const tablero = this.mat("tablero", { color: "#cbbb9a", roughness: 0.95 });
     const paneles = panelesDePared(largo, H, e.tableroAnchoFt, e.tableroAltoFt);
     for (const pn of paneles) {
       caja("tablero", pn.x1 - pn.x0, pn.y1 - pn.y0, T.panel, (pn.x0 + pn.x1) / 2, (pn.y0 + pn.y1) / 2, aPanel, tablero);
     }
 
-    // 3. Tornillos: una sola malla instanciada por pared. Van en la cara del panel, donde pega el impermeabilizante.
+    // Tornillos: una malla instanciada por pared. Van en la cara del panel, donde pega el impermeabilizante.
     const tornillos: { x: number; y: number }[] = [];
     for (const pn of paneles) {
       const r = tornillosEnPanel(e.tornillosPorTablero, pn.x1 - pn.x0, pn.y1 - pn.y0);
@@ -495,54 +636,68 @@ export class EscenaRegadera {
       this.reg("tornillos", inst);
     }
 
-    // 5. Malla en las juntas de paneles.
+    // Malla en las juntas de paneles.
     const juntas = juntasDePaneles(largo, H, e.tableroAnchoFt, e.tableroAltoFt);
     const malla = this.mat("malla", { color: "#f5f3ee", roughness: 0.9 });
     for (const x of juntas.verticales) caja("malla", T.ancho_malla, H, T.malla, x, H / 2, aPanel - 0.0007, malla);
     for (const y of juntas.horizontales) caja("malla", largo, T.ancho_malla, T.malla, largo / 2, y, aPanel - 0.0007, malla);
 
-    // 1. Membrana: subida detrás del panel, en la base.
+    // Membrana: subida detrás del panel, en la base.
     if (e.subidaIn > 0) {
       const sub = Math.min(H, e.subidaIn / 12);
       caja("membrana", largo, sub, T.liner, largo / 2, sub / 2, aLiner, this.mat("membrana", { color: "#2b5fd9", roughness: 0.8 }));
     }
 
-    // Postes: a 16 in, cada uno con su cara en el panel (sin plata de dibujo de madera).
+    // Postes a 16 in (sin capa en la lista: siempre visibles, con su propio corte).
     const posiciones: number[] = [];
     for (let x = T.poste_ancho / 2; x < largo - T.poste_ancho / 2 + 1e-9; x += T.poste_separacion) posiciones.push(x);
     if (posiciones.length === 0 || largo - posiciones[posiciones.length - 1] > T.poste_ancho) posiciones.push(largo - T.poste_ancho / 2);
-    const poste = this.mat(null, { color: COLOR_BORDE.poste, roughness: 0.8 });
+    const poste = this.mat(null, { color: COLOR.poste, roughness: 0.8 }, "marco");
     for (const x of posiciones) caja(null, T.poste_ancho, H, T.poste, x, H / 2, aPoste, poste);
 
-    // Salpicadero: solo en la pared trasera (la primera).
-    if (esTrasera && e.salpicaderoLargoFt > 0 && e.salpicaderoAltoFt > 0) {
-      const sl = Math.min(largo, e.salpicaderoLargoFt);
-      const sa = Math.min(H, e.salpicaderoAltoFt);
-      const y0 = Math.max(0, Math.min(H - sa, H * 0.42));
-      const sal = this.textura("salpicadero", e.espec.salpicadero, e.fotos.salpicadero, true);
-      const bordeSal = this.mat("salpicadero", { color: "#0f766e", roughness: 0.3 });
-      const matSal = this.mat("salpicadero", { color: "#ffffff", map: sal.tex, roughness: 0.3 });
-      const arrSal = Array.from({ length: 6 }, () => bordeSal);
-      arrSal[caraDentro] = matSal;
-      const mSal = caja("salpicadero", sl, sa, 0.0042, largo / 2, y0 + sa / 2, -0.0042, arrSal);
-      this.escalaUV(mSal.geometry, (sl * 12) / sal.bloque.anchoIn, (sa * 12) / sal.bloque.altoIn, (n) => Math.abs(n.z) > 0.5);
-    }
-
-    // 13/14. Boquilla y silicón: el silicón en las esquinas y en la unión con el piso.
-    const sil = this.mat("silicon", { color: COLOR_BORDE.silicon, roughness: 0.4 });
-    const cilH = (r: number, l: number, x: number, y: number, z: number, eje: "x" | "y") => {
+    // Silicón en las esquinas y en la unión con el piso.
+    const sil = this.mat("silicon", { color: COLOR.silicon, roughness: 0.4 });
+    const cil = (r: number, l: number, x: number, y: number, z: number, eje: "x" | "y") => {
       const geom = this.geo(new THREE.CylinderGeometry(r, r, l, 10));
-      if (eje === "x") geom.rotateZ(Math.PI / 2); // el eje del cilindro pasa a ser x
+      if (eje === "x") geom.rotateZ(Math.PI / 2);
       const mesh = new THREE.Mesh(geom, sil);
       mesh.position.set(x, y, z);
       g.add(mesh);
       this.reg("silicon", mesh);
     };
-    cilH(0.0125, H, 0, H / 2, zA(0.01), "y");
-    cilH(0.0125, H, largo, H / 2, zA(0.01), "y");
-    const yBase = 0.05;
-    cilH(0.0125, largo, largo / 2, yBase, zA(0.012), "x");
+    cil(0.0125, H, 0, H / 2, zA(0.01), "y");
+    cil(0.0125, H, largo, H / 2, zA(0.01), "y");
+    cil(0.0125, largo, largo / 2, 0.05, zA(0.012), "x");
 
+    return g;
+  }
+
+  /**
+   * El lavabo de afuera, a la derecha de la regadera: pared de tocador, encimera y el salpicadero (la capa 10) sobre la
+   * encimera, en la cara que da hacia afuera. Así el salpicadero se ve como en la lámina, fuera de la ducha.
+   */
+  private construyeVanidad(e: EntradaEscena, L: number, H: number): THREE.Group {
+    const g = new THREE.Group();
+    const x0 = L + 0.7;
+    const largo = 4;
+    const pared = new THREE.Mesh(this.geo(new THREE.BoxGeometry(0.3, H, largo)), this.mat(null, { color: COLOR.pared, roughness: 0.9 }, "base"));
+    pared.position.set(x0 + 0.15, H / 2, largo / 2 - 0.2);
+    const encimera = new THREE.Mesh(this.geo(new THREE.BoxGeometry(1.2, 0.12, largo)), this.mat(null, { color: COLOR.encimera, roughness: 0.3 }, "base"));
+    encimera.position.set(x0 + 0.3 + 0.6, 2.94, largo / 2 - 0.2);
+    g.add(pared, encimera);
+
+    const alto = Math.min(1.2, Math.max(0.5, e.salpicaderoAltoFt));
+    const ancho = Math.min(largo - 0.4, Math.max(1, e.salpicaderoLargoFt));
+    const sal = this.textura("salpicadero", e.espec.salpicadero, e.fotos.salpicadero, true);
+    const borde = this.mat("salpicadero", { color: "#0f766e", roughness: 0.3 });
+    const cara = this.mat("salpicadero", { color: "#ffffff", map: sal.tex, roughness: 0.3 });
+    const arr = Array.from({ length: 6 }, () => borde);
+    arr[0] = cara; // cara +x: la que mira hacia afuera
+    const patch = new THREE.Mesh(this.geo(new THREE.BoxGeometry(0.02, alto, ancho)), arr);
+    patch.position.set(x0 + 0.3 + 0.01, 3.06 + alto / 2, largo / 2 - 0.2);
+    this.escalaUV(patch.geometry, (ancho * 12) / sal.bloque.anchoIn, (alto * 12) / sal.bloque.altoIn, (n) => Math.abs(n.x) > 0.5);
+    g.add(patch);
+    this.reg("salpicadero", patch);
     return g;
   }
 

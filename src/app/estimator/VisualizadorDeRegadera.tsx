@@ -62,7 +62,14 @@ export default function VisualizadorDeRegadera() {
   const [escenaLista, setEscenaLista] = useState(false);
 
   useEffect(() => {
-    setCalc(leeGuardado());
+    const g = leeGuardado();
+    setCalc(g);
+    // La pendiente de mortero va apagada si la calculadora la deja fuera (ajuste C33 = 0). Se puede prender a mano.
+    setVisibles((prev) => {
+      const n = new Set(prev);
+      if (g.ajustes.preslopeIncluido === 1) n.add("base-mortero"); else n.delete("base-mortero");
+      return n;
+    });
   }, []);
 
   // Escena: se crea al montar (con su propio canvas, para que el modo estricto no reuse un contexto perdido).
@@ -294,8 +301,8 @@ export default function VisualizadorDeRegadera() {
               })}
             </ol>
             <p className="hint vis-nota">
-              {t("Pre-slope is shown for reference; the calculator leaves it off unless the Product Settings say so.",
-                "La pendiente se muestra como referencia; la calculadora la deja apagada salvo que los ajustes del producto digan lo contrario.")}
+              {t("Mortar pre-slope starts hidden when the calculator has it off (Product Settings C33 = 0). Tick it to show.",
+                "La base con pendiente empieza oculta cuando la calculadora la deja fuera (ajuste C33 = 0). Marca la casilla para verla.")}
             </p>
           </div>
         </div>
