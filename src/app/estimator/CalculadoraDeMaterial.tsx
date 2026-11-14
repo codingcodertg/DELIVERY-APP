@@ -9,48 +9,9 @@ import {
   type AjustesCalculadora, type Disposicion, type EntradasCalculadora, type FilaCalculada, type TamanoDeLoseta, type TipoDeProyecto,
 } from "@/lib/estimator/calculadora-material";
 
-/** Dónde se guardan las últimas entradas y ajustes, en este navegador (no en la base). */
-const CLAVE_GUARDADO = "rtg:calculadora-material:v1";
+import { guardar, leeGuardado } from "@/lib/estimator/calculadora-guardado";
+
 const TABLA_ID = "calculadora-material";
-
-interface Guardado { entradas: EntradasCalculadora; ajustes: AjustesCalculadora }
-
-/** Lo que haya en el navegador, con cada valor comprobado. Lo que no cuadra vuelve a su valor por defecto. */
-function leeGuardado(): Guardado {
-  const base: Guardado = { entradas: ENTRADAS_POR_DEFECTO, ajustes: AJUSTES_POR_DEFECTO };
-  try {
-    const txt = window.localStorage.getItem(CLAVE_GUARDADO);
-    if (!txt) return base;
-    const v = JSON.parse(txt) as { entradas?: unknown; ajustes?: unknown } | null;
-    return {
-      entradas: fusiona(ENTRADAS_POR_DEFECTO, v?.entradas, valorDeEntrada),
-      ajustes: fusiona(AJUSTES_POR_DEFECTO, v?.ajustes, (_k, x) => typeof x === "number" && Number.isFinite(x)),
-    };
-  } catch {
-    return base;
-  }
-}
-
-function fusiona<T extends object>(base: T, guardado: unknown, valido: (k: keyof T, x: unknown) => boolean): T {
-  const salida = { ...base };
-  if (!guardado || typeof guardado !== "object") return salida;
-  for (const k of Object.keys(base) as (keyof T)[]) {
-    const x = (guardado as Record<string, unknown>)[k as string];
-    if (valido(k, x)) salida[k] = x as T[keyof T];
-  }
-  return salida;
-}
-
-function valorDeEntrada(k: keyof EntradasCalculadora, x: unknown): boolean {
-  if (k === "proyecto") return PROYECTOS.includes(x as TipoDeProyecto);
-  if (k === "disposicion") return DISPOSICIONES.includes(x as Disposicion);
-  if (k === "tamanoPared" || k === "tamanoPiso") return TAMANOS_DE_LOSETA.includes(x as TamanoDeLoseta);
-  return typeof x === "number" && Number.isFinite(x);
-}
-
-function guardar(g: Guardado): void {
-  try { window.localStorage.setItem(CLAVE_GUARDADO, JSON.stringify(g)); } catch { /* sin almacenamiento: no pasa nada */ }
-}
 
 const TIPO_ES: Record<TipoDeProyecto, string> = { Shower: "Ducha", "Flooring Only": "Solo piso", "Wall Only": "Solo pared" };
 const TIPO_EN: Record<TipoDeProyecto, string> = { Shower: "Shower", "Flooring Only": "Flooring Only", "Wall Only": "Wall Only" };

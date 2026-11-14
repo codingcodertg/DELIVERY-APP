@@ -52333,3 +52333,9 @@ Nueva pestaña en el Quote Builder, para todos los que lo abren: el vendedor met
 Observaciones de la hoja, sin tocar: C11/C12, C6, C40 y C43 de Product Settings no los usa ninguna fórmula; Water Shield cuenta envases de C14 galones; el thinset dice 50 lb en la unidad y 44 lb en las notas.
 Visto en pantalla (demo) a 1280 y 390.
 Sello `estimator` 0.33.0; repo 1.894.0.
+
+## D-1042 · Quote Builder: pestaña «Shower visualizer» (regadera en 3D, capa por capa, loseta a elegir)
+
+Nueva pestaña en el Quote Builder con una regadera en 3D hecha con three.js (MIT, cargado en diferido solo al abrir la pestaña). Las capas y sus números son los de la lámina «Shower Materials» del dueño: base con pendiente, liner, mortero, drenaje, backerboard con tornillos y malla, impermeabilizante, thinset, loseta de piso y pared, niveladores, perfiles, boquilla y silicón; con corte de esquina, construcción paso a paso y clic en cada capa para ver qué es. Medidas y paredes salen de la Calculadora de material (misma clave de `localStorage`, `calculadora-guardado.ts`). La loseta de pared, piso y backsplash se cambia por diseño dibujado (sin imágenes ajenas), tamaño, patrón, color y ancho de boquilla, o con una foto que se queda en el navegador. «Take picture» baja un PNG.
+Publicado como primera versión a pedido del dueño, tras verlo en el preview: de lejos la loseta se ve pálida, el hexágono no se lee como mosaico, el corte enseña poco las capas y el drenaje no sale en el corte; herringbone no está.
+Sello `estimator` 0.34.0; repo 1.895.0.

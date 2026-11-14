@@ -35,6 +35,13 @@ import {
 } from "@/lib/estimator/politica";
 import { puedeVerLista, puedeVerTodas, type Pestana } from "@/lib/estimator/lista-admin";
 import { CalculadoraDeMaterial } from "./CalculadoraDeMaterial";
+import dynamic from "next/dynamic";
+
+/** El visualizador trae three.js (~600 KB): se carga solo al abrir la pestaña, y nunca en el servidor. */
+const VisualizadorDeRegadera = dynamic(() => import("./VisualizadorDeRegadera"), {
+  ssr: false,
+  loading: () => <p className="hint">…</p>,
+});
 import { alternarPriceMatch, etiquetaPriceMatch, igualaPrecio, ponCompetidor, ponPrecioCompetidor, sePuedeIgualar, tienePriceMatch } from "@/lib/estimator/price-match";
 import { borradorDesdeLead, decidirRelleno, idDeParametro, nombreDeLead, vinculoDeLead } from "@/lib/leads/cotizar";
 import { enlaceDeLaBase, enlaceDemo, type AlmacenDelEnlace } from "@/lib/leads/enlace";
@@ -577,9 +584,14 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
           className={"btn btn-sm " + (pestana === "calculadora" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("calculadora")}>
           🧱 {t("Material calculator", "Calculadora de material")}
         </button>
+        <button type="button" role="tab" aria-selected={pestana === "visualizador"} data-pestana="visualizador"
+          className={"btn btn-sm " + (pestana === "visualizador" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("visualizador")}>
+          🚿 {t("Shower visualizer", "Visualizador de regadera")}
+        </button>
       </div>
 
       {pestana === "calculadora" && <CalculadoraDeMaterial />}
+      {pestana === "visualizador" && <VisualizadorDeRegadera />}
 
       {/* La `key` la monta de nuevo si «Ver como» cambia de persona: otra persona, otro alcance, otros filtros. */}
       {pestana === "todas" && puedeVerLista(me) && (
