@@ -5,6 +5,7 @@ import { landingRoute } from "@/lib/constants";
 import "./erp.css";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
+import { MarcaDeAgua } from "@/components/MarcaDeAgua";
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
@@ -30,7 +31,7 @@ export const metadata: Metadata = {
  */
 export default async function ErpLayout({ children }: { children: React.ReactNode }) {
   // Modo demo (D-941): sin base ni sesión; las pantallas leen la semilla de `lib/erp/demo-data`.
-  if (LOCAL_MODE) return <div data-app="erp">{children}</div>;
+  if (LOCAL_MODE) return <div data-app="erp">{children}<MarcaDeAgua nombre="Demo" /></div>;
 
   const supabase = await createClient(); // deliveries' client — public schema, shared identity
   const {
@@ -40,7 +41,7 @@ export default async function ErpLayout({ children }: { children: React.ReactNod
 
   const { data: profile, error: errorPerfil } = await supabase
     .from("profiles")
-    .select("role, module_access")
+    .select("role, module_access, full_name")
     .eq("id", user.id)
     .maybeSingle();
   // Tres desenlaces, no dos (D-234): si la CONSULTA fallo no se redirige, porque el
@@ -59,5 +60,6 @@ export default async function ErpLayout({ children }: { children: React.ReactNod
 
   // D-622 (2026-10-21): la barra es la superior de Entregas (side-nav.tsx) y va en el flujo del documento, así que
   // ya no hay barra lateral fija ni hueco a la izquierda que reservar (el `ErpNavProvider` de D-090 se fue con ella).
-  return <div data-app="erp">{children}</div>;
+  const persona = profile?.full_name?.trim() || user.email || "";
+  return <div data-app="erp">{children}<MarcaDeAgua nombre={persona} /></div>;
 }
