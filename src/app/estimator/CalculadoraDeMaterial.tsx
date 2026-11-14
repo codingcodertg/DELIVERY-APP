@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState, type InputHTMLAttributes, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { TablaReducida, type ColumnaReducida } from "@/components/timetracker/TablaReducida";
 import { leeDecimal, limpiaDecimal } from "@/lib/campo-decimal";
 import {
   AJUSTES_META, AJUSTES_POR_DEFECTO, DISPOSICIONES, ENTRADAS_POR_DEFECTO, PROYECTOS, TAMANOS_DE_LOSETA, calcular,
-  type AjustesCalculadora, type Disposicion, type EntradasCalculadora, type FilaCalculada, type TamanoDeLoseta, type TipoDeProyecto,
+  type AjustesCalculadora, type AreasCalculadas, type Disposicion, type EntradasCalculadora, type Explicacion, type FilaCalculada,
+  type TamanoDeLoseta, type TipoDeProyecto,
 } from "@/lib/estimator/calculadora-material";
 
 import { guardar, leeGuardado } from "@/lib/estimator/calculadora-guardado";
@@ -51,6 +52,19 @@ export function CalculadoraDeMaterial() {
   const [ajustes, setAjustes] = useState<AjustesCalculadora>(AJUSTES_POR_DEFECTO);
   const [listo, setListo] = useState(false);
   const [copiado, setCopiado] = useState<"ok" | "error" | null>(null);
+  // La tarjeta de «cómo sale»: qué se explica y el botón que la abrió (para devolverle el foco al cerrar).
+  const [explicando, setExplicando] = useState<{ titulo: string; explicacion: Explicacion } | null>(null);
+  const origenRef = useRef<HTMLElement | null>(null);
+  const abrirExplicacion = useCallback((titulo: string, explicacion: Explicacion, origen: HTMLElement) => {
+    origenRef.current = origen;
+    setExplicando({ titulo, explicacion });
+  }, []);
+  const cerrarExplicacion = useCallback(() => {
+    setExplicando(null);
+    const origen = origenRef.current;
+    origenRef.current = null;
+    window.setTimeout(() => origen?.focus(), 0);
+  }, []);
 
   // Lo guardado se lee al montar (no en el render: el servidor no tiene localStorage) y después se guarda cada cambio.
   useEffect(() => {
@@ -87,16 +101,31 @@ export function CalculadoraDeMaterial() {
     const num = (n: number) => fmt.format(n);
     return [
       { key: "material", en: "Material", es: "Material", ancho: 230, fija: true, celda: (f) => f.material[lang] },
-      { key: "necesaria", en: "Amount needed", es: "Cantidad necesaria", ancho: 120, numerico: true, celda: (f) => num(f.cantidad) },
+      {
+        key: "necesaria", en: "Amount needed", es: "Cantidad necesaria", ancho: 120, numerico: true,
+        celda: (f) => (
+          <button type="button" className="calc-link" data-explica={f.clave} aria-haspopup="dialog"
+            aria-label={`${lang === "es" ? "Ver cómo sale" : "See how it is calculated"}: ${f.material[lang]} — ${num(f.cantidad)}`}
+            onClick={(ev) => abrirExplicacion(f.material[lang], f.explicacion, ev.currentTarget)}>
+            {num(f.cantidad)}
+          </button>
+        ),
+      },
       { key: "paquete", en: "Per package", es: "Por paquete", ancho: 110, numerico: true, celda: (f) => (f.porPaquete === null ? "—" : num(f.porPaquete)) },
       {
         key: "venta", en: "To sell", es: "A vender", ancho: 110, numerico: true,
-        celda: (f) => <span className="calc-venta" data-venta={f.clave}>{num(f.venta)}</span>,
+        celda: (f) => (
+          <button type="button" className="calc-venta calc-link" data-venta={f.clave} aria-haspopup="dialog"
+            aria-label={`${lang === "es" ? "Ver cómo sale" : "See how it is calculated"}: ${f.material[lang]} — ${num(f.venta)}`}
+            onClick={(ev) => abrirExplicacion(f.material[lang], f.explicacion, ev.currentTarget)}>
+            {num(f.venta)}
+          </button>
+        ),
       },
       { key: "unidad", en: "Unit", es: "Unidad", ancho: 120, celda: (f) => f.unidad[lang] },
       { key: "notas", en: "Notes", es: "Notas", ancho: 340, envuelve: true, celda: (f) => f.nota[lang] },
     ];
-  }, [fmt, lang]);
+  }, [fmt, lang, abrirExplicacion]);
 
   const copiarLista = async () => {
     const lineas = resultado.filas
@@ -252,15 +281,75 @@ export function CalculadoraDeMaterial() {
       <div className="card">
         <h2>03 · {t("Calculated surface areas", "Áreas calculadas")}</h2>
         <div className="calc-stats">
-          <div className="calc-stat"><span className="hint">{t("Floor area (SF)", "Área de piso (SF)")}</span><b>{cifra(resultado.areas.pisoSf)}</b></div>
-          <div className="calc-stat"><span className="hint">{t("Wall area (SF)", "Área de pared (SF)")}</span><b>{cifra(resultado.areas.paredSf)}</b></div>
-          <div className="calc-stat"><span className="hint">{t("Wall perimeter (LF)", "Perímetro de pared (LF)")}</span><b>{cifra(resultado.areas.perimetroLf)}</b></div>
-          <div className="calc-stat"><span className="hint">{t("Estimated full backerboard panels", "Paneles de tablero completos estimados")}</span><b>{cifra(resultado.areas.tablerosPaneles)}</b></div>
+          {([
+            ["pisoSf", t("Floor area (SF)", "Área de piso (SF)")],
+            ["paredSf", t("Wall area (SF)", "Área de pared (SF)")],
+            ["perimetroLf", t("Wall perimeter (LF)", "Perímetro de pared (LF)")],
+            ["tablerosPaneles", t("Estimated full backerboard panels", "Paneles de tablero completos estimados")],
+          ] as [keyof AreasCalculadas, string][]).map(([clave, etiqueta]) => (
+            <div key={clave} className="calc-stat">
+              <span className="hint">{etiqueta}</span>
+              <button type="button" className="calc-link" aria-haspopup="dialog" data-explica-area={clave}
+                onClick={(ev) => abrirExplicacion(etiqueta, resultado.explicacionAreas[clave], ev.currentTarget)}>
+                <b>{cifra(resultado.areas[clave])}</b>
+              </button>
+            </div>
+          ))}
         </div>
       </div>
 
       <AjustesDelProducto ajustes={ajustes} onCambio={ponerAjuste} onRestablecer={() => setAjustes(AJUSTES_POR_DEFECTO)} />
       <Glosario />
+
+      {explicando && (
+        <TarjetaDeExplicacion titulo={explicando.titulo} explicacion={explicando.explicacion} onCerrar={cerrarExplicacion} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * «Cómo sale»: una tarjeta encima de la página (no navega). Muestra la fórmula, los pasos con las cifras puestas, lo que
+ * usa y la línea de cierre. Se cierra con «Cerrar», con Esc o tocando fuera; el foco vuelve al número que la abrió.
+ */
+function TarjetaDeExplicacion({ titulo, explicacion, onCerrar }: {
+  titulo: string; explicacion: Explicacion; onCerrar: () => void;
+}) {
+  const { t, lang } = usePrefs();
+  const cerrarRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    cerrarRef.current?.focus();
+    const alTeclear = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") { ev.preventDefault(); onCerrar(); }
+      // Único botón enfocable de la tarjeta: el Tab se queda ahí en vez de pasar a la página de atrás.
+      else if (ev.key === "Tab") { ev.preventDefault(); cerrarRef.current?.focus(); }
+    };
+    document.addEventListener("keydown", alTeclear);
+    return () => document.removeEventListener("keydown", alTeclear);
+  }, [onCerrar]);
+
+  return (
+    <div className="overlay" data-explicacion onClick={(ev) => { if (ev.target === ev.currentTarget) onCerrar(); }}>
+      <div className="modal calc-explica" role="dialog" aria-modal="true" aria-labelledby="calc-explica-titulo">
+        <h3 id="calc-explica-titulo">{titulo}</h3>
+        <p className="calc-formula">{explicacion.formula[lang]}</p>
+        <ol className="calc-pasos">
+          {explicacion.pasos.map((p, i) => <li key={i}>{p[lang]}</li>)}
+        </ol>
+        {explicacion.usa.length > 0 && (
+          <>
+            <h4>{t("Inputs and settings it uses", "Entradas y ajustes que usa")}</h4>
+            <ul className="calc-usa">
+              {explicacion.usa.map((u, i) => <li key={i}>{u[lang]}</li>)}
+            </ul>
+          </>
+        )}
+        <p className="calc-cierre">{explicacion.cierre[lang]}</p>
+        <div className="modal-actions">
+          <button ref={cerrarRef} type="button" className="btn btn-ghost" onClick={onCerrar}>{t("Close", "Cerrar")}</button>
+        </div>
+      </div>
     </div>
   );
 }
