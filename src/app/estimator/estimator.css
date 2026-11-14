@@ -179,3 +179,40 @@
   /* La hoja ya trae su margen (16 mm): sin el relleno general del cuerpo (globals.css), para no doblarlo. */
   body:has(.est-vista-previa) { padding: 0; }
 }
+
+/* Visualizador de regadera (3D). Escena a la izquierda en escritorio; en teléfono, los controles van debajo. */
+.vis-wrap { min-width: 0; }
+.vis-wrap .card h2 { margin: 0 0 10px; font-size: 17px; }
+.vis-wrap .card h3 { margin: 0 0 8px; font-size: 14px; }
+.vis-grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); align-items: start; }
+.vis-columna-escena, .vis-columna-controles { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.vis-lienzo { position: relative; width: 100%; height: 540px; min-height: 360px; border-radius: 10px; overflow: hidden; background: #e8e6e1; }
+.vis-botones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+.vis-paso { display: flex; flex-direction: column; gap: 6px; }
+.vis-paso label { font-size: 13px; }
+.vis-paso-controles { display: flex; align-items: center; gap: 10px; }
+.vis-paso-controles input[type="range"] { flex: 1; min-width: 0; }
+.vis-capas { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.vis-capa { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-radius: 8px; padding: 2px 4px; min-height: 40px; min-width: 0; }
+.vis-capa-nombre > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.vis-capa-ver { flex: 0 0 auto; }
+.vis-capa-activa { background: rgba(37, 99, 235, 0.08); }
+.vis-capa-nombre { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 6px 4px; cursor: pointer; font: inherit; color: inherit; }
+.vis-num { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; }
+.vis-capa-ver { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; cursor: pointer; }
+.vis-detalle { display: flex; flex-direction: column; gap: 4px; border-left: 4px solid; padding: 6px 10px; margin-bottom: 8px; font-size: 13px; }
+.vis-nota { margin: 10px 0 0; font-size: 12px; }
+.vis-aviso { color: #b45309; }
+.vis-picker { border: 1px solid rgba(0, 0, 0, 0.12); border-radius: 10px; padding: 10px 12px 12px; margin: 0 0 12px; min-width: 0; }
+.vis-picker legend { font-weight: 700; font-size: 14px; padding: 0 6px; }
+.vis-picker-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.vis-foto { margin-top: 8px; }
+.vis-subir { cursor: pointer; }
+.vis-medidas summary { cursor: pointer; }
+.vis-medidas-grid { margin-top: 10px; }
+@media (max-width: 760px) {
+  .vis-grid { grid-template-columns: minmax(0, 1fr); }
+  .vis-lienzo { height: 62vh; min-height: 340px; }
+  .vis-botones .btn { min-height: 40px; }
+  .vis-capa { min-height: 44px; }
+}

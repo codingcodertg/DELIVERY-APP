@@ -26,7 +26,7 @@ import {
  * mienta sobre lo que haría la base.
  */
 
-export type Pestana = "cotizacion" | "competencia" | "todas" | "calculadora";
+export type Pestana = "cotizacion" | "competencia" | "todas" | "calculadora" | "visualizador";
 
 /**
  * Solo el admin ve la lista de todas (`profiles.role = 'admin'`, lo que `page.tsx` pasa como `me.admin` y lo que
