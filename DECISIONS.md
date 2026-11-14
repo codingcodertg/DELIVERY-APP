@@ -52339,3 +52339,27 @@ Sello `estimator` 0.33.0; repo 1.894.0.
 Nueva pestaña en el Quote Builder con una regadera en 3D hecha con three.js (MIT, cargado en diferido solo al abrir la pestaña). Las capas y sus números son los de la lámina «Shower Materials» del dueño: base con pendiente, liner, mortero, drenaje, backerboard con tornillos y malla, impermeabilizante, thinset, loseta de piso y pared, niveladores, perfiles, boquilla y silicón; con corte de esquina, construcción paso a paso y clic en cada capa para ver qué es. Medidas y paredes salen de la Calculadora de material (misma clave de `localStorage`, `calculadora-guardado.ts`). La loseta de pared, piso y backsplash se cambia por diseño dibujado (sin imágenes ajenas), tamaño, patrón, color y ancho de boquilla, o con una foto que se queda en el navegador. «Take picture» baja un PNG.
 Publicado como primera versión a pedido del dueño, tras verlo en el preview: de lejos la loseta se ve pálida, el hexágono no se lee como mosaico, el corte enseña poco las capas y el drenaje no sale en el corte; herringbone no está.
 Sello `estimator` 0.34.0; repo 1.895.0.
+
+## D-1043 · Quote Builder: pestaña «Lost sales» (ventas perdidas por falta de stock)
+
+Pedido de Roberto (ayuda): anotar lo que un cliente quiso y no teníamos. Pestaña nueva en el Quote Builder con formulario rápido (producto, cantidad y unidad, tienda, fecha, motivo —sin stock, stock insuficiente, descontinuado, otro—, valor estimado, cliente, notas) y la lista con el estándar de tablas, filtro por fechas y tienda, resumen por tienda y productos más pedidos, y CSV. Tabla `public.estimator_lost_sales` (migración 308): la ve y la llena quien tiene el Quote Builder; corrige o quita (borrado lógico) el autor o el admin. El disparador fija autor, nombre y fecha al insertar y los conserva al editar (lo pidió la revisión de seguridad: sin eso, un autor podía atribuirle su fila a otro). Mientras la 308 no esté aplicada, la pestaña lo dice en ámbar.
+Visto en pantalla (demo) a 1280 y 390.
+Sello `estimator` 0.35.0; repo 1.896.0.
+
+## D-1044 · Calculadora de material: cada cifra explica cómo sale
+
+Pedido de Roberto: «que se pueda dar clic para ver cómo se calcula». «Amount needed», «To sell» y las áreas de la sección 03 abren una tarjeta en el sitio con la fórmula, los pasos con las cifras de quien mira, las entradas y ajustes que usa (con su celda de la hoja) y el redondeo a paquetes. Las cifras salen de las mismas variables que la tabla. Se cierra con Esc o tocando fuera.
+Visto en pantalla (demo) a 1280 y 390.
+Sello `estimator` 0.35.0; repo 1.896.0.
+
+## D-1045 · RR. HH.: «Person» y «Tot Score» en la puntuación del expediente
+
+Pedido de Roberto. La sección HR SCORE gana «Person» (número, migración 309 `person_score`) y «Tot Score», que se calcula solo: Risk + Performance + Person; con alguno vacío suma los que hay y dice «2 de 3». El total no se guarda. Mientras la 309 no esté aplicada, Person aparece apagado y el resto del expediente se guarda igual.
+Visto en pantalla (demo con datos de prueba) a 1280 y 390.
+Sello `recruiting` 0.93.0; repo 1.896.0.
+
+## D-1046 · Marca de agua en Cotizador, RR. HH., ERP y Clientes; capturas en negro en la app de escritorio
+
+Pedido de Roberto («¿se puede bloquear que tomen capturas?»). En el navegador y el teléfono no se puede impedir; lo que sí: una marca de agua tenue y diagonal con el nombre de quien mira y la fecha y hora, en Quote Builder, RR. HH., ERP y Clientes (`RUTAS_CON_MARCA`), sin tapar clics y fuera de la impresión (la cotización del cliente sale limpia). En la app de escritorio 1.5.0, la ventana sale en negro en capturas y grabaciones solo mientras está en esas mismas pantallas (`desktop/protegidas.js`): toda la ventana en negro taparía también el trabajo que el cliente de Time Tracker captura para la nómina. La 1.5.0 está en el código pero falta compilar y publicar el instalador.
+Visto en pantalla (demo) a 1280 y 390, claro y oscuro. La ventana de escritorio no se probó.
+Sello `estimator` 0.35.0; `recruiting` 0.93.0; `erp` 0.29.0; `customers` 0.63.0; repo 1.896.0.

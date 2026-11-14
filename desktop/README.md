@@ -84,6 +84,21 @@ para que nadie crea que es un virus y lo borre.
   `sandbox: true`). Esta ventana carga un sitio remoto; sin eso, un día malo en la web sería
   un día malo en el ordenador de quien la abrió.
 
+## Capturas de pantalla (desde la 1.5.0)
+
+Las pantallas con datos que no deben salir en una foto —**Quote Builder, RR. HH., ERP y Clientes**— se
+muestran **en negro en capturas y grabaciones** mientras la ventana está en una de ellas. En el resto del
+hub no se protege, a propósito: el cliente de Time Tracker toma capturas para los registros de pago, y si
+todo el hub saliera en negro, cronometrar desde aquí no serviría.
+
+La lista de rutas está en `protegidas.js` (`RUTAS_PROTEGIDAS`). Es la misma que la de la marca de agua de la
+web (`src/lib/marca-de-agua.ts`); la prueba `src/lib/desktop-protegidas.test.ts` falla si se separan. Si se
+añade una app sensible, se pone en las dos. La protección se decide en cada navegación y en cada cambio de
+ruta sin recargar (`did-navigate` y `did-navigate-in-page`).
+
+Limitación: es la protección que Windows ofrece para ventanas. Evita las capturas normales y las grabaciones
+de pantalla; no impide una foto con otro teléfono.
+
 ## Actualizar la app (no el sitio)
 
 El sitio se actualiza solo. **Desde la 1.2.0 (D-811) la cáscara también**: `electron-updater`

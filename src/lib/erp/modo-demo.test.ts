@@ -29,7 +29,7 @@ describe("/erp/** en el demo, sin base ni sesión", () => {
   it("el layout ramifica antes de crear el cliente y de mirar la sesión", () => {
     const f = leer("src/app/erp/layout.tsx");
     expect(f).toContain(BANDERA);
-    const rama = 'if (LOCAL_MODE) return <div data-app="erp">{children}</div>;';
+    const rama = 'if (LOCAL_MODE) return <div data-app="erp">{children}';
     ordenado(f, rama, "await createClient()");
     ordenado(f, rama, "supabase.auth.getUser()");
     ordenado(f, rama, 'redirect("/login?next=/erp/catalog")');

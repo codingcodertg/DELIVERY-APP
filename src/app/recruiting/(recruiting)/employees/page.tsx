@@ -34,7 +34,7 @@ import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { downloadCSV, toCSV } from "@/lib/utils";
 import { exportaTablaExcel } from "@/lib/export-tabla";
 import { COLUMNAS_DE_EMPLEADOS, coincideBusqueda, tablaParaExportar, valorDeEmpleado } from "@/lib/recruiting/tabla-de-empleados";
-import { COLUMNAS_207, OPCIONES_1PW, TIENDA_REMOTA, alternaPuesto, costoMensual, dinero, hayCambios, parcheDeTienda, puestosParaElegir, tienePuesto, tiendaDelSelector } from "@/lib/recruiting/employee-file";
+import { COLUMNAS_207, COLUMNAS_309, OPCIONES_1PW, TIENDA_REMOTA, alternaPuesto, costoMensual, dinero, hayCambios, parcheDeTienda, puestosParaElegir, tienePuesto, tiendaDelSelector } from "@/lib/recruiting/employee-file";
 import { PermisosDelEmpleado } from "@/components/recruiting/PermisosDelEmpleado";
 import { ActivosDelEmpleado } from "@/components/recruiting/ActivosDelEmpleado";
 import { ChecklistDelEmpleado } from "@/components/recruiting/ChecklistDelEmpleado";
@@ -47,6 +47,7 @@ import { BuscadorConBorrar } from "@/components/BuscadorConBorrar";
 import { nombreDeDepartamento } from "@/lib/departamentos";
 import { PLANES_DE_CORREO, tooltipDelPlan } from "@/lib/recruiting/planes-de-correo";
 import { avisoDeLicencia, estadoDeLicencia } from "@/lib/recruiting/hr";
+import { puntuacionTotal } from "@/lib/recruiting/puntuacion-total";
 import { fichaPedida } from "@/lib/recruiting/busqueda-global";
 
 /**
@@ -85,6 +86,8 @@ function EmployeeFilesPageReal() {
   const [con159, setCon159] = useState(false);
   // La 207 (D-719): herramientas y costo. Igual que la 159: sin ella, la sección se apaga y dice por qué.
   const [con207, setCon207] = useState(false);
+  // La 309: la columna «Persona» de la hoja de puntuación. Va aparte: puede faltar aunque la 207 esté.
+  const [con309, setCon309] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [abierto, setAbierto] = useState<string | null>(null);
@@ -119,7 +122,7 @@ function EmployeeFilesPageReal() {
   const load = useCallback(async () => {
     const r = await listEmployeeFiles();
     if (!r.ok) setErr(mensajeDeErrorAlCargar(r.message));
-    else { setErr(null); setRows(r.rows); setCon159(r.campos159); setCon207(r.campos207); }
+    else { setErr(null); setRows(r.rows); setCon159(r.campos159); setCon207(r.campos207); setCon309(r.campos309); }
     setCargando(false);
   }, []);
 
@@ -415,7 +418,7 @@ function EmployeeFilesPageReal() {
       </div>
 
       {abiertaFila && (
-        <Ficha key={abiertaFila.id} persona={abiertaFila} con159={con159} con207={con207} puedeBaja={puedeBaja}
+        <Ficha key={abiertaFila.id} persona={abiertaFila} con159={con159} con207={con207} con309={con309} puedeBaja={puedeBaja}
           onSaved={load} onClose={() => setAbierto(null)}
           onBaja={() => setBaja(abiertaFila.id)} onReactivar={() => setReactivar(abiertaFila.id)} onAmonestar={(tipo) => setAmonestar({ id: abiertaFila.id, tipo })} />
       )}
@@ -476,9 +479,9 @@ function FichaDeLaUrl({ onPedida }: { onPedida: (id: string) => void }) {
  * cada categoría es un `<details>`: DATOS abierto, lo demás plegado.
  */
 function Ficha({
-  persona, con159, con207, puedeBaja, onSaved, onClose, onBaja, onReactivar, onAmonestar,
+  persona, con159, con207, con309, puedeBaja, onSaved, onClose, onBaja, onReactivar, onAmonestar,
 }: {
-  persona: Fila; con159: boolean; con207: boolean; puedeBaja: boolean;
+  persona: Fila; con159: boolean; con207: boolean; con309: boolean; puedeBaja: boolean;
   onSaved: () => void; onClose: () => void; onBaja: () => void; onReactivar: () => void; onAmonestar: (tipo: AccionDisciplinaria) => void;
 }) {
   const { t, lang } = usePrefs();
@@ -540,6 +543,7 @@ function Ficha({
     rc_device_assigned: persona.rc_device_assigned != null ? String(persona.rc_device_assigned) : "",
     risk_score: persona.risk_score != null ? String(persona.risk_score) : "",
     performance_score: persona.performance_score != null ? String(persona.performance_score) : "",
+    person_score: persona.person_score != null ? String(persona.person_score) : "",
     score_status: persona.score_status != null ? String(persona.score_status) : "",
     score_action: persona.score_action != null ? String(persona.score_action) : "",
     tools_cost_year: persona.tools_cost_year != null ? String(persona.tools_cost_year) : "",
@@ -635,7 +639,9 @@ function Ficha({
     } = info;
     // Los campos de la 207 solo viajan si la tabla los tiene (igual que los de la 159).
     const de207 = Object.fromEntries(COLUMNAS_207.map((k) => [k, restoCon207[k]]));
-    const resto = Object.fromEntries(Object.entries(restoCon207).filter(([k]) => !(COLUMNAS_207 as readonly string[]).includes(k)));
+    const de309 = Object.fromEntries(COLUMNAS_309.map((k) => [k, info[k]]));
+    // La 309 también se aparta: si la tabla no la tiene, mandarla tumbaría el guardado entero.
+    const resto = Object.fromEntries(Object.entries(restoCon207).filter(([k]) => !([...COLUMNAS_207, ...COLUMNAS_309] as readonly string[]).includes(k)));
     const r = await saveEmployeeFile(persona.id, {
       ...resto,
       // D-721: la tienda y el nombre viajan siempre; con cuenta, el servidor los copia al perfil (solo admin de RR. HH.).
@@ -644,6 +650,8 @@ function Ficha({
       // datos» fallaría por un campo que ni siquiera ve.
       ...(editaGrupo ? { directory_group } : {}),
       ...(con207 ? de207 : {}),
+      // La columna «Persona» (309): solo viaja si la tabla la tiene.
+      ...(con309 ? de309 : {}),
       // Los campos de la 159 solo viajan si la tabla los tiene: sin ella, mandarlos tumbaría el
       // guardado entero de los que sí existen.
       ...(con159 ? { job_title, personal_phone, personal_email, emergency_name, emergency_relation, emergency_phone } : {}),
@@ -696,6 +704,19 @@ function Ficha({
   );
   /** Un teléfono: al salir del campo toma la forma única del hub, «(956) 555-0123» (D-850). */
   const alSalirTel = (k: Clave) => () => setInfo((a) => ({ ...a, [k]: telefonoDeFicha(a[k]) ?? "" }));
+  /** Un campo de la 309 («Persona»): igual que `campo207`, pero apagado por su propia migración. */
+  const campo309 = (k: Clave, label: string, extra: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
+    <div>
+      <label>{label}</label>
+      <input value={info[k]} disabled={!con309} data-campo309={k}
+        title={con309 ? undefined : faltaMigracion(t, 309)}
+        onChange={(e) => setInfo({ ...info, [k]: e.target.value })}
+        {...extra}
+        placeholder={con309 ? extra.placeholder : faltaMigracion(t, 309)} />
+    </div>
+  );
+  /** Tot Score (Riesgo + Desempeño + Persona): se calcula de lo que hay en pantalla, sin guardar nada. */
+  const totalDeHoja = puntuacionTotal({ risk: info.risk_score, performance: info.performance_score, person: info.person_score });
 
   const deBaja = estadoEmpleado(persona) === "baja";
   const sinLlenar = camposQueFaltan(persona, con159);
@@ -995,6 +1016,18 @@ function Ficha({
       <div className="grid g3">
         {campo207("risk_score", t("Risk", "Riesgo"), { inputMode: "decimal" })}
         {campo207("performance_score", t("Performance", "Desempeño"), { inputMode: "decimal" })}
+        {campo309("person_score", t("Person", "Persona"), { inputMode: "decimal" })}
+        <div>
+          <label>{t("Tot Score", "Puntuación total")}</label>
+          {/* Solo lectura: es la suma de las tres de arriba. Con alguna vacía suma las que hay y lo dice. */}
+          <input readOnly tabIndex={-1} data-tot-score value={totalDeHoja.total === null ? "—" : String(totalDeHoja.total)}
+            aria-describedby={totalDeHoja.cuantas > 0 && totalDeHoja.cuantas < totalDeHoja.de ? "tot-score-pista" : undefined} />
+          {totalDeHoja.cuantas > 0 && totalDeHoja.cuantas < totalDeHoja.de && (
+            <small id="tot-score-pista" data-tot-score-pista style={{ display: "block", marginTop: 4, fontSize: 12, opacity: 0.7 }}>
+              {t(`${totalDeHoja.cuantas} of ${totalDeHoja.de}`, `${totalDeHoja.cuantas} de ${totalDeHoja.de}`)}
+            </small>
+          )}
+        </div>
         {campo207("score_status", t("Status", "Estado"))}
         {campo207("score_action", t("Action", "Acción"))}
       </div>

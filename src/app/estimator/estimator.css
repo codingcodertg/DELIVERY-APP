@@ -218,3 +218,17 @@
   .vis-botones .btn { min-height: 40px; }
   .vis-capa { min-height: 44px; }
 }
+
+/* «Cómo sale»: el número de Cantidad necesaria, A vender y las áreas abren una tarjeta. Se ven como enlace punteado. */
+.calc-wrap .calc-link { appearance: none; background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; text-decoration: underline dotted; text-decoration-thickness: 1px; text-underline-offset: 3px; border-radius: 4px; }
+.calc-wrap .calc-link:hover { text-decoration-style: solid; }
+.calc-wrap .calc-link:focus-visible { outline: 2px solid var(--blue, #2563eb); outline-offset: 2px; }
+.calc-stat .calc-link { align-self: flex-start; }
+.calc-explica { max-width: 560px; min-width: 0; overflow-wrap: anywhere; }
+.calc-explica h3 { margin: 0 0 6px; font-size: 17px; }
+.calc-explica .calc-formula { margin: 0 0 12px; font-style: italic; font-size: 13px; color: var(--ink-soft); line-height: 1.45; }
+.calc-explica .calc-pasos { margin: 0; padding-left: 22px; font-size: 13.5px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.calc-explica .calc-pasos li { margin-bottom: 6px; }
+.calc-explica h4 { margin: 14px 0 6px; font-size: 13px; }
+.calc-explica .calc-usa { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; color: var(--ink-soft); }
+.calc-explica .calc-cierre { margin: 14px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--green-soft); color: var(--green, #1f9d61); font-weight: 800; font-size: 14px; line-height: 1.45; font-variant-numeric: tabular-nums; }
