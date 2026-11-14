@@ -52370,3 +52370,9 @@ Pedido de Roberto: descargar toda la información, no solo las columnas de la ta
 El CSV (el de toda la app, `toCSV`) antepone una comilla al texto que empieza por = + - @, para que Excel no lo abra como fórmula (lo pidió la revisión de seguridad).
 Visto en pantalla (demo con filas de prueba): descargas y encabezados revisados.
 Sello `recruiting` 0.94.0; repo 1.897.0.
+
+## D-1048 · Promos: la ronda dice cuándo se subió el archivo
+
+Pedido de Roberto: las existencias (QOH) son una foto del archivo subido y no se actualizan, así que hay que saber de cuándo son. Bajo el título de la ronda: «Uploaded <fecha y hora> by <nombre>» (`promo_rounds.uploaded_at` y `uploaded_by`, hora de Chicago; sin nombre si la cargó el script) y la etiqueta «QOH as of upload; not live». Las columnas de QOH lo repiten al pasar el ratón, y el selector de rondas enseña la fecha. Subir otra vez es una ronda nueva, por eso basta con la fecha de la ronda. Sin migración.
+Visto en pantalla (demo) a 1280 y 390.
+Sello `promos` 0.24.0; repo 1.898.0.
