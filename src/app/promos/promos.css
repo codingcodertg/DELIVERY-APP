@@ -19,6 +19,16 @@
 .promos-cabecera-acciones { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .promos-selector-de-ronda { width: auto; max-width: 280px; padding: 7px 10px; font-size: 13px; font-weight: 600; }
 
+/* La fecha de la subida: una línea propia bajo el título (ocupa toda la fila), con la advertencia de que las existencias no son en vivo. */
+.promos-subida {
+  margin: -6px 0 0; flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px;
+  font-size: 14px; font-weight: 600; color: var(--ink-soft); font-variant-numeric: tabular-nums;
+}
+.promos-subida-nota {
+  font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  background: var(--line); color: var(--text);
+}
+
 /* ---- Cuánto queda: la única pieza con color propio de la pantalla ---- */
 .promos-avance { display: grid; gap: 7px; max-width: 520px; }
 .promos-avance-texto {

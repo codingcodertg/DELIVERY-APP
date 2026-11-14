@@ -32,7 +32,7 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
     const demo = RONDAS_DEMO.find((r) => r.id === id) ?? RONDAS_DEMO[0];
     return (
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px var(--hueco-de-ayuda)" }}>
-        <RondaDemo ronda={{ id: demo.id, label: demo.label, closed_at: demo.closed_at }} />
+        <RondaDemo ronda={{ id: demo.id, label: demo.label, closed_at: demo.closed_at, uploaded_at: demo.uploaded_at, subidaPor: { nombre: "Persona de muestra" } }} />
       </div>
     );
   }
@@ -46,7 +46,7 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
 
   const { data: ronda } = await supabase
     .from("promo_rounds")
-    .select("id, label, source_name, uploaded_at, closed_at")
+    .select("id, label, source_name, uploaded_at, closed_at, uploaded_by")
     .eq("id", id)
     .maybeSingle();
   if (!ronda) notFound();
@@ -61,6 +61,19 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
     .select("id, label, uploaded_at, closed_at")
     .order("uploaded_at", { ascending: false })
     .limit(50);
+
+  // Quién subió la ronda (`uploaded_by`), con el mismo camino que los nombres de los votos: la vista
+  // pública, con la sesión de quien mira. Si la ronda no tiene usuario (la cargó el script) no hay
+  // nada que buscar; si lo tiene pero no hay nombre, la línea dice «alguien».
+  let subidaPor: { nombre: string | null } | null = null;
+  if (ronda.uploaded_by) {
+    let nombre = "";
+    try {
+      const { data: quien } = await supabase.from("perfiles_publicos").select("full_name").eq("id", ronda.uploaded_by as string).maybeSingle();
+      nombre = ((quien?.full_name as string | null) ?? "").trim();
+    } catch { /* sin nombre: la línea dice «alguien» y sigue */ }
+    subidaPor = { nombre };
+  }
 
   const { data: productos } = await supabase
     .from("promo_catalog")
@@ -102,6 +115,8 @@ export default async function RondaPage({ params }: { params: Promise<{ id: stri
           id: ronda.id as string,
           label: ronda.label as string,
           closed_at: (ronda.closed_at as string | null) ?? null,
+          uploaded_at: (ronda.uploaded_at as string | null) ?? null,
+          subidaPor,
         }}
         productos={(productos ?? []) as unknown as ProductoDeCatalogo[]}
         decisiones={(decisiones ?? []) as unknown as DecisionDeGrupo[]}
