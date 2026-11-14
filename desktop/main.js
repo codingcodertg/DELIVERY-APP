@@ -30,6 +30,7 @@ const { app, BrowserWindow, shell, Menu, dialog, net, powerMonitor } = require("
 const path = require("node:path");
 const fs = require("node:fs");
 const { crearConfianza } = require("./origenes.js");
+const { estaProtegida } = require("./protegidas.js");
 // La actualización automática (D-811): `electron-updater` pregunta a nuestro sitio (`/api/desktop-update/latest.yml`)
 // si hay una versión más nueva, la baja en silencio y la instala al cerrar —o ya, si la persona acepta—. Es lo que hace
 // que esta app NO haya que reinstalarla a mano tienda por tienda a partir de la 1.2.0. La 1.1.1 no la lleva: esa sí
@@ -186,6 +187,19 @@ function crearVentana() {
   win.webContents.setUserAgent(ua);
 
   win.loadURL(INICIO, { userAgent: ua });
+
+  // ---------------------------------------------------------------------------
+  // Capturas: en negro solo en las pantallas con datos sensibles (1.5.0)
+  // ---------------------------------------------------------------------------
+  // `setContentProtection` hace que la ventana salga en negro en capturas y grabaciones. Se enciende solo en las rutas
+  // de `protegidas.js` (cotizaciones, RR. HH., ERP, clientes) y se apaga al salir de ellas. Va por la ruta y no por
+  // toda la ventana porque el cliente de Time Tracker también vive en esta app y necesita capturar sus propios registros.
+  // Se mira en cada navegación completa y en cada cambio de ruta sin recargar (el enrutado de Next.js).
+  const protegeSegunRuta = (url) => {
+    if (!win.isDestroyed()) win.setContentProtection(estaProtegida(url));
+  };
+  win.webContents.on("did-navigate", (_e, url) => protegeSegunRuta(url));
+  win.webContents.on("did-navigate-in-page", (_e, url) => protegeSegunRuta(url));
 
   // ---------------------------------------------------------------------------
   // Nada sale de esta ventana salvo lo que no es nuestro

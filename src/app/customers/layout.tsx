@@ -6,6 +6,7 @@ import { landingRoute } from "@/lib/constants";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import { ConfirmProvider } from "@/lib/confirm";
+import { MarcaDeAgua } from "@/components/MarcaDeAgua";
 import "@/app/erp/erp.css";
 // La capa visual de Clientes (vista previa de diseño): todo bajo `.clientes-app`, el <main> de la lista.
 import "./clientes.css";
@@ -36,7 +37,7 @@ export default async function CustomersLayout({ children }: { children: React.Re
   // D-622 (2026-10-21): la barra es la superior de Entregas, en el flujo; sin `ErpNavProvider` ni hueco lateral.
   const cascaron = <div data-app="erp">{children}</div>;
   // Modo demo: sin base ni sesión. Los clientes son los inventados de `lib/customers/demo`.
-  if (LOCAL_MODE) return <ConfirmProvider>{cascaron}</ConfirmProvider>;
+  if (LOCAL_MODE) return <ConfirmProvider>{cascaron}<MarcaDeAgua nombre="Demo" /></ConfirmProvider>;
 
   const supabase = await createClient();
   const {
@@ -46,7 +47,7 @@ export default async function CustomersLayout({ children }: { children: React.Re
 
   const { data: profile, error: errorPerfil } = await supabase
     .from("profiles")
-    .select("role, module_access")
+    .select("role, module_access, full_name")
     .eq("id", user.id)
     .maybeSingle();
   if (estadoDeLectura({ data: profile, error: errorPerfil }) === "fallo") {
@@ -61,5 +62,6 @@ export default async function CustomersLayout({ children }: { children: React.Re
   }
 
   // D-857: el diálogo de la app (`useConfirm`) para «¿Borrar el borrador?», como en Entregas; antes Clientes no lo montaba.
-  return <ConfirmProvider>{cascaron}</ConfirmProvider>;
+  const persona = profile?.full_name?.trim() || user.email || "";
+  return <ConfirmProvider>{cascaron}<MarcaDeAgua nombre={persona} /></ConfirmProvider>;
 }

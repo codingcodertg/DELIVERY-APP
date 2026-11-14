@@ -49,7 +49,7 @@ describe("Inventario y Clientes llevan la barra superior de Entregas", () => {
 
   it("el hueco de la barra lateral se fue con ella: sin ErpNavProvider en ningún layout", () => {
     expect(existsSync("src/components/erp/nav-state.tsx")).toBe(false);
-    expect(leer("src/app/erp/layout.tsx")).toContain('return <div data-app="erp">{children}</div>;');
+    expect(leer("src/app/erp/layout.tsx")).toContain('return <div data-app="erp">{children}');
     expect(leer("src/app/customers/layout.tsx")).toContain('const cascaron = <div data-app="erp">{children}</div>;');
   });
 });

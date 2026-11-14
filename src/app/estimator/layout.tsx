@@ -5,6 +5,7 @@ import { landingRoute } from "@/lib/constants";
 import { BarraSencilla } from "@/components/BarraDeApp";
 import type { UserRole } from "@/lib/types";
 import { ProfileReadError } from "@/components/ProfileReadError";
+import { MarcaDeAgua } from "@/components/MarcaDeAgua";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import "./estimator.css";
 
@@ -40,7 +41,7 @@ export default async function EstimatorLayout({ children }: { children: React.Re
   // La barra de arriba es la de todas las apps (D-643): el nombre con la casa a la izquierda y el menú del nombre.
   // Va aquí y no en la pantalla porque la puerta ya tiene el rol y los módulos con los que la casa decide. En el demo,
   // la persona es el admin inventado.
-  if (LOCAL_MODE) return <><BarraSencilla nombre={NOMBRE} deliveriesRole="admin" moduleAccess={null} persona="Demo" />{children}</>;
+  if (LOCAL_MODE) return <><BarraSencilla nombre={NOMBRE} deliveriesRole="admin" moduleAccess={null} persona="Demo" />{children}<MarcaDeAgua nombre="Demo" /></>;
 
   const supabase = await createClient();
   const {
@@ -63,11 +64,13 @@ export default async function EstimatorLayout({ children }: { children: React.Re
     redirect(landingRoute({ role, module_access: profile?.module_access }));
   }
 
+  const persona = profile?.full_name?.trim() || user.email || "";
   return (
     <>
       <BarraSencilla nombre={NOMBRE} deliveriesRole={role as UserRole} moduleAccess={profile?.module_access}
-        persona={profile?.full_name?.trim() || user.email || ""} />
+        persona={persona} />
       {children}
+      <MarcaDeAgua nombre={persona} />
     </>
   );
 }

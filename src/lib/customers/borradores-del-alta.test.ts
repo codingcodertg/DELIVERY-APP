@@ -213,7 +213,7 @@ describe("borradores del alta: la pantalla", () => {
     expect(lista).toContain('import { useConfirm } from "@/lib/confirm";');
     expect(lista).not.toContain("window.confirm");
     expect(lista).toContain("danger: true");
-    expect(leer("src/app/customers/layout.tsx")).toContain("<ConfirmProvider>{cascaron}</ConfirmProvider>");
+    expect(leer("src/app/customers/layout.tsx")).toContain("<ConfirmProvider>{cascaron}");
   });
   it("la fecha de cada fila sale en hora de Texas (cuandoSeGuardo), y todo es bilingüe", () => {
     expect(lista).toContain("cuandoSeGuardo(b.guardado, lang)");
