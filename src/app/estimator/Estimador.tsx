@@ -34,6 +34,8 @@ import {
   POLITICA_CASILLA, POLITICA_CASILLA_ES, POLITICA_PARRAFOS, POLITICA_PARRAFOS_ES, POLITICA_TITULO, POLITICA_TITULO_ES, sePuedeGenerar, sePuedePedirLaCopia,
 } from "@/lib/estimator/politica";
 import { puedeVerLista, puedeVerTodas, type Pestana } from "@/lib/estimator/lista-admin";
+import { almacenDePerdidasDeLaBase, almacenDePerdidasDemo, type AlmacenDePerdidas } from "@/lib/estimator/ventas-perdidas";
+import { todayISO } from "@/lib/utils";
 import { CalculadoraDeMaterial } from "./CalculadoraDeMaterial";
 import dynamic from "next/dynamic";
 
@@ -53,6 +55,7 @@ import { HojaCliente } from "./HojaCliente";
 import { SeccionCompetencia } from "./Competencia";
 import { EntregaCotizacion } from "./EntregaCotizacion";
 import { EstimadosCompetencia } from "./EstimadosCompetencia";
+import { VentasPerdidas } from "./VentasPerdidas";
 import { TodasLasCotizaciones } from "./TodasLasCotizaciones";
 
 /** Donde el modo demo guarda quién eres: la misma clave que escribe «Ver como» (y que lee promos). */
@@ -107,6 +110,8 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   // ---- dónde se guarda --------------------------------------------------------------------------
   const [sinTablaDemo, setSinTablaDemo] = useState(false);
   const [sin156Demo, setSin156Demo] = useState(false);
+  /** `?sin308=1`: el demo como la base sin la 308 (la pestaña de ventas perdidas, apagada). */
+  const [sin308Demo, setSin308Demo] = useState(false);
   /** `?sin161=1` y `?sinLlave=1`: el demo como la base sin la 161, o como el servidor sin `ANTHROPIC_API_KEY`. */
   const [sin161Demo, setSin161Demo] = useState(false);
   const [sinLlaveDemo, setSinLlaveDemo] = useState(false);
@@ -115,6 +120,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     const q = new URLSearchParams(window.location.search);
     setSinTablaDemo(q.get("sinTabla") === "1");
     setSin156Demo(q.get("sin156") === "1");
+    setSin308Demo(q.get("sin308") === "1");
     setSin161Demo(q.get("sin161") === "1");
     setSinLlaveDemo(q.get("sinLlave") === "1");
   }, [demo]);
@@ -131,6 +137,11 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
   const almacenLecturas: AlmacenDeLecturas = useMemo(
     () => (demo ? almacenDeLecturasDemo(() => meRef.current, { sin161: sin161Demo, sinLlave: sinLlaveDemo }) : almacenDeLecturasDeLaBase(createClient())),
     [demo, sin161Demo, sinLlaveDemo],
+  );
+  // Las ventas perdidas (308): lo que el cliente quiso y no había. Una tabla propia, con la misma pareja base/demo.
+  const almacenPerdidas: AlmacenDePerdidas = useMemo(
+    () => (demo ? almacenDePerdidasDemo(() => meRef.current, sin308Demo, todayISO()) : almacenDePerdidasDeLaBase(createClient())),
+    [demo, sin308Demo],
   );
   const erp = useMemo(() => (demo ? null : createErpClient()), [demo]);
   // El lead de la cotización (D-558): se lee con la sesión de quien mira, así que la RLS de leads (163) decide si lo ve.
@@ -580,6 +591,10 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
             📚 {puedeVerTodas(me) ? t("All quotes (admin)", "Todas las cotizaciones (admin)") : t("My quotes", "Mis cotizaciones")}
           </button>
         )}
+        <button type="button" role="tab" aria-selected={pestana === "perdidas"} data-pestana="perdidas"
+          className={"btn btn-sm " + (pestana === "perdidas" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("perdidas")}>
+          📉 {t("Lost sales", "Ventas perdidas")}
+        </button>
         <button type="button" role="tab" aria-selected={pestana === "calculadora"} data-pestana="calculadora"
           className={"btn btn-sm " + (pestana === "calculadora" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("calculadora")}>
           🧱 {t("Material calculator", "Calculadora de material")}
@@ -597,6 +612,11 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
       {pestana === "todas" && puedeVerLista(me) && (
         <TodasLasCotizaciones key={puedeVerTodas(me) ? "todas" : `mias-${me.id}`} almacen={almacen} competencia={almacenCompetencia} me={me} t={t} lang={lang}
           onAbrir={(id) => void abrirDesdeLista(id)} />
+      )}
+
+      {pestana === "perdidas" && (
+        <VentasPerdidas almacen={almacenPerdidas} me={me} t={t}
+          tiendas={ajustes.stores.map((s) => s.name)} tiendaDePartida={tiendaDePartida(me.store, ajustes.stores)} />
       )}
 
       {pestana === "competencia" && (
