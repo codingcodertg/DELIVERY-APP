@@ -34,6 +34,7 @@ import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { downloadCSV, toCSV } from "@/lib/utils";
 import { exportaTablaExcel } from "@/lib/export-tabla";
 import { COLUMNAS_DE_EMPLEADOS, coincideBusqueda, tablaParaExportar, valorDeEmpleado } from "@/lib/recruiting/tabla-de-empleados";
+import { tablaTodosLosCampos } from "@/lib/recruiting/exporta-todo";
 import { COLUMNAS_207, COLUMNAS_309, OPCIONES_1PW, TIENDA_REMOTA, alternaPuesto, costoMensual, dinero, hayCambios, parcheDeTienda, puestosParaElegir, tienePuesto, tiendaDelSelector } from "@/lib/recruiting/employee-file";
 import { PermisosDelEmpleado } from "@/components/recruiting/PermisosDelEmpleado";
 import { ActivosDelEmpleado } from "@/components/recruiting/ActivosDelEmpleado";
@@ -171,6 +172,14 @@ function EmployeeFilesPageReal() {
     else exportaTablaExcel(nombre + ".xlsx", t("Employees", "Empleados"), tabla.cabeceras, tabla.filas)
       .catch((e: unknown) => notify(t("Could not export: ", "No se pudo exportar: ") + mensajeDeError(e)));
   };
+  // Todos los campos del expediente (exporta-todo.ts), para las mismas filas que se ven: la búsqueda, el filtro y el orden.
+  const exportaTodo = (como: "csv" | "excel") => {
+    const tabla = tablaTodosLosCampos(orden.visibles, { lang, con159 });
+    const nombre = "empleados_todos_los_campos_" + (estado === "bajas" ? "dados_de_baja_" : "") + hoyLocalISO();
+    if (como === "csv") downloadCSV(nombre + ".csv", toCSV(tabla.cabeceras, tabla.filas));
+    else exportaTablaExcel(nombre + ".xlsx", t("Employees", "Empleados"), tabla.cabeceras, tabla.filas)
+      .catch((e: unknown) => notify(t("Could not export: ", "No se pudo exportar: ") + mensajeDeError(e)));
+  };
 
   const porId = (id: string | null) => rows.find((r) => r.id === id) ?? null;
   const abiertaFila = porId(abierto);
@@ -198,8 +207,14 @@ function EmployeeFilesPageReal() {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {/* D-949: atajo al administrador de permisos (misma pestaña de HR, solo admin). */}
           {me?.role === "admin" && <a className="btn btn-ghost" href="/recruiting/permisos" data-accion="ir-permisos">🛡 {t("Permissions", "Permisos")}</a>}
-          <button className="btn btn-ghost" data-exporta="excel" disabled={!orden.visibles.length} onClick={() => exporta("excel")}>📊 Excel</button>
-          <button className="btn btn-ghost" data-exporta="csv" disabled={!orden.visibles.length} onClick={() => exporta("csv")}>⬇ CSV</button>
+          <button className="btn btn-ghost" data-exporta="excel" disabled={!orden.visibles.length} onClick={() => exporta("excel")}
+            title={t("Export the visible columns", "Exporta las columnas visibles")}>📊 Excel · {t("Visible columns", "Columnas visibles")}</button>
+          <button className="btn btn-ghost" data-exporta="csv" disabled={!orden.visibles.length} onClick={() => exporta("csv")}
+            title={t("Export the visible columns", "Exporta las columnas visibles")}>⬇ CSV · {t("Visible columns", "Columnas visibles")}</button>
+          <button className="btn btn-ghost" data-exporta="excel-todo" disabled={!orden.visibles.length} onClick={() => exportaTodo("excel")}
+            title={t("Export every field of the file, for the rows in view", "Exporta todos los campos del expediente, de las filas que se ven")}>📊 Excel · {t("All fields", "Todos los campos")}</button>
+          <button className="btn btn-ghost" data-exporta="csv-todo" disabled={!orden.visibles.length} onClick={() => exportaTodo("csv")}
+            title={t("Export every field of the file, for the rows in view", "Exporta todos los campos del expediente, de las filas que se ven")}>⬇ CSV · {t("All fields", "Todos los campos")}</button>
           <button className="btn btn-primary" data-accion="agregar" onClick={() => setAgregando(true)}>
             ＋ {t("Add employee", "Agregar empleado")}
           </button>

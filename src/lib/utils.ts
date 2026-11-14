@@ -485,8 +485,11 @@ export function isToday(iso: string | null): boolean {
 /** Build a CSV string from rows of records (values are stringified + quoted). */
 export function toCSV(headers: string[], rows: (string | number | null | undefined)[][]): string {
   const esc = (v: string | number | null | undefined) => {
-    const s = v == null ? "" : String(v);
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    // Texto que empieza por = + - @ (o tabulador/retorno) lo abre Excel como fórmula: se le antepone una comilla
+    // para que se lea como texto. Solo al texto; un número negativo sigue siendo número.
+    let s = v == null ? "" : String(v);
+    if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   };
   return [headers.map(esc).join(","), ...rows.map((r) => r.map(esc).join(","))].join("\n");
 }
