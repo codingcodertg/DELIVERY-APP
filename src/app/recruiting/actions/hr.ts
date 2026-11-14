@@ -11,7 +11,7 @@ import {
   normalizaMotivoBaja, parcheAlta, parcheAltaCompleto, parcheBaja, parcheBajaCompleto, puedeDarDeBaja,
   puedeEditarGrupoDirectorio, sin159, telefonoDeFicha, tiene159,
   COLUMNAS_207, NUMERICAS_207, normaliza1Password, numeroDeFicha, tiene207,
-  NUMERICAS_308, tiene308,
+  NUMERICAS_309, tiene309,
   correoDeFicha, nombreDeFicha, conQueEntra, tiendaVisible,
 } from "@/lib/recruiting/employee-file";
 import { LARGO_MAXIMO, aEncontrado, buscaEmpleados, type EmpleadoEncontrado, type EmpleadoParaBuscar } from "@/lib/recruiting/busqueda-global";
@@ -113,7 +113,7 @@ export type EmployeeFile = {
   rc_device_assigned: string | null;
   risk_score: number | null;
   performance_score: number | null;
-  // ---- Migración 308: la columna «Persona» de la hoja. Null mientras no esté aplicada. ----
+  // ---- Migración 309: la columna «Persona» de la hoja. Null mientras no esté aplicada. ----
   person_score: number | null;
   score_status: string | null;
   score_action: string | null;
@@ -126,7 +126,7 @@ type NoEditable =
   | "id" | "account_store" | "profile_id" | "date_left"
   | "left_reason" | "left_note" | "left_by" | "left_by_name" | "left_recorded_at";
 const SOLO_POR_SU_BOTON = ["date_left", "left_reason", "left_note", "left_by", "left_by_name", "left_recorded_at"];
-const FALTA_159 = "A migration (159, 207 or 308) is not applied yet: the new fields can't be saved.";
+const FALTA_159 = "A migration (159, 207 or 309) is not applied yet: the new fields can't be saved.";
 
 export type EmployeeDoc = {
   id: string;
@@ -152,7 +152,7 @@ export type EmployeeDoc = {
  */
 export async function listEmployeeFiles(): Promise<
   // `campos159`: si la tabla ya tiene las columnas de la 159. Sin ellas la pantalla apaga los campos nuevos.
-  { ok: true; rows: (EmployeeFile & { docKinds: string[]; licencia_vence: string | null })[]; campos159: boolean; campos207: boolean; campos308: boolean } | { ok: false; message: string }
+  { ok: true; rows: (EmployeeFile & { docKinds: string[]; licencia_vence: string | null })[]; campos159: boolean; campos207: boolean; campos309: boolean } | { ok: false; message: string }
 > {
   const supabase = await createClient();
   const yo = await tier(supabase);
@@ -174,7 +174,7 @@ export async function listEmployeeFiles(): Promise<
     ok: true,
     campos159: tiene159((files ?? []) as Record<string, unknown>[]),
     campos207: tiene207((files ?? []) as Record<string, unknown>[]),
-    campos308: tiene308((files ?? []) as Record<string, unknown>[]),
+    campos309: tiene309((files ?? []) as Record<string, unknown>[]),
     rows: filasDeExpediente(
       (files ?? []) as Record<string, unknown>[],
       (people ?? []) as { id: string; full_name?: string | null; store?: string | null }[],
@@ -369,7 +369,7 @@ export async function saveEmployeeFile(
     if (patch[k] !== undefined) limpio[k] = correoDeFicha(patch[k]);
   }
   // Las cifras de la 207 llegan como texto del formulario («$259.80»): número o null; otra cosa se rechaza.
-  for (const k of [...NUMERICAS_207, ...NUMERICAS_308]) {
+  for (const k of [...NUMERICAS_207, ...NUMERICAS_309]) {
     if (patch[k] === undefined) continue;
     const n = numeroDeFicha(patch[k] as string | number | null);
     if (n === undefined) return { ok: false, message: `"${k}" must be a number.` };

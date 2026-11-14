@@ -1,8 +1,8 @@
 -- ===========================================================================
--- 308 . La puntuacion de RR. HH. gana la columna «Persona» (Person)
+-- 309 . La puntuacion de RR. HH. gana la columna «Persona» (Person)
 -- ===========================================================================
 -- PEDIDO. Ayuda de Roberto (RR. HH.): la hoja de puntuacion del expediente tiene Riesgo y Desempeno, pero le falta
--- la columna «Persona» (Person). La deja en blanco en D-xxxx y no hay donde anotarla.
+-- la columna «Persona» (Person). La deja en blanco en D-1045 y no hay donde anotarla.
 --
 -- QUE HACE. Una columna nueva, nula y sin valor por defecto, en recruiting.employee_files: ninguna fila cambia.
 --   person_score   la puntuacion «Persona» de la hoja de RR. HH.; se guarda igual que risk_score y performance_score
@@ -18,15 +18,15 @@
 alter table recruiting.employee_files
   add column if not exists person_score numeric(6,2);
 
-comment on column recruiting.employee_files.person_score is 'Puntuacion «Persona» de la hoja de RR. HH. (308).';
+comment on column recruiting.employee_files.person_score is 'Puntuacion «Persona» de la hoja de RR. HH. (309).';
 
 do $$
 begin
   if not exists (
     select 1 from information_schema.columns
     where table_schema = 'recruiting' and table_name = 'employee_files' and column_name = 'person_score'
-  ) then raise exception '308: falta person_score'; end if;
+  ) then raise exception '309: falta person_score'; end if;
 end $$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('308_puntuacion_persona.sql', 'dffb49cc93e501762e1e1abd2f83902b1d4786cd004ed9942635a34f64194502') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('309_puntuacion_persona.sql', '275889e19b6be6e0a32551873c83aa32ffb37b80bbe48fd39770789b57e8c667') on conflict (name) do nothing;

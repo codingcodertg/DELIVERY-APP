@@ -34,7 +34,7 @@ import { anchoDeTabla, useColWidthMap } from "@/lib/use-col-widths";
 import { downloadCSV, toCSV } from "@/lib/utils";
 import { exportaTablaExcel } from "@/lib/export-tabla";
 import { COLUMNAS_DE_EMPLEADOS, coincideBusqueda, tablaParaExportar, valorDeEmpleado } from "@/lib/recruiting/tabla-de-empleados";
-import { COLUMNAS_207, COLUMNAS_308, OPCIONES_1PW, TIENDA_REMOTA, alternaPuesto, costoMensual, dinero, hayCambios, parcheDeTienda, puestosParaElegir, tienePuesto, tiendaDelSelector } from "@/lib/recruiting/employee-file";
+import { COLUMNAS_207, COLUMNAS_309, OPCIONES_1PW, TIENDA_REMOTA, alternaPuesto, costoMensual, dinero, hayCambios, parcheDeTienda, puestosParaElegir, tienePuesto, tiendaDelSelector } from "@/lib/recruiting/employee-file";
 import { PermisosDelEmpleado } from "@/components/recruiting/PermisosDelEmpleado";
 import { ActivosDelEmpleado } from "@/components/recruiting/ActivosDelEmpleado";
 import { ChecklistDelEmpleado } from "@/components/recruiting/ChecklistDelEmpleado";
@@ -86,8 +86,8 @@ function EmployeeFilesPageReal() {
   const [con159, setCon159] = useState(false);
   // La 207 (D-719): herramientas y costo. Igual que la 159: sin ella, la sección se apaga y dice por qué.
   const [con207, setCon207] = useState(false);
-  // La 308: la columna «Persona» de la hoja de puntuación. Va aparte: puede faltar aunque la 207 esté.
-  const [con308, setCon308] = useState(false);
+  // La 309: la columna «Persona» de la hoja de puntuación. Va aparte: puede faltar aunque la 207 esté.
+  const [con309, setCon309] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [abierto, setAbierto] = useState<string | null>(null);
@@ -122,7 +122,7 @@ function EmployeeFilesPageReal() {
   const load = useCallback(async () => {
     const r = await listEmployeeFiles();
     if (!r.ok) setErr(mensajeDeErrorAlCargar(r.message));
-    else { setErr(null); setRows(r.rows); setCon159(r.campos159); setCon207(r.campos207); setCon308(r.campos308); }
+    else { setErr(null); setRows(r.rows); setCon159(r.campos159); setCon207(r.campos207); setCon309(r.campos309); }
     setCargando(false);
   }, []);
 
@@ -418,7 +418,7 @@ function EmployeeFilesPageReal() {
       </div>
 
       {abiertaFila && (
-        <Ficha key={abiertaFila.id} persona={abiertaFila} con159={con159} con207={con207} con308={con308} puedeBaja={puedeBaja}
+        <Ficha key={abiertaFila.id} persona={abiertaFila} con159={con159} con207={con207} con309={con309} puedeBaja={puedeBaja}
           onSaved={load} onClose={() => setAbierto(null)}
           onBaja={() => setBaja(abiertaFila.id)} onReactivar={() => setReactivar(abiertaFila.id)} onAmonestar={(tipo) => setAmonestar({ id: abiertaFila.id, tipo })} />
       )}
@@ -479,9 +479,9 @@ function FichaDeLaUrl({ onPedida }: { onPedida: (id: string) => void }) {
  * cada categoría es un `<details>`: DATOS abierto, lo demás plegado.
  */
 function Ficha({
-  persona, con159, con207, con308, puedeBaja, onSaved, onClose, onBaja, onReactivar, onAmonestar,
+  persona, con159, con207, con309, puedeBaja, onSaved, onClose, onBaja, onReactivar, onAmonestar,
 }: {
-  persona: Fila; con159: boolean; con207: boolean; con308: boolean; puedeBaja: boolean;
+  persona: Fila; con159: boolean; con207: boolean; con309: boolean; puedeBaja: boolean;
   onSaved: () => void; onClose: () => void; onBaja: () => void; onReactivar: () => void; onAmonestar: (tipo: AccionDisciplinaria) => void;
 }) {
   const { t, lang } = usePrefs();
@@ -639,9 +639,9 @@ function Ficha({
     } = info;
     // Los campos de la 207 solo viajan si la tabla los tiene (igual que los de la 159).
     const de207 = Object.fromEntries(COLUMNAS_207.map((k) => [k, restoCon207[k]]));
-    const de308 = Object.fromEntries(COLUMNAS_308.map((k) => [k, info[k]]));
-    // La 308 también se aparta: si la tabla no la tiene, mandarla tumbaría el guardado entero.
-    const resto = Object.fromEntries(Object.entries(restoCon207).filter(([k]) => !([...COLUMNAS_207, ...COLUMNAS_308] as readonly string[]).includes(k)));
+    const de309 = Object.fromEntries(COLUMNAS_309.map((k) => [k, info[k]]));
+    // La 309 también se aparta: si la tabla no la tiene, mandarla tumbaría el guardado entero.
+    const resto = Object.fromEntries(Object.entries(restoCon207).filter(([k]) => !([...COLUMNAS_207, ...COLUMNAS_309] as readonly string[]).includes(k)));
     const r = await saveEmployeeFile(persona.id, {
       ...resto,
       // D-721: la tienda y el nombre viajan siempre; con cuenta, el servidor los copia al perfil (solo admin de RR. HH.).
@@ -650,8 +650,8 @@ function Ficha({
       // datos» fallaría por un campo que ni siquiera ve.
       ...(editaGrupo ? { directory_group } : {}),
       ...(con207 ? de207 : {}),
-      // La columna «Persona» (308): solo viaja si la tabla la tiene.
-      ...(con308 ? de308 : {}),
+      // La columna «Persona» (309): solo viaja si la tabla la tiene.
+      ...(con309 ? de309 : {}),
       // Los campos de la 159 solo viajan si la tabla los tiene: sin ella, mandarlos tumbaría el
       // guardado entero de los que sí existen.
       ...(con159 ? { job_title, personal_phone, personal_email, emergency_name, emergency_relation, emergency_phone } : {}),
@@ -704,15 +704,15 @@ function Ficha({
   );
   /** Un teléfono: al salir del campo toma la forma única del hub, «(956) 555-0123» (D-850). */
   const alSalirTel = (k: Clave) => () => setInfo((a) => ({ ...a, [k]: telefonoDeFicha(a[k]) ?? "" }));
-  /** Un campo de la 308 («Persona»): igual que `campo207`, pero apagado por su propia migración. */
-  const campo308 = (k: Clave, label: string, extra: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
+  /** Un campo de la 309 («Persona»): igual que `campo207`, pero apagado por su propia migración. */
+  const campo309 = (k: Clave, label: string, extra: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <div>
       <label>{label}</label>
-      <input value={info[k]} disabled={!con308} data-campo308={k}
-        title={con308 ? undefined : faltaMigracion(t, 308)}
+      <input value={info[k]} disabled={!con309} data-campo309={k}
+        title={con309 ? undefined : faltaMigracion(t, 309)}
         onChange={(e) => setInfo({ ...info, [k]: e.target.value })}
         {...extra}
-        placeholder={con308 ? extra.placeholder : faltaMigracion(t, 308)} />
+        placeholder={con309 ? extra.placeholder : faltaMigracion(t, 309)} />
     </div>
   );
   /** Tot Score (Riesgo + Desempeño + Persona): se calcula de lo que hay en pantalla, sin guardar nada. */
@@ -1016,7 +1016,7 @@ function Ficha({
       <div className="grid g3">
         {campo207("risk_score", t("Risk", "Riesgo"), { inputMode: "decimal" })}
         {campo207("performance_score", t("Performance", "Desempeño"), { inputMode: "decimal" })}
-        {campo308("person_score", t("Person", "Persona"), { inputMode: "decimal" })}
+        {campo309("person_score", t("Person", "Persona"), { inputMode: "decimal" })}
         <div>
           <label>{t("Tot Score", "Puntuación total")}</label>
           {/* Solo lectura: es la suma de las tres de arriba. Con alguna vacía suma las que hay y lo dice. */}

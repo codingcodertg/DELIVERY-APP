@@ -235,7 +235,7 @@ export type FilaExpediente = {
   rc_device_assigned: string | null;
   risk_score: number | null;
   performance_score: number | null;
-  /** Migración 308: la columna «Persona» de la hoja. Null mientras no esté aplicada. */
+  /** Migración 309: la columna «Persona» de la hoja. Null mientras no esté aplicada. */
   person_score: number | null;
   score_status: string | null;
   score_action: string | null;
@@ -467,13 +467,13 @@ export type Columna207 = (typeof COLUMNAS_207)[number];
 /** Las de número: el formulario las manda como texto y se guardan como número o null. */
 export const NUMERICAS_207 = ["email_cost_year", "risk_score", "performance_score", "tools_cost_year"] as const;
 
-/** Las que añade la migración 308 (la columna «Persona» de la hoja de RR. HH.). Van aparte de la 207 porque
+/** Las que añade la migración 309 (la columna «Persona» de la hoja de RR. HH.). Van aparte de la 207 porque
  *  pueden faltar por separado: aplicar una no aplica la otra. */
-export const COLUMNAS_308 = ["person_score"] as const;
-export const NUMERICAS_308 = ["person_score"] as const;
+export const COLUMNAS_309 = ["person_score"] as const;
+export const NUMERICAS_309 = ["person_score"] as const;
 
-/** ¿Está aplicada la 308? Igual que `tiene207`: basta con que una fila traiga la clave. */
-export function tiene308(files: Record<string, unknown>[]): boolean {
+/** ¿Está aplicada la 309? Igual que `tiene207`: basta con que una fila traiga la clave. */
+export function tiene309(files: Record<string, unknown>[]): boolean {
   return files.some((f) => "person_score" in f);
 }
 

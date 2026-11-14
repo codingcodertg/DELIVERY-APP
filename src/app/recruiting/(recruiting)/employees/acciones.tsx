@@ -24,8 +24,8 @@ import {
  */
 
 /** El texto que llevan los campos de la 159 mientras la migración no esté aplicada. */
-export function faltaMigracion(t: (en: string, es: string) => string, n: 159 | 207 | 308 = 159): string {
-  if (n === 308) return t("migration 308 pending", "falta la migración 308");
+export function faltaMigracion(t: (en: string, es: string) => string, n: 159 | 207 | 309 = 159): string {
+  if (n === 309) return t("migration 309 pending", "falta la migración 309");
   if (n === 207) return t("migration 207 pending", "falta la migración 207");
   return t("migration 159 pending", "falta la migración 159");
 }

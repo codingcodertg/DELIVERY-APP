@@ -111,3 +111,6 @@ create policy "estimator_lost_sales insert" on public.estimator_lost_sales for i
 create policy "estimator_lost_sales update" on public.estimator_lost_sales for update to authenticated
   using ((select public.has_estimator_access()) and ((select public.is_admin()) or created_by = (select auth.uid())))
   with check ((select public.is_admin()) or created_by = (select auth.uid()));
+
+-- @ledger-below
+insert into public.schema_migrations (name, checksum) values ('308_ventas_perdidas.sql', '73237d37c67e1c9179c8381649d7bf5cc61e6ea9a77e1ea53483b410848826f0') on conflict (name) do nothing;

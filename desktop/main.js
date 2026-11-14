@@ -200,6 +200,14 @@ function crearVentana() {
   };
   win.webContents.on("did-navigate", (_e, url) => protegeSegunRuta(url));
   win.webContents.on("did-navigate-in-page", (_e, url) => protegeSegunRuta(url));
+  // Las ventanas que se abren desde la app (window.open de una ruta nuestra) siguen la misma regla; si no, abrir una
+  // cotización en ventana aparte se saltaría el negro.
+  win.webContents.on("did-create-window", (hija) => {
+    const protegeHija = (url) => { if (!hija.isDestroyed()) hija.setContentProtection(estaProtegida(url)); };
+    protegeHija(hija.webContents.getURL());
+    hija.webContents.on("did-navigate", (_e, url) => protegeHija(url));
+    hija.webContents.on("did-navigate-in-page", (_e, url) => protegeHija(url));
+  });
 
   // ---------------------------------------------------------------------------
   // Nada sale de esta ventana salvo lo que no es nuestro
