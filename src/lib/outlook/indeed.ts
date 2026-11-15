@@ -10,6 +10,7 @@
  * admin lo vea en la tarjeta («omitido»).
  */
 import { DOMINIOS_INDEED } from "./config";
+import { enlaceConTexto, extraerEmailsLineal, textoPlanoLineal } from "./html-lineal";
 
 export interface CorreoDeIndeed {
   subject: string;
@@ -63,45 +64,13 @@ export function esCorreoDeIndeed(from: string | null | undefined): boolean {
 }
 
 /** El HTML (o el texto) a líneas de texto plano. Los saltos de bloque se conservan; las etiquetas, no. */
+/** El HTML (o el texto) a líneas de texto plano, sin regex que retroceda; el cuerpo se acota a 200 KB. */
 export function aTextoPlano(cuerpo: string): string {
-  let t = (cuerpo ?? "").replace(/\r/g, "");
-  if (/<[a-z!/][^>]*>/i.test(t)) {
-    t = t
-      .replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ")
-      .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/<\/(p|div|tr|li|h[1-6]|table|ul|ol)\s*>/gi, "\n")
-      .replace(/<\/t[dh]\s*>/gi, "  ")
-      .replace(/<[^>]+>/g, "");
-  }
-  t = t
-    .replace(/&nbsp;|&#160;/gi, " ")
-    .replace(/&bull;/gi, "•")
-    .replace(/&middot;/gi, "·")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;|&apos;/gi, "'")
-    .replace(/&amp;/gi, "&");
-  return t
-    .split("\n")
-    .map((l) => l.replace(/[ \t]+/g, " ").trim())
-    .filter((l) => l.length > 0)
-    .join("\n");
+  return textoPlanoLineal(cuerpo);
 }
 
-const RE_EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g;
-const EXTENSIONES_FALSAS = /\.(png|jpe?g|gif|webp|svg)$/i;
-
-/** Todas las direcciones que aparecen (en el HTML crudo también, por los mailto:), sin repetir, en minúsculas. */
 export function extraerEmails(...textos: string[]): string[] {
-  const vistos = new Set<string>();
-  for (const t of textos) {
-    for (const m of (t ?? "").match(RE_EMAIL) ?? []) {
-      const e = m.toLowerCase().replace(/[.]+$/, "");
-      if (!EXTENSIONES_FALSAS.test(e)) vistos.add(e);
-    }
-  }
-  return [...vistos];
+  return extraerEmailsLineal(...textos);
 }
 
 /** Teléfono de 10 dígitos (quita el 1 del país). Null si no es uno. Acepta «+1 (956) 555-0182», «9565550182», etc. */
@@ -151,19 +120,13 @@ export function nombreDeEncabezadoSolicitud(asunto: string, lineas: readonly str
 }
 
 /**
- * Enlace (href https) cuyo texto cumple `etiqueta`, p. ej. «See full application». `etiqueta` es una expresión regular
- * (sin escapar): «See full application» no tiene caracteres especiales; «Ver (la )?solicitud» sí se usa como patrón.
+ * Enlace https de indeed.com (o subdominio) cuyo texto cumple `etiqueta` (regex sobre el texto del ancla, corta).
+ * Cualquier otro host se descarta: no se guarda nada que no sea de Indeed.
  */
 export function enlaceDe(cuerpo: string, etiqueta: string): string | null {
-  // El contenido del <a> no puede cruzar un </a>: si no, el enlace del nombre se come al del botón.
-  const re = new RegExp(`<a\\b[^>]*?href=["']([^"']+)["'][^>]*>((?:(?!<\\/a>)[\\s\\S])*?)${etiqueta}(?:(?!<\\/a>)[\\s\\S])*<\\/a>`, "i");
-  const m = re.exec(cuerpo ?? "");
-  if (!m) return null;
-  const href = m[1].replace(/&amp;/g, "&").trim();
-  return /^https?:\/\//i.test(href) ? href : null;
+  return enlaceConTexto(cuerpo, new RegExp(etiqueta, "i"));
 }
 
-/** Calificaciones: las líneas bajo «Qualifications» hasta el primer botón o pie; cada una puede traer varias separadas por «·». */
 export function calificacionesDe(lineas: readonly string[]): string[] {
   const i = lineas.findIndex((l) => /^qualifications$|^calificaciones$|^cualificaciones$/i.test(l.trim()));
   if (i < 0) return [];

@@ -55,6 +55,10 @@ create table if not exists recruiting.outlook_processed (
   result            text not null check (result in ('created', 'duplicate', 'noted', 'skipped', 'failed')),
   candidate_id      uuid,
   error             text,
+  -- Lo que se agendo por el mensaje (llamada con hora): el mismo valor que se pone en `phone_date` del candidato.
+  scheduled_at      timestamptz,
+  -- Resumen legible de lo detectado y lo agendado (telefono, hora o «cualquier hora», seguimiento, choques).
+  detail            text,
   processed_at      timestamptz not null default now()
 );
 
@@ -70,4 +74,4 @@ revoke all on recruiting.outlook_processed from anon;
 grant select on recruiting.outlook_processed to authenticated;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('310_outlook_indeed.sql', 'ecba0b0fbce5e92fe247add70f8a99d49bcfaf5ab7fbc2d61921a4f9da28374d') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('310_outlook_indeed.sql', '95abd67ac5307587cf2d9ac26cc3b19d1db14a0c86fbd7e4fbba388180b49a85') on conflict (name) do nothing;

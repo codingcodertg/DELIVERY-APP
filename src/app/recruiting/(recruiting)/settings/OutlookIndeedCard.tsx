@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { MODO_DEMO } from "@/lib/recruiting/modo-demo";
-import { formatoEnBrownsville } from "@/lib/recruiting/hora-de-brownsville";
+import { diaEnBrownsville, formatoEnBrownsville } from "@/lib/recruiting/hora-de-brownsville";
 import { TablaEstandar } from "@/components/TablaEstandar";
 import { MENSAJES_OUTLOOK, type ClaveErrorOutlook } from "@/lib/outlook/mensajes";
 
@@ -28,6 +28,16 @@ interface Fila {
   result: string;
   error: string | null;
   processed_at: string;
+  candidato: string | null;
+  scheduled_at: string | null;
+  detail: string | null;
+}
+
+interface ResumenLote extends Resumen {
+  fase: "solicitud" | "mensaje";
+  saltar: number;
+  total: number | null;
+  siguiente: { fase: "solicitud" | "mensaje"; saltar: number } | null;
 }
 
 interface Resumen {
@@ -72,6 +82,10 @@ export default function OutlookIndeedCard() {
   const [cargando, setCargando] = useState(!MODO_DEMO);
   const [aviso, setAviso] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  // Procesar correos anteriores: la fecha se pone al montar (evita diferencias entre servidor y navegador).
+  const [desde, setDesde] = useState("");
+  const [corriendo, setCorriendo] = useState(false);
+  const [progreso, setProgreso] = useState<string | null>(null);
 
   const recargar = async () => {
     try {
@@ -99,6 +113,7 @@ export default function OutlookIndeedCard() {
       const resto = params.toString();
       window.history.replaceState(null, "", window.location.pathname + (resto ? `?${resto}` : ""));
     }
+    setDesde(diaEnBrownsville(Date.now() - 30 * 86_400_000));
     void recargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -123,6 +138,63 @@ export default function OutlookIndeedCard() {
       setAviso(t("The check failed.", "La revisión falló."));
     } finally {
       setOcupado(false);
+    }
+  };
+
+  /** Procesa los correos desde la fecha, en lotes de 50 (una llamada por lote) hasta terminar. Repetir no duplica nada. */
+  const procesarAnteriores = async () => {
+    if (!desde) return;
+    setCorriendo(true);
+    setAviso(null);
+    let fase: "solicitud" | "mensaje" = "solicitud";
+    let saltar = 0;
+    let total: number | null = null;
+    let creados = 0;
+    let notas = 0;
+    let omitidos = 0;
+    let fallidos = 0;
+    try {
+      for (let vuelta = 0; vuelta < 5000; vuelta++) {
+        const res = await fetch("/api/outlook/backfill", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ desde, fase, saltar }),
+        });
+        const r = (await res.json()) as ResumenLote & { error?: string };
+        if (!res.ok) {
+          setAviso(r.error ?? t("The run failed.", "El procesamiento falló."));
+          break;
+        }
+        if (!r.ok) {
+          setAviso(t("The run could not start: ", "No se pudo empezar: ") + (r.motivo ?? "?"));
+          break;
+        }
+        if (r.total !== null) total = r.total;
+        creados += r.creados;
+        notas += r.notas;
+        omitidos += r.omitidos;
+        fallidos += r.fallidos;
+        const etiquetaFase = fase === "solicitud" ? t("applications", "solicitudes") : t("messages", "mensajes");
+        setProgreso(
+          t(`Processing ${etiquetaFase}: ${r.siguiente ? Math.min(r.siguiente.saltar, total ?? r.siguiente.saltar) : (total ?? 0)} of ${total ?? "?"} emails checked`,
+            `Procesando ${etiquetaFase}: ${r.siguiente ? Math.min(r.siguiente.saltar, total ?? r.siguiente.saltar) : (total ?? 0)} de ${total ?? "?"} correos revisados`),
+        );
+        if (!r.siguiente) {
+          setAviso(
+            t(`Done. Created: ${creados}, notes added: ${notas}, skipped: ${omitidos}, failed: ${fallidos}.`,
+              `Listo. Creados: ${creados}, mensajes anotados: ${notas}, omitidos: ${omitidos}, con error: ${fallidos}.`),
+          );
+          break;
+        }
+        fase = r.siguiente.fase;
+        saltar = r.siguiente.saltar;
+      }
+    } catch {
+      setAviso(t("The run failed.", "El procesamiento falló."));
+    } finally {
+      setCorriendo(false);
+      setProgreso(null);
+      await recargar();
     }
   };
 
@@ -206,6 +278,31 @@ export default function OutlookIndeedCard() {
         </button>
       </div>
 
+      {(
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+          <div><strong>{t("Past emails", "Correos anteriores")}</strong></div>
+          <div className="hint" style={{ marginBottom: 8 }}>
+            {t(
+              "Processes Indeed emails already in the inbox since this date, oldest first, with the same checks. Applications first, then messages. Running it again creates nothing twice.",
+              "Procesa los correos de Indeed que ya están en la bandeja desde esta fecha, del más viejo al más nuevo, con las mismas reglas. Primero solicitudes y luego mensajes. Volver a correrlo no duplica nada.",
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <label style={{ margin: 0 }}>{t("Since", "Desde")}</label>
+            <input
+              type="date"
+              value={desde}
+              onChange={(ev) => setDesde(ev.target.value)}
+              disabled={corriendo}
+            />
+            <button className="btn btn-primary" onClick={procesarAnteriores} disabled={corriendo || !e.conectada || !desde || MODO_DEMO}>
+              {corriendo ? t("Processing…", "Procesando…") : t("Process past emails", "Procesar correos anteriores")}
+            </button>
+          </div>
+          {progreso && <div role="status" className="hint" style={{ marginTop: 6, color: "var(--ink)" }}>{progreso}</div>}
+        </div>
+      )}
+
       {e.ultimos.length > 0 && (
         <div style={{ marginTop: 14 }}>
           <div className="hint" style={{ marginBottom: 6 }}>{t("Last 20 emails", "Últimos 20 correos")}</div>
@@ -225,7 +322,17 @@ export default function OutlookIndeedCard() {
                 valor: (f) => f.result,
                 celda: (f) => t(ETIQUETA_RESULTADO[f.result]?.en ?? f.result, ETIQUETA_RESULTADO[f.result]?.es ?? f.result),
               },
-              { key: "detalle", en: "Detail", es: "Detalle", ancho: 320, envuelve: true, valor: (f) => f.error ?? "" },
+              { key: "candidato", en: "Candidate", es: "Candidato", ancho: 170, valor: (f) => f.candidato ?? "" },
+              {
+                key: "agenda",
+                en: "Detected and scheduled",
+                es: "Detectado y agendado",
+                ancho: 340,
+                envuelve: true,
+                valor: (f) => f.detail ?? "",
+                celda: (f) => (f.detail ? f.detail : "—"),
+              },
+              { key: "error", en: "Error / note", es: "Error / nota", ancho: 260, envuelve: true, valor: (f) => f.error ?? "" },
             ]}
           />
         </div>

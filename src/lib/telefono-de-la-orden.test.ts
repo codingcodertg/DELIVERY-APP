@@ -79,6 +79,12 @@ describe("puertas", () => {
     // Excepción (Indeed por correo, cron/servidor): `crear-candidato.ts` escribe sin navegador, con la llave de servicio,
     // y aplica el MISMO estandarizado (`estandarizaCandidato`) y el MISMO dedupe (`buscaDuplicado`) que el proveedor.
     // Pendiente de OK del dueño; ver src/lib/outlook/crear-candidato.ts.
-    expect(escriben).toEqual(["src/lib/outlook/crear-candidato.ts", "src/lib/recruiting-data-provider.tsx"]);
+    // `mensaje-a-candidato.ts` también: actualiza teléfono, llamada (phone_date) o seguimiento (follow_up) de un candidato
+    // que ya existe, desde el correo de Indeed, con la misma regla de teléfono (no pisa el de otra persona).
+    expect(escriben).toEqual([
+      "src/lib/outlook/crear-candidato.ts",
+      "src/lib/outlook/mensaje-a-candidato.ts",
+      "src/lib/recruiting-data-provider.tsx",
+    ]);
   });
 });

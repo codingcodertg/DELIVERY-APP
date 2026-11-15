@@ -16,6 +16,14 @@ export interface MensajeGraph {
   receivedDateTime: string;
   bodyText: string;
   hasAttachments: boolean;
+  /** Cabeceras del correo tal como llegaron (Authentication-Results, para verificar que es de Indeed). */
+  cabeceras: Array<{ name: string; value: string }>;
+}
+
+export interface PaginaCorreos {
+  mensajes: MensajeGraph[];
+  /** Total de correos en la bandeja desde la fecha (solo si se pidió `contar`). */
+  total: number | null;
 }
 
 export interface AdjuntoGraph {
@@ -30,22 +38,35 @@ export interface AdjuntoGraph {
  * El orden ascendente deja que la corrida avance el cursor sin saltarse ninguno.
  */
 export async function listarCorreosDesde(accessToken: string, desdeIso: string, fetchFn: FetchFn = fetch): Promise<MensajeGraph[]> {
-  // Se codifica a mano (%20, no «+»): OData no siempre acepta «+» como espacio dentro de $filter.
-  const q = [
-    ["$filter", `receivedDateTime ge ${desdeIso}`],
-    ["$select", "id,internetMessageId,subject,from,replyTo,receivedDateTime,body,hasAttachments"],
-    ["$top", String(MAX_MENSAJES_POR_CORRIDA)],
+  const pagina = await listarPaginaDeBandeja(accessToken, { desdeIso, saltar: 0, tope: MAX_MENSAJES_POR_CORRIDA }, fetchFn);
+  return pagina.mensajes;
+}
+
+/**
+ * Una página de la BANDEJA DE ENTRADA (no «todos los correos»: así la carpeta de no deseados queda fuera), desde la
+ * fecha, del más viejo al más nuevo. `contar` pide el total (para el progreso del procesamiento de correos antiguos).
+ * Se codifica a mano (%20, no «+»): OData no siempre acepta «+» como espacio dentro de $filter.
+ */
+export async function listarPaginaDeBandeja(
+  accessToken: string,
+  p: { desdeIso: string; saltar: number; tope: number; contar?: boolean },
+  fetchFn: FetchFn = fetch,
+): Promise<PaginaCorreos> {
+  const q: Array<[string, string]> = [
+    ["$filter", `receivedDateTime ge ${p.desdeIso}`],
+    ["$select", "id,internetMessageId,subject,from,replyTo,receivedDateTime,body,hasAttachments,internetMessageHeaders"],
+    ["$top", String(p.tope)],
     ["$orderby", "receivedDateTime asc"],
-  ]
-    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-    .join("&");
-  const res = await fetchFn(`${GRAPH}/me/messages?${q}`, {
-    headers: { authorization: `Bearer ${accessToken}`, prefer: 'outlook.body-content-type="text"' },
-    cache: "no-store",
-  });
+  ];
+  if (p.saltar > 0) q.push(["$skip", String(p.saltar)]);
+  if (p.contar) q.push(["$count", "true"]);
+  const qs = q.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
+  const headers: Record<string, string> = { authorization: `Bearer ${accessToken}`, prefer: 'outlook.body-content-type="text"' };
+  if (p.contar) headers.ConsistencyLevel = "eventual";
+  const res = await fetchFn(`${GRAPH}/me/mailFolders/inbox/messages?${qs}`, { headers, cache: "no-store" });
   if (!res.ok) throw new ErrorMicrosoft("correo", `HTTP ${res.status}`);
-  const j = (await res.json()) as { value?: Array<Record<string, unknown>> };
-  return (j.value ?? []).map(aMensaje);
+  const j = (await res.json()) as { value?: Array<Record<string, unknown>>; "@odata.count"?: number };
+  return { mensajes: (j.value ?? []).map(aMensaje), total: typeof j["@odata.count"] === "number" ? j["@odata.count"] : null };
 }
 
 function aMensaje(m: Record<string, unknown>): MensajeGraph {
@@ -63,6 +84,9 @@ function aMensaje(m: Record<string, unknown>): MensajeGraph {
     receivedDateTime: String(m.receivedDateTime),
     bodyText: body?.content ?? "",
     hasAttachments: Boolean(m.hasAttachments),
+    cabeceras: ((m.internetMessageHeaders as Array<{ name?: string; value?: string }> | null) ?? [])
+      .map((h) => ({ name: String(h.name ?? ""), value: String(h.value ?? "") }))
+      .filter((h) => h.name.length > 0),
   };
 }
 
