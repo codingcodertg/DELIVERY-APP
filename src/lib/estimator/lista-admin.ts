@@ -26,13 +26,21 @@ import {
  * mienta sobre lo que haría la base.
  */
 
-export type Pestana = "cotizacion" | "competencia" | "todas" | "calculadora" | "visualizador" | "perdidas";
+export type Pestana = "cotizacion" | "competencia" | "todas" | "calculadora" | "visualizador" | "perdidas" | "turnkey";
 
 /**
  * Solo el admin ve la lista de todas (`profiles.role = 'admin'`, lo que `page.tsx` pasa como `me.admin` y lo que
  * `is_admin()` mira en la RLS). Un gerente con el módulo no: es la palabra del dueño («solo para admin»).
  */
 export function puedeVerTodas(me: { admin: boolean } | null | undefined): boolean {
+  return me?.admin === true;
+}
+
+/**
+ * La pestaña Turnkey (material + mano de obra + financiamiento, la plantilla del dueño) es SOLO del admin. Sus precios,
+ * márgenes y tasas de descuento son costos de la casa: el servidor también lo comprueba (`turnkey-actions.ts`).
+ */
+export function puedeVerTurnkey(me: { admin: boolean } | null | undefined): boolean {
   return me?.admin === true;
 }
 
