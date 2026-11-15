@@ -5,8 +5,9 @@
  * (`app/estimator/turnkey-actions.ts`) solo a un admin. Así este módulo puede ir al navegador sin que los costos,
  * los márgenes ni las tasas de descuento vayan dentro del JavaScript que descarga un vendedor.
  *
- * Cada fórmula sigue la celda de la hoja que la origina (MATERIAL, LABOR, FIN, BREAKDOWN); los comentarios de abajo
- * dicen cuál. Las diferencias que la hoja tiene y que se conservan a propósito están marcadas con «(hoja)».
+ * La base es la hoja del dueño, con los ajustes que él pidió después (trabajos de piso solamente; la entrega se cotiza
+ * igual que cualquier orden; el costo de financiamiento es un monto por plan). Las fórmulas que siguen la hoja dicen
+ * de qué celda salen (MATERIAL, LABOR, FIN, BREAKDOWN); lo que cambió se dice en su comentario.
  */
 
 // ---- constantes de la hoja --------------------------------------------------------------------------------------------
@@ -21,16 +22,26 @@ export const MULTIPLICADOR_DE_CONTADO = 2;
 export const RECARGO_TARJETA = 1.04;
 /** Días de instalación de laminado = ROUNDUP(SF / 450 + 1) (LABOR!K11). */
 export const SF_POR_DIA_LAMINADO = 450;
-/** Gas de viaje = 80 × días de laminado (LABOR!C24). */
-export const GAS_POR_DIA = 80;
-/** Escalones que no se cobran: (escalones − 2) (LABOR!D27). */
+/** Escalones que no se cobran: (tramos − 2) (LABOR!D27). */
 export const ESCALONES_LIBRES = 2;
 /** La tasa de impuesto que la hoja muestra en BREAKDOWN!D6 (solo se muestra; no entra en ninguna fórmula). */
 export const IMPUESTO_EN_DESGLOSE = 0.0825;
+/**
+ * Viajes extra (ajuste del dueño): si el manejo de ida pasa de 45 minutos, cada día de instalación después del primero
+ * es un viaje más, y cada viaje cuesta la mitad de la entrega: (días − 1) × (entrega / 2).
+ */
+export const MINUTOS_DE_VIAJE_EXTRA = 45;
+export const FRACCION_DE_ENTREGA_POR_VIAJE = 0.5;
 
 // ---- catálogo: tipos -----------------------------------------------------------------------------------------------------
 
-/** Grupos de MATERIAL. `preparacion` = «Prep/setting material» (filas 3–11); `losa` = «Tile below 48x48» (13–16); `otros` = «Other» (18–23). */
+/** Un texto bilingüe para una pista corta junto a una fila. */
+export interface Pista {
+  en: string;
+  es: string;
+}
+
+/** Grupos de MATERIAL. `preparacion` = material de pegado y preparación; `losa` = azulejo menor a 48×48; `otros` = piso. */
 export type GrupoMaterial = "preparacion" | "losa" | "otros";
 
 export interface ArticuloMaterial {
@@ -38,12 +49,13 @@ export interface ArticuloMaterial {
   grupo: GrupoMaterial;
   en: string;
   es: string;
-  /** Precio de la hoja (ya evaluado: `23.29/350` es 0.0665…). */
+  /** Precio por defecto (ya evaluado: `23.29/350` es 0.0665…). La persona lo puede cambiar para el trabajo. */
   precio: number;
-  /** Lo que la hoja dice al lado, tal cual. */
+  /** Nota de la hoja, tal cual. */
   nota?: string;
-  /** Monto fijo (WOOD GLUE, D10): no es precio × cantidad, la cantidad es siempre 1 y el precio es el monto. */
-  fijo?: true;
+  pista?: Pista;
+  /** No cuenta como SF de piso (la decoración se cobra por pieza). Los demás materiales de piso sí cuentan. */
+  sinSF?: true;
 }
 
 export type SeccionDeMano = "removal" | "tile" | "laminate" | "vinyl" | "carpet" | "otros" | "aparatos" | "entrega" | "limpieza";
@@ -53,15 +65,24 @@ export interface ConceptoDeMano {
   seccion: SeccionDeMano;
   en: string;
   es: string;
-  /** Pago por unidad (columna «Pay» / «Pay» de la hoja). */
+  /** Pago por unidad (columna «Pay» de la hoja). */
   pago: number;
   nota?: string;
-  /** Fuera del total de removal: la hoja suma D4:D9 y deja fuera la fila 10 (Demo Shower). (hoja) */
-  fueraDelTotal?: true;
+  pista?: Pista;
+  /**
+   * No cuenta en SF: pies lineales (alfombras y zoclo de azulejo), escalones o piezas (demo de regadera). Solo las filas
+   * de piso suman SF de instalación.
+   */
+  sinSF?: true;
   /** La fila que da los días de instalación (solo laminado, K11). */
   dias?: true;
-  /** Fórmula especial: gas de viaje (C24 = 80 × días) o escaleras (D27). La cantidad sale de la fórmula, no se escribe. */
-  formula?: "gas" | "escaleras";
+  /**
+   * Fórmula, no se escribe la cantidad:
+   * - `escaleras`: (tramos − 2) × pago × SF de instalación, nunca negativo (D27).
+   * - `entrega`: la entrega del trabajo, calculada con la calculadora de la ficha (dirección + tienda).
+   * - `viajes`: (días − 1) × ½ entrega, solo si el manejo de ida pasa de 45 min.
+   */
+  formula?: "escaleras" | "entrega" | "viajes";
 }
 
 export type FormaDePago = "All Upfront" | "Reduced (Fixed Pmt)" | "Deferred (W/ Pmt)" | "Equal (No Int)";
@@ -94,19 +115,24 @@ export interface DatosTurnkey {
   instalacion: ConceptoDeMano[];
   extras: ConceptoDeMano[];
   planes: PlanFinanciero[];
-  /** Las entradas de la plantilla del dueño: las que dan 3953 / 4070 / 17 369.80 / Plan 922 = 19 035.39. */
+  /** Las entradas de la plantilla del dueño (sin entrega: sin dirección no hay tarifa de entrega). */
   plantilla: Entradas;
 }
 
 /**
  * Lo que la persona escribe. `cantidades` por id (SF o unidades; lo que no está es 0). `precios` solo guarda los que
- * cambió: lo que no está usa el precio de la hoja, y «restablecer» borra la clave.
+ * cambió: lo que no está usa el precio por defecto, y «restablecer» borra la clave.
  */
 export interface Entradas {
   cantidades: Record<string, number>;
   precios: Record<string, number>;
   /** El plan que muestra el desglose (una clave de `PlanFinanciero.plan`). */
   planDesglose: string;
+  /**
+   * La entrega del trabajo. `cargo`: lo que cobra la entrega (el que la persona eligió, o la tarifa de lista de la
+   * calculadora si no eligió ninguno). `minutos`: manejo de ida, de la tienda a la dirección. Sin ella, la entrega vale 0.
+   */
+  entrega?: { cargo: number | null; minutos: number | null };
 }
 
 // ---- resultado -----------------------------------------------------------------------------------------------------------
@@ -120,13 +146,13 @@ export interface FilaDeConcepto {
 
 export interface Resultado {
   material: {
-    /** SUM(D3:D11): material de preparación (incluye la cola de madera fija). */
+    /** SUM de los grupos de preparación: material de pegado (incluye la cola de madera, si tiene precio y cantidad). */
     preparacion: number;
-    /** SUM(D13:D16, D18:D23): material de piso. */
+    /** Material de piso: losa y otros. */
     piso: number;
-    /** I2 = preparación + piso. */
+    /** Preparación + piso. */
     total: number;
-    /** H5: los SF de piso (suma de cantidades de losa y otros). */
+    /** SF de piso: cantidades de losa y otros, sin lo que tiene `sinSF` (decoración). */
     sf: number;
     filas: Record<string, FilaDeConcepto>;
   };
@@ -134,11 +160,11 @@ export interface Resultado {
     removal: { sf: number; total: number };
     instalacion: { sf: number; total: number; dias: number };
     extras: { total: number };
-    /** O2 = removal + instalación + extras. */
+    /** Removal + instalación + extras. */
     total: number;
-    /** P2: días totales (solo laminado). */
+    /** Días totales (solo laminado). */
     dias: number;
-    /** N2 = SF de instalación (I2): la base de $/SF y de las escaleras. */
+    /** SF de instalación: base de $/SF y de las escaleras. Solo filas de piso. */
     sf: number;
     filas: Record<string, FilaDeConcepto>;
   };
@@ -160,7 +186,10 @@ export interface FilaFinanciera {
   restricciones?: string;
   /** L: precio con financiamiento e impuesto. */
   precio: number;
-  /** I: BUSINESS = L3 × G. Usa el precio de contado (L$3), no el del plan (hoja). */
+  /**
+   * Comisión del financiamiento en $: el precio del plan sin impuesto × su tasa de descuento (G). Es lo que cobra la
+   * financiera sobre ese plan. Cambió: la hoja usaba el precio de contado (L$3) para todos los planes.
+   */
   negocio: number;
   /** J: PMT/MO = L × F + (L × C) / 12. */
   mensual: number;
@@ -188,13 +217,13 @@ export interface Desglose {
   plan: string;
   /** REVENUE: L del plan. */
   ingreso: number;
-  /** LABOR: O2. */
+  /** LABOR: total de mano de obra. */
   mano: number;
-  /** MATERIAL: I2. */
+  /** MATERIAL: total de material. */
   material: number;
   /** FIN FEES: G del plan (la tasa de descuento). */
   finanzas: number;
-  /** FEES & TAX: P × SF − (mano + material) = L − 2 × (mano + material). (hoja) */
+  /** FEES & TAX: L − 2 × (mano + material). (hoja) */
   cargosEImpuesto: number;
   /** PROFIT: ingreso − (mano + material + cargos). Por construcción = mano + material. (hoja) */
   utilidad: number;
@@ -213,7 +242,7 @@ function cantidadDe(e: Entradas, id: string): number {
   return finito(e.cantidades[id]) ?? 0;
 }
 
-/** Precio escrito por la persona o el de la hoja. Un precio negativo o no numérico no se acepta: vuelve el de la hoja. */
+/** Precio escrito por la persona o el de por defecto. Un precio negativo o no numérico no se acepta: vuelve el de defecto. */
 export function precioDe(e: Entradas, id: string, porDefecto: number): number {
   const p = finito(e.precios[id]);
   return p !== null && p >= 0 ? p : porDefecto;
@@ -225,81 +254,85 @@ function dividir(a: number, b: number): number | null {
 }
 
 /**
- * Calcula toda la plantilla: material (MATERIAL), mano de obra (LABOR) y el financiamiento (FIN). Es la misma cuenta
- * que la hoja con las mismas entradas; `turnkey.test.ts` lo prueba contra los valores guardados de la hoja.
+ * Calcula toda la plantilla: material (MATERIAL), mano de obra (LABOR) y el financiamiento (FIN).
  */
 export function calcular(e: Entradas, d: DatosTurnkey): Resultado {
   // ---- MATERIAL --------------------------------------------------------------------------------------------------------
+  // Todo material es precio × cantidad (la cola de madera ya no es un monto fijo).
   const filasMaterial: Record<string, FilaDeConcepto> = {};
   let preparacion = 0;
   let piso = 0;
   let sfPiso = 0;
   for (const a of d.materiales) {
     const precio = precioDe(e, a.id, a.precio);
-    const cantidad = a.fijo ? 1 : cantidadDe(e, a.id);
+    const cantidad = cantidadDe(e, a.id);
     const total = precio * cantidad;
     filasMaterial[a.id] = { id: a.id, precio, cantidad, total };
     if (a.grupo === "preparacion") preparacion += total;
     else {
       piso += total;
-      sfPiso += cantidad;
+      if (!a.sinSF) sfPiso += cantidad;
     }
   }
 
-  // ---- LABOR: removal y instalación (sin fórmulas todavía) -------------------------------------------------------------
-  // Días de laminado: K11 = ROUNDUP(I11 / 450 + 1, 0). Sin SF de laminado la hoja igual cuenta 1 día (hoja).
+  // ---- LABOR ------------------------------------------------------------------------------------------------------------
+  // Días de laminado: K11 = ROUNDUP(I11 / 450 + 1, 0). Sin SF de laminado la hoja igual cuenta 1 día.
   const laminado = d.instalacion.find((c) => c.dias);
   const dias = laminado ? Math.ceil(cantidadDe(e, laminado.id) / SF_POR_DIA_LAMINADO + 1) : 0;
-  // N2 = I2 = SUM(I3:I31): la suma de TODAS las cantidades de instalación.
-  const sfInstalacion = d.instalacion.reduce((s, c) => s + cantidadDe(e, c.id), 0);
+  // SF de instalación: solo filas de piso (sin pies lineales, escalones ni piezas).
+  const sfInstalacion = d.instalacion.reduce((s, c) => (c.sinSF ? s : s + cantidadDe(e, c.id)), 0);
+  // La entrega del trabajo (ver `Entradas.entrega`). Sin ella, 0 y sin viajes extra.
+  const cargo = finito(e.entrega?.cargo) ?? 0;
+  const minutos = finito(e.entrega?.minutos);
 
   const filasMano: Record<string, FilaDeConcepto> = {};
-  const precioMano = (c: ConceptoDeMano) => precioDe(e, c.id, c.pago);
-  const aplicaFormula = (c: ConceptoDeMano): { cantidad: number; total: number } => {
-    const pago = precioMano(c);
-    if (c.formula === "gas") {
-      const cantidad = GAS_POR_DIA * dias; // C24
-      return { cantidad, total: pago * cantidad }; // D24 = B24 × C24
+  const aplicaFormula = (c: ConceptoDeMano): FilaDeConcepto => {
+    if (c.formula === "entrega") return { id: c.id, precio: cargo, cantidad: 1, total: cargo };
+    if (c.formula === "viajes") {
+      const viajes = minutos !== null && minutos > MINUTOS_DE_VIAJE_EXTRA && dias > 1 ? dias - 1 : 0;
+      const precio = cargo * FRACCION_DE_ENTREGA_POR_VIAJE;
+      return { id: c.id, precio, cantidad: viajes, total: precio * viajes };
     }
+    const pago = precioDe(e, c.id, c.pago);
     if (c.formula === "escaleras") {
-      const cantidad = cantidadDe(e, c.id); // C27: escalones
+      const cantidad = cantidadDe(e, c.id); // tramos
       const f = (cantidad - ESCALONES_LIBRES) * pago * sfInstalacion; // D27
-      return { cantidad, total: f < 0 ? 0 : f };
+      return { id: c.id, precio: pago, cantidad, total: f < 0 ? 0 : f };
     }
     const cantidad = cantidadDe(e, c.id);
-    return { cantidad, total: pago * cantidad };
+    return { id: c.id, precio: pago, cantidad, total: pago * cantidad };
   };
 
+  // Removal: todas suman, también la demo de regadera (pieza). El SF de removal no cuenta las piezas.
   const removal = { sf: 0, total: 0 };
   for (const c of d.removal) {
-    const { cantidad, total } = aplicaFormula(c);
-    filasMano[c.id] = { id: c.id, precio: precioMano(c), cantidad, total };
-    if (c.fueraDelTotal) continue; // C2/D2 = SUM(…4:…9): la fila 10 no entra (hoja)
-    removal.sf += cantidad;
-    removal.total += total;
+    const f = aplicaFormula(c);
+    filasMano[c.id] = f;
+    removal.total += f.total;
+    if (!c.sinSF) removal.sf += f.cantidad;
   }
 
   const instalacion = { sf: 0, total: 0, dias };
   for (const c of d.instalacion) {
-    const { cantidad, total } = aplicaFormula(c);
-    filasMano[c.id] = { id: c.id, precio: precioMano(c), cantidad, total };
-    instalacion.total += total; // J2
+    const f = aplicaFormula(c);
+    filasMano[c.id] = f;
+    instalacion.total += f.total;
   }
-  instalacion.sf = sfInstalacion; // I2
+  instalacion.sf = sfInstalacion;
 
   const extras = { total: 0 };
   for (const c of d.extras) {
-    const { cantidad, total } = aplicaFormula(c);
-    filasMano[c.id] = { id: c.id, precio: precioMano(c), cantidad, total };
-    extras.total += total; // D14 = SUM(D15:D31)
+    const f = aplicaFormula(c);
+    filasMano[c.id] = f;
+    extras.total += f.total;
   }
 
-  const manoTotal = removal.total + instalacion.total + extras.total; // O2
-  const materialTotal = preparacion + piso; // I2
+  const manoTotal = removal.total + instalacion.total + extras.total;
+  const materialTotal = preparacion + piso;
 
   // ---- FIN ------------------------------------------------------------------------------------------------------------
   const contado = (manoTotal + materialTotal) * MULTIPLICADOR_DE_CONTADO * TASA_CON_IMPUESTO; // L3
-  const base = contado / TASA_CON_IMPUESTO; // L3 / 1.0825 (precio antes de impuesto)
+  const base = contado / TASA_CON_IMPUESTO; // precio antes de impuesto
 
   const precioDelPlan = (p: PlanFinanciero): number => {
     if (p.calculo === "contado") return contado;
@@ -326,7 +359,7 @@ export function calcular(e: Entradas, d: DatosTurnkey): Resultado {
       descuento: p.descuento,
       restricciones: p.restricciones,
       precio,
-      negocio: contado * p.descuento, // I = L$3 × G (hoja)
+      negocio: (precio / TASA_CON_IMPUESTO) * p.descuento, // I = precio sin impuesto × G
       mensual: precio * p.factor + (precio * p.apr) / 12, // J
       pagosIguales: plazo ? precio / plazo : null, // K
       interes,

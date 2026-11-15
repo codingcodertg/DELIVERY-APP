@@ -87,7 +87,7 @@ export function tiendaDePartida(delPerfil: string | null | undefined, tiendas: N
   return tiendas.find((s) => n(s.name) === buscada)?.name ?? "";
 }
 
-export type ResultadoMillas = { ok: true; miles: number } | { ok: false; error: string };
+export type ResultadoMillas = { ok: true; miles: number; minutos: number | null } | { ok: false; error: string };
 
 /**
  * Pide las millas a `/api/distance` — **una llamada, solo cuando se pulsa el botón**. Esa ruta llama a Google Routes
@@ -110,7 +110,10 @@ export async function pedirMillas(
     if (!res.ok) return { ok: false, error: typeof body?.error === "string" ? body.error : `HTTP ${res.status}` };
     const miles = Number(body?.miles);
     if (!Number.isFinite(miles) || miles < 0) return { ok: false, error: "sin-millas" };
-    return { ok: true, miles };
+    // Los minutos de manejo de ida (`duration_min` de la misma ruta): Turnkey los usa para los viajes extra. Si la ruta
+    // no los trae, null: no se puede decir que pasa de 45 min.
+    const minutos = Number(body?.duration_min);
+    return { ok: true, miles, minutos: Number.isFinite(minutos) && minutos >= 0 ? minutos : null };
   } catch {
     return { ok: false, error: "red" };
   }

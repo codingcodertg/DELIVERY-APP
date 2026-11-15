@@ -623,7 +623,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
 
       {pestana === "calculadora" && <CalculadoraDeMaterial />}
       {pestana === "visualizador" && <VisualizadorDeRegadera />}
-      {pestana === "turnkey" && puedeVerTurnkey(me) && <Turnkey />}
+      {pestana === "turnkey" && puedeVerTurnkey(me) && <Turnkey ajustes={ajustes} />}
 
       {/* La `key` la monta de nuevo si «Ver como» cambia de persona: otra persona, otro alcance, otros filtros. */}
       {pestana === "todas" && puedeVerLista(me) && (

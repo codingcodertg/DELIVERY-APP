@@ -52408,3 +52408,10 @@ Sello `recruiting` 0.97.0; repo 1.902.0.
 Roberto no quiere marca de agua de ningún tipo (que nadie se sienta vigilado); el personal usa la app de escritorio, que ya pone en negro las capturas del Quote Builder, RR. HH., ERP y Clientes (D-1046). Se quita la marca de las cuatro apps (`MarcaDeAgua` y sus ayudantes); la lista de pantallas protegidas pasa a `src/lib/pantallas-protegidas.ts` y sigue comprobándose igual a `desktop/protegidas.js`. En el navegador y el teléfono no hay bloqueo de capturas (no se puede).
 Extensión de Indeed 0.1.1: el panel («Enviar a RTG Hub», «Auto», «Copiar diagnóstico») sale en cualquier página de employers.indeed.com, porque la forma supuesta de la URL no era la real y no salía nunca; «Auto» sigue actuando solo en una página reconocida como detalle.
 Sello `estimator` 0.37.0; `recruiting` 0.98.0; `erp` 0.30.0; `customers` 0.64.0; repo 1.903.0.
+
+## D-1054 · Turnkey: los ajustes del dueño (solo trabajos de piso)
+
+Respuestas del dueño a las rarezas de la hoja (D-1049): la cola de madera se cobra por pie cuadrado (precio de inicio 0, editable); «Demo shower» suma en la mano de obra; escaleras se quedan como están; la ganancia sigue siendo mano de obra + material y el impuesto y la comisión de la financiera se cobran encima al cliente. El gas (80 × días) se cambia por la tarifa de entrega de cualquier orden, con la misma calculadora del Quote Builder (dirección + tienda, `/api/distance`), y si el manejo de ida pasa de 45 min se suman (días − 1) × ½ entrega. Por ahora solo trabajos de piso: se quitan charola, backer board, azulejo de pared, Recessit y repisa, y los pies de instalación cuentan solo filas de piso (zoclo y alfombras por pie lineal, escalones y demo por pieza no cuentan). La columna «Business» es la comisión de la financiera en $: precio sin impuesto del plan × tasa de descuento. Basura en 0, editable.
+Con la plantilla y sin dirección: material 3,553; mano de obra 3,870; contado 16,070.80; Plan 922 17,611.83.
+Visto en pantalla (demo) a 1280 y 390.
+Sello `estimator` 0.38.0; repo 1.904.0.
