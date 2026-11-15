@@ -10,6 +10,7 @@ import { createClient } from "@/lib/recruiting/supabase/client";
 import { MODO_DEMO } from "@/lib/recruiting/modo-demo";
 import { puedeAsignarPreguntasAlPuesto, preguntasActivasPorConjunto } from "@/lib/recruiting/preguntas-del-puesto";
 import { PLANTILLA, plantillaVigente } from "@/lib/recruiting/texto-puedo-llamar";
+import OutlookIndeedCard from "./OutlookIndeedCard";
 
 export default function SettingsPage() {
   const { t } = usePrefs();
@@ -117,6 +118,8 @@ export default function SettingsPage() {
         </div>
         <div className="hint">{t("One password for every app, changed in one place.", "Una sola contraseña para todas las apps, y se cambia en un solo sitio.")}</div>
       </div>
+
+      {me?.role === "admin" && <OutlookIndeedCard />}
 
       <div className="card">
         <h2>🏷️ {t("App name", "Nombre de la app")}</h2>
