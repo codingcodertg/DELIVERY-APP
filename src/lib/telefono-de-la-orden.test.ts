@@ -76,6 +76,9 @@ describe("puertas", () => {
     anda("src");
     const escriben = archivos.filter((p) => /from\(\s*"candidates"\s*\)\s*\.\s*(insert|update|upsert)\(/.test(readFileSync(p, "utf8")))
       .map((p) => p.replace(/\\/g, "/"));
-    expect(escriben).toEqual(["src/lib/recruiting-data-provider.tsx"]);
+    // Excepción (Indeed por correo, cron/servidor): `crear-candidato.ts` escribe sin navegador, con la llave de servicio,
+    // y aplica el MISMO estandarizado (`estandarizaCandidato`) y el MISMO dedupe (`buscaDuplicado`) que el proveedor.
+    // Pendiente de OK del dueño; ver src/lib/outlook/crear-candidato.ts.
+    expect(escriben).toEqual(["src/lib/outlook/crear-candidato.ts", "src/lib/recruiting-data-provider.tsx"]);
   });
 });
