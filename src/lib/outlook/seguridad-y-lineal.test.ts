@@ -4,42 +4,56 @@ import { enlaceConTexto, enlaceSeguro, extraerEmailsLineal, textoPlanoLineal, TO
 import { enFase, seleccionaNuevos, avanzaCursor, FASES_BACKFILL } from "./sincronizar";
 
 const h = (value: string) => [{ name: "Authentication-Results", value }];
+const F = "noreply@indeed.com";
 
 describe("verificación del remitente (no basta con el From)", () => {
   it("dmarc=pass → verificado", () => {
-    expect(verificadoComoIndeed(h("spf=pass; dkim=pass header.d=indeed.com; dmarc=pass action=none")).ok).toBe(true);
+    expect(verificadoComoIndeed(h("spf=pass; dkim=pass header.d=indeed.com; dmarc=pass action=none header.from=indeed.com"), F).ok).toBe(true);
   });
   it("dkim=pass con header.d de Indeed → verificado", () => {
-    expect(verificadoComoIndeed(h("mx.example; dkim=pass header.d=indeed.com header.s=s1")).ok).toBe(true);
+    expect(verificadoComoIndeed(h("mx.example; dkim=pass header.d=indeed.com header.s=s1"), F).ok).toBe(true);
   });
   it("dkim=pass de un subdominio de Indeed → verificado", () => {
-    expect(verificadoComoIndeed(h("dkim=pass header.d=mail.indeedemail.com")).ok).toBe(true);
+    expect(verificadoComoIndeed(h("dkim=pass header.d=mail.indeedemail.com"), F).ok).toBe(true);
   });
   it("dkim=pass con d= (sin header.) de Indeed → verificado", () => {
-    expect(verificadoComoIndeed(h("dkim=pass (1024-bit key) header.i=@indeedmail.com d=indeedmail.com")).ok).toBe(true);
+    expect(verificadoComoIndeed(h("dkim=pass (1024-bit key) header.i=@indeedmail.com d=indeedmail.com"), F).ok).toBe(true);
   });
   it("dominio que solo termina parecido → NO verificado", () => {
-    expect(verificadoComoIndeed(h("dkim=pass header.d=indeed.com.evil.net")).ok).toBe(false);
-    expect(verificadoComoIndeed(h("dkim=pass header.d=notindeed.com")).ok).toBe(false);
+    expect(verificadoComoIndeed(h("dkim=pass header.d=indeed.com.evil.net"), F).ok).toBe(false);
+    expect(verificadoComoIndeed(h("dkim=pass header.d=notindeed.com"), F).ok).toBe(false);
   });
   it("dkim=pass de otro dominio → NO verificado (suplantación)", () => {
-    expect(verificadoComoIndeed(h("dkim=pass header.d=gmail.com; dmarc=none")).ok).toBe(false);
+    expect(verificadoComoIndeed(h("dkim=pass header.d=gmail.com; dmarc=none"), F).ok).toBe(false);
   });
   it("solo spf=pass, o fallos → NO verificado", () => {
-    expect(verificadoComoIndeed(h("spf=pass smtp.mailfrom=indeed.com")).ok).toBe(false);
-    expect(verificadoComoIndeed(h("dmarc=fail; dkim=fail header.d=indeed.com")).ok).toBe(false);
+    expect(verificadoComoIndeed(h("spf=pass smtp.mailfrom=indeed.com"), F).ok).toBe(false);
+    expect(verificadoComoIndeed(h("dmarc=fail; dkim=fail header.d=indeed.com"), F).ok).toBe(false);
   });
   it("sin cabecera de autenticación → NO verificado", () => {
-    expect(verificadoComoIndeed([]).ok).toBe(false);
-    expect(verificadoComoIndeed([{ name: "Subject", value: "x" }]).ok).toBe(false);
-    expect(verificadoComoIndeed(null).ok).toBe(false);
+    expect(verificadoComoIndeed([], F).ok).toBe(false);
+    expect(verificadoComoIndeed([{ name: "Subject", value: "x" }], F).ok).toBe(false);
+    expect(verificadoComoIndeed(null, F).ok).toBe(false);
   });
-  it("si hay varias cabeceras, basta que una pase; el nombre no distingue mayúsculas", () => {
-    const cabs = [
-      { name: "authentication-results", value: "spf=fail" },
-      { name: "Authentication-Results", value: "dmarc=pass" },
+  it("solo cuenta la cabecera de arriba (la de Microsoft); una de más abajo, traída por el remitente, no", () => {
+    const falsa = [
+      { name: "Authentication-Results", value: "spf=fail smtp.mailfrom=evil.net; dmarc=fail header.from=indeed.com" },
+      { name: "authentication-results", value: "dmarc=pass header.from=indeed.com" },
     ];
-    expect(verificadoComoIndeed(cabs).ok).toBe(true);
+    expect(verificadoComoIndeed(falsa, F).ok).toBe(false);
+    const buena = [
+      { name: "authentication-results", value: "dkim=pass header.d=indeed.com; dmarc=pass header.from=indeed.com" },
+      { name: "Authentication-Results", value: "spf=fail" },
+    ];
+    expect(verificadoComoIndeed(buena, F).ok).toBe(true);
+  });
+  it("dmarc=pass de OTRO dominio no vale, aunque el From diga Indeed", () => {
+    expect(verificadoComoIndeed(h("dmarc=pass header.from=evil.net"), F).ok).toBe(false);
+    expect(verificadoComoIndeed(h("dmarc=pass"), F).ok).toBe(false);
+  });
+  it("el From tiene que ser de Indeed, aunque la cabecera pase", () => {
+    expect(verificadoComoIndeed(h("dkim=pass header.d=indeed.com; dmarc=pass header.from=indeed.com"), "x@evil.net").ok).toBe(false);
+    expect(verificadoComoIndeed(h("dkim=pass header.d=indeed.com"), "Indeed <x@evil.net>").ok).toBe(false);
   });
 });
 

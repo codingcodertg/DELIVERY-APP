@@ -339,7 +339,7 @@ async function procesaCorreo(
   let scheduledAt: string | null = null;
   let detail: string | null = null;
   try {
-    const verif = verificadoComoIndeed(m.cabeceras);
+    const verif = verificadoComoIndeed(m.cabeceras, m.fromAddress);
     if (!verif.ok) {
       resultado = "skipped";
       error = `not verified as Indeed (${verif.motivo})`;

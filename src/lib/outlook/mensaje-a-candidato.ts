@@ -132,11 +132,19 @@ export async function procesarMensaje(
 
   const { data: cand, error: eCand } = await rec
     .from("candidates")
-    .select("id, name, phone, status, phone_date, follow_up")
+    .select("id, name, phone, status, phone_date, follow_up, email, role")
     .eq("id", candidateId)
     .maybeSingle();
   if (eCand || !cand) throw new Error(`No se pudo leer al candidato: ${eCand?.message ?? "no existe"}`);
-  const actual = cand as { id: string; name: string; phone: string | null; status: string; phone_date: string | null; follow_up: string | null };
+  const actual = cand as { id: string; name: string; phone: string | null; status: string; phone_date: string | null; follow_up: string | null; email: string | null; role: string | null };
+
+  // Revisión de seguridad (D-1050): coincidir solo por NOMBRE no basta para cambiarle el teléfono o la cita a una ficha
+  // que ya existía (dos personas pueden llamarse igual). Se cambia si la ficha la creó este mismo mensaje, si el correo
+  // de Indeed que reenvía (Reply-To) es el que ya tiene la ficha, o si el puesto coincide. Si no, solo se anota, «por
+  // confirmar», y RR. HH. decide.
+  const mismoRelay = !!p.replyToRelay && !!actual.email && actual.email.trim().toLowerCase() === p.replyToRelay.trim().toLowerCase();
+  const mismoPuesto = !!m.puesto && !!actual.role && normalizeName(m.puesto) === normalizeName(actual.role);
+  const confiable = creado || mismoRelay || mismoPuesto;
 
   const avisos: string[] = [];
   const partes: string[] = [];
@@ -151,6 +159,9 @@ export async function procesarMensaje(
       if (dueno) {
         avisos.push(`Teléfono ${telefonoEstandar(telefono)} ya es de ${dueno.name}; no se asignó aquí.`);
         partes.push(`Teléfono ${telefonoEstandar(telefono)} (ya de otro candidato)`);
+      } else if (!confiable) {
+        avisos.push(`Teléfono ${telefonoEstandar(telefono)} por confirmar: la ficha coincide solo por nombre.`);
+        partes.push(`Teléfono por confirmar: ${telefonoEstandar(telefono)}`);
       } else {
         const { error } = await rec.from("candidates").update({ phone: telefonoEstandar(telefono) }).eq("id", actual.id);
         if (error) throw new Error(`No se pudo guardar el teléfono: ${error.message}`);
@@ -196,7 +207,10 @@ export async function procesarMensaje(
 
   // 3) Aplicar el plan: solo la llamada de esta persona, nunca otra.
   let scheduledAt: string | null = null;
-  if (plan.accion === "agendar") {
+  if (!confiable && plan.accion !== "ninguna") {
+    avisos.push("Llamada por confirmar: la ficha coincide solo por nombre; no se agendó.");
+    partes.push(`Por confirmar (solo coincide el nombre): ${plan.detalle}`);
+  } else if (plan.accion === "agendar") {
     const { error } = await rec
       .from("candidates")
       .update({ phone_date: plan.iso, status: actual.status === "registered" ? "phone" : actual.status })
@@ -207,7 +221,7 @@ export async function procesarMensaje(
     const { error } = await rec.from("candidates").update({ follow_up: plan.dia }).eq("id", actual.id);
     if (error) throw new Error(`No se pudo poner el seguimiento: ${error.message}`);
   }
-  partes.push(plan.detalle);
+  if (confiable || plan.accion === "ninguna") partes.push(plan.detalle);
   if (choques.length && plan.accion === "ninguna") avisos.push(plan.detalle);
 
   // 4) Nota con el texto completo y el resumen de lo que se hizo.

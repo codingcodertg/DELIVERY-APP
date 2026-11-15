@@ -12,6 +12,8 @@ export interface MensajeGraph {
   internetMessageId: string | null;
   subject: string;
   from: string;
+  /** Solo la dirección del From, tal cual la da Graph (sin el nombre): es la que se verifica. */
+  fromAddress: string;
   replyTo: string[];
   receivedDateTime: string;
   bodyText: string;
@@ -79,6 +81,7 @@ function aMensaje(m: Record<string, unknown>): MensajeGraph {
     id: String(m.id),
     internetMessageId: (m.internetMessageId as string | null) ?? null,
     subject: String(m.subject ?? ""),
+    fromAddress: (from?.address ?? "").trim().toLowerCase(),
     from: from?.address ? (from.name ? `${from.name} <${from.address}>` : from.address) : "",
     replyTo,
     receivedDateTime: String(m.receivedDateTime),
