@@ -28,13 +28,19 @@ type T = (en: string, es: string) => string;
  * **Todo esto es solo para el vendedor.** No está dentro de `.hoja-cliente`, así que al imprimir lo esconde el
  * `@media print` de `estimator.css`, y `hojaDelCliente` no lee nada de aquí salvo el modo (D-413).
  */
-export function EntregaCotizacion({ entrega, onEntrega, ajustes, admin, t }: {
+export function EntregaCotizacion({ entrega, onEntrega, ajustes, admin, t, minutos = null, onMinutos, notaCliente = true }: {
   entrega: Delivery;
   onEntrega: (d: Delivery) => void;
   ajustes: AjustesDeEntrega;
   /** La fórmula («¿Cómo se calculó?») solo la ve un admin, como en la ficha (D-244, T-0049). */
   admin: boolean;
   t: T;
+  /** Manejo de ida tienda → dirección, en minutos, de la última ruta calculada (o null). Solo se muestra. */
+  minutos?: number | null;
+  /** Se llama con los minutos cuando «Calcular» devuelve la ruta. */
+  onMinutos?: (m: number) => void;
+  /** La nota «El cliente lee: Delivery: Available upon request…» (cotización). Turnkey la quita: su entrega es un costo. */
+  notaCliente?: boolean;
 }) {
   const [mapaAbierto, setMapaAbierto] = useState(false);
   /** El pin que había al abrir el mapa: «Cancelar» lo devuelve. */
@@ -78,7 +84,10 @@ export function EntregaCotizacion({ entrega, onEntrega, ajustes, admin, t }: {
     setCalculando(true);
     const r = await pedirMillas(origen, entrega.address);
     setCalculando(false);
-    if (r.ok) onEntrega({ ...entrega, miles: r.miles });
+    if (r.ok) {
+      onEntrega({ ...entrega, miles: r.miles });
+      if (r.minutos != null) onMinutos?.(r.minutos);
+    }
     else setErrorRuta(r.error === "red" ? t("Network error — is the machine online?", "Error de red — ¿la máquina está en línea?") : t("Could not calculate route.", "No se pudo calcular la ruta."));
   };
 
@@ -149,7 +158,8 @@ export function EntregaCotizacion({ entrega, onEntrega, ajustes, admin, t }: {
           <button className="btn btn-ghost" data-calcular onClick={() => void calcular()} disabled={calculando}>
             {calculando ? t("Calculating…", "Calculando…") : t("🚚 Calculate distance & fee", "🚚 Calcular distancia y tarifa")}
           </button>
-          <span className="hint" style={{ margin: 0 }}>{t("Route Miles", "Millas")}: <b data-millas>{entrega.miles != null ? `${entrega.miles} mi` : "—"}</b></span>
+          <span className="hint" style={{ margin: 0 }}>{t("Route Miles", "Millas")}: <b data-millas>{entrega.miles != null ? `${entrega.miles} mi` : "—"}</b>
+            {entrega.miles != null && minutos != null && <> · <b data-minutos>{minutos} min</b></>}</span>
         </div>
         {errorRuta && <div className="hint" style={{ color: "var(--red)" }} data-error-ruta>{errorRuta}</div>}
         {entrega.address.trim() && (
@@ -195,10 +205,12 @@ export function EntregaCotizacion({ entrega, onEntrega, ajustes, admin, t }: {
           <CampoDecimal value={entrega.charge} data-cargo onValor={(n) => onEntrega({ ...entrega, charge: n })} />
         </div>
       </div>
-      <p className="hint" style={{ margin: "6px 0 0" }}>
-        {t("Only you see the address, the pin, the miles and the fees. The address is not printed and the charge is NOT added to the total. The customer reads: “Delivery: Available upon request…”.",
-          "Solo tú ves la dirección, el pin, las millas y las tarifas. La dirección no se imprime y el cargo NO se suma al total. El cliente lee: «Delivery: Available upon request…».")}
-      </p>
+      {notaCliente && (
+        <p className="hint" style={{ margin: "6px 0 0" }}>
+          {t("Only you see the address, the pin, the miles and the fees. The address is not printed and the charge is NOT added to the total. The customer reads: “Delivery: Available upon request…”.",
+            "Solo tú ves la dirección, el pin, las millas y las tarifas. La dirección no se imprime y el cargo NO se suma al total. El cliente lee: «Delivery: Available upon request…».")}
+        </p>
+      )}
     </div>
   );
 }

@@ -87,8 +87,8 @@ describe("las millas: de la tienda a la dirección, y solo con el botón", () =>
     expect(tiendaDePartida(null, ajustes.stores)).toBe("");
   });
   it("pedirMillas hace UNA llamada a /api/distance con origen y destino", async () => {
-    const f = vi.fn(async () => new Response(JSON.stringify({ miles: 23.7 }), { status: 200 }));
-    expect(await pedirMillas("1201 W US-83, Pharr TX", "2400 N 10th St, McAllen", f as unknown as typeof fetch)).toEqual({ ok: true, miles: 23.7 });
+    const f = vi.fn(async () => new Response(JSON.stringify({ miles: 23.7, duration_min: 35 }), { status: 200 }));
+    expect(await pedirMillas("1201 W US-83, Pharr TX", "2400 N 10th St, McAllen", f as unknown as typeof fetch)).toEqual({ ok: true, miles: 23.7, minutos: 35 });
     expect(f).toHaveBeenCalledTimes(1);
     const [url, init] = f.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("/api/distance");

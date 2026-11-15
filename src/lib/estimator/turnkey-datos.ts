@@ -16,13 +16,10 @@ export const MATERIALES: ArticuloMaterial[] = [
   { id: "lechada-sin-arena", grupo: "preparacion", en: "Grout, unsanded", es: "Lechada sin arena", precio: 23.29 / 350 },
   { id: "lechada-con-arena", grupo: "preparacion", en: "Grout, sanded", es: "Lechada con arena", precio: 21.49 / 250 },
   { id: "cemento", grupo: "preparacion", en: "Cement", es: "Cemento", precio: 9.99 / 40 },
-  { id: "charola-regadera", grupo: "preparacion", en: "Shower pan", es: "Charola de regadera", precio: 7.99 },
-  { id: "backer-board", grupo: "preparacion", en: "Backer board", es: "Backer board", precio: 17.5 / 15, nota: "Price = 17.50 / 15" },
   { id: "madera-flotante", grupo: "preparacion", en: "Wood float", es: "Madera flotante", precio: 0 },
-  {
-    id: "cola-madera", grupo: "preparacion", en: "Wood glue", es: "Cola de madera", precio: 400, fijo: true,
-    nota: "Typed as a fixed amount in the sheet (D10), not price × qty",
-  },
+  // Cola de madera: precio × cantidad, como el resto. La hoja traía un monto fijo de 400 (D10); ya no. Sin precio
+  // por defecto: se escribe para el trabajo.
+  { id: "cola-madera", grupo: "preparacion", en: "Wood glue", es: "Cola de madera", precio: 0 },
   { id: "escalon-madera", grupo: "preparacion", en: "Wood / laminate step", es: "Escalón de madera / laminado", precio: 0 },
   { id: "plg-ceramica", grupo: "losa", en: "PLG ceramic", es: "PLG cerámica", precio: 1.39 },
   { id: "ker-ceramica", grupo: "losa", en: "KER ceramic", es: "KER cerámica", precio: 1.79 },
@@ -32,12 +29,15 @@ export const MATERIALES: ArticuloMaterial[] = [
   { id: "vinilo", grupo: "otros", en: "Vinyl", es: "Vinilo", precio: 2 },
   { id: "alfombra", grupo: "otros", en: "Carpet", es: "Alfombra", precio: 1 },
   { id: "piedra-natural", grupo: "otros", en: "Natural stone", es: "Piedra natural", precio: 0 },
-  { id: "deco", grupo: "otros", en: "Deco", es: "Deco", precio: 15 },
+  { id: "deco", grupo: "otros", en: "Deco", es: "Deco", precio: 15, sinSF: true, pista: { en: "Per piece, not SF", es: "Por pieza, no SF" } },
 ];
 
 // ---- LABOR (sheet2) ----------------------------------------------------------------------------------------------------
 
-/** Removal (A4:A10). La fila «Demo Shower» no entra en el total de la hoja (D2 = SUM(D4:D9)). */
+/**
+ * Removal (A4:A10). Todo suma al total de mano de obra. La demo de regadera ($100 cada una) se cobra por pieza, así que
+ * no cuenta como SF de remoción.
+ */
 export const REMOCION: ConceptoDeMano[] = [
   { id: "rem-alfombra-pegada", seccion: "removal", en: "Carpet glue-down removal", es: "Quitar alfombra pegada", pago: 0.1 },
   { id: "rem-vinilo", seccion: "removal", en: "Sheet vinyl removal", es: "Quitar vinilo en rollo", pago: 0.11 },
@@ -47,42 +47,56 @@ export const REMOCION: ConceptoDeMano[] = [
   { id: "rem-laminado", seccion: "removal", en: "Laminate removal", es: "Quitar laminado", pago: 0.5 },
   {
     id: "demo-regadera", seccion: "removal", en: "Demo shower / no plumbing", es: "Demoler regadera / sin plomería", pago: 100,
-    nota: "Demolition", fueraDelTotal: true,
+    sinSF: true, pista: { en: "Per shower, not SF", es: "Por regadera, no SF" },
   },
 ];
 
-/** Instalación (G4:J31): tile, laminado, vinilo, alfombra y otros. Los SF de todas las filas suman la base (N2). */
+/**
+ * Instalación (G4:J31) solo de piso. Las filas de piso (azulejo de piso y patrón, laminado, coretec, vinilo, alfombra,
+ * piedra natural y madera pegada o flotante) suman la base de SF (N2). Los pies lineales (alfombras de azulejo, zoclo)
+ * y los escalones se cobran, pero no suman SF.
+ */
 export const INSTALACION: ConceptoDeMano[] = [
   { id: "ins-piso-azulejo", seccion: "tile", en: "Tile install, floor", es: "Instalar azulejo, piso", pago: 2 },
   { id: "ins-patron", seccion: "tile", en: "Tile install, pattern", es: "Instalar azulejo, patrón", pago: 2.25 },
   { id: "ins-patron-esquinas", seccion: "tile", en: "Tile pattern / clipped corners", es: "Patrón / esquinas cortadas", pago: 2.5 },
-  { id: "ins-alfombras-azulejo", seccion: "tile", en: "Tile rugs, per running foot", es: "Alfombras de azulejo, por pie lineal", pago: 1.5, nota: "Why cheaper?" },
-  { id: "ins-zoclo-azulejo", seccion: "tile", en: "Tile base, per foot", es: "Zoclo de azulejo, por pie", pago: 1, nota: "N/A on our projects" },
-  { id: "ins-pared-azulejo", seccion: "tile", en: "Tile install, wall", es: "Instalar azulejo, pared", pago: 5 },
+  {
+    id: "ins-alfombras-azulejo", seccion: "tile", en: "Tile rugs, per running foot", es: "Alfombras de azulejo, por pie lineal", pago: 1.5,
+    nota: "Why cheaper?", sinSF: true, pista: { en: "Per running foot, not SF", es: "Por pie lineal, no SF" },
+  },
+  {
+    id: "ins-zoclo-azulejo", seccion: "tile", en: "Tile base, per foot", es: "Zoclo de azulejo, por pie", pago: 1,
+    nota: "N/A on our projects", sinSF: true, pista: { en: "Per running foot, not SF", es: "Por pie lineal, no SF" },
+  },
   { id: "ins-laminado", seccion: "laminate", en: "Laminate install, 1.20 + .20 float", es: "Instalar laminado, flotante 1.20 + .20", pago: 1.4, dias: true },
   {
     id: "ins-coretec", seccion: "laminate", en: "Coretec / Floorte install, .20 + .20 float", es: "Instalar Coretec / Floorte, flotante .20 + .20", pago: 1.2,
     nota: "$1.40 depending on installer (falls under rigid core vi…",
   },
-  { id: "ins-escalon-laminado", seccion: "laminate", en: "Wood / laminate step", es: "Escalón de madera / laminado", pago: 35 },
+  {
+    id: "ins-escalon-laminado", seccion: "laminate", en: "Wood / laminate step", es: "Escalón de madera / laminado", pago: 35,
+    sinSF: true, pista: { en: "Per step, not SF", es: "Por escalón, no SF" },
+  },
   { id: "ins-vinilo-flotante", seccion: "vinyl", en: "Sheet vinyl install, .7 + .2 float", es: "Instalar vinilo en rollo, flotante .7 + .2", pago: 1.1 },
   { id: "ins-lv-sin-lechada", seccion: "vinyl", en: "LV, no grout", es: "LV sin lechada", pago: 1.1 },
   { id: "ins-lv-sin-lechada-800", seccion: "vinyl", en: "LV, no grout, over 800 ft", es: "LV sin lechada, más de 800 ft", pago: 1 },
   { id: "ins-lv-lechada", seccion: "vinyl", en: "LV, grout", es: "LV con lechada", pago: 1.25 },
   { id: "ins-alfombra", seccion: "carpet", en: "Carpet install", es: "Instalar alfombra", pago: 0.35 },
   { id: "ins-alfombra-patron", seccion: "carpet", en: "Carpet pattern / woven", es: "Alfombra con patrón / tejida", pago: 0.35 },
-  { id: "ins-escalon-alfombra", seccion: "carpet", en: "Carpet step, BN", es: "Escalón de alfombra, BN", pago: 2 },
-  { id: "ins-escalon-alfombra-uph", seccion: "carpet", en: "Carpet step, upholstered", es: "Escalón de alfombra, tapizado", pago: 5 },
-  { id: "ins-backer", seccion: "otros", en: "Install backer board", es: "Instalar backer board", pago: 0.5 },
-  { id: "ins-charola", seccion: "otros", en: "Shower pan install, per SF", es: "Instalar charola, por SF", pago: 25 },
-  { id: "ins-nicho", seccion: "otros", en: "Recessit install, incl. tile", es: "Instalar Recessit, con azulejo", pago: 50, nota: "Shower niche" },
+  {
+    id: "ins-escalon-alfombra", seccion: "carpet", en: "Carpet step, BN", es: "Escalón de alfombra, BN", pago: 2,
+    sinSF: true, pista: { en: "Per step, not SF", es: "Por escalón, no SF" },
+  },
+  {
+    id: "ins-escalon-alfombra-uph", seccion: "carpet", en: "Carpet step, upholstered", es: "Escalón de alfombra, tapizado", pago: 5,
+    sinSF: true, pista: { en: "Per step, not SF", es: "Por escalón, no SF" },
+  },
   { id: "ins-piedra", seccion: "otros", en: "Natural stone", es: "Piedra natural", pago: 2.5 },
-  { id: "ins-ledge", seccion: "otros", en: "Ledge labor", es: "Mano de obra de repisa", pago: 1, nota: "Stone" },
   { id: "ins-cola-madera", seccion: "otros", en: "Wood glue down install, 1.60 + .20 float", es: "Instalar madera pegada, 1.60 + .20", pago: 1.8 },
   { id: "ins-madera-flotante", seccion: "otros", en: "Wood floating install, 1.20 + .20 float", es: "Instalar madera flotante, 1.20 + .20", pago: 1.6 },
 ];
 
-/** Extras (D15:D31): aparatos, entrega (gas, entrega, escaleras) y limpieza. Todos entran en D14. */
+/** Extras (D15:D31): aparatos, entrega (la calculada, viajes extra, escaleras) y limpieza. Todos entran en la mano de obra. */
 export const EXTRAS: ConceptoDeMano[] = [
   { id: "ap-taza-quitar", seccion: "aparatos", en: "Toilet pull, replace", es: "Quitar inodoro para reemplazo", pago: 30 },
   { id: "ap-taza-nueva", seccion: "aparatos", en: "Toilet install, new", es: "Instalar inodoro nuevo", pago: 45 },
@@ -92,17 +106,30 @@ export const EXTRAS: ConceptoDeMano[] = [
   { id: "ap-triplay", seccion: "aparatos", en: "Install plywood on floor", es: "Instalar triplay en el piso", pago: 0.5 },
   { id: "ap-puertas", seccion: "aparatos", en: "Doors", es: "Puertas", pago: 25 },
   {
-    id: "ent-gas", seccion: "entrega", en: "Round-trip gas to site if 45+ min", es: "Gas ida y vuelta si son 45+ min", pago: 0.5, formula: "gas",
-    nota: "Quantity = 80 × laminate install days (C24)",
+    id: "ent-entrega", seccion: "entrega", en: "Delivery fee (calculated)", es: "Tarifa de entrega (calculada)", pago: 0, formula: "entrega",
+    pista: { en: "From the job address and store, as in any order", es: "De la dirección del trabajo y la tienda, como en cualquier orden" },
   },
-  { id: "ent-entrega", seccion: "entrega", en: "Delivery", es: "Entrega", pago: 80, nota: "Depends on city and closest store" },
-  { id: "ent-entrega-800", seccion: "entrega", en: "Delivery over 800 ft", es: "Entrega más de 800 ft", pago: 160, nota: "Depends on city and closest store" },
+  {
+    id: "ent-viajes", seccion: "entrega", en: "Extra trips, drive over 45 min one way", es: "Viajes extra, manejo de más de 45 min de ida", pago: 0,
+    formula: "viajes",
+    pista: { en: "(days − 1) × ½ delivery fee", es: "(días − 1) × ½ de la tarifa de entrega" },
+  },
+  { id: "ent-entrega-800", seccion: "entrega", en: "Delivery over 800 ft", es: "Entrega más de 800 ft", pago: 160 },
   {
     id: "escaleras", seccion: "entrega", en: "Each flight of stairs, −2 × SF", es: "Cada tramo de escaleras, −2 × SF", pago: 0.1, formula: "escaleras",
-    nota: "Qty = steps. Sheet marks this formula **fix",
+    pista: {
+      en: "Qty = flights. (flights − 2) × $0.10 × install SF, never negative",
+      es: "Cantidad = tramos. (tramos − 2) × $0.10 × SF de instalación, nunca negativo",
+    },
   },
-  { id: "lim-recoleccion", seccion: "limpieza", en: "Trash collection", es: "Recolección de basura", pago: 0, nota: "Normally included in the job. Pay cell is blank in the sheet" },
-  { id: "lim-tiro", seccion: "limpieza", en: "Trash dump", es: "Tiro de basura", pago: 0, nota: "Normally included in the job. Pay cell is blank in the sheet" },
+  {
+    id: "lim-recoleccion", seccion: "limpieza", en: "Trash collection", es: "Recolección de basura", pago: 0,
+    pista: { en: "Not normally charged", es: "Normalmente no se cobra" },
+  },
+  {
+    id: "lim-tiro", seccion: "limpieza", en: "Trash dump", es: "Tiro de basura", pago: 0,
+    pista: { en: "Not normally charged", es: "Normalmente no se cobra" },
+  },
   { id: "lim-cuadrilla", seccion: "limpieza", en: "Cleaning crew", es: "Cuadrilla de limpieza", pago: 0.3, nota: "Normally the customer does it or hires their own" },
 ];
 
@@ -150,8 +177,8 @@ export const PLANES: PlanFinanciero[] = [
 // ---- la plantilla del dueño ----------------------------------------------------------------------------------------------
 
 /**
- * Las entradas de la plantilla que dan los valores guardados de la hoja: laminado 1700 SF de material, quitar azulejo
- * 1600, instalar laminado 1600, quitar inodoro 1, plan 922 en el desglose.
+ * Las entradas de la plantilla: laminado 1700 SF de material, quitar azulejo 1600, instalar laminado 1600, quitar
+ * inodoro 1, plan 922 en el desglose. Sin entrega: la tarifa sale de una dirección, y la plantilla no tiene.
  */
 export const PLANTILLA: Entradas = {
   cantidades: {
