@@ -140,15 +140,14 @@
   async function alCambiarPagina() {
     const href = location.href;
     const tipo = X.tipoDePagina(href);
-    if (!tipo || !tipo.detalle) {
-      if (panel) panel.host.style.display = "none";
-      return;
-    }
+    // El panel sale en TODA página de Indeed: así «Copiar diagnóstico» siempre está a mano aunque la forma de la URL
+    // todavía no sea la que esperamos. «Auto» solo actúa en una página que sí reconocemos como detalle.
     montaPanel();
     panel.host.style.display = "";
     const { auto = false } = await leeStorage(["auto"]);
     panel.auto.checked = !!auto;
-    muestraToast("");
+    muestraToast(tipo && tipo.detalle ? "" : "Abre un mensaje o una solicitud. Si ya está abierto, usa «Copiar diagnóstico».");
+    if (!tipo || !tipo.detalle) return;
     if (auto) setTimeout(() => {
       if (location.href === href) envia({ manual: false });
     }, ESPERA_DOM_MS);
