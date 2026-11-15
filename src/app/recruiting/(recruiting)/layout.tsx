@@ -10,7 +10,6 @@ import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 import type { Profile as RecruitingProfile } from "@/lib/recruiting/types";
 import "../recruiting.css";
 import { ProfileReadError } from "@/components/ProfileReadError";
-import { MarcaDeAgua } from "@/components/MarcaDeAgua";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import { DemoDataProvider } from "@/lib/recruiting-demo-data-provider";
 import { ADMIN_DEMO } from "@/lib/recruiting/demo-data";
@@ -56,7 +55,6 @@ export default async function RecruitingLayout({ children }: { children: React.R
             <TopBar me={ADMIN_DEMO} deliveriesRole="admin" moduleAccess={null} />
             <div className="wrap">{children}</div>
             <VersionFooter />
-            <MarcaDeAgua nombre="Demo" />
           </UIProvider>
         </DemoDataProvider>
       </div>
@@ -110,7 +108,6 @@ export default async function RecruitingLayout({ children }: { children: React.R
           <TopBar me={me} deliveriesRole={profile.role} moduleAccess={profile.module_access} />
           <div className="wrap">{children}</div>
           <VersionFooter />
-          <MarcaDeAgua nombre={me.full_name ?? ""} />
         </UIProvider>
       </DataProvider>
     </div>

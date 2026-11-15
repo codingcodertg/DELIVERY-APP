@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createRequire } from "node:module";
-import { RUTAS_CON_MARCA } from "@/lib/marca-de-agua";
+import { RUTAS_CON_MARCA } from "@/lib/pantallas-protegidas";
 
 // `desktop/` es CommonJS y vive fuera de `src`: se carga con `require` (igual que `desktop-origins.test.ts`).
 const requerir = createRequire(import.meta.url);
@@ -12,7 +12,7 @@ const { RUTAS_PROTEGIDAS, estaProtegida } = requerir("../../desktop/protegidas.j
 const BASE = "https://rtg-hub.vercel.app";
 
 describe("ventana de escritorio: pantallas protegidas contra capturas", () => {
-  it("la lista de la ventana es la misma que la de la marca de agua de la web", () => {
+  it("la lista de la ventana es la misma que la de la web (pantallas-protegidas.ts)", () => {
     expect([...RUTAS_PROTEGIDAS].sort()).toEqual([...RUTAS_CON_MARCA].sort());
   });
 

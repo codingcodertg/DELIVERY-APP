@@ -91,8 +91,8 @@ muestran **en negro en capturas y grabaciones** mientras la ventana está en una
 hub no se protege, a propósito: el cliente de Time Tracker toma capturas para los registros de pago, y si
 todo el hub saliera en negro, cronometrar desde aquí no serviría.
 
-La lista de rutas está en `protegidas.js` (`RUTAS_PROTEGIDAS`). Es la misma que la de la marca de agua de la
-web (`src/lib/marca-de-agua.ts`); la prueba `src/lib/desktop-protegidas.test.ts` falla si se separan. Si se
+La lista de rutas está en `protegidas.js` (`RUTAS_PROTEGIDAS`). Es la misma que la de la
+web (`src/lib/pantallas-protegidas.ts`); la prueba `src/lib/desktop-protegidas.test.ts` falla si se separan. Si se
 añade una app sensible, se pone en las dos. La protección se decide en cada navegación y en cada cambio de
 ruta sin recargar (`did-navigate` y `did-navigate-in-page`).
 

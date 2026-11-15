@@ -8,7 +8,7 @@
 // En el resto del hub no se protege, a propósito: el cliente de Time Tracker toma capturas para
 // los registros de pago, y si todo el hub estuviera en negro, cronometrar aquí dejaría de servir.
 //
-// La misma lista está en la web, `src/lib/marca-de-agua.ts` (la marca de agua). La prueba
+// La misma lista está en la web, `src/lib/pantallas-protegidas.ts`. La prueba
 // `src/lib/desktop-protegidas.test.ts` obliga a que coincidan: si se añade una app, hay que
 // ponerla en las dos.
 //
