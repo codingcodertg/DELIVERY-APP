@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 /**
- * Cron cada 15 minutos (vercel.json): revisa el buzón conectado y crea candidatos o anota mensajes de Indeed.
+ * Cron cada 15 minutos (GitHub Actions, `.github/workflows/outlook-indeed.yml`: Vercel Hobby solo admite crons diarios): revisa el buzón conectado y crea candidatos o anota mensajes de Indeed.
  * - `cronAuthorized`: `Authorization: Bearer <CRON_SECRET>` (lo que manda Vercel Cron) o `?key=`.
  * - `?verify=1`: confirma el secreto sin revisar nada.
  * - Como mucho 50 correos por corrida.
