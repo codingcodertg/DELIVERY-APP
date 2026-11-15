@@ -199,6 +199,7 @@ const PESTANAS_DEL_ESTIMADOR: Record<string, Bilingue> = {
   calculadora: b("Material calculator tab", "Pestaña Calculadora de material"),
   visualizador: b("Shower visualizer tab", "Pestaña Visualizador de regadera"),
   perdidas: b("Lost sales tab", "Pestaña Ventas perdidas"),
+  turnkey: b("Turnkey tab (admin)", "Pestaña Turnkey (admin)"),
 };
 
 export function contextoDelEstimador(e: {

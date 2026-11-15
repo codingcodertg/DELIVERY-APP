@@ -33,7 +33,7 @@ import { almacenDeLecturasDeLaBase, lineasPropias, type AlmacenDeLecturas } from
 import {
   POLITICA_CASILLA, POLITICA_CASILLA_ES, POLITICA_PARRAFOS, POLITICA_PARRAFOS_ES, POLITICA_TITULO, POLITICA_TITULO_ES, sePuedeGenerar, sePuedePedirLaCopia,
 } from "@/lib/estimator/politica";
-import { puedeVerLista, puedeVerTodas, type Pestana } from "@/lib/estimator/lista-admin";
+import { puedeVerLista, puedeVerTodas, puedeVerTurnkey, type Pestana } from "@/lib/estimator/lista-admin";
 import { almacenDePerdidasDeLaBase, almacenDePerdidasDemo, type AlmacenDePerdidas } from "@/lib/estimator/ventas-perdidas";
 import { todayISO } from "@/lib/utils";
 import { CalculadoraDeMaterial } from "./CalculadoraDeMaterial";
@@ -41,6 +41,15 @@ import dynamic from "next/dynamic";
 
 /** El visualizador trae three.js (~600 KB): se carga solo al abrir la pestaña, y nunca en el servidor. */
 const VisualizadorDeRegadera = dynamic(() => import("./VisualizadorDeRegadera"), {
+  ssr: false,
+  loading: () => <p className="hint">…</p>,
+});
+
+/**
+ * Turnkey (solo admin): sus precios y tasas de descuento son costos de la casa. El módulo entero se baja solo cuando el
+ * admin abre la pestaña, y los datos los pide el servidor (`turnkey-actions.ts`), que vuelve a comprobar el rol.
+ */
+const Turnkey = dynamic(() => import("./Turnkey"), {
   ssr: false,
   loading: () => <p className="hint">…</p>,
 });
@@ -178,6 +187,7 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
    */
   const [pestana, setPestana] = useState<Pestana>("cotizacion");
   useEffect(() => { if (pestana === "todas" && !puedeVerLista(me)) setPestana("cotizacion"); }, [pestana, me]);
+  useEffect(() => { if (pestana === "turnkey" && !puedeVerTurnkey(me)) setPestana("cotizacion"); }, [pestana, me]);
 
   // La extensión sale sola (D-432, «should be automatic»): la del expediente de quien prepara; si no tiene, la que
   // escribió la última vez en este navegador. Se reemplaza mientras nadie la toque (en demo «Ver como» cambia de
@@ -603,10 +613,17 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
           className={"btn btn-sm " + (pestana === "visualizador" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("visualizador")}>
           🚿 {t("Shower visualizer", "Visualizador de regadera")}
         </button>
+        {puedeVerTurnkey(me) && (
+          <button type="button" role="tab" aria-selected={pestana === "turnkey"} data-pestana="turnkey"
+            className={"btn btn-sm " + (pestana === "turnkey" ? "btn-primary" : "btn-ghost")} onClick={() => setPestana("turnkey")}>
+            🧾 {t("Turnkey (admin)", "Turnkey (admin)")}
+          </button>
+        )}
       </div>
 
       {pestana === "calculadora" && <CalculadoraDeMaterial />}
       {pestana === "visualizador" && <VisualizadorDeRegadera />}
+      {pestana === "turnkey" && puedeVerTurnkey(me) && <Turnkey />}
 
       {/* La `key` la monta de nuevo si «Ver como» cambia de persona: otra persona, otro alcance, otros filtros. */}
       {pestana === "todas" && puedeVerLista(me) && (

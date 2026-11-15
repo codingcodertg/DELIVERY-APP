@@ -232,3 +232,25 @@
 .calc-explica h4 { margin: 14px 0 6px; font-size: 13px; }
 .calc-explica .calc-usa { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; color: var(--ink-soft); }
 .calc-explica .calc-cierre { margin: 14px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--green-soft); color: var(--green, #1f9d61); font-weight: 800; font-size: 14px; line-height: 1.45; font-variant-numeric: tabular-nums; }
+
+/* Turnkey (solo admin): material + mano de obra + financiamiento. Las tablas de entrada se desplazan dentro de su caja. */
+.tk-wrap { display: grid; gap: 18px; min-width: 0; }
+.tk-cabecera h1 { margin: 0; }
+.tk-seccion { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--paper); min-width: 0; }
+.tk-seccion h2 { margin: 0 0 10px; font-size: 17px; }
+.tk-scroll { overflow-x: auto; max-width: 100%; }
+.tk-tabla { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 13px; }
+.tk-tabla th { text-align: left; font-size: 11px; font-weight: 700; color: var(--ink-soft); padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.tk-tabla td { padding: 4px 6px; border-top: 1px solid var(--line); vertical-align: middle; }
+.tk-tabla .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tk-tabla tr.tk-grupo th { padding-top: 12px; color: var(--ink); font-size: 12.5px; background: transparent; }
+.est-wrap .tk-tabla input.tk-num { width: 96px; text-align: right; padding: 4px 6px; font-size: 13px; }
+.tk-nota { display: block; font-size: 11.5px; font-weight: 400; color: var(--gray); font-style: italic; margin-top: 1px; white-space: normal; }
+.tk-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 12px 0 0; }
+.tk-resumen > div { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+.tk-resumen dt { font-size: 11px; font-weight: 700; color: var(--ink-soft); }
+.tk-resumen dd { margin: 2px 0 0; font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 16px; overflow-wrap: anywhere; }
+.tk-precio-contado { font-size: 15px; margin: 0 0 10px; }
+.tk-precio-contado strong { font-family: 'Archivo', sans-serif; font-size: 18px; }
+.tk-fila-sel td { background: var(--accent-soft); }
+.est-wrap .tk-seccion select { width: 100%; max-width: 520px; }

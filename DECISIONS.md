@@ -52376,3 +52376,11 @@ Sello `recruiting` 0.94.0; repo 1.897.0.
 Pedido de Roberto: las existencias (QOH) son una foto del archivo subido y no se actualizan, así que hay que saber de cuándo son. Bajo el título de la ronda: «Uploaded <fecha y hora> by <nombre>» (`promo_rounds.uploaded_at` y `uploaded_by`, hora de Chicago; sin nombre si la cargó el script) y la etiqueta «QOH as of upload; not live». Las columnas de QOH lo repiten al pasar el ratón, y el selector de rondas enseña la fecha. Subir otra vez es una ronda nueva, por eso basta con la fecha de la ronda. Sin migración.
 Visto en pantalla (demo) a 1280 y 390.
 Sello `promos` 0.24.0; repo 1.898.0.
+
+## D-1049 · Quote Builder: pestaña «Turnkey» (solo admin), la plantilla de material + mano de obra + financiamiento
+
+Copia de la plantilla del dueño (`TEMPLATE.xlsx`: MATERIAL, LABOR, FIN, BREAKDOWN), celda por celda: material por precio × cantidad, mano de obra (quitar, instalar por tipo, extras, días), los 35 planes de financiamiento con pago mensual, precio con financiamiento e impuesto, margen y ganancia, y el desglose del plan elegido. Con las cifras de la plantilla da lo mismo que la hoja (contado 17,369.80; Plan 922 19,035.39; ganancia 8,023; margen 42.15%), en pruebas y en pantalla.
+Solo admin, y no solo en pantalla: la pestaña se carga aparte (`next/dynamic`) y los precios, planes y tasas los entrega una acción de servidor que comprueba `profiles.role = 'admin'` (`turnkey-actions.ts`); el código que llega a todos lleva solo la cuenta (`turnkey.ts`, una prueba impide que importe los datos).
+Rarezas de la hoja copiadas tal cual: «Wood glue» es 400 escrito a mano (queda editable); «Demo shower» no entra en el total de mano de obra; escaleras marcada «**fix»; la ganancia es mano de obra + material en todos los planes; el gas cuenta 1 día aunque no haya laminado.
+Visto en pantalla (demo) a 1280 y 390; como vendedor la pestaña no aparece.
+Sello `estimator` 0.36.0; repo 1.899.0.
