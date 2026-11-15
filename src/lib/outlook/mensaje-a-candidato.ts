@@ -89,11 +89,18 @@ async function etapasTerminales(db: SupabaseClient): Promise<Set<string>> {
  */
 export async function procesarMensaje(
   db: SupabaseClient,
-  p: { mensaje: MensajeDeIndeed; recibido: string; ahora: string; replyToRelay: string | null },
+  p: {
+    mensaje: MensajeDeIndeed;
+    recibido: string;
+    ahora: string;
+    replyToRelay: string | null;
+    /** Teléfono de 10 dígitos que trae el bot (ya normalizado). Solo se usa si el texto no trae ninguno. */
+    telefonoExtra?: string | null;
+  },
 ): Promise<ResultadoMensaje> {
   const rec = db.schema("recruiting");
   const { mensaje: m } = p;
-  const telefono = telefonoDeMensaje(m.texto);
+  const telefono = telefonoDeMensaje(m.texto) ?? p.telefonoExtra ?? null;
   const hora = horaDeLlamada(m.texto, p.recibido);
   const busqueda = await buscarCandidatoParaMensaje(db, m.candidateName, m.puesto);
 

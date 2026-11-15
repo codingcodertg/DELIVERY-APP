@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RTG Hub · Indeed: opciones</title>
+  <style>
+    body { font: 15px/1.4 system-ui, sans-serif; color: #1d2330; max-width: 560px; margin: 40px auto; padding: 0 16px; }
+    h1 { font-size: 20px; }
+    input[type=password] { width: 100%; box-sizing: border-box; padding: 8px; font: inherit; border: 1px solid #aab4c4; border-radius: 6px; }
+    button { font: inherit; padding: 8px 14px; border: 0; border-radius: 6px; background: #1f5fbf; color: #fff; cursor: pointer; margin-top: 10px; }
+    .sec { background: #eef2f8; color: #1d2330; }
+    #estado { margin-top: 12px; white-space: pre-wrap; }
+    .nota { color: #5a6578; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>RTG Hub · Indeed</h1>
+  <p>Pega el token que te dio quien administra RTG Hub. Se guarda en esta cuenta de Chrome y no se muestra después.</p>
+  <label for="token">Token</label>
+  <input type="password" id="token" autocomplete="off" spellcheck="false">
+  <div>
+    <button id="guardar">Guardar</button>
+    <button class="sec" id="probar">Probar conexión</button>
+  </div>
+  <div id="estado"></div>
+  <p class="nota">El token solo se usa para hablar con rtg-hub.vercel.app. Si lo cambias, guarda de nuevo.</p>
+  <script src="options.js"></script>
+</body>
+</html>

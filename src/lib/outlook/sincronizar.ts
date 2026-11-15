@@ -33,6 +33,7 @@ import {
 } from "./indeed";
 import { validaCv } from "./cv";
 import { verificadoComoIndeed } from "./verificacion";
+import { cierraRegistro, reclamaRegistro } from "./registro";
 
 export type ResultadoFila = "created" | "duplicate" | "noted" | "skipped" | "failed";
 
@@ -318,20 +319,14 @@ async function procesaCorreo(
   m: MensajeGraph,
   o: { dominioBuzon: string | null; accessToken: string; fetchFn: typeof fetch; ahora: Date },
 ): Promise<ResultadoFila | "ya-reclamado"> {
-  const rec = db.schema("recruiting");
   const correo: CorreoDeIndeed = { ...aCorreo(m), dominioBuzon: o.dominioBuzon };
-  const { error: eClaim } = await rec.from("outlook_processed").insert({
-    message_id: m.id,
-    received_at: m.receivedDateTime,
-    subject: m.subject.slice(0, 300),
-    from_address: direccionDe(m.from).slice(0, 200),
-    result: "failed",
-    error: "en proceso",
+  const reclamo = await reclamaRegistro(db, {
+    messageId: m.id,
+    receivedAt: m.receivedDateTime,
+    subject: m.subject,
+    fromAddress: direccionDe(m.from),
   });
-  if (eClaim) {
-    if (eClaim.code === "23505") return "ya-reclamado";
-    throw new Error(`no se pudo reclamar el correo: ${eClaim.message}`);
-  }
+  if (reclamo === "ya-reclamado") return "ya-reclamado";
 
   let resultado: ResultadoFila = "failed";
   let candidateId: string | null = null;
@@ -394,10 +389,7 @@ async function procesaCorreo(
     error = mensajeSeguro(e);
   }
 
-  await rec
-    .from("outlook_processed")
-    .update({ result: resultado, candidate_id: candidateId, error, scheduled_at: scheduledAt, detail })
-    .eq("message_id", m.id);
+  await cierraRegistro(db, m.id, { result: resultado, candidateId, error, scheduledAt, detail });
   return resultado;
 }
 
