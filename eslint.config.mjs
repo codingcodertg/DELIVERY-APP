@@ -32,6 +32,7 @@ export default [
       "public/**",
       "supabase/**",
       "scripts/**",
+      "tools/**",
       "next-env.d.ts",
     ],
   },

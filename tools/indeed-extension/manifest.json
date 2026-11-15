@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "RTG Hub · Indeed",
+  "version": "0.1.0",
+  "description": "Envía a RTG Hub las solicitudes y mensajes de Indeed que abres. Solo lectura.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://rtg-hub.vercel.app/*", "https://employers.indeed.com/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://employers.indeed.com/*"],
+      "js": ["nucleo.js", "extractor.js", "content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "options_ui": { "page": "options.html", "open_in_tab": true }
+}
