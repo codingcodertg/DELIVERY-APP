@@ -6,7 +6,7 @@ import { useData } from "@/lib/timetracker-data-provider";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 import { addWeeks, computePay, fmtISOday, money, thisWeekStart, weekStartISO } from "@/lib/timetracker/helpers";
 import type { Session } from "@/lib/timetracker/types";
-import { necesitaProyecto, nombreDeLinea } from "@/lib/timetracker/tienda-y-puesto";
+import { necesitaProyecto, nombreDeSesion } from "@/lib/timetracker/tienda-y-puesto";
 
 const WEEKS = 8;
 
@@ -95,7 +95,7 @@ export default function InsightsPage() {
   wk.forEach((s) => {
     const proj = s.projectId ? pMap.get(s.projectId)?.name : null;
     const u = uMap.get(s.employeeUid);
-    const name = nombreDeLinea(proj, u, lang, "(deleted)");
+    const name = nombreDeSesion(s.projectId, proj, u, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "(deleted)" });
     const key = !proj && u && !necesitaProyecto(u) ? "t:" + name : "p:" + (s.projectId ?? "");
     const g = byProj.get(key) ?? { name, hours: 0 };
     g.hours += (s.durationSeconds || 0) / 3600;

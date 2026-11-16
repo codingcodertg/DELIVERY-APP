@@ -5,7 +5,7 @@ import { DICT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS, syncAppSettings } from "@/lib/timetracker/helpers";
 import {
   ETIQUETAS_DE_PUESTO, PUESTO_POR_DEFECTO, campoDeProyecto, elegirPuesto, elegirTienda, etiquetaDePuesto,
-  necesitaProyecto, nombreDeLinea, resolverTiendaYPuesto, seOfreceParaAsignar, tiendaYPuesto,
+  necesitaProyecto, nombreDeLinea, nombreDeSesion, resolverTiendaYPuesto, seOfreceParaAsignar, tiendaYPuesto,
 } from "./tienda-y-puesto";
 
 // D-493. El dueño, 2026-10-07: «la gente que está presencial, no ocupa que se les asignen proyectos
@@ -180,8 +180,8 @@ describe("Mis solicitudes › Tiempo: al presencial no se le pide proyecto", () 
   });
   it("en la lista de solicitudes y al elegir una entrada, su tienda y su puesto donde iba el proyecto", () => {
     expect(sol).toContain("nombreDeLinea(aMap.get(typeof aid === \"string\" ? aid : \"\")?.project.name, me, lang, sinProyecto);");
-    expect(sol).toContain('const proj = nombreDelProyecto(p.assignmentId, "");');
-    expect(sol.split('{nombreDelProyecto(s.assignmentId, "—")}').length - 1).toBe(2);
+    expect(sol).toContain('const proj = nombreDelProyecto(p.assignmentId, t("track.sinProyecto"));');
+    expect(sol.split('{nombreDelProyecto(s.assignmentId, t("track.sinProyecto"))}').length - 1).toBe(2);
   });
 });
 
@@ -196,8 +196,8 @@ describe("Solicitudes del equipo: la del presencial sale con su tienda y su pues
 describe("Mi semana: sus horas sin proyecto, bajo su tienda y su puesto", () => {
   const sem = leer("src/app/timetracker/(timetracker)/week/page.tsx");
   it("la tabla por proyecto y las entradas del día", () => {
-    expect(sem).toContain('const proj = { name: nombreDeLinea(a?.project.name, me, lang, t("emp.week.deletedProject")) };');
-    expect(sem).toContain('const projectName = (a: Assignment | undefined) => nombreDeLinea(a?.project.name, me, lang, "—");');
+    expect(sem).toContain('const proj = { name: nombreDeSesion(aid || null, a?.project.name, me, lang, { sinProyecto: t("track.sinProyecto"), eliminado: t("emp.week.deletedProject") }) };');
+    expect(sem).toContain('valor: (s) => nombreDeSesion(s.assignmentId, aMap.get(s.assignmentId ?? "")?.project.name, me, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" }) },');
   });
 });
 
@@ -209,7 +209,7 @@ describe("Nómina › Remoto (tabla, detalle, CSV, recibo y «Agregar entrada»)
     expect(rep).toContain('valor: (l) => nombreDe(l.a, uid, "(deleted)")');
     expect(rep.split('<td>{nombreDe(l.a, uid, "(deleted)")}</td>').length - 1).toBe(1);
     // Detalle del tramo (forma reducida): el proyecto se nombra en su celda.
-    expect(rep).toContain('nombreDeLinea(s.projectId ? pMap.get(s.projectId)?.name : null, uMap.get(s.employeeUid), lang, "—")');
+    expect(rep).toContain('nombreDeSesion(s.projectId, s.projectId ? pMap.get(s.projectId)?.name : null, uMap.get(s.employeeUid), lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" })');
   });
   it("el CSV y el recibo: nombre y lugar (la tienda del presencial)", () => {
     expect(rep).toContain('status, nombreDe(l.a, uid, "(deleted)"), lugarDe(l.a, uid), (l.g.sec / 3600).toFixed(2),');
@@ -234,13 +234,13 @@ describe("Nómina › En sitio: al lado del nombre, su puesto (la tienda ya es e
 describe("El Panel (proyectos principales) y Ahora mismo", () => {
   it("el Panel cuenta las horas del presencial sin proyecto bajo su tienda y su puesto", () => {
     const ins = leer("src/app/timetracker/(timetracker)/insights/page.tsx");
-    expect(ins).toContain('const name = nombreDeLinea(proj, u, lang, "(deleted)");');
+    expect(ins).toContain('const name = nombreDeSesion(s.projectId, proj, u, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "(deleted)" });');
     expect(ins).toContain('const key = !proj && u && !necesitaProyecto(u) ? "t:" + name : "p:" + (s.projectId ?? "");');
   });
   it("Ahora mismo: la tarjeta del que ficha lleva su tienda y su puesto donde la del remoto lleva el proyecto", () => {
     const live = leer("src/app/timetracker/(timetracker)/live/page.tsx");
     expect(live).toContain('<div className="live-sub">{emp && !necesitaProyecto(emp) ? tiendaYPuesto(emp, lang) : "\\u00a0"}</div>');
-    expect(live).toContain('<div className="live-sub">{nombreDeLinea(proj?.name, emp, lang, "—")}');
+    expect(live).toContain('<div className="live-sub">{nombreDeSesion(s.projectId, proj?.name, emp, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" })}');
   });
 });
 
@@ -266,6 +266,73 @@ describe("Asignaciones: el presencial, marcado y sin ofrecerlo", () => {
     expect(asn).toContain("{uMap.has(a.employeeUid) && !necesitaProyecto(uMap.get(a.employeeUid)) && (");
     // `.pill on` y no `.live-tag`: la global de Entregas late con opacidad (parecería apagada, D-489).
     expect(asn).toContain('<span className="pill on" style={{ marginLeft: 6 }}>{t("mgr.asn.inhousePill")}</span>');
+  });
+});
+
+describe("Sin proyecto: la sesión se ficha igual y se enseña sin decir «eliminado»", () => {
+  const etiquetasEs = { sinProyecto: "Sin proyecto", eliminado: "(proyecto eliminado)" };
+  const etiquetasEn = { sinProyecto: "No project", eliminado: "(deleted project)" };
+  it("sin id de proyecto, el remoto ve «Sin proyecto» (null o vacío)", () => {
+    expect(nombreDeSesion(null, undefined, remoto, "es", etiquetasEs)).toBe("Sin proyecto");
+    expect(nombreDeSesion("", null, remoto, "en", etiquetasEn)).toBe("No project");
+  });
+  it("sin id de proyecto, el presencial ve su tienda y su puesto", () => {
+    expect(nombreDeSesion(null, null, presencial, "es", etiquetasEs)).toBe("Pharr · Ventas");
+    expect(nombreDeSesion(undefined, undefined, presencial, "en", etiquetasEn)).toBe("Pharr · Sales");
+  });
+  it("con id pero sin nombre (el proyecto ya no existe), el remoto ve «eliminado»", () => {
+    expect(nombreDeSesion("p-1", undefined, remoto, "es", etiquetasEs)).toBe("(proyecto eliminado)");
+  });
+  it("con id y nombre, el nombre del proyecto", () => {
+    expect(nombreDeSesion("p-1", "Tienda Pharr", remoto, "es", etiquetasEs)).toBe("Tienda Pharr");
+    expect(nombreDeSesion("p-1", "Tienda Pharr", presencial, "es", etiquetasEs)).toBe("Tienda Pharr");
+  });
+});
+
+describe("Cronometro: arrancar no exige proyecto", () => {
+  const crono = leer("src/components/timetracker/Cronometro.tsx");
+  it("start() ya no sale por no haber proyecto y el botón no se deshabilita por eso", () => {
+    expect(crono).not.toContain("if (!selected) return;");
+    expect(crono).not.toContain("disabled={!selected}");
+  });
+  it("la sesión se guarda con proyecto y asignación a null cuando no se eligió ninguno", () => {
+    expect(crono).toContain("projectId: selected?.projectId ?? null,");
+    expect(crono).toContain("assignmentId: selected?.id ?? null,");
+  });
+  it("el guardado de la fila en vivo no se queda en pendiente por no tener proyecto", () => {
+    expect(crono).toContain("if (!base) { pendienteRef.current = trasFallo(p, ahora); return; }");
+    expect(crono).not.toContain("if (!base?.projectId && !base?.assignmentId)");
+  });
+  it("sin proyecto no hay límite semanal ni se cuenta contra ninguno", () => {
+    expect(crono).toContain("const wLimitSec = selected && selected.weeklyLimit !== null");
+    expect(crono).toContain("if (!selected) return 0;");
+  });
+  it("«Sin proyecto» se puede elegir y se recuerda al recargar", () => {
+    expect(crono).toContain('onClick={() => setAssignmentId("")}');
+    expect(crono).toContain("else localStorage.removeItem(LS_A);");
+  });
+});
+
+describe("Las pantallas no pintan «eliminado» ni «—» a una sesión sin proyecto", () => {
+  it("semana, resumen, en vivo, solicitudes y reportes usan nombreDeSesion", () => {
+    expect(leer("src/app/timetracker/(timetracker)/week/page.tsx")).toContain("nombreDeSesion(aid || null,");
+    expect(leer("src/app/timetracker/(timetracker)/insights/page.tsx")).toContain("nombreDeSesion(s.projectId, proj, u, lang,");
+    expect(leer("src/app/timetracker/(timetracker)/live/page.tsx")).toContain("nombreDeSesion(s.projectId, proj?.name, emp, lang,");
+    expect(leer("src/app/timetracker/(timetracker)/requests/page.tsx")).toContain('nombreDelProyecto(s.assignmentId, t("track.sinProyecto"))');
+    expect(leer("src/components/timetracker/ManagerReports.tsx")).toContain("nombreDeSesion(s.projectId, s.projectId ?");
+  });
+});
+
+describe("Los textos de «sin proyecto»", () => {
+  it("el aviso ya no dice que hay que pedirlo: dice que se puede iniciar igual", () => {
+    expect(DICT.en["track.noProjects"]).toContain("You can still start the timer");
+    expect(DICT.es["track.noProjects"]).toContain("Igual puedes iniciar el cronómetro");
+  });
+  it("existen las etiquetas nuevas en los dos idiomas", () => {
+    for (const k of ["track.sinProyecto", "notify.startBodyNoProject"]) {
+      expect(DICT.en[k], `falta ${k} en inglés`).toBeDefined();
+      expect(DICT.es[k], `falta ${k} en español`).toBeDefined();
+    }
   });
 });
 

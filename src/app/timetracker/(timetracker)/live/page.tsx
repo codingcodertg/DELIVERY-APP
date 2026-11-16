@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 import { fmtClock, fmtTime } from "@/lib/timetracker/helpers";
-import { necesitaProyecto, nombreDeLinea, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
+import { necesitaProyecto, nombreDeSesion, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
 import { getCrewNow } from "@/app/timetracker/clock-in/actions/clock";
 import { CrewMap, type CrewPoint } from "@/components/timetracker/CrewMap";
 
@@ -159,7 +159,7 @@ export default function LiveMonitorPage() {
                   <span className="live-tag remote">💻 {t("mgr.live.remote")}</span>
                   <span className="live-tag state">{st ? st.text : t("mgr.live.livePill")}</span>
                 </div>
-                <div className="live-sub">{nombreDeLinea(proj?.name, emp, lang, "—")}{s.memo ? " · " + s.memo : ""}</div>
+                <div className="live-sub">{nombreDeSesion(s.projectId, proj?.name, emp, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" })}{s.memo ? " · " + s.memo : ""}</div>
                 <div className="live-clock">{fmtClock(elapsed)}</div>
                 <div className="live-meta">
                   {t("mgr.live.since", { time: s.startMs ? fmtTime(s.startMs) : "—" })} · {t("mgr.live.activity", { pct })}

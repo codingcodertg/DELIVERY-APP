@@ -11,7 +11,7 @@ import { acumuladoDelAnio, htmlDelTalon, lineasDeNomina, lineasDelTalon, talonRe
 import { imprimeDocumento } from "@/lib/slip";
 import type { Assignment, Employee, Payroll, PayrollAdjustment, Session } from "@/lib/timetracker/types";
 import { sumaDeAjustes, totalConAjustes, totalPagado } from "@/lib/timetracker/total-de-nomina";
-import { necesitaProyecto, nombreDeLinea, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
+import { necesitaProyecto, nombreDeLinea, nombreDeSesion, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
 import { isOverlapError } from "@/lib/timetracker/overlap";
 import { Modal } from "./Modal";
 import { TablaReducida } from "./TablaReducida";
@@ -417,7 +417,7 @@ export function ManagerReports({ period }: { period: string }) {
                   ? <input type="date" value={ed.date} onChange={(e) => setEd((p) => ({ ...p, date: e.target.value }))} style={{ padding: "4px 6px" }} />
                   : <span className="small nowrap">{s.startMs ? fmtDT(s.startMs, { weekday: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</span>) },
                 { key: "proyecto", en: t("mgr.rep.colProject"), es: t("mgr.rep.colProject"), ancho: 180, celda: (s) => (
-                  <span className="small">{nombreDeLinea(s.projectId ? pMap.get(s.projectId)?.name : null, uMap.get(s.employeeUid), lang, "—")}</span>
+                  <span className="small">{nombreDeSesion(s.projectId, s.projectId ? pMap.get(s.projectId)?.name : null, uMap.get(s.employeeUid), lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" })}</span>
                 ) },
                 { key: "nota", en: t("mgr.rep.colNote"), es: t("mgr.rep.colNote"), ancho: 260, envuelve: true, celda: (s) => (editId === s.id
                   ? <div className="row small"><input type="time" value={ed.from} onChange={(e) => setEd((p) => ({ ...p, from: e.target.value }))} style={{ padding: "4px 6px", width: "auto" }} /><input type="time" value={ed.to} onChange={(e) => setEd((p) => ({ ...p, to: e.target.value }))} style={{ padding: "4px 6px", width: "auto" }} /></div>

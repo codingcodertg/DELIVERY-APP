@@ -52438,3 +52438,8 @@ Sello: todas las apps suben un menor; repo 1.907.0.
 
 El dueño, al ver D-1057: «no quiero que diga ifloor deliveries … deja el rtg, solo que el app, el desktop y el apk dirá ifloor y solo en el main dirá rtg hub by ifloor». Se revierte D-1057 (los textos de adentro y los nombres de la base vuelven a RTG/RDZ) y queda: el nombre de la app instalada (manifiesto, `appleWebApp`) «iFloor»; el programa de escritorio (`productName`, acceso directo) «iFloor», con `userData` fijo en la carpeta «RTG Hub» para no perder el registro del dispositivo; y la página principal del hub con «RTG Hub by iFloor» arriba del saludo. El APK se cambia en su propio proyecto.
 Sello: todas las apps suben un menor; repo 1.908.0.
+
+## D-1059 · Time Tracker: el proyecto ya no es requisito para iniciar (2026-11-16)
+
+El dueño: «quitemos lo del project, o sea no lo quites, pero ya no es requisito para hacer clock in, así Francis puede hacer clock in». Francis (gerente, sin proyecto asignado) no podía iniciar el cronómetro. Los proyectos siguen igual y se pueden elegir, pero «Start» ya no los exige: hay una opción «Sin proyecto» y la sesión se guarda con `project_id` y `assignment_id` nulos (columnas ya nulables, 059). Las pantallas muestran «Sin proyecto» (o tienda·puesto en presencial) con `nombreDeSesion`. Una sesión sin proyecto no tiene tarifa: en nómina sale en 0 hasta que el dueño diga cómo se paga.
+Sello `timetracker` 1.29.0; repo 1.909.0.
