@@ -23,8 +23,12 @@ export interface EventoRealtime {
   old: Record<string, unknown> | null | undefined;
 }
 
-/** Las tablas que se recargan por fila. Las demás siguen con su consulta entera (D-201, `queriesForTables`). */
-export const TABLAS_POR_FILA = ["deliveries", "order_events", "notifications"] as const;
+/**
+ * Las tablas que se recargan por fila. Las demás siguen con su consulta entera (D-201, `queriesForTables`).
+ * Los turnos, incidencias y disponibilidad (sin ventana de fechas: ver data-provider) van por fila para que un cambio
+ * no vuelva a bajar la tabla entera, que crece sin límite.
+ */
+export const TABLAS_POR_FILA = ["deliveries", "order_events", "notifications", "driver_shifts", "driver_incidents", "driver_availability"] as const;
 export type TablaPorFila = (typeof TABLAS_POR_FILA)[number];
 
 /**
@@ -149,6 +153,10 @@ export function cumpleFiltroDeLaLista(
 export const porOrderNoDesc = (a: { order_no: number }, b: { order_no: number }) => a.order_no > b.order_no;
 /** `order("created_at", desc)`: eventos y notificaciones. */
 export const porCreatedAtDesc = (a: { created_at: string }, b: { created_at: string }) => a.created_at > b.created_at;
+/** `order(campo, desc)` para un campo de texto ordenable (fechas ISO): turnos, incidencias, disponibilidad. */
+export function porCampoDesc<T>(campo: keyof T & string): (a: T, b: T) => boolean {
+  return (a, b) => String(a[campo] ?? "") > String(b[campo] ?? "");
+}
 
 /**
  * Cuántas filas baja un cliente por un evento en `deliveries`: antes la lista entera, después las de la ráfaga. Para

@@ -33,7 +33,7 @@ export function NotificationBell() {
     contar();
     // Un minuto: un aviso que llega tarde un minuto sigue sirviendo, y preguntar cada segundo
     // por un número que casi nunca cambia es gasto sin nada a cambio.
-    const id = setInterval(contar, 60_000);
+    const id = setInterval(() => { if (document.hidden) return; contar(); }, 60_000);
     return () => clearInterval(id);
   }, [contar]);
 

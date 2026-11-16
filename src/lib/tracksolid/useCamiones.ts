@@ -66,7 +66,8 @@ export function useCamionesDeTracksolid(activo: boolean): EstadoDeCamiones {
   useEffect(() => {
     if (!activo) return;
     void pide();
-    const reloj = setInterval(() => { void pide(); }, REFRESCO_DE_CAMIONES_MS);
+    // Con la pestaña oculta no se pregunta nada (ni siquiera el reloj): `pide` ya lo mira, esto lo deja explícito.
+    const reloj = setInterval(() => { if (document.hidden) return; void pide(); }, REFRESCO_DE_CAMIONES_MS);
     const alVolver = () => { if (document.visibilityState === "visible") void pide(); };
     document.addEventListener("visibilitychange", alVolver);
     return () => { clearInterval(reloj); document.removeEventListener("visibilitychange", alVolver); };

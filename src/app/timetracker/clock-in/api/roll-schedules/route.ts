@@ -66,38 +66,51 @@ export async function GET(req: Request) {
     /* custom_schedule column not present yet — ignore */
   }
 
-  let created = 0;
-  for (const { emp, wanted } of work) {
-    const dates = [...new Set(wanted.map((r) => r.shift_date))];
-    if (dates.length === 0) continue;
-    const existing = await (
-      await fetch(
-        `${url}/rest/v1/scheduled_shifts?select=shift_date,start_time&employee_id=eq.${emp.id}&shift_date=in.(${dates.join(",")})`,
-        { headers: H, cache: "no-store" },
-      )
-    ).json();
-    const have = new Set((existing || []).map((s: { shift_date: string; start_time: string }) => `${s.shift_date}|${String(s.start_time).slice(0, 5)}`));
-    // Per-date removals: don't re-create shifts a manager deleted for that date.
-    const cancels = await (
-      await fetch(
-        `${url}/rest/v1/shift_cancellations?select=shift_date,start_time&employee_id=eq.${emp.id}&shift_date=in.(${dates.join(",")})`,
-        { headers: H, cache: "no-store" },
-      )
-    ).json();
-    const cancelled = new Set(
-      (Array.isArray(cancels) ? cancels : []).map((c: { shift_date: string; start_time: string }) => `${c.shift_date}|${String(c.start_time).slice(0, 5)}`),
-    );
-    const rows = wanted
-      .filter((r) => !have.has(`${r.shift_date}|${r.start_time}`) && !cancelled.has(`${r.shift_date}|${r.start_time}`))
-      .map((r) => ({ company_id: emp.company_id, employee_id: emp.id, site_id: emp.store_id ?? null, ...r }));
-    if (rows.length) {
-      const res = await fetch(`${url}/rest/v1/scheduled_shifts`, {
-        method: "POST",
-        headers: { ...H, Prefer: "return=minimal" },
-        body: JSON.stringify(rows),
-      });
-      if (res.ok) created += rows.length;
+  // Antes eran dos consultas por empleado (horarios existentes y cancelados) y un POST por empleado. Ahora: UNA consulta
+  // de cada para todos (`employee_id=in.(…)`, en las fechas de la semana y la siguiente) y los inserts en lotes. Las
+  // claves llevan el empleado, así que ninguno mira los turnos de otro.
+  type FilaDeTurno = { employee_id: string; shift_date: string; start_time: string };
+  const clave = (id: string, fecha: string, hora: string) => `${id}|${fecha}|${hora}`;
+  const fechas = [...new Set(work.flatMap((w) => w.wanted.map((r) => r.shift_date)))];
+  const ids = [...new Set(work.map((w) => w.emp.id))];
+  const have = new Set<string>();
+  const cancelled = new Set<string>();
+  if (fechas.length && ids.length) {
+    const filtro = `employee_id=in.(${ids.join(",")})&shift_date=in.(${fechas.join(",")})`;
+    const [existing, cancels] = await Promise.all([
+      fetch(`${url}/rest/v1/scheduled_shifts?select=employee_id,shift_date,start_time&${filtro}`, { headers: H, cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/shift_cancellations?select=employee_id,shift_date,start_time&${filtro}`, { headers: H, cache: "no-store" }).then((r) => r.json()),
+    ]);
+    // Si no se pueden leer los turnos existentes, no se inserta nada: sin ellos se duplicarían.
+    if (!Array.isArray(existing)) {
+      return NextResponse.json({ ok: false, error: "no se pudieron leer los turnos existentes" }, { status: 502 });
     }
+    for (const s of existing as FilaDeTurno[]) have.add(clave(s.employee_id, s.shift_date, String(s.start_time).slice(0, 5)));
+    // Per-date removals: don't re-create shifts a manager deleted for that date.
+    for (const c of (Array.isArray(cancels) ? cancels : []) as FilaDeTurno[]) {
+      cancelled.add(clave(c.employee_id, c.shift_date, String(c.start_time).slice(0, 5)));
+    }
+  }
+
+  const filas: Record<string, unknown>[] = [];
+  for (const { emp, wanted } of work) {
+    for (const r of wanted) {
+      if (have.has(clave(emp.id, r.shift_date, r.start_time)) || cancelled.has(clave(emp.id, r.shift_date, r.start_time))) continue;
+      filas.push({ company_id: emp.company_id, employee_id: emp.id, site_id: emp.store_id ?? null, ...r });
+    }
+  }
+
+  // Lotes de 200: un fallo solo deja fuera su lote, no toda la corrida.
+  const TAMANO_LOTE = 200;
+  let created = 0;
+  for (let i = 0; i < filas.length; i += TAMANO_LOTE) {
+    const lote = filas.slice(i, i + TAMANO_LOTE);
+    const res = await fetch(`${url}/rest/v1/scheduled_shifts`, {
+      method: "POST",
+      headers: { ...H, Prefer: "return=minimal" },
+      body: JSON.stringify(lote),
+    });
+    if (res.ok) created += lote.length;
   }
 
   // Parte B de D-195: sesiones del cronómetro sin latido desde hace más de 15 min, cerradas

@@ -52443,3 +52443,12 @@ Sello: todas las apps suben un menor; repo 1.908.0.
 
 El dueño: «quitemos lo del project, o sea no lo quites, pero ya no es requisito para hacer clock in, así Francis puede hacer clock in». Francis (gerente, sin proyecto asignado) no podía iniciar el cronómetro. Los proyectos siguen igual y se pueden elegir, pero «Start» ya no los exige: hay una opción «Sin proyecto» y la sesión se guarda con `project_id` y `assignment_id` nulos (columnas ya nulables, 059). Las pantallas muestran «Sin proyecto» (o tienda·puesto en presencial) con `nombreDeSesion`. Una sesión sin proyecto no tiene tarifa: en nómina sale en 0 hasta que el dueño diga cómo se paga.
 Sello `timetracker` 1.29.0; repo 1.909.0.
+
+## D-1060 · Eficiencia (1/4): tiempo real, Google y servidor (2026-11-16)
+
+Auditoría de eficiencia pedida por el dueño («haz una auditoría para ver que todo sea eficiente a nivel de app»; «sí, hazlo todo»). Los datos de pg_stat_statements desde julio: el tiempo real (lectura del WAL) era la mayor carga de la base, seguido de recargas completas.
+Tiempo real: notificaciones filtradas por usuario; turnos, incidencias y disponibilidad por fila; RR. HH. y Time Tracker (admin) juntan ráfagas en 250 ms; sesiones en vivo por fila; contextos memoizados; Panel de Seguridad cada 5 min y nunca con la pestaña oculta; latido del dispositivo una vez por equipo; sondeos pausados con la pestaña oculta; sin el reloj fijo de 60 s de rutas del día.
+Google: caché compartida de Places (7 días), geocodificación (sin vencer), rutas optimizadas (60 min) y distancias (7 días) en la migración 312; autocompletar con 500 ms y memoria por pestaña. Sin la 312, todo se comporta como antes.
+Servidor: el cron del Time Tracker sale temprano si no hay nada que avisar y filtra las suscripciones; mosaicos sin limitador; Outlook baja el cuerpo solo de los correos de Indeed; resumen diario filtrado en SQL; roll-schedules en lote; avisos al cliente de 5 en 5.
+Fuera por cambiar lo que se ve: ventana de 14 días de turnos y capturas, latido de GPS cada 5 min. El GPS fuera del contexto principal va en la entrega 4 (toca el Gestor de Rutas). También entra el respaldo diario local (`scripts/respaldo/`).
+Sello: todas las apps suben un menor; repo 1.910.0.

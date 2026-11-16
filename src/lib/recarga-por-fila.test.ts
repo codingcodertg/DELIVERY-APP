@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   MAX_IDS_POR_RAFAGA, TABLAS_POR_FILA, cumpleFiltroDeLaLista, filasPorEvento, fusionarFilas, planDeRafaga,
-  porCreatedAtDesc, porOrderNoDesc, type EventoRealtime,
+  porCreatedAtDesc, porCampoDesc, porOrderNoDesc, type EventoRealtime,
 } from "./recarga-por-fila";
 
 // D-564. Un evento realtime en `deliveries` bajaba la lista entera (~670 filas el 2026-10-15) en cada sesión
@@ -70,7 +70,7 @@ describe("planDeRafaga: qué hacer con cada payload", () => {
     const p = planDeRafaga([ev("settings", "UPDATE", { id: 1 }), ev("deliveries", "UPDATE", { id: "a" })], { meId: "yo" });
     expect(p.listas).toEqual(["settings"]);
     expect(p.porFila.deliveries).toEqual({ leer: ["a"], quitar: [] });
-    expect(TABLAS_POR_FILA).toEqual(["deliveries", "order_events", "notifications"]);
+    expect(TABLAS_POR_FILA).toEqual(["deliveries", "order_events", "notifications", "driver_shifts", "driver_incidents", "driver_availability"]);
   });
 
   it("si una tabla ya cayó a lista, sus otros eventos no se leen aparte", () => {
@@ -189,5 +189,52 @@ describe("el proveedor (data-provider.tsx) engancha la ráfaga a la lectura por 
     // Y cada guarda precede a su `.in` (no una guarda suelta en otro sitio).
     const trozos = src.split(/if \(plan\.leer\.length\) \{/).slice(1);
     for (const t of trozos) expect(t.indexOf('.in("id", plan.leer)')).toBeGreaterThanOrEqual(0);
+  });
+});
+
+// perf/ef-realtime. Turnos, incidencias y disponibilidad ya no bajan su tabla entera en cada evento: van fila a fila.
+describe("turnos, incidencias y disponibilidad: por fila", () => {
+  it("un UPDATE de un turno lee solo ese turno; un DELETE lo quita", () => {
+    const p = planDeRafaga([ev("driver_shifts", "UPDATE", { id: "t1" })], { meId: "yo" });
+    expect(p.listas).toEqual([]);
+    expect(p.porFila.driver_shifts).toEqual({ leer: ["t1"], quitar: [] });
+    const q = planDeRafaga([ev("driver_incidents", "DELETE", { id: "i1" })], { meId: "yo" });
+    expect(q.porFila.driver_incidents).toEqual({ leer: [], quitar: ["i1"] });
+  });
+
+  it("más de MAX_IDS_POR_RAFAGA filas: esa tabla cae a su lista entera, como antes", () => {
+    const muchas = Array.from({ length: MAX_IDS_POR_RAFAGA + 1 }, (_, i) => ev("driver_availability", "INSERT", { id: `d${i}` }));
+    const p = planDeRafaga(muchas, { meId: "yo" });
+    expect(p.listas).toEqual(["driver_availability"]);
+    expect(p.porFila.driver_availability).toBeUndefined();
+  });
+
+  it("el orden de la consulta (desc por fecha) se mantiene al fundir una fila nueva", () => {
+    const prev = [
+      { id: "a", started_at: "2026-11-10T08:00:00Z" },
+      { id: "b", started_at: "2026-11-01T08:00:00Z" },
+    ];
+    const nuevo = { id: "c", started_at: "2026-11-05T08:00:00Z" };
+    const out = fusionarFilas(prev, [nuevo], { leer: ["c"], quitar: [] }, () => true, porCampoDesc<{ started_at: string; id: string }>("started_at"));
+    expect(out.map((x) => x.id)).toEqual(["a", "c", "b"]);
+    // Una fila que ya estaba se reemplaza en su sitio, sin moverla.
+    const cambiada = { id: "b", started_at: "2026-11-01T09:00:00Z" };
+    const out2 = fusionarFilas(out, [cambiada], { leer: ["b"], quitar: [] }, () => true, porCampoDesc<{ started_at: string; id: string }>("started_at"));
+    expect(out2.map((x) => x.id)).toEqual(["a", "c", "b"]);
+  });
+
+  it("porCampoDesc trata un campo vacío como el más antiguo", () => {
+    const cmp = porCampoDesc<{ f: string | null }>("f");
+    expect(cmp({ f: "2026-01-02" }, { f: null })).toBe(true);
+    expect(cmp({ f: null }, { f: "2026-01-02" })).toBe(false);
+  });
+});
+
+describe("notificaciones: el canal ya filtra a la persona en la base", () => {
+  const src = readFileSync(new URL("./data-provider.tsx", import.meta.url), "utf8");
+
+  it("el canal de notificaciones lleva `filter: user_id=eq.<yo>`, y el canal general ya no las trae", () => {
+    expect(src).toMatch(/table: "notifications", filter: `user_id=eq\.\$\{meId\}`/);
+    expect(src).not.toMatch(/\.on\("postgres_changes", \{ event: "\*", schema: "public", table: "notifications" \}/);
   });
 });

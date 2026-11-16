@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { idDelDispositivo } from "@/lib/security/identidad";
-import { LATIDO_DISPOSITIVO_MS, tocaAvisar } from "@/lib/security/latido-dispositivo";
+import { guardaUltimoLatido, LATIDO_DISPOSITIVO_MS, tocaAvisar, ultimaMarca, ultimoLatidoGuardado } from "@/lib/security/latido-dispositivo";
 
 /** Cada cuánto se vuelve a decir «sigo aquí»: 5 min (D-1004, Disk IO; antes 2 min, D-942). Al cambiar de ruta se
  *  reavisa solo si pasó 1 min desde el último, para que el módulo en vivo siga a la persona sin un UPDATE por clic. */
@@ -24,10 +24,13 @@ export function IdentidadDelDispositivo() {
     if (sinSesion) return;
     const id = idDelDispositivo(typeof window === "undefined" ? null : window);
     if (!id) return;
+    // Una vez por APARATO, no por pestaña (D-1004): la marca va en localStorage y la mira cada pestaña antes de avisar.
+    const almacen = (() => { try { return typeof window === "undefined" ? null : window.localStorage; } catch { return null; } })();
     const avisa = (porRuta: boolean) => {
       const ahora = Date.now();
-      if (!tocaAvisar(ultimoAviso, ahora, porRuta)) return;
+      if (!tocaAvisar(ultimaMarca(ultimoAviso, ultimoLatidoGuardado(almacen)), ahora, porRuta)) return;
       ultimoAviso = ahora;
+      guardaUltimoLatido(almacen, ahora);
       void fetch("/api/security/seen", {
         method: "POST",
         headers: { "content-type": "application/json" },

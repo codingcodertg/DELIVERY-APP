@@ -53,8 +53,11 @@ export interface UsuarioFila {
 
 /** D-820: las tablas que, al cambiar, refrescan el panel. Están en la publicación de tiempo real desde la 233. */
 export const TABLAS_EN_VIVO = ["security_devices", "security_device_users", "security_policy", "security_web_blocks"] as const;
-/** Por si la suscripción se cae sin avisar: un refresco de fondo cada minuto, como red de seguridad. */
-const REFRESCO_DE_FONDO_MS = 60 * 1000;
+/**
+ * Por si la suscripción se cae sin avisar: un refresco de fondo cada cinco minutos, como red de seguridad. Con la
+ * pestaña oculta no se refresca (ver `useEnVivo`): nadie lo ve, y cada refresco vuelve a correr la página entera.
+ */
+const REFRESCO_DE_FONDO_MS = 5 * 60 * 1000;
 /** En el demo (D-931) no hay base que escuchar: el puntito queda apagado y no se abre ningún canal. */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
@@ -78,7 +81,10 @@ function useEnVivo(): boolean {
     let canal = supabase.channel("security-en-vivo");
     for (const table of TABLAS_EN_VIVO) canal = canal.on("postgres_changes", { event: "*", schema: "public", table }, refresca);
     canal.subscribe((estado) => setVivo(estado === "SUBSCRIBED"));
-    const fondo = setInterval(() => router.refresh(), REFRESCO_DE_FONDO_MS);
+    const fondo = setInterval(() => {
+      if (document.hidden) return;
+      router.refresh();
+    }, REFRESCO_DE_FONDO_MS);
     return () => {
       clearInterval(fondo);
       if (pendiente.current) clearTimeout(pendiente.current);
@@ -536,7 +542,7 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
     <div className="container sec" style={{ padding: "16px 20px", maxWidth: 1400 }}>
       <div className="sec-head">
         <h1>🔐 {t("Central Hub Monitoring", "Central Hub Monitoring")}</h1>
-        <span className="sec-vivo hint" data-en-vivo={vivo ? "si" : "no"} title={vivo ? t("Updates by itself when anything changes", "Se actualiza solo cuando algo cambia") : t("Connecting… refreshes every minute meanwhile", "Conectando… mientras tanto se refresca cada minuto")}
+        <span className="sec-vivo hint" data-en-vivo={vivo ? "si" : "no"} title={vivo ? t("Updates by itself when anything changes", "Se actualiza solo cuando algo cambia") : t("Connecting… refreshes every five minutes meanwhile", "Conectando… mientras tanto se refresca cada cinco minutos")}
           style={{ color: vivo ? "var(--green)" : "var(--amber)" }}>
           ● {vivo ? t("live", "en vivo") : t("connecting…", "conectando…")}
         </span>

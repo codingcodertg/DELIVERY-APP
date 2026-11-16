@@ -38,7 +38,7 @@ import { appDelTurno } from "@/lib/gps-del-turno";
 import { isNativeApp } from "@/lib/native-bridge";
 import { applyShiftOutbox, enqueueShiftOp, flushShiftOps, loadShiftOutbox, saveShiftOutbox, type ShiftOp } from "@/lib/shift-outbox";
 import { ALL_QUERIES, queriesForTables, type QueryName } from "@/lib/realtime-reload";
-import { cumpleFiltroDeLaLista, fusionarFilas, planDeRafaga, porCreatedAtDesc, porOrderNoDesc, type EventoRealtime, type PlanDeTabla, type TablaPorFila, type TipoDeEvento } from "@/lib/recarga-por-fila";
+import { cumpleFiltroDeLaLista, fusionarFilas, planDeRafaga, porCampoDesc, porCreatedAtDesc, porOrderNoDesc, type EventoRealtime, type PlanDeTabla, type TablaPorFila, type TipoDeEvento } from "@/lib/recarga-por-fila";
 import { avisoDePartirSola, cargasAlGuardar, esFuncionAusente, parteEnCadena, restosParaPartir } from "@/lib/cargas-partidas";
 import { entraEnElCamion, mensajeDelRelevo, pasosDelRelevo as pasosDeLaFamilia, pasosParaVer, porQueNoSeRecoge, relevoParaElAviso, type PasoParaVer } from "@/lib/relevo";
 import { capacidadDelChofer } from "@/lib/agregar-material-avisos";
@@ -878,6 +878,35 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       setEvents((prev) => fusionarFilas(prev, (r.data ?? []) as OrderEvent[], plan, (e) => !soloOrden || esDeLaOrden(soloOrden, e), porCreatedAtDesc, EVENTS_WINDOW));
       return r;
     },
+    // Las tres sin ventana de fechas (la lista entera, como su consulta): una fila que vuelve se pone en su sitio, y una
+    // que no vuelve (RLS, borrada) se quita. Mismo orden que su consulta (`order(..., desc)`).
+    driver_shifts: async (plan) => {
+      let r: { data: unknown; error: unknown } = { data: [], error: null };
+      if (plan.leer.length) {
+        r = await supabase.from("driver_shifts").select("*").in("id", plan.leer);
+        if (r.error) return r;
+      }
+      setShifts((prev) => fusionarFilas(prev, (r.data ?? []) as DriverShift[], plan, () => true, porCampoDesc<DriverShift>("started_at")));
+      return r;
+    },
+    driver_incidents: async (plan) => {
+      let r: { data: unknown; error: unknown } = { data: [], error: null };
+      if (plan.leer.length) {
+        r = await supabase.from("driver_incidents").select("*").in("id", plan.leer);
+        if (r.error) return r;
+      }
+      setIncidents((prev) => fusionarFilas(prev, (r.data ?? []) as DriverIncident[], plan, () => true, porCampoDesc<DriverIncident>("incident_date")));
+      return r;
+    },
+    driver_availability: async (plan) => {
+      let r: { data: unknown; error: unknown } = { data: [], error: null };
+      if (plan.leer.length) {
+        r = await supabase.from("driver_availability").select("*").in("id", plan.leer);
+        if (r.error) return r;
+      }
+      setAvailability((prev) => fusionarFilas(prev, (r.data ?? []) as DriverAvailability[], plan, () => true, porCampoDesc<DriverAvailability>("start_date")));
+      return r;
+    },
     notifications: async (plan) => {
       if (!me) return { data: [] };
       let r: { data: unknown; error: unknown } = { data: [], error: null };
@@ -1046,7 +1075,6 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       .on("postgres_changes", { event: "*", schema: "public", table: "order_events" }, onTable("order_events"))
       .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, onTable("settings"))
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, onTable("profiles"))
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, onTable("notifications"))
       .on("postgres_changes", { event: "*", schema: "public", table: "driver_availability" }, onTable("driver_availability"))
       .on("postgres_changes", { event: "*", schema: "public", table: "driver_shifts" }, onTable("driver_shifts"))
       .on("postgres_changes", { event: "*", schema: "public", table: "driver_incidents" }, onTable("driver_incidents"))
@@ -1065,11 +1093,21 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         });
       })
       .subscribe();
+    // Las notificaciones van en su propio canal, filtradas a esta persona EN LA BASE: antes llegaban las de todos y se
+    // descartaban en el cliente (`planDeRafaga`), y cada aviso de cualquiera era un evento más para cada sesión abierta.
+    const meId = me?.id ?? null;
+    const canalNotificaciones = meId
+      ? supabase
+          .channel(`notificaciones:${meId}`)
+          .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${meId}` }, onTable("notifications"))
+          .subscribe()
+      : null;
     return () => {
       if (reloadTimer) clearTimeout(reloadTimer);
       supabase.removeChannel(channel);
+      if (canalNotificaciones) supabase.removeChannel(canalNotificaciones);
     };
-  }, [supabase, reloadAll, aplicarRafaga]);
+  }, [supabase, me, reloadAll, aplicarRafaga]);
 
   // ---------------- Event log helper ----------------
   const logEvent = useCallback(

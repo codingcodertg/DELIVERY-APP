@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { buildDailySummary, summaryLines } from "@/lib/daily-summary";
+import { buildDailySummary, COLUMNAS_DEL_RESUMEN, filtroDelResumen, summaryLines } from "@/lib/daily-summary";
 import { createNotionPage, notionConfigured } from "@/lib/notion";
 import { orderLabel, todayISO } from "@/lib/utils";
 import type { Delivery, DriverShift } from "@/lib/types";
@@ -54,15 +54,17 @@ async function post(req: Request): Promise<NextResponse> {
   const date = /^\d{4}-\d{2}-\d{2}$/.test(asked ?? "") ? asked! : todayISO();
 
   // Service role: a cron run has no user session to read the board with.
+  // Solo las órdenes que el resumen puede contar (`filtroDelResumen`) y solo sus columnas (`COLUMNAS_DEL_RESUMEN`).
+  // Los turnos ya no se leen: `buildDailySummary` no los usa (la firma los recibe, pero no los mira).
   const admin = createAdminClient();
-  const [{ data: deliveries }, { data: shifts }] = await Promise.all([
-    admin.from("deliveries").select("*"),
-    admin.from("driver_shifts").select("*"),
-  ]);
+  const { data: deliveries } = await admin
+    .from("deliveries")
+    .select(COLUMNAS_DEL_RESUMEN)
+    .or(filtroDelResumen(date));
 
   const summary = buildDailySummary(
-    (deliveries ?? []) as Delivery[],
-    (shifts ?? []) as DriverShift[],
+    (deliveries ?? []) as unknown as Delivery[],
+    [] as DriverShift[],
     date,
     (d) => orderLabel(d),
   );
