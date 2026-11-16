@@ -96,7 +96,7 @@ describe("qué es el dispositivo, por su agente", () => {
     expect(tipoPorAgente(null)).toBe("browser");
   });
   it("un nombre legible mientras el admin no le pone uno", () => {
-    expect(nombrePorAgente("Mozilla/5.0 (Windows NT 10.0) Chrome/130 RTGHub/1.1.1")).toBe("RTG Hub · Windows");
+    expect(nombrePorAgente("Mozilla/5.0 (Windows NT 10.0) Chrome/130 RTGHub/1.1.1")).toBe("iFloor · Windows");
     expect(nombrePorAgente("Mozilla/5.0 (Windows NT 10.0) Chrome/130 Safari/537.36")).toBe("Chrome · Windows");
     expect(nombrePorAgente("Mozilla/5.0 (iPhone) Safari/604.1")).toBe("Safari · iPhone");
   });

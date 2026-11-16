@@ -88,7 +88,7 @@ describe("qué es una captura", () => {
 describe("el texto para Claude", () => {
   it("lleva quién, rol, página, versión, fecha, el id y el mensaje entero tal cual", () => {
     const texto = textoParaClaude(datos());
-    expect(texto.startsWith("Arregla este problema que reportaron en RTG Hub")).toBe(true);
+    expect(texto.startsWith("Arregla este problema que reportaron en iFloor")).toBe(true);
     expect(texto).toContain("De: Ana Pérez <ana@empresa.test>");
     expect(texto).toContain("Rol: Chofer");
     expect(texto).toContain("Página: https://rtg-hub.vercel.app/driver");
@@ -160,8 +160,8 @@ describe("el HTML del portapapeles", () => {
 
 describe("la línea para Claude Code", () => {
   it("una sola línea con el id y la herramienta que la lee", () => {
-    expect(textoParaClaudeCode(ID, 0)).toBe(`Arregla la solicitud de ayuda ${ID} de RTG Hub (léela con ayuda-lee.mjs)`);
-    expect(textoParaClaudeCode(ID, 1)).toBe(`Arregla la solicitud de ayuda ${ID} de RTG Hub (léela con ayuda-lee.mjs; su captura está en el cubo help-files)`);
+    expect(textoParaClaudeCode(ID, 0)).toBe(`Arregla la solicitud de ayuda ${ID} de iFloor (léela con ayuda-lee.mjs)`);
+    expect(textoParaClaudeCode(ID, 1)).toBe(`Arregla la solicitud de ayuda ${ID} de iFloor (léela con ayuda-lee.mjs; su captura está en el cubo help-files)`);
     expect(textoParaClaudeCode(ID, 2)).toContain("sus 2 capturas están en el cubo help-files");
     expect(textoParaClaudeCode(ID, 2)).not.toContain("\n");
   });

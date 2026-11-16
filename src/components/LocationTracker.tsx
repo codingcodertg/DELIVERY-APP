@@ -105,10 +105,10 @@ export function LocationTracker({ me }: { me: Profile }) {
       </b>
       <div className="hint" style={{ marginTop: 4 }}>
         {aviso.tipo === "navegador"
-          ? t("You clocked in from the browser. Open the RTG Hub app and clock in there so the office can see the truck.",
-              "Marcaste entrada desde el navegador. Abre la app RTG Hub y marca entrada ahí para que la oficina vea el camión.")
+          ? t("You clocked in from the browser. Open the iFloor app and clock in there so the office can see the truck.",
+              "Marcaste entrada desde el navegador. Abre la app iFloor y marca entrada ahí para que la oficina vea el camión.")
           : aviso.tipo === "sin_permiso"
-            ? t("Allow location for RTG Hub (“Allow all the time”).", "Permite la ubicación a RTG Hub (“Permitir siempre”).")
+            ? t("Allow location for iFloor (“Allow all the time”).", "Permite la ubicación a iFloor (“Permitir siempre”).")
             : t("The app can't get a position from this phone. Tell the office.", "La app no consigue la posición de este teléfono. Avisa a la oficina.")}
       </div>
       {aviso.tipo === "navegador" && (

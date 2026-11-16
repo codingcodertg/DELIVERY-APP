@@ -13,7 +13,7 @@ import { Tx } from "@/components/erp/tx";
 // iframe queda en inglés: atributo de server component (excepción dicha en la decisión).
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Reconcile PO — RTG Inventory" };
+export const metadata = { title: "Reconcile PO — iFloor Inventory" };
 
 type Doc = { label: "po" | "ack"; viewUrl: string; downloadUrl: string };
 

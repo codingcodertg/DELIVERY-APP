@@ -115,7 +115,7 @@ export async function GET(req: Request) {
   }
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "RTG Clock-In";
+  wb.creator = "iFloor Clock-In";
 
   const HEADER = ["Employee", "Date", "Clock In", "Out for lunch", "Back from lunch", "Clock Out", "Hours"];
 
@@ -192,7 +192,7 @@ export async function GET(req: Request) {
   return new NextResponse(buf as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="RTG-payroll_${label}_${monday}.xlsx"`,
+      "Content-Disposition": `attachment; filename="iFloor-payroll_${label}_${monday}.xlsx"`,
       "Cache-Control": "no-store",
     },
   });

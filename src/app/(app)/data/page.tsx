@@ -530,8 +530,8 @@ function LocationTable({
             />
             <div className="hint">
               {t(
-                "RTG PROMOS: stores sharing this value approve or reject a promo TOGETHER — one decision for all of them. Match it to the sheet name the promo workbook uses for that group. Empty = this store decides nothing yet. This is NOT the directory code, and NOT 'works together with'.",
-                "RTG PROMOS: las tiendas con el mismo valor aprueban o rechazan una promoción JUNTAS — una sola decisión para todas. Ponle el nombre que la hoja del Excel de promociones usa para ese grupo. Vacío = esa tienda todavía no decide nada. No es el código de directorio, ni «trabaja junto con».",
+                "iFloor PROMOS: stores sharing this value approve or reject a promo TOGETHER — one decision for all of them. Match it to the sheet name the promo workbook uses for that group. Empty = this store decides nothing yet. This is NOT the directory code, and NOT 'works together with'.",
+                "iFloor PROMOS: las tiendas con el mismo valor aprueban o rechazan una promoción JUNTAS — una sola decisión para todas. Ponle el nombre que la hoja del Excel de promociones usa para ese grupo. Vacío = esa tienda todavía no decide nada. No es el código de directorio, ni «trabaja junto con».",
               )}
             </div>
           </div>

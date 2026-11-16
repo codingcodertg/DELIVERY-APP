@@ -9,7 +9,7 @@ import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 export const metadata: Metadata = {
-  title: "RTG Inventory",
+  title: "iFloor Inventory",
 };
 
 /**

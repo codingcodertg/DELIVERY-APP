@@ -1,6 +1,6 @@
 {
-  "name": "RTG Hub",
-  "short_name": "RTG Hub",
+  "name": "iFloor",
+  "short_name": "iFloor",
   "description": "Delivery order management & dispatch for Rodriguez Tile Group.",
   "start_url": "/",
   "scope": "/",

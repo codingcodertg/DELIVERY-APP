@@ -45,7 +45,7 @@ describe("el teléfono y el cuerpo", () => {
   it("el cuerpo lleva nombre con sufijo, móvil, cargo, empresa y de dónde salió; sin teléfono válido, null", () => {
     expect(cuerpoDelContacto(andres)).toEqual({
       firstName: "Andres", lastName: "Ugarte WA BRO", mobilePhone: "+19565550101",
-      jobTitle: "Warehouse Associate", company: "Brownsville", notes: "RTG Hub · candidato c1",
+      jobTitle: "Warehouse Associate", company: "Brownsville", notes: "iFloor · candidato c1",
     });
     expect(cuerpoDelContacto({ ...andres, phone: "123" })).toBeNull();
   });

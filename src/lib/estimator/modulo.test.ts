@@ -44,7 +44,7 @@ describe("la tarjeta y la casilla", () => {
     // D-448: el nombre que se ve es «Quote Builder»; la clave, "estimator".
     expect(MODULES.find((a) => a.key === "estimator")).toMatchObject({ label_en: "Quote Builder", label_es: "Quote Builder" });
     expect(MODULE_ACCESS.find((a) => a.key === "estimator")).toMatchObject({ label_en: "Quote Builder", label_es: "Quote Builder" });
-    expect(leer("src/app/estimator/layout.tsx")).toContain("title: \"RTG QUOTE BUILDER\",");
+    expect(leer("src/app/estimator/layout.tsx")).toContain("title: \"iFloor QUOTE BUILDER\",");
   });
 });
 

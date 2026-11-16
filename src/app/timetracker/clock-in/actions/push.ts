@@ -64,7 +64,7 @@ export async function sendTestPush(): Promise<{ ok: boolean; sent: number }> {
   let sent = 0;
   for (const s of subs ?? []) {
     const res = await sendPush(s as Sub, {
-      title: "RTG Clock-In ✅",
+      title: "iFloor Clock-In ✅",
       body: "Notifications are working — you'll get shift reminders here.",
       url: "/timetracker/clock-in/clock",
     });

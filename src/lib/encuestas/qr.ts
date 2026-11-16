@@ -23,9 +23,9 @@ export function enlaceDeTienda(tienda: string | null): string {
 /** El nombre del PNG que se descarga: sin tienda, el de siempre; con ella, su nombre sin caracteres raros. */
 export function archivoDelQr(tienda: string | null): string {
   const t = tienda?.trim();
-  if (!t) return "RTG-encuesta-QR.png";
+  if (!t) return "iFloor-encuesta-QR.png";
   const limpio = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  return `RTG-encuesta-QR-${limpio || "tienda"}.png`;
+  return `iFloor-encuesta-QR-${limpio || "tienda"}.png`;
 }
 
 /** Los nombres de las tiendas de Ajustes, recortados, sin vacíos ni repetidos, en su orden. Una bodega (D-787) no es

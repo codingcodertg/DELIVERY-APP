@@ -24,10 +24,10 @@ import { GUION_DE_TEMA } from "@/lib/tema";
 const themeScript = GUION_DE_TEMA;
 
 export const metadata: Metadata = {
-  title: "RTG Hub | Order & Dispatch",
+  title: "iFloor | Order & Dispatch",
   description: "Delivery order management: sales create orders, the office manager approves, the warehouse fulfills.",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "RTG Hub" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "iFloor" },
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
 };
 

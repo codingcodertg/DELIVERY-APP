@@ -14,7 +14,7 @@ import { TablaDeAnalitica } from "@/components/erp/tablas-de-paginas";
 // Las categorías son dato; `period` es el valor del selector y sale tal cual.
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Category analytics — RTG Inventory" };
+export const metadata = { title: "Category analytics — iFloor Inventory" };
 
 export default async function CategoryAnalytics({
   searchParams,

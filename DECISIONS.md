@@ -52427,3 +52427,9 @@ Sello `deliveries` 1.619.0; repo 1.905.0.
 
 Foto del dueño en el teléfono: el panel de «Cambiar usuario», abierto desde el botón flotante de abajo a la derecha, salía cortado por la derecha («no puedo switch porque se sale de la pantalla»). El ancla izquierda de D-568 era para el botón de la barra de arriba. Dentro de `.fab-menu`, a 720 px o menos, el panel va fijo a lo ancho (12 px por lado), encima de los botones. Solo CSS (`globals.css`).
 Sello `deliveries` 1.620.0; repo 1.906.0.
+
+## D-1057 · La marca visible pasa de «RTG Hub» a «iFloor» (2026-11-16)
+
+El dueño: la app debe parecer externa, por privacidad frente a los empleados; «RTG Hub» se llama iFloor. Íconos, colores, nombres de cada app, el link y los datos no cambian. «RTG Hub» → «iFloor» y el prefijo «RTG» de los encabezados (RTG LEADS, RTG PROMOS…) → «iFloor» en títulos, manifiesto, barras, avisos, correos, ventanas del escritorio y nombres de archivos descargados.
+Se quedan a propósito: el nombre del producto y del acceso directo del instalador de escritorio (cambiarlos mueve la carpeta de datos de Electron y el registro del dispositivo; va aparte, con un instalador nuevo), el nombre del instalador y su ruta, el token `RTGHub/` del agente de usuario, el texto que nombra el APK en Ajustes (el APK aún se llama así) y los datos de la base.
+Sello: todas las apps suben un menor; repo 1.907.0.

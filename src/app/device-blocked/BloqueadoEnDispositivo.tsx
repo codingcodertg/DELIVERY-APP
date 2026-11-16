@@ -22,8 +22,8 @@ export function BloqueadoEnDispositivo({ codigo }: { codigo: string }) {
         <h1 style={{ margin: "8px 0 4px" }}>{t("This device is not authorized", "Este dispositivo no está autorizado")}</h1>
         <p className="hint" style={{ marginTop: 0 }}>
           {t(
-            "Your account is fine. The RTG Hub only opens on registered store computers and approved phones. Ask your administrator to approve this device.",
-            "Tu cuenta está bien. El RTG Hub solo abre en las computadoras registradas de la tienda y en los teléfonos aprobados. Pídele a tu administrador que apruebe este dispositivo.",
+            "Your account is fine. The iFloor only opens on registered store computers and approved phones. Ask your administrator to approve this device.",
+            "Tu cuenta está bien. El iFloor solo abre en las computadoras registradas de la tienda y en los teléfonos aprobados. Pídele a tu administrador que apruebe este dispositivo.",
           )}
         </p>
         {codigo && (
