@@ -115,6 +115,8 @@ export function HomeSelector({ me, suplantando = false, cuenta, soloApps = null 
   return (
     <div className="auth-wrap">
       <div className="auth-card" style={{ maxWidth: 480 }}>
+        {/* D-1057: la marca de afuera es iFloor (escritorio, APK, app instalada); adentro todo sigue siendo RTG. Solo aquí. */}
+        <div className="hint" data-marca-hub style={{ fontWeight: 700, letterSpacing: ".04em", marginBottom: 4 }}>RTG Hub by iFloor</div>
         <h1>
           {t("Hi, ", "Hola, ")}
           {me.full_name}

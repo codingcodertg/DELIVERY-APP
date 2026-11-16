@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   title: "RTG Hub | Order & Dispatch",
   description: "Delivery order management: sales create orders, the office manager approves, the warehouse fulfills.",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "RTG Hub" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "iFloor" },
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
 };
 

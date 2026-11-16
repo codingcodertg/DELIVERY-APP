@@ -17,7 +17,7 @@
   },
   "build": {
     "appId": "net.rdztilegroup.hub",
-    "productName": "RTG Hub",
+    "productName": "iFloor",
     "publish": [
       {
         "provider": "generic",
@@ -45,7 +45,7 @@
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "RTG Hub"
+      "shortcutName": "iFloor"
     }
   }
 }

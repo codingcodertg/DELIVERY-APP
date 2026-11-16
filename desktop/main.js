@@ -27,6 +27,9 @@
 // ============================================================
 
 const { app, BrowserWindow, shell, Menu, dialog, net, powerMonitor } = require("electron");
+// D-1057: el programa se llama iFloor, pero sus datos (registro del dispositivo, sesión, ventana) siguen en la carpeta de
+// siempre. Sin esto, cambiar el productName los movía a %APPDATA%\iFloor y cada PC tenía que volver a aprobarse.
+app.setPath("userData", require("path").join(app.getPath("appData"), "RTG Hub"));
 const path = require("node:path");
 const fs = require("node:fs");
 const { crearConfianza } = require("./origenes.js");
