@@ -3,6 +3,8 @@ import { errorAlCliente } from "@/lib/api-error";
 
 import { requireUser } from "@/lib/api-auth";
 import { limita, respuesta429 } from "@/lib/rate-limit";
+import { clavePlaces } from "@/lib/cache-google";
+import { guardaPlaces, leePlaces } from "@/lib/cache-google-servidor";
 
 // ============================================================
 // Live places lookup for the Market Map — queries OpenStreetMap in real time
@@ -81,9 +83,11 @@ function cityFromGoogle(addr: string | undefined): string | null {
   return m ? m[1].trim() : null;
 }
 
-async function viaGoogle(key: string, category: string): Promise<Place[]> {
+// `completo` es false si alguna de las llamadas falló: en ese caso la lista está incompleta y no se guarda en caché.
+async function viaGoogle(key: string, category: string): Promise<{ places: Place[]; completo: boolean }> {
   const queries = GOOGLE_QUERIES[category] ?? [];
   const byId = new Map<string, Place>();
+  let completo = true;
   for (const textQuery of queries) {
     for (const [lat, lng] of CENTERS) {
       try {
@@ -100,7 +104,7 @@ async function viaGoogle(key: string, category: string): Promise<Place[]> {
             locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: 35000 } },
           }),
         });
-        if (!res.ok) continue;
+        if (!res.ok) { completo = false; continue; }
         const data = await res.json();
         for (const p of (data.places ?? []) as Record<string, unknown>[]) {
           const loc = p.location as { latitude?: number; longitude?: number } | undefined;
@@ -124,10 +128,10 @@ async function viaGoogle(key: string, category: string): Promise<Place[]> {
             hours: ((p.regularOpeningHours as { weekdayDescriptions?: string[] } | undefined)?.weekdayDescriptions) ?? null,
           });
         }
-      } catch { /* skip this query/center */ }
+      } catch { completo = false; /* skip this query/center */ }
     }
   }
-  return [...byId.values()];
+  return { places: [...byId.values()], completo };
 }
 
 export async function GET(req: Request) {
@@ -144,7 +148,13 @@ export async function GET(req: Request) {
   // Prefer Google Places (rich RGV coverage) when a key is configured.
   const googleKey = process.env.GOOGLE_MAPS_API_KEY;
   if (googleKey) {
-    const places = await viaGoogle(googleKey, category);
+    // Una sola caché compartida por todos (7 días). La clave lleva las consultas y los centros: si cambian, se recalcula.
+    const clave = clavePlaces(category, GOOGLE_QUERIES[category] ?? [], CENTERS);
+    const guardados = await leePlaces<Place[]>(clave);
+    if (guardados) return NextResponse.json({ places: guardados, count: guardados.length, source: "google" });
+    const { places, completo } = await viaGoogle(googleKey, category);
+    // Solo una barrida completa y con resultados: si algo falló, no se congela una lista incompleta durante 7 días.
+    if (completo && places.length) await guardaPlaces(clave, places);
     return NextResponse.json({ places, count: places.length, source: "google" });
   }
 

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
 import { limita, respuesta429 } from "@/lib/rate-limit";
 import { esDeTexasGoogle, esDeTexasMapbox, esDeTexasOSM, sugerenciasDePlaces, urlDeGoogleGeocode, urlDeMapbox, urlDeOSM } from "@/lib/busqueda-de-direccion";
+import { SESION_VALIDA } from "@/lib/autocompletado-cache";
 
 // ============================================================
 // Address autocomplete (real-time search suggestions).
@@ -26,12 +27,14 @@ export const runtime = "nodejs";
 // maps/api/place/autocomplete one is off for projects on the new Places API).
 // Una o dos llamadas: primero la zona verde, y Texas solo si lo local escasea. Lo decide `sugerenciasDePlaces`.
 // Y, si lo tecleado puede ser una ciudad, una más solo de ciudades de Texas, que van delante (D-454).
-async function viaGoogle(q: string, key: string): Promise<string[]> {
+// La sesión (`sessionToken`) la pone el navegador por cada tecleo: Google las agrupa y, si luego hay un Place Details, lo
+// factura como una sola búsqueda. Sin sesión válida, se pide como antes.
+async function viaGoogle(q: string, key: string, sesion: string | null): Promise<string[]> {
   return sugerenciasDePlaces(q, async (cuerpo) => {
     const res = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key },
-      body: JSON.stringify(cuerpo),
+      body: JSON.stringify(sesion ? { ...cuerpo, sessionToken: sesion } : cuerpo),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error?.message || "Google autocomplete failed");
@@ -83,6 +86,9 @@ export async function POST(req: Request) {
   }
   const q = (body.q || "").trim();
   if (q.length < 3) return NextResponse.json({ suggestions: [] });
+  // Token de sesión del navegador (?session=…), validado antes de reenviarlo a Google.
+  const sesionCruda = new URL(req.url).searchParams.get("session");
+  const sesion = sesionCruda && SESION_VALIDA.test(sesionCruda) ? sesionCruda : null;
 
   const google = process.env.GOOGLE_MAPS_API_KEY;
   const mapbox = process.env.MAPBOX_TOKEN;
@@ -91,7 +97,7 @@ export async function POST(req: Request) {
   // Google is disabled/uncredited we still get free OSM results.
   const safe = async <T,>(fn: () => Promise<T[]>): Promise<T[]> => { try { return await fn(); } catch { return []; } };
   let suggestions: string[] = [];
-  if (google) suggestions = await safe(() => viaGoogle(q, google));                 // Places Autocomplete
+  if (google) suggestions = await safe(() => viaGoogle(q, google, sesion));         // Places Autocomplete
   if (!suggestions.length && google) suggestions = await safe(() => viaGoogleGeocode(q, google)); // Google Geocoding
   if (!suggestions.length && mapbox) suggestions = await safe(() => viaMapbox(q, mapbox));
   if (!suggestions.length) suggestions = await safe(() => viaOSM(q));               // last resort: OSM

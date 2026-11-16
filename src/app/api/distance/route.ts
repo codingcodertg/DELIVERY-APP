@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
 import { limita, respuesta429 } from "@/lib/rate-limit";
 import { MAX_MILLAS_PLAUSIBLES, boundsGoogleRGV, millasImposibles, puntoEnElValle } from "@/lib/distancia-plausible";
+import { clavePorPar } from "@/lib/cache-google";
+import { guardaDistancia, leeDistancia } from "@/lib/cache-google-servidor";
 
 // ============================================================
 // Distance + travel-time between two addresses.
@@ -197,6 +199,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Both a pickup and a delivery address are required." }, { status: 400 });
   }
 
+  // Caché de pares (30 días, tabla distance_cache): un par ya calculado por Google no vuelve a pagarse.
+  const clavePar = clavePorPar(origin, destination);
+  const guardado = await leeDistancia<Result>(clavePar);
+  if (guardado && !millasImposibles(guardado.miles)) {
+    return NextResponse.json({ ...guardado, miles: Math.round(guardado.miles * 10) / 10 });
+  }
+
   const google = process.env.GOOGLE_MAPS_API_KEY;
   const mapbox = process.env.MAPBOX_TOKEN;
 
@@ -218,6 +227,8 @@ export async function POST(req: Request) {
         implausible: true,
       }, { status: 422 });
     }
+    // Solo se guarda lo que contestó Google (Routes o Distance Matrix): lo de OSRM se vuelve a calcular como antes.
+    if (result.provider === "Google Maps") await guardaDistancia(clavePar, result);
     return NextResponse.json({
       ...result,
       miles: Math.round(result.miles * 10) / 10,
