@@ -80,7 +80,7 @@ describe("la barra de Entregas", () => {
   it("la casa va justo después del nombre de la app, con el rol y los módulos efectivos", () => {
     // La pone `BarraDeApp` (D-643), la barra de todas las apps; Entregas le pasa el rol y los módulos EFECTIVOS.
     expect(sinComentarios(leer("src/components/BarraDeApp.tsx"))).toMatch(/<h1>\{nombre\}<\/h1>\n\s*<HubHomeLink deliveriesRole=\{deliveriesRole\} moduleAccess=\{moduleAccess\} \/>/);
-    expect(barra).toContain('<BarraDeApp nombre={settings.app_name || "iFloor"} deliveriesRole={me.role} moduleAccess={me.module_access}>');
+    expect(barra).toContain('<BarraDeApp nombre={settings.app_name || "RTG·HUB"} deliveriesRole={me.role} moduleAccess={me.module_access}>');
   });
 
   it("la casa se esconde con la condición que tenía el selector (canReachHub), una sola vez", () => {

@@ -93,7 +93,7 @@ const ACTIVO_MS = 60 * 60 * 1000;
 const SEMANA_MS = 7 * 24 * 3600 * 1000;
 
 const TIPO: Record<string, { en: string; es: string; icono: string }> = {
-  desktop: { en: "iFloor app", es: "App iFloor", icono: "🖥️" },
+  desktop: { en: "RTG Hub app", es: "App RTG Hub", icono: "🖥️" },
   phone: { en: "Phone", es: "Teléfono", icono: "📱" },
   browser: { en: "Browser", es: "Navegador", icono: "🌐" },
 };
@@ -673,7 +673,7 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
             </span>
             <span style={{ flex: 1, minWidth: 220 }}>
               {webBloqueada
-                ? t("Managers, sales, logistics and accounting only get in from the iFloor desktop app (and from a phone, Time Tracker only). In a browser they see «The web app is no longer available».", "Managers, ventas, logística y contabilidad solo entran desde la app de escritorio iFloor (y desde el teléfono, solo Time Tracker). En un navegador ven «La web app ya no está disponible».")
+                ? t("Managers, sales, logistics and accounting only get in from the RTG Hub desktop app (and from a phone, Time Tracker only). In a browser they see «The web app is no longer available».", "Managers, ventas, logística y contabilidad solo entran desde la app de escritorio RTG Hub (y desde el teléfono, solo Time Tracker). En un navegador ven «La web app ya no está disponible».")
                 : t("Managers, sales, logistics and accounting can still use the hub from any browser.", "Managers, ventas, logística y contabilidad todavía pueden usar el hub desde cualquier navegador.")}
             </span>
             {!confirmaWeb ? (

@@ -117,7 +117,7 @@ function entrevista(now: Date): Interview {
 }
 
 export function semillaRrhh(now: Date): SemillaRrhh {
-  const settings: Settings = { ...DEFAULT_SETTINGS, app_name: "iFloor HR Management" };
+  const settings: Settings = { ...DEFAULT_SETTINGS, app_name: "RTG HR Management" };
   const stages = DEFAULT_STAGES.map((s) => ({ ...s }));
 
   const questionSets: QuestionSet[] = [
@@ -133,7 +133,7 @@ export function semillaRrhh(now: Date): SemillaRrhh {
   ];
 
   const templates: Template[] = [
-    { id: "t-1", label: "Invite to call", text: "Hi {name}, this is {recruiter} from iFloor about the {role} position. When is a good time to call you?" },
+    { id: "t-1", label: "Invite to call", text: "Hi {name}, this is {recruiter} from RTG about the {role} position. When is a good time to call you?" },
     { id: "t-2", label: "Interview reminder", text: "Hi {name}, reminder of your interview tomorrow. Reply to this text if you need to reschedule." },
   ];
 
@@ -155,7 +155,7 @@ export function semillaRrhh(now: Date): SemillaRrhh {
     ({ id, candidate_id, type, result, note, created_by: "u-rec", created_at: hace(now, dias, hora) });
   const contacts: Contact[] = [
     contacto("k-1", "c-3", 5, "Call", "No answer", null, 9),
-    contacto("k-2", "c-3", 5, "SMS", "sent", "Hi Lucía, this is Rosa from iFloor…", 9),
+    contacto("k-2", "c-3", 5, "SMS", "sent", "Hi Lucía, this is Rosa from RTG…", 9),
     contacto("k-3", "c-3", 4, "Call", "Answered", "Phone interview scheduled.", 16),
     contacto("k-4", "c-6", 14, "Call", "Answered", "Available any weekday.", 11),
     contacto("k-5", "c-6", 2, "In person", "Phone Interview → In Person Interview", "Scheduled at the Brownsville store.", 12),

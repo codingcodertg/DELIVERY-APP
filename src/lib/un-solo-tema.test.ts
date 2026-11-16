@@ -18,10 +18,10 @@ describe("Inventario (antes ERP): el nombre", () => {
   });
 
   it("ninguna pestaña del navegador dice ya «RTG ERP»", () => {
-    expect(leer("src/app/erp/layout.tsx")).toContain('title: "iFloor Inventory",');
-    expect(leer("src/app/erp/catalog/page.tsx")).toContain('title: "Catalog — iFloor Inventory"');
+    expect(leer("src/app/erp/layout.tsx")).toContain('title: "RTG Inventory",');
+    expect(leer("src/app/erp/catalog/page.tsx")).toContain('title: "Catalog — RTG Inventory"');
     const barra = leer("src/components/erp/side-nav.tsx");
-    expect(barra).toContain('t("iFloor Inventory", "iFloor Inventario")');
+    expect(barra).toContain('t("RTG Inventory", "RTG Inventario")');
     expect(barra).not.toContain('"RTG ERP"');
   });
 });

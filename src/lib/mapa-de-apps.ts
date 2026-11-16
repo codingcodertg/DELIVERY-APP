@@ -98,7 +98,7 @@ export const CASILLAS: Casilla[] = [
   { key: "warehouse-ops", panel: "vendors", fila: 2, columna: 4, emoji: "🏭", label_en: "Warehouse Ops", label_es: "Operaciones de almacén", existe: true, destino: { tipo: "modulo", clave: "warehouse_ops" } },
   // ---- Clientes: Sales Order encima de Quote Builder; Refunds & Credits arriba a la derecha; fila 2, el flujo de venta.
   // 2026-11-11: RTG PROMOS (promociones para clientes) ya existe; arriba de Leads.
-  { key: "promos", panel: "customers", fila: 1, columna: 1, emoji: "🎟️", label_en: "iFloor PROMOS", label_es: "iFloor PROMOS", existe: true, destino: { tipo: "modulo", clave: "promos" } },
+  { key: "promos", panel: "customers", fila: 1, columna: 1, emoji: "🎟️", label_en: "RTG PROMOS", label_es: "RTG PROMOS", existe: true, destino: { tipo: "modulo", clave: "promos" } },
   { key: "sales-order", panel: "customers", fila: 1, columna: 2, emoji: "🗒️", label_en: "Sales Order", label_es: "Orden de venta", existe: false },
   { key: "refunds-credits", panel: "customers", fila: 1, columna: 6, emoji: "↩️", label_en: "Refunds & Credits", label_es: "Reembolsos y créditos", existe: false },
   { key: "leads", panel: "customers", fila: 2, columna: 1, emoji: "🎯", label_en: "Leads", label_es: "Leads", existe: true, destino: { tipo: "modulo", clave: "leads" } },

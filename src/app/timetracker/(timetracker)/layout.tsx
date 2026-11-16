@@ -22,7 +22,7 @@ import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 // (D-060) — inherited otherwise, and this module has nothing to do with
 // deliveries or recruiting.
 export const metadata: Metadata = {
-  title: "iFloor Time Tracker",
+  title: "RTG Time Tracker",
 };
 
 // The timetracker module's own shell — a sibling of (app) and recruiting's

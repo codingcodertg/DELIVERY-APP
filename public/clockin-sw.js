@@ -35,9 +35,9 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch (e) {
-    data = { title: "iFloor Clock-In", body: event.data ? event.data.text() : "" };
+    data = { title: "RTG Clock-In", body: event.data ? event.data.text() : "" };
   }
-  const title = data.title || "iFloor Clock-In";
+  const title = data.title || "RTG Clock-In";
   const options = {
     body: data.body || "",
     icon: "/clockin-icon-192.png",

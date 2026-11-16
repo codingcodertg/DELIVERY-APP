@@ -166,7 +166,7 @@ export async function pushToUser(userId: string, companyId: string, type: string
   if (!body) return;
   const subs = await subsForEmployees([userId]);
   for (const s of subs) {
-    const r = await sendToSub(s, { title: "iFloor Clock-In", body, url: "/timetracker", tag: type });
+    const r = await sendToSub(s, { title: "RTG Clock-In", body, url: "/timetracker", tag: type });
     if (r.gone && s.id) await deleteSub(s.id);
   }
   await recordNotification(companyId, userId, type, body);
@@ -217,7 +217,7 @@ export async function pushToOwners(companyId: string, type: string, params: P = 
     if (!body) continue;
     await recordNotification(companyId, o.id, type, body);
     for (const s of subs.filter((x) => x.employee_id === o.id)) {
-      const r = await sendToSub(s, { title: "iFloor Clock-In", body, url, tag: type });
+      const r = await sendToSub(s, { title: "RTG Clock-In", body, url, tag: type });
       if (r.gone && s.id) await deleteSub(s.id);
     }
   }
@@ -239,7 +239,7 @@ export async function pushToManagers(companyId: string, type: string, params: P 
     if (!body) continue;
     await recordNotification(companyId, m.id, type, body); // once per recipient
     for (const s of subs.filter((x) => x.employee_id === m.id)) {
-      const r = await sendToSub(s, { title: "iFloor Clock-In", body, url, tag: type });
+      const r = await sendToSub(s, { title: "RTG Clock-In", body, url, tag: type });
       if (r.gone && s.id) await deleteSub(s.id);
     }
   }

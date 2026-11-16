@@ -85,8 +85,8 @@ describe("la pantalla: el selector de ronda vive dentro de la tabla", () => {
     expect(plano(pagina)).toContain("rondas={(todasLasRondas ?? [])");
     expect(leer("src/app/promos/[id]/RondaDemo.tsx")).toContain("rondas={RONDAS_DEMO}");
   });
-  it("y se fue el enlace «← iFloor PROMOS», que ahora volvería a redirigir aquí mismo", () => {
-    expect(pagina).not.toContain("iFloor PROMOS</Link>");
+  it("y se fue el enlace «← RTG PROMOS», que ahora volvería a redirigir aquí mismo", () => {
+    expect(pagina).not.toContain("RTG PROMOS</Link>");
     // Un enlace a /promos volveria aqui mismo; el de vuelta va al hub (D-378), no a la raiz del modulo.
     expect(pagina).not.toContain('href="/promos"');
   });

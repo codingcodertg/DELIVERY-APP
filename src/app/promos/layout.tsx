@@ -10,7 +10,7 @@ import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import "./promos.css";
 
 export const metadata: Metadata = {
-  title: "iFloor PROMOS",
+  title: "RTG PROMOS",
 };
 
 /**
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /** El nombre de la app en la barra de todas (D-643, `BarraDeApp`), en inglés y en español. */
-const NOMBRE = ["iFloor Promos", "iFloor Promos"] as const;
+const NOMBRE = ["RTG Promos", "RTG Promos"] as const;
 
 export default async function PromosLayout({ children }: { children: React.ReactNode }) {
   // Modo demo: no hay base ni sesión, así que la puerta no tiene nada que comprobar y mandaría al

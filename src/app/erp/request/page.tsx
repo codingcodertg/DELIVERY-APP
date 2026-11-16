@@ -15,7 +15,7 @@ import { Tx } from "@/components/erp/tx";
 // decisión es dato.
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Request — iFloor Inventory" };
+export const metadata = { title: "Request — RTG Inventory" };
 
 const statusPill: Record<string, string> = {
   pending: PILL.amber,

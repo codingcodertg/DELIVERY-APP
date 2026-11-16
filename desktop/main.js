@@ -27,6 +27,9 @@
 // ============================================================
 
 const { app, BrowserWindow, shell, Menu, dialog, net, powerMonitor } = require("electron");
+// D-1057: el programa se llama iFloor, pero sus datos (registro del dispositivo, sesión, ventana) siguen en la carpeta de
+// siempre. Sin esto, cambiar el productName los movía a %APPDATA%\iFloor y cada PC tenía que volver a aprobarse.
+app.setPath("userData", require("path").join(app.getPath("appData"), "RTG Hub"));
 const path = require("node:path");
 const fs = require("node:fs");
 const { crearConfianza } = require("./origenes.js");
@@ -157,7 +160,7 @@ function crearVentana() {
     ...previo,
     minWidth: 900,
     minHeight: 600,
-    title: "iFloor",
+    title: "RTG Hub",
     backgroundColor: PAPEL[temaRecordado()],
     icon: path.join(__dirname, "build", "icon.ico"),
     // La barra de menú de Electron (Archivo/Editar/Ver…) no pinta nada aquí: la navegación
@@ -258,7 +261,7 @@ function crearVentana() {
 
   win.webContents.once("did-navigate", (_e, url) => {
     const nuevo = confianza.aprendeDeLaPrimeraCarga(url);
-    if (nuevo) console.log(`[iFloor] el sitio redirige a ${nuevo}; se añade a los orígenes propios`);
+    if (nuevo) console.log(`[RTG Hub] el sitio redirige a ${nuevo}; se añade a los orígenes propios`);
   });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -283,7 +286,7 @@ function crearVentana() {
     dialog.showMessageBox(win, {
       type: "warning",
       title: "Sin conexión",
-      message: "No se pudo abrir iFloor.",
+      message: "No se pudo abrir RTG Hub.",
       detail: `Revise su conexión a internet y vuelva a intentarlo.\n\n(${desc || code})\n${url}`,
       buttons: ["Reintentar", "Cerrar"],
       defaultId: 0,
@@ -311,12 +314,12 @@ function crearVentana() {
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.requestHeaders = { [CABECERA]: idInstalacion };
-  autoUpdater.on("error", (e) => console.log(`[iFloor] actualización: ${e && e.message ? e.message : e}`));
+  autoUpdater.on("error", (e) => console.log(`[RTG Hub] actualización: ${e && e.message ? e.message : e}`));
   autoUpdater.on("update-downloaded", (info) => {
     dialog.showMessageBox(win, {
       type: "info",
       title: "Actualización lista",
-      message: `iFloor ${info.version} está lista.`,
+      message: `RTG Hub ${info.version} está lista.`,
       detail: "Se instala al cerrar la app. ¿Reiniciar ahora?",
       buttons: ["Reiniciar ahora", "Luego"],
       defaultId: 0,
@@ -358,7 +361,7 @@ function vigilarRed(win) {
     const ahora = net.isOnline();
     if (ahora === enLinea) return;
     enLinea = ahora;
-    console.log(`[iFloor] red: ${ahora ? "vuelve" : "se fue"}`);
+    console.log(`[RTG Hub] red: ${ahora ? "vuelve" : "se fue"}`);
     if (ahora) pedirSanar(win);
   };
   const temporizador = setInterval(mirar, RED_CADA_MS);
@@ -388,6 +391,6 @@ function pedirSanar(win) {
 
 function recargarSinCache(win, motivo) {
   if (win.isDestroyed()) return;
-  console.log(`[iFloor] recarga sin caché: ${motivo}`);
+  console.log(`[RTG Hub] recarga sin caché: ${motivo}`);
   win.webContents.reloadIgnoringCache();
 }
