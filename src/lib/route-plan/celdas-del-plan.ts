@@ -1,5 +1,6 @@
 import { isStoreToStore, type OrderTypeRules } from "@/lib/required";
 import { tipoDeClienteDeLaOrden } from "@/lib/customer-type";
+import { esTramoEntreTiendas } from "@/lib/relevo-etiqueta";
 import { zonaDeLaRecogida } from "@/lib/zonas";
 import { ciudadDeEntrega } from "@/lib/ciudad-de-entrega";
 import type { Delivery, NamedLocation } from "@/lib/types";
@@ -33,7 +34,9 @@ export type ClaseDeOrden = "builder" | "counter_sale" | "intertienda" | "proveed
  * y si va a un cliente, builder o mostrador con la MISMA función con que el motor decide a quién da prioridad
  * (`tipoDeClienteDeLaOrden`, D-316/D-337: el tipo guardado en la orden, y si no, el de su cuenta).
  */
-export function claseDeLaOrden(d: Pick<Partial<Delivery>, "order_type" | "account" | "customer_type">, reglas: OrderTypeRules): ClaseDeOrden | null {
+export function claseDeLaOrden(d: Pick<Partial<Delivery>, "order_type" | "account" | "customer_type" | "relay_step">, reglas: OrderTypeRules): ClaseDeOrden | null {
+  // El tramo a de un relevo va a otra tienda: es una intertienda aunque su tipo sea de cliente (D-898).
+  if (esTramoEntreTiendas(d)) return "intertienda";
   const cliente = tipoDeClienteDeLaOrden(d, reglas);
   if (cliente) return cliente;
   if (isStoreToStore(d.order_type, reglas)) return "intertienda";

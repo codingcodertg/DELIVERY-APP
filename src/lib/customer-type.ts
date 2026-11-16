@@ -1,4 +1,5 @@
 import { hayClienteDetras, type OrderTypeRules } from "./required";
+import { esTramoEntreTiendas } from "./relevo-etiqueta";
 import type { CustomerType, Delivery } from "./types";
 
 /**
@@ -62,12 +63,12 @@ export function tipoDeClientePorDefecto(cuenta: string | null | undefined): Cust
   return esCuentaDeMostrador(cuenta) ? "counter_sale" : "builder";
 }
 
-type OrdenConTipo = Pick<Partial<Delivery>, "order_type" | "account" | "customer_type">;
+type OrdenConTipo = Pick<Partial<Delivery>, "order_type" | "account" | "customer_type" | "relay_step">;
 
 /** El tipo de cliente de una orden: el que ya tiene guardado, y si no, el de su cuenta. `null` si la orden
- *  no va a un cliente. */
+ *  no va a un cliente, o si es el tramo a de un relevo (va a otra tienda, D-898). */
 export function tipoDeClienteDeLaOrden(d: OrdenConTipo, reglas: OrderTypeRules | undefined): CustomerType | null {
-  if (!esTipoDeCliente(d.order_type, reglas)) return null;
+  if (esTramoEntreTiendas(d) || !esTipoDeCliente(d.order_type, reglas)) return null;
   return esValido(d.customer_type) ? d.customer_type : tipoDeClientePorDefecto(d.account);
 }
 

@@ -23,7 +23,7 @@ import type { Delivery } from "@/lib/types";
  *
  *   · `PastillaDeRelevo`: la etiqueta «⇄ Transferencia» que lleva cada paso (Tr-1111-a, Tr-1111-b) allí donde sale su
  *     número, para que se reconozca de un vistazo y no se confunda con una carga partida (1111a / 1111b).
- *   · `RelevoDeLaOrden`: en una orden de tienda a tienda sin relevo, el botón «⇄» que lo ACTIVA (tienda de relevo + día de
+ *   · `RelevoDeLaOrden`: en cualquier orden sin relevo (de cliente, de tienda a tienda…), el botón «⇄» que lo ACTIVA (tienda de relevo + día de
  *     recogida del paso b), solo para quien planifica rutas; en un paso de relevo, la pastilla es el botón y abre la
  *     TARJETA del relevo: el estado de la orden entera, cada paso con quién y cuándo, el día y el chofer del paso b (que
  *     quien planifica puede cambiar) y «Deshacer el relevo» mientras el paso a no se haya recogido.
@@ -71,7 +71,7 @@ export function RelevoDeLaOrden({ pedido, compacto = false, soloLectura = false 
 
   // ---- Activar ----
   const candidatas = useMemo(() => tiendasDeRelevo(pedido, settings.stores ?? []), [pedido, settings.stores]);
-  const seActiva = !esRelevo && puede && porQueNoSeActiva(pedido, hermanasDe(deliveries, pedido), settings.stores ?? [], settings.order_type_rules) === null && candidatas.length > 0;
+  const seActiva = !esRelevo && puede && porQueNoSeActiva(pedido, hermanasDe(deliveries, pedido)) === null && candidatas.length > 0;
   const primerDia = primerDiaDelPasoB(pedido.delivery_date, hoy);
   const [tienda, setTienda] = useState("");
   const [fecha, setFecha] = useState(primerDia);

@@ -275,7 +275,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     if (!puedeGestionarRelevo(me)) { notify("Only route planners (or an admin) can set up a relay transfer."); return null; }
     const madre = s.deliveries.find((c) => c.id === id);
     if (!madre) return null;
-    const no = porQueNoSeActiva(madre, hermanasDe(s.deliveries, madre), s.settings.stores, s.settings.order_type_rules);
+    const no = porQueNoSeActiva(madre, hermanasDe(s.deliveries, madre));
     if (no) { notify(TEXTO_NO_SE_ACTIVA[no].en); return null; }
     const hoy = todayISO();
     if (!fecha || fecha < primerDiaDelPasoB(madre.delivery_date, hoy)) { notify("Step b can't be picked up before today or before step a's day."); return null; }

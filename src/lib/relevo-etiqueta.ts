@@ -17,6 +17,14 @@ export type ConRelevo = { relay_step?: number | null; order_suffix?: string | nu
 /** ¿Es un paso de una transferencia por relevo? */
 export const esPasoDeRelevo = (d: ConRelevo | null | undefined): boolean => !!d && d.relay_step != null && d.relay_step > 0;
 
+/**
+ * ¿Es un TRAMO ENTRE TIENDAS de un relevo? El paso a lleva la mercancía de la tienda de origen a la tienda de relevo, nunca
+ * a un cliente, aunque la orden sea de cliente (el paso b conserva el tipo y el destino final). Ningún aviso, cuenta ni
+ * clase de ruta lo trata como entrega a cliente. Hoy la pantalla y `activar_relevo` solo crean dos pasos, así que el a es
+ * el único tramo; si algún día hubiera más, habría que mirar que no sea el último.
+ */
+export const esTramoEntreTiendas = (d: ConRelevo | null | undefined): boolean => esPasoDeRelevo(d) && d?.relay_step === 1;
+
 /** La letra de un paso: 1 → a, 2 → b… */
 export const letraDelPaso = (paso: number): string => String.fromCharCode(96 + paso);
 
@@ -56,6 +64,6 @@ export function mensajeDelRelevo(mensaje: string | null | undefined, lang: "en" 
   if (/RELEVO_FECHA: this transfer step cannot be scheduled before/.test(m)) return es ? "No se puede: este paso de la transferencia quedaría antes que el paso anterior (o el anterior no tiene día)." : "Not allowed: this transfer step would be scheduled before the previous step (or the previous one has no date).";
   if (/RELEVO_FECHA/.test(m)) return es ? "El día del paso b no puede ser anterior a hoy ni al día del paso a." : "Step b's day can't be before today or before step a's day.";
   if (/RELEVO_TIENDA/.test(m)) return es ? "La tienda de relevo tiene que ser una tienda de Ajustes distinta del origen y del destino." : "The relay store must be a store from Settings other than the origin and the destination.";
-  if (/RELEVO_NO_APLICA|RELEVO_STAGE/.test(m)) return es ? "Esta orden no admite un relevo: tiene que ser de tienda a tienda, estar aprobada, sin recoger y sin partir en cargas." : "This order can't take a relay: it must be store-to-store, approved, not picked up and not split into loads.";
+  if (/RELEVO_NO_APLICA|RELEVO_STAGE/.test(m)) return es ? "Esta orden no admite un relevo: tiene que estar aprobada, sin recoger y sin partir en cargas." : "This order can't take a relay: it must be approved, not picked up and not split into loads.";
   return null;
 }

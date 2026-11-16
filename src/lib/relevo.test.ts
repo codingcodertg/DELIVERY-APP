@@ -17,8 +17,12 @@ import { coincideConLaBusqueda as coincideEnElGestor } from "@/lib/ordenes-del-d
 import { notificationsForStage } from "@/lib/notifications";
 import { COLUMNAS_OPCIONALES_DE_LA_LISTA } from "@/lib/columnas-de-la-lista";
 import type { Delivery, NamedLocation, Profile } from "@/lib/types";
+import { decidirAviso } from "@/lib/avisos-cliente";
+import { claseDeLaOrden } from "@/lib/route-plan/celdas-del-plan";
+import { faltaLaCuenta } from "@/lib/cuenta-obligatoria";
+import { tipoDeClienteDeLaOrden } from "@/lib/customer-type";
 import {
-  alActivar, alDeshacer, avisosDeRelevo, entraEnElCamion, esPasoDeRelevo, estadoDelRelevo, etiquetaDeRelevo, mensajeDelRelevo, numeroConLetra,
+  alActivar, alDeshacer, avisosDeRelevo, entraEnElCamion, esPasoDeRelevo, estadoDelRelevo, etiquetaDeRelevo, mensajeDeEspera, mensajeDelRelevo, numeroConLetra,
   pasoAnterior, pasosDelRelevo, pasosParaVer, porQueNoSeActiva, porQueNoSeRecoge, primerDiaDelPasoB, problemaDelDiaDelPasoB, puedeGestionarRelevo,
   relevoParaElAviso, sePuedeDeshacer, textoDelEstado, textoDeRelevoParaBuscar, tiendasDeRelevo,
 } from "./relevo";
@@ -146,17 +150,17 @@ describe("activar: la orden pasa a ser el paso a y nace el paso b", () => {
     expect(tiendasDeRelevo(madre, TIENDAS).map((s) => s.name)).toEqual(["RDZ Weslaco", "RDZ Pharr"]);
   });
 
-  it("qué orden lo admite: de tienda a tienda, aprobada, sin recoger, sin partir y sin relevo", () => {
+  it("qué orden lo admite: CUALQUIER tipo (también de cliente), aprobada, sin recoger, sin partir y sin relevo", () => {
     const d = intertienda();
-    expect(porQueNoSeActiva(d, [d], TIENDAS)).toBeNull();
-    expect(porQueNoSeActiva({ ...d, stage: "ready" }, [d], TIENDAS)).toBeNull();
-    expect(porQueNoSeActiva({ ...d, order_type: "Transfer" }, [d], TIENDAS)).toBeNull();
-    for (const stage of ["draft", "pending", "picked_up", "delivered", "canceled"] as const) expect(porQueNoSeActiva({ ...d, stage }, [d], TIENDAS)).toBe("etapa");
-    expect(porQueNoSeActiva({ ...d, order_type: "Delivery" }, [d], TIENDAS)).toBe("no_es_tienda_a_tienda");
-    expect(porQueNoSeActiva({ ...d, delivery_name: "A job site" }, [d], TIENDAS)).toBe("sin_tiendas");
-    expect(porQueNoSeActiva({ ...d, order_suffix: "a" }, [d, mkDelivery({ id: "otra", order_no: 1111, order_suffix: "b" })], TIENDAS)).toBe("partida");
+    expect(porQueNoSeActiva(d, [d])).toBeNull();
+    expect(porQueNoSeActiva({ ...d, stage: "ready" }, [d])).toBeNull();
+    expect(porQueNoSeActiva({ ...d, order_type: "Transfer" }, [d])).toBeNull();
+    expect(porQueNoSeActiva({ ...d, order_type: "Customer", delivery_name: "Juan Pérez" }, [d])).toBeNull();   // #1629: a un cliente
+    expect(porQueNoSeActiva({ ...d, order_type: "Delivery", delivery_name: "A job site" }, [d])).toBeNull();
+    for (const stage of ["draft", "pending", "picked_up", "delivered", "canceled"] as const) expect(porQueNoSeActiva({ ...d, stage }, [d])).toBe("etapa");
+    expect(porQueNoSeActiva({ ...d, order_suffix: "a" }, [d, mkDelivery({ id: "otra", order_no: 1111, order_suffix: "b" })])).toBe("partida");
     const [a] = relevo();
-    expect(porQueNoSeActiva(a, [a], TIENDAS)).toBe("ya_es_relevo");
+    expect(porQueNoSeActiva(a, [a])).toBe("ya_es_relevo");
   });
 
   it("el día del paso b: el mismo día que el a o cualquier día futuro; por defecto, el mismo", () => {
@@ -357,6 +361,110 @@ describe("las cargas partidas siguen como estaban, y un paso de relevo no entra 
     expect(sePuedenJuntar({ ...a, est_pallets: 2 }, { ...b, est_pallets: 2, stage: "approved" }, 10)).toBe(false);
     expect(cargasAlGuardar({ ...a, assigned_driver: null }, { assigned_driver: "Julio Jijon" }, () => 10, "logistics")).toEqual([]);
     expect(cargasAlGuardar({ ...a, assigned_driver: null, relay_step: null }, { assigned_driver: "Julio Jijon" }, () => 10, "logistics")).toEqual([10, 8]);
+  });
+});
+
+/** La orden de cliente del caso real (#1629, FX112): recogida en RDZ Pharr, entrega a un cliente en Sullivan City. */
+const cliente = (over: Partial<Delivery> = {}): Delivery => mkDelivery({
+  id: "1629", order_no: 1629, order_code: "FX112", order_type: "Customer", stage: "ready",
+  store: "RDZ Pharr", pickup_name: "RDZ Pharr", pickup_address: "4 Cage Blvd, Pharr, TX",
+  delivery_name: "Juan Pérez", delivery_address: "100 Ranch Rd, Sullivan City, TX", delivery_lat: 26.55, delivery_lng: -98.4, delivery_pin_source: "geocoded",
+  delivery_phone: "+19565550101", customer_email: "juan@example.com", notify_pref: "both", customer_lang: "es",
+  account: "Cuenta X", customer_type: "builder", delivery_notes: "Llamar antes de llegar",
+  delivery_date: "2026-11-16", est_pallets: 4, delivery_fee: 90, assigned_driver: "Julio Jijon", invoice_num: "170100",
+  ...over,
+});
+
+describe("una orden de CLIENTE (#1629): el paso a va a la tienda de relevo, el b al cliente", () => {
+  const dia = "2026-11-17";
+  const r = () => alActivar(cliente(), TIENDAS[1], dia, { id: "paso-b", ahora: "2026-11-16T15:00:00.000Z", creador: "logi" })!;
+
+  it("el paso a: la misma orden, destino = la tienda de relevo, y su tipo de orden NO cambia", () => {
+    const { madre } = r();
+    expect(madre).toMatchObject({ order_suffix: "a", relay_step: 1, delivery_name: "RDZ Weslaco", delivery_address: "2 Texas Blvd, Weslaco, TX", delivery_lat: 26.16, delivery_lng: -97.99 });
+    expect(madre).not.toHaveProperty("order_type");
+    expect(madre).not.toHaveProperty("delivery_phone");
+  });
+
+  it("el paso b: de la tienda de relevo al CLIENTE, con su dirección, coordenadas, contacto, cuenta y tipo de orden", () => {
+    const { paso } = r();
+    expect(paso).toMatchObject({
+      id: "paso-b", order_suffix: "b", relay_step: 2, stage: "ready",
+      pickup_name: "RDZ Weslaco", pickup_address: "2 Texas Blvd, Weslaco, TX", pickup_point_lat: null,
+      delivery_name: "Juan Pérez", delivery_address: "100 Ranch Rd, Sullivan City, TX", delivery_lat: 26.55, delivery_lng: -98.4, delivery_pin_source: "geocoded",
+      delivery_phone: "+19565550101", customer_email: "juan@example.com", notify_pref: "both", customer_lang: "es",
+      order_type: "Customer", account: "Cuenta X", customer_type: "builder",
+      delivery_date: dia, assigned_driver: null, delivery_fee: null, est_pallets: 4, invoice_num: "170100",
+    });
+    expect(paso.delivery_notes).toContain("Llamar antes de llegar");
+    expect(paso.delivery_notes).toContain("Relay transfer Tr-FX112-b: RDZ Weslaco → Juan Pérez.");
+  });
+
+  it("sin nombre de cliente en la orden, el paso b sigue yendo a su dirección (la nota dice «?»)", () => {
+    const { paso } = alActivar(cliente({ delivery_name: null }), TIENDAS[1], dia, { id: "b", ahora: "x", creador: null })!;
+    expect(paso).toMatchObject({ delivery_name: null, delivery_address: "100 Ranch Rd, Sullivan City, TX", order_type: "Customer" });
+    expect(paso.delivery_notes).toContain("RDZ Weslaco → ?.");
+  });
+
+  it("la tienda de relevo sigue siendo OTRA que el origen (RDZ Pharr) y que el destino; cualquier otra tienda vale", () => {
+    expect(alActivar(cliente(), TIENDAS[3], dia, { id: "b", ahora: "x", creador: null })).toBeNull();   // RDZ Pharr: es el origen
+    expect(alActivar(cliente(), TIENDAS[0], dia, { id: "b", ahora: "x", creador: null })).not.toBeNull();   // RDZ McAllen
+    expect(alActivar(cliente({ pickup_name: "RDZ Weslaco" }), TIENDAS[1], dia, { id: "b", ahora: "x", creador: null })).toBeNull();
+  });
+
+  it("el paso a NO recibe avisos al cliente (va a una tienda); el b sí, como cualquier entrega a cliente", () => {
+    const { madre, paso } = r();
+    const aA = { ...cliente(), ...madre, id: "1629" } as Delivery;
+    expect(porQueNoSeActiva(aA, [aA])).toBe("ya_es_relevo");
+    expect(decidirAviso({ ...aA, stage: "ready" }, "night_before", undefined, new Set())).toEqual({ ok: false, motivo: "tramo_de_relevo" });
+    expect(decidirAviso({ ...aA, stage: "picked_up" }, "on_the_way", undefined, new Set())).toEqual({ ok: false, motivo: "tramo_de_relevo" });
+    expect(decidirAviso({ ...paso, stage: "ready" }, "night_before", undefined, new Set())).toMatchObject({ ok: true, sms: "+19565550101", email: "juan@example.com" });
+    expect(decidirAviso({ ...paso, stage: "picked_up" }, "on_the_way", undefined, new Set())).toMatchObject({ ok: true, sms: "+19565550101" });
+  });
+
+  it("el paso a no es «entrega a cliente» para la ruta, ni para la cuenta; el b sí", () => {
+    const { madre, paso } = r();
+    const aA = { ...cliente(), ...madre } as Delivery;
+    expect(claseDeLaOrden(aA, undefined)).toBe("intertienda");
+    expect(tipoDeClienteDeLaOrden(aA, undefined)).toBeNull();
+    expect(faltaLaCuenta("sales", { ...aA, account: "" }, undefined)).toBe(false);
+    expect(claseDeLaOrden(paso, undefined)).toBe("builder");
+    expect(tipoDeClienteDeLaOrden(paso, undefined)).toBe("builder");
+    expect(faltaLaCuenta("sales", { ...paso, account: "" }, undefined)).toBe(true);
+  });
+
+  it("la pantalla lo ofrece para cualquier orden: el paso a de un relevo de cliente se nombra «Tr-FX112-a»", () => {
+    const { madre } = r();
+    expect(esPasoDeRelevo(madre)).toBe(true);
+    expect(numeroConLetra("FX112", madre)).toBe("Tr-FX112-a");
+    expect(mensajeDeEspera({ ...cliente(), ...madre }).en).toContain("Tr-FX112-a");
+  });
+});
+
+describe("la migración 312 (relevo en cualquier orden) dice lo mismo", () => {
+  const sql = leer("supabase/migrations/312_relevo_cualquier_orden.sql");
+  const [cuerpo, registro] = sql.split("-- @ledger-below");
+  const sinComentarios = cuerpo.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+
+  it("su fila del registro está al día con el texto de arriba", () => {
+    const sha = createHash("sha256").update(cuerpo, "utf8").digest("hex");
+    expect(registro.trim()).toBe(`insert into public.schema_migrations (name, checksum) values ('312_relevo_cualquier_orden.sql', '${sha}') on conflict (name) do nothing;`);
+  });
+
+  it("activar_relevo ya no exige que el destino sea una tienda, pero sí la tienda de relevo y el día", () => {
+    const activar = sinComentarios.slice(sinComentarios.indexOf("create or replace function public.activar_relevo"), sinComentarios.indexOf("revoke execute on function public.activar_relevo"));
+    expect(activar).not.toContain("is not a store-to-store order");
+    expect(activar).toContain("RELEVO_TIENDA");
+    expect(activar).toContain("p_fecha < greatest(hoy, coalesce(madre.delivery_date, hoy))");
+    expect(activar).toContain("'relay_step', 2");
+    expect(activar).toContain("fila := to_jsonb(madre)");
+    // El paso a no toca el tipo de orden: solo su destino y su letra.
+    expect(activar).not.toMatch(/order_type\s*=|'order_type'/);
+  });
+
+  it("deshacer_relevo y los disparadores no cambian", () => {
+    expect(sinComentarios).not.toMatch(/create (or replace )?function public\.(deshacer_relevo|guard_relevo|guard_relevo_fecha)\b/i);
+    expect(sinComentarios).not.toMatch(/create trigger|drop trigger/i);
   });
 });
 

@@ -62,7 +62,6 @@ import { RelevoDeLaOrden } from "@/components/RelevoDeLaOrden";
 import { IconoDeAvisos, type AvisoDeLaRuta } from "@/components/IconoDeAvisos";
 import { avisosDeRelevo, type AvisoDeRelevo } from "@/lib/relevo";
 import { esPasoDeRelevo } from "@/lib/relevo-etiqueta";
-import { isStoreToStore } from "@/lib/required";
 import { puedeReprogramar } from "@/lib/reprogramar-orden";
 import { ReprogramarVarias } from "@/components/ReprogramarVarias";
 import { BandejaDeSolicitudes } from "@/components/BandejaDeSolicitudes";
@@ -1646,12 +1645,13 @@ export default function RoutesPage() {
   // lib/cargas-partidas; la base la repite (partir_carga, reparte_cargas, juntar_cargas).
   const cargasDe = (d: Delivery) => { const hermanas = hermanasDe(deliveries, d); return { carga: cargaDe(d, hermanas), otra: laOtraCarga(d, hermanas) }; };
   // D-898 (256): en ese mismo sitio, la TRANSFERENCIA POR RELEVO (`components/RelevoDeLaOrden`): en un paso de relevo
-  // («Tr-1111-a»), su pastilla, que abre la tarjeta del relevo; en una orden de tienda a tienda sin relevo, el «⇄» que lo
+  // («Tr-1111-a»), su pastilla, que abre la tarjeta del relevo; en cualquier otra orden, el «⇄» que lo
   // activa. Un paso de relevo no es «carga 1 de 2» (`cargaDe` da `null`), así que nunca salen las dos cosas.
   const etiquetaDeLaCarga = (d: Delivery) => {
     const c = cargasDe(d).carga;
     if (c) return <span className="hint" data-carga style={{ margin: 0 }}> · {etiquetaDeCarga(c, lang === "es")}</span>;
-    return esPasoDeRelevo(d) || isStoreToStore(d.order_type, settings.order_type_rules) ? <RelevoDeLaOrden pedido={d} compacto soloLectura={soloLectura} /> : null;
+    // Cualquier tipo de orden: el componente decide si el relevo aplica (un paso ya relevo, o una orden de quien planifica).
+    return <RelevoDeLaOrden pedido={d} compacto soloLectura={soloLectura} />;
   };
   const parteLaOrden = async (d: Delivery, capacidad: number) => {
     const total = palletsDeLaOrden(d);
