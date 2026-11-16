@@ -29,7 +29,7 @@ import type { Profile as PerfilDelHub } from "@/lib/types";
 // querying the DB on every request; not worth it for a static string.
 export const metadata: Metadata = {
   // "HR Management" desde D-145; la pestaña del navegador se quedó con el nombre viejo (B-8).
-  title: "RTG HR Management",
+  title: "iFloor HR Management",
 };
 
 // The recruiting module's own shell — a sibling of (app), not nested under

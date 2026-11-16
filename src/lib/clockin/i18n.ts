@@ -5,7 +5,7 @@ export type Lang = "en" | "es";
 
 export const dictionaries = {
   en: {
-    appName: "RTG Clock-In",
+    appName: "iFloor Clock-In",
     tagline: "Clock in, stay accountable, lead fairly.",
     clockIn: "Clock In",
     clockOut: "Clock Out",
@@ -25,7 +25,7 @@ export const dictionaries = {
     changeReason: "← change reason",
     teamCoverage: "Today's Crew",
     noCoverageToday: "Nobody is scheduled today.",
-    welcomeTitle: "Welcome to RTG Clock-In",
+    welcomeTitle: "Welcome to iFloor Clock-In",
     privacySummary: "We check your location only when you clock in or out — never all day.",
     privacyHeading: "How your location is used",
     consent1: "We check your location only when you clock in, clock out, or report leaving the work site.",
@@ -90,7 +90,7 @@ export const dictionaries = {
     photoSlowNetwork: "Photo upload timed out — check your signal and tap again.",
     locationRetry: "Couldn't get your location. Step outside or near a window and tap again.",
     lunchTakenToday: "Lunch taken today",
-    notificationsHowTo: "iPhone: Settings > Notifications > RTG Clock-In > turn on. Android: Chrome > tap the ⓘ by the address > Permissions > Notifications > Allow.",
+    notificationsHowTo: "iPhone: Settings > Notifications > iFloor Clock-In > turn on. Android: Chrome > tap the ⓘ by the address > Permissions > Notifications > Allow.",
     notificationsUnsupported: "Notifications aren't supported on this browser.",
     sendTest: "Send a test",
     testSent: "Test sent — check your notifications.",
@@ -443,7 +443,7 @@ export const dictionaries = {
     },
   },
   es: {
-    appName: "RTG Clock-In",
+    appName: "iFloor Clock-In",
     tagline: "Marca entrada, mantén tu responsabilidad, lidera con justicia.",
     clockIn: "Marcar Entrada",
     clockOut: "Marcar Salida",
@@ -463,7 +463,7 @@ export const dictionaries = {
     changeReason: "← cambiar motivo",
     teamCoverage: "Equipo de Hoy",
     noCoverageToday: "Nadie está programado hoy.",
-    welcomeTitle: "Bienvenido a RTG Clock-In",
+    welcomeTitle: "Bienvenido a iFloor Clock-In",
     privacySummary: "Verificamos tu ubicación solo cuando marcas entrada o salida — nunca todo el día.",
     privacyHeading: "Cómo se usa tu ubicación",
     consent1: "Verificamos tu ubicación solo cuando marcas entrada, salida o reportas que sales del sitio de trabajo.",
@@ -528,7 +528,7 @@ export const dictionaries = {
     photoSlowNetwork: "La foto tardó demasiado en subir — revisa tu señal y toca de nuevo.",
     locationRetry: "No se pudo obtener tu ubicación. Sal o acércate a una ventana y toca de nuevo.",
     lunchTakenToday: "Almuerzo tomado hoy",
-    notificationsHowTo: "iPhone: Ajustes > Notificaciones > RTG Clock-In > activar. Android: Chrome > toca la ⓘ junto a la dirección > Permisos > Notificaciones > Permitir.",
+    notificationsHowTo: "iPhone: Ajustes > Notificaciones > iFloor Clock-In > activar. Android: Chrome > toca la ⓘ junto a la dirección > Permisos > Notificaciones > Permitir.",
     notificationsUnsupported: "Las notificaciones no son compatibles con este navegador.",
     sendTest: "Enviar prueba",
     testSent: "Prueba enviada — revisa tus notificaciones.",

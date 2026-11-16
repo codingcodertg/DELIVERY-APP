@@ -21,7 +21,7 @@ describe("la tarjeta y la casilla existen", () => {
     expect(enModulos).toBeDefined();
     expect(enModulos!.href).toBe("/promos");
     // El rótulo es el que puso el dueño, igual en las dos lenguas.
-    expect([enModulos!.label_en, enModulos!.label_es]).toEqual(["RTG PROMOS", "RTG PROMOS"]);
+    expect([enModulos!.label_en, enModulos!.label_es]).toEqual(["iFloor PROMOS", "iFloor PROMOS"]);
   });
 
   it("es una casilla que se otorga, y su acceso vive en module_access", () => {

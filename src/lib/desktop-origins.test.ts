@@ -171,7 +171,7 @@ describe("lo que se empaqueta en el instalador", () => {
   it("el instalador se llama como el producto de hoy, sin espacios", () => {
     // El patrón por defecto es `${productName} Setup ${version}.${ext}` — «RTG Hub Setup 1.0.0.exe»,
     // con espacios. Se declara para que salga el nombre que espera la ruta de descarga.
-    expect(pkg.build.productName).toBe("RTG Hub");
+    expect(pkg.build.productName).toBe("iFloor");
     expect(pkg.build.artifactName).toBe("RTG-Hub-Setup-${version}.${ext}");
   });
   it("la descarga acepta los DOS nombres: no se rompe la versión que la gente usa hoy", () => {

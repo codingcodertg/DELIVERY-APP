@@ -192,8 +192,8 @@ export function mensajeDeFotoFallida(motivo: MotivoDeFoto, lang: Lang, puedeSalt
  * también lo que pasa si negaron el permiso de cámara (la app no abre nada y no dice por qué). Un aviso suave: no bloquea.
  */
 export const AVISO_SI_NO_ABRIO_LA_CAMARA = {
-  en: "No photo came back. If the camera did not open, allow the camera for this app (Settings › Apps › RTG Hub › Permissions) or choose the photo from the gallery.",
-  es: "No llegó ninguna foto. Si la cámara no abrió, permite la cámara a esta app (Ajustes › Aplicaciones › RTG Hub › Permisos) o elige la foto de la galería.",
+  en: "No photo came back. If the camera did not open, allow the camera for this app (Settings › Apps › iFloor › Permissions) or choose the photo from the gallery.",
+  es: "No llegó ninguna foto. Si la cámara no abrió, permite la cámara a esta app (Ajustes › Aplicaciones › iFloor › Permisos) o elige la foto de la galería.",
 } as const;
 
 /** Una línea para `console.error`: lo que hace falta para saber qué pasó en ese teléfono, sin la foto. */

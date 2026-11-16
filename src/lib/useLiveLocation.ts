@@ -235,7 +235,7 @@ export function useLiveLocation(active: boolean): { status: LocationStatus; last
           // of the shift. Android additionally shows its own location indicator
           // in the status bar, independent of anything written here.
           {
-            title: "RTG Hub",
+            title: "iFloor",
             message: "Turno en curso",
           },
           MIN_MOVE_M,

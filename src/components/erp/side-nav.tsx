@@ -72,7 +72,7 @@ export function SideNav({
   const pathname = usePathname();
   const { t } = usePrefs();
   const { main: navItems, analytics: analyticsItems } = otra?.nav ?? erpNav(role, t);
-  const marca = otra?.brand ?? t("RTG Inventory", "RTG Inventario");
+  const marca = otra?.brand ?? t("iFloor Inventory", "iFloor Inventario");
   const pastilla = otra?.badge ?? role;
   const pestanas = navItems.concat(analyticsItems);
   const encendida = entradaActiva(pestanas, pathname);

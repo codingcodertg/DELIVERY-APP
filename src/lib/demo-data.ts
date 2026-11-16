@@ -39,7 +39,7 @@ export const DEMO_USERS: Profile[] = [
 export function demoSettings(): Settings {
   return {
     id: 1,
-    app_name: "RTG·HUB",
+    app_name: "iFloor",
     stores: [
       // Con punto en el mapa (D-474): sin él ningún chofer del demo «rutea» —«Armar rutas» y «Asignar a…» exigen una base
       // con coordenadas— y las recogidas no se podían medir. Coordenadas aproximadas de cada ciudad, no de una dirección real.

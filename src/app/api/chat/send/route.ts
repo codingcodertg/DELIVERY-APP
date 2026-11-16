@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     const { data: rows } = await admin.from("device_tokens").select("token").eq("user_id", to);
     const tokens = (rows ?? []).map((r) => r.token as string);
     if (tokens.length) {
-      const r = await sendPush(tokens, { title: "RTG Hub", body: aviso, data: { kind: KIND_CHAT, from: auth.user.id } });
+      const r = await sendPush(tokens, { title: "iFloor", body: aviso, data: { kind: KIND_CHAT, from: auth.user.id } });
       if (r.dead.length) await admin.from("device_tokens").delete().in("token", r.dead);
       push = { sent: r.sent, dropped: r.dead.length };
     } else push = { sent: 0, dropped: 0 };

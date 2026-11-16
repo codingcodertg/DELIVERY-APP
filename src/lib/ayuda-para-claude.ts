@@ -135,7 +135,7 @@ function lineaDeCapturas(n: number): string | null {
 export function textoParaClaude(d: DatosParaClaude): string {
   const s = d.solicitud;
   const lineas: (string | null)[] = [
-    "Arregla este problema que reportaron en RTG Hub con el botón de Ayuda.",
+    "Arregla este problema que reportaron en iFloor con el botón de Ayuda.",
     "",
     `De: ${remitente(s)}`,
     `Rol: ${s.role_label?.trim() || "—"}`,
@@ -195,7 +195,7 @@ export function htmlParaClaude(texto: string, imagenDataUrl: string | null): str
  */
 export function textoParaClaudeCode(id: string, imagenes: number): string {
   const capturas = imagenes > 0 ? `; ${imagenes === 1 ? "su captura está" : `sus ${imagenes} capturas están`} en el cubo help-files` : "";
-  return `Arregla la solicitud de ayuda ${id} de RTG Hub (léela con ayuda-lee.mjs${capturas})`;
+  return `Arregla la solicitud de ayuda ${id} de iFloor (léela con ayuda-lee.mjs${capturas})`;
 }
 
 // ---- El correo -------------------------------------------------------------------------------------------------

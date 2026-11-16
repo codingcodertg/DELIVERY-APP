@@ -133,7 +133,7 @@ export async function GET(req: Request) {
   let fired = 0;
   async function send(subs: Sub[], recipientId: string, companyId: string, dedupKey: string, body: string) {
     for (const s of subs) {
-      const r = await sendToSub(s, { title: "RTG Clock-In", body, url: "/timetracker/clock-in/clock", tag: dedupKey });
+      const r = await sendToSub(s, { title: "iFloor Clock-In", body, url: "/timetracker/clock-in/clock", tag: dedupKey });
       if (r.gone && s.id) await del(`push_subscriptions?id=eq.${s.id}`);
     }
     await record(companyId, recipientId, dedupKey, body);

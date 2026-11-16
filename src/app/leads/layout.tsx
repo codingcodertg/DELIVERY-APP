@@ -9,7 +9,7 @@ import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import "./leads.css";
 
 export const metadata: Metadata = {
-  title: "RTG LEADS",
+  title: "iFloor LEADS",
 };
 
 /**
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /** El nombre de la app en la barra de todas (D-643, `BarraDeApp`), en inglés y en español. */
-const NOMBRE = ["RTG Leads", "RTG Leads"] as const;
+const NOMBRE = ["iFloor Leads", "iFloor Leads"] as const;
 
 export default async function LeadsLayout({ children }: { children: React.ReactNode }) {
   // Modo demo: sin base ni sesión. Los leads son los inventados de `lib/leads/demo`.

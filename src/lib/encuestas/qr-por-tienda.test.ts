@@ -21,9 +21,9 @@ describe("el enlace y el QR de cada tienda", () => {
     expect(decodeURIComponent(new URL(enlaceDeTienda("Peñitas & Co")).searchParams.get("tienda") ?? "")).toBe("Peñitas & Co");
   });
   it("el PNG que se descarga lleva el nombre de la tienda sin acentos ni espacios; sin tienda, el de siempre", () => {
-    expect(archivoDelQr(null)).toBe("RTG-encuesta-QR.png");
-    expect(archivoDelQr("RDZ McAllen")).toBe("RTG-encuesta-QR-RDZ-McAllen.png");
-    expect(archivoDelQr("Peñitas / Sur")).toBe("RTG-encuesta-QR-Penitas-Sur.png");
+    expect(archivoDelQr(null)).toBe("iFloor-encuesta-QR.png");
+    expect(archivoDelQr("RDZ McAllen")).toBe("iFloor-encuesta-QR-RDZ-McAllen.png");
+    expect(archivoDelQr("Peñitas / Sur")).toBe("iFloor-encuesta-QR-Penitas-Sur.png");
   });
   it("las tiendas de Ajustes: recortadas, sin vacías ni repetidas, en su orden", () => {
     expect(nombresDeTiendas([{ name: " A " }, { name: "" }, { name: "B" }, { name: "A" }, { name: null }, {}])).toEqual(["A", "B"]);
