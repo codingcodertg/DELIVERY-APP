@@ -52,6 +52,7 @@ describe("patches", () => {
   it("dejada en tienda: sin chofer, sin puesto ni carga, sin solicitud, y sin datos de entrega", () => {
     expect(patchDejadaEnTienda()).toEqual({
       assigned_driver: null, route_seq: null, load_no: null, return_to_store_at: null, return_to_store_by: null,
+      departed_at: null, arrived_at: null, pickup_lat: null, pickup_lng: null, pickup_gps_at: null,
     });
     const p = patchDejadaEnTienda();
     expect(p).not.toHaveProperty("stage");

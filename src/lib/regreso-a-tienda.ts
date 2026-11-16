@@ -55,7 +55,12 @@ export function patchCancelarRegreso(): Partial<Delivery> {
  * No es una entrega: no lleva fecha de entrega ni firma.
  */
 export function patchDejadaEnTienda(): Partial<Delivery> {
-  return { assigned_driver: null, route_seq: null, load_no: null, return_to_store_at: null, return_to_store_by: null };
+  // Los sellos del viaje abandonado se borran, como en «Dejar en tienda» (leave-at-store.ts): si no, el tiempo del
+  // primer chofer se le cuenta al siguiente.
+  return {
+    assigned_driver: null, route_seq: null, load_no: null, return_to_store_at: null, return_to_store_by: null,
+    departed_at: null, arrived_at: null, pickup_lat: null, pickup_lng: null, pickup_gps_at: null,
+  };
 }
 
 /** La nota del historial, para el despachador y para el chofer. */
