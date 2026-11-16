@@ -62,7 +62,7 @@ import { eventosVisibles } from "@/lib/eventos-visibles";
 
 const DEFAULT_SETTINGS: Settings = {
   id: 1,
-  app_name: "iFloor",
+  app_name: "RTG·HUB",
   stores: [
     { name: "Brownsville", address: "" },
     { name: "Weslaco", address: "" },

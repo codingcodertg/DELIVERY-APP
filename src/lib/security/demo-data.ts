@@ -48,7 +48,7 @@ export function datosDemoDeSeguridad(ahora: Date): DatosDeSeguridad {
   const devices: DispositivoCrudo[] = [
     { id: "dev-pc-oficina", label: "PC Oficina McAllen", kind: "desktop", status: "approved", user_agent: UA_ESCRITORIO,
       first_seen_at: hace(40), last_seen_at: hace(0, 1), first_user_id: "u-admin", last_user_id: "u-mgr", approved_at: hace(40), revoked_at: null,
-      notes: "Escritorio de la oficina, app iFloor instalada.", bound: true, requested_at: null, requested_by: null, request_note: null, last_ip: "10.0.0.21", last_place: "McAllen, TX" },
+      notes: "Escritorio de la oficina, app RTG Hub instalada.", bound: true, requested_at: null, requested_by: null, request_note: null, last_ip: "10.0.0.21", last_place: "McAllen, TX" },
     { id: "dev-tel-carlos", label: "Teléfono de Carlos", kind: "phone", status: "approved", user_agent: UA_CHOFER,
       first_seen_at: hace(25), last_seen_at: hace(0, 3), first_user_id: "u-drv2", last_user_id: "u-drv2", approved_at: hace(25), revoked_at: null,
       notes: null, bound: true, requested_at: null, requested_by: null, request_note: null, last_ip: "172.58.10.4", last_place: "Weslaco, TX" },

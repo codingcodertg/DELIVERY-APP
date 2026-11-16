@@ -50,7 +50,7 @@ export function versionDeApp(userAgent: string | null | undefined): VersionDeApp
   const escritorio = versionDeEscritorio(ua);
   if (escritorio) {
     const atras = versionMenor(escritorio, ESCRITORIO_MINIMO);
-    return { app: "desktop", texto: `iFloor ${escritorio}`, version: escritorio, actualizar: atras, minima: atras ? ESCRITORIO_MINIMO : null };
+    return { app: "desktop", texto: `RTG Hub ${escritorio}`, version: escritorio, actualizar: atras, minima: atras ? ESCRITORIO_MINIMO : null };
   }
   const apk = installedApkVersion(ua);
   if (apk !== null) {

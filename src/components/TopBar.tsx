@@ -160,7 +160,7 @@ export function TopBar({ me: propMe }: { me: Profile }) {
         D-528 hizo en Time Tracker): arriba el nombre de la app, la casa, la campana y solo la burbuja con las
         iniciales; debajo, las pestañas. Para eso `.entregas-barra-resto` deja de ser una caja (`display: contents`) y
         sus piezas se colocan con `order`. En el escritorio, como estaba. */}
-    <BarraDeApp nombre={settings.app_name || "iFloor"} deliveriesRole={me.role} moduleAccess={me.module_access}>
+    <BarraDeApp nombre={settings.app_name || "RTG·HUB"} deliveriesRole={me.role} moduleAccess={me.module_access}>
       {/* minWidth: 0 overrides the flex default (min-width: auto), which
           sizes a flex item to its widest unbreakable descendant — here the
           account link's full name. Without it, this row refuses to shrink

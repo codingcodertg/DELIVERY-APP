@@ -12,7 +12,7 @@ describe("¿corre dentro de una app de escritorio?", () => {
     expect(enAppDeEscritorio({ ttDesktop: { isDesktop: true }, navigator: { userAgent: CHROME } })).toBe(true);
   });
 
-  it("iFloor: por el token de su agente de usuario, y también el nombre viejo (D-225)", () => {
+  it("RTG Hub: por el token de su agente de usuario, y también el nombre viejo (D-225)", () => {
     expect(enAppDeEscritorio({ navigator: { userAgent: `${CHROME} RTGHub/1.4.0` } })).toBe(true);
     expect(enAppDeEscritorio({ navigator: { userAgent: `${CHROME} RDZHub/1.1.0` } })).toBe(true);
   });

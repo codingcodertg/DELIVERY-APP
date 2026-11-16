@@ -11,7 +11,7 @@ import "@/app/erp/erp.css";
 import "./clientes.css";
 
 export const metadata: Metadata = {
-  title: "iFloor CUSTOMERS",
+  title: "RTG CUSTOMERS",
 };
 
 /**

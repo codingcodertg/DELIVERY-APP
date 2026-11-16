@@ -159,6 +159,6 @@ export function appsEnElTelefono(puerta: PuertaDeDispositivo | null | undefined,
 export function nombrePorAgente(userAgent: string | null | undefined): string {
   const ua = userAgent ?? "";
   const so = /Windows/i.test(ua) ? "Windows" : /Android/i.test(ua) ? "Android" : /iPhone|iPad|iPod/i.test(ua) ? "iPhone" : /Mac OS/i.test(ua) ? "Mac" : /Linux/i.test(ua) ? "Linux" : "";
-  const app = /\b(RTGHub|RDZHub)\//.test(ua) ? "iFloor" : /RDZDeliveries\//.test(ua) ? "App de choferes" : /Edg\//.test(ua) ? "Edge" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : /Firefox\//.test(ua) ? "Firefox" : "Navegador";
+  const app = /\b(RTGHub|RDZHub)\//.test(ua) ? "RTG Hub" : /RDZDeliveries\//.test(ua) ? "App de choferes" : /Edg\//.test(ua) ? "Edge" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : /Firefox\//.test(ua) ? "Firefox" : "Navegador";
   return so ? `${app} · ${so}` : app;
 }

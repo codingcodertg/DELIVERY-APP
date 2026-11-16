@@ -452,8 +452,8 @@ export const MODULES: ModuleInfo[] = [
     key: "promos",
     href: "/promos",
     emoji: "🏷️",
-    label_en: "iFloor PROMOS",
-    label_es: "iFloor PROMOS",
+    label_en: "RTG PROMOS",
+    label_es: "RTG PROMOS",
     desc_en: "Promo rounds: approve or reject by store",
     desc_es: "Rondas de promoción: aprobar o rechazar por tienda",
   },
@@ -780,7 +780,7 @@ export const INSTALLABLE_APPS: InstallableApp[] = [
   {
     key: "hub-desktop",
     emoji: "🖥",
-    name: "iFloor",
+    name: "RTG Hub",
     platform_en: "Windows", platform_es: "Windows",
     desc_en: "The hub in its own window, without a browser.",
     desc_es: "El hub en su propia ventana, sin navegador.",
@@ -815,7 +815,7 @@ export const INSTALLABLE_APPS: InstallableApp[] = [
   {
     key: "deliveries-android",
     emoji: "📱",
-    name: "iFloor",
+    name: "RTG Hub",
     platform_en: "Android", platform_es: "Android",
     desc_en: "Deliveries on the phone, with background GPS while on the clock.",
     desc_es: "Deliveries en el teléfono, con GPS en segundo plano mientras se está fichado.",
@@ -1179,7 +1179,7 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     accessColumn: "module_access",
   },
   {
-    key: "promos", label_en: "iFloor PROMOS", label_es: "iFloor PROMOS",
+    key: "promos", label_en: "RTG PROMOS", label_es: "RTG PROMOS",
     alwaysOn: false,
     // SIN escalafón propio, y esto es una decisión, no un hueco. Quién aprueba una promoción lo
     // decide `profiles.role` siendo Gerente de Oficina (`manager`) u Oficina (`accounting`) —los dos

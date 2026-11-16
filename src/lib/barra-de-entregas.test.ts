@@ -145,7 +145,7 @@ describe("en el teléfono, arriba el nombre, la casa, la campana y solo la burbu
     // y mete dentro lo suyo.
     const pieza = sinComentarios(leer("src/components/BarraDeApp.tsx"));
     expect(pieza).toMatch(/<div className="entregas-marca">\n\s*<h1>\{nombre\}<\/h1>\n\s*<HubHomeLink /);
-    expect(barra).toContain('<BarraDeApp nombre={settings.app_name || "iFloor"}');
+    expect(barra).toContain('<BarraDeApp nombre={settings.app_name || "RTG·HUB"}');
     // Sin estilo en línea: un `display: "flex"` en línea gana a la hoja y el `display: contents` del teléfono no hace nada
     // (medido en la vista del demo: con él, la campana y la burbuja se quedaban en la caja, al lado de las pestañas).
     // El de la marca (`gap: 6`) también se fue a la hoja en D-643.

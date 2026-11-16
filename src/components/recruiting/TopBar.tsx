@@ -44,7 +44,7 @@ export function TopBar({ me, deliveriesRole, moduleAccess }: { me: Profile; deli
     // de Entregas (`.entregas-barra-resto`), con el mismo `min-width: 0` que esta fila llevaba en línea (D-054).
     // En el teléfono esa caja se deshace y las pestañas bajan a su fila (D-545); el buscador y la etiqueta del rol
     // bajan detrás de ellas (`entregas-tras-pestanas`) para que la fila del nombre no se desborde.
-    <BarraDeApp nombre={settings.app_name || "iFloor·HR"} deliveriesRole={deliveriesRole} moduleAccess={moduleAccess}>
+    <BarraDeApp nombre={settings.app_name || "RTG·HR"} deliveriesRole={deliveriesRole} moduleAccess={moduleAccess}>
         <div className="entregas-tras-pestanas"><GlobalSearch /></div>
         <div className="tabs">
           {/* D-704: dos menús, Recruiting y HR, y Ajustes suelto. El filtro por rol es el de antes (menus-rrhh.ts). */}

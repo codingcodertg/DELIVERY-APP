@@ -97,7 +97,7 @@ describe("la extensión de directorio, en las tiendas (D-273)", () => {
   });
 });
 
-describe("el grupo de promociones, en las tiendas (iFloor PROMOS, migración 140)", () => {
+describe("el grupo de promociones, en las tiendas (RTG PROMOS, migración 140)", () => {
   it("EDITAR OTRA COSA NO SE LO LLEVA — que es el camino por el que se perdería en silencio", () => {
     // No el de editar el grupo: ese se ve al instante. El que nadie mira es abrir una tienda que ya
     // tiene grupo, cambiarle la dirección, guardar, y descubrir semanas después que su gerente dejó

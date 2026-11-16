@@ -56,7 +56,7 @@ export function cuerpoDelContacto(c: Pick<Candidate, "id" | "name" | "phone" | "
   return {
     firstName, lastName, mobilePhone: movil,
     jobTitle: (c.role ?? "").trim(), company: (c.location ?? "").trim(),
-    notes: `iFloor · candidato ${c.id}`,
+    notes: `RTG Hub · candidato ${c.id}`,
   };
 }
 

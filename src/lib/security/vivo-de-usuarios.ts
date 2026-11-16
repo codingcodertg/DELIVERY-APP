@@ -13,7 +13,7 @@ const MODULOS = new Set(["deliveries", "estimator", "leads", "customers", "promo
 /** La etiqueta del cliente (no la versión): «App RTG Hub» / «Time Tracker» / «Navegador». */
 function etiquetaCliente(ua: string | null | undefined, kind: string | null | undefined): string {
   const v = versionDeApp(ua ?? null);
-  if (v.app === "desktop") return "App iFloor";
+  if (v.app === "desktop") return "App RTG Hub";
   if (v.app === "android") return "Time Tracker";
   return kind === "phone" ? "Phone browser" : "Browser";
 }
