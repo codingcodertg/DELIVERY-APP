@@ -13,6 +13,7 @@ import { escrituraDeshacerRecogida, type DeshacerRecogida } from "@/lib/recogida
 import { EVENTO_DEJADO, escrituraDejarEnTienda } from "@/lib/leave-at-store";
 import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { botonesConLlegada } from "@/lib/siguiente-de-mi-ruta";
+import { bannerDeRegreso, notaDejadaEnTienda, patchDejadaEnTienda } from "@/lib/regreso-a-tienda";
 import { orderLabel, nombreDeLaOrden } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
@@ -188,8 +189,28 @@ export function AccionesDeParada({
     if (hecho) notify(t("Pickup undone — back to ready", "Recogida deshecha — vuelve a lista"));
   };
 
+  // «Dejada en tienda» (migración 311): el despachador pidió dejar la orden en su tienda. Vuelve a «Sin asignar» (ready, sin
+  // chofer). NO es una entrega: no pide foto ni firma, y no lleva fecha de entrega.
+  const dejadaEnTienda = async () => {
+    if (ocupado || soloLectura) return;
+    setOcupado(true);
+    const hecho = await setStage(pedido.id, "ready", notaDejadaEnTienda(me?.full_name || "driver"), patchDejadaEnTienda(), EVENTO_DEJADO);
+    setOcupado(false);
+    if (hecho) notify(t("Left at the store — back to Unassigned", "Dejada en tienda — vuelve a Sin asignar"));
+  };
+  const tiendaDeRegreso = pedido.store || pedido.pickup_name || "";
+
   return (
     <>
+      {/* Regreso a tienda (migración 311): la orden lo pidió el despachador. Va arriba, antes que lo demás. */}
+      {bannerDeRegreso(pedido) && (
+        <div data-banner-regreso style={{ background: "var(--amber-soft)", border: "2px solid var(--amber)", borderRadius: 8, padding: 10, marginTop: 8 }}>
+          <div style={{ fontWeight: 800 }}>↩ {t(`Leave this order at the store: ${tiendaDeRegreso}`, `Deja esta orden en la tienda: ${tiendaDeRegreso}`)}</div>
+          <button data-accion="dejada_en_tienda" className="btn btn-amber" style={{ ...BOTON, marginTop: 8 }} disabled={apagado} onClick={() => void dejadaEnTienda()}>
+            {ocupado ? t("Saving…", "Guardando…") : t("Left at store", "Dejada en tienda")}
+          </button>
+        </div>
+      )}
       {marca && (
         <span data-marca-de-parada={marca.marca} className="hint" style={{ display: "block", marginTop: 4, color: "var(--red)", fontWeight: 700 }}>
           ⛔ {t("Rejected by customer", "Rechazada por el cliente")}: {razonDeLaNota(marca.motivo)}
