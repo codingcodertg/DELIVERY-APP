@@ -161,7 +161,9 @@ describe("el proveedor de verdad lo usa", () => {
   const prov = leer("src/lib/timetracker-data-provider.tsx");
 
   it("con la práctica encendida da el proveedor de práctica; apagada, el real", () => {
-    expect(prov).toContain("const value: DataState = funcionesDeLaPractica ? conPractica(real, funcionesDeLaPractica, capacitacion.practica) : real;");
+    // Memoizado (perf/ef-realtime): mismo criterio, con el valor guardado entre pintados.
+    expect(prov).toContain("() => (funcionesDeLaPractica ? conPractica(real, funcionesDeLaPractica, capacitacion.practica) : real),");
+    expect(prov).toContain("const value: DataState = useMemo(");
   });
 
   it("las funciones de práctica se crean UNA vez por práctica y leen el proveedor de cada momento", () => {

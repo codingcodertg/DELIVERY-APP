@@ -59,7 +59,7 @@ export function useSolicitudesDeAsignacion(activo = true): SolicitudesDeAsignaci
     const alVolver = () => { if (document.visibilityState === "visible") relee(); };
     window.addEventListener("focus", alVolver);
     document.addEventListener("visibilitychange", alVolver);
-    const id = setInterval(alVolver, RELEE_CADA_MS);
+    const id = setInterval(() => { if (document.hidden) return; alVolver(); }, RELEE_CADA_MS);
     return () => { window.removeEventListener("focus", alVolver); document.removeEventListener("visibilitychange", alVolver); clearInterval(id); };
   }, [apagado, relee]);
 

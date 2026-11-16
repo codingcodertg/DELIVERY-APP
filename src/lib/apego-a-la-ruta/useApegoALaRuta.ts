@@ -56,7 +56,7 @@ export function useApegoALaRuta(fecha: string, activo: boolean): EstadoDelApego 
   useEffect(() => {
     if (!activo) return;
     void pide();
-    const reloj = setInterval(() => { void pide(); }, 30_000);
+    const reloj = setInterval(() => { if (document.hidden) return; void pide(); }, 30_000);
     const alVolver = () => { if (document.visibilityState === "visible") void pide(); };
     document.addEventListener("visibilitychange", alVolver);
     return () => { clearInterval(reloj); document.removeEventListener("visibilitychange", alVolver); };

@@ -78,7 +78,8 @@ export function useRastrosDeCamiones(
   useEffect(() => {
     if (!activo) return;
     void pide();
-    const reloj = setInterval(() => { void pide(); }, 30_000);
+    // Tres minutos, como el servidor (que guarda ese tiempo): preguntar cada 30 s solo repetía la misma respuesta.
+    const reloj = setInterval(() => { if (document.hidden) return; void pide(); }, REFRESCO_DEL_RASTRO_EN_PANTALLA_MS);
     const alVolver = () => { if (document.visibilityState === "visible") void pide(); };
     document.addEventListener("visibilitychange", alVolver);
     return () => { clearInterval(reloj); document.removeEventListener("visibilitychange", alVolver); };

@@ -377,6 +377,13 @@ export function DataProvider({ children, me, hub = null }: { children: React.Rea
 
   useEffect(() => {
     reloadAll();
+    // Coalescencia (250 ms, como data-provider): una ráfaga de eventos —una acción que escribe varias filas— es una
+    // sola recarga, y se lee cuando la ráfaga ya terminó y no a medio escribir.
+    let timerRecarga: ReturnType<typeof setTimeout> | null = null;
+    const alCambiar = () => {
+      if (timerRecarga) clearTimeout(timerRecarga);
+      timerRecarga = setTimeout(() => { timerRecarga = null; void reloadAll(); }, 250);
+    };
     // Realtime: any change on core tables triggers a lightweight reload.
     // Every table here lives in the `recruiting` schema EXCEPT profiles,
     // which is deliveries' shared identity table in `public` (see D-050) —
@@ -384,20 +391,21 @@ export function DataProvider({ children, me, hub = null }: { children: React.Rea
     // client's default, unlike .from().
     const channel = supabase
       .channel("recruiting-realtime")
-      .on("postgres_changes", { event: "*", schema: "recruiting", table: "candidates" }, reloadAll)
-      .on("postgres_changes", { event: "*", schema: "recruiting", table: "contacts" }, reloadAll)
-      .on("postgres_changes", { event: "*", schema: "recruiting", table: "questions" }, reloadAll)
-      .on("postgres_changes", { event: "*", schema: "recruiting", table: "templates" }, reloadAll)
-      .on("postgres_changes", { event: "*", schema: "recruiting", table: "custom_fields" }, reloadAll)
-      .on("postgres_changes", { event: "*", schema: "recruiting", table: "settings" }, reloadAll)
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, reloadAll)
-      .on("postgres_changes", { event: "*", schema: "recruiting", table: "jobs" }, reloadAll)
-      .on("postgres_changes", { event: "*", schema: "recruiting", table: "stages" }, reloadAll)
-      .on("postgres_changes", { event: "*", schema: "recruiting", table: "attachments" }, reloadAll)
-      .on("postgres_changes", { event: "*", schema: "recruiting", table: "stage_history" }, reloadAll)
-      .on("postgres_changes", { event: "*", schema: "recruiting", table: "question_sets" }, reloadAll)
+      .on("postgres_changes", { event: "*", schema: "recruiting", table: "candidates" }, alCambiar)
+      .on("postgres_changes", { event: "*", schema: "recruiting", table: "contacts" }, alCambiar)
+      .on("postgres_changes", { event: "*", schema: "recruiting", table: "questions" }, alCambiar)
+      .on("postgres_changes", { event: "*", schema: "recruiting", table: "templates" }, alCambiar)
+      .on("postgres_changes", { event: "*", schema: "recruiting", table: "custom_fields" }, alCambiar)
+      .on("postgres_changes", { event: "*", schema: "recruiting", table: "settings" }, alCambiar)
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, alCambiar)
+      .on("postgres_changes", { event: "*", schema: "recruiting", table: "jobs" }, alCambiar)
+      .on("postgres_changes", { event: "*", schema: "recruiting", table: "stages" }, alCambiar)
+      .on("postgres_changes", { event: "*", schema: "recruiting", table: "attachments" }, alCambiar)
+      .on("postgres_changes", { event: "*", schema: "recruiting", table: "stage_history" }, alCambiar)
+      .on("postgres_changes", { event: "*", schema: "recruiting", table: "question_sets" }, alCambiar)
       .subscribe();
     return () => {
+      if (timerRecarga) clearTimeout(timerRecarga);
       supabase.removeChannel(channel);
     };
   }, [supabase, reloadAll]);
@@ -931,7 +939,9 @@ export function DataProvider({ children, me, hub = null }: { children: React.Rea
     [supabase, notify, reloadAll],
   );
 
-  const value: DataState = {
+  // Memoizado (dependencias explícitas): antes era un objeto nuevo en cada render y repintaba a todos los consumidores
+  // aunque nada de lo que leen hubiera cambiado.
+  const value: DataState = useMemo(() => ({
     ready,
     me,
     hub,
@@ -986,7 +996,7 @@ export function DataProvider({ children, me, hub = null }: { children: React.Rea
     addStage,
     updateStage,
     deleteStage,
-  };
+  }), [addAttachment, addCandidate, addContact, addCustomField, addJob, addQuestion, addQuestionSet, addStage, addTemplate, attachments, attachmentsFor, candidates, contacts, contactsFor, customFields, deleteCandidate, deleteCustomField, deleteJob, deleteQuestion, deleteQuestionSet, deleteStage, deleteTemplate, duplicateQuestion, hub, importScorecard, jobs, me, notify, openAttachment, openResumeFile, questionSets, questions, ready, recruiters, removeAttachment, removeResume, reorderQuestions, resumeLink, saveSettings, settings, stageHistoryFor, stages, stagesEnIdioma, templates, toast, toggleFavorite, updateCandidate, updateJob, updateQuestion, updateQuestionSet, updateStage, updateUserName, uploadResume]);
 
   return (
     <Ctx.Provider value={value}>

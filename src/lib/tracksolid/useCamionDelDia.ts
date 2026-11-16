@@ -86,7 +86,7 @@ export function useCamionDelDia(fecha: string, opciones: { activo?: boolean; viv
   useEffect(() => {
     if (!activo) return;
     void pide();
-    const reloj = vivo ? setInterval(() => { void pide(); }, REFRESCO_DE_CAMIONES_MS) : null;
+    const reloj = vivo ? setInterval(() => { if (document.hidden) return; void pide(); }, REFRESCO_DE_CAMIONES_MS) : null;
     const alVolver = () => { if (document.visibilityState === "visible") void pide(); };
     const alCambiar = () => { void pide(true); };
     document.addEventListener("visibilitychange", alVolver);
@@ -142,8 +142,11 @@ export function usePosicionesDeChoferes(activo: boolean = true): { posiciones: P
   const hayCamiones = camionesDeHoy.posiciones.length > 0;
   useEffect(() => {
     if (!hayCamiones) return;
-    const reloj = setInterval(() => setLatido((n) => n + 1), 30_000);
-    return () => clearInterval(reloj);
+    // Con la pestaña oculta no se repinta: al volver, un latido pone al día el «hace X min».
+    const reloj = setInterval(() => { if (!document.hidden) setLatido((n) => n + 1); }, 30_000);
+    const alVolver = () => { if (!document.hidden) setLatido((n) => n + 1); };
+    document.addEventListener("visibilitychange", alVolver);
+    return () => { clearInterval(reloj); document.removeEventListener("visibilitychange", alVolver); };
   }, [hayCamiones]);
   const posiciones = useMemo(
     () => (hayCamiones ? posicionesDeChoferes(driverLocations, camionesDeHoy.posiciones) : driverLocations),

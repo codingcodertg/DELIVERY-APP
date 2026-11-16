@@ -105,7 +105,8 @@ export function AppUpdateBanner({ app }: { app: AppKey }) {
     // Works even before the first fetch answers, from the build-time constant.
     if (app === "deliveries") setApkStale(updateAvailable(navigator.userAgent));
     void check();
-    const id = setInterval(() => void check(), POLL_MS);
+    // Con la pestaña oculta no se pregunta: al volver, `onBack` ya pregunta.
+    const id = setInterval(() => { if (document.hidden) return; void check(); }, POLL_MS);
     const onBack = () => { if (!document.hidden) void check(); };
     window.addEventListener("focus", onBack);
     document.addEventListener("visibilitychange", onBack);

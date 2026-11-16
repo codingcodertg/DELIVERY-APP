@@ -535,16 +535,23 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   useEffect(() => {
     if (!isAdmin) return;
     reloadAdmin();
+    // Coalescencia de 250 ms: una ráfaga (p. ej. un alta con perfil, ajustes y asignación) es una sola recarga.
+    let timerAdmin: ReturnType<typeof setTimeout> | null = null;
+    const alCambiarAdmin = () => {
+      if (timerAdmin) clearTimeout(timerAdmin);
+      timerAdmin = setTimeout(() => { timerAdmin = null; void reloadAdmin(); }, 250);
+    };
     const channel = supabase
       .channel(`timetracker-admin:${me.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, reloadAdmin)
-      .on("postgres_changes", { event: "*", schema: "timetracker", table: "employee_settings" }, reloadAdmin)
-      .on("postgres_changes", { event: "*", schema: "timetracker", table: "projects" }, reloadAdmin)
-      .on("postgres_changes", { event: "*", schema: "timetracker", table: "assignments" }, reloadAdmin)
-      .on("postgres_changes", { event: "*", schema: "timetracker", table: "requests" }, reloadAdmin)
-      .on("postgres_changes", { event: "INSERT", schema: "timetracker", table: "audit" }, reloadAdmin)
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, alCambiarAdmin)
+      .on("postgres_changes", { event: "*", schema: "timetracker", table: "employee_settings" }, alCambiarAdmin)
+      .on("postgres_changes", { event: "*", schema: "timetracker", table: "projects" }, alCambiarAdmin)
+      .on("postgres_changes", { event: "*", schema: "timetracker", table: "assignments" }, alCambiarAdmin)
+      .on("postgres_changes", { event: "*", schema: "timetracker", table: "requests" }, alCambiarAdmin)
+      .on("postgres_changes", { event: "INSERT", schema: "timetracker", table: "audit" }, alCambiarAdmin)
       .subscribe();
     return () => {
+      if (timerAdmin) clearTimeout(timerAdmin);
       supabase.removeChannel(channel);
     };
   }, [supabase, me.id, isAdmin, reloadAdmin]);
@@ -559,9 +566,23 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
       setLiveSessions(((data as Record<string, unknown>[] | null) ?? []).map((r) => rowToCamel<Session>(r)!));
     };
     load();
+    // Por fila (como las sesiones propias): se aplica la sesión que cambió; sin volver a bajar todas las que están en vivo.
     const channel = supabase
       .channel(`timetracker-live:${me.id}`)
-      .on("postgres_changes", { event: "*", schema: "timetracker", table: "sessions", filter: "is_live=eq.true" }, load)
+      .on("postgres_changes", { event: "*", schema: "timetracker", table: "sessions", filter: "is_live=eq.true" }, (payload) => {
+        if (payload.eventType === "DELETE") {
+          const gone = (payload.old as { id?: string } | null)?.id;
+          if (gone) setLiveSessions((prev) => prev.filter((x) => x.id !== gone));
+          return;
+        }
+        const row = rowToCamel<Session>(payload.new as Record<string, unknown>);
+        if (!row?.id) return;
+        // Un evento de una sesión que ya no está en vivo la saca de la lista, igual que la consulta de arriba.
+        setLiveSessions((prev) => {
+          const sin = prev.filter((x) => x.id !== row.id);
+          return row.isLive ? [row, ...sin] : sin;
+        });
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -974,7 +995,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     initOfflineQueue({ updateLiveSession, uploadScreenshot });
   }, [capacitacion.activa, updateLiveSession, uploadScreenshot]);
 
-  const real: DataState = {
+  const real: DataState = useMemo(() => ({
     ready, me, settings, projects, myAssignments: assignments, mySessions: sessions, ensureSessionsSince, myPayrolls: payrolls,
     myRequests: requests, addRequest,
     toast, notify,
@@ -989,7 +1010,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     payRates, savePayRate, paystubsForPeriod, paystubsForYear, insertPaystubs, removePaystubOfPayroll,
     insertProject, updateProject, insertAssignment, updateAssignment, removeAssignment,
     claimRequest, resetRequestToPending, updateEmployeeSettings, updateSettings,
-  };
+  }), [addRequest, allAssignments, allEmployees, allProjects, allRequests, assignments, auditLog, claimRequest, deleteScreenshot, ensureSessionsSince, getSession, insertAssignment, insertBlankScreenshot, insertPayroll, insertPaystubs, insertProject, insertSession, listLiveSessions, liveSessions, logAudit, me, notify, payRates, payrolls, payrollsForWeek, paystubsForPeriod, paystubsForYear, projects, ready, refrescarSesion, removeAssignment, removePayroll, removePaystubOfPayroll, removeSession, requests, resetRequestToPending, savePayRate, screenshotSignedUrl, screenshots, sessions, sessionsByProject, sessionsSince, settings, signOutEverywhere, startSession, toast, updateAssignment, updateEmployeeSettings, updateLiveSession, updateMyAccount, updatePayroll, updateProject, updateSession, updateSettings, uploadScreenshot]);
   // Modo capacitación (D-490): cada función clasificada en `capacitacion-datos.ts` —pasa, se practica
   // o se bloquea—. Ninguna escritura llega a la base desde aquí mientras dure. Las funciones se crean
   // UNA vez por práctica y leen el proveedor de cada momento por `realRef`: con identidades nuevas en
@@ -1000,7 +1021,11 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     () => (capacitacion.activa ? funcionesDePractica(() => realRef.current, capacitacion.libreta, capacitacion.activa) : null),
     [capacitacion.activa, capacitacion.libreta],
   );
-  const value: DataState = funcionesDeLaPractica ? conPractica(real, funcionesDeLaPractica, capacitacion.practica) : real;
+  // Memoizado: `conPractica` devuelve un objeto nuevo en cada pintado; con esto solo cambia cuando cambia algo de verdad.
+  const value: DataState = useMemo(
+    () => (funcionesDeLaPractica ? conPractica(real, funcionesDeLaPractica, capacitacion.practica) : real),
+    [real, funcionesDeLaPractica, capacitacion.practica],
+  );
 
   return (
     <Ctx.Provider value={value}>
