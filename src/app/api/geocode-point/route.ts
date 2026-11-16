@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/api-auth";
 import { limita, respuesta429 } from "@/lib/rate-limit";
+import { claveDeDireccion } from "@/lib/cache-google";
+import { guardaGeocode, leeGeocode } from "@/lib/cache-google-servidor";
 
 // ============================================================
 // Resolve a single address to { lat, lng } — used by the dispatch map to
@@ -15,12 +17,14 @@ import { limita, respuesta429 } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
-async function viaGoogle(q: string, key: string): Promise<{ lat: number; lng: number } | null> {
+// Lo que contesta Google, con la dirección formateada para la caché (`geocode_cache`).
+async function viaGoogle(q: string, key: string): Promise<{ lat: number; lng: number; formatted: string | null } | null> {
   const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}&key=${key}`;
   const res = await fetch(url);
   const data = await res.json();
-  const loc = data.results?.[0]?.geometry?.location;
-  return loc ? { lat: loc.lat, lng: loc.lng } : null;
+  const primero = data.results?.[0];
+  const loc = primero?.geometry?.location;
+  return loc ? { lat: loc.lat, lng: loc.lng, formatted: (primero.formatted_address as string | undefined) ?? null } : null;
 }
 
 async function viaMapbox(q: string, token: string): Promise<{ lat: number; lng: number } | null> {
@@ -57,14 +61,26 @@ export async function POST(req: Request) {
   const address = (body.address || "").trim();
   if (!address) return NextResponse.json({ error: "No address" }, { status: 400 });
 
+  // Primero la caché (clave = dirección normalizada): lo que Google ya contestó no vuelve a pagarse.
+  const clave = claveDeDireccion(address);
+  const guardada = await leeGeocode(clave);
+  if (guardada) return NextResponse.json({ lat: guardada.lat, lng: guardada.lng });
+
   const google = process.env.GOOGLE_MAPS_API_KEY;
   const mapbox = process.env.MAPBOX_TOKEN;
 
   // Try each configured provider and fall through on failure/empty — so a
   // disabled/uncredited Google key still falls back to free OSM.
-  const safe = async (fn: () => Promise<{ lat: number; lng: number } | null>) => { try { return await fn(); } catch { return null; } };
+  const safe = async <T,>(fn: () => Promise<T | null>): Promise<T | null> => { try { return await fn(); } catch { return null; } };
   let point: { lat: number; lng: number } | null = null;
-  if (google) point = await safe(() => viaGoogle(address, google));
+  if (google) {
+    const deGoogle = await safe(() => viaGoogle(address, google));
+    if (deGoogle) {
+      // Solo se guarda lo que contestó Google: lo de Mapbox/OSM se vuelve a pedir, como antes.
+      await guardaGeocode(clave, deGoogle);
+      point = { lat: deGoogle.lat, lng: deGoogle.lng };
+    }
+  }
   if (!point && mapbox) point = await safe(() => viaMapbox(address, mapbox));
   if (!point) point = await safe(() => viaOSM(address));
   if (!point) return NextResponse.json({ error: "Address not found" }, { status: 404 });

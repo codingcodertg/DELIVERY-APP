@@ -243,7 +243,7 @@ describe("2 · el autocompletado busca en Texas, y antes en la zona verde", () =
   it("la ruta usa todo eso, y cada proveedor filtra SU respuesta: si no queda nada de Texas, no sale nada de otro estado", () => {
     const r = leer("src/app/api/geocode/route.ts");
     expect(r).toContain("return sugerenciasDePlaces(q, async (cuerpo) => {");
-    expect(r).toContain("body: JSON.stringify(cuerpo),");
+    expect(r).toContain("body: JSON.stringify(sesion ? { ...cuerpo, sessionToken: sesion } : cuerpo),");
     expect(r).not.toMatch(/locationBias|locationRestriction|cuerpoDePlaces/);              // qué se pide a Places lo decide la librería
     expect(r).toContain("fetch(urlDeGoogleGeocode(q, key))");
     expect(r).toContain("(data.results || []).filter(esDeTexasGoogle).map(");

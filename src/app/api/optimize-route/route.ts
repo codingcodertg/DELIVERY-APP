@@ -3,6 +3,8 @@ import { computeRoute, METERS_PER_MILE, type RoutePoint } from "@/lib/google-rou
 
 import { requireUser } from "@/lib/api-auth";
 import { limita, respuesta429 } from "@/lib/rate-limit";
+import { claveDeRuta, cubetaDeHora } from "@/lib/cache-google";
+import { guardaRutaOptimizada, leeRutaOptimizada } from "@/lib/cache-google-servidor";
 
 // ============================================================
 // Best visiting order for a driver's stops on a given day, plus the real
@@ -138,6 +140,21 @@ export async function POST(req: Request) {
   const cached = cacheGet(key);
   if (cached) return NextResponse.json({ ...cached, cached: true });
 
+  // Segunda capa: la tabla route_opt_cache (60 min). Misma petición, más la hora: el tráfico cambia cada hora.
+  const claveBase = claveDeRuta({
+    paradas: stops,
+    roundtrip,
+    dateISO,
+    trafficOptimal: !!body.traffic_optimal,
+    optimize,
+    cubeta: cubetaDeHora(),
+  });
+  const persistida = await leeRutaOptimizada<Payload>(claveBase);
+  if (persistida) {
+    cacheSet(key, persistida);
+    return NextResponse.json({ ...persistida, cached: true });
+  }
+
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   let googleError: string | null = null;
 
@@ -162,6 +179,7 @@ export async function POST(req: Request) {
         traffic: r.traffic,
       };
       cacheSet(key, payload);
+      await guardaRutaOptimizada(claveBase, payload);
       return NextResponse.json(payload);
     } catch (e) {
       // Fall through to the free router rather than leaving dispatch stuck.
@@ -173,6 +191,8 @@ export async function POST(req: Request) {
   try {
     const payload = await viaOSRM(stops, roundtrip, optimize);
     cacheSet(key, payload);
+    // Si Google falló justo ahora, este resultado (sin tráfico) no se guarda 60 min: lo siguiente es volver a intentar Google.
+    if (!googleError) await guardaRutaOptimizada(claveBase, payload);
     // Surfaced so the UI can say the numbers aren't traffic-aware yet.
     return NextResponse.json(googleError ? { ...payload, google_error: googleError } : payload);
   } catch (e) {

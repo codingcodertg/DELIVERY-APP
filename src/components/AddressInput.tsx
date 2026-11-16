@@ -3,6 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { AVISO_SOLO_CIUDAD, esSoloCiudad } from "@/lib/solo-ciudad";
+import { LRUSugerencias, nuevaSesionDeAutocompletado } from "@/lib/autocompletado-cache";
+
+// Espera tras el último tecleo antes de preguntar (ms). Cada pregunta de Places se factura: menos preguntas, menos coste.
+const ESPERA_MS = 500;
+// Caché por pestaña (módulo): texto ya preguntado → sugerencias. Lo que ya salió no vuelve a la red en esta pestaña.
+const sugerenciasYaPedidas = new LRUSugerencias<string[]>(50);
 
 // ============================================================
 // Text input with real-time address autocomplete. As the user types (3+ chars),
@@ -40,6 +46,8 @@ export function AddressInput({
   // Set synchronously by the input's own onChange, right before the value
   // prop changes — the one signal that this change was the user typing.
   const userEdited = useRef(false);
+  // Token de sesión de Google Places: uno por ratos de escritura (al entrar al campo y tras elegir una sugerencia).
+  const sesion = useRef<string | null>(null);
 
   const text = value ?? "";
 
@@ -50,23 +58,36 @@ export function AddressInput({
     userEdited.current = false;
     const q = text.trim();
     if (q.length < 3) { setSuggestions([]); setOpen(false); return; }
+    const clave = q.toLowerCase();
+    const yaPedidas = sugerenciasYaPedidas.get(clave);
+    if (yaPedidas) {
+      // Ya preguntado en esta pestaña: se enseña sin red y sin esperar.
+      setSuggestions(yaPedidas);
+      setOpen(true);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch("/api/geocode", {
+        if (!sesion.current) sesion.current = nuevaSesionDeAutocompletado();
+        const res = await fetch(`/api/geocode?session=${encodeURIComponent(sesion.current)}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ q }),
         });
         const body = await res.json();
-        setSuggestions(Array.isArray(body.suggestions) ? body.suggestions : []);
+        const lista: string[] = Array.isArray(body.suggestions) ? body.suggestions : [];
+        // Solo se guarda lo que trajo algo: una respuesta vacía puede ser un fallo pasajero del proveedor.
+        if (lista.length) sugerenciasYaPedidas.set(clave, lista);
+        setSuggestions(lista);
         setOpen(true);
       } catch {
         setSuggestions([]);
       } finally {
         setLoading(false);
       }
-    }, 350);
+    }, ESPERA_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, disabled]);
@@ -84,6 +105,8 @@ export function AddressInput({
     onChange(s);
     setSuggestions([]);
     setOpen(false);
+    // Tras una elección empieza una sesión nueva: lo siguiente que se teclee es otra búsqueda.
+    sesion.current = nuevaSesionDeAutocompletado();
   };
 
   return (
@@ -96,6 +119,7 @@ export function AddressInput({
         disabled={disabled}
         placeholder={placeholder}
         autoComplete="off"
+        onFocus={() => { sesion.current = nuevaSesionDeAutocompletado(); }}
         onChange={(e) => { userEdited.current = true; onChange(e.target.value); }}
       />
       {loading && <span className="addr-spin" />}
