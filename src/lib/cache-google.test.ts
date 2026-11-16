@@ -110,7 +110,7 @@ describe("estaVigente (TTL)", () => {
   it("los TTL son 7 días (lugares), 60 min (rutas) y 30 días (distancias)", () => {
     expect(TTL_PLACES_MS).toBe(7 * 24 * HORA);
     expect(TTL_RUTA_OPT_MS).toBe(HORA);
-    expect(TTL_DISTANCIA_MS).toBe(30 * 24 * HORA);
+    expect(TTL_DISTANCIA_MS).toBe(7 * 24 * HORA);
   });
   it("a los 7 días exactos ya caduca la lista de lugares", () => {
     const hace7Dias = new Date(ahora - TTL_PLACES_MS).toISOString();

@@ -18,7 +18,7 @@ export const TTL_PLACES_MS = 7 * DIA_MS;
 /** Caché de rutas optimizadas: 60 minutos (el tráfico cambia). */
 export const TTL_RUTA_OPT_MS = HORA_MS;
 /** Caché de distancia entre dos direcciones: 30 días. */
-export const TTL_DISTANCIA_MS = 30 * DIA_MS;
+export const TTL_DISTANCIA_MS = 7 * DIA_MS;
 
 /** Clave de dirección: minúsculas, sin espacios sobrantes y con los espacios internos colapsados. */
 export function claveDeDireccion(direccion: string): string {
