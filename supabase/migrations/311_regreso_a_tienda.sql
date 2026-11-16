@@ -20,6 +20,5 @@
 alter table public.deliveries
   add column if not exists return_to_store_at timestamptz null,
   add column if not exists return_to_store_by uuid null;
-
 -- @ledger-below
 insert into public.schema_migrations (name, checksum) values ('311_regreso_a_tienda.sql', '925e03217308d8beff6159426db2bb13fc52d2b535fcdbf76676efa708468ed0') on conflict (name) do nothing;
