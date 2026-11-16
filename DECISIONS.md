@@ -52415,3 +52415,10 @@ Respuestas del dueño a las rarezas de la hoja (D-1049): la cola de madera se co
 Con la plantilla y sin dirección: material 3,553; mano de obra 3,870; contado 16,070.80; Plan 922 17,611.83.
 Visto en pantalla (demo) a 1280 y 390.
 Sello `estimator` 0.38.0; repo 1.904.0.
+
+## D-1055 · Rutas: «↩ Regresar a tienda» en vez de quitar una orden ya recogida (2026-11-16)
+
+El dueño quitó con la ✕ una orden que Julio ya había recogido (#1611): quedó `picked_up` sin chofer y no salía en ninguna lista. Pidió: «pon opciones para ordenarle al driver que esa orden la deje en la tienda y ahí yo elijo si vuelve a otro conductor o vuelve a unassign».
+En Rutas, en una parada en el camión, la ✕ no desasigna: sale «↩ Regresar a tienda» (con confirmación y nota), la insignia mientras está pendiente y «Cancelar regreso»; arrastrarla a Sin asignar se bloquea. En Mi ruta el chofer ve «Deja esta orden en la tienda» y «Dejada en tienda»: la orden vuelve a `ready`, sin chofer, puesto ni carga, y se borran los sellos del viaje como en «Dejar en tienda». No cuenta como entregada. Lógica pura en `src/lib/regreso-a-tienda.ts`.
+Migración 311 (`return_to_store_at`, `return_to_store_by`), APLICADA por el dueño.
+Sello `deliveries` 1.619.0; repo 1.905.0.

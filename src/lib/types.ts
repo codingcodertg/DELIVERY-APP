@@ -202,6 +202,12 @@ export interface Delivery {
    * stop to the front of the driver's route. */
   morning_priority?: boolean | null;
 
+  /** Regreso a tienda (migración 311): el despachador le ordena al chofer dejar esta orden, que va en el camión, en su
+   * tienda. Mientras no la deje, `return_to_store_at` es cuándo se pidió y `return_to_store_by` quién. Ambas nulas =
+   * no hay solicitud. Opcionales: una base sin la 311 no las trae, y entonces no hay solicitud. */
+  return_to_store_at?: string | null;
+  return_to_store_by?: string | null;
+
   // Auto-computed route (pickup → delivery) from the routing service.
   route_miles: number | null;
   route_duration: string | null;   // e.g. "1 h 12 min"

@@ -312,7 +312,8 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     expect(cuerpo).toContain("if (soloLectura) return;");
     const acciones = leer("src/components/AccionesDeParada.tsx");
     expect(acciones).toContain("if (ocupado || soloLectura) return false;");
-    expect(acciones.match(/if \(ocupado \|\| soloLectura\) return;/g)).toHaveLength(3);
+    // Cuatro con la segunda puerta: las dos de «Llegué», «Deshacer recogido» y «Dejada en tienda» (regreso a tienda, 311).
+    expect(acciones.match(/if \(ocupado \|\| soloLectura\) return;/g)).toHaveLength(4);
   });
   it("la lista va numerada por PARADAS como el Gestor, no con P1 y D1 (D-515)", async () => {
     // El dueño: «QUIERO EN EL DRIVER VIEW QUE EN VEZ DE LOS P1 Y D1 SE VEA IGUAL QUE LOGISTIC MANAGER CON NUMEROS EN VES DE ESO».

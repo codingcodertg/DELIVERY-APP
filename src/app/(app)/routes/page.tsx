@@ -138,6 +138,7 @@ import {
   type Destino, type Direccion, type FilaFresca, type Historial, type ParadaDelGantt, type RutaDelGantt,
 } from "@/lib/arrastre-de-paradas";
 import { ETAPAS_FIJAS, ETAPAS_HECHAS, estaEnElCamion, hechasDelChofer, numeracionConHechas, puestoEn } from "@/lib/mover-parada";
+import { accionDeLaParadaEnRutas, NOTA_CANCELAR_REGRESO, NOTA_PEDIR_REGRESO, patchCancelarRegreso, patchPedirRegreso } from "@/lib/regreso-a-tienda";
 import { hechasQueSePintan, horaReal, resumenDeEntregas, type FilaPintada } from "@/lib/hechas-del-gestor";
 import { cambiosDeEtas, claveDeEta, claveDelPlan, desvio, filasNuevasDeEtas, hechasFueraDeOrden, mapaDeEtasGuardadas, textoDelDesvio, type EtaGuardada, type FilaDeEta } from "@/lib/eta-del-plan";
 import { minutosReales } from "@/lib/salida-de-la-medida";
@@ -1992,12 +1993,34 @@ export default function RoutesPage() {
     if (d?.assigned_driver) addNote(id, `Unassigned (was ${d.assigned_driver})`);
   };
 
+  // «Regresar a tienda» (migración 311): una orden que ya va en el camión no se desasigna (quedaría recogida y sin chofer,
+  // fuera de todas las listas). Se le pide al chofer que la deje en su tienda; la orden sigue con él hasta entonces.
+  const pedirRegresoATienda = async (d: Delivery) => {
+    const chofer = d.assigned_driver ?? "";
+    const ok = await confirmAction(
+      t(`Tell ${chofer} to leave ${facturaYId(d).principal} at ${d.store ?? "the store"}? It stays with ${chofer} until they drop it there, then it goes back to Unassigned.`,
+        `¿Pedirle a ${chofer} que deje ${facturaYId(d).principal} en ${d.store ?? "la tienda"}? Sigue con ${chofer} hasta que la deje ahí; luego vuelve a Sin asignar.`),
+      { danger: true, confirmLabel: t("Return to store", "Regresar a tienda") },
+    );
+    if (!ok) return;
+    const hecho = await updateDelivery(d.id, patchPedirRegreso(me?.id ?? null, new Date().toISOString()));
+    if (hecho) addNote(d.id, NOTA_PEDIR_REGRESO);
+  };
+  const cancelarRegresoATienda = async (d: Delivery) => {
+    const hecho = await updateDelivery(d.id, patchCancelarRegreso());
+    if (hecho) addNote(d.id, NOTA_CANCELAR_REGRESO);
+  };
+
   // Drag-and-drop on the board: move an order to a driver column, or back to
   // the unassigned pool.
   const boardMove = (orderId: string, columnKey: string) => {
     const d = dayOrders.find((x) => x.id === orderId);
     if (!d) return;
-    if (columnKey === "__unassigned__") { if (d.assigned_driver) manualUnassign(orderId); }
+    if (columnKey === "__unassigned__") {
+      // Una orden en el camión no vuelve a «Sin asignar» arrastrándola: se le pide el regreso a tienda (migración 311).
+      if (d.assigned_driver && estaEnElCamion(d.stage)) notify(t("It's already on the truck — use «Return to store» on its stop.", "Ya va en el camión — usa «Regresar a tienda» en su parada."));
+      else if (d.assigned_driver) manualUnassign(orderId);
+    }
     else if (orderLaneKey(d) !== columnKey) assignToLane(orderId, columnKey);
   };
 
@@ -4151,7 +4174,24 @@ export default function RoutesPage() {
                           <td className="celda-acciones" onClick={(e) => e.stopPropagation()}>
                             <div className="acciones-de-parada">
                               {flechas}{pasar}{acciones && botonesDeCarga(d, capacity)}
-                              {acciones && <button className="btn btn-danger btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} onClick={() => unassign(d.id)} title={t("Unassign", "Quitar asignación")}>✕</button>}
+                              {acciones && (() => {
+                                // Antes de recoger: la ✕ de siempre. En el camión NUNCA desasigna: pide el regreso a tienda (migración 311).
+                                const accion = accionDeLaParadaEnRutas(d);
+                                if (accion === "quitar") return <button className="btn btn-danger btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} onClick={() => unassign(d.id)} title={t("Unassign", "Quitar asignación")}>✕</button>;
+                                return (
+                                  <>
+                                    {accion === "cancelar-regreso" && (
+                                      <span data-regreso-pendiente style={{ display: "inline-block", background: "var(--amber-soft)", color: "var(--amber)", fontWeight: 700, fontSize: 12, padding: "2px 6px", borderRadius: 6, whiteSpace: "nowrap" }}
+                                        title={t(`Waiting for ${d.assigned_driver ?? "the driver"} to leave it at the store`, `Esperando que ${d.assigned_driver ?? "el chofer"} la deje en la tienda`)}>
+                                        ↩ {t("Return to store", "Regresar a tienda")}
+                                      </span>
+                                    )}
+                                    {accion === "cancelar-regreso"
+                                      ? <button data-accion-regreso="cancelar" className="btn btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} onClick={() => void cancelarRegresoATienda(d)}>{t("Cancel return", "Cancelar regreso")}</button>
+                                      : <button data-accion-regreso="pedir" className="btn btn-amber btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} onClick={() => void pedirRegresoATienda(d)}>↩ {t("Return to store", "Regresar a tienda")}</button>}
+                                  </>
+                                );
+                              })()}
                             </div>
                           </td>
                         </tr>
