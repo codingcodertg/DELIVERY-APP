@@ -173,7 +173,7 @@ describe("4. los avisos: por motivo, en los dos idiomas, y con «Siguiente» sol
   });
   it("el aviso de la cámara que no abrió dice cómo dar el permiso y que la galería sigue ahí", () => {
     for (const l of ["en", "es"] as const) {
-      expect(AVISO_SI_NO_ABRIO_LA_CAMARA[l]).toMatch(/iFloor/);
+      expect(AVISO_SI_NO_ABRIO_LA_CAMARA[l]).toMatch(/RTG Hub/);
       expect(AVISO_SI_NO_ABRIO_LA_CAMARA[l]).toMatch(/galer|gallery/i);
     }
   });
