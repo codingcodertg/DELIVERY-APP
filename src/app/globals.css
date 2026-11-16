@@ -2139,3 +2139,14 @@ table.tbl-resize td.celda-suelta { white-space: normal; overflow: visible; }
 /* Selección (prop `seleccion`): la casilla de la primera columna, y las filas marcadas en azul suave. */
 .tabla-estandar th.tabla-estandar-sel, .tabla-estandar td.tabla-estandar-sel { text-align: center; padding-left: 6px; padding-right: 6px; }
 .tabla-estandar tr.fila-marcada > td { background: color-mix(in srgb, var(--blue) 10%, transparent); }
+
+/* «Cambiar usuario» desde el botón flotante (el ⋯ de abajo a la derecha). El botón está pegado a la derecha, así que el
+   ancla izquierda de arriba (pensada para la barra de arriba) sacaba el panel por la derecha en el teléfono (foto del
+   dueño, 2026-11-16: «no puedo switch porque se sale de la pantalla»). Aquí el panel va fijo, a lo ancho de la
+   pantalla con 12 px a cada lado, encima de los botones. */
+@media (max-width: 720px) {
+  .fab-menu .switch-panel:not(.en-pagina) {
+    position: fixed; left: 12px; right: 12px; top: auto; bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    width: auto; max-width: none; max-height: 55vh;
+  }
+}

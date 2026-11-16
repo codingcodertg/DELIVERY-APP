@@ -52422,3 +52422,8 @@ El dueño quitó con la ✕ una orden que Julio ya había recogido (#1611): qued
 En Rutas, en una parada en el camión, la ✕ no desasigna: sale «↩ Regresar a tienda» (con confirmación y nota), la insignia mientras está pendiente y «Cancelar regreso»; arrastrarla a Sin asignar se bloquea. En Mi ruta el chofer ve «Deja esta orden en la tienda» y «Dejada en tienda»: la orden vuelve a `ready`, sin chofer, puesto ni carga, y se borran los sellos del viaje como en «Dejar en tienda». No cuenta como entregada. Lógica pura en `src/lib/regreso-a-tienda.ts`.
 Migración 311 (`return_to_store_at`, `return_to_store_by`), APLICADA por el dueño.
 Sello `deliveries` 1.619.0; repo 1.905.0.
+
+## D-1056 · «Cambiar usuario» desde el botón flotante ya no se sale de la pantalla en el teléfono (2026-11-16)
+
+Foto del dueño en el teléfono: el panel de «Cambiar usuario», abierto desde el botón flotante de abajo a la derecha, salía cortado por la derecha («no puedo switch porque se sale de la pantalla»). El ancla izquierda de D-568 era para el botón de la barra de arriba. Dentro de `.fab-menu`, a 720 px o menos, el panel va fijo a lo ancho (12 px por lado), encima de los botones. Solo CSS (`globals.css`).
+Sello `deliveries` 1.620.0; repo 1.906.0.
