@@ -17,7 +17,7 @@
 -- la función; ningún dato se toca.
 --
 -- Para volver atrás: reejecutar el `create or replace function public.activar_relevo` de la 256 (con la comprobación de que
--- el destino sea una tienda de Ajustes) y quitar la fila del registro: delete from public.schema_migrations where name = '312_relevo_cualquier_orden.sql';
+-- el destino sea una tienda de Ajustes) y quitar la fila del registro: delete from public.schema_migrations where name = '313_relevo_cualquier_orden.sql';
 
 create or replace function public.activar_relevo(p_id uuid, p_tienda text, p_fecha date)
   returns uuid language plpgsql set search_path = public as $$
@@ -117,6 +117,5 @@ begin
     raise exception '312: activar_relevo debe conservar las comprobaciones de tienda de relevo y de día';
   end if;
 end $chk$;
-
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('312_relevo_cualquier_orden.sql', '1232960415cf58bcb087eae25ad1d9a43d487bedca4b5a6f899a7f17df04777f') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('313_relevo_cualquier_orden.sql', '8ff7e34a24e4c9c989ba4cd2e8729247f1fd4f684db387cfb1bb09dac1e24a13') on conflict (name) do nothing;

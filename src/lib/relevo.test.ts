@@ -442,13 +442,13 @@ describe("una orden de CLIENTE (#1629): el paso a va a la tienda de relevo, el b
 });
 
 describe("la migración 312 (relevo en cualquier orden) dice lo mismo", () => {
-  const sql = leer("supabase/migrations/312_relevo_cualquier_orden.sql");
+  const sql = leer("supabase/migrations/313_relevo_cualquier_orden.sql");
   const [cuerpo, registro] = sql.split("-- @ledger-below");
   const sinComentarios = cuerpo.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
 
   it("su fila del registro está al día con el texto de arriba", () => {
     const sha = createHash("sha256").update(cuerpo, "utf8").digest("hex");
-    expect(registro.trim()).toBe(`insert into public.schema_migrations (name, checksum) values ('312_relevo_cualquier_orden.sql', '${sha}') on conflict (name) do nothing;`);
+    expect(registro.trim()).toBe(`insert into public.schema_migrations (name, checksum) values ('313_relevo_cualquier_orden.sql', '${sha}') on conflict (name) do nothing;`);
   });
 
   it("activar_relevo ya no exige que el destino sea una tienda, pero sí la tienda de relevo y el día", () => {
