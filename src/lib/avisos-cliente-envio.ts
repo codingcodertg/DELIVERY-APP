@@ -10,6 +10,10 @@ import { paradasDelChofer } from "@/lib/ordenes-del-dia";
 import type { Proveedor, ResultadoDeEnvio } from "@/lib/mensajeria";
 import type { Delivery } from "@/lib/types";
 import type { OrderTypeRules } from "@/lib/required";
+import { enParalelo } from "@/lib/concurrencia";
+
+/** Cuántos avisos de la noche se mandan a la vez. Cinco: el cron tenía que caber en su ventana y ya no se pasa de eso. */
+export const LIMITE_DE_ENVIO_PARALELO = 5;
 
 /**
  * Avisos al cliente: LA EJECUCIÓN (D-416, migración 150). Lee la base, decide con `avisos-cliente.ts`, envía por el
@@ -144,10 +148,12 @@ export async function ejecutarNocheAntes(ctx: Contexto, opciones: { ahora?: Date
   if (r.error) return { ok: false, error: `deliveries: ${r.error.message}` };
   const ordenes = r.data ?? [];
   const bajas = await leerBajas(ctx.db, contactosDe(ordenes));
-  const resultados: ResultadoDeAviso[] = [];
-  for (const o of ordenes) {
-    resultados.push(await enviarAviso(ctx, o, "night_before", aj.data.order_type_rules ?? undefined, bajas, { ensayo: opciones.ensayo }));
-  }
+  const reglas = aj.data.order_type_rules ?? undefined;
+  // Con cinco en vuelo a la vez: cada orden reclama su propia fila antes de enviar (idempotencia por clave), así que
+  // mandar en paralelo no duplica nada. El orden de `resultados` sigue siendo el de `ordenes`.
+  const resultados: ResultadoDeAviso[] = await enParalelo(ordenes, LIMITE_DE_ENVIO_PARALELO, (o) =>
+    enviarAviso(ctx, o, "night_before", reglas, bajas, { ensayo: opciones.ensayo }),
+  );
   return { ok: !resultados.some((x) => x.estado === "error"), manana, revisadas: ordenes.length, resultados };
 }
 

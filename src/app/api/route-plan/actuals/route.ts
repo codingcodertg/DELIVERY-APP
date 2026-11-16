@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BUSINESS_TZ } from "@/lib/utils";
+import { enParalelo } from "@/lib/concurrencia";
 import {
   actualesParaGuardar, fechaEnZona, minutoEnZona, realesDelDia, reporteDePrecision, sellosDeOrdenes, type ParadaDelPlan, type Posicion,
 } from "@/lib/route-plan/llegadas";
@@ -27,6 +28,8 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const COLUMNAS_DE_PARADA = "id, driver_id, driver_name, delivery_id, seq, kind, lat, lng, eta, etd";
+/** Llamadas a la vez (auth por chofer, updates por parada): diez, para no saturar la conexión del servicio. */
+const LIMITE_PARALELO = 10;
 
 export async function POST(req: Request) {
   const auth = await requireUser();
@@ -66,20 +69,25 @@ export async function POST(req: Request) {
   const reales = realesDelDia(paradas, delDia, sellosDeOrdenes((sellos.data ?? []) as Parameters<typeof sellosDeOrdenes>[0], (eventos.data ?? []) as Parameters<typeof sellosDeOrdenes>[1]));
 
   // ¿Ha entrado alguna vez? El rol ya está comprobado arriba; los ids son los del plan publicado.
+  // `auth.users` no tiene equivalente en `profiles` (la fecha de último acceso vive solo en Auth), así que se sigue
+  // preguntando chofer por chofer, pero DE A DIEZ a la vez en vez de en fila.
   const admin = createAdminClient();
-  const haEntrado: { driver_id: string; ha_entrado: boolean | null }[] = [];
-  for (const id of choferes) {
+  const haEntrado: { driver_id: string; ha_entrado: boolean | null }[] = await enParalelo(choferes, LIMITE_PARALELO, async (id) => {
     const { data, error: alPreguntar } = await admin.auth.admin.getUserById(id);
-    haEntrado.push({ driver_id: id, ha_entrado: alPreguntar || !data?.user ? null : !!data.user.last_sign_in_at });
-  }
+    return { driver_id: id, ha_entrado: alPreguntar || !data?.user ? null : !!data.user.last_sign_in_at };
+  });
 
-  // Guardar SOLO las dos columnas `actual_*`, parada a parada, y contar lo que de verdad se escribió.
-  let guardadas = 0;
-  const noGuardadas: string[] = [];
-  for (const a of actualesParaGuardar(reales)) {
+  // Guardar SOLO las dos columnas `actual_*`, parada a parada (de diez en diez), y contar lo que de verdad se escribió.
+  // No hay RPC de lote para esto, y cada parada es independiente: el resultado se cuenta igual que antes.
+  const guardados = await enParalelo(actualesParaGuardar(reales), LIMITE_PARALELO, async (a) => {
     const { data: tocada, error: alGuardar } = await supabase.from("route_plan_stops")
       .update({ actual_arrival_at: a.actual_arrival_at, actual_departure_at: a.actual_departure_at }).eq("id", a.id).eq("plan_id", plan.id).select("id");
-    if (alGuardar || !tocada?.length) noGuardadas.push(a.id); else guardadas++;
+    return { id: a.id, ok: !alGuardar && !!tocada?.length };
+  });
+  let guardadas = 0;
+  const noGuardadas: string[] = [];
+  for (const g of guardados) {
+    if (g.ok) guardadas++; else noGuardadas.push(g.id);
   }
 
   const nombreDe = new Map(paradas.filter((p) => p.driver_id).map((p) => [p.driver_id as string, p.driver_name]));

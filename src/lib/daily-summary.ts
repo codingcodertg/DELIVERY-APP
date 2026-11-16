@@ -90,6 +90,47 @@ export function buildDailySummary(
   };
 }
 
+/**
+ * Las columnas de `deliveries` que el resumen lee (las de `buildDailySummary` y las de `orderLabel`). Nada más.
+ */
+export const COLUMNAS_DEL_RESUMEN =
+  "id,stage,delivery_date,pod_delivered_at,assigned_driver,account,created_at,order_code,order_no,order_suffix,relay_step,actual_pallets,est_pallets";
+
+/**
+ * El filtro (sintaxis `or` de PostgREST) que trae TODAS las órdenes que `buildDailySummary(…, date)` puede contar, y ninguna
+ * más. No basta con «las de hoy»: el resumen también cuenta las que están en camión sin importar la fecha y las
+ * atrasadas sin chofer de cualquier día. Por eso son cinco ramas: en camión; programadas hoy; creadas hoy; entregadas hoy
+ * (por su sello de entrega); y atrasadas sin chofer. Los límites son UTC, igual que el `slice(0, 10)` de `day()` sobre
+ * las marcas que devuelve PostgREST.
+ */
+export function filtroDelResumen(date: string): string {
+  const siguiente = new Date(Date.parse(`${date}T00:00:00Z`) + 86400000).toISOString().slice(0, 10);
+  const desde = `${date}T00:00:00Z`;
+  const hasta = `${siguiente}T00:00:00Z`;
+  return [
+    "stage.eq.picked_up",
+    `delivery_date.eq.${date}`,
+    `and(created_at.gte.${desde},created_at.lt.${hasta})`,
+    `and(pod_delivered_at.gte.${desde},pod_delivered_at.lt.${hasta})`,
+    `and(assigned_driver.is.null,stage.in.(approved,fulfilling,ready),delivery_date.lt.${date})`,
+  ].join(",");
+}
+
+/**
+ * Espejo en JS del filtro de arriba, para probar que no deja fuera nada que el resumen cuente. Lo usa la prueba; la ruta
+ * no lo llama.
+ */
+export function cabeEnElResumen(d: Partial<Delivery>, date: string): boolean {
+  const ini = Date.parse(`${date}T00:00:00Z`);
+  const fin = ini + 86400000;
+  const enDia = (marca: string | null | undefined) => !!marca && Date.parse(marca) >= ini && Date.parse(marca) < fin;
+  if (d.stage === "picked_up") return true;
+  if (day(d.delivery_date) === date) return true;
+  if (enDia(d.created_at)) return true;
+  if (enDia(d.pod_delivered_at)) return true;
+  return !d.assigned_driver && ["approved", "fulfilling", "ready"].includes(d.stage ?? "") && !!d.delivery_date && day(d.delivery_date) < date;
+}
+
 /** The summary as plain lines, for Notion, an email, or a log. */
 export function summaryLines(s: DailySummary, lang: "en" | "es" = "es"): string[] {
   const es = lang === "es";

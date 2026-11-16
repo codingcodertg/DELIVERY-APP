@@ -16,6 +16,7 @@ export interface MensajeGraph {
   fromAddress: string;
   replyTo: string[];
   receivedDateTime: string;
+  /** Vacío en la lista: el cuerpo se pide aparte (`cuerpoDeCorreo`) solo para los remitentes de Indeed. */
   bodyText: string;
   hasAttachments: boolean;
   /** Cabeceras del correo tal como llegaron (Authentication-Results, para verificar que es de Indeed). */
@@ -56,19 +57,35 @@ export async function listarPaginaDeBandeja(
 ): Promise<PaginaCorreos> {
   const q: Array<[string, string]> = [
     ["$filter", `receivedDateTime ge ${p.desdeIso}`],
-    ["$select", "id,internetMessageId,subject,from,replyTo,receivedDateTime,body,hasAttachments,internetMessageHeaders"],
+    // Sin `body`: el texto de cada correo pesa y casi todos son de otros remitentes. Las cabeceras SÍ van (las
+    // necesita la verificación de Indeed). El cuerpo se pide luego, solo para los de Indeed (`cuerpoDeCorreo`).
+    ["$select", "id,internetMessageId,subject,from,replyTo,receivedDateTime,hasAttachments,internetMessageHeaders"],
     ["$top", String(p.tope)],
     ["$orderby", "receivedDateTime asc"],
   ];
   if (p.saltar > 0) q.push(["$skip", String(p.saltar)]);
   if (p.contar) q.push(["$count", "true"]);
   const qs = q.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
-  const headers: Record<string, string> = { authorization: `Bearer ${accessToken}`, prefer: 'outlook.body-content-type="text"' };
+  const headers: Record<string, string> = { authorization: `Bearer ${accessToken}` };
   if (p.contar) headers.ConsistencyLevel = "eventual";
   const res = await fetchFn(`${GRAPH}/me/mailFolders/inbox/messages?${qs}`, { headers, cache: "no-store" });
   if (!res.ok) throw new ErrorMicrosoft("correo", `HTTP ${res.status}`);
   const j = (await res.json()) as { value?: Array<Record<string, unknown>>; "@odata.count"?: number };
   return { mensajes: (j.value ?? []).map(aMensaje), total: typeof j["@odata.count"] === "number" ? j["@odata.count"] : null };
+}
+
+/**
+ * El cuerpo en texto plano de UN correo (la lista no lo trae). Solo se llama para los correos de Indeed, que son los
+ * únicos que la revisión clasifica por su texto. Un fallo lanza el código de HTTP, como el resto de este fichero.
+ */
+export async function cuerpoDeCorreo(accessToken: string, messageId: string, fetchFn: FetchFn = fetch): Promise<string> {
+  const res = await fetchFn(`${GRAPH}/me/messages/${encodeURIComponent(messageId)}?$select=body`, {
+    headers: { authorization: `Bearer ${accessToken}`, prefer: 'outlook.body-content-type="text"' },
+    cache: "no-store",
+  });
+  if (!res.ok) throw new ErrorMicrosoft("correo", `HTTP ${res.status}`);
+  const j = (await res.json()) as { body?: { content?: string } | null };
+  return j.body?.content ?? "";
 }
 
 function aMensaje(m: Record<string, unknown>): MensajeGraph {

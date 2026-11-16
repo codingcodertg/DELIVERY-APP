@@ -18,7 +18,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { cifrar, claveDelEntorno, descifrar } from "./cifrado";
 import { MARGEN_CURSOR_MS, MAX_MENSAJES_POR_CORRIDA, VENTANA_INICIAL_MS, variablesQueFaltan } from "./config";
 import { crearCandidatoDesdeCorreo } from "./crear-candidato";
-import { descargarAdjunto, listarAdjuntos, listarCorreosDesde, listarPaginaDeBandeja, type MensajeGraph } from "./correo";
+import { cuerpoDeCorreo, descargarAdjunto, listarAdjuntos, listarCorreosDesde, listarPaginaDeBandeja, type MensajeGraph } from "./correo";
 import { ErrorMicrosoft, refrescarAcceso } from "./microsoft";
 import { procesarMensaje } from "./mensaje-a-candidato";
 import {
@@ -193,6 +193,13 @@ export async function revisarBuzonIndeed(deps: DepsRevision): Promise<ResumenRev
   const dominioBuzon = acc.mailbox?.split("@")[1]?.toLowerCase() ?? null;
   for (const m of seleccionaNuevos(mensajes, yaProcesadosSet(yaVistos))) {
     if (!esCorreoDeIndeed(m.from)) continue;
+    // El cuerpo solo se pide para Indeed. Si falla, la corrida se para SIN avanzar el cursor: el correo se reintenta.
+    try {
+      m.bodyText = await cuerpoDeCorreo(acc.accessToken, m.id, fetchFn);
+    } catch (e) {
+      await acc.registrarError(`No se pudo leer un correo de Indeed (${mensajeSeguro(e)}). Se reintenta en la siguiente revisión.`);
+      return { ...VACIO, motivo: "no se pudo leer un correo" };
+    }
     res.revisados++;
     const fila = await procesaSeguro(db, m, { dominioBuzon, accessToken: acc.accessToken, fetchFn, ahora, fase: null });
     contaFila(res, fila);
@@ -258,6 +265,12 @@ export async function procesarLoteAntiguo(p: ParamsBackfill): Promise<ResumenBac
   const dominioBuzon = acc.mailbox?.split("@")[1]?.toLowerCase() ?? null;
   for (const m of seleccionaNuevos(pagina.mensajes, yaVistosSet(yaVistos))) {
     if (!esCorreoDeIndeed(m.from)) continue;
+    // La clasificación (solicitud o mensaje) mira el texto: por eso el cuerpo se pide aquí, solo para Indeed.
+    try {
+      m.bodyText = await cuerpoDeCorreo(acc.accessToken, m.id, fetchFn);
+    } catch (e) {
+      return { ...vacio, motivo: `no se pudo leer un correo (${mensajeSeguro(e)})` };
+    }
     if (!enFase(clasificaCorreoIndeed(aCorreo(m)), p.fase)) continue;
     res.revisados++;
     const fila = await procesaSeguro(db, m, { dominioBuzon, accessToken: acc.accessToken, fetchFn, ahora, fase: p.fase });
