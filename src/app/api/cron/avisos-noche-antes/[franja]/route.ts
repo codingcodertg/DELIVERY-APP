@@ -6,6 +6,8 @@ import { proveedorDelEntorno } from "@/lib/mensajeria";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Hasta 60 s: con el envío en paralelo (cinco a la vez) una noche de muchas órdenes no se corta a medias.
+export const maxDuration = 60;
 
 /**
  * Cron: el aviso al cliente de la NOCHE ANTES (D-416, migración 150).

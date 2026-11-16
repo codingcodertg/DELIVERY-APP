@@ -42,7 +42,7 @@ vi.mock("@/lib/supabase/admin", () => ({
         return {
           select: (_columnas: string, opciones?: { count?: string; head?: boolean }) => (opciones?.head
             ? { eq: () => ({ eq: () => ({ gte: async () => ({ count: falso.gastoHoy }) }) }) }
-            : { in: () => ({ in: async () => ({ data: falso.guardadas, error: null }) }) }),
+            : { in: () => ({ in: () => ({ in: () => ({ in: async () => ({ data: falso.guardadas, error: null }) }) }) }) }),
           upsert: async (filas: Record<string, unknown>[]) => { falso.escritas.push(...filas); return { error: null }; },
         };
       },

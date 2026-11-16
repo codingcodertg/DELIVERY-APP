@@ -5,6 +5,13 @@ import { centralShiftMs } from "@/lib/clockin/tz";
 import { clockinRestHeaders } from "@/lib/clockin/rest";
 import { cronAuthorized } from "@/lib/clockin/cronAuth";
 import { autoCloseCutoffMs } from "@/lib/clockin/schedule";
+import {
+  destinatariosPosibles,
+  hayTrabajoEnEstaCorrida,
+  parseHM,
+  ventanaSemanalAbierta,
+  type TurnoDeHoy,
+} from "@/lib/clockin/cronPlan";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,10 +46,6 @@ async function record(companyId: string, employeeId: string, type: string, messa
     body: JSON.stringify({ company_id: companyId, employee_id: employeeId, type, message }),
   });
 }
-function parseHM(t: string) {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-}
 function centralMin(iso: string) {
   const t = new Date(iso);
   const d = new Date(t.getTime() - centralShiftMs(t));
@@ -73,13 +76,45 @@ export async function GET(req: Request) {
   const sinceFriday = (local.getUTCDay() - 5 + 7) % 7;
   const weekStartIso = new Date(dayStart - sinceFriday * 86400000 + shift).toISOString();
 
-  const [emps, shifts, todayEntries, weekEntries, leaves, subsRaw, sentRaw, weekLunch] = await Promise.all([
+  // Primera ronda, LIGERA: la plantilla, los turnos de hoy, los fichajes abiertos y las ausencias. Con eso se decide si
+  // esta corrida tiene algo que avisar o cerrar. Si no lo tiene, sale aquí y no lee los fichajes de la semana, el
+  // registro de avisos ni las suscripciones push, que son lo que pesa. Cada regla de abajo es un subconjunto de lo que
+  // `hayTrabajoEnEstaCorrida` deja pasar (ver `lib/clockin/cronPlan.ts`).
+  const [emps, shifts, openEntries, leaves] = await Promise.all([
     q("profiles?select=id,full_name,company_id,language,role&active=eq.true"),
     q(`scheduled_shifts?select=id,employee_id,company_id,start_time,end_time,lunch_start_time&shift_date=eq.${today}`),
+    q("time_entries?select=id,employee_id,company_id,clock_in_at,still_working_at&status=eq.open"),
+    q(`exceptions?select=employee_id,company_id,expected_return_at&type=eq.leaving_while_clocked_in&returned_at=is.null&expected_return_at=not.is.null`),
+  ]);
+  const diaSemana = local.getUTCDay();
+  const enVentanaSemanal = ventanaSemanalAbierta(diaSemana, nowMin);
+  const turnos: TurnoDeHoy[] = shifts.map((s) => ({
+    employee_id: s.employee_id!,
+    start_time: s.start_time!,
+    end_time: s.end_time!,
+    lunch_start_time: s.lunch_start_time ?? null,
+  }));
+  if (!hayTrabajoEnEstaCorrida({ turnos, hayTurnoAbierto: openEntries.length > 0, hayAusencia: leaves.length > 0, diaDeLaSemana: diaSemana, nowMin })) {
+    return NextResponse.json({ ok: true, fired: 0 });
+  }
+
+  // Segunda ronda, solo cuando hay algo que hacer. Las suscripciones se piden SOLO de quien puede recibir algo en esta
+  // corrida (`destinatariosPosibles`): el resto nunca pasa por `send`.
+  const managers = emps.filter((e) => e.role === "manager" || e.role === "owner").map((e) => e.id!);
+  const destinatarios = destinatariosPosibles({
+    turnos,
+    abiertos: openEntries.map((e) => e.employee_id!),
+    ausentes: leaves.map((l) => l.employee_id!),
+    managers,
+    todos: emps.map((e) => e.id!),
+    enVentanaSemanal,
+  });
+  const [todayEntries, weekEntries, subsRaw, sentRaw, weekLunch] = await Promise.all([
     q(`time_entries?select=employee_id,clock_in_at,status&clock_in_at=gte.${todayStartIso}`),
     q(`time_entries?select=employee_id,clock_in_at,clock_out_at&clock_in_at=gte.${weekStartIso}`),
-    q(`exceptions?select=employee_id,company_id,expected_return_at&type=eq.leaving_while_clocked_in&returned_at=is.null&expected_return_at=not.is.null`),
-    q("push_subscriptions?select=id,employee_id,endpoint,p256dh,auth"),
+    destinatarios.length
+      ? q(`push_subscriptions?select=id,employee_id,endpoint,p256dh,auth&employee_id=in.(${destinatarios.join(",")})`)
+      : Promise.resolve([] as Row[]),
     q(`notifications?select=employee_id,type&created_at=gte.${todayStartIso}`),
     q(`exceptions?select=employee_id,left_at,returned_at&reason=eq.lunch&left_at=gte.${weekStartIso}`),
   ]);
@@ -273,9 +308,7 @@ export async function GET(req: Request) {
   // deadline now, so a shift left open since Monday is closed on the next run
   // instead of waiting for tonight — which is what let one sit open for 49h.
   {
-    const openEntries = await q(
-      "time_entries?select=id,employee_id,company_id,clock_in_at,still_working_at&status=eq.open",
-    );
+    // Los fichajes abiertos ya vienen de la primera ronda (los de todas las empresas, como antes).
     for (const en of openEntries) {
       const id = en.employee_id!;
       const c = en.company_id!;

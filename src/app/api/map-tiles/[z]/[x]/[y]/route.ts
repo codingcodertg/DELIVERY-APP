@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/api-auth";
-import { limita, respuesta429 } from "@/lib/rate-limit";
 
 // ============================================================
 // Google Map Tiles proxy. Serves Google's 2D raster map tiles to the Leaflet
@@ -49,17 +48,19 @@ async function getSession(key: string): Promise<string | null> {
 }
 
 function osmTile(z: string, x: string, y: string) {
-  // 302 to the free OSM tile — Leaflet/the browser follow it transparently.
-  return NextResponse.redirect(`https://tile.openstreetmap.org/${z}/${x}/${y}.png`, 302);
+  // 302 to the free OSM tile — Leaflet/the browser follow it transparently. El CDN la guarda un día: sin esto cada
+  // pan repite el salto (y en el caso de un fallo de Google, cada tile).
+  const res = NextResponse.redirect(`https://tile.openstreetmap.org/${z}/${x}/${y}.png`, 302);
+  res.headers.set("Cache-Control", "public, s-maxage=86400");
+  return res;
 }
 
 export async function GET(req: Request, { params }: { params: Promise<{ z: string; x: string; y: string }> }) {
   // Sin sesión no hay servicio (D-172): esta ruta estaba abierta a internet.
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
-  // Tope ALTO: una vista de mapa dispara muchos tiles (y el CDN cachea casi todo); solo corta abuso real.
-  const lim = await limita(req, { clave: "tiles", max: 1200, ventanaSeg: 60 });
-  if (!lim.ok) return respuesta429(lim.reset);
+  // Sin limitador de peticiones aquí a propósito: cada tile escribía una fila en Postgres (`check_rate_limit`) y una
+  // vista de mapa pide decenas. La sesión ya es la barrera; el limitador se queda para las rutas que gastan dinero.
 
   const key = process.env.GOOGLE_MAPS_API_KEY;
   const p = await params;

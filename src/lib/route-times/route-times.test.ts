@@ -11,7 +11,7 @@ import {
   MAX_VUELTAS_DE_TRAFICO, PRESUPUESTO_POR_DEFECTO, cacheEnMemoria, estaVigente, instanteLocalISO, matrizBase, planificaConTrafico, traficoDeTramos,
   tramosDelPlan, type FilaDeCache,
 } from "./tiempos";
-import { cacheEnSupabase } from "./cache-supabase";
+import { cacheEnSupabase, type ClienteDeCache } from "./cache-supabase";
 
 /**
  * Tiempos de viaje del motor de rutas (D-318). **Ninguna prueba llama a un servicio de verdad:** `fetch` es
@@ -367,17 +367,24 @@ describe("la caché de verdad, con un cliente de mentira", () => {
       { origin_key: "x", dest_key: "y", weekday: -1, block: -1, traffic: false, minutes: 10, miles: "6.5" as unknown as number, provider: "google", fetched_at: AHORA },
       { origin_key: "x", dest_key: "y", weekday: 3, block: 16, traffic: true, minutes: 14, miles: 6.5, provider: "google", fetched_at: AHORA },
     ];
-    const pedidos: [string, string[]][] = [];
+    const pedidos: [string, (string | number)[]][] = [];
+    // Un filtro encadenable y esperable, como el de supabase-js: cada `in` anota el filtro y devuelve la misma consulta.
     const cliente = (error: { message: string } | null) => ({
       from: () => ({
-        select: () => ({ in: (c1: string, v1: string[]) => ({ in: async (c2: string, v2: string[]) => { pedidos.push([c1, v1], [c2, v2]); return { data: error ? null : filas, error }; } }) }),
+        select: () => {
+          const consulta = {
+            in: (col: string, valores: (string | number)[]) => { pedidos.push([col, valores]); return consulta; },
+            then: (ok: (v: unknown) => unknown, ko: (e: unknown) => unknown) => Promise.resolve({ data: error ? null : filas, error }).then(ok, ko),
+          };
+          return consulta;
+        },
         upsert: async () => ({ error: null }),
       }),
-    });
+    }) as unknown as ClienteDeCache;
     const gasto = { cuentaDePago: async (_d: string, conTrafico: boolean) => (conTrafico ? 7 : 42) };
     const cache = cacheEnSupabase(cliente(null), gasto);
     expect(await cache.lee([claveSinTrafico("x", "y")])).toEqual([{ origen: "x", destino: "y", dia: -1, bloque: -1, trafico: false, minutos: 10, millas: 6.5, proveedor: "google", pedidoEl: AHORA }]);
-    expect(pedidos).toEqual([["origin_key", ["x"]], ["dest_key", ["y"]]]);
+    expect(pedidos).toEqual([["origin_key", ["x"]], ["dest_key", ["y"]], ["weekday", [-1]], ["block", [-1]]]);
     expect(await cacheEnSupabase(cliente({ message: "relation does not exist" }), gasto).lee([claveSinTrafico("x", "y")])).toEqual([]);
     expect(await cache.lee([])).toEqual([]);
     expect(await cache.gastoDesde(AHORA)).toEqual({ elementos: 42, tramos: 7 });
@@ -386,7 +393,7 @@ describe("la caché de verdad, con un cliente de mentira", () => {
   it("escribe con upsert sobre la clave entera, que es la clave primaria de la 132", async () => {
     let visto: { filas: unknown[]; opciones: { onConflict: string } } | null = null;
     const cliente = { from: () => ({ select: () => ({ in: () => ({ in: async () => ({ data: [], error: null }) }) }), upsert: async (filas: unknown[], opciones: { onConflict: string }) => { visto = { filas, opciones }; return { error: null }; } }) };
-    await cacheEnSupabase(cliente, { cuentaDePago: async () => 0 }).escribe([{ origen: "x", destino: "y", dia: 3, bloque: 16, trafico: true, minutos: 14, millas: 6.5, proveedor: "google", pedidoEl: AHORA }]);
+    await cacheEnSupabase(cliente as unknown as ClienteDeCache, { cuentaDePago: async () => 0 }).escribe([{ origen: "x", destino: "y", dia: 3, bloque: 16, trafico: true, minutos: 14, millas: 6.5, proveedor: "google", pedidoEl: AHORA }]);
     expect(visto!.opciones.onConflict).toBe("origin_key,dest_key,weekday,block,traffic");
     expect(visto!.filas).toEqual([{ origin_key: "x", dest_key: "y", weekday: 3, block: 16, traffic: true, minutes: 14, miles: 6.5, provider: "google", fetched_at: AHORA }]);
     const sql = plano(leer("supabase/migrations/132_travel_time_cache.sql"));

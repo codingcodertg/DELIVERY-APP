@@ -16,9 +16,13 @@ import type { NombreDeProveedor } from "./proveedores";
 type Fila = { origin_key: string; dest_key: string; weekday: number; block: number; traffic: boolean; minutes: number; miles: number; provider: string; fetched_at: string };
 
 /** Lo mínimo de supabase-js que se usa aquí. */
+/** Una consulta de PostgREST encadenable: cada `in` añade un filtro y la consulta se puede esperar. */
+export type FiltroDeCache = PromiseLike<{ data: Fila[] | null; error: { message: string } | null }> & {
+  in(col: string, valores: (string | number)[]): FiltroDeCache;
+};
 export interface ClienteDeCache {
   from(tabla: "travel_time_cache"): {
-    select(columnas: string): { in(col: string, valores: string[]): { in(col: string, valores: string[]): PromiseLike<{ data: Fila[] | null; error: { message: string } | null }> } };
+    select(columnas: string): { in(col: string, valores: string[]): FiltroDeCache };
     upsert(filas: Fila[], opciones: { onConflict: string }): PromiseLike<{ error: { message: string } | null }>;
   };
 }
@@ -42,8 +46,12 @@ export function cacheEnSupabase(cliente: ClienteDeCache, gasto: ClienteDeGasto):
       if (!claves.length) return [];
       // Se pide por orígenes y destinos y se casa aquí: PostgREST no filtra por una lista de quíntuplas. Trae
       // de más (otros días y bloques de los mismos pares), que son filas pequeñas; lo que no casa se descarta.
+      // El día y el bloque también se filtran en la base (`weekday`, `block`, columnas de la 132): cada fila que casa
+      // con una clave pedida tiene su día y su bloque en esas listas, así que el filtro solo quita lo que no sirve.
       const origenes = [...new Set(claves.map((k) => k.origen))], destinos = [...new Set(claves.map((k) => k.destino))];
-      const { data, error } = await cliente.from("travel_time_cache").select(COLUMNAS).in("origin_key", origenes).in("dest_key", destinos);
+      const dias = [...new Set(claves.map((k) => k.dia))], bloques = [...new Set(claves.map((k) => k.bloque))];
+      const { data, error } = await cliente.from("travel_time_cache").select(COLUMNAS)
+        .in("origin_key", origenes).in("dest_key", destinos).in("weekday", dias).in("block", bloques);
       // Una caché que falla no es un error del plan: se sigue como si estuviera vacía, y se pregunta de nuevo.
       if (error || !data) return [];
       const pedidas = new Set(claves.map(textoDeClave));
