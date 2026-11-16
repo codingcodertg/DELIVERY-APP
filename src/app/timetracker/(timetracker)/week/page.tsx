@@ -8,9 +8,9 @@ import {
   addWeeks, breaksText, computePay, dateISO, fmtClock, fmtDayLong, fmtTime, money,
   thisWeekStart, weekIsFinished, weekLabel, weekStartISO,
 } from "@/lib/timetracker/helpers";
-import type { Assignment, Session } from "@/lib/timetracker/types";
+import type { Session } from "@/lib/timetracker/types";
 import { totalPagado } from "@/lib/timetracker/total-de-nomina";
-import { nombreDeLinea } from "@/lib/timetracker/tienda-y-puesto";
+import { nombreDeSesion } from "@/lib/timetracker/tienda-y-puesto";
 import { effWorkerType } from "@/lib/timetracker/helpers";
 import { esAdminDeTt, seccionesDeMiSemana, verTablasDelCronometro } from "@/lib/timetracker/vista-empleado";
 import { MiBoletinSec } from "@/components/timetracker/MySections";
@@ -97,11 +97,10 @@ export default function MyWeekPage() {
     const calc = a ? computePay(hours, a) : { pay: 0, reg: 0, ot: 0, overLimit: 0 };
     totalPay += calc.pay; totalSec += v.sec;
     // Sin proyecto, el presencial ve su tienda y su puesto (D-493); el remoto, «(proyecto eliminado)».
-    const proj = { name: nombreDeLinea(a?.project.name, me, lang, t("emp.week.deletedProject")) };
+    const proj = { name: nombreDeSesion(aid || null, a?.project.name, me, lang, { sinProyecto: t("track.sinProyecto"), eliminado: t("emp.week.deletedProject") }) };
     return { aid, proj, sec: v.sec, calc };
   });
 
-  const projectName = (a: Assignment | undefined) => nombreDeLinea(a?.project.name, me, lang, "—");
   const tablas = verTablasDelCronometro(quien, weekSessions.length > 0);
 
   return (
@@ -178,7 +177,7 @@ export default function MyWeekPage() {
                       { key: "entrada", en: t("emp.week.colInOut"), es: t("emp.week.colInOut"), ancho: 200, clase: "small nowrap",
                         valor: (s) => (s.startMs ? fmtTime(s.startMs) : "—") + " → " + (s.endMs ? fmtTime(s.endMs) : "—") },
                       { key: "proyecto", en: t("emp.week.colProject"), es: t("emp.week.colProject"), ancho: 220, clase: "small",
-                        valor: (s) => projectName(aMap.get(s.assignmentId ?? "")) },
+                        valor: (s) => nombreDeSesion(s.assignmentId, aMap.get(s.assignmentId ?? "")?.project.name, me, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" }) },
                       { key: "nota", en: t("emp.week.colNote"), es: t("emp.week.colNote"), ancho: 280, clase: "small muted", envuelve: true, valor: (s) => s.memo || null,
                         celda: (s) => (
                           <>

@@ -151,7 +151,7 @@ export default function MyRequestsPage() {
   // Lo que dice «Detalle» (una baja solo dice el día) y el texto del estado: lo mismo que se pinta, y lo que se ordena y filtra.
   const detalleDe = (r: (typeof sorted)[number]): string => {
     const p = (r.payload || {}) as Record<string, unknown>;
-    const proj = nombreDelProyecto(p.assignmentId, "");
+    const proj = nombreDelProyecto(p.assignmentId, t("track.sinProyecto"));
     return r.type === "delete"
       ? `${proj} · ${p.date}`
       : `${proj} · ${p.date} · ${p.fromTime || ""}-${p.toTime || ""} (${p.hours} h)`;
@@ -239,7 +239,7 @@ export default function MyRequestsPage() {
             <select value={f.sessionId} onChange={(e) => pickSession(e.target.value)}>
               <option value="">{t("emp.req.pickEntryPh")}</option>
               {mySessions.map((s) => (
-                <option key={s.id} value={s.id}>{s.date} · {nombreDelProyecto(s.assignmentId, "—")} · {fmtClock(s.durationSeconds)} · {s.memo || t("emp.req.noNote")}</option>
+                <option key={s.id} value={s.id}>{s.date} · {nombreDelProyecto(s.assignmentId, t("track.sinProyecto"))} · {fmtClock(s.durationSeconds)} · {s.memo || t("emp.req.noNote")}</option>
               ))}
             </select>
             <div className="grid g2" style={{ marginTop: 8 }}>
@@ -259,7 +259,7 @@ export default function MyRequestsPage() {
             <select value={f.sessionId} onChange={(e) => upd("sessionId", e.target.value)}>
               <option value="">{t("emp.req.pickEntryPh")}</option>
               {mySessions.map((s) => (
-                <option key={s.id} value={s.id}>{s.date} · {nombreDelProyecto(s.assignmentId, "—")} · {fmtClock(s.durationSeconds)} · {s.memo || t("emp.req.noNote")}</option>
+                <option key={s.id} value={s.id}>{s.date} · {nombreDelProyecto(s.assignmentId, t("track.sinProyecto"))} · {fmtClock(s.durationSeconds)} · {s.memo || t("emp.req.noNote")}</option>
               ))}
             </select>
           </>

@@ -136,6 +136,24 @@ export function nombreDeLinea(
 }
 
 /**
+ * El nombre de la línea de UNA sesión (o solicitud), a partir de su id de proyecto o de asignación.
+ *
+ * Sin id: se fichó sin proyecto (Francis, o cualquiera que no elija). Ahí va lo mismo que a un
+ * presencial (tienda y puesto) o, al remoto, `etiquetas.sinProyecto` («Sin proyecto»), que no es
+ * «eliminado». Con id pero sin nombre (el proyecto ya no existe): `etiquetas.eliminado`.
+ */
+export function nombreDeSesion(
+  idDeProyecto: string | null | undefined,
+  nombreDelProyecto: string | null | undefined,
+  persona: PersonaConTienda | null | undefined,
+  lang: Idioma,
+  etiquetas: { sinProyecto: string; eliminado: string },
+): string {
+  if (!idDeProyecto) return nombreDeLinea(null, persona, lang, etiquetas.sinProyecto);
+  return nombreDeLinea(nombreDelProyecto ?? null, persona, lang, etiquetas.eliminado);
+}
+
+/**
  * El campo «Proyecto» del formulario de «Agregar tiempo» (Mis solicitudes) y del de «Agregar
  * entrada» del gerente (Nómina › Remoto):
  *  · `obligatorio`: remoto, como siempre («Elige un proyecto»).

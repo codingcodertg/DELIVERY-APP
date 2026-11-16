@@ -281,7 +281,8 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     }
   }, [worked, weekSecThisProj, selected, wLimitSec, notify, t]);
 
-  useEffect(() => { try { if (assignmentId) localStorage.setItem(LS_A, assignmentId); } catch { /* ignore */ } }, [assignmentId, LS_A]);
+  // Sin proyecto (`""`) también se guarda: si no, al recargar volvería el último proyecto elegido.
+  useEffect(() => { try { if (assignmentId) localStorage.setItem(LS_A, assignmentId); else localStorage.removeItem(LS_A); } catch { /* ignore */ } }, [assignmentId, LS_A]);
   useEffect(() => { try { localStorage.setItem(LS_M, memo); } catch { /* ignore */ } }, [memo, LS_M]);
 
   // Hasta D-195 aquí había un `beforeunload` que pedía confirmación al navegador si el reloj
@@ -1421,7 +1422,8 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
         try { filaBaseRef.current = baseDe(await getSession(filaAnteriorIdRef.current)); } catch { /* se reintenta */ }
       }
       const base = filaBaseRef.current;
-      if (!base?.projectId && !base?.assignmentId) { pendienteRef.current = trasFallo(p, ahora); return; }
+      // Sin base no se sabe qué fila continuar. Una base sin proyecto (fichaje sin proyecto) sí vale.
+      if (!base) { pendienteRef.current = trasFallo(p, ahora); return; }
       // Primero cerrar la anterior, con reintento (D-916). Un PATCH de solo `is_live` no toca lo que
       // guardó su último latido bueno. Mientras no entre, no se inserta: chocaría (092).
       if (anteriorPorCerrarRef.current) {
@@ -1698,8 +1700,10 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
 
   const arrancandoRef = useRef(false);
 
+  // Arrancar NO exige proyecto (el dueño, 2026-11: Francis no tiene asignación y tenía que poder
+  // fichar). Sin `selected` la sesión se guarda con `project_id` y `assignment_id` a null (059: las
+  // dos son nullable; la RLS de `sessions` solo mira `employee_uid`).
   async function start() {
-    if (!selected) return;
     // El doble clic era la causa real de las dos tarjetas (D-138): dos intentos con 129 ms de
     // diferencia, ninguno viendo todavía al otro. La comprobación de sesiones vivas de abajo no
     // podía salvarlo — cuando corre, la otra fila aún no existe.
@@ -1737,8 +1741,8 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     const payload: Partial<Session> = {
       employeeUid: me.id,
       employeeName: me.fullName,
-      projectId: selected.projectId,
-      assignmentId: selected.id,
+      projectId: selected?.projectId ?? null,
+      assignmentId: selected?.id ?? null,
       memo: memo.trim(),
       weekOf: weekStartISO(now),
       date: dateISO(now),
@@ -1776,7 +1780,9 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
       setRemoteOwner(null); // started here, so this client drives it
       // Confirm the clock started. On desktop the native floating toast
       // (fired from main.js on tt:start) is the primary cue; this covers web.
-      notify(t("notify.startTitle") + ": " + t("notify.startBody", { project: selected.project?.name || "" }));
+      notify(t("notify.startTitle") + ": " + (selected?.project?.name
+        ? t("notify.startBody", { project: selected.project.name })
+        : t("notify.startBodyNoProject")));
       desktopStart({ sessionId: row.id, intervalMin: shotMin });
     } catch (e) {
       if (isOverlapError(e)) { notify(t("track.overlap")); return; }
@@ -2019,6 +2025,10 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
 
         <label style={{ marginTop: 12 }}>{t("track.project")}</label>
         <div className="pbtns">
+          {/* Opcional: sin elegir ninguno, la sesión va sin proyecto. */}
+          <button className={"pbtn" + (!assignmentId ? " sel" : "")} disabled={running} onClick={() => setAssignmentId("")}>
+            <div className="pn">{t("track.sinProyecto")}</div>
+          </button>
           {assignments.map((a) => (
             <button
               key={a.id}
@@ -2096,7 +2106,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
             {remoteOwner
               ? <span className="pill on">{t(remoteOwner === "desktop" ? "track.viaDesktopPill" : "track.viaWebPill")}</span>
               : !running
-              ? <button className="btn-ok" disabled={!selected} onClick={start}>{startLabel}</button>
+              ? <button className="btn-ok" onClick={start}>{startLabel}</button>
               : <button className="btn-danger" onClick={stop}>{stopLabel}</button>}
           </div>
         </div>
