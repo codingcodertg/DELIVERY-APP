@@ -52485,3 +52485,8 @@ Sello `recruiting` 0.105.0; repo 1.914.0.
 
 Revisión de seguridad sobre D-1065. En el camino de mensajes, una coincidencia solo por nombre ya no autoriza cambiar teléfono, cita ni campos (antes bastaba con que el puesto coincidiera), y el puesto tampoco basta si el nombre de la ficha choca. En `comoCoincide` el nombre se compara con `normalizeName` (letras Unicode) y falla cerrado: si alguno queda vacío, cuenta como «solo nombre».
 Sello `recruiting` 0.106.0; repo 1.915.0.
+
+## D-1067 · Documentos de ingreso: tarjetas y hoja de la app como las cotizaciones (2026-11-16)
+
+El dueño, con captura: la sección del expediente se veía desordenada (tabla con barra lateral) y la revisión parecía un visor de Word con todo el amarillo a la vista; la quiere como cuando se imprimen las cotizaciones del Quote Builder. La sección pasa a una tarjeta por documento (estado en color, variante solo si hay más de una, botones claros). La revisión convierte el .docx con mammoth a una hoja de la app (encabezado `ENCABEZADO` de `estimator/hoja.ts`, misma tipografía y márgenes, impresión con `window.print()` aislada como la cotización); los campos se ven como marcas discretas con su valor, y a la izquierda un formulario con progreso. «Descargar .docx» sigue dando el Word original lleno y sin amarillo. Segunda variante cargada: Senior Sales Representative (se le marcaron en amarillo los cinco campos).
+Sello `recruiting` 0.107.0; repo 1.916.0.
