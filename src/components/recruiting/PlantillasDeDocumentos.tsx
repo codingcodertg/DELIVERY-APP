@@ -168,15 +168,6 @@ export function PlantillasDeDocumentos({ onClose }: { onClose: () => void }) {
     { key: "variantes", en: "Variants", es: "Variantes", ancho: 90, valor: (d) => numVariantes(d.id), numerico: true },
     { key: "todos", en: "For everyone", es: "Para todos", ancho: 110, valor: (d) => (d.applies_to_all ? t("Yes", "Sí") : t("No", "No")) },
   ];
-  const colVars: ColumnaEstandar<VarianteFila>[] = [
-    { key: "label", en: "Variant", es: "Variante", ancho: 260, valor: (v) => v.label,
-      celda: (v) => <span style={{ opacity: v.active ? 1 : 0.5 }}>{v.label}{!v.active && ` (${t("archived", "archivada")})`}</span> },
-    { key: "positions", en: "Positions", es: "Puestos", ancho: 240, valor: (v) => v.positions.join(", ") },
-    { key: "offer", en: "Offer", es: "Oferta", ancho: 150, valor: (v) => v.offer_note ?? "" },
-    { key: "version", en: "Version", es: "Versión", ancho: 80, valor: (v) => v.version, numerico: true },
-    { key: "archivo", en: "File", es: "Archivo", ancho: 200, valor: (v) => v.file_name,
-      celda: (v) => <span className="hint">{v.file_name} · {tamanoLegible(v.size)}</span> },
-  ];
 
   if (cargando) return <Caja onClose={onClose} titulo={t("Onboarding documents", "Documentos de ingreso")}><div className="hint">{t("Loading…", "Cargando…")}</div></Caja>;
 
@@ -273,8 +264,11 @@ export function PlantillasDeDocumentos({ onClose }: { onClose: () => void }) {
                     </div>
                   )}
                   {detectados && (
-                    <div className="hint" data-campos-detectados style={{ marginTop: 8 }}>
-                      <b>{t("Detected fields", "Campos detectados")}:</b> {detectados.length ? detectados.join(", ") : t("none (highlight them in yellow in Word)", "ninguno (márquelos en amarillo en Word)")}
+                    <div className="docs-detectados" data-campos-detectados style={{ marginTop: 8 }}>
+                      <span className="hint"><b>{t("Detected fields", "Campos detectados")}:</b></span>{" "}
+                      {detectados.length
+                        ? detectados.map((e, i) => <span key={i} className="docs-chip-campo">{e}</span>)
+                        : <span className="hint">{t("none (highlight them in yellow in Word)", "ninguno (márquelos en amarillo en Word)")}</span>}
                     </div>
                   )}
                   <label style={{ textTransform: "none", fontWeight: 500, marginTop: 8, display: "block" }}>
@@ -287,14 +281,24 @@ export function PlantillasDeDocumentos({ onClose }: { onClose: () => void }) {
                 </form>
               )}
 
-              <div style={{ marginTop: 10 }}>
-                <TablaEstandar<VarianteFila>
-                  id="variantes-de-documento" filas={varsDelDoc} claveDe={(v) => v.id} data-tabla="variantes" columnas={colVars} sinCaja
-                  vacio={t("No variants yet. Add one with its file.", "Sin variantes. Agregue una con su archivo.")}
-                  anchoDeAcciones={250}
-                  acciones={(v) => (
-                    <span style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                      <button className="btn btn-ghost btn-sm" data-accion="bajar-variante" onClick={() => void abreArchivo(v.file_path)}>⬇</button>
+              <div style={{ marginTop: 10 }} className="docs-lista" data-tabla="variantes">
+                {varsDelDoc.length === 0 && <div className="hint">{t("No variants yet. Add one with its file.", "Sin variantes. Agregue una con su archivo.")}</div>}
+                {varsDelDoc.map((v) => (
+                  <article key={v.id} className="docs-tarjeta" data-variante-id={v.id}>
+                    <div className="docs-tarjeta-cab">
+                      <div className="docs-titulo-bloque">
+                        <h4 className="docs-titulo" style={{ opacity: v.active ? 1 : 0.6 }}>{v.label}</h4>
+                        {!v.active && <span className="badge">{t("archived", "archivada")}</span>}
+                      </div>
+                      <span className="hint">v{v.version}</span>
+                    </div>
+                    <div className="docs-meta">
+                      <div><span className="hint">{t("Positions", "Puestos")}:</span> {v.positions.length ? v.positions.join(", ") : "—"}</div>
+                      {v.offer_note && <div><span className="hint">{t("Offer", "Oferta")}:</span> {v.offer_note}</div>}
+                      <div className="hint">{v.file_name} · {tamanoLegible(v.size)}</div>
+                    </div>
+                    <div className="docs-acciones">
+                      <button className="btn btn-ghost btn-sm" data-accion="bajar-variante" onClick={() => void abreArchivo(v.file_path)}>⬇ {t("Download", "Descargar")}</button>
                       <button className="btn btn-ghost btn-sm" data-accion="nueva-version" onClick={() => { setNuevaVersionDe(v); pideArchivo(async (f) => {
                         const sub = await subeVariante(f, v.id, null);
                         if (!sub) return;
@@ -302,12 +306,12 @@ export function PlantillasDeDocumentos({ onClose }: { onClose: () => void }) {
                         if (!r.ok) notify(mensajeDeError(r.message)); else { notify(t("New version saved ✓", "Versión nueva guardada ✓")); await carga(); }
                         setNuevaVersionDe(null);
                       }); }}>⬆ {t("New version", "Nueva versión")}</button>
-                      <button className="btn btn-ghost btn-sm" data-accion="historial" onClick={() => void verHistorial(v)}>🕘</button>
-                      <button className="btn btn-ghost btn-sm" data-accion="editar-variante" onClick={() => { setDetectados(null); setModo({ tipo: "variante", documentoId: doc.id, variante: v }); }}>✏️</button>
-                      <button className="btn btn-ghost btn-sm" data-accion="borrar-variante" onClick={() => void borraVar(v)}>🗑</button>
-                    </span>
-                  )}
-                />
+                      <button className="btn btn-ghost btn-sm" data-accion="historial" onClick={() => void verHistorial(v)}>🕘 {t("History", "Historial")}</button>
+                      <button className="btn btn-ghost btn-sm" data-accion="editar-variante" onClick={() => { setDetectados(null); setModo({ tipo: "variante", documentoId: doc.id, variante: v }); }}>✏️ {t("Edit", "Editar")}</button>
+                      <button className="btn btn-ghost btn-sm" data-accion="borrar-variante" onClick={() => void borraVar(v)}>🗑 {t("Delete", "Borrar")}</button>
+                    </div>
+                  </article>
+                ))}
               </div>
 
               {historial && historial.variante.template_id === doc.id && (

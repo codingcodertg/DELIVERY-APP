@@ -8,7 +8,7 @@ import { hoyEnBrownsville } from "@/lib/recruiting/hora-de-brownsville";
 import { useData } from "@/lib/recruiting-data-provider";
 import { fmtDateTime } from "@/lib/utils";
 import { createClient as creaClienteNavegador } from "@/lib/supabase/client";
-import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
+import { ENCABEZADO } from "@/lib/estimator/hoja";
 import {
   attachSignedCopy, listOnboardingDocs, prepareDocUpload, saveReviewedFields, setOnboardingStatus, setOnboardingVariant,
   signDocFileUrl, type DocumentoFila, type RegistroDeIngreso, type VarianteFila,
@@ -20,15 +20,20 @@ import {
 import {
   camposDeDocx, claveDeEntrada, etiquetasDeCampos, faltanCampos, valoresSugeridos, type CampoDetectado,
 } from "@/lib/recruiting/campos-de-documento";
-import { mapaDeMarcadores } from "@/lib/recruiting/plantillas-de-documentos";
-import { preparaDocumento, pintaDocx, imprimeArchivo, descargaArchivo } from "@/lib/recruiting/imprimir-documento";
+import { mapaDeMarcadores, fechaLarga } from "@/lib/recruiting/plantillas-de-documentos";
+import {
+  htmlDeDocx, limpiaHtmlPintado, preparaDocumento, imprimeArchivo, descargaArchivo,
+} from "@/lib/recruiting/imprimir-documento";
+import {
+  ayudaDeCampo, isoDeMDY, mdyDeIso, pagoConSigno, pagoSinSigno, progresoDeCampos, sustituyeMarcadores,
+} from "@/lib/recruiting/vista-de-documento";
 
 /**
  * Documentos de ingreso dentro de la ficha del empleado (migración 315).
  *
- * Solo aparecen los documentos que le tocan por su puesto (o los que son «para todos»). Cada uno con su variante, su estado
- * y su copia firmada. Imprimir y bajar pasan SIEMPRE por la revisión: RR. HH. ve los campos del documento, los confirma
- * y recién entonces sale. «Imprimir todos los pendientes» hace una revisión por documento y luego imprime.
+ * Solo aparecen los documentos que le tocan por su puesto (o los que son «para todos»). Cada uno es una tarjeta con su
+ * variante, su estado y su copia firmada. Imprimir y bajar pasan SIEMPRE por la revisión: RR. HH. ve los datos del
+ * documento, los confirma y recién entonces sale. «Imprimir todos los pendientes» hace una revisión por documento.
  */
 
 export type DatosDelEmpleado = { fullName: string; position: string | null; hireDate: string | null; store: string | null };
@@ -54,7 +59,7 @@ export function DocumentosDeIngreso({ employeeId, datos, puesto }: Props) {
   const [sinTabla, setSinTabla] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [revisando, setRevisando] = useState<{ fila: Fila; accion: "imprimir" | "descargar" }[] | null>(null);
+  const [revisando, setRevisando] = useState<{ fila: Fila }[] | null>(null);
   const [firmando, setFirmando] = useState<string | null>(null);
   const inputFirma = useRef<HTMLInputElement>(null);
 
@@ -129,42 +134,10 @@ export function DocumentosDeIngreso({ employeeId, datos, puesto }: Props) {
     if (!r.ok) notify(mensajeDeError(r.message)); else { notify(t("Signed copy saved ✓", "Copia firmada guardada ✓")); await carga(); }
   };
 
-  const columnas: ColumnaEstandar<Fila>[] = [
-    { key: "documento", en: "Document", es: "Documento", ancho: 260,
-      valor: (f) => f.documento.name,
-      celda: (f) => (
-        <span>
-          <b>{f.documento.name}</b>{f.sugerida && <span className="badge" style={{ marginLeft: 6 }} data-sugerido>★ {t("for this position", "para su puesto")}</span>}
-          {f.documento.description && <div className="hint" style={{ marginTop: 2 }}>{f.documento.description}</div>}
-        </span>
-      ) },
-    { key: "variante", en: "Variant", es: "Variante", ancho: 240,
-      valor: (f) => f.marcada?.label ?? "",
-      celda: (f) => (
-        <select value={f.marcada?.id ?? ""} disabled={busy || f.opciones.length === 0} data-variante={f.documento.id}
-          onChange={(e) => void cambiaVariante(f, e.target.value)} style={{ width: "100%" }}>
-          {!f.marcada && <option value="">{t("— choose —", "— elegir —")}</option>}
-          {f.opciones.map((v) => <option key={v.id} value={v.id}>{v.label}{!v.active ? ` (${t("archived", "archivada")})` : ""}</option>)}
-        </select>
-      ) },
-    { key: "estado", en: "Status", es: "Estado", ancho: 150,
-      valor: (f) => f.estado,
-      celda: (f) => (
-        <select value={f.estado} disabled={busy} data-estado-de={f.documento.id} onChange={(e) => void cambiaEstado(f, e.target.value as EstadoDocumento)}>
-          {ESTADOS_DOCUMENTO.map((e) => <option key={e.key} value={e.key}>{lang === "es" ? e.es : e.en}</option>)}
-        </select>
-      ) },
-    { key: "firmado", en: "Signed copy", es: "Copia firmada", ancho: 200,
-      valor: (f) => f.registro?.signed_file_name ?? "",
-      celda: (f) => f.registro?.signed_file_path
-        ? <button className="btn btn-ghost btn-sm" onClick={() => void abreFirma(f.registro!.signed_file_path!)}>📎 {f.registro.signed_file_name}</button>
-        : <span className="hint">—</span> },
-    { key: "quien", en: "Marked by", es: "Marcado por", ancho: 190,
-      valor: (f) => f.registro?.updated_at ?? "",
-      celda: (f) => f.registro
-        ? <span className="hint">{f.registro.updated_by_name ?? "—"} · {fmtDateTime(f.registro.updated_at)}{f.registro.reviewed_at ? <div>{t("reviewed", "revisado")} {fmtDateTime(f.registro.reviewed_at)}</div> : null}</span>
-        : <span className="hint">—</span> },
-  ];
+  const etiquetaEstado = (e: EstadoDocumento) => {
+    const s = ESTADOS_DOCUMENTO.find((x) => x.key === e);
+    return s ? (lang === "es" ? s.es : s.en) : e;
+  };
 
   return (
     <div data-bloque="documentos-de-ingreso">
@@ -174,35 +147,83 @@ export function DocumentosDeIngreso({ employeeId, datos, puesto }: Props) {
       {filas.length === 0 ? (
         <div className="hint">{t("No onboarding documents apply to this position.", "Ningún documento de ingreso le toca a su puesto.")}</div>
       ) : (
-        <TablaEstandar<Fila>
-          id="documentos-de-ingreso" filas={filas} claveDe={(f) => f.documento.id} data-tabla="documentos-de-ingreso"
-          columnas={columnas} sinCaja
-          barra={pendientes.length > 0 && (
-            <button className="btn btn-primary btn-sm" data-accion="imprimir-pendientes" disabled={busy}
-              onClick={() => setRevisando(pendientes.map((fila) => ({ fila, accion: "imprimir" as const })))}>
-              🖨 {t(`Print all pending (${pendientes.length})`, `Imprimir todos los pendientes (${pendientes.length})`)}
-            </button>
-          )}
-          acciones={(f) => (
-            <span style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-              <button className="btn btn-ghost btn-sm" data-accion="imprimir" disabled={!f.marcada || busy}
-                title={t("Review the information, then print", "Revisar la información y luego imprimir")}
-                onClick={() => setRevisando([{ fila: f, accion: "imprimir" }])}>🖨 {t("Print", "Imprimir")}</button>
-              <button className="btn btn-ghost btn-sm" data-accion="descargar" disabled={!f.marcada || busy}
-                onClick={() => setRevisando([{ fila: f, accion: "descargar" }])}>⬇ {t("Download", "Descargar")}</button>
-              <button className="btn btn-ghost btn-sm" data-accion="firmado" disabled={busy}
-                onClick={() => { setFirmando(f.documento.id); setTimeout(() => inputFirma.current?.click(), 0); }}>
-                ⬆ {t("Signed copy", "Copia firmada")}
+        <>
+          {pendientes.length > 0 && (
+            <div className="docs-cabecera">
+              <button className="btn btn-primary btn-sm" data-accion="imprimir-pendientes" disabled={busy}
+                onClick={() => setRevisando(pendientes.map((fila) => ({ fila })))}>
+                🖨 {t(`Print all pending (${pendientes.length})`, `Imprimir todos los pendientes (${pendientes.length})`)}
               </button>
-            </span>
+            </div>
           )}
-          anchoDeAcciones={320}
-        />
+          <div className="docs-lista" data-tabla="documentos-de-ingreso">
+            {filas.map((f) => (
+              <article key={f.documento.id} className="docs-tarjeta" data-documento={f.documento.id}>
+                <div className="docs-tarjeta-cab">
+                  <div className="docs-titulo-bloque">
+                    <h4 className="docs-titulo">{f.documento.name}</h4>
+                    {f.sugerida && <span className="badge" data-sugerido>★ {t("for this position", "para su puesto")}</span>}
+                  </div>
+                  <span className="docs-estado" data-estado={f.estado}>{etiquetaEstado(f.estado)}</span>
+                </div>
+                {f.documento.description && <p className="docs-descripcion">{f.documento.description}</p>}
+
+                <div className="docs-ajustes">
+                  {f.opciones.length > 1 ? (
+                    <div className="docs-control">
+                      <label htmlFor={`docs-variante-${f.documento.id}`}>{t("Variant", "Variante")}</label>
+                      <select id={`docs-variante-${f.documento.id}`} value={f.marcada?.id ?? ""} disabled={busy} data-variante={f.documento.id}
+                        onChange={(e) => void cambiaVariante(f, e.target.value)}>
+                        {!f.marcada && <option value="">{t("— choose —", "— elegir —")}</option>}
+                        {f.opciones.map((v) => <option key={v.id} value={v.id}>{v.label}{!v.active ? ` (${t("archived", "archivada")})` : ""}</option>)}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="docs-variante-texto">
+                      <span>{t("Variant", "Variante")}:</span> <b data-variante-fija={f.documento.id}>{f.marcada?.label ?? t("none", "ninguna")}</b>
+                    </div>
+                  )}
+                  <div className="docs-control">
+                    <label htmlFor={`docs-estado-${f.documento.id}`}>{t("Status", "Estado")}</label>
+                    <select id={`docs-estado-${f.documento.id}`} value={f.estado} disabled={busy} data-estado-de={f.documento.id}
+                      onChange={(e) => void cambiaEstado(f, e.target.value as EstadoDocumento)}>
+                      {ESTADOS_DOCUMENTO.map((e) => <option key={e.key} value={e.key}>{lang === "es" ? e.es : e.en}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="docs-acciones">
+                  <button className="btn btn-primary btn-sm" data-accion="imprimir" disabled={!f.marcada || busy}
+                    title={t("Review the information, then print", "Revisar la información y luego imprimir")}
+                    onClick={() => setRevisando([{ fila: f }])}>🖨 {t("Review & print", "Revisar e imprimir")}</button>
+                  <button className="btn btn-ghost btn-sm" data-accion="descargar" disabled={!f.marcada || busy}
+                    onClick={() => setRevisando([{ fila: f }])}>⬇ {t("Download", "Descargar")}</button>
+                  <button className="btn btn-ghost btn-sm" data-accion="firmado" disabled={busy}
+                    onClick={() => { setFirmando(f.documento.id); setTimeout(() => inputFirma.current?.click(), 0); }}>
+                    ⬆ {t("Upload signed copy", "Subir copia firmada")}
+                  </button>
+                  {f.registro?.signed_file_path && (
+                    <button className="btn btn-ghost btn-sm" data-accion="ver-firmado" onClick={() => void abreFirma(f.registro!.signed_file_path!)}>
+                      📎 {t("View signed copy", "Ver copia firmada")}{f.registro.signed_file_name ? `: ${f.registro.signed_file_name}` : ""}
+                    </button>
+                  )}
+                </div>
+
+                {f.registro && (
+                  <div className="docs-meta hint">
+                    {t("Marked by", "Marcado por")} {f.registro.updated_by_name ?? "—"} · {fmtDateTime(f.registro.updated_at)}
+                    {f.registro.reviewed_at ? ` · ${t("reviewed", "revisado")} ${fmtDateTime(f.registro.reviewed_at)}` : ""}
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        </>
       )}
       {revisando && revisando.length > 0 && (
         <RevisionDeDocumento
-          key={revisando[0].fila.documento.id + revisando[0].accion}
-          employeeId={employeeId} datos={datos} item={revisando[0]}
+          key={revisando[0].fila.documento.id}
+          employeeId={employeeId} datos={datos} fila={revisando[0].fila}
           onCancel={() => setRevisando(null)}
           onDone={async (ok) => {
             const resto = revisando.slice(1);
@@ -215,28 +236,39 @@ export function DocumentosDeIngreso({ employeeId, datos, puesto }: Props) {
 }
 
 /**
- * La revisión de un documento antes de imprimirlo o bajarlo: los campos amarillos del .docx, prellenados, editables, y la
- * vista previa del documento ya rellenado. Horas y pago van vacíos y son obligatorios. No sale nada hasta que se marca
- * «He revisado la información».
+ * La revisión de un documento antes de imprimirlo o bajarlo. Izquierda: el formulario con los datos del documento
+ * (prellenados, editables, obligatorios marcados). Derecha: la hoja del documento ya rellenada, como la cotización.
+ * Abajo, fija: «He revisado la información» y los botones. No sale nada hasta que se marca la casilla.
+ *
+ * Imprimir en un .docx usa `window.print()` sobre la hoja: CSS de impresión (`recruiting.css`), igual que la cotización.
  */
-function RevisionDeDocumento({ employeeId, datos, item, onDone, onCancel }: {
+function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
   employeeId: string; datos: DatosDelEmpleado;
-  item: { fila: Fila; accion: "imprimir" | "descargar" };
+  fila: Fila;
   onDone: (ok: boolean) => void | Promise<void>;
   onCancel: () => void;
 }) {
   const { t, lang } = usePrefs();
   const { notify } = useData();
-  const { fila, accion } = item;
   const variante = fila.marcada!;
   const [bytes, setBytes] = useState<Uint8Array | null>(null);
   const [campos, setCampos] = useState<CampoDetectado[]>([]);
   const [valores, setValores] = useState<Record<string, string>>({});
+  const [baseHtml, setBaseHtml] = useState<string | null>(null);
+  const [htmlErr, setHtmlErr] = useState<string | null>(null);
   const [revisado, setRevisado] = useState(false);
   const [busy, setBusy] = useState(false);
   const [cargaErr, setCargaErr] = useState<string | null>(null);
-  const vistaRef = useRef<HTMLDivElement>(null);
+  const cuerpoRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
   const esDocx = extensionDe(variante.file_name) === "docx";
+
+  // Los datos del empleado que llenan los marcadores {{...}}. Solo cambian si cambian sus valores, no por identidad del objeto.
+  const { fullName, position, hireDate, store } = datos;
+  const mapa = useMemo(
+    () => mapaDeMarcadores({ fullName, position, hireDate, store }, HOY(), lang),
+    [fullName, position, hireDate, store, lang],
+  );
 
   // 1) Bajar el archivo, leer sus campos y poner los valores: los guardados si son de ESTA versión; si no, los sugeridos.
   useEffect(() => {
@@ -259,6 +291,27 @@ function RevisionDeDocumento({ employeeId, datos, item, onDone, onCancel }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variante.id, variante.version]);
 
+  // 2) El .docx convertido a HTML (una vez por archivo; los valores se ponen después, sin volver a convertir).
+  useEffect(() => {
+    if (!bytes || !esDocx) return;
+    let vivo = true;
+    htmlDeDocx(bytes, mapa)
+      .then((h) => { if (vivo) setBaseHtml(h); })
+      .catch((e) => { if (vivo) setHtmlErr(mensajeDeError(e)); });
+    return () => { vivo = false; };
+  }, [bytes, esDocx, mapa]);
+
+  // 3) La hoja con los valores actuales dentro. Se escribe en el DOM (no en React) y se limpia como antes.
+  useEffect(() => {
+    const el = cuerpoRef.current;
+    if (!el || baseHtml === null) return;
+    // Se parsea en una <template> (inerte: no carga imágenes ni ejecuta nada) y se limpia ANTES de meterlo en la hoja.
+    const plantilla = document.createElement("template");
+    plantilla.innerHTML = sustituyeMarcadores(baseHtml, campos, valores);
+    limpiaHtmlPintado(plantilla.content);
+    el.replaceChildren(plantilla.content);
+  }, [baseHtml, campos, valores]);
+
   const entradas = useMemo(() => {
     const vistas = new Map<string, CampoDetectado[]>();
     for (const c of campos) {
@@ -269,102 +322,153 @@ function RevisionDeDocumento({ employeeId, datos, item, onDone, onCancel }: {
   }, [campos]);
 
   const faltan = faltanCampos(campos, valores);
-  const mapa = useMemo(() => mapaDeMarcadores(datos, HOY(), lang), [datos, lang]);
+  const progreso = progresoDeCampos(entradas.map(([k]) => k), valores);
+  const pct = progreso.total ? Math.round((progreso.hechos / progreso.total) * 100) : 100;
+  const puedeSalir = !!bytes && revisado && faltan.length === 0 && !busy;
 
-  // 2) Vista previa del documento ya rellenado.
-  useEffect(() => {
-    if (!bytes || !esDocx || !vistaRef.current) return;
-    const cuerpo = vistaRef.current;
-    let vivo = true;
-    (async () => {
-      const preparado = preparaDocumento(bytes, valores, mapa);
-      cuerpo.replaceChildren();
-      if (!vivo) return;
-      await pintaDocx(preparado, cuerpo);
-    })().catch(() => { if (vivo) cuerpo.textContent = t("The preview could not be drawn.", "No se pudo dibujar la vista previa."); });
-    return () => { vivo = false; };
-  }, [bytes, valores, esDocx, mapa, t]);
+  const cambia = (clave: string, v: string) => setValores((prev) => ({ ...prev, [clave]: v }));
 
-  const confirma = async () => {
-    if (!bytes || faltan.length || !revisado) return;
+  /** Un clic en un valor de la hoja enfoca su casilla del formulario. */
+  const alClicarHoja = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>("[data-entrada]");
+    if (!el) return;
+    const input = formRef.current?.querySelector<HTMLInputElement>(`[data-campo="${el.dataset.entrada}"] input`);
+    if (input) { input.focus(); input.scrollIntoView({ block: "center", behavior: "smooth" }); }
+  };
+
+  const guardaCampos = async (): Promise<boolean> => {
+    if (!campos.length) return true;
+    const r = await saveReviewedFields({
+      employeeId, templateId: fila.documento.id, variantId: variante.id, variantVersion: variante.version, values: valores,
+    });
+    if (!r.ok) { notify(mensajeDeError(r.message)); return false; }
+    return true;
+  };
+
+  const descarga = async () => {
+    if (!bytes || !puedeSalir) return;
     setBusy(true);
     try {
-      const tienenCampos = campos.length > 0;
-      if (tienenCampos) {
-        const r = await saveReviewedFields({
-          employeeId, templateId: fila.documento.id, variantId: variante.id, variantVersion: variante.version, values: valores,
-        });
-        if (!r.ok) { notify(mensajeDeError(r.message)); setBusy(false); return; }
-      }
-      const final = esDocx ? preparaDocumento(bytes, valores, mapa) : bytes;
-      if (accion === "imprimir") await imprimeArchivo(final, variante.file_name);
-      else descargaArchivo(final, variante.file_name);
+      if (!(await guardaCampos())) { setBusy(false); return; }
+      descargaArchivo(esDocx ? preparaDocumento(bytes, valores, mapa) : bytes, variante.file_name);
       await onDone(true);
-    } catch (e) {
-      notify(mensajeDeError(e));
-      setBusy(false);
-    }
+    } catch (e) { notify(mensajeDeError(e)); setBusy(false); }
   };
+
+  const imprime = async () => {
+    if (!bytes || !puedeSalir) return;
+    setBusy(true);
+    try {
+      if (!(await guardaCampos())) { setBusy(false); return; }
+      if (esDocx) window.print();
+      else await imprimeArchivo(bytes, variante.file_name);
+      await onDone(true);
+    } catch (e) { notify(mensajeDeError(e)); setBusy(false); }
+  };
+
+  const titulo = t(`Review & print: ${fila.documento.name}`, `Revisar e imprimir: ${fila.documento.name}`);
+  const hoyTexto = fechaLarga(HOY(), lang);
 
   return (
     <div className="overlay" onClick={onCancel}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 1000 }} data-dialogo="revision-documento">
-        <h3>{t("Review before ", "Revisar antes de ")}{accion === "imprimir" ? t("printing", "imprimir") : t("downloading", "descargar")}: {fila.documento.name}</h3>
+      <div className="modal" onClick={(e) => e.stopPropagation()} data-dialogo="revision-documento">
+        <h3>{titulo}</h3>
         <div className="hint">{t("Variant", "Variante")}: <b>{variante.label}</b>{variante.offer_note ? ` · ${variante.offer_note}` : ""}</div>
         {cargaErr && <div className="hint" style={{ color: "var(--red)" }}>{cargaErr}</div>}
+        {htmlErr && <div className="hint" style={{ color: "var(--red)" }}>{t("The preview could not be drawn.", "No se pudo dibujar la vista previa.")} {htmlErr}</div>}
         {!bytes && !cargaErr && <div className="hint">{t("Loading…", "Cargando…")}</div>}
 
         {bytes && (
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(240px, 1fr) minmax(0, 2fr)", gap: 14, marginTop: 10 }}>
-            <div data-campos-del-documento>
-              <b>{t("Information in the document", "Información del documento")}</b>
+          <div className="docs-revision">
+            <section className="docs-formulario" ref={formRef} data-campos-del-documento>
+              <div className="docs-formulario-cab">
+                <b>{t("Employee details for this document", "Datos del empleado para este documento")}</b>
+                {esDocx && progreso.total > 0 && (
+                  <div className="docs-progreso" data-progreso>
+                    <span>{t(`${progreso.hechos} of ${progreso.total} completed`, `${progreso.hechos} de ${progreso.total} completados`)}</span>
+                    <div className="docs-progreso-barra" aria-hidden="true"><div className="docs-progreso-relleno" style={{ width: `${pct}%` }} /></div>
+                  </div>
+                )}
+              </div>
               {!esDocx && <div className="hint">{t("This file has no editable fields. It goes out as it is.", "Este archivo no tiene campos editables. Sale tal cual.")}</div>}
               {esDocx && entradas.length === 0 && <div className="hint">{t("No yellow fields found in this document.", "No hay campos amarillos en este documento.")}</div>}
               {entradas.map(([clave, lista]) => {
                 const obligatorio = lista.some((c) => c.clave === "weekly_hours" || c.clave === "pay_rate");
                 const etiqueta = etiquetasDeCampos(lista).join(" / ");
                 const pista = lista[0].original;
+                const tipo = lista[0].clave;
+                const v = valores[clave] ?? "";
+                const id = `docs-campo-${clave}`;
                 return (
-                  <div key={clave} style={{ marginTop: 10 }} data-campo={clave}>
-                    <label>{etiqueta}{obligatorio ? " *" : ""}</label>
-                    <input value={valores[clave] ?? ""} placeholder={obligatorio ? `${t("e.g.", "p. ej.")} ${pista}` : pista}
-                      onChange={(e) => setValores({ ...valores, [clave]: e.target.value })} />
-                    {obligatorio && <div className="hint">{t("Typed by hand each time; not taken from the file.", "Se escribe a mano cada vez; no viene del expediente.")}</div>}
+                  <div key={clave} className="docs-campo-form" data-campo={clave}>
+                    <label htmlFor={id}>{etiqueta}{obligatorio ? " *" : ""}</label>
+                    {tipo === "start_date" ? (
+                      <input id={id} type="date" value={isoDeMDY(v)} onChange={(e) => cambia(clave, mdyDeIso(e.target.value))} />
+                    ) : tipo === "pay_rate" ? (
+                      <div className="docs-moneda">
+                        <span aria-hidden="true">$</span>
+                        <input id={id} inputMode="decimal" value={pagoSinSigno(v)} placeholder={obligatorio ? `${t("e.g.", "p. ej.")} ${pagoSinSigno(pista)}` : pagoSinSigno(pista)}
+                          onChange={(e) => cambia(clave, pagoConSigno(e.target.value))} />
+                      </div>
+                    ) : tipo === "weekly_hours" ? (
+                      <input id={id} type="number" min={0} step="any" inputMode="decimal" value={v}
+                        placeholder={obligatorio ? `${t("e.g.", "p. ej.")} ${pista}` : pista}
+                        onChange={(e) => cambia(clave, e.target.value)} />
+                    ) : (
+                      <input id={id} value={v} placeholder={pista} onChange={(e) => cambia(clave, e.target.value)} />
+                    )}
+                    <div className="docs-ayuda">
+                      {obligatorio && <span className="docs-requerido">{t("Required", "Obligatorio")} · </span>}
+                      {ayudaDeCampo(tipo, t)}
+                    </div>
                   </div>
                 );
               })}
-              {faltan.length > 0 && <div className="hint" style={{ color: "var(--red)", marginTop: 8 }} data-faltan>{t("Fill in the required fields (*).", "Llene los campos obligatorios (*).")}</div>}
-            </div>
+              {faltan.length > 0 && <div className="docs-faltan" data-faltan>{t("Fill in the required fields (*).", "Llene los campos obligatorios (*).")}</div>}
+            </section>
 
-            <div>
-              <b>{t("Preview", "Vista previa")}</b>
-              <div ref={vistaRef} data-vista-previa style={{ maxHeight: "52vh", overflow: "auto", border: "1px solid var(--line, #ddd)", borderRadius: 8, background: "var(--paper, #fff)", marginTop: 6 }} />
-            </div>
+            <section className="docs-vista-columna">
+              <div className="docs-vista-cab">
+                <b>{t("Document preview", "Vista previa del documento")}</b>
+                {esDocx && <span className="hint">{t("Click a value to edit it.", "Haga clic en un valor para cambiarlo.")}</span>}
+              </div>
+              {esDocx ? (
+                <div className="docs-vista" data-vista-previa>
+                  {/* La hoja del documento: encabezado de la empresa como en la cotización, el texto, y el pie con la fecha. */}
+                  <div className="docs-hoja" data-hoja>
+                    <div className="docs-hoja-encabezado">
+                      <div className="docs-hoja-empresa">{ENCABEZADO}</div>
+                      <div className="docs-hoja-titulo">{fila.documento.name}</div>
+                    </div>
+                    <div ref={cuerpoRef} className="docs-hoja-cuerpo" onClick={alClicarHoja} data-cuerpo-documento />
+                    <div className="docs-hoja-pie">{fila.documento.name} · {hoyTexto}</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="docs-vista"><div className="hint">{t("Preview not available for this file type.", "Sin vista previa para este tipo de archivo.")}</div></div>
+              )}
+            </section>
           </div>
         )}
 
-        <label style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 14, textTransform: "none", fontWeight: 500 }}>
-          <input type="checkbox" checked={revisado} onChange={(e) => setRevisado(e.target.checked)} data-revisado />
-          {t("I reviewed the information", "He revisado la información")}
-        </label>
-        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <button className="btn btn-ghost" disabled={busy} onClick={onCancel}>{t("Cancel", "Cancelar")}</button>
-          <button className="btn btn-ghost" data-accion="revision-descargar" disabled={!bytes || !revisado || faltan.length > 0 || busy}
-            onClick={async () => { setBusy(true); await saveIfNeeded(); if (bytes) descargaArchivo(esDocx ? preparaDocumento(bytes, valores, mapa) : bytes, variante.file_name); await onDone(true); }}>
-            ⬇ {t("Download .docx", "Descargar")}
-          </button>
-          <button className="btn btn-primary" data-accion="revision-confirmar" disabled={!bytes || !revisado || faltan.length > 0 || busy}
-            onClick={() => void confirma()}>
-            {accion === "imprimir"
-              ? `✓ ${t("Information is correct — Print", "La información es correcta — Imprimir")}`
-              : `✓ ${t("Information is correct — Download", "La información es correcta — Descargar")}`}
-          </button>
+        <div className="docs-barra" data-barra-revision>
+          <label className="docs-revisado">
+            <input type="checkbox" checked={revisado} onChange={(e) => setRevisado(e.target.checked)} data-revisado />
+            {t("I reviewed the information", "He revisado la información")}
+          </label>
+          <div className="docs-barra-acciones">
+            <button className="btn btn-ghost" disabled={busy} onClick={onCancel}>{t("Cancel", "Cancelar")}</button>
+            <button className="btn btn-ghost" data-accion="revision-descargar" disabled={!puedeSalir}
+              onClick={() => void descarga()}>
+              ⬇ {esDocx ? t("Download .docx", "Descargar .docx") : t("Download", "Descargar")}
+            </button>
+            <button className="btn btn-primary" data-accion="revision-imprimir" disabled={!puedeSalir || (esDocx && baseHtml === null)}
+              onClick={() => void imprime()}>
+              🖨 {t("Print", "Imprimir")}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
-
-  async function saveIfNeeded() {
-    if (campos.length) await saveReviewedFields({ employeeId, templateId: fila.documento.id, variantId: variante.id, variantVersion: variante.version, values: valores });
-  }
 }

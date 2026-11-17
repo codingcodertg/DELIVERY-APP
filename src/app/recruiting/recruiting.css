@@ -45,6 +45,9 @@
   --green-deep: #15803d;       /* fecha de entrevista presencial */
   --surface-soft: #f8fafc;     /* bloques de respuesta de registro */
   --tint-neutral: #eee;        /* vacante cerrada */
+  /* Papel de la hoja del documento (revision e impresion): blanco y tinta fijos en los dos temas. */
+  --hoja-papel: #ffffff;
+  --hoja-tinta: #111111;
 
   font-family: 'Inter', system-ui, sans-serif;
   background: var(--paper);
@@ -300,6 +303,8 @@
 :root[data-theme="dark"] .recruiting-module {
   --ink: #e8ecf3;
   --ink-soft: #a3b0c4;
+  --hoja-papel: #ffffff;
+  --hoja-tinta: #111111;
   --paper: #11161f;
   --card: #18202c;
   --line: #2b3646;
@@ -485,4 +490,127 @@
   .recruiting-module [data-pantalla="candidatos"] .filters .chip { flex: 0 0 auto; }
   .recruiting-module .cand-row { padding: 8px 10px; }
   .recruiting-module .cand-row .star { min-width: 32px; min-height: 32px; }
+}
+
+/* ---------------------------------------------------------------------------
+   Documentos de ingreso (D-1064, el dueño): tarjetas en el expediente, revisión con hoja, impresión de la hoja.
+   Sin colores a pelo: todo sale de tokens (la prueba de colores cuenta lo suelto). La hoja del documento usa
+   --hoja-papel / --hoja-tinta, que son blancos en los dos temas a propósito: es papel, no tarjeta.
+   --------------------------------------------------------------------------- */
+.recruiting-module .docs-cabecera { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+.recruiting-module .docs-lista { display: grid; gap: 10px; }
+.recruiting-module .docs-tarjeta { border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 14px 16px; display: grid; gap: 10px; min-width: 0; }
+.recruiting-module .docs-tarjeta-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.recruiting-module .docs-titulo-bloque { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; flex: 1 1 200px; }
+.recruiting-module .docs-titulo { font-family: 'Archivo', system-ui, sans-serif; font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.3; overflow-wrap: anywhere; }
+.recruiting-module .docs-descripcion { font-size: 13px; color: var(--ink-soft); line-height: 1.45; overflow-wrap: anywhere; }
+.recruiting-module .docs-estado { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; background: var(--track); color: var(--ink-soft); }
+.recruiting-module .docs-estado[data-estado="pending"] { background: var(--amber-soft); color: var(--amber-text); }
+.recruiting-module .docs-estado[data-estado="sent"] { background: var(--accent-soft); color: var(--accent); }
+.recruiting-module .docs-estado[data-estado="signed"] { background: var(--green-soft); color: var(--green); }
+.recruiting-module .docs-ajustes { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.recruiting-module .docs-control { display: grid; gap: 4px; min-width: 0; flex: 0 1 220px; }
+.recruiting-module .docs-control label { text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 600; margin: 0; }
+.recruiting-module .docs-control select { width: 100%; padding: 6px 10px; font-size: 13px; }
+.recruiting-module .docs-variante-texto { font-size: 13px; color: var(--ink-soft); padding-bottom: 8px; overflow-wrap: anywhere; min-width: 0; }
+.recruiting-module .docs-variante-texto b { color: var(--ink); }
+.recruiting-module .docs-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.recruiting-module .docs-acciones .btn { max-width: 100%; }
+.recruiting-module .docs-meta { font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; display: grid; gap: 2px; }
+.recruiting-module .docs-meta .hint { font-size: 12px; }
+@media (max-width: 640px) {
+  .recruiting-module .docs-tarjeta { padding: 12px; }
+  .recruiting-module .docs-control { flex: 1 1 100%; }
+  .recruiting-module .docs-acciones .btn { flex: 1 1 auto; }
+}
+
+/* Revisión: formulario a la izquierda, hoja a la derecha; en teléfono, formulario arriba y hoja debajo. */
+.recruiting-module .modal[data-dialogo="revision-documento"] { max-width: 1080px; }
+.recruiting-module .docs-revision { display: grid; grid-template-columns: minmax(250px, 340px) minmax(0, 1fr); gap: 18px; margin-top: 12px; align-items: start; }
+.recruiting-module .docs-formulario { display: grid; gap: 14px; min-width: 0; }
+.recruiting-module .docs-formulario-cab { display: grid; gap: 6px; }
+.recruiting-module .docs-formulario-cab > b { font-size: 14px; color: var(--ink); }
+.recruiting-module .docs-progreso { display: grid; gap: 4px; font-size: 12px; color: var(--ink-soft); }
+.recruiting-module .docs-progreso-barra { height: 6px; border-radius: 999px; background: var(--track); overflow: hidden; }
+.recruiting-module .docs-progreso-relleno { height: 100%; background: var(--accent); border-radius: 999px; transition: width .2s; }
+.recruiting-module .docs-campo-form { display: grid; gap: 4px; min-width: 0; }
+.recruiting-module .docs-campo-form > label { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 700; color: var(--ink); margin: 0; }
+.recruiting-module .docs-campo-form input { font-size: 14px; }
+.recruiting-module .docs-moneda { position: relative; }
+.recruiting-module .docs-moneda > span { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--ink-soft); pointer-events: none; }
+.recruiting-module .docs-moneda input { padding-left: 24px; }
+.recruiting-module .docs-ayuda { font-size: 12px; color: var(--ink-soft); line-height: 1.4; overflow-wrap: anywhere; }
+.recruiting-module .docs-requerido { color: var(--red); font-weight: 700; }
+.recruiting-module .docs-faltan { font-size: 13px; color: var(--red); font-weight: 600; }
+.recruiting-module .docs-vista-columna { display: grid; gap: 8px; min-width: 0; }
+.recruiting-module .docs-vista-cab { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.recruiting-module .docs-vista-cab > b { font-size: 14px; color: var(--ink); }
+.recruiting-module .docs-vista { border: 1px solid var(--line); border-radius: 10px; background: var(--paper); padding: 16px; min-width: 0; }
+.recruiting-module .docs-vista > .hint { padding: 24px 8px; text-align: center; }
+
+/* La hoja: papel de la app, como la cotización (estimator.css, .hoja-cliente), con la letra tecleada de la cotización. */
+.recruiting-module .docs-hoja {
+  background: var(--hoja-papel); color: var(--hoja-tinta); max-width: 760px; margin: 0 auto; padding: 36px 40px;
+  font-family: "Courier New", Courier, monospace; font-size: 13px; line-height: 1.45; border: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.recruiting-module .docs-hoja-encabezado { margin-bottom: 18px; }
+.recruiting-module .docs-hoja-empresa { font-size: 18px; font-weight: 700; letter-spacing: .08em; }
+.recruiting-module .docs-hoja-titulo { font-size: 14px; font-weight: 700; letter-spacing: .03em; margin-top: 6px; text-transform: uppercase; }
+.recruiting-module .docs-hoja-cuerpo h1, .recruiting-module .docs-hoja-cuerpo h2, .recruiting-module .docs-hoja-cuerpo h3 { font-family: inherit; font-weight: 700; margin: 14px 0 6px; line-height: 1.3; color: var(--hoja-tinta); }
+.recruiting-module .docs-hoja-cuerpo h1 { font-size: 16px; }
+.recruiting-module .docs-hoja-cuerpo h2 { font-size: 14px; }
+.recruiting-module .docs-hoja-cuerpo h3 { font-size: 13px; }
+.recruiting-module .docs-hoja-cuerpo p { margin: 0 0 8px; min-height: 1em; }
+.recruiting-module .docs-hoja-cuerpo ul, .recruiting-module .docs-hoja-cuerpo ol { margin: 0 0 10px 22px; }
+.recruiting-module .docs-hoja-cuerpo li { margin: 2px 0; }
+.recruiting-module .docs-hoja-cuerpo table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; }
+.recruiting-module .docs-hoja-cuerpo th { text-align: left; border-bottom: 1px dashed var(--hoja-tinta); padding: 4px 6px; font-weight: 700; }
+.recruiting-module .docs-hoja-cuerpo td { border-bottom: 1px dotted var(--ink-soft); padding: 6px; vertical-align: top; }
+.recruiting-module .docs-hoja-cuerpo img { max-width: 100%; height: auto; }
+.recruiting-module .docs-hoja-pie { margin-top: 24px; padding-top: 8px; border-top: 1px dotted var(--ink-soft); font-size: 11px; color: var(--ink-soft); }
+/* El valor de un campo: un chip tenue, no el amarillo de Word. Con clic, lleva a su casilla. */
+.recruiting-module .docs-hoja .docs-campo { display: inline; cursor: pointer; background: var(--accent-soft); color: var(--hoja-tinta); border-bottom: 1px solid var(--accent); border-radius: 3px; padding: 0 3px; }
+.recruiting-module .docs-hoja .docs-campo:hover { background: var(--accent); color: var(--hoja-papel); }
+.recruiting-module .docs-hoja .docs-campo-vacio { background: transparent; border: 1px dashed var(--gray); border-radius: 3px; padding: 0 14px; min-width: 60px; display: inline-block; }
+.recruiting-module .docs-hoja .docs-campo-rotulo { font-size: 11px; color: var(--gray); }
+@media (max-width: 640px) {
+  .recruiting-module .docs-hoja { padding: 18px 14px; font-size: 12px; }
+}
+
+/* La barra de abajo queda a la vista mientras se desplaza la revisión. */
+.recruiting-module .docs-barra { position: sticky; bottom: -20px; margin: 16px -20px -20px; padding: 12px 20px; background: var(--card); border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; z-index: 2; }
+.recruiting-module .docs-revisado { display: flex; align-items: center; gap: 8px; text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 600; color: var(--ink); margin: 0; cursor: pointer; }
+.recruiting-module .docs-revisado input { width: 18px; height: 18px; margin: 0; padding: 0; }
+.recruiting-module .docs-barra-acciones { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+@media (max-width: 760px) {
+  .recruiting-module .docs-revision { grid-template-columns: minmax(0, 1fr); }
+  .recruiting-module .modal[data-dialogo="revision-documento"] { padding: 16px; }
+  .recruiting-module .docs-barra { margin: 14px -16px -16px; padding: 10px 16px; }
+  .recruiting-module .docs-barra-acciones { width: 100%; }
+  .recruiting-module .docs-barra-acciones .btn { flex: 1 1 auto; }
+  .recruiting-module .docs-vista { padding: 10px; }
+}
+
+/* Chips de los campos detectados en la biblioteca de documentos. */
+.recruiting-module .docs-detectados { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.recruiting-module .docs-chip-campo { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--accent-soft); color: var(--accent); }
+
+/* Impresión: SOLO la hoja, con el mismo mecanismo que la cotización (estimator.css): lo demás se esconde, y los ancestros
+   de la hoja se quitan del flujo para que pagine como un documento. El margen de página lo lleva la hoja (sin cabecera
+   ni pie del navegador). El pie se repite en cada página (position fixed) con la fecha y el nombre del documento. */
+@media print {
+  body:has(.docs-hoja) * { visibility: hidden !important; }
+  body:has(.docs-hoja) .docs-hoja, body:has(.docs-hoja) .docs-hoja * { visibility: visible !important; }
+  body:has(.docs-hoja) *:not(.docs-hoja):not(.docs-hoja *):not(:has(.docs-hoja)) { display: none !important; }
+  body:has(.docs-hoja) :has(.docs-hoja) { position: static !important; overflow: visible !important; height: auto !important; max-height: none !important; background: none !important; box-shadow: none !important; border: 0 !important; padding: 0 !important; margin: 0 !important; }
+  /* La rejilla de la revisión (formulario | hoja) se vuelve un bloque: si no, la hoja cae en la columna de 340 px. */
+  .recruiting-module .docs-revision, .recruiting-module .docs-vista-columna, .recruiting-module .docs-vista { display: block !important; grid-template-columns: none !important; border: 0 !important; padding: 0 !important; background: none !important; }
+  .recruiting-module .docs-hoja { position: static; width: 100%; max-width: none; border: 0; box-shadow: none; padding: 16mm 16mm 22mm; margin: 0; }
+  .recruiting-module .docs-hoja .docs-hoja-pie { position: fixed; bottom: 0; left: 16mm; right: 16mm; margin: 0; padding: 4mm 0 6mm; background: var(--hoja-papel); }
+  .recruiting-module .docs-hoja .docs-campo { background: none; border: 0; padding: 0; color: var(--hoja-tinta); }
+  .recruiting-module .docs-hoja .docs-campo-vacio { border: 0; padding: 0; min-width: 0; display: inline; }
+  .recruiting-module .docs-hoja .docs-campo-vacio .docs-campo-rotulo { display: none; }
+  .recruiting-module .docs-hoja .docs-hoja-cuerpo td, .recruiting-module .docs-hoja .docs-hoja-cuerpo th { break-inside: avoid; }
+  @page { margin: 0; }
 }

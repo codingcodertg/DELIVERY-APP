@@ -171,23 +171,34 @@ function reescribeRun(run: string, texto: string | null): string {
 }
 
 /**
- * Escribe los valores en los campos amarillos: el valor va en el primer run del grupo, los demás se vacían, y el
- * amarillo se quita. Lo que no es campo queda igual, byte a byte.
- *
- * `valores` se indexa por la CLAVE DE ENTRADA (`claveDeEntrada`): «position» vale para «Applies to» y «Position» a la vez.
- * Un campo sin valor conserva su texto original.
+ * El marcador que ocupa el campo número `n` (1, 2, 3…, en el orden de `camposDeXml`) cuando el documento se convierte a
+ * HTML para verlo. Caracteres que Word no usa en un texto normal, así que no se confunden con nada del documento.
  */
-export function aplicaValoresAXml(xml: string, valores: Record<string, string>): string {
+export function marcadorDeCampo(n: number): string {
+  return `⟦F${n}⟧`;
+}
+
+/**
+ * Reescribe cada campo amarillo con el texto que devuelve `texto(campo, n)`, donde `n` es su número de orden en el
+ * documento (el mismo que `marcadorDeCampo`). El texto va en el primer run del grupo, los demás se vacían y el amarillo
+ * se quita. Lo que no es campo queda igual, byte a byte.
+ */
+export function reemplazaCamposEnXml(
+  xml: string,
+  texto: (campo: { id: string; original: string; etiqueta: string; clave: ClaveDeCampo }, n: number) => string,
+): string {
   let indice = -1;
+  let n = 0;
   return xml.replace(RE_PARRAFO, (parrafo) => {
     indice++;
     const { runs, grupos } = gruposDelParrafo(parrafo, indice);
     if (!grupos.length) return parrafo;
     const nuevoXml = new Map<number, string>();
     for (const g of grupos) {
-      const valor = valores[claveDeEntrada(g)] ?? g.original;
-      g.runs.forEach((ri, n) => {
-        nuevoXml.set(ri, reescribeRun(runs[ri].xml, n === 0 ? valor : null));
+      n++;
+      const valor = texto(g, n);
+      g.runs.forEach((ri, k) => {
+        nuevoXml.set(ri, reescribeRun(runs[ri].xml, k === 0 ? valor : null));
       });
     }
     // Se reconstruye el párrafo cortando por posiciones, para no tocar nada fuera de los runs del campo.
@@ -203,12 +214,34 @@ export function aplicaValoresAXml(xml: string, valores: Record<string, string>):
   });
 }
 
+/**
+ * Escribe los valores en los campos amarillos. `valores` se indexa por la CLAVE DE ENTRADA (`claveDeEntrada`):
+ * «position» vale para «Applies to» y «Position» a la vez. Un campo sin valor conserva su texto original.
+ */
+export function aplicaValoresAXml(xml: string, valores: Record<string, string>): string {
+  return reemplazaCamposEnXml(xml, (g) => valores[claveDeEntrada(g)] ?? g.original);
+}
+
+/** El XML con un marcador ⟦Fn⟧ en cada campo amarillo (ver `marcadorDeCampo`). Para verlo convertido a HTML. */
+export function marcaCamposAXml(xml: string): string {
+  return reemplazaCamposEnXml(xml, (_g, n) => marcadorDeCampo(n));
+}
+
 /** Un .docx con los valores puestos. Devuelve los bytes nuevos; el resto del archivo viaja igual. */
 export function aplicaValoresADocx(bytes: ArrayBuffer | Uint8Array, valores: Record<string, string>): Uint8Array {
+  return reescribeDocumentXml(bytes, (xml) => aplicaValoresAXml(xml, valores));
+}
+
+/** Un .docx con un marcador ⟦Fn⟧ en cada campo amarillo. Los bytes nuevos; el resto del archivo viaja igual. */
+export function marcaCamposDocx(bytes: ArrayBuffer | Uint8Array): Uint8Array {
+  return reescribeDocumentXml(bytes, marcaCamposAXml);
+}
+
+function reescribeDocumentXml(bytes: ArrayBuffer | Uint8Array, cambia: (xml: string) => string): Uint8Array {
   const zip = new PizZip(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes));
   const f = zip.file("word/document.xml");
   if (!f) throw new Error("No es un .docx: falta word/document.xml");
-  zip.file("word/document.xml", aplicaValoresAXml(f.asText(), valores));
+  zip.file("word/document.xml", cambia(f.asText()));
   return zip.generate({ type: "uint8array", compression: "DEFLATE" });
 }
 

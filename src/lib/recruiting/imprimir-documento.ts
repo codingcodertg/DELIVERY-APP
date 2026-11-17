@@ -1,19 +1,23 @@
 /**
- * Relleno, vista previa e impresión de los documentos de ingreso, en el NAVEGADOR.
+ * Relleno, vista y impresión de los documentos de ingreso, en el NAVEGADOR.
  *
  * Orden del relleno: primero los marcadores {{...}} (camino secundario, con docxtemplater), luego los campos amarillos
  * (camino principal, `campos-de-documento.ts`). Un archivo sin ninguno sale igual, byte a byte.
  *
- * Solo para uso en cliente: `docx-preview` pinta en el DOM y la impresión abre un iframe. La lógica pura está en
- * `campos-de-documento.ts` y `plantillas-de-documentos.ts`, que es lo que se prueba.
+ * La vista de revisión NO pinta el .docx con su formato de Word: lo convierte a HTML limpio con `mammoth` (títulos,
+ * listas, negritas, tablas) y lo presenta como una hoja propia de la app, igual que la cotización (ver `estimator.css`).
+ * Los campos amarillos viajan como marcadores ⟦Fn⟧ durante la conversión y luego son chips (`vista-de-documento.ts`).
+ *
+ * Solo para uso en cliente: el HTML se mete en el DOM y la impresión usa `window.print()` sobre la hoja. La lógica pura
+ * está en `campos-de-documento.ts`, `vista-de-documento.ts` y `plantillas-de-documentos.ts`, que es lo que se prueba.
  */
 
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
-import { renderAsync } from "docx-preview";
+import mammoth from "mammoth";
 import { contieneMarcadores } from "./plantillas-de-documentos";
 import { extensionDe, mimePorNombre } from "./plantillas-de-documentos";
-import { aplicaValoresADocx } from "./campos-de-documento";
+import { aplicaValoresADocx, marcaCamposDocx } from "./campos-de-documento";
 
 /** Sustituye los {{marcadores}} de un .docx. Sin marcadores, devuelve los mismos bytes. */
 export function rellenaMarcadores(bytes: Uint8Array, mapa: Record<string, string>): Uint8Array {
@@ -30,20 +34,31 @@ export function preparaDocumento(bytes: Uint8Array, valores: Record<string, stri
   return aplicaValoresADocx(rellenaMarcadores(bytes, mapa), valores);
 }
 
-/** Pinta un .docx en un contenedor (vista previa o impresión). */
-export async function pintaDocx(bytes: Uint8Array, cuerpo: HTMLElement, cabeza?: HTMLElement): Promise<void> {
-  await renderAsync(new Blob([bytes as BlobPart], { type: mimePorNombre("x.docx") }), cuerpo, cabeza, {
-    inWrapper: true,
-    breakPages: true,
-  });
-  limpiaHtmlPintado(cuerpo);
+function aArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
 
 /**
- * Un .docx lo sube un HR manager, pero se pinta en el mismo origen que la app: después de pintarlo se quitan scripts,
- * marcos y atributos on*, y los enlaces que no sean http(s) o mailto (p. ej. «javascript:»).
+ * El .docx convertido a HTML, con sus campos amarillos todavía como marcadores ⟦Fn⟧ (el orden es el de `camposDeDocx`).
+ * Los {{marcadores}} ya van rellenos con `mapa`. Los valores de los campos se ponen después, con `sustituyeMarcadores`,
+ * así que cambiar un valor no vuelve a convertir el documento.
  */
-export function limpiaHtmlPintado(raiz: HTMLElement): void {
+export async function htmlDeDocx(bytes: Uint8Array, mapa: Record<string, string>): Promise<string> {
+  const marcado = marcaCamposDocx(bytes);
+  const relleno = rellenaMarcadores(marcado, mapa);
+  // `ignoreEmptyParagraphs: false`: los párrafos vacíos del documento son espacio en blanco, y se conservan.
+  // En el navegador mammoth lee un ArrayBuffer; en Node (pruebas) lee un Buffer.
+  const origen = typeof window === "undefined" ? { buffer: Buffer.from(relleno) } : { arrayBuffer: aArrayBuffer(relleno) };
+  const { value } = await mammoth.convertToHtml(origen, { ignoreEmptyParagraphs: false });
+  return value;
+}
+
+/**
+ * Un HTML que viene de un .docx se pinta en el mismo origen que la app: se quitan scripts, marcos y atributos on*, y los
+ * enlaces que no sean http(s), mailto o ancla (p. ej. «javascript:»). `mammoth` ya escapa el texto; esto es la segunda
+ * barrera, sobre el DOM real.
+ */
+export function limpiaHtmlPintado(raiz: ParentNode): void {
   raiz.querySelectorAll("script, iframe, object, embed").forEach((el) => el.remove());
   raiz.querySelectorAll("*").forEach((el) => {
     for (const a of Array.from(el.attributes)) {
@@ -75,9 +90,8 @@ function esperaCarga(iframe: HTMLIFrameElement): Promise<void> {
 }
 
 /**
- * Abre el diálogo de impresión del archivo, sin salir de la pantalla y sin abrir Word:
- *   · .docx → se pinta en un iframe oculto con docx-preview y se imprime ese iframe;
- *   · PDF y imagen → se cargan en un iframe oculto y se imprimen.
+ * Abre el diálogo de impresión de un archivo que NO es .docx (PDF o imagen), sin salir de la pantalla: se carga en un
+ * iframe oculto y se imprime ese iframe. Los .docx se imprimen desde su hoja en la propia pantalla (`window.print()`).
  */
 export async function imprimeArchivo(bytes: Uint8Array, nombre: string): Promise<void> {
   const ext = extensionDe(nombre);
@@ -89,24 +103,17 @@ export async function imprimeArchivo(bytes: Uint8Array, nombre: string): Promise
   const doc = iframe.contentDocument;
   if (!win || !doc) { iframe.remove(); throw new Error("No se pudo preparar la impresión."); }
 
-  if (ext === "docx") {
-    doc.open();
-    doc.write("<!doctype html><html><head><meta charset=\"utf-8\"></head><body style=\"margin:0\"></body></html>");
-    doc.close();
-    await pintaDocx(bytes, doc.body, doc.head);
+  const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: mimePorNombre(nombre) }));
+  if (ext === "pdf") {
+    iframe.src = url;
+    await esperaCarga(iframe);
   } else {
-    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: mimePorNombre(nombre) }));
-    if (ext === "pdf") {
-      iframe.src = url;
-      await esperaCarga(iframe);
-    } else {
-      doc.open();
-      doc.write(`<!doctype html><html><body style="margin:0"><img src="${url}" style="width:100%"></body></html>`);
-      doc.close();
-      await new Promise((r) => setTimeout(r, 400));
-    }
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    doc.open();
+    doc.write(`<!doctype html><html><body style="margin:0"><img src="${url}" style="width:100%"></body></html>`);
+    doc.close();
+    await new Promise((r) => setTimeout(r, 400));
   }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
   await new Promise((r) => setTimeout(r, 250));
   win.focus();
   win.print();
