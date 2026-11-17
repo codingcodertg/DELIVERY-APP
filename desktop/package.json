@@ -29,6 +29,7 @@
       "origenes.js",
       "protegidas.js",
       "dispositivo.js",
+      "url-externa.js",
       "build/icon.ico"
     ],
     "win": {

@@ -4,11 +4,11 @@ import { useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { PasswordInput } from "@/components/PasswordInput";
 import {
-  MIN_CONTRASENA_NUEVA,
   mensajeCambioObligatorio,
   validaNuevaObligatoria,
   type CodigoCambioObligatorio,
 } from "@/lib/cambio-obligatorio";
+import { reglaTexto } from "@/lib/contrasena-regla";
 import { mensajeDeContrasena, type CodigoContrasena, type MotivoDebil } from "@/lib/profile-password";
 
 /**
@@ -50,7 +50,7 @@ export function CambioObligatorioForm({ nombre, destino, demo = false }: { nombr
         return;
       }
       if (d.codigo === "no_hace_falta") { window.location.href = destino; return; }
-      const propios: string[] = ["temporal", "corta", "no_coinciden", "suplantando"];
+      const propios: string[] = ["corta", "sin_letra", "sin_digito", "no_coinciden", "suplantando"];
       setMsg((tr) =>
         d.codigo && propios.includes(d.codigo)
           ? mensajeCambioObligatorio(d.codigo as CodigoCambioObligatorio, tr)
@@ -85,9 +85,7 @@ export function CambioObligatorioForm({ nombre, destino, demo = false }: { nombr
           <div style={{ marginBottom: 14 }}>
             <label>{t("New password", "Contraseña nueva")}</label>
             <PasswordInput value={nueva} onChange={setNueva} autoComplete="new-password" autoFocus />
-            <div className="hint" style={{ marginTop: 4 }}>
-              {t(`At least ${MIN_CONTRASENA_NUEVA} characters.`, `Al menos ${MIN_CONTRASENA_NUEVA} caracteres.`)}
-            </div>
+            <div className="hint" style={{ marginTop: 4 }}>{reglaTexto(t)}</div>
           </div>
           <div style={{ marginBottom: 16 }}>
             <label>{t("Repeat it", "Repítela")}</label>

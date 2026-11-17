@@ -10,12 +10,14 @@ const h = vi.hoisted(() => ({
   envios: [] as unknown[],
   creados: 0,
   sesion: true,
+  // Sesión del que llama (perfil con rol y nombre): la que lee la ruta con su propio cliente.
+  sesionDb: null as unknown as { from: (t: string) => unknown },
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => { h.creados++; return h.db; } }));
 vi.mock("@/lib/api-auth", () => ({
   requireUser: async () => (h.sesion
-    ? { ok: true, user: { id: "u1" }, supabase: null }
+    ? { ok: true, user: { id: "u1" }, supabase: h.sesionDb }
     : { ok: false, response: NextResponse.json({ error: "Not signed in." }, { status: 401 }) }),
 }));
 vi.mock("@/lib/mensajeria", async (orig) => {
@@ -85,16 +87,28 @@ describe("en camino", () => {
     expect(r.status).toBe(400);
     expect(h.creados).toBe(0);
   });
-  it("con sesión: rehace la ruta y avisa a la siguiente, por el stub", async () => {
+  it("con sesión: rehace la ruta y avisa a la siguiente, por el stub (el chofer asignado)", async () => {
     const base = { order_no: 1, order_type: "Customer", assigned_driver: "Uno", delivery_date: "2026-09-29", is_training: false, notify_pref: "both", delivery_windows: null, morning_priority: false, route_miles: null };
     h.db = baseFalsa({ settings: [AJUSTES], deliveries: [
       { ...base, id: "11111111-1111-4111-8111-111111111111", stage: "delivered", route_seq: 1, delivery_phone: "9565550101" },
       { ...base, id: "22222222-2222-4222-8222-222222222222", stage: "picked_up", route_seq: 2, delivery_phone: "9565550102" },
     ] }) as never;
+    h.sesionDb = baseFalsa({ profiles: [{ id: "u1", role: "driver", full_name: "Uno" }] }) as never;
     const r = await enCamino(new Request("https://rtg-hub.vercel.app/api/avisos-cliente/en-camino", { method: "POST", body: JSON.stringify({ id: "11111111-1111-4111-8111-111111111111" }) }));
     expect(r.status).toBe(200);
     expect((await r.json()).siguiente).toBe("22222222-2222-4222-8222-222222222222");
     expect(h.envios).toHaveLength(1);
+  });
+  it("con sesión de OTRO chofer (no el asignado) y sin rol de oficina: 403, y no se manda nada", async () => {
+    const base = { order_no: 1, order_type: "Customer", assigned_driver: "Uno", delivery_date: "2026-09-29", is_training: false, notify_pref: "both", delivery_windows: null, morning_priority: false, route_miles: null };
+    h.db = baseFalsa({ settings: [AJUSTES], deliveries: [
+      { ...base, id: "11111111-1111-4111-8111-111111111111", stage: "delivered", route_seq: 1, delivery_phone: "9565550101" },
+      { ...base, id: "22222222-2222-4222-8222-222222222222", stage: "picked_up", route_seq: 2, delivery_phone: "9565550102" },
+    ] }) as never;
+    h.sesionDb = baseFalsa({ profiles: [{ id: "u1", role: "driver", full_name: "Dos" }] }) as never;
+    const r = await enCamino(new Request("https://rtg-hub.vercel.app/api/avisos-cliente/en-camino", { method: "POST", body: JSON.stringify({ id: "11111111-1111-4111-8111-111111111111" }) }));
+    expect(r.status).toBe(403);
+    expect(h.envios).toEqual([]);
   });
 });
 

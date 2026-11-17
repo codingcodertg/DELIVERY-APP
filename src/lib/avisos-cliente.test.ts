@@ -287,7 +287,7 @@ describe("el proveedor: nunca el real en el demo", () => {
   });
   it("/api/notify usa el mismo proveedor (no una copia)", () => {
     const src = leer("src/app/api/notify/route.ts");
-    expect(src).toContain("await proveedorReal.sms(body.to, body.message)");
+    expect(src).toContain("await proveedorReal.sms(destino, body.message)");
     expect(src).not.toContain("api.twilio.com");
   });
   it("origen de los enlaces: el dominio de producción si Vercel lo da, si no el de la petición", () => {

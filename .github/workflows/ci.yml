@@ -52,10 +52,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        # Fijado a SHA (v4 = 11d5960a…, resuelto con git ls-remote). Dependabot sube el SHA y el comentario.
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Node 24 (la version con la que se desarrolla)
-        uses: actions/setup-node@v4
+        # Fijado a SHA (v4 = 49933ea5…, resuelto con git ls-remote).
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
           cache: npm

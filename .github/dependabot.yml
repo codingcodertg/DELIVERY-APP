@@ -1,0 +1,21 @@
+# Dependabot: actualiza dependencias npm (raíz del Hub y la app de escritorio) y las acciones de GitHub
+# fijadas a SHA en .github/workflows. Semanal, para no llenar la bandeja a diario.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "npm"
+    directory: "/desktop"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

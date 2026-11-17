@@ -5,12 +5,14 @@ import { centralWallToUtc } from "@/lib/clockin/tz";
 import { payPeriodDates } from "@/lib/clockin/schedule";
 import { entryMinutes, hrs, summarize, attachLunch, lunchMinutes, type PayEntry, type LunchRow } from "@/lib/clockin/payroll";
 import { businessTimeZone } from "@/lib/timetracker/timezone-server";
+import { celdaSegura } from "@/lib/celda-segura";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function csvCell(v: string | number): string {
-  const s = String(v ?? "");
+  // Un texto que empieza por = + - @ tabulador o retorno se neutraliza (Excel lo abriría como fórmula): ver `celdaSegura`.
+  const s = String(celdaSegura(v));
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 function csv(rows: (string | number)[][]): string {

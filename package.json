@@ -1,6 +1,6 @@
 {
   "name": "rtg-hub",
-  "version": "1.919.0",
+  "version": "1.920.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -36,8 +36,8 @@
     "next": "^15.5.29",
     "pizzip": "^3.3.0",
     "qrcode": "^1.5.4",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
+    "react": "19.0.9",
+    "react-dom": "19.0.9",
     "server-only": "^0.0.1",
     "tailwind-merge": "^3.6.0",
     "three": "^0.187.0",
@@ -62,5 +62,11 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^5",
     "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "zod": ">=4.6.6",
+    "@vercel/oidc": "4.0.9",
+    "postcss": "8.5.33",
+    "uuid": "^11.1.1"
   }
 }

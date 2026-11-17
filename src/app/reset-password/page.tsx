@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { usePrefs } from "@/lib/prefs";
 import { PasswordInput } from "@/components/PasswordInput";
 import { leeFragmentoRecuperacion } from "@/lib/password-recovery";
+import { falloDeRegla, mensajeDeRegla, reglaTexto } from "@/lib/contrasena-regla";
+import { codigoDeFalloAlGuardar, mensajeDeContrasena } from "@/lib/profile-password";
 
 export default function ResetPasswordPage() {
   const supabase = createClient();
@@ -51,8 +53,11 @@ export default function ResetPasswordPage() {
 
   const submit = async () => {
     setMsg("");
-    if (password.length < 6) {
-      setMsg(t("Password must be at least 6 characters.", "La contraseña necesita al menos 6 caracteres."));
+    // La misma regla que el resto del hub, antes de mandar (Supabase la exige igual, y avisa si la contraseña está
+    // filtrada: ese aviso llega abajo, tal cual, con su motivo).
+    const fallo = falloDeRegla(password);
+    if (fallo) {
+      setMsg(mensajeDeRegla(fallo, t));
       setOk(false);
       return;
     }
@@ -60,6 +65,13 @@ export default function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) {
+      // Débil, igual a la anterior o filtrada: se dice QUÉ cambiar, en los dos idiomas (no el texto en inglés de Supabase).
+      const fallo = codigoDeFalloAlGuardar(error);
+      if (fallo.codigo !== "no_guardada") {
+        setMsg(mensajeDeContrasena(fallo.codigo, t, fallo.motivos ?? []));
+        setOk(false);
+        return;
+      }
       // Sin sesión de recuperación —el enlace caducó, o se abrió esta pantalla a mano— se dice qué
       // hacer, no solo que falló.
       setMsg(error.message + " — " + t("Request a new link from the login screen.", "Pide un enlace nuevo desde la pantalla de entrar."));
@@ -83,6 +95,7 @@ export default function ResetPasswordPage() {
             onKeyDown={(e) => e.key === "Enter" && listo && submit()}
             autoComplete="new-password"
           />
+          <div className="hint" style={{ marginTop: 4 }}>{reglaTexto(t)}</div>
         </div>
         <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={submit} disabled={loading || !listo}>
           {loading || !listo ? "..." : t("Update password", "Cambiar contraseña")}

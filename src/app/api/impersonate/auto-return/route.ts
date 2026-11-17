@@ -28,6 +28,14 @@ import { revocarSesionImpersonada } from "@/lib/impersonation-revoke";
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  // Esta ruta cambia de sesión y cierra la de la impersonación: tiene efectos, y se llega por GET porque el middleware
+  // solo puede REDIRIGIR. Por eso se niega, sin tocar nada, la petición que viene de otro sitio: una página ajena que
+  // hace navegar al admin aquí (CSRF por GET). Una redirección del propio middleware o un clic dentro de la app pasan.
+  const sfs = request.headers.get("sec-fetch-site");
+  const origen = request.headers.get("origin");
+  if (sfs === "cross-site" || (origen && origen !== url.origin)) {
+    return new NextResponse("Forbidden", { status: 403, headers: { "content-type": "text/plain; charset=utf-8" } });
+  }
   const pedido = url.searchParams.get("motivo");
   const motivo = pedido === "expired" || pedido === MOTIVO_MARCA_PERDIDA ? pedido : "cutoff";
 

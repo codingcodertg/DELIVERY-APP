@@ -5,6 +5,7 @@ import { logSecurity } from "@/lib/security-log-server";
 import { PONER_MARCA } from "@/lib/cambio-obligatorio";
 import { limita, respuesta429 } from "@/lib/rate-limit";
 import { errorAlCliente } from "@/lib/api-error";
+import { generaContrasenaTemporal } from "@/lib/contrasena-temporal";
 
 // ============================================================
 // An admin sets a new password for someone who can't reset their own.
@@ -23,14 +24,6 @@ import { errorAlCliente } from "@/lib/api-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-/** A password someone can read down a phone line without spelling it out. */
-function generatePassword(): string {
-  const adj = ["Swift", "Bright", "Bold", "Calm", "Sharp", "Quick", "Solid", "Prime"];
-  const noun = ["Puma", "Falcon", "Cedar", "River", "Delta", "Comet", "Harbor", "Summit"];
-  const pick = (a: string[]) => a[Math.floor(Math.random() * a.length)];
-  return `${pick(adj)}-${pick(noun)}-${1000 + Math.floor(Math.random() * 9000)}`;
-}
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -53,7 +46,8 @@ export async function POST(req: Request) {
   const { data: target } = await admin.auth.admin.getUserById(id);
   if (!target?.user) return NextResponse.json({ error: "No such user." }, { status: 404 });
 
-  const password = generatePassword();
+  // Criptográfica (`randomInt`), con la regla del hub: letras y cifras, más de 10 caracteres.
+  const password = generaContrasenaTemporal();
   // Y con la marca de «cámbiala al entrar» (D-486), en la misma llamada: esta contraseña la ha
   // visto el admin, así que no se queda. `user_metadata` se fusiona, no se reemplaza.
   const { error } = await admin.auth.admin.updateUserById(id, { password, user_metadata: PONER_MARCA });

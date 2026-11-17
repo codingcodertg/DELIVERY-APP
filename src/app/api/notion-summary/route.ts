@@ -4,14 +4,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { buildDailySummary, COLUMNAS_DEL_RESUMEN, filtroDelResumen, summaryLines } from "@/lib/daily-summary";
 import { createNotionPage, notionConfigured } from "@/lib/notion";
 import { orderLabel, todayISO } from "@/lib/utils";
+import { igualesEnTiempoConstante } from "@/lib/comparar-secreto";
 import type { Delivery, DriverShift } from "@/lib/types";
 
 // ============================================================
 // Posts the day's summary to Notion.
 //
 // Two ways in, and they need different proof:
-//   • Vercel Cron  — sends Authorization: Bearer $CRON_SECRET
-//   • A person     — must be a signed-in admin
+//   • Vercel Cron  — sends Authorization: Bearer $CRON_SECRET (GET)
+//   • A person     — must be a signed-in admin, and must use POST from this origin
 //
 // Anything else is refused. Without that, a public URL that writes to the
 // company's Notion could be hit all day by anyone who guessed it.
@@ -20,19 +21,31 @@ import type { Delivery, DriverShift } from "@/lib/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-async function authorized(req: Request): Promise<boolean> {
+/**
+ * Quién llama. El cron (Bearer con CRON_SECRET, comparado en tiempo constante) puede llegar por GET, que es lo que
+ * manda Vercel Cron. Un admin con sesión solo por POST y desde el mismo origen: un GET de otra página con la sesión
+ * del admin publicaría el resumen en Notion (CSRF).
+ */
+async function quienLlama(req: Request): Promise<"cron" | "admin" | "no" | "metodo" | "origen"> {
   const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.get("authorization") === `Bearer ${secret}`) return true;
+  if (secret && igualesEnTiempoConstante(req.headers.get("authorization") ?? "", `Bearer ${secret}`)) return "cron";
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
+  if (!user) return "no";
   const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  return me?.role === "admin";
+  if (me?.role !== "admin") return "no";
+  if (req.method !== "POST") return "metodo";
+  const origen = req.headers.get("origin");
+  if (origen && origen !== new URL(req.url).origin) return "origen";
+  return "admin";
 }
 
 async function post(req: Request): Promise<NextResponse> {
-  if (!(await authorized(req))) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  const quien = await quienLlama(req);
+  if (quien === "no") return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  if (quien === "metodo") return NextResponse.json({ error: "Use POST." }, { status: 405 });
+  if (quien === "origen") return NextResponse.json({ error: "Forbidden origin." }, { status: 403 });
   if (!notionConfigured()) {
     // Name the missing variable rather than saying "not configured". The vague
     // version sent someone hunting through three possible causes; this points

@@ -46,6 +46,11 @@ export interface OpcionesLimite {
   max: number;
   /** Tamaño de la ventana, en segundos. */
   ventanaSeg: number;
+  /**
+   * Id del usuario que llama. Si se pasa, el cubo es POR USUARIO y no por IP: quien cambia de red no se libra del
+   * límite, y dos personas detrás de la misma IP no se gastan el cupo la una a la otra.
+   */
+  usuario?: string;
 }
 
 /**
@@ -53,7 +58,7 @@ export interface OpcionesLimite {
  * reset }` cuando se pasó, con el epoch (segundos) en que se reinicia la ventana.
  */
 export async function limita(req: Request, opts: OpcionesLimite): Promise<{ ok: true } | { ok: false; reset: number }> {
-  const bucket = `${opts.clave}:${ipDe(req)}`;
+  const bucket = opts.usuario ? `${opts.clave}:u:${opts.usuario}` : `${opts.clave}:${ipDe(req)}`;
   try {
     const admin = clienteDelLimitador();
     const { data, error } = await admin.rpc("check_rate_limit", {

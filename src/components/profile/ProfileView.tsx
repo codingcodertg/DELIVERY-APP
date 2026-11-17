@@ -9,6 +9,7 @@ import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
 import { clienteDelHub as createClient } from "@/lib/home/cliente-del-hub";
 import { guardaMiNombre, hayCambioDeNombre } from "@/lib/profile-name";
 import { mensajeDeContrasena, validaCambioDeContrasena, type CodigoContrasena, type MotivoDebil } from "@/lib/profile-password";
+import { reglaTexto } from "@/lib/contrasena-regla";
 import { PasswordInput } from "@/components/PasswordInput";
 
 /**
@@ -191,6 +192,7 @@ function CambiarContrasena() {
         <div className="field">
           <label>{t("New password", "Nueva contraseña")}</label>
           <PasswordInput value={nueva} onChange={setNueva} autoComplete="new-password" />
+          <div className="hint" style={{ marginTop: 4 }}>{reglaTexto(t)}</div>
         </div>
         <div className="field">
           <label>{t("Confirm new password", "Confirmar nueva contraseña")}</label>

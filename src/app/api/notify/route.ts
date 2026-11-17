@@ -5,6 +5,19 @@ import { proveedorReal } from "@/lib/mensajeria";
 
 import { requireDeliveries } from "@/lib/api-auth";
 import { limita, respuesta429 } from "@/lib/rate-limit";
+import { correoValido, telefonoUSaE164, MAX_ASUNTO_CORREO, MAX_TEXTO_CORREO, MAX_TEXTO_SMS } from "@/lib/telefono-correo";
+import type { UserRole } from "@/lib/types";
+
+/**
+ * Quién puede mandar a un cliente, por canal. Cada rol de aquí tiene un botón REAL que llega a esta ruta:
+ *  · SMS: el seguimiento al cliente (`ShareTracking` en la ficha: todos menos vendedor, almacén y contabilidad) y
+ *    el SMS automático al crear una orden (`autoSendTracking`, que hace el vendedor). Almacén y contabilidad no
+ *    tienen ninguno: fuera.
+ *  · Correo: hoy ningún botón de la app lo manda desde aquí (los avisos al cliente van por `avisos-cliente`).
+ *    Queda solo para la oficina.
+ */
+const ROLES_SMS: UserRole[] = ["admin", "manager", "sales", "logistics", "driver"];
+const ROLES_CORREO: UserRole[] = ["admin", "manager", "logistics"];
 
 // ============================================================
 // Outbound customer notifications (#21) — email / SMS at key delivery stages.
@@ -57,9 +70,11 @@ export async function POST(req: Request) {
   const auth = await requireDeliveries();
   if (!auth.ok) return auth.response;
 
-  // Manda SMS/correo DE VERDAD (cuesta dinero): tope por IP.
+  // Manda SMS/correo DE VERDAD (cuesta dinero): tope por IP y tope por USUARIO.
   const lim = await limita(req, { clave: "notify", max: 60, ventanaSeg: 60 });
   if (!lim.ok) return respuesta429(lim.reset);
+  const limUsuario = await limita(req, { clave: "notify", max: 30, ventanaSeg: 60, usuario: auth.user.id });
+  if (!limUsuario.ok) return respuesta429(limUsuario.reset);
 
   let body: NotifyBody;
   try {
@@ -76,10 +91,38 @@ export async function POST(req: Request) {
   if (body.channel !== "email" && body.channel !== "sms") {
     return NextResponse.json({ error: "Unknown channel" }, { status: 400 });
   }
+
+  // Quién puede mandar por este canal (ver ROLES_SMS / ROLES_CORREO).
+  const permitidos = body.channel === "sms" ? ROLES_SMS : ROLES_CORREO;
+  if (!permitidos.includes(auth.role)) {
+    return NextResponse.json({ error: "Your role can't send this message." }, { status: 403 });
+  }
+
+  // Destinatario y texto, validados: solo teléfonos de EE. UU. o correos con forma de correo, y topes de longitud.
+  if (typeof body.message !== "string" || typeof body.to !== "string") {
+    return NextResponse.json({ error: "to and message must be text" }, { status: 400 });
+  }
+  let destino: string;
+  if (body.channel === "sms") {
+    const e164 = telefonoUSaE164(body.to);
+    if (!e164) return NextResponse.json({ error: "Enter a valid US phone number." }, { status: 400 });
+    if (body.message.length > MAX_TEXTO_SMS) {
+      return NextResponse.json({ error: `The text is longer than ${MAX_TEXTO_SMS} characters.` }, { status: 400 });
+    }
+    destino = e164;
+  } else {
+    const correo = correoValido(body.to);
+    if (!correo) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
+    if (body.message.length > MAX_TEXTO_CORREO || (body.subject ?? "").length > MAX_ASUNTO_CORREO) {
+      return NextResponse.json({ error: "The email is too long." }, { status: 400 });
+    }
+    destino = correo;
+  }
+
   try {
     const r = body.channel === "email"
-      ? await proveedorReal.correo(body.to, body.subject || "Delivery update", body.message)
-      : await proveedorReal.sms(body.to, body.message);
+      ? await proveedorReal.correo(destino, body.subject || "Delivery update", body.message)
+      : await proveedorReal.sms(destino, body.message);
     if (r.ok) return NextResponse.json(body.channel === "email" ? { ok: true, channel: "email" } : { ok: true, channel: "sms", provider: r.proveedor });
     if (r.dryRun) return NextResponse.json({ ok: false, dryRun: true, reason: r.motivo });
     return NextResponse.json({ error: r.error }, { status: 502 });

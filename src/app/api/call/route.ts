@@ -4,6 +4,7 @@ import { ringcentralConfigured, ringcentralRingOut, ringcentralRingOutStatus, ri
 import { requireDeliveries } from "@/lib/api-auth";
 import { limita, respuesta429 } from "@/lib/rate-limit";
 import { errorAlCliente } from "@/lib/api-error";
+import { telefonoUSaE164 } from "@/lib/telefono-correo";
 
 // ============================================================
 // Click-to-call via RingCentral RingOut (#driver "Call client" on desktop).
@@ -44,20 +45,27 @@ export async function POST(req: Request) {
   // una llamada DE VERDAD por la centralita de la empresa.
   const auth = await requireDeliveries();
   if (!auth.ok) return auth.response;
-  // Inicia una llamada DE VERDAD (cuesta dinero): tope por IP.
+  // Inicia una llamada DE VERDAD (cuesta dinero): tope por IP y tope por USUARIO.
   const lim = await limita(req, { clave: "call", max: 30, ventanaSeg: 60 });
   if (!lim.ok) return respuesta429(lim.reset);
+  const limUsuario = await limita(req, { clave: "call", max: 20, ventanaSeg: 60, usuario: auth.user.id });
+  if (!limUsuario.ok) return respuesta429(limUsuario.reset);
 
   // `from` no está en el cuerpo a propósito (D-505). Si llega, se ignora.
-  let body: { to?: string };
+  let body: { to?: unknown };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const to = body?.to?.trim();
-  if (!to) return NextResponse.json({ error: "A destination number (to) is required" }, { status: 400 });
+  // Solo un teléfono de EE. UU. Sin esta comprobación, cualquier sesión de Entregas podía marcar cualquier número
+  // desde la centralita de la empresa. Lo que manda el botón (`telClean` de la ficha del cliente) sí pasa.
+  if (typeof body?.to !== "string" || !body.to.trim()) {
+    return NextResponse.json({ error: "A destination number (to) is required" }, { status: 400 });
+  }
+  const to = telefonoUSaE164(body.to);
+  if (!to) return NextResponse.json({ error: "Enter a valid US phone number." }, { status: 400 });
 
   if (!ringcentralConfigured()) {
     return NextResponse.json({ ok: false, dryRun: true, reason: "RingCentral not configured" });

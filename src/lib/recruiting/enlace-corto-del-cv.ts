@@ -68,10 +68,20 @@ export function leerTokenDelCv(token: string, secreto: string, ahora: Date = new
 /** La URL completa que se copia: el origen de la app + la ruta pública del CV. */
 export const urlDelCv = (origen: string, token: string): string => `${origen.replace(/\/$/, "")}/api/cv/${token}`;
 
-/** El secreto de la firma: una llave que solo tiene el servidor. Se deriva de la de servicio de Supabase para no
- *  añadir otra variable de entorno; nunca sale de aquí. */
+// Secreto propio: CV_LINK_SECRET. Mientras no esté puesto en Vercel se sigue derivando de la llave de servicio de
+// Supabase (como antes, para no romper los enlaces ya enviados), pero se avisa UNA vez por proceso: esa llave no
+// debería firmar nada más.
+let avisadoSinSecretoCv = false;
+
+/** El secreto de la firma: una llave que solo tiene el servidor. Nunca sale de aquí. */
 export function secretoDelCv(): string {
+  const propio = process.env.CV_LINK_SECRET;
+  if (propio) return propio;
+  if (!avisadoSinSecretoCv) {
+    avisadoSinSecretoCv = true;
+    console.warn("[cv-link] Falta CV_LINK_SECRET: el enlace del CV se firma con la llave de servicio de Supabase (respaldo). Ponla en Vercel.");
+  }
   const k = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!k) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY (server env var).");
+  if (!k) throw new Error("Missing CV_LINK_SECRET or SUPABASE_SERVICE_ROLE_KEY (server env var).");
   return `cv-link:${k}`;
 }

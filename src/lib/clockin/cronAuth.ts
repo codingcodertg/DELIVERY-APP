@@ -1,20 +1,21 @@
+import { igualesEnTiempoConstante } from "@/lib/comparar-secreto";
+
 /**
- * Shared gate for clock-in's three scheduled routes.
+ * Puerta de las rutas programadas (cron) de clock-in y de los demás crons.
  *
- * Upstream they only accepted `?key=<CRON_SECRET>`, because an external scheduler calls them —
- * that is also why they were never Vercel crons. The query string still works, so whatever is
- * calling them today keeps calling them, but a secret in a URL is a secret in every access log,
- * proxy and Referer along the way. `Authorization: Bearer <CRON_SECRET>` is accepted too, which is
- * both the better habit and exactly what Vercel Cron sends if these are ever scheduled here.
+ * SOLO `Authorization: Bearer <CRON_SECRET>`: es lo que manda Vercel Cron y lo que mandan los workflows de GitHub
+ * (`.github/workflows/*.yml`). El antiguo `?key=<CRON_SECRET>` se QUITÓ: un secreto en la URL acaba en cada log de
+ * acceso, proxy y cabecera Referer por el camino.
  *
- * Fails closed when CRON_SECRET is unset: no secret configured means nobody is authorised, not
- * everybody. Worth stating because the inverse is a classic — `if (secret && key !== secret)` reads
- * almost the same and opens the route wide the moment the variable is missing.
+ * La comparación es en tiempo constante (SHA-256 + `timingSafeEqual`), para que el tiempo de respuesta no revele
+ * cuántos caracteres del secreto coinciden.
+ *
+ * Falla cerrado: sin CRON_SECRET nadie entra. Lo contrario (`if (secret && key !== secret)`) se lee casi igual y deja
+ * la ruta abierta en cuanto falta la variable.
  */
 export function cronAuthorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
-  const header = req.headers.get("authorization");
-  if (header === `Bearer ${secret}`) return true;
-  return new URL(req.url).searchParams.get("key") === secret;
+  const header = req.headers.get("authorization") ?? "";
+  return igualesEnTiempoConstante(header, `Bearer ${secret}`);
 }

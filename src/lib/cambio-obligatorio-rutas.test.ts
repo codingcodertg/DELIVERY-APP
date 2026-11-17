@@ -106,8 +106,8 @@ describe("POST /api/profile/password/forced", () => {
     expect(falso.updateUser).not.toHaveBeenCalled();
   });
 
-  it("la misma regla que la pantalla: ni `tracker` ni corta", async () => {
-    for (const [nueva, codigo] of [["tracker", "temporal"], ["corta", "corta"], ["", "corta"]] as const) {
+  it("la misma regla que la pantalla: corta, sin cifra o sin letra", async () => {
+    for (const [nueva, codigo] of [["tracker", "corta"], ["corta", "corta"], ["", "corta"], ["solo-letras-largas", "sin_digito"], ["1234567890", "sin_letra"]] as const) {
       const r = await pide({ nueva });
       expect(r.status, nueva).toBe(400);
       expect((await r.json()).codigo, nueva).toBe(codigo);
@@ -129,7 +129,7 @@ describe("POST /api/reset-password pone la marca", () => {
     const r = await restablecer(new Request("http://localhost/api/reset-password", { method: "POST", body: JSON.stringify({ id: "chofer-1" }) }));
     expect(r.status).toBe(200);
     const { password } = await r.json();
-    expect(password).toMatch(/^[A-Z][a-z]+-[A-Z][a-z]+-\d{4}$/);
+    expect(password).toMatch(/^[A-Z][a-z]+-[A-Z][a-z]+-\d{4}-[a-z]{2}$/);
     expect(falso.updateUserById.mock.calls).toEqual([["chofer-1", { password, user_metadata: { must_change_password: true } }]]);
   });
 });

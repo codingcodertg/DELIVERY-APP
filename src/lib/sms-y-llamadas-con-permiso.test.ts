@@ -68,14 +68,14 @@ afterEach(() => { vi.unstubAllEnvs(); });
 
 describe("POST /api/notify", () => {
   it("sin sesión: 401 y no se manda nada", async () => {
-    expect((await avisa({ channel: "sms", to: "+15551234567", message: "x" })).status).toBe(401);
+    expect((await avisa({ channel: "sms", to: "+12145551234", message: "x" })).status).toBe(401);
     expect(ninguno()).toBe(true);
   });
 
   it("con sesión pero SIN el módulo de Entregas: 403 y el SMS no sale", async () => {
     // El caso de la auditoría: alguien que solo ficha. Tiene sesión, y con eso le bastaba.
     sesion("sales", ["timetracker"]);
-    const r = await avisa({ channel: "sms", to: "+15551234567", message: "x" });
+    const r = await avisa({ channel: "sms", to: "+12145551234", message: "x" });
     expect(r.status).toBe(403);
     expect(ninguno()).toBe(true);
   });
@@ -88,28 +88,28 @@ describe("POST /api/notify", () => {
 
   it("con el módulo de Entregas: el SMS sale por el proveedor de siempre", async () => {
     sesion("sales", ["deliveries"]);
-    const r = await avisa({ channel: "sms", to: "+15551234567", message: "su entrega va en camino" });
+    const r = await avisa({ channel: "sms", to: "+12145551234", message: "su entrega va en camino" });
     expect(r.status).toBe(200);
-    expect(falso.sms.mock.calls).toEqual([["+15551234567", "su entrega va en camino"]]);
+    expect(falso.sms.mock.calls).toEqual([["+12145551234", "su entrega va en camino"]]);
   });
 
   it("un admin pasa aunque no tenga la casilla marcada", async () => {
     // El mismo espejo que `has_deliveries_access()` (083): el admin entra siempre.
     sesion("admin", null);
-    expect((await avisa({ channel: "sms", to: "+15551234567", message: "x" })).status).toBe(200);
+    expect((await avisa({ channel: "sms", to: "+12145551234", message: "x" })).status).toBe(200);
     expect(falso.sms).toHaveBeenCalledTimes(1);
   });
 
   it("el chofer también manda: el seguimiento se comparte desde su ficha", async () => {
     sesion("driver", ["deliveries"]);
-    expect((await avisa({ channel: "sms", to: "+15551234567", message: "x" })).status).toBe(200);
+    expect((await avisa({ channel: "sms", to: "+12145551234", message: "x" })).status).toBe(200);
   });
 
   it("si no se pudo LEER el perfil: 503, no un 403 que diga que no tiene permiso", async () => {
     // Mismo criterio que la geocerca de D-505: no conceder nada, pero no afirmar lo que no se midió.
     falso.usuario = { id: "quien-llama" };
     falso.perfil = { data: null, error: { message: "canceling statement due to statement timeout" } };
-    const r = await avisa({ channel: "sms", to: "+15551234567", message: "x" });
+    const r = await avisa({ channel: "sms", to: "+12145551234", message: "x" });
     expect(r.status).toBe(503);
     expect(ninguno()).toBe(true);
   });
@@ -117,7 +117,38 @@ describe("POST /api/notify", () => {
   it("sin fila de perfil: 403 — eso sí se midió", async () => {
     falso.usuario = { id: "quien-llama" };
     falso.perfil = { data: null, error: null };
-    expect((await avisa({ channel: "sms", to: "+15551234567", message: "x" })).status).toBe(403);
+    expect((await avisa({ channel: "sms", to: "+12145551234", message: "x" })).status).toBe(403);
+  });
+});
+
+describe("POST /api/notify: quién, a quién y cuánto", () => {
+  it("almacén y contabilidad no tienen ningún botón que mande SMS: 403", async () => {
+    sesion("warehouse", ["deliveries"]);
+    expect((await avisa({ channel: "sms", to: "+12145551234", message: "x" })).status).toBe(403);
+    sesion("accounting", ["deliveries"]);
+    expect((await avisa({ channel: "sms", to: "+12145551234", message: "x" })).status).toBe(403);
+    expect(falso.sms).not.toHaveBeenCalled();
+  });
+
+  it("el correo es solo para la oficina: a un vendedor 403, a un gerente pasa", async () => {
+    sesion("sales", ["deliveries"]);
+    expect((await avisa({ channel: "email", to: "ana@empresa.com", subject: "s", message: "m" })).status).toBe(403);
+    expect(falso.correo).not.toHaveBeenCalled();
+    sesion("manager", ["deliveries"]);
+    expect((await avisa({ channel: "email", to: "ana@empresa.com", subject: "s", message: "m" })).status).toBe(200);
+  });
+
+  it("un número que no es de EE. UU. no sale: 400", async () => {
+    sesion("admin", null);
+    const r = await avisa({ channel: "sms", to: "+525512345678", message: "x" });
+    expect(r.status).toBe(400);
+    expect(falso.sms).not.toHaveBeenCalled();
+  });
+
+  it("un SMS demasiado largo no sale: 400", async () => {
+    sesion("admin", null);
+    expect((await avisa({ channel: "sms", to: "+12145551234", message: "x".repeat(1001) })).status).toBe(400);
+    expect(falso.sms).not.toHaveBeenCalled();
   });
 });
 
@@ -138,26 +169,26 @@ describe("GET /api/notify", () => {
 describe("POST /api/call", () => {
   it("el número de ORIGEN lo pone el servidor: el del cliente se ignora", async () => {
     sesion("manager", ["deliveries"]);
-    const r = await llama({ to: "+15551234567", from: "+19999999999" });
+    const r = await llama({ to: "+12145551234", from: "+19999999999" });
     expect(r.status).toBe(200);
-    expect(falso.ringOut.mock.calls).toEqual([[ORIGEN_DEL_SERVIDOR, "+15551234567"]]);
+    expect(falso.ringOut.mock.calls).toEqual([[ORIGEN_DEL_SERVIDOR, "+12145551234"]]);
     expect(JSON.stringify(falso.ringOut.mock.calls)).not.toContain("+19999999999");
   });
 
   it("sin el módulo de Entregas: 403 y no se marca ningún número", async () => {
     sesion("sales", ["timetracker"]);
-    expect((await llama({ to: "+15551234567" })).status).toBe(403);
+    expect((await llama({ to: "+12145551234" })).status).toBe(403);
     expect(falso.ringOut).not.toHaveBeenCalled();
   });
 
   it("un chofer con Entregas sí llama: el botón está en su ficha de orden", async () => {
     sesion("driver", ["deliveries"]);
-    expect((await llama({ to: "+15551234567" })).status).toBe(200);
+    expect((await llama({ to: "+12145551234" })).status).toBe(200);
     expect(falso.ringOut).toHaveBeenCalledTimes(1);
   });
 
   it("sin sesión: 401 y no se marca nada", async () => {
-    expect((await llama({ to: "+15551234567" })).status).toBe(401);
+    expect((await llama({ to: "+12145551234" })).status).toBe(401);
     expect(falso.ringOut).not.toHaveBeenCalled();
   });
 
