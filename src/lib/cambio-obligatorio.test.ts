@@ -4,7 +4,6 @@ import { NextRequest } from "next/server";
 import { updateSession, type PuertaDeSesion } from "@/lib/supabase/middleware";
 import { COOKIE_RETORNO, empaquetar } from "@/lib/impersonation-cookie";
 import {
-  CONTRASENA_TEMPORAL,
   MIN_CONTRASENA_NUEVA,
   PONER_MARCA,
   QUITAR_MARCA,
@@ -89,22 +88,24 @@ describe("a dónde vuelve (destinoTrasCambio)", () => {
 });
 
 describe("qué contraseña vale (validaNuevaObligatoria)", () => {
-  it("la temporal no, ni dentro de otra, ni en mayúsculas — y se dice eso, no que es corta", () => {
-    expect(validaNuevaObligatoria({ nueva: CONTRASENA_TEMPORAL })).toBe("temporal");
-    expect(validaNuevaObligatoria({ nueva: "Tracker2026" })).toBe("temporal");
+  it("sin contraseña genérica literal: la regla es la del hub (letras y cifras, desde 10)", () => {
+    expect(validaNuevaObligatoria({ nueva: "tracker" })).toBe("corta");
+    expect(validaNuevaObligatoria({ nueva: "solo-letras-largas" })).toBe("sin_digito");
+    expect(validaNuevaObligatoria({ nueva: "1234567890" })).toBe("sin_letra");
+    expect(validaNuevaObligatoria({ nueva: "camion-azul-9" })).toBeNull();
   });
   it(`al menos ${MIN_CONTRASENA_NUEVA} caracteres`, () => {
-    expect(MIN_CONTRASENA_NUEVA).toBe(8);
-    expect(validaNuevaObligatoria({ nueva: "a".repeat(7) })).toBe("corta");
-    expect(validaNuevaObligatoria({ nueva: "a".repeat(8) })).toBeNull();
+    expect(MIN_CONTRASENA_NUEVA).toBe(10);
+    expect(validaNuevaObligatoria({ nueva: "a".repeat(9) + "1" })).toBeNull(); // 10
+    expect(validaNuevaObligatoria({ nueva: "a".repeat(9) })).toBe("corta");
   });
   it("repetirla tiene que coincidir; el servidor no la recibe y no la mira", () => {
-    expect(validaNuevaObligatoria({ nueva: "camion-azul", confirmacion: "camion-azu" })).toBe("no_coinciden");
-    expect(validaNuevaObligatoria({ nueva: "camion-azul", confirmacion: "camion-azul" })).toBeNull();
-    expect(validaNuevaObligatoria({ nueva: "camion-azul" })).toBeNull();
+    expect(validaNuevaObligatoria({ nueva: "camion-azul-9", confirmacion: "camion-azul-8" })).toBe("no_coinciden");
+    expect(validaNuevaObligatoria({ nueva: "camion-azul-9", confirmacion: "camion-azul-9" })).toBeNull();
+    expect(validaNuevaObligatoria({ nueva: "camion-azul-9" })).toBeNull();
   });
   it("cada código tiene su texto en los dos idiomas, y distinto", () => {
-    const codigos: CodigoCambioObligatorio[] = ["temporal", "corta", "no_coinciden", "no_hace_falta", "suplantando"];
+    const codigos: CodigoCambioObligatorio[] = ["corta", "sin_letra", "sin_digito", "no_coinciden", "no_hace_falta", "suplantando"];
     const en = codigos.map((c) => mensajeCambioObligatorio(c, (e) => e));
     const es = codigos.map((c) => mensajeCambioObligatorio(c, (_e, s) => s));
     expect(new Set(en).size).toBe(codigos.length);

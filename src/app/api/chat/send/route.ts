@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { errorAlCliente } from "@/lib/api-error";
 import { fcmConfigured, sendPush } from "@/lib/fcm";
 import { KIND_CHAT, cuerpoValido, llevaPush, textoDelAviso } from "@/lib/chat/chat";
+import { limita, respuesta429 } from "@/lib/rate-limit";
 
 // ============================================================
 // POST /api/chat/send · { to, body } (D-609, 2026-10-20; migración 184). Manda un mensaje del chat interno:
@@ -20,6 +21,9 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  // Tope por usuario: cada mensaje escribe una fila y una notificación (y, si escribe un admin, un push).
+  const lim = await limita(req, { clave: "chat-send", max: 60, ventanaSeg: 60, usuario: auth.user.id });
+  if (!lim.ok) return respuesta429(lim.reset);
   const b = await req.json().catch(() => ({}));
   const to = typeof b?.to === "string" ? b.to : "";
   const body = cuerpoValido(typeof b?.body === "string" ? b.body : "");
@@ -28,6 +32,10 @@ export async function POST(req: Request) {
 
   const { data: yo, error: e0 } = await auth.supabase.from("profiles").select("id, full_name, role").eq("id", auth.user.id).maybeSingle();
   if (e0 || !yo) return errorAlCliente("chat/send", e0 ?? "No profile", 503);
+
+  // El destinatario tiene que existir en la base. Sin esto, un id inventado dejaba una fila y una campana huérfanas.
+  const { data: destino, error: eDestino } = await auth.supabase.from("profiles").select("id").eq("id", to).maybeSingle();
+  if (eDestino || !destino) return NextResponse.json({ error: "Recipient not found." }, { status: 404 });
 
   const { data: msg, error } = await auth.supabase.from("chat_messages")
     .insert({ from_user: auth.user.id, to_user: to, body }).select("id, created_at").single();

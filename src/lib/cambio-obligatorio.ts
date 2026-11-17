@@ -1,5 +1,6 @@
 import { isPublicPath, type Decision } from "@/lib/route-guard";
 import { safeNext } from "@/lib/auth-redirect";
+import { falloDeRegla, MIN_CONTRASENA, mensajeDeRegla } from "@/lib/contrasena-regla";
 
 /**
  * Cambiar la contraseña al entrar, obligatorio (D-486).
@@ -15,7 +16,7 @@ import { safeNext } from "@/lib/auth-redirect";
  * **Lo que esta marca NO es: una barrera contra la propia persona.** `user_metadata` lo puede
  * escribir el propio usuario (`auth.updateUser({ data })`) desde la consola del navegador. Lo que
  * protege es lo de siempre: que nadie siga entrando con una contraseña que conoce media oficina.
- * Quien se salta la pantalla a mano solo se queda con `tracker`, que es justo lo que no le conviene.
+ * Quien se salta la pantalla a mano solo se queda con la temporal, que es justo lo que no le conviene.
  *
  * Aquí vive lo que se decide sin red —quién va a la pantalla, qué contraseña se acepta, qué se dice—
  * para que el middleware, la pantalla y la ruta API no puedan decidir cosas distintas.
@@ -31,14 +32,12 @@ export const MARCA_CAMBIO = "must_change_password";
 export const PONER_MARCA = { [MARCA_CAMBIO]: true } as const;
 export const QUITAR_MARCA = { [MARCA_CAMBIO]: false } as const;
 
-/** La contraseña genérica que se repartió. La nueva no puede contenerla. */
-export const CONTRASENA_TEMPORAL = "tracker";
-
 /**
- * 8 y no los 6 de «Mi perfil»: esta es la que se queda para siempre una cuenta que hasta hoy
- * tenía una que sabía todo el mundo. Supabase puede exigir más; si lo hace, se dice por qué.
+ * La misma regla que todo el hub (10 caracteres, letras y números; `contrasena-regla.ts`). Ya no hay una contraseña
+ * genérica literal que prohibir: la temporal la pone el servidor con `generaContrasenaTemporal` y es distinta cada vez.
+ * Que la nueva no sea la actual lo dice Supabase (`same_password`, ver `profile-password.ts`).
  */
-export const MIN_CONTRASENA_NUEVA = 8;
+export const MIN_CONTRASENA_NUEVA = MIN_CONTRASENA;
 
 /** ¿Tiene la marca? Solo `true` cuenta: un texto `"true"` o cualquier otra cosa no obliga a nada. */
 export function debeCambiarContrasena(user: { user_metadata?: Record<string, unknown> | null } | null | undefined): boolean {
@@ -80,8 +79,9 @@ export function destinoTrasCambio(next: string | null | undefined): string {
 }
 
 export type CodigoCambioObligatorio =
-  | "temporal"
   | "corta"
+  | "sin_letra"
+  | "sin_digito"
   | "no_coinciden"
   // Los del servidor:
   | "no_hace_falta"
@@ -90,28 +90,20 @@ export type CodigoCambioObligatorio =
 /**
  * ¿Se puede mandar? Devuelve el primer problema o `null`. `confirmacion` es de la pantalla: el
  * servidor no la recibe.
- *
- * «temporal» va primero: quien escribe `tracker` tiene que leer que esa no vale, no que es corta.
  */
 export function validaNuevaObligatoria(a: { nueva: string; confirmacion?: string }): CodigoCambioObligatorio | null {
-  if (a.nueva.toLowerCase().includes(CONTRASENA_TEMPORAL)) return "temporal";
-  if (a.nueva.length < MIN_CONTRASENA_NUEVA) return "corta";
+  const fallo = falloDeRegla(a.nueva);
+  if (fallo) return fallo;
   if (a.confirmacion !== undefined && a.confirmacion !== a.nueva) return "no_coinciden";
   return null;
 }
 
 export function mensajeCambioObligatorio(codigo: CodigoCambioObligatorio, t: (en: string, es: string) => string): string {
   switch (codigo) {
-    case "temporal":
-      return t(
-        `Your new password can't contain the temporary one ("${CONTRASENA_TEMPORAL}").`,
-        `La nueva contraseña no puede llevar la temporal («${CONTRASENA_TEMPORAL}»).`,
-      );
     case "corta":
-      return t(
-        `Use at least ${MIN_CONTRASENA_NUEVA} characters.`,
-        `Usa al menos ${MIN_CONTRASENA_NUEVA} caracteres.`,
-      );
+    case "sin_letra":
+    case "sin_digito":
+      return mensajeDeRegla(codigo, t);
     case "no_coinciden":
       return t("The two passwords don't match.", "Las dos contraseñas no coinciden.");
     case "no_hace_falta":

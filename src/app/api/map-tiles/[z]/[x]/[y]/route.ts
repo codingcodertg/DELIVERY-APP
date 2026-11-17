@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/api-auth";
+import { paramsDeTileValidos } from "@/lib/map-tiles-params";
 
 // ============================================================
 // Google Map Tiles proxy. Serves Google's 2D raster map tiles to the Leaflet
@@ -64,7 +65,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ z: strin
 
   const key = process.env.GOOGLE_MAPS_API_KEY;
   const p = await params;
-  const z = p.z, x = p.x, y = p.y.replace(/\.png$/, "");
+  // Solo enteros dentro de rango antes de montar ninguna URL: lo que llegue en la ruta no puede acabar en la URL de
+  // Google ni en la de OpenStreetMap tal cual (`z/x/y` fuera de rango o con basura → 400).
+  const v = paramsDeTileValidos(p.z, p.x, p.y.replace(/\.png$/, ""));
+  if (!v) return NextResponse.json({ error: "Invalid tile." }, { status: 400 });
+  const z = String(v.z), x = String(v.x), y = String(v.y);
   if (!key) return osmTile(z, x, y);
 
   const token = await getSession(key);

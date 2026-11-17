@@ -24,6 +24,15 @@ export async function POST(req: Request) {
   const driverId = verificaLlaveDeGps(auth.startsWith("Bearer ") ? auth.slice(7).trim() : null);
   // 401 = la app guarda la cola y espera una llave nueva (la pide al volver al frente).
   if (!driverId) return NextResponse.json({ error: "Invalid or expired GPS key." }, { status: 401 });
+  // Una llave válida de un chofer que ya no está (baja, `left_at`, o perfil borrado) no escribe posiciones: la llave
+  // dura 18 h y sin esto un chofer dado de baja seguiría apareciendo en el mapa todo el turno.
+  try {
+    const { data: chofer, error: errorChofer } = await servicio().from("profiles").select("left_at").eq("id", driverId).maybeSingle();
+    if (errorChofer) return errorAlCliente("gps/ingest", errorChofer, 503, "Could not save locations.");
+    if (!chofer || chofer.left_at) return NextResponse.json({ error: "Driver is no longer active." }, { status: 401 });
+  } catch (e) {
+    return errorAlCliente("gps/ingest", e, 503, "Could not save locations.");
+  }
   let body: unknown;
   try { body = await req.json(); } catch { return NextResponse.json({ error: "Bad JSON." }, { status: 400 }); }
   const filas = filasDeIngesta(driverId, body);
