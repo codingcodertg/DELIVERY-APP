@@ -36,6 +36,22 @@ export async function pintaDocx(bytes: Uint8Array, cuerpo: HTMLElement, cabeza?:
     inWrapper: true,
     breakPages: true,
   });
+  limpiaHtmlPintado(cuerpo);
+}
+
+/**
+ * Un .docx lo sube un HR manager, pero se pinta en el mismo origen que la app: después de pintarlo se quitan scripts,
+ * marcos y atributos on*, y los enlaces que no sean http(s) o mailto (p. ej. «javascript:»).
+ */
+export function limpiaHtmlPintado(raiz: HTMLElement): void {
+  raiz.querySelectorAll("script, iframe, object, embed").forEach((el) => el.remove());
+  raiz.querySelectorAll("*").forEach((el) => {
+    for (const a of Array.from(el.attributes)) {
+      const n = a.name.toLowerCase();
+      if (n.startsWith("on")) el.removeAttribute(a.name);
+      else if ((n === "href" || n === "src" || n === "xlink:href") && !/^(https?:|mailto:|#|data:image\/|blob:)/i.test(a.value.trim())) el.removeAttribute(a.name);
+    }
+  });
 }
 
 /** Baja el archivo con su nombre. */
