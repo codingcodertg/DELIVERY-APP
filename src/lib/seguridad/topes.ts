@@ -169,7 +169,11 @@ export function combinaResumenIp(
   nuevas: number,
   hashesNuevos: readonly string[],
 ): { contador: number; hashes: string[] } {
-  const contador = (Number(previa?.contador) || 0) + nuevas;
+  // Solo suman las cuentas que no estaban ya en el resumen: la misma cuenta en dos corridas no infla el contador.
   const hashesPrevios = Array.isArray(previa?.hashes) ? (previa?.hashes as string[]) : [];
-  return { contador, hashes: [...hashesPrevios, ...hashesNuevos].slice(0, 50) };
+  const ya = new Set(hashesPrevios);
+  const deVerdadNuevos = [...new Set(hashesNuevos)].filter((h) => !ya.has(h));
+  const sinHash = Math.max(0, nuevas - hashesNuevos.length);
+  const contador = (Number(previa?.contador) || 0) + deVerdadNuevos.length + sinHash;
+  return { contador, hashes: [...hashesPrevios, ...deVerdadNuevos].slice(0, 50) };
 }
