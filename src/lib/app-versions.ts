@@ -21,32 +21,32 @@
 // bajar nada (D-029/D-087) y se queda con codigo viejo sin que nadie lo note.
 // Ver "Flujo de ramas" en CLAUDE.md y docs/WORKFLOW-PARALELO.md.
 export const APP_VERSIONS = {
-  deliveries: "1.625.0",
-  recruiting: "0.108.0",
-  timetracker: "1.32.0",
-  clockin: "0.49.0",
+  deliveries: "1.626.0",
+  recruiting: "0.109.0",
+  timetracker: "1.33.0",
+  clockin: "0.50.0",
   // El ERP no tenía contador propio: llegó en D-090 y nadie le puso uno, así que el
   // sello de versión no habría tenido qué enseñar en /erp. Empieza en 0.1.0 por la
   // misma razón que recruiting y timetracker — no hay historial independiente que
   // continuar, y un 1.0.0 sería continuidad inventada.
-  erp: "0.35.0",
+  erp: "0.36.0",
   // RTG PROMOS (D-366): modulo nuevo, sin historial que continuar; 0.1.0 como recruiting y el ERP.
-  promos: "0.28.0",
+  promos: "0.29.0",
   // El Estimador (T-0408): modulo nuevo, sin historial que continuar; 0.1.0 como promos. Lo sube el orquestador.
-  estimator: "0.42.0",
+  estimator: "0.43.0",
   // Encuestas (migración 155): modulo nuevo, sin historial que continuar; 0.1.0 como el Estimador. La entrada la
   // pone la rama porque sin ella /surveys no tiene sello de version; los siguientes numeros, el orquestador.
-  surveys: "0.15.0",
+  surveys: "0.16.0",
   // Leads (migración 162): modulo nuevo, sin historial que continuar; 0.1.0 como Encuestas. La entrada la pone la
   // rama porque sin ella /leads no tiene sello de version; los siguientes numeros, el orquestador.
-  leads: "0.27.0",
+  leads: "0.28.0",
   // Clientes (D-569): la primera, como leads.
-  customers: "0.68.0",
+  customers: "0.69.0",
   // Security (D-811): la primera, como las demás apps nuevas.
-  security: "0.34.0",
+  security: "0.35.0",
   // Operaciones de almacén (D-883, migración 247): la primera, como las demás apps nuevas. La entrada la pone la rama
   // porque sin ella /operaciones no tiene sello de versión; los siguientes números, el orquestador.
-  warehouse_ops: "0.58.0",
+  warehouse_ops: "0.59.0",
 } as const;
 
 export type AppKey = keyof typeof APP_VERSIONS;

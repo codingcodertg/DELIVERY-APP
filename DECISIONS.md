@@ -52511,3 +52511,12 @@ Auditoría completa de seguridad pedida por el dueño. Lo urgente:
 Hallado y avisado al dueño: su cuenta admin tenía la contraseña genérica que aparece en el código público.
 Migración 317, APLICADA por el dueño.
 Sellos `deliveries` 1.625.0, `erp` 0.35.0; repo 1.919.0.
+
+## D-1071 · Seguridad, fase 1: permisos de la base, rutas de la app, paquetes y cabeceras (2026-11-17)
+
+Segunda tanda de la auditoría (D-1070).
+Base (migración 318): fuera las lecturas `using (true)` de clientes, facturas y vendedores del ERP (solo módulos Clientes/ERP, y Estimador y Leads con la regla de visibilidad del cliente); guardia de columnas en `clockin.employee_settings` (activo, tienda, puesto, vehículo…); el empleado solo cierra su entrada abierta, con salida entre la entrada y ahora, y solo abre entradas «de ahora» sin almuerzo ni notas; notificaciones a otros solo de admin, gerente, chofer o quien usa Entregas; el chat solo marca leído; CVs por tienda para el gerente de tienda; solo un admin liga un equipo; sin TRUNCATE para anon/authenticated.
+App: llamadas validadas y con límite por usuario; SMS solo admin/gerente/ventas/logística/chofer y correo solo admin/gerente/logística; «va en camino» solo logística/gerencia o el chofer asignado; push solo de avisos que el llamante puede ver; chat con límite; contraseñas temporales con `crypto.randomInt` y cambio obligatorio también al invitar; regla de contraseña de 10+ con letras y cifras como en Supabase, sin la palabra genérica en el código; cron sin `?key=` y comparación en tiempo constante; celdas de reportes sin fórmulas; parámetros del mapa validados; la app de escritorio solo abre enlaces http/https/mailto/tel; secretos propios para GPS y enlaces de CV (con respaldo temporal) y GPS de choferes dados de baja rechazado; auto-regreso de suplantación sin efectos desde otro sitio; `server-only` en el cliente de servicio.
+Paquetes: 0 fallas en producción (overrides de zod, @vercel/oidc, postcss, uuid; React 19.0.9). CSP en modo solo-reporte, COOP, X-Permitted-Cross-Domain-Policies, HSTS sin preload; Dependabot y acciones fijadas por SHA.
+Migración 318, APLICADA por el dueño.
+Sello: todas las apps suben un menor; repo 1.920.0.
