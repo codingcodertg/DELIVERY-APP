@@ -36,9 +36,10 @@ type Minima = Pick<Delivery, "id" | "order_no"> & {
   pickup_name?: string | null; delivery_name?: string | null;
 };
 
-/** Las etapas en las que se puede ACTIVAR: ya aprobada y aún sin recoger. (Una pendiente se aprueba antes: el paso b nace
+/** Las etapas en las que se puede ACTIVAR: aprobada, sin recoger o YA RECOGIDA (321). Una orden recogida nace con su paso a
+ *  ya entregado en la tienda de relevo (`alActivar`, `activar_relevo`). (Una pendiente se aprueba antes: el paso b nace
  *  listo para recoger y no pasa por aprobación.) */
-export const ETAPAS_PARA_ACTIVAR_RELEVO: readonly string[] = ["approved", "fulfilling", "ready"];
+export const ETAPAS_PARA_ACTIVAR_RELEVO: readonly string[] = ["approved", "fulfilling", "ready", "picked_up"];
 /** Las etapas en las que un paso ya salió: desde aquí el relevo no se deshace. */
 const YA_SALIO = new Set(["picked_up", "delivered"]);
 
@@ -102,7 +103,7 @@ export function porQueNoSeActiva(d: Delivery, hermanas: readonly Minima[]): PorQ
 export const TEXTO_NO_SE_ACTIVA: Record<PorQueNoSeActiva, Bilingue> = {
   ya_es_relevo: { en: "This order already is a relay transfer.", es: "Esta orden ya es una transferencia por relevo." },
   partida: { en: "This order is split into loads: join them before setting up a relay.", es: "Esta orden está partida en cargas: júntalas antes de activar un relevo." },
-  etapa: { en: "A relay is set up on an approved order that has not been picked up yet.", es: "El relevo se activa en una orden aprobada que todavía no se ha recogido." },
+  etapa: { en: "A relay is set up on an approved order that has not been delivered yet.", es: "El relevo se activa en una orden aprobada que todavía no se ha entregado." },
 };
 
 /** Las tiendas que se ofrecen como relevo: las de Ajustes, menos el origen y el destino. */
@@ -136,8 +137,11 @@ export const TEXTO_DEL_DIA: Record<ProblemaDelDia, Bilingue> = {
 };
 
 /**
- * Lo que se escribe al activar, en TypeScript (el demo y las pruebas); `activar_relevo` (256) hace lo mismo en la base.
- *   · la madre pasa a ser el PASO A: letra `a`, `relay_step` 1, y su destino es la tienda de relevo;
+ * Lo que se escribe al activar, en TypeScript (el demo y las pruebas); `activar_relevo` (256, y 321 para la orden ya
+ * recogida) hace lo mismo en la base.
+ *   · la madre pasa a ser el PASO A: letra `a`, `relay_step` 1, y su destino es la tienda de relevo. Si la orden YA
+ *     ESTÁ RECOGIDA (321), el paso a nace entregado en esa tienda (`stage`, `pod_delivered_at`, `delivered_address`); su
+ *     recogida, su chofer y su salida no se tocan;
  *   · nace el PASO B: copia de la madre (lo mismo que copia una carga partida, `COLUMNAS_PROPIAS_DE_LA_CARGA`), con TODOS
  *     los pallets, recogida en la tienda de relevo, el destino final de la madre, su día, sin chofer, en «lista». La tarifa
  *     se queda solo en el paso a, para que ningún total la sume dos veces.
@@ -147,6 +151,7 @@ export function alActivar(madre: Delivery, tienda: NamedLocation, fecha: string,
   const fuera = [madre.pickup_name, madre.delivery_name, madre.store].map(normalizaLugar);
   if (!normalizaLugar(tienda.name) || fuera.includes(normalizaLugar(tienda.name))) return null;
   const punto = tienda.lat != null && tienda.lng != null ? { lat: tienda.lat, lng: tienda.lng } : null;
+  const yaSalio = madre.stage === "picked_up";
   const copia = { ...madre } as Record<string, unknown>;
   for (const c of COLUMNAS_PROPIAS_DE_LA_CARGA) delete copia[c];
   const etiqueta = madre.order_code || String(madre.order_no);
@@ -170,10 +175,15 @@ export function alActivar(madre: Delivery, tienda: NamedLocation, fecha: string,
       delivery_name: tienda.name, delivery_address: tienda.address,
       delivery_lat: punto?.lat ?? null, delivery_lng: punto?.lng ?? null, delivery_pin_source: punto ? "geocoded" : null,
       route_miles: null, route_duration: null, route_provider: null, route_traffic: null,
+      ...(yaSalio ? { stage: "delivered" as const, pod_delivered_at: a.ahora, delivered_address: tienda.address ?? null } : {}),
     },
     paso,
   };
 }
+
+/** La nota de un relevo que se activa con la orden ya recogida (321): va en los dos pasos del historial. */
+export const notaDelRelevoYaRecogido = (tienda: string, chofer: string | null | undefined) =>
+  `Relevo con el paso a ya hecho: dejado en ${tienda} por ${(chofer ?? "").trim() || "?"}`;
 
 /** La nota que lleva el paso nuevo (como la de una carga partida). */
 export const notaDelPaso = (etiqueta: string, letra: string, desde: string | null | undefined, hasta: string | null | undefined) =>

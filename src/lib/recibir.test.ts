@@ -103,7 +103,9 @@ describe("qué escribe «Recibir»", () => {
     // Hasta D-452 la última era la 145. La 157 la copia letra por letra y solo deja nacer una carga partida también en
     // pending (lo compara `cargas-partidas.test.ts`); lo que esta prueba lee de la 145 sigue valiendo tal cual.
     const define = readdirSync("supabase/migrations").filter((f) => /^\d+_.*\.sql$/.test(f))
-      .filter((f) => leer(`supabase/migrations/${f}`).includes("function public.guard_delivery_stage()")).sort();
+      .filter((f) => leer(`supabase/migrations/${f}`).includes("function public.guard_delivery_stage()"))
+      // La 321 (relevo de una orden ya recogida) vuelve a escribir el guard con una rama más: esta prueba mira hasta la 173.
+      .filter((f) => f !== "321_relevo_de_orden_recogida.sql").sort();
     // Nota D-549 (2026-10-14): la última es ahora la 173 (la 169 letra por letra con un bloque más en el tramo de misma
     // etapa, para `reprogramar_orden`; lo compara `juntar-y-reprogramar.test.ts`). La rama de almacén no se tocó. El
     // título de esta prueba dice «la 169»: se deja, la historia no se reescribe.

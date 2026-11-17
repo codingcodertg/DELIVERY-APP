@@ -24,7 +24,7 @@ import { tipoDeClienteDeLaOrden } from "@/lib/customer-type";
 import {
   alActivar, alDeshacer, avisosDeRelevo, entraEnElCamion, esPasoDeRelevo, estadoDelRelevo, etiquetaDeRelevo, mensajeDeEspera, mensajeDelRelevo, numeroConLetra,
   pasoAnterior, pasosDelRelevo, pasosParaVer, porQueNoSeActiva, porQueNoSeRecoge, primerDiaDelPasoB, problemaDelDiaDelPasoB, puedeGestionarRelevo,
-  relevoParaElAviso, sePuedeDeshacer, textoDelEstado, textoDeRelevoParaBuscar, tiendasDeRelevo,
+  relevoParaElAviso, sePuedeDeshacer, textoDelEstado, textoDeRelevoParaBuscar, tiendasDeRelevo, notaDelRelevoYaRecogido, TEXTO_NO_SE_ACTIVA,
 } from "./relevo";
 
 /**
@@ -157,7 +157,9 @@ describe("activar: la orden pasa a ser el paso a y nace el paso b", () => {
     expect(porQueNoSeActiva({ ...d, order_type: "Transfer" }, [d])).toBeNull();
     expect(porQueNoSeActiva({ ...d, order_type: "Customer", delivery_name: "Juan Pérez" }, [d])).toBeNull();   // #1629: a un cliente
     expect(porQueNoSeActiva({ ...d, order_type: "Delivery", delivery_name: "A job site" }, [d])).toBeNull();
-    for (const stage of ["draft", "pending", "picked_up", "delivered", "canceled"] as const) expect(porQueNoSeActiva({ ...d, stage }, [d])).toBe("etapa");
+    for (const stage of ["draft", "pending", "delivered", "canceled"] as const) expect(porQueNoSeActiva({ ...d, stage }, [d])).toBe("etapa");
+    // 321: ya recogida también (el paso a nace entregado en la tienda de relevo).
+    expect(porQueNoSeActiva({ ...d, stage: "picked_up" }, [d])).toBeNull();
     expect(porQueNoSeActiva({ ...d, order_suffix: "a" }, [d, mkDelivery({ id: "otra", order_no: 1111, order_suffix: "b" })])).toBe("partida");
     const [a] = relevo();
     expect(porQueNoSeActiva(a, [a])).toBe("ya_es_relevo");
@@ -535,5 +537,104 @@ describe("la migración 256 dice lo mismo", () => {
     expect(deshacer).toContain("delivery_name       = ultimo.delivery_name");
     expect(sinComentarios).toContain("if OLD.relay_step is not null and marca <> OLD.order_no::text then");
     expect(sinComentarios).toContain("if NEW.relay_step is not null and marca <> NEW.order_no::text then");
+  });
+});
+
+describe("321: el relevo de una orden YA RECOGIDA: el paso a nace entregado en la tienda de relevo", () => {
+  const recogida = (over: Partial<Delivery> = {}) => intertienda({ stage: "picked_up", pickup_gps_at: "2026-11-06T15:00:00.000Z", departed_at: "2026-11-06T15:05:00.000Z", ...over });
+
+  it("el caso de hoy: #1629 recogida por Steven en Pharr y dejada en McAllen; el paso a entregado allí, el b mañana", () => {
+    const madre = recogida({
+      order_no: 1629, order_code: "FX112", order_type: "Customer", store: "RDZ Pharr",
+      pickup_name: "RDZ Pharr", pickup_address: "4 Cage Blvd, Pharr, TX",
+      delivery_name: "Juan Pérez", delivery_address: "100 Ranch Rd, Sullivan City, TX", delivery_date: "2026-11-17", assigned_driver: "Steven",
+    });
+    const r = alActivar(madre, TIENDAS[0], "2026-11-18", { id: "paso-b", ahora: "2026-11-17T16:00:00.000Z", creador: "logi" })!;
+    expect(r.madre).toMatchObject({
+      order_suffix: "a", relay_step: 1, delivery_name: "RDZ McAllen", delivery_address: "1 Main St, McAllen, TX",
+      stage: "delivered", pod_delivered_at: "2026-11-17T16:00:00.000Z", delivered_address: "1 Main St, McAllen, TX",
+    });
+    // El paso a conserva su recogida, su chofer y su día: nada de eso va en el cambio.
+    for (const k of ["pickup_name", "pickup_address", "assigned_driver", "pickup_gps_at", "departed_at", "delivery_date"]) expect(Object.keys(r.madre)).not.toContain(k);
+    expect(r.paso).toMatchObject({
+      id: "paso-b", order_suffix: "b", relay_step: 2, stage: "ready",
+      pickup_name: "RDZ McAllen", delivery_name: "Juan Pérez", delivery_address: "100 Ranch Rd, Sullivan City, TX",
+      delivery_date: "2026-11-18", assigned_driver: null, pickup_gps_at: null, departed_at: null, pod_delivered_at: null,
+    });
+  });
+
+  it("una orden que NO está recogida no cambia en nada: el paso a no se toca en la etapa", () => {
+    for (const stage of ["approved", "fulfilling", "ready"] as const) {
+      const r = alActivar(intertienda({ stage }), TIENDAS[1], "2026-11-06", { id: "b", ahora: "x", creador: null })!;
+      expect(r.madre).not.toHaveProperty("stage");
+      expect(r.madre).not.toHaveProperty("pod_delivered_at");
+      expect(r.madre).not.toHaveProperty("delivered_address");
+    }
+  });
+
+  it("la nota es la del dueño, y va en los dos pasos", () => {
+    expect(notaDelRelevoYaRecogido("RDZ McAllen", "Steven")).toBe("Relevo con el paso a ya hecho: dejado en RDZ McAllen por Steven");
+    expect(notaDelRelevoYaRecogido("RDZ McAllen", null)).toBe("Relevo con el paso a ya hecho: dejado en RDZ McAllen por ?");
+    const codigo = leer("src/lib/local-data-provider.tsx");
+    expect(codigo).toMatch(/madre\.stage === "picked_up"[\s\S]*notaDelRelevoYaRecogido\(/);
+    expect(leer("supabase/migrations/321_relevo_de_orden_recogida.sql")).toContain("'Relevo con el paso a ya hecho: dejado en %s por %s'");
+  });
+
+  it("qué orden lo admite: también la ya recogida; una entregada, no. El mensaje ya dice «entregado»", () => {
+    const d = recogida();
+    expect(porQueNoSeActiva(d, [d])).toBeNull();
+    expect(porQueNoSeActiva({ ...d, stage: "delivered" }, [d])).toBe("etapa");
+    expect(TEXTO_NO_SE_ACTIVA.etapa.en).toContain("not been delivered yet");
+  });
+
+  it("la pantalla avisa en la ficha de una orden ya recogida: el paso a queda entregado en la tienda y el b se programa", () => {
+    const codigo = leer("src/components/RelevoDeLaOrden.tsx");
+    expect(codigo).toContain("const yaRecogida = !esRelevo && pedido.stage === \"picked_up\";");
+    expect(codigo).toContain("This order is already on the truck: step a will be marked delivered at ${tienda || \"…\"} and step b scheduled for the chosen day.");
+    expect(codigo).toContain("Esta orden ya va en el camión: el paso a se marcará entregado en");
+  });
+});
+
+describe("la migración 321 (relevo de una orden ya recogida) dice lo mismo", () => {
+  const sql = leer("supabase/migrations/321_relevo_de_orden_recogida.sql");
+  const [cuerpo, registro] = sql.split("-- @ledger-below");
+  const sinComentarios = cuerpo.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+
+  it("su fila del registro está al día con el texto de arriba, sin begin/commit ni el número de la decisión", () => {
+    const sha = createHash("sha256").update(cuerpo, "utf8").digest("hex");
+    expect(registro.trim()).toBe(`insert into public.schema_migrations (name, checksum) values ('321_relevo_de_orden_recogida.sql', '${sha}') on conflict (name) do nothing;`);
+    expect(sinComentarios).not.toMatch(/^\s*(begin|commit)\s*;/im);
+    expect(cuerpo.slice(0, cuerpo.indexOf("-- 1. guard_delivery_stage"))).not.toMatch(/D-\d{3}/);   // (la copia del guard, de la 173, sí los trae)
+    expect(sinComentarios).not.toMatch(/create trigger|drop trigger/i);
+  });
+
+  it("el guard es la copia de la 173 letra por letra, salvo la rama del relevo marcado (la única que pasa sin el rol)", () => {
+    const trozo = (t: string) => t.slice(t.indexOf("create or replace function public.guard_delivery_stage()"), t.indexOf("end $function$", t.indexOf("create or replace function public.guard_delivery_stage()")));
+    const sinRama = (t: string) => t.split("\n").filter((l) => !l.includes("current_setting('rtg.relevo', true) = NEW.order_no") && !/^  -- (321:|a y el b con|sigue igual para)/.test(l)).join("\n");
+    expect(sinRama(trozo(cuerpo))).toBe(trozo(leer("supabase/migrations/173_reprogramar_orden.sql")));
+    const guard = trozo(sinComentarios);
+    expect(guard).toContain("if NEW.relay_step is not null and current_setting('rtg.relevo', true) = NEW.order_no::text then return NEW; end if;");
+    expect(guard.indexOf("rtg.relevo")).toBeLessThan(guard.indexOf("if r = 'admin' then return NEW; end if;"));
+  });
+
+  it("activar_relevo acepta la orden recogida, deja el paso a entregado con su hora y sigue con las mismas comprobaciones", () => {
+    const activar = sinComentarios.slice(sinComentarios.indexOf("create or replace function public.activar_relevo"), sinComentarios.indexOf("revoke execute on function public.activar_relevo"));
+    expect(activar).toContain("if madre.stage not in ('approved', 'fulfilling', 'ready', 'picked_up') then");
+    expect(activar).toContain("RELEVO_STAGE: a relay is set up on an approved order that has not been delivered");
+    expect(activar).toContain("ya_salio := madre.stage = 'picked_up';");
+    expect(activar).toMatch(/stage\s+= case when ya_salio then 'delivered' else stage end,/);
+    expect(activar).toMatch(/pod_delivered_at\s+= case when ya_salio then now\(\) else pod_delivered_at end,/);
+    expect(activar).toMatch(/delivered_address\s+= case when ya_salio then tienda->>'address' else delivered_address end/);
+    expect(activar).toContain("(p_id, 'delivered', nota_ya, auth.uid())");
+    expect(activar).toContain("'id', nueva_id, 'order_suffix', 'b', 'relay_step', 2, 'stage', 'ready',");
+    expect(activar).toContain("'delivery_date', p_fecha, 'assigned_driver', null,");
+    expect(activar).toContain("RELEVO_TIENDA");
+    expect(activar).toContain("p_fecha < greatest(hoy, coalesce(madre.delivery_date, hoy))");
+    expect(activar).toContain("puede_relevo()");
+    expect(activar).not.toMatch(/order_type\s*=|'order_type'/);
+  });
+
+  it("la pantalla de la base no cambia: deshacer_relevo y los disparadores de la 256 siguen", () => {
+    expect(sinComentarios).not.toMatch(/create (or replace )?function public\.(deshacer_relevo|guard_relevo|guard_relevo_fecha)\b/i);
   });
 });

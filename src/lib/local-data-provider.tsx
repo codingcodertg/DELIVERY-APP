@@ -18,7 +18,7 @@ import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { deviceId } from "@/lib/device-id";
 import { DEMO_USERS, demoDeliveries, demoNotifications, demoSettings, uid } from "@/lib/demo-data";
 import { alJuntar, alRepartir, avisoDePartirSola, cargasAlGuardar, copiaParaLaCarga, hermanasDe, madreAlPartir, parteEnCadena, restosParaPartir, siguienteLetra } from "@/lib/cargas-partidas";
-import { alActivar, alDeshacer, entraEnElCamion, pasosDelRelevo as pasosDeLaFamilia, pasosParaVer, porQueNoSeActiva, porQueNoSeRecoge, primerDiaDelPasoB, puedeGestionarRelevo, relevoParaElAviso, TEXTO_NO_SE_ACTIVA } from "@/lib/relevo";
+import { alActivar, alDeshacer, entraEnElCamion, notaDelRelevoYaRecogido, pasosDelRelevo as pasosDeLaFamilia, pasosParaVer, porQueNoSeActiva, porQueNoSeRecoge, primerDiaDelPasoB, puedeGestionarRelevo, relevoParaElAviso, TEXTO_NO_SE_ACTIVA } from "@/lib/relevo";
 import { capacidadDelChofer } from "@/lib/agregar-material-avisos";
 import { palletsDeLaOrden } from "@/lib/pallets";
 import { orderLabel } from "@/lib/utils";
@@ -287,7 +287,14 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     const a = { ...madre, ...r.madre, updated_at: ahora };
     let next: Store = { ...s, deliveries: [r.paso, ...s.deliveries.map((c) => (c.id === id ? a : c))] };
     next = { ...next, events: addEvent(next, id, "edited", `Relay transfer set up: this order is now step ${orderLabel(a)} (${madre.pickup_name} -> ${a.delivery_name}); step ${orderLabel(r.paso)} (${r.paso.pickup_name} -> ${r.paso.delivery_name}) is picked up on ${fecha}`) };
-    next = { ...next, events: addEvent(next, r.paso.id, "created", `Relay transfer step ${orderLabel(r.paso)}: ${r.paso.pickup_name} -> ${r.paso.delivery_name}, pickup day ${fecha}`) };
+    // 321: con la orden ya recogida, el paso a nace entregado en la tienda de relevo; la nota va en los dos pasos.
+    if (madre.stage === "picked_up") {
+      const nota = notaDelRelevoYaRecogido(r.paso.pickup_name ?? "?", madre.assigned_driver);
+      next = { ...next, events: addEvent(next, id, "delivered", nota) };
+      next = { ...next, events: addEvent(next, r.paso.id, "created", nota) };
+    } else {
+      next = { ...next, events: addEvent(next, r.paso.id, "created", `Relay transfer step ${orderLabel(r.paso)}: ${r.paso.pickup_name} -> ${r.paso.delivery_name}, pickup day ${fecha}`) };
+    }
     persist(next);
     return r.paso.id;
   }, [me, persist, notify]);
