@@ -2,7 +2,7 @@
 
 import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion-hook";
 import { contextoDelGestor } from "@/lib/ayuda-contextos";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { soloActivos } from "@/lib/baja";
 import { useData } from "@/lib/data-provider";
 import { useSoloLectura } from "@/lib/gestor/solo-lectura";
@@ -16,7 +16,9 @@ import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { canPlanRoutes } from "@/lib/constants";
 import { parseWindow, unavailableDriverNames } from "@/lib/dispatch";
-import { MapView, type MapLine, type MapPoint } from "@/components/MapView";
+import dynamic from "next/dynamic";
+import type { MapLine, MapPoint } from "@/components/MapView";
+import { useUbicacionesDeChoferes } from "@/lib/ubicaciones-de-choferes";
 import { FotoDeLaRuta } from "@/components/FotoDeLaRuta";
 import { lineasDeLaRuta, puntosDeLaRuta } from "@/lib/foto-de-la-ruta";
 import { OrderModal } from "@/components/OrderModalLazy";
@@ -62,7 +64,6 @@ import { RelevoDeLaOrden } from "@/components/RelevoDeLaOrden";
 import { IconoDeAvisos, type AvisoDeLaRuta } from "@/components/IconoDeAvisos";
 import { avisosDeRelevo, type AvisoDeRelevo } from "@/lib/relevo";
 import { esPasoDeRelevo } from "@/lib/relevo-etiqueta";
-import { isStoreToStore } from "@/lib/required";
 import { puedeReprogramar } from "@/lib/reprogramar-orden";
 import { ReprogramarVarias } from "@/components/ReprogramarVarias";
 import { BandejaDeSolicitudes } from "@/components/BandejaDeSolicitudes";
@@ -119,6 +120,13 @@ import { celdaPropiaDelPlan, claseDeLaFilaDelPlan } from "@/lib/route-plan/celda
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { BotonDelCamion } from "@/components/BotonDelCamion";
+
+// El mapa entra solo cuando una pantalla lo pinta (como en Ajustes): arrastra Leaflet/Google enteros.
+const MapView = dynamic(() => import("@/components/MapView").then((m) => m.MapView), {
+  ssr: false,
+  loading: () => <div style={{ minHeight: 320 }} aria-hidden />,
+});
+
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 /** La capa de camiones de TrackSolid (D-900): la misma lista vacía siempre, y dónde recuerda el navegador si se apagó. */
 const SIN_CAMIONES_EN_MAPA: TruckMarker[] = [];
@@ -240,7 +248,9 @@ export default function RoutesPage() {
   const soloLectura = soloLecturaDeclarada || miChofer != null;
   // «Mi ruta» monta ESTA pantalla y se queda solo con su mapa (D-514): el mismo mapa, no una copia. Manda su día.
   const soloElMapa = useSoloElMapa();
-  const { me, users, deliveries: deliveriesLeidas, settings, saveSettings, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, addNote, reprogramarOrden, notify, availability, ready, incidents, addIncident, removeIncident, driverLocations, shifts, events, teaching, realRole } = useData();
+  const { me, users, deliveries: deliveriesLeidas, settings, saveSettings, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, addNote, reprogramarOrden, notify, availability, ready, incidents, addIncident, removeIncident, shifts, events, teaching, realRole } = useData();
+  // Las posiciones de los choferes: fuera del contexto principal, para que un ping de GPS no repinte toda la pantalla de datos.
+  const driverLocations = useUbicacionesDeChoferes();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
   const [fechaDelEstado, setDate] = useState(todayISO());
@@ -572,6 +582,10 @@ export default function RoutesPage() {
   const [poolFilter, setPoolFilter] = useState<ChipSinAsignar>("dia");
   // Lo mismo para la pestaña «Todas» (D-462): su buscador y su chip, aparte de los de «Sin asignar».
   const [busquedaDeTodas, setBusquedaDeTodas] = useState("");
+  // Las cajas de búsqueda pintan lo que se escribe al instante (`orderSearch`, `busquedaDeTodas`); lo que pesa —las
+  // tablas filtradas y sus cuentas— va con el valor «diferido», para que teclear no se trabe mientras se recalcula.
+  const orderSearchDiferida = useDeferredValue(orderSearch);
+  const busquedaDeTodasDiferida = useDeferredValue(busquedaDeTodas);
   // Lo que una solicitud de ayuda dirá de esta pantalla (D-901): pestaña, chip, fecha y qué ventana hay abierta.
   useContextoDeAyuda("gestor", contextoDelGestor({
     pestana: tab, chip: poolFilter, fecha: date, todasLasFechas: allDates, vistaEficiente: vista === "eficiente", soloLectura,
@@ -1432,7 +1446,7 @@ export default function RoutesPage() {
   // Las filas de la TABLA «Sin asignar», según su chip (D-359 «Atrasadas», D-393 «Todas»), y el número de cada chip,
   // que sale de la misma función: el número es el de las filas que enseña (patrón de D-380/D-384).
   const filasDelChip = useMemo(() => filasSinAsignar(deliveries, date, modo, ROUTE_STAGES, poolFilter), [deliveries, date, modo, poolFilter]);
-  const cuentasDeChips = useMemo(() => cuentasSinAsignar(deliveries, date, modo, ROUTE_STAGES, orderSearch), [deliveries, date, modo, orderSearch]);
+  const cuentasDeChips = useMemo(() => cuentasSinAsignar(deliveries, date, modo, ROUTE_STAGES, orderSearchDiferida), [deliveries, date, modo, orderSearchDiferida]);
   // «Todas» (D-462): todo lo del día, con chofer o sin él, más lo ya hecho ese día (D-459), por el filtro de chofer de la
   // barra —con un chofer elegido, las suyas y las sin asignar (`todas-del-gestor.ts` dice por qué)—. La pestaña cuenta
   // «Este día» sin búsqueda; la tabla y sus chips, con su chip y su búsqueda. Las tres salen de la misma función.
@@ -1441,8 +1455,8 @@ export default function RoutesPage() {
   const sinFiltroDeChofer = useMemo(() => new Set<string>(), []);
   const todasDelDia = useMemo(() => todasDelGestor(deliveries, date, modo, ROUTE_STAGES, sinFiltroDeChofer), [deliveries, date, modo, sinFiltroDeChofer]);
   const filasDeTodasDelChip = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, "", sinFiltroDeChofer), [deliveries, date, modo, chipDeTodas, sinFiltroDeChofer]);
-  const todasConBusqueda = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, busquedaDeTodas, sinFiltroDeChofer), [deliveries, date, modo, chipDeTodas, busquedaDeTodas, sinFiltroDeChofer]);
-  const cuentasDeTodasAqui = useMemo(() => cuentasDeTodas(deliveries, date, modo, ROUTE_STAGES, busquedaDeTodas, sinFiltroDeChofer), [deliveries, date, modo, busquedaDeTodas, sinFiltroDeChofer]);
+  const todasConBusqueda = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, busquedaDeTodasDiferida, sinFiltroDeChofer), [deliveries, date, modo, chipDeTodas, busquedaDeTodasDiferida, sinFiltroDeChofer]);
+  const cuentasDeTodasAqui = useMemo(() => cuentasDeTodas(deliveries, date, modo, ROUTE_STAGES, busquedaDeTodasDiferida, sinFiltroDeChofer), [deliveries, date, modo, busquedaDeTodasDiferida, sinFiltroDeChofer]);
   // Lo que «Asignar», «📍 Mejor lugar» y el recuadro «Elige conductor» pueden tomar de lo marcado: las filas SIN CHOFER de la
   // tabla que se ve, con su chip (hasta D-462, solo las de «Sin asignar»). En «Todas» una fila con chofer se marca para verla
   // en el mapa, no para asignarla: eso es «Pasar a…».
@@ -1509,7 +1523,7 @@ export default function RoutesPage() {
   }, [elegeAbierto]);
 
   // Search + saved filter over the unassigned pool. La misma función que da el número de cada chip (D-393).
-  const unassignedShown = useMemo(() => filasSinAsignar(deliveries, date, modo, ROUTE_STAGES, poolFilter, orderSearch), [deliveries, date, modo, poolFilter, orderSearch]);
+  const unassignedShown = useMemo(() => filasSinAsignar(deliveries, date, modo, ROUTE_STAGES, poolFilter, orderSearchDiferida), [deliveries, date, modo, poolFilter, orderSearchDiferida]);
 
   // Each driver's stops for the day, in their current sequence (saved
   // order first, unsequenced ones after — same rule as the Driver page).
@@ -1646,12 +1660,13 @@ export default function RoutesPage() {
   // lib/cargas-partidas; la base la repite (partir_carga, reparte_cargas, juntar_cargas).
   const cargasDe = (d: Delivery) => { const hermanas = hermanasDe(deliveries, d); return { carga: cargaDe(d, hermanas), otra: laOtraCarga(d, hermanas) }; };
   // D-898 (256): en ese mismo sitio, la TRANSFERENCIA POR RELEVO (`components/RelevoDeLaOrden`): en un paso de relevo
-  // («Tr-1111-a»), su pastilla, que abre la tarjeta del relevo; en una orden de tienda a tienda sin relevo, el «⇄» que lo
+  // («Tr-1111-a»), su pastilla, que abre la tarjeta del relevo; en cualquier otra orden, el «⇄» que lo
   // activa. Un paso de relevo no es «carga 1 de 2» (`cargaDe` da `null`), así que nunca salen las dos cosas.
   const etiquetaDeLaCarga = (d: Delivery) => {
     const c = cargasDe(d).carga;
     if (c) return <span className="hint" data-carga style={{ margin: 0 }}> · {etiquetaDeCarga(c, lang === "es")}</span>;
-    return esPasoDeRelevo(d) || isStoreToStore(d.order_type, settings.order_type_rules) ? <RelevoDeLaOrden pedido={d} compacto soloLectura={soloLectura} /> : null;
+    // Cualquier tipo de orden: el componente decide si el relevo aplica (un paso ya relevo, o una orden de quien planifica).
+    return <RelevoDeLaOrden pedido={d} compacto soloLectura={soloLectura} />;
   };
   const parteLaOrden = async (d: Delivery, capacidad: number) => {
     const total = palletsDeLaOrden(d);

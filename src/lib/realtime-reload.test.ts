@@ -9,9 +9,9 @@ import { ALL_QUERIES, QUERY_OF_TABLE, queriesForTables, queriesBefore } from "./
 describe("un 'entregado' del chofer en una sesión ajena", () => {
   const entregado = ["deliveries", "order_events"];
 
-  it("antes: las nueve consultas (y 18 si los dos eventos no coinciden en el mismo debounce)", () => {
-    expect(queriesBefore(entregado)).toHaveLength(9);
-    expect(queriesBefore(["deliveries"]).length + queriesBefore(["order_events"]).length).toBe(18);
+  it("antes: las consultas de la app (y el doble si los dos eventos no coinciden en el mismo debounce). Sin driver_locations, que ya tiene su almacén", () => {
+    expect(queriesBefore(entregado)).toHaveLength(8);
+    expect(queriesBefore(["deliveries"]).length + queriesBefore(["order_events"]).length).toBe(16);
   });
 
   it("después: exactamente dos, las de las tablas que cambiaron", () => {

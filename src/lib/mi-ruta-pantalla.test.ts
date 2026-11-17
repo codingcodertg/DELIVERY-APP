@@ -26,6 +26,11 @@ const estado = vi.hoisted(() => ({
   tarjeta: false,
 }));
 
+// Las posiciones de los choferes van en su propio almacén: el hook lee el `driverLocations` del `useData` simulado.
+vi.mock("@/lib/ubicaciones-de-choferes", async () => {
+  const { useData } = await import("@/lib/data-provider");
+  return { useUbicacionesDeChoferes: () => (useData() as unknown as { driverLocations: unknown[] }).driverLocations };
+});
 vi.mock("@/lib/data-provider", () => ({
   useData: () => ({
     me: estado.me, realRole: estado.me?.role ?? null, users: [], deliveries: estado.deliveries, events: estado.events,

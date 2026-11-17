@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
-import { MapView, type MapPoint } from "@/components/MapView";
+import dynamic from "next/dynamic";
+import type { MapPoint } from "@/components/MapView";
+
+// El mapa entra solo cuando la pantalla lo pinta (como en Ajustes): arrastra Leaflet/Google enteros.
+const MapView = dynamic(() => import("@/components/MapView").then((m) => m.MapView), {
+  ssr: false,
+  loading: () => <div style={{ minHeight: 320 }} aria-hidden />,
+});
 import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
 import { downloadCSV, toCSV } from "@/lib/utils";
 

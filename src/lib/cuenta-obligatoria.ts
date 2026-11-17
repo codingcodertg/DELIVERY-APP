@@ -1,5 +1,6 @@
 import type { Delivery, UserRole } from "@/lib/types";
 import { hayClienteDetras, type OrderTypeRules } from "@/lib/required";
+import { esTramoEntreTiendas } from "@/lib/relevo-etiqueta";
 
 // ============================================================
 // La cuenta es obligatoria para ventas en una orden de cliente.
@@ -37,9 +38,10 @@ export function pideCuenta(
 /** ¿Hay que parar el guardado porque la cuenta falta? True solo si se exige Y está vacía. */
 export function faltaLaCuenta(
   rol: UserRole | string | null | undefined,
-  orden: Pick<Partial<Delivery>, "account" | "order_type">,
+  orden: Pick<Partial<Delivery>, "account" | "order_type" | "relay_step">,
   reglas?: OrderTypeRules,
 ): boolean {
+  if (esTramoEntreTiendas(orden)) return false; // el tramo a de un relevo es tienda a tienda: no lleva cuenta de cliente
   if (!pideCuenta(rol, orden.order_type, reglas)) return false;
   return !(orden.account ?? "").trim();
 }

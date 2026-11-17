@@ -1,4 +1,5 @@
 import { hayClienteDetras, type OrderTypeRules } from "@/lib/required";
+import { esTramoEntreTiendas } from "@/lib/relevo-etiqueta";
 import { BUSINESS_TZ, fmtDateShort, isoInTZ, orderLabel } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 import { formateadorDeFecha } from "@/lib/formateador";
@@ -29,6 +30,7 @@ export type IdiomaDelCliente = "en" | "es";
 /** Los campos de una orden que este módulo lee. Opcionales los de la 150: una base sin ella no los trae. */
 export type OrdenParaAviso = Pick<Delivery, "id" | "order_no" | "order_type" | "stage" | "delivery_date" | "delivery_windows" | "delivery_phone" | "is_training" | "assigned_driver"> & {
   order_code?: string | null;
+  relay_step?: number | null;
   order_suffix?: string | null;
   customer_email?: string | null;
   notify_pref?: string | null;
@@ -103,6 +105,8 @@ export function decidirAviso(
   if (o.is_training === true) return { ok: false, motivo: "training" };
   if (!String(o.order_type ?? "").trim()) return { ok: false, motivo: "sin_tipo" };
   if (!hayClienteDetras(o.order_type, reglas)) return { ok: false, motivo: "sin_cliente" };
+  // El tramo a de un relevo va a otra tienda, no al cliente (aunque la orden sea de cliente): sin aviso. El b sí avisa.
+  if (esTramoEntreTiendas(o)) return { ok: false, motivo: "tramo_de_relevo" };
   if (!ETAPAS_DEL_AVISO[tipo].includes(String(o.stage ?? ""))) return { ok: false, motivo: "etapa" };
   const pref = preferenciaDe(o);
   if (pref === "none") return { ok: false, motivo: "no_avisar" };

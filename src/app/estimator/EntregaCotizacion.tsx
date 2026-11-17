@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { AddressInput } from "@/components/AddressInput";
-import { MapView } from "@/components/MapView";
+import dynamic from "next/dynamic";
+
+// El mapa entra solo cuando la pieza lo pinta (como en Ajustes): arrastra Leaflet/Google enteros.
+const MapView = dynamic(() => import("@/components/MapView").then((m) => m.MapView), {
+  ssr: false,
+  loading: () => <div style={{ minHeight: 320 }} aria-hidden />,
+});
 import { FeeBreakdownDetails } from "@/components/FeeBreakdown";
 import { AvisoNoLocal, PastillaDeZona } from "@/components/ZonaDeLaEntrega";
 import { zonaDecidida } from "@/lib/zona-decidida";

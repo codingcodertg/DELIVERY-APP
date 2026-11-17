@@ -1393,7 +1393,7 @@ function AgregarFoto({ r, ctx, onListo }: { r: Reporte; ctx: Contexto; onListo: 
         {lista.map((x, n) => (
           <figure key={n} data-repetida={x.otros.length > 0 ? "si" : undefined}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={x.jpg} alt={t(`Photo ${n + 1}`, `Foto ${n + 1}`)} />
+            <img src={x.jpg} alt={t(`Photo ${n + 1}`, `Foto ${n + 1}`)} loading="lazy" decoding="async" />
             <button type="button" className="ops-boton" onClick={() => setLista((l) => l.filter((_, m) => m !== n))}>{t("Remove", "Quitar")}</button>
           </figure>
         ))}

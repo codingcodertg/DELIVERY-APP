@@ -2037,8 +2037,9 @@ export function OrderModal({
               the top right hand side insead» y «all sales people well everybody has the iption to reprogramar». El MISMO
               cuadro del Gestor (D-500); quién puede lo dice `puedeReprogramar` (ventas, solo la suya: `esMia`). */}
           {/* D-898 (256): «⇄ Transferencia por relevo». En un paso de relevo abre la tarjeta (el estado de la orden entera y
-              cada paso con quién y cuándo); en una orden de tienda a tienda, quien planifica rutas lo activa desde aquí. */}
-          {!editing && existing && (esPasoDeRelevo(existing) || storeToStore) && (
+              cada paso con quién y cuándo); en cualquier otra orden, quien planifica rutas lo activa desde aquí (el componente
+              decide si aplica). */}
+          {!editing && existing && (
             <span style={{ flex: "0 0 auto" }} data-relevo-en-ficha>
               <RelevoDeLaOrden pedido={existing} />
             </span>

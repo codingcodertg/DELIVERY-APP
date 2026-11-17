@@ -4,6 +4,7 @@ import { notaDeArrastre, planDeFechaDelRelevo } from "@/lib/relevo-fechas";
 import { puestoEn, type Numeracion } from "@/lib/mover-parada";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Ctx, type AccionDelAviso, type DataState, type OpcionesDelAviso } from "@/lib/data-provider";
+import { crearAlmacenDeUbicaciones, UbicacionesDeChoferesCtx } from "@/lib/ubicaciones-de-choferes";
 import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage } from "@/lib/types";
 import { type AppNotification, notificationsForStage } from "@/lib/notifications";
 import { canTransition, puedeAnular } from "@/lib/constants";
@@ -275,7 +276,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     if (!puedeGestionarRelevo(me)) { notify("Only route planners (or an admin) can set up a relay transfer."); return null; }
     const madre = s.deliveries.find((c) => c.id === id);
     if (!madre) return null;
-    const no = porQueNoSeActiva(madre, hermanasDe(s.deliveries, madre), s.settings.stores, s.settings.order_type_rules);
+    const no = porQueNoSeActiva(madre, hermanasDe(s.deliveries, madre));
     if (no) { notify(TEXTO_NO_SE_ACTIVA[no].en); return null; }
     const hoy = todayISO();
     if (!fecha || fecha < primerDiaDelPasoB(madre.delivery_date, hoy)) { notify("Step b can't be picked up before today or before step a's day."); return null; }
@@ -309,8 +310,8 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
   }, []);
 
   // Local demo mode: positions live only in this browser session, so the
-  // driver view can be exercised without a backend.
-  const [driverLocations, setDriverLocations] = useState<DriverLocation[]>([]);
+  // driver view can be exercised without a backend. Van en su propio almacén (sin fuente: no hay base).
+  const [almacenUbicaciones] = useState(() => crearAlmacenDeUbicaciones());
   const marcaGpsDelTurno = useCallback<DataState["marcaGpsDelTurno"]>(async () => { /* demo: no hay turno en la base */ }, []);
   const pushLocation = useCallback<DataState["pushLocation"]>(async (fix) => {
     const row: DriverLocation = {
@@ -325,9 +326,9 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       recorded_at: fix.recorded_at ?? new Date().toISOString(),
       created_at: new Date().toISOString(),
     };
-    setDriverLocations((prev) => [row, ...prev.filter((p) => p.driver_id !== me.id)]);
+    almacenUbicaciones.aplicar(row);
     return true;
-  }, [me.id]);
+  }, [me.id, almacenUbicaciones]);
 
   const deleteDelivery = useCallback<DataState["deleteDelivery"]>(async (id) => {
     const s = storeRef.current;
@@ -672,13 +673,14 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     availability: store.availability ?? [], addAvailability, removeAvailability,
     shifts: store.shifts ?? [], clockIn, clockOut, marcaGpsDelTurno,
     incidents: store.incidents ?? [], addIncident, removeIncident,
-    driverLocations, pushLocation,
+    pushLocation,
     // Local demo mode writes straight to this browser, so nothing is ever
     // waiting on a connection.
     pendingSync: 0, syncing: false,
-  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, marcaGpsDelTurno, addIncident, removeIncident, driverLocations, pushLocation]);
+  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, marcaGpsDelTurno, addIncident, removeIncident, pushLocation]);
 
   return (
+    <UbicacionesDeChoferesCtx.Provider value={almacenUbicaciones}>
     <Ctx.Provider value={value}>
       {children}
       {toast && (
@@ -694,6 +696,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
         </div>
       )}
     </Ctx.Provider>
+    </UbicacionesDeChoferesCtx.Provider>
   );
 }
 

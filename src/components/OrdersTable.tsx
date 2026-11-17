@@ -43,6 +43,10 @@ import { PastillaDeRelevo } from "@/components/RelevoDeLaOrden";
 import { BarraSuperior } from "@/components/BarraSuperior";
 import type { CancelReason, Delivery, Profile } from "@/lib/types";
 import { IconoDeFotos } from "@/components/IconoDeFotos";
+import { useVirtualizer } from "@tanstack/react-virtual";
+
+/** Un renglón del cuerpo de la tabla: la cabecera de una tienda o una orden (la virtualización va sobre esta lista). */
+type ElementoDeTabla = { clave: string; grupo: { tienda: string; filas: Delivery[] } } | { clave: string; fila: Delivery };
 
 type Ctx = {
   lang: "en" | "es";
@@ -676,6 +680,25 @@ export function OrdersTable({
     [agrupada, sortedRows, (tiendasPrimero ?? []).join("|")],
   );
 
+  // Virtualización (como TablaEstandar): de la lista YA agrupada —cabeceras de tienda y filas, en el mismo orden— se
+  // pintan solo las de la ventana visible; el resto son dos celdas de relleno. Las filas se miden al pintarse (con
+  // «Ver detalles» cambian de alto).
+  const elementos = useMemo<ElementoDeTabla[]>(() => grupos.flatMap((g) => [
+    ...(agrupada ? [{ clave: "tienda:" + g.tienda, grupo: g }] : []),
+    ...g.filas.map((d) => ({ clave: d.id, fila: d })),
+  ]), [grupos, agrupada]);
+  const virt = useVirtualizer({
+    count: elementos.length,
+    getScrollElement: () => cajaRef.current,
+    estimateSize: () => 44,
+    overscan: 12,
+    // Alto de partida (antes de medir la caja), para que la primera pintada ya traiga filas.
+    initialRect: { width: 0, height: 720 },
+  });
+  const itemsVirt = virt.getVirtualItems();
+  const padTop = itemsVirt.length ? itemsVirt[0].start : 0;
+  const padBottom = itemsVirt.length ? virt.getTotalSize() - itemsVirt[itemsVirt.length - 1].end : 0;
+
   const optionsFor = (col: OrderColumn) => opcionesDeFiltro(applyFilters(rows, col.key), (d) => col.value(d, ctx), col.filterLabel);
   // D-744: las opciones del menú abierto, una vez por (filas, filtros, columna), no en cada render mientras está abierto.
   const opcionesDelMenu = useMemo(
@@ -800,15 +823,23 @@ export function OrdersTable({
         <tbody>
           {sortedRows.length === 0 ? (
             <tr><td colSpan={totalDeColumnas} className="empty">{t("No rows match the current filters.", "Ninguna fila coincide con los filtros actuales.")}</td></tr>
-          ) : grupos.flatMap((g) => [
-            agrupada && (
-              <tr key={"tienda:" + g.tienda} className="grupo-tienda">
-                <td colSpan={totalDeColumnas}>{g.tienda || t("No store", "Sin tienda")} <span className="cnt">{g.filas.length}</span></td>
+          ) : (<>
+            {padTop > 0 && <tr aria-hidden style={{ height: padTop }}><td colSpan={totalDeColumnas} style={{ padding: 0, border: 0 }} /></tr>}
+            {itemsVirt.map((vi) => {
+              const el = elementos[vi.index];
+              if ("grupo" in el) {
+                return (
+              <tr key={el.clave} data-index={vi.index} ref={virt.measureElement} className="grupo-tienda">
+                <td colSpan={totalDeColumnas}>{el.grupo.tienda || t("No store", "Sin tienda")} <span className="cnt">{el.grupo.filas.length}</span></td>
               </tr>
-            ),
-            ...g.filas.map((d) => (
+                );
+              }
+              const d = el.fila;
+              return (
             <tr
               key={d.id}
+              data-index={vi.index}
+              ref={virt.measureElement}
               className={"clickable"
                 + (isUrgent?.(d) ? " row-urgent" : "")
                 // `con-casilla` = esta fila lleva casilla de selección. Lo usa la tarjeta del
@@ -854,8 +885,10 @@ export function OrdersTable({
                 ),
               ])}
             </tr>
-            )),
-          ])}
+              );
+            })}
+            {padBottom > 0 && <tr aria-hidden style={{ height: padBottom }}><td colSpan={totalDeColumnas} style={{ padding: 0, border: 0 }} /></tr>}
+          </>)}
         </tbody>
       </table>
     </div>

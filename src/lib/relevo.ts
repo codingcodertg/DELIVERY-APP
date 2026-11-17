@@ -2,7 +2,6 @@ import { COLUMNAS_PROPIAS_DE_LA_CARGA, etapaDeLaFamilia, hermanasDe } from "./ca
 import { problemaDeFecha } from "./dia-de-entrega";
 import { normalizaLugar } from "./order-endpoints";
 import { esPasoDeRelevo, etiquetaDeRelevo, letraDelPaso } from "./relevo-etiqueta";
-import { isStoreToStore, type OrderTypeRules } from "./required";
 import type { Delivery, NamedLocation } from "./types";
 
 export { esPasoDeRelevo, etiquetaDeRelevo, letraDelPaso, numeroConLetra, PASTILLA_DE_RELEVO, PREFIJO_DE_RELEVO, mensajeDelRelevo, textoDeRelevoParaBuscar } from "./relevo-etiqueta";
@@ -85,25 +84,18 @@ export const entraEnElCamion = (antes: string | null | undefined, despues: strin
 
 // ---- Activar ---------------------------------------------------------------------------------------------------------
 
-export type PorQueNoSeActiva = "ya_es_relevo" | "partida" | "etapa" | "no_es_tienda_a_tienda" | "sin_tiendas";
-
-const tiendaDe = (nombre: string | null | undefined, tiendas: readonly NamedLocation[]) => {
-  const n = normalizaLugar(nombre);
-  return n ? tiendas.find((t) => normalizaLugar(t.name) === n) ?? null : null;
-};
+export type PorQueNoSeActiva = "ya_es_relevo" | "partida" | "etapa";
 
 /**
- * ¿Se puede activar un relevo en esta orden? `null` = sí. Tiene que ser de tienda a tienda (una Intertienda o un
- * Transfer: su destino es una tienda de Ajustes), estar aprobada y sin recoger, y no estar partida en cargas.
+ * ¿Se puede activar un relevo en esta orden? `null` = sí. Vale para CUALQUIER tipo de orden (tienda a tienda, de cliente,
+ * a un proveedor…): el paso a va a la tienda de relevo y el paso b, al destino de la orden. Tiene que estar aprobada y sin
+ * recoger, y no estar partida en cargas. La tienda de relevo la elige quien planifica (`tiendasDeRelevo`) y la base la
+ * valida en `activar_relevo`.
  */
-export function porQueNoSeActiva(d: Delivery, hermanas: readonly Minima[], tiendas: readonly NamedLocation[], reglas?: OrderTypeRules): PorQueNoSeActiva | null {
+export function porQueNoSeActiva(d: Delivery, hermanas: readonly Minima[]): PorQueNoSeActiva | null {
   if (esPasoDeRelevo(d)) return "ya_es_relevo";
   if (d.order_suffix || hermanas.some((h) => h.id !== d.id)) return "partida";
   if (!ETAPAS_PARA_ACTIVAR_RELEVO.includes(d.stage)) return "etapa";
-  if (!isStoreToStore(d.order_type, reglas)) return "no_es_tienda_a_tienda";
-  // El DESTINO tiene que ser una tienda de Ajustes. La recogida no se exige por nombre: en una orden de tienda a tienda
-  // sale de «Vendido desde», pero su nombre puede ser el del almacén de esa tienda.
-  if (!tiendaDe(d.delivery_name, tiendas)) return "sin_tiendas";
   return null;
 }
 
@@ -111,8 +103,6 @@ export const TEXTO_NO_SE_ACTIVA: Record<PorQueNoSeActiva, Bilingue> = {
   ya_es_relevo: { en: "This order already is a relay transfer.", es: "Esta orden ya es una transferencia por relevo." },
   partida: { en: "This order is split into loads: join them before setting up a relay.", es: "Esta orden está partida en cargas: júntalas antes de activar un relevo." },
   etapa: { en: "A relay is set up on an approved order that has not been picked up yet.", es: "El relevo se activa en una orden aprobada que todavía no se ha recogido." },
-  no_es_tienda_a_tienda: { en: "A relay transfer is only for store-to-store orders.", es: "La transferencia por relevo es solo para órdenes de tienda a tienda." },
-  sin_tiendas: { en: "The destination must be a store from Settings.", es: "El destino tiene que ser una tienda de Ajustes." },
 };
 
 /** Las tiendas que se ofrecen como relevo: las de Ajustes, menos el origen y el destino. */

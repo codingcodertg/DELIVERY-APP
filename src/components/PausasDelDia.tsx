@@ -49,7 +49,7 @@ export function PausasDelDia({ driverId, fecha, clock }: { driverId: string; fec
               <span data-recibo>
                 {p.recibo_foto ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.recibo_foto} alt={t("Gas receipt", "Recibo de gasolina")} onClick={() => setViendo(p.recibo_foto)}
+                  <img src={p.recibo_foto} alt={t("Gas receipt", "Recibo de gasolina")} loading="lazy" decoding="async" onClick={() => setViendo(p.recibo_foto)}
                     style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 6, cursor: "pointer", verticalAlign: "middle" }} />
                 ) : p.sin_recibo ? <span className="hint" style={{ margin: 0 }}>{t("No receipt (driver said)", "Sin recibo (lo dijo el chofer)")}</span> : null}
                 {p.recibo_monto != null && <span style={{ marginLeft: 6 }}>${Number(p.recibo_monto).toFixed(2)}</span>}

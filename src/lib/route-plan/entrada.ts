@@ -3,6 +3,7 @@ import { serviceMin } from "@/lib/trip-timing";
 import { isStoreToStore, type OrderTypeRules } from "@/lib/required";
 import { puntoDeRecogidaLibre, recogidaLibreDeLaOrden } from "@/lib/recogida-libre";
 import { tipoDeClienteDeLaOrden } from "@/lib/customer-type";
+import { esTramoEntreTiendas } from "@/lib/relevo-etiqueta";
 import { choferParaElMotor, COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER, esVentanaDura, opcionesDeReparto, pesosDeRuta, topeDeRetrasoMin, type ChoferParaElMotor } from "@/lib/route-settings";
 import { prioridadDe } from "@/lib/prioridad";
 import { catalogoDeRequisitos, habilidadesDelChofer, requisitosDeLaOrden } from "@/lib/requisitos";
@@ -51,7 +52,9 @@ type OrdenDeLaBase = Pick<Delivery,
   /** D-722 (208). Puede no venir: una base sin la 208 no tiene la columna. */
   plan_rank?: Delivery["plan_rank"];
   /** D-418. Puede no venir: una base sin la 151 no tiene la columna. */
-  requirements?: Delivery["requirements"] };
+  requirements?: Delivery["requirements"];
+  /** D-898 (256). Puede no venir: una base sin la 256 no tiene la columna. Marca el tramo a de un relevo (`esTramoEntreTiendas`). */
+  relay_step?: number | null };
 
 export interface DatosDelDia {
   ordenes: readonly OrdenDeLaBase[];
@@ -83,7 +86,7 @@ export const COLUMNAS_DE_ORDEN =
   "id, stage, order_code, order_type, store, pickup_name, pickup_address, delivery_name, delivery_address, delivery_lat, delivery_lng, delivery_windows, est_pallets, actual_pallets, pickup_duration, delivery_duration, assigned_driver, input_date, input_time, account, customer_type, is_training, updated_at, invoice_num";
 
 /** Las que se piden si la base las tiene, en este orden. */
-export const COLUMNAS_OPCIONALES_DE_ORDEN = ["priority", "requirements", "plan_rank", "pickup_point_lat", "pickup_point_lng"] as const;
+export const COLUMNAS_OPCIONALES_DE_ORDEN = ["priority", "requirements", "plan_rank", "pickup_point_lat", "pickup_point_lng", "relay_step"] as const;
 
 type Lectura = LecturaConError<unknown[] | null>;
 export { leeConOpcionales };
@@ -193,7 +196,7 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     const choferFijado = loPusoUnaPersona ? idPorNombre.get(asignado.toLowerCase()) ?? null : null;
     if (loPusoUnaPersona && (!choferFijado || !ruteables.has(choferFijado))) { fuera.push({ id: d.id, motivo: "chofer_no_rutea" }); continue; }
 
-    const entreTiendas = isStoreToStore(d.order_type, reglas);
+    const entreTiendas = isStoreToStore(d.order_type, reglas) || esTramoEntreTiendas(d);
     // D-782 (223): una recogida LIBRE (Otro, Proveedor) no sale de una tienda: su origen es el punto de la dirección
     // tecleada (geocodificado al guardar). Sin punto, la orden queda sin origen y el motor la saca «sin punto», en vez
     // de mandar al chofer a la tienda que casualmente lleva ese nombre (FV594: «Pickup is in harlingen but it put weslaco»).

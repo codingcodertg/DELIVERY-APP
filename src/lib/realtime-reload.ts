@@ -15,10 +15,10 @@
 // Este mapa sigue siendo el camino de las otras tablas y la red de seguridad (sin id, >25 ids).
 // ============================================================
 
-/** The nine queries `reloadAll` runs, in its order. */
+/** The eight queries `reloadAll` runs, in its order. driver_locations no está: lo carga el almacén de ubicaciones. */
 export const ALL_QUERIES = [
   "settings", "profiles", "deliveries", "order_events", "notifications",
-  "driver_availability", "driver_shifts", "driver_incidents", "driver_locations",
+  "driver_availability", "driver_shifts", "driver_incidents",
 ] as const;
 export type QueryName = (typeof ALL_QUERIES)[number];
 

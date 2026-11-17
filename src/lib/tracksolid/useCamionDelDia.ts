@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useData } from "@/lib/data-provider";
+import { useUbicacionesDeChoferes } from "@/lib/ubicaciones-de-choferes";
 import { posicionesDeChoferes, type CamionDelChofer, type PosicionDeChofer } from "@/lib/posicion-del-chofer";
 import { todayISO } from "@/lib/utils";
 import { REFRESCO_DE_CAMIONES_MS, tocaRefrescar } from "./useCamiones";
@@ -134,7 +134,7 @@ const SIN_POSICIONES: CamionDelChofer[] = [];
  * dos veces el mismo camión).
  */
 export function usePosicionesDeChoferes(activo: boolean = true): { posiciones: PosicionDeChofer[]; camionesDeHoy: EstadoDelCamionDelDia } {
-  const { driverLocations } = useData();
+  const driverLocations = useUbicacionesDeChoferes({ activo });
   const camionesDeHoy = useCamionDelDia(todayISO(), { activo, vivo: true });
   // Un latido propio cada 30 s: «separados desde hace 3 min» y «el teléfono ya no está fresco» cambian con el reloj,
   // no solo cuando llega una posición.

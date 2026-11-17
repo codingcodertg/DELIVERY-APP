@@ -175,10 +175,14 @@ describe("«Sin asignar»: «Este día» y «Todas», y el número de cada chip 
 describe("la pantalla del Gestor usa esas funciones para la tabla y los chips (D-393)", () => {
   const pagina = readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8").split("\r\n").join("\n").replace(/\s+/g, " ");
   it("las filas de la tabla salen de `filasSinAsignar` con el chip y la búsqueda", () => {
-    expect(pagina).toContain("const unassignedShown = useMemo(() => filasSinAsignar(deliveries, date, modo, ROUTE_STAGES, poolFilter, orderSearch)");
+    expect(pagina).toContain("const unassignedShown = useMemo(() => filasSinAsignar(deliveries, date, modo, ROUTE_STAGES, poolFilter, orderSearchDiferida)");
+  });
+  it("la caja de búsqueda pinta lo que se escribe al instante; las tablas usan el valor diferido (no se traba al teclear)", () => {
+    expect(pagina).toContain("const orderSearchDiferida = useDeferredValue(orderSearch);");
+    expect(pagina).toContain("busqueda: orderSearch, onBusqueda: setOrderSearch,");
   });
   it("el número de cada chip sale de `cuentasSinAsignar` con la MISMA búsqueda, y se pinta en el chip", () => {
-    expect(pagina).toContain("const cuentasDeChips = useMemo(() => cuentasSinAsignar(deliveries, date, modo, ROUTE_STAGES, orderSearch)");
+    expect(pagina).toContain("const cuentasDeChips = useMemo(() => cuentasSinAsignar(deliveries, date, modo, ROUTE_STAGES, orderSearchDiferida)");
     // Puesto al día por D-462: los chips los pinta `tablaDeOrdenes` con `vista.cuentas`; «Sin asignar» le pasa `cuentasDeChips`.
     expect(pagina).toContain("({vista.cuentas[f]})");
     expect(pagina).toContain("chip: poolFilter, onChip: setPoolFilter, cuentas: cuentasDeChips,");

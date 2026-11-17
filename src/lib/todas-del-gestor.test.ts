@@ -167,8 +167,8 @@ describe("la pantalla", () => {
   });
   it("la tabla y sus chips salen de `filasDeTodas` y `cuentasDeTodas` con su chip, su búsqueda y el mismo filtro", () => {
     expect(pagina).toContain('const filasDeTodasDelChip = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, "", sinFiltroDeChofer)');
-    expect(pagina).toContain("const todasConBusqueda = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, busquedaDeTodas, sinFiltroDeChofer)");
-    expect(pagina).toContain("const cuentasDeTodasAqui = useMemo(() => cuentasDeTodas(deliveries, date, modo, ROUTE_STAGES, busquedaDeTodas, sinFiltroDeChofer)");
+    expect(pagina).toContain("const todasConBusqueda = useMemo(() => filasDeTodas(deliveries, date, modo, ROUTE_STAGES, chipDeTodas, busquedaDeTodasDiferida, sinFiltroDeChofer)");
+    expect(pagina).toContain("const cuentasDeTodasAqui = useMemo(() => cuentasDeTodas(deliveries, date, modo, ROUTE_STAGES, busquedaDeTodasDiferida, sinFiltroDeChofer)");
     expect(pagina).toContain("filas: filasDeTodasDelChip, conBusqueda: todasConBusqueda, orden: ordenDeTodas,");
     expect(pagina).toContain("const ordenDeTodas = useOrdenYFiltro(todasConBusqueda, valorDelGestorAqui);");
     expect(pagina).toContain('useState<ChipSinAsignar>("dia")');

@@ -26,6 +26,19 @@ import { GeofenceSection } from "@/components/timetracker/GeofenceSection";
 //     to timetracker.* only) before it's safe to bring back.
 const CUR_PRESETS: [string, string][] = [["$", "US$"], ["€", "Euro"], ["£", "GBP"], ["C$", "CAD"], ["A$", "AUD"]];
 
+/**
+ * La hora actual en la zona elegida, con su propio latido de 1 s: la página de Ajustes no se repinta cada segundo,
+ * solo esta línea.
+ */
+function NotaDeLaHora({ tz, t }: { tz: string; t: ReturnType<typeof useT> }) {
+  const [ahora, setAhora] = useState(Date.now());
+  useEffect(() => { const id = setInterval(() => setAhora(Date.now()), 1000); return () => clearInterval(id); }, []);
+  let cuando = "";
+  try { cuando = new Date(ahora).toLocaleString(LOCALE, { timeZone: tz, dateStyle: "medium", timeStyle: "short" }); }
+  catch { cuando = t("mgr.set.invalidTz"); }
+  return <p className="small muted" style={{ marginTop: 4 }}>{t("mgr.set.tzNote", { cur: cuando, zone: BROWSER_TZ.replace(/_/g, " ") })}</p>;
+}
+
 export default function ManagerSettingsPage() {
   const { me, updateSettings } = useData();
   const t = useT();
@@ -51,10 +64,7 @@ export default function ManagerSettingsPage() {
   });
   const [saved, setSaved] = useState(false);
   const [saveErr, setSaveErr] = useState("");
-  const [now, setNow] = useState(Date.now());
   const upCo = <K extends keyof typeof co>(k: K, v: string) => setCo((p) => ({ ...p, [k]: v }));
-
-  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
 
   async function save() {
     const list = methods.split(",").map((s) => s.trim()).filter(Boolean);
@@ -92,9 +102,6 @@ export default function ManagerSettingsPage() {
   }
 
   const tzOptions = TZ_LIST.includes(tz) ? TZ_LIST : [tz, ...TZ_LIST];
-  let tzPreview = "";
-  try { tzPreview = new Date(now).toLocaleString(LOCALE, { timeZone: tz, dateStyle: "medium", timeStyle: "short" }); }
-  catch { tzPreview = t("mgr.set.invalidTz"); }
 
   if (me.role !== "admin") return <div className="card"><p className="muted">{t("common.adminsOnly")}</p></div>;
 
@@ -145,7 +152,7 @@ export default function ManagerSettingsPage() {
       <select value={tz} onChange={(e) => setTz(e.target.value)}>
         {tzOptions.map((z) => <option key={z} value={z}>{z.replace(/_/g, " ")}</option>)}
       </select>
-      <p className="small muted" style={{ marginTop: 4 }}>{t("mgr.set.tzNote", { cur: tzPreview, zone: BROWSER_TZ.replace(/_/g, " ") })}</p>
+      <NotaDeLaHora tz={tz} t={t} />
 
       <label style={{ marginTop: 14 }}>{t("mgr.set.weekStart")}</label>
       <select value={wsd} onChange={(e) => setWsd(Number(e.target.value))}>
