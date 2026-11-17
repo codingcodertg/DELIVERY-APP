@@ -90,6 +90,14 @@ export default function ManagerPeoplePage() {
                 <option value="inhouse">{t("track.inhouse")}</option>
               </select>
             ) },
+          // Presencial en varias tiendas (316): puede elegir cualquier tienda en vez de la suya. Solo afecta al presencial.
+          { key: "tiendas", en: t("mgr.ppl.colMulti"), es: t("mgr.ppl.colMulti"), ancho: 170, valor: (u) => (u.multiStore ? t("mgr.ppl.multiYes") : t("mgr.ppl.multiNo")),
+            celda: (u) => (
+              <select value={u.multiStore ? "yes" : "no"} style={{ width: "auto", minWidth: 150 }} onChange={(e) => updateEmployeeSettings(u.id, { multiStore: e.target.value === "yes" })}>
+                <option value="no">{t("mgr.ppl.multiNo")}</option>
+                <option value="yes">{t("mgr.ppl.multiYes")}</option>
+              </select>
+            ) },
           { key: "seguimiento", en: t("mgr.ppl.colTracking"), es: t("mgr.ppl.colTracking"), ancho: 190, valor: (u) => u.trackMode || null,
             celda: (u) => (
               <select value={u.trackMode || ""} style={{ width: "auto", minWidth: 150 }} onChange={(e) => setField(u.id, "trackMode", e.target.value)}>

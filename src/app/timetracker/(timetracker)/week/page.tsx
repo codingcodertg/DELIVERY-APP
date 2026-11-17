@@ -37,9 +37,11 @@ import { FichajesDeHoy, useMiDiaDeFichaje } from "@/components/timetracker/Ficha
 // tabla del cronómetro, que ve debajo) y el admin no cambia.
 // Quién ve qué: seccionesDeMiSemana (vista-empleado.ts).
 export default function MyWeekPage() {
-  const { me, myAssignments: assignments, mySessions: sessions, myPayrolls: batches, settings, ensureSessionsSince } = useData();
+  const { me, myAssignments: assignments, mySessions: sessions, myPayrolls: batches, settings, ensureSessionsSince, tiendas } = useData();
   const t = useT();
   const lang = getLang();
+  // El nombre de la tienda de una sesión (316), si la tiene.
+  const nombreDeTienda = (id: string | null | undefined): string | null => tiendas.find((x) => x.id === id)?.name ?? null;
   const presencial = effWorkerType(me) === "inhouse";
   const quien = { esAdmin: esAdminDeTt(me.role), presencial };
   const secciones = seccionesDeMiSemana(quien);
@@ -71,11 +73,13 @@ export default function MyWeekPage() {
       ? <span className="pill wait">{t("emp.week.reviewBadge")}</span>
       : <span className="pill on">{t("emp.week.activeBadge")}</span>;
 
-  const byAssign = new Map<string, { sec: number }>();
+  // Sin proyecto, cada tienda (316) es su propia línea: no se mezclan dos tiendas en «sin proyecto».
+  const byAssign = new Map<string, { sec: number; storeId: string | null }>();
   weekSessions.forEach((s) => {
     const aid = s.assignmentId ?? "";
-    if (!byAssign.has(aid)) byAssign.set(aid, { sec: 0 });
-    byAssign.get(aid)!.sec += s.durationSeconds || 0;
+    const clave = aid || (s.storeId ? "store:" + s.storeId : "");
+    if (!byAssign.has(clave)) byAssign.set(clave, { sec: 0, storeId: aid ? null : (s.storeId ?? null) });
+    byAssign.get(clave)!.sec += s.durationSeconds || 0;
   });
 
   const byDay = new Map<string, { date: string; sec: number; items: Session[] }>();
@@ -91,14 +95,15 @@ export default function MyWeekPage() {
     .map((d) => ({ ...d, items: d.items.slice().sort((a, b) => (a.startMs || 0) - (b.startMs || 0)) }));
 
   let totalPay = 0, totalSec = 0;
-  const rows = Array.from(byAssign.entries()).map(([aid, v]) => {
+  const rows = Array.from(byAssign.entries()).map(([clave, v]) => {
+    const aid = clave.startsWith("store:") ? "" : clave;
     const a = aMap.get(aid);
     const hours = v.sec / 3600;
     const calc = a ? computePay(hours, a) : { pay: 0, reg: 0, ot: 0, overLimit: 0 };
     totalPay += calc.pay; totalSec += v.sec;
     // Sin proyecto, el presencial ve su tienda y su puesto (D-493); el remoto, «(proyecto eliminado)».
-    const proj = { name: nombreDeSesion(aid || null, a?.project.name, me, lang, { sinProyecto: t("track.sinProyecto"), eliminado: t("emp.week.deletedProject") }) };
-    return { aid, proj, sec: v.sec, calc };
+    const proj = { name: nombreDeSesion(aid || null, a?.project.name, me, lang, { sinProyecto: t("track.sinProyecto"), eliminado: t("emp.week.deletedProject") }, nombreDeTienda(v.storeId)) };
+    return { aid: clave, proj, sec: v.sec, calc };
   });
 
   const tablas = verTablasDelCronometro(quien, weekSessions.length > 0);
@@ -177,7 +182,7 @@ export default function MyWeekPage() {
                       { key: "entrada", en: t("emp.week.colInOut"), es: t("emp.week.colInOut"), ancho: 200, clase: "small nowrap",
                         valor: (s) => (s.startMs ? fmtTime(s.startMs) : "—") + " → " + (s.endMs ? fmtTime(s.endMs) : "—") },
                       { key: "proyecto", en: t("emp.week.colProject"), es: t("emp.week.colProject"), ancho: 220, clase: "small",
-                        valor: (s) => nombreDeSesion(s.assignmentId, aMap.get(s.assignmentId ?? "")?.project.name, me, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" }) },
+                        valor: (s) => nombreDeSesion(s.assignmentId, aMap.get(s.assignmentId ?? "")?.project.name, me, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" }, nombreDeTienda(s.storeId)) },
                       { key: "nota", en: t("emp.week.colNote"), es: t("emp.week.colNote"), ancho: 280, clase: "small muted", envuelve: true, valor: (s) => s.memo || null,
                         celda: (s) => (
                           <>

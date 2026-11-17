@@ -27,6 +27,10 @@ import {
 import { PunchPanel } from "@/components/timetracker/PunchPanel";
 import { necesitaProyecto } from "@/lib/timetracker/tienda-y-puesto";
 import {
+  camposDeLugar, claveTiendaDelDia, errorDeInicioEnTienda, esMultiTienda, selectorDeProyecto, tiendaDelDiaDesde,
+  tiendasParaElegir, valorTiendaDelDia,
+} from "@/lib/timetracker/multitienda";
+import {
   estadoVigia, parcheDeStop, pararPorCorteSiToca, tocaReintentar, tocaSonar, VIGIA_CADA_MS,
 } from "@/lib/timetracker/vigia";
 import { avisoDeSistema, sonarAlarma } from "@/lib/timetracker/alarma";
@@ -83,14 +87,14 @@ const MOVEMENT_THRESHOLD = 0.005; // >=0.5% of the sampled screen changed = "mov
 export function Cronometro({ visible = true }: { visible?: boolean }) {
   const {
     me, myAssignments: assignments, mySessions: sessions, listLiveSessions, getSession, startSession, updateSession, updateLiveSession,
-    latestScreenshot, screenshotSignedUrl, uploadScreenshot, insertBlankScreenshot, notify, refrescarSesion,
+    latestScreenshot, screenshotSignedUrl, uploadScreenshot, insertBlankScreenshot, notify, refrescarSesion, tiendas,
   } = useData();
   const t = useT();
   // Qué mira un admin: su cronómetro o su reloj de fichaje. Para todos los demás lo decide
   // `worker_type` y no hay nada que elegir. Un admin PRESENCIAL abre en su reloj de fichaje (D-493):
   // no necesita proyecto, y abrirle el cronómetro era abrirle «Proyecto» vacío y el aviso de pedirlo.
   // El selector sigue arriba para quien quiera el cronómetro.
-  const [vista, setVista] = useState<"timer" | "punch">(() => (necesitaProyecto(me) ? "timer" : "punch"));
+  const [vista, setVista] = useState<"timer" | "punch">(() => (necesitaProyecto(me) || esMultiTienda(me) ? "timer" : "punch"));
   // Matches SSR (no window) on first render, flips true on mount if the page
   // is running inside the Electron shell — see the module comment.
   const [isDesktopClient, setIsDesktopClient] = useState(false);
@@ -149,6 +153,11 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   });
   const [memo, setMemo] = useState(() => {
     try { return localStorage.getItem(LS_M) || ""; } catch { return ""; }
+  });
+  // La tienda de hoy del presencial en varias tiendas (316). Vacía si la de ayer.
+  const LS_T = claveTiendaDelDia(me.id);
+  const [tiendaId, setTiendaId] = useState(() => {
+    try { return tiendaDelDiaDesde(localStorage.getItem(LS_T), dateISO(new Date())) ?? ""; } catch { return ""; }
   });
   // Seeded from the breadcrumb, not false — the adoption effect below confirms it against the
   // server and clears it if the session turns out to be closed. Optimistic, then reconciled.
@@ -284,6 +293,13 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   // Sin proyecto (`""`) también se guarda: si no, al recargar volvería el último proyecto elegido.
   useEffect(() => { try { if (assignmentId) localStorage.setItem(LS_A, assignmentId); else localStorage.removeItem(LS_A); } catch { /* ignore */ } }, [assignmentId, LS_A]);
   useEffect(() => { try { localStorage.setItem(LS_M, memo); } catch { /* ignore */ } }, [memo, LS_M]);
+  // La tienda de hoy (316): se recuerda por persona y fecha. Otro día no se arrastra.
+  useEffect(() => {
+    try {
+      if (tiendaId) localStorage.setItem(LS_T, valorTiendaDelDia(dateISO(new Date()), tiendaId));
+      else localStorage.removeItem(LS_T);
+    } catch { /* ignore */ }
+  }, [tiendaId, LS_T]);
 
   // Hasta D-195 aquí había un `beforeunload` que pedía confirmación al navegador si el reloj
   // corría. Con el último latido y la marca de reanudación de abajo ya no protegía nada, y
@@ -637,6 +653,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
         onBreakRef.current = null;
 
         if (mine.assignmentId) setAssignmentId(mine.assignmentId);
+    if (mine.storeId) setTiendaId(mine.storeId);
         setMemo(mine.memo || "");
         setBreaks({ lunch: mine.lunchSeconds || 0, brk: mine.breakSeconds || 0 });
         setBreakList(mine.breakEvents || []);
@@ -779,6 +796,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     lastActTotalRef.current = 0;
     onBreakRef.current = null;
     if (mine.assignmentId) setAssignmentId(mine.assignmentId);
+    if (mine.storeId) setTiendaId(mine.storeId);
     setMemo(mine.memo || "");
     setBreaks({ lunch: e.lunchSeconds, brk: e.breakSeconds });
     setBreakList(breakEventsRef.current);
@@ -850,6 +868,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     activeSecondsRef.current = mine.activeSeconds || 0;
     onBreakRef.current = null;
     if (mine.assignmentId) setAssignmentId(mine.assignmentId);
+    if (mine.storeId) setTiendaId(mine.storeId);
     setMemo(mine.memo || "");
     setBreaks({ lunch: mine.lunchSeconds || 0, brk: mine.breakSeconds || 0 });
     setBreakList(mine.breakEvents || []);
@@ -1292,7 +1311,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   /** Lo que hay que saber de una fila para abrir la que la continúa. */
   function baseDe(s: Partial<Session> | null | undefined): Partial<Session> | null {
     if (!s) return null;
-    return { projectId: s.projectId, assignmentId: s.assignmentId, memo: s.memo ?? "", source: s.source };
+    return { projectId: s.projectId, assignmentId: s.assignmentId, storeId: s.storeId ?? null, memo: s.memo ?? "", source: s.source };
   }
 
   // La fila de la que se continúa, por si `filaBaseRef` no está (sesión retomada solo con la miga).
@@ -1707,6 +1726,8 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     // El doble clic era la causa real de las dos tarjetas (D-138): dos intentos con 129 ms de
     // diferencia, ninguno viendo todavía al otro. La comprobación de sesiones vivas de abajo no
     // podía salvarlo — cuando corre, la otra fila aún no existe.
+    // Quien va en varias tiendas tiene que elegir una antes de arrancar (316). Se avisa y no se marca nada.
+    if (errorDeInicioEnTienda(me, tiendaId, tiendas)) { notify(t("track.pickStoreFirst")); return; }
     if (arrancandoRef.current) return;
     arrancandoRef.current = true;
     // Un arranque nuevo deja atrás el Stop anterior (D-470). Nadie bajaba esta marca, y no se
@@ -1741,8 +1762,8 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     const payload: Partial<Session> = {
       employeeUid: me.id,
       employeeName: me.fullName,
-      projectId: selected?.projectId ?? null,
-      assignmentId: selected?.id ?? null,
+      // El lugar: la tienda para quien va en varias (sin proyecto); el proyecto elegido para el resto (316).
+      ...camposDeLugar(me, tiendaId, selected ? { id: selected.id, projectId: selected.projectId } : null),
       memo: memo.trim(),
       weekOf: weekStartISO(now),
       date: dateISO(now),
@@ -1950,11 +1971,15 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   // El admin ve las dos porque le toca mirar las dos.
   const presencial = effWorkerType(me) === "inhouse";
   const esAdmin = me.role === "admin";
+  // Quien va en VARIAS tiendas (316) tiene las dos vistas, como el admin: el reloj con su tienda y el
+  // fichaje. Sin ellas no tendría dónde elegir la tienda, porque el cronómetro se le escondía.
+  const multitienda = esMultiTienda(me);
+  const dosVistas = esAdmin || multitienda;
 
   // El fichaje se pinta AQUÍ, en la misma plantilla (D-125). Antes esto mandaba al presencial
   // a la app de fichaje: funcionaba, pero dejaba dos sitios donde trabajar y el objetivo es
   // retirar aquella app entera.
-  if (presencial && !esAdmin) return visible ? <PunchPanel /> : null;
+  if (presencial && !dosVistas) return visible ? <PunchPanel /> : null;
 
   /** Qué está haciendo la recuperación, al lado del «Sin guardar» (D-916). */
   const textoDeRacha = (r: Racha): string => {
@@ -1981,7 +2006,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     </div>
   ) : null;
 
-  if (esAdmin && vista === "punch") {
+  if (dosVistas && vista === "punch") {
     return (
       <>
         {avisoFuera}
@@ -2000,7 +2025,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     <>
       {avisoFuera}
       <div style={oculto}>
-      {esAdmin && (
+      {dosVistas && (
         // Las dos vistas, y las dos de verdad: ninguna se va a otra pantalla.
         <div className="tabs" style={{ marginBottom: 12 }}>
           <button className="active">{t("track.viewTimer")}</button>
@@ -2023,27 +2048,42 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
           <span className="chip">{effWorkerType(me) === "remote" ? t("track.remote") : t("track.inhouse")}</span>
         </div>
 
-        <label style={{ marginTop: 12 }}>{t("track.project")}</label>
-        <div className="pbtns">
-          {/* Opcional: sin elegir ninguno, la sesión va sin proyecto. */}
-          <button className={"pbtn" + (!assignmentId ? " sel" : "")} disabled={running} onClick={() => setAssignmentId("")}>
-            <div className="pn">{t("track.sinProyecto")}</div>
-          </button>
-          {assignments.map((a) => (
-            <button
-              key={a.id}
-              className={"pbtn" + (assignmentId === a.id ? " sel" : "")}
-              disabled={running}
-              onClick={() => setAssignmentId(a.id)}
-            >
-              <div className="pn">{a.project.name}</div>
-              <div className="pm">
-                {a.project.location ? a.project.location + " · " : ""}
-                {money(a.hourlyRate)}/h
-              </div>
-            </button>
-          ))}
-        </div>
+        {/* Presencial en varias tiendas (316): el desplegable de tiendas ocupa el sitio de los proyectos.
+            Su tienda de hoy es la que lleva la sesión; no hay proyecto que elegir. */}
+        {selectorDeProyecto(me) === "tienda" ? (
+          <>
+            <label style={{ marginTop: 12 }}>{t("track.storeLabel")}</label>
+            <select value={tiendaId} disabled={running} onChange={(e) => setTiendaId(e.target.value)}>
+              <option value="">{t("track.pickStore")}</option>
+              {tiendasParaElegir(tiendas).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <div className="hint">{t("track.storeHint")}</div>
+          </>
+        ) : (
+          <>
+            <label style={{ marginTop: 12 }}>{t("track.project")}</label>
+            <div className="pbtns">
+              {/* Opcional: sin elegir ninguno, la sesión va sin proyecto. */}
+              <button className={"pbtn" + (!assignmentId ? " sel" : "")} disabled={running} onClick={() => setAssignmentId("")}>
+                <div className="pn">{t("track.sinProyecto")}</div>
+              </button>
+              {assignments.map((a) => (
+                <button
+                  key={a.id}
+                  className={"pbtn" + (assignmentId === a.id ? " sel" : "")}
+                  disabled={running}
+                  onClick={() => setAssignmentId(a.id)}
+                >
+                  <div className="pn">{a.project.name}</div>
+                  <div className="pm">
+                    {a.project.location ? a.project.location + " · " : ""}
+                    {money(a.hourlyRate)}/h
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         <label style={{ marginTop: 14 }}>{t("track.memoLabel")}</label>
         <input value={memo} disabled={running} onChange={(e) => setMemo(e.target.value)} placeholder={t("track.memoPlaceholder")} />

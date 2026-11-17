@@ -381,7 +381,7 @@ export function DemoDataProvider({ children, me: meInicial }: { children: React.
   }, [mutate]);
 
   const value: DataState = {
-    ready, me, settings: store.settings, projects, myAssignments, mySessions, ensureSessionsSince, myPayrolls,
+    ready, me, tiendas: [], settings: store.settings, projects, myAssignments, mySessions, ensureSessionsSince, myPayrolls,
     myRequests, addRequest,
     toast, notify,
     listLiveSessions, getSession, startSession, updateSession, updateLiveSession, refrescarSesion,

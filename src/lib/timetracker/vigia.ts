@@ -35,10 +35,13 @@ export function esRutaDelCronometro(pathname: string | null | undefined): boolea
  * En la suya, siempre. En las demás, **oculto pero vivo**, salvo para el presencial que no es
  * admin: a él «Registrar tiempo» le pinta el fichaje (`PunchPanel`), que pide la ubicación al
  * montarse, y no hay ningún reloj suyo que mantener latiendo fuera de esa pantalla.
+ *
+ * El presencial en VARIAS tiendas (316) sí tiene reloj: su cronómetro es el que elige la tienda, y
+ * como cualquier cronómetro vivo, sigue contando fuera de su pantalla.
  */
-export function debeMontarCronometro(args: { visible: boolean; presencial: boolean; esAdmin: boolean }): boolean {
+export function debeMontarCronometro(args: { visible: boolean; presencial: boolean; esAdmin: boolean; multitienda?: boolean }): boolean {
   if (args.visible) return true;
-  return !(args.presencial && !args.esAdmin);
+  return !(args.presencial && !args.esAdmin && !args.multitienda);
 }
 
 // ---- 2. El vigía ------------------------------------------------------------------------

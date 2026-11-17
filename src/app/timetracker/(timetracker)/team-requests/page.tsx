@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 import { fmtClock, weekStartISO } from "@/lib/timetracker/helpers";
-import { nombreDeLinea } from "@/lib/timetracker/tienda-y-puesto";
+import { nombreDeLinea, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
 import { rangeOverlapsAny, type OccupiedRange } from "@/lib/timetracker/timeOverlap";
 import type { RequestType } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
@@ -34,7 +34,7 @@ function fromRange(date: string, fromTime: string, toTime: string) {
 function msToMin(ms: number): number { const d = new Date(ms); return d.getHours() * 60 + d.getMinutes(); }
 
 export default function TeamRequestsPage() {
-  const { me, allRequests: requests, allProjects: projects, allAssignments: assignments, allEmployees, insertSession, updateSession, removeSession, claimRequest, resetRequestToPending, logAudit, sessionsSince } = useData();
+  const { me, allRequests: requests, allProjects: projects, allAssignments: assignments, allEmployees, insertSession, updateSession, removeSession, claimRequest, resetRequestToPending, logAudit, sessionsSince, tiendas } = useData();
   const t = useT();
   // Claves literales, no construidas: D-202 borro reqtype.* como "muertas" porque la medicion solo
   // buscaba literales y esta clave se construia con "reqtype." + type; la cola ensenaba la clave cruda.
@@ -47,8 +47,11 @@ export default function TeamRequestsPage() {
   // remoto, «—» como siempre.
   const uMap = new Map(allEmployees.map((u) => [u.id, u]));
   const lang = getLang();
-  const projName = (aid: string | undefined, uid: string) => {
+  // Una solicitud de presencial en varias tiendas (316) lleva la tienda, no proyecto: sale esa.
+  const projName = (aid: string | undefined, uid: string, storeId?: string) => {
     const a = aid ? aMap.get(aid) : undefined;
+    const tienda = !a && storeId ? tiendas.find((s) => s.id === storeId) : undefined;
+    if (tienda) return tiendaYPuesto({ tienda: tienda.name, puesto: uMap.get(uid)?.puesto }, lang);
     return nombreDeLinea(a ? pMap.get(a.projectId)?.name : null, uMap.get(uid), lang, "—");
   };
 
@@ -115,6 +118,7 @@ export default function TeamRequestsPage() {
             employeeName: p.employeeName as string,
             projectId: p.projectId as string,
             assignmentId: p.assignmentId as string,
+            storeId: (p.storeId as string | undefined) ?? null,
             memo: p.reason ? "[Manual] " + p.reason : "[Time added]",
             weekOf: weekStartISO(p.date as string),
             date: p.date as string,
@@ -175,7 +179,7 @@ export default function TeamRequestsPage() {
                 <div>
                   <div style={{ fontWeight: 700 }}>{p.employeeName as string} · {rLabel(r.type)}</div>
                   <div className="small muted">
-                    {projName(p.assignmentId as string, r.employeeUid)} · {p.date as string}
+                    {projName(p.assignmentId as string, r.employeeUid, p.storeId as string | undefined)} · {p.date as string}
                     {r.type === "add" && (p.fromTime ? <> · {p.fromTime as string}–{p.toTime as string} (<b>{p.hours as number} h</b>)</> : <> · <b>{p.hours as number} h</b></>)}
                     {r.type === "adjust" && <> · {fmtClock((p.oldSeconds as number) || 0)} → {p.fromTime ? <>{p.fromTime as string}–{p.toTime as string} (<b>{p.hours as number} h</b>)</> : <b>{p.hours as number} h</b>}</>}
                     {p.reason ? <> · &quot;{p.reason as string}&quot;</> : null}
@@ -199,7 +203,7 @@ export default function TeamRequestsPage() {
               { key: "empleado", en: t("mgr.asn.employee"), es: t("mgr.asn.employee"), ancho: 200, fija: true, valor: (r) => (r.payload as Record<string, unknown>).employeeName as string },
               { key: "tipo", en: t("mgr.req.colType"), es: t("mgr.req.colType"), ancho: 150, valor: (r) => rLabel(r.type) },
               { key: "detalle", en: t("mgr.req.colDetail"), es: t("mgr.req.colDetail"), ancho: 380, clase: "small muted",
-                valor: (r) => { const p = r.payload as Record<string, unknown>; return projName(p.assignmentId as string, r.employeeUid) + " · " + String(p.date) + (r.type !== "delete" && p.hours ? " · " + String(p.hours) + " h" : ""); } },
+                valor: (r) => { const p = r.payload as Record<string, unknown>; return projName(p.assignmentId as string, r.employeeUid, p.storeId as string | undefined) + " · " + String(p.date) + (r.type !== "delete" && p.hours ? " · " + String(p.hours) + " h" : ""); } },
               { key: "estado", en: t("mgr.req.colStatus"), es: t("mgr.req.colStatus"), ancho: 130, valor: (r) => (r.status === "approved" ? t("mgr.req.approved") : t("mgr.req.rejected")),
                 celda: (r) => (r.status === "approved" ? <span className="pill on">{t("mgr.req.approved")}</span> : <span className="pill off">{t("mgr.req.rejected")}</span>) },
             ]} />
