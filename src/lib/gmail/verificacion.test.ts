@@ -112,12 +112,30 @@ describe("esReenvioEnLoteDeCompania (bandeja careers@ con adjuntos .eml)", () =>
     expect(r.ok).toBe(true);
   });
 
-  it("acepta la firma del dominio onmicrosoft de la empresa", () => {
+  it("rechaza la firma de un onmicrosoft cualquiera y el header.i (cualquier inquilino firma con el suyo)", () => {
     const r = esReenvioEnLoteDeCompania([
       c("From", "careers@rdztilegroup.net"),
-      c("Authentication-Results", "mx.google.com; dkim=pass header.i=@rdztilegroup.onmicrosoft.com"),
+      c("Authentication-Results", "mx.google.com; dkim=pass header.i=@rdztilegroup.onmicrosoft.com header.d=otro.onmicrosoft.com"),
+    ]);
+    expect(r.ok).toBe(false);
+  });
+
+  it("acepta DMARC alineado con rdztilegroup.net aunque Microsoft firme con su onmicrosoft", () => {
+    const r = esReenvioEnLoteDeCompania([
+      c("From", "careers@rdztilegroup.net"),
+      c("Authentication-Results", "mx.google.com; dkim=pass header.d=rdz.onmicrosoft.com; spf=pass; dmarc=pass (p=NONE) header.from=rdztilegroup.net"),
     ]);
     expect(r.ok).toBe(true);
+  });
+
+  it("rechaza un From con dos direcciones o con una dirección en el nombre", () => {
+    for (const from of ['"careers@rdztilegroup.net" <x@malo.com>', "careers@rdztilegroup.net, x@malo.com"]) {
+      const r = esReenvioEnLoteDeCompania([
+        c("From", from),
+        c("Authentication-Results", "mx.google.com; dkim=pass header.d=rdztilegroup.net"),
+      ]);
+      expect(r.ok).toBe(false);
+    }
   });
 
   it("rechaza un exterior que se hace pasar por careers@ sin firma de la empresa", () => {

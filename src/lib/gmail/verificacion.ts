@@ -49,7 +49,11 @@ function valoresDe(cabeceras: readonly CabeceraDeCorreo[], nombre: string): stri
 export function direccionDeFrom(cabeceras: readonly CabeceraDeCorreo[]): string | null {
   const v = valoresDe(cabeceras, "from")[0];
   if (!v) return null;
+  // Una sola dirección y ningún «@» en el nombre visible: «"x@indeed.com" <otro@malo.com>» o dos direcciones se rechazan.
+  const angulos = v.match(/<[^>]*>/g) ?? [];
+  if (angulos.length > 1 || /,/.test(v.replace(/"[^"]*"/g, ""))) return null;
   const m = /<([^>]+)>/.exec(v);
+  if (m && /@/.test(v.slice(0, m.index))) return null;
   const cruda = (m ? m[1] : v).trim().toLowerCase();
   return /^[^\s@<>]+@[^\s@<>]+$/.test(cruda) ? cruda : null;
 }
@@ -74,12 +78,15 @@ export function primeraAuthResults(cabeceras: readonly CabeceraDeCorreo[]): { au
   return { authserv, resultados: i < 0 ? "" : t.slice(i + 1) };
 }
 
-/** ¿Algún `dkim=pass` de estos resultados firma con un dominio que cumple `valido`? (mira header.d y, si falta, header.i). */
+/** ¿Algún `dkim=pass` de estos resultados firma con un dominio (`header.d`, nunca `header.i`) que cumple `valido`? */
 export function dkimPasaCon(resultados: string, valido: (dominio: string) => boolean): boolean {
   for (const parte of resultados.split(";")) {
     const t = parte.trim().toLowerCase();
     if (!/^dkim=pass(\s|$|\()/.test(t)) continue;
-    const d = /\bheader\.d=@?([a-z0-9.-]+)/.exec(t)?.[1] ?? /\bheader\.i=@?([a-z0-9.-]+)/.exec(t)?.[1];
+    // Gmail escribe `header.i=@dominio` (no header.d). Por la regla de DKIM, el dominio de `i` es el de `d` o un subdominio
+    // suyo, así que vale igual; se toma lo que sigue a la ÚLTIMA «@» y tiene que terminar en espacio, «)» o fin.
+    const d = /\bheader\.d=([a-z0-9.-]+)(?=\s|$|\))/.exec(t)?.[1]
+      ?? /\bheader\.i=[^\s@;()]*@([a-z0-9.-]+)(?=\s|$|\))/.exec(t)?.[1];
     if (d && valido(d)) return true;
   }
   return false;
@@ -115,7 +122,10 @@ export function esReenvioEnLoteDeCompania(cabeceras: readonly CabeceraDeCorreo[]
   const ar = primeraAuthResults(cabeceras);
   if (!ar) return no("sin Authentication-Results de Gmail");
   if (ar.authserv !== AUTHSERV_GMAIL) return no("la primera Authentication-Results no es la de Gmail: no se fía");
-  const firmaDeEmpresa = (d: string) => d === DOMINIO_EMPRESA || d === "onmicrosoft.com" || d.endsWith(".onmicrosoft.com");
-  if (!dkimPasaCon(ar.resultados, firmaDeEmpresa)) return no("la firma DKIM de la empresa no pasó en Gmail");
+  // Solo la empresa: firma DKIM de rdztilegroup.net, o DMARC alineado con rdztilegroup.net. Un «*.onmicrosoft.com» cualquiera
+  // NO vale: cualquier inquilino de Microsoft firma con el suyo.
+  const firmaDeEmpresa = (d: string) => d === DOMINIO_EMPRESA;
+  const dmarcDeEmpresa = ar.resultados.toLowerCase().split(";").some((x) => /^\s*dmarc=pass/.test(x) && /header\.from=rdztilegroup\.net(?=\s|$|\))/.test(x));
+  if (!dkimPasaCon(ar.resultados, firmaDeEmpresa) && !dmarcDeEmpresa) return no("la firma DKIM/DMARC de la empresa no pasó en Gmail");
   return si("reenviado en lote por careers@: firma de la empresa válida");
 }
