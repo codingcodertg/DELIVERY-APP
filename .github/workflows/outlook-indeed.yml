@@ -40,3 +40,22 @@ jobs:
             echo "::error::el cron devolvio ${code} (se esperaba 200)"
             exit 1
           fi
+
+      # Gmail: mismo horario y mismo secreto. `always()` hace que corra aunque falle el de Outlook; sin Gmail conectado la
+      # ruta contesta 200 enseguida.
+      - name: Run Gmail cron
+        if: ${{ always() }}
+        env:
+          SECRET: ${{ secrets.TT_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          q=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then q="?verify=1"; fi
+          code=$(curl -sS -m 150 -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${SECRET}" \
+            "${BASE_URL}/api/cron/gmail-indeed${q}")
+          echo "gmail cron -> HTTP ${code}"
+          if [ "${code}" != "200" ]; then
+            echo "::error::el cron de Gmail devolvio ${code} (se esperaba 200)"
+            exit 1
+          fi
