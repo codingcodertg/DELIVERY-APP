@@ -35,12 +35,17 @@ export interface CandidatoDeIndeed {
   /** Teléfono en 10 dígitos (sin formato). Se formatea al guardar. */
   phone: string;
   role: string | null;
+  /** Ciudad a la que aplicó (vacante): asunto «New application for <Puesto>, <Ciudad>, <ST>» o bloque de la vacante. */
+  location?: string | null;
+  /** Dónde vive: línea del cuerpo «Location:», «City:», «Lives in», «Address». */
   home_location: string | null;
   /** Calificaciones de la solicitud («Forklift», «Spanish»…): van como etiquetas del candidato. */
   tags: string[];
   /** Enlaces de la solicitud. Indeed los pide con login: NO se abren aquí, solo se guardan para que RR. HH. haga clic. */
   enlaces: { solicitud: string | null; cv: string | null };
   notes: string;
+  /** Si viene, el alta nace descartada con este motivo (mensaje de Indeed sin teléfono). */
+  descarte?: { motivo: string } | null;
 }
 
 export type ResultadoIndeed = { ok: true; candidato: CandidatoDeIndeed } | { ok: false; motivo: string };
@@ -85,8 +90,20 @@ const ETIQUETAS = {
   correo: ["email", "e-mail", "email address", "correo", "correo electronico", "correo electrónico", "email del candidato", "correo del candidato"],
   telefono: ["phone", "phone number", "telephone", "tel", "mobile", "cell", "teléfono", "telefono", "celular", "móvil", "movil", "teléfono del candidato", "telefono del candidato"],
   puesto: ["job", "job title", "position", "job applied for", "applied for", "job posting", "puesto", "vacante", "posición", "posicion", "puesto solicitado"],
-  ubicacion: ["location", "city", "candidate location", "ubicación", "ubicacion", "ciudad", "lugar"],
+  /** Dónde vive el candidato (línea del cuerpo). Ya no es la ciudad de la vacante, que sale del asunto. */
+  hogar: ["location", "city", "candidate location", "address", "home location", "residence", "ubicación", "ubicacion", "ciudad", "lugar", "dirección", "direccion", "residencia"],
 };
+
+/** «Vive en» / «Lives in» sin dos puntos obligatorio: «Lives in Harlingen, TX». */
+const RE_VIVE_EN = /^\s*(?:lives in|lives at|resides in|vive en|reside en)\s*[:：]?\s*(.+)$/im;
+
+/** Dónde vive: la primera etiqueta de hogar del cuerpo, o la frase «Lives in …». Null si no hay ninguna. */
+export function hogarDe(texto: string): string | null {
+  const etiquetado = valorDeEtiqueta(texto, ETIQUETAS.hogar);
+  if (etiquetado) return limpiaCampo(etiquetado) || null;
+  const vive = RE_VIVE_EN.exec(texto);
+  return vive && vive[1].trim() ? limpiaCampo(vive[1]) || null : null;
+}
 
 /** El valor de la primera línea «Etiqueta: valor» que coincida (sin distinguir mayúsculas). */
 export function valorDeEtiqueta(texto: string, etiquetas: readonly string[]): string | null {
@@ -150,6 +167,45 @@ function puestoYUbicacionDe(lineas: readonly string[]): { puesto: string | null;
   return { puesto: null, ubicacion: null };
 }
 
+/** Quita el marcador del principio del asunto, p. ej. «[Action required] ». */
+function sinMarcadorDelAsunto(asunto: string): string {
+  return (asunto ?? "").replace(/^\s*\[[^\]]*\]\s*/, "").trim();
+}
+
+/**
+ * Asunto de solicitud en el formato nuevo: «[Action required] New application for <Puesto>, <Ciudad>, <ST>».
+ * La ciudad es la de la vacante (va a `location`). Sin ciudad, solo sale el puesto.
+ */
+export function puestoYCiudadDelAsunto(asunto: string): { puesto: string | null; ubicacion: string | null } {
+  const m = /^(?:new application|application|nueva (?:solicitud|aplicaci[oó]n))\s+(?:for|para)\s+(.+?)(?:,\s*([^,]+?)\s*,\s*([A-Za-z]{2}))?\s*$/i.exec(sinMarcadorDelAsunto(asunto));
+  if (!m) return { puesto: null, ubicacion: null };
+  const puesto = limpiaCampo(m[1]) || null;
+  const ubicacion = m[2] && m[3] ? `${limpiaCampo(m[2])}, ${m[3].toUpperCase()}` : null;
+  return { puesto, ubicacion };
+}
+
+/** Asunto de mensaje: «New Message from <Nombre> - <Puesto>» o «You've received a new message from <Nombre>». */
+export function datosDelAsuntoMensaje(asunto: string): { nombre: string | null; puesto: string | null } {
+  const a = sinMarcadorDelAsunto(asunto);
+  const m = /^new message from\s+(.+?)(?:\s+[-–—]\s+(.+))?$/i.exec(a);
+  if (m) return { nombre: limpiaCampo(m[1]) || null, puesto: m[2] ? limpiaCampo(m[2]) || null : null };
+  const r = RE_ENCABEZADO_MENSAJE.exec(a);
+  return r ? { nombre: limpiaCampo(r[1]) || null, puesto: null } : { nombre: null, puesto: null };
+}
+
+/**
+ * Frase del cuerpo de una solicitud: «Johnathon Garza applied to the Inventory and Warehouse Coordinator position…».
+ * Saca el nombre y el puesto; sirve de respaldo cuando el asunto y las etiquetas no traen el nombre.
+ */
+export function nombreYPuestoDeFrase(lineas: readonly string[]): { nombre: string | null; puesto: string | null } {
+  const re = /^(.+?)\s+(?:has )?applied to (?:the |your )?(?:job )?(.+?)(?:\s+position\b.*|\s+job\b.*)?[.!]?$/i;
+  for (const l of lineas.slice(0, 8)) {
+    const m = re.exec(l.trim());
+    if (m && esNombrePlausible(limpiaCampo(m[1]))) return { nombre: limpiaCampo(m[1]), puesto: limpiaCampo(m[2]) || null };
+  }
+  return { nombre: null, puesto: null };
+}
+
 /** Del asunto: «New application: Cashier - Maria Lopez» o «Juan Perez applied to Driver». */
 export function datosDelAsunto(asunto: string): { nombre: string | null; puesto: string | null } {
   const a = (asunto ?? "").trim();
@@ -172,16 +228,20 @@ export function leerCandidatoDeIndeed(c: CorreoDeIndeed): ResultadoIndeed {
   const texto = aTextoPlano(c.cuerpo);
   const lineas = texto.split("\n");
   const delAsunto = datosDelAsunto(c.subject);
+  const delAsuntoNuevo = puestoYCiudadDelAsunto(c.subject);
   const delEncabezado = nombreDeEncabezadoSolicitud(c.subject, lineas);
+  const delFrase = nombreYPuestoDeFrase(lineas);
   const delBloque = puestoYUbicacionDe(lineas);
 
-  const nombre = valorDeEtiqueta(texto, ETIQUETAS.nombre) ?? delAsunto.nombre ?? delEncabezado;
+  const nombre = valorDeEtiqueta(texto, ETIQUETAS.nombre) ?? delAsunto.nombre ?? delEncabezado ?? delFrase.nombre;
   if (!nombre || !esNombrePlausible(limpiaCampo(nombre))) {
     return { ok: false, motivo: "formato no reconocido: no se encontró el nombre del candidato" };
   }
 
-  const puesto = valorDeEtiqueta(texto, ETIQUETAS.puesto) ?? delAsunto.puesto ?? delBloque.puesto;
-  const ubicacion = valorDeEtiqueta(texto, ETIQUETAS.ubicacion) ?? delBloque.ubicacion;
+  const puesto = valorDeEtiqueta(texto, ETIQUETAS.puesto) ?? delAsunto.puesto ?? delAsuntoNuevo.puesto ?? delFrase.puesto ?? delBloque.puesto;
+  // Ciudad a la que aplicó: la del asunto nuevo, o la del bloque de la vacante. Dónde vive va aparte (hogarDe).
+  const ubicacion = delAsuntoNuevo.ubicacion ?? delBloque.ubicacion;
+  const hogar = hogarDe(texto);
 
   // Correo: 1) directo en una etiqueta o en el cuerpo, 2) el relay de Reply-To, 3) un relay de Indeed en el cuerpo.
   const remitente = direccionDe(c.from);
@@ -218,7 +278,8 @@ export function leerCandidatoDeIndeed(c: CorreoDeIndeed): ResultadoIndeed {
       correoEsRelay,
       phone: phone ?? "",
       role: puesto ? limpiaCampo(puesto) : null,
-      home_location: ubicacion ? limpiaCampo(ubicacion) : null,
+      location: ubicacion ? limpiaCampo(ubicacion) : null,
+      home_location: hogar,
       tags: calificacionesDe(lineas),
       enlaces,
       notes: lineasNota.join("\n"),
@@ -244,10 +305,18 @@ const RE_UBICACION = /,\s*[A-Z]{2}(?:\s+\d{5})?\s*$/;
 export function clasificaCorreoIndeed(c: CorreoDeIndeed): TipoCorreoIndeed {
   if (!esCorreoDeIndeed(c.from)) return "other";
   const texto = aTextoPlano(c.cuerpo);
-  if (RE_ENCABEZADO_MENSAJE.test(c.subject) || texto.split("\n").some((l) => RE_ENCABEZADO_MENSAJE.test(l))) return "message";
-  const app = datosDelAsunto(c.subject);
   const lineas = texto.split("\n");
-  if (app.nombre || nombreDeEncabezadoSolicitud(c.subject, lineas) || valorDeEtiqueta(texto, ETIQUETAS.nombre)) return "application";
+  if (datosDelAsuntoMensaje(c.subject).nombre || lineas.some((l) => RE_ENCABEZADO_MENSAJE.test(l))) return "message";
+  const app = datosDelAsunto(c.subject);
+  if (
+    app.nombre ||
+    puestoYCiudadDelAsunto(c.subject).puesto ||
+    nombreDeEncabezadoSolicitud(c.subject, lineas) ||
+    nombreYPuestoDeFrase(lineas).nombre ||
+    valorDeEtiqueta(texto, ETIQUETAS.nombre)
+  ) {
+    return "application";
+  }
   return "other";
 }
 
@@ -256,38 +325,48 @@ export interface MensajeDeIndeed {
   candidateName: string;
   /** Texto del mensaje del candidato. */
   texto: string;
-  /** Puesto y empresa del bloque de abajo, si se reconocen (la última línea de ubicación marca el bloque). */
+  /** Puesto (del asunto «New Message from X - Puesto», o del bloque de abajo) y empresa/ubicación del bloque, si se reconocen. */
   puesto: string | null;
   empresa: string | null;
+  /** Ciudad de la vacante (bloque de abajo). Va a `location`. */
   ubicacion: string | null;
+  /** Dónde vive, de las líneas del cuerpo («Location:», «Lives in»…). Va a `home_location`. Opcional: el bot no lo trae. */
+  hogar?: string | null;
 }
 
 export type ResultadoMensajeIndeed = { ok: true; mensaje: MensajeDeIndeed } | { ok: false; motivo: string };
 
 /**
- * El mensaje de un candidato. Estructura del correo real (captura del dueño): encabezado con el nombre, la tarjeta con el
- * texto del mensaje, y un bloque de vacante al final: puesto, empresa y ubicación. El bloque se toma de las últimas tres
- * líneas cuando la última parece una ubicación; lo que queda entre el encabezado y el bloque es el mensaje.
+ * El mensaje de un candidato. Dos formas:
+ *  - Con encabezado en el cuerpo («You've received a new message from <Nombre>»): lo que sigue al encabezado es el
+ *    mensaje, y un bloque de vacante al final (puesto, empresa, ubicación) si la última línea parece una ubicación.
+ *  - Asunto «New Message from <Nombre> - <Puesto>» sin encabezado en el cuerpo: el nombre y el puesto salen del asunto y
+ *    TODO el cuerpo (sin la tarjeta de Indeed) es el mensaje.
  */
 export function leerMensajeDeIndeed(c: CorreoDeIndeed): ResultadoMensajeIndeed {
   if (!esCorreoDeIndeed(c.from)) return { ok: false, motivo: "no es de Indeed" };
   const lineas = aTextoPlano(c.cuerpo).split("\n");
   const idxEncabezado = lineas.findIndex((l) => RE_ENCABEZADO_MENSAJE.test(l));
-  const enAsunto = RE_ENCABEZADO_MENSAJE.exec(c.subject);
+  const enAsunto = datosDelAsuntoMensaje(c.subject);
   const enCuerpo = idxEncabezado >= 0 ? RE_ENCABEZADO_MENSAJE.exec(lineas[idxEncabezado]) : null;
-  const nombre = (enCuerpo?.[1] ?? enAsunto?.[1] ?? "").replace(/[.!]+$/, "").trim();
+  const nombre = (enCuerpo?.[1] ?? enAsunto.nombre ?? "").replace(/[.!]+$/, "").trim();
   if (!nombre) return { ok: false, motivo: "message, no se encontró el nombre" };
 
-  const resto = (idxEncabezado >= 0 ? lineas.slice(idxEncabezado + 1) : []).filter((l) => !RE_RUIDO_MENSAJE.test(l));
-  let puesto: string | null = null;
+  const desde = idxEncabezado >= 0 ? idxEncabezado + 1 : 0;
+  // Sin la tarjeta de Indeed ni el título «New Message from …» que a veces se repite dentro del cuerpo.
+  const resto = lineas.slice(desde).filter((l) => !RE_RUIDO_MENSAJE.test(l) && !/^new message from\b/i.test(l.trim()));
+  let puesto: string | null = enAsunto.puesto;
   let empresa: string | null = null;
   let ubicacion: string | null = null;
   let cuerpo = resto;
   if (resto.length >= 4 && RE_UBICACION.test(resto[resto.length - 1])) {
-    [puesto, empresa, ubicacion] = resto.slice(-3);
+    const [puestoDelBloque, empresaDelBloque, ubicacionDelBloque] = resto.slice(-3);
+    puesto = puesto ?? puestoDelBloque;
+    empresa = empresaDelBloque;
+    ubicacion = ubicacionDelBloque;
     cuerpo = resto.slice(0, -3);
   }
   const texto = cuerpo.join(" ").trim();
   if (!texto) return { ok: false, motivo: "message, no se encontró el texto del mensaje" };
-  return { ok: true, mensaje: { candidateName: nombre, texto, puesto, empresa, ubicacion } };
+  return { ok: true, mensaje: { candidateName: nombre, texto, puesto, empresa, ubicacion, hogar: hogarDe(aTextoPlano(c.cuerpo)) } };
 }

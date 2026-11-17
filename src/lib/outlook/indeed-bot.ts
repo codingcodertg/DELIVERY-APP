@@ -202,7 +202,7 @@ async function aplicaSolicitud(db: SupabaseClient, it: ElementoDeBot): Promise<C
     else avisoCv = `CV no guardado: ${v.motivo}`;
   }
   const alta = await crearCandidatoDesdeCorreo(db, candidato, cv);
-  return { result: alta.resultado, candidateId: alta.candidateId, error: alta.avisoCv ?? avisoCv, scheduledAt: null, detail: null };
+  return { result: alta.resultado, candidateId: alta.candidateId, error: alta.aviso ?? alta.avisoCv ?? avisoCv, scheduledAt: null, detail: null };
 }
 
 async function aplicaMensaje(db: SupabaseClient, it: ElementoDeBot, ahora: Date): Promise<CierreRegistro> {

@@ -16,7 +16,7 @@ import { telefonoEstandar } from "@/lib/recruiting/formato";
 import { choquesDeHorario } from "@/lib/recruiting/choque-de-horario";
 import { buscaDuplicado, digitosTel, patronTel } from "@/lib/recruiting/candidato-duplicado";
 import type { MensajeDeIndeed } from "./indeed";
-import { crearCandidatoDesdeCorreo } from "./crear-candidato";
+import { camposVacios, crearCandidatoDesdeCorreo, llegoTelefonoTarde, MOTIVO_SIN_TELEFONO_MENSAJE } from "./crear-candidato";
 import { horaDeLlamada, planearAgenda, telefonoDeMensaje, type PlanAgenda } from "./llamada-del-mensaje";
 
 export type BusquedaCandidato = { tipo: "unico"; id: string } | { tipo: "ninguno" } | { tipo: "ambiguo"; cuantos: number };
@@ -33,6 +33,20 @@ export function patronApellido(nombre: string): string | null {
 }
 
 type Fila = { id: string; name: string | null; role: string | null; archived: boolean | null };
+
+/** Lo que se lee de la ficha para decidir qué llenar, agendar o anotar. */
+type Ficha = {
+  id: string;
+  name: string;
+  phone: string | null;
+  status: string;
+  phone_date: string | null;
+  follow_up: string | null;
+  email: string | null;
+  role: string | null;
+  location: string | null;
+  home_location: string | null;
+};
 
 export async function buscarCandidatoParaMensaje(db: SupabaseClient, nombre: string, puesto: string | null): Promise<BusquedaCandidato> {
   const patron = patronApellido(nombre);
@@ -117,7 +131,8 @@ export async function procesarMensaje(
   let candidateId: string | null = busqueda.tipo === "unico" ? busqueda.id : null;
   let creado = false;
   if (!candidateId) {
-    // Ningún candidato con ese nombre: se crea desde el mensaje (nombre, puesto, ubicación del bloque de la vacante).
+    // Ningún candidato con ese nombre: se crea desde el mensaje. Puesto y ciudad de la vacante van a `role` y `location`;
+    // dónde vive, a `home_location`. Sin teléfono, nace descartada (regla del dueño).
     const alta = await crearCandidatoDesdeCorreo(
       db,
       {
@@ -126,10 +141,12 @@ export async function procesarMensaje(
         correoEsRelay: p.replyToRelay !== null,
         phone: telefono ?? "",
         role: m.puesto,
-        home_location: m.ubicacion,
+        location: m.ubicacion ?? null,
+        home_location: m.hogar ?? null,
         tags: [],
         enlaces: { solicitud: null, cv: null },
         notes: `Llegó por mensaje de Indeed${m.puesto ? ` para ${m.puesto}` : ""} (${p.recibido.slice(0, 16).replace("T", " ")} UTC).`,
+        descarte: telefono ? null : { motivo: MOTIVO_SIN_TELEFONO_MENSAJE },
       },
       null,
     );
@@ -139,11 +156,13 @@ export async function procesarMensaje(
 
   const { data: cand, error: eCand } = await rec
     .from("candidates")
-    .select("id, name, phone, status, phone_date, follow_up, email, role")
+    .select("id, name, phone, status, phone_date, follow_up, email, role, location, home_location")
     .eq("id", candidateId)
     .maybeSingle();
   if (eCand || !cand) throw new Error(`No se pudo leer al candidato: ${eCand?.message ?? "no existe"}`);
-  const actual = cand as { id: string; name: string; phone: string | null; status: string; phone_date: string | null; follow_up: string | null; email: string | null; role: string | null };
+  const actual = cand as Ficha;
+  // Recién creada sin teléfono: nace descartada y no se le agenda nada (ni llamada ni seguimiento).
+  const descartadaAlta = creado && !telefono;
 
   // Revisión de seguridad (D-1050): coincidir solo por NOMBRE no basta para cambiarle el teléfono o la cita a una ficha
   // que ya existía (dos personas pueden llamarse igual). Se cambia si la ficha la creó este mismo mensaje, si el correo
@@ -160,6 +179,8 @@ export async function procesarMensaje(
   if (telefono) {
     const digitos = digitosTel(actual.phone);
     if (!digitos) {
+      // Ficha descartada que no tenía teléfono: el teléfono llegó después. Se anota; el reclutador decide si la reactiva.
+      if (llegoTelefonoTarde(actual, telefono)) partes.push(`Llegó teléfono después: ${telefonoEstandar(telefono)}`);
       const pTel = patronTel(telefono);
       const { data: otros } = pTel ? await rec.from("candidates").select("id, name, phone").ilike("phone", pTel).limit(25) : { data: [] };
       const dueno = buscaDuplicado(((otros ?? []) as Array<{ id: string; name: string; phone: string }>).filter((x) => x.id !== actual.id), { phone: telefono });
@@ -181,55 +202,69 @@ export async function procesarMensaje(
       partes.push(`Teléfono: ${telefonoEstandar(telefono)} (ya estaba)`);
     }
   } else {
-    partes.push("Sin teléfono en el mensaje");
+    partes.push(descartadaAlta ? `Sin teléfono: ficha creada descartada (${MOTIVO_SIN_TELEFONO_MENSAJE})` : "Sin teléfono en el mensaje");
   }
 
-  // 2) Hora: se consulta el calendario (choques) solo si la hora es fija y futura.
-  let choques: string[] = [];
-  if (hora.tipo === "fija" && Date.parse(hora.iso) > Date.parse(p.ahora)) {
-    const ventana = 2 * 60 * 60 * 1000;
-    const { data: cercanas } = await rec
-      .from("candidates")
-      .select("id, name, status, archived, phone_date, inperson_date, assigned_recruiter, interview, location")
-      .gte("phone_date", new Date(Date.parse(hora.iso) - ventana).toISOString())
-      .lte("phone_date", new Date(Date.parse(hora.iso) + ventana).toISOString())
-      .neq("id", actual.id)
-      .limit(50);
-    const terminales = await etapasTerminales(db);
-    choques = choquesDeHorario(
-      (cercanas ?? []) as Parameters<typeof choquesDeHorario>[0],
-      { id: actual.id, tipo: "llamada", iso: hora.iso, reclutador: null },
-      terminales,
-    ).map((c) => c.nombre);
-  }
-
-  const plan: PlanAgenda = planearAgenda({
-    hora,
-    recibido: p.recibido,
-    ahora: p.ahora,
-    citaFuturaIso: actual.phone_date,
-    seguimientoActual: actual.follow_up,
-    choques,
-  });
-
-  // 3) Aplicar el plan: solo la llamada de esta persona, nunca otra.
+  // 1b) Puesto, ciudad de la vacante, dónde vive y correo: solo se llenan los que la ficha tiene VACÍOS, y solo si la
+  // coincidencia es segura (la misma regla del teléfono). Nunca se sobrescribe un dato que ya está.
   let scheduledAt: string | null = null;
-  if (!confiable && plan.accion !== "ninguna") {
-    avisos.push("Llamada por confirmar: la ficha coincide solo por nombre; no se agendó.");
-    partes.push(`Por confirmar (solo coincide el nombre): ${plan.detalle}`);
-  } else if (plan.accion === "agendar") {
-    const { error } = await rec
-      .from("candidates")
-      .update({ phone_date: plan.iso, status: actual.status === "registered" ? "phone" : actual.status })
-      .eq("id", actual.id);
-    if (error) throw new Error(`No se pudo agendar la llamada: ${error.message}`);
-    scheduledAt = plan.iso;
-  } else if (plan.accion === "seguimiento") {
-    const { error } = await rec.from("candidates").update({ follow_up: plan.dia }).eq("id", actual.id);
-    if (error) throw new Error(`No se pudo poner el seguimiento: ${error.message}`);
+  if (!creado && confiable) {
+    const parche = camposVacios(actual, { role: m.puesto, location: m.ubicacion ?? null, home_location: m.hogar ?? null }); // el relay de Indeed nunca se escribe en una ficha existente (sirve de prueba de identidad)
+    if (Object.keys(parche).length) {
+      const { error } = await rec.from("candidates").update(parche).eq("id", actual.id);
+      if (error) throw new Error(`No se pudo completar al candidato: ${error.message}`);
+    }
   }
-  if (confiable || plan.accion === "ninguna") partes.push(plan.detalle);
-  if (choques.length && plan.accion === "ninguna") avisos.push(plan.detalle);
+
+  // 2) y 3) Hora y calendario. Una ficha recién creada sin teléfono no se agenda: nace descartada.
+  let choques: string[] = [];
+  if (descartadaAlta) {
+    // Sin llamada ni seguimiento: la ficha queda descartada.
+  } else {
+    if (hora.tipo === "fija" && Date.parse(hora.iso) > Date.parse(p.ahora)) {
+      const ventana = 2 * 60 * 60 * 1000;
+      const { data: cercanas } = await rec
+        .from("candidates")
+        .select("id, name, status, archived, phone_date, inperson_date, assigned_recruiter, interview, location")
+        .gte("phone_date", new Date(Date.parse(hora.iso) - ventana).toISOString())
+        .lte("phone_date", new Date(Date.parse(hora.iso) + ventana).toISOString())
+        .neq("id", actual.id)
+        .limit(50);
+      const terminales = await etapasTerminales(db);
+      choques = choquesDeHorario(
+        (cercanas ?? []) as Parameters<typeof choquesDeHorario>[0],
+        { id: actual.id, tipo: "llamada", iso: hora.iso, reclutador: null },
+        terminales,
+      ).map((c) => c.nombre);
+    }
+
+    const plan: PlanAgenda = planearAgenda({
+      hora,
+      recibido: p.recibido,
+      ahora: p.ahora,
+      citaFuturaIso: actual.phone_date,
+      seguimientoActual: actual.follow_up,
+      choques,
+    });
+
+    // Aplicar el plan: solo la llamada de esta persona, nunca otra.
+    if (!confiable && plan.accion !== "ninguna") {
+      avisos.push("Llamada por confirmar: la ficha coincide solo por nombre; no se agendó.");
+      partes.push(`Por confirmar (solo coincide el nombre): ${plan.detalle}`);
+    } else if (plan.accion === "agendar") {
+      const { error } = await rec
+        .from("candidates")
+        .update({ phone_date: plan.iso, status: actual.status === "registered" ? "phone" : actual.status })
+        .eq("id", actual.id);
+      if (error) throw new Error(`No se pudo agendar la llamada: ${error.message}`);
+      scheduledAt = plan.iso;
+    } else if (plan.accion === "seguimiento") {
+      const { error } = await rec.from("candidates").update({ follow_up: plan.dia }).eq("id", actual.id);
+      if (error) throw new Error(`No se pudo poner el seguimiento: ${error.message}`);
+    }
+    if (confiable || plan.accion === "ninguna") partes.push(plan.detalle);
+    if (choques.length && plan.accion === "ninguna") avisos.push(plan.detalle);
+  }
 
   // 4) Nota con el texto completo y el resumen de lo que se hizo.
   const nota = `${textoDeLaNota(m, p.recibido)}\n— ${partes.join(" · ")}`;
