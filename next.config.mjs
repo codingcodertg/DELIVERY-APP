@@ -3,11 +3,13 @@ import { dirname } from "node:path";
 
 
 /**
- * D-596 (2026-10-19): en el build de VERCEL no se repiten el type-check ni el lint. Los dos ya corren en el CI de GitHub
- * (`ci.yml`: `tsc --noEmit`, vitest y `next build` completo) antes de que un PR pueda fusionarse, y en Vercel el paso
- * «Linting and checking validity of types» se quedó sin memoria (OOM, SIGKILL) en seis builds el 2026-10-19 —tres de un PR
- * con dos decisiones, uno con un cambio de dos líneas de texto— mientras el CI pasaba en 5 min. `process.env.VERCEL` solo
- * existe en el contenedor de Vercel: en el CI y en local, `next build` sigue comprobando tipos y lint como siempre.
+ * D-596 (2026-10-19): en el build de VERCEL no se repiten el type-check ni el lint. En el CI de GitHub
+ * (`.github/workflows/ci.yml`) el type-check SÍ corre (`npx tsc --noEmit`) antes de fusionar un PR, junto con vitest y
+ * `next build`. El lint NO está en ci.yml: en Vercel `ignoreDuringBuilds` lo salta, así que el lint solo se comprueba
+ * a mano (`npm run lint`) o en local. En Vercel el paso «Linting and checking validity of types» se quedó sin memoria
+ * (OOM, SIGKILL) en seis builds el 2026-10-19 —tres de un PR con dos decisiones, uno con un cambio de dos líneas de
+ * texto— mientras el CI pasaba en 5 min. `process.env.VERCEL` solo existe en el contenedor de Vercel: en el CI y en
+ * local, `next build` sigue comprobando tipos y lint como siempre.
  */
 const enVercel = !!process.env.VERCEL;
 
@@ -43,18 +45,51 @@ const nextConfig = {
   // OJO con dos cosas del propio Hub, por eso NO van más estrictas:
   //  - La preview móvil (`VistaMovil.tsx`) mete el Hub en un iframe del MISMO origen. Por eso
   //    X-Frame-Options va `SAMEORIGIN` (no DENY) y el CSP solo pone `frame-ancestors 'self'`.
-  //    No pongo un CSP de contenido completo (default-src/script-src) aquí a propósito: el layout
-  //    inyecta un script inline (el tema), usamos Google Maps y el realtime (wss) de Supabase, y
-  //    un CSP mal puesto tumba el Hub a las 7am. Eso va en un PR aparte, probado con report-only.
+  //    El CSP de contenido completo va SOLO en Report-Only (abajo): el layout inyecta un script
+  //    inline (el tema), usamos Google Maps y el realtime (wss) de Supabase, y un CSP enforced mal
+  //    puesto tumba el Hub a las 7am. Cuando el log de violaciones salga limpio, se pasa a enforced.
   //  - Cámara y GPS se usan (fichaje, fotos de entrega), así que el Permissions-Policy los PERMITE
   //    a sí mismo; lo que no se usa (micrófono, pagos, USB...) va cerrado.
+  //  - HSTS SIN `preload`: el dominio es *.vercel.app, que no se puede meter en la lista de precarga.
+  //  - COOP `same-origin-allow-popups`: el login de Outlook/Microsoft es por REDIRECCIÓN (no popup),
+  //    así que `same` estricto también valdría; se deja `allow-popups` para no romper ventanas que el
+  //    Hub abre a propósito (Waze, WhatsApp, PDFs en otra pestaña).
   async headers() {
+    // Hosts externos que carga el Hub, sacados de un grep de src/ y public/ (scripts, imágenes, fetch
+    // desde el navegador, iframes, fuentes, workers). Lo que se pide desde el servidor (Google Routes,
+    // Twilio, Resend, RingCentral...) NO entra aquí: CSP solo gobierna lo que pide el navegador.
+    //  - img-src: mapas de Leaflet en CrewMap (server.arcgisonline.com) y OSM en LeafletMap.
+    //  - frame-src: tutoriales (YouTube, Loom, Vimeo, Drive /preview) y el PDF de la orden de compra
+    //    (URL firmada de Supabase). El iframe de VistaMovil es del mismo origen ('self').
+    //  - media-src: los tutoriales en fichero de video (<video>); la URL la pone quien crea el tutorial,
+    //    así que puede ser de cualquier host y ese caso quedará como violación en el log.
+    const cspReportOnly = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://maps.googleapis.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      "img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://*.ggpht.com https://*.google.com https://*.supabase.co https://*.public.blob.vercel-storage.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://server.arcgisonline.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.blob.vercel-storage.com",
+      "frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.loom.com https://drive.google.com https://*.supabase.co",
+      "media-src 'self' blob: https://*.supabase.co https://*.public.blob.vercel-storage.com",
+      "worker-src 'self' blob:",
+      "manifest-src 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'self'",
+    ].join("; ");
+
     const seguridad = [
       { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      // Enforced: solo frame-ancestors (lo que ya había). El CSP completo va en Report-Only.
       { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+      { key: "Content-Security-Policy-Report-Only", value: cspReportOnly },
+      { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+      { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+      { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
       { key: "Permissions-Policy", value: "geolocation=(self), camera=(self), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(self)" },
       { key: "X-DNS-Prefetch-Control", value: "on" },
     ];
