@@ -18,6 +18,7 @@ import {
   coincideConCliente, esPrivado, accionLabel, accionTono, pasaAccion, TIPOS_DE_ACCION, type TipoDeAccion,
   ORDEN_INICIAL, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, type Resultado, type Situacion, type Vista,
 } from "@/lib/leads/reglas";
+import { etiquetaDeSemana, semanaInicial, semanasDelPool } from "@/lib/leads/semanas";
 import { cotizacionesPorLead, enlaceACotizacion, enlaceACotizar, idDeParametro, puedeCotizarLead, type CotizacionDeLead } from "@/lib/leads/cotizar";
 import { enlaceDeLaBase, enlaceDemo, type AlmacenDelEnlace } from "@/lib/leads/enlace";
 // D-850: los teléfonos se enseñan en la forma única del hub; el Excel los trae de mil maneras («956.555.0123», «956-555-0123»).
@@ -31,6 +32,15 @@ type Dialogo =
   | { tipo: "nota"; lead: Lead }
   | { tipo: "admin"; lead: Lead }
   | { tipo: "cliente"; lead: Lead; cliente: ClienteCruzado };
+
+/** La semana del STXP Pool que eligió cada persona, en ESTE navegador (como los avisos ocultos del Gestor). */
+const claveSemanaSTXP = (id: string) => `rtg_leads_stxp_semana_${id}`;
+function leeSemanaSTXP(id: string): string | null {
+  try { return localStorage.getItem(claveSemanaSTXP(id)); } catch { return null; }
+}
+function guardaSemanaSTXP(id: string, valor: string): void {
+  try { localStorage.setItem(claveSemanaSTXP(id), valor); } catch { /* sin almacenamiento: no se recuerda, y ya */ }
+}
 
 /** Cuántas tarjetas se pintan de entrada y cuántas más con cada «ver más»: en un teléfono, 140 tarjetas de golpe pesan. */
 const TANDA = 30;
@@ -149,9 +159,23 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     setPestana(p);
     limpiaFiltros();
   };
+  // El STXP Pool se parte por semanas (un import = una semana, ver semanas.ts). Se enseña la más nueva, salvo que la
+  // persona haya elegido otra: esa elección se recuerda por persona en este navegador.
+  const yoId = yo?.id ?? null;
+  const semanasSTXP = useMemo(() => semanasDelPool(leads), [leads]);
+  const [semanaGuardada, setSemanaGuardada] = useState<string | null>(null);
+  useEffect(() => { setSemanaGuardada(yoId ? leeSemanaSTXP(yoId) : null); }, [yoId]);
+  const semanaActiva = semanaInicial(semanaGuardada, semanasSTXP.semanas);
+  const eligeSemana = (valor: string) => {
+    setSemanaGuardada(valor);
+    if (yoId) guardaSemanaSTXP(yoId, valor);
+  };
+  const semanaFiltro = pestana === "privado" && semanaActiva !== "todas" ? semanaActiva : null;
   const delBanco = useMemo(
-    () => (pestana === "privado" ? privados : conCruzadosDeMiTienda(leadsDelBanco(leads, alcance), leads.filter((l) => l.source !== "privado"), cruzadoDeMiTienda)),
-    [leads, alcance, pestana, privados, cruzadoDeMiTienda],
+    () => (pestana === "privado"
+      ? privados.filter((l) => semanaFiltro === null || semanasSTXP.semanaDeLead.get(l.id) === semanaFiltro)
+      : conCruzadosDeMiTienda(leadsDelBanco(leads, alcance), leads.filter((l) => l.source !== "privado"), cruzadoDeMiTienda)),
+    [leads, alcance, pestana, privados, cruzadoDeMiTienda, semanaFiltro, semanasSTXP],
   );
   const pools = useMemo(() => poolsDe(delBanco), [delBanco]);
   const elige = eligeTienda(alcance);
@@ -173,7 +197,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     () => ordenar(filtrar(delBanco, { pool: poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra, accion: accionFiltro }), orden),
     [delBanco, poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra, accionFiltro, orden],
   );
-  useEffect(() => { setCuantos(TANDA); }, [pool, vista, categoria, tipo, ciudad, busca, situacion, coinciden, accionFiltro, orden]);
+  useEffect(() => { setCuantos(TANDA); }, [pool, vista, categoria, tipo, ciudad, busca, situacion, coinciden, accionFiltro, orden, semanaFiltro]);
 
   if (!yo) return <div className="ld-wrap leads-app"><p className="hint">{t("No session.", "Sin sesión.")}</p></div>;
 
@@ -217,6 +241,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
       onCerrar={() => setDialogo({ tipo: "cerrar", lead: l })} onAdmin={() => setDialogo({ tipo: "admin", lead: l })}
       onHistorial={() => void verHistorial(l)}
       cotizar={puedeCotizarLead(l, yo, cotiza)} cotizaciones={cotiza ? (cotizaciones.get(l.id) ?? []) : []}
+      semana={semanasSTXP.semanaDeLead.get(l.id)}
       cliente={l.customer_match_id != null ? clientes.get(l.customer_match_id) : undefined}
       onCliente={(c) => setDialogo({ tipo: "cliente", lead: l, cliente: c })}
     />
@@ -336,6 +361,17 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                       <b>{alcance.tienda ? poolLabel(alcance.tienda, lang) : "—"}</b>
                       {pools[0] ? <> — {pools[0].libres} {t("free", "libres")} / {pools[0].total}</> : null}
                     </p>
+                  )}
+                  {pestana === "privado" && semanasSTXP.semanas.length > 0 && (
+                    <label data-semana-stxp>
+                      {t("Week", "Semana")}
+                      <select data-semana value={String(semanaActiva)} onChange={(e) => eligeSemana(e.target.value)}>
+                        <option value="todas">{t("All weeks", "Todas las semanas")} ({privados.length})</option>
+                        {semanasSTXP.semanas.map((s) => (
+                          <option key={s.numero} value={String(s.numero)}>{etiquetaDeSemana(s, lang)} ({s.cuenta})</option>
+                        ))}
+                      </select>
+                    </label>
                   )}
                   <div className="ld-vistas" role="group" aria-label={t("View", "Vista")}>
                     <button type="button" className={`chip${vista === "libres" ? " on" : ""}`} data-vista="libres" onClick={() => setVista("libres")}>{t("Free", "Libres")}</button>
@@ -498,7 +534,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   );
 }
 
-function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNota, onCerrar, onAdmin, onHistorial, cotizar, cotizaciones, cliente, onCliente }: {
+function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNota, onCerrar, onAdmin, onHistorial, cotizar, cotizaciones, cliente, onCliente, semana }: {
   lead: Lead; yo: Persona; donde: "banco" | "mio" | "admin"; puede: ReturnType<typeof puedeTomar>; ocupado: boolean;
   historial: EventoLead[] | null | undefined;
   onTomar: () => void; onNota: () => void; onCerrar: () => void; onAdmin: () => void; onHistorial: () => void;
@@ -510,6 +546,8 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
   cliente?: ClienteCruzado;
   /** D-763: abre la tarjeta del cliente aquí mismo (el dueño no quiere saltar a la app de Clientes). */
   onCliente: (c: ClienteCruzado) => void;
+  /** El número de semana del STXP Pool de este lead (un import = una semana); solo los privados la tienen. */
+  semana?: number;
 }) {
   const { t, lang } = usePrefs();
   // En la pestaña del admin (cola de revisión, sin tocar) las tarjetas se leen enteras: ahí son trabajo suyo.
@@ -525,6 +563,7 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
         <span className="ld-dist">{l.distance_miles === null ? "—" : `${l.distance_miles.toFixed(1)} mi`}</span>
       </header>
       <p className="ld-meta">
+        {semana != null && <><span className="badge ld-semana" data-semana-lead>{t("Week", "Semana")} {semana}</span>{" "}</>}
         <span className="badge ld-cat">{delExcel(l.category, lang)}</span> {delExcel(l.project_type, lang)}
         {l.type_of_work ? ` · ${l.type_of_work}` : ""}
       </p>

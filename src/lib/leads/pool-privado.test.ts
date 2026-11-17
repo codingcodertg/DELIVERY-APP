@@ -99,11 +99,11 @@ describe("la base y la pantalla", () => {
     expect(p).toContain('data-pestana="privado"');
     // D-770: la pestaña la ve quien tiene la casilla (veStxp), no solo el admin.
     expect(p).toContain('{(pestana === "banco" || (pestana === "privado" && veStxp)) && (');
-    expect(p).toContain('() => (pestana === "privado" ? privados : conCruzadosDeMiTienda(leadsDelBanco(leads, alcance)');
+    expect(p).toContain('() => (pestana === "privado"\n      ? privados.filter((l) => semanaFiltro === null || semanasSTXP.semanaDeLead.get(l.id) === semanaFiltro)\n      : conCruzadosDeMiTienda(leadsDelBanco(leads, alcance)');
     expect(p).toContain("data-coinciden");
     expect(p).toContain('data-cliente={l.customer_match_id ?? ""}');
     expect(p).toContain('t("Contractor", "Contratista")');
     expect(p).toContain('t("Owner", "Propietario")');
-    expect(leer("src/lib/leads/almacen.ts")).toContain("source, customer_match_id, customer_match_note");
+    expect(leer("src/lib/leads/almacen.ts")).toContain("source, imported_at, customer_match_id, customer_match_note");
   });
 });

@@ -72,7 +72,7 @@ export const COLUMNAS =
   "type_of_work, scope_of_work, square_footage, estimated_cost, est_start_date, est_completion_date, permit_status, " +
   "site_address, site_city, site_zip, owner_name, owner_phone, owner_contact, tenant_name, tenant_phone, " +
   "design_firm_name, design_firm_phone, tdlr_link, status, holder, holder_name, taken_at, touched_at, " +
-  "follow_up_note, follow_up_at, follow_up_action, last_outcome, last_note, last_by, last_by_name, last_at, source, customer_match_id, customer_match_note";
+  "follow_up_note, follow_up_at, follow_up_action, last_outcome, last_note, last_by, last_by_name, last_at, source, imported_at, customer_match_id, customer_match_note";
 
 /** Sin la 253 aplicada (el código llega antes): las mismas columnas sin el tipo de acción. */
 export const COLUMNAS_SIN_253 = COLUMNAS.replace(", follow_up_action", "");
@@ -116,6 +116,8 @@ export function leadDeLaBase(f: Record<string, unknown>): Lead {
     last_by: texto(f.last_by), last_by_name: texto(f.last_by_name), last_at: texto(f.last_at),
     // D-760 (218): sin la columna (base vieja) se lee como 'tdlr' y sin cliente.
     source: f.source === "privado" ? "privado" : "tdlr",
+    // Cuándo entró el lote (el import semanal): de ahí salen las semanas del STXP Pool (semanas.ts).
+    imported_at: texto(f.imported_at),
     customer_match_id: num(f.customer_match_id), customer_match_note: texto(f.customer_match_note),
   };
 }

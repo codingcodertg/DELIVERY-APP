@@ -72,7 +72,7 @@ export function leadsDemo(ahora: Date = new Date()): Lead[] {
   STXP.forEach(([pool, ciudad], k) => {
     const n = String(k + 1).padStart(2, "0");
     leads.push({
-      ...leads[k], id: `demo-stxp-${n}`, tabs_project: `DEMO-STXP-${n}`, pool, source: "privado",
+      ...leads[k], id: `demo-stxp-${n}`, tabs_project: `DEMO-STXP-${n}`, pool, source: "privado", imported_at: hace(k < 5 ? 30 : 3),
       project_name: `Permiso municipal Demo ${n}`, facility_name: null, site_city: ciudad, site_address: `${200 + k * 7} Av. Demo`,
       owner_name: `Contratista Demo ${n} LLC`, owner_phone: `(956) 555-01${String(50 + k).padStart(2, "0")}`, tenant_name: `Propietario Demo ${n}`, tdlr_link: `https://example.com/demo/stxp/${n}`,
       customer_match_id: k === 0 ? 1 : null, customer_match_note: k === 0 ? "teléfono igual al del cliente CONTRATISTA DEMO 01" : null,
