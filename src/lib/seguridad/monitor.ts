@@ -199,7 +199,7 @@ export async function corrigeMonitor(ahoraMs = Date.now(), cliente: ClienteSec =
   // la cuota se da por agotada (cerrado para todo menos la severidad 5).
   const { data: accionesHora, error: e6 } = (await cliente
     .from("sec_alerts").select("accion").gte("creada_en", iso(ahoraMs - 60 * MIN))
-    .or("accion->>avisos.not.is.null,accion->>omitido.not.is.null").limit(LIMITE_CUOTA)) as
+    .or("accion->>avisos.not.is.null,accion->>omitido.not.is.null,accion->>resumen_horario.not.is.null").limit(LIMITE_CUOTA)) as
     { data: { accion: unknown }[] | null; error: { message: string } | null };
   if (e6) throw new Error(`sec_alerts (cuota): ${e6.message}`);
   const filasCuota = accionesHora ?? [];
@@ -305,7 +305,7 @@ export async function corrigeMonitor(ahoraMs = Date.now(), cliente: ClienteSec =
     const hashesIp = hashes.get(ip) ?? [];
     const { data: previa } = (await cliente
       .from("sec_alerts").select("id, accion")
-      .eq("detector", "login-fallido-ip-agrupado").eq("sujeto", `agrupado:${ip}`)
+      .eq("detector", "login-fallido-ip-agrupado").eq("sujeto", `agrupado:${ip}`).eq("estado", "abierta")
       .gte("creada_en", iso(ahoraMs - 60 * MIN)).limit(1)) as { data: { id: number; accion: Record<string, unknown> | null }[] | null };
     const fila = previa?.[0];
     if (fila) {
