@@ -52462,3 +52462,9 @@ Migración 313, APLICADA por el dueño.
 
 Cierre de la auditoría (D-1060). Las ubicaciones de los choferes salen del contexto principal a `ubicaciones-de-choferes.tsx`: solo se cargan y se suscriben mientras alguna pantalla las usa, y cada punto de GPS ya no vuelve a pintar toda la app. La tabla de Órdenes se virtualiza como `TablaEstandar`; las búsquedas del Gestor usan `useDeferredValue`; el mapa se carga con `next/dynamic`; las fotos de listas cargan al verse; los relojes de un segundo del Time Tracker viven en un componente propio. Fuera a propósito: cargar diferidos el chat y la ayuda del layout raíz (sin límite de error, un fallo tumbaría todo).
 Sello: todas las apps suben un menor; repo 1.911.0.
+
+## D-1063 · Indeed por Gmail: careers@ reenvía a un Gmail y el hub lo lee por IMAP (2026-11-16)
+
+El Microsoft 365 de la empresa lo administra GoDaddy y nadie puede dar el permiso de administrador que pide la conexión de D-1050 (GoDaddy manda a Microsoft y Microsoft a GoDaddy). El dueño: «podemos reenviar todo eso a un correo mío de Gmail y crear esa rule». Una regla de Outlook en careers@ redirige lo de Indeed al Gmail del dueño; los correos viejos se reenvían en grupo (adjuntos .eml). El hub lee ese Gmail por IMAP con una contraseña de aplicación (cifrada con `OUTLOOK_TOKEN_KEY`), sin borrar ni marcar nada, y pasa cada correo por la misma cadena que Outlook (`procesaMensajeIndeed`). Solo acepta un correo de Indeed con DKIM de Indeed visto por Gmail y con paso por el correo de la empresa, o un reenvío en grupo desde careers@ con DKIM de la empresa; lo demás se omite con su motivo. Sin duplicados: clave `gmail:<Message-ID>`. Tarjeta «Gmail → Indeed» en Ajustes de RR. HH.; cron en el mismo flujo de 15 min.
+Migración 314, APLICADA por el dueño.
+Sello `recruiting` 0.103.0; repo 1.912.0.

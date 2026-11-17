@@ -19,6 +19,7 @@ import { cifrar, claveDelEntorno, descifrar } from "./cifrado";
 import { MARGEN_CURSOR_MS, MAX_MENSAJES_POR_CORRIDA, VENTANA_INICIAL_MS, variablesQueFaltan } from "./config";
 import { crearCandidatoDesdeCorreo } from "./crear-candidato";
 import { cuerpoDeCorreo, descargarAdjunto, listarAdjuntos, listarCorreosDesde, listarPaginaDeBandeja, type MensajeGraph } from "./correo";
+import type { CabeceraDeCorreo } from "./verificacion";
 import { ErrorMicrosoft, refrescarAcceso } from "./microsoft";
 import { procesarMensaje } from "./mensaje-a-candidato";
 import {
@@ -201,7 +202,7 @@ export async function revisarBuzonIndeed(deps: DepsRevision): Promise<ResumenRev
       return { ...VACIO, motivo: "no se pudo leer un correo" };
     }
     res.revisados++;
-    const fila = await procesaSeguro(db, m, { dominioBuzon, accessToken: acc.accessToken, fetchFn, ahora, fase: null });
+    const fila = await procesaSeguro(db, deDeGraph(m, acc.accessToken, fetchFn), { dominioBuzon, ahora });
     contaFila(res, fila);
   }
 
@@ -273,7 +274,7 @@ export async function procesarLoteAntiguo(p: ParamsBackfill): Promise<ResumenBac
     }
     if (!enFase(clasificaCorreoIndeed(aCorreo(m)), p.fase)) continue;
     res.revisados++;
-    const fila = await procesaSeguro(db, m, { dominioBuzon, accessToken: acc.accessToken, fetchFn, ahora, fase: p.fase });
+    const fila = await procesaSeguro(db, deDeGraph(m, acc.accessToken, fetchFn), { dominioBuzon, ahora });
     contaFila(res, fila);
   }
 
@@ -312,29 +313,87 @@ function contaFila(res: ResumenRevision, fila: ResultadoFila | "ya-reclamado"): 
   else res.fallidos++;
 }
 
+/**
+ * El correo de Indeed que procesa el pipeline, sin importar de dónde llegó (Graph o Gmail por IMAP). Es el único contrato
+ * entre la lectura del buzón y el alta: los dos caminos (Outlook y Gmail) pasan por `procesaMensajeIndeed`.
+ */
+export interface MensajeIndeed {
+  /** Clave en `recruiting.outlook_processed`: el id de Graph (Outlook) o `gmail:<Message-ID>` (Gmail). Dedupe por esto. */
+  clave: string;
+  receivedDateTime: string;
+  subject: string;
+  /** Remitente con nombre, tal como lo pone el correo (`Indeed <noreply@indeed.com>`). */
+  from: string;
+  /** Solo la dirección del From, en minúsculas: es la que se verifica. */
+  fromAddress: string;
+  replyTo: string[];
+  /** Cuerpo: texto o HTML (Gmail pasa el HTML para que se lean los enlaces). Nunca se loguea. */
+  bodyText: string;
+  cabeceras: readonly CabeceraDeCorreo[];
+  /** Verificación ya hecha por el origen (Gmail). Si falta, se verifica con Authentication-Results (Outlook). */
+  verificacion?: { ok: boolean; motivo: string };
+  /** Busca y valida el CV (solo solicitudes). Devuelve el CV o el aviso de por qué no se guardó. */
+  cvDelCorreo: () => Promise<{ cv: { nombreFichero: string; bytes: Buffer } | null; avisoAdjunto: string | null }>;
+}
+
+/** Lo que Graph da de un correo, convertido al contrato común. El CV se baja solo si hace falta (solicitudes). */
+function deDeGraph(m: MensajeGraph, accessToken: string, fetchFn: typeof fetch): MensajeIndeed {
+  return {
+    clave: m.id,
+    receivedDateTime: m.receivedDateTime,
+    subject: m.subject,
+    from: m.from,
+    fromAddress: m.fromAddress,
+    replyTo: m.replyTo,
+    bodyText: m.bodyText,
+    cabeceras: m.cabeceras,
+    cvDelCorreo: async () => {
+      if (!m.hasAttachments) return { cv: null, avisoAdjunto: null };
+      const adjuntos = await listarAdjuntos(accessToken, m.id, fetchFn);
+      const pick = adjuntos.find((a) => /\.(pdf|docx?)$/i.test(a.name));
+      if (!pick) return { cv: null, avisoAdjunto: null };
+      const bytes = await descargarAdjunto(accessToken, m.id, pick, fetchFn);
+      if (!bytes) return { cv: null, avisoAdjunto: null };
+      const v = validaCv(pick.name, bytes);
+      if (v.ok) return { cv: { nombreFichero: pick.name, bytes }, avisoAdjunto: null };
+      return { cv: null, avisoAdjunto: `CV no guardado: ${v.motivo}` };
+    },
+  };
+}
+
 /** Procesa un correo sin dejar que un error tumbe la corrida: se cuenta como fallido y sigue con el siguiente. */
-async function procesaSeguro(
+export async function procesaSeguro(
   db: SupabaseClient,
-  m: MensajeGraph,
-  o: { dominioBuzon: string | null; accessToken: string; fetchFn: typeof fetch; ahora: Date; fase: FaseBackfill | null },
+  m: MensajeIndeed,
+  o: { dominioBuzon: string | null; ahora: Date },
 ): Promise<ResultadoFila | "ya-reclamado"> {
   try {
-    return await procesaCorreo(db, m, o);
+    return await procesaMensajeIndeed(db, m, o);
   } catch (e) {
     console.error(`[outlook] correo no procesado: ${mensajeSeguro(e)}`);
     return "failed";
   }
 }
 
-/** Procesa un correo: lo reclama, verifica, clasifica, actúa y anota el resultado. */
-async function procesaCorreo(
+/**
+ * Procesa un correo de Indeed: lo reclama, verifica, clasifica, actúa y anota el resultado. Lo usan el buzón de Outlook
+ * y el de Gmail (`src/lib/gmail`), así que la dedupe, el alta y las notas son las mismas en los dos caminos.
+ */
+export async function procesaMensajeIndeed(
   db: SupabaseClient,
-  m: MensajeGraph,
-  o: { dominioBuzon: string | null; accessToken: string; fetchFn: typeof fetch; ahora: Date },
+  m: MensajeIndeed,
+  o: { dominioBuzon: string | null; ahora: Date },
 ): Promise<ResultadoFila | "ya-reclamado"> {
-  const correo: CorreoDeIndeed = { ...aCorreo(m), dominioBuzon: o.dominioBuzon };
+  const correo: CorreoDeIndeed = {
+    subject: m.subject,
+    from: m.from,
+    replyTo: m.replyTo,
+    cuerpo: m.bodyText,
+    recibido: m.receivedDateTime,
+    dominioBuzon: o.dominioBuzon,
+  };
   const reclamo = await reclamaRegistro(db, {
-    messageId: m.id,
+    messageId: m.clave,
     receivedAt: m.receivedDateTime,
     subject: m.subject,
     fromAddress: direccionDe(m.from),
@@ -347,7 +406,7 @@ async function procesaCorreo(
   let scheduledAt: string | null = null;
   let detail: string | null = null;
   try {
-    const verif = verificadoComoIndeed(m.cabeceras, m.fromAddress);
+    const verif = m.verificacion ?? verificadoComoIndeed(m.cabeceras, m.fromAddress);
     if (!verif.ok) {
       resultado = "skipped";
       error = `not verified as Indeed (${verif.motivo})`;
@@ -373,20 +432,7 @@ async function procesaCorreo(
           resultado = "skipped";
           error = r.motivo;
         } else {
-          let cv: { nombreFichero: string; bytes: Buffer } | null = null;
-          let avisoAdjunto: string | null = null;
-          if (m.hasAttachments) {
-            const adjuntos = await listarAdjuntos(o.accessToken, m.id, o.fetchFn);
-            const pick = adjuntos.find((a) => /\.(pdf|docx?)$/i.test(a.name));
-            if (pick) {
-              const bytes = await descargarAdjunto(o.accessToken, m.id, pick, o.fetchFn);
-              if (bytes) {
-                const v = validaCv(pick.name, bytes);
-                if (v.ok) cv = { nombreFichero: pick.name, bytes };
-                else avisoAdjunto = `CV no guardado: ${v.motivo}`;
-              }
-            }
-          }
+          const { cv, avisoAdjunto } = await m.cvDelCorreo();
           const alta = await crearCandidatoDesdeCorreo(db, r.candidato, cv);
           resultado = alta.resultado;
           candidateId = alta.candidateId;
@@ -402,7 +448,7 @@ async function procesaCorreo(
     error = mensajeSeguro(e);
   }
 
-  await cierraRegistro(db, m.id, { result: resultado, candidateId, error, scheduledAt, detail });
+  await cierraRegistro(db, m.clave, { result: resultado, candidateId, error, scheduledAt, detail });
   return resultado;
 }
 

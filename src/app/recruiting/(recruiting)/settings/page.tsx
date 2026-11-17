@@ -11,6 +11,7 @@ import { MODO_DEMO } from "@/lib/recruiting/modo-demo";
 import { puedeAsignarPreguntasAlPuesto, preguntasActivasPorConjunto } from "@/lib/recruiting/preguntas-del-puesto";
 import { PLANTILLA, plantillaVigente } from "@/lib/recruiting/texto-puedo-llamar";
 import OutlookIndeedCard from "./OutlookIndeedCard";
+import GmailIndeedCard from "./GmailIndeedCard";
 
 export default function SettingsPage() {
   const { t } = usePrefs();
@@ -120,6 +121,7 @@ export default function SettingsPage() {
       </div>
 
       {me?.role === "admin" && <OutlookIndeedCard />}
+      {me?.role === "admin" && <GmailIndeedCard />}
 
       <div className="card">
         <h2>🏷️ {t("App name", "Nombre de la app")}</h2>
