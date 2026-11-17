@@ -52520,3 +52520,8 @@ App: llamadas validadas y con límite por usuario; SMS solo admin/gerente/ventas
 Paquetes: 0 fallas en producción (overrides de zod, @vercel/oidc, postcss, uuid; React 19.0.9). CSP en modo solo-reporte, COOP, X-Permitted-Cross-Domain-Policies, HSTS sin preload; Dependabot y acciones fijadas por SHA.
 Migración 318, APLICADA por el dueño.
 Sello: todas las apps suben un menor; repo 1.920.0.
+
+## D-1073 · Leads: el STXP Pool por semanas de importación (2026-11-17)
+
+Se importó el reporte STXP del 11-10-26: 183 leads nuevos (Brownsville 86, McAllen 36, Mission 35, Pharr 17, Weslaco 9; 24 ya son clientes). El dueño: «agrega las nuevas leads en STXP week 2». Cada importación es una semana: se agrupan los leads privados por día de importación (`imported_at`, hora de Chicago), Week 1 · 10/30 (209) y Week 2 · 11/17 (183). Selector «Semana» en el STXP Pool, abre en la más nueva y se recuerda por persona; cada tarjeta lleva su insignia; los chips respetan la semana. Sin migración.
+Sello `leads` 0.29.0; repo 1.921.0.
