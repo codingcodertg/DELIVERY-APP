@@ -24,6 +24,13 @@ const FLORIDA = { lat: 26.182, lng: -80.234 };
 const MCALLEN = { lat: 26.2, lng: -98.23 };
 
 describe("direccionCompleta — calle con número, ciudad y estado o código postal", () => {
+  it("formato del mapa con el número en su propio trozo: «4105, North Conway Avenue, …» está completa", () => {
+    expect(direccionCompleta("4105, North Conway Avenue, James Allen Colonia, Palmhurst, Hidalgo County, Texas, 78573, United States").ok).toBe(true);
+    expect(direccionCompleta("1120, East Expressway 83, L R Bell Colonia, Pharr, Hidalgo County, Texas, 78577, United States").ok).toBe(true);
+  });
+  it("un número solo, sin calle detrás, sigue faltando la calle", () => {
+    expect(direccionCompleta("4105").falta).toContain("numero");
+  });
   it("«4408 QUEEN PALM» (la #1071) está incompleta: le faltan la ciudad y el estado, no el número", () => {
     const c = direccionCompleta("4408 QUEEN PALM");
     expect(c.ok).toBe(false);

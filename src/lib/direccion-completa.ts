@@ -71,7 +71,9 @@ export function direccionCompleta(texto: string | null | undefined, conocidas: I
   if (!limpio) return { ok: false, falta: ["numero", "ciudad", "estado"], soloCiudad: false };
   if (esSoloCiudad(limpio)) return { ok: true, falta: [], soloCiudad: true };
   const trozos = limpio.split(",").map((p) => p.trim()).filter(Boolean);
-  const calle = trozos[0];
+  // Formato del mapa (Nominatim): el número va solo en su trozo y la calle en el siguiente —«4105, North Conway Avenue,
+  // …»—. Ese par es la calle con número; antes se leía «4105» como calle sin letras y no dejaba guardar (dueño, 2026-11-17).
+  const calle = /^\d+[a-z]?$/i.test(trozos[0] ?? "") && trozos.length > 1 ? `${trozos[0]} ${trozos[1]}` : trozos[0];
   const falta: Falta[] = [];
   if (!(/\d/.test(calle) && /[a-z]{2,}/i.test(calle))) falta.push("numero");
   if (!ciudadDeEntrega(limpio, conocidas)) falta.push("ciudad");
