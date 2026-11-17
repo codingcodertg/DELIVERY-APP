@@ -38,7 +38,9 @@ export async function POST(req: Request) {
   if (!esOficina) {
     const { data: entrega } = await db.from("deliveries").select("assigned_driver").eq("id", id).maybeSingle();
     const nombre = (yo?.full_name as string | null | undefined)?.trim() ?? "";
-    const esSuChofer = !!nombre && !!entrega?.assigned_driver && (entrega.assigned_driver as string) === nombre;
+    // La entrega guarda el NOMBRE del chofer, no su id. Para que cambiarse el nombre no abra la puerta, además tiene que
+    // ser chofer de rol (que solo cambia un admin). Lo peor posible: un chofer manda el «va en camino» de otra entrega.
+    const esSuChofer = yo?.role === "driver" && !!nombre && !!entrega?.assigned_driver && (entrega.assigned_driver as string) === nombre;
     if (!esSuChofer) return NextResponse.json({ error: "Not your delivery." }, { status: 403 });
   }
   const informe = await ejecutarEnCamino({ db, proveedor: proveedorDelEntorno(), origen: origenPublico(req.url) }, id);
