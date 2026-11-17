@@ -436,7 +436,7 @@ export async function procesaMensajeIndeed(
           const alta = await crearCandidatoDesdeCorreo(db, r.candidato, cv);
           resultado = alta.resultado;
           candidateId = alta.candidateId;
-          error = alta.avisoCv ?? avisoAdjunto;
+          error = alta.aviso ?? alta.avisoCv ?? avisoAdjunto;
         }
       } else {
         resultado = "skipped";

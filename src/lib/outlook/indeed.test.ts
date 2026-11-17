@@ -255,7 +255,8 @@ describe("solicitud REAL (captura del dueño): «<Nombre> applied»", () => {
     const c = r.candidato;
     expect(c.name).toBe("Johnathon Garza");
     expect(c.role).toBe("Inventory and Warehouse Coordinator");
-    expect(c.home_location).toBe("McAllen, TX");
+    expect(c.location).toBe("McAllen, TX");
+    expect(c.home_location).toBeNull();
     expect(c.tags).toEqual(["Forklift", "US work authorization", "Spanish", "Driver's License", "Computer operation", "English"]);
     expect(c.enlaces).toEqual({
       solicitud: "https://www.indeed.com/applications/full/johnathon",
@@ -284,6 +285,7 @@ describe("mensaje REAL del candidato (captura del dueño)", () => {
         puesto: "Inventory and Warehouse Coordinator",
         empresa: "RODRIGUEZ TILE GROUP",
         ubicacion: "McAllen, TX 78501",
+        hogar: null,
       },
     });
   });
