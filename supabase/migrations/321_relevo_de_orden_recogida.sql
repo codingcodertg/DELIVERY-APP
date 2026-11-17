@@ -6,10 +6,12 @@
 -- hoy se hacía a mano: volver la orden a «listo», activar_relevo y entregar el paso a con una nota.
 --
 -- QUÉ CAMBIA (dos funciones; ningún dato se toca).
---   · guard_delivery_stage (173): una escritura que activar_relevo marca (rtg.relevo = el número de la orden) sobre una
---     fila de relevo pasa sin comprobar el rol de quien llama. Lo que sí decide es activar_relevo, que ya exige
---     puede_relevo(). Sin esto, logística (que puede planificar) no podía cambiar el paso a de una orden recogida: el guard
---     solo deja a logística tocar órdenes en borrador a listo. El resto del guard es idéntico al de la 173.
+--   · guard_delivery_stage (173): una rama nueva, DESPUÉS de las invariantes (122) y antes de la salida de admin. Pasa
+--     solo el paso a de una orden recogida que activar_relevo marca (rtg.relevo = el número de la orden): picked_up ->
+--     delivered, relay_step nulo -> 1, y solo las columnas que activar_relevo escribe; el resto de la fila igual que OLD
+--     (comprobado con to_jsonb). El paso b (INSERT) va por la rama de INSERT de siempre. Sin esto, logística (que puede
+--     planificar) no podía cambiar el paso a de una orden recogida. El resto del guard es idéntico al de la 173.
+--     La decisión de quién puede sigue en activar_relevo, que exige puede_relevo().
 --   · activar_relevo (313): acepta también la etapa `picked_up`. Si la madre ya está recogida:
 --       - el paso a es la misma fila, con su recogida original (chofer, GPS, salida) y su destino ahora la tienda de
 --         relevo; se marca `delivered` con la hora de entrega (pod_delivered_at) y la dirección de la tienda;
@@ -22,7 +24,7 @@
 -- y quitar la fila del registro: delete from public.schema_migrations where name = '321_relevo_de_orden_recogida.sql';
 
 -- ---------------------------------------------------------------------------
--- 1. guard_delivery_stage: la copia de la 173 con UNA rama nueva (la marca del relevo, al principio)
+-- 1. guard_delivery_stage: la copia de la 173 con UNA rama nueva (el paso a de la orden recogida, tras las invariantes)
 -- ---------------------------------------------------------------------------
 create or replace function public.guard_delivery_stage()
  RETURNS trigger
@@ -44,10 +46,6 @@ declare
   probe public.deliveries%rowtype;
 begin
   if auth.uid() is null then return NEW; end if;
-  -- 321: el relevo de una orden recogida (activar_relevo y deshacer_relevo, que comprueban puede_relevo()) escribe el paso
-  -- a y el b con la marca rtg.relevo = el numero de la orden. Solo pasan las filas de relevo marcadas; el resto del guard
-  -- sigue igual para todo lo demas.
-  if NEW.relay_step is not null and current_setting('rtg.relevo', true) = NEW.order_no::text then return NEW; end if;
 
   -- ---- Invariantes de la anulacion (122) ----
   -- Van antes de la salida de admin A PROPOSITO: no son permisos de un rol, son cosas que no pasan.
@@ -79,6 +77,22 @@ begin
        or NEW.canceled_by          is distinct from OLD.canceled_by
        or NEW.canceled_at          is distinct from OLD.canceled_at) then
     raise exception 'A cancellation reason is history: it cannot be rewritten';
+  end if;
+
+  -- 321: el paso a de un relevo de una orden YA RECOGIDA (activar_relevo, con la marca rtg.relevo = el número de la orden).
+  -- Solo pasa ESE cambio exacto: de picked_up a delivered, relay_step de nulo a 1, y las columnas que activar_relevo escribe;
+  -- todo lo demás de la fila tiene que ser igual que OLD. Va después de las invariantes (122) y antes de la salida de
+  -- admin, para que ningún rol la salte, y la inserción del paso b NO pasa por aquí (va por la rama de INSERT de abajo).
+  if TG_OP = 'UPDATE' and OLD.stage = 'picked_up' and NEW.stage = 'delivered'
+     and OLD.relay_step is null and NEW.relay_step = 1
+     and current_setting('rtg.relevo', true) = NEW.order_no::text
+     and (to_jsonb(NEW) - array['order_suffix', 'relay_step', 'delivery_name', 'delivery_address', 'delivery_lat', 'delivery_lng',
+                                'delivery_pin_source', 'route_miles', 'route_duration', 'route_provider', 'route_traffic',
+                                'stage', 'pod_delivered_at', 'delivered_address', 'updated_at'])
+         = (to_jsonb(OLD) - array['order_suffix', 'relay_step', 'delivery_name', 'delivery_address', 'delivery_lat', 'delivery_lng',
+                                  'delivery_pin_source', 'route_miles', 'route_duration', 'route_provider', 'route_traffic',
+                                  'stage', 'pod_delivered_at', 'delivered_address', 'updated_at']) then
+    return NEW;
   end if;
 
   if r = 'admin' then return NEW; end if;
@@ -412,4 +426,4 @@ begin
   end if;
 end $chk$;
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('321_relevo_de_orden_recogida.sql', '827173bb2b42631a22c843cc798d3f383c7a506ff92a12df21cb6317dfbe3bb4') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('321_relevo_de_orden_recogida.sql', '7219b9dab2a41460acc1cab7b33b0502bac9b35fcd86f115b11bd7237dfc704a') on conflict (name) do nothing;

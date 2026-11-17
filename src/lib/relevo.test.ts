@@ -608,12 +608,20 @@ describe("la migración 321 (relevo de una orden ya recogida) dice lo mismo", ()
     expect(sinComentarios).not.toMatch(/create trigger|drop trigger/i);
   });
 
-  it("el guard es la copia de la 173 letra por letra, salvo la rama del relevo marcado (la única que pasa sin el rol)", () => {
+  it("el guard es la copia de la 173 letra por letra, salvo el bloque del paso a de la orden recogida (tras las invariantes, antes de admin)", () => {
     const trozo = (t: string) => t.slice(t.indexOf("create or replace function public.guard_delivery_stage()"), t.indexOf("end $function$", t.indexOf("create or replace function public.guard_delivery_stage()")));
-    const sinRama = (t: string) => t.split("\n").filter((l) => !l.includes("current_setting('rtg.relevo', true) = NEW.order_no") && !/^  -- (321:|a y el b con|sigue igual para)/.test(l)).join("\n");
-    expect(sinRama(trozo(cuerpo))).toBe(trozo(leer("supabase/migrations/173_reprogramar_orden.sql")));
+    // El bloque nuevo: desde su primer comentario hasta su «end if;» de dos espacios.
+    const sinBloque = (t: string) => t.replace(/  -- 321: el paso a de un relevo[\s\S]*?\n  end if;\n\n/, "");
+    expect(sinBloque(trozo(cuerpo))).toBe(trozo(leer("supabase/migrations/173_reprogramar_orden.sql")));
     const guard = trozo(sinComentarios);
-    expect(guard).toContain("if NEW.relay_step is not null and current_setting('rtg.relevo', true) = NEW.order_no::text then return NEW; end if;");
+    // La versión que cedía sin condición (un GUC cualquiera) ya no está.
+    expect(guard).not.toContain("NEW.relay_step is not null and current_setting('rtg.relevo'");
+    expect(guard).toContain("if TG_OP = 'UPDATE' and OLD.stage = 'picked_up' and NEW.stage = 'delivered'");
+    expect(guard).toContain("and OLD.relay_step is null and NEW.relay_step = 1");
+    expect(guard).toContain("and current_setting('rtg.relevo', true) = NEW.order_no::text");
+    expect(guard).toContain("to_jsonb(NEW) - array['order_suffix'");
+    // Después de las invariantes de la anulación (122), y antes de la salida de admin.
+    expect(guard.indexOf("A cancellation reason is history")).toBeLessThan(guard.indexOf("rtg.relevo"));
     expect(guard.indexOf("rtg.relevo")).toBeLessThan(guard.indexOf("if r = 'admin' then return NEW; end if;"));
   });
 
