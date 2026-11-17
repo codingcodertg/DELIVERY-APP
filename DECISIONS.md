@@ -52501,3 +52501,13 @@ Sello `recruiting` 0.108.0; repo 1.917.0.
 Francis (gerente) se mueve entre tiendas y se atoraba sin proyecto, también en las solicitudes. El dueño: «pásalo a presencial y dale la opción de todas las tiendas para que pueda hacer clock in en cualquier lado». Casilla nueva por empleado «Cualquier tienda» (`timetracker.employee_settings.multi_store`, migración 316): un presencial con ella ve en lugar de los proyectos un desplegable con las tiendas activas; la del día se recuerda y la sesión guarda `store_id`. Las solicitudes no exigen proyecto a los presenciales de varias tiendas. Las sesiones se muestran «Tienda · puesto». No se reutiliza `clockin.profiles.extra_store_ids`, que da permisos de gerente sobre esas tiendas. Revisión de seguridad: solo un admin del Time Tracker activa la casilla (guardia en insert y update), y la base rechaza `store_id` de quien no la tiene o de una tienda inactiva. El fichaje con geocerca no cambia.
 Migración 316, APLICADA por el dueño. Francis: presencial y «Cualquier tienda».
 Sello `timetracker` 1.32.0; repo 1.918.0.
+
+## D-1070 · Seguridad, fase 0: sin registro abierto, rol solo del servidor, job del ERP cerrado, IP real en los límites (2026-11-17)
+
+Auditoría completa de seguridad pedida por el dueño. Lo urgente:
+- Registro abierto + `handle_new_user` que copiaba el `role`/`recruiting_role` del registro: cualquiera podía darse de alta como admin (el repo es público). Migración 317: la ficha nace «sales» sin módulos; el rol lo pone `/api/invite` con la llave de servicio; fuera la política «profiles insert self». La pantalla de entrada ya no ofrece «Crear cuenta». El dueño apaga además el registro en Supabase Auth. Revisado: ninguna cuenta admin desconocida.
+- `/api/erp/jobs/refresh-daltile-matches` dejaba pasar a cualquiera si faltaba `JOBS_SECRET` (y falta en Vercel): ahora falla cerrado.
+- `ipDe` tomaba el primer salto de `x-forwarded-for`, que escribe el cliente: cambiándolo se saltaba cualquier límite. Ahora `x-vercel-forwarded-for`, luego `x-real-ip`, luego el último salto.
+Hallado y avisado al dueño: su cuenta admin tenía la contraseña genérica que aparece en el código público.
+Migración 317, APLICADA por el dueño.
+Sellos `deliveries` 1.625.0, `erp` 0.35.0; repo 1.919.0.

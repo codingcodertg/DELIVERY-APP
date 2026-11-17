@@ -24,14 +24,19 @@ function clienteDelLimitador() {
  * lado; no se puede interceptar aquí, así que no se cubre desde la app.
  */
 
-/** La IP del cliente, del primer salto de `x-forwarded-for` (lo que pone Vercel), con respaldo `x-real-ip`. */
+/**
+ * La IP del cliente. D-1070: la que pone Vercel y el cliente no puede falsear (`x-vercel-forwarded-for`, luego
+ * `x-real-ip`); el PRIMER salto de `x-forwarded-for` lo escribe el cliente, así que cambiándolo se saltaba cualquier
+ * límite. Si solo hay x-forwarded-for, se toma el ÚLTIMO salto (el que añadió el proxy).
+ */
 export function ipDe(req: Request): string {
+  const vercel = req.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim();
+  if (vercel) return vercel;
+  const real = req.headers.get("x-real-ip")?.trim();
+  if (real) return real;
   const xff = req.headers.get("x-forwarded-for");
-  if (xff) {
-    const primero = xff.split(",")[0]?.trim();
-    if (primero) return primero;
-  }
-  return req.headers.get("x-real-ip")?.trim() || "ip-desconocida";
+  const ultimo = xff?.split(",").map((x) => x.trim()).filter(Boolean).pop();
+  return ultimo || "ip-desconocida";
 }
 
 export interface OpcionesLimite {
