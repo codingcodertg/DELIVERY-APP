@@ -34,6 +34,7 @@ const DETECTOR: Record<string, [string, string]> = {
   "ratelimit-ip": ["Rate limit hits from one IP", "Límite de peticiones desde una IP"],
   "latido-cron": ["Time Tracker cron stopped", "El cron del Time Tracker se detuvo"],
   "login-fallido-ip-agrupado": ["Failed sign-ins from one IP (grouped)", "Fallos desde una IP (agrupados)"],
+  "lectura-truncada": ["Monitoring read was cut short", "Lectura del monitoreo cortada"],
   "resumen-horario": ["Hourly summary", "Resumen de la hora"],
 };
 

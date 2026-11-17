@@ -281,7 +281,9 @@ export function detectaApiDenegadas(eventos: EventoLeido[], ahora: number): Hall
 /** ≥50 respuestas 429 desde una misma IP en 10 min. Sev 3. Señal verificada por el servidor: propone bloquear la IP (con su guardia). */
 export function detectaRatelimitPorIp(eventos: EventoLeido[], ahora: number): Hallazgo[] {
   const rechazos = eventos.filter((e) => e.categoria === "ratelimit" && haceMenosDe(e.ts, ahora, UMBRALES.ventanaRatelimitMin));
-  const porIp = cuenta(rechazos, (e) => e.ip);
+  // Cada fila de límite trae `meta.hits`: los rechazos que cubre (se escriben como mucho una vez por minuto y bucket).
+  const porIp = new Map<string, number>();
+  for (const e of rechazos) if (e.ip) porIp.set(e.ip, (porIp.get(e.ip) ?? 0) + (Number(e.meta?.hits) || 1));
   const out: Hallazgo[] = [];
   for (const [ip, n] of porIp) {
     if (n < UMBRALES.ratelimitPorIp) continue;
@@ -352,6 +354,31 @@ export function sinDuplicar(hallazgos: Hallazgo[], abiertasRecientes: { detector
     out.push(h);
   }
   return out;
+}
+
+/** Una lectura del monitor: cuántas filas trajo y el tope con que se pidió. */
+export interface LecturaRevisada {
+  nombre: string;
+  filas: number;
+  limite: number;
+}
+
+/**
+ * Si una lectura llegó al tope, el monitor está viendo solo una parte: se avisa (sev 4), porque una señal que falta
+ * no se puede descartar. Una alerta por lectura y hora.
+ */
+export function detectaLecturaTruncada(lecturas: readonly LecturaRevisada[], ahora: number): Hallazgo[] {
+  const hora = Math.floor(ahora / 3_600_000);
+  return lecturas
+    .filter((l) => l.filas >= l.limite)
+    .map((l) => ({
+      detector: "lectura-truncada",
+      severidad: 4 as const,
+      sujeto: `truncada:${l.nombre}:${hora}`,
+      usuario_id: null,
+      ip: null,
+      resumen: `La lectura de «${l.nombre}» llegó a su tope (${l.limite} filas): el monitoreo está viendo solo una parte. Revisa el rastro en la base.`,
+    }));
 }
 
 /** Todos los detectores que leen `sec_events`, en un solo paso. */
