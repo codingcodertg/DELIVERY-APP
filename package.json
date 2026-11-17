@@ -1,6 +1,6 @@
 {
   "name": "rtg-hub",
-  "version": "1.912.0",
+  "version": "1.913.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -24,6 +24,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "decimal.js": "^10.6.0",
+    "docx-preview": "^0.4.1",
+    "docxtemplater": "^3.71.1",
     "exceljs": "^4.4.0",
     "imapflow": "^2.12.1",
     "jspdf": "^4.2.1",
@@ -31,6 +33,7 @@
     "leaflet": "^1.9.4",
     "mailparser": "^3.14.5",
     "next": "^15.5.29",
+    "pizzip": "^3.3.0",
     "qrcode": "^1.5.4",
     "react": "19.0.0",
     "react-dom": "19.0.0",

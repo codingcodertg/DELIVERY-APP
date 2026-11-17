@@ -50,6 +50,8 @@ import { PLANES_DE_CORREO, tooltipDelPlan } from "@/lib/recruiting/planes-de-cor
 import { avisoDeLicencia, estadoDeLicencia } from "@/lib/recruiting/hr";
 import { puntuacionTotal } from "@/lib/recruiting/puntuacion-total";
 import { fichaPedida } from "@/lib/recruiting/busqueda-global";
+import { PlantillasDeDocumentos } from "@/components/recruiting/PlantillasDeDocumentos";
+import { DocumentosDeIngreso } from "@/components/recruiting/DocumentosDeIngreso";
 
 /**
  * El expediente de RR. HH. (D-145).
@@ -109,6 +111,8 @@ function EmployeeFilesPageReal() {
   const [amonestar, setAmonestar] = useState<{ id: string; tipo: AccionDisciplinaria } | null>(null);
   const amonestarFila = amonestar ? rows.find((r) => r.id === amonestar.id) ?? null : null;
   const [agregando, setAgregando] = useState(false);
+  // Documentos de ingreso (315): la biblioteca de documentos y sus variantes, desde el botón de la cabecera.
+  const [plantillas, setPlantillas] = useState(false);
   // «User created» (D-694): quién tiene ya cuenta del hub y quién no.
   const [filtroCuenta, setFiltroCuenta] = useState<FiltroCuenta>("todos");
   // `me.role` es el rol de RR. HH. (el layout del módulo lo monta así). La barrera de verdad está
@@ -215,6 +219,8 @@ function EmployeeFilesPageReal() {
             title={t("Export every field of the file, for the rows in view", "Exporta todos los campos del expediente, de las filas que se ven")}>📊 Excel · {t("All fields", "Todos los campos")}</button>
           <button className="btn btn-ghost" data-exporta="csv-todo" disabled={!orden.visibles.length} onClick={() => exportaTodo("csv")}
             title={t("Export every field of the file, for the rows in view", "Exporta todos los campos del expediente, de las filas que se ven")}>⬇ CSV · {t("All fields", "Todos los campos")}</button>
+          <button className="btn btn-ghost" data-accion="plantillas" onClick={() => setPlantillas(true)}
+            title={t("Onboarding documents: templates and variants", "Documentos de ingreso: plantillas y variantes")}>📄 {t("Templates", "Plantillas")}</button>
           <button className="btn btn-primary" data-accion="agregar" onClick={() => setAgregando(true)}>
             ＋ {t("Add employee", "Agregar empleado")}
           </button>
@@ -456,6 +462,7 @@ function EmployeeFilesPageReal() {
         <ReactivarDialog key={"r" + reactivarFila.id} persona={reactivarFila}
           onDone={() => { setReactivar(null); void load(); }} onClose={() => setReactivar(null)} />
       )}
+      {plantillas && <PlantillasDeDocumentos onClose={() => setPlantillas(false)} />}
       {agregando && (
         <AgregarDialog con159={con159} onClose={() => setAgregando(false)}
           onDone={(id) => { setAgregando(false); void load().then(() => setAbierto(id)); }} />
@@ -1184,6 +1191,12 @@ function Ficha({
       </Seccion>
       <Seccion id="forms" titulo="FORMS">
         <Bloque grupo="forms" docs={docs} employeeId={persona.id} onChange={alDocs} />
+      </Seccion>
+
+      {/* Documentos de ingreso (315): los que le tocan por su puesto, con su variante, estado y copia firmada. */}
+      <Seccion id="ingreso" titulo={t("ONBOARDING DOCUMENTS", "DOCUMENTOS DE INGRESO")}>
+        <DocumentosDeIngreso employeeId={persona.id} puesto={persona.job_title}
+          datos={{ fullName: persona.full_name, position: persona.job_title, hireDate: persona.date_hired, store: tiendaVisible(persona) }} />
       </Seccion>
 
         {/* Encima del expediente, dentro de su ventana: el clic en el fondo de esta no cierra aquella. */}
