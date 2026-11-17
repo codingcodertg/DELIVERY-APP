@@ -14,7 +14,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.12.5",
+    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.45.4",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.14.10",
