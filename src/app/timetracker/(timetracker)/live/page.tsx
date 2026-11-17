@@ -13,11 +13,19 @@ import { CrewMap, type CrewPoint } from "@/components/timetracker/CrewMap";
 // channel, filtered to is_live=true — see the provider's block comment).
 type Crew = Extract<Awaited<ReturnType<typeof getCrewNow>>, { ok: true }>;
 
+/**
+ * El reloj de una tarjeta. Lleva su propio latido de 1 s: la página no se repinta cada segundo, solo este número.
+ * `calcular` recibe la hora actual y devuelve los segundos que muestra.
+ */
+function Cronometro({ calcular }: { calcular: (ahora: number) => number }) {
+  const [ahora, setAhora] = useState(Date.now());
+  useEffect(() => { const id = setInterval(() => setAhora(Date.now()), 1000); return () => clearInterval(id); }, []);
+  return <div className="live-clock">{fmtClock(calcular(ahora))}</div>;
+}
+
 export default function LiveMonitorPage() {
   const { me, liveSessions, allEmployees: users, allProjects: projects } = useData();
   const t = useT();
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
 
   // La otra mitad de "quién trabaja ahora" (D-128). Esta pantalla solo miraba `liveSessions`,
   // que son las sesiones del cronómetro: era CIEGA a quien está fichado. Con las dos formas de
@@ -121,7 +129,7 @@ export default function LiveMonitorPage() {
                     : <span className="live-tag state">{t("mgr.live.punched")}</span>}
                 </div>
                 <div className="live-sub">{emp && !necesitaProyecto(emp) ? tiendaYPuesto(emp, lang) : "\u00a0"}</div>
-                <div className="live-clock">{fmtClock(Math.max(0, Math.floor((now - desde) / 1000)))}</div>
+                <Cronometro calcular={(ahora) => Math.max(0, Math.floor((ahora - desde) / 1000))} />
                 <div className="live-meta">{t("mgr.live.clockIn")} {fmtTime(desde)}</div>
                 {/* Lo que lleva fuera HOY, separado: comer y salir a repartir no son lo mismo
                     ni para la nómina ni para quien revisa. La fila se ocupa con esto en vez de
@@ -141,7 +149,6 @@ export default function LiveMonitorPage() {
           {rows.map((s) => {
             const emp = uMap.get(s.employeeUid);
             const proj = pMap.get(s.projectId ?? "");
-            const elapsed = s.startMs ? Math.max(0, Math.floor((now - s.startMs) / 1000)) : (s.durationSeconds || 0);
             const dur = s.durationSeconds || 0;
             // Acotado a 100: el tiempo activo no puede superar al transcurrido, así que un
             // 183% no es "muy productivo", es un dato roto. Salió al duplicarse una sesión
@@ -160,7 +167,7 @@ export default function LiveMonitorPage() {
                   <span className="live-tag state">{st ? st.text : t("mgr.live.livePill")}</span>
                 </div>
                 <div className="live-sub">{nombreDeSesion(s.projectId, proj?.name, emp, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" })}{s.memo ? " · " + s.memo : ""}</div>
-                <div className="live-clock">{fmtClock(elapsed)}</div>
+                <Cronometro calcular={(ahora) => (s.startMs ? Math.max(0, Math.floor((ahora - s.startMs) / 1000)) : (s.durationSeconds || 0))} />
                 <div className="live-meta">
                   {t("mgr.live.since", { time: s.startMs ? fmtTime(s.startMs) : "—" })} · {t("mgr.live.activity", { pct })}
                 </div>

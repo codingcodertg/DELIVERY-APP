@@ -18,7 +18,7 @@ export function VisorDeFotos({ fotos, demo }: { fotos: string[]; demo?: boolean 
         {fotos.map((u, n) => (
           <button type="button" key={n} className="ops-foto-mini" onClick={() => setI(n)} data-abrir-foto={n} aria-label={t(`Open photo ${n + 1}`, `Abrir foto ${n + 1}`)}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={u} alt={t(`Photo ${n + 1}`, `Foto ${n + 1}`)} />
+            <img src={u} alt={t(`Photo ${n + 1}`, `Foto ${n + 1}`)} loading="lazy" decoding="async" />
           </button>
         ))}
         {demo && <p className="hint">{t("Photos are not shown in demo mode.", "En el demo no se enseñan fotos.")}</p>}

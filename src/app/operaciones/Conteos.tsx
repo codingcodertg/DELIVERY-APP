@@ -383,7 +383,7 @@ function TarjetaConteo({ c, lineas, ctx, pon, onCerrar }: { c: Conteo; lineas: L
     return /\.pdf$/i.test(ruta)
       ? <a className="ops-adjunto-pdf" href={u} target="_blank" rel="noreferrer" data-adjunto={ruta}>📄 PDF</a>
       // eslint-disable-next-line @next/next/no-img-element
-      : <a className="ops-adjunto-mini" href={u} target="_blank" rel="noreferrer" data-adjunto={ruta}><img src={u} alt={alt} /></a>;
+      : <a className="ops-adjunto-mini" href={u} target="_blank" rel="noreferrer" data-adjunto={ruta}><img src={u} alt={alt} loading="lazy" decoding="async" /></a>;
   };
 
   const lineaElegida = lineaAbierta ? lineas.find((l) => l.id === lineaAbierta) ?? null : null;

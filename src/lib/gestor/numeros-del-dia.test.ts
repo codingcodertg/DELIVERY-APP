@@ -245,6 +245,10 @@ vi.mock("@/lib/prefs", () => ({ usePrefs: () => ({ t: (en: string) => en, lang: 
 vi.mock("@/lib/confirm", () => ({ useConfirm: () => async () => true }));
 vi.mock("@/lib/usa-rutas-del-dia", () => ({ useRutasDelDia: () => ({ paradas: estado.paradas, origen: "funcion" }) }));
 vi.mock("@/lib/route-plan/usePlanPublicado", () => ({ usePlanPublicadoDelGestor: () => null, usePlanPublicadoDelChofer: () => null }));
+// El mapa entra con `next/dynamic` (ssr:false): en la prueba se pinta en el acto, con el mismo doble de abajo.
+vi.mock("next/dynamic", () => ({
+  default: () => (p: { points: { id: string; label: string; badge?: string }[] }) => { estado.mapa = p; return createElement("div", { "data-mapa": "1" }); },
+}));
 vi.mock("@/components/MapView", () => ({
   MapView: (p: { points: { id: string; label: string; badge?: string }[] }) => { estado.mapa = p; return createElement("div", { "data-mapa": "1" }); },
 }));
@@ -252,6 +256,11 @@ vi.mock("@/components/OrderModalLazy", () => ({ OrderModal: () => null }));
 vi.mock("@/components/LeaveAtStore", () => ({ LeaveAtStore: () => null }));
 vi.mock("@/lib/useStoreMarkers", () => ({ useStoreMarkers: () => [] }));
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({}) }));
+// Las posiciones de los choferes van en su propio almacén: el hook lee el `driverLocations` del `useData` simulado.
+vi.mock("@/lib/ubicaciones-de-choferes", async () => {
+  const { useData } = await import("@/lib/data-provider");
+  return { useUbicacionesDeChoferes: () => (useData() as unknown as { driverLocations: unknown[] }).driverLocations };
+});
 // Al pintar en el servidor no hay clic. Las tarjetas nacen plegadas en «Ancho» (D-393) y compactas en «Cuadrícula» (D-526,
 // el modo de partida): se pintan como tras pulsar ▸ o el nombre del chofer, que despliega su tabla abajo.
 vi.mock("@/lib/vista-del-gestor", async (original) => ({ ...(await original<typeof import("@/lib/vista-del-gestor")>()), estaPlegada: () => false }));

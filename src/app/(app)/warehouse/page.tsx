@@ -23,7 +23,14 @@ import { ETAPAS_DE_LA_HOJA_DE_CARGA, ETAPAS_DE_LA_RUTA_DEL_DIA, rutaPorChofer, S
 import { choferesEnVivo, marcaEnVivo } from "@/lib/choferes-en-vivo";
 import { usePosicionesDeChoferes } from "@/lib/tracksolid/useCamionDelDia";
 import { colorDeChofer } from "@/lib/map-legend";
-import { MapView, type MapPoint } from "@/components/MapView";
+import dynamic from "next/dynamic";
+import type { MapPoint } from "@/components/MapView";
+
+// El mapa entra solo cuando la pantalla lo pinta (como en Ajustes): arrastra Leaflet/Google enteros.
+const MapView = dynamic(() => import("@/components/MapView").then((m) => m.MapView), {
+  ssr: false,
+  loading: () => <div style={{ minHeight: 320 }} aria-hidden />,
+});
 import { fmtWindows, orderLabel, seesAllHistory, todayISO, withinRetention } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 

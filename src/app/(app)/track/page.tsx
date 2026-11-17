@@ -5,8 +5,16 @@ import { soloActivos } from "@/lib/baja";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
-import { MapView, type LiveDriver, type MapLine, type MapPoint } from "@/components/MapView";
+import dynamic from "next/dynamic";
+import type { LiveDriver, MapLine, MapPoint } from "@/components/MapView";
+import { useUbicacionesDeChoferes } from "@/lib/ubicaciones-de-choferes";
 import { NOTA_TURNO_AUTOMATICO } from "@/lib/turno-automatico";
+
+// El mapa entra solo cuando la pantalla lo pinta (como en Ajustes): arrastra Leaflet/Google enteros.
+const MapView = dynamic(() => import("@/components/MapView").then((m) => m.MapView), {
+  ssr: false,
+  loading: () => <div style={{ minHeight: 320 }} aria-hidden />,
+});
 import { useStoreMarkers } from "@/lib/useStoreMarkers";
 import { retentionFloorISO, seesAllHistory, todayISO, shiftDateISO, fmtDateShort } from "@/lib/utils";
 import { centralWallToUtc } from "@/lib/clockin/tz";
@@ -75,7 +83,9 @@ function clock(iso: string | null, lang: string): string {
 }
 
 export default function TrackPage() {
-  const { users, deliveries, settings, me, realRole, driverLocations } = useData();
+  const { users, deliveries, settings, me, realRole } = useData();
+  // Las posiciones de los choferes van aparte del contexto principal (lib/ubicaciones-de-choferes.tsx).
+  const driverLocations = useUbicacionesDeChoferes();
   const { lang, t } = usePrefs();
   // D-903: «dónde está ahora» sale del teléfono o del rastreador del camión que el chofer lleva hoy, lo mejor de los dos
   // (`posicionesDeChoferes`).

@@ -38,6 +38,7 @@ import { appDelTurno } from "@/lib/gps-del-turno";
 import { isNativeApp } from "@/lib/native-bridge";
 import { applyShiftOutbox, enqueueShiftOp, flushShiftOps, loadShiftOutbox, saveShiftOutbox, type ShiftOp } from "@/lib/shift-outbox";
 import { ALL_QUERIES, queriesForTables, type QueryName } from "@/lib/realtime-reload";
+import { crearAlmacenDeUbicaciones, UbicacionesDeChoferesCtx, type FuenteDeUbicaciones } from "@/lib/ubicaciones-de-choferes";
 import { cumpleFiltroDeLaLista, fusionarFilas, planDeRafaga, porCampoDesc, porCreatedAtDesc, porOrderNoDesc, type EventoRealtime, type PlanDeTabla, type TablaPorFila, type TipoDeEvento } from "@/lib/recarga-por-fila";
 import { avisoDePartirSola, cargasAlGuardar, esFuncionAusente, parteEnCadena, restosParaPartir } from "@/lib/cargas-partidas";
 import { entraEnElCamion, mensajeDelRelevo, pasosDelRelevo as pasosDeLaFamilia, pasosParaVer, porQueNoSeRecoge, relevoParaElAviso, type PasoParaVer } from "@/lib/relevo";
@@ -286,9 +287,7 @@ export interface DataState {
   /** True while the queue is being replayed. */
   syncing: boolean;
 
-  // live driver GPS
-  /** Each driver's most recent position (one entry per driver). */
-  driverLocations: DriverLocation[];
+  // live driver GPS (las posiciones de los choferes van en `useUbicacionesDeChoferes()`, fuera de este contexto)
   /** Report this device's position. Silent on failure — the next fix is
    * seconds away and a driver doesn't need an error for a dropped ping. */
   pushLocation: (fix: {
@@ -430,8 +429,9 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
   // El interruptor del aviso «en camino» (D-416, 150), para la cola offline, que se declara antes que los ajustes.
   const avisoEnCaminoRef = useRef<boolean | undefined>(undefined);
   avisoEnCaminoRef.current = settings.notify_on_the_way_enabled;
-  // Each driver's CURRENT position (one row per driver), for the live map.
-  const [driverLocations, setDriverLocations] = useState<DriverLocation[]>([]);
+  // Dónde está cada chofer AHORA: un almacén aparte (lib/ubicaciones-de-choferes.tsx). Un ping de GPS ya no
+  // repinta a los consumidores de `useData()`; solo a quien usa `useUbicacionesDeChoferes()`.
+  const [almacenUbicaciones] = useState(() => crearAlmacenDeUbicaciones());
   // ---- Teaching-mode sandbox ----
   // Teaching mode is a purely LOCAL overlay on top of the real, live data:
   // creations, edits and deletions are recorded here and NEVER written to the
@@ -786,22 +786,8 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       if (r.data) setIncidents(r.data as DriverIncident[]);
       return r;
     },
-    // Only the recent tail: the live map needs each driver's CURRENT spot,
-    // not the whole history, and a shift's worth of fixes is a lot of rows.
-    driver_locations: async () => {
-      const r = await supabase.from("driver_locations").select("*")
-        .gte("recorded_at", new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString())
-        .order("recorded_at", { ascending: false })
-        .limit(2000);
-      // Rows arrive newest-first, so the first one seen per driver is their
-      // current position — everything older is trail we don't hold in memory.
-      if (r.data) {
-        const latest = new Map<string, DriverLocation>();
-        for (const row of r.data as DriverLocation[]) if (!latest.has(row.driver_id)) latest.set(row.driver_id, row);
-        setDriverLocations([...latest.values()]);
-      }
-      return r;
-    },
+    // Las posiciones de los choferes (driver_locations) NO van aquí: las carga el almacén de
+    // lib/ubicaciones-de-choferes.tsx, solo mientras alguna pantalla las usa (fuenteDeUbicaciones).
     };
     if (!soloOrden) return todos;
     // Una sola orden: lo que la ficha no lee no se pide (se queda vacío).
@@ -1078,20 +1064,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       .on("postgres_changes", { event: "*", schema: "public", table: "driver_availability" }, onTable("driver_availability"))
       .on("postgres_changes", { event: "*", schema: "public", table: "driver_shifts" }, onTable("driver_shifts"))
       .on("postgres_changes", { event: "*", schema: "public", table: "driver_incidents" }, onTable("driver_incidents"))
-      // GPS fixes arrive constantly, so they are applied straight to the one
-      // driver's dot. Routing them through reloadAll would refetch every table
-      // in the app several times a minute per driver on the road.
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "driver_locations" }, (payload) => {
-        const row = payload.new as DriverLocation;
-        if (!row?.driver_id) return;
-        setDriverLocations((prev) => {
-          const current = prev.find((p) => p.driver_id === row.driver_id);
-          // Fixes can arrive out of order (a phone flushing a queue after a
-          // dead zone); never let an older one overwrite a newer one.
-          if (current && current.recorded_at > row.recorded_at) return prev;
-          return [row, ...prev.filter((p) => p.driver_id !== row.driver_id)];
-        });
-      })
+      // Las posiciones GPS (driver_locations) tienen su propio canal, en el almacén de ubicaciones: no pasan por aquí.
       .subscribe();
     // Las notificaciones van en su propio canal, filtradas a esta persona EN LA BASE: antes llegaban las de todos y se
     // descartaban en el cliente (`planDeRafaga`), y cada aviso de cualquiera era un evento más para cada sesión abierta.
@@ -1693,16 +1666,44 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         return false;
       }
       // Reflect our own dot immediately rather than waiting for the echo.
-      setDriverLocations((prev) => [
-        { ...row, id: `local-${Date.now()}`, created_at: row.recorded_at } as DriverLocation,
-        ...prev.filter((p) => p.driver_id !== me.id),
-      ]);
+      almacenUbicaciones.aplicar({ ...row, id: `local-${Date.now()}`, created_at: row.recorded_at } as DriverLocation);
       // A fix got through: whatever queued while there was no signal can follow it now.
       void flushGpsOutbox();
       return true;
     },
-    [supabase, me, teaching, flushGpsOutbox],
+    [supabase, me, teaching, flushGpsOutbox, almacenUbicaciones],
   );
+
+  // De dónde salen las posiciones de los choferes: la consulta de las últimas (3 h) y el canal de realtime. Sin
+  // sesión (`me`) no hay fuente, como antes en `reloadAll`; la consulta arranca cuando una pantalla las pide.
+  const fuenteDeUbicaciones = useMemo<FuenteDeUbicaciones | null>(() => {
+    if (!me || soloOrden) return null;
+    return {
+      cargar: async () => {
+        if (!(await ensureSessionRef.current())) return null;
+        // Solo la cola reciente: el mapa quiere la posición ACTUAL de cada chofer, no todo el historial.
+        const r = await supabase.from("driver_locations").select("*")
+          .gte("recorded_at", new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString())
+          .order("recorded_at", { ascending: false })
+          .limit(2000);
+        return r.data ? (r.data as DriverLocation[]) : null;
+      },
+      escuchar: (alLlegar) => {
+        // Los pings llegan sin parar: van directo al almacén, nunca a `reloadAll` (que bajaría todas las tablas).
+        const canal = supabase
+          .channel("ubicaciones-de-choferes")
+          .on("postgres_changes", { event: "INSERT", schema: "public", table: "driver_locations" }, (payload) => {
+            const row = payload.new as DriverLocation;
+            if (row?.driver_id) alLlegar(row);
+          })
+          .subscribe();
+        return () => { void supabase.removeChannel(canal); };
+      },
+    };
+  }, [supabase, me, soloOrden]);
+  useEffect(() => {
+    almacenUbicaciones.fijarFuente(fuenteDeUbicaciones);
+  }, [almacenUbicaciones, fuenteDeUbicaciones]);
 
   const deleteDelivery = useCallback<DataState["deleteDelivery"]>(
     async (id) => {
@@ -2610,11 +2611,12 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut, marcaGpsDelTurno,
     incidents, addIncident, removeIncident,
-    driverLocations, pushLocation,
+    pushLocation,
     pendingSync: outbox.length, syncing,
-  }), [ready, effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, effectiveDeliveries, ensureDeliveriesSince, effectiveEvents, notifications, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, updateUserModules, deleteUser, availability, addAvailability, removeAvailability, shiftsView, clockIn, clockOut, marcaGpsDelTurno, incidents, addIncident, removeIncident, driverLocations, pushLocation, outbox.length, syncing]);
+  }), [ready, effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, effectiveDeliveries, ensureDeliveriesSince, effectiveEvents, notifications, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, updateUserModules, deleteUser, availability, addAvailability, removeAvailability, shiftsView, clockIn, clockOut, marcaGpsDelTurno, incidents, addIncident, removeIncident, pushLocation, outbox.length, syncing]);
 
   return (
+    <UbicacionesDeChoferesCtx.Provider value={almacenUbicaciones}>
     <Ctx.Provider value={value}>
       {children}
       {toast && (
@@ -2631,5 +2633,6 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       )}
       {authGone && <SessionExpired />}
     </Ctx.Provider>
+    </UbicacionesDeChoferesCtx.Provider>
   );
 }

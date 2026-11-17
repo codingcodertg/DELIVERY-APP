@@ -279,7 +279,7 @@ function TarjetaEquipo({ e, ctx, datos, pon, onCerrar }: { e: Equipo; ctx: Conte
           <div className="ops-fotos-lista">
             {fotos.map((u, n) => (
               // eslint-disable-next-line @next/next/no-img-element
-              <a key={n} href={u} target="_blank" rel="noreferrer"><img src={u} alt={t(`Photo ${n + 1}`, `Foto ${n + 1}`)} className="ops-foto-mini" /></a>
+              <a key={n} href={u} target="_blank" rel="noreferrer"><img src={u} alt={t(`Photo ${n + 1}`, `Foto ${n + 1}`)} className="ops-foto-mini" loading="lazy" decoding="async" /></a>
             ))}
           </div>
         )}

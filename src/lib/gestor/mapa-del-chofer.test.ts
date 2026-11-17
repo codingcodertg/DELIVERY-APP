@@ -52,6 +52,10 @@ vi.mock("@/lib/confirm", () => ({ useConfirm: () => async () => true }));
 // La función `rutas_del_dia` devuelve las rutas ENTERAS del día (D-467): el gancho de verdad las pide en un efecto, que no
 // corre al pintar en el servidor. Aquí se entregan ya leídas, que es el caso que importa: la pantalla las tiene TODAS.
 vi.mock("@/lib/usa-rutas-del-dia", () => ({ useRutasDelDia: () => ({ paradas: estado.paradas, origen: "funcion" }) }));
+// El mapa entra con `next/dynamic` (ssr:false): en la prueba se pinta en el acto, con el mismo doble de abajo.
+vi.mock("next/dynamic", () => ({
+  default: () => (p: { liveDrivers: { driver: string }[]; points: { id: string; label: string }[]; fitTo?: [number, number][] }) => { estado.mapa = p; return createElement("div", { "data-mapa": "1" }); },
+}));
 vi.mock("@/components/MapView", () => ({
   MapView: (p: { liveDrivers: { driver: string }[]; points: { id: string; label: string }[]; fitTo?: [number, number][] }) => { estado.mapa = p; return createElement("div", { "data-mapa": "1" }); },
 }));
@@ -60,6 +64,11 @@ vi.mock("@/components/OrderModalLazy", () => ({ OrderModal: () => null }));
 const TIENDA_LEJOS: [number, number] = [25.9, -97.5];
 vi.mock("@/lib/useStoreMarkers", () => ({ useStoreMarkers: () => [{ name: "Tienda lejos", lat: 25.9, lng: -97.5 }] }));
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({}) }));
+// Las posiciones de los choferes van en su propio almacén: el hook lee el `driverLocations` del `useData` simulado.
+vi.mock("@/lib/ubicaciones-de-choferes", async () => {
+  const { useData } = await import("@/lib/data-provider");
+  return { useUbicacionesDeChoferes: () => (useData() as unknown as { driverLocations: unknown[] }).driverLocations };
+});
 
 const CARLOS = { id: "u-carlos", role: "driver", full_name: "Carlos R." };
 const MIGUEL = { id: "u-miguel", role: "driver", full_name: "Miguel A." };
