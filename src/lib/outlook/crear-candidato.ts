@@ -96,9 +96,13 @@ export type PorDonde = "telefono" | "email" | "nombre";
  * solo el nombre no lo es (D-1050: dos personas pueden llamarse igual).
  */
 export function comoCoincide(
-  existente: { phone: string | null; email?: string | null },
-  nuevo: { phone: string; email: string | null; correoEsRelay: boolean },
+  existente: { phone: string | null; email?: string | null; name?: string | null },
+  nuevo: { phone: string; email: string | null; correoEsRelay: boolean; name?: string | null },
 ): PorDonde {
+  // Teléfono o correo solos no bastan para escribir en una ficha ajena: el teléfono puede venir del texto libre de un
+  // mensaje. Además el nombre no puede chocar (revisión de seguridad); si choca, cuenta como «solo nombre» (no se toca).
+  const n = (x: string | null | undefined) => (x ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
+  if (nuevo.name !== undefined && existente.name !== undefined && n(nuevo.name) && n(existente.name) && n(nuevo.name) !== n(existente.name)) return "nombre";
   const tel = digitosTel(nuevo.phone);
   if (tel.length >= 7 && digitosTel(existente.phone) === tel) return "telefono";
   const correo = (nuevo.email ?? "").trim().toLowerCase();
@@ -142,7 +146,7 @@ export async function crearCandidatoDesdeCorreo(
   const filas = [...((porTel.data ?? []) as Fila[]), ...((porNom.data ?? []) as Fila[]), ...((porMail.data ?? []) as Fila[])];
   const existente = buscaDuplicado(filas, payload) ?? ((porMail.data ?? []) as Fila[])[0] ?? null;
   if (existente) {
-    const por = comoCoincide(existente, { phone: payload.phone ?? "", email: payload.email ?? null, correoEsRelay: c.correoEsRelay });
+    const por = comoCoincide(existente, { phone: payload.phone ?? "", email: payload.email ?? null, correoEsRelay: c.correoEsRelay, name: payload.name ?? null });
     // Solo nombre: no se cambia nada (ni campos, ni CV, ni nota). RR. HH. decide.
     if (por === "nombre") return { resultado: "duplicate", candidateId: existente.id, avisoCv: null, aviso: AVISO_SOLO_NOMBRE };
     const avisoCv = await completaExistente(db, existente.id, payload, cv);

@@ -209,7 +209,7 @@ export async function procesarMensaje(
   // coincidencia es segura (la misma regla del teléfono). Nunca se sobrescribe un dato que ya está.
   let scheduledAt: string | null = null;
   if (!creado && confiable) {
-    const parche = camposVacios(actual, { role: m.puesto, location: m.ubicacion ?? null, home_location: m.hogar ?? null, email: p.replyToRelay });
+    const parche = camposVacios(actual, { role: m.puesto, location: m.ubicacion ?? null, home_location: m.hogar ?? null }); // el relay de Indeed nunca se escribe en una ficha existente (sirve de prueba de identidad)
     if (Object.keys(parche).length) {
       const { error } = await rec.from("candidates").update(parche).eq("id", actual.id);
       if (error) throw new Error(`No se pudo completar al candidato: ${error.message}`);

@@ -122,14 +122,24 @@ describe("crearCandidatoDesdeCorreo: el alta sobre una persona existente", () =>
     ]);
   });
 
-  it("coincidencia por CORREO DIRECTO (nombre distinto): llena los vacíos y no pisa el lugar que ya tenía", async () => {
+  it("coincidencia por CORREO DIRECTO con nombre distinto: no toca la ficha (el nombre choca)", async () => {
     const { db, escrituras } = dbFalsa([ficha({ id: "c3", name: "J Garza", email: "johnathon.garza@example.com", location: "Harlingen, TX" })]);
     const r = await crearCandidatoDesdeCorreo(
       db,
       solicitud({ name: "Johnathon Garza", phone: "", email: "johnathon.garza@example.com", correoEsRelay: false, location: "McAllen, TX" }),
       null,
     );
-    expect(r).toEqual({ resultado: "duplicate", candidateId: "c3", avisoCv: null, aviso: null });
-    expect(escrituras).toEqual([{ tabla: "candidates", op: "update", datos: { role: "Driver", home_location: "Harlingen, TX" } }]);
+    expect(r.resultado).toBe("duplicate");
+    expect(r.candidateId).toBe("c3");
+    expect(escrituras).toEqual([]);
+  });
+});
+
+describe("comoCoincide con nombre que choca (revisión de seguridad)", () => {
+  it("mismo teléfono pero otro nombre cuenta como solo nombre: no se toca la ficha", () => {
+    expect(comoCoincide({ phone: "(956) 555-1234", name: "Maria Lopez" }, { phone: "9565551234", email: null, correoEsRelay: false, name: "Juan Perez" })).toBe("nombre");
+  });
+  it("mismo teléfono y mismo nombre (sin acentos ni mayúsculas) sí cuenta por teléfono", () => {
+    expect(comoCoincide({ phone: "(956) 555-1234", name: "José Pérez" }, { phone: "9565551234", email: null, correoEsRelay: false, name: "jose perez" })).toBe("telefono");
   });
 });
