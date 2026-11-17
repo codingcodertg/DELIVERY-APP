@@ -16,6 +16,7 @@
  *
  * Escribe con la llave de servicio (salta RLS), así que quien llama tiene que ser el servidor ya autorizado.
  */
+import { normalizeName } from "@/lib/recruiting/utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buscaDuplicado, digitosTel, patronNombre, patronTel } from "@/lib/recruiting/candidato-duplicado";
 import { estandarizaCandidato } from "@/lib/recruiting/formato";
@@ -101,8 +102,12 @@ export function comoCoincide(
 ): PorDonde {
   // Teléfono o correo solos no bastan para escribir en una ficha ajena: el teléfono puede venir del texto libre de un
   // mensaje. Además el nombre no puede chocar (revisión de seguridad); si choca, cuenta como «solo nombre» (no se toca).
-  const n = (x: string | null | undefined) => (x ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
-  if (nuevo.name !== undefined && existente.name !== undefined && n(nuevo.name) && n(existente.name) && n(nuevo.name) !== n(existente.name)) return "nombre";
+  // Mismo normalizador que el resto (normalizeName, letras Unicode). Falla cerrado: un nombre vacío tras normalizar no
+  // demuestra nada y cuenta como «solo nombre».
+  if (nuevo.name !== undefined && existente.name !== undefined) {
+    const a = normalizeName(nuevo.name ?? ""), b = normalizeName(existente.name ?? "");
+    if (!a || !b || a !== b) return "nombre";
+  }
   const tel = digitosTel(nuevo.phone);
   if (tel.length >= 7 && digitosTel(existente.phone) === tel) return "telefono";
   const correo = (nuevo.email ?? "").trim().toLowerCase();

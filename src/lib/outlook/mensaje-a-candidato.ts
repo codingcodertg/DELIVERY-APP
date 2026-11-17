@@ -16,7 +16,7 @@ import { telefonoEstandar } from "@/lib/recruiting/formato";
 import { choquesDeHorario } from "@/lib/recruiting/choque-de-horario";
 import { buscaDuplicado, digitosTel, patronTel } from "@/lib/recruiting/candidato-duplicado";
 import type { MensajeDeIndeed } from "./indeed";
-import { camposVacios, crearCandidatoDesdeCorreo, llegoTelefonoTarde, MOTIVO_SIN_TELEFONO_MENSAJE } from "./crear-candidato";
+import { AVISO_SOLO_NOMBRE, camposVacios, crearCandidatoDesdeCorreo, llegoTelefonoTarde, MOTIVO_SIN_TELEFONO_MENSAJE } from "./crear-candidato";
 import { horaDeLlamada, planearAgenda, telefonoDeMensaje, type PlanAgenda } from "./llamada-del-mensaje";
 
 export type BusquedaCandidato = { tipo: "unico"; id: string } | { tipo: "ninguno" } | { tipo: "ambiguo"; cuantos: number };
@@ -130,6 +130,7 @@ export async function procesarMensaje(
 
   let candidateId: string | null = busqueda.tipo === "unico" ? busqueda.id : null;
   let creado = false;
+  let soloNombre = false;
   if (!candidateId) {
     // Ningún candidato con ese nombre: se crea desde el mensaje. Puesto y ciudad de la vacante van a `role` y `location`;
     // dónde vive, a `home_location`. Sin teléfono, nace descartada (regla del dueño).
@@ -152,6 +153,7 @@ export async function procesarMensaje(
     );
     candidateId = alta.candidateId;
     creado = alta.resultado === "created";
+    soloNombre = alta.aviso === AVISO_SOLO_NOMBRE;
   }
 
   const { data: cand, error: eCand } = await rec
@@ -170,7 +172,9 @@ export async function procesarMensaje(
   // confirmar», y RR. HH. decide.
   const mismoRelay = !!p.replyToRelay && !!actual.email && actual.email.trim().toLowerCase() === p.replyToRelay.trim().toLowerCase();
   const mismoPuesto = !!m.puesto && !!actual.role && normalizeName(m.puesto) === normalizeName(actual.role);
-  const confiable = creado || mismoRelay || mismoPuesto;
+  // Una coincidencia solo por nombre nunca autoriza escribir, y el puesto solo no basta si el nombre de la ficha choca.
+  const nombreChoca = !!normalizeName(m.candidateName) && !!normalizeName(actual.name ?? "") && normalizeName(m.candidateName) !== normalizeName(actual.name ?? "");
+  const confiable = creado || (!soloNombre && !nombreChoca && (mismoRelay || mismoPuesto));
 
   const avisos: string[] = [];
   const partes: string[] = [];
