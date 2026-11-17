@@ -2,7 +2,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { ipDe } from "@/lib/ip-de";
 import { rutaDe } from "@/lib/seguridad/registro";
-import { anotaRechazo } from "@/lib/seguridad/rechazos";
+import { anotaRechazo, claveDeRechazo } from "@/lib/seguridad/rechazos";
 
 /**
  * Cliente de servicio CRUDO, SIN el wrapper de modo enseñanza (a diferencia de `createAdminClient`). El limitador NO
@@ -65,7 +65,7 @@ export async function limita(req: Request, opts: OpcionesLimite): Promise<{ ok: 
     if (r && r.allowed === false) {
       // Monitoreo de seguridad (320): cada rechazo queda en el rastro. Va sin esperar, y nunca lanza.
       // (320) Como mucho una fila por bucket y minuto, con `meta.hits`: una ráfaga no escribe una fila por petición.
-      anotaRechazo(bucket, {
+      anotaRechazo(claveDeRechazo(bucket, ipDe(req)), {
         severidad: 2,
         usuario_id: opts.usuario ?? null,
         ip: ipDe(req),

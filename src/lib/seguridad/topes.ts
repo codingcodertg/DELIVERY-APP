@@ -146,3 +146,30 @@ export function marcaPorIp(
   }
   return { marcados, agrupados, hashes };
 }
+
+/**
+ * Si la lectura de la cuota llegó a su tope, no se puede saber cuánto salió: se da la cuota por agotada (cerrado para
+ * todo lo que no sea severidad 5, que sigue saliendo por correo siempre).
+ */
+export function cuotaAgotada(c: CuotaHora): CuotaHora {
+  return {
+    ...c,
+    correos: Math.max(c.correos, TOPE_CORREOS_HORA),
+    correosLogin: Math.max(c.correosLogin, TOPE_CORREOS_LOGIN_HORA),
+    sms: Math.max(c.sms, TOPE_SMS_HORA),
+  };
+}
+
+/**
+ * Suma las cuentas agrupadas de esta corrida a la fila resumen de la IP de la última hora: el contador crece y los
+ * identificadores se acumulan (como mucho 50). Sin fila previa, arranca desde cero.
+ */
+export function combinaResumenIp(
+  previa: { contador?: unknown; hashes?: unknown } | null,
+  nuevas: number,
+  hashesNuevos: readonly string[],
+): { contador: number; hashes: string[] } {
+  const contador = (Number(previa?.contador) || 0) + nuevas;
+  const hashesPrevios = Array.isArray(previa?.hashes) ? (previa?.hashes as string[]) : [];
+  return { contador, hashes: [...hashesPrevios, ...hashesNuevos].slice(0, 50) };
+}

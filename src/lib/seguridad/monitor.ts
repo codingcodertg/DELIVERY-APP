@@ -5,7 +5,7 @@ import {
   type CambioDeRol, type EventoLeido, type Hallazgo, type LecturaRevisada,
 } from "@/lib/seguridad/detectores";
 import {
-  cuotaDeLaHora, decideAviso, marcaPorIp, necesitaResumen, origenDe, ordenaPorGravedad,
+  combinaResumenIp, cuotaAgotada, cuotaDeLaHora, decideAviso, marcaPorIp, necesitaResumen, origenDe, ordenaPorGravedad,
   TOPE_IDENTIFICADORES_POR_IP_HORA, TOPE_SMS_POR_CORRIDA, type CuotaHora, type DecisionAviso,
 } from "@/lib/seguridad/topes";
 import { emailConfigured } from "@/lib/email";
@@ -25,6 +25,8 @@ import { telefonoUSaE164 } from "@/lib/telefono-correo";
 const MIN = 60_000;
 const LIMITE_FILAS = 20_000;
 const LIMITE_CAMBIOS = 5_000;
+/** Filas de avisos de la última hora que se leen para la cuota. Si se llega, la cuota se da por agotada. */
+const LIMITE_CUOTA = 1_000;
 /** Categorías de la lectura compartida. Los cambios de privilegio tienen su propia lectura (ver abajo). */
 const CATEGORIAS_LEIDAS = ["auth", "api_denied", "export", "impersonation", "ratelimit", "cron"];
 const COLUMNAS = "ts, categoria, severidad, usuario_id, rol, ip, ip_pais, metodo, ruta, estado, objetivo_tipo, objetivo_id, filas, meta";
@@ -186,29 +188,23 @@ export async function corrigeMonitor(ahoraMs = Date.now(), cliente: ClienteSec =
   const porIpPrevias = new Map<string, number>();
   for (const f of previasIdent ?? []) porIpPrevias.set(f.ip, (porIpPrevias.get(f.ip) ?? 0) + 1);
   const { marcados, agrupados, hashes } = marcaPorIp(nuevos, porIpPrevias, TOPE_IDENTIFICADORES_POR_IP_HORA);
-  const resumenesIp: Hallazgo[] = [...agrupados].map(([ip, n]) => ({
-    detector: "login-fallido-ip-agrupado",
-    severidad: 3 as const,
-    sujeto: `agrupado:${ip}`,
-    usuario_id: null,
-    ip,
-    resumen: `${n} cuentas más contra las que esta IP falló, guardadas agrupadas (tope de ${TOPE_IDENTIFICADORES_POR_IP_HORA} avisos por hora).`,
-  }));
-  const resumenesNuevos = sinDuplicar(resumenesIp, abiertas ?? []);
-  const items: Item[] = [
-    ...marcados.map(({ h, agrupada }) => ({ h, agrupada, extra: agrupada ? { agrupada: "ip" } : {} })),
-    ...resumenesNuevos.map((h) => ({ h, agrupada: false, extra: { hashes: hashes.get(h.ip ?? "") ?? [] } })),
-  ];
+  // Las cuentas agrupadas por IP no tienen fila propia: se resumen en una sola fila por IP y hora (ver más abajo).
+  const items: Item[] = marcados.filter((m) => !m.agrupada).map(({ h }) => ({ h, agrupada: false, extra: {} }));
 
   // 6. Por gravedad, de mayor a menor: la cuota le toca primero a lo grave.
   const enOrden = ordenaPorGravedad(items.map((i) => ({ severidad: i.h.severidad, i }))).map((x) => x.i);
 
   // 7. Cuota de avisos de la última hora, a partir de lo que ya quedó registrado.
+  // Solo filas que de verdad avisaron u omitieron un aviso. Si la lectura llega a su tope, no se sabe cuánto salió:
+  // la cuota se da por agotada (cerrado para todo menos la severidad 5).
   const { data: accionesHora, error: e6 } = (await cliente
-    .from("sec_alerts").select("accion").gte("creada_en", iso(ahoraMs - 60 * MIN)).not("accion", "is", null).limit(1000)) as
+    .from("sec_alerts").select("accion").gte("creada_en", iso(ahoraMs - 60 * MIN))
+    .or("accion->>avisos.not.is.null,accion->>omitido.not.is.null").limit(LIMITE_CUOTA)) as
     { data: { accion: unknown }[] | null; error: { message: string } | null };
   if (e6) throw new Error(`sec_alerts (cuota): ${e6.message}`);
-  const cuota: CuotaHora = cuotaDeLaHora((accionesHora ?? []).map((r) => r.accion));
+  const filasCuota = accionesHora ?? [];
+  let cuota: CuotaHora = cuotaDeLaHora(filasCuota.map((r) => r.accion));
+  if (filasCuota.length >= LIMITE_CUOTA) cuota = cuotaAgotada(cuota);
 
   // 8. Destinatarios y teléfonos, una sola vez por corrida.
   const destinatarios = emailConfigured() ? await destinatariosDeCorreo(cliente) : [];
@@ -302,6 +298,32 @@ export async function corrigeMonitor(ahoraMs = Date.now(), cliente: ClienteSec =
       accion: Object.keys(accion).length ? accion : null,
     });
     if (error) console.error(`[seguridad] alerta "${h.detector}" no guardada:`, error.message);
+  }
+
+  // Cuentas agrupadas por IP: como mucho UNA fila por IP y hora, con contador (no una fila por cuenta).
+  for (const [ip, n] of agrupados) {
+    const hashesIp = hashes.get(ip) ?? [];
+    const { data: previa } = (await cliente
+      .from("sec_alerts").select("id, accion")
+      .eq("detector", "login-fallido-ip-agrupado").eq("sujeto", `agrupado:${ip}`)
+      .gte("creada_en", iso(ahoraMs - 60 * MIN)).limit(1)) as { data: { id: number; accion: Record<string, unknown> | null }[] | null };
+    const fila = previa?.[0];
+    if (fila) {
+      const combinado = combinaResumenIp(fila.accion, n, hashesIp);
+      await cliente.from("sec_alerts").update({
+        resumen: `${combinado.contador} cuentas más contra las que esta IP falló, agrupadas en esta alerta.`,
+        accion: { ...fila.accion, ...combinado, agrupada: "ip" },
+      }).eq("id", fila.id);
+    } else {
+      await cliente.from("sec_alerts").insert({
+        detector: "login-fallido-ip-agrupado",
+        severidad: 3,
+        ip: ipSegura(ip),
+        sujeto: `agrupado:${ip}`,
+        resumen: `${n} cuentas más contra las que esta IP falló, agrupadas en esta alerta.`,
+        accion: { contador: n, hashes: hashesIp.slice(0, 50), agrupada: "ip" },
+      });
+    }
   }
 
   // 10. Correo-resumen, una vez por hora, cuando hubo avisos omitidos por el tope. Queda como alerta de la hora, sin avisos.
