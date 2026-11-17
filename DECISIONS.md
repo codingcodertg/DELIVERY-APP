@@ -52490,3 +52490,8 @@ Sello `recruiting` 0.106.0; repo 1.915.0.
 
 El dueño, con captura: la sección del expediente se veía desordenada (tabla con barra lateral) y la revisión parecía un visor de Word con todo el amarillo a la vista; la quiere como cuando se imprimen las cotizaciones del Quote Builder. La sección pasa a una tarjeta por documento (estado en color, variante solo si hay más de una, botones claros). La revisión convierte el .docx con mammoth a una hoja de la app (encabezado `ENCABEZADO` de `estimator/hoja.ts`, misma tipografía y márgenes, impresión con `window.print()` aislada como la cotización); los campos se ven como marcas discretas con su valor, y a la izquierda un formulario con progreso. «Descargar .docx» sigue dando el Word original lleno y sin amarillo. Segunda variante cargada: Senior Sales Representative (se le marcaron en amarillo los cinco campos).
 Sello `recruiting` 0.107.0; repo 1.916.0.
+
+## D-1068 · Documentos de ingreso: letra formal en la hoja (2026-11-17)
+
+El dueño: «por ser un documento tipo contrato, no una factura, cámbiale el font a algo más formal». La hoja de los documentos de ingreso deja la Courier de la cotización (D-1067) y usa una serif formal del sistema (Cambria, Georgia, Times New Roman), 14 px con interlineado 1.55. Del sistema y no de Google Fonts, para que la impresión salga igual sin red.
+Sello `recruiting` 0.108.0; repo 1.917.0.
