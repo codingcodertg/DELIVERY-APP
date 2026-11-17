@@ -52534,4 +52534,8 @@ Sellos `deliveries` 1.627.0, `warehouse_ops` 0.60.0; repo 1.922.0.
 ## D-1074 · La dirección del mapa con el número aparte ya no bloquea guardar (2026-11-17)
 
 Captura del dueño: «a veces no deja continuar por la dirección» — «Complete the delivery address: missing street with number». Las direcciones del mapa (Nominatim) llegan con el número en su propio trozo («4105, North Conway Avenue, …, Palmhurst, …, Texas, 78573»), y `direccionCompleta` leía «4105» como calle sin letras. Ahora un primer trozo que es solo número se lee junto con el siguiente. Un número solo, sin calle, sigue faltando.
+## D-1075 · Transfer por relevo también con la orden ya recogida (2026-11-17)
+
+El dueño aprobó habilitarlo tras el caso #1629 (recogida por el chofer y dejada en McAllen; hubo que armar el relevo a mano). Migración 321: `activar_relevo` acepta `picked_up`; el paso a conserva recogida, chofer y salida y queda entregado en la tienda de relevo; el paso b nace listo, sin chofer, para el día elegido; notas en los dos pasos. `guard_delivery_stage` deja pasar solo la escritura que marca el propio relevo. Un relevo así no se deshace (el paso a ya está entregado). La pantalla del relevo avisa qué va a pasar.
+Migración 321, APLICADA por el dueño.
 Sello `deliveries` 1.628.0; repo 1.923.0.

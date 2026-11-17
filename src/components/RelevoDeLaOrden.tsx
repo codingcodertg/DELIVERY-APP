@@ -67,7 +67,9 @@ export function RelevoDeLaOrden({ pedido, compacto = false, soloLectura = false 
   const [guardando, setGuardando] = useState(false);
   const hoy = todayISO();
   const esRelevo = esPasoDeRelevo(pedido);
-  const puede = !soloLectura && !!me && puedeGestionarRelevo(me);
+  /** 321: la orden ya salió con el chofer; el relevo la deja con el paso a entregado en la tienda de relevo. */
+  const yaRecogida = !esRelevo && pedido.stage === "picked_up";
+  const puede =!soloLectura && !!me && puedeGestionarRelevo(me);
 
   // ---- Activar ----
   const candidatas = useMemo(() => tiendasDeRelevo(pedido, settings.stores ?? []), [pedido, settings.stores]);
@@ -153,6 +155,12 @@ export function RelevoDeLaOrden({ pedido, compacto = false, soloLectura = false 
               {t(`${pedido.pickup_name} → ${pedido.delivery_name}. One driver takes it to a relay store; another one, the same day or later, takes it from there.`,
                 `${pedido.pickup_name} → ${pedido.delivery_name}. Un chofer la lleva a una tienda de relevo; otro, el mismo día o después, la lleva desde ahí.`)}
             </p>
+            { yaRecogida && (
+              <p className="hint" data-ya-en-el-camion style={{ color: "var(--amber-text)", margin: "0 0 10px" }}>
+                {t(`This order is already on the truck: step a will be marked delivered at ${tienda || "…"} and step b scheduled for the chosen day.`,
+                  `Esta orden ya va en el camión: el paso a se marcará entregado en ${tienda || "…"} y el paso b se programa para el día elegido.`)}
+              </p>
+            )}
             <div className="field">
               <label>{t("Relay store", "Tienda de relevo")}</label>
               <select data-tienda-de-relevo value={tienda} onChange={(e) => setTienda(e.target.value)}>
