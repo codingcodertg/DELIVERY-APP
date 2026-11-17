@@ -52525,3 +52525,8 @@ Sello: todas las apps suben un menor; repo 1.920.0.
 
 Se importó el reporte STXP del 11-10-26: 183 leads nuevos (Brownsville 86, McAllen 36, Mission 35, Pharr 17, Weslaco 9; 24 ya son clientes). El dueño: «agrega las nuevas leads en STXP week 2». Cada importación es una semana: se agrupan los leads privados por día de importación (`imported_at`, hora de Chicago), Week 1 · 10/30 (209) y Week 2 · 11/17 (183). Selector «Semana» en el STXP Pool, abre en la más nueva y se recuerda por persona; cada tarjeta lleva su insignia; los chips respetan la semana. Sin migración.
 Sello `leads` 0.29.0; repo 1.921.0.
+
+## D-1073 · Escritorio 1.6.0 y APK 10: el programa y la app del teléfono se llaman iFloor (2026-11-17)
+
+Lo que quedó de D-1058. Escritorio 1.6.0 (productName «iFloor», datos en la carpeta de siempre, enlaces solo http/https/mailto/tel de D-1071) compilado y publicado con `publica-desktop.mjs`; las instaladas se actualizan solas. APK versionCode 10 / 1.15.0: `appName` «iFloor» (Capacitor y strings.xml), UA `RDZDeliveries/10`, firmada con la misma llave (huella 58:5D:33:06…), subida a la misma ruta `app/RDZ-Deliveries.apk` y comprobada (sha256 igual); `LATEST_APK_VERSION_CODE` 10 dispara el aviso. El aviso de la cámara nombra la app «iFloor» en Ajustes.
+Sellos `deliveries` 1.627.0, `warehouse_ops` 0.60.0; repo 1.922.0.

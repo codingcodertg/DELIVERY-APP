@@ -12,7 +12,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "net.rdztilegroup.deliveries",
-  appName: "RTG Hub",
+  appName: "iFloor",
   // Capacitor requires a webDir even when loading a remote URL; this holds
   // only the offline fallback page.
   webDir: "www",
@@ -30,7 +30,7 @@ const config: CapacitorConfig = {
     // the APK and which build. That's what the in-app update prompt compares
     // against — no extra plugin, and it works on the very first page load.
     // KEEP THE NUMBER IN SYNC WITH versionCode IN android/app/build.gradle.
-    appendUserAgent: "RDZDeliveries/9",
+    appendUserAgent: "RDZDeliveries/10",
   },
   plugins: {
     BackgroundGeolocation: {},
