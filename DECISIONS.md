@@ -52495,3 +52495,9 @@ Sello `recruiting` 0.107.0; repo 1.916.0.
 
 El dueño: «por ser un documento tipo contrato, no una factura, cámbiale el font a algo más formal». La hoja de los documentos de ingreso deja la Courier de la cotización (D-1067) y usa una serif formal del sistema (Cambria, Georgia, Times New Roman), 14 px con interlineado 1.55. Del sistema y no de Google Fonts, para que la impresión salga igual sin red.
 Sello `recruiting` 0.108.0; repo 1.917.0.
+
+## D-1069 · Time Tracker: presencial en cualquier tienda (2026-11-17)
+
+Francis (gerente) se mueve entre tiendas y se atoraba sin proyecto, también en las solicitudes. El dueño: «pásalo a presencial y dale la opción de todas las tiendas para que pueda hacer clock in en cualquier lado». Casilla nueva por empleado «Cualquier tienda» (`timetracker.employee_settings.multi_store`, migración 316): un presencial con ella ve en lugar de los proyectos un desplegable con las tiendas activas; la del día se recuerda y la sesión guarda `store_id`. Las solicitudes no exigen proyecto a los presenciales de varias tiendas. Las sesiones se muestran «Tienda · puesto». No se reutiliza `clockin.profiles.extra_store_ids`, que da permisos de gerente sobre esas tiendas. Revisión de seguridad: solo un admin del Time Tracker activa la casilla (guardia en insert y update), y la base rechaza `store_id` de quien no la tiene o de una tienda inactiva. El fichaje con geocerca no cambia.
+Migración 316, APLICADA por el dueño. Francis: presencial y «Cualquier tienda».
+Sello `timetracker` 1.32.0; repo 1.918.0.
