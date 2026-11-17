@@ -89,7 +89,7 @@ begin
   end if;
   if tg_op = 'INSERT' then
     -- Una ficha nueva sin gerente no puede nacer con tienda, tiendas extra, corredor ni puesto, ni desactivada.
-    if new.store_id is not null or new.extra_store_ids is not null or new.is_runner or new.position is not null
+    if new.store_id is not null or new.extra_store_ids is not null or new.is_runner or new.position is not null or new.vehicle_id is not null
        or new.active is false then
       raise exception 'Only a clock-in manager can set the store, runner, position or active status';
     end if;
@@ -111,6 +111,9 @@ begin
     end if;
     if new.position is distinct from old.position then
       raise exception 'Only a clock-in manager can change the position';
+    end if;
+    if new.vehicle_id is distinct from old.vehicle_id then
+      raise exception 'Only a clock-in manager can change the vehicle';
     end if;
   end if;
   return new;
@@ -159,6 +162,16 @@ begin
   if old.clock_out_at is not null and new.clock_out_at is distinct from old.clock_out_at then
     raise exception 'The clock-out time is already set';
   end if;
+  -- La salida (y el «sigo trabajando») no puede ir al futuro ni antes de la entrada: antes un empleado podía marcarse
+  -- la salida a cualquier hora y cobrar horas de más (revisión de seguridad).
+  if new.clock_out_at is distinct from old.clock_out_at and new.clock_out_at is not null
+     and (new.clock_out_at > now() + interval '1 minute' or new.clock_out_at < old.clock_in_at) then
+    raise exception 'The clock-out time must be between the clock-in and now';
+  end if;
+  if new.still_working_at is distinct from old.still_working_at and new.still_working_at is not null
+     and new.still_working_at > now() + interval '1 minute' then
+    raise exception 'The still-working time cannot be in the future';
+  end if;
   if new.company_id is distinct from old.company_id
      or new.employee_id is distinct from old.employee_id
      or new.clock_in_at is distinct from old.clock_in_at
@@ -198,6 +211,10 @@ create policy "entries_insert_self" on clockin.time_entries
     and edited_by is null
     and edited_at is null
     and clock_in_at between now() - interval '10 minutes' and now() + interval '1 minute'
+    and coalesce(lunch_minutes, 0) = 0
+    and coalesce(auto_closed, false) = false
+    and edit_note is null
+    and still_working_at is null
   );
 
 drop policy if exists "entries_update_self_open" on clockin.time_entries;
@@ -410,4 +427,4 @@ end $$;
 --   --    «customers solo los suyos (vendedor)»: recrear con using/with check (true) para la rama de vendedor.
 -- ===========================================================================
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('318_seguridad_permisos.sql', '004638b7a2160f7db56196a7fc92bcb25a9f46e93d8bc520f55ca11be0553dca') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('318_seguridad_permisos.sql', 'a0918887955e5e9d2791fe4596a8665491e8aa97c07c6f189e4740fc5b71f6fa') on conflict (name) do nothing;
