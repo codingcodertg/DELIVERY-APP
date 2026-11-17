@@ -231,7 +231,8 @@ describe("5 · la pantalla pinta lo que el alcance dice", () => {
   });
   it("el banco, sus contadores y sus filtros salen de leadsDelBanco, no de todos los leads leídos", () => {
     // D-760: el Pool privado reusa el mismo camino; fuera de esa pestaña, sigue saliendo de leadsDelBanco.
-    expect(p).toContain('() => (pestana === "privado" ? privados : conCruzadosDeMiTienda(leadsDelBanco(leads, alcance)');
+    // Semanas (semanas.ts): el STXP Pool se filtra por la semana elegida; fuera de esa pestaña, sigue igual.
+    expect(p).toContain('() => (pestana === "privado"\n      ? privados.filter((l) => semanaFiltro === null || semanasSTXP.semanaDeLead.get(l.id) === semanaFiltro)\n      : conCruzadosDeMiTienda(leadsDelBanco(leads, alcance)');
     expect(p).toContain("const pools = useMemo(() => poolsDe(delBanco), [delBanco]);");
     // D-770: en el STXP Pool de quien no elige tienda, el pool no filtra (`poolFiltro`).
     expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro || cruzadoDeMiTienda(l)), [delBanco, poolFiltro, cruzadoDeMiTienda]);");
