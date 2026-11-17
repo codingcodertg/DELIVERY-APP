@@ -52530,3 +52530,8 @@ Sello `leads` 0.29.0; repo 1.921.0.
 
 Lo que quedó de D-1058. Escritorio 1.6.0 (productName «iFloor», datos en la carpeta de siempre, enlaces solo http/https/mailto/tel de D-1071) compilado y publicado con `publica-desktop.mjs`; las instaladas se actualizan solas. APK versionCode 10 / 1.15.0: `appName` «iFloor» (Capacitor y strings.xml), UA `RDZDeliveries/10`, firmada con la misma llave (huella 58:5D:33:06…), subida a la misma ruta `app/RDZ-Deliveries.apk` y comprobada (sha256 igual); `LATEST_APK_VERSION_CODE` 10 dispara el aviso. El aviso de la cámara nombra la app «iFloor» en Ajustes.
 Sellos `deliveries` 1.627.0, `warehouse_ops` 0.60.0; repo 1.922.0.
+
+## D-1074 · La dirección del mapa con el número aparte ya no bloquea guardar (2026-11-17)
+
+Captura del dueño: «a veces no deja continuar por la dirección» — «Complete the delivery address: missing street with number». Las direcciones del mapa (Nominatim) llegan con el número en su propio trozo («4105, North Conway Avenue, …, Palmhurst, …, Texas, 78573»), y `direccionCompleta` leía «4105» como calle sin letras. Ahora un primer trozo que es solo número se lee junto con el siguiente. Un número solo, sin calle, sigue faltando.
+Sello `deliveries` 1.628.0; repo 1.923.0.
