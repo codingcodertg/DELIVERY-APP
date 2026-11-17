@@ -40,7 +40,9 @@ describe("login fallido por IP", () => {
   it("con 20 fallos desde una IP propone bloquear esa IP; con 19 no", () => {
     const veinte = Array.from({ length: 20 }, (_, i) => fallo(`x${i}`, "9.9.9.9"));
     const h = detectaLoginsPorIp(veinte, AHORA);
-    expect(h).toEqual([expect.objectContaining({ detector: "login-fallido-ip", severidad: 4, ip: "9.9.9.9", proponeBloqueoIp: true })]);
+    expect(h).toEqual([expect.objectContaining({ detector: "login-fallido-ip", severidad: 4, ip: "9.9.9.9" })]);
+    // Los fallos de login los reporta el navegador: NUNCA proponen bloquear la IP.
+    expect(h[0].proponeBloqueoIp).toBeUndefined();
     expect(detectaLoginsPorIp(veinte.slice(1), AHORA)).toHaveLength(0);
   });
 });
@@ -143,11 +145,14 @@ describe("latido del cron del Time Tracker", () => {
 describe("decideBloqueoIp: nunca cierra a un admin ni a una red compartida", () => {
   const ip = "7.7.7.7";
   it("bloquea una IP sin nadie conocido detrás", () => {
-    expect(decideBloqueoIp({ ip, eventos: [fallo("h", ip)], ahora: AHORA })).toEqual({ aplica: true });
+    expect(decideBloqueoIp({ ip, eventos: [fallo("h", ip)], ahora: AHORA, adminVisto24h: false })).toEqual({ aplica: true });
   });
-  it("no bloquea si entró un admin desde esa IP en la última media hora", () => {
-    const admin = ev({ categoria: "auth", metodo: "sesion", ip, rol: "admin", usuario_id: "adm", ts: hace(20) });
-    const r = decideBloqueoIp({ ip, eventos: [admin], ahora: AHORA });
+  it("no bloquea si un admin usó la IP en las últimas 24 h", () => {
+    const r = decideBloqueoIp({ ip, eventos: [], ahora: AHORA, adminVisto24h: true });
+    expect(r.aplica).toBe(false);
+  });
+  it("si no se pudo comprobar si hubo admin, no bloquea (fail-open)", () => {
+    const r = decideBloqueoIp({ ip, eventos: [], ahora: AHORA, adminVisto24h: null });
     expect(r.aplica).toBe(false);
   });
   it("no bloquea una red compartida (dos personas entraron desde la IP)", () => {
@@ -155,7 +160,21 @@ describe("decideBloqueoIp: nunca cierra a un admin ni a una red compartida", () 
       ev({ categoria: "auth", metodo: "sesion", ip, usuario_id: "p1", rol: "driver", ts: hace(3) }),
       ev({ categoria: "auth", metodo: "sesion", ip, usuario_id: "p2", rol: "sales", ts: hace(4) }),
     ];
-    expect(decideBloqueoIp({ ip, eventos: dos, ahora: AHORA }).aplica).toBe(false);
+    expect(decideBloqueoIp({ ip, eventos: dos, ahora: AHORA, adminVisto24h: false }).aplica).toBe(false);
+  });
+});
+
+describe("límite de peticiones: única señal de la que sale un bloqueo", () => {
+  it("50 rechazos desde una IP proponen bloquearla; los fallos de login no", () => {
+    const rech = Array.from({ length: 50 }, () => ev({ categoria: "ratelimit", ip: "5.5.5.5", ts: hace(2) }));
+    expect(detectaRatelimitPorIp(rech, AHORA)[0].proponeBloqueoIp).toBe(true);
+    const fallos = Array.from({ length: 25 }, (_, i) => fallo(`z${i}`, "6.6.6.6"));
+    expect(detectaLoginsPorIp(fallos, AHORA)[0].proponeBloqueoIp).toBeUndefined();
+  });
+  it("el identificador de un fallo se atribuye a la IP que más fallos puso contra esa cuenta", () => {
+    const hash = "e".repeat(64);
+    const eventos = [...Array.from({ length: 7 }, () => fallo(hash, "1.1.1.1")), ...Array.from({ length: 4 }, () => fallo(hash, "2.2.2.2"))];
+    expect(detectaLoginsPorIdentificador(eventos, AHORA)[0].ip).toBe("1.1.1.1");
   });
 });
 

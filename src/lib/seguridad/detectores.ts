@@ -44,7 +44,10 @@ export interface Hallazgo {
   usuario_id: string | null;
   ip: string | null;
   resumen: string;
-  /** Si el detector propone bloquear la IP (los de fallos de login por IP). La decisión final la toma `decideBloqueoIp`. */
+  /**
+   * Propone bloquear la IP 30 min. SOLO para señales que verifica el servidor (límite de peticiones en las rutas), nunca
+   * para fallos de login, que reporta el navegador. La decisión final la toma `decideBloqueoIp`.
+   */
   proponeBloqueoIp?: boolean;
 }
 
@@ -107,19 +110,22 @@ export function detectaLoginsPorIdentificador(eventos: EventoLeido[], ahora: num
   const out: Hallazgo[] = [];
   for (const [hash, n] of porHash) {
     if (n < UMBRALES.loginsPorIdentificador) continue;
+    // La IP que más fallos puso contra esta cuenta: así el tope por IP sabe a quién agrupar.
+    const ipsDelGrupo = cuenta(fallos.filter((e) => e.objetivo_id === hash), (e) => e.ip);
+    const ipPrincipal = [...ipsDelGrupo].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
     out.push({
       detector: "login-fallido-identificador",
       severidad: 4,
       sujeto: `identificador:${hash}`,
       usuario_id: null,
-      ip: null,
+      ip: ipPrincipal,
       resumen: `${n} intentos fallidos contra la misma cuenta en ${UMBRALES.ventanaLoginMin} min (el nombre no se guarda; el hash es ${hash.slice(0, 12)}…).`,
     });
   }
   return out;
 }
 
-/** ≥20 fallos de login desde la misma IP en 10 min. Sev 4. Propone bloquear la IP (30 min) si la guarda lo permite. */
+/** ≥20 fallos de login desde la misma IP en 10 min. Sev 4. SOLO alerta: los fallos de login los reporta el navegador, así que no pueden disparar un bloqueo. */
 export function detectaLoginsPorIp(eventos: EventoLeido[], ahora: number): Hallazgo[] {
   const fallos = eventos.filter((e) => esFalloDeLogin(e) && haceMenosDe(e.ts, ahora, UMBRALES.ventanaLoginMin));
   const porIp = cuenta(fallos, (e) => e.ip);
@@ -133,7 +139,6 @@ export function detectaLoginsPorIp(eventos: EventoLeido[], ahora: number): Halla
       usuario_id: null,
       ip,
       resumen: `${n} intentos fallidos desde la misma IP en ${UMBRALES.ventanaLoginMin} min.`,
-      proponeBloqueoIp: true,
     });
   }
   return out;
@@ -273,7 +278,7 @@ export function detectaApiDenegadas(eventos: EventoLeido[], ahora: number): Hall
   return out;
 }
 
-/** ≥50 respuestas 429 desde una misma IP en 10 min. Sev 3. No bloquea: solo avisa. */
+/** ≥50 respuestas 429 desde una misma IP en 10 min. Sev 3. Señal verificada por el servidor: propone bloquear la IP (con su guardia). */
 export function detectaRatelimitPorIp(eventos: EventoLeido[], ahora: number): Hallazgo[] {
   const rechazos = eventos.filter((e) => e.categoria === "ratelimit" && haceMenosDe(e.ts, ahora, UMBRALES.ventanaRatelimitMin));
   const porIp = cuenta(rechazos, (e) => e.ip);
@@ -287,6 +292,7 @@ export function detectaRatelimitPorIp(eventos: EventoLeido[], ahora: number): Ha
       usuario_id: null,
       ip,
       resumen: `${n} peticiones frenadas por el límite desde la misma IP en ${UMBRALES.ventanaRatelimitMin} min.`,
+      proponeBloqueoIp: true,
     });
   }
   return out;
@@ -308,14 +314,21 @@ export function detectaLatidoCron(eventos: EventoLeido[], ahora: number): Hallaz
 
 /**
  * ¿Se puede bloquear esta IP sin cerrar a una persona de la empresa? No si:
- *  · entró un admin desde ella en la última media hora (el bloqueo no toca cuentas, pero un admin no se corta solo);
- *  · la IP tuvo sesiones válidas de ≥2 personas distintas en la ventana: es una red compartida (tienda, oficina).
+ *  · un admin USÓ la IP en las últimas 24 h (`adminVisto24h`: dispositivos de admin con esa última IP, o sesiones de admin
+ *    desde ella). La ventana es de 24 h a propósito: el rastro de sesiones se escribe como mucho una vez por hora y persona,
+ *    así que una ventana de 30 min podía no ver a un admin que sí estaba ahí. Si no se pudo comprobar (null), no se bloquea;
+ *  · la IP tuvo sesiones válidas de ≥2 personas distintas en los últimos 10 min: es una red compartida (tienda, oficina).
  * Devuelve el motivo para dejarlo en `sec_alerts.accion`.
  */
-export function decideBloqueoIp(args: { ip: string; eventos: EventoLeido[]; ahora: number }): { aplica: true } | { aplica: false; motivo: string } {
-  const { ip, eventos, ahora } = args;
-  const adminAqui = eventos.some((e) => e.categoria === "auth" && e.metodo === "sesion" && e.ip === ip && e.rol === "admin" && haceMenosDe(e.ts, ahora, 30));
-  if (adminAqui) return { aplica: false, motivo: "entró un admin desde esta IP en la última media hora" };
+export function decideBloqueoIp(args: {
+  ip: string;
+  eventos: EventoLeido[];
+  ahora: number;
+  adminVisto24h: boolean | null;
+}): { aplica: true } | { aplica: false; motivo: string } {
+  const { ip, eventos, ahora, adminVisto24h } = args;
+  if (adminVisto24h === null) return { aplica: false, motivo: "no se pudo comprobar si un admin usó esta IP; no se bloquea" };
+  if (adminVisto24h) return { aplica: false, motivo: "un admin usó esta IP en las últimas 24 h" };
   const personas = new Set(
     eventos.filter((e) => e.categoria === "auth" && e.metodo === "sesion" && e.ip === ip && e.usuario_id && haceMenosDe(e.ts, ahora, 10)).map((e) => e.usuario_id),
   );

@@ -33,6 +33,8 @@ const DETECTOR: Record<string, [string, string]> = {
   "api-denegada": ["Many denied requests", "Muchas peticiones denegadas"],
   "ratelimit-ip": ["Rate limit hits from one IP", "Límite de peticiones desde una IP"],
   "latido-cron": ["Time Tracker cron stopped", "El cron del Time Tracker se detuvo"],
+  "login-fallido-ip-agrupado": ["Failed sign-ins from one IP (grouped)", "Fallos desde una IP (agrupados)"],
+  "resumen-horario": ["Hourly summary", "Resumen de la hora"],
 };
 
 const CATEGORIA: Record<string, [string, string]> = {

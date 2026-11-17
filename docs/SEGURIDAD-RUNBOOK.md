@@ -30,13 +30,14 @@ Supabase Auth y revisar `security_events`.
 | Detector | Qué significa | Sev. | Acción automática |
 |---|---|---|---|
 | Fallos de entrada a una misma cuenta | ≥10 fallos contra la misma cuenta en 10 min. No se sabe cuál (solo un hash). | 4 | Ninguna |
-| Fallos de entrada desde una misma IP | ≥20 fallos desde una IP en 10 min. | 4 | **Bloqueo de la IP 30 min**, salvo que entrara un admin desde ahí o que sea una red compartida |
+| Fallos de entrada desde una misma IP | ≥20 fallos desde una IP en 10 min. | 4 | Ninguna: los fallos de login los reporta el navegador, no pueden bloquear |
+| Fallos de entrada desde una misma IP contra cuentas distintas | Más de 3 cuentas por IP en una hora: las demás se agrupan en una sola alerta. | 3 | Ninguna |
 | Entrada desde un país nuevo | La cuenta entró desde un país que no usaba en 30 días. | 3 | Ninguna |
 | Exportación grande / muchas exportaciones | >500 filas o >5 exportaciones en una hora. | 4 | Ninguna |
 | Nuevo admin | Un cambio de rol dejó a una cuenta como admin. | 5 | Ninguna |
 | Entrar como otra persona fuera de horario | «Entrar como» fuera de 6:00–21:00 hora de Texas. | 4 | Ninguna |
 | Peticiones denegadas | >30 en 10 min de una misma persona (o IP). | 3 | Ninguna |
-| Límite de peticiones | ≥50 rechazos del límite desde una IP en 10 min. | 3 | Ninguna |
+| Límite de peticiones | ≥50 rechazos del límite desde una IP en 10 min (señal que verifica el servidor). | 3 | **Bloqueo de la IP 30 min**, salvo que un admin haya usado esa IP en 24 h (dispositivos o sesiones) o que sea una red compartida |
 | Se detuvo el cron del Time Tracker | No hay latido en 15 min. | 3 | Ninguna |
 
 3. Preguntarse: **¿es una persona real haciendo algo raro, o es un robot?** Un robot tiene muchos fallos seguidos, sin

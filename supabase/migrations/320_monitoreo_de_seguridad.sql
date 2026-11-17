@@ -217,6 +217,53 @@ begin
   end if;
 end $$;
 
+-- ---------------------------------------------------------------------------
+-- 8b. Cambios de privilegio escritos por la BASE, no por el navegador.
+-- Un trigger en profiles registra en sec_events (categoria 'admin') cada cambio de rol, nivel o permiso. Lo escribe
+-- la base misma (security definer): el navegador no puede falsificarlo ni saltárselo con un insert directo. El
+-- detector «admin-nuevo» lee SOLO estas filas. Si el trigger falla, se avisa pero NO se bloquea el cambio del perfil.
+-- ---------------------------------------------------------------------------
+create or replace function public.seguridad_registra_cambio_de_perfil()
+  returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  campo text;
+  antes text;
+  despues text;
+  campos text[] := array['role','recruiting_role','timetracker_role','erp_role','customers_role','module_access','permissions'];
+begin
+  foreach campo in array campos loop
+    antes := to_jsonb(old) ->> campo;
+    despues := to_jsonb(new) ->> campo;
+    if antes is distinct from despues then
+      begin
+        insert into public.sec_events (categoria, severidad, usuario_id, objetivo_tipo, objetivo_id, metodo, meta)
+        values (
+          'admin',
+          case when campo = 'role' and despues = 'admin' then 5 when campo = 'role' then 3 else 2 end,
+          auth.uid(),
+          'usuario',
+          new.id::text,
+          'perfil',
+          case when campo in ('role','recruiting_role','timetracker_role','erp_role','customers_role')
+            then jsonb_build_object('campo', campo, 'antes', antes, 'despues', despues)
+            else jsonb_build_object('campo', campo)
+          end
+        );
+      exception when others then
+        raise warning 'seguridad: no se pudo registrar el cambio de % en %: %', campo, new.id, sqlerrm;
+      end;
+    end if;
+  end loop;
+  return new;
+end $$;
+revoke all on function public.seguridad_registra_cambio_de_perfil() from public, anon, authenticated;
+
+drop trigger if exists seguridad_cambio_de_perfil on public.profiles;
+create trigger seguridad_cambio_de_perfil
+  after update of role, recruiting_role, timetracker_role, erp_role, customers_role, module_access, permissions
+  on public.profiles
+  for each row execute function public.seguridad_registra_cambio_de_perfil();
+
 -- ===========================================================================
 -- Autocomprobación
 -- ===========================================================================
@@ -235,6 +282,9 @@ begin
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'sec_alerts') then
     raise exception '320: sec_alerts no esta en la publicacion de tiempo real';
   end if;
+  if not exists (select 1 from pg_trigger where tgname = 'seguridad_cambio_de_perfil' and tgrelid = 'public.profiles'::regclass) then
+    raise exception '320: falta el trigger de cambios de perfil';
+  end if;
   if has_function_privilege('anon', 'public.seguridad_bloquea_ip(text, int, text)', 'execute')
      or has_function_privilege('anon', 'public.purga_seguridad()', 'execute') then
     raise exception '320: anon no debe ejecutar las RPC de seguridad';
@@ -242,4 +292,4 @@ begin
 end $chk$;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('320_monitoreo_de_seguridad.sql', 'e1d387e189e604a10a1bf87b1bbc359ac5ff53d8454ec2d40902a100217d2d0c') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('320_monitoreo_de_seguridad.sql', '97f2ad589c0b9934983b90232101ced237eea33c2c1ab5323db9f49bb618a640') on conflict (name) do nothing;
