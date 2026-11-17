@@ -34,7 +34,8 @@ alter table timetracker.sessions
 create or replace function timetracker.guard_employee_settings_privilege_columns()
   returns trigger language plpgsql security definer set search_path = timetracker, public as $$
 begin
-  if not public.is_timetracker_admin() then
+  -- Sin JWT (consola, migraciones) o con la llave de servicio también vale: no son un empleado.
+  if not public.is_timetracker_admin() and coalesce(auth.role(), '') not in ('', 'service_role') then
     if tg_op = 'INSERT' then
       new.multi_store := false;
     else
@@ -60,7 +61,7 @@ begin
     if not exists (select 1 from clockin.job_sites j where j.id = new.store_id and j.active) then
       raise exception 'Store is not active';
     end if;
-    if not public.is_timetracker_admin()
+    if not public.is_timetracker_admin() and coalesce(auth.role(), '') not in ('', 'service_role')
        and not exists (select 1 from timetracker.employee_settings e where e.id = new.employee_uid and e.multi_store) then
       raise exception 'Only multi-store employees can set a store on a session';
     end if;
@@ -72,4 +73,4 @@ drop trigger if exists tt_guard_session_store on timetracker.sessions;
 create trigger tt_guard_session_store before insert or update on timetracker.sessions
   for each row execute function timetracker.guard_session_store();
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('316_tt_multitienda.sql', '015fc85ef5698cd3cd95312b44d587a4f447daaf21fc62c736c5037aa0e80792') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('316_tt_multitienda.sql', 'c665a4b2f6b2671e42ab97b1f7fbd39af6f99f2d0e83a30b8814625ddc6e33f4') on conflict (name) do nothing;
