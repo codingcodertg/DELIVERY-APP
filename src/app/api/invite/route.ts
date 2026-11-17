@@ -4,17 +4,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { logSecurity } from "@/lib/security-log-server";
 import { emailForUsername, isValidUsername, normalizeUsername } from "@/lib/username";
 import { limita, respuesta429 } from "@/lib/rate-limit";
+import { generaContrasenaTemporal } from "@/lib/contrasena-temporal";
+import { falloDeRegla, mensajeDeRegla } from "@/lib/contrasena-regla";
+import { PONER_MARCA } from "@/lib/cambio-obligatorio";
 
 const ROLES = ["admin", "manager", "sales", "warehouse", "driver", "logistics", "accounting"] as const;
 type Role = (typeof ROLES)[number];
-
-/** A readable temporary password like "Swift-Puma-4821". */
-function generatePassword(): string {
-  const adj = ["Swift", "Bright", "Bold", "Calm", "Sharp", "Quick", "Solid", "Prime"];
-  const noun = ["Puma", "Falcon", "Cedar", "River", "Delta", "Comet", "Harbor", "Summit"];
-  const pick = (a: string[]) => a[Math.floor(Math.random() * a.length)];
-  return `${pick(adj)}-${pick(noun)}-${1000 + Math.floor(Math.random() * 9000)}`;
-}
 
 export async function POST(req: Request) {
   // 1) Who is calling? Must be a signed-in admin.
@@ -67,10 +62,11 @@ export async function POST(req: Request) {
   // password-reset link.
   const email = typedEmail || emailForUsername(username);
   const wanted = (body.password || "").trim();
-  if (wanted && wanted.length < 6) {
-    return NextResponse.json({ error: "Password must be at least 6 characters." }, { status: 400 });
+  if (wanted) {
+    const fallo = falloDeRegla(wanted);
+    if (fallo) return NextResponse.json({ error: mensajeDeRegla(fallo, (en) => en) }, { status: 400 });
   }
-  const password = wanted || generatePassword();
+  const password = wanted || generaContrasenaTemporal();
 
   // 3) Create the account directly, pre-confirmed. No email is sent, so the
   //    user can sign in immediately with the email + password below. full_name
@@ -91,7 +87,9 @@ export async function POST(req: Request) {
       email,
       password,
       email_confirm: true, // bypass email verification — account is active at once
-      user_metadata: { full_name: full_name || email.split("@")[0], role },
+      // La marca de «cámbiala al entrar» (D-486): la contraseña la ha visto el admin, así que la nueva cuenta la
+      // cambia en su primera entrada, la escrita a mano también.
+      user_metadata: { full_name: full_name || email.split("@")[0], role, ...PONER_MARCA },
     });
     if (error) {
       const msg = /already been registered|already exists|duplicate/i.test(error.message)

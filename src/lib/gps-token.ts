@@ -9,7 +9,17 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 // servidor, dice qué chofer es y hasta cuándo vale. Solo sirve para escribir posiciones de ese chofer.
 // ============================================================
 
-const secreto = (): string => process.env.GPS_TOKEN_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+// Secreto propio: GPS_TOKEN_SECRET. Mientras no esté puesto en Vercel se usa, como antes, la llave de servicio de
+// Supabase, pero eso no debe ser permanente (esa llave da acceso total a la base): se avisa UNA vez por proceso.
+let avisadoSinSecretoGps = false;
+const secreto = (): string => {
+  if (process.env.GPS_TOKEN_SECRET) return process.env.GPS_TOKEN_SECRET;
+  if (!avisadoSinSecretoGps) {
+    avisadoSinSecretoGps = true;
+    console.warn("[gps-token] Falta GPS_TOKEN_SECRET: se firman las llaves con la llave de servicio de Supabase (respaldo). Ponla en Vercel.");
+  }
+  return process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+};
 const b64 = (s: string | Buffer) => Buffer.from(s).toString("base64url");
 const firma = (payload: string, clave: string) => createHmac("sha256", clave).update(payload).digest("base64url");
 

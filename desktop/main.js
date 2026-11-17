@@ -27,6 +27,8 @@
 // ============================================================
 
 const { app, BrowserWindow, shell, Menu, dialog, net, powerMonitor } = require("electron");
+// Solo http/https/mailto/tel llegan al navegador del sistema (ver url-externa.js).
+const { esUrlExterna } = require("./url-externa.js");
 // D-1057: el programa se llama iFloor, pero sus datos (registro del dispositivo, sesión, ventana) siguen en la carpeta de
 // siempre. Sin esto, cambiar el productName los movía a %APPDATA%\iFloor y cada PC tenía que volver a aprobarse.
 app.setPath("userData", require("path").join(app.getPath("appData"), "RTG Hub"));
@@ -264,16 +266,18 @@ function crearVentana() {
     if (nuevo) console.log(`[RTG Hub] el sitio redirige a ${nuevo}; se añade a los orígenes propios`);
   });
 
+  // Un enlace que no es nuestro sale al navegador SOLO si su esquema es http/https/mailto/tel. Cualquier otro (file:,
+  // ms-…:, un programa) se descarta: que la página pueda abrir eso en la máquina sería ejecutar algo a su antojo.
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (esNuestro(url)) return { action: "allow" };
-    shell.openExternal(url);
+    if (esUrlExterna(url)) shell.openExternal(url);
     return { action: "deny" };
   });
 
   win.webContents.on("will-navigate", (e, url) => {
     if (esNuestro(url)) return;
     e.preventDefault();
-    shell.openExternal(url);
+    if (esUrlExterna(url)) shell.openExternal(url);
   });
 
   // ---------------------------------------------------------------------------

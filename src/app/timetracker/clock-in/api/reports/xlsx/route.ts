@@ -6,6 +6,7 @@ import { centralWallToUtc } from "@/lib/clockin/tz";
 import { payPeriodDates } from "@/lib/clockin/schedule";
 import { hrs, entryMinutes, attachLunch, type PayEntry, type LunchRow } from "@/lib/clockin/payroll";
 import { businessTimeZone } from "@/lib/timetracker/timezone-server";
+import { celdaSegura } from "@/lib/celda-segura";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -165,12 +166,13 @@ export async function GET(req: Request) {
       storeTotal += empTotal;
 
       // Visible summary line: name + their total.
-      const sr = ws.addRow([name, "", "", "", "", "TOTAL", Number(hrs(empTotal))]);
+      // El nombre es texto libre: se neutraliza por si empieza por = + - @ (ver `celdaSegura`).
+      const sr = ws.addRow([celdaSegura(name), "", "", "", "", "TOTAL", Number(hrs(empTotal))]);
       sr.font = { bold: true };
       sr.eachCell((c) => (c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEFF6FF" } }));
       // Collapsed daily detail underneath.
       for (const d of dayData) {
-        const r = ws.addRow(d.row);
+        const r = ws.addRow(d.row.map((c) => celdaSegura(c)));
         r.outlineLevel = 1;
         r.hidden = true;
       }

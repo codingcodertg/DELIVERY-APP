@@ -1,3 +1,4 @@
+import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { fetchDeEnsenanzaDeLaPeticion } from "@/lib/ensenanza-servidor";
 

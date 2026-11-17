@@ -7,12 +7,13 @@
  * pantalla y el servidor no puedan exigir cosas distintas.
  */
 
-/** Lo mismo que pedían los tres formularios que había (Entregas, RR. HH. y Time Tracker). */
-export const MIN_CONTRASENA = 6;
+import { falloDeRegla, MIN_CONTRASENA, mensajeDeRegla } from "@/lib/contrasena-regla";
 
 export type CodigoContrasena =
   | "falta_actual"
   | "corta"
+  | "sin_letra"
+  | "sin_digito"
   | "no_coinciden"
   | "actual_incorrecta"
   | "sin_correo"
@@ -58,7 +59,8 @@ export function validaCambioDeContrasena(a: {
   confirmacion?: string;
 }): CodigoContrasena | null {
   if (!a.actual) return "falta_actual";
-  if (a.nueva.length < MIN_CONTRASENA) return "corta";
+  const fallo = falloDeRegla(a.nueva);
+  if (fallo) return fallo;
   if (a.confirmacion !== undefined && a.confirmacion !== a.nueva) return "no_coinciden";
   return null;
 }
@@ -73,10 +75,10 @@ export function mensajeDeContrasena(
     case "falta_actual":
       return t("Enter your current password.", "Escribe tu contraseña actual.");
     case "corta":
-      return t(
-        `The new password must be at least ${MIN_CONTRASENA} characters.`,
-        `La nueva contraseña debe tener al menos ${MIN_CONTRASENA} caracteres.`,
-      );
+    case "sin_letra":
+    case "sin_digito":
+      // La regla entera (10, letras y números) y lo que falta, en los dos idiomas.
+      return `${mensajeDeRegla(codigo, t)} ${t(`The password needs at least ${MIN_CONTRASENA} characters, with letters and numbers.`, `La contraseña necesita al menos ${MIN_CONTRASENA} caracteres, con letras y números.`)}`;
     case "no_coinciden":
       return t("The new passwords don't match.", "Las contraseñas nuevas no coinciden.");
     case "actual_incorrecta":

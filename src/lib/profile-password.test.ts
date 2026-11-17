@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
-import { MIN_CONTRASENA, mensajeDeContrasena, validaCambioDeContrasena } from "./profile-password";
+import { mensajeDeContrasena, validaCambioDeContrasena } from "./profile-password";
+import { MIN_CONTRASENA } from "./contrasena-regla";
 import { identidadVisible } from "./profile-identity";
 import { emailForUsername } from "./username";
 
@@ -64,19 +65,19 @@ beforeEach(() => {
 
 describe("POST /api/profile/password: la actual protege de verdad", () => {
   it("con la actual correcta: comprueba, cierra la comprobación, y cambia con la sesión de siempre", async () => {
-    const r = await pide({ actual: "vieja-123", nueva: "nueva-456" });
+    const r = await pide({ actual: "vieja-123", nueva: "nueva-4567890" });
     expect(r.status).toBe(200);
     expect(await r.json()).toEqual({ ok: true });
 
     expect(falso.signInDeComprobacion.mock.calls).toEqual([[{ email: "ana@empresa.test", password: "vieja-123" }]]);
     expect(falso.signOutDeComprobacion.mock.calls).toEqual([[{ scope: "local" }]]);
-    expect(falso.updateUser.mock.calls).toEqual([[{ password: "nueva-456" }]]);
+    expect(falso.updateUser.mock.calls).toEqual([[{ password: "nueva-4567890" }]]);
     // Primero se comprueba y después se cambia; al revés, la comprobación no protege nada.
     expect(falso.signInDeComprobacion.mock.invocationCallOrder[0]).toBeLessThan(falso.updateUser.mock.invocationCallOrder[0]);
   });
 
   it("la comprobación va en un cliente aparte, que no guarda sesión: la de la persona no se reemplaza", async () => {
-    await pide({ actual: "vieja-123", nueva: "nueva-456" });
+    await pide({ actual: "vieja-123", nueva: "nueva-4567890" });
     expect(falso.crearCliente).toHaveBeenCalledTimes(1);
     const opciones = falso.crearCliente.mock.calls[0][2] as { auth?: { persistSession?: boolean; autoRefreshToken?: boolean } };
     expect(opciones.auth?.persistSession).toBe(false);
@@ -87,7 +88,7 @@ describe("POST /api/profile/password: la actual protege de verdad", () => {
 
   it("con la actual incorrecta: 403, y la contraseña NO se toca", async () => {
     falso.signInDeComprobacion.mockImplementation(async () => ({ data: { user: null }, error: { message: "Invalid login credentials" } }));
-    const r = await pide({ actual: "no-es", nueva: "nueva-456" });
+    const r = await pide({ actual: "no-es", nueva: "nueva-4567890" });
     expect(r.status).toBe(403);
     expect(await r.json()).toEqual({ ok: false, codigo: "actual_incorrecta" });
     expect(falso.updateUser).not.toHaveBeenCalled();
@@ -95,14 +96,14 @@ describe("POST /api/profile/password: la actual protege de verdad", () => {
 
   it("si la contraseña resulta ser de OTRA cuenta, tampoco vale", async () => {
     falso.signInDeComprobacion.mockImplementation(async () => ({ data: { user: { id: "otra-cuenta" } }, error: null }));
-    const r = await pide({ actual: "vieja-123", nueva: "nueva-456" });
+    const r = await pide({ actual: "vieja-123", nueva: "nueva-4567890" });
     expect(r.status).toBe(403);
     expect(falso.updateUser).not.toHaveBeenCalled();
   });
 
   it("sin sesión: 401 y no se intenta nada", async () => {
     falso.sesion.ok = false;
-    const r = await pide({ actual: "vieja-123", nueva: "nueva-456" });
+    const r = await pide({ actual: "vieja-123", nueva: "nueva-4567890" });
     expect(r.status).toBe(401);
     expect(falso.crearCliente).not.toHaveBeenCalled();
     expect(falso.updateUser).not.toHaveBeenCalled();
@@ -110,8 +111,8 @@ describe("POST /api/profile/password: la actual protege de verdad", () => {
 
   it("sin la actual, o con una nueva corta: 400 antes de preguntar a nadie", async () => {
     for (const [cuerpo, codigo] of [
-      [{ actual: "", nueva: "nueva-456" }, "falta_actual"],
-      [{ nueva: "nueva-456" }, "falta_actual"],
+      [{ actual: "", nueva: "nueva-4567890" }, "falta_actual"],
+      [{ nueva: "nueva-4567890" }, "falta_actual"],
       [{ actual: "vieja-123", nueva: "x".repeat(MIN_CONTRASENA - 1) }, "corta"],
     ] as const) {
       const r = await pide(cuerpo);
@@ -124,7 +125,7 @@ describe("POST /api/profile/password: la actual protege de verdad", () => {
 
   it("una cuenta sin correo no puede comprobarse, así que no se cambia", async () => {
     falso.sesion.email = undefined;
-    const r = await pide({ actual: "vieja-123", nueva: "nueva-456" });
+    const r = await pide({ actual: "vieja-123", nueva: "nueva-4567890" });
     expect(r.status).toBe(400);
     expect((await r.json()).codigo).toBe("sin_correo");
     expect(falso.signInDeComprobacion).not.toHaveBeenCalled();
@@ -133,7 +134,7 @@ describe("POST /api/profile/password: la actual protege de verdad", () => {
 
   it("si Supabase no la guarda, se dice", async () => {
     falso.updateUser.mockImplementation(async () => ({ error: { message: "weak password" } }));
-    const r = await pide({ actual: "vieja-123", nueva: "nueva-456" });
+    const r = await pide({ actual: "vieja-123", nueva: "nueva-4567890" });
     expect(r.status).toBe(400);
     expect((await r.json()).codigo).toBe("no_guardada");
   });
@@ -144,7 +145,7 @@ describe("POST /api/profile/password: la actual protege de verdad", () => {
     falso.updateUser.mockImplementation(async () => ({
       error: { name: "AuthWeakPasswordError", message: "weak", status: 422, code: "weak_password", reasons: ["length"] },
     } as never));
-    const r = await pide({ actual: "vieja-123", nueva: "nueva-456" });
+    const r = await pide({ actual: "vieja-123", nueva: "nueva-4567890" });
     expect(r.status).toBe(400);
     expect(await r.json()).toEqual({ ok: false, codigo: "debil", motivos: ["length"] });
   });
@@ -153,7 +154,7 @@ describe("POST /api/profile/password: la actual protege de verdad", () => {
     falso.updateUser.mockImplementation(async () => ({
       error: { name: "AuthApiError", message: "same", status: 422, code: "same_password" },
     } as never));
-    const r = await pide({ actual: "vieja-123", nueva: "nueva-456" });
+    const r = await pide({ actual: "vieja-123", nueva: "nueva-4567890" });
     expect((await r.json()).codigo).toBe("misma_contrasena");
   });
 
@@ -177,23 +178,26 @@ describe("POST /api/profile/password: la actual protege de verdad", () => {
 });
 
 describe("lo que se decide sin red", () => {
-  it("valida en orden: falta la actual, nueva corta, no coinciden", () => {
-    expect(validaCambioDeContrasena({ actual: "", nueva: "123456", confirmacion: "123456" })).toBe("falta_actual");
-    expect(validaCambioDeContrasena({ actual: "a", nueva: "12345", confirmacion: "12345" })).toBe("corta");
-    expect(validaCambioDeContrasena({ actual: "a", nueva: "123456", confirmacion: "123457" })).toBe("no_coinciden");
-    expect(validaCambioDeContrasena({ actual: "a", nueva: "123456", confirmacion: "123456" })).toBeNull();
+  it("valida en orden: falta la actual, nueva corta o sin letra/cifra, no coinciden", () => {
+    const ok = "clave-segura-42";
+    expect(validaCambioDeContrasena({ actual: "", nueva: ok, confirmacion: ok })).toBe("falta_actual");
+    expect(validaCambioDeContrasena({ actual: "a", nueva: "abc123", confirmacion: "abc123" })).toBe("corta");
+    expect(validaCambioDeContrasena({ actual: "a", nueva: "solo-letras-largas", confirmacion: "solo-letras-largas" })).toBe("sin_digito");
+    expect(validaCambioDeContrasena({ actual: "a", nueva: "1234567890", confirmacion: "1234567890" })).toBe("sin_letra");
+    expect(validaCambioDeContrasena({ actual: "a", nueva: ok, confirmacion: "clave-segura-43" })).toBe("no_coinciden");
+    expect(validaCambioDeContrasena({ actual: "a", nueva: ok, confirmacion: ok })).toBeNull();
     // El servidor no recibe la confirmación, y no puede fallar por ella.
-    expect(validaCambioDeContrasena({ actual: "a", nueva: "123456" })).toBeNull();
+    expect(validaCambioDeContrasena({ actual: "a", nueva: ok })).toBeNull();
   });
 
-  it("el mínimo es el mismo que pedían los tres formularios que había", () => {
-    expect(MIN_CONTRASENA).toBe(6);
+  it("el mínimo es 10, con letras y cifras (la regla de todo el hub)", () => {
+    expect(MIN_CONTRASENA).toBe(10);
   });
 
   it("cada código tiene texto en los dos idiomas, y distinto", () => {
     const en = (a: string) => a;
     const es = (_a: string, b: string) => b;
-    for (const c of ["falta_actual", "corta", "no_coinciden", "actual_incorrecta", "sin_correo", "no_guardada"] as const) {
+    for (const c of ["falta_actual", "corta", "sin_letra", "sin_digito", "no_coinciden", "actual_incorrecta", "sin_correo", "no_guardada"] as const) {
       expect(mensajeDeContrasena(c, en), c).not.toBe(mensajeDeContrasena(c, es));
     }
   });

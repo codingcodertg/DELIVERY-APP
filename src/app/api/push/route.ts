@@ -20,6 +20,30 @@ import { claseDelAviso } from "@/lib/clase-del-aviso";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/** Roles que dan la mano en todo el hub: pueden avisar a cualquiera (son quienes publican rutas y asignan). */
+const ROLES_QUE_AVISAN_A_CUALQUIERA = ["admin", "manager", "logistics"];
+
+/**
+ * ¿Puede quien llama empujar este aviso? Sí si:
+ *  · el aviso es para él mismo;
+ *  · es admin, gerente o logística (publican rutas y asignan a los choferes);
+ *  · el aviso va de una entrega que ya puede leer con su sesión (RLS): quien asigna o toma una orden, o el chofer
+ *    que cierra una parada y avisa a ventas. Si la RLS no le deja ver la entrega, no le deja avisar de ella.
+ * Un aviso sin entrega y de otra persona (p. ej. ayuda de otro usuario) solo lo empuja un admin, arriba.
+ */
+async function puedeEmpujarAviso(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  yoId: string,
+  notif: { user_id: string; delivery_id: string | null },
+): Promise<boolean> {
+  if (notif.user_id === yoId) return true;
+  const { data: yo } = await supabase.from("profiles").select("role").eq("id", yoId).maybeSingle();
+  if (yo?.role && ROLES_QUE_AVISAN_A_CUALQUIERA.includes(yo.role as string)) return true;
+  if (!notif.delivery_id) return false;
+  const { data: entrega } = await supabase.from("deliveries").select("id").eq("id", notif.delivery_id).maybeSingle();
+  return !!entrega;
+}
+
 export async function POST(req: Request) {
   if (!fcmConfigured()) return NextResponse.json({ skipped: "push not configured" });
 
@@ -39,6 +63,13 @@ export async function POST(req: Request) {
     .eq("id", id)
     .maybeSingle();
   if (!notif) return NextResponse.json({ error: "No such notification" }, { status: 404 });
+
+  // Solo se empuja un aviso que el que llama PUEDE mandar: el suyo, o uno de una entrega que ve (quien asigna, el
+  // chofer que toma una orden, la ayuda del admin…). Sin esto, cualquier sesión podía hacer sonar el teléfono de otra
+  // persona con un aviso recién creado. Ver `puedeEmpujarAviso`.
+  if (!(await puedeEmpujarAviso(supabase, user.id, notif))) {
+    return NextResponse.json({ error: "You can't send this notification." }, { status: 403 });
+  }
 
   // D-880: solo los avisos importantes suenan en el teléfono. Los secundarios llegan igual a la campana, en silencio.
   if (claseDelAviso(notif.kind) !== "importante") return NextResponse.json({ skipped: "secondary" });
