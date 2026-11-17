@@ -18,7 +18,7 @@ const WEEKS = 8;
 // — see the provider's block comment on why sessions aren't bulk-loaded
 // the way `mySessions` safely is for one employee).
 export default function InsightsPage() {
-  const { me, allEmployees: users, allProjects: projects, allAssignments: assignments, sessionsSince } = useData();
+  const { me, allEmployees: users, allProjects: projects, allAssignments: assignments, sessionsSince, tiendas } = useData();
   const t = useT();
 
   // Hooks below must run unconditionally (Rules of Hooks) — the admin gate
@@ -95,7 +95,7 @@ export default function InsightsPage() {
   wk.forEach((s) => {
     const proj = s.projectId ? pMap.get(s.projectId)?.name : null;
     const u = uMap.get(s.employeeUid);
-    const name = nombreDeSesion(s.projectId, proj, u, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "(deleted)" });
+    const name = nombreDeSesion(s.projectId, proj, u, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "(deleted)" }, tiendas.find((x) => x.id === s.storeId)?.name ?? null);
     const key = !proj && u && !necesitaProyecto(u) ? "t:" + name : "p:" + (s.projectId ?? "");
     const g = byProj.get(key) ?? { name, hours: 0 };
     g.hours += (s.durationSeconds || 0) / 3600;

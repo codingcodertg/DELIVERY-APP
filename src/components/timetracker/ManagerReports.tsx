@@ -66,7 +66,7 @@ export function ManagerReports({ period }: { period: string }) {
     me, allEmployees: users, allProjects: projects, allAssignments: assignments, settings,
     sessionsSince, payrollsForWeek, insertSession, updateSession, removeSession,
     insertPayroll, updatePayroll, removePayroll, logAudit,
-    paystubsForPeriod, paystubsForYear, insertPaystubs, removePaystubOfPayroll,
+    paystubsForPeriod, paystubsForYear, insertPaystubs, removePaystubOfPayroll, tiendas,
   } = useData();
   const t = useT();
   const payPeriod = settings.payPeriod || "weekly";
@@ -417,7 +417,7 @@ export function ManagerReports({ period }: { period: string }) {
                   ? <input type="date" value={ed.date} onChange={(e) => setEd((p) => ({ ...p, date: e.target.value }))} style={{ padding: "4px 6px" }} />
                   : <span className="small nowrap">{s.startMs ? fmtDT(s.startMs, { weekday: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</span>) },
                 { key: "proyecto", en: t("mgr.rep.colProject"), es: t("mgr.rep.colProject"), ancho: 180, celda: (s) => (
-                  <span className="small">{nombreDeSesion(s.projectId, s.projectId ? pMap.get(s.projectId)?.name : null, uMap.get(s.employeeUid), lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" })}</span>
+                  <span className="small">{nombreDeSesion(s.projectId, s.projectId ? pMap.get(s.projectId)?.name : null, uMap.get(s.employeeUid), lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" }, tiendas.find((x) => x.id === s.storeId)?.name ?? null)}</span>
                 ) },
                 { key: "nota", en: t("mgr.rep.colNote"), es: t("mgr.rep.colNote"), ancho: 260, envuelve: true, celda: (s) => (editId === s.id
                   ? <div className="row small"><input type="time" value={ed.from} onChange={(e) => setEd((p) => ({ ...p, from: e.target.value }))} style={{ padding: "4px 6px", width: "auto" }} /><input type="time" value={ed.to} onChange={(e) => setEd((p) => ({ ...p, to: e.target.value }))} style={{ padding: "4px 6px", width: "auto" }} /></div>

@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useData } from "@/lib/timetracker-data-provider";
 import { effWorkerType } from "@/lib/timetracker/helpers";
+import { esMultiTienda } from "@/lib/timetracker/multitienda";
 import { debeMontarCronometro, esRutaDelCronometro } from "@/lib/timetracker/vigia";
 import { Cronometro } from "@/components/timetracker/Cronometro";
 
@@ -28,6 +29,7 @@ export function CronometroAnfitrion() {
     visible,
     presencial: effWorkerType(me) === "inhouse",
     esAdmin: me.role === "admin",
+    multitienda: esMultiTienda(me),
   });
   if (!montar) return null;
   return <Cronometro visible={visible} />;

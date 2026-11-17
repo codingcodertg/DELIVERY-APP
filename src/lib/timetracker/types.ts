@@ -34,6 +34,9 @@ export interface Employee {
   /** `profiles.left_at` (205): fecha de baja. D-707: se queda en la lista para nóminas e historial; los
    *  selectores de gente actual pasan por `soloActivos`. */
   left_at?: string | null;
+  /** Presencial que puede fichar y solicitar en CUALQUIER tienda (316). Solo cuenta con worker_type
+   * 'inhouse'. Lo cambia un admin de Time Tracker en Personas. */
+  multiStore?: boolean | null;
 }
 
 export interface Project {
@@ -72,6 +75,8 @@ export interface Session {
   employeeName: string | null;
   projectId: string | null;
   assignmentId: string | null;
+  /** Tienda donde se trabajó (`clockin.job_sites`, 316). Sin proyecto, es su «proyecto» (presencial). */
+  storeId?: string | null;
   payrollId: string | null;
   memo: string;
   weekOf: string | null;

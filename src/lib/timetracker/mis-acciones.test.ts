@@ -242,7 +242,7 @@ describe("3 · quitar el número NO para el cronómetro de D-470", () => {
     expect(anfitrion).toContain("return <Cronometro visible={visible} />;");
   });
   it("el tick, el latido y el vigía se arman ANTES de que el presencial vea su tarjeta: montarlo los sigue arrancando", () => {
-    const tarjeta = cronometro.indexOf("if (presencial && !esAdmin) return visible ? <PunchPanel /> : null;");
+    const tarjeta = cronometro.indexOf("if (presencial && !dosVistas) return visible ? <PunchPanel /> : null;");
     expect(tarjeta).toBeGreaterThan(0);
     for (const pieza of ["tickRef.current = setInterval(async () => {", "setInterval(vigilar, VIGIA_CADA_MS)", 'navigator.sendBeacon("/timetracker/api/heartbeat"']) {
       const i = cronometro.indexOf(pieza);

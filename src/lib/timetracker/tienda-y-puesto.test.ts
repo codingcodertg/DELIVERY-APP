@@ -136,7 +136,7 @@ describe("de dónde lee cada vista la tienda y el puesto", () => {
     const layout = leer("src/app/timetracker/(timetracker)/layout.tsx");
     expect(layout).toContain('.select("id, full_name, role, avatar_url, timetracker_role, module_access, store")');
     expect(layout).toContain('supabase.schema("clockin").from("employee_settings").select("store_id, position").eq("id", user.id).maybeSingle()');
-    expect(layout).toContain('supabase.schema("clockin").from("job_sites").select("id, name")');
+    expect(layout).toContain('supabase.schema("clockin").from("job_sites").select("id, name, active")');
     expect(layout).toContain("tiendaDelHub: profile.store,");
     expect(layout).toMatch(/deletedAt: es\?\.deleted_at \?\? null,\n\s*tienda,\n\s*puesto,/);
   });
@@ -155,7 +155,7 @@ describe("Registrar tiempo: ni aviso de proyecto ni cronómetro por delante para
     expect(crono).toContain('<div className="banner info">{t("track.noProjects")}</div>');
   });
   it("un admin presencial abre en su reloj de fichaje; el remoto, en el cronómetro", () => {
-    expect(crono).toContain('useState<"timer" | "punch">(() => (necesitaProyecto(me) ? "timer" : "punch"))');
+    expect(crono).toContain('useState<"timer" | "punch">(() => (necesitaProyecto(me) || esMultiTienda(me) ? "timer" : "punch"))');
   });
 });
 
@@ -165,22 +165,22 @@ describe("Mis solicitudes › Tiempo: al presencial no se le pide proyecto", () 
     expect(sol).toContain("const campo = campoDeProyecto(me, assignments.length);");
   });
   it("«Elige un proyecto» solo cuando es obligatorio", () => {
-    expect(sol).toContain('if (!f.assignmentId && campo === "obligatorio") { setMsg(t("emp.req.pickProject")); return; }');
+    expect(sol).toContain('if (validarProyectoEnSolicitud(me, f.assignmentId || null)) { setMsg(t("emp.req.pickProject")); return; }');
   });
   it("sin proyecto elegido, la solicitud va sin proyecto (null), no con uno inventado", () => {
     expect(sol).toContain("const a = f.assignmentId ? aMap.get(f.assignmentId) : undefined;");
-    expect(sol).toContain("projectId: a ? a.projectId : null, assignmentId: a ? a.id : null,");
+    expect(sol).toContain("camposDeLugar(me, f.storeId, a ? { id: a.id, projectId: a.projectId } : null)");
   });
   it("fijo: se dice su tienda y su puesto en vez de un desplegable; opcional: es la primera opción", () => {
-    expect(sol).toContain('{campo === "fijo" ? (');
+    expect(sol).toContain('campo === "fijo" ? (');
     expect(sol).toContain('<div style={{ padding: "8px 0", fontWeight: 700 }}>{t("emp.req.yourStore", { label: miTienda })}</div>');
     expect(sol).toContain('{campo === "opcional" ? t("emp.req.yourStore", { label: miTienda }) : t("emp.req.pick")}');
-    expect(sol).toContain('{campo !== "obligatorio" && <div className="hint">{t("emp.req.inhouseHint")}</div>}');
+    expect(sol).toContain('{campo !== "obligatorio" && !enTienda && <div className="hint">{t("emp.req.inhouseHint")}</div>}');
     expect(sol).toContain("const miTienda = tiendaYPuesto(me, lang);");
   });
   it("en la lista de solicitudes y al elegir una entrada, su tienda y su puesto donde iba el proyecto", () => {
     expect(sol).toContain("nombreDeLinea(aMap.get(typeof aid === \"string\" ? aid : \"\")?.project.name, me, lang, sinProyecto);");
-    expect(sol).toContain('const proj = nombreDelProyecto(p.assignmentId, t("track.sinProyecto"));');
+    expect(sol).toContain(': nombreDelProyecto(p.assignmentId, t("track.sinProyecto"));');
     expect(sol.split('{nombreDelProyecto(s.assignmentId, t("track.sinProyecto"))}').length - 1).toBe(2);
   });
 });
@@ -189,15 +189,15 @@ describe("Solicitudes del equipo: la del presencial sale con su tienda y su pues
   const eq = leer("src/app/timetracker/(timetracker)/team-requests/page.tsx");
   it("projName mira a la persona que pidió", () => {
     expect(eq).toContain('return nombreDeLinea(a ? pMap.get(a.projectId)?.name : null, uMap.get(uid), lang, "—");');
-    expect(eq.split("projName(p.assignmentId as string, r.employeeUid)").length - 1).toBe(2);
+    expect(eq.split("projName(p.assignmentId as string, r.employeeUid, p.storeId as string | undefined)").length - 1).toBe(2);
   });
 });
 
 describe("Mi semana: sus horas sin proyecto, bajo su tienda y su puesto", () => {
   const sem = leer("src/app/timetracker/(timetracker)/week/page.tsx");
   it("la tabla por proyecto y las entradas del día", () => {
-    expect(sem).toContain('const proj = { name: nombreDeSesion(aid || null, a?.project.name, me, lang, { sinProyecto: t("track.sinProyecto"), eliminado: t("emp.week.deletedProject") }) };');
-    expect(sem).toContain('valor: (s) => nombreDeSesion(s.assignmentId, aMap.get(s.assignmentId ?? "")?.project.name, me, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" }) },');
+    expect(sem).toContain('const proj = { name: nombreDeSesion(aid || null, a?.project.name, me, lang, { sinProyecto: t("track.sinProyecto"), eliminado: t("emp.week.deletedProject") }, nombreDeTienda(v.storeId)) };');
+    expect(sem).toContain('valor: (s) => nombreDeSesion(s.assignmentId, aMap.get(s.assignmentId ?? "")?.project.name, me, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" }, nombreDeTienda(s.storeId)) },');
   });
 });
 
@@ -209,7 +209,7 @@ describe("Nómina › Remoto (tabla, detalle, CSV, recibo y «Agregar entrada»)
     expect(rep).toContain('valor: (l) => nombreDe(l.a, uid, "(deleted)")');
     expect(rep.split('<td>{nombreDe(l.a, uid, "(deleted)")}</td>').length - 1).toBe(1);
     // Detalle del tramo (forma reducida): el proyecto se nombra en su celda.
-    expect(rep).toContain('nombreDeSesion(s.projectId, s.projectId ? pMap.get(s.projectId)?.name : null, uMap.get(s.employeeUid), lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" })');
+    expect(rep).toContain('nombreDeSesion(s.projectId, s.projectId ? pMap.get(s.projectId)?.name : null, uMap.get(s.employeeUid), lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" }, tiendas.find((x) => x.id === s.storeId)?.name ?? null)');
   });
   it("el CSV y el recibo: nombre y lugar (la tienda del presencial)", () => {
     expect(rep).toContain('status, nombreDe(l.a, uid, "(deleted)"), lugarDe(l.a, uid), (l.g.sec / 3600).toFixed(2),');
@@ -234,13 +234,13 @@ describe("Nómina › En sitio: al lado del nombre, su puesto (la tienda ya es e
 describe("El Panel (proyectos principales) y Ahora mismo", () => {
   it("el Panel cuenta las horas del presencial sin proyecto bajo su tienda y su puesto", () => {
     const ins = leer("src/app/timetracker/(timetracker)/insights/page.tsx");
-    expect(ins).toContain('const name = nombreDeSesion(s.projectId, proj, u, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "(deleted)" });');
+    expect(ins).toContain('const name = nombreDeSesion(s.projectId, proj, u, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "(deleted)" }, tiendas.find((x) => x.id === s.storeId)?.name ?? null);');
     expect(ins).toContain('const key = !proj && u && !necesitaProyecto(u) ? "t:" + name : "p:" + (s.projectId ?? "");');
   });
   it("Ahora mismo: la tarjeta del que ficha lleva su tienda y su puesto donde la del remoto lleva el proyecto", () => {
     const live = leer("src/app/timetracker/(timetracker)/live/page.tsx");
     expect(live).toContain('<div className="live-sub">{emp && !necesitaProyecto(emp) ? tiendaYPuesto(emp, lang) : "\\u00a0"}</div>');
-    expect(live).toContain('<div className="live-sub">{nombreDeSesion(s.projectId, proj?.name, emp, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" })}');
+    expect(live).toContain('<div className="live-sub">{nombreDeSesion(s.projectId, proj?.name, emp, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" }, tiendas.find((x) => x.id === s.storeId)?.name ?? null)}');
   });
 });
 
@@ -296,8 +296,7 @@ describe("Cronometro: arrancar no exige proyecto", () => {
     expect(crono).not.toContain("disabled={!selected}");
   });
   it("la sesión se guarda con proyecto y asignación a null cuando no se eligió ninguno", () => {
-    expect(crono).toContain("projectId: selected?.projectId ?? null,");
-    expect(crono).toContain("assignmentId: selected?.id ?? null,");
+    expect(crono).toContain("...camposDeLugar(me, tiendaId, selected ? { id: selected.id, projectId: selected.projectId } : null),");
   });
   it("el guardado de la fila en vivo no se queda en pendiente por no tener proyecto", () => {
     expect(crono).toContain("if (!base) { pendienteRef.current = trasFallo(p, ahora); return; }");

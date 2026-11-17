@@ -16,6 +16,7 @@ import { dateISO, APP_SETTINGS, type AppSettings, syncAppSettings } from "@/lib/
 import { initOfflineQueue } from "@/lib/timetracker/offlineQueue";
 import { olvidarExencion } from "@/lib/use-cutoff-exempt";
 import type { AuditEntry, Assignment, Employee, Payroll, Project, RequestType, Screenshot, Session, TimeRequest } from "@/lib/timetracker/types";
+import type { TiendaElegible } from "@/lib/timetracker/multitienda";
 import { checkSession, SESSION_EXPIRED, isAuthDenied } from "@/lib/session-guard";
 import { SessionExpired } from "@/components/SessionExpired";
 import { useCapacitacion } from "@/components/timetracker/Capacitacion";
@@ -40,6 +41,8 @@ import { talonDeFila, type TalonDePago, type TarifaPorHora } from "@/lib/timetra
 export interface DataState {
   ready: boolean;
   me: Employee;
+  /** Las tiendas de fichaje (`clockin.job_sites`, 316): el desplegable de quien trabaja en varias. */
+  tiendas: TiendaElegible[];
   settings: AppSettings;
   projects: Project[];
   /** My own assignments, each with its `project` attached and archived
@@ -164,7 +167,7 @@ export interface DataState {
    * timetracker" is already what unchecking the module in the hub's Users
    * dialog does (D-065); a second delete concept scoped to this module
    * would just be a confusing duplicate of that lifecycle. */
-  updateEmployeeSettings: (employeeId: string, patch: { workerType?: string | null; trackMode?: string | null; breaksEnabled?: boolean | null; active?: boolean }) => Promise<void>;
+  updateEmployeeSettings: (employeeId: string, patch: { workerType?: string | null; trackMode?: string | null; breaksEnabled?: boolean | null; active?: boolean; multiStore?: boolean }) => Promise<void>;
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
 }
 
@@ -202,7 +205,9 @@ function isRlsError(e: unknown): boolean {
  */
 export const SESSIONS_WINDOW_DAYS = 60;
 
-export function DataProvider({ children, me }: { children: React.ReactNode; me: Employee }) {
+const SIN_TIENDAS: TiendaElegible[] = [];
+
+export function DataProvider({ children, me, tiendas = SIN_TIENDAS }: { children: React.ReactNode; me: Employee; tiendas?: TiendaElegible[] }) {
   // En estado y no en `useMemo` (D-916): la recuperación puede rehacer el cliente si el que hay se
   // queda atascado. Cambiarlo rehace los callbacks de abajo, que es justo lo que se quiere.
   const [supabase, setSupabase] = useState(() => createClient());
@@ -474,7 +479,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
         id: p.id, fullName: p.full_name ?? "—", email: null, role: p.timetracker_role as Employee["role"],
         city: s?.city ?? null, payMethod: s?.payMethod ?? null, payDetails: s?.payDetails ?? null,
         workerType: s?.workerType ?? null, trackMode: s?.trackMode ?? null, breaksEnabled: s?.breaksEnabled ?? null,
-        active: s?.active ?? false, deletedAt: s?.deletedAt ?? null, left_at: p.left_at ?? null,
+        active: s?.active ?? false, deletedAt: s?.deletedAt ?? null, left_at: p.left_at ?? null, multiStore: s?.multiStore ?? false,
         ...resolverTiendaYPuesto({ fichaje: fichaPorId.get(p.id), tiendas: nombreDeTienda, tiendaDelHub: p.store }),
       };
       return emp;
@@ -996,7 +1001,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
   }, [capacitacion.activa, updateLiveSession, uploadScreenshot]);
 
   const real: DataState = useMemo(() => ({
-    ready, me, settings, projects, myAssignments: assignments, mySessions: sessions, ensureSessionsSince, myPayrolls: payrolls,
+    ready, me, tiendas, settings, projects, myAssignments: assignments, mySessions: sessions, ensureSessionsSince, myPayrolls: payrolls,
     myRequests: requests, addRequest,
     toast, notify,
     listLiveSessions, getSession, startSession, updateSession, updateLiveSession, refrescarSesion,
@@ -1010,7 +1015,7 @@ export function DataProvider({ children, me }: { children: React.ReactNode; me: 
     payRates, savePayRate, paystubsForPeriod, paystubsForYear, insertPaystubs, removePaystubOfPayroll,
     insertProject, updateProject, insertAssignment, updateAssignment, removeAssignment,
     claimRequest, resetRequestToPending, updateEmployeeSettings, updateSettings,
-  }), [addRequest, allAssignments, allEmployees, allProjects, allRequests, assignments, auditLog, claimRequest, deleteScreenshot, ensureSessionsSince, getSession, insertAssignment, insertBlankScreenshot, insertPayroll, insertPaystubs, insertProject, insertSession, listLiveSessions, liveSessions, logAudit, me, notify, payRates, payrolls, payrollsForWeek, paystubsForPeriod, paystubsForYear, projects, ready, refrescarSesion, removeAssignment, removePayroll, removePaystubOfPayroll, removeSession, requests, resetRequestToPending, savePayRate, screenshotSignedUrl, screenshots, sessions, sessionsByProject, sessionsSince, settings, signOutEverywhere, startSession, toast, updateAssignment, updateEmployeeSettings, updateLiveSession, updateMyAccount, updatePayroll, updateProject, updateSession, updateSettings, uploadScreenshot]);
+  }), [tiendas, addRequest, allAssignments, allEmployees, allProjects, allRequests, assignments, auditLog, claimRequest, deleteScreenshot, ensureSessionsSince, getSession, insertAssignment, insertBlankScreenshot, insertPayroll, insertPaystubs, insertProject, insertSession, listLiveSessions, liveSessions, logAudit, me, notify, payRates, payrolls, payrollsForWeek, paystubsForPeriod, paystubsForYear, projects, ready, refrescarSesion, removeAssignment, removePayroll, removePaystubOfPayroll, removeSession, requests, resetRequestToPending, savePayRate, screenshotSignedUrl, screenshots, sessions, sessionsByProject, sessionsSince, settings, signOutEverywhere, startSession, toast, updateAssignment, updateEmployeeSettings, updateLiveSession, updateMyAccount, updatePayroll, updateProject, updateSession, updateSettings, uploadScreenshot]);
   // Modo capacitación (D-490): cada función clasificada en `capacitacion-datos.ts` —pasa, se practica
   // o se bloquea—. Ninguna escritura llega a la base desde aquí mientras dure. Las funciones se crean
   // UNA vez por práctica y leen el proveedor de cada momento por `realRef`: con identidades nuevas en

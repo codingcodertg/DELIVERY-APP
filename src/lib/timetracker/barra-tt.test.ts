@@ -117,7 +117,7 @@ describe("encender y apagar", () => {
   it("el layout lee la cookie en el servidor y envuelve al proveedor de datos", () => {
     const layout = sinComentarios(leer("src/app/timetracker/(timetracker)/layout.tsx"));
     expect(layout).toContain("const capacitacion = await capacitacionDeLaPeticion();");
-    expect(layout).toMatch(/<CapacitacionProvider inicial=\{capacitacion\} uid=\{me\.id\}>\n\s*<DataProvider me=\{me\}>/);
+    expect(layout).toMatch(/<CapacitacionProvider inicial=\{capacitacion\} uid=\{me\.id\}>\n\s*<DataProvider me=\{me\}( tiendas=\{tiendasDeFichaje\})?>/);
   });
 
   it("si otra pestaña la cambió, al volver a esta manda la cookie", () => {

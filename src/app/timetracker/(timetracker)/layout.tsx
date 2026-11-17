@@ -100,7 +100,7 @@ export default async function TimetrackerLayout({ children }: { children: React.
   const [{ data: es }, { data: ficha }, { data: sitios }] = await Promise.all([
     supabase.schema("timetracker").from("employee_settings").select("*").eq("id", user.id).maybeSingle(),
     supabase.schema("clockin").from("employee_settings").select("store_id, position").eq("id", user.id).maybeSingle(),
-    supabase.schema("clockin").from("job_sites").select("id, name"),
+    supabase.schema("clockin").from("job_sites").select("id, name, active"),
   ]);
   const { tienda, puesto } = resolverTiendaYPuesto({
     fichaje: ficha,
@@ -108,6 +108,8 @@ export default async function TimetrackerLayout({ children }: { children: React.
     tiendaDelHub: profile.store,
   });
 
+  // Las tiendas de fichaje para el desplegable de quien trabaja en varias (316). Solo las activas se ofrecen.
+  const tiendasDeFichaje = (sitios ?? []).map((s) => ({ id: s.id as string, name: s.name as string, active: (s.active as boolean | null) ?? true }));
   const me: Employee = {
     id: profile.id,
     fullName: profile.full_name ?? user.email ?? "Me",
@@ -117,6 +119,7 @@ export default async function TimetrackerLayout({ children }: { children: React.
     payMethod: es?.pay_method ?? null,
     payDetails: es?.pay_details ?? null,
     workerType: (es?.worker_type as Employee["workerType"]) ?? null,
+    multiStore: (es?.multi_store as boolean | null | undefined) ?? false,
     trackMode: (es?.track_mode as Employee["trackMode"]) ?? null,
     breaksEnabled: es?.breaks_enabled ?? null,
     active: es?.active ?? false,
@@ -135,7 +138,7 @@ export default async function TimetrackerLayout({ children }: { children: React.
       {/* Por FUERA del proveedor de datos: el proveedor pregunta por la práctica, y encenderla o
           apagarla lo vuelve a montar entero, con el cronómetro y cada pantalla. */}
       <CapacitacionProvider inicial={capacitacion} uid={me.id}>
-        <DataProvider me={me}>
+        <DataProvider me={me} tiendas={tiendasDeFichaje}>
           <div className="wrap">
             <TopBar deliveriesRole={profile.role} moduleAccess={profile.module_access} />
             <TtUpdateBanner />

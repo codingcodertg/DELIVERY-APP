@@ -148,7 +148,12 @@ export function nombreDeSesion(
   persona: PersonaConTienda | null | undefined,
   lang: Idioma,
   etiquetas: { sinProyecto: string; eliminado: string },
+  /** La tienda que quedó en la sesión (316): gana a la tienda de la persona, que puede haber cambiado. */
+  tiendaDeLaSesion?: string | null,
 ): string {
+  if (!idDeProyecto && tiendaDeLaSesion) {
+    return tiendaYPuesto({ tienda: tiendaDeLaSesion, puesto: persona?.puesto }, lang);
+  }
   if (!idDeProyecto) return nombreDeLinea(null, persona, lang, etiquetas.sinProyecto);
   return nombreDeLinea(nombreDelProyecto ?? null, persona, lang, etiquetas.eliminado);
 }

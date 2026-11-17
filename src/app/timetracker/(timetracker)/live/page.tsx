@@ -24,7 +24,7 @@ function Cronometro({ calcular }: { calcular: (ahora: number) => number }) {
 }
 
 export default function LiveMonitorPage() {
-  const { me, liveSessions, allEmployees: users, allProjects: projects } = useData();
+  const { me, liveSessions, allEmployees: users, allProjects: projects, tiendas } = useData();
   const t = useT();
 
   // La otra mitad de "quién trabaja ahora" (D-128). Esta pantalla solo miraba `liveSessions`,
@@ -166,7 +166,7 @@ export default function LiveMonitorPage() {
                   <span className="live-tag remote">💻 {t("mgr.live.remote")}</span>
                   <span className="live-tag state">{st ? st.text : t("mgr.live.livePill")}</span>
                 </div>
-                <div className="live-sub">{nombreDeSesion(s.projectId, proj?.name, emp, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" })}{s.memo ? " · " + s.memo : ""}</div>
+                <div className="live-sub">{nombreDeSesion(s.projectId, proj?.name, emp, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" }, tiendas.find((x) => x.id === s.storeId)?.name ?? null)}{s.memo ? " · " + s.memo : ""}</div>
                 <Cronometro calcular={(ahora) => (s.startMs ? Math.max(0, Math.floor((ahora - s.startMs) / 1000)) : (s.durationSeconds || 0))} />
                 <div className="live-meta">
                   {t("mgr.live.since", { time: s.startMs ? fmtTime(s.startMs) : "—" })} · {t("mgr.live.activity", { pct })}
