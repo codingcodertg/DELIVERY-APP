@@ -17,7 +17,7 @@
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.45.4",
     "@tanstack/react-table": "^8.21.3",
-    "@tanstack/react-virtual": "^3.14.10",
+    "@tanstack/react-virtual": "^3.14.26",
     "@types/three": "^0.187.0",
     "@vercel/blob": "^2.8.0",
     "@zumer/snapdom": "3.3.3",
