@@ -52452,3 +52452,13 @@ Google: caché compartida de Places (7 días), geocodificación (sin vencer), ru
 Servidor: el cron del Time Tracker sale temprano si no hay nada que avisar y filtra las suscripciones; mosaicos sin limitador; Outlook baja el cuerpo solo de los correos de Indeed; resumen diario filtrado en SQL; roll-schedules en lote; avisos al cliente de 5 en 5.
 Fuera por cambiar lo que se ve: ventana de 14 días de turnos y capturas, latido de GPS cada 5 min. El GPS fuera del contexto principal va en la entrega 4 (toca el Gestor de Rutas). También entra el respaldo diario local (`scripts/respaldo/`).
 Sello: todas las apps suben un menor; repo 1.910.0.
+
+## D-1061 · Transfer por relevo en cualquier tipo de orden (2026-11-16)
+
+El dueño no pudo hacer un transfer de la #1629 (FX112, cliente en Sullivan City, desde RDZ Pharr): el relevo solo se activaba en órdenes de tienda a tienda con destino en una tienda de Ajustes. «Transfer se puede en cualquier tipo de orden.» Se quitan esas dos condiciones (en `porQueNoSeActiva` y en `activar_relevo`, migración 313). El paso a (relay_step 1) se trata como tramo entre tiendas: sin avisos al cliente, sin tipo de cliente, sin cuenta obligatoria, clase «intertienda» en el plan. El paso b conserva destino, contacto y avisos del cliente. La prueba de entrega sigue los Ajustes, como siempre.
+Migración 313, APLICADA por el dueño.
+
+## D-1062 · Eficiencia (4/4): pantallas y GPS fuera del contexto principal (2026-11-16)
+
+Cierre de la auditoría (D-1060). Las ubicaciones de los choferes salen del contexto principal a `ubicaciones-de-choferes.tsx`: solo se cargan y se suscriben mientras alguna pantalla las usa, y cada punto de GPS ya no vuelve a pintar toda la app. La tabla de Órdenes se virtualiza como `TablaEstandar`; las búsquedas del Gestor usan `useDeferredValue`; el mapa se carga con `next/dynamic`; las fotos de listas cargan al verse; los relojes de un segundo del Time Tracker viven en un componente propio. Fuera a propósito: cargar diferidos el chat y la ayuda del layout raíz (sin límite de error, un fallo tumbaría todo).
+Sello: todas las apps suben un menor; repo 1.911.0.
