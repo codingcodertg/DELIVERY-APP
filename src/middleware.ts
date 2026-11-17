@@ -3,6 +3,8 @@ import { updateSession } from "@/lib/supabase/middleware";
 import { CABECERA_DE_CORTE, COOKIE_ENSENANZA, apiQueNoSePractica, valorDeEnsenanza } from "@/lib/ensenanza-general";
 import { mensajeDeLoQueNoSePractica } from "@/lib/practica/mensajes";
 import { esApiMutante, mismoOrigen, respuestaCsrf, traeCookieDeSesion } from "@/lib/csrf";
+import { ipDe } from "@/lib/ip-de";
+import { bloqueosDeIp } from "@/lib/seguridad/bloqueos";
 
 /**
  * EN `src/`, Y ESO ES EL ARREGLO (D-119).
@@ -22,6 +24,15 @@ import { esApiMutante, mismoOrigen, respuestaCsrf, traeCookieDeSesion } from "@/
  * con su tabla de pruebas.
  */
 export async function middleware(request: NextRequest) {
+  // Monitoreo (320): una IP con bloqueo vigente no entra a nada. Quedan libres los cron (su propia puerta) y el aviso
+  // de login fallido (así el rastro sigue). Fail-open: si no se puede leer la lista, `ipBloqueada` dice que no.
+  const ruta = request.nextUrl.pathname;
+  if (!ruta.startsWith("/api/cron/") && ruta !== "/api/seguridad/login-fallido" && (await bloqueosDeIp.ipBloqueada(ipDe(request)))) {
+    return new NextResponse(
+      "Acceso bloqueado temporalmente por seguridad. Intenta de nuevo en media hora.\nAccess temporarily blocked for security. Try again in 30 minutes.",
+      { status: 403, headers: { "content-type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } },
+    );
+  }
   // Modo enseñanza (D-628): lo que no se puede deshacer (un correo, un SMS, una llamada, una cuenta) no se hace.
   const idioma = valorDeEnsenanza(request.cookies.get(COOKIE_ENSENANZA)?.value);
   if (idioma && apiQueNoSePractica(request.method, request.nextUrl.pathname)) {

@@ -52,7 +52,7 @@ export interface UsuarioFila {
 }
 
 /** D-820: las tablas que, al cambiar, refrescan el panel. Están en la publicación de tiempo real desde la 233. */
-export const TABLAS_EN_VIVO = ["security_devices", "security_device_users", "security_policy", "security_web_blocks"] as const;
+export const TABLAS_EN_VIVO = ["security_devices", "security_device_users", "security_policy", "security_web_blocks", "sec_alerts"] as const;
 /**
  * Por si la suscripción se cae sin avisar: un refresco de fondo cada cinco minutos, como red de seguridad. Con la
  * pestaña oculta no se refresca (ver `useEnVivo`): nadie lo ve, y cada refresco vuelve a correr la página entera.
@@ -258,8 +258,10 @@ function FilaDoble({ clave, estado, seleccion, celdas, acciones, extra, ancho }:
   );
 }
 
-export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiadaEn, dispositivos, uso, bloqueados = [], usuarios = [], esteDispositivo, error }: {
+export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiadaEn, dispositivos, uso, bloqueados = [], usuarios = [], esteDispositivo, error, alertas, alertasAbiertas = 0 }: {
   enforced: boolean; webBloqueada: boolean; exentos?: string[]; cambiadaEn: string | null; dispositivos: DispositivoFila[]; uso: UsoFila[]; bloqueados?: BloqueoFila[]; usuarios?: UsuarioFila[]; esteDispositivo: string | null; error: string | null;
+  /** Monitoreo (320): el panel de alertas, ya renderizado por el servidor (lleva sus propios datos). */
+  alertas?: ReactNode; alertasAbiertas?: number;
 }) {
   const { t, lang } = usePrefs();
   const vivo = useEnVivo();
@@ -551,12 +553,16 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
       {/* Barra de salto: una sola página, pero navegable */}
       <nav className="sec-nav" aria-label={t("Jump to section", "Saltar a sección")}>
         <a href="#sec-resumen">{t("Overview", "Resumen")}</a>
+        <a href="#sec-alertas" data-nav-alertas>🚨 {t("Alerts", "Alertas")} {alertasAbiertas > 0 && <span className="cnt">{alertasAbiertas}</span>}</a>
         {/* D-1012: la salud de Supabase y Vercel (Disk IO, escrituras, archivos, publicaciones). */}
         <a href="/security/salud" data-salud-link>📊 {t("System health", "Salud del sistema")}</a>
         <a href="#sec-usuarios">{t("Users", "Usuarios")} <span className="cnt">{usuarios.length}</span></a>
         <a href="#sec-dispositivos">{t("Devices", "Dispositivos")} <span className="cnt">{dispositivos.length}</span></a>
         <a href="#sec-actividad">{t("Activity", "Actividad")}</a>
       </nav>
+
+      {/* Monitoreo (320): alertas, bloqueos y eventos. Va arriba: lo que hay que mirar primero. */}
+      {alertas}
 
       {error && <div className="card" style={{ borderColor: "var(--red)", margin: 0 }}>{t("Could not read the security tables (is migration 229 applied?):", "No se pudieron leer las tablas de seguridad (¿está aplicada la 229?):")} {error}</div>}
       {aviso && <div className="card" style={{ borderColor: "var(--red)", margin: 0 }}>{aviso}</div>}

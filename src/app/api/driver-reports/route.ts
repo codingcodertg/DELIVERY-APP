@@ -5,6 +5,7 @@ import type { Profile } from "@/lib/types";
 import { mapaDelDia } from "@/lib/reportes-choferes/arma";
 import { cargaDias, esErrorDeCarga } from "@/lib/reportes-choferes/carga";
 import { DIAS_MAX_DE_REPORTES, puedeVerReportesDeChoferes, rangoDeReportes } from "@/lib/reportes-choferes/permiso";
+import { registraEvento } from "@/lib/seguridad/registro";
 
 // ============================================================
 // GET /api/driver-reports?from=YYYY-MM-DD&to=YYYY-MM-DD[&driver=<id>][&map=1] — «Reportes de choferes» (D-907).
@@ -48,6 +49,8 @@ export async function GET(req: Request) {
   const cargado = await cargaDias({ supabase, yo: yo as Pick<Profile, "role" | "store" | "permissions">, desde, hasta, choferId: chofer || null });
   if (esErrorDeCarga(cargado)) return NextResponse.json({ error: cargado.error, detail: cargado.detail }, { status: cargado.status });
   const { dias, choferes, pares, tiendas, alcance, avisos } = cargado;
+  // Monitoreo (320): quién sacó informes de choferes, cuántos días y de qué rango.
+  void registraEvento({ categoria: "export", severidad: 2, usuario_id: auth.user.id, rol: (yo as { role?: string } | null)?.role ?? null, metodo: "GET", ruta: "/api/driver-reports", estado: 200, filas: dias.length, objetivo_tipo: "reporte-choferes", meta: { desde, hasta }, cabeceras: req.headers });
 
   return NextResponse.json({
     ok: true, desde, hasta, alcance: alcance.tipo, zona: BUSINESS_TZ,

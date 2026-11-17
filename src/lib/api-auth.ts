@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { tieneAccesoAEntregas } from "@/lib/constants";
 import type { UserRole } from "@/lib/types";
+import { registraEvento } from "@/lib/seguridad/registro";
+
+/** Las cabeceras de la petición en curso, para el rastro de seguridad. Sin contexto de petición (pruebas), null. */
+async function cabecerasDeEstaPeticion(): Promise<{ get(nombre: string): string | null } | null> {
+  try {
+    return await headers();
+  } catch {
+    return null;
+  }
+}
 
 /**
  * La puerta de las rutas API (D-172, hallazgo A-4 de la auditoría).
@@ -25,6 +36,8 @@ export async function requireUser(): Promise<
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
+    // Monitoreo (320): una llamada sin sesión que llega a una ruta protegida. Sin esperar; nunca lanza.
+    void registraEvento({ categoria: "api_denied", severidad: 2, estado: 401, metodo: "API", objetivo_tipo: "sin-sesion", cabeceras: await cabecerasDeEstaPeticion() });
     return { ok: false, response: NextResponse.json({ error: "Not signed in." }, { status: 401 }) };
   }
   // `user_metadata` viaja para quien lo necesita: la marca de «cambia tu contraseña» (D-486).
@@ -67,6 +80,10 @@ export async function requireDeliveries(): Promise<
     return { ok: false, response: NextResponse.json({ error: "Could not check your access." }, { status: 503 }) };
   }
   if (!yo || !tieneAccesoAEntregas({ role: yo.role as UserRole, module_access: yo.module_access as string[] | null })) {
+    void registraEvento({
+      categoria: "api_denied", severidad: 2, usuario_id: auth.user.id, rol: (yo?.role as string | undefined) ?? null,
+      estado: 403, metodo: "API", objetivo_tipo: "modulo-entregas", cabeceras: await cabecerasDeEstaPeticion(),
+    });
     return { ok: false, response: NextResponse.json({ error: "Deliveries access is required." }, { status: 403 }) };
   }
   return { ...auth, role: yo.role as UserRole };

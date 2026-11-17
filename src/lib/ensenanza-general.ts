@@ -93,6 +93,8 @@ export const RPC_QUE_ESCRIBEN = [
   "check_rate_limit", // 282: suma el contador del limitador de peticiones por IP. Escribe; en enseñanza se corta y el limitador falla abierto.
   "security_touch_device", "security_request_access", // 229 (D-811): registran el dispositivo de la sesión y su solicitud.
   "security_note_web_block", // 232 (D-818): anota que a esta sesión se le cerró la web.
+  // 320 (monitoreo de seguridad): el admin marca alertas, bloquea IPs y quita bloqueos. Escriben.
+  "seguridad_marca_alerta", "seguridad_bloquea_ip", "seguridad_quita_bloqueo",
   // 273 (D-927), Mantenimiento: equipo, lista diaria, refacciones y bitácora de uso. Todas escriben.
   "warehouse_ops_save_equipment", "warehouse_ops_file_checklist", "warehouse_ops_save_part", "warehouse_ops_request_part",
   "warehouse_ops_start_usage", "warehouse_ops_stop_usage",

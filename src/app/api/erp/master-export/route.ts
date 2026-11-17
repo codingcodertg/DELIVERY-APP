@@ -10,6 +10,7 @@ import { getSessionInfo } from "@/lib/erp/auth";
 import { canSeeCost } from "@/lib/erp/domain/roles";
 import { createClient } from "@/lib/erp/supabase/server";
 import { exportFields, selectColumns, VERSION_COL, type MasterField } from "@/lib/erp/master/fields";
+import { registraEvento } from "@/lib/seguridad/registro";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -154,6 +155,8 @@ export async function GET() {
 
   const buf = await wb.xlsx.writeBuffer();
   const stamp = exportedAt.slice(0, 10);
+  // Monitoreo (320): el maestro completo de productos sale de la base con quién y cuántas filas.
+  void registraEvento({ categoria: "export", severidad: 3, usuario_id: session.user.id, rol: session.role ?? null, metodo: "GET", ruta: "/api/erp/master-export", estado: 200, filas: rows.length, objetivo_tipo: "catalogo-erp", meta: { exportId } });
   return new Response(buf, {
     status: 200,
     headers: {

@@ -78,7 +78,8 @@ describe("GET /api/route-adherence: la puerta", () => {
   it("sin sesión: 401, y no se lee nada", async () => {
     usuario = null;
     expect((await pide(`?date=${AYER}`)).status).toBe(401);
-    expect(tablasConSesion).toEqual([]); expect(tablasDeServicio).toEqual([]);
+    // El rechazo SÍ deja una línea en el rastro de seguridad (320): es una escritura de auditoría, no una lectura de datos.
+    expect(tablasConSesion).toEqual([]); expect(tablasDeServicio.filter((t) => t !== "sec_events")).toEqual([]);
   });
 
   it.each(["sales", "accounting", "office"])("rol %s: 403, sin tocar la llave de servicio ni las órdenes", async (role) => {

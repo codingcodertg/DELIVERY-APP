@@ -71,7 +71,8 @@ describe("GET /api/driver-reports: la puerta", () => {
     usuario = null;
     const r = await pide("?from=2026-11-05&to=2026-11-05");
     expect(r.status).toBe(401);
-    expect(tablasConSesion).toEqual([]); expect(tablasDeServicio).toEqual([]);
+    // El rechazo SÍ deja una línea en el rastro de seguridad (320): es una escritura de auditoría, no una lectura de datos.
+    expect(tablasConSesion).toEqual([]); expect(tablasDeServicio.filter((t) => t !== "sec_events")).toEqual([]);
   });
 
   it.each(["driver", "sales", "warehouse", "accounting", "office"])("rol %s: 403, sin tocar la llave de servicio ni las órdenes", async (role) => {

@@ -8,6 +8,7 @@ import { usePrefs } from "@/lib/prefs";
 import { PasswordInput } from "@/components/PasswordInput";
 import { VersionFooter } from "@/components/VersionFooter";
 import { destinoAlEntrar } from "@/lib/auth-redirect";
+import { avisaLoginFallido } from "@/lib/seguridad/identificador";
 import { escribeEnsenanza, leeEnsenanza } from "@/lib/boton-general";
 import {
   loadAccounts, saveAccounts, upsertAccount, removeAccount, type RememberedAccount,
@@ -166,7 +167,11 @@ export default function LoginPage() {
         // passed through untouched. Nothing is looked up, so there's no way to
         // probe the app for who works here.
         const { error } = await supabase.auth.signInWithPassword({ email: loginEmail(email), password });
-        if (error) throw error;
+        if (error) {
+          // Monitoreo (320): solo el hash del identificador sale del navegador, y sin esperar.
+          avisaLoginFallido(email);
+          throw error;
+        }
         await rememberAccount(email);
         router.refresh();
         router.push(next);

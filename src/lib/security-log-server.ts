@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { SecurityKind } from "@/lib/security-log";
+import { registraEvento } from "@/lib/seguridad/registro";
 
 /**
  * Write one line to the security log. SERVER ONLY.
@@ -40,6 +41,17 @@ export async function logSecurity(args: {
       console.error(`[security-log] no se pudo apuntar "${args.kind}":`, error.message);
       return false;
     }
+    // Monitoreo (320): el mismo cambio, en el rastro de eventos. Sin esperar. El «después» solo para cambios de rol (son
+    // nombres de rol); correos, usuarios y demás detalles NUNCA pasan aquí.
+    const despues = args.kind === "role_changed" ? (args.detail ?? "").split("→").pop()?.trim() || null : null;
+    void registraEvento({
+      categoria: "admin",
+      severidad: args.kind === "role_changed" || args.kind === "password_reset" ? 3 : 2,
+      usuario_id: args.actorId,
+      objetivo_tipo: "usuario",
+      objetivo_id: args.targetId,
+      meta: { kind: args.kind, ...(despues ? { despues } : {}) },
+    });
     return true;
   } catch (e) {
     console.error(`[security-log] no se pudo apuntar "${args.kind}":`, e);

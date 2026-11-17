@@ -5,6 +5,7 @@ import { PanelDeSeguridad, type BloqueoFila, type DispositivoFila, type UsoFila,
 import { rangoDeApp } from "@/lib/security/version-de-app";
 import { soloActivos } from "@/lib/baja";
 import { datosDemoDeSeguridad, type BloqueoCrudo, type DatosDeSeguridad, type DispositivoCrudo, type PerfilCrudo, type PoliticaCruda, type UsoCrudo } from "@/lib/security/demo-data";
+import { PanelDeAlertas, type AlertaFila, type BloqueoIpFila, type EventoFila } from "./PanelDeAlertas";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /** Las cinco lecturas de la base y los perfiles que faltaran por id, tal como las hacía la página; `error` es el primer
  *  fallo de las tres que importan. Es una función para que el demo pueda no llamarla. */
-async function leerDeLaBase(): Promise<DatosDeSeguridad & { error: string | null }> {
+async function leerDeLaBase(): Promise<DatosDeSeguridad & { error: string | null; monitoreo: Monitoreo }> {
   const supabase = await createClient();
 
   const desde = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
@@ -36,16 +37,20 @@ async function leerDeLaBase(): Promise<DatosDeSeguridad & { error: string | null
   const ids = [...new Set([...(devices ?? []).flatMap((d) => [d.first_user_id, d.last_user_id]), ...(usos ?? []).map((u) => u.user_id), ...(bloqueos ?? []).map((b) => b.user_id)].filter((x): x is string => !!x))];
   const faltan = ids.filter((id) => !(todos ?? []).some((p) => p.id === id));
   const { data: perfiles } = faltan.length ? await supabase.from("profiles").select("id, full_name, role, store").in("id", faltan) : { data: [] as { id: string; full_name: string; role: string; store: string | null }[] };
+  // Monitoreo (320): en la misma pasada, con la misma sesión del admin.
+  const monitoreo = await leerMonitoreo(supabase);
   return {
     policy: (policy as PoliticaCruda | null) ?? null, devices: (devices ?? []) as DispositivoCrudo[], usos: (usos ?? []) as UsoCrudo[],
     bloqueos: (bloqueos ?? []) as BloqueoCrudo[], todos: (todos ?? []) as PerfilCrudo[],
     perfiles: (perfiles ?? []).map((p) => ({ ...p, username: null, left_at: null })) as PerfilCrudo[],
     error,
+    monitoreo,
   };
 }
 
 export default async function SecurityPage() {
-  const { policy, devices, usos, bloqueos, todos, perfiles, error } = LOCAL_MODE ? { ...datosDemoDeSeguridad(new Date()), error: null } : await leerDeLaBase();
+  const datos = LOCAL_MODE ? { ...datosDemoDeSeguridad(new Date()), error: null } : await leerDeLaBase();
+  const { policy, devices, usos, bloqueos, todos, perfiles, error } = datos;
   const porId = new Map([...(todos ?? []), ...(perfiles ?? [])].map((p) => [p.id, p]));
   const nombre = (id: string | null) => (id && porId.get(id)?.full_name) || "—";
 
@@ -82,5 +87,47 @@ export default async function SecurityPage() {
   const h = await headers();
   const esteDispositivo = dispositivoDeLaPeticion({ cabecera: h.get(CABECERA_DISPOSITIVO), cookie: h.get("cookie") })?.id ?? null;
 
-  return <PanelDeSeguridad enforced={!!policy?.enforced} webBloqueada={!!policy?.web_blocked} exentos={(policy?.web_exempt as string[] | null) ?? []} cambiadaEn={policy?.changed_at ?? null} dispositivos={filas} uso={uso} bloqueados={bloqueados} usuarios={usuarios} esteDispositivo={esteDispositivo} error={error} />;
+  // Monitoreo (320): alertas, bloqueos de IP y eventos. Con la sesión del admin; sin la 320 aplicada la tabla no existe
+  // y el panel lo dice en vez de romperse.
+  // En el demo no hay monitoreo: la lista va vacía (la semilla del demo no lo trae).
+  const mon: Monitoreo = ("monitoreo" in datos ? datos.monitoreo : undefined) ?? MONITOREO_VACIO;
+  const nombreDe2 = (id: string | null) => (id && porId.get(id)?.full_name) || "—";
+  const alertasFila: AlertaFila[] = mon.alertas.map((a) => ({
+    ...a, persona: nombreDe2(a.usuario_id), rol: (a.usuario_id && porId.get(a.usuario_id)?.role) || "",
+  }));
+  const eventosFila: EventoFila[] = mon.eventos.map((e) => ({ ...e, persona: nombreDe2(e.usuario_id) }));
+  const alertasAbiertas = alertasFila.filter((a) => a.estado !== "cerrada").length;
+
+  return (
+    <PanelDeSeguridad
+      enforced={!!policy?.enforced} webBloqueada={!!policy?.web_blocked} exentos={(policy?.web_exempt as string[] | null) ?? []} cambiadaEn={policy?.changed_at ?? null}
+      dispositivos={filas} uso={uso} bloqueados={bloqueados} usuarios={usuarios} esteDispositivo={esteDispositivo} error={error}
+      alertasAbiertas={alertasAbiertas}
+      alertas={<PanelDeAlertas alertas={alertasFila} bloqueos={mon.bloqueos as BloqueoIpFila[]} eventos={eventosFila} eventosDisponibles={mon.eventosOk} />}
+    />
+  );
+}
+
+/** Monitoreo (320): lo que lee el panel de alertas. Un fallo de lectura no tumba la página: se deja vacío y se dice. */
+type Monitoreo = {
+  alertas: Omit<AlertaFila, "persona" | "rol">[];
+  bloqueos: BloqueoIpFila[];
+  eventos: Omit<EventoFila, "persona">[];
+  eventosOk: boolean;
+};
+const MONITOREO_VACIO: Monitoreo = { alertas: [], bloqueos: [], eventos: [], eventosOk: true };
+
+async function leerMonitoreo(supabase: Awaited<ReturnType<typeof createClient>>): Promise<Monitoreo> {
+  const ahora = new Date().toISOString();
+  const [{ data: al }, { data: bl }, { data: ev, error: eEv }] = await Promise.all([
+    supabase.from("sec_alerts").select("id, creada_en, detector, severidad, usuario_id, ip, resumen, estado, cerrada_en, accion").order("creada_en", { ascending: false }).limit(200),
+    supabase.from("sec_blocks").select("id, alcance, valor, motivo, hasta, origen, creado_en").gt("hasta", ahora).order("creado_en", { ascending: false }).limit(200),
+    supabase.from("sec_events").select("id, ts, categoria, severidad, usuario_id, rol, ip, ip_pais, metodo, ruta, estado, objetivo_tipo, filas").order("ts", { ascending: false }).limit(200),
+  ]);
+  return {
+    alertas: (al ?? []) as Omit<AlertaFila, "persona" | "rol">[],
+    bloqueos: (bl ?? []) as BloqueoIpFila[],
+    eventos: (ev ?? []) as Omit<EventoFila, "persona">[],
+    eventosOk: !eEv,
+  };
 }

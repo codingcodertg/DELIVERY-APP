@@ -129,3 +129,46 @@ export async function cambiaPolitica(enforced: boolean): Promise<R> {
   revalidatePath("/security");
   return { ok: true };
 }
+
+/** Monitoreo (320): marcar una alerta vista o cerrada. La RPC `seguridad_marca_alerta` vuelve a comprobar el rol. */
+export async function marcaAlerta(id: number, estado: "abierta" | "vista" | "cerrada"): Promise<R> {
+  const a = await admin();
+  if (!a.ok) return a;
+  const { data, error } = await a.supabase.rpc("seguridad_marca_alerta", { p_id: id, p_estado: estado });
+  if (error) return { ok: false, message: error.message };
+  if (!data) return { ok: false, message: "No se encontró la alerta." };
+  revalidatePath("/security");
+  return { ok: true };
+}
+
+/** Monitoreo (320): bloquear una IP desde una alerta (24 h por defecto). La RPC comprueba el rol y el rango de horas. */
+export async function bloqueaIpDeAlerta(ip: string, horas: number, motivo: string): Promise<R> {
+  const a = await admin();
+  if (!a.ok) return a;
+  const limpia = ip.trim();
+  if (!/^[0-9a-f:.]{3,45}$/i.test(limpia)) return { ok: false, message: "IP no válida." };
+  const { error } = await a.supabase.rpc("seguridad_bloquea_ip", { p_ip: limpia, p_horas: horas, p_motivo: motivo });
+  if (error) return { ok: false, message: error.message };
+  revalidatePath("/security");
+  return { ok: true };
+}
+
+/** Monitoreo (320): quitar un bloqueo activo. */
+export async function quitaBloqueoDeIp(id: number): Promise<R> {
+  const a = await admin();
+  if (!a.ok) return a;
+  const { data, error } = await a.supabase.rpc("seguridad_quita_bloqueo", { p_id: id });
+  if (error) return { ok: false, message: error.message };
+  if (!data) return { ok: false, message: "El bloqueo ya no existe." };
+  revalidatePath("/security");
+  return { ok: true };
+}
+
+/** Monitoreo (320): cerrar las sesiones de una persona desde una alerta. Nunca las de un admin: esa regla vive aquí, no solo en la pantalla. */
+export async function cierraSesionesDeAlerta(userId: string): Promise<R | { ok: true; cerradas: number }> {
+  const a = await admin();
+  if (!a.ok) return a;
+  const { data: p } = await a.supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
+  if (p?.role === "admin") return { ok: false, message: "No se cierran las sesiones de un admin desde una alerta." };
+  return cierraSesionesDe(userId);
+}

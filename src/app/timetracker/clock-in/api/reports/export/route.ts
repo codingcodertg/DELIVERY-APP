@@ -6,6 +6,7 @@ import { payPeriodDates } from "@/lib/clockin/schedule";
 import { entryMinutes, hrs, summarize, attachLunch, lunchMinutes, type PayEntry, type LunchRow } from "@/lib/clockin/payroll";
 import { businessTimeZone } from "@/lib/timetracker/timezone-server";
 import { celdaSegura } from "@/lib/celda-segura";
+import { registraEvento } from "@/lib/seguridad/registro";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -173,6 +174,8 @@ export async function GET(req: Request) {
     filename = `timesheet-detail_${monday}.csv`;
   }
 
+  // Monitoreo (320): quién exportó el reporte de horas y cuántas líneas salieron (sin contar la cabecera).
+  void registraEvento({ categoria: "export", severidad: 2, usuario_id: user.id, rol: me.role ?? null, metodo: "GET", ruta: "/timetracker/clock-in/api/reports/export", estado: 200, filas: Math.max(0, body.split("\r\n").length - 1), objetivo_tipo: "reporte-horas", meta: { tipo: type }, cabeceras: req.headers });
   return new NextResponse(body, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

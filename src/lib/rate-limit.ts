@@ -1,5 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
+import { ipDe } from "@/lib/ip-de";
+import { registraEvento, rutaDe } from "@/lib/seguridad/registro";
 
 /**
  * Cliente de servicio CRUDO, SIN el wrapper de modo enseñanza (a diferencia de `createAdminClient`). El limitador NO
@@ -24,20 +26,8 @@ function clienteDelLimitador() {
  * lado; no se puede interceptar aquí, así que no se cubre desde la app.
  */
 
-/**
- * La IP del cliente. D-1070: la que pone Vercel y el cliente no puede falsear (`x-vercel-forwarded-for`, luego
- * `x-real-ip`); el PRIMER salto de `x-forwarded-for` lo escribe el cliente, así que cambiándolo se saltaba cualquier
- * límite. Si solo hay x-forwarded-for, se toma el ÚLTIMO salto (el que añadió el proxy).
- */
-export function ipDe(req: Request): string {
-  const vercel = req.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim();
-  if (vercel) return vercel;
-  const real = req.headers.get("x-real-ip")?.trim();
-  if (real) return real;
-  const xff = req.headers.get("x-forwarded-for");
-  const ultimo = xff?.split(",").map((x) => x.trim()).filter(Boolean).pop();
-  return ultimo || "ip-desconocida";
-}
+// La IP del cliente vive en `lib/ip-de.ts` (la comparte el monitoreo de seguridad). Se reexporta para quien la importaba de aquí.
+export { ipDe };
 
 export interface OpcionesLimite {
   /** Etiqueta de la ruta (p. ej. "notify"); se combina con la IP para el cubo. */
@@ -72,6 +62,18 @@ export async function limita(req: Request, opts: OpcionesLimite): Promise<{ ok: 
     }
     const r = data as { allowed?: boolean; reset?: number } | null;
     if (r && r.allowed === false) {
+      // Monitoreo de seguridad (320): cada rechazo queda en el rastro. Va sin esperar, y nunca lanza.
+      void registraEvento({
+        categoria: "ratelimit",
+        severidad: 2,
+        usuario_id: opts.usuario ?? null,
+        ip: ipDe(req),
+        metodo: req.method,
+        ruta: rutaDe(req),
+        estado: 429,
+        objetivo_tipo: "clave",
+        objetivo_id: opts.clave,
+      });
       const reset = Number(r.reset);
       return { ok: false, reset: Number.isFinite(reset) ? reset : Math.floor(Date.now() / 1000) + opts.ventanaSeg };
     }

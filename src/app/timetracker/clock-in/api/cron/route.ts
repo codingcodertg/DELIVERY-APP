@@ -12,6 +12,7 @@ import {
   ventanaSemanalAbierta,
   type TurnoDeHoy,
 } from "@/lib/clockin/cronPlan";
+import { registraEvento } from "@/lib/seguridad/registro";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,6 +66,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, verify: true });
   }
 
+  // Latido para el monitoreo de seguridad (320): si este cron deja de correr, el detector «latido-cron» avisa.
+  void registraEvento({ categoria: "cron", severidad: 1, metodo: "GET", ruta: "tt-cron", estado: 200, cabeceras: req.headers });
   const now = Date.now();
   const shift = centralShiftMs(new Date(now));
   const local = new Date(now - shift);

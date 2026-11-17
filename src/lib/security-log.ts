@@ -55,7 +55,9 @@ export type SecurityKind =
   // clases y no una con un detalle, porque lo que se lee en el registro es «cuánto duró», y eso
   // solo se puede leer si el principio y el fin son dos líneas con su hora.
   | "impersonation_start"
-  | "impersonation_end";
+  | "impersonation_end"
+  // Monitoreo (320): una acción automática del cron (p. ej. bloquear una IP 30 min). Queda aquí, junto a lo que hacen las personas.
+  | "security_auto_response";
 
 export interface SecurityEventSeed {
   target_id: string | null;
@@ -91,6 +93,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     warehouse_ops_access_changed: "Warehouse Ops access changed",
     warehouse_ops_role_changed: "Warehouse Ops level changed",
     customers_role_changed: "Customers admin changed",
+    security_auto_response: "Automatic security response",
     deliveries_access_changed: "Deliveries access changed",
     clockin_access_changed: "Clock-in access changed",
     impersonation_start: "Signed in as this user",
@@ -129,6 +132,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     clockin_access_changed: "Acceso a Fichaje cambiado",
     impersonation_start: "Entró como este usuario",
     impersonation_end: "Volvió a su cuenta",
+    security_auto_response: "Respuesta automática de seguridad",
   };
   return (lang === "es" ? es : en)[kind] ?? kind;
 }

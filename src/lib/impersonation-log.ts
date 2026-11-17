@@ -3,6 +3,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { adminKey } from "@/lib/erp/supabase/admin";
 import type { SecurityKind } from "@/lib/security-log";
+import { registraEvento } from "@/lib/seguridad/registro";
 
 /**
  * El rastro de «entrar como», que **sí** puede fallar (D-243).
@@ -56,6 +57,17 @@ export async function apuntarImpersonacion(args: {
       console.error("[impersonation] no se pudo escribir el rastro:", error.message);
       return false;
     }
+    // Monitoreo (320): la misma línea, en el rastro de eventos, con su hora (el detector mira el horario). Sin esperar.
+    const entra = args.kind === "impersonation_start";
+    void registraEvento({
+      categoria: "impersonation",
+      severidad: entra ? 2 : 1,
+      usuario_id: args.actorId,
+      objetivo_tipo: "usuario",
+      objetivo_id: args.targetId,
+      metodo: entra ? "start" : "end",
+      meta: { kind: entra ? "start" : "end" },
+    });
     return true;
   } catch (e) {
     console.error("[impersonation] no se pudo escribir el rastro:", e);

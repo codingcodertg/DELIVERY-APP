@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/api-auth";
 import { dispositivoDeLaPeticion, tipoPorAgente } from "@/lib/security/reglas";
 import { lugarDeLaPeticion } from "@/lib/security/lugar";
 import { appForPath } from "@/lib/app-for-path";
+import { registraSesionActiva } from "@/lib/seguridad/registro";
 
 export const runtime = "nodejs";
 
@@ -29,6 +30,8 @@ function appDeLaRuta(route: string | null): string | null {
 export async function POST(req: Request) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
+  // Monitoreo (320): la sesión activa de esta persona y su país. Escribe solo si cambió el país o pasó una hora.
+  await registraSesionActiva({ usuario_id: auth.user.id, cabeceras: req.headers });
   const d = dispositivoDeLaPeticion({ cabecera: req.headers.get("x-rtg-device"), cookie: req.headers.get("cookie") });
   if (!d) return NextResponse.json({ error: "No device id." }, { status: 400 });
   const ua = req.headers.get("user-agent") ?? "";

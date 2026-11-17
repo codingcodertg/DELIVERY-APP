@@ -7,6 +7,7 @@ import { payPeriodDates } from "@/lib/clockin/schedule";
 import { hrs, entryMinutes, attachLunch, type PayEntry, type LunchRow } from "@/lib/clockin/payroll";
 import { businessTimeZone } from "@/lib/timetracker/timezone-server";
 import { celdaSegura } from "@/lib/celda-segura";
+import { registraEvento } from "@/lib/seguridad/registro";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -191,6 +192,8 @@ export async function GET(req: Request) {
   const label = scopeStore && scopeStore.length === 1
     ? (siteName.get(scopeStore[0]) ?? "store").replace(/\s+/g, "-")
     : scopeStore ? `${scopeStore.length}-stores` : "all-stores";
+  // Monitoreo (320): la nómina semanal en Excel, quién la sacó y para qué alcance.
+  void registraEvento({ categoria: "export", severidad: 3, usuario_id: user.id, rol: me.role ?? null, metodo: "GET", ruta: "/timetracker/clock-in/api/reports/xlsx", estado: 200, objetivo_tipo: "nomina-semanal", meta: { alcance: label }, cabeceras: req.headers });
   return new NextResponse(buf as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
