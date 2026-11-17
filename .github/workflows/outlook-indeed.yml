@@ -7,8 +7,7 @@
 name: outlook-indeed-cron
 
 on:
-  schedule:
-    - cron: "*/15 * * * *"
+  # D-1072: el horario ahora lo lleva Supabase (pg_cron, migración 319). Aquí queda solo el disparo manual.
   workflow_dispatch: {}
 
 permissions: {}
