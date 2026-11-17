@@ -52480,3 +52480,8 @@ Sello `recruiting` 0.104.0; repo 1.913.0.
 Con un script de consola en su propio navegador, el dueño bajó a un .mbox los 267 correos de Indeed de careers@ (GoDaddy bloquea los bots y el permiso de administrador). `scripts/importa-mbox-indeed.mts` los pasó por la misma cadena: 57 candidatos nuevos, 151 ya estaban (nota), 59 no eran de un candidato. El dueño: descartar los que no mandaron teléfono (31), etiquetarlos, y que cada perfil lleve CV, puesto, ciudad a la que aplicó, nombre, dónde vive y celular.
 El importador ahora llena puesto (de los dos asuntos), ciudad de la vacante (`location`, del asunto de la solicitud), domicilio (`home_location`, solo si el cuerpo lo trae), teléfono, correo y CV; etiqueta «Indeed import»; crea descartado el mensaje sin teléfono. Al coincidir con alguien ya existente solo llena lo vacío y solo si coincide teléfono o correo; por nombre solo, no toca nada (revisión de seguridad). Los mensajes de Indeed no traen CV, ciudad ni domicilio: esos datos solo están en la página de Indeed.
 Sello `recruiting` 0.105.0; repo 1.914.0.
+
+## D-1066 · Indeed: una coincidencia dudosa nunca escribe en una ficha existente (2026-11-16)
+
+Revisión de seguridad sobre D-1065. En el camino de mensajes, una coincidencia solo por nombre ya no autoriza cambiar teléfono, cita ni campos (antes bastaba con que el puesto coincidiera), y el puesto tampoco basta si el nombre de la ficha choca. En `comoCoincide` el nombre se compara con `normalizeName` (letras Unicode) y falla cerrado: si alguno queda vacío, cuenta como «solo nombre».
+Sello `recruiting` 0.106.0; repo 1.915.0.
