@@ -551,7 +551,8 @@
 /* La hoja: papel de la app, como la cotización (estimator.css, .hoja-cliente), con la letra tecleada de la cotización. */
 .recruiting-module .docs-hoja {
   background: var(--hoja-papel); color: var(--hoja-tinta); max-width: 760px; margin: 0 auto; padding: 36px 40px;
-  font-family: "Courier New", Courier, monospace; font-size: 13px; line-height: 1.45; border: 1px solid var(--line);
+  /* Contrato, no factura (D-1068): letra serif formal, no la Courier de la cotización. Fuentes del sistema: imprimen igual sin red. */
+  font-family: Cambria, Georgia, "Times New Roman", Times, serif; font-size: 14px; line-height: 1.55; border: 1px solid var(--line);
   overflow-wrap: anywhere;
 }
 .recruiting-module .docs-hoja-encabezado { margin-bottom: 18px; }
