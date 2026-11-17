@@ -313,10 +313,10 @@ export default function LoginPage() {
 
         {!listView && (
           <div style={{ marginTop: 16, textAlign: "center", fontSize: 13 }}>
+            {/* D-1070: sin registro abierto. Las cuentas las crea un admin en Usuarios (antes cualquiera se registraba y
+                la base le daba el rol que pidiera). */}
             {mode === "signin" ? (
-              <button className="link-tel" style={{ background: "none" }} onClick={() => { setMode("signup"); setPicked(null); }}>
-                {t("No account? Create one", "¿Sin cuenta? Crea una")}
-              </button>
+              <span className="hint">{t("No account? Ask your manager to create one.", "¿Sin cuenta? Pídele a tu gerente que te la cree.")}</span>
             ) : (
               <button className="link-tel" style={{ background: "none" }} onClick={() => setMode("signin")}>
                 {t("Already have an account? Sign in", "¿Ya tienes cuenta? Entra")}

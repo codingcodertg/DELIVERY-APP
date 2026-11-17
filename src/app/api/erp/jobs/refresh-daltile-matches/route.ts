@@ -37,7 +37,8 @@ async function fetchExport(base: string, token: string): Promise<WareRow[]> {
 
 export async function GET(req: NextRequest) {
   const secret = process.env.JOBS_SECRET;
-  if (secret && req.headers.get('authorization') !== `Bearer ${secret}`) {
+  // D-1070: falla cerrado. Sin JOBS_SECRET en el entorno nadie lo corre (antes, sin la variable, lo corría cualquiera).
+  if (!secret || req.headers.get('authorization') !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const base = process.env.WAREHOUSE_CATALOG_URL;

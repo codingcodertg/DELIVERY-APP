@@ -16,8 +16,11 @@ beforeEach(() => {
 });
 
 describe("ipDe", () => {
-  it("toma el primer salto de x-forwarded-for", () => {
-    expect(ipDe(pet({ "x-forwarded-for": "1.2.3.4, 5.6.7.8" }))).toBe("1.2.3.4");
+  it("prefiere x-vercel-forwarded-for (el cliente no lo puede falsear)", () => {
+    expect(ipDe(pet({ "x-vercel-forwarded-for": "7.7.7.7", "x-forwarded-for": "1.2.3.4, 7.7.7.7" }))).toBe("7.7.7.7");
+  });
+  it("con solo x-forwarded-for toma el ÚLTIMO salto: el primero lo escribe el cliente", () => {
+    expect(ipDe(pet({ "x-forwarded-for": "1.2.3.4, 5.6.7.8" }))).toBe("5.6.7.8");
   });
   it("cae a x-real-ip", () => {
     expect(ipDe(pet({ "x-real-ip": "9.9.9.9" }))).toBe("9.9.9.9");
