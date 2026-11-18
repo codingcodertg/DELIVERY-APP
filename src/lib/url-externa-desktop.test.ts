@@ -6,7 +6,10 @@ const require = createRequire(import.meta.url);
 const { esUrlExterna } = require("../../desktop/url-externa.js") as { esUrlExterna: (u: string) => boolean };
 
 describe("desktop: esUrlExterna (lo que se abre con el navegador del sistema)", () => {
-  it("deja pasar http, https, mailto y tel", () => {
+  it("deja pasar http, https, mailto, tel, sms y RingCentral (rcapp)", () => {
+    expect(esUrlExterna("rcapp://r/call?number=9565550134")).toBe(true);
+    expect(esUrlExterna("rcapp://r/sms?type=new&number=9565550134&content=Hola")).toBe(true);
+    expect(esUrlExterna("sms:9565550134")).toBe(true);
     expect(esUrlExterna("https://maps.google.com/?q=Dallas")).toBe(true);
     expect(esUrlExterna("http://example.com")).toBe(true);
     expect(esUrlExterna("mailto:ana@empresa.com")).toBe(true);
@@ -19,7 +22,6 @@ describe("desktop: esUrlExterna (lo que se abre con el navegador del sistema)", 
     expect(esUrlExterna("javascript:alert(1)")).toBe(false);
     expect(esUrlExterna("data:text/html,hola")).toBe(false);
     expect(esUrlExterna("smb://servidor/recurso")).toBe(false);
-    expect(esUrlExterna("rcapp://r/call?number=1")).toBe(false);
   });
 
   it("descarta lo que no es una URL", () => {
