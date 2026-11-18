@@ -118,7 +118,9 @@ describe("a dónde lleva la campana", () => {
     const campana = plano(sinComentarios(leer("src/components/NotificationBell.tsx")));
     // Nota D-560 (solicitudes de asignación): entre la ayuda y la orden va el destino de la solicitud; la ayuda sigue primero.
     // D-867: el orden (link → ayuda → solicitud → orden) vive en `lib/destino-del-aviso.ts`; la campana solo lo llama.
-    expect(campana).toContain("const destino = destinoDelAviso(n); if (destino) router.push(destino);");
+    // D-1077: la campana pasa por `accionDelAviso`, que usa `destinoDelAviso`.
+    expect(campana).toContain("const accion = accionDelAviso(n, appActual); if (accion.tipo === \"ir\") { setOpen(false); router.push(accion.href); return; }");
+    expect(plano(sinComentarios(leer("src/lib/notificaciones-todas.ts")))).toContain("const href = item.base ? destinoDelAviso(item.base) : null;");
     expect(campana).toContain("onPick(n)");
     const destino = plano(sinComentarios(leer("src/lib/destino-del-aviso.ts")));
     expect(destino).toContain("return enlaceSeguro(n.link) ?? destinoDelAvisoDeAyuda(n.kind) ?? destinoDelAvisoDeSolicitud(n.kind, n.delivery_id) ?? (n.delivery_id ? `/?order=${n.delivery_id}` : null);");

@@ -197,6 +197,6 @@ describe("puertas: la base, el proveedor, la pantalla del chofer y la campana", 
   });
 
   it("la campana pinta el aviso en ámbar", () => {
-    expect(leer("src/components/NotificationBell.tsx")).toContain(': n.kind === KIND_TOMADA_POR_CHOFER ? "var(--amber)"');
+    expect(leer("src/components/NotificationBell.tsx")).toContain(': kind === KIND_TOMADA_POR_CHOFER ? "var(--amber)"');
   });
 });
