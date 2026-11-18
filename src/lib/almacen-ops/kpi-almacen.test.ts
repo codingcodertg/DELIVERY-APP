@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import {
-  META_DE_MERMA_PCT, aplicaExcepcion, listasAntesDeRecoger, mesesHastaHoy, nivelDeBono, puntajeGeneral, rangoDelMes,
+  META_DE_MERMA_PCT, MINIMO_DE_PERSONAS_TIEMPO, aplicaExcepcion, listasAntesDeRecoger, mesesHastaHoy, nivelDeBono, puntajeGeneral, rangoDelMes,
   resultadoDeMerma, resultadoDeTiempo, truncaDecimales, type EntregaParaListas,
 } from "./kpi-almacen";
 import type { EventoDeOrden } from "./kpi-entregas";
@@ -223,10 +223,46 @@ describe("migración 325: la puerta de gerencia y el registro", () => {
     expect(gate).toBeLessThan(primeraLectura);
     expect(SQL).toContain("v_nivel in ('admin', 'store_admin')");
     expect(SQL).toContain("v_recruiting in ('admin', 'manager')");
-    expect(SQL).toContain("(v_nivel = 'full' and (v_role = 'manager' or 'warehouse_ops_supervisor' = any(v_perms)))");
+    expect(SQL).toContain("coalesce(v_nivel = 'full' and (coalesce(v_role = 'manager', false)");
+    expect(SQL).toContain("coalesce('warehouse_ops_supervisor' = any(v_perms), false)");
     expect(SQL).toContain("using errcode = '42501'");
     // scrap_only nunca aparece como nivel permitido.
     expect(SQL).not.toMatch(/v_nivel in \([^)]*scrap_only/);
+  });
+
+  it("la puerta es a prueba de NULL: cada término va con coalesce, y un NULL rechaza (no abre)", () => {
+    // Con recruiting_role NULL, «v_recruiting in (...)» da NULL; sin coalesce el `if not (...)` no lanza.
+    expect(SQL).toContain("coalesce(v_recruiting in ('admin', 'manager'), false)");
+    expect(SQL).toContain("coalesce(v_role = 'admin', false)");
+    expect(SQL).toContain("coalesce(v_nivel in ('admin', 'store_admin'), false)");
+    expect(SQL).toContain("if not coalesce(v_ok, false) then");
+    expect(SQL).not.toMatch(/if not \(\s*v_role = 'admin'/);
+  });
+
+  it("sin fila de perfil se rechaza antes de evaluar nada", () => {
+    const sinFila = SQL.indexOf("if not found then");
+    expect(sinFila).toBeGreaterThan(0);
+    expect(SQL.slice(sinFila, sinFila + 200)).toContain("errcode = '42501'");
+    expect(sinFila).toBeLessThan(SQL.indexOf("v_ok := coalesce("));
+  });
+
+  it("solo meses completos: el día 1 y el último día del mes, o 22023", () => {
+    expect(SQL).toContain("p_desde <> date_trunc('month', p_desde)::date");
+    expect(SQL).toContain("p_hasta <> (date_trunc('month', p_desde) + interval '1 month - 1 day')::date");
+    expect(SQL).toContain("using errcode = '22023'");
+  });
+
+  it("con menos de 3 personas, los números de fichaje salen null (la base, no solo la pantalla)", () => {
+    expect(MINIMO_DE_PERSONAS_TIEMPO).toBe(3);
+    expect(SQL).toContain("'turnos',       case when v_personas >= 3 then v_turnos else null end");
+    expect(SQL).toContain("'turnos_bien',  case when v_personas >= 3 then v_bien else null end");
+    expect(SQL).toContain("'horas',        case when v_personas >= 3 then round(v_horas, 2) else null end");
+  });
+
+  it("ninguna respuesta de la ruta filtra el detalle de la base", () => {
+    const ruta = readFileSync(join(process.cwd(), "src/app/api/almacen-ops/kpi-almacen/route.ts"), "utf8");
+    expect(ruta).not.toMatch(/detail\s*:/);
+    expect(ruta).toContain('errorAlCliente("kpi-almacen"');
   });
 
   it("la tienda también debe ser de quien pide", () => {

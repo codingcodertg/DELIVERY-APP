@@ -51,27 +51,37 @@ declare
   v_bien       integer := 0;
   v_horas      numeric := 0;
   v_personas   integer := 0;
+  v_ok         boolean;
   -- PUERTA DE GERENCIA (la misma regla que `veLosReportes` en src/lib/almacen-ops/visibilidad.ts): admin y store_admin;
   -- RR. HH. admin/manager; y el nivel `full` solo si es gerente del hub o tiene el permiso de supervisor. El personal
   -- de merma (`scrap_only`) y el `full` sin cargo de gerente NO pasan. Va ANTES de leer nada.
+  -- Sin fila de perfil no hay quién: se rechaza. Y cada término va con coalesce: en SQL «NULL o falso» da NULL, y un
+  -- NULL en un `if not (...)` NO lanza, así que sin el coalesce la puerta se abriría con datos nulos.
   select p.role, p.recruiting_role, coalesce(p.permissions, '{}')
     into v_role, v_recruiting, v_perms
     from public.profiles p where p.id = auth.uid();
+  if not found then
+    raise exception 'warehouse_ops: sin perfil para esta sesión' using errcode = '42501';
+  end if;
   v_nivel := public.warehouse_ops_level_of(auth.uid());
-  if not (
-       v_role = 'admin'
-    or v_nivel in ('admin', 'store_admin')
-    or v_recruiting in ('admin', 'manager')
-    or (v_nivel = 'full' and (v_role = 'manager' or 'warehouse_ops_supervisor' = any(v_perms)))
-  ) then
+  v_ok := coalesce(v_role = 'admin', false)
+       or coalesce(v_nivel in ('admin', 'store_admin'), false)
+       or coalesce(v_recruiting in ('admin', 'manager'), false)
+       or coalesce(v_nivel = 'full' and (coalesce(v_role = 'manager', false)
+                                         or coalesce('warehouse_ops_supervisor' = any(v_perms), false)), false);
+  if not coalesce(v_ok, false) then
     raise exception 'warehouse_ops: solo gerencia o supervisión de almacén ve estos KPI' using errcode = '42501';
   end if;
 
   if not public.warehouse_ops_in_store(p_store) then
     raise exception 'warehouse_ops: sin acceso a esa tienda' using errcode = '42501';
   end if;
-  if p_desde is null or p_hasta is null or p_hasta < p_desde then
-    raise exception 'warehouse_ops: rango de fechas inválido' using errcode = '22023';
+  -- Solo meses completos: el primer día del mes y su último día. Un rango cualquiera daría cifras que no se pueden
+  -- comparar con el objetivo mensual.
+  if p_desde is null or p_hasta is null
+     or p_desde <> date_trunc('month', p_desde)::date
+     or p_hasta <> (date_trunc('month', p_desde) + interval '1 month - 1 day')::date then
+    raise exception 'warehouse_ops: el rango debe ser un mes completo' using errcode = '22023';
   end if;
 
   -- Merma: el día que cuenta es el de la rotura; sin él, el día de Texas en que se reportó.
@@ -105,16 +115,17 @@ declare
       and public.warehouse_ops_level_of(p.id) <> ''
       and (e.clock_in_at at time zone 'America/Chicago')::date between p_desde and p_hasta;
 
+  -- Con menos de 3 personas el porcentaje de fichajes identifica a alguien: no se devuelve (null), igual que sin datos.
   return jsonb_build_object(
     'merma_valor',  round(v_merma, 2),
     'merma_filas',  v_merma_n,
     'ventas',       case when v_erp is null or v_ventas_n = 0 then null else round(v_ventas, 2) end,
     'ventas_filas', case when v_erp is null then 0 else v_ventas_n end,
     'ventas_hasta', case when v_erp is null then null else v_ventas_hi end,
-    'turnos',       v_turnos,
-    'turnos_bien',  v_bien,
-    'horas',        round(v_horas, 2),
-    'personas',     v_personas
+    'turnos',       case when v_personas >= 3 then v_turnos else null end,
+    'turnos_bien',  case when v_personas >= 3 then v_bien else null end,
+    'horas',        case when v_personas >= 3 then round(v_horas, 2) else null end,
+    'personas',     case when v_personas >= 3 then v_personas else null end
   );
 end $$;
 
@@ -122,4 +133,4 @@ revoke all on function public.warehouse_ops_kpi_almacen_mes(text, date, date) fr
 grant execute on function public.warehouse_ops_kpi_almacen_mes(text, date, date) to authenticated;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('325_kpi_almacen.sql', 'da054d3d9da5368f9541b47059128a3d00e28917b3cc6716da04ebcf96130ec2') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('325_kpi_almacen.sql', 'ee48dc0b564b1885b040d4eb2178acdeb57075eb1b1a9218b46c468769406118') on conflict (name) do nothing;

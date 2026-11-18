@@ -27,6 +27,8 @@ import { evaluarOrdenes, type EntregaDelKpi, type EventoDeOrden } from "./kpi-en
 export const UMBRAL_DE_EXCEPCION_MS = 4 * 3_600_000;
 /** Meta de merma: % de las ventas netas del mes. Se cumple con MENOS de esto (0.5 exacto no cumple). */
 export const META_DE_MERMA_PCT = 0.5;
+/** Con menos personas que esto, el porcentaje de fichajes identifica a alguien: no se muestra (la base manda null). */
+export const MINIMO_DE_PERSONAS_TIEMPO = 3;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Meses y fechas

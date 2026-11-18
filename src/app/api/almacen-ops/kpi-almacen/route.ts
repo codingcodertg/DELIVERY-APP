@@ -54,7 +54,7 @@ export async function GET(req: Request) {
   const fin = new Date(Date.parse(`${mes.hasta}T00:00:00Z`) + 2 * 86_400_000).toISOString();
   const recogidas = await todasLasFilas<EventoDeOrden>((a, b) =>
     supabase.from("order_events").select("delivery_id, kind, created_by, created_at").eq("kind", KIND_RECOGIDA).gte("created_at", inicio).lt("created_at", fin).order("created_at").range(a, b));
-  if (recogidas.error) return NextResponse.json({ error: "Could not read the order history.", detail: recogidas.error }, { status: 500 });
+  if (recogidas.error) return errorAlCliente("kpi-almacen", recogidas.error, 500, "Could not read the order history.");
   const ids = [...new Set(recogidas.filas.map((e) => e.delivery_id))];
 
   // 2. Las órdenes de ESTA tienda (con su hora de creación) y 3. sus «lista».
@@ -85,8 +85,11 @@ export async function GET(req: Request) {
     const a = (agregado ?? {}) as Record<string, number | string | null>;
     const m = resultadoDeMerma(Number(a.merma_valor ?? 0), a.ventas === null || a.ventas === undefined ? null : Number(a.ventas));
     merma = { ...m, filas: Number(a.merma_filas ?? 0), ventasFilas: Number(a.ventas_filas ?? 0), ventasHasta: (a.ventas_hasta as string | null) ?? null };
-    const t = resultadoDeTiempo(Number(a.turnos ?? 0), Number(a.turnos_bien ?? 0));
-    tiempo = { ...t, horas: Number(a.horas ?? 0), personas: Number(a.personas ?? 0) };
+    // La base manda null con menos de 3 personas (ver 325): ese KPI no se calcula y se muestra como sin datos.
+    if (a.turnos !== null && a.turnos !== undefined) {
+      const t = resultadoDeTiempo(Number(a.turnos), Number(a.turnos_bien ?? 0));
+      tiempo = { ...t, horas: Number(a.horas ?? 0), personas: Number(a.personas ?? 0) };
+    }
   }
 
   const puntaje = puntajeGeneral({
