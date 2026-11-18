@@ -1621,16 +1621,27 @@ export default function RoutesPage() {
     const esLaCeldaDeEtapa = c.key === "p_stage" || c.key === "stage";
     const accionesEtapa = cambiarEtapa && esLaCeldaDeEtapa && puedeCambiarEtapaAqui(me?.role) ? accionesDeEtapaParaAdmin(d.stage) : [];
     if (accionesEtapa.length === 0) return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;
+    // D-1087 (ayuda del dueño: «está horrible… que cuando se apriete "Listo" suelte un dropdown con las otras opciones»):
+    // la insignia de siempre, con una flechita; encima va un <select> nativo invisible, así al tocarla se abre el menú
+    // del sistema (que nunca queda cortado por la tabla) con lo que se puede marcar. La fila no crece.
     return (
       <td key={c.key} className={clasePastillas(c.key)}>
-        {celdaDeOrdenes(c.key, d)}
-        <span data-cambiar-etapa style={{ display: "inline-flex", gap: 4, marginLeft: 6, flexWrap: "wrap", verticalAlign: "middle" }}>
-          {accionesEtapa.map((a) => (
-            <button key={a} type="button" className={`btn btn-sm ${a === "recoger" ? "btn-primary" : "btn-green"}`} style={{ padding: "2px 6px", minHeight: 0 }}
-              data-cambiar-etapa-accion={a} onClick={() => void cambiarEtapaDeLaOrden(d, a)}>
-              {a === "recoger" ? t("Picked up", "Recogido") : t("Delivered", "Entregado")}
-            </button>
-          ))}
+        <span data-cambiar-etapa style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 2, cursor: "pointer" }}>
+          {celdaDeOrdenes(c.key, d)}
+          <span aria-hidden style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
+          <select
+            value=""
+            aria-label={t("Change stage", "Cambiar etapa")}
+            title={t("Change stage", "Cambiar etapa")}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => { const a = e.target.value as AccionDeEtapaAdmin; if (a) void cambiarEtapaDeLaOrden(d, a); }}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }}
+          >
+            <option value="">{t("Change to…", "Cambiar a…")}</option>
+            {accionesEtapa.map((a) => (
+              <option key={a} value={a} data-cambiar-etapa-accion={a}>{a === "recoger" ? t("Picked up", "Recogido") : t("Delivered", "Entregado")}</option>
+            ))}
+          </select>
         </span>
       </td>
     );
