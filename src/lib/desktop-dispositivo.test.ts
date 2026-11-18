@@ -44,11 +44,11 @@ describe("la cabecera", () => {
     expect(CABECERA).toBe(CABECERA_DISPOSITIVO);
     expect(CABECERA).toBe("x-rtg-device");
   });
-  it("la app la pone solo hacia nuestro sitio, y la versión es la 1.6.1 (D-813 la subió a 1.2.1; D-916, la vigilancia de red, a 1.3.0; D-984, abrir al iniciar Windows, a 1.4.0; la protección de capturas, a 1.5.0; el nombre iFloor y los enlaces seguros, a 1.6.0; RingCentral y sms, a 1.6.1)", () => {
+  it("la app la pone solo hacia nuestro sitio, y la versión es la 1.6.2 (D-813 la subió a 1.2.1; D-916, la vigilancia de red, a 1.3.0; D-984, abrir al iniciar Windows, a 1.4.0; la protección de capturas, a 1.5.0; el nombre iFloor y los enlaces seguros, a 1.6.0; RingCentral y sms, a 1.6.1; el actualizador que sí cierra y el título, a 1.6.2)", () => {
     const main = leer("desktop/main.js");
     expect(main).toContain("if (esNuestro(detalles.url)) requestHeaders[CABECERA] = idInstalacion;");
     expect(main).toContain("webRequest.onBeforeSendHeaders(");
-    expect(JSON.parse(leer("desktop/package.json")).version).toBe("1.6.1");
+    expect(JSON.parse(leer("desktop/package.json")).version).toBe("1.6.2");
   });
   it("sin cabecera, la cookie (no ligada); sin nada, null; basura, null", () => {
     expect(dispositivoDeLaPeticion({ cabecera: null, cookie: "a=1; rtg_device=5b2c0d4e-1f2a-4b3c-9d8e-7f6a5b4c3d2e; b=2" })).toEqual({ id: "5b2c0d4e-1f2a-4b3c-9d8e-7f6a5b4c3d2e", ligado: false });
@@ -82,7 +82,7 @@ describe("se actualiza sola (el dueño: «que se instale como un update normal»
     expect(main).toContain("autoUpdater.autoDownload = true;");
     expect(main).toContain("autoUpdater.autoInstallOnAppQuit = true;");
     expect(main).toContain("autoUpdater.requestHeaders = { [CABECERA]: idInstalacion };");
-    expect(main).toContain("autoUpdater.quitAndInstall()");
+    expect(main).toContain("autoUpdater.quitAndInstall(true, true)");
   });
   it("la ruta sirve latest.yml y el instalador desde Blob, con la cabecera de la app o con sesión; nada más", () => {
     const ruta = leer("src/app/api/desktop-update/[file]/route.ts");
