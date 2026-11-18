@@ -26,7 +26,7 @@ import type { Delivery } from "@/lib/types";
  *   · `RelevoDeLaOrden`: en cualquier orden sin relevo (de cliente, de tienda a tienda…), el botón «⇄» que lo ACTIVA (tienda de relevo + día de
  *     recogida del paso b), solo para quien planifica rutas; en un paso de relevo, la pastilla es el botón y abre la
  *     TARJETA del relevo: el estado de la orden entera, cada paso con quién y cuándo, el día y el chofer del paso b (que
- *     quien planifica puede cambiar) y «Deshacer el relevo» mientras el paso a no se haya recogido.
+ *     quien planifica puede cambiar) y «↩ Deshacer relevo» mientras el paso b no haya salido (322).
  *
  * Todo se abre EN SU SITIO, como una tarjeta encima de la pantalla: nada navega a otra app.
  */
@@ -110,10 +110,13 @@ export function RelevoDeLaOrden({ pedido, compacto = false, soloLectura = false 
   };
   const deshacer = async () => {
     if (guardando) return;
+    // 322: si el paso a ya está entregado en la tienda de relevo, la mercancía está ahí y la orden queda lista en ella.
+    const pasoA = familia.find((p) => p.relay_step === 1);
+    const enLaTienda = pasoA?.stage === "delivered" ? (pasoA.delivery_name ?? "?") : null;
     const ok = await confirmar(
-      t(`Undo the relay transfer? #${numero} becomes one order again, straight to ${destinoFinal}. The other step is removed, with its driver and its day.`,
-        `¿Deshacer la transferencia por relevo? #${numero} vuelve a ser una sola orden, directa a ${destinoFinal}. El otro paso se quita, con su chofer y su día.`),
-      { confirmLabel: t("Undo the relay", "Deshacer el relevo") },
+      t(`Undo the relay? #${numero} becomes one order again, straight to ${destinoFinal}.${enLaTienda ? ` The goods are already at ${enLaTienda}: the order is ready there, with no driver.` : ""} The other step is removed, with its driver and its day.`,
+        `¿Deshacer el relevo? #${numero} vuelve a ser una sola orden, directa a ${destinoFinal}.${enLaTienda ? ` La mercancía ya está en ${enLaTienda}: la orden queda lista allí, sin chofer.` : ""} El otro paso se quita, con su chofer y su día.`),
+      { confirmLabel: t("Undo relay", "Deshacer relevo") },
     );
     if (!ok) return;
     setGuardando(true);
@@ -225,7 +228,7 @@ export function RelevoDeLaOrden({ pedido, compacto = false, soloLectura = false 
             <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
               {puede && sePuedeDeshacer(familia) && (
                 <button type="button" className="btn btn-danger" data-deshacer-relevo style={{ minHeight: 44 }} disabled={guardando} onClick={() => void deshacer()}>
-                  ↶ {t("Undo the relay", "Deshacer el relevo")}
+                  ↩ {t("Undo relay", "Deshacer relevo")}
                 </button>
               )}
               <button type="button" className="btn" style={{ flex: 1, minHeight: 44, justifyContent: "center" }} disabled={guardando} onClick={cerrar}>{t("Close", "Cerrar")}</button>

@@ -5,11 +5,11 @@
  */
 import type { TipoDeReporte } from "./tipos";
 import { nivelDe, puedeLlenar, tiposPermitidos } from "./nivel";
-import { veReportesDeLaTienda, type Quien } from "./visibilidad";
+import { veLosReportes, veReportesDeLaTienda, type Quien } from "./visibilidad";
 import { veMantenimiento } from "./mantenimiento";
 import { veConteos } from "./conteos";
 
-export type Vista = { v: "inicio" } | { v: "nuevo"; tipo: TipoDeReporte } | { v: "mios" } | { v: "reportes" } | { v: "mantenimiento" } | { v: "conteos" };
+export type Vista = { v: "inicio" } | { v: "nuevo"; tipo: TipoDeReporte } | { v: "mios" } | { v: "reportes" } | { v: "mantenimiento" } | { v: "conteos" } | { v: "kpis" };
 
 export function vistaPermitida(q: Quien, vista: Vista): boolean {
   switch (vista.v) {
@@ -25,6 +25,8 @@ export function vistaPermitida(q: Quien, vista: Vista): boolean {
     case "mantenimiento": return veMantenimiento(q);
     // 274: los conteos de inventario: el personal hace los pasos 1–3; el gerente crea, firma y ajusta.
     case "conteos": return veConteos(q);
+    // KPIs de almacén: solo gerencia (la misma regla que «Reportes (gerentes)»; la base la repite en la 325).
+    case "kpis": return veLosReportes(q);
   }
 }
 

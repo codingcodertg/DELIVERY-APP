@@ -152,7 +152,8 @@ describe("el punto de la campana", () => {
   it("el aviso de ayuda lleva color propio, no el prestado de la primera etapa", () => {
     // `stageInfo` cae a STAGES[0] con una clave que no es etapa: sin esta rama, el punto se pintaba
     // con el color de otra cosa y nada chirriaba.
-    const expresion = campana.slice(campana.indexOf("const dotColor ="), campana.indexOf(";", campana.indexOf("const dotColor =")));
+    // D-1077: el color vive en `colorDelAviso`.
+    const expresion = campana.slice(campana.indexOf("function colorDelAviso"), campana.indexOf(";", campana.indexOf("function colorDelAviso")));
     expect(expresion).toContain("AYUDA_ATENDIDA_KIND");
     expect(expresion.indexOf("AYUDA_ATENDIDA_KIND")).toBeLessThan(expresion.indexOf("stageInfo"));
   });

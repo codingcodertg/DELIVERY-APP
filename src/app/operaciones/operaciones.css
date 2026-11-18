@@ -633,3 +633,19 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-columnas-barra > .ops-exportar + * { margin-left: 6px; }
 /* 5. Encabezados de columnas numéricas: alineados a la derecha como sus números. */
 .ops th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* KPIs de almacén: reportes a la izquierda, cifras a la derecha; en el teléfono, una columna (reportes arriba). */
+.ops-kpi-almacen-cabeza { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.ops-kpi-almacen-cabeza h2 { margin: 0; }
+.ops-kpi-almacen-grid { display: grid; gap: 16px; }
+.ops-kpi-almacen-reportes { display: grid; gap: 8px; align-content: start; }
+.ops-kpi-almacen-filtros { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.ops-kpi-almacen-filtros select { min-width: 160px; }
+.ops-kpi-almacen-kpis { min-width: 0; }
+.ops-kpi-almacen-bono { margin-bottom: 12px; }
+.ops-kpi-almacen-tarjetas { display: grid; gap: 10px; margin-top: 12px; }
+@media (min-width: 720px) { .ops-kpi-almacen-tarjetas { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 900px) {
+  .ops-kpi-almacen-grid { grid-template-columns: minmax(180px, 1fr) minmax(0, 3fr); align-items: start; }
+  .ops-kpi-almacen-reportes { position: sticky; top: 12px; }
+}

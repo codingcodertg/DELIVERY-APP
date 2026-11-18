@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { AppNotification } from "@/lib/notifications";
-import { CampanaDeAvisos } from "@/components/NotificationBell";
+import { CampanaDeAvisos, cargarAvisosRrhh, marcarRrhhLeidos } from "@/components/NotificationBell";
 
 const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
@@ -64,5 +64,14 @@ export function CampanaDeClientes() {
   }, [supabase, yo]);
 
   if (!supabase) return null;
-  return <CampanaDeAvisos notifications={avisos} markNotifRead={marcaLeido} markManyRead={marcaVarios} />;
+  return (
+    <CampanaDeAvisos
+      notifications={avisos}
+      markNotifRead={marcaLeido}
+      markManyRead={marcaVarios}
+      appActual="clientes"
+      cargarRrhh={cargarAvisosRrhh}
+      marcaRrhhLeidos={marcarRrhhLeidos}
+    />
+  );
 }

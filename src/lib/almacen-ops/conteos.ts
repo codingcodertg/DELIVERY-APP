@@ -288,9 +288,10 @@ export function ordenarPorDiferencia<T extends Pick<Linea, "system_qty" | "count
 // ---------------------------------------------------------------------------
 // Permisos (la misma regla que la base)
 // ---------------------------------------------------------------------------
-/** ¿Se le ofrece la sección «Conteos»? A cualquiera con nivel en la app (el personal hace los pasos 1–3). */
+/** ¿Se le ofrece la sección «Conteos»? Al personal con nivel (pasos 1–3), salvo el Associate (solo merma; 17 nov). */
 export function veConteos(q: Quien): boolean {
-  return nivelDe(q) !== null;
+  const n = nivelDe(q);
+  return n !== null && n !== "scrap_only";
 }
 
 /** Pasos 1–3 en la tienda: tiene nivel en la app y la tienda es suya (o es admin). = `warehouse_ops_in_store`. */

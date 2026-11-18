@@ -52539,3 +52539,29 @@ Captura del dueño: «a veces no deja continuar por la dirección» — «Comple
 El dueño aprobó habilitarlo tras el caso #1629 (recogida por el chofer y dejada en McAllen; hubo que armar el relevo a mano). Migración 321: `activar_relevo` acepta `picked_up`; el paso a conserva recogida, chofer y salida y queda entregado en la tienda de relevo; el paso b nace listo, sin chofer, para el día elegido; notas en los dos pasos. `guard_delivery_stage` deja pasar solo la escritura que marca el propio relevo. Un relevo así no se deshace (el paso a ya está entregado). La pantalla del relevo avisa qué va a pasar.
 Migración 321, APLICADA por el dueño.
 Sello `deliveries` 1.628.0; repo 1.923.0.
+
+## D-1076 · Deshacer el relevo mientras el paso b no haya salido (2026-11-17)
+
+El dueño pidió poder deshacer un relevo. Antes (256) solo se podía con el paso a sin recoger. Migración 322: `deshacer_relevo` se permite mientras ningún paso posterior al a haya sido recogido o entregado. El paso a vuelve a ser la orden entera con el destino final; si el paso a ya se entregó en la tienda de relevo, la orden queda `ready` en esa tienda, sin chofer (se conserva la evidencia de la entrega). `guard_delivery_stage` suma una sola rama, abierta solo con la marca `rtg.relevo`. Botón «↩ Deshacer relevo» con confirmación en la tarjeta.
+Migración 322, APLICADA por el dueño.
+Sello `deliveries` 1.630.0; repo 1.925.0.
+
+## D-1077 · Campana con vista «Todas» (2026-11-17)
+
+Junta con Roberto: al abrir notificaciones, ver todas juntas. La campana de Entregas y la de Clientes abren en «Todas» (Entregas, Clientes y RR. HH., con etiqueta y filtro por app); lo de otra app se abre como tarjeta en el panel. La campana de RR. HH. aún no tiene la vista.
+Sello `deliveries` 1.631.0; repo 1.926.0.
+
+## D-1078 · Reportes de almacén: «All pending» por defecto (2026-11-17)
+
+Junta con Roberto: el filtro «All stages» pasa a «All pending» (documented, photographed y pending). Dumped, approved y adjusted siguen en su propio botón.
+Sello `deliveries` 1.631.0; repo 1.926.0.
+
+## D-1079 · Warehouse Associate = Deliveries + reportar scrap (2026-11-17)
+
+El dueño decidió: el nivel `scrap_only` se llama «Associate (Deliveries + scrap)»; ve las pantallas de almacén de Deliveries y llena scrap (solo sus reportes). No ve reportes de otros, KPIs, mantenimiento ni conteos. Migración 324 (quita lo que 292/273/274/284 le habían abierto), APLICADA por el dueño.
+Sello `deliveries` 1.631.0; repo 1.926.0.
+
+## D-1080 · KPIs de almacén (2026-11-17)
+
+Junta con Roberto: pantalla nueva en Operaciones (solo gerencia/supervisión). Listas a tiempo (excluye órdenes creadas menos de 4 h antes de la recogida), scrap a precio de venta contra ventas del ERP (meta < 0.5%), turnos bien fichados, y nivel de bono 100/95/90. Calificación total provisional: promedio, scrap todo o nada (pendiente de confirmar con Roberto). Migración 325 (función con puerta de gerencia a prueba de NULL, solo meses completos, fichajes ocultos con menos de 3 personas), APLICADA por el dueño.
+Sello `deliveries` 1.631.0; repo 1.926.0.

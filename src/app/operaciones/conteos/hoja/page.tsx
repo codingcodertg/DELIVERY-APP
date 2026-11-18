@@ -8,7 +8,7 @@ import { leerNivelEscrito } from "@/lib/almacen-ops/nivel";
 import { EMPRESA } from "@/lib/almacen-ops/etapas";
 import { fmtDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { fmtMoney } from "@/lib/utils";
-import { filasDeHojaDeConteo, idDeHoja, nombreDeEtapaDeConteo, puedeGestionarConteo, resumenDelConteo, type Conteo, type Linea } from "@/lib/almacen-ops/conteos";
+import { filasDeHojaDeConteo, idDeHoja, nombreDeEtapaDeConteo, puedeGestionarConteo, resumenDelConteo, veConteos, type Conteo, type Linea } from "@/lib/almacen-ops/conteos";
 import { DEMO_CONTEOS, conteoDeLaFila, lineaDeLaFila } from "@/lib/almacen-ops/conteos-datos";
 import { BotonImprimir } from "../../reportes/hoja-de-aprobacion/BotonImprimir";
 import "../../reportes/hoja-de-aprobacion/hoja.css";
@@ -45,13 +45,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ i
       return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
     }
     if (!perfil) redirect("/operaciones");
+    // 17 nov: el Associate (solo merma) no ve conteos. Esta página no pasa por la puerta del [[...ruta]], así que va aquí.
+    const nivel = await leerNivelEscrito(supabase, user.id);
+    const quien = { id: user.id, ...perfil, role: perfil.role ?? "sales", warehouse_ops_role: nivel };
+    if (!veConteos(quien)) redirect("/operaciones");
     lang = perfil.language === "es" ? "es" : "en";
     if (id) {
       const { data: fila } = await supabase.from("warehouse_counts").select("*").eq("id", id).maybeSingle();
       if (fila) {
         conteo = conteoDeLaFila(fila as Record<string, unknown>);
-        const nivel = await leerNivelEscrito(supabase, user.id);
-        if (!puedeGestionarConteo({ id: user.id, ...perfil, role: perfil.role ?? "sales", warehouse_ops_role: nivel }, conteo.store)) redirect("/operaciones/conteos");
+        if (!puedeGestionarConteo(quien, conteo.store)) redirect("/operaciones/conteos");
         const [{ data: ls }, { data: gente }] = await Promise.all([
           supabase.from("warehouse_count_lines").select("*").eq("count_id", id).order("position"),
           supabase.from("profiles").select("id, full_name"),

@@ -61,18 +61,18 @@ describe("el personal de almacén: solo merma", () => {
       expect(veLosReportes(q)).toBe(false);
       expect(esAdminDeLaApp(q)).toBe(false);
     });
-    it(`${q.id}: la URL escrita a mano de otro formulario no abre; «Reportes» sí (292: la merma de su tienda)`, () => {
+    it(`${q.id}: la URL escrita a mano de otro formulario no abre; «Reportes» sí, solo los suyos (17 nov)`, () => {
       for (const k of LOS_OTROS_SEIS) expect(vistaPermitida(q, { v: "nuevo", tipo: k }), k).toBe(false);
       expect(vistaPermitida(q, { v: "reportes" })).toBe(true);
-      expect(veReportesDeLaTienda(q)).toBe(true);
+      expect(veReportesDeLaTienda(q)).toBe(false);
       expect(puedeExportar(q)).toBe(false);
       expect(vistaPermitida(q, { v: "nuevo", tipo: "scrap" })).toBe(true);
       expect(vistaPermitida(q, { v: "mios" })).toBe(true);
       expect(vistaPermitida(q, { v: "inicio" })).toBe(true);
     });
-    it(`${q.id}: 292 — ve la merma de SU tienda (de cualquiera), nada de otra tienda, y solo merma`, () => {
+    it(`${q.id}: 17 nov — ve SOLO su propia merma (no la de su tienda), y solo merma`, () => {
       expect(puedeVerReporte(q, reporte("scrap", q.store!, q.id))).toBe(true);
-      expect(puedeVerReporte(q, reporte("scrap", q.store!, "otro"))).toBe(true);
+      expect(puedeVerReporte(q, reporte("scrap", q.store!, "otro"))).toBe(false);
       expect(puedeVerReporte(q, reporte("scrap", "OTRA TIENDA", "otro"))).toBe(false);
       expect(puedeVerReporte(q, reporte("incident", q.store!, q.id))).toBe(false);
       expect(puedeVerReporte(q, reporte("maintenance", q.store!, q.id))).toBe(false);
@@ -80,10 +80,10 @@ describe("el personal de almacén: solo merma", () => {
       expect(puedeCorregirMerma(q, { kind: "scrap", store: q.store! })).toBe(false);
     });
   }
-  it("el permiso de supervisor no le abre la gerencia mientras su nivel sea solo merma (292: sí ve la merma de su tienda)", () => {
+  it("el permiso de supervisor no le abre la gerencia mientras su nivel sea solo merma (17 nov: tampoco ve la merma de su tienda)", () => {
     const sup = { ...almacen, permissions: ["warehouse_ops_supervisor"] };
     expect(veLosReportes(sup)).toBe(false);
-    expect(puedeVerReporte(sup, reporte("scrap", sup.store!, "otro"))).toBe(true);
+    expect(puedeVerReporte(sup, reporte("scrap", sup.store!, "otro"))).toBe(false);
     expect(puedeVerReporte(sup, reporte("scrap", "OTRA TIENDA", "otro"))).toBe(false);
     expect(puedeCorregirMerma(sup, { kind: "scrap", store: "RDZ McAllen" })).toBe(false);
   });

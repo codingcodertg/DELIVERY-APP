@@ -98,11 +98,19 @@ export const INFO_DE_NIVEL: Record<Nivel, { en: string; es: string; desc_en: str
     desc_es: "Llena los siete reportes y ve los suyos. Los managers y supervisores de almacén ven además los de su tienda.",
   },
   scrap_only: {
-    en: "Scrap only", es: "Solo merma",
-    desc_en: "Only the scrap / damage form and their own scrap reports.",
-    desc_es: "Solo el formulario de merma / daños y sus propios reportes de merma.",
+    en: "Associate (Deliveries + scrap)", es: "Associate (Deliveries + scrap)",
+    desc_en: "Uses the Deliveries warehouse screens and files scrap / damage reports. Sees only their own scrap reports.",
+    desc_es: "Usa las pantallas de almacén de Deliveries y llena reportes de merma / daños. Solo ve sus propios reportes de merma.",
   },
 };
+
+/**
+ * ¿Es Associate (nivel `scrap_only`)? Llena merma y ve SOLO sus propios reportes de merma. No ve reportes de otros, ni
+ * KPI, ni mantenimiento, ni conteos de inventario, ni configuración. Las pantallas y la base aplican lo mismo.
+ */
+export function esAsociado(q: ConNivel): boolean {
+  return nivelDe(q) === "scrap_only";
+}
 
 /**
  * Lee el nivel escrito de UNA persona con la sesión de quien mira. Tolera que la 265 aún no esté aplicada (la columna

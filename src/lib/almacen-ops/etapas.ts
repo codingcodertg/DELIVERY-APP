@@ -359,6 +359,25 @@ export function nombreDeEtapaVisible(e: EtapaVisible, lang: Lang): string {
 }
 
 /**
+ * Filtro «Todas pendientes» (dueño, 2026-11-17): reemplaza a «Todas las etapas» y es el valor por defecto. Enseña solo
+ * lo que todavía falta por hacer: documentada, fotografiada y pendiente. Lo aprobado, lo desechado y lo ajustado no
+ * salen en este filtro; se ven eligiendo su etapa.
+ */
+export const FILTRO_TODAS_PENDIENTES = "todas-pendientes" as const;
+export const ETAPAS_TODAS_PENDIENTES: readonly EtapaVisible[] = ["documented", "photographed", "pending"];
+export type FiltroDeEtapa = typeof FILTRO_TODAS_PENDIENTES | EtapaVisible;
+
+/** ¿Entra una merma con esta etapa visible en el filtro elegido? */
+export function enFiltroDeEtapa(e: EtapaVisible, filtro: FiltroDeEtapa): boolean {
+  return filtro === FILTRO_TODAS_PENDIENTES ? ETAPAS_TODAS_PENDIENTES.includes(e) : e === filtro;
+}
+
+/** Las filas que entran en el filtro de etapa, en su mismo orden. `enPractica` como en `etapaVisible`. */
+export function filtraPorEtapa<T extends ConGrupo>(filas: readonly T[], filtro: FiltroDeEtapa, enPractica?: ReadonlySet<string>): T[] {
+  return filas.filter((r) => enFiltroDeEtapa(etapaVisible(r, enPractica), filtro));
+}
+
+/**
  * El siguiente paso de una merma para quien la abre (dueño, 11 nov: «abrir la orden y continuar los pasos»). La tarjeta
  * ofrece ESE paso ahí mismo, con las reglas de siempre:
  *   - sin foto → «foto» (quien la reportó, o quien corrige la merma de esa tienda);

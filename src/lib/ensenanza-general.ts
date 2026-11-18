@@ -59,6 +59,7 @@ export { valorDeCapacitacion as valorDeEnsenanza };
 export const RPC_QUE_SOLO_LEEN = [
   "monitor_salud", // 300 (D-1012): la salud del sistema en Central Hub Monitoring; solo el admin, solo lee.
   "warehouse_ops_search_products", // 247 (D-883): busca productos para la merma; stable, solo lee.
+  "warehouse_ops_kpi_almacen_mes", // 325: KPI de almacén (merma, ventas y fichajes del mes); stable, solo lee.
   "cuentas_de_clientes", // 203: las cuentas de Clientes para el formulario de orden; solo lee.
   "busca_clientes_en_toda_la_empresa", // 215 (D-740): la búsqueda del vendedor en toda la empresa; solo lee.
   "asociados_de_la_empresa", // 249 (D-884): las empresas asociadas a una («En asociación con»); solo lee.

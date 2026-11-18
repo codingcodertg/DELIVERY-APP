@@ -188,7 +188,7 @@ describe("la 138 dice lo mismo que el código", () => {
       .filter((f) => f.endsWith(".sql") && leer(`${dir}/${f}`).includes("function public.guard_delivery_stage"))
       // La 321 (relevo de una orden ya recogida) vuelve a escribir el guard: la copia de la 173 con UNA rama más. Esta
       // cadena mira hasta la 173; la 321 la compara `relevo.test.ts`.
-      .filter((f) => f !== "321_relevo_de_orden_recogida.sql")
+      .filter((f) => f !== "321_relevo_de_orden_recogida.sql" && f !== "322_deshacer_relevo.sql")
       .sort();
     // La 157 (D-452, partes de una orden) es ahora la última que lo define: la 145 letra por letra con una lista cambiada
     // (una carga partida puede nacer en pending). La 145 (D-397) partía de la 142 (D-377), que partía de la 139 (D-361),
