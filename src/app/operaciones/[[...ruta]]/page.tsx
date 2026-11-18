@@ -32,6 +32,7 @@ export default async function Page({ params }: { params: Promise<{ ruta?: string
   else if (ruta[0] === "reportes" && ruta.length === 1) vista = { v: "reportes" };
   else if (ruta[0] === "mantenimiento" && ruta.length === 1) vista = { v: "mantenimiento" };
   else if (ruta[0] === "conteos" && ruta.length === 1) vista = { v: "conteos" };
+  else if (ruta[0] === "kpis-almacen" && ruta.length === 1) vista = { v: "kpis" };
   else notFound();
 
   if (!SIN_BASE && vista.v !== "inicio") {
