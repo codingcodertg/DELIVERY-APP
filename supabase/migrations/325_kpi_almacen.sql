@@ -52,6 +52,7 @@ declare
   v_horas      numeric := 0;
   v_personas   integer := 0;
   v_ok         boolean;
+begin
   -- PUERTA DE GERENCIA (la misma regla que `veLosReportes` en src/lib/almacen-ops/visibilidad.ts): admin y store_admin;
   -- RR. HH. admin/manager; y el nivel `full` solo si es gerente del hub o tiene el permiso de supervisor. El personal
   -- de merma (`scrap_only`) y el `full` sin cargo de gerente NO pasan. Va ANTES de leer nada.
@@ -133,4 +134,4 @@ revoke all on function public.warehouse_ops_kpi_almacen_mes(text, date, date) fr
 grant execute on function public.warehouse_ops_kpi_almacen_mes(text, date, date) to authenticated;
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('325_kpi_almacen.sql', 'ee48dc0b564b1885b040d4eb2178acdeb57075eb1b1a9218b46c468769406118') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('325_kpi_almacen.sql', 'b236a389be7add4ab68af60da8815675d35e917b49804ecd4bb5a3c28b9ba67a') on conflict (name) do nothing;
