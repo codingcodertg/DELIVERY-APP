@@ -6,7 +6,8 @@ import { useData } from "@/lib/timetracker-data-provider";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 import { fmtClock, weekStartISO } from "@/lib/timetracker/helpers";
 import { nombreDeLinea, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
-import { rangeOverlapsAny, type OccupiedRange } from "@/lib/timetracker/timeOverlap";
+import type { OccupiedRange } from "@/lib/timetracker/timeOverlap";
+import { bloquesChocan, bloquesDeSolicitud, rangosDeBloques } from "@/lib/timetracker/dos-bloques";
 import type { RequestType } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
 import { ClockinApprovals } from "@/components/timetracker/ClockinApprovals";
@@ -32,6 +33,10 @@ function fromRange(date: string, fromTime: string, toTime: string) {
 // fromRange() above already uses, so this stays consistent with it rather
 // than mixing in a second timezone assumption for just this one check.
 function msToMin(ms: number): number { const d = new Date(ms); return d.getHours() * 60 + d.getMinutes(); }
+// «08:50–11:00 + 12:03–15:47»: los bloques de una solicitud, para leer de un vistazo.
+function textoDeBloques(p: Record<string, unknown>): string {
+  return bloquesDeSolicitud(p).map((b) => `${b.fromTime}–${b.toTime}`).join(" + ");
+}
 
 export default function TeamRequestsPage() {
   const { me, allRequests: requests, allProjects: projects, allAssignments: assignments, allEmployees, insertSession, updateSession, removeSession, claimRequest, resetRequestToPending, logAudit, sessionsSince, tiendas } = useData();
@@ -70,17 +75,21 @@ export default function TeamRequestsPage() {
       const claimed = await claimRequest(r.id, { status: "approved", resolvedBy: me.id });
       if (!claimed) return;
       const p = r.payload as Record<string, unknown>;
+      // Sesiones ya creadas por esta aprobación (dos bloques): si el segundo no cabe, se quitan.
+      const creadas: string[] = [];
       try {
         if (r.type === "add") {
-          let d;
-          if (p.fromTime && p.toTime) d = fromRange(p.date as string, p.fromTime as string, p.toTime as string);
-          else { const dur = Math.round(((p.hours as number) || 0) * 3600); const s = Date.parse(p.date + "T12:00:00Z"); d = { durationSeconds: dur, startMs: s, endMs: s + dur * 1000 }; }
+          // Una solicitud de dos bloques (mañana + después de comer) crea dos sesiones; una de un bloque, una.
+          const bloques = bloquesDeSolicitud(p);
+          let segmentos: { durationSeconds: number; startMs: number; endMs: number }[];
+          if (bloques.length) segmentos = bloques.map((b) => fromRange(p.date as string, b.fromTime, b.toTime));
+          else { const dur = Math.round(((p.hours as number) || 0) * 3600); const s = Date.parse(p.date + "T12:00:00Z"); segmentos = [{ durationSeconds: dur, startMs: s, endMs: s + dur * 1000 }]; }
           // D-086: re-check for a conflict as of RIGHT NOW, not as of when the
           // employee submitted it — another one of their own entries could
           // have landed (a session tracked live, or a different request
           // approved) while this one sat pending. Only meaningful for a
           // fromTime/toTime request; an hours-only one has no range to check.
-          if (p.fromTime && p.toTime) {
+          if (bloques.length) {
             const daySessions = await sessionsSince(p.date as string, p.date as string);
             const occupied: OccupiedRange[] = [
               ...daySessions
@@ -94,18 +103,11 @@ export default function TeamRequestsPage() {
               ...requests
                 .filter((other) => other.id !== r.id && other.status === "pending" && other.employeeUid === r.employeeUid && (other.type === "add" || other.type === "adjust"))
                 .map((other) => other.payload as Record<string, unknown>)
-                .filter((op) => op.date === p.date && typeof op.fromTime === "string" && typeof op.toTime === "string")
-                .map((op) => {
-                  const startMin = tParse(op.fromTime as string);
-                  let endMin = tParse(op.toTime as string);
-                  if (endMin < startMin) endMin = 1440;
-                  return { startMin, endMin };
-                }),
+                .filter((op) => op.date === p.date)
+                .flatMap((op) => rangosDeBloques(bloquesDeSolicitud(op))),
             ];
-            let reqEndMin = tParse(p.toTime as string);
-            const reqStartMin = tParse(p.fromTime as string);
-            if (reqEndMin < reqStartMin) reqEndMin = 1440;
-            if (rangeOverlapsAny(reqStartMin, reqEndMin, occupied)) {
+            // Cada bloque contra lo ocupado, y los dos bloques entre sí.
+            if (bloquesChocan(bloques, occupied)) {
               await resetRequestToPending(r.id).catch(() => {});
               alert(t("mgr.req.overlapOnAccept", {
                 name: (p.employeeName as string) || "", date: p.date as string, from: p.fromTime as string, to: p.toTime as string,
@@ -113,19 +115,22 @@ export default function TeamRequestsPage() {
               return;
             }
           }
-          await insertSession({
-            employeeUid: r.employeeUid,
-            employeeName: p.employeeName as string,
-            projectId: p.projectId as string,
-            assignmentId: p.assignmentId as string,
-            storeId: (p.storeId as string | undefined) ?? null,
-            memo: p.reason ? "[Manual] " + p.reason : "[Time added]",
-            weekOf: weekStartISO(p.date as string),
-            date: p.date as string,
-            startMs: d.startMs, endMs: d.endMs, durationSeconds: d.durationSeconds,
-            keystrokes: 0, clicks: 0, activeSeconds: 0,
-            manual: true, source: "manual", isLive: false,
-          });
+          for (const d of segmentos) {
+            const creada = await insertSession({
+              employeeUid: r.employeeUid,
+              employeeName: p.employeeName as string,
+              projectId: p.projectId as string,
+              assignmentId: p.assignmentId as string,
+              storeId: (p.storeId as string | undefined) ?? null,
+              memo: p.reason ? "[Manual] " + p.reason : "[Time added]",
+              weekOf: weekStartISO(p.date as string),
+              date: p.date as string,
+              startMs: d.startMs, endMs: d.endMs, durationSeconds: d.durationSeconds,
+              keystrokes: 0, clicks: 0, activeSeconds: 0,
+              manual: true, source: "manual", isLive: false,
+            });
+            creadas.push(creada.id);
+          }
         } else if (r.type === "adjust") {
           if (p.fromTime && p.toTime) {
             const d = fromRange(p.date as string, p.fromTime as string, p.toTime as string);
@@ -140,6 +145,8 @@ export default function TeamRequestsPage() {
       } catch (e) {
         // La solicitud vuelve a pendiente en los dos casos — se aprobó y no se pudo
         // aplicar, así que dejarla como aprobada mentiría sobre lo que hay en la tabla.
+        // Si el primer bloque ya entró y el segundo falló, se quita el primero: la solicitud queda entera o no queda nada.
+        for (const id of creadas) await removeSession(id).catch(() => {});
         await resetRequestToPending(r.id).catch(() => {});
         // 082: aprobar estas horas pisaría un tramo ya fichado. Es el caso que pagó a
         // Nick 0.5 h dos veces el 11 de julio, y ahora la base no deja aplicarlo.
@@ -180,7 +187,7 @@ export default function TeamRequestsPage() {
                   <div style={{ fontWeight: 700 }}>{p.employeeName as string} · {rLabel(r.type)}</div>
                   <div className="small muted">
                     {projName(p.assignmentId as string, r.employeeUid, p.storeId as string | undefined)} · {p.date as string}
-                    {r.type === "add" && (p.fromTime ? <> · {p.fromTime as string}–{p.toTime as string} (<b>{p.hours as number} h</b>)</> : <> · <b>{p.hours as number} h</b></>)}
+                    {r.type === "add" && (p.fromTime ? <> · {textoDeBloques(p)} (<b>{p.hours as number} h</b>)</> : <> · <b>{p.hours as number} h</b></>)}
                     {r.type === "adjust" && <> · {fmtClock((p.oldSeconds as number) || 0)} → {p.fromTime ? <>{p.fromTime as string}–{p.toTime as string} (<b>{p.hours as number} h</b>)</> : <b>{p.hours as number} h</b>}</>}
                     {p.reason ? <> · &quot;{p.reason as string}&quot;</> : null}
                   </div>
@@ -203,7 +210,7 @@ export default function TeamRequestsPage() {
               { key: "empleado", en: t("mgr.asn.employee"), es: t("mgr.asn.employee"), ancho: 200, fija: true, valor: (r) => (r.payload as Record<string, unknown>).employeeName as string },
               { key: "tipo", en: t("mgr.req.colType"), es: t("mgr.req.colType"), ancho: 150, valor: (r) => rLabel(r.type) },
               { key: "detalle", en: t("mgr.req.colDetail"), es: t("mgr.req.colDetail"), ancho: 380, clase: "small muted",
-                valor: (r) => { const p = r.payload as Record<string, unknown>; return projName(p.assignmentId as string, r.employeeUid, p.storeId as string | undefined) + " · " + String(p.date) + (r.type !== "delete" && p.hours ? " · " + String(p.hours) + " h" : ""); } },
+                valor: (r) => { const p = r.payload as Record<string, unknown>; return projName(p.assignmentId as string, r.employeeUid, p.storeId as string | undefined) + " · " + String(p.date) + (r.type === "add" && p.fromTime ? " · " + textoDeBloques(p) : "") + (r.type !== "delete" && p.hours ? " · " + String(p.hours) + " h" : ""); } },
               { key: "estado", en: t("mgr.req.colStatus"), es: t("mgr.req.colStatus"), ancho: 130, valor: (r) => (r.status === "approved" ? t("mgr.req.approved") : t("mgr.req.rejected")),
                 celda: (r) => (r.status === "approved" ? <span className="pill on">{t("mgr.req.approved")}</span> : <span className="pill off">{t("mgr.req.rejected")}</span>) },
             ]} />
