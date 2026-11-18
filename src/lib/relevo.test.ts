@@ -227,7 +227,7 @@ describe("la regla del orden: el paso b no se recoge antes de que el a esté ent
   });
 });
 
-describe("deshacer el relevo, mientras el paso a no se haya recogido", () => {
+describe("deshacer el relevo, mientras el paso b no haya salido", () => {
   it("vuelve a ser UNA orden con su destino final; el otro paso se borra", () => {
     const [a, b] = relevo({ b: { assigned_driver: "Max", delivery_date: "2026-11-09" } });
     expect(sePuedeDeshacer([a, b])).toBe(true);
@@ -242,14 +242,35 @@ describe("deshacer el relevo, mientras el paso a no se haya recogido", () => {
     expect(vuelta).toMatchObject({ assigned_driver: "Julio Jijon", delivery_date: "2026-11-06", est_pallets: 6, delivery_fee: 40 });
   });
 
-  it("con el paso a ya recogido (o entregado) no se deshace", () => {
+  it("con el paso b ya recogido o entregado no se deshace", () => {
     for (const stage of ["picked_up", "delivered"] as const) {
-      const [a, b] = relevo({ a: { stage } });
+      const [a, b] = relevo({ b: { stage } });
       expect(sePuedeDeshacer([a, b])).toBe(false);
       expect(alDeshacer([a, b])).toBeNull();
     }
     const [a] = relevo();
     expect(sePuedeDeshacer([a])).toBe(false);   // sin el otro paso a la vista no hay qué deshacer
+  });
+
+  it("con el paso a ya recogido, sí: sigue recogida con su chofer y va al destino final", () => {
+    const [a, b] = relevo({ a: { stage: "picked_up", assigned_driver: "Julio Jijon" } });
+    expect(sePuedeDeshacer([a, b])).toBe(true);
+    const r = alDeshacer([a, b])!;
+    expect(r.cambio.stage).toBeUndefined();
+    expect(r.cambio.assigned_driver).toBeUndefined();
+    expect(r.cambio.delivery_name).toBe("RDZ Brownsville");
+  });
+
+  it("con el paso a ENTREGADO en la tienda de relevo, la orden sale de ALLÍ: lista, sin chofer y sin marcas de entrega", () => {
+    const [a, b] = relevo({ a: { stage: "delivered", assigned_driver: "Julio Jijon", pod_delivered_at: "2026-11-06T16:00:00.000Z", delivered_address: TIENDAS[1].address, pickup_gps_at: "2026-11-06T15:00:00.000Z" } });
+    expect(sePuedeDeshacer([a, b])).toBe(true);
+    const r = alDeshacer([a, b])!;
+    expect(r.id).toBe("madre");
+    expect(r.borrar).toEqual(["paso-b"]);
+    expect(r.cambio).toMatchObject({
+      stage: "ready", pickup_name: "RDZ Weslaco", pickup_address: "2 Texas Blvd, Weslaco, TX", assigned_driver: null,
+      pod_delivered_at: null, delivered_address: null, pickup_gps_at: null, delivery_name: "RDZ Brownsville", order_suffix: null, relay_step: null,
+    });
   });
 });
 
@@ -644,5 +665,52 @@ describe("la migración 321 (relevo de una orden ya recogida) dice lo mismo", ()
 
   it("la pantalla de la base no cambia: deshacer_relevo y los disparadores de la 256 siguen", () => {
     expect(sinComentarios).not.toMatch(/create (or replace )?function public\.(deshacer_relevo|guard_relevo|guard_relevo_fecha)\b/i);
+  });
+});
+
+describe("322: deshacer el relevo mientras el paso b no haya salido (la base y la pantalla dicen lo mismo)", () => {
+  const sql = leer("supabase/migrations/322_deshacer_relevo.sql");
+  const [cuerpo, registro] = sql.split("-- @ledger-below");
+  const sinComentarios = cuerpo.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+
+  it("su fila del registro está al día con el texto de arriba", () => {
+    const sha = createHash("sha256").update(cuerpo, "utf8").digest("hex");
+    expect(registro.trim()).toBe(`insert into public.schema_migrations (name, checksum) values ('322_deshacer_relevo.sql', '${sha}') on conflict (name) do nothing;`);
+  });
+
+  it("deshacer_relevo: security definer, quien planifica, quien ve la orden, y el paso b (no el a) decide si sale", () => {
+    const f = sinComentarios.slice(sinComentarios.indexOf("function public.deshacer_relevo"), sinComentarios.indexOf("do $chk$"));
+    expect(f).toContain("security definer");
+    expect(f).toContain("not public.puede_relevo()");
+    expect(f).toContain("not public.la_ve_quien_llama(x)");
+    expect(f).toContain("d.relay_step > 1");
+    expect(f).toContain("(d.stage in ('picked_up', 'delivered') or d.pickup_gps_at is not null or d.pod_delivered_at is not null)");
+    expect(f).toContain("RELEVO_YA_SALIO");
+    expect(f).toContain("delete from public.deliveries d");
+    expect(f).toContain("entregada := a.stage = 'delivered';");
+    expect(f).toContain("stage               = case when entregada then 'ready' else d.stage end");
+  });
+
+  it("el guard se amplía SOLO para la escritura de deshacer: marca, relay_step de 1 a nulo, columnas exactas y etapa", () => {
+    const g = sinComentarios.slice(sinComentarios.indexOf("create or replace function public.guard_delivery_stage()"), sinComentarios.indexOf("create or replace function public.deshacer_relevo"));
+    expect(g).toContain("OLD.relay_step = 1 and NEW.relay_step is null");
+    expect(g).toContain("current_setting('rtg.relevo', true) = NEW.order_no::text");
+    expect(g).toContain("(NEW.stage = OLD.stage or (OLD.stage = 'delivered' and NEW.stage = 'ready'))");
+    for (const col of ["order_suffix", "relay_step", "delivery_name", "stage", "pickup_name", "assigned_driver", "pickup_gps_at", "pod_delivered_at", "delivered_address", "updated_at"]) {
+      expect(g).toContain(`'${col}'`);
+    }
+    // Lo que ya estaba: la rama de la 321 y la salida de admin siguen.
+    expect(g).toContain("OLD.stage = 'picked_up' and NEW.stage = 'delivered'");
+    expect(g).toContain("if r = 'admin' then return NEW; end if;");
+  });
+
+  it("permisos: anon no la ejecuta; authenticated sí", () => {
+    expect(sql).toContain("revoke execute on function public.deshacer_relevo(uuid) from public, anon;");
+    expect(sql).toContain("grant execute on function public.deshacer_relevo(uuid) to authenticated;");
+  });
+
+  it("el error de «paso b ya salió» llega en español a la pantalla", () => {
+    expect(mensajeDelRelevo("RELEVO_YA_SALIO: the relay can no longer be undone", "es")).toContain("paso b");
+    expect(mensajeDelRelevo("RELEVO_YA_SALIO: the relay can no longer be undone", "en")).toContain("step b");
   });
 });

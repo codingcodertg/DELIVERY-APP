@@ -191,19 +191,32 @@ export const notaDelPaso = (etiqueta: string, letra: string, desde: string | nul
 
 // ---- Deshacer --------------------------------------------------------------------------------------------------------
 
-/** ¿Se puede deshacer el relevo? Mientras el paso a no se haya recogido (y, claro, ningún paso posterior haya salido). */
+/**
+ * ¿Se puede deshacer el relevo? Mientras NINGÚN paso posterior al a haya salido (el b, ni el c, d…). El paso a puede
+ * estar ya recogido o entregado en la tienda de relevo: se deshace igual (`alDeshacer` dice cómo queda).
+ */
 export function sePuedeDeshacer(pasos: readonly Minima[]): boolean {
-  return pasos.length >= 2 && pasos.every((p) => !YA_SALIO.has(p.stage ?? ""));
+  return pasos.length >= 2 && pasos.every((p) => (p.relay_step ?? 0) < 2 || !YA_SALIO.has(p.stage ?? ""));
 }
 
 /**
  * Lo que se escribe al deshacer: el paso a vuelve a ser la orden entera —sin letra, sin `relay_step`, con el destino
  * FINAL, que es el del último paso— y los demás pasos se borran. `null` si no se puede.
+ *
+ * Si el paso a ya está ENTREGADO en la tienda de relevo, la mercancía está allí: la orden vuelve a `ready` con esa
+ * tienda como origen, sin chofer y sin las marcas de recogida y de entrega (la evidencia de la entrega se conserva).
+ * Igual que `deshacer_relevo` (322).
  */
 export function alDeshacer(pasos: readonly Delivery[]): { id: string; cambio: Partial<Delivery>; borrar: string[] } | null {
   if (!sePuedeDeshacer(pasos)) return null;
   const [a, ...resto] = pasos;
   const ultimo = resto[resto.length - 1];
+  const entregada: Partial<Delivery> = a.stage === "delivered" ? {
+    stage: "ready",
+    pickup_name: a.delivery_name, pickup_address: a.delivery_address, pickup_point_lat: null, pickup_point_lng: null,
+    assigned_driver: null, pickup_gps_at: null, pickup_lat: null, pickup_lng: null, departed_at: null, arrived_at: null,
+    pod_delivered_at: null, delivered_address: null,
+  } : {};
   return {
     id: a.id,
     cambio: {
@@ -211,6 +224,7 @@ export function alDeshacer(pasos: readonly Delivery[]): { id: string; cambio: Pa
       delivery_name: ultimo.delivery_name, delivery_address: ultimo.delivery_address,
       delivery_lat: ultimo.delivery_lat, delivery_lng: ultimo.delivery_lng, delivery_pin_source: ultimo.delivery_pin_source,
       route_miles: null, route_duration: null, route_provider: null, route_traffic: null,
+      ...entregada,
     },
     borrar: resto.map((p) => p.id),
   };

@@ -303,7 +303,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     if (!puedeGestionarRelevo(me)) { notify("Only route planners (or an admin) can undo a relay transfer."); return false; }
     const d = s.deliveries.find((c) => c.id === id);
     const r = d ? alDeshacer(pasosDeLaFamilia(s.deliveries, d)) : null;
-    if (!r) { notify("The relay can no longer be undone: the first step was already picked up."); return false; }
+    if (!r) { notify("The relay can no longer be undone: step b (or a later one) was already picked up or delivered."); return false; }
     const ahora = new Date().toISOString();
     let next: Store = { ...s, deliveries: s.deliveries.filter((c) => !r.borrar.includes(c.id)).map((c) => (c.id === r.id ? { ...c, ...r.cambio, updated_at: ahora } : c)) };
     next = { ...next, events: addEvent(next, r.id, "edited", "Relay transfer undone: it is one order again, to its final destination") };
