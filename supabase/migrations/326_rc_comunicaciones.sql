@@ -85,4 +85,4 @@ values ('rc-recordings', 'rc-recordings', false)
 on conflict (id) do update set public = false;
 
 -- @ledger-below
--- (La fila de schema_migrations para 326 la anota quien aplica la migracion, con su checksum.)
+insert into public.schema_migrations (name, checksum) values ('326_rc_comunicaciones.sql', '471cc6a87eaf8f8c4ef2fbbd46932f6ab80155b736d2a51d23e0d5d60f3e7254') on conflict (name) do nothing;

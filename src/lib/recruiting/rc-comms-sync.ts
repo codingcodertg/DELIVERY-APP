@@ -17,13 +17,13 @@ import {
 // credenciales de la agenda del dueno. Idempotente: el solape de dos horas y el upsert por (kind, rc_id) hacen que
 // repetir una lectura no duplique nada.
 //
-// Por corrida: lista llamadas y SMS desde el cursor (menos 2 h), como mucho 10 paginas por tipo; guarda solo lo de
+// Por corrida: lista llamadas y SMS desde el cursor (menos 2 h), como mucho 30 paginas por tipo; guarda solo lo de
 // candidatos; baja como mucho 6 grabaciones pendientes. Un 429 de RingCentral corta la corrida sin error; el cursor
 // avanza solo si el listado de ese tipo termino sin errores ni cortes.
 // ============================================================
 
 const BUCKET = "rc-recordings";
-const MAX_PAGINAS = 10;
+const MAX_PAGINAS = 30;
 const TAMANO_PAGINA = 100;
 const MAX_GRABACIONES = 6;
 const DIAS_PRIMERA_VEZ = 30;
@@ -122,13 +122,13 @@ async function bajarGrabaciones(db: Db, token: string, server: string): Promise<
     .select("id, rc_id, candidate_id, recording_uri").eq("recording_pending", true)
     .not("recording_uri", "is", null).order("at", { ascending: false }).limit(MAX_GRABACIONES);
   if (error) throw error;
-  const origen = new URL(server).origin;
   let bajadas = 0;
   for (const p of data ?? []) {
     try {
       const url = new URL(p.recording_uri as string, server);
-      // El token de RingCentral solo viaja a su propio servidor.
-      if (url.origin !== origen) continue;
+      // El token de RingCentral solo viaja a RingCentral: el audio vive en media.ringcentral.com, no en el servidor de la API.
+      const esDeRc = url.protocol === "https:" && (url.origin === new URL(server).origin || url.hostname.endsWith(".ringcentral.com"));
+      if (!esDeRc) continue;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (res.status === 429) break;
       if (!res.ok) continue;
@@ -183,7 +183,7 @@ export async function sincronizarRcComms(opciones: {
     try {
       const { registros, completo } = await listar<RegistroDeLlamada>(
         server, token, "/restapi/v1.0/account/~/extension/~/call-log",
-        "&view=Detailed&withRecording=true", desdeDe(estado?.calls_from ?? null));
+        "&view=Detailed", desdeDe(estado?.calls_from ?? null));
       llamadasCompletas = completo;
       const filas = registros.map((r) => filaDeLlamada(r, indice)).filter((f): f is FilaDeComunicacion => !!f);
       resultado.llamadas = await guardar(db, "call", filas);
