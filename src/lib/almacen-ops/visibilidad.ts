@@ -43,21 +43,22 @@ export function puedeVerReporte(q: Quien, r: { kind: TipoDeReporte; store: strin
     if (q.recruiting_role === "admin" || q.recruiting_role === "manager") return true;
     return nivel === "full" && q.role === "manager" && esDeSuTienda(q, r.store);
   }
-  // 292 (dueño, 10 nov: «todos pueden ver todos los reportes en su tienda solamente»): de lo que no es de RR. HH.,
-  // cualquiera con nivel ve lo de SU tienda; «solo merma» sigue limitado a los tipos que abre (merma).
-  if (nivel === "scrap_only") return SECCIONES.scrap_only.tipos.includes(r.kind) && (r.author_id === q.id || esDeSuTienda(q, r.store));
+  // Associate (scrap_only, dueño 17 nov): solo SUS propios reportes de merma. Ya no ve los de su tienda (la 292 los
+  // mostraba); la 324 lo pone también en la base.
+  if (nivel === "scrap_only") return SECCIONES.scrap_only.tipos.includes(r.kind) && r.author_id === q.id;
   if (nivel !== "full") return false;
   return r.author_id === q.id || esDeSuTienda(q, r.store);
 }
 
 /**
- * 292: ¿Se le ofrece la pantalla «Reportes» con los reportes de su tienda? Los gerentes/admins (`veLosReportes`) y,
- * desde la 292, cualquiera con nivel en la app que tenga tienda asignada (el almacén ve la merma de su tienda).
+ * ¿Se le ofrece la vista de reportes de la TIENDA (con el filtro Todos)? Los gerentes/admins (`veLosReportes`) y el
+ * nivel `full` con tienda asignada. El Associate (`scrap_only`) NO: solo ve «Mis reportes» (la 292 lo dejaba ver los
+ * de la tienda; la 324 lo quita).
  */
 export function veReportesDeLaTienda(q: Quien): boolean {
   if (veLosReportes(q)) return true;
   const nivel = nivelDe(q);
-  return (nivel === "scrap_only" || nivel === "full") && (!!q.store || (q.visible_stores ?? []).length > 0);
+  return nivel === "full" && (!!q.store || (q.visible_stores ?? []).length > 0);
 }
 
 /** Exportar CSV / PDF: solo gerencia (dueño, 10 nov: «warehouse people don't need pdf or csv reports»). */
