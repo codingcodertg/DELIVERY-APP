@@ -11,7 +11,7 @@ import {
 import { puedeAgregarMaterial } from "./agregar-material";
 import { esSuyaParaAnular } from "./ordenes-visibles";
 import { puedeDejarEnTienda } from "./leave-at-store";
-import { puedeRecogerSinListo } from "./recogida-del-chofer";
+import { puedeEntregarSinRecoger, puedeRecogerSinListo } from "./recogida-del-chofer";
 import type { AlcanceDeEdicion } from "./edicion-de-ventas";
 import type { Stage, UserRole } from "./types";
 
@@ -158,8 +158,8 @@ describe("el menú, en las fichas de todos los días", () => {
     expect(menu(entrada("driver", "picked_up", { pedido: { stage: "picked_up", created_by: "yo", assigned_sales_rep: null, assigned_driver: "Otro Chofer", store: "Pharr" } }))).not.toContain("anular");
   });
 
-  it("chofer con una lista: «Recoger» fuera e «Iniciar viaje» dentro", () => {
-    expect(menu(entrada("driver", "ready"))).toEqual(["iniciar_viaje"]);
+  it("chofer con una lista: «Recoger» fuera; «Iniciar viaje» y «Entregado sin recoger» en el menú", () => {
+    expect(menu(entrada("driver", "ready"))).toEqual(["iniciar_viaje", "entregar_sin_recoger"]);
   });
 
   it("almacén en una entregada de su tienda: «Deshacer etapa», «Registrar reentrega» y el comprobante", () => {
@@ -301,6 +301,8 @@ function botonesDeAntes(e: EntradaDeAcciones): Set<string> {
   // Nota D-527: lo que se sumó después de D-497, con su condición, para que la comparación siga midiendo todo lo demás:
   // «Recoger de todos modos…» (el chofer, en SU orden aprobada sin preparar) y «↩ Deshacer recogido».
   if (puedeRecogerSinListo(me, e.pedido)) b.add(ab.recogerSinListo ? "paso:recoger_sin_listo" : "recoger_sin_listo");
+  // Y «Entregar sin recoger antes» (la entrega directa del chofer en SU orden aprobada, preparando o lista).
+  if (puedeEntregarSinRecoger(me, e.pedido) && !ab.pod) b.add("entregar_sin_recoger");
   if (e.deshacerRecogida && stage === "picked_up" && !ab.pod) b.add("deshacer_recogida");
   return b;
 }
@@ -486,13 +488,15 @@ describe("D-527 · el chofer recoge aunque no esté lista, y deshace su recogida
     expect(menu(entrada("driver", "picked_up", { deshacerRecogida: { bloqueo: null }, abierto: { ...CERRADO, pod: true } }))).not.toContain("deshacer_recogida");
     expect(menu(entrada("driver", "delivered", { deshacerRecogida: { bloqueo: null } }))).not.toContain("deshacer_recogida");
   });
-  it("la ficha lo enchufa: el paso con su nota obligatoria, la escritura de la recogida, el aviso, y el deshacer", () => {
+  it("la ficha lo enchufa: el paso con su nota opcional, la escritura de la recogida, el aviso, y el deshacer", () => {
     expect(acciones).toContain("recoger_sin_listo: sinListo.abrir,");
     expect(acciones).toContain("deshacer_recogida: onDeshacerRecogida,");
     expect(acciones).toContain("deshacerRecogida: deshacerLaRecogida,");
     expect(acciones).toContain("reentrega: reentregaAbierta, recogerSinListo: sinListo.abierto,");
     expect(acciones).toContain('{fa.pasos.includes("recoger_sin_listo") && (');
-    expect(acciones).toContain("disabled={busy || !notaValida}");
+    // La nota es opcional: el botón de confirmar no se apaga por la nota (solo por `busy`).
+    expect(acciones).toContain("onClick={sinListo.confirmar} disabled={busy}>");
+    expect(acciones).not.toContain("notaValida");
     expect(ficha).toContain('const ok = await setStage(existing.id, "picked_up", notaDeRecogidaSinListo(nota, escritura.note, lang), escritura.extra);');
     expect(ficha).toContain("void pushNotifs(avisosDeRecogidaSinListo({");
     expect(ficha).toContain("deshacerRecogida={deshacerRecogida({ pedido: { ...existing, stage }, yo: me, eventos: events, rechazada: marcasDeParadas(events).has(existing.id) })}");
@@ -506,12 +510,53 @@ describe("D-527 · el chofer recoge aunque no esté lista, y deshace su recogida
     expect(ficha).toContain("if (entregaConCamara(me.role)) { setShowPod(true); return; }");
     expect(ficha).not.toContain("camara.abrir()");
     expect(ficha).toContain("<PhotoUpload photos={fotosDeLaEntrega} disabled={busy} onChange={setFotosDeLaEntrega} t={t} rafaga onOcupado={setFotosProcesando} />");
-    expect(ficha).toContain('useState(abrirEn === "entregar" && existing?.stage === "picked_up")');
+    expect(ficha).toContain('useState(abrirEn === "entregar" && !!existing && (existing.stage === "picked_up" || puedeEntregarSinRecoger(me, existing)))');
     // Las fotos de la entrega van en la escritura de la entrega, firmadas por quien entrega.
     expect(ficha).toContain("...(fotos ? { photos: fotos, photo_meta: autoresDeFotos(fotos, fotosOrden.photo_meta, me.id, ahora) } : {}),");
     // Mientras se leen fotos, «Confirmar entregado» espera, en el botón y en la función.
     expect(ficha).toContain("disabled={busy || !!podBlocker || fotosProcesando}");
     const entrega = ficha.slice(ficha.indexOf("const deliverWithPod = async () => {"), ficha.indexOf("setBusy(true);", ficha.indexOf("const deliverWithPod = async () => {")));
     expect(entrega).toContain("if (fotosProcesando) return;");
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// «Entregar sin recoger antes»: el chofer, en SU orden aprobada, preparando o lista, la da por entregada de un toque.
+// ---------------------------------------------------------------------------------------------------------------
+
+describe("entregar sin recoger antes: el chofer, en su orden aprobada, preparando o lista", () => {
+  const SIN_RECOGER: Stage[] = ["approved", "fulfilling", "ready"];
+  const ajena = (stage: Stage) => ({ stage, created_by: "yo", assigned_sales_rep: null, assigned_driver: "Otro", store: "Pharr" });
+
+  it("sale en el menú del chofer en approved, fulfilling y ready, en su orden", () => {
+    for (const s of SIN_RECOGER) expect(menu(entrada("driver", s))).toContain("entregar_sin_recoger");
+  });
+
+  it("no sale en borrador, pendiente, rechazada, anulada, en reparto ni entregada", () => {
+    for (const s of ["draft", "pending", "rejected", "canceled", "picked_up", "delivered"] as Stage[]) {
+      expect(menu(entrada("driver", s))).not.toContain("entregar_sin_recoger");
+    }
+  });
+
+  it("no sale en una orden que no es suya, ni para otros roles, ni con la prueba de entrega abierta", () => {
+    for (const s of SIN_RECOGER) expect(menu(entrada("driver", s, { pedido: ajena(s) }))).not.toContain("entregar_sin_recoger");
+    for (const r of ["warehouse", "manager", "logistics", "sales", "accounting", "admin"] as UserRole[]) {
+      expect(menu(entrada(r, "ready", { pedido: { ...ajena("ready"), assigned_driver: "Yo Mismo" } }))).not.toContain("entregar_sin_recoger");
+    }
+    expect(menu(entrada("driver", "ready", { abierto: { ...CERRADO, pod: true } }))).not.toContain("entregar_sin_recoger");
+  });
+
+  it("la principal no cambia: en ready sigue «Recoger»; en approved y fulfilling, «Recoger de todos modos»", () => {
+    expect(principal(entrada("driver", "ready"))).toBe("recoger");
+    expect(principal(entrada("driver", "approved"))).toBe("recoger_sin_listo");
+    expect(principal(entrada("driver", "fulfilling"))).toBe("recoger_sin_listo");
+  });
+
+  it("la regla pura: solo chofer, su orden, y solo en esas tres etapas", () => {
+    const yo = { role: "driver", full_name: "Yo Mismo" };
+    expect(puedeEntregarSinRecoger(yo, { stage: "ready", assigned_driver: "Yo Mismo" })).toBe(true);
+    expect(puedeEntregarSinRecoger(yo, { stage: "pending", assigned_driver: "Yo Mismo" })).toBe(false);
+    expect(puedeEntregarSinRecoger(yo, { stage: "ready", assigned_driver: "Otro" })).toBe(false);
+    expect(puedeEntregarSinRecoger({ role: "warehouse", full_name: "Yo Mismo" }, { stage: "ready", assigned_driver: "Yo Mismo" })).toBe(false);
   });
 });

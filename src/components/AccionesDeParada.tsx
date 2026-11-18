@@ -9,7 +9,7 @@ import {
   notaDelDestino, razonDeLaNota, razonDeRechazo, tiendaDelRechazo, type DestinoDelRechazo,
   type LlegadaDeParada, type MarcaDeParada,
 } from "@/lib/acciones-parada";
-import { escrituraDeshacerRecogida, type DeshacerRecogida } from "@/lib/recogida-del-chofer";
+import { escrituraDeshacerRecogida, puedeEntregarSinRecoger, type DeshacerRecogida } from "@/lib/recogida-del-chofer";
 import { EVENTO_DEJADO, escrituraDejarEnTienda } from "@/lib/leave-at-store";
 import { LeaveAtStore } from "@/components/LeaveAtStore";
 import { botonesConLlegada } from "@/lib/siguiente-de-mi-ruta";
@@ -159,7 +159,8 @@ export function AccionesDeParada({
   const apagado = soloLectura || ocupado || guardando;
 
   // D-533: con la llegada de la parada pendiente, «Recogido»/«Entregado» no se pintan; la fila lleva «📍 Llegué».
-  const acciones = botonesConLlegada(accionesDeParada(tipo, pedido.stage, marca, deshacer), llegada);
+  // «Entregado» sin recoger antes: solo si quien mira es el chofer y la orden es suya en aprobada, preparando o lista.
+  const acciones = botonesConLlegada(accionesDeParada(tipo, pedido.stage, marca, deshacer, puedeEntregarSinRecoger(me, pedido)), llegada);
   // El motivo de lo apagado, a la vista: en un teléfono no hay `title` que leer.
   const motivos = [...new Set(acciones.flatMap((b) => (b.apagado ? [t(b.apagado.en, b.apagado.es)] : [])))];
   const etiqueta = nombreDeLaOrden(pedido);

@@ -44,10 +44,25 @@ export function puedeRecogerSinListo(
 /** Lo mínimo que se acepta como nota: tres letras, como la razón de un rechazo (D-487). */
 export const MINIMO_NOTA_SIN_LISTO = 3;
 
-/** La nota escrita, limpia, o `null` si no llega al mínimo (el botón de confirmar queda apagado). */
+/** La nota escrita, limpia, o `null` si no llega al mínimo. */
 export function notaSinListoValida(texto: string | null | undefined): string | null {
   const limpio = (texto ?? "").trim().replace(/\s+/g, " ");
   return limpio.length >= MINIMO_NOTA_SIN_LISTO ? limpio : null;
+}
+
+/**
+ * La nota que va al evento cuando el chofer NO escribe ninguna (o no llega al mínimo). Dice por qué la recogió sin
+ * «lista»: el almacén no la había marcado. El prefijo (`notaDeRecogidaSinListo`) ya marca la recogida como sin listo, así
+ * que las métricas y la campana la siguen reconociendo. La nota es opcional: nunca bloquea.
+ */
+export const NOTA_SIN_LISTO_POR_OMISION: Record<"en" | "es", string> = {
+  en: "warehouse had not marked it ready",
+  es: "almacén no la había marcado lista",
+};
+
+/** La nota de una recogida sin «listo»: la que escribió el chofer si llega al mínimo, si no la de por omisión. */
+export function notaSinListoOpcional(texto: string | null | undefined, lang: "en" | "es"): string {
+  return notaSinListoValida(texto) ?? NOTA_SIN_LISTO_POR_OMISION[lang];
 }
 
 const PREFIJO_SIN_LISTO = { en: "Picked up before it was ready", es: "Recogida sin estar lista" } as const;
@@ -110,6 +125,23 @@ export function mensajeDelGuard(mensaje: string | null | undefined, lang: "en" |
   return lang === "es"
     ? "Aún no disponible: falta una actualización del sistema — avisa a la oficina"
     : "Not available yet: the system is missing an update — tell the office";
+}
+
+/**
+ * ¿Puede el chofer ENTREGAR SU orden sin haberla recogido antes (un toque de «Entregado» desde `approved`, `fulfilling` o
+ * `ready`)? Mismo criterio que `puedeRecogerSinListo`: chofer, su orden (`assigned_driver` = su nombre), y nunca una
+ * orden que la oficina no aprobó. La base no deja ese salto al chofer: la escritura lo encadena en dos pasos (recogida y
+ * luego entrega, `OrderModal`), y es esta regla la que decide cuándo se encadena.
+ */
+export const ETAPAS_QUE_SE_ENTREGAN_SIN_RECOGER: readonly Stage[] = ["approved", "fulfilling", "ready"];
+
+export function puedeEntregarSinRecoger(
+  yo: { role?: string | null; full_name?: string | null } | null | undefined,
+  pedido: { stage?: string | null; assigned_driver?: string | null },
+): boolean {
+  if (yo?.role !== "driver" || !yo.full_name) return false;
+  if (!ETAPAS_QUE_SE_ENTREGAN_SIN_RECOGER.includes(pedido.stage as Stage)) return false;
+  return pedido.assigned_driver === yo.full_name;
 }
 
 // ---- Deshacer «Recogido» -----------------------------------------------------

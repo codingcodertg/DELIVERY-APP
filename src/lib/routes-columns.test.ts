@@ -269,7 +269,8 @@ describe("la página del Gestor", () => {
     expect(factura).toBeLessThan(td);
     // Las cinco de siempre, cada una por su clave, UNA vez (en `celdaDeParada`); y las de Órdenes con la celda de Órdenes.
     for (const k of ["p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_windows"]) expect(pagina.split(`case "${k}": return`).length - 1, k).toBe(1);
-    expect(pagina).toContain("return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>; };");
+    // La celda de siempre sigue; «Cambiar etapa» (solo admin) la envuelve con sus acciones cuando está activo.
+    expect(pagina).toContain("if (accionesEtapa.length === 0) return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;");
     expect(pagina.split("{colsParadas.map((c) => celdaDeParada(").length - 1).toBe(3);
   });
   it("D-376 → D-410: los colSpan cuentan las fijas y las elegidas, y el ancho de la tabla suma las mismas", () => {
