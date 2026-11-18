@@ -52575,3 +52575,8 @@ Sello `timetracker` 1.34.0; repo 1.927.0.
 
 D-1071 limitó lo que la app de escritorio abre fuera a http/https/mailto/tel y dejó fuera `rcapp:` (RingCentral) y `sms:`: en RR. HH. los botones Llamar/Texto no hacían nada desde la app instalada (en el navegador sí). Se añaden esos dos esquemas a `desktop/url-externa.js`; `file:`, `ms-…:` y el resto siguen bloqueados.
 Sello escritorio 1.6.1; repo 1.927.1.
+
+## D-1083 · RR. HH.: llamadas, grabaciones y textos de RingCentral en la ficha del candidato (2026-11-18)
+
+El dueño: «todo mensaje o recording de la call de RingCentral se le attach al usuario». Un cron cada 10 min (`/api/cron/rc-comms`, GitHub Actions) lee el call log y los SMS de SU línea (primera entrada de `RINGCENTRAL_AGENDAS_EXTRA`, o la que nombre `RINGCENTRAL_COMMS_AGENDA`) y guarda en `recruiting.rc_comms` solo lo que empata por teléfono (10 dígitos) con un candidato: lo demás de su línea nunca entra al hub. Las grabaciones se copian al bucket privado `rc-recordings` (RingCentral las borra con el tiempo), 6 por corrida; se escuchan con URL firmada de 10 min. Solo el admin lo ve (RLS `is_admin()` y la API). Primera corrida: 30 días atrás. Migración 326.
+Sello `recruiting` 0.110.0; repo 1.928.0.

@@ -3,7 +3,7 @@
 // and click-to-call (/api/call) routes. Uses plain fetch — no SDK needed.
 // ============================================================
 
-const RC_SERVER = process.env.RINGCENTRAL_SERVER || "https://platform.ringcentral.com";
+export const RC_SERVER = process.env.RINGCENTRAL_SERVER || "https://platform.ringcentral.com";
 
 export function ringcentralConfigured(): boolean {
   return !!(process.env.RINGCENTRAL_CLIENT_ID && process.env.RINGCENTRAL_CLIENT_SECRET && process.env.RINGCENTRAL_JWT);

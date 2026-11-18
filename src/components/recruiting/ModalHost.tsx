@@ -7,6 +7,7 @@ import { preguntasDeEntrevista } from "@/lib/recruiting/preguntas-del-puesto";
 import { InterviewViewModal } from "./InterviewView";
 import { BotonTextoPuedoLlamar } from "./BotonTextoPuedoLlamar";
 import { BotonCopiarParaElGerente } from "./BotonCopiarParaElGerente";
+import { ComunicacionesRingCentral } from "./ComunicacionesRingCentral";
 import { InPersonScheduleModal } from "./InPersonScheduleModal";
 import { AvisoDeChoque } from "./AvisoDeChoque";
 import { BotonContratar } from "./BotonContratar";
@@ -234,6 +235,7 @@ function ProfileModal({ id, close }: { id: string; close: () => void }) {
               <BotonCopiarParaElGerente c={c} />
               {c.email && <a className="link-tel" href={"mailto:" + c.email}>✉️ {c.email}</a>}
             </div>
+            <ComunicacionesRingCentral candidateId={c.id} />
           </div>
         </div>
 
