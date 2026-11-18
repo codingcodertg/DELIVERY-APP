@@ -29,6 +29,7 @@
 const { app, BrowserWindow, shell, Menu, dialog, net, powerMonitor } = require("electron");
 // Solo http/https/mailto/tel/sms/rcapp llegan al navegador del sistema (ver url-externa.js).
 const { esUrlExterna } = require("./url-externa.js");
+const { tituloDeLaVentana } = require("./titulo.js");
 // D-1057: el programa se llama iFloor, pero sus datos (registro del dispositivo, sesión, ventana) siguen en la carpeta de
 // siempre. Sin esto, cambiar el productName los movía a %APPDATA%\iFloor y cada PC tenía que volver a aprobarse.
 app.setPath("userData", require("path").join(app.getPath("appData"), "RTG Hub"));
@@ -162,7 +163,7 @@ function crearVentana() {
     ...previo,
     minWidth: 900,
     minHeight: 600,
-    title: "RTG Hub",
+    title: "RTG Hub by iFloor",
     backgroundColor: PAPEL[temaRecordado()],
     icon: path.join(__dirname, "build", "icon.ico"),
     // La barra de menú de Electron (Archivo/Editar/Ver…) no pinta nada aquí: la navegación
@@ -178,6 +179,12 @@ function crearVentana() {
       sandbox: true,
       spellcheck: true,
     },
+  });
+  // D-1085: el programa es iFloor y lo que abre es RTG Hub: la barra dice «RTG Hub by iFloor». El sitio sigue poniendo
+  // su propio título («RTG Hub | Order & Dispatch»); aquí solo se le añade la firma, sin tocar la web.
+  win.on("page-title-updated", (e, titulo) => {
+    e.preventDefault();
+    win.setTitle(tituloDeLaVentana(titulo));
   });
   if (previo.maximized) win.maximize();
   Menu.setApplicationMenu(null);
@@ -318,17 +325,54 @@ function crearVentana() {
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.requestHeaders = { [CABECERA]: idInstalacion };
-  autoUpdater.on("error", (e) => console.log(`[RTG Hub] actualización: ${e && e.message ? e.message : e}`));
+  // D-1085: «le dan reiniciar y le sigue apareciendo reiniciar». `quitAndInstall()` a secas lanza el instalador y pide
+  // a la app que se cierre con educación; si la ventana no se cerraba a tiempo (una página con cambios sin guardar
+  // frena el cierre, o la app tardaba), el instalador encontraba el programa abierto, no instalaba nada y a las horas
+  // volvía la pregunta. Ahora, al aceptar: la ventana se destruye (sin preguntar a la página), el instalador corre en
+  // silencio y vuelve a abrir la app, y si a los 5 s el proceso sigue vivo se corta. Y todo queda en `actualizacion.log`
+  // (carpeta de datos), porque sin registro esto no se podía diagnosticar.
+  const registro = path.join(app.getPath("userData"), "actualizacion.log");
+  const anota = (texto) => {
+    try {
+      if (fs.existsSync(registro) && fs.statSync(registro).size > 200_000) fs.unlinkSync(registro);
+      fs.appendFileSync(registro, `${new Date().toISOString()} v${app.getVersion()} ${texto}
+`);
+    } catch { /* el registro nunca rompe la app */ }
+  };
+  anota("arranca");
+  let instalando = false;
+  let preguntado = null;   // versión por la que ya se preguntó en esta sesión: «Luego» no vuelve a preguntar cada 4 h
+  const instalaYa = (version) => {
+    if (instalando) return;
+    instalando = true;
+    anota(`instalando ${version}`);
+    guardaEstado(win);
+    app.removeAllListeners("window-all-closed");
+    for (const w of BrowserWindow.getAllWindows()) { try { w.destroy(); } catch { /* ya cerrada */ } }
+    try {
+      autoUpdater.quitAndInstall(true, true);   // en silencio, y vuelve a abrir la app al terminar
+    } catch (e) {
+      anota(`quitAndInstall falló: ${e && e.message ? e.message : e}`);
+    }
+    setTimeout(() => app.exit(0), 5000);
+  };
+  // Una página con cambios sin guardar no frena una instalación ya aceptada.
+  win.webContents.on("will-prevent-unload", (e) => { if (instalando) e.preventDefault(); });
+  autoUpdater.on("error", (e) => { const m = e && e.message ? e.message : String(e); anota(`error: ${m}`); console.log(`[RTG Hub] actualización: ${m}`); });
+  autoUpdater.on("update-available", (info) => anota(`hay ${info.version}; bajando`));
   autoUpdater.on("update-downloaded", (info) => {
+    anota(`bajada ${info.version}`);
+    if (instalando || preguntado === info.version || win.isDestroyed()) return;
+    preguntado = info.version;
     dialog.showMessageBox(win, {
       type: "info",
       title: "Actualización lista",
-      message: `RTG Hub ${info.version} está lista.`,
-      detail: "Se instala al cerrar la app. ¿Reiniciar ahora?",
-      buttons: ["Reiniciar ahora", "Luego"],
+      message: `iFloor ${info.version} está lista.`,
+      detail: "La app se cierra, se actualiza sola y vuelve a abrir en unos segundos. Si elige «Luego», se instala al cerrar la app.",
+      buttons: ["Actualizar ahora", "Luego"],
       defaultId: 0,
       cancelId: 1,
-    }).then(({ response }) => { if (response === 0) autoUpdater.quitAndInstall(); });
+    }).then(({ response }) => { if (response === 0) instalaYa(info.version); else anota(`luego ${info.version}`); });
   });
   const buscaActualizacion = () => autoUpdater.checkForUpdates().catch(() => undefined);
   setTimeout(buscaActualizacion, 15_000);

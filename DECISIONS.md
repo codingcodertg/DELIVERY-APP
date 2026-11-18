@@ -52585,3 +52585,8 @@ Sello `recruiting` 0.110.0; repo 1.928.0.
 
 El dueño: «make esto del screenshot fit el page size porque está muy pequeño». El editor «Señale los problemas» (`CapturaDeAyuda`) tenía un tope de 900 px; ahora crece hasta el ancho de la ventana, o hasta donde el alto deja ver la captura entera con los botones a la vista.
 Sello `deliveries` 1.632.0; repo 1.928.1.
+
+## D-1085 · Escritorio 1.6.2: «Actualizar ahora» cierra e instala de verdad; la ventana dice «RTG Hub by iFloor» (2026-11-18)
+
+El dueño: «le dan reiniciar y le sigue apareciendo reiniciar… tengo que dar varias veces». En su PC la 1.6.0 se bajó a las 15:23 y no quedó instalada hasta las 18:43. `quitAndInstall()` lanzaba el instalador y pedía un cierre educado; si la ventana no cerraba a tiempo, el instalador no instalaba y la pregunta volvía. Ahora, al aceptar: se destruyen las ventanas, instalación silenciosa con reapertura (`quitAndInstall(true, true)`), corte a los 5 s si el proceso sigue vivo, una sola pregunta por versión y sesión, y registro en `%APPDATA%\RTG Hubctualizacion.log`. La causa exacta no se pudo confirmar (no había registro); por eso el registro. Título de la ventana: «RTG Hub by iFloor» + la sección del sitio (`desktop/titulo.js`); el programa ya se llamaba iFloor (D-1057). Quien esté en 1.6.1 o antes da este salto todavía con el actualizador viejo.
+Sello escritorio 1.6.2; repo 1.928.2.
