@@ -47,6 +47,7 @@ import { alcanceDeChoferes, choferSeVe, choferesConOrden, ordenesPorChofer, type
 import { alAbrirRutas, alPulsarElMapa, MAPA_INICIAL, rutasAbiertas, type EstadoDelMapa } from "@/lib/gestor/mapa-al-abrir-ruta";
 import { textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
 import { ordenesEnElMapa } from "@/lib/gestor/ordenes-en-el-mapa";
+import { alternaResaltada, encuadreDeResaltadas, esControlDeLaFila } from "@/lib/resaltar-orden";
 import { diaDeLaRuta } from "@/lib/gestor/numeros-del-dia";
 import { filasDelHorario, paradaDeCadaEntrega } from "@/lib/gestor/zoom-del-horario";
 import { alternaDesplegada, claseDeTarjeta, conAcciones, conCabecera, conCuerpo, desplegadaVigente, type ModoDeTarjeta } from "@/lib/gestor/cuadricula";
@@ -546,9 +547,11 @@ export default function RoutesPage() {
   // Multi-select + search + saved filter for the unassigned pool.
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   // Lo marcado con la casilla en las TARJETAS de ruta (D-474, «Asignar a…» varios choferes). Aparte de `selectedOrders`
-  // a propósito: en la tarjeta, pulsar una fila aísla ESA parada en el mapa (una sola), y pulsar fuera lo quita; una marca
-  // para repartir tiene que sobrevivir a eso. Lo que se reparte es la unión de las dos (`seleccionDelReparto`).
+  // a propósito: pulsar fuera lo quita y una marca para repartir tiene que sobrevivir a eso. Lo que se reparte es la unión
+  // de las dos (`seleccionDelReparto`). Pulsar una fila NO marca: solo resalta (`ordenesResaltadas`).
   const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
+  // La orden RESALTADA: un clic en su fila (P o D) la resalta en el mapa y en la tabla, sin marcarla ni abrir el recuadro.
+  const [ordenesResaltadas, setOrdenesResaltadas] = useState<Set<string>>(new Set());
   const [elegidosDelReparto, setElegidosDelReparto] = useState<Set<string>>(new Set());
   const [repartoAbierto, setRepartoAbierto] = useState(false);
   const [repartiendo, setRepartiendo] = useState(false);
@@ -1471,7 +1474,7 @@ export default function RoutesPage() {
     let cancelled = false;
     (async () => {
       if (soloLectura) return;
-      const chosen = dayOrders.filter((d) => selectedOrders.has(d.id) && d.delivery_lat != null && d.delivery_lng != null);
+      const chosen = dayOrders.filter((d) => (selectedOrders.has(d.id) || ordenesResaltadas.has(d.id)) && d.delivery_lat != null && d.delivery_lng != null);
       for (const d of chosen) {
         if (cancelled) return;
         const addr = (d.pickup_address || settings.stores.find((s) => s.name === d.store)?.address || d.store || "").trim();
@@ -1499,7 +1502,7 @@ export default function RoutesPage() {
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOrders, dayOrders]);
+  }, [selectedOrders, dayOrders, ordenesResaltadas]);
 
   // A distinct color per selected load (shared by its pickup pin + route),
   // whether the load is assigned or still in the pool.
@@ -2638,6 +2641,14 @@ export default function RoutesPage() {
         ];
       }
     }
+    // Una orden resaltada (clic en su fila): el mapa encuadra su recogida y su entrega, lo más cerca que cabe con margen.
+    if (ordenesResaltadas.size > 0) {
+      const pts = encuadreDeResaltadas(dayOrders.filter((d) => ordenesResaltadas.has(d.id)).flatMap((d) => [
+        selPickup[d.id] ?? null,
+        d.delivery_lat != null && d.delivery_lng != null ? ([d.delivery_lat, d.delivery_lng] as const) : null,
+      ]));
+      if (pts.length) return pts;
+    }
     // Selected unassigned loads take priority — frame them + their routes.
     if (selectedOrders.size > 0) {
       const pts: [number, number][] = [];
@@ -2655,7 +2666,29 @@ export default function RoutesPage() {
     // ruta», D-718), no: su ruta sola, cerrada, sin las tiendas de Ajustes abriendo el encuadre hasta Brownsville.
     return encuadreDeLasRutas(points, selected, byDriver, lanes, storeMarkers, miChofer != null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points, selected, selectedOrders, selRouteCache, selPickup, dayOrders, locateDriver, posicionesAhora, users, storeMarkers, miChofer]);
+  }, [points, selected, selectedOrders, selRouteCache, selPickup, dayOrders, locateDriver, posicionesAhora, users, storeMarkers, miChofer, ordenesResaltadas]);
+
+  // Con una orden resaltada, el resto del mapa se atenúa (el mismo `dimmed` que el foco de un chofer) y su recogida, su
+  // entrega y su tramo quedan encima. Sin resaltar, el mapa es el de siempre.
+  const { puntosMostrados, lineasMostradas } = useMemo(() => {
+    if (ordenesResaltadas.size === 0) return { puntosMostrados: points, lineasMostradas: lines };
+    const extraPuntos: MapPoint[] = [], tramos: MapLine[] = [];
+    for (const d of dayOrders) {
+      if (!ordenesResaltadas.has(d.id)) continue;
+      const pk = selPickup[d.id];
+      const color = selColorById.get(d.id) ?? "#2456c9";
+      const conDestino = d.delivery_lat != null && d.delivery_lng != null;
+      if (pk) extraPuntos.push({ id: `__resaltada_pk__${d.id}`, lat: pk[0], lng: pk[1], color, badge: "P", label: `#${orderLabel(d)} — ${t("Pickup", "Recolección")}` });
+      if (conDestino) extraPuntos.push({ id: `__resaltada_dl__${d.id}`, lat: d.delivery_lat as number, lng: d.delivery_lng as number, color, badge: "D", label: `#${orderLabel(d)} — ${t("Delivery", "Entrega")}` });
+      const pos = selRouteCache[d.id];
+      const tramo: [number, number][] | null = pos && pos.length ? pos : pk && conDestino ? [pk, [d.delivery_lat as number, d.delivery_lng as number]] : null;
+      if (tramo) tramos.push({ id: `resaltada:${d.id}`, color, positions: tramo, weight: 8 });
+    }
+    return {
+      puntosMostrados: [...points.map((p) => ({ ...p, dimmed: true })), ...extraPuntos],
+      lineasMostradas: [...lines.map((l) => ({ ...l, dimmed: true })), ...tramos],
+    };
+  }, [ordenesResaltadas, points, lines, dayOrders, selPickup, selColorById, selRouteCache, t]);
 
   if (!me) return null;
   if (!soloLectura && !canPlanRoutes(me)) {
@@ -3129,7 +3162,7 @@ export default function RoutesPage() {
       <div className="card" data-mapa-del-gestor style={{ margin: 0, padding: 0, overflow: "hidden" }}>
         {/* El toque va entero a quien monta el mapa: «Mi ruta» busca la parada en su propia lista, y lo que no sea una
             parada suya (la casita de una tienda, la base) no abre nada. */}
-        <MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))} onLineClick={onLineClick} fitTo={fitTo} height={soloElMapa.alto ?? 430} onPointClick={(id) => soloElMapa.alPulsarParada?.(id)} />
+        <MapView points={puntosMostrados} lines={lineasMostradas} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))} onLineClick={onLineClick} fitTo={fitTo} height={soloElMapa.alto ?? 430} onPointClick={(id) => soloElMapa.alPulsarParada?.(id)} />
       </div>
     );
   }
@@ -3460,7 +3493,7 @@ export default function RoutesPage() {
             </div>
           )}
           {/* Más bajo en la eficiente (D-653), para que el mapa y la tabla de la ruta quepan juntos en una pantalla. */}
-          <MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))} trucks={camionesEnMapa} onLineClick={onLineClick} fitTo={fitTo} height={eficiente ? "var(--alto-mapa-gestor-eficiente)" : "var(--alto-mapa-gestor)"} onPointClick={(id) => {
+          <MapView points={puntosMostrados} lines={lineasMostradas} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))} trucks={camionesEnMapa} onLineClick={onLineClick} fitTo={fitTo} height={eficiente ? "var(--alto-mapa-gestor-eficiente)" : "var(--alto-mapa-gestor)"} onPointClick={(id) => {
             // Click any order pin (assigned or pool) to toggle its PU→DEL view.
             const d = dayOrders.find((x) => x.id === id);
             if (d) toggleOrder(d.id);
@@ -3791,7 +3824,7 @@ export default function RoutesPage() {
         return (
           <div className={claseDeTarjeta(modoDeTarjeta, desplegadaAqui)} key={`${modoDeTarjeta}-${u.id}`} data-tarjeta-de-ruta={u.key} data-modo-de-tarjeta={modoDeTarjeta} {...sueltaAqui(u.key, null)}
             style={{ margin: 0, gridColumn: modoDeTarjeta === "desplegada" ? "1 / -1" : undefined, outline: sobre === claveDeSoltar(u.key, null) ? "2px dashed var(--accent)" : undefined, outlineOffset: -2 }}
-            onClick={() => setSelectedOrders((prev) => (prev.size ? new Set() : prev))}>
+            onClick={() => { setSelectedOrders((prev) => (prev.size ? new Set() : prev)); setOrdenesResaltadas((prev) => (prev.size ? new Set() : prev)); }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
               {/* La desplegada de «Cuadrícula» no repite nombre ni números (D-482): ya están en su tarjeta compacta de arriba, que
                   queda pegada a ella. Solo trae la barra de acciones y la tabla. */}
@@ -4132,7 +4165,9 @@ export default function RoutesPage() {
                         return (
                           <tr key={`P-${fi}-${clave}`} data-recogida={etiquetaDeLaFila} className={`${claseDeLaFilaDelPlan("P")}${claseDeGrupo(f)}${claseDeSoltar}`}
                             data-fila-arrastrable={seArrastra ? "parada" : undefined} {...arrastre} {...soltar}
-                            style={{ ...(resaltada ? { outline: "2px solid var(--amber)", outlineOffset: -2 } : {}), ...(esLaArrastrada ? { opacity: 0.5 } : {}), ...(seArrastra ? { cursor: "grab" } : {}) }} data-recien-movida={resaltada ? "" : undefined}>
+                            title={t("Show this stop on the map", "Ver esta parada en el mapa")}
+                            onClick={(e) => { e.stopPropagation(); if (esControlDeLaFila(e.target as Element)) return; setOrdenesResaltadas((s) => alternaResaltada(s, suyas.map((x) => x.id))); }}
+                            style={{ ...(suyas.some((x) => ordenesResaltadas.has(x.id)) ? { background: "var(--accent-soft)" } : {}), ...(suyas.some((x) => marcadas.has(x.id)) ? { boxShadow: "inset 4px 0 0 var(--accent)" } : {}), ...(resaltada ? { outline: "2px solid var(--amber)", outlineOffset: -2 } : {}), ...(esLaArrastrada ? { opacity: 0.5 } : {}), ...(seArrastra ? { cursor: "grab" } : {}) }} data-recien-movida={resaltada ? "" : undefined}>
                             <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>
                               {/* D-998: la RECOGIDA también se marca (intertienda, relevos, recogidas en otra tienda): marca sus órdenes. */}
                               {acciones && suyas.length > 0 && (() => {
@@ -4199,7 +4234,7 @@ export default function RoutesPage() {
                       //   the invoice → open the order itself (the ID until D-408)
                       //   the row  → isolate this stop on the map, with its route
                       //   outside  → back to the driver's whole day
-                      const isolated = selectedOrders.has(d.id) && selectedOrders.size === 1;
+                      const resaltadaOrden = ordenesResaltadas.has(d.id);
                       return (
                         <tr
                           key={d.id}
@@ -4207,12 +4242,12 @@ export default function RoutesPage() {
                           // Aislar una parada sigue pintándola con su fondo.
                           className={`clickable${claseDeGrupo(f)}${claseDeSoltar}`}
                           data-fila-arrastrable={seArrastra ? "parada" : undefined} {...arrastre} {...soltar}
-                          style={{ ...(isolated ? { background: "var(--accent-soft)" } : resaltada ? { background: "var(--amber-soft)", outline: "2px solid var(--amber)", outlineOffset: -2 } : {}), ...(esLaArrastrada ? { opacity: 0.5 } : {}) }}
+                          style={{ ...(resaltadaOrden ? { background: "var(--accent-soft)" } : resaltada ? { background: "var(--amber-soft)", outline: "2px solid var(--amber)", outlineOffset: -2 } : {}), ...(marcadas.has(d.id) ? { boxShadow: "inset 4px 0 0 var(--accent)" } : {}), ...(esLaArrastrada ? { opacity: 0.5 } : {}) }}
                           data-recien-movida={resaltada ? "" : undefined}
                           data-entrega={etiquetaDeLaFila}
-                          // Stop here: without this the click also reaches the card's "tap outside" handler, which sees a
-                          // selection already set and clears it — so moving from one stop to the next took two clicks.
-                          onClick={(e) => { e.stopPropagation(); if (!soloLectura) setSelectedOrders(isolated ? new Set() : new Set([d.id])); }}
+                          // Stop here: without this the click also reaches the card's "tap outside" handler, which would clear the
+                          // highlight right after it is set. Un clic en la fila solo RESALTA; marcar es la casilla.
+                          onClick={(e) => { e.stopPropagation(); if (esControlDeLaFila(e.target as Element)) return; setOrdenesResaltadas((s) => alternaResaltada(s, [d.id])); }}
                           title={t("Show this stop on the map", "Ver esta parada en el mapa")}
                         >
                           <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}

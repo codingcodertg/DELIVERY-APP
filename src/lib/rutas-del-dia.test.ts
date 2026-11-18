@@ -400,7 +400,7 @@ describe("7 · la pantalla: el Gestor de Rutas en solo lectura (D-481)", () => {
     // Ctrl+Z / Ctrl+Y no se escuchan, y nada se marca para pintar su recogida (eso pide una llamada de mapas por orden).
     expect(gestor).toContain("useEffect(() => { if (soloLectura) return; const tecla = (e: KeyboardEvent) => {");
     expect(gestor).toContain("const toggleOrder = (id: string) => !soloLectura && setSelectedOrders(");
-    expect(gestor).toContain("if (!soloLectura) setSelectedOrders(isolated ? new Set() : new Set([d.id]));");
+    expect(gestor).toContain("onClick={(e) => { e.stopPropagation(); if (esControlDeLaFila(e.target as Element)) return; setOrdenesResaltadas((s) => alternaResaltada(s, [d.id])); }}");
     // D-526: ya no se guarda nada desde «Ruta de hoy»: la tarjeta de colores de chofer, lo único que guardaba, se quitó.
     expect(gestor).not.toContain("canManageColors");
     expect(gestor).not.toContain("saveSettings({ driver_colors:");

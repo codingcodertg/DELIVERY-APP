@@ -108,7 +108,7 @@ describe("en el Gestor, el modo «solo el mapa»", () => {
     expect(pagina).toBeGreaterThan(corte);
     // Y es la MISMA tarjeta: los mismos puntos, líneas, tiendas y camiones que la de la página entera.
     const tarjeta = gestor.slice(corte, pagina);
-    expect(tarjeta).toContain("<MapView points={points} lines={lines} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))}");
+    expect(tarjeta).toContain("<MapView points={puntosMostrados} lines={lineasMostradas} stores={storeMarkers} liveDrivers={liveDrivers.filter((c) => pasaFiltro(c.driver))}");
     // Nota D-520: fijaba que la tarjeta llevaba la leyenda; la leyenda se quitó de toda la app y ahora fija que no.
     expect(tarjeta).not.toContain("MapLegend");
     expect(gestor).not.toContain("MapLegend");
