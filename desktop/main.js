@@ -27,7 +27,7 @@
 // ============================================================
 
 const { app, BrowserWindow, shell, Menu, dialog, net, powerMonitor } = require("electron");
-// Solo http/https/mailto/tel llegan al navegador del sistema (ver url-externa.js).
+// Solo http/https/mailto/tel/sms/rcapp llegan al navegador del sistema (ver url-externa.js).
 const { esUrlExterna } = require("./url-externa.js");
 // D-1057: el programa se llama iFloor, pero sus datos (registro del dispositivo, sesión, ventana) siguen en la carpeta de
 // siempre. Sin esto, cambiar el productName los movía a %APPDATA%\iFloor y cada PC tenía que volver a aprobarse.

@@ -52570,3 +52570,8 @@ Sello `deliveries` 1.631.0; repo 1.926.0.
 
 Ayuda de Francis (Time Tracker → My Requests → Time). «Desde/Hasta» pasan a hora exacta al minuto (sin redondeo). «Add time» admite un segundo bloque el mismo día («+ Agregar bloque después de comer»); el gerente aprueba una vez y se crean dos sesiones, con la comida fuera. El segundo bloque va en `payload.secondBlock` (jsonb); sin migración. Las solicitudes de un bloque no cambian.
 Sello `timetracker` 1.34.0; repo 1.927.0.
+
+## D-1082 · Escritorio: Llamar y Texto de RingCentral vuelven a abrir (2026-11-18)
+
+D-1071 limitó lo que la app de escritorio abre fuera a http/https/mailto/tel y dejó fuera `rcapp:` (RingCentral) y `sms:`: en RR. HH. los botones Llamar/Texto no hacían nada desde la app instalada (en el navegador sí). Se añaden esos dos esquemas a `desktop/url-externa.js`; `file:`, `ms-…:` y el resto siguen bloqueados.
+Sello escritorio 1.6.1; repo 1.927.1.
