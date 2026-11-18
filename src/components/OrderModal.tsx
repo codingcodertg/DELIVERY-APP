@@ -106,7 +106,8 @@ import { etiquetaDeEventoDeParada, llegadasDeParadas, marcasDeParadas, NO_ESTA_L
 import { PastillaDeMarca } from "@/components/PastillaDeMarca";
 import {
   avisosDeRecogidaSinListo, deshacerRecogida, entregaConCamara, escrituraDeshacerRecogida, notaDeRecogidaSinListo,
-  notaSinListoValida, puedeRecogerSinListo, MINIMO_NOTA_SIN_LISTO, type DeshacerRecogida,
+  notaSinListoOpcional, puedeRecogerSinListo, puedeEntregarSinRecoger, ETAPAS_QUE_SE_RECOGEN_SIN_LISTO,
+  NOTA_SIN_LISTO_POR_OMISION, type DeshacerRecogida,
 } from "@/lib/recogida-del-chofer";
 import { autoresDeFotos, fotosAlEntregar } from "@/lib/fotos-de-entrega";
 import { fotosParaContar, useFotosDeLaOrden, useUrlsDeFotos } from "@/lib/fotos-de-la-orden";
@@ -250,7 +251,8 @@ export function OrderModal({
   const [routing, setRouting] = useState(false);
   const [routeErr, setRouteErr] = useState("");
   // D-527: desde «✅ Entregado» de «Mi ruta» la ficha nace con la prueba de entrega abierta.
-  const [showPod, setShowPod] = useState(abrirEn === "entregar" && existing?.stage === "picked_up");
+  // Con «Entregado» sin recoger antes (la orden del chofer en aprobada, preparando o lista) la prueba también nace abierta.
+  const [showPod, setShowPod] = useState(abrirEn === "entregar" && !!existing && (existing.stage === "picked_up" || puedeEntregarSinRecoger(me, existing)));
   // «Recoger de todos modos» (D-527, 168): la nota del chofer, y si su paso está abierto. Desde «🚚 Recogido» de «Mi ruta»
   // en una orden que el almacén no marcó lista, la ficha nace con la nota abierta: es a lo que venía.
   const [showSinListo, setShowSinListo] = useState(abrirEn === "recoger" && !!existing && puedeRecogerSinListo(me, existing));
@@ -1305,8 +1307,9 @@ export function OrderModal({
    * «Aún no disponible… avisa a la oficina» (`mensajeDelGuard`): aquí no se avisa a nadie ni se cierra la ficha.
    */
   const recogerSinListo = async () => {
-    const nota = notaSinListoValida(notaSinListo);
-    if (!existing || !nota) return;
+    // La nota es opcional: sin texto (o con menos del mínimo), va la de por omisión. Nunca bloquea.
+    const nota = notaSinListoOpcional(notaSinListo, lang);
+    if (!existing) return;
     setBusy(true);
     const { immediate, eventual } = captureLocationSplit();
     const gps = await immediate;
@@ -1608,6 +1611,25 @@ export function OrderModal({
       : podName.trim()
         ? t(`Received by ${podName.trim()}`, `Recibido por ${podName.trim()}`)
         : t("Delivered", "Entregado");
+    // «Entregado» sin haberla recogido antes (`puedeEntregarSinRecoger`): la base no deja ese salto al chofer, así que
+    // primero va la recogida, con la misma escritura que «Recogido» (y la nota de «sin listo» si la etapa lo pide), y luego
+    // la entrega. Si la recogida falla, no se entrega nada. Si la entrega falla, la orden se queda recogida (`picked_up`).
+    if (existing.stage !== "picked_up") {
+      if (!puedeEntregarSinRecoger(me, existing)) { setBusy(false); return; }
+      const sinListo = (ETAPAS_QUE_SE_RECOGEN_SIN_LISTO as readonly string[]).includes(existing.stage ?? "");
+      const notaSinListoDefecto = NOTA_SIN_LISTO_POR_OMISION[lang];
+      const recogida = escrituraRecogida({ pedido: existing, me, gps, t });
+      const notaDeLaRecogida = sinListo ? notaDeRecogidaSinListo(notaSinListoDefecto, recogida.note, lang) : recogida.note;
+      const recogidaOk = await setStage(existing.id, "picked_up", notaDeLaRecogida, recogida.extra);
+      if (!recogidaOk) { setBusy(false); return; }
+      if (!gps) void attachLateFix(existing.id, eventual, "pickup");
+      if (sinListo) {
+        void pushNotifs(avisosDeRecogidaSinListo({
+          users, actorId: me.id, pedido: existing, tiendas: settings.stores,
+          etiqueta: `#${orderLabel(existing)}`, nota: notaSinListoDefecto, chofer: me.full_name,
+        }));
+      }
+    }
     // Persist POD fields + the stage move in ONE write so nothing clobbers them.
     const ok = await setStage(existing.id, "delivered", note, pod);
     setBusy(false);
@@ -3776,7 +3798,6 @@ function StageActions({
       motivoDeSalto: motivoDeSaltoAbierto, reentrega: reentregaAbierta, recogerSinListo: sinListo.abierto,
     },
   });
-  const notaValida = notaSinListoValida(sinListo.nota);
   // Lo que hace cada acción: lo MISMO que hacía su botón. Un `Record` completo: una acción nueva sin enchufar no compila.
   const alPulsar: Record<IdDeAccion, () => void> = {
     enviar: () => onMove(etapaDeEnvio),
@@ -3797,6 +3818,8 @@ function StageActions({
     dejar_en_tienda: () => setDejarAbierto(true),
     desbloquear: () => onMove("pending"),
     entregar_ya: onEntregarYa,
+    // Sin recoger antes: la misma prueba de entrega; `deliverWithPod` encadena la recogida.
+    entregar_sin_recoger: onRequestDeliver,
     deshacer: onDeshacer,
     reentrega: onReentrega,
     imprimir: onPrint,
@@ -3855,19 +3878,17 @@ function StageActions({
         <div data-paso-sin-listo style={{ flex: "1 1 100%", display: "flex", flexDirection: "column", gap: 8 }}>
           <div className="hint" style={{ color: "var(--amber-text)", fontWeight: 700, marginTop: 0 }}>⚠ {t(NO_ESTA_LISTA.en, NO_ESTA_LISTA.es)}</div>
           <label style={{ fontSize: 14, fontWeight: 600 }} htmlFor="nota-sin-listo">
-            {t("What's missing, or why are you taking it now? (required)", "¿Qué falta, o por qué la recoges así? (obligatorio)")}
+            {t("What's missing, or why are you taking it now? (optional)", "¿Qué falta, o por qué la recoges así? (opcional)")}
           </label>
           <textarea id="nota-sin-listo" data-nota-sin-listo rows={3} value={sinListo.nota} autoFocus disabled={busy}
             onChange={(e) => sinListo.setNota(e.target.value)} style={{ width: "100%" }}
             placeholder={t("e.g. 2 boxes of grout still missing; the customer needs the tile today", "ej. faltan 2 cajas de boquilla; el cliente necesita el piso hoy")} />
-          {/* D-603: sin el «se avisa a…» (Ernesto: «This text is not necessary, its adding noise»); solo el mínimo si falta. */}
-          {!notaValida && sinListo.nota.trim() !== "" && (
-            <div className="hint" style={{ marginTop: 0 }}>{t(`At least ${MINIMO_NOTA_SIN_LISTO} letters.`, `Al menos ${MINIMO_NOTA_SIN_LISTO} letras.`)}</div>
-          )}
+          {/* Sin nota, el evento dice que el almacén no la había marcado lista. Nunca bloquea. */}
+          <div className="hint" style={{ marginTop: 0 }}>{t("Without a note it is recorded as “warehouse had not marked it ready”.", "Sin nota queda como «almacén no la había marcado lista».")}</div>
           <div style={{ display: "flex", gap: 8 }}>
             <button className="btn btn-ghost" style={{ flex: 1, minHeight: 44, justifyContent: "center" }} onClick={sinListo.cerrar} disabled={busy}>{t("Back", "Atrás")}</button>
             <button data-confirmar-sin-listo className="btn btn-amber" style={{ flex: 1, minHeight: 44, justifyContent: "center" }}
-              onClick={sinListo.confirmar} disabled={busy || !notaValida}>
+              onClick={sinListo.confirmar} disabled={busy}>
               {busy ? t("Saving…", "Guardando…") : `🚚 ${t("Confirm pickup", "Confirmar recogida")}`}
             </button>
           </div>

@@ -5,7 +5,7 @@ import {
 import { puedeAgregarMaterial } from "@/lib/agregar-material";
 import { esSuyaParaAnular } from "@/lib/ordenes-visibles";
 import { puedeDejarEnTienda } from "@/lib/leave-at-store";
-import { puedeRecogerSinListo, type DeshacerRecogida } from "@/lib/recogida-del-chofer";
+import { puedeEntregarSinRecoger, puedeRecogerSinListo, type DeshacerRecogida } from "@/lib/recogida-del-chofer";
 import type { AlcanceDeEdicion } from "@/lib/edicion-de-ventas";
 import type { Delivery, Profile, Stage } from "@/lib/types";
 
@@ -32,7 +32,7 @@ export type IdDeAccion =
   | "enviar" | "reenviar" | "aprobar" | "comenzar" | "marcar_listo" | "recoger" | "recoger_sin_listo" | "recibir" | "marcar_entregado"
   // Las del menú.
   | "editar" | "agregar_material" | "iniciar_viaje" | "llegue" | "dejar_en_tienda" | "desbloquear"
-  | "entregar_ya" | "deshacer" | "deshacer_recogida" | "reentrega" | "imprimir" | "duplicar"
+  | "entregar_ya" | "entregar_sin_recoger" | "deshacer" | "deshacer_recogida" | "reentrega" | "imprimir" | "duplicar"
   // Las destructivas: al final, en rojo.
   | "rechazar" | "anular" | "eliminar";
 
@@ -150,7 +150,7 @@ export const ORDEN_DE_PRINCIPAL: readonly IdDeAccion[] = [
 export const ORDEN_DEL_MENU: readonly IdDeAccion[] = [
   ...ORDEN_DE_PRINCIPAL,
   "editar", "agregar_material", "iniciar_viaje", "llegue", "dejar_en_tienda",
-  "desbloquear", "entregar_ya", "deshacer", "deshacer_recogida", "reentrega", "imprimir", "duplicar",
+  "desbloquear", "entregar_ya", "entregar_sin_recoger", "deshacer", "deshacer_recogida", "reentrega", "imprimir", "duplicar",
   "rechazar", "anular", "eliminar",
 ];
 
@@ -266,6 +266,13 @@ export function accionesDeLaFicha(e: EntradaDeAcciones): AccionesDeLaFicha {
       hay.push({ id: "recoger_sin_listo", texto: { en: "🚚 Pick up anyway…", es: "🚚 Recoger de todos modos…" }, estilo: "btn-amber",
         titulo: { en: "The warehouse hasn't marked it ready: say what's missing", es: "El almacén no la marcó lista: di qué falta" } });
     }
+  }
+
+  // La entrega del chofer en SU orden sin recogerla antes (aprobada, preparando o lista): va al menú. Pasa por la prueba de
+  // entrega, y la escritura encadena la recogida (con la nota de «sin listo» si hace falta) y luego la entrega.
+  if (puedeEntregarSinRecoger(yo, pedido) && !abierto.pod) {
+    hay.push({ id: "entregar_sin_recoger", texto: { en: "✅ Mark delivered (without pickup)", es: "✅ Marcar entregado (sin recoger)" }, estilo: "btn-ghost",
+      titulo: { en: "Deliver it now: the pickup is recorded too", es: "Entregarla ahora: la recogida queda registrada también" } });
   }
 
   // En reparto. Almacén RECIBE la que llega a su tienda (D-409) en lugar de marcarla entregada.

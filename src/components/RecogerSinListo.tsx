@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { NO_ESTA_LISTA } from "@/lib/acciones-parada";
 import { MOTIVOS_SIN_LISTO, notaDelMotivoSinListo, type MotivoSinListo } from "@/lib/recoger-sin-listo-pantalla";
+import { NOTA_SIN_LISTO_POR_OMISION } from "@/lib/recogida-del-chofer";
 import { nombreDeLaOrden } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
 
@@ -21,16 +22,17 @@ export function RecogerSinListo({ pedido, ocupado, onCancelar, onConfirmar }: {
   const { t, lang } = usePrefs();
   const [motivo, setMotivo] = useState<MotivoSinListo | null>(null);
   const [texto, setTexto] = useState("");
-  const nota = notaDelMotivoSinListo(motivo, texto, lang);
+  // Opcional (dueño): sin motivo, o con «Otro» sin texto válido, la nota es la de por omisión. Nunca bloquea.
+  const nota = notaDelMotivoSinListo(motivo, texto, lang) ?? NOTA_SIN_LISTO_POR_OMISION[lang];
   const etiqueta = nombreDeLaOrden(pedido);
   return (
     <div className="overlay" data-recoger-sin-listo="" onClick={(e) => { if (e.target === e.currentTarget && !ocupado) onCancelar(); }}>
       <div className="modal" role="dialog" aria-modal="true" aria-label={t(NO_ESTA_LISTA.en, NO_ESTA_LISTA.es)} style={{ maxWidth: 380 }}>
         <h3 style={{ marginTop: 0 }}>⚠ {t("Not marked ready by Warehouse", "El almacén no la marcó lista")}</h3>
         <div className="hint" style={{ marginTop: 0 }}>{etiqueta}</div>
-        <form onSubmit={(e) => { e.preventDefault(); if (nota) onConfirmar(nota); }}>
+        <form onSubmit={(e) => { e.preventDefault(); onConfirmar(nota); }}>
           <div className="field">
-            <label htmlFor="motivo-sin-listo">{t("Why are you picking up?", "¿Por qué la recoges?")}</label>
+            <label htmlFor="motivo-sin-listo">{t("Why are you picking up? (optional)", "¿Por qué la recoges? (opcional)")}</label>
             <select id="motivo-sin-listo" data-motivo-sin-listo="" autoFocus value={motivo ?? ""} disabled={ocupado}
               onChange={(e) => setMotivo((e.target.value || null) as MotivoSinListo | null)} style={{ width: "100%", minHeight: 44, fontSize: 16 }}>
               <option value="">{t("Choose…", "Elige…")}</option>
@@ -47,7 +49,7 @@ export function RecogerSinListo({ pedido, ocupado, onCancelar, onConfirmar }: {
             <button type="button" className="btn" style={{ flex: 1, minHeight: 44, justifyContent: "center" }} onClick={onCancelar} disabled={ocupado}>
               {t("Cancel", "Cancelar")}
             </button>
-            <button type="submit" data-confirmar-sin-listo="" className="btn btn-amber" style={{ flex: 1, minHeight: 44, justifyContent: "center" }} disabled={!nota || ocupado}>
+            <button type="submit" data-confirmar-sin-listo="" className="btn btn-amber" style={{ flex: 1, minHeight: 44, justifyContent: "center" }} disabled={ocupado}>
               {ocupado ? t("Saving…", "Guardando…") : `🚚 ${t("Confirm pickup", "Confirmar recogida")}`}
             </button>
           </div>

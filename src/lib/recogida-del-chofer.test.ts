@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   BLOQUEOS_DE_DESHACER, ETAPAS_QUE_SE_RECOGEN_SIN_LISTO, KIND_RECOGIDA_SIN_LISTO, MINIMO_NOTA_SIN_LISTO, avisosDeRecogidaSinListo,
   deshacerRecogida, entregaConCamara, escrituraDeshacerRecogida, esRecogidaSinListo, mensajeDelGuard, notaDeRecogidaSinListo,
-  notaSinListoValida, puedeRecogerSinListo,
+  notaSinListoValida, notaSinListoOpcional, NOTA_SIN_LISTO_POR_OMISION, puedeEntregarSinRecoger, puedeRecogerSinListo,
 } from "@/lib/recogida-del-chofer";
 import { autoresDeFotos, fotosAlEntregar } from "@/lib/fotos-de-entrega";
 import { canTransition } from "@/lib/constants";
@@ -21,6 +21,33 @@ import { canTransition } from "@/lib/constants";
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 const t = (en: string) => en;
 const CHOFER = { id: "u-diego", role: "driver", full_name: "Diego Driver" };
+
+describe("la nota es opcional y la entrega directa del chofer (sin recoger antes)", () => {
+  it("sin nota, o con menos del mínimo, va la de por omisión: nunca bloquea", () => {
+    expect(notaSinListoOpcional("", "en")).toBe(NOTA_SIN_LISTO_POR_OMISION.en);
+    expect(notaSinListoOpcional("  x ", "es")).toBe(NOTA_SIN_LISTO_POR_OMISION.es);
+    expect(notaSinListoOpcional(null, "en")).toBe("warehouse had not marked it ready");
+    expect(notaSinListoOpcional("faltan 2 cajas", "es")).toBe("faltan 2 cajas");
+  });
+  it("la nota por omisión sigue marcando la recogida como sin listo (métricas y campana)", () => {
+    const evento = notaDeRecogidaSinListo(notaSinListoOpcional("", "en"), "Loaded", "en");
+    expect(esRecogidaSinListo(evento)).toBe(true);
+  });
+  it("la entrega directa: solo el chofer, en SU orden, desde aprobada, preparando o lista", () => {
+    for (const stage of ["approved", "fulfilling", "ready"]) {
+      expect(puedeEntregarSinRecoger(CHOFER, { stage, assigned_driver: "Diego Driver" }), stage).toBe(true);
+    }
+    for (const stage of ["draft", "pending", "rejected", "canceled", "picked_up", "delivered"]) {
+      expect(puedeEntregarSinRecoger(CHOFER, { stage, assigned_driver: "Diego Driver" }), stage).toBe(false);
+    }
+    expect(puedeEntregarSinRecoger(CHOFER, { stage: "ready", assigned_driver: "Otro" })).toBe(false);
+    expect(puedeEntregarSinRecoger(CHOFER, { stage: "ready", assigned_driver: null })).toBe(false);
+    for (const role of ["warehouse", "manager", "logistics", "sales", "accounting", "admin"]) {
+      expect(puedeEntregarSinRecoger({ ...CHOFER, role }, { stage: "ready", assigned_driver: "Diego Driver" }), role).toBe(false);
+    }
+    expect(puedeEntregarSinRecoger(null, { stage: "ready", assigned_driver: "Diego Driver" })).toBe(false);
+  });
+});
 
 describe("recoger aunque no esté lista: quién y cuándo (espejo de la 168)", () => {
   it("el chofer, en SU orden aprobada o preparándose", () => {

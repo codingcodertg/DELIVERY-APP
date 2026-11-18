@@ -215,6 +215,22 @@ describe("accionesDeParada", () => {
   it("entrega sin recoger: nada (no se entrega ni se rechaza lo que no se cargó; y ya no se salta)", () => {
     expect(accionesDeParada("D", "ready", null)).toEqual([]);
   });
+  it("entrega directa (la orden del chofer): «Entregado» en aprobada, preparando y lista; nunca «Rechazado»", () => {
+    for (const s of ["approved", "fulfilling", "ready"]) {
+      expect(accionesDeParada("D", s, null, null, true)).toEqual([{ accion: "entregar", apagado: null }]);
+    }
+    expect(accionesDeParada("D", "pending", null, null, true)).toEqual([]);
+    expect(accionesDeParada("D", "draft", null, null, true)).toEqual([]);
+    expect(accionesDeParada("D", "rejected", null, null, true)).toEqual([]);
+    expect(accionesDeParada("D", "canceled", null, null, true)).toEqual([]);
+    expect(accionesDeParada("D", "delivered", null, null, true)).toEqual([]);
+    // Sin la marca de entrega directa, igual que antes.
+    expect(accionesDeParada("D", "ready", null, null, false)).toEqual([]);
+    // Con la entrega ya en el camión, «Entregado» y «Rechazado», como siempre.
+    expect(acciones(accionesDeParada("D", "picked_up", null, null, true))).toEqual(["entregar", "rechazar"]);
+    // La recogida no cambia por la entrega directa.
+    expect(acciones(accionesDeParada("P", "ready", null, null, true))).toEqual(["recoger"]);
+  });
   it("rechazada: solo Dejar en tienda, y solo con el material en el camión", () => {
     expect(acciones(accionesDeParada("D", "picked_up", rechazo))).toEqual(["dejar"]);
     expect(accionesDeParada("D", "ready", rechazo)).toEqual([]);
@@ -464,5 +480,17 @@ describe("D-495 · rechazo: qué pasó y a dónde va el material", () => {
     expect(c).toContain("data-destino-rechazo");
     expect(c).toContain("disabled={!razon || !destinoListo || ocupado}");
     expect(c).toContain('const dejado = await setStage(pedido.id, "ready", note, patch, EVENTO_DEJADO);');
+  });
+});
+
+describe("la ✕ de la recogida en Route Manager (Órdenes en Rutas)", () => {
+  it("la fila de recogida pinta la misma ✕ que la de entrega, con el mismo `unassign` y la misma condición", () => {
+    const pagina = leer("src/app/(app)/routes/page.tsx");
+    // La ✕ de la entrega: antes de recoger, con `accionDeLaParadaEnRutas`.
+    expect(pagina).toContain('if (accion === "quitar") return <button className="btn btn-danger btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} onClick={() => unassign(d.id)} title={t("Unassign", "Quitar asignación")}>✕</button>;');
+    // La de la recogida: el mismo handler, sobre cada orden de la fila, con la misma condición.
+    expect(pagina).toContain('{acciones && suyas.map((x) => accionDeLaParadaEnRutas(x) === "quitar" && (');
+    expect(pagina).toContain("onClick={() => unassign(x.id)}");
+    expect(pagina).toContain('data-quitar-recogida={x.id}');
   });
 });

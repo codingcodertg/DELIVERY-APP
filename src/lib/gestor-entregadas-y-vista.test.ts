@@ -223,7 +223,8 @@ describe("2 · la celda de acciones es una celda de tabla: el flex va DENTRO («
   });
   it("las filas con botones (P y D) envuelven sus acciones en un div; las que no (otra carga, Base, hecha) llevan la celda vacía", () => {
     expect(pagina.split('<td className="celda-acciones" onClick={(e) => e.stopPropagation()}> <div className="acciones-de-parada">').length - 1).toBe(2);
-    expect(pagina).toContain('<div className="acciones-de-parada">{flechas}{pasar}</div>');
+    // La fila de recogida lleva, además de las flechas y «Pasar a…», la ✕ por orden (`data-quitar-recogida`).
+    expect(pagina).toContain('<div className="acciones-de-parada">{flechas}{pasar}');
     // Puesto al día por D-481: los botones, solo donde hay acciones.
     expect(pagina).toContain('<div className="acciones-de-parada"> {flechas}{pasar}{acciones && botonesDeCarga(d, capacity)}');
     expect(pagina.split('<td className="celda-acciones" />').length - 1).toBe(3);

@@ -199,6 +199,8 @@ export const NO_ESTA_LISTA = { en: "The warehouse doesn't have it ready yet", es
 export const SIN_APROBAR = { en: "Not approved yet", es: "Aún no está aprobada" } as const;
 /** Las etapas en que «Recogido» abre la ficha para recoger (D-527): lista, o aprobada sin terminar de preparar. */
 const SE_RECOGE = new Set<string>(["ready", "approved", "fulfilling"]);
+/** Las etapas en que el chofer, con su orden, puede darla por entregada sin recogerla antes (`ETAPAS_QUE_SE_ENTREGAN_SIN_RECOGER`). */
+const SE_ENTREGA_SIN_RECOGER = new Set<string>(["ready", "approved", "fulfilling"]);
 
 /**
  * Qué botones lleva cada orden de una parada (además de «Llegué», que es de la parada entera: `llegadaDeLaParada`). `tipo`
@@ -219,6 +221,9 @@ const SE_RECOGE = new Set<string>(["ready", "approved", "fulfilling"]);
 export function accionesDeParada(
   tipo: "P" | "D", etapa: string | null | undefined, marca: MarcaDeParada | null | undefined,
   deshacer: { bloqueo: { en: string; es: string } | null } | null = null,
+  /** La entrega del chofer en SU orden sin recoger antes (`puedeEntregarSinRecoger`): «Entregado» en la entrega. La
+   *  página la encadena (recogida y luego entrega). */
+  entregaDirecta = false,
 ): BotonDeParada[] {
   const boton = (accion: AccionDeParada, apagado: BotonDeParada["apagado"] = null): BotonDeParada => ({ accion, apagado });
   if (etapa === "delivered" || etapa === "canceled") return [];
@@ -230,6 +235,9 @@ export function accionesDeParada(
   // Ya en el camión no se salta (D-495). El dueño, 2026-10-07: «si aceptas una delivery no puedes skipped it solo delivered
   // or rejected».
   if (etapa === "picked_up") return [boton("entregar"), boton("rechazar")];
+  // La entrega directa de SU orden, sin recoger antes (`puedeEntregarSinRecoger`). Solo «Entregado»: «Rechazado» sigue
+  // siendo del camión, como antes.
+  if (entregaDirecta && SE_ENTREGA_SIN_RECOGER.has(etapa ?? "")) return [boton("entregar")];
   return [];
 }
 

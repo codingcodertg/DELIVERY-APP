@@ -147,6 +147,7 @@ import {
 } from "@/lib/arrastre-de-paradas";
 import { ETAPAS_FIJAS, ETAPAS_HECHAS, estaEnElCamion, hechasDelChofer, numeracionConHechas, puestoEn } from "@/lib/mover-parada";
 import { accionDeLaParadaEnRutas, NOTA_CANCELAR_REGRESO, NOTA_PEDIR_REGRESO, patchCancelarRegreso, patchPedirRegreso } from "@/lib/regreso-a-tienda";
+import { accionesDeEtapaParaAdmin, escrituraCambiarEtapaAdmin, preguntaCambiarEtapaAdmin, puedeCambiarEtapaAqui, type AccionDeEtapaAdmin } from "@/lib/cambiar-etapa-admin";
 import { hechasQueSePintan, horaReal, resumenDeEntregas, type FilaPintada } from "@/lib/hechas-del-gestor";
 import { cambiosDeEtas, claveDeEta, claveDelPlan, desvio, filasNuevasDeEtas, hechasFueraDeOrden, mapaDeEtasGuardadas, textoDelDesvio, type EtaGuardada, type FilaDeEta } from "@/lib/eta-del-plan";
 import { minutosReales } from "@/lib/salida-de-la-medida";
@@ -248,7 +249,9 @@ export default function RoutesPage() {
   const soloLectura = soloLecturaDeclarada || miChofer != null;
   // «Mi ruta» monta ESTA pantalla y se queda solo con su mapa (D-514): el mismo mapa, no una copia. Manda su día.
   const soloElMapa = useSoloElMapa();
-  const { me, users, deliveries: deliveriesLeidas, settings, saveSettings, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, addNote, reprogramarOrden, notify, availability, ready, incidents, addIncident, removeIncident, shifts, events, teaching, realRole } = useData();
+  const { me, users, deliveries: deliveriesLeidas, settings, saveSettings, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, addNote, reprogramarOrden, notify, setStage, availability, ready, incidents, addIncident, removeIncident, shifts, events, teaching, realRole } = useData();
+  // «🔁 Cambiar etapa» (solo admin): la celda de ETAPA de cada parada ofrece Recogido / Entregado. Apagado por defecto; sin persistir.
+  const [cambiarEtapa, setCambiarEtapa] = useState(false);
   // Las posiciones de los choferes: fuera del contexto principal, para que un ping de GPS no repinte toda la pantalla de datos.
   const driverLocations = useUbicacionesDeChoferes();
   const { lang, t } = usePrefs();
@@ -1594,6 +1597,15 @@ export default function RoutesPage() {
    *   · `recogida`: lo que dice la «Ciudad de recogida» cuando no es la ciudad de la tienda de la orden (en una P, la TIENDA).
    *   · `sinAviso`: sin el aviso de «solo ciudad» (en una fila ya hecha nunca lo llevó).
    */
+  /** «Recogido» / «Entregado» del admin desde la celda de ETAPA (con «Cambiar etapa» activo). Pregunta una vez, nombrando la
+   *  factura y la etapa nueva, y escribe con el mismo `setStage` que la ficha. Solo admin: el resto nunca llega aquí. */
+  const cambiarEtapaDeLaOrden = async (d: Delivery, accion: AccionDeEtapaAdmin) => {
+    if (!me || !puedeCambiarEtapaAqui(me.role)) return;
+    const { mensaje, confirmar } = preguntaCambiarEtapaAdmin(accion, facturaYId(d).principal, t);
+    if (!(await confirmAction(mensaje, { confirmLabel: confirmar }))) return;
+    const e = escrituraCambiarEtapaAdmin({ accion, pedido: d, me, t });
+    if (await setStage(d.id, e.stage, e.note, e.extra)) notify(t("Stage changed", "Etapa cambiada"));
+  };
   const celdaDeParada = (c: ColumnaDelGestor, d: Delivery | undefined, como: { tipo: "P" | "D"; llegada: React.ReactNode; recogida?: React.ReactNode; sinAviso?: boolean; fueraDeOrden?: boolean }) => {
     switch (c.key) {
       case "p_type": return <td key={c.key} title={d?.order_type || undefined}>{d?.order_type || "—"}</td>;
@@ -1604,7 +1616,24 @@ export default function RoutesPage() {
       case "p_windows": return <td key={c.key}>{como.tipo === "D" && d ? fmtWindows(d.delivery_windows) : ""}</td>;
     }
     if (!d || (como.tipo === "P" && !seVeEnLaRecogida(c))) return <td key={c.key} />;
-    return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;
+    // Admin con «Cambiar etapa» activo: la insignia de siempre, y al lado lo que se puede cambiar de esta orden. Entregada y
+    // anulada solo llevan la insignia. Ningún otro rol cambia lo que ve.
+    const esLaCeldaDeEtapa = c.key === "p_stage" || c.key === "stage";
+    const accionesEtapa = cambiarEtapa && esLaCeldaDeEtapa && puedeCambiarEtapaAqui(me?.role) ? accionesDeEtapaParaAdmin(d.stage) : [];
+    if (accionesEtapa.length === 0) return <td key={c.key} className={clasePastillas(c.key)}>{celdaDeOrdenes(c.key, d)}</td>;
+    return (
+      <td key={c.key} className={clasePastillas(c.key)}>
+        {celdaDeOrdenes(c.key, d)}
+        <span data-cambiar-etapa style={{ display: "inline-flex", gap: 4, marginLeft: 6, flexWrap: "wrap", verticalAlign: "middle" }}>
+          {accionesEtapa.map((a) => (
+            <button key={a} type="button" className={`btn btn-sm ${a === "recoger" ? "btn-primary" : "btn-green"}`} style={{ padding: "2px 6px", minHeight: 0 }}
+              data-cambiar-etapa-accion={a} onClick={() => void cambiarEtapaDeLaOrden(d, a)}>
+              {a === "recoger" ? t("Picked up", "Recogido") : t("Delivered", "Entregado")}
+            </button>
+          ))}
+        </span>
+      </td>
+    );
   };
   // Pulsar el ID o la factura abre la orden entera, como en la tabla de paradas por chofer (D-360). Para el
   // dueño «still pending the clicking on the ID or invoice # to view the full order details».
@@ -3942,6 +3971,12 @@ export default function RoutesPage() {
                 <button className="btn btn-ghost btn-sm" data-png-de-la-ruta={u.key} title={t("Build a PNG of this route (stops + map) to send to the driver", "Armar un PNG de esta ruta (paradas + mapa) para mandárselo al chofer")}
                   onClick={(e) => { e.stopPropagation(); abreParaLaFoto(u.key); setPngDe(u.key); }}>📸 PNG</button>
               )}
+              {/* «🔁 Cambiar etapa» (solo admin): muestra en la celda de ETAPA lo que se puede marcar a mano. */}
+              {stops.length > 0 && puedeCambiarEtapaAqui(me?.role) && (
+                <button type="button" className={`btn btn-sm ${cambiarEtapa ? "btn-amber" : "btn-ghost"}`} aria-pressed={cambiarEtapa} data-cambiar-etapa-toggle
+                  title={t("Admin: show the stage actions (picked up / delivered) on each stop", "Admin: mostrar las acciones de etapa (recogido / entregado) en cada parada")}
+                  onClick={(e) => { e.stopPropagation(); setCambiarEtapa((v) => !v); }}>🔁 {t("Change stage", "Cambiar etapa")}</button>
+              )}
               {/* Una sola foto por ruta: en «Cuadrícula» la pinta la desplegada, que es la que tiene la tabla (D-636). */}
               {pngDe === u.key && modoDeTarjeta !== "compacta" && (
                 <FotoDeLaRuta chofer={u.label} fecha={date} laneKey={u.key} stops={stops} color={colorFor(u.driver)} t={t} onClose={() => setPngDe(null)} camion={camionesDelDia.asignaciones.find((a) => a.driverId === choferIdDe(u.driver))?.truck ?? null}
@@ -4115,7 +4150,15 @@ export default function RoutesPage() {
                             }))}
                             {/* D-459: el td es una celda normal y el flex va DENTRO (era `display: flex` en el td: el fallo de la captura). */}
                             <td className="celda-acciones" onClick={(e) => e.stopPropagation()}>
-                              <div className="acciones-de-parada">{flechas}{pasar}</div>
+                              <div className="acciones-de-parada">{flechas}{pasar}
+                                {/* La ✕ de la entrega, también aquí (dueño): quitar la carga desde su recogida. Es el MISMO `unassign`
+                                    que la ✕ de la entrega, y la misma condición (`accionDeLaParadaEnRutas`): antes de recoger. Quita
+                                    la orden entera, P y D a la vez. */}
+                                {acciones && suyas.map((x) => accionDeLaParadaEnRutas(x) === "quitar" && (
+                                  <button key={x.id} className="btn btn-danger btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} data-quitar-recogida={x.id}
+                                    onClick={() => unassign(x.id)} title={t("Unassign", "Quitar asignación")}>✕</button>
+                                ))}
+                              </div>
                             </td>
                           </tr>
                         );
