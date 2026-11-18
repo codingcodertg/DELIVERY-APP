@@ -34,7 +34,7 @@ import { cuentaComoPerdida, perdidaDeMerma, repartoDeReporte } from "@/lib/almac
 import { puedeCorregirMerma, puedeExportar, puedeVerReporte, veLosReportes } from "@/lib/almacen-ops/visibilidad";
 import { diaDelReporte, fmtDia, hoyEnTexas, ordenPorDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { ATAJOS_DEL_MENU, NOMBRE_DE_ATAJO, eleccionAUrl, eleccionDeUrl, etiquetaDeRango, filtrarPorRango, perdidaEnRango, rangoDeAtajo, rangoDeEleccion, type Atajo, type Eleccion } from "@/lib/almacen-ops/rango-de-merma";
-import { ETAPAS, ETAPAS_VISIBLES, etapaDe, etapaVisible, nombreDeEtapa, nombreDeEtapaVisible, perdidaPorEtapa, puedeCambiarEtapa, seleccionableParaHoja, tieneEtapas, type Etapa, type EtapaVisible } from "@/lib/almacen-ops/etapas";
+import { ETAPAS, ETAPAS_VISIBLES, FILTRO_TODAS_PENDIENTES, etapaDe, etapaVisible, filtraPorEtapa, nombreDeEtapa, nombreDeEtapaVisible, perdidaPorEtapa, puedeCambiarEtapa, seleccionableParaHoja, tieneEtapas, type Etapa, type EtapaVisible, type FiltroDeEtapa } from "@/lib/almacen-ops/etapas";
 import { COLUMNAS_EXCEL, celdasDeMerma, csvDeMermas, nombreDelCsv, rompioEscrito } from "@/lib/almacen-ops/tabla-de-merma";
 import { COLUMNAS_DE_MERMA, alternaColumna, clavePrefsDeMerma, clavePrefsDeMermaVieja, columnasVisibles, fmtDiaCorto, mueveColumna, normalizaPrefs, ocultasPorDefecto, ordenPropio, prefsAlAbrir, prefsIniciales, sueltaColumna, tramosDeCabecera, type ColumnaDeMerma, type PrefsDeColumnas } from "@/lib/almacen-ops/columnas-de-merma";
 import { useOrdenDeColumnas } from "./useOrdenDeColumnas";
@@ -128,7 +128,8 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
   const [tipo, setTipo] = useState<TipoDeReporte | "">("");
   const [abierto, setAbierto] = useState<Reporte | null>(null);
   // D-921 (270): filtro por etapa, y la selección de mermas para la hoja de aprobación (solo fotografiadas, sin aprobar).
-  const [etapaFiltro, setEtapaFiltro] = useState<EtapaVisible | "">("");
+  // 2026-11-17 (dueño): por defecto «Todas pendientes» (documentada, fotografiada, pendiente); «Desechada» sale solo al elegirla.
+  const [etapaFiltro, setEtapaFiltro] = useState<FiltroDeEtapa>(FILTRO_TODAS_PENDIENTES);
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [adjuntando, setAdjuntando] = useState(false);
   // «Groups» (dueño, 10 nov): una opción más al lado de los filtros de etapa; muestra el archivo de grupos en vez de la tabla.
@@ -202,9 +203,9 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
     grupoDePracticaPorReporte().forEach((g, id) => { if (!aprobados.has(g)) s.add(id); });
     return s;
   }, [grupos]); // se recalcula cuando cambia la lista de grupos (incluye los de práctica)
-  const mermasPorEtapa = useMemo(() => (etapaFiltro ? mermasEnRango.filter((r) => etapaVisible(r, enPractica) === etapaFiltro) : mermasEnRango),
-    [mermasEnRango, etapaFiltro, enPractica]);
+  const mermasPorEtapa = useMemo(() => filtraPorEtapa(mermasEnRango, etapaFiltro, enPractica), [mermasEnRango, etapaFiltro, enPractica]);
   const cuentaEtapa = (e: EtapaVisible) => mermasEnRango.filter((r) => etapaVisible(r, enPractica) === e).length;
+  const cuentaTodasPendientes = useMemo(() => filtraPorEtapa(mermasEnRango, FILTRO_TODAS_PENDIENTES, enPractica).length, [mermasEnRango, enPractica]);
   // (El desglose por etapa en texto se quitó: dueño, 10 nov. `perdidaPorEtapa` sigue probada en su módulo.)
   // Se puede marcar cualquier merma que uno gestione (no solo las fotografiadas): así la misma selección sirve para
   // agrupar (solo las fotografiadas se agrupan), para desechar (las aprobadas) y para ajustar (las desechadas). Cada
@@ -459,10 +460,10 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
           {/* Dueño, 10 nov: «quita todo ese texto» — sin el desglose por etapa ni la explicación de los totales. */}
           <h3 className="ops-merma-titulo">{t("Scrap in this range", "Merma en el rango")} <span className="count-tag" data-cuenta-rango>{mermasEnRango.length}</span></h3>
           <div className="filters-oneline ops-filtros" role="group" aria-label={t("Stage", "Etapa")} data-filtro-etapas>
-            <button type="button" className={`chip${!verGrupos && etapaFiltro === "" ? " active" : ""}`} onClick={() => { setVerGrupos(false); setEtapaFiltro(""); }} data-etapa-filtro="">{t("All stages", "Todas las etapas")} <span className="cnt">{mermasEnRango.length}</span></button>
+            <button type="button" className={`chip${!verGrupos && etapaFiltro === FILTRO_TODAS_PENDIENTES ? " active" : ""}`} onClick={() => { setVerGrupos(false); setEtapaFiltro(FILTRO_TODAS_PENDIENTES); }} data-etapa-filtro={FILTRO_TODAS_PENDIENTES} aria-pressed={!verGrupos && etapaFiltro === FILTRO_TODAS_PENDIENTES}>{t("All pending", "Todas pendientes")} <span className="cnt">{cuentaTodasPendientes}</span></button>
             {/* «⏳ Pendiente» va entre «Fotografiada» y «Aprobada» (Roberto, 11 nov): en grupo, sin aprobar. */}
             {ETAPAS_VISIBLES.map((e) => (
-              <button type="button" key={e} className={`chip ops-chip-etapa${!verGrupos && etapaFiltro === e ? " active" : ""}`} onClick={() => { setVerGrupos(false); setEtapaFiltro(etapaFiltro === e ? "" : e); }} data-etapa-filtro={e} aria-pressed={!verGrupos && etapaFiltro === e}>
+              <button type="button" key={e} className={`chip ops-chip-etapa${!verGrupos && etapaFiltro === e ? " active" : ""}`} onClick={() => { setVerGrupos(false); setEtapaFiltro(etapaFiltro === e ? FILTRO_TODAS_PENDIENTES : e); }} data-etapa-filtro={e} aria-pressed={!verGrupos && etapaFiltro === e}>
                 {e === "pending" ? "⏳ " : <span className="ops-etapa ops-etapa-mini" data-etapa={e} aria-hidden />} {nombreDeEtapaVisible(e, lang)} <span className="cnt">{cuentaEtapa(e)}</span>
               </button>
             ))}
@@ -528,7 +529,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
           <TablaDeMermaExcel filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango" conEtapa
             grupos={grupos} onAbrirGrupo={abrirGrupo} enConflicto={idsEnConflicto} onVisibles={setALaVista} exportacion={botonesDeExportar}
             seleccion={{ ids: seleccion, puede: puedeSeleccionar, alternar, todas: todasSeleccionadas, algunas: algunaSeleccionada, alternarTodas }}
-            vacio={rango ? (etapaFiltro ? t("No scrap in that stage in this range.", "No hay merma en esa etapa en este rango.") : t("No scrap broken in this range.", "No se rompió nada en este rango.")) : t("Fix the dates to see the list.", "Corrige las fechas para ver la lista.")} />
+            vacio={rango ? (mermasEnRango.length === 0 ? t("No scrap broken in this range.", "No se rompió nada en este rango.") : etapaFiltro === FILTRO_TODAS_PENDIENTES ? t("No pending scrap in this range.", "No hay merma pendiente en este rango.") : t("No scrap in that stage in this range.", "No hay merma en esa etapa en este rango.")) : t("Fix the dates to see the list.", "Corrige las fechas para ver la lista.")} />
           </>}
           {/* 281: archivo de grupos de aprobación — abre la hoja digital de cada uno (firmas + fotos). Vive bajo «Groups». */}
           {verGrupos && (
