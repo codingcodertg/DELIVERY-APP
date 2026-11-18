@@ -7,7 +7,8 @@ import { getLang, useT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS, dateISO, fmtClock, weekIsFinished, weekStartISO } from "@/lib/timetracker/helpers";
 import { campoDeProyecto, nombreDeLinea, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
 import { camposDeLugar, esMultiTienda, tiendasParaElegir, validarProyectoEnSolicitud } from "@/lib/timetracker/multitienda";
-import { endOptions, mmhh, rangeOverlapsAny, startOptions, type OccupiedRange } from "@/lib/timetracker/timeOverlap";
+import { mmhh, rangeOverlapsAny, type OccupiedRange } from "@/lib/timetracker/timeOverlap";
+import { bloquesDeSolicitud, horasTotales, rangosDeBloques, validarBloques, type Bloque, type ErrorDeBloques } from "@/lib/timetracker/dos-bloques";
 import type { RequestType } from "@/lib/timetracker/types";
 import { TimeOffRequests } from "@/components/timetracker/TimeOffRequests";
 import { PESTANA_DE_SOLICITUD_INICIAL, PESTANAS_DE_SOLICITUDES, type PestanaDeSolicitud } from "@/lib/timetracker/vista-empleado";
@@ -38,7 +39,19 @@ function rangeHours(from: string, to: string): number {
   let d = b - a; if (d < 0) d += 1440;
   return d / 60;
 }
-interface FormState { assignmentId: string; storeId: string; date: string; fromTime: string; toTime: string; sessionId: string; reason: string }
+interface FormState {
+  assignmentId: string; storeId: string; date: string; fromTime: string; toTime: string; sessionId: string; reason: string;
+  /** «+ Agregar bloque después de comer»: si está, from2/to2 son el segundo bloque del mismo día. */
+  dos: boolean; from2: string; to2: string;
+}
+// Qué texto sale para cada error de validarBloques (los de la lista de solicitud de un solo bloque ya existían).
+const TEXTO_DE_ERROR: Record<ErrorDeBloques, "emp.req.enterTimes" | "emp.req.endAfterStart" | "emp.req.errOrder" | "emp.req.errFuture" | "emp.req.overlap"> = {
+  enterTimes: "emp.req.enterTimes",
+  endAfterStart: "emp.req.endAfterStart",
+  order: "emp.req.errOrder",
+  future: "emp.req.errFuture",
+  overlap: "emp.req.overlap",
+};
 
 export default function MyRequestsPage() {
   const { me, myAssignments: assignments, mySessions: sessions, myRequests: requests, addRequest, tiendas } = useData();
@@ -63,18 +76,20 @@ export default function MyRequestsPage() {
   // abre salen de PESTANAS_DE_SOLICITUDES.
   const [tab, setTab] = useState<PestanaDeSolicitud>(PESTANA_DE_SOLICITUD_INICIAL);
   const [type, setType] = useState<RequestType>("add");
-  const blank: FormState = { assignmentId: "", storeId: "", date: dateISO(new Date()), fromTime: "", toTime: "", sessionId: "", reason: "" };
+  const blank: FormState = { assignmentId: "", storeId: "", date: dateISO(new Date()), fromTime: "", toTime: "", sessionId: "", reason: "", dos: false, from2: "", to2: "" };
   const [f, setF] = useState<FormState>(blank);
   const [msg, setMsg] = useState("");
   const upd = <K extends keyof FormState>(k: K, v: FormState[K]) => setF((p) => ({ ...p, [k]: v }));
   const mySessions = sessions.slice().sort((a, b) => (b.startMs || 0) - (a.startMs || 0)).slice(0, 60);
   const hrs = rangeHours(f.fromTime, f.toTime);
+  const hrs2 = rangeHours(f.from2, f.to2);
 
   // Occupied = already-tracked sessions (applied) + this employee's own
   // still-pending add/adjust requests (D-086 — so two pending requests can't
   // overlap each other either), for the selected date, "add time" only. A
   // pending "delete" has no fromTime/toTime of its own; the session it
   // targets is still tracked (and already counted) until the delete is approved.
+  // Una solicitud de dos bloques ocupa sus dos bloques (rangosDeBloques).
   const occupied: OccupiedRange[] = type === "add"
     ? [
         ...sessions
@@ -89,18 +104,10 @@ export default function MyRequestsPage() {
         ...requests
           .filter((r) => r.status === "pending" && (r.type === "add" || r.type === "adjust"))
           .map((r) => r.payload as Record<string, unknown>)
-          .filter((p) => p.date === f.date && typeof p.fromTime === "string" && typeof p.toTime === "string")
-          .map((p) => {
-            const startMin = tParse(p.fromTime as string)!;
-            let endMin = tParse(p.toTime as string)!;
-            if (endMin < startMin) endMin = 1440;
-            return { startMin, endMin };
-          }),
+          .filter((p) => p.date === f.date)
+          .flatMap((p) => rangosDeBloques(bloquesDeSolicitud(p))),
       ].sort((a, b) => a.startMin - b.startMin)
     : [];
-  const fromMinPicked = tParse(f.fromTime);
-  const startOpts = startOptions(occupied);
-  const endOpts = fromMinPicked != null ? endOptions(fromMinPicked, occupied) : [];
 
   function pickSession(id: string) {
     const s = sessions.find((x) => x.id === id);
@@ -122,18 +129,32 @@ export default function MyRequestsPage() {
       let payload: Record<string, unknown>;
       if (type === "add") {
         if (validarProyectoEnSolicitud(me, f.assignmentId || null)) { setMsg(t("emp.req.pickProject")); return; }
-        if (!f.fromTime || !f.toTime) { setMsg(t("emp.req.enterTimes")); return; }
-        if (hrs <= 0) { setMsg(t("emp.req.endAfterStart")); return; }
-        // The real guarantee -- the dropdowns only express one gap at a
-        // time around whatever's currently picked, this re-checks the full
-        // range against every occupied block on the date.
-        if (rangeOverlapsAny(tParse(f.fromTime)!, tParse(f.toTime)!, occupied)) {
-          setMsg(t("emp.req.overlap"));
-          return;
-        }
         // Sin proyecto elegido (solo puede pasar al presencial) va sin proyecto: es su tienda y su puesto.
         const a = f.assignmentId ? aMap.get(f.assignmentId) : undefined;
-        payload = { employeeName: me.fullName, ...camposDeLugar(me, f.storeId, a ? { id: a.id, projectId: a.projectId } : null), date: f.date, fromTime: f.fromTime, toTime: f.toTime, hours: Number(hrs.toFixed(2)), reason: f.reason.trim() };
+        const lugar = { employeeName: me.fullName, ...camposDeLugar(me, f.storeId, a ? { id: a.id, projectId: a.projectId } : null), date: f.date, reason: f.reason.trim() };
+        if (f.dos) {
+          // Dos bloques (mañana + después de comer) en UNA solicitud. Se valida todo junto: orden, futuro y solapes.
+          const bloques: Bloque[] = [{ fromTime: f.fromTime, toTime: f.toTime }, { fromTime: f.from2, toTime: f.to2 }];
+          const ahora = new Date();
+          const ahoraMin = (tParse(hhmm(ahora.getTime())) ?? ahora.getHours() * 60 + ahora.getMinutes()) % 1440;
+          const v = validarBloques({ bloques, fecha: f.date, hoy: dateISO(ahora), ahoraMin, ocupados: occupied });
+          if (!v.ok) { setMsg(t(TEXTO_DE_ERROR[v.error])); return; }
+          payload = {
+            ...lugar,
+            fromTime: f.fromTime, toTime: f.toTime, hours: Number(horasTotales(bloques).toFixed(2)),
+            secondBlock: { fromTime: f.from2, toTime: f.to2, hours: Number(hrs2.toFixed(2)) },
+          };
+        } else {
+          if (!f.fromTime || !f.toTime) { setMsg(t("emp.req.enterTimes")); return; }
+          if (hrs <= 0) { setMsg(t("emp.req.endAfterStart")); return; }
+          // The real guarantee -- this re-checks the exact range against every
+          // occupied block on the date (minutes are exact, nothing is rounded).
+          if (rangeOverlapsAny(tParse(f.fromTime)!, tParse(f.toTime)!, occupied)) {
+            setMsg(t("emp.req.overlap"));
+            return;
+          }
+          payload = { ...lugar, fromTime: f.fromTime, toTime: f.toTime, hours: Number(hrs.toFixed(2)) };
+        }
       } else if (type === "adjust") {
         if (!f.sessionId) { setMsg(t("emp.req.pickEntry")); return; }
         if (!f.fromTime || !f.toTime) { setMsg(t("emp.req.enterNewTimes")); return; }
@@ -159,9 +180,11 @@ export default function MyRequestsPage() {
   const detalleDe = (r: (typeof sorted)[number]): string => {
     const p = (r.payload || {}) as Record<string, unknown>;
     const proj = !p.assignmentId && p.storeId ? (nombreDeTiendaElegida(p.storeId) ?? t("track.sinProyecto")) : nombreDelProyecto(p.assignmentId, t("track.sinProyecto"));
-    return r.type === "delete"
-      ? `${proj} · ${p.date}`
-      : `${proj} · ${p.date} · ${p.fromTime || ""}-${p.toTime || ""} (${p.hours} h)`;
+    const bl = bloquesDeSolicitud(p);
+    if (r.type === "delete") return `${proj} · ${p.date}`;
+    // Dos bloques: «08:50-11:00 + 12:03-15:47». Uno: como siempre.
+    const cuando = bl.length ? bl.map((b) => `${b.fromTime}-${b.toTime}`).join(" + ") : `${p.fromTime || ""}-${p.toTime || ""}`;
+    return `${proj} · ${p.date} · ${cuando} (${p.hours} h)`;
   };
   const estadoDe = (r: (typeof sorted)[number]): string =>
     r.status === "pending" ? t("emp.req.pending") : r.status === "approved" ? t("emp.req.approved") : t("emp.req.rejected");
@@ -212,7 +235,7 @@ export default function MyRequestsPage() {
               </div>
               <div>
                 <label>{t("emp.req.date")}</label>
-                <input type="date" value={f.date} onChange={(e) => setF((p) => ({ ...p, date: e.target.value, fromTime: "", toTime: "" }))} />
+                <input type="date" value={f.date} onChange={(e) => setF((p) => ({ ...p, date: e.target.value, fromTime: "", toTime: "", from2: "", to2: "" }))} />
               </div>
             </div>
             {occupied.length > 0 && (
@@ -220,29 +243,37 @@ export default function MyRequestsPage() {
                 {t("emp.req.occupied", { ranges: occupied.map((r) => `${mmhh(r.startMin)}–${mmhh(r.endMin)}`).join(", ") })}
               </div>
             )}
+            {/* Hora exacta, al minuto (step 60): no hay pasos de 10 min que redondeen. */}
             <div className="grid g2">
               <div>
                 <label>{t("emp.req.from")}</label>
-                <select
-                  value={f.fromTime}
-                  onChange={(e) => setF((p) => ({ ...p, fromTime: e.target.value, toTime: "" }))}
-                >
-                  <option value="">{t("emp.req.pick")}</option>
-                  {startOpts.map((o) => (
-                    <option key={o.min} value={o.label} disabled={o.disabled}>{o.label}{o.disabled ? t("emp.req.tracked") : ""}</option>
-                  ))}
-                </select>
+                <input type="time" step={60} value={f.fromTime} onChange={(e) => upd("fromTime", e.target.value)} />
               </div>
               <div>
                 <label>{t("emp.req.to")}</label>
-                <select value={f.toTime} onChange={(e) => upd("toTime", e.target.value)} disabled={!f.fromTime}>
-                  <option value="">{t("emp.req.pick")}</option>
-                  {endOpts.map((o) => (
-                    <option key={o.min} value={o.label} disabled={o.disabled}>{o.label}{o.disabled ? t("emp.req.tracked") : ""}</option>
-                  ))}
-                </select>
+                <input type="time" step={60} value={f.toTime} onChange={(e) => upd("toTime", e.target.value)} />
               </div>
             </div>
+            {f.dos ? (
+              <>
+                <div className="between" style={{ marginTop: 12 }}>
+                  <b>{t("emp.req.block2Title")}</b>
+                  <button className="btn-ghost btn-sm" onClick={() => setF((p) => ({ ...p, dos: false, from2: "", to2: "" }))}>{t("emp.req.removeBlock")}</button>
+                </div>
+                <div className="grid g2" style={{ marginTop: 6 }}>
+                  <div>
+                    <label>{t("emp.req.from")}</label>
+                    <input type="time" step={60} value={f.from2} onChange={(e) => upd("from2", e.target.value)} />
+                  </div>
+                  <div>
+                    <label>{t("emp.req.to")}</label>
+                    <input type="time" step={60} value={f.to2} onChange={(e) => upd("to2", e.target.value)} />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <button className="btn-ghost" style={{ marginTop: 10 }} onClick={() => upd("dos", true)}>{t("emp.req.addBlock")}</button>
+            )}
           </>
         )}
 
@@ -279,7 +310,11 @@ export default function MyRequestsPage() {
         )}
 
         {(type === "add" || type === "adjust") && hrs > 0 && (
-          <div className="small muted" style={{ marginTop: 4 }}>{t("emp.req.thatsHours", { h: hrs.toFixed(2) })}</div>
+          <div className="small muted" style={{ marginTop: 4 }}>
+            {type === "add" && f.dos && hrs2 > 0
+              ? t("emp.req.totalBlocks", { h: horasTotales([{ fromTime: f.fromTime, toTime: f.toTime }, { fromTime: f.from2, toTime: f.to2 }]).toFixed(2), a: hrs.toFixed(2), b: hrs2.toFixed(2) })
+              : t("emp.req.thatsHours", { h: hrs.toFixed(2) })}
+          </div>
         )}
         <label style={{ marginTop: 8 }}>{t("emp.req.reason")}</label>
         <input value={f.reason} onChange={(e) => upd("reason", e.target.value)} placeholder={t("emp.req.reasonPh")} />
