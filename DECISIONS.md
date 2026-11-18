@@ -52565,3 +52565,8 @@ Sello `deliveries` 1.631.0; repo 1.926.0.
 
 Junta con Roberto: pantalla nueva en Operaciones (solo gerencia/supervisión). Listas a tiempo (excluye órdenes creadas menos de 4 h antes de la recogida), scrap a precio de venta contra ventas del ERP (meta < 0.5%), turnos bien fichados, y nivel de bono 100/95/90. Calificación total provisional: promedio, scrap todo o nada (pendiente de confirmar con Roberto). Migración 325 (función con puerta de gerencia a prueba de NULL, solo meses completos, fichajes ocultos con menos de 3 personas), APLICADA por el dueño.
 Sello `deliveries` 1.631.0; repo 1.926.0.
+
+## D-1081 · Solicitud de tiempo: minutos exactos y bloque después de comer (2026-11-18)
+
+Ayuda de Francis (Time Tracker → My Requests → Time). «Desde/Hasta» pasan a hora exacta al minuto (sin redondeo). «Add time» admite un segundo bloque el mismo día («+ Agregar bloque después de comer»); el gerente aprueba una vez y se crean dos sesiones, con la comida fuera. El segundo bloque va en `payload.secondBlock` (jsonb); sin migración. Las solicitudes de un bloque no cambian.
+Sello `timetracker` 1.34.0; repo 1.927.0.
