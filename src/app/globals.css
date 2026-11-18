@@ -1235,8 +1235,18 @@ a.mapa-casilla:hover, a.mapa-casilla:focus-visible { background: var(--paper); b
   display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left;
   padding: 11px 14px; border-bottom: 1px solid var(--line); background: none;
 }
-.notif-item:last-child { border-bottom: none; }
+.notif-entrada:last-child > .notif-item { border-bottom: none; }
 .notif-item:hover { background: var(--card-hover); }
+/* Vista «Todas»: filtro por app, etiqueta de app en cada aviso y la tarjeta que se abre bajo el aviso de otra app. */
+.notif-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.notif-chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; color: var(--gray); background: var(--card-hover); border: 1px solid var(--line);
+}
+.notif-chip.on { color: var(--text); background: var(--accent-soft); border-color: var(--accent); }
+.notif-app { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.notif-tarjeta { display: flex; flex-direction: column; gap: 6px; padding: 8px 14px 12px 32px; background: var(--card-hover); border-bottom: 1px solid var(--line); }
+.notif-abrir { align-self: flex-start; font-size: 12px; font-weight: 700; color: var(--accent); }
 .notif-item.unread { background: var(--accent-soft); }
 .notif-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex: 0 0 auto; }
 .notif-body { display: flex; flex-direction: column; gap: 2px; }
