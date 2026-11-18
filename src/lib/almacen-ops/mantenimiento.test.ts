@@ -171,10 +171,11 @@ describe("el uso del equipo", () => {
 });
 
 describe("los permisos: la misma regla que la base", () => {
-  it("opera (ve, lista, uso, pedir) cualquiera con nivel en SU tienda; el admin en todas", () => {
+  it("opera (ve, lista, uso, pedir) el personal con nivel en SU tienda; el admin en todas; el Associate (solo merma) no opera (17 nov)", () => {
     expect(puedeOperar(admin, "RDZ Pharr")).toBe(true);
-    expect(puedeOperar(almacen, "RDZ McAllen")).toBe(true);
-    expect(puedeOperar(almacen, "RDZ Pharr")).toBe(false);
+    expect(puedeOperar(almacen, "RDZ McAllen")).toBe(false);
+    expect(puedeOperar({ ...almacen, warehouse_ops_role: "full" }, "RDZ McAllen")).toBe(true);
+    expect(puedeOperar({ ...almacen, warehouse_ops_role: "full" }, "RDZ Pharr")).toBe(false);
     expect(puedeOperar(francis, "RDZ Pharr")).toBe(true);
     expect(puedeOperar(francis, "RDZ McAllen")).toBe(false);
     expect(puedeOperar(ventas, "RDZ Pharr")).toBe(true);
@@ -193,10 +194,11 @@ describe("los permisos: la misma regla que la base", () => {
     expect(gestionaAlguna(francis, ["RDZ McAllen", "RDZ Pharr"])).toBe(true);
     expect(gestionaAlguna(almacen, ["RDZ McAllen"])).toBe(false);
   });
-  it("la sección se ofrece a cualquiera con nivel (también «solo merma»), y la ruta lo repite", () => {
-    expect(veMantenimiento(almacen)).toBe(true);
+  it("la sección se ofrece al personal con nivel, pero NO al Associate («solo merma», 17 nov), y la ruta lo repite", () => {
+    expect(veMantenimiento(almacen)).toBe(false);
+    expect(veMantenimiento({ ...almacen, warehouse_ops_role: "full" })).toBe(true);
     expect(veMantenimiento(sinModulo)).toBe(false);
-    expect(vistaPermitida(almacen, { v: "mantenimiento" })).toBe(true);
+    expect(vistaPermitida(almacen, { v: "mantenimiento" })).toBe(false);
     expect(vistaPermitida(sinModulo, { v: "mantenimiento" })).toBe(false);
     expect(vistaPermitida(admin, { v: "mantenimiento" })).toBe(true);
   });

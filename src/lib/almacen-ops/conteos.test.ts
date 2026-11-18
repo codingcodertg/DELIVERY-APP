@@ -118,22 +118,28 @@ describe("las cuentas de una línea", () => {
 });
 
 describe("quién hace qué (la misma regla que la base)", () => {
-  it("ve la sección cualquiera con nivel en la app; cuenta en su tienda; gestiona el gerente de la tienda y el admin", () => {
-    expect(veConteos(personal)).toBe(true);
+  it("el personal con nivel (no Associate) ve la sección y cuenta en su tienda; el Associate no ve ni cuenta (17 nov); gestiona el gerente y el admin", () => {
+    const personalConNivel: Quien = { ...personal, warehouse_ops_role: "full" };
+    expect(veConteos(personalConNivel)).toBe(true);
+    expect(veConteos(personal)).toBe(false);
     expect(veConteos(sinApp)).toBe(false);
-    expect(puedeContar(personal, "Pharr")).toBe(true);
-    expect(puedeContar(personal, "McAllen")).toBe(false);
-    expect(puedeGestionarConteo(personal, "Pharr")).toBe(false);
+    expect(puedeContar(personalConNivel, "Pharr")).toBe(true);
+    expect(puedeContar(personalConNivel, "McAllen")).toBe(false);
+    expect(puedeContar(personal, "Pharr")).toBe(false);
+    expect(puedeGestionarConteo(personalConNivel, "Pharr")).toBe(false);
     expect(puedeGestionarConteo(gerente, "Pharr")).toBe(true);
     expect(puedeGestionarConteo(gerenteOtra, "Pharr")).toBe(false);
     expect(puedeGestionarConteo(admin, "Pharr")).toBe(true);
   });
-  it("personal: pasos 1→2→3→4; en 3 captura y solo cierra con todo contado; nada en revisión", () => {
-    expect(accionesDeConteo(personal, conteo({ stage: "organizing" }), [])).toEqual(["organizado"]);
-    expect(accionesDeConteo(personal, conteo({ stage: "reviewing_orders" }), [])).toEqual(["ordenes_revisadas"]);
-    expect(accionesDeConteo(personal, conteo({ stage: "counting" }), [contada(1), linea()])).toEqual(["contar_linea"]);
-    expect(accionesDeConteo(personal, conteo({ stage: "counting" }), [contada(1)])).toEqual(["contar_linea", "terminar_conteo"]);
-    expect(accionesDeConteo(personal, conteo({ stage: "review" }), [contada(1)])).toEqual([]);
+  it("personal con nivel (no Associate): pasos 1→2→3→4; en 3 captura y solo cierra con todo contado; nada en revisión", () => {
+    const pers: Quien = { ...personal, warehouse_ops_role: "full" };
+    expect(accionesDeConteo(pers, conteo({ stage: "organizing" }), [])).toEqual(["organizado"]);
+    expect(accionesDeConteo(pers, conteo({ stage: "reviewing_orders" }), [])).toEqual(["ordenes_revisadas"]);
+    expect(accionesDeConteo(pers, conteo({ stage: "counting" }), [contada(1), linea()])).toEqual(["contar_linea"]);
+    expect(accionesDeConteo(pers, conteo({ stage: "counting" }), [contada(1)])).toEqual(["contar_linea", "terminar_conteo"]);
+    expect(accionesDeConteo(pers, conteo({ stage: "review" }), [contada(1)])).toEqual([]);
+    // El Associate (solo merma) no hace ningún paso de conteo.
+    expect(accionesDeConteo(personal, conteo({ stage: "organizing" }), [])).toEqual([]);
     expect(accionesDeConteo(sinApp, conteo(), [])).toEqual([]);
   });
   it("gerente: además recontar (3–4), firmar (4), ajustar solo firmado, cancelar mientras está abierto", () => {

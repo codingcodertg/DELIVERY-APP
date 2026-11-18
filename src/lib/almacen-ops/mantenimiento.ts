@@ -403,7 +403,8 @@ function esDeSuTienda(q: Quien, tienda: string): boolean {
 /** Tiene nivel en la app y la tienda es suya (o es admin): ve, llena la lista, usa el equipo, pide refacciones. */
 export function puedeOperar(q: Quien, tienda: string): boolean {
   const n = nivelDe(q);
-  if (n === null) return false;
+  // 17 nov: el Associate (solo merma) no opera equipo ni conteos (la base: warehouse_ops_in_store lo excluye).
+  if (n === null || n === "scrap_only") return false;
   if (n === "admin") return true;
   return esDeSuTienda(q, tienda);
 }
@@ -416,9 +417,10 @@ export function puedeGestionar(q: Quien, tienda: string): boolean {
   return n === "full" && (q.role === "manager" || esSupervisor(q)) && esDeSuTienda(q, tienda);
 }
 
-/** ¿Se le ofrece la sección «Mantenimiento»? A cualquiera con nivel en la app. */
+/** ¿Se le ofrece la sección «Mantenimiento»? A cualquiera con nivel en la app, salvo el Associate (solo merma; 17 nov). */
 export function veMantenimiento(q: Quien): boolean {
-  return nivelDe(q) !== null;
+  const n = nivelDe(q);
+  return n !== null && n !== "scrap_only";
 }
 
 /** ¿Gestiona al menos una de estas tiendas? (para enseñar el KPI y los botones de alta). */
