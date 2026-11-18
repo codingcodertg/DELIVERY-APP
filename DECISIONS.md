@@ -52600,3 +52600,8 @@ Sello `deliveries` 1.633.0; repo 1.929.0.
 
 Ayuda del dueño, a los minutos de D-1086: «está horrible eso, quiero que cuando se apriete "Listo" por ejemplo suelte un dropdown con las otras opciones». Los botones Recogido/Entregado bajo la insignia doblaban el alto de cada fila. Ahora la insignia lleva una flechita y, al tocarla, abre un menú nativo con las opciones (un `<select>` invisible encima: no lo corta la tabla); la fila no crece. Misma confirmación y mismo `setStage`.
 Sello `deliveries` 1.634.0; repo 1.929.1.
+
+## D-1088 · Gestor de Rutas: el clic en una parada solo la resalta y encuadra su viaje; «Asignar a…» solo con la casilla (2026-11-18)
+
+El dueño: «cuando se apriete la ruta, lo único que quiero es un highlight… que el mapa se ajuste para ver la ruta completa, desde su pickup a su deliver… si le doy en el checkbox, ahí que me aparezca eso de asignar… ya sea en el pickup o en el deliver». El clic en la fila (P o D) ya no mete la orden en `selectedOrders`: alterna `ordenesResaltadas`, pinta sus dos filas, y el mapa encuadra su recogida y su entrega (el `fitTo` de siempre, tope de zoom 14), con lo demás atenuado (el mismo `dimmed` del foco de chofer) y el tramo más grueso. El recuadro «Asignar a…» sale solo al marcar la casilla; las marcadas llevan una barra a la izquierda. Los controles de la fila no resaltan (`esControlDeLaFila`).
+Sello `deliveries` 1.635.0; repo 1.930.0.
