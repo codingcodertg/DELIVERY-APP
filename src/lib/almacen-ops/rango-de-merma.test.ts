@@ -179,7 +179,9 @@ describe("la pantalla", () => {
     expect(lista).toContain("const enRango = useMemo(() => (rango ? perdidaEnRango(mermas, rango) : { \"*\": 0 }), [mermas, rango]);");
     expect(lista).toContain('<th className="num ops-col-rango">{etiqueta}</th>');
     // D-921 (270): la lista del rango pasa además por el filtro de etapa (mermasPorEtapa = mermasEnRango sin filtro).
-    expect(lista).toContain("(etapaFiltro ? mermasEnRango.filter((r) => etapaVisible(r, enPractica) === etapaFiltro) : mermasEnRango)");
+    expect(lista).toContain("const mermasPorEtapa = useMemo(() => filtraPorEtapa(mermasEnRango, etapaFiltro, enPractica), [mermasEnRango, etapaFiltro, enPractica]);");
+    // 2026-11-17: por defecto «Todas pendientes», no «Todas las etapas».
+    expect(lista).toContain("useState<FiltroDeEtapa>(FILTRO_TODAS_PENDIENTES)");
     // La lista de merma es la tabla tipo Excel de Roberto (tabla-de-merma.ts); la de todos los reportes sigue siendo TablaDeReportes.
     expect(lista).toContain('<TablaDeMermaExcel filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango"');
     expect(lista).toContain("{ATAJOS_DEL_MENU.map((a) => (");
