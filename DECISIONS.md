@@ -52543,5 +52543,5 @@ Sello `deliveries` 1.628.0; repo 1.923.0.
 ## D-1076 · Deshacer el relevo mientras el paso b no haya salido (2026-11-17)
 
 El dueño pidió poder deshacer un relevo. Antes (256) solo se podía con el paso a sin recoger. Migración 322: `deshacer_relevo` se permite mientras ningún paso posterior al a haya sido recogido o entregado. El paso a vuelve a ser la orden entera con el destino final; si el paso a ya se entregó en la tienda de relevo, la orden queda `ready` en esa tienda, sin chofer (se conserva la evidencia de la entrega). `guard_delivery_stage` suma una sola rama, abierta solo con la marca `rtg.relevo`. Botón «↩ Deshacer relevo» con confirmación en la tarjeta.
-Migración 322, pendiente de aplicar.
+Migración 322, APLICADA por el dueño.
 Sello `deliveries` 1.630.0; repo 1.925.0.
