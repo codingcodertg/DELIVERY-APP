@@ -24,6 +24,7 @@ import { Mantenimiento } from "./Mantenimiento";
 import { CerrarX } from "./CerrarX";
 import { veMantenimiento } from "@/lib/almacen-ops/mantenimiento";
 import { Conteos } from "./Conteos";
+import { KpisDeAlmacen } from "./KpisDeAlmacen";
 import { veConteos } from "@/lib/almacen-ops/conteos";
 
 export type { Vista };
@@ -131,6 +132,7 @@ function Pantalla({ vista, ctx }: { vista: Vista; ctx: Contexto }) {
   if (vista.v === "reportes") return <ReportesUnidos ctx={ctx} />;
   if (vista.v === "mantenimiento") return <Mantenimiento ctx={ctx} />;
   if (vista.v === "conteos") return <Conteos ctx={ctx} />;
+  if (vista.v === "kpis") return <KpisDeAlmacen ctx={ctx} />;
   return <Inicio ctx={ctx} />;
 }
 
@@ -208,6 +210,9 @@ function Inicio({ ctx }: { ctx: Contexto }) {
         {/* Dueño, 11 nov: un solo botón; adentro, el filtro Mis reportes / Todos. */}
         {(llena || gerente || deLaTienda) && (
           <Link href="/operaciones/reportes" className="ops-boton-ancho ops-boton-gerente" data-ir="reportes">🗂️ {t("Reports", "Reportes")}</Link>
+        )}
+        {gerente && (
+          <Link href="/operaciones/kpis-almacen" className="ops-boton-ancho ops-boton-gerente" data-ir="kpis-almacen">📊 {t("Warehouse KPIs", "KPIs de almacén")}</Link>
         )}
       </div>
     </>
