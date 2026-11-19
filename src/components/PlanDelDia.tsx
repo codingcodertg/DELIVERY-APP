@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { estadoDelPlan, type EstadoDelPlan } from "@/lib/route-plan/estado-del-plan";
 import { useConfirm } from "@/lib/confirm";
@@ -13,6 +13,7 @@ import { RutaDelPlan, type ColumnasDeLaRuta } from "@/components/RutaDelPlan";
 import { PrecisionDelPlan } from "@/components/PrecisionDelPlan";
 import { ComparaConLaHoja } from "@/components/ComparaConLaHoja";
 import type { RutaVista } from "@/lib/route-plan/vista";
+import type { Delivery } from "@/lib/types";
 import type { Movimiento } from "@/lib/route-plan/ajuste";
 import type { CopiaDelPublicado } from "@/lib/route-plan/copia";
 import { ordenDeLaParte } from "@/lib/route-plan/publicar";
@@ -96,9 +97,11 @@ const MOTIVOS: Record<string, [string, string]> = {
  *  que es la única entrada. Cerrado no pinta nada —la tarjeta plegada de D-346/D-400 repetía ese botón y se quitó—, pero
  *  sigue montado: lee el plan de la fecha y se lo cuenta a la página (`onEstado`) para la pastilla «Borrador vN».
  *  `onEstado`: en qué está el plan de la fecha, cada vez que cambia. */
-export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onAbrirOrden, columnas }: { date: string; onPublicado?: () => void; abierto: boolean; onCerrar: () => void; onEstado?: (e: EstadoDelPlan | null) => void; onAbrirOrden?: (id: string) => void;
+export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onAbrirOrden, columnas, colorDelChofer, iconosDeLaOrden }: { date: string; onPublicado?: () => void; abierto: boolean; onCerrar: () => void; onEstado?: (e: EstadoDelPlan | null) => void; onAbrirOrden?: (id: string) => void;
   /** Las columnas de la tabla de paradas (D-429): las elige la persona en el ⚙ que pone la página, como el resto del Gestor. */
-  columnas?: Omit<ColumnasDeLaRuta, "orden"> }) {
+  columnas?: Omit<ColumnasDeLaRuta, "orden">;
+  /** El color de cada chofer (el de la página, `colorFor`), y los iconos de cada orden (📅 y ⇄), como en la tabla de paradas. */
+  colorDelChofer?: (choferId: string, nombre: string) => string; iconosDeLaOrden?: (d: Delivery) => ReactNode }) {
   const { lang, t } = usePrefs();
   const { deliveries, notify, updateDelivery } = useData();
   const confirmAction = useConfirm();
@@ -353,7 +356,7 @@ export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onA
               )}
             </div>
           )}
-          <RutaDelPlan rutas={borrador!.rutas} facturaDeOrden={facturaDeOrden} abrirOrden={onAbrirOrden}
+          <RutaDelPlan rutas={borrador!.rutas} facturaDeOrden={facturaDeOrden} abrirOrden={onAbrirOrden} colorDelChofer={colorDelChofer} iconosDeLaOrden={iconosDeLaOrden}
             columnas={columnas ? { ...columnas, orden: ordenDeLaParada } : undefined}
             ajuste={borrador!.status === "draft" || borrador!.status === "published" ? { choferes: borrador!.choferes ?? [], ocupado: !!ocupado, mueve: (m) => void ajusta(m), noSeMueven: new Set(borrador!.copia?.noSeReescriben ?? []) } : undefined} />
           {borrador!.status === "published" && <PrecisionDelPlan date={date} />}
