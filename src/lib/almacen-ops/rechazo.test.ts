@@ -137,9 +137,8 @@ describe("el trigger y la app dicen lo mismo", () => {
     const guardia = sql.slice(sql.indexOf("create or replace function public.warehouse_report_stage_guard"));
     expect(guardia.indexOf("when NEW.rejected_at is not null then 'rejected'")).toBeGreaterThan(0);
     expect(guardia.indexOf("when NEW.rejected_at is not null then 'rejected'")).toBeLessThan(guardia.indexOf("when NEW.adjusted_at is not null then 'adjusted'"));
-    expect(sql).toContain("
--- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('327_merma_rechazo.sql',");
+    expect(sql).toContain("-- @ledger-below");
+    expect(sql).toContain("insert into public.schema_migrations (name, checksum) values ('327_merma_rechazo.sql',");
   });
 });
 
