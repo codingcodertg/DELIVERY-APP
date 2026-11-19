@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useData } from "@/lib/recruiting-data-provider";
 import { usePrefs } from "@/lib/prefs";
 import { fmtDateTime } from "@/lib/recruiting/utils";
+import { CLAVE_DE_VELOCIDAD, rotuloDeVelocidad, siguienteVelocidad, velocidadGuardada } from "@/lib/recruiting/velocidad-de-audio";
 
 /** Una llamada o un SMS de RingCentral, tal como la devuelve /api/recruiting/rc-comms (sin rutas de archivo). */
 interface FilaRc {
@@ -39,6 +40,10 @@ export function ComunicacionesRingCentral({ candidateId }: { candidateId: string
   const [oculto, setOculto] = useState(false);
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+  // La velocidad, a la vista junto a cada grabación (como en WhatsApp) y la misma para todas; se recuerda en el navegador.
+  const [velocidad, setVelocidad] = useState(1);
+  useEffect(() => { try { setVelocidad(velocidadGuardada(localStorage.getItem(CLAVE_DE_VELOCIDAD))); } catch { /* sin almacenamiento: 1× */ } }, []);
+  const cambiaVelocidad = () => setVelocidad((v) => { const n = siguienteVelocidad(v); try { localStorage.setItem(CLAVE_DE_VELOCIDAD, String(n)); } catch { /* da igual */ } return n; });
   const esAdmin = me?.role === "admin";
 
   useEffect(() => {
@@ -106,7 +111,17 @@ export function ComunicacionesRingCentral({ candidateId }: { candidateId: string
                   ▶ {t("Play", "Escuchar")}
                 </button>
               )}
-              {urls[f.id] && <audio controls preload="none" src={urls[f.id]} style={{ width: "100%", maxWidth: 360 }} />}
+              {urls[f.id] && (
+                <span style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", maxWidth: 420 }}>
+                  <audio controls preload="none" src={urls[f.id]} style={{ flex: "1 1 auto", minWidth: 0 }}
+                    ref={(el) => { if (el) el.playbackRate = velocidad; }} onPlay={(e) => { e.currentTarget.playbackRate = velocidad; }} />
+                  <button type="button" data-velocidad-de-audio={velocidad} onClick={cambiaVelocidad}
+                    title={t("Playback speed: tap to change", "Velocidad: toque para cambiarla")} aria-label={t(`Playback speed ${rotuloDeVelocidad(velocidad)}`, `Velocidad ${rotuloDeVelocidad(velocidad)}`)}
+                    style={{ flex: "0 0 auto", minWidth: 44, padding: "4px 8px", borderRadius: 999, border: "1px solid var(--line)", background: velocidad === 1 ? "var(--card, transparent)" : "var(--accent)", color: velocidad === 1 ? "inherit" : "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                    {rotuloDeVelocidad(velocidad)}
+                  </button>
+                </span>
+              )}
             </li>
           ))}
         </ul>
