@@ -47,6 +47,7 @@ const NO_SON_APPS: Record<string, string> = {
   "reset-password": "pantalla de cuenta fuera de las apps",
   "no-access": "quien llega aquí no tiene ninguna app",
   security: "herramienta del hub solo admin (D-811): lleva la barra sencilla, pero no es un módulo de module_access",
+  ringcentral: "herramienta del hub solo admin (RingCentral de los choferes, migración 329): lleva la barra sencilla, pero no es un módulo de module_access",
   "device-blocked": "quien llega aquí entró, pero desde un dispositivo no autorizado (D-811): no hay app que ofrecerle",
   track: "el seguimiento público del cliente: no es del equipo",
   unsubscribe: "el enlace público de baja de correos",

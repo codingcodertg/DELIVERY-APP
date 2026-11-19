@@ -43,13 +43,13 @@ function hrefsPosibles(c: Casilla): string[] {
 
 // Nota D-558: Purchase Orders y Receive Inventory pasan de gris a color (abren las del ERP); antes, once y nueve.
 // 2026-11-11 (re-hacer el mapa con las apps hechas): + Operaciones de almacén, RTG PROMOS y Seguridad y permisos.
-const COLOR = ["purchase-orders", "receive-inventory", "deliveries", "erp-inventory", "warehouse-ops", "leads", "promos", "quote-builder", "users", "hr", "time-tracker", "surveys", "help-requests", "tutorials", "phone-book", "security"];
+const COLOR = ["purchase-orders", "receive-inventory", "deliveries", "erp-inventory", "warehouse-ops", "leads", "promos", "quote-builder", "users", "hr", "time-tracker", "surveys", "help-requests", "tutorials", "phone-book", "security", "ringcentral"];
 const GRIS = ["enter-bills", "pay-bills", "sales-order", "refunds-credits", "create-invoice", "receive-payments", "record-deposits"];
 
 const TODO = ["deliveries", "recruiting", "timetracker", "erp", "promos", "estimator", "surveys", "leads"];
 
 describe("las casillas del diagrama del jefe", () => {
-  it("dieciséis de color (existen) y siete grises (aún no): las del jefe, las dos del ERP (D-558) y las tres de 2026-11-11", () => {
+  it("diecisiete de color (existen) y siete grises (aún no): las del jefe, las dos del ERP (D-558), las tres de 2026-11-11 y RingCentral (2026-11-18)", () => {
     expect(CASILLAS.filter((c) => c.existe).map((c) => c.key).sort()).toEqual([...COLOR].sort());
     expect(CASILLAS.filter((c) => !c.existe).map((c) => c.key).sort()).toEqual([...GRIS].sort());
   });

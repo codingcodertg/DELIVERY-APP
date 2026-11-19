@@ -32,6 +32,8 @@ const BY_PREFIX: ReadonlyArray<readonly [string, AppKey]> = [
   ["/operaciones", "warehouse_ops"],
   // Y Security (D-811).
   ["/security", "security"],
+  // Y RingCentral de los choferes (migración 329): sin esta línea enseñaría la versión de deliveries.
+  ["/ringcentral", "ringcentral"],
 ];
 
 export function appForPath(pathname: string | null): AppKey {

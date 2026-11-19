@@ -117,6 +117,8 @@ export const CASILLAS: Casilla[] = [
   { key: "phone-book", panel: "employees", fila: 1, columna: 7, emoji: "📇", label_en: "Company Phone Book", label_es: "Directorio de la compañía", existe: true, destino: { tipo: "herramienta", claves: ["directory"] } },
   // 2026-11-11: Security / Permisos (D-811) — quién entra a qué app; solo el admin real (como su tarjeta del hub).
   { key: "security", panel: "employees", fila: 1, columna: 8, emoji: "🔐", label_en: "Central Hub Monitoring", label_es: "Central Hub Monitoring", existe: true, destino: { tipo: "herramienta", claves: ["security"] } },
+  // 2026-11-18: RingCentral de los choferes (migración 329), solo admin, como su tarjeta del hub.
+  { key: "ringcentral", panel: "employees", fila: 2, columna: 1, emoji: "📞", label_en: "RingCentral", label_es: "RingCentral", existe: true, destino: { tipo: "herramienta", claves: ["ringcentral"] } },
 ];
 
 export interface Flecha {
