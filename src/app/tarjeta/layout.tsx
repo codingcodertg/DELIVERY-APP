@@ -6,6 +6,9 @@ import "./tarjeta.css";
 export const metadata: Metadata = {
   title: "Rodriguez Tile Group",
   robots: { index: false, follow: false },
+  // El layout raíz trae el manifest y la ficha de app iOS del hub: la tarjeta no es una app instalable.
+  manifest: null,
+  appleWebApp: null,
 };
 
 export default function TarjetaLayout({ children }: { children: React.ReactNode }) {

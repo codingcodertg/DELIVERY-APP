@@ -36,7 +36,7 @@ describe("la franja de «entrar como» ya no existe (D-859)", () => {
     expect(raiz).not.toContain("import { ImpersonationBanner }");
     // Lo primero dentro de <body> es el proveedor de preferencias: nada se pinta antes que el contenido.
     const cuerpo = raiz.slice(raiz.indexOf("<body>") + "<body>".length).replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
-    expect(cuerpo.trimStart().startsWith("<PrefsProvider>")).toBe(true);
+    expect(cuerpo.trimStart().startsWith("<PrefsSegunRuta>")).toBe(true);
   });
 
   it("nadie publica ni usa ya la medida de la franja: los pegados arriba vuelven a `top: 0`", () => {

@@ -210,7 +210,7 @@ describe("puertas", () => {
   });
 
   it("el aviso está en el layout raíz, y la burbuja y Entregas escriben las cookies", () => {
-    expect(leer("src/app/layout.tsx")).toContain("<AvisoDeEnsenanza />\n          {children}");
+    expect(leer("src/app/layout.tsx")).toContain("<SoloEnHub><AvisoDeEnsenanza /></SoloEnHub>\n          {children}");
     expect(leer("src/components/AvisoDeEnsenanza.tsx")).toContain("const conAviso = encendido && avisoGeneralEnLaRuta(pathname);");
     expect(leer("src/components/BotonGeneral.tsx")).toContain("escribeEnsenanza(localStorage, nuevo, { doc: document, idioma: lang });");
     expect(leer("src/lib/data-provider.tsx")).toContain("escribeEnsenanza(localStorage, v, { doc: document, idioma: lang });");

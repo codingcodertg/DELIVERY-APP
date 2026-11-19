@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { PrefsProvider } from "@/lib/prefs";
+import { PrefsSegunRuta, SoloEnHub } from "@/components/HubSegunRuta";
 import { VersionStamp } from "@/components/VersionStamp";
 import { CierreDiario } from "@/components/CierreDiario";
 import { HelpButton } from "@/components/HelpButton";
@@ -65,19 +65,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Aquí iba la franja de «Entrar como» (`ImpersonationBanner`, D-243). Desde D-859 no hay franja: el aviso
             («Estás como…», burbuja naranja) y la vuelta (botón rojo) viven en la burbuja general, abajo. El dueño:
             «ya no quiero esa línea de arriba cuando cambio de usuario; es ineficiente». */}
-        <PrefsProvider>
+        <PrefsSegunRuta>
           {/* El aviso del modo enseñanza (D-626), encima de todo en las apps que no tienen el suyo: el mismo interruptor
               de la burbuja vale para todas. Dentro de `PrefsProvider` porque habla en el idioma de la persona. */}
           {/* La huella del dispositivo (D-811): una vez, aquí, porque es el único layout por el que pasan todas las apps.
               No pinta ni bloquea nada; registra el dispositivo y la hora para la app Security. */}
-          <div className="marco-hub" style={{ display: "contents" }}>
+          <SoloEnHub><div className="marco-hub" style={{ display: "contents" }}>
           <IdentidadDelDispositivo />
           {/* «Tu app de escritorio tiene versión nueva» (D-813): solo lo ve la app vieja (la 1.1.1 no se actualiza sola). */}
           <AvisoDeEscritorio />
-          </div>
-          <AvisoDeEnsenanza />
+          </div></SoloEnHub>
+          <SoloEnHub><AvisoDeEnsenanza /></SoloEnHub>
           {children}
-          <div className="marco-hub" style={{ display: "contents" }}>
+          <SoloEnHub><div className="marco-hub" style={{ display: "contents" }}>
           {/* El aviso del cierre de las 18:30 (D-248), aquí por lo mismo que `VersionStamp`:
               es el único layout por el que pasan las cinco apps. No cierra nada — la barrera
               es el middleware.
@@ -101,12 +101,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Ayuda. Al pulsarla salen hacia arriba Ayuda y Chat (para todos) y, solo para el admin real, Cambiar usuario,
               Vista móvil y Modo enseñanza. Por eso las dos de arriba van `sinBurbuja`: ella las abre por evento. */}
           <BotonGeneral />
-          </div>
-        </PrefsProvider>
+          </div></SoloEnHub>
+        </PrefsSegunRuta>
         {/* Una sola vez, aquí: es el único layout por el que pasan las cinco apps y el hub. */}
-        <div className="marco-hub" style={{ display: "contents" }}>
+        <SoloEnHub><div className="marco-hub" style={{ display: "contents" }}>
           <VersionStamp />
-        </div>
+        </div></SoloEnHub>
       </body>
     </html>
   );

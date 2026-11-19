@@ -63,12 +63,13 @@ const nextConfig = {
     //    (URL firmada de Supabase). El iframe de VistaMovil es del mismo origen ('self').
     //  - media-src: los tutoriales en fichero de video (<video>); la URL la pone quien crea el tutorial,
     //    así que puede ser de cualquier host y ese caso quedará como violación en el log.
-    const cspReportOnly = [
+    const cspDeReporte = (imgExtra = []) => [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' https://maps.googleapis.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
-      "img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://*.ggpht.com https://*.google.com https://*.supabase.co https://*.public.blob.vercel-storage.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://server.arcgisonline.com",
+      `img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://*.ggpht.com https://*.google.com https://*.supabase.co https://*.public.blob.vercel-storage.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://server.arcgisonline.com${imgExtra.map((h) => " " + h).join("")}`,
+
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.blob.vercel-storage.com",
       "frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.loom.com https://drive.google.com https://*.supabase.co",
       "media-src 'self' blob: https://*.supabase.co https://*.public.blob.vercel-storage.com",
@@ -80,11 +81,18 @@ const nextConfig = {
       "frame-ancestors 'self'",
     ].join("; ");
 
+    // Las rutas de la tarjeta pública (`/tarjeta/...`, y en el dominio de las tarjetas, `/<slug>`; ver lib/tarjetas) sacan la
+    // miniatura del vídeo de i.ytimg.com (`TarjetaPublica.tsx`, fondo del botón de vídeo). Es un host que el hub no usa,
+    // así que va SOLO en la cabecera de esas rutas y el hub sigue con su política. El iframe del vídeo (www.youtube.com/embed)
+    // ya está en frame-src de todos. Nada más cambia: la política de la tarjeta es la del hub con esa imagen añadida.
+    const cspHub = cspDeReporte();
+    const cspTarjetas = cspDeReporte(["https://i.ytimg.com"]);
+
     const seguridad = [
       { key: "X-Frame-Options", value: "SAMEORIGIN" },
       // Enforced: solo frame-ancestors (lo que ya había). El CSP completo va en Report-Only.
       { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
-      { key: "Content-Security-Policy-Report-Only", value: cspReportOnly },
+      { key: "Content-Security-Policy-Report-Only", value: cspHub },
       { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
       { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
       { key: "X-Content-Type-Options", value: "nosniff" },
@@ -93,7 +101,12 @@ const nextConfig = {
       { key: "Permissions-Policy", value: "geolocation=(self), camera=(self), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(self)" },
       { key: "X-DNS-Prefetch-Control", value: "on" },
     ];
-    return [{ source: "/:path*", headers: seguridad }];
+    return [
+      { source: "/:path*", headers: seguridad },
+      // Mismo host que HOST_DE_TARJETAS en src/lib/tarjetas/host.ts (el .mjs no puede importarlo; lo fija un test).
+      { source: "/:path*", has: [{ type: "host", value: "businesscard.rdztilegroup.com" }], headers: [{ key: "Content-Security-Policy-Report-Only", value: cspTarjetas }] },
+      { source: "/tarjeta/:path*", headers: [{ key: "Content-Security-Policy-Report-Only", value: cspTarjetas }] },
+    ];
   },
 
   async redirects() {
