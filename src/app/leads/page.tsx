@@ -18,9 +18,11 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
  */
 export default async function LeadsPage() {
   if (SIN_BASE) return <Leads demo yo={null} cotiza />;
-  // D-770: en modo enseñanza, Leads es el demo (leads inventados, personas inventadas, nada toca la base): el dueño,
-  // «déjame probar esto en teaching mode».
-  if (valorDeEnsenanza((await cookies()).get(COOKIE_ENSENANZA)?.value)) return <Leads demo yo={null} cotiza />;
+  // D-770: en modo enseñanza, Leads es el demo (leads inventados, nada toca la base): el dueño, «déjame probar esto en
+  // teaching mode». Pero quien mira es la persona de verdad (su tienda, su rol y sus casillas, leídos con la sesión, que
+  // solo lee): así la práctica enseña el STXP Pool a quien lo tiene. Antes se mandaba `yo={null}` y caía en una persona
+  // inventada sin la casilla, y el STXP Pool no salía.
+  const enseñanza = !!valorDeEnsenanza((await cookies()).get(COOKIE_ENSENANZA)?.value);
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   let yo: Persona | null = null;
@@ -33,5 +35,6 @@ export default async function LeadsPage() {
     // cada lead; la puerta del Quote Builder y la RLS de la 148 lo vuelven a exigir.
     cotiza = tieneEstimador(data);
   }
+  if (enseñanza) return <Leads demo yo={yo} cotiza={cotiza} />;
   return <Leads demo={false} yo={yo} cotiza={cotiza} />;
 }

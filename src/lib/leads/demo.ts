@@ -25,6 +25,15 @@ export function alcanceDemo(p: Persona): Alcance {
   return alcanceDe({ role: p.admin ? "admin" : p.role, permissions: p.permissions, store: p.store });
 }
 
+/**
+ * ¿Quién mira en el modo enseñanza? Con sesión, la persona DE VERDAD (su tienda, su rol y sus casillas, como la lee la
+ * página): así ve lo mismo que vería sin el modo, y el STXP Pool sale si lo tiene. Sin sesión (la demo sin base), la que
+ * se elige en el desplegable. Antes, la práctica ignoraba la sesión y caía en Ana, que no tiene la casilla del STXP.
+ */
+export function personaDeLaPractica(real: Persona | null, elegida: string): Persona {
+  return real ?? PERSONAS_DEMO.find((p) => p.id === elegida) ?? PERSONAS_DEMO[0];
+}
+
 const TIENDAS = ["RDZ Brownsville", "RDZ Edinburg", "RDZ McAllen", "RDZ Weslaco"];
 const CIUDADES: Record<string, string[]> = {
   "RDZ Brownsville": ["Brownsville", "Los Fresnos"],
@@ -53,6 +62,19 @@ const ETAPAS_DEMO: Record<number, { etapa: TipoDeAccion | null; quien: "ana" | "
   10: { etapa: "quote", quien: "ana", nota: "Quote #DEMO-1047", dias: 5 },
   11: { etapa: "bad_lead", quien: "beto", nota: "El teléfono es de otra empresa.", dias: 8 },
   12: { etapa: null, quien: "beto", nota: "Pendiente de confirmar el permiso.", dias: 2 },
+};
+
+/**
+ * Las etapas de los permisos privados del demo (STXP), por su orden en `STXP` (0 = el primero). Así el STXP también
+ * enseña varias etapas, y un privado sin ninguna. Quien anotó es del demo, como en el banco.
+ */
+const ETAPAS_STXP_DEMO: Record<number, { etapa: TipoDeAccion | null; quien: "ana" | "beto"; nota: string; dias: number }> = {
+  0: { etapa: "made_contact", quien: "ana", nota: "Hablé con el contratista; manda los planos el viernes.", dias: 2 },
+  2: { etapa: "no_answer", quien: "beto", nota: "Dos llamadas y el buzón está lleno.", dias: 3 },
+  3: { etapa: "quote", quien: "beto", nota: "Quote #DEMO-2003", dias: 3 },
+  5: { etapa: "appointment", quien: "ana", nota: "Cita en la obra el lunes a las 8.", dias: 1 },
+  7: { etapa: "negotiation", quien: "beto", nota: "Piden bajar el precio del permiso.", dias: 4 },
+  9: { etapa: "bad_lead", quien: "ana", nota: "Ya lo tomó otro contratista.", dias: 6 },
 };
 
 /** En cuántas cargas apareció cada lead (los que vuelven en el import de cada 10 días). */
@@ -115,6 +137,14 @@ export function leadsDemo(ahora: Date = new Date()): Lead[] {
       status: "free", holder: null, holder_name: null, taken_at: null, touched_at: null, follow_up_note: null, follow_up_at: null, follow_up_action: null,
       last_outcome: null, last_note: null, last_by: null, last_by_name: null, last_at: null, times_seen: 1, last_seen_at: null,
     });
+    const e = ETAPAS_STXP_DEMO[k];
+    if (e) {
+      const p = quienDe(e.quien);
+      leads[leads.length - 1] = {
+        ...leads[leads.length - 1], follow_up_note: e.nota, follow_up_action: e.etapa, follow_up_at: hace(e.dias), touched_at: hace(e.dias),
+        last_by: p.id, last_by_name: p.name, last_at: hace(e.dias),
+      };
+    }
   });
   return leads;
 }
@@ -135,8 +165,12 @@ export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
   for (const l of leads) {
     eventos.push({ id: ++serie, lead_id: l.id, at: l.imported_at ?? new Date().toISOString(), kind: "imported", outcome: null, note: null, actor: null, actor_name: "import script", subject: null, subject_name: null });
   }
-  for (const [k, e] of Object.entries(ETAPAS_DEMO)) {
-    const l = leads[Number(k)];
+  // Las notas de etapa: las del banco y las del STXP (estos, por su id, `demo-stxp-01`…).
+  const notas: { lead: Lead; e: { etapa: TipoDeAccion | null; quien: "ana" | "beto"; nota: string } }[] = [
+    ...Object.entries(ETAPAS_DEMO).map(([k, e]) => ({ lead: leads[Number(k)], e })),
+    ...Object.entries(ETAPAS_STXP_DEMO).map(([k, e]) => ({ lead: leads.find((l) => l.id === `demo-stxp-${String(Number(k) + 1).padStart(2, "0")}`)!, e })),
+  ];
+  for (const { lead: l, e } of notas) {
     const p = e.quien === "ana" ? PERSONAS_DEMO[0] : PERSONAS_DEMO[1];
     eventos.push({ id: ++serie, lead_id: l.id, at: l.last_at ?? "", kind: "progress", outcome: null, note: e.nota, action: e.etapa, actor: p.id, actor_name: p.name, subject: p.id, subject_name: p.name });
   }

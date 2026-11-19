@@ -9,7 +9,7 @@ import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { type ClienteCruzado, almacenDeLaBase, type AlmacenDeLeads, type Res } from "@/lib/leads/almacen";
 import { ALCANCE_SIN_REGLA, codigoDeTiendaDelPerfil, conCruzadosDeMiTienda, eligeTienda, esCruzadoDeMiTienda, leadsDelBanco, privadosVisibles, veElPoolPrivado, type Alcance } from "@/lib/leads/alcance";
-import { almacenDemo, PERSONAS_DEMO } from "@/lib/leads/demo";
+import { almacenDemo, PERSONAS_DEMO, personaDeLaPractica } from "@/lib/leads/demo";
 import {
   cuantosVistosMasDeUna, cuentaPorEtapa, delExcel, dinero, enlaceSeguro, estadoLabel, etapaDe, etapaLabel, etapaTono, eventoLabel, fecha, filtrar,
   filtroDePool, categoriaBuena, coincideConCliente, esPrivado, ETAPAS, mapsUrl, negativaTexto, notaLimpia, NOTA_MAX, numero, ordenar, poolInicial, poolLabel,
@@ -57,9 +57,10 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 }) {
   const { t, lang } = usePrefs();
 
-  // En el demo no hay sesión: se elige quién se es, para poder enseñar la parte del admin y las otras tiendas.
+  // En el demo sin sesión se elige quién se es, para poder enseñar la parte del admin y las otras tiendas. Con sesión
+  // (modo enseñanza), la práctica enseña a la persona de verdad: lo que vería sin el modo (D-770, `personaDeLaPractica`).
   const [idDemo, setIdDemo] = useState(PERSONAS_DEMO[0].id);
-  const yo: Persona | null = demo ? (PERSONAS_DEMO.find((p) => p.id === idDemo) ?? PERSONAS_DEMO[0]) : yoReal;
+  const yo: Persona | null = demo ? personaDeLaPractica(yoReal, idDemo) : yoReal;
   const quien = useRef<Persona>(PERSONAS_DEMO[0]);
   useEffect(() => { if (yo) quien.current = yo; });
   const almacen: AlmacenDeLeads = useMemo(() => (demo ? almacenDemo(() => quien.current) : almacenDeLaBase(createClient())), [demo]);
@@ -238,7 +239,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
             {demo ? ` ${t("Demo data (invented).", "Datos de demostración (inventados).")}` : ""}
           </p>
         </div>
-        {demo && (
+        {demo && !yoReal && (
           <label className="ld-demo">
             {t("Demo: you are", "Demo: eres")}
             <select data-persona-demo value={idDemo} onChange={(e) => {

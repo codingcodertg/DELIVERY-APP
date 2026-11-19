@@ -104,11 +104,12 @@ describe("la pantalla y la base", () => {
     expect(p).not.toContain("General Pool");
     expect(p).not.toContain("Pool privado");
   });
-  it("la página manda rol y permisos, y en modo enseñanza abre el demo", () => {
+  it("la página manda rol y permisos, y en modo enseñanza abre el demo con la persona de verdad", () => {
     const p = sinComentarios(leer("src/app/leads/page.tsx"));
     expect(p).toContain('select("full_name, store, role, module_access, permissions")');
     expect(p).toContain("permissions: (data?.permissions as string[] | null) ?? []");
-    expect(p).toContain("if (valorDeEnsenanza((await cookies()).get(COOKIE_ENSENANZA)?.value)) return <Leads demo yo={null} cotiza />;");
+    expect(p).toContain("const enseñanza = !!valorDeEnsenanza((await cookies()).get(COOKIE_ENSENANZA)?.value);");
+    expect(p).toContain("if (enseñanza) return <Leads demo yo={yo} cotiza={cotiza} />;");
   });
   it("la 220: el permiso, el orden, los pools, las dos políticas y lead_take; sin transacción propia; registro con su checksum", () => {
     const sql = leer("supabase/migrations/220_leads_stxp_pool.sql");
