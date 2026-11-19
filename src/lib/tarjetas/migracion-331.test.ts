@@ -62,9 +62,9 @@ describe("migración 331: tarjetas de presentación", () => {
     expect(codigo).toMatch(/create policy "admin write business-cards" on storage\.objects[\s\S]*?bucket_id = 'business-cards' and public\.is_admin\(\)/);
   });
 
-  it("no pone la línea del ledger: la pone quien aplica", () => {
+  it("lleva la línea del ledger justo tras su marcador", () => {
     expect(corte).toBeGreaterThan(0);
-    expect(sql.slice(corte).trim()).toBe("-- @ledger-below");
-    expect(sql).not.toMatch(/schema_migrations/);
+    expect(sql.slice(corte).trim().startsWith("-- @ledger-below")).toBe(true);
+    expect(sql.slice(corte)).toMatch(/insert into public.schema_migrations/);
   });
 });

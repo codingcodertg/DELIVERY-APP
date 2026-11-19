@@ -12,10 +12,10 @@ const sql = leer("supabase/migrations/332_paradas_con_foto.sql");
 const lineas = sql.split("\n");
 
 describe("332 · paradas con foto: forma de la migración", () => {
-  it("termina en la marca del libro, sin su línea de registro (la pone el dueño)", () => {
+  it("termina en la marca del libro, con su línea de registro justo debajo", () => {
     const noVacias = lineas.filter((l) => l.trim() !== "");
-    expect(noVacias.at(-1)).toBe("-- @ledger-below");
-    expect(sql).not.toContain("insert into public.schema_migrations");
+    expect(noVacias.at(-2)).toBe("-- @ledger-below");
+    expect(noVacias.at(-1)).toContain("insert into public.schema_migrations");
   });
 
   it("quita la constraint que prohibía recibo fuera de la gasolina, y pone la de galones", () => {

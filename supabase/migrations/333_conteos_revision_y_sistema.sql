@@ -490,3 +490,4 @@ begin
 end $chk$;
 
 -- @ledger-below
+insert into public.schema_migrations (name, checksum) values ('333_conteos_revision_y_sistema.sql', 'cb0852f4cca79ff315ab3589d92cfd49700925291be6c0ecefc2297e82e51f14') on conflict (name) do nothing;

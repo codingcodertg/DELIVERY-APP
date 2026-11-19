@@ -111,10 +111,10 @@ describe("333: funciones con sus puertas, sin anon y con search_path fijo", () =
 });
 
 describe("333: autocomprobación, ledger y RPC clasificadas", () => {
-  it("termina con la autocomprobación y la línea del ledger SOLO como marcador (la pone el dueño)", () => {
+  it("termina con la autocomprobación y la línea del ledger justo tras su marcador", () => {
     expect(SQL).toContain("do $chk$");
-    expect(SQL.trimEnd().endsWith("-- @ledger-below")).toBe(true);
-    expect(SQL).not.toMatch(/insert into public\.schema_migrations/);
+    expect(SQL).toContain("-- @ledger-below");
+    expect(SQL.split("-- @ledger-below")[1].trim().startsWith("insert into public.schema_migrations")).toBe(true);
   });
   it("no contiene nada de aplicar contra una base (--escribe ni comandos)", () => {
     expect(SQL).not.toMatch(/--escribe/);
