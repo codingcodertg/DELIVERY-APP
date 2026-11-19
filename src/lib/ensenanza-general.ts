@@ -108,6 +108,7 @@ export const RPC_QUE_ESCRIBEN = [
   "warehouse_ops_save_equipment", "warehouse_ops_file_checklist", "warehouse_ops_save_part", "warehouse_ops_request_part",
   "warehouse_ops_start_usage", "warehouse_ops_stop_usage",
   // 274 (D-929), Conteos de inventario: crear, avanzar, línea, firmar, recontar, ajustar, cancelar. Todas escriben.
+  "warehouse_ops_pending_add", "warehouse_ops_pending_update", "warehouse_ops_pending_delete", "warehouse_ops_count_set_system", "warehouse_ops_count_back", // 333: órdenes pendientes de la revisión, cantidad del sistema y volver a revisar; escriben.
   "warehouse_ops_create_count", "warehouse_ops_count_advance", "warehouse_ops_count_line", "warehouse_ops_count_sign",
   "warehouse_ops_count_recount", "warehouse_ops_count_adjust", "warehouse_ops_count_cancel",
   "security_sign_out_user", // 236 (D-828): cierra todas las sesiones de una persona.

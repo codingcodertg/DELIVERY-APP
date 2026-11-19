@@ -659,3 +659,39 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
   .ops-kpi-almacen-grid { grid-template-columns: minmax(180px, 1fr) minmax(0, 3fr); align-items: start; }
   .ops-kpi-almacen-reportes { position: sticky; top: 12px; }
 }
+
+/* ---- 333: conteos de inventario (etapas, buscador del teléfono, ventanas que solo se cierran con el botón) ---- */
+.ops-etapa[data-etapa-conteo="organizing"] { --etapa: var(--gray); }
+.ops-etapa[data-etapa-conteo="counting"] { --etapa: var(--accent); }
+.ops-etapa[data-etapa-conteo="review"] { --etapa: var(--amber); }
+.ops-etapa[data-etapa-conteo="sign_off"] { --etapa: var(--blue, #2563eb); }
+.ops-etapa[data-etapa-conteo="adjusted"] { --etapa: var(--green, #1f8f4e); }
+.ops-etapa[data-etapa-conteo="cancelled"] { --etapa: var(--red); }
+.ops-linea-de-etapas li[data-etapa-conteo].hecha .ops-etapa-punto { background: var(--etapa, var(--accent)); border-color: var(--etapa, var(--accent)); }
+
+/* El buscador de proveedor y medida: un campo grande y una lista de botones que se desplaza dentro */
+.ops-buscador { display: grid; gap: 8px; }
+.ops-buscador-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 40vh; overflow-y: auto; overscroll-behavior: contain; }
+.ops-buscador-opcion { width: 100%; min-height: 44px; text-align: left; justify-content: flex-start; }
+.ops-conteo-inicio { display: grid; gap: 12px; margin: 12px 0 18px; padding: 12px; border: 1px solid var(--border, #e5e7eb); border-radius: 12px; }
+.ops-conteo-inicio h3 { margin: 0; }
+.ops-conteo-seguir { margin-top: 8px; }
+
+/* Las ventanas de conteo: alto máximo y desplazamiento por dentro; el botón de cerrar siempre a la vista */
+.ops-conteo-modal { max-height: calc(100dvh - 16px); overflow-y: auto; overscroll-behavior: contain; }
+.ops-conteo-modal .modal-actions, .ops-cerrar-abajo { position: sticky; bottom: 0; background: var(--card, #fff); padding-top: 8px; padding-bottom: 4px; z-index: 2; }
+
+/* La tabla de firma: la diferencia se nota de un vistazo */
+.orders tr.con-diferencia td { background: rgba(220, 38, 38, 0.08); }
+.orders tr.sin-sistema td { background: rgba(245, 158, 11, 0.10); }
+
+/* El informe de conteos (Reportes): lo primero, las cajas que faltan */
+.ops-informe-principal { grid-column: 1 / -1; border: 2px solid transparent; }
+.ops-informe-alerta { border-color: var(--red, #dc2626); }
+.ops-informe-principal .ops-merma-cifra { font-size: 2.2rem; }
+.ops-informe-mes { min-width: 9ch; text-align: center; text-transform: capitalize; }
+.ops-ajuste-resumen { display: grid; gap: 6px; }
+@media (max-width: 480px) {
+  .ops-conteo-modal { border-radius: 12px; }
+  .ops-conteo-inicio { padding: 10px; }
+}

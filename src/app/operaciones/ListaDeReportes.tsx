@@ -22,6 +22,7 @@ import { crearBorradorDeGrupo, esBorradorDeGrupo, listarBorradoresDeGrupo } from
 import { HojaBorrador } from "./HojaBorrador";
 import { ensenanzaDelNavegador } from "@/lib/ensenanza-general";
 import { HistorialDeMerma } from "./HistorialDeMerma";
+import { InformeDeConteos } from "./InformeDeConteos";
 import { avisoYaEnGrupo, esErrorDeYaEnGrupo, estadoDelGrupo, filtrarGrupos, seleccionadasEnGrupo, type FiltroDeGrupos, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
 import { HojaDeGrupo } from "./HojaDeGrupo";
 import { HojaImprimible } from "./HojaImprimible";
@@ -57,7 +58,8 @@ import type { Contexto } from "./Operaciones";
 const LIMITE = 500;
 // «Todos los reportes» (lista) se retiró de «Reportes» (dueño, 10 nov): solo Merma y Entregas. La vista «Mis reportes»
 // (modo="mios") sigue usando la tabla de la lista, pero sin pestañas. La merma es la pestaña por defecto.
-type Pestana = "merma" | "entregas" | "revision";
+// 333 (19 nov): «Conteos» es la pestaña del informe de conteos de inventario (el KPI y la tabla salen de la pantalla de conteo).
+type Pestana = "merma" | "entregas" | "revision" | "conteos";
 // La fila cruda de PostgREST: como `Reporte`, pero `answers` puede traer claves extra (p. ej. `broken_on` antes de la
 // 266) y las firmas vienen embebidas. Se mapea a `Reporte` al leer. 280.
 type ReporteCrudo = Omit<Reporte, "answers"> & { answers: Reporte["answers"] & Record<string, unknown> };
@@ -82,7 +84,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
   const hoy = hoyEnTexas();
   // KPI de entregas (Roberto, fase 1): tercera pestaña, «Entregas», con el mismo selector de rango que la merma.
   const pedida = params.get("pestana");
-  const pestana: Pestana = (pedida === "merma" || pedida === "entregas" || pedida === "revision") ? pedida : "merma";
+  const pestana: Pestana = (pedida === "merma" || pedida === "entregas" || pedida === "revision" || pedida === "conteos") ? pedida : "merma";
   const eleccion = useMemo(() => eleccionDeUrl(params), [params]);
   const irA = useCallback((cambios: { pestana?: Pestana; eleccion?: Eleccion }) => {
     const q = new URLSearchParams();
@@ -419,6 +421,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
     <div className="ops-pestanas" role="tablist">
       <button type="button" role="tab" aria-selected={pestana === "merma"} className={`chip${pestana === "merma" ? " active" : ""}`} onClick={() => setPestana("merma")} data-pestana="merma">🧱 {t("Scrap", "Merma")}</button>
       <button type="button" role="tab" aria-selected={pestana === "entregas"} className={`chip${pestana === "entregas" ? " active" : ""}`} onClick={() => setPestana("entregas")} data-pestana="entregas">🚚 {t("Deliveries", "Entregas")}</button>
+      <button type="button" role="tab" aria-selected={pestana === "conteos"} className={`chip${pestana === "conteos" ? " active" : ""}`} onClick={() => setPestana("conteos")} data-pestana="conteos">🔢 {t("Inventory counts", "Conteos")}</button>
     </div>
   ) : null;
   // El selector de rango (D-911) lo comparten la pestaña de merma y la de entregas.
@@ -622,6 +625,13 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {modo === "todos" && gerencia && pestana === "conteos" && (
+        <div className="ops-merma" data-conteos-informe>
+          {pestanas}
+          <InformeDeConteos ctx={ctx} tiendas={ctx.tiendas} />
         </div>
       )}
 
