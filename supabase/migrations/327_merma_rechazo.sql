@@ -381,3 +381,4 @@ begin
 end $chk$;
 
 -- @ledger-below
+insert into public.schema_migrations (name, checksum) values ('327_merma_rechazo.sql', 'dd4e5204be517082739616cdd79fc0d09f1b3218f90a1b237a3da0b3d12e050b') on conflict (name) do nothing;
