@@ -183,3 +183,55 @@ describe("revalidar: las secuencias de la persona, con la matriz y el tráfico G
     expect(revalida(sin.plan, estado({ ...e.secuencias, [c]: [P("b"), P("a"), D("b"), D("a")] }), "p", tiendas).tramosSinTrafico).toBe(0);
   });
 });
+
+describe("arrastrar una parada a otro puesto de su ruta (a_puesto)", () => {
+  // Tres recogidas y sus tres entregas: hay sitio para mover una entrega hacia arriba y una recogida hacia abajo.
+  const tres = estado({ c1: [P("a"), P("b"), P("c"), D("a"), D("b"), D("c")], c2: [P("z"), D("z")] });
+  const mueve = (m: Parameters<typeof aplicaMovimiento>[1], noSeMueven?: ReadonlySet<string>) => aplicaMovimiento(tres, m, CHOFERES, noSeMueven);
+
+  it("una entrega sube varios puestos: cada salto es un intercambio con su vecina, y la orden queda fijada", () => {
+    expect(mueve({ tipo: "a_puesto", chofer: "c1", indice: 5, destino: 3 })).toEqual(
+      estado({ c1: [P("a"), P("b"), P("c"), D("c"), D("a"), D("b")], c2: [P("z"), D("z")] }, ["c"]));
+  });
+
+  it("una recogida baja hasta su entrega sin pasarla: no es una ruta y se rechaza, con el mismo código que los pasos sueltos", () => {
+    expect(mueve({ tipo: "a_puesto", chofer: "c1", indice: 0, destino: 3 })).toEqual({ error: "entrega_antes_de_recoger" });
+    expect(mueve({ tipo: "a_puesto", chofer: "c1", indice: 5, destino: 1 })).toEqual({ error: "entrega_antes_de_recoger" });
+  });
+
+  it("una recogida sube al principio de la ruta: válido, y queda fijada", () => {
+    expect(mueve({ tipo: "a_puesto", chofer: "c1", indice: 2, destino: 0 })).toEqual(
+      estado({ c1: [P("c"), P("a"), P("b"), D("a"), D("b"), D("c")], c2: [P("z"), D("z")] }, ["c"]));
+  });
+
+  it("una orden en noSeMueven ni se mueve ni se salta: ni ella, ni una de las que cruza en cualquier paso", () => {
+    expect(mueve({ tipo: "a_puesto", chofer: "c1", indice: 5, destino: 3 }, new Set(["c"]))).toEqual({ error: "ya_no_se_mueve" });
+    expect(mueve({ tipo: "a_puesto", chofer: "c1", indice: 5, destino: 3 }, new Set(["b"]))).toEqual({ error: "ya_no_se_mueve" });
+    expect(mueve({ tipo: "a_puesto", chofer: "c1", indice: 5, destino: 3 }, new Set(["a"]))).toEqual({ error: "ya_no_se_mueve" });
+    // Las que no se cruzan sí se mueven.
+    expect(mueve({ tipo: "a_puesto", chofer: "c1", indice: 5, destino: 4 }, new Set(["a"]))).toEqual(
+      estado({ c1: [P("a"), P("b"), P("c"), D("a"), D("c"), D("b")], c2: [P("z"), D("z")] }, ["c"]));
+  });
+
+  it("los puestos que no existen, y el mismo puesto, se rechazan", () => {
+    expect(mueve({ tipo: "a_puesto", chofer: "c1", indice: 5, destino: 6 })).toEqual({ error: "parada_desconocida" });
+    expect(mueve({ tipo: "a_puesto", chofer: "c1", indice: 5, destino: -1 })).toEqual({ error: "parada_desconocida" });
+    expect(mueve({ tipo: "a_puesto", chofer: "c1", indice: 9, destino: 1 })).toEqual({ error: "parada_desconocida" });
+    expect(mueve({ tipo: "a_puesto", chofer: "nadie", indice: 0, destino: 1 })).toEqual({ error: "chofer_desconocido" });
+    expect(mueve({ tipo: "a_puesto", chofer: "c1", indice: 2, destino: 2 })).toEqual({ error: "ya_esta_ahi" });
+  });
+
+  it("no toca el estado de entrada aunque se rechace a mitad de camino", () => {
+    const antes = JSON.stringify(tres);
+    mueve({ tipo: "a_puesto", chofer: "c1", indice: 0, destino: 3 });
+    expect(JSON.stringify(tres)).toBe(antes);
+  });
+
+  it("movimientoValido acepta a_puesto con enteros, y rechaza lo que no lo es", () => {
+    expect(movimientoValido({ tipo: "a_puesto", chofer: "c1", indice: 4, destino: 1, extra: 2 })).toEqual({ tipo: "a_puesto", chofer: "c1", indice: 4, destino: 1 });
+    expect(movimientoValido({ tipo: "a_puesto", chofer: "c1", indice: 4 })).toBeNull();
+    expect(movimientoValido({ tipo: "a_puesto", chofer: "c1", indice: "4", destino: 1 })).toBeNull();
+    expect(movimientoValido({ tipo: "a_puesto", chofer: "c1", indice: 4, destino: 1.5 })).toBeNull();
+    expect(movimientoValido({ tipo: "a_puesto", indice: 4, destino: 1 })).toBeNull();
+  });
+});

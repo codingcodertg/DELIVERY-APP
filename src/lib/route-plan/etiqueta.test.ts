@@ -90,7 +90,8 @@ describe("la columna ID del plan: solo el id (D-434; reemplaza en parte D-431)",
     expect(ruta).not.toContain("data-columna-id");
     expect(ruta).not.toContain("data-accion-parada");
     expect(ruta).not.toContain("{nombreDeOrden(");
-    expect(ruta).toContain("<td title={p.kind === \"P\" ? t(\"Pick up\", \"Recoger\") : t(\"Deliver\", \"Entregar\")}><b>{p.label}</b>");
+    expect(ruta).toContain("<td title={p.kind === \"P\" ? t(\"Pick up\", \"Recoger\") : t(\"Deliver\", \"Entregar\")} style={{ borderLeft: `4px solid ${color}`, fontWeight: 700, whiteSpace: \"nowrap\" }}>");
+    expect(ruta).toContain("<b>{p.label}</b>");
     const panel = readFileSync(join(process.cwd(), "src/components/PlanDelDia.tsx"), "utf8").replace(/\s+/g, " ");
     expect(panel).toContain("const idDeOrden = (id: string) => idDeLaOrden(deliveries, id);");
     expect(panel).toContain("const facturaDeOrden = (id: string) => facturaYIdDeLaOrden(deliveries, id);");

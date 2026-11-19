@@ -27,6 +27,7 @@ export type Movimiento =
   | { tipo: "sube"; chofer: string; indice: number }
   | { tipo: "baja"; chofer: string; indice: number }
   | { tipo: "a_chofer"; orden: string; chofer: string }
+  | { tipo: "a_puesto"; chofer: string; indice: number; destino: number }
   | { tipo: "fija"; orden: string }
   | { tipo: "suelta"; orden: string };
 
@@ -51,6 +52,13 @@ export function movimientoValido(m: unknown): Movimiento | null {
   if (x.tipo === "sube" || x.tipo === "baja") {
     const chofer = texto(x.chofer);
     return chofer && Number.isInteger(x.indice) ? { tipo: x.tipo, chofer, indice: x.indice as number } : null;
+  }
+  // Arrastrar una parada a otro puesto de la MISMA ruta (la tabla del plan, D-456): `indice` es de dónde sale y `destino`
+  // dónde cae. Enteros; el rango lo mira `aplicaMovimiento`, igual que en `sube` y `baja`.
+  if (x.tipo === "a_puesto") {
+    const chofer = texto(x.chofer);
+    return chofer && Number.isInteger(x.indice) && Number.isInteger(x.destino)
+      ? { tipo: "a_puesto", chofer, indice: x.indice as number, destino: x.destino as number } : null;
   }
   if (x.tipo === "a_chofer") {
     const chofer = texto(x.chofer), orden = texto(x.orden);
@@ -116,6 +124,28 @@ export function aplicaMovimiento(estado: EstadoDelPlan, m: Movimiento, choferes:
 
   const sec = secuencias[m.chofer] ?? [];
   if (!Number.isInteger(m.indice) || m.indice < 0 || m.indice >= sec.length) return { error: "parada_desconocida" };
+
+  if (m.tipo === "a_puesto") {
+    // Lo mismo que `sube`/`baja`, paso a paso: la parada salta a su vecina hasta llegar a `destino`. Cada salto es un
+    // intercambio con el de al lado, así que valen las reglas de un paso: no se mueve ni se salta una orden que ya no
+    // se mueve (`ya_no_se_mueve`), y ninguna entrega queda antes que su recogida (`entrega_antes_de_recoger`), en ningún
+    // paso intermedio. Si un paso no es una ruta, el movimiento entero se rechaza.
+    if (!Number.isInteger(m.destino) || m.destino < 0 || m.destino >= sec.length) return { error: "parada_desconocida" };
+    if (m.destino === m.indice) return { error: "ya_esta_ahi" };
+    const sentido = m.destino > m.indice ? 1 : -1;
+    const movida = sec[m.indice].orden;
+    let puesto = m.indice;
+    while (puesto !== m.destino) {
+      if (!cambiaConLaVecina(sec.map((p) => p.orden), puesto, sentido, noSeMueven)) return { error: "ya_no_se_mueve" };
+      [sec[puesto], sec[puesto + sentido]] = [sec[puesto + sentido], sec[puesto]];
+      puesto += sentido;
+      secuencias[m.chofer] = sec;
+      if (!esUnaRuta(secuencias)) return { error: "entrega_antes_de_recoger" };
+    }
+    // Igual que `sube`/`baja`: la orden movida a mano queda fijada donde la dejó la persona.
+    return { secuencias, fijadas: [...new Set([...estado.fijadas, movida])].sort() };
+  }
+
   const otro = m.tipo === "sube" ? m.indice - 1 : m.indice + 1;
   if (otro < 0 || otro >= sec.length) return { error: "en_el_borde" };
   if (!cambiaConLaVecina(sec.map((p) => p.orden), m.indice, m.tipo === "sube" ? -1 : 1, noSeMueven)) return { error: "ya_no_se_mueve" };

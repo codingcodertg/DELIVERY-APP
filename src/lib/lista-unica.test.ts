@@ -322,8 +322,8 @@ describe("el plan («Armar rutas») y «Mi ruta»", () => {
   const plan = leer("src/components/RutaDelPlan.tsx");
   it("la tabla del plan lleva la cuenta FIJA en cada parada y la Base al principio y al final; sin raya ni «N viajes»", () => {
     expect(plan).toContain("{celdaDeCuenta(p.cuenta, ruta.capacidad)}");
-    expect(plan).toContain("<tbody>{filaDeBase(ruta, \"salida\")}{ruta.paradas.map((p, k) => fila(p, k, ruta))}{filaDeBase(ruta, \"regreso\")}</tbody>");
-    expect(plan).toContain("{f.exceso > 0 && <span data-exceso style={{ color: \"var(--red)\", fontWeight: 700, marginLeft: 6 }}>{textoDelExceso(f, capacidad, lang === \"es\")}</span>}");
+    expect(plan).toContain("<tbody>{filaDeBase(ruta, \"salida\")}{ruta.paradas.map((p, k) => fila(p, k, ruta, numerosDeLaRuta[k]))}{filaDeBase(ruta, \"regreso\")}</tbody>");
+    expect(plan).toContain("{f.exceso > 0 && <div data-exceso style={{ color: \"var(--red)\", fontWeight: 700 }}>{textoDelExceso(f, capacidad, lang === \"es\")}</div>}");
     for (const x of ["otroViaje", "x.viajes", "\"trips\""]) expect(plan).not.toContain(x);
   });
   it("«Orden planeado del día» no dice «N viajes» ni raya entre viajes", () => {

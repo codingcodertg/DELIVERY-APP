@@ -3279,7 +3279,11 @@ export default function RoutesPage() {
                 mover={moverEn("plan")}
               />
             ),
-          }} />
+          }}
+          // El color del chofer, el de la tabla de paradas (`colorFor`); y tras la factura, los mismos iconos que allí: el 📅
+          // de reprogramar y el ⇄ de relevo (la etiqueta de la carga no, que la tabla del plan ya dice «carga n de m»).
+          colorDelChofer={(_, nombre) => colorFor(nombre)}
+          iconosDeLaOrden={(d) => (<>{iconoDeReprogramar(d)}{cargasDe(d).carga ? null : <RelevoDeLaOrden pedido={d} compacto soloLectura={soloLectura} />}</>)} />
       )}
 
       {/* ---------- Drivers who stopped reporting ----------
