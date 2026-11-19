@@ -115,9 +115,9 @@ export function ComunicacionesRingCentral({ candidateId }: { candidateId: string
                 <span style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", maxWidth: 420 }}>
                   <audio controls preload="none" src={urls[f.id]} style={{ flex: "1 1 auto", minWidth: 0 }}
                     ref={(el) => { if (el) el.playbackRate = velocidad; }} onPlay={(e) => { e.currentTarget.playbackRate = velocidad; }} />
-                  <button type="button" data-velocidad-de-audio={velocidad} onClick={cambiaVelocidad}
+                  <button type="button" data-velocidad-de-audio={velocidad} onClick={cambiaVelocidad} className={velocidad === 1 ? "btn btn-ghost btn-sm" : "btn btn-primary btn-sm"}
                     title={t("Playback speed: tap to change", "Velocidad: toque para cambiarla")} aria-label={t(`Playback speed ${rotuloDeVelocidad(velocidad)}`, `Velocidad ${rotuloDeVelocidad(velocidad)}`)}
-                    style={{ flex: "0 0 auto", minWidth: 44, padding: "4px 8px", borderRadius: 999, border: "1px solid var(--line)", background: velocidad === 1 ? "var(--card, transparent)" : "var(--accent)", color: velocidad === 1 ? "inherit" : "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                    style={{ flex: "0 0 auto", minWidth: 44, borderRadius: 999, fontWeight: 700 }}>
                     {rotuloDeVelocidad(velocidad)}
                   </button>
                 </span>

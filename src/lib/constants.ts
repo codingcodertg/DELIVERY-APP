@@ -636,6 +636,18 @@ export const HUB_TOOLS: HubTool[] = [
     visible: (me) => soloAdminReal(me),
   },
   {
+    // RingCentral de los choferes (migración 329): las llamadas y grabaciones de las extensiones marcadas como choferes.
+    // Solo el admin REAL (dentro de «entrar como» no se enseña, como las demás herramientas de seguridad).
+    key: "ringcentral",
+    href: "/ringcentral",
+    emoji: "📞",
+    label_en: "RingCentral",
+    label_es: "RingCentral",
+    desc_en: "Calls and recordings of the drivers' extensions",
+    desc_es: "Llamadas y grabaciones de las extensiones de los choferes",
+    visible: (me) => soloAdminReal(me),
+  },
+  {
     key: "users",
     // A los empleados de RRHH, no a la lista vieja de /home/users (D-739): desde D-720 la cuenta y los
     // permisos de cada persona se dan desde su expediente, y el dueño: «esta tab de usuario normal que

@@ -1,0 +1,42 @@
+# RingCentral de los choferes (llamadas y grabaciones de las extensiones marcadas como choferes): cada 10 minutos.
+#
+# POR QUE AQUI Y NO EN vercel.json: igual que rc-comms.yml, Vercel Hobby solo admite crons diarios.
+# Usa el mismo secreto TT_CRON_SECRET (= CRON_SECRET de Vercel); nunca se escribe aqui ni sale en los logs.
+# La ruta contesta 200 tambien cuando no hay credenciales configuradas, asi que no falla antes de configurarlas.
+
+name: rc-choferes-cron
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+permissions: {}
+
+concurrency:
+  group: rc-choferes-cron
+  cancel-in-progress: false
+
+env:
+  BASE_URL: https://rtg-hub.vercel.app
+  CRON_PATH: /api/cron/rc-choferes
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run cron
+        env:
+          SECRET: ${{ secrets.TT_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          q=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then q="?verify=1"; fi
+          code=$(curl -sS -m 150 -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${SECRET}" \
+            "${BASE_URL}${CRON_PATH}${q}")
+          echo "cron -> HTTP ${code}"
+          if [ "${code}" != "200" ]; then
+            echo "::error::el cron de RingCentral choferes devolvio ${code} (se esperaba 200)"
+            exit 1
+          fi

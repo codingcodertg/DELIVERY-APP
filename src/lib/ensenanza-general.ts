@@ -194,6 +194,10 @@ export const RUTAS_CON_EFECTO_QUE_SIGUEN: Record<string, string> = {
   "/api/route-plan/actuals": "solo pregunta el nombre de un chofer a Auth (getUserById)",
   "/api/route-plan/drivers-seen": "solo pregunta el nombre de un chofer a Auth (getUserById)",
   "/api/cron": "los cron no traen la cookie de nadie",
+  // RingCentral de los choferes: la lista de extensiones y las llamadas son solo lectura de RingCentral, guardar la lista
+  // de choferes solo cambia la configuración de la app, y sincronizar lee de RingCentral y guarda en la base de llamadas.
+  // Ninguna manda ni llama a nadie, así que siguen en práctica igual que el resto de la app.
+  "/api/ringcentral": "RingCentral de los choferes: solo lee de RingCentral y guarda la lista de choferes; no manda ni llama a nadie",
 };
 
 export function apiQueNoSePractica(metodo: string | null | undefined, ruta: string): boolean {

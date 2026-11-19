@@ -25,16 +25,18 @@ const NUEVAS = ["vista-movil", "switch-user"] as const;
 const VIEJAS = ["users", "directory", "tutorials", "my-help", "help-requests"] as const;
 // D-811: Security va la primera y es del admin REAL, como las nuevas.
 const SEGURIDAD = ["security"] as const;
+// RingCentral de los choferes (migración 329): herramienta del hub solo para el admin real, como Seguridad.
+const RINGCENTRAL = ["ringcentral"] as const;
 
 describe("las dos herramientas nuevas del hub", () => {
   it("existen, con su ruta, y son las únicas nuevas", () => {
-    expect(HUB_TOOLS.map((t) => t.key)).toEqual([...SEGURIDAD, ...VIEJAS, ...NUEVAS]);
+    expect(HUB_TOOLS.map((t) => t.key)).toEqual([...SEGURIDAD, ...RINGCENTRAL, ...VIEJAS, ...NUEVAS]);
     expect(HUB_TOOLS.find((t) => t.key === "vista-movil")?.href).toBe("/home/vista-movil");
     expect(HUB_TOOLS.find((t) => t.key === "switch-user")?.href).toBe("/home/switch-user");
   });
 
   it("las ve el admin real, rol por rol", () => {
-    for (const key of [...NUEVAS, ...SEGURIDAD]) {
+    for (const key of [...NUEVAS, ...SEGURIDAD, ...RINGCENTRAL]) {
       const tool = HUB_TOOLS.find((t) => t.key === key)!;
       for (const role of ROLE_ORDER) {
         expect([key, role, tool.visible({ role })]).toEqual([key, role, role === "admin"]);

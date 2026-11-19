@@ -1,0 +1,142 @@
+/* RingCentral de los choferes. La tabla es la estándar (TablaEstandar): aquí solo va lo de la página. El margen lateral
+   es de 16 px en todos los anchos, y nada de la página pasa de su ancho: la tabla se desplaza dentro de su caja. */
+
+.rcc {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+  overflow-x: hidden;
+}
+.rcc *,
+.rcc *::before,
+.rcc *::after {
+  box-sizing: border-box;
+}
+
+.rcc-titulo {
+  font-size: 22px;
+  margin: 0 0 12px;
+}
+
+.rcc-pestanas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.rcc-pestana {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line, #d4d4d8);
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.rcc-pestana-activa {
+  background: var(--accent, #2456c9);
+  border-color: var(--accent, #2456c9);
+  color: #fff;
+}
+
+.rcc-seccion {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rcc-aviso {
+  border: 1px solid #d97706;
+  background: #fff7ed;
+  color: #7c2d12;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.rcc-sincronizar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rcc-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+.rcc-campo {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--gray, #6b7280);
+}
+.rcc-campo select,
+.rcc-campo input {
+  min-width: 0;
+  max-width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--line, #d4d4d8);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+}
+.rcc-campo-ancho {
+  flex: 1 1 260px;
+}
+.rcc-casilla {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+.rcc-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.rcc-mas {
+  display: flex;
+  justify-content: center;
+}
+
+.rcc-audio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 220px;
+  max-width: 360px;
+}
+.rcc-audio-reproductor {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.rcc-velocidad {
+  flex: 0 0 auto;
+  min-width: 44px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line, #d4d4d8);
+  background: var(--card, transparent);
+  color: inherit;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+.rcc-velocidad-activa {
+  background: var(--accent, #2456c9);
+  border-color: var(--accent, #2456c9);
+  color: #fff;
+}
