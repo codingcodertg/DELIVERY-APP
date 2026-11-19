@@ -50,6 +50,7 @@ const NO_SON_APPS: Record<string, string> = {
   ringcentral: "herramienta del hub solo admin (RingCentral de los choferes, migración 329): lleva la barra sencilla, pero no es un módulo de module_access",
   "device-blocked": "quien llega aquí entró, pero desde un dispositivo no autorizado (D-811): no hay app que ofrecerle",
   track: "el seguimiento público del cliente: no es del equipo",
+  tarjeta: "la tarjeta de presentación pública (NFC) y su editor por enlace: sin cuenta y sin barra, como /track y /unsubscribe",
   unsubscribe: "el enlace público de baja de correos",
 };
 

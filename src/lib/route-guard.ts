@@ -55,6 +55,8 @@ export function isPublicPath(path: string): boolean {
     // D-816: donde aterriza quien entró por la web con un rol que ya solo entra por la app de escritorio.
     || path === "/web-blocked"
     || path === "/track" || path.startsWith("/track/")
+    // Tarjetas de presentación (NFC): la tarjeta pública de cada persona y su editor por enlace (token). Sin cuenta.
+    || path === "/tarjeta" || path.startsWith("/tarjeta/")
     || path === "/unsubscribe" || path.startsWith("/unsubscribe/")
     || path.startsWith("/_next")
     || path === "/monitoring" || path.startsWith("/monitoring/")

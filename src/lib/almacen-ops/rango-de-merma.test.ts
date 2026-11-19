@@ -169,7 +169,7 @@ describe("la pantalla", () => {
   it("lee el rango y la pestaña de la URL y los escribe con router.replace (aguantan un refresh, se comparten)", () => {
     expect(lista).toContain("const eleccion = useMemo(() => eleccionDeUrl(params), [params]);");
     // KPI de entregas: la tercera pestaña («entregas») viaja igual en la URL; «revision» (280) se sumó a la cuarta.
-    expect(lista).toContain('(pedida === "merma" || pedida === "entregas" || pedida === "revision") ? pedida : "merma"');
+    expect(lista).toContain('(pedida === "merma" || pedida === "entregas" || pedida === "revision" || pedida === "conteos") ? pedida : "merma"');
     expect(lista).toContain('data-pestana="entregas"');
     expect(lista).toContain("router.replace(qs ? `${ruta}?${qs}` : ruta, { scroll: false });");
     expect(lista).not.toContain('useState<"lista" | "merma">');

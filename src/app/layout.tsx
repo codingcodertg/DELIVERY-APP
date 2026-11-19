@@ -10,6 +10,7 @@ import { AvisoDeEnsenanza } from "@/components/AvisoDeEnsenanza";
 import { IdentidadDelDispositivo } from "@/components/IdentidadDelDispositivo";
 import { AvisoDeEscritorio } from "@/components/AvisoDeEscritorio";
 import { GUION_DE_TEMA } from "@/lib/tema";
+import { GUION_DE_HOST_DE_TARJETAS } from "@/lib/tarjetas/host";
 
 // Runs before paint to apply the saved theme immediately (no flash). The
 // timetracker desktop shell (window.ttDesktop, injected by its Electron
@@ -43,6 +44,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* El dominio de las tarjetas NFC marca el <html> antes de pintar: el CSS esconde el marco del hub (burbujas y avisos). */}
+        <script dangerouslySetInnerHTML={{ __html: GUION_DE_HOST_DE_TARJETAS }} />
         {/* `crossOrigin` en los dos, y no por costumbre (D-513): la foto rápida de Ayuda clona la
             página e incrusta las fuentes leyendo las reglas `@font-face` de esta hoja. Una hoja de
             otro dominio cargada SIN crossorigin no deja leer sus reglas, y entonces la foto sale con
@@ -67,11 +70,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               de la burbuja vale para todas. Dentro de `PrefsProvider` porque habla en el idioma de la persona. */}
           {/* La huella del dispositivo (D-811): una vez, aquí, porque es el único layout por el que pasan todas las apps.
               No pinta ni bloquea nada; registra el dispositivo y la hora para la app Security. */}
+          <div className="marco-hub" style={{ display: "contents" }}>
           <IdentidadDelDispositivo />
           {/* «Tu app de escritorio tiene versión nueva» (D-813): solo lo ve la app vieja (la 1.1.1 no se actualiza sola). */}
           <AvisoDeEscritorio />
+          </div>
           <AvisoDeEnsenanza />
           {children}
+          <div className="marco-hub" style={{ display: "contents" }}>
           {/* El aviso del cierre de las 18:30 (D-248), aquí por lo mismo que `VersionStamp`:
               es el único layout por el que pasan las cinco apps. No cierra nada — la barrera
               es el middleware.
@@ -95,9 +101,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Ayuda. Al pulsarla salen hacia arriba Ayuda y Chat (para todos) y, solo para el admin real, Cambiar usuario,
               Vista móvil y Modo enseñanza. Por eso las dos de arriba van `sinBurbuja`: ella las abre por evento. */}
           <BotonGeneral />
+          </div>
         </PrefsProvider>
         {/* Una sola vez, aquí: es el único layout por el que pasan las cinco apps y el hub. */}
-        <VersionStamp />
+        <div className="marco-hub" style={{ display: "contents" }}>
+          <VersionStamp />
+        </div>
       </body>
     </html>
   );

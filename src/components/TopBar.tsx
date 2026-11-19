@@ -87,7 +87,8 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   const visibleTabs = pestanasEnOrden(TABS.filter((tb) => canOpenTab(tb.id, me)), me.role);
   // La inspección pre-viaje no va en la fila sino en el menú del nombre (D-545): `pestanasDeLaFila` la quita aquí, y
   // `opcionesDelMenuDeCuenta` la pone allí con la misma `canOpenTab`.
-  const deLaFila = pestanasDeLaFila(visibleTabs);
+  // El chofer (2026-11-19): en la fila, solo «Mi ruta», «Órdenes» y «Paradas» (`pestanasDeLaFila`, con su rol).
+  const deLaFila = pestanasDeLaFila(visibleTabs, me.role);
   const mainTabs = deLaFila.filter((tb) => !vaEnGeneral(tb, me.role));
   const generalTabs = deLaFila.filter((tb) => vaEnGeneral(tb, me.role));
   const inspeccion = TABS.find((tb) => tb.id === "inspection");

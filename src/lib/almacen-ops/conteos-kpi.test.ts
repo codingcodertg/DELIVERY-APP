@@ -1,89 +1,98 @@
 import { describe, expect, it } from "vitest";
-import { colorDeExactitud, conteosDelPeriodo, diasEntre, enPeriodo, kpiDeConteos, kpiPorEmpleado, periodoDeDias } from "./conteos-kpi";
+import {
+  colorDeExactitud, conteosDelPeriodo, diasEntre, enPeriodo, kpiDeConteos, kpiPorEmpleado, mesVecino, periodoDeDias, periodoDeMes, totalDeConteos,
+} from "./conteos-kpi";
 
-/** 274: el KPI de conteos del gerente: hechos por tienda y periodo, exactitud, variación $, días hasta ajustar, por empleado. */
-const c = (id: string, store: string, stage: "organizing" | "counting" | "review" | "adjusted" | "cancelled", created_at: string, adjusted_at: string | null = null) => ({ id, store, stage, created_at, adjusted_at });
-const l = (count_id: string, system_qty: number | null, counted_total: number | null, price: number | null, by: string | null, nombre: string | null = by) =>
-  ({ count_id, system_qty, counted_total, price, counted_at: counted_total == null ? null : "2026-11-05T10:00:00Z", counted_by: by, counted_by_name: nombre });
-
-const periodo = { desde: "2026-11-01", hasta: "2026-11-30" };
 const conteos = [
-  c("a", "Pharr", "adjusted", "2026-11-02T08:00:00Z", "2026-11-04T08:00:00Z"), // 2 días
-  c("b", "Pharr", "adjusted", "2026-11-10T08:00:00Z", "2026-11-13T08:00:00Z"), // 3 días
-  c("v", "Pharr", "adjusted", "2026-10-02T08:00:00Z", "2026-10-05T08:00:00Z"), // fuera del periodo
-  c("o", "Pharr", "counting", "2026-11-20T08:00:00Z"),
-  c("x", "Pharr", "cancelled", "2026-11-21T08:00:00Z"),
-  c("m", "McAllen", "adjusted", "2026-11-15T08:00:00Z", "2026-11-15T20:00:00Z"),
+  { id: "c1", store: "Pharr", stage: "adjusted" as const, created_at: "2026-11-01T10:00:00Z", adjusted_at: "2026-11-05T10:00:00Z" },
+  { id: "c2", store: "Pharr", stage: "adjusted" as const, created_at: "2026-10-01T10:00:00Z", adjusted_at: "2026-10-20T10:00:00Z" },
+  { id: "c3", store: "McAllen", stage: "cancelled" as const, created_at: "2026-11-03T10:00:00Z", adjusted_at: null },
+  { id: "c4", store: "McAllen", stage: "organizing" as const, created_at: "2026-10-15T10:00:00Z", adjusted_at: null },
 ];
+const linea = (x: Record<string, unknown>) => ({
+  id: "l", count_id: "c1", system_qty: 0, counted_total: 0, price: 1, pieces_per_box: null, counted_at: "2026-11-02T10:00:00Z", counted_by: "p1", counted_by_name: "Ana", ...x,
+});
 const lineas = [
-  l("a", 100, 100, 10, "p1", "Ana"), l("a", 50, 48, 10, "p1", "Ana"), l("a", 20, 22, 5, "p2", "Luis"),
-  l("b", 10, 10, 1, "p2", "Luis"), l("b", null, 7, 1, "p2", "Luis"), l("b", 5, null, 1, null),
-  l("v", 10, 0, 100, "p1", "Ana"), // fuera del periodo: no suma
-  l("o", 10, 9, 1, "p1", "Ana"), // abierto: no suma
-  l("m", 10, 10, 1, "p3", "Mario"),
+  linea({ id: "l1", system_qty: 100, counted_total: 80, price: 2, pieces_per_box: 4 }),        // falta 20 pzas = 5 cajas, $40
+  linea({ id: "l2", system_qty: 50, counted_total: 50, price: 3, pieces_per_box: 2 }),         // exacta
+  linea({ id: "l3", system_qty: 10, counted_total: 14, price: 1, pieces_per_box: 2 }),         // 14 − 4 pendientes = 10: exacta
+  linea({ id: "l4", system_qty: 10, counted_total: 7, price: 1, pieces_per_box: null }),       // falta 3 pzas sin caja, $3
+  linea({ id: "l5", count_id: "c3", system_qty: 9, counted_total: 1, price: 1, pieces_per_box: 1 }), // cancelado: no cuenta
 ];
+const pendientes = [{ line_id: "l3", qty: 4 }];
 
 describe("el periodo", () => {
   it("por la fecha ISO, días inclusive", () => {
-    expect(enPeriodo("2026-11-01T00:00:00Z", periodo)).toBe(true);
-    expect(enPeriodo("2026-11-30T23:00:00Z", periodo)).toBe(true);
-    expect(enPeriodo("2026-12-01T00:00:00Z", periodo)).toBe(false);
-    expect(enPeriodo(null, periodo)).toBe(false);
+    expect(enPeriodo("2026-11-30T23:59:00Z", { desde: "2026-11-01", hasta: "2026-11-30" })).toBe(true);
+    expect(enPeriodo("2026-12-01T00:00:00Z", { desde: "2026-11-01", hasta: "2026-11-30" })).toBe(false);
+    expect(enPeriodo(null, { desde: "2026-11-01", hasta: "2026-11-30" })).toBe(false);
   });
-  it("los últimos N días hasta hoy", () => {
-    expect(periodoDeDias("2026-11-08", 30)).toEqual({ desde: "2026-10-10", hasta: "2026-11-08" });
-    expect(periodoDeDias("2026-11-08", 1)).toEqual({ desde: "2026-11-08", hasta: "2026-11-08" });
+  it("un mes calendario: del 1 al último día (bisiesto incluido)", () => {
+    expect(periodoDeMes("2026-11")).toEqual({ desde: "2026-11-01", hasta: "2026-11-30" });
+    expect(periodoDeMes("2028-02")).toEqual({ desde: "2028-02-01", hasta: "2028-02-29" });
+    expect(periodoDeMes("2026-13")).toBeNull();
+  });
+  it("el mes vecino cruza el año", () => {
+    expect(mesVecino("2026-01", -1)).toBe("2025-12");
+    expect(mesVecino("2026-12", 1)).toBe("2027-01");
+    expect(mesVecino("2026-11", 1)).toBe("2026-12");
   });
   it("los conteos del periodo: ajustados dentro, los abiertos siempre, los cancelados solo si se abrieron dentro", () => {
-    expect(conteosDelPeriodo(conteos, periodo).map((x) => x.id)).toEqual(["a", "b", "o", "x", "m"]);
+    const ids = conteosDelPeriodo(conteos, { desde: "2026-11-01", hasta: "2026-11-30" }).map((c) => c.id);
+    expect(ids).toEqual(["c1", "c3", "c4"]);
   });
-  it("días entre dos instantes", () => {
-    expect(diasEntre("2026-11-02T08:00:00Z", "2026-11-04T08:00:00Z")).toBe(2);
-    expect(diasEntre("2026-11-15T08:00:00Z", "2026-11-15T20:00:00Z")).toBe(0.5);
-  });
-});
-
-describe("el KPI por tienda", () => {
-  const [pharr, mcallen, vacia] = kpiDeConteos(conteos, lineas, periodo, ["Pharr", "McAllen", "Harlingen"]);
-  it("hechos = ajustados en el periodo; abiertos y cancelados aparte", () => {
-    expect(pharr).toMatchObject({ tienda: "Pharr", hechos: 2, abiertos: 1, cancelados: 1 });
-    expect(mcallen).toMatchObject({ hechos: 1, abiertos: 0, cancelados: 0 });
-    expect(vacia).toMatchObject({ hechos: 0, lineasContadas: 0, exactitudPct: null, variacionAbs: 0, diasPromedio: null });
-  });
-  it("exactitud = exactas / comparables (una línea sin sistema cuenta como contada pero no compara)", () => {
-    expect(pharr.lineasContadas).toBe(5);
-    expect(pharr.lineasExactas).toBe(2);
-    expect(pharr.exactitudPct).toBe(50); // 2 de 4 comparables
-  });
-  it("variación $: |precio × dif| sumado, y la neta con signo", () => {
-    expect(pharr.variacionAbs).toBe(30); // 20 + 10
-    expect(pharr.variacionNeta).toBe(-10); // -20 + 10
-  });
-  it("días promedio de creado a ajustado, a 1 decimal", () => {
-    expect(pharr.diasPromedio).toBe(2.5);
-    expect(mcallen.diasPromedio).toBe(0.5);
+  it("días entre dos instantes, y los últimos N días", () => {
+    expect(diasEntre("2026-11-01T00:00:00Z", "2026-11-05T00:00:00Z")).toBe(4);
+    expect(periodoDeDias("2026-11-19", 3)).toEqual({ desde: "2026-11-17", hasta: "2026-11-19" });
   });
 });
 
-describe("por empleado", () => {
-  it("líneas contadas y exactitud en los conteos ajustados del periodo; orden por líneas", () => {
-    const g = kpiPorEmpleado(conteos, lineas, periodo);
-    expect(g.map((x) => [x.nombre, x.lineas, x.exactas, x.exactitudPct])).toEqual([
-      ["Luis", 3, 1, 50], // 22 vs 20 (no), 10 (sí), sin sistema (no compara)
-      ["Ana", 2, 1, 50],
-      ["Mario", 1, 1, 100],
-    ]);
+describe("el KPI del mes por tienda: la diferencia es DESPUÉS de las órdenes pendientes", () => {
+  const mes = { desde: "2026-11-01", hasta: "2026-11-30" };
+  const [pharr, mca] = kpiDeConteos(conteos, lineas, pendientes, mes, ["Pharr", "McAllen"]);
+
+  it("Pharr: faltan 20 piezas = 5 cajas (las líneas sin caja van aparte), $43; sobran 0; exactitud 2 de 4", () => {
+    expect(pharr).toMatchObject({
+      tienda: "Pharr", hechos: 1, faltanPiezas: 23, faltanCajas: 5, faltanPiezasSinCaja: 3, sobranPiezas: 0, sobranCajas: 0,
+      faltanValor: 43, sobranValor: 0, netoValor: -43, lineasContadas: 4, lineasExactas: 2, lineasComparables: 4, exactitudPct: 50, pendientePiezas: 4, diasPromedio: 4,
+    });
   });
-  it("filtrado por tienda", () => {
-    expect(kpiPorEmpleado(conteos, lineas, periodo, "McAllen").map((x) => x.nombre)).toEqual(["Mario"]);
+  it("McAllen: sin conteos ajustados en el mes; el cancelado no entra a las líneas; abiertos ahora = 1", () => {
+    expect(mca).toMatchObject({ hechos: 0, lineasContadas: 0, exactitudPct: null, faltanCajas: 0, abiertos: 1, cancelados: 1, diasPromedio: null });
+  });
+  it("una línea que cuadra solo por la pendiente cuenta como exacta", () => {
+    const [p] = kpiDeConteos(conteos, [linea({ id: "x", count_id: "c1", system_qty: 10, counted_total: 14, price: 1, pieces_per_box: 2 })], [{ line_id: "x", qty: 4 }], mes, ["Pharr"]);
+    expect(p.lineasExactas).toBe(1);
+    expect(p.faltanPiezas).toBe(0);
+  });
+  it("el sobrante va a cajas y $ con signo aparte", () => {
+    const [p] = kpiDeConteos(conteos, [linea({ id: "y", count_id: "c1", system_qty: 10, counted_total: 18, price: 2, pieces_per_box: 4 })], [], mes, ["Pharr"]);
+    expect(p).toMatchObject({ sobranPiezas: 8, sobranCajas: 2, sobranValor: 16, faltanCajas: 0, netoValor: 16 });
+  });
+});
+
+describe("el total de la tienda suma las tiendas; la exactitud sale de las líneas comparables", () => {
+  it("totalDeConteos: cajas que faltan del mes, exactitud total", () => {
+    const mes = { desde: "2026-11-01", hasta: "2026-11-30" };
+    const filas = kpiDeConteos(conteos, lineas, pendientes, mes, ["Pharr", "McAllen"]);
+    expect(totalDeConteos(filas)).toMatchObject({ hechos: 1, faltanCajas: 5, faltanPiezasSinCaja: 3, faltanValor: 43, lineasComparables: 4, lineasExactas: 2, exactitudPct: 50 });
+  });
+  it("sin líneas comparables, exactitud null", () => {
+    expect(totalDeConteos([]).exactitudPct).toBeNull();
+  });
+});
+
+describe("por empleado: líneas contadas y exactas después de pendientes, en los conteos ajustados del mes", () => {
+  it("Ana: 4 líneas, 2 exactas, 50%", () => {
+    const e = kpiPorEmpleado(conteos, lineas, pendientes, { desde: "2026-11-01", hasta: "2026-11-30" }, "Pharr");
+    expect(e).toEqual([{ id: "p1", nombre: "Ana", lineas: 4, exactas: 2, exactitudPct: 50 }]);
   });
 });
 
 describe("el color", () => {
   it("≥ 95 verde, ≥ 85 ámbar, menos rojo, sin dato gris", () => {
-    expect(colorDeExactitud(100)).toBe("verde");
     expect(colorDeExactitud(95)).toBe("verde");
-    expect(colorDeExactitud(90)).toBe("ambar");
+    expect(colorDeExactitud(85)).toBe("ambar");
     expect(colorDeExactitud(84)).toBe("rojo");
     expect(colorDeExactitud(null)).toBe("gris");
   });

@@ -12,6 +12,9 @@ import type { UserRole } from "@/lib/types";
  * El chofer (D-523), al revés: «Mi ruta» primero y su «Órdenes» (`driver`) al final. El dueño, 2026-10-11: «my routes in
  * driver will be 1st and orders last in  the row». Lo demás que tenga (la inspección, algo concedido de más) queda en
  * medio, en el orden de `TABS`. Los otros roles, sin tocar.
+ *
+ * 2026-11-19 (chofer): «Paradas» va detrás de «Órdenes», al final. La fila del chofer no muestra lo del medio: la recorta
+ * `pestanasDeLaFila` con el rol (`PESTANAS_DE_LA_FILA_DEL_CHOFER`).
  */
 export function pestanasEnOrden<T extends { id: string }>(pestanas: readonly T[], rol: UserRole): T[] {
   if (rol === "warehouse") {
@@ -19,9 +22,11 @@ export function pestanasEnOrden<T extends { id: string }>(pestanas: readonly T[]
     return [...suya, ...pestanas.filter((tb) => tb.id !== "warehouse")];
   }
   if (rol === "driver") {
+    // 2026-11-19: la fila del chofer es «Mi ruta», «Órdenes» y «Paradas», y nada más (lo recorta `pestanasDeLaFila`, con el
+    // rol). Aquí solo el orden: «Órdenes» y «Paradas» van al final, en ese orden.
     const primera = pestanas.filter((tb) => tb.id === "myroute");
-    const ultima = pestanas.filter((tb) => tb.id === "driver");
-    return [...primera, ...pestanas.filter((tb) => tb.id !== "myroute" && tb.id !== "driver"), ...ultima];
+    const ultimas = ["driver", "paradas"].flatMap((id) => pestanas.filter((tb) => tb.id === id));
+    return [...primera, ...pestanas.filter((tb) => tb.id !== "myroute" && tb.id !== "driver" && tb.id !== "paradas"), ...ultimas];
   }
   return [...pestanas];
 }

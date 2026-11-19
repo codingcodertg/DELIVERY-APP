@@ -99,35 +99,62 @@ export const pideRecibo = (motivo: MotivoDePausa): boolean => motivo === "gas";
 /**
  * Lo que se guarda al pulsar «▶ Seguir», o por qué no se puede todavía (monto o galones escritos mal).
  *
- * Cambio del 2026-11-13 (resumen del pedido, no es cita). Por eso la gasolina ya **no exige el recibo para cerrar**: sin foto y sin «No tengo
- * recibo», la parada se cierra con el recibo PENDIENTE (`recibo_foto` null, `sin_recibo` false), y aparece en «Recibos
- * pendientes» para subirlo después. «No tengo recibo» sigue siendo una respuesta a propósito y queda anotada.
- * Las demás se cierran sin preguntar nada: lo que se escribiera de recibo en una que no es de gasolina no se guarda.
+ * Cambio del 2026-11-13: la gasolina ya **no exige el recibo para cerrar**. Sin foto y sin «No tengo recibo», la parada
+ * se cierra con el recibo PENDIENTE (`recibo_foto` null, `sin_recibo` false), y aparece en «Recibos pendientes».
+ *
+ * Cambio del 2026-11-19 (pedido del dueño): la foto y el monto valen para CUALQUIER motivo (una llanta, una comida). Los
+ * galones y «No tengo recibo» siguen siendo solo de gasolina. Una parada que no es de gasolina se cierra con lo que haya
+ * escrito, o sin nada: nada es obligatorio.
  */
 export function cierreDePausa(
   motivo: MotivoDePausa,
   entrada: { foto: string | null; monto: string; galones: string; sinRecibo: boolean },
 ): CierreDePausa | { falta: "monto" | "galones" } {
-  if (!pideRecibo(motivo)) return { recibo_foto: null, recibo_monto: null, recibo_galones: null, sin_recibo: false };
   const monto = numeroOpcional(entrada.monto);
-  const galones = numeroOpcional(entrada.galones);
   if (Number.isNaN(monto)) return { falta: "monto" };
+  if (!pideRecibo(motivo)) {
+    return { recibo_foto: entrada.foto || null, recibo_monto: monto, recibo_galones: null, sin_recibo: false };
+  }
+  const galones = numeroOpcional(entrada.galones);
   if (Number.isNaN(galones)) return { falta: "galones" };
   if (entrada.foto) return { recibo_foto: entrada.foto, recibo_monto: monto, recibo_galones: galones, sin_recibo: false };
   return { recibo_foto: null, recibo_monto: monto, recibo_galones: galones, sin_recibo: !!entrada.sinRecibo };
 }
 
-/** Lo que se guarda al subir el recibo de una parada que ya está registrada (2026-11-13). Solo recibo: nada de horas ni lugar. */
+/** Lo que se guarda al subir el recibo de una parada que ya está registrada (2026-11-13). Solo recibo: nada de horas ni lugar.
+ *  Los galones son solo de gasolina (2026-11-19): en las demás se quedan en `null`. */
 export function reciboTardio(
   entrada: { foto: string | null; monto: string; galones: string },
+  motivo: MotivoDePausa = "gas",
 ): { recibo_foto: string; recibo_monto: number | null; recibo_galones: number | null } | { falta: "foto" | "monto" | "galones" } {
   const monto = numeroOpcional(entrada.monto);
-  const galones = numeroOpcional(entrada.galones);
   if (Number.isNaN(monto)) return { falta: "monto" };
+  const galones = pideRecibo(motivo) ? numeroOpcional(entrada.galones) : null;
   if (Number.isNaN(galones)) return { falta: "galones" };
   if (!entrada.foto) return { falta: "foto" };
   return { recibo_foto: entrada.foto, recibo_monto: monto, recibo_galones: galones };
 }
+
+/**
+ * ¿Se puede añadir la foto (y el monto) a una parada YA CERRADA? Sí si no tiene foto y nadie dijo «no tengo recibo». Vale
+ * para cualquier motivo (2026-11-19): la base (332) deja subirla después en las de cualquier motivo. Una abierta no: su
+ * foto se pone al terminarla.
+ */
+export const puedeAnadirFotoDespues = (p: Pick<PausaDelChofer, "termino_at" | "recibo_foto" | "sin_recibo">): boolean =>
+  !!p.termino_at && !p.recibo_foto && !p.sin_recibo;
+
+/**
+ * ¿La base rechazó la foto o el monto? Antes de la 332 la constraint `pausas_recibo_solo_gasolina` no deja recibo en una
+ * parada que no es de gasolina, y la política de la 306 no deja tocar una cerrada que no lo sea (RLS: `42501`, o `PGRST116`
+ * cuando el update no toca ninguna fila). Lo sabe quien escribe para decidir si cierra sin la foto.
+ */
+export function esRechazoDeFoto(error: unknown): boolean {
+  const e = (error ?? {}) as { message?: string; code?: string };
+  return String(e.message ?? "").includes("pausas_recibo_solo_gasolina") || e.code === "42501" || e.code === "PGRST116";
+}
+
+/** Lo mismo que el cierre, pero sin foto ni monto: es lo que queda guardable cuando la base rechaza el recibo. */
+export const cierreSinRecibo = (): CierreDePausa => ({ recibo_foto: null, recibo_monto: null, recibo_galones: null, sin_recibo: false });
 
 /** Le falta el recibo: es de gasolina, sin foto, y nadie dijo «no tengo». Abierta o cerrada. */
 export const sinReciboTodavia = (p: Pick<PausaDelChofer, "motivo" | "recibo_foto" | "sin_recibo">): boolean =>

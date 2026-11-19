@@ -31,10 +31,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ i
   let conteo: Conteo | null = null;
   let lineas: Linea[] = [];
   let personas: { id: string; full_name: string }[] = [];
+  let pendientes: { line_id: string; qty: number }[] = [];
   if (SIN_BASE) {
     conteo = DEMO_CONTEOS.conteos.find((c) => c.id === id) ?? DEMO_CONTEOS.conteos[1];
     const elegido = conteo;
     lineas = DEMO_CONTEOS.lineas.filter((l) => l.count_id === elegido.id);
+    pendientes = DEMO_CONTEOS.pendientes.filter((o) => o.count_id === elegido.id).map((o) => ({ line_id: o.line_id, qty: o.qty }));
   } else {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -60,13 +62,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ i
           supabase.from("profiles").select("id, full_name"),
         ]);
         lineas = ((ls ?? []) as Record<string, unknown>[]).map(lineaDeLaFila);
-        personas = ((gente ?? []) as { id: string; full_name: string | null }[]).map((p) => ({ id: p.id, full_name: p.full_name ?? "" }));
+        // 333: las órdenes pendientes (si la 333 no está, la tabla no existe y la hoja sale sin ellas).
+        const { data: pe } = await supabase.from("warehouse_count_pending").select("line_id, qty").eq("count_id", id);
+        pendientes = ((pe ?? []) as { line_id: string; qty: number | string }[]).map((o) => ({ line_id: o.line_id, qty: Number(o.qty) }));
+        personas =((gente ?? []) as { id: string; full_name: string | null }[]).map((p) => ({ id: p.id, full_name: p.full_name ?? "" }));
       }
     }
   }
   const t = T(lang);
-  const filas = filasDeHojaDeConteo(lineas);
-  const resumen = resumenDelConteo(lineas);
+  const filas = filasDeHojaDeConteo(lineas, pendientes);
+  const resumen = resumenDelConteo(lineas, pendientes);
   const hoy = new Date().toISOString().slice(0, 10);
   const nombre = (x: string | null) => (x ? personas.find((p) => p.id === x)?.full_name ?? "" : "");
 
@@ -94,16 +99,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ i
           <thead>
             <tr>
               <th>#</th><th>SKU</th><th>{t("Product", "Producto")}</th><th>{t("Size", "Medida")}</th>
-              <th className="num">{t("System", "Sistema")}</th><th className="num">{t("Counted", "Contado")}</th><th className="num">{t("Diff", "Dif")}</th><th className="num">{t("$ diff", "Dif $")}</th>
+              <th className="num">{t("System", "Sistema")}</th><th className="num">{t("Counted", "Contado")}</th><th className="num">{t("Pending", "Pendiente")}</th><th className="num">{t("Diff (after pending)", "Dif (tras pendientes)")}</th><th className="num">{t("$ diff", "Dif $")}</th>
               <th>{t("Counted by", "Contó")}</th>
             </tr>
           </thead>
           <tbody>
-            {filas.length === 0 && <tr><td colSpan={9} className="hoja-vacia">{t("No count to print.", "No hay conteo que imprimir.")}</td></tr>}
+            {filas.length === 0 && <tr><td colSpan={10} className="hoja-vacia">{t("No count to print.", "No hay conteo que imprimir.")}</td></tr>}
             {filas.map((f, n) => (
               <tr key={f.sku + n} data-hoja-linea={f.sku}>
                 <td>{n + 1}</td><td className="hoja-folio">{f.sku}</td><td>{f.nombre}</td><td>{f.medida}</td>
-                <td className="num">{f.sistema}</td><td className="num">{f.contado}</td><td className="num">{f.diferencia}</td><td className="num">{f.valor == null ? "—" : fmtMoney(f.valor)}</td>
+                <td className="num">{f.sistema}</td><td className="num">{f.contado}</td><td className="num">{f.pendiente}</td><td className="num">{f.diferencia}</td><td className="num">{f.valor == null ? "—" : fmtMoney(f.valor)}</td>
                 <td>{f.conto}</td>
               </tr>
             ))}
@@ -111,7 +116,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ i
           {filas.length > 0 && (
             <tfoot><tr>
               <td colSpan={4} className="num">{t("Accuracy", "Exactitud")} {resumen.exactitudPct === null ? "—" : `${resumen.exactitudPct}%`} · {resumen.exactas} {t("exact", "exactas")} / {resumen.conDiferencia} {t("with difference", "con diferencia")}</td>
-              <td colSpan={3} className="num">{t("Variance (abs)", "Variación (abs)")}</td><td className="num" data-hoja-total>{fmtMoney(resumen.valorAbsoluto)}</td><td />
+              <td colSpan={4} className="num">{t("Variance (abs)", "Variación (abs)")}</td><td className="num" data-hoja-total>{fmtMoney(resumen.faltanValor + resumen.sobranValor)}</td><td />
             </tr></tfoot>
           )}
         </table>

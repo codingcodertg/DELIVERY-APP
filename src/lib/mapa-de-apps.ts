@@ -111,7 +111,7 @@ export const CASILLAS: Casilla[] = [
   { key: "users", panel: "employees", fila: 1, columna: 1, emoji: "🛡", label_en: "Users", label_es: "Usuarios", existe: true, destino: { tipo: "herramienta", claves: ["users"] } },
   { key: "hr", panel: "employees", fila: 1, columna: 2, emoji: "🧑‍💼", label_en: "HR Mgmt", label_es: "Gestión de RR. HH.", existe: true, destino: { tipo: "modulo", clave: "recruiting" } },
   { key: "time-tracker", panel: "employees", fila: 1, columna: 3, emoji: "⏱️", label_en: "Time Tracker", label_es: "Control de Horas", existe: true, destino: { tipo: "modulo", clave: "timetracker" } },
-  { key: "surveys", panel: "employees", fila: 1, columna: 4, emoji: "📋", label_en: "Surveys", label_es: "Encuestas", existe: true, destino: { tipo: "modulo", clave: "surveys" } },
+  { key: "surveys", panel: "employees", fila: 1, columna: 4, emoji: "📋", label_en: "QR Codes", label_es: "QR Codes", existe: true, destino: { tipo: "modulo", clave: "surveys" } },
   { key: "help-requests", panel: "employees", fila: 1, columna: 5, emoji: "🆘", label_en: "Help Requests", label_es: "Solicitudes de ayuda", existe: true, destino: { tipo: "herramienta", claves: ["help-requests", "my-help"] } },
   { key: "tutorials", panel: "employees", fila: 1, columna: 6, emoji: "🎬", label_en: "Tutorials", label_es: "Tutoriales", existe: true, destino: { tipo: "herramienta", claves: ["tutorials"] } },
   { key: "phone-book", panel: "employees", fila: 1, columna: 7, emoji: "📇", label_en: "Company Phone Book", label_es: "Directorio de la compañía", existe: true, destino: { tipo: "herramienta", claves: ["directory"] } },

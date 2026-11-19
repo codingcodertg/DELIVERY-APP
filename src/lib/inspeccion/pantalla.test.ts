@@ -62,7 +62,7 @@ describe("la pestaña", () => {
   const barra = (role: UserRole, permissions: string[] = []) => pestanasEnOrden(TABS.filter((tb) => canOpenTab(tb.id, { role, permissions })), role).map((tb) => tb.id);
 
   it("la tienen el chofer (detrás de «Mi ruta») y el admin; logística ya no (D-521)", () => {
-    expect(barra("driver")).toEqual(["myroute", "inspection", "driver"]); // D-523: «Mi ruta» primero, «Órdenes» al final
+    expect(barra("driver")).toEqual(["myroute", "inspection", "driver", "paradas"]); // D-523: «Mi ruta» primero, «Órdenes» al final; 2026-11-19: «Paradas» detrás
     expect(barra("logistics")).not.toContain("inspection");
     expect(barra("admin")).toContain("inspection");
     expect(TABS.find((tb) => tb.id === "inspection")).toMatchObject({ href: "/inspection", label_es: "✅ Inspección pre-viaje", label: "✅ Pre-trip inspection" });

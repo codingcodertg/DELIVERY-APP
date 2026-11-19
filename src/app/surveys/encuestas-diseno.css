@@ -155,3 +155,15 @@
   .encuestas-app .enc-tabla td:last-child .btn-sm { min-height: 44px; padding: 8px 14px; font-size: 13px; flex: 1 1 140px; }
   .encuestas-app [data-tabla="encuestas-todas"] td:last-child { margin-top: 0; }
 }
+
+/* Tarjetas de presentación (admin): el hueco de la foto y la portada antes de subir una. */
+.tarjetas-admin .foto-hueco { background: var(--soft) center/cover; border: 1px dashed var(--line); }
+/* QR Codes: el selector de tipos (una tarjeta grande por tipo) y el «← QR Codes» para volver. */
+.qr-selector { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; max-width: 960px; margin: 8px auto 0; }
+.qr-tile { display: flex; flex-direction: column; gap: 6px; padding: 28px; border-radius: 18px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); text-decoration: none; min-height: 220px; }
+.qr-tile:hover, .qr-tile:focus-visible { border-color: var(--ink); }
+.qr-tile-emoji { font-size: 44px; line-height: 1; }
+.qr-tile-titulo { font-size: 24px; font-weight: 800; margin-top: 6px; }
+.qr-tile-desc { font-size: 15px; color: var(--gray); }
+.qr-tile-cuenta { margin-top: auto; padding-top: 10px; font-size: 14px; font-weight: 700; color: var(--ink); }
+.qr-volver { margin: 0 0 12px; }

@@ -124,6 +124,9 @@ export const TABS: { id: string; label: string; label_es: string; href: string; 
   // warehouse and the Driver tab. Reachable by anyone else only via an
   // explicit extra "deliver" grant (UserDialog), same as Driver itself.
   { id: "myroute",   label: "🧭 My route",  label_es: "🧭 Mi ruta",    href: "/my-route", roles: ["driver"], cap: "deliver" },
+  // «Paradas» (2026-11-19): la tercera pestaña del chofer, con «Mi ruta» y «Órdenes». Es la bitácora de su día: su turno,
+  // sus paradas, sus recibos y los totales. Solo el chofer, sin `cap`: un permiso suelto no le abre la bitácora a otro rol.
+  { id: "paradas",   label: "⏸ Stops",      label_es: "⏸ Paradas",     href: "/stops", roles: ["driver"] },
   // «Inspección pre-viaje» (D-518). El dueño, 2026-10-11: «AGREGA UN NUEVO VIEW QUE SE LLAMARA PRE TRIP INSPECTION
   // CHECKLIST…». El chofer llena la suya; logística y el admin ven las del día de todos (`revisaLasDelEquipo`). Con
   // `deliver` también se abre: quien reparte con ese permiso suelto maneja un camión igual.
@@ -477,10 +480,10 @@ export const MODULES: ModuleInfo[] = [
     key: "surveys",
     href: "/surveys",
     emoji: "📋",
-    label_en: "Surveys",
-    label_es: "Encuestas",
-    desc_en: "Customer survey results",
-    desc_es: "Resultados de la encuesta de clientes",
+    label_en: "QR Codes",
+    label_es: "QR Codes",
+    desc_en: "Customer survey results and business cards",
+    desc_es: "Resultados de la encuesta de clientes y tarjetas de presentación",
   },
   {
     // Leads (migración 162): el banco de leads de permisos de obra (TDLR) repartido por tienda, y el pool personal
@@ -1227,7 +1230,7 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     },
   },
   {
-    key: "surveys", label_en: "Surveys", label_es: "Encuestas",
+    key: "surveys", label_en: "QR Codes", label_es: "QR Codes",
     alwaysOn: false,
     // Sin escalafón propio: quien tiene la casilla lo ve todo (respuestas y datos de contacto) y marca
     // «contactado»; el admin entra siempre (`has_surveys_access()`, migración 155). De partida es solo de admins.

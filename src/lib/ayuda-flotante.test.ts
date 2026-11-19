@@ -82,7 +82,7 @@ describe("dónde sale la burbuja", () => {
     });
     expect(urls.length).toBeGreaterThan(80);
     const sinBurbuja = urls.filter((u) => !ayudaEnLaRuta(u)).sort();
-    expect(sinBurbuja).toEqual(["/change-password", "/login", "/no-access", "/reset-password", "/track/x", "/unsubscribe/x"]);
+    expect(sinBurbuja).toEqual(["/change-password", "/login", "/no-access", "/reset-password", "/tarjeta/editar", "/tarjeta/no-encontrada", "/tarjeta/x", "/track/x", "/unsubscribe/x"]);
     // Y cada ruta de la lista lleva su porqué.
     for (const r of RUTAS_SIN_AYUDA) expect(r.porque.length, r.ruta).toBeGreaterThan(10);
   });

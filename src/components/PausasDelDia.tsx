@@ -45,11 +45,11 @@ export function PausasDelDia({ driverId, fecha, clock }: { driverId: string; fec
             { key: "tiempo", en: "Time", es: "Tiempo", ancho: 100, numerico: true, valor: (p) => minutosDePausa(p), celda: (p) => fmtMin(minutosDePausa(p)) },
             { key: "nota", en: "Note", es: "Nota", ancho: 200, envuelve: true, valor: (p) => p.nota },
             { key: "donde", en: "Where", es: "Dónde", ancho: 110, valor: (p) => (p.lat != null && p.lng != null ? 1 : null), celda: (p) => (p.lat != null && p.lng != null ? <a href={mapLink(p.lat, p.lng)} target="_blank" rel="noopener noreferrer">📍 {t("Map", "Mapa")}</a> : "—") },
-            { key: "recibo", en: "Receipt", es: "Recibo", ancho: 200, valor: (p) => p.recibo_monto ?? null, celda: (p) => (
+            { key: "recibo", en: "Photo & amount", es: "Foto y monto", ancho: 200, valor: (p) => p.recibo_monto ?? null, celda: (p) => (
               <span data-recibo>
                 {p.recibo_foto ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.recibo_foto} alt={t("Gas receipt", "Recibo de gasolina")} loading="lazy" decoding="async" onClick={() => setViendo(p.recibo_foto)}
+                  <img src={p.recibo_foto} alt={t("Receipt or photo", "Recibo o foto")} loading="lazy" decoding="async" onClick={() => setViendo(p.recibo_foto)}
                     style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 6, cursor: "pointer", verticalAlign: "middle" }} />
                 ) : p.sin_recibo ? <span className="hint" style={{ margin: 0 }}>{t("No receipt (driver said)", "Sin recibo (lo dijo el chofer)")}</span> : null}
                 {p.recibo_monto != null && <span style={{ marginLeft: 6 }}>${Number(p.recibo_monto).toFixed(2)}</span>}

@@ -26,9 +26,20 @@ export function vaEnElMenuDelNombre(id: string): boolean {
   return (PESTANAS_DEL_MENU_DEL_NOMBRE as readonly string[]).includes(id);
 }
 
-/** Las pestañas visibles menos las que van en el menú del nombre, en el mismo orden. No muta la entrada. */
-export function pestanasDeLaFila<T extends { id: string }>(visibles: readonly T[]): T[] {
-  return visibles.filter((tb) => !vaEnElMenuDelNombre(tb.id));
+/**
+ * Las tres pestañas de la fila del chofer (2026-11-19): «Mi ruta», «Órdenes» y «Paradas», y nada más. Lo demás que le
+ * concedan (un permiso suelto que abre otra pestaña) no sale en la fila; sigue valiendo para la pantalla (`canOpenTab`).
+ */
+export const PESTANAS_DE_LA_FILA_DEL_CHOFER = ["myroute", "driver", "paradas"] as const;
+
+/**
+ * Las pestañas visibles menos las que van en el menú del nombre, en el mismo orden. No muta la entrada.
+ * Con `rol` chofer, además solo las de `PESTANAS_DE_LA_FILA_DEL_CHOFER`.
+ */
+export function pestanasDeLaFila<T extends { id: string }>(visibles: readonly T[], rol?: string | null): T[] {
+  const enFila = visibles.filter((tb) => !vaEnElMenuDelNombre(tb.id));
+  if (rol !== "driver") return enFila;
+  return enFila.filter((tb) => (PESTANAS_DE_LA_FILA_DEL_CHOFER as readonly string[]).includes(tb.id));
 }
 
 /**
