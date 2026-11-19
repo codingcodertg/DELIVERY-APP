@@ -76,9 +76,11 @@ describe("al seguir: la gasolina pide recibo", () => {
     expect(cierreDePausa("gas", { ...vacio, sinRecibo: true, monto: "mucho" })).toEqual({ falta: "monto" });
     expect(cierreDePausa("gas", { ...vacio, sinRecibo: true, galones: "-3" })).toEqual({ falta: "galones" });
   });
-  it("las demás se cierran sin preguntar, y no guardan recibo aunque se escribiera", () => {
-    expect(cierreDePausa("restroom", { foto: "data:image/jpeg;base64,AA", monto: "3", galones: "1", sinRecibo: true }))
+  it("las demás no piden nada, y la foto y el monto valen para cualquier motivo (2026-11-19); los galones y «no tengo» no", () => {
+    expect(cierreDePausa("restroom", { foto: null, monto: "", galones: "", sinRecibo: false }))
       .toEqual({ recibo_foto: null, recibo_monto: null, recibo_galones: null, sin_recibo: false });
+    expect(cierreDePausa("other", { foto: "data:image/jpeg;base64,AA", monto: "$80", galones: "1", sinRecibo: true }))
+      .toEqual({ recibo_foto: "data:image/jpeg;base64,AA", recibo_monto: 80, recibo_galones: null, sin_recibo: false });
   });
   it("números opcionales: vacío es nada; coma y $ se aceptan; negativo o texto, no", () => {
     expect(numeroOpcional("")).toBeNull();
@@ -138,15 +140,16 @@ describe("el botón en «Mi ruta»", async () => {
   });
   it("el cableado: «Seguir» en la gasolina abre el recibo, en lo demás cierra; los dos cuadros confirman con la regla", () => {
     const c = leer("src/components/PausaDelChofer.tsx");
-    expect(c).toContain("onClick={() => (pideRecibo(abierta.motivo) ? setCerrando(true) : void alSeguir(abierta, { foto: null, monto: \"\", galones: \"\", sinRecibo: false }))}");
+    expect(c).toContain("onClick={() => (pideRecibo(abierta.motivo) ? setCerrando(true) : void alSeguir(abierta, VACIO))}");
     expect(c).toContain("const inicio = inicioDePausa(motivo, texto);");
     expect(c).toContain("disabled={!inicio || ocupado}");
-    expect(c).toContain('const cierre = cierreDePausa("gas", entrada);');
+    expect(c).toContain("const cierre = cierreDePausa(p.motivo, entrada);");
     expect(c).toContain("disabled={!!falta || ocupado}");
     // La foto con el mismo componente que las fotos de una entrega (cámara del teléfono o archivo, comprimida).
     expect(c).toContain("<PhotoUpload photos={fotos}");
     // Sin la tabla (la 167 sin aplicar) se dice, y la pantalla sigue.
-    expect(c).toContain("const avisoDeFallo = (r: Extract<ResultadoDePausa, { ok: false }>) => r.sinTabla");
+    expect(c).toContain("export function avisoDeFalloDePausa(r: Extract<ResultadoDePausa, { ok: false }>, t: Traductor, lang: \"en\" | \"es\", deFoto = false): string {");
+    expect(c).toContain("if (r.sinTabla) return t(");
     // La ubicación, como «Recogido»: sin esperar, y la tardía después.
     expect(c).toContain("const { immediate, eventual } = captureLocationSplit();");
     expect(c).toContain("if (!gps) void eventual.then((tarde) => { if (tarde) void ubicarTarde(r.pausa.id, tarde); });");

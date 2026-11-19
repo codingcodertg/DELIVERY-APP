@@ -22,7 +22,7 @@ const ROLES = Object.keys(ROLE_INFO) as UserRole[];
 const soloEntregas = ["deliveries"];
 /** Lo que hace la barra: filtra con `canOpenTab`, ordena con `pestanasEnOrden` y quita lo del menú del nombre. */
 const filaDe = (role: UserRole, permissions: string[] = []) =>
-  pestanasDeLaFila(pestanasEnOrden(TABS.filter((tb) => canOpenTab(tb.id, { role, permissions })), role)).map((tb) => tb.id);
+  pestanasDeLaFila(pestanasEnOrden(TABS.filter((tb) => canOpenTab(tb.id, { role, permissions })), role), role).map((tb) => tb.id);
 const menuDe = (role: UserRole, permissions: string[] = []) =>
   opcionesDelMenuDeCuenta({ realRole: role, me: { role, module_access: soloEntregas, permissions } });
 
@@ -34,8 +34,10 @@ describe("la inspección pre-viaje, del renglón de pestañas al menú del nombr
     expect(vaEnElMenuDelNombre("driver")).toBe(false);
   });
 
-  it("el chofer: en la fila, Mi ruta y Órdenes; la inspección, la primera del menú, encima de «Modo enseñanza»", () => {
-    expect(filaDe("driver")).toEqual(["myroute", "driver"]);
+  it("el chofer: en la fila, Mi ruta, Órdenes y Paradas (2026-11-19); la inspección, la primera del menú, encima de «Modo enseñanza»", () => {
+    expect(filaDe("driver")).toEqual(["myroute", "driver", "paradas"]);
+    // Lo que se le conceda de más (un permiso suelto) no sale en su fila.
+    expect(filaDe("driver", ["fulfill", "route_plan"])).toEqual(["myroute", "driver", "paradas"]);
     const menu = menuDe("driver");
     expect(menu.indexOf("inspeccion")).toBe(0);
     // D-623 (2026-10-21): el chofer ya no tiene «Modo enseñanza» (solo el admin real).
@@ -96,7 +98,7 @@ describe("la barra y la página usan cada pieza", () => {
 
   it("TopBar reparte la fila sin lo del menú del nombre, y pinta la inspección como opción del menú", () => {
     expect(barra).toContain('import { pestanasDeLaFila } from "@/lib/barra-de-entregas";');
-    expect(barra).toContain("const deLaFila = pestanasDeLaFila(visibleTabs);");
+    expect(barra).toContain("const deLaFila = pestanasDeLaFila(visibleTabs, me.role);");
     expect(barra).toContain("{mainTabs.map((tb) => (");
     const caso = barra.slice(barra.indexOf('case "inspeccion":'), barra.indexOf('case "ensenanza":'));
     expect(caso.length).toBeGreaterThan(20);

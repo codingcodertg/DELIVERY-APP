@@ -6,8 +6,8 @@ import { centralWallToUtc } from "@/lib/clockin/tz";
 import { shiftDateISO } from "@/lib/utils";
 import { faltaLaTabla } from "@/lib/encuesta";
 import {
-  esParadaVieja, guardaPausasLocales, horaDeCierreDe, horaDeCierreDeVieja, leePausasLocales, pausaAbierta,
-  type CierreDePausa, type MotivoDePausa, type PausaDelChofer,
+  cierreSinRecibo, esParadaVieja, esRechazoDeFoto, guardaPausasLocales, horaDeCierreDe, horaDeCierreDeVieja, leePausasLocales,
+  pausaAbierta, type CierreDePausa, type MotivoDePausa, type PausaDelChofer,
 } from "@/lib/pausas-del-chofer";
 
 /**
@@ -31,7 +31,9 @@ const SIN_BASE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 export const TABLA_DE_PAUSAS = "pausas_del_chofer";
 
 export type EstadoDePausas = "cargando" | "lista" | "sin-tabla" | "error";
-export type ResultadoDePausa = { ok: true; pausa: PausaDelChofer } | { ok: false; sinTabla: boolean; yaAbierta?: boolean; error: unknown };
+/** `fotoNoGuardada`: la base no quiso la foto (o el monto) de una parada que no es de gasolina, antes de la 332. La parada
+ *  se cerró igual, sin ellos. */
+export type ResultadoDePausa = { ok: true; pausa: PausaDelChofer; fotoNoGuardada?: boolean } | { ok: false; sinTabla: boolean; yaAbierta?: boolean; error: unknown };
 export interface Ubicacion { lat: number; lng: number; accuracy?: number | null }
 export type ReciboDePausa = { recibo_foto: string; recibo_monto: number | null; recibo_galones: number | null };
 
@@ -147,8 +149,17 @@ export function usePausasDelChofer(driverId: string | null | undefined, dia: str
   }, [driverId, local, pon, actualiza]);
 
   /** «▶ Seguir»: la hora de cierre es la regla de `horaDeCierreDe` (ahora, o la de una parada vieja). */
-  const seguir = useCallback((p: PausaDelChofer, cierre: CierreDePausa): Promise<ResultadoDePausa> =>
-    actualiza(p, { termino_at: horaDeCierreDe(p), ...cierre }), [actualiza]);
+  // 2026-11-19: una parada que no es de gasolina puede traer foto y monto (lo pide la 332). Si la base todavía no tiene esa
+  // migración lo rechaza: la parada se cierra IGUAL, sin la foto ni el monto, y el resultado lo dice (`fotoNoGuardada`).
+  // Nunca se pierde la parada por el recibo.
+  const seguir = useCallback(async (p: PausaDelChofer, cierre: CierreDePausa): Promise<ResultadoDePausa> => {
+    const termino_at = horaDeCierreDe(p);
+    const r = await actualiza(p, { termino_at, ...cierre });
+    const traiaRecibo = !!cierre.recibo_foto || cierre.recibo_monto != null;
+    if (r.ok || p.motivo === "gas" || !traiaRecibo || !esRechazoDeFoto(r.error)) return r;
+    const cerrada = await actualiza(p, { termino_at, ...cierreSinRecibo() });
+    return cerrada.ok ? { ...cerrada, fotoNoGuardada: true } : cerrada;
+  }, [actualiza]);
 
   /** El recibo que llega después (2026-11-13): solo fotos y cifras de una parada de gasolina; nunca fechas ni lugar. */
   const recibir = useCallback((p: PausaDelChofer, recibo: ReciboDePausa): Promise<ResultadoDePausa> =>

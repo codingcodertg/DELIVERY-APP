@@ -53,7 +53,7 @@ describe("almacén: Órdenes antes que Ruta de hoy", () => {
     }
     // El admin sigue con el orden de TABS (todo menos «Mi ruta», que es solo del chofer, y desde D-494 «Ruta de hoy»,
     // porque tiene el Gestor).
-    expect(barraDe("admin").map((tb) => tb.id)).toEqual(TABS.filter((tb) => tb.id !== "myroute" && tb.id !== "map").map((tb) => tb.id));
+    expect(barraDe("admin").map((tb) => tb.id)).toEqual(TABS.filter((tb) => tb.id !== "myroute" && tb.id !== "map" && tb.id !== "paradas").map((tb) => tb.id));
   });
 
   it("no devuelve el mismo arreglo ni lo muta", () => {
@@ -69,17 +69,17 @@ describe("chofer: «Mi ruta» primero y «Órdenes» al final (D-523)", () => {
   // Nota D-545: esto es el ORDEN de sus pestañas (`pestanasEnOrden`), y sigue así. En la fila que se pinta ya no está la
   // inspección: la barra la quita después (`pestanasDeLaFila`) y la pone en el menú del nombre. La fila pintada del
   // chofer —Mi ruta, Órdenes— la fija `barra-de-entregas.test.ts`.
-  it("su barra es Mi ruta, Inspección, Órdenes", () => {
-    expect(barraDe("driver").map((tb) => tb.id)).toEqual(["myroute", "inspection", "driver"]);
+  it("su barra es Mi ruta, Inspección, Órdenes y Paradas (2026-11-19: la fila recorta a las tres)", () => {
+    expect(barraDe("driver").map((tb) => tb.id)).toEqual(["myroute", "inspection", "driver", "paradas"]);
   });
 
   it("sin reordenar, TABS pondría su «Órdenes» primero: por eso el chofer entra en pestanasEnOrden", () => {
-    expect(TABS.filter((tb) => canOpenTab(tb.id, { role: "driver", permissions: [] })).map((tb) => tb.id)).toEqual(["driver", "myroute", "inspection"]);
+    expect(TABS.filter((tb) => canOpenTab(tb.id, { role: "driver", permissions: [] })).map((tb) => tb.id)).toEqual(["driver", "myroute", "paradas", "inspection"]);
   });
 
   it("lo que le concedan de más queda en medio, en el orden de TABS", () => {
     const con = pestanasEnOrden(TABS.filter((tb) => canOpenTab(tb.id, { role: "driver", permissions: ["fulfill", "route_plan"] })), "driver");
-    expect(con.map((tb) => tb.id)).toEqual(["myroute", "warehouse", "inspection", "routes", "driver"]);
+    expect(con.map((tb) => tb.id)).toEqual(["myroute", "warehouse", "inspection", "routes", "driver", "paradas"]);
   });
 
   it("y es su pantalla de inicio: al entrar y desde «Ver como»", () => {

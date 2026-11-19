@@ -48,7 +48,7 @@ describe("PhotoUpload con `galeria`: cámara y galería, dos botones", () => {
 describe("«▶ Seguir» trae la foto que tomó al registrar la parada", () => {
   it("con foto ya tomada: sale puesta, sin «No tengo recibo», y «Seguir» encendido", async () => {
     const { DialogoDeRecibo } = await import("@/components/PausaDelChofer");
-    const html = renderToStaticMarkup(createElement(DialogoDeRecibo, { t, ocupado: false, error: null, fotoYaTomada: FOTO, onCancelar: () => {}, onConfirmar: () => {} }));
+    const html = renderToStaticMarkup(createElement(DialogoDeRecibo, { t, lang: "en", motivo: "gas", ocupado: false, error: null, fotoYaTomada: FOTO, onCancelar: () => {}, onConfirmar: () => {} }));
     expect(html).toContain(`src="${FOTO}"`);
     expect(html).not.toContain("data-sin-recibo");
     expect(html).toMatch(/<button data-confirmar-recibo="true"[^>]*>/);
@@ -57,7 +57,7 @@ describe("«▶ Seguir» trae la foto que tomó al registrar la parada", () => {
 
   it("sin foto: cámara y galería, «No tengo recibo», y «Seguir» apagado", async () => {
     const { DialogoDeRecibo } = await import("@/components/PausaDelChofer");
-    const html = renderToStaticMarkup(createElement(DialogoDeRecibo, { t, ocupado: false, error: null, fotoYaTomada: null, onCancelar: () => {}, onConfirmar: () => {} }));
+    const html = renderToStaticMarkup(createElement(DialogoDeRecibo, { t, lang: "en", motivo: "gas", ocupado: false, error: null, fotoYaTomada: null, onCancelar: () => {}, onConfirmar: () => {} }));
     expect(html).toContain("data-foto-camara");
     expect(html).toContain("data-foto-galeria");
     expect(html).toContain("data-sin-recibo");

@@ -9,28 +9,41 @@ import { PhotoUpload } from "@/components/PhotoUpload";
 import { mensajeDeError } from "@/lib/mensaje-de-error";
 import { usePausasDelChofer, type ResultadoDePausa } from "@/lib/usePausasDelChofer";
 import {
-  MOTIVOS_PARA_ELEGIR, cierreDePausa, esParadaVieja, horaDeCierreDeVieja, inicioDePausa, minutosDePausa, nombreDelMotivo,
-  pideRecibo, recibosPendientes, reciboTardio, textoDePausaAbierta,
+  MOTIVOS_PARA_ELEGIR, cierreDePausa, esParadaVieja, esRechazoDeFoto, horaDeCierreDeVieja, inicioDePausa, minutosDePausa,
+  nombreDelMotivo, pideRecibo, recibosPendientes, reciboTardio, textoDePausaAbierta,
   type MotivoDePausa, type PausaDelChofer as Pausa,
 } from "@/lib/pausas-del-chofer";
 
 // ============================================================
-// «⏸ Registrar parada» en «Mi ruta» (D-520): el botón, el cuadro con el motivo, y —mientras está parado— «⏸ En parada:
-// ⛽ Gasolina · 10:42» con «✔ Finish stop». Qué se guarda y cuándo se puede seguir lo decide `lib/pausas-del-chofer.ts`;
-// aquí se pinta y se escribe.
+// «⏸ Registrar parada» en «Mi ruta» (D-520) y en «Paradas» (la tercera pestaña del chofer, 2026-11-19): el botón, el cuadro
+// con el motivo, y —mientras está parado— «⏸ En parada: ⛽ Gasolina · 10:42» con «✔ Terminar parada». Qué se guarda y
+// cuándo se puede seguir lo decide `lib/pausas-del-chofer.ts`; aquí se pinta y se escribe.
 //
-// El recibo de la gasolina se pide al pulsar «Finish stop», no al registrar la parada (D-523 deja la foto opcional al
-// empezar). Cambio del 2026-11-13: el recibo ya NO es obligatorio para cerrar. Lo que falta sale en «🧾 Recibos pendientes»,
-// del día que se mira (hoy o ayer), y se sube con «📷 Añadir recibo» sin tocar la hora ni el lugar de la parada.
+// Dos piezas: `PausaDelChofer` (la de siempre: crea su propio estado) y `PausaDelChoferVista`, que pinta el MISMO estado que
+// le pasen. «Paradas» la usa con el estado que ya tiene para su línea de tiempo, así empezar o terminar una parada se ve en
+// las dos a la vez.
 //
-// Cambio del 2026-11-13: la parada abierta se busca sin importar el día. Si es vieja, se enseña con su hora de cierre y se
-// cierra a esa hora (nunca a «ahora»).
+// El recibo de la gasolina se pide al pulsar «Terminar parada», no al registrar la parada (D-523 deja la foto opcional al
+// empezar). Cambio del 2026-11-13: el recibo ya NO es obligatorio para cerrar. Lo que falta sale en «🧾 Recibos pendientes».
+// Cambio del 2026-11-19: la foto y el monto valen para CUALQUIER motivo, y se pueden añadir después desde «Paradas».
 // ============================================================
 
 const BOTON: React.CSSProperties = { flex: "1 1 0", minHeight: 44, justifyContent: "center", fontSize: 15, minWidth: 0 };
 const hora = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-const fechaYHora = (iso: string) => `${new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" })} ${hora(iso)}`;
+export const fechaYHora = (iso: string) => `${new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" })} ${hora(iso)}`;
 const fmtMin = (m: number) => (m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`);
+const VACIO = { foto: null, monto: "", galones: "", sinRecibo: false };
+
+type Store = ReturnType<typeof usePausasDelChofer>;
+export type Traductor = (en: string, es: string) => string;
+
+/** El aviso de un fallo al escribir, en palabras de la app. `deFoto`: el fallo viene de subir la foto o el monto. */
+export function avisoDeFalloDePausa(r: Extract<ResultadoDePausa, { ok: false }>, t: Traductor, lang: "en" | "es", deFoto = false): string {
+  if (r.sinTabla) return t("Couldn't save it: stops can't be logged yet (the database is missing an update). Tell logistics.", "No se pudo guardar: aún no se pueden registrar paradas (a la base le falta una actualización). Avísale a logística.");
+  if (r.yaAbierta) return t("You already have a stop open: finish it before logging another.", "Ya tienes una parada abierta: termínala antes de registrar otra.");
+  if (deFoto && esRechazoDeFoto(r.error)) return t("The photo couldn't be saved yet: the database needs an update. Nothing else was lost.", "La foto aún no se pudo guardar: a la base le falta una actualización. Lo demás sí quedó guardado.");
+  return mensajeDeError(r.error, lang);
+}
 
 export function PausaDelChofer({ driverId, soloLectura = false, dia = todayISO() }: {
   /** De quién son las paradas: el chofer en su teléfono, o el elegido en la pestaña «Chofer» del admin (D-502). */
@@ -40,10 +53,23 @@ export function PausaDelChofer({ driverId, soloLectura = false, dia = todayISO()
   /** El día que se mira en «Mi ruta» (hoy o ayer). Solo hoy se puede registrar una parada: nunca de atrás. */
   dia?: string;
 }) {
-  const { teaching, notify } = useData();
+  const { teaching } = useData();
+  const store = usePausasDelChofer(driverId, dia, { practica: teaching });
+  return <PausaDelChoferVista store={store} soloLectura={soloLectura} dia={dia} />;
+}
+
+/** Lo que pinta la parada con el estado que le pasen (`usePausasDelChofer`). */
+export function PausaDelChoferVista({ store, soloLectura = false, dia = todayISO(), mostrarPendientes = true }: {
+  store: Store;
+  soloLectura?: boolean;
+  dia?: string;
+  /** «🧾 Recibos pendientes» debajo. «Paradas» lo pone en su propia línea de tiempo, así que lo apaga ahí. */
+  mostrarPendientes?: boolean;
+}) {
+  const { notify } = useData();
   const { t, lang } = usePrefs();
   const es = lang === "es";
-  const { pausas, abierta, empezar, seguir, recibir, ubicarTarde } = usePausasDelChofer(driverId, dia, { practica: teaching });
+  const { pausas, abierta, empezar, seguir, recibir, ubicarTarde } = store;
   const hoy = dia === todayISO();
   const pendientes = recibosPendientes(pausas);
   const [registrando, setRegistrando] = useState(false);
@@ -51,14 +77,6 @@ export function PausaDelChofer({ driverId, soloLectura = false, dia = todayISO()
   const [anadiendo, setAnadiendo] = useState<Pausa | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  /** Lo que se le dice al chofer si no se pudo guardar: la tabla sin crear (la 167 sin aplicar), o el error ya en palabras
-   *  de la app (`mensajeDeError`: nunca el texto crudo de la base). */
-  const avisoDeFallo = (r: Extract<ResultadoDePausa, { ok: false }>) => r.sinTabla
-    ? t("Couldn't save it: stops can't be logged yet (the database is missing an update). Tell logistics.", "No se pudo guardar: aún no se pueden registrar paradas (a la base le falta una actualización). Avísale a logística.")
-    : r.yaAbierta
-      ? t("You already have a stop open: finish it before logging another.", "Ya tienes una parada abierta: termínala antes de registrar otra.")
-      : mensajeDeError(r.error, lang);
 
   const alEmpezar = async (motivo: MotivoDePausa, nota: string | null, foto: string | null) => {
     if (soloLectura || ocupado) return;
@@ -69,7 +87,7 @@ export function PausaDelChofer({ driverId, soloLectura = false, dia = todayISO()
     const gps = await immediate;
     const r = await empezar({ motivo, nota, recibo_foto: pideRecibo(motivo) ? foto : null }, gps);
     setOcupado(false);
-    if (!r.ok) { const m = avisoDeFallo(r); setError(m); notify(m); return; }
+    if (!r.ok) { const m = avisoDeFalloDePausa(r, t, lang); setError(m); notify(m); return; }
     setRegistrando(false);
     notify(textoDePausaAbierta(r.pausa, lang, hora));
     if (!gps) void eventual.then((tarde) => { if (tarde) void ubicarTarde(r.pausa.id, tarde); });
@@ -83,25 +101,27 @@ export function PausaDelChofer({ driverId, soloLectura = false, dia = todayISO()
     setError(null);
     const r = await seguir(p, cierre);
     setOcupado(false);
-    if (!r.ok) { const m = avisoDeFallo(r); setError(m); notify(m); return; }
+    if (!r.ok) { const m = avisoDeFalloDePausa(r, t, lang, true); setError(m); notify(m); return; }
     setCerrando(false);
-    notify(t("Stop finished", "Parada terminada"));
+    notify(r.fotoNoGuardada
+      ? t("Stop finished. The photo couldn't be saved yet (the database needs an update), so the stop was closed without it.", "Parada terminada. La foto aún no se pudo guardar (a la base le falta una actualización), así que se cerró sin ella.")
+      : t("Stop finished", "Parada terminada"));
   };
 
   const alAnadirRecibo = async (p: Pausa, entrada: { foto: string | null; monto: string; galones: string }) => {
     if (soloLectura || ocupado) return;
-    const recibo = reciboTardio(entrada);
+    const recibo = reciboTardio(entrada, p.motivo);
     if ("falta" in recibo) return;
     setOcupado(true);
     setError(null);
     const r = await recibir(p, recibo);
     setOcupado(false);
-    if (!r.ok) { const m = avisoDeFallo(r); setError(m); notify(m); return; }
+    if (!r.ok) { const m = avisoDeFalloDePausa(r, t, lang, true); setError(m); notify(m); return; }
     setAnadiendo(null);
-    notify(t("Receipt saved", "Recibo guardado"));
+    notify(t("Photo saved", "Foto guardada"));
   };
 
-  const vieja = abierta && esParadaVieja(abierta);
+  const vieja = !!abierta && esParadaVieja(abierta);
 
   return (
     <div data-pausa-del-chofer style={{ marginBottom: 8 }}>
@@ -119,10 +139,18 @@ export function PausaDelChofer({ driverId, soloLectura = false, dia = todayISO()
               </span>
             )}
           </span>
-          <button className="btn btn-green" data-seguir style={{ ...BOTON, flex: "0 0 auto", padding: "0 18px" }} disabled={soloLectura || ocupado}
-            onClick={() => (pideRecibo(abierta.motivo) ? setCerrando(true) : void alSeguir(abierta, { foto: null, monto: "", galones: "", sinRecibo: false }))}>
-            ✔ {t("Finish stop", "Terminar parada")}
-          </button>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flex: "0 0 auto" }}>
+            <button className="btn btn-green" data-seguir style={{ ...BOTON, flex: "0 0 auto", padding: "0 18px" }} disabled={soloLectura || ocupado}
+              onClick={() => (pideRecibo(abierta.motivo) ? setCerrando(true) : void alSeguir(abierta, VACIO))}>
+              ✔ {t("Finish stop", "Terminar parada")}
+            </button>
+            {!pideRecibo(abierta.motivo) && (
+              <button className="btn btn-ghost" data-foto-al-terminar style={{ minHeight: 44, flex: "0 0 auto" }} disabled={soloLectura || ocupado}
+                onClick={() => { setError(null); setCerrando(true); }}>
+                📷 {t("Photo & amount", "Foto y monto")}
+              </button>
+            )}
+          </div>
         </div>
       ) : hoy && (
         <button className="btn btn-ghost" data-registrar-parada style={{ width: "100%", minHeight: 44, justifyContent: "center" }} disabled={soloLectura}
@@ -132,7 +160,7 @@ export function PausaDelChofer({ driverId, soloLectura = false, dia = todayISO()
       )}
       {error && !registrando && !cerrando && !anadiendo && <div className="hint" data-error-de-pausa style={{ color: "var(--red)", marginTop: 4 }}>{error}</div>}
 
-      {pendientes.length > 0 && (
+      {mostrarPendientes && pendientes.length > 0 && (
         <div className="card" data-recibos-pendientes style={{ marginTop: 8 }}>
           <h2>🧾 {t("Receipts to upload", "Recibos pendientes")}<span className="count-tag">{pendientes.length}</span></h2>
           <div className="hint" style={{ marginBottom: 6 }}>
@@ -162,11 +190,11 @@ export function PausaDelChofer({ driverId, soloLectura = false, dia = todayISO()
           onCancelar={() => setRegistrando(false)} onConfirmar={(m, n, f) => void alEmpezar(m, n, f)} />
       )}
       {cerrando && abierta && (
-        <DialogoDeRecibo t={t} ocupado={ocupado} error={error} fotoYaTomada={abierta.recibo_foto}
+        <DialogoDeRecibo t={t} lang={lang} motivo={abierta.motivo} ocupado={ocupado} error={error} fotoYaTomada={abierta.recibo_foto}
           onCancelar={() => setCerrando(false)} onConfirmar={(entrada) => void alSeguir(abierta, entrada)} />
       )}
       {anadiendo && (
-        <DialogoDeReciboPendiente p={anadiendo} t={t} ocupado={ocupado} error={error}
+        <DialogoDeReciboPendiente p={anadiendo} t={t} lang={lang} ocupado={ocupado} error={error}
           onCancelar={() => setAnadiendo(null)} onConfirmar={(entrada) => void alAnadirRecibo(anadiendo, entrada)} />
       )}
     </div>
@@ -175,7 +203,7 @@ export function PausaDelChofer({ driverId, soloLectura = false, dia = todayISO()
 
 /** El motivo de un toque y una nota; «Otro» obliga a escribir qué. Confirmar queda apagado hasta entonces (`inicioDePausa`). */
 function DialogoDeParada({ es, t, ocupado, error, onCancelar, onConfirmar }: {
-  es: boolean; t: (en: string, es: string) => string; ocupado: boolean; error: string | null;
+  es: boolean; t: Traductor; ocupado: boolean; error: string | null;
   onCancelar: () => void; onConfirmar: (motivo: MotivoDePausa, nota: string | null, foto: string | null) => void;
 }) {
   const [motivo, setMotivo] = useState<MotivoDePausa | null>(null);
@@ -222,29 +250,35 @@ function DialogoDeParada({ es, t, ocupado, error, onCancelar, onConfirmar }: {
 }
 
 /**
- * Al terminar la gasolina: la foto del recibo (la cámara del teléfono, o un archivo), y si quiere, el monto y los galones.
- * Sin foto la parada se cierra igual (2026-11-13): el recibo queda pendiente, o se marca «No tengo recibo» a propósito.
+ * Al terminar una parada: la foto (la cámara del teléfono, o un archivo), y si quiere, el monto. En la gasolina, además los
+ * galones y «No tengo recibo». Nada es obligatorio: sin foto la parada se cierra igual (2026-11-13 y 2026-11-19).
  */
-export function DialogoDeRecibo({ t, ocupado, error, fotoYaTomada, onCancelar, onConfirmar }: {
-  t: (en: string, es: string) => string; ocupado: boolean; error: string | null;
+export function DialogoDeRecibo({ t, lang, motivo, ocupado, error, fotoYaTomada, onCancelar, onConfirmar }: {
+  t: Traductor; lang: "en" | "es"; motivo: MotivoDePausa; ocupado: boolean; error: string | null;
   /** La que tomó al registrar la parada (D-523): sale puesta y no se vuelve a pedir; puede cambiarla. */
   fotoYaTomada: string | null;
   onCancelar: () => void; onConfirmar: (entrada: { foto: string | null; monto: string; galones: string; sinRecibo: boolean }) => void;
 }) {
+  const gas = pideRecibo(motivo);
   const [fotos, setFotos] = useState<string[]>(fotoYaTomada ? [fotoYaTomada] : []);
   const [monto, setMonto] = useState("");
   const [galones, setGalones] = useState("");
   const [sinRecibo, setSinRecibo] = useState(false);
   const entrada = { foto: fotos[0] ?? null, monto, galones, sinRecibo };
-  const cierre = cierreDePausa("gas", entrada);
+  const cierre = cierreDePausa(motivo, entrada);
   const falta = "falta" in cierre ? cierre.falta : null;
-  const titulo = `⛽ ${t("Gas receipt", "Recibo de gasolina")}`;
-  const despues = !fotos[0] && !sinRecibo;
+  const titulo = gas ? `⛽ ${t("Gas receipt", "Recibo de gasolina")}` : `📷 ${t("Photo & amount", "Foto y monto")}`;
+  const despues = gas && !fotos[0] && !sinRecibo;
   return (
     <div className="overlay" data-dialogo-recibo onClick={(e) => { if (e.target === e.currentTarget) onCancelar(); }}>
       <div className="modal" role="dialog" aria-modal="true" aria-label={titulo} style={{ maxWidth: 440 }}>
         <h3 style={{ marginTop: 0 }}>{titulo}</h3>
-        <div className="hint" style={{ marginBottom: 8 }}>{t("Take a photo of the receipt before you continue.", "Toma una foto del recibo antes de seguir.")}</div>
+        <div className="hint" style={{ marginBottom: 8 }}>
+          {gas
+            ? t("Take a photo of the receipt before you continue.", "Toma una foto del recibo antes de seguir.")
+            : t("Optional. A photo of the receipt or of what you were charged for, and the amount paid.", "Opcional. Una foto del recibo o de lo que te cobraron, y el monto que pagaste.")}
+        </div>
+        {!gas && <div className="hint" style={{ marginBottom: 4 }}>{t("Add photo (optional)", "Añadir foto (opcional)")}</div>}
         <div data-foto-recibo>
           <PhotoUpload photos={fotos} onChange={(n) => { setFotos(n.slice(0, 1)); if (n.length) setSinRecibo(false); }} max={1} t={t} disabled={ocupado} galeria />
         </div>
@@ -253,15 +287,17 @@ export function DialogoDeRecibo({ t, ocupado, error, fotoYaTomada, onCancelar, o
             <label>{t("Amount $ (optional)", "Monto $ (opcional)")}</label>
             <input data-monto inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value)} style={{ width: "100%" }} />
           </div>
-          <div className="field" style={{ flex: 1, minWidth: 0 }}>
-            <label>{t("Gallons (optional)", "Galones (opcional)")}</label>
-            <input data-galones inputMode="decimal" value={galones} onChange={(e) => setGalones(e.target.value)} style={{ width: "100%" }} />
-          </div>
+          {gas && (
+            <div className="field" style={{ flex: 1, minWidth: 0 }}>
+              <label>{t("Gallons (optional)", "Galones (opcional)")}</label>
+              <input data-galones inputMode="decimal" value={galones} onChange={(e) => setGalones(e.target.value)} style={{ width: "100%" }} />
+            </div>
+          )}
         </div>
         {(falta === "monto" || falta === "galones") && (
           <div className="hint" style={{ color: "var(--red)" }}>{falta === "monto" ? t("The amount must be a number.", "El monto tiene que ser un número.") : t("Gallons must be a number.", "Los galones tienen que ser un número.")}</div>
         )}
-        {fotos.length === 0 && (
+        {gas && fotos.length === 0 && (
           <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, fontSize: 14, textTransform: "none", letterSpacing: 0 }}>
             <input type="checkbox" data-sin-recibo checked={sinRecibo} onChange={(e) => setSinRecibo(e.target.checked)} style={{ width: 20, height: 20 }} />
             {t("I don't have a receipt", "No tengo recibo")}
@@ -284,24 +320,26 @@ export function DialogoDeRecibo({ t, ocupado, error, fotoYaTomada, onCancelar, o
   );
 }
 
-/** «📷 Añadir recibo» de una parada ya registrada (2026-11-13): la foto con cámara o galería, y monto y galones opcionales. */
-function DialogoDeReciboPendiente({ p, t, ocupado, error, onCancelar, onConfirmar }: {
-  p: Pausa; t: (en: string, es: string) => string; ocupado: boolean; error: string | null;
+/** «📷 Añadir recibo» (o «Añadir foto») de una parada ya cerrada: la foto con cámara o galería, y monto (y galones, si es de
+ *  gasolina). La hora y el lugar no cambian. */
+export function DialogoDeReciboPendiente({ p, t, lang, ocupado, error, onCancelar, onConfirmar }: {
+  p: Pausa; t: Traductor; lang: "en" | "es"; ocupado: boolean; error: string | null;
   onCancelar: () => void; onConfirmar: (entrada: { foto: string | null; monto: string; galones: string }) => void;
 }) {
+  const gas = pideRecibo(p.motivo);
   const [fotos, setFotos] = useState<string[]>([]);
   const [monto, setMonto] = useState("");
   const [galones, setGalones] = useState("");
   const entrada = { foto: fotos[0] ?? null, monto, galones };
-  const recibo = reciboTardio(entrada);
+  const recibo = reciboTardio(entrada, p.motivo);
   const falta = "falta" in recibo ? recibo.falta : null;
-  const titulo = `🧾 ${t("Add receipt", "Añadir recibo")}`;
+  const titulo = gas ? `🧾 ${t("Add receipt", "Añadir recibo")}` : `📷 ${t("Add photo", "Añadir foto")}`;
   return (
     <div className="overlay" data-dialogo-recibo-despues onClick={(e) => { if (e.target === e.currentTarget) onCancelar(); }}>
       <div className="modal" role="dialog" aria-modal="true" aria-label={titulo} style={{ maxWidth: 440 }}>
         <h3 style={{ marginTop: 0 }}>{titulo}</h3>
         <div className="hint" style={{ marginBottom: 8 }}>
-          ⛽ {t("Gas", "Gasolina")} · {fechaYHora(p.empezo_at)} {t("(the stop time stays the same)", "(la hora de la parada no cambia)")}
+          {nombreDelMotivo(p.motivo, lang)} · {fechaYHora(p.empezo_at)} {t("(the stop time stays the same)", "(la hora de la parada no cambia)")}
         </div>
         <div data-foto-recibo>
           <PhotoUpload photos={fotos} onChange={(n) => setFotos(n.slice(0, 1))} max={1} t={t} disabled={ocupado} galeria />
@@ -311,10 +349,12 @@ function DialogoDeReciboPendiente({ p, t, ocupado, error, onCancelar, onConfirma
             <label>{t("Amount $ (optional)", "Monto $ (opcional)")}</label>
             <input data-monto inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value)} style={{ width: "100%" }} />
           </div>
-          <div className="field" style={{ flex: 1, minWidth: 0 }}>
-            <label>{t("Gallons (optional)", "Galones (opcional)")}</label>
-            <input data-galones inputMode="decimal" value={galones} onChange={(e) => setGalones(e.target.value)} style={{ width: "100%" }} />
-          </div>
+          {gas && (
+            <div className="field" style={{ flex: 1, minWidth: 0 }}>
+              <label>{t("Gallons (optional)", "Galones (opcional)")}</label>
+              <input data-galones inputMode="decimal" value={galones} onChange={(e) => setGalones(e.target.value)} style={{ width: "100%" }} />
+            </div>
+          )}
         </div>
         {falta === "monto" && <div className="hint" style={{ color: "var(--red)" }}>{t("The amount must be a number.", "El monto tiene que ser un número.")}</div>}
         {falta === "galones" && <div className="hint" style={{ color: "var(--red)" }}>{t("Gallons must be a number.", "Los galones tienen que ser un número.")}</div>}
@@ -322,7 +362,7 @@ function DialogoDeReciboPendiente({ p, t, ocupado, error, onCancelar, onConfirma
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <button className="btn" style={BOTON} onClick={onCancelar}>{t("Cancel", "Cancelar")}</button>
           <button data-confirmar-recibo-despues className="btn btn-green" style={BOTON} disabled={!!falta || ocupado} onClick={() => onConfirmar(entrada)}>
-            {ocupado ? t("Saving…", "Guardando…") : `✔ ${t("Save receipt", "Guardar recibo")}`}
+            {ocupado ? t("Saving…", "Guardando…") : `✔ ${t("Save", "Guardar")}`}
           </button>
         </div>
       </div>
