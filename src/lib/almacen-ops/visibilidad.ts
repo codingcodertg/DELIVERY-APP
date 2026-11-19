@@ -35,13 +35,24 @@ export function esSupervisor(q: Quien): boolean {
   return (q.permissions ?? []).includes(PERMISO_SUPERVISOR);
 }
 
+/**
+ * Permiso por persona (profiles.permissions) que hace a alguien gerente de Operaciones de Almacen en SU tienda, sin
+ * cambiar su rol del hub (migración 334). Es la misma prueba que `public.warehouse_ops_es_gerente`.
+ */
+export const PERMISO_GERENTE = "warehouse_ops_manager";
+
+/** ¿Es gerente dentro de Operaciones de Almacen? El rol del hub `manager` o el permiso `warehouse_ops_manager`. */
+export function esGerenteDeAlmacen(q: { role: string; permissions?: readonly string[] | null }): boolean {
+  return q.role === "manager" || (q.permissions ?? []).includes(PERMISO_GERENTE);
+}
+
 export function puedeVerReporte(q: Quien, r: { kind: TipoDeReporte; store: string; author_id: string }): boolean {
   const nivel = nivelDe(q);
   if (nivel === "admin") return true;
   if (nivel === "store_admin" && esDeSuTienda(q, r.store)) return true;
   if (esDeRrhh(r.kind)) {
     if (q.recruiting_role === "admin" || q.recruiting_role === "manager") return true;
-    return nivel === "full" && q.role === "manager" && esDeSuTienda(q, r.store);
+    return nivel === "full" && esGerenteDeAlmacen(q) && esDeSuTienda(q, r.store);
   }
   // Associate (scrap_only, dueño 17 nov): solo SUS propios reportes de merma. Ya no ve los de su tienda (la 292 los
   // mostraba); la 324 lo pone también en la base.
@@ -71,7 +82,7 @@ export function veLosReportes(q: Quien): boolean {
   const nivel = nivelDe(q);
   if (nivel === "admin" || nivel === "store_admin") return true;
   if (q.recruiting_role === "admin" || q.recruiting_role === "manager") return true;
-  return nivel === "full" && (q.role === "manager" || esSupervisor(q));
+  return nivel === "full" && (esGerenteDeAlmacen(q) || esSupervisor(q));
 }
 
 /**
@@ -84,5 +95,5 @@ export function puedeCorregirMerma(q: Quien, r: { kind: TipoDeReporte; store: st
   const nivel = nivelDe(q);
   if (nivel === "admin") return true;
   if (nivel === "store_admin") return esDeSuTienda(q, r.store);
-  return nivel === "full" && (q.role === "manager" || esSupervisor(q)) && esDeSuTienda(q, r.store);
+  return nivel === "full" && (esGerenteDeAlmacen(q) || esSupervisor(q)) && esDeSuTienda(q, r.store);
 }

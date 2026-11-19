@@ -18,7 +18,7 @@
  * Sin React: lo usan la pantalla, las pruebas y podría usarlo una ruta del servidor.
  */
 import { nivelDe } from "./nivel";
-import { esSupervisor, type Quien } from "./visibilidad";
+import { esGerenteDeAlmacen, esSupervisor, type Quien } from "./visibilidad";
 import { PREFIJO_DE_EQUIPO, esEquipoDelInventario, type Opcion } from "./pasos";
 
 export type Lang = "en" | "es";
@@ -414,7 +414,7 @@ export function puedeGestionar(q: Quien, tienda: string): boolean {
   const n = nivelDe(q);
   if (n === "admin") return true;
   if (n === "store_admin") return esDeSuTienda(q, tienda);
-  return n === "full" && (q.role === "manager" || esSupervisor(q)) && esDeSuTienda(q, tienda);
+  return n === "full" && (esGerenteDeAlmacen(q) || esSupervisor(q)) && esDeSuTienda(q, tienda);
 }
 
 /** ¿Se le ofrece la sección «Mantenimiento»? A cualquiera con nivel en la app, salvo el Associate (solo merma; 17 nov). */
