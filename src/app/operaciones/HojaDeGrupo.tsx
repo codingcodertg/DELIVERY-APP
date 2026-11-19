@@ -6,10 +6,11 @@ import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { fmtMoney } from "@/lib/utils";
 import {
-  aprobarGrupo, borrarGrupo, enlacesDeFotos, firmarGrupo, grupoConReportes, quitarFirmaGrupo, sacarDeGrupo, type Reporte,
+  aprobarGrupo, borrarGrupo, enlacesDeFotos, firmarGrupo, grupoConReportes, listarGrupos, quitarFirmaGrupo, sacarDeGrupo, type Reporte,
 } from "@/lib/almacen-ops/datos";
 import { firmaDe, firmaValida, nombreDeSlot, puedeFirmarSlot, SLOTS_DE_FIRMA, type FirmaDeMerma } from "@/lib/almacen-ops/firmas";
 import { estadoDelGrupo, grupoAprobado, puedeAprobarGrupo, puedeImprimirGrupo, type GrupoDeMerma } from "@/lib/almacen-ops/grupos";
+import { etiquetasDeGrupos } from "@/lib/almacen-ops/etiqueta-de-hoja";
 import { EMPRESA, RECORDATORIO_EN, RECORDATORIO_ES, filasDeHoja, tiendasDeHoja, totalDeHoja } from "@/lib/almacen-ops/etapas";
 import { etiquetaDeOpcion } from "@/lib/almacen-ops/pasos";
 import { repartoDeReporte } from "@/lib/almacen-ops/perdida";
@@ -38,6 +39,8 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
   // Ayuda de Roberto (12 nov): qué columnas lleva la hoja (las ocultas tampoco se imprimen).
   const cols = useColumnasDeHoja(ctx.yo.id);
   const [grupo, setGrupo] = useState<GrupoDeMerma | null>(null);
+  // Request 4: el nombre corto de la hoja (`Hoja 12 · Nov 18 · McAllen`). El número sale de todos los grupos de la tienda.
+  const [etiqueta, setEtiqueta] = useState<string | null>(null);
   const [reportes, setReportes] = useState<Reporte[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,10 +69,15 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
     try {
       const r = await grupoConReportes(createClient(), grupoId);
       if (!r) { setError(t("This group no longer exists, or migration 281 is not applied yet.", "Este grupo ya no existe, o falta aplicar la migración 281.")); setGrupo(null); }
-      else { setGrupo(r.grupo); setReportes(r.reportes); setError(null); }
+      else {
+        setGrupo(r.grupo); setReportes(r.reportes); setError(null);
+        const deLaTienda = await listarGrupos(createClient(), r.grupo.store, 2000).catch(() => [] as GrupoDeMerma[]);
+        const todos = [...deLaTienda.filter((x) => x.id !== r.grupo.id), r.grupo];
+        setEtiqueta(etiquetasDeGrupos(todos, lang, () => true).get(r.grupo.id) ?? null);
+      }
     } catch (e) { setError(mensajeDeError(e)); }
     setCargando(false);
-  }, [grupoId, ctx.demo, t]);
+  }, [grupoId, ctx.demo, t, lang]);
 
   useEffect(() => { void recarga(); }, [recarga]);
 
@@ -162,7 +170,7 @@ export function HojaDeGrupo({ grupoId, ctx, onSalir }: { grupoId: string; ctx: C
         <header className="hoja-cabecera">
           <div>
             <h1>{EMPRESA}</h1>
-            <h2>{t("Scrap approval sheet", "Hoja de aprobación de merma")} · {grupo.name}</h2>
+            <h2>{t("Scrap approval sheet", "Hoja de aprobación de merma")} · {etiqueta ?? grupo.name}</h2>
           </div>
           <dl className="hoja-datos">
             <dt>{t("Store", "Tienda")}</dt><dd data-hoja-tienda>{tiendasDeHoja(filas) || grupo.store}</dd>

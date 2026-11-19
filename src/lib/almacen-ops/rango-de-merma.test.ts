@@ -176,7 +176,7 @@ describe("la pantalla", () => {
   });
   it("el rango manda sobre la lista de merma y sobre la pérdida por tienda, y la tabla lleva la etiqueta del rango", () => {
     expect(lista).toContain("const mermasEnRango = useMemo(() => (rango ? filtrarPorRango(mermas, rango) : []), [mermas, rango]);");
-    expect(lista).toContain("const enRango = useMemo(() => (rango ? perdidaEnRango(mermas, rango) : { \"*\": 0 }), [mermas, rango]);");
+    expect(lista).toContain("const enRango = useMemo(() => (rango ? perdidaEnRango(mermasDeDinero, rango) : { \"*\": 0 }), [mermasDeDinero, rango]);");
     expect(lista).toContain('<th className="num ops-col-rango">{etiqueta}</th>');
     // D-921 (270): la lista del rango pasa además por el filtro de etapa (mermasPorEtapa = mermasEnRango sin filtro).
     expect(lista).toContain("const mermasPorEtapa = useMemo(() => filtraPorEtapa(mermasEnRango, etapaFiltro, enPractica), [mermasEnRango, etapaFiltro, enPractica]);");
