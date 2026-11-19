@@ -8,10 +8,10 @@ const sql = readFileSync("supabase/migrations/330_listas_de_conteo.sql", "utf8")
 const lineas = sql.split(/\r?\n/);
 
 describe("330 · listas de conteo: forma de la migración", () => {
-  it("termina con la marca del libro y sin la línea del libro", () => {
+  it("lleva la marca del libro y, justo debajo, su línea de registro", () => {
     const ultima = lineas.filter((l) => l.trim() !== "").at(-1);
-    expect(ultima).toBe("-- @ledger-below");
-    expect(sql).not.toMatch(/insert into public\.schema_migrations/);
+    expect(ultima?.startsWith("insert into public.schema_migrations (name, checksum) values ('330_listas_de_conteo.sql',")).toBe(true);
+    expect(lineas.filter((l) => l.trim() !== "").at(-2)).toBe("-- @ledger-below");
   });
 
   it("crea las dos tablas en el esquema erp, con RLS", () => {
