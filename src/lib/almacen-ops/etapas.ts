@@ -26,6 +26,8 @@ import { cajasDanadas, rompioEscrito } from "./tabla-de-merma";
 
 export const ETAPAS = ["documented", "photographed", "approved", "dumped", "adjusted"] as const;
 export type Etapa = (typeof ETAPAS)[number];
+/** La etapa tal como se muestra: una de las cinco o «rechazada» (327). Rechazada NO entra en el orden de ETAPAS. */
+export type EtapaDeMerma = Etapa | "rejected";
 export type Lang = "en" | "es";
 
 export function esEtapa(v: unknown): v is Etapa {
@@ -33,15 +35,16 @@ export function esEtapa(v: unknown): v is Etapa {
 }
 
 /** Etiquetas y el tono del chip (`.ops-etapa[data-etapa]` en operaciones.css). */
-export const INFO_DE_ETAPA: Record<Etapa, { en: string; es: string; corta_en: string; corta_es: string }> = {
+export const INFO_DE_ETAPA: Record<EtapaDeMerma, { en: string; es: string; corta_en: string; corta_es: string }> = {
   documented: { en: "Documented", es: "Documentada", corta_en: "Documented", corta_es: "Documentada" },
   photographed: { en: "Photographed", es: "Fotografiada", corta_en: "Photographed", corta_es: "Fotografiada" },
   approved: { en: "Approved", es: "Aprobada", corta_en: "Approved", corta_es: "Aprobada" },
   dumped: { en: "Dumped", es: "Desechada", corta_en: "Dumped", corta_es: "Desechada" },
   adjusted: { en: "Adjusted", es: "Ajustada", corta_en: "Adjusted", corta_es: "Ajustada" },
+  rejected: { en: "Rejected", es: "Rechazada", corta_en: "Rejected", corta_es: "Rechazada" },
 };
 
-export function nombreDeEtapa(e: Etapa, lang: Lang): string {
+export function nombreDeEtapa(e: EtapaDeMerma, lang: Lang): string {
   return lang === "es" ? INFO_DE_ETAPA[e].es : INFO_DE_ETAPA[e].en;
 }
 
@@ -60,6 +63,10 @@ export interface FilaConEtapa {
   adjusted_at?: string | null;
   adjusted_by?: string | null;
   adjustment_proof?: string | null;
+  /** 327: el rechazo (la merma sigue vendible, o no es merma). Null / ausentes si la 327 no está aplicada. */
+  rejected_at?: string | null;
+  rejected_by?: string | null;
+  rejected_reason?: string | null;
 }
 
 /** ¿La fila trae las columnas de la 270? Sin ellas no hay controles de etapa (la pantalla no se rompe, solo no ofrece). */
@@ -71,13 +78,20 @@ export function tieneEtapas(r: FilaConEtapa): boolean {
  * La etapa de una merma. La que guarda la base si viene; si no (fila de antes de la 270, o demo), se deriva igual que
  * el trigger: la fecha más avanzada manda; sin fechas, con fotos = fotografiada, sin fotos = documentada.
  */
-export function etapaDe(r: FilaConEtapa): Etapa {
+export function etapaDe(r: FilaConEtapa): EtapaDeMerma {
+  if (esRechazadaFila(r)) return "rejected";
   if (esEtapa(r.stage)) return r.stage;
   return etapaDerivada(r);
 }
 
-/** La regla del trigger `warehouse_report_stage_guard` (270), en TypeScript. */
-export function etapaDerivada(r: FilaConEtapa): Etapa {
+/** ¿Está rechazada? (327: la etapa guardada es «rejected», o trae la fecha del rechazo). Manda sobre las demás. */
+export function esRechazadaFila(r: { stage?: string | null; rejected_at?: string | null }): boolean {
+  return r.stage === "rejected" || !!r.rejected_at;
+}
+
+/** La regla del trigger `warehouse_report_stage_guard` (270 + 327), en TypeScript. */
+export function etapaDerivada(r: FilaConEtapa): EtapaDeMerma {
+  if (r.rejected_at) return "rejected";
   if (r.adjusted_at) return "adjusted";
   if (r.dumped_at) return "dumped";
   if (r.approved_at) return "approved";
@@ -85,13 +99,15 @@ export function etapaDerivada(r: FilaConEtapa): Etapa {
   return "documented";
 }
 
-export function indiceDeEtapa(e: Etapa): number {
-  return ETAPAS.indexOf(e);
+/** Posición en el orden de las cinco etapas. «rejected» no tiene posición (-1): no es un paso del camino. */
+export function indiceDeEtapa(e: EtapaDeMerma): number {
+  return (ETAPAS as readonly string[]).indexOf(e);
 }
 
 /** La fecha de cada etapa (null si no se llegó). Documentada = cuando se guardó; fotografiada = cuando entró la foto. */
-export function fechaDeEtapa(r: FilaConEtapa, e: Etapa): string | null {
+export function fechaDeEtapa(r: FilaConEtapa, e: EtapaDeMerma): string | null {
   switch (e) {
+    case "rejected": return r.rejected_at ?? null;
     case "documented": return r.created_at;
     case "photographed": return (r.photos ?? []).length > 0 ? (r.photographed_at ?? r.created_at) : null;
     case "approved": return r.approved_at ?? null;
@@ -101,8 +117,9 @@ export function fechaDeEtapa(r: FilaConEtapa, e: Etapa): string | null {
 }
 
 /** Quién hizo cada etapa (null en las dos primeras: las hace quien llena / la foto). */
-export function actorDeEtapa(r: FilaConEtapa, e: Etapa): string | null {
+export function actorDeEtapa(r: FilaConEtapa, e: EtapaDeMerma): string | null {
   switch (e) {
+    case "rejected": return r.rejected_by ?? null;
     case "approved": return r.approved_by ?? null;
     case "dumped": return r.dumped_by ?? null;
     case "adjusted": return r.adjusted_by ?? null;
@@ -146,6 +163,7 @@ export function transicion(de: Etapa, a: Etapa, o: { adjunto: boolean; admin: bo
 /** La siguiente etapa que el gerente puede poner (null si ya está ajustada o aún no tiene foto). */
 export function siguienteEtapa(r: FilaConEtapa): Etapa | null {
   const e = etapaDe(r);
+  if (e === "rejected") return null;
   const n = ETAPAS[indiceDeEtapa(e) + 1];
   return n && e !== "documented" ? n : null;
 }
@@ -170,7 +188,7 @@ export function esAdminParaDeshacer(q: Quien): boolean {
 }
 
 export function puedeDeshacerEtapa(q: Quien, r: { kind: TipoDeReporte; store: string } & FilaConEtapa): boolean {
-  return esAdminParaDeshacer(q) && puedeCambiarEtapa(q, r) && etapaDe(r) !== "documented" && etapaDe(r) !== "photographed";
+  return esAdminParaDeshacer(q) && puedeCambiarEtapa(q, r) && etapaDe(r) !== "documented" && etapaDe(r) !== "photographed" && etapaDe(r) !== "rejected";
 }
 
 /** Lo pendiente (sacar de un grupo sin aprobar / borrar el grupo / quitar su firma): quien gestiona la tienda. */
@@ -180,7 +198,7 @@ export function puedeDeshacerPendiente(q: Quien, r: { kind: TipoDeReporte; store
 
 /** La etapa a la que regresa «deshacer un paso» (la de antes), o null si no se puede deshacer. */
 export function etapaAlDeshacer(r: FilaConEtapa): Etapa | null {
-  const i = ETAPAS.indexOf(etapaDe(r));
+  const i = indiceDeEtapa(etapaDe(r));
   return i >= 2 ? ETAPAS[i - 1] : null;
 }
 
@@ -219,6 +237,8 @@ export function perdidaPorEtapa(filas: readonly (FilaConEtapa & { store: string;
   };
   for (const f of filas) {
     if (f.kind !== "scrap") continue;
+    // 327: la merma rechazada (sigue vendible) no es pérdida.
+    if (esRechazadaFila(f)) continue;
     const v = Number(f.total_loss ?? 0) || 0;
     const e = etapaDe(f);
     const cubeta: keyof DesgloseDeEtapas = e === "approved" ? "aprobada" : e === "dumped" || e === "adjusted" ? "desechada" : "pendiente";
@@ -345,7 +365,7 @@ export function documentoDeGrupo(r: ConGrupo, grupoId?: string | null): "hoja-fi
 }
 
 /** Las etapas que enseña la pantalla: las de la base con «pending» (en grupo, sin aprobar) entre fotografiada y aprobada. */
-export const ETAPAS_VISIBLES = ["documented", "photographed", "pending", "approved", "dumped", "adjusted"] as const;
+export const ETAPAS_VISIBLES = ["documented", "photographed", "pending", "approved", "dumped", "adjusted", "rejected"] as const;
 export type EtapaVisible = (typeof ETAPAS_VISIBLES)[number];
 
 /** La etapa que se enseña: «pending» si está en un grupo sin aprobar; si no, la de la base. */

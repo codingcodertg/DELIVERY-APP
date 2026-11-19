@@ -265,6 +265,16 @@ textarea.ops-campo { min-height: 150px; resize: vertical; }
 .ops-etapa[data-etapa="approved"] { --etapa: var(--accent); }
 .ops-etapa[data-etapa="dumped"] { --etapa: var(--red); }
 .ops-etapa[data-etapa="adjusted"] { --etapa: var(--green, #1f8f4e); }
+.ops-etapa[data-etapa="rejected"] { --etapa: var(--red); }
+/* 327: la merma rechazada (sigue vendible / no es merma). Rojo, con el motivo a la vista. */
+.ops-rechazo-en-celda { display: inline-flex; flex-direction: column; gap: 2px; align-items: flex-start; }
+.ops-motivo-rechazo { font-size: 11px; color: var(--red); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ops-motivo-rechazo-grande { color: var(--red); font-weight: 600; margin: 4px 0; white-space: pre-wrap; }
+.ops-rechazo-caja { border: 1px solid var(--red); border-radius: 8px; padding: 8px 10px; margin: 8px 0; background: color-mix(in srgb, var(--red) 8%, transparent); }
+.ops-rechazar { margin: 8px 0; }
+.ops-campo-motivo { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
+.ops-campo-motivo textarea { width: 100%; }
+.ops-enlace-chico { font-size: 11px; margin-top: 2px; }
 .ops-etapa-mini { display: inline-block; width: 10px; height: 10px; padding: 0; border-radius: 50%; background: var(--etapa, var(--gray)); border: none; vertical-align: middle; }
 .ops-detalle-corto .ops-etapa { margin-left: 6px; padding: 1px 7px; }
 .ops-col-etapa { white-space: nowrap; }

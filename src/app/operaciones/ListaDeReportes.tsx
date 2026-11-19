@@ -15,7 +15,7 @@ import { CerrarX } from "./CerrarX";
 import { etiquetaDeEquipoDelReporte } from "@/lib/almacen-ops/mantenimiento";
 import { nombreOTexto, personasParaElegir } from "@/lib/almacen-ops/personas";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
-import { DEMO_PRODUCTOS, origenDeMerma, type TipoDeOrigen, DEMO_REPORTES, agregarFotos, borrarReporteDeMerma, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, editarReporteDeMerma, enlacesDeFotos, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type ParcheDeMerma, type Reporte } from "@/lib/almacen-ops/datos";
+import { DEMO_PRODUCTOS, origenDeMerma, type TipoDeOrigen, DEMO_REPORTES, agregarFotos, borrarReporteDeMerma, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, editarReporteDeMerma, enlacesDeFotos, enlacesPorRuta, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type ParcheDeMerma, type Reporte } from "@/lib/almacen-ops/datos";
 import { esCorteDePractica } from "@/lib/practica/es-corte";
 import { EVENTO_PRACTICA_GRUPOS, borrarPractica, cargaPractica, conAprobacionDePractica, esGrupoDePractica, grupoDePracticaPorReporte, gruposDePractica } from "@/lib/practica/grupos-de-practica";
 import { crearBorradorDeGrupo, esBorradorDeGrupo, listarBorradoresDeGrupo } from "@/lib/almacen-ops/borradores-de-grupo";
@@ -43,6 +43,9 @@ import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { datosPdfDeMerma } from "@/lib/almacen-ops/pdf-de-merma";
 import { AdjuntarYMarcar, ChipDeEtapa, LineaDeEtapas, aplicarEtapa, ErrorParcial } from "./EtapasDeMerma";
 import { documentoDeGrupo, esAdminParaDeshacer, puedeBorrarMerma, puedeIniciarAprobacion } from "@/lib/almacen-ops/etapas";
+import { sinRechazadas } from "@/lib/almacen-ops/rechazo";
+import { etiquetasDeGrupos } from "@/lib/almacen-ops/etiqueta-de-hoja";
+import { juntarFotosEnZip, planDeFotos, reportesConFotos } from "@/lib/almacen-ops/fotos-en-zip";
 import { coincideBusqueda } from "@/lib/almacen-ops/busqueda-de-merma";
 import { useOrdenYFiltro } from "@/lib/use-orden-y-filtro";
 import { CabeceraConMenu, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
@@ -111,7 +114,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
     const extra = () => [...borradoresComoGrupos(ctx.yo.id), ...gruposDePractica()];
     // En demo no hay base, pero los borradores y los grupos de práctica (de este navegador) sí se enseñan.
     if (ctx.demo) { setGrupos(extra()); return; }
-    void listarGrupos(createClient()).then((g) => { if (vivo) setGrupos([...extra(), ...g]); })
+    void listarGrupos(createClient(), undefined, 2000).then((g) => { if (vivo) setGrupos([...extra(), ...g]); })
       .catch(() => { if (vivo) setGrupos(extra()); /* sin 281: no hay grupos */ });
     return () => { vivo = false; };
   }, [ctx.demo, ctx.yo.id, modo, pestana, grupoId, recargaGrupos]);
@@ -184,14 +187,16 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
   // D-1021: en práctica, las mermas de un grupo de práctica ya aprobado se ven aprobadas (`conAprobacionDePractica`).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const mermas = useMemo(() => conAprobacionDePractica(propias.filter((r) => r.kind === "scrap")), [propias, grupos]);
-  const totales = useMemo(() => totalesPorTienda(mermas, new Date()), [mermas]);
+  // 327: la merma rechazada no cuenta en los totales de dinero ni en la pérdida del rango (sigue en la lista).
+  const mermasDeDinero = useMemo(() => sinRechazadas(mermas), [mermas]);
+  const totales = useMemo(() => totalesPorTienda(mermasDeDinero, new Date()), [mermasDeDinero]);
   // D-911: el rango elegido manda sobre la lista de merma y sobre la pérdida por tienda; todo por el día en que se rompió.
   const rango = useMemo(() => rangoDeEleccion(eleccion, hoy), [eleccion, hoy]);
   const mermasEnRango = useMemo(() => (rango ? filtrarPorRango(mermas, rango) : []), [mermas, rango]);
   const [estadoGrupos, setEstadoGrupos] = useState<FiltroDeGrupos>("todos");
   const [verTodosGrupos, setVerTodosGrupos] = useState(false);
   const gruposVisibles = useMemo(() => filtrarGrupos(grupos, estadoGrupos, rango, verTodosGrupos), [grupos, estadoGrupos, rango, verTodosGrupos]);
-  const enRango = useMemo(() => (rango ? perdidaEnRango(mermas, rango) : { "*": 0 }), [mermas, rango]);
+  const enRango = useMemo(() => (rango ? perdidaEnRango(mermasDeDinero, rango) : { "*": 0 }), [mermasDeDinero, rango]);
   const etiqueta = rango ? etiquetaDeRango(rango, lang, hoy) : "—";
   const tiendasDeMerma = Array.from(new Set([...Object.keys(totales), ...Object.keys(enRango)])).filter((k) => k !== "*").sort();
   // D-921 (270): la lista de merma filtrada por etapa, la cuenta por etapa y el desglose de la pérdida del rango por etapa.
@@ -317,6 +322,47 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
       doc.save(d.nombreArchivo);
     } finally {
       setGenerandoPdf(false);
+    }
+  };
+
+  // Request 4: cada hoja tiene su nombre corto y distinto (`Hoja 12 · Nov 18 · McAllen`); el número sale del orden de creación.
+  const etiquetasDeGrupo = useMemo(() => etiquetasDeGrupos(grupos, lang, (id) => !esBorradorDeGrupo(id) && !esGrupoDePractica(id)), [grupos, lang]);
+  // Request 1: bajar TODAS las fotos de las mermas marcadas en un solo .zip. Una foto que falla se omite y se cuenta.
+  const fotosDeSeleccion = useMemo(() => seleccionadas.filter((r) => (r.photos ?? []).length > 0), [seleccionadas]);
+  const [fotosZip, setFotosZip] = useState<{ hechas: number; total: number } | null>(null);
+  const [avisoFotos, setAvisoFotos] = useState<string | null>(null);
+  const descargarFotos = async (lista: Reporte[]) => {
+    if (fotosZip || lista.length === 0) return;
+    setAvisoFotos(null);
+    setFotosZip({ hechas: 0, total: planDeFotos(lista).length });
+    try {
+      const res = await juntarFotosEnZip({
+        reportes: lista, hoy,
+        firmar: async (rutas) => (ctx.demo ? {} : enlacesPorRuta(createClient(), rutas)),
+        onProgreso: (hechas, total) => setFotosZip({ hechas, total }),
+      });
+      if (res.estado === "sin-fotos") { setAvisoFotos(t("There are no photos to download.", "No hay fotos que bajar.")); return; }
+      if (res.estado === "demasiadas") {
+        setAvisoFotos(t(`${res.total} photos is more than 300 at once. Select fewer reports.`, `${res.total} fotos son más de 300 de una vez. Marca menos reportes.`));
+        return;
+      }
+      if (res.estado === "demasiado-pesado") {
+        setAvisoFotos(t("That is more than 400 MB at once. Select fewer reports.", "Son más de 400 MB de una vez. Marca menos reportes."));
+        return;
+      }
+      if (res.estado !== "ok") return;
+      const url = URL.createObjectURL(new Blob([res.zip as BlobPart], { type: "application/zip" }));
+      const a = document.createElement("a");
+      a.href = url; a.download = res.nombre;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setAvisoFotos(res.omitidas > 0
+        ? t(`Downloaded ${res.incluidas} photos. ${res.omitidas} could not be downloaded and were skipped.`, `Se bajaron ${res.incluidas} fotos. ${res.omitidas} no se pudieron bajar y se omitieron.`)
+        : t(`Downloaded ${res.incluidas} photos.`, `Se bajaron ${res.incluidas} fotos.`));
+    } catch (e) {
+      setAvisoFotos(mensajeDeError(e));
+    } finally {
+      setFotosZip(null);
     }
   };
 
@@ -490,6 +536,14 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
               {paraAjustar.elegibles.length > 0 && <button type="button" className="btn" onClick={() => { setAvisoBloque(null); setAdjuntando(false); setAjustandoBloque((x) => !x); }} data-accion="ajustar-bloque" aria-pressed={ajustandoBloque}>🧾 {t(`Mark as adjusted (${paraAjustar.elegibles.length})`, `Marcar como ajustadas (${paraAjustar.elegibles.length})`)}</button>}
               {paraDeshacer.elegibles.length > 0 && <button type="button" className="btn btn-ghost" onClick={() => { setAjustandoBloque(false); setAdjuntando(false); void deshacerBloque(); }} data-accion="deshacer-bloque"
                 title={t("Move each selected report back one stage", "Regresa cada merma marcada a su etapa anterior")}>↩ {t(`Undo one step (${paraDeshacer.elegibles.length})`, `Deshacer un paso (${paraDeshacer.elegibles.length})`)}</button>}
+              {fotosDeSeleccion.length > 0 && (
+                <button type="button" className="btn btn-ghost" disabled={!!fotosZip} onClick={() => void descargarFotos(fotosDeSeleccion)} data-accion="descargar-fotos"
+                  title={t("Download every photo of the ticked reports in one .zip", "Baja todas las fotos de las mermas marcadas en un solo .zip")}>
+                  📷 {fotosZip
+                    ? t(`Preparing ${fotosZip.hechas}/${fotosZip.total}…`, `Preparando ${fotosZip.hechas}/${fotosZip.total}…`)
+                    : t(`Download photos (${reportesConFotos(fotosDeSeleccion)})`, `Descargar fotos (${reportesConFotos(fotosDeSeleccion)})`)}
+                </button>
+              )}
               {paraHoja.length === 0 && paraDesechar.elegibles.length === 0 && paraAjustar.elegibles.length === 0 && paraDeshacer.elegibles.length === 0 && paraBorrar.length === 0 && (
                 <span className="hint" data-sin-acciones>{t("Nothing to do with these: they are already done.", "No hay acción para estas: ya están terminadas.")}</span>
               )}
@@ -507,6 +561,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
             </div>
           )}
           {avisoBloque && <div className="hint" role="status" data-aviso-bloque>{avisoBloque}</div>}
+          {avisoFotos && <div className="hint" role="status" data-aviso-fotos>{avisoFotos}</div>}
           {fallosDeBorrado.length > 0 && (
             <div className="ops-aviso ops-aviso-error ops-fallos-de-borrado" role="alert" data-fallos-de-borrado={fallosDeBorrado.length}>
               <strong>{t(`${fallosDeBorrado.length} could not be deleted:`, `${fallosDeBorrado.length} no se pudo(pudieron) borrar:`)}</strong>
@@ -527,7 +582,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
           )}
           {/* «Seleccionar todos» vive SOLO en la casilla del encabezado (dueño, 10 nov: el botón de arriba era redundante). */}
           <TablaDeMermaExcel filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango" conEtapa
-            grupos={grupos} onAbrirGrupo={abrirGrupo} enConflicto={idsEnConflicto} onVisibles={setALaVista} exportacion={botonesDeExportar}
+            grupos={grupos} etiquetas={etiquetasDeGrupo} modoAjustada={!verGrupos && etapaFiltro === "adjusted"} onAbrirGrupo={abrirGrupo} enConflicto={idsEnConflicto} onVisibles={setALaVista} exportacion={botonesDeExportar}
             seleccion={{ ids: seleccion, puede: puedeSeleccionar, alternar, todas: todasSeleccionadas, algunas: algunaSeleccionada, alternarTodas }}
             vacio={rango ? (mermasEnRango.length === 0 ? t("No scrap broken in this range.", "No se rompió nada en este rango.") : etapaFiltro === FILTRO_TODAS_PENDIENTES ? t("No pending scrap in this range.", "No hay merma pendiente en este rango.") : t("No scrap in that stage in this range.", "No hay merma en esa etapa en este rango.")) : t("Fix the dates to see the list.", "Corrige las fechas para ver la lista.")} />
           </>}
@@ -553,7 +608,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
                 : <ul className="ops-grupos-lista">
                     {gruposVisibles.map((g) => (
                       <li key={g.id} data-grupo={g.id}>
-                        <button type="button" className="btn btn-sm" onClick={() => abrirGrupo(g.id)} data-abrir-grupo={g.id}>🗂 {g.name}</button>
+                        <button type="button" className="btn btn-sm" onClick={() => abrirGrupo(g.id)} data-abrir-grupo={g.id}>🗂 {etiquetasDeGrupo.get(g.id) ?? g.name}</button>
                         {esBorradorDeGrupo(g.id) && <span className="ops-etiqueta-borrador" data-borrador>📝 {t("Draft", "Borrador")}</span>}
                         {esGrupoDePractica(g.id) && <span className="ops-etiqueta-borrador" data-practica>🎓 {t("Practice", "Práctica")}</span>}
                         <span className="hint">{(g.n_reportes ?? 0) === 1 ? t("1 report", "1 reporte") : t(`${g.n_reportes ?? 0} reports`, `${g.n_reportes ?? 0} reportes`)} · {g.store} · <span data-estado-grupo={g.id}>{esBorradorDeGrupo(g.id) ? t("Not saved yet", "Aún sin guardar") : estadoDelGrupo(g, lang)}</span></span>
@@ -733,12 +788,16 @@ function useEsTelefono(): boolean {
   return es;
 }
 
-function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = true, seleccion, grupos, onAbrirGrupo, enConflicto, exportacion, onVisibles, "data-lista": dataLista }: {
+function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = true, seleccion, grupos, etiquetas, modoAjustada = false, onAbrirGrupo, enConflicto, exportacion, onVisibles, "data-lista": dataLista }: {
   /** Avisa qué renglones se ven tras la búsqueda y los filtros (para que «seleccionar todos» marque solo esos). */
   onVisibles?: (ids: Set<string>) => void;
   filas: Reporte[]; ctx: Contexto; onAbrir: (r: Reporte) => void; vacio: string; repetidas: Map<string, string[]>; "data-lista": string;
   /** Con la lista de grupos sale la columna «Grupo» (a qué grupo de aprobación pertenece cada merma). */
   grupos?: readonly GrupoDeMerma[]; onAbrirGrupo?: (id: string) => void;
+  /** Request 4: la etiqueta corta de cada hoja (id → «Hoja 12 · Nov 18 · McAllen»). Sin ella sale el nombre. */
+  etiquetas?: ReadonlyMap<string, string>;
+  /** Request 3: en el filtro «Ajustada» la columna GRUPO enseña la captura del ajuste (y la hoja firmada, chica). */
+  modoAjustada?: boolean;
   /** Marcadas que ya están en un grupo: su renglón se resalta para que se quiten de la selección. */
   enConflicto?: ReadonlySet<string>;
   /** Botones de exportar (CSV / PDF) que van en la barra, junto a «⚙ Columnas». */
@@ -754,7 +813,16 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
   const conCasillas = !!seleccion && filas.some((r) => seleccion.puede(r));
   // A qué grupo de aprobación pertenece cada merma (dueño, 10 nov): columna «Grupo» con su nombre (clic = abre el grupo).
   const conGrupo = !!grupos;
-  const nombreDeGrupo = new Map((grupos ?? []).map((g) => [g.id, g.name]));
+  const nombreDeGrupo = new Map((grupos ?? []).map((g) => [g.id, etiquetas?.get(g.id) ?? g.name]));
+  // Request 3: el enlace de la captura de ajuste de cada merma ajustada (una sola petición para toda la tabla).
+  const [capturas, setCapturas] = useState<Record<string, string>>({});
+  const rutasDeCaptura = modoAjustada ? filas.map((r) => r.adjustment_proof ?? "").filter(Boolean).join("|") : "";
+  useEffect(() => {
+    if (rutasDeCaptura === "" || ctx.demo) return;
+    let vivo = true;
+    void enlacesPorRuta(createClient(), rutasDeCaptura.split("|")).then((m) => { if (vivo) setCapturas(m); }).catch(() => {});
+    return () => { vivo = false; };
+  }, [rutasDeCaptura, ctx.demo]);
   // Columnas a gusto (dueño, 11 nov): ⚙ Columnas (mostrar/ocultar, ↑ ↓, restablecer) y arrastrar la cabecera. Cada quien
   // guarda lo suyo en este navegador. La casilla de selección va siempre primero. El CSV/PDF siguen con todas.
   // Reunión 12 nov: «Tipo» y «Tienda» salen ocultas mientras nadie las pida; en el teléfono de alguien de almacén,
@@ -857,13 +925,34 @@ function TablaDeMermaExcel({ filas, ctx, onAbrir, vacio, repetidas, conEtapa = t
       case "grupo": {
         // En práctica (11 nov) también sale el grupo de práctica de la merma (no está en la base).
         const gid = r.scrap_group_id ?? deGrupoDePractica.get(r.id) ?? null;
+        const hojaFirmada = gid ? documentoDeGrupo(r, gid) === "hoja-firmada" : false;
+        const etiquetaHoja = gid ? (nombreDeGrupo.get(gid) ?? t("Group", "Grupo")) : "";
+        // Request 3: en «Ajustada», la captura del ajuste primero; la hoja firmada queda chica debajo.
+        if (modoAjustada && r.adjustment_proof) {
+          const captura = capturas[r.adjustment_proof];
+          return (
+            <td key={key} className="ops-col-grupo-merma" data-grupo-de={gid ?? ""} data-captura-de={r.adjustment_proof}>
+              {captura
+                ? <a className="ops-folio-link" href={captura} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} data-captura-ajuste
+                    title={t("Open the adjustment screenshot", "Abrir la captura del ajuste")}>🖼 {t("Adjustment screenshot", "Captura del ajuste")}</a>
+                : <span className="hint">🖼 {t("Adjustment screenshot", "Captura del ajuste")}</span>}
+              {gid && (
+                <button type="button" className="ops-folio-link ops-enlace-chico" onClick={(e) => { e.stopPropagation(); onAbrirGrupo?.(gid); }} data-hoja-chica={gid}
+                  title={hojaFirmada ? t("See the signed group sheet", "Ver la hoja firmada del grupo") : t("Open this group", "Abrir este grupo")}>
+                  📄 {etiquetaHoja}
+                </button>
+              )}
+            </td>
+          );
+        }
         return (
           <td key={key} className="ops-col-grupo-merma" data-grupo-de={gid ?? ""}>
             {gid
-              // Reunión 11 nov: o la hoja firmada (ya aprobada) o el grupo (pendiente), nunca los dos.
-              ? (documentoDeGrupo(r, gid) === "hoja-firmada"
-                  ? <button type="button" className="ops-folio-link" onClick={(e) => { e.stopPropagation(); onAbrirGrupo?.(gid); }} title={t("See the signed group sheet", "Ver la hoja firmada del grupo")} data-hoja-firmada={gid}>📄 {t("Signed sheet", "Hoja firmada")}</button>
-                  : <button type="button" className="ops-folio-link" onClick={(e) => { e.stopPropagation(); onAbrirGrupo?.(gid); }} title={t("Open this group", "Abrir este grupo")}>🗂 {nombreDeGrupo.get(gid) ?? t("Group", "Grupo")}</button>)
+              // Reunión 11 nov: o la hoja firmada (ya aprobada) o el grupo (pendiente), nunca los dos. Request 4: el nombre
+              // corto de la hoja; «signed» solo en el título, para que la etiqueta no se haga larga.
+              ? (hojaFirmada
+                  ? <button type="button" className="ops-folio-link" onClick={(e) => { e.stopPropagation(); onAbrirGrupo?.(gid); }} title={t("Signed group sheet", "Hoja firmada del grupo")} data-hoja-firmada={gid}>📄 {etiquetaHoja}</button>
+                  : <button type="button" className="ops-folio-link" onClick={(e) => { e.stopPropagation(); onAbrirGrupo?.(gid); }} title={t("Open this group", "Abrir este grupo")}>🗂 {etiquetaHoja}</button>)
               : <span className="hint">—</span>}
           </td>
         );

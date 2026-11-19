@@ -5,8 +5,9 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime } from "@/lib/utils";
-import { ETAPAS, actorDeEtapa, etapaDe, etapaVisible, documentoDeGrupo, nombreDeEtapaVisible, fechaDeEtapa, fechaDeLaEtapaActual, nombreDeEtapa, puedeCambiarEtapa, puedeDeshacerEtapa, siguienteEtapa, siguientePasoDeMerma, type Etapa } from "@/lib/almacen-ops/etapas";
-import { aprobarMerma, cambiarEtapa, enlacesDeFotos, listarGrupos, firmarMerma, firmasDeReporte, quitarFirma, subirAdjunto, subirFoto, tipoDeAdjuntoValido, type Reporte } from "@/lib/almacen-ops/datos";
+import { ETAPAS, indiceDeEtapa, esRechazadaFila, etapaDerivada, actorDeEtapa, etapaDe, etapaVisible, documentoDeGrupo, nombreDeEtapaVisible, fechaDeEtapa, fechaDeLaEtapaActual, nombreDeEtapa, puedeCambiarEtapa, puedeDeshacerEtapa, siguienteEtapa, siguientePasoDeMerma, type Etapa } from "@/lib/almacen-ops/etapas";
+import { EJEMPLO_MOTIVO_RECHAZO, MOTIVO_RECHAZO_MAX, motivoDeRechazoValido, puedeDeshacerRechazo, puedeRechazar } from "@/lib/almacen-ops/rechazo";
+import { aprobarMerma, cambiarEtapa, deshacerRechazo, rechazarMerma, enlacesDeFotos, listarGrupos, firmarMerma, firmasDeReporte, quitarFirma, subirAdjunto, subirFoto, tipoDeAdjuntoValido, type Reporte } from "@/lib/almacen-ops/datos";
 import { SLOTS_DE_FIRMA, firmaDe, firmasFaltantes, mensajePendienteDeFirma, nombreDeSlot, puedeAprobar, puedeFirmarSlot, requiereFirma, tieneAmbasFirmas, type FirmaDeMerma, type SlotDeFirma } from "@/lib/almacen-ops/firmas";
 import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
 import { FirmaPad } from "./FirmaPad";
@@ -31,10 +32,18 @@ export function ChipDeEtapa({ r, conFecha = true }: { r: Reporte; conFecha?: boo
   const e = etapaVisible(r);
   const f = fechaDeLaEtapaActual(r);
   const nombreE = nombreDeEtapaVisible(e, lang);
-  return (
+  const chip = (
     <span className="ops-etapa" data-etapa={e} title={nombreE}>
       <span className="ops-etapa-nombre">{e === "pending" ? "⏳ " : ""}{nombreE}</span>
       {conFecha && f && <span className="ops-etapa-fecha">{fmtDateTime(f)}</span>}
+    </span>
+  );
+  // 327: la merma rechazada enseña su motivo aquí mismo (en la lista y en «Mis reportes»).
+  if (e !== "rejected" || !r.rejected_reason) return chip;
+  return (
+    <span className="ops-rechazo-en-celda">
+      {chip}
+      <span className="ops-motivo-rechazo" title={r.rejected_reason} data-motivo-rechazo>«{r.rejected_reason}»</span>
     </span>
   );
 }
@@ -84,6 +93,24 @@ export async function aplicarEtapa(ctx: Contexto, reportes: readonly Reporte[], 
   return hechos;
 }
 
+/**
+ * 327: rechaza (o deshace el rechazo de) una merma y devuelve cómo queda. En la base hace lo mismo que aquí: una merma
+ * pendiente en grupo sale de él (y las firmas de ese grupo se borran); una aprobada se queda en su grupo. En el demo y en
+ * la práctica no se llega a la base, y la fila se arma igual que lo haría la base (como en `conEtapa`).
+ */
+export async function aplicarRechazo(ctx: Contexto, r: Reporte, motivo: string | null): Promise<Reporte> {
+  if (!ctx.demo) {
+    const sb = createClient();
+    if (motivo) await rechazarMerma(sb, r.id, motivo);
+    else await deshacerRechazo(sb, r.id);
+  }
+  if (motivo) {
+    return { ...r, stage: "rejected", rejected_at: new Date().toISOString(), rejected_by: ctx.yo.id, rejected_reason: motivo, scrap_group_id: r.approved_at ? r.scrap_group_id : null };
+  }
+  const sin: Reporte = { ...r, rejected_at: null, rejected_by: null, rejected_reason: null };
+  return { ...sin, stage: etapaDerivada(sin) };
+}
+
 /** Un fallo a mitad de una selección: lleva los reportes que SÍ cambiaron. */
 export class ErrorParcial extends Error {
   constructor(public hechos: Reporte[], mensaje: string) { super(mensaje); }
@@ -93,7 +120,7 @@ export class ErrorParcial extends Error {
 export function conEtapa(r: Reporte, etapa: Etapa, prueba: string | null, ahora: string, yo: string): Reporte {
   const n: Reporte = { ...r, stage: etapa };
   const actual = etapaDe(r);
-  if (ETAPAS.indexOf(etapa) < ETAPAS.indexOf(actual)) {
+  if (indiceDeEtapa(etapa) < indiceDeEtapa(actual)) {
     // Deshacer un paso: se borra lo de la etapa que se deshace.
     if (actual === "adjusted") Object.assign(n, { adjusted_at: null, adjusted_by: null, adjustment_proof: null });
     if (actual === "dumped") Object.assign(n, { dumped_at: null, dumped_by: null });
@@ -185,10 +212,29 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
     try { onCambio((await aplicarEtapa(ctx, [r], "dumped", null))[0]); } catch (e) { setError(mensajeDeError(e)); } finally { setDesechando(false); }
   };
   const [error, setError] = useState<string | null>(null);
+  // 327: rechazar (con motivo obligatorio: «sigue siendo vendible / no es merma») o deshacer el rechazo.
+  const [rechazandoAbierto, setRechazandoAbierto] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const [guardandoRechazo, setGuardandoRechazo] = useState(false);
+  const puedeRechazarAqui = puedeRechazar(ctx.yo, r);
+  const puedeDeshacerRechazoAqui = puedeDeshacerRechazo(ctx.yo, r);
+  const rechazarAhora = async () => {
+    if (!motivoDeRechazoValido(motivo)) return;
+    setGuardandoRechazo(true); setError(null);
+    try { onCambio(await aplicarRechazo(ctx, r, motivo.trim())); setRechazandoAbierto(false); setMotivo(""); }
+    catch (e) { setError(mensajeDeError(e)); } finally { setGuardandoRechazo(false); }
+  };
+  const deshacerRechazoAhora = async () => {
+    setGuardandoRechazo(true); setError(null);
+    try { onCambio(await aplicarRechazo(ctx, r, null)); } catch (e) { setError(mensajeDeError(e)); } finally { setGuardandoRechazo(false); }
+  };
   const [enlaces, setEnlaces] = useState<Record<string, string>>({});
   const [firmas, setFirmas] = useState<FirmaDeMerma[]>(r.firmas ?? []);
   const nombre = (id: string | null) => (id ? ctx.personas.find((p) => p.id === id)?.full_name ?? "—" : "");
   const actual = etapaDe(r);
+  // 327: una merma rechazada se dibuja con la etapa que tenía antes del rechazo (las fechas se conservan).
+  const actualLinea = actual === "rejected" ? etapaDerivada({ ...r, rejected_at: null }) : actual;
+  const rechazada = esRechazadaFila(r);
   const gestiona = puedeCambiarEtapa(ctx.yo, r);
   const deshace = puedeDeshacerEtapa(ctx.yo, r);
   const siguiente = gestiona ? siguienteEtapa(r) : null;
@@ -250,7 +296,7 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [r.approval_sheet, r.adjustment_proof, ctx.demo]);
   const deshacer = async () => {
-    const previa = ETAPAS[ETAPAS.indexOf(actual) - 1];
+    const previa = ETAPAS[indiceDeEtapa(actual) - 1];
     if (!previa) return;
     setError(null);
     try { onCambio((await aplicarEtapa(ctx, [r], previa, null))[0]); } catch (e) { setError(mensajeDeError(e)); }
@@ -275,11 +321,11 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
         {ETAPAS.map((e) => {
           const f = fechaDeEtapa(r, e);
           const quien = nombre(actorDeEtapa(r, e));
-          const hecha = ETAPAS.indexOf(e) <= ETAPAS.indexOf(actual) && (f != null || e === "documented");
+          const hecha = indiceDeEtapa(e) <= indiceDeEtapa(actualLinea) && (f != null || e === "documented");
           // «⏳ Pendiente de aprobación» (dueño, 11 nov): SIEMPRE entre «Fotografiada» y «Aprobada». Por llegar si aún no
           // está en un grupo; el paso actual (con el grupo a la mano, en tarjeta) si está en uno pendiente; hecho si ya se aprobó.
           const enGrupoPendiente = documentoDeGrupo(r) === "grupo";
-          const pendienteHecho = ["approved", "dumped", "adjusted"].includes(actual);
+          const pendienteHecho = ["approved", "dumped", "adjusted"].includes(actualLinea);
           const pasoPendiente = e === "approved" ? (
             <li key="pending" data-etapa="pending" data-hecha={pendienteHecho || enGrupoPendiente ? "si" : "no"}
               className={pendienteHecho || enGrupoPendiente ? "hecha" : ""} data-paso-actual={enGrupoPendiente ? "si" : undefined}>
@@ -315,6 +361,42 @@ export function LineaDeEtapas({ r, ctx, onCambio }: { r: Reporte; ctx: Contexto;
           </Fragment>);
         })}
       </ol>
+      {/* 327: la merma rechazada enseña el motivo y quién y cuándo; deshacer solo lo puede quien gestiona la tienda. */}
+      {rechazada && (
+        <div className="ops-rechazo-caja" role="status" data-rechazada={r.rejected_at ?? ""}>
+          <strong>✖ {t("Rejected", "Rechazada")}</strong>
+          {r.rejected_at && <span className="ops-etapa-cuando"> {fmtDateTime(r.rejected_at)}{r.rejected_by && ` · ${nombre(r.rejected_by)}`}</span>}
+          <p className="ops-motivo-rechazo-grande" data-motivo-rechazo>«{r.rejected_reason}»</p>
+          <p className="hint">{t("Still in the system, with its photos and history. It doesn't count in the scrap totals.", "Sigue en el sistema, con sus fotos e historial. No cuenta en los totales de merma.")}</p>
+          {puedeDeshacerRechazoAqui && (
+            <button type="button" className="btn btn-sm" disabled={guardandoRechazo} onClick={() => void deshacerRechazoAhora()} data-accion="deshacer-rechazo">
+              ↩ {t("Undo rejection", "Deshacer rechazo")}
+            </button>
+          )}
+        </div>
+      )}
+      {!rechazada && puedeRechazarAqui && !accion && (
+        <div className="ops-rechazar" data-rechazar>
+          {!rechazandoAbierto ? (
+            <button type="button" className="btn btn-sm" onClick={() => setRechazandoAbierto(true)} data-accion="rechazar">
+              ✖ {t("Reject (still sellable / not scrap)", "Rechazar (sigue vendible / no es merma)")}
+            </button>
+          ) : (
+            <>
+              <label className="ops-campo-motivo">
+                <span>{t("Why? Required, 3 characters or more.", "¿Por qué? Obligatorio, mínimo 3 caracteres.")}</span>
+                <textarea rows={2} maxLength={MOTIVO_RECHAZO_MAX} value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder={EJEMPLO_MOTIVO_RECHAZO} data-motivo-rechazo-campo />
+              </label>
+              <div className="ops-etapa-acciones">
+                <button type="button" className="btn btn-danger btn-sm" disabled={guardandoRechazo || !motivoDeRechazoValido(motivo)} onClick={() => void rechazarAhora()} data-accion="confirmar-rechazo">
+                  {guardandoRechazo ? t("Saving…", "Guardando…") : t("Reject", "Rechazar")}
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" disabled={guardandoRechazo} onClick={() => { setRechazandoAbierto(false); setMotivo(""); }}>{t("Cancel", "Cancelar")}</button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
       {hojaDeGrupo && (
         <div className="overlay" onClick={() => void cerrarHoja()}>
           <div className="modal ops-tarjeta-grupo" onClick={(ev) => ev.stopPropagation()} role="dialog" aria-modal="true" data-hoja-del-reporte={hojaDeGrupo}>

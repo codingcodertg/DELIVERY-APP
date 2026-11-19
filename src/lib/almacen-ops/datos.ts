@@ -68,6 +68,10 @@ export interface Reporte {
   /** 280: las firmas de aprobación (gerente + supervisor). En la lista vienen sin el dibujo (`signature_png`); se trae
    * aparte para la tarjeta / el PDF. No vienen si la 280 no está aplicada. */
   firmas?: FirmaDeMerma[] | null;
+  /** 327: el rechazo («sigue siendo vendible / no es merma»). No vienen si la 327 no está aplicada. */
+  rejected_at?: string | null;
+  rejected_by?: string | null;
+  rejected_reason?: string | null;
 }
 
 export interface Envio {
@@ -156,6 +160,23 @@ export async function quitarFirma(sb: SupabaseClient, reporteId: string, slot: S
 export async function aprobarMerma(sb: SupabaseClient, reporteId: string): Promise<void> {
   await cambiarEtapa(sb, reporteId, "approved", null);
 }
+
+/**
+ * 327: rechaza una merma («sigue siendo vendible, no es merma»). La base exige el motivo (3 a 500 caracteres), que quien
+ * gestiona la tienda pueda rechazar, y una etapa anterior a «desechada». Quita la merma de un grupo pendiente.
+ */
+export async function rechazarMerma(sb: SupabaseClient, reporteId: string, motivo: string): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_reject_scrap", { p_report: reporteId, p_reason: motivo });
+  if (error && !esCorteDePractica(error)) throw error;
+}
+
+/** 327: deshace el rechazo. La merma vuelve a la etapa que tenía (la base la deriva de las fechas que se conservaron). */
+export async function deshacerRechazo(sb: SupabaseClient, reporteId: string): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_unreject_scrap", { p_report: reporteId });
+  if (error && !esCorteDePractica(error)) throw error;
+}
+
+/** 280: firma un espacio de la merma (gerente o supervisor) con el dibujo (`data:` PNG).
 
 /** 280: las firmas de un reporte CON el dibujo (`signature_png`), para la tarjeta y el PDF. */
 export async function firmasDeReporte(sb: SupabaseClient, reporteId: string): Promise<FirmaDeMerma[]> {
@@ -381,6 +402,20 @@ export async function subirFoto(sb: SupabaseClient, uid: string, dataUrl: string
   return ruta;
 }
 
+/**
+ * Enlaces temporales por ruta (el mapa ruta → enlace). A diferencia de `enlacesDeFotos`, cada ruta sabe cuál es su
+ * enlace aunque otra haya fallado. Lo usa la columna de la captura de ajuste.
+ */
+export async function enlacesPorRuta(sb: SupabaseClient, rutas: string[]): Promise<Record<string, string>> {
+  const unicas = [...new Set(rutas.filter(Boolean))];
+  const out: Record<string, string> = {};
+  for (let i = 0; i < unicas.length; i += 200) {
+    const { data } = await sb.storage.from(CUBO).createSignedUrls(unicas.slice(i, i + 200), 600);
+    for (const d of data ?? []) if (d.signedUrl && d.path) out[d.path] = d.signedUrl;
+  }
+  return out;
+}
+
 export async function enlacesDeFotos(sb: SupabaseClient, rutas: string[]): Promise<string[]> {
   if (rutas.length === 0) return [];
   const { data } = await sb.storage.from(CUBO).createSignedUrls(rutas, 600);
@@ -407,7 +442,7 @@ export const DEMO_PRODUCTOS: ProductoElegido[] = [
 ];
 const dias = (n: number) => new Date(Date.now() - n * 86400000).toISOString();
 const vacio = { damaged_pieces: null, sample_pieces: null, product_id: null, product_sku: null, product_name: null, scrap_type: null, boxes: null, pieces_per_box: null, loose_pieces: null, total_pieces: null, unit_cost: null, total_loss: null, return_type: null, reason: null, broken_by: [], crma: null, photos: [], photo_hashes: [], photo_pending: false,
-  stage: null as string | null, photographed_at: null, approved_at: null, approved_by: null, approval_sheet: null, dumped_at: null, dumped_by: null, adjusted_at: null, adjusted_by: null, adjustment_proof: null, firmas: [] as FirmaDeMerma[] };
+  stage: null as string | null, photographed_at: null, approved_at: null, approved_by: null, approval_sheet: null, dumped_at: null, dumped_by: null, adjusted_at: null, adjusted_by: null, adjustment_proof: null, firmas: [] as FirmaDeMerma[], rejected_at: null, rejected_by: null, rejected_reason: null };
 // 268 (demo): r1 y r4 comparten una foto (misma huella) para ver la marca de «foto repetida»; r7 está guardada sin foto.
 const HUELLA_DEMO = "a".repeat(64);
 const DEMO_FOTOS = { photos: ["demo/1.jpg", "demo/2.jpg"], photo_hashes: [HUELLA_DEMO, "b".repeat(64)] };

@@ -28,7 +28,7 @@ export interface EventoDeHistorial {
 type Lang = "en" | "es";
 const ETAPA: Record<string, [string, string]> = {
   documented: ["Documented", "Documentada"], photographed: ["Photographed", "Fotografiada"], approved: ["Approved", "Aprobada"],
-  dumped: ["Dumped", "Desechada"], adjusted: ["Adjusted", "Ajustada"],
+  dumped: ["Dumped", "Desechada"], adjusted: ["Adjusted", "Ajustada"], rejected: ["Rejected", "Rechazada"],
 };
 const CAMPO: Record<string, [string, string]> = {
   product_name: ["product", "producto"], product_sku: ["SKU", "SKU"], product_id: ["catalog product", "producto del catálogo"],
@@ -55,6 +55,9 @@ export function textoDeEntrada(e: EntradaDeHistorial, lang: Lang): string {
     case "created": return es ? "Reporte creado" : "Report created";
     case "stage": return es ? `Etapa: ${etapa(d.de, lang)} → ${etapa(d.a, lang)}` : `Stage: ${etapa(d.de, lang)} → ${etapa(d.a, lang)}`;
     case "photos": return es ? `Fotos: ${d.antes ?? 0} → ${d.despues ?? 0}` : `Photos: ${d.antes ?? 0} → ${d.despues ?? 0}`;
+    // 327: el motivo del rechazo queda en la bitácora; deshacerlo también se anota.
+    case "rechazo": return es ? `Rechazada — «${String(d.motivo ?? "")}»` : `Rejected — «${String(d.motivo ?? "")}»`;
+    case "rechazo_deshecho": return es ? "Se deshizo el rechazo" : "Rejection undone";
     case "group": {
       const nombre = d.nombre ? ` «${String(d.nombre)}»` : "";
       if (d.a && !d.de) return es ? `Agregada al grupo${nombre}` : `Added to group${nombre}`;

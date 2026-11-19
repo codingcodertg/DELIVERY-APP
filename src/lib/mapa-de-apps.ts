@@ -158,7 +158,7 @@ export const FLECHAS: Flecha[] = [
     // 2026-11-11: la merma elige su producto del catálogo del ERP y toma su precio de venta (la pérdida sale de ahí).
     de: "erp-inventory", a: "warehouse-ops", conectada: true,
     evidencia: "conectada (2026-11-11): el selector de producto de la merma busca en el catálogo del ERP, " +
-      "src/lib/almacen-ops/datos.ts:93 «export async function buscarProductos», con la RPC " +
+      "src/lib/almacen-ops/datos.ts:97 «export async function buscarProductos», con la RPC " +
       "supabase/migrations/247_operaciones_de_almacen.sql:165 «create or replace function public.warehouse_ops_search_products(q text)», " +
       "y el precio que guarda la merma es el de venta del producto, supabase/migrations/272_merma_precio_de_venta.sql:41 «from erp.products p».",
   },
