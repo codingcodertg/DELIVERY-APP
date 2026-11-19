@@ -3,8 +3,9 @@ import { Header } from "@/components/erp/header";
 import { getSessionInfo, canSeeCost } from "@/lib/erp/auth";
 import { createClient } from "@/lib/erp/supabase/server";
 import { unwrap } from "@/lib/erp/db-result";
-import { listCycleCounts, getNegativeBalances } from "@/lib/erp/actions";
+import { listCycleCounts, getNegativeBalances, listCountLists } from "@/lib/erp/actions";
 import { InventoryConsole, type StoreOption } from "@/components/erp/inventory-console";
+import { CountListsSection } from "@/components/erp/count-lists";
 import { Tx } from "@/components/erp/tx";
 import { GroupTabs } from "@/components/erp/group-tabs";
 
@@ -20,10 +21,11 @@ export default async function InventoryPage() {
 
   const supabase = await createClient();
   // Unwrapped (ARC-02): an empty store list would silently disable every adjustment.
-  const [storeRes, counts, negatives] = await Promise.all([
+  const [storeRes, counts, negatives, lists] = await Promise.all([
     supabase.from("stores").select("id,name").order("id"),
     listCycleCounts(50, 0),
     getNegativeBalances(),
+    listCountLists(),
   ]);
   const stores = unwrap(storeRes, "inventory: stores");
 
@@ -37,6 +39,9 @@ export default async function InventoryPage() {
           <p className="mt-1 max-w-3xl text-sm text-slate-500">
             <Tx en="Cycle-count to verify on-hand, post manual adjustments (damage / shrinkage), and watch for negative balances. Every change is an append-only ledger movement." es="Conteo cíclico para verificar la existencia, ajustes manuales (daño / merma) y vigilancia de saldos negativos. Cada cambio es un movimiento del libro que solo se añade." />
           </p>
+        </div>
+        <div className="mb-5">
+          <CountListsSection stores={(stores ?? []) as StoreOption[]} initialLists={lists} />
         </div>
         <InventoryConsole
           stores={(stores ?? []) as StoreOption[]}

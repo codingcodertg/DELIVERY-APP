@@ -7,6 +7,8 @@ import { createAdminClient } from "@/lib/erp/supabase/admin";
 import { unwrap } from "@/lib/erp/db-result";
 import { pdfToLayoutText } from "@/lib/erp/server/pdf";
 import { parseDocument, type ParsedDoc } from "@/lib/erp/domain/po-parse";
+import { filtrosDeBusqueda, CAMPOS_DE_BUSQUEDA, terminosDeBusqueda, type CampoDeBusqueda } from "@/lib/erp/busqueda-productos";
+import { TOPE_DE_ALTA } from "@/lib/erp/listas-de-conteo";
 import { CATALOG_PAGE, CATALOG_SORTS } from "@/lib/erp/catalog";
 import type { CatalogRow, CatalogQuery } from "@/lib/erp/catalog";
 import type { StoreStats, VendorStats, CategoryStats } from "@/lib/erp/analytics";
@@ -45,8 +47,8 @@ function catalogFilters(supabase: SBClient, p: CatalogQuery, withCount: boolean)
     const c = p.categoryPath.replace(/[%,()]/g, "");
     qb = qb.ilike("category_path", `${c}%`); // category browse: L1 (prefix) or exact "L1 > L2"
   }
-  const q = (p.q ?? "").trim().replace(/[%,()]/g, " ").trim();
-  if (q) qb = qb.or(`name.ilike.%${q}%,sku.ilike.%${q}%,vendor_name.ilike.%${q}%`);
+  // Varias palabras = Y: cada palabra en al menos un campo (busqueda-productos.ts). Un .or() por palabra.
+  for (const filtro of filtrosDeBusqueda(p.q)) qb = qb.or(filtro);
   return qb;
 }
 
@@ -693,19 +695,15 @@ export async function receiveManual(input: {
 
 export type ProductSearchHit = { id: number; sku: string; name: string; base_unit: string | null; cost: number | null };
 
-/** Search published products by name/SKU for the manual-receive / adjustment pickers (mgr/admin). */
+/** Search published products (proveedor, SKU, nombre, categoría y demás campos) for the pickers (mgr/admin).
+ *  Varias palabras = Y entre campos: busqueda-productos.ts. */
 export async function searchProducts(query: string): Promise<ProductSearchHit[]> {
-  const safe = query.trim().replace(/[%,()]/g, "");
-  if (safe.length < 2) return [];
+  const filtros = filtrosDeBusqueda(query);
+  if (filtros.length === 0 || query.trim().length < 2) return [];
   const supabase = await createClient();
-  const data = unwrap(
-    await supabase
-      .from("app_products")
-      .select("id,sku,name,base_unit,cost")
-      .or(`name.ilike.%${safe}%,sku.ilike.%${safe}%`)
-      .limit(10),
-    "searchProducts: app_products",
-  );
+  let qb = supabase.from("app_products").select("id,sku,name,base_unit,cost");
+  for (const filtro of filtros) qb = qb.or(filtro);
+  const data = unwrap(await qb.limit(10), "searchProducts: app_products");
   return (data ?? []) as ProductSearchHit[];
 }
 
@@ -788,6 +786,119 @@ export async function getProductStoreQoh(
     "getProductStoreQoh: app_store_products",
   );
   return (data ?? []) as { store_id: string; qoh: number | null; qoh_verified: boolean }[];
+}
+
+// ---- Listas de conteo (Inventario, migración 330) ---------------------------------------------
+// Toda escritura es una función SECURITY DEFINER con la misma puerta que el conteo (admin/manager). Las
+// lecturas también van por RPC: el detalle trae tienda, proveedor, categoría y la existencia ya unidos, y
+// la existencia del sistema sale solo de los renglones ya contados.
+
+export type ListaBase = {
+  id: number; store_id: string; store_name: string | null; name: string; status: "open" | "submitted";
+  created_at: string; created_by_name: string | null; updated_at: string;
+  submitted_at: string | null; submitted_by_name: string | null;
+};
+export type ListaDeConteo = ListaBase & { lines: number; counted: number };
+export type RenglonDeLista = {
+  id: number; product_id: number; sku: string; name: string; vendor_name: string | null; category_path: string | null;
+  base_unit: string | null; counted_qty: number | null; counted_at: string | null; counted_by_name: string | null;
+  cycle_count_id: number | null; system_qty: number | null;
+};
+export type DetalleDeLista = { list: ListaBase & { updated_by_name: string | null }; lines: RenglonDeLista[] };
+/** Un producto de la búsqueda: los campos descriptivos (sin costo) para elegir y para enseñar por qué coincide. */
+export type HitDeConteo = { id: number; base_unit: string | null } & Record<CampoDeBusqueda, string | null>;
+
+type ResultadoDeLista<T> = { ok: true; value: T } | ErpFail | { ok: false; error: string };
+
+/** Un error de la base: si es uno de los nuestros, su código (literal, para que el guardián de i18n lo vea);
+ *  si no, el texto de Supabase tal cual. */
+function falloDeLista(error: { message: string }): ErpFail | { ok: false; error: string } {
+  const mensaje = error.message.trim();
+  if (mensaje === "LIST_NAME_INVALID") return fail("LIST_NAME_INVALID");
+  if (mensaje === "LIST_NOT_FOUND") return fail("LIST_NOT_FOUND");
+  if (mensaje === "LIST_CLOSED") return fail("LIST_CLOSED");
+  if (mensaje === "LIST_EMPTY") return fail("LIST_EMPTY");
+  if (mensaje === "LIST_HAS_UNCOUNTED") return fail("LIST_HAS_UNCOUNTED");
+  if (mensaje === "LIST_TOO_MANY") return fail("LIST_TOO_MANY", { max: String(TOPE_DE_ALTA) });
+  if (mensaje === "QTY_INVALID") return fail("QTY_INVALID");
+  if (mensaje === "LINE_NOT_FOUND") return fail("LINE_NOT_FOUND");
+  if (mensaje === "not authorized") return fail("NOT_AUTHORIZED");
+  return { ok: false, error: error.message };
+}
+
+/** Las listas (abiertas primero). mgr/admin. */
+export async function listCountLists(limit = 50, offset = 0): Promise<ListaDeConteo[]> {
+  const supabase = await createClient();
+  const data = unwrap(await supabase.rpc("count_lists_list", { p_limit: limit, p_offset: offset }), "listCountLists");
+  return (data ?? []) as ListaDeConteo[];
+}
+
+/** Una lista con sus renglones. mgr/admin. */
+export async function getCountList(listId: number): Promise<ResultadoDeLista<DetalleDeLista>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("count_list_detail", { p_list_id: listId });
+  if (error) return falloDeLista(error);
+  return { ok: true, value: data as DetalleDeLista };
+}
+
+/** Crea una lista para una tienda. mgr/admin. */
+export async function createCountList(input: { storeId: string; name: string }): Promise<ResultadoDeLista<number>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("count_list_create", { p_store_id: input.storeId, p_name: input.name });
+  if (error) return falloDeLista(error);
+  return { ok: true, value: Number(data) };
+}
+
+/** Agrega productos a una lista abierta (hasta TOPE_DE_ALTA; los que ya están no se duplican). mgr/admin. */
+export async function addProductsToCountList(listId: number, productIds: number[]): Promise<ResultadoDeLista<{ added: number }>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("count_list_add_products", { p_list_id: listId, p_product_ids: productIds });
+  if (error) return falloDeLista(error);
+  return { ok: true, value: data as { added: number } };
+}
+
+/** Fija (o borra, con null) la cantidad contada de un renglón. Devuelve el renglón ya con la existencia. mgr/admin. */
+export async function setCountListQty(lineId: number, countedQty: number | null): Promise<ResultadoDeLista<RenglonDeLista>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("count_list_set_qty", { p_line_id: lineId, p_counted_qty: countedQty });
+  if (error) return falloDeLista(error);
+  return { ok: true, value: data as RenglonDeLista };
+}
+
+/** Quita un renglón de una lista abierta. mgr/admin. */
+export async function removeCountListLine(lineId: number): Promise<ResultadoDeLista<null>> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("count_list_remove_line", { p_line_id: lineId });
+  if (error) return falloDeLista(error);
+  return { ok: true, value: null };
+}
+
+/** Envía la lista: cada renglón contado se registra con record_cycle_count y la lista queda de solo lectura. mgr/admin. */
+export async function submitCountList(listId: number): Promise<ResultadoDeLista<{ recorded: number }>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("count_list_submit", { p_list_id: listId });
+  if (error) return falloDeLista(error);
+  revalidatePath("/erp/inventory");
+  return { ok: true, value: data as { recorded: number } };
+}
+
+/**
+ * Búsqueda para agregar a una lista: todas las palabras (Y) en cualquiera de los campos descriptivos.
+ * Devuelve el total exacto y hasta TOPE_DE_ALTA productos (los que se pueden agregar de una vez).
+ */
+export async function searchProductsForCount(
+  query: string,
+): Promise<{ ok: true; total: number; rows: HitDeConteo[] } | { ok: false; error: string }> {
+  const filtros = filtrosDeBusqueda(query);
+  if (terminosDeBusqueda(query).length === 0) return { ok: true, total: 0, rows: [] };
+  const supabase = await createClient();
+  const columnas = ["id", "base_unit", ...CAMPOS_DE_BUSQUEDA].join(",");
+  let qb = supabase.from("app_products").select(columnas, { count: "exact" });
+  for (const filtro of filtros) qb = qb.or(filtro);
+  const { data, count, error } = await qb.order("sku", { ascending: true }).range(0, TOPE_DE_ALTA - 1);
+  if (error) return { ok: false, error: error.message };
+  const rows = (data ?? []) as unknown as HitDeConteo[];
+  return { ok: true, total: count ?? rows.length, rows };
 }
 
 // ---- Analytics (manager/admin only — cost/margin surface, #29) ---------------------------------
