@@ -14,8 +14,10 @@ import { formateadorDeFecha } from "@/lib/formateador";
 const CACHE = new Map<string, number>();
 
 export function centralShiftMs(at: Date = new Date()): number {
-  // Offset only changes twice a year — cache by calendar day.
-  const key = at.toISOString().slice(0, 10);
+  // El offset cambia dos veces al año, siempre en una hora entera UTC (las 2:00 CST son las 08:00Z,
+  // las 2:00 CDT son las 07:00Z). Se cachea por hora UTC, NO por día: por día, la primera consulta
+  // de un día de cambio fijaba el offset de todo el día y la hora de la otra mitad salía mal.
+  const key = at.toISOString().slice(0, 13);
   const cached = CACHE.get(key);
   if (cached !== undefined) return cached;
 
@@ -42,5 +44,11 @@ export function utcToCentralInput(iso: string): string {
 /** "YYYY-MM-DDTHH:MM" (Central wall-clock, from a datetime-local input) -> UTC ISO. */
 export function centralWallToUtc(local: string): string {
   const asUtc = new Date(local + ":00.000Z").getTime();
-  return new Date(asUtc + centralShiftMs(new Date(asUtc))).toISOString();
+  // El offset depende del instante real, no de la pared leída como UTC: en el día del cambio, una
+  // pared de madrugada cae del otro lado de la hora del cambio (06:00 el 8 de marzo ya es CDT, y
+  // leída como UTC es antes de las 08:00Z, donde el offset es CST). Se refina una vez: el segundo
+  // offset es el que vale, y converge en cuanto no cambia.
+  let utc = asUtc + centralShiftMs(new Date(asUtc));
+  utc = asUtc + centralShiftMs(new Date(utc));
+  return new Date(utc).toISOString();
 }

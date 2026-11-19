@@ -8,6 +8,7 @@ import {
   approveTimesheet, unapproveTimesheet, ownerSignoff, revokeSignoff,
 } from "@/app/timetracker/clock-in/actions/reports";
 import { entryMinutes, hrs, summarize, type PayEntry } from "@/lib/clockin/payroll";
+import { minutosDeVentanas, modoDeComida, pagoDeComida, resumenDelBorrador, type BorradorTurno } from "@/lib/clockin/comida";
 import { utcToCentralInput } from "@/lib/clockin/tz";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 import { APP_SETTINGS, dateISO, money, periodEndISO } from "@/lib/timetracker/helpers";
@@ -41,7 +42,6 @@ const LUNCH_OPTS = [0, 15, 30, 45, 60, 90];
 const SIN_TIENDA = "__none__";
 
 type Data = Extract<Awaited<ReturnType<typeof getPayrollPeriod>>, { ok: true }>;
-type Draft = { clockIn: string; clockOut: string; lunch: number; note: string };
 
 const fmtDia = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: APP_SETTINGS.timeZone /* G-25: la zona del ajuste, no America/Chicago a pelo */ });
@@ -81,7 +81,7 @@ export function PayrollTimesheets({ period, revisar }: {
   const [buscar, setBuscar] = useState("");
   const [editando, setEditando] = useState<string | null>(null);
   const [anadiendo, setAnadiendo] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Draft>({ clockIn: "", clockOut: "", lunch: 0, note: "" });
+  const [draft, setDraft] = useState<BorradorTurno>({ clockIn: "", clockOut: "", modo: "horas", lunch: 0, lunchStart: "", lunchEnd: "", note: "" });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -149,17 +149,22 @@ export function PayrollTimesheets({ period, revisar }: {
   function empiezaEdicion(e: PayEntry) {
     setAnadiendo(null);
     setEditando(e.id);
+    const comida = modoDeComida(e);
     setDraft({
       clockIn: utcToCentralInput(e.clock_in_at),
       clockOut: e.clock_out_at ? utcToCentralInput(e.clock_out_at) : "",
-      lunch: e.lunch_minutes ?? 0,
+      modo: comida.modo,
+      lunch: comida.modo === "horas" ? minutosDeVentanas(e.lunch_windows ?? []) : comida.minutos,
+      lunchStart: comida.modo === "horas" ? comida.lunchStart : "",
+      lunchEnd: comida.modo === "horas" ? comida.lunchEnd : "",
       note: e.edit_note ?? "",
     });
   }
   function empiezaAlta(empId: string) {
     setEditando(null);
     setAnadiendo(empId);
-    setDraft({ clockIn: `${period}T08:00`, clockOut: `${period}T16:30`, lunch: 30, note: "" });
+    // La comida por defecto es de 30 minutos, como antes, ahora con sus horas.
+    setDraft({ clockIn: `${period}T08:00`, clockOut: `${period}T16:30`, modo: "horas", lunch: 30, lunchStart: `${period}T12:00`, lunchEnd: `${period}T12:30`, note: "" });
   }
 
   // ---- Tarifa y talones de pago (D-538) ----
@@ -262,36 +267,77 @@ export function PayrollTimesheets({ period, revisar }: {
     );
   };
 
-  const formulario = (onSave: () => void, onCancel: () => void) => (
-    <div className="box" style={{ marginTop: 8 }}>
-      <div className="grid g2">
-        <div>
-          <label>Clock in</label>
-          <input type="datetime-local" value={draft.clockIn} onChange={(e) => setDraft({ ...draft, clockIn: e.target.value })} />
+  // El formulario de un turno (alta o corrección). Las horas de comida van en pares: inicio y fin, o
+  // ninguna. Los minutos sólo se ven en turnos viejos sin horas (no se tiran sin querer) y en los que
+  // tienen varias pausas (esas se corrigen desde la bitácora del turno).
+  const formulario = (onSave: () => void, onCancel: () => void, esAlta: boolean, cabecera?: string) => {
+    const r = resumenDelBorrador(draft, esAlta);
+    const horas = draft.modo === "horas";
+    return (
+      <div className="box" style={{ marginTop: 8 }}>
+        {cabecera && <div className="small muted" style={{ marginBottom: 8 }}>{cabecera}</div>}
+        <div className="grid g2">
+          <div>
+            <label>Clock in</label>
+            <input type="datetime-local" value={draft.clockIn} onChange={(e) => setDraft({ ...draft, clockIn: e.target.value })} />
+          </div>
+          <div>
+            <label>Clock out{esAlta ? "" : " (empty = still clocked in)"}</label>
+            <input type="datetime-local" value={draft.clockOut} onChange={(e) => setDraft({ ...draft, clockOut: e.target.value })} />
+          </div>
         </div>
-        <div>
-          <label>Clock out</label>
-          <input type="datetime-local" value={draft.clockOut} onChange={(e) => setDraft({ ...draft, clockOut: e.target.value })} />
+        {horas && (
+          <div className="grid g2">
+            <div>
+              <label>Lunch start</label>
+              <input type="datetime-local" value={draft.lunchStart} onChange={(e) => setDraft({ ...draft, lunchStart: e.target.value })} />
+            </div>
+            <div>
+              <label>Lunch end</label>
+              <input type="datetime-local" value={draft.lunchEnd} onChange={(e) => setDraft({ ...draft, lunchEnd: e.target.value })} />
+            </div>
+          </div>
+        )}
+        {horas && <div className="small muted" style={{ marginTop: 4 }}>Leave both lunch fields empty for no lunch.</div>}
+        {draft.modo === "minutos" && (
+          <div className="grid g2">
+            <div>
+              <label>Lunch (no times on record)</label>
+              <select value={draft.lunch} onChange={(e) => setDraft({ ...draft, lunch: Number(e.target.value) })}>
+                {[...new Set([...LUNCH_OPTS, draft.lunch])].sort((a, b) => a - b).map((m) => <option key={m} value={m}>{m} min</option>)}
+              </select>
+              <button className="btn-ghost btn-sm" style={{ marginTop: 6 }} onClick={() => setDraft({ ...draft, modo: "horas", lunchStart: "", lunchEnd: "" })}>
+                Enter lunch start and end instead
+              </button>
+            </div>
+          </div>
+        )}
+        {draft.modo === "varias" && (
+          <div className="banner warn" style={{ marginTop: 8 }}>
+            This shift has several lunch breaks ({draft.lunch} min in total). Edit them from the shift&apos;s log; the times here are left as they are.
+          </div>
+        )}
+        <div className="grid g2" style={{ marginTop: 8 }}>
+          <div>
+            <label>Note</label>
+            <input value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder="why it changed" />
+          </div>
+        </div>
+        {r.error
+          ? <div className="banner err" style={{ marginTop: 10 }}>{r.error}</div>
+          : (
+            <div className="small" style={{ marginTop: 10 }}>
+              Lunch <b>{r.comidaMin} min</b>
+              {r.pagadoMin !== null ? <> · paid <b>{hrs(r.pagadoMin)} h</b></> : <> · paid hours counted when clocked out</>}
+            </div>
+          )}
+        <div className="row" style={{ marginTop: 10 }}>
+          <button onClick={onSave} disabled={busy || !!r.error}>Save</button>
+          <button className="btn-ghost" onClick={onCancel} disabled={busy}>Cancel</button>
         </div>
       </div>
-      <div className="grid g2">
-        <div>
-          <label>Lunch</label>
-          <select value={draft.lunch} onChange={(e) => setDraft({ ...draft, lunch: Number(e.target.value) })}>
-            {LUNCH_OPTS.map((m) => <option key={m} value={m}>{m} min</option>)}
-          </select>
-        </div>
-        <div>
-          <label>Note</label>
-          <input value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder="why it changed" />
-        </div>
-      </div>
-      <div className="row" style={{ marginTop: 10 }}>
-        <button onClick={onSave} disabled={busy}>Save</button>
-        <button className="btn-ghost" onClick={onCancel} disabled={busy}>Cancel</button>
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <>
@@ -412,9 +458,19 @@ export function PayrollTimesheets({ period, revisar }: {
                             { key: "dia", en: t("mgr.rep.colDay"), es: t("mgr.rep.colDay"), ancho: 150, celda: (e) => <span className="small nowrap">{fmtDia(e.clock_in_at)}</span> },
                             { key: "turno", en: t("mgr.pay.colShift"), es: t("mgr.pay.colShift"), ancho: 200,
                               celda: (e) => (
-                                <span className="small nowrap">
-                                  {fmtHora(e.clock_in_at)} – {e.clock_out_at ? fmtHora(e.clock_out_at) : <span className="pill wait">open</span>}
-                                </span>
+                                <>
+                                  <span className="small nowrap">
+                                    {fmtHora(e.clock_in_at)} – {e.clock_out_at ? fmtHora(e.clock_out_at) : <span className="pill wait">open</span>}
+                                  </span>
+                                  {/* La comida: las horas exactas si las hay (pausa fichada), si no los minutos del turno viejo. */}
+                                  {e.lunch_windows && e.lunch_windows.length > 0 ? (
+                                    <div className="small muted nowrap">
+                                      🍽 {e.lunch_windows.map((w) => `${fmtHora(w.left)} – ${fmtHora(w.returned)}`).join(", ")} · {minutosDeVentanas(e.lunch_windows)}m
+                                    </div>
+                                  ) : (e.lunch_minutes ?? 0) > 0 ? (
+                                    <div className="small muted nowrap">🍽 {e.lunch_minutes}m</div>
+                                  ) : null}
+                                </>
                               ) },
                             { key: "horas", en: t("mgr.rep.colHours"), es: t("mgr.rep.colHours"), ancho: 110, numerico: true, celda: (e) => <span className="small nowrap">{hrs(entryMinutes(e))} h</span> },
                             { key: "nota", en: t("mgr.rep.colNote"), es: t("mgr.rep.colNote"), ancho: 240, envuelve: true,
@@ -439,22 +495,31 @@ export function PayrollTimesheets({ period, revisar }: {
                           subFila={(e) => <BitacoraDelDia entryId={e.id} />} />
                       </div>
 
+                      {/* El formulario de corrección va bajo la tabla de la persona, no bajo la fila: se dice
+                          qué turno es, para no confundir el turno que se corrige con el de la fila de arriba. */}
                       {editando && suyas.some((e) => e.id === editando) &&
                         formulario(
                           () => corre(() => editEntry({
                             id: editando, clockIn: draft.clockIn, clockOut: draft.clockOut || null,
-                            lunch: draft.lunch, note: draft.note || undefined,
+                            note: draft.note || undefined, ...pagoDeComida(draft),
                           })),
                           () => setEditando(null),
+                          false,
+                          (() => {
+                            const e = suyas.find((x) => x.id === editando)!;
+                            return `Editing ${fmtDia(e.clock_in_at)} · ${fmtHora(e.clock_in_at)} – ${e.clock_out_at ? fmtHora(e.clock_out_at) : "open"}`;
+                          })(),
                         )}
 
                       {anadiendo === id
                         ? formulario(
                             () => corre(() => addEntry({
                               employeeId: id, clockIn: draft.clockIn, clockOut: draft.clockOut,
-                              lunch: draft.lunch, note: draft.note || undefined,
+                              note: draft.note || undefined, ...pagoDeComida(draft),
                             })),
                             () => setAnadiendo(null),
+                            true,
+                            "New shift",
                           )
                         : !d.signedOff && (
                             <button className="btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => empiezaAlta(id)}>
