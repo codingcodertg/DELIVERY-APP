@@ -218,9 +218,11 @@ describe("lo que publica cada pantalla grande", () => {
   });
 
   it("Leads: pestaña, pool y qué ventana; el nombre del prospecto NO viaja (la función ni lo recibe)", () => {
-    expect(enIngles(contextoDeLeads({ pestana: "banco", pool: "McAllen", vista: "libres", buscando: false, dialogo: "cerrar", historialAbierto: false })))
-      .toEqual(["Lead bank tab", "pool: McAllen", "showing free leads", "Close lead window open"]);
-    expect(enIngles(contextoDeLeads({ pestana: "mio", pool: "McAllen", vista: "libres", buscando: false, dialogo: null, historialAbierto: false }))).toEqual(["My pool tab"]);
+    expect(enIngles(contextoDeLeads({ pestana: "banco", pool: "McAllen", etapa: "", buscando: false, dialogo: "nota", historialAbierto: false })))
+      .toEqual(["GOV Pool tab", "pool: McAllen", "Lead stage / note window open"]);
+    expect(enIngles(contextoDeLeads({ pestana: "banco", pool: "McAllen", etapa: "quote", buscando: false, dialogo: null, historialAbierto: false })))
+      .toEqual(["GOV Pool tab", "pool: McAllen", "stage filter: quote"]);
+    expect(enIngles(contextoDeLeads({ pestana: "admin", pool: null, etapa: "", buscando: false, dialogo: null, historialAbierto: false }))).toEqual(["Admin tab"]);
   });
 
   it("el asistente de Operaciones: el paso y su PREGUNTA, el resumen o la confirmación", () => {

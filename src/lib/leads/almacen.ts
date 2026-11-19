@@ -1,14 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { filtroActivos } from "@/lib/baja";
 import { ALCANCE_SIN_REGLA, alcanceDeLaBase, type Alcance } from "./alcance";
-import { negativaDeCodigo, TOPE_POR_DEFECTO, type EstadoLead, type Etiqueta, type EventoLead, type Lead, type Negativa, type Persona, type Resultado, esTipoDeAccion, type TipoDeAccion } from "./reglas";
+import { negativaDeCodigo, esTipoDeAccion, type EstadoLead, type Etiqueta, type EventoLead, type Lead, type Negativa, type TipoDeAccion } from "./reglas";
 
 /**
- * Dónde viven los leads: `public.leads`, `public.lead_events` y `public.lead_settings` (migración 162). Una interfaz
- * con dos implementaciones —la base y el demo— para que la pantalla sea la misma en las dos.
+ * Dónde viven los leads: `public.leads` y `public.lead_events` (migración 162; la etapa y el «visto en N cargas», 328).
+ * Una interfaz con dos implementaciones —la base y el demo— para que la pantalla sea la misma en las dos.
  *
  * **Se lee con la sesión de quien mira**: la política decide (`has_leads_access()`, 162; y por tienda, 163). **No hay ni una
- * escritura directa**: las tres tablas no tienen INSERT, UPDATE ni DELETE por la API. Todo va por funciones, y cada
+ * escritura directa**: las tablas no tienen INSERT, UPDATE ni DELETE por la API. Todo va por funciones, y cada
  * una devuelve el lead como quedó: lo que la pantalla pinta después es lo que dijo la base, no lo que se supuso.
  *
  * Sin la 162 aplicada (el código llega antes que la migración) se devuelve `sinTabla` y la pantalla lo dice.
@@ -16,25 +15,19 @@ import { negativaDeCodigo, TOPE_POR_DEFECTO, type EstadoLead, type Etiqueta, typ
 export type Res<T> = { ok: true; valor: T } | { ok: false; sinTabla: boolean; motivo: Negativa | null; error: string };
 
 export interface AlmacenDeLeads {
-  /**
-   * Los leads que quien mira ALCANZA (los de su tienda y los suyos, o todos: lo decide la base, migración 163),
-   * el tope vigente y ese alcance.
-   */
-  leer(): Promise<Res<{ leads: Lead[]; tope: number; alcance: Alcance }>>;
+  /** Los leads que quien mira ALCANZA (los de su tienda y los suyos, o todos: lo decide la base, migración 163) y ese alcance. */
+  leer(): Promise<Res<{ leads: Lead[]; alcance: Alcance }>>;
   /** El historial de UN lead, de lo más viejo a lo más nuevo. */
   historial(leadId: string): Promise<Res<EventoLead[]>>;
-  /** Los cierres de todos (para el tablero del admin). */
-  cierres(): Promise<Res<EventoLead[]>>;
-  /** A quién se le puede asignar un lead: quien tiene el módulo, y los admins. */
-  personas(): Promise<Res<Persona[]>>;
-  tomar(leadId: string): Promise<Res<Lead>>;
-  /** 253: con tipo de acción la nota es opcional. */
-  anotar(leadId: string, nota: string, accion?: TipoDeAccion | null): Promise<Res<Lead>>;
-  cerrar(leadId: string, resultado: Resultado, nota: string): Promise<Res<Lead>>;
-  liberar(leadId: string, nota: string): Promise<Res<Lead>>;
-  asignar(leadId: string, persona: string, nota: string): Promise<Res<Lead>>;
+  /** Todo el historial (para el tablero del admin: cotizaciones, notas y ventas por persona y por tienda). */
+  eventos(): Promise<Res<EventoLead[]>>;
+  /**
+   * La nota de avance (328): con una etapa, esa es la etapa del lead; sin etapa, la nota es obligatoria. Quien VE el
+   * lead puede anotar. Devuelve el lead como quedó.
+   */
+  anotar(leadId: string, nota: string, etapa: TipoDeAccion | null): Promise<Res<Lead>>;
+  /** Archivar (solo admin). Un archivado no se ve en el banco. */
   archivar(leadId: string, nota: string): Promise<Res<Lead>>;
-  ponerTope(tope: number): Promise<Res<number>>;
   /**
    * D-762: los clientes con los que coinciden los leads cruzados (218): cuenta, tienda y el vendedor que los lleva hoy
    * (nombre del perfil, o null). Se leen de `erp.customers` con la sesión de quien mira: el admin los ve todos.
@@ -66,20 +59,28 @@ export function faltaElAlcance(error: { code?: string | null } | null | undefine
   return code === "PGRST202" || code === "42883";
 }
 
-/** Las columnas que la pantalla usa. No se pide `*`: la dirección postal del dueño no se enseña y no se baja. */
-export const COLUMNAS =
+/**
+ * Las columnas que la pantalla usa. No se pide `*`: la dirección postal del dueño no se enseña y no se baja.
+ * Son tres versiones, de la más nueva a la más vieja, porque la base puede ir por detrás del código:
+ *   · COLUMNAS: con la 328 (`times_seen`, `last_seen_at`) y la 253 (`follow_up_action`, la etapa).
+ *   · COLUMNAS_SIN_328: sin las dos de la 328 (la etapa sí).
+ *   · COLUMNAS_SIN_253: sin la etapa tampoco (lo demás es de la 162).
+ * Al faltar una columna (42703 / PGRST204) se baja a la siguiente. La lista nunca se pierde por eso.
+ */
+export const COLUMNAS_SIN_253 =
   "id, tabs_project, pool, distance_miles, category, project_type, reason, county, registered_date, project_name, facility_name, " +
   "type_of_work, scope_of_work, square_footage, estimated_cost, est_start_date, est_completion_date, permit_status, " +
   "site_address, site_city, site_zip, owner_name, owner_phone, owner_contact, tenant_name, tenant_phone, " +
   "design_firm_name, design_firm_phone, tdlr_link, status, holder, holder_name, taken_at, touched_at, " +
-  "follow_up_note, follow_up_at, follow_up_action, last_outcome, last_note, last_by, last_by_name, last_at, source, imported_at, customer_match_id, customer_match_note";
+  "follow_up_note, follow_up_at, last_outcome, last_note, last_by, last_by_name, last_at, source, imported_at, customer_match_id, customer_match_note";
+export const COLUMNAS_SIN_328 = COLUMNAS_SIN_253.replace("follow_up_at, last_outcome", "follow_up_at, follow_up_action, last_outcome");
+export const COLUMNAS = COLUMNAS_SIN_328 + ", times_seen, last_seen_at";
+const COLUMNAS_EN_ORDEN = [COLUMNAS, COLUMNAS_SIN_328, COLUMNAS_SIN_253] as const;
 
-/** Sin la 253 aplicada (el código llega antes): las mismas columnas sin el tipo de acción. */
-export const COLUMNAS_SIN_253 = COLUMNAS.replace(", follow_up_action", "");
 const EVENTO_COLUMNAS = "id, lead_id, at, kind, outcome, note, action, actor, actor_name, subject, subject_name";
 const EVENTO_COLUMNAS_SIN_253 = EVENTO_COLUMNAS.replace(", action", "");
 
-/** ¿Es «falta una columna» (la 253 no está aplicada)? 42703 de Postgres; PGRST204 de PostgREST. */
+/** ¿Es «falta una columna» (la 253 o la 328 no están aplicadas)? 42703 de Postgres; PGRST204 de PostgREST. */
 export const faltaLaColumna = (error: { code?: string } | null | undefined): boolean => error?.code === "42703" || error?.code === "PGRST204";
 
 export const PAGINA = 1000;
@@ -119,13 +120,15 @@ export function leadDeLaBase(f: Record<string, unknown>): Lead {
     // Cuándo entró el lote (el import semanal): de ahí salen las semanas del STXP Pool (semanas.ts).
     imported_at: texto(f.imported_at),
     customer_match_id: num(f.customer_match_id), customer_match_note: texto(f.customer_match_note),
+    // 328: sin la columna (base vieja), una carga y sin fecha de la última.
+    times_seen: num(f.times_seen) ?? 1, last_seen_at: texto(f.last_seen_at),
   };
 }
 
 export function eventoDeLaBase(f: Record<string, unknown>): EventoLead {
   return {
     id: Number(f.id), lead_id: String(f.lead_id), at: String(f.at), kind: f.kind as EventoLead["kind"],
-    outcome: (texto(f.outcome) as Resultado | null), note: texto(f.note), action: esTipoDeAccion(f.action) ? f.action : null, actor: texto(f.actor),
+    outcome: (texto(f.outcome) as EventoLead["outcome"]), note: texto(f.note), action: esTipoDeAccion(f.action) ? f.action : null, actor: texto(f.actor),
     actor_name: texto(f.actor_name), subject: texto(f.subject), subject_name: texto(f.subject_name),
   };
 }
@@ -143,13 +146,12 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
     if (!data || typeof data !== "object") return { ok: false, sinTabla: false, motivo: null, error: "empty answer" };
     return { ok: true, valor: leadDeLaBase(data as Record<string, unknown>) };
   };
-  const eventos = async (filtro: { lead?: string; kind?: string }): Promise<Res<EventoLead[]>> => {
+  const eventos = async (filtro: { lead?: string }): Promise<Res<EventoLead[]>> => {
     const todos: EventoLead[] = [];
     let columnas = EVENTO_COLUMNAS;
     for (let p = 0; p < MAX_PAGINAS; p++) {
       let q = supabase.from("lead_events").select(columnas);
       if (filtro.lead) q = q.eq("lead_id", filtro.lead);
-      if (filtro.kind) q = q.eq("kind", filtro.kind);
       const { data, error } = await q.order("id", { ascending: true }).range(p * PAGINA, (p + 1) * PAGINA - 1);
       if (error && faltaLaColumna(error) && columnas === EVENTO_COLUMNAS) { columnas = EVENTO_COLUMNAS_SIN_253; p--; continue; }
       if (error) return fallo(error);
@@ -161,28 +163,25 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
   };
   return {
     async leer() {
-      const ajustes = await supabase.from("lead_settings").select("max_open").maybeSingle();
-      if (ajustes.error) return fallo(ajustes.error);
-      const tope = num((ajustes.data as { max_open?: unknown } | null)?.max_open) ?? TOPE_POR_DEFECTO;
       // El alcance se le PREGUNTA a la base: es la misma regla que su política aplica a las filas de abajo.
       const mio = await supabase.rpc("leads_my_scope");
       if (mio.error && !faltaElAlcance(mio.error)) return fallo(mio.error);
       const alcance = mio.error ? ALCANCE_SIN_REGLA : alcanceDeLaBase(mio.data);
       const leads: Lead[] = [];
-      let columnas = COLUMNAS;
+      let intento = 0;
       for (let p = 0; p < MAX_PAGINAS; p++) {
-        const { data, error } = await supabase.from("leads").select(columnas)
+        const { data, error } = await supabase.from("leads").select(COLUMNAS_EN_ORDEN[intento])
           .order("tabs_project", { ascending: true }).range(p * PAGINA, (p + 1) * PAGINA - 1);
-        if (error && faltaLaColumna(error) && columnas === COLUMNAS) { columnas = COLUMNAS_SIN_253; p--; continue; }
+        if (error && faltaLaColumna(error) && intento < COLUMNAS_EN_ORDEN.length - 1) { intento++; p--; continue; }
         if (error) return fallo(error);
         const filas = (data ?? []) as unknown as Record<string, unknown>[];
         leads.push(...filas.map(leadDeLaBase));
-        if (filas.length < PAGINA) return { ok: true, valor: { leads, tope, alcance } };
+        if (filas.length < PAGINA) return { ok: true, valor: { leads, alcance } };
       }
       return { ok: false, sinTabla: false, motivo: null, error: `more than ${PAGINA * MAX_PAGINAS} leads` };
     },
     historial: (leadId) => eventos({ lead: leadId }),
-    cierres: () => eventos({ kind: "closed" }),
+    eventos: () => eventos({}),
     async clientesCruzados(ids) {
       const mapa = new Map<number, ClienteCruzado>();
       const unicos = [...new Set(ids)].filter((n) => Number.isFinite(n));
@@ -199,30 +198,8 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
       for (const f of filas) mapa.set(Number(f.id), { ...f, id: Number(f.id), credit_limit: f.credit_limit == null ? null : Number(f.credit_limit), rep_name: f.rep_id ? (nombre.get(f.rep_id) ?? null) : null });
       return { ok: true, valor: mapa };
     },
-    async personas() {
-      const { data, error } = await supabase.from("perfiles_publicos").select("id, full_name, store, role, module_access").or(filtroActivos()); // D-707
-      if (error) return fallo(error);
-      const filas = (data ?? []) as { id: string; full_name: string | null; store: string | null; role: string | null; module_access: string[] | null }[];
-      return {
-        ok: true,
-        valor: filas
-          .filter((f) => f.role === "admin" || (f.module_access ?? []).includes("leads"))
-          .map((f) => ({ id: f.id, name: f.full_name?.trim() || "—", store: f.store, admin: f.role === "admin" }))
-          .sort((a, b) => a.name.localeCompare(b.name)),
-      };
-    },
-    tomar: (leadId) => llamar("lead_take", { p_lead: leadId }),
-    // Sin tipo se llama a la de dos argumentos: funciona con y sin la 253 aplicada.
-    anotar: (leadId, nota, accion = null) =>
-      accion ? llamar("lead_note", { p_lead: leadId, p_note: nota, p_action: accion }) : llamar("lead_note", { p_lead: leadId, p_note: nota }),
-    cerrar: (leadId, resultado, nota) => llamar("lead_close", { p_lead: leadId, p_outcome: resultado, p_note: nota }),
-    liberar: (leadId, nota) => llamar("lead_admin_release", { p_lead: leadId, p_note: nota }),
-    asignar: (leadId, persona, nota) => llamar("lead_admin_assign", { p_lead: leadId, p_user: persona, p_note: nota }),
+    // Sin etapa se manda null: la 328 exige la nota cuando no hay etapa, y la acepta vacía cuando la hay.
+    anotar: (leadId, nota, etapa) => llamar("lead_note", { p_lead: leadId, p_note: nota, p_action: etapa }),
     archivar: (leadId, nota) => llamar("lead_admin_archive", { p_lead: leadId, p_note: nota }),
-    async ponerTope(tope) {
-      const { data, error } = await supabase.rpc("leads_set_cap", { p_max: tope });
-      if (error) return fallo(error);
-      return { ok: true, valor: num(data) ?? tope };
-    },
   };
 }

@@ -25,9 +25,9 @@
 .ld-vistas { display: flex; gap: 6px; margin-bottom: 4px; }
 .ld-vistas .chip { padding: 10px 16px; font-size: 14px; }
 /* Los filtros por situación: una fila que se parte entera, nunca el texto dentro del botón. */
-.ld-situaciones { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
-.ld-situaciones .chip { padding: 6px 12px; font-size: 13px; white-space: nowrap; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; }
-.ld-situaciones .ld-cuenta { font-size: 12px; font-weight: 700; opacity: 0.65; }
+.ld-etapas { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
+.ld-etapas .chip { padding: 6px 12px; font-size: 13px; white-space: nowrap; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; }
+.ld-etapas .ld-cuenta { font-size: 12px; font-weight: 700; opacity: 0.65; }
 .ld-lista { display: grid; gap: 12px; }
 .ld-mas { display: block; width: 100%; margin-top: 12px; padding: 12px; }
 
@@ -140,22 +140,20 @@
 .leads-app .ld-filtros p.ld-ancho b { color: var(--text); font-size: 13.5px; }
 .leads-app .ld-vistas { margin-bottom: 0; }
 .leads-app .ld-vistas .chip { padding: 5px 14px; font-size: 13px; }
-.leads-app .ld-situaciones { margin: 0 0 6px; gap: 4px; }
-.leads-app .ld-situaciones .chip { padding: 4px 10px; font-size: 12.5px; }
+.leads-app .ld-etapas { margin: 0 0 6px; gap: 4px; }
+.leads-app .ld-etapas .chip { padding: 4px 10px; font-size: 12.5px; }
 /* El punto de color de cada situación: hace de leyenda de las pastillas y etiquetas de las tarjetas. */
-.leads-app .ld-situaciones .chip[data-situacion]:not([data-situacion=""])::before {
+.leads-app .ld-etapas .chip[data-etapa]:not([data-etapa=""])::before {
   content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--gray);
 }
-.leads-app .ld-situaciones .chip[data-situacion="buenos"]::before,
-.leads-app .ld-situaciones .chip[data-situacion="vendidos"]::before { background: var(--green); }
-.leads-app .ld-situaciones .chip[data-situacion="revision"]::before,
-.leads-app .ld-situaciones .chip[data-situacion="reasignar"]::before { background: var(--amber); }
-.leads-app .ld-situaciones .chip[data-situacion="negados"]::before { background: var(--red); }
-.leads-app .ld-situaciones .chip[data-situacion="tomados"]::before { background: var(--accent); }
+.leads-app .ld-etapas .chip.verde::before { background: var(--green); }
+.leads-app .ld-etapas .chip.rojo::before { background: var(--red); }
+.leads-app .ld-etapas .chip.ambar::before { background: var(--amber); }
+.leads-app .ld-etapas .chip.azul::before { background: var(--accent); }
 /* El `.on` de globals pinta con `--ink`, que en oscuro es casi el fondo: aquí el encendido es el acento, que se ve en los dos. */
 .leads-app .ld-filtros .chip.on, .leads-app .ld-dias .chip.on { background: var(--accent); border-color: var(--accent); color: var(--card); }
 .leads-app .ld-filtros .chip.on::before { box-shadow: 0 0 0 1.5px var(--card); }
-.leads-app .ld-situaciones .ld-cuenta { font-variant-numeric: tabular-nums; }
+.leads-app .ld-etapas .ld-cuenta { font-variant-numeric: tabular-nums; }
 .leads-app .ld-filtros [data-cuenta-banco] { margin: 4px 0 0; font-size: 12px; font-variant-numeric: tabular-nums; }
 
 /* ---- Vacío: dice por qué ---- */
@@ -248,8 +246,8 @@
   .leads-app .ld-filtros .ld-fila:first-child .ld-vistas .chip { min-height: 40px; }
   .leads-app .ld-filtros select, .leads-app .ld-filtros input[type="search"] { padding: 7px 8px; }
   .leads-app .ld-filtros [data-quitar-filtros] { min-height: 36px; justify-content: center; }
-  .leads-app .ld-situaciones { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: -12px; padding-right: 12px; }
-  .leads-app .ld-situaciones .chip { padding: 7px 11px; }
+  .leads-app .ld-etapas { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: -12px; padding-right: 12px; }
+  .leads-app .ld-etapas .chip { padding: 7px 11px; }
   .leads-app .ld-datos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .leads-app .ld-tarjeta footer .btn { min-height: 44px; }
   .leads-app .ld-tarjeta footer .btn-primary, .leads-app .ld-tarjeta footer .btn-green { flex: 1 1 140px; justify-content: center; font-size: 15px; }
@@ -268,3 +266,11 @@ button.ld-pildora.on { border-color: currentColor; box-shadow: 0 0 0 1px current
 .ld-acciones { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .ld-filtro-accion { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; margin: 0 0 6px; }
 .ld-filtro-accion select { width: auto; }
+
+/* 328 (etapas): la etapa y quién hizo el último contacto, en la fila del título; el «visto en N cargas»; la píldora gris. */
+.ld-cabeza-der { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end; min-width: 0; }
+.ld-ultimo { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
+.ld-visto { font-size: 12.5px; font-weight: 700; color: var(--accent); margin: 2px 0; }
+.ld-pildora.gris { background: var(--paper); color: var(--ink-soft); border-color: var(--line); }
+.ld-etapas { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
+.ld-etapas .chip { display: inline-flex; align-items: center; gap: 6px; }

@@ -134,10 +134,10 @@ export function hechosClientes(
 }
 
 /**
- * LEADS. Ya tiene dueño (`holder`) y alcance por banco de tienda (`src/lib/leads/alcance.ts`): este módulo YA es de dos
- * capas. OJO: un `sales` necesita ver los leads LIBRES de su banco para poder tomarlos, así que «solo lo suyo» a secas
+ * LEADS. Alcance por banco de tienda (`src/lib/leads/alcance.ts`) y, desde la 328, sin dueño: nadie toma un lead, así que
+ * `holder` solo queda en las ventas. Un `sales` necesita ver TODO su banco para anotar, así que «solo lo suyo» a secas
  * rompería el producto. Por eso aquí `tieneDueno` se deja en manos del llamador: para la lista del banco va `false`
- * (todos ven su banco), y «lo suyo» se cuenta por `holder` cuando se quiera la vista «Mi pool». Se reporta abajo.
+ * (todos ven su banco). Se reporta abajo.
  */
 export function hechosLeads(
   l: { pool?: string | null; holder?: string | null },

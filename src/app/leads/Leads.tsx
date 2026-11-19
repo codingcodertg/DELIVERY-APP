@@ -11,12 +11,10 @@ import { type ClienteCruzado, almacenDeLaBase, type AlmacenDeLeads, type Res } f
 import { ALCANCE_SIN_REGLA, codigoDeTiendaDelPerfil, conCruzadosDeMiTienda, eligeTienda, esCruzadoDeMiTienda, leadsDelBanco, privadosVisibles, veElPoolPrivado, type Alcance } from "@/lib/leads/alcance";
 import { almacenDemo, PERSONAS_DEMO } from "@/lib/leads/demo";
 import {
-  abiertosDe, bloqueado, colaDeRevision, consecuencia, cuentaPorSituacion, delExcel, dinero, enlaceSeguro, estadoLabel, eventoLabel, fecha, filtrar,
-  mapsUrl, negativaTexto, notaLimpia, numero, ordenar, poolInicial, poolLabel, poolsDe, puedeTomar, puestosLibres, RESULTADOS,
-  POOL_TODAS, filtroDePool, resumenDeTodas,
-  resultadoLabel, sinTocar, SITUACIONES, situacionLabel, tableroPorVendedor, telUrl, valoresDe, veContacto, ventasDe, NOTA_MAX,
-  coincideConCliente, esPrivado, accionLabel, accionTono, pasaAccion, TIPOS_DE_ACCION, type TipoDeAccion,
-  ORDEN_INICIAL, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, type Resultado, type Situacion, type Vista,
+  cuantosVistosMasDeUna, cuentaPorEtapa, delExcel, dinero, enlaceSeguro, estadoLabel, etapaDe, etapaLabel, etapaTono, eventoLabel, fecha, filtrar,
+  filtroDePool, categoriaBuena, coincideConCliente, esPrivado, ETAPAS, mapsUrl, negativaTexto, notaLimpia, NOTA_MAX, numero, ordenar, poolInicial, poolLabel,
+  poolsDe, POOL_TODAS, resumenDeTodas, tableroPorTienda, tableroPorVendedor, telUrl, TIPOS_DE_ACCION, type TipoDeAccion, type Etapa, valoresDe, vecesVisto,
+  ORDEN_INICIAL, vigentes, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona,
 } from "@/lib/leads/reglas";
 import { etiquetaDeSemana, semanaInicial, semanasDelPool } from "@/lib/leads/semanas";
 import { cotizacionesPorLead, enlaceACotizacion, enlaceACotizar, idDeParametro, puedeCotizarLead, type CotizacionDeLead } from "@/lib/leads/cotizar";
@@ -26,11 +24,10 @@ import { telefonoEstandar } from "@/lib/recruiting/formato";
 import { terminoLabel } from "@/lib/customers/terminos";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
-type Pestana = "banco" | "mio" | "admin" | "privado";
+type Pestana = "banco" | "admin" | "privado";
 type Dialogo =
-  | { tipo: "cerrar"; lead: Lead }
   | { tipo: "nota"; lead: Lead }
-  | { tipo: "admin"; lead: Lead }
+  | { tipo: "archivar"; lead: Lead }
   | { tipo: "cliente"; lead: Lead; cliente: ClienteCruzado };
 
 /** La semana del STXP Pool que eligió cada persona, en ESTE navegador (como los avisos ocultos del Gestor). */
@@ -44,16 +41,14 @@ function guardaSemanaSTXP(id: string, valor: string): void {
 
 /** Cuántas tarjetas se pintan de entrada y cuántas más con cada «ver más»: en un teléfono, 140 tarjetas de golpe pesan. */
 const TANDA = 30;
-/** Los «sin tocar hace N días» que ofrece el tablero. */
-const DIAS_SIN_TOCAR = [7, 14, 30];
 
 /**
- * «Leads» (migración 162): el banco de leads por tienda (en la pantalla, «Pool General»), el pool personal con tope,
- * y lo del admin. Quién alcanza los leads de qué tienda lo decide la base (migración 163) y aquí solo se pinta.
+ * «Leads» (migración 162; por etapas desde la 328): el banco de leads por tienda (en la pantalla, «GOV Pool»), el
+ * STXP Pool y lo del admin. Quién alcanza los leads de qué tienda lo decide la base (migración 163) y aquí solo se pinta.
  *
- * Todas las reglas viven en `lib/leads/reglas` y están probadas sin navegador; la base las vuelve a exigir (las
- * funciones de la 162). Este componente lee, filtra y pinta, y cada acción va por el almacén, que devuelve el lead
- * como quedó en la base: eso es lo que se pinta.
+ * Desde la 328 nadie toma un lead: quien lo ve anota una nota de avance con una etapa, y la etapa es lo que el lead es.
+ * Todas las reglas viven en `lib/leads/reglas` y están probadas sin navegador; la base las vuelve a exigir. Este
+ * componente lee, filtra y pinta, y cada acción va por el almacén, que devuelve el lead como quedó en la base.
  */
 export function Leads({ demo, yo: yoReal, cotiza = false }: {
   demo: boolean; yo: Persona | null;
@@ -62,7 +57,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 }) {
   const { t, lang } = usePrefs();
 
-  // En el demo no hay sesión: se elige quién se es, para poder enseñar «lo tiene otra persona» y la parte del admin.
+  // En el demo no hay sesión: se elige quién se es, para poder enseñar la parte del admin y las otras tiendas.
   const [idDemo, setIdDemo] = useState(PERSONAS_DEMO[0].id);
   const yo: Persona | null = demo ? (PERSONAS_DEMO.find((p) => p.id === idDemo) ?? PERSONAS_DEMO[0]) : yoReal;
   const quien = useRef<Persona>(PERSONAS_DEMO[0]);
@@ -70,18 +65,17 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const almacen: AlmacenDeLeads = useMemo(() => (demo ? almacenDemo(() => quien.current) : almacenDeLaBase(createClient())), [demo]);
 
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [tope, setTope] = useState(10);
   const [alcance, setAlcance] = useState<Alcance>(ALCANCE_SIN_REGLA);
   const [estado, setEstado] = useState<Estado>({ tipo: "cargando" });
   const [pestana, setPestana] = useState<Pestana>("banco");
   const [pool, setPool] = useState<string | null>(null);
   // Mientras nadie elige a mano, la entrada se recalcula: el alcance y los leads llegan después del primer pintado (D-631).
   const [poolAMano, setPoolAMano] = useState(false);
-  const [vista, setVista] = useState<Vista>("libres");
   // D-798 (el dueño): «todas las categorías que sea default». Antes, «Sirve + podría servir».
   const [categoria, setCategoria] = useState<FiltroCategoria>("todas");
-  const [situacion, setSituacion] = useState<Situacion | "">("");
-  const [accionFiltro, setAccionFiltro] = useState<TipoDeAccion | "sin" | "">("");
+  // Las etapas son los filtros (328): una a la vez, «» = todas.
+  const [etapa, setEtapa] = useState<Etapa | "">("");
+  const [buena, setBuena] = useState(false);
   const [tipo, setTipo] = useState("");
   const [ciudad, setCiudad] = useState("");
   const [busca, setBusca] = useState("");
@@ -93,14 +87,13 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [historial, setHistorial] = useState<{ id: string; eventos: EventoLead[] | null } | null>(null);
   // Lo que una solicitud de ayuda dirá de esta pantalla (D-901). Del lead no se nombra a la persona.
   useContextoDeAyuda("leads", contextoDeLeads({
-    pestana, pool, vista, buscando: !!busca.trim(), dialogo: dialogo?.tipo ?? null, historialAbierto: historial !== null, demo,
+    pestana, pool, etapa, buscando: !!busca.trim(), dialogo: dialogo?.tipo ?? null, historialAbierto: historial !== null, demo,
   }));
 
   const cargar = useCallback(async () => {
     const r = await almacen.leer();
     if (!r.ok) { setEstado(r.sinTabla ? { tipo: "sinTabla" } : { tipo: "error", texto: r.error }); return; }
     setLeads(r.valor.leads);
-    setTope(r.valor.tope);
     setAlcance(r.valor.alcance);
     setEstado({ tipo: "listo" });
   }, [almacen]);
@@ -119,11 +112,9 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [enfocado, setEnfocado] = useState<string | null>(null);
   useEffect(() => { setEnfocado(idDeParametro(new URLSearchParams(window.location.search).get("lead"))); }, []);
 
-  // El banco que se enseña: todas las tiendas a quien las alcanza; a los demás, SOLO la suya. Sus leads de otra
-  // tienda (los que le asignó un admin) están en «Mi pool», y no traen aquí el banco de esa tienda ni su contador.
-  // D-760 (218): el «Pool privado» (leads de la fuente privada) es una pestaña aparte, solo del admin; la base ya no
-  // se los manda a nadie más. Reusa los mismos filtros, orden y tarjetas que el Pool General.
-  // D-770 (220): el STXP Pool lo ve quien tiene la casilla (y el admin), y de él su tienda y, agotada, la más cercana.
+  // El banco que se enseña: todas las tiendas a quien las alcanza; a los demás, SOLO la suya.
+  // D-760 (218): el «STXP Pool» (leads de la fuente privada) es una pestaña aparte, solo para quien tiene la casilla y el
+  // admin. Reusa los mismos filtros, orden y tarjetas que el GOV Pool.
   const veStxp = !!yo && veElPoolPrivado(yo);
   const privadosBase = useMemo(() => (yo ? privadosVisibles(leads, yo) : []), [leads, yo]);
   // D-762: de los cruzados, el cliente (enlace a su ficha) y el vendedor que lo lleva. Una lectura por tanda de ids.
@@ -141,19 +132,16 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     return c ? [c.account, c.rep_name, c.contact_name].filter(Boolean).join(" · ") : "";
   }, [clientes]);
   const [coinciden, setCoinciden] = useState(false);
-  // D-799 (225): lo cruzado con un cliente de MI tienda también se ve y se toma, aunque su pool sea otra tienda.
+  // D-799 (225): lo cruzado con un cliente de MI tienda también se ve, aunque su pool sea otra tienda.
   const miCodigo = codigoDeTiendaDelPerfil(yo?.store);
   const cruzadoDeMiTienda = useCallback((l: Lead) => esCruzadoDeMiTienda(l, clientes, miCodigo), [clientes, miCodigo]);
   const privados = useMemo(
     () => (veStxp ? conCruzadosDeMiTienda(privadosBase, leads.filter((l) => l.source === "privado"), cruzadoDeMiTienda) : privadosBase),
     [privadosBase, leads, cruzadoDeMiTienda, veStxp],
   );
-  // D-792 (el dueño): «cuando pongo un filter en STXP Pool y cambio a GOV me lleva ese filtro y me sale en blanco; si
-  // cambio de pool los filtros obviamente se deben de resetear». Cambiar de pestaña deja los filtros como al entrar.
-  // D-798: los filtros como al entrar; también con el botón «Quitar filtros» (el dueño: «un botón de reset filters para
-  // que muestre todo»). El orden no es un filtro y se queda.
+  // Los filtros como al entrar: al cambiar de pestaña y con «Quitar filtros». El orden no es un filtro y se queda.
   const limpiaFiltros = () => {
-    setVista("libres"); setCategoria("todas"); setSituacion(""); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false); setAccionFiltro("");
+    setCategoria("todas"); setEtapa(""); setBuena(false); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false);
   };
   const cambiaPestana = (p: Pestana) => {
     setPestana(p);
@@ -192,20 +180,18 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const poolFiltro = pestana === "privado" && !elige ? null : filtroDePool(pool);
   // 225: el cruzado con mi tienda pasa el filtro de pool aunque su pool sea otro.
   const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro || cruzadoDeMiTienda(l)), [delBanco, poolFiltro, cruzadoDeMiTienda]);
-  const porSituacion = useMemo(() => cuentaPorSituacion(delPool), [delPool]);
+  // Los números de cada filtro cuentan lo que hay en el pool elegido (sin el filtro de etapa, para que se vea el total).
+  const porEtapa = useMemo(() => cuentaPorEtapa(delPool), [delPool]);
+  const buenas = useMemo(() => vigentes(delPool).filter((l) => categoriaBuena(l.category)).length, [delPool]);
   const visibles = useMemo(
-    () => ordenar(filtrar(delBanco, { pool: poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra, accion: accionFiltro }), orden),
-    [delBanco, poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra, accionFiltro, orden],
+    () => ordenar(filtrar(delBanco, { pool: poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, textoExtra }), orden),
+    [delBanco, poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, textoExtra, orden],
   );
-  useEffect(() => { setCuantos(TANDA); }, [pool, vista, categoria, tipo, ciudad, busca, situacion, coinciden, accionFiltro, orden, semanaFiltro]);
+  useEffect(() => { setCuantos(TANDA); }, [pool, categoria, tipo, ciudad, busca, etapa, buena, coinciden, orden, semanaFiltro]);
 
   if (!yo) return <div className="ld-wrap leads-app"><p className="hint">{t("No session.", "Sin sesión.")}</p></div>;
 
-  const mios = abiertosDe(leads, yo.id);
-  const misVentas = ventasDe(leads, yo.id);
-  const libres = puestosLibres(leads, yo.id, tope);
-
-  /** Lo que devolvió la base se pone en su sitio; un rechazo se dice con sus palabras y se relee (otro pudo adelantarse). */
+  /** Lo que devolvió la base se pone en su sitio; un rechazo se dice con sus palabras y se relee. */
   const tras = async (id: string, r: Res<Lead>, hecho: string): Promise<boolean> => {
     setOcupado(null);
     if (r.ok) {
@@ -219,12 +205,6 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     return false;
   };
 
-  const tomar = async (l: Lead) => {
-    setOcupado(l.id);
-    setAviso(null);
-    await tras(l.id, await almacen.tomar(l.id), t("Taken: it is in your pool now.", "Tomado: ya está en tu pool."));
-  };
-
   const verHistorial = async (l: Lead) => {
     if (historial?.id === l.id) { setHistorial(null); return; }
     setHistorial({ id: l.id, eventos: null });
@@ -232,15 +212,14 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     setHistorial({ id: l.id, eventos: r.ok ? r.valor : [] });
   };
 
-  const tarjeta = (l: Lead, donde: "banco" | "mio" | "admin") => (
+  const tarjeta = (l: Lead) => (
     <Tarjeta
-      key={l.id} lead={l} yo={yo} donde={donde} ocupado={ocupado === l.id}
-      puede={puedeTomar(l, leads, yo.id, tope)}
+      key={l.id} lead={l} yo={yo} ocupado={ocupado === l.id}
       historial={historial?.id === l.id ? historial.eventos : undefined}
-      onTomar={() => void tomar(l)} onNota={() => setDialogo({ tipo: "nota", lead: l })}
-      onCerrar={() => setDialogo({ tipo: "cerrar", lead: l })} onAdmin={() => setDialogo({ tipo: "admin", lead: l })}
+      onNota={() => setDialogo({ tipo: "nota", lead: l })}
+      onArchivar={() => setDialogo({ tipo: "archivar", lead: l })}
       onHistorial={() => void verHistorial(l)}
-      cotizar={puedeCotizarLead(l, yo, cotiza)} cotizaciones={cotiza ? (cotizaciones.get(l.id) ?? []) : []}
+      cotizar={puedeCotizarLead(cotiza)} cotizaciones={cotiza ? (cotizaciones.get(l.id) ?? []) : []}
       semana={semanasSTXP.semanaDeLead.get(l.id)}
       cliente={l.customer_match_id != null ? clientes.get(l.customer_match_id) : undefined}
       onCliente={(c) => setDialogo({ tipo: "cliente", lead: l, cliente: c })}
@@ -293,18 +272,15 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
             {/* D-1015 (Roberto, 12 nov): el STXP Pool (South Texas Permit) va PRIMERO; después GOV y lo demás. */}
             {veStxp && (
               <button type="button" role="tab" aria-selected={pestana === "privado"} className={`chip${pestana === "privado" ? " on" : ""}`} data-pestana="privado" onClick={() => cambiaPestana("privado")}>
-                🏪 {t("STXP Pool", "STXP Pool")} <span className="cnt" data-privados>{privados.length}</span>
+                🏪 {t("STXP Pool", "STXP Pool")} <span className="cnt" data-privados>{vigentes(privados).length}</span>
               </button>
             )}
             <button type="button" role="tab" aria-selected={pestana === "banco"} className={`chip${pestana === "banco" ? " on" : ""}`} data-pestana="banco" onClick={() => cambiaPestana("banco")}>
               🏦 {t("GOV Pool", "GOV Pool")}
             </button>
-            <button type="button" role="tab" aria-selected={pestana === "mio"} className={`chip${pestana === "mio" ? " on" : ""}`} data-pestana="mio" onClick={() => cambiaPestana("mio")}>
-              ⭐ {t("My pool", "Mi pool")} <span className="cnt" data-mi-cuenta>{mios.length}/{tope}</span>
-            </button>
             {yo.admin && (
               <button type="button" role="tab" aria-selected={pestana === "admin"} className={`chip${pestana === "admin" ? " on" : ""}`} data-pestana="admin" onClick={() => cambiaPestana("admin")}>
-                🛠 Admin{colaDeRevision(leads).length > 0 ? <span className="cnt">{colaDeRevision(leads).length}</span> : null}
+                🛠 Admin
               </button>
             )}
             </div>
@@ -318,7 +294,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
             <div className="card" data-lead-enfocado={leadEnfocado ? "si" : "no"}>
               <h2 className="ld-h2">🧮 {t("Lead of the quote", "Lead de la cotización")}</h2>
               {leadEnfocado
-                ? <div className="ld-lista">{tarjeta(leadEnfocado, leadEnfocado.holder === yo.id ? "mio" : "banco")}</div>
+                ? <div className="ld-lista">{tarjeta(leadEnfocado)}</div>
                 : <p className="hint">{t("That lead is not visible to you.", "Ese lead no lo puedes ver.")}</p>}
             </div>
           )}
@@ -335,13 +311,13 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                           const todas = resumenDeTodas(pools);
                           return (
                             <option value={POOL_TODAS}>
-                              {t("All stores", "Todas las tiendas")} — {todas.libres} {t("free", "libres")} / {todas.total}
+                              {t("All stores", "Todas las tiendas")} — {todas.total} {t("leads", "leads")}
                             </option>
                           );
                         })()}
                         {pools.map((p) => (
                           <option key={p.pool} value={p.pool}>
-                            {poolLabel(p.pool, lang)} — {p.libres} {t("free", "libres")} / {p.total}
+                            {poolLabel(p.pool, lang)} — {p.total} {t("leads", "leads")}
                           </option>
                         ))}
                       </select>
@@ -351,7 +327,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                     <p className="ld-ancho" data-pool-stxp>
                       {t("STXP Pool: your store and, when it runs out, the nearest one", "STXP Pool: tu tienda y, agotada, la más cercana")}
                       <br />
-                      <b>{pools.length ? pools.map((p) => `${poolLabel(p.pool, lang)} (${p.libres})`).join(" → ") : "—"}</b>
+                      <b>{pools.length ? pools.map((p) => `${poolLabel(p.pool, lang)} (${p.total})`).join(" → ") : "—"}</b>
                     </p>
                   ) : (
                     /* Solo su tienda: no hay nada que elegir, y los otros bancos ni se nombran ni se cuentan. */
@@ -359,7 +335,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                       {t("GOV Pool of your store", "GOV Pool de tu tienda")}
                       <br />
                       <b>{alcance.tienda ? poolLabel(alcance.tienda, lang) : "—"}</b>
-                      {pools[0] ? <> — {pools[0].libres} {t("free", "libres")} / {pools[0].total}</> : null}
+                      {pools[0] ? <> — {pools[0].total} {t("leads", "leads")}</> : null}
                     </p>
                   )}
                   {pestana === "privado" && semanasSTXP.semanas.length > 0 && (
@@ -373,18 +349,21 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                       </select>
                     </label>
                   )}
-                  <div className="ld-vistas" role="group" aria-label={t("View", "Vista")}>
-                    <button type="button" className={`chip${vista === "libres" ? " on" : ""}`} data-vista="libres" onClick={() => setVista("libres")}>{t("Free", "Libres")}</button>
-                    <button type="button" className={`chip${vista === "todas" ? " on" : ""}`} data-vista="todas" onClick={() => setVista("todas")}>{t("All", "Todas")}</button>
-                  </div>
                 </div>
-                <div className="ld-situaciones" role="group" aria-label={t("Status", "Situación")} data-situaciones>
-                  <button type="button" className={`chip${situacion === "" ? " on" : ""}`} data-situacion="" onClick={() => setSituacion("")}>{t("No filter", "Sin filtro")}</button>
-                  {SITUACIONES.map((s) => (
-                    <button key={s} type="button" className={`chip${situacion === s ? " on" : ""}`} data-situacion={s} onClick={() => setSituacion(situacion === s ? "" : s)}>
-                      {situacionLabel(s, lang)} <span className="ld-cuenta">{porSituacion[s]}</span>
+                {/* Las etapas son el filtro: una por chip, con cuántos leads hay en cada una en este pool. */}
+                <div className="ld-etapas" role="group" aria-label={t("Stage", "Etapa")} data-etapas>
+                  <button type="button" className={`chip${etapa === "" ? " on" : ""}`} data-etapa="" onClick={() => setEtapa("")}>
+                    {t("All stages", "Todas las etapas")} <span className="ld-cuenta">{delPool.filter((l) => l.status !== "archived").length}</span>
+                  </button>
+                  {ETAPAS.map((e) => (
+                    <button key={e} type="button" className={`chip ${etapaTono(e)}${etapa === e ? " on" : ""}`} data-etapa={e} aria-pressed={etapa === e}
+                      onClick={() => setEtapa(etapa === e ? "" : e)}>
+                      {etapaLabel(e, lang)} <span className="ld-cuenta">{porEtapa[e]}</span>
                     </button>
                   ))}
+                  <button type="button" className={`chip${buena ? " on" : ""}`} data-buena aria-pressed={buena} onClick={() => setBuena((v) => !v)}>
+                    {t("Good category", "Categoría buena")} <span className="ld-cuenta">{buenas}</span>
+                  </button>
                   {/* D-760: el cruce con Clientes (lo pone el importador); solo tiene sentido donde hay cruzados. */}
                   {delPool.some(coincideConCliente) && (
                     <button type="button" className={`chip${coinciden ? " on" : ""}`} data-coinciden onClick={() => setCoinciden((v) => !v)}>
@@ -416,10 +395,6 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                     </select>
                   </label>
                   <label>
-                    {t("Last action", "Última acción")}
-                    <SelectAccion valor={accionFiltro} onCambia={setAccionFiltro} />
-                  </label>
-                  <label>
                     {t("Sort by", "Ordenar por")}
                     <select data-orden value={orden} onChange={(e) => setOrden(e.target.value as Orden)}>
                       <option value="pies">{t("Square feet (largest first)", "Pies² (lo más grande)")}</option>
@@ -439,22 +414,14 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                   aria-label={t("Search", "Buscar")}
                 />
                 <p className="hint" data-cuenta-banco>
-                  {visibles.length} {t("leads", "leads")} · {t("you have", "te quedan")} <b>{libres}</b> {t("of", "de")} {tope} {t("slots free", "puestos")}
+                  {visibles.length} {t("leads", "leads")}
                 </p>
               </div>
               {!elige && !alcance.tienda && (
                 <div className="ld-aviso ambar" data-aviso-sin-tienda>
                   {t(
-                    "Your user has no store assigned, so there is no GOV Pool to show you. Ask an admin to set your store. The leads you already hold are in My pool.",
-                    "Tu usuario no tiene tienda asignada, así que no hay GOV Pool que enseñarte. Pide a un admin que te ponga tu tienda. Los leads que ya tienes están en Mi pool.",
-                  )}
-                </div>
-              )}
-              {libres === 0 && (
-                <div className="ld-aviso ambar" data-aviso-lleno>
-                  {t(
-                    "Your pool is full. Close a lead with its result and a note to free a slot.",
-                    "Tu pool está lleno. Cierra un lead con su resultado y una nota para liberar un puesto.",
+                    "Your user has no store assigned, so there is no GOV Pool to show you. Ask an admin to set your store.",
+                    "Tu usuario no tiene tienda asignada, así que no hay GOV Pool que enseñarte. Pide a un admin que te ponga tu tienda.",
                   )}
                 </div>
               )}
@@ -465,12 +432,12 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                   {delPool.length === 0
                     ? <span>{t("This pool has no leads yet: they arrive with the next import.", "Este pool todavía no tiene leads: llegan con el próximo import.")}</span>
                     : <span>
-                        {t(`This pool has ${delPool.length}, but the view, filters or search hide them all.`, `Este pool tiene ${delPool.length}, pero la vista, los filtros o la búsqueda los esconden todos.`)}{" "}
+                        {t(`This pool has ${delPool.length}, but the stage, filters or search hide them all.`, `Este pool tiene ${delPool.length}, pero la etapa, los filtros o la búsqueda los esconden todos.`)}{" "}
                         <button type="button" className="ld-enlace" data-vacio-quitar onClick={limpiaFiltros}>{t("Reset filters", "Quitar filtros")}</button>
                       </span>}
                 </div>
               )}
-              <div className="ld-lista" data-lista-banco>{visibles.slice(0, cuantos).map((l) => tarjeta(l, "banco"))}</div>
+              <div className="ld-lista" data-lista-banco>{visibles.slice(0, cuantos).map((l) => tarjeta(l))}</div>
               {visibles.length > cuantos && (
                 <button type="button" className="btn btn-ghost ld-mas" data-ver-mas onClick={() => setCuantos((n) => n + TANDA)}>
                   {t("Show more", "Ver más")} ({visibles.length - cuantos})
@@ -479,45 +446,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
             </>
           )}
 
-          {pestana === "mio" && (
-            <>
-              <p className="hint ld-intro">
-                {t(
-                  `You can hold up to ${tope} open leads. A progress note keeps the lead open; only closing it with a result frees its slot.`,
-                  `Puedes tener hasta ${tope} leads abiertos. Una nota de avance deja el lead abierto; solo cerrarlo con un resultado libera su puesto.`,
-                )}
-              </p>
-              {mios.length === 0 && (
-                <div className="ld-vacio" data-vacio="mio">
-                  <p className="hint">{t("Your pool is empty. Take leads from the GOV Pool.", "Tu pool está vacío. Toma leads del GOV Pool.")}</p>
-                  <span>{t("Nothing is held in your name yet; a lead you take shows up here.", "Todavía no tienes nada a tu nombre; el lead que tomes sale aquí.")}</span>
-                </div>
-              )}
-              {mios.length > 0 && (
-                <label className="ld-filtro-accion">
-                  {t("Last action", "Última acción")}
-                  <SelectAccion valor={accionFiltro} onCambia={setAccionFiltro} />
-                </label>
-              )}
-              <div className="ld-lista" data-lista-mia>{ordenar(mios.filter((l) => pasaAccion(l, accionFiltro)), "distancia").map((l) => tarjeta(l, "mio"))}</div>
-              {misVentas.length > 0 && (
-                <>
-                  <h2 className="ld-h2">🏆 {t("My sales", "Mis ventas")} ({misVentas.length})</h2>
-                  <div className="ld-lista" data-lista-ventas>{misVentas.map((l) => tarjeta(l, "mio"))}</div>
-                </>
-              )}
-            </>
-          )}
-
           {pestana === "admin" && yo.admin && (
-            <Admin
-              leads={leads} tope={tope} almacen={almacen} tarjeta={tarjeta} demo={demo}
-              onTope={async (n) => {
-                const r = await almacen.ponerTope(n);
-                if (r.ok) { setTope(r.valor); setAviso({ tono: "verde", texto: t("Limit saved.", "Tope guardado.") }); }
-                else setAviso({ tono: "rojo", texto: r.motivo ? negativaTexto(r.motivo, lang) : r.error });
-              }}
-            />
+            <Admin leads={leads} almacen={almacen} demo={demo} />
           )}
         </>
       )}
@@ -534,10 +464,16 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   );
 }
 
-function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNota, onCerrar, onAdmin, onHistorial, cotizar, cotizaciones, cliente, onCliente, semana }: {
-  lead: Lead; yo: Persona; donde: "banco" | "mio" | "admin"; puede: ReturnType<typeof puedeTomar>; ocupado: boolean;
+/** La etapa de un lead, como píldora de color. «New» (sin etapa) es gris. */
+function PildoraEtapa({ e }: { e: Etapa }) {
+  const { lang } = usePrefs();
+  return <span className={`ld-pildora ${etapaTono(e)}`} data-pildora-etapa={e}>{etapaLabel(e, lang)}</span>;
+}
+
+function Tarjeta({ lead: l, yo, ocupado, historial, onNota, onArchivar, onHistorial, cotizar, cotizaciones, cliente, onCliente, semana }: {
+  lead: Lead; yo: Persona; ocupado: boolean;
   historial: EventoLead[] | null | undefined;
-  onTomar: () => void; onNota: () => void; onCerrar: () => void; onAdmin: () => void; onHistorial: () => void;
+  onNota: () => void; onArchivar: () => void; onHistorial: () => void;
   /** `puedeCotizarLead` (D-558): se ofrece «Crear cotización». */
   cotizar: boolean;
   /** Las cotizaciones de este lead que quien mira ve en el Quote Builder (D-558). */
@@ -550,23 +486,33 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
   semana?: number;
 }) {
   const { t, lang } = usePrefs();
-  // En la pestaña del admin (cola de revisión, sin tocar) las tarjetas se leen enteras: ahí son trabajo suyo.
-  const apagado = donde !== "admin" && bloqueado(l, yo);
-  const contacto = veContacto(l, yo);
   const mapa = mapsUrl(l);
   const tdlr = enlaceSeguro(l.tdlr_link);
-  const mio = l.holder === yo.id;
+  const etapa = etapaDe(l);
+  const veces = vecesVisto(l);
   return (
-    <article className={`ld-tarjeta${apagado ? " apagado" : ""}`} data-lead={l.id} data-estado={l.status} data-bloqueado={apagado ? "si" : "no"}>
+    <article className="ld-tarjeta" data-lead={l.id} data-estado={l.status} data-etapa={etapa}>
       <header>
         <h3>{l.project_name ?? l.facility_name ?? l.tabs_project}</h3>
-        <span className="ld-dist">{l.distance_miles === null ? "—" : `${l.distance_miles.toFixed(1)} mi`}</span>
+        {/* La etapa y quién hizo el último contacto, en la misma fila que el título. */}
+        <div className="ld-cabeza-der">
+          <PildoraEtapa e={etapa} />
+          {l.last_at && (
+            <span className="ld-ultimo" data-ultimo-contacto>👤 {l.last_by_name ?? "—"} · {fecha(l.last_at)}</span>
+          )}
+        </div>
       </header>
       <p className="ld-meta">
         {semana != null && <><span className="badge ld-semana" data-semana-lead>{t("Week", "Semana")} {semana}</span>{" "}</>}
+        <span className="ld-dist">{l.distance_miles === null ? "—" : `${l.distance_miles.toFixed(1)} mi`}</span>{" · "}
         <span className="badge ld-cat">{delExcel(l.category, lang)}</span> {delExcel(l.project_type, lang)}
         {l.type_of_work ? ` · ${l.type_of_work}` : ""}
       </p>
+      {veces > 1 && (
+        <p className="ld-visto" data-visto={veces} title={`${t("Last import that had it", "Última carga que lo trajo")}: ${fecha(l.last_seen_at ?? l.imported_at ?? null)}`}>
+          🔁 {t(`seen in ${veces} imports`, `visto en ${veces} importaciones`)}
+        </p>
+      )}
       {l.customer_match_note && (
         <p className="ld-cliente" data-cliente={l.customer_match_id ?? ""}>
           🤝 {t("Customer", "Cliente")}:{" "}
@@ -578,22 +524,9 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
         </p>
       )}
 
-      {l.status !== "free" && (
-        <p className={`ld-dueno ${l.status}`} data-dueno>
-          {l.status === "won" ? "🏆" : l.status === "taken" ? "📌" : "⏸"} {estadoLabel(l.status, lang)}
-          {l.holder_name ? ` · ${mio ? t("you", "tú") : l.holder_name}` : ""}
-          {l.taken_at && l.status === "taken" ? ` · ${t("since", "desde")} ${fecha(l.taken_at)}` : ""}
-        </p>
-      )}
-      {l.last_outcome && l.last_note && (
-        <p className={`ld-etiqueta ${l.last_outcome}`} data-etiqueta={l.last_outcome}>
-          <b>{resultadoLabel(l.last_outcome, lang)}</b> — «{l.last_note}»
-          <span className="hint"> · {l.last_by_name ?? "—"} · {fecha(l.last_at)}</span>
-        </p>
-      )}
-      {(l.follow_up_note || l.follow_up_action) && (mio || yo.admin) && (
+      {l.follow_up_note && (
         <p className="ld-avance" data-avance>
-          📝 {l.follow_up_action && <PildoraAccion a={l.follow_up_action} />}{l.follow_up_note ? <> {l.follow_up_note}</> : null}{" "}
+          📝 {l.follow_up_note}{" "}
           <span className="hint">· {fecha(l.follow_up_at)}</span>
         </p>
       )}
@@ -601,23 +534,19 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
       <p className="ld-dir">
         📍 {mapa ? <a href={mapa} target="_blank" rel="noopener noreferrer" data-mapa>{[l.site_address, l.site_city, l.site_zip].filter(Boolean).join(", ")}</a> : "—"}
       </p>
-      {contacto ? (
-        <div className="ld-contacto" data-contacto>
-          <p>
-            {/* D-760: en un lead privado el que va aquí es el CONTRATISTA (a quien se le vende); el propietario, abajo. */}
-            {esPrivado(l) ? <>🏗 {t("Contractor", "Contratista")}: </> : "👤 "}{l.owner_name ?? "—"}{l.owner_contact ? ` · ${l.owner_contact}` : ""}
-            {l.owner_phone ? <> · {telUrl(l.owner_phone) ? <a href={telUrl(l.owner_phone)!} data-tel>📞 {telefonoEstandar(l.owner_phone)}</a> : telefonoEstandar(l.owner_phone)}</> : null}
-          </p>
-          {l.tenant_name && (
-            <p>{esPrivado(l) ? <>🏠 {t("Owner", "Propietario")}</> : <>🏪 {t("Tenant", "Inquilino")}</>}: {l.tenant_name}{l.tenant_phone ? <> · {telUrl(l.tenant_phone) ? <a href={telUrl(l.tenant_phone)!}>📞 {telefonoEstandar(l.tenant_phone)}</a> : telefonoEstandar(l.tenant_phone)}</> : null}</p>
-          )}
-          {l.design_firm_name && (
-            <p>📐 {t("Design firm", "Despacho")}: {l.design_firm_name}{l.design_firm_phone ? <> · {telUrl(l.design_firm_phone) ? <a href={telUrl(l.design_firm_phone)!}>📞 {telefonoEstandar(l.design_firm_phone)}</a> : telefonoEstandar(l.design_firm_phone)}</> : null}</p>
-          )}
-        </div>
-      ) : (
-        <p className="hint" data-sin-contacto>{t("Contact hidden: someone else has this lead.", "Contacto oculto: este lead lo tiene otra persona.")}</p>
-      )}
+      <div className="ld-contacto" data-contacto>
+        <p>
+          {/* D-760: en un lead privado el que va aquí es el CONTRATISTA (a quien se le vende); el propietario, abajo. */}
+          {esPrivado(l) ? <>🏗 {t("Contractor", "Contratista")}: </> : "👤 "}{l.owner_name ?? "—"}{l.owner_contact ? ` · ${l.owner_contact}` : ""}
+          {l.owner_phone ? <> · {telUrl(l.owner_phone) ? <a href={telUrl(l.owner_phone)!} data-tel>📞 {telefonoEstandar(l.owner_phone)}</a> : telefonoEstandar(l.owner_phone)}</> : null}
+        </p>
+        {l.tenant_name && (
+          <p>{esPrivado(l) ? <>🏠 {t("Owner", "Propietario")}</> : <>🏪 {t("Tenant", "Inquilino")}</>}: {l.tenant_name}{l.tenant_phone ? <> · {telUrl(l.tenant_phone) ? <a href={telUrl(l.tenant_phone)!}>📞 {telefonoEstandar(l.tenant_phone)}</a> : telefonoEstandar(l.tenant_phone)}</> : null}</p>
+        )}
+        {l.design_firm_name && (
+          <p>📐 {t("Design firm", "Despacho")}: {l.design_firm_name}{l.design_firm_phone ? <> · {telUrl(l.design_firm_phone) ? <a href={telUrl(l.design_firm_phone)!}>📞 {telefonoEstandar(l.design_firm_phone)}</a> : telefonoEstandar(l.design_firm_phone)}</> : null}</p>
+        )}
+      </div>
       <dl className="ld-datos">
         <div><dt>{t("Est. cost", "Costo est.")}</dt><dd>{dinero(l.estimated_cost)}</dd></div>
         <div><dt>{t("Sq ft", "Pies²")}</dt><dd>{numero(l.square_footage)}</dd></div>
@@ -637,21 +566,11 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
       )}
 
       <footer>
-        {donde !== "mio" && l.status === "free" && (
-          <button type="button" className="btn btn-primary" data-tomar disabled={ocupado || !puede.ok} title={puede.ok ? undefined : negativaTexto(puede.motivo, lang)} onClick={onTomar}>
-            {puede.ok ? t("Take", "Tomar") : t("Pool full", "Pool lleno")}
-          </button>
-        )}
-        {mio && l.status === "taken" && (
-          <>
-            <button type="button" className="btn btn-ghost" data-nota disabled={ocupado} onClick={onNota}>📝 {t("Progress note", "Nota de avance")}</button>
-            <button type="button" className="btn btn-green" data-cerrar disabled={ocupado} onClick={onCerrar}>✓ {t("Close with result", "Cerrar con resultado")}</button>
-          </>
-        )}
+        <button type="button" className="btn btn-primary" data-nota disabled={ocupado} onClick={onNota}>📝 {t("Add note / stage", "Anotar / etapa")}</button>
         {cotizar && (
           <Link className="btn btn-ghost btn-sm" href={enlaceACotizar(l.id)} data-crear-cotizacion>🧮 {t("Create quote", "Crear cotización")}</Link>
         )}
-        {yo.admin && <button type="button" className="btn btn-ghost btn-sm" data-admin-lead onClick={onAdmin}>🛠 Admin</button>}
+        {yo.admin && <button type="button" className="btn btn-ghost btn-sm" data-admin-lead onClick={onArchivar}>🗄 {t("Archive", "Archivar")}</button>}
         <button type="button" className="btn btn-ghost btn-sm" data-historial onClick={onHistorial}>🕘 {t("History", "Historial")}</button>
         {tdlr && <a className="btn btn-ghost btn-sm" href={tdlr} target="_blank" rel="noopener noreferrer" data-tdlr>TDLR ↗</a>}
         <span className="hint ld-tabs">{l.tabs_project}</span>
@@ -662,8 +581,7 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
           {historial?.length === 0 && <li className="hint">{t("No history yet.", "Sin historial todavía.")}</li>}
           {historial?.map((e) => (
             <li key={e.id}>
-              <b>{eventoLabel(e, lang)}</b>{e.action ? <> <PildoraAccion a={e.action} /></> : null} · {e.subject_name ?? e.actor_name ?? "—"} · {fecha(e.at)}
-              {e.actor && e.subject && e.actor !== e.subject ? ` · ${t("by", "por")} ${e.actor_name ?? "—"}` : ""}
+              <b>{eventoLabel(e, lang)}</b> · {e.actor_name ?? e.subject_name ?? "—"} · {fecha(e.at)}
               {e.note ? <> — «{e.note}»</> : null}
             </li>
           ))}
@@ -674,24 +592,6 @@ function Tarjeta({ lead: l, yo, donde, puede, ocupado, historial, onTomar, onNot
 }
 
 /** D-763: la tarjeta del cliente con el que coincide un lead cruzado, dentro de Leads. Solo lectura. */
-/** 253: el filtro por la última acción (lista del banco y Mi pool). */
-function SelectAccion({ valor, onCambia }: { valor: TipoDeAccion | "sin" | ""; onCambia: (v: TipoDeAccion | "sin" | "") => void }) {
-  const { t, lang } = usePrefs();
-  return (
-    <select data-filtro-accion value={valor} onChange={(e) => onCambia(e.target.value as TipoDeAccion | "sin" | "")}>
-      <option value="">{t("All", "Todas")}</option>
-      {TIPOS_DE_ACCION.map((a) => <option key={a} value={a}>{accionLabel(a, lang)}</option>)}
-      <option value="sin">{t("No action yet", "Sin acción")}</option>
-    </select>
-  );
-}
-
-/** 253: el tipo de acción de una nota de avance, como píldora de color. Las notas viejas no tienen y no se pinta. */
-function PildoraAccion({ a }: { a: TipoDeAccion }) {
-  const { lang } = usePrefs();
-  return <span className={`ld-pildora ${accionTono(a)}`} data-pildora-accion={a}>{accionLabel(a, lang)}</span>;
-}
-
 function FichaCruzada({ dialogo, onCerrar }: { dialogo: Extract<Dialogo, { tipo: "cliente" }>; onCerrar: () => void }) {
   const { t } = usePrefs();
   const c = dialogo.cliente;
@@ -726,7 +626,7 @@ function FichaCruzada({ dialogo, onCerrar }: { dialogo: Extract<Dialogo, { tipo:
   );
 }
 
-/** El diálogo de una acción sobre un lead: nota de avance, cerrar con resultado, o lo del admin. */
+/** El diálogo de una acción sobre un lead: anotar (con etapa, o solo una nota), o archivar (solo admin). */
 function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
   dialogo: Dialogo; almacen: AlmacenDeLeads; admin: boolean;
   onCerrar: () => void; onHecho: (id: string, r: Res<Lead>, texto: string) => Promise<void>;
@@ -734,20 +634,11 @@ function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
   const { t, lang } = usePrefs();
   const l = dialogo.lead;
   const [nota, setNota] = useState("");
-  const [resultado, setResultado] = useState<Resultado | null>(null);
-  const [accion, setAccion] = useState<TipoDeAccion | null>(null);
-  const [personas, setPersonas] = useState<Persona[]>([]);
-  const [persona, setPersona] = useState("");
+  const [etapa, setEtapa] = useState<TipoDeAccion | null>(null);
   const [enviando, setEnviando] = useState(false);
+  // Sin etapa, la nota es obligatoria (328); con etapa, puede ir vacía.
   const notaOk = notaLimpia(nota) !== null;
-  // 253 (ayuda e207d9ef): la nota de avance exige un tipo de acción; con tipo, el texto es opcional.
-  const avanceOk = accion !== null && nota.trim().length <= NOTA_MAX;
-
-  useEffect(() => {
-    if (dialogo.tipo !== "admin" || !admin) return;
-    void almacen.personas().then((r) => { if (r.ok) setPersonas(r.valor); });
-  }, [dialogo.tipo, admin, almacen]);
-
+  const puedeAnotar = etapa !== null || notaOk;
   const enviar = async (hace: () => Promise<Res<Lead>>, texto: string) => {
     setEnviando(true);
     await onHecho(l.id, await hace(), texto);
@@ -758,170 +649,105 @@ function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
     <div className="ld-velo" role="dialog" aria-modal="true" data-dialogo={dialogo.tipo}>
       <div className="ld-dialogo">
         <h2>{l.project_name ?? l.tabs_project}</h2>
-        {dialogo.tipo === "cerrar" && (
-          <>
-            <p className="hint">{t("How did it end? Closing frees this slot in your pool.", "¿En qué quedó? Cerrarlo libera este puesto de tu pool.")}</p>
-            <div className="ld-resultados" role="radiogroup">
-              {RESULTADOS.map((r) => (
-                <label key={r} className={`ld-resultado${resultado === r ? " on" : ""}`}>
-                  <input type="radio" name="resultado" value={r} data-resultado={r} checked={resultado === r} onChange={() => setResultado(r)} />
-                  <span><b>{resultadoLabel(r, lang)}</b><br /><small>{consecuencia(r, lang)}</small></span>
-                </label>
-              ))}
-            </div>
-          </>
-        )}
         {dialogo.tipo === "nota" && (
           <>
             <p className="hint">
               {t(
-                "What did you do? The lead stays open in your pool and keeps its slot.",
-                "¿Qué hiciste? El lead sigue abierto en tu pool y sigue ocupando su puesto.",
+                "Pick the stage this lead is in now. Any note you add moves it to that stage. Choosing Closed means a sale.",
+                "Elige la etapa en la que está ahora. Cualquier nota que añadas la mueve a esa etapa. Cerrado significa venta.",
               )}
             </p>
-            <div className="ld-acciones" role="radiogroup" aria-label={t("Action type", "Tipo de acción")} data-acciones>
+            <p className="hint">{t("Now", "Ahora")}: <b>{etapaLabel(etapaDe(l), lang)}</b></p>
+            <div className="ld-acciones" role="radiogroup" aria-label={t("Stage", "Etapa")} data-acciones>
               {TIPOS_DE_ACCION.map((a) => (
-                <button key={a} type="button" role="radio" aria-checked={accion === a} data-accion={a}
-                  className={`ld-pildora ${accionTono(a)}${accion === a ? " on" : ""}`} onClick={() => setAccion(a)}>
-                  {accionLabel(a, lang)}
+                <button key={a} type="button" role="radio" aria-checked={etapa === a} data-accion={a}
+                  className={`ld-pildora ${etapaTono(a)}${etapa === a ? " on" : ""}`} onClick={() => setEtapa(etapa === a ? null : a)}>
+                  {etapaLabel(a, lang)}
                 </button>
               ))}
             </div>
           </>
         )}
-        {dialogo.tipo === "admin" && (
+        {dialogo.tipo === "archivar" && (
           <p className="hint">
-            {estadoLabel(l.status, lang)}{l.holder_name ? ` · ${l.holder_name}` : ""}. {t("The note is optional here; with a note, it becomes the lead's tag.", "Aquí la nota es opcional; con nota, pasa a ser la etiqueta del lead.")}
+            {estadoLabel(l.status, lang)}. {t("An archived lead leaves the GOV Pool and nobody sees it there any more.", "Un lead archivado sale del GOV Pool y ya no lo ve nadie ahí.")}
           </p>
         )}
         <label className="ld-nota">
-          {dialogo.tipo === "admin" || dialogo.tipo === "nota" ? t("Note (optional)", "Nota (opcional)") : t("Note (required)", "Nota (obligatoria)")}
+          {dialogo.tipo === "archivar"
+            ? t("Note (optional)", "Nota (opcional)")
+            : etapa !== null ? t("Note (optional)", "Nota (opcional)") : t("Note (required when no stage is picked)", "Nota (obligatoria si no eliges etapa)")}
           <textarea data-nota-texto value={nota} maxLength={NOTA_MAX} rows={4} onChange={(e) => setNota(e.target.value)}
             placeholder={t("What happened: who you spoke with, what they said, what is next…", "Qué pasó: con quién hablaste, qué dijeron, qué sigue…")} />
         </label>
         <div className="ld-botones">
           <button type="button" className="btn btn-ghost" data-cancelar onClick={onCerrar}>{t("Cancel", "Cancelar")}</button>
           {dialogo.tipo === "nota" && (
-            <button type="button" className="btn btn-primary" data-guardar disabled={enviando || !avanceOk}
-              onClick={() => accion && void enviar(() => almacen.anotar(l.id, nota, accion), t("Note saved. The lead is still open.", "Nota guardada. El lead sigue abierto."))}>
+            <button type="button" className="btn btn-primary" data-guardar disabled={enviando || !puedeAnotar}
+              onClick={() => void enviar(() => almacen.anotar(l.id, nota, etapa), t("Note saved.", "Nota guardada."))}>
               {t("Save note", "Guardar nota")}
             </button>
           )}
-          {dialogo.tipo === "cerrar" && (
-            <button type="button" className="btn btn-green" data-guardar disabled={enviando || !notaOk || !resultado}
-              onClick={() => resultado && void enviar(() => almacen.cerrar(l.id, resultado, nota), t("Closed. You have a free slot.", "Cerrado. Tienes un puesto libre."))}>
-              {t("Close lead", "Cerrar lead")}
+          {dialogo.tipo === "archivar" && admin && (
+            <button type="button" className="btn btn-danger" data-archivar disabled={enviando || l.status === "archived"}
+              onClick={() => void enviar(() => almacen.archivar(l.id, nota), t("Archived.", "Archivado."))}>
+              {t("Archive", "Archivar")}
             </button>
-          )}
-          {dialogo.tipo === "admin" && (
-            <>
-              <button type="button" className="btn btn-ghost" data-liberar disabled={enviando || l.status === "free"}
-                onClick={() => void enviar(() => almacen.liberar(l.id, nota), t("Released to the GOV Pool.", "Liberado al GOV Pool."))}>
-                {t("Release to GOV Pool", "Liberar al GOV Pool")}
-              </button>
-              <button type="button" className="btn btn-danger" data-archivar disabled={enviando || l.status === "archived"}
-                onClick={() => void enviar(() => almacen.archivar(l.id, nota), t("Archived.", "Archivado."))}>
-                {t("Archive", "Archivar")}
-              </button>
-            </>
           )}
         </div>
-        {dialogo.tipo === "admin" && (
-          <div className="ld-asignar">
-            <label>
-              {t("Assign to", "Asignar a")}
-              <select data-asignar-a value={persona} onChange={(e) => setPersona(e.target.value)}>
-                <option value="">—</option>
-                {personas.map((p) => <option key={p.id} value={p.id}>{p.name}{p.store ? ` · ${p.store}` : ""}</option>)}
-              </select>
-            </label>
-            <button type="button" className="btn btn-primary" data-asignar disabled={enviando || !persona}
-              onClick={() => void enviar(() => almacen.asignar(l.id, persona, nota), t("Assigned.", "Asignado."))}>
-              {t("Assign", "Asignar")}
-            </button>
-            <p className="hint">{t("Assigning ignores the limit: it is your call.", "Asignar no mira el tope: es decisión tuya.")}</p>
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-/** La pestaña del admin: el tope, la cola de revisión, el tablero y cómo se importa. */
-function Admin({ leads, tope, almacen, tarjeta, demo, onTope }: {
-  leads: Lead[]; tope: number; almacen: AlmacenDeLeads; demo: boolean;
-  tarjeta: (l: Lead, donde: "banco" | "mio" | "admin") => React.ReactNode; onTope: (n: number) => Promise<void>;
-}) {
+/** La pestaña del admin: el tablero por tienda y por persona, los leads que volvieron en más de una carga, y cómo se importa. */
+function Admin({ leads, almacen, demo }: { leads: Lead[]; almacen: AlmacenDeLeads; demo: boolean }) {
   const { t, lang } = usePrefs();
-  const [cierres, setCierres] = useState<EventoLead[]>([]);
-  const [nuevoTope, setNuevoTope] = useState(String(tope));
-  const [dias, setDias] = useState(DIAS_SIN_TOCAR[0]);
-  // Los cierres se releen cuando cambian los leads: un cierre nuevo cambia el tablero.
-  useEffect(() => { void almacen.cierres().then((r) => { if (r.ok) setCierres(r.valor); }); }, [almacen, leads]);
-  useEffect(() => { setNuevoTope(String(tope)); }, [tope]);
+  const [eventos, setEventos] = useState<EventoLead[]>([]);
+  // El historial se relee cuando cambian los leads: una nota nueva cambia el tablero.
+  useEffect(() => { void almacen.eventos().then((r) => { if (r.ok) setEventos(r.valor); }); }, [almacen, leads]);
 
-  const cola = colaDeRevision(leads);
-  const vendedores = tableroPorVendedor(leads, cierres);
-  const viejos = sinTocar(leads, dias, new Date());
-  const n = Number(nuevoTope);
-  const topeOk = Number.isInteger(n) && n >= 1 && n <= 100;
+  const porTienda = tableroPorTienda(leads, eventos);
+  const vendedores = tableroPorVendedor(eventos);
+  const vistos = cuantosVistosMasDeUna(leads);
 
   return (
     <div className="ld-admin">
-      <div className="card" data-bloque="tope">
-        <h2>🔢 {t("Limit of open leads per person", "Tope de leads abiertos por persona")}</h2>
-        <div className="ld-fila">
-          <input type="number" min={1} max={100} inputMode="numeric" data-tope value={nuevoTope} onChange={(e) => setNuevoTope(e.target.value)} aria-label={t("Limit", "Tope")} />
-          <button type="button" className="btn btn-primary" data-guardar-tope disabled={!topeOk || n === tope} onClick={() => void onTope(n)}>{t("Save", "Guardar")}</button>
-        </div>
-        <p className="hint">{t("Lowering it takes nothing away: whoever is above it cannot take another until they are below.", "Bajarlo no le quita nada a nadie: quien quede por encima no toma otro hasta bajar.")}</p>
-      </div>
-
-      <div className="card ld-ancho-total" data-bloque="cola">
-        <h2>🧐 {t("Needs review", "Ocupa revisión")} ({cola.length})</h2>
-        {cola.length === 0 && <p className="hint">{t("Nothing waiting.", "Nada esperando.")}</p>}
-        <div className="ld-lista" data-cola>{cola.map((l) => tarjeta(l, "admin"))}</div>
+      <div className="card ld-ancho-total" data-bloque="etapas">
+        <h2>🏬 {t("By GOV Pool and stage", "Por GOV Pool y etapa")}</h2>
+        <TablaEstandar id="leads-por-tienda" data-tabla="por-tienda" sinCaja filas={porTienda} claveDe={(p) => p.pool} columnas={[
+          { key: "pool", en: "GOV Pool", es: "GOV Pool", ancho: 200, fija: true, valor: (p) => poolLabel(p.pool, lang) },
+          ...ETAPAS.map((e) => ({ key: e, en: etapaLabel(e, "en"), es: etapaLabel(e, "es"), ancho: 120, numerico: true, valor: (p: (typeof porTienda)[number]) => p.porEtapa[e] })),
+          { key: "cotizados", en: "Ever quoted", es: "Alguna vez cotizado", ancho: 130, numerico: true, valor: (p) => p.cotizadosAlgunaVez },
+          { key: "total", en: "Total", es: "Total", ancho: 110, numerico: true, valor: (p) => p.total },
+        ]} />
       </div>
 
       <div className="card" data-bloque="vendedores">
-        <h2>👥 {t("By salesperson", "Por vendedor")}</h2>
-        {vendedores.length === 0 ? <p className="hint">{t("Nobody has taken a lead yet.", "Nadie ha tomado un lead todavía.")}</p> : (
-          <TablaEstandar id="leads-por-vendedor" data-tabla="por-vendedor" sinCaja filas={vendedores} claveDe={(v) => String(v.id)} columnas={[
-            { key: "nombre", en: "Salesperson", es: "Vendedor", ancho: 220, fija: true, valor: (v) => v.nombre },
-            { key: "abiertos", en: "Open", es: "Abiertos", ancho: 110, numerico: true, valor: (v) => v.abiertos },
-            { key: "cerrados", en: "Closed", es: "Cerrados", ancho: 110, numerico: true, valor: (v) => v.cerrados },
+        <h2>👥 {t("By person (from the history)", "Por persona (del historial)")}</h2>
+        {vendedores.length === 0 ? <p className="hint">{t("Nobody has added a note yet.", "Nadie ha anotado todavía.")}</p> : (
+          <TablaEstandar id="leads-por-persona" data-tabla="por-persona" sinCaja filas={vendedores} claveDe={(v) => String(v.id)} columnas={[
+            { key: "nombre", en: "Person", es: "Persona", ancho: 220, fija: true, valor: (v) => v.nombre },
+            { key: "notas", en: "Notes", es: "Notas", ancho: 110, numerico: true, valor: (v) => v.notas },
+            { key: "cotizaciones", en: "Quotes", es: "Cotizaciones", ancho: 120, numerico: true, valor: (v) => v.cotizaciones },
             { key: "ventas", en: "Sales", es: "Ventas", ancho: 110, numerico: true, valor: (v) => v.ventas },
           ]} />
         )}
       </div>
 
-      <div className="card" data-bloque="pools">
-        <h2>🏬 {t("By GOV Pool", "Por GOV Pool")}</h2>
-        <TablaEstandar id="leads-por-pool" data-tabla="por-pool" sinCaja filas={poolsDe(leads)} claveDe={(p) => String(p.pool)} columnas={[
-          { key: "pool", en: "GOV Pool", es: "GOV Pool", ancho: 220, fija: true, valor: (p) => poolLabel(p.pool, lang) },
-          { key: "libres", en: "Free", es: "Libres", ancho: 110, numerico: true, valor: (p) => p.libres },
-          { key: "tomados", en: "Taken", es: "Tomados", ancho: 110, numerico: true, valor: (p) => p.tomados },
-          { key: "total", en: "Total", es: "Total", ancho: 110, numerico: true, valor: (p) => p.total },
-        ]} />
+      <div className="card" data-bloque="vistos">
+        <h2>🔁 {t("Seen in more than one import", "Visto en más de una carga")}</h2>
+        <p className="hint" data-vistos>
+          <b>{vistos}</b> {t("leads came back in a new import. Each import that brings a lead back adds one to its count.", "leads volvieron en una carga nueva. Cada carga que trae un lead de vuelta le suma uno a su cuenta.")}
+        </p>
       </div>
 
-      <div className="card ld-ancho-total" data-bloque="sin-tocar">
-        <h2>⏳ {t("Taken and untouched", "Tomados y sin tocar")} ({viejos.length})</h2>
-        <div className="ld-vistas ld-dias">
-          {DIAS_SIN_TOCAR.map((d) => (
-            <button key={d} type="button" className={`chip${dias === d ? " on" : ""}`} data-dias={d} onClick={() => setDias(d)}>{d}+ {t("days", "días")}</button>
-          ))}
-        </div>
-        {viejos.length === 0 && <p className="hint">{t("None.", "Ninguno.")}</p>}
-        <div className="ld-lista" data-sin-tocar>{viejos.map((l) => tarjeta(l, "admin"))}</div>
-      </div>
-
-      <div className="card" data-bloque="importar">
+      <div className="card ld-ancho-total" data-bloque="importar">
         <h2>📥 {t("Import or update leads", "Importar o actualizar leads")}</h2>
         <p className="hint">
           {t(
-            "Leads are loaded from the Excel by a script, not from this screen. A re-import updates the data of the leads already here and adds the new ones; it never touches who holds a lead, its tag or its history.",
-            "Los leads se cargan desde el Excel con un guion, no desde esta pantalla. Un re-import actualiza los datos de los leads que ya están y añade los nuevos; nunca toca quién tiene un lead, su etiqueta ni su historial.",
+            "Leads are loaded from the Excel by a script, not from this screen. A re-import updates the data of the leads already here, adds the new ones and counts each lead that came back. It never touches a lead's stage or its history.",
+            "Los leads se cargan desde el Excel con un guion, no desde esta pantalla. Un re-import actualiza los datos de los leads que ya están, añade los nuevos y cuenta cada lead que volvió. Nunca toca la etapa de un lead ni su historial.",
           )}
         </p>
         <code className="ld-comando">node scripts/leads/importa-leads.mjs &lt;file.xlsx&gt; --aplicar</code>

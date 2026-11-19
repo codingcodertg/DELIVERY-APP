@@ -1,21 +1,23 @@
 /**
- * «Leads» (migración 162): las reglas, sin navegador y sin base.
+ * «Leads» (migraciones 162 y siguientes): las reglas, sin navegador y sin base.
  *
- * La base es quien manda (las funciones `lead_take`, `lead_note`, `lead_close` y las del admin): lo de aquí es lo
- * MISMO escrito otra vez para tres cosas — que la pantalla no ofrezca un botón que la base va a rechazar, que el
- * modo demo se comporte como la base, y que cada regla tenga una prueba que se pueda leer.
+ * Desde la 328 (reunión del 2026-11-18) nadie TOMA ni TIENE un lead. Cualquiera que lo ve anota una nota de avance, y
+ * la ETAPA de la nota es lo que el lead es hoy: new, made_contact, no_answer, appointment, quote, negotiation, closed
+ * (venta), lost (no se logró nada) y bad_lead (no es buen lead). La base es quien manda (`lead_note`); lo de aquí es lo
+ * MISMO escrito otra vez para que la pantalla no ofrezca nada que la base vaya a rechazar, para que el modo demo se
+ * comporte como la base, y para que cada regla tenga una prueba que se pueda leer.
  */
-
-/** El tope de leads abiertos por persona si la base no dice otra cosa (`lead_settings.max_open`). */
-export const TOPE_POR_DEFECTO = 10;
 
 export type EstadoLead = "free" | "taken" | "won" | "review" | "archived";
 
-/** Con qué se CIERRA un lead. «Visitado, en seguimiento» no está aquí a propósito: es una nota de avance, no un cierre. */
+/**
+ * Con qué se cerraba un lead ANTES de la 328 (`lead_close`). Se conserva porque el historial viejo lo guarda y hay que
+ * poder leerlo. La pantalla nueva ya no cierra con resultado: cierra con la etapa (`TipoDeAccion`).
+ */
 export const RESULTADOS = ["sale", "bad_lead", "nothing", "review", "reassign"] as const;
 export type Resultado = (typeof RESULTADOS)[number];
 
-/** La etiqueta con la que un lead vuelve al banco: un resultado de cierre, o una nota del admin al liberarlo. */
+/** La etiqueta con la que un lead volvió al banco antes de la 328: un resultado de cierre, o una nota del admin. */
 export type Etiqueta = Resultado | "admin";
 
 export interface Lead {
@@ -49,31 +51,47 @@ export interface Lead {
   design_firm_phone: string | null;
   tdlr_link: string | null;
   status: EstadoLead;
+  /** Quien lo tiene: solo un lead `won` (venta) lo tiene; el resto, null (328). */
   holder: string | null;
   holder_name: string | null;
   taken_at: string | null;
   touched_at: string | null;
+  /** La nota de avance más reciente (su texto). */
   follow_up_note: string | null;
+  /** Cuándo fue la última nota de avance. */
   follow_up_at: string | null;
-  /** 253 (ayuda e207d9ef): el tipo de la última nota de avance. Las notas viejas no tienen (null u omitido). */
+  /**
+   * La ETAPA del lead: la de su última nota con etapa (253; 328). null = aún sin etapa, que se ve como «New».
+   * Es la misma columna de la 253 (`follow_up_action`): la 328 la reusa en vez de crear otra.
+   */
   follow_up_action?: TipoDeAccion | null;
   last_outcome: Etiqueta | null;
   last_note: string | null;
+  /** Quién hizo el ÚLTIMO CONTACTO (quien escribió la última nota) y cuándo. */
   last_by: string | null;
   last_by_name: string | null;
   last_at: string | null;
   /** D-760 (218): de dónde salió. 'tdlr' (permisos del estado, lo de siempre) o 'privado' (el Excel de permisos
    *  municipales, solo para el admin). Opcional por los datos viejos y el demo: sin valor, 'tdlr'. */
   source?: "tdlr" | "privado";
-  /** Cuándo entró el lote del import (el mismo para todo un import). Las semanas del STXP Pool salen de aquí (semanas.ts). */
+  /** Cuándo entró el lote del import (el primero que lo trajo). Las semanas del STXP Pool salen de aquí (semanas.ts). */
   imported_at?: string | null;
   /** D-760: el cliente de erp.customers con el que coincide (teléfono o nombre), y por qué. Los pone el importador. */
   customer_match_id?: number | null;
   customer_match_note?: string | null;
+  /**
+   * En cuántas cargas (imports) ha aparecido el lead (328). 1 = una sola vez. Opcional por el demo y las filas viejas:
+   * sin valor, 1.
+   */
+  times_seen?: number;
+  /** La última carga que lo trajo (328). null = no se registró (las cargas viejas no lo guardaron). */
+  last_seen_at?: string | null;
 }
 
 export const esPrivado = (l: Pick<Lead, "source">): boolean => l.source === "privado";
 export const coincideConCliente = (l: Pick<Lead, "customer_match_id">): boolean => l.customer_match_id != null;
+/** Cuántas cargas trajeron el lead. Sin dato (base vieja o demo), una. */
+export const vecesVisto = (l: Pick<Lead, "times_seen">): number => (typeof l.times_seen === "number" && l.times_seen >= 1 ? l.times_seen : 1);
 
 export type TipoDeEvento = "imported" | "taken" | "progress" | "closed" | "released" | "assigned" | "archived";
 
@@ -84,7 +102,7 @@ export interface EventoLead {
   kind: TipoDeEvento;
   outcome: Resultado | null;
   note: string | null;
-  /** 253: el tipo de una nota de avance (solo kind = 'progress'). Las viejas, sin tipo. */
+  /** 253: la etapa de una nota de avance (solo kind = 'progress'). Las viejas, sin etapa. */
   action?: TipoDeAccion | null;
   actor: string | null;
   actor_name: string | null;
@@ -92,7 +110,7 @@ export interface EventoLead {
   subject_name: string | null;
 }
 
-/** Quien mira. `admin` entra siempre y es el único que reasigna, libera, archiva y cambia el tope. */
+/** Quien mira. `admin` entra siempre y es el único que archiva. */
 export interface Persona {
   id: string;
   name: string;
@@ -104,56 +122,9 @@ export interface Persona {
   permissions?: string[];
 }
 
-// ---------------------------------------------------------------------------------------------------------------
-// El tope y tomar
-// ---------------------------------------------------------------------------------------------------------------
-
-/** Los leads ABIERTOS de una persona: los que tiene tomados. Una venta lograda es suya pero NO ocupa puesto. */
-export function abiertosDe(leads: readonly Lead[], persona: string): Lead[] {
-  return leads.filter((l) => l.status === "taken" && l.holder === persona);
-}
-
-/** Las ventas logradas de una persona: suyas para siempre, fuera del banco. */
-export function ventasDe(leads: readonly Lead[], persona: string): Lead[] {
-  return leads.filter((l) => l.status === "won" && l.holder === persona);
-}
-
-/** Cuántos puestos le quedan. Nunca negativo: si el admin bajó el tope por debajo de lo que tiene, le quedan 0. */
-export function puestosLibres(leads: readonly Lead[], persona: string, tope: number): number {
-  return Math.max(0, tope - abiertosDe(leads, persona).length);
-}
-
 export type Negativa = "lleno" | "no_libre" | "falta_nota" | "no_es_tuyo" | "sin_permiso" | "no_existe" | "dato_invalido" | "otra_tienda";
 
-/**
- * ¿Puede esta persona tomar este lead? El orden es el de `lead_take`: primero el tope, después que el lead esté libre.
- * Solo se toma lo que está LIBRE: ni lo tomado, ni una venta, ni lo que está en revisión, ni lo archivado.
- */
-export function puedeTomar(lead: Lead, leads: readonly Lead[], persona: string, tope: number): { ok: true } | { ok: false; motivo: Negativa } {
-  if (abiertosDe(leads, persona).length >= tope) return { ok: false, motivo: "lleno" };
-  if (lead.status !== "free") return { ok: false, motivo: "no_libre" };
-  return { ok: true };
-}
-
-// ---------------------------------------------------------------------------------------------------------------
-// Cerrar
-// ---------------------------------------------------------------------------------------------------------------
-
-/**
- * A dónde va un lead al cerrarlo, y con quién se queda. Todo cierre libera el puesto de quien lo cierra, porque
- * el puesto lo ocupa solo lo que está `taken`:
- *
- * - `sale` → `won`: se queda SUYO, fuera del banco.
- * - `review` → `review`: a la cola del admin, sin dueño; nadie lo puede tomar hasta que el admin decida.
- * - `bad_lead`, `nothing`, `reassign` → `free`: vuelve al banco con la etiqueta y la nota.
- */
-export function destinoAlCerrar(resultado: Resultado): { estado: EstadoLead; conservaDueno: boolean } {
-  if (resultado === "sale") return { estado: "won", conservaDueno: true };
-  if (resultado === "review") return { estado: "review", conservaDueno: false };
-  return { estado: "free", conservaDueno: false };
-}
-
-/** La nota, recortada. Vacía o solo espacios, no vale: sin nota no se cierra ni se anota. */
+/** La nota, recortada. Vacía o solo espacios, no vale cuando no hay etapa. */
 export function notaLimpia(nota: string | null | undefined): string | null {
   const n = (nota ?? "").trim();
   return n.length > 0 && n.length <= NOTA_MAX ? n : null;
@@ -162,118 +133,117 @@ export const NOTA_MAX = 2000;
 
 export type Hecho<T> = { ok: true; valor: T } | { ok: false; motivo: Negativa };
 
-/** Lo que hace `lead_take`, sobre un lead en memoria. `ahora` en ISO. */
-export function aplicarTomar(lead: Lead, leads: readonly Lead[], yo: Persona, tope: number, ahora: string): Hecho<Lead> {
-  const p = puedeTomar(lead, leads, yo.id, tope);
-  if (!p.ok) return p;
-  return { ok: true, valor: { ...lead, status: "taken", holder: yo.id, holder_name: yo.name, taken_at: ahora, touched_at: ahora, follow_up_note: null, follow_up_action: null, follow_up_at: null } };
-}
-
 // ---------------------------------------------------------------------------------------------------------------
-// 253 (ayuda e207d9ef, Roberto): el tipo de acción de la nota de avance
+// Las etapas
 // ---------------------------------------------------------------------------------------------------------------
 
-/** Los tipos, en el orden en que se eligen. Los mismos valores que el check de la 253. */
-export const TIPOS_DE_ACCION = ["made_contact", "no_answer", "appointment", "quote", "negotiation", "closed", "lost"] as const;
+/**
+ * Las etapas que se pueden ELEGIR al anotar, en el orden en que se muestran. Los mismos valores que el check de la
+ * 328 (`leads.follow_up_action` y `lead_events.action`). «new» no se elige: es no tener ninguna.
+ */
+export const TIPOS_DE_ACCION = ["made_contact", "no_answer", "appointment", "quote", "negotiation", "closed", "lost", "bad_lead"] as const;
 export type TipoDeAccion = (typeof TIPOS_DE_ACCION)[number];
 
-const ACCION_TXT: Record<TipoDeAccion, { en: string; es: string }> = {
+/** Todas las etapas de la lista, en orden: New primero. */
+export const ETAPAS = ["new", ...TIPOS_DE_ACCION] as const;
+export type Etapa = (typeof ETAPAS)[number];
+
+const ETAPA_TXT: Record<Etapa, { en: string; es: string }> = {
+  new: { en: "New", es: "Nuevo" },
   made_contact: { en: "Made Contact", es: "Hizo contacto" },
   no_answer: { en: "Didn't Answer", es: "No contestó" },
   appointment: { en: "Had Appointment", es: "Tuvo cita" },
   quote: { en: "Made Quote", es: "Hizo cotización" },
   negotiation: { en: "Under Negotiation", es: "En negociación" },
-  closed: { en: "Closed", es: "Cerrado" },
-  lost: { en: "Lost", es: "Perdido" },
+  closed: { en: "Closed (sale made)", es: "Cerrado (venta lograda)" },
+  lost: { en: "Lost (nothing came of it)", es: "Perdido (no se logró nada)" },
+  bad_lead: { en: "Not a good lead", es: "No es buen lead" },
 };
 
 export const esTipoDeAccion = (v: unknown): v is TipoDeAccion => typeof v === "string" && (TIPOS_DE_ACCION as readonly string[]).includes(v);
+export const esEtapa = (v: unknown): v is Etapa => typeof v === "string" && (ETAPAS as readonly string[]).includes(v);
 
-export function accionLabel(a: TipoDeAccion, lang: Idioma): string {
-  return ACCION_TXT[a][lang];
+export function etapaLabel(e: Etapa, lang: Idioma): string {
+  return ETAPA_TXT[e][lang];
+}
+/** Lo mismo con el nombre de antes (la pestaña de historial y las píldoras lo usan). */
+export const accionLabel = (a: TipoDeAccion, lang: Idioma): string => etapaLabel(a, lang);
+
+/** La etapa de un lead: la de su última nota con etapa; sin ninguna, «new». */
+export function etapaDe(l: Pick<Lead, "follow_up_action">): Etapa {
+  return esTipoDeAccion(l.follow_up_action) ? l.follow_up_action : "new";
 }
 
-/** El color de la píldora: verde lo que avanza, ámbar lo que espera, rojo lo que se cae. */
-export function accionTono(a: TipoDeAccion): "verde" | "ambar" | "rojo" | "azul" {
-  if (a === "closed") return "verde";
-  if (a === "lost") return "rojo";
-  if (a === "no_answer") return "ambar";
+/** El color de la píldora: verde lo que se vendió, rojo lo que se cae, ámbar lo que espera, gris lo que no empieza. */
+export function etapaTono(e: Etapa): "gris" | "verde" | "ambar" | "rojo" | "azul" {
+  if (e === "new") return "gris";
+  if (e === "closed") return "verde";
+  if (e === "lost" || e === "bad_lead") return "rojo";
+  if (e === "no_answer") return "ambar";
   return "azul";
 }
+export function accionTono(a: TipoDeAccion): "verde" | "ambar" | "rojo" | "azul" {
+  const t = etapaTono(a);
+  return t === "gris" ? "azul" : t;
+}
 
-/** Lo que hace `lead_note`: la nota de avance. El lead SIGUE abierto y sigue ocupando su puesto.
- *  253: con tipo de acción, la nota es opcional; sin tipo, obligatoria (como antes). */
+/** Cuántos leads hay en cada etapa (los archivados no cuentan: no se ven). */
+export function cuentaPorEtapa(leads: readonly Lead[]): Record<Etapa, number> {
+  const n = Object.fromEntries(ETAPAS.map((e) => [e, 0])) as Record<Etapa, number>;
+  for (const l of leads) if (l.status !== "archived") n[etapaDe(l)]++;
+  return n;
+}
+
+/**
+ * Lo que hace `lead_note` (328), sobre un lead en memoria. `ahora` en ISO.
+ *  - Con etapa: la etapa es esa. `closed` = venta: `won`, a nombre de quien anota. Cualquier otra: `free`, sin dueño.
+ *  - Sin etapa: la nota es obligatoria; la etapa, el estado y el dueño NO cambian.
+ *  - Siempre: la nota, la fecha de la nota y quién hizo el último contacto (quien anota).
+ * Un lead archivado no recibe notas (la base responde «no existe»).
+ */
 export function aplicarNota(lead: Lead, yo: Persona, nota: string, ahora: string, accion: TipoDeAccion | null = null): Hecho<Lead> {
   if (accion !== null && !esTipoDeAccion(accion)) return { ok: false, motivo: "dato_invalido" };
   const n = notaLimpia(nota);
   if (!n && accion === null) return { ok: false, motivo: "falta_nota" };
   if ((nota ?? "").trim().length > NOTA_MAX) return { ok: false, motivo: "dato_invalido" };
-  if (lead.status !== "taken" || lead.holder !== yo.id) return { ok: false, motivo: "no_es_tuyo" };
-  return { ok: true, valor: { ...lead, follow_up_note: n, follow_up_action: accion, follow_up_at: ahora, touched_at: ahora } };
-}
-
-/** Lo que hace `lead_close`: cerrar con resultado y nota obligatoria. Solo quien lo tiene abierto. */
-export function aplicarCerrar(lead: Lead, yo: Persona, resultado: Resultado, nota: string, ahora: string): Hecho<Lead> {
-  const n = notaLimpia(nota);
-  if (!n) return { ok: false, motivo: "falta_nota" };
-  if (lead.status !== "taken" || lead.holder !== yo.id) return { ok: false, motivo: "no_es_tuyo" };
-  const d = destinoAlCerrar(resultado);
+  if (lead.status === "archived") return { ok: false, motivo: "no_existe" };
+  const venta = accion === "closed";
+  const sinEtapa = accion === null;
   return {
     ok: true,
     valor: {
       ...lead,
-      status: d.estado,
-      holder: d.conservaDueno ? lead.holder : null,
-      holder_name: d.conservaDueno ? lead.holder_name : null,
-      taken_at: d.conservaDueno ? lead.taken_at : null,
-      follow_up_note: d.conservaDueno ? lead.follow_up_note : null,
-      follow_up_at: d.conservaDueno ? lead.follow_up_at : null,
-      follow_up_action: d.conservaDueno ? (lead.follow_up_action ?? null) : null,
-      last_outcome: resultado, last_note: n, last_by: yo.id, last_by_name: yo.name, last_at: ahora, touched_at: ahora,
+      follow_up_note: n,
+      follow_up_action: accion ?? lead.follow_up_action,
+      follow_up_at: ahora,
+      status: sinEtapa ? lead.status : venta ? "won" : "free",
+      holder: sinEtapa ? lead.holder : venta ? yo.id : null,
+      holder_name: sinEtapa ? lead.holder_name : venta ? yo.name : null,
+      taken_at: sinEtapa || venta ? lead.taken_at : null,
+      last_by: yo.id, last_by_name: yo.name, last_at: ahora,
+      touched_at: ahora,
     },
   };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Quién ve qué
-// ---------------------------------------------------------------------------------------------------------------
-
-/**
- * ¿Se le enseña a esta persona el contacto del lead (dueño, teléfono, inquilino, despacho)?
- *
- * Sí si el lead está LIBRE (lo necesita para decidir si lo toma), si es SUYO, o si es admin. De un lead que tiene
- * otra persona, o que está en revisión o archivado, la tarjeta sale apagada y sin el contacto: es lo que el dueño
- * pidió («faded y bloqueadas»). **Es una regla de la pantalla, no de la base**: la RLS deja leer la fila entera a
- * quien la alcanza (con la 162, todo el que tiene el módulo; con la 163, los de su tienda y los suyos: `alcance.ts`).
- */
-export function veContacto(lead: Lead, yo: Persona): boolean {
-  if (yo.admin) return true;
-  if (lead.status === "free") return true;
-  return lead.holder === yo.id;
-}
-
-/** ¿La tarjeta sale apagada y bloqueada? Todo lo que no está libre, salvo lo que es de quien mira. */
-export function bloqueado(lead: Lead, yo: Persona): boolean {
-  return lead.status !== "free" && lead.holder !== yo.id;
-}
-
-// ---------------------------------------------------------------------------------------------------------------
-// El banco: pools, vistas, filtros y orden
+// El banco: pools, filtros y orden
 // ---------------------------------------------------------------------------------------------------------------
 
 /** El pool de los leads sin tienda cercana (la base lo llama así; la pantalla lo traduce). */
 export const POOL_SIN_TIENDA = "No store";
 
-export interface ResumenDePool { pool: string; libres: number; tomados: number; total: number }
+export interface ResumenDePool { pool: string; total: number }
 
-/** Los pools que hay, con cuántos libres y cuántos tomados. Por nombre; el de «sin tienda», al final. */
+/** Quita lo archivado: no se ve en el banco ni cuenta. */
+export const vigentes = (leads: readonly Lead[]): Lead[] => leads.filter((l) => l.status !== "archived");
+
+/** Los pools que hay, con cuántos leads vigentes. Por nombre; el de «sin tienda», al final. */
 export function poolsDe(leads: readonly Lead[]): ResumenDePool[] {
   const m = new Map<string, ResumenDePool>();
-  for (const l of leads) {
-    const r = m.get(l.pool) ?? { pool: l.pool, libres: 0, tomados: 0, total: 0 };
+  for (const l of vigentes(leads as Lead[])) {
+    const r = m.get(l.pool) ?? { pool: l.pool, total: 0 };
     r.total++;
-    if (l.status === "free") r.libres++;
-    if (l.status === "taken") r.tomados++;
     m.set(l.pool, r);
   }
   return [...m.values()].sort((a, b) =>
@@ -281,9 +251,8 @@ export function poolsDe(leads: readonly Lead[]): ResumenDePool[] {
 }
 
 /**
- * «Todas las tiendas» en el selector del Pool General (D-631, 2026-10-21). El dueño: «Leads for admin, need an All
- * filter instead of per store». Lo ofrece quien alcanza más de una tienda (`eligeTienda`); no es un pool de la base,
- * es no filtrar por tienda (`filtroDePool` → `null`, que `filtrar` ya entiende como «todas»).
+ * «Todas las tiendas» en el selector del GOV Pool (D-631). Lo ofrece quien alcanza más de una tienda (`eligeTienda`);
+ * no es un pool de la base, es no filtrar por tienda (`filtroDePool` → `null`).
  */
 export const POOL_TODAS = "__todas__";
 
@@ -292,8 +261,7 @@ export const filtroDePool = (pool: string | null): string | null => (pool === PO
 
 /** Lo que cuenta «Todas las tiendas»: la suma de los pools. */
 export function resumenDeTodas(pools: readonly ResumenDePool[]): ResumenDePool {
-  return pools.reduce((t, p) => ({ ...t, libres: t.libres + p.libres, tomados: t.tomados + p.tomados, total: t.total + p.total }),
-    { pool: POOL_TODAS, libres: 0, tomados: 0, total: 0 });
+  return pools.reduce((t, p) => ({ ...t, total: t.total + p.total }), { pool: POOL_TODAS, total: 0 });
 }
 
 /**
@@ -306,9 +274,6 @@ export function poolInicial(pools: readonly ResumenDePool[], tienda: string | nu
   return pools[0]?.pool ?? null;
 }
 
-/** Las dos vistas del banco. `libres` es la de entrada. */
-export type Vista = "libres" | "todas";
-
 /** El filtro de categoría de entrada: lo que sirve y lo que podría servir. `todas` enseña también lo descartado. */
 export type FiltroCategoria = "utiles" | "todas" | string;
 
@@ -317,70 +282,19 @@ export function categoriaDescartada(categoria: string | null): boolean {
   return (categoria ?? "").trim().toLowerCase().startsWith("no sirve");
 }
 
-/**
- * Los filtros rápidos por situación del lead (D-473). `""` = sin filtro. Con uno puesto, la vista «Libres / Todas»
- * no cuenta: «Ocupa revisión», «Tomados» y «Vendidos» no son leads libres y si no nunca saldrían.
- */
-export const SITUACIONES = ["buenos", "revision", "negados", "nada", "reasignar", "tomados", "vendidos"] as const;
-export type Situacion = (typeof SITUACIONES)[number];
-
 /** ¿La categoría del Excel es de las buenas? Empieza por «Sirve» («Sirve – usa piso»); «Might be useful» no entra. */
 export function categoriaBuena(categoria: string | null): boolean {
   return (categoria ?? "").trim().toLowerCase().startsWith("sirve");
 }
 
-/**
- * ¿El lead está en esa situación?
- * - `buenos`: libre y de categoría buena.
- * - `revision`: en la cola del admin («Ocupa revisión»).
- * - `negados`: volvió al Pool General como «No es buen lead».
- * - `nada`: volvió como «No se logró nada».  · `reasignar`: volvió como «Mejor reasignarlo».
- * - `tomados`: alguien lo tiene.  · `vendidos`: venta lograda.
- */
-export function enSituacion(l: Pick<Lead, "status" | "category" | "last_outcome">, s: Situacion): boolean {
-  switch (s) {
-    case "buenos": return l.status === "free" && categoriaBuena(l.category);
-    case "revision": return l.status === "review";
-    case "negados": return l.status === "free" && l.last_outcome === "bad_lead";
-    case "nada": return l.status === "free" && l.last_outcome === "nothing";
-    case "reasignar": return l.status === "free" && l.last_outcome === "reassign";
-    case "tomados": return l.status === "taken";
-    case "vendidos": return l.status === "won";
-  }
-}
-
-/** Cuántos leads hay en cada situación, para el número de cada filtro. */
-export function cuentaPorSituacion(leads: readonly Lead[]): Record<Situacion, number> {
-  const n = { buenos: 0, revision: 0, negados: 0, nada: 0, reasignar: 0, tomados: 0, vendidos: 0 } as Record<Situacion, number>;
-  for (const l of leads) for (const s of SITUACIONES) if (enSituacion(l, s)) n[s]++;
-  return n;
-}
-
-export interface Filtros {
-  pool: string | null;
-  vista: Vista;
-  categoria: FiltroCategoria;
-  tipo: string;
-  ciudad: string;
-  busca: string;
-  situacion?: Situacion | "";
-  /** D-760: solo los que coinciden con un cliente de Clientes. */
-  coinciden?: boolean;
-  /** D-763: texto de fuera del lead que también cuenta al buscar (el cliente cruzado y su vendedor). */
-  textoExtra?: (l: Lead) => string;
-  /** 253: por el tipo de la última nota de avance. "sin" = los que no tienen. */
-  accion?: TipoDeAccion | "sin" | "";
-}
-
 const sinAcentos = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-/** Dónde busca la caja de búsqueda. */
 /**
  * D-763: la búsqueda mira TODO el lead («buscar lo que sea hasta por sales people», el dueño, 2026-10-30): cada campo de
- * texto o número, incluido quién lo tiene (`holder_name`), quién anotó, teléfonos y la razón del cruce. Fuera quedan solo
- * los ids y las fechas en bruto (no se buscan a mano).
+ * texto o número, incluido quién anotó la última vez, teléfonos y la razón del cruce. Fuera quedan solo los ids y las
+ * fechas en bruto (no se buscan a mano).
  */
-const NO_SE_BUSCA = new Set(["id", "holder", "last_by", "customer_match_id", "taken_at", "touched_at", "follow_up_at", "last_at", "matched_at", "distance_miles"]);
+const NO_SE_BUSCA = new Set(["id", "holder", "last_by", "customer_match_id", "taken_at", "touched_at", "follow_up_at", "last_at", "matched_at", "distance_miles", "times_seen", "last_seen_at"]);
 function textoDe(l: Lead, extra?: (l: Lead) => string): string {
   const partes: string[] = [];
   for (const [k, v] of Object.entries(l)) {
@@ -392,34 +306,37 @@ function textoDe(l: Lead, extra?: (l: Lead) => string): string {
   return sinAcentos(partes.join(" · "));
 }
 
-/**
- * Los leads del banco que tocan. `libres` = solo lo que se puede tomar. `todas` = todo lo del pool, incluido lo
- * tomado, lo vendido, lo que está en revisión y lo archivado (la pantalla lo pinta apagado).
- */
-/** 253: ¿pasa el filtro por la última acción? Vacío deja pasar todo. */
-export function pasaAccion(l: Pick<Lead, "follow_up_action">, accion: TipoDeAccion | "sin" | "" | undefined): boolean {
-  if (!accion) return true;
-  if (accion === "sin") return !l.follow_up_action;
-  return l.follow_up_action === accion;
+export interface Filtros {
+  pool: string | null;
+  categoria: FiltroCategoria;
+  tipo: string;
+  ciudad: string;
+  busca: string;
+  /** La etapa del lead (328). "" = todas. */
+  etapa?: Etapa | "";
+  /** El chip «categoría buena»: solo las que empiezan por «Sirve». */
+  buena?: boolean;
+  /** D-760: solo los que coinciden con un cliente de Clientes. */
+  coinciden?: boolean;
+  /** D-763: texto de fuera del lead que también cuenta al buscar (el cliente cruzado y su vendedor). */
+  textoExtra?: (l: Lead) => string;
 }
 
+/**
+ * Los leads del banco que pasan los filtros. Lo archivado no entra nunca. La etapa se mira en `etapaDe`.
+ */
 export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
   const q = sinAcentos(f.busca.trim());
   return leads.filter((l) => {
+    if (l.status === "archived") return false;
     if (f.pool !== null && l.pool !== f.pool) return false;
     if (f.coinciden && !coincideConCliente(l)) return false;
-    if (f.situacion) {
-      // Con situación puesta manda ella: ni la vista ni la categoría de entrada esconden lo que se pidió ver.
-      if (!enSituacion(l, f.situacion)) return false;
-      if (f.categoria !== "utiles" && f.categoria !== "todas" && l.category !== f.categoria) return false;
-    } else {
-      if (f.vista === "libres" && l.status !== "free") return false;
-      if (f.categoria === "utiles") { if (categoriaDescartada(l.category)) return false; }
-      else if (f.categoria !== "todas" && l.category !== f.categoria) return false;
-    }
+    if (f.buena && !categoriaBuena(l.category)) return false;
+    if (f.etapa && etapaDe(l) !== f.etapa) return false;
+    if (f.categoria === "utiles") { if (categoriaDescartada(l.category)) return false; }
+    else if (f.categoria !== "todas" && l.category !== f.categoria) return false;
     if (f.tipo && l.project_type !== f.tipo) return false;
     if (f.ciudad && l.site_city !== f.ciudad) return false;
-    if (!pasaAccion(l, f.accion)) return false;
     if (q && !textoDe(l, f.textoExtra).includes(q)) return false;
     return true;
   });
@@ -432,7 +349,7 @@ export function nombreParaOrdenar(l: Pick<Lead, "owner_name" | "tenant_name">): 
   return ((l.owner_name ?? "").trim() || (l.tenant_name ?? "").trim()).toLowerCase();
 }
 
-/** El orden con el que nace el Pool General (D-491). El dueño, 2026-10-07: «sorted by square ft en leads se hizo?». */
+/** El orden con el que nace el GOV Pool (D-491). El dueño, 2026-10-07: «sorted by square ft en leads se hizo?». */
 export const ORDEN_INICIAL: Orden = "pies";
 
 /**
@@ -473,43 +390,59 @@ export function valoresDe(leads: readonly Lead[], campo: "category" | "project_t
 // El tablero del admin
 // ---------------------------------------------------------------------------------------------------------------
 
-export interface FilaDeVendedor { id: string; nombre: string; abiertos: number; cerrados: number; ventas: number }
+export interface FilaDeVendedor { id: string; nombre: string; notas: number; cotizaciones: number; ventas: number }
 
 /**
- * Por vendedor: cuántos tiene abiertos ahora, cuántos ha cerrado (cualquier resultado) y cuántos de esos fueron venta.
- * Abiertos sale de los leads; cerrados y ventas, del historial (un cierre es un evento `closed`, y no se borra).
+ * Por persona, a partir del historial: cuántas notas ha anotado, cuántas de ellas son de cotización y cuántas de venta.
+ * Quien anota es el `actor` de la fila. Las ventas de la 162 (un cierre `closed` con resultado `sale`) cuentan también.
  */
-export function tableroPorVendedor(leads: readonly Lead[], eventos: readonly EventoLead[]): FilaDeVendedor[] {
+export function tableroPorVendedor(eventos: readonly EventoLead[]): FilaDeVendedor[] {
   const m = new Map<string, FilaDeVendedor>();
   const fila = (id: string, nombre: string | null) => {
-    const f = m.get(id) ?? { id, nombre: nombre ?? "—", abiertos: 0, cerrados: 0, ventas: 0 };
+    const f = m.get(id) ?? { id, nombre: nombre ?? "—", notas: 0, cotizaciones: 0, ventas: 0 };
     if (nombre && f.nombre === "—") f.nombre = nombre;
     m.set(id, f);
     return f;
   };
-  for (const l of leads) if (l.status === "taken" && l.holder) fila(l.holder, l.holder_name).abiertos++;
   for (const e of eventos) {
-    if (e.kind !== "closed" || !e.subject) continue;
-    const f = fila(e.subject, e.subject_name);
-    f.cerrados++;
-    if (e.outcome === "sale") f.ventas++;
+    if (!e.actor) continue;
+    if (e.kind === "progress") {
+      const f = fila(e.actor, e.actor_name);
+      f.notas++;
+      if (e.action === "quote") f.cotizaciones++;
+      if (e.action === "closed") f.ventas++;
+    } else if (e.kind === "closed" && e.outcome === "sale") {
+      fila(e.actor, e.actor_name).ventas++;
+    }
   }
-  return [...m.values()].sort((a, b) => b.abiertos - a.abiertos || b.cerrados - a.cerrados || a.nombre.localeCompare(b.nombre));
+  return [...m.values()].sort((a, b) => b.ventas - a.ventas || b.notas - a.notas || a.nombre.localeCompare(b.nombre));
 }
 
-/** Los leads tomados que nadie toca (ni nota de avance ni nada) desde hace `dias` días o más. Los más viejos primero. */
-export function sinTocar(leads: readonly Lead[], dias: number, ahora: Date): Lead[] {
-  const limite = ahora.getTime() - dias * 86400000;
-  const cuando = (l: Lead) => Date.parse(l.touched_at ?? l.taken_at ?? "");
-  return leads
-    .filter((l) => l.status === "taken" && Number.isFinite(cuando(l)) && cuando(l) <= limite)
-    .sort((a, b) => cuando(a) - cuando(b));
+export interface FilaDeTienda {
+  pool: string;
+  porEtapa: Record<Etapa, number>;
+  /** Leads de esta tienda con al menos una nota de cotización en el historial. */
+  cotizadosAlgunaVez: number;
+  total: number;
 }
 
-/** La cola del admin: lo que alguien cerró como «ocupa revisión». Lo más antiguo primero. */
-export function colaDeRevision(leads: readonly Lead[]): Lead[] {
-  return leads.filter((l) => l.status === "review").sort((a, b) => Date.parse(a.last_at ?? "") - Date.parse(b.last_at ?? ""));
+/**
+ * Por GOV Pool (tienda): cuántos leads vigentes hay en cada etapa, cuántos han tenido alguna vez una cotización en el
+ * historial (un evento `progress` con etapa `quote`) y el total. Lo archivado no entra.
+ */
+export function tableroPorTienda(leads: readonly Lead[], eventos: readonly EventoLead[]): FilaDeTienda[] {
+  const conCotizacion = new Set(eventos.filter((e) => e.kind === "progress" && e.action === "quote").map((e) => e.lead_id));
+  const m = new Map<string, Lead[]>();
+  for (const l of vigentes(leads as Lead[])) m.set(l.pool, [...(m.get(l.pool) ?? []), l]);
+  return poolsDe(leads as Lead[]).map((p) => {
+    const de = m.get(p.pool) ?? [];
+    return { pool: p.pool, porEtapa: cuentaPorEtapa(de), cotizadosAlgunaVez: de.filter((l) => conCotizacion.has(l.id)).length, total: de.length };
+  });
 }
+
+/** Cuántos leads (vigentes) aparecieron en más de una carga. */
+export const cuantosVistosMasDeUna = (leads: readonly Lead[]): number =>
+  vigentes(leads as Lead[]).filter((l) => vecesVisto(l) > 1).length;
 
 // ---------------------------------------------------------------------------------------------------------------
 // Textos y enlaces
@@ -525,26 +458,8 @@ const RESULTADO_TXT: Record<Etiqueta, { en: string; es: string }> = {
   reassign: { en: "Better to reassign it", es: "Mejor reasignarlo" },
   admin: { en: "Admin note", es: "Nota del admin" },
 };
+/** El texto de un resultado de la 162 (solo para leer el historial viejo). */
 export function resultadoLabel(r: Etiqueta, lang: Idioma): string { return RESULTADO_TXT[r][lang]; }
-
-const SITUACION_TXT: Record<Situacion, { en: string; es: string }> = {
-  buenos: { en: "Good leads", es: "Buenos leads" },
-  revision: { en: "Needs review", es: "Ocupa revisión" },
-  negados: { en: "Rejected", es: "Negados" },
-  nada: { en: "Nothing came of it", es: "No se logró nada" },
-  reasignar: { en: "To reassign", es: "Por reasignar" },
-  tomados: { en: "Taken", es: "Tomados" },
-  vendidos: { en: "Sold", es: "Vendidos" },
-};
-export function situacionLabel(s: Situacion, lang: Idioma): string { return SITUACION_TXT[s][lang]; }
-
-/** Qué le pasa al lead con cada resultado, dicho en la pantalla antes de cerrar. Sale de `destinoAlCerrar`. */
-export function consecuencia(r: Resultado, lang: Idioma): string {
-  const d = destinoAlCerrar(r);
-  if (d.estado === "won") return lang === "es" ? "Se queda contigo, fuera del GOV Pool." : "It stays yours, out of the GOV Pool.";
-  if (d.estado === "review") return lang === "es" ? "Va a la cola del admin." : "It goes to the admin's queue.";
-  return lang === "es" ? "Vuelve al GOV Pool con esta etiqueta y tu nota." : "It goes back to the GOV Pool with this tag and your note.";
-}
 
 const ESTADO_TXT: Record<EstadoLead, { en: string; es: string }> = {
   free: { en: "Free", es: "Libre" },
@@ -557,14 +472,16 @@ export function estadoLabel(e: EstadoLead, lang: Idioma): string { return ESTADO
 
 const EVENTO_TXT: Record<TipoDeEvento, { en: string; es: string }> = {
   imported: { en: "Imported", es: "Importado" },
-  taken: { en: "Taken", es: "Tomado" },
-  progress: { en: "Visited – following up", es: "Visitado – en seguimiento" },
+  taken: { en: "Taken (before 328)", es: "Tomado (antes de la 328)" },
+  progress: { en: "Progress note", es: "Nota de avance" },
   closed: { en: "Closed", es: "Cerrado" },
   released: { en: "Released by admin", es: "Liberado por el admin" },
   assigned: { en: "Assigned by admin", es: "Asignado por el admin" },
   archived: { en: "Archived by admin", es: "Archivado por el admin" },
 };
+/** Lo que dice una fila del historial. Una nota de avance dice su etapa (si la tiene); un cierre viejo, su resultado. */
 export function eventoLabel(e: EventoLead, lang: Idioma): string {
+  if (e.kind === "progress" && e.action) return accionLabel(e.action, lang);
   const base = EVENTO_TXT[e.kind][lang];
   return e.kind === "closed" && e.outcome ? `${base}: ${resultadoLabel(e.outcome, lang)}` : base;
 }
@@ -637,18 +554,18 @@ export function fecha(iso: string | null): string {
 }
 
 const NEGATIVA_TXT: Record<Negativa, { en: string; es: string }> = {
-  lleno: { en: "Your pool is full. Close a lead with its result to take another.", es: "Tu pool está lleno. Cierra un lead con su resultado para tomar otro." },
-  no_libre: { en: "That lead is no longer free: someone else has it.", es: "Ese lead ya no está libre: lo tiene otra persona." },
-  falta_nota: { en: "Write a note first.", es: "Escribe una nota primero." },
-  no_es_tuyo: { en: "That lead is not open in your pool.", es: "Ese lead no está abierto en tu pool." },
+  lleno: { en: "You cannot add more leads right now.", es: "Ahora no puedes añadir más leads." },
+  no_libre: { en: "That lead is no longer free.", es: "Ese lead ya no está libre." },
+  falta_nota: { en: "Write a note or pick a stage first.", es: "Escribe una nota o elige una etapa primero." },
+  no_es_tuyo: { en: "You cannot change that lead.", es: "No puedes cambiar ese lead." },
   sin_permiso: { en: "You do not have permission for that.", es: "No tienes permiso para eso." },
   no_existe: { en: "That lead no longer exists.", es: "Ese lead ya no existe." },
   dato_invalido: { en: "The database rejected that value.", es: "La base rechazó ese dato." },
-  otra_tienda: { en: "That lead belongs to another store: you can only take leads from your own store.", es: "Ese lead es de otra tienda: solo puedes tomar leads de tu tienda." },
+  otra_tienda: { en: "That lead belongs to another store.", es: "Ese lead es de otra tienda." },
 };
 export function negativaTexto(n: Negativa, lang: Idioma): string { return NEGATIVA_TXT[n][lang]; }
 
-/** El código de error de la base (los `LD00x` de la 162, el `LD005` de la 163 y los de Postgres) como una negativa que se puede traducir. */
+/** El código de error de la base (los `LD00x` de la 162 y la 163 y los de Postgres) como una negativa que se puede traducir. */
 export function negativaDeCodigo(code: string | null | undefined): Negativa | null {
   switch (code) {
     case "LD001": return "lleno";

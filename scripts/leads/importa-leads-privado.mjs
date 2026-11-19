@@ -17,7 +17,7 @@
 //   - Cruce con Clientes: mismo teléfono (10 dígitos) que un cliente o uno de sus contactos → coincide; si no, mismo nombre
 //     normalizado (empresa o persona, sin «LLC/Inc/Co», sin puntuación) que la cuenta, la cuenta unificada o el contacto.
 //     Se guarda customer_match_id / customer_match_note / customer_matched_at. Un lead ya importado se actualiza (datos del
-//     Excel y cruce), sin tocar estado, dueño ni historial, como `leads_import_rows`.
+//     Excel y cruce), sin tocar estado, dueño ni historial, como `leads_import_rows`, y suma una carga a `times_seen` (328).
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
@@ -172,15 +172,16 @@ export async function importaEnTransaccion(c, leads) {
     const r = await c.query(
       `insert into public.leads as l (tabs_project, pool, source, category, project_type, reason, county, registered_date, project_name, facility_name,
          type_of_work, scope_of_work, square_footage, estimated_cost, permit_status, site_address, site_city, site_zip, owner_name, owner_phone,
-         owner_contact, owner_mailing_address, owner_city_state_zip, tenant_name, tenant_phone, customer_match_id, customer_match_note, customer_matched_at)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27, case when $26::bigint is null then null else now() end)
+         owner_contact, owner_mailing_address, owner_city_state_zip, tenant_name, tenant_phone, customer_match_id, customer_match_note, customer_matched_at, last_seen_at)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27, case when $26::bigint is null then null else now() end, now())
        on conflict (tabs_project) do update set pool = excluded.pool, source = excluded.source, category = excluded.category, project_type = excluded.project_type,
          reason = excluded.reason, county = excluded.county, registered_date = excluded.registered_date, project_name = excluded.project_name,
          facility_name = excluded.facility_name, type_of_work = excluded.type_of_work, square_footage = excluded.square_footage,
          estimated_cost = excluded.estimated_cost, permit_status = excluded.permit_status, site_address = excluded.site_address, site_city = excluded.site_city,
          owner_name = excluded.owner_name, owner_phone = excluded.owner_phone, owner_mailing_address = excluded.owner_mailing_address,
          owner_city_state_zip = excluded.owner_city_state_zip, tenant_name = excluded.tenant_name, tenant_phone = excluded.tenant_phone,
-         customer_match_id = excluded.customer_match_id, customer_match_note = excluded.customer_match_note, customer_matched_at = excluded.customer_matched_at, updated_at = now()
+         customer_match_id = excluded.customer_match_id, customer_match_note = excluded.customer_match_note, customer_matched_at = excluded.customer_matched_at, updated_at = now(),
+         times_seen = case when l.last_seen_at is distinct from now() then l.times_seen + 1 else l.times_seen end, last_seen_at = now()
        returning id, (xmax = 0) as nuevo`,
       [l.tabs_project, l.pool, l.source, l.category, l.project_type, l.reason, l.county, l.registered_date, l.project_name, l.facility_name,
         l.type_of_work, l.scope_of_work, l.square_footage, l.estimated_cost, l.permit_status, l.site_address, l.site_city, l.site_zip, l.owner_name, l.owner_phone,

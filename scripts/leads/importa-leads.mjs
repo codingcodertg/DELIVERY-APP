@@ -12,7 +12,8 @@
 // El guion NO traduce columnas: manda cada fila con las cabeceras del Excel como claves, y el mapa de
 // columnas, la limpieza de numeros y fechas y el dedupe por «TABS Project #» viven en la funcion
 // public.leads_import_rows de la 162. Volver a correrlo con un Excel mas nuevo ACTUALIZA los datos de
-// los leads que ya estaban y anade los nuevos; no toca quien tiene cada lead, su etiqueta ni su historial.
+// los leads que ya estaban, anade los nuevos y suma una carga a `times_seen` de cada lead que vuelve (328);
+// no toca la etapa de cada lead ni su historial.
 //
 // Se lee con el lector por flujo de exceljs: el lector normal (workbook.xlsx.readFile) revienta con
 // este fichero («Cannot read properties of undefined (reading 'comments')», medido el 2026-10-04).

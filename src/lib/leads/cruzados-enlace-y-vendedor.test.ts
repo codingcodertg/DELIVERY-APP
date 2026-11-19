@@ -36,7 +36,7 @@ describe("la tarjeta del cliente", () => {
 });
 
 describe("la búsqueda del pool", () => {
-  const base: Filtros = { pool: null, vista: "todas", categoria: "todas", tipo: "", ciudad: "", busca: "" };
+  const base: Filtros = { pool: null, categoria: "todas", tipo: "", ciudad: "", busca: "" };
   const lead = (id: string, extra: Partial<Lead>): Lead => ({
     id, tabs_project: "T-" + id, pool: "p", distance_miles: 1, category: null, project_type: null, reason: null, county: null, registered_date: null,
     project_name: null, facility_name: null, type_of_work: null, scope_of_work: null, square_footage: null, estimated_cost: null, est_start_date: null,

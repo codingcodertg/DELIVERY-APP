@@ -132,15 +132,13 @@ export function contextoDeClientes(e: {
 // ---- Leads ----------------------------------------------------------------------------------------------------
 
 const PESTANAS_DE_LEADS: Record<string, Bilingue> = {
-  banco: b("Lead bank tab", "Pestaña Banco de leads"),
-  mio: b("My pool tab", "Pestaña Mi pool"),
+  banco: b("GOV Pool tab", "Pestaña GOV Pool"),
   admin: b("Admin tab", "Pestaña Admin"),
   privado: b("STXP Pool tab", "Pestaña STXP Pool"),
 };
 const DIALOGOS_DE_LEADS: Record<string, Bilingue> = {
-  cerrar: b("Close lead window open", "Ventana de cerrar lead abierta"),
-  nota: b("Lead note / action window open", "Ventana de nota o acción del lead abierta"),
-  admin: b("Lead admin window open", "Ventana de administrar lead abierta"),
+  nota: b("Lead stage / note window open", "Ventana de etapa o nota del lead abierta"),
+  archivar: b("Archive lead window open", "Ventana de archivar lead abierta"),
   cliente: b("Matching customer card open", "Ficha del cliente coincidente abierta"),
 };
 
@@ -149,7 +147,8 @@ export function contextoDeLeads(e: {
   pestana: string;
   /** El pool (la tienda) que se mira, o `null`. */
   pool: string | null;
-  vista: string;
+  /** La etapa por la que se filtra (328), o «» si ninguna. */
+  etapa: string;
   buscando: boolean;
   dialogo: string | null;
   historialAbierto: boolean;
@@ -158,7 +157,7 @@ export function contextoDeLeads(e: {
   return [
     PESTANAS_DE_LEADS[e.pestana] ?? e.pestana,
     e.pestana === "banco" && !!e.pool && b(`pool: ${e.pool}`, `pool: ${e.pool}`),
-    e.pestana === "banco" && (e.vista === "todas" ? b("showing all leads", "viendo todos los leads") : b("showing free leads", "viendo los leads libres")),
+    e.pestana === "banco" && !!e.etapa && b(`stage filter: ${e.etapa}`, `filtro de etapa: ${e.etapa}`),
     e.buscando && b("with a search typed", "con una búsqueda escrita"),
     e.historialAbierto && b("Lead history open", "Historial del lead abierto"),
     !!e.dialogo && (DIALOGOS_DE_LEADS[e.dialogo] ?? e.dialogo),

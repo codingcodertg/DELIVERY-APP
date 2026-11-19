@@ -16,9 +16,6 @@ import type { Lead } from "./reglas";
 
 const base = leadsDemo(new Date("2026-10-15T12:00:00Z"))[0];
 const lead = (patch: Partial<Lead> = {}): Lead => ({ ...base, id: "L1", status: "taken", holder: "u-ana", holder_name: "Ana", ...patch });
-const ana = { id: "u-ana", admin: false };
-const beto = { id: "u-beto", admin: false };
-const admin = { id: "u-admin", admin: true };
 
 describe("quién puede cotizar un lead", () => {
   it("tieneEstimador: el admin siempre, los demás con 'estimator' en module_access", () => {
@@ -30,33 +27,11 @@ describe("quién puede cotizar un lead", () => {
   });
 
   it("sin el Quote Builder, nadie: ni el admin", () => {
-    expect(puedeCotizarLead(lead(), admin, false)).toBe(false);
-    expect(puedeCotizarLead(lead(), ana, false)).toBe(false);
+    expect(puedeCotizarLead(false)).toBe(false);
   });
 
-  it("el que lo tiene, tomado o vendido", () => {
-    expect(puedeCotizarLead(lead({ status: "taken" }), ana, true)).toBe(true);
-    expect(puedeCotizarLead(lead({ status: "won" }), ana, true)).toBe(true);
-  });
-
-  it("de otra persona no: su contacto está oculto", () => {
-    expect(puedeCotizarLead(lead({ status: "taken" }), beto, true)).toBe(false);
-    expect(puedeCotizarLead(lead({ status: "won" }), beto, true)).toBe(false);
-  });
-
-  it("un lead libre se toma primero (si no, se trabaja sin ocupar puesto)", () => {
-    expect(puedeCotizarLead(lead({ status: "free", holder: null }), ana, true)).toBe(false);
-    expect(puedeCotizarLead(lead({ status: "review", holder: null }), ana, true)).toBe(false);
-  });
-
-  it("un lead que tuvo pero ya no está tomado ni vendido, no (holder que quedó en un estado raro)", () => {
-    expect(puedeCotizarLead(lead({ status: "archived", holder: "u-ana" }), ana, true)).toBe(false);
-  });
-
-  it("el admin, de cualquier lead que vea", () => {
-    for (const status of ["free", "taken", "won", "review", "archived"] as const) {
-      expect([status, puedeCotizarLead(lead({ status, holder: status === "free" ? null : "u-otro" }), admin, true)]).toEqual([status, true]);
-    }
+  it("con el Quote Builder, quien ve el lead puede cotizarlo: ya no hace falta tomarlo (328)", () => {
+    expect(puedeCotizarLead(true)).toBe(true);
   });
 });
 
@@ -67,6 +42,13 @@ describe("del lead a la cotización", () => {
   it("el contacto es el nombre, el dueño de la obra la empresa, y el teléfono con el formato del campo", () => {
     const d = borradorDesdeLead(lead({ owner_contact: " Juan Pérez ", owner_name: "Obras Sur LLC", owner_phone: "(956) 555-0142" }), vacio(), tiendas);
     expect(d.customer).toEqual({ salutation: "Mr.", full_name: "Juan Pérez", company: "Obras Sur LLC", phone: "(956) 555-0142" });
+  });
+
+  it("con un cliente coincidente, la cotización lo lleva enlazado (customer_id); sin coincidencia, no se pone", () => {
+    const con = borradorDesdeLead(lead({ customer_match_id: 42 }), borradorVacio(), ["RDZ Pharr"]);
+    expect(con.customer.customer_id).toBe(42);
+    const sin = borradorDesdeLead(lead({ customer_match_id: null }), borradorVacio(), ["RDZ Pharr"]);
+    expect(sin.customer.customer_id ?? null).toBeNull();
   });
 
   it("sin contacto, el dueño va de nombre y la empresa queda vacía", () => {
@@ -121,13 +103,11 @@ describe("del lead a la cotización", () => {
 });
 
 describe("al abrir el Quote Builder con ?lead=", () => {
-  it("decidirRelleno: error, no visible, de otro, o rellenar", () => {
-    expect(decidirRelleno({ ok: false, error: "boom" }, ana)).toEqual({ tipo: "error", error: "boom" });
-    expect(decidirRelleno({ ok: true, valor: null }, ana)).toEqual({ tipo: "no-visible" });
-    expect(decidirRelleno({ ok: true, valor: lead() }, beto).tipo).toBe("sin-permiso");
-    expect(decidirRelleno({ ok: true, valor: lead({ status: "free", holder: null }) }, ana).tipo).toBe("sin-permiso");
-    expect(decidirRelleno({ ok: true, valor: lead() }, ana)).toEqual({ tipo: "rellenar", lead: lead() });
-    expect(decidirRelleno({ ok: true, valor: lead({ status: "free", holder: null }) }, admin).tipo).toBe("rellenar");
+  it("decidirRelleno: error, no visible, o rellenar (quien ve el lead puede cotizarlo)", () => {
+    expect(decidirRelleno({ ok: false, error: "boom" })).toEqual({ tipo: "error", error: "boom" });
+    expect(decidirRelleno({ ok: true, valor: null })).toEqual({ tipo: "no-visible" });
+    expect(decidirRelleno({ ok: true, valor: lead({ status: "free", holder: null }) }).tipo).toBe("rellenar");
+    expect(decidirRelleno({ ok: true, valor: lead() })).toEqual({ tipo: "rellenar", lead: lead() });
   });
 
   it("idDeParametro: un uuid o un id del demo; nada que no lo parezca", () => {
@@ -284,7 +264,7 @@ describe("las pantallas usan estas reglas", () => {
   const leer = (f: string) => readFileSync(f, "utf8").split("\r\n").join("\n");
   it("Leads: el botón sale de puedeCotizarLead con el módulo que dijo el servidor, y lleva a enlaceACotizar", () => {
     const p = leer("src/app/leads/Leads.tsx");
-    expect(p).toContain("cotizar={puedeCotizarLead(l, yo, cotiza)}");
+    expect(p).toContain("cotizar={puedeCotizarLead(cotiza)}");
     expect(p).toContain("{cotizar && (");
     expect(p).toContain("href={enlaceACotizar(l.id)} data-crear-cotizacion");
     expect(p).toContain("setCotizaciones(cotizacionesPorLead(r.valor))");
@@ -293,7 +273,7 @@ describe("las pantallas usan estas reglas", () => {
   });
   it("Quote Builder: rellena por decidirRelleno, y el lead solo viaja al crear", () => {
     const p = leer("src/app/estimator/Estimador.tsx");
-    expect(p).toContain("const que = decidirRelleno(leido, me);");
+    expect(p).toContain("const que = decidirRelleno(leido);");
     expect(p).toContain('} else {\n        setDraft((d) => borradorDesdeLead(que.lead, d, ajustes.stores.map((s) => s.name)));');
     expect(p).toContain("almacen.guardar(quoteIdRef.current, draft, quoteIdRef.current ? null : leadId, asignar)");
     expect(p).toContain("ponerLead(c.valor.lead_id ?? null);");

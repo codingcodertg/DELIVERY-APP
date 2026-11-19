@@ -143,7 +143,6 @@ describe("3 · lo que dice la base", () => {
     expect(b.llamadas).toContain("rpc:leads_my_scope");
     expect(r.ok && r.valor.alcance).toEqual({ todas: false, tienda: TIENDA_A });
     expect(r.ok && r.valor.leads).toHaveLength(1);
-    expect(r.ok && r.valor.tope).toBe(7);
   });
   it("sin la 163 (la función no existe) NO se rompe: se comporta como antes, sin regla por tienda", async () => {
     const b = baseFalsa({ data: null, error: { code: "PGRST202", message: "Could not find the function public.leads_my_scope" } });
@@ -180,8 +179,8 @@ describe("4 · el demo aplica la misma regla que la base", () => {
     expect(v.leads.length).toBeGreaterThan(0);
     expect(v.leads.length).toBeLessThan(44);
     for (const x of v.leads) expect(x.pool === "RDZ Brownsville" || x.holder === ana.id, x.id).toBe(true);
-    // Ana tiene leads de otras tiendas a su nombre: se leen, pero el banco de esas tiendas no aparece ni se cuenta.
-    expect(v.leads.some((x) => x.pool !== "RDZ Brownsville" && x.holder === ana.id)).toBe(true);
+    // Desde la 328 nadie tiene leads de otra tienda (lo que tiene dueño es una venta, y la de Ana no es de otra tienda).
+    expect(v.leads.every((x) => x.pool === "RDZ Brownsville" || x.source === "privado")).toBe(true);
     expect(poolsDe(leadsDelBanco(v.leads, v.alcance)).map((p) => p.pool)).toEqual(["RDZ Brownsville"]);
   });
   it("admin y manager con permiso: todo; manager sin permiso: solo su tienda", async () => {
@@ -192,27 +191,27 @@ describe("4 · el demo aplica la misma regla que la base", () => {
     expect(v.leads.length).toBeGreaterThan(0);
     for (const x of v.leads) expect(x.pool, x.id).toBe("RDZ Weslaco");
   });
-  it("tomar un lead de otra tienda se rechaza con «otra_tienda»; el de la suya, no; quien ve todas, cualquiera", async () => {
+  it("anotar en un lead de otra tienda se rechaza con «otra_tienda»; en el de la suya, no; quien ve todas, cualquiera", async () => {
     let yo = admin;
     const a = almacenDemo(() => yo);
     const todo = await a.leer();
     if (!todo.ok) throw new Error("no lee");
-    const libreDe = (pool: string, salto = 0) => todo.valor.leads.filter((x) => x.pool === pool && x.status === "free")[salto];
+    const deLaTienda = (pool: string, salto = 0) => todo.valor.leads.filter((x) => x.pool === pool && x.status !== "archived" && x.source !== "privado")[salto];
     yo = beto;
-    expect(await a.tomar(libreDe("RDZ Brownsville").id)).toMatchObject({ ok: false, motivo: "otra_tienda" });
-    expect((await a.tomar(libreDe("RDZ Edinburg").id)).ok).toBe(true);
+    expect(await a.anotar(deLaTienda("RDZ Brownsville").id, "", "quote")).toMatchObject({ ok: false, motivo: "otra_tienda" });
+    expect((await a.anotar(deLaTienda("RDZ Edinburg").id, "", "quote")).ok).toBe(true);
     yo = hugo;
-    expect(await a.tomar(libreDe("RDZ McAllen").id)).toMatchObject({ ok: false, motivo: "otra_tienda" });
+    expect(await a.anotar(deLaTienda("RDZ McAllen").id, "", "quote")).toMatchObject({ ok: false, motivo: "otra_tienda" });
     yo = gema;
-    expect((await a.tomar(libreDe("RDZ Weslaco").id)).ok).toBe(true);
-    expect((await a.tomar(libreDe("RDZ Brownsville", 1).id)).ok).toBe(true);
+    expect((await a.anotar(deLaTienda("RDZ Weslaco").id, "", "quote")).ok).toBe(true);
+    expect((await a.anotar(deLaTienda("RDZ Brownsville", 1).id, "", "quote")).ok).toBe(true);
   });
   it("el historial de un lead que no alcanza sale vacío; el de uno que sí, no", async () => {
     let yo = admin;
     const a = almacenDemo(() => yo);
     const todo = await a.leer();
     if (!todo.ok) throw new Error("no lee");
-    const conHistoria = todo.valor.leads.find((x) => x.pool === "RDZ Brownsville" && x.last_outcome && x.status === "free")!;
+    const conHistoria = todo.valor.leads.find((x) => x.pool === "RDZ Brownsville" && x.follow_up_action && x.status === "free")!;
     const propio = await a.historial(conHistoria.id);
     expect(propio.ok && propio.valor.length).toBeGreaterThan(0);
     yo = hugo;
@@ -236,7 +235,7 @@ describe("5 · la pantalla pinta lo que el alcance dice", () => {
     expect(p).toContain("const pools = useMemo(() => poolsDe(delBanco), [delBanco]);");
     // D-770: en el STXP Pool de quien no elige tienda, el pool no filtra (`poolFiltro`).
     expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro || cruzadoDeMiTienda(l)), [delBanco, poolFiltro, cruzadoDeMiTienda]);");
-    expect(p).toContain("ordenar(filtrar(delBanco, { pool: poolFiltro, vista, categoria, tipo, ciudad, busca, situacion, coinciden, textoExtra, accion: accionFiltro }), orden)");
+    expect(p).toContain("ordenar(filtrar(delBanco, { pool: poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, textoExtra }), orden)");
   });
   it("el selector de tienda solo se dibuja si eligeTienda; si no, su tienda fija y sin los otros bancos", () => {
     expect(p).toContain("const elige = eligeTienda(alcance);");
@@ -255,8 +254,7 @@ describe("5 · la pantalla pinta lo que el alcance dice", () => {
   });
   it("el conjunto de leads libres de una tienda se llama «GOV Pool» (D-770; antes «Pool General»); «Mi pool» no cambia", () => {
     expect(p).toContain('{t("GOV Pool", "GOV Pool")}');
-    expect(p).toContain('t("Release to GOV Pool", "Liberar al GOV Pool")');
-    expect(p).toContain('{t("My pool", "Mi pool")}');
+    expect(p).not.toContain("My pool");
     const visibles = [...p.matchAll(/t\(\s*"([^"]*)",\s*"([^"]*)",?\s*\)/g)].map((m) => `${m[1]} | ${m[2]}`);
     expect(visibles.length).toBeGreaterThan(40);
     for (const texto of visibles) expect(texto).not.toMatch(/\bbanco\b|\bbank\b/i);

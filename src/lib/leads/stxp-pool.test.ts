@@ -73,22 +73,22 @@ describe("qué pools se ven", () => {
 describe("el demo hace lo mismo que la base", () => {
   const hugo = PERSONAS_DEMO.find((p) => p.id === "demo-hugo")!;
   const beto = PERSONAS_DEMO.find((p) => p.id === "demo-beto")!;
-  it("Hugo (con casilla) ve los privados de Weslaco; al tomar los tres, le aparece Pharr; Beto (sin casilla) no ve ninguno ni puede tomar", async () => {
+  it("Hugo (con casilla) ve los privados de Weslaco; al dar por vendidos los tres (etapa closed), le aparece Pharr; Beto (sin casilla) no ve ninguno ni puede anotar", async () => {
     let yo = hugo;
     const a = almacenDemo(() => yo);
     const privados = async () => { const r = await a.leer(); return r.ok ? r.valor.leads.filter((l) => l.source === "privado") : []; };
     const antes = await privados();
     expect(antes).toHaveLength(3);
     expect(new Set(antes.map((l) => l.pool))).toEqual(new Set(["RDZ Weslaco"]));
-    for (const l of antes) expect((await a.tomar(l.id)).ok, l.id).toBe(true);
+    for (const l of antes) expect((await a.anotar(l.id, "", "closed")).ok, l.id).toBe(true);
     const despues = await privados();
     expect(new Set(despues.map((l) => l.pool))).toEqual(new Set(["RDZ Weslaco", "RDZ Pharr"]));
     const pharr = despues.filter((l) => l.pool === "RDZ Pharr" && l.status === "free");
     expect(pharr).toHaveLength(2);
-    expect((await a.tomar(pharr[0].id)).ok).toBe(true);
+    expect((await a.anotar(pharr[0].id, "", "closed")).ok).toBe(true);
     yo = beto;
     expect(await privados()).toEqual([]);
-    expect((await a.tomar(pharr[1].id)).ok).toBe(false);
+    expect((await a.anotar(pharr[1].id, "", "quote")).ok).toBe(false);
   });
 });
 
