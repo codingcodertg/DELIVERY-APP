@@ -67,3 +67,4 @@ end
 $chk$;
 
 -- @ledger-below
+insert into public.schema_migrations (name, checksum) values ('332_paradas_con_foto.sql', 'cd3c3216547261b685e384971128d16c6b7f0209f42859f1bd15b69134c62771') on conflict (name) do nothing;
