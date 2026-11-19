@@ -46,7 +46,7 @@ export const APP_VERSIONS = {
   security: "0.35.0",
   // Operaciones de almacén (D-883, migración 247): la primera, como las demás apps nuevas. La entrada la pone la rama
   // porque sin ella /operaciones no tiene sello de versión; los siguientes números, el orquestador.
-  warehouse_ops: "0.62.0",
+  warehouse_ops: "0.63.0",
   // RingCentral de los choferes (migración 329): la primera, como las demás apps nuevas. Sin esta entrada /ringcentral
   // no tendría sello de versión.
   ringcentral: "0.1.0",

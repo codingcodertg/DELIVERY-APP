@@ -19,7 +19,7 @@
  * lista, la tarjeta, la hoja impresa (página del servidor) y las pruebas.
  */
 import type { TipoDeReporte } from "./tipos";
-import { puedeCorregirMerma, veLosReportes, type Quien } from "./visibilidad";
+import { esGerenteDeAlmacen, puedeCorregirMerma, veLosReportes, type Quien } from "./visibilidad";
 import { nivelDe } from "./nivel";
 import { diaEnTexas } from "./fecha-del-dano";
 import { cajasDanadas, rompioEscrito } from "./tabla-de-merma";
@@ -419,7 +419,7 @@ export function puedeIniciarAprobacion(q: Quien, r: { kind: TipoDeReporte; store
   const mia = q.store === r.store || (q.visible_stores ?? []).includes(r.store);
   if (n === "admin") return true;
   if (n === "store_admin") return mia;
-  return n === "full" && q.role === "manager" && mia;
+  return n === "full" && esGerenteDeAlmacen(q) && mia;
 }
 
 /**

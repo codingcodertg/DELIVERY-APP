@@ -5,7 +5,7 @@ import type { Lang } from "./prefs";
 import { PERMISO_OTRAS_TIENDAS, PERMISO_POOL_PRIVADO, seOfreceOtrasTiendas } from "./leads/alcance";
 import { seOfreceClientes } from "./customers/reglas";
 import { CAP_TODAS_LAS_TIENDAS, seOfreceTodasLasTiendas } from "./todas-las-tiendas";
-import { PERMISO_SUPERVISOR as PERMISO_SUPERVISOR_ALMACEN } from "./almacen-ops/visibilidad";
+import { PERMISO_GERENTE as PERMISO_GERENTE_ALMACEN, PERMISO_SUPERVISOR as PERMISO_SUPERVISOR_ALMACEN } from "./almacen-ops/visibilidad";
 import { INFO_DE_NIVEL, NIVELES, esNivel, nivelPorDefecto } from "./almacen-ops/nivel";
 
 // App version moved to src/lib/app-versions.ts (D-087) — one number per app
@@ -1320,6 +1320,13 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
         en: "Warehouse supervisor", es: "Supervisor de almacén",
         desc_en: "Sees every report of their store except the HR ones. Only applies with the \"All reports\" level.",
         desc_es: "Ve todos los reportes de su tienda menos los de RR. HH. Solo cuenta con el nivel «Todos los reportes».",
+      },
+      {
+        key: PERMISO_GERENTE_ALMACEN,
+        en: "Warehouse Ops manager (acts as the store manager in Warehouse Ops)",
+        es: "Gerente en Operaciones de Almacén (actúa como gerente de su tienda)",
+        desc_en: "Does what the store manager does in Warehouse Ops, in their store only, with the \"All reports\" level. Does not change their role in other apps.",
+        desc_es: "Hace lo que el gerente de la tienda en Operaciones de Almacén, solo en su tienda y con el nivel «Todos los reportes». No cambia su rol en las demás apps.",
       },
     ],
     capabilitiesRole: "role",

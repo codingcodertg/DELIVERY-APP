@@ -30,7 +30,7 @@ export default async function OperacionesLayout({ children }: { children: React.
 
   const { data: profile, error: errorPerfil } = await supabase
     .from("profiles")
-    .select("role, module_access, full_name, recruiting_role")
+    .select("role, module_access, full_name, recruiting_role, permissions")
     .eq("id", user.id)
     .maybeSingle();
   if (estadoDeLectura({ data: profile, error: errorPerfil }) === "fallo") {
@@ -38,7 +38,7 @@ export default async function OperacionesLayout({ children }: { children: React.
   }
 
   const role = profile?.role ?? "sales";
-  const quien = { id: user.id, role, module_access: profile?.module_access, recruiting_role: profile?.recruiting_role };
+  const quien = { id: user.id, role, module_access: profile?.module_access, recruiting_role: profile?.recruiting_role, permissions: profile?.permissions };
   const entra = tieneElModulo(quien) || puedeVerReporte(quien, { kind: "insubordination", store: "", author_id: "" });
   if (!entra) redirect(landingRoute({ role, module_access: profile?.module_access }));
 

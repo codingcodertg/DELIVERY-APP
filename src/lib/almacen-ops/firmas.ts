@@ -9,6 +9,7 @@
  */
 import type { Etapa, FilaConEtapa, Lang } from "./etapas";
 import { etapaDe } from "./etapas";
+import { esGerenteDeAlmacen } from "./visibilidad";
 
 /** Los dos espacios de firma de una merma, en orden (primero el gerente, luego el supervisor). */
 export const SLOTS_DE_FIRMA = ["gerente", "supervisor"] as const;
@@ -85,7 +86,7 @@ export function puedeFirmarSlot(
 export function slotsQuePuedoFirmar(q: { role: string; permissions?: readonly string[] | null }): SlotDeFirma[] {
   if (q.role === "admin") return ["gerente", "supervisor"];
   const out: SlotDeFirma[] = [];
-  if (q.role === "manager") out.push("gerente");
+  if (esGerenteDeAlmacen(q)) out.push("gerente");
   if ((q.permissions ?? []).includes("warehouse_ops_supervisor")) out.push("supervisor");
   return out;
 }
