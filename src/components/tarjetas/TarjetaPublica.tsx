@@ -99,7 +99,7 @@ export function TarjetaPublica({ tarjeta }: { tarjeta: Tarjeta }) {
 
   const portada = tarjeta.portadaUrl ? { backgroundImage: `url("${tarjeta.portadaUrl}")` } : undefined;
   // La foto de la persona es lo primero que se baja (antes que el resto de la página), y la portada detrás.
-  if (tarjeta.fotoUrl && !fotoRota) preload(tarjeta.fotoUrl, { as: "image", fetchPriority: "high" });
+  if (tarjeta.fotoUrl && !fotoRota) preload(tarjeta.fotoUrl, { as: "image", crossOrigin: "anonymous", fetchPriority: "high" });
   if (tarjeta.portadaUrl) preload(tarjeta.portadaUrl, { as: "image" });
 
   return (

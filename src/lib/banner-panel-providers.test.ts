@@ -27,9 +27,9 @@ const HOOKS: Record<string, string> = { usePrefs: "PrefsProvider", useConfirm: "
 const EN_EL_BANNER: Record<string, string> = { ...HOOKS, usePrefs: "PrefsConIdioma" };
 
 describe("el panel de saltar (dentro de una suplantación) tiene encima lo que necesita", () => {
-  it("control: ya no hay franja en el layout raíz, y la burbuja va dentro de PrefsProvider", () => {
+  it("control: ya no hay franja en el layout raíz, y la burbuja va dentro de PrefsSegunRuta", () => {
     expect(raiz).not.toContain("<ImpersonationBanner");
-    expect(raiz.indexOf("<BotonGeneral />")).toBeGreaterThan(raiz.indexOf("<PrefsProvider"));
+    expect(raiz.indexOf("<BotonGeneral />")).toBeGreaterThan(raiz.indexOf("<PrefsSegunRuta"));
   });
 
   it("control: el panel usa hooks que exigen proveedor", () => {
@@ -68,8 +68,8 @@ describe("el panel montado en la barra de Entregas también tiene encima lo que 
     expect(i).toBeGreaterThan(-1);
     expect(burbuja.lastIndexOf("<ConfirmProvider>", i)).toBeGreaterThan(-1);
     expect(burbuja.indexOf("</ConfirmProvider>", i)).toBeGreaterThan(i);
-    expect(raiz.indexOf("<BotonGeneral />")).toBeGreaterThan(raiz.indexOf("<PrefsProvider"));
-    expect(raiz.indexOf("<BotonGeneral />")).toBeLessThan(raiz.indexOf("</PrefsProvider>"));
+    expect(raiz.indexOf("<BotonGeneral />")).toBeGreaterThan(raiz.indexOf("<PrefsSegunRuta"));
+    expect(raiz.indexOf("<BotonGeneral />")).toBeLessThan(raiz.indexOf("</PrefsSegunRuta>"));
     expect(app.indexOf("<TopBar")).toBeGreaterThan(-1);
     expect(raiz).not.toContain("<TopBar");
   });
@@ -78,9 +78,9 @@ describe("el panel montado en la barra de Entregas también tiene encima lo que 
     const usados = Object.keys(HOOKS).filter((h) => new RegExp(`\\b${h}\\(`).test(panel) || new RegExp(`\\b${h}\\(`).test(barra));
     expect(usados.sort()).toEqual(["useConfirm", "useData", "usePrefs"]);
     // Prefs está en el layout raíz alrededor de los hijos; Confirm y Data, en el de (app) alrededor de la barra.
-    expect(raiz.indexOf("<PrefsProvider")).toBeGreaterThan(-1);
-    expect(raiz.indexOf("<PrefsProvider")).toBeLessThan(raiz.indexOf("{children}"));
-    expect(raiz.indexOf("{children}")).toBeLessThan(raiz.indexOf("</PrefsProvider>"));
+    expect(raiz.indexOf("<PrefsSegunRuta")).toBeGreaterThan(-1);
+    expect(raiz.indexOf("<PrefsSegunRuta")).toBeLessThan(raiz.indexOf("{children}"));
+    expect(raiz.indexOf("{children}")).toBeLessThan(raiz.indexOf("</PrefsSegunRuta>"));
     const i = app.lastIndexOf("<TopBar");
     for (const prov of ["ConfirmProvider", "DataProvider"]) {
       const abre = app.lastIndexOf(`<${prov}`, i), cierra = app.indexOf(`</${prov}>`, i);

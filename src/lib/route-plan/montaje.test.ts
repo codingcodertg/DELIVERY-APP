@@ -48,7 +48,7 @@ describe("los componentes del plan de ruta se montan bajo sus proveedores", () =
   });
 
   it("encima de /routes están los tres: Prefs en el layout raíz, Confirm y Data en el de (app)", () => {
-    expect(envuelveALosHijos("src/app/layout.tsx", "PrefsProvider")).toBe(true);
+    expect(envuelveALosHijos("src/app/layout.tsx", "PrefsSegunRuta")).toBe(true);
     expect(envuelveALosHijos("src/app/(app)/layout.tsx", "ConfirmProvider")).toBe(true);
     expect(envuelveALosHijos("src/app/(app)/layout.tsx", "DataProvider")).toBe(true);
     // El detector distingue: el layout raíz NO da Confirm ni Data.
