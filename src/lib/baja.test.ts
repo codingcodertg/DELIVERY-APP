@@ -59,7 +59,6 @@ describe("los selectores de gente actual siguen filtrando", () => {
     ["app/api/route-plan/route.ts", /eq\("role", "driver"\)\.or\(filtroActivos\(fecha\)\)/],
     ["app/(app)/routes/page.tsx", /const drivers = useMemo\(\(\) => soloActivos\(todosLosChoferes\)/],
     ["components/ChatFlotante.tsx", /listaVisible\(soloActivos\(contactos\)/],
-    ["lib/leads/almacen.ts", /select\("id, full_name, store, role, module_access"\)\.or\(filtroActivos\(\)\)/],
     ["lib/customers/almacen.ts", /const valor = soloActivos\(todos\)/],
     ["components/UsersManager.tsx", /for \(const u of activos\)/],
     ["app/timetracker/(timetracker)/people/page.tsx", /filas=\{activos\}/],

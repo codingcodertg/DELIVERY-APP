@@ -37,7 +37,7 @@ describe("el modelo", () => {
   });
   it("el filtro «Coinciden con clientes» deja solo los cruzados; apagado, no cambia nada", () => {
     const si = lead({ id: "si", customer_match_id: 5, customer_match_note: "Nombre «acme» = ACME (PHR)" }), no = lead({ id: "no" });
-    const f = { pool: null, vista: "todas" as const, categoria: "todas", tipo: "", ciudad: "", busca: "" };
+    const f = { pool: null, categoria: "todas", tipo: "", ciudad: "", busca: "" };
     expect(filtrar([si, no], { ...f, coinciden: true }).map((l) => l.id)).toEqual(["si"]);
     expect(filtrar([si, no], f).map((l) => l.id)).toEqual(["si", "no"]);
     expect(filtrar([si, no], { ...f, busca: "acme" }).map((l) => l.id)).toEqual(["si"]);
@@ -95,7 +95,7 @@ describe("la base y la pantalla", () => {
   });
   it("la pestaña «Pool privado» solo para el admin, con los mismos filtros; el filtro «Coinciden con clientes»; Contratista y Propietario en la tarjeta", () => {
     const p = sinComentarios(leer("src/app/leads/Leads.tsx"));
-    expect(p).toContain('type Pestana = "banco" | "mio" | "admin" | "privado";');
+    expect(p).toContain('type Pestana = "banco" | "admin" | "privado";');
     expect(p).toContain('data-pestana="privado"');
     // D-770: la pestaña la ve quien tiene la casilla (veStxp), no solo el admin.
     expect(p).toContain('{(pestana === "banco" || (pestana === "privado" && veStxp)) && (');

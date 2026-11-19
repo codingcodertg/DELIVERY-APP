@@ -13,7 +13,7 @@
  *     (`vinculoDeLead`).
  */
 import { telefonoAlEscribir, type QuoteDraft } from "@/lib/estimator/modelo";
-import type { Lead, Persona } from "./reglas";
+import type { Lead } from "./reglas";
 
 /** El módulo del Quote Builder: admin siempre, o `'estimator'` en `module_access`. La misma regla que
  *  `has_estimator_access()` (148) y que la puerta de `src/app/estimator/layout.tsx`. */
@@ -23,20 +23,12 @@ export function tieneEstimador(perfil: { role?: string | null; module_access?: s
 }
 
 /**
- * ¿Puede esta persona sacar una cotización de este lead?
- *
- * - Hace falta el Quote Builder (`conEstimador`): sin él la cotización no se podría ni abrir.
- * - El admin, de cualquier lead que vea.
- * - Los demás, solo de un lead SUYO, tomado o vendido. Un lead libre se toma primero: cotizarlo sin tomarlo sería
- *   trabajarlo sin que ocupe puesto, y el tope de leads abiertos (162) dejaría de medir nada. Uno de otra persona,
- *   no: su contacto está oculto (`veContacto`) y la cotización lo traería escrito.
+ * ¿Puede esta persona sacar una cotización de un lead? Desde la 328 nadie tiene un lead ni hay que tomarlo: quien lo
+ * VE (la pantalla solo enseña lo que la base deja ver) puede cotizarlo. Hace falta el Quote Builder (`conEstimador`):
+ * sin él la cotización no se podría ni abrir.
  */
-export function puedeCotizarLead(
-  lead: Pick<Lead, "status" | "holder">, yo: Pick<Persona, "id" | "admin">, conEstimador: boolean,
-): boolean {
-  if (!conEstimador) return false;
-  if (yo.admin) return true;
-  return lead.holder === yo.id && (lead.status === "taken" || lead.status === "won");
+export function puedeCotizarLead(conEstimador: boolean): boolean {
+  return conEstimador;
 }
 
 /** El nombre con el que se dice un lead: el mismo título de su tarjeta en Leads. */
@@ -68,7 +60,7 @@ export function direccionDeObra(l: Pick<Lead, "site_address" | "site_city" | "si
  * El modo de entrega no cambia (recoge, por defecto): la dirección queda escrita para cuando se elija «Entrega».
  */
 export function borradorDesdeLead(
-  lead: Pick<Lead, "owner_name" | "owner_contact" | "owner_phone" | "site_address" | "site_city" | "site_zip" | "pool">,
+  lead: Pick<Lead, "owner_name" | "owner_contact" | "owner_phone" | "site_address" | "site_city" | "site_zip" | "pool" | "customer_match_id">,
   base: QuoteDraft,
   tiendas: readonly string[],
 ): QuoteDraft {
@@ -84,6 +76,8 @@ export function borradorDesdeLead(
       full_name: contacto || dueno,
       company: contacto ? dueno : "",
       phone: telefonoAlEscribir((lead.owner_phone ?? "").trim()),
+      // D-762 (218): si el lead coincide con un cliente de Clientes, la cotización lo lleva enlazado (el de su ficha).
+      ...(lead.customer_match_id != null ? { customer_id: lead.customer_match_id } : {}),
     },
     delivery: {
       ...base.delivery,
@@ -97,22 +91,17 @@ export function borradorDesdeLead(
  * Qué hace el Quote Builder al abrirse con `?lead=<id>`, según lo que devolvió la lectura del lead:
  * - `error`: la lectura falló (se dice con su texto);
  * - `no-visible`: la RLS de leads no le deja ver ese lead (o no existe): no se rellena nada;
- * - `sin-permiso`: lo ve, pero no es suyo (ni es admin): no se rellena, y se le dice que lo tome primero;
  * - `rellenar`: se rellena el borrador y la cotización nueva queda enlazada a él.
  */
 export type Relleno =
   | { tipo: "error"; error: string }
   | { tipo: "no-visible" }
-  | { tipo: "sin-permiso"; lead: Lead }
   | { tipo: "rellenar"; lead: Lead };
 
-export function decidirRelleno(
-  leido: { ok: true; valor: Lead | null } | { ok: false; error: string }, yo: Pick<Persona, "id" | "admin">,
-): Relleno {
+export function decidirRelleno(leido: { ok: true; valor: Lead | null } | { ok: false; error: string }): Relleno {
   if (!leido.ok) return { tipo: "error", error: leido.error };
   if (!leido.valor) return { tipo: "no-visible" };
-  // Dentro del Quote Builder el módulo ya está (la puerta de su layout lo exige): la regla es la misma que en Leads.
-  if (!puedeCotizarLead(leido.valor, yo, true)) return { tipo: "sin-permiso", lead: leido.valor };
+  // Dentro del Quote Builder el módulo ya está (la puerta de su layout lo exige): quien ve el lead puede cotizarlo.
   return { tipo: "rellenar", lead: leido.valor };
 }
 

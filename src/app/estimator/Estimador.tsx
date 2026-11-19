@@ -461,13 +461,11 @@ export function Estimador({ me: meServidor, demo, extension: extensionServidor, 
     if (cotizacion) { void abrirGuardada(cotizacion); return; }
     if (!lead) return;
     void enlace.leerLead(lead).then((leido) => {
-      const que = decidirRelleno(leido, me);
+      const que = decidirRelleno(leido);
       if (que.tipo === "error") {
         setAviso({ tipo: "rojo", texto: `${t("Could not read the lead", "No se pudo leer el lead")}: ${que.error}` });
       } else if (que.tipo === "no-visible") {
         setAviso({ tipo: "ambar", texto: t("That lead is not visible to you, so nothing was filled in.", "Ese lead no lo puedes ver, así que no se rellenó nada.") });
-      } else if (que.tipo === "sin-permiso") {
-        setAviso({ tipo: "ambar", texto: t(`“${nombreDeLead(que.lead)}” is not in your pool. Take it in Leads first, then create the quote from there.`, `«${nombreDeLead(que.lead)}» no está en tu pool. Tómalo primero en Leads y crea la cotización desde allí.`) });
       } else {
         setDraft((d) => borradorDesdeLead(que.lead, d, ajustes.stores.map((s) => s.name)));
         ponerLead(que.lead.id, que.lead);

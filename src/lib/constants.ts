@@ -490,8 +490,8 @@ export const MODULES: ModuleInfo[] = [
     emoji: "🎯",
     label_en: "Leads",
     label_es: "Leads",
-    desc_en: "Permit leads by store, and your own pool",
-    desc_es: "Leads de permisos por tienda, y tu pool",
+    desc_en: "Permit leads by store, with their stage and notes",
+    desc_es: "Leads de permisos por tienda, con su etapa y sus notas",
   },
   {
     // Clientes (migración 180): la lista maestra de clientes del Excel del dueño, en `erp.customers`, con el tema
@@ -1230,8 +1230,8 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
   {
     key: "leads", label_en: "Leads", label_es: "Leads",
     alwaysOn: false,
-    // Sin escalafón propio: quien tiene la casilla toma leads hasta el tope y cierra los suyos; el admin entra
-    // siempre y es quien reasigna, libera e importa (`has_leads_access()` e `is_admin()`, migración 162).
+    // Sin escalafón propio: quien tiene la casilla ve y anota leads (328: nadie toma ni tiene un lead); el admin entra
+    // siempre y es quien archiva e importa (`has_leads_access()` e `is_admin()`, migraciones 162 y 328).
     //
     // QUÉ TIENDAS ve cada uno (migración 163): el admin, todas; los demás, solo el banco de SU tienda y lo que
     // tienen a su nombre. La única excepción es un permiso por persona, «ver leads de otras tiendas», que vive en
@@ -1241,15 +1241,15 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     roleLabel: (key, lang) => roleLabel(key as UserRole, lang),
     accessColumn: "module_access",
     roleNote: {
-      en: "No role of its own. Each person sees the leads of their own store (set above) and the ones they hold, with the owner's name and phone of each job site (public TDLR records), and can take up to the limit. Admins always have it and see every store; a manager can be allowed to see the other stores below.",
-      es: "Sin rol propio. Cada quien ve los leads de su tienda (se pone arriba) y los que tiene a su nombre, con nombre y teléfono del dueño de cada obra (registros públicos de TDLR), y puede tomar hasta el tope. Los admins lo tienen siempre y ven todas las tiendas; a un manager se le puede dejar ver las otras tiendas aquí abajo.",
+      en: "No role of its own. Each person sees the leads of their own store (set above), with the owner's name and phone of each job site (public TDLR records), and adds notes and stages to them. Admins always have it and see every store; a manager can be allowed to see the other stores below.",
+      es: "Sin rol propio. Cada quien ve los leads de su tienda (se pone arriba), con nombre y teléfono del dueño de cada obra (registros públicos de TDLR), y anota su etapa y sus notas. Los admins lo tienen siempre y ven todas las tiendas; a un manager se le puede dejar ver las otras tiendas aquí abajo.",
     },
     capabilities: [
       {
         key: PERMISO_OTRAS_TIENDAS,
         en: "See leads of other stores", es: "Ver leads de otras tiendas",
-        desc_en: "Sees and can take leads from every store's General Pool, not only their own. Managers only.",
-        desc_es: "Ve y puede tomar leads del GOV Pool de todas las tiendas, no solo de la suya. Solo para managers.",
+        desc_en: "Sees and can add notes to leads from every store's GOV Pool, not only their own. Managers only.",
+        desc_es: "Ve y puede anotar leads del GOV Pool de todas las tiendas, no solo de la suya. Solo para managers.",
       },
       {
         // D-770 (220): el STXP Pool (permisos municipales de una fuente privada) se concede por persona, a cualquier rol.
