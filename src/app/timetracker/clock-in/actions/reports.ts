@@ -4,6 +4,7 @@ import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
 import { demoPayrollPeriod, demoEmployeeWeek } from "./demo-local";
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
+import { minutosDeVentanas, validaTurno, type VentanaComida } from "@/lib/clockin/comida";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 import { canManageEmployee, isPeriodLocked, periodStartOf, type Me } from "@/lib/clockin/mgrScope";
 import { maybeNotifyStoreReady } from "@/lib/clockin/notify";
@@ -72,12 +73,74 @@ async function audit(
   });
 }
 
-/** Manager corrects an existing punch. Records the before/after in audit_log. */
+const VARIAS_PAUSAS = "This shift has several punched lunch breaks. Edit them from the shift's log, not here." as const;
+const COMIDA_FUERA = "Lunch must be inside the shift." as const;
+
+/** Las pausas de comida FICHADAS de un turno: filas de `exceptions` con `reason = lunch` y inicio y fin. */
+async function pausasDeComida(supabase: Supa, entryId: string): Promise<{ id: string; left: string; returned: string }[]> {
+  const { data } = await supabase
+    .from("exceptions")
+    .select("id, left_at, returned_at")
+    .eq("time_entry_id", entryId)
+    .eq("reason", "lunch")
+    .not("left_at", "is", null)
+    .not("returned_at", "is", null);
+  return (data ?? []).map((r) => ({ id: r.id as string, left: r.left_at as string, returned: r.returned_at as string }));
+}
+
+/**
+ * Pone la comida fichada del turno en lo que dijo el admin. Es una fila de `exceptions` con
+ * `reason = 'lunch'`, la misma forma que la pausa que fichó el propio empleado: de ahí salen las
+ * horas, el CSV, el XLSX, los talones y `timetracker.period_hours`. `comida = null` la quita.
+ * Con varias pausas no se llama (lo decide quien llama).
+ */
+async function fijaPausaDeComida(
+  supabase: Supa,
+  companyId: string,
+  employeeId: string,
+  entryId: string,
+  pausas: { id: string }[],
+  comida: VentanaComida | null,
+): Promise<string | null> {
+  if (comida === null) {
+    if (!pausas.length) return null;
+    const { error } = await supabase.from("exceptions").delete().in("id", pausas.map((p) => p.id));
+    return error?.message ?? null;
+  }
+  if (pausas.length === 1) {
+    const { error } = await supabase
+      .from("exceptions")
+      .update({ left_at: comida.left, returned_at: comida.returned })
+      .eq("id", pausas[0].id);
+    return error?.message ?? null;
+  }
+  // Marcada como resuelta: la corrige un gerente, no es una alerta pendiente para nadie.
+  const { error } = await supabase.from("exceptions").insert({
+    company_id: companyId,
+    employee_id: employeeId,
+    time_entry_id: entryId,
+    type: "leaving_while_clocked_in",
+    reason: "lunch",
+    reasons: ["lunch"],
+    left_at: comida.left,
+    returned_at: comida.returned,
+    resolved: true,
+  });
+  return error?.message ?? null;
+}
+
+/**
+ * Manager corrects an existing punch. Records the before/after in audit_log.
+ * La comida: `lunchStart`/`lunchEnd` (hora de Chicago, los dos o ninguno) la fijan como pausa fichada.
+ * Si no llegan (`undefined`), la comida fichada no se toca y `lunch` son minutos (turnos viejos).
+ */
 export async function editEntry(input: {
   id: string;
   clockIn: string; // datetime-local (Central)
   clockOut: string | null;
   lunch: number;
+  lunchStart?: string | null;
+  lunchEnd?: string | null;
   note?: string;
 }): Promise<ReportResult> {
   const corte = await corteDeCapacitacion();
@@ -93,16 +156,28 @@ export async function editEntry(input: {
   if (!(await canManageEmployee(ctx.supabase, ctx.me, old.employee_id))) return { ok: false, message: DENY_SCOPE };
   if (await isPeriodLocked(ctx.supabase, ctx.companyId, periodStartOf(old.clock_in_at))) return { ok: false, message: DENY_LOCKED };
 
-  const clockInAt = centralWallToUtc(input.clockIn);
-  const clockOutAt = input.clockOut ? centralWallToUtc(input.clockOut) : null;
-  if (clockOutAt && new Date(clockOutAt) <= new Date(clockInAt)) {
-    return { ok: false, message: "Clock-out must be after clock-in." };
-  }
+  const pausas = await pausasDeComida(ctx.supabase, input.id);
+  const conHoras = input.lunchStart !== undefined;
+  if (conHoras && pausas.length > 1) return { ok: false, message: VARIAS_PAUSAS };
+  const turno = validaTurno(
+    { clockIn: input.clockIn, clockOut: input.clockOut, lunchStart: input.lunchStart ?? null, lunchEnd: input.lunchEnd ?? null },
+    { exigeSalida: false },
+  );
+  if (!turno.ok) return { ok: false, message: turno.error };
+  // Sin horas nuevas, la pausa que ya está tiene que seguir dentro del turno corregido.
+  const fuera = pausas.some(
+    (p) => Date.parse(p.left) < Date.parse(turno.clockInAt) || (turno.clockOutAt !== null && Date.parse(p.returned) > Date.parse(turno.clockOutAt)),
+  );
+  if (!conHoras && fuera) return { ok: false, message: COMIDA_FUERA };
+
+  const comidaMin = conHoras ? turno.comidaMin : pausas.length ? minutosDeVentanas(pausas) : input.lunch;
+  const ventanasAntes = pausas.map((p) => ({ left: p.left, returned: p.returned }));
+  const ventanasDespues = conHoras ? (turno.comida ? [turno.comida] : []) : ventanasAntes;
   const patch = {
-    clock_in_at: clockInAt,
-    clock_out_at: clockOutAt,
-    lunch_minutes: input.lunch,
-    status: clockOutAt ? ("edited" as const) : ("open" as const),
+    clock_in_at: turno.clockInAt,
+    clock_out_at: turno.clockOutAt,
+    lunch_minutes: comidaMin,
+    status: turno.clockOutAt ? ("edited" as const) : ("open" as const),
     edited_at: new Date().toISOString(),
     edited_by: ctx.user.id,
     edit_note: input.note ?? null,
@@ -112,24 +187,30 @@ export async function editEntry(input: {
   // entró el caso de Patricia —19 minutos manuales dentro de su jornada real— así que
   // conviene que diga qué pasa y no un mensaje de Postgres sobre una restricción.
   if (error) return { ok: false, message: isOverlapError(error) ? OVERLAP_MESSAGE : error.message };
+  if (conHoras) {
+    const fallo = await fijaPausaDeComida(ctx.supabase, ctx.companyId, old.employee_id, input.id, pausas, turno.comida);
+    if (fallo) return { ok: false, message: `The shift was saved, but its lunch was not: ${fallo}` };
+  }
   await audit(
     ctx.supabase,
     ctx.companyId,
     ctx.user.id,
     input.id,
     "update",
-    { clock_in_at: old.clock_in_at, clock_out_at: old.clock_out_at, lunch_minutes: old.lunch_minutes },
-    { clock_in_at: clockInAt, clock_out_at: clockOutAt, lunch_minutes: input.lunch, note: input.note ?? null },
+    { clock_in_at: old.clock_in_at, clock_out_at: old.clock_out_at, lunch_minutes: old.lunch_minutes, lunch_windows: ventanasAntes },
+    { clock_in_at: turno.clockInAt, clock_out_at: turno.clockOutAt, lunch_minutes: comidaMin, lunch_windows: ventanasDespues, note: input.note ?? null },
   );
   return { ok: true };
 }
 
-/** Manager adds a missing punch (a whole shift) for an employee. */
+/** Manager adds a missing punch (a whole shift) for an employee. La comida, como en editEntry. */
 export async function addEntry(input: {
   employeeId: string;
   clockIn: string;
   clockOut: string;
   lunch: number;
+  lunchStart?: string | null;
+  lunchEnd?: string | null;
   note?: string;
 }): Promise<ReportResult> {
   const corte = await corteDeCapacitacion();
@@ -137,20 +218,22 @@ export async function addEntry(input: {
   const ctx = await mgrCtx();
   if (!ctx.ok) return ctx;
   if (!(await canManageEmployee(ctx.supabase, ctx.me, input.employeeId))) return { ok: false, message: DENY_SCOPE };
-  const clockInAt = centralWallToUtc(input.clockIn);
-  const clockOutAt = centralWallToUtc(input.clockOut);
-  if (new Date(clockOutAt) <= new Date(clockInAt)) {
-    return { ok: false, message: "Clock-out must be after clock-in." };
-  }
-  if (await isPeriodLocked(ctx.supabase, ctx.companyId, periodStartOf(clockInAt))) return { ok: false, message: DENY_LOCKED };
+  const conHoras = input.lunchStart !== undefined;
+  const turno = validaTurno(
+    { clockIn: input.clockIn, clockOut: input.clockOut, lunchStart: input.lunchStart ?? null, lunchEnd: input.lunchEnd ?? null },
+    { exigeSalida: true },
+  );
+  if (!turno.ok) return { ok: false, message: turno.error };
+  if (await isPeriodLocked(ctx.supabase, ctx.companyId, periodStartOf(turno.clockInAt))) return { ok: false, message: DENY_LOCKED };
+  const comidaMin = conHoras ? turno.comidaMin : input.lunch;
   const { data: entry, error } = await ctx.supabase
     .from("time_entries")
     .insert({
       company_id: ctx.companyId,
       employee_id: input.employeeId,
-      clock_in_at: clockInAt,
-      clock_out_at: clockOutAt,
-      lunch_minutes: input.lunch,
+      clock_in_at: turno.clockInAt,
+      clock_out_at: turno.clockOutAt,
+      lunch_minutes: comidaMin,
       status: "closed",
       manual: true,
       edited_at: new Date().toISOString(),
@@ -160,10 +243,19 @@ export async function addEntry(input: {
     .select("id")
     .single();
   if (error || !entry) return { ok: false, message: error?.message ?? "Could not add entry." };
+  if (conHoras && turno.comida) {
+    const fallo = await fijaPausaDeComida(ctx.supabase, ctx.companyId, input.employeeId, entry.id, [], turno.comida);
+    if (fallo) {
+      // Sin su comida el turno no se da de alta: se deshace, para no dejar un turno a medias.
+      await ctx.supabase.from("time_entries").delete().eq("id", entry.id);
+      return { ok: false, message: fallo };
+    }
+  }
   await audit(ctx.supabase, ctx.companyId, ctx.user.id, entry.id, "insert", null, {
-    clock_in_at: clockInAt,
-    clock_out_at: clockOutAt,
-    lunch_minutes: input.lunch,
+    clock_in_at: turno.clockInAt,
+    clock_out_at: turno.clockOutAt,
+    lunch_minutes: comidaMin,
+    lunch_windows: conHoras && turno.comida ? [turno.comida] : [],
     manual: true,
     note: input.note ?? null,
   });

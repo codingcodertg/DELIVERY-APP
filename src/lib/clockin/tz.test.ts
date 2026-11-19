@@ -27,3 +27,45 @@ describe("centralWallToUtc: la medianoche de Chicago en UTC, con horario de vera
     }
   });
 });
+
+// Bug (2026-11): el caché de `centralShiftMs` se indexaba por día UTC. En un día de cambio de
+// horario, la primera consulta fijaba el offset de todo el día: una hora de la mañana CST salía
+// con el offset de CDT y se corría una hora. Se indexa por hora UTC, que es donde cambia.
+describe("centralShiftMs en el día del cambio de horario", () => {
+  it("el 8 de marzo de 2026 (cambio a CDT a las 08:00Z) no arrastra el offset de la tarde a la mañana", () => {
+    expect(centralShiftMs(new Date("2026-03-08T12:00:00Z"))).toBe(5 * 3600_000); // ya CDT
+    expect(centralShiftMs(new Date("2026-03-08T07:00:00Z"))).toBe(6 * 3600_000); // aún CST
+    expect(utcToCentralInput("2026-03-08T07:00:00.000Z")).toBe("2026-03-08T01:00");
+    expect(utcToCentralInput("2026-03-08T12:00:00.000Z")).toBe("2026-03-08T07:00");
+  });
+
+  it("el 1 de noviembre de 2026 (vuelta a CST a las 07:00Z) tampoco", () => {
+    expect(centralShiftMs(new Date("2026-11-01T06:30:00Z"))).toBe(5 * 3600_000); // aún CDT
+    expect(centralShiftMs(new Date("2026-11-01T07:30:00Z"))).toBe(6 * 3600_000); // ya CST
+    expect(utcToCentralInput("2026-11-01T12:00:00.000Z")).toBe("2026-11-01T06:00");
+  });
+});
+
+// Bug (2026-11): `centralWallToUtc` leía la pared como UTC para elegir el offset, así que una
+// hora de madrugada en el día del cambio salía una hora corrida (06:00 el 8 de marzo quedaba en
+// 12:00Z, cuando son las 11:00Z de CDT). Ahora se refina contra el instante real, y la ida y
+// vuelta vuelve la misma pared en las 24 horas de los dos días de cambio.
+describe("centralWallToUtc en el día del cambio de horario", () => {
+  it("06:00 el 8 de marzo (ya CDT) son 11:00Z; el 1 de noviembre (ya CST) son 12:00Z", () => {
+    expect(centralWallToUtc("2026-03-08T06:00")).toBe("2026-03-08T11:00:00.000Z");
+    expect(centralWallToUtc("2026-11-01T06:00")).toBe("2026-11-01T12:00:00.000Z");
+  });
+
+  it("la ida y vuelta de cada hora de los dos días de cambio es la misma pared", () => {
+    // La hora 02:00-02:59 del 8 de marzo no existe en Chicago: no tiene ida y vuelta posible.
+    for (const dia of ["2026-03-08", "2026-11-01"]) {
+      for (let h = 0; h < 24; h++) {
+        for (const min of ["00", "30"]) {
+          const pared = `${dia}T${String(h).padStart(2, "0")}:${min}`;
+          if (pared.startsWith("2026-03-08T02:")) continue;
+          expect(utcToCentralInput(centralWallToUtc(pared))).toBe(pared);
+        }
+      }
+    }
+  });
+});
