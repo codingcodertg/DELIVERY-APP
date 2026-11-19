@@ -229,11 +229,13 @@ describe("G-10b · cada código emitido tiene su par, y ningún par sobra", () =
   // 2026-09-30 (solicitud de artículo, hoja del dueño): 13 → 17 sitios y 11 → 12 códigos en actions.ts,
   // por MIGRATION_PENDING (copy / discontinue / «no lista» sin la 158: dos en submitNewItem, uno en
   // submitRequest, uno en setRequestReady). El código no lleva dígitos a propósito: `recoger` solo ve [A-Z_].
-  it("el inventario medido: 17 sitios en actions.ts (12 códigos) y 6 en po-parse.ts (5 códigos)", () => {
+  // 2026-11-19 (listas de conteo, 330): 17 → 26 sitios y 12 → 20 códigos en actions.ts: `falloDeLista` traduce
+  // los errores de las funciones de conteo (LIST_*, QTY_INVALID, LINE_NOT_FOUND, not authorized) con literales.
+  it("el inventario medido: 26 sitios en actions.ts (20 códigos) y 6 en po-parse.ts (5 códigos)", () => {
     const enActions = emitidos.filter((e) => e.donde.startsWith(ACTIONS));
     const enParse = emitidos.filter((e) => e.donde.startsWith(PO_PARSE));
-    expect(enActions).toHaveLength(17);
-    expect(new Set(enActions.map((e) => e.codigo)).size).toBe(12);
+    expect(enActions).toHaveLength(26);
+    expect(new Set(enActions.map((e) => e.codigo)).size).toBe(20);
     expect(enParse).toHaveLength(6);
     expect(new Set(enParse.map((e) => e.codigo)).size).toBe(5);
   });
@@ -290,11 +292,13 @@ describe("G-10b · el texto se rellena en el cliente, y lo de Supabase pasa tal 
 });
 
 describe("G-10b · los componentes que pintan esos fallos pasan por failText / mensajeTexto", () => {
-  // Los 17 que consumen una acción que puede devolver un código. Los que consumen solo acciones
+  // Los 19 que consumen una acción que puede devolver un código (330: las dos piezas de listas de conteo). Los que consumen solo acciones
   // con `error.message` de Supabase (catalog-table, decisions-upload, master-round-trip) no están:
   // el tipo de esas acciones no lleva código y tsc no les exige nada.
   const pintores = [
     "src/components/erp/bulk-bar.tsx",
+    "src/components/erp/count-list-detail.tsx",
+    "src/components/erp/count-lists.tsx",
     "src/components/erp/inventory-console.tsx",
     "src/components/erp/item/suggest-fix-button.tsx",
     "src/components/erp/merge-tool.tsx",

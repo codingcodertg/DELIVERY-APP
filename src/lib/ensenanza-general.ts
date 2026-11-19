@@ -58,6 +58,8 @@ export { valorDeCapacitacion as valorDeEnsenanza };
  */
 export const RPC_QUE_SOLO_LEEN = [
   "monitor_salud", // 300 (D-1012): la salud del sistema en Central Hub Monitoring; solo el admin, solo lee.
+  "count_list_detail", // 330: el detalle de una lista de conteo; stable, solo lee.
+  "count_lists_list", // 330: el listado de listas de conteo; stable, solo lee.
   "warehouse_ops_search_products", // 247 (D-883): busca productos para la merma; stable, solo lee.
   "warehouse_ops_kpi_almacen_mes", // 325: KPI de almacén (merma, ventas y fichajes del mes); stable, solo lee.
   "cuentas_de_clientes", // 203: las cuentas de Clientes para el formulario de orden; solo lee.
@@ -80,6 +82,11 @@ export const RPC_QUE_SOLO_LEEN = [
 /** Las que escriben: se cortan. Están nombradas solo para que la prueba sepa que alguien las miró. */
 export const RPC_QUE_ESCRIBEN = [
   "monitor_reiniciar_estadisticas", // 300 (D-1012): reinicia pg_stat_statements para medir el ritmo de escrituras de ahora.
+  "count_list_add_products", // 330: agrega productos a una lista de conteo abierta.
+  "count_list_create", // 330: crea una lista de conteo.
+  "count_list_remove_line", // 330: quita un renglón de una lista abierta.
+  "count_list_set_qty", // 330: fija la cantidad contada de un renglón.
+  "count_list_submit", // 330: envía la lista y registra sus conteos (record_cycle_count).
   "warehouse_ops_file_report", // 247 (D-883): crea un reporte de Operaciones de almacén y, en los de RR. HH., su fila del expediente.
   "warehouse_ops_edit_scrap_product", // 252: el gerente vincula o corrige el producto de una merma fuera de catálogo.
   "warehouse_ops_edit_scrap_origin", // 263: el gerente corrige el origen (CRMA / nota) de una merma.

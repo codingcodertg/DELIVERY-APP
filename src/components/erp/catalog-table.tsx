@@ -361,7 +361,7 @@ export function CatalogTable({
       )}
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Input placeholder={t("Search name, SKU, vendor…", "Buscar nombre, SKU, proveedor…")} value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} className="max-w-xs" />
+        <Input placeholder={t("Search supplier, SKU, name, category… (several words = all)", "Buscar proveedor, SKU, nombre, categoría… (varias palabras = todas)")} value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} className="max-w-xs" />
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500">
           {COMMERCIAL.map((s) => (
             <option key={s} value={s}>{s === "all" ? t("All statuses", "Todos los estados") : t(statusLabel(s).en, statusLabel(s).es)}</option>

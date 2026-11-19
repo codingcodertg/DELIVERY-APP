@@ -1,4 +1,5 @@
 import { AVISO_DEL_DEMO, PERFIL_ERP_DEMO, rpcsDemoErp, tablasDemoErp, type Fila } from "@/lib/erp/demo-data";
+import { rpcsListasDemo } from "@/lib/erp/listas-de-conteo-demo";
 
 /**
  * El cliente de Supabase de mentira de Inventario en el demo (D-941), calcado del del Hub (D-940): las lecturas contestan
@@ -94,7 +95,8 @@ function consulta(filas: Fila[]) {
 
 export function clienteDemoDelErp(ahora: Date) {
   const tablas = tablasDemoErp(ahora);
-  const rpcs = rpcsDemoErp(ahora);
+  // Las listas de conteo (330) escriben en memoria: sus funciones lanzan el código de la base y aquí se devuelve como error.
+  const rpcs = { ...rpcsDemoErp(ahora), ...rpcsListasDemo(ahora) };
   const canal = { on: () => canal, subscribe: () => canal };
   const cliente = {
     auth: { getUser: async () => ({ data: { user: { id: PERFIL_ERP_DEMO.id, email: PERFIL_ERP_DEMO.email } }, error: null }) },
@@ -103,7 +105,13 @@ export function clienteDemoDelErp(ahora: Date) {
     from: (tabla: string) => consulta(tablas[tabla] ?? []),
     rpc: async (funcion: string, args?: Record<string, unknown>): Promise<Respuesta> => {
       const leer = rpcs[funcion];
-      return leer ? { data: leer(args), error: null, count: null } : SIN_ESCRITURA;
+      if (!leer) return SIN_ESCRITURA;
+      try {
+        return { data: leer(args), error: null, count: null };
+      } catch (e) {
+        // Un código de la base (LIST_CLOSED, …) vuelve como error, igual que PostgREST.
+        return { data: null, error: { message: e instanceof Error ? e.message : String(e) }, count: null };
+      }
     },
     channel: () => canal,
     removeChannel: async () => "ok",

@@ -36,6 +36,18 @@ export const ERP_MESSAGES = {
     es: "Esta opción necesita una actualización de la base que aún no está aplicada (migración 158: copia / descontinuar / estado del solicitante). Avisa a un admin.",
   },
   NO_UNMATCHED_LINES: { en: "No unmatched lines to import", es: "No hay líneas sin emparejar que importar" },
+  // listas de conteo (actions.ts, listas-de-conteo.ts)
+  LIST_NAME_INVALID: { en: "Give the list a name (1 to 120 characters)", es: "Ponle nombre a la lista (de 1 a 120 caracteres)" },
+  LIST_NOT_FOUND: { en: "This list no longer exists", es: "Esta lista ya no existe" },
+  LIST_CLOSED: { en: "This list was already submitted and can't be changed", es: "Esta lista ya se envió y no se puede cambiar" },
+  LIST_EMPTY: { en: "The list has no products yet", es: "La lista aún no tiene productos" },
+  LIST_HAS_UNCOUNTED: {
+    en: "Count every line, or remove the ones you did not count",
+    es: "Cuenta todos los renglones o quita los que no contaste",
+  },
+  LIST_TOO_MANY: { en: "Too many products at once (max {max}). Narrow the search.", es: "Demasiados productos a la vez (máx. {max}). Afina la búsqueda." },
+  QTY_INVALID: { en: "The quantity can't be negative", es: "La cantidad no puede ser negativa" },
+  LINE_NOT_FOUND: { en: "This line no longer exists", es: "Este renglón ya no existe" },
   NO_PDF_FILE: { en: "No PDF file provided.", es: "No se adjuntó ningún PDF." },
   PDF_TOO_LARGE: { en: "PDF too large (max 10 MB).", es: "PDF demasiado grande (máx. 10 MB)." },
   PDF_NOT_RECOGNIZED: {
