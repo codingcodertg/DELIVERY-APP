@@ -152,6 +152,11 @@ begin
   if not public.leads_puede_ver_fila(p_lead) then
     raise exception 'leads: no lead with that id' using errcode = 'P0002';
   end if;
+  -- Una venta cerrada es de quien la cerro: solo esa persona o un admin le cambia la etapa. Los demas pueden dejar nota.
+  if v_action is not null and not public.is_admin() and exists (
+       select 1 from public.leads l where l.id = p_lead and l.status = 'won' and l.holder is distinct from v_uid) then
+    raise exception 'leads: this sale was closed by someone else' using errcode = '42501';
+  end if;
   return public.leads_registra_nota(p_lead, v_uid, v_note, v_action);
 end $$;
 
@@ -375,4 +380,4 @@ notify pgrst, 'reload schema';
 -- Los datos convertidos (etapas, estados) no se devuelven solos: no hay copia de la forma anterior.
 
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('328_leads_etapas.sql', '4220ddee0760fc0dc85979f270bdafcfef2f57760233fc0605ca9a921f771041') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('328_leads_etapas.sql', 'c82537f773d29f82655f33dd5efaa636127ba561fdbbafbb96979f664eb14aca') on conflict (name) do nothing;

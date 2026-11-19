@@ -81,10 +81,10 @@ describe("2 · anotar: la nota de avance (lead_note)", () => {
     const r = aplicarNota(lead({ follow_up_action: "negotiation" }), beto, "", ahora, "closed");
     expect(r).toMatchObject({ ok: true, valor: { status: "won", holder: "beto", holder_name: "Beto", follow_up_action: "closed" } });
   });
-  it("cualquier otra etapa deja el lead libre y sin dueño, aunque antes fuera una venta", () => {
+  it("cualquier otra etapa deja el lead libre y sin dueño, aunque antes fuera una venta (suya)", () => {
     const venta = lead({ status: "won", holder: "beto", holder_name: "Beto", follow_up_action: "closed" });
     for (const e of ["lost", "bad_lead", "quote", "no_answer"] as const) {
-      expect(aplicarNota(venta, ana, "", ahora, e)).toMatchObject({ ok: true, valor: { status: "free", holder: null, holder_name: null, follow_up_action: e } });
+      expect(aplicarNota(venta, beto, "", ahora, e)).toMatchObject({ ok: true, valor: { status: "free", holder: null, holder_name: null, follow_up_action: e } });
     }
   });
   it("un perdido puede volver: cualquier nota nueva lo mueve otra vez", () => {
@@ -226,5 +226,18 @@ describe("5 · textos, enlaces y códigos de la base", () => {
   });
   it("los estados tienen su texto", () => {
     expect(estadoLabel("archived", "en")).toBe("Archived");
+  });
+});
+
+describe("328 · una venta cerrada es de quien la cerró", () => {
+  const venta = { status: "won", holder: "a", follow_up_action: "closed" } as unknown as Parameters<typeof aplicarNota>[0];
+  const p = (id: string, admin = false) => ({ id, name: id, admin }) as unknown as Parameters<typeof aplicarNota>[1];
+  it("otra persona no le cambia la etapa, pero sí deja nota", () => {
+    expect(aplicarNota(venta, p("b"), "", "2026-11-18T00:00:00Z", "lost")).toEqual({ ok: false, motivo: "sin_permiso" });
+    expect(aplicarNota(venta, p("b"), "llamó de nuevo", "2026-11-18T00:00:00Z", null).ok).toBe(true);
+  });
+  it("quien la cerró y el admin sí", () => {
+    expect(aplicarNota(venta, p("a"), "", "2026-11-18T00:00:00Z", "lost").ok).toBe(true);
+    expect(aplicarNota(venta, p("c", true), "", "2026-11-18T00:00:00Z", "negotiation").ok).toBe(true);
   });
 });

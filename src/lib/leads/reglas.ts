@@ -207,6 +207,8 @@ export function aplicarNota(lead: Lead, yo: Persona, nota: string, ahora: string
   if (!n && accion === null) return { ok: false, motivo: "falta_nota" };
   if ((nota ?? "").trim().length > NOTA_MAX) return { ok: false, motivo: "dato_invalido" };
   if (lead.status === "archived") return { ok: false, motivo: "no_existe" };
+  // 328: una venta cerrada es de quien la cerró; solo esa persona o un admin le cambia la etapa (los demás, solo nota).
+  if (accion !== null && lead.status === "won" && lead.holder !== yo.id && !yo.admin) return { ok: false, motivo: "sin_permiso" };
   const venta = accion === "closed";
   const sinEtapa = accion === null;
   return {
