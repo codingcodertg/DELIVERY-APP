@@ -17,9 +17,12 @@ let ultimoAviso: number | null = null;
  */
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
+/** En el dominio de las tarjetas NFC no hay sesión ni hub: el aviso de dispositivo no se manda. */
+const enTarjetas = () => typeof document !== "undefined" && document.documentElement.hasAttribute("data-tarjetas");
+
 export function IdentidadDelDispositivo() {
   const pathname = usePathname();
-  const sinSesion = LOCAL_MODE || !pathname || pathname.startsWith("/login") || pathname.startsWith("/track/") || pathname.startsWith("/unsubscribe/") || pathname.startsWith("/reset-password") || pathname.startsWith("/auth");
+  const sinSesion = LOCAL_MODE || !pathname || enTarjetas() || pathname.startsWith("/login") || pathname.startsWith("/track/") || pathname.startsWith("/unsubscribe/") || pathname.startsWith("/reset-password") || pathname.startsWith("/auth");
   useEffect(() => {
     if (sinSesion) return;
     const id = idDelDispositivo(typeof window === "undefined" ? null : window);

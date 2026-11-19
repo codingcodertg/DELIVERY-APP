@@ -42,7 +42,7 @@ describe("la tarjeta y la casilla", () => {
     const prov = leer("src/lib/data-provider.tsx");
     expect(prov).toContain('void logSecurityClient(userId, "surveys_access_changed"');
     expect(prov).toContain('? Array.from(new Set([...actuales, "surveys"]))');
-    expect(securityLabel("surveys_access_changed", "es")).toBe("Acceso a Encuestas cambiado");
+    expect(securityLabel("surveys_access_changed", "es")).toBe("Acceso a QR Codes cambiado");
   });
 });
 

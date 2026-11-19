@@ -10,7 +10,7 @@ import "./surveys.css";
 import "./encuestas-diseno.css";
 
 export const metadata: Metadata = {
-  title: "RTG SURVEYS",
+  title: "QR Codes",
 };
 
 /**
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 /** El nombre de la app en la barra de todas (D-643, `BarraDeApp`), en inglés y en español. */
-const NOMBRE = ["RTG Surveys", "RTG Encuestas"] as const;
+const NOMBRE = ["QR Codes", "QR Codes"] as const;
 
 export default async function SurveysLayout({ children }: { children: React.ReactNode }) {
   // Modo demo: sin base ni sesión. Las respuestas son las inventadas de `lib/encuestas/demo`.

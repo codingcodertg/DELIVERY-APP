@@ -57,6 +57,7 @@ export { valorDeCapacitacion as valorDeEnsenanza };
  * lista o en la de abajo, para que una nueva no se cuele sin que alguien decida.
  */
 export const RPC_QUE_SOLO_LEEN = [
+  "business_card_public", "business_card_by_token", // tarjetas de presentación (331): la tarjeta pública y el editor por enlace; solo leen.
   "monitor_salud", // 300 (D-1012): la salud del sistema en Central Hub Monitoring; solo el admin, solo lee.
   "count_list_detail", // 330: el detalle de una lista de conteo; stable, solo lee.
   "count_lists_list", // 330: el listado de listas de conteo; stable, solo lee.
@@ -99,6 +100,7 @@ export const RPC_QUE_ESCRIBEN = [
   "warehouse_ops_create_scrap_group", "warehouse_ops_sign_scrap_group", "warehouse_ops_unsign_scrap_group", "warehouse_ops_approve_scrap_group",
   "warehouse_ops_remove_from_scrap_group", "warehouse_ops_delete_scrap_group",
   "warehouse_ops_delete_scrap_report", // 297: el admin borra un reporte de merma de prueba.
+  "business_card_set_media", // 331: cambia la foto o la portada de una tarjeta con su enlace de edición. Escribe.
   "check_rate_limit", // 282: suma el contador del limitador de peticiones por IP. Escribe; en enseñanza se corta y el limitador falla abierto.
   "security_touch_device", "security_request_access", // 229 (D-811): registran el dispositivo de la sesión y su solicitud.
   "security_note_web_block", // 232 (D-818): anota que a esta sesión se le cerró la web.
@@ -191,6 +193,7 @@ export const RUTAS_QUE_NO_SE_PRACTICAN = [
   "/api/notify", "/api/call", "/api/push", "/api/recruiting/rc-contact", "/api/avisos-cliente",
   "/api/invite", "/api/reset-password", "/api/delete-user", "/api/user-identity", "/api/profile/password",
   "/api/route-plan/publish", "/api/customers/aviso-solicitud",
+  "/api/tarjetas/foto", // 331: sube la foto de la tarjeta de presentación y la guarda en la base.
 ] as const;
 
 /** Las que tienen efecto y siguen en práctica, con su porqué. */

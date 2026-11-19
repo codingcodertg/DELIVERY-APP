@@ -40,6 +40,7 @@ export const RUTAS_SIN_AYUDA: readonly { ruta: string; soloDebajo?: true; porque
   { ruta: "/no-access", porque: "quien entró pero no tiene ninguna app: no está en una app (y se sirve también sin sesión)" },
   { ruta: "/track", soloDebajo: true, porque: "el seguimiento que se manda al CLIENTE por SMS: no tiene cuenta" },
   { ruta: "/unsubscribe", porque: "la baja de los avisos del CLIENTE (D-416): no tiene cuenta" },
+  { ruta: "/tarjeta", porque: "la tarjeta de presentación pública (NFC) y su editor por enlace: no tienen cuenta" },
 ];
 
 /** ¿Sale la burbuja de Ayuda en esta ruta? En todas las de las apps, sí; en las de `RUTAS_SIN_AYUDA`, no. */

@@ -3,6 +3,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 import { CABECERA_DE_CORTE, COOKIE_ENSENANZA, apiQueNoSePractica, valorDeEnsenanza } from "@/lib/ensenanza-general";
 import { mensajeDeLoQueNoSePractica } from "@/lib/practica/mensajes";
 import { esApiMutante, mismoOrigen, respuestaCsrf, traeCookieDeSesion } from "@/lib/csrf";
+import { esHostDeTarjetas, rutaEnHostDeTarjetas, RUTA_404_DE_TARJETAS } from "@/lib/tarjetas/host";
 
 /**
  * EN `src/`, Y ESO ES EL ARREGLO (D-119).
@@ -22,6 +23,15 @@ import { esApiMutante, mismoOrigen, respuestaCsrf, traeCookieDeSesion } from "@/
  * con su tabla de pruebas.
  */
 export async function middleware(request: NextRequest) {
+  // El dominio de las tarjetas NFC (businesscard.rdztilegroup.com): una página pública, sin login ni guardas del
+  // hub. Aquí se decide todo y no se llega a la sesión, la puerta de dispositivo ni el modo enseñanza. Ver
+  // `lib/tarjetas/host.ts`: solo la tarjeta, su editor, sus ficheros y su API; lo demás es la 404 de tarjetas.
+  if (esHostDeTarjetas(request.headers.get("host"))) {
+    const destino = rutaEnHostDeTarjetas(request.nextUrl.pathname);
+    if (destino.kind === "pasa") return NextResponse.next();
+    const to = destino.kind === "reescribe" ? destino.to : RUTA_404_DE_TARJETAS;
+    return NextResponse.rewrite(new URL(to + request.nextUrl.search, request.url));
+  }
   // Modo enseñanza (D-628): lo que no se puede deshacer (un correo, un SMS, una llamada, una cuenta) no se hace.
   const idioma = valorDeEnsenanza(request.cookies.get(COOKIE_ENSENANZA)?.value);
   if (idioma && apiQueNoSePractica(request.method, request.nextUrl.pathname)) {
