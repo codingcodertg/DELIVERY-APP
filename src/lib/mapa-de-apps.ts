@@ -119,6 +119,8 @@ export const CASILLAS: Casilla[] = [
   { key: "security", panel: "employees", fila: 1, columna: 8, emoji: "🔐", label_en: "Central Hub Monitoring", label_es: "Central Hub Monitoring", existe: true, destino: { tipo: "herramienta", claves: ["security"] } },
   // 2026-11-18: RingCentral de los choferes (migración 329), solo admin, como su tarjeta del hub.
   { key: "ringcentral", panel: "employees", fila: 2, columna: 1, emoji: "📞", label_en: "RingCentral", label_es: "RingCentral", existe: true, destino: { tipo: "herramienta", claves: ["ringcentral"] } },
+  // 2026-11-19: App Draft, prototipos con datos de ejemplo (solo admin de partida; el gerente con la casilla).
+  { key: "app-draft", panel: "employees", fila: 2, columna: 2, emoji: "🧪", label_en: "App Draft", label_es: "App Draft", existe: true, destino: { tipo: "modulo", clave: "app_draft" } },
 ];
 
 export interface Flecha {

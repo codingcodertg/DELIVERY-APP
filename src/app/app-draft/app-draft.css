@@ -1,0 +1,105 @@
+/* App Draft. Solo variables del hub (globals.css), sin colores sueltos. Margen lateral de 16 px y nada pasa del ancho
+   de la página: las tablas se desplazan dentro de su caja (TablaEstandar). */
+
+.adr {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px;
+  overflow-x: hidden;
+}
+.adr *, .adr *::before, .adr *::after { box-sizing: border-box; }
+.adr-titulo { font-size: 22px; margin: 0 0 6px; }
+.adr-sub { color: var(--gray); margin: 0 0 16px; line-height: 1.45; }
+
+.adr-rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.adr-tarjeta {
+  display: grid; gap: 6px; align-content: start;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+  color: var(--text); text-decoration: none; min-width: 0;
+}
+a.adr-tarjeta:hover { border-color: var(--accent); background: var(--card-hover); }
+.adr-tarjeta-apagada { opacity: .6; }
+.adr-tarjeta-emoji { font-size: 28px; }
+.adr-tarjeta-nombre { font-weight: 700; font-size: 16px; }
+.adr-tarjeta-desc { color: var(--gray); font-size: 13px; line-height: 1.4; }
+.adr-nota { font-size: 12px; color: var(--accent); background: var(--accent-soft); border-radius: 8px; padding: 6px 8px; }
+.adr-pronto { justify-self: start; background: var(--paper); color: var(--gray); border: 1px solid var(--line); }
+
+/* ---------- QuickBooks Online */
+.qbo-cabeza { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.qbo-cabeza h1 { font-size: 22px; margin: 0; }
+.qbo-aviso { font-size: 13px; color: var(--accent); background: var(--accent-soft); border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; line-height: 1.4; }
+.qbo-nota { font-size: 12.5px; color: var(--gray); background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; line-height: 1.4; }
+.qbo-pestanas { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; -webkit-overflow-scrolling: touch; }
+.qbo-pestana {
+  flex: 0 0 auto; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--card); color: var(--text); font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.qbo-pestana[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--card); }
+.qbo-sub { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.qbo-sub button { padding: 5px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--card); color: var(--text); font-size: 12.5px; font-weight: 600; }
+.qbo-sub button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.qbo-seccion { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; }
+.qbo-barra { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.qbo-barra input[type="search"] { max-width: 240px; padding: 6px 9px; }
+.qbo-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.qbo-kpi { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; }
+.qbo-kpi b { display: block; font-size: 20px; margin-top: 2px; }
+.qbo-kpi span { font-size: 12px; color: var(--gray); font-weight: 600; }
+.qbo-kpi small { display: block; color: var(--gray); font-size: 11.5px; margin-top: 2px; }
+.qbo-kpi-alerta b { color: var(--red); }
+.qbo-dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.qbo-caja { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+.qbo-caja h2 { font-size: 15px; margin: 0 0 10px; }
+.qbo-renglon { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.qbo-renglon:last-child { border-bottom: 0; }
+.qbo-renglon-total { font-weight: 700; border-top: 2px solid var(--line); }
+.qbo-renglon-sangria { padding-left: 14px; }
+.qbo-num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.qbo-rojo { color: var(--red); }
+.qbo-verde { color: var(--green); }
+.qbo-gris { color: var(--gray); }
+
+.qbo-estado { font-size: 11px; }
+.qbo-estado-draft { background: var(--paper); color: var(--gray); border: 1px solid var(--line); }
+.qbo-estado-sent, .qbo-estado-open { background: var(--accent-soft); color: var(--accent); }
+.qbo-estado-partial, .qbo-estado-received { background: var(--amber-soft); color: var(--text); }
+.qbo-estado-paid, .qbo-estado-closed, .qbo-estado-matched, .qbo-estado-categorized { background: var(--green-soft); color: var(--green); }
+.qbo-estado-overdue { background: var(--red-soft); color: var(--red); }
+.qbo-estado-new { background: var(--amber-soft); color: var(--text); }
+.qbo-estado-excluded { background: var(--paper); color: var(--gray); }
+
+/* Formularios dentro de la ventana. */
+.qbo-form { display: grid; gap: 10px; }
+.qbo-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.qbo-campo { display: grid; gap: 4px; font-size: 12px; color: var(--gray); font-weight: 600; min-width: 0; }
+.qbo-campo input, .qbo-campo select, .qbo-campo textarea { color: var(--text); font-weight: 400; padding: 7px 9px; }
+.qbo-lineas { display: grid; gap: 8px; }
+.qbo-linea { display: grid; grid-template-columns: minmax(0, 3fr) minmax(64px, 1fr) minmax(76px, 1fr) minmax(84px, 1fr) 32px; gap: 6px; align-items: center; }
+.qbo-linea input, .qbo-linea select { padding: 6px 7px; min-width: 0; }
+.qbo-linea-cabeza { font-size: 11px; color: var(--gray); font-weight: 700; }
+.qbo-totales { display: grid; justify-content: end; gap: 2px; font-size: 13.5px; }
+.qbo-totales div { display: flex; gap: 18px; justify-content: space-between; min-width: 220px; }
+.qbo-error { color: var(--red); font-size: 13px; font-weight: 600; }
+.qbo-ok { color: var(--green); font-size: 13px; font-weight: 600; }
+.qbo-lista { display: grid; gap: 6px; }
+.qbo-aplica { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto minmax(90px, 120px); gap: 8px; align-items: center; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.qbo-aplica input[type="number"] { padding: 5px 7px; }
+.qbo-aplica input[type="checkbox"] { width: auto; }
+.qbo-explica { font-size: 12px; color: var(--gray); line-height: 1.4; }
+.qbo-diferencia { font-size: 20px; font-weight: 700; }
+
+@media (max-width: 560px) {
+  .qbo-linea { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 32px; }
+  .qbo-linea > :first-child { grid-column: 1 / -1; }
+  .qbo-linea-cabeza { display: none; }
+  .qbo-aplica { grid-template-columns: 24px minmax(0, 1fr) minmax(80px, 100px); }
+  .qbo-aplica > .qbo-num { display: none; }
+  .qbo-totales div { min-width: 0; }
+}
+
+@media print {
+  .qbo-no-imprimir, .qbo-pestanas, .qbo-cabeza button { display: none !important; }
+}

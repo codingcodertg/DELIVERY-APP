@@ -35,7 +35,7 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
    *  aquí —viven en el expediente—; quedan el título, el rol, los módulos y permisos y el acceso. */
   desdeExpediente?: boolean;
 }) {
-  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, deleteUser, saveSettings } = useData();
+  const { me, notify, settings, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, updateUserModules, deleteUser, saveSettings } = useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
 
@@ -125,6 +125,9 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
         // D-908 (265): su propio nivel, `warehouse_ops_role`. Escribe solo esa columna; la casilla no se toca.
         updateUserWarehouseOpsRole(u.id, roleValue);
         return;
+      case "app_draft":
+        // Sin `roleColumn`, inalcanzable.
+        return;
       default: { const _exhaustive: never = key; return _exhaustive; }
     }
   };
@@ -163,6 +166,10 @@ export function UserDialog({ user: u, onClose, desdeExpediente = false }: {
         // Solo la casilla. El nivel (265) vive en su columna y NO se escribe aquí: sin nivel escrito manda el rol
         // del hub, y así la casilla sigue funcionando aunque la 265 aún no esté aplicada.
         updateUserWarehouseOpsAccess(u.id, { granted });
+        return;
+      case "app_draft":
+        // Solo la casilla, con el cambio genérico de módulos (sin columna de rol).
+        void updateUserModules(u.id, granted ? { grant: ["app_draft"] } : { revoke: ["app_draft"] });
         return;
       case "deliveries":
         // Sí se llama desde D-100: Entregas dejó de ser implícita y su casilla ahora

@@ -49,13 +49,14 @@ describe("el vocabulario que ya había, para que la elección conste", () => {
     //   grep -rn 't("Phone", "Teléfono")' --include=*.tsx src | wc -l
     const ocurrencias = tsx.reduce(
       (n, r) => n + (leer(r).match(/t\("Phone", "Teléfono"\)/g) ?? []).length, 0);
+    // Sube de 11 a 12 con App Draft (2026-11-19): el campo «Teléfono» del formulario de cliente nuevo del prototipo.
     // Sube de 10 a 11 con 335 (Leads): el campo «Teléfono» del formulario de teléfono a mano (contratista o propietario).
     expect(
       ocurrencias,
       "Si has añadido una etiqueta de teléfono legítima, sube este número A CONCIENCIA: el canario " +
       "existe para que la decisión de llamarlo de otra forma se tome mirando, no por inercia. " +
       "Ver la nota de arriba y la entrada de la decisión.",
-    ).toBe(11);
+    ).toBe(12);
     // Baja de 14 a 13 con la tanda de tablas estándar (Encuestas): la cabecera «Teléfono» de la lista de contacto
     // pasó a la definición de columnas de `<TablaEstandar>` (`en: "Phone", es: "Teléfono"`). El mismo vocabulario,
     // otra forma de escribirlo; no es una etiqueta nueva ni se quitó una decisión.

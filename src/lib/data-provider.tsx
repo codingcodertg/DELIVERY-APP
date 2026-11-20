@@ -2423,6 +2423,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         leads: "leads_access_changed",
         customers: "customers_access_changed",
         warehouse_ops: "warehouse_ops_access_changed",
+        app_draft: "app_draft_access_changed",
       };
       // Se registra por ACCESO EFECTIVO, no solo por la pertenencia al modulo: en RR. HH. y
       // Time Tracker el acceso tambien lo da el rol de escalafon, asi que una fila drifteada

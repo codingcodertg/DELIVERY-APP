@@ -110,7 +110,7 @@ describe("la 180", () => {
     expect(definen).toContain("180_clientes.sql");
     const lista = /module_access <@ array\[([^\]]+)\]\)\n  not valid;/.exec(cuerpo)![1];
     expect(lista).not.toContain("clockin");
-    expect(lista.split(",").sort()).toEqual(MODULE_ACCESS.filter((m) => m.key !== "warehouse_ops").map((m) => `'${m.key}'`).sort());
+    expect(lista.split(",").sort()).toEqual(MODULE_ACCESS.filter((m) => m.key !== "warehouse_ops" && m.key !== "app_draft").map((m) => `'${m.key}'`).sort());
   });
 
   it("quién entra: admin o la casilla; quién escribe: admin, o manager del HUB con la casilla (profiles.role, no erp_role)", () => {
