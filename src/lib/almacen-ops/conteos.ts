@@ -148,6 +148,8 @@ export interface Linea {
   /** 19 nov: la unidad de la línea (caja, bolsa, pieza) y sus lotes. Vacíos en las líneas de antes. */
   unit_of_measure?: UnidadDeConteo | null;
   lots?: Lote[];
+  /** false: la línea no se compara con el sistema (bolsas o producto libre). Vacío = sí (líneas de antes). */
+  counted_comparable?: boolean;
 }
 
 /** Una orden pendiente de una línea (paso 3): factura, cantidad vendida y no entregada (en la unidad de la línea). */
@@ -232,9 +234,10 @@ export interface CuentasDeLinea {
 }
 
 /** Las cuentas de una línea DESPUÉS de las órdenes pendientes (la misma regla de la firma, el informe y la hoja). */
-export function cuentasDeLinea(x: Pick<Linea, "counted_total" | "system_qty" | "price">, pendiente: number): CuentasDeLinea {
+export function cuentasDeLinea(x: Pick<Linea, "counted_total" | "system_qty" | "price" | "counted_comparable">, pendiente: number): CuentasDeLinea {
   const contado = x.counted_total;
-  const real = contado == null ? null : redondea(contado - pendiente);
+  const comparable = x.counted_comparable !== false;
+  const real = contado == null || !comparable ? null : redondea(contado - pendiente);
   const dif = real == null || x.system_qty == null ? null : redondea(real - x.system_qty);
   const valor = dif == null || x.price == null ? null : redondea(dif * x.price, 2);
   return { contado, pendiente, real, sistema: x.system_qty, diferencia: dif, valor };
@@ -247,13 +250,13 @@ export function enCajas(piezas: number | null, piezasPorCaja: number | null): nu
 }
 
 /** contado − sistema, SIN las pendientes (la vista de la captura). Null si falta alguno de los dos. */
-export function diferencia(x: Pick<Linea, "system_qty" | "counted_total">): number | null {
-  if (x.system_qty == null || x.counted_total == null) return null;
+export function diferencia(x: Pick<Linea, "system_qty" | "counted_total" | "counted_comparable">): number | null {
+  if (x.counted_comparable === false || x.system_qty == null || x.counted_total == null) return null;
   return redondea(x.counted_total - x.system_qty);
 }
 
 /** El valor de la diferencia a precio de venta (precio × diferencia), con signo; sin pendientes. */
-export function valorDeLaDiferencia(x: Pick<Linea, "system_qty" | "counted_total" | "price">): number | null {
+export function valorDeLaDiferencia(x: Pick<Linea, "system_qty" | "counted_total" | "price" | "counted_comparable">): number | null {
   const d = diferencia(x);
   if (d == null || x.price == null) return null;
   return redondea(d * x.price, 2);
@@ -314,10 +317,11 @@ export function resumenDelConteo(lineas: readonly Pick<Linea, "id" | "system_qty
 }
 
 /** ¿Hay alguna línea con diferencia después de las pendientes? (la firma pide la razón). */
-export function hayDiferencias(lineas: readonly Pick<Linea, "id" | "system_qty" | "counted_total" | "price" | "counted_at">[], pendientes: readonly Pick<OrdenPendiente, "line_id" | "qty">[]): boolean {
+export function hayDiferencias(lineas: readonly Pick<Linea, "id" | "system_qty" | "counted_total" | "price" | "counted_at" | "counted_comparable">[], pendientes: readonly Pick<OrdenPendiente, "line_id" | "qty">[]): boolean {
   return lineas.some((l) => {
     if (l.counted_at == null || l.system_qty == null) return false;
-    return cuentasDeLinea(l, pendienteDeLinea(pendientes, l.id)).diferencia !== 0;
+    const d = cuentasDeLinea(l, pendienteDeLinea(pendientes, l.id)).diferencia;
+    return d != null && d !== 0;
   });
 }
 
@@ -476,7 +480,19 @@ export const MAX_LOTES = 20;
 export const MAX_TEXTO_LOTE = 40;
 export const MAX_NOTA_LOTE = 300;
 
-/** El total de los lotes, en la unidad de la línea (sin convertir). Null si no hay lotes. */
+/**
+ * Lo que se compara con el sistema (en PIEZAS) y si la línea SE PUEDE comparar. Espejo exacto de la función de la 336:
+ * comparable = producto del catálogo y (piezas, o cajas con piezas por caja). Cajas → cajas × piezas por caja; el resto,
+ * tal cual. Bolsas y producto libre: se guarda lo contado y no se compara.
+ */
+export function totalDelSistema(lotes: readonly Pick<Lote, "qty">[], unidad: UnidadDeConteo, piezasPorCaja: number | null, tieneProducto: boolean): { total: number | null; comparable: boolean } {
+  const suma = totalDeLotes(lotes);
+  const comparable = tieneProducto && (unidad === "piece" || (unidad === "box" && piezasPorCaja != null && piezasPorCaja > 0));
+  if (suma == null) return { total: null, comparable };
+  return { total: unidad === "box" && comparable ? redondea(suma * (piezasPorCaja as number), 2) : suma, comparable };
+}
+
+/** El total de los lotes, en la unidad de la línea (sin convertir; para mostrar). Null si no hay lotes. */
 export function totalDeLotes(lotes: readonly Pick<Lote, "qty">[]): number | null {
   if (lotes.length === 0) return null;
   return redondea(lotes.reduce((s, x) => s + x.qty, 0), 2);

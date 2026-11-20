@@ -64,7 +64,7 @@ export function InformeDeConteos({ ctx, tiendas }: { ctx: Contexto; tiendas: str
       const cajas = (signo: 1 | -1) => lineas.reduce((s, l) => {
         const pz = l.pieces_per_box;
         const pl = pendientes.filter((o) => o.line_id === l.id).reduce((x, o) => x + o.qty, 0);
-        if (l.counted_at == null || l.system_qty == null || pz == null || pz <= 0) return s;
+        if (l.counted_at == null || l.system_qty == null || pz == null || pz <= 0 || l.counted_comparable === false) return s;
         const d = (l.counted_total ?? 0) - pl - l.system_qty;
         return s + (Math.sign(d) === signo ? Math.abs(d) / pz : 0);
       }, 0);

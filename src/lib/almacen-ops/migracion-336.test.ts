@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const SQL = readFileSync(join(__dirname, "../../../supabase/migrations/336_conteos_lotes_y_unidad.sql"), "utf8");
+const SQL = readFileSync(join(__dirname, "../../../supabase/migrations/336_conteos_lotes_y_unidad.sql"), "utf8").replace(/\r\n/g, "\n");
 
 describe("migración 336 (conteos: lotes, unidad, producto libre, medida opcional)", () => {
   it("agrega unidad y lotes a la línea, con sus restricciones", () => {
@@ -22,6 +22,13 @@ describe("migración 336 (conteos: lotes, unidad, producto libre, medida opciona
     expect(SQL).toContain("if q > 1000000 then");
     expect(SQL.indexOf("jsonb_typeof(x->'qty')")).toBeLessThan(SQL.indexOf("q := (x->>'qty')::numeric;"));
     expect(SQL).toContain("if total <= 0 then raise exception 'warehouse_ops: falta lo contado'");
+  });
+  it("el total que se compara va en piezas; lo no comparable se marca y no entra a la firma", () => {
+    expect(SQL).toContain("add column if not exists counted_comparable boolean not null default true");
+    expect(SQL).toContain("comparable := l.product_id is not null and (p_unit = 'piece' or (p_unit = 'box' and coalesce(l.pieces_per_box, 0) > 0));");
+    expect(SQL).toContain("counted_total = case when comparable and p_unit = 'box' then round(total * l.pieces_per_box, 2) else round(total, 2) end");
+    expect(SQL).toContain("counted_comparable = comparable,");
+    expect(SQL).toContain("and l.counted_comparable\n      and l.counted_total - coalesce(");
   });
   it("la foto de cada lote debe ser de quien la sube", () => {
     expect(SQL).toContain("split_part(x->>'photo', '/', 1) <> yo::text");

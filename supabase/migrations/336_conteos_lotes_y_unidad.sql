@@ -3,9 +3,9 @@
 --   1. warehouse_count_lines.unit_of_measure: la unidad de la linea (box = caja, bag = bolsa, piece = pieza). Null = lineas de antes.
 --   2. warehouse_count_lines.lots: jsonb con los lotes de la linea [{qty, lot, note, photo}], hasta 20. Asi un producto puede
 --      venir en varios lotes (lote 123 = 100 cajas; lote 3A4 = 20 cajas) con su nota y su foto.
---      El total contado de la linea (counted_total) es la suma de los lotes EN LA UNIDAD ELEGIDA (cajas, bolsas o piezas), sin
---      convertir. Las piezas por caja solo se muestran en la pantalla (25 cajas · 300 piezas). Ojo: la firma compara
---      counted_total contra el sistema (en piezas); en productos por caja hay que convertir en la firma (pendiente).
+--      Cada lote queda en SU unidad (lots). El total que se compara con el sistema (counted_total) va en PIEZAS:
+--      cajas x piezas por caja (si el producto del catalogo las tiene), piezas tal cual. Bolsas y producto libre se guardan
+--      tal como se contaron y la linea queda counted_comparable = false: no hay diferencia ni firma que la compare.
 --   3. warehouse_ops_count_lots(linea, unidad, lotes): el personal captura los lotes de una linea (etapa counting).
 --      La pantalla nueva la usa; warehouse_ops_count_line (274) queda intacta para lo viejo.
 --   4. warehouse_ops_count_add_line(conteo, nombre): producto escrito a mano (la busqueda no lo encontro). Linea sin
@@ -25,10 +25,12 @@ alter table public.warehouse_count_lines drop constraint if exists warehouse_cou
 alter table public.warehouse_count_lines add constraint warehouse_count_lines_lots_check
   check (jsonb_typeof(lots) = 'array' and jsonb_array_length(lots) <= 20);
 
+alter table public.warehouse_count_lines add column if not exists counted_comparable boolean not null default true;
+
 -- 3. Los lotes de una linea (personal, etapa counting)
 create or replace function public.warehouse_ops_count_lots(p_line uuid, p_unit text, p_lots jsonb)
   returns void language plpgsql volatile security definer set search_path = public as $$
-declare yo uuid := auth.uid(); l record; c record; x jsonb; q numeric; total numeric := 0;
+declare yo uuid := auth.uid(); l record; c record; x jsonb; q numeric; total numeric := 0; comparable boolean;
 begin
   if yo is null then raise exception 'warehouse_ops: sin sesion' using errcode = '42501'; end if;
   select * into l from public.warehouse_count_lines where id = p_line for update;
@@ -53,12 +55,16 @@ begin
     total := total + q;
   end loop;
   if total <= 0 then raise exception 'warehouse_ops: falta lo contado' using errcode = '22023'; end if;
+  -- Comparable con el sistema: producto del catalogo y (piezas, o cajas con piezas por caja). Lo demas no se compara.
+  comparable := l.product_id is not null and (p_unit = 'piece' or (p_unit = 'box' and coalesce(l.pieces_per_box, 0) > 0));
   update public.warehouse_count_lines set
     unit_of_measure = p_unit,
     lots = (select coalesce(jsonb_agg(jsonb_build_object('qty', (e.value->>'qty')::numeric, 'lot', nullif(btrim(e.value->>'lot'), ''),
                                                        'note', nullif(btrim(e.value->>'note'), ''), 'photo', nullif(e.value->>'photo', '')) order by e.ord), '[]'::jsonb)
             from jsonb_array_elements(p_lots) with ordinality as e(value, ord)),
-    counted_boxes = null, counted_pieces = null, counted_total = round(total, 2),
+    counted_boxes = null, counted_pieces = null,
+    counted_total = case when comparable and p_unit = 'box' then round(total * l.pieces_per_box, 2) else round(total, 2) end,
+    counted_comparable = comparable,
     counted_by = yo, counted_by_name = public.warehouse_ops_caller_name(), counted_at = now(),
     note = null,
     photo = (select nullif(e.value->>'photo', '') from jsonb_array_elements(p_lots) as e(value) where nullif(e.value->>'photo', '') is not null limit 1),
@@ -178,3 +184,33 @@ begin
 end $$;
 revoke all on function public.warehouse_ops_count_recount(uuid, text) from public, anon;
 grant execute on function public.warehouse_ops_count_recount(uuid, text) to authenticated;
+
+-- 7. La firma no pide razon por lineas que no se comparan con el sistema (cuerpo de la 333 con esa condicion).
+create or replace function public.warehouse_ops_count_sign(p_count uuid, p_sheet text, p_note text)
+  returns void language plpgsql volatile security definer set search_path = public as $$
+declare yo uuid := auth.uid(); c record; faltan_conteo int; faltan_sistema int; hay_diferencia boolean;
+begin
+  if yo is null then raise exception 'warehouse_ops: sin sesion' using errcode = '42501'; end if;
+  select * into c from public.warehouse_counts where id = p_count for update;
+  if c.id is null then raise exception 'warehouse_ops: conteo desconocido'; end if;
+  if not public.warehouse_ops_can_manage(c.store) then raise exception 'warehouse_ops: solo el gerente firma el conteo' using errcode = '42501'; end if;
+  if c.stage <> 'sign_off' then raise exception 'warehouse_ops: el conteo no esta en firma' using errcode = '22023'; end if;
+  if p_sheet is not null and split_part(p_sheet, '/', 1) <> yo::text then raise exception 'warehouse_ops: hoja no valida' using errcode = '22023'; end if;
+  select count(*) into faltan_conteo from public.warehouse_count_lines l where l.count_id = p_count and l.counted_at is null;
+  if faltan_conteo > 0 then raise exception 'warehouse_ops: faltan % lineas por contar', faltan_conteo using errcode = '22023'; end if;
+  select count(*) into faltan_sistema from public.warehouse_count_lines l where l.count_id = p_count and l.system_qty is null;
+  if faltan_sistema > 0 then raise exception 'warehouse_ops: faltan % cantidades del sistema', faltan_sistema using errcode = '22023'; end if;
+  select exists (
+    select 1 from public.warehouse_count_lines l
+    where l.count_id = p_count
+      and l.counted_comparable
+      and l.counted_total - coalesce((select sum(pp.qty) from public.warehouse_count_pending pp where pp.line_id = l.id), 0) - l.system_qty <> 0
+  ) into hay_diferencia;
+  if hay_diferencia and length(btrim(coalesce(p_note, ''))) < 2 then
+    raise exception 'warehouse_ops: hay diferencias: escribe la razon antes de firmar' using errcode = '22023';
+  end if;
+  update public.warehouse_counts set signed_at = now(), signed_by = yo, signed_by_name = public.warehouse_ops_caller_name(), signed_sheet = p_sheet,
+    sign_note = nullif(btrim(coalesce(p_note, '')), '') where id = p_count;
+end $$;
+revoke all on function public.warehouse_ops_count_sign(uuid, text, text) from public, anon;
+grant execute on function public.warehouse_ops_count_sign(uuid, text, text) to authenticated;
