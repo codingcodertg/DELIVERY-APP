@@ -236,12 +236,6 @@ export default function DashboardPage() {
   // Tablas de choferes y tienda: `TablaEstandar` (▾ ⚙ mover y anchos). Mismos números y formatos que antes.
   const num1 = (n: number) => n.toLocaleString(lang === "es" ? "es-MX" : "en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const tiempoDe = (min: number | null | undefined) => (min == null ? "—" : fmtDuration(min * 60_000));
-  const estDe = (f: { paradasEstimadas: number; millasEstimadas: number; paradasSinDato: number }) => (
-    <span title={f.paradasSinDato ? t(`${f.paradasSinDato} stop(s) without data (0 mi)`, `${f.paradasSinDato} parada(s) sin dato (0 mi)`) : undefined}>
-      {f.paradasEstimadas === 0 ? "—" : `${num1(f.millasEstimadas)} (${f.paradasEstimadas})`}
-      {f.paradasSinDato > 0 && <span style={{ color: "var(--amber)", fontWeight: 700 }}> ⚠️</span>}
-    </span>
-  );
   const pctTexto = (v: number | null) => (v == null ? "—" : `${num1(v)} %`);
 
   return (
@@ -528,8 +522,8 @@ export default function DashboardPage() {
             <h2>⛽ {t("Miles & fuel share by store", "Millas y gas por tienda")}</h2>
             <p className="hint" style={{ marginTop: -6, marginBottom: 10 }}>
               {t(
-                "Delivered or picked-up orders in the range, grouped into stops (same day, driver and destination). Store-to-store orders count for the store that receives. Miles are Google's store → destination; «est.» = straight line × 1.3 when Google's figure is missing or not believable.",
-                "Órdenes entregadas o recogidas del rango, juntadas por parada (mismo día, chofer y destino). Las Intertiendas cuentan para la tienda que recibe. Millas de Google tienda → destino; «est.» = línea recta × 1,3 cuando falta o no es creíble.",
+                "Delivered or picked-up orders in the range, grouped into stops (same day, driver and destination). Store-to-store orders count for the store that receives. Miles are Google's store → destination.",
+                "Órdenes entregadas o recogidas del rango, juntadas por parada (mismo día, chofer y destino). Las Intertiendas cuentan para la tienda que recibe. Millas de Google tienda → destino.",
               )}
             </p>
             {gas.filas.length === 0 ? (
@@ -541,7 +535,6 @@ export default function DashboardPage() {
                   { key: "paradas", en: "Stops", es: "Paradas", ancho: 90, numerico: true, valor: (f) => f.paradas },
                   { key: "ordenes", en: "Orders", es: "Órdenes", ancho: 90, numerico: true, valor: (f) => f.ordenes },
                   { key: "millas", en: "Miles", es: "Millas", ancho: 100, numerico: true, valor: (f) => f.millas, celda: (f) => num1(f.millas) },
-                  { key: "est", en: "Of which est.", es: "De ellas est.", ancho: 150, numerico: true, valor: (f) => f.millasEstimadas, celda: (f) => estDe(f) },
                   { key: "gas", en: "% of fuel", es: "% del gas", ancho: 110, numerico: true, valor: (f) => f.pctGas, celda: (f) => <strong>{pctTexto(f.pctGas)}</strong> },
                 ]}
                 totales={{
@@ -549,7 +542,6 @@ export default function DashboardPage() {
                   paradas: <strong>{gas.total.paradas}</strong>,
                   ordenes: <strong>{gas.total.ordenes}</strong>,
                   millas: <strong>{num1(gas.total.millas)}</strong>,
-                  est: <strong>{estDe(gas.total)}</strong>,
                   gas: <strong>{pctTexto(gas.total.pctGas)}</strong>,
                 }} />
 

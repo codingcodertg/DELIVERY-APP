@@ -68,13 +68,13 @@ describe("millas: GPS primero, sistema si no hay rastro", () => {
   const ordenes = [orden({ id: "1", order_type: "Customer", delivery_fee: 100, route_miles: 50 })];
   const turnos = [turno("j", "2026-10-05T12:00:00Z")];
 
-  it("usa las millas GPS cuando el chofer tiene días con rastro, y calcula el ingreso por milla sobre ellas", () => {
+  it("usa las millas GPS cuando el chofer tiene días con rastro, pero el ingreso por milla sale de las del sistema (como la tabla)", () => {
     const gps = millasGpsPorChofer([{ chofer: "Juan", millas: 25, diasConRastro: 1, dias: 1 }]);
     const [juan] = resumenDeChoferes(base({ ordenes, turnos, gps }));
     expect(juan.millas).toBe(25);
     expect(juan.fuenteMillas).toBe("gps");
     expect(juan.diasConRastro).toBe(1);
-    expect(juan.ingresoPorMilla).toBe(4);
+    expect(juan.ingresoPorMilla).toBe(2);
   });
 
   it("si el GPS no tiene ningún día con rastro, cae a las del sistema", () => {

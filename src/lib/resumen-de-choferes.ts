@@ -10,7 +10,8 @@
  *  3. Traslados entre tiendas: entregados, aparte (`traslados-de-chofer.ts`).
  *  4. Millas reales: las del rastro GPS (camión o teléfono, `millasDelDia`). Si el chofer no tiene ningún día con rastro,
  *     las del sistema (`route_miles` de sus órdenes), y la fuente se dice en pantalla.
- *  5. Ingreso por milla: ingresos de sus órdenes ÷ las millas de la cifra 4.
+ *  5. Ingreso por milla: ingresos de sus órdenes ÷ las millas del SISTEMA (route_miles), igual que la tabla de choferes.
+ *     No se divide entre las GPS: el rastro puede faltar en algunos días y el ingreso es del mes entero (inflaba la cifra).
  *  6. Piezas dañadas contra el máximo: SIN FUENTE. La merma se registra por tienda, no por chofer (`warehouse_reports`).
  *     Por eso siempre sale «—». El máximo (`MAX_DANOS_MES`) queda listo para cuando haya de dónde sacar el dato.
  *  7. Tiempo productivo: tiempo activo (salida o recogida → entregado) ÷ tiempo en turno.
@@ -137,7 +138,7 @@ export function resumenDeChoferes(e: EntradaDeResumen): FilaDeResumen[] {
       fuenteMillas: millas == null ? null : usaGps ? "gps" : "sistema",
       diasConRastro: usaGps ? gps!.diasConRastro : 0,
       diasConTurno: dias.size,
-      ingresoPorMilla: millas && millas > 0 ? redondeaDinero(ingresos / millas) : null,
+      ingresoPorMilla: millasSistema ? redondeaDinero(ingresos / millasSistema) : null,
       danos: null,
       productivoPct: productivoPorNombre.get(chofer) ?? null,
       aTiempoPct: k?.onTimePct ?? null,
