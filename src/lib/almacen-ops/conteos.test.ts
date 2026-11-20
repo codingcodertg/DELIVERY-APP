@@ -190,6 +190,7 @@ describe("quién hace qué (la misma regla que la base)", () => {
     expect(accionesDeConteo(pers, conteo({ stage: "organizing" }), [])).toEqual(["organizado"]);
     expect(accionesDeConteo(pers, conteo({ stage: "counting" }), [contada(1), linea()])).toEqual(["contar_linea", "terminar_conteo"]);
     expect(accionesDeConteo(pers, conteo({ stage: "counting" }), [linea(), linea()])).toEqual(["contar_linea"]);
+    expect(accionesDeConteo(pers, conteo({ stage: "counting" }), [contada(1), { ...linea(), recount_requested: true }])).toEqual(["contar_linea"]);
     expect(accionesDeConteo(pers, conteo({ stage: "counting" }), [contada(1)])).toEqual(["contar_linea", "terminar_conteo"]);
     expect(accionesDeConteo(pers, conteo({ stage: "review" }), [contada(1)])).toEqual(["pendiente", "terminar_revision"]);
     expect(accionesDeConteo(pers, conteo({ stage: "sign_off" }), [contada(1)])).toEqual([]);

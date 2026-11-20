@@ -419,13 +419,14 @@ export type AccionDeConteo = "organizado" | "terminar_conteo" | "contar_linea" |
  * gestor: además recontar (2–4), firmar (4, con el sistema de todas las líneas), ajustar (4, firmado), volver a revisar
  * (4), cancelar (abierto).
  */
-export function accionesDeConteo(q: Quien, c: Pick<Conteo, "store" | "stage" | "signed_at">, lineas: readonly Pick<Linea, "counted_at">[]): AccionDeConteo[] {
+export function accionesDeConteo(q: Quien, c: Pick<Conteo, "store" | "stage" | "signed_at">, lineas: readonly (Pick<Linea, "counted_at"> & { recount_requested?: boolean })[]): AccionDeConteo[] {
   const cuenta = puedeContar(q, c.store);
   const gestiona = puedeGestionarConteo(q, c.store);
   if (!cuenta && !gestiona) return [];
   const out: AccionDeConteo[] = [];
   // 339 (20 nov, el dueño: «no tiene que contar todo»): basta UNA contada para pasar a revisar; las demás se quitan.
-  const alguna = lineas.some(estaContada);
+  // Lo que el gerente mandó a recontar no se salta (339).
+  const alguna = lineas.some(estaContada) && !lineas.some((l) => !estaContada(l) && l.recount_requested);
   switch (c.stage) {
     case "organizing":
       if (cuenta) out.push("organizado");
