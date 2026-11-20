@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { diaDeLaRuta, numerosDelDia } from "@/lib/gestor/numeros-del-dia";
-import { paradasDeLaRuta } from "@/lib/gestor/paradas-numeradas";
+import { etiquetasDelDia, paradasDeLaRuta, paradasDeLaRutaEnElOrden } from "@/lib/gestor/paradas-numeradas";
+import { ordenDelDiaDeMiRuta } from "@/lib/secciones-de-mi-ruta";
 import { hechasQueSePintan } from "@/lib/hechas-del-gestor";
 import { carrilesDelDia, puntosDeLasRutas, rutasPorChofer } from "@/lib/mapa-de-rutas";
 import { routeOrder } from "@/lib/dispatch";
@@ -68,9 +69,11 @@ const numerosDelGestor = (g: ReturnType<typeof delGestor>) => Object.fromEntries
 const deMiRuta = (todas: readonly Orden[], plan: ParadaDelPlanMinima[] | null = null) => {
   const stops = routeOrder(paradasDelChofer(todas as Delivery[], "Ana", HOY, "dia"));
   const lectura = lecturaDeLaRuta(stops, CAP, plan);
-  const n = paradasDeLaRuta(lectura.filas, stops);
+  const orden = ordenDelDiaDeMiRuta(lectura.filas, (id) => stops.find((d) => d.id === id)?.stage, new Map(stops.map((d) => [d.id, d])));
+  const etq = etiquetasDelDia(lectura.filas, lectura.fuente, orden);
+  const n = paradasDeLaRutaEnElOrden(lectura.filas.map((f, i) => ({ ...f, etiqueta: etq[i] })), stops, orden);
   const numeros = Object.fromEntries(lectura.filas.flatMap((f, i) => (f.tipo === "P" ? f.ordenes : [f.orden]).map((id) => [`${f.tipo}:${id}`, n.deFila[i]])));
-  const etiquetas = Object.fromEntries(lectura.filas.flatMap((f) => (f.tipo === "P" ? f.ordenes : [f.orden]).map((id) => [`${f.tipo}:${id}`, f.etiqueta])));
+  const etiquetas = Object.fromEntries(lectura.filas.flatMap((f, i) => (f.tipo === "P" ? f.ordenes : [f.orden]).map((id) => [`${f.tipo}:${id}`, etq[i]])));
   return { numeros, etiquetas };
 };
 const etiquetasDelGestor = (g: ReturnType<typeof delGestor>) => Object.fromEntries(g.pintadas.flatMap((fp, k) =>
@@ -78,34 +81,36 @@ const etiquetasDelGestor = (g: ReturnType<typeof delGestor>) => Object.fromEntri
 
 describe("la regla: el Gestor numera la lista que pinta, lo hecho incluido", () => {
   it("el caso del dueño: lo hecho conserva su número y lo pendiente no vuelve a contar desde 1", () => {
-    expect(filasDelGestor(delGestor(diaDeAna()))).toEqual(["1 ✓P1", "│ P2", "2 ✓D1", "3 D2", "4 ✓P3", "5 P4", "6 D4", "7 🚚D3"]);
+    // Desde 2026-11-19 lo hecho va PRIMERO, en su hora real: E (recogida 0, entregada 15:42), B (recogida 16:10).
+    expect(filasDelGestor(delGestor(diaDeAna()))).toEqual(["1 ✓P1", "2 ✓D1", "3 ✓P2", "4 P3", "5 D3", "6 P4", "7 D4", "8 🚚D2"]);
   });
   it("las etiquetas P/D también son del día: sin plan, numeradas con lo hecho dentro (D-334 sobre el día entero)", () => {
     const g = delGestor(diaDeAna());
     // La lectura de lo pendiente sigue diciendo P1/D1 y P2/D2 —es la que mueven las flechas—; la fila pinta la del día.
     expect(g.lectura.filas.map((f) => f.etiqueta)).toEqual(["P1", "D1", "P2", "D2"]);
-    expect(g.etiquetaDePendiente).toEqual(["P2", "D2", "P4", "D4"]);
-    expect(etiquetasDelGestor(g)).toEqual({ "P:e": "P1", "P:a": "P2", "D:e": "D1", "D:a": "D2", "P:b": "P3", "P:c": "P4", "D:c": "D4", "D:b": "D3" });
+    expect(g.etiquetaDePendiente).toEqual(["P3", "D3", "P4", "D4"]);
+    expect(etiquetasDelGestor(g)).toEqual({ "P:e": "P1", "P:b": "P2", "P:a": "P3", "D:e": "D1", "D:a": "D3", "P:c": "P4", "D:c": "D4", "D:b": "D2" });
   });
   it("una recogida hecha y otra pendiente seguidas en la misma tienda son la MISMA parada: el número en la primera, la raya en la otra", () => {
-    const g = delGestor(diaDeAna());
+    // E ya recogida (no entregada) y B lista: lo hecho es solo la recogida de E, y A, pendiente, va justo detrás en Pharr.
+    const g = delGestor(diaDeAna().map((o) => (o.id === "e" ? { ...o, stage: "picked_up", pod_delivered_at: null, pickup_gps_at: `${HOY}T15:30:00Z` } : o.id === "b" ? { ...o, stage: "ready" } : o)) as Orden[]);
     expect([g.deFila[0], g.deFila[1]]).toEqual([1, 1]);
     expect([g.primera[0], g.primera[1]]).toEqual([true, false]);
     expect(g.paradas[0]).toMatchObject({ numero: 1, tipo: "P", ordenes: ["e", "a"], lugar: "RDZ Pharr", etiquetas: ["P1", "P2"] });
   });
   it("D-679: una recogida YA HECHA cuenta en la tienda donde se recogió (`pickup_name`), no en la dueña (`store`)", () => {
     // B (RDZ McAllen) se recogió en RDZ Edinburg: su recogida hecha y la pendiente de C, en Edinburg, son la MISMA parada.
-    const dia = diaDeAna().map((o) => (o.id === "b" ? { ...o, pickup_name: "RDZ Edinburg" } : o));
+    const dia = diaDeAna().filter((o) => o.id === "b" || o.id === "c").map((o) => (o.id === "b" ? { ...o, pickup_name: "RDZ Edinburg" } : o));
     const g = delGestor(dia);
     const pB = g.paradas.find((p) => p.tipo === "P" && p.ordenes.includes("b"))!;
     expect(pB).toMatchObject({ lugar: "RDZ Edinburg", ordenes: ["b", "c"] });
-    // Sin `pickup_name`, como siempre: dos paradas, McAllen y Edinburg.
-    expect(delGestor(diaDeAna()).paradas.filter((p) => p.tipo === "P").map((p) => p.lugar)).toEqual(["RDZ Pharr", "RDZ McAllen", "RDZ Edinburg"]);
+    // Sin `pickup_name`, como siempre: cuatro paradas de recogida en el orden del día (lo hecho va primero).
+    expect(delGestor(diaDeAna()).paradas.filter((p) => p.tipo === "P").map((p) => p.lugar)).toEqual(["RDZ Pharr", "RDZ McAllen", "RDZ Pharr", "RDZ Edinburg"]);
   });
   it("el número de cada fila PENDIENTE (mapa y horario) es el del día, con su índice de la lectura", () => {
-    expect(delGestor(diaDeAna()).dePendiente).toEqual([1, 3, 5, 6]);
+    expect(delGestor(diaDeAna()).dePendiente).toEqual([4, 5, 6, 7]);
   });
-  it("«N paradas» de la cabecera: las que aún tienen algo pendiente (1, 3, 5 y 6), no las siete del día", () => {
+  it("«N paradas» de la cabecera: las que aún tienen algo pendiente (4, 5, 6 y 7), no las ocho del día", () => {
     expect(delGestor(diaDeAna()).quedan).toBe(4);
   });
   it("lo hecho sigue sin índice: nada lo mueve, y lo pendiente es la lectura de siempre, en su orden", () => {
@@ -120,10 +125,14 @@ describe("la regla: el Gestor numera la lista que pinta, lo hecho incluido", () 
     expect(g.pintadas.every((fp) => !fp.hecha)).toBe(true);
   });
   it("dos entregas seguidas a la misma dirección, una ya entregada: la MISMA parada, como en «Mi ruta»", () => {
-    // E (entregada) y A (pendiente) van a la misma obra: se para una vez. La dirección de lo hecho cuenta para juntarlas.
-    const todas = diaDeAna().map((d) => (d.id === "e" ? ({ ...d, delivery_address: "2 Main St, Edinburg" }) as Orden : d));
+    // E (entregada) y A (recogida, en camino) van a la misma obra. Lo hecho va primero: sus dos entregas quedan seguidas y se
+    // paran una vez. La dirección de lo hecho cuenta para juntarlas.
+    const todas = [
+      { ...diaDeAna()[0], delivery_address: "2 Main St, Edinburg", pickup_gps_at: `${HOY}T15:00:00Z` } as Orden,
+      { ...diaDeAna()[1], stage: "picked_up", delivery_address: "2 Main St, Edinburg", pickup_gps_at: `${HOY}T15:10:00Z` } as Orden,
+    ];
     const g = delGestor(todas);
-    expect(filasDelGestor(g)).toEqual(["1 ✓P1", "│ P2", "2 ✓D1", "│ D2", "3 ✓P3", "4 P4", "5 D4", "6 🚚D3"]);
+    expect(g.deFila.slice(0, 4)).toEqual([1, 1, 2, 2]);
     expect(numerosDelGestor(g)).toEqual(deMiRuta(todas).numeros);
   });
   it("todo entregado: la tarjeta sigue numerada, y no queda ninguna parada pendiente", () => {
@@ -163,7 +172,7 @@ describe("con plan publicado", () => {
     expect(delGestor(conElPlan(), planDeAna()).lectura.fuente).toBe("plan");
   });
   it("lo hecho lleva la etiqueta que le dio el plan, y lo pendiente la suya; los números, los del día", () => {
-    expect(filasDelGestor(delGestor(conElPlan(), planDeAna()))).toEqual(["1 ✓P7", "│ P8", "2 ✓D7", "3 D8", "4 ✓P9", "5 P6", "6 D6", "7 🚚D9"]);
+    expect(filasDelGestor(delGestor(conElPlan(), planDeAna()))).toEqual(["1 ✓P7", "2 ✓D7", "3 ✓P9", "4 P8", "5 D8", "6 P6", "7 D6", "8 🚚D9"]);
   });
 });
 
@@ -203,22 +212,22 @@ describe("el mapa numera con las paradas del día", () => {
   });
   const de = (id: string) => puntos.find((p) => p.id === id);
   it("la burbuja de una entrega pendiente lleva su número del día, no el de lo que queda", () => {
-    expect(de("a")).toMatchObject({ badge: "3" });
-    expect(de("c")).toMatchObject({ badge: "6" });
-    expect(de("a")!.label).toBe("Stop 3 — deliver D2 · INV-A — Ana");
+    expect(de("a")).toMatchObject({ badge: "5" });
+    expect(de("c")).toMatchObject({ badge: "7" });
+    expect(de("a")!.label).toBe("Stop 5 — deliver D3 · INV-A — Ana");
   });
   it("una tienda donde ya se recogió todo no lleva burbuja; la que aún tiene algo que recoger, sí, con su número", () => {
-    expect(puntos.filter((p) => p.id.startsWith("__parada__Ana__")).map((p) => p.badge)).toEqual(["1", "5"]);
-    // La parada 1 junta lo ya recogido (E) y lo que falta (A): su rótulo dice las dos.
-    expect(de("__parada__Ana__1")!.label).toBe("Stop 1 — pick up P1, P2 · INV-E, INV-A — Ana · RDZ Pharr");
+    expect(puntos.filter((p) => p.id.startsWith("__parada__Ana__")).map((p) => p.badge)).toEqual(["4", "6"]);
+    // La parada 4 es lo que falta de Pharr (A); lo ya recogido (E) va en la parada 1, con su número apagado.
+    expect(de("__parada__Ana__4")!.label).toBe("Stop 4 — pick up P3 · INV-A — Ana · RDZ Pharr");
   });
   // Puesto al día por D-584: la entregada lleva su NÚMERO apagado en el pin, no un ✓ («keep the numbers and fade them»).
   it("lo entregado lleva su número (apagado) y lo que va en camino también su número, encendido; los dos lo dicen en el rótulo", () => {
     expect(de("__hecha__e")).toMatchObject({ badge: "2", dimmed: true });
     expect(de("__hecha__e")!.label).toContain("(Stop 2 · Delivered ");
     // **Puesto al día por D-846**: era «🚚», y en el mapa se leía como otro camión del chofer (el mapa de Julio).
-    expect(de("__hecha__b")).toMatchObject({ badge: "7", dimmed: false });
-    expect(de("__hecha__b")!.label).toContain("(Stop 7 · On its way)");
+    expect(de("__hecha__b")).toMatchObject({ badge: "8", dimmed: false });
+    expect(de("__hecha__b")!.label).toContain("(Stop 8 · On its way)");
   });
 });
 
@@ -316,10 +325,10 @@ const listaDeMiRuta = (html: string) => html.split('<div class="acct-row"').slic
 });
 
 describe("las pantallas pintadas: el mismo número a la misma parada", () => {
-  it("«Ruta de hoy» (el Gestor en solo lectura): «1 ✓P1 · │ P2 · 2 ✓D1 · 3 D2 · 4 ✓P3 · 5 P4 · 6 D4 · 7 D3» (D-621: la entrega de lo recogido es pendiente)", async () => {
+  it("«Ruta de hoy» (el Gestor en solo lectura): «1 ✓P1 · 2 ✓D1 · 3 ✓P2 · 4 P3 · 5 D3 · 6 P4 · 7 D4 · 8 D2» (D-621: la entrega de lo recogido es pendiente)", async () => {
     estado.me = GERENTE;
     const html = await pintaElGestor(true);
-    expect(tablaDelGestor(html).map((f) => f.texto)).toEqual(["1 ✓P1", "│ P2", "2 ✓D1", "3 D2", "4 ✓P3", "5 P4", "6 D4", "7 D3"]);
+    expect(tablaDelGestor(html).map((f) => f.texto)).toEqual(["1 ✓P1", "2 ✓D1", "3 ✓P2", "4 P3", "5 D3", "6 P4", "7 D4", "8 D2"]);
     // D-701: la etapa no pinta la fila ni apaga el círculo en el Gestor (en «Mi ruta» del chofer, sí).
     const circulo = (n: number) => html.match(new RegExp(`data-numero-de-parada="${n}"[^>]*style="([^"]*)"`))![1];
     expect(circulo(2)).not.toContain("opacity");
@@ -332,7 +341,7 @@ describe("las pantallas pintadas: el mismo número a la misma parada", () => {
   it("el Gestor de logística (con acciones): los mismos números; lo hecho sin flechas ni arrastre, y la entrega de lo recogido (D3) con ellas (D-621)", async () => {
     estado.me = ADMIN;
     const html = await pintaElGestor(false);
-    expect(tablaDelGestor(html).map((f) => f.texto)).toEqual(["1 ✓P1", "│ P2", "2 ✓D1", "3 D2", "4 ✓P3", "5 P4", "6 D4", "7 D3"]);
+    expect(tablaDelGestor(html).map((f) => f.texto)).toEqual(["1 ✓P1", "2 ✓D1", "3 ✓P2", "4 P3", "5 D3", "6 P4", "7 D4", "8 D2"]);
     for (const tr of [...html.matchAll(/<tr\b[^>]*data-hecha=[^>]*>[\s\S]*?<\/tr>/g)].map((m) => m[0])) {
       expect(tr).not.toContain("data-sube-parada");
       expect(tr).not.toContain("data-fila-arrastrable");
@@ -358,15 +367,15 @@ describe("las pantallas pintadas: el mismo número a la misma parada", () => {
     const miRuta = Object.fromEntries(listaDeMiRuta(await pintaMiRuta()).map((f) => [f.clave, f.n]));
     expect(Object.keys(miRuta).sort()).toEqual(["D:a", "D:b", "D:c", "D:e", "P:a", "P:b", "P:c", "P:e"]);
     expect(gestor).toEqual(miRuta);
-    expect(miRuta).toEqual({ "P:e": 1, "P:a": 1, "D:e": 2, "D:a": 3, "P:b": 4, "P:c": 5, "D:c": 6, "D:b": 7 });
+    expect(miRuta).toEqual({ "P:e": 1, "D:e": 2, "P:b": 3, "P:a": 4, "D:a": 5, "P:c": 6, "D:c": 7, "D:b": 8 });
   }, 60_000);
   it("y el mapa de «Mi ruta» —el del Gestor, D-514— dice los números de su lista, no los de lo que queda", async () => {
     estado.me = ANA;
     await pintaMiRuta();
     const pins = estado.mapa?.points ?? [];
-    expect(pins.find((p) => p.id === "a")).toMatchObject({ badge: "3" });
-    expect(pins.find((p) => p.id === "c")).toMatchObject({ badge: "6" });
-    expect(pins.find((p) => p.id === "__hecha__b")!.label).toContain("(Stop 7 · On its way)");
+    expect(pins.find((p) => p.id === "a")).toMatchObject({ badge: "5" });
+    expect(pins.find((p) => p.id === "c")).toMatchObject({ badge: "7" });
+    expect(pins.find((p) => p.id === "__hecha__b")!.label).toContain("(Stop 8 · On its way)");
   }, 60_000);
 });
 
@@ -377,7 +386,7 @@ describe("la página del Gestor usa `diaDe` en todo lo que dice un número o una
   const plano = (s: string) => s.split("\r\n").join("\n").replace(/\s+/g, " ");
   const gestor = plano(readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8"));
   it("`diaDe` es `diaDeLaRuta` con lo hecho PINTADO de esa ruta, su camión y su plan", () => {
-    expect(gestor).toContain("const diaDe = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta = lecturaDe(laneKey, stops)) => diaDeLaRuta(lectura, stops, hechasDe(laneKey), capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey));");
+    expect(gestor).toContain("const diaDe = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta = lecturaDe(laneKey, stops), comoIba = true) => diaDeLaRuta(lectura, stops, hechasDe(laneKey), capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey), comoIba);");
   });
   it("los avisos de mover dicen la etiqueta del día (la que pinta la fila)", () => {
     expect(gestor).toContain("return fi < 0 ? \"\" : diaDe(laneKey, stops, lectura).etiquetaDePendiente[fi] ?? \"\";");

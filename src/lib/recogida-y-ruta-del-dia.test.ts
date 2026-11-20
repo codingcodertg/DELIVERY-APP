@@ -65,7 +65,8 @@ const orden = (id: string, stage: string, seq: number, extra: Record<string, unk
 const a0 = orden("a", "ready", 0), b0 = orden("b", "ready", 1);
 const aHecha = orden("a", "delivered", 0, { pod_delivered_at: "2026-10-18T15:00:00Z" });
 type O = typeof a0;
-const diaDe = (pendientes: O[], hechas: O[]) => diaDeLaRuta(lecturaConLoHecho(pendientes, 12, null, hechas), pendientes, hechas, 12, null).paradas;
+// La MEDIDA usa lo hecho donde iba (`comoIba` false): así una parada hecha no cambia la forma medida (D-584).
+const diaDe = (pendientes: O[], hechas: O[]) => diaDeLaRuta(lecturaConLoHecho(pendientes, 12, null, hechas), pendientes, hechas, 12, null, false).paradas;
 
 describe("3 · la ruta del día que se mide: lo pendiente con lo hecho donde iba", () => {
   it("la lista del día: la recogida con sus órdenes y su tienda, y una entrega por orden", () => {
@@ -106,7 +107,7 @@ describe("3 · la ruta del día que se mide: lo pendiente con lo hecho donde iba
     const pagina = plano(leer("src/app/(app)/routes/page.tsx"));
     expect(pagina).toContain("m.set(k, ordenesDeLaRutaDelDia(byDriver.get(k) ?? [], hechasPintadas.get(k) ?? []));");
     expect(pagina).toContain("const seMide = (clave: string) => delDiaDe(clave).length > 0 && pasaFiltro(clave) && (modo === \"dia\" || selected.has(clave));");
-    expect(pagina).toContain("date, porChofer: rutaDelDia, rutasAMedir, seMide, listaDe: (clave, delDia) => listaDelDia(diaDe(clave, pendientesDelDia(delDia)).paradas),");
+    expect(pagina).toContain("date, porChofer: rutaDelDia, rutasAMedir, seMide, listaDe: (clave, delDia) => listaDelDia(diaDe(clave, pendientesDelDia(delDia), undefined, false).paradas),");
     expect(pagina).toContain("conParadas: lanes.filter((u) => delDiaDe(u.key).length > 0).map((u) => u.key),");
     expect(pagina).toContain("tieneParadas: (clave) => delDiaDe(clave).length > 0,");
     expect(pagina).toContain("const medida = estadoDeLaMedida(u.key, delDiaDe(u.key));");

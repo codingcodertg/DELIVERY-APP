@@ -134,7 +134,7 @@ describe("Wall Only (5 ft de largo, 8 ft de alto, 3 Walls sin efecto)", () => {
     expect(r.areas).toEqual({ pisoSf: 0, paredSf: 43, perimetroLf: 5, tablerosPaneles: 0 });
   });
 
-  it("solo pared: loseta, pegamento y lechada de pared, silicón a alto × 2, clips y cuñas", () => {
+  it("solo pared: loseta, pegamento y lechada de pared, silicón a alto × 2; sin clips ni cuñas (son de piso)", () => {
     expect(ventas(r)).toEqual({
       liner: 0,
       mortero: 0,
@@ -149,13 +149,13 @@ describe("Wall Only (5 ft de largo, 8 ft de alto, 3 Walls sin efecto)", () => {
       lechada: 1,
       silicon: 1,
       perfil: 0,
-      clips: 1,
-      cunas: 1,
+      clips: 0,
+      cunas: 0,
       coladera: 0,
       pendiente: 0,
     });
     expect(cantidad(r, "silicon")).toBe(16);
-    expect(cantidad(r, "clips")).toBe(86);
+    expect(cantidad(r, "clips")).toBe(0);
   });
 });
 

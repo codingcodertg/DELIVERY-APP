@@ -929,12 +929,13 @@ export default function RoutesPage() {
    *  plan publicado y la ruta tal como el plan la dejó, las paradas y etiquetas del plan (D-335); si no, lo guardado. */
   const lecturaDe = (laneKey: string, stops: Delivery[]): LecturaDeRuta =>
     lecturaConLoHecho(stops, capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey), hechasDeLaRuta(laneKey, stops));
-  /** La ruta del DÍA de un chofer (D-529): lo pendiente de la lectura, con lo ya hecho donde iba (D-459), numerado por
+  /** La ruta del DÍA de un chofer (D-529): lo pendiente de la lectura, con lo ya hecho primero, en su hora real (D-459; desde 2026-11-19), numerado por
    *  paradas (D-485) y etiquetado P/D sobre el día entero, como «Mi ruta» (D-515). El dueño, 2026-10-11: «when a order is
    *  delviered dont take the number of the stop away». Lo leen la tabla, el mapa, el horario y los avisos de mover, para que
    *  los cuatro digan el mismo número; lo que se MUEVE sigue siendo la lectura de lo pendiente. */
-  const diaDe = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta = lecturaDe(laneKey, stops)) =>
-    diaDeLaRuta(lectura, stops, hechasDe(laneKey), capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey));
+  // `comoIba` (false): lo hecho donde iba, para la MEDIDA y la clave del plan, que no cambian al hacer una parada (D-584).
+  const diaDe = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta = lecturaDe(laneKey, stops), comoIba = true) =>
+    diaDeLaRuta(lectura, stops, hechasDe(laneKey), capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey), comoIba);
   /** La etiqueta del DÍA («P3») de la fila pendiente que cumple `cual`, para los avisos de mover: la misma que pinta la fila. */
   const etiquetaDelDia = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta, cual: (f: FilaDeLaRuta) => boolean): string => {
     const fi = lectura.filas.findIndex(cual);
@@ -1799,7 +1800,7 @@ export default function RoutesPage() {
   //     antes: ahí la lista de un chofer mezcla días y no es una ruta.
   //   · Una a la vez, primero las marcadas. Cómo se mide, cuántas llamadas y qué se guarda: `useMedidaDeRutas`
   //     (lib/usa-medida-de-rutas), que desde D-467 comparte «Ruta de hoy».
-  //   · Se mide la ruta del DÍA (D-584): lo pendiente con lo ya recogido o entregado donde iba (`diaDe(…).paradas`, los
+  //   · Se mide la ruta del DÍA (D-584): lo pendiente con lo ya recogido o entregado donde iba (`diaDe(…, comoIba=false).paradas`, los
   //     mismos números de la tabla, D-529), no solo lo que queda. El dueño: «keep the route lines of the day even when
   //     delivered». Hasta aquí cada entrega cambiaba la forma, tiraba la medida y se volvía a medir lo pendiente: la línea
   //     del mapa se encogía parada a parada y desaparecía con la última. Ahora entregar no cambia la forma (una llamada
@@ -1824,7 +1825,7 @@ export default function RoutesPage() {
     (c.chofer && c.lat != null && c.lng != null && c.posicionEn ? [[c.chofer.trim(), { lat: c.lat, lng: c.lng, en: c.posicionEn }]] : []))), [rastreadores.disponible, rastreadores.camiones]);
   const { finDeLaRuta, routeInfo, routeStats, routeLines, routeEtas, routeSinHora, depotCoords, routerInfo, getDepotCoords, baseDeLaRuta, clearRouteFor, reintentaLaMedida, estadoDeLaMedida } = useMedidaDeRutas<Delivery>({
     date, porChofer: rutaDelDia, rutasAMedir, seMide,
-    listaDe: (clave, delDia) => listaDelDia(diaDe(clave, pendientesDelDia(delDia)).paradas),
+    listaDe: (clave, delDia) => listaDelDia(diaDe(clave, pendientesDelDia(delDia), undefined, false).paradas),
     salidaPrevistaDe: (clave) => entradaDelTurno.get(driverOf(clave).trim()),
     camionDe: (clave) => camionDelChofer.get(driverOf(clave).trim()) ?? null,
     tiendaBaseDe, coordsDeTienda,
@@ -1866,7 +1867,7 @@ export default function RoutesPage() {
   const apuntaEtas = !soloLectura && date === todayISO() && !!me && ["admin", "logistics", "manager", "accounting"].includes(me.role);
   /** La clave del plan de una ruta, de su lista del DÍA tal como está (no cambia porque se haga una parada). */
   const planDeLaRuta = (clave: string): string =>
-    claveDelPlan(date, clave, `${tiendaBaseDe(clave)?.name ?? ""}>${tiendaFinDe(clave)?.name ?? "·"}`, listaDelDia(diaDe(clave, pendientesDelDia(delDiaDe(clave))).paradas));
+    claveDelPlan(date, clave, `${tiendaBaseDe(clave)?.name ?? ""}>${tiendaFinDe(clave)?.name ?? "·"}`, listaDelDia(diaDe(clave, pendientesDelDia(delDiaDe(clave)), undefined, false).paradas));
   useEffect(() => {
     if (!apuntaEtas || sinTablaDeEtas.current) return;
     const CONFLICTO = { onConflict: "delivery_id,plan_date,kind" } as const;
@@ -2554,7 +2555,7 @@ export default function RoutesPage() {
         const tienda = tiendaFinDe(clave), fin = finDeLaRuta(clave);
         return tienda && fin ? { coords: [fin.lat, fin.lng], direccion: tienda.name } : null;
       },
-      // Los números del DÍA (D-529), los mismos de la tabla: `diaDe` (lo pendiente con lo hecho donde iba).
+      // Los números del DÍA (D-529), los mismos de la tabla: `diaDe` (lo hecho primero, en su hora real; lo pendiente detrás).
       paradasDe: (clave, stops) => diaDe(clave, stops).paradas, coordsDeTienda, t,
       marcadas: { tiene: (id) => selectedOrders.has(id), colorDe: (id) => selColorById.get(id), cuantas: selectedOrders.size },
     });
@@ -3667,14 +3668,16 @@ export default function RoutesPage() {
         // entran en `lectura`, `cuenta` ni la medida, que siguen siendo de lo pendiente.
         const hechas = hechasDe(u.key);
         const hechasPorId = new Map(hechas.map((d) => [d.id, d]));
-        // La lista que se pinta (lo pendiente con lo hecho donde iba) y su numeración del DÍA (D-529): la misma de «Mi ruta».
+        // La lista que se pinta (lo hecho primero, en su hora real, y lo pendiente) y su numeración del DÍA (D-529): la misma de «Mi ruta».
         const dia = diaDe(u.key, stops, lectura);
         const pintadas = dia.pintadas;
         const entregas = resumenDeEntregas(stops, hechas);
         const hayFilas = stops.length > 0 || hechas.length > 0;
         // D-906: lo hecho fuera del orden de la lista (delante queda algo sin hacer, o hecho después): su «Actual» lo dice
         // en vez de un «±min» que no quiere decir nada.
-        const fueraDeOrden = hechasFueraDeOrden(pintadas.map((fp) => {
+        // Se mira contra la lista COMO IBA (lo hecho en su puesto de la ruta): en la que se pinta lo hecho va siempre
+        // primero y en su hora, así que ahí nunca habría nada fuera de orden y el aviso de D-906 se perdería.
+        const fueraDeOrden = hechasFueraDeOrden(diaDe(u.key, stops, lectura, false).pintadas.map((fp) => {
           if (!fp.hecha || fp.estado !== "hecho") return { clave: "", hecha: false, real: null };
           const o = hechasPorId.get(fp.orden);
           return { clave: claveDeEta(fp.orden, fp.tipo), hecha: true, real: o ? minutosReales(fp.tipo === "D" ? o.pod_delivered_at : o.pickup_gps_at, date) : null };
@@ -4087,7 +4090,7 @@ export default function RoutesPage() {
                     )}
                     {/* La Base (D-443): la ruta sale de ella con 0 a bordo y vuelve a ella con 0. Si al volver no da 0, se marca. */}
                     {filaDeLaBase(u.key, "salida", cuenta.salida, false)}
-                    {/* Las pendientes, que son las de siempre (`lectura.filas`, con su índice), y las ya hechas donde iban. */}
+                    {/* Las pendientes, que son las de siempre (`lectura.filas`, con su índice), y las ya hechas, primero y en su hora real. */}
                     {pintadas.map((fp, k) => {
                       if (fp.hecha) return filaYaHecha(fp, k);
                       const f = fp.fila;

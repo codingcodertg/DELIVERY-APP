@@ -1,3 +1,4 @@
+import { instanteReal, ordenConHechasPrimero } from "@/lib/hechas-del-gestor";
 import type { FilaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 
 /**
@@ -26,6 +27,22 @@ export function filaHecha(f: FilaDeLaRuta, etapaDe: (id: string) => string | nul
   return f.ordenes.length > 0 && f.ordenes.every((id) => RECOGIDA_HECHA.has(etapaDe(id) ?? ""));
 }
 
+/**
+ * El orden en que «Mi ruta» lee sus filas: lo HECHO primero, en el orden en que pasó (su hora real), y lo pendiente en su orden
+ * de siempre. Es el mismo que el del Gestor (`ordenConHechasPrimero`), para que el número de cada parada sea el mismo en las dos.
+ * Devuelve índices de `filas`.
+ */
+export function ordenDelDiaDeMiRuta(
+  filas: readonly FilaDeLaRuta[],
+  etapaDe: (id: string) => string | null | undefined,
+  ordenes: ReadonlyMap<string, { pickup_gps_at?: string | null; pod_delivered_at?: string | null }>,
+): number[] {
+  return ordenConHechasPrimero(
+    filas.map((f) => ({ hecha: filaHecha(f, etapaDe), tipo: f.tipo, ordenes: f.tipo === "P" ? f.ordenes : [f.orden] })),
+    (orden, tipo) => instanteReal(ordenes.get(orden), tipo),
+  );
+}
+
 export interface SeccionesDeMiRuta {
   /** Índices de `filas`, en el orden de la ruta. */
   pendientes: number[];
@@ -36,17 +53,21 @@ export interface SeccionesDeMiRuta {
   paradas: Record<SeccionDeMiRuta, number>;
 }
 
-/** Reparte las filas en las dos secciones. `deFila`: el número de parada de cada fila (`paradasDeLaRuta(...).deFila`). */
+/** Reparte las filas en las dos secciones. `deFila`: el número de parada de cada fila (`paradasDeLaRuta(...).deFila`).
+ *  `orden` (opcional: las hechas primero, en orden real, `ordenConHechasPrimero`): los índices de `filas` en el orden en que se leen; por defecto, el
+ *  de la ruta. Las secciones salen en ese orden, y la primera fila de cada parada dentro de su sección es la que lleva el número. */
 export function seccionesDeMiRuta(
   filas: readonly FilaDeLaRuta[],
   etapaDe: (id: string) => string | null | undefined,
   deFila: readonly number[],
+  orden: readonly number[] = filas.map((_, i) => i),
 ): SeccionesDeMiRuta {
   const pendientes: number[] = [];
   const hechas: number[] = [];
   const conNumero: boolean[] = filas.map(() => false);
   const vistas: Record<SeccionDeMiRuta, Set<number>> = { pendientes: new Set(), hechas: new Set() };
-  filas.forEach((f, i) => {
+  orden.forEach((i) => {
+    const f = filas[i];
     const seccion: SeccionDeMiRuta = filaHecha(f, etapaDe) ? "hechas" : "pendientes";
     (seccion === "hechas" ? hechas : pendientes).push(i);
     const n = deFila[i];

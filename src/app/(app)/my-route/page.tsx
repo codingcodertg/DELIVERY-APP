@@ -19,7 +19,7 @@ import { escrituraRecogida } from "@/lib/one-tap-stop";
 import { captureLocationSplit, type GeoStamp } from "@/lib/geo";
 import { avisosDeRecogidaSinListo, deshacerRecogida, notaDeRecogidaSinListo } from "@/lib/recogida-del-chofer";
 import { recogidaParaElChofer } from "@/lib/recogida-y-ruta-del-dia";
-import { seccionesDeMiRuta, type SeccionDeMiRuta } from "@/lib/secciones-de-mi-ruta";
+import { ordenDelDiaDeMiRuta, seccionesDeMiRuta, type SeccionDeMiRuta } from "@/lib/secciones-de-mi-ruta";
 import { PausaDelChofer } from "@/components/PausaDelChofer";
 import { IrAlInicio } from "@/components/TabGate";
 import { MiPlanPublicado } from "@/components/MiPlanPublicado";
@@ -36,7 +36,7 @@ import { SoloLectura } from "@/lib/gestor/solo-lectura";
 import { SoloMisRutas } from "@/lib/gestor/solo-mis-rutas";
 import { SoloElMapa } from "@/lib/gestor/solo-el-mapa";
 import { ordenDelPunto } from "@/lib/mapa-de-rutas";
-import { paradasDeLaRuta, textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
+import { etiquetasDelDia, paradasDeLaRutaEnElOrden, textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
 import { colorDeChofer } from "@/lib/map-legend";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { fmtDate, fmtWindows, orderLabel, shiftDateISO, storeTag, todayISO, nombreDeLaOrden } from "@/lib/utils";
@@ -151,9 +151,16 @@ export default function MyRoutePage() {
   // DE LOS P1 Y D1 SE VEA IGUAL QUE LOGISTIC MANAGER CON NUMEROS EN VES DE ESO». Filas seguidas en el mismo sitio —varias recogidas en
   // la misma tienda, varias entregas a la misma dirección— son UNA parada con UN número: la MISMA función del Gestor, así
   // que la «parada 3» del chofer es la «parada 3» que ve logística.
-  const numeradas = useMemo(() => paradasDeLaRuta(lectura.filas, stops), [lectura, stops]);
-  // Pendientes y Entregadas (D-520): cada fila en su sección, en el orden de la ruta y con su número de parada.
-  const secciones = useMemo(() => seccionesDeMiRuta(lectura.filas, (id) => porId.get(id)?.stage, numeradas.deFila), [lectura, porId, numeradas]);
+  // Lo hecho va primero, en el orden en que pasó (su hora real), y lo pendiente en su orden de siempre: el MISMO orden que el
+  // Gestor (`ordenConHechasPrimero`), para que el número de cada parada sea el mismo en las dos pantallas.
+  const ordenDelDia = useMemo(() => ordenDelDiaDeMiRuta(lectura.filas, (id) => porId.get(id)?.stage, porId), [lectura, porId]);
+  // Sin plan, las etiquetas P/D se numeran sobre ESE orden (como en el Gestor); con plan, las del plan.
+  const numeradas = useMemo(() => {
+    const etiquetas = etiquetasDelDia(lectura.filas, lectura.fuente, ordenDelDia);
+    return paradasDeLaRutaEnElOrden(lectura.filas.map((f, i) => ({ ...f, etiqueta: etiquetas[i] })), stops, ordenDelDia);
+  }, [lectura, stops, ordenDelDia]);
+  // Pendientes y Entregadas (D-520): cada fila en su sección, con su número de parada; las entregadas, en el orden en que pasó.
+  const secciones = useMemo(() => seccionesDeMiRuta(lectura.filas, (id) => porId.get(id)?.stage, numeradas.deFila, ordenDelDia), [lectura, porId, numeradas, ordenDelDia]);
   // El color del chofer, el mismo que pinta el Gestor en su círculo y en el mapa.
   const colorDelChofer = colorDeChofer(settings.driver_colors, driverName);
   /** El círculo de la fila `fi`: el número en la primera fila de su parada DENTRO de su sección (D-520; antes, en la

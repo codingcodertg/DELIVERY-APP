@@ -454,7 +454,7 @@ describe("4 · la llegada estimada, SIEMPRE", () => {
       expect(medida).toContain("return `${firmaDeLaMedida(fecha, clave, stops)}|${lista.map((p) => (p.tipo === \"P\" ? `P${p.ordenes.join(\"+\")}` : `D${p.orden}`)).join(\",\")}${extremos ? `|${extremos}` : \"\"}`;");
       expect(medida).toContain("const firmaDe = (clave: string, stops: T[]): string => firmaDeLaForma(date, clave, stops, e.listaDe(clave, stops), extremosDe(clave));");
       // Nota D-584: la lista que firma la forma es la del día (`listaDelDia`), con las hechas delante.
-      expect(pagina).toContain("listaDe: (clave, delDia) => listaDelDia(diaDe(clave, pendientesDelDia(delDia)).paradas),");
+      expect(pagina).toContain("listaDe: (clave, delDia) => listaDelDia(diaDe(clave, pendientesDelDia(delDia), undefined, false).paradas),");
       expect(pagina).toContain("invalida: [rutasPublicadas, settings.driver_capacity, settings.default_truck_capacity, settings.stores],");
     });
     it("la columna «Llegada» de las filas P y D dice el estado o el motivo, no una raya", () => {

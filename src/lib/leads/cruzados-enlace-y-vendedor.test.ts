@@ -18,9 +18,9 @@ describe("el almacén", () => {
     expect(a).toContain('supabase.from("perfiles_publicos").select("id, full_name").in("id", reps)');
     expect(a).toContain("if (!unicos.length) return { ok: true, valor: mapa };");
   });
-  it("el demo contesta vacío", async () => {
+  it("el demo contesta solo su cliente 1 (el del cruce demo, 335), nunca otros", async () => {
     const r = await almacenDemo(() => PERSONAS_DEMO[0]).clientesCruzados([1, 2]);
-    expect(r.ok && r.valor.size).toBe(0);
+    expect(r.ok && [...r.valor.keys()]).toEqual([1]);
   });
 });
 

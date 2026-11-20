@@ -61,9 +61,11 @@ const ok = (r: { ok: boolean; paradas?: ParadaDeLaLista[] }): ParadaDeLaLista[] 
   return r.paradas;
 };
 
-const INICIO = ["PFW577", "P149110", "✓P149108", "D149108", "P172110", "DFW577", "✓P100426", "✓P100408", "✓D100426", "✓D100408", "D149110", "D172110"];
-// La D5 detras de la D6 y delante de la D7: las hechas siguen en medio de las dos, donde estaban.
-const D5_DETRAS_DE_D6 = ["PFW577", "P149110", "✓P149108", "D149108", "P172110", "D149110", "✓P100426", "✓P100408", "✓D100426", "✓D100408", "DFW577", "D172110"];
+// Lo hecho va PRIMERO (en orden real; sin hora, en su orden de la lista); lo pendiente, después, en su orden de siempre.
+const HECHAS = ["✓P149108", "✓P100426", "✓P100408", "✓D100426", "✓D100408"];
+const INICIO = [...HECHAS, "PFW577", "P149110", "D149108", "P172110", "DFW577", "D149110", "D172110"];
+// La D5 detras de la D6 y delante de la D7: lo hecho sigue arriba, y lo pendiente se reordena.
+const D5_DETRAS_DE_D6 = [...HECHAS, "PFW577", "P149110", "D149108", "P172110", "D149110", "DFW577", "D172110"];
 
 describe("mover la D5 detras de la D6 con dos hechas en medio", () => {
   it("la tarjeta de partida es la del dueno", () => {
@@ -84,7 +86,7 @@ describe("mover la D5 detras de la D6 con dos hechas en medio", () => {
     const todas = fixture();
     const una = guarda(todas, ok(mueveEnLaLista(listaDe(todas), idx(listaDe(todas), "D", "FW577"), 1)));
     const dos = guarda(una, ok(mueveEnLaLista(listaDe(una), idx(listaDe(una), "D", "FW577"), 1)));
-    expect(tarjeta(dos)).toEqual(["PFW577", "P149110", "✓P149108", "D149108", "P172110", "D149110", "✓P100426", "✓P100408", "✓D100426", "✓D100408", "D172110", "DFW577"]);
+    expect(tarjeta(dos)).toEqual([...HECHAS, "PFW577", "P149110", "D149108", "P172110", "D149110", "D172110", "DFW577"]);
   });
 
   it("arrastrar la D5 justo encima de la D7 da el mismo resultado que una flecha", () => {
@@ -110,6 +112,15 @@ describe("mover la D5 detras de la D6 con dos hechas en medio", () => {
   });
 });
 
+describe("la primera pendiente nunca sube por encima de lo hecho", () => {
+  it("subir la primera pendiente no hace nada: no pasa delante de lo hecho ni de nada", () => {
+    const todas = fixture();
+    const lista = listaDe(todas);
+    const r = mueveEnLaLista(lista, idx(lista, "P", "FW577"), -1);
+    expect(r.ok).toBe(false);
+  });
+});
+
 describe("mover una RECOGIDA con dos hechas en medio", () => {
   it("bajar la P de la 149110 la deja detras de la P5 sin tocar las hechas", () => {
     const todas = fixture();
@@ -125,7 +136,7 @@ describe("mover una RECOGIDA con dos hechas en medio", () => {
     const todas = fixture();
     const lista = listaDe(todas);
     const despues = guarda(todas, ok(mueveEnLaLista(lista, idx(lista, "P", "149110"), -1)));
-    expect(tarjeta(despues).slice(0, 2)).toEqual(["P149110", "PFW577"]);
+    expect(tarjeta(despues).slice(HECHAS.length, HECHAS.length + 2)).toEqual(["P149110", "PFW577"]);
     expect(despues.find((o) => o.id === "100408")!.route_seq).toBe(6);
   });
 });

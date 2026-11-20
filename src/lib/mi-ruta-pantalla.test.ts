@@ -148,19 +148,20 @@ describe("«Mi ruta» pintada (D-520)", () => {
     expect(html).toMatch(/<button type="button" data-abre-la-orden="A1" class="hint"/);
     expect(html).toMatch(/<button type="button" data-abre-la-orden="A2" class="hint"/);
     const tarjeta = (h: string) => h.slice(h.indexOf("data-siguiente-parada"), h.indexOf("data-mapa-del-gestor"));
-    // Parada 1 de 5 (las cuatro órdenes de McAllen se recogen en UNA parada; luego cuatro entregas), recogida 1 de 4.
-    expect(tarjeta(html)).toContain("Next stop · 1/5");
-    expect(tarjeta(html)).toContain("Pickup 1 of 4");
+    // Parada 3 de 6: lo ya recogido y entregado va primero, en su hora real (A3 y A4, McAllen; la entrega de A4), y lo que
+    // falta de McAllen (A1 y A2) es OTRA parada, después de esa entrega. Recogida 1 de 2.
+    expect(tarjeta(html)).toContain("Next stop · 3/6");
+    expect(tarjeta(html)).toContain("Pickup 1 of 2");
     expect(tarjeta(html)).toContain("INV-A1");
     // Recogida A1: la siguiente es A2 (recogida 2 de 2), no la entrega de A1.
     estado.deliveries = (estado.deliveries as Delivery[]).map((d) => (d.id === "A1" ? { ...d, stage: "picked_up" } : d));
     const luego = await pinta();
-    expect(tarjeta(luego)).toContain("Next stop · 1/5");
-    expect(tarjeta(luego)).toContain("Pickup 2 of 4");
+    // A1 ya recogida: la siguiente es la recogida de A2, que ahora va sola en su parada (3/6), sin «Pickup n of n».
+    expect(tarjeta(luego)).toContain("Next stop · 3/6");
     expect(tarjeta(luego)).toContain("INV-A2");
     expect(tarjeta(luego)).not.toContain("INV-A1");
-    // Y la fila de la parada 1 va pintada como siguiente.
-    expect(luego).toMatch(/data-fila-de-ruta="1" data-tipo-de-fila="P" style="align-items:flex-start;background:var\(--accent-soft\);box-shadow:inset 0 0 0 2px var\(--accent\)"/);
+    // Y la fila de esa parada va pintada como siguiente.
+    expect(luego).toMatch(/data-siguiente-parada="true" data-tipo-de-fila="P"/);
   });
   it("D-527: la recogida ya en el camión lleva «↩ Undo pickup» (en «Delivered», donde queda la recogida hecha)", async () => {
     estado.events = [{ id: "e1", delivery_id: "A3", kind: "picked_up", note: "Loaded: 4 pallets", created_by: "u-carlos", created_at: new Date().toISOString() }];

@@ -234,17 +234,17 @@ describe("5 · el panel «Choferes y rutas» y el mapa, con la misma lectura que
     expect(pts.some((p) => p.id === "__depot__u-caro")).toBe(false);
     // Puesto al día por D-485 (la ruta por paradas): la burbuja lleva el NÚMERO DE PARADA, no «D1»/«P1». Ana recoge sus
     // dos órdenes en Pharr, seguidas: UNA parada, «1» (antes dos burbujas, «P1» y «P2»); después D1 es la parada 2 y D2 la 3.
-    // Nota D-529: los números son los del DÍA entero, y Ana ya entregó FA4 (h1, también recogida en Pharr y con el mismo
-    // puesto 0 que a1: lo hecho va delante en el empate, D-459). Su día: recoger FA1, FA2 y FA4 en Pharr (parada 1, «P1, P2,
-    // P3»), entregar FA4 (2, ya hecha: su pin es el ✓), FA1 (3) y FA2 (4). Antes, solo lo pendiente: 1, 2 y 3.
-    expect(de("a1")).toMatchObject({ badge: "3", color: "rojo", dimmed: false });
-    expect(de("a2")).toMatchObject({ badge: "4", color: "rojo" });
+    // Nota D-529: los números son los del DÍA entero. Desde 2026-11-19 lo hecho va PRIMERO, en su hora real: Ana ya recogió
+    // y entregó FA4 (h1), así que su día es: recoger FA4 en Pharr (parada 1, «P1»), entregarla (2, ya hecha: su pin es el ✓),
+    // volver a Pharr a recoger FA1 y FA2 (3, «P2, P3»), entregar FA1 (4) y FA2 (5).
+    expect(de("a1")).toMatchObject({ badge: "4", color: "rojo", dimmed: false });
+    expect(de("a2")).toMatchObject({ badge: "5", color: "rojo" });
     expect(de("b1")).toMatchObject({ badge: "2", color: "verde" });
-    expect(pts.filter((p) => p.id.startsWith("__parada__Ana__")).map((p) => p.badge)).toEqual(["1"]);
-    expect(pts.find((p) => p.id === "__parada__Ana__1")!.label).toBe("Stop 1 — pick up P1, P2, P3 · #FA1 (no invoice), #FA2 (no invoice), #FA4 (no invoice) — Ana · Pharr");
+    expect(pts.filter((p) => p.id.startsWith("__parada__Ana__")).map((p) => p.badge)).toEqual(["3"]);
+    expect(pts.find((p) => p.id === "__parada__Ana__3")!.label).toBe("Stop 3 — pick up P2, P3 · #FA1 (no invoice), #FA2 (no invoice) — Ana · Pharr");
     // Puesto al día por D-481 (a): el pin nombra la orden por su FACTURA; sin ella, por su ID y «sin factura». Y por D-485,
     // dice qué se hace en esa parada.
-    expect(de("a1").label).toBe("Stop 3 — deliver D1 · #FA1 (no invoice) — Ana");
+    expect(de("a1").label).toBe("Stop 4 — deliver D2 · #FA1 (no invoice) — Ana");
     // Y la entregada conserva su número en el rótulo.
     expect(de("__hecha__h1").label).toContain("(Stop 2 · Delivered ");
   });
@@ -265,10 +265,10 @@ describe("5 · el panel «Choferes y rutas» y el mapa, con la misma lectura que
   it("«Ruta de hoy» añade al rótulo la ciudad, los pallets y la llegada — y nada más", () => {
     const pts = puntos(new Set(), (d) => `${d.delivery_city} · ${d.est_pallets} pallets`);
     // Puesto al día por D-485: el rótulo empieza por la parada y lo que se hace en ella.
-    // Nota D-529: «Stop 4», el número del día (FA4, entregada, es la parada 2).
-    expect(pts.find((p) => p.id === "a2")!.label).toBe("Stop 4 — deliver D2 · #FA2 (no invoice) — Ana · McAllen · 3 pallets");
+    // Nota D-529: «Stop 5», el número del día (FA4 es la 1 y la 2; la de FA2, la 5). Desde 2026-11-19, lo hecho va primero.
+    expect(pts.find((p) => p.id === "a2")!.label).toBe("Stop 5 — deliver D3 · #FA2 (no invoice) — Ana · McAllen · 3 pallets");
     // El Gestor no pasa `detalleDe`: sus rótulos son los de siempre.
-    expect(puntos().find((p) => p.id === "a2")!.label).toBe("Stop 4 — deliver D2 · #FA2 (no invoice) — Ana");
+    expect(puntos().find((p) => p.id === "a2")!.label).toBe("Stop 5 — deliver D3 · #FA2 (no invoice) — Ana");
   });
   it("las marcas que caen en el mismo punto se abren en abanico; las demás no se mueven", () => {
     const juntas = enAbanico([{ id: "1", lat: 1, lng: 1, color: "a", label: "" }, { id: "2", lat: 1, lng: 1, color: "b", label: "" }, { id: "3", lat: 2, lng: 2, color: "c", label: "" }]);

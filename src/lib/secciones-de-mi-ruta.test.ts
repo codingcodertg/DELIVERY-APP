@@ -73,7 +73,9 @@ describe("«Mi ruta» pinta las dos secciones con la función", () => {
     expect(p).toContain("onClick={() => setListaElegida(s)}");
   });
   it("reparte con `seccionesDeMiRuta` sobre la misma lectura y la misma numeración que el resto de la pantalla", () => {
-    expect(p).toContain("const secciones = useMemo(() => seccionesDeMiRuta(lectura.filas, (id) => porId.get(id)?.stage, numeradas.deFila), [lectura, porId, numeradas]);");
+    expect(p).toContain("const secciones = useMemo(() => seccionesDeMiRuta(lectura.filas, (id) => porId.get(id)?.stage, numeradas.deFila, ordenDelDia), [lectura, porId, numeradas, ordenDelDia]);");
+    // Lo hecho va primero, en su hora real: el mismo orden que el Gestor (`ordenDelDiaDeMiRuta`).
+    expect(p).toContain("const ordenDelDia = useMemo(() => ordenDelDiaDeMiRuta(lectura.filas, (id) => porId.get(id)?.stage, porId), [lectura, porId]);");
     expect(p).toContain('{seccion("pendientes", secciones.pendientes,');
     expect(p).toContain('{seccion("hechas", secciones.hechas,');
     expect(p).toContain("({secciones.paradas[s]})");

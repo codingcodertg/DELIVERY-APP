@@ -21,6 +21,14 @@ export type TamanoDeLoseta = (typeof TAMANOS_DE_LOSETA)[number];
 export const PROYECTOS: readonly TipoDeProyecto[] = ["Shower", "Flooring Only", "Wall Only"];
 export const DISPOSICIONES: readonly Disposicion[] = ["2 Walls", "3 Walls", "4 Walls"];
 
+/** Máximo de habitaciones o muros en la calculadora de piso o de pared. */
+export const MAX_FILAS_DE_MEDIDA = 12;
+
+/** Una habitación de la calculadora de piso: su largo y su ancho (ft). Se suman con las demás. */
+export interface Habitacion { nombre: string; largoFt: number; anchoFt: number }
+/** Un muro de la calculadora de pared: largo y alto (ft), y las aberturas (SF) que se le restan. */
+export interface Muro { nombre: string; largoFt: number; altoFt: number; aberturasSf: number }
+
 /** Las entradas de la hoja 1 (azules). Medidas en pies (ft), juntas y espesores en pulgadas (in), cajas en SF. */
 export interface EntradasCalculadora {
   /** C6 */
@@ -59,6 +67,10 @@ export interface EntradasCalculadora {
   salpicaderoLargoFt: number;
   /** C49: alto del salpicadero (ft). */
   salpicaderoAltoFt: number;
+  /** Solo la calculadora de piso: las habitaciones (cada una con su largo y ancho). Una fila por defecto. */
+  habitaciones: Habitacion[];
+  /** Solo la calculadora de pared: los muros (cada uno con su largo, alto y aberturas). Una fila por defecto. */
+  muros: Muro[];
 }
 
 /** Los parámetros de «Product Settings» (hoja 2, columna C). */
@@ -154,6 +166,8 @@ export const ENTRADAS_POR_DEFECTO: EntradasCalculadora = {
   bordeExpuestoLf: 0,
   salpicaderoLargoFt: 3,
   salpicaderoAltoFt: 1,
+  habitaciones: [{ nombre: "Room 1", largoFt: 5, anchoFt: 3 }],
+  muros: [{ nombre: "Wall 1", largoFt: 5, altoFt: 8, aberturasSf: 0 }],
 };
 
 export const AJUSTES_POR_DEFECTO: AjustesCalculadora = {
@@ -194,6 +208,156 @@ export const AJUSTES_POR_DEFECTO: AjustesCalculadora = {
   impermeableReferenciaGal: 3,
 };
 
+/** Las calculadoras. La de ducha es la hoja completa; la de piso y la de pared son la misma hoja con menos campos. */
+export interface DatosDeCalculadora { tipo: TipoDeProyecto; etiqueta: Bilingue; descripcion: Bilingue }
+export const CALCULADORAS: readonly DatosDeCalculadora[] = [
+  {
+    tipo: "Shower",
+    etiqueta: { en: "Shower calculator", es: "Calculadora de ducha" },
+    descripcion: {
+      en: "Pan, walls, backerboard, waterproofing and every shower material.",
+      es: "Base, paredes, tablero, impermeabilizante y todo el material de la ducha.",
+    },
+  },
+  {
+    tipo: "Flooring Only",
+    etiqueta: { en: "Floor calculator", es: "Calculadora de piso" },
+    descripcion: {
+      en: "Floor tile, thinset, grout and trim for one or several rooms.",
+      es: "Loseta de piso, pegamento, lechada y perfil para una o varias habitaciones.",
+    },
+  },
+  {
+    tipo: "Wall Only",
+    etiqueta: { en: "Wall calculator", es: "Calculadora de pared" },
+    descripcion: {
+      en: "Wall tile, thinset, grout and trim for one or several walls.",
+      es: "Loseta de pared, pegamento, lechada y perfil para una o varias paredes.",
+    },
+  },
+];
+
+/**
+ * Dónde se usa cada campo: la tabla única que decide qué ve cada calculadora. `usa` = calculadoras que lo usan;
+ * `cuandoPared` = en la de pared solo aplica si ese interruptor (0/1) de «Product Settings» está en 1;
+ * `condicion` = solo aplica si se cumple (p. ej. la pendiente solo con C33 = 1).
+ */
+export interface Uso {
+  usa: readonly TipoDeProyecto[];
+  cuandoPared?: keyof AjustesCalculadora;
+  condicion?: (a: AjustesCalculadora) => boolean;
+}
+
+const TODAS: readonly TipoDeProyecto[] = ["Shower", "Flooring Only", "Wall Only"];
+const DUCHA: readonly TipoDeProyecto[] = ["Shower"];
+const DUCHA_Y_PARED: readonly TipoDeProyecto[] = ["Shower", "Wall Only"];
+const DUCHA_Y_PISO: readonly TipoDeProyecto[] = ["Shower", "Flooring Only"];
+
+/** Los campos de la hoja 1 (entradas). Piso y pared capturan filas (`habitaciones`, `muros`) en vez de las medidas de ducha. */
+export const USO_DE_ENTRADAS: Record<keyof EntradasCalculadora, Uso> = {
+  proyecto: { usa: TODAS },
+  largoFt: { usa: DUCHA },
+  anchoFt: { usa: DUCHA },
+  altoFt: { usa: DUCHA },
+  disposicion: { usa: DUCHA },
+  aberturasSf: { usa: DUCHA },
+  morteroProfundidadIn: { usa: DUCHA },
+  cajaParedSf: { usa: DUCHA_Y_PARED },
+  cajaPisoSf: { usa: DUCHA_Y_PISO },
+  tamanoPared: { usa: DUCHA_Y_PARED },
+  tamanoPiso: { usa: DUCHA_Y_PISO },
+  juntaParedIn: { usa: DUCHA_Y_PARED },
+  juntaPisoIn: { usa: DUCHA_Y_PISO },
+  subidaLinerIn: { usa: DUCHA },
+  bordeExtraLinerIn: { usa: DUCHA },
+  bordeExpuestoLf: { usa: TODAS },
+  salpicaderoLargoFt: { usa: DUCHA_Y_PARED },
+  salpicaderoAltoFt: { usa: DUCHA_Y_PARED },
+  habitaciones: { usa: ["Flooring Only"] },
+  muros: { usa: ["Wall Only"] },
+};
+
+/** Los ajustes de «Product Settings» (hoja 2): dónde se usa cada uno. Vacío = la hoja no lo usa en ninguna fórmula. */
+export const USO_DE_AJUSTES: Record<keyof AjustesCalculadora, Uso> = {
+  tableroCoberturaSf: { usa: [] },
+  tornillosPorTablero: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
+  tornillosPorCaja: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
+  rolloMallaLf: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
+  mallaPorTableroLf: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
+  liner_subidaSinUsoIn: { usa: [] },
+  liner_bordeSinUsoIn: { usa: [] },
+  impermeableSfPorGal: { usa: DUCHA_Y_PARED, cuandoPared: "impermeableEnSoloPared" },
+  impermeableGalPorEnvase: { usa: DUCHA_Y_PARED, cuandoPared: "impermeableEnSoloPared" },
+  impermeableSolape: { usa: DUCHA_Y_PARED, cuandoPared: "impermeableEnSoloPared" },
+  adhesivoParedSfPorBolsa: { usa: DUCHA_Y_PARED },
+  adhesivoPisoSfPorBolsa: { usa: DUCHA_Y_PISO },
+  morteroPiesCubicosPorBolsa: { usa: DUCHA },
+  lechadaSfReferencia: { usa: TODAS },
+  lechadaLbPorBolsa: { usa: TODAS },
+  lechadaLargoRefIn: { usa: TODAS },
+  lechadaAnchoRefIn: { usa: TODAS },
+  lechadaJuntaRefIn: { usa: TODAS },
+  lechadaProfundidadParedIn: { usa: DUCHA_Y_PARED },
+  lechadaProfundidadPisoIn: { usa: DUCHA_Y_PISO },
+  lechadaProfundidadRefIn: { usa: TODAS },
+  siliconaLfPorTubo: { usa: DUCHA_Y_PARED },
+  perfilLfPorPieza: { usa: TODAS },
+  clipsPorSf: { usa: DUCHA_Y_PISO },
+  clipsPorPaquete: { usa: DUCHA_Y_PISO },
+  cunasPorPaquete: { usa: DUCHA_Y_PISO },
+  preslopePromedioIn: { usa: DUCHA },
+  preslopeIncluido: { usa: DUCHA },
+  tableroEnSoloPared: { usa: ["Wall Only"] },
+  impermeableEnSoloPared: { usa: ["Wall Only"] },
+  tableroAltoFt: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
+  tableroAnchoLf: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
+  tableroUnidadLf: { usa: [] },
+  tablerosExtra: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
+  impermeableReferenciaGal: { usa: [] },
+};
+
+/** Las filas de materiales (la hoja 1, filas 17–33) y, por calculadora, cuáles aplican. */
+export const CLAVES_DE_FILA = [
+  "liner", "mortero", "tablero", "tornillos", "malla", "impermeable", "pegamento-pared", "pegamento-piso",
+  "loseta-pared", "loseta-piso", "lechada", "silicon", "perfil", "clips", "cunas", "coladera", "pendiente",
+] as const;
+export type ClaveDeFila = (typeof CLAVES_DE_FILA)[number];
+
+export const USO_DE_FILAS: Record<ClaveDeFila, Uso> = {
+  liner: { usa: DUCHA },
+  mortero: { usa: DUCHA },
+  tablero: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
+  tornillos: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
+  malla: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
+  impermeable: { usa: DUCHA_Y_PARED, cuandoPared: "impermeableEnSoloPared" },
+  "pegamento-pared": { usa: DUCHA_Y_PARED },
+  "pegamento-piso": { usa: DUCHA_Y_PISO },
+  "loseta-pared": { usa: DUCHA_Y_PARED },
+  "loseta-piso": { usa: DUCHA_Y_PISO },
+  lechada: { usa: TODAS },
+  silicon: { usa: DUCHA_Y_PARED },
+  perfil: { usa: TODAS },
+  clips: { usa: DUCHA_Y_PISO },
+  cunas: { usa: DUCHA_Y_PISO },
+  coladera: { usa: DUCHA },
+  pendiente: { usa: DUCHA, condicion: (a) => a.preslopeIncluido === 1 },
+};
+
+/** Las áreas de la sección 03 que cada calculadora muestra. */
+export const USO_DE_AREAS: Record<keyof AreasCalculadas, Uso> = {
+  pisoSf: { usa: DUCHA_Y_PISO },
+  paredSf: { usa: DUCHA_Y_PARED },
+  perimetroLf: { usa: DUCHA_Y_PARED },
+  tablerosPaneles: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
+};
+
+/** ¿Lo usa esta calculadora, con estos ajustes? */
+export function aplicaUso(u: Uso, tipo: TipoDeProyecto, a: AjustesCalculadora): boolean {
+  if (!u.usa.includes(tipo)) return false;
+  if (tipo === "Wall Only" && u.cuandoPared && a[u.cuandoPared] !== 1) return false;
+  return u.condicion ? u.condicion(a) : true;
+}
+
 /** Lo que la hoja deja fijo en la columna «Per package» (no es un ajuste de «Product Settings»). */
 export const PIEZA_DE_LINER_SF = 35;
 export const TABLERO_POR_PAQUETE_LF = 1;
@@ -211,19 +375,17 @@ export interface AjusteMeta {
   nota: string;
   /** 0/1 en la hoja: se muestra como casilla. */
   esSiNo?: true;
-  /** La hoja no lo usa en ninguna fórmula. Se muestra, pero se avisa. */
-  sinUso?: true;
 }
 
 /** Los ajustes en el orden de la hoja 2, con su celda, unidad y nota. */
 export const AJUSTES_META: readonly AjusteMeta[] = [
-  { clave: "tableroCoberturaSf", celda: "C6", etiqueta: { en: "Backerboard coverage", es: "Cobertura del tablero" }, unidad: "SF / panel", nota: "3×5 panel confirmed in training PDF", sinUso: true },
+  { clave: "tableroCoberturaSf", celda: "C6", etiqueta: { en: "Backerboard coverage", es: "Cobertura del tablero" }, unidad: "SF / panel", nota: "3×5 panel confirmed in training PDF" },
   { clave: "tornillosPorTablero", celda: "C7", etiqueta: { en: "Screws per backerboard", es: "Tornillos por tablero" }, unidad: "screws / panel", nota: "Illustrative; verify fastener spacing and framing" },
   { clave: "tornillosPorCaja", celda: "C8", etiqueta: { en: "Screws per box", es: "Tornillos por caja" }, unidad: "screws / box", nota: "Confirmed in training PDF" },
   { clave: "rolloMallaLf", celda: "C9", etiqueta: { en: "Mesh roll coverage", es: "Rollo de malla" }, unidad: "LF / roll", nota: "6×50 listed in training PDF; verify roll unit (feet vs yards)" },
   { clave: "mallaPorTableroLf", celda: "C10", etiqueta: { en: "Mesh seam length per board", es: "Largo de juntas por tablero" }, unidad: "LF / board", nota: "Rough allowance: check actual board seams" },
-  { clave: "liner_subidaSinUsoIn", celda: "C11", etiqueta: { en: "Pan liner upturn (sheet 2)", es: "Subida del liner (hoja 2)" }, unidad: "in", nota: "Editable; minimum based on design/code/manufacturer", sinUso: true },
-  { clave: "liner_bordeSinUsoIn", celda: "C12", etiqueta: { en: "Pan liner edge extra (sheet 2)", es: "Borde extra del liner (hoja 2)" }, unidad: "in", nota: "No automatic waste. Add only if required by design", sinUso: true },
+  { clave: "liner_subidaSinUsoIn", celda: "C11", etiqueta: { en: "Pan liner upturn (sheet 2)", es: "Subida del liner (hoja 2)" }, unidad: "in", nota: "Editable; minimum based on design/code/manufacturer" },
+  { clave: "liner_bordeSinUsoIn", celda: "C12", etiqueta: { en: "Pan liner edge extra (sheet 2)", es: "Borde extra del liner (hoja 2)" }, unidad: "in", nota: "No automatic waste. Add only if required by design" },
   { clave: "impermeableSfPorGal", celda: "C13", etiqueta: { en: "Water shield coverage", es: "Rendimiento del impermeabilizante" }, unidad: "SF / gallon", nota: "Calibration: 103 SF / 3 gallons ≈34.3 SF/gal; 40 SF/gal gives 3 gallons. Verify actual stocked product label." },
   { clave: "impermeableGalPorEnvase", celda: "C14", etiqueta: { en: "Water shield container size", es: "Tamaño del envase" }, unidad: "gallons / pail", nota: "1-gallon containers for reference 3-gallon purchase; change for pails sold in store." },
   { clave: "impermeableSolape", celda: "C15", etiqueta: { en: "Waterproofing overlap", es: "Traslape del impermeabilizante" }, unidad: "fraction", nota: "Set to manufacturer required system overlap, not cutting waste" },
@@ -249,9 +411,9 @@ export const AJUSTES_META: readonly AjusteMeta[] = [
   { clave: "impermeableEnSoloPared", celda: "C35", etiqueta: { en: "Waterproofing for wall-only", es: "Impermeabilizante en solo pared" }, unidad: "0=no; 1=yes", nota: "Enable only when appropriate for wet-area installation", esSiNo: true },
   { clave: "tableroAltoFt", celda: "C38", etiqueta: { en: "Backerboard reference installed height", es: "Alto instalado del tablero" }, unidad: "ft", nota: "used to convert wall SF into LF (change to 3 for rotated board)" },
   { clave: "tableroAnchoLf", celda: "C39", etiqueta: { en: "Backerboard width per panel", es: "Ancho de cada panel" }, unidad: "LF", nota: "3x5 panel width when installed 5 ft tall" },
-  { clave: "tableroUnidadLf", celda: "C40", etiqueta: { en: "Backerboard sold unit", es: "Unidad de venta del tablero" }, unidad: "LF per unit", nota: "estimated LF shown in calculator, whole LF rounded for sale", sinUso: true },
+  { clave: "tableroUnidadLf", celda: "C40", etiqueta: { en: "Backerboard sold unit", es: "Unidad de venta del tablero" }, unidad: "LF per unit", nota: "estimated LF shown in calculator, whole LF rounded for sale" },
   { clave: "tablerosExtra", celda: "C41", etiqueta: { en: "Extra backerboard panels required by layout", es: "Paneles extra por el trazado" }, unidad: "panels", nota: "Installation-layout allowance for 3×5×8 standard reference; not waste; adjust per layout" },
-  { clave: "impermeableReferenciaGal", celda: "C43", etiqueta: { en: "Reference waterproofing supply", es: "Referencia de impermeabilizante" }, unidad: "gallons", nota: "Select ONE waterproofing brand (Crest, Hydrorite, or Cemix), not all three", sinUso: true },
+  { clave: "impermeableReferenciaGal", celda: "C43", etiqueta: { en: "Reference waterproofing supply", es: "Referencia de impermeabilizante" }, unidad: "gallons", nota: "Select ONE waterproofing brand (Crest, Hydrorite, or Cemix), not all three" },
 ];
 
 // ---- Cálculo ------------------------------------------------------------------------------------------------------------
@@ -262,6 +424,9 @@ export function medidasDeLaLoseta(tamano: string): [number, number] {
   if (i < 0) return [0, 0];
   return [Number.parseFloat(tamano.slice(0, i)) || 0, Number.parseFloat(tamano.slice(i + 1, i + 10)) || 0];
 }
+
+/** Suma de una lista de números (una lista vacía vale 0). */
+const sumar = (xs: readonly number[]): number => xs.reduce((acc, x) => acc + x, 0);
 
 /** El «IFERROR(…,0)» de la hoja: lo que no sale finito (división entre cero, etc.) vale 0. */
 const finitoOCero = (x: number): number => (Number.isFinite(x) ? x : 0);
@@ -299,7 +464,7 @@ export interface Explicacion {
 
 export interface FilaCalculada {
   /** Identificador estable de la fila (sirve de clave y para las pruebas). */
-  clave: string;
+  clave: ClaveDeFila;
   material: Bilingue;
   /** C: cantidad necesaria (sin redondear). */
   cantidad: number;
@@ -419,16 +584,25 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
   // C36: salpicadero. Va dentro del área de pared; en solo piso vale 0.
   const salpicaderoSf = esPiso ? 0 : sana(e.salpicaderoLargoFt) * sana(e.salpicaderoAltoFt);
 
-  // C40: piso (ducha y solo piso).
-  const pisoSf = esDucha || esPiso ? Math.max(0, L * W) : 0;
+  // Solo piso: cada habitación es largo × ancho, y se suman. Ducha: el L × W de la hoja.
+  const pisoPorHabitacion = esPiso ? e.habitaciones.map((h) => Math.max(0, sana(h.largoFt) * sana(h.anchoFt))) : [];
 
-  // C42: perímetro de pared (LF). Ducha: L + (2, 3 o 4 paredes). Solo pared: L.
+  // Solo pared: cada muro es (alto × largo − aberturas), y se suman. Ducha: no se usa.
+  const murosPared = esPared ? e.muros : [];
+  const paredPorMuro = murosPared.map((m) => Math.max(0, sana(m.altoFt) * sana(m.largoFt) - sana(m.aberturasSf)));
+
+  // C40: piso (ducha: L × W; solo piso: suma de habitaciones).
+  const pisoSf = esDucha ? Math.max(0, L * W) : esPiso ? sumar(pisoPorHabitacion) : 0;
+
+  // C42: perímetro de pared (LF). Ducha: L + (2, 3 o 4 paredes). Solo pared: suma de los largos de los muros.
   const perimetroLf = esDucha
     ? L + (e.disposicion === "2 Walls" ? W : e.disposicion === "3 Walls" ? 2 * W : L + 2 * W)
-    : esPared ? L : 0;
+    : esPared ? sumar(murosPared.map((m) => sana(m.largoFt))) : 0;
 
-  // C41: pared (SF). Ducha: H × perímetro. Solo pared: L × H. Menos aberturas, más salpicadero.
-  const paredSf = esDucha || esPared ? Math.max(0, H * perimetroLf - ab + salpicaderoSf) : 0;
+  // C41: pared (SF). Ducha: H × perímetro − aberturas + salpicadero. Solo pared: suma de muros + salpicadero.
+  const paredSf = esDucha
+    ? Math.max(0, H * perimetroLf - ab + salpicaderoSf)
+    : esPared ? Math.max(0, sumar(paredPorMuro) + salpicaderoSf) : 0;
 
   // C19: tablero en LF (pared sin el salpicadero, entre el alto instalado). Ducha, o solo pared si C34 = 1.
   const tableroAqui = esDucha || (esPared && a.tableroEnSoloPared === 1);
@@ -452,12 +626,13 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
     ? (paredSinSalpicadero + pisoSf) * (1 + a.impermeableSolape)
     : esPared && a.impermeableEnSoloPared === 1 ? paredSinSalpicadero : 0;
 
-  // Silicón (C28): perímetro + alto × (4, 2 o 1 esquinas según la disposición); solo pared: alto × 2.
+  // Silicón (C28): perímetro + alto × (4, 2 o 1 esquinas según la disposición); solo pared: 2 esquinas por muro (alto × 2).
   const factorDeEsquinas = e.disposicion === "4 Walls" ? 4 : e.disposicion === "3 Walls" ? 2 : 1;
-  const siliconaLf = esDucha ? perimetroLf + H * factorDeEsquinas : esPared ? H * 2 : 0;
+  const alturasPared = murosPared.map((m) => sana(m.altoFt));
+  const siliconaLf = esDucha ? perimetroLf + H * factorDeEsquinas : esPared ? sumar(alturasPared) * 2 : 0;
 
-  // Clips y cuñas (C30, C31): (piso + pared) × clips por SF.
-  const clipsCant = (pisoSf + paredSf) * a.clipsPorSf;
+  // Clips y cuñas (C30, C31): (piso + pared) × clips por SF. Son para nivelar loseta de piso: en solo pared no aplican.
+  const clipsCant = esPared ? 0 : (pisoSf + paredSf) * a.clipsPorSf;
 
   const lechada = desgloseLechada(e, a, pisoSf, paredSf);
 
@@ -492,8 +667,67 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
       ? `${cifra("en", L)} + 2 × ${cifra("en", W)}`
       : `${cifra("en", L)} + (${cifra("en", L)} + 2 × ${cifra("en", W)})`;
 
+  // Solo piso: una línea por habitación y la suma. Solo pared: una línea por muro y la suma.
+  const expPisoHabitaciones = esPiso
+    ? explica((lg) => {
+        const { n, t } = ctx(lg);
+        const nombres = e.habitaciones.map((h, i) => h.nombre.trim() || t(`Room ${i + 1}`, `Habitación ${i + 1}`));
+        const suma = pisoPorHabitacion.map(n).join(" + ") || "0";
+        return {
+          formula: t("Floor area (SF) = sum of rooms, each length × width", "Área de piso (SF) = suma de habitaciones, cada una largo × ancho"),
+          pasos: [
+            ...e.habitaciones.map((h, i) => `${nombres[i]}: ${n(sana(h.largoFt))} × ${n(sana(h.anchoFt))} = ${n(pisoPorHabitacion[i])} SF`),
+            t(`Floor area = ${suma} = ${n(pisoSf)} SF`, `Área de piso = ${suma} = ${n(pisoSf)} SF`),
+          ],
+          usa: [`${t("Rooms", "Habitaciones")}: ${e.habitaciones.length} · ${t("floor calculator", "calculadora de piso")}`],
+          cierre: t("Used for: floor tile, floor thinset, floor grout, trim and clips.",
+            "Se usa en: loseta de piso, pegamento de piso, lechada de piso, perfil y clips."),
+        };
+      })
+    : null;
+
+  const expParedMuros = esPared
+    ? explica((lg) => {
+        const { n, t, ent } = ctx(lg);
+        const suma = paredPorMuro.map(n).join(" + ") || "0";
+        return {
+          formula: t("Wall area (SF) = sum of walls, each height × length − openings, + backsplash",
+            "Área de pared (SF) = suma de muros, cada uno alto × largo − aberturas, + salpicadero"),
+          pasos: [
+            ...murosPared.map((m, i) => {
+              const nombre = m.nombre.trim() || t(`Wall ${i + 1}`, `Muro ${i + 1}`);
+              const bruta = sana(m.altoFt) * sana(m.largoFt) - sana(m.aberturasSf);
+              const aviso = bruta < 0 ? t(" (can't be below 0)", " (no puede ser menor que 0)") : "";
+              return `${nombre}: ${n(sana(m.altoFt))} × ${n(sana(m.largoFt))} − ${n(sana(m.aberturasSf))} = ${n(paredPorMuro[i])} SF${aviso}`;
+            }),
+            t(`Wall area = ${suma} + ${n(salpicaderoSf)} backsplash = ${n(paredSf)} SF`,
+              `Área de pared = ${suma} + ${n(salpicaderoSf)} salpicadero = ${n(paredSf)} SF`),
+          ],
+          usa: [
+            `${t("Walls", "Muros")}: ${murosPared.length} · ${t("wall calculator", "calculadora de pared")}`,
+            ent("Backsplash", "Salpicadero", `${n(salpicaderoSf)} SF (${n(sana(e.salpicaderoLargoFt))} ft × ${n(sana(e.salpicaderoAltoFt))} ft)`, "C48 × C49"),
+          ],
+          cierre: t("Used for: wall tile, wall thinset, backerboard, waterproofing, wall grout and trim.",
+            "Se usa en: loseta de pared, pegamento de pared, tablero, impermeabilizante, lechada de pared y perfil."),
+        };
+      })
+    : null;
+
+  const expPerimetroMuros = esPared
+    ? explica((lg) => {
+        const { n, t } = ctx(lg);
+        const suma = murosPared.map((m) => n(sana(m.largoFt))).join(" + ") || "0";
+        return {
+          formula: t("Perimeter (LF) = sum of wall lengths", "Perímetro (LF) = suma de los largos de los muros"),
+          pasos: [t(`Perimeter = ${suma} = ${n(perimetroLf)} LF`, `Perímetro = ${suma} = ${n(perimetroLf)} LF`)],
+          usa: [`${t("Walls", "Muros")}: ${murosPared.length}`],
+          cierre: t("Used for: wall area and silicone.", "Se usa en: área de pared y silicón."),
+        };
+      })
+    : null;
+
   const explicacionAreas: Record<keyof AreasCalculadas, Explicacion> = {
-    pisoSf: esDucha || esPiso
+    pisoSf: esDucha
       ? explica((lg) => {
           const { n, t, ent } = ctx(lg);
           return {
@@ -504,8 +738,10 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
               "Se usa en: loseta de piso, pegamento de piso, liner, cama de mortero, lechada de piso, pendiente y clips."),
           };
         })
-      : cero({ en: "Floor area (SF) = length × width", es: "Área de piso (SF) = largo × ancho" }, sinPiso),
-    paredSf: esDucha || esPared
+      : esPiso && expPisoHabitaciones
+        ? expPisoHabitaciones
+        : cero({ en: "Floor area (SF) = length × width", es: "Área de piso (SF) = largo × ancho" }, sinPiso),
+    paredSf: esDucha
       ? explica((lg) => {
           const { n, t, ent } = ctx(lg);
           const expr = esDucha ? `(${perimetroConNumeros})` : n(L);
@@ -530,8 +766,10 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
               "Se usa en: loseta de pared, pegamento de pared, tablero, impermeabilizante, lechada de pared y clips."),
           };
         })
-      : cero({ en: "Wall area (SF) = height × wall perimeter − openings + backsplash", es: "Área de pared (SF) = alto × perímetro − aberturas + salpicadero" }, sinPared),
-    perimetroLf: esDucha || esPared
+      : esPared && expParedMuros
+        ? expParedMuros
+        : cero({ en: "Wall area (SF) = height × wall perimeter − openings + backsplash", es: "Área de pared (SF) = alto × perímetro − aberturas + salpicadero" }, sinPared),
+    perimetroLf: esDucha
       ? explica((lg) => {
           const { n, t, ent } = ctx(lg);
           const lineaPerimetro = esDucha
@@ -548,7 +786,9 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
             cierre: t("Used for: wall area and silicone.", "Se usa en: área de pared y silicón."),
           };
         })
-      : cero({ en: "Perimeter (LF) = length (shower and wall-only)", es: "Perímetro (LF) = largo (ducha y solo pared)" }, sinPared),
+      : esPared && expPerimetroMuros
+        ? expPerimetroMuros
+        : cero({ en: "Perimeter (LF) = length (shower and wall-only)", es: "Perímetro (LF) = largo (ducha y solo pared)" }, sinPared),
     tablerosPaneles: tablerosLf > 0
       ? explica((lg) => {
           const { n, t, ent, aj } = ctx(lg);
@@ -758,12 +998,16 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
           `Libras = ${n(d.sfEquivalentes)} SF × ${n(a.lechadaLbPorBolsa)} lb ÷ ${n(a.lechadaSfReferencia)} SF = ${n(d.lb)} lb`),
       ],
       usa: [
-        ent("Wall tile size", "Tamaño de loseta de pared", `${e.tamanoPared} in`, "F6"),
-        ent("Floor tile size", "Tamaño de loseta de piso", `${e.tamanoPiso} in`, "F7"),
-        ent("Wall joint", "Junta en pared", `${n(d.jp)} in`, "F8"),
-        ent("Floor joint", "Junta en piso", `${n(d.jq)} in`, "F9"),
-        `${t("Wall area", "Área de pared")}: ${n(paredSf)} SF · ${t("section 03", "sección 03")}`,
-        `${t("Floor area", "Área de piso")}: ${n(pisoSf)} SF · ${t("section 03", "sección 03")}`,
+        ...(esDucha || esPared ? [
+          ent("Wall tile size", "Tamaño de loseta de pared", `${e.tamanoPared} in`, "F6"),
+          ent("Wall joint", "Junta en pared", `${n(d.jp)} in`, "F8"),
+          `${t("Wall area", "Área de pared")}: ${n(paredSf)} SF · ${t("section 03", "sección 03")}`,
+        ] : []),
+        ...(esDucha || esPiso ? [
+          ent("Floor tile size", "Tamaño de loseta de piso", `${e.tamanoPiso} in`, "F7"),
+          ent("Floor joint", "Junta en piso", `${n(d.jq)} in`, "F9"),
+          `${t("Floor area", "Área de piso")}: ${n(pisoSf)} SF · ${t("section 03", "sección 03")}`,
+        ] : []),
         aj("lechadaProfundidadParedIn", dp), aj("lechadaProfundidadPisoIn", dq),
         aj("lechadaSfReferencia", a.lechadaSfReferencia), aj("lechadaLbPorBolsa", a.lechadaLbPorBolsa),
         aj("lechadaLargoRefIn", a.lechadaLargoRefIn), aj("lechadaAnchoRefIn", a.lechadaAnchoRefIn),
@@ -791,9 +1035,12 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
               t("LF per tube", "LF por tubo"), [t("tube", "tubo"), t("tubes", "tubos")]),
           }
           : {
-            formula: t("Silicone (LF) = height × 2", "Silicón (LF) = alto × 2"),
-            pasos: [t(`Silicone = ${n(H)} × 2 = ${n(siliconaLf)} LF`, `Silicón = ${n(H)} × 2 = ${n(siliconaLf)} LF`)],
-            usa: [ent("Height", "Alto", `${n(H)} ft`, "C9"), aj("siliconaLfPorTubo", a.siliconaLfPorTubo)],
+            formula: t("Silicone (LF) = sum of wall heights × 2 (two vertical corners per wall)",
+              "Silicón (LF) = suma de las alturas de los muros × 2 (dos esquinas verticales por muro)"),
+            pasos: [t(`Silicone = (${alturasPared.map(n).join(" + ") || "0"}) × 2 = ${n(siliconaLf)} LF`,
+              `Silicón = (${alturasPared.map(n).join(" + ") || "0"}) × 2 = ${n(siliconaLf)} LF`)],
+            usa: [`${t("Walls", "Muros")}: ${murosPared.length} · ${t("wall calculator", "calculadora de pared")}`,
+              aj("siliconaLfPorTubo", a.siliconaLfPorTubo)],
             cierre: div(siliconaLf, a.siliconaLfPorTubo, paquetesNecesarios(siliconaLf, a.siliconaLfPorTubo), "LF",
               t("LF per tube", "LF por tubo"), [t("tube", "tubo"), t("tubes", "tubos")]),
           };
@@ -815,7 +1062,8 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
     };
   });
 
-  const expClips = explica((lg) => {
+  const expClips = esPared ? cero({ en: "Clips = (floor SF + wall SF) × clips per SF", es: "Clips = (SF de piso + SF de pared) × clips por SF" },
+    motivoProyecto({ en: "(leveling clips are for floor tile)", es: "(los clips nivelan la loseta de piso)" })) : explica((lg) => {
     const { n, t, aj, div } = ctx(lg);
     return {
       formula: t("Clips = (floor SF + wall SF) × clips per SF", "Clips = (SF de piso + SF de pared) × clips por SF"),
@@ -829,7 +1077,8 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
     };
   });
 
-  const expCunas = explica((lg) => {
+  const expCunas = esPared ? cero({ en: "Wedges = same count as clips", es: "Cuñas = mismo conteo que los clips" },
+    motivoProyecto({ en: "(leveling wedges are for floor tile)", es: "(las cuñas nivelan la loseta de piso)" })) : explica((lg) => {
     const { n, t, aj, div } = ctx(lg);
     return {
       formula: t("Wedges = same count as clips = (floor SF + wall SF) × clips per SF", "Cuñas = mismo conteo que los clips = (SF de piso + SF de pared) × clips por SF"),
@@ -941,7 +1190,7 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
  * (paneles × ancho) y se le pasa `venta`.
  */
 function fila(
-  clave: string, material: Bilingue, cantidad: number, porPaquete: number, unidad: Bilingue, nota: string,
+  clave: ClaveDeFila, material: Bilingue, cantidad: number, porPaquete: number, unidad: Bilingue, nota: string,
   explicacion: Explicacion, venta?: number,
 ): FilaCalculada {
   const c = sana(cantidad);

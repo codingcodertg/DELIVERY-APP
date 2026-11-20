@@ -100,6 +100,7 @@ export const RPC_QUE_ESCRIBEN = [
   "warehouse_ops_create_scrap_group", "warehouse_ops_sign_scrap_group", "warehouse_ops_unsign_scrap_group", "warehouse_ops_approve_scrap_group",
   "warehouse_ops_remove_from_scrap_group", "warehouse_ops_delete_scrap_group",
   "warehouse_ops_delete_scrap_report", // 297: el admin borra un reporte de merma de prueba.
+  "lead_set_phone", // 335: pone o quita el teléfono a mano de un lead y anota el historial. Escribe.
   "business_card_set_media", // 331: cambia la foto o la portada de una tarjeta con su enlace de edición. Escribe.
   "check_rate_limit", // 282: suma el contador del limitador de peticiones por IP. Escribe; en enseñanza se corta y el limitador falla abierto.
   "security_touch_device", "security_request_access", // 229 (D-811): registran el dispositivo de la sesión y su solicitud.
