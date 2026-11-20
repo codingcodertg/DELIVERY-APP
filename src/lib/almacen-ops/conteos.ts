@@ -495,8 +495,9 @@ export function piezasDeCajas(cantidad: number, unidad: UnidadDeConteo | null, p
 export function textoDeCantidad(cantidad: number, unidad: UnidadDeConteo | null, piezasPorCaja: number | null, lang: Lang): string {
   if (!unidad) return String(cantidad);
   const nombre = lang === "es" ? INFO_DE_UNIDAD[unidad].es1 : INFO_DE_UNIDAD[unidad].en1;
-  // Plural en ambos idiomas: caja/cajas, bolsa/bolsas, pieza/piezas; box/boxes, bag/bags, piece/pieces.
-  const base = `${cantidad} ${nombre}${cantidad === 1 ? "" : "s"}`;
+  // Plural: caja/cajas, bolsa/bolsas, pieza/piezas; box/boxes, bag/bags, piece/pieces.
+  const sufijo = cantidad === 1 ? "" : lang === "en" && unidad === "box" ? "es" : "s";
+  const base = `${cantidad} ${nombre}${sufijo}`;
   const piezas = piezasDeCajas(cantidad, unidad, piezasPorCaja);
   if (piezas == null) return base;
   const pn = lang === "es" ? "piezas" : "pieces";
