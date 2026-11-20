@@ -7,6 +7,7 @@
  *     el parámetro recortado y cualquier espacio de más en el ERP dejaba la lista vacía («No products match»).
  *   · La nota es un filtro de texto (contiene, sin mayúsculas) sobre nombre, SKU, colección, etiquetas, color y estilo.
  *     En «proveedor + nota» es obligatoria (2 letras o más). En «proveedor + medida» es OPCIONAL: si la hay, afina.
+ *   · La medida de «proveedor + medida» es OPCIONAL (19 nov): sin ella, todas las medidas del proveedor.
  *   · «Un producto» se compara por id.
  */
 import type { AlcanceElegido } from "./conteos";
@@ -48,8 +49,9 @@ export function coincideConAlcance(p: ProductoParaAlcance, a: AlcanceElegido): b
     case "product":
       return a.product_id != null && p.id === a.product_id;
     case "vendor_size":
+      // La medida es opcional: sin ella, todas las medidas del proveedor.
       return claveDeNombre(p.vendor_name) === claveDeNombre(a.vendor_name)
-        && claveDeMedida(p.size_in) === claveDeMedida(a.size_in)
+        && (claveDeMedida(a.size_in) === "" || claveDeMedida(p.size_in) === claveDeMedida(a.size_in))
         && coincideConNota(p, nota);
     case "vendor_note":
       return claveDeNombre(p.vendor_name) === claveDeNombre(a.vendor_name) && coincideConNota(p, nota);

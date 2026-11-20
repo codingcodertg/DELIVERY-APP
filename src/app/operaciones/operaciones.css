@@ -695,3 +695,18 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
   .ops-conteo-modal { border-radius: 12px; }
   .ops-conteo-inicio { padding: 10px; }
 }
+
+/* 19 nov: conteos — accesos rápidos, lotes, unidad y botones de foto en una línea (390px sin scroll horizontal). */
+.ops-accesos { display: flex; flex-wrap: wrap; gap: 6px; }
+.ops-lote { border: 1px solid var(--border, #d9d9d9); border-radius: 10px; padding: 10px; display: grid; gap: 8px; min-width: 0; }
+.ops-lote legend { font-weight: 700; padding: 0 4px; }
+.ops-unidades { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ops-botones-foto-linea { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.ops-botones-foto-linea .ops-opcion { min-width: 0; white-space: normal; }
+.ops-sin-producto { display: grid; gap: 6px; }
+.ops-formulario, .ops-lote, .ops-conteo-modal { min-width: 0; max-width: 100%; box-sizing: border-box; }
+@media (max-width: 480px) {
+  .ops-unidades { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ops-accesos { width: 100%; }
+  .ops-accesos .ops-boton { flex: 1 1 auto; text-align: center; }
+}

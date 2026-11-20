@@ -46,6 +46,10 @@ describe("proveedor + medida: el alcance encuentra los productos aunque el ERP t
     expect(catalogo.filter((p) => coincideConAlcance(p, { scope_kind: "vendor_size", vendor_name: "Daltile", size_in: "24x48", note: "" })).length).toBe(2);
     expect(catalogo.filter((p) => coincideConAlcance(p, { scope_kind: "vendor_size", vendor_name: "Daltile", size_in: "24x48", note: "black" })).map((p) => p.id)).toEqual([2]);
   });
+  it("la medida es OPCIONAL: sin medida, todas las medidas del proveedor (19 nov)", () => {
+    expect(catalogo.filter((p) => coincideConAlcance(p, { scope_kind: "vendor_size", vendor_name: "Daltile", size_in: null })).map((p) => p.id)).toEqual([1, 2, 3]);
+    expect(catalogo.filter((p) => coincideConAlcance(p, { scope_kind: "vendor_size", vendor_name: "MSI", size_in: "" })).map((p) => p.id)).toEqual([4, 5]);
+  });
   it("un producto sin medida no entra a una medida", () => {
     expect(catalogo.filter((p) => coincideConAlcance(p, { scope_kind: "vendor_size", vendor_name: "MSI", size_in: "12x12" })).map((p) => p.id)).toEqual([4]);
   });

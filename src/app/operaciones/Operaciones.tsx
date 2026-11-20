@@ -13,6 +13,7 @@ import { listarGrupos } from "@/lib/almacen-ops/datos";
 import { HojaDeGrupo } from "./HojaDeGrupo";
 import { leerNivelEscrito, tiposPermitidos } from "@/lib/almacen-ops/nivel";
 import { tiendasPara, vistaPermitida, type Vista } from "@/lib/almacen-ops/puerta";
+import { ordenarTiendas } from "@/lib/almacen-ops/tiendas-orden";
 import { DEMO_PERSONAS, DEMO_TIENDAS, DEMO_YO, faltaLaMigracion, type Persona, type Yo } from "@/lib/almacen-ops/datos";
 import { Asistente } from "./Asistente";
 import { borrarBorrador, listarBorradores, type Borrador } from "@/lib/almacen-ops/borradores";
@@ -90,7 +91,7 @@ export function Operaciones({ vista, demo }: { vista: Vista; demo: boolean }) {
         .map((e): Persona => ({ id: e.id, full_name: (e.full_name ?? "").trim(), store: e.store, fuente: "expediente" }));
       const personas = [...deProfiles, ...deExpediente].sort((a, b) => a.full_name.localeCompare(b.full_name));
       // 265: el admin de la app «solo en sus tiendas» no elige ni filtra otra tienda (la base se lo rechaza igual).
-      setCarga({ estado: "listo", ctx: { demo, yo, tiendas: tiendasPara(yo, todas), personas } });
+      setCarga({ estado: "listo", ctx: { demo, yo, tiendas: ordenarTiendas(tiendasPara(yo, todas), yo.store), personas } });
     })();
     return () => { vivo = false; };
   }, [demo]);

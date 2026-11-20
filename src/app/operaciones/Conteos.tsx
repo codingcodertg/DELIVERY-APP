@@ -9,12 +9,12 @@ import { fmtDateTime } from "@/lib/utils";
 import { DEMO_PRODUCTOS, buscarProductos } from "@/lib/almacen-ops/datos";
 import type { ProductoElegido } from "@/lib/almacen-ops/pasos";
 import {
-  ALCANCES, INFO_DE_ALCANCE, accionesDeConteo, estaAbierto, estaContada, faltaDelAlcance, ordenarLineas, progresoDelConteo,
-  puedeGestionarConteo, tituloDeAlcance, type AccionDeConteo, type AlcanceElegido, type Conteo, type Linea, type OrdenPendiente,
+  INFO_DE_ALCANCE, accionesDeConteo, estaAbierto, estaContada, faltaDelAlcance, ordenarLineas, progresoDelConteo, puedeGestionarConteo,
+  resumenDeLotes, tituloDeAlcance, type AccionDeConteo, type AlcanceElegido, type Conteo, type Linea, type OrdenPendiente,
 } from "@/lib/almacen-ops/conteos";
-import { coincideConAlcance } from "@/lib/almacen-ops/conteos-alcance";
+import { buscarEnLista, coincideConAlcance } from "@/lib/almacen-ops/conteos-alcance";
 import {
-  DEMO_CONTEOS, DEMO_PRODUCTOS_DE_CONTEO, DEMO_PROVEEDORES, avanzarConteo, cancelarConteo, crearConteo, faltaLa274, faltaLa333, leerConteos, leerProductosDelAlcance,
+  DEMO_CONTEOS, DEMO_PRODUCTOS_DE_CONTEO, DEMO_PROVEEDORES, agregarLineaLibre, avanzarConteo, cancelarConteo, crearConteo, faltaLa274, faltaLa333, leerConteos, leerProductosDelAlcance,
   leerProveedores, lineaDeLaFila, mandarARecontar, type Conteos as Datos, type ProductoDeConteo, type Proveedor,
 } from "@/lib/almacen-ops/conteos-datos";
 import type { Contexto } from "./Operaciones";
@@ -39,7 +39,7 @@ type Carga = { estado: "cargando" } | { estado: "falta-274" } | { estado: "error
 type Pon = (f: (d: Datos) => Datos) => void;
 
 export function Conteos({ ctx }: { ctx: Contexto }) {
-  const { t, lang } = usePrefs();
+  const { t } = usePrefs();
   const [carga, setCarga] = useState<Carga>(ctx.demo ? { estado: "listo", datos: DEMO_CONTEOS } : { estado: "cargando" });
   const [tienda, setTienda] = useState(() => (ctx.yo.store && ctx.tiendas.includes(ctx.yo.store) ? ctx.yo.store : ctx.tiendas[0] ?? ""));
   const [abierto, setAbierto] = useState<string | null>(null);
@@ -63,7 +63,11 @@ export function Conteos({ ctx }: { ctx: Contexto }) {
     <section className="ops-mantenimiento ops-conteos" data-conteos>
       <header className="ops-asistente-barra ops-mant-cabeza">
         <h2>🔢 {t("Inventory counts", "Conteos de inventario")}</h2>
-        <Link href="/operaciones" className="ops-boton ops-boton-chico" data-accion="volver">← {t("Back", "Volver")}</Link>
+        <div className="ops-accesos">
+          <Link href="/operaciones/reportes" className="ops-boton ops-boton-chico" data-accion="ir-reportes">🗂️ {t("Reports", "Reportes")}</Link>
+          <Link href="/operaciones/nuevo/scrap" className="ops-boton ops-boton-chico" data-accion="ir-merma">⚠️ {t("Scrap", "Merma")}</Link>
+          <Link href="/operaciones" className="ops-boton ops-boton-chico" data-accion="volver">← {t("Back", "Volver")}</Link>
+        </div>
       </header>
       {ctx.tiendas.length > 1 && (
         <label className="ops-tienda ops-tienda-arriba">
@@ -126,7 +130,6 @@ export function Conteos({ ctx }: { ctx: Contexto }) {
         <TarjetaConteo c={elegido} lineas={datos.lineas.filter((l) => l.count_id === elegido.id)} pendientes={datos.pendientes.filter((o) => o.count_id === elegido.id)}
           ctx={ctx} pon={pon} sin333={!!datos.sin333} onCerrar={() => setAbierto(null)} />
       )}
-      <p className="hint ops-conteos-pie">{lang === "es" ? "Las cantidades del sistema se congelan al abrir el conteo; en la firma se pueden teclear o corregir." : "System quantities are frozen when the count is opened; at sign-off they can be typed or corrected."}</p>
     </section>
   );
 }
@@ -173,18 +176,19 @@ function FormNuevoConteo({ ctx, tienda, onCreado }: { ctx: Contexto; tienda: str
   }, [a.scope_kind, a.vendor_name, a.size_in, a.note, a.product_id, tienda, ctx.demo]);
 
   useEffect(() => {
-    if (a.scope_kind !== "product" || q.trim().length < 2) { setSugeridos([]); return; }
+    if (a.product_id != null || q.trim().length < 2) { setSugeridos([]); return; }
     let vivo = true;
     const h = setTimeout(() => {
       if (ctx.demo) { setSugeridos(DEMO_PRODUCTOS.filter((p) => `${p.sku} ${p.name}`.toLowerCase().includes(q.toLowerCase()))); return; }
       buscarProductos(createClient(), q).then((r) => { if (vivo) setSugeridos(r); }).catch(() => { if (vivo) setSugeridos([]); });
     }, 250);
     return () => { vivo = false; clearTimeout(h); };
-  }, [q, a.scope_kind, ctx.demo]);
+  }, [q, a.product_id, ctx.demo]);
 
   const prov = proveedores?.find((p) => p.vendor_name === a.vendor_name) ?? null;
   const opcionesProveedor: OpcionDeBusqueda[] = (proveedores ?? []).map((p) => ({ valor: p.vendor_name, texto: p.vendor_name, detalle: `${p.products} ${t("products", "productos")}` }));
   const opcionesMedida: OpcionDeBusqueda[] = (prov?.sizes ?? []).map((s) => ({ valor: s, texto: s }));
+  const provLista = q.trim() === "" ? [] : buscarEnLista(opcionesProveedor, (o) => `${o.texto} ${o.detalle ?? ""}`, q, 12);
 
   const reiniciar = () => { setA({ scope_kind: "vendor_size" }); setNotas(""); setQ(""); setError(null); };
 
@@ -221,52 +225,40 @@ function FormNuevoConteo({ ctx, tienda, onCreado }: { ctx: Contexto; tienda: str
       <h3>{t("Start organizing", "Empezar a organizar")}</h3>
       <p className="sub">{tienda}</p>
       <div className="ops-formulario">
-        <label className="ops-cantidad"><span>{t("What to count", "Qué contar")}</span>
-          <div className="ops-opciones">
-            {ALCANCES.map((k) => <button type="button" key={k} className={`ops-opcion${a.scope_kind === k ? " elegida" : ""}`} aria-pressed={a.scope_kind === k} onClick={() => setA({ scope_kind: k })} data-opcion={k}>{INFO_DE_ALCANCE[k].emoji} {lang === "es" ? INFO_DE_ALCANCE[k].es : INFO_DE_ALCANCE[k].en}</button>)}
-          </div>
-          <span className="hint">{lang === "es" ? INFO_DE_ALCANCE[a.scope_kind].desc_es : INFO_DE_ALCANCE[a.scope_kind].desc_en}</span>
+        <label className="ops-cantidad"><span>{t("Supplier", "Proveedor")}</span>
+          {a.scope_kind === "product" && a.product_id != null ? (
+            <span className="ops-seleccion" data-producto={a.product_id}><span>{a.product_sku} · {a.product_name}</span> <button type="button" className="btn btn-sm" onClick={() => setA({ scope_kind: "vendor_size" })} data-accion="cambiar-producto">{t("Change", "Cambiar")}</button></span>
+          ) : a.vendor_name ? (
+            <span className="ops-seleccion" data-elegido="proveedor" data-valor-elegido={a.vendor_name}><span>{a.vendor_name}{prov && <span className="hint"> · {prov.products} {t("products", "productos")}</span>}</span> <button type="button" className="btn btn-sm" onClick={() => setA({ scope_kind: "vendor_size" })} data-accion="cambiar-proveedor">{t("Change", "Cambiar")}</button></span>
+          ) : (
+            <>
+              <input className="ops-campo ops-campo-grande" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Type a supplier or one product", "Escribe un proveedor o un producto")}
+                inputMode="search" autoComplete="off" autoCorrect="off" spellCheck={false} data-campo="proveedor-o-producto" />
+              {proveedores === null ? <span className="hint">{t("Loading suppliers…", "Cargando proveedores…")}</span> : (
+                <ul className="ops-buscador-lista" data-opciones-proveedor={provLista.length}>
+                  {provLista.map((o) => (
+                    <li key={o.valor}><button type="button" className="ops-opcion ops-buscador-opcion" onClick={() => { setA({ scope_kind: "vendor_size", vendor_name: o.valor }); setQ(""); }} data-proveedor={o.valor}>{o.texto}{o.detalle && <span className="hint"> · {o.detalle}</span>}</button></li>
+                  ))}
+                </ul>
+              )}
+              {sugeridos.length > 0 && (
+                <ul className="ops-buscador-lista" data-sugerencias={sugeridos.length}>
+                  {sugeridos.map((p) => <li key={p.id ?? p.sku}><button type="button" className="ops-opcion ops-buscador-opcion" onClick={() => { setA({ scope_kind: "product", product_id: p.id, product_sku: p.sku, product_name: p.name }); setQ(""); }} data-producto={p.id}>{p.sku} · {p.name}</button></li>)}
+                </ul>
+              )}
+              {q.trim().length >= 2 && provLista.length === 0 && sugeridos.length === 0 && <p className="hint">{t("Nothing matches. Check the spelling.", "Nada coincide. Revisa la escritura.")}</p>}
+            </>
+          )}
         </label>
-        {a.scope_kind !== "product" && (
-          <label className="ops-cantidad"><span>{t("Supplier (type to search)", "Proveedor (escribe para buscar)")}</span>
-            {proveedores === null ? <span className="hint">{t("Loading suppliers…", "Cargando proveedores…")}</span> : (
-              <BuscadorDeConteo etiqueta={t("Supplier", "Proveedor")} placeholder={t("Type the supplier", "Escribe el proveedor")} opciones={opcionesProveedor}
-                valor={a.vendor_name ?? null} dato="proveedor" onElegir={(v) => setA((x) => ({ ...x, vendor_name: v, size_in: null }))} />
-            )}
+        {a.vendor_name && a.scope_kind === "vendor_size" && prov && prov.sizes.length > 0 && (
+          <label className="ops-cantidad"><span>{t("Size (optional: empty = every size)", "Medida (opcional: vacía = todas las medidas)")}</span>
+            <BuscadorDeConteo etiqueta={t("Size", "Medida")} placeholder={t("Type the size, e.g. 24x48", "Escribe la medida, p. ej. 24x48")} opciones={opcionesMedida}
+              valor={a.size_in ?? null} dato="medida" onElegir={(v) => setA((x) => ({ ...x, size_in: v }))} />
           </label>
         )}
-        {a.scope_kind === "vendor_size" && prov && (
-          <label className="ops-cantidad"><span>{t("Size (type to search)", "Medida (escribe para buscar)")}</span>
-            {prov.sizes.length === 0
-              ? <span className="hint">{t("This supplier has no sizes in the catalog; use supplier + note.", "Este proveedor no tiene medidas en el catálogo; usa proveedor + nota.")}</span>
-              : <BuscadorDeConteo etiqueta={t("Size", "Medida")} placeholder={t("Type the size, e.g. 24x48", "Escribe la medida, p. ej. 24x48")} opciones={opcionesMedida}
-                  valor={a.size_in ?? null} dato="medida" onElegir={(v) => setA((x) => ({ ...x, size_in: v }))} />}
-          </label>
-        )}
-        {a.scope_kind === "vendor_size" && prov && a.size_in && (
-          <label className="ops-cantidad"><span>{t("Note (optional, narrows the size)", "Nota (opcional, afina la medida)")}</span>
+        {a.vendor_name && a.scope_kind === "vendor_size" && (
+          <label className="ops-cantidad"><span>{t("Note (optional, narrows it)", "Nota (opcional, afina)")}</span>
             <input className="ops-campo" value={a.note ?? ""} onChange={(e) => setA((x) => ({ ...x, note: e.target.value }))} placeholder={t("e.g. black, matte", "p. ej. negro, mate")} data-campo="nota" />
-          </label>
-        )}
-        {a.scope_kind === "vendor_note" && (
-          <label className="ops-cantidad"><span>{t("Note (word in the name, collection, color or style)", "Nota (palabra del nombre, colección, color o estilo)")}</span>
-            <input className="ops-campo ops-campo-grande" value={a.note ?? ""} onChange={(e) => setA((x) => ({ ...x, note: e.target.value }))} placeholder={t("e.g. black, Marazzi, matte", "p. ej. negro, Marazzi, mate")} data-campo="nota" />
-          </label>
-        )}
-        {a.scope_kind === "product" && (
-          <label className="ops-cantidad"><span>{t("Product (SKU or name)", "Producto (SKU o nombre)")}</span>
-            {a.product_id != null ? (
-              <span className="ops-seleccion" data-producto={a.product_id}><span>{a.product_sku} · {a.product_name}</span> <button type="button" className="btn btn-sm" onClick={() => setA({ scope_kind: "product" })} data-accion="cambiar-producto">{t("Change", "Cambiar")}</button></span>
-            ) : (
-              <>
-                <input className="ops-campo ops-campo-grande" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Type at least 2 letters", "Escribe al menos 2 letras")} data-campo="buscar-producto" />
-                {sugeridos.length > 0 && (
-                  <ul className="ops-buscador-lista" data-sugerencias={sugeridos.length}>
-                    {sugeridos.map((p) => <li key={p.id ?? p.sku}><button type="button" className="ops-opcion ops-buscador-opcion" onClick={() => { setA({ scope_kind: "product", product_id: p.id, product_sku: p.sku, product_name: p.name }); setQ(""); }} data-producto={p.id}>{p.sku} · {p.name}</button></li>)}
-                  </ul>
-                )}
-              </>
-            )}
           </label>
         )}
         <label className="ops-cantidad"><span>{t("Notes (optional)", "Notas (opcional)")}</span>
@@ -301,8 +293,9 @@ function FormNuevoConteo({ ctx, tienda, onCreado }: { ctx: Contexto; tienda: str
 export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerrar }: {
   c: Conteo; lineas: Linea[]; pendientes: OrdenPendiente[]; ctx: Contexto; pon: Pon; sin333: boolean; onCerrar: () => void;
 }) {
-  const { t } = usePrefs();
+  const { t, lang } = usePrefs();
   const [lineaAbierta, setLineaAbierta] = useState<string | null>(null);
+  const [qLinea, setQLinea] = useState("");
   const [recontar, setRecontar] = useState<Linea | null>(null);
   const [cancelando, setCancelando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -311,6 +304,7 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
   const gestiona = puedeGestionarConteo(ctx.yo, c.store);
   const nombre = (id: string | null) => (id ? ctx.personas.find((p) => p.id === id)?.full_name ?? "—" : "");
   const progreso = progresoDelConteo(lineas);
+  const filtradas = useMemo(() => buscarEnLista(ordenarLineas(lineas), (l) => `${l.sku} ${l.name} ${l.size_in ?? ""}`, qLinea, 500), [lineas, qLinea]);
   const adjuntos = useMemo(() => [c.signed_sheet, ...c.adjustment_shots, ...lineas.map((l) => l.photo)].filter((x): x is string => !!x), [c.signed_sheet, c.adjustment_shots, lineas]);
   const enlaces = useEnlaces(adjuntos, ctx.demo);
   const adj = (ruta: string, alt: string) => <AdjuntoDeConteo ruta={ruta} alt={alt} enlaces={enlaces} demo={ctx.demo} />;
@@ -352,8 +346,31 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
 
   const lineaElegida = lineaAbierta ? lineas.find((l) => l.id === lineaAbierta) ?? null : null;
   if (lineaElegida && c.stage === "counting" && acciones.includes("contar_linea")) {
-    return <FormLinea l={lineaElegida} ctx={ctx} onCerrar={() => setLineaAbierta(null)} onGuardada={(n) => { pon((d) => ({ ...d, lineas: d.lineas.map((x) => (x.id === n.id ? n : x)) })); setLineaAbierta(null); }} />;
+    // «Next» (19 nov): el orden de la lista; la última línea cierra la captura.
+    const orden = ordenarLineas(lineas);
+    const i = orden.findIndex((x) => x.id === lineaElegida.id);
+    const siguiente = i >= 0 ? orden[i + 1] ?? null : null;
+    return (
+      <FormLinea key={lineaElegida.id} l={lineaElegida} ctx={ctx} siguiente={siguiente} onCerrar={() => setLineaAbierta(null)}
+        onGuardada={(n, sig) => { pon((d) => ({ ...d, lineas: d.lineas.map((x) => (x.id === n.id ? n : x)) })); setLineaAbierta(sig ? sig.id : null); }} />
+    );
   }
+
+  // Un producto que la búsqueda no encontró: se cuenta con el nombre tecleado (línea sin producto del catálogo).
+  const agregarLibre = async (nombre: string) => {
+    setOcupado(true); setError(null);
+    try {
+      const id = ctx.demo ? `l-libre-${Date.now()}` : await agregarLineaLibre(createClient(), c.id, nombre);
+      const nueva: Linea = {
+        id, count_id: c.id, product_id: null, sku: "LIBRE", name: nombre, size_in: null, system_qty: null, system_qty_set_by: null, system_qty_set_by_name: null, system_qty_set_at: null,
+        price: null, pieces_per_box: null, counted_boxes: null, counted_pieces: null, counted_total: null, counted_by: null, counted_by_name: null, counted_at: null, note: null, photo: null,
+        recount_requested: false, recount_note: null, position: Math.max(0, ...lineas.map((x) => x.position)) + 1, unit_of_measure: null, lots: [],
+      };
+      pon((d) => ({ ...d, lineas: [...d.lineas, nueva] }));
+      setQLinea("");
+      setLineaAbierta(id);
+    } catch (x) { setError(mensajeDeError(x)); } finally { setOcupado(false); }
+  };
 
   const enRevisionOFirma = c.stage === "review" || c.stage === "sign_off" || c.stage === "adjusted";
   return (
@@ -382,8 +399,16 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
             <ul className="ops-progreso ops-progreso-conteo" aria-label={`${progreso.pct}%`} data-progreso={progreso.pct}>
               {lineas.map((l) => <li key={l.id} className={estaContada(l) ? "hecho" : ""} />)}
             </ul>
+            <input className="ops-campo ops-campo-grande" value={qLinea} onChange={(e) => setQLinea(e.target.value)} placeholder={t("Search a product in this count", "Buscar un producto de este conteo")}
+              inputMode="search" autoComplete="off" autoCorrect="off" spellCheck={false} data-campo="buscar-linea" />
+            {qLinea.trim().length >= 2 && filtradas.length === 0 && acciones.includes("contar_linea") && (
+              <div className="ops-sin-producto" data-sin-producto-libre>
+                <p className="hint">{t("Not in the list. You can count it as you typed it.", "No aparece en la lista. Puedes contarlo como lo escribiste.")}</p>
+                <button type="button" className="ops-boton ops-boton-primario" onClick={() => void agregarLibre(qLinea.trim())} disabled={ocupado} data-accion="agregar-libre">+ {t("Count", "Contar")} {qLinea.trim()}</button>
+              </div>
+            )}
             <ul className="ops-lineas-conteo">
-              {ordenarLineas(lineas).map((l) => {
+              {filtradas.map((l) => {
                 const puedeCapturar = acciones.includes("contar_linea");
                 return (
                   <li key={l.id} className={`ops-linea-conteo${estaContada(l) ? " contada" : ""}${l.recount_requested ? " recontar" : ""}`} data-linea={l.id}>
@@ -396,6 +421,7 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
                       <span className="ops-equipo-insignias">
                         {l.recount_requested && <span className="ops-insignia ops-insignia-sin-foto" data-recontar>↩ {t("Recount", "Recontar")}{l.recount_note && `: ${l.recount_note}`}</span>}
                         {estaContada(l) && <span className="ops-insignia ops-insignia-ok">✓ {l.counted_by_name ?? "—"} · {fmtDateTime(l.counted_at)}</span>}
+                        {(l.lots ?? []).length > 0 && <span className="hint" data-lotes={(l.lots ?? []).length}>{resumenDeLotes(l.lots ?? [], l.unit_of_measure ?? null, lang)}</span>}
                         {!estaContada(l) && !l.recount_requested && puedeCapturar && <span className="ops-insignia">{t("Tap to count", "Toca para contar")}</span>}
                         {l.note && <span className="hint">🗒 {l.note}</span>}
                         {l.photo && adj(l.photo, l.sku)}

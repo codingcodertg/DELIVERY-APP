@@ -61,8 +61,8 @@ export function tituloDeAlcance(a: AlcanceElegido): string {
 export function faltaDelAlcance(a: AlcanceElegido): "vendor" | "size" | "note" | "product" | null {
   if (a.scope_kind === "product") return a.product_id == null ? "product" : null;
   if (!(a.vendor_name ?? "").trim()) return "vendor";
+  // 19 nov: la medida es OPCIONAL (sin medida = todas las medidas del proveedor); la nota, si la hay, son 2 letras o más.
   if (a.scope_kind === "vendor_size") {
-    if (!(a.size_in ?? "").trim()) return "size";
     const nota = (a.note ?? "").trim();
     return nota.length === 0 || nota.length >= 2 ? null : "note";
   }
@@ -145,6 +145,9 @@ export interface Linea {
   recount_requested: boolean;
   recount_note: string | null;
   position: number;
+  /** 19 nov: la unidad de la línea (caja, bolsa, pieza) y sus lotes. Vacíos en las líneas de antes. */
+  unit_of_measure?: UnidadDeConteo | null;
+  lots?: Lote[];
 }
 
 /** Una orden pendiente de una línea (paso 3): factura, cantidad vendida y no entregada (en la unidad de la línea). */
@@ -443,4 +446,64 @@ export function filasDeHojaDeConteo(lineas: readonly Linea[], pendientes: readon
 export function idDeHoja(v: string | string[] | undefined): string | null {
   const s = Array.isArray(v) ? v[0] : v;
   return s && /^[0-9a-f-]{36}$/i.test(s) ? s : null;
+}
+
+// ---------------------------------------------------------------------------
+// Lotes (19 nov): un producto puede venir en varios lotes. Cada lote: cantidad total, lote, nota y foto.
+// La unidad de medida (caja, bolsa, pieza) es UNA por línea. El total del producto es la suma de los lotes en piezas:
+// una caja vale las piezas por caja del producto; bolsa y pieza cuentan tal cual (decisión a confirmar por el gerente).
+// ---------------------------------------------------------------------------
+export const UNIDADES_DE_CONTEO = ["box", "bag", "piece"] as const;
+export type UnidadDeConteo = (typeof UNIDADES_DE_CONTEO)[number];
+export function esUnidadDeConteo(x: unknown): x is UnidadDeConteo {
+  return typeof x === "string" && (UNIDADES_DE_CONTEO as readonly string[]).includes(x);
+}
+export const INFO_DE_UNIDAD: Record<UnidadDeConteo, { en: string; es: string }> = {
+  box: { en: "Boxes", es: "Cajas" },
+  bag: { en: "Bags", es: "Bolsas" },
+  piece: { en: "Pieces", es: "Piezas" },
+};
+
+/** Un lote de una línea. `qty` es la cantidad en la unidad de la línea (puede ser decimal en bolsas). */
+export interface Lote {
+  qty: number;
+  lot: string | null;
+  note: string | null;
+  photo: string | null;
+}
+
+export const MAX_LOTES = 20;
+export const MAX_TEXTO_LOTE = 40;
+export const MAX_NOTA_LOTE = 300;
+
+/** Cuántas piezas vale una unidad de la línea: la caja vale las piezas por caja (si las hay); bolsa y pieza valen 1. */
+export function piezasPorUnidad(unidad: UnidadDeConteo, piezasPorCaja: number | null): number {
+  if (unidad === "box") return piezasPorCaja != null && piezasPorCaja > 0 ? piezasPorCaja : 1;
+  return 1;
+}
+
+/** El total en piezas de un conjunto de lotes. Null si no hay lotes. */
+export function totalDeLotes(lotes: readonly Pick<Lote, "qty">[], unidad: UnidadDeConteo, piezasPorCaja: number | null): number | null {
+  if (lotes.length === 0) return null;
+  const f = piezasPorUnidad(unidad, piezasPorCaja);
+  return redondea(lotes.reduce((s, x) => s + x.qty, 0) * f, 2);
+}
+
+/** Valida los lotes antes de guardar. Devuelve el motivo del primer error, o null si todo está bien. */
+export function motivoDeLotes(lotes: readonly Lote[], unidad: UnidadDeConteo | null): "unidad" | "vacio" | "cantidad" | "demasiados" | "texto" | null {
+  if (!unidad) return "unidad";
+  if (lotes.length === 0) return "vacio";
+  if (lotes.length > MAX_LOTES) return "demasiados";
+  for (const x of lotes) {
+    if (!Number.isFinite(x.qty) || x.qty < 0) return "cantidad";
+    if ((x.lot ?? "").length > MAX_TEXTO_LOTE || (x.note ?? "").length > MAX_NOTA_LOTE) return "texto";
+  }
+  if (!lotes.some((x) => x.qty > 0)) return "cantidad";
+  return null;
+}
+
+/** Los lotes como texto para la lista de la línea («Lote 123: 100 cajas · Lote 3A4: 20 cajas»). */
+export function resumenDeLotes(lotes: readonly Lote[], unidad: UnidadDeConteo | null, lang: Lang): string {
+  const nombre = unidad ? (lang === "es" ? INFO_DE_UNIDAD[unidad].es.toLowerCase() : INFO_DE_UNIDAD[unidad].en.toLowerCase()) : "";
+  return lotes.map((x) => `${x.lot ? `${lang === "es" ? "Lote" : "Lot"} ${x.lot}: ` : ""}${x.qty} ${nombre}`).join(" · ");
 }

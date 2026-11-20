@@ -4,7 +4,7 @@
  * definer con las puertas de la base).
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Alcance, AlcanceElegido, Conteo, EstadoDeConteo, EtapaDeConteo, Linea, OrdenPendiente } from "./conteos";
+import { esUnidadDeConteo, type Alcance, type AlcanceElegido, type Conteo, type EstadoDeConteo, type EtapaDeConteo, type Linea, type Lote, type OrdenPendiente, type UnidadDeConteo } from "./conteos";
 
 /**
  * ¿Falta aplicar la 274? Solo cuando la base dice que la TABLA de conteos no existe (D-1021): el código de «tabla
@@ -82,9 +82,17 @@ export function conteoDeLaFila(x: Record<string, unknown>): Conteo {
     sign_note: (x.sign_note as string | null) ?? null,
   };
 }
+/** Los lotes de una línea tal como vienen del jsonb (cualquier cosa que no sea un lote válido se descarta). */
+export function lotesDeLaFila(v: unknown): Lote[] {
+  if (!Array.isArray(v)) return [];
+  return (v as Record<string, unknown>[])
+    .filter((x) => x && typeof x === "object" && num(x.qty) != null)
+    .map((x) => ({ qty: num(x.qty) ?? 0, lot: (x.lot as string | null) ?? null, note: (x.note as string | null) ?? null, photo: (x.photo as string | null) ?? null }));
+}
+
 export function lineaDeLaFila(x: Record<string, unknown>): Linea {
   return {
-    ...(x as unknown as Linea), product_id: num(x.product_id), system_qty: num(x.system_qty), price: num(x.price), pieces_per_box: num(x.pieces_per_box),
+    ...(x as unknown as Linea), product_id: num(x.product_id), unit_of_measure: esUnidadDeConteo(x.unit_of_measure) ? x.unit_of_measure : null, lots: lotesDeLaFila(x.lots), system_qty: num(x.system_qty), price: num(x.price), pieces_per_box: num(x.pieces_per_box),
     counted_boxes: num(x.counted_boxes), counted_pieces: num(x.counted_pieces), counted_total: num(x.counted_total), recount_requested: !!x.recount_requested, position: num(x.position) ?? 0,
     system_qty_set_by: (x.system_qty_set_by as string | null) ?? null, system_qty_set_by_name: (x.system_qty_set_by_name as string | null) ?? null, system_qty_set_at: (x.system_qty_set_at as string | null) ?? null,
   };
@@ -134,6 +142,20 @@ export interface CapturaDeCantidad { cajas: number | null; sueltas: number | nul
 export async function registrarLinea(sb: SupabaseClient, x: { lineaId: string; cajas: number | null; sueltas: number | null; total: number | null; nota: string; foto: string | null }): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_count_line", { p_line: x.lineaId, p_boxes: x.cajas, p_pieces: x.sueltas, p_total: x.total, p_note: x.nota, p_photo: x.foto });
   if (error) throw error;
+}
+
+/** Los lotes de una línea (19 nov): la unidad (caja, bolsa, pieza) y la lista de lotes. La base suma y guarda el total. */
+export async function registrarLotes(sb: SupabaseClient, x: { lineaId: string; unidad: UnidadDeConteo; lotes: Lote[] }): Promise<void> {
+  const p_lots = x.lotes.map((l) => ({ qty: l.qty, lot: l.lot?.trim() || null, note: l.note?.trim() || null, photo: l.photo }));
+  const { error } = await sb.rpc("warehouse_ops_count_lots", { p_line: x.lineaId, p_unit: x.unidad, p_lots });
+  if (error) throw error;
+}
+
+/** Un producto escrito a mano (no lo encontró la búsqueda): una línea sin producto del catálogo. Devuelve el id de la línea. */
+export async function agregarLineaLibre(sb: SupabaseClient, countId: string, nombre: string): Promise<string> {
+  const { data, error } = await sb.rpc("warehouse_ops_count_add_line", { p_count: countId, p_name: nombre });
+  if (error) throw error;
+  return data as string;
 }
 
 export async function mandarARecontar(sb: SupabaseClient, lineaId: string, nota: string): Promise<void> {
@@ -196,7 +218,7 @@ const vacio = {
   adjusted_at: null, adjusted_by: null, adjustment_shots: [] as string[], cancelled_at: null, cancelled_by: null, cancel_note: null,
 };
 const alcance = (k: Alcance, vendor: string | null, size: string | null, note: string | null, product: number | null) => ({ scope_kind: k, vendor_name: vendor, size_in: size, note, product_id: product });
-const lineaVacia = { system_qty_set_by: null, system_qty_set_by_name: null, system_qty_set_at: null, counted_boxes: null, counted_pieces: null, counted_total: null, counted_by: null, counted_by_name: null, counted_at: null, note: null, photo: null, recount_requested: false, recount_note: null };
+const lineaVacia = { unit_of_measure: null, lots: [] as Lote[], system_qty_set_by: null, system_qty_set_by_name: null, system_qty_set_at: null, counted_boxes: null, counted_pieces: null, counted_total: null, counted_by: null, counted_by_name: null, counted_at: null, note: null, photo: null, recount_requested: false, recount_note: null };
 
 export const DEMO_PROVEEDORES: Proveedor[] = [
   { vendor_name: "Daltile", sizes: ["12x24", "24 x 48"], products: 3 },
