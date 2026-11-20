@@ -148,8 +148,6 @@ export interface Linea {
   /** 19 nov: la unidad de la línea (caja, bolsa, pieza) y sus lotes. Vacíos en las líneas de antes. */
   unit_of_measure?: UnidadDeConteo | null;
   lots?: Lote[];
-  /** false: la línea no se compara con el sistema (bolsas o producto libre). Vacío = sí (líneas de antes). */
-  counted_comparable?: boolean;
 }
 
 /** Una orden pendiente de una línea (paso 3): factura, cantidad vendida y no entregada (en la unidad de la línea). */
@@ -234,9 +232,24 @@ export interface CuentasDeLinea {
 }
 
 /** Las cuentas de una línea DESPUÉS de las órdenes pendientes (la misma regla de la firma, el informe y la hoja). */
-export function cuentasDeLinea(x: Pick<Linea, "counted_total" | "system_qty" | "price" | "counted_comparable">, pendiente: number): CuentasDeLinea {
+/** Lo que hace falta para saber si una línea se compara con el sistema (las líneas de antes no lo traen). */
+export type ParaComparar = Partial<Pick<Linea, "product_id" | "unit_of_measure" | "pieces_per_box">>;
+
+/**
+ * ¿Se compara la línea con el sistema? Espejo de la firma (336). Línea libre (sin producto del catálogo): NO.
+ * Piezas, o cajas con piezas por caja: SÍ. Bolsas y cajas sin piezas por caja: NO. Sin unidad (líneas de antes): SÍ.
+ */
+export function comparableConElSistema(x: ParaComparar): boolean {
+  if (x.product_id === null) return false;
+  const u = x.unit_of_measure ?? null;
+  if (u === null || u === "piece") return true;
+  if (u === "box") return (x.pieces_per_box ?? 0) > 0;
+  return false;
+}
+
+export function cuentasDeLinea(x: Pick<Linea, "counted_total" | "system_qty" | "price"> & ParaComparar, pendiente: number): CuentasDeLinea {
   const contado = x.counted_total;
-  const comparable = x.counted_comparable !== false;
+  const comparable = comparableConElSistema(x);
   const real = contado == null || !comparable ? null : redondea(contado - pendiente);
   const dif = real == null || x.system_qty == null ? null : redondea(real - x.system_qty);
   const valor = dif == null || x.price == null ? null : redondea(dif * x.price, 2);
@@ -250,13 +263,13 @@ export function enCajas(piezas: number | null, piezasPorCaja: number | null): nu
 }
 
 /** contado − sistema, SIN las pendientes (la vista de la captura). Null si falta alguno de los dos. */
-export function diferencia(x: Pick<Linea, "system_qty" | "counted_total" | "counted_comparable">): number | null {
-  if (x.counted_comparable === false || x.system_qty == null || x.counted_total == null) return null;
+export function diferencia(x: Pick<Linea, "system_qty" | "counted_total"> & ParaComparar): number | null {
+  if (!comparableConElSistema(x) || x.system_qty == null || x.counted_total == null) return null;
   return redondea(x.counted_total - x.system_qty);
 }
 
 /** El valor de la diferencia a precio de venta (precio × diferencia), con signo; sin pendientes. */
-export function valorDeLaDiferencia(x: Pick<Linea, "system_qty" | "counted_total" | "price" | "counted_comparable">): number | null {
+export function valorDeLaDiferencia(x: Pick<Linea, "system_qty" | "counted_total" | "price"> & ParaComparar): number | null {
   const d = diferencia(x);
   if (d == null || x.price == null) return null;
   return redondea(d * x.price, 2);
@@ -316,13 +329,20 @@ export function resumenDelConteo(lineas: readonly Pick<Linea, "id" | "system_qty
   };
 }
 
-/** ¿Hay alguna línea con diferencia después de las pendientes? (la firma pide la razón). */
-export function hayDiferencias(lineas: readonly Pick<Linea, "id" | "system_qty" | "counted_total" | "price" | "counted_at" | "counted_comparable">[], pendientes: readonly Pick<OrdenPendiente, "line_id" | "qty">[]): boolean {
-  return lineas.some((l) => {
-    if (l.counted_at == null || l.system_qty == null) return false;
-    const d = cuentasDeLinea(l, pendienteDeLinea(pendientes, l.id)).diferencia;
-    return d != null && d !== 0;
-  });
+/**
+ * ¿Hace falta la razon para esta línea en la firma? Espejo de la firma (336): una línea de catálogo con sistema que NO
+ * se compara (bolsas, cajas sin piezas por caja) SÍ la pide; una comparable, si tiene diferencia. Líneas libres: no.
+ */
+export function requiereRazonDeLinea(l: Pick<Linea, "id" | "system_qty" | "counted_total" | "price" | "counted_at"> & ParaComparar, pendientes: readonly Pick<OrdenPendiente, "line_id" | "qty">[]): boolean {
+  if (l.counted_at == null || l.system_qty == null || l.product_id === null) return false;
+  if (!comparableConElSistema(l)) return true;
+  const d = cuentasDeLinea(l, pendienteDeLinea(pendientes, l.id)).diferencia;
+  return d != null && d !== 0;
+}
+
+/** ¿Hay alguna línea que pida razón en la firma? */
+export function hayDiferencias(lineas: readonly (Pick<Linea, "id" | "system_qty" | "counted_total" | "price" | "counted_at"> & ParaComparar)[], pendientes: readonly Pick<OrdenPendiente, "line_id" | "qty">[]): boolean {
+  return lineas.some((l) => requiereRazonDeLinea(l, pendientes));
 }
 
 /** Un número entero escrito a mano: vacío = null; NaN si no es un entero ≥ 0. */

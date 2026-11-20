@@ -23,12 +23,18 @@ describe("migración 336 (conteos: lotes, unidad, producto libre, medida opciona
     expect(SQL.indexOf("jsonb_typeof(x->'qty')")).toBeLessThan(SQL.indexOf("q := (x->>'qty')::numeric;"));
     expect(SQL).toContain("if total <= 0 then raise exception 'warehouse_ops: falta lo contado'");
   });
-  it("el total que se compara va en piezas; lo no comparable se marca y no entra a la firma", () => {
-    expect(SQL).toContain("add column if not exists counted_comparable boolean not null default true");
-    expect(SQL).toContain("comparable := l.product_id is not null and (p_unit = 'piece' or (p_unit = 'box' and coalesce(l.pieces_per_box, 0) > 0));");
-    expect(SQL).toContain("counted_total = case when comparable and p_unit = 'box' then round(total * l.pieces_per_box, 2) else round(total, 2) end");
-    expect(SQL).toContain("counted_comparable = comparable,");
-    expect(SQL).toContain("and l.counted_comparable\n      and l.counted_total - coalesce(");
+  it("el total que se compara va en piezas cuando se puede convertir; no hay columna de comparabilidad", () => {
+    expect(SQL).not.toContain("counted_comparable");
+    expect(SQL).toContain("counted_total = case when p_unit = 'box' and l.product_id is not null and coalesce(l.pieces_per_box, 0) > 0");
+  });
+  it("la firma pide razon por linea de catalogo no comparable (bolsa, caja sin piezas) y por diferencia comparable", () => {
+    expect(SQL).toContain("create or replace function public.warehouse_ops_count_sign(");
+    expect(SQL).toContain("and l.product_id is not null and l.system_qty is not null");
+    expect(SQL).toContain("not (l.unit_of_measure is null or l.unit_of_measure = 'piece' or (l.unit_of_measure = 'box' and coalesce(l.pieces_per_box, 0) > 0))");
+  });
+  it("capturar por lo viejo (274) también borra lotes y unidad", () => {
+    expect(SQL).toContain("create or replace function public.warehouse_ops_count_line(");
+    expect(SQL).toContain("unit_of_measure = null, lots = '[]'::jsonb, counted_boxes = p_boxes");
   });
   it("la foto de cada lote debe ser de quien la sube", () => {
     expect(SQL).toContain("split_part(x->>'photo', '/', 1) <> yo::text");

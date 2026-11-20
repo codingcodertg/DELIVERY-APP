@@ -200,7 +200,7 @@ export function FormLinea({ l, ctx, siguiente, onCerrar, onGuardada }: {
       if (!ctx.demo) await registrarLotes(createClient(), { lineaId: l.id, unidad, lotes });
       const sistema = totalDelSistema(lotes, unidad, l.pieces_per_box, l.product_id != null);
       const n: Linea = {
-        ...l, unit_of_measure: unidad, lots: lotes, counted_boxes: null, counted_pieces: null, counted_total: sistema.total, counted_comparable: sistema.comparable,
+        ...l, unit_of_measure: unidad, lots: lotes, counted_boxes: null, counted_pieces: null, counted_total: sistema.total,
         counted_by: ctx.yo.id, counted_by_name: ctx.yo.full_name, counted_at: new Date().toISOString(), note: null,
         photo: lotes.find((x) => x.photo)?.photo ?? null, recount_requested: false,
       };
