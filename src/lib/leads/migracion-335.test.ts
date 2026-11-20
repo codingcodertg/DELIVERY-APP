@@ -12,10 +12,10 @@ const importadorEstado = leer("scripts/leads/importa-leads.mjs");
 const migracion328 = leer("supabase/migrations/328_leads_etapas.sql");
 
 describe("335 · la forma del fichero", () => {
-  it("termina con el marcador del registro y nada detrás (el registro lo pone quien aplica)", () => {
+  it("termina con el marcador del registro y su línea de registro justo detrás", () => {
     const partes = sql.split("-- @ledger-below");
     expect(partes).toHaveLength(2);
-    expect(partes[1].trim()).toBe("");
+    expect(partes[1].trim().startsWith("insert into public.schema_migrations")).toBe(true);
   });
   it("sin begin ni commit propios: la transacción la pone quien aplica", () => {
     expect(sinComentarios).not.toMatch(/^\s*(begin|commit|rollback)\s*;/im);
