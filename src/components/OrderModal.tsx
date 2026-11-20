@@ -52,7 +52,7 @@ import { faltaParaAnular, motivoDeAnulacion, motivosDeAnulacion, pideTextoLibre 
 import { tiendasDelGrupo } from "@/lib/store-group";
 import { origenesPermitidos as origenesDelVendedor, origenFijo as origenFijoDelVendedor } from "@/lib/origen-libre";
 import { ordenDeMisTiendas, puedeBorrar } from "@/lib/deshacer-y-borrar";
-import { ventanaDelOtroTipoDeDia, ventanaDeTodoElDia, ventanasParaLaFecha } from "@/lib/delivery-windows";
+import { seOfreceLaVentana, ventanaDelOtroTipoDeDia, ventanaDeTodoElDia, ventanasOfrecidas } from "@/lib/delivery-windows";
 import { decisionAlConfirmar, hayQueAvisar, siguienteIndice, sugerenciasPara } from "@/lib/account-combobox";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
 import { AddressInput } from "@/components/AddressInput";
@@ -462,7 +462,7 @@ export function OrderModal({
   const avisaMotivos = cambiaLaAprobacion(motivosDeOficina);
   // Las franjas del día (D-657): las de la fecha elegida, lo que queda en cada una y lo que D-639 diría de cada una.
   const franjas = muestraFranjas
-    ? franjasDelDia({ fecha: fechaDeCupo, tienda: d.store, ocupadas, reglas: reglasVigentes, ahora: new Date(), actual: d.delivery_windows })
+    ? franjasDelDia({ fecha: fechaDeCupo, tienda: d.store, ocupadas, reglas: reglasVigentes, ahora: new Date(), actual: d.delivery_windows }).filter((f) => seOfreceLaVentana(f.ventana, d.delivery_windows))
     : [];
 
   const etapaDeEnvio = etapaAlEnviar(me.role, quienCrea(motivosDeOficina));
@@ -4563,7 +4563,8 @@ function WindowSel({ val, fecha, on, disabled, invalid, t }: {
   const isCustom = current && !DELIVERY_WINDOW_PRESETS.some((p) => p.value === current);
   // La de sábado solo en sábado, y la de entre semana solo el resto de días (D-296). La que la orden
   // ya tiene sigue en la lista aunque no toque ese día, como en los desplegables de tienda (D-267).
-  const disponibles = ventanasParaLaFecha(fecha, current);
+  // Por ahora solo «todo el día» (20 nov, falta un chofer): `ventanasOfrecidas`.
+  const disponibles = ventanasOfrecidas(fecha, current);
   return (
     <div className="field">
       <label>{t("Delivery Time Window", "Ventana de Entrega")}{invalid && <span className="req-star"> *</span>}</label>
