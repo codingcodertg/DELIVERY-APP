@@ -148,7 +148,7 @@ describe("la pantalla usa el corte, en todas sus tarjetas", () => {
       "() => ordenesDelPanel(deliveries, alcance, settings.order_type_rules),",
       "[deliveries, alcance, settings.order_type_rules],",
       "? inDateRange(deliveries, from, to).filter((d) => !!d.assigned_driver && misChoferes.nombres.has(d.assigned_driver))",
-      "}, [shifts, users, scoped, deliveries, misChoferes, from, to]);",
+      "}, [shifts, users, scoped, deliveries, misChoferes, from, to, settings.order_type_rules]);",
     ]);
   });
 

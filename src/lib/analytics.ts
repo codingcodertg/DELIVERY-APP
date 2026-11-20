@@ -5,6 +5,8 @@ import { distanceMeters } from "@/lib/geo";
 import { palletsDeLaOrden, sumaPallets } from "./pallets";
 import { redondeaDinero, redondeaMillas, sumaDinero, sumaMillas } from "./totales";
 import { conteoDeFotos } from "./columnas-de-la-lista";
+import { esTraslado } from "./traslados-de-chofer";
+import type { OrderTypeRules } from "./required";
 
 // How far the POD GPS stamp can sit from the geocoded destination before the
 // delivery is flagged as location-mismatched (metres). ~250 m tolerates
@@ -162,10 +164,16 @@ export function deliveryTrend(deliveries: Delivery[], from: string, to: string, 
 
 export interface DriverKpi {
   driver: string;
+  /** Entregas a CLIENTE asignadas (sin canceladas ni rechazadas). Los traslados van aparte, en `transfers`. */
   orders: number;
+  /** Entregas a cliente con etapa «entregada». */
   delivered: number;
+  /** Traslados entre tiendas asignados (Intertienda, Transfer, proveedor): no son entregas a cliente. */
+  transfers: number;
+  /** Traslados con etapa «entregada». */
+  transfersDelivered: number;
   routes: number;            // distinct delivery days worked
-  avgStops: number;          // orders ÷ routes
+  avgStops: number;          // (entregas + traslados) ÷ routes: paradas físicas del camión
   miles: number;
   avgRouteMiles: number;     // miles ÷ routes
   revenue: number;           // delivery fees on their orders
@@ -185,10 +193,13 @@ export interface CostModel { fuelPrice?: number | null; mpg?: number | null; bas
 
 /** Rich per-driver KPIs (Epic D). Cancelled/rejected orders are excluded.
  * capacityOf gives each driver's per-day pallet capacity; cost (optional)
- * drives the fuel-cost / cost-per-delivery figures. */
-export function driverKpis(deliveries: Delivery[], capacityOf: (driver: string) => number, cost?: CostModel): DriverKpi[] {
+ * drives the fuel-cost / cost-per-delivery figures. `reglas` (los tipos de
+ * orden de Ajustes) decide qué es un traslado: esos no cuentan como entrega
+ * a cliente (`orders`, `delivered`, puntualidad, calificación), pero sí suman
+ * millas, pallets, ingresos y paradas. */
+export function driverKpis(deliveries: Delivery[], capacityOf: (driver: string) => number, cost?: CostModel, reglas?: OrderTypeRules): DriverKpi[] {
   interface Acc {
-    orders: number; delivered: number; days: Set<string>; miles: number; revenue: number;
+    orders: number; delivered: number; transfers: number; transfersDelivered: number; days: Set<string>; miles: number; revenue: number;
     onTimeElig: number; onTime: number; delaySum: number; delayCount: number; pallets: number;
     /** Las órdenes de este chofer: los totales se sacan de aquí, no acumulando a mano. */
     suyas: Delivery[];
@@ -198,10 +209,16 @@ export function driverKpis(deliveries: Delivery[], capacityOf: (driver: string) 
   for (const d of deliveries) {
     if (!d.assigned_driver) continue;
     if (d.stage === "canceled" || d.stage === "rejected") continue;
-    const a = map.get(d.assigned_driver) ?? { orders: 0, delivered: 0, days: new Set<string>(), miles: 0, revenue: 0, onTimeElig: 0, onTime: 0, delaySum: 0, delayCount: 0, pallets: 0, csatSum: 0, csatCount: 0, suyas: [] };
-    a.orders++;
+    const a = map.get(d.assigned_driver) ?? { orders: 0, delivered: 0, transfers: 0, transfersDelivered: 0, days: new Set<string>(), miles: 0, revenue: 0, onTimeElig: 0, onTime: 0, delaySum: 0, delayCount: 0, pallets: 0, csatSum: 0, csatCount: 0, suyas: [] };
     if (d.delivery_date) a.days.add(d.delivery_date);
     a.suyas.push(d);
+    if (esTraslado(d.order_type, reglas)) {
+      a.transfers++;
+      if (d.stage === "delivered") a.transfersDelivered++;
+      map.set(d.assigned_driver, a);
+      continue;
+    }
+    a.orders++;
     if (d.stage === "delivered") {
       a.delivered++;
       const due = promisedDue(d);
@@ -228,14 +245,17 @@ export function driverKpis(deliveries: Delivery[], capacityOf: (driver: string) 
       const ingresos = sumaDinero(a.suyas, (d) => d.delivery_fee);
       const avgPerDay = pallets / routes;
       const fuelCost = fuelReady ? redondeaDinero((millas / (cost!.mpg as number)) * (cost!.fuelPrice as number)) : null;
+      // El gas es de todo el camión (traslados incluidos); la tarifa base es por entrega a cliente.
       const costTotal = (fuelCost ?? 0) + (base ?? 0) * a.orders;
       const costPerDelivery = a.orders > 0 && (fuelCost != null || base != null) ? redondeaDinero(costTotal / a.orders) : null;
       return {
         driver,
         orders: a.orders,
         delivered: a.delivered,
+        transfers: a.transfers,
+        transfersDelivered: a.transfersDelivered,
         routes: a.days.size,
-        avgStops: Math.round((a.orders / routes) * 10) / 10,
+        avgStops: Math.round(((a.orders + a.transfers) / routes) * 10) / 10,
         miles: millas,
         avgRouteMiles: redondeaMillas(millas / routes),
         revenue: ingresos,
@@ -250,7 +270,7 @@ export function driverKpis(deliveries: Delivery[], capacityOf: (driver: string) 
         csatCount: a.csatCount,
       };
     })
-    .sort((x, y) => y.orders - x.orders);
+    .sort((x, y) => (y.orders + y.transfers) - (x.orders + x.transfers));
 }
 
 export interface DriverShiftKpi {
@@ -273,6 +293,8 @@ export function driverShiftKpis(
   deliveries: Delivery[],
   nameOf: (driverId: string) => string | undefined,
   now: number = Date.now(),
+  /** Qué órdenes cuentan como entregas (para «entregas por hora»). El tiempo activo lo suman todas: un traslado también es trabajo. */
+  esCliente: (d: Delivery) => boolean = () => true,
 ): DriverShiftKpi[] {
   // On-clock time per driver name (open shifts count up to `now`).
   const clock = new Map<string, { onClock: number; open: boolean }>();
@@ -294,7 +316,7 @@ export function driverShiftKpis(
   const delivered = new Map<string, number>();
   for (const d of deliveries) {
     if (!d.assigned_driver || !d.pod_delivered_at) continue;
-    delivered.set(d.assigned_driver, (delivered.get(d.assigned_driver) ?? 0) + 1);
+    if (esCliente(d)) delivered.set(d.assigned_driver, (delivered.get(d.assigned_driver) ?? 0) + 1);
     const start = d.departed_at ?? d.pickup_gps_at;
     if (!start) continue;
     const span = new Date(d.pod_delivered_at).getTime() - new Date(start).getTime();

@@ -95,7 +95,7 @@ describe("la base y la pantalla", () => {
   });
   it("la pestaña «Pool privado» solo para el admin, con los mismos filtros; el filtro «Coinciden con clientes»; Contratista y Propietario en la tarjeta", () => {
     const p = sinComentarios(leer("src/app/leads/Leads.tsx"));
-    expect(p).toContain('type Pestana = "banco" | "admin" | "privado";');
+    expect(p).toContain('type Pestana = "banco" | "admin" | "privado" | "estadisticas";');
     expect(p).toContain('data-pestana="privado"');
     // D-770: la pestaña la ve quien tiene la casilla (veStxp), no solo el admin.
     expect(p).toContain('{(pestana === "banco" || (pestana === "privado" && veStxp)) && (');

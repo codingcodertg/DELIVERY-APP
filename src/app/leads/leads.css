@@ -288,3 +288,12 @@ button.ld-pildora.on { border-color: currentColor; box-shadow: 0 0 0 1px current
 .ld-pildora.gris { background: var(--paper); color: var(--ink-soft); border-color: var(--line); }
 .ld-etapas { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
 .ld-etapas .chip { display: inline-flex; align-items: center; gap: 6px; }
+
+/* 337: las llamadas de RingCentral en la ficha, y el rango propio de las estadísticas. */
+.ld-llamadas .ld-llamada { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.ld-llamadas .ld-llamada:last-child { border-bottom: 0; }
+.ld-llamada-tel { flex-basis: 100%; }
+.ld-periodo-propio { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 10px 0; font-size: 13px; }
+.ld-periodo-propio label { display: grid; gap: 4px; }
+.ld-periodo-propio input { min-height: 40px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+@media (max-width: 480px) { .ld-periodo-propio input { width: 100%; } }
