@@ -103,3 +103,34 @@ a.adr-tarjeta:hover { border-color: var(--accent); background: var(--card-hover)
 @media print {
   .qbo-no-imprimir, .qbo-pestanas, .qbo-cabeza button { display: none !important; }
 }
+
+/* ---------- Comp Floor */
+.cf-cantidad { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px; min-width: 0; }
+.cf-cantidad input, .cf-cantidad select { padding: 6px 7px; min-width: 0; }
+.cf-linea { display: grid; grid-template-columns: minmax(0, 2.4fr) minmax(150px, 1.4fr) minmax(0, 2.6fr) minmax(84px, 1fr) 32px; gap: 6px; align-items: center; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.cf-linea > select, .cf-linea select { padding: 6px 7px; min-width: 0; width: 100%; }
+.cf-linea-info { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.cf-aviso { font-size: 12.5px; font-weight: 600; line-height: 1.4; }
+.cf-aviso[data-backorder] { color: var(--text); background: var(--amber-soft); border-radius: 6px; padding: 2px 6px; }
+.cf-check { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; }
+.cf-check input { width: auto; }
+.cf-tabla-scroll { overflow-x: auto; max-width: 100%; }
+.cf-tabla { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px; }
+.cf-tabla th, .cf-tabla td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+.cf-tabla th { font-size: 11px; color: var(--gray); }
+.cf-tabla .qbo-num { text-align: right; }
+.cf-ticket { display: grid; gap: 6px; font-size: 13.5px; }
+.cf-ticket-linea { display: grid; gap: 2px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.cf-etiquetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.cf-etiqueta { display: flex; justify-content: space-between; gap: 10px; align-items: center; background: var(--card); color: var(--text); border: 2px solid var(--text); border-radius: 8px; padding: 10px 12px; min-width: 0; break-inside: avoid; }
+.cf-etiqueta-texto { display: grid; gap: 2px; min-width: 0; }
+.cf-etiqueta-precio { font-size: 26px; font-weight: 800; }
+.cf-etiqueta-precio small { font-size: 13px; font-weight: 600; }
+.cf-qr-vacio { width: 96px; height: 96px; flex: 0 0 96px; display: grid; place-items: center; border: 1px dashed var(--line); color: var(--gray); }
+.cf-etiqueta img { flex: 0 0 96px; }
+@media (max-width: 760px) {
+  .cf-linea { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 32px; }
+  .cf-linea > :first-child, .cf-linea > :nth-child(3) { grid-column: 1 / -1; }
+  .cf-linea > :nth-child(3) { grid-row: 3; }
+  .cf-etiquetas { grid-template-columns: minmax(0, 1fr); }
+}

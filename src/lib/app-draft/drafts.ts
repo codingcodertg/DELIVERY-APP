@@ -27,9 +27,9 @@ export const DRAFTS: readonly Draft[] = [
     emoji: "🧩",
     nombre_en: "Comp Floor",
     nombre_es: "Comp Floor",
-    desc_en: "Coming later.",
-    desc_es: "Más adelante.",
-    listo: false,
+    desc_en: "Flooring-distributor tools on sample data, with far fewer fields: stock by lot and shade, boxes ↔ sq ft, quotes → orders with backorders, counter sales on account, special orders, price levels, bins and transfers, remnants and QR shelf labels.",
+    desc_es: "Herramientas de distribuidor de piso con datos de ejemplo y muchos menos campos: stock por lote y tono, cajas ↔ pies², cotizaciones → pedidos con backorder, mostrador a cuenta, pedidos especiales, niveles de precio, bins y traslados, remanentes y etiquetas QR.",
+    listo: true,
   },
   {
     ruta: "quickbooks-desktop",
