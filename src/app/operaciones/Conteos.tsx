@@ -93,7 +93,7 @@ export function Conteos({ ctx }: { ctx: Contexto }) {
             "Hasta que se aplique, no se pueden guardar las órdenes pendientes ni la cantidad del sistema al firmar. Contar sigue funcionando.")}</p>
         </div>
       )}
-      {datos && gestiona && <FormNuevoConteo ctx={ctx} tienda={tienda} onCreado={(c, ls) => { pon((d) => ({ ...d, conteos: [c, ...d.conteos], lineas: [...d.lineas, ...ls] })); setAbierto(c.id); }} />}
+      {datos && gestiona && <FormNuevoConteo ctx={ctx} tienda={tienda} onCreado={(c, ls) => { pon((d) => ({ ...d, conteos: [c, ...d.conteos], lineas: [...d.lineas, ...ls] })); /* 20 nov: no se abre sola */ }} />}
       {datos && (
         <section className="ops-conteo-seguir" data-seguir>
           <h3>{t("Keep going", "Seguir")} <span className="count-tag">{abiertos.length}</span></h3>
@@ -259,11 +259,6 @@ function FormNuevoConteo({ ctx, tienda, onCreado }: { ctx: Contexto; tienda: str
               valor={a.size_in ?? null} dato="medida" onElegir={(v) => setA((x) => ({ ...x, size_in: v }))} />
           </label>
         )}
-        {a.vendor_name && a.scope_kind === "vendor_size" && (
-          <label className="ops-cantidad"><span>{t("Note (optional, narrows it)", "Nota (opcional, afina)")}</span>
-            <input className="ops-campo" value={a.note ?? ""} onChange={(e) => setA((x) => ({ ...x, note: e.target.value }))} placeholder={t("e.g. black, matte", "p. ej. negro, mate")} data-campo="nota" />
-          </label>
-        )}
         <label className="ops-cantidad"><span>{t("Notes (optional)", "Notas (opcional)")}</span>
           <textarea className="ops-campo" rows={2} value={notas} onChange={(e) => setNotas(e.target.value)} placeholder={t("e.g. Pull the pallets to aisle 3, one SKU per spot.", "p. ej. Bajar los pallets al pasillo 3, un SKU por lugar.")} data-campo="notas" />
         </label>
@@ -299,6 +294,7 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
   const { t, lang } = usePrefs();
   const [lineaAbierta, setLineaAbierta] = useState<string | null>(null);
   const [qLinea, setQLinea] = useState("");
+  const [buscadorAbierto, setBuscadorAbierto] = useState(false);
   const [recontar, setRecontar] = useState<Linea | null>(null);
   const [cancelando, setCancelando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -307,7 +303,9 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
   const gestiona = puedeGestionarConteo(ctx.yo, c.store);
   const nombre = (id: string | null) => (id ? ctx.personas.find((p) => p.id === id)?.full_name ?? "—" : "");
   const progreso = progresoDelConteo(lineas);
-  const filtradas = useMemo(() => buscarEnLista(ordenarLineas(lineas), (l) => `${l.sku} ${l.name} ${l.size_in ?? ""}`, qLinea, 500), [lineas, qLinea]);
+  // Las que faltan (en el desplegable, filtradas por lo escrito) y las ya contadas (abajo, la más reciente arriba).
+  const porContar = useMemo(() => buscarEnLista(ordenarLineas(lineas.filter((l) => !estaContada(l))), (l) => `${l.sku} ${l.name} ${l.size_in ?? ""}`, qLinea, 500), [lineas, qLinea]);
+  const contadas = useMemo(() => lineas.filter(estaContada).sort((a, b) => (b.counted_at ?? "").localeCompare(a.counted_at ?? "")), [lineas]);
   const adjuntos = useMemo(() => [c.signed_sheet, ...c.adjustment_shots, ...lineas.map((l) => l.photo)].filter((x): x is string => !!x), [c.signed_sheet, c.adjustment_shots, lineas]);
   const enlaces = useEnlaces(adjuntos, ctx.demo);
   const adj = (ruta: string, alt: string) => <AdjuntoDeConteo ruta={ruta} alt={alt} enlaces={enlaces} demo={ctx.demo} />;
@@ -351,13 +349,10 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
 
   const lineaElegida = lineaAbierta ? lineas.find((l) => l.id === lineaAbierta) ?? null : null;
   if (lineaElegida && c.stage === "counting" && acciones.includes("contar_linea")) {
-    // «Next» (19 nov): el orden de la lista; la última línea cierra la captura.
-    const orden = ordenarLineas(lineas);
-    const i = orden.findIndex((x) => x.id === lineaElegida.id);
-    const siguiente = i >= 0 ? orden[i + 1] ?? null : null;
+    // «Next» (20 nov): guarda y vuelve al buscador, no salta al siguiente producto.
     return (
-      <FormLinea key={lineaElegida.id} l={lineaElegida} ctx={ctx} siguiente={siguiente} onCerrar={() => setLineaAbierta(null)}
-        onGuardada={(n, sig) => { pon((d) => ({ ...d, lineas: d.lineas.map((x) => (x.id === n.id ? n : x)) })); setLineaAbierta(sig ? sig.id : null); }} />
+      <FormLinea key={lineaElegida.id} l={lineaElegida} ctx={ctx} siguiente={null} onCerrar={() => setLineaAbierta(null)}
+        onGuardada={(n) => { pon((d) => ({ ...d, lineas: d.lineas.map((x) => (x.id === n.id ? n : x)) })); setLineaAbierta(null); setQLinea(""); }} />
     );
   }
 
@@ -401,49 +396,57 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
         {c.stage === "counting" && (
           <section className="ops-etapas" data-lineas={lineas.length}>
             <h4>{t("Count", "Contar")} <span className="ops-cuenta">{progreso.hechas}/{progreso.total}</span></h4>
-            <input className="ops-campo ops-campo" value={qLinea} onChange={(e) => setQLinea(e.target.value)} placeholder={t("Search a product in this count", "Buscar un producto de este conteo")}
-              inputMode="search" autoComplete="off" autoCorrect="off" spellCheck={false} data-campo="buscar-linea" />
-            {qLinea.trim().length >= 2 && filtradas.length === 0 && acciones.includes("contar_linea") && (
-              <div className="ops-sin-producto" data-sin-producto-libre>
-                <p className="hint">{t("Not in the list. You can count it as you typed it.", "No aparece en la lista. Puedes contarlo como lo escribiste.")}</p>
-                <button type="button" className="ops-boton ops-boton-primario" onClick={() => void agregarLibre(qLinea.trim())} disabled={ocupado} data-accion="agregar-libre">+ {t("Count", "Contar")} {qLinea.trim()}</button>
-              </div>
-            )}
-            {/* 20 nov (el dueño: «quita todo eso, solo deja el search»): la lista sale solo al buscar. */}
-            <ul className="ops-lineas-conteo">
-              {(qLinea.trim() ? filtradas : []).map((l) => {
-                const puedeCapturar = acciones.includes("contar_linea");
-                return (
-                  <li key={l.id} className={`ops-linea-conteo${estaContada(l) ? " contada" : ""}${l.recount_requested ? " recontar" : ""}`} data-linea={l.id}>
-                    <button type="button" className="ops-linea-conteo-boton" onClick={() => puedeCapturar && setLineaAbierta(l.id)} disabled={!puedeCapturar} data-accion="abrir-linea">
-                      <span className="ops-linea-conteo-nombre"><span className="hoja-folio">{l.sku}</span> {l.name}{l.size_in ? <span className="hint"> · {l.size_in}</span> : null}</span>
+            {/* 20 nov (junta con el dueño): el buscador es un desplegable. Al tocarlo salen los que FALTAN por contar (se
+                puede bajar o escribir); al salir de él, abajo solo se ven los ya contados. «Next» vuelve aquí. */}
+            <div className="ops-buscador-conteo" data-buscador-abierto={buscadorAbierto ? "si" : "no"}>
+              <input className="ops-campo ops-campo" value={qLinea} onChange={(e) => { setQLinea(e.target.value); setBuscadorAbierto(true); }}
+                onFocus={() => setBuscadorAbierto(true)} onBlur={() => setBuscadorAbierto(false)}
+                placeholder={t("Search a product to count", "Buscar un producto para contar")}
+                inputMode="search" autoComplete="off" autoCorrect="off" spellCheck={false} data-campo="buscar-linea" />
+              {buscadorAbierto && acciones.includes("contar_linea") && (
+                <ul className="ops-buscador-lista ops-desplegable-conteo" data-faltan={porContar.length} role="listbox">
+                  {porContar.length === 0 && qLinea.trim().length < 2 && <li className="hint">{t("Everything is counted.", "Todo está contado.")}</li>}
+                  {porContar.map((l) => (
+                    <li key={l.id}>
+                      <button type="button" className="ops-opcion ops-buscador-opcion" onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => { setBuscadorAbierto(false); setLineaAbierta(l.id); }} data-linea-por-contar={l.id}>
+                        <span className="hoja-folio">{l.sku}</span> {l.name}{l.recount_requested && <span className="hint"> · ↩ {t("recount", "recontar")}</span>}
+                      </button>
+                    </li>
+                  ))}
+                  {qLinea.trim().length >= 2 && porContar.length === 0 && (
+                    <li className="ops-sin-producto" data-sin-producto-libre>
+                      <p className="hint">{t("Not in the list. You can count it as you typed it.", "No aparece en la lista. Puedes contarlo como lo escribiste.")}</p>
+                      <button type="button" className="ops-boton ops-boton-primario" onMouseDown={(e) => e.preventDefault()} onClick={() => void agregarLibre(qLinea.trim())} disabled={ocupado} data-accion="agregar-libre">+ {t("Count", "Contar")} {qLinea.trim()}</button>
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
+            {!buscadorAbierto && contadas.length > 0 && (
+              <ul className="ops-lineas-conteo ops-lineas-compactas" data-contadas={contadas.length}>
+                {contadas.map((l) => (
+                  <li key={l.id} className="ops-linea-conteo ops-linea-compacta" data-linea={l.id}>
+                    <button type="button" className="ops-linea-conteo-boton" onClick={() => acciones.includes("contar_linea") && setLineaAbierta(l.id)} disabled={!acciones.includes("contar_linea")} data-accion="abrir-linea">
+                      <span className="ops-linea-conteo-nombre"><span className="hoja-folio">{l.sku}</span> {l.name}</span>
                       <span className="ops-linea-conteo-cifras">
                         <span>{t("System", "Sistema")}: <b>{l.system_qty ?? "—"}</b></span>
                         <span>{t("Counted", "Contado")}: <b data-contado={l.counted_total ?? ""}>{l.counted_total == null ? "—" : textoDeCantidad(l.counted_total, l.unit_of_measure ?? null, l.pieces_per_box, lang)}</b></span>
-                      </span>
-                      <span className="ops-equipo-insignias">
-                        {l.recount_requested && <span className="ops-insignia ops-insignia-sin-foto" data-recontar>↩ {t("Recount", "Recontar")}{l.recount_note && `: ${l.recount_note}`}</span>}
-                        {estaContada(l) && <span className="ops-insignia ops-insignia-ok">✓ {l.counted_by_name ?? "—"} · {fmtDateTime(l.counted_at)}</span>}
-                        {!comparableConElSistema(l) && <span className="hint" data-no-comparable>{t("Not compared with the system (bags or a free product)", "No se compara con el sistema (bolsas o producto libre)")}</span>}
-                        {(l.lots ?? []).length > 0 && <span className="hint" data-lotes={(l.lots ?? []).length}>{resumenDeLotes(l.lots ?? [], l.unit_of_measure ?? null, lang)}</span>}
-                        {!estaContada(l) && !l.recount_requested && puedeCapturar && <span className="ops-insignia">{t("Tap to count", "Toca para contar")}</span>}
-                        {l.note && <span className="hint">🗒 {l.note}</span>}
-                        {l.photo && adj(l.photo, l.sku)}
+                        <span data-lotes={(l.lots ?? []).length}>{t("Lots", "Lotes")}: <b>{(l.lots ?? []).length}</b></span>
                       </span>
                     </button>
-                    {acciones.includes("recontar") && estaContada(l) && (
+                    {acciones.includes("recontar") && (
                       <button type="button" className="btn btn-sm btn-ghost" onClick={() => setRecontar(l)} data-accion="recontar">↩ {t("Recount", "Recontar")}</button>
                     )}
                   </li>
-                );
-              })}
-            </ul>
+                ))}
+              </ul>
+            )}
             {recontar && c.stage === "counting" && (
               <FormNota titulo={t(`Send ${recontar.sku} back to recount`, `Mandar ${recontar.sku} a recontar`)} texto={t("Why? (optional)", "¿Por qué? (opcional)")} boton={t("Send back", "Mandar a recontar")} ocupado={ocupado} onCancelar={() => setRecontar(null)} onListo={(n) => void recontarLinea(recontar, n)} />
             )}
             {acciones.includes("terminar_conteo") && (
-              <div className="ops-etapa-acciones" data-paso="2">
-                <button type="button" className="ops-boton ops-boton-primario" onClick={() => void avanzar("review", null)} disabled={ocupado} data-accion="terminar-conteo">✅ {t("Next: go to review", "Siguiente: pasar a revisar")}</button>
+              <div data-paso="2">
                 {progreso.total > progreso.hechas && <p className="hint" data-sin-contar={progreso.total - progreso.hechas}>{t(`Only what you counted goes on. ${progreso.total - progreso.hechas} not counted will be left out.`, `Solo sigue lo que contaste. ${progreso.total - progreso.hechas} sin contar se quedan fuera.`)}</p>}
               </div>
             )}
@@ -472,7 +475,12 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
         )}
         {cancelando && <FormNota titulo={t("Cancel this count", "Cancelar este conteo")} texto={t("Why? (optional)", "¿Por qué? (opcional)")} boton={t("Yes, cancel it", "Sí, cancelarlo")} ocupado={ocupado} onCancelar={() => setCancelando(false)} onListo={(n) => void cancelar(n)} />}
 
-        <div className="modal-actions ops-cerrar-abajo"><button type="button" className="btn" onClick={onCerrar} data-accion="cerrar">{t("Close", "Cerrar")}</button></div>
+        {/* 20 nov: al contar, el botón de abajo es «Continue to review» (con lo que ya se contó), no «Close». */}
+        <div className="modal-actions ops-cerrar-abajo">
+          {c.stage === "counting" && acciones.includes("terminar_conteo")
+            ? <button type="button" className="btn btn-primary" onClick={() => void avanzar("review", null)} disabled={ocupado} data-accion="terminar-conteo">{t("Continue to review", "Continuar a revisar")}</button>
+            : <button type="button" className="btn" onClick={onCerrar} data-accion="cerrar">{t("Close", "Cerrar")}</button>}
+        </div>
       </div>
     </VentanaDeConteo>
   );

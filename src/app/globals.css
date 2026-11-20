@@ -284,6 +284,11 @@
   .wrap { max-width: min(1600px, 95vw); }
 }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+/* 20 nov: tarjetas plegables (TituloPlegable). */
+.titulo-plegable-boton { all: unset; display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; cursor: pointer; }
+.titulo-plegable-flecha { color: var(--ink-soft); font-size: 14px; }
+.card.tarjeta-plegada > :not(.titulo-plegable) { display: none !important; }
+.card.tarjeta-plegada > .titulo-plegable { margin-bottom: 0; }
 .card h2 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
 .grid { display: grid; gap: 12px; }
 .g2 { grid-template-columns: 1fr 1fr; }

@@ -12,6 +12,7 @@ import { PrefsConIdioma, usePrefs } from "@/lib/prefs";
 import { ConfirmProvider } from "@/lib/confirm";
 import { ayudaEnLaRuta } from "@/lib/ayuda-flotante";
 import { botonDeVista, enlaceAVistaMovil } from "@/lib/mobile-preview";
+import { useVistaEscritorio } from "@/lib/vista-escritorio";
 import {
   EVENTO_ABRIR_AYUDA, EVENTO_ABRIR_CHAT, EVENTO_CHAT_SIN_LEER, EVENTO_ENSENANZA, RUTA_TUTORIALES,
   destinoDeLaApp, escribeEnsenanza, leeEnsenanza, opcionesDelBotonGeneral, type OpcionGeneral,
@@ -40,6 +41,7 @@ export function BotonGeneral() {
   const { t, lang } = usePrefs();
   const pathname = usePathname();
   const [abierto, setAbierto] = useState(false);
+  const vistaTel = useVistaEscritorio();
   const [servidor, setServidor] = useState<Servidor>(SIN_SERVIDOR);
   const [sinLeer, setSinLeer] = useState(0);
   const [ensenanza, setEnsenanza] = useState(false);
@@ -194,6 +196,15 @@ export function BotonGeneral() {
                 ? tAdmin("Take this screen out of the phone frame, at full size", "Sacar esta pantalla del marco de teléfono, a tamaño normal")
                 : tAdmin("See this screen as it looks on a phone", "Ver esta pantalla como se ve en un teléfono")}>
               <span aria-hidden>{escritorio ? "🖥️" : "📱"}</span> {escritorio ? tAdmin("Desktop view", "Vista de escritorio") : tAdmin("Mobile view", "Vista móvil")}
+            </button>
+          );
+        }
+        // 20 nov: en un teléfono, «Desktop view» (y de vuelta «Mobile view»), no el marco de teléfono.
+        if (vistaTel.telefono) {
+          return (
+            <button key={o} type="button" className="fab-opcion" data-opcion={o} data-vista-telefono={vistaTel.escritorio ? "escritorio" : "movil"} role="menuitem"
+              onClick={() => { cierra(); vistaTel.cambiar(); }}>
+              <span aria-hidden>{vistaTel.escritorio ? "📱" : "🖥️"}</span> {vistaTel.escritorio ? t("Mobile view", "Vista móvil") : t("Desktop view", "Vista de escritorio")}
             </button>
           );
         }

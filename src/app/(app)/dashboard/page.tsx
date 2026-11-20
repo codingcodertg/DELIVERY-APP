@@ -27,6 +27,7 @@ import type { Stage } from "@/lib/types";
 import { redondeaDinero, sumaDinero, sumaMillas } from "@/lib/totales";
 import { alcanceDelPanel, choferesDelPanel, ordenesDelPanel } from "@/lib/panel-por-tienda";
 import { millasPorTienda, paradasDeMillas } from "@/lib/millas-por-tienda";
+import { TituloPlegable } from "@/components/TituloPlegable";
 import { esTraslado, separaTraslados } from "@/lib/traslados-de-chofer";
 import { ResumenDeChoferes } from "@/components/ResumenDeChoferes";
 
@@ -300,7 +301,7 @@ export default function DashboardPage() {
             <>
           {/* ---------- Driver & fleet KPIs ---------- */}
           <div className="card">
-            <h2>🚚 {t("Driver & fleet KPIs", "KPIs de choferes y flota")}</h2>
+            <TituloPlegable>🚚 {t("Driver & fleet KPIs", "KPIs de choferes y flota")}</TituloPlegable>
             {drivers.length === 0 ? (
               <div className="empty">{t("No drivers assigned in this range.", "No hay choferes asignados en este rango.")}</div>
             ) : (
@@ -381,7 +382,7 @@ export default function DashboardPage() {
 
           {/* ---------- Driver idle time (shift clock) ---------- */}
           <div className="card">
-            <h2>⏱️ {t("Driver idle time", "Tiempo inactivo de choferes")}</h2>
+            <TituloPlegable>⏱️ {t("Driver idle time", "Tiempo inactivo de choferes")}</TituloPlegable>
             <p className="hint" style={{ marginTop: -6, marginBottom: 10 }}>
               {t(
                 "On-clock time from the shift clock, minus time actively out on a delivery (from departure/pickup → delivered).",
@@ -408,40 +409,6 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* ---------- Driver timing & quality (Tier 1) ---------- */}
-          <div className="card">
-            <h2>🎯 {t("Driver timing & quality", "Tiempos y calidad de choferes")}</h2>
-            <p className="hint" style={{ marginTop: -6, marginBottom: 10 }}>
-              {t(
-                "Customer deliveries only. Leg times (from driver stamps), first-attempt success, proof-of-delivery capture, and rating response.",
-                "Solo entregas a clientes. Tiempos por tramo (de marcas del chofer), éxito al primer intento, captura de comprobante y respuesta de calificación.",
-              )}
-            </p>
-            {quality.length === 0 ? (
-              <div className="empty">{t("No driver orders in this range.", "Sin órdenes de chofer en este rango.")}</div>
-            ) : (
-              <TablaEstandar id="dash-calidad-choferes" sinCaja data-tabla="dash-calidad-choferes" filas={quality} claveDe={(d) => d.driver}
-                columnas={[
-                  { key: "chofer", en: "Driver", es: "Chofer", ancho: 180, fija: true, valor: (d) => d.driver, celda: (d) => <strong>{d.driver}</strong> },
-                  { key: "acargar", en: "Drive→pickup", es: "A recoger", ancho: 120, numerico: true, valor: (d) => d.avgDriveToPickupMin, celda: (d) => tiempoDe(d.avgDriveToPickupMin) },
-                  { key: "transito", en: "Transit", es: "Tránsito", ancho: 110, numerico: true, valor: (d) => d.avgTransitMin, celda: (d) => tiempoDe(d.avgTransitMin) },
-                  { key: "parada", en: "Dwell", es: "En parada", ancho: 110, numerico: true, valor: (d) => d.avgDwellMin, celda: (d) => tiempoDe(d.avgDwellMin) },
-                  { key: "pod", en: "POD %", es: "% Comp.", ancho: 100, numerico: true, valor: (d) => d.podCompliancePct, celda: (d) => (
-                    <span style={d.podCompliancePct != null && d.podCompliancePct < 90 ? { color: "var(--amber)", fontWeight: 700 } : undefined}>{d.podCompliancePct == null ? "—" : `${d.podCompliancePct}%`}</span>
-                  ) },
-                  { key: "reenvios", en: "Redeliv.", es: "Reenvíos", ancho: 110, numerico: true, valor: (d) => d.redeliveries, celda: (d) => (
-                    <span style={d.redeliveries ? { color: "var(--red)", fontWeight: 700 } : undefined}>{d.redeliveries || "—"}{d.redeliveryPct ? ` (${d.redeliveryPct}%)` : ""}</span>
-                  ) },
-                  { key: "cargacorta", en: "Short loads", es: "Carga corta", ancho: 110, numerico: true, valor: (d) => d.shortLoads, celda: (d) => (
-                    <span style={d.shortLoads ? { color: "var(--amber)", fontWeight: 700 } : undefined}>{d.shortLoads || "—"}</span>
-                  ) },
-                  { key: "gpslejos", en: "GPS off", es: "GPS lejos", ancho: 100, numerico: true, valor: (d) => d.podGpsFar, celda: (d) => (
-                    <span style={d.podGpsFar ? { color: "var(--red)", fontWeight: 700 } : undefined} title={d.podGpsChecked ? `${d.podGpsFar}/${d.podGpsChecked} ${t("checked", "verificadas")}` : t("no GPS data yet", "sin datos GPS aún")}>{d.podGpsChecked === 0 ? "—" : (d.podGpsFar || "0")}</span>
-                  ) },
-                ]} />
-            )}
-          </div>
-
             </>
           )}
 
@@ -460,50 +427,9 @@ export default function DashboardPage() {
             <Kpi n={turnaround.avgMs == null ? "—" : fmtDuration(turnaround.avgMs)} label={t("Avg approval", "Aprob. prom.")} small />
           </div>
 
-          <div className="dash-cols">
-            {/* ---------- Orders by stage ---------- */}
-            <div className="card">
-              <h2>📦 {t("Orders by stage", "Órdenes por etapa")}</h2>
-              <div className="bar-list">
-                {stageCounts.map((s) => {
-                  const info = stageInfo(s.stage);
-                  return (
-                    <div className="bar-row" key={s.stage}>
-                      <span className="bar-label">{stageLabel(s.stage, lang)}</span>
-                      <span className="bar-track">
-                        <span className="bar-fill" style={{ width: `${(s.count / maxStage) * 100}%`, background: info.color }} />
-                      </span>
-                      <span className="bar-num">{s.count}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* ---------- Store volume ---------- */}
-            <div className="card">
-              <h2>🏬 {t("Volume by store", "Volumen por tienda")}</h2>
-              {stores.length === 0 ? (
-                <div className="empty">{t("No orders in this range.", "No hay órdenes en este rango.")}</div>
-              ) : (
-                <div className="bar-list">
-                  {stores.map((s) => (
-                    <div className="bar-row" key={s.key}>
-                      <span className="bar-label">{s.key}</span>
-                      <span className="bar-track">
-                        <span className="bar-fill" style={{ width: `${(s.total / maxStore) * 100}%`, background: "var(--accent)" }} />
-                      </span>
-                      <span className="bar-num">{s.total}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* ---------- Trends ---------- */}
           <div className="card">
-            <h2>📈 {t("Trends", "Tendencias")}</h2>
+            <TituloPlegable>📈 {t("Trends", "Tendencias")}</TituloPlegable>
             <p className="hint" style={{ marginTop: -6, marginBottom: 10 }}>
               {t("Delivery volume, on-time rate and rating across the selected range.", "Volumen de entregas, puntualidad y calificación en el rango seleccionado.")}
             </p>
@@ -519,7 +445,7 @@ export default function DashboardPage() {
 
           {/* ---------- Millas y gas por tienda (D-738) ---------- */}
           <div className="card" data-panel-millas-por-tienda>
-            <h2>⛽ {t("Miles & fuel share by store", "Millas y gas por tienda")}</h2>
+            <TituloPlegable>⛽ {t("Miles & fuel share by store", "Millas y gas por tienda")}</TituloPlegable>
             <p className="hint" style={{ marginTop: -6, marginBottom: 10 }}>
               {t(
                 "Delivered or picked-up orders in the range, grouped into stops (same day, driver and destination). Store-to-store orders count for the store that receives. Miles are Google's store → destination.",
@@ -566,7 +492,7 @@ export default function DashboardPage() {
 
           {/* ---------- Sales rep performance, this month ---------- */}
           <div className="card">
-            <h2>🧑‍💼 {t("Users — this month", "Usuarios — este mes")}</h2>
+            <TituloPlegable>🧑‍💼 {t("Users — this month", "Usuarios — este mes")}</TituloPlegable>
             {repStats.length === 0 ? (
               <div className="empty">{t("No orders logged this month.", "Sin órdenes registradas este mes.")}</div>
             ) : (
@@ -576,52 +502,12 @@ export default function DashboardPage() {
                   { key: "entregas", en: "Deliveries", es: "Entregas", ancho: 110, numerico: true, valor: (r) => r.deliveries },
                   { key: "cobrado", en: "Charged total", es: "Total cobrado", ancho: 130, numerico: true, valor: (r) => r.chargedTotal, celda: (r) => fmtMoney(r.chargedTotal) },
                   { key: "promedio", en: "Avg $/delivery", es: "Prom. $/entrega", ancho: 140, numerico: true, valor: (r) => r.avgPerDelivery, celda: (r) => fmtMoney(r.avgPerDelivery) },
+                  { key: "millas", en: "Miles", es: "Millas", ancho: 100, numerico: true, valor: (r) => r.miles, celda: (r) => num1(r.miles) },
+                  { key: "dolarmi", en: "$/mi", es: "$/mi", ancho: 100, numerico: true, valor: (r) => r.revPerMile, celda: (r) => (r.revPerMile == null ? "—" : <strong>{fmtMoney(r.revPerMile)}</strong>) },
                 ]} />
             )}
           </div>
 
-          {/* ---------- Top accounts ---------- */}
-          <div className="dash-cols">
-            <div className="card">
-              <h2>🏢 {t("Top accounts", "Cuentas principales")}</h2>
-              {accounts.length === 0 ? (
-                <div className="empty">{t("No accounts in this range.", "No hay cuentas en este rango.")}</div>
-              ) : (
-                <div className="bar-list">
-                  {accounts.map((a) => (
-                    <div className="bar-row" key={a.key}>
-                      <span className="bar-label">{a.key}</span>
-                      <span className="bar-track">
-                        <span className="bar-fill" style={{ width: `${(a.total / Math.max(1, accounts[0].total)) * 100}%`, background: "var(--teal)" }} />
-                      </span>
-                      <span className="bar-num">{a.total}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* ---------- Overdue list ---------- */}
-            <div className="card">
-              <h2 style={{ color: overdue.length ? "var(--red)" : undefined }}>
-                ⏰ {t("Overdue orders", "Órdenes expiradas")} {overdue.length > 0 && <span className="sema" style={{ background: "var(--red)", color: "#fff" }}>{overdue.length}</span>}
-              </h2>
-              {overdue.length === 0 ? (
-                <div className="empty">✅ {t("Nothing overdue. Nice.", "Nada expirado. ¡Bien!")}</div>
-              ) : (
-                <div className="bar-list">
-                  {overdue.slice(0, 8).map((d) => (
-                    <button key={d.id} className="overdue-row" onClick={() => openOrder(d.id)}>
-                      <span className="ordno">#{orderLabel(d)}</span>
-                      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.account || t("(no account)", "(sin cuenta)")}</span>
-                      <span className="sema" style={{ background: stageInfo(d.stage).color, color: "#fff" }}>{stageLabel(d.stage, lang)}</span>
-                      <span style={{ color: "var(--red)", fontWeight: 700 }}>{fmtDate(d.delivery_date)}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </>
       )}
     </>

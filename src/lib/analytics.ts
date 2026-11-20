@@ -476,7 +476,11 @@ export function inDateRange(deliveries: Delivery[], from: string, to: string): D
   });
 }
 
-export interface SalesRepStat { rep: string; deliveries: number; chargedTotal: number; avgPerDelivery: number; }
+export interface SalesRepStat {
+  rep: string; deliveries: number; chargedTotal: number; avgPerDelivery: number;
+  /** Millas de sus órdenes (route_miles) y cobro ÷ millas (junta 2026-11-20: «revenue per mile» por vendedor). */
+  miles: number; revPerMile: number | null;
+}
 
 /** Per sales-rep stats for the current calendar month (by when they logged
  * the order, i.e. created_at) — deliveries count, total delivery fees
@@ -505,6 +509,8 @@ export function salesRepStatsThisMonth(deliveries: Delivery[], users: Profile[],
       deliveries: s.deliveries,
       chargedTotal: sumaDinero(s.suyas, (d) => d.delivery_fee),
       avgPerDelivery: s.deliveries ? redondeaDinero(sumaDinero(s.suyas, (d) => d.delivery_fee) / s.deliveries) : 0,
+      miles: sumaMillas(s.suyas, (d) => d.route_miles),
+      revPerMile: (() => { const m = sumaMillas(s.suyas, (d) => d.route_miles); return m > 0 ? redondeaDinero(sumaDinero(s.suyas, (d) => d.delivery_fee) / m) : null; })(),
     }))
     .sort((a, b) => b.chargedTotal - a.chargedTotal);
 }

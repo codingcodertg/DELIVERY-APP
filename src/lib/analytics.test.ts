@@ -344,15 +344,31 @@ describe("salesRepStatsThisMonth con un `now` fijo", () => {
   ];
 
   it("cuenta solo el mes de `now`, no el del reloj", () => {
-    expect(salesRepStatsThisMonth(deliveries, users, new Date(2026, 9, 14, 12))).toEqual([
+    expect(salesRepStatsThisMonth(deliveries, users, new Date(2026, 9, 14, 12))).toMatchObject([
       { rep: "Beto", deliveries: 1, chargedTotal: 100, avgPerDelivery: 100 },
       { rep: "Ana", deliveries: 2, chargedTotal: 80, avgPerDelivery: 40 },
     ]);
   });
 
   it("otro `now`, otro mes: septiembre solo ve la orden de septiembre", () => {
-    expect(salesRepStatsThisMonth(deliveries, users, new Date(2026, 8, 15, 12))).toEqual([
+    expect(salesRepStatsThisMonth(deliveries, users, new Date(2026, 8, 15, 12))).toMatchObject([
       { rep: "Beto", deliveries: 1, chargedTotal: 999, avgPerDelivery: 999 },
     ]);
+  });
+});
+
+describe("salesRepStatsThisMonth: millas e ingreso por milla (junta 2026-11-20)", () => {
+  it("suma las millas de sus órdenes y divide lo cobrado entre ellas", () => {
+    const users = [{ id: "u1", full_name: "Ana" }] as unknown as Profile[];
+    const ds = [
+      mkDelivery({ created_by: "u1", created_at: "2026-10-03T15:00:00.000Z", delivery_fee: 60, route_miles: 20 }),
+      mkDelivery({ created_by: "u1", created_at: "2026-10-04T15:00:00.000Z", delivery_fee: 40, route_miles: 30 }),
+    ];
+    expect(salesRepStatsThisMonth(ds, users, new Date(2026, 9, 14, 12))[0]).toMatchObject({ miles: 50, revPerMile: 2 });
+  });
+  it("sin millas, el ingreso por milla es nulo", () => {
+    const users = [{ id: "u1", full_name: "Ana" }] as unknown as Profile[];
+    const ds = [mkDelivery({ created_by: "u1", created_at: "2026-10-03T15:00:00.000Z", delivery_fee: 60, route_miles: null })];
+    expect(salesRepStatsThisMonth(ds, users, new Date(2026, 9, 14, 12))[0]).toMatchObject({ miles: 0, revPerMile: null });
   });
 });

@@ -384,6 +384,12 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-linea-conteo-nombre { font-weight: 700; }
 .ops-linea-conteo-cifras { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; font-variant-numeric: tabular-nums; }
 .ops-linea-conteo .btn-ghost { justify-self: end; }
+/* 20 nov: tarjetas de lo contado a la mitad, sin verde; desplegable del buscador. */
+.ops-linea-compacta { padding: 6px 10px; gap: 2px; border-radius: 10px; grid-template-columns: 1fr auto; align-items: center; }
+.ops-linea-compacta .ops-linea-conteo-nombre { font-size: 13px; }
+.ops-linea-compacta .ops-linea-conteo-cifras { font-size: 12px; gap: 2px 10px; }
+.ops-buscador-conteo { display: grid; gap: 6px; }
+.ops-desplegable-conteo { max-height: 50vh; overflow-y: auto; }
 .ops-campo-grande { font-size: 22px; font-weight: 800; text-align: center; min-height: 52px; }
 .ops-total-linea { margin: 0; text-align: center; font-size: 15px; }
 .ops-total-linea b { font-size: 20px; }
