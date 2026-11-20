@@ -156,7 +156,7 @@ export function ResumenDeChoferes({ ordenes, choferesIds }: {
                   <Dato
                     valor={f.ingresoPorMilla == null ? "—" : fmtMoney(f.ingresoPorMilla)}
                     label={t("Revenue / mile", "Ingreso / milla")}
-                    titulo={f.ingresoPorMilla == null ? t("No miles to divide by", "No hay millas con que dividir") : t("Delivery fees ÷ miles above", "Cobros de entrega ÷ millas de arriba")}
+                    titulo={f.ingresoPorMilla == null ? t("No system miles to divide by", "No hay millas del sistema con que dividir") : t("Delivery fees ÷ system miles (same as the drivers table)", "Cobros de entrega ÷ millas del sistema (igual que la tabla de choferes)")}
                   />
                   <Dato
                     valor="—"
