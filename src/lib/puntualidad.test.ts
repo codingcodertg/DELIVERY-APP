@@ -173,7 +173,7 @@ describe("dónde se usa", () => {
   });
   it("el Panel la pinta bajo los KPIs de choferes, con su rango y sus órdenes acotadas; el demo usa la misma función", () => {
     const panel = leer("src/app/(app)/dashboard/page.tsx");
-    expect(panel).toContain("<PuntualidadPorChofer desde={from} hasta={to} entregasDelPanel={scoped} eventos={events} usuarios={users} />");
+    expect(panel).toContain("<PuntualidadPorChofer desde={from} hasta={to} entregasDelPanel={clientesDelRango} eventos={events} usuarios={users} />");
     const c = leer("src/components/PuntualidadPorChofer.tsx");
     expect(c).toContain("fetch(`/api/puntualidad?from=${encodeURIComponent(desde)}&to=${encodeURIComponent(hasta)}`)");
     expect(c).toContain("filas: puntualidadPorChofer({");

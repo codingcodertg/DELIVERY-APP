@@ -80,7 +80,7 @@ export default function SummaryPage() {
     const capacityOf = (n: string) => settings.driver_capacity?.[n] ?? settings.default_truck_capacity ?? DEFAULT_CAPACITY;
     const k = driverKpis(runs, capacityOf, {
       fuelPrice: settings.fuel_price, mpg: settings.fleet_mpg, base: settings.cost_per_delivery,
-    })[0];
+    }, settings.order_type_rules)[0];
     const q = driverQualityKpis(runs)[0];
     return k ? { empty: false as const, k, q } : { empty: true as const };
   }, [subject, deliveries, days, settings]);

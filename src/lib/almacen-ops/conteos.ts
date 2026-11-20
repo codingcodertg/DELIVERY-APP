@@ -61,8 +61,8 @@ export function tituloDeAlcance(a: AlcanceElegido): string {
 export function faltaDelAlcance(a: AlcanceElegido): "vendor" | "size" | "note" | "product" | null {
   if (a.scope_kind === "product") return a.product_id == null ? "product" : null;
   if (!(a.vendor_name ?? "").trim()) return "vendor";
+  // 19 nov: la medida es OPCIONAL (sin medida = todas las medidas del proveedor); la nota, si la hay, son 2 letras o más.
   if (a.scope_kind === "vendor_size") {
-    if (!(a.size_in ?? "").trim()) return "size";
     const nota = (a.note ?? "").trim();
     return nota.length === 0 || nota.length >= 2 ? null : "note";
   }
@@ -145,6 +145,9 @@ export interface Linea {
   recount_requested: boolean;
   recount_note: string | null;
   position: number;
+  /** 19 nov: la unidad de la línea (caja, bolsa, pieza) y sus lotes. Vacíos en las líneas de antes. */
+  unit_of_measure?: UnidadDeConteo | null;
+  lots?: Lote[];
 }
 
 /** Una orden pendiente de una línea (paso 3): factura, cantidad vendida y no entregada (en la unidad de la línea). */
@@ -229,9 +232,25 @@ export interface CuentasDeLinea {
 }
 
 /** Las cuentas de una línea DESPUÉS de las órdenes pendientes (la misma regla de la firma, el informe y la hoja). */
-export function cuentasDeLinea(x: Pick<Linea, "counted_total" | "system_qty" | "price">, pendiente: number): CuentasDeLinea {
+/** Lo que hace falta para saber si una línea se compara con el sistema (las líneas de antes no lo traen). */
+export type ParaComparar = Partial<Pick<Linea, "product_id" | "unit_of_measure" | "pieces_per_box">>;
+
+/**
+ * ¿Se compara la línea con el sistema? Espejo de la firma (336). Línea libre (sin producto del catálogo): NO.
+ * Piezas, o cajas con piezas por caja: SÍ. Bolsas y cajas sin piezas por caja: NO. Sin unidad (líneas de antes): SÍ.
+ */
+export function comparableConElSistema(x: ParaComparar): boolean {
+  if (x.product_id === null) return false;
+  const u = x.unit_of_measure ?? null;
+  if (u === null || u === "piece") return true;
+  if (u === "box") return (x.pieces_per_box ?? 0) > 0;
+  return false;
+}
+
+export function cuentasDeLinea(x: Pick<Linea, "counted_total" | "system_qty" | "price"> & ParaComparar, pendiente: number): CuentasDeLinea {
   const contado = x.counted_total;
-  const real = contado == null ? null : redondea(contado - pendiente);
+  const comparable = comparableConElSistema(x);
+  const real = contado == null || !comparable ? null : redondea(contado - pendiente);
   const dif = real == null || x.system_qty == null ? null : redondea(real - x.system_qty);
   const valor = dif == null || x.price == null ? null : redondea(dif * x.price, 2);
   return { contado, pendiente, real, sistema: x.system_qty, diferencia: dif, valor };
@@ -244,13 +263,13 @@ export function enCajas(piezas: number | null, piezasPorCaja: number | null): nu
 }
 
 /** contado − sistema, SIN las pendientes (la vista de la captura). Null si falta alguno de los dos. */
-export function diferencia(x: Pick<Linea, "system_qty" | "counted_total">): number | null {
-  if (x.system_qty == null || x.counted_total == null) return null;
+export function diferencia(x: Pick<Linea, "system_qty" | "counted_total"> & ParaComparar): number | null {
+  if (!comparableConElSistema(x) || x.system_qty == null || x.counted_total == null) return null;
   return redondea(x.counted_total - x.system_qty);
 }
 
 /** El valor de la diferencia a precio de venta (precio × diferencia), con signo; sin pendientes. */
-export function valorDeLaDiferencia(x: Pick<Linea, "system_qty" | "counted_total" | "price">): number | null {
+export function valorDeLaDiferencia(x: Pick<Linea, "system_qty" | "counted_total" | "price"> & ParaComparar): number | null {
   const d = diferencia(x);
   if (d == null || x.price == null) return null;
   return redondea(d * x.price, 2);
@@ -310,12 +329,20 @@ export function resumenDelConteo(lineas: readonly Pick<Linea, "id" | "system_qty
   };
 }
 
-/** ¿Hay alguna línea con diferencia después de las pendientes? (la firma pide la razón). */
-export function hayDiferencias(lineas: readonly Pick<Linea, "id" | "system_qty" | "counted_total" | "price" | "counted_at">[], pendientes: readonly Pick<OrdenPendiente, "line_id" | "qty">[]): boolean {
-  return lineas.some((l) => {
-    if (l.counted_at == null || l.system_qty == null) return false;
-    return cuentasDeLinea(l, pendienteDeLinea(pendientes, l.id)).diferencia !== 0;
-  });
+/**
+ * ¿Hace falta la razon para esta línea en la firma? Espejo de la firma (336): una línea de catálogo con sistema que NO
+ * se compara (bolsas, cajas sin piezas por caja) SÍ la pide; una comparable, si tiene diferencia. Líneas libres: no.
+ */
+export function requiereRazonDeLinea(l: Pick<Linea, "id" | "system_qty" | "counted_total" | "price" | "counted_at"> & ParaComparar, pendientes: readonly Pick<OrdenPendiente, "line_id" | "qty">[]): boolean {
+  if (l.counted_at == null || l.system_qty == null || l.product_id === null) return false;
+  if (!comparableConElSistema(l)) return true;
+  const d = cuentasDeLinea(l, pendienteDeLinea(pendientes, l.id)).diferencia;
+  return d != null && d !== 0;
+}
+
+/** ¿Hay alguna línea que pida razón en la firma? */
+export function hayDiferencias(lineas: readonly (Pick<Linea, "id" | "system_qty" | "counted_total" | "price" | "counted_at"> & ParaComparar)[], pendientes: readonly Pick<OrdenPendiente, "line_id" | "qty">[]): boolean {
+  return lineas.some((l) => requiereRazonDeLinea(l, pendientes));
 }
 
 /** Un número entero escrito a mano: vacío = null; NaN si no es un entero ≥ 0. */
@@ -443,4 +470,91 @@ export function filasDeHojaDeConteo(lineas: readonly Linea[], pendientes: readon
 export function idDeHoja(v: string | string[] | undefined): string | null {
   const s = Array.isArray(v) ? v[0] : v;
   return s && /^[0-9a-f-]{36}$/i.test(s) ? s : null;
+}
+
+// ---------------------------------------------------------------------------
+// Lotes (19 nov): un producto puede venir en varios lotes. Cada lote: cantidad, lote, nota y foto.
+// La unidad (caja, bolsa, pieza) es UNA por línea y el total se guarda EN ESA UNIDAD (120 cajas = 120). Solo se
+// convierte a piezas para MOSTRAR cuando el producto del catálogo tiene piezas por caja («25 cajas · 300 piezas»).
+// ---------------------------------------------------------------------------
+export const UNIDADES_DE_CONTEO = ["box", "bag", "piece"] as const;
+export type UnidadDeConteo = (typeof UNIDADES_DE_CONTEO)[number];
+export function esUnidadDeConteo(x: unknown): x is UnidadDeConteo {
+  return typeof x === "string" && (UNIDADES_DE_CONTEO as readonly string[]).includes(x);
+}
+export const INFO_DE_UNIDAD: Record<UnidadDeConteo, { en: string; es: string; en1: string; es1: string }> = {
+  box: { en: "Boxes", es: "Cajas", en1: "box", es1: "caja" },
+  bag: { en: "Bags", es: "Bolsas", en1: "bag", es1: "bolsa" },
+  piece: { en: "Pieces", es: "Piezas", en1: "piece", es1: "pieza" },
+};
+
+/** Un lote de una línea. `qty` está en la unidad de la línea (puede ser decimal en bolsas). */
+export interface Lote {
+  qty: number;
+  lot: string | null;
+  note: string | null;
+  photo: string | null;
+}
+
+export const MAX_LOTES = 20;
+export const MAX_TEXTO_LOTE = 40;
+export const MAX_NOTA_LOTE = 300;
+
+/**
+ * Lo que se compara con el sistema (en PIEZAS) y si la línea SE PUEDE comparar. Espejo exacto de la función de la 336:
+ * comparable = producto del catálogo y (piezas, o cajas con piezas por caja). Cajas → cajas × piezas por caja; el resto,
+ * tal cual. Bolsas y producto libre: se guarda lo contado y no se compara.
+ */
+export function totalDelSistema(lotes: readonly Pick<Lote, "qty">[], unidad: UnidadDeConteo, piezasPorCaja: number | null, tieneProducto: boolean): { total: number | null; comparable: boolean } {
+  const suma = totalDeLotes(lotes);
+  const comparable = tieneProducto && (unidad === "piece" || (unidad === "box" && piezasPorCaja != null && piezasPorCaja > 0));
+  if (suma == null) return { total: null, comparable };
+  return { total: unidad === "box" && comparable ? redondea(suma * (piezasPorCaja as number), 2) : suma, comparable };
+}
+
+/** El total de los lotes, en la unidad de la línea (sin convertir; para mostrar). Null si no hay lotes. */
+export function totalDeLotes(lotes: readonly Pick<Lote, "qty">[]): number | null {
+  if (lotes.length === 0) return null;
+  return redondea(lotes.reduce((s, x) => s + x.qty, 0), 2);
+}
+
+/** Las piezas de una cantidad en cajas, SOLO si el producto tiene piezas por caja (si no, null). Para mostrar. */
+export function piezasDeCajas(cantidad: number, unidad: UnidadDeConteo | null, piezasPorCaja: number | null): number | null {
+  if (unidad !== "box" || piezasPorCaja == null || piezasPorCaja <= 0) return null;
+  return redondea(cantidad * piezasPorCaja, 2);
+}
+
+/**
+ * Cómo se lee una cantidad: «120 bags», «25 boxes · 300 pieces» (si hay piezas por caja), «120 pieces».
+ * Nunca convierte bolsas ni piezas a otra cosa.
+ */
+export function textoDeCantidad(cantidad: number, unidad: UnidadDeConteo | null, piezasPorCaja: number | null, lang: Lang): string {
+  if (!unidad) return String(cantidad);
+  const nombre = lang === "es" ? INFO_DE_UNIDAD[unidad].es1 : INFO_DE_UNIDAD[unidad].en1;
+  // Plural: caja/cajas, bolsa/bolsas, pieza/piezas; box/boxes, bag/bags, piece/pieces.
+  const sufijo = cantidad === 1 ? "" : lang === "en" && unidad === "box" ? "es" : "s";
+  const base = `${cantidad} ${nombre}${sufijo}`;
+  const piezas = piezasDeCajas(cantidad, unidad, piezasPorCaja);
+  if (piezas == null) return base;
+  const pn = lang === "es" ? "piezas" : "pieces";
+  return `${base} · ${piezas} ${pn}`;
+}
+
+/** Valida los lotes antes de guardar. Devuelve el motivo del primer error, o null si todo está bien. */
+export function motivoDeLotes(lotes: readonly Lote[], unidad: UnidadDeConteo | null): "unidad" | "vacio" | "cantidad" | "demasiados" | "texto" | null {
+  if (!unidad) return "unidad";
+  if (lotes.length === 0) return "vacio";
+  if (lotes.length > MAX_LOTES) return "demasiados";
+  for (const x of lotes) {
+    if (!Number.isFinite(x.qty) || x.qty < 0 || x.qty > 1000000) return "cantidad";
+    if ((x.lot ?? "").length > MAX_TEXTO_LOTE || (x.note ?? "").length > MAX_NOTA_LOTE) return "texto";
+  }
+  if (!lotes.some((x) => x.qty > 0)) return "cantidad";
+  return null;
+}
+
+/** Los lotes como texto para la lista de la línea («Lote 123: 100 cajas · Lote 3A4: 20 cajas»). */
+export function resumenDeLotes(lotes: readonly Lote[], unidad: UnidadDeConteo | null, lang: Lang): string {
+  const nombre = unidad ? (lang === "es" ? INFO_DE_UNIDAD[unidad].es : INFO_DE_UNIDAD[unidad].en).toLowerCase() : "";
+  return lotes.map((x) => `${x.lot ? `${lang === "es" ? "Lote" : "Lot"} ${x.lot}: ` : ""}${x.qty} ${nombre}`).join(" · ");
 }

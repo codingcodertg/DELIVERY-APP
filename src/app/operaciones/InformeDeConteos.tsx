@@ -9,6 +9,7 @@ import { fmtDateTime, fmtMoney } from "@/lib/utils";
 import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
 import { hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
 import { resumenDelConteo, type Conteo, type Linea, type OrdenPendiente } from "@/lib/almacen-ops/conteos";
+import { comparableConElSistema } from "@/lib/almacen-ops/conteos";
 import {
   conteosDelPeriodo, colorDeExactitud, kpiDeConteos, kpiPorEmpleado, mesVecino, periodoDeMes, totalDeConteos, type KpiDeConteos,
 } from "@/lib/almacen-ops/conteos-kpi";
@@ -64,7 +65,7 @@ export function InformeDeConteos({ ctx, tiendas }: { ctx: Contexto; tiendas: str
       const cajas = (signo: 1 | -1) => lineas.reduce((s, l) => {
         const pz = l.pieces_per_box;
         const pl = pendientes.filter((o) => o.line_id === l.id).reduce((x, o) => x + o.qty, 0);
-        if (l.counted_at == null || l.system_qty == null || pz == null || pz <= 0) return s;
+        if (l.counted_at == null || l.system_qty == null || pz == null || pz <= 0 || !comparableConElSistema(l)) return s;
         const d = (l.counted_total ?? 0) - pl - l.system_qty;
         return s + (Math.sign(d) === signo ? Math.abs(d) / pz : 0);
       }, 0);

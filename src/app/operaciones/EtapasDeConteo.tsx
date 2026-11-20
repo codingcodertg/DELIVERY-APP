@@ -42,7 +42,6 @@ export function LineaDeEtapasDeConteo({ c, nombre, adjunto }: { c: Conteo; nombr
               <span className="ops-etapa-texto">
                 <strong>{info.n}. {nombreDeEtapaDeConteo(e, lang)}</strong>
                 {hecha && !actual && f.at && <span className="ops-etapa-cuando">{t("entered", "entró")} {fmtDateTime(f.at)}{f.by && ` · ${nombre(f.by)}`}</span>}
-                {actual && c.stage !== "adjusted" && <span className="ops-etapa-cuando">{lang === "es" ? info.que_es : info.que_en}</span>}
                 {e === "organizing" && c.instructions && <span className="ops-nota-fallo">📝 {c.instructions}</span>}
                 {e === "review" && hecha && c.orders_note && c.stage !== "review" && <span className="ops-nota-fallo">🗒 {c.orders_note}</span>}
                 {e === "sign_off" && c.signed_at && <span className="ops-etapa-cuando" data-firmado>✍️ {t("Signed by", "Firmó")} {c.signed_by_name ?? nombre(c.signed_by)} · {fmtDateTime(c.signed_at)} {c.signed_sheet && adjunto?.(c.signed_sheet, t("Signed sheet", "Hoja firmada"))}</span>}

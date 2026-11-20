@@ -42,7 +42,7 @@ describe("el alcance y su título", () => {
   });
   it("dice qué falta: la medida con proveedor+medida, la nota solo si escribió algo de una letra en proveedor+medida o falta en proveedor+nota", () => {
     expect(faltaDelAlcance({ scope_kind: "vendor_size", vendor_name: null, size_in: "24x48" })).toBe("vendor");
-    expect(faltaDelAlcance({ scope_kind: "vendor_size", vendor_name: "Daltile", size_in: null })).toBe("size");
+    expect(faltaDelAlcance({ scope_kind: "vendor_size", vendor_name: "Daltile", size_in: null })).toBeNull();
     expect(faltaDelAlcance({ scope_kind: "vendor_size", vendor_name: "Daltile", size_in: "24x48" })).toBeNull();
     expect(faltaDelAlcance({ scope_kind: "vendor_size", vendor_name: "Daltile", size_in: "24x48", note: "" })).toBeNull();
     expect(faltaDelAlcance({ scope_kind: "vendor_size", vendor_name: "Daltile", size_in: "24x48", note: "b" })).toBe("note");

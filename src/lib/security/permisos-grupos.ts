@@ -24,7 +24,7 @@ export const GRUPOS_DE_PERMISOS: GrupoDePermisos[] = [
   { titulo_en: "Sales", titulo_es: "Ventas", keys: ["estimator", "leads", "customers", "promos"] },
   { titulo_en: "Operations", titulo_es: "Operaciones", keys: ["warehouse_ops"] },
   { titulo_en: "Office", titulo_es: "Oficina", keys: ["recruiting", "timetracker"] },
-  { titulo_en: "Other", titulo_es: "Otros", keys: ["surveys", "erp"] },
+  { titulo_en: "Other", titulo_es: "Otros", keys: ["surveys", "erp", "app_draft"] },
 ];
 
 /** El tier por defecto al conceder un módulo con escalafón (el más bajo, nunca admin por accidente). */

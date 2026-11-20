@@ -20,12 +20,16 @@ import { CamaraDeVariasFotos } from "@/components/CamaraDeVariasFotos";
  * foto» abre la cámara DENTRO de la app (`CamaraDeVariasFotos`, la misma de las fotos de entrega, con `getUserMedia`),
  * y la foto se entrega igual, como `File`. Si esa cámara tampoco abre, el siguiente toque usa el `<input>` de siempre.
  */
-export function BotonesDeFoto({ onFoto, leyendo, disabled, etiquetaCamara, primario = true }: {
+export function BotonesDeFoto({ onFoto, leyendo, disabled, etiquetaCamara, etiquetaGaleria, enLinea = false, primario = true }: {
   onFoto: (f: File, origen: "camara" | "galeria") => void;
   leyendo: boolean;
   disabled?: boolean;
   /** El texto del botón de la cámara cuando no se está leyendo. */
   etiquetaCamara: string;
+  /** El texto del botón de la galería (por defecto «Elegir de la galería»). */
+  etiquetaGaleria?: string;
+  /** Los dos botones en una sola línea, compactos (19 nov: «Take photo» / «Gallery» juntos). */
+  enLinea?: boolean;
   /** La cámara como opción principal (borde de acento). */
   primario?: boolean;
 }) {
@@ -53,12 +57,12 @@ export function BotonesDeFoto({ onFoto, leyendo, disabled, etiquetaCamara, prima
   };
   const apagado = leyendo || !!disabled;
   return (
-    <div className="ops-botones-foto" data-botones-foto>
+    <div className={`ops-botones-foto${enLinea ? " ops-botones-foto-linea" : ""}`} data-botones-foto>
       <button type="button" className={`ops-opcion ops-camara${primario ? " ops-camara-principal" : ""}`} onClick={abreCamara} disabled={apagado} data-accion="foto">
         📷 {leyendo ? t("Reading photo…", "Leyendo la foto…") : etiquetaCamara}
       </button>
       <button type="button" className="ops-opcion ops-camara" onClick={() => galeria.current?.click()} disabled={apagado} data-accion="foto-galeria">
-        🖼 {t("Choose from the gallery", "Elegir de la galería")}
+        🖼 {etiquetaGaleria ?? t("Choose from the gallery", "Elegir de la galería")}
       </button>
       <input ref={camara} type="file" accept="image/*" capture="environment" hidden onChange={entrega("camara")} data-entrada="camara" />
       <input ref={galeria} type="file" accept="image/*" hidden onChange={entrega("galeria")} data-entrada="galeria" />

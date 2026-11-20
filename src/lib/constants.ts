@@ -518,6 +518,17 @@ export const MODULES: ModuleInfo[] = [
     desc_en: "Floor reports, safety and scrap",
     desc_es: "Reportes del piso, seguridad y merma",
   },
+  {
+    // App Draft (2026-11-19): el banco de pruebas donde el dueño enseña al gerente prototipos con datos inventados
+    // antes de decidir si se construyen de verdad. Solo admins de partida; al gerente se le concede con la casilla.
+    key: "app_draft",
+    href: "/app-draft",
+    emoji: "🧪",
+    label_en: "App Draft",
+    label_es: "App Draft",
+    desc_en: "Prototypes with sample data, to decide what to build",
+    desc_es: "Prototipos con datos de ejemplo, para decidir qué construir",
+  },
 ];
 
 // "Deliveries" is kept out of MODULES because HomeSelector and the app switcher need to draw it as the
@@ -1052,7 +1063,7 @@ export const ROLE_CAPS: Record<UserRole, Capability[]> = {
 // module costs one line here plus its MODULE_ACCESS entry — a small,
 // deliberate price for a compiler-checked guarantee on the sensitive half
 // (writes), while the rendering half stays fully data-driven.
-export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp" | "promos" | "estimator" | "surveys" | "leads" | "customers" | "warehouse_ops";
+export type ModuleAccessKey = "deliveries" | "recruiting" | "timetracker" | "erp" | "promos" | "estimator" | "surveys" | "leads" | "customers" | "warehouse_ops" | "app_draft";
 
 export interface ModuleAccessConfig {
   key: ModuleAccessKey;
@@ -1292,6 +1303,19 @@ export const MODULE_ACCESS: ModuleAccessConfig[] = [
     roleNote: {
       en: "No role of its own. Shows every store's customers with contact name, phone, email and credit terms: grant it only to whoever needs the list. Admins and managers can edit; everyone else reads. Admins always have it.",
       es: "Sin rol propio. Enseña los clientes de todas las tiendas con contacto, teléfono, correo y crédito: concédelo solo a quien necesite la lista. Admins y managers editan; los demás leen. Los admins lo tienen siempre.",
+    },
+  },
+  {
+    // App Draft: prototipos con datos inventados en el navegador; no lee ni escribe la base. Sin escalafón propio.
+    // OJO: la base todavía no conoce la palabra (falta añadirla a `profiles_module_access_known` con una migración).
+    key: "app_draft", label_en: "App Draft", label_es: "App Draft",
+    alwaysOn: false,
+    roleKeys: [],
+    roleLabel: (key) => key,
+    accessColumn: "module_access",
+    roleNote: {
+      en: "No role of its own. Prototypes with sample data only; nothing there touches real data. Admins always have it.",
+      es: "Sin rol propio. Solo prototipos con datos de ejemplo; nada ahí toca datos reales. Los admins lo tienen siempre.",
     },
   },
   {

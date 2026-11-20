@@ -43,7 +43,7 @@ function hrefsPosibles(c: Casilla): string[] {
 
 // Nota D-558: Purchase Orders y Receive Inventory pasan de gris a color (abren las del ERP); antes, once y nueve.
 // 2026-11-11 (re-hacer el mapa con las apps hechas): + Operaciones de almacén, RTG PROMOS y Seguridad y permisos.
-const COLOR = ["purchase-orders", "receive-inventory", "deliveries", "erp-inventory", "warehouse-ops", "leads", "promos", "quote-builder", "users", "hr", "time-tracker", "surveys", "help-requests", "tutorials", "phone-book", "security", "ringcentral"];
+const COLOR = ["purchase-orders", "receive-inventory", "deliveries", "erp-inventory", "warehouse-ops", "leads", "promos", "quote-builder", "users", "hr", "time-tracker", "surveys", "help-requests", "tutorials", "phone-book", "security", "ringcentral", "app-draft"];
 const GRIS = ["enter-bills", "pay-bills", "sales-order", "refunds-credits", "create-invoice", "receive-payments", "record-deposits"];
 
 const TODO = ["deliveries", "recruiting", "timetracker", "erp", "promos", "estimator", "surveys", "leads"];

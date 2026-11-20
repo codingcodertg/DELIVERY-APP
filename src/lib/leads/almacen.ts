@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ALCANCE_SIN_REGLA, alcanceDeLaBase, type Alcance } from "./alcance";
 import { negativaDeCodigo, esTipoDeAccion, type EstadoLead, type Etiqueta, type EventoLead, type Lead, type Negativa, type TipoDeAccion } from "./reglas";
+import type { LlamadaDeLead } from "./llamadas-rc";
+import type { LlamadasDeVendedor, Periodo } from "./estadisticas";
 
 /**
  * Dónde viven los leads: `public.leads` y `public.lead_events` (migración 162; la etapa y el «visto en N cargas», 328).
@@ -38,6 +40,15 @@ export interface AlmacenDeLeads {
    * (nombre del perfil, o null). Se leen de `erp.customers` con la sesión de quien mira: el admin los ve todos.
    */
   clientesCruzados(ids: readonly number[]): Promise<Res<Map<number, ClienteCruzado>>>;
+  /**
+   * Las llamadas de RingCentral a los teléfonos de UN lead, la más nueva primero (337). Quien VE el lead puede; a quien no
+   * lo ve la base la niega (`error` con el código 42501 o P0002, y la pantalla deja la lista vacía).
+   */
+  llamadasDeLead(leadId: string): Promise<Res<LlamadaDeLead[]>>;
+  /** La URL firmada (10 minutos) para escuchar una de esas llamadas. Sin grabación o sin ver el lead, `ok: false`. */
+  grabacionDeLlamada(leadId: string, llamadaId: string): Promise<Res<string>>;
+  /** Las llamadas del rango por nombre de vendedor (RingCentral). Solo admin y gerente (337). */
+  llamadasPorVendedor(periodo: Periodo): Promise<Res<{ porVendedor: LlamadasDeVendedor[]; total: number }>>;
 }
 
 export interface ClienteCruzado {
@@ -232,5 +243,25 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
       return { ok: true, valor: leadDeLaBase(data as Record<string, unknown>) };
     },
     archivar: (leadId, nota) => llamar("lead_admin_archive", { p_lead: leadId, p_note: nota }),
+    async llamadasDeLead(leadId) {
+      const { data, error } = await supabase.rpc("leads_llamadas_de_lead", { p_lead: leadId });
+      if (error) return fallo(error);
+      return { ok: true, valor: (data ?? []) as LlamadaDeLead[] };
+    },
+    async grabacionDeLlamada(leadId, llamadaId) {
+      const r = await fetch(`/api/leads/llamadas/grabacion?lead=${encodeURIComponent(leadId)}&id=${encodeURIComponent(llamadaId)}`, { cache: "no-store" });
+      const j = (await r.json().catch(() => null)) as { url?: string } | null;
+      if (!r.ok || !j?.url) return { ok: false, sinTabla: false, motivo: null, error: `status ${r.status}` };
+      return { ok: true, valor: j.url };
+    },
+    async llamadasPorVendedor(periodo) {
+      const { data, error } = await supabase.rpc("leads_estadisticas_de_llamadas", {
+        p_desde: periodo.desde.toISOString(), p_hasta: periodo.hasta.toISOString(),
+      });
+      if (error) return fallo(error);
+      const porVendedor = ((data ?? []) as { rep_name: string | null; llamadas: number | string }[])
+        .map((r) => ({ rep_name: r.rep_name, llamadas: Number(r.llamadas) }));
+      return { ok: true, valor: { porVendedor, total: porVendedor.reduce((n, r) => n + r.llamadas, 0) } };
+    },
   };
 }

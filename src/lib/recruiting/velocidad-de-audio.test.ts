@@ -17,7 +17,7 @@ describe("la velocidad de las grabaciones de RingCentral", () => {
   });
   it("el rótulo y el botón a la vista junto al reproductor", () => {
     expect(rotuloDeVelocidad(1.5)).toBe("1.5×");
-    const c = readFileSync("src/components/recruiting/ComunicacionesRingCentral.tsx", "utf8");
+    const c = readFileSync("src/components/ringcentral/ReproductorDeGrabacion.tsx", "utf8");
     expect(c).toContain("data-velocidad-de-audio");
     expect(c).toContain("playbackRate");
   });

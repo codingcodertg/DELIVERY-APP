@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { agendasExtraDesde } from "@/lib/recruiting/agendas-ringcentral";
 import { elegirAgenda } from "@/lib/recruiting/rc-comms";
 import { sincronizarRcComms } from "@/lib/recruiting/rc-comms-sync";
+import { sincronizarLlamadasDeLeads } from "@/lib/leads/llamadas-sync";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,5 +37,14 @@ export async function GET(req: Request) {
     `[cron rc-comms] ok=${r.ok} motivo=${r.motivo ?? "-"} llamadas=${r.llamadas} textos=${r.textos} ` +
       `grabaciones=${r.grabaciones} pendientes=${r.pendientes}`,
   );
-  return NextResponse.json(r, { status: r.ok || r.motivo === "limite" ? 200 : 502 });
+  // Las llamadas de los leads (337) van con la misma corrida y las mismas credenciales; solo barren cada 2 horas. Si
+  // fallan, no tapan el resultado de las comunicaciones de candidatos.
+  let leads = null;
+  try {
+    leads = await sincronizarLlamadasDeLeads({ db: createAdminClient(), credenciales: agenda, ahora: new Date() });
+  } catch {
+    console.error("[cron rc-comms] llamadas de leads: no se pudo iniciar");
+  }
+  if (leads) console.log(`[cron rc-comms] leads ok=${leads.ok} motivo=${leads.motivo ?? "-"} llamadas=${leads.llamadas} grabaciones=${leads.grabaciones}`);
+  return NextResponse.json({ ...r, leads }, { status: r.ok || r.motivo === "limite" ? 200 : 502 });
 }

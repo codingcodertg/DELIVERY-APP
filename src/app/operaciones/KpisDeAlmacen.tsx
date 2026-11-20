@@ -9,6 +9,9 @@ import { fmtDia, hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
 import { META_DE_MERMA_PCT, mesesHastaHoy, truncaDecimales, type NivelDeBono } from "@/lib/almacen-ops/kpi-almacen";
 import type { Contexto } from "./Operaciones";
 
+/** 19 nov (Roberto, prueba de dos meses): ninguna mención de bono en la pantalla. El cálculo sigue en la lógica. */
+const MOSTRAR_BONO = false;
+
 /** Lo que devuelve `/api/almacen-ops/kpi-almacen` (la forma de `route.ts`). */
 interface Respuesta {
   ok: true;
@@ -125,7 +128,7 @@ function Cifras({ d, t, lang }: { d: Respuesta; t: (en: string, es: string) => s
 
   return (
     <div data-kpi-almacen-cifras data-bono={d.bono ?? ""} data-puntaje={d.puntaje ?? ""}>
-      {/* Puntaje y tramo del bono */}
+      {MOSTRAR_BONO && (
       <div className="ops-merma-total ops-kpi-almacen-bono" data-bono-tramo>
         <span>{t("Overall score", "Puntaje general")}</span>
         <span className="ops-merma-cifra">{puntaje}{d.puntaje === null ? "" : " / 100"}</span>
@@ -137,6 +140,7 @@ function Cifras({ d, t, lang }: { d: Respuesta; t: (en: string, es: string) => s
           {t("Bonuses require using the app: what is not recorded here cannot be scored.", "Los bonos requieren usar la app: lo que no se registra aquí no se puede calificar.")}
         </span>
       </div>
+      )}
 
       {sinMigracion && (
         <p className="ops-aviso ops-aviso-error" data-aviso-325>

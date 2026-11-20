@@ -70,7 +70,7 @@ export const RPC_QUE_SOLO_LEEN = [
   "asociaciones_pendientes", // 250 (D-886): las propuestas de asociación abiertas de una empresa; solo lee.
   "analytics_category_stats", "analytics_store_stats", "analytics_vendor_stats", "buscar_factura_para_recoger",
   "catalog_facets", "category_browse", "dashboard_stats", "estimator_find_estimate", "estimator_pending_approvals",
-  "leads_my_scope", "list_cycle_counts", "list_purchase_orders", "my_point_balance", "my_published_stops",
+  "leads_llamadas_de_lead", "leads_estadisticas_de_llamadas", "leads_my_scope", "list_cycle_counts", "list_purchase_orders", "my_point_balance", "my_published_stops",
   "negative_balances", "phone_book", "po_receiving_detail", "product_vocabulary", "purchasing_groups", "reconcile_po",
   "pasos_del_relevo", "reorder_report", "review_tag_facets", "rutas_del_dia", "security_gate", "session_gate", "store_names", "suggest_po_line_matches",
   "mis_tiendas_de_clientes", // 250 (D-886): las tiendas en las que busca el no admin de Clientes; stable, solo lee.
@@ -112,6 +112,7 @@ export const RPC_QUE_ESCRIBEN = [
   "warehouse_ops_pending_add", "warehouse_ops_pending_update", "warehouse_ops_pending_delete", "warehouse_ops_count_set_system", "warehouse_ops_count_back", // 333: órdenes pendientes de la revisión, cantidad del sistema y volver a revisar; escriben.
   "warehouse_ops_create_count", "warehouse_ops_count_advance", "warehouse_ops_count_line", "warehouse_ops_count_sign",
   "warehouse_ops_count_recount", "warehouse_ops_count_adjust", "warehouse_ops_count_cancel",
+  "warehouse_ops_count_lots", "warehouse_ops_count_add_line", // 336: lotes y unidad de la línea, y producto escrito a mano; escriben.
   "security_sign_out_user", // 236 (D-828): cierra todas las sesiones de una persona.
   "revisa_solicitud_de_cliente", "corrige_solicitud_de_cliente", // 242 (D-865): mandan a Revisar y corrigen una solicitud.
   "add_product_relation", "adjust_inventory", "apply_decisions", "apply_master_import", "assign_draft_sku",

@@ -28,7 +28,7 @@ export function BuscadorDeConteo({ etiqueta, placeholder, opciones, valor, onEle
   }
   return (
     <div className="ops-buscador" data-buscador={dato}>
-      <input className="ops-campo ops-campo-grande" value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder}
+      <input className="ops-campo ops-campo" value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder}
         inputMode="search" autoComplete="off" autoCorrect="off" spellCheck={false} aria-label={etiqueta} data-campo={dato} />
       <ul className="ops-buscador-lista" role="listbox" aria-label={etiqueta} data-opciones={lista.length}>
         {lista.map((o) => (
