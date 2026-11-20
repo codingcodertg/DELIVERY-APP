@@ -79,8 +79,30 @@ describe("337 · las estadísticas filtran por lo que quien pide ve (alcance de 
     expect(c).toMatch(/claves_ocultas as \(/);
     expect(c).toMatch(/where public\.leads_puede_ver_fila\(l\.id\)/);
     expect(c).toMatch(/where not public\.leads_puede_ver_fila\(l\.id\)/);
-    expect(c).toMatch(/c\.phone_key in \(select v\.clave from claves_visibles v/);
+    expect(c).toMatch(/exists \(\s*select 1 from claves_visibles v\s*where v\.clave = c\.phone_key/);
     expect(c).toMatch(/c\.phone_key not in \(select o\.clave from claves_ocultas o/);
+  });
+});
+
+describe("337 · un teléfono a mano solo casa con llamadas desde que se puso", () => {
+  const llamadas = () => sinComentarios.slice(sinComentarios.indexOf("function public.leads_llamadas_de_lead"), sinComentarios.indexOf("function public.leads_estadisticas_de_llamadas"));
+  const stats = () => sinComentarios.slice(sinComentarios.indexOf("function public.leads_estadisticas_de_llamadas"));
+  it("las columnas de cuándo se puso el teléfono a mano existen (la 335 también las crea)", () => {
+    expect(sinComentarios).toMatch(/alter table public\.leads add column if not exists owner_phone_manual_at timestamptz;/);
+    expect(sinComentarios).toMatch(/alter table public\.leads add column if not exists tenant_phone_manual_at timestamptz;/);
+  });
+  it("la lectura de un lead usa la fecha del a mano y la compara con started_at", () => {
+    expect(llamadas()).toMatch(/owner_phone_manual_at, 'infinity'::timestamptz\)/);
+    expect(llamadas()).toMatch(/tenant_phone_manual_at, 'infinity'::timestamptz\)/);
+    expect(llamadas()).toMatch(/k\.desde is null or c\.started_at >= k\.desde/);
+  });
+  it("el recuento por tienda aplica la misma fecha a los leads visibles", () => {
+    expect(stats()).toMatch(/owner_phone_manual_at, 'infinity'::timestamptz\)/);
+    expect(stats()).toMatch(/v\.desde is null or c\.started_at >= v\.desde/);
+  });
+  it("los teléfonos del Excel no llevan fecha (desde null): sus llamadas no cambian", () => {
+    expect(llamadas()).toMatch(/\(public\.leads_clave_de_telefono\(l\.owner_phone\), null::timestamptz\)/);
+    expect(stats()).toMatch(/\(public\.leads_clave_de_telefono\(l\.tenant_phone\), null::timestamptz\)/);
   });
 });
 

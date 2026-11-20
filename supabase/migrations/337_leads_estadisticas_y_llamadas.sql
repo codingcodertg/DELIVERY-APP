@@ -52,6 +52,12 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
+-- 1b. Las columnas de cuándo se puso cada teléfono a mano. La 335 ya las crea y las pone (lead_set_phone: now() al
+--     guardar, null al quitar); este «if not exists» solo las deja presentes si la 335 aún no se aplicó.
+alter table public.leads add column if not exists owner_phone_manual_at timestamptz;
+alter table public.leads add column if not exists tenant_phone_manual_at timestamptz;
+
+-- ---------------------------------------------------------------------------
 -- 2. Las llamadas que empareja un lead. Una fila por llamada de RingCentral (rc_call_id único).
 -- ---------------------------------------------------------------------------
 create table if not exists public.rc_lead_calls (
@@ -135,10 +141,17 @@ begin
   -- grabaciones de ese otro lead: el número también está en un lead que no ve, y se excluye. Admin y gerente con
   -- acceso ven todos los leads (`leads_puede_ver_fila`), así que ven todo lo que el lead tenga.
   return query
-    with claves_del_lead as (
-      select distinct public.leads_clave_de_telefono(t.v) as clave
+    -- Clave y «desde»: un teléfono del Excel vale para toda llamada (desde null); uno a mano solo para las llamadas desde
+    -- que se puso (`*_manual_at`, que pone la 335). Sin esa fecha, el a mano no casa con nada (infinity).
+    claves_del_lead as (
+      select distinct t.clave, t.desde
         from public.leads l
-        cross join lateral (values (l.owner_phone), (l.owner_phone_manual), (l.tenant_phone), (l.tenant_phone_manual)) as t(v)
+        cross join lateral (values
+          (public.leads_clave_de_telefono(l.owner_phone), null::timestamptz),
+          (public.leads_clave_de_telefono(l.tenant_phone), null::timestamptz),
+          (public.leads_clave_de_telefono(l.owner_phone_manual), coalesce(l.owner_phone_manual_at, 'infinity'::timestamptz)),
+          (public.leads_clave_de_telefono(l.tenant_phone_manual), coalesce(l.tenant_phone_manual_at, 'infinity'::timestamptz))
+        ) as t(clave, desde)
        where l.id = p_lead
     ),
     claves_ocultas as (
@@ -151,7 +164,10 @@ begin
            c.rep_name, c.rep_extension, c.phone_key,
            (c.recording_path is not null) as has_recording, c.recording_pending
       from public.rc_lead_calls c
-     where c.phone_key in (select k.clave from claves_del_lead k where k.clave is not null)
+     where exists (
+             select 1 from claves_del_lead k
+              where k.clave = c.phone_key and (k.desde is null or c.started_at >= k.desde)
+           )
        and c.phone_key not in (select o.clave from claves_ocultas o where o.clave is not null)
      order by c.started_at desc
      limit 200;
@@ -184,10 +200,16 @@ begin
        order by count(*) desc, c.rep_name;
   else
     return query
-      with claves_visibles as (
-        select distinct public.leads_clave_de_telefono(t.v) as clave
+      -- Mismo criterio de fecha que en leads_llamadas_de_lead: el a mano solo cuenta desde que se puso.
+      claves_visibles as (
+        select distinct t.clave, t.desde
           from public.leads l
-          cross join lateral (values (l.owner_phone), (l.owner_phone_manual), (l.tenant_phone), (l.tenant_phone_manual)) as t(v)
+          cross join lateral (values
+            (public.leads_clave_de_telefono(l.owner_phone), null::timestamptz),
+            (public.leads_clave_de_telefono(l.tenant_phone), null::timestamptz),
+            (public.leads_clave_de_telefono(l.owner_phone_manual), coalesce(l.owner_phone_manual_at, 'infinity'::timestamptz)),
+            (public.leads_clave_de_telefono(l.tenant_phone_manual), coalesce(l.tenant_phone_manual_at, 'infinity'::timestamptz))
+          ) as t(clave, desde)
          where public.leads_puede_ver_fila(l.id)
       ),
       claves_ocultas as (
@@ -199,7 +221,10 @@ begin
       select c.rep_name, c.rep_extension, count(*)::bigint
         from public.rc_lead_calls c
        where c.started_at >= p_desde and c.started_at < p_hasta
-         and c.phone_key in (select v.clave from claves_visibles v where v.clave is not null)
+         and exists (
+               select 1 from claves_visibles v
+                where v.clave = c.phone_key and (v.desde is null or c.started_at >= v.desde)
+             )
          and c.phone_key not in (select o.clave from claves_ocultas o where o.clave is not null)
        group by c.rep_name, c.rep_extension
        order by count(*) desc, c.rep_name;
