@@ -36,8 +36,8 @@ export const DRAFTS: readonly Draft[] = [
     emoji: "🖥️",
     nombre_en: "QuickBooks Desktop",
     nombre_es: "QuickBooks Desktop",
-    desc_en: "Coming later.",
-    desc_es: "Más adelante.",
-    listo: false,
+    desc_en: "What the desktop edition adds: stock across stores with transfers, bins, lots and expiration, box/sq ft units, sales orders with backorders and pick-pack-ship, kits, price rules, freight and alternate vendors.",
+    desc_es: "Lo que agrega la versión de escritorio: existencia entre tiendas con traspasos, ubicaciones, lotes y caducidad, unidades caja/ft², órdenes de venta con pendientes y surtir-empacar-enviar, kits, reglas de precio, flete y proveedores alternos.",
+    listo: true,
   },
 ];

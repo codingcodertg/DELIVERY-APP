@@ -51,7 +51,7 @@ export const APP_VERSIONS = {
   // no tendría sello de versión.
   ringcentral: "0.1.0",
   // App Draft: prototipos con datos de ejemplo (primera sección: QuickBooks Online).
-  app_draft: "0.1.0",
+  app_draft: "0.2.0",
 } as const;
 
 export type AppKey = keyof typeof APP_VERSIONS;
