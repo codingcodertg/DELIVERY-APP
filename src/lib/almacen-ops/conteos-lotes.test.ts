@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { motivoDeLotes, piezasPorUnidad, resumenDeLotes, totalDeLotes } from "./conteos";
+import { motivoDeLotes, piezasDeCajas, resumenDeLotes, textoDeCantidad, totalDeLotes } from "./conteos";
 import { lotesDeLaFila } from "./conteos-datos";
 
 describe("lotes de un producto (19 nov: lote 123 = 100 cajas; lote 3A4 = 20 cajas)", () => {
@@ -7,13 +7,23 @@ describe("lotes de un producto (19 nov: lote 123 = 100 cajas; lote 3A4 = 20 caja
     { qty: 100, lot: "123", note: null, photo: null },
     { qty: 20, lot: "3A4", note: "mojadas", photo: null },
   ];
-  it("una caja vale las piezas por caja del producto; bolsa y pieza cuentan tal cual", () => {
-    expect(piezasPorUnidad("box", 8)).toBe(8);
-    expect(piezasPorUnidad("box", null)).toBe(1);
-    expect(piezasPorUnidad("bag", 8)).toBe(1);
-    expect(totalDeLotes(lotes, "box", 8)).toBe(960);
-    expect(totalDeLotes(lotes, "piece", 8)).toBe(120);
-    expect(totalDeLotes([], "box", 8)).toBeNull();
+  it("el total se guarda en la unidad elegida, sin convertir (120 cajas = 120)", () => {
+    expect(totalDeLotes(lotes)).toBe(120);
+    expect(totalDeLotes([])).toBeNull();
+  });
+  it("las piezas se muestran solo para cajas con piezas por caja; nunca para bolsas o piezas", () => {
+    expect(piezasDeCajas(25, "box", 12)).toBe(300);
+    expect(piezasDeCajas(25, "box", null)).toBeNull();
+    expect(piezasDeCajas(25, "bag", 12)).toBeNull();
+    expect(piezasDeCajas(25, "piece", 12)).toBeNull();
+  });
+  it("el texto de la cantidad: «25 boxes · 300 pieces», «120 bags», «120 pieces»", () => {
+    expect(textoDeCantidad(25, "box", 12, "en")).toBe("25 boxes · 300 pieces");
+    expect(textoDeCantidad(25, "box", null, "en")).toBe("25 boxes");
+    expect(textoDeCantidad(120, "bag", 12, "en")).toBe("120 bags");
+    expect(textoDeCantidad(120, "piece", null, "es")).toBe("120 piezas");
+    expect(textoDeCantidad(1, "box", null, "es")).toBe("1 caja");
+    expect(textoDeCantidad(25, "box", 12, "es")).toBe("25 cajas · 300 piezas");
   });
   it("valida: unidad, al menos un lote, cantidades no negativas y que haya algo contado", () => {
     expect(motivoDeLotes(lotes, null)).toBe("unidad");

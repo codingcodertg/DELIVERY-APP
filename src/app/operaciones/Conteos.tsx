@@ -10,7 +10,7 @@ import { DEMO_PRODUCTOS, buscarProductos } from "@/lib/almacen-ops/datos";
 import type { ProductoElegido } from "@/lib/almacen-ops/pasos";
 import {
   INFO_DE_ALCANCE, accionesDeConteo, estaAbierto, estaContada, faltaDelAlcance, ordenarLineas, progresoDelConteo, puedeGestionarConteo,
-  resumenDeLotes, tituloDeAlcance, type AccionDeConteo, type AlcanceElegido, type Conteo, type Linea, type OrdenPendiente,
+  resumenDeLotes, textoDeCantidad, tituloDeAlcance, type AccionDeConteo, type AlcanceElegido, type Conteo, type Linea, type OrdenPendiente,
 } from "@/lib/almacen-ops/conteos";
 import { buscarEnLista, coincideConAlcance } from "@/lib/almacen-ops/conteos-alcance";
 import {
@@ -232,10 +232,11 @@ function FormNuevoConteo({ ctx, tienda, onCreado }: { ctx: Contexto; tienda: str
             <span className="ops-seleccion" data-elegido="proveedor" data-valor-elegido={a.vendor_name}><span>{a.vendor_name}{prov && <span className="hint"> · {prov.products} {t("products", "productos")}</span>}</span> <button type="button" className="btn btn-sm" onClick={() => setA({ scope_kind: "vendor_size" })} data-accion="cambiar-proveedor">{t("Change", "Cambiar")}</button></span>
           ) : (
             <>
-              <input className="ops-campo ops-campo-grande" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Type a supplier or one product", "Escribe un proveedor o un producto")}
+              <input className="ops-campo ops-campo" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Type a supplier or one product", "Escribe un proveedor o un producto")}
                 inputMode="search" autoComplete="off" autoCorrect="off" spellCheck={false} data-campo="proveedor-o-producto" />
               {proveedores === null ? <span className="hint">{t("Loading suppliers…", "Cargando proveedores…")}</span> : (
                 <ul className="ops-buscador-lista" data-opciones-proveedor={provLista.length}>
+                  {provLista.length > 0 && <li className="hint" data-grupo="proveedores">{t("Suppliers", "Proveedores")}</li>}
                   {provLista.map((o) => (
                     <li key={o.valor}><button type="button" className="ops-opcion ops-buscador-opcion" onClick={() => { setA({ scope_kind: "vendor_size", vendor_name: o.valor }); setQ(""); }} data-proveedor={o.valor}>{o.texto}{o.detalle && <span className="hint"> · {o.detalle}</span>}</button></li>
                   ))}
@@ -243,6 +244,7 @@ function FormNuevoConteo({ ctx, tienda, onCreado }: { ctx: Contexto; tienda: str
               )}
               {sugeridos.length > 0 && (
                 <ul className="ops-buscador-lista" data-sugerencias={sugeridos.length}>
+                  <li className="hint" data-grupo="productos">{t("Products", "Productos")}</li>
                   {sugeridos.map((p) => <li key={p.id ?? p.sku}><button type="button" className="ops-opcion ops-buscador-opcion" onClick={() => { setA({ scope_kind: "product", product_id: p.id, product_sku: p.sku, product_name: p.name }); setQ(""); }} data-producto={p.id}>{p.sku} · {p.name}</button></li>)}
                 </ul>
               )}
@@ -399,7 +401,7 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
             <ul className="ops-progreso ops-progreso-conteo" aria-label={`${progreso.pct}%`} data-progreso={progreso.pct}>
               {lineas.map((l) => <li key={l.id} className={estaContada(l) ? "hecho" : ""} />)}
             </ul>
-            <input className="ops-campo ops-campo-grande" value={qLinea} onChange={(e) => setQLinea(e.target.value)} placeholder={t("Search a product in this count", "Buscar un producto de este conteo")}
+            <input className="ops-campo ops-campo" value={qLinea} onChange={(e) => setQLinea(e.target.value)} placeholder={t("Search a product in this count", "Buscar un producto de este conteo")}
               inputMode="search" autoComplete="off" autoCorrect="off" spellCheck={false} data-campo="buscar-linea" />
             {qLinea.trim().length >= 2 && filtradas.length === 0 && acciones.includes("contar_linea") && (
               <div className="ops-sin-producto" data-sin-producto-libre>
@@ -416,7 +418,7 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
                       <span className="ops-linea-conteo-nombre"><span className="hoja-folio">{l.sku}</span> {l.name}{l.size_in ? <span className="hint"> · {l.size_in}</span> : null}</span>
                       <span className="ops-linea-conteo-cifras">
                         <span>{t("System", "Sistema")}: <b>{l.system_qty ?? "—"}</b></span>
-                        <span>{t("Counted", "Contado")}: <b data-contado={l.counted_total ?? ""}>{l.counted_total ?? "—"}</b></span>
+                        <span>{t("Counted", "Contado")}: <b data-contado={l.counted_total ?? ""}>{l.counted_total == null ? "—" : textoDeCantidad(l.counted_total, l.unit_of_measure ?? null, l.pieces_per_box, lang)}</b></span>
                       </span>
                       <span className="ops-equipo-insignias">
                         {l.recount_requested && <span className="ops-insignia ops-insignia-sin-foto" data-recontar>↩ {t("Recount", "Recontar")}{l.recount_note && `: ${l.recount_note}`}</span>}

@@ -3,8 +3,9 @@
 --   1. warehouse_count_lines.unit_of_measure: la unidad de la linea (box = caja, bag = bolsa, piece = pieza). Null = lineas de antes.
 --   2. warehouse_count_lines.lots: jsonb con los lotes de la linea [{qty, lot, note, photo}], hasta 20. Asi un producto puede
 --      venir en varios lotes (lote 123 = 100 cajas; lote 3A4 = 20 cajas) con su nota y su foto.
---      El total contado de la linea (counted_total) es la suma de los lotes en PIEZAS: una caja vale las piezas por caja del
---      producto; bolsa y pieza cuentan tal cual (decision a confirmar por el gerente).
+--      El total contado de la linea (counted_total) es la suma de los lotes EN LA UNIDAD ELEGIDA (cajas, bolsas o piezas), sin
+--      convertir. Las piezas por caja solo se muestran en la pantalla (25 cajas · 300 piezas). Ojo: la firma compara
+--      counted_total contra el sistema (en piezas); en productos por caja hay que convertir en la firma (pendiente).
 --   3. warehouse_ops_count_lots(linea, unidad, lotes): el personal captura los lotes de una linea (etapa counting).
 --      La pantalla nueva la usa; warehouse_ops_count_line (274) queda intacta para lo viejo.
 --   4. warehouse_ops_count_add_line(conteo, nombre): producto escrito a mano (la busqueda no lo encontro). Linea sin
@@ -27,7 +28,7 @@ alter table public.warehouse_count_lines add constraint warehouse_count_lines_lo
 -- 3. Los lotes de una linea (personal, etapa counting)
 create or replace function public.warehouse_ops_count_lots(p_line uuid, p_unit text, p_lots jsonb)
   returns void language plpgsql volatile security definer set search_path = public as $$
-declare yo uuid := auth.uid(); l record; c record; x jsonb; q numeric; total numeric := 0; f numeric;
+declare yo uuid := auth.uid(); l record; c record; x jsonb; q numeric; total numeric := 0;
 begin
   if yo is null then raise exception 'warehouse_ops: sin sesion' using errcode = '42501'; end if;
   select * into l from public.warehouse_count_lines where id = p_line for update;
@@ -40,8 +41,10 @@ begin
     raise exception 'warehouse_ops: lotes no validos' using errcode = '22023';
   end if;
   for x in select value from jsonb_array_elements(p_lots) loop
+    if jsonb_typeof(x->'qty') is distinct from 'number' then raise exception 'warehouse_ops: la cantidad debe ser un numero' using errcode = '22023'; end if;
     q := (x->>'qty')::numeric;
     if q is null or q < 0 then raise exception 'warehouse_ops: cantidad negativa o vacia' using errcode = '22023'; end if;
+    if q > 1000000 then raise exception 'warehouse_ops: cantidad demasiado grande' using errcode = '22023'; end if;
     if length(coalesce(x->>'lot', '')) > 40 then raise exception 'warehouse_ops: el lote es muy largo' using errcode = '22023'; end if;
     if length(coalesce(x->>'note', '')) > 300 then raise exception 'warehouse_ops: la nota es muy larga' using errcode = '22023'; end if;
     if nullif(x->>'photo', '') is not null and split_part(x->>'photo', '/', 1) <> yo::text then
@@ -50,13 +53,12 @@ begin
     total := total + q;
   end loop;
   if total <= 0 then raise exception 'warehouse_ops: falta lo contado' using errcode = '22023'; end if;
-  f := case when p_unit = 'box' and l.pieces_per_box > 0 then l.pieces_per_box else 1 end;
   update public.warehouse_count_lines set
     unit_of_measure = p_unit,
     lots = (select coalesce(jsonb_agg(jsonb_build_object('qty', (e.value->>'qty')::numeric, 'lot', nullif(btrim(e.value->>'lot'), ''),
                                                        'note', nullif(btrim(e.value->>'note'), ''), 'photo', nullif(e.value->>'photo', '')) order by e.ord), '[]'::jsonb)
             from jsonb_array_elements(p_lots) with ordinality as e(value, ord)),
-    counted_boxes = null, counted_pieces = null, counted_total = round(total * f, 2),
+    counted_boxes = null, counted_pieces = null, counted_total = round(total, 2),
     counted_by = yo, counted_by_name = public.warehouse_ops_caller_name(), counted_at = now(),
     note = null,
     photo = (select nullif(e.value->>'photo', '') from jsonb_array_elements(p_lots) as e(value) where nullif(e.value->>'photo', '') is not null limit 1),

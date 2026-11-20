@@ -449,22 +449,22 @@ export function idDeHoja(v: string | string[] | undefined): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// Lotes (19 nov): un producto puede venir en varios lotes. Cada lote: cantidad total, lote, nota y foto.
-// La unidad de medida (caja, bolsa, pieza) es UNA por línea. El total del producto es la suma de los lotes en piezas:
-// una caja vale las piezas por caja del producto; bolsa y pieza cuentan tal cual (decisión a confirmar por el gerente).
+// Lotes (19 nov): un producto puede venir en varios lotes. Cada lote: cantidad, lote, nota y foto.
+// La unidad (caja, bolsa, pieza) es UNA por línea y el total se guarda EN ESA UNIDAD (120 cajas = 120). Solo se
+// convierte a piezas para MOSTRAR cuando el producto del catálogo tiene piezas por caja («25 cajas · 300 piezas»).
 // ---------------------------------------------------------------------------
 export const UNIDADES_DE_CONTEO = ["box", "bag", "piece"] as const;
 export type UnidadDeConteo = (typeof UNIDADES_DE_CONTEO)[number];
 export function esUnidadDeConteo(x: unknown): x is UnidadDeConteo {
   return typeof x === "string" && (UNIDADES_DE_CONTEO as readonly string[]).includes(x);
 }
-export const INFO_DE_UNIDAD: Record<UnidadDeConteo, { en: string; es: string }> = {
-  box: { en: "Boxes", es: "Cajas" },
-  bag: { en: "Bags", es: "Bolsas" },
-  piece: { en: "Pieces", es: "Piezas" },
+export const INFO_DE_UNIDAD: Record<UnidadDeConteo, { en: string; es: string; en1: string; es1: string }> = {
+  box: { en: "Boxes", es: "Cajas", en1: "box", es1: "caja" },
+  bag: { en: "Bags", es: "Bolsas", en1: "bag", es1: "bolsa" },
+  piece: { en: "Pieces", es: "Piezas", en1: "piece", es1: "pieza" },
 };
 
-/** Un lote de una línea. `qty` es la cantidad en la unidad de la línea (puede ser decimal en bolsas). */
+/** Un lote de una línea. `qty` está en la unidad de la línea (puede ser decimal en bolsas). */
 export interface Lote {
   qty: number;
   lot: string | null;
@@ -476,17 +476,31 @@ export const MAX_LOTES = 20;
 export const MAX_TEXTO_LOTE = 40;
 export const MAX_NOTA_LOTE = 300;
 
-/** Cuántas piezas vale una unidad de la línea: la caja vale las piezas por caja (si las hay); bolsa y pieza valen 1. */
-export function piezasPorUnidad(unidad: UnidadDeConteo, piezasPorCaja: number | null): number {
-  if (unidad === "box") return piezasPorCaja != null && piezasPorCaja > 0 ? piezasPorCaja : 1;
-  return 1;
+/** El total de los lotes, en la unidad de la línea (sin convertir). Null si no hay lotes. */
+export function totalDeLotes(lotes: readonly Pick<Lote, "qty">[]): number | null {
+  if (lotes.length === 0) return null;
+  return redondea(lotes.reduce((s, x) => s + x.qty, 0), 2);
 }
 
-/** El total en piezas de un conjunto de lotes. Null si no hay lotes. */
-export function totalDeLotes(lotes: readonly Pick<Lote, "qty">[], unidad: UnidadDeConteo, piezasPorCaja: number | null): number | null {
-  if (lotes.length === 0) return null;
-  const f = piezasPorUnidad(unidad, piezasPorCaja);
-  return redondea(lotes.reduce((s, x) => s + x.qty, 0) * f, 2);
+/** Las piezas de una cantidad en cajas, SOLO si el producto tiene piezas por caja (si no, null). Para mostrar. */
+export function piezasDeCajas(cantidad: number, unidad: UnidadDeConteo | null, piezasPorCaja: number | null): number | null {
+  if (unidad !== "box" || piezasPorCaja == null || piezasPorCaja <= 0) return null;
+  return redondea(cantidad * piezasPorCaja, 2);
+}
+
+/**
+ * Cómo se lee una cantidad: «120 bags», «25 boxes · 300 pieces» (si hay piezas por caja), «120 pieces».
+ * Nunca convierte bolsas ni piezas a otra cosa.
+ */
+export function textoDeCantidad(cantidad: number, unidad: UnidadDeConteo | null, piezasPorCaja: number | null, lang: Lang): string {
+  if (!unidad) return String(cantidad);
+  const nombre = lang === "es" ? INFO_DE_UNIDAD[unidad].es1 : INFO_DE_UNIDAD[unidad].en1;
+  // Plural en ambos idiomas: caja/cajas, bolsa/bolsas, pieza/piezas; box/boxes, bag/bags, piece/pieces.
+  const base = `${cantidad} ${nombre}${cantidad === 1 ? "" : "s"}`;
+  const piezas = piezasDeCajas(cantidad, unidad, piezasPorCaja);
+  if (piezas == null) return base;
+  const pn = lang === "es" ? "piezas" : "pieces";
+  return `${base} · ${piezas} ${pn}`;
 }
 
 /** Valida los lotes antes de guardar. Devuelve el motivo del primer error, o null si todo está bien. */
@@ -495,7 +509,7 @@ export function motivoDeLotes(lotes: readonly Lote[], unidad: UnidadDeConteo | n
   if (lotes.length === 0) return "vacio";
   if (lotes.length > MAX_LOTES) return "demasiados";
   for (const x of lotes) {
-    if (!Number.isFinite(x.qty) || x.qty < 0) return "cantidad";
+    if (!Number.isFinite(x.qty) || x.qty < 0 || x.qty > 1000000) return "cantidad";
     if ((x.lot ?? "").length > MAX_TEXTO_LOTE || (x.note ?? "").length > MAX_NOTA_LOTE) return "texto";
   }
   if (!lotes.some((x) => x.qty > 0)) return "cantidad";
@@ -504,6 +518,6 @@ export function motivoDeLotes(lotes: readonly Lote[], unidad: UnidadDeConteo | n
 
 /** Los lotes como texto para la lista de la línea («Lote 123: 100 cajas · Lote 3A4: 20 cajas»). */
 export function resumenDeLotes(lotes: readonly Lote[], unidad: UnidadDeConteo | null, lang: Lang): string {
-  const nombre = unidad ? (lang === "es" ? INFO_DE_UNIDAD[unidad].es.toLowerCase() : INFO_DE_UNIDAD[unidad].en.toLowerCase()) : "";
+  const nombre = unidad ? (lang === "es" ? INFO_DE_UNIDAD[unidad].es : INFO_DE_UNIDAD[unidad].en).toLowerCase() : "";
   return lotes.map((x) => `${x.lot ? `${lang === "es" ? "Lote" : "Lot"} ${x.lot}: ` : ""}${x.qty} ${nombre}`).join(" · ");
 }

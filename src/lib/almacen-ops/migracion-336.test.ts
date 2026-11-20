@@ -17,6 +17,12 @@ describe("migración 336 (conteos: lotes, unidad, producto libre, medida opciona
     expect(SQL.match(/if c\.stage <> 'counting'/g)?.length).toBeGreaterThanOrEqual(2);
     expect(SQL).toContain("if not public.warehouse_ops_in_store(c.store)");
   });
+  it("la cantidad de cada lote debe ser un número (no 'NaN' ni 'Infinity') y tiene tope", () => {
+    expect(SQL).toContain("if jsonb_typeof(x->'qty') is distinct from 'number' then");
+    expect(SQL).toContain("if q > 1000000 then");
+    expect(SQL.indexOf("jsonb_typeof(x->'qty')")).toBeLessThan(SQL.indexOf("q := (x->>'qty')::numeric;"));
+    expect(SQL).toContain("if total <= 0 then raise exception 'warehouse_ops: falta lo contado'");
+  });
   it("la foto de cada lote debe ser de quien la sube", () => {
     expect(SQL).toContain("split_part(x->>'photo', '/', 1) <> yo::text");
   });

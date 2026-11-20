@@ -8,7 +8,7 @@ import { BotonesDeFoto } from "./BotonesDeFoto";
 import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
 import { enlacesDeFotos, subirAdjunto, subirFoto, tipoDeAdjuntoValido } from "@/lib/almacen-ops/datos";
 import {
-  INFO_DE_UNIDAD, MAX_LOTES, MAX_NOTA_LOTE, MAX_TEXTO_LOTE, UNIDADES_DE_CONTEO, motivoDeCaptura, motivoDeLotes, numeroDelCampo, totalDeLotes, validarCaptura,
+  INFO_DE_UNIDAD, MAX_LOTES, MAX_NOTA_LOTE, MAX_TEXTO_LOTE, UNIDADES_DE_CONTEO, motivoDeCaptura, motivoDeLotes, numeroDelCampo, textoDeCantidad, totalDeLotes, validarCaptura,
   type Linea, type Lote, type OrdenPendiente, type UnidadDeConteo,
 } from "@/lib/almacen-ops/conteos";
 import { registrarLotes } from "@/lib/almacen-ops/conteos-datos";
@@ -132,15 +132,15 @@ export function CamposDeCantidad({ pz, cajas, sueltas, total, onCajas, onSueltas
   return porCajas ? (
     <>
       <div className="ops-dos ops-opciones">
-        <label className="ops-cantidad"><span>{t("Full boxes", "Cajas completas")}</span><input className="ops-campo ops-campo-grande" inputMode="numeric" value={cajas} onChange={(e) => onCajas(e.target.value)} data-campo={`${dato}-cajas`} /></label>
-        <label className="ops-cantidad"><span>{t("Loose pieces", "Piezas sueltas")}</span><input className="ops-campo ops-campo-grande" inputMode="numeric" value={sueltas} onChange={(e) => onSueltas(e.target.value)} data-campo={`${dato}-sueltas`} /></label>
+        <label className="ops-cantidad"><span>{t("Full boxes", "Cajas completas")}</span><input className="ops-campo ops-campo" inputMode="numeric" value={cajas} onChange={(e) => onCajas(e.target.value)} data-campo={`${dato}-cajas`} /></label>
+        <label className="ops-cantidad"><span>{t("Loose pieces", "Piezas sueltas")}</span><input className="ops-campo ops-campo" inputMode="numeric" value={sueltas} onChange={(e) => onSueltas(e.target.value)} data-campo={`${dato}-sueltas`} /></label>
       </div>
       <p className="ops-total-linea" data-total={val.ok ? val.total : ""}>{pz} {t("pcs per box", "pzas por caja")} → <b>{val.ok ? val.total : "—"}</b> {t("pieces", "piezas")}</p>
       {!val.ok && (cajas || sueltas) && <p className="hint" data-motivo={val.motivo}>{motivoDeCaptura(val.motivo, lang)}</p>}
     </>
   ) : (
     <>
-      <label className="ops-cantidad"><span>{t("Total (pieces)", "Total (piezas)")}</span><input className="ops-campo ops-campo-grande" inputMode="numeric" value={total} onChange={(e) => onTotal(e.target.value)} data-campo={`${dato}-total`} /></label>
+      <label className="ops-cantidad"><span>{t("Total (pieces)", "Total (piezas)")}</span><input className="ops-campo ops-campo" inputMode="numeric" value={total} onChange={(e) => onTotal(e.target.value)} data-campo={`${dato}-total`} /></label>
       {!val.ok && total && <p className="hint" data-motivo={val.motivo}>{motivoDeCaptura(val.motivo, lang)}</p>}
     </>
   );
@@ -171,7 +171,7 @@ export function FormLinea({ l, ctx, siguiente, onCerrar, onGuardada }: {
     .filter((f) => f.qty.trim() !== "")
     .map((f) => ({ qty: numero(f.qty), lot: f.lot.trim() || null, note: f.note.trim() || null, photo: f.photo || null }));
   const motivo = motivoDeLotes(lotes, unidad);
-  const total = unidad ? totalDeLotes(lotes.filter((x) => Number.isFinite(x.qty)), unidad, l.pieces_per_box) : null;
+  const total = unidad ? totalDeLotes(lotes.filter((x) => Number.isFinite(x.qty))) : null;
   const nombreUnidad = (u: UnidadDeConteo) => (lang === "es" ? INFO_DE_UNIDAD[u].es : INFO_DE_UNIDAD[u].en);
 
   const cambiar = (key: number, campo: "qty" | "lot" | "note", v: string) => setFilas((x) => x.map((f) => (f.key === key ? { ...f, [campo]: v } : f)));
@@ -198,7 +198,7 @@ export function FormLinea({ l, ctx, siguiente, onCerrar, onGuardada }: {
     try {
       if (!ctx.demo) await registrarLotes(createClient(), { lineaId: l.id, unidad, lotes });
       const n: Linea = {
-        ...l, unit_of_measure: unidad, lots: lotes, counted_boxes: null, counted_pieces: null, counted_total: totalDeLotes(lotes, unidad, l.pieces_per_box),
+        ...l, unit_of_measure: unidad, lots: lotes, counted_boxes: null, counted_pieces: null, counted_total: totalDeLotes(lotes),
         counted_by: ctx.yo.id, counted_by_name: ctx.yo.full_name, counted_at: new Date().toISOString(), note: null,
         photo: lotes.find((x) => x.photo)?.photo ?? null, recount_requested: false,
       };
@@ -224,7 +224,7 @@ export function FormLinea({ l, ctx, siguiente, onCerrar, onGuardada }: {
           <fieldset key={f.key} className="ops-lote" data-lote={n + 1}>
             <legend>{t("Lot", "Lote")} {n + 1}</legend>
             <label className="ops-cantidad"><span>{t("Total units", "Total de unidades")}</span>
-              <input className="ops-campo ops-campo-grande" inputMode="decimal" value={f.qty} onChange={(e) => cambiar(f.key, "qty", e.target.value)} data-campo={`lote-cantidad-${n + 1}`} />
+              <input className="ops-campo ops-campo" inputMode="decimal" value={f.qty} onChange={(e) => cambiar(f.key, "qty", e.target.value)} data-campo={`lote-cantidad-${n + 1}`} />
             </label>
             <label className="ops-cantidad"><span>{t("Lot number (optional)", "Número de lote (opcional)")}</span>
               <input className="ops-campo" value={f.lot} maxLength={MAX_TEXTO_LOTE} onChange={(e) => cambiar(f.key, "lot", e.target.value)} placeholder={t("e.g. 123 or 3A4", "p. ej. 123 o 3A4")} data-campo={`lote-numero-${n + 1}`} />
@@ -244,7 +244,7 @@ export function FormLinea({ l, ctx, siguiente, onCerrar, onGuardada }: {
           </fieldset>
         ))}
         <button type="button" className="ops-opcion" onClick={agregar} disabled={filas.length >= MAX_LOTES} data-accion="agregar-lote">+ {t("Add another lot", "Agregar otro lote")}</button>
-        {total != null && <p className="ops-total-linea" data-total={total}>{t("Total", "Total")}: <b>{total}</b> {t("pieces", "piezas")}</p>}
+        {total != null && <p className="ops-total-linea" data-total={total}>{t("Total", "Total")}: <b>{textoDeCantidad(total, unidad, l.pieces_per_box, lang)}</b></p>}
         {motivo && lotes.length > 0 && <p className="hint" data-motivo={motivo}>{t("Each lot needs a number of units (0 or more), and at least one above 0.", "Cada lote necesita una cantidad (0 o más), y al menos uno mayor que 0.")}</p>}
       </div>
       {error && <p className="ops-aviso ops-aviso-error" role="alert">{error}</p>}
@@ -306,20 +306,20 @@ export function FormPendiente({ lineas, inicial, lineaFija, onCerrar, onListo }:
           <p className="ops-seleccion"><span className="hoja-folio">{lineaFija.sku}</span> {lineaFija.name}</p>
         ) : (
           <label className="ops-cantidad"><span>{t("Product", "Producto")}</span>
-            <select className="ops-campo ops-campo-grande" value={lineId} onChange={(e) => setLineId(e.target.value)} data-campo="pendiente-producto">
+            <select className="ops-campo ops-campo" value={lineId} onChange={(e) => setLineId(e.target.value)} data-campo="pendiente-producto">
               <option value="">{t("Choose…", "Elige…")}</option>
               {lineas.map((l) => <option key={l.id} value={l.id}>{l.sku} · {l.name}{l.size_in ? ` · ${l.size_in}` : ""}</option>)}
             </select>
           </label>
         )}
         <label className="ops-cantidad"><span>{t("Invoice number", "Número de factura")}</span>
-          <input className="ops-campo ops-campo-grande" inputMode="numeric" value={factura} onChange={(e) => setFactura(e.target.value)} maxLength={40} data-campo="factura" />
+          <input className="ops-campo ops-campo" inputMode="numeric" value={factura} onChange={(e) => setFactura(e.target.value)} maxLength={40} data-campo="factura" />
         </label>
         {linea && (pz != null && pz > 0 ? (
           <CamposDeCantidad pz={pz} cajas={cajas} sueltas={sueltas} total={total} onCajas={setCajas} onSueltas={setSueltas} onTotal={setTotal} dato="vendido" />
         ) : (
           <label className="ops-cantidad"><span>{t("Sold, not delivered (pieces)", "Vendido, no entregado (piezas)")}</span>
-            <input className="ops-campo ops-campo-grande" inputMode="numeric" value={total} onChange={(e) => setTotal(e.target.value)} data-campo="vendido-total" />
+            <input className="ops-campo ops-campo" inputMode="numeric" value={total} onChange={(e) => setTotal(e.target.value)} data-campo="vendido-total" />
           </label>
         ))}
         <label className="ops-cantidad"><span>{t("Note (optional)", "Nota (opcional)")}</span>
@@ -353,7 +353,7 @@ export function FormSistema({ l, pendiente, onCerrar, onListo }: { l: Linea; pen
       <div className="ops-formulario">
         <p className="ops-total-linea" data-contado={contado}>{t("Counted", "Contado")} <b>{contado}</b> − {t("pending", "pendiente")} <b>{pendiente}</b> = {t("actual", "real")} <b>{real}</b></p>
         <label className="ops-cantidad"><span>{t("What the system says", "Lo que dice el sistema")}</span>
-          <input className="ops-campo ops-campo-grande" inputMode="decimal" value={q} onChange={(e) => setQ(e.target.value)} placeholder={lang === "es" ? "p. ej. 105" : "e.g. 105"} data-campo="sistema" autoFocus />
+          <input className="ops-campo ops-campo" inputMode="decimal" value={q} onChange={(e) => setQ(e.target.value)} placeholder={lang === "es" ? "p. ej. 105" : "e.g. 105"} data-campo="sistema" autoFocus />
         </label>
         {ok && <p className="hint" data-diferencia={real - (n as number)}>{t("Difference", "Diferencia")}: <b>{real - (n as number) > 0 ? "+" : ""}{redondeaTexto(real - (n as number))}</b></p>}
         <p className="hint">{t("Recorded with your name and the time.", "Queda con tu nombre y la hora.")}</p>
