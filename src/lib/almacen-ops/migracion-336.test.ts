@@ -46,6 +46,6 @@ describe("migración 336 (conteos: lotes, unidad, producto libre, medida opciona
   });
   it("el recontar borra los lotes; no escribe en el registro de migraciones", () => {
     expect(SQL).toContain("counted_at = null, lots = '[]'::jsonb, unit_of_measure = null, recount_requested = true");
-    expect(SQL).not.toMatch(/insert into public\.schema_migrations/);
+    expect(SQL.split("-- @ledger-below")[0]).not.toMatch(/insert into public\.schema_migrations/);
   });
 });

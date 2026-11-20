@@ -5,11 +5,11 @@ import { join } from "node:path";
 /** 337 · Llamadas de RingCentral en los leads y estadísticas: lo que la migración promete, leído del fichero (no se aplica aquí). */
 const leer = (ruta: string) => readFileSync(join(process.cwd(), ruta), "utf8").replace(/\r\n/g, "\n");
 const sql = leer("supabase/migrations/337_leads_estadisticas_y_llamadas.sql");
-const sinComentarios = sql.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+const sinComentarios = sql.split("-- @ledger-below")[0].split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
 
 describe("337 · la forma del fichero", () => {
   it("no lleva línea de registro (la pone quien la aplica)", () => {
-    expect(sql).not.toContain("@ledger-below");
+    expect(sql.split("-- @ledger-below")[0]).not.toMatch(/insert into public\.schema_migrations/);
     expect(sinComentarios).not.toMatch(/schema_migrations/);
   });
   it("sin begin ni commit propios: la transacción la pone quien aplica", () => {

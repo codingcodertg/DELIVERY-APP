@@ -133,14 +133,13 @@ describe("el módulo y el expediente", () => {
     expect(APP_VERSIONS.warehouse_ops).toMatch(/^\d+\.\d+\.\d+$/);
     expect(SQL).toContain("'customers','warehouse_ops']");
   });
-  it("la 247 es la ÚLTIMA que define profiles_module_access_known, y su lista es MODULE_ACCESS entero", () => {
+  it("la 338 (App Draft) es la ÚLTIMA que define profiles_module_access_known, y su lista es MODULE_ACCESS entero", () => {
     const definen = readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql")).sort()
       .filter((f) => readFileSync(`supabase/migrations/${f}`, "utf8").includes("add constraint profiles_module_access_known"));
-    expect(definen[definen.length - 1]).toBe("247_operaciones_de_almacen.sql");
-    const lista = /module_access <@ array\[([^\]]+)\]\)\n  not valid;/.exec(SQL)![1];
-    // App Draft (2026-11-19) aún no tiene migración que añada 'app_draft' a la restricción: hasta que el orquestador la
-    // escriba y aplique, la base rechaza conceder ese módulo (solo los admins entran). Al escribirla, quitar este filtro.
-    expect(lista.split(",").sort()).toEqual(MODULE_ACCESS.filter((m) => m.key !== "app_draft").map((m) => `'${m.key}'`).sort());
+    expect(definen[definen.length - 1]).toBe("338_app_draft_modulo.sql");
+    const sql338 = readFileSync("supabase/migrations/338_app_draft_modulo.sql", "utf8").replace(/\r\n/g, "\n");
+    const lista = /module_access <@ array\[([^\]]+)\]\)\n  not valid;/.exec(sql338)![1];
+    expect(lista.split(",").sort()).toEqual(MODULE_ACCESS.map((m) => `'${m.key}'`).sort());
   });
   it("los tres tipos del expediente existen en la librería y en el check de la 247", () => {
     for (const k of ["employee_insubordination", "employee_zone_infraction", "employee_positive_observation"] as const) {

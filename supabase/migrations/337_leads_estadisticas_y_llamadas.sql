@@ -143,7 +143,7 @@ begin
   return query
     -- Clave y «desde»: un teléfono del Excel vale para toda llamada (desde null); uno a mano solo para las llamadas desde
     -- que se puso (`*_manual_at`, que pone la 335). Sin esa fecha, el a mano no casa con nada (infinity).
-    claves_del_lead as (
+    with claves_del_lead as (
       select distinct t.clave, t.desde
         from public.leads l
         cross join lateral (values
@@ -201,7 +201,7 @@ begin
   else
     return query
       -- Mismo criterio de fecha que en leads_llamadas_de_lead: el a mano solo cuenta desde que se puso.
-      claves_visibles as (
+      with claves_visibles as (
         select distinct t.clave, t.desde
           from public.leads l
           cross join lateral (values
@@ -265,3 +265,5 @@ notify pgrst, 'reload schema';
 -- Vuelta atrás: drop function leads_estadisticas_de_llamadas(timestamptz, timestamptz); drop function
 -- leads_llamadas_de_lead(uuid); drop function leads_clave_de_telefono(text); drop table rc_lead_sync_state; drop table
 -- rc_lead_calls; y borrar el bucket rc-lead-recordings si está vacío. Las llamadas guardadas se pierden con las tablas.
+-- @ledger-below
+insert into public.schema_migrations (name, checksum) values ('337_leads_estadisticas_y_llamadas.sql', '7019147b6febf273b404c989297fbac404c40564712906637773324001ca84cc') on conflict (name) do nothing;

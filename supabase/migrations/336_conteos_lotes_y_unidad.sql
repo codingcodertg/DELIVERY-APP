@@ -247,3 +247,5 @@ begin
 end $$;
 revoke all on function public.warehouse_ops_count_line(uuid, int, int, int, text, text) from public, anon;
 grant execute on function public.warehouse_ops_count_line(uuid, int, int, int, text, text) to authenticated;
+-- @ledger-below
+insert into public.schema_migrations (name, checksum) values ('336_conteos_lotes_y_unidad.sql', '10a6307a2c6dd7259a9c4b60d0ced9498776d88b9a1be8194a9857882bd0314f') on conflict (name) do nothing;
