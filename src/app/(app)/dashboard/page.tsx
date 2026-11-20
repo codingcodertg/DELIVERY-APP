@@ -535,6 +535,12 @@ export default function DashboardPage() {
                   { key: "paradas", en: "Stops", es: "Paradas", ancho: 90, numerico: true, valor: (f) => f.paradas },
                   { key: "ordenes", en: "Orders", es: "Órdenes", ancho: 90, numerico: true, valor: (f) => f.ordenes },
                   { key: "millas", en: "Miles", es: "Millas", ancho: 100, numerico: true, valor: (f) => f.millas, celda: (f) => num1(f.millas) },
+                  { key: "mi-cli", en: "Customer mi", es: "Cliente mi", ancho: 120, numerico: true, valor: (f) => f.millasCliente, celda: (f) => num1(f.millasCliente) },
+                  { key: "n-cli", en: "Customer #", es: "Cliente #", ancho: 110, numerico: true, valor: (f) => f.ordenesCliente },
+                  { key: "mi-inter", en: "Intertienda mi", es: "Intertienda mi", ancho: 120, numerico: true, valor: (f) => f.millasIntertienda, celda: (f) => num1(f.millasIntertienda) },
+                  { key: "n-inter", en: "Intertienda #", es: "Intertienda #", ancho: 110, numerico: true, valor: (f) => f.ordenesIntertienda },
+                  { key: "mi-otro", en: "Other mi", es: "Otro mi", ancho: 120, numerico: true, valor: (f) => f.millasOtro, celda: (f) => num1(f.millasOtro) },
+                  { key: "n-otro", en: "Other #", es: "Otro #", ancho: 110, numerico: true, valor: (f) => f.ordenesOtro },
                   { key: "gas", en: "% of fuel", es: "% del gas", ancho: 110, numerico: true, valor: (f) => f.pctGas, celda: (f) => <strong>{pctTexto(f.pctGas)}</strong> },
                 ]}
                 totales={{
@@ -542,6 +548,12 @@ export default function DashboardPage() {
                   paradas: <strong>{gas.total.paradas}</strong>,
                   ordenes: <strong>{gas.total.ordenes}</strong>,
                   millas: <strong>{num1(gas.total.millas)}</strong>,
+                  "mi-cli": <strong>{num1(gas.total.millasCliente)}</strong>,
+                  "n-cli": <strong>{gas.total.ordenesCliente}</strong>,
+                  "mi-inter": <strong>{num1(gas.total.millasIntertienda)}</strong>,
+                  "n-inter": <strong>{gas.total.ordenesIntertienda}</strong>,
+                  "mi-otro": <strong>{num1(gas.total.millasOtro)}</strong>,
+                  "n-otro": <strong>{gas.total.ordenesOtro}</strong>,
                   gas: <strong>{pctTexto(gas.total.pctGas)}</strong>,
                 }} />
 

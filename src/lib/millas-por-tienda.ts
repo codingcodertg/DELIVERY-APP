@@ -17,11 +17,14 @@
  *   que **recibe** (`delivery_name`): regla del dueño, 2026-10-29 («el envío lo paga la tienda que lo
  *   recibe»). Se decide por la regla del tipo (`storeToStore`), no por el nombre del tipo.
  * - **% del gas** = millas de la tienda ÷ millas de todas, del rango que esté puesto en el Panel.
+ * - **Por tipo** (D-1111, el dueño: «Customer miles vs #, Intertienda miles vs #, Other miles vs #»): cada orden es
+ *   Cliente (tipo con cliente detrás), Intertienda (regla de tienda a tienda) u Otro (sin cliente: proveedor, etc.).
+ *   El # es de órdenes; las millas de una parada van al tipo de la parada (Cliente si lleva alguna de cliente).
  *
  * Nada de aquí toca la base: recibe las órdenes que ya tiene el Panel (su alcance y su rango) y las
  * tiendas de Ajustes.
  */
-import { orderTypeRule, type OrderTypeRules } from "./required";
+import { hayClienteDetras, orderTypeRule, type OrderTypeRules } from "./required";
 import { haversineMi } from "./route-batching";
 import { redondeaMillas } from "./totales";
 import type { Delivery, NamedLocation } from "./types";
@@ -51,6 +54,18 @@ export interface ParadaDeMillas {
   estimada: boolean;
   sinDato: boolean;
   entreTiendas: boolean;
+  /** Tipo de la parada: Cliente si lleva alguna orden de cliente; si no, Intertienda u Otro. */
+  clase: ClaseDeOrden;
+  /** Órdenes de cada tipo en la parada. */
+  porClase: Record<ClaseDeOrden, number>;
+}
+
+export type ClaseDeOrden = "cliente" | "intertienda" | "otro";
+
+/** Cliente, Intertienda u Otro, según las reglas del tipo de orden (nunca según los datos). */
+export function claseDeOrden(orderType: string | null | undefined, reglas?: OrderTypeRules): ClaseDeOrden {
+  if (orderTypeRule(orderType, reglas).storeToStore === true) return "intertienda";
+  return hayClienteDetras(orderType, reglas) ? "cliente" : "otro";
 }
 
 export interface MillasDeTienda {
@@ -62,6 +77,9 @@ export interface MillasDeTienda {
   millas: number;
   paradasEstimadas: number;
   paradasSinDato: number;
+  millasCliente: number; ordenesCliente: number;
+  millasIntertienda: number; ordenesIntertienda: number;
+  millasOtro: number; ordenesOtro: number;
   /** Parte del total de millas del rango, en %, a un decimal. `null` si nadie hizo millas. */
   pctGas: number | null;
 }
@@ -122,9 +140,11 @@ export function paradasDeMillas(ordenes: readonly OrdenDeMillas[], tiendas: read
     const k = [fecha, chofer, paga, destino].join("|");
     const p = paradas.get(k) ?? {
       fecha, chofer, tienda, paga, destino, ordenes: 0, millas: 0, estimada: false, sinDato: false,
-      entreTiendas: paga !== tienda, candidatas: [],
+      entreTiendas: paga !== tienda, candidatas: [], clase: "otro" as ClaseDeOrden, porClase: { cliente: 0, intertienda: 0, otro: 0 },
     };
     p.ordenes++;
+    p.porClase[claseDeOrden(d.order_type, reglas)]++;
+    p.clase = p.porClase.cliente ? "cliente" : p.porClase.intertienda ? "intertienda" : "otro";
     p.candidatas.push(millasDeOrden(d, porNombre.get(tienda.toLowerCase())));
     paradas.set(k, p);
   }
@@ -139,7 +159,8 @@ export function paradasDeMillas(ordenes: readonly OrdenDeMillas[], tiendas: read
 }
 
 const vacia = (tienda: string): MillasDeTienda => ({
-  tienda, paradas: 0, ordenes: 0, millasReales: 0, millasEstimadas: 0, millas: 0, paradasEstimadas: 0, paradasSinDato: 0, pctGas: null,
+  tienda, paradas: 0, ordenes: 0, millasReales: 0, millasEstimadas: 0, millas: 0, paradasEstimadas: 0, paradasSinDato: 0,
+  millasCliente: 0, ordenesCliente: 0, millasIntertienda: 0, ordenesIntertienda: 0, millasOtro: 0, ordenesOtro: 0, pctGas: null,
 });
 
 /** Una fila por tienda que paga, de más a menos millas, y la fila del total. */
@@ -151,6 +172,10 @@ export function millasPorTienda(paradas: readonly ParadaDeMillas[]): { filas: Mi
     f.ordenes += p.ordenes;
     if (p.estimada) { f.millasEstimadas += p.millas; f.paradasEstimadas++; } else f.millasReales += p.millas;
     if (p.sinDato) f.paradasSinDato++;
+    if (p.clase === "cliente") f.millasCliente += p.millas; else if (p.clase === "intertienda") f.millasIntertienda += p.millas; else f.millasOtro += p.millas;
+    f.ordenesCliente += p.porClase.cliente;
+    f.ordenesIntertienda += p.porClase.intertienda;
+    f.ordenesOtro += p.porClase.otro;
   };
   for (const p of paradas) {
     const f = porTienda.get(p.paga) ?? vacia(p.paga);
@@ -162,6 +187,9 @@ export function millasPorTienda(paradas: readonly ParadaDeMillas[]): { filas: Mi
     f.millasReales = redondeaMillas(f.millasReales);
     f.millasEstimadas = redondeaMillas(f.millasEstimadas);
     f.millas = redondeaMillas(f.millasReales + f.millasEstimadas);
+    f.millasCliente = redondeaMillas(f.millasCliente);
+    f.millasIntertienda = redondeaMillas(f.millasIntertienda);
+    f.millasOtro = redondeaMillas(f.millasOtro);
   };
   cierra(total);
   const filas = [...porTienda.values()].map((f) => {

@@ -52715,3 +52715,8 @@ Sello `app_draft` 0.2.0; repo 1.942.0.
 
 El dueño: ayer el Panel decía unos 2 dólares por milla y hoy más; y «mejor quita eso» de la columna «Of which est.». El resumen de choferes (D-1107) dividía el ingreso del mes entre las millas GPS, pero el rastro puede faltar en algunos días: pocas millas contra todo el ingreso inflaban la cifra. Ahora el ingreso por milla de la tarjeta sale de las millas del sistema, igual que la columna $/mi de la tabla de choferes; la cifra de millas de la tarjeta sigue siendo la del GPS. En «Millas y gas por tienda» se quita la columna «De ellas est.» y su explicación; el cálculo de millas y del % del gas no cambia.
 Sello `deliveries` 1.639.1; repo 1.942.1.
+
+## D-1111 · Millas y gas por tienda: millas y órdenes por tipo (2026-11-20)
+
+El dueño: «Customer miles vs #, Intertienda miles vs #, Other miles vs #». La tabla «Millas y gas por tienda» del Panel suma seis columnas: millas y número de órdenes de Cliente, de Intertienda y de Otro. El tipo sale de la regla del tipo de orden, nunca de los datos: Intertienda = regla de tienda a tienda; Cliente = tipo con cliente detrás; Otro = el resto (proveedor, etc.). El # cuenta órdenes; las millas de una parada van a su tipo (Cliente si lleva alguna orden de cliente), así las tres millas suman el total. Paradas, millas y % del gas no cambian.
+Sello `deliveries` 1.640.0; repo 1.943.0.
