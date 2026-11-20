@@ -14,8 +14,12 @@ import {
   cuantosVistosMasDeUna, cuentaPorEtapa, delExcel, dinero, enlaceSeguro, estadoLabel, etapaDe, etapaLabel, etapaTono, eventoLabel, fecha, filtrar,
   filtroDePool, categoriaBuena, coincideConCliente, esPrivado, ETAPAS, mapsUrl, negativaTexto, notaLimpia, NOTA_MAX, numero, ordenar, poolInicial, poolLabel,
   poolsDe, POOL_TODAS, resumenDeTodas, tableroPorTienda, tableroPorVendedor, telUrl, TIPOS_DE_ACCION, type TipoDeAccion, type Etapa, valoresDe, vecesVisto,
-  ORDEN_INICIAL, vigentes, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona,
+  ORDEN_INICIAL, vigentes, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, puedeVerEstadisticas,
 } from "@/lib/leads/reglas";
+// 337: las llamadas de RingCentral de la ficha y la pestaña de estadísticas (admin y gerente).
+import type { LlamadaDeLead } from "@/lib/leads/llamadas-rc";
+import { Estadisticas } from "./Estadisticas";
+import { LlamadasDelLead } from "./LlamadasDelLead";
 import { etiquetaDeSemana, semanaInicial, semanasDelPool } from "@/lib/leads/semanas";
 import { cotizacionesPorLead, enlaceACotizacion, enlaceACotizar, idDeParametro, puedeCotizarLead, type CotizacionDeLead } from "@/lib/leads/cotizar";
 import { enlaceDeLaBase, enlaceDemo, type AlmacenDelEnlace } from "@/lib/leads/enlace";
@@ -26,7 +30,7 @@ import { enlaceDeBusqueda, sinTelefono, sinTelefonoPorPool, sugerenciaDeTelefono
 import { terminoLabel } from "@/lib/customers/terminos";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
-type Pestana = "banco" | "admin" | "privado";
+type Pestana = "banco" | "admin" | "privado" | "estadisticas";
 type Dialogo =
   | { tipo: "nota"; lead: Lead }
   | { tipo: "archivar"; lead: Lead }
@@ -223,14 +227,24 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     const r = await almacen.historial(l.id);
     setHistorial({ id: l.id, eventos: r.ok ? r.valor : [] });
   };
+  // 337: las llamadas de RingCentral a los teléfonos del lead, en su tarjeta (como el historial).
+  const [llamadasDe, setLlamadasDe] = useState<{ id: string; lista: LlamadaDeLead[] | null } | null>(null);
+  const verLlamadas = async (l: Lead) => {
+    if (llamadasDe?.id === l.id) { setLlamadasDe(null); return; }
+    setLlamadasDe({ id: l.id, lista: null });
+    const r = await almacen.llamadasDeLead(l.id);
+    setLlamadasDe({ id: l.id, lista: r.ok ? r.valor : [] });
+  };
 
   const tarjeta = (l: Lead) => (
     <Tarjeta
-      key={l.id} lead={l} yo={yo} ocupado={ocupado === l.id}
+      key={l.id} lead={l} yo={yo} ocupado={ocupado === l.id} almacen={almacen}
       historial={historial?.id === l.id ? historial.eventos : undefined}
+      llamadas={llamadasDe?.id === l.id ? llamadasDe.lista : undefined}
       onNota={() => setDialogo({ tipo: "nota", lead: l })}
       onArchivar={() => setDialogo({ tipo: "archivar", lead: l })}
       onHistorial={() => void verHistorial(l)}
+      onLlamadas={() => void verLlamadas(l)}
       cotizar={puedeCotizarLead(cotiza)} cotizaciones={cotiza ? (cotizaciones.get(l.id) ?? []) : []}
       semana={semanasSTXP.semanaDeLead.get(l.id)}
       cliente={l.customer_match_id != null ? clientes.get(l.customer_match_id) : undefined}
@@ -295,6 +309,11 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
             {yo.admin && (
               <button type="button" role="tab" aria-selected={pestana === "admin"} className={`chip${pestana === "admin" ? " on" : ""}`} data-pestana="admin" onClick={() => cambiaPestana("admin")}>
                 🛠 Admin
+              </button>
+            )}
+            {puedeVerEstadisticas(yo) && (
+              <button type="button" role="tab" aria-selected={pestana === "estadisticas"} className={`chip${pestana === "estadisticas" ? " on" : ""}`} data-pestana="estadisticas" onClick={() => cambiaPestana("estadisticas")}>
+                📊 {t("Stats", "Estadísticas")}
               </button>
             )}
             </div>
@@ -467,6 +486,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
           {pestana === "admin" && yo.admin && (
             <Admin leads={leads} almacen={almacen} demo={demo} />
           )}
+
+          {pestana === "estadisticas" && puedeVerEstadisticas(yo) && <Estadisticas almacen={almacen} />}
         </>
       )}
 
@@ -488,10 +509,12 @@ function PildoraEtapa({ e }: { e: Etapa }) {
   return <span className={`ld-pildora ${etapaTono(e)}`} data-pildora-etapa={e}>{etapaLabel(e, lang)}</span>;
 }
 
-function Tarjeta({ lead: l, yo, ocupado, historial, onNota, onArchivar, onHistorial, cotizar, cotizaciones, cliente, onCliente, semana, sugerencia, onTelefono }: {
-  lead: Lead; yo: Persona; ocupado: boolean;
+function Tarjeta({ lead: l, yo, ocupado, almacen, historial, llamadas, onNota, onArchivar, onHistorial, onLlamadas, cotizar, cotizaciones, cliente, onCliente, semana, sugerencia, onTelefono }: {
+  lead: Lead; yo: Persona; ocupado: boolean; almacen: AlmacenDeLeads;
   historial: EventoLead[] | null | undefined;
-  onNota: () => void; onArchivar: () => void; onHistorial: () => void;
+  /** 337: las llamadas de RingCentral a los teléfonos del lead (null = cargando; undefined = cerrada). */
+  llamadas: LlamadaDeLead[] | null | undefined;
+  onNota: () => void; onArchivar: () => void; onHistorial: () => void; onLlamadas: () => void;
   /** 335: un teléfono que este lead no tiene y otro lead (o el cliente) sí. Solo si el contratista no tiene ninguno. */
   sugerencia: Sugerencia | null;
   /** 335: pone (o quita, con telefono null) el teléfono a mano de un lado. Devuelve si se guardó. */
@@ -607,6 +630,7 @@ function Tarjeta({ lead: l, yo, ocupado, historial, onNota, onArchivar, onHistor
         )}
         {yo.admin && <button type="button" className="btn btn-ghost btn-sm" data-admin-lead onClick={onArchivar}>🗄 {t("Archive", "Archivar")}</button>}
         <button type="button" className="btn btn-ghost btn-sm" data-historial onClick={onHistorial}>🕘 {t("History", "Historial")}</button>
+        <button type="button" className="btn btn-ghost btn-sm" data-llamadas onClick={onLlamadas}>📞 {t("Calls", "Llamadas")}</button>
         {tdlr && <a className="btn btn-ghost btn-sm" href={tdlr} target="_blank" rel="noopener noreferrer" data-tdlr>TDLR ↗</a>}
         <span className="hint ld-tabs">{l.tabs_project}</span>
       </footer>
@@ -622,6 +646,7 @@ function Tarjeta({ lead: l, yo, ocupado, historial, onNota, onArchivar, onHistor
           ))}
         </ul>
       )}
+      {llamadas !== undefined && <LlamadasDelLead lead={l} lista={llamadas} almacen={almacen} />}
     </article>
   );
 }

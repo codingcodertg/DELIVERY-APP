@@ -613,3 +613,11 @@ export function negativaDeCodigo(code: string | null | undefined): Negativa | nu
     default: return null;
   }
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Estadísticas de uso (el admin y el gerente). Lo calcula `estadisticas.ts`; aquí, solo quién la ve.
+// ---------------------------------------------------------------------------------------------------------------
+
+/** ¿Ve las estadísticas de uso por vendedor? El admin y el gerente («manager»). Un vendedor, no. La base lo vuelve a
+ *  exigir en `leads_estadisticas_de_llamadas` (migración 337). */
+export const puedeVerEstadisticas = (p: Pick<Persona, "admin" | "role">): boolean => !!p.admin || p.role === "manager";

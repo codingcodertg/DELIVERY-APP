@@ -1,9 +1,55 @@
 import type { AlmacenDeLeads, ClienteCruzado, Res } from "./almacen";
 import { alcanceDe, alcanzaElLead, PERMISO_OTRAS_TIENDAS, PERMISO_POOL_PRIVADO, privadosVisibles, type Alcance } from "./alcance";
 import {
-  aplicarNota, notaLimpia, type EventoLead, type Lead, type Negativa, type Persona, type TipoDeAccion,
+  aplicarNota, notaLimpia, puedeVerEstadisticas, type EventoLead, type Lead, type Negativa, type Persona, type TipoDeAccion,
 } from "./reglas";
-import { notaDeTelefono, validaTelefono } from "./telefonos";
+import { notaDeTelefono, telefonoDeContratista, validaTelefono } from "./telefonos";
+import { claveDeTelefono, type LlamadaDeLead } from "./llamadas-rc";
+import type { LlamadasDeVendedor } from "./estadisticas";
+
+/**
+ * Las llamadas de RingCentral del demo (337): dos por cada uno de los primeros leads con teléfono del Excel, una de
+ * salida y una de entrada, de dos vendedores del demo. Fijas respecto a la hora de la carga, como los demás datos.
+ */
+export function llamadasDemo(leads: readonly Lead[], ahora: Date = new Date()): (LlamadaDeLead & { lead_id: string; duracion_demo: number })[] {
+  const salida: (LlamadaDeLead & { lead_id: string; duracion_demo: number })[] = [];
+  const con = leads.filter((l) => claveDeTelefono(telefonoDeContratista(l)) != null).slice(0, 8);
+  con.forEach((l, j) => {
+    const clave = claveDeTelefono(telefonoDeContratista(l))!;
+    const hace = (j + 1) * 3 * 60 * 60 * 1000;
+    salida.push({
+      id: `demo-llamada-${j}-a`, rc_call_id: `demo-rc-${j}-a`, direction: "out", started_at: new Date(ahora.getTime() - hace).toISOString(),
+      duration_s: 184, result: "Accepted", rep_name: PERSONAS_DEMO[0].name, rep_extension: "101", phone_key: clave,
+      has_recording: true, recording_pending: false, lead_id: l.id, duracion_demo: 4,
+    });
+    salida.push({
+      id: `demo-llamada-${j}-b`, rc_call_id: `demo-rc-${j}-b`, direction: "in", started_at: new Date(ahora.getTime() - hace - 86400000).toISOString(),
+      duration_s: 62, result: "Accepted", rep_name: PERSONAS_DEMO[1].name, rep_extension: "102", phone_key: clave,
+      has_recording: j % 2 === 0, recording_pending: false, lead_id: l.id, duracion_demo: 2,
+    });
+  });
+  return salida;
+}
+
+/**
+ * Un audio de silencio de unos segundos (WAV de 8 kHz, 8 bits), como URL de datos: el reproductor de la ficha lo
+ * toca igual que una grabación de verdad, sin que el demo tenga ninguna.
+ */
+export function wavSilencioDemo(segundos: number): string {
+  const tasa = 8000;
+  const muestras = Math.max(1, Math.min(5, Math.round(segundos))) * tasa;
+  const buf = new Uint8Array(44 + muestras);
+  const v = new DataView(buf.buffer);
+  const escribe = (o: number, s: string) => { for (let i = 0; i < s.length; i++) buf[o + i] = s.charCodeAt(i); };
+  escribe(0, "RIFF"); v.setUint32(4, 36 + muestras, true); escribe(8, "WAVE");
+  escribe(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, tasa, true); v.setUint32(28, tasa, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+  escribe(36, "data"); v.setUint32(40, muestras, true);
+  buf.fill(128, 44);
+  let binario = "";
+  for (let i = 0; i < buf.length; i += 0x8000) binario += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  return `data:audio/wav;base64,${btoa(binario)}`;
+}
 
 /**
  * Leads INVENTADOS para el modo demo (`NEXT_PUBLIC_LOCAL_MODE`), que no tiene base. Ni un dato real: los nombres
@@ -257,6 +303,35 @@ export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
       if (!r.ok) return no(r.motivo);
       apunta(l, "progress", { note: notaLimpia(nota), action: etapa });
       return guarda(r.valor);
+    },
+    async llamadasDeLead(leadId) {
+      const yo = quien();
+      const l = busca(leadId);
+      if (!l || !alcanza(l, yo)) return { ok: true, valor: [] };
+      return { ok: true, valor: llamadasDemo(leads).filter((c) => c.lead_id === leadId) };
+    },
+    async grabacionDeLlamada(leadId, llamadaId) {
+      const yo = quien();
+      const l = busca(leadId);
+      if (!l || !alcanza(l, yo)) return no("otra_tienda");
+      const c = llamadasDemo(leads).find((x) => x.lead_id === leadId && x.id === llamadaId);
+      if (!c?.has_recording) return no("no_existe");
+      return { ok: true, valor: wavSilencioDemo(c.duracion_demo) };
+    },
+    async llamadasPorVendedor(periodo) {
+      const yo = quien();
+      if (!puedeVerEstadisticas(yo)) return no("sin_permiso");
+      const porNombre = new Map<string, number>();
+      let total = 0;
+      for (const c of llamadasDemo(leads)) {
+        const l = busca(c.lead_id);
+        const t = Date.parse(c.started_at);
+        if (!l || !alcanza(l, yo) || t < periodo.desde.getTime() || t >= periodo.hasta.getTime()) continue;
+        total++;
+        porNombre.set(c.rep_name ?? "", (porNombre.get(c.rep_name ?? "") ?? 0) + 1);
+      }
+      const porVendedor: LlamadasDeVendedor[] = [...porNombre.entries()].map(([rep_name, llamadas]) => ({ rep_name: rep_name || null, llamadas }));
+      return { ok: true, valor: { porVendedor, total } };
     },
     async archivar(leadId, nota) {
       const yo = quien();
