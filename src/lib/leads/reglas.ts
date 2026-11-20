@@ -8,6 +8,9 @@
  * comporte como la base, y para que cada regla tenga una prueba que se pueda leer.
  */
 
+// Los teléfonos (335) viven en telefonos.ts, que solo importa tipos de aquí: no hay ciclo en tiempo de ejecución.
+import { sinTelefono } from "./telefonos";
+
 export type EstadoLead = "free" | "taken" | "won" | "review" | "archived";
 
 /**
@@ -86,6 +89,20 @@ export interface Lead {
   times_seen?: number;
   /** La última carga que lo trajo (328). null = no se registró (las cargas viejas no lo guardaron). */
   last_seen_at?: string | null;
+  /**
+   * Teléfonos añadidos A MANO (335). Viven en sus columnas: ningún import los toca. Si hay, la pantalla enseña este
+   * y no el del Excel (`telefonoDeContratista` / `telefonoDeOtro` en telefonos.ts). Opcionales por la base vieja y el demo.
+   */
+  owner_phone_manual?: string | null;
+  owner_phone_manual_contact?: string | null;
+  owner_phone_manual_by?: string | null;
+  owner_phone_manual_by_name?: string | null;
+  owner_phone_manual_at?: string | null;
+  tenant_phone_manual?: string | null;
+  tenant_phone_manual_contact?: string | null;
+  tenant_phone_manual_by?: string | null;
+  tenant_phone_manual_by_name?: string | null;
+  tenant_phone_manual_at?: string | null;
 }
 
 export const esPrivado = (l: Pick<Lead, "source">): boolean => l.source === "privado";
@@ -93,7 +110,8 @@ export const coincideConCliente = (l: Pick<Lead, "customer_match_id">): boolean 
 /** Cuántas cargas trajeron el lead. Sin dato (base vieja o demo), una. */
 export const vecesVisto = (l: Pick<Lead, "times_seen">): number => (typeof l.times_seen === "number" && l.times_seen >= 1 ? l.times_seen : 1);
 
-export type TipoDeEvento = "imported" | "taken" | "progress" | "closed" | "released" | "assigned" | "archived";
+/** `phone` (335): se añadió o se quitó un teléfono a mano. Su nota dice cuál («Contratista: (956) 555-0123»). */
+export type TipoDeEvento = "imported" | "taken" | "progress" | "closed" | "released" | "assigned" | "archived" | "phone";
 
 export interface EventoLead {
   id: number;
@@ -122,7 +140,7 @@ export interface Persona {
   permissions?: string[];
 }
 
-export type Negativa = "lleno" | "no_libre" | "falta_nota" | "no_es_tuyo" | "sin_permiso" | "no_existe" | "dato_invalido" | "otra_tienda";
+export type Negativa = "lleno" | "no_libre" | "falta_nota" | "no_es_tuyo" | "sin_permiso" | "no_existe" | "dato_invalido" | "otra_tienda" | "sin_migracion";
 
 /** La nota, recortada. Vacía o solo espacios, no vale cuando no hay etapa. */
 export function notaLimpia(nota: string | null | undefined): string | null {
@@ -296,16 +314,20 @@ const sinAcentos = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toL
  * texto o número, incluido quién anotó la última vez, teléfonos y la razón del cruce. Fuera quedan solo los ids y las
  * fechas en bruto (no se buscan a mano).
  */
-const NO_SE_BUSCA = new Set(["id", "holder", "last_by", "customer_match_id", "taken_at", "touched_at", "follow_up_at", "last_at", "matched_at", "distance_miles", "times_seen", "last_seen_at"]);
+const NO_SE_BUSCA = new Set(["id", "holder", "last_by", "customer_match_id", "taken_at", "touched_at", "follow_up_at", "last_at", "matched_at", "distance_miles", "times_seen", "last_seen_at",
+  "owner_phone_manual_by", "owner_phone_manual_at", "tenant_phone_manual_by", "tenant_phone_manual_at"]);
+/** Los dígitos de los campos de teléfono: «9565550123» encuentra «(956) 555-0123» y sus versiones (335). */
 function textoDe(l: Lead, extra?: (l: Lead) => string): string {
   const partes: string[] = [];
+  const digitos: string[] = [];
   for (const [k, v] of Object.entries(l)) {
     if (NO_SE_BUSCA.has(k) || v === null || v === undefined) continue;
     if (typeof v === "string" || typeof v === "number") partes.push(String(v));
+    if (k.includes("phone") && typeof v === "string") digitos.push(v.replace(/\D/g, ""));
   }
   const e = extra?.(l);
   if (e) partes.push(e);
-  return sinAcentos(partes.join(" · "));
+  return sinAcentos(partes.join(" · ") + " " + digitos.join(" "));
 }
 
 export interface Filtros {
@@ -320,6 +342,8 @@ export interface Filtros {
   buena?: boolean;
   /** D-760: solo los que coinciden con un cliente de Clientes. */
   coinciden?: boolean;
+  /** 335: solo los que no tienen teléfono de contratista (ni de mano ni del Excel). */
+  sinTelefono?: boolean;
   /** D-763: texto de fuera del lead que también cuenta al buscar (el cliente cruzado y su vendedor). */
   textoExtra?: (l: Lead) => string;
 }
@@ -333,6 +357,7 @@ export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
     if (l.status === "archived") return false;
     if (f.pool !== null && l.pool !== f.pool) return false;
     if (f.coinciden && !coincideConCliente(l)) return false;
+    if (f.sinTelefono && !sinTelefono(l)) return false;
     if (f.buena && !categoriaBuena(l.category)) return false;
     if (f.etapa && etapaDe(l) !== f.etapa) return false;
     if (f.categoria === "utiles") { if (categoriaDescartada(l.category)) return false; }
@@ -480,10 +505,15 @@ const EVENTO_TXT: Record<TipoDeEvento, { en: string; es: string }> = {
   released: { en: "Released by admin", es: "Liberado por el admin" },
   assigned: { en: "Assigned by admin", es: "Asignado por el admin" },
   archived: { en: "Archived by admin", es: "Archivado por el admin" },
+  phone: { en: "Phone", es: "Teléfono" },
 };
 /** Lo que dice una fila del historial. Una nota de avance dice su etapa (si la tiene); un cierre viejo, su resultado. */
 export function eventoLabel(e: EventoLead, lang: Idioma): string {
   if (e.kind === "progress" && e.action) return accionLabel(e.action, lang);
+  if (e.kind === "phone") {
+    const quitado = /: quitado$/.test((e.note ?? "").trim());
+    return lang === "en" ? (quitado ? "Phone removed" : "Phone added by hand") : (quitado ? "Teléfono quitado" : "Teléfono añadido a mano");
+  }
   const base = EVENTO_TXT[e.kind][lang];
   return e.kind === "closed" && e.outcome ? `${base}: ${resultadoLabel(e.outcome, lang)}` : base;
 }
@@ -531,7 +561,8 @@ export function mapsUrl(l: Pick<Lead, "site_address" | "site_city" | "site_zip">
 
 /** El enlace `tel:` de un teléfono escrito de cualquier manera. null si no tiene al menos 7 dígitos. */
 export function telUrl(telefono: string | null): string | null {
-  const t = (telefono ?? "").trim();
+  // La extensión («ext. 12») no se marca: solo el número.
+  const t = ((telefono ?? "").trim().split(/\s+ext\.?\s*/i)[0] ?? "").trim();
   const digitos = t.replace(/\D/g, "");
   if (digitos.length < 7) return null;
   return `tel:${t.startsWith("+") ? "+" : ""}${digitos}`;
@@ -564,6 +595,7 @@ const NEGATIVA_TXT: Record<Negativa, { en: string; es: string }> = {
   no_existe: { en: "That lead no longer exists.", es: "Ese lead ya no existe." },
   dato_invalido: { en: "The database rejected that value.", es: "La base rechazó ese dato." },
   otra_tienda: { en: "That lead belongs to another store.", es: "Ese lead es de otra tienda." },
+  sin_migracion: { en: "Phone numbers added by hand need migration 335, which is not applied yet.", es: "Los teléfonos a mano necesitan la migración 335, que aún no está aplicada." },
 };
 export function negativaTexto(n: Negativa, lang: Idioma): string { return NEGATIVA_TXT[n][lang]; }
 

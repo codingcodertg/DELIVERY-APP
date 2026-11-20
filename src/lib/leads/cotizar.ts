@@ -14,6 +14,7 @@
  */
 import { telefonoAlEscribir, type QuoteDraft } from "@/lib/estimator/modelo";
 import type { Lead } from "./reglas";
+import { telefonoDeContratista } from "./telefonos";
 
 /** El módulo del Quote Builder: admin siempre, o `'estimator'` en `module_access`. La misma regla que
  *  `has_estimator_access()` (148) y que la puerta de `src/app/estimator/layout.tsx`. */
@@ -52,7 +53,7 @@ export function direccionDeObra(l: Pick<Lead, "site_address" | "site_city" | "si
  * |---------------------------------|----------------------------------------------------------|
  * | `owner_contact` (la persona)    | Nombre completo                                          |
  * | `owner_name` (el dueño de obra) | Empresa; y Nombre completo si no hay contacto            |
- * | `owner_phone`                   | Teléfono, con el formato del campo ((956) 555-0123)      |
+ * | `owner_phone` (o el de mano)    | Teléfono, con el formato del campo ((956) 555-0123)      |
  * | `site_address/city/zip`         | Dirección de entrega (el modo se queda como estaba)      |
  * | `pool` (la tienda más cercana)  | Tienda de salida, solo si es una tienda de Ajustes       |
  *
@@ -60,7 +61,7 @@ export function direccionDeObra(l: Pick<Lead, "site_address" | "site_city" | "si
  * El modo de entrega no cambia (recoge, por defecto): la dirección queda escrita para cuando se elija «Entrega».
  */
 export function borradorDesdeLead(
-  lead: Pick<Lead, "owner_name" | "owner_contact" | "owner_phone" | "site_address" | "site_city" | "site_zip" | "pool" | "customer_match_id">,
+  lead: Pick<Lead, "owner_name" | "owner_contact" | "owner_phone" | "owner_phone_manual" | "site_address" | "site_city" | "site_zip" | "pool" | "customer_match_id">,
   base: QuoteDraft,
   tiendas: readonly string[],
 ): QuoteDraft {
@@ -75,7 +76,8 @@ export function borradorDesdeLead(
       ...base.customer,
       full_name: contacto || dueno,
       company: contacto ? dueno : "",
-      phone: telefonoAlEscribir((lead.owner_phone ?? "").trim()),
+      // 335: el teléfono a mano manda sobre el del Excel (telefonos.ts).
+      phone: telefonoAlEscribir((telefonoDeContratista(lead) ?? "").trim()),
       // D-762 (218): si el lead coincide con un cliente de Clientes, la cotización lo lleva enlazado (el de su ficha).
       ...(lead.customer_match_id != null ? { customer_id: lead.customer_match_id } : {}),
     },

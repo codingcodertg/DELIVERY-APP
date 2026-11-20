@@ -21,6 +21,8 @@ import { cotizacionesPorLead, enlaceACotizacion, enlaceACotizar, idDeParametro, 
 import { enlaceDeLaBase, enlaceDemo, type AlmacenDelEnlace } from "@/lib/leads/enlace";
 // D-850: los teléfonos se enseñan en la forma única del hub; el Excel los trae de mil maneras («956.555.0123», «956-555-0123»).
 import { telefonoEstandar } from "@/lib/recruiting/formato";
+// 335: teléfono a mano, sugerencias de otro permiso o del cliente, búsqueda y las cuentas de la pestaña del admin.
+import { enlaceDeBusqueda, sinTelefono, sinTelefonoPorPool, sugerenciaDeTelefono, telefonoDeContratista, telefonoDeOtro, telefonoParaMostrar, telefonosAMano, tieneTelefono, validaTelefono, type Sugerencia } from "@/lib/leads/telefonos";
 import { terminoLabel } from "@/lib/customers/terminos";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
@@ -133,6 +135,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     return c ? [c.account, c.rep_name, c.contact_name].filter(Boolean).join(" · ") : "";
   }, [clientes]);
   const [coinciden, setCoinciden] = useState(false);
+  // 335: el filtro «Sin teléfono» (sin teléfono de contratista, ni de mano ni del Excel).
+  const [sinTel, setSinTel] = useState(false);
   // D-799 (225): lo cruzado con un cliente de MI tienda también se ve, aunque su pool sea otra tienda.
   const miCodigo = codigoDeTiendaDelPerfil(yo?.store);
   const cruzadoDeMiTienda = useCallback((l: Lead) => esCruzadoDeMiTienda(l, clientes, miCodigo), [clientes, miCodigo]);
@@ -142,7 +146,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   );
   // Los filtros como al entrar: al cambiar de pestaña y con «Quitar filtros». El orden no es un filtro y se queda.
   const limpiaFiltros = () => {
-    setCategoria("todas"); setEtapa(""); setBuena(false); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false);
+    setCategoria("todas"); setEtapa(""); setBuena(false); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false); setSinTel(false);
   };
   const cambiaPestana = (p: Pestana) => {
     setPestana(p);
@@ -185,10 +189,10 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const porEtapa = useMemo(() => cuentaPorEtapa(delPool), [delPool]);
   const buenas = useMemo(() => vigentes(delPool).filter((l) => categoriaBuena(l.category)).length, [delPool]);
   const visibles = useMemo(
-    () => ordenar(filtrar(delBanco, { pool: poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, textoExtra }), orden),
-    [delBanco, poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, textoExtra, orden],
+    () => ordenar(filtrar(delBanco, { pool: poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTelefono: sinTel, textoExtra }), orden),
+    [delBanco, poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTel, textoExtra, orden],
   );
-  useEffect(() => { setCuantos(TANDA); }, [pool, categoria, tipo, ciudad, busca, etapa, buena, coinciden, orden, semanaFiltro]);
+  useEffect(() => { setCuantos(TANDA); }, [pool, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTel, orden, semanaFiltro]);
 
   if (!yo) return <div className="ld-wrap leads-app"><p className="hint">{t("No session.", "Sin sesión.")}</p></div>;
 
@@ -204,6 +208,13 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     setAviso({ tono: "rojo", texto: r.motivo ? negativaTexto(r.motivo, lang) : `${t("Could not save", "No se pudo guardar")}: ${r.error}` });
     void cargar();
     return false;
+  };
+
+  /** 335: pone (o quita) el teléfono a mano; la base devuelve el lead y se pone en su sitio, como las notas. */
+  const guardaTelefono = async (l: Lead, quien: "owner" | "tenant", telefono: string | null, ext: string | null, contacto: string | null): Promise<boolean> => {
+    setOcupado(l.id);
+    const r = await almacen.guardarTelefono(l.id, quien, telefono, ext, contacto);
+    return tras(l.id, r, telefono ? t("Phone saved.", "Teléfono guardado.") : t("Phone removed.", "Teléfono quitado."));
   };
 
   const verHistorial = async (l: Lead) => {
@@ -224,6 +235,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
       semana={semanasSTXP.semanaDeLead.get(l.id)}
       cliente={l.customer_match_id != null ? clientes.get(l.customer_match_id) : undefined}
       onCliente={(c) => setDialogo({ tipo: "cliente", lead: l, cliente: c })}
+      sugerencia={sinTelefono(l) ? sugerenciaDeTelefono(l, leads, clientes) : null}
+      onTelefono={(quien, tel, ext, contacto) => guardaTelefono(l, quien, tel, ext, contacto)}
     />
   );
   const leadEnfocado = enfocado ? leads.find((l) => l.id === enfocado) ?? null : null;
@@ -365,6 +378,10 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                   <button type="button" className={`chip${buena ? " on" : ""}`} data-buena aria-pressed={buena} onClick={() => setBuena((v) => !v)}>
                     {t("Good category", "Categoría buena")} <span className="ld-cuenta">{buenas}</span>
                   </button>
+                  {/* 335: los que no tienen teléfono de contratista (ni de mano ni del Excel): para trabajarlos. */}
+                  <button type="button" className={`chip${sinTel ? " on" : ""}`} data-sin-telefono aria-pressed={sinTel} onClick={() => setSinTel((v) => !v)}>
+                    📵 {t("No phone", "Sin teléfono")} <span className="ld-cuenta" data-cuenta-sin-telefono>{delPool.filter((l) => l.status !== "archived" && sinTelefono(l)).length}</span>
+                  </button>
                   {/* D-760: el cruce con Clientes (lo pone el importador); solo tiene sentido donde hay cruzados. */}
                   {delPool.some(coincideConCliente) && (
                     <button type="button" className={`chip${coinciden ? " on" : ""}`} data-coinciden onClick={() => setCoinciden((v) => !v)}>
@@ -471,10 +488,14 @@ function PildoraEtapa({ e }: { e: Etapa }) {
   return <span className={`ld-pildora ${etapaTono(e)}`} data-pildora-etapa={e}>{etapaLabel(e, lang)}</span>;
 }
 
-function Tarjeta({ lead: l, yo, ocupado, historial, onNota, onArchivar, onHistorial, cotizar, cotizaciones, cliente, onCliente, semana }: {
+function Tarjeta({ lead: l, yo, ocupado, historial, onNota, onArchivar, onHistorial, cotizar, cotizaciones, cliente, onCliente, semana, sugerencia, onTelefono }: {
   lead: Lead; yo: Persona; ocupado: boolean;
   historial: EventoLead[] | null | undefined;
   onNota: () => void; onArchivar: () => void; onHistorial: () => void;
+  /** 335: un teléfono que este lead no tiene y otro lead (o el cliente) sí. Solo si el contratista no tiene ninguno. */
+  sugerencia: Sugerencia | null;
+  /** 335: pone (o quita, con telefono null) el teléfono a mano de un lado. Devuelve si se guardó. */
+  onTelefono: (quien: "owner" | "tenant", telefono: string | null, ext: string | null, contacto: string | null) => Promise<boolean>;
   /** `puedeCotizarLead` (D-558): se ofrece «Crear cotización». */
   cotizar: boolean;
   /** Las cotizaciones de este lead que quien mira ve en el Quote Builder (D-558). */
@@ -536,13 +557,26 @@ function Tarjeta({ lead: l, yo, ocupado, historial, onNota, onArchivar, onHistor
         📍 {mapa ? <a href={mapa} target="_blank" rel="noopener noreferrer" data-mapa>{[l.site_address, l.site_city, l.site_zip].filter(Boolean).join(", ")}</a> : "—"}
       </p>
       <div className="ld-contacto" data-contacto>
-        <p>
-          {/* D-760: en un lead privado el que va aquí es el CONTRATISTA (a quien se le vende); el propietario, abajo. */}
-          {esPrivado(l) ? <>🏗 {t("Contractor", "Contratista")}: </> : "👤 "}{l.owner_name ?? "—"}{l.owner_contact ? ` · ${l.owner_contact}` : ""}
-          {l.owner_phone ? <> · {telUrl(l.owner_phone) ? <a href={telUrl(l.owner_phone)!} data-tel>📞 {telefonoEstandar(l.owner_phone)}</a> : telefonoEstandar(l.owner_phone)}</> : null}
-        </p>
+        {/* D-760: en un lead privado el que va aquí es el CONTRATISTA (a quien se le vende); el propietario, abajo. */}
+        <p>{esPrivado(l) ? <>🏗 {t("Contractor", "Contratista")}: </> : "👤 "}{l.owner_name ?? "—"}{l.owner_contact ? ` · ${l.owner_contact}` : ""}</p>
+        <FilaTelefono
+          quien="owner" lead={l} ocupado={ocupado} sugerencia={sugerencia}
+          numero={telefonoDeContratista(l)} deMano={!!(l.owner_phone_manual ?? "").trim()}
+          contacto={l.owner_phone_manual_contact ?? null} porNombre={l.owner_phone_manual_by_name ?? null} cuando={l.owner_phone_manual_at ?? null}
+          busqueda={sinTelefono(l) ? enlaceDeBusqueda(l) : null}
+          onGuardar={(tel, ext, contacto) => onTelefono("owner", tel, ext, contacto)}
+        />
         {l.tenant_name && (
-          <p>{esPrivado(l) ? <>🏠 {t("Owner", "Propietario")}</> : <>🏪 {t("Tenant", "Inquilino")}</>}: {l.tenant_name}{l.tenant_phone ? <> · {telUrl(l.tenant_phone) ? <a href={telUrl(l.tenant_phone)!}>📞 {telefonoEstandar(l.tenant_phone)}</a> : telefonoEstandar(l.tenant_phone)}</> : null}</p>
+          <>
+            <p>{esPrivado(l) ? <>🏠 {t("Owner", "Propietario")}</> : <>🏪 {t("Tenant", "Inquilino")}</>}: {l.tenant_name}</p>
+            <FilaTelefono
+              quien="tenant" lead={l} ocupado={ocupado} sugerencia={null}
+              numero={telefonoDeOtro(l)} deMano={!!(l.tenant_phone_manual ?? "").trim()}
+              contacto={l.tenant_phone_manual_contact ?? null} porNombre={l.tenant_phone_manual_by_name ?? null} cuando={l.tenant_phone_manual_at ?? null}
+              busqueda={null}
+              onGuardar={(tel, ext, contacto) => onTelefono("tenant", tel, ext, contacto)}
+            />
+          </>
         )}
         {l.design_firm_name && (
           <p>📐 {t("Design firm", "Despacho")}: {l.design_firm_name}{l.design_firm_phone ? <> · {telUrl(l.design_firm_phone) ? <a href={telUrl(l.design_firm_phone)!}>📞 {telefonoEstandar(l.design_firm_phone)}</a> : telefonoEstandar(l.design_firm_phone)}</> : null}</p>
@@ -589,6 +623,145 @@ function Tarjeta({ lead: l, yo, ocupado, historial, onNota, onArchivar, onHistor
         </ul>
       )}
     </article>
+  );
+}
+
+/**
+ * 335: la línea del teléfono de un lado (contratista o propietario). Con teléfono: el número con su enlace de llamada, la
+ * marca ✍ si lo puso una persona (quién y cuándo al tocarla) y el lápiz para corregirlo. Sin teléfono: «Añadir», la
+ * sugerencia («Usar este») si la hay, y «Buscar» en Google (solo del contratista).
+ */
+function FilaTelefono({ quien, lead, ocupado, sugerencia, numero, deMano, contacto, porNombre, cuando, busqueda, onGuardar }: {
+  quien: "owner" | "tenant"; lead: Lead; ocupado: boolean; sugerencia: Sugerencia | null;
+  numero: string | null; deMano: boolean; contacto: string | null; porNombre: string | null; cuando: string | null;
+  busqueda: string | null;
+  onGuardar: (telefono: string | null, ext: string | null, contacto: string | null) => Promise<boolean>;
+}) {
+  const { t } = usePrefs();
+  const [modo, setModo] = useState<"ver" | "editar">("ver");
+  const [quienVerla, setQuienVerla] = useState(false);
+  const tieneNum = tieneTelefono(numero);
+  const url = tieneNum ? telUrl(numero) : null;
+  const sugiere = !tieneNum && sugerencia && quien === "owner" ? sugerencia : null;
+  const sugerenciaValida = sugiere ? validaTelefono(sugiere.telefono) : null;
+
+  if (modo === "editar") {
+    return (
+      <FormaTelefono
+        quien={quien} numeroInicial={numero && deMano ? numero : ""} contactoInicial={contacto ?? ""} puedeQuitar={deMano}
+        ocupado={ocupado}
+        onGuardar={async (tel, ext, c) => { const ok = await onGuardar(tel, ext, c); if (ok) setModo("ver"); return ok; }}
+        onCancelar={() => setModo("ver")}
+      />
+    );
+  }
+
+  return (
+    <div className="ld-tel-fila" data-telefono-fila={quien}>
+      {tieneNum ? (
+        <>
+          {url
+            ? <a href={url} data-tel data-telefono-de={quien}>📞 {telefonoParaMostrar(numero)}</a>
+            : <span data-telefono-de={quien}>📞 {telefonoParaMostrar(numero)}</span>}
+          {deMano && (
+            <>
+              <button type="button" className="ld-mano" data-telefono-a-mano aria-expanded={quienVerla} title={t("Added by hand: tap for who and when", "Añadido a mano: toca para ver quién y cuándo")}
+                onClick={() => setQuienVerla((v) => !v)}>✍</button>
+              {quienVerla && (
+                <span className="hint" data-quien-telefono>
+                  {t("Added by", "Añadido por")} {porNombre ?? "—"}{cuando ? ` · ${fecha(cuando)}` : ""}{contacto ? ` · ${contacto}` : ""}
+                </span>
+              )}
+            </>
+          )}
+          <button type="button" className="btn btn-ghost btn-sm" data-editar-telefono disabled={ocupado} onClick={() => setModo("editar")}>
+            ✏️ {t("Edit", "Editar")}
+          </button>
+        </>
+      ) : sugiere && sugerenciaValida?.ok ? (
+        <>
+          <span data-sugerencia={sugiere.origen.tipo}>
+            💡 {telefonoParaMostrar(sugiere.telefono)}{" "}
+            <span className="hint">
+              {sugiere.origen.tipo === "permiso"
+                ? `· ${t("phone from another permit of this contractor", "teléfono de otro permiso de este contratista")} (${sugiere.origen.tabs})`
+                : `· ${t("phone from the customer record", "teléfono de la ficha del cliente")} (${sugiere.origen.cuenta})`}
+            </span>
+          </span>
+          <button type="button" className="btn btn-sm" data-usar-sugerencia disabled={ocupado}
+            onClick={() => void onGuardar(sugerenciaValida.valor.telefono, sugerenciaValida.valor.ext, null)}>
+            {t("Use this", "Usar este")}
+          </button>
+        </>
+      ) : sugiere ? (
+        <span className="hint" data-sugerencia-sin-formato>💡 {sugiere.telefono}</span>
+      ) : (
+        <span className="hint" data-sin-telefono-de={quien}>{t("No phone", "Sin teléfono")}</span>
+      )}
+      {!tieneNum && (
+        <button type="button" className="btn btn-primary btn-sm" data-anadir-telefono={quien} disabled={ocupado} onClick={() => setModo("editar")}>
+          ➕ {t("Add phone", "Añadir teléfono")}
+        </button>
+      )}
+      {!tieneNum && busqueda && (
+        <a className="ld-buscar" href={busqueda} target="_blank" rel="noopener noreferrer" data-buscar-telefono>🔎 {t("Search", "Buscar")}</a>
+      )}
+    </div>
+  );
+}
+
+/** 335: el formulario del teléfono a mano: número (teclado numérico), extensión opcional, nombre de contacto opcional. */
+function FormaTelefono({ quien, numeroInicial, contactoInicial, puedeQuitar, ocupado, onGuardar, onCancelar }: {
+  quien: "owner" | "tenant"; numeroInicial: string; contactoInicial: string; puedeQuitar: boolean; ocupado: boolean;
+  onGuardar: (telefono: string | null, ext: string | null, contacto: string | null) => Promise<boolean>;
+  onCancelar: () => void;
+}) {
+  const { t } = usePrefs();
+  const [numero, setNumero] = useState(numeroInicial);
+  const [ext, setExt] = useState("");
+  const [contacto, setContacto] = useState(contactoInicial);
+  const [error, setError] = useState<string | null>(null);
+  const motivos: Record<"vacio" | "digitos" | "ext", string> = {
+    vacio: t("Type the phone number.", "Escribe el teléfono."),
+    digitos: t("A US phone has 10 digits (area code first).", "Un teléfono de EE. UU. tiene 10 dígitos (primero el área)."),
+    ext: t("The extension is up to 6 digits.", "La extensión es de hasta 6 dígitos."),
+  };
+  const enviar = async () => {
+    const v = validaTelefono(numero, ext);
+    if (!v.ok) { setError(motivos[v.motivo]); return; }
+    setError(null);
+    const ok = await onGuardar(v.valor.telefono, v.valor.ext, contacto.trim() || null);
+    if (!ok) setError(t("It was not saved. See the message above.", "No se guardó. Mira el aviso de arriba."));
+  };
+  return (
+    <form className="ld-telefono-form" data-forma-telefono={quien} onSubmit={(e) => { e.preventDefault(); void enviar(); }}>
+      <div className="ld-tel-campos">
+        <label>
+          {t("Phone", "Teléfono")}
+          <input type="tel" inputMode="tel" autoComplete="tel" value={numero} onChange={(e) => setNumero(e.target.value)}
+            placeholder="(956) 555-0123" data-telefono-numero />
+        </label>
+        <label className="ld-ext">
+          {t("Ext.", "Ext.")}
+          <input type="text" inputMode="numeric" maxLength={6} value={ext} onChange={(e) => setExt(e.target.value.replace(/\D/g, ""))} data-telefono-ext />
+        </label>
+      </div>
+      <label>
+        {t("Contact name (optional)", "Nombre de contacto (opcional)")}
+        <input type="text" maxLength={80} value={contacto} onChange={(e) => setContacto(e.target.value)} data-telefono-contacto />
+      </label>
+      {error && <p className="ld-telefono-error" role="alert" data-telefono-error>{error}</p>}
+      <div className="ld-tel-botones">
+        <button type="submit" className="btn btn-primary" disabled={ocupado} data-guardar-telefono>{t("Save", "Guardar")}</button>
+        <button type="button" className="btn btn-ghost" onClick={onCancelar} data-cancelar-telefono>{t("Cancel", "Cancelar")}</button>
+        {puedeQuitar && (
+          <button type="button" className="btn btn-danger btn-sm" disabled={ocupado} data-quitar-telefono
+            onClick={() => void onGuardar(null, null, null)}>
+            {t("Remove the phone added by hand", "Quitar el teléfono a mano")}
+          </button>
+        )}
+      </div>
+    </form>
   );
 }
 
@@ -722,6 +895,21 @@ function Admin({ leads, almacen, demo }: { leads: Lead[]; almacen: AlmacenDeLead
           { key: "cotizados", en: "Ever quoted", es: "Alguna vez cotizado", ancho: 130, numerico: true, valor: (p) => p.cotizadosAlgunaVez },
           { key: "total", en: "Total", es: "Total", ancho: 110, numerico: true, valor: (p) => p.total },
         ]} />
+      </div>
+
+      {/* 335: el hueco de teléfonos por pool, y los que se añadieron a mano este mes y quién los añadió. */}
+      <div className="card" data-bloque="telefonos">
+        <h2>📞 {t("Phones", "Teléfonos")}</h2>
+        <p className="hint" data-sin-telefono-por-pool>
+          <b>{t("No phone (contractor):", "Sin teléfono (contratista):")}</b>{" "}
+          {sinTelefonoPorPool(leads).map((p) => `${poolLabel(p.pool, lang)} ${p.n}`).join(" · ") || "—"}
+        </p>
+        <p className="hint" data-a-mano-este-mes>
+          <b>{t("Added by hand this month:", "Añadidos a mano este mes:")} {telefonosAMano(eventos, new Date()).total}</b>
+          {telefonosAMano(eventos, new Date()).porPersona.length > 0 && (
+            <> — {telefonosAMano(eventos, new Date()).porPersona.map((x) => `${x.nombre} ${x.n}`).join(" · ")}</>
+          )}
+        </p>
       </div>
 
       <div className="card" data-bloque="vendedores">

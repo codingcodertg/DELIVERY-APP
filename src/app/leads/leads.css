@@ -46,6 +46,20 @@
 .ld-etiqueta.sale { border-left-color: var(--green); background: var(--green-soft); }
 .ld-avance { border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 6px 10px; }
 .ld-contacto p { margin: 4px 0; }
+/* 335: el teléfono de cada lado: número, lápiz, marca de «a mano», sugerencia y «Añadir» (en el teléfono, en filas). */
+.ld-tel-fila { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin: 2px 0 8px; font-size: 13px; }
+.ld-tel-fila > .btn { min-height: 36px; }
+.ld-tel-fila .btn-primary { font-weight: 700; }
+.ld-mano { background: none; border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; font-size: 12px; cursor: pointer; color: var(--muted, inherit); }
+.ld-buscar { font-size: 13px; font-weight: 600; padding: 8px 2px; }
+.ld-telefono-form { display: grid; gap: 8px; width: 100%; box-sizing: border-box; background: var(--paper); border: 1px dashed var(--line); border-radius: 10px; padding: 10px; margin: 2px 0 8px; }
+.ld-telefono-form label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; min-width: 0; }
+.ld-telefono-form input { width: 100%; min-width: 0; box-sizing: border-box; min-height: 44px; font-size: 16px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: inherit; }
+.ld-tel-campos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 84px); gap: 8px; }
+.ld-tel-campos .ld-ext { min-width: 0; }
+.ld-tel-botones { display: flex; flex-wrap: wrap; gap: 8px; }
+.ld-tel-botones .btn { min-height: 44px; }
+.ld-telefono-error { margin: 0; color: #c0392b; font-size: 13px; font-weight: 600; }
 .ld-contacto a, .ld-dir a { display: inline-block; padding: 4px 0; }
 .ld-datos { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin: 10px 0; }
 .ld-datos dt { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .03em; }

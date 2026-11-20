@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { faltaLaColumnaDelLead } from "@/lib/estimator/almacen";
-import { COLUMNAS, faltaLaTabla, leadDeLaBase } from "./almacen";
+import { COLUMNAS_EN_ORDEN, faltaLaColumna, faltaLaTabla, leadDeLaBase } from "./almacen";
 import { leadsDemo } from "./demo";
 import type { CotizacionDeLead } from "./cotizar";
 import type { Lead } from "./reglas";
@@ -32,9 +32,14 @@ export const TOPE_COTIZACIONES_CON_LEAD = 1000;
 export function enlaceDeLaBase(supabase: SupabaseClient): AlmacenDelEnlace {
   return {
     async leerLead(id) {
-      const { data, error } = await supabase.from("leads").select(COLUMNAS).eq("id", id).maybeSingle();
-      if (error) return faltaLaTabla(error) ? { ok: true, valor: null } : { ok: false, error: error.message };
-      return { ok: true, valor: data ? leadDeLaBase(data as unknown as Record<string, unknown>) : null };
+      // Las columnas por tramos (como la lista del banco): sin la 335 o la 328 el lead igual se lee.
+      for (const columnas of COLUMNAS_EN_ORDEN) {
+        const { data, error } = await supabase.from("leads").select(columnas).eq("id", id).maybeSingle();
+        if (error && faltaLaColumna(error) && columnas !== COLUMNAS_EN_ORDEN[COLUMNAS_EN_ORDEN.length - 1]) continue;
+        if (error) return faltaLaTabla(error) ? { ok: true, valor: null } : { ok: false, error: error.message };
+        return { ok: true, valor: data ? leadDeLaBase(data as unknown as Record<string, unknown>) : null };
+      }
+      return { ok: false, error: "no columns" };
     },
     async cotizacionesConLead() {
       const { data, error } = await supabase

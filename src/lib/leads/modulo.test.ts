@@ -206,6 +206,8 @@ describe("la 162", () => {
       if (["source", "customer_match_id", "customer_match_note"].includes(col)) continue;
       // 253: el tipo de acción viene de la 253; 328: la visto-en-cargas, de la 328 (las dos probadas en migracion-328.test.ts).
       if (["follow_up_action", "times_seen", "last_seen_at"].includes(col)) continue;
+      // 335: los teléfonos a mano vienen de la 335 (probados en migracion-335.test.ts).
+      if (col.includes("_phone_manual")) continue;
       expect(tabla, col).toMatch(new RegExp(`\\n  ${col}\\s`));
     }
   });

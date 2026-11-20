@@ -26,6 +26,11 @@ export interface AlmacenDeLeads {
    * lead puede anotar. Devuelve el lead como quedó.
    */
   anotar(leadId: string, nota: string, etapa: TipoDeAccion | null): Promise<Res<Lead>>;
+  /**
+   * Pone (o quita, con `telefono` null) el teléfono A MANO del contratista (`owner`) o del propietario (`tenant`). Quien
+   * VE el lead puede. La base valida y deja la nota en el historial (335). Sin la 335, `motivo` es `sin_migracion`.
+   */
+  guardarTelefono(leadId: string, quien: "owner" | "tenant", telefono: string | null, ext: string | null, contacto: string | null): Promise<Res<Lead>>;
   /** Archivar (solo admin). Un archivado no se ve en el banco. */
   archivar(leadId: string, nota: string): Promise<Res<Lead>>;
   /**
@@ -74,8 +79,15 @@ export const COLUMNAS_SIN_253 =
   "design_firm_name, design_firm_phone, tdlr_link, status, holder, holder_name, taken_at, touched_at, " +
   "follow_up_note, follow_up_at, last_outcome, last_note, last_by, last_by_name, last_at, source, imported_at, customer_match_id, customer_match_note";
 export const COLUMNAS_SIN_328 = COLUMNAS_SIN_253.replace("follow_up_at, last_outcome", "follow_up_at, follow_up_action, last_outcome");
-export const COLUMNAS = COLUMNAS_SIN_328 + ", times_seen, last_seen_at";
-const COLUMNAS_EN_ORDEN = [COLUMNAS, COLUMNAS_SIN_328, COLUMNAS_SIN_253] as const;
+export const COLUMNAS_SIN_335 = COLUMNAS_SIN_328 + ", times_seen, last_seen_at";
+/** Los teléfonos añadidos a mano (335). Sin la 335, la lista baja a `COLUMNAS_SIN_335` y el lead sale sin ellos. */
+const COLUMNAS_TELEFONO_A_MANO = [
+  "owner_phone_manual", "owner_phone_manual_contact", "owner_phone_manual_by", "owner_phone_manual_by_name", "owner_phone_manual_at",
+  "tenant_phone_manual", "tenant_phone_manual_contact", "tenant_phone_manual_by", "tenant_phone_manual_by_name", "tenant_phone_manual_at",
+].join(", ");
+export const COLUMNAS = COLUMNAS_SIN_335 + ", " + COLUMNAS_TELEFONO_A_MANO;
+/** De la más nueva a la más vieja: al faltar una columna (42703 / PGRST204) se baja a la siguiente. */
+export const COLUMNAS_EN_ORDEN = [COLUMNAS, COLUMNAS_SIN_335, COLUMNAS_SIN_328, COLUMNAS_SIN_253] as const;
 
 const EVENTO_COLUMNAS = "id, lead_id, at, kind, outcome, note, action, actor, actor_name, subject, subject_name";
 const EVENTO_COLUMNAS_SIN_253 = EVENTO_COLUMNAS.replace(", action", "");
@@ -122,6 +134,13 @@ export function leadDeLaBase(f: Record<string, unknown>): Lead {
     customer_match_id: num(f.customer_match_id), customer_match_note: texto(f.customer_match_note),
     // 328: sin la columna (base vieja), una carga y sin fecha de la última.
     times_seen: num(f.times_seen) ?? 1, last_seen_at: texto(f.last_seen_at),
+    // 335: sin las columnas (base vieja), ningún teléfono a mano.
+    owner_phone_manual: texto(f.owner_phone_manual), owner_phone_manual_contact: texto(f.owner_phone_manual_contact),
+    owner_phone_manual_by: texto(f.owner_phone_manual_by), owner_phone_manual_by_name: texto(f.owner_phone_manual_by_name),
+    owner_phone_manual_at: texto(f.owner_phone_manual_at),
+    tenant_phone_manual: texto(f.tenant_phone_manual), tenant_phone_manual_contact: texto(f.tenant_phone_manual_contact),
+    tenant_phone_manual_by: texto(f.tenant_phone_manual_by), tenant_phone_manual_by_name: texto(f.tenant_phone_manual_by_name),
+    tenant_phone_manual_at: texto(f.tenant_phone_manual_at),
   };
 }
 
@@ -170,7 +189,7 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
       const leads: Lead[] = [];
       let intento = 0;
       for (let p = 0; p < MAX_PAGINAS; p++) {
-        const { data, error } = await supabase.from("leads").select(COLUMNAS_EN_ORDEN[intento])
+        const { data, error } = await supabase.from("leads").select(COLUMNAS_EN_ORDEN[intento]!)
           .order("tabs_project", { ascending: true }).range(p * PAGINA, (p + 1) * PAGINA - 1);
         if (error && faltaLaColumna(error) && intento < COLUMNAS_EN_ORDEN.length - 1) { intento++; p--; continue; }
         if (error) return fallo(error);
@@ -200,6 +219,18 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
     },
     // Sin etapa se manda null: la 328 exige la nota cuando no hay etapa, y la acepta vacía cuando la hay.
     anotar: (leadId, nota, etapa) => llamar("lead_note", { p_lead: leadId, p_note: nota, p_action: etapa }),
+    async guardarTelefono(leadId, quien, telefono, ext, contacto) {
+      const { data, error } = await supabase.rpc("lead_set_phone", {
+        p_lead: leadId, p_quien: quien, p_telefono: telefono, p_ext: ext, p_contacto: contacto,
+      });
+      // Sin la 335 no existe la función (PGRST202 / 42883): se dice qué falta, no un error de base.
+      if (error && (error.code === "PGRST202" || error.code === "42883")) {
+        return { ok: false, sinTabla: false, motivo: "sin_migracion", error: error.message };
+      }
+      if (error) return fallo(error);
+      if (!data || typeof data !== "object") return { ok: false, sinTabla: false, motivo: null, error: "empty answer" };
+      return { ok: true, valor: leadDeLaBase(data as Record<string, unknown>) };
+    },
     archivar: (leadId, nota) => llamar("lead_admin_archive", { p_lead: leadId, p_note: nota }),
   };
 }

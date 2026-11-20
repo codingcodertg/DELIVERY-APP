@@ -1,8 +1,9 @@
-import type { AlmacenDeLeads, Res } from "./almacen";
+import type { AlmacenDeLeads, ClienteCruzado, Res } from "./almacen";
 import { alcanceDe, alcanzaElLead, PERMISO_OTRAS_TIENDAS, PERMISO_POOL_PRIVADO, privadosVisibles, type Alcance } from "./alcance";
 import {
   aplicarNota, notaLimpia, type EventoLead, type Lead, type Negativa, type Persona, type TipoDeAccion,
 } from "./reglas";
+import { notaDeTelefono, validaTelefono } from "./telefonos";
 
 /**
  * Leads INVENTADOS para el modo demo (`NEXT_PUBLIC_LOCAL_MODE`), que no tiene base. Ni un dato real: los nombres
@@ -97,7 +98,8 @@ export function leadsDemo(ahora: Date = new Date()): Lead[] {
       square_footage: 900 + ((i * 713) % 9000), estimated_cost: 40000 + ((i * 91377) % 2400000),
       est_start_date: dia(-20 - i), est_completion_date: dia(-140 - i * 2), permit_status: i % 3 ? "Review Complete" : "Project Registered",
       site_address: `${100 + i * 12} Calle Demo`, site_city: CIUDADES[pool][i % 2], site_zip: `7850${i % 10}`,
-      owner_name: `Dueño Demo ${n} LLC`, owner_phone: `(956) 555-01${n}`, owner_contact: i % 3 ? `Contacto Demo ${n}` : null,
+      // Sin teléfono de contratista en algunos (335): salen en el filtro «Sin teléfono».
+      owner_name: `Dueño Demo ${n} LLC`, owner_phone: i % 11 === 0 ? null : `(956) 555-01${n}`, owner_contact: i % 3 ? `Contacto Demo ${n}` : null,
       tenant_name: i % 4 === 0 ? `Inquilino Demo ${n}` : null, tenant_phone: i % 4 === 0 ? `956-555-01${n}` : null,
       design_firm_name: i % 2 ? `Despacho Demo ${n}` : null, design_firm_phone: i % 2 ? `956-555-01${n}` : null,
       tdlr_link: `https://example.com/demo/DEMO20260000${n}`,
@@ -133,10 +135,19 @@ export function leadsDemo(ahora: Date = new Date()): Lead[] {
       ...leads[k], id: `demo-stxp-${n}`, tabs_project: `DEMO-STXP-${n}`, pool, source: "privado", imported_at: hace(k < 5 ? 30 : 3),
       project_name: `Permiso municipal Demo ${n}`, facility_name: null, site_city: ciudad, site_address: `${200 + k * 7} Av. Demo`,
       owner_name: `Contratista Demo ${n} LLC`, owner_phone: `(956) 555-01${String(50 + k).padStart(2, "0")}`, tenant_name: `Propietario Demo ${n}`, tdlr_link: `https://example.com/demo/stxp/${n}`,
-      customer_match_id: k === 0 ? 1 : null, customer_match_note: k === 0 ? "teléfono igual al del cliente CONTRATISTA DEMO 01" : null,
+      customer_match_id: k === 0 || k === 8 ? 1 : null, customer_match_note: k === 0 || k === 8 ? "teléfono igual al del cliente CONTRATISTA DEMO 01" : null,
       status: "free", holder: null, holder_name: null, taken_at: null, touched_at: null, follow_up_note: null, follow_up_at: null, follow_up_action: null,
       last_outcome: null, last_note: null, last_by: null, last_by_name: null, last_at: null, times_seen: 1, last_seen_at: null,
     });
+    // 335: el contratista del permiso 7 se escribe distinto (con coma) y SIN teléfono: su mismo contratista del 1 lo tiene
+    // → sugerencia «de otro permiso». El 9 no tiene teléfono ni contratista repetido: lo sugiere el cliente cruzado.
+    if (k === 6) leads[leads.length - 1] = { ...leads[leads.length - 1], owner_name: "Contratista Demo 01, LLC.", owner_phone: null };
+    if (k === 8) leads[leads.length - 1] = { ...leads[leads.length - 1], owner_phone: null };
+    // Un teléfono añadido a mano (335) por Beto, con nombre de contacto: manda sobre el del Excel.
+    if (k === 2) leads[leads.length - 1] = {
+      ...leads[leads.length - 1], owner_phone_manual: "(956) 555-0177", owner_phone_manual_contact: "Juan Pérez",
+      owner_phone_manual_by: PERSONAS_DEMO[1].id, owner_phone_manual_by_name: PERSONAS_DEMO[1].name, owner_phone_manual_at: hace(2),
+    };
     const e = ETAPAS_STXP_DEMO[k];
     if (e) {
       const p = quienDe(e.quien);
@@ -165,6 +176,9 @@ export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
   for (const l of leads) {
     eventos.push({ id: ++serie, lead_id: l.id, at: l.imported_at ?? new Date().toISOString(), kind: "imported", outcome: null, note: null, actor: null, actor_name: "import script", subject: null, subject_name: null });
   }
+  // El teléfono a mano del demo (STXP 3) en el historial, como lo deja la base (335).
+  const conMano = leads.find((l) => l.id === "demo-stxp-03");
+  if (conMano?.owner_phone_manual_by_name) eventos.push({ id: ++serie, lead_id: conMano.id, at: conMano.owner_phone_manual_at ?? "", kind: "phone", outcome: null, note: notaDeTelefono("Contratista", conMano.owner_phone_manual ?? null, conMano.owner_phone_manual_contact ?? null), action: null, actor: conMano.owner_phone_manual_by ?? null, actor_name: conMano.owner_phone_manual_by_name ?? null, subject: conMano.owner_phone_manual_by ?? null, subject_name: conMano.owner_phone_manual_by_name ?? null });
   // Las notas de etapa: las del banco y las del STXP (estos, por su id, `demo-stxp-01`…).
   const notas: { lead: Lead; e: { etapa: TipoDeAccion | null; quien: "ana" | "beto"; nota: string } }[] = [
     ...Object.entries(ETAPAS_DEMO).map(([k, e]) => ({ lead: leads[Number(k)], e })),
@@ -186,7 +200,37 @@ export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
     ? privadosVisibles(leads, { ...yo, role: yo.admin ? "admin" : yo.role }).some((x) => x.id === l.id)
     : alcanzaElLead(l, alcanceDemo(yo), yo.id));
   return {
-    async clientesCruzados() { return { ok: true, valor: new Map() }; },
+    // El cliente 1 del demo (el del cruce): con teléfono de su ficha, para la sugerencia «del cliente».
+    async clientesCruzados(ids) {
+      if (!ids.includes(1)) return { ok: true, valor: new Map() };
+      const cliente: ClienteCruzado = {
+        id: 1, account: "Contratista Demo 01 (cliente)", store: "RDZ Brownsville", rep_id: null, rep_name: "Ana Demo",
+        contact_name: null, contact_title: null, phone: "(956) 555-0199", email: null, address: null, account_no: null,
+        terms: null, credit_limit: null, activity_status: null, status_store: null, notes: null,
+      };
+      return { ok: true, valor: new Map([[1, cliente]]) };
+    },
+    async guardarTelefono(leadId, quien_, telefono, ext, contacto) {
+      const yo = quien();
+      const l = busca(leadId);
+      if (!l) return no("no_existe");
+      if (!alcanza(l, yo)) return no("otra_tienda");
+      if (l.status === "archived") return no("no_existe");
+      const c = (contacto ?? "").trim() || null;
+      if (c && c.length > 80) return no("dato_invalido");
+      let guardado: string | null = null;
+      if ((telefono ?? "").trim() !== "") {
+        const v = validaTelefono(telefono ?? "", ext ?? "");
+        if (!v.ok) return no("dato_invalido");
+        guardado = v.valor.ext ? `${v.valor.telefono} ext. ${v.valor.ext}` : v.valor.telefono;
+      }
+      const ahora = new Date().toISOString();
+      const cambios = quien_ === "owner"
+        ? { owner_phone_manual: guardado, owner_phone_manual_contact: guardado ? c : null, owner_phone_manual_by: guardado ? yo.id : null, owner_phone_manual_by_name: guardado ? yo.name : null, owner_phone_manual_at: guardado ? ahora : null }
+        : { tenant_phone_manual: guardado, tenant_phone_manual_contact: guardado ? c : null, tenant_phone_manual_by: guardado ? yo.id : null, tenant_phone_manual_by_name: guardado ? yo.name : null, tenant_phone_manual_at: guardado ? ahora : null };
+      apunta(l, "phone", { note: notaDeTelefono(quien_ === "owner" ? "Contratista" : "Propietario", guardado, c) });
+      return guarda({ ...l, ...cambios });
+    },
     async leer() {
       const yo = quien();
       const alcance = alcanceDemo(yo);
