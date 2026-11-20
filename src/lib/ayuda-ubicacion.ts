@@ -207,7 +207,7 @@ export const APPS_DEL_MAPA: AppDelMapa[] = [
   { prefijo: "/promos", nombre: modulo("promos"), inicio: b("Promotions list", "Lista de promociones"), pantallas: { ":id": b("Promotion", "Promoción") } },
   { prefijo: "/surveys", nombre: modulo("surveys"), pantallas: {} },
   { prefijo: "/security", nombre: b("Central Hub Monitoring", "Central Hub Monitoring"), pantallas: { salud: b("System health", "Salud del sistema") } },
-  { prefijo: "/app-draft", nombre: modulo("app_draft"), inicio: b("Drafts list", "Lista de prototipos"), pantallas: { "quickbooks-online": b("QuickBooks Online prototype", "Prototipo de QuickBooks Online") } },
+  { prefijo: "/app-draft", nombre: modulo("app_draft"), inicio: b("Drafts list", "Lista de prototipos"), pantallas: { "quickbooks-online": b("QuickBooks Online prototype", "Prototipo de QuickBooks Online"), "comp-floor": b("Comp Floor prototype", "Prototipo de Comp Floor"), "quickbooks-desktop": b("QuickBooks Desktop prototype", "Prototipo de QuickBooks Desktop") } },
   { prefijo: "/ringcentral", nombre: b("RingCentral", "RingCentral"), pantallas: {} },
   { prefijo: "/change-password", nombre: b("Change password", "Cambiar contraseña"), pantallas: {} },
   { prefijo: "/no-access", nombre: b("No access screen", "Pantalla «sin acceso»"), pantallas: {} },
