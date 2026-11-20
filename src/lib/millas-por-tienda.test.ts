@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { mkDelivery } from "@/lib/__fixtures";
 import {
-  destinoDeParada, millasPorTienda, paradasDeMillas, SIN_CHOFER, tiendaQuePaga, TOPE_MILLAS_CREIBLES,
+  claseDeOrden, destinoDeParada, millasPorTienda, paradasDeMillas, SIN_CHOFER, tiendaQuePaga, TOPE_MILLAS_CREIBLES,
 } from "./millas-por-tienda";
 import type { NamedLocation } from "./types";
 
@@ -157,5 +157,24 @@ describe("la tabla por tienda", () => {
     expect(r.filas[0].pctGas).toBeNull();
     expect(r.total.pctGas).toBeNull();
     expect(millasPorTienda([])).toEqual({ filas: [], total: expect.objectContaining({ paradas: 0, millas: 0, pctGas: null }) });
+  });
+});
+
+describe("por tipo: Cliente, Intertienda y Otro (D-1111)", () => {
+  it("clasifica por la regla del tipo y separa millas y órdenes en cada fila", () => {
+    expect(claseDeOrden("Customer", REGLAS)).toBe("cliente");
+    expect(claseDeOrden("Intertienda", REGLAS)).toBe("intertienda");
+    expect(claseDeOrden("Proveedor", REGLAS)).toBe("otro");
+    const { filas, total } = millasPorTienda(paradasDeMillas([
+      orden({ order_type: "Customer", delivery_address: "a", route_miles: 10 }),
+      orden({ order_type: "Customer", delivery_address: "a", route_miles: 10 }),
+      orden({ order_type: "Proveedor", delivery_address: "b", route_miles: 7 }),
+      orden({ order_type: "Intertienda", delivery_name: "Tienda Sur", delivery_address: "2 Sur", route_miles: 15 }),
+    ], TIENDAS, REGLAS));
+    const norte = filas.find((f) => f.tienda === "Tienda Norte")!;
+    const sur = filas.find((f) => f.tienda === "Tienda Sur")!;
+    expect(norte).toMatchObject({ millasCliente: 10, ordenesCliente: 2, millasOtro: 7, ordenesOtro: 1, millasIntertienda: 0, ordenesIntertienda: 0 });
+    expect(sur).toMatchObject({ millasIntertienda: 15, ordenesIntertienda: 1, millasCliente: 0 });
+    expect(total.millasCliente + total.millasIntertienda + total.millasOtro).toBeCloseTo(total.millas, 6);
   });
 });
