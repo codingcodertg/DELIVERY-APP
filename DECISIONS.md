@@ -52720,3 +52720,8 @@ Sello `deliveries` 1.639.1; repo 1.942.1.
 
 El dueño: «Customer miles vs #, Intertienda miles vs #, Other miles vs #». La tabla «Millas y gas por tienda» del Panel suma seis columnas: millas y número de órdenes de Cliente, de Intertienda y de Otro. El tipo sale de la regla del tipo de orden, nunca de los datos: Intertienda = regla de tienda a tienda; Cliente = tipo con cliente detrás; Otro = el resto (proveedor, etc.). El # cuenta órdenes; las millas de una parada van a su tipo (Cliente si lleva alguna orden de cliente), así las tres millas suman el total. Paradas, millas y % del gas no cambian.
 Sello `deliveries` 1.640.0; repo 1.943.0.
+
+## D-1112 · Conteos: solo el buscador, y «Next» con lo que ya se contó (2026-11-20)
+
+El dueño, con la captura de la lista del conteo: «quita todo eso, solo deja el search, y déjalo click next con lo que sea que ya tiene contado, no tiene que contar todo». En la etapa Contar ya no sale la lista de productos ni la barra de puntos: solo el buscador; los productos aparecen al buscar. El botón pasa a «Siguiente: pasar a revisar» y sale en cuanto hay UN producto contado, con el aviso de cuántos sin contar se quedan fuera. Migración 339: `warehouse_ops_count_advance` pide al menos una línea contada y borra las líneas sin contar al pasar a revisión (no tenían cantidad, órdenes pendientes ni firma), así firma y ajuste no cambian.
+Sello `warehouse_ops` 0.65.0; repo 1.944.0.

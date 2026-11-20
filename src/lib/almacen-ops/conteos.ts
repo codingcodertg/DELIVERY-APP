@@ -424,13 +424,14 @@ export function accionesDeConteo(q: Quien, c: Pick<Conteo, "store" | "stage" | "
   const gestiona = puedeGestionarConteo(q, c.store);
   if (!cuenta && !gestiona) return [];
   const out: AccionDeConteo[] = [];
-  const todas = lineas.length > 0 && lineas.every(estaContada);
+  // 339 (20 nov, el dueño: «no tiene que contar todo»): basta UNA contada para pasar a revisar; las demás se quitan.
+  const alguna = lineas.some(estaContada);
   switch (c.stage) {
     case "organizing":
       if (cuenta) out.push("organizado");
       break;
     case "counting":
-      if (cuenta) { out.push("contar_linea"); if (todas) out.push("terminar_conteo"); }
+      if (cuenta) { out.push("contar_linea"); if (alguna) out.push("terminar_conteo"); }
       if (gestiona) out.push("recontar");
       break;
     case "review":

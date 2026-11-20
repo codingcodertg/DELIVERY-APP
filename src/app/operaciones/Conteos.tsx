@@ -321,6 +321,8 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
       ponConteo((x) => (etapa === "counting"
         ? { ...x, stage: "counting", organized_at: ahora, organized_by: ctx.yo.id }
         : { ...x, stage: "review", counting_done_at: ahora, counting_done_by: ctx.yo.id }));
+      // 339: lo que no se contó sale del conteo (la base lo borra al pasar a revisar).
+      if (etapa === "review") pon((d) => ({ ...d, lineas: d.lineas.filter((l) => l.count_id !== c.id || estaContada(l)) }));
     } catch (x) { setError(mensajeDeError(x)); } finally { setOcupado(false); }
   };
 
@@ -399,9 +401,6 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
         {c.stage === "counting" && (
           <section className="ops-etapas" data-lineas={lineas.length}>
             <h4>{t("Count", "Contar")} <span className="ops-cuenta">{progreso.hechas}/{progreso.total}</span></h4>
-            <ul className="ops-progreso ops-progreso-conteo" aria-label={`${progreso.pct}%`} data-progreso={progreso.pct}>
-              {lineas.map((l) => <li key={l.id} className={estaContada(l) ? "hecho" : ""} />)}
-            </ul>
             <input className="ops-campo ops-campo" value={qLinea} onChange={(e) => setQLinea(e.target.value)} placeholder={t("Search a product in this count", "Buscar un producto de este conteo")}
               inputMode="search" autoComplete="off" autoCorrect="off" spellCheck={false} data-campo="buscar-linea" />
             {qLinea.trim().length >= 2 && filtradas.length === 0 && acciones.includes("contar_linea") && (
@@ -410,8 +409,9 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
                 <button type="button" className="ops-boton ops-boton-primario" onClick={() => void agregarLibre(qLinea.trim())} disabled={ocupado} data-accion="agregar-libre">+ {t("Count", "Contar")} {qLinea.trim()}</button>
               </div>
             )}
+            {/* 20 nov (el dueño: «quita todo eso, solo deja el search»): la lista sale solo al buscar. */}
             <ul className="ops-lineas-conteo">
-              {filtradas.map((l) => {
+              {(qLinea.trim() ? filtradas : []).map((l) => {
                 const puedeCapturar = acciones.includes("contar_linea");
                 return (
                   <li key={l.id} className={`ops-linea-conteo${estaContada(l) ? " contada" : ""}${l.recount_requested ? " recontar" : ""}`} data-linea={l.id}>
@@ -443,10 +443,11 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
             )}
             {acciones.includes("terminar_conteo") && (
               <div className="ops-etapa-acciones" data-paso="2">
-                <button type="button" className="ops-boton ops-boton-primario" onClick={() => void avanzar("review", null)} disabled={ocupado} data-accion="terminar-conteo">✅ {t("All counted, go to review", "Todo contado, pasar a revisar")}</button>
+                <button type="button" className="ops-boton ops-boton-primario" onClick={() => void avanzar("review", null)} disabled={ocupado} data-accion="terminar-conteo">✅ {t("Next: go to review", "Siguiente: pasar a revisar")}</button>
+                {progreso.total > progreso.hechas && <p className="hint" data-sin-contar={progreso.total - progreso.hechas}>{t(`Only what you counted goes on. ${progreso.total - progreso.hechas} not counted will be left out.`, `Solo sigue lo que contaste. ${progreso.total - progreso.hechas} sin contar se quedan fuera.`)}</p>}
               </div>
             )}
-            {!acciones.includes("terminar_conteo") && progreso.total > 0 && <p className="hint">{t(`${progreso.total - progreso.hechas} products left to count.`, `Faltan ${progreso.total - progreso.hechas} productos por contar.`)}</p>}
+            {!acciones.includes("terminar_conteo") && acciones.includes("contar_linea") && <p className="hint">{t("Search a product and count it.", "Busca un producto y cuéntalo.")}</p>}
           </section>
         )}
 
