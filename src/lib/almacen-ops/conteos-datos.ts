@@ -92,7 +92,7 @@ export function lotesDeLaFila(v: unknown): Lote[] {
 
 export function lineaDeLaFila(x: Record<string, unknown>): Linea {
   return {
-    ...(x as unknown as Linea), product_id: num(x.product_id), unit_of_measure: esUnidadDeConteo(x.unit_of_measure) ? x.unit_of_measure : null, lots: lotesDeLaFila(x.lots), counted_comparable: x.counted_comparable !== false, system_qty: num(x.system_qty), price: num(x.price), pieces_per_box: num(x.pieces_per_box),
+    ...(x as unknown as Linea), product_id: num(x.product_id), unit_of_measure: esUnidadDeConteo(x.unit_of_measure) ? x.unit_of_measure : null, lots: lotesDeLaFila(x.lots), system_qty: num(x.system_qty), price: num(x.price), pieces_per_box: num(x.pieces_per_box),
     counted_boxes: num(x.counted_boxes), counted_pieces: num(x.counted_pieces), counted_total: num(x.counted_total), recount_requested: !!x.recount_requested, position: num(x.position) ?? 0,
     system_qty_set_by: (x.system_qty_set_by as string | null) ?? null, system_qty_set_by_name: (x.system_qty_set_by_name as string | null) ?? null, system_qty_set_at: (x.system_qty_set_at as string | null) ?? null,
   };

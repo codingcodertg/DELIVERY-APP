@@ -10,6 +10,7 @@ import {
   cuentasDeLinea, enCajas, estaContada, hayDiferencias, ordenarPorDiferencia, pendienteDeLinea, resumenDelConteo,
   type AccionDeConteo, type Conteo, type CuentasDeLinea, type Linea, type OrdenPendiente,
 } from "@/lib/almacen-ops/conteos";
+import { comparableConElSistema, INFO_DE_UNIDAD } from "@/lib/almacen-ops/conteos";
 import {
   agregarPendiente, ajustarConteo, avanzarConteo, editarPendiente, firmarConteo, ponerSistema, quitarPendiente, volverARevision, type Conteos as Datos,
 } from "@/lib/almacen-ops/conteos-datos";
@@ -136,7 +137,7 @@ export function PanelDeRevision({ c, lineas, pendientes, ctx, pon, acciones, sin
 export function PanelDeFirma({ c, lineas, pendientes, ctx, pon, acciones, onError, nombre }: {
   c: Conteo; lineas: Linea[]; pendientes: OrdenPendiente[]; ctx: Contexto; pon: Pon; acciones: AccionDeConteo[]; onError: (m: string | null) => void; nombre: (id: string | null) => string;
 }) {
-  const { t } = usePrefs();
+  const { t, lang } = usePrefs();
   const [cambiando, setCambiando] = useState<Linea | null>(null);
   const [firmando, setFirmando] = useState(false);
   const [ajustando, setAjustando] = useState(false);
@@ -234,6 +235,9 @@ export function PanelDeFirma({ c, lineas, pendientes, ctx, pon, acciones, onErro
       {/* Firma: la razón si hay diferencias; el sistema en todas las líneas */}
       {acciones.includes("firmar") && (
         <div className="ops-etapa-acciones" data-firma-panel>
+          {lineas.filter((l) => l.product_id != null && l.system_qty != null && l.counted_at != null && !comparableConElSistema(l)).map((l) => (
+            <p key={l.id} className="hint" data-no-comparable={l.sku}>{l.sku}: {t("Counted in", "Contado en")} {(lang === "es" ? INFO_DE_UNIDAD[l.unit_of_measure ?? "box"].es : INFO_DE_UNIDAD[l.unit_of_measure ?? "box"].en).toLowerCase()} — {t("explain", "explica")}</p>
+          ))}
           {dif && <label className="ops-cantidad"><span>{t("Reason for the differences (required)", "Razón de las diferencias (obligatoria)")}</span>
             <textarea className="ops-campo" rows={2} value={razon} onChange={(e) => setRazon(e.target.value)} placeholder={t("e.g. 2 boxes broken in the back, pick not recorded", "p. ej. 2 cajas rotas atrás, surtido no registrado")} data-campo="razon-firma" />
           </label>}

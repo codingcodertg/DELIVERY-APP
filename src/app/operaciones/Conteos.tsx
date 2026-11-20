@@ -12,6 +12,7 @@ import {
   INFO_DE_ALCANCE, accionesDeConteo, estaAbierto, estaContada, faltaDelAlcance, ordenarLineas, progresoDelConteo, puedeGestionarConteo,
   resumenDeLotes, textoDeCantidad, tituloDeAlcance, type AccionDeConteo, type AlcanceElegido, type Conteo, type Linea, type OrdenPendiente,
 } from "@/lib/almacen-ops/conteos";
+import { comparableConElSistema } from "@/lib/almacen-ops/conteos";
 import { buscarEnLista, coincideConAlcance } from "@/lib/almacen-ops/conteos-alcance";
 import {
   DEMO_CONTEOS, DEMO_PRODUCTOS_DE_CONTEO, DEMO_PROVEEDORES, agregarLineaLibre, avanzarConteo, cancelarConteo, crearConteo, faltaLa274, faltaLa333, leerConteos, leerProductosDelAlcance,
@@ -423,7 +424,7 @@ export function TarjetaConteo({ c, lineas, pendientes, ctx, pon, sin333, onCerra
                       <span className="ops-equipo-insignias">
                         {l.recount_requested && <span className="ops-insignia ops-insignia-sin-foto" data-recontar>↩ {t("Recount", "Recontar")}{l.recount_note && `: ${l.recount_note}`}</span>}
                         {estaContada(l) && <span className="ops-insignia ops-insignia-ok">✓ {l.counted_by_name ?? "—"} · {fmtDateTime(l.counted_at)}</span>}
-                        {l.counted_comparable === false && <span className="hint" data-no-comparable>{t("Not compared with the system (bags or a free product)", "No se compara con el sistema (bolsas o producto libre)")}</span>}
+                        {!comparableConElSistema(l) && <span className="hint" data-no-comparable>{t("Not compared with the system (bags or a free product)", "No se compara con el sistema (bolsas o producto libre)")}</span>}
                         {(l.lots ?? []).length > 0 && <span className="hint" data-lotes={(l.lots ?? []).length}>{resumenDeLotes(l.lots ?? [], l.unit_of_measure ?? null, lang)}</span>}
                         {!estaContada(l) && !l.recount_requested && puedeCapturar && <span className="ops-insignia">{t("Tap to count", "Toca para contar")}</span>}
                         {l.note && <span className="hint">🗒 {l.note}</span>}
