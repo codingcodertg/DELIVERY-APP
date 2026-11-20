@@ -50,6 +50,8 @@ export const APP_VERSIONS = {
   // RingCentral de los choferes (migración 329): la primera, como las demás apps nuevas. Sin esta entrada /ringcentral
   // no tendría sello de versión.
   ringcentral: "0.1.0",
+  // App Draft: prototipos con datos de ejemplo (primera sección: QuickBooks Online).
+  app_draft: "0.1.0",
 } as const;
 
 export type AppKey = keyof typeof APP_VERSIONS;

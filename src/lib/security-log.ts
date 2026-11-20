@@ -45,6 +45,8 @@ export type SecurityKind =
   | "customers_access_changed"
   // Operaciones de almacén (247). Solo el acceso.
   | "warehouse_ops_access_changed"
+  // App Draft (prototipos). Solo el acceso.
+  | "app_draft_access_changed"
   // Nivel dentro de Operaciones de almacén (265): profiles.warehouse_ops_role.
   | "warehouse_ops_role_changed"
   // Admin solo de Clientes (241): profiles.customers_role.
@@ -89,6 +91,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     leads_access_changed: "Leads access changed",
     customers_access_changed: "Customers access changed",
     warehouse_ops_access_changed: "Warehouse Ops access changed",
+    app_draft_access_changed: "App Draft access changed",
     warehouse_ops_role_changed: "Warehouse Ops level changed",
     customers_role_changed: "Customers admin changed",
     deliveries_access_changed: "Deliveries access changed",
@@ -119,6 +122,7 @@ export function securityLabel(kind: string, lang: "en" | "es"): string {
     leads_access_changed: "Acceso a Leads cambiado",
     customers_access_changed: "Acceso a Clientes cambiado",
     warehouse_ops_access_changed: "Acceso a Operaciones de almacén cambiado",
+    app_draft_access_changed: "Acceso a App Draft cambiado",
     warehouse_ops_role_changed: "Nivel en Operaciones de almacén cambiado",
     customers_role_changed: "Admin de Clientes cambiado",
     // Estas dos faltaban desde antes de esta rama: en español caían al `?? kind` y el registro

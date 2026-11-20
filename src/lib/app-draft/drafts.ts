@@ -1,0 +1,43 @@
+/**
+ * App Draft: la lista de prototipos («drafts»). Cada draft nuevo es UNA entrada aquí más su carpeta en
+ * `src/app/app-draft/<ruta>`. `listo: false` lo enseña como «próximamente» sin enlace.
+ */
+export interface Draft {
+  ruta: string;
+  emoji: string;
+  nombre_en: string;
+  nombre_es: string;
+  desc_en: string;
+  desc_es: string;
+  listo: boolean;
+}
+
+export const DRAFTS: readonly Draft[] = [
+  {
+    ruta: "quickbooks-online",
+    emoji: "📒",
+    nombre_en: "QuickBooks Online",
+    nombre_es: "QuickBooks Online",
+    desc_en: "Bookkeeping the hub lacks today: invoices and payments (A/R), vendor bills (A/P), credit memos, purchasing, bank reconciliation and reports.",
+    desc_es: "La contabilidad que el hub no tiene hoy: facturas y cobros (por cobrar), facturas de proveedores (por pagar), notas de crédito, compras, conciliación bancaria e informes.",
+    listo: true,
+  },
+  {
+    ruta: "comp-floor",
+    emoji: "🧩",
+    nombre_en: "Comp Floor",
+    nombre_es: "Comp Floor",
+    desc_en: "Coming later.",
+    desc_es: "Más adelante.",
+    listo: false,
+  },
+  {
+    ruta: "quickbooks-desktop",
+    emoji: "🖥️",
+    nombre_en: "QuickBooks Desktop",
+    nombre_es: "QuickBooks Desktop",
+    desc_en: "Coming later.",
+    desc_es: "Más adelante.",
+    listo: false,
+  },
+];
