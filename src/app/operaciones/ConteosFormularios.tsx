@@ -254,7 +254,7 @@ export function FormLinea({ l, ctx, siguiente, onCerrar, onGuardada }: {
       <div className="modal-actions">
         <button type="button" className="btn" onClick={onCerrar} disabled={guardando}>{t("Cancel", "Cancelar")}</button>
         <button type="button" className="btn btn-primary" onClick={() => void guardar(siguiente ? "siguiente" : "terminar")} disabled={!!motivo || guardando || leyendo != null} data-accion={siguiente ? "siguiente" : "guardar-linea"}>
-          {guardando ? t("Saving…", "Guardando…") : siguiente ? t("Next", "Siguiente") : t("Save and finish", "Guardar y terminar")}
+          {guardando ? t("Saving…", "Guardando…") : t("Next", "Siguiente")}
         </button>
       </div>
     </VentanaDeConteo>
