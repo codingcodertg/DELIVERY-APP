@@ -122,7 +122,7 @@ describe("una orden ya guardada no pierde su ventana", () => {
 describe("el formulario", () => {
   it("el selector recibe la fecha de la orden y ofrece lo de ese día", () => {
     expect(modal).toContain("<WindowSel val={d.delivery_windows} fecha={d.delivery_date}");
-    expect(modal).toContain("const disponibles = ventanasParaLaFecha(fecha, current);");
+    expect(modal).toContain("const disponibles = ventanasOfrecidas(fecha, current);");
     expect(modal).toContain("{disponibles.map((p) => <option key={p.key} value={p.value}>{t(p.en, p.es)}</option>)}");
   });
 
@@ -137,5 +137,16 @@ describe("el formulario", () => {
     const tramo = modal.slice(modal.indexOf("const want = ventanaDeTodoElDia"), modal.indexOf("const [busy, setBusy]"));
     expect(tramo).toContain("if (!d.delivery_windows || d.delivery_windows === other) {");
     expect(tramo).toContain("setD((p) => (p.delivery_windows === want ? p : { ...p, delivery_windows: want }));");
+  });
+});
+
+describe("por ahora solo «todo el día» (2026-11-20, falta un chofer)", () => {
+  it("entre semana ofrece solo la de todo el día; sábado, la del sábado; y siempre la que ya tiene", async () => {
+    const { ventanasOfrecidas, seOfreceLaVentana } = await import("./delivery-windows");
+    expect(ventanasOfrecidas("2026-11-18", null, true).map((p) => p.key)).toEqual(["all_day"]);
+    expect(ventanasOfrecidas("2026-11-21", null, true).map((p) => p.key)).toEqual(["saturday"]);
+    expect(ventanasOfrecidas("2026-11-18", "0830-1200", true).map((p) => p.key)).toEqual(["all_day", "morning"]);
+    expect(seOfreceLaVentana("1200-1730", null, true)).toBe(false);
+    expect(ventanasOfrecidas("2026-11-18", null, false).length).toBeGreaterThan(1);
   });
 });

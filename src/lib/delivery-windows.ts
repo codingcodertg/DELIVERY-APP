@@ -78,3 +78,23 @@ export function ventanasParaLaFecha(iso: string | null | undefined, actual?: str
 export function cierraA(iso: string | null | undefined): number {
   return parseWindow(ventanaDeTodoElDia(iso))?.[1] ?? Infinity;
 }
+
+/**
+ * Por ahora SOLO «todo el día» (el dueño, 2026-11-20: «por ahora time windows solo será el de all day, we are short 1
+ * driver»). Lo que ofrece la pantalla de la orden (selector y franjas): de `ventanasParaLaFecha`, solo la de todo el
+ * día de esa fecha (entre semana o sábado), más la que la orden ya tenga. Las reglas de abajo no cambian.
+ * Para volver a ofrecer mañana, tarde, etc., poner esto en `false`.
+ */
+export const SOLO_TODO_EL_DIA = true;
+const CLAVES_TODO_EL_DIA = new Set(["all_day", "saturday"]);
+
+/** ¿Se ofrece esta ventana en la pantalla? Siempre la que la orden ya tiene. */
+export function seOfreceLaVentana(valor: string, actual?: string | null, solo: boolean = SOLO_TODO_EL_DIA): boolean {
+  if (!solo || valor === (actual ?? "")) return true;
+  return DELIVERY_WINDOW_PRESETS.some((p) => p.value === valor && CLAVES_TODO_EL_DIA.has(p.key));
+}
+
+/** Las ventanas del selector de la orden: las de la fecha, filtradas por `seOfreceLaVentana`. */
+export function ventanasOfrecidas(iso: string | null | undefined, actual?: string | null, solo: boolean = SOLO_TODO_EL_DIA): WindowPreset[] {
+  return ventanasParaLaFecha(iso, actual).filter((p) => seOfreceLaVentana(p.value, actual, solo));
+}
