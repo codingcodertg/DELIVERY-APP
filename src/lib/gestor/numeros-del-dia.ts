@@ -15,7 +15,7 @@ import { paradasDeLaRuta, type FilaQueSeNumera, type ParadaFisica } from "./para
  * el día entero, así que a media jornada la misma parada llevaba un número en cada pantalla — y el mapa del Gestor, que es
  * también el de «Mi ruta» (D-514), le daba al chofer números distintos de los de su propia lista.
  *
- * Ahora la numeración es la de la lista que la tarjeta PINTA —lo pendiente con lo hecho en el sitio en que iba
+ * Ahora la numeración es la de la lista que la tarjeta PINTA —lo hecho primero, en su hora real, y lo pendiente detrás
  * (`filasConLoHecho`, D-459)—, que es la lista del día que lee «Mi ruta», y con la misma función (`paradasDeLaRuta`, D-485). No
  * hay una segunda regla: solo cambia QUÉ filas entran. Lo que se mueve no cambia: las flechas, el arrastre, «Optimizar», la
  * cuenta de pallets y la medida siguen siendo de lo pendiente (`lectura.filas`, con su índice); lo hecho sigue sin índice.
@@ -89,13 +89,13 @@ export function numerosDelDia(
 
 /**
  * El día entero de una ruta, de una vez: lo que pinta la tarjeta (`filasConLoHecho`: lo pendiente de la lectura, en su orden y
- * con su índice, y lo hecho donde iba) y su numeración. Lo llaman la tabla, el mapa, el horario y los avisos de mover del
+ * con su índice, y lo hecho primero, en su hora real) y su numeración. Lo llaman la tabla, el mapa, el horario y los avisos de mover del
  * Gestor, para que los cuatro digan el mismo número.
  */
 export function diaDeLaRuta(
   lectura: Pick<LecturaDeRuta, "fuente" | "filas">, pendientes: readonly (OrdenAsignada & ConLugar)[], hechas: readonly (OrdenHecha & ConLugar)[],
-  capacidad: number, paradasDelPlan: readonly ParadaDelPlanMinima[] | null,
+  capacidad: number, paradasDelPlan: readonly ParadaDelPlanMinima[] | null, comoIba = true,
 ): NumerosDelDia & { pintadas: FilaPintada[] } {
-  const pintadas = filasConLoHecho(lectura, pendientes, hechas, capacidad, paradasDelPlan);
+  const pintadas = filasConLoHecho(lectura, pendientes, hechas, capacidad, paradasDelPlan, comoIba);
   return { pintadas, ...numerosDelDia(pintadas, lectura.fuente, [...pendientes, ...hechas], paradasDelPlan) };
 }

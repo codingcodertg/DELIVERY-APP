@@ -1,4 +1,4 @@
-import { gruposDeMismoLugar, type ParadaDeLaLista } from "@/lib/lista-unica";
+import { etiquetaDeLaParada, gruposDeMismoLugar, numeraLaLista, type ParadaDeLaLista } from "@/lib/lista-unica";
 import type { FilaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 
 /**
@@ -72,4 +72,37 @@ export function paradasDeLaRuta(
 export function textoDeLaParada(p: Pick<ParadaFisica, "numero" | "tipo" | "etiquetas">, nombres: readonly string[], t: (en: string, es: string) => string): string {
   const que = p.tipo === "P" ? t("pick up", "recoger") : t("deliver", "entregar");
   return `${t("Stop", "Parada")} ${p.numero} — ${que} ${p.etiquetas.join(", ")}${nombres.length ? ` · ${nombres.join(", ")}` : ""}`;
+}
+
+/**
+ * Numera las filas EN EL ORDEN `orden` (índices de `filas`, p. ej. `ordenDelDiaDeMiRuta`) y devuelve los números a la posición
+ * de cada fila: `deFila` y `primera` por índice de `filas`, y las paradas con sus `filas` en esos mismos índices.
+ */
+export function paradasDeLaRutaEnElOrden(
+  filas: readonly FilaQueSeNumera[], ordenes: readonly { id: string; store?: string | null; delivery_address?: string | null }[], orden: readonly number[],
+): ParadasDeLaRuta {
+  const enElOrden = paradasDeLaRuta(orden.map((i) => filas[i]), ordenes);
+  const deFila: number[] = filas.map(() => 0);
+  const primera: boolean[] = filas.map(() => false);
+  orden.forEach((i, k) => { deFila[i] = enElOrden.deFila[k]; primera[i] = enElOrden.primera[k]; });
+  return { deFila, primera, paradas: enElOrden.paradas.map((p) => ({ ...p, filas: p.filas.map((k) => orden[k]) })) };
+}
+
+/**
+ * La etiqueta P/D de cada fila (índice de `filas`), sobre el orden `orden`. Con plan publicado, la del plan (ya viene en la
+ * fila, D-335). Sin plan, se numeran las recogidas en el orden de la lista (`numeraLaLista`, D-334): así, con lo hecho delante,
+ * «P1» es la primera recogida de la lista y no la de la lectura de siempre. El Gestor hace lo mismo sobre su lista pintada.
+ */
+export function etiquetasDelDia(
+  filas: readonly (FilaQueSeNumera & { etiqueta: string })[], fuente: "plan" | "derivada", orden: readonly number[],
+): string[] {
+  if (fuente === "plan") return filas.map((f) => f.etiqueta);
+  const lista: ParadaDeLaLista[] = orden.map((i) => {
+    const f = filas[i];
+    return f.tipo === "P" ? { tipo: "P", ordenes: f.ordenes, tienda: f.lugar } : { tipo: "D", orden: f.orden };
+  });
+  const numeros = numeraLaLista(lista);
+  const etiquetas: string[] = filas.map((f) => f.etiqueta);
+  orden.forEach((i, k) => { etiquetas[i] = etiquetaDeLaParada(lista[k], numeros); });
+  return etiquetas;
 }

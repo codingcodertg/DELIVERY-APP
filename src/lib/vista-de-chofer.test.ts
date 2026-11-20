@@ -341,16 +341,16 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     expect(html.match(/>[PD]\d+</g) ?? []).toEqual([]);
     expect(html).toContain('title="Stop 1 — pick up P1, P2, P3"');
   });
-  it("una entrega ya hecha conserva su sitio y su NÚMERO en el círculo (D-529; antes pintaba ✓), apagado", async () => {
+  it("una entrega ya hecha va primero, en su hora real, y lleva su NÚMERO en el círculo (D-529; antes pintaba ✓), apagado", async () => {
     // Los datos de arriba no traen ninguna entregada: sin este caso, quitar el ✓ no lo vería nadie.
     estado.me = CARLOS;
     estado.deliveries = [...ORDENES, orden("C6", "Carlos R.", "delivered", HOY, { delivery_address: "6 Elm St" })];
     const html = await pinta(null);
     const circulos = [...html.matchAll(/data-numero-de-parada="(\d+)"[^>]*>([^<]*)</g)].map((m) => `${m[1]}:${m[2]}`);
-    // D-529 («when a order is delviered dont take the number of the stop away»): el 5 se queda; lo hecho se ve por el círculo apagado.
+    // D-529 («when a order is delviered dont take the number of the stop away»): la entregada lleva su número; lo hecho se ve por el círculo apagado. Desde 2026-11-19 lo hecho va primero: la recogida es la parada 1 y su entrega, la 2.
     expect(circulos.filter((c) => c.endsWith(":✓"))).toEqual([]);
-    expect(circulos).toContain("5:5");
-    expect(html).toMatch(/data-numero-de-parada="5"[^>]*opacity:0\.55/);
+    expect(circulos).toContain("2:2");
+    expect(html).toMatch(/data-numero-de-parada="2"[^>]*opacity:0\.55/);
     // Y sigue contando en la numeración del día: su parada tiene número aunque enseñe ✓. Nota D-520: eran 5 círculos; son
     // 6 porque la parada 1 (recogida partida entre Pendientes y Entregadas) lleva su número en las dos secciones.
     expect(circulos.length).toBe(6);
@@ -371,7 +371,7 @@ describe("«Mi ruta» de otro chofer (lo que monta la pestaña del admin)", () =
     expect(delGestor.length).toBeGreaterThan(3);
     // La pantalla llama a la función con su lectura, no a otra cosa.
     const ruta = leer("src/app/(app)/my-route/page.tsx");
-    expect(ruta).toContain("const numeradas = useMemo(() => paradasDeLaRuta(lectura.filas, stops), [lectura, stops]);");
+    expect(ruta).toContain("paradasDeLaRutaEnElOrden(lectura.filas.map((f, i) => ({ ...f, etiqueta: etiquetas[i] })), stops, ordenDelDia)");
   });
   it("el chofer en su teléfono: su ruta, sus botones encendidos y su plan de siempre (`/mine`)", async () => {
     estado.me = CARLOS;

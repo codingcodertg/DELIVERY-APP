@@ -69,16 +69,16 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       const filas = filasConLoHecho(lectura, pendientes, [], 12, null);
       expect(filas).toEqual(lectura.filas.map((fila, i) => ({ hecha: false, fila, i })));
     });
-    it("una entregada se queda donde iba: su recogida entre las recogidas, su entrega delante de las pendientes", () => {
+    it("una entregada va PRIMERO, antes que las pendientes, aunque en el plan estuviera entre ellas (sin hora, en su orden)", () => {
       const pendientes = [pend("b", 1), pend("c", 2)];
       const lectura = lecturaDeLaRuta(pendientes, 12, null);
-      // La lista del día entera (la que ve el chofer): P a · P b · P c · D a · D b · D c.
-      expect(lee(filasConLoHecho(lectura, pendientes, [hecha("a", 0)], 12, null))).toEqual(["✓P:a", "P1#0", "P2#1", "✓D:a", "D1#2", "D2#3"]);
+      // La lista del día entera (la que ve el chofer): P a · P b · P c · D a · D b · D c. Lo hecho (P a, D a) va delante.
+      expect(lee(filasConLoHecho(lectura, pendientes, [hecha("a", 0)], 12, null))).toEqual(["✓P:a", "✓D:a", "P1#0", "P2#1", "D1#2", "D2#3"]);
     });
-    it("una entregada a MITAD de la ruta sale a mitad, no arriba", () => {
+    it("una entregada a MITAD de la ruta sale ARRIBA de todo, con su hora real como orden (no donde iba)", () => {
       const pendientes = [pend("a", 0), pend("c", 2)];
       const lectura = lecturaDeLaRuta(pendientes, 12, null);
-      expect(lee(filasConLoHecho(lectura, pendientes, [hecha("b", 1)], 12, null))).toEqual(["P1#0", "✓P:b", "P2#1", "D1#2", "✓D:b", "D2#3"]);
+      expect(lee(filasConLoHecho(lectura, pendientes, [hecha("b", 1)], 12, null))).toEqual(["✓P:b", "✓D:b", "P1#0", "P2#1", "D1#2", "D2#3"]);
     });
     it("las pendientes son EXACTAMENTE las de la lectura, en su orden y con su índice: las hechas solo se intercalan", () => {
       const pendientes = [pend("a", 0), pend("c", 2), pend("e", 4), pend("z", null)];
@@ -93,7 +93,7 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
     it("con el MISMO puesto guardado en una hecha y una pendiente (el empate que midió D-433), la hecha va delante", () => {
       const pendientes = [pend("b", 1)];
       const lectura = lecturaDeLaRuta(pendientes, 12, null);
-      expect(lee(filasConLoHecho(lectura, pendientes, [hecha("a", 1)], 12, null))).toEqual(["✓P:a", "P1#0", "✓D:a", "D1#1"]);
+      expect(lee(filasConLoHecho(lectura, pendientes, [hecha("a", 1)], 12, null))).toEqual(["✓P:a", "✓D:a", "P1#0", "D1#1"]);
     });
     it("una hecha SIN puesto va arriba del todo, con su recogida y su entrega: ya pasó", () => {
       const pendientes = [pend("b", 0)];
@@ -115,12 +115,59 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       const hechas = [hecha("a", 1)];
       const lectura = lecturaDeLaRuta(pendientes, 12, plan, hechas);
       expect(lectura.fuente).toBe("plan");
-      expect(lee(filasConLoHecho(lectura, pendientes, hechas, 12, plan))).toEqual(["✓P:a", "P2#0", "D2#1", "✓D:a"]);
+      expect(lee(filasConLoHecho(lectura, pendientes, hechas, 12, plan))).toEqual(["✓P:a", "✓D:a", "P2#0", "D2#1"]);
     });
     it("aunque la lista del día no cuadre con la lectura, NINGUNA fila pendiente se pierde: las que sobran, al final", () => {
       const lectura = lecturaDeLaRuta([pend("b", 1), pend("c", 2)], 12, null);
       // A la función le llega una lista de pendientes corta (falta «c»): la lista del día solo tiene hueco para «b».
-      expect(lee(filasConLoHecho(lectura, [pend("b", 1)], [hecha("a", 0)], 12, null))).toEqual(["✓P:a", "P1#0", "✓D:a", "P2#1", "D1#2", "D2#3"]);
+      expect(lee(filasConLoHecho(lectura, [pend("b", 1)], [hecha("a", 0)], 12, null))).toEqual(["✓P:a", "✓D:a", "P1#0", "P2#1", "D1#2", "D2#3"]);
+    });
+    it("EL CASO DEL DUEÑO (2026-11-19): la entregada a las 13:23 no va entre pendientes; todo lo hecho va primero, en su hora real", () => {
+      // Ana: P4 recogida 13:02 (su D4, pendiente, en camino) · P5 recogida 13:29 (su D5 pendiente) · D2 entregada 13:23 (su
+      // recogida, a las 12:00, también hecha) · D3 pendiente, sin recoger. Su orden de siempre pone D2 después de D4.
+      const hechas = [
+        { id: "p4", store: "T", est_pallets: 1, route_seq: 0, stage: "picked_up", pickup_gps_at: "2026-11-19T19:02:00Z" },
+        { id: "p5", store: "T", est_pallets: 1, route_seq: 2, stage: "picked_up", pickup_gps_at: "2026-11-19T19:29:00Z" },
+        { id: "d2", store: "T", est_pallets: 1, route_seq: 3, stage: "delivered", pickup_gps_at: "2026-11-19T18:00:00Z", pod_delivered_at: "2026-11-19T19:23:00Z" },
+      ] as OrdenHecha[];
+      const pendientes = [pend("p4", 0), pend("p5", 2), pend("d3", 4)];
+      const lectura = lecturaDeLaRuta(pendientes, 12, null, hechas);
+      const filas = lee(filasConLoHecho(lectura, pendientes, hechas, 12, null));
+      // Lo hecho, en orden real: P d2 (18:00), P p4 (19:02), D d2 (19:23), P p5 (19:29). Después, lo pendiente, como estaba.
+      expect(filas.slice(0, 4)).toEqual(["✓P:d2", "✓P:p4", "✓D:d2", "✓P:p5"]);
+      expect(filas.slice(4).every((x) => !x.startsWith("✓") && !x.startsWith("~"))).toBe(true);
+      expect(filas.slice(4)).toEqual(lee(filasConLoHecho(lectura, pendientes, [], 12, null)).filter((x) => !x.startsWith("✓")));
+    });
+    it("con horas reales, lo hecho se ordena por su hora, aunque la lista de hoy lo pusiera al revés", () => {
+      const hechas = [
+        { id: "a", store: "T", est_pallets: 1, route_seq: 0, stage: "delivered", pickup_gps_at: "2026-11-19T15:00:00Z", pod_delivered_at: "2026-11-19T16:30:00Z" },
+        { id: "b", store: "T", est_pallets: 1, route_seq: 1, stage: "delivered", pickup_gps_at: "2026-11-19T15:10:00Z", pod_delivered_at: "2026-11-19T15:40:00Z" },
+      ] as OrdenHecha[];
+      const lectura = lecturaDeLaRuta([], 12, null, hechas);
+      expect(lee(filasConLoHecho(lectura, [], hechas, 12, null))).toEqual(["✓P:a", "✓P:b", "✓D:b", "✓D:a"]);
+    });
+    it("una entrega con hora ANTERIOR a su recogida (el chofer tocó tarde): la entrega queda justo detrás de su recogida", () => {
+      const hechas = [
+        { id: "a", store: "T", est_pallets: 1, route_seq: 0, stage: "delivered", pickup_gps_at: "2026-11-19T15:00:00Z", pod_delivered_at: "2026-11-19T14:50:00Z" },
+        { id: "b", store: "T", est_pallets: 1, route_seq: 1, stage: "delivered", pickup_gps_at: "2026-11-19T15:20:00Z", pod_delivered_at: "2026-11-19T15:30:00Z" },
+      ] as OrdenHecha[];
+      const lectura = lecturaDeLaRuta([], 12, null, hechas);
+      const filas = lee(filasConLoHecho(lectura, [], hechas, 12, null));
+      expect(filas.indexOf("✓D:a")).toBe(filas.indexOf("✓P:a") + 1);
+      expect(filas.indexOf("✓P:a")).toBeLessThan(filas.indexOf("✓D:b"));
+    });
+    it("una hecha sin hora toma la clave de la de ANTES en la lista de hoy, y el orden es determinista", () => {
+      const hechas = [
+        { id: "a", store: "T", est_pallets: 1, route_seq: 0, stage: "delivered", pickup_gps_at: "2026-11-19T15:00:00Z", pod_delivered_at: "2026-11-19T16:00:00Z" },
+        { id: "b", store: "T", est_pallets: 1, route_seq: 1, stage: "delivered", pickup_gps_at: null, pod_delivered_at: null },
+        { id: "c", store: "T", est_pallets: 1, route_seq: 2, stage: "delivered", pickup_gps_at: "2026-11-19T14:00:00Z", pod_delivered_at: "2026-11-19T14:30:00Z" },
+      ] as OrdenHecha[];
+      const lectura = lecturaDeLaRuta([], 12, null, hechas);
+      const una = lee(filasConLoHecho(lectura, [], hechas, 12, null));
+      expect(lee(filasConLoHecho(lectura, [], hechas, 12, null))).toEqual(una);
+      // c (14:00) antes que a (15:00); b, sin hora, sigue a a (su anterior en la lista de hoy).
+      expect(una.indexOf("✓P:c")).toBeLessThan(una.indexOf("✓P:a"));
+      expect(una.indexOf("✓P:a")).toBeLessThan(una.indexOf("✓P:b"));
     });
     it("una ruta que ya lo entregó todo: solo filas hechas", () => {
       const lectura = lecturaDeLaRuta([], 12, null);
@@ -147,7 +194,7 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       expect(pagina).toContain("const hechasDe = (laneKey: string): Delivery[] => hechasPintadas.get(laneKey) ?? [];");
       // Nota D-529: la lista pintada sale de `diaDe` (la misma `filasConLoHecho`, dentro de `diaDeLaRuta`), que además la
       // numera sobre el día entero; cada fila lleva su índice `k` en ella para su número.
-      expect(pagina).toContain("diaDeLaRuta(lectura, stops, hechasDe(laneKey), capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey));");
+      expect(pagina).toContain("diaDeLaRuta(lectura, stops, hechasDe(laneKey), capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey), comoIba);");
       expect(pagina).toContain("const dia = diaDe(u.key, stops, lectura); const pintadas = dia.pintadas;");
       expect(pagina).toContain("{pintadas.map((fp, k) => { if (fp.hecha) return filaYaHecha(fp, k); const f = fp.fila; const fi = fp.i;");
       expect(pagina).toContain("const shownDrivers = lanesDelFiltro.filter((u) => conAlgoQuePintar(u.key));");

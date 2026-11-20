@@ -83,7 +83,7 @@ describe("la pantalla le pasa lo hecho", () => {
     // **Nota D-529**: el mapa ya no recibe la lectura sino las paradas del DÍA de esa ruta (`diaDe`, que parte de la MISMA
     // `lecturaDe` y le añade lo hecho donde iba), para numerar como la tabla y «Mi ruta».
     expect(readFileSync(join(__dirname, "..", "mapa-de-rutas.ts"), "utf8")).toContain("e.paradasDe(laneKey, porChofer.get(laneKey) ?? [])");
-    expect(pagina).toContain("const diaDe = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta = lecturaDe(laneKey, stops)) =>");
+    expect(pagina).toContain("const diaDe = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta = lecturaDe(laneKey, stops), comoIba = true) =>");
     expect(pagina).toContain("paradasDe: (clave, stops) => diaDe(clave, stops).paradas, coordsDeTienda, t,");
     expect(pagina).not.toContain("lecturaDeLaRuta(");
   });
