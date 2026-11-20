@@ -18,7 +18,8 @@
 --
 -- LECTURA. Ninguna tabla nueva se lee directo desde el navegador: solo por funciones.
 --   leads_llamadas_de_lead(lead)            las llamadas de los teléfonos de UN lead. Exige que quien llama VEA el lead
---                                           (`leads_puede_ver_fila`), así que una llamada de otra tienda no se filtra.
+--                                           (`leads_puede_ver_fila`) y que ningún lead que no ve comparta ese teléfono
+--                                           (regla en el cuerpo de la función: los teléfonos a mano no filtran nada ajeno).
 --   leads_estadisticas_de_llamadas(desde, hasta)  cuántas llamadas por vendedor (nombre y extensión de RingCentral).
 --                                           Solo admin y gerente («manager»): la misma regla que la pestaña de estadísticas.
 --
@@ -128,17 +129,30 @@ begin
   if not public.leads_puede_ver_fila(p_lead) then
     raise exception 'leads: no lead with that id' using errcode = 'P0002';
   end if;
+  -- REGLA DE VISIBILIDAD (con los teléfonos a mano, que un vendedor puede escribir): una llamada se devuelve para una
+  -- clave de teléfono solo si (a) la clave es de ESTE lead y (b) NINGÚN lead que no ve quien pide tiene esa clave en
+  -- cualquiera de sus cuatro teléfonos. Así, un vendedor que escribe el número de otro lead en uno suyo no obtiene las
+  -- grabaciones de ese otro lead: el número también está en un lead que no ve, y se excluye. Admin y gerente con
+  -- acceso ven todos los leads (`leads_puede_ver_fila`), así que ven todo lo que el lead tenga.
   return query
+    with claves_del_lead as (
+      select distinct public.leads_clave_de_telefono(t.v) as clave
+        from public.leads l
+        cross join lateral (values (l.owner_phone), (l.owner_phone_manual), (l.tenant_phone), (l.tenant_phone_manual)) as t(v)
+       where l.id = p_lead
+    ),
+    claves_ocultas as (
+      select distinct public.leads_clave_de_telefono(t.v) as clave
+        from public.leads l
+        cross join lateral (values (l.owner_phone), (l.owner_phone_manual), (l.tenant_phone), (l.tenant_phone_manual)) as t(v)
+       where not public.leads_puede_ver_fila(l.id)
+    )
     select c.id, c.rc_call_id, c.direction, c.started_at, c.duration_s, c.result,
            c.rep_name, c.rep_extension, c.phone_key,
            (c.recording_path is not null) as has_recording, c.recording_pending
       from public.rc_lead_calls c
-     where c.phone_key in (
-             select public.leads_clave_de_telefono(t.v)
-               from public.leads l
-               cross join lateral (values (l.owner_phone), (l.owner_phone_manual), (l.tenant_phone), (l.tenant_phone_manual)) as t(v)
-              where l.id = p_lead
-           )
+     where c.phone_key in (select k.clave from claves_del_lead k where k.clave is not null)
+       and c.phone_key not in (select o.clave from claves_ocultas o where o.clave is not null)
      order by c.started_at desc
      limit 200;
 end $$;
@@ -158,12 +172,38 @@ begin
   if not exists (select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin', 'manager')) then
     raise exception 'leads: only the admin or a manager sees the statistics' using errcode = '42501';
   end if;
-  return query
-    select c.rep_name, c.rep_extension, count(*)::bigint
-      from public.rc_lead_calls c
-     where c.started_at >= p_desde and c.started_at < p_hasta
-     group by c.rep_name, c.rep_extension
-     order by count(*) desc, c.rep_name;
+  -- ALCANCE. Con el alcance de todas las tiendas (`leads_scope_all()`, 163: el admin, o el gerente con su permiso) se
+  -- cuenta todo. Con alcance de tienda, solo las llamadas cuyo teléfono está en un lead que VE quien pide y en ningún
+  -- lead que no ve: la misma regla de visibilidad por clave que `leads_llamadas_de_lead`.
+  if public.leads_scope_all() then
+    return query
+      select c.rep_name, c.rep_extension, count(*)::bigint
+        from public.rc_lead_calls c
+       where c.started_at >= p_desde and c.started_at < p_hasta
+       group by c.rep_name, c.rep_extension
+       order by count(*) desc, c.rep_name;
+  else
+    return query
+      with claves_visibles as (
+        select distinct public.leads_clave_de_telefono(t.v) as clave
+          from public.leads l
+          cross join lateral (values (l.owner_phone), (l.owner_phone_manual), (l.tenant_phone), (l.tenant_phone_manual)) as t(v)
+         where public.leads_puede_ver_fila(l.id)
+      ),
+      claves_ocultas as (
+        select distinct public.leads_clave_de_telefono(t.v) as clave
+          from public.leads l
+          cross join lateral (values (l.owner_phone), (l.owner_phone_manual), (l.tenant_phone), (l.tenant_phone_manual)) as t(v)
+         where not public.leads_puede_ver_fila(l.id)
+      )
+      select c.rep_name, c.rep_extension, count(*)::bigint
+        from public.rc_lead_calls c
+       where c.started_at >= p_desde and c.started_at < p_hasta
+         and c.phone_key in (select v.clave from claves_visibles v where v.clave is not null)
+         and c.phone_key not in (select o.clave from claves_ocultas o where o.clave is not null)
+       group by c.rep_name, c.rep_extension
+       order by count(*) desc, c.rep_name;
+  end if;
 end $$;
 
 -- ---------------------------------------------------------------------------

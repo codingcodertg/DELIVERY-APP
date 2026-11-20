@@ -38,6 +38,14 @@ describe("337 · las funciones y su puerta", () => {
     expect(cuerpo).toMatch(/has_leads_access\(\)/);
     expect(cuerpo).toMatch(/leads_puede_ver_fila\(p_lead\)/);
   });
+  it("una llamada de un teléfono que comparte un lead no visible NO se devuelve (regla de visibilidad por clave)", () => {
+    const cuerpo = sinComentarios.slice(sinComentarios.indexOf("function public.leads_llamadas_de_lead"), sinComentarios.indexOf("function public.leads_estadisticas_de_llamadas"));
+    expect(cuerpo).toMatch(/claves_ocultas as \(/);
+    expect(cuerpo).toMatch(/where not public\.leads_puede_ver_fila\(l\.id\)/);
+    expect(cuerpo).toMatch(/c\.phone_key not in \(select o\.clave from claves_ocultas o/);
+    // Las cuatro columnas cuentan, también la de a mano.
+    expect(cuerpo).toMatch(/\(l\.owner_phone_manual\), \(l\.tenant_phone\), \(l\.tenant_phone_manual\)/);
+  });
   it("las estadísticas solo para admin y gerente", () => {
     const cuerpo = sinComentarios.slice(sinComentarios.indexOf("function public.leads_estadisticas_de_llamadas"));
     expect(cuerpo).toMatch(/p\.role in \('admin', 'manager'\)/);
@@ -57,5 +65,37 @@ describe("337 · la seguridad de las tablas nuevas", () => {
   });
   it("el bucket de las grabaciones es privado", () => {
     expect(sinComentarios).toMatch(/'rc-lead-recordings', 'rc-lead-recordings', false/);
+  });
+});
+
+describe("337 · las estadísticas filtran por lo que quien pide ve (alcance de tienda)", () => {
+  const cuerpo = () => sinComentarios.slice(sinComentarios.indexOf("function public.leads_estadisticas_de_llamadas"));
+  it("el recuento sin filtro solo con el alcance de todas las tiendas (leads_scope_all)", () => {
+    expect(cuerpo()).toMatch(/if public\.leads_scope_all\(\) then/);
+  });
+  it("con alcance de tienda cuenta solo claves de leads visibles y excluye las de leads ocultos", () => {
+    const c = cuerpo();
+    expect(c).toMatch(/claves_visibles as \(/);
+    expect(c).toMatch(/claves_ocultas as \(/);
+    expect(c).toMatch(/where public\.leads_puede_ver_fila\(l\.id\)/);
+    expect(c).toMatch(/where not public\.leads_puede_ver_fila\(l\.id\)/);
+    expect(c).toMatch(/c\.phone_key in \(select v\.clave from claves_visibles v/);
+    expect(c).toMatch(/c\.phone_key not in \(select o\.clave from claves_ocultas o/);
+  });
+});
+
+describe("337 · la ruta de la grabación pasa por la misma comprobación", () => {
+  const ruta = leer("src/app/api/leads/llamadas/grabacion/route.ts");
+  it("pide la lista con la sesión de quien llama a leads_llamadas_de_lead del lead pedido", () => {
+    expect(ruta).toMatch(/supabase\.rpc\("leads_llamadas_de_lead", \{ p_lead: lead \}\)/);
+  });
+  it("solo firma si la llamada pedida aparece en esa lista con grabación", () => {
+    expect(ruta).toMatch(/\.find\(\(c\) => c\.id === id\)/);
+    expect(ruta).toMatch(/visible\?\.has_recording/);
+  });
+  it("el cliente con llave de servicio se crea solo después de esa comprobación", () => {
+    const pos = ruta.indexOf("createAdminClient()");
+    expect(pos).toBeGreaterThan(ruta.indexOf("leads_llamadas_de_lead"));
+    expect(pos).toBeGreaterThan(ruta.indexOf("visible?.has_recording"));
   });
 });
