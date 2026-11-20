@@ -167,3 +167,4 @@ notify pgrst, 'reload schema';
 -- *_phone_manual* y la restricción leads_phone_manual_largo. Los teléfonos a mano que se pusieron se pierden con ellas.
 
 -- @ledger-below
+insert into public.schema_migrations (name, checksum) values ('335_leads_telefono_a_mano.sql', '3087fd9801301e2ca301ed8d94cf1b8149c97117eb74ddcb58f78962dd43d5b0') on conflict (name) do nothing;
