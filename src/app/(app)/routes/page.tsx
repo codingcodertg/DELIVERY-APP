@@ -1107,7 +1107,8 @@ export default function RoutesPage() {
   //   · una parada → otra fila de su lista: pasa a ese puesto (`llevaEnLaLista`: lo mismo que las flechas, de varios puestos);
   //   · una parada → la tarjeta, el panel o una fila de OTRO chofer: la orden entera pasa a su lista, en ese puesto o al final.
   // Se guarda por `guardaLaLista`, como las flechas, y se deshace con Ctrl+Z. La capacidad avisa, no bloquea.
-  type Arrastrado = { tipo: "orden"; id: string } | { tipo: "parada"; ruta: string; indice: number };
+  // D-1118: «hecha» = una entrega YA ENTREGADA que arrastra el admin.
+  type Arrastrado = { tipo: "orden"; id: string } | { tipo: "parada"; ruta: string; indice: number } | { tipo: "hecha"; ruta: string; orden: string };
   const [arrastrado, setArrastrado] = useState<Arrastrado | null>(null);
   // Sobre qué se está pasando: «ruta:<chofer>» (su tarjeta o su fila del panel) o «fila:<chofer>:<puesto>».
   const [sobre, setSobre] = useState<string | null>(null);
@@ -1122,7 +1123,7 @@ export default function RoutesPage() {
       onTouchStart: mira,
       onDragStart: (e: React.DragEvent) => {
         if (pulsadoEnControl.current) { e.preventDefault(); return; }
-        e.dataTransfer.setData("text/plain", a.tipo === "orden" ? a.id : `${a.ruta}#${a.indice}`);
+        e.dataTransfer.setData("text/plain", a.tipo === "orden" ? a.id : a.tipo === "hecha" ? a.orden : `${a.ruta}#${a.indice}`);
         e.dataTransfer.effectAllowed = "move";
         // D-1024: con varias órdenes marcadas en esta lista, lo que sigue al puntero es «N órdenes» (el bloque que se mueve).
         if (a.tipo === "parada") {
@@ -1154,11 +1155,69 @@ export default function RoutesPage() {
       onDrop: (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); void sueltaEnLaRuta(ruta, indice); },
     };
   };
+  /** D-1118 (solo admin): lleva la entrega `movida` al puesto de la entrega `destino` en la ruta, entregadas y pendientes
+   *  juntas, y reescribe los puestos (`route_seq`). Las entregadas de la ruta quedan acomodadas (`done_sort_at`) para que la
+   *  tabla las pinte por puesto. La hora real no se toca. */
+  const reacomodaEntregas = async (ruta: string, movida: string, destino: string) => {
+    if (me?.role !== "admin" || movida === destino) return;
+    const stops = byDriver.get(ruta) ?? [];
+    const filas = diaDe(ruta, stops, lecturaDe(ruta, stops), false).pintadas;
+    const ids: string[] = [];
+    for (const f of filas) {
+      const id = f.hecha ? (f.tipo === "D" ? f.orden : null) : (f.fila.tipo === "D" ? f.fila.orden : null);
+      if (id && !ids.includes(id)) ids.push(id);
+    }
+    const de = ids.indexOf(movida); const a = ids.indexOf(destino);
+    if (de < 0 || a < 0) return;
+    ids.splice(de, 1); ids.splice(a, 0, movida);
+    const porId = new Map([...stops, ...hechasDe(ruta)].map((d) => [d.id, d]));
+    const ahora = new Date().toISOString();
+    setMoviendo(true);
+    try {
+      for (let i = 0; i < ids.length; i++) {
+        const d = porId.get(ids[i]);
+        if (!d) continue;
+        const cambio: Partial<Delivery> = {};
+        if (d.route_seq !== i) cambio.route_seq = i;
+        if (d.stage === "delivered" && !d.done_sort_at) cambio.done_sort_at = ahora;
+        if (Object.keys(cambio).length && !(await updateDelivery(d.id, cambio, { quiet: true }))) return;
+      }
+      const d = porId.get(movida);
+      notify(t(`${d ? facturaYId(d).principal : ""} → stop ${a + 1}`, `${d ? facturaYId(d).principal : ""} → parada ${a + 1}`));
+    } finally {
+      setMoviendo(false);
+    }
+  };
+  /** D-1118: una fila entregada como sitio donde soltar (solo admin): lo que se suelta toma su puesto. */
+  const sueltaSobreHecha = (ruta: string, orden: string) => {
+    if (!arrastrado || me?.role !== "admin") return {};
+    const clave = `hecha:${ruta}:${orden}`;
+    return {
+      onDragOver: (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "move"; if (sobre !== clave) setSobre(clave); },
+      onDrop: (e: React.DragEvent) => {
+        e.preventDefault(); e.stopPropagation();
+        const a = arrastrado; setArrastrado(null); setSobre(null);
+        if (!a || a.tipo === "orden" || a.ruta !== ruta) return;
+        if (a.tipo === "hecha") { void reacomodaEntregas(ruta, a.orden, orden); return; }
+        const stops = byDriver.get(ruta) ?? [];
+        const pd = lecturaDe(ruta, stops).paradas[a.indice];
+        if (pd?.tipo === "D") void reacomodaEntregas(ruta, pd.orden, orden);
+        else notify(t("A pickup can't be dropped on a delivered stop; move the delivery.", "Una recogida no se suelta sobre una entregada; mueve la entrega."));
+      },
+    };
+  };
   const sueltaEnLaRuta = async (destino: string, indice: number | null) => {
     const a = arrastrado;
     setArrastrado(null);
     setSobre(null);
     if (!a || moviendo) return;
+    if (a.tipo === "hecha") {
+      // D-1118: una entregada soltada sobre una ENTREGA pendiente de su ruta toma su puesto.
+      if (a.ruta !== destino || indice == null) return;
+      const pd = lecturaDe(destino, byDriver.get(destino) ?? []).paradas[indice];
+      if (pd?.tipo === "D") await reacomodaEntregas(destino, a.orden, pd.orden);
+      return;
+    }
     if (a.tipo === "orden") {
       const d = deliveries.find((x) => x.id === a.id);
       if (!d) return;
@@ -3720,7 +3779,7 @@ export default function RoutesPage() {
           const hora = hecho ? horaReal(d, fp.tipo) : null;
           const que = fp.tipo === "P" ? { en: "Picked up", es: "Recogida" } : hecho ? { en: "Delivered", es: "Entregada" } : { en: "On the truck, on its way", es: "En el camión, en camino" };
           return (
-            <tr key={`hecha-${fp.tipo}-${d.id}`} data-hecha={fp.estado} data-hecha-tipo={fp.tipo} data-etiqueta-del-dia={dia.etiqueta[k]} className={`fila-hecha${fp.tipo === "P" ? ` ${claseDeLaFilaDelPlan("P")}` : ""}`}
+            <tr key={`hecha-${fp.tipo}-${d.id}`} {...(me.role === "admin" && !soloLectura && fp.tipo === "D" && hecho ? { ...filaArrastrable({ tipo: "hecha", ruta: u.key, orden: d.id }), ...sueltaSobreHecha(u.key, d.id) } : {})} data-hecha={fp.estado} data-hecha-tipo={fp.tipo} data-etiqueta-del-dia={dia.etiqueta[k]} className={`fila-hecha${fp.tipo === "P" ? ` ${claseDeLaFilaDelPlan("P")}` : ""}`}
               title={t(`${que.en}${hora ? ` at ${hora}` : ""} — it stays on the list; it can't be moved`, `${que.es}${hora ? ` a las ${hora}` : ""} — sigue en la lista; no se mueve`)}>
               {/* Su número de parada del día y su etiqueta (D-529; hasta aquí, solo «✓P» / «🚚D»): el dueño, «when a order is
                   delviered dont take the number of the stop away». El ✓ o el 🚚 siguen diciendo que está hecha o en camino. */}
