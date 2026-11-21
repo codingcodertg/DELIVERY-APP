@@ -32,7 +32,7 @@ const TODAS_LAS_COLUMNAS: Record<keyof Delivery, true> = {
   photo_meta: true, created_by: true, assigned_sales_rep: true, approved_by: true, approved_at: true,
   csat_rating: true, csat_comment: true, customer_type: true, priority: true,
   customer_email: true, notify_pref: true, customer_lang: true, requirements: true, plan_rank: true, customer_id: true,
-  return_to_store_at: true, return_to_store_by: true,
+  return_to_store_at: true, return_to_store_by: true, done_sort_at: true,
   created_at: true, updated_at: true,
 };
 
@@ -45,7 +45,7 @@ export const COLUMNAS_PESADAS: readonly (keyof Delivery)[] = ["photos", "photo_m
 /** Las columnas de la lista, separadas por comas, para `.select(...)`. */
 /** Columnas que la base puede no tener todavía (D-722: `plan_rank`, 208): se piden aparte con `leeConOpcionales`, y si
  *  faltan la lista llega sin ellas en vez de no llegar. `photo_count` (177) tiene su propio camino de antes. */
-export const COLUMNAS_OPCIONALES_DE_LA_LISTA: readonly (keyof Delivery)[] = ["plan_rank", "pickup_point_lat", "pickup_point_lng", "customer_id", "relay_step", "return_to_store_at", "return_to_store_by"];
+export const COLUMNAS_OPCIONALES_DE_LA_LISTA: readonly (keyof Delivery)[] = ["plan_rank", "pickup_point_lat", "pickup_point_lng", "customer_id", "relay_step", "return_to_store_at", "return_to_store_by", "done_sort_at"];
 export const COLUMNAS_DE_LA_LISTA = COLUMNAS_DE_DELIVERY.filter((c) => !COLUMNAS_PESADAS.includes(c) && !COLUMNAS_OPCIONALES_DE_LA_LISTA.includes(c)).join(",");
 
 

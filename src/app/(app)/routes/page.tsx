@@ -3687,6 +3687,26 @@ export default function RoutesPage() {
         const rehace = botonDeVolver(historial, "rehacer", u.key, laneLabel);
         /** Una fila ya HECHA: la recogida de una orden recogida o entregada, o su entrega. Informa; no lleva flechas, ni
          *  «Pasar a…», ni ✕, ni se arrastra, ni es sitio donde soltar. La factura sigue abriendo la orden. */
+        // 21 nov (el dueño): «déjame solo al admin poder rearrange órdenes en el routes manager aunque ya estén delivered».
+        // Solo el admin: ↑ ↓ en una entrega YA ENTREGADA la cambia de lugar con la entregada vecina (340, `done_sort_at`).
+        const vecinaD = (k: number, paso: -1 | 1): Delivery | null => {
+          const propia = pintadas[k] as { orden?: string } | undefined;
+          for (let j = k + paso; j >= 0 && j < pintadas.length; j += paso) {
+            const f = pintadas[j] as { tipo?: string; orden?: string; hecha?: boolean };
+            if (f.tipo !== "D" || !f.orden || f.orden === propia?.orden) continue;
+            const v = hechasPorId.get(f.orden);
+            return v && v.stage === "delivered" ? v : null;
+          }
+          return null;
+        };
+        const mueveEntregada = async (d: Delivery, k: number, paso: -1 | 1) => {
+          const v = vecinaD(k, paso);
+          // Se intercambian las horas con las que se ORDENAN (340, `done_sort_at`); la hora real de entrega no se toca.
+          const a = d.done_sort_at ?? d.pod_delivered_at; const b = v?.done_sort_at ?? v?.pod_delivered_at;
+          if (!v || !a || !b) return;
+          const nb = a === b ? new Date(Date.parse(a) + (paso === -1 ? 1 : -1)).toISOString() : a;
+          if (await updateDelivery(d.id, { done_sort_at: b }, { quiet: true })) await updateDelivery(v.id, { done_sort_at: nb }, { quiet: true });
+        };
         const filaYaHecha = (fp: Extract<FilaPintada, { hecha: true }>, k: number) => {
           const d = hechasPorId.get(fp.orden);
           if (!d) return null;
@@ -3720,7 +3740,14 @@ export default function RoutesPage() {
                 // p. ej. el tramo b de un relevo recoge en Weslaco), no la tienda dueña de la orden; `store` solo de respaldo.
                 recogida: fp.tipo === "P" ? <b>{(d.pickup_name ?? "").trim() || (d.store ?? "").trim() || "—"}</b> : undefined,
               }))}
-              <td className="celda-acciones" />
+              <td className="celda-acciones">
+                {me.role === "admin" && fp.tipo === "D" && hecho && !soloLectura && (
+                  <div className="acciones-de-parada" data-admin-mueve-entregada>
+                    <button type="button" className="btn btn-sm btn-ghost" disabled={!vecinaD(k, -1)} onClick={() => void mueveEntregada(d, k, -1)} title={t("Move up (admin)", "Subir (admin)")} data-accion="subir-entregada">↑</button>
+                    <button type="button" className="btn btn-sm btn-ghost" disabled={!vecinaD(k, 1)} onClick={() => void mueveEntregada(d, k, 1)} title={t("Move down (admin)", "Bajar (admin)")} data-accion="bajar-entregada">↓</button>
+                  </div>
+                )}
+              </td>
             </tr>
           );
         };

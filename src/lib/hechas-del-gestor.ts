@@ -21,7 +21,7 @@ import { formateadorDeFecha } from "@/lib/formateador";
  */
 
 /** Lo que hace falta de una orden ya hecha. */
-export interface OrdenHecha extends OrdenAsignada { stage: string; pod_delivered_at?: string | null; pickup_gps_at?: string | null }
+export interface OrdenHecha extends OrdenAsignada { stage: string; pod_delivered_at?: string | null; pickup_gps_at?: string | null; done_sort_at?: string | null }
 
 /**
  * Lo hecho que se PINTA, por chofer: solo viendo UN día, lo recogido o entregado de ese día. Viendo «todas las fechas» la
@@ -115,8 +115,9 @@ export function filasConLoHecho(
 
 /** La hora REAL de una orden en una fila hecha, en milisegundos: la de su entrega (`pod_delivered_at`) para una «D», la de su
  *  recogida (`pickup_gps_at`) para una «P» (mismo campo que `horaReal`). `null` si falta o no se lee. */
-export function instanteReal(o: { pod_delivered_at?: string | null; pickup_gps_at?: string | null } | undefined, tipo: "P" | "D"): number | null {
-  const iso = tipo === "D" ? o?.pod_delivered_at : o?.pickup_gps_at;
+export function instanteReal(o: { pod_delivered_at?: string | null; pickup_gps_at?: string | null; done_sort_at?: string | null } | undefined, tipo: "P" | "D"): number | null {
+  // 340: la entrega que el admin acomodó a mano se ordena por `done_sort_at`; la hora real no cambia.
+  const iso = tipo === "D" ? (o?.done_sort_at ?? o?.pod_delivered_at) : o?.pickup_gps_at;
   if (!iso) return null;
   const ms = Date.parse(iso);
   return Number.isNaN(ms) ? null : ms;
