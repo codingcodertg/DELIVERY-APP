@@ -934,8 +934,11 @@ export default function RoutesPage() {
    *  delviered dont take the number of the stop away». Lo leen la tabla, el mapa, el horario y los avisos de mover, para que
    *  los cuatro digan el mismo número; lo que se MUEVE sigue siendo la lectura de lo pendiente. */
   // `comoIba` (false): lo hecho donde iba, para la MEDIDA y la clave del plan, que no cambian al hacer una parada (D-584).
+  // D-1119: una ruta que el admin acomodó a mano (alguna entregada con `done_sort_at`) se pinta por sus puestos
+  // (`route_seq`), no por el plan publicado: si no, lo que mueve no se ve.
+  const rutaAcomodadaDe = (laneKey: string) => hechasDe(laneKey).some((h) => !!h.done_sort_at);
   const diaDe = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta = lecturaDe(laneKey, stops), comoIba = true) =>
-    diaDeLaRuta(lectura, stops, hechasDe(laneKey), capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey), comoIba);
+    diaDeLaRuta(lectura, stops, hechasDe(laneKey), capacityFor(driverOf(laneKey)), rutaAcomodadaDe(laneKey) ? null : paradasPublicadasDe(laneKey), comoIba);
   /** La etiqueta del DÍA («P3») de la fila pendiente que cumple `cual`, para los avisos de mover: la misma que pinta la fila. */
   const etiquetaDelDia = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta, cual: (f: FilaDeLaRuta) => boolean): string => {
     const fi = lectura.filas.findIndex(cual);
@@ -1161,7 +1164,8 @@ export default function RoutesPage() {
   const reacomodaEntregas = async (ruta: string, movida: string, destino: string) => {
     if (me?.role !== "admin" || movida === destino) return;
     const stops = byDriver.get(ruta) ?? [];
-    const filas = diaDe(ruta, stops, lecturaDe(ruta, stops), false).pintadas;
+    // La lista TAL COMO SE VE (lo hecho arriba por hora, o por puesto si la ruta ya está acomodada).
+    const filas = diaDe(ruta, stops, lecturaDe(ruta, stops), !rutaAcomodadaDe(ruta)).pintadas;
     const ids: string[] = [];
     for (const f of filas) {
       const id = f.hecha ? (f.tipo === "D" ? f.orden : null) : (f.fila.tipo === "D" ? f.fila.orden : null);
@@ -3730,7 +3734,7 @@ export default function RoutesPage() {
         // La lista que se pinta (lo hecho primero, en su hora real, y lo pendiente) y su numeración del DÍA (D-529): la misma de «Mi ruta».
         // D-1117: si el admin ya acomodó a mano alguna entregada de esta ruta, la tabla pinta lo hecho DONDE VA en la ruta
         // (por su puesto, mezclado con lo pendiente) en vez de todo lo hecho arriba por hora.
-        const rutaAcomodada = hechasDe(u.key).some((h) => !!h.done_sort_at);
+        const rutaAcomodada = rutaAcomodadaDe(u.key);
         const dia = diaDe(u.key, stops, lectura, !rutaAcomodada);
         const pintadas = dia.pintadas;
         const entregas = resumenDeEntregas(stops, hechas);

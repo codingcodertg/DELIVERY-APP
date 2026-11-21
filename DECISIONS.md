@@ -52755,3 +52755,8 @@ Sello `deliveries` 1.645.0; repo 1.949.0.
 
 El dueño: «sigo arrastrándolo encima de una orden entregada en medio y no pasa nada». Él arrastra, no usa las flechas de D-1117. Ahora, solo para el admin, una fila entregada (su entrega, D) se arrastra y es sitio donde soltar: una entregada soltada sobre otra entrega (hecha o pendiente) de su ruta toma ese puesto, y una entrega pendiente soltada sobre una entregada también. Se reescriben los puestos (`route_seq`) de las entregas de la ruta en el orden nuevo y las entregadas quedan acomodadas (`done_sort_at`), así la tabla pinta la ruta por puesto (D-1117). La hora real no se toca. Las recogidas ya hechas (P) todavía no se arrastran: su sitio va con su entrega.
 Sello `deliveries` 1.646.0; repo 1.950.0.
+
+## D-1119 · Una ruta acomodada por el admin no la reordena el plan publicado (2026-11-21)
+
+El dueño: «sigue sin funcionar». Hoy había plan publicado (v14), y con plan la tabla pinta en el orden del plan: lo que el admin arrastraba (D-1118) se guardaba en `route_seq` pero no se veía. Ahora una ruta con alguna entregada acomodada (`done_sort_at`) se pinta por sus puestos, sin el plan. Y el arrastre calcula el puesto sobre la lista TAL COMO SE VE (lo hecho arriba por hora mientras la ruta no esté acomodada). Probado en el demo: una pendiente soltada sobre una entregada sube delante, y una entregada soltada sobre una pendiente baja detrás.
+Sello `deliveries` 1.647.0; repo 1.951.0.

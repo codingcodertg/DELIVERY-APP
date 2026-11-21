@@ -386,7 +386,7 @@ describe("la página del Gestor usa `diaDe` en todo lo que dice un número o una
   const plano = (s: string) => s.split("\r\n").join("\n").replace(/\s+/g, " ");
   const gestor = plano(readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8"));
   it("`diaDe` es `diaDeLaRuta` con lo hecho PINTADO de esa ruta, su camión y su plan", () => {
-    expect(gestor).toContain("const diaDe = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta = lecturaDe(laneKey, stops), comoIba = true) => diaDeLaRuta(lectura, stops, hechasDe(laneKey), capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey), comoIba);");
+    expect(gestor).toContain("const diaDe = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta = lecturaDe(laneKey, stops), comoIba = true) => diaDeLaRuta(lectura, stops, hechasDe(laneKey), capacityFor(driverOf(laneKey)), rutaAcomodadaDe(laneKey) ? null : paradasPublicadasDe(laneKey), comoIba);");
   });
   it("los avisos de mover dicen la etiqueta del día (la que pinta la fila)", () => {
     expect(gestor).toContain("return fi < 0 ? \"\" : diaDe(laneKey, stops, lectura).etiquetaDePendiente[fi] ?? \"\";");

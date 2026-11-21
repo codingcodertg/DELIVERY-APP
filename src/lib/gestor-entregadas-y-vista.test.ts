@@ -194,7 +194,7 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       expect(pagina).toContain("const hechasDe = (laneKey: string): Delivery[] => hechasPintadas.get(laneKey) ?? [];");
       // Nota D-529: la lista pintada sale de `diaDe` (la misma `filasConLoHecho`, dentro de `diaDeLaRuta`), que además la
       // numera sobre el día entero; cada fila lleva su índice `k` en ella para su número.
-      expect(pagina).toContain("diaDeLaRuta(lectura, stops, hechasDe(laneKey), capacityFor(driverOf(laneKey)), paradasPublicadasDe(laneKey), comoIba);");
+      expect(pagina).toContain("diaDeLaRuta(lectura, stops, hechasDe(laneKey), capacityFor(driverOf(laneKey)), rutaAcomodadaDe(laneKey) ? null : paradasPublicadasDe(laneKey), comoIba);");
       expect(pagina).toContain("const dia = diaDe(u.key, stops, lectura, !rutaAcomodada); const pintadas = dia.pintadas;");
       expect(pagina).toContain("{pintadas.map((fp, k) => { if (fp.hecha) return filaYaHecha(fp, k); const f = fp.fila; const fi = fp.i;");
       expect(pagina).toContain("const shownDrivers = lanesDelFiltro.filter((u) => conAlgoQuePintar(u.key));");
