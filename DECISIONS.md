@@ -52750,3 +52750,8 @@ Sello `deliveries` 1.644.0; repo 1.948.0.
 
 El dueño, tras D-1116: «no me deja mover una carga ya delivered o mover otra orden entre una orden delivered». D-1116 solo cambiaba de lugar dos entregadas entre sí, y lo hecho seguía pintándose arriba de todo. Ahora ↑ ↓ (solo admin) en una entregada intercambia su puesto (`route_seq`) con la ENTREGA vecina de la lista, hecha o pendiente, y la marca como acomodada (`done_sort_at`). Una ruta con alguna entregada acomodada se pinta por puesto (lo hecho mezclado con lo pendiente, `comoIba = false`) en vez de lo hecho primero por hora. Las demás rutas, igual que antes. Con un plan publicado, el orden lo sigue poniendo el plan.
 Sello `deliveries` 1.645.0; repo 1.949.0.
+
+## D-1118 · El admin ARRASTRA las entregas ya entregadas en el Gestor de Rutas (2026-11-21)
+
+El dueño: «sigo arrastrándolo encima de una orden entregada en medio y no pasa nada». Él arrastra, no usa las flechas de D-1117. Ahora, solo para el admin, una fila entregada (su entrega, D) se arrastra y es sitio donde soltar: una entregada soltada sobre otra entrega (hecha o pendiente) de su ruta toma ese puesto, y una entrega pendiente soltada sobre una entregada también. Se reescriben los puestos (`route_seq`) de las entregas de la ruta en el orden nuevo y las entregadas quedan acomodadas (`done_sort_at`), así la tabla pinta la ruta por puesto (D-1117). La hora real no se toca. Las recogidas ya hechas (P) todavía no se arrastran: su sitio va con su entrega.
+Sello `deliveries` 1.646.0; repo 1.950.0.
