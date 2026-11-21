@@ -52780,3 +52780,8 @@ Sellos `erp` 0.38.0, `leads` 0.34.0; repo 1.953.0.
 
 El dueño: (1) al abrir el inicio, los íconos de las apps salían en el orden de fábrica y luego saltaban al orden guardado (D-739), «un pequeño glitch». Ahora, para quien puede ordenar, la rejilla no se enseña (ocupa su sitio, invisible) hasta que se lee el orden, y sale ya ordenada. (2) En la vista móvil (el marco de teléfono), el botón general seguía diciendo «Vista móvil»; ahora dice «Vista de escritorio» y saca la pantalla del marco a tamaño normal.
 Sello `deliveries` 1.649.0; repo 1.954.0.
+
+## D-1123 · Timetracker, visitas: un solo botón que cambia (2026-11-21)
+
+Everto: los pasos de la visita a cliente confunden. El panel del viaje en curso ahora es como las apps de reparto: arriba una tarjeta dice en qué paso vas (🚗 «Manejando · desde 12:10 · 8 min» o 📍 «En Garza Builders · 25 min», en verde), debajo el historial del día en vez de la tabla (que cortaba las horas en el teléfono), y UN botón grande que cambia: «📍 Llegué» abre «¿Dónde estás?» con los sitios recientes (los del viaje y los últimos de ese teléfono) y «Otro lugar…»; tocar uno abre la cámara y la parada se guarda con la foto. En la parada, el botón es «🚗 Me voy de aquí». «Terminar viaje» queda pequeño abajo y pide el cuentakilómetros solo al pulsarlo. Las acciones y las reglas del cuentakilómetros (D-524) no cambian. Pendiente: sugerir el cliente más cercano por GPS.
+Sello `timetracker` 1.36.0; repo 1.955.0.
