@@ -538,7 +538,7 @@
 .recruiting-module .docs-campo-form input { font-size: 14px; }
 .recruiting-module .docs-moneda { position: relative; }
 .recruiting-module .docs-moneda > span { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--ink-soft); pointer-events: none; }
-.recruiting-module .docs-moneda input { padding-left: 24px; }
+.recruiting-module .docs-moneda input { padding-left: 26px !important; } /* D-1124: la ventana del expediente (padding 6px 10px) lo tapaba y el $ se encimaba con el número */
 .recruiting-module .docs-ayuda { font-size: 12px; color: var(--ink-soft); line-height: 1.4; overflow-wrap: anywhere; }
 .recruiting-module .docs-requerido { color: var(--red); font-weight: 700; }
 .recruiting-module .docs-faltan { font-size: 13px; color: var(--red); font-weight: 600; }

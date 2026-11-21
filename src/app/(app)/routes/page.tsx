@@ -3347,6 +3347,7 @@ export default function RoutesPage() {
           // El color del chofer, el de la tabla de paradas (`colorFor`); y tras la factura, los mismos iconos que allí: el 📅
           // de reprogramar y el ⇄ de relevo (la etiqueta de la carga no, que la tabla del plan ya dice «carga n de m»).
           colorDelChofer={(_, nombre) => colorFor(nombre)}
+          choferes={choferesDelReparto.map((c) => ({ id: c.id, nombre: c.nombre, puede: c.puede, porque: c.motivo ? (lang === "es" ? textoDeNoRepartir(c.motivo).es : textoDeNoRepartir(c.motivo).en) : null }))}
           iconosDeLaOrden={(d) => (<>{iconoDeReprogramar(d)}{cargasDe(d).carga ? null : <RelevoDeLaOrden pedido={d} compacto soloLectura={soloLectura} />}</>)} />
       )}
 
