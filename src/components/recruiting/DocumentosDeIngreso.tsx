@@ -394,9 +394,10 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
               {esDocx && entradas.length === 0 && <div className="hint">{t("No yellow fields found in this document.", "No hay campos amarillos en este documento.")}</div>}
               {entradas.map(([clave, lista]) => {
                 const obligatorio = lista.some((c) => c.clave === "weekly_hours" || c.clave === "pay_rate");
-                const etiqueta = etiquetasDeCampos(lista).join(" / ");
-                const pista = lista[0].original;
                 const tipo = lista[0].clave;
+                // D-1124 (Roberto: «this is odd»): la plantilla llama «Employment Type» al campo de horas; se dice qué es.
+                const etiqueta = tipo === "weekly_hours" ? `${t("Hours per week", "Horas por semana")} (${etiquetasDeCampos(lista).join(" / ")})` : etiquetasDeCampos(lista).join(" / ");
+                const pista = lista[0].original;
                 const v = valores[clave] ?? "";
                 const id = `docs-campo-${clave}`;
                 return (

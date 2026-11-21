@@ -100,7 +100,14 @@ export async function POST(req: Request) {
   if (!lim.ok) return respuesta429(lim.reset);
 
   let fecha = "";
-  try { fecha = String(((await req.json()) as { date?: unknown }).date ?? ""); } catch { /* cae en la validación */ }
+  // D-1124 (el dueño: «que me pregunte entre qué conductores vas a planificar»): `drivers`, los ids elegidos. Sin la
+  // lista, todos, como antes. Los NO elegidos se tratan como ruta bloqueada 🔒: no entran al motor y lo suyo sigue suyo.
+  let elegidos: string[] | null = null;
+  try {
+    const cuerpo = (await req.json()) as { date?: unknown; drivers?: unknown };
+    fecha = String(cuerpo.date ?? "");
+    if (Array.isArray(cuerpo.drivers)) elegidos = cuerpo.drivers.filter((x): x is string => typeof x === "string");
+  } catch { /* cae en la validación */ }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return NextResponse.json({ error: "A date (YYYY-MM-DD) is required." }, { status: 400 });
 
   // Quién planifica. La base lo vuelve a comprobar al guardar (133); esto es para decirlo claro y pronto.
@@ -124,7 +131,9 @@ export async function POST(req: Request) {
     ? await supabase.from("route_plan_stops").select("driver_id, seq, kind, order_ref, pinned").eq("plan_id", borradorVigente.id).eq("pinned", true)
     : { data: null };
 
-  const datos: DatosDelDia = { ...releido.datos, fijadas: estadoDeParadas((paradasFijadas ?? []) as Parameters<typeof estadoDeParadas>[0]).secuencias };
+  const sinElegir = elegidos ? releido.datos.choferes.filter((c) => !elegidos.includes(c.id)).map((c) => String(c.full_name ?? "")).filter(Boolean) : [];
+  const datos: DatosDelDia = { ...releido.datos, bloqueadas: [...(releido.datos.bloqueadas ?? []), ...sinElegir],
+    fijadas: estadoDeParadas((paradasFijadas ?? []) as Parameters<typeof estadoDeParadas>[0]).secuencias };
 
   // Tiempos de viaje: Google si hay llave, y siempre los dos respaldos detrás.
   const admin = createAdminClient();

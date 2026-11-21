@@ -97,11 +97,13 @@ const MOTIVOS: Record<string, [string, string]> = {
  *  que es la única entrada. Cerrado no pinta nada —la tarjeta plegada de D-346/D-400 repetía ese botón y se quitó—, pero
  *  sigue montado: lee el plan de la fecha y se lo cuenta a la página (`onEstado`) para la pastilla «Borrador vN».
  *  `onEstado`: en qué está el plan de la fecha, cada vez que cambia. */
-export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onAbrirOrden, columnas, colorDelChofer, iconosDeLaOrden }: { date: string; onPublicado?: () => void; abierto: boolean; onCerrar: () => void; onEstado?: (e: EstadoDelPlan | null) => void; onAbrirOrden?: (id: string) => void;
+export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onAbrirOrden, columnas, colorDelChofer, iconosDeLaOrden, choferes }: { date: string; onPublicado?: () => void; abierto: boolean; onCerrar: () => void; onEstado?: (e: EstadoDelPlan | null) => void; onAbrirOrden?: (id: string) => void;
   /** Las columnas de la tabla de paradas (D-429): las elige la persona en el ⚙ que pone la página, como el resto del Gestor. */
   columnas?: Omit<ColumnasDeLaRuta, "orden">;
   /** El color de cada chofer (el de la página, `colorFor`), y los iconos de cada orden (📅 y ⇄), como en la tabla de paradas. */
-  colorDelChofer?: (choferId: string, nombre: string) => string; iconosDeLaOrden?: (d: Delivery) => ReactNode }) {
+  colorDelChofer?: (choferId: string, nombre: string) => string; iconosDeLaOrden?: (d: Delivery) => ReactNode;
+  /** D-1124: los choferes entre los que se puede planificar; la persona elige cuáles (de entrada, todos los que pueden). */
+  choferes?: { id: string; nombre: string; puede: boolean; porque?: string | null }[] }) {
   const { lang, t } = usePrefs();
   const { deliveries, notify, updateDelivery } = useData();
   const confirmAction = useConfirm();
@@ -109,6 +111,17 @@ export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onA
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [publicado, setPublicado] = useState<{ escritas: number; avisos: number } | null>(null);
+  // D-1124: los choferes elegidos para planificar. De entrada, todos los que pueden; uno que pasa a poder entra marcado,
+  // y los que la persona quitó siguen quitados.
+  const [elegidos, setElegidos] = useState<Set<string>>(() => new Set((choferes ?? []).filter((c) => c.puede).map((c) => c.id)));
+  const clavesQuePueden = (choferes ?? []).filter((c) => c.puede).map((c) => c.id).join(",");
+  const [vistos, setVistos] = useState(clavesQuePueden);
+  useEffect(() => {
+    if (clavesQuePueden === vistos) return;
+    const antes = new Set(vistos.split(","));
+    setElegidos((s) => { const n = new Set(s); for (const id of clavesQuePueden.split(",")) if (id && !antes.has(id)) n.add(id); return n; });
+    setVistos(clavesQuePueden);
+  }, [clavesQuePueden, vistos]);
   // Choferes de ESTE borrador que nunca han entrado a la app: no verán el aviso ni su ruta. Aviso, no bloqueo.
   const [sesiones, setSesiones] = useState<{ plan_id: string; choferes: { driver_id: string; nombre: string; ha_entrado: boolean | null }[] } | null>(null);
 
@@ -162,7 +175,9 @@ export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onA
   const planifica = async () => {
     setOcupado("planificando"); setError(null); setPublicado(null);
     try {
-      const res = await fetch("/api/route-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ date }) });
+      // D-1124: solo entre los choferes elegidos (los demás, como ruta bloqueada: no se les toca nada).
+      const res = await fetch("/api/route-plan", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(choferes ? { date, drivers: choferes.filter((c) => c.puede && elegidos.has(c.id)).map((c) => c.id) } : { date }) });
       const b = await res.json().catch(() => ({}));
       if (!res.ok || !b.ok) { setError(String(b.error ?? res.status)); setBorrador(null); } else setBorrador(b as Borrador);
     } catch { setError(t("Network error.", "Error de red.")); }
@@ -253,8 +268,21 @@ export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onA
           {t("Splits this date's orders among the drivers and sequences pickups (P1, P2…) and deliveries (D1, D2…) with estimated times. It's a draft: nothing is assigned until you publish.",
              "Reparte las órdenes de esta fecha entre los choferes y ordena recogidas (P1, P2…) y entregas (D1, D2…) con horas estimadas. Es un borrador: nada se asigna hasta publicar.")}
         </span>
+        {choferes && (
+          <div data-elige-choferes-del-plan style={{ flexBasis: "100%", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px 16px" }}>
+            <b style={{ fontSize: 13 }}>{t("Plan among these drivers:", "Planificar entre estos choferes:")}</b>
+            {choferes.map((c) => (
+              <label key={c.id} title={c.porque ?? undefined}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: 0, fontSize: 14, textTransform: "none", letterSpacing: "normal", color: "var(--text)", opacity: c.puede ? 1 : 0.55, cursor: c.puede ? "pointer" : "not-allowed" }}>
+                <input type="checkbox" data-elige-chofer-del-plan={c.id} disabled={!c.puede || !!ocupado} checked={c.puede && elegidos.has(c.id)}
+                  onChange={() => setElegidos((s) => { const n = new Set(s); if (n.has(c.id)) n.delete(c.id); else n.add(c.id); return n; })} style={{ width: 15, height: 15 }} />
+                {c.nombre}{!c.puede && c.porque ? <span className="hint" style={{ margin: 0 }}>({c.porque})</span> : null}
+              </label>
+            ))}
+          </div>
+        )}
         <span style={{ flex: 1 }} />
-        <button className={borrador ? "btn btn-ghost btn-sm" : "btn btn-primary btn-sm"} disabled={!!ocupado} onClick={() => void planifica()}>
+        <button className={borrador ? "btn btn-ghost btn-sm" : "btn btn-primary btn-sm"} disabled={!!ocupado || (!!choferes && !choferes.some((c) => c.puede && elegidos.has(c.id)))} onClick={() => void planifica()}>
           {ocupado === "planificando" ? t("Planning…", "Planificando…") : borrador?.status === "draft" ? t("Plan again", "Planificar de nuevo") : t("Plan the day", "Planificar el día")}
         </button>
         {borrador?.status === "draft" && (

@@ -290,7 +290,7 @@ describe("las pantallas usan la regla (la prueba se alimenta de quien llama)", (
   it("«Armar rutas» parte antes de planificar, relee el día si partió, y devuelve `particion`", () => {
     expect(api).toContain("const particion = await parteEnLaBase(supabase as unknown as ClienteDeCargas, dia.datos);");
     expect(api).toContain("const releido = hayQueReleer(particion) ? await leeElDia(supabase, fecha) : dia;");
-    expect(api).toContain("const datos: DatosDelDia = { ...releido.datos, fijadas:");
+    expect(api).toContain("const datos: DatosDelDia = { ...releido.datos, bloqueadas: [...(releido.datos.bloqueadas ?? []), ...sinElegir],");
     expect(api).toMatch(/\n\s+particion,\n/);
     expect(leer("src/components/PlanDelDia.tsx")).toContain("data-plan-partidas");
   });
