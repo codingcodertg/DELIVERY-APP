@@ -42,6 +42,9 @@ export function BotonGeneral() {
   const pathname = usePathname();
   const [abierto, setAbierto] = useState(false);
   const vistaTel = useVistaEscritorio();
+  // 21 nov: ¿esta pantalla está dentro del marco de la vista móvil? (se mira en el navegador, tras montar)
+  const [enMarcoMovil, setEnMarcoMovil] = useState(false);
+  useEffect(() => { try { setEnMarcoMovil(window.self !== window.top); } catch { setEnMarcoMovil(true); } }, []);
   const [servidor, setServidor] = useState<Servidor>(SIN_SERVIDOR);
   const [sinLeer, setSinLeer] = useState(0);
   const [ensenanza, setEnsenanza] = useState(false);
@@ -205,6 +208,19 @@ export function BotonGeneral() {
             <button key={o} type="button" className="fab-opcion" data-opcion={o} data-vista-telefono={vistaTel.escritorio ? "escritorio" : "movil"} role="menuitem"
               onClick={() => { cierra(); vistaTel.cambiar(); }}>
               <span aria-hidden>{vistaTel.escritorio ? "📱" : "🖥️"}</span> {vistaTel.escritorio ? t("Mobile view", "Vista móvil") : t("Desktop view", "Vista de escritorio")}
+            </button>
+          );
+        }
+        // 21 nov (el dueño): en la vista móvil (dentro del marco de teléfono), el botón dice «Vista de escritorio» y vuelve.
+        if (enMarcoMovil) {
+          return (
+            <button key={o} type="button" className="fab-opcion" data-opcion={o} data-cambia-vista="escritorio" role="menuitem"
+              onClick={() => {
+                cierra();
+                const destino = botonDeVista({ enMarco: true, pathname: pathname || "/", search: window.location.search }).destino;
+                try { (window.top ?? window).location.href = destino; } catch { window.location.href = destino; }
+              }}>
+              <span aria-hidden>🖥️</span> {t("Desktop view", "Vista de escritorio")}
             </button>
           );
         }

@@ -52775,3 +52775,8 @@ Sellos `deliveries` 1.648.0, `warehouse_ops` 0.67.0; repo 1.952.0.
 
 Dos ayudas viejas de Roberto. (1) Inventario, ficha de producto (18 nov: «we are going to need to add the stores descriptions, not just the unified description»): debajo del nombre unificado sale «Descripciones por tienda», la descripción de cada tienda en su ERP (`app_store_products.qb_description`, con su código), solo las que tienen. (2) Leads (16 nov: «some leads dont have phone #»): el «Sin teléfono» de D-1104 se veía en gris; ahora es un aviso rojo 📵, junto al botón «Añadir teléfono» y el filtro 📵 que ya existían.
 Sellos `erp` 0.38.0, `leads` 0.34.0; repo 1.953.0.
+
+## D-1122 · El inicio sale ya ordenado · «Vista de escritorio» dentro de la vista móvil (2026-11-21)
+
+El dueño: (1) al abrir el inicio, los íconos de las apps salían en el orden de fábrica y luego saltaban al orden guardado (D-739), «un pequeño glitch». Ahora, para quien puede ordenar, la rejilla no se enseña (ocupa su sitio, invisible) hasta que se lee el orden, y sale ya ordenada. (2) En la vista móvil (el marco de teléfono), el botón general seguía diciendo «Vista móvil»; ahora dice «Vista de escritorio» y saca la pantalla del marco a tamaño normal.
+Sello `deliveries` 1.649.0; repo 1.954.0.
