@@ -210,8 +210,10 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       expect(fila).toContain("const hora = hecho ? horaReal(d, fp.tipo) : null;");
       expect(fila).toContain("data-hora-real={hora ?? \"\"}");
       expect(fila).toContain("{facturaConSuId(d)}{etiquetaDeLaCarga(d)}");
-      expect(fila).toContain('<td className="celda-acciones" />');
-      for (const control of ["<button", "<select", "mueveParada", "pasaA(", "unassign(", "filaArrastrable", "sueltaAqui", "draggable", "onClick"]) expect(fila, control).not.toContain(control);
+      // D-1116: la única excepción, ↑ ↓ SOLO para el admin y solo en una entrega ya entregada (cambian su orden, no la hora real).
+      expect(fila).toContain('{me.role === "admin" && fp.tipo === "D" && hecho && !soloLectura && (');
+      expect(fila).toContain("onClick={() => void mueveEntregada(d, k, -1)}");
+      for (const control of ["<select", "mueveParada", "pasaA(", "unassign(", "filaArrastrable", "sueltaAqui", "draggable"]) expect(fila, control).not.toContain(control);
     });
     it("lo que mueve, cuenta y mide la ruta sigue trabajando SOLO sobre lo pendiente (el puesto de lo hecho es fijo, D-433)", () => {
       // La lectura, la cuenta de pallets, Optimizar y la medida salen de `stops` (lo pendiente), no de lo pintado.
@@ -274,7 +276,7 @@ describe("2 · la celda de acciones es una celda de tabla: el flex va DENTRO («
     expect(pagina).toContain('<div className="acciones-de-parada">{flechas}{pasar}');
     // Puesto al día por D-481: los botones, solo donde hay acciones.
     expect(pagina).toContain('<div className="acciones-de-parada"> {flechas}{pasar}{acciones && botonesDeCarga(d, capacity)}');
-    expect(pagina.split('<td className="celda-acciones" />').length - 1).toBe(3);
+    expect(pagina.split('<td className="celda-acciones" />').length - 1).toBe(2); // D-1116: la hecha lleva ↑ ↓ del admin
     // La última celda de TODAS las filas de la tabla de paradas es `celda-acciones`: ninguna se quedó con un <td /> suelto.
     const tabla = trozo('<table className="orders tbl-resize tabla-de-paradas"', "</table>");
     expect(tabla).not.toContain("<td /> </tr>");

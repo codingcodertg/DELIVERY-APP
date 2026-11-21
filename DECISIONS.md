@@ -52740,3 +52740,8 @@ Sello `deliveries` 1.642.0; repo 1.946.0.
 
 El dueño: «sigo poniendo Alton y lo tira afuera de TX». «2124 West Olympia, Alton» (calle nueva que Google no conoce) se geocodificaba sin estado y caía en Alton, Illinois; la ruta del mapa subía por todo Texas. `/api/geocode-point` ahora pide a Google solo Texas con sesgo al Valle (`urlDeGoogleGeocode`) y descarta cualquier punto fuera de la caja del Valle (Google, Mapbox y OSM); si no hay ninguno, contesta «no encontrada» como antes. `/api/distance` añade «, TX» a una dirección que no dice el estado antes de pedir la ruta a Google Routes.
 Sello `deliveries` 1.643.0; repo 1.947.0.
+
+## D-1116 · El admin acomoda a mano las entregas ya hechas en el Gestor de Rutas (2026-11-21)
+
+El dueño: «déjame solo al admin poder rearrange órdenes en el routes manager aunque ya estén delivered». Lo hecho se sigue pintando por su hora real, salvo lo que el admin acomoda: en una fila ya entregada, el admin ve ↑ ↓, que la cambian de lugar con la entregada vecina. Se guarda en `deliveries.done_sort_at` (migración 340), la hora con la que se ORDENA; `pod_delivered_at` no se toca, ni el «Actual» ni el aviso de fuera de orden (D-906). Solo un admin puede cambiar esa columna (trigger). Las pendientes no cambian. Mientras la 340 no esté aplicada, la columna es opcional y no salen efectos.
+Sello `deliveries` 1.644.0; repo 1.948.0.

@@ -207,6 +207,8 @@ export interface Delivery {
    * no hay solicitud. Opcionales: una base sin la 311 no las trae, y entonces no hay solicitud. */
   return_to_store_at?: string | null;
   return_to_store_by?: string | null;
+  /** 340: la hora con la que se ORDENA una entrega ya hecha que el admin acomodó a mano (la real no cambia). */
+  done_sort_at?: string | null;
 
   // Auto-computed route (pickup → delivery) from the routing service.
   route_miles: number | null;
