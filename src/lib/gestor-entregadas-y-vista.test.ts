@@ -213,7 +213,9 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       // D-1116: la única excepción, ↑ ↓ SOLO para el admin y solo en una entrega ya entregada (cambian su orden, no la hora real).
       expect(fila).toContain('{me.role === "admin" && fp.tipo === "D" && hecho && !soloLectura && (');
       expect(fila).toContain("onClick={() => void mueveEntregada(d, k, -1)}");
-      for (const control of ["<select", "mueveParada", "pasaA(", "unassign(", "filaArrastrable", "sueltaAqui", "draggable"]) expect(fila, control).not.toContain(control);
+      // D-1118: el admin también la arrastra y suelta sobre ella (filaArrastrable «hecha» + sueltaSobreHecha), nadie más.
+      expect(fila).toContain('filaArrastrable({ tipo: "hecha", ruta: u.key, orden: d.id })');
+      for (const control of ["<select", "mueveParada", "pasaA(", "unassign(", "sueltaAqui("]) expect(fila, control).not.toContain(control);
     });
     it("lo que mueve, cuenta y mide la ruta sigue trabajando SOLO sobre lo pendiente (el puesto de lo hecho es fijo, D-433)", () => {
       // La lectura, la cuenta de pallets, Optimizar y la medida salen de `stops` (lo pendiente), no de lo pintado.
