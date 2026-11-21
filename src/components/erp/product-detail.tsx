@@ -227,6 +227,17 @@ export function ProductDetail({
         <Section title={t("Identity & status", "Identidad y estado")}>
           <Field label="SKU">{val(p.sku)}</Field>
           <Field label={t("Name", "Nombre")}>{val(p.name)}</Field>
+          {/* Roberto (18 nov, ayuda): «we are going to need to add the stores descriptions, not just the unified description».
+              La descripción de cada tienda en su ERP (qb_description), debajo del nombre unificado. */}
+          <Field label={t("Store descriptions", "Descripciones por tienda")}>
+            {storeQoh.some((s) => (s.qb_description ?? "").trim())
+              ? <span className="flex flex-col items-end gap-0.5" data-descripciones-por-tienda>
+                  {storeQoh.filter((s) => (s.qb_description ?? "").trim()).map((s) => (
+                    <span key={s.store_id}><span className="text-xs text-slate-500">{s.store_name}{s.qb_code ? ` · ${s.qb_code}` : ""}:</span> {s.qb_description}</span>
+                  ))}
+                </span>
+              : "—"}
+          </Field>
           <Field label={t("Status", "Estado")}>{t(sv.label.en, sv.label.es)}{sv.note ? ` — ${t(sv.note.en, sv.note.es)}` : ""}</Field>
           <Field label={t("Record status", "Estado del registro")}>{t(statusLabel(p.record_status).en, statusLabel(p.record_status).es)}</Field>
           {p.status === "discontinued" && <Field label={t("Discontinue reason", "Motivo de descontinuación")}>{val(p.discontinue_reason)}</Field>}

@@ -52770,3 +52770,8 @@ Cinco solicitudes de ayuda de Roberto (admin):
 4. **Todos los reportes:** con mermas fotografiadas marcadas, «➕ Add to pending group…» las agrega a un grupo guardado, sin aprobar y de su tienda, en vez de crear otro. Migración 341 (`warehouse_ops_add_to_scrap_group`): las mismas reglas que crear el grupo, y borra las firmas del grupo porque lo firmado cambió.
 5. **Órdenes Transfer:** solo piden el estimado; ya no salen como «Invoice pending». Un tipo cuyo documento es la estimación no persigue la factura.
 Sellos `deliveries` 1.648.0, `warehouse_ops` 0.67.0; repo 1.952.0.
+
+## D-1121 · Inventario: descripciones por tienda · Leads: aviso «Sin teléfono» visible (2026-11-21)
+
+Dos ayudas viejas de Roberto. (1) Inventario, ficha de producto (18 nov: «we are going to need to add the stores descriptions, not just the unified description»): debajo del nombre unificado sale «Descripciones por tienda», la descripción de cada tienda en su ERP (`app_store_products.qb_description`, con su código), solo las que tienen. (2) Leads (16 nov: «some leads dont have phone #»): el «Sin teléfono» de D-1104 se veía en gris; ahora es un aviso rojo 📵, junto al botón «Añadir teléfono» y el filtro 📵 que ya existían.
+Sellos `erp` 0.38.0, `leads` 0.34.0; repo 1.953.0.
