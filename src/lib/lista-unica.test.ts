@@ -264,7 +264,7 @@ describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la v
     expect(tarjeta).toContain("const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity, aBordoDe(stops));");
     // D-459: las filas pendientes siguen siendo las de `lectura.filas`, con su índice; entre ellas se intercalan las hechas.
     // Nota D-529: la lista pintada sale de `diaDe` (dentro, la misma `filasConLoHecho`), y cada fila lleva su índice `k`.
-    expect(tarjeta).toContain("const dia = diaDe(u.key, stops, lectura);");
+    expect(tarjeta).toContain("const dia = diaDe(u.key, stops, lectura, !rutaAcomodada);");
     expect(tarjeta).toContain("const pintadas = dia.pintadas;");
     expect(tarjeta).toContain("{pintadas.map((fp, k) => {");
     expect(tarjeta).toContain("if (fp.hecha) return filaYaHecha(fp, k);");

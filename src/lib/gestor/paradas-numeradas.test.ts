@@ -127,7 +127,7 @@ describe("la pantalla usa las paradas", () => {
   it("la tabla: el número delante de la P/D de cada fila, primera fila con el número y las demás con la raya", () => {
     // Nota D-529: la numeración es la de la lista PINTADA del día (`dia`, de `diaDeLaRuta`, que llama a `paradasDeLaRuta`),
     // por su índice `k` en ella; y la etiqueta, la del día. Lo hecho lleva también su número (`numeros-del-dia.test.ts`).
-    expect(gestor).toContain("const dia = diaDe(u.key, stops, lectura);");
+    expect(gestor).toContain("const dia = diaDe(u.key, stops, lectura, !rutaAcomodada);");
     expect(gestor).toContain("return dia.primera[k] ? <span className=\"numero-de-parada\" data-numero-de-parada={n}");
     expect(gestor).toContain(": <span className=\"numero-de-parada sigue\" data-sigue-la-parada={n}");
     expect(gestor.split("{numeroDeParada(k)}{etiquetaDeLaFila}").length - 1).toBe(3);

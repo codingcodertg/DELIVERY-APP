@@ -3669,7 +3669,10 @@ export default function RoutesPage() {
         const hechas = hechasDe(u.key);
         const hechasPorId = new Map(hechas.map((d) => [d.id, d]));
         // La lista que se pinta (lo hecho primero, en su hora real, y lo pendiente) y su numeración del DÍA (D-529): la misma de «Mi ruta».
-        const dia = diaDe(u.key, stops, lectura);
+        // D-1117: si el admin ya acomodó a mano alguna entregada de esta ruta, la tabla pinta lo hecho DONDE VA en la ruta
+        // (por su puesto, mezclado con lo pendiente) en vez de todo lo hecho arriba por hora.
+        const rutaAcomodada = hechasDe(u.key).some((h) => !!h.done_sort_at);
+        const dia = diaDe(u.key, stops, lectura, !rutaAcomodada);
         const pintadas = dia.pintadas;
         const entregas = resumenDeEntregas(stops, hechas);
         const hayFilas = stops.length > 0 || hechas.length > 0;
@@ -3689,23 +3692,26 @@ export default function RoutesPage() {
          *  «Pasar a…», ni ✕, ni se arrastra, ni es sitio donde soltar. La factura sigue abriendo la orden. */
         // 21 nov (el dueño): «déjame solo al admin poder rearrange órdenes en el routes manager aunque ya estén delivered».
         // Solo el admin: ↑ ↓ en una entrega YA ENTREGADA la cambia de lugar con la entregada vecina (340, `done_sort_at`).
+        // D-1117: la vecina es la ENTREGA de arriba o de abajo en la lista, hecha o pendiente.
+        const entregaDeFila = (f: FilaPintada): Delivery | null => {
+          if (f.hecha) return f.tipo === "D" ? hechasPorId.get(f.orden) ?? null : null;
+          { const fl = f.fila; return fl.tipo === "D" ? stops.find((x) => x.id === fl.orden) ?? null : null; }
+        };
         const vecinaD = (k: number, paso: -1 | 1): Delivery | null => {
-          const propia = pintadas[k] as { orden?: string } | undefined;
+          const propia = entregaDeFila(pintadas[k]);
           for (let j = k + paso; j >= 0 && j < pintadas.length; j += paso) {
-            const f = pintadas[j] as { tipo?: string; orden?: string; hecha?: boolean };
-            if (f.tipo !== "D" || !f.orden || f.orden === propia?.orden) continue;
-            const v = hechasPorId.get(f.orden);
-            return v && v.stage === "delivered" ? v : null;
+            const v = entregaDeFila(pintadas[j]);
+            if (v && v.id !== propia?.id && v.route_seq != null) return v;
           }
           return null;
         };
         const mueveEntregada = async (d: Delivery, k: number, paso: -1 | 1) => {
           const v = vecinaD(k, paso);
-          // Se intercambian las horas con las que se ORDENAN (340, `done_sort_at`); la hora real de entrega no se toca.
-          const a = d.done_sort_at ?? d.pod_delivered_at; const b = v?.done_sort_at ?? v?.pod_delivered_at;
-          if (!v || !a || !b) return;
-          const nb = a === b ? new Date(Date.parse(a) + (paso === -1 ? 1 : -1)).toISOString() : a;
-          if (await updateDelivery(d.id, { done_sort_at: b }, { quiet: true })) await updateDelivery(v.id, { done_sort_at: nb }, { quiet: true });
+          // D-1117: se intercambian los PUESTOS (`route_seq`) con la entrega vecina, hecha o pendiente, y la entregada queda
+          // marcada como acomodada (`done_sort_at`, 340) para que la ruta se pinte por puesto. La hora real no se toca.
+          if (!v || d.route_seq == null || v.route_seq == null) return;
+          const a = d.route_seq; const b = v.route_seq;
+          if (await updateDelivery(d.id, { route_seq: b, done_sort_at: d.done_sort_at ?? new Date().toISOString() }, { quiet: true })) await updateDelivery(v.id, { route_seq: a }, { quiet: true });
         };
         const filaYaHecha = (fp: Extract<FilaPintada, { hecha: true }>, k: number) => {
           const d = hechasPorId.get(fp.orden);
