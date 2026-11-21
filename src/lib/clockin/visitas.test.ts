@@ -244,7 +244,7 @@ describe("el panel de viajes: visitas y mandados, con foto", () => {
     expect(punch).toContain("startTrip({ kind: viaje?.mode ?? \"sales\", ...v, ...(await ubicacionOpcional()) })");
   });
   it("llegar a una parada exige el nombre y abre la cámara; la parada se guarda con la foto", () => {
-    expect(trip).toContain('<button className="btn-ghost" disabled={busy || !parada.trim()} onClick={() => camara.current?.click()}>');
+    expect(trip).toContain('<button className="btn-primary" disabled={busy || !parada.trim()} onClick={() => camara.current?.click()}>');
     expect(trip).toContain('<input ref={camara} type="file" accept="image/*" capture="environment" hidden onChange={alTomarFoto} />');
     expect(trip).toContain("const r = await fotoDeParada(file, parada.trim());");
     // Y ya no hay camino sin foto: el panel no llama a logStop por su cuenta.
