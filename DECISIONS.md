@@ -52745,3 +52745,8 @@ Sello `deliveries` 1.643.0; repo 1.947.0.
 
 El dueño: «déjame solo al admin poder rearrange órdenes en el routes manager aunque ya estén delivered». Lo hecho se sigue pintando por su hora real, salvo lo que el admin acomoda: en una fila ya entregada, el admin ve ↑ ↓, que la cambian de lugar con la entregada vecina. Se guarda en `deliveries.done_sort_at` (migración 340), la hora con la que se ORDENA; `pod_delivered_at` no se toca, ni el «Actual» ni el aviso de fuera de orden (D-906). Solo un admin puede cambiar esa columna (trigger). Las pendientes no cambian. Mientras la 340 no esté aplicada, la columna es opcional y no salen efectos.
 Sello `deliveries` 1.644.0; repo 1.948.0.
+
+## D-1117 · Las ↑ ↓ del admin mueven la entregada entre TODA la ruta (2026-11-21)
+
+El dueño, tras D-1116: «no me deja mover una carga ya delivered o mover otra orden entre una orden delivered». D-1116 solo cambiaba de lugar dos entregadas entre sí, y lo hecho seguía pintándose arriba de todo. Ahora ↑ ↓ (solo admin) en una entregada intercambia su puesto (`route_seq`) con la ENTREGA vecina de la lista, hecha o pendiente, y la marca como acomodada (`done_sort_at`). Una ruta con alguna entregada acomodada se pinta por puesto (lo hecho mezclado con lo pendiente, `comoIba = false`) en vez de lo hecho primero por hora. Las demás rutas, igual que antes. Con un plan publicado, el orden lo sigue poniendo el plan.
+Sello `deliveries` 1.645.0; repo 1.949.0.
