@@ -87,11 +87,14 @@ export function documentoPendiente(d: OrdenConDocumento, reglas: OrderTypeRules)
  * factura y a la vez aparecería en la pestaña «Factura pendiente» reclamándola.
  */
 const SIN_PAPEL: readonly string[] = ["none", "hidden"];
+/** Roberto (21 nov, ayuda): «when order type is transfer, we dont need invoice # just estimate #». Un tipo cuyo documento
+ *  es el estimado (Transfer) no persigue la factura: su pendiente es el estimado y nada más. */
+const SIN_FACTURA: readonly string[] = [...SIN_PAPEL, "estimate"];
 
 export function facturaPendiente(d: OrdenConDocumento, reglas: OrderTypeRules): boolean {
   if (ETAPAS_SIN_DOCUMENTO.includes(d.stage)) return false;
   if (String(d.invoice_num ?? "").trim()) return false;
-  return !SIN_PAPEL.includes(orderTypeRule(d.order_type, reglas).docRef ?? "invoice");
+  return !SIN_FACTURA.includes(orderTypeRule(d.order_type, reglas).docRef ?? "invoice");
 }
 
 /**

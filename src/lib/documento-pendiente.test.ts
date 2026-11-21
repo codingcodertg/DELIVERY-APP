@@ -92,7 +92,8 @@ describe("camposCapturablesEnFila: quién escribe el número sin abrir la orden"
   // órdenes ahora también les falta la factura, y esa sí es suya (la 125 no mira el tipo). Antes: `null`.
   it("ventas: el PO o la estimación que falte los VE y no los escribe (la 125 solo abre invoice_num); la factura de esa orden, sí", () => {
     expect(camposCapturablesEnFila(yo("sales"), orden({ order_type: "ConPO" }), reglas)).toEqual(["invoice_num"]);
-    expect(camposCapturablesEnFila(yo("sales"), orden({ order_type: "ConEstimacion" }), reglas)).toEqual(["invoice_num"]);
+    // Roberto (21 nov): un tipo cuyo documento es la estimación (Transfer) ya no persigue la factura.
+    expect(camposCapturablesEnFila(yo("sales"), orden({ order_type: "ConEstimacion" }), reglas)).toEqual([]);
     // Con la factura ya puesta solo queda el PO, y ese no es suyo.
     expect(camposCapturablesEnFila(yo("sales"), orden({ order_type: "ConPO", invoice_num: "F-1" }), reglas)).toEqual([]);
   });

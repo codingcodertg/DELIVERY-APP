@@ -15,7 +15,7 @@ import { CerrarX } from "./CerrarX";
 import { etiquetaDeEquipoDelReporte } from "@/lib/almacen-ops/mantenimiento";
 import { nombreOTexto, personasParaElegir } from "@/lib/almacen-ops/personas";
 import { totalesPorTienda } from "@/lib/almacen-ops/perdida";
-import { DEMO_PRODUCTOS, origenDeMerma, type TipoDeOrigen, DEMO_REPORTES, agregarFotos, borrarReporteDeMerma, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, editarReporteDeMerma, enlacesDeFotos, enlacesPorRuta, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type ParcheDeMerma, type Reporte } from "@/lib/almacen-ops/datos";
+import { DEMO_PRODUCTOS, origenDeMerma, type TipoDeOrigen, DEMO_REPORTES, agregarFotos, borrarReporteDeMerma, buscarProductos, corregirMerma, corregirOrigenDeMerma, crearGrupoDeMerma, agregarAGrupoDeMerma, editarReporteDeMerma, enlacesDeFotos, enlacesPorRuta, guardarHuellas, listarGrupos, reportesConLaFoto, subirFoto, type ParcheDeMerma, type Reporte } from "@/lib/almacen-ops/datos";
 import { esCorteDePractica } from "@/lib/practica/es-corte";
 import { EVENTO_PRACTICA_GRUPOS, borrarPractica, cargaPractica, conAprobacionDePractica, esGrupoDePractica, grupoDePracticaPorReporte, gruposDePractica } from "@/lib/practica/grupos-de-practica";
 import { crearBorradorDeGrupo, esBorradorDeGrupo, listarBorradoresDeGrupo } from "@/lib/almacen-ops/borradores-de-grupo";
@@ -384,6 +384,26 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
     abrirGrupo(id);
   };
 
+  // 341 (Roberto, 21 nov): «add to a Pending Group instead of making a new group». Los grupos guardados, sin aprobar y de la
+  // tienda de lo marcado (borradores y práctica no: no están en la base).
+  const tiendasDeHoja = [...new Set(paraHoja.map((r) => r.store))];
+  const gruposPendientes = tiendasDeHoja.length === 1
+    ? grupos.filter((g) => !g.approved_at && g.store === tiendasDeHoja[0] && /^[0-9a-f-]{36}$/i.test(g.id))
+    : [];
+  const agregarAGrupo = async (grupoId: string) => {
+    const elegibles = paraHoja.filter((r) => !r.scrap_group_id);
+    if (!grupoId || elegibles.length === 0) return;
+    try {
+      await agregarAGrupoDeMerma(createClient(), grupoId, elegibles.map((r) => r.id));
+      actualizaFilas(elegibles.map((r) => ({ ...r, scrap_group_id: grupoId })));
+      setSeleccion(new Set());
+      setRecargaGrupos((n) => n + 1);
+      setAvisoBloque(t(`${elegibles.length} added to the group. Its signatures were cleared: sign it again.`, `${elegibles.length} agregada(s) al grupo. Sus firmas se borraron: hay que firmarlo otra vez.`));
+    } catch (e) {
+      setAvisoBloque(e instanceof Error ? e.message : String(e));
+    }
+  };
+
   // Acciones en bloque: marcar varias como desechadas (approved→dumped) o ajustadas (dumped→adjusted, con una sola foto).
   const [avisoBloque, setAvisoBloque] = useState<string | null>(null);
   const [ajustandoBloque, setAjustandoBloque] = useState(false);
@@ -531,6 +551,12 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
                 <button type="button" className="btn btn-primary" disabled={yaEnGrupo.length > 0} onClick={() => void iniciarAprobacion()} data-accion="iniciar-aprobacion">
                   ✅ {t(`Start approval (${paraHoja.length})`, `Iniciar aprobación (${paraHoja.length})`)}
                 </button>
+                {gruposPendientes.length > 0 && !ctx.demo && (
+                  <select className="ops-campo" value="" disabled={yaEnGrupo.length > 0} onChange={(e) => void agregarAGrupo(e.target.value)} data-accion="agregar-a-grupo" aria-label={t("Add to a pending group", "Agregar a un grupo pendiente")}>
+                    <option value="">➕ {t(`Add to pending group (${paraHoja.length})…`, `Agregar a grupo pendiente (${paraHoja.length})…`)}</option>
+                    {gruposPendientes.map((g) => <option key={g.id} value={g.id}>{g.name} · {g.n_reportes ?? 0}</option>)}
+                  </select>
+                )}
                 {/* Reunión 11 nov: UNA sola acción para aprobar. Imprimir y adjuntar hoja quedan solo para lo ya aprobado
                     (hoja del grupo aprobado), no aquí. */}
               </>}
