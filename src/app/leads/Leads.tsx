@@ -721,7 +721,8 @@ function FilaTelefono({ quien, lead, ocupado, sugerencia, numero, deMano, contac
       ) : sugiere ? (
         <span className="hint" data-sugerencia-sin-formato>💡 {sugiere.telefono}</span>
       ) : (
-        <span className="hint" data-sin-telefono-de={quien}>{t("No phone", "Sin teléfono")}</span>
+        // Roberto (16 nov, ayuda): «some leads dont have phone #». El aviso se ve, no en gris.
+        <span className="ld-aviso-sin-telefono" data-sin-telefono-de={quien}>📵 {t("No phone", "Sin teléfono")}</span>
       )}
       {!tieneNum && (
         <button type="button" className="btn btn-primary btn-sm" data-anadir-telefono={quien} disabled={ocupado} onClick={() => setModo("editar")}>

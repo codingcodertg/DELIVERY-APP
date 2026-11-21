@@ -297,3 +297,6 @@ button.ld-pildora.on { border-color: currentColor; box-shadow: 0 0 0 1px current
 .ld-periodo-propio label { display: grid; gap: 4px; }
 .ld-periodo-propio input { min-height: 40px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
 @media (max-width: 480px) { .ld-periodo-propio input { width: 100%; } }
+
+/* 21 nov: el aviso «Sin teléfono» de un lead, visible. */
+.ld-aviso-sin-telefono { color: var(--red); font-weight: 600; font-size: 13px; }
