@@ -4,6 +4,8 @@ import { requireUser } from "@/lib/api-auth";
 import { limita, respuesta429 } from "@/lib/rate-limit";
 import { claveDeDireccion } from "@/lib/cache-google";
 import { guardaGeocode, leeGeocode } from "@/lib/cache-google-servidor";
+import { urlDeGoogleGeocode } from "@/lib/busqueda-de-direccion";
+import { puntoEnElValle } from "@/lib/distancia-plausible";
 
 // ============================================================
 // Resolve a single address to { lat, lng } — used by the dispatch map to
@@ -19,10 +21,11 @@ export const runtime = "nodejs";
 
 // Lo que contesta Google, con la dirección formateada para la caché (`geocode_cache`).
 async function viaGoogle(q: string, key: string): Promise<{ lat: number; lng: number; formatted: string | null } | null> {
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}&key=${key}`;
-  const res = await fetch(url);
+  // Solo Texas, con sesgo al Valle (21 nov: «2124 West Olympia, Alton» caía en Alton, Illinois y la ruta subía por Texas).
+  const res = await fetch(urlDeGoogleGeocode(q, key));
   const data = await res.json();
-  const primero = data.results?.[0];
+  const primero = (data.results ?? []).find((r: { geometry?: { location?: { lat: number; lng: number } } }) =>
+    r.geometry?.location && puntoEnElValle(r.geometry.location.lat, r.geometry.location.lng));
   const loc = primero?.geometry?.location;
   return loc ? { lat: loc.lat, lng: loc.lng, formatted: (primero.formatted_address as string | undefined) ?? null } : null;
 }
@@ -32,7 +35,7 @@ async function viaMapbox(q: string, token: string): Promise<{ lat: number; lng: 
   const res = await fetch(url);
   const data = await res.json();
   const center = data.features?.[0]?.center; // [lng, lat]
-  return center ? { lat: center[1], lng: center[0] } : null;
+  return center && puntoEnElValle(center[1], center[0]) ? { lat: center[1], lng: center[0] } : null;
 }
 
 async function viaOSM(q: string): Promise<{ lat: number; lng: number } | null> {
@@ -42,7 +45,8 @@ async function viaOSM(q: string): Promise<{ lat: number; lng: number } | null> {
   });
   const data = await res.json();
   if (!Array.isArray(data) || !data.length) return null;
-  return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  const p = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  return puntoEnElValle(p.lat, p.lng) ? p : null;
 }
 
 export async function POST(req: Request) {
@@ -64,7 +68,7 @@ export async function POST(req: Request) {
   // Primero la caché (clave = dirección normalizada): lo que Google ya contestó no vuelve a pagarse.
   const clave = claveDeDireccion(address);
   const guardada = await leeGeocode(clave);
-  if (guardada) return NextResponse.json({ lat: guardada.lat, lng: guardada.lng });
+  if (guardada && puntoEnElValle(guardada.lat, guardada.lng)) return NextResponse.json({ lat: guardada.lat, lng: guardada.lng });
 
   const google = process.env.GOOGLE_MAPS_API_KEY;
   const mapbox = process.env.MAPBOX_TOKEN;

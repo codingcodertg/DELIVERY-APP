@@ -39,6 +39,11 @@ interface Result {
   traffic: boolean;
 }
 
+/** Añade «, TX» a una dirección que no dice el estado. */
+function conTexas(d: string): string {
+  return /(TX|Texas)/i.test(d) ? d : `${d.trim().replace(/,s*$/, "")}, TX`;
+}
+
 // ---------- Google Routes API (traffic-aware) ----------
 // The current API. Takes the addresses directly, so there's no separate
 // geocode step, and prices the drive with live traffic. Distance Matrix below
@@ -53,8 +58,9 @@ async function viaGoogleRoutes(origin: string, destination: string, key: string)
       "X-Goog-FieldMask": "routes.duration,routes.staticDuration,routes.distanceMeters",
     },
     body: JSON.stringify({
-      origin: { address: origin },
-      destination: { address: destination },
+      // Sin estado, Google elige el pueblo homónimo de otro estado (Alton, IL): se le añade «, TX».
+      origin: { address: conTexas(origin) },
+      destination: { address: conTexas(destination) },
       travelMode: "DRIVE",
       routingPreference: "TRAFFIC_AWARE",
       units: "IMPERIAL",

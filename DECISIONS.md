@@ -52735,3 +52735,8 @@ Sellos `deliveries` 1.641.0, `warehouse_ops` 0.66.0; repo 1.945.0.
 
 El dueño: «por ahora time windows solo será el de all day, we are short 1 driver». En la orden, el selector de ventana y las franjas del día ofrecen solo «todo el día» de esa fecha (entre semana 8:30-5:30, sábado 8:30-3:30), más la ventana que la orden ya tenga, que se respeta. Las reglas de ventanas, cupos y rutas no cambian. Es temporal: `SOLO_TODO_EL_DIA` en `delivery-windows.ts` en `false` vuelve a ofrecer madrugada, mañana y tarde.
 Sello `deliveries` 1.642.0; repo 1.946.0.
+
+## D-1115 · El pin de una entrega no puede caer fuera del Valle (2026-11-21)
+
+El dueño: «sigo poniendo Alton y lo tira afuera de TX». «2124 West Olympia, Alton» (calle nueva que Google no conoce) se geocodificaba sin estado y caía en Alton, Illinois; la ruta del mapa subía por todo Texas. `/api/geocode-point` ahora pide a Google solo Texas con sesgo al Valle (`urlDeGoogleGeocode`) y descarta cualquier punto fuera de la caja del Valle (Google, Mapbox y OSM); si no hay ninguno, contesta «no encontrada» como antes. `/api/distance` añade «, TX» a una dirección que no dice el estado antes de pedir la ruta a Google Routes.
+Sello `deliveries` 1.643.0; repo 1.947.0.
