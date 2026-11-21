@@ -197,6 +197,15 @@ export async function crearGrupoDeMerma(sb: SupabaseClient, nombre: string, repo
   return data as string;
 }
 
+/** 341: agrega mermas fotografiadas (sin grupo, de su tienda) a un grupo PENDIENTE. Borra sus firmas: lo firmado cambió. */
+export async function agregarAGrupoDeMerma(sb: SupabaseClient, grupoId: string, reporteIds: string[]): Promise<void> {
+  const { error } = await sb.rpc("warehouse_ops_add_to_scrap_group", { p_group: grupoId, p_report_ids: reporteIds });
+  if (error) {
+    if (error.code === "PGRST202" || /could not find the function/i.test(error.message ?? "")) throw new Error("Esta opción todavía no está activada (falta la migración 341). / This option isn't enabled yet (migration 341 pending).");
+    throw error;
+  }
+}
+
 /** 281: firma un espacio del grupo (gerente/supervisor) con el dibujo. La base exige dos personas distintas y que gestione la tienda. */
 export async function firmarGrupo(sb: SupabaseClient, grupoId: string, slot: SlotDeFirma, png: string): Promise<void> {
   const { error } = await sb.rpc("warehouse_ops_sign_scrap_group", { p_group: grupoId, p_slot: slot, p_png: png });

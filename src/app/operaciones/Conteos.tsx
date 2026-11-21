@@ -65,8 +65,8 @@ export function Conteos({ ctx }: { ctx: Contexto }) {
       <header className="ops-asistente-barra ops-mant-cabeza">
         <h2>🔢 {t("Inventory counts", "Conteos de inventario")}</h2>
         <div className="ops-accesos">
-          <Link href="/operaciones/reportes" className="ops-boton ops-boton-chico" data-accion="ir-reportes">🗂️ {t("Reports", "Reportes")}</Link>
-          <Link href="/operaciones/nuevo/scrap" className="ops-boton ops-boton-chico" data-accion="ir-merma">⚠️ {t("Scrap", "Merma")}</Link>
+          {/* Roberto (21 nov): en vez de «Reports» y «Scrap», un solo botón al informe de conteos. */}
+          <Link href="/operaciones/reportes?pestana=conteos" className="ops-boton ops-boton-chico" data-accion="ir-informe-conteos">🔢 {t("Inventory count report", "Informe de conteos")}</Link>
           <Link href="/operaciones" className="ops-boton ops-boton-chico" data-accion="volver">← {t("Back", "Volver")}</Link>
         </div>
       </header>
@@ -264,17 +264,8 @@ function FormNuevoConteo({ ctx, tienda, onCreado }: { ctx: Contexto; tienda: str
         </label>
       </div>
       {!falta && (
-        <section className="ops-etapas" data-vista-previa={vista?.length ?? "cargando"}>
-          <h4>{tituloDeAlcance(a)} · {vista === null ? t("loading…", "cargando…") : t(`${vista.length} products`, `${vista.length} productos`)}</h4>
-          {vista && vista.length === 0 && <p className="ops-aviso" data-sin-productos>{t("No products match. Change the scope.", "Ningún producto coincide. Cambia el alcance.")}</p>}
-          {vista && vista.length > 0 && (
-            <ul className="ops-linea-de-etapas ops-vista-previa">
-              {vista.slice(0, 12).map((p) => <li key={p.id} className="ops-etapa-texto"><span className="hoja-folio">{p.sku}</span> {p.name}<span className="hint">{t("system", "sistema")}: {p.qoh ?? "—"}</span></li>)}
-              {vista.length > 12 && <li className="hint">… {t(`and ${vista.length - 12} more`, `y ${vista.length - 12} más`)}</li>}
-            </ul>
-          )}
-          {vista && vista.length > 0 && vista.every((p) => p.qoh == null) && <p className="hint" data-sin-qoh>{t("This store has no quantities in the ERP: lines will count without a system quantity; type it at sign-off.", "Esta tienda no tiene existencias en el ERP: las líneas se contarán sin cantidad del sistema; se teclea al firmar.")}</p>}
-        </section>
+        // Roberto (21 nov): la vista previa (productos, sistema, aviso del ERP) ya no sale; solo el aviso si no hay ninguno.
+        vista && vista.length === 0 && <p className="ops-aviso" data-sin-productos>{t("No products match. Change the scope.", "Ningún producto coincide. Cambia el alcance.")}</p>
       )}
       {error && <p className="ops-aviso ops-aviso-error" role="alert">{error}</p>}
       <div className="ops-etapa-acciones">

@@ -97,7 +97,7 @@ export const RPC_QUE_ESCRIBEN = [
   "warehouse_ops_set_scrap_stage", // 270 (D-921): el gerente mueve la etapa de una merma (aprobada / desechada / ajustada; admin deshace).
   "warehouse_ops_sign_scrap", "warehouse_ops_unsign_scrap", // 280 (D-957): firma / quita la firma (gerente + supervisor) de la merma; sin las dos no se aprueba.
   // 281 (D-959): grupos de aprobación — crear, firmar/quitar firma y aprobar un grupo (aprueba todas sus mermas).
-  "warehouse_ops_create_scrap_group", "warehouse_ops_sign_scrap_group", "warehouse_ops_unsign_scrap_group", "warehouse_ops_approve_scrap_group",
+  "warehouse_ops_create_scrap_group", "warehouse_ops_add_to_scrap_group", "warehouse_ops_sign_scrap_group", "warehouse_ops_unsign_scrap_group", "warehouse_ops_approve_scrap_group",
   "warehouse_ops_remove_from_scrap_group", "warehouse_ops_delete_scrap_group",
   "warehouse_ops_delete_scrap_report", // 297: el admin borra un reporte de merma de prueba.
   "lead_set_phone", // 335: pone o quita el teléfono a mano de un lead y anota el historial. Escribe.

@@ -196,6 +196,8 @@ export function Asistente({ tipo, ctx }: { tipo: TipoDeReporte; ctx: Contexto })
         <div className="ops-asistente-barra">
           <span className="ops-asistente-tipo"><span aria-hidden>{info.emoji}</span> {lang === "es" ? info.es : info.en}</span>
           <span className="ops-asistente-acciones">
+            {/* Roberto (21 nov): desde una merma nueva, ir directo al informe de merma. */}
+            {tipo === "scrap" && <Link href="/operaciones/reportes?pestana=merma" className="ops-boton ops-boton-chico" data-accion="ir-informe-merma">🧱 {t("Scrap report", "Informe de merma")}</Link>}
             <button type="button" className="ops-boton ops-boton-chico" onClick={cerrar} disabled={enviando} data-accion="cerrar">✕ {t("Close", "Cerrar")}</button>
           </span>
         </div>

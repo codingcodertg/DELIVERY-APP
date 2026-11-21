@@ -107,7 +107,8 @@ describe("no tiene papel, y no se le persigue uno", () => {
     expect(facturaPendiente({ ...sinFactura, order_type: "Proveedor" }, REGLAS)).toBe(false);
     expect(facturaPendiente({ ...sinFactura, order_type: "Customer" }, REGLAS)).toBe(true);
     // Y el tipo de al lado, `none`, sigue saliendo: solo `hidden` es la salida nueva.
-    expect(facturaPendiente({ ...sinFactura, order_type: "Transfer" }, REGLAS)).toBe(true);
+    // Roberto (21 nov): Transfer (su documento es la estimación) ya no persigue factura.
+    expect(facturaPendiente({ ...sinFactura, order_type: "Transfer" }, REGLAS)).toBe(false);
   });
 
   it("la pantalla no pinta Factura/PO/SO para este tipo", () => {

@@ -78,7 +78,8 @@ describe("la pastilla «Factura pendiente» cuenta toda orden sin factura", () =
 
   it("vale para todo tipo —estimación y «cualquiera» también— menos el configurado sin documento", () => {
     const sinFactura = (order_type: string) => facturaPendiente(entre({ order_type, po2: "PO-1", estimate_num: "E-1" }), REGLAS);
-    expect(["ACliente", "EntreTiendas", "ConEstimacion", "Cualquiera"].map(sinFactura)).toEqual([true, true, true, true]);
+    // Roberto (21 nov): la estimación (Transfer) ya no persigue factura.
+    expect(["ACliente", "EntreTiendas", "ConEstimacion", "Cualquiera"].map(sinFactura)).toEqual([true, true, false, true]);
     expect(sinFactura("SinDocumento")).toBe(false);
   });
 });

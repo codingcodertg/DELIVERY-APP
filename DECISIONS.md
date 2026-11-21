@@ -52760,3 +52760,13 @@ Sello `deliveries` 1.646.0; repo 1.950.0.
 
 El dueño: «sigue sin funcionar». Hoy había plan publicado (v14), y con plan la tabla pinta en el orden del plan: lo que el admin arrastraba (D-1118) se guardaba en `route_seq` pero no se veía. Ahora una ruta con alguna entregada acomodada (`done_sort_at`) se pinta por sus puestos, sin el plan. Y el arrastre calcula el puesto sobre la lista TAL COMO SE VE (lo hecho arriba por hora mientras la ruta no esté acomodada). Probado en el demo: una pendiente soltada sobre una entregada sube delante, y una entregada soltada sobre una pendiente baja detrás.
 Sello `deliveries` 1.647.0; repo 1.951.0.
+
+## D-1120 · Ayudas de Roberto del 21 nov: conteos, merma, grupos y Transfer (2026-11-21)
+
+Cinco solicitudes de ayuda de Roberto (admin):
+1. **Conteos, «Empezar a organizar»:** la vista previa (productos del alcance, su cantidad del sistema y el aviso «esta tienda no tiene existencias en el ERP») ya no sale («this is still showing up and should not»). Solo queda el aviso si ningún producto coincide.
+2. **Conteos, arriba:** en vez de «Reports» y «Scrap», un solo botón «Inventory count report» que abre Reportes en la pestaña Conteos.
+3. **Merma nueva:** botón «Scrap report» arriba, a Reportes en la pestaña Merma.
+4. **Todos los reportes:** con mermas fotografiadas marcadas, «➕ Add to pending group…» las agrega a un grupo guardado, sin aprobar y de su tienda, en vez de crear otro. Migración 341 (`warehouse_ops_add_to_scrap_group`): las mismas reglas que crear el grupo, y borra las firmas del grupo porque lo firmado cambió.
+5. **Órdenes Transfer:** solo piden el estimado; ya no salen como «Invoice pending». Un tipo cuyo documento es la estimación no persigue la factura.
+Sellos `deliveries` 1.648.0, `warehouse_ops` 0.67.0; repo 1.952.0.
