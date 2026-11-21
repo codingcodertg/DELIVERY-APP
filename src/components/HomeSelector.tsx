@@ -54,11 +54,15 @@ export function HomeSelector({ me, suplantando = false, cuenta, soloApps = null 
   // sobre `available`, y con «Ordenar» cada tarjeta deja de ser enlace y enseña sus flechas.
   const [orden, setOrden] = useState<string[]>([]);
   const [ordenando, setOrdenando] = useState(false);
+  // 21 nov (el dueño): al abrir, las apps salían en el orden de fábrica y luego saltaban al orden guardado («un pequeño
+  // glitch»). Mientras no se sepa el orden, la rejilla no se enseña (ocupa su sitio, invisible); sale ya ordenada.
+  const [ordenListo, setOrdenListo] = useState(() => !puedeOrdenarElHub(me));
   useEffect(() => {
-    if (!puedeOrdenarElHub(me)) return;
+    if (!puedeOrdenarElHub(me)) { setOrdenListo(true); return; }
     let vivo = true;
     void leeOrdenDelHub(createClient() as unknown as ClienteDePrefs, me.id, (k) => { try { return window.localStorage.getItem(k); } catch { return null; } })
-      .then((o) => { if (vivo) setOrden(o); });
+      .then((o) => { if (vivo) setOrden(o); })
+      .finally(() => { if (vivo) setOrdenListo(true); });
     return () => { vivo = false; };
   }, [me]);
   // La tarjeta del mapa de la empresa entra en la misma lista y se arrastra igual (el admin, 2026-11-05: «Allow me to
@@ -152,7 +156,7 @@ export function HomeSelector({ me, suplantando = false, cuenta, soloApps = null 
             </button>
           )}
         </p>
-        <div className="module-pick-grid">
+        <div className="module-pick-grid" data-orden-listo={ordenListo ? "si" : "no"} style={ordenListo ? undefined : { visibility: "hidden" }}>
           {/* El mapa de la empresa (D-554) vive en su propia app, no en el inicio (D-556, el dueño: «el schema que
               hicimos de la app pon lo dentro de una app no asi coomo lo dejaste y trae le diseno al rtb hub denuevo»).
               Solo para el admin (D-561, el dueño: «map app of the schema is just for admin remove it for everybody
