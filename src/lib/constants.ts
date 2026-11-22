@@ -112,7 +112,9 @@ export const TABS: { id: string; label: string; label_es: string; href: string; 
   // ruta entonces quye no les paartezca ruta de hoy».
   { id: "map",       label: "🌐 Today's route", label_es: "🌐 Ruta de hoy", href: "/map", roles: ["manager", "sales", "accounting", "warehouse"] },
   { id: "market",    label: "🏪 Market",    label_es: "🏪 Mercado",    href: "/market", roles: ["admin"], group: "general" },
-  { id: "warehouse", label: "📦 Warehouse orders", label_es: "📦 Órdenes de almacén",    href: "/warehouse", roles: ["warehouse", "admin"], cap: "fulfill" },
+  { id: "warehouse", label: "📦 Warehouse orders", label_es: "📦 Órdenes de almacén",    href: "/warehouse", roles: ["warehouse", "admin"], cap: "fulfill", generalFor: ["admin"] },
+  // (El dueño, 22 nov: la barra del admin se partía en dos filas con el botón de más → para admin, «Órdenes de almacén»
+  // va dentro de «General»; almacén la sigue viendo en su barra, como «Órdenes».)
   // D-1125: la pantalla nueva de almacén (Llegadas): qué chofer pasa por la tienda, qué deja y qué se lleva, según la
   // ruta publicada. El dueño: «warehouse ahora es órdenes y el botón de Warehouse es lo que estamos creando».
   { id: "wh-arrivals", label: "🏭 Warehouse", label_es: "🏭 Almacén", href: "/warehouse/arrivals", roles: ["warehouse", "admin"], cap: "fulfill" },
