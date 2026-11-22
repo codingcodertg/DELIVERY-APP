@@ -5,6 +5,7 @@ import { agendasExtraDesde } from "@/lib/recruiting/agendas-ringcentral";
 import { elegirAgenda } from "@/lib/recruiting/rc-comms";
 import { sincronizarRcComms } from "@/lib/recruiting/rc-comms-sync";
 import { sincronizarLlamadasDeLeads } from "@/lib/leads/llamadas-sync";
+import { credencialesDeLaSincronizacion } from "@/lib/ringcentral-choferes/credenciales";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,7 +42,8 @@ export async function GET(req: Request) {
   // fallan, no tapan el resultado de las comunicaciones de candidatos.
   let leads = null;
   try {
-    leads = await sincronizarLlamadasDeLeads({ db: createAdminClient(), credenciales: agenda, ahora: new Date() });
+    // D-1128: las llamadas de leads son de toda la empresa → entran con el JWT de empresa si lo hay.
+    leads = await sincronizarLlamadasDeLeads({ db: createAdminClient(), credenciales: credencialesDeLaSincronizacion() ?? agenda, ahora: new Date() });
   } catch {
     console.error("[cron rc-comms] llamadas de leads: no se pudo iniciar");
   }
