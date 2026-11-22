@@ -215,7 +215,21 @@ export async function sincronizarLlamadasDeLeads(opciones: {
   if (eEstado) return fallo("base");
   // Si el último barrido se cortó (límite o presupuesto), falta ponerse al día: se sigue en esta corrida, sin esperar 2 h.
   const faltaPonerseAlDia = estado?.last_error_code === "limite" || estado?.last_error_code === "listado";
-  if (!faltaPonerseAlDia && !tocaBarrer(estado?.last_run_at ?? null, ahora)) return null;
+  if (!faltaPonerseAlDia && !tocaBarrer(estado?.last_run_at ?? null, ahora)) {
+    // D-1131: aunque no toque barrer, las grabaciones en cola se siguen bajando en cada corrida (6 cada 10 minutos, no
+    // 6 cada 2 horas). Sin cola no se pide ni el token: la corrida sale como antes, con null.
+    const { count, error: eCola } = await db.from("rc_lead_calls").select("id", { count: "exact", head: true })
+      .eq("recording_pending", true).not("recording_uri", "is", null).lt("recording_intentos", MAX_INTENTOS_GRABACION);
+    if (eCola || !count) return null;
+    try {
+      const tokenDeCola = await ringcentralToken(credenciales);
+      resultado.grabaciones = await bajarGrabaciones(db, tokenDeCola, server);
+      resultado.pendientes = Math.max(0, count - resultado.grabaciones);
+    } catch {
+      return fallo("base");
+    }
+    return resultado;
+  }
 
   let token: string;
   try {

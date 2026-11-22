@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cronAuthorized } from "@/lib/clockin/cronAuth";
+import { cronAutorizadoORBoleto } from "@/lib/cron-boleto-base";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revisarBuzonIndeed } from "@/lib/outlook/sincronizar";
 
@@ -14,7 +14,8 @@ export const maxDuration = 120;
  * - Como mucho 50 correos por corrida.
  */
 export async function GET(req: Request) {
-  if (!cronAuthorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // D-1131: el CRON_SECRET de siempre o un boleto de la base para esta ruta.
+  if (!(await cronAutorizadoORBoleto(req, "/api/cron/outlook-indeed"))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (new URL(req.url).searchParams.get("verify") === "1") return NextResponse.json({ ok: true, verify: true });
 
   const r = await revisarBuzonIndeed({ db: createAdminClient(), env: process.env, ahora: new Date() });

@@ -3,7 +3,7 @@ import { notifyText, sendToSub, type Sub } from "@/lib/clockin/notify";
 import { scoreWeek } from "@/lib/clockin/scorecard";
 import { centralShiftMs } from "@/lib/clockin/tz";
 import { clockinRestHeaders } from "@/lib/clockin/rest";
-import { cronAuthorized } from "@/lib/clockin/cronAuth";
+import { cronAutorizadoORBoleto } from "@/lib/cron-boleto-base";
 import { autoCloseCutoffMs } from "@/lib/clockin/schedule";
 import {
   destinatariosPosibles,
@@ -53,7 +53,8 @@ function centralMin(iso: string) {
 }
 
 export async function GET(req: Request) {
-  if (!cronAuthorized(req)) {
+  // D-1131: entra con el CRON_SECRET (Vercel, GitHub) o con un boleto de la base para esta ruta (migraciones 342 y 343).
+  if (!(await cronAutorizadoORBoleto(req, "/timetracker/clock-in/api/cron"))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
