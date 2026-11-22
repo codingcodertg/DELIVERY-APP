@@ -52843,3 +52843,11 @@ El dueño, al ver lo de D-1129 y D-1130: «sí, hazlo para que ya se haga».
 (1) Migración 343 (ensayada; la aplica el dueño): `llama_cron` deja pasar también `/timetracker/clock-in/api/cron` (lista cerrada), y pg_cron programa `tt-clockin` cada 2 minutos y `outlook-indeed` cada 15, más una limpieza diaria del historial de corridas de pg_cron. Las dos rutas aceptan el boleto de un solo uso (D-1129) además del CRON_SECRET. Ojo con lo que esto devuelve: los avisos de turno y de almuerzo y el cierre automático de las 8 PM del Time Tracker vuelven a ocurrir a su hora; con GitHub corriendo cada 8 horas casi no ocurrían.
 (2) Llamadas de leads: verificado en producción tras D-1130 — 113 llamadas de 57 teléfonos en la primera corrida y el resto en la siguiente. Las grabaciones solo bajaban cuando tocaba barrer (6 cada 2 horas; 78 en cola = un día). Ahora, aunque no toque barrer, si hay cola se bajan 6 en cada corrida del cron (10 minutos); sin cola no se pide ni el token.
 Repo 1.963.0.
+
+## D-1132 · El Gmail de Indeed también sale de la base; revisión de lo que quedaba suelto (2026-11-22)
+
+El dueño: «mira si hace falta algo más». Revisado tras D-1129–D-1131:
+· Verificado en producción: `rc-comms`, `rc-choferes` y `outlook-indeed` entran con boleto desde la base; del fichaje no hay línea en los registros (no escribe cuando no hay nada que avisar), pero no queda ningún boleto sin gastar. Sin errores de ejecución en 24 h.
+· **Faltaba Gmail.** El buzón de Indeed que está conectado es el de Gmail (desde el 17 nov); Outlook nunca se conectó y por eso la corrida de Outlook contesta «no conectado». El workflow de GitHub llamaba a las dos rutas; la 343 solo programó la de Outlook. Migración 344 (ensayada; la aplica el dueño): `gmail-indeed` cada 15 minutos, y la ruta acepta el boleto.
+· Línea «Careers» de RingCentral: sigue en «inappropriate account state». Dato nuevo para decidir: en la cuenta de RDZ, de 37 números NINGUNO tiene habilitado mandar SMS (`SmsSender`), así que pasar los SMS a una extensión de RDZ no es solo cambiar una variable: antes hay que activar SMS en RingCentral para esa cuenta. Las llamadas con un clic sí se podrían pasar.
+Repo 1.964.0.
