@@ -36,6 +36,9 @@ describe("boleto de un cron que sale de la base (D-1129)", () => {
     // D-1131: también el fichaje y el buzón de Indeed, cada uno con SU ruta.
     expect(readFileSync("src/app/timetracker/clock-in/api/cron/route.ts", "utf8")).toContain('await cronAutorizadoORBoleto(req, "/timetracker/clock-in/api/cron")');
     expect(readFileSync("src/app/api/cron/outlook-indeed/route.ts", "utf8")).toContain('await cronAutorizadoORBoleto(req, "/api/cron/outlook-indeed")');
+    // D-1132: y el Gmail de Indeed, que es el buzón que de verdad está conectado.
+    expect(readFileSync("src/app/api/cron/gmail-indeed/route.ts", "utf8")).toContain('await cronAutorizadoORBoleto(req, "/api/cron/gmail-indeed")');
+    expect(readFileSync("supabase/migrations/344_cron_de_gmail_indeed.sql", "utf8")).toContain("select public.llama_cron('/api/cron/gmail-indeed')");
     const sql343 = readFileSync("supabase/migrations/343_cron_del_fichaje_desde_la_base.sql", "utf8");
     expect(sql343).toContain("and p_ruta <> '/timetracker/clock-in/api/cron' then");
     expect(sql343).toContain("revoke all on function public.llama_cron(text) from public, anon, authenticated;");
