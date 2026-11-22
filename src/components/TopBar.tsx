@@ -97,7 +97,9 @@ export function TopBar({ me: propMe }: { me: Profile }) {
   // Match the exact route or a sub-route — never a prefix of another tab
   // (e.g. "/accounts" must not light up the "/account" tab).
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
+    href === "/" ? pathname === "/"
+      // D-1125: «/warehouse/arrivals» es su propio botón; no enciende también el de «/warehouse».
+      : href === "/warehouse" ? pathname === "/warehouse" : pathname === href || pathname.startsWith(href + "/");
 
   // Warehouse and Driver each work entirely inside their own screen, so for
   // those roles that screen simply IS their orders and is labelled as such.

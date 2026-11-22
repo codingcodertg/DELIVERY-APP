@@ -112,7 +112,10 @@ export const TABS: { id: string; label: string; label_es: string; href: string; 
   // ruta entonces quye no les paartezca ruta de hoy».
   { id: "map",       label: "🌐 Today's route", label_es: "🌐 Ruta de hoy", href: "/map", roles: ["manager", "sales", "accounting", "warehouse"] },
   { id: "market",    label: "🏪 Market",    label_es: "🏪 Mercado",    href: "/market", roles: ["admin"], group: "general" },
-  { id: "warehouse", label: "🏭 Warehouse", label_es: "🏭 Almacén",    href: "/warehouse", roles: ["warehouse", "admin"], cap: "fulfill" },
+  { id: "warehouse", label: "📦 Warehouse orders", label_es: "📦 Órdenes de almacén",    href: "/warehouse", roles: ["warehouse", "admin"], cap: "fulfill" },
+  // D-1125: la pantalla nueva de almacén (Llegadas): qué chofer pasa por la tienda, qué deja y qué se lleva, según la
+  // ruta publicada. El dueño: «warehouse ahora es órdenes y el botón de Warehouse es lo que estamos creando».
+  { id: "wh-arrivals", label: "🏭 Warehouse", label_es: "🏭 Almacén", href: "/warehouse/arrivals", roles: ["warehouse", "admin"], cap: "fulfill" },
   { id: "driver",    label: "🚚 Driver",    label_es: "🚚 Chofer",     href: "/driver", roles: ["driver", "admin"], cap: "deliver" },
   // The driver's read-only view of the route logistics planned: the day in
   // sequence, grouped into the same truckloads, with the next stop up front.

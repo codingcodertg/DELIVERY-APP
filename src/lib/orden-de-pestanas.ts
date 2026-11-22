@@ -18,8 +18,9 @@ import type { UserRole } from "@/lib/types";
  */
 export function pestanasEnOrden<T extends { id: string }>(pestanas: readonly T[], rol: UserRole): T[] {
   if (rol === "warehouse") {
-    const suya = pestanas.filter((tb) => tb.id === "warehouse");
-    return [...suya, ...pestanas.filter((tb) => tb.id !== "warehouse")];
+    // D-1125: «Órdenes» (su cola) y luego «Warehouse» (Llegadas), las dos primeras.
+    const suyas = ["warehouse", "wh-arrivals"].flatMap((id) => pestanas.filter((tb) => tb.id === id));
+    return [...suyas, ...pestanas.filter((tb) => tb.id !== "warehouse" && tb.id !== "wh-arrivals")];
   }
   if (rol === "driver") {
     // 2026-11-19: la fila del chofer es «Mi ruta», «Órdenes» y «Paradas», y nada más (lo recorta `pestanasDeLaFila`, con el

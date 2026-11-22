@@ -34,7 +34,7 @@ describe("OrderModal se carga en diferido desde un solo punto", () => {
     // 8 desde D-879: la tarjeta del historial de Clientes (`customers/TarjetaDeTrato.tsx`) abre la ficha en su sitio.
     // 9 desde D-912: el Recorrido (track/page.tsx) abre la ficha al pulsar una factura en sus listas.
     // 10 desde D-1040: Auditoría abre la orden en tarjeta.
-    expect(paginas.length).toBe(10);
+    expect(paginas.length).toBe(11);
     for (const p of paginas) {
       const src = readFileSync(p, "utf8");
       expect(src, p).toMatch(/from "@\/components\/OrderModalLazy"/);
