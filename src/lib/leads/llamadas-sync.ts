@@ -15,14 +15,22 @@ import {
 // 10 minutos, con las mismas credenciales de la agenda del dueño): este decide si toca barrer (cada 2 horas) y, si toca,
 // lee el call log de la CUENTA, guarda solo las llamadas de teléfonos de leads, y baja hasta 6 grabaciones pendientes.
 //
-// Por barrido: como mucho 30 páginas de 100; el cursor avanza solo si el listado terminó sin errores. Un 403 de
-// RingCentral («sin_permiso») es de la cuenta: falta ReadCompanyCallLog. Un 429 corta el barrido sin error.
+// Por barrido (D-1130): el call log es del grupo «heavy» de RingCentral, 10 peticiones por minuto. Antes se pedían hasta
+// 30 páginas de 100 de un tirón y, al primer 429, se tiraba TODO lo leído: con un mes de llamadas de la empresa (miles) el
+// primer barrido no terminaba nunca. Ahora: páginas de 1000, como mucho `MAX_PAGINAS` peticiones por barrido, y el mes se
+// recorre por VENTANAS de una semana, de la más vieja a la más nueva; cada ventana que termina se guarda y mueve el cursor,
+// así que un 429 (o quedarse sin presupuesto) solo corta ahí y la siguiente corrida sigue donde se quedó. Mientras falte
+// ponerse al día, se barre en cada corrida del cron (10 min) y no cada 2 horas.
+// Un 403 de RingCentral («sin_permiso») es de la cuenta: falta ReadCompanyCallLog.
 // Nunca se escribe el token, ni la respuesta de RingCentral, ni un número en los logs: solo códigos.
 // ============================================================
 
 const BUCKET = "rc-lead-recordings";
-const MAX_PAGINAS = 30;
-const TAMANO_PAGINA = 100;
+/** Peticiones de listado por barrido: por debajo de las 10 por minuto del grupo «heavy», con sitio para las grabaciones. */
+export const MAX_PAGINAS = 6;
+export const TAMANO_PAGINA = 1000;
+/** El tramo que se pide de una vez. Una semana de la empresa son ~1,500 llamadas: 2 páginas. */
+export const VENTANA_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_GRABACIONES = 6;
 const MAX_INTENTOS_GRABACION = 5;
 const DIAS_PRIMERA_VEZ = 30;
@@ -60,17 +68,24 @@ async function rcGet(server: string, token: string, ruta: string): Promise<{ rec
   return res.json();
 }
 
-/** Recorre las páginas del call log de la cuenta desde `desde`. `completo` es false si se llegó al tope. */
-async function listarLlamadas(server: string, token: string, desde: Date): Promise<{ registros: RegistroDeLlamadaDeLead[]; completo: boolean }> {
+/**
+ * Las páginas del call log de la cuenta entre `desde` y `hasta`, gastando como mucho `presupuesto` peticiones.
+ * `completo` es false si se acabó el presupuesto antes de la última página; `paginas`, las peticiones hechas.
+ */
+async function listarLlamadas(
+  server: string, token: string, desde: Date, hasta: Date, presupuesto: number,
+): Promise<{ registros: RegistroDeLlamadaDeLead[]; completo: boolean; paginas: number }> {
   const registros: RegistroDeLlamadaDeLead[] = [];
-  for (let pagina = 1; pagina <= MAX_PAGINAS; pagina++) {
-    const q = `view=Detailed&dateFrom=${encodeURIComponent(desde.toISOString())}&perPage=${TAMANO_PAGINA}&page=${pagina}`;
+  let paginas = 0;
+  for (let pagina = 1; paginas < presupuesto; pagina++) {
+    const q = `view=Detailed&dateFrom=${encodeURIComponent(desde.toISOString())}&dateTo=${encodeURIComponent(hasta.toISOString())}&perPage=${TAMANO_PAGINA}&page=${pagina}`;
     const data = await rcGet(server, token, `/restapi/v1.0/account/~/call-log?${q}`);
+    paginas++;
     const recs = (data.records ?? []) as RegistroDeLlamadaDeLead[];
     registros.push(...recs);
-    if (!data.navigation?.nextPage || recs.length < TAMANO_PAGINA) return { registros, completo: true };
+    if (!data.navigation?.nextPage || recs.length < TAMANO_PAGINA) return { registros, completo: true, paginas };
   }
-  return { registros, completo: false };
+  return { registros, completo: false, paginas };
 }
 
 /** Todos los teléfonos de los leads, de a mil (PostgREST corta en 1000 por consulta), como claves de 10 dígitos. */
@@ -196,9 +211,11 @@ export async function sincronizarLlamadasDeLeads(opciones: {
   const fallo = (motivo: NonNullable<ResultadoLlamadasDeLeads["motivo"]>): ResultadoLlamadasDeLeads => ({ ...resultado, ok: false, motivo });
 
   const { data: estado, error: eEstado } = await db.from("rc_lead_sync_state")
-    .select("cursor_at, last_run_at").eq("id", 1).maybeSingle();
+    .select("cursor_at, last_run_at, last_error_code").eq("id", 1).maybeSingle();
   if (eEstado) return fallo("base");
-  if (!tocaBarrer(estado?.last_run_at ?? null, ahora)) return null;
+  // Si el último barrido se cortó (límite o presupuesto), falta ponerse al día: se sigue en esta corrida, sin esperar 2 h.
+  const faltaPonerseAlDia = estado?.last_error_code === "limite" || estado?.last_error_code === "listado";
+  if (!faltaPonerseAlDia && !tocaBarrer(estado?.last_run_at ?? null, ahora)) return null;
 
   let token: string;
   try {
@@ -208,18 +225,26 @@ export async function sincronizarLlamadasDeLeads(opciones: {
   }
 
   let motivo: ResultadoLlamadasDeLeads["motivo"];
-  let completo = false;
+  // Hasta dónde quedó TODO leído y guardado. Avanza ventana a ventana; lo que se corte, lo retoma la siguiente corrida.
+  let cursorNuevo: string | null = (estado?.cursor_at as string | null | undefined) ?? null;
   try {
     const cursor = estado?.cursor_at ? Date.parse(estado.cursor_at as string) : NaN;
-    const desde = Number.isFinite(cursor) ? new Date(cursor - MARGEN_MS) : new Date(ahora.getTime() - DIAS_PRIMERA_VEZ * 24 * 60 * 60 * 1000);
+    let desde = Number.isFinite(cursor) ? new Date(cursor - MARGEN_MS) : new Date(ahora.getTime() - DIAS_PRIMERA_VEZ * 24 * 60 * 60 * 1000);
     const claves = await cargarClaves(db);
-    const { registros, completo: lleno } = await listarLlamadas(server, token, desde);
-    completo = lleno;
-    const filas = registros
-      .map((r) => filaDeLlamadaDeLead(r, claves))
-      .filter((f): f is FilaDeLlamadaDeLead => !!f);
-    resultado.llamadas = await guardarLlamadas(db, filas);
-    if (!completo) motivo = "listado";
+    let presupuesto = MAX_PAGINAS;
+    while (desde.getTime() < ahora.getTime()) {
+      if (presupuesto <= 0) { motivo = "listado"; break; }
+      const hasta = new Date(Math.min(desde.getTime() + VENTANA_MS, ahora.getTime()));
+      const { registros, completo, paginas } = await listarLlamadas(server, token, desde, hasta, presupuesto);
+      presupuesto -= paginas;
+      const filas = registros
+        .map((r) => filaDeLlamadaDeLead(r, claves))
+        .filter((f): f is FilaDeLlamadaDeLead => !!f);
+      resultado.llamadas += await guardarLlamadas(db, filas);
+      if (!completo) { motivo = "listado"; break; }
+      cursorNuevo = hasta.toISOString();
+      desde = hasta;
+    }
   } catch (err) {
     if (err instanceof SinPermisoRc) motivo = "sin_permiso";
     else if (err instanceof LimiteDeRc) motivo = "limite";
@@ -231,7 +256,7 @@ export async function sincronizarLlamadasDeLeads(opciones: {
 
   const { error: eEstadoGuardado } = await db.from("rc_lead_sync_state").upsert({
     id: 1,
-    cursor_at: completo ? ahora.toISOString() : (estado?.cursor_at ?? null),
+    cursor_at: cursorNuevo,
     last_run_at: ahora.toISOString(),
     last_error_code: motivo ?? null,
     updated_at: new Date().toISOString(),
