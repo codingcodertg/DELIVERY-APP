@@ -1,0 +1,94 @@
+/* El Panel de Entregas (D-1127): resumen para gerentes. Todo cuelga de `.panel-app`.
+   Colores de las gráficas: dos series (clientes / traslados), validadas con el comprobador de paletas en claro y en
+   oscuro (separación para daltonismo, contraste ≥ 3:1 contra la tarjeta). El verde y el rojo de los cambios son TEXTO,
+   así que van más oscuros que `--green` / `--red` para leerse a 12 px. */
+.panel-app {
+  --viz-1: #2456c9;
+  --viz-2: #eb6834;
+  --viz-bien: #177a4a;
+  --viz-mal: #a10e0e;
+}
+:root[data-theme="dark"] .panel-app {
+  --viz-1: #4f82ff;
+  --viz-2: #d95926;
+  --viz-bien: #5fd39a;
+  --viz-mal: #ffb3bf;
+}
+
+/* ---- La barra de arriba: rango, tienda y secciones, en una fila que envuelve ---- */
+.panel-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+.panel-filtros input[type="date"] { width: 140px; padding: 6px 8px; }
+.panel-filtros select { width: auto; padding: 6px 8px; }
+.panel-filtros .sep { width: 1px; height: 24px; background: var(--line); }
+.panel-secciones { margin-bottom: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+/* ---- Hoy ---- */
+.panel-hoy { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: center; }
+.panel-hoy-cifra { display: flex; flex-direction: column; gap: 2px; min-width: 170px; }
+.panel-hoy-cifra .rotulo { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--gray); }
+.panel-hoy-cifra .cifra { font-family: 'Archivo', system-ui, sans-serif; font-size: 48px; font-weight: 800; line-height: 1; }
+.panel-hoy-cifra .cifra small { font-size: 22px; font-weight: 700; color: var(--gray); }
+.panel-hoy-cifra .pie { font-size: 13px; color: var(--gray); }
+.panel-hoy-etapas { flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.panel-barra-etapas { display: flex; gap: 2px; height: 28px; }
+.panel-barra-etapas > span { display: flex; align-items: center; padding: 0 8px; border-radius: 4px; font-size: 13px; font-weight: 800; min-width: 4px; overflow: visible; white-space: nowrap; }
+.panel-leyenda { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink-soft); }
+.panel-leyenda .muestra { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.panel-leyenda b { color: var(--text); }
+.panel-accion { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--row-line); }
+.panel-accion .rotulo { font-size: 12px; font-weight: 700; color: var(--gray); margin-right: 2px; }
+.panel-accion .chip[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent); }
+.panel-accion .chip.en-cero { color: var(--gray); cursor: default; }
+
+/* ---- Los indicadores ---- */
+.panel-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+@media (max-width: 1000px) { .panel-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.panel-tile { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.panel-tile .rotulo { font-size: 12.5px; font-weight: 600; color: var(--gray); }
+.panel-tile .fila { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.panel-tile .valor { font-family: 'Archivo', system-ui, sans-serif; font-size: 30px; font-weight: 800; line-height: 1.1; white-space: nowrap; }
+.panel-tile .pie { font-size: 12px; color: var(--gray); min-height: 16px; }
+.panel-cambio { font-size: 12px; font-weight: 700; white-space: nowrap; }
+.panel-cambio.bien { color: var(--viz-bien); }
+.panel-cambio.mal { color: var(--viz-mal); }
+.panel-cambio.neutro { color: var(--gray); }
+.panel-cambio .contra { font-weight: 500; color: var(--gray); }
+
+/* ---- La gráfica ---- */
+.panel-grafica { position: relative; outline: none; }
+.panel-grafica:focus-visible { box-shadow: 0 0 0 2px var(--accent); border-radius: 8px; }
+.panel-grafica svg { display: block; width: 100%; }
+.panel-grafica .eje { fill: var(--gray); font-size: 11px; font-variant-numeric: tabular-nums; }
+.panel-grafica .titulo { fill: var(--ink-soft); font-size: 12px; font-weight: 700; }
+.panel-grafica .guia { stroke: var(--row-line); stroke-width: 1; }
+.panel-grafica .base { stroke: var(--line); stroke-width: 1; }
+.panel-grafica .mira { stroke: var(--gray); stroke-width: 1; }
+.panel-grafica .s1 { fill: var(--viz-1); }
+.panel-grafica .s2 { fill: var(--viz-2); }
+.panel-grafica .linea { fill: none; stroke: var(--viz-1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.panel-grafica .punto { fill: var(--viz-1); stroke: var(--card); stroke-width: 2; }
+.panel-grafica .valor-final { fill: var(--text); font-size: 12px; font-weight: 700; }
+.panel-grafica .apagada { opacity: .45; }
+.panel-globo { position: absolute; top: 4px; pointer-events: none; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 12.5px; box-shadow: 0 6px 18px rgba(0, 0, 0, .12); min-width: 150px; z-index: 2; }
+.panel-globo .fecha { font-weight: 700; margin-bottom: 4px; }
+.panel-globo .renglon { display: flex; align-items: center; justify-content: space-between; gap: 14px; color: var(--ink-soft); }
+.panel-globo .renglon b { color: var(--text); font-variant-numeric: tabular-nums; }
+.panel-globo .raya { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
+
+/* ---- Barras dentro de las tablas (comparación entre tiendas y cuentas) ---- */
+.panel-barra-celda { display: flex; align-items: center; gap: 8px; }
+.panel-barra-celda .riel { flex: 1 1 auto; height: 8px; min-width: 30px; }
+.panel-barra-celda .riel > i { display: block; height: 8px; border-radius: 0 4px 4px 0; background: var(--viz-1); min-width: 2px; }
+.panel-barra-celda b { flex: 0 0 auto; min-width: 28px; text-align: right; font-variant-numeric: tabular-nums; }
+.panel-bajo { color: var(--amber-text); font-weight: 700; }
+.panel-calor { display: block; border-radius: 4px; padding: 2px 6px; text-align: right; font-variant-numeric: tabular-nums; }
+.panel-escala { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--gray); margin-top: 8px; }
+.panel-escala .rampa { width: 120px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, color-mix(in srgb, var(--viz-1) 8%, var(--card)), color-mix(in srgb, var(--viz-1) 60%, var(--card))); }
+
+@media (max-width: 640px) {
+  .panel-hoy-cifra .cifra { font-size: 40px; }
+  .panel-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .panel-tile { padding: 10px 12px; }
+  .panel-tile .valor { font-size: 24px; }
+  .panel-tile .fila svg { display: none; }
+}

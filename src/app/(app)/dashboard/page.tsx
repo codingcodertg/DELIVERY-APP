@@ -2,15 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AttentionPanel } from "@/components/AttentionPanel";
-import { useRouter } from "next/navigation";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
-import { stageInfo, stageLabel, STAGES } from "@/lib/constants";
 import {
-  approvalTurnaroundMs, computeKpis, countByStage, deliveryTrend, driverKpis, driverQualityKpis, driverShiftKpis,
-  groupVolume, inDateRange, overdueOrders, salesRepStatsThisMonth,
+  approvalTurnaroundMs, driverKpis, driverQualityKpis, driverShiftKpis, inDateRange, salesRepStatsThisMonth,
 } from "@/lib/analytics";
-import { Sparkline } from "@/components/Sparkline";
 import { PuntualidadPorChofer } from "@/components/PuntualidadPorChofer";
 import { ReportesDeChoferes } from "@/components/ReportesDeChoferes";
 import { puedeVerReportesDeChoferes } from "@/lib/reportes-choferes/permiso";
@@ -23,13 +19,29 @@ import {
   daysBetween, downloadCSV, endOfMonthISO, endOfWeekISO, fmtDate, fmtDuration, fmtMoney,
   shiftDateISO, shiftMonthISO, startOfMonthISO, startOfWeekISO, toCSV, todayISO, deliveryColumns, orderLabel,
 } from "@/lib/utils";
-import type { Stage } from "@/lib/types";
+import type { Delivery } from "@/lib/types";
 import { redondeaDinero, sumaDinero, sumaMillas } from "@/lib/totales";
 import { alcanceDelPanel, choferesDelPanel, ordenesDelPanel } from "@/lib/panel-por-tienda";
 import { millasPorTienda, paradasDeMillas } from "@/lib/millas-por-tienda";
 import { TituloPlegable } from "@/components/TituloPlegable";
 import { esTraslado, separaTraslados } from "@/lib/traslados-de-chofer";
 import { ResumenDeChoferes } from "@/components/ResumenDeChoferes";
+import { TablaDinamica } from "@/components/TablaDinamica";
+import { HoyDelPanel } from "@/components/panel/HoyDelPanel";
+import { IndicadoresDelPanel } from "@/components/panel/IndicadoresDelPanel";
+import { TendenciaDelPanel } from "@/components/panel/TendenciaDelPanel";
+import { ComparacionDelPanel } from "@/components/panel/ComparacionDelPanel";
+import { OrderModal } from "@/components/OrderModalLazy";
+import { periodoAnterior, resumenDelPeriodo, seriePorPeriodo } from "@/lib/panel-resumen";
+import "./panel.css";
+
+/** Las secciones del Panel (D-1127). */
+const SECCIONES = [
+  { key: "resumen", en: "📊 Summary", es: "📊 Resumen" },
+  { key: "explorar", en: "🧮 Pivot tables", es: "🧮 Tablas dinámicas" },
+  { key: "choferes", en: "🚚 Drivers", es: "🚚 Choferes" },
+  { key: "tiendas", en: "🏬 Stores & accounts", es: "🏬 Tiendas y cuentas" },
+] as const;
 
 // Default the date-range to the last 30 days.
 function daysAgoISO(n: number): string {
@@ -47,7 +59,6 @@ type RangeMode = "week" | "month" | "custom";
 export default function DashboardPage() {
   const { me, users, deliveries, events, settings, shifts, ready, ensureDeliveriesSince } = useData();
   const { lang, t } = usePrefs();
-  const router = useRouter();
   const [from, setFrom] = useState(daysAgoISO(30));
   // G-16: the provider keeps DELIVERIES_WINDOW_DAYS of orders; a range that starts earlier asks
   // for the rest on demand (idempotent, no-op when already loaded).
@@ -86,7 +97,13 @@ export default function DashboardPage() {
   // De qué tiendas son las cifras (D-396): el gerente, las suyas y las de su grupo; admin y logística,
   // todas. TODO lo de abajo bebe de `delPanel`, nunca de `deliveries` a secas: una sola tarjeta que
   // leyera la lista entera volvería a enseñarle la empresa al gerente.
-  const alcance = useMemo(() => alcanceDelPanel(me, settings.stores), [me, settings.stores]);
+  const alcanceBase = useMemo(() => alcanceDelPanel(me, settings.stores), [me, settings.stores]);
+  // Quien ve todas (admin, logística) puede mirar UNA tienda: ve lo mismo que vería su gerente (D-1127).
+  const [tiendaElegida, setTiendaElegida] = useState("");
+  const alcance = useMemo(
+    () => (alcanceBase.tipo === "todas" && tiendaElegida ? alcanceDelPanel({ role: "manager", store: tiendaElegida, permissions: [] }, settings.stores) : alcanceBase),
+    [alcanceBase, tiendaElegida, settings.stores],
+  );
   const delPanel = useMemo(
     () => ordenesDelPanel(deliveries, alcance, settings.order_type_rules),
     [deliveries, alcance, settings.order_type_rules],
@@ -101,8 +118,24 @@ export default function DashboardPage() {
     [scoped, settings.order_type_rules],
   );
 
-  const kpis = useMemo(() => computeKpis(scoped), [scoped]);
-  const stageCounts = useMemo(() => countByStage(scoped, STAGES.map((s) => s.key) as Stage[]), [scoped]);
+  // El resumen (D-1127): el periodo, el periodo anterior (misma duración, justo antes) y la serie para la gráfica.
+  const hoyISO = todayISO();
+  const anterior = useMemo(() => periodoAnterior(from, to, rangeMode === "month"), [from, to, rangeMode]);
+  useEffect(() => { void ensureDeliveriesSince(anterior.from); }, [anterior.from, ensureDeliveriesSince]);
+  const resumen = useMemo(() => resumenDelPeriodo(scoped, hoyISO), [scoped, hoyISO]);
+  const resumenAnterior = useMemo(() => resumenDelPeriodo(inDateRange(delPanel, anterior.from, anterior.to), hoyISO), [delPanel, anterior, hoyISO]);
+  const serie = useMemo(
+    () => seriePorPeriodo(scoped, from, to, (d) => esTraslado(d.order_type, settings.order_type_rules), hoyISO),
+    [scoped, from, to, settings.order_type_rules, hoyISO],
+  );
+  const variasTiendas = alcance.tipo === "todas" || (alcance.tipo === "tiendas" && alcance.nombres.length > 1);
+  const [vista, setVista] = useState<(typeof SECCIONES)[number]["key"]>("resumen");
+  const [abierta, setAbierta] = useState<Delivery | null>(null);
+  const textoDeRango = (a: string, b: string) => {
+    const f = (iso: string) => new Date(iso + "T12:00:00").toLocaleDateString(lang === "es" ? "es-MX" : "en-US", { day: "numeric", month: "short", year: a.slice(0, 4) === b.slice(0, 4) ? undefined : "numeric" });
+    return a === b ? f(a) : `${f(a)} – ${f(b)}`;
+  };
+
   const drivers = useMemo(
     () => driverKpis(
       scoped,
@@ -130,8 +163,6 @@ export default function DashboardPage() {
   // Timing + quality KPIs (Tier 1) over the scoped deliveries.
   const quality = useMemo(() => driverQualityKpis(clientesDelRango), [clientesDelRango]);
 
-  // Delivery trend over the range (for the sparklines).
-  const trend = useMemo(() => deliveryTrend(scoped, from, to), [scoped, from, to]);
 
   // Peer ranking: position each driver by on-time %, then rating, then orders
   // (nulls sink). Used for the rank badge in the performance table.
@@ -179,24 +210,19 @@ export default function DashboardPage() {
       totalGpsOff,
     };
   }, [drivers, idle, quality]);
-  const stores = useMemo(() => groupVolume(scoped, "store"), [scoped]);
   // Millas y reparto del gas por tienda (D-738): paradas de las órdenes entregadas/recogidas del rango,
   // y la Intertienda la paga la tienda que recibe. Las reglas, en `millas-por-tienda.ts`.
   const gas = useMemo(
     () => millasPorTienda(paradasDeMillas(scoped, settings.stores, settings.order_type_rules)),
     [scoped, settings.stores, settings.order_type_rules],
   );
-  const accounts = useMemo(() => groupVolume(scoped, "account").slice(0, 8), [scoped]);
   const turnaround = useMemo(() => approvalTurnaroundMs(scoped, events), [scoped, events]);
-  const overdue = useMemo(() => overdueOrders(scoped), [scoped]);
   // Not scoped to the from/to range picker above — this is always "this
   // calendar month", regardless of what range is selected elsewhere on the page.
   const repStats = useMemo(() => salesRepStatsThisMonth(delPanel, users), [delPanel, users]);
 
   if (!me) return null;
 
-  const maxStage = Math.max(1, ...stageCounts.map((s) => s.count));
-  const maxStore = Math.max(1, ...stores.map((s) => s.total));
 
   const exportRange = () => {
     if (!scoped.length) return;
@@ -232,7 +258,6 @@ export default function DashboardPage() {
     downloadCSV(`driver_stats_${from}_to_${to}.csv`, toCSV(headers, rows));
   };
 
-  const openOrder = (id: string) => router.push(`/?order=${id}`);
 
   // Tablas de choferes y tienda: `TablaEstandar` (▾ ⚙ mover y anchos). Mismos números y formatos que antes.
   const num1 = (n: number) => n.toLocaleString(lang === "es" ? "es-MX" : "en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -240,37 +265,46 @@ export default function DashboardPage() {
   const pctTexto = (v: number | null) => (v == null ? "—" : `${num1(v)} %`);
 
   return (
-    <>
+    <div className="panel-app">
       {/* Above the KPIs on purpose: these are the things nothing else would
           have told anyone about. Renders nothing when the board is healthy. */}
-      <AttentionPanel deliveries={delPanel} onOpen={(d) => openOrder(d.id)} />
+      <AttentionPanel deliveries={delPanel} onOpen={(d) => setAbierta(d)} />
       <div className="page-head">
         <h2>{t("Dashboard", "Panel")}</h2>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => step(-1)} title={t("Previous period", "Período anterior")}>◀</button>
-          <label style={{ margin: 0, textTransform: "none", letterSpacing: 0 }}>
-            {t("From", "Desde")}
-            <input type="date" value={from} max={to} onChange={(e) => { setFrom(e.target.value); setRangeMode("custom"); }} style={{ width: 150, marginTop: 2 }} />
-          </label>
-          <label style={{ margin: "0 0 0 10px", textTransform: "none", letterSpacing: 0 }}>
-            {t("To", "Hasta")}
-            <input type="date" value={to} min={from} max={todayISO()} onChange={(e) => { setTo(e.target.value); setRangeMode("custom"); }} style={{ width: 150, marginTop: 2 }} />
-          </label>
-          <button className="btn btn-ghost btn-sm" onClick={() => step(1)} title={t("Next period", "Período siguiente")}>▶</button>
-          <span style={{ width: 1, height: 24, background: "var(--line)", margin: "0 2px" }} />
-          <button className={"btn btn-sm " + (from === todayISO() && to === todayISO() ? "btn-primary" : "btn-ghost")} onClick={today}>{t("Today", "Hoy")}</button>
-          <button className={"btn btn-sm " + (rangeMode === "week" && from === startOfWeekISO() ? "btn-primary" : "btn-ghost")} onClick={thisWeek}>{t("This week", "Esta semana")}</button>
-          <button className={"btn btn-sm " + (rangeMode === "month" && from === startOfMonthISO() ? "btn-primary" : "btn-ghost")} onClick={thisMonth}>{t("This month", "Este mes")}</button>
-          <button className="btn btn-ghost btn-sm" onClick={lastMonth}>{t("Last month", "Mes pasado")}</button>
-          {me?.role === "admin" && <>
-            <button className="btn btn-ghost" onClick={exportRange} disabled={!scoped.length}>⬇ {t("Export range", "Exportar rango")}</button>
-            <button className="btn btn-ghost" onClick={exportDrivers} disabled={!drivers.length && !idle.length}>⬇ {t("Export driver stats", "Exportar stats de choferes")}</button>
-          </>}
-        </div>
+        {me?.role === "admin" && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <button className="btn btn-ghost btn-sm" onClick={exportRange} disabled={!scoped.length}>⬇ {t("Export range", "Exportar rango")}</button>
+            <button className="btn btn-ghost btn-sm" onClick={exportDrivers} disabled={!drivers.length && !idle.length}>⬇ {t("Export driver stats", "Exportar stats de choferes")}</button>
+          </div>
+        )}
+      </div>
+
+      {/* Una sola fila de filtros, arriba de todo lo que acotan: el periodo y (quien ve todas) la tienda. */}
+      <div className="panel-filtros" data-panel-filtros>
+        <button className={"btn btn-sm " + (from === todayISO() && to === todayISO() ? "btn-primary" : "btn-ghost")} onClick={today}>{t("Today", "Hoy")}</button>
+        <button className={"btn btn-sm " + (rangeMode === "week" && from === startOfWeekISO() ? "btn-primary" : "btn-ghost")} onClick={thisWeek}>{t("This week", "Esta semana")}</button>
+        <button className={"btn btn-sm " + (rangeMode === "month" && from === startOfMonthISO() ? "btn-primary" : "btn-ghost")} onClick={thisMonth}>{t("This month", "Este mes")}</button>
+        <button className="btn btn-ghost btn-sm" onClick={lastMonth}>{t("Last month", "Mes pasado")}</button>
+        <button className={"btn btn-sm " + (rangeMode === "custom" && from === daysAgoISO(30) && to === todayISO() ? "btn-primary" : "btn-ghost")} onClick={() => setRange(daysAgoISO(30), todayISO(), "custom")}>{t("Last 30 days", "Últimos 30 días")}</button>
+        <span className="sep" />
+        <button className="btn btn-ghost btn-sm" onClick={() => step(-1)} title={t("Previous period", "Período anterior")} aria-label={t("Previous period", "Período anterior")}>◀</button>
+        <input type="date" value={from} max={to} aria-label={t("From", "Desde")} onChange={(e) => { if (e.target.value) { setFrom(e.target.value); setRangeMode("custom"); } }} />
+        <span className="hint" style={{ margin: 0 }}>→</span>
+        <input type="date" value={to} min={from} max={todayISO()} aria-label={t("To", "Hasta")} onChange={(e) => { if (e.target.value) { setTo(e.target.value); setRangeMode("custom"); } }} />
+        <button className="btn btn-ghost btn-sm" onClick={() => step(1)} title={t("Next period", "Período siguiente")} aria-label={t("Next period", "Período siguiente")}>▶</button>
+        {alcanceBase.tipo === "todas" && (
+          <>
+            <span className="sep" />
+            <select value={tiendaElegida} onChange={(e) => setTiendaElegida(e.target.value)} aria-label={t("Store", "Tienda")} data-panel-tienda>
+              <option value="">{t("All stores", "Todas las tiendas")}</option>
+              {settings.stores.map((st) => <option key={st.name} value={st.name}>{st.name}</option>)}
+            </select>
+          </>
+        )}
       </div>
 
       {alcance.tipo === "tiendas" && (
-        <p className="hint" data-panel-tiendas style={{ marginTop: -6, marginBottom: 12 }}>
+        <p className="hint" data-panel-tiendas style={{ marginTop: -4, marginBottom: 12 }}>
           🏬 {t("Showing only", "Solo se muestra")}: <b>{alcance.nombres.join(" + ")}</b>
         </p>
       )}
@@ -290,6 +324,32 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
+          {/* Las secciones (D-1127): el Resumen cabe en una pantalla; lo demás, a un clic, con los mismos filtros. */}
+          <div className="panel-secciones">
+            <div className="viewtoggle" role="tablist" data-panel-secciones>
+              {SECCIONES.map((sec) => (
+                <button key={sec.key} role="tab" aria-selected={vista === sec.key} className={"vt " + (vista === sec.key ? "on" : "")} onClick={() => setVista(sec.key)}>{t(sec.en, sec.es)}</button>
+              ))}
+            </div>
+          </div>
+
+          {vista === "resumen" && (
+            <>
+              <HoyDelPanel ordenes={delPanel} onAbrir={setAbierta} />
+              <h3 className="hint" style={{ margin: "4px 2px 8px", fontSize: 13, fontWeight: 700 }}>{t("The period", "El periodo")}: {textoDeRango(from, to)}</h3>
+              <IndicadoresDelPanel actual={resumen} anterior={resumenAnterior} cubetas={serie.cubetas} rangoAnterior={textoDeRango(anterior.from, anterior.to)} />
+              {turnaround.avgMs != null && (
+                <p className="hint" data-panel-aprobacion style={{ margin: "-6px 2px 14px" }}>
+                  {t("Average time to approve an order", "Tiempo promedio para aprobar una orden")}: <b>{fmtDuration(turnaround.avgMs)}</b> ({turnaround.count} {t("approved", "aprobadas")})
+                </p>
+              )}
+              <TendenciaDelPanel cubetas={serie.cubetas} grano={serie.grano} />
+              {variasTiendas && <ComparacionDelPanel ordenes={scoped} hoy={todayISO()} por="tienda" id="dash-por-tienda" titulo={t("Stores compared", "Comparación entre tiendas")} />}
+            </>
+          )}
+
+          {vista === "choferes" && (
+            <>
           {/* ---------- Resumen de choferes: una tarjeta por chofer, ocho cifras, mes elegible (junta 2026-11-19) ---------- */}
           <ResumenDeChoferes ordenes={delPanel} choferesIds={misChoferes?.ids ?? null} />
           <div style={{ display: "flex", justifyContent: "center", margin: "0 0 16px" }}>
@@ -411,38 +471,14 @@ export default function DashboardPage() {
 
             </>
           )}
+            </>
+          )}
 
-          {/* ---------- KPI tiles ---------- */}
-          <div className="kpi-grid">
-            <Kpi n={kpis.total} label={t("Orders", "Órdenes")} />
-            <Kpi n={kpis.pending} label={t("Pending approval", "Pendientes")} tone="amber" />
-            <Kpi n={kpis.inWarehouse} label={t("In warehouse", "En almacén")} tone="purple" />
-            <Kpi n={kpis.outForDelivery} label={t("Out for delivery", "En reparto")} tone="accent" />
-            <Kpi n={kpis.delivered} label={t("Delivered", "Entregadas")} tone="green" />
-            <Kpi n={kpis.overdue} label={t("Overdue", "Expiradas")} tone={kpis.overdue ? "red" : undefined} />
-            <Kpi n={kpis.totalPallets} label={t("Pallets", "Pallets")} />
-            <Kpi n={kpis.totalMiles} label={t("Route miles", "Millas")} />
-            <Kpi n={fmtMoney(kpis.totalFees)} label={t("Fees charged", "Cobros de entrega")} tone="green" small />
-            <Kpi n={kpis.onTimePct == null ? "—" : `${kpis.onTimePct}%`} label={t("On-time", "A tiempo")} tone={kpis.onTimePct != null && kpis.onTimePct < 80 ? "amber" : "green"} />
-            <Kpi n={turnaround.avgMs == null ? "—" : fmtDuration(turnaround.avgMs)} label={t("Avg approval", "Aprob. prom.")} small />
-          </div>
-
-          {/* ---------- Trends ---------- */}
-          <div className="card">
-            <TituloPlegable>📈 {t("Trends", "Tendencias")}</TituloPlegable>
-            <p className="hint" style={{ marginTop: -6, marginBottom: 10 }}>
-              {t("Delivery volume, on-time rate and rating across the selected range.", "Volumen de entregas, puntualidad y calificación en el rango seleccionado.")}
-            </p>
-            {trend.every((p) => p.delivered === 0) ? (
-              <div className="empty">{t("No deliveries in this range.", "Sin entregas en este rango.")}</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <TrendRow label={t("Deliveries", "Entregas")} values={trend.map((p) => p.delivered)} last={trend[trend.length - 1]?.delivered ?? null} color="var(--accent)" />
-                <TrendRow label={t("On-time %", "A tiempo %")} values={trend.map((p) => p.onTimePct)} last={trend[trend.length - 1]?.onTimePct ?? null} suffix="%" color="var(--green)" />
-              </div>
-            )}
-          </div>
-
+          {vista === "tiendas" && (
+            <>
+              {!variasTiendas && <ComparacionDelPanel ordenes={scoped} hoy={todayISO()} por="tienda" id="dash-por-tienda" titulo={t("Your store in the period", "Su tienda en el periodo")} />}
+              {/* Solo entregas a clientes: en un traslado la «cuenta» es otra tienda, y no es un cliente. */}
+              <ComparacionDelPanel ordenes={clientesDelRango} hoy={todayISO()} por="cuenta" id="dash-por-cuenta" tope={10} titulo={t("Top accounts (customer deliveries)", "Cuentas principales (entregas a clientes)")} />
           {/* ---------- Millas y gas por tienda (D-738) ---------- */}
           <div className="card" data-panel-millas-por-tienda>
             <TituloPlegable>⛽ {t("Miles & fuel share by store", "Millas y gas por tienda")}</TituloPlegable>
@@ -507,10 +543,14 @@ export default function DashboardPage() {
                 ]} />
             )}
           </div>
+            </>
+          )}
 
+          {vista === "explorar" && <TablaDinamica ordenes={scoped} clientes={clientesDelRango} usuarios={users} />}
         </>
       )}
-    </>
+      {abierta && <OrderModal me={me} existing={abierta} startEditing={false} onClose={() => setAbierta(null)} />}
+    </div>
   );
 }
 
@@ -530,16 +570,3 @@ function Kpi({ n, label, tone, small }: { n: number | string; label: string; ton
 }
 
 // One labelled sparkline row: metric name · sparkline · latest value.
-function TrendRow({ label, values, last, suffix = "", color }: {
-  label: string; values: (number | null)[]; last: number | null; suffix?: string; color: string;
-}) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "6px 0", borderBottom: "1px solid var(--line)" }}>
-      <span className="hint" style={{ width: 110, flexShrink: 0 }}>{label}</span>
-      <div style={{ flex: 1, minWidth: 0, overflowX: "auto" }}><Sparkline values={values} color={color} width={220} /></div>
-      <b style={{ width: 64, textAlign: "right", flexShrink: 0, color, fontVariantNumeric: "tabular-nums" }}>
-        {last == null ? "—" : `${last}${suffix}`}
-      </b>
-    </div>
-  );
-}
