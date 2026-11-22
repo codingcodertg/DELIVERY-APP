@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cronAuthorized } from "@/lib/clockin/cronAuth";
+import { cronAutorizadoORBoleto } from "@/lib/cron-boleto-base";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { credencialesDeLaSincronizacion } from "@/lib/ringcentral-choferes/credenciales";
 import { sincronizarRcChoferes } from "@/lib/ringcentral-choferes/sync";
@@ -17,7 +17,8 @@ export const maxDuration = 60;
  * Nunca devuelve el detalle de RingCentral ni de la base: solo el motivo genérico y los contadores.
  */
 export async function GET(req: Request) {
-  if (!cronAuthorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // D-1129: entra con el CRON_SECRET (Vercel, GitHub) o con un boleto de la base para esta ruta (migración 342).
+  if (!(await cronAutorizadoORBoleto(req, "/api/cron/rc-choferes"))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (new URL(req.url).searchParams.get("verify") === "1") return NextResponse.json({ ok: true, verify: true });
 
   const credenciales = credencialesDeLaSincronizacion();
