@@ -96,8 +96,10 @@ export function pivotea(
     if (dim === "stage" && ordenEtapas.length) return keys.sort((a, b) => ordenEtapas.indexOf(a) - ordenEtapas.indexOf(b));
     return keys.sort((a, b) => (a === SIN_DATO ? 1 : b === SIN_DATO ? -1 : (totales.get(b) ?? 0) - (totales.get(a) ?? 0) || a.localeCompare(b)));
   };
-  const filas = ordena([...tf.keys()], filasPor, tf);
-  const columnas = ordena([...tc.keys()], columnasPor, tc);
+  // Lo que suma cero no se pinta (un chofer sin entregas en «entregadas»): una fila de puros puntos no dice nada.
+  const conAlgo = (keys: string[], totales: Map<string, number>) => { const v = keys.filter((k) => (totales.get(k) ?? 0) !== 0); return v.length ? v : keys; };
+  const filas = ordena(conAlgo([...tf.keys()], tf), filasPor, tf);
+  const columnas = ordena(conAlgo([...tc.keys()], tc), columnasPor, tc);
   const r = (n: number) => Math.round(n * 100) / 100;
   let max = 0;
   for (const v of m.values()) max = Math.max(max, v);

@@ -1,7 +1,8 @@
 "use client";
 
-// Tabla dinámica del Panel (D-1127): filas × columnas × valor, con vistas rápidas para el gerente y celdas sombreadas
-// (más oscuro = más, un solo color). Es la tabla estándar: se ordena por cualquier columna. La lógica, en `@/lib/pivote`.
+// Tablas dinámicas del Panel (D-1127): filas × columnas × valor, con celdas sombreadas (más oscuro = más, un solo color)
+// y totales. Arriba, las que un gerente mira siempre, ya armadas; abajo, una para armar la propia. Cada una es la tabla
+// estándar: se ordena por cualquier columna. La lógica, en `@/lib/pivote`.
 import { useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { stageLabel, STAGES } from "@/lib/constants";
@@ -12,18 +13,22 @@ import type { Delivery, Profile, Stage } from "@/lib/types";
 
 const MESES_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MESES_ES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+type Usuarios = readonly Pick<Profile, "id" | "full_name">[];
 
-export function TablaDinamica({ ordenes, usuarios }: { ordenes: readonly Delivery[]; usuarios: readonly Pick<Profile, "id" | "full_name">[] }) {
+/** Una tabla dinámica ya decidida (qué va en filas, en columnas y qué se suma). */
+function VistaPivote({ ordenes, usuarios, filas, columnas, medida, id, tope }: {
+  ordenes: readonly Delivery[]; usuarios: Usuarios; filas: Dimension; columnas: Dimension; medida: Medida;
+  /** Único: con él se guarda la vista de la tabla de cada persona. */
+  id: string;
+  /** Solo las primeras N filas (las de más total); el total sigue siendo el de todas. */
+  tope?: number;
+}) {
   const { lang, t } = usePrefs();
-  const [filas, setFilas] = useState<Dimension>("store");
-  const [columnas, setColumnas] = useState<Dimension>("stage");
-  const [medida, setMedida] = useState<Medida>("orders");
   const nombres = useMemo(() => new Map(usuarios.map((u) => [u.id, u.full_name])), [usuarios]);
   const p = useMemo(
-    () => pivotea(ordenes, filas, columnas, medida, (id) => (id ? nombres.get(id) ?? null : null), STAGES.map((s) => s.key)),
+    () => pivotea(ordenes, filas, columnas, medida, (uid) => (uid ? nombres.get(uid) ?? null : null), STAGES.map((s) => s.key)),
     [ordenes, filas, columnas, medida, nombres],
   );
-
   const meses = lang === "es" ? MESES_ES : MESES_EN;
   const etiqueta = (dim: Dimension, k: string) => {
     if (k === SIN_DATO) return t("(none)", "(sin dato)");
@@ -38,24 +43,47 @@ export function TablaDinamica({ ordenes, usuarios }: { ordenes: readonly Deliver
   const sombra = (n: number) => (n && p.max ? `color-mix(in srgb, var(--viz-1) ${Math.round(8 + (n / p.max) * 52)}%, var(--card))` : undefined);
   const sinColumnas = columnas === "none";
   const rotulo = (d: Dimension) => DIMENSIONES.find((x) => x.key === d);
+  const filasVistas = tope ? p.filas.slice(0, tope) : p.filas;
 
-  // Una columna por valor de la dimensión elegida. La clave lleva el valor, así el orden y los anchos de cada cruce
-  // se guardan aparte (el `id` de la tabla también cambia con el cruce).
+  // Una columna por valor de la dimensión elegida. La clave lleva el valor: el orden y los anchos de cada cruce se
+  // guardan aparte (el `id` de la tabla también cambia con el cruce).
   const cols: ColumnaEstandar<string>[] = [
-    { key: "fila", en: rotulo(filas)?.en ?? "", es: rotulo(filas)?.es ?? "", ancho: filas === "account" ? 240 : 170, fija: true,
+    { key: "fila", en: rotulo(filas)?.en ?? "", es: rotulo(filas)?.es ?? "", ancho: filas === "account" ? 230 : 160, fija: true,
       valor: (f) => etiqueta(filas, f), celda: (f) => <strong>{etiqueta(filas, f)}</strong> },
     ...(sinColumnas ? [] : p.columnas.map((c): ColumnaEstandar<string> => ({
-      key: "c:" + c, en: etiqueta(columnas, c), es: etiqueta(columnas, c), ancho: 118, numerico: true,
+      key: "c:" + c, en: etiqueta(columnas, c), es: etiqueta(columnas, c), ancho: 112, numerico: true,
       valor: (f) => p.celda(f, c),
       celda: (f) => { const n = p.celda(f, c); return <span className="panel-calor" style={{ background: sombra(n) }}>{n ? fmt(n) : "·"}</span>; },
     }))),
-    { key: "total", en: "Total", es: "Total", ancho: 110, numerico: true, fija: true, valor: (f) => p.totalFila(f), celda: (f) => <strong>{fmt(p.totalFila(f))}</strong> },
+    { key: "total", en: "Total", es: "Total", ancho: 100, numerico: true, fija: true, valor: (f) => p.totalFila(f), celda: (f) => <strong>{fmt(p.totalFila(f))}</strong> },
   ];
   const totales = Object.fromEntries([
-    ["fila", t("Total", "Total")],
+    ["fila", tope && p.filas.length > tope ? t(`Total (all ${p.filas.length})`, `Total (las ${p.filas.length})`) : t("Total", "Total")],
     ...(sinColumnas ? [] : p.columnas.map((c) => ["c:" + c, <strong key={c}>{fmt(p.totalColumna(c))}</strong>] as const)),
     ["total", <strong key="t">{fmt(p.total)}</strong>],
   ]);
+
+  if (!ordenes.length) return <div className="empty">{t("No orders in this range.", "Sin órdenes en este rango.")}</div>;
+  return (
+    <>
+      <TablaEstandar id={id} key={id} sinCaja data-tabla="dash-pivote" filas={filasVistas} claveDe={(f) => f} columnas={cols} totales={totales} />
+      {!sinColumnas && <div className="panel-escala"><span>{t("Less", "Menos")}</span><span className="rampa" aria-hidden /><span>{t("More", "Más")}</span></div>}
+    </>
+  );
+}
+
+/** Las tablas dinámicas del Panel: las ya armadas y la que cada quien arma. */
+export function TablaDinamica({ ordenes, clientes, usuarios }: {
+  /** Las órdenes del periodo (ya acotadas a las tiendas de quien mira). */
+  ordenes: readonly Delivery[];
+  /** Solo las entregas a clientes: en un traslado la «cuenta» es otra tienda. */
+  clientes: readonly Delivery[];
+  usuarios: Usuarios;
+}) {
+  const { t } = usePrefs();
+  const [filas, setFilas] = useState<Dimension>("store");
+  const [columnas, setColumnas] = useState<Dimension>("week");
+  const [medida, setMedida] = useState<Medida>("delivered");
 
   const selector = (valor: string, onCambio: (v: string) => void, opciones: { key: string; en: string; es: string }[], conNinguna = false) => (
     <select value={valor} onChange={(e) => onCambio(e.target.value)}>
@@ -66,27 +94,25 @@ export function TablaDinamica({ ordenes, usuarios }: { ordenes: readonly Deliver
   const etiquetaDe = { margin: 0, textTransform: "none", letterSpacing: 0, display: "flex", alignItems: "center", gap: 6 } as const;
 
   return (
-    <div className="card" data-tabla-dinamica>
-      <h3 style={{ margin: "0 0 6px" }}>{t("Pivot table", "Tabla dinámica")}</h3>
-      <p className="hint" style={{ margin: "0 0 12px" }}>{t("Cross the period's orders any way you need. Start with a ready-made view or pick your own rows, columns and value.", "Cruce las órdenes del periodo como lo necesite. Empiece con una vista lista o elija sus filas, columnas y valor.")}</p>
-      <div className="filters" style={{ marginBottom: 10 }}>
-        {VISTAS_RAPIDAS.map((v) => {
-          const on = v.filas === filas && v.columnas === columnas && v.medida === medida;
-          return <button key={v.key} className={"chip" + (on ? " on" : "")} aria-pressed={on} onClick={() => { setFilas(v.filas); setColumnas(v.columnas); setMedida(v.medida); }}>{t(v.en, v.es)}</button>;
-        })}
-      </div>
-      <div className="panel-filtros">
-        <label style={etiquetaDe}>{t("Rows", "Filas")} {selector(filas, (v) => { setFilas(v as Dimension); if (v === columnas) setColumnas("none"); }, DIMENSIONES)}</label>
-        <label style={etiquetaDe}>{t("Columns", "Columnas")} {selector(columnas, (v) => setColumnas(v as Dimension), DIMENSIONES.filter((d) => d.key !== filas), true)}</label>
-        <label style={etiquetaDe}>{t("Value", "Valor")} {selector(medida, (v) => setMedida(v as Medida), MEDIDAS)}</label>
-      </div>
+    <div data-tablas-dinamicas>
+      {VISTAS_RAPIDAS.map((v) => (
+        <div className="card" key={v.key} data-tabla-dinamica={v.key}>
+          <h3 style={{ margin: "0 0 10px" }}>{t(v.en, v.es)}</h3>
+          <VistaPivote ordenes={v.filas === "account" ? clientes : ordenes} usuarios={usuarios} filas={v.filas} columnas={v.columnas} medida={v.medida}
+            id={"dash-pivote-" + v.key} tope={v.filas === "account" ? 10 : undefined} />
+        </div>
+      ))}
 
-      {!ordenes.length ? <div className="empty">{t("No orders in this range.", "Sin órdenes en este rango.")}</div> : (
-        <>
-          <TablaEstandar id={`dash-pivote-${filas}-${columnas}`} key={`${filas}-${columnas}`} sinCaja data-tabla="dash-pivote" filas={p.filas} claveDe={(f) => f} columnas={cols} totales={totales} />
-          {!sinColumnas && <div className="panel-escala"><span>{t("Less", "Menos")}</span><span className="rampa" aria-hidden /><span>{t("More", "Más")}</span></div>}
-        </>
-      )}
+      <div className="card" data-tabla-dinamica="propia">
+        <h3 style={{ margin: "0 0 6px" }}>{t("Build your own", "Arme la suya")}</h3>
+        <p className="hint" style={{ margin: "0 0 12px" }}>{t("Pick what goes in the rows, in the columns, and what to add up.", "Elija qué va en las filas, qué en las columnas y qué se suma.")}</p>
+        <div className="panel-filtros">
+          <label style={etiquetaDe}>{t("Rows", "Filas")} {selector(filas, (v) => { setFilas(v as Dimension); if (v === columnas) setColumnas("none"); }, DIMENSIONES)}</label>
+          <label style={etiquetaDe}>{t("Columns", "Columnas")} {selector(columnas, (v) => setColumnas(v as Dimension), DIMENSIONES.filter((d) => d.key !== filas), true)}</label>
+          <label style={etiquetaDe}>{t("Value", "Valor")} {selector(medida, (v) => setMedida(v as Medida), MEDIDAS)}</label>
+        </div>
+        <VistaPivote ordenes={ordenes} usuarios={usuarios} filas={filas} columnas={columnas} medida={medida} id={`dash-pivote-${filas}-${columnas}`} />
+      </div>
     </div>
   );
 }

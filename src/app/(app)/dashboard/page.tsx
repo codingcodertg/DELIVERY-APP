@@ -38,9 +38,9 @@ import "./panel.css";
 /** Las secciones del Panel (D-1127). */
 const SECCIONES = [
   { key: "resumen", en: "📊 Summary", es: "📊 Resumen" },
+  { key: "explorar", en: "🧮 Pivot tables", es: "🧮 Tablas dinámicas" },
   { key: "choferes", en: "🚚 Drivers", es: "🚚 Choferes" },
   { key: "tiendas", en: "🏬 Stores & accounts", es: "🏬 Tiendas y cuentas" },
-  { key: "explorar", en: "🔎 Explore", es: "🔎 Explorar" },
 ] as const;
 
 // Default the date-range to the last 30 days.
@@ -546,7 +546,7 @@ export default function DashboardPage() {
             </>
           )}
 
-          {vista === "explorar" && <TablaDinamica ordenes={scoped} usuarios={users} />}
+          {vista === "explorar" && <TablaDinamica ordenes={scoped} clientes={clientesDelRango} usuarios={users} />}
         </>
       )}
       {abierta && <OrderModal me={me} existing={abierta} startEditing={false} onClose={() => setAbierta(null)} />}
