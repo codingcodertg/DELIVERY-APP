@@ -107,14 +107,14 @@ export function driverStats(deliveries: Delivery[]): DriverStat[] {
 }
 
 // When an order was promised by (delivery_date + window end, or end of day). ms.
-function promisedDue(d: Delivery): number | null {
+export function promisedDue(d: Delivery): number | null {
   if (!d.delivery_date) return null;
   const win = parseWindow(d.delivery_windows);
   const endMin = win ? win[1] : 24 * 60 - 1;
   return new Date(d.delivery_date + "T00:00:00").getTime() + endMin * 60_000;
 }
 // When it was actually delivered — the POD timestamp, else the last update. ms.
-function deliveredAtMs(d: Delivery): number | null {
+export function deliveredAtMs(d: Delivery): number | null {
   const t = d.pod_delivered_at ?? (d.stage === "delivered" ? d.updated_at : null);
   return t ? new Date(t).getTime() : null;
 }
