@@ -14,7 +14,7 @@ const TELEFONO = "+19565550100";
 type Estado = { cursor_at: string | null; last_run_at: string | null; last_error_code: string | null } | null;
 
 /** Una base de mentira: lo justo que usa el sincronizador. Guarda el estado y las filas que le escriben. */
-function baseFalsa(estado: Estado) {
+function baseFalsa(estado: Estado, cola = 0) {
   const guardado = { estado, filas: [] as { rc_call_id: string }[] };
   const from = (tabla: string) => {
     const q: { op: string; payload?: unknown; cuenta?: boolean } = { op: "select" };
@@ -26,7 +26,7 @@ function baseFalsa(estado: Estado) {
       if (tabla === "leads") return { data: [{ owner_phone: TELEFONO, owner_phone_manual: null, tenant_phone: null, tenant_phone_manual: null }], error: null };
       if (tabla === "rc_lead_calls") {
         if (q.op === "upsert") { guardado.filas.push(...(q.payload as { rc_call_id: string }[])); return { error: null }; }
-        return q.cuenta ? { count: 0, error: null } : { data: [], error: null };
+        return q.cuenta ? { count: cola, error: null } : { data: [], error: null };
       }
       return { data: null, error: null };
     };
@@ -111,5 +111,15 @@ describe("barrido de llamadas de leads sin pasarse del límite de RingCentral (D
     const { db } = baseFalsa({ cursor_at: hace10, last_run_at: hace10, last_error_code: null });
     expect(await sincronizarLlamadasDeLeads({ db, credenciales, ahora: AHORA, server: "https://rc.test" })).toBeNull();
     expect(pedidas).toHaveLength(0);
+  });
+
+  it("al día pero con grabaciones en cola: no barre, pero sí entra a bajarlas (D-1131)", async () => {
+    const pedidas = ringcentralFalso();
+    const hace10 = new Date(AHORA.getTime() - 10 * 60_000).toISOString();
+    const { db, guardado } = baseFalsa({ cursor_at: hace10, last_run_at: hace10, last_error_code: null }, 3);
+    const r = await sincronizarLlamadasDeLeads({ db, credenciales, ahora: AHORA, server: "https://rc.test" });
+    expect(r).toMatchObject({ ok: true, llamadas: 0, pendientes: 3 });
+    expect(pedidas).toHaveLength(0); // ningún listado
+    expect(guardado.estado).toMatchObject({ last_run_at: hace10 }); // el estado del barrido no se toca
   });
 });
