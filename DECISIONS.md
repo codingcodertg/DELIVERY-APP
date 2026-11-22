@@ -52797,3 +52797,8 @@ El dueño: «una view que los de warehouse elijan qué driver llegó a la tienda
 Lee el plan PUBLICADO de hoy (almacén ya puede: política de la 133) y cruza cada parada con la orden viva. Línea del día con un punto por pasada (la hora) y «Todas» por chofer; por defecto, el primer chofer y su pasada más cercana a la hora actual. «Viene a dejar» (intertiendas que terminan en la tienda; ✓ = Recibir, D-409) y «Se va a llevar» (sus recogidas ahí; ✓ = etapa Lista) lado a lado; 📷 sube fotos (cámara o galería, varias); ✕ con razón opcional deja la orden SIN CHOFER (nota en el historial, Deshacer) y sale de su lista; «Sin asignar en esta tienda» la asigna a un chofer SOLO si está en la tienda ahora (fuera de eso, el logistic manager). Capacidad 10 pallets: solo avisa. Admin elige tienda; almacén ve la suya. Toda su ruta del día en la columna izquierda. Lógica pura y probada en `almacen-llegadas.ts`; el demo usa la ruta del lunes 23 nov copiada.
 Pendiente: avisos (push) al chofer cuando almacén le quita o le asigna una orden; versión de celular.
 Sello `deliveries` 1.651.0; repo 1.957.0.
+
+## D-1126 · Warehouse (Llegadas): el admin cambia de día con flechas y calendario (2026-11-22)
+
+El dueño: «solo a admin agrega para cambiar fechas con las flechas y todo». En la pantalla de Llegadas (D-1125), junto a las tiendas, el admin tiene ◀ fecha ▶ y «Hoy» cuando mira otro día; almacén sigue viendo solo hoy. Otro día lee el plan PUBLICADO de esa fecha; para los estados de los choferes, un día pasado cuenta como terminado y uno futuro como sin empezar.
+Sello `deliveries` 1.652.0; repo 1.958.0.

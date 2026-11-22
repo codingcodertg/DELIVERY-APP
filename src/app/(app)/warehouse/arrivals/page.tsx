@@ -34,7 +34,13 @@ export default function WarehouseArrivalsPage() {
   const { me, realRole, deliveries, settings, events, setStage, updateDelivery, addNote, notify } = useData();
   const { t } = usePrefs();
   const esAdmin = realRole === "admin" || me?.role === "admin";
-  const fecha = DEMO ? "2026-11-23" : todayISO();
+  // D-1126: el admin cambia de día con las flechas o el calendario; almacén siempre ve hoy.
+  const hoy = DEMO ? "2026-11-23" : todayISO();
+  const [fechaElegida, setFechaElegida] = useState<string | null>(null);
+  const [sel, setSel] = useState<string | null>(null);
+  const [pasada, setPasada] = useState<number | null | undefined>(undefined);
+  const fecha = esAdmin && fechaElegida ? fechaElegida : hoy;
+  const mueveDia = (n: number) => { const d = new Date(fecha + "T12:00:00"); d.setDate(d.getDate() + n); setFechaElegida(d.toISOString().slice(0, 10)); setSel(null); setPasada(undefined); };
   const [tiendaElegida, setTiendaElegida] = useState<string>("");
   const suya = DEMO && me?.store && !me.store.startsWith("RDZ ") ? "RDZ " + me.store : (me?.store ?? "");
   const tienda = esAdmin ? (tiendaElegida || suya || "RDZ Pharr") : suya;
@@ -45,6 +51,7 @@ export default function WarehouseArrivalsPage() {
   useEffect(() => {
     if (DEMO) return;
     let vivo = true;
+    setPlan(null); setError(null);
     void (async () => {
       const db = createClient();
       const { data: p, error: e1 } = await db.from("route_plans").select("id").eq("plan_date", fecha).eq("status", "published").order("version", { ascending: false }).limit(1).maybeSingle();
@@ -64,14 +71,14 @@ export default function WarehouseArrivalsPage() {
 
   const porId = useMemo(() => new Map(deliveries.map((d) => [d.id, d])), [deliveries]);
   const paradas: ParadaDeAlmacen[] = useMemo(() => {
-    if (DEMO) return PARADAS_DEMO.map((p) => ({ ...p, stage: demo.etapa[p.id] ?? p.stage }));
+    if (DEMO) return fecha === hoy ? PARADAS_DEMO.map((p) => ({ ...p, stage: demo.etapa[p.id] ?? p.stage })) : [];
     return (plan?.paradas ?? []).flatMap((s) => {
       const d = porId.get(s.id);
       if (!d) return [];
       return [{ ...s, code: orderLabel(d), no: d.order_no, inv: d.invoice_num ?? "", type: d.order_type ?? "", from: d.pickup_name || d.store || "", to: d.delivery_name ?? "",
         pal: Number(d.actual_pallets ?? d.est_pallets ?? 0), stage: d.stage, win: d.delivery_windows ?? "", city: ciudad(d.delivery_address) }];
     });
-  }, [plan, porId, demo]);
+  }, [plan, porId, demo, fecha, hoy]);
   const dueno = useCallback((p: ParadaDeAlmacen): string | null => {
     if (DEMO) return p.id in demo.dueno ? demo.dueno[p.id] : p.dr;
     const d = porId.get(p.id);
@@ -79,12 +86,11 @@ export default function WarehouseArrivalsPage() {
   }, [porId, demo]);
 
   // ---- La hora (cada minuto)
-  const [ahora, setAhora] = useState(() => (DEMO ? 500 : minutosDeHoy(new Date())));
-  useEffect(() => { if (DEMO) return; const i = setInterval(() => setAhora(minutosDeHoy(new Date())), 60000); return () => clearInterval(i); }, []);
+  const [reloj, setReloj] = useState(() => (DEMO ? 500 : minutosDeHoy(new Date())));
+  const ahora = fecha === hoy ? reloj : fecha < hoy ? 24 * 60 : 0;
+  useEffect(() => { if (DEMO) return; const i = setInterval(() => setReloj(minutosDeHoy(new Date())), 60000); return () => clearInterval(i); }, []);
 
   const choferes = useMemo(() => ordenaChoferes(choferesDeLaTienda(paradas, tienda, dueno), tienda, ahora), [paradas, tienda, dueno, ahora]);
-  const [sel, setSel] = useState<string | null>(null);
-  const [pasada, setPasada] = useState<number | null | undefined>(undefined);
   const actual = choferes.find((x) => x.c.dr === sel) ?? choferes[0] ?? null;
   const pasadaVista = pasada === undefined ? (actual ? pasadaMasCercana(actual.c, ahora) : null) : pasada;
   const grupo = actual && pasadaVista != null ? actual.c.pasadas.find((g) => g[0].eta === pasadaVista) ?? null : null;
@@ -225,6 +231,12 @@ export default function WarehouseArrivalsPage() {
     <div style={{ paddingBottom: 96 }}>
       {esAdmin && (
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <button className="btn btn-sm btn-ghost" aria-label={t("Previous day", "Día anterior")} onClick={() => mueveDia(-1)}>◀</button>
+            <input type="date" value={fecha} onChange={(e) => { if (e.target.value) { setFechaElegida(e.target.value); setSel(null); setPasada(undefined); } }} style={{ width: "auto", padding: "5px 7px" }} />
+            <button className="btn btn-sm btn-ghost" aria-label={t("Next day", "Día siguiente")} onClick={() => mueveDia(1)}>▶</button>
+            {fecha !== hoy && <button className="btn btn-sm btn-primary" onClick={() => { setFechaElegida(null); setSel(null); setPasada(undefined); }}>{t("Today", "Hoy")}</button>}
+          </span>
           <span className="hint" style={{ margin: 0 }}>{t("Store", "Tienda")}</span>
           <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 2, background: "var(--card)", border: "1px solid var(--line)", borderRadius: 8, padding: 2 }}>
             {tiendas.map((s) => <button key={s} onClick={() => { setTiendaElegida(s); setSel(null); setPasada(undefined); }}
@@ -233,7 +245,7 @@ export default function WarehouseArrivalsPage() {
         </div>
       )}
 
-      {error && <div className="banner err">{t("Couldn't read today's route: ", "No se pudo leer la ruta de hoy: ")}{error}</div>}
+      {error && <div className="banner err">{t("Couldn't read the route: ", "No se pudo leer la ruta: ")}{error}</div>}
 
       <div className="card" style={{ overflowX: "auto" }}>
         <div style={{ minWidth: 640, display: "grid", gap: 6 }}>
@@ -265,7 +277,7 @@ export default function WarehouseArrivalsPage() {
               </div>
             );
           })}
-          {!choferes.length && <div className="hint">{plan || DEMO ? t("No driver comes by this store today.", "Ningún chofer pasa por esta tienda hoy.") : t("Loading today's route…", "Cargando la ruta de hoy…")}</div>}
+          {!choferes.length && <div className="hint">{plan || DEMO ? (fecha === hoy ? t("No driver comes by this store today.", "Ningún chofer pasa por esta tienda hoy.") : t("No published route passes by this store that day.", "Ninguna ruta publicada pasa por esta tienda ese día.")) : t("Loading today's route…", "Cargando la ruta de hoy…")}</div>}
         </div>
       </div>
 
