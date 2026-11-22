@@ -52815,3 +52815,10 @@ El dueño: «en el dashboard de deliveries quiero pivot tables y un completo rea
 Se fueron los once cuadritos de arriba y la tarjeta de «Tendencias»: sus números están en los indicadores, en «Hoy» y en la tabla dinámica; «aprobación promedio» queda en una línea bajo los indicadores. Colores de la gráfica validados (daltonismo y contraste) en claro y oscuro. Lógica pura y probada en `panel-resumen.ts` y `pivote.ts`. El alcance por tienda (D-396) no cambia: todo sigue bebiendo de `delPanel`.
 Visto en pantalla (demo con datos simulados al volumen real): escritorio, teléfono y oscuro. No visto con datos de producción.
 Sello `deliveries` 1.653.0; repo 1.959.0.
+
+## D-1128 · RingCentral: las llamadas de toda la empresa se leen con un usuario administrador (`RINGCENTRAL_LLAMADAS_JWT`) (2026-11-22)
+
+Las llamadas de los choferes por extensión (app «RingCentral» del hub) y las de los leads piden en RingCentral el permiso *ReadCompanyCallLog* en el USUARIO con el que entra la app, y el de la agenda del dueño (ext. 908) no lo tiene: probado, contesta 403. El dueño generó un JWT con un usuario administrador (ext. 901); probado en solo lectura contra la misma app: registro de llamadas de la empresa 200, 49 extensiones, grabaciones 200.
+Variable nueva `RINGCENTRAL_LLAMADAS_JWT` (Vercel, producción, sensible). `credencialesDeLaSincronizacion` usa la app de la agenda (mismo client id y secret) con ese JWT; la usan el cron `rc-choferes`, `/api/ringcentral/extensiones` y `/sincronizar`, y ahora también las llamadas de leads dentro del cron `rc-comms`. Las comunicaciones de candidatos y el guardado de contactos NO cambian: siguen con el JWT de la agenda, porque leen y escriben en SU extensión. Sin la variable, todo como antes.
+Aparte, visto en la prueba y sin tocar: en este equipo, la app «Careers» (la de `RINGCENTRAL_JWT`, SMS y llamadas) contesta «inappropriate account state» con sus llaves de `.env.local`. Falta ver si en producción pasa lo mismo.
+Repo 1.960.0 (sin sello de app: no cambia ninguna pantalla).
