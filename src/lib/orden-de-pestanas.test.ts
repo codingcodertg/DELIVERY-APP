@@ -34,16 +34,16 @@ describe("oficina: Órdenes y Ruta de hoy, y nada más, por ahora", () => {
 
 describe("almacén: Órdenes antes que Ruta de hoy", () => {
   it("su cola (la pestaña que para él se lee «Órdenes») va primero", () => {
-    expect(barraDe("warehouse").map((tb) => tb.id)).toEqual(["warehouse", "map"]);
+    expect(barraDe("warehouse").map((tb) => tb.id)).toEqual(["warehouse", "wh-arrivals", "map"]);
   });
 
   it("sin reordenar, TABS la pondría detrás: por eso existe pestanasEnOrden", () => {
-    expect(TABS.filter((tb) => canOpenTab(tb.id, { role: "warehouse", permissions: [] })).map((tb) => tb.id)).toEqual(["map", "warehouse"]);
+    expect(TABS.filter((tb) => canOpenTab(tb.id, { role: "warehouse", permissions: [] })).map((tb) => tb.id)).toEqual(["map", "warehouse", "wh-arrivals"]);
   });
 
   it("solo mueve la suya; lo que le concedan de más queda en el orden de TABS", () => {
     const con = pestanasEnOrden(TABS.filter((tb) => canOpenTab(tb.id, { role: "warehouse", permissions: ["route_plan"] })), "warehouse");
-    expect(con.map((tb) => tb.id)).toEqual(["warehouse", "map", "routes"]);
+    expect(con.map((tb) => tb.id)).toEqual(["warehouse", "wh-arrivals", "map", "routes"]);
   });
 
   it("a los demás roles no les cambia el orden ni les quita nada", () => {
@@ -79,7 +79,7 @@ describe("chofer: «Mi ruta» primero y «Órdenes» al final (D-523)", () => {
 
   it("lo que le concedan de más queda en medio, en el orden de TABS", () => {
     const con = pestanasEnOrden(TABS.filter((tb) => canOpenTab(tb.id, { role: "driver", permissions: ["fulfill", "route_plan"] })), "driver");
-    expect(con.map((tb) => tb.id)).toEqual(["myroute", "warehouse", "inspection", "routes", "driver", "paradas"]);
+    expect(con.map((tb) => tb.id)).toEqual(["myroute", "warehouse", "wh-arrivals", "inspection", "routes", "driver", "paradas"]);
   });
 
   it("y es su pantalla de inicio: al entrar y desde «Ver como»", () => {
