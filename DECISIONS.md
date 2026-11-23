@@ -52862,3 +52862,12 @@ Quedaba pendiente desde D-1125 («pendiente el diseño de móvil»). El dueño l
 · «Sin asignar en esta tienda» y «Toda su ruta de hoy» son los mismos bloques de escritorio, al final.
 Verificado en pantalla a 390 px (admin y warehouse, demo): sin desborde lateral; quitar con «Sin razón» mueve la orden a «Sin asignar». No probado en un teléfono real (la cámara).
 Deliveries 1.655.0 · repo 1.965.0.
+
+## D-1134 · Revisión de las migraciones pendientes; lecturas de otras personas, por la vista (prepara la 291) (2026-11-22)
+
+El dueño, sobre las seis pendientes (237, 238, 239, 279, 291, 305): «hazlas». Las seis ensayan limpio (ROLLBACK). Revisadas una a una:
+· **238** (teléfonos a «(956) 340-5910»), **239** (términos de pago a tres opciones), **279** (tabla `route_drafts`; el botón de borradores de Routes Manager ya está en la app y sin la tabla no guarda) y **305** (la base cierra una sesión de Time Tracker si un latido salta más de 16 min): se pueden aplicar. La 238 no rompe el cruce de llamadas de leads (va por `claveDeTelefono`, solo dígitos).
+· **237 NO se aplica.** Es el bloqueo duro de ventas para hoy después de las 12. D-955 (10 nov) la reemplazó por «toda orden nace para mañana; poner hoy pregunta y NO bloquea», y retiró su lógica de pantalla: aplicada hoy, la base rechazaría con un error crudo lo que la pantalla permite. Solo si el dueño pide expresamente el bloqueo.
+· **291 NO se aplica todavía.** Cierra la lectura de `profiles` a la fila propia (o admin / RR. HH.). Auditadas las 215 lecturas directas: seis seguían leyendo a OTRA persona por la tabla con la sesión del usuario y se habrían roto para quien no es admin ni RR. HH.: el destinatario del chat (`/api/chat/send` contestaría «Recipient not found» a casi todos), la lista de gente del Time Tracker, las bajas del fichaje, los nombres en la hoja de conteo y en la hoja de aprobación, y el idioma del admin al ver como otro usuario. Las seis pasan a `perfiles_publicos` (290), que ya trae esas columnas.
+· Queda por revisar antes de la 291: las políticas y funciones de la base que consulten `profiles` de otra persona (hace falta la conexión de Supabase, hoy caída), y verificar por rol al aplicarla, con el dueño mirando (como pedía el plan en dos fases de las migraciones 290 y 291).
+Time Tracker 1.36.1 · Clock-in 0.50.1 · repo 1.966.0.

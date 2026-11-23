@@ -59,7 +59,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ i
         if (!puedeGestionarConteo(quien, conteo.store)) redirect("/operaciones/conteos");
         const [{ data: ls }, { data: gente }] = await Promise.all([
           supabase.from("warehouse_count_lines").select("*").eq("count_id", id).order("position"),
-          supabase.from("profiles").select("id, full_name"),
+          supabase.from("perfiles_publicos").select("id, full_name"), // D-1134: nombres de otros, por la vista (291)
         ]);
         lineas = ((ls ?? []) as Record<string, unknown>[]).map(lineaDeLaFila);
         // 333: las órdenes pendientes (si la 333 no está, la tabla no existe y la hoja sale sin ellas).

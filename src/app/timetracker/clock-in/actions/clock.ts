@@ -573,7 +573,7 @@ export async function getCrewNow(): Promise<
   const [{ data: people }, { data: bajas }] = await Promise.all([
     peopleQ.order("full_name"),
     // D-707: clockin.profiles no tiene la baja; la marca vive en public.profiles.left_at (205).
-    supabase.schema("public").from("profiles").select("id").not("left_at", "is", null).lte("left_at", hoyEnBrownsville()),
+    supabase.schema("public").from("perfiles_publicos").select("id").not("left_at", "is", null).lte("left_at", hoyEnBrownsville()), // D-1134: por la vista (291)
   ]);
   const deBaja = new Set(((bajas ?? []) as { id: string }[]).map((b) => b.id));
   const nombre = new Map((people ?? []).filter((p) => !deBaja.has(p.id as string)).map((p) => [p.id as string, (p.full_name as string) ?? "—"]));

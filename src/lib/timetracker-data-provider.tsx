@@ -454,7 +454,8 @@ export function DataProvider({ children, me, tiendas = SIN_TIENDAS }: { children
     // del presencial, que sale donde al remoto le sale el proyecto. Misma regla que el layout para la
     // propia persona (`resolverTiendaYPuesto`), así que el gerente y el empleado leen lo mismo.
     const [pf, es, pr, asn, rq, au, fichas, sitios] = await Promise.all([
-      supabase.schema("public").from("profiles")
+      // D-1134: la lista de gente sale de la vista pública (290); con la 291 la tabla solo deja leer la fila propia.
+      supabase.schema("public").from("perfiles_publicos")
         .select("id, full_name, timetracker_role, store, left_at")
         .not("timetracker_role", "is", null)
         .order("full_name"),

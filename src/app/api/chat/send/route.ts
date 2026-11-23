@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   if (e0 || !yo) return errorAlCliente("chat/send", e0 ?? "No profile", 503);
 
   // El destinatario tiene que existir en la base. Sin esto, un id inventado dejaba una fila y una campana huérfanas.
-  const { data: destino, error: eDestino } = await auth.supabase.from("profiles").select("id").eq("id", to).maybeSingle();
+  const { data: destino, error: eDestino } = await auth.supabase.from("perfiles_publicos").select("id").eq("id", to).maybeSingle(); // D-1134: otra persona se lee por la vista (291)
   if (eDestino || !destino) return NextResponse.json({ error: "Recipient not found." }, { status: 404 });
 
   const { data: msg, error } = await auth.supabase.from("chat_messages")

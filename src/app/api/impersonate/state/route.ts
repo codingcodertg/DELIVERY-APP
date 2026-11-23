@@ -66,7 +66,7 @@ export async function GET(request: Request) {
       .select("full_name, role")
       .eq("id", user.id)
       .maybeSingle(),
-    guardado ? ssr.from("profiles").select("language").eq("id", guardado.adminId).maybeSingle() : null,
+    guardado ? ssr.from("perfiles_publicos").select("language").eq("id", guardado.adminId).maybeSingle() : null, // D-1134: fila de otra persona, por la vista (291)
   ]);
 
   if (!guardado) {
