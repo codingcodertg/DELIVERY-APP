@@ -52887,3 +52887,8 @@ Tres solicitudes pendientes:
 · **Roberto, App de Entregas · Almacén: «Need a date option».** Ya estaba: D-1126 (◀ fecha ▶ y «Hoy», solo admin), publicada horas después de su solicitud.
 · **Un vendedor, Control de Horas · Fichar: «The timer keeps stopping randomly»** (Safari en Mac, cronómetro web). Medido en sus 51 sesiones de 21 días: 16 duran medio minuto o menos y 15 de esas empiezan después de las 18:30. Es el corte diario (`CIERRE_DIARIO` 18:30, `mirar` cada 30 s en `Cronometro`): a quien no es exento le para el reloj a los ~30 s de arrancarlo, casi siempre una vez; vuelve a pulsar Start y ya no se lo para (`paradoPorCorteRef`). Trabaja de noche casi a diario (sesiones de 1 h a 1 h 35 min después del corte), así que cada tarde ve el reloj pararse «solo». Además, el 22 nov su sesión de las 19:08 la cerró la guarda nueva de la migración 305 (`closed:guard`, último latido 19:18:20): el navegador pasó más de 16 min sin escribir. Es la misma regla que ya aplicaba el cron (15 min sin latido), pero en el cronómetro web el reloj se queda parado: lo de «sigue en una fila nueva» solo lo hace el escritorio. SIN CAMBIAR todavía: qué hace el corte con quien arranca después de las 18:30 es decisión del dueño.
 Deliveries 1.656.0 · repo 1.968.0.
+
+## D-1137 · Se quita el botón «Vista de escritorio» de la cabecera de la vista móvil (2026-11-22)
+
+Solicitud de ayuda del dueño (Hub · Vista móvil, con captura del botón azul de la cabecera): «ese vista de escritorio está de más, quítalo». Se quita el botón que D-1135 puso junto a la casa. Se queda lo otro de D-1135: en esa página la burbuja de abajo dice «Vista de escritorio» en vez de «Vista móvil».
+Repo 1.969.0.

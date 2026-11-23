@@ -49,14 +49,7 @@ export function VistaMovil({ rutaInicial, rutaDeInicio = "/", anchoInicial }: { 
     <>
       <div className="page-head">
         <h2>📱 {t("Mobile view", "Vista móvil")}</h2>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          {/* D-1135 (el dueño): estando en la vista móvil hace falta un botón que diga «Vista de escritorio» y vuelva. */}
-          <a className="btn btn-primary" data-cambia-vista="escritorio" href={rutaParaElMarco(campo, rutaDeInicio)}
-            title={t("Take this screen out of the phone frame, at full size", "Sacar esta pantalla del marco de teléfono, a tamaño normal")}>
-            <span aria-hidden>🖥️</span> {t("Desktop view", "Vista de escritorio")}
-          </a>
-          <BotonCasa />
-        </span>
+        <BotonCasa />
       </div>
 
       <div className="card">
