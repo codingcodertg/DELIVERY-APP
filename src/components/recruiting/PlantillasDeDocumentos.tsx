@@ -16,7 +16,7 @@ import {
 } from "@/app/recruiting/actions/plantillas";
 import {
   CATEGORIAS_SUGERIDAS, EXTENSIONES_VARIANTE, MARCADORES, MAX_BYTES_VARIANTE, extensionPermitida, filtraDocumentos, tamanoLegible,
-  grupoDeIdioma, idiomaDeVariante, parejaDeIdioma, variantesEnSuIdioma, type IdiomaDeVariante,
+  etiquetaEnOtroIdioma, grupoDeIdioma, idiomaDeVariante, parejaDeIdioma, variantesEnSuIdioma, type IdiomaDeVariante,
 } from "@/lib/recruiting/plantillas-de-documentos";
 import { InterruptorDeIdioma } from "@/components/recruiting/InterruptorDeIdioma";
 import { camposDeDocx, etiquetasDeCampos } from "@/lib/recruiting/campos-de-documento";
@@ -28,7 +28,7 @@ import { camposDeDocx, etiquetasDeCampos } from "@/lib/recruiting/campos-de-docu
 
 type Modo =
   | { tipo: "documento"; doc?: DocumentoFila }
-  | { tipo: "variante"; variante?: VarianteFila; documentoId: string };
+  | { tipo: "variante"; variante?: VarianteFila; documentoId: string; /** Variante de la que se agrega el otro idioma: llena el formulario. */ base?: VarianteFila };
 
 export function PlantillasDeDocumentos({ onClose }: { onClose: () => void }) {
   const { t, lang } = usePrefs();
@@ -189,8 +189,8 @@ export function PlantillasDeDocumentos({ onClose }: { onClose: () => void }) {
       <div className="hint" data-ayuda style={{ background: "var(--tint-blue)", borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
         <b>{t("How it works", "Cómo funciona")}:</b> {t("in Word, highlight in yellow the parts that change per employee (date, position, hours, pay). The app asks HR for them each time, and every yellow field must be filled before printing. Hours and pay are typed by hand, never taken from the employee file.",
           "en Word, marque en amarillo lo que cambia por persona (fecha, puesto, horas, pago). La app se lo pregunta a RR. HH. cada vez, y todo campo amarillo se llena antes de imprimir. Horas y pago se escriben a mano, nunca vienen del expediente.")}
-        <div style={{ marginTop: 4 }}>{t("Two languages: add the Spanish file as another variant with the same name ending in «(Español)». A language switch then appears on the document.",
-          "Dos idiomas: agregue el archivo en español como otra variante con el mismo nombre terminado en «(Español)». Así sale el interruptor de idioma en el documento.")}</div>
+        <div style={{ marginTop: 4 }}>{t("Two languages: on a variant, press «＋ Español» and choose the Spanish file. The document then gets an English | Español switch.",
+          "Dos idiomas: en una variante, pulse «＋ Español» y elija el archivo en español. Así el documento tiene el interruptor English | Español.")}</div>
         <div style={{ marginTop: 4 }}>{t("Also works: placeholders", "También sirven los marcadores")}: {MARCADORES.map((m) => (
           <code key={m.key} style={{ marginRight: 6 }}>{`{{${m.key}}}`}</code>))}</div>
       </div>
@@ -255,14 +255,14 @@ export function PlantillasDeDocumentos({ onClose }: { onClose: () => void }) {
               </div>
 
               {modo?.tipo === "variante" && (
-                <form className="card" style={{ marginTop: 10 }} data-form="variante"
+                <form className="card" style={{ marginTop: 10 }} data-form="variante" key={modo.variante?.id ?? modo.base?.id ?? "nueva"}
                   onSubmit={(e) => { e.preventDefault(); const f = (e.currentTarget.elements.namedItem("archivo") as HTMLInputElement | null)?.files?.[0] ?? null; void guardaVariante(e.currentTarget, f); }}>
                   <div className="grid g3">
-                    <div><label>{t("Variant name", "Nombre de la variante")}</label><input name="label" required defaultValue={modo.variante?.label ?? ""} placeholder="Junior Sales — $13/hr + commission" /></div>
+                    <div><label>{t("Variant name", "Nombre de la variante")}</label><input name="label" required defaultValue={modo.variante?.label ?? (modo.base ? etiquetaEnOtroIdioma(modo.base.label) : "")} placeholder="Junior Sales — $13/hr + commission" /></div>
                     <div><label>{t("Applies to positions (comma separated)", "Aplica a los puestos (separados por coma)")}</label>
-                      <input name="positions" list="puestos-de-documentos" defaultValue={modo.variante?.positions.join(", ") ?? ""} />
+                      <input name="positions" list="puestos-de-documentos" defaultValue={(modo.variante ?? modo.base)?.positions.join(", ") ?? ""} />
                       <datalist id="puestos-de-documentos">{(roles ?? []).map((p) => <option key={p} value={p} />)}</datalist></div>
-                    <div><label>{t("Offer note (optional)", "Nota de la oferta (opcional)")}</label><input name="offerNote" defaultValue={modo.variante?.offer_note ?? ""} placeholder="$11/hr" /></div>
+                    <div><label>{t("Offer note (optional)", "Nota de la oferta (opcional)")}</label><input name="offerNote" defaultValue={(modo.variante ?? modo.base)?.offer_note ?? ""} placeholder="$11/hr" /></div>
                   </div>
                   {!modo.variante && (
                     <div style={{ marginTop: 10 }}>
@@ -319,6 +319,13 @@ export function PlantillasDeDocumentos({ onClose }: { onClose: () => void }) {
                         setNuevaVersionDe(null);
                       }); }}>⬆ {t("New version", "Nueva versión")}</button>
                       <button className="btn btn-ghost btn-sm" data-accion="historial" onClick={() => void verHistorial(v)}>🕘 {t("History", "Historial")}</button>
+                      {!parejaDeIdioma(varsDelDoc, v) && (
+                        <button className="btn btn-ghost btn-sm" data-accion="agregar-idioma"
+                          title={t("Upload this same variant in the other language", "Subir esta misma variante en el otro idioma")}
+                          onClick={() => { setDetectados(null); setModo({ tipo: "variante", documentoId: doc.id, base: v }); }}>
+                          ＋ {idiomaDeVariante(v.label) === "es" ? "English" : "Español"}
+                        </button>
+                      )}
                       <button className="btn btn-ghost btn-sm" data-accion="editar-variante" onClick={() => { setDetectados(null); setModo({ tipo: "variante", documentoId: doc.id, variante: v }); }}>✏️ {t("Edit", "Editar")}</button>
                       <button className="btn btn-ghost btn-sm" data-accion="borrar-variante" onClick={() => void borraVar(v)}>🗑 {t("Delete", "Borrar")}</button>
                     </div>

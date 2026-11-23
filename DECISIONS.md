@@ -52920,3 +52920,19 @@ El dueño, con la Política de Comisiones 2026 ya subida en inglés y en españo
 · **Campos amarillos:** antes solo horas y pago eran obligatorios. Ahora lo son todos (`clavesObligatorias`); la raya de escribir a mano («________») no cuenta como dato (`esHueco`), así que una fecha de vigencia sin fecha de ingreso en el expediente empieza vacía y hay que ponerla. Horas y pago siguen empezando vacíos y a mano.
 Verificado en pantalla (escritorio y teléfono) con los seis archivos reales, montando las dos pantallas con datos de mentira en local: la pantalla de Employees no existe en la demo. No probado contra la base real ni la impresión en papel.
 Recruiting 0.113.0 · repo 1.972.0.
+
+## D-1141 · Auditoría de los documentos de ingreso en dos idiomas: lo que se encontró y se corrigió (2026-11-23)
+
+El dueño, tras D-1140: «audita y asegura que todo esté bien y user friendly». Dos lecturas: una revisión del código por un agente aparte (sin ver mis conclusiones) y una pasada en pantalla con los seis archivos reales (claro, oscuro, pantalla en inglés y en español, escritorio y teléfono, red lenta, y el .docx descargado abierto por dentro).
+Lo que estaba bien y se confirmó: los tres pares se arman solos; el interruptor guarda la variante del idioma usado; lo escrito pasa de un idioma al otro; el .docx en español baja con los valores puestos y sin amarillo; sin desbordes en teléfono; se llega y se cambia con el teclado.
+Lo que se corrigió:
+· **La ventana de revisión brincaba al cambiar de idioma** (de 792 a 174 px mientras bajaba el otro archivo, con «Cargando…» sola). Ahora lo que hay se queda atenuado y sin tocar hasta que llega el otro idioma (`cambiando`); los botones y el interruptor esperan.
+· **Interruptor chico y descuadrado:** medía 25 px de alto y su etiqueta quedaba 4 px más abajo que «Variante» y «Estado». Ahora mide lo mismo que las listas (31 px) y 38 px en teléfono; al pasar el ratón se marca.
+· **Los valores de la hoja no se leían en modo oscuro** (ya venía de antes): el fondo del valor usaba el tinte oscuro del tema sobre el papel blanco, y la fecha y el puesto salían como manchas. El papel es blanco en los dos temas, así que su tinte también (`--hoja-campo`).
+· **Agregar el otro idioma sin escribir la marca a mano:** en la biblioteca, la variante que no tiene traducción trae «＋ Español» (o «＋ English»): abre el formulario con el nombre, los puestos y la nota ya puestos; solo se elige el archivo (`etiquetaEnOtroIdioma`).
+· **Reconocer el campo por su etiqueta** (del agente): las palabras clave se buscaban en cualquier parte de la etiqueta, así que «Candidate Name» salía como fecha (por «date») y «Corporate» como pago (por «rate»). Ahora van al principio de palabra. Las etiquetas reales, en inglés y en español, se siguen reconociendo igual (con pruebas).
+· **La fecha es una fecha o se pide** (del agente): si el documento traía un texto en el campo de fecha, la casilla de calendario se veía vacía pero el texto contaba como dato y salía impreso. Ahora solo vale una fecha (`esFechaMDY`).
+· **Campos sin clave al cambiar de idioma** (del agente): se emparejaban por su posición en todo el documento; un campo de más en otra parte los descuadraba. Ahora, por su turno entre los sin clave.
+Lo que se dejó como está, a propósito: en un documento en español con el puesto en blanco se propone el del expediente (en inglés), editable; dos variantes en español con el mismo nombre se enseñan las dos; el par depende de que los dos nombres sean iguales.
+No probado: contra la base real (la pantalla de Employees pide la sesión de RR. HH.) ni la impresión en papel.
+Recruiting 0.114.0 · repo 1.973.0.

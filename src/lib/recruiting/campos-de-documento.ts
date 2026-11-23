@@ -65,12 +65,15 @@ function norm(s: string): string {
 export function claveSugerida(etiqueta: string, despues = "", original = ""): ClaveDeCampo {
   const e = norm(etiqueta);
   const d = norm(despues);
-  if (/pay|rate|wage|salary|compens|sueldo|pago|tarifa/.test(e)) return "pay_rate";
-  if (/hours?|hora/.test(e) || (/hours?|hora/.test(d) && /^\s*\d+\s*$/.test(original.trim()))) return "weekly_hours";
-  if (/date|effective|start|ingreso|fecha|inicio/.test(e)) return "start_date";
-  if (/position|applies|title|role|puesto|cargo|job/.test(e)) return "position";
-  if (/employee|empleado|nombre|name/.test(e)) return "employee_name";
-  if (/store|location|tienda|sucursal/.test(e)) return "store";
+  // Cada palabra clave va al PRINCIPIO de una palabra (`\b`): «Candidate» no es fecha por llevar «date» dentro, ni
+  // «Corporate» es pago por llevar «rate». Las horas, además, palabra entera: «Horario» no son horas por semana.
+  const HORAS = /\b(hours?|horas?)\b/;
+  if (/\b(pay|rate|wage|salar|compens|sueldo|pago|tarifa)/.test(e)) return "pay_rate";
+  if (HORAS.test(e) || (HORAS.test(d) && /^\s*\d+\s*$/.test(original.trim()))) return "weekly_hours";
+  if (/\b(date|effective|start|ingreso|fecha|inicio|vigencia)/.test(e)) return "start_date";
+  if (/\b(position|applies|title|role|puesto|cargo|job)/.test(e)) return "position";
+  if (/\b(employee|empleado|nombre|name)/.test(e)) return "employee_name";
+  if (/\b(store|location|tienda|sucursal)/.test(e)) return "store";
   return "otro";
 }
 
@@ -288,7 +291,9 @@ export function valoresSugeridos(
     // Se deja vacío (el original va solo como pista en el formulario) y son obligatorios para imprimir.
     if (c.clave === "weekly_hours" || c.clave === "pay_rate") { salida[entrada] = ""; continue; }
     switch (c.clave) {
-      case "start_date": v = fechaMDY(datos.hireDate) || undefined; break;
+      // La fecha va en una casilla de calendario: o es una fecha (la de ingreso, o la que ya trae el documento) o
+      // queda vacía y se pide. Un texto cualquiera aquí no se vería en la casilla y saldría impreso sin que nadie lo vea.
+      case "start_date": v = fechaMDY(datos.hireDate) || (esFechaMDY(c.original) ? c.original.trim() : ""); break;
       case "position":
         v = (opciones.idioma === "es" && !esHueco(c.original) ? c.original.trim() : (datos.position ?? "").split(",")[0]?.trim()) || undefined;
         break;
@@ -313,9 +318,13 @@ export function pasaValores(
   nuevo: { campos: readonly CampoDetectado[]; sugeridos: Readonly<Record<string, string>> },
 ): Record<string, string> {
   const salida: Record<string, string> = { ...nuevo.sugeridos };
-  nuevo.campos.forEach((c, i) => {
-    const par = c.clave === "otro" ? viejo.campos[i] : viejo.campos.find((x) => x.clave === c.clave);
-    if (!par || par.clave !== c.clave) return;
+  // Los campos sin clave se emparejan por su turno entre los sin clave (el 1.º con el 1.º…), no por su posición en
+  // todo el documento: así un campo de más o de menos en otra parte no los descuadra.
+  const sinClaveViejos = viejo.campos.filter((x) => x.clave === "otro");
+  let turno = 0;
+  nuevo.campos.forEach((c) => {
+    const par = c.clave === "otro" ? sinClaveViejos[turno++] : viejo.campos.find((x) => x.clave === c.clave);
+    if (!par) return;
     const entradaVieja = claveDeEntrada(par);
     const escrito = viejo.valores[entradaVieja];
     if (escrito === undefined || escrito === (viejo.sugeridos[entradaVieja] ?? "")) return;
@@ -332,9 +341,17 @@ export function clavesObligatorias(campos: readonly CampoDetectado[]): string[] 
   return [...new Set(campos.map((c) => claveDeEntrada(c)))];
 }
 
-/** Las claves obligatorias que siguen vacías (o con solo la raya). Con alguna, el botón de imprimir no se activa. */
+/** ¿El texto es una fecha «MM/DD/YYYY», el formato del documento y de la casilla de calendario? */
+export function esFechaMDY(texto: string | null | undefined): boolean {
+  return /^\d{2}\/\d{2}\/\d{4}$/.test((texto ?? "").trim());
+}
+
+/**
+ * Las claves obligatorias que siguen vacías (o con solo la raya). Con alguna, el botón de imprimir no se activa.
+ * La fecha, además, tiene que ser una fecha: es lo único que la casilla de calendario sabe enseñar.
+ */
 export function faltanCampos(campos: readonly CampoDetectado[], valores: Record<string, string>): string[] {
-  return clavesObligatorias(campos).filter((k) => esHueco(valores[k]));
+  return clavesObligatorias(campos).filter((k) => (k === "start_date" ? !esFechaMDY(valores[k]) : esHueco(valores[k])));
 }
 
 /** Las etiquetas que se le enseñan a RR. HH. en la biblioteca: «Effective Date, Position, Employment Type, Base Pay». */
