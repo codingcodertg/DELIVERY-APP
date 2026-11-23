@@ -15,11 +15,13 @@ import {
 } from "@/app/recruiting/actions/plantillas";
 import {
   documentosParaEmpleado, varianteMarcada, ESTADOS_DOCUMENTO, EXTENSIONES_FIRMADO, MAX_BYTES_FIRMADO,
-  puedeCambiarEstado, extensionPermitida, extensionDe, type EstadoDocumento,
+  puedeCambiarEstado, extensionPermitida, extensionDe, idiomaDeVariante, parejaDeIdioma, type EstadoDocumento,
 } from "@/lib/recruiting/plantillas-de-documentos";
 import {
-  camposDeDocx, claveDeEntrada, etiquetasDeCampos, faltanCampos, valoresSugeridos, type CampoDetectado,
+  camposDeDocx, claveDeEntrada, clavesObligatorias, etiquetasDeCampos, faltanCampos, pasaValores, valoresSugeridos,
+  type CampoDetectado,
 } from "@/lib/recruiting/campos-de-documento";
+import { InterruptorDeIdioma } from "@/components/recruiting/InterruptorDeIdioma";
 import { mapaDeMarcadores, fechaLarga } from "@/lib/recruiting/plantillas-de-documentos";
 import {
   htmlDeDocx, limpiaHtmlPintado, preparaDocumento, imprimeArchivo, descargaArchivo,
@@ -157,7 +159,12 @@ export function DocumentosDeIngreso({ employeeId, datos, puesto }: Props) {
             </div>
           )}
           <div className="docs-lista" data-tabla="documentos-de-ingreso">
-            {filas.map((f) => (
+            {filas.map((f) => {
+              // El mismo documento en el otro idioma (si lo hay): sale el interruptor y la lista enseña solo un idioma.
+              const pareja = f.marcada ? parejaDeIdioma(f.opciones, f.marcada) : null;
+              const idioma = idiomaDeVariante(f.marcada?.label);
+              const aElegir = f.opciones.filter((v) => v.id === f.marcada?.id || !parejaDeIdioma(f.opciones, v) || idiomaDeVariante(v.label) === idioma);
+              return (
               <article key={f.documento.id} className="docs-tarjeta" data-documento={f.documento.id}>
                 <div className="docs-tarjeta-cab">
                   <div className="docs-titulo-bloque">
@@ -169,18 +176,24 @@ export function DocumentosDeIngreso({ employeeId, datos, puesto }: Props) {
                 {f.documento.description && <p className="docs-descripcion">{f.documento.description}</p>}
 
                 <div className="docs-ajustes">
-                  {f.opciones.length > 1 ? (
+                  {aElegir.length > 1 ? (
                     <div className="docs-control">
                       <label htmlFor={`docs-variante-${f.documento.id}`}>{t("Variant", "Variante")}</label>
                       <select id={`docs-variante-${f.documento.id}`} value={f.marcada?.id ?? ""} disabled={busy} data-variante={f.documento.id}
                         onChange={(e) => void cambiaVariante(f, e.target.value)}>
                         {!f.marcada && <option value="">{t("— choose —", "— elegir —")}</option>}
-                        {f.opciones.map((v) => <option key={v.id} value={v.id}>{v.label}{!v.active ? ` (${t("archived", "archivada")})` : ""}</option>)}
+                        {aElegir.map((v) => <option key={v.id} value={v.id}>{v.label}{!v.active ? ` (${t("archived", "archivada")})` : ""}</option>)}
                       </select>
                     </div>
                   ) : (
                     <div className="docs-variante-texto">
                       <span>{t("Variant", "Variante")}:</span> <b data-variante-fija={f.documento.id}>{f.marcada?.label ?? t("none", "ninguna")}</b>
+                    </div>
+                  )}
+                  {pareja && (
+                    <div className="docs-control docs-control-idioma">
+                      <label>{t("Language", "Idioma")}</label>
+                      <InterruptorDeIdioma idioma={idioma} disabled={busy} de={f.documento.id} onCambia={() => void cambiaVariante(f, pareja.id)} />
                     </div>
                   )}
                   <div className="docs-control">
@@ -216,7 +229,8 @@ export function DocumentosDeIngreso({ employeeId, datos, puesto }: Props) {
                   </div>
                 )}
               </article>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
@@ -250,7 +264,15 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
 }) {
   const { t, lang } = usePrefs();
   const { notify } = useData();
-  const variante = fila.marcada!;
+  // La variante que se revisa. Empieza en la marcada; el interruptor de idioma la cambia por su traducción aquí mismo.
+  const [variante, setVariante] = useState<VarianteFila>(fila.marcada!);
+  const pareja = parejaDeIdioma(fila.opciones, variante);
+  const idioma = idiomaDeVariante(variante.label);
+  // El idioma de las fechas que escribe la app en el documento: el del documento si tiene dos idiomas; si no, el de la pantalla.
+  const idiomaDelTexto = idioma === "es" ? "es" : pareja ? "en" : lang;
+  /** Lo que había en el formulario justo antes de cambiar de idioma, para pasarlo al otro documento. */
+  const previo = useRef<{ campos: CampoDetectado[]; valores: Record<string, string>; sugeridos: Record<string, string> } | null>(null);
+  const sugeridosRef = useRef<Record<string, string>>({});
   const [bytes, setBytes] = useState<Uint8Array | null>(null);
   const [campos, setCampos] = useState<CampoDetectado[]>([]);
   const [valores, setValores] = useState<Record<string, string>>({});
@@ -266,9 +288,17 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
   // Los datos del empleado que llenan los marcadores {{...}}. Solo cambian si cambian sus valores, no por identidad del objeto.
   const { fullName, position, hireDate, store } = datos;
   const mapa = useMemo(
-    () => mapaDeMarcadores({ fullName, position, hireDate, store }, HOY(), lang),
-    [fullName, position, hireDate, store, lang],
+    () => mapaDeMarcadores({ fullName, position, hireDate, store }, HOY(), idiomaDelTexto),
+    [fullName, position, hireDate, store, idiomaDelTexto],
   );
+
+  /** Cambia al mismo documento en el otro idioma. Lo escrito pasa; la casilla de «revisado» se vuelve a pedir. */
+  const cambiaIdioma = () => {
+    if (!pareja || busy) return;
+    previo.current = { campos, valores, sugeridos: sugeridosRef.current };
+    setBytes(null); setBaseHtml(null); setHtmlErr(null); setCargaErr(null); setRevisado(false);
+    setVariante(pareja);
+  };
 
   // 1) Bajar el archivo, leer sus campos y poner los valores: los guardados si son de ESTA versión; si no, los sugeridos.
   useEffect(() => {
@@ -282,10 +312,14 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
       setBytes(b);
       const c = esDocx ? camposDeDocx(b) : [];
       setCampos(c);
-      const sugeridos = valoresSugeridos(c, datos);
+      const sugeridos = valoresSugeridos(c, datos, { idioma: idiomaDeVariante(variante.label) });
       const guardados = fila.registro && fila.registro.variant_id === variante.id && fila.registro.variant_version === variante.version
         ? fila.registro.field_values : {};
-      setValores({ ...sugeridos, ...Object.fromEntries(Object.entries(guardados).filter(([k]) => k in sugeridos)) });
+      const deEsteArchivo = { ...sugeridos, ...Object.fromEntries(Object.entries(guardados).filter(([k]) => k in sugeridos)) };
+      // Si se llega aquí por el interruptor de idioma, lo que ya se escribió en el otro idioma pasa a este.
+      setValores(previo.current ? { ...deEsteArchivo, ...pasaValores(previo.current, { campos: c, sugeridos: deEsteArchivo }) } : deEsteArchivo);
+      previo.current = null;
+      sugeridosRef.current = sugeridos;
     })().catch((e) => { if (vivo) setCargaErr(mensajeDeError(e)); });
     return () => { vivo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -367,13 +401,19 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
   };
 
   const titulo = t(`Review & print: ${fila.documento.name}`, `Revisar e imprimir: ${fila.documento.name}`);
-  const hoyTexto = fechaLarga(HOY(), lang);
+  const hoyTexto = fechaLarga(HOY(), idiomaDelTexto);
+  const obligatorias = clavesObligatorias(campos);
+  // El nombre del documento en la biblioteca está en inglés: en la hoja en español no se pone (el archivo trae su título).
+  const nombreEnLaHoja = idioma === "es" ? "" : fila.documento.name;
 
   return (
     <div className="overlay" onClick={onCancel}>
       <div className="modal" onClick={(e) => e.stopPropagation()} data-dialogo="revision-documento">
         <h3>{titulo}</h3>
-        <div className="hint">{t("Variant", "Variante")}: <b>{variante.label}</b>{variante.offer_note ? ` · ${variante.offer_note}` : ""}</div>
+        <div className="docs-revision-cab">
+          <div className="hint">{t("Variant", "Variante")}: <b data-variante-en-revision>{variante.label}</b>{variante.offer_note ? ` · ${variante.offer_note}` : ""}</div>
+          {pareja && <InterruptorDeIdioma idioma={idioma} disabled={busy} de={fila.documento.id} onCambia={cambiaIdioma} />}
+        </div>
         {cargaErr && <div className="hint" style={{ color: "var(--red)" }}>{cargaErr}</div>}
         {htmlErr && <div className="hint" style={{ color: "var(--red)" }}>{t("The preview could not be drawn.", "No se pudo dibujar la vista previa.")} {htmlErr}</div>}
         {!bytes && !cargaErr && <div className="hint">{t("Loading…", "Cargando…")}</div>}
@@ -393,7 +433,8 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
               {!esDocx && <div className="hint">{t("This file has no editable fields. It goes out as it is.", "Este archivo no tiene campos editables. Sale tal cual.")}</div>}
               {esDocx && entradas.length === 0 && <div className="hint">{t("No yellow fields found in this document.", "No hay campos amarillos en este documento.")}</div>}
               {entradas.map(([clave, lista]) => {
-                const obligatorio = lista.some((c) => c.clave === "weekly_hours" || c.clave === "pay_rate");
+                // Todo campo amarillo se llena antes de imprimir (el dueño: «yellow fields require inputs»).
+                const obligatorio = obligatorias.includes(clave);
                 const tipo = lista[0].clave;
                 // D-1124 (Roberto: «this is odd»): la plantilla llama «Employment Type» al campo de horas; se dice qué es.
                 const etiqueta = tipo === "weekly_hours" ? `${t("Hours per week", "Horas por semana")} (${etiquetasDeCampos(lista).join(" / ")})` : etiquetasDeCampos(lista).join(" / ");
@@ -439,10 +480,10 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
                   <div className="docs-hoja" data-hoja>
                     <div className="docs-hoja-encabezado">
                       <div className="docs-hoja-empresa">{ENCABEZADO}</div>
-                      <div className="docs-hoja-titulo">{fila.documento.name}</div>
+                      {nombreEnLaHoja && <div className="docs-hoja-titulo">{nombreEnLaHoja}</div>}
                     </div>
                     <div ref={cuerpoRef} className="docs-hoja-cuerpo" onClick={alClicarHoja} data-cuerpo-documento />
-                    <div className="docs-hoja-pie">{fila.documento.name} · {hoyTexto}</div>
+                    <div className="docs-hoja-pie">{nombreEnLaHoja ? `${nombreEnLaHoja} · ` : ""}{hoyTexto}</div>
                   </div>
                 </div>
               ) : (

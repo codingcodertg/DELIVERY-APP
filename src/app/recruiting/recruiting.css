@@ -514,6 +514,14 @@
 .recruiting-module .docs-control select { width: 100%; padding: 6px 10px; font-size: 13px; }
 .recruiting-module .docs-variante-texto { font-size: 13px; color: var(--ink-soft); padding-bottom: 8px; overflow-wrap: anywhere; min-width: 0; }
 .recruiting-module .docs-variante-texto b { color: var(--ink); }
+/* El interruptor de idioma del documento (English | Español): dos botones pegados, el encendido en el color de acento. */
+.recruiting-module .docs-idioma { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--card); flex: 0 0 auto; }
+.recruiting-module .docs-idioma-op { padding: 5px 14px; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); background: transparent; border: 0; cursor: pointer; white-space: nowrap; }
+.recruiting-module .docs-idioma-op.on { background: var(--accent); color: var(--card); cursor: default; }
+.recruiting-module .docs-idioma-op:disabled { opacity: 0.6; cursor: default; }
+.recruiting-module .docs-idioma-op:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.recruiting-module .docs-control-idioma { flex: 0 0 auto; justify-items: start; }
+.recruiting-module .docs-revision-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .recruiting-module .docs-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
 .recruiting-module .docs-acciones .btn { max-width: 100%; }
 .recruiting-module .docs-meta { font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; display: grid; gap: 2px; }
