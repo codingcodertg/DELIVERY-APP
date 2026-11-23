@@ -52892,3 +52892,11 @@ Deliveries 1.656.0 · repo 1.968.0.
 
 Solicitud de ayuda del dueño (Hub · Vista móvil, con captura del botón azul de la cabecera): «ese vista de escritorio está de más, quítalo». Se quita el botón que D-1135 puso junto a la casa. Se queda lo otro de D-1135: en esa página la burbuja de abajo dice «Vista de escritorio» en vez de «Vista móvil».
 Repo 1.969.0.
+
+## D-1138 · Time Tracker: el corte de las 18:30 no es del remoto; el reloj del navegador sigue tras un salto largo (2026-11-22)
+
+Solicitud de ayuda de un vendedor remoto («The timer keeps stopping randomly», causa en D-1136). El dueño decide: «para remote workers no, solo es para los in person porque ellos salen de la tienda».
+· **Corte diario (`Cronometro`, `mirar`):** a quien es remoto (`effWorkerType(me) === "remote"`, que es también el valor por defecto de quien no tiene fila de ajustes) el corte ni le avisa ni le para el reloj. Al presencial que usa el cronómetro (varias tiendas) le sigue aplicando igual que antes. No cambia el cierre de sesión de las 18:30 del hub, que va por rol.
+· **Reloj del navegador tras un salto largo:** el corte por hueco entre ticks era solo del escritorio (5 min). En el navegador, pasado el salto que la base ya no acepta (migración 305: 16 min, `SALTO_QUE_CORTA_LA_BASE_MS`), la base cerraba la fila y el reloj se quedaba parado. Ahora hace lo del escritorio con ese umbral: guarda hasta el último tick y sigue en una fila nueva, con su aviso. Por debajo de 16 min el navegador cuenta como siempre. Ese hueco sigue sin pagarse (D-098), igual que con el cron de huérfanas.
+Límite conocido: si el navegador congela la pestaña mientras la persona sí trabaja en otra ventana, ese tramo no se registra; no hay forma de latir desde una pestaña congelada. No probado con una pestaña realmente suspendida 16 min: la decisión es la función pura ya usada en el escritorio, con pruebas del umbral.
+Time Tracker 1.37.0 · repo 1.970.0.
