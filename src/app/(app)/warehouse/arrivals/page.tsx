@@ -114,6 +114,17 @@ export default function WarehouseArrivalsPage() {
   const [fotos, setFotos] = useState<Record<string, number>>({});
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [verRuta, setVerRuta] = useState(false);
+  // Teléfono (D-1133): otra disposición, no otra pantalla. Se decide por el ancho de la ventana.
+  const [movil, setMovil] = useState(false);
+  useEffect(() => {
+    const m = window.matchMedia("(max-width: 760px)");
+    const pon = () => setMovil(m.matches);
+    pon();
+    m.addEventListener("change", pon);
+    return () => m.removeEventListener("change", pon);
+  }, []);
+  const [pestana, setPestana] = useState<"deja" | "lleva" | null>(null);
+  const tam = movil ? { ok: 52, boton: 44 } : { ok: 46, boton: 40 };
 
   const hechaLleva = (p: ParadaDeAlmacen) => HECHAS.includes(p.stage);
   const hechaDeja = (p: ParadaDeAlmacen) => p.stage === "delivered" || recibidas.has(p.id);
@@ -197,32 +208,84 @@ export default function WarehouseArrivalsPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px" }}>
           <button aria-label={tipo === "deja" ? t("Receive", "Recibir") : t("Ready", "Listo")} title={tipo === "deja" ? t("Receive", "Recibir") : t("Ready", "Listo")}
             disabled={ocupado === p.id} onClick={() => void (tipo === "deja" ? recibir(p) : listo(p))}
-            style={{ flex: "none", width: 46, height: 46, borderRadius: 12, border: `2px solid ${color}`, background: hecha ? color : "var(--card)", color: hecha ? "var(--on-color, #fff)" : color, fontSize: 22, fontWeight: 800 }}>✓</button>
+            style={{ flex: "none", width: tam.ok, height: tam.ok, borderRadius: 12, border: `2px solid ${color}`, background: hecha ? color : "var(--card)", color: hecha ? "var(--on-color, #fff)" : color, fontSize: 22, fontWeight: 800 }}>✓</button>
           <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-            <span><button onClick={() => abre(p)} style={{ padding: 0, fontSize: 16, fontWeight: 800, color: "var(--text)", textDecoration: "underline", textDecorationColor: "var(--line)", textUnderlineOffset: 3 }}>{p.code}</button>
+            <span><button onClick={() => abre(p)} style={{ padding: movil ? "6px 0" : 0, fontSize: 16, fontWeight: 800, color: "var(--text)", textDecoration: "underline", textDecorationColor: "var(--line)", textUnderlineOffset: 3 }}>{p.code}</button>
               <span className="hint" style={{ margin: "0 0 0 8px" }}>#{p.no}{p.inv ? ` · Inv ${p.inv}` : ""}</span></span>
             <span className="hint" style={{ margin: 0, fontSize: 13 }}>
               {tipo === "deja" ? `${t("Arrives", "Llega")} ${hhmm(p.eta)} · ${t("From", "Viene de")} ${p.from.replace("RDZ ", "")}` : `${t("Picks up", "Recoge")} ${hhmm(p.eta)} · ${p.type === "Intertienda" ? t("To store", "A tienda") + " " + p.to.replace("RDZ ", "") : t("Customer in", "Cliente en") + " " + p.city}`} · {p.pal} pallet{p.win ? ` · ${t("window", "ventana")} ${p.win}` : ""}
             </span>
             {nf > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--green)" }}>{nf} {t(nf === 1 ? "photo" : "photos", nf === 1 ? "foto" : "fotos")}</span>}
           </span>
-          <label title={t("Photos: camera or gallery, as many as you want", "Fotos: cámara o galería, las que quieras")} className="btn btn-sm" style={{ flex: "none", width: 40, height: 40, justifyContent: "center", border: "1px solid var(--line)", background: "var(--card)", cursor: "pointer", padding: 0 }}>
+          <span style={{ flex: "none", display: "flex", flexDirection: movil ? "column" : "row", gap: movil ? 6 : 10 }}>
+          <label title={t("Photos: camera or gallery, as many as you want", "Fotos: cámara o galería, las que quieras")} className="btn btn-sm" style={{ flex: "none", width: tam.boton, height: tam.boton, justifyContent: "center", border: "1px solid var(--line)", background: "var(--card)", cursor: "pointer", padding: 0 }}>
             📷<input type="file" accept="image/*" multiple hidden onChange={(e) => { void subeFotos(p, e.target.files); e.target.value = ""; }} />
           </label>
           {tipo === "lleva" && (
             <button aria-label={t("Unassign", "Quitar")} title={t("Unassign", "Quitar")} onClick={() => setQuitando(quitando === p.id ? null : p.id)}
-              style={{ flex: "none", width: 40, height: 40, borderRadius: 8, border: "1px solid var(--line)", background: "var(--card)", color: "var(--red)", fontSize: 18 }}>✕</button>
+              style={{ flex: "none", width: tam.boton, height: tam.boton, borderRadius: 8, border: "1px solid var(--line)", background: "var(--card)", color: "var(--red)", fontSize: 18 }}>✕</button>
           )}
+          </span>
         </div>
         {quitando === p.id && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "0 12px 12px 68px", alignItems: "center" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: movil ? "0 12px 12px" : "0 12px 12px 68px", alignItems: "center" }}>
             <span style={{ flexBasis: "100%", fontSize: 12, fontWeight: 700, color: "var(--red-chip-text)" }}>{t("Why isn't it going?", "¿Por qué no se va?")} <span className="hint" style={{ margin: 0 }}>· {t("optional", "opcional")}</span></span>
-            {RAZONES_QUITAR.map(([en, es]) => <button key={en} className="chip" onClick={() => void quitar(p, en === "No reason" ? null : t(en, es))}>{t(en, es)}</button>)}
+            {RAZONES_QUITAR.map(([en, es]) => <button key={en} className="chip" style={movil ? { minHeight: 40, padding: "0 14px" } : undefined} onClick={() => void quitar(p, en === "No reason" ? null : t(en, es))}>{t(en, es)}</button>)}
           </div>
         )}
       </div>
     );
   };
+
+  // ---- Teléfono (D-1133): los mismos datos, acomodados para el dedo.
+  const pestanaVista: "deja" | "lleva" = pestana ?? (deja.length || !lleva.length ? "deja" : "lleva");
+  const etiquetaDe = (e: (typeof choferes)[number]["e"]) => ({
+    tag: e.tipo === "aqui" ? t("At the store", "En la tienda") : e.tipo === "viene" ? t(`On the way · ${e.min} min`, `Viene para acá · ${e.min} min`) : e.tipo === "antes" ? t(`${e.paradas} stops before · ${hhmm(e.llega)}`, `${e.paradas} paradas antes · ${hhmm(e.llega)}`) : t("Done here", "Ya pasó"),
+    cls: e.tipo === "aqui" ? "var(--green-soft)" : e.tipo === "viene" ? "var(--amber-soft)" : "var(--paper)",
+  });
+  const bloqueRuta = actual ? (
+            <div className="card" style={{ margin: "6px 0 0", padding: 0, overflow: "hidden" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px" }}>
+                <b style={{ flex: 1, minWidth: 0 }}>{t("Today's whole route", "Toda su ruta de hoy")} · {new Set(actual.c.mias.map((x) => x.id)).size} {t("orders", "órdenes")}</b>
+                <button className="btn btn-sm btn-ghost" style={movil ? { minHeight: 40 } : undefined} onClick={() => setVerRuta(!verRuta)}>{verRuta ? t("Hide", "Ocultar") : t("See all", "Ver todas")}</button>
+              </div>
+              {verRuta && Array.from(new Set(actual.c.mias.map((x) => x.id))).map((id) => {
+                const P = paradas.find((x) => x.id === id && x.k === "P"), D = paradas.find((x) => x.id === id && x.k === "D");
+                if (!P) return null;
+                return (
+                  <div key={id} style={{ borderTop: "1px solid var(--row-line)", padding: "8px 12px", display: "grid", gap: 2 }}>
+                    <span className="between"><button onClick={() => abre(P)} style={{ padding: 0, fontWeight: 800, textDecoration: "underline", textDecorationColor: "var(--line)", textUnderlineOffset: 3 }}>{P.code}</button>
+                      {P.place === tienda && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--amber-text)" }}>{t("Leaves from here", "Sale de aquí")}</span>}</span>
+                    <span className="hint" style={{ margin: 0, overflowWrap: "anywhere" }}>{P.place.replace("RDZ ", "")} {hhmm(P.eta)} → {P.type === "Intertienda" ? P.to.replace("RDZ ", "") : P.city} {D ? hhmm(D.eta) : ""} · {P.pal} pallet</span>
+                  </div>
+                );
+              })}
+            </div>
+  ) : null;
+  const bloqueSinAsignar = actual && sinAsignar.length > 0 ? (
+            <div className="card" style={{ margin: 0, background: "var(--accent-soft)" }}>
+              <div className="between" style={{ flexWrap: "wrap", gap: 6 }}>
+                <b>{t("Unassigned at this store", "Sin asignar en esta tienda")}</b>
+                <span className="hint" style={{ margin: 0 }}>{t(`Truck up to ${picoDeCarga(paradas, actual.c.dr, dueno)} of ${CAPACIDAD} pallets`, `Camión hasta ${picoDeCarga(paradas, actual.c.dr, dueno)} de ${CAPACIDAD} pallets`)}</span>
+              </div>
+              {!estaAqui && <div className="hint" style={{ color: "var(--amber-text)", fontWeight: 700 }}>{t("You can only assign to a driver while they're here at the store. For other stops, contact the logistics manager.", "Solo se le puede asignar cuando está aquí en la tienda. Para cambios en otras paradas, contacta al logistic manager.")}</div>}
+              <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+                {sinAsignar.map((p) => {
+                  const pk = picoDeCarga(paradas, actual.c.dr, dueno, p.id), cabe = pk <= CAPACIDAD, nombre = actual.c.dr.split(" ")[0];
+                  return (
+                    <div key={p.id} style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 10, padding: "10px 12px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+                      <span style={{ flex: "1 1 220px", minWidth: 0 }}><button onClick={() => abre(p)} style={{ padding: 0, fontWeight: 800, textDecoration: "underline", textDecorationColor: "var(--line)", textUnderlineOffset: 3 }}>{p.code}</button>
+                        <span className="hint" style={{ margin: 0, display: "block" }}>{p.type === "Intertienda" ? t("To store", "A tienda") + " " + p.to.replace("RDZ ", "") : p.city} · {p.pal} pallet</span></span>
+                      <button className={"btn btn-sm " + (estaAqui ? (cabe ? "btn-primary" : "btn-ghost") : "")} disabled={!estaAqui || ocupado === p.id} onClick={() => void asignar(p, actual.c.dr)}
+                        style={!estaAqui ? { background: "var(--paper)", color: "var(--gray)" } : !cabe ? { color: "var(--amber-text)", boxShadow: "inset 0 0 0 1.5px var(--amber)" } : undefined}>
+                        {!estaAqui ? t("Only while at the store", "Solo cuando esté en la tienda") : cabe ? t(`Assign to ${nombre} · fits ${pk}/${CAPACIDAD}`, `Asignar a ${nombre} · cabe ${pk}/${CAPACIDAD}`) : t(`Assign to ${nombre} · over ${pk}/${CAPACIDAD}`, `Asignar a ${nombre} · se pasa ${pk}/${CAPACIDAD}`)}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+  ) : null;
 
   if (!me) return null;
   if (!tienda) return <div className="card empty">{t("You're not assigned to a store yet — ask an admin to set one in Users.", "Aún no tienes tienda asignada — pide a un administrador que te asigne una en Usuarios.")}</div>;
@@ -247,6 +310,61 @@ export default function WarehouseArrivalsPage() {
 
       {error && <div className="banner err">{t("Couldn't read the route: ", "No se pudo leer la ruta: ")}{error}</div>}
 
+      {movil ? (
+        <div data-almacen-movil style={{ display: "grid", gap: 12 }}>
+          {!choferes.length && <div className="card empty" style={{ margin: 0 }}>{plan || DEMO ? (fecha === hoy ? t("No driver comes by this store today.", "Ningún chofer pasa por esta tienda hoy.") : t("No published route passes by this store that day.", "Ninguna ruta publicada pasa por esta tienda ese día.")) : t("Loading today's route…", "Cargando la ruta de hoy…")}</div>}
+          {/* Los choferes: fichas que se deslizan de lado. */}
+          <div data-choferes-movil style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", scrollSnapType: "x proximity" }}>
+            {choferes.map(({ c, e }) => {
+              const on = actual?.c.dr === c.dr;
+              const { tag, cls } = etiquetaDe(e);
+              return (
+                <button key={c.dr} className="card" onClick={() => { setSel(c.dr); setPasada(undefined); setPestana(null); }}
+                  style={{ margin: 0, flex: "0 0 auto", minWidth: 172, padding: "10px 12px", textAlign: "left", scrollSnapAlign: "start", border: on ? "2px solid var(--ink)" : undefined, background: on ? "var(--accent-soft)" : undefined }}>
+                  <b style={{ fontSize: 16, display: "block" }}>{c.dr}</b>
+                  <span style={{ display: "inline-block", marginTop: 6, fontSize: 12, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: cls }}>{tag}</span>
+                  <div className="hint" style={{ margin: "4px 0 0" }}>{t(`Drops ${c.aqui.filter((x) => x.k === "D").length} · Takes ${c.aqui.filter((x) => x.k === "P").length}`, `Deja ${c.aqui.filter((x) => x.k === "D").length} · Se lleva ${c.aqui.filter((x) => x.k === "P").length}`)}</div>
+                </button>
+              );
+            })}
+          </div>
+          {actual && (
+            <>
+              {/* Las horas en que pasa: botones grandes en lugar de la línea del día. */}
+              <div data-pasadas-movil style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none" }}>
+                <button className={"chip" + (pasadaVista == null ? " on" : "")} style={{ flex: "0 0 auto", minHeight: 44, padding: "0 16px", fontSize: 15 }} onClick={() => { setPasada(null); setPestana(null); }}>{t("All", "Todas")}</button>
+                {actual.c.pasadas.map((g) => (
+                  <button key={g[0].eta} className={"chip" + (pasadaVista === g[0].eta ? " on" : "")} style={{ flex: "0 0 auto", minHeight: 44, padding: "0 16px", fontSize: 15 }} onClick={() => { setPasada(g[0].eta); setPestana(null); }}>
+                    {hhmm(g[0].eta)} <span className="cnt">{g.length}</span>
+                  </button>
+                ))}
+              </div>
+              {/* Una lista a la vez. */}
+              <div className="viewtoggle" role="tablist" style={{ display: "flex", width: "100%" }}>
+                <button role="tab" aria-selected={pestanaVista === "deja"} className={"vt " + (pestanaVista === "deja" ? "on" : "")} style={{ flex: 1, minHeight: 46, fontSize: 15 }} onClick={() => setPestana("deja")}>
+                  📥 {t("Drops", "Deja")} · {deja.filter(hechaDeja).length}/{deja.length}
+                </button>
+                <button role="tab" aria-selected={pestanaVista === "lleva"} className={"vt " + (pestanaVista === "lleva" ? "on" : "")} style={{ flex: 1, minHeight: 46, fontSize: 15 }} onClick={() => setPestana("lleva")}>
+                  📤 {t("Takes", "Se lleva")} · {lleva.filter(hechaLleva).length}/{lleva.length}
+                </button>
+              </div>
+              <div className="card" style={{ margin: 0, padding: 0, overflow: "hidden" }}>
+                {pestanaVista === "lleva" && lleva.some((p) => !hechaLleva(p)) && (
+                  <div style={{ padding: "10px 12px", borderBottom: "1px solid var(--row-line)" }}>
+                    <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center", minHeight: 44 }} onClick={() => { for (const p of lleva) void listo(p); }}>✓ {t("All ready", "Listo todo")}</button>
+                  </div>
+                )}
+                {(pestanaVista === "deja" ? deja : lleva).length
+                  ? (pestanaVista === "deja" ? deja : lleva).map((p) => fila(p, pestanaVista))
+                  : <div className="hint" style={{ padding: 16, margin: 0 }}>{pestanaVista === "deja" ? t("Nothing to drop at this store.", "No trae nada para esta tienda.") : t("Nothing to pick up here.", "No recoge nada aquí.")}</div>}
+              </div>
+              {bloqueSinAsignar}
+              {bloqueRuta}
+            </>
+          )}
+        </div>
+      ) : (
+        <>
       <div className="card" style={{ overflowX: "auto" }}>
         <div style={{ minWidth: 640, display: "grid", gap: 6 }}>
           <div style={{ display: "flex", gap: 10 }}>
@@ -286,8 +404,7 @@ export default function WarehouseArrivalsPage() {
           <span className="hint" style={{ margin: 0, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase" }}>{t("Drivers coming by", "Choferes que pasan por")} {tienda.replace("RDZ ", "")}</span>
           {choferes.map(({ c, e }) => {
             const on = actual?.c.dr === c.dr;
-            const tag = e.tipo === "aqui" ? t("At the store", "En la tienda") : e.tipo === "viene" ? t(`On the way · ${e.min} min`, `Viene para acá · ${e.min} min`) : e.tipo === "antes" ? t(`${e.paradas} stops before · ${hhmm(e.llega)}`, `${e.paradas} paradas antes · ${hhmm(e.llega)}`) : t("Done here", "Ya pasó");
-            const cls = e.tipo === "aqui" ? "var(--green-soft)" : e.tipo === "viene" ? "var(--amber-soft)" : "var(--paper)";
+            const { tag, cls } = etiquetaDe(e);
             return (
               <button key={c.dr} className="card" onClick={() => { setSel(c.dr); setPasada(undefined); }}
                 style={{ margin: 0, padding: 12, textAlign: "left", border: on ? "2px solid var(--ink)" : undefined, background: on ? "var(--accent-soft)" : undefined }}>
@@ -297,25 +414,7 @@ export default function WarehouseArrivalsPage() {
               </button>
             );
           })}
-          {actual && (
-            <div className="card" style={{ margin: "6px 0 0", padding: 0, overflow: "hidden" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px" }}>
-                <b style={{ flex: 1, minWidth: 0 }}>{t("Today's whole route", "Toda su ruta de hoy")} · {new Set(actual.c.mias.map((x) => x.id)).size} {t("orders", "órdenes")}</b>
-                <button className="btn btn-sm btn-ghost" onClick={() => setVerRuta(!verRuta)}>{verRuta ? t("Hide", "Ocultar") : t("See all", "Ver todas")}</button>
-              </div>
-              {verRuta && Array.from(new Set(actual.c.mias.map((x) => x.id))).map((id) => {
-                const P = paradas.find((x) => x.id === id && x.k === "P"), D = paradas.find((x) => x.id === id && x.k === "D");
-                if (!P) return null;
-                return (
-                  <div key={id} style={{ borderTop: "1px solid var(--row-line)", padding: "8px 12px", display: "grid", gap: 2 }}>
-                    <span className="between"><button onClick={() => abre(P)} style={{ padding: 0, fontWeight: 800, textDecoration: "underline", textDecorationColor: "var(--line)", textUnderlineOffset: 3 }}>{P.code}</button>
-                      {P.place === tienda && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--amber-text)" }}>{t("Leaves from here", "Sale de aquí")}</span>}</span>
-                    <span className="hint" style={{ margin: 0, overflowWrap: "anywhere" }}>{P.place.replace("RDZ ", "")} {hhmm(P.eta)} → {P.type === "Intertienda" ? P.to.replace("RDZ ", "") : P.city} {D ? hhmm(D.eta) : ""} · {P.pal} pallet</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {bloqueRuta}
         </div>
 
         <div style={{ flex: "999 1 600px", minWidth: 0, display: "grid", gap: 16 }}>
@@ -333,32 +432,11 @@ export default function WarehouseArrivalsPage() {
             </div>
           )}
 
-          {actual && sinAsignar.length > 0 && (
-            <div className="card" style={{ margin: 0, background: "var(--accent-soft)" }}>
-              <div className="between" style={{ flexWrap: "wrap", gap: 6 }}>
-                <b>{t("Unassigned at this store", "Sin asignar en esta tienda")}</b>
-                <span className="hint" style={{ margin: 0 }}>{t(`Truck up to ${picoDeCarga(paradas, actual.c.dr, dueno)} of ${CAPACIDAD} pallets`, `Camión hasta ${picoDeCarga(paradas, actual.c.dr, dueno)} de ${CAPACIDAD} pallets`)}</span>
-              </div>
-              {!estaAqui && <div className="hint" style={{ color: "var(--amber-text)", fontWeight: 700 }}>{t("You can only assign to a driver while they're here at the store. For other stops, contact the logistics manager.", "Solo se le puede asignar cuando está aquí en la tienda. Para cambios en otras paradas, contacta al logistic manager.")}</div>}
-              <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
-                {sinAsignar.map((p) => {
-                  const pk = picoDeCarga(paradas, actual.c.dr, dueno, p.id), cabe = pk <= CAPACIDAD, nombre = actual.c.dr.split(" ")[0];
-                  return (
-                    <div key={p.id} style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 10, padding: "10px 12px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
-                      <span style={{ flex: "1 1 220px", minWidth: 0 }}><button onClick={() => abre(p)} style={{ padding: 0, fontWeight: 800, textDecoration: "underline", textDecorationColor: "var(--line)", textUnderlineOffset: 3 }}>{p.code}</button>
-                        <span className="hint" style={{ margin: 0, display: "block" }}>{p.type === "Intertienda" ? t("To store", "A tienda") + " " + p.to.replace("RDZ ", "") : p.city} · {p.pal} pallet</span></span>
-                      <button className={"btn btn-sm " + (estaAqui ? (cabe ? "btn-primary" : "btn-ghost") : "")} disabled={!estaAqui || ocupado === p.id} onClick={() => void asignar(p, actual.c.dr)}
-                        style={!estaAqui ? { background: "var(--paper)", color: "var(--gray)" } : !cabe ? { color: "var(--amber-text)", boxShadow: "inset 0 0 0 1.5px var(--amber)" } : undefined}>
-                        {!estaAqui ? t("Only while at the store", "Solo cuando esté en la tienda") : cabe ? t(`Assign to ${nombre} · fits ${pk}/${CAPACIDAD}`, `Asignar a ${nombre} · cabe ${pk}/${CAPACIDAD}`) : t(`Assign to ${nombre} · over ${pk}/${CAPACIDAD}`, `Asignar a ${nombre} · se pasa ${pk}/${CAPACIDAD}`)}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {bloqueSinAsignar}
         </div>
       </div>
+        </>
+      )}
 
       {aviso && (
         <div role="status" style={{ position: "fixed", left: "50%", bottom: 24, transform: "translateX(-50%)", width: "min(92vw, 520px)", background: "var(--ink)", color: "var(--on-color, #fff)", borderRadius: 14, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, zIndex: 60 }}>
