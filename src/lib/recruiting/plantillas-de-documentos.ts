@@ -161,6 +161,12 @@ export function etiquetaSinIdioma(label: string | null | undefined): string {
   return (label ?? "").replace(RE_SUFIJO_ES, "").replace(RE_SUFIJO_EN, "").trim();
 }
 
+/** El nombre que le toca a la misma variante en el otro idioma: «Junior» → «Junior (Español)», y al revés. */
+export function etiquetaEnOtroIdioma(label: string | null | undefined): string {
+  const base = etiquetaSinIdioma(label);
+  return idiomaDeVariante(label) === "es" ? base : `${base} (Español)`;
+}
+
 /** Lo que tienen en común una variante y su traducción: el documento y el nombre sin la marca de idioma. */
 export function grupoDeIdioma(v: { template_id: string; label: string }): string {
   return `${v.template_id}|${normalizaTexto(etiquetaSinIdioma(v.label))}`;

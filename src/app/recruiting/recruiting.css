@@ -48,6 +48,7 @@
   /* Papel de la hoja del documento (revision e impresion): blanco y tinta fijos en los dos temas. */
   --hoja-papel: #ffffff;
   --hoja-tinta: #111111;
+  --hoja-campo: #e8eefb; /* el valor de un campo sobre el papel: claro en los dos temas, como el papel */
 
   font-family: 'Inter', system-ui, sans-serif;
   background: var(--paper);
@@ -305,6 +306,7 @@
   --ink-soft: #a3b0c4;
   --hoja-papel: #ffffff;
   --hoja-tinta: #111111;
+  --hoja-campo: #e8eefb; /* el valor de un campo sobre el papel: claro en los dos temas, como el papel */
   --paper: #11161f;
   --card: #18202c;
   --line: #2b3646;
@@ -516,12 +518,19 @@
 .recruiting-module .docs-variante-texto b { color: var(--ink); }
 /* El interruptor de idioma del documento (English | Español): dos botones pegados, el encendido en el color de acento. */
 .recruiting-module .docs-idioma { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--card); flex: 0 0 auto; }
-.recruiting-module .docs-idioma-op { padding: 5px 14px; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); background: transparent; border: 0; cursor: pointer; white-space: nowrap; }
+.recruiting-module .docs-idioma-op { padding: 0 14px; min-height: 29px; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); background: transparent; border: 0; cursor: pointer; white-space: nowrap; }
+.recruiting-module .docs-idioma-op:not(.on):not(:disabled):hover { background: var(--accent-soft); color: var(--accent); }
 .recruiting-module .docs-idioma-op.on { background: var(--accent); color: var(--card); cursor: default; }
 .recruiting-module .docs-idioma-op:disabled { opacity: 0.6; cursor: default; }
 .recruiting-module .docs-idioma-op:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .recruiting-module .docs-control-idioma { flex: 0 0 auto; justify-items: start; }
 .recruiting-module .docs-revision-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.recruiting-module .docs-revision-idioma { display: flex; align-items: center; gap: 10px; }
+/* Mientras llega el otro idioma: lo de antes se queda, atenuado y sin tocar, para que la ventana no brinque. */
+.recruiting-module .docs-revision-cargando { opacity: 0.45; pointer-events: none; transition: opacity 0.15s; }
+@media (max-width: 640px) {
+  .recruiting-module .docs-idioma-op { min-height: 38px; padding: 0 16px; font-size: 13px; }
+}
 .recruiting-module .docs-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
 .recruiting-module .docs-acciones .btn { max-width: 100%; }
 .recruiting-module .docs-meta { font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; display: grid; gap: 2px; }
@@ -579,7 +588,7 @@
 .recruiting-module .docs-hoja-cuerpo img { max-width: 100%; height: auto; }
 .recruiting-module .docs-hoja-pie { margin-top: 24px; padding-top: 8px; border-top: 1px dotted var(--ink-soft); font-size: 11px; color: var(--ink-soft); }
 /* El valor de un campo: un chip tenue, no el amarillo de Word. Con clic, lleva a su casilla. */
-.recruiting-module .docs-hoja .docs-campo { display: inline; cursor: pointer; background: var(--accent-soft); color: var(--hoja-tinta); border-bottom: 1px solid var(--accent); border-radius: 3px; padding: 0 3px; }
+.recruiting-module .docs-hoja .docs-campo { display: inline; cursor: pointer; background: var(--hoja-campo); color: var(--hoja-tinta); border-bottom: 1px solid var(--accent); border-radius: 3px; padding: 0 3px; }
 .recruiting-module .docs-hoja .docs-campo:hover { background: var(--accent); color: var(--hoja-papel); }
 .recruiting-module .docs-hoja .docs-campo-vacio { background: transparent; border: 1px dashed var(--gray); border-radius: 3px; padding: 0 14px; min-width: 60px; display: inline-block; }
 .recruiting-module .docs-hoja .docs-campo-rotulo { font-size: 11px; color: var(--gray); }

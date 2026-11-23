@@ -3,7 +3,7 @@ import {
   coincidePuesto, contieneMarcadores, documentosParaEmpleado, estadoAlSubirFirmado, extensionPermitida, filtraDocumentos,
   fechaLarga, mapaDeMarcadores, marcadoresEn, mimePorNombre, puedeCambiarEstado, rutaDeFirmado, rutaDeVariante,
   rutaPermitida, sanitizaNombreDeArchivo, varianteMarcada, varianteSugerida, EXTENSIONES_VARIANTE,
-  etiquetaSinIdioma, grupoDeIdioma, idiomaDeVariante, parejaDeIdioma, variantesEnSuIdioma,
+  etiquetaEnOtroIdioma, etiquetaSinIdioma, grupoDeIdioma, idiomaDeVariante, parejaDeIdioma, variantesEnSuIdioma,
 } from "./plantillas-de-documentos";
 
 const EMP = "3f2c9d1e-8a4b-4c6d-9e0f-1234567890ab";
@@ -245,5 +245,16 @@ describe("el mismo documento en dos idiomas", () => {
     expect(varianteSugerida([jrEs, jr], "Junior Sales Representative")?.id).toBe("jr");
     // Si solo existe en español, esa.
     expect(varianteSugerida([jrEs], "Junior Sales Representative")?.id).toBe("jr-es");
+  });
+});
+
+describe("el nombre de la variante en el otro idioma", () => {
+  it("al inglés se le pone «(Español)» y al español se le quita; el resultado forma par con el original", () => {
+    expect(etiquetaEnOtroIdioma("Junior Sales Representative")).toBe("Junior Sales Representative (Español)");
+    expect(etiquetaEnOtroIdioma("Junior Sales Representative (Español)")).toBe("Junior Sales Representative");
+    expect(etiquetaEnOtroIdioma("Junior (English)")).toBe("Junior (Español)");
+    const a = { id: "a", template_id: "d", label: "Cashier — $11/hr", active: true };
+    const b = { id: "b", template_id: "d", label: etiquetaEnOtroIdioma(a.label), active: true };
+    expect(parejaDeIdioma([a, b], a)?.id).toBe("b");
   });
 });

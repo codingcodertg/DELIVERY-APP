@@ -4,7 +4,7 @@ import { join } from "node:path";
 import PizZip from "pizzip";
 import {
   aplicaValoresADocx, aplicaValoresAXml, camposDeDocx, camposDeXml, claveDeEntrada, claveSugerida, esRunAmarillo,
-  clavesObligatorias, esHueco, etiquetasDeCampos, faltanCampos, fechaMDY, pagoFormateado, pasaValores, valoresSugeridos,
+  clavesObligatorias, esFechaMDY, esHueco, etiquetasDeCampos, faltanCampos, fechaMDY, pagoFormateado, pasaValores, valoresSugeridos,
 } from "./campos-de-documento";
 
 const fixture = () => readFileSync(join(process.cwd(), "src/lib/recruiting/__fixtures__/politica-comisiones-jr.docx"));
@@ -235,5 +235,60 @@ describe("el mismo documento en español", () => {
     );
     expect(v.position).toBe("Sales Lead");
     expect(v["p21-g0"]).toBe("Harlingen");
+  });
+});
+
+describe("lo que encontró la auditoría (D-1141)", () => {
+  it("una palabra clave DENTRO de otra palabra no cuenta", () => {
+    expect(claveSugerida("Candidate Name")).toBe("employee_name");
+    expect(claveSugerida("Update")).toBe("otro");
+    expect(claveSugerida("Validated by")).toBe("otro");
+    expect(claveSugerida("Corporate office")).toBe("otro");
+    expect(claveSugerida("Restore point")).toBe("otro");
+    expect(claveSugerida("Horario")).toBe("otro");
+  });
+  it("las etiquetas reales, en inglés y en español, se siguen reconociendo", () => {
+    expect(claveSugerida("Effective Date")).toBe("start_date");
+    expect(claveSugerida("Fecha de vigencia")).toBe("start_date");
+    expect(claveSugerida("Applies to")).toBe("position");
+    expect(claveSugerida("Puesto al que aplica")).toBe("position");
+    expect(claveSugerida("Employment Type", " hours per week)", "40")).toBe("weekly_hours");
+    expect(claveSugerida("Tipo de empleo", " horas por semana)", "40")).toBe("weekly_hours");
+    expect(claveSugerida("Base Pay")).toBe("pay_rate");
+    expect(claveSugerida("Pago base")).toBe("pay_rate");
+    expect(claveSugerida("Hourly rate")).toBe("pay_rate");
+    expect(claveSugerida("Salary")).toBe("pay_rate");
+    expect(claveSugerida("Compensation")).toBe("pay_rate");
+    expect(claveSugerida("Hours per week")).toBe("weekly_hours");
+  });
+  it("la fecha es una fecha o se pide: un texto no pasa por dato", () => {
+    const campos = [{ id: "p1-g0", original: "to be defined", etiqueta: "Start date", clave: "start_date" as const }];
+    expect(valoresSugeridos(campos, {}).start_date).toBe("");
+    expect(valoresSugeridos(campos, { hireDate: "2026-11-02" }).start_date).toBe("11/02/2026");
+    // Una fecha que ya trae el documento sí vale.
+    expect(valoresSugeridos([{ ...campos[0], original: "01/01/2026" }], {}).start_date).toBe("01/01/2026");
+    expect(esFechaMDY("11/02/2026")).toBe(true);
+    expect(esFechaMDY("November 2")).toBe(false);
+    expect(faltanCampos(campos, { start_date: "to be defined" })).toEqual(["start_date"]);
+    expect(faltanCampos(campos, { start_date: "11/02/2026" })).toEqual([]);
+  });
+  it("los campos sin clave pasan por su turno aunque el otro documento tenga otro orden o un campo de más", () => {
+    const en = [
+      { id: "p1-g0", original: "____", etiqueta: "Effective Date", clave: "start_date" as const },
+      { id: "p3-g0", original: "Brownsville", etiqueta: "City", clave: "otro" as const },
+      { id: "p5-g0", original: "$11", etiqueta: "Base Pay", clave: "pay_rate" as const },
+      { id: "p8-g0", original: "A", etiqueta: "Shift", clave: "otro" as const },
+    ];
+    const es = [
+      { id: "p2-g0", original: "Brownsville", etiqueta: "Ciudad", clave: "otro" as const },
+      { id: "p4-g0", original: "____", etiqueta: "Fecha de vigencia", clave: "start_date" as const },
+      { id: "p9-g0", original: "A", etiqueta: "Turno", clave: "otro" as const },
+    ];
+    const sugEn = valoresSugeridos(en, {});
+    const v = pasaValores(
+      { campos: en, valores: { ...sugEn, "p3-g0": "Harlingen", "p8-g0": "B", start_date: "12/01/2026", pay_rate: "$13" }, sugeridos: sugEn },
+      { campos: es, sugeridos: valoresSugeridos(es, {}, { idioma: "es" }) },
+    );
+    expect(v).toEqual({ "p2-g0": "Harlingen", start_date: "12/01/2026", "p9-g0": "B" });
   });
 });

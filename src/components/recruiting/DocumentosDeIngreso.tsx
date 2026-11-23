@@ -281,6 +281,10 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
   const [revisado, setRevisado] = useState(false);
   const [busy, setBusy] = useState(false);
   const [cargaErr, setCargaErr] = useState<string | null>(null);
+  // Mientras llega el archivo del otro idioma: lo que hay en pantalla se queda (atenuado) en vez de vaciar la ventana.
+  const [cambiando, setCambiando] = useState(false);
+  /** De qué variante son los `bytes` que hay ahora. Así no se vuelve a convertir el archivo viejo con el idioma nuevo. */
+  const bytesDe = useRef<string | null>(null);
   const cuerpoRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const esDocx = extensionDe(variante.file_name) === "docx";
@@ -294,9 +298,9 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
 
   /** Cambia al mismo documento en el otro idioma. Lo escrito pasa; la casilla de «revisado» se vuelve a pedir. */
   const cambiaIdioma = () => {
-    if (!pareja || busy) return;
+    if (!pareja || busy || cambiando) return;
     previo.current = { campos, valores, sugeridos: sugeridosRef.current };
-    setBytes(null); setBaseHtml(null); setHtmlErr(null); setCargaErr(null); setRevisado(false);
+    setCambiando(true); setHtmlErr(null); setCargaErr(null); setRevisado(false);
     setVariante(pareja);
   };
 
@@ -305,11 +309,16 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
     let vivo = true;
     (async () => {
       const url = await signDocFileUrl(variante.file_path);
-      if (!url) { if (vivo) setCargaErr(t("Could not read the document.", "No se pudo leer el documento.")); return; }
+      if (!url) { if (vivo) { setCargaErr(t("Could not read the document.", "No se pudo leer el documento.")); setCambiando(false); } return; }
       const res = await fetch(url);
+      if (!res.ok) throw new Error(t("Could not read the document.", "No se pudo leer el documento."));
       const b = new Uint8Array(await res.arrayBuffer());
       if (!vivo) return;
+      bytesDe.current = variante.id;
       setBytes(b);
+      // La hoja vieja se queda pintada hasta que llegue la nueva (paso 2); sin .docx no hay hoja que esperar.
+      setBaseHtml(null);
+      if (!esDocx) setCambiando(false);
       const c = esDocx ? camposDeDocx(b) : [];
       setCampos(c);
       const sugeridos = valoresSugeridos(c, datos, { idioma: idiomaDeVariante(variante.label) });
@@ -320,20 +329,21 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
       setValores(previo.current ? { ...deEsteArchivo, ...pasaValores(previo.current, { campos: c, sugeridos: deEsteArchivo }) } : deEsteArchivo);
       previo.current = null;
       sugeridosRef.current = sugeridos;
-    })().catch((e) => { if (vivo) setCargaErr(mensajeDeError(e)); });
+    })().catch((e) => { if (vivo) { setCargaErr(mensajeDeError(e)); setCambiando(false); } });
     return () => { vivo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variante.id, variante.version]);
 
   // 2) El .docx convertido a HTML (una vez por archivo; los valores se ponen después, sin volver a convertir).
   useEffect(() => {
-    if (!bytes || !esDocx) return;
+    // Al cambiar de idioma, la variante cambia antes de que llegue su archivo: los bytes que hay son aún del otro.
+    if (!bytes || !esDocx || bytesDe.current !== variante.id) return;
     let vivo = true;
     htmlDeDocx(bytes, mapa)
-      .then((h) => { if (vivo) setBaseHtml(h); })
-      .catch((e) => { if (vivo) setHtmlErr(mensajeDeError(e)); });
+      .then((h) => { if (vivo) { setBaseHtml(h); setCambiando(false); } })
+      .catch((e) => { if (vivo) { setHtmlErr(mensajeDeError(e)); setCambiando(false); } });
     return () => { vivo = false; };
-  }, [bytes, esDocx, mapa]);
+  }, [bytes, esDocx, mapa, variante.id]);
 
   // 3) La hoja con los valores actuales dentro. Se escribe en el DOM (no en React) y se limpia como antes.
   useEffect(() => {
@@ -358,7 +368,7 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
   const faltan = faltanCampos(campos, valores);
   const progreso = progresoDeCampos(entradas.map(([k]) => k), valores);
   const pct = progreso.total ? Math.round((progreso.hechos / progreso.total) * 100) : 100;
-  const puedeSalir = !!bytes && revisado && faltan.length === 0 && !busy;
+  const puedeSalir = !!bytes && revisado && faltan.length === 0 && !busy && !cambiando;
 
   const cambia = (clave: string, v: string) => setValores((prev) => ({ ...prev, [clave]: v }));
 
@@ -412,14 +422,19 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
         <h3>{titulo}</h3>
         <div className="docs-revision-cab">
           <div className="hint">{t("Variant", "Variante")}: <b data-variante-en-revision>{variante.label}</b>{variante.offer_note ? ` · ${variante.offer_note}` : ""}</div>
-          {pareja && <InterruptorDeIdioma idioma={idioma} disabled={busy} de={fila.documento.id} onCambia={cambiaIdioma} />}
+          {pareja && (
+            <div className="docs-revision-idioma">
+              {cambiando && <span className="hint" role="status" data-cambiando-idioma>{t("Loading…", "Cargando…")}</span>}
+              <InterruptorDeIdioma idioma={idioma} disabled={busy || cambiando} de={fila.documento.id} onCambia={cambiaIdioma} />
+            </div>
+          )}
         </div>
         {cargaErr && <div className="hint" style={{ color: "var(--red)" }}>{cargaErr}</div>}
         {htmlErr && <div className="hint" style={{ color: "var(--red)" }}>{t("The preview could not be drawn.", "No se pudo dibujar la vista previa.")} {htmlErr}</div>}
         {!bytes && !cargaErr && <div className="hint">{t("Loading…", "Cargando…")}</div>}
 
         {bytes && (
-          <div className="docs-revision">
+          <div className={"docs-revision" + (cambiando ? " docs-revision-cargando" : "")} aria-busy={cambiando}>
             <section className="docs-formulario" ref={formRef} data-campos-del-documento>
               <div className="docs-formulario-cab">
                 <b>{t("Employee details for this document", "Datos del empleado para este documento")}</b>
@@ -495,7 +510,7 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
 
         <div className="docs-barra" data-barra-revision>
           <label className="docs-revisado">
-            <input type="checkbox" checked={revisado} onChange={(e) => setRevisado(e.target.checked)} data-revisado />
+            <input type="checkbox" checked={revisado} disabled={cambiando} onChange={(e) => setRevisado(e.target.checked)} data-revisado />
             {t("I reviewed the information", "He revisado la información")}
           </label>
           <div className="docs-barra-acciones">
