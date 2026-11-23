@@ -52851,3 +52851,14 @@ El dueño: «mira si hace falta algo más». Revisado tras D-1129–D-1131:
 · **Faltaba Gmail.** El buzón de Indeed que está conectado es el de Gmail (desde el 17 nov); Outlook nunca se conectó y por eso la corrida de Outlook contesta «no conectado». El workflow de GitHub llamaba a las dos rutas; la 343 solo programó la de Outlook. Migración 344 (ensayada; la aplica el dueño): `gmail-indeed` cada 15 minutos, y la ruta acepta el boleto.
 · Línea «Careers» de RingCentral: sigue en «inappropriate account state». Dato nuevo para decidir: en la cuenta de RDZ, de 37 números NINGUNO tiene habilitado mandar SMS (`SmsSender`), así que pasar los SMS a una extensión de RDZ no es solo cambiar una variable: antes hay que activar SMS en RingCentral para esa cuenta. Las llamadas con un clic sí se podrían pasar.
 Repo 1.964.0.
+
+## D-1133 · Almacén (llegadas): disposición de teléfono (2026-11-22)
+
+Quedaba pendiente desde D-1125 («pendiente el diseño de móvil»). El dueño la vio en localhost y dijo que se publicara.
+· Misma pantalla y mismos datos (`/warehouse/arrivals`), otra disposición cuando la ventana mide 760 px o menos (`matchMedia`); escritorio no cambia.
+· Choferes: fichas que se deslizan de lado con su estado. Horas en que pasa: botones grandes («Todas», «8:33 am 3») en lugar de la línea del día.
+· Dos pestañas, «Deja · hechas/total» y «Se lleva · hechas/total»: una lista a la vez. Abre en «Deja» (paso 1, como en escritorio); si no trae nada, en «Se lleva». Al cambiar de chofer o de hora vuelve a la que tenga algo.
+· Fila: ✓ de 52 px; cámara y ✕ de 44 px, una sobre otra, para dejarle el ancho al texto. Razones de quitar con fichas de 40 px.
+· «Sin asignar en esta tienda» y «Toda su ruta de hoy» son los mismos bloques de escritorio, al final.
+Verificado en pantalla a 390 px (admin y warehouse, demo): sin desborde lateral; quitar con «Sin razón» mueve la orden a «Sin asignar». No probado en un teléfono real (la cámara).
+Deliveries 1.655.0 · repo 1.965.0.
