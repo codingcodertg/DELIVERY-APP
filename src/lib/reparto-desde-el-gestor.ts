@@ -166,6 +166,9 @@ const minutos = (min: number): string => {
   return r ? `${h} h ${r} min` : `${h} h`;
 };
 
+/** «1 order» / «3 orders», «1 orden» / «3 órdenes»: sin «order(s)». */
+const cuantas = (n: number) => ({ en: n === 1 ? "1 order" : `${n} orders`, es: n === 1 ? "1 orden" : `${n} órdenes` });
+
 /**
  * Lo que se enseña ANTES de escribir nada: cuántas le tocan a cada quien y cómo queda su ruta; qué se mueve de otra ruta;
  * lo que no cabe, con su porqué, que se queda donde está; y con qué se midió. En los dos idiomas.
@@ -184,9 +187,11 @@ export function resumenDelReparto(args: {
     const ordenes = x.paradas.filter((p) => p.tipo === "D").length;
     const medida = `${x.ruta.millas.toFixed(1)} mi · ${minutos(x.ruta.duracionMin)}`;
     const tarde = x.ruta.tardeMin > 0 ? { en: ` · ⚠ ${x.ruta.tardeMin} min late`, es: ` · ⚠ ${x.ruta.tardeMin} min tarde` } : { en: "", es: "" };
+    // D-1139: «+2 → 3 order(s)» no se entendía. Se dice con palabras: cuántas se le suman y con cuántas queda.
+    const nuevas = x.nuevas.length;
     return {
-      en: `• ${x.nombre}: +${x.nuevas.length} → ${ordenes} order(s) · ${medida}${tarde.en}`,
-      es: `• ${x.nombre}: +${x.nuevas.length} → ${ordenes} orden(es) · ${medida}${tarde.es}`,
+      en: `• ${x.nombre}: ${nuevas} new, ${cuantas(ordenes).en} in total · ${medida}${tarde.en}`,
+      es: `• ${x.nombre}: ${nuevas} ${nuevas === 1 ? "nueva" : "nuevas"}, ${cuantas(ordenes).es} en total · ${medida}${tarde.es}`,
     };
   });
   const movidas = args.movimientos.filter((m) => m.de);
@@ -207,7 +212,13 @@ export function resumenDelReparto(args: {
   const n = args.totalSeleccionadas - fuera.length;
   const cab = conAlgo.length === 0
     ? { en: `🧭 None of the ${args.totalSeleccionadas} selected order(s) can be assigned.`, es: `🧭 Ninguna de las ${args.totalSeleccionadas} orden(es) seleccionadas se puede asignar.` }
-    : { en: `🧭 ${n} order(s) among ${conAlgo.length} driver(s), each in the best place of their route:`, es: `🧭 ${n} orden(es) entre ${conAlgo.length} chofer(es), cada una en el mejor sitio de su ruta:` };
+    // D-1139 (reunión del 22 nov, Roberto: «What does this mean? Three orders, one driver»): la cabecera es la pregunta
+    // que se está contestando al pulsar «Asignar», con el nombre del chofer cuando es uno solo.
+    : conAlgo.length === 1
+      ? { en: `🧭 Assign ${cuantas(n).en} to ${conAlgo[0].nombre}? Each one goes in the best place of the route:`,
+          es: `🧭 ¿Asignar ${cuantas(n).es} a ${conAlgo[0].nombre}? Cada una va en el mejor lugar de su ruta:` }
+      : { en: `🧭 Assign ${cuantas(n).en} among ${conAlgo.length} drivers? Each one goes in the best place of that driver's route:`,
+          es: `🧭 ¿Repartir ${cuantas(n).es} entre ${conAlgo.length} choferes? Cada una va en el mejor lugar de la ruta de ese chofer:` };
   return {
     en: `${cab.en}\n${lineas.map((l) => l.en).join("\n")}${mov.en}${sin.en}${medida.en}`,
     es: `${cab.es}\n${lineas.map((l) => l.es).join("\n")}${mov.es}${sin.es}${medida.es}`,

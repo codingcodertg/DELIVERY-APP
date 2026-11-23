@@ -1024,15 +1024,29 @@ export default function RoutesPage() {
    * que una entrega quede antes que su recogida —entonces no mueve nada y se dice por qué—. La capacidad no bloquea: la
    * cuenta avisa en la parada que se pase. Con candado 🔒 también, como las flechas de siempre (D-411).
    */
+  // D-1139 (reunión del 22 nov, Roberto: «sometimes it doesn't let me move things»): un movimiento que no se hace NUNCA se
+  // queda callado. Los dos casos que no decían nada: soltar mientras el movimiento anterior se sigue guardando (con mala
+  // conexión son varios segundos: una escritura por parada) y mover mientras «🧭 Optimizar» calcula (su resultado, hecho con
+  // la lista de antes, pisaba el movimiento). Ahora se dice y no se pierde nada: se repite cuando acabe.
+  const avisaSiOptimiza = (): boolean => {
+    if (optimizando == null) return false;
+    notify(t(`Not moved: Optimize is still working on ${laneLabel(optimizando)}. Wait for it to finish, then move.`, `No se movió: Optimizar sigue trabajando en ${laneLabel(optimizando)}. Espera a que termine y vuelve a mover.`), { ms: 6000 });
+    return true;
+  };
+  const avisaSiGuarda = (): boolean => {
+    if (!moviendo) return false;
+    notify(t("Not moved: the previous move is still saving. Try again in a moment.", "No se movió: el movimiento anterior se sigue guardando. Inténtalo de nuevo en un momento."), { ms: 6000 });
+    return true;
+  };
   /** «No se movió»: la orden cuya entrega quedaría antes que su recogida. Lo dicen igual las flechas y el arrastre. */
   const avisaDeLaPrecedencia = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta, orden: string) => {
     const o = stops.find((x) => x.id === orden);
     const n = o ? facturaYId(o).principal : "";
     const d = etiquetaDelDia(laneKey, stops, lectura, (f) => f.tipo === "D" && f.orden === orden);
     notify(t(
-      `Not moved: ${d} ${n} would be delivered before it's picked up. A delivery always goes after its pickup.`,
-      `No se movió: ${d} ${n} se entregaría antes de recogerla. Una entrega va siempre después de su recogida.`,
-    ));
+      `Not moved: ${d} ${n} would be delivered before it's picked up. A delivery always goes after its pickup. Move its pickup up first.`,
+      `No se movió: ${d} ${n} se entregaría antes de recogerla. Una entrega va siempre después de su recogida. Sube primero su recogida.`,
+    ), { ms: 8000 });
   };
   /** D-1024: los relevos del día (paso b → paso a), para que un bloque de marcadas no ponga la recogida de un paso b antes
    *  de la entrega de su paso a (la misma regla que D-994). */
@@ -1040,6 +1054,7 @@ export default function RoutesPage() {
   /** D-1024: «No se movió» del bloque: la precedencia o el relevo, con la orden que lo impide. */
   const avisaDelBloque = (laneKey: string, stops: Delivery[], lectura: LecturaDeRuta, r: { motivo: string; orden?: string }) => {
     if (r.motivo === "precedencia" && r.orden) avisaDeLaPrecedencia(laneKey, stops, lectura, r.orden);
+    if (r.motivo === "borde") notify(t("Not moved: the checked orders are already there, or that spot is a finished stop.", "No se movió: las órdenes marcadas ya están ahí, o ese puesto es de una parada ya hecha."), { ms: 6000 });
     if (r.motivo !== "relevo" || !r.orden) return;
     const o = stops.find((x) => x.id === r.orden);
     const n = o ? facturaYId(o).principal : "";
@@ -1053,6 +1068,7 @@ export default function RoutesPage() {
     const lectura = lecturaDe(laneKey, stops);
     const p = lectura.paradas[indice];
     if (!p) return;
+    if (avisaSiOptimiza()) return;
     const etiquetaDe = (i: number) => etiquetaDelDia(laneKey, stops, lectura, (f) => f.indice === i);
     if (p.tipo === "P" && !hayRecogidaGuardada) {
       notify(t("Moving a pickup needs the database update (migration 154). Deliveries can be moved; pickups follow the usual rule.", "Mover una recogida necesita la actualización de la base (migración 154). Las entregas sí se mueven; las recogidas siguen la regla de siempre."));
@@ -1085,7 +1101,8 @@ export default function RoutesPage() {
   // D-459: entra en deshacer/rehacer, como las flechas. La foto lleva las DOS rutas —la de salida y la de llegada—, así
   // que deshacer devuelve la orden a su chofer y a su puesto de una vez: no puede quedar a medias.
   const pasaA = async (origen: string, ids: readonly string[], destino: string) => {
-    if (!destino || !ids.length || moviendo) return;
+    if (!destino || !ids.length) return;
+    if (avisaSiOptimiza() || avisaSiGuarda()) return;
     const afectadas = [...(byDriver.get(origen) ?? []), ...(byDriver.get(destino) ?? [])];
     const antes = fotoDe(afectadas.map(aParadaDelGantt));
     const despues = { ...antes };
@@ -1116,15 +1133,19 @@ export default function RoutesPage() {
   // Sobre qué se está pasando: «ruta:<chofer>» (su tarjeta o su fila del panel) o «fila:<chofer>:<puesto>».
   const [sobre, setSobre] = useState<string | null>(null);
   const pulsadoEnControl = useRef(false);
+  // D-1139: si el arrastre que se cancela empezó sobre el número de la orden (un enlace), se dice por dónde agarrar la fila.
+  const pulsadoEnEnlace = useRef(false);
   const filaArrastrable = (a: Arrastrado) => {
     const mira = (e: React.MouseEvent | React.TouchEvent) => {
       pulsadoEnControl.current = !!(e.target as HTMLElement).closest("button, select, input, textarea, a, label, [data-abre-la-orden], .col-resizer");
+      pulsadoEnEnlace.current = !!(e.target as HTMLElement).closest("a, [data-abre-la-orden]");
     };
     return {
       draggable: true,
       onMouseDown: mira,
       onTouchStart: mira,
       onDragStart: (e: React.DragEvent) => {
+        if (pulsadoEnControl.current && pulsadoEnEnlace.current) notify(t("To drag a stop, grab the row outside the order number (the number opens the order).", "Para arrastrar una parada, agarra la fila fuera del número de la orden (el número abre la orden)."), { ms: 6000 });
         if (pulsadoEnControl.current) { e.preventDefault(); return; }
         e.dataTransfer.setData("text/plain", a.tipo === "orden" ? a.id : a.tipo === "hecha" ? a.orden : `${a.ruta}#${a.indice}`);
         e.dataTransfer.effectAllowed = "move";
@@ -1214,7 +1235,8 @@ export default function RoutesPage() {
     const a = arrastrado;
     setArrastrado(null);
     setSobre(null);
-    if (!a || moviendo) return;
+    if (!a) return;
+    if (avisaSiOptimiza() || avisaSiGuarda()) return;
     if (a.tipo === "hecha") {
       // D-1118: una entregada soltada sobre una ENTREGA pendiente de su ruta toma su puesto.
       if (a.ruta !== destino || indice == null) return;
@@ -2555,7 +2577,7 @@ export default function RoutesPage() {
   // tenía delante, y la de la orden que llega, justo antes de su entrega). Las dos cosas van en la foto de deshacer.
   const previaDeSoltar = (movida: string, destino: Destino) => planDeSoltar(rutasDelGantt, movida, destino, DAY_START_MIN);
   const sueltaEnLaLinea = async (movida: string, destino: Destino) => {
-    if (moviendo) return;
+    if (avisaSiOptimiza() || avisaSiGuarda()) return;
     const plan = previaDeSoltar(movida, destino);
     if (!plan.ok) {
       if (plan.motivo !== "sin_cambio") { const p = porQueNoSuelta(plan.motivo); notify(t(p.en, p.es)); }
