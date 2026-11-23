@@ -261,13 +261,23 @@ export function pagoFormateado(tarifa: number | string | null | undefined): stri
   return `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
 }
 
+/** ¿El texto es un hueco? Vacío, o solo la raya para escribir a mano («________»). Un hueco no cuenta como dato. */
+export function esHueco(texto: string | null | undefined): boolean {
+  return /^[\s_]*$/.test(texto ?? "");
+}
+
 /**
  * El valor que se propone para cada CLAVE DE ENTRADA, a partir de los datos del empleado. Lo que no hay queda como el
- * texto original del documento (el formulario lo muestra y RR. HH. lo cambia si hace falta).
+ * texto original del documento (el formulario lo muestra y RR. HH. lo cambia si hace falta); si el original es solo la
+ * raya de escribir a mano, queda vacío y hay que llenarlo.
+ *
+ * `idioma: "es"` es la variante en español: el puesto sale del documento (ya viene traducido, «Representante de Ventas
+ * Junior»), no del expediente, que lo tiene en inglés.
  */
 export function valoresSugeridos(
   campos: readonly CampoDetectado[],
   datos: { fullName?: string | null; position?: string | null; hireDate?: string | null; payRate?: number | string | null; store?: string | null },
+  opciones: { idioma?: "en" | "es" } = {},
 ): Record<string, string> {
   const salida: Record<string, string> = {};
   for (const c of campos) {
@@ -279,24 +289,52 @@ export function valoresSugeridos(
     if (c.clave === "weekly_hours" || c.clave === "pay_rate") { salida[entrada] = ""; continue; }
     switch (c.clave) {
       case "start_date": v = fechaMDY(datos.hireDate) || undefined; break;
-      case "position": v = (datos.position ?? "").split(",")[0]?.trim() || undefined; break;
+      case "position":
+        v = (opciones.idioma === "es" && !esHueco(c.original) ? c.original.trim() : (datos.position ?? "").split(",")[0]?.trim()) || undefined;
+        break;
       case "employee_name": v = (datos.fullName ?? "").trim() || undefined; break;
       case "store": v = (datos.store ?? "").trim() || undefined; break;
       default: v = undefined;
     }
-    salida[entrada] = v ?? c.original;
+    const valor = v ?? c.original;
+    salida[entrada] = esHueco(valor) ? "" : valor;
   }
   return salida;
 }
 
-/** Campos que RR. HH. debe escribir a mano antes de imprimir (horas y pago). */
-export function clavesObligatorias(campos: readonly CampoDetectado[]): string[] {
-  return [...new Set(campos.filter((c) => c.clave === "weekly_hours" || c.clave === "pay_rate").map((c) => claveDeEntrada(c)))];
+/**
+ * Al cambiar de idioma dentro de la revisión, lo que RR. HH. ya escribió pasa al otro documento: por clave (fecha,
+ * puesto, horas, pago…) y, en los campos sin clave, por su orden en el documento (los dos archivos son el mismo texto
+ * traducido). Lo que NO se tocó (sigue igual que lo sugerido) no pasa: toma lo sugerido del documento nuevo, que ya
+ * viene en su idioma.
+ */
+export function pasaValores(
+  viejo: { campos: readonly CampoDetectado[]; valores: Readonly<Record<string, string>>; sugeridos: Readonly<Record<string, string>> },
+  nuevo: { campos: readonly CampoDetectado[]; sugeridos: Readonly<Record<string, string>> },
+): Record<string, string> {
+  const salida: Record<string, string> = { ...nuevo.sugeridos };
+  nuevo.campos.forEach((c, i) => {
+    const par = c.clave === "otro" ? viejo.campos[i] : viejo.campos.find((x) => x.clave === c.clave);
+    if (!par || par.clave !== c.clave) return;
+    const entradaVieja = claveDeEntrada(par);
+    const escrito = viejo.valores[entradaVieja];
+    if (escrito === undefined || escrito === (viejo.sugeridos[entradaVieja] ?? "")) return;
+    salida[claveDeEntrada(c)] = escrito;
+  });
+  return salida;
 }
 
-/** Las claves obligatorias que siguen vacías. Con alguna, el botón de imprimir no se activa. */
+/**
+ * Los campos que hay que llenar antes de imprimir: TODOS los amarillos (el dueño: «yellow fields require inputs»).
+ * Horas y pago empiezan vacíos; los demás vienen sugeridos y basta con no dejarlos en blanco.
+ */
+export function clavesObligatorias(campos: readonly CampoDetectado[]): string[] {
+  return [...new Set(campos.map((c) => claveDeEntrada(c)))];
+}
+
+/** Las claves obligatorias que siguen vacías (o con solo la raya). Con alguna, el botón de imprimir no se activa. */
 export function faltanCampos(campos: readonly CampoDetectado[], valores: Record<string, string>): string[] {
-  return clavesObligatorias(campos).filter((k) => !(valores[k] ?? "").trim());
+  return clavesObligatorias(campos).filter((k) => esHueco(valores[k]));
 }
 
 /** Las etiquetas que se le enseñan a RR. HH. en la biblioteca: «Effective Date, Position, Employment Type, Base Pay». */

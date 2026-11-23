@@ -3,6 +3,7 @@ import {
   coincidePuesto, contieneMarcadores, documentosParaEmpleado, estadoAlSubirFirmado, extensionPermitida, filtraDocumentos,
   fechaLarga, mapaDeMarcadores, marcadoresEn, mimePorNombre, puedeCambiarEstado, rutaDeFirmado, rutaDeVariante,
   rutaPermitida, sanitizaNombreDeArchivo, varianteMarcada, varianteSugerida, EXTENSIONES_VARIANTE,
+  etiquetaSinIdioma, grupoDeIdioma, idiomaDeVariante, parejaDeIdioma, variantesEnSuIdioma,
 } from "./plantillas-de-documentos";
 
 const EMP = "3f2c9d1e-8a4b-4c6d-9e0f-1234567890ab";
@@ -203,5 +204,46 @@ describe("marcadores de personalización", () => {
     expect(contieneMarcadores(xml)).toBe(true);
     expect(marcadoresEn(xml).sort()).toEqual(["employee_name", "position"]);
     expect(contieneMarcadores("<w:t>Texto sin nada</w:t>")).toBe(false);
+  });
+});
+
+describe("el mismo documento en dos idiomas", () => {
+  const v = (id: string, label: string, extra: Partial<{ template_id: string; active: boolean }> = {}) => ({
+    id, label, template_id: "comision", positions: ["Junior Sales Representative"], offer_note: null, active: true, ...extra,
+  });
+  const jr = v("jr", "Junior Sales Representative");
+  const jrEs = v("jr-es", "Junior Sales Representative (Español)");
+  const sr = v("sr", "Senior Sales Representative");
+  const srEs = v("sr-es", "Senior Sales Representative (Espanol)");
+  const sola = v("sola", "Cashier");
+  const todas = [jrEs, jr, sr, srEs, sola];
+
+  it("el idioma sale de cómo termina el nombre", () => {
+    expect(idiomaDeVariante("Junior Sales Representative")).toBe("en");
+    expect(idiomaDeVariante("Junior Sales Representative (Español)")).toBe("es");
+    expect(idiomaDeVariante("Junior (spanish) ")).toBe("es");
+    expect(idiomaDeVariante("Junior (English)")).toBe("en");
+    expect(idiomaDeVariante("Español para cajeros")).toBe("en");
+    expect(etiquetaSinIdioma("Junior Sales Representative (Español)")).toBe("Junior Sales Representative");
+    expect(etiquetaSinIdioma("Junior (English)")).toBe("Junior");
+  });
+  it("la pareja es la del mismo documento y mismo nombre en el otro idioma", () => {
+    expect(parejaDeIdioma(todas, jr)?.id).toBe("jr-es");
+    expect(parejaDeIdioma(todas, jrEs)?.id).toBe("jr");
+    expect(parejaDeIdioma(todas, srEs)?.id).toBe("sr");
+    expect(parejaDeIdioma(todas, sola)).toBeNull();
+    // El mismo nombre en OTRO documento no es su pareja.
+    const ajena = v("ajena", "Junior Sales Representative (Español)", { template_id: "manual" });
+    expect(parejaDeIdioma([jr, ajena], jr)).toBeNull();
+    expect(grupoDeIdioma(jr)).toBe(grupoDeIdioma(jrEs));
+  });
+  it("se enseña una por par: inglés si no se ha elegido, y la que no tiene traducción siempre", () => {
+    expect(variantesEnSuIdioma(todas).map((x) => x.id)).toEqual(["jr", "sr", "sola"]);
+    expect(variantesEnSuIdioma(todas, { [grupoDeIdioma(jr)]: "es" }).map((x) => x.id)).toEqual(["jr-es", "sr", "sola"]);
+  });
+  it("por puesto se propone la de inglés aunque la de español vaya antes", () => {
+    expect(varianteSugerida([jrEs, jr], "Junior Sales Representative")?.id).toBe("jr");
+    // Si solo existe en español, esa.
+    expect(varianteSugerida([jrEs], "Junior Sales Representative")?.id).toBe("jr-es");
   });
 });

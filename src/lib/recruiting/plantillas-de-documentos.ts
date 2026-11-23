@@ -139,14 +139,66 @@ export type VarianteDeDocumento = {
   active: boolean;
 };
 
+// ---- Idioma de una variante (inglés / español) -------------------------------------------------------------------
+
+/**
+ * El mismo documento en dos idiomas son DOS variantes del mismo documento con el mismo nombre; la de español termina en
+ * «(Español)»: «Junior Sales Representative» y «Junior Sales Representative (Español)». Con eso la pantalla las junta y
+ * pone un interruptor de idioma. No hay columna en la base: el nombre manda.
+ */
+export type IdiomaDeVariante = "en" | "es";
+
+const RE_SUFIJO_ES = /\s*\((?:español|espanol|spanish)\)\s*$/i;
+const RE_SUFIJO_EN = /\s*\((?:english|inglés|ingles)\)\s*$/i;
+
+/** El idioma de una variante, por cómo termina su nombre. Sin marca, inglés. */
+export function idiomaDeVariante(label: string | null | undefined): IdiomaDeVariante {
+  return RE_SUFIJO_ES.test(label ?? "") ? "es" : "en";
+}
+
+/** El nombre de la variante sin la marca de idioma: «Junior (Español)» → «Junior». */
+export function etiquetaSinIdioma(label: string | null | undefined): string {
+  return (label ?? "").replace(RE_SUFIJO_ES, "").replace(RE_SUFIJO_EN, "").trim();
+}
+
+/** Lo que tienen en común una variante y su traducción: el documento y el nombre sin la marca de idioma. */
+export function grupoDeIdioma(v: { template_id: string; label: string }): string {
+  return `${v.template_id}|${normalizaTexto(etiquetaSinIdioma(v.label))}`;
+}
+
+/** La misma variante en el OTRO idioma, entre las de la lista, o null si no hay. Las activas van primero. */
+export function parejaDeIdioma<V extends { id: string; template_id: string; label: string; active: boolean }>(
+  variantes: readonly V[], v: V,
+): V | null {
+  const grupo = grupoDeIdioma(v);
+  const idioma = idiomaDeVariante(v.label);
+  const otras = variantes.filter((x) => x.id !== v.id && grupoDeIdioma(x) === grupo && idiomaDeVariante(x.label) !== idioma);
+  return otras.find((x) => x.active) ?? otras[0] ?? null;
+}
+
+/**
+ * Las variantes que se enseñan cuando hay interruptor de idioma: de cada par solo la del idioma elegido para su grupo
+ * (`elegido[grupo]`, o `porDefecto`). Las que no tienen traducción se enseñan siempre.
+ */
+export function variantesEnSuIdioma<V extends { id: string; template_id: string; label: string; active: boolean }>(
+  variantes: readonly V[], elegido: Readonly<Record<string, IdiomaDeVariante>> = {}, porDefecto: IdiomaDeVariante = "en",
+): V[] {
+  return variantes.filter((v) => {
+    if (!parejaDeIdioma(variantes, v)) return true;
+    return idiomaDeVariante(v.label) === (elegido[grupoDeIdioma(v)] ?? porDefecto);
+  });
+}
+
 /**
  * La variante que se propone para un empleado: la primera ACTIVA cuyo puesto coincide con el suyo. Si ninguna coincide,
  * null (el documento no le toca, salvo que el documento sea «para todos», y entonces la elige RR. HH. a mano).
+ * Entre una variante y su traducción se propone la de inglés; el español se elige con el interruptor.
  */
 export function varianteSugerida<V extends VarianteDeDocumento>(variantes: readonly V[], puestoDelEmpleado: string | null | undefined): V | null {
+  const orden = (v: V) => (idiomaDeVariante(v.label) === "es" ? 1 : 0);
   return variantes
     .filter((v) => v.active && coincidePuesto(v.positions, puestoDelEmpleado))
-    .sort((a, b) => a.label.localeCompare(b.label, "es", { sensitivity: "base" }))[0] ?? null;
+    .sort((x, y) => orden(x) - orden(y) || x.label.localeCompare(y.label, "es", { sensitivity: "base" }))[0] ?? null;
 }
 
 /**

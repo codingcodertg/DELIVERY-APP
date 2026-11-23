@@ -4,7 +4,7 @@ import { join } from "node:path";
 import PizZip from "pizzip";
 import {
   aplicaValoresADocx, aplicaValoresAXml, camposDeDocx, camposDeXml, claveDeEntrada, claveSugerida, esRunAmarillo,
-  clavesObligatorias, etiquetasDeCampos, faltanCampos, fechaMDY, pagoFormateado, valoresSugeridos,
+  clavesObligatorias, esHueco, etiquetasDeCampos, faltanCampos, fechaMDY, pagoFormateado, pasaValores, valoresSugeridos,
 } from "./campos-de-documento";
 
 const fixture = () => readFileSync(join(process.cwd(), "src/lib/recruiting/__fixtures__/politica-comisiones-jr.docx"));
@@ -142,11 +142,21 @@ describe("horas y pago se escriben a mano", () => {
     expect(v.weekly_hours).toBe("");
     expect(v.start_date).toBe("11/02/2026");
   });
-  it("son obligatorios: sin escribirlos, imprimir no se activa", () => {
-    expect(clavesObligatorias(campos).sort()).toEqual(["pay_rate", "weekly_hours"]);
-    expect(faltanCampos(campos, valoresSugeridos(campos, {}))).toEqual(["weekly_hours", "pay_rate"]);
-    expect(faltanCampos(campos, { weekly_hours: "40", pay_rate: "  " })).toEqual(["pay_rate"]);
-    expect(faltanCampos(campos, { weekly_hours: "40", pay_rate: "$11" })).toEqual([]);
+  it("todo campo amarillo es obligatorio: sin llenarlos, imprimir no se activa", () => {
+    expect(clavesObligatorias(campos).sort()).toEqual(["pay_rate", "start_date", "weekly_hours"]);
+    // Sin fecha de ingreso, la fecha queda vacía (la raya del documento no es un dato) y también falta.
+    expect(valoresSugeridos(campos, {}).start_date).toBe("");
+    expect(faltanCampos(campos, valoresSugeridos(campos, {}))).toEqual(["weekly_hours", "pay_rate", "start_date"]);
+    expect(faltanCampos(campos, valoresSugeridos(campos, { hireDate: "2026-11-02" }))).toEqual(["weekly_hours", "pay_rate"]);
+    expect(faltanCampos(campos, { weekly_hours: "40", pay_rate: "  ", start_date: "11/02/2026" })).toEqual(["pay_rate"]);
+    expect(faltanCampos(campos, { weekly_hours: "40", pay_rate: "$11", start_date: "____" })).toEqual(["start_date"]);
+    expect(faltanCampos(campos, { weekly_hours: "40", pay_rate: "$11", start_date: "11/02/2026" })).toEqual([]);
+  });
+  it("un campo sin clave también se pide, con su propio id", () => {
+    const otro = [{ id: "p7-g0", original: "Brownsville", etiqueta: "Ciudad", clave: "otro" as const }];
+    expect(clavesObligatorias(otro)).toEqual(["p7-g0"]);
+    expect(faltanCampos(otro, valoresSugeridos(otro, {}))).toEqual([]);
+    expect(faltanCampos(otro, { "p7-g0": " " })).toEqual(["p7-g0"]);
   });
 });
 
@@ -171,5 +181,59 @@ describe("valores sugeridos", () => {
     expect(fechaMDY(null)).toBe("");
     expect(pagoFormateado(12.5)).toBe("$12.50");
     expect(pagoFormateado(13)).toBe("$13");
+  });
+});
+
+describe("el mismo documento en español", () => {
+  const en = [
+    { id: "p2-g0", original: "____________________", etiqueta: "Effective Date", clave: "start_date" as const },
+    { id: "p4-g0", original: "Junior Sales Representative", etiqueta: "Applies to", clave: "position" as const },
+    { id: "p9-g0", original: "Junior Sales Representative", etiqueta: "Position", clave: "position" as const },
+    { id: "p10-g0", original: "40", etiqueta: "Employment Type", clave: "weekly_hours" as const },
+    { id: "p11-g0", original: "$11", etiqueta: "Base Pay", clave: "pay_rate" as const },
+    { id: "p20-g0", original: "Brownsville", etiqueta: "City", clave: "otro" as const },
+  ];
+  const es = [
+    { id: "p2-g0", original: "____________________", etiqueta: "Fecha de vigencia", clave: "start_date" as const },
+    { id: "p4-g0", original: "Representante de Ventas Junior", etiqueta: "Puesto al que aplica", clave: "position" as const },
+    { id: "p9-g0", original: "Representante de Ventas Junior", etiqueta: "Puesto", clave: "position" as const },
+    { id: "p10-g0", original: "40", etiqueta: "Tipo de empleo", clave: "weekly_hours" as const },
+    { id: "p11-g0", original: "$11", etiqueta: "Pago base", clave: "pay_rate" as const },
+    { id: "p21-g0", original: "Brownsville (TX)", etiqueta: "Ciudad", clave: "otro" as const },
+  ];
+  const datos = { position: "Junior Sales Representative", hireDate: "2026-11-02" };
+
+  it("la raya de escribir a mano es un hueco; un texto no", () => {
+    expect(esHueco("____________________")).toBe(true);
+    expect(esHueco("  ")).toBe(true);
+    expect(esHueco(undefined)).toBe(true);
+    expect(esHueco("$11")).toBe(false);
+  });
+  it("en español el puesto sale del documento (ya traducido), no del expediente", () => {
+    expect(valoresSugeridos(en, datos, { idioma: "en" }).position).toBe("Junior Sales Representative");
+    expect(valoresSugeridos(es, datos, { idioma: "es" }).position).toBe("Representante de Ventas Junior");
+  });
+  it("al cambiar de idioma pasa lo escrito (horas, pago, fecha cambiada) y lo no tocado toma lo del documento nuevo", () => {
+    const sugEn = valoresSugeridos(en, datos, { idioma: "en" });
+    const sugEs = valoresSugeridos(es, datos, { idioma: "es" });
+    const escritos = { ...sugEn, weekly_hours: "32", pay_rate: "$13", start_date: "12/01/2026" };
+    const v = pasaValores({ campos: en, valores: escritos, sugeridos: sugEn }, { campos: es, sugeridos: sugEs });
+    expect(v.weekly_hours).toBe("32");
+    expect(v.pay_rate).toBe("$13");
+    expect(v.start_date).toBe("12/01/2026");
+    // El puesto no se tocó: queda el del documento en español, no el inglés.
+    expect(v.position).toBe("Representante de Ventas Junior");
+    // El campo sin clave no se tocó: queda el texto del documento nuevo, con SU id.
+    expect(v["p21-g0"]).toBe("Brownsville (TX)");
+    expect(faltanCampos(es, v)).toEqual([]);
+  });
+  it("un puesto o un campo sin clave que sí se cambió, pasa (por su orden en el documento)", () => {
+    const sugEn = valoresSugeridos(en, datos);
+    const v = pasaValores(
+      { campos: en, valores: { ...sugEn, position: "Sales Lead", "p20-g0": "Harlingen" }, sugeridos: sugEn },
+      { campos: es, sugeridos: valoresSugeridos(es, datos, { idioma: "es" }) },
+    );
+    expect(v.position).toBe("Sales Lead");
+    expect(v["p21-g0"]).toBe("Harlingen");
   });
 });

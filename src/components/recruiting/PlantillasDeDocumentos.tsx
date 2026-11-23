@@ -16,7 +16,9 @@ import {
 } from "@/app/recruiting/actions/plantillas";
 import {
   CATEGORIAS_SUGERIDAS, EXTENSIONES_VARIANTE, MARCADORES, MAX_BYTES_VARIANTE, extensionPermitida, filtraDocumentos, tamanoLegible,
+  grupoDeIdioma, idiomaDeVariante, parejaDeIdioma, variantesEnSuIdioma, type IdiomaDeVariante,
 } from "@/lib/recruiting/plantillas-de-documentos";
+import { InterruptorDeIdioma } from "@/components/recruiting/InterruptorDeIdioma";
 import { camposDeDocx, etiquetasDeCampos } from "@/lib/recruiting/campos-de-documento";
 
 /**
@@ -44,6 +46,8 @@ export function PlantillasDeDocumentos({ onClose }: { onClose: () => void }) {
   const [nuevaVersionDe, setNuevaVersionDe] = useState<VarianteFila | null>(null);
   const [detectados, setDetectados] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
+  // El idioma que se está viendo de cada variante que tiene traducción (por grupo). Sin elegir, inglés.
+  const [idiomaVisto, setIdiomaVisto] = useState<Record<string, IdiomaDeVariante>>({});
   const inputArchivo = useRef<HTMLInputElement>(null);
   const [archivoPara, setArchivoPara] = useState<{ fn: (f: File) => void } | null>(null);
 
@@ -61,6 +65,8 @@ export function PlantillasDeDocumentos({ onClose }: { onClose: () => void }) {
   const visibles = filtraDocumentos(documentos, { buscar, categoria });
   const doc = documentos.find((d) => d.id === seleccion) ?? null;
   const varsDelDoc = variantes.filter((v) => v.template_id === seleccion);
+  // De una variante y su traducción se enseña una tarjeta, con el interruptor para ver la otra.
+  const varsVisibles = variantesEnSuIdioma(varsDelDoc, idiomaVisto);
   const numVariantes = (id: string) => variantes.filter((v) => v.template_id === id).length;
 
   /** Un archivo elegido en el navegador: se lee para mostrar qué campos amarillos tiene. */
@@ -181,8 +187,10 @@ export function PlantillasDeDocumentos({ onClose }: { onClose: () => void }) {
         }} />
 
       <div className="hint" data-ayuda style={{ background: "var(--tint-blue)", borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
-        <b>{t("How it works", "Cómo funciona")}:</b> {t("in Word, highlight in yellow the parts that change per employee (date, position, hours, pay). The app asks HR for them each time. Hours and pay are typed by hand, never taken from the employee file.",
-          "en Word, marque en amarillo lo que cambia por persona (fecha, puesto, horas, pago). La app se lo pregunta a RR. HH. cada vez. Horas y pago se escriben a mano, nunca vienen del expediente.")}
+        <b>{t("How it works", "Cómo funciona")}:</b> {t("in Word, highlight in yellow the parts that change per employee (date, position, hours, pay). The app asks HR for them each time, and every yellow field must be filled before printing. Hours and pay are typed by hand, never taken from the employee file.",
+          "en Word, marque en amarillo lo que cambia por persona (fecha, puesto, horas, pago). La app se lo pregunta a RR. HH. cada vez, y todo campo amarillo se llena antes de imprimir. Horas y pago se escriben a mano, nunca vienen del expediente.")}
+        <div style={{ marginTop: 4 }}>{t("Two languages: add the Spanish file as another variant with the same name ending in «(Español)». A language switch then appears on the document.",
+          "Dos idiomas: agregue el archivo en español como otra variante con el mismo nombre terminado en «(Español)». Así sale el interruptor de idioma en el documento.")}</div>
         <div style={{ marginTop: 4 }}>{t("Also works: placeholders", "También sirven los marcadores")}: {MARCADORES.map((m) => (
           <code key={m.key} style={{ marginRight: 6 }}>{`{{${m.key}}}`}</code>))}</div>
       </div>
@@ -283,13 +291,17 @@ export function PlantillasDeDocumentos({ onClose }: { onClose: () => void }) {
 
               <div style={{ marginTop: 10 }} className="docs-lista" data-tabla="variantes">
                 {varsDelDoc.length === 0 && <div className="hint">{t("No variants yet. Add one with its file.", "Sin variantes. Agregue una con su archivo.")}</div>}
-                {varsDelDoc.map((v) => (
+                {varsVisibles.map((v) => (
                   <article key={v.id} className="docs-tarjeta" data-variante-id={v.id}>
                     <div className="docs-tarjeta-cab">
                       <div className="docs-titulo-bloque">
                         <h4 className="docs-titulo" style={{ opacity: v.active ? 1 : 0.6 }}>{v.label}</h4>
                         {!v.active && <span className="badge">{t("archived", "archivada")}</span>}
                       </div>
+                      {parejaDeIdioma(varsDelDoc, v) && (
+                        <InterruptorDeIdioma idioma={idiomaDeVariante(v.label)} de={v.id}
+                          onCambia={(i) => setIdiomaVisto((prev) => ({ ...prev, [grupoDeIdioma(v)]: i }))} />
+                      )}
                       <span className="hint">v{v.version}</span>
                     </div>
                     <div className="docs-meta">
