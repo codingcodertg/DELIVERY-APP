@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import {
@@ -19,8 +17,6 @@ import { cuerpoDeLaMedida } from "./medida-de-ruta";
 import { firmaDeLaForma, mideLaLista } from "./usa-medida-de-rutas";
 import { puntosDeLasRutas, type CarrilDeRuta } from "./mapa-de-rutas";
 import { costeDeLaRuta, mejorLugar } from "./mejor-lugar";
-import { BaseDelDiaDelChofer } from "@/components/BaseDelDiaDelChofer";
-import { PanelDeChoferes } from "@/components/PanelDeChoferes";
 import type { DriverSettings, NamedLocation } from "./types";
 
 /**
@@ -358,15 +354,18 @@ describe("6 · la pantalla usa cada pieza (se alimenta de quien llama)", () => {
     expect(pagina).toContain("finDe: (clave) => { const tienda = tiendaFinDe(clave), fin = finDeLaRuta(clave); return tienda && fin ? { coords: [fin.lat, fin.lng], direccion: tienda.name } : null; },");
     expect(plano(leer("src/lib/arrastre-de-paradas.ts"))).toContain("mejorLugar({ viajes: sin, nueva: laMovida, base: dest.base, fin: dest.fin,");
   });
-  it("el panel: cada chofer con su «Sale de · Termina en»; solo admin y logística lo cambian, viendo UN día; los sin órdenes, plegados debajo", () => {
-    expect(pagina).toContain("extremosDe={(clave) => (isRealDriver(driverOf(clave)) ? baseDelDiaDe(driverOf(clave)) : null)}");
-    expect(pagina).toContain('const puedeElegirBase = !soloLectura && modo === "dia" && !!me && ["admin", "logistics"].includes(me.role);');
-    expect(pagina).toContain("const choferesSinRutaHoy = drivers.filter((d) => !filasDelPanel.some((u) => u.key === d.full_name));");
-    expect(pagina).toContain("pie={puedeElegirBase && choferesSinRutaHoy.length > 0 ? (");
-    const cambia = trozo("const cambiaBaseDelDia = async", "/** «Sale de · Termina en» de un chofer");
-    expect(cambia).toContain("const nueva = baseTrasElCambio(basesDelDiaPorNombre.get(chofer), cambio, ex.base?.tienda ?? null);");
-    expect(cambia).toContain("const r = await basesDelDia.guarda(perfil.id, nueva);");
-    expect(pagina).toContain("<BaseDelDiaDelChofer t={t} extremos={extremosDe(chofer)} tiendas={settings.stores ?? []} editable={puedeElegirBase}");
+  it("el panel ya NO lleva «Sale de · Termina en» (D-1142): la salida se programa en Ajustes → Rutas; lo guardado para un día se sigue leyendo", () => {
+    expect(pagina).not.toContain("BaseDelDiaDelChofer");
+    expect(pagina).not.toContain("extremosDe={(clave)");
+    expect(pagina).not.toContain("puedeElegirBase");
+    expect(pagina).not.toContain("basesDelDia.guarda(");
+    expect(existsSync(join(process.cwd(), "src/components/BaseDelDiaDelChofer.tsx"))).toBe(false);
+    const panel = plano(leer("src/components/PanelDeChoferes.tsx"));
+    expect(panel).not.toContain("extremosDe");
+    expect(panel).not.toContain("props.pie");
+    // Lo que ya estaba guardado para un día (y la base de Ajustes) sigue mandando en la medida y en el motor.
+    expect(pagina).toContain('const basesDelDia = useBasesDelDia(date, modo === "dia");');
+    expect(pagina).toContain("const extremosDe = (laneKey: string) => extremosDeLaRuta(driverOf(laneKey), { delDia: basesDelDiaPorNombre, deAjustes: basesDeChofer,");
   });
   it("la tarjeta: la fila del regreso dice dónde TERMINA ese día («Termina en …»), o que no vuelve", () => {
     const fila = trozo("const finDeLaFila = (laneKey: string)", "/** La clave de una fila de la lista");
@@ -375,51 +374,11 @@ describe("6 · la pantalla usa cada pieza (se alimenta de quien llama)", () => {
     expect(fila).toContain('finDeLaFila(laneKey)?.otra ? t("Ends at", "Termina en") : t("Base: returns", "Base: regreso")');
     expect(fila).toContain('const direccion = (cual === "regreso" ? finDeLaFila(laneKey)?.texto : null) ?? pickupAddressFor(laneKey) ??');
   });
-  it("sin la 166 el selector se apaga y dice por qué; la lectura en el navegador es `leeBasesDelDia`, y el demo lo guarda en la pestaña (`sessionStorage`)", () => {
-    expect(pagina).toContain('if (basesDelDia.fuente === "sin_tabla") return t("Needs migration 166 (driver_day_bases)');
+  it("la lectura en el navegador es `leeBasesDelDia`, y el demo lo guarda en la pestaña (`sessionStorage`)", () => {
     const hook = plano(leer("src/lib/usa-base-del-dia.ts"));
     expect(hook).toContain("const r = await leeBasesDelDia(cliente(), fecha);");
     expect(hook).toContain("const r = await guardaBaseDelDia(cliente(), fecha, choferId, nueva);");
     expect(hook).toContain('if (LOCAL_MODE) return { bases: { ...(leeDelDemo()[fecha] ?? {}) }, fuente: "demo" };');
-  });
-});
-
-// =====================================================================================================================
-describe("7 · el selector, pintado", () => {
-  const t = (_en: string, es: string) => es;
-  const extremos = extremosDelChofer({ delDia: { salida: "McAllen", fin: null }, deAjustes: "Pharr", tiendas: TIENDAS });
-  it("en el Gestor: dos selectores con lo elegido; la salida cambiada, resaltada; el clic no sube a la fila", () => {
-    const html = renderToStaticMarkup(createElement(BaseDelDiaDelChofer, { t, extremos, tiendas: TIENDAS, editable: true }));
-    expect(html).toContain('data-base-del-dia="selector"');
-    expect(html).toMatch(/<select data-sale-de="true"[^>]*>/);
-    expect(html).toContain('<option value="McAllen" selected="">McAllen</option>');
-    expect(html).toContain('<option value="">Pharr (su base)</option>');
-    expect(html).toContain('<option value="" selected="">McAllen (como la salida)</option>');
-    expect(html).toContain("Cambiada solo para este día. Su base: Pharr.");
-    expect(html).toContain('<option value="Bodega sin punto" disabled="">');
-    // Apagado, con su porqué.
-    expect(renderToStaticMarkup(createElement(BaseDelDiaDelChofer, { t, extremos, tiendas: TIENDAS, editable: true, apagado: "Falta la migración 166" }))).toContain('title="Falta la migración 166"');
-    // Sin vuelta a base, «no vuelve» en vez del selector del fin.
-    const noVuelve = extremosDelChofer({ deAjustes: "Pharr", vuelve: false, tiendas: TIENDAS });
-    const h2 = renderToStaticMarkup(createElement(BaseDelDiaDelChofer, { t, extremos: noVuelve, tiendas: TIENDAS, editable: true }));
-    expect(h2).toContain("data-no-vuelve");
-    expect(h2).not.toContain("data-termina-en");
-  });
-  it("en «Ruta de hoy» (D-481): solo se lee, sin selector", () => {
-    const html = renderToStaticMarkup(createElement(BaseDelDiaDelChofer, { t, extremos, tiendas: TIENDAS, editable: false }));
-    expect(html).toContain('data-base-del-dia="lectura"');
-    expect(html).not.toContain("<select");
-    expect(html).toContain("Sale de McAllen");
-    expect(html).toContain("Termina en McAllen");
-  });
-  it("el panel lo pinta en cada fila, y debajo lo de los choferes sin órdenes", () => {
-    const html = renderToStaticMarkup(createElement(PanelDeChoferes, {
-      t, filas: [{ id: "a", clave: "Chofer A", etiqueta: "Chofer A", color: "#123", paradas: 2, carga: { pallets: 1, cap: 10, pct: 10, over: false }, marcada: true, enVivo: false }],
-      onEnfoca: () => {}, onAlterna: () => {}, todas: true, onAlternaTodas: () => {}, vacio: "", sinRutas: false,
-      extremosDe: (clave: string) => createElement("span", { "data-prueba-extremos": clave }), pie: createElement("div", { "data-prueba-pie": "1" }),
-    }));
-    expect(html).toContain('data-prueba-extremos="Chofer A"');
-    expect(html).toContain('data-prueba-pie="1"');
   });
 });
 
