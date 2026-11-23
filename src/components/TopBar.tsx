@@ -109,6 +109,11 @@ export function TopBar({ me: propMe }: { me: Profile }) {
     if ((tb.id === "warehouse" && me.role === "warehouse") || (tb.id === "driver" && me.role === "driver")) {
       return t("📋 Orders", "📋 Órdenes");
     }
+    // D-1136 (solicitud de ayuda de Roberto, 22 nov): para almacén la barra dice «Orders · Drivers · Routes». La pantalla de
+    // llegadas va de los choferes que pasan por la tienda, y el mapa, de sus rutas. Admin conserva los nombres de siempre
+    // (ya tiene «Driver» y «Routes Manager»).
+    if (me.role === "warehouse" && tb.id === "wh-arrivals") return t("🚚 Drivers", "🚚 Choferes");
+    if (me.role === "warehouse" && tb.id === "map") return t("🌐 Routes", "🌐 Rutas");
     return lang === "es" ? tb.label_es : tb.label;
   };
 
