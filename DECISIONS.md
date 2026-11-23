@@ -52936,3 +52936,11 @@ Lo que se corrigió:
 Lo que se dejó como está, a propósito: en un documento en español con el puesto en blanco se propone el del expediente (en inglés), editable; dos variantes en español con el mismo nombre se enseñan las dos; el par depende de que los dos nombres sean iguales.
 No probado: contra la base real (la pantalla de Employees pide la sesión de RR. HH.) ni la impresión en papel.
 Recruiting 0.114.0 · repo 1.973.0.
+
+## D-1142 · El Gestor de Rutas ya no lleva «Sale de · Termina en» en el panel de choferes (2026-11-23)
+
+El dueño, 2026-11-23: «eso que sale ahí en Routes Manager que dice Julio, sale de Pharr y termina en Pharr. Eso se programa en ajustes. […] quiero que me quites eso de ahí». La salida de cada chofer se programa en un solo sitio: Ajustes → Rutas («Tienda base» y «Vuelve a la base»).
+Qué se quitó: el control «🏠 Sale de · Termina en» de cada fila del panel «Choferes y rutas» (Gestor y «Ruta de hoy») y el plegable «Salida y fin de choferes sin órdenes este día». Con él se fueron el componente `BaseDelDiaDelChofer` y las dos entradas del panel que solo servían para eso (`extremosDe`, `pie`).
+Qué se queda: la lectura de `driver_day_bases` (166). Había cuatro filas guardadas, todas de días pasados (Julio 3 y 4 nov, Steven 12 y 13 oct), y ninguna de hoy en adelante: esos días se siguen midiendo como se planearon, y de hoy en adelante cada chofer sale de su base de Ajustes. La fila «Base: salida / Termina en» de la tabla de paradas sigue diciendo de dónde sale y dónde acaba cada ruta.
+Lo que se pierde, dicho: ya no se puede cambiar la salida de un chofer para UN solo día desde el Gestor (D del 2026-10-11); si un chofer toma el camión de otra tienda, se cambia su tienda base en Ajustes y se regresa después.
+Verificado en pantalla (copia local, escritorio y teléfono): el panel sale solo con nombre, órdenes y carga. Deliveries 1.658.0 · repo 1.974.0.
