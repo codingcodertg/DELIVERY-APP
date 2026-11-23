@@ -196,3 +196,39 @@ describe("suenoEntreTicks · el reloj no cuenta el sueño aunque el aviso llegue
     expect(suenoEntreTicks({ prevMs: t0, ahoraMs: t0 + s(90), umbralMs: s(60) })).not.toBeNull();
   });
 });
+
+/**
+ * D-1138 · El corte de las 18:30 no es del remoto, y el reloj del navegador sigue tras un salto que la base corta.
+ *
+ * Solicitud de ayuda de un vendedor remoto (Safari): «The timer keeps stopping randomly». Dos causas medidas en sus
+ * filas: el corte diario le paraba el reloj a los ~30 s de arrancar después de las 18:30 (15 de 16 sesiones de medio
+ * minuto), y la guarda de la migración 305 cerró una fila tras 16 min sin latido y el reloj web no siguió.
+ */
+describe("D-1138: corte solo para presenciales; el navegador corta en el salto de la 305 y sigue", () => {
+  it("el umbral del navegador es el salto que la base ya no acepta (305), no los cinco minutos del escritorio", async () => {
+    const { SALTO_QUE_CORTA_LA_BASE_MS } = await import("./pausa-de-energia");
+    const sql = leer("supabase/migrations/305_timetracker_salto_de_latido.sql");
+    expect(sql).toContain(`NEW.end_ms - OLD.end_ms > ${SALTO_QUE_CORTA_LA_BASE_MS}`);
+    expect(SALTO_QUE_CORTA_LA_BASE_MS).toBeGreaterThan(HUECO_DORMIDO_MS);
+  });
+
+  it("una pestaña estrangulada (un minuto, diez minutos) no corta; pasado el salto de la base, sí, en el último tick", async () => {
+    const { SALTO_QUE_CORTA_LA_BASE_MS: umbralMs } = await import("./pausa-de-energia");
+    const t0 = Date.UTC(2026, 10, 23, 1, 18, 20);
+    expect(suenoEntreTicks({ prevMs: t0, ahoraMs: t0 + 60_000, umbralMs })).toBeNull();
+    expect(suenoEntreTicks({ prevMs: t0, ahoraMs: t0 + 10 * 60_000, umbralMs })).toBeNull();
+    expect(suenoEntreTicks({ prevMs: t0, ahoraMs: t0 + 17 * 60_000, umbralMs })).toEqual({ ultimoLatidoMs: t0, fueraMs: 17 * 60_000 });
+  });
+
+  it("el cronómetro: al remoto el corte ni le avisa ni le para, y el navegador ya mira el hueco", () => {
+    const p = leer("src/components/timetracker/Cronometro.tsx");
+    expect(p).toContain('const corteNoAplica = effWorkerType(me) === "remote";');
+    const mirar = p.slice(p.indexOf("const mirar = () => {"), p.indexOf("const id = setInterval(mirar, 30_000);"));
+    // Lo primero que hace: antes de avisar («cerca») y antes de parar.
+    expect(mirar.indexOf("if (corteNoAplica) return;")).toBeGreaterThan(-1);
+    expect(mirar.indexOf("if (corteNoAplica) return;")).toBeLessThan(mirar.indexOf("setCerca(true)"));
+    expect(p).toContain("}, [notify, t, exentoDelCorte, corteNoAplica]);");
+    expect(p).toContain("umbralMs: SALTO_QUE_CORTA_LA_BASE_MS");
+    expect(p).not.toContain("return isDesktop() ? suenoEntreTicks({ prevMs: lastTickRef.current, ahoraMs: ahora }) : null;");
+  });
+});

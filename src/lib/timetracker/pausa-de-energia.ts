@@ -113,6 +113,14 @@ export function accionDeEnergia(args: {
 export const HUECO_DORMIDO_MS = GRACIA_DE_ENERGIA_MS;
 
 /**
+ * El salto entre latidos que la base ya no acepta en una fila viva (migración 305, `corta_salto_de_latido`:
+ * 960000 ms = los 15 min del cron de huérfanas más 60 s). El cronómetro del navegador usa este umbral y no el de
+ * cinco minutos del escritorio (D-1138): por debajo, una pestaña estrangulada sigue contando como siempre; por
+ * encima, la base cerraría la fila de todos modos, así que se corta aquí y el reloj sigue en una fila nueva.
+ */
+export const SALTO_QUE_CORTA_LA_BASE_MS = 16 * 60_000;
+
+/**
  * ¿Se durmió el equipo entre el tick anterior y este?
  *
  * `null` si no: el primer tick, un hueco normal (un minuto de pestaña estrangulada, una caída de

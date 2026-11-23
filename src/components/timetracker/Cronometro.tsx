@@ -34,7 +34,7 @@ import {
   estadoVigia, parcheDeStop, pararPorCorteSiToca, tocaReintentar, tocaSonar, VIGIA_CADA_MS,
 } from "@/lib/timetracker/vigia";
 import { avisoDeSistema, sonarAlarma } from "@/lib/timetracker/alarma";
-import { accionDeEnergia, suenoEntreTicks } from "@/lib/timetracker/pausa-de-energia";
+import { accionDeEnergia, suenoEntreTicks, SALTO_QUE_CORTA_LA_BASE_MS } from "@/lib/timetracker/pausa-de-energia";
 import {
   filasPendientesKey, inicioDeContinuacion, inicioSinSolape, leerFilasPendientes, nuevoPendiente, planTrasLatido,
   tocaReintentarPendiente, trasFallo, type FilaPendiente, type Pendiente,
@@ -1360,7 +1360,11 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
    * y el INSERT pendiente lo miran: lo primero que llegue al despertar lo corta.
    */
   function suenoDesdeUltimoTick(ahora: number) {
-    return isDesktop() ? suenoEntreTicks({ prevMs: lastTickRef.current, ahoraMs: ahora }) : null;
+    if (isDesktop()) return suenoEntreTicks({ prevMs: lastTickRef.current, ahoraMs: ahora });
+    // D-1138: en el navegador una pestaña en segundo plano despierta cada minuto, así que el umbral del escritorio
+    // (5 min) no se usa. Pero pasado el salto que la base ya no acepta (migración 305: 16 min) la fila se cierra allí
+    // y el reloj web se quedaba parado. Mismo corte que el escritorio: se guarda hasta el último tick y sigue en fila nueva.
+    return suenoEntreTicks({ prevMs: lastTickRef.current, ahoraMs: ahora, umbralMs: SALTO_QUE_CORTA_LA_BASE_MS });
   }
 
   /**
@@ -1629,8 +1633,12 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   // middleware corre también sobre ella y le devuelve la redirección al login—, así que
   // preguntar tarde no da «no exento», da un error.
   const exentoDelCorte = useCutoffExempt(cerca);
+  // D-1138 (el dueño, 22 nov): «para remote workers no, solo es para los in person porque ellos salen de la tienda».
+  // Al remoto el corte no le para el reloj ni le avisa: trabaja a la hora que sea.
+  const corteNoAplica = effWorkerType(me) === "remote";
   useEffect(() => {
     const mirar = () => {
+      if (corteNoAplica) return;
       if (paradoPorCorteRef.current) return;
       const ahora = horaDelNegocio();
       if (tocaAvisar(ahora) || pasoElCorte(ahora)) setCerca(true);
@@ -1664,7 +1672,7 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     mirar();
     const id = setInterval(mirar, 30_000);
     return () => clearInterval(id);
-  }, [notify, t, exentoDelCorte]);
+  }, [notify, t, exentoDelCorte, corteNoAplica]);
 
   /**
    * El vigía (D-470): si el reloj enseña «corriendo» y no hay un guardado bueno desde hace más
