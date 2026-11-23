@@ -403,6 +403,8 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
   const titulo = t(`Review & print: ${fila.documento.name}`, `Revisar e imprimir: ${fila.documento.name}`);
   const hoyTexto = fechaLarga(HOY(), idiomaDelTexto);
   const obligatorias = clavesObligatorias(campos);
+  // El nombre del documento en la biblioteca está en inglés: en la hoja en español no se pone (el archivo trae su título).
+  const nombreEnLaHoja = idioma === "es" ? "" : fila.documento.name;
 
   return (
     <div className="overlay" onClick={onCancel}>
@@ -478,10 +480,10 @@ function RevisionDeDocumento({ employeeId, datos, fila, onDone, onCancel }: {
                   <div className="docs-hoja" data-hoja>
                     <div className="docs-hoja-encabezado">
                       <div className="docs-hoja-empresa">{ENCABEZADO}</div>
-                      <div className="docs-hoja-titulo">{fila.documento.name}</div>
+                      {nombreEnLaHoja && <div className="docs-hoja-titulo">{nombreEnLaHoja}</div>}
                     </div>
                     <div ref={cuerpoRef} className="docs-hoja-cuerpo" onClick={alClicarHoja} data-cuerpo-documento />
-                    <div className="docs-hoja-pie">{fila.documento.name} · {hoyTexto}</div>
+                    <div className="docs-hoja-pie">{nombreEnLaHoja ? `${nombreEnLaHoja} · ` : ""}{hoyTexto}</div>
                   </div>
                 </div>
               ) : (

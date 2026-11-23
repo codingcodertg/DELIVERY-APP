@@ -22,7 +22,7 @@
 // Ver "Flujo de ramas" en CLAUDE.md y docs/WORKFLOW-PARALELO.md.
 export const APP_VERSIONS = {
   deliveries: "1.657.0",
-  recruiting: "0.112.0",
+  recruiting: "0.113.0",
   timetracker: "1.37.0",
   clockin: "0.50.1",
   // El ERP no tenía contador propio: llegó en D-090 y nadie le puso uno, así que el
