@@ -127,14 +127,19 @@ describe("el resumen antes de confirmar", () => {
   it("cuántas a cada quien y cómo queda su ruta (órdenes, millas, horas, retraso); lo que se mueve de otra ruta; lo que no cabe, con su porqué; y con qué se midió", () => {
     const s = resumenDelReparto({ r, nombreDe, movimientos: [{ orden: "a", de: null, a: "Ana" }, { orden: "c", de: "Ceci", a: "Beto" }], medida: { estimados: 3, pares: 20 }, totalSeleccionadas: 6 });
     expect(s.es).toBe([
-      "🧭 3 orden(es) entre 2 chofer(es), cada una en el mejor sitio de su ruta:",
-      "• Ana: +2 → 3 orden(es) · 52.3 mi · 4 h 10 min",
-      "• Beto: +1 → 1 orden(es) · 20.0 mi · 1 h 15 min · ⚠ 12 min tarde",
+      "🧭 ¿Repartir 3 órdenes entre 2 choferes? Cada una va en el mejor lugar de la ruta de ese chofer:",
+      "• Ana: 2 nuevas, 3 órdenes en total · 52.3 mi · 4 h 10 min",
+      "• Beto: 1 nueva, 1 orden en total · 20.0 mi · 1 h 15 min · ⚠ 12 min tarde",
       "Se mueven de otra ruta: #c (Ceci → Beto).",
       "⚠ 3 no caben y se quedan donde están: #d (mayor que el camión), #e (el camión no tiene lo que pide), #f (no está en la lista de este día).",
       "⚠ Medido en línea recta (estimado): 3 de 20 tramos sin tiempos por calles.",
     ].join("\n"));
-    expect(s.en).toContain("• Ana: +2 → 3 order(s) · 52.3 mi · 4 h 10 min");
+    expect(s.en).toContain("• Ana: 2 new, 3 orders in total · 52.3 mi · 4 h 10 min");
+    expect(s.en.startsWith("🧭 Assign 3 orders among 2 drivers? Each one goes in the best place of that driver's route:")).toBe(true);
+    // D-1139: con UN solo chofer la cabecera lo nombra («Three orders, one driver» no se entendía).
+    const uno = resumenDelReparto({ r: { rutas: [r.rutas[0]], sinAsignar: [], ignoradas: [] }, nombreDe, movimientos: [], medida: { estimados: 0, pares: 20 }, totalSeleccionadas: 2 });
+    expect(uno.en.split("\n")[0]).toBe("🧭 Assign 2 orders to Ana? Each one goes in the best place of the route:");
+    expect(uno.es.split("\n")[0]).toBe("🧭 ¿Asignar 2 órdenes a Ana? Cada una va en el mejor lugar de su ruta:");
     expect(s.en).toContain("Moved from another route: #c (Ceci → Beto).");
     expect(s.en).toContain("3 don't fit and stay where they are");
     expect(s.en).toContain("Measured in a straight line");
