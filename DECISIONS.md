@@ -52871,3 +52871,11 @@ El dueño, sobre las seis pendientes (237, 238, 239, 279, 291, 305): «hazlas».
 · **291 NO se aplica todavía.** Cierra la lectura de `profiles` a la fila propia (o admin / RR. HH.). Auditadas las 215 lecturas directas: seis seguían leyendo a OTRA persona por la tabla con la sesión del usuario y se habrían roto para quien no es admin ni RR. HH.: el destinatario del chat (`/api/chat/send` contestaría «Recipient not found» a casi todos), la lista de gente del Time Tracker, las bajas del fichaje, los nombres en la hoja de conteo y en la hoja de aprobación, y el idioma del admin al ver como otro usuario. Las seis pasan a `perfiles_publicos` (290), que ya trae esas columnas.
 · Queda por revisar antes de la 291: las políticas y funciones de la base que consulten `profiles` de otra persona (hace falta la conexión de Supabase, hoy caída), y verificar por rol al aplicarla, con el dueño mirando (como pedía el plan en dos fases de las migraciones 290 y 291).
 Time Tracker 1.36.1 · Clock-in 0.50.1 · repo 1.966.0.
+
+## D-1135 · En la vista móvil, un botón que dice «Vista de escritorio» (2026-11-22)
+
+El dueño, con captura: «estoy en mobile view y aún dice mobile view, no me sale el botón que diga desktop view, te lo pedí el otro día». El arreglo del 21 nov solo cubría la burbuja de DENTRO del marco de teléfono. En la página de la vista móvil (`/home/vista-movil`), lo de fuera seguía igual: el título «Vista móvil», ningún botón de vuelta a la vista, y la burbuja de fuera ofrecía «Vista móvil» (un enlace a donde ya se estaba).
+· `VistaMovil`: botón «🖥️ Vista de escritorio» en la cabecera, junto a la casa. Abre a tamaño normal la pantalla que se está viendo dentro del marco (sigue la navegación del marco).
+· `BotonGeneral`: en esa página, la opción de la burbuja de fuera dice «Vista de escritorio» y vuelve a la pantalla del marco (si el navegador no deja leerla, a la de la URL).
+Verificado en pantalla (demo, 1366 px): el botón sale y lleva de `/home/vista-movil?ruta=/warehouse/arrivals` a `/warehouse/arrivals`. La opción de la burbuja no se pudo ver en demo (solo sale al admin real). No se pudo abrir la captura del dueño: si la veía en otro sitio, falta.
+Repo 1.967.0.

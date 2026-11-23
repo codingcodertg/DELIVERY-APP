@@ -11,7 +11,7 @@ import { avisoGeneralEnLaRuta } from "@/lib/ensenanza-general";
 import { PrefsConIdioma, usePrefs } from "@/lib/prefs";
 import { ConfirmProvider } from "@/lib/confirm";
 import { ayudaEnLaRuta } from "@/lib/ayuda-flotante";
-import { botonDeVista, enlaceAVistaMovil } from "@/lib/mobile-preview";
+import { botonDeVista, enlaceAVistaMovil, esLaVistaMovil } from "@/lib/mobile-preview";
 import { useVistaEscritorio } from "@/lib/vista-escritorio";
 import {
   EVENTO_ABRIR_AYUDA, EVENTO_ABRIR_CHAT, EVENTO_CHAT_SIN_LEER, EVENTO_ENSENANZA, RUTA_TUTORIALES,
@@ -219,6 +219,25 @@ export function BotonGeneral() {
                 cierra();
                 const destino = botonDeVista({ enMarco: true, pathname: pathname || "/", search: window.location.search }).destino;
                 try { (window.top ?? window).location.href = destino; } catch { window.location.href = destino; }
+              }}>
+              <span aria-hidden>🖥️</span> {t("Desktop view", "Vista de escritorio")}
+            </button>
+          );
+        }
+        // D-1135 (el dueño): en la PÁGINA de la vista móvil (fuera del marco) también dice «Vista de escritorio». Vuelve a la
+        // pantalla que se está viendo dentro del marco; si el navegador no deja leerla, a la que pide la URL.
+        if (esLaVistaMovil(pathname || "/")) {
+          return (
+            <button key={o} type="button" className="fab-opcion" data-opcion={o} data-cambia-vista="escritorio" role="menuitem"
+              title={t("Take this screen out of the phone frame, at full size", "Sacar esta pantalla del marco de teléfono, a tamaño normal")}
+              onClick={() => {
+                cierra();
+                let delMarco: string | null = null;
+                try {
+                  const loc = document.querySelector<HTMLIFrameElement>("iframe.vista-movil-marco")?.contentWindow?.location;
+                  if (loc) delMarco = loc.pathname + loc.search;
+                } catch { /* sin acceso al marco: vale la de la URL */ }
+                window.location.href = botonDeVista({ enMarco: false, pathname: pathname || "/", search: window.location.search, rutaDelMarco: delMarco }).destino;
               }}>
               <span aria-hidden>🖥️</span> {t("Desktop view", "Vista de escritorio")}
             </button>
