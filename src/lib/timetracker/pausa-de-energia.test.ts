@@ -134,7 +134,7 @@ describe("la pantalla lo usa, y ya no para a la primera", () => {
   it("la continuación tras dormir arranca AHORA (el sueño no se paga) y se avisa en pantalla y en el sistema", () => {
     const p = leer("src/components/timetracker/Cronometro.tsx");
     const i = p.indexOf("function continuarTrasDormir(");
-    const f = p.slice(i, i + 1200);
+    const f = p.slice(i, i + 1900);
     expect(f).toContain("continuarEnFilaNueva(true)");
     expect(f).toContain("avisoDeSistema(");
     expect(f).toContain("marcarSinGuardar(");

@@ -113,6 +113,31 @@ export function nuevoPendiente(desdeMs: number, ahoraMs: number): Pendiente {
   return { desdeMs, intento: 0, proximoMs: ahoraMs };
 }
 
+/**
+ * El equipo durmió con una fila todavía SIN guardar (D-1152).
+ *
+ * El incidente (2026-11-24, cuenta del dueño, app de escritorio): una sesión de 01:49:11 a 08:03:26 —6 h 14 min— con
+ * siete segundos de actividad, guardada a las 08:03:19. La pantalla le decía «llevas 8 horas» a las 10 de la mañana.
+ * A la 01:49 el equipo despertó un momento, el reloj siguió en una fila nueva y su INSERT no entró (sin red); el equipo
+ * volvió a dormirse. A las 08:03 llegó el aviso de energía (`resume`), que para una fila VIVA abre otra y está bien, pero
+ * con un INSERT pendiente no hacía nada… salvo borrar el último tick (`reiniciarContinuidad`). Sin último tick, el
+ * pendiente ya no veía el sueño (`suenoEntreTicks` con `prevMs` nulo) y entró con el fin puesto en AHORA: toda la noche.
+ *
+ * La regla: quien se entera de un sueño con un pendiente sin marcar, lo marca. El tramo llega hasta el último instante en
+ * que el reloj seguro corría —el más temprano entre cuándo se durmió y el último tick— y nunca antes de su arranque.
+ * Un pendiente ya marcado no se toca: la primera marca es la del sueño de verdad.
+ */
+export function pendienteConSueno(p: Pendiente, a: { paradoMs: number | null; ultimoTickMs: number | null; ahoraMs: number }): Pendiente {
+  if (p.hastaMs != null) return p;
+  const candidatos = [a.paradoMs, a.ultimoTickMs].filter((x): x is number => x != null && Number.isFinite(x));
+  if (!candidatos.length) return p;
+  const hastaMs = Math.max(p.desdeMs, Math.min(...candidatos));
+  const fueraMs = a.ahoraMs - hastaMs;
+  // Un reloj que retrocedió, o nada de tiempo fuera: no hay sueño que marcar.
+  if (!(fueraMs > 0)) return p;
+  return { ...p, hastaMs, fueraMs };
+}
+
 /** ¿Toca reintentar ya? */
 export function tocaReintentarPendiente(p: Pendiente | null, ahoraMs: number): boolean {
   return !!p && ahoraMs >= p.proximoMs;

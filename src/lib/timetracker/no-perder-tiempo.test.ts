@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  inicioDeContinuacion, inicioSinSolape, leerFilasPendientes, nuevoPendiente, planTrasLatido, tocaReintentarPendiente,
+  inicioDeContinuacion, inicioSinSolape, leerFilasPendientes, nuevoPendiente, pendienteConSueno, planTrasLatido, tocaReintentarPendiente,
   trasFallo, type Pendiente, type ResultadoLatido, type Tramo,
 } from "./no-perder-tiempo";
 import { huerfanasDe } from "./live-session";
@@ -164,5 +164,54 @@ describe("piezas", () => {
     expect(leerFilasPendientes(null)).toEqual([]);
     expect(leerFilasPendientes("{")).toEqual([]);
     expect(leerFilasPendientes(JSON.stringify([{ startMs: 1, endMs: 0, payload: {} }, { startMs: 1, endMs: 2, durationSeconds: 1, payload: {} }]))).toHaveLength(1);
+  });
+});
+
+// ---- D-1152: el equipo durmió con una fila sin guardar -------------------------------------
+describe("pendienteConSueno · una noche dormida no entra en una fila que aún no se guardó", () => {
+  // El incidente del 2026-11-24: arrancó a la 01:49:11, el último tick fue a la 01:49:18, despertó a las 08:03:19.
+  const dia = (h: number, m: number, seg = 0) => Date.UTC(2026, 10, 24, h + 6, m, seg); // hora de Chicago → UTC
+  const arranque = dia(1, 49, 11), ultimoTick = dia(1, 49, 18), despierta = dia(8, 3, 19);
+
+  it("el tramo llega hasta el último tick, no hasta que despierta: 7 segundos, no 6 horas", () => {
+    const p = pendienteConSueno(nuevoPendiente(arranque, arranque), { paradoMs: null, ultimoTickMs: ultimoTick, ahoraMs: despierta });
+    expect(p.hastaMs).toBe(ultimoTick);
+    expect(p.fueraMs).toBe(despierta - ultimoTick);
+    expect(Math.round((p.hastaMs! - p.desdeMs) / 1000)).toBe(7);
+  });
+  it("si el aviso de «se durmió» llegó tarde (al despertar), manda el último tick, que es anterior", () => {
+    const p = pendienteConSueno(nuevoPendiente(arranque, arranque), { paradoMs: despierta - 500, ultimoTickMs: ultimoTick, ahoraMs: despierta });
+    expect(p.hastaMs).toBe(ultimoTick);
+  });
+  it("sin tick (recién montado), vale el instante en que se durmió", () => {
+    const p = pendienteConSueno(nuevoPendiente(arranque, arranque), { paradoMs: dia(1, 50, 0), ultimoTickMs: null, ahoraMs: despierta });
+    expect(p.hastaMs).toBe(dia(1, 50, 0));
+  });
+  it("nunca antes de su arranque", () => {
+    const p = pendienteConSueno(nuevoPendiente(arranque, arranque), { paradoMs: arranque - 60_000, ultimoTickMs: null, ahoraMs: despierta });
+    expect(p.hastaMs).toBe(arranque);
+  });
+  it("un pendiente ya marcado no se toca, y los reintentos conservan la marca", () => {
+    const marcado = pendienteConSueno(nuevoPendiente(arranque, arranque), { paradoMs: null, ultimoTickMs: ultimoTick, ahoraMs: despierta });
+    expect(pendienteConSueno(marcado, { paradoMs: null, ultimoTickMs: despierta, ahoraMs: despierta + 5_000 })).toBe(marcado);
+    expect(trasFallo(marcado, despierta).hastaMs).toBe(ultimoTick);
+  });
+  it("sin nada que diga cuándo se durmió, o con el reloj hacia atrás, no inventa una marca", () => {
+    const p = nuevoPendiente(arranque, arranque);
+    expect(pendienteConSueno(p, { paradoMs: null, ultimoTickMs: null, ahoraMs: despierta })).toBe(p);
+    expect(pendienteConSueno(p, { paradoMs: null, ultimoTickMs: ultimoTick, ahoraMs: ultimoTick - 1 })).toBe(p);
+  });
+  it("la pantalla marca el pendiente al despertar, ANTES de que se borre el último tick", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("src/components/timetracker/Cronometro.tsx", "utf8").replace(/\r\n/g, "\n");
+    const i = src.indexOf("function continuarTrasDormir(");
+    const f = src.slice(i, i + 1900);
+    expect(f).toContain("if (!sessionIdRef.current && pendienteRef.current) {");
+    expect(f).toContain("pendienteConSueno(pendienteRef.current, { paradoMs: paradoMs ?? null, ultimoTickMs: lastTickRef.current, ahoraMs: Date.now() })");
+    // El aviso de energía llama primero a la continuación y después borra el tick.
+    const j = src.indexOf("continuarTrasDormirRef.current(accion.fueraSegundos, paradoEnMs ?? undefined);");
+    expect(src.slice(j, j + 140)).toContain("reiniciarContinuidad();");
+    // Y el INSERT pendiente respeta la marca: la fila termina ahí.
+    expect(src).toContain("const fin = sueno ? Math.max(desde, sueno.ultimoLatidoMs) : ahora;");
   });
 });
