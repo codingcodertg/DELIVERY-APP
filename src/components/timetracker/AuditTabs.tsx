@@ -5,27 +5,19 @@ import { useMemo, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { dateISO, fmtDT, fmtDayLong } from "@/lib/timetracker/helpers";
-import { DayPhotos } from "./DayPhotos";
-import { ExceptionHistory } from "./ExceptionHistory";
-import { TeamDiary } from "./TeamDiary";
 
 // Ported (D-071) from timetracker-clean's manager/AuditLog.jsx — grouped by
 // day, with person + action filters. `auditLog` is kept live by the
 // provider (latest 300, bounded — see its block comment).
 //
-// Desde D-109 esta pantalla tiene DOS vistas, y es el sitio donde entran las que vengan. El
-// tab de fichaje se retira, y sus pantallas de gerente no merecen cada una un tab propio en
-// la barra de Time Tracker: lo que se hace aquí es siempre la misma pregunta —qué pasó, quién
-// y cuándo— así que el registro y las fotos que lo prueban van juntos, no separados por la
-// barra de navegación.
-//
-// D-194: la cuarta vista son las capturas de la app de escritorio (lo que era la pestaña
-// "Team Diary"). Con ella Auditoría deja de ser solo lectura: borrar una captura resta tiempo
-// pagado. Por eso la puerta pasó a servidor (`audit/page.tsx`) y este cuerpo es un componente
-// cliente. Cada vista conserva su PROPIO selector de persona: son tres listas distintas
-// (quien tiene capturas · todos · fotos acotadas por tienda) y ninguna gana (D-186).
+// Desde 2026-11-24 (ayuda de Roberto: las vistas de fotos, excepciones y capturas «could probably be
+// consolidated into payroll app») esta pantalla es SOLO el registro de auditoría: qué pasó, quién y
+// cuándo, con su filtro por persona y por acción. Las otras tres vistas que tuvo (fotos de fichaje
+// D-109, historial de excepciones y capturas de escritorio D-194) viven ahora en Nómina
+// (`PayrollTabs`), como secciones plegadas, cada una con su propio selector de persona (D-186).
+// Los enlaces viejos a esas vistas redirigen allí (next.config.mjs). La puerta de servidor de
+// `audit/page.tsx` no cambia.
 export function AuditTabs() {
-  const [view, setView] = useState<"log" | "photos" | "exceptions" | "desktop">("log");
   const { me, auditLog: items, allEmployees: users } = useData();
   const t = useT();
   const [who, setWho] = useState("");
@@ -46,22 +38,7 @@ export function AuditTabs() {
 
   if (me.role !== "admin") return <div className="card"><p className="muted">{t("common.adminsOnly")}</p></div>;
 
-  const switcher = (
-    <div className="tabs" style={{ marginBottom: 12 }}>
-      <button className={view === "log" ? "active" : ""} onClick={() => setView("log")}>{t("mgr.audit.viewLog")}</button>
-      <button className={view === "photos" ? "active" : ""} onClick={() => setView("photos")}>{t("mgr.audit.viewPhotos")}</button>
-      <button className={view === "exceptions" ? "active" : ""} onClick={() => setView("exceptions")}>{t("mgr.audit.viewExceptions")}</button>
-      <button className={view === "desktop" ? "active" : ""} onClick={() => setView("desktop")}>{t("mgr.audit.viewDesktop")}</button>
-    </div>
-  );
-
-  if (view === "photos") return <>{switcher}<DayPhotos /></>;
-  if (view === "exceptions") return <>{switcher}<ExceptionHistory /></>;
-  if (view === "desktop") return <>{switcher}<TeamDiary /></>;
-
   return (
-    <>
-    {switcher}
     <div className="card">
       <div className="between">
         <h2 style={{ margin: 0 }}>{t("mgr.audit.title")}</h2>
@@ -99,6 +76,5 @@ export function AuditTabs() {
         </details>
       ))}
     </div>
-    </>
   );
 }

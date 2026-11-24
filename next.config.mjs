@@ -116,7 +116,7 @@ const nextConfig = {
       // justo lo que el comentario de la regla del horario decía querer evitar en el móvil. Las
       // pantallas fusionadas van EXPLÍCITAS aquí, antes del comodín, derivadas una a una de las
       // reglas /timetracker/clock-in/X de abajo (mismo destino), para que /clock-in/X llegue en un
-      // salto de configuración: /clock-in/clock → /timetracker, /clock-in/photos → /timetracker/audit…
+      // salto de configuración: /clock-in/clock → /timetracker, /clock-in/photos → /timetracker/payroll?vista=fotos…
       // Medido sin sesión: /clock-in/clock, /clock-in y /clock-in/photos pasan de 3 a 2 saltos (el
       // segundo es la puerta del layout al login, que no es regla). /clock-in/week sigue en 1. Next
       // resuelve las redirecciones en orden: por eso van antes del comodín.
@@ -124,7 +124,7 @@ const nextConfig = {
       { source: "/clock-in/settings", destination: "/timetracker/settings", permanent: false },
       { source: "/clock-in/sites", destination: "/timetracker/settings", permanent: false },
       { source: "/clock-in/exceptions", destination: "/timetracker/team-requests", permanent: false },
-      { source: "/clock-in/photos", destination: "/timetracker/audit", permanent: false },
+      { source: "/clock-in/photos", destination: "/timetracker/payroll?vista=fotos", permanent: false },
       { source: "/clock-in/time-off", destination: "/timetracker/requests", permanent: false },
       { source: "/clock-in/reports", destination: "/timetracker/payroll", permanent: false },
       { source: "/clock-in/schedule", destination: "/timetracker/assignments", permanent: false },
@@ -154,14 +154,15 @@ const nextConfig = {
       { source: "/timetracker/clock-in/sites", destination: "/timetracker/settings", permanent: false },
       // Las excepciones se partieron en dos por lo que se hace con ellas (D-115): lo que
       // falta por atender está en Pendientes, con el resto de la bandeja, y el historial con
-      // sus fotos está en Auditoría. Quien abría esta pantalla venía casi siempre a resolver,
+      // sus fotos está en Nómina, sección «Excepciones» (desde 2026-11-24; antes en Auditoría). Quien abría esta pantalla venía casi siempre a resolver,
       // así que el enlace viejo lleva a Pendientes.
       { source: "/timetracker/clock-in/exceptions", destination: "/timetracker/team-requests", permanent: false },
-      // Las fotos se mudaron a Auditoría en D-109; esta regla faltaba.
-      { source: "/timetracker/clock-in/photos", destination: "/timetracker/audit", permanent: false },
+      // Las fotos se mudaron a Auditoría en D-109 y desde 2026-11-24 viven en Nómina, como sección
+      // plegada: `?vista=fotos` la abre. Esta regla faltaba.
+      { source: "/timetracker/clock-in/photos", destination: "/timetracker/payroll?vista=fotos", permanent: false },
       // Las capturas de escritorio ("Team Diary") pasaron a ser la cuarta vista de Auditoría
-      // (D-194); la pestaña desapareció y quien tenga el enlace guardado aterriza aquí.
-      { source: "/timetracker/team-diary", destination: "/timetracker/audit", permanent: false },
+      // (D-194) y desde 2026-11-24 son la sección «Capturas de escritorio» de Nómina; quien tenga el enlace guardado aterriza ahí.
+      { source: "/timetracker/team-diary", destination: "/timetracker/payroll?vista=capturas", permanent: false },
       // Tiempo libre, partido igual que las excepciones (D-116): pedirlo y ver en qué quedó
       // está en My Requests; aprobarlo, en Pendientes. El enlace viejo lleva al lado del
       // EMPLEADO porque de las doce personas que lo abrían, once venían a pedir, no a aprobar.

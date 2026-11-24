@@ -54,8 +54,8 @@ export const MANAGER_TABS: { id: string; href: string }[] = [
   // de empleados es «⏱ Time tracking setup» (/recruiting/tt-empleados); /timetracker/people redirige ahí.
   // La ruta /timetracker/schedule sigue existiendo y redirige.
   { id: "assignments", href: "/timetracker/assignments" },
-  // "team-diary" (capturas de la app de escritorio) ya no es pestaña: desde D-194 es la
-  // cuarta vista del selector de Auditoría. /timetracker/team-diary redirige a /audit.
+  // "team-diary" (capturas de la app de escritorio) ya no es pestaña: desde D-194 estaba en Auditoría y desde
+  // 2026-11-24 es la sección «Capturas de escritorio» de Nómina (`?vista=capturas`). /timetracker/team-diary redirige allí.
   { id: "audit", href: "/timetracker/audit" },
   { id: "settings", href: "/timetracker/settings" },
   { id: "track", href: "/timetracker" },
