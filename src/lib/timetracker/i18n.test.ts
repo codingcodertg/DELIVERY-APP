@@ -97,9 +97,12 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     "src/components/timetracker/PayrollTabs.tsx",
     "src/components/timetracker/PayrollTimesheets.tsx",
     "src/components/timetracker/ManagerReports.tsx",
-    // D-194 (Auditoría): el selector de vistas y las capturas de escritorio que eran Team Diary.
+    // D-194 (Auditoría): el selector de vistas. Desde 2026-11-24 las capturas de escritorio son la ventana
+    // CapturasDeSesion, que se abre desde Nómina → Remoto (sustituyó a TeamDiary).
     "src/components/timetracker/AuditTabs.tsx",
-    "src/components/timetracker/TeamDiary.tsx",
+    "src/components/timetracker/CapturasDeSesion.tsx",
+    // Historial de solicitudes, movido desde Solicitudes a Auditoría (2026-11-24).
+    "src/components/timetracker/HistorialDeSolicitudes.tsx",
     // D-403: la cabecera de las capturas (selector de fecha) y su resumen del día.
     "src/components/timetracker/WorkDiary.tsx",
     "src/components/timetracker/DayActivitySummary.tsx",
@@ -125,13 +128,11 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     "src/components/timetracker/ClockinApprovals.tsx",
     // D-1155 (ayuda de Roberto, 24 nov 2026): las secciones plegables y el calendario de ausencias.
     "src/components/timetracker/CalendarioDeAusencias.tsx",
-    "src/components/timetracker/ExceptionHistory.tsx",
     "src/components/timetracker/GeofenceEditor.tsx",
     "src/components/timetracker/GeofenceSection.tsx",
     "src/components/timetracker/TripPanel.tsx",
     "src/components/timetracker/VehiclesSection.tsx",
     "src/components/timetracker/EmployeeWeek.tsx",
-    "src/components/timetracker/DayPhotos.tsx",
     "src/components/timetracker/PhotoMapModal.tsx",
     "src/components/timetracker/OfflineIndicator.tsx",
     "src/components/timetracker/UpdateBanner.tsx",

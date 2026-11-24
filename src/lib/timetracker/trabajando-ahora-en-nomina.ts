@@ -1,27 +1,21 @@
 /**
- * Las secciones plegadas de Nómina (2026-11-24). Cuatro, todas con la misma forma:
- *   - «🟢 Trabajando ahora» (`ahora`): era la pestaña de siempre; se consolidó aquí ese mismo día.
- *   - «📷 Fotos de fichaje» (`fotos`), «⚠️ Excepciones» (`excepciones`) y «🖥 Capturas de escritorio»
- *     (`capturas`): salieron de Auditoría (ayuda de Roberto: «could probably be consolidated into
- *     payroll app»). Cada una conserva su propio selector de persona.
+ * Las secciones plegadas de Nómina. Desde 2026-11-24 queda una sola: «🟢 Trabajando ahora» (`ahora`),
+ * que era la pestaña de siempre. Las de fotos de fichaje, excepciones y capturas de escritorio salieron
+ * de Nómina ese mismo día (decisión del dueño), así que ya no se pueden abrir por URL ni guardar.
  *
  * Quién manda, de más a menos:
- *   1. `?vista=<sección>` en la URL: abre esa sección (lo que mandan las notificaciones y los
- *      enlaces viejos). Vale hasta que la persona la pliegue o despliegue a mano.
+ *   1. `?vista=<sección>` en la URL: abre esa sección. Vale hasta que la persona la pliegue o despliegue a mano.
  *   2. La última elección de la persona en esa sección, recordada en el navegador.
  *   3. Cerrada.
  */
 
-/** Las secciones que se pueden abrir por URL. El orden es el de la pantalla, de arriba abajo. */
-export const SECCIONES_DE_NOMINA = ["ahora", "fotos", "excepciones", "capturas"] as const;
+/** Las secciones que se pueden abrir por URL. */
+export const SECCIONES_DE_NOMINA = ["ahora"] as const;
 export type SeccionDeNomina = (typeof SECCIONES_DE_NOMINA)[number];
 
 /** Las claves de localStorage. Valores «1» (abierta) o «0» (cerrada). */
 export const CLAVES_SECCION_DE_NOMINA: Record<SeccionDeNomina, string> = {
   ahora: "tt_nomina_ahora_abierta",
-  fotos: "tt_nomina_fotos_abierta",
-  excepciones: "tt_nomina_excepciones_abierta",
-  capturas: "tt_nomina_capturas_abierta",
 };
 
 /** La clave de «Trabajando ahora», con el nombre que ya tenía. */

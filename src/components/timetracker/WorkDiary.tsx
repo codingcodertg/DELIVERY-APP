@@ -14,14 +14,14 @@ import { DayActivitySummary } from "./DayActivitySummary";
 // activity bar. Will stay empty until the desktop app exists (see
 // ARCHITECTURE.md) — there is nothing to show yet, not a bug.
 //
-// D-403: con `summary` (solo desde Auditoría → Capturas de escritorio, `TeamDiary`) la cabecera
+// D-403: con `summary` (solo desde Nómina → Capturas de escritorio, `CapturasDeSesion`) la cabecera
 // enseña a la derecha del selector de fecha el resumen del día y las «horas bajas»
 // (`DayActivitySummary`), que incluye el total de horas; el diario del propio empleado no cambia.
-export function WorkDiary({ shots, sessions = [], onDelete, summary = false }: { shots: Screenshot[]; sessions?: Session[]; onDelete?: (s: Screenshot) => void; summary?: boolean }) {
+export function WorkDiary({ shots, sessions = [], onDelete, summary = false, diaInicial }: { shots: Screenshot[]; sessions?: Session[]; onDelete?: (s: Screenshot) => void; summary?: boolean; /** Día con el que abre (por defecto, hoy). */ diaInicial?: string }) {
   const t = useT();
   const { screenshotSignedUrl } = useData();
   const today = dateISO(new Date());
-  const [date, setDate] = useState(today);
+  const [date, setDate] = useState(diaInicial || today);
   const [urls, setUrls] = useState<Record<string, string>>({});
 
   const dayShots = useMemo(

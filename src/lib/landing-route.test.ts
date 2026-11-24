@@ -176,18 +176,20 @@ describe("la fusión terminó: no queda pestaña de fichaje", () => {
     expect(ids, "«assignments» se retiró de la barra").not.toContain("assignments");
   });
 
-  it("las capturas de escritorio viven dentro de Nómina, no en una pestaña ni en Auditoría", async () => {
-    // D-194: "team-diary" dejó de ser pestaña y pasó a ser una vista de Auditoría. Desde 2026-11-24
-    // (ayuda de Roberto) la vista está en Nómina, como sección plegada. Si alguien la retira, la
-    // pestaña ya no está para delatarlo: por eso se mira el FUENTE, igual que la prueba de claves.
+  it("las capturas de escritorio no son pestaña ni vista: se abren con el 🖥 de Nómina → Remoto", async () => {
+    // D-194: "team-diary" dejó de ser pestaña y pasó a ser una vista de Auditoría. Desde 2026-11-24 salió
+    // también de Nómina: ahora la ventana `CapturasDeSesion` se abre desde cada día o sesión remota. Se mira
+    // el FUENTE, igual que la prueba de claves.
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");
     const { MANAGER_TABS } = await import("@/lib/timetracker/constants");
     expect(MANAGER_TABS.map((t) => t.id)).not.toContain("team-diary");
     const audit = readFileSync(join(process.cwd(), "src/components/timetracker/AuditTabs.tsx"), "utf8");
     const nomina = readFileSync(join(process.cwd(), "src/components/timetracker/PayrollTabs.tsx"), "utf8");
+    const remoto = readFileSync(join(process.cwd(), "src/components/timetracker/ManagerReports.tsx"), "utf8");
     expect(audit, "Auditoría volvió a montar la vista de capturas").not.toContain("<TeamDiary />");
-    expect(nomina, "Nómina ya no monta la vista de capturas").toContain("<TeamDiary />");
+    expect(nomina, "Nómina volvió a montar la vista de capturas").not.toContain("<TeamDiary />");
+    expect(remoto, "Remoto ya no abre las capturas desde el día").toContain("<CapturasDeSesion");
   });
 });
 

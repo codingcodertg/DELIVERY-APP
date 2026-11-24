@@ -94,7 +94,8 @@ export function TablaReducida<F>({
                   ))}
                   {acciones && <td className="celda-suelta nowrap">{acciones(f)}</td>}
                 </tr>
-                {subFila && (
+                {/* Si `subFila` devuelve null, esa fila no se pinta (no queda una franja vacía bajo cada fila). */}
+                {subFila && subFila(f) != null && (
                   <tr className="bitacora-fila">
                     <td colSpan={columnasTotales}>{subFila(f)}</td>
                   </tr>

@@ -116,7 +116,7 @@ const nextConfig = {
       // justo lo que el comentario de la regla del horario decía querer evitar en el móvil. Las
       // pantallas fusionadas van EXPLÍCITAS aquí, antes del comodín, derivadas una a una de las
       // reglas /timetracker/clock-in/X de abajo (mismo destino), para que /clock-in/X llegue en un
-      // salto de configuración: /clock-in/clock → /timetracker, /clock-in/photos → /timetracker/payroll?vista=fotos…
+      // salto de configuración: /clock-in/clock → /timetracker, /clock-in/photos → /timetracker/payroll…
       // Medido sin sesión: /clock-in/clock, /clock-in y /clock-in/photos pasan de 3 a 2 saltos (el
       // segundo es la puerta del layout al login, que no es regla). /clock-in/week sigue en 1. Next
       // resuelve las redirecciones en orden: por eso van antes del comodín.
@@ -124,7 +124,9 @@ const nextConfig = {
       { source: "/clock-in/settings", destination: "/timetracker/settings", permanent: false },
       { source: "/clock-in/sites", destination: "/timetracker/settings", permanent: false },
       { source: "/clock-in/exceptions", destination: "/timetracker/team-requests", permanent: false },
-      { source: "/clock-in/photos", destination: "/timetracker/payroll?vista=fotos", permanent: false },
+      // Las fotos de fichaje salieron de Nómina el 2026-11-24 (decisión del dueño: la cámara del sitio
+      // reemplaza las fotos de entrada y salida). Lo que quedó de cada turno está en su bitácora «Full day».
+      { source: "/clock-in/photos", destination: "/timetracker/payroll", permanent: false },
       { source: "/clock-in/time-off", destination: "/timetracker/requests", permanent: false },
       { source: "/clock-in/reports", destination: "/timetracker/payroll", permanent: false },
       // El horario es ya una sección de Registrar tiempo, solo para admins (owner, 2026-11-24): se apunta
@@ -156,15 +158,15 @@ const nextConfig = {
       { source: "/timetracker/clock-in/sites", destination: "/timetracker/settings", permanent: false },
       // Las excepciones se partieron en dos por lo que se hace con ellas (D-115): lo que
       // falta por atender está en Pendientes, con el resto de la bandeja, y el historial con
-      // sus fotos está en Nómina, sección «Excepciones» (desde 2026-11-24; antes en Auditoría). Quien abría esta pantalla venía casi siempre a resolver,
-      // así que el enlace viejo lleva a Pendientes.
+      // sus fotos se retiró de Nómina el 2026-11-24 (el dueño): de cada turno quedan sus excepciones en la
+      // bitácora «Full day». Quien abría esta pantalla venía casi siempre a resolver, así que el enlace viejo lleva a Pendientes.
       { source: "/timetracker/clock-in/exceptions", destination: "/timetracker/team-requests", permanent: false },
-      // Las fotos se mudaron a Auditoría en D-109 y desde 2026-11-24 viven en Nómina, como sección
-      // plegada: `?vista=fotos` la abre. Esta regla faltaba.
-      { source: "/timetracker/clock-in/photos", destination: "/timetracker/payroll?vista=fotos", permanent: false },
-      // Las capturas de escritorio ("Team Diary") pasaron a ser la cuarta vista de Auditoría
-      // (D-194) y desde 2026-11-24 son la sección «Capturas de escritorio» de Nómina; quien tenga el enlace guardado aterriza ahí.
-      { source: "/timetracker/team-diary", destination: "/timetracker/payroll?vista=capturas", permanent: false },
+      // Las fotos de fichaje se mudaron a Auditoría en D-109 y en 2026-11-24 salieron de Nómina (el dueño las
+      // retiró, con las excepciones y las capturas); las de cada turno siguen en su bitácora «Full day».
+      { source: "/timetracker/clock-in/photos", destination: "/timetracker/payroll", permanent: false },
+      // Las capturas de escritorio ("Team Diary") pasaron a ser la cuarta vista de Auditoría (D-194) y en
+      // 2026-11-24 salieron de Nómina: ahora se ven con el 🖥 de cada día o sesión remota. El enlace viejo cae en Nómina.
+      { source: "/timetracker/team-diary", destination: "/timetracker/payroll", permanent: false },
       // Tiempo libre, partido igual que las excepciones (D-116): pedirlo y ver en qué quedó
       // está en My Requests; aprobarlo, en Pendientes. El enlace viejo lleva al lado del
       // EMPLEADO porque de las doce personas que lo abrían, once venían a pedir, no a aprobar.

@@ -74,7 +74,8 @@ describe("estiloMarcador: color y tamaño por estado («un icon rojo más visibl
     expect(leer("src/app/timetracker/timetracker.css")).toMatch(/\.tt-map-label\{[^}]*background/);
     expect(leer("src/app/timetracker/timetracker.css")).toMatch(/\.tt-map-label-out\{border:2px solid #d64545\}/);
     // Desde D-215 la línea es una pastilla (`pill off` = rojo del módulo), ya no un color inline.
-    expect(leer("src/components/timetracker/DayPhotos.tsx")).toMatch(/className=\{`pill \$\{e\.cls\} rev-loc`\}/);
+    // La línea-pastilla vivía en DayPhotos, que salió de Nómina el 2026-11-24: ya no hay pantalla que la pinte.
+    expect(() => leer("src/components/timetracker/DayPhotos.tsx")).toThrow();
   });
 });
 
@@ -99,14 +100,9 @@ describe("etiquetaFoto: la pastilla bajo la foto y su segunda línea (D-215: el 
     expect(etiquetaFoto({ lat: 33, lng: -96, siteName: "X", distanceM: 5, offSite: false }).cls).not.toBe("on");
     expect(etiquetaFoto({ lat: 33, lng: -96, siteName: null, distanceM: 5, offSite: true }).cls).toBe("neutral");
   });
-  it("y la pantalla: la pastilla primero, nunca truncada, con el sitio en la segunda línea (por fuente)", () => {
+  it("la pantalla de fotos salió de Nómina (2026-11-24): la pastilla ya no tiene quien la pinte; el CSS y las claves se quedan", () => {
     const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8");
-    const ui = leer("src/components/timetracker/DayPhotos.tsx");
-    expect(ui).toMatch(/const e = etiquetaFoto\(p\);/);
-    // una clave literal por estado, y las claves ya no llevan el sitio dentro
-    for (const k of ["mgr.photos.locNone", "mgr.photos.locNoSite", "mgr.photos.locOnSite", "mgr.photos.locOff", "mgr.photos.locAt"]) expect(ui, k).toContain(`t("${k}"`);
-    expect(ui).not.toMatch(/mgr\.photos\.offSite/);
-    expect(ui).toMatch(/\{e\.second && <span className="small muted rev-note">\{e\.second\}<\/span>\}/);
+    expect(() => leer("src/components/timetracker/DayPhotos.tsx")).toThrow();
     const css = leer("src/app/timetracker/timetracker.css");
     expect(css).toMatch(/\.rev-loc\{white-space:nowrap;flex-shrink:0;order:-1\}/);
     expect(css).toMatch(/\.pill\.neutral\{background:var\(--tt-chip\);color:var\(--tt-muted\)\}/);
@@ -205,11 +201,9 @@ describe("comoFence: el sitio en la forma de GeofenceMap", () => {
 
 describe("mutación: la ventana va en diferido y la pantalla no arrastra el mapa", () => {
   const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8");
-  it("DayPhotos carga PhotoMapModal con next/dynamic y no importa GeofenceMap ni el loader", () => {
-    const src = leer("src/components/timetracker/DayPhotos.tsx");
-    expect(src).toMatch(/from "next\/dynamic"/);
-    expect(src).toMatch(/dynamic\(\(\) => import\("\.\/PhotoMapModal"\)/);
-    expect(src).not.toMatch(/from "\.\/GeofenceMap"|google-maps-loader/);
+  it("DayPhotos salió de Nómina: ya no existe, y PayrollTabs ya no lo carga ni a PhotoMapModal", () => {
+    expect(() => leer("src/components/timetracker/DayPhotos.tsx")).toThrow();
+    expect(leer("src/components/timetracker/PayrollTabs.tsx")).not.toMatch(/DayPhotos|PhotoMapModal/);
   });
   it("la ventana dibuja solo la geocerca de esa foto, con el punto, y el respaldo con el enlace", () => {
     const src = leer("src/components/timetracker/PhotoMapModal.tsx");
