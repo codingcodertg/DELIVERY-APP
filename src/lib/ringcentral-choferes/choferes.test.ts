@@ -187,7 +187,7 @@ describe("cuándo se puede volver a sincronizar y el aviso de permiso", () => {
   });
 });
 
-describe("esLlamadaPerdida (D-NEXT, reunión del 23 nov 2026)", () => {
+describe("esLlamadaPerdida (D-1145, reunión del 23 nov 2026)", () => {
   it("marca en rojo solo las llamadas perdidas", () => {
     expect(esLlamadaPerdida("Missed")).toBe(true);
     expect(esLlamadaPerdida(" missed ")).toBe(true);

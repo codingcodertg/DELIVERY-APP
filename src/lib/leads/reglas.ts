@@ -346,7 +346,7 @@ export interface Filtros {
   sinTelefono?: boolean;
   /** D-763: texto de fuera del lead que también cuenta al buscar (el cliente cruzado y su vendedor). */
   textoExtra?: (l: Lead) => string;
-  /** D-NEXT (D-NEXT, reunión del 23 nov 2026): solo los leads cuyo ÚLTIMO contacto (última nota) lo hizo esta persona (`last_by`). "" = todos. */
+  /** D-1145 (D-1145, reunión del 23 nov 2026): solo los leads cuyo ÚLTIMO contacto (última nota) lo hizo esta persona (`last_by`). "" = todos. */
   quien?: string;
 }
 
@@ -387,7 +387,7 @@ export function vendedoresDeLeads(leads: readonly Pick<Lead, "last_by" | "last_b
     Number(a.nombre === "—") - Number(b.nombre === "—") || a.nombre.localeCompare(b.nombre) || a.id.localeCompare(b.id));
 }
 
-/** Lo que se enseña en el tablero de estadísticas: el GOV Pool, el STXP Pool (la fuente privada) o los dos (D-NEXT, reunión del 23 nov 2026). */
+/** Lo que se enseña en el tablero de estadísticas: el GOV Pool, el STXP Pool (la fuente privada) o los dos (D-1145, reunión del 23 nov 2026). */
 export type VistaDePool = "gov" | "stxp" | "ambos";
 
 /** Los leads de la vista elegida. «gov» deja fuera los de la fuente privada; «stxp» deja solo esos; «ambos», todos. */

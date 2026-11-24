@@ -144,7 +144,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [coinciden, setCoinciden] = useState(false);
   // 335: el filtro «Sin teléfono» (sin teléfono de contratista, ni de mano ni del Excel).
   const [sinTel, setSinTel] = useState(false);
-  // D-NEXT (D-NEXT, reunión del 23 nov 2026): el filtro «Vendedor» (quien hizo el último contacto de cada lead). "" = todos.
+  // D-1145 (D-1145, reunión del 23 nov 2026): el filtro «Vendedor» (quien hizo el último contacto de cada lead). "" = todos.
   const [vendedorElegido, setVendedorElegido] = useState("");
   // El tablero de estadísticas (la pestaña del admin) enseña un pool o los dos. Al entrar, el del pool en el que estabas.
   const [vistaStats, setVistaStats] = useState<VistaDePool>("gov");
@@ -505,7 +505,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
             />
           )}
 
-          {pestana === "estadisticas" && puedeVerEstadisticas(yo) && <Estadisticas almacen={almacen} />}
+          {pestana === "estadisticas" && puedeVerEstadisticas(yo) && <Estadisticas almacen={almacen} leads={leads} puedeStxp={veStxp} />}
         </>
       )}
 
@@ -921,7 +921,7 @@ function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
 /** La pestaña del admin: el tablero por tienda y por persona, los leads que volvieron en más de una carga, y cómo se importa. */
 function Admin({ leads, almacen, demo, vista, puedeStxp, onVista }: {
   leads: Lead[]; almacen: AlmacenDeLeads; demo: boolean;
-  /** Qué pool enseña el tablero (D-NEXT, reunión del 23 nov 2026). Sin STXP para quien no lo ve: siempre «gov». */
+  /** Qué pool enseña el tablero (D-1145, reunión del 23 nov 2026). Sin STXP para quien no lo ve: siempre «gov». */
   vista: VistaDePool;
   /** ¿Puede ver el STXP Pool? Solo entonces hay interruptor y números de STXP. */
   puedeStxp: boolean;

@@ -269,7 +269,7 @@ export function Llamadas() {
             vacio={t("No calls in this range.", "No hay llamadas en este rango.")}
             ordenInicial={{ clave: "fecha", direccion: "desc" }}
             columnas={columnas}
-            /* Las perdidas van en rojo (D-NEXT, reunión del 23 nov 2026): solo cambia el color, nada más de la fila. */
+            /* Las perdidas van en rojo (D-1145, reunión del 23 nov 2026): solo cambia el color, nada más de la fila. */
             claseDeFila={(f) => (esLlamadaPerdida(f.result) ? "rcc-perdida" : undefined)}
           />
           {hayMas && (

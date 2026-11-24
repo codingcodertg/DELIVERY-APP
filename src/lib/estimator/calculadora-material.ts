@@ -361,7 +361,7 @@ export function aplicaUso(u: Uso, tipo: TipoDeProyecto, a: AjustesCalculadora): 
 /**
  * Lo que una calculadora muestra con estos ajustes: los campos de la hoja 1 (`habitaciones` en piso, `muros` en pared),
  * las filas de materiales, las áreas de la sección 03 y los ajustes de «Product Settings». La pantalla pinta solo esto:
- * lo que no aplica no sale (no se deshabilita). Pedido en la reunión del 23 nov 2026 (D-NEXT): «quita lo que no se
+ * lo que no aplica no sale (no se deshabilita). Pedido en la reunión del 23 nov 2026 (D-1145): «quita lo que no se
  * necesita cuando cambian la opción».
  */
 export interface CamposQueAplican {

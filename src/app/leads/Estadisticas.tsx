@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
 import type { AlmacenDeLeads } from "@/lib/leads/almacen";
-import type { EventoLead } from "@/lib/leads/reglas";
-import { fecha } from "@/lib/leads/reglas";
+import type { EventoLead, Lead, VistaDePool } from "@/lib/leads/reglas";
+import { fecha, leadsDeLaVista } from "@/lib/leads/reglas";
 import {
   estadisticasDeUso, periodoDeDias, periodoPersonalizado, type FilaDeUso, type LlamadasDeVendedor, type Periodo,
 } from "@/lib/leads/estadisticas";
@@ -18,8 +18,18 @@ type Modo = "7" | "30" | "propio";
  * mano. El historial lo cuenta la pantalla; las llamadas las cuenta la base (337), por el nombre de RingCentral. Las
  * definiciones de cada columna están en `estadisticas.ts`.
  */
-export function Estadisticas({ almacen }: { almacen: AlmacenDeLeads }) {
+export function Estadisticas({ almacen, leads, puedeStxp }: {
+  almacen: AlmacenDeLeads;
+  /** Los leads a la vista: dicen de qué pool es cada movimiento del historial. */
+  leads: readonly Lead[];
+  /** ¿Puede ver el STXP Pool? Solo entonces hay interruptor de pool. */
+  puedeStxp: boolean;
+}) {
   const { t } = usePrefs();
+  // D-1145 (Roberto, 2026-11-23, con ESTA tabla delante: «I would like to be able to switch between government pool and
+  // permit pool, because I don't know… what is this, both?»): eran los dos, y no lo decía. Ahora lo dice y se elige. Nace en
+  // «los dos», que es lo que la tabla enseñaba: los números no cambian solos.
+  const [vista, setVista] = useState<VistaDePool>("ambos");
   const [modo, setModo] = useState<Modo>("7");
   const hoy = useMemo(() => new Date(), []);
   const [desdeTxt, setDesdeTxt] = useState(() => { const d = new Date(hoy); d.setDate(d.getDate() - 6); return diaTexto(d); });
@@ -51,7 +61,15 @@ export function Estadisticas({ almacen }: { almacen: AlmacenDeLeads }) {
     return () => { vivo = false; };
   }, [almacen, periodo]);
 
-  const resumen = eventos && periodo && llamadas ? estadisticasDeUso(eventos, periodo, llamadas.porVendedor, llamadas.total) : null;
+  // El historial de la vista: con un pool elegido, solo los movimientos de sus leads. Las llamadas las cuenta la base por
+  // vendedor, sin pool: con un pool elegido se dice que son de los dos.
+  const eventosDeVista = useMemo(() => {
+    if (!eventos || vista === "ambos" || !puedeStxp) return eventos;
+    const ids = new Set(leadsDeLaVista(leads, vista).map((l) => l.id));
+    return eventos.filter((e) => ids.has(e.lead_id));
+  }, [eventos, leads, vista, puedeStxp]);
+  const resumen = eventosDeVista && periodo && llamadas ? estadisticasDeUso(eventosDeVista, periodo, llamadas.porVendedor, llamadas.total) : null;
+  const etiquetaVista = vista === "stxp" ? "STXP Pool" : vista === "gov" ? "GOV Pool" : t("GOV Pool and STXP Pool together", "GOV Pool y STXP Pool juntos");
 
   const columnas: ColumnaEstandar<FilaDeUso>[] = [
     { key: "nombre", en: "Rep", es: "Vendedor", ancho: 200, fija: true, valor: (f) => f.nombre },
@@ -79,6 +97,22 @@ export function Estadisticas({ almacen }: { almacen: AlmacenDeLeads }) {
           {chip("30", t("Last 30 days", "Últimos 30 días"))}
           {chip("propio", t("Custom", "Personalizado"))}
         </div>
+        {puedeStxp && (
+          <>
+            <div className="ld-segmento" role="tablist" aria-label={t("Pool of the numbers", "Pool de los números")}>
+              {(["ambos", "gov", "stxp"] as const).map((v) => (
+                <button key={v} type="button" role="tab" aria-selected={vista === v} className={`chip${vista === v ? " on" : ""}`}
+                  data-pool-de-estadisticas={v} onClick={() => setVista(v)}>
+                  {v === "gov" ? "GOV Pool" : v === "stxp" ? "STXP Pool" : t("Both", "Los dos")}
+                </button>
+              ))}
+            </div>
+            <p className="hint" data-pool-de-estadisticas-actual>
+              {t("These numbers are for:", "Estos números son de:")} <b>{etiquetaVista}</b>
+              {vista !== "ambos" && <> · {t("Calls cannot be split by pool: that column counts both.", "Las llamadas no se pueden separar por pool: esa columna cuenta los dos.")}</>}
+            </p>
+          </>
+        )}
         {modo === "propio" && (
           <div className="ld-periodo-propio">
             <label>{t("From", "Desde")} <input type="date" value={desdeTxt} onChange={(e) => setDesdeTxt(e.target.value)} data-desde /></label>

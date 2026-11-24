@@ -142,7 +142,7 @@ import { CerrarAviso } from "@/components/CerrarAviso";
 import { avisoDelHueco, escrituraDelHueco, mejorLugar, separaPorRequisitos, type ParadaDeRuta } from "@/lib/mejor-lugar";
 import {
   anota, barrasDeLaRuta, botonDeVolver, choquesAlVolver, descartaElDeArriba, escriturasHacia, fotoDe, fotoDeFilas, fotoTrasReordenar,
-  HISTORIAL_VACIO, objetivoDe, planDeSoltar, porQueNoSuelta, sellosDe, textoDeChoques, textoDePrevia, trasVolver,
+  HISTORIAL_VACIO, objetivoDe, planDeSoltar, porQueNoSuelta, resella, sellosDe, textoDeChoques, textoDePrevia, trasVolver,
   type Destino, type Direccion, type FilaFresca, type Historial, type ParadaDelGantt, type RutaDelGantt,
 } from "@/lib/arrastre-de-paradas";
 import { ETAPAS_FIJAS, ETAPAS_HECHAS, estaEnElCamion, hechasDelChofer, numeracionConHechas, puestoEn } from "@/lib/mover-parada";
@@ -2671,7 +2671,8 @@ export default function RoutesPage() {
   };
   const anotaMovimiento = async (etiqueta: { en: string; es: string }, rutas: string[], antes: ReturnType<typeof fotoDe>, despues: ReturnType<typeof fotoDe>) => {
     const sellos = sellosDe(await leeFilasFrescas(Object.keys(despues)));
-    setHistorial((h) => anota(h, { etiqueta, rutas, antes, despues, sellos }));
+    // D-1145: los movimientos de debajo que tocaban estas paradas toman su sello nuevo (`resella`): la escritura es nuestra.
+    setHistorial((h) => anota(resella(h, sellos), { etiqueta, rutas, antes, despues, sellos }));
   };
   const vuelve = async (dir: Direccion) => {
     const pila = dir === "deshacer" ? historial.deshacer : historial.rehacer;
@@ -2697,7 +2698,7 @@ export default function RoutesPage() {
         if (!(await updateDelivery(e.id, e.parche))) return; // el proveedor ya avisó; el movimiento se queda donde estaba
       }
       const sellos = sellosDe(await leeFilasFrescas(ids));
-      setHistorial((h) => trasVolver(h, dir, sellos));
+      setHistorial((h) => trasVolver(resella(h, sellos), dir, sellos));
       notify(dir === "deshacer" ? t(`Undone: ${m.etiqueta.en}`, `Deshecho: ${m.etiqueta.es}`) : t(`Redone: ${m.etiqueta.en}`, `Rehecho: ${m.etiqueta.es}`));
     } finally {
       setMoviendo(false);
@@ -4303,7 +4304,7 @@ export default function RoutesPage() {
               )}
               {/* «Marcar por…» (D-1145): marca de un toque las órdenes de una ciudad o de una tienda de recogida, para moverlas
                   juntas (arrastre, flechas o «#»), pasarlas a otro chofer o reprogramarlas con la barra de marcadas. */}
-              {stops.length > 1 && !soloLectura && (() => {
+              {stops.length > 1 && !soloLectura && modoDeTarjeta !== "compacta" && (() => {
                 const grupos = gruposParaMarcar(stops, (d) => ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen));
                 const deCiudad = grupos.filter((g) => g.tipo === "ciudad"), deTienda = grupos.filter((g) => g.tipo === "tienda");
                 if (!grupos.length) return null;

@@ -99,11 +99,11 @@ describe("velocidadDeAutoScroll", () => {
     const lejos = velocidadDeAutoScroll(170, 100, 700), cerca = velocidadDeAutoScroll(110, 100, 700);
     expect(lejos).toBeLessThan(0);
     expect(cerca).toBeLessThan(lejos);
-    expect(velocidadDeAutoScroll(40, 100, 700)).toBe(-26);
+    expect(velocidadDeAutoScroll(40, 100, 700)).toBe(-18);
   });
   it("cerca del borde de abajo baja", () => {
     expect(velocidadDeAutoScroll(690, 100, 700)).toBeGreaterThan(0);
-    expect(velocidadDeAutoScroll(900, 100, 700)).toBe(26);
+    expect(velocidadDeAutoScroll(900, 100, 700)).toBe(18);
   });
   it("una caja muy baja no se queda sin zona quieta en medio", () => {
     expect(velocidadDeAutoScroll(150, 100, 200)).toBe(0);

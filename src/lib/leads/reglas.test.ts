@@ -242,7 +242,7 @@ describe("328 · una venta cerrada es de quien la cerró", () => {
   });
 });
 
-describe("filtro por vendedor (D-NEXT, reunión del 23 nov 2026)", () => {
+describe("filtro por vendedor (D-1145, reunión del 23 nov 2026)", () => {
   it("deja solo los leads cuyo último contacto hizo esa persona", () => {
     const de = [
       lead({ id: "a", last_by: "ana", last_by_name: "Ana" }),
@@ -271,7 +271,7 @@ describe("filtro por vendedor (D-NEXT, reunión del 23 nov 2026)", () => {
   });
 });
 
-describe("vista de pool del tablero (D-NEXT, reunión del 23 nov 2026)", () => {
+describe("vista de pool del tablero (D-1145, reunión del 23 nov 2026)", () => {
   it("«gov» deja fuera la fuente privada, «stxp» solo ella, «ambos» todo", () => {
     const de = [{ id: "g", source: "tdlr" as const }, { id: "p", source: "privado" as const }, { id: "s", source: undefined }];
     expect(leadsDeLaVista(de, "gov").map((l) => l.id)).toEqual(["g", "s"]);

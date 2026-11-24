@@ -114,7 +114,7 @@ export function traeLaEntrega(lista: readonly ParadaDeLaLista[], indice: number,
  * ve. Negativo sube, positivo baja, 0 no se mueve. Más cerca del borde, más rápido; fuera de la caja, al máximo.
  */
 export const MARGEN_DE_AUTOSCROLL = 80;
-export const TOPE_DE_AUTOSCROLL = 26;
+export const TOPE_DE_AUTOSCROLL = 18;
 export function velocidadDeAutoScroll(y: number, arriba: number, abajo: number, margen = MARGEN_DE_AUTOSCROLL, tope = TOPE_DE_AUTOSCROLL): number {
   if (!(abajo > arriba)) return 0;
   const m = Math.min(margen, (abajo - arriba) / 3);
