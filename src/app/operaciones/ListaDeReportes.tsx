@@ -459,8 +459,8 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
       {pestanas}
       {/* Dueño, 11 nov: los atajos de fecha pasan a UN botón «📅» con su menú (primero el rango personalizado). */}
       <MenuDeFecha eleccion={eleccion} etiqueta={etiqueta} onElegir={elegir} />
-      {/* D-1147: el filtro por tienda de la merma, junto al rango. */}
-      {(pestana === "merma" || pestana === "conteos") && tiendasDelFiltro.length > 1 && (
+      {/* D-1147: el filtro por tienda, junto al rango. Manda en las tres pestañas (merma; conteos, D-1148; entregas, D-1150). */}
+      {tiendasDelFiltro.length > 1 && (
         <select className="ops-filtro-tienda" value={tiendaElegida} onChange={(e) => setTiendaDelReporte(e.target.value)} data-tienda-del-reporte aria-label={t("Store", "Tienda")}>
           <option value="">🏬 {t("All stores", "Todas las tiendas")}</option>
           {tiendasDelFiltro.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -681,7 +681,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
       {filas && modo === "todos" && gerencia && pestana === "entregas" && (
         <div className="ops-merma ops-entregas" data-entregas>
           {selectorDeRango}
-          <KpiDeEntregas rango={rango} ctx={ctx} />
+          <KpiDeEntregas rango={rango} ctx={ctx} tienda={tiendaElegida} />
         </div>
       )}
 

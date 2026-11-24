@@ -215,6 +215,22 @@ export function peores(ordenes: readonly OrdenEvaluada[], n = 10): OrdenEvaluada
   return [...tarde, ...sinMarcar].slice(0, n);
 }
 
+/**
+ * D-1150 (ayuda de Roberto, 2026-11-24): las dos clases de orden que NO estuvo lista a tiempo, que son los dos filtros del
+ * reporte de entregas. «tarde»: se marcó lista después de recogida (o a la vez); «sin_marcar»: se recogió sin marca de lista.
+ * `null`: estuvo lista a tiempo, no entra en el reporte.
+ */
+export type ClaseDeNoLista = "tarde" | "sin_marcar";
+export function claseDeNoLista(o: Pick<OrdenEvaluada, "aTiempo" | "minutos">): ClaseDeNoLista | null {
+  if (o.aTiempo) return null;
+  return o.minutos === null ? "sin_marcar" : "tarde";
+}
+
+/** Todas las que no estuvieron listas a tiempo, las peores primero: el orden de `peores`, sin tope. */
+export function noListas(ordenes: readonly OrdenEvaluada[]): OrdenEvaluada[] {
+  return peores(ordenes, ordenes.length);
+}
+
 /** El color del porcentaje: verde ≥ 90, ámbar ≥ 70, rojo abajo; gris sin datos. */
 export function colorDelPct(pct: number | null): "verde" | "ambar" | "rojo" | "gris" {
   if (pct === null) return "gris";
