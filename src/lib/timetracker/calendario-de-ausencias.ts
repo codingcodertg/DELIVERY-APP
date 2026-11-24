@@ -16,7 +16,7 @@ export type Ausencia = {
 };
 
 /** Una persona fuera ese día. `pendiente` = la solicitud todavía no está aprobada. */
-export type Ausente = { id: string; nombre: string; pendiente: boolean };
+export type Ausente = { id: string; nombre: string; pendiente: boolean; tipo: string };
 
 export type DiaDeCuadricula = { fecha: string; dia: number; delMes: boolean; hoy: boolean };
 
@@ -70,7 +70,7 @@ export function ausentesPorDia(ausencias: Ausencia[], fechas: string[]): Map<str
   for (const fecha of fechas) {
     const fuera = validas
       .filter((a) => a.start_date <= fecha && fecha <= a.end_date)
-      .map((a) => ({ id: a.id, nombre: a.nombre, pendiente: a.status === "pending" }))
+      .map((a) => ({ id: a.id, nombre: a.nombre, pendiente: a.status === "pending", tipo: a.type }))
       .sort((x, y) => x.nombre.localeCompare(y.nombre));
     if (fuera.length) mapa.set(fecha, fuera);
   }

@@ -73,10 +73,10 @@ describe("ausentesPorDia", () => {
   });
 
   it("distingue pendiente de aprobada", () => {
-    const m = ausentesPorDia([fila({ id: "a", status: "approved" }), fila({ id: "p", nombre: "Luis", status: "pending" })], ["2026-11-10"]);
+    const m = ausentesPorDia([fila({ id: "a", status: "approved" }), fila({ id: "p", nombre: "Luis", status: "pending", type: "sick" })], ["2026-11-10"]);
     expect(m.get("2026-11-10")).toEqual([
-      { id: "a", nombre: "Ana", pendiente: false },
-      { id: "p", nombre: "Luis", pendiente: true },
+      { id: "a", nombre: "Ana", pendiente: false, tipo: "vacation" },
+      { id: "p", nombre: "Luis", pendiente: true, tipo: "sick" },
     ]);
   });
 
@@ -97,7 +97,7 @@ describe("ausentesPorDia", () => {
 });
 
 describe("recorteDeDia: el «+N más»", () => {
-  const cinco = ["A", "B", "C", "D", "E"].map((n, i) => ({ id: String(i), nombre: n, pendiente: false }));
+  const cinco = ["A", "B", "C", "D", "E"].map((n, i) => ({ id: String(i), nombre: n, pendiente: false, tipo: "vacation" }));
 
   it("con más de tres, enseña tres y cuenta el resto", () => {
     const r = recorteDeDia(cinco);

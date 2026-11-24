@@ -36,6 +36,9 @@ export function CalendarioDeAusencias() {
     return { anio: h.getFullYear(), mes: h.getMonth() + 1 };
   });
   const cuadricula = cuadriculaDelMes(mes.anio, mes.mes, hoy);
+  // El día elegido: su lista completa sale debajo de la cuadrícula. En un teléfono los nombres de la celda se cortan
+  // («Zule…») y con más de tres personas la celda dice «+N más»; el día se toca y se lee entero. Empieza en hoy.
+  const [elegido, setElegido] = useState<string | null>(hoy);
   const desde = cuadricula[0].fecha;
   const hasta = cuadricula[cuadricula.length - 1].fecha;
   const clave = desde + "|" + hasta;
@@ -96,7 +99,8 @@ export function CalendarioDeAusencias() {
               if (!d.delMes) clases.push("tt-calendario-fuera");
               if (d.hoy) clases.push("tt-calendario-hoy");
               return (
-                <div key={d.fecha} className={clases.join(" ")} title={restantes > 0 ? todos : undefined}>
+                <button type="button" key={d.fecha} className={clases.join(" ")} title={restantes > 0 ? todos : undefined}
+                  data-dia={d.fecha} aria-pressed={elegido === d.fecha} onClick={() => setElegido(d.fecha)}>
                   <span className="tt-calendario-num">{d.dia}</span>
                   {visibles.map((a) => (
                     <span key={a.id} className={a.pendiente ? "tt-calendario-persona tt-calendario-pendiente" : "tt-calendario-persona"}>
@@ -104,11 +108,35 @@ export function CalendarioDeAusencias() {
                     </span>
                   ))}
                   {restantes > 0 && <span className="tt-calendario-mas">{t("mgr.inbox.calMore", { n: restantes })}</span>}
-                </div>
+                </button>
               );
             })}
           </div>
           {cargando && <div className="hint">{t("mgr.inbox.loading")}</div>}
+          {elegido && cuadricula.some((d) => d.fecha === elegido) && (() => {
+            const fuera = porDia.get(elegido) ?? [];
+            const [a, m, dd] = elegido.split("-").map(Number);
+            const fechaLarga = new Intl.DateTimeFormat(locale, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })
+              .format(new Date(Date.UTC(a, m - 1, dd)));
+            return (
+              <div className="tt-calendario-detalle" data-detalle-del-dia={elegido}>
+                <b className="tt-calendario-detalle-fecha">{fechaLarga}</b>
+                {fuera.length === 0 ? (
+                  <span className="small muted">{t("mgr.inbox.calNobody")}</span>
+                ) : (
+                  <ul>
+                    {fuera.map((x) => (
+                      <li key={x.id}>
+                        <b>{x.nombre}</b>
+                        <span className="small muted"> · {x.tipo === "sick" ? t("mgr.inbox.offSick") : t("mgr.inbox.offVacation")}
+                          {x.pendiente ? " · " + t("mgr.inbox.calPending") : ""}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })()}
         </>
       )}
     </div>
