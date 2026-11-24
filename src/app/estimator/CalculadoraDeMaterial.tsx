@@ -6,7 +6,7 @@ import { TablaReducida, type ColumnaReducida } from "@/components/timetracker/Ta
 import { leeDecimal, limpiaDecimal } from "@/lib/campo-decimal";
 import {
   AJUSTES_META, AJUSTES_POR_DEFECTO, CALCULADORAS, DISPOSICIONES, ENTRADAS_POR_DEFECTO, MAX_FILAS_DE_MEDIDA, TAMANOS_DE_LOSETA,
-  USO_DE_AJUSTES, USO_DE_AREAS, USO_DE_ENTRADAS, USO_DE_FILAS, aplicaUso, calcular,
+  calcular, camposQueAplican,
   type AjustesCalculadora, type AreasCalculadas, type Bilingue, type Disposicion, type EntradasCalculadora, type Explicacion,
   type FilaCalculada, type Habitacion, type Muro, type TamanoDeLoseta, type TipoDeProyecto,
 } from "@/lib/estimator/calculadora-material";
@@ -145,8 +145,9 @@ export function CalculadoraDeMaterial() {
 
   const tipo = entradas.proyecto;
   const calc = CALCULADORAS.find((c) => c.tipo === tipo) ?? CALCULADORAS[0];
-  const aplica = (clave: Parameters<typeof aplicaUso>[0]) => aplicaUso(clave, tipo, ajustes);
-  const filasVisibles = resultado.filas.filter((f) => aplicaUso(USO_DE_FILAS[f.clave], tipo, ajustes));
+  // Lo que se muestra con esta calculadora y estos interruptores. Lo demás no sale en la pantalla.
+  const sel = useMemo(() => camposQueAplican(tipo, ajustes), [tipo, ajustes]);
+  const filasVisibles = resultado.filas.filter((f) => sel.filas.includes(f.clave));
   const cifra = (n: number) => fmt.format(n);
 
   const columnas = useMemo<ColumnaReducida<FilaCalculada>[]>(() => {
@@ -196,15 +197,17 @@ export function CalculadoraDeMaterial() {
     window.setTimeout(() => setCopiado(null), 2500);
   };
 
-  const areasVisibles = (Object.keys(USO_DE_AREAS) as (keyof AreasCalculadas)[]).filter((c) => aplica(USO_DE_AREAS[c]));
+  const areasVisibles = sel.areas;
   const etiquetasDeArea: Record<keyof AreasCalculadas, string> = {
     pisoSf: t("Floor area (SF)", "Área de piso (SF)"),
     paredSf: t("Wall area (SF)", "Área de pared (SF)"),
     perimetroLf: t("Wall perimeter (LF)", "Perímetro de pared (LF)"),
     tablerosPaneles: t("Estimated full backerboard panels", "Paneles de tablero completos estimados"),
   };
-  const camposDeMedida = ORDEN_DE_CAMPOS.filter((c) => aplica(USO_DE_ENTRADAS[c]));
-  const tieneSalpicadero = aplica(USO_DE_ENTRADAS.salpicaderoLargoFt);
+  const camposDeMedida = ORDEN_DE_CAMPOS.filter((c) => sel.entradas.includes(c));
+  const tieneSalpicadero = sel.entradas.includes("salpicaderoLargoFt");
+  const tieneHabitaciones = sel.entradas.includes("habitaciones");
+  const tieneMuros = sel.entradas.includes("muros");
 
   return (
     <div className="calc-wrap" data-calculadora data-calculadora-activa={tipo}>
@@ -241,11 +244,11 @@ export function CalculadoraDeMaterial() {
       <div className="card">
         <h2>01 · {t("Dimensions", "Medidas")} — {calc.etiqueta[lang]}</h2>
 
-        {tipo === "Flooring Only" && (
+        {tieneHabitaciones && (
           <EditorDeHabitaciones filas={entradas.habitaciones} areaTexto={cifra(resultado.areas.pisoSf)}
             onCambio={(habitaciones) => poner("habitaciones", habitaciones)} />
         )}
-        {tipo === "Wall Only" && (
+        {tieneMuros && (
           <EditorDeMuros filas={entradas.muros} areaTexto={cifra(resultado.areas.paredSf)}
             onCambio={(muros) => poner("muros", muros)} />
         )}
@@ -328,8 +331,11 @@ export function CalculadoraDeMaterial() {
               "El salpicadero va incluido en las cantidades de loseta, pegamento y lechada de pared. No hay pedido separado de loseta para salpicadero.")}</p>
           )}
           <p><b>{t("Notes", "Notas")}:</b> {t(
-            "No extra material for cutting/breakage. Rounding whole packs is unavoidable. Liner upturn is a required shape allowance, not waste.",
-            "No hay material extra por corte ni rotura. Redondear a paquetes enteros es inevitable. La subida del liner es una previsión de forma requerida, no desperdicio.")}</p>
+            "No extra material for cutting/breakage. Rounding whole packs is unavoidable.",
+            "No hay material extra por corte ni rotura. Redondear a paquetes enteros es inevitable.")}
+            {sel.notaDeLiner && " " + t(
+              "Liner upturn is a required shape allowance, not waste.",
+              "La subida del liner es una previsión de forma requerida, no desperdicio.")}</p>
         </div>
       </div>
 
@@ -349,7 +355,7 @@ export function CalculadoraDeMaterial() {
         </div>
       </div>
 
-      <AjustesDelProducto tipo={tipo} ajustes={ajustes} onCambio={ponerAjuste} onRestablecer={() => setAjustes(AJUSTES_POR_DEFECTO)} />
+      <AjustesDelProducto visibles={sel.ajustes} ajustes={ajustes} onCambio={ponerAjuste} onRestablecer={() => setAjustes(AJUSTES_POR_DEFECTO)} />
       <Glosario tipo={tipo} />
 
       {explicando && (
@@ -474,14 +480,14 @@ function TarjetaDeExplicacion({ titulo, explicacion, onCerrar }: {
 }
 
 /** Ajustes de «Product Settings» (hoja 2) que usa esta calculadora: editables, con su unidad y su nota, y restablecer. */
-function AjustesDelProducto({ tipo, ajustes, onCambio, onRestablecer }: {
-  tipo: TipoDeProyecto;
+function AjustesDelProducto({ visibles: claves, ajustes, onCambio, onRestablecer }: {
+  visibles: (keyof AjustesCalculadora)[];
   ajustes: AjustesCalculadora;
   onCambio: <K extends keyof AjustesCalculadora>(k: K, v: number) => void;
   onRestablecer: () => void;
 }) {
   const { t, lang } = usePrefs();
-  const visibles = AJUSTES_META.filter((m) => aplicaUso(USO_DE_AJUSTES[m.clave], tipo, ajustes));
+  const visibles = AJUSTES_META.filter((m) => claves.includes(m.clave));
   return (
     <details className="card calc-ajustes">
       <summary><h2 style={{ display: "inline" }}>{t("Product settings", "Ajustes del producto")}</h2></summary>
