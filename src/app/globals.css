@@ -1259,6 +1259,63 @@ a.mapa-casilla:hover, a.mapa-casilla:focus-visible { background: var(--paper); b
 .notif-item.unread .notif-msg { font-weight: 600; }
 .notif-time { font-size: 11px; color: var(--gray); }
 
+/* Centro de avisos (desde la campana): pantalla completa sobre la actual. Solo deja ver los grupos y sus cuentas;
+   todavía no apaga nada (reunión del 23 nov 2026). Escritorio: grupos a la izquierda; teléfono: una columna, y los
+   grupos son una fila de chips que se desplaza en horizontal (las apps, y luego los tipos de la app elegida). */
+.notif-centro-abrir {
+  display: block; width: 100%; min-height: 40px; padding: 10px 14px; text-align: left;
+  font-size: 13px; font-weight: 700; color: var(--accent); background: none; border: none; border-top: 1px solid var(--line);
+}
+.notif-centro-abrir:hover { background: var(--card-hover); }
+.notif-centro {
+  position: fixed; inset: 0; z-index: 80; display: flex; flex-direction: column; outline: none;
+  background: var(--card); color: var(--text);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.notif-centro-barra {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 16px; border-bottom: 1px solid var(--line);
+}
+.notif-centro-cabeza { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 15px; }
+.notif-centro-cuerpo { flex: 1; min-height: 0; display: grid; grid-template-columns: 260px minmax(0, 1fr); }
+.notif-centro-grupos {
+  display: flex; flex-direction: column; gap: 2px; min-height: 0; overflow-y: auto;
+  padding: 10px; border-right: 1px solid var(--line);
+}
+.notif-centro-grupo {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 0 0 auto;
+  min-height: 40px; padding: 6px 10px; border-radius: 8px; text-align: left;
+  font-size: 13px; font-weight: 600; color: var(--gray); background: none;
+}
+.notif-centro-grupo:hover { background: var(--card-hover); }
+.notif-centro-grupo.on { color: var(--text); background: var(--accent-soft); }
+.notif-centro-tipo { padding-left: 24px; font-size: 12.5px; font-weight: 500; }
+.notif-centro-nombre { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notif-centro-cifras { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+.notif-centro-cifra { font-size: 12px; color: var(--gray); font-variant-numeric: tabular-nums; }
+.notif-centro-lista { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.notif-centro-controles {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  padding: 8px 14px; border-bottom: 1px solid var(--line);
+}
+.notif-centro-controles .notif-clear:disabled { opacity: .4; }
+.notif-centro-listado { flex: 1; min-height: 0; overflow-y: auto; }
+.notif-centro .notif-list { max-height: none; }
+.notif-centro-pie {
+  padding: 10px 14px; font-size: 11.5px; color: var(--gray); border-top: 1px solid var(--line);
+}
+@media (max-width: 640px) {
+  .notif-centro-cuerpo { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .notif-centro-grupos {
+    flex-direction: row; align-items: center; overflow-x: auto; overflow-y: hidden;
+    border-right: none; border-bottom: 1px solid var(--line); padding: 8px 12px;
+  }
+  .notif-centro-grupo { white-space: nowrap; }
+  .notif-centro-tipo { order: 1; padding-left: 10px; }
+  .notif-centro-tipo[data-activa="no"] { display: none; }
+  .notif-centro-pie { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+}
+
 /* ---------- View toggle (Table / Board) ---------- */
 .viewtoggle { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--card); }
 .viewtoggle .vt { padding: 8px 12px; font-size: 13px; font-weight: 600; color: var(--gray); background: none; }

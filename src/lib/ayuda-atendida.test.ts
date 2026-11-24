@@ -15,6 +15,8 @@ import { AYUDA_ATENDIDA_KIND } from "./notifications";
 const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
 const pagina = leer("src/app/home/solicitudes-de-ayuda/page.tsx");
 const campana = leer("src/components/NotificationBell.tsx");
+// D-M24: el color del punto vive en `lib/aviso-presentacion.ts`, compartido por la campana y el centro de avisos.
+const presentacion = leer("src/lib/aviso-presentacion.ts");
 
 const fila = (extra: Partial<SolicitudDeAyuda> = {}): SolicitudDeAyuda => ({
   id: "s1", created_at: "2026-09-17T15:00:00.000Z", user_id: "u1", sender_name: "Ana", sender_email: "ana@x.test",
@@ -153,12 +155,12 @@ describe("el punto de la campana", () => {
     // `stageInfo` cae a STAGES[0] con una clave que no es etapa: sin esta rama, el punto se pintaba
     // con el color de otra cosa y nada chirriaba.
     // D-1077: el color vive en `colorDelAviso`.
-    const expresion = campana.slice(campana.indexOf("function colorDelAviso"), campana.indexOf(";", campana.indexOf("function colorDelAviso")));
+    const expresion = presentacion.slice(presentacion.indexOf("function colorDelAviso"), presentacion.indexOf(";", presentacion.indexOf("function colorDelAviso")));
     expect(expresion).toContain("AYUDA_ATENDIDA_KIND");
     expect(expresion.indexOf("AYUDA_ATENDIDA_KIND")).toBeLessThan(expresion.indexOf("stageInfo"));
   });
 
   it("y la clave que pinta es la misma que manda la pantalla", () => {
-    expect(campana).toContain('import { ASSIGNED_KIND, AYUDA_ATENDIDA_KIND } from "@/lib/notifications";');
+    expect(presentacion).toContain('import { ASSIGNED_KIND, AYUDA_ATENDIDA_KIND } from "@/lib/notifications";');
   });
 });

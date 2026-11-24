@@ -1,62 +1,27 @@
 "use client";
 
-import { KIND_TOMADA_POR_CHOFER } from "@/lib/tomar-orden";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useData } from "@/lib/data-provider";
-import { stageInfo } from "@/lib/constants";
-import { ASSIGNED_KIND, AYUDA_ATENDIDA_KIND } from "@/lib/notifications";
 import type { AppNotification } from "@/lib/notifications";
-import { AYUDA_MENSAJE_KIND, AYUDA_RESPUESTA_KIND } from "@/lib/help-thread";
-import { AVISO_SOLICITUD_APROBADA, AVISO_SOLICITUD_NUEVA, AVISO_SOLICITUD_RECHAZADA } from "@/lib/solicitud-de-asignacion";
-import { AVISO_CLIENTE_APROBADA, AVISO_CLIENTE_NUEVA, AVISO_CLIENTE_RECHAZADA, AVISO_CLIENTE_REVISAR, mensajeDelAviso } from "@/lib/customers/avisos-de-solicitud";
 import { usePrefs } from "@/lib/prefs";
 import { cuentaPorClase, type ClaseDelAviso } from "@/lib/clase-del-aviso";
 import {
   accionDelAviso, appsConAvisos, avisosDeLaClase, filtrarPorApp, sinLeerPorApp, unificarAvisos,
   type AppAviso, type AvisoRrhh, type AvisoUnificado, type FiltroDeApp,
 } from "@/lib/notificaciones-todas";
+import { etiquetaDeApp } from "@/lib/aviso-presentacion";
+import { ListaDeAvisos } from "@/components/ListaDeAvisos";
+import { CentroDeAvisos } from "@/components/CentroDeAvisos";
 import { getMyNotifications } from "@/app/timetracker/clock-in/actions/myday";
 import { markReadByIds } from "@/app/timetracker/clock-in/actions/notifications";
-
-// Compact "3m", "2h", "4d" relative time for the notification list.
-function ago(iso: string, t: (en: string, es: string) => string): string {
-  const then = new Date(iso).getTime();
-  const secs = Math.max(0, Math.round((Date.now() - then) / 1000));
-  if (secs < 60) return t("just now", "ahora");
-  const mins = Math.round(secs / 60);
-  if (mins < 60) return t(`${mins}m ago`, `hace ${mins} min`);
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return t(`${hrs}h ago`, `hace ${hrs} h`);
-  const dias = Math.round(hrs / 24);
-  return t(`${dias}d ago`, `hace ${dias} d`);
-}
-
-// El punto de cada aviso: el color de su tipo. Un `kind` que no es etapa se pinta con uno explícito (`stageInfo` cae a
-// la primera etapa sin avisar).
-function colorDelAviso(kind: string): string {
-  return kind === ASSIGNED_KIND ? "var(--accent)"
-    : kind === AYUDA_ATENDIDA_KIND ? "var(--green)"
-    : kind === AYUDA_RESPUESTA_KIND || kind === AYUDA_MENSAJE_KIND ? "var(--amber)"
-    : kind === AVISO_SOLICITUD_NUEVA ? "var(--amber)"
-    : kind === AVISO_SOLICITUD_APROBADA ? "var(--green)"
-    : kind === AVISO_SOLICITUD_RECHAZADA ? "var(--red)"
-    : kind === KIND_TOMADA_POR_CHOFER ? "var(--amber)"
-    : kind === AVISO_CLIENTE_NUEVA || kind === AVISO_CLIENTE_REVISAR ? "var(--amber)"
-    : kind === AVISO_CLIENTE_APROBADA ? "var(--green)"
-    : kind === AVISO_CLIENTE_RECHAZADA ? "var(--red)"
-    : stageInfo(kind).color;
-}
-
-// El color de la etiqueta de cada app en la vista «Todas».
-const COLOR_DE_APP: Record<AppAviso, string> = { entregas: "var(--accent)", clientes: "var(--amber)", rrhh: "var(--green)" };
 
 /** Los avisos de RRHH (fichaje) para la vista «Todas». Los pide la campana al abrirse; sin sesión de HR, no hay ninguno. */
 export async function cargarAvisosRrhh(): Promise<AvisoRrhh[]> {
   if (process.env.NEXT_PUBLIC_LOCAL_MODE === "true") return [];
   const r = await getMyNotifications();
-  return r.ok ? r.items.map(({ id, message, read, created_at }) => ({ id, message, read, created_at })) : [];
+  return r.ok ? r.items.map(({ id, type, message, read, created_at }) => ({ id, message, read, created_at, type })) : [];
 }
 
 /** Marca como leídos avisos de RRHH por id, desde la campana. */
@@ -105,13 +70,14 @@ export function CampanaDeAvisos({ notifications, markNotifRead, markManyRead, ap
   /** Marca como leídos avisos de RRHH por id. */
   marcaRrhhLeidos?: (ids: string[]) => unknown;
 }) {
-  const { t, lang } = usePrefs();
+  const { t } = usePrefs();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [vista, setVista] = useState<Vista>("todas");
   const [appFiltro, setAppFiltro] = useState<FiltroDeApp>("todas");
   const [rrhh, setRrhh] = useState<AvisoRrhh[]>([]);
   const [abierta, setAbierta] = useState<string | null>(null);
+  const [centroAbierto, setCentroAbierto] = useState(false);
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -144,10 +110,17 @@ export function CampanaDeAvisos({ notifications, markNotifRead, markManyRead, ap
     const accion = accionDelAviso(n, appActual);
     if (accion.tipo === "ir") {
       setOpen(false);
+      setCentroAbierto(false);
       router.push(accion.href);
       return;
     }
     setAbierta((k) => (k === n.key ? null : n.key));
+  };
+
+  // El centro de avisos cierra a la campana: el foco vuelve al botón de la campana, donde estaba el usuario.
+  const cerrarCentro = () => {
+    setCentroAbierto(false);
+    btnRef.current?.focus();
   };
 
   const cuenta = cuentaPorClase(notifications);
@@ -159,19 +132,20 @@ export function CampanaDeAvisos({ notifications, markNotifRead, markManyRead, ap
   const sinLeerDeApp = sinLeerPorApp(todos);
   const apps = appsConAvisos(todos);
 
-  const marcaVisibles = () => {
-    const base = visibles.filter((n) => !n.read && n.base).map((n) => n.id);
-    const rr = visibles.filter((n) => !n.read && !n.base).map((n) => n.id);
+  // Marca como leídos los que se pasan (los que ya lo están se ignoran). Lo usan «Marcar todo leído» y el centro.
+  const marcarLeidos = (items: AvisoUnificado[]) => {
+    const pendientes = items.filter((n) => !n.read);
+    const base = pendientes.filter((n) => n.base).map((n) => n.id);
+    const rr = pendientes.filter((n) => !n.base).map((n) => n.id);
     if (base.length) {
       if (markManyRead) markManyRead(base);
       else for (const id of base) markNotifRead(id);
     }
     marcaRrhh(rr);
   };
+  const marcaVisibles = () => marcarLeidos(visibles);
 
-  const etiquetaApp = (app: AppAviso) => app === "entregas" ? t("Deliveries", "Entregas")
-    : app === "clientes" ? t("Customers", "Clientes")
-    : t("HR", "RRHH");
+  const etiquetaApp = (app: AppAviso) => etiquetaDeApp(app, t);
 
   const toggle = () => {
     if (!open && btnRef.current) setAnchor(btnRef.current.getBoundingClientRect());
@@ -293,45 +267,20 @@ export function CampanaDeAvisos({ notifications, markNotifRead, markManyRead, ap
           {visibles.length === 0 ? (
             <div className="notif-empty">{t("You're all caught up 🎉", "Estás al día 🎉")}</div>
           ) : (
-            <div className="notif-list">
-              {visibles.map((n) => {
-                const texto = n.base ? mensajeDelAviso(n.base, lang) : (n.message ?? "");
-                const dotColor = n.base ? colorDelAviso(n.base.kind) : "var(--accent)";
-                const accion = accionDelAviso(n, appActual);
-                const expandida = accion.tipo === "tarjeta" && abierta === n.key;
-                return (
-                  <div key={n.key} className="notif-entrada">
-                    <button
-                      className={"notif-item" + (n.read ? "" : " unread")}
-                      onClick={() => onPick(n)}
-                      aria-expanded={accion.tipo === "tarjeta" ? expandida : undefined}
-                    >
-                      <span className="notif-dot" style={{ background: dotColor }} />
-                      <span className="notif-body">
-                        {vista === "todas" && (
-                          <span className="notif-app" style={{ color: COLOR_DE_APP[n.app] }}>{etiquetaApp(n.app)}</span>
-                        )}
-                        <span className="notif-msg">{texto}</span>
-                        <span className="notif-time">{ago(n.created_at, t)}</span>
-                      </span>
-                    </button>
-                    {expandida && accion.tipo === "tarjeta" && (
-                      <div className="notif-tarjeta">
-                        <div className="notif-time">{new Date(n.created_at).toLocaleString(lang === "es" ? "es" : "en")}</div>
-                        {accion.href && accion.app !== appActual && (
-                          <a className="notif-abrir" href={accion.href}>
-                            {t(`Open in ${etiquetaApp(accion.app)}`, `Abrir en ${etiquetaApp(accion.app)}`)}
-                          </a>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <ListaDeAvisos visibles={visibles} mostrarApp={vista === "todas"} appActual={appActual}
+              abierta={abierta} onPick={onPick} />
           )}
+
+          <button type="button" className="notif-centro-abrir" onClick={() => { setOpen(false); setCentroAbierto(true); }}>
+            {t("Notification center", "Centro de notificaciones")}
+          </button>
         </div>,
         document.body,
+      )}
+
+      {centroAbierto && (
+        <CentroDeAvisos todos={todos} appActual={appActual} abierta={abierta} onPick={onPick}
+          onMarcar={marcarLeidos} onCerrar={cerrarCentro} />
       )}
     </div>
   );

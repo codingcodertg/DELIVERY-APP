@@ -16,12 +16,14 @@ export type FiltroDeApp = "todas" | AppAviso;
 
 export const APPS_AVISO: readonly AppAviso[] = ["entregas", "clientes", "rrhh"];
 
-/** Un aviso de Recursos Humanos, tal como lo devuelve `getMyNotifications` (sin el `type`, que aquí no hace falta). */
+/** Un aviso de Recursos Humanos, tal como lo devuelve `getMyNotifications` (con su `type`, para el centro de avisos). */
 export interface AvisoRrhh {
   id: string;
   message: string;
   read: boolean;
   created_at: string;
+  /** El tipo del aviso (`type` de la tabla de RRHH: `out_of_radius`, `other`…). Para agrupar en el centro de avisos. */
+  type?: string;
 }
 
 /** Un aviso de la lista unida. `base` está si viene de `public.notifications`; si no, es de Recursos Humanos. */
@@ -35,6 +37,8 @@ export interface AvisoUnificado {
   base: AppNotification | null;
   /** El texto de un aviso de RRHH. Para los de la tabla común, lo pone `mensajeDelAviso` en la campana. */
   message: string | null;
+  /** El tipo de un aviso de RRHH (su `type`). Los de la tabla común no lo usan: agrupan por su `kind`. */
+  tipo?: string;
 }
 
 /** La app a la que pertenece un aviso de la tabla común, por su `kind`. Lo que no es de Clientes es de Entregas. */
@@ -65,6 +69,7 @@ export function unificarAvisos(args: {
       created_at: n.created_at,
       base: null,
       message: n.message,
+      tipo: n.type ?? "",
     })),
   ];
   return unidos.sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0));

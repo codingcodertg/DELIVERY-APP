@@ -197,6 +197,7 @@ describe("puertas: la base, el proveedor, la pantalla del chofer y la campana", 
   });
 
   it("la campana pinta el aviso en ámbar", () => {
-    expect(leer("src/components/NotificationBell.tsx")).toContain(': kind === KIND_TOMADA_POR_CHOFER ? "var(--amber)"');
+    // D-M24: el color del punto vive en `lib/aviso-presentacion.ts`, compartido por la campana y el centro de avisos.
+    expect(leer("src/lib/aviso-presentacion.ts")).toContain(': kind === KIND_TOMADA_POR_CHOFER ? "var(--amber)"');
   });
 });
