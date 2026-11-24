@@ -5,9 +5,6 @@ import { PayrollTimesheets } from "./PayrollTimesheets";
 import { ManagerReports } from "./ManagerReports";
 import { PayrollResumen, type Resumen } from "./PayrollResumen";
 import { TrabajandoAhora } from "./TrabajandoAhora";
-import { DayPhotos } from "./DayPhotos";
-import { ExceptionHistory } from "./ExceptionHistory";
-import { TeamDiary } from "./TeamDiary";
 import { useT } from "@/lib/timetracker/i18n";
 import { useData } from "@/lib/timetracker-data-provider";
 import {
@@ -34,9 +31,9 @@ import {
  * Encima de todo va «Trabajando ahora» (2026-11-24), plegada por defecto: antes era su propia
  * pestaña y se consolidó aquí. Solo la ven los admins, igual que antes.
  *
- * Debajo de las dos mitades van tres secciones más, también plegadas y solo para admins (2026-11-24,
- * ayuda de Roberto): las fotos de fichaje, las excepciones y las capturas de escritorio, que
- * estaban en Auditoría. Cada una trae su propio selector de persona (D-186).
+ * Las fotos de fichaje, las excepciones y las capturas de escritorio salieron de aquí el 2026-11-24
+ * (decisión del dueño: la cámara de la tienda reemplaza las fotos, y las capturas se ven ahora desde el 🖥
+ * de cada día o sesión remota de «Remoto»).
  */
 export function PayrollTabs({ period, resumen, revisar, vistaPorUrl = null }: {
   period: string;
@@ -66,20 +63,6 @@ export function PayrollTabs({ period, resumen, revisar, vistaPorUrl = null }: {
       <Seccion titulo={t("mgr.pay.remoteTitle")} nota={t("mgr.pay.remoteNote")}>
         <ManagerReports period={period} />
       </Seccion>
-
-      {me.role === "admin" && (
-        <>
-          <SeccionDeNomina clave="fotos" titulo={t("mgr.audit.viewPhotos")} porUrl={vistaPorUrl === "fotos"}>
-            <DayPhotos />
-          </SeccionDeNomina>
-          <SeccionDeNomina clave="excepciones" titulo={t("mgr.audit.viewExceptions")} porUrl={vistaPorUrl === "excepciones"}>
-            <ExceptionHistory />
-          </SeccionDeNomina>
-          <SeccionDeNomina clave="capturas" titulo={t("mgr.audit.viewDesktop")} porUrl={vistaPorUrl === "capturas"}>
-            <TeamDiary />
-          </SeccionDeNomina>
-        </>
-      )}
     </>
   );
 }
@@ -94,8 +77,7 @@ function almacenDelNavegador(): Storage | null {
 }
 
 /**
- * Una sección plegable de Nómina, con cabecera de botón. La usan «Trabajando ahora» y las tres
- * vistas que llegaron de Auditoría. Su cuerpo (`children`) no se monta hasta que se abre, así que
+ * Una sección plegable de Nómina, con cabecera de botón. La usa «Trabajando ahora». Su cuerpo (`children`) no se monta hasta que se abre, así que
  * lo que haga (sondeos, consultas de fotos o capturas) solo corre mientras la sección está abierta.
  *
  * Quién decide si está abierta: `seccionEstaAbierta` (URL > elección recordada > cerrada). La elección

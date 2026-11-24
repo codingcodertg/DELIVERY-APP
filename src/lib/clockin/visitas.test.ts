@@ -343,9 +343,8 @@ describe("las fotos de visita se ven donde el admin revisa el día: Auditoría �
     expect(accion).toContain("const latestWithPhotos = [diaPunch, diaExc, diaStop].filter(Boolean).sort().pop() ?? null;");
     expect(accion).toContain('ultimaStopQ = ultimaStopQ.in("employee_id", inEmp);');
   });
-  it("la pantalla de Fotos tiene rótulo para la visita, en los dos idiomas", () => {
-    const pantalla = leer("src/components/timetracker/DayPhotos.tsx");
-    expect(pantalla).toContain('if (k === "stop") return t("mgr.photos.kindStop");');
+  it("el rótulo de la visita existe en los dos idiomas (la pantalla de Fotos salió de Nómina el 2026-11-24)", () => {
+    expect(() => leer("src/components/timetracker/DayPhotos.tsx")).toThrow();
     expect(DICT.en["mgr.photos.kindStop"]).toBe("Visit / stop");
     expect(DICT.es["mgr.photos.kindStop"]).toBe("Visita / parada");
   });

@@ -123,7 +123,7 @@ describe("la cabecera de Auditoría usa estas funciones", () => {
   const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8");
   const resumen = leer("src/components/timetracker/DayActivitySummary.tsx");
   const diario = leer("src/components/timetracker/WorkDiary.tsx");
-  const equipo = leer("src/components/timetracker/TeamDiary.tsx");
+  const equipo = leer("src/components/timetracker/CapturasDeSesion.tsx");
 
   it("DayActivitySummary calcula con resumenDelDia sobre lo que recibe, y pinta el umbral con nombre", () => {
     expect(resumen).toContain("resumenDelDia(shots, totalSec)");
@@ -155,8 +155,8 @@ describe("la cabecera de Auditoría usa estas funciones", () => {
     expect(diario).toContain('{!summary && <div><b>{t("mgr.diary.total")}');
   });
 
-  it("solo Auditoría lo pide: TeamDiary pasa `summary`, el diario del empleado no", () => {
-    expect(equipo).toMatch(/<WorkDiary key=\{activeUid\}[^>]*\bsummary\b/);
+  it("solo las capturas de escritorio lo piden: la ventana pasa `summary`, el diario del empleado no", () => {
+    expect(equipo).toMatch(/<WorkDiary shots=\{shots\}[^>]*\bsummary\b/);
     expect(leer("src/app/timetracker/(timetracker)/diary/page.tsx")).not.toMatch(/\bsummary\b/);
   });
 });

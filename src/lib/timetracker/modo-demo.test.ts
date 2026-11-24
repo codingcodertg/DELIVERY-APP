@@ -58,17 +58,17 @@ describe("Time Tracker en modo demo", () => {
     for (const s of [reports, schedule]) { expect(s).not.toContain("createClient"); expect(s).not.toContain("auth.getUser"); }
   });
 
-  it("TeamDiary elige la versión demo por LOCAL_MODE, y esa versión no toca Supabase", () => {
-    const s = leer("src/components/timetracker/TeamDiary.tsx");
+  it("CapturasDeSesion elige la versión demo por LOCAL_MODE, y esa versión no toca Supabase", () => {
+    const s = leer("src/components/timetracker/CapturasDeSesion.tsx");
     indice(s, DECLARACION);
-    indice(s, "return LOCAL_MODE ? <TeamDiaryDemo /> : <TeamDiaryReal />;");
-    const demo = s.slice(indice(s, "function TeamDiaryDemo()"), indice(s, "function TeamDiaryReal()"));
+    indice(s, "return LOCAL_MODE ? <CapturasDemo {...props} /> : <CapturasReal {...props} />;");
+    const demo = s.slice(indice(s, "function CapturasDemo("), indice(s, "function CapturasReal("));
     expect(demo).toContain("useData()");
     expect(demo).not.toMatch(/supabase\./);
     expect(demo).not.toMatch(/createClient\(/);
     expect(demo).not.toMatch(/sessionsSince/);
     // La real sigue entera: su cliente y su consulta de capturas no se movieron.
-    const real = s.slice(indice(s, "function TeamDiaryReal()"));
+    const real = s.slice(indice(s, "function CapturasReal("));
     expect(real).toContain("const supabase = useMemo(() => createClient(), []);");
   });
 

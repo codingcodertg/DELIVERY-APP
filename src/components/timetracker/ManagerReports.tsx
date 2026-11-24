@@ -14,6 +14,8 @@ import { sumaDeAjustes, totalConAjustes, totalPagado } from "@/lib/timetracker/t
 import { necesitaProyecto, nombreDeLinea, nombreDeSesion, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
 import { isOverlapError } from "@/lib/timetracker/overlap";
 import { Modal } from "./Modal";
+import { CapturasDeSesion } from "./CapturasDeSesion";
+import { sesionesPorDia, type DiaDeSesiones } from "@/lib/timetracker/sesiones-por-dia";
 import { TablaReducida } from "./TablaReducida";
 import { TablaEstandar } from "@/components/TablaEstandar";
 import { telefonoEstandar } from "@/lib/recruiting/formato";
@@ -43,6 +45,15 @@ function fromRange(date: string, from: string, to: string) {
   return { durationSeconds, startMs, endMs: startMs + durationSeconds * 1000 };
 }
 const paidAtMs = (b: Payroll | null) => (b && b.paidAt ? new Date(b.paidAt).getTime() : 0);
+// Horas de entrada y salida, en la zona de la app (como las fechas de la tabla de tramos).
+const horaCorta = (ms: number) => fmtDT(ms, { hour: "2-digit", minute: "2-digit" });
+const diaCorto = (ms: number) => fmtDT(ms, { weekday: "short", month: "short", day: "numeric" });
+function rangoDeSesion(s: Session): string {
+  return `${s.startMs ? horaCorta(s.startMs) : "—"} – ${s.endMs ? horaCorta(s.endMs) : "—"}`;
+}
+function rangoDeDia(d: DiaDeSesiones): string {
+  return `${d.primerInicio ? horaCorta(d.primerInicio) : "—"} – ${d.ultimoFin ? horaCorta(d.ultimoFin) : "—"}`;
+}
 // El `adjOf` que estuvo aquí —y la suma `total + ajustes` de los cinco sitios de abajo— se ha
 // mudado a `total-de-nomina.ts` sin cambiarla, para que «Mi semana» responda la misma cifra que
 // esta pantalla a la misma pregunta (C-2 de la auditoría del 2026-10-09, D-504).
@@ -74,6 +85,9 @@ export function ManagerReports({ period }: { period: string }) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [batches, setBatches] = useState<Payroll[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
+  // Qué día de qué grupo está desplegado (`gid|dia`), y la ventana de capturas abierta (si hay).
+  const [diaAbierto, setDiaAbierto] = useState<string | null>(null);
+  const [capturas, setCapturas] = useState<{ nombre: string; etiqueta: string; dia: string; sesiones: Session[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<{ emp: Employee | undefined; batch: Payroll; lines: ReturnType<typeof calcLinesFor>["lines"]; adjustments: PayrollAdjustment[]; total: number } | null>(null);
   const adjTypes = settings.adjustmentTypes || ["Bonus", "Advance", "Deduction"];
@@ -89,6 +103,8 @@ export function ManagerReports({ period }: { period: string }) {
 
   const start = week, end = periodEndISO(week, payPeriod);
   useEffect(() => { sessionsSince(start, end).then(setSessions); }, [start, end, sessionsSince]);
+  // Tras borrar una captura, la sesión pierde su tramo: se vuelven a leer para que los totales no mientan.
+  function recargarSesiones() { sessionsSince(start, end).then(setSessions); }
   useEffect(() => { payrollsForWeek(week).then(setBatches); }, [week, payrollsForWeek]);
 
   const uMap = new Map(users.map((u) => [u.id, u]));
@@ -320,6 +336,11 @@ export function ManagerReports({ period }: { period: string }) {
     finally { setBusy(false); }
   }
 
+  // Abre la ventana de capturas de un día o de una sesión: la etiqueta dice cuál, y `dia` es con qué día abre.
+  function abrirCapturas(uid: string, sesiones: Session[], etiqueta: string, dia: string) {
+    setCapturas({ nombre: uMap.get(uid)?.fullName ?? "—", etiqueta, dia, sesiones });
+  }
+
   function renderGroup(uid: string, key: string, sess: Session[]) {
     const b = key === "live" ? null : batchMap.get(key) ?? null;
     const orphan = key !== "live" && !batchMap.get(key);
@@ -409,13 +430,37 @@ export function ManagerReports({ period }: { period: string }) {
 
         {expanded === gid && sec > 0 && (
           <div style={{ marginTop: 6 }}>
-            {/* Forma reducida (TablaReducida): cada tramo se edita en su propia fila, así que sin ▾. */}
-            <TablaReducida id={`tt-informes-detalle-${gid}`} claveDe={(s) => s.id}
-              filas={sess.slice().sort((a, c) => (a.startMs || 0) - (c.startMs || 0))}
+            {/* Una fila por día (sesionesPorDia). Al desplegar el día, sus sesiones: la tabla de tramos de siempre. */}
+            <TablaReducida id={`tt-informes-dias-${gid}`} claveDe={(d) => d.dia}
+              filas={sesionesPorDia(sess)}
               columnas={[
-                { key: "dia", en: t("mgr.rep.colDay"), es: t("mgr.rep.colDay"), ancho: 170, celda: (s) => (editId === s.id
+                { key: "dia", en: t("mgr.rep.colDay"), es: t("mgr.rep.colDay"), ancho: 170, celda: (d) => <span className="small nowrap">{d.primerInicio ? diaCorto(d.primerInicio) : "—"}</span> },
+                { key: "entrada", en: t("mgr.rep.colInOut"), es: t("mgr.rep.colInOut"), ancho: 230, celda: (d) => (
+                  <span className="small nowrap">
+                    {rangoDeDia(d)}
+                    {d.sesiones.length > 1 && <span className="pill wait" style={{ marginLeft: 6 }} data-sesiones-del-dia={d.sesiones.length}>{t("mgr.rep.sessions", { n: d.sesiones.length })}</span>}
+                  </span>
+                ) },
+                { key: "duracion", en: t("mgr.rep.colDuration"), es: t("mgr.rep.colDuration"), ancho: 110, numerico: true, celda: (d) => <span className="small nowrap">{fmtClock(d.segundos)}</span> },
+              ]}
+              acciones={(d) => (
+                <>
+                  <button className="btn-ghost btn-sm" title={t("mgr.rep.capturas")} data-capturas-del-dia={d.dia}
+                    onClick={() => abrirCapturas(uid, d.sesiones, `${diaCorto(d.primerInicio)} · ${rangoDeDia(d)}`, d.dia)}>🖥</button>{" "}
+                  <button className="btn-ghost btn-sm" onClick={() => setDiaAbierto(diaAbierto === `${gid}|${d.dia}` ? null : `${gid}|${d.dia}`)}>
+                    {diaAbierto === `${gid}|${d.dia}` ? t("common.hide") : t("mgr.rep.detail")}
+                  </button>
+                </>
+              )}
+              anchoDeAcciones={190}
+              subFila={(d) => (diaAbierto !== `${gid}|${d.dia}` ? null : (
+            // Forma reducida (TablaReducida): cada tramo se edita en su propia fila, así que sin ▾.
+            <TablaReducida id={`tt-informes-detalle-${gid}`} claveDe={(s) => s.id}
+              filas={d.sesiones}
+              columnas={[
+                { key: "dia", en: t("mgr.rep.colInOut"), es: t("mgr.rep.colInOut"), ancho: 170, celda: (s) => (editId === s.id
                   ? <input type="date" value={ed.date} onChange={(e) => setEd((p) => ({ ...p, date: e.target.value }))} style={{ padding: "4px 6px" }} />
-                  : <span className="small nowrap">{s.startMs ? fmtDT(s.startMs, { weekday: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</span>) },
+                  : <span className="small nowrap">{rangoDeSesion(s)}</span>) },
                 { key: "proyecto", en: t("mgr.rep.colProject"), es: t("mgr.rep.colProject"), ancho: 180, celda: (s) => (
                   <span className="small">{nombreDeSesion(s.projectId, s.projectId ? pMap.get(s.projectId)?.name : null, uMap.get(s.employeeUid), lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" }, tiendas.find((x) => x.id === s.storeId)?.name ?? null)}</span>
                 ) },
@@ -439,7 +484,10 @@ export function ManagerReports({ period }: { period: string }) {
                   editId === s.id ? null : <span className="small nowrap">{fmtClock(s.durationSeconds)}</span>
                 ) },
               ]}
-              acciones={b ? undefined : (s) => (editId === s.id ? (
+              acciones={(s) => (<>
+                <button className="btn-ghost btn-sm" style={{ padding: "2px 6px", marginRight: 4 }} title={t("mgr.rep.capturas")} data-capturas-de-sesion={s.id}
+                  onClick={() => abrirCapturas(uid, [s], `${diaCorto(s.startMs ?? 0)} · ${rangoDeSesion(s)}`, d.dia)}>🖥</button>
+                {b ? null : (editId === s.id ? (
                 <>
                   <button className="btn-ok btn-sm" style={{ padding: "2px 8px" }} onClick={() => saveEditEntry(s)}>{t("common.save")}</button>{" "}
                   <button className="btn-ghost btn-sm" style={{ padding: "2px 8px" }} onClick={() => setEditId(null)}>{t("common.cancel")}</button>
@@ -450,7 +498,10 @@ export function ManagerReports({ period }: { period: string }) {
                   <button className="btn-danger btn-sm" style={{ marginLeft: 4, padding: "2px 6px" }} onClick={() => deleteEntry(s)}>×</button>
                 </>
               ))}
-              anchoDeAcciones={150} />
+              </>)}
+              anchoDeAcciones={190} />
+              ))}
+            />
           </div>
         )}
       </div>
@@ -593,6 +644,18 @@ export function ManagerReports({ period }: { period: string }) {
             </div>
           </div>
         </div>
+      )}
+
+      {capturas && (
+        <CapturasDeSesion
+          nombre={capturas.nombre}
+          etiqueta={capturas.etiqueta}
+          dia={capturas.dia}
+          sesionIds={capturas.sesiones.map((s) => s.id)}
+          sesiones={capturas.sesiones}
+          onCerrar={() => setCapturas(null)}
+          onCambio={recargarSesiones}
+        />
       )}
     </div>
   );

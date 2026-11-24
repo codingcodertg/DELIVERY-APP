@@ -127,12 +127,8 @@ describe("mutación: la acción selecciona las columnas de posición y pasa por 
     expect(src).toMatch(/name, latitude, longitude, radius_meters, boundary, padding_meters/);
     expect(src).toMatch(/armarFotos\(/);
   });
-  it("y la pantalla pinta los estados con claves literales, y el enlace a Maps vive en la ventana del mapa", () => {
-    const ui = readFileSync(join(process.cwd(), "src/components/timetracker/DayPhotos.tsx"), "utf8");
-    for (const k of ["mgr.photos.locNone", "mgr.photos.locOff", "mgr.photos.locOnSite", "mgr.photos.locAt", "mgr.photos.showMap"]) {
-      expect(ui, k).toContain(`t("${k}"`);
-    }
-    expect(ui).not.toMatch(/leaflet|google-maps-loader|GoogleMapView/);
+  it("la pantalla de fotos salió de Nómina (2026-11-24); el enlace a Maps vive en la ventana del mapa", () => {
+    expect(() => readFileSync(join(process.cwd(), "src/components/timetracker/DayPhotos.tsx"), "utf8")).toThrow();
     // Desde la ventana del mapa (encargo 8), el enlace de D-212 es el respaldo de esa ventana.
     const modal = readFileSync(join(process.cwd(), "src/components/timetracker/PhotoMapModal.tsx"), "utf8");
     expect(modal).toMatch(/enlaceMapa\(/);
