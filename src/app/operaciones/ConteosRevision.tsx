@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime, fmtMoney } from "@/lib/utils";
 import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
 import {
-  cuentasDeLinea, enCajas, estaContada, hayDiferencias, ordenarPorDiferencia, pendienteDeLinea, resumenDelConteo,
+  cantidadEnCajas, cuentasDeLinea, enCajas, estaContada, hayDiferencias, muestraPiezas, ordenarPorDiferencia, pendienteDeLinea, resumenDelConteo,
   type AccionDeConteo, type Conteo, type CuentasDeLinea, type Linea, type OrdenPendiente,
 } from "@/lib/almacen-ops/conteos";
 import { comparableConElSistema, INFO_DE_UNIDAD } from "@/lib/almacen-ops/conteos";
@@ -54,7 +54,7 @@ export function PanelDeRevision({ c, lineas, pendientes, ctx, pon, acciones, sin
       const l = lineaDe(o.line_id);
       return l ? <><span className="hoja-folio">{l.sku}</span> {l.name}</> : "—";
     } },
-    { key: "vendido", en: "Sold (pcs)", es: "Vendido (pzas)", numerico: true, valor: (o) => o.qty },
+    { key: "vendido", en: "Sold (pcs)", es: "Vendido (pzas)", numerico: true, valor: (o) => o.qty, celda: (o) => (muestraPiezas(lineaDe(o.line_id)?.unit_of_measure) ? o.qty : "—") },
     { key: "cajas", en: "Boxes", es: "Cajas", numerico: true, valor: (o) => enCajas(o.qty, ppbDe(o.line_id)), celda: (o) => enCajas(o.qty, ppbDe(o.line_id)) ?? "—" },
     { key: "nota", en: "Note", es: "Nota", valor: (o) => o.note ?? "", envuelve: true },
     { key: "quien", en: "Entered by", es: "Lo anotó", valor: (o) => o.entered_by_name ?? nombre(o.entered_by), oculta: true },
@@ -105,9 +105,10 @@ export function PanelDeRevision({ c, lineas, pendientes, ctx, pon, acciones, sin
               <div className="ops-linea-conteo-boton">
                 <span className="ops-linea-conteo-nombre"><span className="hoja-folio">{l.sku}</span> {l.name}{l.size_in ? <span className="hint"> · {l.size_in}</span> : null}</span>
                 <span className="ops-linea-conteo-cifras">
-                  <span>{t("Counted", "Contado")}: <b>{cu.contado ?? "—"}</b></span>
-                  <span>{t("Pending", "Pendiente")}: <b data-pendiente={cu.pendiente}>{cu.pendiente}</b></span>
-                  <span>{t("Actual", "Real")}: <b>{cu.real ?? "—"}</b></span>
+                  <span>{t("Counted", "Contado")}: <b>{cantidadEnCajas(cu.contado, l) ?? "—"}</b></span>
+                  <span>{t("Pending", "Pendiente")}: <b data-pendiente={cu.pendiente}>{cantidadEnCajas(cu.pendiente, l)}</b></span>
+                  <span>{t("Actual", "Real")}: <b>{cantidadEnCajas(cu.real, l) ?? "—"}</b></span>
+                  {l.unit_of_measure === "box" && <span className="hint">{t("in boxes", "en cajas")}</span>}
                 </span>
               </div>
               {puede && <button type="button" className="btn btn-sm" onClick={() => setEditando({ linea: l, orden: null })} data-accion="agregar-pendiente">＋ {t("Add order", "Agregar orden")}</button>}
@@ -171,12 +172,12 @@ export function PanelDeFirma({ c, lineas, pendientes, ctx, pon, acciones, onErro
 
   const columnas: ColumnaEstandar<Fila>[] = [
     { key: "producto", en: "Product", es: "Producto", valor: (f) => f.l.sku, celda: (f) => <><span className="hoja-folio">{f.l.sku}</span> {f.l.name}{f.l.size_in ? <span className="hint"> · {f.l.size_in}</span> : null}</>, ancho: 220, envuelve: true },
-    { key: "contado", en: "Counted", es: "Contado", numerico: true, valor: (f) => f.c.contado },
-    { key: "pendiente", en: "Pending", es: "Pendiente", numerico: true, valor: (f) => f.c.pendiente },
-    { key: "real", en: "Actual", es: "Real", numerico: true, valor: (f) => f.c.real },
+    { key: "contado", en: "Counted", es: "Contado", numerico: true, valor: (f) => f.c.contado, celda: (f) => cantidadEnCajas(f.c.contado, f.l) ?? "—" },
+    { key: "pendiente", en: "Pending", es: "Pendiente", numerico: true, valor: (f) => f.c.pendiente, celda: (f) => cantidadEnCajas(f.c.pendiente, f.l) },
+    { key: "real", en: "Actual", es: "Real", numerico: true, valor: (f) => f.c.real, celda: (f) => cantidadEnCajas(f.c.real, f.l) ?? "—" },
     { key: "sistema", en: "System", es: "Sistema", numerico: true, valor: (f) => f.c.sistema, celda: (f) => (f.c.sistema == null
-      ? <span className="ops-kpi-rojo" data-sin-sistema>{t("Enter", "Teclear")}</span> : f.c.sistema) },
-    { key: "dif", en: "Diff (pcs)", es: "Dif. (pzas)", numerico: true, valor: (f) => f.c.diferencia, celda: (f) => (f.c.diferencia == null ? "—" : (
+      ? <span className="ops-kpi-rojo" data-sin-sistema>{t("Enter", "Teclear")}</span> : cantidadEnCajas(f.c.sistema, f.l)) },
+    { key: "dif", en: "Diff (pcs)", es: "Dif. (pzas)", numerico: true, valor: (f) => f.c.diferencia, celda: (f) => (f.c.diferencia == null || !muestraPiezas(f.l.unit_of_measure) ? "—" : (
       <span className={f.c.diferencia === 0 ? "ops-kpi-verde" : "ops-kpi-rojo"} data-diferencia={f.c.diferencia}>{f.c.diferencia > 0 ? "+" : ""}{f.c.diferencia}</span>)) },
     { key: "cajas", en: "Diff (boxes)", es: "Dif. (cajas)", numerico: true, valor: (f) => enCajas(f.c.diferencia, f.l.pieces_per_box), celda: (f) => {
       const cj = enCajas(f.c.diferencia, f.l.pieces_per_box);
@@ -259,7 +260,9 @@ export function PanelDeFirma({ c, lineas, pendientes, ctx, pon, acciones, onErro
             <div className="ops-ajuste-resumen" data-ajuste={ajuste.length}>
               <p><strong>{t("To adjust in the ERP (new difference, after pending orders)", "Para ajustar en el ERP (la diferencia nueva, después de pendientes)")}</strong></p>
               <ul className="ops-fotos-lista">
-                {ajuste.map((f) => <li key={f.id} className="ops-insignia" data-ajuste-linea={f.id}><span className="hoja-folio">{f.l.sku}</span> {f.c.diferencia! > 0 ? "+" : ""}{f.c.diferencia} {t("pcs", "pzas")}{enCajas(f.c.diferencia, f.l.pieces_per_box) != null && ` (${enCajas(f.c.diferencia, f.l.pieces_per_box)} ${t("boxes", "cajas")})`} · {fmtMoney(f.c.valor ?? 0)}</li>)}
+                {ajuste.map((f) => <li key={f.id} className="ops-insignia" data-ajuste-linea={f.id}><span className="hoja-folio">{f.l.sku}</span> {muestraPiezas(f.l.unit_of_measure)
+                  ? <>{f.c.diferencia! > 0 ? "+" : ""}{f.c.diferencia} {t("pcs", "pzas")}{enCajas(f.c.diferencia, f.l.pieces_per_box) != null && ` (${enCajas(f.c.diferencia, f.l.pieces_per_box)} ${t("boxes", "cajas")})`}</>
+                  : <>{f.c.diferencia! > 0 ? "+" : ""}{cantidadEnCajas(f.c.diferencia, f.l)} {t("boxes", "cajas")}</>} · {fmtMoney(f.c.valor ?? 0)}</li>)}
               </ul>
             </div>
           )}

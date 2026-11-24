@@ -555,6 +555,52 @@ export function motivoDeLotes(lotes: readonly Lote[], unidad: UnidadDeConteo | n
   return null;
 }
 
+/**
+ * Lo que falta para poder pasar a «Siguiente», dicho con su nombre (23 nov, el dueño: «What's missing? Boxes»).
+ * Devuelve el texto (en el idioma) y el número del lote que falla (null si es la unidad). Null si todo está bien.
+ * Las filas vacías no cuentan (igual que en `motivoDeLotes`); `valor` es el número de la fila (NaN si no es número).
+ */
+export function faltaDeLotes(filas: readonly { qty: string; valor: number }[], unidad: UnidadDeConteo | null, lang: Lang): { numero: number | null; texto: string } | null {
+  if (!unidad) {
+    return { numero: null, texto: lang === "es" ? "Falta la unidad de medida: elige cajas, bolsas o piezas." : "Unit of measure is missing: choose boxes, bags or pieces." };
+  }
+  const llenas = filas.map((f, i) => ({ f, n: i + 1 })).filter((x) => x.f.qty.trim() !== "");
+  if (llenas.length === 0) {
+    const plural = lang === "es" ? INFO_DE_UNIDAD[unidad].es.toLowerCase() : INFO_DE_UNIDAD[unidad].en.toLowerCase();
+    return { numero: 1, texto: lang === "es" ? `Lote 1: faltan ${plural}.` : `Lot 1: ${plural} are missing.` };
+  }
+  const mala = llenas.find((x) => !Number.isFinite(x.f.valor) || x.f.valor < 0);
+  if (mala) return { numero: mala.n, texto: lang === "es" ? `Lote ${mala.n}: la cantidad no es un número válido.` : `Lot ${mala.n}: the quantity is not a valid number.` };
+  if (!llenas.some((x) => x.f.valor > 0)) {
+    const n = llenas[0].n;
+    return { numero: n, texto: lang === "es" ? `Lote ${n}: la cantidad debe ser mayor que 0.` : `Lot ${n}: the quantity must be greater than 0.` };
+  }
+  return null;
+}
+
+/**
+ * ¿Se muestran las PIEZAS de una línea? No en las de cajas (23 nov: «en este caso son cajas»). Sin unidad (líneas de
+ * antes): sí, como antes; no se adivina.
+ */
+export function muestraPiezas(unidad: UnidadDeConteo | null | undefined): boolean {
+  return unidad !== "box";
+}
+
+/**
+ * Una cantidad de una línea EN CAJAS, para mostrarla. La base guarda en piezas el contado, lo pendiente y el sistema
+ * de las líneas de cajas comparables (con producto y piezas por caja): se divide entre las piezas por caja. Las demás
+ * (y las de cajas sin piezas por caja, que ya vienen en cajas) no cambian. No cambia ninguna cuenta: solo cómo se lee.
+ */
+export function cantidadEnCajas(valor: number | null, x: { unit_of_measure?: UnidadDeConteo | null; pieces_per_box: number | null; product_id?: number | null }): number | null {
+  if (valor == null || x.unit_of_measure !== "box" || !comparableConElSistema(x)) return valor;
+  return redondea(valor / (x.pieces_per_box as number), 2);
+}
+
+/** El dinero de una diferencia (en las mismas unidades que la base compara) a precio de la línea. Null sin precio. */
+export function dineroDeLaDiferencia(diferencia: number, precio: number | null): number | null {
+  return precio == null ? null : redondea(diferencia * precio, 2);
+}
+
 /** Los lotes como texto para la lista de la línea («Lote 123: 100 cajas · Lote 3A4: 20 cajas»). */
 export function resumenDeLotes(lotes: readonly Lote[], unidad: UnidadDeConteo | null, lang: Lang): string {
   const nombre = unidad ? (lang === "es" ? INFO_DE_UNIDAD[unidad].es : INFO_DE_UNIDAD[unidad].en).toLowerCase() : "";

@@ -716,3 +716,12 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
   .ops-accesos { width: 100%; }
   .ops-accesos .ops-boton { flex: 1 1 auto; text-align: center; }
 }
+
+/* 23 nov: los conteos. La fila (y su nombre) que abre un conteo se subraya al pasar el ratón; el cursor es de mano. */
+.ops-conteos tr.fila-abre, .ops-informe-conteos tr.fila-abre { cursor: pointer; }
+.ops-conteos tr.fila-abre:hover .ops-conteo-nombre-abre, .ops-informe-conteos tr.fila-abre:hover .ops-conteo-nombre-abre { text-decoration: underline; }
+.ops-equipo:hover .ops-equipo-nombre { text-decoration: underline; }
+/* El resumen de los pasos del conteo, plegado (Resumen / Summary). */
+.ops-resumen-de-etapas > summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; }
+/* El campo que falta (un lote sin cantidad) se marca en rojo. */
+.ops-campo-falta { border-color: var(--red); }

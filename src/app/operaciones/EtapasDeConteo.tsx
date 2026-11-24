@@ -30,35 +30,40 @@ export function LineaDeEtapasDeConteo({ c, nombre, adjunto }: { c: Conteo; nombr
   const { t, lang } = usePrefs();
   return (
     <section className="ops-etapas" data-etapas-conteo={c.stage}>
-      <ol className="ops-linea-de-etapas">
-        {ETAPAS_DE_CONTEO.map((e) => {
-          const hecha = etapaHecha(c, e);
-          const f = fechaDeEtapaDeConteo(c, e);
-          const actual = c.stage === e;
-          const info = INFO_DE_ETAPA_DE_CONTEO[e];
-          return (
-            <li key={e} data-etapa-conteo={e} data-hecha={hecha ? "si" : "no"} className={hecha && !actual ? "hecha" : actual ? "hecha actual" : ""}>
+      {/* 23 nov (el dueño: «put Summary and it's a dropdown»): los cinco pasos con sus fechas, plegados. La etapa actual ya
+          sale en el chip del título, así que aquí no se repite. */}
+      <details className="ops-resumen-de-etapas" data-resumen-etapas>
+        <summary>{t("Summary", "Resumen")}</summary>
+        <ol className="ops-linea-de-etapas">
+          {ETAPAS_DE_CONTEO.map((e) => {
+            const hecha = etapaHecha(c, e);
+            const f = fechaDeEtapaDeConteo(c, e);
+            const actual = c.stage === e;
+            const info = INFO_DE_ETAPA_DE_CONTEO[e];
+            return (
+              <li key={e} data-etapa-conteo={e} data-hecha={hecha ? "si" : "no"} className={hecha && !actual ? "hecha" : actual ? "hecha actual" : ""}>
+                <span className="ops-etapa-punto" aria-hidden />
+                <span className="ops-etapa-texto">
+                  <strong>{info.n}. {nombreDeEtapaDeConteo(e, lang)}</strong>
+                  {hecha && !actual && f.at && <span className="ops-etapa-cuando">{t("entered", "entró")} {fmtDateTime(f.at)}{f.by && ` · ${nombre(f.by)}`}</span>}
+                  {e === "organizing" && c.instructions && <span className="ops-nota-fallo">📝 {c.instructions}</span>}
+                  {e === "review" && hecha && c.orders_note && c.stage !== "review" && <span className="ops-nota-fallo">🗒 {c.orders_note}</span>}
+                  {e === "sign_off" && c.signed_at && <span className="ops-etapa-cuando" data-firmado>✍️ {t("Signed by", "Firmó")} {c.signed_by_name ?? nombre(c.signed_by)} · {fmtDateTime(c.signed_at)} {c.signed_sheet && adjunto?.(c.signed_sheet, t("Signed sheet", "Hoja firmada"))}</span>}
+                  {e === "sign_off" && c.sign_note && <span className="ops-nota-fallo">🗒 {c.sign_note}</span>}
+                  {e === "adjusted" && c.adjusted_at && <span className="ops-etapa-cuando">{fmtDateTime(c.adjusted_at)} · {nombre(c.adjusted_by)}</span>}
+                  {e === "adjusted" && c.adjustment_shots.map((s) => <span key={s}>{adjunto?.(s, t("ERP screenshot", "Captura del ERP"))}</span>)}
+                </span>
+              </li>
+            );
+          })}
+          {c.stage === "cancelled" && (
+            <li data-etapa-conteo="cancelled" className="hecha">
               <span className="ops-etapa-punto" aria-hidden />
-              <span className="ops-etapa-texto">
-                <strong>{info.n}. {nombreDeEtapaDeConteo(e, lang)}</strong>
-                {hecha && !actual && f.at && <span className="ops-etapa-cuando">{t("entered", "entró")} {fmtDateTime(f.at)}{f.by && ` · ${nombre(f.by)}`}</span>}
-                {e === "organizing" && c.instructions && <span className="ops-nota-fallo">📝 {c.instructions}</span>}
-                {e === "review" && hecha && c.orders_note && c.stage !== "review" && <span className="ops-nota-fallo">🗒 {c.orders_note}</span>}
-                {e === "sign_off" && c.signed_at && <span className="ops-etapa-cuando" data-firmado>✍️ {t("Signed by", "Firmó")} {c.signed_by_name ?? nombre(c.signed_by)} · {fmtDateTime(c.signed_at)} {c.signed_sheet && adjunto?.(c.signed_sheet, t("Signed sheet", "Hoja firmada"))}</span>}
-                {e === "sign_off" && c.sign_note && <span className="ops-nota-fallo">🗒 {c.sign_note}</span>}
-                {e === "adjusted" && c.adjusted_at && <span className="ops-etapa-cuando">{fmtDateTime(c.adjusted_at)} · {nombre(c.adjusted_by)}</span>}
-                {e === "adjusted" && c.adjustment_shots.map((s) => <span key={s}>{adjunto?.(s, t("ERP screenshot", "Captura del ERP"))}</span>)}
-              </span>
+              <span className="ops-etapa-texto"><strong>{t("Cancelled", "Cancelado")}</strong><span className="ops-etapa-cuando">{fmtDateTime(c.cancelled_at)} · {nombre(c.cancelled_by)}{c.cancel_note && ` · ${c.cancel_note}`}</span></span>
             </li>
-          );
-        })}
-        {c.stage === "cancelled" && (
-          <li data-etapa-conteo="cancelled" className="hecha">
-            <span className="ops-etapa-punto" aria-hidden />
-            <span className="ops-etapa-texto"><strong>{t("Cancelled", "Cancelado")}</strong><span className="ops-etapa-cuando">{fmtDateTime(c.cancelled_at)} · {nombre(c.cancelled_by)}{c.cancel_note && ` · ${c.cancel_note}`}</span></span>
-          </li>
-        )}
-      </ol>
+          )}
+        </ol>
+      </details>
     </section>
   );
 }

@@ -8,15 +8,14 @@ import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime, fmtMoney } from "@/lib/utils";
 import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
 import { hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
-import { resumenDelConteo, type Conteo, type Linea, type OrdenPendiente } from "@/lib/almacen-ops/conteos";
-import { comparableConElSistema } from "@/lib/almacen-ops/conteos";
 import {
   conteosDelPeriodo, colorDeExactitud, kpiDeConteos, kpiPorEmpleado, mesVecino, periodoDeMes, totalDeConteos, type KpiDeConteos,
 } from "@/lib/almacen-ops/conteos-kpi";
 import { DEMO_CONTEOS, faltaLa274, leerConteos, type Conteos as Datos } from "@/lib/almacen-ops/conteos-datos";
 import type { Contexto } from "./Operaciones";
-import { ChipDeEtapaDeConteo } from "./EtapasDeConteo";
+import { filaDeConteo, type FilaDeConteo } from "@/lib/almacen-ops/conteos-filas";
 import { TarjetaConteo } from "./Conteos";
+import { COLUMNAS_DE_CONTEOS, ID_TABLA_DE_CONTEOS } from "./ColumnasDeConteos";
 
 /**
  * Operaciones de almacén (333): el INFORME de conteos de inventario, en REPORTES (pestaña «Conteos»). Dueño (19 nov):
@@ -27,8 +26,6 @@ import { TarjetaConteo } from "./Conteos";
  */
 
 type Carga = { estado: "cargando" } | { estado: "falta-274" } | { estado: "error"; mensaje: string } | { estado: "listo"; datos: Datos };
-
-interface FilaDeConteo { c: Conteo; lineas: Linea[]; pendientes: OrdenPendiente[]; neto: number; faltanCajas: number; sobranCajas: number; exactitud: number | null; lineasN: number }
 
 export function InformeDeConteos({ ctx, tiendas }: { ctx: Contexto; tiendas: string[] }) {
   const { t, lang } = usePrefs();
@@ -58,19 +55,8 @@ export function InformeDeConteos({ ctx, tiendas }: { ctx: Contexto; tiendas: str
   const empleados = useMemo(() => (datos ? kpiPorEmpleado(datos.conteos, datos.lineas, datos.pendientes, periodo) : []), [datos, periodo]);
   const delMes: FilaDeConteo[] = useMemo(() => {
     if (!datos) return [];
-    return conteosDelPeriodo(datos.conteos, periodo).filter((c) => tiendas.includes(c.store)).map((c) => {
-      const lineas = datos.lineas.filter((l) => l.count_id === c.id);
-      const pendientes = datos.pendientes.filter((o) => o.count_id === c.id);
-      const r = resumenDelConteo(lineas, pendientes);
-      const cajas = (signo: 1 | -1) => lineas.reduce((s, l) => {
-        const pz = l.pieces_per_box;
-        const pl = pendientes.filter((o) => o.line_id === l.id).reduce((x, o) => x + o.qty, 0);
-        if (l.counted_at == null || l.system_qty == null || pz == null || pz <= 0 || !comparableConElSistema(l)) return s;
-        const d = (l.counted_total ?? 0) - pl - l.system_qty;
-        return s + (Math.sign(d) === signo ? Math.abs(d) / pz : 0);
-      }, 0);
-      return { c, lineas, pendientes, neto: r.valorNeto, faltanCajas: Math.round(cajas(-1) * 100) / 100, sobranCajas: Math.round(cajas(1) * 100) / 100, exactitud: r.exactitudPct, lineasN: r.contadas };
-    }).sort((a, b) => b.c.created_at.localeCompare(a.c.created_at));
+    return conteosDelPeriodo(datos.conteos, periodo).filter((c) => tiendas.includes(c.store)).map((c) =>
+      filaDeConteo(c, datos.lineas.filter((l) => l.count_id === c.id), datos.pendientes.filter((o) => o.count_id === c.id))).sort((a, b) => b.c.created_at.localeCompare(a.c.created_at));
   }, [datos, periodo, tiendas]);
 
   const colsTienda: ColumnaEstandar<KpiDeConteos>[] = [
@@ -87,19 +73,6 @@ export function InformeDeConteos({ ctx, tiendas }: { ctx: Contexto; tiendas: str
     { key: "pendientes", en: "Pending order pcs", es: "Pzas en órdenes pendientes", numerico: true, valor: (k) => k.pendientePiezas, oculta: true },
     { key: "abiertos", en: "Open now", es: "Abiertos ahora", numerico: true, valor: (k) => k.abiertos },
     { key: "dias", en: "Avg days", es: "Días prom.", numerico: true, valor: (k) => k.diasPromedio },
-  ];
-
-  const colsConteos: ColumnaEstandar<FilaDeConteo>[] = [
-    { key: "conteo", en: "Count", es: "Conteo", valor: (f) => f.c.title, celda: (f) => <>{INFO_EMOJI(f.c)} {f.c.title}</>, envuelve: true },
-    { key: "tienda", en: "Store", es: "Tienda", valor: (f) => f.c.store },
-    { key: "etapa", en: "Stage", es: "Etapa", valor: (f) => f.c.stage, celda: (f) => <ChipDeEtapaDeConteo e={f.c.stage} /> },
-    { key: "creado", en: "Opened", es: "Abierto", valor: (f) => f.c.created_at, celda: (f) => fmtDateTime(f.c.created_at), oculta: true },
-    { key: "ajustado", en: "Adjusted", es: "Ajustado", valor: (f) => f.c.adjusted_at, celda: (f) => (f.c.adjusted_at ? fmtDateTime(f.c.adjusted_at) : "—") },
-    { key: "lineas", en: "Lines", es: "Líneas", numerico: true, valor: (f) => f.lineasN },
-    { key: "cajasFaltan", en: "Missing boxes", es: "Cajas que faltan", numerico: true, valor: (f) => f.faltanCajas, celda: (f) => <span className={f.faltanCajas > 0 ? "ops-kpi-rojo" : ""}>{f.faltanCajas}</span> },
-    { key: "cajasSobran", en: "Over boxes", es: "Cajas que sobran", numerico: true, valor: (f) => f.sobranCajas, oculta: true },
-    { key: "neto", en: "Net $", es: "Neto $", numerico: true, valor: (f) => f.neto, celda: (f) => `${f.neto > 0 ? "+" : ""}${fmtMoney(f.neto)}` },
-    { key: "exactitud", en: "Accuracy", es: "Exactitud", numerico: true, valor: (f) => f.exactitud, celda: (f) => (f.exactitud === null ? "—" : `${f.exactitud}%`) },
   ];
 
   const colsEmpleados: ColumnaEstandar<{ id: string; nombre: string; lineas: number; exactitudPct: number | null }>[] = [
@@ -144,7 +117,7 @@ export function InformeDeConteos({ ctx, tiendas }: { ctx: Contexto; tiendas: str
             vacio={t("No stores.", "No hay tiendas.")} />
 
           <h3 className="ops-merma-titulo">{t("Counts this month", "Conteos del mes")} <span className="count-tag">{delMes.length}</span></h3>
-          <TablaEstandar id="conteos-del-mes" data-tabla="conteos-del-mes" filas={delMes} claveDe={(f) => f.c.id} columnas={colsConteos}
+          <TablaEstandar id={ID_TABLA_DE_CONTEOS} data-tabla="conteos-del-mes" filas={delMes} claveDe={(f) => f.c.id} columnas={COLUMNAS_DE_CONTEOS}
             onFila={(f) => setAbierto(f.c.id)}
             vacio={t("No counts this month.", "No hay conteos en este mes.")} />
 
@@ -161,8 +134,4 @@ export function InformeDeConteos({ ctx, tiendas }: { ctx: Contexto; tiendas: str
       {carga.estado === "listo" && carga.datos.sin333 && <p className="ops-aviso" data-aviso-333>{t("Migration 333 is not applied: pending orders and system quantities at sign-off are missing from these numbers.", "La migración 333 no está aplicada: las órdenes pendientes y las cantidades del sistema no entran en estos números.")}</p>}
     </section>
   );
-}
-
-function INFO_EMOJI(c: Conteo): string {
-  return c.scope_kind === "product" ? "📦" : c.scope_kind === "vendor_note" ? "🏷️" : "📐";
 }

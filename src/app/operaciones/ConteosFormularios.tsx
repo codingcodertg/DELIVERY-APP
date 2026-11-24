@@ -5,10 +5,11 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { BotonesDeFoto } from "./BotonesDeFoto";
+import { fmtMoney } from "@/lib/utils";
 import { detalleParaConsola, leerFotoDelTelefono, mensajeDeFotoFallida } from "@/lib/almacen-ops/foto-del-telefono";
 import { enlacesDeFotos, subirAdjunto, subirFoto, tipoDeAdjuntoValido } from "@/lib/almacen-ops/datos";
 import {
-  INFO_DE_UNIDAD, MAX_LOTES, MAX_NOTA_LOTE, MAX_TEXTO_LOTE, UNIDADES_DE_CONTEO, motivoDeCaptura, motivoDeLotes, numeroDelCampo, textoDeCantidad, totalDeLotes, totalDelSistema, validarCaptura,
+  INFO_DE_UNIDAD, MAX_LOTES, MAX_NOTA_LOTE, MAX_TEXTO_LOTE, UNIDADES_DE_CONTEO, cantidadEnCajas, comparableConElSistema, dineroDeLaDiferencia, faltaDeLotes, motivoDeCaptura, motivoDeLotes, numeroDelCampo, textoDeCantidad, totalDeLotes, totalDelSistema, validarCaptura,
   type Linea, type Lote, type OrdenPendiente, type UnidadDeConteo,
 } from "@/lib/almacen-ops/conteos";
 import { registrarLotes } from "@/lib/almacen-ops/conteos-datos";
@@ -171,6 +172,8 @@ export function FormLinea({ l, ctx, siguiente, onCerrar, onGuardada }: {
     .filter((f) => f.qty.trim() !== "")
     .map((f) => ({ qty: numero(f.qty), lot: f.lot.trim() || null, note: f.note.trim() || null, photo: f.photo || null }));
   const motivo = motivoDeLotes(lotes, unidad);
+  // 23 nov: lo que falta, dicho con su nombre (la unidad o el lote que no tiene cantidad). Se muestra y marca el campo.
+  const falta = faltaDeLotes(filas.map((f) => ({ qty: f.qty, valor: numero(f.qty) })), unidad, lang);
   const total = unidad ? totalDeLotes(lotes.filter((x) => Number.isFinite(x.qty))) : null;
   const comparable = unidad ? totalDelSistema(lotes.filter((x) => Number.isFinite(x.qty)), unidad, l.pieces_per_box, l.product_id != null).comparable : true;
   const nombreUnidad = (u: UnidadDeConteo) => (lang === "es" ? INFO_DE_UNIDAD[u].es : INFO_DE_UNIDAD[u].en);
@@ -194,7 +197,7 @@ export function FormLinea({ l, ctx, siguiente, onCerrar, onGuardada }: {
   };
 
   const guardar = async (irA: "siguiente" | "terminar") => {
-    if (motivo || !unidad) return;
+    if (motivo || falta || !unidad) return;
     setGuardando(true); setError(null);
     try {
       if (!ctx.demo) await registrarLotes(createClient(), { lineaId: l.id, unidad, lotes });
@@ -226,7 +229,7 @@ export function FormLinea({ l, ctx, siguiente, onCerrar, onGuardada }: {
           <fieldset key={f.key} className="ops-lote" data-lote={n + 1}>
             <legend>{t("Lot", "Lote")} {n + 1}</legend>
             <label className="ops-cantidad"><span>{t("Total units", "Total de unidades")}</span>
-              <input className="ops-campo ops-campo" inputMode="decimal" value={f.qty} onChange={(e) => cambiar(f.key, "qty", e.target.value)} data-campo={`lote-cantidad-${n + 1}`} />
+              <input className={`ops-campo ops-campo${falta?.numero === n + 1 ? " ops-campo-falta" : ""}`} inputMode="decimal" value={f.qty} onChange={(e) => cambiar(f.key, "qty", e.target.value)} data-campo={`lote-cantidad-${n + 1}`} aria-invalid={falta?.numero === n + 1} />
             </label>
             <label className="ops-cantidad"><span>{t("Lot number (optional)", "Número de lote (opcional)")}</span>
               <input className="ops-campo" value={f.lot} maxLength={MAX_TEXTO_LOTE} onChange={(e) => cambiar(f.key, "lot", e.target.value)} placeholder={t("e.g. 123 or 3A4", "p. ej. 123 o 3A4")} data-campo={`lote-numero-${n + 1}`} />
@@ -248,12 +251,13 @@ export function FormLinea({ l, ctx, siguiente, onCerrar, onGuardada }: {
         <button type="button" className="ops-opcion" onClick={agregar} disabled={filas.length >= MAX_LOTES} data-accion="agregar-lote">+ {t("Add another lot", "Agregar otro lote")}</button>
         {total != null && !comparable && <p className="hint" data-no-comparable>{t("This count is not compared with the system (bags or a free product): no difference will be computed.", "Este conteo no se compara con el sistema (bolsas o producto libre): no se calcula diferencia.")}</p>}
         {total != null && <p className="ops-total-linea" data-total={total}>{t("Total", "Total")}: <b>{textoDeCantidad(total, unidad, l.pieces_per_box, lang)}</b></p>}
-        {motivo && lotes.length > 0 && <p className="hint" data-motivo={motivo}>{t("Each lot needs a number of units (0 or more), and at least one above 0.", "Cada lote necesita una cantidad (0 o más), y al menos uno mayor que 0.")}</p>}
+        {falta && <p className="ops-aviso ops-aviso-pendiente" role="status" data-falta-captura={falta.numero ?? "unidad"}>⚠ {falta.texto}</p>}
+          {motivo && !falta && lotes.length > 0 && <p className="hint" data-motivo={motivo}>{t("Each lot needs a number of units (0 or more), and at least one above 0.", "Cada lote necesita una cantidad (0 o más), y al menos uno mayor que 0.")}</p>}
       </div>
       {error && <p className="ops-aviso ops-aviso-error" role="alert">{error}</p>}
       <div className="modal-actions">
         <button type="button" className="btn" onClick={onCerrar} disabled={guardando}>{t("Cancel", "Cancelar")}</button>
-        <button type="button" className="btn btn-primary" onClick={() => void guardar(siguiente ? "siguiente" : "terminar")} disabled={!!motivo || guardando || leyendo != null} data-accion={siguiente ? "siguiente" : "guardar-linea"}>
+        <button type="button" className="btn btn-primary" onClick={() => void guardar(siguiente ? "siguiente" : "terminar")} disabled={!!motivo || !!falta || guardando || leyendo != null} data-accion={siguiente ? "siguiente" : "guardar-linea"}>
           {guardando ? t("Saving…", "Guardando…") : t("Next", "Siguiente")}
         </button>
       </div>
@@ -293,6 +297,10 @@ export function FormPendiente({ lineas, inicial, lineaFija, onCerrar, onListo }:
   const pz = linea?.pieces_per_box ?? null;
   const val = linea ? validarCaptura({ pieces_per_box: pz }, cajas, sueltas, total) : { ok: false as const, motivo: "vacio" as const };
   const listo = !!linea && factura.trim().length > 0 && factura.trim().length <= 40 && val.ok && val.total > 0;
+  // 23 nov: lo que falta para guardar, dicho con su nombre (no un botón apagado sin razón).
+  const faltaPendiente = listo ? null : !linea ? t("Choose the product.", "Elige el producto.") : factura.trim().length === 0 ? t("Invoice number is missing.", "Falta el número de factura.")
+    : factura.trim().length > 40 ? t("Invoice number is too long (40 characters).", "El número de factura es demasiado largo (40 caracteres).")
+    : pz != null && pz > 0 ? t("Boxes or loose pieces are missing.", "Faltan cajas o piezas sueltas.") : t("Sold quantity is missing.", "Falta la cantidad vendida.");
   const guardar = async () => {
     if (!linea || !val.ok) return;
     setGuardando(true); setError(null);
@@ -332,6 +340,7 @@ export function FormPendiente({ lineas, inicial, lineaFija, onCerrar, onListo }:
       {error && <p className="ops-aviso ops-aviso-error" role="alert">{error}</p>}
       <div className="modal-actions">
         <button type="button" className="btn" onClick={onCerrar} disabled={guardando}>{t("Cancel", "Cancelar")}</button>
+        {faltaPendiente && <p className="hint" data-falta-pendiente>{faltaPendiente}</p>}
         <button type="button" className="btn btn-primary" onClick={() => void guardar()} disabled={!listo || guardando} data-accion="guardar-pendiente">{guardando ? t("Saving…", "Guardando…") : t("Save order", "Guardar orden")}</button>
       </div>
     </VentanaDeConteo>
@@ -348,17 +357,26 @@ export function FormSistema({ l, pendiente, onCerrar, onListo }: { l: Linea; pen
   const ok = n != null && !Number.isNaN(n);
   const contado = l.counted_total ?? 0;
   const real = contado - pendiente;
+  // 23 nov: las líneas de cajas comparables se leen en cajas; la cantidad del sistema se sigue tecleando en piezas (como en el ERP).
+  const enCajas = l.unit_of_measure === "box" && comparableConElSistema(l);
+  const cajas = (v: number) => cantidadEnCajas(v, l) ?? v;
+  // La diferencia que ya muestra la pantalla (real − sistema) y su valor en $ a precio de la línea.
+  const dif = ok ? real - (n as number) : null;
+  const dinero = dif == null ? null : dineroDeLaDiferencia(dif, l.price);
   return (
     <VentanaDeConteo dato="sistema">
       <CerrarX onCerrar={onCerrar} />
       <h3><span className="hoja-folio">{l.sku}</span></h3>
       <p className="sub">{l.name}{l.size_in ? ` · ${l.size_in}` : ""}</p>
       <div className="ops-formulario">
-        <p className="ops-total-linea" data-contado={contado}>{t("Counted", "Contado")} <b>{contado}</b> − {t("pending", "pendiente")} <b>{pendiente}</b> = {t("actual", "real")} <b>{real}</b></p>
-        <label className="ops-cantidad"><span>{t("What the system says", "Lo que dice el sistema")}</span>
+        <p className="ops-total-linea" data-contado={contado}>{t("Counted", "Contado")} <b>{enCajas ? cajas(contado) : contado}</b> − {t("pending", "pendiente")} <b>{enCajas ? cajas(pendiente) : pendiente}</b> = {t("actual", "real")} <b>{enCajas ? cajas(real) : real}</b>{enCajas && ` ${t("boxes", "cajas")}`}</p>
+        <label className="ops-cantidad"><span>{t("What the system says", "Lo que dice el sistema")}{enCajas && ` (${t("pieces", "piezas")})`}</span>
           <input className="ops-campo ops-campo" inputMode="decimal" value={q} onChange={(e) => setQ(e.target.value)} placeholder={lang === "es" ? "p. ej. 105" : "e.g. 105"} data-campo="sistema" autoFocus />
         </label>
-        {ok && <p className="hint" data-diferencia={real - (n as number)}>{t("Difference", "Diferencia")}: <b>{real - (n as number) > 0 ? "+" : ""}{redondeaTexto(real - (n as number))}</b></p>}
+        {dif != null && (
+        <p className="hint" data-diferencia={dif}>{t("Difference", "Diferencia")}: <b>{dif > 0 ? "+" : ""}{enCajas ? `${cajas(dif)} ${t("boxes", "cajas")}` : `${redondeaTexto(dif)} ${t("pcs", "pzas")}`}</b>
+          {dinero != null && <> · <b data-diferencia-usd={dinero}>{dinero > 0 ? "+" : ""}{fmtMoney(dinero)}</b></>}</p>
+      )}
         <p className="hint">{t("Recorded with your name and the time.", "Queda con tu nombre y la hora.")}</p>
       </div>
       {error && <p className="ops-aviso ops-aviso-error" role="alert">{error}</p>}

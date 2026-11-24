@@ -12,8 +12,10 @@ import {
   INFO_DE_ALCANCE, accionesDeConteo, estaAbierto, estaContada, faltaDelAlcance, ordenarLineas, progresoDelConteo, puedeGestionarConteo,
   resumenDeLotes, textoDeCantidad, tituloDeAlcance, type AccionDeConteo, type AlcanceElegido, type Conteo, type Linea, type OrdenPendiente,
 } from "@/lib/almacen-ops/conteos";
-import { comparableConElSistema } from "@/lib/almacen-ops/conteos";
 import { buscarEnLista, coincideConAlcance } from "@/lib/almacen-ops/conteos-alcance";
+import { filaDeConteo, type FilaDeConteo } from "@/lib/almacen-ops/conteos-filas";
+import { TablaEstandar } from "@/components/TablaEstandar";
+import { COLUMNAS_DE_CONTEOS, ID_TABLA_DE_CONTEOS } from "./ColumnasDeConteos";
 import {
   DEMO_CONTEOS, DEMO_PRODUCTOS_DE_CONTEO, DEMO_PROVEEDORES, agregarLineaLibre, avanzarConteo, cancelarConteo, crearConteo, faltaLa274, faltaLa333, leerConteos, leerProductosDelAlcance,
   leerProveedores, lineaDeLaFila, mandarARecontar, type Conteos as Datos, type ProductoDeConteo, type Proveedor,
@@ -58,6 +60,8 @@ export function Conteos({ ctx }: { ctx: Contexto }) {
   const gestiona = puedeGestionarConteo(ctx.yo, tienda);
   const datos = carga.estado === "listo" ? carga.datos : null;
   const abiertos = useMemo(() => (datos?.conteos ?? []).filter((c) => c.store === tienda && estaAbierto(c)), [datos, tienda]);
+  // Las filas de «Seguir»: la misma fila que el informe (filaDeConteo), para que las columnas sean las mismas.
+  const filasAbiertas: FilaDeConteo[] = useMemo(() => (datos ? abiertos.map((c) => filaDeConteo(c, datos.lineas.filter((l) => l.count_id === c.id), datos.pendientes.filter((o) => o.count_id === c.id))) : []), [datos, abiertos]);
   const elegido = abierto && datos ? datos.conteos.find((c) => c.id === abierto) ?? null : null;
 
   return (
@@ -100,31 +104,13 @@ export function Conteos({ ctx }: { ctx: Contexto }) {
           {abiertos.length === 0 && (
             <p className="hint" data-sin-conteos>{gestiona ? t("No counts in progress in this store.", "No hay conteos en curso en esta tienda.") : t("No counts in progress in this store. Your manager opens them.", "No hay conteos en curso en esta tienda. Los abre tu gerente.")}</p>
           )}
-          <ul className="ops-lista-equipo" data-lista-conteos={abiertos.length}>
-            {abiertos.map((c) => {
-              const lineas = datos.lineas.filter((l) => l.count_id === c.id);
-              const p = progresoDelConteo(lineas);
-              const ordenes = datos.pendientes.filter((o) => o.count_id === c.id).length;
-              return (
-                <li key={c.id}>
-                  <button type="button" className="ops-equipo" onClick={() => setAbierto(c.id)} data-conteo={c.id} data-etapa={c.stage}>
-                    <span className="ops-equipo-icono" aria-hidden>{INFO_DE_ALCANCE[c.scope_kind].emoji}</span>
-                    <span className="ops-equipo-texto">
-                      <span className="ops-equipo-nombre">{c.title}</span>
-                      <span className="ops-equipo-meta">{lineas.length} {t("products", "productos")} · {t("opened", "abierto")} {fmtDateTime(c.created_at)}{c.created_by_name ? ` · ${c.created_by_name}` : ""}</span>
-                      <span className="ops-equipo-insignias">
-                        <ChipDeEtapaDeConteo e={c.stage} />
-                        {c.stage === "counting" && <span className="ops-insignia" data-progreso={p.pct}>{p.hechas}/{p.total} · {p.pct}%</span>}
-                        {c.stage === "review" && <span className="ops-insignia" data-ordenes={ordenes}>{ordenes} {t("pending orders", "órdenes pendientes")}</span>}
-                        {c.stage === "sign_off" && c.signed_at && <span className="ops-insignia ops-insignia-ok">✍️ {t("Signed", "Firmado")}</span>}
-                        {lineas.some((l) => l.recount_requested) && <span className="ops-insignia ops-insignia-sin-foto">↩ {t("Recount requested", "Recontar")}</span>}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          {/* 23 nov: la misma tabla que «Conteos del mes» del informe (mismas columnas y misma elección guardada). */}
+          {abiertos.length > 0 && (
+            <div data-lista-conteos={abiertos.length}>
+              <TablaEstandar id={ID_TABLA_DE_CONTEOS} data-tabla="conteos-seguir" filas={filasAbiertas} claveDe={(f) => f.c.id} columnas={COLUMNAS_DE_CONTEOS}
+                onFila={(f) => setAbierto(f.c.id)} vacio={t("No counts in progress in this store.", "No hay conteos en curso en esta tienda.")} />
+            </div>
+          )}
         </section>
       )}
       {elegido && datos && (
