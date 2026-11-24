@@ -184,6 +184,22 @@ export const esEtapa = (v: unknown): v is Etapa => typeof v === "string" && (ETA
 export function etapaLabel(e: Etapa, lang: Idioma): string {
   return ETAPA_TXT[e][lang];
 }
+/** El icono de cada etapa: el mismo en inglés y en español. Ninguno repite otro (lo prueba reglas.test.ts). */
+export const ETAPA_ICONO: Record<Etapa, string> = {
+  new: "🆕",
+  made_contact: "🗣️",
+  no_answer: "🔕",
+  appointment: "📅",
+  quote: "🧾",
+  negotiation: "⚖️",
+  closed: "🏆",
+  lost: "❌",
+  bad_lead: "👎",
+};
+export function etapaIcono(e: Etapa): string {
+  return ETAPA_ICONO[e];
+}
+
 /** Lo mismo con el nombre de antes (la pestaña de historial y las píldoras lo usan). */
 export const accionLabel = (a: TipoDeAccion, lang: Idioma): string => etapaLabel(a, lang);
 

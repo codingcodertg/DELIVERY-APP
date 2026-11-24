@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   accionTono, aplicarNota, categoriaBuena, categoriaDescartada, cuantosVistosMasDeUna, cuentaPorEtapa, enlaceSeguro, estadoLabel, etapaDe,
-  etapaLabel, etapaTono, ETAPAS, eventoLabel, filtrar, filtroDePool, fecha, mapsUrl, negativaDeCodigo, negativaTexto, notaLimpia, NOTA_MAX,
+  etapaIcono, etapaLabel, etapaTono, ETAPAS, eventoLabel, filtrar, filtroDePool, fecha, mapsUrl, negativaDeCodigo, negativaTexto, notaLimpia, NOTA_MAX,
   ordenar, POOL_SIN_TIENDA, POOL_TODAS, poolInicial, poolsDe, resumenDeTodas, tableroPorTienda, tableroPorVendedor, telUrl, TIPOS_DE_ACCION,
   valoresDe, vecesVisto, vigentes, vendedoresDeLeads, leadsDeLaVista, type EventoLead, type Lead, type Persona,
 } from "./reglas";
@@ -53,6 +53,13 @@ describe("1 · las etapas", () => {
     expect(etapaTono("quote")).toBe("azul");
     expect(accionTono("closed")).toBe("verde");
     expect(accionTono("made_contact")).toBe("azul");
+  });
+  it("cada etapa tiene un icono no vacío, y ninguno se repite", () => {
+    const iconos = ETAPAS.map((e) => etapaIcono(e));
+    for (const i of iconos) expect(i.trim()).not.toBe("");
+    expect(new Set(iconos).size).toBe(ETAPAS.length);
+    expect(etapaIcono("quote")).toBe("🧾");
+    expect(etapaIcono("bad_lead")).toBe("👎");
   });
   it("cuenta por etapa: los archivados no cuentan y lo que no tiene etapa es «New»", () => {
     const n = cuentaPorEtapa([lead(), lead({ id: "b", follow_up_action: "quote" }), lead({ id: "c", follow_up_action: "quote" }), lead({ id: "d", status: "archived", follow_up_action: "quote" })]);

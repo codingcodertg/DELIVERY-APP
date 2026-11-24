@@ -156,17 +156,8 @@
 .leads-app .ld-vistas .chip { padding: 5px 14px; font-size: 13px; }
 .leads-app .ld-etapas { margin: 0 0 6px; gap: 4px; }
 .leads-app .ld-etapas .chip { padding: 4px 10px; font-size: 12.5px; }
-/* El punto de color de cada situación: hace de leyenda de las pastillas y etiquetas de las tarjetas. */
-.leads-app .ld-etapas .chip[data-etapa]:not([data-etapa=""])::before {
-  content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--gray);
-}
-.leads-app .ld-etapas .chip.verde::before { background: var(--green); }
-.leads-app .ld-etapas .chip.rojo::before { background: var(--red); }
-.leads-app .ld-etapas .chip.ambar::before { background: var(--amber); }
-.leads-app .ld-etapas .chip.azul::before { background: var(--accent); }
 /* El `.on` de globals pinta con `--ink`, que en oscuro es casi el fondo: aquí el encendido es el acento, que se ve en los dos. */
 .leads-app .ld-filtros .chip.on, .leads-app .ld-dias .chip.on { background: var(--accent); border-color: var(--accent); color: var(--card); }
-.leads-app .ld-filtros .chip.on::before { box-shadow: 0 0 0 1.5px var(--card); }
 .leads-app .ld-etapas .ld-cuenta { font-variant-numeric: tabular-nums; }
 .leads-app .ld-filtros [data-cuenta-banco] { margin: 4px 0 0; font-size: 12px; font-variant-numeric: tabular-nums; }
 
@@ -303,3 +294,49 @@ button.ld-pildora.on { border-color: currentColor; box-shadow: 0 0 0 1px current
 
 /* 337 / D-1145 (reunión del 23 nov 2026): una llamada perdida se lee en rojo, en negrita. */
 .ld-llamadas .ld-llamada.ld-llamada-perdida, .ld-llamadas .ld-llamada-perdida .hint { color: var(--red, #b91c1c); font-weight: 700; }
+
+/* ===========================================================================================================
+   Colores de etapa: cada etapa, una pastilla sólida (como el menú de referencia). Fondo y tinta salen de los
+   tokens --etapa-<etapa> y --etapa-<etapa>-tinta. Se pintan los chips de filtro (data-etapa) y las pastillas de
+   la tarjeta y del selector de la nota (data-pildora-etapa). Van al final: ganan a las reglas de tono de arriba.
+   =========================================================================================================== */
+.leads-app {
+  --etapa-new: #111827;
+  --etapa-new-tinta: #ffffff;
+  --etapa-made_contact: #0e7490;
+  --etapa-made_contact-tinta: #ffffff;
+  --etapa-no_answer: #64748b;
+  --etapa-no_answer-tinta: #ffffff;
+  --etapa-appointment: #7c3aed;
+  --etapa-appointment-tinta: #ffffff;
+  --etapa-quote: #1d6fe0;
+  --etapa-quote-tinta: #ffffff;
+  --etapa-negotiation: #f2b63d;
+  --etapa-negotiation-tinta: #3a2a00;
+  --etapa-closed: #1a8a3f;
+  --etapa-closed-tinta: #ffffff;
+  --etapa-lost: #b3122b;
+  --etapa-lost-tinta: #ffffff;
+  --etapa-bad_lead: #6b4a2f;
+  --etapa-bad_lead-tinta: #ffffff;
+}
+:root[data-theme="dark"] .leads-app { --etapa-new: #e5e7eb; --etapa-new-tinta: #111827; }
+.leads-app .ld-etapas .chip[data-etapa="new"], .leads-app .ld-pildora[data-pildora-etapa="new"] { --e: var(--etapa-new); --e-tinta: var(--etapa-new-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="made_contact"], .leads-app .ld-pildora[data-pildora-etapa="made_contact"] { --e: var(--etapa-made_contact); --e-tinta: var(--etapa-made_contact-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="no_answer"], .leads-app .ld-pildora[data-pildora-etapa="no_answer"] { --e: var(--etapa-no_answer); --e-tinta: var(--etapa-no_answer-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="appointment"], .leads-app .ld-pildora[data-pildora-etapa="appointment"] { --e: var(--etapa-appointment); --e-tinta: var(--etapa-appointment-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="quote"], .leads-app .ld-pildora[data-pildora-etapa="quote"] { --e: var(--etapa-quote); --e-tinta: var(--etapa-quote-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="negotiation"], .leads-app .ld-pildora[data-pildora-etapa="negotiation"] { --e: var(--etapa-negotiation); --e-tinta: var(--etapa-negotiation-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="closed"], .leads-app .ld-pildora[data-pildora-etapa="closed"] { --e: var(--etapa-closed); --e-tinta: var(--etapa-closed-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="lost"], .leads-app .ld-pildora[data-pildora-etapa="lost"] { --e: var(--etapa-lost); --e-tinta: var(--etapa-lost-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="bad_lead"], .leads-app .ld-pildora[data-pildora-etapa="bad_lead"] { --e: var(--etapa-bad_lead); --e-tinta: var(--etapa-bad_lead-tinta); }
+.leads-app .ld-etapas .chip[data-etapa]:not([data-etapa=""]), .leads-app .ld-pildora[data-pildora-etapa] {
+  background: var(--e); color: var(--e-tinta); border-color: var(--e);
+}
+/* La elegida: negrita y un anillo (fondo de la tarjeta, luego su color). Las demás, sin anillo. */
+.leads-app .ld-etapas .chip[data-etapa]:not([data-etapa=""]).on, .leads-app .ld-pildora[data-pildora-etapa].on {
+  font-weight: 800; box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--e);
+}
+.leads-app .ld-etapas .chip[data-etapa]:not([data-etapa=""]) .ld-cuenta { color: inherit; opacity: 0.85; }
+/* En el teléfono la fila se desliza: un poco de aire arriba y abajo para que el anillo no se corte. */
+.leads-app .ld-etapas { padding-block: 4px; margin-block: -4px 2px; }

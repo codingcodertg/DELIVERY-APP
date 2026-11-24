@@ -11,7 +11,7 @@ import { type ClienteCruzado, almacenDeLaBase, type AlmacenDeLeads, type Res } f
 import { ALCANCE_SIN_REGLA, codigoDeTiendaDelPerfil, conCruzadosDeMiTienda, eligeTienda, esCruzadoDeMiTienda, leadsDelBanco, privadosVisibles, veElPoolPrivado, type Alcance } from "@/lib/leads/alcance";
 import { almacenDemo, PERSONAS_DEMO, personaDeLaPractica } from "@/lib/leads/demo";
 import {
-  cuantosVistosMasDeUna, cuentaPorEtapa, delExcel, dinero, enlaceSeguro, estadoLabel, etapaDe, etapaLabel, etapaTono, eventoLabel, fecha, filtrar,
+  cuantosVistosMasDeUna, cuentaPorEtapa, delExcel, dinero, enlaceSeguro, estadoLabel, etapaDe, etapaIcono, etapaLabel, etapaTono, eventoLabel, fecha, filtrar,
   filtroDePool, categoriaBuena, coincideConCliente, esPrivado, ETAPAS, mapsUrl, negativaTexto, notaLimpia, NOTA_MAX, numero, ordenar, poolInicial, poolLabel,
   poolsDe, POOL_TODAS, resumenDeTodas, tableroPorTienda, tableroPorVendedor, telUrl, TIPOS_DE_ACCION, type TipoDeAccion, type Etapa, valoresDe, vecesVisto,
   ORDEN_INICIAL, vigentes, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, puedeVerEstadisticas,
@@ -399,7 +399,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                   {ETAPAS.map((e) => (
                     <button key={e} type="button" className={`chip ${etapaTono(e)}${etapa === e ? " on" : ""}`} data-etapa={e} aria-pressed={etapa === e}
                       onClick={() => setEtapa(etapa === e ? "" : e)}>
-                      {etapaLabel(e, lang)} <span className="ld-cuenta">{porEtapa[e]}</span>
+                      {etapaIcono(e)} {etapaLabel(e, lang)} <span className="ld-cuenta">{porEtapa[e]}</span>
                     </button>
                   ))}
                   <button type="button" className={`chip${buena ? " on" : ""}`} data-buena aria-pressed={buena} onClick={() => setBuena((v) => !v)}>
@@ -524,7 +524,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 /** La etapa de un lead, como píldora de color. «New» (sin etapa) es gris. */
 function PildoraEtapa({ e }: { e: Etapa }) {
   const { lang } = usePrefs();
-  return <span className={`ld-pildora ${etapaTono(e)}`} data-pildora-etapa={e}>{etapaLabel(e, lang)}</span>;
+  return <span className={`ld-pildora ${etapaTono(e)}`} data-pildora-etapa={e}>{etapaIcono(e)} {etapaLabel(e, lang)}</span>;
 }
 
 function Tarjeta({ lead: l, yo, ocupado, almacen, historial, llamadas, onNota, onArchivar, onHistorial, onLlamadas, cotizar, cotizaciones, cliente, onCliente, semana, sugerencia, onTelefono }: {
@@ -878,9 +878,9 @@ function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
             <p className="hint">{t("Now", "Ahora")}: <b>{etapaLabel(etapaDe(l), lang)}</b></p>
             <div className="ld-acciones" role="radiogroup" aria-label={t("Stage", "Etapa")} data-acciones>
               {TIPOS_DE_ACCION.map((a) => (
-                <button key={a} type="button" role="radio" aria-checked={etapa === a} data-accion={a}
+                <button key={a} type="button" role="radio" aria-checked={etapa === a} data-accion={a} data-pildora-etapa={a}
                   className={`ld-pildora ${etapaTono(a)}${etapa === a ? " on" : ""}`} onClick={() => setEtapa(etapa === a ? null : a)}>
-                  {etapaLabel(a, lang)}
+                  {etapaIcono(a)} {etapaLabel(a, lang)}
                 </button>
               ))}
             </div>
