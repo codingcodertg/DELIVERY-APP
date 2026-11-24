@@ -374,7 +374,8 @@ export function PayrollTimesheets({ period, revisar }: {
           {e.edit_note ? <span className="small muted"> {e.edit_note}</span> : null}
           {lineaDeComida([e])}
         </div>
-        {botonesDe(e)}
+        {/* Los dos botones juntos a la derecha: sueltos en un `between` se separaban a lo ancho de la fila. */}
+        <span className="nowrap">{botonesDe(e)}</span>
       </div>
       <BitacoraDelDia entryId={e.id} />
     </div>
