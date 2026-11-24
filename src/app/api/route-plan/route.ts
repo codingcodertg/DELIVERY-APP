@@ -38,7 +38,12 @@ import { leeBasesDelDia, type ClienteDeBasesDelDia } from "@/lib/base-del-dia";
 // ============================================================
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// D-1143: 60 s no alcanzaban para un día de 32 órdenes (504 «Task timed out» el 2026-11-23). Lo normal ahora son
+// segundos —las peticiones de tiempos van en tandas—; esto es el margen para el día raro.
+export const maxDuration = 300;
+/** Ninguna petición de tiempos espera más que esto: un proveedor colgado salta al respaldo en vez de comerse la corrida. */
+const TOPE_DE_RED_MS = 12_000;
+const fetchConTope = ((url: string, init?: RequestInit) => fetch(url, { ...init, signal: AbortSignal.timeout(TOPE_DE_RED_MS) })) as unknown as FetchFn;
 
 type Sesion = Extract<Awaited<ReturnType<typeof requireUser>>, { ok: true }>["supabase"];
 type CandadosLeidos = Exclude<Awaited<ReturnType<typeof rutasBloqueadasDelDia>>, { fuente: "error" }>;
@@ -138,7 +143,7 @@ export async function POST(req: Request) {
   // Tiempos de viaje: Google si hay llave, y siempre los dos respaldos detrás.
   const admin = createAdminClient();
   const llave = process.env.GOOGLE_MAPS_API_KEY;
-  const proveedores: ProveedorDeTiempos[] = [...(llave ? [proveedorGoogle(llave, fetch as unknown as FetchFn)] : []), proveedorOSRM(fetch as unknown as FetchFn), proveedorEstimado()];
+  const proveedores: ProveedorDeTiempos[] = [...(llave ? [proveedorGoogle(llave, fetchConTope)] : []), proveedorOSRM(fetchConTope), proveedorEstimado()];
   const cache = cacheEnSupabase(admin as unknown as ClienteDeCache, {
     cuentaDePago: async (desdeISO, conTrafico) => {
       const { count } = await admin.from("travel_time_cache").select("origin_key", { count: "exact", head: true })

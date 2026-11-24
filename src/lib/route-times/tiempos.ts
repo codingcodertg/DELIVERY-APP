@@ -84,9 +84,22 @@ const PEOR: Record<InformeDeTiempos["proveedor"], number> = { cache: 0, google: 
 const elPeor = (a: InformeDeTiempos["proveedor"], b: InformeDeTiempos["proveedor"]) => (PEOR[b] > PEOR[a] ? b : a);
 const inicioDelDia = (ahoraISO: string) => `${ahoraISO.slice(0, 10)}T00:00:00.000Z`;
 
+/** Cuántas peticiones salen a la vez a un proveedor (D-1143). Antes iban de una en una: con un día de 32 órdenes (37
+ *  puntos, 47 tramos) eso solo ya pasaba del minuto que tiene la función, y «Planificar el día» moría con un 504. */
+export const ORIGENES_A_LA_VEZ = 6;
+export const TRAMOS_A_LA_VEZ = 8;
+async function enTandas<T>(cosas: readonly T[], n: number, haz: (x: T) => Promise<void>): Promise<void> {
+  for (let i = 0; i < cosas.length; i += n) await Promise.all(cosas.slice(i, i + n).map(haz));
+}
+
 /**
  * La matriz base, sin tráfico, entre todos los puntos del día. Solo se pide lo que no está en la caché, y
  * origen a origen, para pagar exactamente los elementos que faltan y ninguno más.
+ *
+ * D-1143: el tope se gasta por ORÍGENES enteros hasta donde alcanza, no «todo o nada». Con todo o nada, un día cuyos
+ * tramos nuevos pasaban del tope (2026-11-24: 782 de 1332, tope 400) no le preguntaba NADA al proveedor de pago, lo
+ * resolvía entero con el respaldo —que no se guarda— y la corrida siguiente empezaba otra vez de cero. Ahora cada corrida
+ * guarda lo que le cabe y la siguiente paga solo el resto. Y los orígenes se piden de `ORIGENES_A_LA_VEZ` en vez de uno a uno.
  */
 export async function matrizBase(puntos: Readonly<Record<Punto, LatLng>>, deps: Dependencias): Promise<{ matriz: Matriz; informe: InformeDeTiempos }> {
   const presupuesto = deps.presupuesto ?? PRESUPUESTO_POR_DEFECTO;
@@ -106,16 +119,23 @@ export async function matrizBase(puntos: Readonly<Record<Punto, LatLng>>, deps: 
   if (!faltan.length) return { matriz, informe };
 
   const gastado = (await deps.cache.gastoDesde(inicioDelDia(deps.ahoraISO))).elementos;
-  const cabe = faltan.length <= presupuesto.elementosPorCorrida && gastado + faltan.length <= presupuesto.elementosPorDia;
+  const destinosDe = new Map<Punto, Punto[]>();
+  for (const [a, b] of faltan) destinosDe.set(a, [...(destinosDe.get(a) ?? []), b]);
+  // A qué orígenes les alcanza el tope (por corrida y por día), en orden. Los demás van al respaldo, y se dice.
+  let queda = Math.min(presupuesto.elementosPorCorrida, presupuesto.elementosPorDia - gastado);
+  const hayDePago = deps.proveedores.some((p) => p.nombre === "google");
+  const dePago = new Set<Punto>();
+  for (const [a, ds] of destinosDe) {
+    if (ds.length <= queda) { dePago.add(a); queda -= ds.length; } else if (hayDePago) informe.presupuestoAgotado = true;
+  }
 
-  const origenes = [...new Set(faltan.map(([a]) => a))];
-  for (const a of origenes) {
-    const destinos = faltan.filter(([o]) => o === a).map(([, b]) => b);
+  await enTandas([...destinosDe.keys()], ORIGENES_A_LA_VEZ, async (a) => {
+    const destinos = destinosDe.get(a) ?? [];
     let fila: (Tramo | null)[] | null = null;
     let quien: NombreDeProveedor = "estimado";
     for (const p of deps.proveedores) {
-      // El de pago, solo si cabe en el tope. Los demás no cuestan.
-      if (p.nombre === "google" && !cabe) { informe.presupuestoAgotado = true; continue; }
+      // El de pago, solo si a este origen le alcanza el tope. Los demás no cuestan.
+      if (p.nombre === "google" && !dePago.has(a)) continue;
       try { fila = (await p.matriz([puntos[a]], destinos.map((b) => puntos[b])))[0] ?? null; quien = p.nombre; if (fila) break; }
       catch { fila = null; }
     }
@@ -131,7 +151,7 @@ export async function matrizBase(puntos: Readonly<Record<Punto, LatLng>>, deps: 
     });
     informe.proveedor = elPeor(informe.proveedor, quien);
     if (nuevas.length) await deps.cache.escribe(nuevas);
-  }
+  });
   return { matriz, informe };
 }
 
@@ -257,22 +277,38 @@ export async function traficoDeTramos(
   const guardadas = new Map((await deps.cache.lee([...distintos.values()].map((d) => d.k))).filter((f) => estaVigente(f, deps.ahoraISO)).map((f) => [textoDeClave(f), f]));
   let gastado = (await deps.cache.gastoDesde(inicioDelDia(deps.ahoraISO))).tramos;
 
+  // D-1143: los tramos se piden de `TRAMOS_A_LA_VEZ` y cada tanda se guarda de una vez (antes, uno a uno con su escritura).
+  // El tope cuenta igual: lo ya contestado más lo que va en la tanda; una tanda nunca lleva más de lo que queda.
+  let tanda: { d: { t: TramoDeRuta; bloque: number; k: ClaveDeTiempo }; salidaISO: string }[] = [];
+  const pide = async () => {
+    const lote = tanda;
+    tanda = [];
+    const filas: FilaDeCache[] = [];
+    await Promise.all(lote.map(async ({ d, salidaISO }) => {
+      try {
+        const v = await conTrafico.tramo(puntos[d.t.a], puntos[d.t.b], salidaISO);
+        if (!v) return;
+        pon(d.t, d.bloque, v);
+        informe.pedidos++; gastado++;
+        informe.proveedor = elPeor(informe.proveedor, conTrafico.nombre);
+        filas.push({ ...d.k, ...v, proveedor: conTrafico.nombre, pedidoEl: deps.ahoraISO });
+      } catch { /* sin tráfico para este tramo: vale el tiempo base, y el plan no se cae por eso */ }
+    }));
+    if (filas.length) await deps.cache.escribe(filas);
+  };
+  const sinSitio = () => informe.pedidos + tanda.length >= presupuesto.tramosPorCorrida || gastado + tanda.length >= presupuesto.tramosPorDia;
   for (const [texto, d] of [...distintos].sort(([x], [y]) => (x < y ? -1 : 1))) {
     const f = guardadas.get(texto);
     if (f) { pon(d.t, d.bloque, { minutos: f.minutos, millas: f.millas }); informe.deCache++; continue; }
-    if (informe.pedidos >= presupuesto.tramosPorCorrida || gastado >= presupuesto.tramosPorDia) { informe.presupuestoAgotado = true; continue; }
+    if (sinSitio() && tanda.length) await pide();      // lo de la tanda puede fallar y dejar sitio: se sabe al volver
+    if (sinSitio()) { informe.presupuestoAgotado = true; continue; }
     // A la MITAD de la media hora: el valor guardado representa al bloque entero, no a su primer minuto.
     const salidaISO = instanteLocalISO(fechaISO, d.bloque * MINUTOS_POR_BLOQUE + MINUTOS_POR_BLOQUE / 2, zona);
     if (!salidaISO || salidaISO <= deps.ahoraISO) continue;
-    try {
-      const v = await conTrafico.tramo(puntos[d.t.a], puntos[d.t.b], salidaISO);
-      if (!v) continue;
-      pon(d.t, d.bloque, v);
-      informe.pedidos++; gastado++;
-      informe.proveedor = elPeor(informe.proveedor, conTrafico.nombre);
-      await deps.cache.escribe([{ ...d.k, ...v, proveedor: conTrafico.nombre, pedidoEl: deps.ahoraISO }]);
-    } catch { /* sin tráfico para este tramo: vale el tiempo base, y el plan no se cae por eso */ }
+    tanda.push({ d, salidaISO });
+    if (tanda.length >= TRAMOS_A_LA_VEZ) await pide();
   }
+  if (tanda.length) await pide();
   return { porHora, informe };
 }
 

@@ -361,7 +361,10 @@ describe("la ruta de planificar y la pantalla", () => {
     expect(ruta).toContain("if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(fecha)) return NextResponse.json(");
     expect(plano(ruta)).toContain("warnTiendasMarcadas: Array.isArray(yo.visible_stores) && yo.visible_stores.length > 0,");
     expect(plano(ruta)).toContain('.eq("delivery_date", fecha).in("stage", [...ETAPAS_RUTEABLES])');
-    expect(plano(ruta)).toContain("...(llave ? [proveedorGoogle(llave, fetch as unknown as FetchFn)] : []), proveedorOSRM(fetch as unknown as FetchFn), proveedorEstimado()");
+    expect(plano(ruta)).toContain("...(llave ? [proveedorGoogle(llave, fetchConTope)] : []), proveedorOSRM(fetchConTope), proveedorEstimado()");
+    // D-1143: cada petición de tiempos lleva tope de espera, y la función tiene margen para un día grande.
+    expect(plano(ruta)).toContain("fetch(url, { ...init, signal: AbortSignal.timeout(TOPE_DE_RED_MS) })");
+    expect(plano(ruta)).toContain("export const maxDuration = 300;");
   });
 
   it("si las paradas no se guardan, el plan se descarta: un plan sin paradas no sirve", () => {

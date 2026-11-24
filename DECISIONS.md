@@ -52944,3 +52944,14 @@ Qué se quitó: el control «🏠 Sale de · Termina en» de cada fila del panel
 Qué se queda: la lectura de `driver_day_bases` (166). Había cuatro filas guardadas, todas de días pasados (Julio 3 y 4 nov, Steven 12 y 13 oct), y ninguna de hoy en adelante: esos días se siguen midiendo como se planearon, y de hoy en adelante cada chofer sale de su base de Ajustes. La fila «Base: salida / Termina en» de la tabla de paradas sigue diciendo de dónde sale y dónde acaba cada ruta.
 Lo que se pierde, dicho: ya no se puede cambiar la salida de un chofer para UN solo día desde el Gestor (D del 2026-10-11); si un chofer toma el camión de otra tienda, se cambia su tienda base en Ajustes y se regresa después.
 Verificado en pantalla (copia local, escritorio y teléfono): el panel sale solo con nombre, órdenes y carga. Deliveries 1.658.0 · repo 1.974.0.
+
+## D-1143 · «Planificar el día» ya no muere con 504 en un día grande (2026-11-23)
+
+El dueño, 2026-11-23, 8:51 pm, con captura: «mira por qué no puedo planificar rutas» — el Gestor de Rutas enseñaba «504» en rojo junto a «Planificar el día». En Vercel, dos veces (8:46 y 8:48 pm): `POST /api/route-plan` → «Task timed out after 60 seconds».
+Medido con los datos del día (2026-11-24, solo lectura): 32 órdenes, 4 choferes, 37 puntos, 1332 tramos; 550 en la caché y 782 por pedir; el motor solo, 6 s; 47 tramos para tráfico. El minuto se iba en la red, por tres cosas:
+1. El tope de Google era todo o nada: 782 > 400 por corrida, así que no se le preguntaba NADA, los 37 orígenes iban uno detrás de otro al respaldo público (OSRM), y como lo del respaldo no se guarda, cada intento empezaba otra vez de cero. Ese tope se midió con días de 14 órdenes.
+2. Los orígenes de la matriz y los tramos con tráfico se pedían de uno en uno, cada tramo con su escritura en la caché.
+3. Ninguna petición tenía tope de espera.
+Qué cambia: el tope se gasta por orígenes enteros hasta donde alcanza (el resto va al respaldo y se dice, como antes), de modo que cada corrida guarda lo que le cabe y la siguiente paga solo lo que falta; los orígenes salen de 6 en 6 y los tramos de 8 en 8, y cada tanda de tramos se guarda de una vez; cada petición espera 12 s como mucho; y la función tiene 300 s de margen en vez de 60.
+Qué NO cambia: los topes (400 elementos y 80 tramos por corrida; 1500 y 400 por día). Con ellos, un día con más de 400 tramos nuevos sale la primera vez con parte de los tiempos del respaldo y lo dice en pantalla; «Planificar de nuevo» completa el resto con Google. Subirlos es gasto y lo decide el dueño.
+Verificado: pruebas de `route-times` y `route-plan`; el día real leído y pasado por el motor en local (sin llamar a Google ni escribir). En producción no se ha vuelto a pulsar el botón todavía. Deliveries 1.659.0 · repo 1.975.0.
