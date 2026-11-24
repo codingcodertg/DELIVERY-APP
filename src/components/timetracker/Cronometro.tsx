@@ -37,7 +37,7 @@ import { avisoDeSistema, sonarAlarma } from "@/lib/timetracker/alarma";
 import { accionDeEnergia, suenoEntreTicks, SALTO_QUE_CORTA_LA_BASE_MS } from "@/lib/timetracker/pausa-de-energia";
 import {
   filasPendientesKey, inicioDeContinuacion, inicioSinSolape, leerFilasPendientes, nuevoPendiente, planTrasLatido,
-  tocaReintentarPendiente, trasFallo, type FilaPendiente, type Pendiente,
+  pendienteConSueno, tocaReintentarPendiente, trasFallo, type FilaPendiente, type Pendiente,
 } from "@/lib/timetracker/no-perder-tiempo";
 import {
   conTope, estadoVivoAplica, estadoVivoKey, LATIDO_TIMEOUT_MS, parcheDeAlcance, parseEstadoVivo, RACHA_LIMPIA, registrarExito,
@@ -1404,7 +1404,12 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
     // Sin fila guardada todavía: el aviso de «sin guardar» se ve hasta que entre el INSERT.
     ultimoGuardadoRef.current = Date.now();
     marcarSinGuardar(Date.now());
-    // Con un INSERT pendiente ya hay fila en camino: no se abre otra encima.
+    // Con un INSERT pendiente ya hay fila en camino: no se abre otra encima. Pero el sueño se marca EN el pendiente
+    // (D-1152): quien llama borra después el último tick (`reiniciarContinuidad`), y sin esta marca la fila entraba con
+    // el fin en «ahora» y la noche dormida dentro. `intentarPendiente` la guarda hasta ahí y sigue en otra desde ahora.
+    if (!sessionIdRef.current && pendienteRef.current) {
+      pendienteRef.current = pendienteConSueno(pendienteRef.current, { paradoMs: paradoMs ?? null, ultimoTickMs: lastTickRef.current, ahoraMs: Date.now() });
+    }
     if (sessionIdRef.current) continuarEnFilaNueva(true);
   }
   const continuarTrasDormirRef = useRef(continuarTrasDormir);
