@@ -99,6 +99,8 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     "src/components/timetracker/ManagerReports.tsx",
     // D-194 (Auditoría): el selector de vistas y las capturas de escritorio que eran Team Diary.
     "src/components/timetracker/AuditTabs.tsx",
+    // Historial de solicitudes, movido desde Solicitudes a Auditoría (2026-11-24).
+    "src/components/timetracker/HistorialDeSolicitudes.tsx",
     "src/components/timetracker/TeamDiary.tsx",
     // D-403: la cabecera de las capturas (selector de fecha) y su resumen del día.
     "src/components/timetracker/WorkDiary.tsx",

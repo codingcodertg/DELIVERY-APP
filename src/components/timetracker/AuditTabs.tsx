@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { dateISO, fmtDT, fmtDayLong } from "@/lib/timetracker/helpers";
+import { HistorialDeSolicitudes } from "@/components/timetracker/HistorialDeSolicitudes";
 
 // Ported (D-071) from timetracker-clean's manager/AuditLog.jsx — grouped by
 // day, with person + action filters. `auditLog` is kept live by the
@@ -39,6 +40,7 @@ export function AuditTabs() {
   if (me.role !== "admin") return <div className="card"><p className="muted">{t("common.adminsOnly")}</p></div>;
 
   return (
+    <>
     <div className="card">
       <div className="between">
         <h2 style={{ margin: 0 }}>{t("mgr.audit.title")}</h2>
@@ -76,5 +78,11 @@ export function AuditTabs() {
         </details>
       ))}
     </div>
+
+    {/* Historial de solicitudes ya decididas: estaba en Time Tracker → Solicitudes, y va aquí
+        con las solicitudes de fichaje (pedido del dueño, 2026-11-24). Va debajo del registro,
+        después de la puerta de admin: quien no es admin solo ve «admins only». */}
+    <HistorialDeSolicitudes />
+    </>
   );
 }

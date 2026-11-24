@@ -1,6 +1,5 @@
 "use client";
 
-import { TablaEstandar } from "@/components/TablaEstandar";
 import { useRef, useState } from "react";
 import { useData } from "@/lib/timetracker-data-provider";
 import { getLang, useT } from "@/lib/timetracker/i18n";
@@ -62,13 +61,10 @@ export default function TeamRequestsPage() {
   };
 
   const pending = requests.filter((r) => r.status === "pending").sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
-  const history = requests.filter((r) => r.status !== "pending").sort((a, b) => new Date(b.resolvedAt || 0).getTime() - new Date(a.resolvedAt || 0).getTime()).slice(0, 30);
-
   // Qué secciones están abiertas (D-1155, ayuda de Roberto, 24 nov 2026). Pendientes se abre
-  // solo si hay algo que revisar; el historial empieza cerrado. Las de la bandeja de fichaje se
-  // deciden dentro de sus propios componentes.
+  // solo si hay algo que revisar. Las de la bandeja de fichaje se deciden dentro de sus propios
+  // componentes. El historial de solicitudes vive ahora en Auditoría (HistorialDeSolicitudes).
   const pendientes = useSeccionAbierta("pendientes", true, pending.length > 0);
-  const historial = useSeccionAbierta("historial", false, history.length > 0);
   // Las dos colas de fichaje cargan una sola vez, aquí, y se reparten entre sus secciones. Solo
   // piden datos si quien mira es admin: la pantalla de abajo no se pinta para nadie más.
   const bandeja = useBandejaDeFichaje({ activa: me.role === "admin" });
@@ -213,21 +209,6 @@ export default function TeamRequestsPage() {
       </SeccionPlegable>
 
       <SeccionAusenciasFichaje bandeja={bandeja} />
-
-      <SeccionPlegable seccion="historial" titulo={t("mgr.req.history")} cuenta={history.length}
-        abierta={historial.abierta} alternar={historial.alternar}>
-        {history.length === 0 ? <p className="muted">{t("mgr.req.noHistory")}</p> : (
-          <TablaEstandar id="tt-solicitudes-del-equipo" filas={history} claveDe={(r) => String(r.id)}
-            columnas={[
-              { key: "empleado", en: t("mgr.asn.employee"), es: t("mgr.asn.employee"), ancho: 200, fija: true, valor: (r) => (r.payload as Record<string, unknown>).employeeName as string },
-              { key: "tipo", en: t("mgr.req.colType"), es: t("mgr.req.colType"), ancho: 150, valor: (r) => rLabel(r.type) },
-              { key: "detalle", en: t("mgr.req.colDetail"), es: t("mgr.req.colDetail"), ancho: 380, clase: "small muted",
-                valor: (r) => { const p = r.payload as Record<string, unknown>; return projName(p.assignmentId as string, r.employeeUid, p.storeId as string | undefined) + " · " + String(p.date) + (r.type === "add" && p.fromTime ? " · " + textoDeBloques(p) : "") + (r.type !== "delete" && p.hours ? " · " + String(p.hours) + " h" : ""); } },
-              { key: "estado", en: t("mgr.req.colStatus"), es: t("mgr.req.colStatus"), ancho: 130, valor: (r) => (r.status === "approved" ? t("mgr.req.approved") : t("mgr.req.rejected")),
-                celda: (r) => (r.status === "approved" ? <span className="pill on">{t("mgr.req.approved")}</span> : <span className="pill off">{t("mgr.req.rejected")}</span>) },
-            ]} />
-        )}
-      </SeccionPlegable>
 
       {/* Las dos colas de fichaje, aquí y no en una pantalla nueva (fusión de vistas #2).
           Un gerente tenía que mirar en TRES sitios lo que es una sola pregunta: "¿qué me
