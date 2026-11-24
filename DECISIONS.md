@@ -53055,3 +53055,59 @@ Causa (leída en el código; no reproducida en una máquina): a la 01:49 el equi
 Qué cambia: al despertar con un INSERT pendiente, el sueño se marca en el propio pendiente (`pendienteConSueno`) antes de borrar el tick: el tramo llega hasta el último instante en que el reloj seguro corría (el más temprano entre cuándo se durmió y el último tick) y el reloj sigue en otra fila desde que despierta. Es la misma marca (`hastaMs`) que ya ponía el tick cuando llegaba primero.
 Qué NO cambia: la sesión de esta madrugada sigue en la base con sus 6 h 14 min; corregirla es una escritura sobre sus horas y queda a su decisión. Tampoco hay una guarda en la base para una fila que NACE con un tramo largo sin actividad.
 Verificado: pruebas de la regla con las horas del incidente (7 s en vez de 6 h). NO probado en la app de escritorio con un sueño real. Time Tracker 1.37.1 · repo 1.982.0.
+
+## D-1153 · Time Tracker: la app ocupa toda la pantalla (2026-11-24)
+
+Ayuda de Roberto (`7bdeed94`, /timetracker): «Need the design to stay consistent. Time tracker doesnt cover full screen».
+La app era una columna de 1100 px centrada, con la barra oscura metida dentro de la columna; Entregas y Operaciones de almacén van de borde a borde.
+Qué cambia: `.timetracker-module .wrap` sin tope de ancho y la cabecera (`.tt-cabecera`) de borde a borde, pegada arriba. Solo CSS.
+Verificado en el demo a 1680 px y a 390 px (sin desborde horizontal). Las tablas anchas (Empleados, Nómina) ganan el espacio; no se revisó cada pantalla una por una.
+
+## D-1154 · Time Tracker: «Driver track» sale de la barra (2026-11-24)
+
+Ayuda de Roberto (`68d7c28c`): «Remove this from time track if its on delivery app».
+El recorrido del chofer vive en Entregas (`/track`, D-831); D-832 lo había puesto también como pestaña del admin del Time Tracker. Se quita de `MANAGER_TABS`. La pantalla no cambia.
+
+## D-1155 · Time Tracker → Requests: secciones plegables, ausencias en segundo lugar y calendario de quién falta (2026-11-24)
+
+Tres ayudas de Roberto en /timetracker/team-requests: «Make each tables header a dropdown to only view when expanded by choice» (`0c2785e9`), «Move time off up to second place after time in pending requests» (`e1200094`) y «Need calendar view to visualize names of people who are missing on what dates» (`34bbdef4`).
+Qué cambia:
+- Cada bloque es una sección que se abre y se cierra desde su encabezado, con su cuenta (`SeccionPlegable`). Solicitudes pendientes y Tiempo libre abren solas cuando tienen filas; Historial y Excepciones de fichaje empiezan cerradas. La elección de cada quien se recuerda en su navegador.
+- Orden: Solicitudes pendientes → Tiempo libre y cambios de turno → Historial → Excepciones de fichaje. La bandeja de fichaje se partió en dos secciones con UNA sola carga (`useBandejaDeFichaje`).
+- En Tiempo libre, un interruptor Lista / Calendario. El calendario es un mes (‹ ›) con los nombres de quien falta cada día: vacaciones y enfermedad, aprobadas y pendientes (las pendientes, con línea discontinua y la palabra). Al tocar un día sale debajo la lista entera con el tipo; es lo que se lee en un teléfono, donde los nombres de la celda se cortan.
+- Lectura nueva `getCalendarioDeAusencias(desde, hasta)`: mismo permiso y mismo alcance por tienda que `getPendingForInbox` (`clockinManagerCtx` + `storeScope`). Solo lectura.
+Verificado en el demo a 1680 y 390 px con ausencias de ejemplo (la lectura del servidor no existe en el demo: se simuló su respuesta). NO visto con las ausencias reales.
+
+## D-1156 · Time Tracker: la pestaña «Pending» se llama «Requests» (2026-11-24)
+
+Ayuda de Roberto (`7a3e14af`): «Rename this to Requests». `tab.team-requests`: «📥 Requests» / «📥 Solicitudes». La de cada empleado sigue siendo «My Requests».
+
+## D-1157 · Time Tracker: «Working Now» deja de ser pestaña y vive dentro de Payroll (2026-11-24)
+
+Ayuda de Roberto (`89bac914`, /timetracker/live): «Remove this tab, no need for it if we clean up and consolidate with the Payroll tab».
+Qué cambia: la pantalla pasa a ser una sección plegable arriba de Nómina (`TrabajandoAhora` dentro de `PayrollTabs`), cerrada por defecto; mientras está cerrada no pregunta nada al servidor. `/timetracker/live` redirige a `/timetracker/payroll?vista=ahora`, que la abre: los avisos ya enviados y los marcadores siguen llegando. La elección se recuerda en el navegador.
+Interpretación mía de «consolidate»: la pantalla se conserva entera (quién falta, quién está, dónde ficharon), solo cambia de sitio. Si lo que quería era quitarla del todo, es borrar la sección.
+Verificado en el demo con una respuesta simulada de quién está fichado.
+
+## D-1158 · Hub → Mis solicitudes de ayuda: estado al frente, fecha a la derecha, 📷 y abrir tocando el texto (2026-11-24)
+
+Ayuda de Roberto (`81067ce0`, /home/ayuda), cuatro puntos: el estado antes de la frase; la fecha al fondo a la derecha para que se lea más frase; una cámara cuando la solicitud trae foto; sin botón «Open»: se abre tocando la frase.
+Qué cambia: la fila es estado → «N nuevas» → la frase (un botón, a todo el ancho libre, con puntos suspensivos) → fecha → 📷 (solo con adjuntos) → Eliminar. La 📷 abre los adjuntos en una tarjeta sobre la página, con los mismos enlaces firmados que usa el hilo; no abre la fila.
+Verificado en el demo a 1680 y 390 px. La tarjeta de la 📷 se vio abrir y cerrar, pero NO con una foto real (el demo no firma enlaces).
+
+## D-1159 · Hub: el botón de casa a la izquierda en las dos pantallas de ayuda (2026-11-24)
+
+Ayuda de Roberto (`de9591c5`, /home/solicitudes-de-ayuda): «seems like home button is always on the left so keep the design consistent».
+En «Help requests» (admin) y en «My help requests» la 🏠 va junto al título (`.page-head-casa-izq`). Otras pantallas del hub (Directorio, Usuarios, Cambiar de usuario) la siguen teniendo a la derecha: no se pidieron y no se tocaron.
+
+## D-1160 · «Employees» y las tarifas de «Assignments» pasan del Time Tracker al app de RR. HH.; el horario se queda (2026-11-24)
+
+Ayuda de Roberto (`afa480b1`, /timetracker/assignments): sobre «Employees», «This is probably an HR app thing»; sobre «Assignments & Schedule», «This is probably an HR app thing except perhaps the schedule tab should stay».
+Qué cambia:
+- Time Tracker: la barra pierde «Employees»; «Assignments & Schedule» pasa a llamarse «📅 Schedule» y enseña solo el horario. `/timetracker/people` redirige a RR. HH.
+- RR. HH. → menú HR: «⏱ Time tracking setup» (`/recruiting/tt-empleados`, lo que era Employees: tipo, tiendas, rastreo, almuerzo, activo) y «💲 Pay rates» (`/recruiting/tt-tarifas`, lo que era Rates). Son las mismas pantallas, montadas dentro de RR. HH. con el proveedor de datos del Time Tracker (`MarcoDelTtEnRrhh`).
+- Acceso, sin cambios: estas pantallas enseñan tarifas y las sigue viendo solo quien es admin del Time Tracker; se comprueba en el servidor antes de montar nada. Tener acceso a RR. HH. no basta. Medido el 2026-11-24: los tres admins del Time Tracker son los mismos tres admins de RR. HH., así que nadie pierde ni gana nada.
+- Lo que NO se hizo: fundir estos ajustes dentro del expediente de cada empleado de RR. HH. Son dos entradas del menú, no un bloque de la ficha.
+Costo conocido: abrir una de las dos pantallas en RR. HH. abre los canales en tiempo real del Time Tracker mientras esté abierta, como en el propio Time Tracker.
+Verificado en el demo a 1680 y 390 px. NO probado con una sesión real: ni la puerta de acceso con una cuenta que no sea admin, ni los datos reales.
+Time Tracker 1.38.0 · RR. HH. 0.115.0 · Entregas/Hub 1.663.0 · repo 1.983.0.
