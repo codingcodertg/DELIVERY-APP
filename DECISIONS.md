@@ -52955,3 +52955,12 @@ Medido con los datos del día (2026-11-24, solo lectura): 32 órdenes, 4 chofere
 Qué cambia: el tope se gasta por orígenes enteros hasta donde alcanza (el resto va al respaldo y se dice, como antes), de modo que cada corrida guarda lo que le cabe y la siguiente paga solo lo que falta; los orígenes salen de 6 en 6 y los tramos de 8 en 8, y cada tanda de tramos se guarda de una vez; cada petición espera 12 s como mucho; y la función tiene 300 s de margen en vez de 60.
 Qué NO cambia: los topes (400 elementos y 80 tramos por corrida; 1500 y 400 por día). Con ellos, un día con más de 400 tramos nuevos sale la primera vez con parte de los tiempos del respaldo y lo dice en pantalla; «Planificar de nuevo» completa el resto con Google. Subirlos es gasto y lo decide el dueño.
 Verificado: pruebas de `route-times` y `route-plan`; el día real leído y pasado por el motor en local (sin llamar a Google ni escribir). En producción no se ha vuelto a pulsar el botón todavía. Deliveries 1.659.0 · repo 1.975.0.
+
+## D-1144 · «Vaciar ruta» guardaba cada orden dos veces y saturó la base (2026-11-23)
+
+El dueño, 2026-11-23, ~9:35 pm: «el app está bien lenta, más que todo en el Routes Manager; asignar, desasignar o hacer relays se tarda mucho» y «no me deja asignar, dice cancelling statement».
+Medido: entre las 9:33 y las 9:40 pm una lectura de una fila tardaba de 6 a 20 s y pg_cron falló con «job startup timeout»; antes y después, 0.2–0.4 s. Sin bloqueos ni consultas colgadas al mirar. En el historial, a las 9:33:38–9:33:49 pm: 240 entradas en un minuto (lo normal son 1 a 6), casi todas «Unassigned (was Maximo Garza)» y «(was Julio Jijon)»: 29 órdenes con CUATRO ediciones y cuatro notas cada una.
+Causa: en `clearLane` («Vaciar ruta») el bloque que desasigna, anota y quita la ruta temporal estaba DOS veces seguidas (copia de una fusión vieja, v0.9.59), y todas las órdenes salían a la vez (`Promise.all`). Cada edición de una orden pasa por una decena de triggers y por el tiempo real de cada sesión abierta. Con el botón pulsado dos veces porque no respondía, fueron cuatro por orden.
+Qué cambia: una sola pasada, y de 6 en 6 (primero las ediciones de la tanda, luego sus notas).
+Qué NO cambia y sigue costando: cada asignación recalcula las llegadas de la ruta («calculando…»), y eso no se ha medido todavía. Un solo «asignar» no fue lo que saturó la base.
+Verificado: pruebas del Gestor. En producción, la base volvió sola a sus tiempos a las 9:40 pm. Deliveries 1.660.0 · repo 1.976.0.

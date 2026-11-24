@@ -260,6 +260,14 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       const vaciar = trozo("const clearLane = async (laneKey: string) => {", "// Drivers on vacation/sick/maintenance");
       expect(vaciar).toContain('const stops = deliveries.filter((d) => (d.assigned_driver || "") === laneKey && !ETAPAS_HECHAS.has(d.stage));');
     });
+    it("D-1144: «Vaciar» escribe cada orden UNA vez (estaba dos) y de 6 en 6, no todas a la vez", () => {
+      const vaciar = trozo("const clearLane = async (laneKey: string) => {", "// Drivers on vacation/sick/maintenance");
+      expect(vaciar.split("updateDelivery(d.id, { assigned_driver: null, route_seq: null, load_no: null })").length - 1).toBe(1);
+      expect(vaciar.split("addNote(d.id, `Unassigned (was ${laneKey})`)").length - 1).toBe(1);
+      expect(vaciar.split("removeBucket(laneKey)").length - 1).toBe(1);
+      expect(vaciar).toContain("for (let i = 0; i < stops.length; i += 6) {");
+      expect(vaciar).not.toContain("await Promise.all(stops.map(");
+    });
     it("D-698: la etapa no colorea la fila: ni el gris de la hecha ni el verde de `row-done`", () => {
       expect(css).toContain("table.orders tr.fila-hecha .ordno"); // el bloque de la hecha sigue ahí: la búsqueda no está vacía
       expect(css).not.toContain("tr.fila-hecha td {");

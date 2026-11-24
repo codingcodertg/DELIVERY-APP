@@ -1468,11 +1468,14 @@ export default function RoutesPage() {
     // Clear EVERY order on this lane across ALL dates, not just the day in view,
     // so a stop left on another date can't rebuild the route on reload. Await all
     // writes (and the bucket removal) so the cleared state is fully persisted.
-    await Promise.all(stops.map((d) => updateDelivery(d.id, { assigned_driver: null, route_seq: null, load_no: null })));
-    stops.forEach((d) => addNote(d.id, `Unassigned (was ${laneKey})`));
-    if (isBucket(laneKey)) await removeBucket(laneKey);
-    await Promise.all(stops.map((d) => updateDelivery(d.id, { assigned_driver: null, route_seq: null, load_no: null })));
-    stops.forEach((d) => addNote(d.id, `Unassigned (was ${laneKey})`));
+    // D-1144: UNA pasada, y de 6 en 6. Este bloque estaba dos veces (copia de una fusión vieja, v0.9.59) y todo salía a la
+    // vez: vaciar dos rutas (29 órdenes) el 2026-11-23 fueron 240 escrituras en 10 s, la base se saturó y cortó lo
+    // siguiente con «canceling statement due to statement timeout».
+    for (let i = 0; i < stops.length; i += 6) {
+      const tanda = stops.slice(i, i + 6);
+      await Promise.all(tanda.map((d) => updateDelivery(d.id, { assigned_driver: null, route_seq: null, load_no: null })));
+      await Promise.all(tanda.map((d) => addNote(d.id, `Unassigned (was ${laneKey})`)));
+    }
     if (isBucket(laneKey)) await removeBucket(laneKey);
     clearRouteFor(laneKey);
     const despues = Object.fromEntries(Object.entries(antes).map(([id, e]) => [id, { ...e, assigned_driver: null, route_seq: null, load_no: null }]));
