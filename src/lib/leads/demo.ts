@@ -341,5 +341,9 @@ export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
       apunta(l, "archived", { note: notaLimpia(nota), subject: l.holder, subject_name: l.holder_name });
       return guarda({ ...l, status: "archived", holder: null, holder_name: null, taken_at: null, follow_up_note: null, follow_up_action: null, follow_up_at: null, touched_at: new Date().toISOString() });
     },
+    // El demo enseña colores: el puesto es el orden en que están declaradas las personas (la primera, 1).
+    async puestosDeVendedores() {
+      return new Map(PERSONAS_DEMO.map((p, i) => [p.id, i + 1]));
+    },
   };
 }
