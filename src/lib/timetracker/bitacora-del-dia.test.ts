@@ -43,7 +43,10 @@ describe("las pantallas y los textos", () => {
     const p = sinComentarios(leer("src/components/timetracker/PayrollTimesheets.tsx"));
     expect(p).toContain('import { BitacoraDelDia } from "./BitacoraDelDia";');
     // Tabla reducida (TablaReducida): la fila de ancho completo la pinta el componente con subFila.
-    expect(p).toContain("subFila={(e) => <BitacoraDelDia entryId={e.id} />}");
+    // Una fila por día: con un solo fichaje, su bitácora tal cual; con varios, cada fichaje trae la suya.
+    expect(p).toContain("subFila={(g) => g.entradas.length === 1");
+    expect(p).toContain("? <BitacoraDelDia entryId={g.entradas[0].id} />");
+    expect(p).toContain("<BitacoraDelDia entryId={e.id} />");
     const c = sinComentarios(leer("src/components/timetracker/BitacoraDelDia.tsx"));
     expect(c).toContain("<details className=\"bitacora-del-dia\"");
     expect(c).toContain("if (datos || estado === \"cargando\") return;");

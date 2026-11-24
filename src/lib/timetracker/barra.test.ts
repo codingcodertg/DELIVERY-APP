@@ -22,11 +22,13 @@ const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
 
 // D-1154: «recorrido» (Driver track) salió de la barra: vive en Entregas.
 // «Trabajando ahora» salió de aquí (2026-11-24): vive plegada dentro de Nómina. Y «Empleados» vive en RR. HH.
-const GESTION = ["insights", "payroll", "team-requests", "projects", "assignments", "audit"];
-const MIO = ["track", "week", "requests", "diary", "settings"];
+// owner, 2026-11-24: «Schedule» sale de la barra (vive en Registrar tiempo, solo admin) y «Mi semana» también (vive
+// en Registrar tiempo, para todos). Por eso ni «assignments» ni «week» aparecen aquí.
+const GESTION = ["insights", "payroll", "team-requests", "projects", "audit"];
+const MIO = ["track", "requests", "diary", "settings"];
 
 describe("qué va en la fila y qué en «👤 Mío ▾»", () => {
-  it("admin: las siete de gestión en fila, en su orden; Registrar tiempo, Mi semana, Mis solicitudes, Mi diario y Ajustes en el menú", () => {
+  it("admin: las cinco de gestión en fila, en su orden; Registrar tiempo, Mis solicitudes, Mi diario y Ajustes en el menú", () => {
     const b = barraDeTt("admin", "/timetracker/insights");
     expect(ids(b.fila)).toEqual(GESTION);
     expect(ids(b.menu)).toEqual(MIO);
@@ -40,9 +42,9 @@ describe("qué va en la fila y qué en «👤 Mío ▾»", () => {
   });
 
   it("el empleado no cambia: sus tres pestañas en fila y sin menú", () => {
-    const b = barraDeTt("employee", "/timetracker/week");
+    const b = barraDeTt("employee", "/timetracker/requests");
     expect(b.fila).toBe(TABS);
-    expect(ids(b.fila)).toEqual(["track", "week", "requests"]);
+    expect(ids(b.fila)).toEqual(["track", "requests"]);
     expect(b.menu).toEqual([]);
     expect(b.activaDelMenu).toBeNull();
   });
@@ -59,7 +61,7 @@ describe("qué va en la fila y qué en «👤 Mío ▾»", () => {
 describe("cuál está activa", () => {
   it("en cada pantalla del menú, el menú sabe que es esa (y el botón la nombra)", () => {
     const rutas: Record<string, string> = {
-      track: "/timetracker", week: "/timetracker/week", requests: "/timetracker/requests",
+      track: "/timetracker", requests: "/timetracker/requests",
       diary: "/timetracker/diary", settings: "/timetracker/settings",
     };
     for (const [id, ruta] of Object.entries(rutas)) {
@@ -96,11 +98,11 @@ describe("las opciones del menú", () => {
   const t = (k: string) => "«" + k + "»";
 
   it("cada una con el texto de su pestaña, en el orden del menú, y la actual marcada (solo esa)", () => {
-    const b = barraDeTt("admin", "/timetracker/week");
+    const b = barraDeTt("admin", "/timetracker/requests");
     const o = opcionesDelMenuMio(b, t, () => {});
     expect(o.map((x) => x.texto)).toEqual(MIO.map((id) => "«tab." + id + "»"));
     expect(o.map((x) => x.id)).toEqual(MIO);
-    expect(o.filter((x) => x.actual).map((x) => x.id)).toEqual(["week"]);
+    expect(o.filter((x) => x.actual).map((x) => x.id)).toEqual(["requests"]);
     expect(o.some((x) => x.peligro || x.deshabilitada)).toBe(false);
   });
 
@@ -111,7 +113,7 @@ describe("las opciones del menú", () => {
   it("pulsar una lleva a SU pantalla", () => {
     const fue: string[] = [];
     for (const o of opcionesDelMenuMio(barraDeTt("admin", "/timetracker/insights"), t, (h) => fue.push(h))) o.alPulsar();
-    expect(fue).toEqual(["/timetracker", "/timetracker/week", "/timetracker/requests", "/timetracker/diary", "/timetracker/settings"]);
+    expect(fue).toEqual(["/timetracker", "/timetracker/requests", "/timetracker/diary", "/timetracker/settings"]);
   });
 
   it("el empleado no tiene opciones, así que `MenuDeAcciones` no pinta botón", () => {
@@ -120,12 +122,12 @@ describe("las opciones del menú", () => {
     expect(renderToStaticMarkup(createElement(MenuDeAcciones, { rotulo: "x", opciones: o }))).toBe("");
   });
 
-  it("pintadas: cinco `menuitem`, la actual con `aria-current=\"page\"` y resaltada, sin raya (no hay nada destructivo)", () => {
+  it("pintadas: cuatro `menuitem`, la actual con `aria-current=\"page\"` y resaltada, sin raya (no hay nada destructivo)", () => {
     const html = renderToStaticMarkup(createElement(OpcionesDelMenu, {
       opciones: opcionesDelMenuMio(barraDeTt("admin", "/timetracker/diary"), (k) => DICT.es[k], () => {}),
       onElegir: () => {},
     }));
-    expect((html.match(/role="menuitem"/g) ?? []).length).toBe(5);
+    expect((html.match(/role="menuitem"/g) ?? []).length).toBe(4);
     expect((html.match(/aria-current="page"/g) ?? []).length).toBe(1);
     expect((html.match(/menu-accion-actual/g) ?? []).length).toBe(1);
     expect(html).toMatch(/class="col-opt menu-accion menu-accion-actual" aria-current="page"[^>]*>🗂 Mi diario</);
@@ -133,14 +135,14 @@ describe("las opciones del menú", () => {
   });
 
   it("el botón cerrado: abre un menú, dice que está cerrado, y lleva el nombre de la pantalla abierta", () => {
-    const b = barraDeTt("admin", "/timetracker/week");
+    const b = barraDeTt("admin", "/timetracker/requests");
     const html = renderToStaticMarkup(createElement(MenuDeAcciones, {
       rotulo: DICT.en[claveDelRotulo(b)], className: "tt-menu-mio active", opciones: opcionesDelMenuMio(b, (k) => DICT.en[k], () => {}),
     }));
     expect(html).toContain('class="tt-menu-mio active"');
     expect(html).toContain('aria-haspopup="menu"');
     expect(html).toContain('aria-expanded="false"');
-    expect(html).toContain('📅 My Week <span aria-hidden="true">▾</span>');
+    expect(html).toContain(DICT.en["tab.requests"] + ' <span aria-hidden="true">▾</span>');
   });
 });
 
@@ -222,7 +224,7 @@ describe("las tres pestañas del empleado, en una fila en el teléfono", () => {
       expect(DICT.es[claveCorta(p.id)], p.id).toBeTruthy();
       expect(DICT.es[claveCorta(p.id)].length, p.id).toBeLessThanOrEqual(DICT.es["tab." + p.id].length);
     }
-    expect(TABS.map((p) => DICT.es[claveCorta(p.id)])).toEqual(["⏱ Registrar", "📅 Mi semana", "📝 Solicitudes"]);
+    expect(TABS.map((p) => DICT.es[claveCorta(p.id)])).toEqual(["⏱ Registrar", "📝 Solicitudes"]);
   });
 
   it("la barra marca la fila y pinta los dos nombres de cada pestaña (el CSS elige cuál se ve)", () => {

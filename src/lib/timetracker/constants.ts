@@ -10,7 +10,8 @@
 // pulsara el botón. Ahora son claves `tab.<id>` del diccionario y la pinta TopBar con t().
 export const TABS: { id: string; href: string }[] = [
   { id: "track", href: "/timetracker" },
-  { id: "week", href: "/timetracker/week" },
+  // "Mi semana" (owner, 2026-11-24: «My week is removed») ya no es pestaña: su contenido es una sección plegada
+  // dentro de Registrar tiempo (`SeccionesDeRegistrarTiempo`, ?vista=semana). /timetracker/week redirige allí.
   { id: "requests", href: "/timetracker/requests" },
   // "Mi diario" ya no es pestaña del empleado (D-489): lo pidió quitar el dueño el 2026-10-06.
   // El admin la conserva en MANAGER_TABS, y /timetracker/diary devuelve a quien no lo es a
@@ -53,13 +54,15 @@ export const MANAGER_TABS: { id: string; href: string }[] = [
   // por proyecto son ahora «💲 Pay rates» en el menú de RR. HH. (/recruiting/tt-tarifas), y la lista
   // de empleados es «⏱ Time tracking setup» (/recruiting/tt-empleados); /timetracker/people redirige ahí.
   // La ruta /timetracker/schedule sigue existiendo y redirige.
-  { id: "assignments", href: "/timetracker/assignments" },
+  // "Schedule" (owner, 2026-11-24: «The Schedule tab is retired; from now on it lives in Track Time») ya no es
+  // pestaña: es una sección plegada de Registrar tiempo, solo para admins (?vista=horario). /timetracker/assignments
+  // redirige allí.
   // "team-diary" (capturas de la app de escritorio) ya no es pestaña: desde D-194 estaba en Auditoría y desde
   // 2026-11-24 es la sección «Capturas de escritorio» de Nómina (`?vista=capturas`). /timetracker/team-diary redirige allí.
   { id: "audit", href: "/timetracker/audit" },
   { id: "settings", href: "/timetracker/settings" },
   { id: "track", href: "/timetracker" },
-  { id: "week", href: "/timetracker/week" },
+  // "Mi semana" fuera (owner, 2026-11-24): vive en Registrar tiempo, sección «My week» (?vista=semana).
   { id: "requests", href: "/timetracker/requests" },
   { id: "diary", href: "/timetracker/diary" },
   // Sin "Mi cuenta" (D-160). A un admin esta barra le pone catorce pestañas; la que menos

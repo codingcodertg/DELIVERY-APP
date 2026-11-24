@@ -49,7 +49,8 @@ describe("la barra de pestañas está traducida", () => {
   it("toda pestaña tiene texto en los dos idiomas, y distinto", async () => {
     const { TABS, MANAGER_TABS } = await import("./constants");
     const ids = [...new Set([...TABS, ...MANAGER_TABS].map((x) => x.id))];
-    expect(ids.length).toBeGreaterThan(10);
+    // Nueve pestañas tras retirar «Schedule» y «My week» (owner, 2026-11-24); el umbral solo vigila que la lista no quede vacía.
+    expect(ids.length).toBeGreaterThan(8);
     for (const id of ids) {
       setLang("en");
       const en = t("tab." + id);
@@ -118,7 +119,8 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     "src/app/timetracker/(timetracker)/settings/page.tsx",
     "src/app/timetracker/(timetracker)/team-requests/page.tsx",
     "src/app/timetracker/(timetracker)/projects/page.tsx",
-    "src/app/timetracker/(timetracker)/week/page.tsx",
+    "src/components/timetracker/MiSemana.tsx",
+    "src/components/timetracker/SeccionesDeRegistrarTiempo.tsx",
     "src/app/timetracker/(timetracker)/requests/page.tsx",
     "src/components/timetracker/ClockinApprovals.tsx",
     // D-1155 (ayuda de Roberto, 24 nov 2026): las secciones plegables y el calendario de ausencias.

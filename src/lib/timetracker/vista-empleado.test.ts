@@ -15,7 +15,7 @@ const leer = (ruta: string) => readFileSync(join(process.cwd(), ruta), "utf8").s
 const topbar = leer("src/components/timetracker/TopBar.tsx");
 const diario = leer("src/app/timetracker/(timetracker)/diary/page.tsx");
 const solicitudes = leer("src/app/timetracker/(timetracker)/requests/page.tsx");
-const semana = leer("src/app/timetracker/(timetracker)/week/page.tsx");
+const semana = leer("src/components/timetracker/MiSemana.tsx");
 const punch = leer("src/components/timetracker/PunchPanel.tsx");
 const secciones = leer("src/components/timetracker/MySections.tsx");
 const fichajes = leer("src/components/timetracker/FichajesDeHoy.tsx");
@@ -32,7 +32,7 @@ describe("1 · «Mi diario» ya no es del empleado", () => {
     expect(pestanasPara("admin")).toBe(MANAGER_TABS);
   });
   it("el resto de pestañas del empleado no cambia", () => {
-    expect(TABS.map((x) => x.id)).toEqual(["track", "week", "requests"]);
+    expect(TABS.map((x) => x.id)).toEqual(["track", "requests"]);
   });
   it("solo el admin es admin: un gerente o un rol vacío ven la vista del empleado", () => {
     expect(esAdminDeTt("admin")).toBe(true);

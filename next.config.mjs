@@ -127,7 +127,9 @@ const nextConfig = {
       { source: "/clock-in/photos", destination: "/timetracker/payroll?vista=fotos", permanent: false },
       { source: "/clock-in/time-off", destination: "/timetracker/requests", permanent: false },
       { source: "/clock-in/reports", destination: "/timetracker/payroll", permanent: false },
-      { source: "/clock-in/schedule", destination: "/timetracker/assignments", permanent: false },
+      // El horario es ya una sección de Registrar tiempo, solo para admins (owner, 2026-11-24): se apunta
+      // directo a ?vista=horario, sin pasar por /timetracker/assignments.
+      { source: "/clock-in/schedule", destination: "/timetracker?vista=horario", permanent: false },
       { source: "/clock-in/coverage", destination: "/timetracker/people", permanent: false },
       { source: "/clock-in/dashboard", destination: "/timetracker/live", permanent: false },
       { source: "/clock-in/team", destination: "/timetracker/settings", permanent: false },
@@ -174,9 +176,10 @@ const nextConfig = {
       { source: "/timetracker/clock-in/reports", destination: "/timetracker/payroll", permanent: false },
       // El horario subió a Time Tracker (D-121), con lo que ahora además deja programar otras
       // semanas — la pantalla vieja solo sabía enseñar la actual. Después pasó a vivir dentro
-      // de Asignaciones (D-186): se apunta DIRECTO ahí, y no a /timetracker/schedule, para
-      // no encadenar dos redirecciones en un enlace que abre gente desde el móvil.
-      { source: "/timetracker/clock-in/schedule", destination: "/timetracker/assignments", permanent: false },
+      // de Asignaciones (D-186) y desde 2026-11-24 es la sección «Schedule» de Registrar tiempo
+      // (?vista=horario): se apunta DIRECTO ahí, y no a /timetracker/schedule ni a
+      // /timetracker/assignments, para no encadenar redirecciones en un enlace que abre gente desde el móvil.
+      { source: "/timetracker/clock-in/schedule", destination: "/timetracker?vista=horario", permanent: false },
       // Las dos últimas pantallas de gerente que quedaban en fichaje (D-135). El detalle por
       // persona vive ahora dentro de Empleados, desplegable desde su propia fila.
       { source: "/timetracker/clock-in/coverage", destination: "/timetracker/people", permanent: false },

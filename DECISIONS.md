@@ -53173,3 +53173,22 @@ Un matiz: un lead con una nota SIN etapa sigue en «Open» aunque alguien ya esc
 El dueño: «en time tracker pending request rename it to time in request y time off request respectivamente».
 Los títulos de las dos primeras secciones: «Pending requests» → «Time in requests» («Solicitudes de horas») y «Time off & shift changes» → «Time off requests» («Solicitudes de tiempo libre»). La segunda sigue llevando también los cambios de horario y de turno; solo cambia el título.
 Leads 0.37.0 · Time Tracker 1.39.1 · repo 1.986.0.
+
+## D-1168 · Time Tracker: «Schedule» pasa a Registrar tiempo y «My week» sale de la barra (2026-11-24)
+
+El dueño: «the schedule tab se retira, ahora será en track time y se quita my week».
+Qué cambia:
+- La barra pierde «📅 Schedule» y, para todos, «My week». A un admin le quedan Dashboard, Payroll, Requests, Projects, Audit y el menú con Track Time, My Requests, My Diary y Settings.
+- «Registrar tiempo» (`/timetracker`) gana, debajo del reloj, dos secciones plegables (`SeccionesDeRegistrarTiempo`): «Schedule» —el horario de la cuadrilla, solo para admins, como antes— y «My week». Cerradas por defecto; no se montan hasta abrirlas; la elección se recuerda en el navegador. El reloj (`Cronometro`) no se tocó: lo sigue montando el layout, y la página sigue sin importarlo.
+- Las direcciones viejas llegan a su sección abierta: `/timetracker/assignments`, `/timetracker/schedule`, `/clock-in/schedule` → `/timetracker?vista=horario`; `/timetracker/week` → `/timetracker?vista=semana`.
+«My week» NO se borró, y eso es una decisión mía sobre su «se quita»: sale de la barra, pero su contenido queda plegado en Registrar tiempo. Ahí vive lo que no está en ningún otro sitio: las horas de la semana día por día, y para el presencial su «My scorecard» y «Today's punches», que el propio dueño mudó a «My week» en D-489. Borrarlo se lo quitaba a los empleados sin avisar. Si lo quiere fuera del todo, es quitar una sección.
+Verificado en el demo (admin) a 1680 y 390 px: la barra, las dos secciones y las tres direcciones viejas. NO visto como empleado presencial ni remoto.
+
+## D-1169 · Time Tracker → Payroll → Timesheets: un renglón por día (2026-11-24)
+
+El dueño: «en el payroll tab under timesheets we have clock in and out times and registers each instance at a time but I would like for the instances to be concentrated in 1 day».
+Antes, cada entrada y salida era un renglón: quien salía a un mandado y volvía tenía dos o tres renglones el mismo día.
+Qué cambia: un renglón por día y por persona (`turnosPorDia`, por el día de Texas en que empezó el turno): primera entrada – última salida, cuántos fichajes hubo («3 punches»), la comida del día, las horas y las notas. Con un solo fichaje el renglón es el de siempre, con su Edit, su Delete y su bitácora. Con varios, el renglón se abre y enseña cada fichaje con sus horas, su nota, su Edit, su Delete y su bitácora: nada de lo que se podía hacer por fichaje se pierde.
+Las horas del día son la SUMA de sus fichajes, no «última salida menos primera entrada»: así no se paga el rato que estuvo fuera, y los totales de la persona, de la tienda y de la compañía son exactamente los de antes. Aprobaciones, cierre del periodo y archivos de Excel/CSV no se tocaron: siguen trabajando por fichaje.
+Verificado en el demo a 1680 y 390 px, con un día de tres fichajes puesto solo para la prueba (3.25 + 2.67 + 1.92 = 7.83 h en un renglón). NO visto con los fichajes reales.
+Time Tracker 1.40.0 · repo 1.987.0.
