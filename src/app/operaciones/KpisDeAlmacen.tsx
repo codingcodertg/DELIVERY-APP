@@ -39,7 +39,7 @@ type CargaDeMantenimiento = { estado: "cargando" } | { estado: "falta-273" } | {
 type CargaDeConteos = { estado: "cargando" } | { estado: "falta-274" } | { estado: "error"; mensaje: string } | { estado: "listo"; datos: DatosDeConteos };
 
 /**
- * KPIs de almacén (vista «KPIs de almacén»): a la izquierda los filtros (D-NEXT, ayuda de Roberto, 24 nov 2026: en vez de
+ * KPIs de almacén (vista «KPIs de almacén»): a la izquierda los filtros (D-1149, ayuda de Roberto, 24 nov 2026: en vez de
  * abrir otras pantallas, cada botón deja ver solo los KPI de esa categoría; sin filtro se ven todos). A la derecha el
  * selector de tienda y de mes y las tarjetas. Las reglas viven en `src/lib/almacen-ops/`; aquí solo se pinta.
  * Mantenimiento y conteos se cargan una vez, al abrir la pantalla, y no dependen del filtro.
@@ -289,7 +289,7 @@ function KpisDeMantenimiento({ carga, tienda, hoy, titulo }: { carga: CargaDeMan
       {carga.estado === "error" && <p className="ops-aviso ops-aviso-error">{t("Could not load: ", "No se pudo cargar: ")}{carga.mensaje}</p>}
       {tot && (
         <>
-          <div className="ops-merma-totales ops-kpi-almacen-tarjetas ops-kpi-almacen-dos" data-kpi-grupo="mantenimiento">
+          <div className="ops-merma-totales ops-kpi-almacen-tarjetas ops-kpi-almacen-dos ops-kpi" data-kpi-grupo="mantenimiento">
             <div className="ops-merma-total" data-kpi="mant-listas">
               <span>{t("Checklists this week", "Listas esta semana")}</span>
               <span className={`ops-merma-cifra ops-kpi-${colorDelPct(tot.pct)}`} data-kpi-mant-pct>{tot.pct === null ? "—" : `${tot.pct}%`}</span>
@@ -324,7 +324,7 @@ function KpisDeConteos({ carga, tienda, periodo, titulo }: { carga: CargaDeConte
       )}
       {carga.estado === "error" && <p className="ops-aviso ops-aviso-error">{t("Could not load: ", "No se pudo cargar: ")}{carga.mensaje}</p>}
       {tot && (
-        <div className="ops-merma-totales ops-kpi-almacen-tarjetas ops-kpi-almacen-cuatro" data-kpi-grupo="conteos" data-faltan-cajas-mes={tot.faltanCajas}>
+        <div className="ops-merma-totales ops-kpi-almacen-tarjetas ops-kpi-almacen-cuatro ops-kpi" data-kpi-grupo="conteos" data-faltan-cajas-mes={tot.faltanCajas}>
           <div className="ops-merma-total" data-kpi="cajas-faltan">
             <span>{t("Boxes missing", "Cajas que faltan")}</span>
             <span className={`ops-merma-cifra ${tot.faltanCajas > 0 ? "ops-kpi-rojo" : "ops-kpi-verde"}`} data-kpi-cajas-faltan>{tot.faltanCajas}</span>

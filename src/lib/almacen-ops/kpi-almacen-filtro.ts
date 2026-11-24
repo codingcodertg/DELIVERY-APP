@@ -1,5 +1,5 @@
 /**
- * KPI de almacén (D-NEXT, ayuda de Roberto, 24 nov 2026): a la izquierda ya no hay enlaces a otras pantallas sino
+ * KPI de almacén (D-1149, ayuda de Roberto, 24 nov 2026): a la izquierda ya no hay enlaces a otras pantallas sino
  * filtros. «Don't make them open the pages, make them filters for the specific KPI's. KPI's will all be shown by default
  * until they select the filter.» Sin filtro se ven todos los KPI; con uno, solo los de esa categoría. Un solo filtro a la vez.
  *

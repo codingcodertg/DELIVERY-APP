@@ -53002,3 +53002,26 @@ Qué había: la tabla tenía un filtro de tienda, pero solo salía cuando las fi
 Qué cambia: un desplegable de tienda junto al rango, para quien ve más de una tienda. La tienda elegida manda sobre todo lo de merma: las cuatro cifras, las etapas y sus cuentas, la lista, lo que se exporta (CSV y PDF) y los grupos de aprobación. Las opciones son las tiendas de la persona y las que tengan merma.
 Qué NO cambia: las pestañas de Entregas y de Conteos no llevan este filtro todavía (Entregas suma en el servidor; Conteos se rehace aparte por la otra solicitud de Roberto del mismo día: «needs to look like the scrap report page»).
 Verificado: en el demo local, en navegador: elegir una tienda cambia las cifras y la lista; «Todas las tiendas» las devuelve. Warehouse Ops 0.68.0.
+
+## D-1148 · El informe de conteos se ve como el de merma (2026-11-24)
+
+Roberto, solicitud de ayuda del 2026-11-24, en Operaciones de almacén → Reportes → Todos, con la pestaña «Inventory counts» en el recuadro: «Need this page to look like the scrap report page. Needs to be consistent in design».
+Qué había: otra pantalla. Su propio selector de mes (‹ noviembre ›) en un renglón aparte, una cifra gigante a todo lo ancho, cinco tarjetas con el rótulo arriba y tres tablas seguidas, sin etapas ni buscador.
+Qué cambia, pieza por pieza como la de merma:
+- el MISMO renglón de arriba: pestañas, «📅» con el rango (hoy, semana, mes, a mano…) y el filtro de tienda (D-1147), que ahora también manda en conteos. El selector de mes propio desaparece: el rango es el de la merma;
+- cuatro tarjetas en un renglón, con la cifra arriba y el rótulo debajo: cajas que faltan (resaltada si falta alguna), cajas que sobran, neto $ (con lo que falta y lo que sobra en el rótulo) y exactitud (con sus líneas). «Conteos completados» ya no es una tarjeta: es la cuenta del chip «5. Ajustar»;
+- «Conteos en el rango N», las cinco etapas como chips con su cuenta (filtran la tabla; pulsar la activa vuelve a «Todos») y la tabla con buscador;
+- «Por tienda» solo con más de una tienda (como el desglose de la merma) y «Por empleado», debajo.
+Las cifras no cambian de regla: son `kpiDeConteos` y `resumenDelConteo`, ahora sobre el rango elegido en vez de sobre un mes de calendario.
+Verificado: en el demo local, en navegador a 1680 px (el ancho de la captura de Roberto) y a 390 px: las tarjetas, los chips (filtran: «3. Revisar» deja 1 de 5), el buscador y el filtro de tienda (deja 1 conteo y esconde «Por tienda»). NO verificado con datos reales.
+
+## D-1149 · KPIs de almacén: los botones de la izquierda son filtros, no enlaces (2026-11-24)
+
+Roberto, solicitud de ayuda del 2026-11-24, en Operaciones de almacén → KPIs de almacén, con la columna de la izquierda en el recuadro: «1) Dont make open the pages, make them filters for the specific KPI's. KPI's will all be shown by default until they select the filter. 2) Remove "and reports"».
+Qué había: tres enlaces («Scrap and reports», «Maintenance», «Inventory counts») que abrían otras pantallas, y a la derecha tres KPI (listas a tiempo, merma, fichajes). No había KPI de mantenimiento ni de conteos en esta pantalla, así que un filtro de esas dos categorías no tendría qué enseñar.
+Qué cambia:
+- los tres botones son filtros («🧱 Scrap», «🔧 Maintenance», «🔢 Inventory counts»); el título de la columna pasa a «Filtrar». Sin ninguno pulsado se ven TODOS los KPI; pulsar uno deja solo los suyos; pulsarlo otra vez vuelve a todos. Uno a la vez (`gruposDeKpiVisibles`);
+- se añaden a la pantalla los KPI que faltaban, con las reglas que ya existían: mantenimiento (listas de la semana y equipos por reparar, las de la pantalla de Mantenimiento: son de ESTA semana, no del mes elegido, y se dice) y conteos del mes y la tienda elegidos (cajas que faltan, neto $, exactitud, conteos completados: las del informe de conteos);
+- «Listas a tiempo» y «Turnos fichados bien» no tienen botón: se ven cuando no hay filtro.
+Los enlaces se van; esas pantallas siguen en el inicio de Operaciones.
+Verificado: en el demo local, en navegador. Warehouse Ops 0.69.0 · repo 1.979.0.

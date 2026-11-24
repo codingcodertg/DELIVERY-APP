@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { alternarFiltroDeKpi, gruposDeKpiVisibles } from "./kpi-almacen-filtro";
 
-describe("KPI de almacén: los botones de la izquierda filtran (D-NEXT, ayuda de Roberto, 24 nov 2026)", () => {
+describe("KPI de almacén: los botones de la izquierda filtran (D-1149, ayuda de Roberto, 24 nov 2026)", () => {
   it("sin filtro se ven todos los grupos, en el orden de la pantalla", () => {
     expect(gruposDeKpiVisibles("todos")).toEqual(["listas", "merma", "tiempo", "mantenimiento", "conteos"]);
   });

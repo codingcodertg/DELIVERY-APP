@@ -663,6 +663,9 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 @media (min-width: 720px) { .ops-kpi-almacen-tarjetas { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 720px) { .ops-kpi-almacen-tarjetas.ops-kpi-almacen-dos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 720px) { .ops-kpi-almacen-tarjetas.ops-kpi-almacen-cuatro { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+/* Los títulos de cada grupo de KPI (D-1149): con aire encima, para que no se peguen a la nota del grupo anterior. */
+.ops-kpi-almacen-kpis .ops-merma-titulo { margin: 18px 0 0; }
+.ops-kpi-almacen-kpis .ops-kpi-almacen-filtros + div > .ops-merma-titulo:first-child { margin-top: 0; }
 /* Filtro elegido a la izquierda: mismo aspecto que .ops-opcion.elegida */
 .ops-kpi-almacen-reportes .ops-boton.elegida { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
 @media (min-width: 900px) {
