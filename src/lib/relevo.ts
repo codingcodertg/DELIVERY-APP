@@ -195,7 +195,7 @@ export const notaDelPaso = (etiqueta: string, letra: string, desde: string | nul
  * ¿Se puede deshacer el relevo? Mientras NINGÚN paso posterior al a haya salido (el b, ni el c, d…). El paso a puede
  * estar ya recogido o entregado en la tienda de relevo: se deshace igual (`alDeshacer` dice cómo queda).
  */
-export function sePuedeDeshacer(pasos: readonly Minima[]): boolean {
+export function sePuedeDeshacer(pasos: readonly { relay_step?: number | null; stage?: string | null }[]): boolean {
   return pasos.length >= 2 && pasos.every((p) => (p.relay_step ?? 0) < 2 || !YA_SALIO.has(p.stage ?? ""));
 }
 

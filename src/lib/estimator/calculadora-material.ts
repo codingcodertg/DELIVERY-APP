@@ -358,6 +358,32 @@ export function aplicaUso(u: Uso, tipo: TipoDeProyecto, a: AjustesCalculadora): 
   return u.condicion ? u.condicion(a) : true;
 }
 
+/**
+ * Lo que una calculadora muestra con estos ajustes: los campos de la hoja 1 (`habitaciones` en piso, `muros` en pared),
+ * las filas de materiales, las áreas de la sección 03 y los ajustes de «Product Settings». La pantalla pinta solo esto:
+ * lo que no aplica no sale (no se deshabilita). Pedido en la reunión del 23 nov 2026 (D-1145): «quita lo que no se
+ * necesita cuando cambian la opción».
+ */
+export interface CamposQueAplican {
+  entradas: (keyof EntradasCalculadora)[];
+  filas: ClaveDeFila[];
+  areas: (keyof AreasCalculadas)[];
+  ajustes: (keyof AjustesCalculadora)[];
+  /** La línea de la nota de materiales sobre la subida del liner solo aplica si hay liner (ducha). */
+  notaDeLiner: boolean;
+}
+
+export function camposQueAplican(tipo: TipoDeProyecto, a: AjustesCalculadora): CamposQueAplican {
+  const filas = CLAVES_DE_FILA.filter((c) => aplicaUso(USO_DE_FILAS[c], tipo, a));
+  return {
+    entradas: (Object.keys(USO_DE_ENTRADAS) as (keyof EntradasCalculadora)[]).filter((c) => aplicaUso(USO_DE_ENTRADAS[c], tipo, a)),
+    filas,
+    areas: (Object.keys(USO_DE_AREAS) as (keyof AreasCalculadas)[]).filter((c) => aplicaUso(USO_DE_AREAS[c], tipo, a)),
+    ajustes: (Object.keys(USO_DE_AJUSTES) as (keyof AjustesCalculadora)[]).filter((c) => aplicaUso(USO_DE_AJUSTES[c], tipo, a)),
+    notaDeLiner: filas.includes("liner"),
+  };
+}
+
 /** Lo que la hoja deja fijo en la columna «Per package» (no es un ajuste de «Product Settings»). */
 export const PIEZA_DE_LINER_SF = 35;
 export const TABLERO_POR_PAQUETE_LF = 1;

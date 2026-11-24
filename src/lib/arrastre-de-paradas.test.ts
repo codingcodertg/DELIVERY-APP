@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   anota, barrasDeLaRuta, candadoDeja, choquesAlVolver, descartaElDeArriba, escriturasHacia, fotoDe, fotoDeFilas,
   fotoTrasReordenar, HISTORIAL_VACIO, huecoMasCercano, huecosDeLaFila, partePorCapacidad, planDeSoltar, sellosDe,
-  textoDeChoques, textoDePrevia, TOPE_DEL_HISTORIAL, trasVolver, viajesSinLaMovida,
+  textoDeChoques, textoDePrevia, TOPE_DEL_HISTORIAL, trasVolver, viajesSinLaMovida, resella,
   type Foto, type FilaFresca, type Movimiento, type ParadaDelGantt, type RutaDelGantt,
 } from "./arrastre-de-paradas";
 import { costeDeLaRuta, mejorLugar } from "./mejor-lugar";
@@ -346,6 +346,20 @@ describe("deshacer y rehacer", () => {
     expect(r.rehacer).toEqual([]);
     expect(descartaElDeArriba(anota(anota(HISTORIAL_VACIO, mov()), mov({ rutas: ["Beto"] })), "deshacer").deshacer.map((m) => m.rutas)).toEqual([["Ana"]]);
   });
+  it("D-1145: tras una escritura nuestra, los movimientos de debajo toman el sello nuevo de las paradas que comparten", () => {
+    const h = anota(anota(HISTORIAL_VACIO, mov({ sellos: { A: "t1", B: "t1" } })), mov({ sellos: { A: "t2", C: "t2" } }));
+    const r = resella(h, { A: "t3", C: "t3", Z: "t3" });
+    expect(r.deshacer.map((m) => m.sellos)).toEqual([{ A: "t3", B: "t1" }, { A: "t3", C: "t3" }]);
+    // Sin sellos nuevos, o un movimiento sin sellos, se quedan como estaban (el mismo objeto).
+    expect(resella(h, null)).toBe(h);
+    const sin = anota(HISTORIAL_VACIO, mov({ sellos: null }));
+    expect(resella(sin, { A: "t9" }).deshacer[0]).toBe(sin.deshacer[0]);
+  });
+  it("D-1145: el Gestor resella al anotar un movimiento y al deshacer o rehacer", () => {
+    const pagina = readFileSync(join(process.cwd(), "src/app/(app)/routes/page.tsx"), "utf8");
+    expect(pagina).toContain("setHistorial((h) => anota(resella(h, sellos), { etiqueta, rutas, antes, despues, sellos }));");
+    expect(pagina).toContain("setHistorial((h) => trasVolver(resella(h, sellos), dir, sellos));");
+  });
 
   it("lo leído se convierte en foto y en sellos; sin lectura, sin sellos", () => {
     const f = filas(despues, "t3");
@@ -426,7 +440,7 @@ describe("la pantalla: el Gestor", () => {
   });
   it("deshacer escribe con `escriturasHacia` y guarda los sellos nuevos", () => {
     expect(volver).toContain("for (const e of escriturasHacia(objetivo, fotoDeFilas(filas))) {");
-    expect(volver).toContain("setHistorial((h) => trasVolver(h, dir, sellos));");
+    expect(volver).toContain("setHistorial((h) => trasVolver(resella(h, sellos), dir, sellos));");
   });
   it("con base, lo de ahora se lee de la BASE con su `updated_at` (y la recogida, si la base la guarda: 154)", () => {
     expect(pagina).toContain('.from("deliveries").select(`id, assigned_driver, route_seq, load_no, updated_at${hayRecogidaGuardada ? ", pickup_seq" : ""}`).in("id", ids);');

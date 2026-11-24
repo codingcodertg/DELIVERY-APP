@@ -258,7 +258,7 @@ const cuerpoDe = (fuente: string, desde: string, hasta: string) => {
 describe("el Gestor (pestaña Rutas): una lista por chofer, con su cuenta a la vista", () => {
   // Puesto al día por D-481: las tarjetas salen de `tarjetasDeRuta` (en «Cuadrícula», la compacta y la desplegada).
   const tarjeta = cuerpoDe(pagina, "{tarjetasDeRuta.map(([u, modoDeTarjeta]) => {", "{!ready && <div className=\"empty\">");
-  const mueve = cuerpoDe(pagina, "const mueveParada = async (", "\n  };\n");
+  const mueve = cuerpoDe(pagina, "const mueveParadaYa = async (", "\n  };\n");
 
   it("la tabla pinta \`lectura.filas\` con la cuenta de \`cuentaDePallets\` en cada fila, y la Base al principio y al final", () => {
     expect(tarjeta).toContain("const cuenta = cuentaDePallets(lectura.filas.map((f) => f.cambio), capacity, aBordoDe(stops));");

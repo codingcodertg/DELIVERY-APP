@@ -346,6 +346,8 @@ export interface Filtros {
   sinTelefono?: boolean;
   /** D-763: texto de fuera del lead que también cuenta al buscar (el cliente cruzado y su vendedor). */
   textoExtra?: (l: Lead) => string;
+  /** D-1145 (D-1145, reunión del 23 nov 2026): solo los leads cuyo ÚLTIMO contacto (última nota) lo hizo esta persona (`last_by`). "" = todos. */
+  quien?: string;
 }
 
 /**
@@ -358,6 +360,7 @@ export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
     if (f.pool !== null && l.pool !== f.pool) return false;
     if (f.coinciden && !coincideConCliente(l)) return false;
     if (f.sinTelefono && !sinTelefono(l)) return false;
+    if (f.quien && l.last_by !== f.quien) return false;
     if (f.buena && !categoriaBuena(l.category)) return false;
     if (f.etapa && etapaDe(l) !== f.etapa) return false;
     if (f.categoria === "utiles") { if (categoriaDescartada(l.category)) return false; }
@@ -367,6 +370,30 @@ export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
     if (q && !textoDe(l, f.textoExtra).includes(q)) return false;
     return true;
   });
+}
+
+/**
+ * Las personas que aparecen como último contacto de algún lead, para el filtro «Vendedor». Sin repetidos, por nombre.
+ * Un lead sin último contacto no cuenta.
+ */
+export function vendedoresDeLeads(leads: readonly Pick<Lead, "last_by" | "last_by_name">[]): { id: string; nombre: string }[] {
+  const m = new Map<string, string>();
+  for (const l of leads) {
+    if (!l.last_by) continue;
+    if (!m.has(l.last_by) || !m.get(l.last_by)) m.set(l.last_by, (l.last_by_name ?? "").trim() || "—");
+  }
+  // Por nombre; quien no tiene nombre (—) va al final.
+  return [...m.entries()].map(([id, nombre]) => ({ id, nombre })).sort((a, b) =>
+    Number(a.nombre === "—") - Number(b.nombre === "—") || a.nombre.localeCompare(b.nombre) || a.id.localeCompare(b.id));
+}
+
+/** Lo que se enseña en el tablero de estadísticas: el GOV Pool, el STXP Pool (la fuente privada) o los dos (D-1145, reunión del 23 nov 2026). */
+export type VistaDePool = "gov" | "stxp" | "ambos";
+
+/** Los leads de la vista elegida. «gov» deja fuera los de la fuente privada; «stxp» deja solo esos; «ambos», todos. */
+export function leadsDeLaVista<T extends Pick<Lead, "source">>(leads: readonly T[], vista: VistaDePool): T[] {
+  if (vista === "ambos") return [...leads];
+  return leads.filter((l) => (vista === "stxp" ? esPrivado(l) : !esPrivado(l)));
 }
 
 export type Orden = "pies" | "distancia" | "costo" | "fecha" | "nombre";

@@ -349,6 +349,8 @@ const EVENTS_WINDOW = 1000;
  * that need it (`ensureDeliveriesSince`), never by this provider on its own.
  */
 export const DELIVERIES_WINDOW_DAYS = 120;
+/** Cuántas filas de una ruta se escriben a la vez al reordenarla (D-1145). */
+export const ESCRITURAS_A_LA_VEZ = 6;
 /** D-805: cuánto espera, como mínimo, entre dos recargas por volver a la app. */
 export const RECARGA_AL_VOLVER_MS = 20_000;
 /** Stages that are finished: an order in any other stage stays loaded no matter how old. */
@@ -1502,16 +1504,23 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       setDeliveries((cur) => cur.map((d) => (seqById.has(d.id) ? { ...d, ...patchFor(d.id) } : d)));
       writingRef.current = true;
       try {
-        for (const id of seqById.keys()) {
+        // Skip rows already exactly where they should be — fewer writes, fewer echoes.
+        const cambian = [...seqById.keys()].filter((id) => {
           const was = prev.find((d) => d.id === id);
           const patch = patchFor(id);
-          // Skip rows already exactly where they should be — fewer writes, fewer echoes.
-          if (was && was.route_seq === patch.route_seq && (!loadNoById || (was.load_no ?? null) === (patch.load_no ?? null))
-            && (!pickupSeqById || Number(was.pickup_seq ?? NaN) === Number(patch.pickup_seq ?? NaN) || (was.pickup_seq == null && patch.pickup_seq == null))) continue;
-          const { error } = await supabase.from("deliveries").update(patch).eq("id", id);
-          if (error) {
+          return !(was && was.route_seq === patch.route_seq && (!loadNoById || (was.load_no ?? null) === (patch.load_no ?? null))
+            && (!pickupSeqById || Number(was.pickup_seq ?? NaN) === Number(patch.pickup_seq ?? NaN) || (was.pickup_seq == null && patch.pickup_seq == null)));
+        });
+        // D-1145: de 6 en 6, no una detrás de otra. Subir una parada de la 15 a la 1 cambia quince filas: una a una eran
+        // varios segundos con el Gestor sin dejar mover nada más («a veces no me deja»); todas a la vez es lo que saturó
+        // la base en D-1144. Seis a la vez es el mismo paso que «Vaciar ruta».
+        for (let i = 0; i < cambian.length; i += ESCRITURAS_A_LA_VEZ) {
+          const tanda = cambian.slice(i, i + ESCRITURAS_A_LA_VEZ);
+          const hechas = await Promise.all(tanda.map((id) => supabase.from("deliveries").update(patchFor(id)).eq("id", id)));
+          const fallo = hechas.find((r) => r.error);
+          if (fallo?.error) {
             setDeliveries(prev);          // put the old order back
-            notify("Error: " + error.message);
+            notify("Error: " + fallo.error.message);
             return false;
           }
         }

@@ -440,7 +440,7 @@ describe("7 · ↶ Deshacer / ↷ Rehacer a la vista en la tarjeta de cada ruta"
     expect(pagina.split("useState<Historial>(HISTORIAL_VACIO)").length - 1).toBe(1);
   });
   it("«Pasar a…» entra en el historial con las DOS rutas, y «Vaciar» con la suya", () => {
-    const pasar = trozo("const pasaA = async (origen: string, ids: readonly string[], destino: string) => {", "// ---- ARRASTRAR (D-456)");
+    const pasar = trozo("const pasaAYa = async (origen: string, ids: readonly string[], destino: string) => {", "// ---- ARRASTRAR (D-456)");
     expect(pasar).toContain("const afectadas = [...(byDriver.get(origen) ?? []), ...(byDriver.get(destino) ?? [])];");
     expect(pasar).toContain("despues[id] = { ...antes[id], assigned_driver: destino, route_seq: null, load_no: null };");
     expect(pasar).toContain("[origen, destino], antes, despues);");

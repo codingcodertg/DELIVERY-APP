@@ -4,7 +4,7 @@ import type { AlmacenDeLeads } from "@/lib/leads/almacen";
 import { telefonosDeLead, type LadoDelTelefono, type LlamadaDeLead } from "@/lib/leads/llamadas-rc";
 import { fecha, type Lead } from "@/lib/leads/reglas";
 import { telefonoBonito } from "@/lib/leads/telefonos";
-import { duracionDeLlamada } from "@/lib/ringcentral-choferes/choferes";
+import { duracionDeLlamada, esLlamadaPerdida } from "@/lib/ringcentral-choferes/choferes";
 import { ReproductorDeGrabacion } from "@/components/ringcentral/ReproductorDeGrabacion";
 
 /**
@@ -39,7 +39,7 @@ export function LlamadasDelLead({ lead, lista, almacen }: { lead: Lead; lista: L
       {lista.map((c) => {
         const lado = etiquetaLado(ladoDe(c.phone_key));
         return (
-          <li key={c.id} className="ld-llamada" data-llamada={c.id}>
+          <li key={c.id} className={`ld-llamada${esLlamadaPerdida(c.result) ? " ld-llamada-perdida" : ""}`} data-llamada={c.id}>
             <span aria-hidden="true">📞</span>{" "}
             <b>{c.direction === "in" ? t("Incoming", "Entrante") : t("Outgoing", "Saliente")}</b>
             {" · "}

@@ -4,6 +4,7 @@ import {
   DIAS_PRIMERA_VEZ,
   choferesDeLaSolicitud,
   duracionDeLlamada,
+  esLlamadaPerdida,
   esperaRestante,
   extensionDeGrabacion,
   extensionesDeLaRespuesta,
@@ -183,5 +184,16 @@ describe("cuándo se puede volver a sincronizar y el aviso de permiso", () => {
     expect(hayFaltaDePermiso([{ last_error_code: null }, { last_error_code: "sin_permiso" }])).toBe(true);
     expect(hayFaltaDePermiso([{ last_error_code: "limite" }])).toBe(false);
     expect(hayFaltaDePermiso([])).toBe(false);
+  });
+});
+
+describe("esLlamadaPerdida (D-1145, reunión del 23 nov 2026)", () => {
+  it("marca en rojo solo las llamadas perdidas", () => {
+    expect(esLlamadaPerdida("Missed")).toBe(true);
+    expect(esLlamadaPerdida(" missed ")).toBe(true);
+    expect(esLlamadaPerdida("Accepted")).toBe(false);
+    expect(esLlamadaPerdida("Voicemail")).toBe(false);
+    expect(esLlamadaPerdida(null)).toBe(false);
+    expect(esLlamadaPerdida(undefined)).toBe(false);
   });
 });

@@ -15,6 +15,7 @@ import {
   filtroDePool, categoriaBuena, coincideConCliente, esPrivado, ETAPAS, mapsUrl, negativaTexto, notaLimpia, NOTA_MAX, numero, ordenar, poolInicial, poolLabel,
   poolsDe, POOL_TODAS, resumenDeTodas, tableroPorTienda, tableroPorVendedor, telUrl, TIPOS_DE_ACCION, type TipoDeAccion, type Etapa, valoresDe, vecesVisto,
   ORDEN_INICIAL, vigentes, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, puedeVerEstadisticas,
+  vendedoresDeLeads, leadsDeLaVista, type VistaDePool,
 } from "@/lib/leads/reglas";
 // 337: las llamadas de RingCentral de la ficha y la pestaña de estadísticas (admin y gerente).
 import type { LlamadaDeLead } from "@/lib/leads/llamadas-rc";
@@ -143,6 +144,10 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [coinciden, setCoinciden] = useState(false);
   // 335: el filtro «Sin teléfono» (sin teléfono de contratista, ni de mano ni del Excel).
   const [sinTel, setSinTel] = useState(false);
+  // D-1145 (D-1145, reunión del 23 nov 2026): el filtro «Vendedor» (quien hizo el último contacto de cada lead). "" = todos.
+  const [vendedorElegido, setVendedorElegido] = useState("");
+  // El tablero de estadísticas (la pestaña del admin) enseña un pool o los dos. Al entrar, el del pool en el que estabas.
+  const [vistaStats, setVistaStats] = useState<VistaDePool>("gov");
   // D-799 (225): lo cruzado con un cliente de MI tienda también se ve, aunque su pool sea otra tienda.
   const miCodigo = codigoDeTiendaDelPerfil(yo?.store);
   const cruzadoDeMiTienda = useCallback((l: Lead) => esCruzadoDeMiTienda(l, clientes, miCodigo), [clientes, miCodigo]);
@@ -152,9 +157,10 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   );
   // Los filtros como al entrar: al cambiar de pestaña y con «Quitar filtros». El orden no es un filtro y se queda.
   const limpiaFiltros = () => {
-    setCategoria("todas"); setEtapa(""); setBuena(false); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false); setSinTel(false);
+    setCategoria("todas"); setEtapa(""); setBuena(false); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false); setSinTel(false); setVendedorElegido("");
   };
   const cambiaPestana = (p: Pestana) => {
+    if (p === "admin") setVistaStats(veStxp && pestana === "privado" ? "stxp" : "gov");
     setPestana(p);
     limpiaFiltros();
   };
@@ -195,10 +201,12 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const porEtapa = useMemo(() => cuentaPorEtapa(delPool), [delPool]);
   const buenas = useMemo(() => vigentes(delPool).filter((l) => categoriaBuena(l.category)).length, [delPool]);
   const visibles = useMemo(
-    () => ordenar(filtrar(delBanco, { pool: poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTelefono: sinTel, textoExtra }), orden),
-    [delBanco, poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTel, textoExtra, orden],
+    () => ordenar(filtrar(delBanco, { pool: poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTelefono: sinTel, textoExtra, quien: vendedorElegido }), orden),
+    [delBanco, poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTel, textoExtra, orden, vendedorElegido],
   );
-  useEffect(() => { setCuantos(TANDA); }, [pool, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTel, orden, semanaFiltro]);
+  // Las personas que han hecho algún último contacto en el banco que se ve (para el filtro «Vendedor»).
+  const vendedoresBanco = useMemo(() => vendedoresDeLeads(delBanco), [delBanco]);
+  useEffect(() => { setCuantos(TANDA); }, [pool, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTel, orden, semanaFiltro, vendedorElegido]);
 
   if (!yo) return <div className="ld-wrap leads-app"><p className="hint">{t("No session.", "Sin sesión.")}</p></div>;
 
@@ -410,6 +418,13 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                 </div>
                 <div className="ld-fila">
                   <label>
+                    {t("Rep", "Vendedor")}
+                    <select data-vendedor value={vendedorElegido} onChange={(e) => setVendedorElegido(e.target.value)}>
+                      <option value="">{t("All", "Todos")}</option>
+                      {vendedoresBanco.map((v) => <option key={v.id} value={v.id}>{v.nombre}</option>)}
+                    </select>
+                  </label>
+                  <label>
                     {t("Category", "Categoría")}
                     <select data-categoria value={categoria} onChange={(e) => setCategoria(e.target.value)}>
                       <option value="utiles">{t("Useful + might be useful", "Sirve + podría servir")}</option>
@@ -484,10 +499,13 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
           )}
 
           {pestana === "admin" && yo.admin && (
-            <Admin leads={leads} almacen={almacen} demo={demo} />
+            <Admin
+              leads={leads} almacen={almacen} demo={demo}
+              vista={veStxp ? vistaStats : "gov"} puedeStxp={veStxp} onVista={setVistaStats}
+            />
           )}
 
-          {pestana === "estadisticas" && puedeVerEstadisticas(yo) && <Estadisticas almacen={almacen} />}
+          {pestana === "estadisticas" && puedeVerEstadisticas(yo) && <Estadisticas almacen={almacen} leads={leads} puedeStxp={veStxp} />}
         </>
       )}
 
@@ -901,18 +919,46 @@ function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
 }
 
 /** La pestaña del admin: el tablero por tienda y por persona, los leads que volvieron en más de una carga, y cómo se importa. */
-function Admin({ leads, almacen, demo }: { leads: Lead[]; almacen: AlmacenDeLeads; demo: boolean }) {
+function Admin({ leads, almacen, demo, vista, puedeStxp, onVista }: {
+  leads: Lead[]; almacen: AlmacenDeLeads; demo: boolean;
+  /** Qué pool enseña el tablero (D-1145, reunión del 23 nov 2026). Sin STXP para quien no lo ve: siempre «gov». */
+  vista: VistaDePool;
+  /** ¿Puede ver el STXP Pool? Solo entonces hay interruptor y números de STXP. */
+  puedeStxp: boolean;
+  onVista: (v: VistaDePool) => void;
+}) {
   const { t, lang } = usePrefs();
   const [eventos, setEventos] = useState<EventoLead[]>([]);
   // El historial se relee cuando cambian los leads: una nota nueva cambia el tablero.
   useEffect(() => { void almacen.eventos().then((r) => { if (r.ok) setEventos(r.valor); }); }, [almacen, leads]);
 
-  const porTienda = tableroPorTienda(leads, eventos);
-  const vendedores = tableroPorVendedor(eventos);
-  const vistos = cuantosVistosMasDeUna(leads);
+  // Todo el tablero cuenta solo los leads de la vista (y su historial): el pool que se eligió, o los dos.
+  const leadsDeVista = useMemo(() => leadsDeLaVista(leads, vista), [leads, vista]);
+  const eventosDeVista = useMemo(() => {
+    const ids = new Set(leadsDeVista.map((l) => l.id));
+    return eventos.filter((e) => ids.has(e.lead_id));
+  }, [eventos, leadsDeVista]);
+  const etiquetaVista = vista === "stxp" ? "STXP Pool" : vista === "gov" ? "GOV Pool" : t("Both", "Los dos");
+
+  const porTienda = tableroPorTienda(leadsDeVista, eventosDeVista);
+  const vendedores = tableroPorVendedor(eventosDeVista);
+  const vistos = cuantosVistosMasDeUna(leadsDeVista);
 
   return (
     <div className="ld-admin">
+      {puedeStxp && (
+        <div className="card ld-ancho-total" data-bloque="vista">
+          <div className="ld-segmento" role="tablist" aria-label={t("Pool of the numbers", "Pool de los números")}>
+            {(["gov", "stxp", "ambos"] as const).map((v) => (
+              <button key={v} type="button" role="tab" aria-selected={vista === v} className={`chip${vista === v ? " on" : ""}`}
+                data-pool-de-numeros={v} onClick={() => onVista(v)}>
+                {v === "gov" ? "GOV Pool" : v === "stxp" ? "STXP Pool" : t("Both", "Los dos")}
+              </button>
+            ))}
+          </div>
+          <p className="hint" data-pool-de-numeros-actual>{t("These numbers are for:", "Estos números son de:")} <b>{etiquetaVista}</b></p>
+        </div>
+      )}
       <div className="card ld-ancho-total" data-bloque="etapas">
         <h2>🏬 {t("By GOV Pool and stage", "Por GOV Pool y etapa")}</h2>
         <TablaEstandar id="leads-por-tienda" data-tabla="por-tienda" sinCaja filas={porTienda} claveDe={(p) => p.pool} columnas={[
@@ -928,12 +974,12 @@ function Admin({ leads, almacen, demo }: { leads: Lead[]; almacen: AlmacenDeLead
         <h2>📞 {t("Phones", "Teléfonos")}</h2>
         <p className="hint" data-sin-telefono-por-pool>
           <b>{t("No phone (contractor):", "Sin teléfono (contratista):")}</b>{" "}
-          {sinTelefonoPorPool(leads).map((p) => `${poolLabel(p.pool, lang)} ${p.n}`).join(" · ") || "—"}
+          {sinTelefonoPorPool(leadsDeVista).map((p) => `${poolLabel(p.pool, lang)} ${p.n}`).join(" · ") || "—"}
         </p>
         <p className="hint" data-a-mano-este-mes>
-          <b>{t("Added by hand this month:", "Añadidos a mano este mes:")} {telefonosAMano(eventos, new Date()).total}</b>
-          {telefonosAMano(eventos, new Date()).porPersona.length > 0 && (
-            <> — {telefonosAMano(eventos, new Date()).porPersona.map((x) => `${x.nombre} ${x.n}`).join(" · ")}</>
+          <b>{t("Added by hand this month:", "Añadidos a mano este mes:")} {telefonosAMano(eventosDeVista, new Date()).total}</b>
+          {telefonosAMano(eventosDeVista, new Date()).porPersona.length > 0 && (
+            <> — {telefonosAMano(eventosDeVista, new Date()).porPersona.map((x) => `${x.nombre} ${x.n}`).join(" · ")}</>
           )}
         </p>
       </div>

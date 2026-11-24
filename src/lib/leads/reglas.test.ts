@@ -3,7 +3,7 @@ import {
   accionTono, aplicarNota, categoriaBuena, categoriaDescartada, cuantosVistosMasDeUna, cuentaPorEtapa, enlaceSeguro, estadoLabel, etapaDe,
   etapaLabel, etapaTono, ETAPAS, eventoLabel, filtrar, filtroDePool, fecha, mapsUrl, negativaDeCodigo, negativaTexto, notaLimpia, NOTA_MAX,
   ordenar, POOL_SIN_TIENDA, POOL_TODAS, poolInicial, poolsDe, resumenDeTodas, tableroPorTienda, tableroPorVendedor, telUrl, TIPOS_DE_ACCION,
-  valoresDe, vecesVisto, vigentes, type EventoLead, type Lead, type Persona,
+  valoresDe, vecesVisto, vigentes, vendedoresDeLeads, leadsDeLaVista, type EventoLead, type Lead, type Persona,
 } from "./reglas";
 
 const ahora = "2026-11-18T15:00:00.000Z";
@@ -239,5 +239,43 @@ describe("328 · una venta cerrada es de quien la cerró", () => {
   it("quien la cerró y el admin sí", () => {
     expect(aplicarNota(venta, p("a"), "", "2026-11-18T00:00:00Z", "lost").ok).toBe(true);
     expect(aplicarNota(venta, p("c", true), "", "2026-11-18T00:00:00Z", "negotiation").ok).toBe(true);
+  });
+});
+
+describe("filtro por vendedor (D-1145, reunión del 23 nov 2026)", () => {
+  it("deja solo los leads cuyo último contacto hizo esa persona", () => {
+    const de = [
+      lead({ id: "a", last_by: "ana", last_by_name: "Ana" }),
+      lead({ id: "b", last_by: "beto", last_by_name: "Beto" }),
+      lead({ id: "c", last_by: null, last_by_name: null }),
+    ];
+    const ids = (quien: string) => filtrar(de, { pool: null, categoria: "todas", tipo: "", ciudad: "", busca: "", etapa: "", buena: false, quien }).map((l) => l.id);
+    expect(ids("")).toEqual(["a", "b", "c"]);
+    expect(ids("ana")).toEqual(["a"]);
+    expect(ids("nadie")).toEqual([]);
+  });
+
+  it("lista las personas con último contacto, sin repetir y por nombre", () => {
+    const lista = vendedoresDeLeads([
+      { last_by: "beto", last_by_name: "Beto" },
+      { last_by: "ana", last_by_name: "Ana" },
+      { last_by: "beto", last_by_name: "Beto" },
+      { last_by: null, last_by_name: null },
+      { last_by: "pepe", last_by_name: null },
+    ]);
+    expect(lista).toEqual([
+      { id: "ana", nombre: "Ana" },
+      { id: "beto", nombre: "Beto" },
+      { id: "pepe", nombre: "—" },
+    ]);
+  });
+});
+
+describe("vista de pool del tablero (D-1145, reunión del 23 nov 2026)", () => {
+  it("«gov» deja fuera la fuente privada, «stxp» solo ella, «ambos» todo", () => {
+    const de = [{ id: "g", source: "tdlr" as const }, { id: "p", source: "privado" as const }, { id: "s", source: undefined }];
+    expect(leadsDeLaVista(de, "gov").map((l) => l.id)).toEqual(["g", "s"]);
+    expect(leadsDeLaVista(de, "stxp").map((l) => l.id)).toEqual(["p"]);
+    expect(leadsDeLaVista(de, "ambos").map((l) => l.id)).toEqual(["g", "p", "s"]);
   });
 });

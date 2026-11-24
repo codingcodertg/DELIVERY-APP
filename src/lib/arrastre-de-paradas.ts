@@ -442,6 +442,30 @@ export function trasVolver(h: Historial, dir: Direccion, sellos: Record<string, 
 }
 
 /**
+ * Tras una escritura NUESTRA (un movimiento nuevo, o un deshacer/rehacer): los movimientos que ya estaban en el historial y
+ * tocaban esas mismas paradas toman su sello nuevo (D-1145).
+ *
+ * Sin esto, deshacer DOS movimientos seguidos de la misma ruta no funcionaba: el segundo «Deshacer» veía que el
+ * `updated_at` de sus paradas había cambiado —lo cambiaron el movimiento siguiente y su deshacer, los dos de esta misma
+ * persona— y se negaba con «alguien cambió… después de este movimiento». Visto en el demo el 2026-11-23: dos arrastres,
+ * dos «Deshacer», y el segundo no volvía.
+ *
+ * Lo que sigue protegiendo: los CAMPOS de ruta de cada parada se comparan igual (`choquesAlVolver`: «cambio», «entró
+ * otra», «ya no está»), y una edición de otra persona posterior a nuestra última escritura sigue cambiando el sello.
+ */
+export function resella(h: Historial, sellos: Record<string, string> | null): Historial {
+  if (!sellos) return h;
+  const pone = (m: Movimiento): Movimiento => {
+    if (!m.sellos) return m;
+    let cambia = false;
+    const nuevos = { ...m.sellos };
+    for (const id of Object.keys(nuevos)) if (sellos[id] && sellos[id] !== nuevos[id]) { nuevos[id] = sellos[id]; cambia = true; }
+    return cambia ? { ...m, sellos: nuevos } : m;
+  };
+  return { deshacer: h.deshacer.map(pone), rehacer: h.rehacer.map(pone) };
+}
+
+/**
  * Tras un choque: ese movimiento ya no se puede aplicar sin pisar a otra persona, y sale de su pila. Los de debajo se
  * quedan: cada uno se vuelve a comprobar al pulsar, así que uno que dependía de este chocará también en vez de pisar.
  */

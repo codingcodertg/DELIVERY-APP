@@ -140,3 +140,6 @@
   border-color: var(--accent, #2456c9);
   color: #fff;
 }
+
+/* Llamada perdida (D-1145, reunión del 23 nov 2026): la fila en rojo y en negrita, como pidió el dueño. */
+.rcc-tabla tr.rcc-perdida > td, .rcc-tabla tr.rcc-perdida .hint { color: var(--red, #b91c1c); font-weight: 700; }

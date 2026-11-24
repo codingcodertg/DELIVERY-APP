@@ -142,7 +142,7 @@ import { CerrarAviso } from "@/components/CerrarAviso";
 import { avisoDelHueco, escrituraDelHueco, mejorLugar, separaPorRequisitos, type ParadaDeRuta } from "@/lib/mejor-lugar";
 import {
   anota, barrasDeLaRuta, botonDeVolver, choquesAlVolver, descartaElDeArriba, escriturasHacia, fotoDe, fotoDeFilas, fotoTrasReordenar,
-  HISTORIAL_VACIO, objetivoDe, planDeSoltar, porQueNoSuelta, sellosDe, textoDeChoques, textoDePrevia, trasVolver,
+  HISTORIAL_VACIO, objetivoDe, planDeSoltar, porQueNoSuelta, resella, sellosDe, textoDeChoques, textoDePrevia, trasVolver,
   type Destino, type Direccion, type FilaFresca, type Historial, type ParadaDelGantt, type RutaDelGantt,
 } from "@/lib/arrastre-de-paradas";
 import { ETAPAS_FIJAS, ETAPAS_HECHAS, estaEnElCamion, hechasDelChofer, numeracionConHechas, puestoEn } from "@/lib/mover-parada";
@@ -157,6 +157,7 @@ import {
   textoDeLaCuenta, textoDelExceso, tienePosicionDeRecogida, type FilaDeCuenta, type ParadaDeLaLista,
 } from "@/lib/lista-unica";
 import { flechaDelBloque, mueveBloque, ordenesDelBloque, type OpcionesDelBloque } from "@/lib/arrastre-multiple";
+import { gruposParaMarcar, mueveAParada, rangosDeParada, traeLaEntrega, velocidadDeAutoScroll } from "@/lib/mover-a-parada";
 import { alRepartir, cargaDe, etiquetaDeCarga, hermanasDe, laOtraCarga, restoPropuesto, sePuedenJuntar, sePuedePartir } from "@/lib/cargas-partidas";
 import { useRequisitosDelCamion } from "@/lib/usa-requisitos";
 import { useZonasDeChofer } from "@/lib/usa-zonas";
@@ -1062,7 +1063,50 @@ export default function RoutesPage() {
       `No se movió: ${n} es el paso b de una transferencia y se recogería antes de que llegue su paso a.`,
     ));
   };
-  const mueveParada = async (laneKey: string, indice: number, dir: -1 | 1) => {
+  // ---- LOS MOVIMIENTOS DE LA LISTA, EN FILA (D-1145) -------------------------------------------------------------
+  // El dueño, 2026-11-23: «cuando le quiero dar rearrange a veces no me deja, arregla eso, que sea más fluido». Roberto, en
+  // la reunión: «I move it up and then it just won't move», y una parada recién movida que volvía a su sitio. Dos causas:
+  //   · soltar una parada mientras la anterior se guardaba se RECHAZABA («el movimiento anterior se sigue guardando»), y
+  //     guardar eran varios segundos (una escritura por fila, una detrás de otra);
+  //   · las flechas ni siquiera esperaban: dos pulsadas seguidas escribían la lista a la vez, cada una con su foto de la
+  //     lista, y la primera en acabar soltaba el candado del tiempo real con la otra a medias: la lista se releía partida.
+  // Ahora cada movimiento (flechas, arrastre, «Pasar a…», «mover a la parada N», «traer su entrega») se pone EN FILA: espera
+  // al anterior y se calcula sobre la lista que ESE dejó, buscando su fila por lo que es (su orden), no por el puesto que
+  // tenía al pulsar. Nada se rechaza y nada se pisa. Y guardar es más corto: de 6 en 6 (`reorderStops`).
+  const filaDeMovimientos = useRef<Promise<unknown>>(Promise.resolve());
+  const movimientosEnFila = useRef(0);
+  const gestosDeLaLista = useRef<{
+    flecha: (ruta: string, clave: string, dir: -1 | 1) => Promise<void>;
+    suelta: (ruta: string, clave: string, destino: string, claveDestino: string | null) => Promise<void>;
+    pasaA: (origen: string, ids: readonly string[], destino: string) => Promise<void>;
+    aParada: (ruta: string, clave: string, numero: number, entera: boolean) => Promise<void>;
+    traeEntrega: (ruta: string, clave: string) => Promise<void>;
+  } | null>(null);
+  const enFila = (trabajo: () => Promise<void>): Promise<void> => {
+    const habiaOtro = movimientosEnFila.current > 0;
+    movimientosEnFila.current += 1;
+    setMoviendo(true);
+    const hecho = filaDeMovimientos.current.then(async () => {
+      // Con otro delante, un respiro: que la pantalla tenga ya la lista que dejó (el trabajo usa la de ESE momento).
+      if (habiaOtro) await new Promise((r) => setTimeout(r, 40));
+      await trabajo();
+    }).catch(() => undefined).finally(() => {
+      movimientosEnFila.current -= 1;
+      setMoviendo(movimientosEnFila.current > 0);
+    });
+    filaDeMovimientos.current = hecho;
+    return hecho;
+  };
+  /** Dónde está AHORA en la lista la fila con esa clave (−1 si ya no está: otra persona la quitó, o se entregó). */
+  const indiceDeLaClave = (laneKey: string, clave: string) => lecturaDe(laneKey, byDriver.get(laneKey) ?? []).paradas.findIndex((x) => claveDeLaFila(x) === clave);
+  const avisaQueLaListaCambio = () => notify(t("Not moved: that stop is no longer in the list (it changed while the previous move was saving).", "No se movió: esa parada ya no está en la lista (cambió mientras se guardaba el movimiento anterior)."), { ms: 6000 });
+  const mueveParada = (laneKey: string, indice: number, dir: -1 | 1) => {
+    const p = lecturaDe(laneKey, byDriver.get(laneKey) ?? []).paradas[indice];
+    if (!p) return Promise.resolve();
+    const clave = claveDeLaFila(p);
+    return enFila(() => gestosDeLaLista.current!.flecha(laneKey, clave, dir));
+  };
+  const mueveParadaYa = async (laneKey: string, indice: number, dir: -1 | 1) => {
     const stops = byDriver.get(laneKey) ?? [];
     const lectura = lecturaDe(laneKey, stops);
     const p = lectura.paradas[indice];
@@ -1099,9 +1143,10 @@ export default function RoutesPage() {
    *  Entran al final de su lista, sin puesto, como «Asignar» (`assignToLane`), y se dice. */
   // D-459: entra en deshacer/rehacer, como las flechas. La foto lleva las DOS rutas —la de salida y la de llegada—, así
   // que deshacer devuelve la orden a su chofer y a su puesto de una vez: no puede quedar a medias.
-  const pasaA = async (origen: string, ids: readonly string[], destino: string) => {
+  const pasaA = (origen: string, ids: readonly string[], destino: string) => enFila(() => gestosDeLaLista.current!.pasaA(origen, ids, destino));
+  const pasaAYa = async (origen: string, ids: readonly string[], destino: string) => {
     if (!destino || !ids.length) return;
-    if (avisaSiOptimiza() || avisaSiGuarda()) return;
+    if (avisaSiOptimiza()) return;
     const afectadas = [...(byDriver.get(origen) ?? []), ...(byDriver.get(destino) ?? [])];
     const antes = fotoDe(afectadas.map(aParadaDelGantt));
     const despues = { ...antes };
@@ -1235,6 +1280,15 @@ export default function RoutesPage() {
     setArrastrado(null);
     setSobre(null);
     if (!a) return;
+    if (a.tipo === "parada") {
+      // D-1145: una parada soltada va EN FILA (ver `enFila`): no se rechaza si la anterior se sigue guardando.
+      const origen = lecturaDe(a.ruta, byDriver.get(a.ruta) ?? []).paradas[a.indice];
+      const sobreLa = indice == null ? null : lecturaDe(destino, byDriver.get(destino) ?? []).paradas[indice];
+      if (!origen || (indice != null && !sobreLa)) return;
+      const claveOrigen = claveDeLaFila(origen), claveDestino = sobreLa ? claveDeLaFila(sobreLa) : null;
+      await enFila(() => gestosDeLaLista.current!.suelta(a.ruta, claveOrigen, destino, claveDestino));
+      return;
+    }
     if (avisaSiOptimiza() || avisaSiGuarda()) return;
     if (a.tipo === "hecha") {
       // D-1118: una entregada soltada sobre una ENTREGA pendiente de su ruta toma su puesto.
@@ -1252,10 +1306,17 @@ export default function RoutesPage() {
       notify(t(`${facturaYId(d).principal} → ${laneLabel(destino)} (at the end of its list)`, `${facturaYId(d).principal} → ${laneLabel(destino)} (al final de su lista)`));
       return;
     }
+  };
+  /** D-1145: lo que hace una parada soltada, cuando le toca en la fila. La fila que se movió y la fila sobre la que se
+   *  soltó se buscan AHORA, por su clave: si el movimiento anterior cambió los puestos, siguen siendo las mismas filas. */
+  const sueltaParadaYa = async (rutaDeOrigen: string, claveOrigen: string, destino: string, claveDestino: string | null) => {
+    if (avisaSiOptimiza()) return;
+    const a = { ruta: rutaDeOrigen, indice: indiceDeLaClave(rutaDeOrigen, claveOrigen) };
+    const indice = claveDestino == null ? null : indiceDeLaClave(destino, claveDestino);
     const stops = byDriver.get(a.ruta) ?? [];
     const lectura = lecturaDe(a.ruta, stops);
     const p = lectura.paradas[a.indice];
-    if (!p) return;
+    if (!p || (indice != null && indice < 0)) { avisaQueLaListaCambio(); return; }
     const etiqueta = etiquetaDelDia(a.ruta, stops, lectura, (f) => f.indice === a.indice);
     const ids = p.tipo === "P" ? p.ordenes : [p.orden];
     // D-1024: si hay varias órdenes marcadas en esta lista, van TODAS (en su orden de lista), no solo la arrastrada.
@@ -1304,6 +1365,94 @@ export default function RoutesPage() {
       setMoviendo(false);
     }
   };
+  /** Las flechas, cuando les toca en la fila: la fila se busca por su clave. */
+  const flechaYa = async (laneKey: string, clave: string, dir: -1 | 1) => {
+    const i = indiceDeLaClave(laneKey, clave);
+    if (i < 0) { avisaQueLaListaCambio(); return; }
+    await mueveParadaYa(laneKey, i, dir);
+  };
+  // ---- «# Mover a la parada N» y «traer su entrega» (D-1145; la regla, en lib/mover-a-parada) ----------------------
+  // El «#» de cada fila abre un diálogo corto: el número de parada (el del círculo) y dos botones: solo esa fila, o la
+  // orden entera (recogida y entrega juntas). Si la fila es de una orden MARCADA y hay más marcadas en la lista, van todas.
+  const [moverA, setMoverA] = useState<{ ruta: string; clave: string } | null>(null);
+  const [numeroParaMover, setNumeroParaMover] = useState("");
+  const cierraMoverA = () => { setMoverA(null); setNumeroParaMover(""); };
+  const aParadaYa = async (laneKey: string, clave: string, numero: number, entera: boolean) => {
+    if (avisaSiOptimiza()) return;
+    const stops = byDriver.get(laneKey) ?? [];
+    const lectura = lecturaDe(laneKey, stops);
+    const indice = lectura.paradas.findIndex((x) => claveDeLaFila(x) === clave);
+    const p = lectura.paradas[indice];
+    if (!p) { avisaQueLaListaCambio(); return; }
+    const bloque = ordenesDelBloque(lectura.paradas, marcadas, indice);
+    const ordenes = bloque ?? (entera ? (p.tipo === "P" ? p.ordenes : [p.orden]) : null);
+    if (!hayRecogidaGuardada && (p.tipo === "P" || ordenes)) { notify(t("Moving a pickup needs the database update (migration 154).", "Mover una recogida necesita la actualización de la base (migración 154).")); return; }
+    const r = mueveAParada(lectura.paradas, rangosDeParada(lectura.filas, diaDe(laneKey, stops, lectura).dePendiente), indice, numero, ordenes, opcionesDelBloque());
+    if (!r.ok) {
+      if (r.motivo === "no_existe") notify(t(`Not moved: stop ${numero} is not a pending stop of this route (pending: ${r.min} to ${r.max}).`, `No se movió: la parada ${numero} no es una parada pendiente de esta ruta (pendientes: de la ${r.min} a la ${r.max}).`), { ms: 7000 });
+      else if (r.motivo === "borde") notify(t(`Not moved: it is already at stop ${numero}.`, `No se movió: ya está en la parada ${numero}.`));
+      else avisaDelBloque(laneKey, stops, lectura, r);
+      return;
+    }
+    const etiqueta = etiquetaDelDia(laneKey, stops, lectura, (f) => f.indice === indice);
+    const nombre = r.ordenes.map((id) => { const o = stops.find((x) => x.id === id); return o ? facturaYId(o).principal : ""; }).filter(Boolean).join(" · ");
+    const que = bloque ? { en: `${bloque.length} orders`, es: `${bloque.length} órdenes` } : ordenes ? { en: `Order ${nombre}`, es: `Orden ${nombre}` } : { en: `${etiqueta} ${nombre}`, es: `${etiqueta} ${nombre}` };
+    if (!(await guardaLaLista(laneKey, stops, r.paradas, { en: `${que.en} → stop ${numero}`, es: `${que.es} → parada ${numero}` }))) return;
+    senalaLaMovida(clave);
+    const n = cuentaDePallets(cambiosDeLaLista(r.paradas, stops), capacityFor(driverOf(laneKey))).totales.paradasConExceso;
+    notify(t(`${que.en} → stop ${numero}.${n > 0 ? ` ⚠ over capacity at ${n} stop(s).` : ""}`, `${que.es} → parada ${numero}.${n > 0 ? ` ⚠ se pasa de la capacidad en ${n} parada(s).` : ""}`));
+  };
+  const traeEntregaYa = async (laneKey: string, clave: string) => {
+    if (avisaSiOptimiza()) return;
+    const stops = byDriver.get(laneKey) ?? [];
+    const lectura = lecturaDe(laneKey, stops);
+    const indice = lectura.paradas.findIndex((x) => claveDeLaFila(x) === clave);
+    const p = lectura.paradas[indice];
+    if (!p) { avisaQueLaListaCambio(); return; }
+    if (!hayRecogidaGuardada) { notify(t("Needs the database update (migration 154).", "Necesita la actualización de la base (migración 154).")); return; }
+    const r = traeLaEntrega(lectura.paradas, indice, opcionesDelBloque());
+    if (!r.ok) {
+      if (r.motivo === "borde") notify(t("Its delivery already goes right after this pickup.", "Su entrega ya va justo después de esta recogida."));
+      else if (r.motivo !== "no_existe") avisaDelBloque(laneKey, stops, lectura, r);
+      return;
+    }
+    const etiqueta = etiquetaDelDia(laneKey, stops, lectura, (f) => f.indice === indice);
+    const nombre = r.ordenes.map((id) => { const o = stops.find((x) => x.id === id); return o ? facturaYId(o).principal : ""; }).filter(Boolean).join(" · ");
+    if (!(await guardaLaLista(laneKey, stops, r.paradas, { en: `Delivery of ${nombre} right after ${etiqueta}`, es: `Entrega de ${nombre} justo después de ${etiqueta}` }))) return;
+    senalaLaMovida(clave);
+    notify(t(`Delivery of ${nombre} → right after its pickup (${etiqueta}).`, `Entrega de ${nombre} → justo después de su recogida (${etiqueta}).`));
+  };
+  // Lo último de cada gesto: la fila los llama cuando les toca, con la lista de ESE momento (no la de cuando se pulsó).
+  gestosDeLaLista.current = { flecha: flechaYa, suelta: sueltaParadaYa, pasaA: pasaAYa, aParada: aParadaYa, traeEntrega: traeEntregaYa };
+  // ---- DESPLAZAR SOLA la lista al arrastrar (D-1145) -------------------------------------------------------------
+  // El dueño: «si lo muevo hacia arriba que él haga el scroll, porque ahorita debo ir haciendo como escalones». Mientras se
+  // arrastra, cerca del borde de arriba o de abajo de lo que se ve se desplaza la caja que tenga más que enseñar bajo el
+  // puntero (la tabla de la ruta, el panel) y, si ninguna, la página. La velocidad, `velocidadDeAutoScroll`.
+  const arrastrando = arrastrado != null;
+  useEffect(() => {
+    if (!arrastrando) return;
+    let x = -1, y = -1, cuadro = 0;
+    const mira = (e: DragEvent) => { x = e.clientX; y = e.clientY; };
+    const paso = () => {
+      cuadro = requestAnimationFrame(paso);
+      if (y < 0) return;
+      const alto = window.innerHeight;
+      for (let el = document.elementFromPoint(x, y) as HTMLElement | null; el && el !== document.body && el !== document.documentElement; el = el.parentElement) {
+        if (el.scrollHeight <= el.clientHeight + 1) continue;
+        const desborde = getComputedStyle(el).overflowY;
+        if (desborde !== "auto" && desborde !== "scroll") continue;
+        const caja = el.getBoundingClientRect();
+        const v = velocidadDeAutoScroll(y, Math.max(caja.top, 0), Math.min(caja.bottom, alto));
+        if ((v < 0 && el.scrollTop > 0) || (v > 0 && el.scrollTop + el.clientHeight < el.scrollHeight - 1)) { el.scrollTop += v; return; }
+      }
+      const pagina = document.scrollingElement;
+      const v = velocidadDeAutoScroll(y, 0, alto);
+      if (pagina && v) pagina.scrollTop += v;
+    };
+    document.addEventListener("dragover", mira, true);
+    cuadro = requestAnimationFrame(paso);
+    return () => { document.removeEventListener("dragover", mira, true); cancelAnimationFrame(cuadro); };
+  }, [arrastrando]);
 
   // ---- «🧭 Optimizar» una ruta (D-456, rehecho en D-461) ---------------------------------------------------------
   // El dueño, 2026-10-01: «have the optimize option for every route when selecting a driver and optimize it». D-437 lo había
@@ -2522,7 +2671,8 @@ export default function RoutesPage() {
   };
   const anotaMovimiento = async (etiqueta: { en: string; es: string }, rutas: string[], antes: ReturnType<typeof fotoDe>, despues: ReturnType<typeof fotoDe>) => {
     const sellos = sellosDe(await leeFilasFrescas(Object.keys(despues)));
-    setHistorial((h) => anota(h, { etiqueta, rutas, antes, despues, sellos }));
+    // D-1145: los movimientos de debajo que tocaban estas paradas toman su sello nuevo (`resella`): la escritura es nuestra.
+    setHistorial((h) => anota(resella(h, sellos), { etiqueta, rutas, antes, despues, sellos }));
   };
   const vuelve = async (dir: Direccion) => {
     const pila = dir === "deshacer" ? historial.deshacer : historial.rehacer;
@@ -2548,7 +2698,7 @@ export default function RoutesPage() {
         if (!(await updateDelivery(e.id, e.parche))) return; // el proveedor ya avisó; el movimiento se queda donde estaba
       }
       const sellos = sellosDe(await leeFilasFrescas(ids));
-      setHistorial((h) => trasVolver(h, dir, sellos));
+      setHistorial((h) => trasVolver(resella(h, sellos), dir, sellos));
       notify(dir === "deshacer" ? t(`Undone: ${m.etiqueta.en}`, `Deshecho: ${m.etiqueta.es}`) : t(`Redone: ${m.etiqueta.en}`, `Rehecho: ${m.etiqueta.es}`));
     } finally {
       setMoviendo(false);
@@ -3628,6 +3778,56 @@ export default function RoutesPage() {
         )}
       </div>
 
+      {moverA && (() => {
+        // D-1145: «# Mover a la parada N». Se abre en su sitio, encima del Gestor; Enter mueve, Esc cierra.
+        const stops = byDriver.get(moverA.ruta) ?? [];
+        const lectura = lecturaDe(moverA.ruta, stops);
+        const indice = lectura.paradas.findIndex((x) => claveDeLaFila(x) === moverA.clave);
+        const p = lectura.paradas[indice];
+        if (!p) return null;
+        const rangos = rangosDeParada(lectura.filas, diaDe(moverA.ruta, stops, lectura).dePendiente);
+        const numeros = [...rangos.keys()].sort((x, y) => x - y);
+        const min = numeros[0] ?? 0, max = numeros[numeros.length - 1] ?? 0;
+        const bloque = ordenesDelBloque(lectura.paradas, marcadas, indice);
+        const suyas = p.tipo === "P" ? p.ordenes : [p.orden];
+        const nombre = suyas.map((id) => { const o = stops.find((x) => x.id === id); return o ? facturaYId(o).principal : ""; }).filter(Boolean).join(" · ");
+        const etiqueta = etiquetaDelDia(moverA.ruta, stops, lectura, (f) => f.indice === indice);
+        // «La orden entera» solo si su otra mitad está en la lista (una entrega ya en el camión no tiene recogida que mover).
+        const tieneLasDos = lectura.paradas.filter((x) => (x.tipo === "P" ? x.ordenes : [x.orden]).some((id) => suyas.includes(id))).length > 1;
+        const n = Number(numeroParaMover);
+        const valido = numeroParaMover.trim() !== "" && Number.isInteger(n) && rangos.has(n);
+        const mueve = (entera: boolean) => { if (!valido) return; const { ruta, clave } = moverA; cierraMoverA(); void enFila(() => gestosDeLaLista.current!.aParada(ruta, clave, n, entera)); };
+        return (
+          <div className="overlay" data-dialogo-mover-a-parada onClick={(e) => { if (e.target === e.currentTarget) cierraMoverA(); }}>
+            <form className="modal" role="dialog" aria-modal="true" style={{ maxWidth: 420 }}
+              onSubmit={(e) => { e.preventDefault(); mueve(false); }} onKeyDown={(e) => { if (e.key === "Escape") cierraMoverA(); }}>
+              <h3 style={{ marginTop: 0 }}>{bloque ? t(`Move the ${bloque.length} checked orders`, `Mover las ${bloque.length} órdenes marcadas`) : t(`Move ${etiqueta} · ${nombre}`, `Mover ${etiqueta} · ${nombre}`)}</h3>
+              <div className="field">
+                <label htmlFor="numero-para-mover">{t(`To stop number (${min} to ${max})`, `A la parada número (de la ${min} a la ${max})`)}</label>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input id="numero-para-mover" data-numero-para-mover type="number" inputMode="numeric" autoFocus min={min} max={max} step={1}
+                    value={numeroParaMover} onChange={(e) => setNumeroParaMover(e.target.value)} style={{ flex: 1, minHeight: 44, fontSize: 18 }} />
+                  <button type="button" className="btn btn-ghost btn-sm" data-a-la-primera onClick={() => setNumeroParaMover(String(min))} title={t("The first pending stop", "La primera parada pendiente")}>⤒ {min}</button>
+                  <button type="button" className="btn btn-ghost btn-sm" data-a-la-ultima onClick={() => setNumeroParaMover(String(max))} title={t("The last stop", "La última parada")}>⤓ {max}</button>
+                </div>
+                {numeroParaMover.trim() !== "" && !valido && <div className="hint" data-numero-no-valido style={{ color: "var(--red)" }}>{t(`That is not a pending stop of this route.`, `Esa no es una parada pendiente de esta ruta.`)}</div>}
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                <button type="button" className="btn" style={{ minHeight: 44 }} onClick={cierraMoverA}>{t("Cancel", "Cancelar")}</button>
+                <button type="submit" className="btn btn-primary" data-mover-solo-esta style={{ flex: 1, minHeight: 44, justifyContent: "center" }} disabled={!valido}>
+                  {bloque ? t("Move them together", "Moverlas juntas") : t("Move this stop", "Mover esta parada")}
+                </button>
+                {!bloque && tieneLasDos && hayRecogidaGuardada && (
+                  <button type="button" className="btn btn-primary" data-mover-la-orden-entera style={{ flex: 1, minHeight: 44, justifyContent: "center" }} disabled={!valido} onClick={() => mueve(true)}>
+                    {p.tipo === "P" ? t("Move it with its delivery", "Moverla con su entrega") : t("Move it with its pickup", "Moverla con su recogida")}
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        );
+      })()}
+
       {incidenciasAbiertas && (
         <div className="overlay" data-ventana-incidencias onClick={(e) => { if (e.target === e.currentTarget) setIncidenciasAbiertas(false); }}>
           <div className="modal" role="dialog" aria-modal="true" aria-label={t("Driver incidents", "Incidencias de choferes")} style={{ maxWidth: 820 }}>
@@ -4102,6 +4302,31 @@ export default function RoutesPage() {
                   title={t("Admin: show the stage actions (picked up / delivered) on each stop", "Admin: mostrar las acciones de etapa (recogido / entregado) en cada parada")}
                   onClick={(e) => { e.stopPropagation(); setCambiarEtapa((v) => !v); }}>🔁 {t("Change stage", "Cambiar etapa")}</button>
               )}
+              {/* «Marcar por…» (D-1145): marca de un toque las órdenes de una ciudad o de una tienda de recogida, para moverlas
+                  juntas (arrastre, flechas o «#»), pasarlas a otro chofer o reprogramarlas con la barra de marcadas. */}
+              {stops.length > 1 && !soloLectura && modoDeTarjeta !== "compacta" && (() => {
+                const grupos = gruposParaMarcar(stops, (d) => ciudadDeEntrega(d.delivery_address, ciudadesQueSeConocen));
+                const deCiudad = grupos.filter((g) => g.tipo === "ciudad"), deTienda = grupos.filter((g) => g.tipo === "tienda");
+                if (!grupos.length) return null;
+                const hayMarcadas = stops.some((d) => marcadas.has(d.id));
+                return (
+                  <select value="" data-marcar-por={u.key} onClick={(e) => e.stopPropagation()}
+                    aria-label={t("Check the orders of a city or a pickup store", "Marcar las órdenes de una ciudad o de una tienda de recogida")}
+                    title={t("Check every order of a delivery city or a pickup store, to move them together", "Marcar todas las órdenes de una ciudad de entrega o de una tienda de recogida, para moverlas juntas")}
+                    onChange={(e) => {
+                      const v = e.target.value; e.currentTarget.value = "";
+                      const suyas = new Set(stops.map((d) => d.id));
+                      const elegidas = grupos.find((g) => g.clave === v)?.ids ?? [];
+                      setMarcadas((m) => { const n = new Set([...m].filter((id) => !suyas.has(id))); for (const id of elegidas) n.add(id); return n; });
+                    }}
+                    style={{ width: "auto", maxWidth: 132, padding: "2px 4px", fontSize: 12 }}>
+                    <option value="">☑ {t("Check by…", "Marcar por…")}</option>
+                    {deCiudad.length > 0 && <optgroup label={t("Delivery city", "Ciudad de entrega")}>{deCiudad.map((g) => <option key={g.clave} value={g.clave}>{g.nombre} ({g.ids.length})</option>)}</optgroup>}
+                    {deTienda.length > 0 && <optgroup label={t("Picks up at", "Recoge en")}>{deTienda.map((g) => <option key={g.clave} value={g.clave}>{g.nombre} ({g.ids.length})</option>)}</optgroup>}
+                    {hayMarcadas && <option value="_ninguna">✕ {t("Uncheck this route", "Quitar las marcas de esta ruta")}</option>}
+                  </select>
+                );
+              })()}
               {/* Una sola foto por ruta: en «Cuadrícula» la pinta la desplegada, que es la que tiene la tabla (D-636). */}
               {pngDe === u.key && modoDeTarjeta !== "compacta" && (
                 <FotoDeLaRuta chofer={u.label} fecha={date} laneKey={u.key} stops={stops} color={colorFor(u.driver)} t={t} onClose={() => setPngDe(null)} camion={camionesDelDia.asignaciones.find((a) => a.driverId === choferIdDe(u.driver))?.truck ?? null}
@@ -4195,6 +4420,15 @@ export default function RoutesPage() {
                           <button className="btn btn-ghost btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} data-baja-parada
                             disabled={f.indice === lectura.paradas.length - 1 || (f.tipo === "P" && !hayRecogidaGuardada)} onClick={() => void mueveParada(u.key, f.indice!, 1)}
                             title={f.tipo === "P" && !hayRecogidaGuardada ? t("Needs the database update (154) to save where a pickup goes", "Necesita la actualización de la base (154) para guardar dónde va una recogida") : t("Move down", "Bajar")}>↓</button>
+                          {/* D-1145: «#» = a la parada número N, de una vez; en una recogida, «D↑» trae su entrega justo detrás. */}
+                          <button className="btn btn-ghost btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} data-mover-a-parada
+                            disabled={f.tipo === "P" && !hayRecogidaGuardada} onClick={() => { setNumeroParaMover(""); setMoverA({ ruta: u.key, clave }); }}
+                            title={t("Move to stop number… (with several orders checked, they all go together)", "Mover a la parada número… (con varias órdenes marcadas, van todas juntas)")}>#</button>
+                          {f.tipo === "P" && hayRecogidaGuardada && (
+                            <button className="btn btn-ghost btn-sm" style={{ padding: "2px 6px", minHeight: 0 }} data-trae-la-entrega
+                              onClick={() => void enFila(() => gestosDeLaLista.current!.traeEntrega(u.key, clave))}
+                              title={t("Bring its delivery up, right after this pickup", "Traer su entrega, justo después de esta recogida")}>D↑</button>
+                          )}
                         </>
                       );
                       // «Pasar a…» otro chofer (D-443, en las P y en las D): las órdenes de la parada, enteras.
