@@ -8,7 +8,7 @@ import {
   type FetchFn, type ProveedorDeTiempos,
 } from "./proveedores";
 import {
-  MAX_VUELTAS_DE_TRAFICO, PRESUPUESTO_POR_DEFECTO, cacheEnMemoria, estaVigente, instanteLocalISO, matrizBase, planificaConTrafico, traficoDeTramos,
+  MAX_VUELTAS_DE_TRAFICO, PRESUPUESTO_POR_DEFECTO, TRAMOS_A_LA_VEZ, cacheEnMemoria, estaVigente, instanteLocalISO, matrizBase, planificaConTrafico, traficoDeTramos,
   tramosDelPlan, type FilaDeCache,
 } from "./tiempos";
 import { cacheEnSupabase, type ClienteDeCache } from "./cache-supabase";
@@ -125,11 +125,17 @@ describe("la matriz base", () => {
     expect(r.matriz.tienda.a.minutos).toBe(Math.round(r.matriz.tienda.a.millas * 2));
   });
 
-  it("el tope por corrida: si lo que falta no cabe, el de pago NO se toca y se dice", async () => {
-    const g = doble("google"), o = doble("osrm");
-    const r = await matrizBase(P, { cache: cacheEnMemoria(), proveedores: [g.p, o.p], ahoraISO: AHORA, presupuesto: { ...PRESUPUESTO_POR_DEFECTO, elementosPorCorrida: 5 } });
-    expect(g.pedidos.elementos).toBe(0);
+  it("el tope por corrida: si lo que falta no cabe, el de pago se gasta por orígenes enteros HASTA el tope, el resto va al respaldo, y se dice (D-1143)", async () => {
+    const g = doble("google"), o = doble("osrm"), cache = cacheEnMemoria();
+    const deps = { cache, proveedores: [g.p, o.p], ahoraISO: AHORA, presupuesto: { ...PRESUPUESTO_POR_DEFECTO, elementosPorCorrida: 5 } };
+    const r = await matrizBase(P, deps);
+    // 3 orígenes × 2 destinos: caben dos orígenes (4 ≤ 5) y el tercero no (6 > 5).
+    expect([g.pedidos.elementos, o.pedidos.elementos]).toEqual([4, 2]);
     expect(r.informe).toMatchObject({ proveedor: "osrm", presupuestoAgotado: true, pedidos: 6 });
+    // Lo pagado se guardó; lo del respaldo no. Por eso la corrida siguiente paga SOLO el resto, y ya no dice nada.
+    expect(cache.filas.size).toBe(4);
+    const otra = await matrizBase(P, deps);
+    expect([g.pedidos.elementos, otra.informe]).toEqual([6, { deCache: 4, pedidos: 2, proveedor: "google", presupuestoAgotado: false }]);
     // Y justo en el tope, sí cabe.
     const g2 = doble("google");
     await matrizBase(P, { cache: cacheEnMemoria(), proveedores: [g2.p], ahoraISO: AHORA, presupuesto: { ...PRESUPUESTO_POR_DEFECTO, elementosPorCorrida: 6 } });
@@ -145,7 +151,7 @@ describe("la matriz base", () => {
     const presupuesto = { ...PRESUPUESTO_POR_DEFECTO, elementosPorDia: 15 };
     const g = doble("google"), o = doble("osrm");
     const r = await matrizBase(P, { cache: cacheEnMemoria([...hoy, ...ayer, ...gratis]), proveedores: [g.p, o.p], ahoraISO: AHORA, presupuesto });
-    expect([g.pedidos.elementos, r.informe.presupuestoAgotado]).toEqual([0, true]);   // 10 + 6 > 15
+    expect([g.pedidos.elementos, r.informe.presupuestoAgotado]).toEqual([4, true]);   // 10 + 6 > 15: caben dos orígenes (10 + 4)
     const g2 = doble("google");
     await matrizBase(P, { cache: cacheEnMemoria([...hoy.slice(0, 9), ...ayer, ...gratis]), proveedores: [g2.p], ahoraISO: AHORA, presupuesto });
     expect(g2.pedidos.elementos).toBe(6);                                                // 9 + 6 = 15
@@ -214,6 +220,19 @@ describe("el tráfico, tramo a tramo", () => {
     const g2 = doble("google", { conTrafico: true });
     const r2 = await traficoDeTramos(tramos, "2026-03-04", P, ZONA, { cache: cacheEnMemoria(ya), proveedores: [g2.p], ahoraISO: AHORA, presupuesto: { ...PRESUPUESTO_POR_DEFECTO, tramosPorDia: 6 } });
     expect([g2.pedidos.tramos.length, r2.informe.presupuestoAgotado]).toEqual([1, true]);
+  });
+
+  it("un día grande: los tramos salen en tandas, no uno detrás de otro, y cada tanda se guarda de una vez (D-1143)", async () => {
+    const tramos = Array.from({ length: 20 }, (_, n) => ({ a: "tienda", b: "a", salidaMin: 480 + n * 30 }));
+    let enVuelo = 0, pico = 0, escrituras = 0;
+    const lento: ProveedorDeTiempos = {
+      nombre: "google", conTrafico: true, async matriz() { return []; },
+      async tramo() { enVuelo++; pico = Math.max(pico, enVuelo); await new Promise((r) => setTimeout(r, 5)); enVuelo--; return { minutos: 10, millas: 6 }; },
+    };
+    const base = cacheEnMemoria();
+    const cache = { ...base, escribe: async (f: readonly FilaDeCache[]) => { escrituras++; await base.escribe(f); } };
+    const r = await traficoDeTramos(tramos, "2026-03-04", P, ZONA, { cache, proveedores: [lento], ahoraISO: AHORA });
+    expect([r.informe.pedidos, pico, escrituras, base.filas.size]).toEqual([20, TRAMOS_A_LA_VEZ, Math.ceil(20 / TRAMOS_A_LA_VEZ), 20]);
   });
 });
 
