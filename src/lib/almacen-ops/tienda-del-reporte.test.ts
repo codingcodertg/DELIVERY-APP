@@ -14,8 +14,8 @@ describe("Reportes → Merma: filtro por tienda arriba (D-1147)", () => {
   it("los grupos de aprobación también son solo los de esa tienda", () => {
     expect(src).toContain('filtrarGrupos(tiendaElegida === "" ? grupos : grupos.filter((g) => g.store === tiendaElegida), estadoGrupos, rango, verTodosGrupos)');
   });
-  it("sale junto al rango, solo en la pestaña de merma y solo con más de una tienda; una tienda que ya no está no filtra", () => {
-    expect(src).toContain('{pestana === "merma" && tiendasDelFiltro.length > 1 && (');
+  it("sale junto al rango, en merma y en conteos (D-1148), y solo con más de una tienda; una tienda que ya no está no filtra", () => {
+    expect(src).toContain('{(pestana === "merma" || pestana === "conteos") && tiendasDelFiltro.length > 1 && (');
     expect(src).toContain("data-tienda-del-reporte");
     expect(src).toContain('const tiendaElegida = tiendasDelFiltro.length > 1 && tiendasDelFiltro.includes(tiendaDelReporte) ? tiendaDelReporte : "";');
   });

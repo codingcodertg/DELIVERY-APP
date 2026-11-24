@@ -7,12 +7,14 @@ import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime, fmtMoney } from "@/lib/utils";
 import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
-import { hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
-import { resumenDelConteo, type Conteo, type Linea, type OrdenPendiente } from "@/lib/almacen-ops/conteos";
+import {
+  ETAPAS_DE_CONTEO, INFO_DE_ETAPA_DE_CONTEO, nombreDeEtapaDeConteo, resumenDelConteo, type Conteo, type EstadoDeConteo, type Linea, type OrdenPendiente,
+} from "@/lib/almacen-ops/conteos";
 import { comparableConElSistema } from "@/lib/almacen-ops/conteos";
 import {
-  conteosDelPeriodo, colorDeExactitud, kpiDeConteos, kpiPorEmpleado, mesVecino, periodoDeMes, totalDeConteos, type KpiDeConteos,
+  conteosDelPeriodo, colorDeExactitud, kpiDeConteos, kpiPorEmpleado, totalDeConteos, type KpiDeConteos, type Periodo,
 } from "@/lib/almacen-ops/conteos-kpi";
+import type { Rango } from "@/lib/almacen-ops/rango-de-merma";
 import { DEMO_CONTEOS, faltaLa274, leerConteos, type Conteos as Datos } from "@/lib/almacen-ops/conteos-datos";
 import type { Contexto } from "./Operaciones";
 import { ChipDeEtapaDeConteo } from "./EtapasDeConteo";
@@ -22,19 +24,37 @@ import { TarjetaConteo } from "./Conteos";
  * Operaciones de almacén (333): el INFORME de conteos de inventario, en REPORTES (pestaña «Conteos»). Dueño (19 nov):
  * «This is a table like the scrap… This is where I will see all reports… one thing is inputting and another thing is the
  * reports». Aquí van el KPI y la tabla de conteos; la pantalla de conteo no tiene nada de esto.
- * Por mes y tienda. La diferencia es DESPUÉS de las órdenes pendientes (contado − pendiente − sistema). Lo primero que se
- * lee: las CAJAS que faltan en el mes («si cada mes faltan 50 cajas, es una bandera roja»).
+ * La diferencia es DESPUÉS de las órdenes pendientes (contado − pendiente − sistema). Lo primero que se lee: las CAJAS que
+ * faltan («si cada mes faltan 50 cajas, es una bandera roja»).
+ *
+ * D-1148 (ayuda de Roberto, 2026-11-24, con la pestaña «Inventory counts» en el recuadro: «Need this page to look like the
+ * scrap report page. Needs to be consistent in design»). Era otra pantalla: su propio selector de mes en un renglón aparte,
+ * una cifra gigante a todo lo ancho, las tarjetas con el rótulo arriba, y tres tablas sin etapas ni buscador. Ahora sigue a
+ * la de merma, pieza por pieza: el MISMO renglón de arriba (pestañas, «📅» con el rango y la tienda, que pone
+ * `ListaDeReportes`), cuatro tarjetas en un renglón con la cifra arriba, «Conteos en el rango N», las etapas como chips
+ * con su cuenta, el buscador y la tabla. «Por tienda» y «Por empleado» quedan debajo; «Por tienda» solo con varias tiendas,
+ * como el desglose de la merma.
  */
 
 type Carga = { estado: "cargando" } | { estado: "falta-274" } | { estado: "error"; mensaje: string } | { estado: "listo"; datos: Datos };
 
 interface FilaDeConteo { c: Conteo; lineas: Linea[]; pendientes: OrdenPendiente[]; neto: number; faltanCajas: number; sobranCajas: number; exactitud: number | null; lineasN: number }
 
-export function InformeDeConteos({ ctx, tiendas }: { ctx: Contexto; tiendas: string[] }) {
+export function InformeDeConteos({ ctx, tiendas, rango, etiqueta }: {
+  ctx: Contexto;
+  /** Las tiendas que entran: las de quien mira, o la que eligió arriba. */
+  tiendas: string[];
+  /** El rango del «📅» de Reportes (el mismo de la merma). `null`: lo escrito a mano no cuadra. */
+  rango: Rango | null;
+  /** Cómo se llama ese rango («Este mes», «1 nov – 24 nov»). */
+  etiqueta: string;
+}) {
   const { t, lang } = usePrefs();
   const [carga, setCarga] = useState<Carga>(ctx.demo ? { estado: "listo", datos: DEMO_CONTEOS } : { estado: "cargando" });
-  const [mes, setMes] = useState(() => hoyEnTexas().slice(0, 7));
   const [abierto, setAbierto] = useState<string | null>(null);
+  // Las etapas como filtro, igual que en la merma: «Todos» o una; pulsar la activa vuelve a «Todos».
+  const [etapa, setEtapa] = useState<EstadoDeConteo | "todas">("todas");
+  const [busca, setBusca] = useState("");
 
   useEffect(() => {
     if (ctx.demo) return;
@@ -47,15 +67,12 @@ export function InformeDeConteos({ ctx, tiendas }: { ctx: Contexto; tiendas: str
 
   const pon = (f: (d: Datos) => Datos) => setCarga((c) => (c.estado === "listo" ? { estado: "listo", datos: f(c.datos) } : c));
   const datos = carga.estado === "listo" ? carga.datos : null;
-  const periodo = periodoDeMes(mes) ?? periodoDeMes(hoyEnTexas().slice(0, 7))!;
-  const etiquetaMes = useMemo(() => {
-    const [y, m] = mes.split("-").map(Number);
-    return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString(lang === "es" ? "es-MX" : "en-US", { month: "long", year: "numeric", timeZone: "UTC" });
-  }, [mes, lang]);
+  // Un extremo vacío del rango no limita (como en la merma): se abre hasta el principio o el fin de los tiempos.
+  const periodo: Periodo = useMemo(() => ({ desde: rango?.desde || "0000-01-01", hasta: rango?.hasta || "9999-12-31" }), [rango]);
 
   const porTienda: KpiDeConteos[] = useMemo(() => (datos ? kpiDeConteos(datos.conteos, datos.lineas, datos.pendientes, periodo, tiendas) : []), [datos, periodo, tiendas]);
   const total = useMemo(() => totalDeConteos(porTienda), [porTienda]);
-  const empleados = useMemo(() => (datos ? kpiPorEmpleado(datos.conteos, datos.lineas, datos.pendientes, periodo) : []), [datos, periodo]);
+  const empleados = useMemo(() => (datos ? kpiPorEmpleado(datos.conteos, datos.lineas, datos.pendientes, periodo, tiendas.length === 1 ? tiendas[0] : undefined) : []), [datos, periodo, tiendas]);
   const delMes: FilaDeConteo[] = useMemo(() => {
     if (!datos) return [];
     return conteosDelPeriodo(datos.conteos, periodo).filter((c) => tiendas.includes(c.store)).map((c) => {
@@ -109,48 +126,79 @@ export function InformeDeConteos({ ctx, tiendas }: { ctx: Contexto; tiendas: str
   ];
 
   const abiertoFila = abierto && datos ? datos.conteos.find((c) => c.id === abierto) ?? null : null;
+  // Lo que enseña la tabla: los del rango, por la etapa elegida y por lo que se busca (conteo, tienda o etapa).
+  const cuentaDeEtapa = (e: EstadoDeConteo) => delMes.filter((f) => f.c.stage === e).length;
+  const aLaVista = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return delMes.filter((f) => (etapa === "todas" || f.c.stage === etapa)
+      && (q === "" || `${f.c.title} ${f.c.store} ${nombreDeEtapaDeConteo(f.c.stage, lang)}`.toLowerCase().includes(q)));
+  }, [delMes, etapa, busca, lang]);
+  const hayCancelados = delMes.some((f) => f.c.stage === "cancelled");
 
   return (
-    <section className="ops-merma ops-entregas ops-informe-conteos" data-informe-conteos data-mes={mes}>
+    <section className="ops-merma ops-informe-conteos" data-informe-conteos data-desde={rango?.desde ?? ""} data-hasta={rango?.hasta ?? ""}>
       {carga.estado === "cargando" && <p className="hint">{t("Loading…", "Cargando…")}</p>}
       {carga.estado === "error" && <p className="ops-aviso ops-aviso-error">{t("Could not load: ", "No se pudo cargar: ")}{carga.mensaje}</p>}
       {carga.estado === "falta-274" && <p className="ops-aviso">{t("Inventory counts are not set up yet (migration 274).", "Los conteos de inventario aún no están instalados (migración 274).")}</p>}
 
-      <div className="ops-fila-de-filtros" data-fila-mes>
-        <button type="button" className="btn btn-sm" onClick={() => setMes(mesVecino(mes, -1))} data-accion="mes-anterior" aria-label={t("Previous month", "Mes anterior")}>‹</button>
-        <strong className="ops-informe-mes" data-etiqueta-mes>{etiquetaMes}</strong>
-        <button type="button" className="btn btn-sm" onClick={() => setMes(mesVecino(mes, 1))} data-accion="mes-siguiente" aria-label={t("Next month", "Mes siguiente")}>›</button>
-        {mes !== hoyEnTexas().slice(0, 7) && <button type="button" className="btn btn-sm btn-ghost" onClick={() => setMes(hoyEnTexas().slice(0, 7))} data-accion="mes-hoy">{t("This month", "Este mes")}</button>}
-      </div>
+      {!rango && <p className="hint" data-rango-invalido-conteos>{t("Fix the dates to see the counts.", "Corrige las fechas para ver los conteos.")}</p>}
 
-      {datos && (
+      {datos && rango && (
         <>
-          {/* Lo primero: las cajas que faltan en el mes */}
-          <div className="ops-merma-totales ops-kpi-conteos" data-kpi-conteos data-faltan-cajas-mes={total.faltanCajas}>
-            <div className={`ops-merma-total ops-informe-principal ${total.faltanCajas > 0 ? "ops-informe-alerta" : ""}`}>
-              <span>{t("Boxes missing this month", "Cajas que faltan este mes")}</span>
+          {/* Cuatro tarjetas en un renglón, con la cifra arriba, como las de la merma. La primera, lo primero que se lee. */}
+          <div className="ops-merma-totales ops-kpi ops-kpi-conteos" data-kpi-conteos data-faltan-cajas-mes={total.faltanCajas}>
+            <div className={`ops-merma-total${total.faltanCajas > 0 ? " ops-merma-total-rango" : ""}`}>
               <span className={`ops-merma-cifra ${total.faltanCajas > 0 ? "ops-kpi-rojo" : "ops-kpi-verde"}`} data-faltan-cajas-total>{total.faltanCajas}</span>
-              <span className="hint">{total.faltanPiezasSinCaja > 0 ? `${t("plus", "más")} ${total.faltanPiezasSinCaja} ${t("pcs of products without box size", "pzas de productos sin medida de caja")}` : t("after pending orders", "después de órdenes pendientes")}</span>
+              <span>{t("Boxes missing", "Cajas que faltan")} · <span data-etiqueta-rango>{etiqueta}</span>{total.faltanPiezasSinCaja > 0 ? ` · +${total.faltanPiezasSinCaja} ${t("pcs without box size", "pzas sin medida de caja")}` : ""}</span>
             </div>
-            <div className="ops-merma-total"><span>{t("Boxes over", "Cajas que sobran")}</span><span className="ops-merma-cifra" data-sobran-cajas-total>{total.sobranCajas}</span><span className="hint">{t("after pending", "tras pendientes")}</span></div>
-            <div className="ops-merma-total"><span>{t("Missing $", "Faltan $")}</span><span className="ops-merma-cifra" data-faltan-usd>{fmtMoney(total.faltanValor)}</span><span className="hint">{t("over", "sobran")} {fmtMoney(total.sobranValor)}</span></div>
-            <div className="ops-merma-total"><span>{t("Net $", "Neto $")}</span><span className={`ops-merma-cifra ${total.netoValor < 0 ? "ops-kpi-rojo" : ""}`} data-neto-usd>{total.netoValor > 0 ? "+" : ""}{fmtMoney(total.netoValor)}</span><span className="hint">{t("with sign", "con signo")}</span></div>
-            <div className="ops-merma-total"><span>{t("Accuracy", "Exactitud")}</span><span className={`ops-merma-cifra ops-kpi-${colorDeExactitud(total.exactitudPct)}`} data-exactitud-total>{total.exactitudPct === null ? "—" : `${total.exactitudPct}%`}</span><span className="hint">{total.lineasExactas} / {total.lineasComparables} {t("lines", "líneas")}</span></div>
-            <div className="ops-merma-total"><span>{t("Counts completed", "Conteos completados")}</span><span className="ops-merma-cifra" data-hechos-total>{total.hechos}</span><span className="hint">{t("adjusted this month", "ajustados este mes")}</span></div>
+            <div className="ops-merma-total">
+              <span className="ops-merma-cifra" data-sobran-cajas-total>{total.sobranCajas}</span>
+              <span>{t("Boxes over", "Cajas que sobran")}</span>
+            </div>
+            <div className="ops-merma-total">
+              <span className={`ops-merma-cifra ${total.netoValor < 0 ? "ops-kpi-rojo" : ""}`} data-neto-usd>{total.netoValor > 0 ? "+" : ""}{fmtMoney(total.netoValor)}</span>
+              <span>{t("Net $", "Neto $")} · {t("missing", "faltan")} <span data-faltan-usd>{fmtMoney(total.faltanValor)}</span> · {t("over", "sobran")} {fmtMoney(total.sobranValor)}</span>
+            </div>
+            <div className="ops-merma-total">
+              <span className={`ops-merma-cifra ops-kpi-${colorDeExactitud(total.exactitudPct)}`} data-exactitud-total>{total.exactitudPct === null ? "—" : `${total.exactitudPct}%`}</span>
+              <span>{t("Accuracy", "Exactitud")} · {total.lineasExactas} / {total.lineasComparables} {t("lines", "líneas")}</span>
+            </div>
           </div>
 
-          <h3 className="ops-merma-titulo">{t("By store", "Por tienda")}</h3>
-          <TablaEstandar id="conteos-por-tienda" data-tabla="conteos-por-tienda" filas={porTienda} claveDe={(k) => k.tienda} columnas={colsTienda}
-            vacio={t("No stores.", "No hay tiendas.")} />
-
-          <h3 className="ops-merma-titulo">{t("Counts this month", "Conteos del mes")} <span className="count-tag">{delMes.length}</span></h3>
-          <TablaEstandar id="conteos-del-mes" data-tabla="conteos-del-mes" filas={delMes} claveDe={(f) => f.c.id} columnas={colsConteos}
+          <h3 className="ops-merma-titulo">{t("Counts in this range", "Conteos en el rango")} <span className="count-tag" data-cuenta-conteos>{delMes.length}</span></h3>
+          <div className="filters-oneline ops-filtros" role="group" aria-label={t("Stage", "Etapa")} data-filtro-etapas-conteo>
+            <button type="button" className={`chip${etapa === "todas" ? " active" : ""}`} onClick={() => setEtapa("todas")} data-etapa-conteo-filtro="todas" aria-pressed={etapa === "todas"}>{t("All", "Todos")} <span className="cnt">{delMes.length}</span></button>
+            {ETAPAS_DE_CONTEO.map((e) => (
+              <button type="button" key={e} className={`chip ops-chip-etapa${etapa === e ? " active" : ""}`} onClick={() => setEtapa(etapa === e ? "todas" : e)} data-etapa-conteo-filtro={e} aria-pressed={etapa === e}>
+                {INFO_DE_ETAPA_DE_CONTEO[e].n}. {nombreDeEtapaDeConteo(e, lang)} <span className="cnt">{cuentaDeEtapa(e)}</span>
+              </button>
+            ))}
+            {hayCancelados && (
+              <button type="button" className={`chip ops-chip-etapa${etapa === "cancelled" ? " active" : ""}`} onClick={() => setEtapa(etapa === "cancelled" ? "todas" : "cancelled")} data-etapa-conteo-filtro="cancelled" aria-pressed={etapa === "cancelled"}>
+                {nombreDeEtapaDeConteo("cancelled", lang)} <span className="cnt">{cuentaDeEtapa("cancelled")}</span>
+              </button>
+            )}
+          </div>
+          <TablaEstandar id="conteos-del-mes" data-tabla="conteos-del-mes" filas={aLaVista} claveDe={(f) => f.c.id} columnas={colsConteos}
+            barra={(
+              <input type="search" className="ops-busca-merma" value={busca} onChange={(e) => setBusca(e.target.value)} data-busca-conteos
+                placeholder={t("Search count, store, stage…", "Buscar conteo, tienda, etapa…")} aria-label={t("Search counts", "Buscar en los conteos")} />
+            )}
             onFila={(f) => setAbierto(f.c.id)}
-            vacio={t("No counts this month.", "No hay conteos en este mes.")} />
+            vacio={delMes.length === 0 ? t("No counts in this range.", "No hay conteos en este rango.") : t("No count matches.", "Ningún conteo coincide.")} />
+
+          {/* El desglose por tienda solo aporta con más de una (igual que en la merma). */}
+          {tiendas.length > 1 && (
+            <>
+              <h3 className="ops-merma-titulo">{t("By store", "Por tienda")}</h3>
+              <TablaEstandar id="conteos-por-tienda" data-tabla="conteos-por-tienda" filas={porTienda} claveDe={(k) => k.tienda} columnas={colsTienda}
+                vacio={t("No stores.", "No hay tiendas.")} />
+            </>
+          )}
 
           <h3 className="ops-merma-titulo">{t("By employee", "Por empleado")}</h3>
           <TablaEstandar id="conteos-por-empleado" data-tabla="conteos-por-empleado" filas={empleados} claveDe={(e) => e.id} columnas={colsEmpleados}
-            vacio={t("Nobody counted a line this month.", "Nadie contó una línea este mes.")} />
+            vacio={t("Nobody counted a line in this range.", "Nadie contó una línea en este rango.")} />
         </>
       )}
 
