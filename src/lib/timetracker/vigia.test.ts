@@ -69,7 +69,8 @@ describe("1 · el cronómetro vive en el layout, no en su página", () => {
     const pagina = codigoDe(PAGINA);
     expect(pagina).not.toContain("Cronometro");
     expect(pagina).not.toContain("setInterval");
-    expect(pagina).toContain("return null;");
+    // Desde 2026-11-24 la página pinta las secciones de Registrar tiempo (Schedule y My week) debajo del reloj.
+    expect(pagina).toContain("return <SeccionesDeRegistrarTiempo />;");
   });
 
   it("oculto no pinta la pantalla, pero el aviso de «no se guarda» sí asoma", () => {

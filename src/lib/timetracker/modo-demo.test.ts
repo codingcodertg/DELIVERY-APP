@@ -26,8 +26,8 @@ describe("Time Tracker en modo demo", () => {
     expect(cuerpo).not.toContain("capacitacionDeLaPeticion(");
   });
 
-  it("assignments y audit devuelven su componente cliente en LOCAL_MODE antes de crear el cliente", () => {
-    for (const [ruta, componente] of [["assignments", "AssignmentsTabs"], ["audit", "AuditTabs"]] as const) {
+  it("audit devuelve su componente cliente en LOCAL_MODE antes de crear el cliente (assignments ya solo redirige)", () => {
+    for (const [ruta, componente] of [["audit", "AuditTabs"]] as const) {
       const s = leer(`src/app/timetracker/(timetracker)/${ruta}/page.tsx`);
       indice(s, DECLARACION);
       const rama = indice(s, `if (LOCAL_MODE) return <${componente} />;`);
@@ -54,7 +54,7 @@ describe("Time Tracker en modo demo", () => {
     const reports = leer("src/app/timetracker/(timetracker)/reports/page.tsx");
     const schedule = leer("src/app/timetracker/(timetracker)/schedule/page.tsx");
     expect(reports).toContain('redirect("/timetracker/payroll")');
-    expect(schedule).toContain('redirect("/timetracker/assignments")');
+    expect(schedule).toContain('redirect("/timetracker?vista=horario")');
     for (const s of [reports, schedule]) { expect(s).not.toContain("createClient"); expect(s).not.toContain("auth.getUser"); }
   });
 

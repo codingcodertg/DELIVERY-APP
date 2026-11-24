@@ -194,7 +194,7 @@ describe("Solicitudes del equipo: la del presencial sale con su tienda y su pues
 });
 
 describe("Mi semana: sus horas sin proyecto, bajo su tienda y su puesto", () => {
-  const sem = leer("src/app/timetracker/(timetracker)/week/page.tsx");
+  const sem = leer("src/components/timetracker/MiSemana.tsx");
   it("la tabla por proyecto y las entradas del día", () => {
     expect(sem).toContain('const proj = { name: nombreDeSesion(aid || null, a?.project.name, me, lang, { sinProyecto: t("track.sinProyecto"), eliminado: t("emp.week.deletedProject") }, nombreDeTienda(v.storeId)) };');
     expect(sem).toContain('valor: (s) => nombreDeSesion(s.assignmentId, aMap.get(s.assignmentId ?? "")?.project.name, me, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" }, nombreDeTienda(s.storeId)) },');
@@ -314,7 +314,7 @@ describe("Cronometro: arrancar no exige proyecto", () => {
 
 describe("Las pantallas no pintan «eliminado» ni «—» a una sesión sin proyecto", () => {
   it("semana, resumen, en vivo, solicitudes y reportes usan nombreDeSesion", () => {
-    expect(leer("src/app/timetracker/(timetracker)/week/page.tsx")).toContain("nombreDeSesion(aid || null,");
+    expect(leer("src/components/timetracker/MiSemana.tsx")).toContain("nombreDeSesion(aid || null,");
     expect(leer("src/app/timetracker/(timetracker)/insights/page.tsx")).toContain("nombreDeSesion(s.projectId, proj, u, lang,");
     expect(leer("src/components/timetracker/TrabajandoAhora.tsx")).toContain("nombreDeSesion(s.projectId, proj?.name, emp, lang,");
     expect(leer("src/app/timetracker/(timetracker)/requests/page.tsx")).toContain('nombreDelProyecto(s.assignmentId, t("track.sinProyecto"))');

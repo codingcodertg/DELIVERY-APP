@@ -12,7 +12,7 @@ import { sumaDeAjustes, totalConAjustes, totalPagado } from "./total-de-nomina";
 const leer = (ruta: string) => readFileSync(join(process.cwd(), ruta), "utf8").split("\r\n").join("\n");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, "");
 const informes = sinComentarios(leer("src/components/timetracker/ManagerReports.tsx"));
-const semana = sinComentarios(leer("src/app/timetracker/(timetracker)/week/page.tsx"));
+const semana = sinComentarios(leer("src/components/timetracker/MiSemana.tsx"));
 
 const LOTE: Payroll = {
   id: "p1", employeeUid: "u1", employeeName: "Persona de prueba", weekOf: "2026-10-02", method: null,
