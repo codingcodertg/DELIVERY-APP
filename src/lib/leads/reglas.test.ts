@@ -37,7 +37,8 @@ describe("1 · las etapas", () => {
     expect(etapaLabel("closed", "es")).toBe("Cerrado (venta lograda)");
     expect(etapaLabel("bad_lead", "en")).toBe("Not a good lead");
     expect(etapaLabel("bad_lead", "es")).toBe("No es buen lead");
-    expect(etapaLabel("new", "es")).toBe("Nuevo");
+    expect(etapaLabel("new", "es")).toBe("Abierto"); // D-1166: «Open», lo que nadie ha tocado
+    expect(etapaLabel("new", "en")).toBe("Open");
     for (const e of ETAPAS) { expect(etapaLabel(e, "en")).not.toBe(""); expect(etapaLabel(e, "es")).not.toBe(""); }
   });
   it("sin etapa, el lead está en «New»; con ella, en la suya", () => {

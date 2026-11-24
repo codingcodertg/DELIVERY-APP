@@ -17,8 +17,6 @@ import {
   ORDEN_INICIAL, vigentes, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, puedeVerEstadisticas,
   vendedoresDeLeads, leadsDeLaVista, type VistaDePool,
 } from "@/lib/leads/reglas";
-// Migración 345: el color de la franja de cada vendedor (su puesto en la paleta).
-import { colorDeVendedor } from "@/lib/leads/reglas";
 // 337: las llamadas de RingCentral de la ficha y la pestaña de estadísticas (admin y gerente).
 import type { LlamadaDeLead } from "@/lib/leads/llamadas-rc";
 import { Estadisticas } from "./Estadisticas";
@@ -111,9 +109,6 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   }, [almacen]);
   // En el demo, cambiar de persona es cambiar de sesión: se relee, porque cada una alcanza leads distintos.
   useEffect(() => { void cargar(); }, [cargar, idDemo]);
-  // El color de cada vendedor (migración 345): se lee al entrar. Si no se puede, las franjas salen neutras y nada más cambia.
-  const [puestos, setPuestos] = useState<Map<string, number>>(() => new Map());
-  useEffect(() => { void almacen.puestosDeVendedores().then(setPuestos); }, [almacen]);
 
   // Las cotizaciones de cada lead (D-558): las que quien mira VE en el Quote Builder (RLS de la 148) y salieron de un
   // lead (`lead_id`, 175). Sin el módulo no se piden; sin la 175 vuelven cero, y no es un error.
@@ -220,8 +215,6 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     setOcupado(null);
     if (r.ok) {
       setLeads((prev) => prev.map((l) => (l.id === r.valor.id ? r.valor : l)));
-      // Quien guarda y aún no tiene color (un vendedor nuevo): se relee el mapa para que lo tenga sin recargar.
-      if (!puestos.has(yo.id)) void almacen.puestosDeVendedores().then(setPuestos);
       setAviso({ tono: "verde", texto: hecho });
       if (historial?.id === id) setHistorial(null);
       return true;
@@ -266,7 +259,6 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
       onCliente={(c) => setDialogo({ tipo: "cliente", lead: l, cliente: c })}
       sugerencia={sinTelefono(l) ? sugerenciaDeTelefono(l, leads, clientes) : null}
       onTelefono={(quien, tel, ext, contacto) => guardaTelefono(l, quien, tel, ext, contacto)}
-      colorVendedor={colorDeVendedor(puestos, l.last_by)}
     />
   );
   const leadEnfocado = enfocado ? leads.find((l) => l.id === enfocado) ?? null : null;
@@ -522,7 +514,7 @@ function PildoraEtapa({ e }: { e: Etapa }) {
   return <span className={`ld-pildora ${etapaTono(e)}`} data-pildora-etapa={e}>{etapaIcono(e)} {etapaLabel(e, lang)}</span>;
 }
 
-function Tarjeta({ lead: l, yo, ocupado, almacen, historial, llamadas, onNota, onArchivar, onHistorial, onLlamadas, cotizar, cotizaciones, cliente, onCliente, semana, sugerencia, onTelefono, colorVendedor }: {
+function Tarjeta({ lead: l, yo, ocupado, almacen, historial, llamadas, onNota, onArchivar, onHistorial, onLlamadas, cotizar, cotizaciones, cliente, onCliente, semana, sugerencia, onTelefono }: {
   lead: Lead; yo: Persona; ocupado: boolean; almacen: AlmacenDeLeads;
   historial: EventoLead[] | null | undefined;
   /** 337: las llamadas de RingCentral a los teléfonos del lead (null = cargando; undefined = cerrada). */
@@ -542,8 +534,6 @@ function Tarjeta({ lead: l, yo, ocupado, almacen, historial, llamadas, onNota, o
   onCliente: (c: ClienteCruzado) => void;
   /** El número de semana del STXP Pool de este lead (un import = una semana); solo los privados la tienen. */
   semana?: number;
-  /** Migración 345: el color (1…12) de quien hizo el último contacto; null = la franja sale neutra. */
-  colorVendedor?: number | null;
 }) {
   const { t, lang } = usePrefs();
   const mapa = mapsUrl(l);
@@ -556,7 +546,7 @@ function Tarjeta({ lead: l, yo, ocupado, almacen, historial, llamadas, onNota, o
     <article className="ld-tarjeta" data-lead={l.id} data-estado={l.status} data-etapa={etapa}>
       {/* Ya trabajado: una franja de color arriba (quién, cuándo y la etapa en texto). Sin trabajar, la cabecera de siempre. */}
       {trabajado && (
-        <div className="ld-franja" data-franja-vendedor data-color-vendedor={colorVendedor ?? ""}>
+        <div className="ld-franja" data-franja-vendedor data-etapa-franja={etapa}>
           <b data-ultimo-contacto>👤 {l.last_by_name ?? "—"}</b>
           <span className="ld-franja-der">
             <span>{fecha(l.last_at)}</span>
