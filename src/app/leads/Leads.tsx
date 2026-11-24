@@ -273,28 +273,25 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 
   return (
     <div className="ld-wrap leads-app">
-      <div className="ld-cabecera">
-        <div>
-          {/* Sin «◂ Volver al hub»: la casa está en la barra de arriba, la de todas las apps (D-643). */}
-          <h1>🎯 Leads</h1>
-          <p className="hint ld-sub">
-            {t("Building-permit leads, by nearest store.", "Leads de permisos de obra, por tienda más cercana.")}
-            {demo ? ` ${t("Demo data (invented).", "Datos de demostración (inventados).")}` : ""}
-          </p>
+      {/* Sin cabecera grande (Dueño, estilo de Merma): el nombre de la app ya está en la barra de arriba. Solo queda,
+          si hay demo, su aviso y el «Demo: eres». */}
+      {demo && (
+        <div className="ld-cabecera">
+          <span className="hint">{t("Demo data (invented).", "Datos de demostración (inventados).")}</span>
+          {!yoReal && (
+            <label className="ld-demo">
+              {t("Demo: you are", "Demo: eres")}
+              <select data-persona-demo value={idDemo} onChange={(e) => {
+                const p = PERSONAS_DEMO.find((x) => x.id === e.target.value) ?? PERSONAS_DEMO[0];
+                quien.current = p;
+                setIdDemo(p.id); setPool(null); setPoolAMano(false); setPestana("banco"); setAviso(null);
+              }}>
+                {PERSONAS_DEMO.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.role}{p.store ? ` · ${p.store}` : ""})</option>)}
+              </select>
+            </label>
+          )}
         </div>
-        {demo && !yoReal && (
-          <label className="ld-demo">
-            {t("Demo: you are", "Demo: eres")}
-            <select data-persona-demo value={idDemo} onChange={(e) => {
-              const p = PERSONAS_DEMO.find((x) => x.id === e.target.value) ?? PERSONAS_DEMO[0];
-              quien.current = p;
-              setIdDemo(p.id); setPool(null); setPoolAMano(false); setPestana("banco"); setAviso(null);
-            }}>
-              {PERSONAS_DEMO.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.role}{p.store ? ` · ${p.store}` : ""})</option>)}
-            </select>
-          </label>
-        )}
-      </div>
+      )}
 
       {estado.tipo === "sinTabla" && (
         <div className="ld-aviso ambar" data-aviso-sin-tabla>
@@ -311,8 +308,9 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 
       {estado.tipo === "listo" && (
         <>
-          <div className="ld-pestanas">
-            <div className="ld-segmento" role="tablist">
+          {/* Fila 1 (como Merma de Operaciones): pestañas en píldora; a su lado, la tienda (o la fija) y la semana; y Actualizar al final. */}
+          <div className="ld-fila-de-filtros" data-fila-de-filtros>
+            <div className="ld-pestanas" role="tablist">
             {/* D-1015 (Roberto, 12 nov): el STXP Pool (South Texas Permit) va PRIMERO; después GOV y lo demás. */}
             {veStxp && (
               <button type="button" role="tab" aria-selected={pestana === "privado"} className={`chip${pestana === "privado" ? " on" : ""}`} data-pestana="privado" onClick={() => cambiaPestana("privado")}>
@@ -333,6 +331,55 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
               </button>
             )}
             </div>
+            {(pestana === "banco" || (pestana === "privado" && veStxp)) && (
+              <>
+                {elige ? (
+                  <label className="ld-selector" title={t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")}>
+                    <span aria-hidden="true">🏬</span>
+                    <select data-pool value={pool ?? ""} aria-label={t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")} onChange={(e) => { setPool(e.target.value); setPoolAMano(true); }}>
+                      {pools.length > 1 && (() => {
+                        const todas = resumenDeTodas(pools);
+                        return (
+                          <option value={POOL_TODAS}>
+                            {t("All stores", "Todas las tiendas")} — {todas.total} {t("leads", "leads")}
+                          </option>
+                        );
+                      })()}
+                      {pools.map((p) => (
+                        <option key={p.pool} value={p.pool}>
+                          {poolLabel(p.pool, lang)} — {p.total} {t("leads", "leads")}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : pestana === "privado" ? (
+                  /* D-770: su tienda y, agotada, la más cercana: se nombran las que le tocan, en orden. */
+                  <p className="ld-selector ld-fijo" data-pool-stxp>
+                    {t("STXP Pool: your store and, when it runs out, the nearest one", "STXP Pool: tu tienda y, agotada, la más cercana")}
+                    <br />
+                    <b>{pools.length ? pools.map((p) => `${poolLabel(p.pool, lang)} (${p.total})`).join(" → ") : "—"}</b>
+                  </p>
+                ) : (
+                  /* Solo su tienda: no hay nada que elegir, y los otros bancos ni se nombran ni se cuentan. */
+                  <p className="ld-selector ld-fijo" data-pool-fijo>
+                    {t("GOV Pool of your store", "GOV Pool de tu tienda")}
+                    <br />
+                    <b>{alcance.tienda ? poolLabel(alcance.tienda, lang) : "—"}</b>
+                    {pools[0] ? <> — {pools[0].total} {t("leads", "leads")}</> : null}
+                  </p>
+                )}
+                {pestana === "privado" && semanasSTXP.semanas.length > 0 && (
+                  <label className="ld-selector" data-semana-stxp title={t("Week", "Semana")}>
+                    <select data-semana value={String(semanaActiva)} aria-label={t("Week", "Semana")} onChange={(e) => eligeSemana(e.target.value)}>
+                      <option value="todas">{t("All weeks", "Todas las semanas")} ({privados.length})</option>
+                      {semanasSTXP.semanas.map((s) => (
+                        <option key={s.numero} value={String(s.numero)}>{etiquetaDeSemana(s, lang)} ({s.cuenta})</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </>
+            )}
             <button type="button" className="btn btn-ghost btn-sm ld-releer" onClick={() => void cargar()}>↻ {t("Refresh", "Actualizar")}</button>
           </div>
 
@@ -350,57 +397,13 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 
           {(pestana === "banco" || (pestana === "privado" && veStxp)) && (
             <>
-              <div className="card ld-filtros">
-                <div className="ld-fila">
-                  {elige ? (
-                    <label className="ld-ancho">
-                      {t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")}
-                      <select data-pool value={pool ?? ""} onChange={(e) => { setPool(e.target.value); setPoolAMano(true); }}>
-                        {pools.length > 1 && (() => {
-                          const todas = resumenDeTodas(pools);
-                          return (
-                            <option value={POOL_TODAS}>
-                              {t("All stores", "Todas las tiendas")} — {todas.total} {t("leads", "leads")}
-                            </option>
-                          );
-                        })()}
-                        {pools.map((p) => (
-                          <option key={p.pool} value={p.pool}>
-                            {poolLabel(p.pool, lang)} — {p.total} {t("leads", "leads")}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  ) : pestana === "privado" ? (
-                    /* D-770: su tienda y, agotada, la más cercana: se nombran las que le tocan, en orden. */
-                    <p className="ld-ancho" data-pool-stxp>
-                      {t("STXP Pool: your store and, when it runs out, the nearest one", "STXP Pool: tu tienda y, agotada, la más cercana")}
-                      <br />
-                      <b>{pools.length ? pools.map((p) => `${poolLabel(p.pool, lang)} (${p.total})`).join(" → ") : "—"}</b>
-                    </p>
-                  ) : (
-                    /* Solo su tienda: no hay nada que elegir, y los otros bancos ni se nombran ni se cuentan. */
-                    <p className="ld-ancho" data-pool-fijo>
-                      {t("GOV Pool of your store", "GOV Pool de tu tienda")}
-                      <br />
-                      <b>{alcance.tienda ? poolLabel(alcance.tienda, lang) : "—"}</b>
-                      {pools[0] ? <> — {pools[0].total} {t("leads", "leads")}</> : null}
-                    </p>
-                  )}
-                  {pestana === "privado" && semanasSTXP.semanas.length > 0 && (
-                    <label data-semana-stxp>
-                      {t("Week", "Semana")}
-                      <select data-semana value={String(semanaActiva)} onChange={(e) => eligeSemana(e.target.value)}>
-                        <option value="todas">{t("All weeks", "Todas las semanas")} ({privados.length})</option>
-                        {semanasSTXP.semanas.map((s) => (
-                          <option key={s.numero} value={String(s.numero)}>{etiquetaDeSemana(s, lang)} ({s.cuenta})</option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                </div>
-                {/* Las etapas son el filtro: una por chip, con cuántos leads hay en cada una en este pool. */}
-                <div className="ld-etapas" role="group" aria-label={t("Stage", "Etapa")} data-etapas>
+              <div className="ld-filtros">
+                {/* Fila 2 (como Merma): el título de la lista y su cuenta. */}
+                <h3 className="ld-titulo-de-lista">
+                  {t("Leads in this pool", "Leads en este pool")} <span className="count-tag" data-cuenta-banco>{visibles.length}</span>
+                </h3>
+                {/* Las etapas son el filtro: una por chip, con cuántos leads hay en cada una en este pool. Todas en una línea. */}
+                <div className="ld-etapas filters-oneline" role="group" aria-label={t("Stage", "Etapa")} data-etapas>
                   <button type="button" className={`chip${etapa === "" ? " on" : ""}`} data-etapa="" onClick={() => setEtapa("")}>
                     {t("All stages", "Todas las etapas")} <span className="ld-cuenta">{delPool.filter((l) => l.status !== "archived").length}</span>
                   </button>
@@ -424,58 +427,42 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                     </button>
                   )}
                 </div>
-                <div className="ld-fila">
-                  <label>
-                    {t("Rep", "Vendedor")}
-                    <select data-vendedor value={vendedorElegido} onChange={(e) => setVendedorElegido(e.target.value)}>
-                      <option value="">{t("All", "Todos")}</option>
-                      {vendedoresBanco.map((v) => <option key={v.id} value={v.id}>{v.nombre}</option>)}
-                    </select>
-                  </label>
-                  <label>
-                    {t("Category", "Categoría")}
-                    <select data-categoria value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-                      <option value="utiles">{t("Useful + might be useful", "Sirve + podría servir")}</option>
-                      <option value="todas">{t("All categories", "Todas las categorías")}</option>
-                      {valoresDe(delPool, "category").map((c) => <option key={c} value={c}>{delExcel(c, lang)}</option>)}
-                    </select>
-                  </label>
-                  <label>
-                    {t("Project type", "Tipo de proyecto")}
-                    <select data-tipo value={tipo} onChange={(e) => setTipo(e.target.value)}>
-                      <option value="">{t("All", "Todos")}</option>
-                      {valoresDe(delPool, "project_type").map((c) => <option key={c} value={c}>{delExcel(c, lang)}</option>)}
-                    </select>
-                  </label>
-                  <label>
-                    {t("Site city", "Ciudad de la obra")}
-                    <select data-ciudad value={ciudad} onChange={(e) => setCiudad(e.target.value)}>
-                      <option value="">{t("All", "Todas")}</option>
-                      {valoresDe(delPool, "site_city").map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </label>
-                  <label>
-                    {t("Sort by", "Ordenar por")}
-                    <select data-orden value={orden} onChange={(e) => setOrden(e.target.value as Orden)}>
-                      <option value="pies">{t("Square feet (largest first)", "Pies² (lo más grande)")}</option>
-                      <option value="distancia">{t("Distance (nearest first)", "Distancia (lo más cerca)")}</option>
-                      <option value="costo">{t("Estimated cost (highest first)", "Costo estimado (lo más alto)")}</option>
-                      <option value="fecha">{t("Registered (newest first)", "Registro (lo más nuevo)")}</option>
-                      <option value="nombre">{t("Builder / customer (A–Z)", "Constructor / cliente (A–Z)")}</option>
-                    </select>
-                  </label>
+                {/* Fila 3 (como Merma): el buscador a la izquierda; los filtros, compactos y en línea (cada uno dice
+                    su nombre en el título y en la primera opción); «Quitar filtros» a la derecha. */}
+                <div className="ld-barra" data-barra>
+                  <input
+                    type="search" data-busca value={busca} onChange={(e) => setBusca(e.target.value)}
+                    placeholder={t("Search anything: project, address, owner, phone, sales rep, customer…", "Buscar lo que sea: proyecto, dirección, dueño, teléfono, vendedor, cliente…")}
+                    aria-label={t("Search", "Buscar")}
+                  />
+                  <select data-vendedor value={vendedorElegido} onChange={(e) => setVendedorElegido(e.target.value)} aria-label={t("Rep", "Vendedor")} title={t("Rep", "Vendedor")}>
+                    <option value="">{t("👤 All reps", "👤 Todos los vendedores")}</option>
+                    {vendedoresBanco.map((v) => <option key={v.id} value={v.id}>{v.nombre}</option>)}
+                  </select>
+                  <select data-categoria value={categoria} onChange={(e) => setCategoria(e.target.value)} aria-label={t("Category", "Categoría")} title={t("Category", "Categoría")}>
+                    <option value="utiles">{t("Useful + might be useful", "Sirve + podría servir")}</option>
+                    <option value="todas">{t("All categories", "Todas las categorías")}</option>
+                    {valoresDe(delPool, "category").map((c) => <option key={c} value={c}>{delExcel(c, lang)}</option>)}
+                  </select>
+                  <select data-tipo value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label={t("Project type", "Tipo de proyecto")} title={t("Project type", "Tipo de proyecto")}>
+                    <option value="">{t("All project types", "Todos los tipos")}</option>
+                    {valoresDe(delPool, "project_type").map((c) => <option key={c} value={c}>{delExcel(c, lang)}</option>)}
+                  </select>
+                  <select data-ciudad value={ciudad} onChange={(e) => setCiudad(e.target.value)} aria-label={t("Site city", "Ciudad de la obra")} title={t("Site city", "Ciudad de la obra")}>
+                    <option value="">{t("All cities", "Todas las ciudades")}</option>
+                    {valoresDe(delPool, "site_city").map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <select data-orden value={orden} onChange={(e) => setOrden(e.target.value as Orden)} aria-label={t("Sort by", "Ordenar por")} title={t("Sort by", "Ordenar por")}>
+                    <option value="pies">↕ {t("Square feet (largest first)", "Pies² (lo más grande)")}</option>
+                    <option value="distancia">↕ {t("Distance (nearest first)", "Distancia (lo más cerca)")}</option>
+                    <option value="costo">↕ {t("Estimated cost (highest first)", "Costo estimado (lo más alto)")}</option>
+                    <option value="fecha">↕ {t("Registered (newest first)", "Registro (lo más nuevo)")}</option>
+                    <option value="nombre">↕ {t("Builder / customer (A–Z)", "Constructor / cliente (A–Z)")}</option>
+                  </select>
                   <button type="button" className="btn btn-ghost btn-sm" data-quitar-filtros onClick={limpiaFiltros}>
                     ✕ {t("Reset filters", "Quitar filtros")}
                   </button>
                 </div>
-                <input
-                  type="search" data-busca value={busca} onChange={(e) => setBusca(e.target.value)}
-                  placeholder={t("Search anything: project, address, owner, phone, sales rep, customer…", "Buscar lo que sea: proyecto, dirección, dueño, teléfono, vendedor, cliente…")}
-                  aria-label={t("Search", "Buscar")}
-                />
-                <p className="hint" data-cuenta-banco>
-                  {visibles.length} {t("leads", "leads")}
-                </p>
               </div>
               {!elige && !alcance.tienda && (
                 <div className="ld-aviso ambar" data-aviso-sin-tienda>

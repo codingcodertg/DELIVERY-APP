@@ -260,6 +260,50 @@
 }
 @media (prefers-reduced-motion: reduce) { .leads-app .ld-tarjeta { transition: none; } }
 
+/* ===========================================================================================================
+   Estilo de Merma (rama leads/estilo-merma): la parte de arriba de Leads, como «Merma» de Operaciones.
+   Sin cabecera ni tarjeta, sobre el fondo. Fila 1: pestañas en píldora, tienda, semana y Actualizar.
+   Fila 2: el título «Leads en este pool» con su cuenta, y debajo las etapas en UNA línea (se desliza).
+   Fila 3: buscador a la izquierda; los filtros compactos en línea y «Quitar filtros» a la derecha.
+   Solo variables de globals.css (claro y oscuro). Las reglas de arriba se quedan; estas, más específicas, mandan.
+   =========================================================================================================== */
+.leads-app .ld-cabecera { display: flex; align-items: center; justify-content: flex-end; gap: 8px 12px; flex-wrap: wrap; margin: 0 0 6px; }
+.leads-app .ld-cabecera .hint { margin: 0; font-size: 12px; }
+.leads-app .ld-fila-de-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 10px; }
+.leads-app .ld-fila-de-filtros .ld-pestanas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
+.leads-app .ld-fila-de-filtros .ld-pestanas .chip { padding: 6px 12px; font-size: 13px; font-weight: 600; }
+/* El elegido: sólido, como la pestaña de Merma (`.chip.active` de Operaciones). Se lee en claro y en oscuro. */
+.leads-app .ld-fila-de-filtros .ld-pestanas .chip.on { background: var(--text); color: var(--paper); border-color: var(--text); }
+.leads-app .ld-fila-de-filtros .ld-pestanas .chip.on .cnt { opacity: .85; }
+.leads-app .ld-fila-de-filtros .ld-releer { margin-left: auto; }
+.leads-app .ld-selector { display: inline-flex; align-items: center; gap: 4px; margin: 0; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.leads-app .ld-fijo { padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); line-height: 1.35; font-size: 12.5px; color: var(--ink-soft); }
+.leads-app .ld-fijo b { color: var(--text); font-size: 13px; }
+.leads-app .ld-fila-de-filtros select, .leads-app .ld-filtros .ld-barra select {
+  width: auto; max-width: 240px; min-height: 36px; padding: 6px 8px; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text);
+}
+/* Fila 2: el título de la lista, con su cuenta en una píldora. */
+.leads-app .ld-filtros { padding: 0; margin: 0; background: none; border: 0; box-shadow: none; }
+.leads-app .ld-titulo-de-lista { margin: 4px 0 8px; font-size: 16px; font-weight: 800; color: var(--text); }
+.leads-app .ld-titulo-de-lista .count-tag { margin: 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+/* Las etapas, en UNA línea: se desliza sin partirse. El relleno de arriba y abajo deja ver el anillo del elegido. */
+.leads-app .ld-filtros > .ld-etapas.filters-oneline { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 6px 4px; margin: 0 -4px 4px; }
+.leads-app .ld-filtros > .ld-etapas.filters-oneline::-webkit-scrollbar { display: none; }
+.leads-app .ld-filtros > .ld-etapas.filters-oneline .chip { flex: 0 0 auto; }
+/* Fila 3: buscador (como ops-busca-merma), filtros compactos en línea, Quitar filtros a la derecha. */
+.leads-app .ld-filtros .ld-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 6px; }
+.leads-app .ld-filtros .ld-barra input[type="search"] {
+  flex: 1 1 260px; min-width: 0; max-width: 420px; width: auto; min-height: 36px; padding: 6px 10px; font: inherit; font-size: 14px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text);
+}
+.leads-app .ld-filtros .ld-barra [data-quitar-filtros] { flex: 0 0 auto; margin-left: auto; min-height: 36px; }
+@media (max-width: 699px) {
+  .leads-app .ld-fila-de-filtros select, .leads-app .ld-filtros .ld-barra select { font-size: 16px; }
+  .leads-app .ld-filtros .ld-barra input[type="search"] { flex-basis: 100%; max-width: none; }
+  .leads-app .ld-filtros .ld-barra [data-quitar-filtros] { margin-left: 0; }
+}
+
 /* 253 (ayuda e207d9ef): el tipo de acción de la nota de avance. Píldora compacta (D-870), con su color. */
 .ld-pildora { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.5;
   border: 1px solid transparent; background: var(--accent-soft); color: var(--accent); white-space: nowrap; vertical-align: 1px; }
