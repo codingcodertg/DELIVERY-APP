@@ -288,15 +288,15 @@ export default function SolicitudesDeAyudaPage() {
 
   return (
     <>
-      <div className="page-head">
+      <div className="page-head page-head-casa-izq">
         <h2>🆘 {t("Help requests", "Solicitudes de ayuda")}</h2>
+        <BotonCasa />
         {/* El número que antes iba en la casilla «solo pendientes»: cuántas esperan, de lo que se ve. */}
         {pendientes.length > 0 && (
           <span className="sema" style={{ background: "var(--amber)", color: "#fff" }}>
             {pendientes.length} {t("pending", "pendientes")}
           </span>
         )}
-        <BotonCasa />
       </div>
 
       <div className="card">

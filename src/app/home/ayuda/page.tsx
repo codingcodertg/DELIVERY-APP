@@ -6,8 +6,9 @@ import { usePrefs } from "@/lib/prefs";
 import { clienteDelHub as createClient } from "@/lib/home/cliente-del-hub";
 import { APP_VERSIONS } from "@/lib/app-versions";
 import { roleLabel } from "@/lib/constants";
-import { LIMITES_DE_ADJUNTOS, mensajeDeAdjunto, validaAdjuntos } from "@/lib/help-attachments";
-import { asomoDelMensaje, leeSolicitudes, sePuedeEliminar, separaEliminadas, type SolicitudDeAyuda } from "@/lib/help-requests";
+import { CUBO_DE_ADJUNTOS, LIMITES_DE_ADJUNTOS, mensajeDeAdjunto, validaAdjuntos, type FicheroAdjunto } from "@/lib/help-attachments";
+import { adjuntosDe, asomoDelMensaje, leeSolicitudes, sePuedeEliminar, separaEliminadas, type SolicitudDeAyuda } from "@/lib/help-requests";
+import { esImagen } from "@/lib/ayuda-para-claude";
 import { eliminaSolicitud, mensajeDeEliminar, type ClienteDeEliminar } from "@/lib/help-eliminar";
 import { ConfirmarEliminarSolicitud } from "@/components/ConfirmarEliminarSolicitud";
 import { enviaSolicitudDeAyuda } from "@/lib/help-send";
@@ -34,6 +35,9 @@ import type { UserRole } from "@/lib/types";
 
 type Yo = { id: string; esAdmin: boolean; nombre: string | null; role: UserRole };
 
+/** Cuánto vale el enlace firmado para ver una foto en la tarjeta (lo mismo que el hilo, `HiloDeAyuda`). */
+const VALIDEZ_AL_VER = 300;
+
 export default function MisSolicitudesPage() {
   const { lang, t } = usePrefs();
   const supabase = useMemo(() => createClient(), []);
@@ -51,6 +55,9 @@ export default function MisSolicitudesPage() {
   const [porEliminar, setPorEliminar] = useState<SolicitudDeAyuda | null>(null);
   const [eliminando, setEliminando] = useState(false);
   const [errorAlEliminar, setErrorAlEliminar] = useState<string | null>(null);
+  /** La solicitud cuyos adjuntos se están viendo (el modal de la 📷), y sus enlaces firmados. */
+  const [fotosDe, setFotosDe] = useState<SolicitudDeAyuda | null>(null);
+  const [fotos, setFotos] = useState<(FicheroAdjunto & { url: string | null })[] | null>(null);
 
   const cargar = useCallback(async (abrirLaPrimeraSinLeer = false) => {
     const { data: sesion } = await supabase.auth.getUser();
@@ -144,16 +151,37 @@ export default function MisSolicitudesPage() {
     setAviso(t("Request deleted.", "Solicitud eliminada."));
   };
 
+  /** La 📷: pide los enlaces firmados de todos sus adjuntos y los enseña en una tarjeta sobre la página (no navega). */
+  const abreFotos = async (s: SolicitudDeAyuda) => {
+    setFotosDe(s);
+    setFotos(null);
+    const firmados = await Promise.all(adjuntosDe(s).map(async (a) => {
+      const { data, error: e } = await supabase.storage.from(CUBO_DE_ADJUNTOS).createSignedUrl(a.path, VALIDEZ_AL_VER);
+      return { ...a, url: e || !data?.signedUrl ? null : data.signedUrl };
+    }));
+    setFotos(firmados);
+  };
+
+  const cierraFotos = useCallback(() => { setFotosDe(null); setFotos(null); }, []);
+
+  // Escape cierra la tarjeta de las fotos (como el ✕ y el fondo).
+  useEffect(() => {
+    if (!fotosDe) return;
+    const tecla = (e: KeyboardEvent) => { if (e.key === "Escape") cierraFotos(); };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [fotosDe, cierraFotos]);
+
   const fecha = (iso: string) => new Date(iso).toLocaleString(lang === "es" ? "es-MX" : "en-US");
   const total = [...sinLeer.values()].reduce((a, b) => a + b, 0);
 
   return (
     <>
-      <div className="page-head">
+      <div className="page-head page-head-casa-izq">
         <h2>💬 {t("My help requests", "Mis solicitudes de ayuda")}</h2>
+        <BotonCasa />
         {total > 0 && <span className="sema" style={{ background: "var(--amber)", color: "#fff" }}>{total} {t("unread", "sin leer")}</span>}
         <button className="btn btn-primary btn-sm" onClick={() => setNueva((v) => !v)}>+ {t("New request", "Nueva solicitud")}</button>
-        <BotonCasa />
       </div>
 
       {nueva && (
@@ -188,16 +216,24 @@ export default function MisSolicitudesPage() {
         return (
           <div className="card" key={s.id}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <b style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{asomoDelMensaje(s.message)}</b>
-              <span className="hint" style={{ margin: 0 }}>{fecha(s.created_at)}</span>
               <span className="sema" style={{ background: s.status === "atendida" ? "var(--green)" : "var(--amber)", color: "#fff" }}>
                 {s.status === "atendida" ? t("Handled", "Atendida") : t("Open", "Abierta")}
               </span>
               {n > 0 && !abiertaEsta && <span className="sema" style={{ background: "var(--red)", color: "#fff" }}>{n} {t("new", n === 1 ? "nueva" : "nuevas")}</span>}
-              <span style={{ flex: 1 }} />
-              <button className="btn btn-ghost btn-sm" onClick={() => { setAbierta(abiertaEsta ? null : s.id); if (!abiertaEsta) setSinLeer((m) => { const c = new Map(m); c.delete(s.id); return c; }); }}>
-                {abiertaEsta ? t("Hide", "Ocultar") : t("Open", "Abrir")}
+              {/* Pulsar el texto abre o cierra el hilo (antes era un botón «Abrir»). Es un botón de verdad: teclado y lector de pantalla. */}
+              <button type="button" data-abrir-solicitud aria-expanded={abiertaEsta}
+                onClick={() => { setAbierta(abiertaEsta ? null : s.id); if (!abiertaEsta) setSinLeer((m) => { const c = new Map(m); c.delete(s.id); return c; }); }}
+                style={{ flex: "1 1 160px", minWidth: 0, display: "block", textAlign: "left", background: "transparent", border: 0, padding: 0, font: "inherit", color: "inherit", cursor: "pointer" }}>
+                <b style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{asomoDelMensaje(s.message, 300)}</b>
               </button>
+              <span className="hint" style={{ margin: 0 }}>{fecha(s.created_at)}</span>
+              {/* La 📷 solo si la solicitud trae adjuntos: abre la foto en una tarjeta, sin abrir el hilo. */}
+              {adjuntosDe(s).length > 0 && (
+                <button type="button" className="btn btn-ghost btn-sm" data-ver-foto title={t("View attachment", "Ver la foto")} aria-label={t("View attachment", "Ver la foto")}
+                  onClick={(e) => { e.stopPropagation(); void abreFotos(s); }}>
+                  📷
+                </button>
+              )}
               {/* Eliminar (262, D-904), en cualquier estado. Sin la 262 aplicada no hay a qué llamar: no se enseña. */}
               {sePuedeEliminar(s) && (
                 <button className="btn btn-ghost btn-sm" data-eliminar-solicitud title={t("Delete this request", "Eliminar esta solicitud")}
@@ -222,6 +258,34 @@ export default function MisSolicitudesPage() {
       {porEliminar && (
         <ConfirmarEliminarSolicitud solicitud={porEliminar} ocupado={eliminando} error={errorAlEliminar}
           onCancelar={cierraElModal} onConfirmar={() => void elimina()} />
+      )}
+
+      {fotosDe && (
+        <div className="overlay" style={{ zIndex: 60 }} data-ver-fotos onClick={cierraFotos}>
+          <div className="modal" role="dialog" aria-modal="true" aria-label={t("Attachments", "Adjuntos")} style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h3 style={{ margin: 0, flex: 1 }}>📷 {t("Attachments", "Adjuntos")}</h3>
+              <button type="button" className="btn btn-ghost btn-sm" aria-label={t("Close", "Cerrar")} title={t("Close", "Cerrar")} onClick={cierraFotos}>✕</button>
+            </div>
+            <div className="hint" style={{ margin: "6px 0 10px" }}>{asomoDelMensaje(fotosDe.message, 120)}</div>
+            {fotos === null ? (
+              <div className="empty">{t("Loading…", "Cargando…")}</div>
+            ) : fotos.map((a) => (
+              <div key={a.path} style={{ marginBottom: 12 }}>
+                {a.url === null ? (
+                  <span className="hint">{t("Couldn't open", "No se pudo abrir")} {a.nombre}</span>
+                ) : esImagen(a) ? (
+                  <a href={a.url} target="_blank" rel="noopener noreferrer" title={a.nombre}>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- enlace firmado del cubo privado, no pasa por el optimizador */}
+                    <img src={a.url} alt={a.nombre} style={{ display: "block", maxWidth: "100%", height: "auto", borderRadius: 8 }} />
+                  </a>
+                ) : (
+                  <a href={a.url} target="_blank" rel="noopener noreferrer">📄 {a.nombre}</a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </>
   );
