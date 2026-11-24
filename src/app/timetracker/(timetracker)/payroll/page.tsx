@@ -6,6 +6,7 @@ import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import { DEMO_EMPLOYEES, demoSessions, horasPorPersona } from "@/lib/timetracker/demo-data";
 import { addDaysISO } from "@/lib/timetracker/helpers";
+import { seccionPorUrl } from "@/lib/timetracker/trabajando-ahora-en-nomina";
 
 export const dynamic = "force-dynamic";
 
@@ -53,8 +54,9 @@ export default async function PayrollPage({
   searchParams: Promise<{ period?: string; vista?: string }>;
 }) {
   const { period, vista } = await searchParams;
-  // `?vista=ahora` (la antigua pestaña «Trabajando ahora», que ahora vive aquí) abre esa sección de entrada.
-  const ahoraAbiertaPorUrl = vista === "ahora";
+  // `?vista=` abre una sección plegada de Nómina: «ahora» (la antigua pestaña «Trabajando ahora»), «fotos»,
+  // «excepciones» o «capturas» (las vistas que salieron de Auditoría). Un valor desconocido no abre nada.
+  const vistaPorUrl = seccionPorUrl(vista);
   const start = period && /^\d{4}-\d{2}-\d{2}$/.test(period) ? period : periodStartOf(new Date());
 
   // Modo demo: la cabecera se calcula con la semilla (solo horas cronometradas; fichaje no tiene demo) y las
@@ -67,7 +69,7 @@ export default async function PayrollPage({
     return (
       <PayrollTabs
         period={start}
-        ahoraAbiertaPorUrl={ahoraAbiertaPorUrl}
+        vistaPorUrl={vistaPorUrl}
         revisar={[]}
         resumen={{
           start,
@@ -155,7 +157,7 @@ export default async function PayrollPage({
   return (
     <PayrollTabs
       period={start}
-      ahoraAbiertaPorUrl={ahoraAbiertaPorUrl}
+      vistaPorUrl={vistaPorUrl}
       revisar={aRevisar.map((r) => r.employee_id)}
       resumen={{
         start,

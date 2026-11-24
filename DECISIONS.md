@@ -53111,3 +53111,13 @@ Qué cambia:
 Costo conocido: abrir una de las dos pantallas en RR. HH. abre los canales en tiempo real del Time Tracker mientras esté abierta, como en el propio Time Tracker.
 Verificado en el demo a 1680 y 390 px. NO probado con una sesión real: ni la puerta de acceso con una cuenta que no sea admin, ni los datos reales.
 Time Tracker 1.38.0 · RR. HH. 0.115.0 · Entregas/Hub 1.663.0 · repo 1.983.0.
+
+## D-1161 · Time Tracker: las fotos de fichaje, las excepciones y las capturas de escritorio pasan de Audit a Payroll (2026-11-24)
+
+Ayuda de Roberto (`66117081`, /timetracker/audit). Marcó «Clock-in photos», «Exceptions» y «Desktop captures»: «These could probably be consolidated into payroll app». Y sobre «Log»: «dont know what this log is for, let me know».
+Qué cambia: las tres vistas salen del selector de Auditoría y son tres secciones plegables al final de Nómina, debajo de las dos de pago, con la misma pieza que «Working Now» (`SeccionDeNomina`): cerradas por defecto, su cuerpo no se monta hasta abrirlas (no piden fotos ni capturas mientras tanto), la elección se recuerda en el navegador, y `?vista=fotos|excepciones|capturas` las abre y baja hasta ellas. Solo admins, como antes. Auditoría se queda con el registro, sin selector.
+Las direcciones viejas siguen llegando: `/clock-in/photos` y `/timetracker/clock-in/photos` → Nómina con las fotos abiertas; `/timetracker/team-diary` → Nómina con las capturas abiertas.
+Lo que NO cambia: las tres pantallas por dentro (cada una con su propio selector de persona, D-186) ni quién puede abrir Nómina o Auditoría.
+La pregunta sobre el registro no es un cambio de código. Es la bitácora de lo hecho a mano sobre horas y pagos (quién, cuándo, qué): al 2026-11-24 tiene 63 anotaciones desde julio — 31 «Entry deleted», 9 «Request approved», 8 «Marked paid», 3 «Session corrected», y altas, bajas y cambios de rol.
+Verificado en el demo a 1680 y 390 px: las tres abren y cierran, las tres direcciones viejas llegan con su sección abierta. En el demo las fotos y las excepciones no tienen datos (su lectura es del servidor): NO vistas con datos reales.
+Time Tracker 1.39.0 · repo 1.984.0.

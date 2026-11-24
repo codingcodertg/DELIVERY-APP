@@ -12,8 +12,9 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
  * Hasta ahora la puerta era un `if (me.role !== "admin")` en el navegador, tras montar y
  * consultar. Con la cuarta vista entra una acción que resta tiempo pagado (borrar una captura
  * de escritorio), y para eso el `if` del cliente no basta: RLS es quien protege de verdad, y
- * esta redirección evita además pintar la pantalla a quien no debe verla. El cuerpo, con el
- * selector de vistas, es `AuditTabs` (cliente).
+ * esta redirección evita además pintar la pantalla a quien no debe verla. El cuerpo es
+ * `AuditTabs` (cliente), solo el registro de auditoría desde 2026-11-24 (las vistas de fotos,
+ * excepciones y capturas están en Nómina). Esta puerta sigue igual.
  */
 export default async function AuditPage() {
   // Modo demo: sin base ni sesión; la persona es el admin inventado y el cuerpo lee del proveedor en memoria.

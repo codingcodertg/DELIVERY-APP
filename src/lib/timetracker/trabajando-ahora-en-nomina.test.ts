@@ -26,7 +26,8 @@ describe("«Trabajando ahora» ya no es pestaña", () => {
   it("Nómina pasa ?vista=ahora a PayrollTabs en las dos ramas (demo y real)", () => {
     const src = leer("src/app/timetracker/(timetracker)/payroll/page.tsx");
     expect(src).toContain('vista?: string');
-    expect(src.split("ahoraAbiertaPorUrl={ahoraAbiertaPorUrl}").length - 1).toBe(2);
+    expect(src.split("vistaPorUrl={vistaPorUrl}").length - 1).toBe(2);
+    expect(src).not.toContain("ahoraAbiertaPorUrl");
   });
 });
 
@@ -40,8 +41,9 @@ describe("la sección dentro de PayrollTabs", () => {
   });
 
   it("solo la ve el admin, y va encima del resumen", () => {
-    expect(src).toContain('me.role === "admin" && <SeccionAhora');
-    expect(src.indexOf("<SeccionAhora")).toBeLessThan(src.indexOf("<PayrollResumen"));
+    expect(src).toContain('me.role === "admin" && (');
+    expect(src).toContain('<SeccionDeNomina clave="ahora"');
+    expect(src.indexOf('clave="ahora"')).toBeLessThan(src.indexOf("<PayrollResumen"));
   });
 
   it("el cuerpo no se monta cerrado (así el sondeo solo corre abierto)", () => {
