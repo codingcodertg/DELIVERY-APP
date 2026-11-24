@@ -35,7 +35,7 @@ const SIN_ACCESO_ES = "Solo los administradores del Time Tracker pueden abrir es
 export async function MarcoDelTtEnRrhh({ children }: { children: React.ReactNode }) {
   if (LOCAL_MODE) {
     return (
-      <div className="timetracker-module tt-en-rrhh">
+      <div className="timetracker-module tt-en-rrhh" data-tabla-a-todo-el-ancho>
         <CapacitacionProvider inicial={null} uid={ADMIN_DEMO.id}>
           <DemoDataProvider me={ADMIN_DEMO}>{children}</DemoDataProvider>
         </CapacitacionProvider>
@@ -55,7 +55,7 @@ export async function MarcoDelTtEnRrhh({ children }: { children: React.ReactNode
   const me = entorno.me;
   if (entorno.perfil?.timetracker_role !== "admin" || !me) {
     return (
-      <div className="timetracker-module tt-en-rrhh">
+      <div className="timetracker-module tt-en-rrhh" data-tabla-a-todo-el-ancho>
         <div className="card">
           <p>{SIN_ACCESO_EN}</p>
           <p className="muted">{SIN_ACCESO_ES}</p>
@@ -68,7 +68,7 @@ export async function MarcoDelTtEnRrhh({ children }: { children: React.ReactNode
   const capacitacion = await capacitacionDeLaPeticion();
 
   return (
-    <div className="timetracker-module tt-en-rrhh">
+    <div className="timetracker-module tt-en-rrhh" data-tabla-a-todo-el-ancho>
       <CapacitacionProvider inicial={capacitacion} uid={me.id}>
         <DataProvider me={me} tiendas={entorno.tiendasDeFichaje}>
           {children}
