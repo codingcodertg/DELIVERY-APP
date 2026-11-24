@@ -194,6 +194,8 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
   const [tiendaDelReporte, setTiendaDelReporte] = useState("");
   const tiendasDelFiltro = useMemo(() => Array.from(new Set([...ctx.tiendas, ...propias.filter((r) => r.kind === "scrap").map((r) => r.store)])).filter(Boolean).sort(), [ctx.tiendas, propias]);
   const tiendaElegida = tiendasDelFiltro.length > 1 && tiendasDelFiltro.includes(tiendaDelReporte) ? tiendaDelReporte : "";
+  // D-1148: el informe de conteos sigue la misma tienda.
+  const tiendasDeConteos = useMemo(() => (tiendaElegida === "" ? ctx.tiendas : [tiendaElegida]), [tiendaElegida, ctx.tiendas]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const mermas = useMemo(() => conAprobacionDePractica(propias.filter((r) => r.kind === "scrap" && (tiendaElegida === "" || r.store === tiendaElegida))), [propias, grupos, tiendaElegida]);
   // 327: la merma rechazada no cuenta en los totales de dinero ni en la pérdida del rango (sigue en la lista).
@@ -458,7 +460,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
       {/* Dueño, 11 nov: los atajos de fecha pasan a UN botón «📅» con su menú (primero el rango personalizado). */}
       <MenuDeFecha eleccion={eleccion} etiqueta={etiqueta} onElegir={elegir} />
       {/* D-1147: el filtro por tienda de la merma, junto al rango. */}
-      {pestana === "merma" && tiendasDelFiltro.length > 1 && (
+      {(pestana === "merma" || pestana === "conteos") && tiendasDelFiltro.length > 1 && (
         <select className="ops-filtro-tienda" value={tiendaElegida} onChange={(e) => setTiendaDelReporte(e.target.value)} data-tienda-del-reporte aria-label={t("Store", "Tienda")}>
           <option value="">🏬 {t("All stores", "Todas las tiendas")}</option>
           {tiendasDelFiltro.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -670,8 +672,9 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
 
       {modo === "todos" && gerencia && pestana === "conteos" && (
         <div className="ops-merma" data-conteos-informe>
-          {pestanas}
-          <InformeDeConteos ctx={ctx} tiendas={ctx.tiendas} />
+          {/* D-1148: el mismo renglón de arriba que la merma (pestañas, rango y tienda). */}
+          {selectorDeRango}
+          <InformeDeConteos ctx={ctx} tiendas={tiendasDeConteos} rango={rango} etiqueta={etiqueta} />
         </div>
       )}
 

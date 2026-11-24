@@ -3,10 +3,16 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { mensajeDeErrorAlCargar } from "@/lib/mensaje-de-error";
+import { createClient } from "@/lib/supabase/client";
 import { usePrefs } from "@/lib/prefs";
 import { fmtMoney } from "@/lib/utils";
 import { fmtDia, hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
 import { META_DE_MERMA_PCT, mesesHastaHoy, truncaDecimales, type NivelDeBono } from "@/lib/almacen-ops/kpi-almacen";
+import { alternarFiltroDeKpi, gruposDeKpiVisibles, type FiltroDeKpi, type GrupoDeKpi } from "@/lib/almacen-ops/kpi-almacen-filtro";
+import { colorDelPct, kpiDeMantenimiento, totalDelKpi } from "@/lib/almacen-ops/mantenimiento-kpi";
+import { DEMO_MANTENIMIENTO, faltaLa273, leerMantenimiento, type Mantenimiento as DatosDeMantenimiento } from "@/lib/almacen-ops/mantenimiento-datos";
+import { colorDeExactitud, kpiDeConteos, periodoDeMes, totalDeConteos } from "@/lib/almacen-ops/conteos-kpi";
+import { DEMO_CONTEOS, faltaLa274, leerConteos, type Conteos as DatosDeConteos } from "@/lib/almacen-ops/conteos-datos";
 import type { Contexto } from "./Operaciones";
 
 /** 19 nov (Roberto, prueba de dos meses): ninguna mención de bono en la pantalla. El cálculo sigue en la lógica. */
@@ -29,10 +35,14 @@ interface Respuesta {
 }
 
 type Carga = { estado: "cargando" } | { estado: "error"; mensaje: string } | { estado: "listo"; datos: Respuesta };
+type CargaDeMantenimiento = { estado: "cargando" } | { estado: "falta-273" } | { estado: "error"; mensaje: string } | { estado: "listo"; datos: DatosDeMantenimiento };
+type CargaDeConteos = { estado: "cargando" } | { estado: "falta-274" } | { estado: "error"; mensaje: string } | { estado: "listo"; datos: DatosDeConteos };
 
 /**
- * KPIs de almacén (vista «KPIs de almacén»): a la izquierda los reportes; a la derecha el selector de tienda y de mes,
- * los cuatro KPI y el tramo del bono. Las reglas viven en `src/lib/almacen-ops/kpi-almacen.ts`; aquí solo se pinta.
+ * KPIs de almacén (vista «KPIs de almacén»): a la izquierda los filtros (D-1149, ayuda de Roberto, 24 nov 2026: en vez de
+ * abrir otras pantallas, cada botón deja ver solo los KPI de esa categoría; sin filtro se ven todos). A la derecha el
+ * selector de tienda y de mes y las tarjetas. Las reglas viven en `src/lib/almacen-ops/`; aquí solo se pinta.
+ * Mantenimiento y conteos se cargan una vez, al abrir la pantalla, y no dependen del filtro.
  */
 export function KpisDeAlmacen({ ctx }: { ctx: Contexto }) {
   const { t, lang } = usePrefs();
@@ -41,7 +51,10 @@ export function KpisDeAlmacen({ ctx }: { ctx: Contexto }) {
   const tiendas = ctx.tiendas;
   const [tienda, setTienda] = useState<string>(tiendas[0] ?? ctx.yo.store ?? "");
   const [mes, setMes] = useState<string>(meses[0] ?? "");
+  const [filtro, setFiltro] = useState<FiltroDeKpi>("todos");
   const [carga, setCarga] = useState<Carga>({ estado: "cargando" });
+  const [cargaMant, setCargaMant] = useState<CargaDeMantenimiento>(ctx.demo ? { estado: "listo", datos: DEMO_MANTENIMIENTO } : { estado: "cargando" });
+  const [cargaConteos, setCargaConteos] = useState<CargaDeConteos>(ctx.demo ? { estado: "listo", datos: DEMO_CONTEOS } : { estado: "cargando" });
 
   useEffect(() => {
     if (!tienda || !mes) return;
@@ -62,6 +75,26 @@ export function KpisDeAlmacen({ ctx }: { ctx: Contexto }) {
     return () => { vivo = false; };
   }, [tienda, mes, ctx.demo]);
 
+  // Mantenimiento y conteos: se cargan al abrir la pantalla (una vez). Un fallo de uno no toca al otro ni a las cifras de almacén.
+  useEffect(() => {
+    if (ctx.demo) return;
+    let vivo = true;
+    const sb = createClient();
+    leerMantenimiento(sb)
+      .then((d) => { if (vivo) setCargaMant({ estado: "listo", datos: d }); })
+      .catch((e) => { if (vivo) setCargaMant(faltaLa273(e) ? { estado: "falta-273" } : { estado: "error", mensaje: mensajeDeErrorAlCargar(e) }); });
+    // Mismos 400 días que el informe de conteos en Reportes.
+    leerConteos(sb, 400)
+      .then((d) => { if (vivo) setCargaConteos({ estado: "listo", datos: d }); })
+      .catch((e) => { if (vivo) setCargaConteos(faltaLa274(e) ? { estado: "falta-274" } : { estado: "error", mensaje: mensajeDeErrorAlCargar(e) }); });
+    return () => { vivo = false; };
+  }, [ctx.demo]);
+
+  const visibles = gruposDeKpiVisibles(filtro);
+  const titulos = filtro === "todos";
+  const almacenVisible = visibles.some((g) => g === "listas" || g === "merma" || g === "tiempo");
+  const periodo = useMemo(() => periodoDeMes(mes), [mes]);
+
   const nombreDelMes = (m: string) => {
     const [a, n] = m.split("-").map(Number);
     const s = new Intl.DateTimeFormat(lang === "es" ? "es-MX" : "en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(a, n - 1, 15)));
@@ -76,11 +109,17 @@ export function KpisDeAlmacen({ ctx }: { ctx: Contexto }) {
       </header>
 
       <div className="ops-kpi-almacen-grid">
-        <nav className="ops-kpi-almacen-reportes" aria-label={t("Reports", "Reportes")} data-reportes-izq>
-          <h3 className="ops-merma-titulo">{t("Reports", "Reportes")}</h3>
-          <Link href="/operaciones/reportes" className="ops-boton ops-boton-ancho" data-ir="reportes">🧱 {t("Scrap and reports", "Merma y reportes")}</Link>
-          <Link href="/operaciones/mantenimiento" className="ops-boton ops-boton-ancho" data-ir="mantenimiento">🔧 {t("Maintenance", "Mantenimiento")}</Link>
-          <Link href="/operaciones/conteos" className="ops-boton ops-boton-ancho" data-ir="conteos">🔢 {t("Inventory counts", "Conteos de inventario")}</Link>
+        <nav className="ops-kpi-almacen-reportes" aria-label={t("Filter", "Filtrar")} data-filtros-izq>
+          <h3 className="ops-merma-titulo">{t("Filter", "Filtrar")}</h3>
+          <BotonDeFiltro valor="merma" actual={filtro} onPulsa={(v) => setFiltro(alternarFiltroDeKpi(filtro, v))}>
+            🧱 {t("Scrap", "Merma")}
+          </BotonDeFiltro>
+          <BotonDeFiltro valor="mantenimiento" actual={filtro} onPulsa={(v) => setFiltro(alternarFiltroDeKpi(filtro, v))}>
+            🔧 {t("Maintenance", "Mantenimiento")}
+          </BotonDeFiltro>
+          <BotonDeFiltro valor="conteos" actual={filtro} onPulsa={(v) => setFiltro(alternarFiltroDeKpi(filtro, v))}>
+            🔢 {t("Inventory counts", "Conteos de inventario")}
+          </BotonDeFiltro>
         </nav>
 
         <section className="ops-kpi-almacen-kpis" data-kpis-derecha>
@@ -97,17 +136,42 @@ export function KpisDeAlmacen({ ctx }: { ctx: Contexto }) {
             </label>
           </div>
 
-          {carga.estado === "cargando" && <p className="hint">{t("Loading…", "Cargando…")}</p>}
-          {carga.estado === "error" && <p className="ops-aviso ops-aviso-error">{t("Could not load: ", "No se pudo cargar: ")}{carga.mensaje}</p>}
-          {carga.estado === "listo" && <Cifras d={carga.datos} t={t} lang={lang} />}
+          {almacenVisible && carga.estado === "cargando" && <p className="hint">{t("Loading…", "Cargando…")}</p>}
+          {almacenVisible && carga.estado === "error" && <p className="ops-aviso ops-aviso-error">{t("Could not load: ", "No se pudo cargar: ")}{carga.mensaje}</p>}
+          {almacenVisible && carga.estado === "listo" && <Cifras d={carga.datos} visibles={visibles} titulo={titulos} t={t} lang={lang} />}
+
+          {visibles.includes("mantenimiento") && (
+            <KpisDeMantenimiento carga={cargaMant} tienda={tienda} hoy={hoy} titulo={titulos} />
+          )}
+          {visibles.includes("conteos") && (
+            <KpisDeConteos carga={cargaConteos} tienda={tienda} periodo={periodo} titulo={titulos} />
+          )}
         </section>
       </div>
     </div>
   );
 }
 
-/** Las cuatro cifras y el bono de un mes. Separado para que el estado de carga quede limpio arriba. */
-function Cifras({ d, t, lang }: { d: Respuesta; t: (en: string, es: string) => string; lang: "en" | "es" }) {
+/** Un botón de filtro: se queda marcado (aria-pressed) mientras es el elegido. */
+function BotonDeFiltro({ valor, actual, onPulsa, children }: {
+  valor: Exclude<FiltroDeKpi, "todos">; actual: FiltroDeKpi; onPulsa: (v: Exclude<FiltroDeKpi, "todos">) => void; children: React.ReactNode;
+}) {
+  const elegido = actual === valor;
+  return (
+    <button type="button" className={`ops-boton ops-boton-ancho${elegido ? " elegida" : ""}`} aria-pressed={elegido}
+      onClick={() => onPulsa(valor)} data-filtro={valor}>
+      {children}
+    </button>
+  );
+}
+
+/** Encabezado pequeño de un grupo (solo cuando no hay filtro: con filtro se ve un solo grupo). */
+function TituloDeGrupo({ texto }: { texto: string }) {
+  return <h3 className="ops-merma-titulo">{texto}</h3>;
+}
+
+/** Las cifras de almacén (listas, merma, fichajes) y sus avisos. Separado para que el estado de carga quede limpio arriba. */
+function Cifras({ d, visibles, titulo, t, lang }: { d: Respuesta; visibles: GrupoDeKpi[]; titulo: boolean; t: (en: string, es: string) => string; lang: "en" | "es" }) {
   const sinMigracion = d.aviso === "migration-325";
   const pctListas = d.listas.pct === null ? "—" : `${truncaDecimales(d.listas.pct, 1).toFixed(1)}%`;
   const colorListas = d.listas.pct === null ? "gris" : d.listas.pct >= 90 ? "verde" : d.listas.pct >= 70 ? "ambar" : "rojo";
@@ -125,9 +189,14 @@ function Cifras({ d, t, lang }: { d: Respuesta; t: (en: string, es: string) => s
     ninguno: t("No bonus", "Sin bono"),
   };
   const ventasHastaIncompleto = m?.ventasHasta && m.ventas !== null && m.ventasHasta < d.hasta;
+  const verListas = visibles.includes("listas");
+  const verMerma = visibles.includes("merma");
+  const verTiempo = visibles.includes("tiempo");
 
   return (
     <div data-kpi-almacen-cifras data-bono={d.bono ?? ""} data-puntaje={d.puntaje ?? ""}>
+      {titulo && <TituloDeGrupo texto={t("Warehouse", "Almacén")} />}
+
       {MOSTRAR_BONO && (
       <div className="ops-merma-total ops-kpi-almacen-bono" data-bono-tramo>
         <span>{t("Overall score", "Puntaje general")}</span>
@@ -142,7 +211,7 @@ function Cifras({ d, t, lang }: { d: Respuesta; t: (en: string, es: string) => s
       </div>
       )}
 
-      {sinMigracion && (
+      {(verMerma || verTiempo) && sinMigracion && (
         <p className="ops-aviso ops-aviso-error" data-aviso-325>
           {t("Scrap, sales and clock-in numbers need database migration 325. Until it is applied they show “no data”.",
             "La merma, las ventas y los fichajes necesitan la migración 325 de la base. Mientras no esté aplicada salen «sin datos».")}
@@ -150,7 +219,8 @@ function Cifras({ d, t, lang }: { d: Respuesta; t: (en: string, es: string) => s
       )}
 
       <div className="ops-merma-totales ops-kpi-almacen-tarjetas">
-        {/* 1. Listas a tiempo: un solo porcentaje */}
+        {/* Listas a tiempo: un solo porcentaje (sin filtro) */}
+        {verListas && (
         <div className="ops-merma-total ops-merma-total-rango" data-kpi="listas">
           <span>{t("Ready on time", "Listas a tiempo")}</span>
           <span className={`ops-merma-cifra ops-kpi-${colorListas}`} data-kpi-listas-pct>{pctListas}</span>
@@ -161,8 +231,10 @@ function Cifras({ d, t, lang }: { d: Respuesta; t: (en: string, es: string) => s
             </span>
           )}
         </div>
+        )}
 
-        {/* 2. Merma a precio de venta vs. ventas */}
+        {/* Merma a precio de venta vs. ventas */}
+        {verMerma && (
         <div className="ops-merma-total" data-kpi="merma">
           <span>{t("Scrap at sales price", "Merma a precio de venta")}</span>
           <span className={`ops-merma-cifra ops-kpi-${colorMerma}`} data-kpi-merma-valor>{m ? fmtMoney(m.valor) : "—"}</span>
@@ -175,8 +247,10 @@ function Cifras({ d, t, lang }: { d: Respuesta; t: (en: string, es: string) => s
             <span className="hint" data-ventas-incompletas>{t(`Sales loaded only through ${fmtDia(m!.ventasHasta!, lang)}; the month may be incomplete.`, `Ventas cargadas solo hasta ${fmtDia(m!.ventasHasta!, lang)}; el mes puede estar incompleto.`)}</span>
           )}
         </div>
+        )}
 
-        {/* 3. Fichajes del personal de almacén */}
+        {/* Fichajes del personal de almacén (sin filtro) */}
+        {verTiempo && (
         <div className="ops-merma-total" data-kpi="tiempo">
           <span>{t("Clocked in and out properly", "Turnos fichados bien")}</span>
           <span className={`ops-merma-cifra ops-kpi-${colorTiempo}`} data-kpi-tiempo-pct>{pctTiempo}</span>
@@ -184,14 +258,96 @@ function Cifras({ d, t, lang }: { d: Respuesta; t: (en: string, es: string) => s
           <span>{t("Hours worked (closed shifts)", "Horas trabajadas (turnos cerrados)")}: <span data-kpi-horas>{tm ? tm.horas.toFixed(1) : "—"}</span></span>
           <span className="hint">{t("Counts shifts closed by the person themselves: not automatic, not fixed by hand.", "Cuenta los turnos que la persona cerró ella misma: no automáticos ni corregidos a mano.")}</span>
         </div>
+        )}
       </div>
 
-      {d.cortado && <p className="ops-aviso ops-aviso-error">{t("Too many orders this month; the on-time figure is partial.", "Demasiadas órdenes este mes; el porcentaje de listas es parcial.")}</p>}
+      {verListas && d.cortado && <p className="ops-aviso ops-aviso-error">{t("Too many orders this month; the on-time figure is partial.", "Demasiadas órdenes este mes; el porcentaje de listas es parcial.")}</p>}
+      {verListas && (
       <p className="hint" data-regla>
         {t("On time = the warehouse marked the order “ready” before the driver picked it up. Not ready (late or never marked) counts against the warehouse, except when the order was created less than 4 hours before pickup. Days are Texas days.",
           "A tiempo = el almacén marcó la orden «lista» antes de que el chofer la recogiera. No lista (tarde o nunca marcada) cuenta contra el almacén, salvo que la orden se creara a menos de 4 horas de la recogida. Los días son los de Texas.")}
       </p>
+      )}
     </div>
+  );
+}
+
+/** Las dos tarjetas de mantenimiento (la semana de hoy, no el mes elegido), con las mismas reglas que la pantalla de Mantenimiento. */
+function KpisDeMantenimiento({ carga, tienda, hoy, titulo }: { carga: CargaDeMantenimiento; tienda: string; hoy: string; titulo: boolean }) {
+  const { t } = usePrefs();
+  const tot = useMemo(() => {
+    if (carga.estado !== "listo") return null;
+    return totalDelKpi(kpiDeMantenimiento(carga.datos.equipos, carga.datos.listas, hoy, [tienda]).filter((x) => x.tienda === tienda));
+  }, [carga, hoy, tienda]);
+  return (
+    <>
+      {titulo && <TituloDeGrupo texto={t("Maintenance", "Mantenimiento")} />}
+      {carga.estado === "cargando" && <p className="hint">{t("Loading…", "Cargando…")}</p>}
+      {carga.estado === "falta-273" && (
+        <p className="ops-aviso" data-aviso="273">{t("Maintenance needs database migration 273 before it shows numbers.", "Mantenimiento necesita la migración 273 de la base para mostrar números.")}</p>
+      )}
+      {carga.estado === "error" && <p className="ops-aviso ops-aviso-error">{t("Could not load: ", "No se pudo cargar: ")}{carga.mensaje}</p>}
+      {tot && (
+        <>
+          <div className="ops-merma-totales ops-kpi-almacen-tarjetas ops-kpi-almacen-dos ops-kpi" data-kpi-grupo="mantenimiento">
+            <div className="ops-merma-total" data-kpi="mant-listas">
+              <span>{t("Checklists this week", "Listas esta semana")}</span>
+              <span className={`ops-merma-cifra ops-kpi-${colorDelPct(tot.pct)}`} data-kpi-mant-pct>{tot.pct === null ? "—" : `${tot.pct}%`}</span>
+              <span>{tot.hechas} / {tot.esperadas} · {t(`${tot.enServicio} in service`, `${tot.enServicio} en servicio`)}</span>
+            </div>
+            <div className="ops-merma-total" data-kpi="mant-reparacion">
+              <span>{t("Need repair", "Necesitan reparación")}</span>
+              <span className={`ops-merma-cifra ${tot.necesitanReparacion > 0 ? "ops-kpi-ambar" : "ops-kpi-verde"}`} data-kpi-mant-reparacion>{tot.necesitanReparacion}</span>
+              <span>{t(`${tot.fueraDeServicio} out of service`, `${tot.fueraDeServicio} fuera de servicio`)}</span>
+            </div>
+          </div>
+          <p className="hint" data-nota-semana>{t("This week only (Monday to today), not the selected month.", "Solo esta semana (de lunes a hoy), no el mes elegido.")}</p>
+        </>
+      )}
+    </>
+  );
+}
+
+/** Las cuatro tarjetas del inventario del mes elegido, con las mismas reglas que el informe de conteos en Reportes. */
+function KpisDeConteos({ carga, tienda, periodo, titulo }: { carga: CargaDeConteos; tienda: string; periodo: ReturnType<typeof periodoDeMes>; titulo: boolean }) {
+  const { t, lang } = usePrefs();
+  const tot = useMemo(() => {
+    if (carga.estado !== "listo" || !periodo) return null;
+    return totalDeConteos(kpiDeConteos(carga.datos.conteos, carga.datos.lineas, carga.datos.pendientes, periodo, [tienda]));
+  }, [carga, periodo, tienda]);
+  return (
+    <>
+      {titulo && <TituloDeGrupo texto={t("Inventory counts", "Conteos de inventario")} />}
+      {carga.estado === "cargando" && <p className="hint">{t("Loading…", "Cargando…")}</p>}
+      {carga.estado === "falta-274" && (
+        <p className="ops-aviso" data-aviso="274">{t("Inventory counts need database migration 274 before they show numbers.", "Los conteos de inventario necesitan la migración 274 de la base para mostrar números.")}</p>
+      )}
+      {carga.estado === "error" && <p className="ops-aviso ops-aviso-error">{t("Could not load: ", "No se pudo cargar: ")}{carga.mensaje}</p>}
+      {tot && (
+        <div className="ops-merma-totales ops-kpi-almacen-tarjetas ops-kpi-almacen-cuatro ops-kpi" data-kpi-grupo="conteos" data-faltan-cajas-mes={tot.faltanCajas}>
+          <div className="ops-merma-total" data-kpi="cajas-faltan">
+            <span>{t("Boxes missing", "Cajas que faltan")}</span>
+            <span className={`ops-merma-cifra ${tot.faltanCajas > 0 ? "ops-kpi-rojo" : "ops-kpi-verde"}`} data-kpi-cajas-faltan>{tot.faltanCajas}</span>
+            <span className="hint">{t("after pending orders", "después de órdenes pendientes")}</span>
+          </div>
+          <div className="ops-merma-total" data-kpi="neto-usd">
+            <span>{t("Net $", "Neto $")}</span>
+            <span className={`ops-merma-cifra ${tot.netoValor < 0 ? "ops-kpi-rojo" : ""}`} data-kpi-neto-usd>{tot.netoValor > 0 ? "+" : ""}{fmtMoney(tot.netoValor)}</span>
+            <span className="hint">{t("with sign", "con signo")}</span>
+          </div>
+          <div className="ops-merma-total" data-kpi="exactitud">
+            <span>{t("Accuracy", "Exactitud")}</span>
+            <span className={`ops-merma-cifra ops-kpi-${colorDeExactitud(tot.exactitudPct)}`} data-kpi-exactitud>{tot.exactitudPct === null ? "—" : `${tot.exactitudPct}%`}</span>
+            <span className="hint">{tot.lineasExactas} / {tot.lineasComparables} {t("lines", "líneas")}</span>
+          </div>
+          <div className="ops-merma-total" data-kpi="conteos-hechos">
+            <span>{t("Counts completed", "Conteos completados")}</span>
+            <span className="ops-merma-cifra" data-kpi-hechos>{tot.hechos}</span>
+            <span className="hint">{t("adjusted this month", "ajustados este mes")}</span>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
