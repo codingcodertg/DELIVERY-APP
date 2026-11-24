@@ -189,7 +189,11 @@ describe("Solicitudes del equipo: la del presencial sale con su tienda y su pues
   const eq = leer("src/app/timetracker/(timetracker)/team-requests/page.tsx");
   it("projName mira a la persona que pidió", () => {
     expect(eq).toContain('return nombreDeLinea(a ? pMap.get(a.projectId)?.name : null, uMap.get(uid), lang, "—");');
-    expect(eq.split("projName(p.assignmentId as string, r.employeeUid, p.storeId as string | undefined)").length - 1).toBe(2);
+    // Dos usos en total: el de pendientes (esta página) y el del historial, que se movió a
+    // Auditoría (HistorialDeSolicitudes.tsx, 2026-11-24).
+    const historial = leer("src/components/timetracker/HistorialDeSolicitudes.tsx");
+    const usos = "projName(p.assignmentId as string, r.employeeUid, p.storeId as string | undefined)";
+    expect((eq + historial).split(usos).length - 1).toBe(2);
   });
 });
 

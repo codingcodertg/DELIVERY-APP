@@ -101,6 +101,8 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     // CapturasDeSesion, que se abre desde Nómina → Remoto (sustituyó a TeamDiary).
     "src/components/timetracker/AuditTabs.tsx",
     "src/components/timetracker/CapturasDeSesion.tsx",
+    // Historial de solicitudes, movido desde Solicitudes a Auditoría (2026-11-24).
+    "src/components/timetracker/HistorialDeSolicitudes.tsx",
     // D-403: la cabecera de las capturas (selector de fecha) y su resumen del día.
     "src/components/timetracker/WorkDiary.tsx",
     "src/components/timetracker/DayActivitySummary.tsx",
