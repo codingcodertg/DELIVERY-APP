@@ -300,3 +300,6 @@ button.ld-pildora.on { border-color: currentColor; box-shadow: 0 0 0 1px current
 
 /* 21 nov: el aviso «Sin teléfono» de un lead, visible. */
 .ld-aviso-sin-telefono { color: var(--red); font-weight: 600; font-size: 13px; }
+
+/* 337 / D-NEXT (reunión del 23 nov 2026): una llamada perdida se lee en rojo, en negrita. */
+.ld-llamadas .ld-llamada.ld-llamada-perdida, .ld-llamadas .ld-llamada-perdida .hint { color: var(--red, #b91c1c); font-weight: 700; }

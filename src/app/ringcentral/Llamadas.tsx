@@ -5,7 +5,7 @@ import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar"
 import { usePrefs } from "@/lib/prefs";
 import { fmtDateTime } from "@/lib/recruiting/utils";
 import { CLAVE_DE_VELOCIDAD, rotuloDeVelocidad, siguienteVelocidad, velocidadGuardada } from "@/lib/recruiting/velocidad-de-audio";
-import { duracionDeLlamada, nombreVisible, numeroLegible } from "@/lib/ringcentral-choferes/choferes";
+import { duracionDeLlamada, esLlamadaPerdida, nombreVisible, numeroLegible } from "@/lib/ringcentral-choferes/choferes";
 import {
   cargarLlamadas,
   fechaLocal,
@@ -269,6 +269,8 @@ export function Llamadas() {
             vacio={t("No calls in this range.", "No hay llamadas en este rango.")}
             ordenInicial={{ clave: "fecha", direccion: "desc" }}
             columnas={columnas}
+            /* Las perdidas van en rojo (D-NEXT, reunión del 23 nov 2026): solo cambia el color, nada más de la fila. */
+            claseDeFila={(f) => (esLlamadaPerdida(f.result) ? "rcc-perdida" : undefined)}
           />
           {hayMas && (
             <div className="rcc-mas">
