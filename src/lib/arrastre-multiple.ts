@@ -88,21 +88,31 @@ export function mueveBloque(
   if (rota != null) return { ok: false, motivo: "precedencia", orden: rota };
 
   // Relevo: el paso b no puede quedar antes que la entrega de su paso a (si antes no estaba así).
+  const relevo = relevoRoto(lista, nuevas, opciones.relevos);
+  if (relevo != null) return { ok: false, motivo: "relevo", orden: relevo };
+
+  return { ok: true, paradas: nuevas, ordenes: [...ordenes] };
+}
+
+/**
+ * El paso b de relevo cuya recogida quedaría, en `nuevas`, antes que la entrega de su paso a (y en `lista` no lo estaba);
+ * `null` si ninguno. Aparte de `mueveBloque` para que «mover a la parada N» (lib/mover-a-parada, D-1145) use la MISMA regla.
+ */
+export function relevoRoto(lista: readonly ParadaDeLaLista[], nuevas: readonly ParadaDeLaLista[], relevos: ReadonlyMap<string, string> | undefined): string | null {
   const sacaPosiciones = (l: readonly ParadaDeLaLista[]) => {
     const p = new Map<string, number>(), d = new Map<string, number>();
     l.forEach((x, i) => { if (x.tipo === "P") x.ordenes.forEach((id) => p.set(id, i)); else d.set(x.orden, i); });
     return { p, d };
   };
   const antesRel = sacaPosiciones(lista), despuesRel = sacaPosiciones(nuevas);
-  for (const [b, a] of opciones.relevos ?? []) {
+  for (const [b, a] of relevos ?? []) {
     const pb = despuesRel.p.get(b), da = despuesRel.d.get(a);
     if (pb == null || da == null || pb > da) continue;
     const pbAntes = antesRel.p.get(b), daAntes = antesRel.d.get(a);
     if (pbAntes != null && daAntes != null && pbAntes < daAntes) continue;
-    return { ok: false, motivo: "relevo", orden: b };
+    return b;
   }
-
-  return { ok: true, paradas: nuevas, ordenes: [...ordenes] };
+  return null;
 }
 
 /**

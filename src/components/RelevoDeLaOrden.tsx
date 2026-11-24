@@ -111,7 +111,7 @@ export function RelevoDeLaOrden({ pedido, compacto = false, soloLectura = false 
   const deshacer = async () => {
     if (guardando) return;
     // 322: si el paso a ya está entregado en la tienda de relevo, la mercancía está ahí y la orden queda lista en ella.
-    const pasoA = familia.find((p) => p.relay_step === 1);
+    const pasoA = pasosParaDecidir.find((p) => p.relay_step === 1);
     const enLaTienda = pasoA?.stage === "delivered" ? (pasoA.delivery_name ?? "?") : null;
     const ok = await confirmar(
       t(`Undo the relay? #${numero} becomes one order again, straight to ${destinoFinal}.${enLaTienda ? ` The goods are already at ${enLaTienda}: the order is ready there, with no driver.` : ""} The other step is removed, with its driver and its day.`,
@@ -126,6 +126,12 @@ export function RelevoDeLaOrden({ pedido, compacto = false, soloLectura = false 
   };
 
   const estado = estadoDelRelevo(pasos.length ? pasos : familia);
+  // D-1145 (el dueño, 2026-11-23: «undo relay button missing»; en la reunión el botón no salía y «took some time» en
+  // aparecer): «↩ Deshacer relevo» se decidía solo con los pasos que la PANTALLA tenía cargados. Si el otro paso aún no
+  // había llegado (una recarga que falló o tardó, como en la saturación de esa noche), la familia tenía un paso y el
+  // botón no salía. La tarjeta ya lee los pasos de la base (`pasos_del_relevo`): si la base dice que hay más, manda ella.
+  // Quien decide de verdad sigue siendo `deshacer_relevo`, en la base.
+  const pasosParaDecidir: readonly { relay_step?: number | null; stage?: string | null; delivery_name?: string | null }[] = pasos.length > familia.length ? pasos : familia;
   const avisos = esRelevo ? avisosDeRelevo(familia) : [];
   const choferes = driverNames(users);
 
@@ -226,7 +232,7 @@ export function RelevoDeLaOrden({ pedido, compacto = false, soloLectura = false 
             </div>
             {avisos.map((a) => <p key={a.tipo + a.ids.join()} className="hint" data-aviso-de-relevo={a.tipo} style={{ color: "var(--amber-text)", margin: "8px 0 0" }}>⚠ {a[lang]}</p>)}
             <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-              {puede && sePuedeDeshacer(familia) && (
+              {puede && sePuedeDeshacer(pasosParaDecidir) && (
                 <button type="button" className="btn btn-danger" data-deshacer-relevo style={{ minHeight: 44 }} disabled={guardando} onClick={() => void deshacer()}>
                   ↩ {t("Undo relay", "Deshacer relevo")}
                 </button>
