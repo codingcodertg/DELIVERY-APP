@@ -122,7 +122,7 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     "src/app/timetracker/(timetracker)/week/page.tsx",
     "src/app/timetracker/(timetracker)/requests/page.tsx",
     "src/components/timetracker/ClockinApprovals.tsx",
-    // D-NEXT (ayuda de Roberto, 24 nov 2026): las secciones plegables y el calendario de ausencias.
+    // D-1155 (ayuda de Roberto, 24 nov 2026): las secciones plegables y el calendario de ausencias.
     "src/components/timetracker/CalendarioDeAusencias.tsx",
     "src/components/timetracker/ExceptionHistory.tsx",
     "src/components/timetracker/GeofenceEditor.tsx",

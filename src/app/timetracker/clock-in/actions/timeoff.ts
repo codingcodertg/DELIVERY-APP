@@ -158,7 +158,7 @@ export async function getPendingForInbox(): Promise<
 
 /**
  * Las ausencias que caen en un rango de fechas, para el calendario de «quién falta» de la bandeja
- * (D-NEXT, ayuda de Roberto, 24 nov 2026).
+ * (D-1155, ayuda de Roberto, 24 nov 2026).
  *
  * Solo lectura, y con la misma puerta que `getPendingForInbox`: `clockinManagerCtx` decide quién
  * entra y `storeScope` acota a la cuadrilla con el mismo `extra_store_ids`. No hay una regla nueva

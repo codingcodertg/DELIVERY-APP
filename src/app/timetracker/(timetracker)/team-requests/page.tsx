@@ -64,7 +64,7 @@ export default function TeamRequestsPage() {
   const pending = requests.filter((r) => r.status === "pending").sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
   const history = requests.filter((r) => r.status !== "pending").sort((a, b) => new Date(b.resolvedAt || 0).getTime() - new Date(a.resolvedAt || 0).getTime()).slice(0, 30);
 
-  // Qué secciones están abiertas (D-NEXT, ayuda de Roberto, 24 nov 2026). Pendientes se abre
+  // Qué secciones están abiertas (D-1155, ayuda de Roberto, 24 nov 2026). Pendientes se abre
   // solo si hay algo que revisar; el historial empieza cerrado. Las de la bandeja de fichaje se
   // deciden dentro de sus propios componentes.
   const pendientes = useSeccionAbierta("pendientes", true, pending.length > 0);

@@ -399,7 +399,7 @@
    para que nombre, proyecto y estado queden en el mismo registro. */
 .timetracker-module .live-card{text-transform:uppercase}
 
-/* Secciones plegables de la bandeja de Pendientes (D-NEXT, ayuda de Roberto, 24 nov 2026).
+/* Secciones plegables de la bandeja de Pendientes (D-1155, ayuda de Roberto, 24 nov 2026).
    La cabecera es un <button>, y la regla general de `.timetracker-module button` (fondo de
    acento, texto blanco, relleno) la pintaría como un botón: aquí se le quita todo eso para que
    se lea como un título que se despliega. */
@@ -424,7 +424,7 @@
 .timetracker-module .tt-calendario-modo:hover{filter:none;color:var(--tt-txt)}
 .timetracker-module .tt-calendario-modo[aria-pressed="true"]{background:var(--tt-chip);color:var(--tt-txt)}
 
-/* Calendario de quién falta (D-NEXT). Siete columnas siempre, también en el móvil: lo que se
+/* Calendario de quién falta (D-1155). Siete columnas siempre, también en el móvil: lo que se
    achica es el texto, no la rejilla. Los nombres cortan con puntos suspensivos y nunca empujan
    la celda, así que nada se sale de la pantalla. */
 .timetracker-module .tt-calendario{display:grid;gap:8px;min-width:0}

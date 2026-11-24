@@ -20,7 +20,7 @@ import { useT } from "@/lib/timetracker/i18n";
  * `storeScope` que usan las pantallas de fichaje. Un gerente con tienda ve su cuadrilla y
  * nadie más, y esa regla vive en un solo sitio.
  *
- * Desde D-NEXT (ayuda de Roberto, 24 nov 2026) las dos colas están en secciones separadas que
+ * Desde D-1155 (ayuda de Roberto, 24 nov 2026) las dos colas están en secciones separadas que
  * la página coloca donde toca (ausencias arriba, excepciones abajo). Cargan los datos UNA
  * vez, en `useBandejaDeFichaje`, y las dos secciones leen de ahí: no hay dos llamadas a
  * `getPendingForInbox`.

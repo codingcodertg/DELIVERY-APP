@@ -12,7 +12,7 @@ import {
 } from "@/lib/timetracker/calendario-de-ausencias";
 
 /**
- * Quién falta en qué días (D-NEXT, ayuda de Roberto, 24 nov 2026). Solo lectura: aprobar y
+ * Quién falta en qué días (D-1155, ayuda de Roberto, 24 nov 2026). Solo lectura: aprobar y
  * denegar se hace en la lista, no aquí.
  *
  * Cada celda enseña el número del día y, debajo, los nombres de quien está fuera. Las pendientes

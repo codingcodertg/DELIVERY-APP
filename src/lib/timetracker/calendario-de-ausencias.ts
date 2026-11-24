@@ -1,5 +1,5 @@
 /**
- * Fechas del calendario de ausencias de la bandeja de fichaje (D-NEXT, ayuda de Roberto,
+ * Fechas del calendario de ausencias de la bandeja de fichaje (D-1155, ayuda de Roberto,
  * 24 nov 2026): quién falta en qué días.
  *
  * Todo son fechas `YYYY-MM-DD` y toda la aritmética va en UTC. Una fecha de solo día no tiene

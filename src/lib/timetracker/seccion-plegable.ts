@@ -1,5 +1,5 @@
 /**
- * Cada sección de la bandeja de Pendientes se puede plegar (D-NEXT, ayuda de Roberto,
+ * Cada sección de la bandeja de Pendientes se puede plegar (D-1155, ayuda de Roberto,
  * 24 nov 2026: «que cada tabla tenga un desplegable y solo se vea cuando la abro yo»).
  *
  * La decisión de si una sección está abierta tiene dos fuentes, y gana la elección de la
