@@ -36,10 +36,10 @@ describe("D-832: recorrido del chofer", () => {
     expect(pagina).toContain("onLineClick={(id) => { const chofer = id.split(\":\")[0];");
     expect(pagina).toContain("const ultima = dia.fixes[dia.fixes.length - 1];");
   });
-  it("Time Tracker tiene la pestaña Recorrido para el admin, que lleva a /track", () => {
-    expect(MANAGER_TABS.find((x) => x.id === "recorrido")?.href).toBe("/track");
-    const i18n = leer("src/lib/timetracker/i18n.ts");
-    expect(i18n).toContain("'tab.recorrido': '🛣 Driver track'");
-    expect(i18n).toContain("'tab.recorrido': '🛣 Recorrido'");
+  it("D-1154: Time Tracker ya NO tiene la pestaña Recorrido (Roberto: «remove this from time track if its on delivery app»); la pantalla sigue en Entregas", () => {
+    expect(MANAGER_TABS.find((x) => x.id === "recorrido")).toBeUndefined();
+    expect(MANAGER_TABS.some((x) => x.href === "/track")).toBe(false);
+    // La pantalla del recorrido sigue existiendo en Entregas.
+    expect(leer("src/app/(app)/track/page.tsx").length).toBeGreaterThan(1000);
   });
 });

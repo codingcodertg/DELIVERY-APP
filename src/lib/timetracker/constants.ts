@@ -33,8 +33,9 @@ export const TABS: { id: string; href: string }[] = [
 export const MANAGER_TABS: { id: string; href: string }[] = [
   { id: "insights", href: "/timetracker/insights" },
   { id: "live", href: "/timetracker/live" },
-  // D-832: el recorrido del chofer (D-831) vive en Entregas (/track); desde aquí es una pestaña más del admin.
-  { id: "recorrido", href: "/track" },
+  // D-1154 (ayuda de Roberto, 2026-11-24: «Remove this from time track if its on delivery app»): «🛣 Driver track» ya no es
+  // pestaña de aquí. El recorrido del chofer vive en Entregas (/track, D-831) y desde allí se abre; D-832 lo había puesto
+  // también en esta barra.
   // "Informes y pago" ya no es pestaña (D-164): es la vista 💵 Pago dentro de Nómina, que
   // es la misma pregunta —cuánto se le paga a quién este periodo— y estaba partida en dos
   // pantallas con dos calendarios propios. La ruta /timetracker/reports redirige.
