@@ -53154,3 +53154,22 @@ Dos diferencias con Merma, a propósito: (1) las etapas van rellenas de su color
 El ancho de la página no cambió (tope de 1240 px).
 Verificado en el demo a 1680 y 390 px y en oscuro: pestañas, tienda, semana, buscador, vendedor y «Quitar filtros» siguen funcionando.
 Leads 0.36.0 · repo 1.985.0.
+
+## D-1165 · Leads: la franja de la tarjeta toma el color de la ETAPA, no el del vendedor (2026-11-24)
+
+El dueño, la misma tarde, con D-1163 ya en producción y la 345 aplicada: «el color de las cards que sea el color del stage mejor, no del rep».
+Qué cambia: la franja de un lead ya trabajado se pinta con el color de su etapa (las fichas `--etapa-*` de D-1162): azul si está en «Hizo cotización», ámbar en «En negociación», verde en «Cerrado»… El nombre del vendedor, la fecha y la etapa siguen escritos en ella.
+Lo que se quita: todo lo del color por vendedor de D-1163 (los doce `--vendedor-*`, `colorDeVendedor`, la lectura `puestosDeVendedores`). La función `leads_colores_de_vendedores()` de la 345 se queda en la base, sin uso: no molesta, y quitarla sería otra migración.
+Verificado en el demo a 1680 y 390 px.
+
+## D-1166 · Leads: «New» se llama «Open» (2026-11-24)
+
+El dueño: primero «remove el filtro new», y enseguida «rename it to open, que sería todo lo untouched».
+Qué cambia: la etapa es la misma (`new`: el lead al que nadie le ha puesto etapa); se LEE «Open» / «Abierto», con una carpeta abierta (📂) en vez de 🆕, en el filtro y en la pastilla de la tarjeta. El color negro no cambia.
+Un matiz: un lead con una nota SIN etapa sigue en «Open» aunque alguien ya escribió en él (lleva su franja con el nombre). «Open» es «sin etapa todavía», que es lo que la app sabe.
+
+## D-1167 · Time Tracker → Requests: «Time in requests» y «Time off requests» (2026-11-24)
+
+El dueño: «en time tracker pending request rename it to time in request y time off request respectivamente».
+Los títulos de las dos primeras secciones: «Pending requests» → «Time in requests» («Solicitudes de horas») y «Time off & shift changes» → «Time off requests» («Solicitudes de tiempo libre»). La segunda sigue llevando también los cambios de horario y de turno; solo cambia el título.
+Leads 0.37.0 · Time Tracker 1.39.1 · repo 1.986.0.

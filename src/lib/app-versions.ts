@@ -23,7 +23,7 @@
 export const APP_VERSIONS = {
   deliveries: "1.663.0",
   recruiting: "0.115.0",
-  timetracker: "1.39.0",
+  timetracker: "1.39.1",
   clockin: "0.50.1",
   // El ERP no tenía contador propio: llegó en D-090 y nadie le puso uno, así que el
   // sello de versión no habría tenido qué enseñar en /erp. Empieza en 0.1.0 por la
@@ -39,7 +39,7 @@ export const APP_VERSIONS = {
   surveys: "0.17.1",
   // Leads (migración 162): modulo nuevo, sin historial que continuar; 0.1.0 como Encuestas. La entrada la pone la
   // rama porque sin ella /leads no tiene sello de version; los siguientes numeros, el orquestador.
-  leads: "0.36.0",
+  leads: "0.37.0",
   // Clientes (D-569): la primera, como leads.
   customers: "0.69.0",
   // Security (D-811): la primera, como las demás apps nuevas.

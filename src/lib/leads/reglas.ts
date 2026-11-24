@@ -167,7 +167,9 @@ export const ETAPAS = ["new", ...TIPOS_DE_ACCION] as const;
 export type Etapa = (typeof ETAPAS)[number];
 
 const ETAPA_TXT: Record<Etapa, { en: string; es: string }> = {
-  new: { en: "New", es: "Nuevo" },
+  // D-1166 (el dueño, 2026-11-24): «rename it to open, que sería todo lo untouched». La etapa es la misma (`new`):
+  // el lead que nadie ha tocado. Cambia el nombre que se lee, en el filtro y en la tarjeta.
+  new: { en: "Open", es: "Abierto" },
   made_contact: { en: "Made Contact", es: "Hizo contacto" },
   no_answer: { en: "Didn't Answer", es: "No contestó" },
   appointment: { en: "Had Appointment", es: "Tuvo cita" },
@@ -186,7 +188,7 @@ export function etapaLabel(e: Etapa, lang: Idioma): string {
 }
 /** El icono de cada etapa: el mismo en inglés y en español. Ninguno repite otro (lo prueba reglas.test.ts). */
 export const ETAPA_ICONO: Record<Etapa, string> = {
-  new: "🆕",
+  new: "📂",
   made_contact: "🗣️",
   no_answer: "🔕",
   appointment: "📅",
