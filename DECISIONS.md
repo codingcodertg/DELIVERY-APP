@@ -53121,3 +53121,36 @@ Lo que NO cambia: las tres pantallas por dentro (cada una con su propio selector
 La pregunta sobre el registro no es un cambio de código. Es la bitácora de lo hecho a mano sobre horas y pagos (quién, cuándo, qué): al 2026-11-24 tiene 63 anotaciones desde julio — 31 «Entry deleted», 9 «Request approved», 8 «Marked paid», 3 «Session corrected», y altas, bajas y cambios de rol.
 Verificado en el demo a 1680 y 390 px: las tres abren y cierran, las tres direcciones viejas llegan con su sección abierta. En el demo las fotos y las excepciones no tienen datos (su lectura es del servidor): NO vistas con datos reales.
 Time Tracker 1.39.0 · repo 1.984.0.
+
+## D-1162 · Leads: cada etapa con su color y su icono (2026-11-24)
+
+El dueño, con dos capturas (un desplegable de otra herramienta con las etapas en pastillas de color, y la fila de etapas de Leads): «actualicemos los colores de estos stages con estos […] no agregues los stages, hazlo solo los colores, al igual que no es buen lead y no contestó agrégales los iconos que dan más lógica para ese cambio al igual que con todos los demás stages».
+Qué cambia: las nueve etapas siguen siendo las mismas, con los mismos nombres. Cada una lleva su color relleno (fichas `--etapa-*` en `leads.css`) y su icono (`ETAPA_ICONO`), en los tres sitios donde se pinta una etapa: los filtros de arriba, la pastilla de la tarjeta y el selector de «Agregar nota / etapa». La elegida se marca con un aro.
+- De su referencia: Nuevo negro, Tuvo cita morado, Hizo cotización azul, En negociación ámbar (con texto oscuro), Cerrado verde, Perdido rojo oscuro.
+- Sin color en su referencia, elegidos aquí: Hizo contacto verde azulado, No contestó gris, No es buen lead café.
+- Iconos: 🆕 🗣️ 🔕 📅 🧾 ⚖️ 🏆 ❌ 👎 (sin 📵 ni 🤝, que ya son de «Sin teléfono» y «Coinciden con clientes»).
+El verde de «Cerrado» es un punto más oscuro que el de la referencia (#17803a) para que el texto blanco pase de 4.5 de contraste. En oscuro, «Nuevo» es claro con texto oscuro: negro sobre fondo oscuro no se vería.
+Verificado en el demo a 1680 y 390 px.
+
+## D-1163 · Leads: la tarjeta de un lead ya trabajado lleva la franja de su vendedor, en su color (2026-11-24)
+
+El dueño, con una maqueta en Excel (una franja de color a todo lo ancho: nombre a la izquierda, fecha y etapa a la derecha): «change the look of the card for every lead once a rep is already working on that lead so its easier to view like every rep will have their specific color for their tag, cuando ellos trabajan en eso automáticamente se cambia el color al de ellos».
+Qué cambia: si el lead tiene último contacto, la tarjeta empieza con una franja de borde a borde con 👤 el nombre, la fecha y la etapa (con su icono, en texto: una pastilla de color sobre una franja de color no se leería). El lead que nadie ha trabajado sigue como estaba, con su pastilla «Nuevo».
+El color de cada quien: doce colores (`--vendedor-1` … `--vendedor-12`), y a cada persona le toca el de su PUESTO: 1 quien primero trabajó un lead, 2 el segundo… El puesto lo da la base (`leads_colores_de_vendedores()`, migración 345, una función de solo lectura sin tablas): la pantalla no puede calcularlo porque cada persona solo lee el historial de los leads que alcanza, y dos tiendas ordenarían distinto. Como la primera huella de alguien no cambia, quien llega después se pone al final y a nadie le cambia el color. El número 13 repetiría el color 1.
+Al 2026-11-24 quedarían: Kevin Gonzalez 1 (negro), Roberto Contreras 2 (ámbar), Roberto Rodriguez Jr 3 (azul), Pablo Castilla 4 (verde), Everto Prado 5 (morado), Juan Briseno 6 (rojo), Zulema Resendez 7 (verde azulado), Francis Lestarpe 8 (naranja), Melecio Rodriguez 9 (magenta).
+Mientras la 345 no esté aplicada (o si la lectura falla), la franja sale en un color neutro (el acento), igual para todos, y nada más cambia.
+Lo que NO se hizo: que un admin elija el color de cada persona. Es automático.
+Verificado en el demo a 1680 y 390 px con sus dos personas de ejemplo; la 345, en un ensayo con ROLLBACK contra la base real (devuelve los nueve puestos de arriba). NO visto con los colores reales en producción.
+
+## D-1164 · Leads: la parte de arriba, con el acomodo de los reportes de Merma (2026-11-24)
+
+El dueño, con la captura de Leads y la de Operaciones → Reportes → Merma: «en esta del leads quiero que lo adaptes con este estilo y diseño que ya estaba en merma reports».
+Qué cambia (solo acomodo: cada control, su dato y su comportamiento son los mismos):
+- Fuera el encabezado grande («🎯 Leads — Leads de permisos de obra…») y el recuadro blanco alrededor de los filtros.
+- Renglón 1: las pestañas como pastillas (la elegida, sólida) y, en el mismo renglón, el selector de tienda (🏬) y la semana del STXP; «Actualizar» a la derecha.
+- Título de la lista con su cuenta: «Leads en este pool [N]».
+- Las etapas; debajo, un renglón con el buscador a la izquierda y los cinco filtros compactos (su rótulo pasa a la primera opción) y «Quitar filtros» a la derecha.
+Dos diferencias con Merma, a propósito: (1) las etapas van rellenas de su color (D-1162, pedido del mismo día) y no blancas con un punto; (2) en pantalla ancha las etapas se parten en dos renglones: con icono las doce no caben en uno y las últimas quedaban escondidas sin barra a la vista. En el teléfono van en una línea que se desliza. Tampoco se añadieron las cuatro tarjetas de cifras de Merma: no se pidieron.
+El ancho de la página no cambió (tope de 1240 px).
+Verificado en el demo a 1680 y 390 px y en oscuro: pestañas, tienda, semana, buscador, vendedor y «Quitar filtros» siguen funcionando.
+Leads 0.36.0 · repo 1.985.0.
