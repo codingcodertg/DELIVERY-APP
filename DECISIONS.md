@@ -53192,3 +53192,23 @@ Qué cambia: un renglón por día y por persona (`turnosPorDia`, por el día de 
 Las horas del día son la SUMA de sus fichajes, no «última salida menos primera entrada»: así no se paga el rato que estuvo fuera, y los totales de la persona, de la tienda y de la compañía son exactamente los de antes. Aprobaciones, cierre del periodo y archivos de Excel/CSV no se tocaron: siguen trabajando por fichaje.
 Verificado en el demo a 1680 y 390 px, con un día de tres fichajes puesto solo para la prueba (3.25 + 2.67 + 1.92 = 7.83 h en un renglón). NO visto con los fichajes reales.
 Time Tracker 1.40.0 · repo 1.987.0.
+
+## D-1170 · Time Tracker → Payroll: fuera fotos, excepciones y capturas; los remotos, por día y con sus capturas en una tarjeta (2026-11-24)
+
+El dueño: «people that are on store van a tener una cámara ahí, entonces no se ocupan los clock in photos; para los remotes se va a seguir el mismo design así como se dice in and out, instead of a camera for remote se va a tener un desktop icon para que se apriete ahí; para ese clock in se abrirá una card con todas las pictures de esa; así quitamos toda esa parte de clock photos, exceptions and desktop captures».
+Qué cambia:
+- Nómina pierde las tres secciones que D-1161 había traído de Auditoría esa misma mañana: «Clock-in photos», «Exceptions» y «Desktop captures». Sus componentes (`DayPhotos`, `ExceptionHistory`, `TeamDiary`) se borran; sus direcciones viejas llevan a Nómina a secas.
+- «Remote · pay from sessions»: al abrir el detalle de una persona, un renglón por DÍA (`sesionesPorDia`): día, entrada – salida (primer inicio – último fin), cuántas sesiones, duración (la suma) y un 🖥. «Detail» abre las sesiones de ese día, con la edición y el borrado de siempre y su propio 🖥.
+- El 🖥 abre una tarjeta (`CapturasDeSesion`) con todas las capturas de escritorio de ese día o de esa sesión, con el mismo visor de antes. Borrar una captura sigue restando su tramo del tiempo de la sesión, con el mismo aviso. El botón de limpiar las de más de 14 días, que vivía en la sección borrada, queda al pie de la tarjeta.
+Lo que NO cambia: la foto se sigue tomando al fichar en tienda, y esa foto y las excepciones de un turno siguen en su bitácora («Full day») dentro de Timesheets. Dejar de pedir la foto es otra decisión: las cámaras de las tiendas todavía no están, y sin la foto no quedaría evidencia. Las excepciones pendientes siguen en Requests.
+Queda sin uso `PhotoMapModal.tsx` (lo usaba solo la vista de fotos) y las lecturas `getDayPhotos` y `getExceptionHistory`: se dejan, para una limpieza aparte.
+`TablaReducida` (compartida): una `subFila` que devuelve null ya no deja una franja vacía.
+Verificado en el demo a 1680 px: las tres secciones ya no salen, el renglón por día, «Detail», y la tarjeta abre y cierra. En el demo no hay capturas: la tarjeta NO se vio con imágenes reales, ni se probó borrar una.
+
+## D-1171 · Time Tracker: el historial de solicitudes pasa de Requests a Audit (2026-11-24)
+
+El dueño: «history en request muévelo a audit porque ahí ya están los time in request, entonces no need para el history ahí».
+La sección «History» sale de Requests y aparece en Auditoría, debajo del registro, como «Request history» (`HistorialDeSolicitudes`): la misma tabla, las mismas columnas y el mismo plegado recordado. La veían solo los admins y la siguen viendo solo los admins. Requests queda con «Time in requests», «Time off requests» y «Clock-in exceptions».
+Sobre «shift change», el dueño aclaró el mismo día que es para imprevistos (una cita en la corte, por ejemplo): sigue como tipo de solicitud dentro de «Time off requests».
+Verificado en el demo a 1680 y 390 px.
+Time Tracker 1.41.0 · repo 1.988.0.
