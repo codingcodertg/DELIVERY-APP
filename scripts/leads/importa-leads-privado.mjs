@@ -3,6 +3,7 @@
 //
 // Uso (desde la raíz del repo, con SUPABASE_DB_URL en .env.local):
 //   python scripts/leads/xls-a-json.py "C:/ruta/Report.xls" C:/ruta/report.json
+//   node --env-file=.env.local scripts/leads/ubica-condado.mjs C:/ruta/report.json                    # solo si trae filas de condado (D-1151)
 //   node --env-file=.env.local scripts/leads/importa-leads-privado.mjs C:/ruta/report.json            # ensayo (ROLLBACK)
 //   node --env-file=.env.local scripts/leads/importa-leads-privado.mjs C:/ruta/report.json --escribe  # de verdad
 //
@@ -62,7 +63,9 @@ export function leadDeFila(f, sufijo) {
   const telO = digitos(f["Owner Phone"]) ?? digitos(f["Owner Phone II "] ?? f["Owner Phone II"]);
   return {
     tabs_project: `PRIV ${permiso ?? "SIN-PERMISO"}${sufijo ? `-${sufijo}` : ""}`.toUpperCase(),
-    pool: poolDeCiudad(ciudad),
+    // D-1151: una fila de CONDADO («Hidalgo County», sin ciudad) llega ya ubicada por `ubica-condado.mjs`: `_pool` es su
+    // tienda, `_ciudad` la ciudad más cercana y `_nota` cómo se supo. Sin eso, lo de siempre: la tienda de la ciudad.
+    pool: limpio(f._pool) ?? poolDeCiudad(ciudad),
     source: "privado",
     category: tipo && USA_PISO.has(tipo) ? "Sirve – usa piso" : "Might be useful",
     project_type: tipo ? (TIPOS[tipo] ?? tipo) : null,
@@ -72,12 +75,12 @@ export function leadDeFila(f, sufijo) {
     project_name: limpio(f["Structure"]),
     facility_name: subdivision || null,
     type_of_work: tipo,
-    scope_of_work: null,
+    scope_of_work: limpio(f._nota),
     square_footage: numero(f["Total Sq Ft"]),
     estimated_cost: numero(f["Value"]),
     permit_status: "Issued",
     site_address: limpio(f["Jobsite Address"]),
-    site_city: ciudad,
+    site_city: limpio(f._ciudad) ?? ciudad,
     site_zip: null,
     owner_name: limpio(f["Contractor Company Name"]),
     owner_phone: telBonito(telC) ?? limpio(f["Contractor Phone"]),
