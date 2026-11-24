@@ -280,7 +280,7 @@
 .leads-app .ld-fijo { padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); line-height: 1.35; font-size: 12.5px; color: var(--ink-soft); }
 .leads-app .ld-fijo b { color: var(--text); font-size: 13px; }
 .leads-app .ld-fila-de-filtros select, .leads-app .ld-filtros .ld-barra select {
-  width: auto; max-width: 240px; min-height: 36px; padding: 6px 8px; font-size: 13px; font-weight: 600;
+  width: auto; max-width: 190px; min-height: 36px; padding: 6px 8px; font-size: 13px; font-weight: 600;
   border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text);
 }
 /* Fila 2: el título de la lista, con su cuenta en una píldora. */
@@ -291,6 +291,11 @@
 .leads-app .ld-filtros > .ld-etapas.filters-oneline { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 6px 4px; margin: 0 -4px 4px; }
 .leads-app .ld-filtros > .ld-etapas.filters-oneline::-webkit-scrollbar { display: none; }
 .leads-app .ld-filtros > .ld-etapas.filters-oneline .chip { flex: 0 0 auto; }
+/* En una pantalla ancha, las doce pastillas con su icono no caben en una línea (1750 px de 1224): ahí se parten en dos
+   renglones en vez de esconder las últimas sin barra a la vista. En el teléfono siguen en una línea que se desliza. */
+@media (min-width: 700px) {
+  .leads-app .ld-filtros > .ld-etapas.filters-oneline { flex-wrap: wrap; overflow-x: visible; row-gap: 8px; }
+}
 /* Fila 3: buscador (como ops-busca-merma), filtros compactos en línea, Quitar filtros a la derecha. */
 .leads-app .ld-filtros .ld-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 6px; }
 .leads-app .ld-filtros .ld-barra input[type="search"] {
