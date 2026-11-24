@@ -398,3 +398,58 @@
 /* Todo en mayúscula, como pidió Andrés. Va en la tarjeta entera y no etiqueta por etiqueta
    para que nombre, proyecto y estado queden en el mismo registro. */
 .timetracker-module .live-card{text-transform:uppercase}
+
+/* Secciones plegables de la bandeja de Pendientes (D-NEXT, ayuda de Roberto, 24 nov 2026).
+   La cabecera es un <button>, y la regla general de `.timetracker-module button` (fondo de
+   acento, texto blanco, relleno) la pintaría como un botón: aquí se le quita todo eso para que
+   se lea como un título que se despliega. */
+.timetracker-module .tt-seccion .tt-seccion-titulo{margin:0;font-size:17px}
+.timetracker-module .tt-seccion .tt-seccion-cabecera{
+  display:flex;align-items:center;gap:10px;width:100%;margin:0;padding:4px 2px;border:none;border-radius:6px;
+  background:transparent;color:var(--tt-txt);font:inherit;font-size:17px;font-weight:700;text-align:left;box-shadow:none;
+}
+.timetracker-module .tt-seccion .tt-seccion-cabecera:hover{filter:none;color:var(--tt-accent)}
+.timetracker-module .tt-seccion .tt-seccion-cabecera:focus-visible{outline:2px solid var(--tt-accent);outline-offset:3px}
+.timetracker-module .tt-seccion-marca{flex:0 0 auto;width:14px;font-size:13px;color:var(--tt-muted)}
+.timetracker-module .tt-seccion-texto{flex:1 1 auto;min-width:0}
+.timetracker-module .tt-seccion-cuenta{flex:0 0 auto;min-width:26px;padding:2px 9px;border-radius:999px;
+  background:var(--tt-chip);color:var(--tt-muted);font-size:12px;font-weight:700;text-align:center}
+.timetracker-module .tt-seccion-cuerpo{margin-top:12px}
+
+/* Conmutador Lista / Calendario, encima de la tabla de ausencias. */
+.timetracker-module .tt-calendario-modos{display:inline-flex;margin:0 0 12px;overflow:hidden;border-radius:8px;
+  box-shadow:inset 0 0 0 1px var(--tt-line)}
+.timetracker-module .tt-calendario-modo{margin:0;padding:6px 12px;border:none;border-radius:0;background:transparent;
+  color:var(--tt-muted);box-shadow:none;font-size:12.5px;font-weight:600;filter:none}
+.timetracker-module .tt-calendario-modo:hover{filter:none;color:var(--tt-txt)}
+.timetracker-module .tt-calendario-modo[aria-pressed="true"]{background:var(--tt-chip);color:var(--tt-txt)}
+
+/* Calendario de quién falta (D-NEXT). Siete columnas siempre, también en el móvil: lo que se
+   achica es el texto, no la rejilla. Los nombres cortan con puntos suspensivos y nunca empujan
+   la celda, así que nada se sale de la pantalla. */
+.timetracker-module .tt-calendario{display:grid;gap:8px;min-width:0}
+.timetracker-module .tt-calendario-cabecera{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.timetracker-module .tt-calendario-mes{font-size:15px;font-weight:700;text-transform:capitalize}
+.timetracker-module .tt-calendario-nav{margin:0;padding:4px 12px;border-radius:8px;background:var(--tt-chip);
+  color:var(--tt-txt);box-shadow:none;font-size:16px;line-height:1.2;filter:none}
+.timetracker-module .tt-calendario-nav:hover{filter:brightness(1.1)}
+.timetracker-module .tt-calendario-semana,
+.timetracker-module .tt-calendario-rejilla{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.timetracker-module .tt-calendario-semana{font-size:11px;font-weight:700;color:var(--tt-muted);text-align:center;text-transform:uppercase}
+.timetracker-module .tt-calendario-dia{display:flex;flex-direction:column;gap:2px;min-width:0;min-height:88px;
+  padding:4px;overflow:hidden;border:1px solid var(--tt-line);border-radius:8px;background:var(--tt-panel2)}
+.timetracker-module .tt-calendario-num{font-size:12px;font-weight:700;color:var(--tt-txt)}
+.timetracker-module .tt-calendario-fuera{opacity:.4}
+.timetracker-module .tt-calendario-hoy{box-shadow:inset 0 0 0 2px var(--tt-accent)}
+.timetracker-module .tt-calendario-persona{display:block;min-width:0;padding:1px 4px;border-radius:4px;background:var(--tt-chip);
+  font-size:11px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Pendiente: sin relleno, borde discontinuo y en gris, además de la palabra en el texto. */
+.timetracker-module .tt-calendario-pendiente{background:transparent;border:1px dashed var(--tt-muted);color:var(--tt-muted);font-style:italic}
+.timetracker-module .tt-calendario-mas{font-size:10.5px;font-weight:700;color:var(--tt-muted)}
+@media (max-width:480px){
+  .timetracker-module .tt-calendario-semana{font-size:9.5px}
+  .timetracker-module .tt-calendario-dia{min-height:64px;padding:3px}
+  .timetracker-module .tt-calendario-num{font-size:11px}
+  .timetracker-module .tt-calendario-persona{font-size:9.5px;padding:1px 2px}
+  .timetracker-module .tt-calendario-mas{font-size:9px}
+}

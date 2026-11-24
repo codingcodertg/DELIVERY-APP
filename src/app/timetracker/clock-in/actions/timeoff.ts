@@ -157,6 +157,72 @@ export async function getPendingForInbox(): Promise<
 }
 
 /**
+ * Las ausencias que caen en un rango de fechas, para el calendario de «quién falta» de la bandeja
+ * (D-NEXT, ayuda de Roberto, 24 nov 2026).
+ *
+ * Solo lectura, y con la misma puerta que `getPendingForInbox`: `clockinManagerCtx` decide quién
+ * entra y `storeScope` acota a la cuadrilla con el mismo `extra_store_ids`. No hay una regla nueva
+ * aquí: si cambia quién ve las ausencias, cambia en un solo sitio y las dos funciones lo siguen.
+ *
+ * Devuelve vacaciones y enfermedades aprobadas o pendientes. Los cambios de horario y los
+ * intercambios de turno no sacan a nadie del día, y las denegadas o canceladas tampoco; el
+ * filtro de tipos y estados lo aplica el calendario, que es quien decide qué es «fuera».
+ */
+export async function getCalendarioDeAusencias(desde: string, hasta: string): Promise<
+  | {
+      ok: true;
+      ausencias: {
+        id: string; nombre: string; type: string; start_date: string; end_date: string; status: string;
+      }[];
+    }
+  | { ok: false; message: string }
+> {
+  const FECHA = /^\d{4}-\d{2}-\d{2}$/;
+  if (!FECHA.test(desde) || !FECHA.test(hasta) || hasta < desde) return { ok: false, message: "Invalid range." };
+  const ctx = await clockinManagerCtx();
+  if (!ctx.ok) return ctx;
+
+  const { ids } = await storeScope(ctx.supabase, ctx.companyId, ctx.role, ctx.storeId, ctx.me.extra_store_ids);
+
+  let q = ctx.supabase
+    .from("time_off_requests")
+    .select("id, employee_id, type, start_date, end_date, status")
+    .in("type", ["vacation", "sick"])
+    .in("status", ["approved", "pending"])
+    // Cualquier solicitud que toque el rango: empieza antes del final y acaba después del principio.
+    .lte("start_date", hasta)
+    .gte("end_date", desde);
+  // Mismo criterio que getPendingForInbox: `null` = sin acotar, `[]` = nadie (centinela NO_MATCH).
+  if (ids) q = q.in("employee_id", ids.length ? ids : NO_MATCH);
+  const { data: off, error } = await q;
+  if (error) return { ok: false, message: error.message };
+
+  const filas = (off ?? []) as {
+    id: string; employee_id: string; type: string; start_date: string; end_date: string; status: string;
+  }[];
+  // Nombres solo de las personas que salen en el rango, no de toda la compañía.
+  const quienes = [...new Set(filas.map((r) => r.employee_id))];
+  const nombre = new Map<string, string>();
+  if (quienes.length) {
+    const { data: people } = await ctx.supabase.from("profiles").select("id, full_name").in("id", quienes);
+    for (const p of (people ?? []) as { id: string; full_name: string | null }[]) {
+      nombre.set(p.id, p.full_name ?? "—");
+    }
+  }
+  return {
+    ok: true,
+    ausencias: filas.map((r) => ({
+      id: r.id,
+      nombre: nombre.get(r.employee_id) ?? "—",
+      type: r.type,
+      start_date: r.start_date,
+      end_date: r.end_date,
+      status: r.status,
+    })),
+  };
+}
+
+/**
  * Mis propias solicitudes de tiempo libre, para "My Requests" de Time Tracker.
  *
  * `getPendingForInbox` contesta la pregunta del gerente —qué me falta por aprobar—. Esta

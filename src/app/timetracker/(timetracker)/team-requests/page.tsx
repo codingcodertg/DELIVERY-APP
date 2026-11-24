@@ -10,7 +10,8 @@ import type { OccupiedRange } from "@/lib/timetracker/timeOverlap";
 import { bloquesChocan, bloquesDeSolicitud, rangosDeBloques } from "@/lib/timetracker/dos-bloques";
 import type { RequestType } from "@/lib/timetracker/types";
 import { isOverlapError } from "@/lib/timetracker/overlap";
-import { ClockinApprovals } from "@/components/timetracker/ClockinApprovals";
+import { SeccionAusenciasFichaje, SeccionExcepcionesFichaje, useBandejaDeFichaje } from "@/components/timetracker/ClockinApprovals";
+import { SeccionPlegable, useSeccionAbierta } from "@/components/timetracker/SeccionPlegable";
 
 // Ported (D-071) from timetracker-clean's manager/ManagerRequests.jsx — the
 // approve/reject queue for employee time requests. Named /team-requests,
@@ -62,6 +63,15 @@ export default function TeamRequestsPage() {
 
   const pending = requests.filter((r) => r.status === "pending").sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
   const history = requests.filter((r) => r.status !== "pending").sort((a, b) => new Date(b.resolvedAt || 0).getTime() - new Date(a.resolvedAt || 0).getTime()).slice(0, 30);
+
+  // Qué secciones están abiertas (D-NEXT, ayuda de Roberto, 24 nov 2026). Pendientes se abre
+  // solo si hay algo que revisar; el historial empieza cerrado. Las de la bandeja de fichaje se
+  // deciden dentro de sus propios componentes.
+  const pendientes = useSeccionAbierta("pendientes", true, pending.length > 0);
+  const historial = useSeccionAbierta("historial", false, history.length > 0);
+  // Las dos colas de fichaje cargan una sola vez, aquí, y se reparten entre sus secciones. Solo
+  // piden datos si quien mira es admin: la pantalla de abajo no se pinta para nadie más.
+  const bandeja = useBandejaDeFichaje({ activa: me.role === "admin" });
 
   const [busyIds, setBusyIds] = useState<Set<string>>(() => new Set());
   const busyRef = useRef(busyIds);
@@ -176,8 +186,8 @@ export default function TeamRequestsPage() {
 
   return (
     <>
-      <div className="card">
-        <h2>{t("mgr.req.pendingTitle")}</h2>
+      <SeccionPlegable seccion="pendientes" titulo={t("mgr.req.pendingTitle")} cuenta={pending.length}
+        abierta={pendientes.abierta} alternar={pendientes.alternar}>
         {pending.length === 0 ? <p className="muted">{t("mgr.req.noPending")}</p> : pending.map((r) => {
           const p = r.payload as Record<string, unknown>;
           return (
@@ -200,10 +210,12 @@ export default function TeamRequestsPage() {
             </div>
           );
         })}
-      </div>
+      </SeccionPlegable>
 
-      <div className="card">
-        <h2>{t("mgr.req.history")}</h2>
+      <SeccionAusenciasFichaje bandeja={bandeja} />
+
+      <SeccionPlegable seccion="historial" titulo={t("mgr.req.history")} cuenta={history.length}
+        abierta={historial.abierta} alternar={historial.alternar}>
         {history.length === 0 ? <p className="muted">{t("mgr.req.noHistory")}</p> : (
           <TablaEstandar id="tt-solicitudes-del-equipo" filas={history} claveDe={(r) => String(r.id)}
             columnas={[
@@ -215,7 +227,7 @@ export default function TeamRequestsPage() {
                 celda: (r) => (r.status === "approved" ? <span className="pill on">{t("mgr.req.approved")}</span> : <span className="pill off">{t("mgr.req.rejected")}</span>) },
             ]} />
         )}
-      </div>
+      </SeccionPlegable>
 
       {/* Las dos colas de fichaje, aquí y no en una pantalla nueva (fusión de vistas #2).
           Un gerente tenía que mirar en TRES sitios lo que es una sola pregunta: "¿qué me
@@ -225,7 +237,7 @@ export default function TeamRequestsPage() {
           Siguen siendo tres decisiones distintas y se enseñan como tales: cambiar un
           registro de horas, conceder una ausencia, y dar por visto un fichaje raro. Juntar
           los botones habría sido fingir que son la misma. */}
-      <ClockinApprovals />
+      <SeccionExcepcionesFichaje bandeja={bandeja} />
     </>
   );
 }
