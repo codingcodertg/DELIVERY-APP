@@ -461,3 +461,8 @@
   .timetracker-module .tt-calendario-persona{font-size:9.5px;padding:1px 2px}
   .timetracker-module .tt-calendario-mas{font-size:9px}
 }
+
+/* tt/a-hr: las pantallas del Time Tracker que viven dentro de RR. HH. (/recruiting/tt-*). Ahí la
+   caja la pone el armazón de RR. HH. (su propia cabecera y su `.wrap`), así que el bloque no
+   ocupa la altura entera de la ventana ni pinta su propio fondo: se queda transparente y en flujo. */
+.timetracker-module.tt-en-rrhh{min-height:0;background:transparent}

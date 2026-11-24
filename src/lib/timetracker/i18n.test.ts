@@ -90,7 +90,6 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
   const ficheros = [
     "src/components/timetracker/ScheduleWeek.tsx",
     "src/components/timetracker/AssignmentsPanel.tsx",
-    "src/components/timetracker/AssignmentsTabs.tsx",
     "src/components/timetracker/Modal.tsx",
     // D-190 (Nómina): la cabecera que era "Period", la vista única y la marca `revisar`.
     "src/components/timetracker/PayrollResumen.tsx",
@@ -115,7 +114,7 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     "src/components/timetracker/Cronometro.tsx",
     "src/app/timetracker/(timetracker)/insights/page.tsx",
     "src/components/timetracker/TrabajandoAhora.tsx",
-    "src/app/timetracker/(timetracker)/people/page.tsx",
+    "src/components/timetracker/EmpleadosDelTt.tsx",
     "src/app/timetracker/(timetracker)/settings/page.tsx",
     "src/app/timetracker/(timetracker)/team-requests/page.tsx",
     "src/app/timetracker/(timetracker)/projects/page.tsx",

@@ -37,7 +37,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'tab.payroll': '🧾 Payroll',
     'tab.team-requests': '📥 Requests',
     'tab.projects': '📁 Projects',
-    'tab.assignments': '🔗 Assignments & Schedule',
+    'tab.assignments': '📅 Schedule',
     'tab.people': '🧑‍🤝‍🧑 Employees',
     // 'tab.schedule' se queda aunque ya no haya pestaña (D-186): la clave no estorba y borrarla
     // es reescribir historia por nada.
@@ -1029,7 +1029,7 @@ export const DICT: Record<"en" | "es", Record<string, string>> = {
     'tab.payroll': '🧾 Nómina',
     'tab.team-requests': '📥 Solicitudes',
     'tab.projects': '📁 Proyectos',
-    'tab.assignments': '🔗 Asignaciones y horario',
+    'tab.assignments': '📅 Horario',
     'tab.people': '🧑‍🤝‍🧑 Empleados',
     'tab.schedule': '📅 Horario',
     'tab.team-diary': '🗂 Diario del equipo',

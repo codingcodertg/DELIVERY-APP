@@ -49,12 +49,11 @@ export const MANAGER_TABS: { id: string; href: string }[] = [
   // nadie siga buscando las otras dos en el módulo de fichaje.
   { id: "team-requests", href: "/timetracker/team-requests" },
   { id: "projects", href: "/timetracker/projects" },
-  // Lleva DOS cosas desde D-186: las tarifas por proyecto y el horario semanal de la cuadrilla,
-  // como dos secciones de la misma pantalla. El horario tenía pestaña propia ("schedule", que
-  // bajó del módulo de fichaje en D-121) y el dueño pidió meterlo aquí. La ruta
-  // /timetracker/schedule sigue existiendo y redirige.
+  // Desde el traslado a RR. HH. (tt/a-hr) solo lleva el horario semanal de la cuadrilla. Las tarifas
+  // por proyecto son ahora «💲 Pay rates» en el menú de RR. HH. (/recruiting/tt-tarifas), y la lista
+  // de empleados es «⏱ Time tracking setup» (/recruiting/tt-empleados); /timetracker/people redirige ahí.
+  // La ruta /timetracker/schedule sigue existiendo y redirige.
   { id: "assignments", href: "/timetracker/assignments" },
-  { id: "people", href: "/timetracker/people" },
   // "team-diary" (capturas de la app de escritorio) ya no es pestaña: desde D-194 es la
   // cuarta vista del selector de Auditoría. /timetracker/team-diary redirige a /audit.
   { id: "audit", href: "/timetracker/audit" },

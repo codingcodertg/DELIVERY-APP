@@ -21,8 +21,8 @@ const plano = (s: string) => s.replace(/\s+/g, " ");
 const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
 
 // D-1154: «recorrido» (Driver track) salió de la barra: vive en Entregas.
-// «Trabajando ahora» salió de aquí (2026-11-24): vive plegada dentro de Nómina.
-const GESTION = ["insights", "payroll", "team-requests", "projects", "assignments", "people", "audit"];
+// «Trabajando ahora» salió de aquí (2026-11-24): vive plegada dentro de Nómina. Y «Empleados» vive en RR. HH.
+const GESTION = ["insights", "payroll", "team-requests", "projects", "assignments", "audit"];
 const MIO = ["track", "week", "requests", "diary", "settings"];
 
 describe("qué va en la fila y qué en «👤 Mío ▾»", () => {

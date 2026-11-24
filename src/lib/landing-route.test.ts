@@ -168,8 +168,9 @@ describe("la fusión terminó: no queda pestaña de fichaje", () => {
     // al retirar "schedule", como debía, y se cambió el id por el nuevo — no se borró.
     const { MANAGER_TABS } = await import("@/lib/timetracker/constants");
     const ids = MANAGER_TABS.map((t) => t.id);
-    // "live" («Trabajando ahora») ya no es pestaña: vive en Nómina. Lo cubre trabajando-ahora-en-nomina.test.ts.
-    for (const id of ["payroll", "assignments", "audit", "people", "team-requests"]) {
+    // «live» («Trabajando ahora») ya no es pestaña: vive en Nómina (trabajando-ahora-en-nomina.test.ts). Ni «people»:
+    // vive en RR. HH., /recruiting/tt-empleados (tt-en-rrhh.test.ts).
+    for (const id of ["payroll", "assignments", "audit", "team-requests"]) {
       expect(ids, `falta la pestaña ${id}`).toContain(id);
     }
   });
