@@ -168,7 +168,8 @@ describe("la fusión terminó: no queda pestaña de fichaje", () => {
     // al retirar "schedule", como debía, y se cambió el id por el nuevo — no se borró.
     const { MANAGER_TABS } = await import("@/lib/timetracker/constants");
     const ids = MANAGER_TABS.map((t) => t.id);
-    for (const id of ["payroll", "assignments", "audit", "people", "live", "team-requests"]) {
+    // tt/a-hr: «people» ya no es pestaña (vive en RR. HH., /recruiting/tt-empleados; ver tt-en-rrhh.test.ts).
+    for (const id of ["payroll", "assignments", "audit", "live", "team-requests"]) {
       expect(ids, `falta la pestaña ${id}`).toContain(id);
     }
   });

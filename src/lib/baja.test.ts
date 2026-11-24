@@ -61,7 +61,7 @@ describe("los selectores de gente actual siguen filtrando", () => {
     ["components/ChatFlotante.tsx", /listaVisible\(soloActivos\(contactos\)/],
     ["lib/customers/almacen.ts", /const valor = soloActivos\(todos\)/],
     ["components/UsersManager.tsx", /for \(const u of activos\)/],
-    ["app/timetracker/(timetracker)/people/page.tsx", /filas=\{activos\}/],
+    ["components/timetracker/EmpleadosDelTt.tsx", /filas=\{activos\}/],
     ["components/timetracker/AssignmentsPanel.tsx", /const presenciales = soloActivos\(users\)/],
     ["app/timetracker/clock-in/actions/clock.ts", /\.filter\(\(p\) => !deBaja\.has\(p\.id as string\)\)/],
   ];

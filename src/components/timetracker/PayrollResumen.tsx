@@ -93,7 +93,7 @@ export function PayrollResumen({ r }: { r: Resumen }) {
         <div className="banner info" style={{ marginTop: 14 }}>
           {r.deducidos.length === 1 ? t("mgr.pay.guessed1") : t("mgr.pay.guessedN", { n: r.deducidos.length })}{" "}
           <strong>{nombres(r.deducidos)}</strong>. {t("mgr.pay.guessedFix")}{" "}
-          <Link href="/timetracker/people">{t("mgr.pay.employees")}</Link>{t("mgr.pay.guessedTail")}
+          <Link href="/recruiting/tt-empleados">{t("mgr.pay.employees")}</Link>{t("mgr.pay.guessedTail")}
         </div>
       )}
 

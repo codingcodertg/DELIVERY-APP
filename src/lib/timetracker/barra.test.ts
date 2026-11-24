@@ -21,7 +21,7 @@ const plano = (s: string) => s.replace(/\s+/g, " ");
 const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
 
 // D-1154: «recorrido» (Driver track) salió de la barra: vive en Entregas.
-const GESTION = ["insights", "live", "payroll", "team-requests", "projects", "assignments", "people", "audit"];
+const GESTION = ["insights", "live", "payroll", "team-requests", "projects", "assignments", "audit"];
 const MIO = ["track", "week", "requests", "diary", "settings"];
 
 describe("qué va en la fila y qué en «👤 Mío ▾»", () => {
