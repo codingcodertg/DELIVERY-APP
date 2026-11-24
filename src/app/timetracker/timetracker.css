@@ -469,3 +469,32 @@
 /* Registrar tiempo (D-1168): «Schedule» y «My week» son secciones con su título en el encabezado plegable. El título
    propio de la primera tarjeta de cada una decía lo mismo justo debajo: se esconde aquí, y solo aquí. */
 .timetracker-module div[data-seccion-de-registrar] .tt-seccion-cuerpo > .card:first-child h2:first-of-type{display:none}
+/* D-1172 (el dueño, 2026-11-24, con la barra del admin partida en dos: el nombre de la app arriba y las pestañas abajo):
+   «que todo quede en la misma row». Desde 701 px la barra NO se parte: el nombre de la app, la casa, las pestañas, la
+   campana y la cuenta van en UNA fila. Para caber se va encogiendo por tramos: menos relleno y letra; el nombre de la
+   persona se queda en su burbuja; y, al final, el nombre de la app se corta con «…» y luego se esconde (queda la casa).
+   Las pestañas no llevan `overflow`: el menú «Mío ▾» cuelga de ellas y un `overflow` lo recortaría.
+   De 521 a 700 px no caben ni encogidas (medido: se salían 55 px de la página a 600): ahí sigue D-677, en filas.
+   En el teléfono (≤ 520) manda D-528, sin cambio.
+   Lo que toca a la MARCA (que el nombre de la app ceda sitio y se corte) va en globals.css, junto a las demás reglas de
+   `BarraDeApp`: ninguna hoja de módulo la nombra (D-643, `barra-igual.test.ts`). Su tamaño y el de la casa no cambian. */
+@media(min-width:701px){
+  .timetracker-module .topbar{flex-wrap:nowrap;gap:10px}
+  .timetracker-module .topbar .tt-barra-resto{flex:0 0 auto;flex-wrap:nowrap;justify-content:flex-end}
+  .timetracker-module .topbar .tabs a,.timetracker-module .topbar .tabs button{white-space:nowrap;flex:0 0 auto}
+  .timetracker-module .topbar .account-link{flex:0 0 auto}
+}
+@media(min-width:701px) and (max-width:1360px){
+  .timetracker-module .topbar{padding:12px 14px;gap:8px}
+  .timetracker-module .topbar .tt-barra-resto{gap:2px 3px}
+  .timetracker-module .topbar .tabs a,.timetracker-module .topbar .tabs button{padding:7px 9px;font-size:13px}
+}
+@media(min-width:701px) and (max-width:1240px){
+  .timetracker-module .topbar .account-link .menu-cuenta-nombre{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .timetracker-module .topbar .tabs a,.timetracker-module .topbar .tabs button{padding:6px 6px;font-size:12px}
+}
+@media(min-width:701px) and (max-width:900px){
+  .timetracker-module .topbar{padding:10px 10px;gap:6px}
+  .timetracker-module .topbar .tabs a,.timetracker-module .topbar .tabs button{padding:5px 4px;font-size:11.5px}
+  .timetracker-module .topbar .tt-campana>button{padding:5px 6px}
+}

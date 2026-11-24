@@ -53212,3 +53212,12 @@ La sección «History» sale de Requests y aparece en Auditoría, debajo del reg
 Sobre «shift change», el dueño aclaró el mismo día que es para imprevistos (una cita en la corte, por ejemplo): sigue como tipo de solicitud dentro de «Time off requests».
 Verificado en el demo a 1680 y 390 px.
 Time Tracker 1.41.0 · repo 1.988.0.
+
+## D-1172 · Time Tracker: la barra de arriba, en una sola fila (2026-11-24)
+
+El dueño, con una captura de la barra del admin en la app de escritorio (ventana de unos 1126 px efectivos): el nombre de la app y la casa arriba, y las pestañas, la campana y su nombre en una segunda fila. «Que todo quede en la misma row».
+Medido antes: una fila desde 1280 px, dos entre 1000 y 1280, tres por debajo de 900.
+Qué cambia (solo CSS): desde 701 px la barra no se parte. Para caber se encoge por tramos: menos relleno y letra en las pestañas (≤ 1360); el nombre de la persona se queda en su burbuja (≤ 1240); todo más apretado (≤ 900); y a 900 px o menos el nombre de la app se esconde y queda la casa. Entre 901 y 1000 el nombre de la app sale cortado con «…». El tamaño del nombre y el de la casa no cambian: son los de todas las apps (D-643), y por eso lo que toca a la marca va en globals.css y no en la hoja del módulo.
+Lo que NO cambia: de 521 a 700 px no cabe ni encogida (a 600 se salía 55 px de la página): ahí sigue en filas, como en D-677. El teléfono (≤ 520) sigue con sus dos filas de D-528. Las pestañas no llevan `overflow`, para no recortar el menú «Mío ▾» que cuelga de ellas.
+Verificado en el demo, con los textos en español, «TIMETRACKER RTG» y un nombre largo puestos a mano: una fila (54–62 px de alto) a 1680, 1361, 1300, 1241, 1200, 1126, 1000, 950, 901, 845, 760 y 701 px, sin desborde; el menú «Mío ▾» abre entero. NO visto en la app de escritorio real.
+Time Tracker 1.41.1 · repo 1.989.0.
