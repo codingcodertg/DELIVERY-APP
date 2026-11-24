@@ -370,15 +370,15 @@ button.ld-pildora.on { border-color: currentColor; box-shadow: 0 0 0 1px current
   --etapa-bad_lead-tinta: #ffffff;
 }
 :root[data-theme="dark"] .leads-app { --etapa-new: #e5e7eb; --etapa-new-tinta: #111827; }
-.leads-app .ld-etapas .chip[data-etapa="new"], .leads-app .ld-pildora[data-pildora-etapa="new"] { --e: var(--etapa-new); --e-tinta: var(--etapa-new-tinta); }
-.leads-app .ld-etapas .chip[data-etapa="made_contact"], .leads-app .ld-pildora[data-pildora-etapa="made_contact"] { --e: var(--etapa-made_contact); --e-tinta: var(--etapa-made_contact-tinta); }
-.leads-app .ld-etapas .chip[data-etapa="no_answer"], .leads-app .ld-pildora[data-pildora-etapa="no_answer"] { --e: var(--etapa-no_answer); --e-tinta: var(--etapa-no_answer-tinta); }
-.leads-app .ld-etapas .chip[data-etapa="appointment"], .leads-app .ld-pildora[data-pildora-etapa="appointment"] { --e: var(--etapa-appointment); --e-tinta: var(--etapa-appointment-tinta); }
-.leads-app .ld-etapas .chip[data-etapa="quote"], .leads-app .ld-pildora[data-pildora-etapa="quote"] { --e: var(--etapa-quote); --e-tinta: var(--etapa-quote-tinta); }
-.leads-app .ld-etapas .chip[data-etapa="negotiation"], .leads-app .ld-pildora[data-pildora-etapa="negotiation"] { --e: var(--etapa-negotiation); --e-tinta: var(--etapa-negotiation-tinta); }
-.leads-app .ld-etapas .chip[data-etapa="closed"], .leads-app .ld-pildora[data-pildora-etapa="closed"] { --e: var(--etapa-closed); --e-tinta: var(--etapa-closed-tinta); }
-.leads-app .ld-etapas .chip[data-etapa="lost"], .leads-app .ld-pildora[data-pildora-etapa="lost"] { --e: var(--etapa-lost); --e-tinta: var(--etapa-lost-tinta); }
-.leads-app .ld-etapas .chip[data-etapa="bad_lead"], .leads-app .ld-pildora[data-pildora-etapa="bad_lead"] { --e: var(--etapa-bad_lead); --e-tinta: var(--etapa-bad_lead-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="new"], .leads-app .ld-pildora[data-pildora-etapa="new"], .leads-app .ld-franja[data-etapa-franja="new"] { --e: var(--etapa-new); --e-tinta: var(--etapa-new-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="made_contact"], .leads-app .ld-pildora[data-pildora-etapa="made_contact"], .leads-app .ld-franja[data-etapa-franja="made_contact"] { --e: var(--etapa-made_contact); --e-tinta: var(--etapa-made_contact-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="no_answer"], .leads-app .ld-pildora[data-pildora-etapa="no_answer"], .leads-app .ld-franja[data-etapa-franja="no_answer"] { --e: var(--etapa-no_answer); --e-tinta: var(--etapa-no_answer-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="appointment"], .leads-app .ld-pildora[data-pildora-etapa="appointment"], .leads-app .ld-franja[data-etapa-franja="appointment"] { --e: var(--etapa-appointment); --e-tinta: var(--etapa-appointment-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="quote"], .leads-app .ld-pildora[data-pildora-etapa="quote"], .leads-app .ld-franja[data-etapa-franja="quote"] { --e: var(--etapa-quote); --e-tinta: var(--etapa-quote-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="negotiation"], .leads-app .ld-pildora[data-pildora-etapa="negotiation"], .leads-app .ld-franja[data-etapa-franja="negotiation"] { --e: var(--etapa-negotiation); --e-tinta: var(--etapa-negotiation-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="closed"], .leads-app .ld-pildora[data-pildora-etapa="closed"], .leads-app .ld-franja[data-etapa-franja="closed"] { --e: var(--etapa-closed); --e-tinta: var(--etapa-closed-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="lost"], .leads-app .ld-pildora[data-pildora-etapa="lost"], .leads-app .ld-franja[data-etapa-franja="lost"] { --e: var(--etapa-lost); --e-tinta: var(--etapa-lost-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="bad_lead"], .leads-app .ld-pildora[data-pildora-etapa="bad_lead"], .leads-app .ld-franja[data-etapa-franja="bad_lead"] { --e: var(--etapa-bad_lead); --e-tinta: var(--etapa-bad_lead-tinta); }
 .leads-app .ld-etapas .chip[data-etapa]:not([data-etapa=""]), .leads-app .ld-pildora[data-pildora-etapa] {
   background: var(--e); color: var(--e-tinta); border-color: var(--e);
 }
@@ -390,41 +390,16 @@ button.ld-pildora.on { border-color: currentColor; box-shadow: 0 0 0 1px current
 /* En el teléfono la fila se desliza: un poco de aire arriba y abajo para que el anillo no se corte. */
 .leads-app .ld-etapas { padding-block: 4px; margin-block: -4px 2px; }
 
-/* Color de cada vendedor (migración 345): su puesto en la paleta. La 13.ª persona reusa el 1. Sin puesto, la franja es neutra. */
-.leads-app {
-  --vendedor-1: #111827; --vendedor-1-tinta: #ffffff;
-  --vendedor-2: #f2b63d; --vendedor-2-tinta: #3a2a00;
-  --vendedor-3: #1d6fe0; --vendedor-3-tinta: #ffffff;
-  --vendedor-4: #17803a; --vendedor-4-tinta: #ffffff;
-  --vendedor-5: #7c3aed; --vendedor-5-tinta: #ffffff;
-  --vendedor-6: #b3122b; --vendedor-6-tinta: #ffffff;
-  --vendedor-7: #0e7490; --vendedor-7-tinta: #ffffff;
-  --vendedor-8: #c2410c; --vendedor-8-tinta: #ffffff;
-  --vendedor-9: #be185d; --vendedor-9-tinta: #ffffff;
-  --vendedor-10: #4d7c0f; --vendedor-10-tinta: #ffffff;
-  --vendedor-11: #6b4a2f; --vendedor-11-tinta: #ffffff;
-  --vendedor-12: #312e81; --vendedor-12-tinta: #ffffff;
-}
-:root[data-theme="dark"] .leads-app { --vendedor-1: #e5e7eb; --vendedor-1-tinta: #111827; }
-/* La franja de la tarjeta: a sangre con el borde de la tarjeta (su padding 10px 12px) y las esquinas de arriba con su radio. */
+/* La franja de la tarjeta (leads ya trabajados): a sangre con el borde de la tarjeta (su padding 10px 12px) y las esquinas
+   de arriba con su radio. Su color es el de la ETAPA del lead (data-etapa-franja), con los tokens --etapa-* de arriba.
+   La migración 345 (leads_colores_de_vendedores) sigue en la base, sin uso: ya no se pinta el color del vendedor. */
 .leads-app .ld-franja {
   margin: -10px -12px 8px; padding: 6px 12px; border-radius: 9px 9px 0 0;
   display: flex; align-items: center; justify-content: space-between; gap: 4px 10px; flex-wrap: nowrap;
   font-size: 12.5px; font-weight: 700; line-height: 1.35;
-  background: var(--accent); color: var(--card); /* neutra: sin puesto. El par de los chips «on» (se lee en los dos temas). */
+  background: var(--accent); color: var(--card);
 }
-.leads-app .ld-franja[data-color-vendedor="1"] { background: var(--vendedor-1); color: var(--vendedor-1-tinta); }
-.leads-app .ld-franja[data-color-vendedor="2"] { background: var(--vendedor-2); color: var(--vendedor-2-tinta); }
-.leads-app .ld-franja[data-color-vendedor="3"] { background: var(--vendedor-3); color: var(--vendedor-3-tinta); }
-.leads-app .ld-franja[data-color-vendedor="4"] { background: var(--vendedor-4); color: var(--vendedor-4-tinta); }
-.leads-app .ld-franja[data-color-vendedor="5"] { background: var(--vendedor-5); color: var(--vendedor-5-tinta); }
-.leads-app .ld-franja[data-color-vendedor="6"] { background: var(--vendedor-6); color: var(--vendedor-6-tinta); }
-.leads-app .ld-franja[data-color-vendedor="7"] { background: var(--vendedor-7); color: var(--vendedor-7-tinta); }
-.leads-app .ld-franja[data-color-vendedor="8"] { background: var(--vendedor-8); color: var(--vendedor-8-tinta); }
-.leads-app .ld-franja[data-color-vendedor="9"] { background: var(--vendedor-9); color: var(--vendedor-9-tinta); }
-.leads-app .ld-franja[data-color-vendedor="10"] { background: var(--vendedor-10); color: var(--vendedor-10-tinta); }
-.leads-app .ld-franja[data-color-vendedor="11"] { background: var(--vendedor-11); color: var(--vendedor-11-tinta); }
-.leads-app .ld-franja[data-color-vendedor="12"] { background: var(--vendedor-12); color: var(--vendedor-12-tinta); }
+.leads-app .ld-franja[data-etapa-franja] { background: var(--e); color: var(--e-tinta); }
 .leads-app .ld-franja > b { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .leads-app .ld-franja-der { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; margin-left: auto; white-space: nowrap; font-weight: 600; }
 @media (max-width: 480px) {
