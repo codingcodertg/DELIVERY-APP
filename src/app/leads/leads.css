@@ -314,7 +314,32 @@
 .topbar .ld-en-la-barra .ld-fijo br { display: none; }
 .topbar .ld-en-la-barra .ld-fijo b { color: inherit; font-size: inherit; }
 .topbar .ld-en-la-barra .ld-fijo b::before { content: " · "; opacity: .75; }
-/* 701 px y más: todo en una fila de la barra; si no cabe, el bloque se parte dentro de la barra, alineado a la derecha. */
+/* 701 px y más: TODO en una fila de la barra, sin partirse (el dueño, al verlo: «pero todo en una misma row, recuerda»;
+   lo mismo que pidió para Time Tracker, D-1172). Para caber se encoge por tramos: el nombre de la persona se queda en
+   su burbuja, las pestañas pierden relleno y los desplegables se estrechan (su texto se corta con «…»). Lo que toca a
+   la marca (que el nombre de la app ceda sitio) va en globals.css. */
+@media (min-width: 701px) {
+  .topbar:has(.ld-en-la-barra) { flex-wrap: nowrap; gap: 10px; }
+  .topbar:has(.ld-en-la-barra) .entregas-barra-resto { flex: 0 0 auto; flex-wrap: nowrap; }
+  .topbar .ld-en-la-barra, .topbar .ld-en-la-barra .ld-pestanas, .topbar .ld-en-la-barra .ld-en-la-barra-selectores { flex-wrap: nowrap; }
+  .topbar .ld-en-la-barra .ld-en-la-barra-selectores { flex: 0 1 auto; }
+  .topbar .ld-en-la-barra .ld-selector { min-width: 0; }
+  .topbar .ld-en-la-barra select { flex: 0 1 auto; min-width: 0; text-overflow: ellipsis; }
+}
+@media (min-width: 701px) and (max-width: 1240px) {
+  .topbar:has(.ld-en-la-barra) .account-link .menu-cuenta-nombre { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .topbar .ld-en-la-barra { gap: 4px 6px; }
+  .topbar .ld-en-la-barra .ld-pestanas { gap: 2px; }
+  .topbar .ld-en-la-barra .ld-pestanas .chip { padding: 6px 8px; font-size: 12.5px; }
+  .topbar .ld-en-la-barra select { max-width: 170px; }
+}
+@media (min-width: 701px) and (max-width: 960px) {
+  .topbar:has(.ld-en-la-barra) { padding-left: 10px; padding-right: 10px; gap: 6px; }
+  .topbar .ld-en-la-barra .ld-pestanas .chip { padding: 5px 6px; font-size: 12px; }
+  .topbar .ld-en-la-barra select { max-width: 120px; padding: 4px 4px; }
+  .topbar .ld-en-la-barra select[data-semana] { max-width: 96px; }
+  .topbar .ld-en-la-barra .ld-fijo { max-width: 150px; }
+}
 /* 700 px y menos (teléfono): el bloque baja a su propia fila, a todo el ancho, debajo del nombre de la app. Dos filas de
    altura fija (38 px cada una, con 6 px entre ellas) y la barra reserva ese alto abajo, para que no tape nada.
    Cada fila se desliza sin partirse en dos. El bloque va en el hueco, que se pone absoluto (como Operaciones). */
