@@ -32,9 +32,12 @@ export const TABS: { id: string; href: string }[] = [
 // la de TODAS las pantallas del admin, en su orden: quitar una de aquí la quita de la barra y del menú.
 export const MANAGER_TABS: { id: string; href: string }[] = [
   { id: "insights", href: "/timetracker/insights" },
-  { id: "live", href: "/timetracker/live" },
-  // D-832: el recorrido del chofer (D-831) vive en Entregas (/track); desde aquí es una pestaña más del admin.
-  { id: "recorrido", href: "/track" },
+  // «Trabajando ahora» (help request de 2026-11-24, «Remove this tab… consolidate with the Payroll tab») ya no es
+  // pestaña: es una sección plegada dentro de Nómina (`PayrollTabs`), que se abre con ?vista=ahora. La ruta
+  // /timetracker/live redirige allí. El texto sigue en la clave `tab.live`.
+  // D-1154 (ayuda de Roberto, 2026-11-24: «Remove this from time track if its on delivery app»): «🛣 Driver track» ya no es
+  // pestaña de aquí. El recorrido del chofer vive en Entregas (/track, D-831) y desde allí se abre; D-832 lo había puesto
+  // también en esta barra.
   // "Informes y pago" ya no es pestaña (D-164): es la vista 💵 Pago dentro de Nómina, que
   // es la misma pregunta —cuánto se le paga a quién este periodo— y estaba partida en dos
   // pantallas con dos calendarios propios. La ruta /timetracker/reports redirige.
@@ -46,12 +49,11 @@ export const MANAGER_TABS: { id: string; href: string }[] = [
   // nadie siga buscando las otras dos en el módulo de fichaje.
   { id: "team-requests", href: "/timetracker/team-requests" },
   { id: "projects", href: "/timetracker/projects" },
-  // Lleva DOS cosas desde D-186: las tarifas por proyecto y el horario semanal de la cuadrilla,
-  // como dos secciones de la misma pantalla. El horario tenía pestaña propia ("schedule", que
-  // bajó del módulo de fichaje en D-121) y el dueño pidió meterlo aquí. La ruta
-  // /timetracker/schedule sigue existiendo y redirige.
+  // Desde el traslado a RR. HH. (tt/a-hr) solo lleva el horario semanal de la cuadrilla. Las tarifas
+  // por proyecto son ahora «💲 Pay rates» en el menú de RR. HH. (/recruiting/tt-tarifas), y la lista
+  // de empleados es «⏱ Time tracking setup» (/recruiting/tt-empleados); /timetracker/people redirige ahí.
+  // La ruta /timetracker/schedule sigue existiendo y redirige.
   { id: "assignments", href: "/timetracker/assignments" },
-  { id: "people", href: "/timetracker/people" },
   // "team-diary" (capturas de la app de escritorio) ya no es pestaña: desde D-194 es la
   // cuarta vista del selector de Auditoría. /timetracker/team-diary redirige a /audit.
   { id: "audit", href: "/timetracker/audit" },

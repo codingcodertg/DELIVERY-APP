@@ -76,7 +76,7 @@ describe("en toda la app: lo inactivo apaga su TEXTO, no sus botones", () => {
     expect(malos).toEqual([]);
   });
   it("las filas que se apagaban ahora llevan la clase", () => {
-    expect(leer("src/app/timetracker/(timetracker)/people/page.tsx")).toContain('claseDeFila={(u) => (u.active === false ? "atenuado" : undefined)}');
+    expect(leer("src/components/timetracker/EmpleadosDelTt.tsx")).toContain('claseDeFila={(u) => (u.active === false ? "atenuado" : undefined)}');
     expect(leer("src/components/timetracker/VehiclesSection.tsx")).toContain('claseDeFila={(v) => (v.active ? undefined : "atenuado")}');
     // Tabla estándar (docs/ESTANDAR-DE-TABLAS.md): la clase de la fila va por `claseDeFila`, no por un <tr> a mano.
     expect(leer("src/components/timetracker/GeofenceSection.tsx")).toContain('claseDeFila={(f) => (f.active ? undefined : "atenuado")}');

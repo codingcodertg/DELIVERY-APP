@@ -297,7 +297,7 @@
 @media (max-width: 760px) { .g2, .g3, .g4 { grid-template-columns: 1fr; } }
 
 .page-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-.page-head h2 { font-size: 20px; font-weight: 800; }
+.page-head h2 { font-size: 20px; font-weight: 800; } .page-head.page-head-casa-izq { justify-content: flex-start; } .page-head.page-head-casa-izq > .boton-casa + * { margin-left: auto; }
 .count-tag { font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 700; color: var(--gray); background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; vertical-align: middle; }
 
 .btn { padding: 9px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }

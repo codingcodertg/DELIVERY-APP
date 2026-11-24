@@ -47,7 +47,7 @@ describe("la franja de «entrar como» ya no existe (D-859)", () => {
   });
 
   it("los tres que se pegaban debajo de la franja se pegan ahora al borde, sin hueco", () => {
-    expect(leer("src/app/timetracker/timetracker.css")).toContain(".timetracker-module .tt-cabecera{position:sticky;top:0;z-index:20;margin-bottom:6px}");
+    expect(leer("src/app/timetracker/timetracker.css")).toContain(".timetracker-module .tt-cabecera{position:sticky;top:0;z-index:20;margin:0 -18px 14px}");
     expect(leer("src/app/recruiting/recruiting.css")).toContain(".recruiting-module .bulk-bar { position: sticky; top: 0; z-index: 5;");
     const insp = leer("src/components/inspeccion/inspeccion.css");
     expect(insp).toContain("position: sticky; top: 0; z-index: 4;");

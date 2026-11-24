@@ -90,7 +90,6 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
   const ficheros = [
     "src/components/timetracker/ScheduleWeek.tsx",
     "src/components/timetracker/AssignmentsPanel.tsx",
-    "src/components/timetracker/AssignmentsTabs.tsx",
     "src/components/timetracker/Modal.tsx",
     // D-190 (Nómina): la cabecera que era "Period", la vista única y la marca `revisar`.
     "src/components/timetracker/PayrollResumen.tsx",
@@ -114,14 +113,16 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     // cuadraban por disciplina y no por prueba.
     "src/components/timetracker/Cronometro.tsx",
     "src/app/timetracker/(timetracker)/insights/page.tsx",
-    "src/app/timetracker/(timetracker)/live/page.tsx",
-    "src/app/timetracker/(timetracker)/people/page.tsx",
+    "src/components/timetracker/TrabajandoAhora.tsx",
+    "src/components/timetracker/EmpleadosDelTt.tsx",
     "src/app/timetracker/(timetracker)/settings/page.tsx",
     "src/app/timetracker/(timetracker)/team-requests/page.tsx",
     "src/app/timetracker/(timetracker)/projects/page.tsx",
     "src/app/timetracker/(timetracker)/week/page.tsx",
     "src/app/timetracker/(timetracker)/requests/page.tsx",
     "src/components/timetracker/ClockinApprovals.tsx",
+    // D-1155 (ayuda de Roberto, 24 nov 2026): las secciones plegables y el calendario de ausencias.
+    "src/components/timetracker/CalendarioDeAusencias.tsx",
     "src/components/timetracker/ExceptionHistory.tsx",
     "src/components/timetracker/GeofenceEditor.tsx",
     "src/components/timetracker/GeofenceSection.tsx",

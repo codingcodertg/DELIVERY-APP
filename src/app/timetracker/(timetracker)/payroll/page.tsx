@@ -50,9 +50,11 @@ const num = (v: string | number | null) => (v == null ? 0 : typeof v === "number
 export default async function PayrollPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; vista?: string }>;
 }) {
-  const { period } = await searchParams;
+  const { period, vista } = await searchParams;
+  // `?vista=ahora` (la antigua pestaña «Trabajando ahora», que ahora vive aquí) abre esa sección de entrada.
+  const ahoraAbiertaPorUrl = vista === "ahora";
   const start = period && /^\d{4}-\d{2}-\d{2}$/.test(period) ? period : periodStartOf(new Date());
 
   // Modo demo: la cabecera se calcula con la semilla (solo horas cronometradas; fichaje no tiene demo) y las
@@ -65,6 +67,7 @@ export default async function PayrollPage({
     return (
       <PayrollTabs
         period={start}
+        ahoraAbiertaPorUrl={ahoraAbiertaPorUrl}
         revisar={[]}
         resumen={{
           start,
@@ -152,6 +155,7 @@ export default async function PayrollPage({
   return (
     <PayrollTabs
       period={start}
+      ahoraAbiertaPorUrl={ahoraAbiertaPorUrl}
       revisar={aRevisar.map((r) => r.employee_id)}
       resumen={{
         start,

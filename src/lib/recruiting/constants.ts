@@ -73,6 +73,10 @@ export const TABS: { id: string; label: string; href: string; adminOnly?: boolea
   { id: "employees", label: "👤 Employees", href: "/recruiting/employees", roles: ["admin", "manager"], grupo: "hr" },
   // D-730: los correos y números que paga la empresa, con su estado y quién los tiene.
   { id: "assets", label: "🧰 Company assets", href: "/recruiting/assets", roles: ["admin", "manager"], grupo: "hr" },
+  // tt/a-hr: las dos pantallas del Time Tracker que eran de RR. HH. (antes en su barra). Solo el admin; la
+  // página y MarcoDelTtEnRrhh vuelven a comprobar que es admin del Time Tracker, porque aquí solo se pinta el menú.
+  { id: "tt-empleados", label: "⏱ Time tracking setup", href: "/recruiting/tt-empleados", roles: ["admin"], grupo: "hr" },
+  { id: "tt-tarifas", label: "💲 Pay rates", href: "/recruiting/tt-tarifas", roles: ["admin"], grupo: "hr" },
   // D-946: el administrador de permisos se movió aquí desde Seguridad. Solo el admin (del hub; la página lo recomprueba).
   { id: "permisos", label: "🛡 Permissions", href: "/recruiting/permisos", roles: ["admin"], grupo: "hr" },
   // D-694 puso aquí «Crear usuarios»; D-720 la quitó: la cuenta y los permisos se dan desde el expediente («Permisos»).

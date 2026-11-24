@@ -18,6 +18,7 @@ import type { UserRole } from "@/lib/types";
 const TAB_ES: Record<string, string> = {
   today: "📋 Hoy", calls: "📞 Llamadas pendientes", employees: "👤 Empleados", candidates: "👥 Candidatos", board: "🗂 Tablero", outcomes: "🤝 Resultados", questions: "❓ Preguntas",
   metrics: "📊 Métricas", calendar: "📅 Calendario", settings: "⚙️ Ajustes",
+  "tt-empleados": "⏱ Ajustes de control de horas", "tt-tarifas": "💲 Tarifas de pago",
 };
 const ROLE_ES: Record<string, string> = { admin: "Admin", manager: "Gerente", recruiter: "Reclutador", store_manager: "Gerente de tienda" };
 

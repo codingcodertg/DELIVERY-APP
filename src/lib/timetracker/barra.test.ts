@@ -20,11 +20,13 @@ const sinComentarios = (s: string) =>
 const plano = (s: string) => s.replace(/\s+/g, " ");
 const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
 
-const GESTION = ["insights", "live", "recorrido", "payroll", "team-requests", "projects", "assignments", "people", "audit"];
+// D-1154: «recorrido» (Driver track) salió de la barra: vive en Entregas.
+// «Trabajando ahora» salió de aquí (2026-11-24): vive plegada dentro de Nómina. Y «Empleados» vive en RR. HH.
+const GESTION = ["insights", "payroll", "team-requests", "projects", "assignments", "audit"];
 const MIO = ["track", "week", "requests", "diary", "settings"];
 
 describe("qué va en la fila y qué en «👤 Mío ▾»", () => {
-  it("admin: las ocho de gestión en fila, en su orden; Registrar tiempo, Mi semana, Mis solicitudes, Mi diario y Ajustes en el menú", () => {
+  it("admin: las siete de gestión en fila, en su orden; Registrar tiempo, Mi semana, Mis solicitudes, Mi diario y Ajustes en el menú", () => {
     const b = barraDeTt("admin", "/timetracker/insights");
     expect(ids(b.fila)).toEqual(GESTION);
     expect(ids(b.menu)).toEqual(MIO);
@@ -206,7 +208,7 @@ function bloqueDelTelefono(css: string): string {
 }
 
 describe("las tres pestañas del empleado, en una fila en el teléfono", () => {
-  it("el empleado y el gerente las llevan en una fila; el admin no (ocho y un botón se parten como siempre)", () => {
+  it("el empleado y el gerente las llevan en una fila; el admin no (siete y un botón se parten como siempre)", () => {
     expect(barraDeTt("employee", "/timetracker").enUnaFila).toBe(true);
     expect(barraDeTt("manager", "/timetracker").enUnaFila).toBe(true);
     expect(barraDeTt(null, "/timetracker").enUnaFila).toBe(true);
