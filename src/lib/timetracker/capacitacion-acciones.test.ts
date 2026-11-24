@@ -69,7 +69,7 @@ const DIR = "src/app/timetracker/clock-in/actions";
 const LECTURAS = new Set([
   "getCrewNow", "getMyDay", "getExceptionHistory", "getMySchedule", "getMyNotes", "getMyScorecard", "getMyNotifications",
   "countUnread", "getDayPhotos", "getEntryDayLog", "getPayrollPeriod", "getEmployeeWeek", "getMyTrip", "getScheduleWeek", "getGeofences",
-  "geocodeForMap", "getClockinEmployeeSettings", "getPendingForInbox", "getMyTimeOff", "listVehicles",
+  "geocodeForMap", "getClockinEmployeeSettings", "getPendingForInbox", "getCalendarioDeAusencias", "getMyTimeOff", "listVehicles",
 ]);
 /**
  * Reciben el cliente de Supabase como primer argumento: no se pueden llamar desde el navegador (un
