@@ -115,7 +115,7 @@ describe("ningún contexto de gerente ACOTADO se queda sin la regla", () => {
 });
 
 describe("la pantalla en vivo dice por qué no hay nada", () => {
-  const src = sinComentarios(leer("src/app/timetracker/(timetracker)/live/page.tsx"));
+  const src = sinComentarios(leer("src/components/timetracker/TrabajandoAhora.tsx"));
 
   it("no se traga un `ok:false`", () => {
     // Antes: `if (vivo && r.ok) setCrew(r)` — con false no pasaba nada y la pantalla se

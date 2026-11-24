@@ -32,7 +32,9 @@ export const TABS: { id: string; href: string }[] = [
 // la de TODAS las pantallas del admin, en su orden: quitar una de aquí la quita de la barra y del menú.
 export const MANAGER_TABS: { id: string; href: string }[] = [
   { id: "insights", href: "/timetracker/insights" },
-  { id: "live", href: "/timetracker/live" },
+  // «Trabajando ahora» (help request de 2026-11-24, «Remove this tab… consolidate with the Payroll tab») ya no es
+  // pestaña: es una sección plegada dentro de Nómina (`PayrollTabs`), que se abre con ?vista=ahora. La ruta
+  // /timetracker/live redirige allí. El texto sigue en la clave `tab.live`.
   // D-1154 (ayuda de Roberto, 2026-11-24: «Remove this from time track if its on delivery app»): «🛣 Driver track» ya no es
   // pestaña de aquí. El recorrido del chofer vive en Entregas (/track, D-831) y desde allí se abre; D-832 lo había puesto
   // también en esta barra.

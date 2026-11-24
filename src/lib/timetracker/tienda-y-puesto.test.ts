@@ -238,7 +238,7 @@ describe("El Panel (proyectos principales) y Ahora mismo", () => {
     expect(ins).toContain('const key = !proj && u && !necesitaProyecto(u) ? "t:" + name : "p:" + (s.projectId ?? "");');
   });
   it("Ahora mismo: la tarjeta del que ficha lleva su tienda y su puesto donde la del remoto lleva el proyecto", () => {
-    const live = leer("src/app/timetracker/(timetracker)/live/page.tsx");
+    const live = leer("src/components/timetracker/TrabajandoAhora.tsx");
     expect(live).toContain('<div className="live-sub">{emp && !necesitaProyecto(emp) ? tiendaYPuesto(emp, lang) : "\\u00a0"}</div>');
     expect(live).toContain('<div className="live-sub">{nombreDeSesion(s.projectId, proj?.name, emp, lang, { sinProyecto: t("track.sinProyecto"), eliminado: "—" }, tiendas.find((x) => x.id === s.storeId)?.name ?? null)}');
   });
@@ -316,7 +316,7 @@ describe("Las pantallas no pintan «eliminado» ni «—» a una sesión sin pro
   it("semana, resumen, en vivo, solicitudes y reportes usan nombreDeSesion", () => {
     expect(leer("src/app/timetracker/(timetracker)/week/page.tsx")).toContain("nombreDeSesion(aid || null,");
     expect(leer("src/app/timetracker/(timetracker)/insights/page.tsx")).toContain("nombreDeSesion(s.projectId, proj, u, lang,");
-    expect(leer("src/app/timetracker/(timetracker)/live/page.tsx")).toContain("nombreDeSesion(s.projectId, proj?.name, emp, lang,");
+    expect(leer("src/components/timetracker/TrabajandoAhora.tsx")).toContain("nombreDeSesion(s.projectId, proj?.name, emp, lang,");
     expect(leer("src/app/timetracker/(timetracker)/requests/page.tsx")).toContain('nombreDelProyecto(s.assignmentId, t("track.sinProyecto"))');
     expect(leer("src/components/timetracker/ManagerReports.tsx")).toContain("nombreDeSesion(s.projectId, s.projectId ?");
   });

@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PayrollTimesheets } from "./PayrollTimesheets";
 import { ManagerReports } from "./ManagerReports";
 import { PayrollResumen, type Resumen } from "./PayrollResumen";
+import { TrabajandoAhora } from "./TrabajandoAhora";
 import { useT } from "@/lib/timetracker/i18n";
+import { useData } from "@/lib/timetracker-data-provider";
+import { ahoraEstaAbierta, guardarAhoraAbierta, leerAhoraAbierta } from "@/lib/timetracker/trabajando-ahora-en-nomina";
 
 /**
  * La nómina de un periodo, en UNA vista (D-190).
@@ -19,17 +22,25 @@ import { useT } from "@/lib/timetracker/i18n";
  *
  * Las secciones **se montan al abrirse**, no antes: cada una pide sus propios datos y traer
  * los dos juegos para enseñar uno era pagar dos veces por una pantalla que se abre a diario.
+ *
+ * Encima de todo va «Trabajando ahora» (2026-11-24), plegada por defecto: antes era su propia
+ * pestaña y se consolidó aquí. Solo la ven los admins, igual que antes.
  */
-export function PayrollTabs({ period, resumen, revisar }: {
+export function PayrollTabs({ period, resumen, revisar, ahoraAbiertaPorUrl = false }: {
   period: string;
   resumen: Resumen;
   /** Ids de quien tiene horas por las dos vías este periodo (`period_hours.revisar`). */
   revisar: string[];
+  /** La URL trae `?vista=ahora`: la sección de «Trabajando ahora» empieza abierta. */
+  ahoraAbiertaPorUrl?: boolean;
 }) {
   const t = useT();
+  const { me } = useData();
 
   return (
     <>
+      {me.role === "admin" && <SeccionAhora porUrl={ahoraAbiertaPorUrl} />}
+
       <PayrollResumen r={resumen} />
 
       <Seccion titulo={t("mgr.pay.onSiteTitle")} nota={t("mgr.pay.onSiteNote")} abierta>
@@ -40,6 +51,59 @@ export function PayrollTabs({ period, resumen, revisar }: {
         <ManagerReports period={period} />
       </Seccion>
     </>
+  );
+}
+
+/** El almacén del navegador, o null si no se puede abrir (navegador privado, iframe bloqueado...). */
+function almacenDelNavegador(): Storage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * «🟢 Trabajando ahora», plegada. Su cuerpo (`TrabajandoAhora`) no se monta hasta que se abre, así
+ * que el sondeo de `getCrewNow` cada 10 s solo corre mientras la sección está abierta.
+ *
+ * Quién decide si está abierta: `ahoraEstaAbierta` (URL > elección recordada > cerrada). La elección
+ * de esta visita pesa más que la URL, para que plegarla de verdad la pliegue. La elección guardada se
+ * lee después del montaje, para no dar un HTML distinto en el servidor y en el navegador.
+ */
+function SeccionAhora({ porUrl }: { porUrl: boolean }) {
+  const t = useT();
+  const [recordado, setRecordado] = useState<boolean | null>(null);
+  const [elegida, setElegida] = useState<boolean | null>(null);
+  useEffect(() => {
+    setRecordado(leerAhoraAbierta(almacenDelNavegador()));
+  }, []);
+
+  const abierta = elegida ?? ahoraEstaAbierta({ porUrl, recordado });
+  function alternar() {
+    const nueva = !abierta;
+    setElegida(nueva);
+    guardarAhoraAbierta(almacenDelNavegador(), nueva);
+  }
+
+  const cuerpo = "tt-nomina-ahora-cuerpo";
+  return (
+    <div className="card tt-seccion" style={{ marginBottom: 16 }}>
+      <h2 className="tt-seccion-titulo">
+        <button
+          type="button"
+          className="tt-seccion-cabecera"
+          data-trabajando-ahora
+          aria-expanded={abierta}
+          aria-controls={abierta ? cuerpo : undefined}
+          onClick={alternar}
+        >
+          <span className="tt-seccion-marca" aria-hidden="true">{abierta ? "▾" : "▸"}</span>
+          <span className="tt-seccion-texto">{t("tab.live")}</span>
+        </button>
+      </h2>
+      {abierta && <div id={cuerpo} className="tt-seccion-cuerpo"><TrabajandoAhora /></div>}
+    </div>
   );
 }
 

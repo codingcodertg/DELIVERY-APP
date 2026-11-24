@@ -114,7 +114,7 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     // cuadraban por disciplina y no por prueba.
     "src/components/timetracker/Cronometro.tsx",
     "src/app/timetracker/(timetracker)/insights/page.tsx",
-    "src/app/timetracker/(timetracker)/live/page.tsx",
+    "src/components/timetracker/TrabajandoAhora.tsx",
     "src/app/timetracker/(timetracker)/people/page.tsx",
     "src/app/timetracker/(timetracker)/settings/page.tsx",
     "src/app/timetracker/(timetracker)/team-requests/page.tsx",
