@@ -145,6 +145,11 @@ export function rutaDeGrabacion(extensionId: string, rcCallId: string, tipo: str
   return `${seguro(extensionId)}/${seguro(rcCallId)}.${extensionDeGrabacion(tipo)}`;
 }
 
+/** ¿La llamada se perdió (RingCentral la marca «Missed»)? Se enseña en rojo en las listas de llamadas. */
+export function esLlamadaPerdida(resultado: string | null | undefined): boolean {
+  return (resultado ?? "").trim().toLowerCase() === "missed";
+}
+
 /** «m:ss», o «—» si no hay duración. */
 export function duracionDeLlamada(segundos: number | null | undefined): string {
   if (segundos == null || Number.isNaN(segundos)) return "—";
