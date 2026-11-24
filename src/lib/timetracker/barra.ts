@@ -28,7 +28,7 @@ export type Pestana = { id: string; href: string };
  * Primero las suyas, en el orden en que estaban en la barra, y Ajustes al final, como en casi cualquier
  * menú (en la barra iba antes que ellas, al final de las de gestión).
  */
-export const PESTANAS_DEL_MENU_MIO = ["track", "week", "requests", "diary", "settings"] as const;
+export const PESTANAS_DEL_MENU_MIO = ["track", "requests", "diary", "settings"] as const;
 
 const vanAlMenu = (id: string) => (PESTANAS_DEL_MENU_MIO as readonly string[]).includes(id);
 

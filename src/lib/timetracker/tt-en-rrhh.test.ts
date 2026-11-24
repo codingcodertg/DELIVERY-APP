@@ -11,13 +11,13 @@ import { MANAGER_TABS } from "@/lib/timetracker/constants";
 const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("\r\n").join("\n");
 
 describe("tt/a-hr: pantallas del Time Tracker dentro de RR. HH.", () => {
-  it("el admin del Time Tracker ya no tiene «people» en su barra; «assignments» sigue (horario)", () => {
+  it("el admin del Time Tracker ya no tiene «people» en su barra, ni «assignments» (horario, owner 2026-11-24)", () => {
     const ids = MANAGER_TABS.map((t) => t.id);
     expect(ids).not.toContain("people");
-    expect(ids).toContain("assignments");
+    // «assignments» (Schedule) vive ahora en Registrar tiempo: lo cubre horario-en-registrar.test.ts.
+    expect(ids).not.toContain("assignments");
     // «live» salió de la barra en la misma salida (vive en Nómina): lo cubre trabajando-ahora-en-nomina.test.ts.
     expect(ids).not.toContain("live");
-    expect(MANAGER_TABS.find((t) => t.id === "assignments")?.href).toBe("/timetracker/assignments");
   });
 
   it("/timetracker/people redirige a /recruiting/tt-empleados", () => {
@@ -36,8 +36,9 @@ describe("tt/a-hr: pantallas del Time Tracker dentro de RR. HH.", () => {
     expect(TABS[i + 2]?.id).toBe("tt-tarifas");
   });
 
-  it("AssignmentsTabs ya no monta el panel de tarifas (eso va en /recruiting/tt-tarifas)", () => {
-    const s = leer("src/components/timetracker/AssignmentsTabs.tsx");
+  it("el horario de Registrar tiempo no monta el panel de tarifas (eso va en /recruiting/tt-tarifas)", () => {
+    // AssignmentsTabs se retiró (owner, 2026-11-24): el horario es ahora la sección de SeccionesDeRegistrarTiempo.
+    const s = leer("src/components/timetracker/SeccionesDeRegistrarTiempo.tsx");
     // Se mira la importación y la etiqueta de montaje, no la palabra: el comentario del fichero la nombra a propósito.
     expect(s).not.toContain('import { AssignmentsPanel }');
     expect(s).not.toContain("<AssignmentsPanel");

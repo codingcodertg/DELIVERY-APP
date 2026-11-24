@@ -162,17 +162,18 @@ describe("la fusión terminó: no queda pestaña de fichaje", () => {
     // Si alguien retira una de estas rutas sin poner otra en su lugar, algo que la gente usa
     // todos los días se queda sin puerta — que es exactamente lo que la fusión evitaba.
     //
-    // La puerta del HORARIO ya no es la pestaña "schedule": desde D-186 el horario es una
-    // sección dentro de Asignaciones, así que la pestaña que lo lleva es "assignments"
-    // (src/components/timetracker/AssignmentsTabs.tsx monta ScheduleWeek). Esta prueba falló
-    // al retirar "schedule", como debía, y se cambió el id por el nuevo — no se borró.
+    // La puerta del HORARIO ya no es una pestaña. Desde 2026-11-24 (owner: «The Schedule tab is retired») el horario
+    // es la sección «Schedule» de Registrar tiempo, solo para admins (?vista=horario, SeccionesDeRegistrarTiempo.tsx),
+    // así que la pestaña «assignments» se retiró. Esta prueba se cambió por lo que queda en la barra; el horario lo
+    // cubre horario-en-registrar.test.ts.
     const { MANAGER_TABS } = await import("@/lib/timetracker/constants");
     const ids = MANAGER_TABS.map((t) => t.id);
     // «live» («Trabajando ahora») ya no es pestaña: vive en Nómina (trabajando-ahora-en-nomina.test.ts). Ni «people»:
     // vive en RR. HH., /recruiting/tt-empleados (tt-en-rrhh.test.ts).
-    for (const id of ["payroll", "assignments", "audit", "team-requests"]) {
+    for (const id of ["payroll", "audit", "team-requests"]) {
       expect(ids, `falta la pestaña ${id}`).toContain(id);
     }
+    expect(ids, "«assignments» se retiró de la barra").not.toContain("assignments");
   });
 
   it("las capturas de escritorio viven dentro de Nómina, no en una pestaña ni en Auditoría", async () => {

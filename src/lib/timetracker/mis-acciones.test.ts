@@ -23,8 +23,8 @@ const leer = (ruta: string) => readFileSync(join(process.cwd(), ruta), "utf8").s
 const codigo = (ruta: string) => leer(ruta).split("\n").filter((l) => !/^\s*(\/\/|\*|\/\*|\{\/\*)/.test(l)).join("\n");
 const punch = leer("src/components/timetracker/PunchPanel.tsx");
 const punchCodigo = codigo("src/components/timetracker/PunchPanel.tsx");
-const semana = leer("src/app/timetracker/(timetracker)/week/page.tsx");
-const semanaCodigo = codigo("src/app/timetracker/(timetracker)/week/page.tsx");
+const semana = leer("src/components/timetracker/MiSemana.tsx");
+const semanaCodigo = codigo("src/components/timetracker/MiSemana.tsx");
 const fichajes = leer("src/components/timetracker/FichajesDeHoy.tsx");
 const cronometro = codigo("src/components/timetracker/Cronometro.tsx");
 const anfitrion = codigo("src/components/timetracker/CronometroAnfitrion.tsx");
