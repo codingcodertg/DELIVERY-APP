@@ -2168,3 +2168,15 @@ table.tbl-resize td.celda-suelta { white-space: normal; overflow: visible; }
 
 /* Dominio de las tarjetas NFC (lib/tarjetas/host.ts): el marco del hub (burbujas y avisos) no se enseña en esa página. */
 html[data-tarjetas] .marco-hub { display: none !important; }
+
+/* El botón «centrar» de los mapas (D-1146, components/MapView): arriba a la derecha, encima de los mosaicos y de los
+   marcadores de Leaflet (su panel de marcadores es 600) y a la altura de sus controles (800). 40 px: se pulsa con el dedo. */
+.mapa-centrar {
+  position: absolute; top: 10px; right: 10px; z-index: 800;
+  width: 40px; height: 40px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--card); color: var(--text); cursor: pointer;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--text) 35%, transparent);
+}
+.mapa-centrar:active { transform: scale(0.96); }

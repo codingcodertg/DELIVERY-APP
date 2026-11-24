@@ -125,6 +125,18 @@ describe("los dos mapas pasan por aquí (D-580)", () => {
       expect(src, nombre).not.toMatch(/RGV_FALLBACK|26\.2034/);
     }
   });
+  it("D-1146: «centrar» vuelve a encuadrar en los dos mapas, y el botón lo pone MapView (la foto PNG no lo lleva)", () => {
+    for (const [nombre, src] of [["GoogleMapView", google], ["LeafletMap", leaflet]] as const) {
+      expect(src, nombre).toContain("const pedido = recentradoRef.current !== recentrar;");
+      expect(src, nombre).toContain("if (pedido) { recentradoRef.current = recentrar; fitSigRef.current = \"\"; }");
+      expect(src, nombre).toMatch(/\}, \[fitTo, stores(, ready)?, recentrar\]\);/);
+    }
+    const vista = readFileSync("src/components/MapView.tsx", "utf8");
+    expect(vista).toContain("data-centrar-el-mapa");
+    expect(vista).toContain("onClick={(e) => { e.stopPropagation(); setRecentrar((n) => n + 1); }}");
+    expect(vista).toContain("recentrar={recentrar}");
+    expect(readFileSync("src/components/FotoDeLaRuta.tsx", "utf8")).not.toContain("recentrar");
+  });
   it("Google: fitBounds recibe los puntos filtrados, no fitTo tal cual", () => {
     expect(google).toMatch(/for \(const \[lat, lng\] of enc\.validos\) bounds\.extend/);
     expect(google).not.toMatch(/of fitTo\) bounds/);

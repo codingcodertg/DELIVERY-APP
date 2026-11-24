@@ -141,6 +141,7 @@ export function LeafletMap({
   pickedPoint,
   height = 420,
   mosaicos = "osm",
+  recentrar = 0,
 }: {
   points?: MapPoint[];
   /** Contorno de la zona local, pintado en verde bajo todo lo demás (D-219). Opcional: los
@@ -174,6 +175,8 @@ export function LeafletMap({
    * ruta (`FotoDeLaRuta`), que tiene que parecerse al mapa de Google del Gestor: son unas decenas de mosaicos por foto.
    */
   mosaicos?: "osm" | "google";
+  /** D-1146: cada vez que este número cambia, el mapa vuelve a su encuadre (el botón «centrar» de `MapView`). */
+  recentrar?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMapInstance | null>(null);
@@ -192,6 +195,7 @@ export function LeafletMap({
   const pickMarkerRef = useRef<Marker | null>(null);
   const hoverMarkerRef = useRef<Marker | null>(null);
   const fitSigRef = useRef<string>("");
+  const recentradoRef = useRef(recentrar);
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
   const onClickRef = useRef(onPointClick);
@@ -349,12 +353,19 @@ export function LeafletMap({
   // a driver zooms to just their stops).
   useEffect(() => {
     let cancelled = false;
+    // D-1146: «centrar» pide el encuadre otra vez aunque los puntos sean los mismos (la persona movió o acercó el mapa).
+    const pedido = recentradoRef.current !== recentrar;
+    if (pedido) { recentradoRef.current = recentrar; fitSigRef.current = ""; }
     (async () => {
       const L = (await import("leaflet")).default;
       if (cancelled || !mapRef.current) return;
       // Fuera el 0,0, lo no numérico y lo que cae a más de 300 km de las tiendas; sin nada válido, la región (D-580).
       const enc = encuadreFinal(fitTo, stores);
-      if (!enc) return;
+      if (!enc) {
+        // Un mapa que no encuadra (la ficha, Almacén): «centrar» lo devuelve a donde nació.
+        if (pedido) { const inicio = centroInicial(points.map((p) => [p.lat, p.lng] as const), stores); mapRef.current.setView(center ?? [inicio.lat, inicio.lng], zoom); }
+        return;
+      }
       const sig = JSON.stringify(enc.validos);
       if (sig === fitSigRef.current) return;
       fitSigRef.current = sig;
@@ -365,7 +376,8 @@ export function LeafletMap({
       mapRef.current.fitBounds(bounds, { padding: [45, 45], maxZoom: 14, animate: true });
     })();
     return () => { cancelled = true; };
-  }, [fitTo, stores]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `points`, `center` y `zoom` solo se leen al pulsar «centrar».
+  }, [fitTo, stores, recentrar]);
 
   // Keep the colored fleet markers in sync with `points`.
   useEffect(() => {
