@@ -95,6 +95,7 @@ export function GoogleMapView({
   onPick,
   pickedPoint,
   height = 420,
+  recentrar = 0,
 }: {
   points?: MapPoint[];
   /** Contorno de la zona local, en verde y por debajo de todo (D-219). Opcional: sin él, este
@@ -115,6 +116,8 @@ export function GoogleMapView({
   pickedPoint?: [number, number] | null;
   /** Píxeles, o un largo de CSS (el Gestor pasa `var(--alto-mapa-gestor)`, D-862). */
   height?: number | string;
+  /** D-1146: cada vez que este número cambia, el mapa vuelve a su encuadre (el botón «centrar» de `MapView`). */
+  recentrar?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -142,6 +145,7 @@ export function GoogleMapView({
   const truckInfoRef = useRef<google.maps.InfoWindow | null>(null);
   const truckAbiertoRef = useRef<string | null>(null);
   const fitSigRef = useRef("");
+  const recentradoRef = useRef(recentrar);
 
   // Callbacks change every render; keep them in refs so listeners bound once
   // stay current without rebuilding the map.
@@ -476,9 +480,16 @@ export function GoogleMapView({
   useEffect(() => {
     const maps = mapsRef.current, map = mapRef.current;
     if (!ready || !maps || !map) return;
+    // D-1146: «centrar» pide el encuadre otra vez aunque los puntos sean los mismos (la persona movió o acercó el mapa).
+    const pedido = recentradoRef.current !== recentrar;
+    if (pedido) { recentradoRef.current = recentrar; fitSigRef.current = ""; }
     // Fuera el 0,0, lo no numérico y lo que cae a más de 300 km de las tiendas; sin nada válido, la región (D-580).
     const enc = encuadreFinal(fitTo, stores);
-    if (!enc) return;
+    if (!enc) {
+      // Un mapa que no encuadra (la ficha, Almacén): «centrar» lo devuelve a donde nació.
+      if (pedido) { map.setCenter(center ? { lat: center[0], lng: center[1] } : centroInicial(points.map((p) => [p.lat, p.lng] as const), stores)); map.setZoom(zoom); }
+      return;
+    }
     const sig = JSON.stringify(enc.validos);
     if (sig === fitSigRef.current) return;
     fitSigRef.current = sig;
@@ -493,7 +504,8 @@ export function GoogleMapView({
       if ((map.getZoom() ?? 0) > 14) map.setZoom(14);
     });
     return () => maps.event.removeListener(once);
-  }, [fitTo, stores, ready]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `points`, `center` y `zoom` solo se leen al pulsar «centrar».
+  }, [fitTo, stores, ready, recentrar]);
 
   // ---- Manual pin picker ----
   useEffect(() => {

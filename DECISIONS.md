@@ -52987,3 +52987,18 @@ Qué cambia:
 
 Qué NO va aquí (hecho en ramas, sin publicar, a la espera de que el dueño lo vea): el centro de notificaciones a pantalla completa (`m24/avisos`) y los arreglos de Conteos (`m24/conteos`, que cambia la lista «Seguir» de tarjetas a tabla). Tampoco: la hora de salida por día (necesita una columna nueva), ni por qué el plan dio a Máximo órdenes de Julio (sin investigar).
 Verificado: en el demo local, en navegador (1360 px): «#» solo la parada, la orden entera y tres marcadas; «D↑»; tres flechas seguidas sin esperar; dos arrastres seguidos; deshacer ×2 y rehacer; el desplazamiento solo; «Marcar por…»; filtro de vendedor; interruptor de pool (15 = 9 + 6); perdidas en rojo en RingCentral. NO verificado: con la base real y su latencia (el demo guarda al instante), ni en el teléfono. Deliveries 1.661.0 · Leads 0.35.0 · RingCentral 0.2.0 · Estimator 0.45.0 · repo 1.977.0.
+
+## D-1146 · Botón «centrar» en el mapa (2026-11-24)
+
+Julio Jijon (chofer), solicitud de ayuda del 2026-11-24, desde «Mi ruta» en su teléfono (Android, 432 px): «Have a recenter button on the map».
+Qué pasaba: después de mover o acercar el mapa con el dedo no había cómo volver a ver la ruta entera; el mapa solo se encuadra cuando cambian sus puntos.
+Qué cambia: `MapView` —el único mapa que montan las pantallas— lleva un botón arriba a la derecha («Centrar el mapa»). Al pulsarlo, el mapa (Google o Leaflet) repite su encuadre: los puntos de la ruta, o donde nació si es un mapa que no encuadra (la ficha de la orden, Almacén). Sale en todos los mapas de la app, no solo en «Mi ruta»; la foto de la ruta (PNG) no lo lleva.
+Verificado: en el demo local, en navegador a 432 px y a 1360 px (mapa de Leaflet: el demo no tiene llave de Google): mover el mapa, pulsar, y vuelve al encuadre. El mapa de Google (el de producción) pasa por el mismo camino pero NO se abrió en pantalla. Deliveries 1.662.0 · Estimator 0.45.1 · repo 1.978.0.
+
+## D-1147 · Reportes de merma: filtro por tienda junto al rango (2026-11-24)
+
+Roberto, solicitud de ayuda del 2026-11-24, en Operaciones de almacén → Reportes → Todos → Merma, con el recuadro puesto a la derecha de «📅 Este mes»: «Will need a filter per store».
+Qué había: la tabla tenía un filtro de tienda, pero solo salía cuando las filas a la vista eran de varias tiendas (ese día todas eran de RDZ Pharr, así que no salía) y no cambiaba las cifras de arriba.
+Qué cambia: un desplegable de tienda junto al rango, para quien ve más de una tienda. La tienda elegida manda sobre todo lo de merma: las cuatro cifras, las etapas y sus cuentas, la lista, lo que se exporta (CSV y PDF) y los grupos de aprobación. Las opciones son las tiendas de la persona y las que tengan merma.
+Qué NO cambia: las pestañas de Entregas y de Conteos no llevan este filtro todavía (Entregas suma en el servidor; Conteos se rehace aparte por la otra solicitud de Roberto del mismo día: «needs to look like the scrap report page»).
+Verificado: en el demo local, en navegador: elegir una tienda cambia las cifras y la lista; «Todas las tiendas» las devuelve. Warehouse Ops 0.68.0.

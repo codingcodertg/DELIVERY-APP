@@ -187,8 +187,15 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
   const nombreTipo = (k: TipoDeReporte) => (lang === "es" ? INFO_DE_TIPO[k].es : INFO_DE_TIPO[k].en);
 
   // D-1021: en práctica, las mermas de un grupo de práctica ya aprobado se ven aprobadas (`conAprobacionDePractica`).
+  // D-1147 (ayuda de Roberto, 2026-11-24, con el recuadro puesto junto al rango de fechas: «Will need a filter per
+  // store»): la tienda elegida arriba manda sobre TODO lo de merma —las cifras, las etapas, la lista, lo que se exporta y
+  // los grupos—. La tabla ya tenía su filtro de tienda, pero solo salía si las filas a la vista eran de varias tiendas y no
+  // cambiaba las cifras. Solo para quien ve más de una tienda; las opciones son sus tiendas y las que tengan merma.
+  const [tiendaDelReporte, setTiendaDelReporte] = useState("");
+  const tiendasDelFiltro = useMemo(() => Array.from(new Set([...ctx.tiendas, ...propias.filter((r) => r.kind === "scrap").map((r) => r.store)])).filter(Boolean).sort(), [ctx.tiendas, propias]);
+  const tiendaElegida = tiendasDelFiltro.length > 1 && tiendasDelFiltro.includes(tiendaDelReporte) ? tiendaDelReporte : "";
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const mermas = useMemo(() => conAprobacionDePractica(propias.filter((r) => r.kind === "scrap")), [propias, grupos]);
+  const mermas = useMemo(() => conAprobacionDePractica(propias.filter((r) => r.kind === "scrap" && (tiendaElegida === "" || r.store === tiendaElegida))), [propias, grupos, tiendaElegida]);
   // 327: la merma rechazada no cuenta en los totales de dinero ni en la pérdida del rango (sigue en la lista).
   const mermasDeDinero = useMemo(() => sinRechazadas(mermas), [mermas]);
   const totales = useMemo(() => totalesPorTienda(mermasDeDinero, new Date()), [mermasDeDinero]);
@@ -197,7 +204,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
   const mermasEnRango = useMemo(() => (rango ? filtrarPorRango(mermas, rango) : []), [mermas, rango]);
   const [estadoGrupos, setEstadoGrupos] = useState<FiltroDeGrupos>("todos");
   const [verTodosGrupos, setVerTodosGrupos] = useState(false);
-  const gruposVisibles = useMemo(() => filtrarGrupos(grupos, estadoGrupos, rango, verTodosGrupos), [grupos, estadoGrupos, rango, verTodosGrupos]);
+  const gruposVisibles = useMemo(() => filtrarGrupos(tiendaElegida === "" ? grupos : grupos.filter((g) => g.store === tiendaElegida), estadoGrupos, rango, verTodosGrupos), [grupos, estadoGrupos, rango, verTodosGrupos, tiendaElegida]);
   const enRango = useMemo(() => (rango ? perdidaEnRango(mermasDeDinero, rango) : { "*": 0 }), [mermasDeDinero, rango]);
   const etiqueta = rango ? etiquetaDeRango(rango, lang, hoy) : "—";
   const tiendasDeMerma = Array.from(new Set([...Object.keys(totales), ...Object.keys(enRango)])).filter((k) => k !== "*").sort();
@@ -450,6 +457,13 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
       {pestanas}
       {/* Dueño, 11 nov: los atajos de fecha pasan a UN botón «📅» con su menú (primero el rango personalizado). */}
       <MenuDeFecha eleccion={eleccion} etiqueta={etiqueta} onElegir={elegir} />
+      {/* D-1147: el filtro por tienda de la merma, junto al rango. */}
+      {pestana === "merma" && tiendasDelFiltro.length > 1 && (
+        <select className="ops-filtro-tienda" value={tiendaElegida} onChange={(e) => setTiendaDelReporte(e.target.value)} data-tienda-del-reporte aria-label={t("Store", "Tienda")}>
+          <option value="">🏬 {t("All stores", "Todas las tiendas")}</option>
+          {tiendasDelFiltro.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+      )}
       {eleccion.atajo === "otro" && (
         <div className="ops-filtros-campos" data-rango-a-mano>
           <span className="ops-fecha">{t("From", "Desde")} <input type="date" value={eleccion.desde} max={hoy} onChange={(e) => irA({ eleccion: { ...eleccion, desde: e.target.value } })} aria-label={t("From", "Desde")} data-campo="rango-desde" /></span>
