@@ -53025,3 +53025,15 @@ Qué cambia:
 - «Listas a tiempo» y «Turnos fichados bien» no tienen botón: se ven cuando no hay filtro.
 Los enlaces se van; esas pantallas siguen en el inicio de Operaciones.
 Verificado: en el demo local, en navegador. Warehouse Ops 0.69.0 · repo 1.979.0.
+
+## D-1150 · Reportes → Entregas: dos filtros y la tabla de sus órdenes (2026-11-24)
+
+Roberto, solicitud de ayuda del 2026-11-24, en Operaciones de almacén → Reportes → Todos → Entregas, con tres recuadros: sobre «Ready before the driver arrived 62%», «1) This is a KPI so dont need it in report»; sobre las tablas «By store» y «By period», «2) Dont need anything in the report»; y sobre las tarjetas «Marked after pickup» y «Never marked ready», «3) These are the only two filters needed on the report and when selected it will display Order table of the ones it mentions».
+Qué había: cuatro cifras (el %, las dos de arriba y la mediana), la regla escrita, y cuatro tablas de resumen (por tienda, por periodo, por empleado y «las 10 peores»). Las órdenes en sí solo se veían en esas diez.
+Qué cambia:
+- se van el %, la mediana, la regla escrita y las cuatro tablas. El % de listas a tiempo sigue en «KPIs de almacén»;
+- quedan las dos tarjetas, que ahora son botones-filtro (la cifra arriba, el rótulo debajo), y UNA tabla con las órdenes: factura, tienda, qué pasó, recogida, marcada lista, minutos tarde y quién la marcó, con buscador y las columnas de siempre. Sin ninguna elegida se ven las dos clases; pulsar una deja las suyas; pulsarla otra vez vuelve a las dos;
+- la ruta `/api/almacen-ops/kpi-entregas` manda además `noListas`: todas las que no estuvieron listas a tiempo (antes solo las diez peores). Lo demás lo sigue mandando;
+- el filtro de tienda de arriba (D-1147) ahora sale también en esta pestaña y acota las dos cuentas y la tabla.
+Qué NO hace todavía: pulsar una fila no abre la orden (Operaciones de almacén no tiene la ficha de la orden de Entregas). Las tablas por tienda, por periodo y por empleado no se movieron a ningún sitio: ya no están.
+Verificado: en el demo local, en navegador. NO verificado con datos reales (las cuentas de la captura eran 7 y 138). Warehouse Ops 0.70.0 · repo 1.980.0.

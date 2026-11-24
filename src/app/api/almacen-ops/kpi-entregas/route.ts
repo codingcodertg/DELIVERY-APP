@@ -5,7 +5,7 @@ import { todasLasFilas } from "@/lib/puntualidad";
 import { leerNivelEscrito } from "@/lib/almacen-ops/nivel";
 import { veLosReportes } from "@/lib/almacen-ops/visibilidad";
 import {
-  DIAS_MAX_DEL_RANGO, KIND_LISTA, KIND_RECOGIDA, evaluarOrdenes, rangoValido, peores, porEmpleado, porPeriodo, porTienda, tiendasDelKpi, totalDelKpi,
+  DIAS_MAX_DEL_RANGO, KIND_LISTA, KIND_RECOGIDA, evaluarOrdenes, noListas, rangoValido, peores, porEmpleado, porPeriodo, porTienda, tiendasDelKpi, totalDelKpi,
   type EntregaDelKpi, type EventoDeOrden,
 } from "@/lib/almacen-ops/kpi-entregas";
 
@@ -88,5 +88,7 @@ export async function GET(req: Request) {
     porSemana: porPeriodo(ordenes, "semana"),
     porEmpleado: porEmpleado(ordenes, nombres),
     peores: peores(ordenes, 10).map((o) => ({ ...o, quienMarcoNombre: o.quienMarco ? nombres.get(o.quienMarco) ?? null : null })),
+    // D-1150: TODAS las que no estuvieron listas a tiempo (la tabla del reporte de entregas), no solo las diez peores.
+    noListas: noListas(ordenes).map((o) => ({ ...o, quienMarcoNombre: o.quienMarco ? nombres.get(o.quienMarco) ?? null : null })),
   });
 }

@@ -723,3 +723,9 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
   .ops-accesos { width: 100%; }
   .ops-accesos .ops-boton { flex: 1 1 auto; text-align: center; }
 }
+
+/* Una tarjeta de cifra que es un FILTRO (D-1150, Reportes → Entregas): se pulsa, y la elegida se marca como los demás
+   elegidos de la app. El aspecto de tarjeta es el de `.ops-merma-total`. */
+.ops-tarjeta-filtro { text-align: left; font-family: inherit; cursor: pointer; }
+.ops-tarjeta-filtro:hover { border-color: var(--accent); }
+.ops-tarjeta-filtro.elegida { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
