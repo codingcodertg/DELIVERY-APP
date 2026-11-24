@@ -466,3 +466,6 @@
    caja la pone el armazón de RR. HH. (su propia cabecera y su `.wrap`), así que el bloque no
    ocupa la altura entera de la ventana ni pinta su propio fondo: se queda transparente y en flujo. */
 .timetracker-module.tt-en-rrhh{min-height:0;background:transparent}
+/* Registrar tiempo (D-1168): «Schedule» y «My week» son secciones con su título en el encabezado plegable. El título
+   propio de la primera tarjeta de cada una decía lo mismo justo debajo: se esconde aquí, y solo aquí. */
+.timetracker-module div[data-seccion-de-registrar] .tt-seccion-cuerpo > .card:first-child h2:first-of-type{display:none}
