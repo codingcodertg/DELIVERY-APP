@@ -49,6 +49,11 @@ export interface AlmacenDeLeads {
   grabacionDeLlamada(leadId: string, llamadaId: string): Promise<Res<string>>;
   /** Las llamadas del rango por nombre de vendedor (RingCentral). Solo admin y gerente (337). */
   llamadasPorVendedor(periodo: Periodo): Promise<Res<{ porVendedor: LlamadasDeVendedor[]; total: number }>>;
+  /**
+   * El puesto de color de cada persona que ya trabajó un lead (migración 345): 1 el primero, 2 el segundo… Nunca falla:
+   * sin la 345 (la función no existe) o ante cualquier error, el mapa sale vacío y las franjas se pintan neutras.
+   */
+  puestosDeVendedores(): Promise<Map<string, number>>;
 }
 
 export interface ClienteCruzado {
@@ -262,6 +267,15 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
       const porVendedor = ((data ?? []) as { rep_name: string | null; llamadas: number | string }[])
         .map((r) => ({ rep_name: r.rep_name, llamadas: Number(r.llamadas) }));
       return { ok: true, valor: { porVendedor, total: porVendedor.reduce((n, r) => n + r.llamadas, 0) } };
+    },
+    async puestosDeVendedores() {
+      try {
+        const { data, error } = await supabase.rpc("leads_colores_de_vendedores");
+        if (error || !Array.isArray(data)) return new Map<string, number>();
+        return new Map((data as { profile_id: string; puesto: number | string }[]).map((r) => [String(r.profile_id), Number(r.puesto)]));
+      } catch {
+        return new Map<string, number>();
+      }
     },
   };
 }

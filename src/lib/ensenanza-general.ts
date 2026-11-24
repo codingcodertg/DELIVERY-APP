@@ -70,7 +70,7 @@ export const RPC_QUE_SOLO_LEEN = [
   "asociaciones_pendientes", // 250 (D-886): las propuestas de asociación abiertas de una empresa; solo lee.
   "analytics_category_stats", "analytics_store_stats", "analytics_vendor_stats", "buscar_factura_para_recoger",
   "catalog_facets", "category_browse", "dashboard_stats", "estimator_find_estimate", "estimator_pending_approvals",
-  "leads_llamadas_de_lead", "leads_estadisticas_de_llamadas", "leads_my_scope", "list_cycle_counts", "list_purchase_orders", "my_point_balance", "my_published_stops",
+  "leads_llamadas_de_lead", "leads_estadisticas_de_llamadas", "leads_my_scope", "leads_colores_de_vendedores","list_cycle_counts", "list_purchase_orders", "my_point_balance", "my_published_stops",
   "negative_balances", "phone_book", "po_receiving_detail", "product_vocabulary", "purchasing_groups", "reconcile_po",
   "pasos_del_relevo", "reorder_report", "review_tag_facets", "rutas_del_dia", "security_gate", "session_gate", "store_names", "suggest_po_line_matches",
   "mis_tiendas_de_clientes", // 250 (D-886): las tiendas en las que busca el no admin de Clientes; stable, solo lee.

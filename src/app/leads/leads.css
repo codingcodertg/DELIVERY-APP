@@ -156,17 +156,8 @@
 .leads-app .ld-vistas .chip { padding: 5px 14px; font-size: 13px; }
 .leads-app .ld-etapas { margin: 0 0 6px; gap: 4px; }
 .leads-app .ld-etapas .chip { padding: 4px 10px; font-size: 12.5px; }
-/* El punto de color de cada situación: hace de leyenda de las pastillas y etiquetas de las tarjetas. */
-.leads-app .ld-etapas .chip[data-etapa]:not([data-etapa=""])::before {
-  content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--gray);
-}
-.leads-app .ld-etapas .chip.verde::before { background: var(--green); }
-.leads-app .ld-etapas .chip.rojo::before { background: var(--red); }
-.leads-app .ld-etapas .chip.ambar::before { background: var(--amber); }
-.leads-app .ld-etapas .chip.azul::before { background: var(--accent); }
 /* El `.on` de globals pinta con `--ink`, que en oscuro es casi el fondo: aquí el encendido es el acento, que se ve en los dos. */
 .leads-app .ld-filtros .chip.on, .leads-app .ld-dias .chip.on { background: var(--accent); border-color: var(--accent); color: var(--card); }
-.leads-app .ld-filtros .chip.on::before { box-shadow: 0 0 0 1.5px var(--card); }
 .leads-app .ld-etapas .ld-cuenta { font-variant-numeric: tabular-nums; }
 .leads-app .ld-filtros [data-cuenta-banco] { margin: 4px 0 0; font-size: 12px; font-variant-numeric: tabular-nums; }
 
@@ -269,6 +260,55 @@
 }
 @media (prefers-reduced-motion: reduce) { .leads-app .ld-tarjeta { transition: none; } }
 
+/* ===========================================================================================================
+   Estilo de Merma (rama leads/estilo-merma): la parte de arriba de Leads, como «Merma» de Operaciones.
+   Sin cabecera ni tarjeta, sobre el fondo. Fila 1: pestañas en píldora, tienda, semana y Actualizar.
+   Fila 2: el título «Leads en este pool» con su cuenta, y debajo las etapas en UNA línea (se desliza).
+   Fila 3: buscador a la izquierda; los filtros compactos en línea y «Quitar filtros» a la derecha.
+   Solo variables de globals.css (claro y oscuro). Las reglas de arriba se quedan; estas, más específicas, mandan.
+   =========================================================================================================== */
+.leads-app .ld-cabecera { display: flex; align-items: center; justify-content: flex-end; gap: 8px 12px; flex-wrap: wrap; margin: 0 0 6px; }
+.leads-app .ld-cabecera .hint { margin: 0; font-size: 12px; }
+.leads-app .ld-fila-de-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 10px; }
+.leads-app .ld-fila-de-filtros .ld-pestanas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
+.leads-app .ld-fila-de-filtros .ld-pestanas .chip { padding: 6px 12px; font-size: 13px; font-weight: 600; }
+/* El elegido: sólido, como la pestaña de Merma (`.chip.active` de Operaciones). Se lee en claro y en oscuro. */
+.leads-app .ld-fila-de-filtros .ld-pestanas .chip.on { background: var(--text); color: var(--paper); border-color: var(--text); }
+.leads-app .ld-fila-de-filtros .ld-pestanas .chip.on .cnt { opacity: .85; }
+.leads-app .ld-fila-de-filtros .ld-releer { margin-left: auto; }
+.leads-app .ld-selector { display: inline-flex; align-items: center; gap: 4px; margin: 0; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.leads-app .ld-fijo { padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); line-height: 1.35; font-size: 12.5px; color: var(--ink-soft); }
+.leads-app .ld-fijo b { color: var(--text); font-size: 13px; }
+.leads-app .ld-fila-de-filtros select, .leads-app .ld-filtros .ld-barra select {
+  width: auto; max-width: 190px; min-height: 36px; padding: 6px 8px; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text);
+}
+/* Fila 2: el título de la lista, con su cuenta en una píldora. */
+.leads-app .ld-filtros { padding: 0; margin: 0; background: none; border: 0; box-shadow: none; }
+.leads-app .ld-titulo-de-lista { margin: 4px 0 8px; font-size: 16px; font-weight: 800; color: var(--text); }
+.leads-app .ld-titulo-de-lista .count-tag { margin: 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+/* Las etapas, en UNA línea: se desliza sin partirse. El relleno de arriba y abajo deja ver el anillo del elegido. */
+.leads-app .ld-filtros > .ld-etapas.filters-oneline { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 6px 4px; margin: 0 -4px 4px; }
+.leads-app .ld-filtros > .ld-etapas.filters-oneline::-webkit-scrollbar { display: none; }
+.leads-app .ld-filtros > .ld-etapas.filters-oneline .chip { flex: 0 0 auto; }
+/* En una pantalla ancha, las doce pastillas con su icono no caben en una línea (1750 px de 1224): ahí se parten en dos
+   renglones en vez de esconder las últimas sin barra a la vista. En el teléfono siguen en una línea que se desliza. */
+@media (min-width: 700px) {
+  .leads-app .ld-filtros > .ld-etapas.filters-oneline { flex-wrap: wrap; overflow-x: visible; row-gap: 8px; }
+}
+/* Fila 3: buscador (como ops-busca-merma), filtros compactos en línea, Quitar filtros a la derecha. */
+.leads-app .ld-filtros .ld-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 6px; }
+.leads-app .ld-filtros .ld-barra input[type="search"] {
+  flex: 1 1 260px; min-width: 0; max-width: 420px; width: auto; min-height: 36px; padding: 6px 10px; font: inherit; font-size: 14px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text);
+}
+.leads-app .ld-filtros .ld-barra [data-quitar-filtros] { flex: 0 0 auto; margin-left: auto; min-height: 36px; }
+@media (max-width: 699px) {
+  .leads-app .ld-fila-de-filtros select, .leads-app .ld-filtros .ld-barra select { font-size: 16px; }
+  .leads-app .ld-filtros .ld-barra input[type="search"] { flex-basis: 100%; max-width: none; }
+  .leads-app .ld-filtros .ld-barra [data-quitar-filtros] { margin-left: 0; }
+}
+
 /* 253 (ayuda e207d9ef): el tipo de acción de la nota de avance. Píldora compacta (D-870), con su color. */
 .ld-pildora { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.5;
   border: 1px solid transparent; background: var(--accent-soft); color: var(--accent); white-space: nowrap; vertical-align: 1px; }
@@ -303,3 +343,91 @@ button.ld-pildora.on { border-color: currentColor; box-shadow: 0 0 0 1px current
 
 /* 337 / D-1145 (reunión del 23 nov 2026): una llamada perdida se lee en rojo, en negrita. */
 .ld-llamadas .ld-llamada.ld-llamada-perdida, .ld-llamadas .ld-llamada-perdida .hint { color: var(--red, #b91c1c); font-weight: 700; }
+
+/* ===========================================================================================================
+   Colores de etapa: cada etapa, una pastilla sólida (como el menú de referencia). Fondo y tinta salen de los
+   tokens --etapa-<etapa> y --etapa-<etapa>-tinta. Se pintan los chips de filtro (data-etapa) y las pastillas de
+   la tarjeta y del selector de la nota (data-pildora-etapa). Van al final: ganan a las reglas de tono de arriba.
+   =========================================================================================================== */
+.leads-app {
+  --etapa-new: #111827;
+  --etapa-new-tinta: #ffffff;
+  --etapa-made_contact: #0e7490;
+  --etapa-made_contact-tinta: #ffffff;
+  --etapa-no_answer: #64748b;
+  --etapa-no_answer-tinta: #ffffff;
+  --etapa-appointment: #7c3aed;
+  --etapa-appointment-tinta: #ffffff;
+  --etapa-quote: #1d6fe0;
+  --etapa-quote-tinta: #ffffff;
+  --etapa-negotiation: #f2b63d;
+  --etapa-negotiation-tinta: #3a2a00;
+  --etapa-closed: #17803a;
+  --etapa-closed-tinta: #ffffff;
+  --etapa-lost: #b3122b;
+  --etapa-lost-tinta: #ffffff;
+  --etapa-bad_lead: #6b4a2f;
+  --etapa-bad_lead-tinta: #ffffff;
+}
+:root[data-theme="dark"] .leads-app { --etapa-new: #e5e7eb; --etapa-new-tinta: #111827; }
+.leads-app .ld-etapas .chip[data-etapa="new"], .leads-app .ld-pildora[data-pildora-etapa="new"] { --e: var(--etapa-new); --e-tinta: var(--etapa-new-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="made_contact"], .leads-app .ld-pildora[data-pildora-etapa="made_contact"] { --e: var(--etapa-made_contact); --e-tinta: var(--etapa-made_contact-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="no_answer"], .leads-app .ld-pildora[data-pildora-etapa="no_answer"] { --e: var(--etapa-no_answer); --e-tinta: var(--etapa-no_answer-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="appointment"], .leads-app .ld-pildora[data-pildora-etapa="appointment"] { --e: var(--etapa-appointment); --e-tinta: var(--etapa-appointment-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="quote"], .leads-app .ld-pildora[data-pildora-etapa="quote"] { --e: var(--etapa-quote); --e-tinta: var(--etapa-quote-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="negotiation"], .leads-app .ld-pildora[data-pildora-etapa="negotiation"] { --e: var(--etapa-negotiation); --e-tinta: var(--etapa-negotiation-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="closed"], .leads-app .ld-pildora[data-pildora-etapa="closed"] { --e: var(--etapa-closed); --e-tinta: var(--etapa-closed-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="lost"], .leads-app .ld-pildora[data-pildora-etapa="lost"] { --e: var(--etapa-lost); --e-tinta: var(--etapa-lost-tinta); }
+.leads-app .ld-etapas .chip[data-etapa="bad_lead"], .leads-app .ld-pildora[data-pildora-etapa="bad_lead"] { --e: var(--etapa-bad_lead); --e-tinta: var(--etapa-bad_lead-tinta); }
+.leads-app .ld-etapas .chip[data-etapa]:not([data-etapa=""]), .leads-app .ld-pildora[data-pildora-etapa] {
+  background: var(--e); color: var(--e-tinta); border-color: var(--e);
+}
+/* La elegida: negrita y un anillo (fondo de la tarjeta, luego su color). Las demás, sin anillo. */
+.leads-app .ld-etapas .chip[data-etapa]:not([data-etapa=""]).on, .leads-app .ld-pildora[data-pildora-etapa].on {
+  font-weight: 800; box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--e);
+}
+.leads-app .ld-etapas .chip[data-etapa]:not([data-etapa=""]) .ld-cuenta { color: inherit; opacity: 0.85; }
+/* En el teléfono la fila se desliza: un poco de aire arriba y abajo para que el anillo no se corte. */
+.leads-app .ld-etapas { padding-block: 4px; margin-block: -4px 2px; }
+
+/* Color de cada vendedor (migración 345): su puesto en la paleta. La 13.ª persona reusa el 1. Sin puesto, la franja es neutra. */
+.leads-app {
+  --vendedor-1: #111827; --vendedor-1-tinta: #ffffff;
+  --vendedor-2: #f2b63d; --vendedor-2-tinta: #3a2a00;
+  --vendedor-3: #1d6fe0; --vendedor-3-tinta: #ffffff;
+  --vendedor-4: #17803a; --vendedor-4-tinta: #ffffff;
+  --vendedor-5: #7c3aed; --vendedor-5-tinta: #ffffff;
+  --vendedor-6: #b3122b; --vendedor-6-tinta: #ffffff;
+  --vendedor-7: #0e7490; --vendedor-7-tinta: #ffffff;
+  --vendedor-8: #c2410c; --vendedor-8-tinta: #ffffff;
+  --vendedor-9: #be185d; --vendedor-9-tinta: #ffffff;
+  --vendedor-10: #4d7c0f; --vendedor-10-tinta: #ffffff;
+  --vendedor-11: #6b4a2f; --vendedor-11-tinta: #ffffff;
+  --vendedor-12: #312e81; --vendedor-12-tinta: #ffffff;
+}
+:root[data-theme="dark"] .leads-app { --vendedor-1: #e5e7eb; --vendedor-1-tinta: #111827; }
+/* La franja de la tarjeta: a sangre con el borde de la tarjeta (su padding 10px 12px) y las esquinas de arriba con su radio. */
+.leads-app .ld-franja {
+  margin: -10px -12px 8px; padding: 6px 12px; border-radius: 9px 9px 0 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 4px 10px; flex-wrap: nowrap;
+  font-size: 12.5px; font-weight: 700; line-height: 1.35;
+  background: var(--accent); color: var(--card); /* neutra: sin puesto. El par de los chips «on» (se lee en los dos temas). */
+}
+.leads-app .ld-franja[data-color-vendedor="1"] { background: var(--vendedor-1); color: var(--vendedor-1-tinta); }
+.leads-app .ld-franja[data-color-vendedor="2"] { background: var(--vendedor-2); color: var(--vendedor-2-tinta); }
+.leads-app .ld-franja[data-color-vendedor="3"] { background: var(--vendedor-3); color: var(--vendedor-3-tinta); }
+.leads-app .ld-franja[data-color-vendedor="4"] { background: var(--vendedor-4); color: var(--vendedor-4-tinta); }
+.leads-app .ld-franja[data-color-vendedor="5"] { background: var(--vendedor-5); color: var(--vendedor-5-tinta); }
+.leads-app .ld-franja[data-color-vendedor="6"] { background: var(--vendedor-6); color: var(--vendedor-6-tinta); }
+.leads-app .ld-franja[data-color-vendedor="7"] { background: var(--vendedor-7); color: var(--vendedor-7-tinta); }
+.leads-app .ld-franja[data-color-vendedor="8"] { background: var(--vendedor-8); color: var(--vendedor-8-tinta); }
+.leads-app .ld-franja[data-color-vendedor="9"] { background: var(--vendedor-9); color: var(--vendedor-9-tinta); }
+.leads-app .ld-franja[data-color-vendedor="10"] { background: var(--vendedor-10); color: var(--vendedor-10-tinta); }
+.leads-app .ld-franja[data-color-vendedor="11"] { background: var(--vendedor-11); color: var(--vendedor-11-tinta); }
+.leads-app .ld-franja[data-color-vendedor="12"] { background: var(--vendedor-12); color: var(--vendedor-12-tinta); }
+.leads-app .ld-franja > b { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.leads-app .ld-franja-der { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; margin-left: auto; white-space: nowrap; font-weight: 600; }
+@media (max-width: 480px) {
+  .leads-app .ld-franja { flex-wrap: wrap; }
+  .leads-app .ld-franja > b { flex: 1 1 100%; }
+}

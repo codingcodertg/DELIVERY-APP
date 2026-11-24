@@ -184,6 +184,22 @@ export const esEtapa = (v: unknown): v is Etapa => typeof v === "string" && (ETA
 export function etapaLabel(e: Etapa, lang: Idioma): string {
   return ETAPA_TXT[e][lang];
 }
+/** El icono de cada etapa: el mismo en inglés y en español. Ninguno repite otro (lo prueba reglas.test.ts). */
+export const ETAPA_ICONO: Record<Etapa, string> = {
+  new: "🆕",
+  made_contact: "🗣️",
+  no_answer: "🔕",
+  appointment: "📅",
+  quote: "🧾",
+  negotiation: "⚖️",
+  closed: "🏆",
+  lost: "❌",
+  bad_lead: "👎",
+};
+export function etapaIcono(e: Etapa): string {
+  return ETAPA_ICONO[e];
+}
+
 /** Lo mismo con el nombre de antes (la pestaña de historial y las píldoras lo usan). */
 export const accionLabel = (a: TipoDeAccion, lang: Idioma): string => etapaLabel(a, lang);
 
@@ -648,3 +664,17 @@ export function negativaDeCodigo(code: string | null | undefined): Negativa | nu
 /** ¿Ve las estadísticas de uso por vendedor? El admin y el gerente («manager»). Un vendedor, no. La base lo vuelve a
  *  exigir en `leads_estadisticas_de_llamadas` (migración 337). */
 export const puedeVerEstadisticas = (p: Pick<Persona, "admin" | "role">): boolean => !!p.admin || p.role === "manager";
+
+/** Cuántos colores tiene la paleta de los vendedores (`--vendedor-1` … `--vendedor-12` en leads.css). */
+export const COLORES_DE_VENDEDOR = 12;
+
+/**
+ * El color de la franja de quien trabajó un lead: su puesto (migración 345) en la paleta, y la 13.ª persona reusa el 1.
+ * `null` si no hay mapa, no hay id o la persona no tiene puesto: entonces la franja sale neutra.
+ */
+export function colorDeVendedor(puestos: ReadonlyMap<string, number> | null | undefined, id: string | null | undefined): number | null {
+  if (!puestos || !id) return null;
+  const puesto = puestos.get(id);
+  if (puesto === undefined) return null;
+  return ((puesto - 1) % COLORES_DE_VENDEDOR) + 1;
+}
