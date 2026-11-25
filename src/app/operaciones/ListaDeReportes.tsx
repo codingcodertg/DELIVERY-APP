@@ -41,6 +41,7 @@ import { COLUMNAS_DE_MERMA, alternaColumna, clavePrefsDeMerma, clavePrefsDeMerma
 import { useOrdenDeColumnas } from "./useOrdenDeColumnas";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { useCierraAlSalir } from "@/lib/menu-desplegable";
+import { MenuDeFecha } from "@/components/MenuDeFecha";
 import { datosPdfDeMerma } from "@/lib/almacen-ops/pdf-de-merma";
 import { AdjuntarYMarcar, ChipDeEtapa, LineaDeEtapas, aplicarEtapa, ErrorParcial } from "./EtapasDeMerma";
 import { documentoDeGrupo, esAdminParaDeshacer, puedeBorrarMerma, puedeIniciarAprobacion } from "@/lib/almacen-ops/etapas";
@@ -458,7 +459,7 @@ export function ListaDeReportes({ modo, ctx, filtro = false }: {
     <div className="ops-fila-de-filtros" data-fila-de-filtros>
       {pestanas}
       {/* Dueño, 11 nov: los atajos de fecha pasan a UN botón «📅» con su menú (primero el rango personalizado). */}
-      <MenuDeFecha eleccion={eleccion} etiqueta={etiqueta} onElegir={elegir} />
+      <MenuDeFecha eleccion={eleccion} etiqueta={etiqueta} onElegir={elegir} lang={lang} titulo={t("Pick date", "Elegir fecha")} />
       {/* D-1147: el filtro por tienda, junto al rango. Manda en las tres pestañas (merma; conteos, D-1148; entregas, D-1150). */}
       {tiendasDelFiltro.length > 1 && (
         <select className="ops-filtro-tienda" value={tiendaElegida} onChange={(e) => setTiendaDelReporte(e.target.value)} data-tienda-del-reporte aria-label={t("Store", "Tienda")}>
@@ -1136,37 +1137,6 @@ function usePrefsDeColumnas(yo: string, telefonoDeAlmacen: boolean) {
     try { localStorage.setItem(clave, JSON.stringify(n)); } catch { /* sin almacenamiento: dura hasta recargar */ }
   };
   return { prefs, setPrefs };
-}
-
-/**
- * «📅 Elegir fecha» (dueño, 11 nov): un botón con la elección actual («📅 Este mes», o el rango si es personalizado) que
- * abre el menú: primero «Rango personalizado» (abre Desde / Hasta), luego Hoy, Ayer, Esta semana… Se cierra con un clic
- * fuera o con Escape; con teclado, Tab recorre las opciones.
- */
-function MenuDeFecha({ eleccion, etiqueta, onElegir }: { eleccion: Eleccion; etiqueta: string; onElegir: (a: Atajo) => void }) {
-  const { t, lang } = usePrefs();
-  const [abierto, setAbierto] = useState(false);
-  const caja = useRef<HTMLDivElement>(null);
-  useCierraAlSalir(abierto, () => setAbierto(false), () => [caja.current]);
-  const nombre = (a: Atajo) => (lang === "es" ? NOMBRE_DE_ATAJO[a].es : NOMBRE_DE_ATAJO[a].en);
-  const actual = eleccion.atajo === "otro" ? etiqueta : nombre(eleccion.atajo);
-  return (
-    <div ref={caja} className="ops-menu-fecha" data-rango-atajos>
-      <button type="button" className="chip active" aria-haspopup="menu" aria-expanded={abierto} onClick={() => setAbierto((v) => !v)} data-accion="elegir-fecha"
-        title={t("Pick date", "Elegir fecha")}>📅 {actual} ▾</button>
-      {abierto && (
-        <div className="ops-menu-fecha-lista" role="menu">
-          {ATAJOS_DEL_MENU.map((a) => (
-            <button type="button" role="menuitemradio" aria-checked={eleccion.atajo === a} key={a}
-              className={"ops-menu-fecha-opcion" + (eleccion.atajo === a ? " activa" : "")}
-              onClick={() => { onElegir(a); setAbierto(false); }} data-atajo={a}>
-              {a === "otro" ? "📅 " : ""}{nombre(a)}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }
 
 /** 268: la cámara junto a la fecha; solo si hay fotos, y el título dice cuántas. Sin icono = sin fotos. */
