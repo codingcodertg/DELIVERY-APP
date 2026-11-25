@@ -71,7 +71,7 @@ import { BandejaDeSolicitudes } from "@/components/BandejaDeSolicitudes";
 import { notaAlAprobar, pasosAlAprobar, puedeDecidirSolicitudes, type SolicitudDeAsignacion } from "@/lib/solicitud-de-asignacion";
 import { arranqueDeLoPendiente, optimizaSinEmpeorar, reglasDeLaEntrada } from "@/lib/optimiza-sin-empeorar";
 import { ahoraDelNegocio } from "@/lib/salida-de-la-medida";
-import { LARGO_MAX_QUIEN, notaDeEntregadaPorOtro, parcheDeEntregadaPorOtro, sugerenciasDeQuien, validaEntregadaPorOtro, type MotivoDeEntregadaPorOtro } from "@/lib/entregada-por-otro";
+import { diaFijoPorLaEntrega, diaQueSeGuarda, LARGO_MAX_QUIEN, notaDeEntregadaPorOtro, parcheDeEntregadaPorOtro, sugerenciasDeQuien, validaEntregadaPorOtro, type MotivoDeEntregadaPorOtro } from "@/lib/entregada-por-otro";
 import { avisoDeOptimizar, entradaDeOptimizar, puntosDeLaEntrada, tiemposDeLaRuta, type TiemposPedidos } from "@/lib/optimizar-desde-el-gestor";
 import { basesPorNombreDelDia, extremosDeLaRuta, type BaseDelDia } from "@/lib/base-del-dia";
 import { useBasesDelDia } from "@/lib/usa-base-del-dia";
@@ -1411,17 +1411,22 @@ export default function RoutesPage() {
     "dia-no-valido": { en: "Pick a valid day.", es: "Elige un día válido." },
     "dia-futuro": { en: "The delivery day can't be after today.", es: "El día de la entrega no puede ser después de hoy." },
   };
-  const abreEntregadaPorOtro = (order: Delivery) => setEntregadaPorOtro({ order, quien: "", dia: order.delivery_date ?? ahoraDelNegocio().fecha });
+  // Con hora de entrega registrada (`pod_delivered_at`), la base deja la orden en el día de esa hora (trigger 222): el día
+  // no se elige y no se manda en el parche. Sin hora, el día es el que se elija (por defecto, el de la orden).
+  const abreEntregadaPorOtro = (order: Delivery) => setEntregadaPorOtro({
+    order, quien: "", dia: diaQueSeGuarda({ dia: order.delivery_date ?? ahoraDelNegocio().fecha, podDeLaEntrega: order.pod_delivered_at }),
+  });
   const guardaEntregadaPorOtro = async () => {
     const x = entregadaPorOtro;
     if (!x) return;
-    const motivo = validaEntregadaPorOtro({ quien: x.quien, dia: x.dia, hoy: ahoraDelNegocio().fecha, choferActual: x.order.assigned_driver });
+    const podDeLaEntrega = x.order.pod_delivered_at;
+    const motivo = validaEntregadaPorOtro({ quien: x.quien, dia: diaQueSeGuarda({ dia: x.dia, podDeLaEntrega }), hoy: ahoraDelNegocio().fecha, choferActual: x.order.assigned_driver });
     if (motivo) { notify(t(AVISO_DE_ENTREGADA_POR_OTRO[motivo].en, AVISO_DE_ENTREGADA_POR_OTRO[motivo].es)); return; }
     const quien = x.quien.trim();
     const anterior = x.order.assigned_driver;
     // Un solo write por el proveedor; si falla, el proveedor ya avisó y el diálogo se queda abierto para reintentar.
-    if (!(await updateDelivery(x.order.id, parcheDeEntregadaPorOtro({ quien, dia: x.dia, conRecogida: hayRecogidaGuardada })))) return;
-    await addNote(x.order.id, notaDeEntregadaPorOtro({ quien, dia: x.dia, anterior }));
+    if (!(await updateDelivery(x.order.id, parcheDeEntregadaPorOtro({ quien, dia: x.dia, conRecogida: hayRecogidaGuardada, podDeLaEntrega })))) return;
+    await addNote(x.order.id, notaDeEntregadaPorOtro({ quien, dia: x.dia, anterior, podDeLaEntrega }));
     setEntregadaPorOtro(null);
     notify(t(`#${orderLabel(x.order)} marked delivered by ${quien}.`, `#${orderLabel(x.order)} marcada entregada por ${quien}.`));
   };
@@ -4324,7 +4329,8 @@ export default function RoutesPage() {
         // Diálogo en su sitio, como «# Mover a la parada»: Enter guarda, Esc cierra. Sugerencias: la tienda y las rutas del día.
         const x = entregadaPorOtro;
         const hoy = ahoraDelNegocio().fecha;
-        const motivo = validaEntregadaPorOtro({ quien: x.quien, dia: x.dia, hoy, choferActual: x.order.assigned_driver });
+        const diaFijo = diaFijoPorLaEntrega(x.order.pod_delivered_at);
+        const motivo = validaEntregadaPorOtro({ quien: x.quien, dia: diaQueSeGuarda({ dia: x.dia, podDeLaEntrega: x.order.pod_delivered_at }), hoy, choferActual: x.order.assigned_driver });
         const sugerencias = sugerenciasDeQuien(x.order.store, lanes.map((l) => l.driver), x.order.assigned_driver);
         return (
           <div className="overlay" data-dialogo-entregada-por-otro onClick={(e) => { if (e.target === e.currentTarget) setEntregadaPorOtro(null); }}>
@@ -4340,7 +4346,9 @@ export default function RoutesPage() {
               </div>
               <div className="field">
                 <label htmlFor="entregada-por-otro-dia">{t("Delivered on", "Entregada el")}</label>
-                <input id="entregada-por-otro-dia" data-entregada-dia type="date" max={hoy} value={x.dia} onChange={(e) => setEntregadaPorOtro({ ...x, dia: e.target.value })} style={{ minHeight: 44 }} />
+                <input id="entregada-por-otro-dia" data-entregada-dia type="date" max={hoy} value={diaFijo ?? x.dia} disabled={diaFijo != null}
+                  onChange={(e) => setEntregadaPorOtro({ ...x, dia: e.target.value })} style={{ minHeight: 44 }} />
+                {diaFijo && <div className="hint" data-entregada-dia-fijo>{t(`This order has a recorded delivery time, so its day stays on ${diaFijo}.`, `Esta orden tiene hora de entrega registrada, así que su día se queda en ${diaFijo}.`)}</div>}
               </div>
               {x.quien.trim() !== "" && motivo && <div className="hint" data-entregada-no-valida style={{ color: "var(--red)" }}>{t(AVISO_DE_ENTREGADA_POR_OTRO[motivo].en, AVISO_DE_ENTREGADA_POR_OTRO[motivo].es)}</div>}
               <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>

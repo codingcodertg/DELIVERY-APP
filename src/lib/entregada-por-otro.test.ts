@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { esFechaISO, LARGO_MAX_QUIEN, notaDeEntregadaPorOtro, parcheDeEntregadaPorOtro, sugerenciasDeQuien, validaEntregadaPorOtro } from "./entregada-por-otro";
+import { diaFijoPorLaEntrega, diaQueSeGuarda, esFechaISO, LARGO_MAX_QUIEN, notaDeEntregadaPorOtro, parcheDeEntregadaPorOtro, sugerenciasDeQuien, validaEntregadaPorOtro } from "./entregada-por-otro";
+
+// 23:30 del 24 de noviembre en Texas (UTC-6) cae el 25 en UTC: el día que cuenta es el de Texas.
+const ENTREGA_TARDE = "2026-11-25T05:30:00.000Z";
 
 describe("sugerenciasDeQuien", () => {
   it("pone «Warehouse <tienda>» primero, con la tienda tal cual viene en la orden", () => {
@@ -54,25 +57,50 @@ describe("esFechaISO", () => {
 });
 
 describe("parcheDeEntregadaPorOtro", () => {
-  it("cambia chofer y día, y pone los puestos a null; la etapa no va en el parche", () => {
-    const p = parcheDeEntregadaPorOtro({ quien: "  Warehouse BRO ", dia: "2026-11-24", conRecogida: false });
+  it("sin hora de entrega: cambia chofer y día, y pone los puestos a null; la etapa no va en el parche", () => {
+    const p = parcheDeEntregadaPorOtro({ quien: "  Warehouse BRO ", dia: "2026-11-24", conRecogida: false, podDeLaEntrega: null });
     expect(p).toEqual({ assigned_driver: "Warehouse BRO", delivery_date: "2026-11-24", route_seq: null, load_no: null });
     expect("stage" in p).toBe(false);
     expect("pickup_seq" in p).toBe(false);
   });
+  it("con hora de entrega registrada: NO lleva delivery_date (la fecha se queda en su día)", () => {
+    const p = parcheDeEntregadaPorOtro({ quien: "Warehouse BRO", dia: "2026-11-20", conRecogida: false, podDeLaEntrega: ENTREGA_TARDE });
+    expect(p).toEqual({ assigned_driver: "Warehouse BRO", route_seq: null, load_no: null });
+    expect("delivery_date" in p).toBe(false);
+  });
   it("con la columna de recogida (154) también pone pickup_seq a null", () => {
-    const p = parcheDeEntregadaPorOtro({ quien: "Warehouse BRO", dia: "2026-11-24", conRecogida: true });
+    const p = parcheDeEntregadaPorOtro({ quien: "Warehouse BRO", dia: "2026-11-24", conRecogida: true, podDeLaEntrega: null });
     expect(p.pickup_seq).toBeNull();
+  });
+});
+
+describe("diaFijoPorLaEntrega y diaQueSeGuarda", () => {
+  it("la hora de entrega se lee en el día de Texas, no en UTC", () => {
+    expect(diaFijoPorLaEntrega(ENTREGA_TARDE)).toBe("2026-11-24");
+    expect(diaFijoPorLaEntrega("2026-11-24T18:00:00.000Z")).toBe("2026-11-24");
+  });
+  it("sin hora (o con una que no es fecha), no hay día fijo", () => {
+    expect(diaFijoPorLaEntrega(null)).toBeNull();
+    expect(diaFijoPorLaEntrega("")).toBeNull();
+    expect(diaFijoPorLaEntrega("no es fecha")).toBeNull();
+  });
+  it("lo que se guarda: el día de la hora si la hay; si no, el elegido", () => {
+    expect(diaQueSeGuarda({ dia: "2026-11-20", podDeLaEntrega: ENTREGA_TARDE })).toBe("2026-11-24");
+    expect(diaQueSeGuarda({ dia: "2026-11-23", podDeLaEntrega: null })).toBe("2026-11-23");
   });
 });
 
 describe("notaDeEntregadaPorOtro", () => {
   it("escribe las dos lenguas en una línea, con el chofer anterior", () => {
-    expect(notaDeEntregadaPorOtro({ quien: "Warehouse BRO", dia: "2026-11-24", anterior: "Max" })).toBe(
+    expect(notaDeEntregadaPorOtro({ quien: "Warehouse BRO", dia: "2026-11-24", anterior: "Max", podDeLaEntrega: null })).toBe(
       "Delivered on 2026-11-24 by Warehouse BRO, not by Max. / Entregada el 2026-11-24 por Warehouse BRO, no por Max.");
   });
   it("sin chofer anterior no pone la parte de «no por»", () => {
-    expect(notaDeEntregadaPorOtro({ quien: "Warehouse BRO", dia: "2026-11-24", anterior: null })).toBe(
+    expect(notaDeEntregadaPorOtro({ quien: "Warehouse BRO", dia: "2026-11-24", anterior: null, podDeLaEntrega: null })).toBe(
       "Delivered on 2026-11-24 by Warehouse BRO. / Entregada el 2026-11-24 por Warehouse BRO.");
+  });
+  it("con hora de entrega, la nota dice el día que de verdad queda guardado (el de la hora)", () => {
+    expect(notaDeEntregadaPorOtro({ quien: "Warehouse BRO", dia: "2026-11-20", anterior: "Max", podDeLaEntrega: ENTREGA_TARDE })).toBe(
+      "Delivered on 2026-11-24 by Warehouse BRO, not by Max. / Entregada el 2026-11-24 por Warehouse BRO, no por Max.");
   });
 });

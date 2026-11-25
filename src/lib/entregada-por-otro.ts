@@ -6,13 +6,16 @@
  * Reglas puras (sin base ni pantalla): el Gestor las usa en el diálogo y los tests las fijan.
  */
 
+import { ahoraDelNegocio } from "@/lib/salida-de-la-medida";
+
 /** Largo máximo de «Quién la entregó». */
 export const LARGO_MAX_QUIEN = 80;
 
-/** Lo que el diálogo escribe en la orden: el nuevo chofer (quien la entregó), el día real y los puestos a null. */
+/** Lo que el diálogo escribe en la orden: el nuevo chofer (quien la entregó), el día real y los puestos a null.
+ *  Sin `delivery_date` cuando la orden tiene hora de entrega (trigger 222: su día se queda en el de esa hora). */
 export interface ParcheDeEntregadaPorOtro {
   assigned_driver: string;
-  delivery_date: string;
+  delivery_date?: string;
   route_seq: null;
   load_no: null;
   pickup_seq?: null;
@@ -63,21 +66,40 @@ export function validaEntregadaPorOtro({ quien, dia, hoy, choferActual }: {
   return null;
 }
 
-/** El parche de la orden. La recogida (`pickup_seq`) solo va si la base tiene esa columna (154). */
-export function parcheDeEntregadaPorOtro({ quien, dia, conRecogida }: { quien: string; dia: string; conRecogida: boolean }): ParcheDeEntregadaPorOtro {
+/** El día de la hora de entrega registrada (`pod_delivered_at`), en el día de Texas; null si la orden no tiene hora. */
+export function diaFijoPorLaEntrega(podDeLaEntrega: string | null | undefined): string | null {
+  if (!podDeLaEntrega) return null;
+  const instante = new Date(podDeLaEntrega);
+  return Number.isNaN(instante.getTime()) ? null : ahoraDelNegocio(instante).fecha;
+}
+
+/** El día que la base va a dejar: el de la hora de entrega si la hay (trigger 222), o el que se eligió. */
+export function diaQueSeGuarda({ dia, podDeLaEntrega }: { dia: string; podDeLaEntrega: string | null | undefined }): string {
+  return diaFijoPorLaEntrega(podDeLaEntrega) ?? dia;
+}
+
+/** El parche de la orden. Con hora de entrega no lleva `delivery_date` (la fecha no se mueve). La recogida (`pickup_seq`)
+ *  solo va si la base tiene esa columna (154). */
+export function parcheDeEntregadaPorOtro({ quien, dia, conRecogida, podDeLaEntrega }: {
+  quien: string; dia: string; conRecogida: boolean; podDeLaEntrega: string | null | undefined;
+}): ParcheDeEntregadaPorOtro {
+  const fijo = diaFijoPorLaEntrega(podDeLaEntrega);
   return {
     assigned_driver: quien.trim(),
-    delivery_date: dia,
+    ...(fijo ? {} : { delivery_date: dia }),
     route_seq: null,
     load_no: null,
     ...(conRecogida ? { pickup_seq: null } : {}),
   };
 }
 
-/** La nota del historial, en las dos lenguas (una línea, como las demás notas bilingües). */
-export function notaDeEntregadaPorOtro({ quien, dia, anterior }: { quien: string; dia: string; anterior: string | null | undefined }): string {
+/** La nota del historial, en las dos lenguas (una línea, como las demás notas bilingües), con el día que se guarda de verdad. */
+export function notaDeEntregadaPorOtro({ quien, dia, anterior, podDeLaEntrega }: {
+  quien: string; dia: string; anterior: string | null | undefined; podDeLaEntrega?: string | null;
+}): string {
   const q = quien.trim();
   const a = (anterior ?? "").trim();
+  const d = diaQueSeGuarda({ dia, podDeLaEntrega });
   const porAnterior = a && a.toLowerCase() !== q.toLowerCase() ? { en: `, not by ${a}`, es: `, no por ${a}` } : { en: "", es: "" };
-  return `Delivered on ${dia} by ${q}${porAnterior.en}. / Entregada el ${dia} por ${q}${porAnterior.es}.`;
+  return `Delivered on ${d} by ${q}${porAnterior.en}. / Entregada el ${d} por ${q}${porAnterior.es}.`;
 }

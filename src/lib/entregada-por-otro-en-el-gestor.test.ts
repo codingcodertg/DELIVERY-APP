@@ -31,9 +31,19 @@ describe("«No fue este chofer…» en el Gestor", () => {
     const cuerpo = bloque("const guardaEntregadaPorOtro = async", "\n  };");
     const escrituras = cuerpo.split("await updateDelivery(").length - 1;
     expect(escrituras).toBe(1);
-    expect(cuerpo).toContain("await updateDelivery(x.order.id, parcheDeEntregadaPorOtro({ quien, dia: x.dia, conRecogida: hayRecogidaGuardada }))");
-    expect(cuerpo.indexOf("await updateDelivery(")).toBeLessThan(cuerpo.indexOf("await addNote(x.order.id, notaDeEntregadaPorOtro({ quien, dia: x.dia, anterior }))"));
+    expect(cuerpo).toContain("await updateDelivery(x.order.id, parcheDeEntregadaPorOtro({ quien, dia: x.dia, conRecogida: hayRecogidaGuardada, podDeLaEntrega }))");
+    expect(cuerpo.indexOf("await updateDelivery(")).toBeLessThan(cuerpo.indexOf("await addNote(x.order.id, notaDeEntregadaPorOtro({ quien, dia: x.dia, anterior, podDeLaEntrega }))"));
     expect(cuerpo).not.toContain("stage");
+  });
+
+  it("con hora de entrega, el día es fijo: el campo va deshabilitado con ese día, y el parche no lleva delivery_date", () => {
+    const dialogo = bloque("{entregadaPorOtro && (() => {", "{incidenciasAbiertas && (");
+    expect(dialogo).toContain("disabled={diaFijo != null}");
+    expect(dialogo).toContain("data-entregada-dia-fijo");
+    expect(dialogo).toContain("This order has a recorded delivery time, so its day stays on ${diaFijo}.");
+    expect(dialogo).toContain("Esta orden tiene hora de entrega registrada, así que su día se queda en ${diaFijo}.");
+    const abre = bloque("const abreEntregadaPorOtro", "const guardaEntregadaPorOtro");
+    expect(abre).toContain("podDeLaEntrega: order.pod_delivered_at");
   });
 
   it("el diálogo es el del Gestor (overlay + modal) y no usa window.prompt ni window.confirm", () => {
