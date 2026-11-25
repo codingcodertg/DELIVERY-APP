@@ -81,7 +81,7 @@ describe("puerta: la burbuja general en el layout raíz, y Ayuda y Chat se abren
     expect(burbuja).toContain("if (!sale) return null;");
     expect(burbuja).toContain("const opciones = opcionesDelBotonGeneral({ adminReal: servidor.adminReal, switchHabilitado: servidor.habilitado, suplantando, ayudaAqui });");
     expect(burbuja).toContain("{opciones.map(opcion)}");
-    expect(burbuja).toContain('className={"fab-general" + (abierto ? " abierto" : "") + (naranja ? " suplantando" : "")}');
+    expect(burbuja).toContain('className={"fab-general" + (abierto ? " abierto" : "") + (viendo ? " viendo-como" : "")}');
   });
 
   it("Ayuda y Chat se abren por evento y, montados sin burbuja, no pintan la suya", () => {

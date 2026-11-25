@@ -2050,16 +2050,29 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 }
 
 /* ---------------------------------------------------------------------------
-   «Entrar como» en la burbuja (D-859, 2026-11-04). Ya no hay franja arriba: mientras se está dentro de otra
-   persona la burbuja se pone NARANJA y dice «Estás como Ernesto» (se lee sin pasar el ratón, también en el
-   teléfono), y encima lleva el botón ROJO «↩ Volver a mi usuario». Texto `--ink` sobre `--amber`: `--ink` es
-   oscuro en los dos temas, y el blanco sobre ese ámbar no se leería.
+   «Viendo como» (24 nov, dueño: el aviso de la esquina tapaba el botón «Continue to review»). La burbuja queda del
+   tamaño de siempre (46 px, redonda) con un ANILLO ÁMBAR: así se ve que se está dentro de otra persona. El aviso
+   «Estás como …» y el botón rojo salen solo al abrirla; lo que se ve siempre es el chip de la barra de arriba
+   (`.viendo-como-chip`, `BarraDeApp`), que nunca tapa contenido.
    --------------------------------------------------------------------------- */
-.fab-general.suplantando {
-  width: auto; max-width: calc(100vw - 28px); gap: 8px; padding: 0 16px 0 14px;
-  background: var(--amber); color: var(--ink);
+.fab-general.viendo-como { box-shadow: 0 0 0 3px var(--amber), 0 6px 18px rgba(10,20,40,.28); }
+/* El chip de la barra de arriba: ámbar con texto `--ink` (oscuro en los dos temas) y el «↩» pequeño. */
+.viendo-como-chip {
+  display: inline-flex; align-items: center; gap: 6px; flex: 0 1 auto; min-width: 0; max-width: 100%;
+  padding: 3px 3px 3px 10px; border-radius: 999px; background: var(--amber); color: var(--ink);
+  font-size: 12.5px; font-weight: 800; white-space: nowrap;
 }
-.fab-general.suplantando:hover, .fab-general.suplantando.abierto { background: var(--amber); filter: brightness(.95); }
+.viendo-como-nombre { min-width: 0; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.viendo-como-volver {
+  flex: 0 0 auto; width: 26px; height: 26px; padding: 0; border: none; border-radius: 999px;
+  background: var(--ink); color: var(--card); font-size: 14px; font-weight: 900; line-height: 1; cursor: pointer;
+}
+.viendo-como-volver:disabled { opacity: .45; cursor: not-allowed; }
+/* En un teléfono el chip no tiene sitio para el nombre: solo el 👤 y el ↩ (el nombre va en el `title`). */
+@media (max-width: 700px) {
+  .viendo-como-nombre { display: none; }
+  .viendo-como-chip { padding-left: 8px; }
+}
 .fab-suplantando-texto {
   min-width: 0; max-width: min(280px, calc(100vw - 110px));
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -2078,25 +2091,9 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
   background: var(--amber-soft); color: var(--amber-text); border: 1px solid var(--amber);
   font-size: 12px; font-weight: 700; white-space: normal;
 }
-/* El hueco de abajo crece mientras está el botón rojo (46 + 8 + 44 px y el margen): así lo último de la página sigue
-   pudiendo subir por encima de los dos, como sube por encima de la burbuja sola (D-530). `.wrap` (Entregas, el hub,
-   RR. HH.) lo tenía escrito a mano; aquí toma el hueco. Fuera de una suplantación esta regla no aplica. */
-:root:has(.fab-general-caja.suplantando) { --hueco-de-ayuda: 136px; }
-:root:has(.fab-general-caja.suplantando) .wrap { padding-bottom: var(--hueco-de-ayuda); }
-@media (max-width: 640px) {
-  :root:has(.fab-general-caja.suplantando) { --hueco-de-ayuda: 124px; }
-}
-/* Reunión de Operaciones de almacén, 12 nov: en el TELÉFONO las dos pastillas de «entrar como» (la roja «Volver a mi
-   usuario» y la naranja «Estás como …») tapaban la pantalla. Cerrada, la burbuja queda en UNA pastilla chica naranja
-   (👤 ?): el color sigue diciendo que se está dentro de otra persona. Al tocarla se abre como siempre, con el nombre
-   entero y el botón rojo para volver. En pantallas anchas no cambia nada. */
-@media (max-width: 640px) {
-  .fab-general-caja.suplantando:not(:has(.fab-menu)) .fab-volver { display: none; }
-  .fab-general-caja.suplantando:not(:has(.fab-menu)) .fab-general.suplantando { height: 38px; padding: 0 10px; gap: 4px; font-size: 16px; }
-  .fab-general-caja.suplantando:not(:has(.fab-menu)) .fab-suplantando-texto { font-size: 0; }
-  .fab-general-caja.suplantando:not(:has(.fab-menu)) .fab-suplantando-texto > span { font-size: 15px; }
-  :root:has(.fab-general-caja.suplantando) { --hueco-de-ayuda: 72px; }
-}
+/* Ya no hay pastillas grandes abajo: la burbuja tiene siempre 46 px, así que el hueco de la página es el de siempre
+   (`--hueco-de-ayuda`, D-530). Lo que antes crecía con «entrar como» (136 px, y 72 px en el teléfono) se quitó con el
+   chip de la barra de arriba (24 nov). */
 
 /* La línea de «de qué va» en cada solicitud de la bandeja (D-624, 2026-10-21): una sola línea cortada con «…», del ancho
    de la tarjeta, que abre la solicitud al pulsarla. */

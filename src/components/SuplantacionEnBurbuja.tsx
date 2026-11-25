@@ -53,6 +53,29 @@ function irArriba(destino: string) {
 
 export type CandidatosDeSalto = { users: Profile[]; stores: NamedLocation[] };
 
+/**
+ * Una sola petición a `/api/impersonate/state` por carga: la burbuja y la barra de arriba la comparten (la promesa se
+ * guarda aquí; si falla, la siguiente pantalla vuelve a pedirla).
+ */
+let pedidoDelEstado: Promise<unknown> | null = null;
+
+/**
+ * Solo lee si esta pantalla está dentro de otra persona, para el chip de la barra de arriba (`BarraDeApp`). Sin reloj
+ * ni redirección: eso lo hace `useSuplantacion` una vez, en la burbuja.
+ */
+export function useEstadoDeSuplantacion(): Suplantacion | null {
+  const [estado, setEstado] = useState<Suplantacion | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    const pedido = pedidoDelEstado ?? (pedidoDelEstado = fetch(RUTA_DEL_ESTADO).then((r) => r.json()));
+    pedido
+      .then((d: unknown) => { if (vivo) setEstado(suplantacionDelEstado(d, leeCopiaLocal())); })
+      .catch(() => { /* sin respuesta no hay chip */ });
+    return () => { vivo = false; };
+  }, []);
+  return estado;
+}
+
 export function useSuplantacion() {
   const [estado, setEstado] = useState<Suplantacion | null>(null);
   const [volviendo, setVolviendo] = useState(false);
@@ -63,8 +86,8 @@ export function useSuplantacion() {
   useEffect(() => {
     let vivo = true;
     setEnMarco(estaEnUnMarco(window));
-    fetch(RUTA_DEL_ESTADO)
-      .then((r) => r.json())
+    const pedido = pedidoDelEstado ?? (pedidoDelEstado = fetch(RUTA_DEL_ESTADO).then((r) => r.json()));
+    pedido
       .then((d: unknown) => {
         if (!vivo) return;
         // Sesión de «Entrar como» sin marca: nunca se deja a nadie dentro de otra cuenta sin decírselo. Fuera.

@@ -92,6 +92,22 @@ export function textosDeSuplantacion(a: { como: string; idioma: Idioma; volviend
   };
 }
 
+/**
+ * Lo que dice la barra de arriba (`BarraDeApp`, el chip amarillo junto al nombre) y su botón «↩». La burbuja ya no
+ * lleva la frase fuera del menú: la barra es lo que siempre se ve y nunca tapa contenido (dueño, «viendo como» en la
+ * esquina tapaba el botón «Continue to review»).
+ */
+export function textosDeLaBarra(a: { como: string; idioma: Idioma; volviendo?: boolean }) {
+  const t = traduce(a.idioma);
+  return {
+    /** El chip: «Viewing as …» / «Estás como …». En el teléfono solo se ve el 👤 y el ↩. */
+    chip: t(`Viewing as ${a.como}`, `Estás como ${a.como}`),
+    /** El botón «↩» de la barra y el de dentro del menú: la vuelta a la cuenta propia. */
+    volver: t("Back to my user", "Volver a mi usuario"),
+    volviendo: t("Going back…", "Volviendo…"),
+  };
+}
+
 /** ¿Toca devolver al admin a su cuenta? La misma cuenta de los 60 minutos que el servidor (`impersonacionCaducada`). */
 export function tocaVolverSolo(s: Suplantacion | null, ahora: number): boolean {
   return s !== null && impersonacionCaducada(s.inicio, ahora);
