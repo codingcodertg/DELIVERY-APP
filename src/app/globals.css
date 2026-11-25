@@ -167,6 +167,17 @@
 .entregas-marca { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .topbar .entregas-marca h1 { text-transform: uppercase; line-height: normal; }
 .topbar .entregas-marca .tab-casa { font-size: 26px; line-height: 1; padding: 4px 12px; }
+/* Leads: sus controles (pestañas, tienda, semana) van en esta barra, a la derecha de la casa. La marca toma el sitio libre
+   para que ese bloque quede pegado a la derecha; solo cuando el bloque está (`:has`), para no tocar a ninguna otra app. */
+.topbar .entregas-marca:has(.ld-en-la-barra) { flex: 1 1 0; min-width: 0; }
+/* D-1173: con los controles de Leads en la barra, todo va en UNA fila desde 701 px (leads.css). El nombre de la app es
+   quien cede: no se parte, se corta con «…» y, a 900 px o menos, se esconde y queda la casa. Su tamaño no cambia. */
+@media (min-width: 701px) {
+  .topbar .entregas-marca:has(.ld-en-la-barra) h1 { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+@media (min-width: 701px) and (max-width: 900px) {
+  .topbar .entregas-marca:has(.ld-en-la-barra) h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+}
 /* D-1172: en Time Tracker la barra va en UNA fila desde 701 px (timetracker.css). La marca es quien cede: el nombre de
    la app no se parte, se corta con «…» y, cuando ya no queda sitio, se esconde y queda la casa. Ni su tamaño ni el de
    la casa cambian (D-643). Va aquí y no en la hoja del módulo porque es la marca. */

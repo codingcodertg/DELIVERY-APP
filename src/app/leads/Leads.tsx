@@ -5,6 +5,8 @@ import { useContextoDeAyuda } from "@/lib/ayuda-ubicacion-hook";
 import { contextoDeLeads } from "@/lib/ayuda-contextos";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { HUECO_DE_LA_BARRA } from "@/components/BarraDeApp";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import { type ClienteCruzado, almacenDeLaBase, type AlmacenDeLeads, type Res } from "@/lib/leads/almacen";
@@ -76,6 +78,9 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [alcance, setAlcance] = useState<Alcance>(ALCANCE_SIN_REGLA);
   const [estado, setEstado] = useState<Estado>({ tipo: "cargando" });
   const [pestana, setPestana] = useState<Pestana>("banco");
+  // El hueco de la barra de arriba (junto a la casa): los controles de la fila 1 suben ahí por un portal. Se busca después de montar.
+  const [hueco, setHueco] = useState<HTMLElement | null>(null);
+  useEffect(() => { setHueco(document.getElementById(HUECO_DE_LA_BARRA)); }, []);
   const [pool, setPool] = useState<string | null>(null);
   // Mientras nadie elige a mano, la entrada se recalcula: el alcance y los leads llegan después del primer pintado (D-631).
   const [poolAMano, setPoolAMano] = useState(false);
@@ -263,6 +268,89 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   );
   const leadEnfocado = enfocado ? leads.find((l) => l.id === enfocado) ?? null : null;
 
+  // Los controles de la fila 1: las pestañas, la tienda (o la fija) y la semana. Con la barra de arriba, suben a ella por un
+  // portal (ver `hueco`); sin barra se quedan en su fila de siempre. Mismo bloque en los dos sitios.
+  const enPoolTab = pestana === "banco" || (pestana === "privado" && veStxp);
+  const bloque = (
+    <div className="ld-en-la-barra" data-leads-en-la-barra>
+      <div className="ld-pestanas" role="tablist">
+        {/* D-1015 (Roberto, 12 nov): el STXP Pool (South Texas Permit) va PRIMERO; después GOV y lo demás. */}
+        {veStxp && (
+          <button type="button" role="tab" aria-selected={pestana === "privado"} className={`chip${pestana === "privado" ? " on" : ""}`} data-pestana="privado" onClick={() => cambiaPestana("privado")}>
+            🏪 {t("STXP Pool", "STXP Pool")} <span className="cnt" data-privados>{vigentes(privados).length}</span>
+          </button>
+        )}
+        <button type="button" role="tab" aria-selected={pestana === "banco"} className={`chip${pestana === "banco" ? " on" : ""}`} data-pestana="banco" onClick={() => cambiaPestana("banco")}>
+          🏦 {t("GOV Pool", "GOV Pool")}
+        </button>
+        {yo.admin && (
+          <button type="button" role="tab" aria-selected={pestana === "admin"} className={`chip${pestana === "admin" ? " on" : ""}`} data-pestana="admin" onClick={() => cambiaPestana("admin")}>
+            🛠 Admin
+          </button>
+        )}
+        {puedeVerEstadisticas(yo) && (
+          <button type="button" role="tab" aria-selected={pestana === "estadisticas"} className={`chip${pestana === "estadisticas" ? " on" : ""}`} data-pestana="estadisticas" onClick={() => cambiaPestana("estadisticas")}>
+            📊 {t("Stats", "Estadísticas")}
+          </button>
+        )}
+      </div>
+      <div className="ld-en-la-barra-selectores">
+        {enPoolTab && (
+          <>
+            {elige ? (
+              <label className="ld-selector" title={t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")}>
+                <span aria-hidden="true">🏬</span>
+                <select data-pool value={pool ?? ""} aria-label={t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")} onChange={(e) => { setPool(e.target.value); setPoolAMano(true); }}>
+                  {pools.length > 1 && (() => {
+                    const todas = resumenDeTodas(pools);
+                    return (
+                      <option value={POOL_TODAS}>
+                        {t("All stores", "Todas las tiendas")} — {todas.total} {t("leads", "leads")}
+                      </option>
+                    );
+                  })()}
+                  {pools.map((p) => (
+                    <option key={p.pool} value={p.pool}>
+                      {poolLabel(p.pool, lang)} — {p.total} {t("leads", "leads")}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : pestana === "privado" ? (
+              /* D-770: su tienda y, agotada, la más cercana: se nombran las que le tocan, en orden. */
+              <p className="ld-selector ld-fijo" data-pool-stxp>
+                {t("STXP Pool: your store and, when it runs out, the nearest one", "STXP Pool: tu tienda y, agotada, la más cercana")}
+                <br />
+                <b>{pools.length ? pools.map((p) => `${poolLabel(p.pool, lang)} (${p.total})`).join(" → ") : "—"}</b>
+              </p>
+            ) : (
+              /* Solo su tienda: no hay nada que elegir, y los otros bancos ni se nombran ni se cuentan. */
+              <p className="ld-selector ld-fijo" data-pool-fijo>
+                {t("GOV Pool of your store", "GOV Pool de tu tienda")}
+                <br />
+                <b>{alcance.tienda ? poolLabel(alcance.tienda, lang) : "—"}</b>
+                {pools[0] ? <> — {pools[0].total} {t("leads", "leads")}</> : null}
+              </p>
+            )}
+            {pestana === "privado" && semanasSTXP.semanas.length > 0 && (
+              <label className="ld-selector" data-semana-stxp title={t("Week", "Semana")}>
+                <select data-semana value={String(semanaActiva)} aria-label={t("Week", "Semana")} onChange={(e) => eligeSemana(e.target.value)}>
+                  <option value="todas">{t("All weeks", "Todas las semanas")} ({privados.length})</option>
+                  {semanasSTXP.semanas.map((s) => (
+                    <option key={s.numero} value={String(s.numero)}>{etiquetaDeSemana(s, lang)} ({s.cuenta})</option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+  const refrescar = (
+    <button type="button" className="btn btn-ghost btn-sm ld-releer" onClick={() => void cargar()}>↻ {t("Refresh", "Actualizar")}</button>
+  );
+
   return (
     <div className="ld-wrap leads-app">
       {/* Sin cabecera grande (Dueño, estilo de Merma): el nombre de la app ya está en la barra de arriba. Solo queda,
@@ -300,80 +388,15 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 
       {estado.tipo === "listo" && (
         <>
-          {/* Fila 1 (como Merma de Operaciones): pestañas en píldora; a su lado, la tienda (o la fija) y la semana; y Actualizar al final. */}
-          <div className="ld-fila-de-filtros" data-fila-de-filtros>
-            <div className="ld-pestanas" role="tablist">
-            {/* D-1015 (Roberto, 12 nov): el STXP Pool (South Texas Permit) va PRIMERO; después GOV y lo demás. */}
-            {veStxp && (
-              <button type="button" role="tab" aria-selected={pestana === "privado"} className={`chip${pestana === "privado" ? " on" : ""}`} data-pestana="privado" onClick={() => cambiaPestana("privado")}>
-                🏪 {t("STXP Pool", "STXP Pool")} <span className="cnt" data-privados>{vigentes(privados).length}</span>
-              </button>
-            )}
-            <button type="button" role="tab" aria-selected={pestana === "banco"} className={`chip${pestana === "banco" ? " on" : ""}`} data-pestana="banco" onClick={() => cambiaPestana("banco")}>
-              🏦 {t("GOV Pool", "GOV Pool")}
-            </button>
-            {yo.admin && (
-              <button type="button" role="tab" aria-selected={pestana === "admin"} className={`chip${pestana === "admin" ? " on" : ""}`} data-pestana="admin" onClick={() => cambiaPestana("admin")}>
-                🛠 Admin
-              </button>
-            )}
-            {puedeVerEstadisticas(yo) && (
-              <button type="button" role="tab" aria-selected={pestana === "estadisticas"} className={`chip${pestana === "estadisticas" ? " on" : ""}`} data-pestana="estadisticas" onClick={() => cambiaPestana("estadisticas")}>
-                📊 {t("Stats", "Estadísticas")}
-              </button>
-            )}
+          {/* Con la barra de arriba a la vista, los controles van a ella (portal); la fila queda solo con Actualizar, en
+              Admin y Estadísticas. Sin barra (primer pintado, o una página sin ella), la fila lleva los controles de siempre. */}
+          {hueco && createPortal(bloque, hueco)}
+          {(!hueco || !enPoolTab) && (
+            <div className="ld-fila-de-filtros" data-fila-de-filtros>
+              {!hueco && bloque}
+              {refrescar}
             </div>
-            {(pestana === "banco" || (pestana === "privado" && veStxp)) && (
-              <>
-                {elige ? (
-                  <label className="ld-selector" title={t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")}>
-                    <span aria-hidden="true">🏬</span>
-                    <select data-pool value={pool ?? ""} aria-label={t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")} onChange={(e) => { setPool(e.target.value); setPoolAMano(true); }}>
-                      {pools.length > 1 && (() => {
-                        const todas = resumenDeTodas(pools);
-                        return (
-                          <option value={POOL_TODAS}>
-                            {t("All stores", "Todas las tiendas")} — {todas.total} {t("leads", "leads")}
-                          </option>
-                        );
-                      })()}
-                      {pools.map((p) => (
-                        <option key={p.pool} value={p.pool}>
-                          {poolLabel(p.pool, lang)} — {p.total} {t("leads", "leads")}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : pestana === "privado" ? (
-                  /* D-770: su tienda y, agotada, la más cercana: se nombran las que le tocan, en orden. */
-                  <p className="ld-selector ld-fijo" data-pool-stxp>
-                    {t("STXP Pool: your store and, when it runs out, the nearest one", "STXP Pool: tu tienda y, agotada, la más cercana")}
-                    <br />
-                    <b>{pools.length ? pools.map((p) => `${poolLabel(p.pool, lang)} (${p.total})`).join(" → ") : "—"}</b>
-                  </p>
-                ) : (
-                  /* Solo su tienda: no hay nada que elegir, y los otros bancos ni se nombran ni se cuentan. */
-                  <p className="ld-selector ld-fijo" data-pool-fijo>
-                    {t("GOV Pool of your store", "GOV Pool de tu tienda")}
-                    <br />
-                    <b>{alcance.tienda ? poolLabel(alcance.tienda, lang) : "—"}</b>
-                    {pools[0] ? <> — {pools[0].total} {t("leads", "leads")}</> : null}
-                  </p>
-                )}
-                {pestana === "privado" && semanasSTXP.semanas.length > 0 && (
-                  <label className="ld-selector" data-semana-stxp title={t("Week", "Semana")}>
-                    <select data-semana value={String(semanaActiva)} aria-label={t("Week", "Semana")} onChange={(e) => eligeSemana(e.target.value)}>
-                      <option value="todas">{t("All weeks", "Todas las semanas")} ({privados.length})</option>
-                      {semanasSTXP.semanas.map((s) => (
-                        <option key={s.numero} value={String(s.numero)}>{etiquetaDeSemana(s, lang)} ({s.cuenta})</option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-              </>
-            )}
-            <button type="button" className="btn btn-ghost btn-sm ld-releer" onClick={() => void cargar()}>↻ {t("Refresh", "Actualizar")}</button>
-          </div>
+          )}
 
           {aviso && <div className={`ld-aviso ${aviso.tono}`} data-aviso={aviso.tono} role="status">{aviso.texto}</div>}
 
@@ -390,10 +413,13 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
           {(pestana === "banco" || (pestana === "privado" && veStxp)) && (
             <>
               <div className="ld-filtros">
-                {/* Fila 2 (como Merma): el título de la lista y su cuenta. */}
-                <h3 className="ld-titulo-de-lista">
-                  {t("Leads in this pool", "Leads en este pool")} <span className="count-tag" data-cuenta-banco>{visibles.length}</span>
-                </h3>
+                {/* Fila 2 (como Merma): el título de la lista y su cuenta. Con la barra a la vista, Actualizar va al final de esta fila. */}
+                <div className="ld-titulo-fila">
+                  <h3 className="ld-titulo-de-lista">
+                    {t("Leads in this pool", "Leads en este pool")} <span className="count-tag" data-cuenta-banco>{visibles.length}</span>
+                  </h3>
+                  {hueco && refrescar}
+                </div>
                 {/* Las etapas son el filtro: una por chip, con cuántos leads hay en cada una en este pool. Todas en una línea. */}
                 <div className="ld-etapas filters-oneline" role="group" aria-label={t("Stage", "Etapa")} data-etapas>
                   <button type="button" className={`chip${etapa === "" ? " on" : ""}`} data-etapa="" onClick={() => setEtapa("")}>

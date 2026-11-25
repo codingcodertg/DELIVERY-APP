@@ -13,18 +13,23 @@ describe("Leads · estilo de Merma", () => {
     expect(p).not.toContain("ld-sub");
   });
 
-  it("fila 1: las pestañas y el selector de tienda están dentro de data-fila-de-filtros, en ese orden", () => {
-    const fila = p.indexOf("data-fila-de-filtros");
+  it("fila 1: las pestañas y el selector de tienda van en el bloque de la barra (data-leads-en-la-barra), en ese orden", () => {
+    // Con la barra a la vista, el bloque sube a su hueco por un portal; sin barra, va dentro de data-fila-de-filtros.
+    const bloque = p.indexOf("const bloque = (");
     const pestanaPrivado = p.indexOf('data-pestana="privado"');
     const pestanaBanco = p.indexOf('data-pestana="banco"');
     const pool = p.indexOf("<select data-pool ");
-    const finFila = p.indexOf("{aviso && <div");
-    expect(fila).toBeGreaterThan(0);
-    expect(pestanaPrivado).toBeGreaterThan(fila);
+    const finBloque = p.indexOf("const refrescar = (");
+    const fila = p.indexOf("data-fila-de-filtros");
+    expect(bloque).toBeGreaterThan(0);
+    expect(pestanaPrivado).toBeGreaterThan(bloque);
     expect(pestanaBanco).toBeGreaterThan(pestanaPrivado);
     expect(pool).toBeGreaterThan(pestanaBanco);
-    expect(pool).toBeLessThan(finFila);
-    expect(pestanaBanco).toBeLessThan(finFila);
+    expect(pool).toBeLessThan(finBloque);
+    expect(pestanaBanco).toBeLessThan(finBloque);
+    expect(p).toContain("data-leads-en-la-barra");
+    expect(fila).toBeGreaterThan(finBloque);
+    expect(p).toContain("{!hueco && bloque}");
   });
 
   it("el título de la lista va después de la fila 1 y lleva la cuenta (data-cuenta-banco)", () => {
