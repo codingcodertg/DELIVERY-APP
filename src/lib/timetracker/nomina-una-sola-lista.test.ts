@@ -69,6 +69,7 @@ describe("PayrollTimesheets · la de sitio sigue entera, y mezcla las remotas", 
     expect(pt).toContain("remotos = []");
     expect(pt).toContain("barraRemota = null");
     expect(pt).toContain("unionDeNomina(");
-    expect(pt).toContain("{barraRemota}");
+    expect(pt).toContain("{remotosVisibles.length > 0 && barraRemota}");
+    expect(pt).toContain("const remotosVisibles = remotos.filter(");
   });
 });

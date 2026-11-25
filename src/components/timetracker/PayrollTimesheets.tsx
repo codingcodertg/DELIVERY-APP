@@ -639,7 +639,8 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos, r
               style={{ width: "auto", minWidth: 200 }} />
           </div>
           {!unaSemana && <div className="banner warn" style={{ marginTop: 10 }}>{t("nomina.soloUnaSemana")}</div>}
-          {barraRemota}
+          {/* La barra del remoto (encabezado, totales, ajuste) solo si hay personas remotas que mostrar tras los filtros. */}
+          {remotosVisibles.length > 0 && barraRemota}
 
           <div className="row" style={{ marginTop: 10, alignItems: "center" }}>
             <span className="small muted">{t("hoja.view")}</span>
