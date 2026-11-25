@@ -5,7 +5,8 @@ import { puestoEn, type Numeracion } from "@/lib/mover-parada";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Ctx, type AccionDelAviso, type DataState, type OpcionesDelAviso } from "@/lib/data-provider";
 import { crearAlmacenDeUbicaciones, UbicacionesDeChoferesCtx } from "@/lib/ubicaciones-de-choferes";
-import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage } from "@/lib/types";
+import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, EstadoAutoDeRuta, OrderEvent, Profile, Settings, Stage } from "@/lib/types";
+import { claveDeRutaAuto } from "@/lib/auto-optimiza-la-ruta";
 import { type AppNotification, notificationsForStage } from "@/lib/notifications";
 import { canTransition, puedeAnular } from "@/lib/constants";
 import { esSuyaParaAnular } from "@/lib/ordenes-visibles";
@@ -216,6 +217,36 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     return true;
   }, [me, persist, notify, conLaPartidaDeLaTienda]);   // `me` en las dependencias: `addEvent` firma con `me.id` (D-373)
   const parteSiNoCabeRef = useRef<((id: string, antes: Delivery | undefined, patch: Partial<Delivery>) => Promise<void>) | null>(null);
+
+  // Auto-optimizar al asignar (348): el demo tiene las dos cosas en memoria, así que siempre está activo.
+  const hayAutoOptimizar = true;
+  const [estadoAutoDeRutas, setEstadoAutoDeRutas] = useState<ReadonlyMap<string, EstadoAutoDeRuta>>(() => new Map());
+
+  // Igual que el real: marca las paradas puestas a mano, sin tocar el orden.
+  const fijaParadas = useCallback<DataState["fijaParadas"]>(async (ids, fija) => {
+    const aFijar = new Set(ids);
+    if (aFijar.size === 0) return true;
+    const s = storeRef.current;
+    persist({
+      ...s,
+      deliveries: s.deliveries.map((c) => (aFijar.has(c.id) ? { ...c, route_fixed: fija, updated_at: new Date().toISOString() } : c)),
+    });
+    return true;
+  }, [persist]);
+
+  const marcaAutoDeRuta = useCallback<DataState["marcaAutoDeRuta"]>(async (dia, lane, estado, datos) => {
+    const clave = claveDeRutaAuto(dia, lane);
+    setEstadoAutoDeRutas((m) => {
+      const previo = m.get(clave);
+      return new Map(m).set(clave, {
+        estado,
+        huella: datos?.huella !== undefined ? datos.huella : (previo?.huella ?? null),
+        intentos: (previo?.intentos ?? 0) + (datos?.sumaIntento ? 1 : 0),
+        nota: datos?.nota !== undefined ? datos.nota : (previo?.nota ?? null),
+      });
+    });
+    return true;
+  }, []);
 
   // Renumber a route's stops (see the real provider) — one local write, so the
   // whole new sequence lands at once.
@@ -700,7 +731,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       if (ok) await addNote(id, notaAlTomar({ yo, antes: d.assigned_driver, motivo, lang }));
       return ok;
     },
-    reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, setUserIdentity, resetUserPassword,
+    reorderStops, hayAutoOptimizar, fijaParadas, estadoAutoDeRutas, marcaAutoDeRuta, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, setUserIdentity, resetUserPassword,
     saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, updateUserModules, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
     shifts: store.shifts ?? [], clockIn, clockOut, marcaGpsDelTurno,
@@ -709,7 +740,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // Local demo mode writes straight to this browser, so nothing is ever
     // waiting on a connection.
     pendingSync: 0, syncing: false,
-  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, marcaGpsDelTurno, addIncident, removeIncident, pushLocation]);
+  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, hayAutoOptimizar, fijaParadas, estadoAutoDeRutas, marcaAutoDeRuta, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, marcaGpsDelTurno, addIncident, removeIncident, pushLocation]);
 
   return (
     <UbicacionesDeChoferesCtx.Provider value={almacenUbicaciones}>

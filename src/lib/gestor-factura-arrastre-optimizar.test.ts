@@ -54,9 +54,10 @@ describe("1 · la FACTURA nombra la orden en todas las tablas del Gestor, con el
     // D-459: el ID al lado, en la misma línea (`.factura-e-id`); D-456 lo ponía debajo.
     expect(celda).toContain("{n.id && <span data-id-de-la-orden title={n.id}>{n.id}</span>}");
     expect(celda).toContain(": { ...gesto.style, color: \"var(--gray)\" }");
-    // Las cuatro filas de la tabla la usan: la recogida, la entrega, la entrega de otra carga y, desde D-459, la ya hecha.
-    // Nota D-548: y una quinta, la celda de la factura de «Sin asignar» y «Todas», que pintan la factura como paradas.
-    expect(pagina.split("{facturaConSuId(").length - 1).toBe(5);
+    // D-1187: las cuatro filas de la tabla de PARADAS usan `facturaDeLaParada` (la PO bajo la factura, en vez del ID): la
+    // recogida, la entrega, la entrega de otra carga y la ya hecha. «Sin asignar» y «Todas» siguen con `facturaConSuId` (el ID).
+    expect(pagina.split("{facturaDeLaParada(").length - 1).toBe(4);
+    expect(pagina.split("{facturaConSuId(").length - 1).toBe(1);
     expect(pagina).toContain("<th data-columna-factura");
   });
   it("«Sin asignar» ya la tenía fija y sigue: la factura abre la orden y no se puede quitar", () => {

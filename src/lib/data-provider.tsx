@@ -19,7 +19,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { usePrefs } from "@/lib/prefs";
 import { fallóElRegistro } from "@/lib/security-log-notice";
-import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage, UserRole } from "@/lib/types";
+import type { Delivery, DriverAvailability, DriverIncident, DriverLocation, DriverShift, OrderEvent, Profile, Settings, Stage, UserRole, EstadoAutoDeRuta } from "@/lib/types";
 import { type AppNotification, assignmentNotification, avisoDeReprogramacion, notificationsForStage } from "@/lib/notifications";
 import { canTransition, knownModules, type ModuleAccessKey } from "@/lib/constants";
 import { borrarOrden } from "@/lib/deshacer-y-borrar";
@@ -55,7 +55,9 @@ import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { mensajeDelGuard } from "@/lib/recogida-del-chofer";
 import { metaDeFotosAlGuardar, type LectorDeFotos } from "@/lib/fotos-de-la-orden";
 import { COLUMNAS_DE_LA_LISTA, COLUMNAS_DE_LA_LISTA_SIN_CONTEO, COLUMNAS_OPCIONALES_DE_LA_LISTA, faltaPhotoCount, sinPhotoCount } from "@/lib/columnas-de-la-lista";
-import { leeConOpcionales } from "@/lib/columnas-opcionales";
+import { leeConOpcionales, nombraLaColumna } from "@/lib/columnas-opcionales";
+import { claveDeRutaAuto } from "@/lib/auto-optimiza-la-ruta";
+import { faltaLaTabla } from "@/lib/rutas-bloqueadas";
 import { falloAlGuardarDocumento, valorDeDocumento } from "@/lib/documento-pendiente";
 import type { EscrituraDeMaterial } from "@/lib/agregar-material";
 import type { CampoDeDocumento } from "@/lib/order-document";
@@ -175,6 +177,14 @@ export interface DataState {
   /** `pickupSeqById` (D-443): where each order's pickup goes in the list. Only pass it when the database has the column
    *  (`tienePosicionDeRecogida`): writing a column that doesn't exist fails the whole update. */
   reorderStops: (orderedIds: string[], loadNoById?: Record<string, number | null>, loadAuto?: boolean, desde?: Numeracion, pickupSeqById?: Record<string, number | null>) => Promise<boolean>;
+  /** Auto-optimizar al asignar (348): true si la base tiene `route_fixed` y `route_auto_state`. Sin las dos no se escribe nada. */
+  hayAutoOptimizar: boolean;
+  /** Fija (`fija` = true) o libera (false) las paradas que una persona colocó a mano (`route_fixed`). No-op si no hay 348. */
+  fijaParadas: (ids: readonly string[], fija: boolean) => Promise<boolean>;
+  /** Estado de la auto-optimización por ruta y día; la clave es `${plan_date}|${lane}` (ver claveDeRutaAuto). */
+  estadoAutoDeRutas: ReadonlyMap<string, EstadoAutoDeRuta>;
+  /** Guarda el estado de una ruta (upsert). Sin `huella`/`nota` conserva lo que había; `sumaIntento` suma uno a `intentos`. */
+  marcaAutoDeRuta: (dia: string, lane: string, estado: EstadoAutoDeRuta["estado"], datos?: { huella?: string | null; nota?: string | null; sumaIntento?: boolean }) => Promise<boolean>;
   /** Las CARGAS de una orden que no cabe en el camión (D-452, migración 157): órdenes hermanas `#Xa`, `#Xb`.
    *  `partirCarga` mueve `resto` pallets de la orden `id` a una carga hermana NUEVA y devuelve su id (`null` si no se
    *  pudo: la base lo dice, o no tiene la 157). */
@@ -419,6 +429,12 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [users, setUsers] = useState<Profile[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  // Auto-optimizar al asignar (348): dos cosas de la base, comprobadas en cada carga (`cargaEstadoAuto`). Sin las dos,
+  // `hayAutoOptimizar` es false y la app se comporta como antes.
+  const [columnaFijadaOk, setColumnaFijadaOk] = useState(false);
+  const [tablaAutoOk, setTablaAutoOk] = useState(false);
+  const [estadoAutoDeRutas, setEstadoAutoDeRutas] = useState<ReadonlyMap<string, EstadoAutoDeRuta>>(() => new Map());
+  const hayAutoOptimizar = columnaFijadaOk && tablaAutoOk;
   // Set while a multi-row write (e.g. renumbering a route's stops) is in
   // flight. Realtime echoes arriving mid-write would otherwise refetch a
   // half-committed snapshot and visibly undo the change.
@@ -799,6 +815,58 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     return Object.fromEntries((Object.keys(todos) as QueryName[]).map((q) => [q, pideEnUnaOrden(q) ? todos[q] : nada])) as typeof todos;
   }, [supabase, me, deliveriesQuery, soloOrden]);
 
+  // Lee la columna `route_fixed` (con una consulta de cero filas) y la tabla `route_auto_state`. Un fallo que NO es
+  // "no existe" se deja como estaba: no es razon para apagar la función.
+  const cargaEstadoAuto = useCallback(async () => {
+    const col = await supabase.from("deliveries").select("route_fixed").limit(1);
+    if (!col.error) setColumnaFijadaOk(true);
+    else if ((col.error.code === "42703" || col.error.code === "PGRST204") && nombraLaColumna(col.error.message ?? "", "route_fixed")) setColumnaFijadaOk(false);
+    const tabla = await supabase.from("route_auto_state").select("plan_date, lane, estado, huella, intentos, nota");
+    if (tabla.data) {
+      setTablaAutoOk(true);
+      const filas = tabla.data as { plan_date: string; lane: string; estado: EstadoAutoDeRuta["estado"]; huella: string | null; intentos: number; nota: string | null }[];
+      setEstadoAutoDeRutas(new Map(filas.map((f) => [claveDeRutaAuto(f.plan_date, f.lane), { estado: f.estado, huella: f.huella, intentos: f.intentos, nota: f.nota }])));
+    } else if (tabla.error && faltaLaTabla(tabla.error)) {
+      setTablaAutoOk(false);
+      setEstadoAutoDeRutas(new Map());
+    }
+  }, [supabase]);
+
+  // Igual que reorderStops: de seis en seis, con reintento de red. Solo cambia la marca; no toca el orden de la ruta.
+  const fijaParadas = useCallback<DataState["fijaParadas"]>(async (ids, fija) => {
+    if (!hayAutoOptimizar || teaching || ids.length === 0) return true;
+    const aFijar = [...new Set(ids)];
+    const bien = new Set<string>();
+    for (let i = 0; i < aFijar.length; i += ESCRITURAS_A_LA_VEZ) {
+      const tanda = aFijar.slice(i, i + ESCRITURAS_A_LA_VEZ);
+      await Promise.all(tanda.map((id) =>
+        conReintentosDeRed(() => supabase.from("deliveries").update({ route_fixed: fija }).eq("id", id))
+          .then((r) => { if (!r.error) bien.add(id); return r; }),
+      ));
+    }
+    setDeliveries((prev) => prev.map((c) => (bien.has(c.id) ? { ...c, route_fixed: fija } : c)));
+    if (bien.size < aFijar.length) {
+      notify(lang === "es"
+        ? "No se pudieron fijar todas las paradas: inténtelo de nuevo."
+        : "Could not pin every stop — try again.");
+      return false;
+    }
+    return true;
+  }, [supabase, hayAutoOptimizar, teaching, notify, lang]);
+
+  const marcaAutoDeRuta = useCallback<DataState["marcaAutoDeRuta"]>(async (dia, lane, estado, datos) => {
+    if (!hayAutoOptimizar || teaching) return false;
+    const clave = claveDeRutaAuto(dia, lane);
+    const previo = estadoAutoDeRutas.get(clave);
+    const huella = datos?.huella !== undefined ? datos.huella : (previo?.huella ?? null);
+    const nota = datos?.nota !== undefined ? datos.nota : (previo?.nota ?? null);
+    const intentos = (previo?.intentos ?? 0) + (datos?.sumaIntento ? 1 : 0);
+    const r = await conReintentosDeRed(() => supabase.from("route_auto_state").upsert({ plan_date: dia, lane, estado, huella, nota, intentos }, { onConflict: "plan_date,lane" }));
+    if (r.error) return false;
+    setEstadoAutoDeRutas((m) => new Map(m).set(clave, { estado, huella, intentos, nota }));
+    return true;
+  }, [supabase, hayAutoOptimizar, teaching, estadoAutoDeRutas]);
+
   const reloadAll = useCallback(async () => {
     try {
       // Sin sesión no se pregunta: una consulta anónima ya no devuelve datos, devuelve
@@ -809,6 +877,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         return;
       }
       const results = await Promise.all(ALL_QUERIES.map((q) => loaders[q]()));
+      void cargaEstadoAuto();
       setReady(true);
 
       // Un error DEVUELTO no es una excepción: supabase-js contesta { data: null, error }
@@ -823,7 +892,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     } finally {
       setReady(true);
     }
-  }, [ensureSession, loaders]);
+  }, [ensureSession, loaders, cargaEstadoAuto]);
 
   /**
    * Re-run only the queries behind the tables a realtime burst touched (G-15). Same session
@@ -2683,14 +2752,14 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
   const value: DataState = useMemo(() => ({
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events: effectiveEvents, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
-    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
+    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, hayAutoOptimizar, fijaParadas, estadoAutoDeRutas, marcaAutoDeRuta, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
     saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, updateUserModules, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut, marcaGpsDelTurno,
     incidents, addIncident, removeIncident,
     pushLocation,
     pendingSync: outbox.length, syncing,
-  }), [ready, effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, effectiveDeliveries, ensureDeliveriesSince, effectiveEvents, notifications, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, updateUserModules, deleteUser, availability, addAvailability, removeAvailability, shiftsView, clockIn, clockOut, marcaGpsDelTurno, incidents, addIncident, removeIncident, pushLocation, outbox.length, syncing]);
+  }), [ready, effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, effectiveDeliveries, ensureDeliveriesSince, effectiveEvents, notifications, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, hayAutoOptimizar, fijaParadas, estadoAutoDeRutas, marcaAutoDeRuta, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, updateUserModules, deleteUser, availability, addAvailability, removeAvailability, shiftsView, clockIn, clockOut, marcaGpsDelTurno, incidents, addIncident, removeIncident, pushLocation, outbox.length, syncing]);
 
   return (
     <UbicacionesDeChoferesCtx.Provider value={almacenUbicaciones}>

@@ -20,7 +20,7 @@ const TODAS_LAS_COLUMNAS: Record<keyof Delivery, true> = {
   input_date: true, input_time: true, delivery_date: true,
   pickup_name: true, pickup_address: true, pickup_duration: true,
   delivery_fee: true, est_pallets: true, actual_pallets: true, assigned_driver: true,
-  route_seq: true, load_no: true, pickup_seq: true, load_auto: true, delivery_duration: true,
+  route_seq: true, load_no: true, pickup_seq: true, route_fixed: true, load_auto: true, delivery_duration: true,
   delivery_name: true, delivery_address: true, delivered_address: true, delivery_windows: true,
   account: true, contact: true, delivery_phone: true, delivery_notes: true, role_notes: true, morning_priority: true,
   route_miles: true, route_duration: true, route_provider: true, route_traffic: true,
@@ -45,7 +45,7 @@ export const COLUMNAS_PESADAS: readonly (keyof Delivery)[] = ["photos", "photo_m
 /** Las columnas de la lista, separadas por comas, para `.select(...)`. */
 /** Columnas que la base puede no tener todavía (D-722: `plan_rank`, 208): se piden aparte con `leeConOpcionales`, y si
  *  faltan la lista llega sin ellas en vez de no llegar. `photo_count` (177) tiene su propio camino de antes. */
-export const COLUMNAS_OPCIONALES_DE_LA_LISTA: readonly (keyof Delivery)[] = ["plan_rank", "pickup_point_lat", "pickup_point_lng", "customer_id", "relay_step", "return_to_store_at", "return_to_store_by", "done_sort_at"];
+export const COLUMNAS_OPCIONALES_DE_LA_LISTA: readonly (keyof Delivery)[] = ["plan_rank", "pickup_point_lat", "pickup_point_lng", "customer_id", "relay_step", "return_to_store_at", "return_to_store_by", "done_sort_at", "route_fixed"];
 export const COLUMNAS_DE_LA_LISTA = COLUMNAS_DE_DELIVERY.filter((c) => !COLUMNAS_PESADAS.includes(c) && !COLUMNAS_OPCIONALES_DE_LA_LISTA.includes(c)).join(",");
 
 

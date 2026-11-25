@@ -53318,3 +53318,62 @@ Se quita el bloque «Nómina · periodo» (anterior/siguiente, tres tarjetas, no
 La semana de hoy sale del día de Texas (de noche, con el reloj del servidor en otra zona, salía corrida un día).
 Visto en el demo: barra en un renglón a 1680, 1440, 1361, 1280, 1100, 901 y 701 px y en su renglón propio a 390; la hoja; el filtro por empleado; «Este mes» (doce bloques, aviso, «Sign off period» apagado). NO visto: «Trabajando ahora» (el demo no tiene sesión para esa lectura) ni nada con datos reales. El nombre de la app se recorta en la barra por debajo de 1680 px para que quepan los tres filtros. La celda azul del Excel («0» / «VARIES») no se incluyó: falta que el dueño diga qué es.
 Sello `timetracker` 1.42.0; repo 1.992.0.
+
+## D-1183 · Motor de rutas: las ocho reglas duras, su validador, y descargar antes de cargar (motor-11) (2026-11-25)
+
+El dueño pegó el 24 de noviembre una especificación en cuatro fases («Motor de Rutas: auto-optimizar al asignar»). Su queja principal: «El motor me pone la recogida primero y la descarga después. En la vida real siempre se baja primero lo que va para esa tienda y después se carga lo que sale de ahí».
+Fase 1 (informe, sin código): dos meses de rutas (21 sep – 23 nov), lo que propuso el motor, cómo quedaron y lo que hicieron los camiones según el GPS del teléfono (desde el 4 nov, 41 chofer-días). Sus respuestas al informe: «si cabe se va, si se puede optimizar para llevar más en menos viajes y en menos millas»; «clientes primero pero siempre que todo make sense»; descargar antes de cargar no tiene excepciones («el 4 fue error de dedo»); «sí, todos terminan en sus bases».
+Fase 2: `src/lib/route-engine/validador.ts` (`validaLaRuta`), función pura con las ocho reglas duras de su especificación y una clave por incumplimiento. La causa de cargar antes de descargar estaba en la ENTRADA del motor (`src/lib/route-plan/entrada.ts`): una tienda como destino se nombraba con la clave de la orden («orden:<id>») y como origen con la de la tienda («tienda:<nombre>»), así que el motor nunca veía que era el mismo sitio. Corregido. Además, al final de `planifica.ts`: `descargaPrimero` (en una misma visita, primero lo que se baja) y `unaSolaVisita` (si cabe, lo de una tienda se hace en una visita). El botón «Optimizar» de cada ruta pasa por las mismas reglas (`reglas-de-la-lista.ts`, `optimiza-sin-empeorar.ts`).
+Medido sobre los 28 días con plan guardado, volviendo a correr el motor sobre su entrada guardada: rutas que pasan todas las reglas, de 65 a 81 de 84; cargar antes de descargar, de 18 a 0; regresos sin motivo, de 10 a 4; millas, de 9,214 a 9,171; las mismas 11 órdenes sin asignar.
+Sin contestar por el dueño: órdenes mayores que el camión (4 de más de 10 pallets), duración real de las paradas, zonas.
+Sello `deliveries` 1.666.0; repo 1.993.0.
+
+## D-1184 · Gestor de Rutas: la ruta se optimiza sola al asignar; lo movido a mano manda (migración 348) (2026-11-25)
+
+Fase 3 de la especificación del dueño: «Hoy tengo que apretar "Optimizar". Quiero que la ruta quede hecha desde que asigno». Sus reglas: cualquier asignación optimiza a cada chofer afectado, también la ruta de la que SALE una parada; un lote, una sola pasada por chofer; «la asignación nunca falla por culpa del optimizador» (si los tiempos fallan, la orden queda asignada, la ruta «sin optimizar» y se reintenta); «si yo muevo una parada a mano después, mi cambio manda»; solo «Optimizar» rehace todo y avisa antes de pisar lo manual; mismo motor; no recalcular si nada cambió.
+Migración 348 (aplicada por el dueño el 25 de noviembre, verificada en solo lectura): `deliveries.route_fixed` (la parada que una persona colocó a mano) y la tabla `route_auto_state` (pendiente / hecha / fallo por día y ruta, con la huella de la ruta; mismos roles que `route_locks`). Sin la 348 la pantalla se comporta como antes (`hayAutoOptimizar`).
+Qué hace: cada gesto de asignar o quitar llama a `trasAsignar` al terminar; a los 700 ms sin más cambios en esa ruta corre una pasada. Sin paradas fijadas, optimiza la ruta entera con el motor de «Optimizar» (`autoOptimizaToda`); con alguna fijada, coloca lo nuevo en su mejor puesto y no mueve lo demás (límite conocido de esta versión: las no fijadas tampoco se reacomodan). La consulta de tiempos tiene 20 s de tope; un fallo deja el chip «↻ not optimised — retry», con dos reintentos solos (5 s y 20 s). La escritura va en la cola de movimientos y antes comprueba que la ruta no cambió (si cambió, se descarta y se vuelve a programar). Si la huella es la misma que la última optimizada, no se pide nada.
+Mover a mano (flechas, arrastre con puesto, «mover a la parada N», «traer su entrega», el horario) fija la orden: sale un 📌 en su parada, y pulsarlo la suelta. «Optimizar» pregunta antes de pisar órdenes fijadas y, al terminar, las suelta.
+Reglas duras: no se escribe un resultado que rompa una regla que la ruta no rompía ya (`violacionesNuevas`); lo que ya rompía se dice. Decisión mía sobre la lectura literal («toda salida inválida no se escribe»): con ella «Optimizar» dejaría de servir en una ruta con, por ejemplo, una parada sin punto en el mapa; se le dijo al dueño.
+Una columna opcional que falta en la base cuesta una petición fallida por sesión del navegador, no una por carga.
+Visto en el demo en escritorio y a 390 px: la pasada al asignar, el fallo y su reintento, el 📌, la pregunta de «Optimizar», pasar una orden entre dos choferes y quitar una. NO visto con rutas reales. En el demo las tiendas de recogida no tienen punto en el mapa (sus órdenes las nombran «RDZ <tienda> Warehouse»): las reglas de tienda se vieron corrigiendo esos datos en el navegador de prueba.
+Sello `deliveries` 1.666.0; repo 1.993.0.
+
+## D-1185 · Motor de rutas: una sola visita por tienda gana a la ventana estrecha del cliente (2026-11-25)
+
+Los 4 regresos «sin motivo» que quedaban en los 28 días (3 rutas) no eran un fallo: el motor volvía a la tienda a propósito, porque juntar todo en una visita hacía llegar tarde a un cliente con ventana de 8:30 a 10:00. Respetar esa ventana costaba 107 millas y 113 minutos el 2 de octubre, 8 millas el 7 de octubre y media milla el 21 de noviembre.
+Se le preguntó al dueño qué gana. Su respuesta: «no regresar a la tienda, la opción b, aquí es importante el ahorro».
+Regla: la visita se junta si no suma millas y lo único que añade es llegar tarde a una ventana (`ventana_estrecha` o `retraso_sobre_el_tope`); capacidad, turno o cualquier otra cosa la siguen impidiendo (`unaSolaVisitaCuandoCabe`, `soloAnadeRetraso`). Lo mismo en «Optimizar» y en la auto-optimización (`noEsPeorSalvoLaTarde`). La parada tarde NO se esconde: el plan del día la muestra con sus minutos y nombra la orden, el mensaje de «Optimizar» dice qué entrega quedó tarde y las millas ahorradas, y publicar no se bloquea. El plan guardado conserva ahora sus violaciones y las visitas que juntó (`uniones`); antes un plan recién armado solo traía el total de minutos tarde.
+Medido de nuevo: las 84 rutas pasan todas las reglas; 9,056 millas (9,214 con el motor anterior) y 384 horas; llegan tarde tres entregas, 17, 10 y 3 minutos.
+Queda abierto: la nota de las visitas juntadas no se pinta todavía en el plan del día; una entrega que ya iba tarde y queda más tarde no se distingue; el orden final del dueño coincide en 20 de 47 rutas (18 de 44 antes) y en 5 de 22 días enteros (igual que antes); tres días salen con más millas que con el motor anterior (29 sep +2, 14 oct +8, 23 oct +12), sin causa desglosada.
+Sello `deliveries` 1.666.0; repo 1.993.0.
+
+## D-1186 · Se retira la migración 237, descartada por el dueño (2026-11-25)
+
+La 237 (un disparador que BLOQUEABA en la base las órdenes de ventas para hoy después de las 12) se escribió el 4 de noviembre y nunca se aplicó: D-848 la dejó en espera y D-955 la reemplazó por la regla de pantalla (toda orden nace para mañana; poner hoy pregunta). El dueño, el 24 de noviembre: «No aplicarla, descartarla».
+Se borra el archivo del repositorio (queda en el historial de git) para que deje de salir como pendiente, con su constante `MENSAJE_DE_LA_237`. Una prueba avisa si vuelve a aparecer una migración 237 o el disparador `deliveries_guard_corte_ventas`. La app no cambia. La 291 sigue pendiente por decisión suya, hasta poder probarla con una cuenta que no sea admin.
+Sello `deliveries` 1.666.0; repo 1.993.0.
+
+## D-1187 · Gestor de Rutas, lista de paradas: bajo la factura sale la PO en vez del ID de la orden (2026-11-25)
+
+El dueño, con una captura que marca la columna «FACTURA #»: «quiero que se miren los po en vez del orden id».
+Una primera lectura hizo visible la columna aparte «PO #» (`p_po`). Se deshizo el mismo día, antes de publicarla, y `p_po` sigue escondida por defecto. Lo que pidió es otra cosa: el texto gris que va bajo la factura.
+Ahora, en la celda de la factura de la lista de paradas (recogidas y entregas, pendientes y hechas):
+- Con PO: bajo la factura, `PO <número>` en gris, donde iba el ID. Pasando el ratón sobre la PO se lee `PO 7781 · Orden #FX540`.
+- Sin PO: no va nada debajo. El ID no se enseña como respaldo; queda en el `title` del enlace de la factura (`Orden #FX540`).
+- Sin factura (D-408): el ID sigue siendo el texto principal, como antes, y debajo va la PO si la hay.
+- Recogida con varias órdenes: una por una, separadas por « · », cada una con su PO (o sin nada si no tiene).
+La celda la pinta `facturaDeLaParada` (`src/app/(app)/routes/page.tsx`) y el texto lo decide `src/lib/po-en-la-factura.ts`. «Sin asignar», «Todas» y las demás tablas (tablero, plan del día, línea de tiempo, Órdenes) siguen con `facturaConSuId`, con el ID de siempre. La hoja PNG de la ruta (`FotoDeLaRuta`) y «Mi ruta» del chofer no cambian.
+Comprobado: pruebas unitarias de la PO y de su título; prueba de cableado (la lista de paradas usa la PO y las demás tablas siguen con el ID); tipos, lint y la suite completa. No comprobado: la pantalla. No se ha visto en el navegador con órdenes reales; eso lo revisa el orquestador antes de dar el cambio por bueno.
+Sello `deliveries` 1.666.0; repo 1.993.0.
+
+## D-1188 · Gestor de Rutas: «No fue este chofer…» en una parada entregada (2026-11-25)
+
+El dueño: en Brownsville dos órdenes a Los Fresnos se reasignaron a Máximo porque el día antes no llegó, pero ese día antes las había entregado el almacén de la tienda. Él las marcó entregadas desde el Gestor y quedaron en la ruta de Máximo, como si las hubiera entregado él. «Quiero que me ayudes a saber cómo quitarlas de ahí, marcarlas entregadas y poner se entregó por alguien más, pero que me dejes quitarle, porque yo no puedo hacer esa parte». Y para esas dos: «cámbiale la fecha a entregada ayer y el driver será warehouse BRO».
+Las dos reales (#1774, factura 180503; #1807, factura 180543) se corrigieron en la base a su pedido expreso, con ensayo antes: siguen entregadas, fecha 24 de noviembre, chofer «Warehouse BRO», sin puesto en ruta, con dos líneas en su historial a nombre del dueño.
+Para que lo haga él: en la lista de paradas de un chofer, en una parada ya ENTREGADA y solo para admin (la guarda de la base no deja a logística editar una orden entregada), el botón «👤 Not this driver…». Abre una hoja en el sitio con «Quién la entregó» (texto libre, con sugerencias: «Warehouse» más la tienda de la orden y las demás rutas del día) y «Entregada el» (no después de hoy, día de Texas). Guardar hace una sola escritura: chofer = lo escrito, fecha = la elegida, sin puesto en ruta; la etapa no se toca. Deja una nota bilingüe en el historial («Delivered on … by …, not by …»), además de la línea de cambios que ya escribe el proveedor.
+Si la orden tiene hora de entrega registrada (`pod_delivered_at`, la que pone el chofer al entregar), la base la mantiene en el día de esa hora (migración 222). Entonces la fecha sale apagada con ese día y su porqué, y solo cambia quién la entregó.
+Un nombre que no es chofer ni ruta temporal (como «Warehouse BRO») sale ese día como una ruta aparte con ese nombre y sus entregadas; no entra en la lista de camiones en vivo.
+Sin «Deshacer»: la pila del Gestor no guarda la fecha y dejaría el cambio a medias; se corrige volviendo a usar el botón.
+Visto en el demo en escritorio y a 390 px: el botón solo en entregadas, «Save» apagado sin nombre, el guardado (sale de la ruta, sigue entregada, fecha y chofer nuevos, las dos líneas del historial), la fecha apagada con hora de entrega, y la ruta «Warehouse BRO» en el día anterior. NO visto con una cuenta real.
+Sello `deliveries` 1.666.0; repo 1.993.0.

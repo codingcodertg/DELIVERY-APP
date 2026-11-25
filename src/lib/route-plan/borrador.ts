@@ -25,8 +25,10 @@ export interface FilaDePlan {
   /** La foto: con esto y las paradas guardadas, EVALUAR el plan da otra vez las mismas horas. `ordenes` es
    *  contra lo que se compara al publicar. */
   input: { ordenes: EntradaDelDia["fotos"]; entrada: EntradaDelDia["entrada"]; puntos: EntradaDelDia["puntos"] };
-  result: { coste: Plan["coste"]; sinAsignar: Plan["sinAsignar"]; explicaciones: Plan["explicaciones"]; partes: Plan["partes"]; fuera: EntradaDelDia["fuera"]; choferesFuera: EntradaDelDia["choferesFuera"]; tiempos: InformeDeTiempos; vueltas: number; traficoSinResolver: boolean;
-    /** Solo tras un ajuste a mano: lo que incumple, cuántos tramos van sin tráfico guardado, y qué órdenes quedaron fijadas. */
+  result: { coste: Plan["coste"]; sinAsignar: Plan["sinAsignar"]; explicaciones: Plan["explicaciones"]; partes: Plan["partes"]; fuera: EntradaDelDia["fuera"]; choferesFuera: EntradaDelDia["choferesFuera"]; tiempos: InformeDeTiempos; vueltas: number; traficoSinResolver: boolean; uniones?: Plan["uniones"];
+    /** Lo que incumple el plan (ventanas, capacidad…). Se guarda también al planificar: una entrega tarde de ventana estrecha
+     *  tiene que verse nombrada en el plan, no solo en los minutos. Cuántos tramos van sin tráfico guardado, y qué órdenes
+     *  quedaron fijadas: solo tras un ajuste a mano. */
     violaciones?: Violacion[]; tramosSinTrafico?: number; fijadas?: string[];
     /** Solo en la copia de un plan PUBLICADO que se está cambiando (D-429, `./copia`): de qué versión salió, qué no se
      *  reescribe y qué cambió desde entonces. Viaja con cada ajuste siguiente, porque el `result` se copia entero. */
@@ -67,7 +69,7 @@ export async function planificaElDia(datos: DatosDelDia, fechaISO: string, zona:
       plan_date: fechaISO, source: "engine", algorithm_version: VERSION_DEL_MOTOR,
       params: { ...dia.parametros, ventanasDuras: datos.settings.route_hard_windows ?? null },
       input: { ordenes: dia.fotos, entrada: guardada, puntos: dia.puntos },
-      result: { coste: r.plan.coste, sinAsignar: r.plan.sinAsignar, explicaciones: r.plan.explicaciones, partes: r.plan.partes, fuera: dia.fuera, choferesFuera: dia.choferesFuera, tiempos, vueltas: r.vueltas, traficoSinResolver: r.sinResolver },
+      result: { coste: r.plan.coste, sinAsignar: r.plan.sinAsignar, explicaciones: r.plan.explicaciones, partes: r.plan.partes, fuera: dia.fuera, choferesFuera: dia.choferesFuera, tiempos, vueltas: r.vueltas, traficoSinResolver: r.sinResolver, violaciones: r.plan.violaciones, uniones: r.plan.uniones },
       writes: escriturasAlPublicar(r.plan, entrada.choferes),
       provider: proveedor, traffic: Object.keys(r.porHora).length > 0, converged: r.plan.convergio,
       total_minutes: r.plan.rutas.reduce((s, x) => s + x.duracionMin, 0),

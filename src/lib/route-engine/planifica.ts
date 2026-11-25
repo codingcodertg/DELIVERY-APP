@@ -1,11 +1,13 @@
 import { enLaBanda, MARGEN_PALLET_MI } from "./de-paso";
+import { descargaPrimero } from "./descarga-primero";
+import { soloAnadeRetraso, unaSolaVisitaCuandoCabe, violacionesAnadidas } from "./una-sola-visita";
 import {
   aCentesimas, cargaTransportadaDe, claveDeParada, claveDeZona, costeDeRutas, evaluaRuta, PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, restaDesglose,
   puntasFueraDeZona, UMBRAL_DE_ZONA_POR_DEFECTO_MI, zonasReclamadas, type Contexto,
 } from "./evalua";
 import type {
   Alternativa, ChoferEntrada, Desglose, Entrada, Explicacion, MotivoSinAsignar, OrdenEntrada, ParadaRef, Parametros,
-  Plan, RutaEvaluada, SinAsignar, TipoDeViolacion,
+  Plan, RutaEvaluada, SinAsignar, TipoDeViolacion, UnionDeVisitas,
 } from "./types";
 
 /**
@@ -40,7 +42,7 @@ import type {
  *  `motor-1`: la misma huella). `motor-3` (D-418): requisitos del camión — una orden solo va con un chofer que tenga lo que pide. `motor-2` (D-415):
  *  prioridad por orden y opciones de reparto. Sin requisitos, con todo en normal y las opciones sin tocar, planifica
  *  exactamente lo mismo que `motor-1` — lo fija una prueba con un plan grabado. */
-export const VERSION_DEL_MOTOR = "motor-10";
+export const VERSION_DEL_MOTOR = "motor-11";
 
 /** El puesto de una prioridad: lo de número más bajo se coloca antes. Sin prioridad, o una que no existe, normal. */
 const RANGO: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3 };
@@ -561,6 +563,55 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
   }
   entregaLoQueEstaDePaso();
 
+  // ---- Descarga primero (motor-11) ---------------------------------------------------------------
+  // La regla del dueño, sin excepciones: en una misma visita a una tienda se baja primero lo que va para esa tienda y
+  // después se carga lo que sale de ahí. Dos paradas en el mismo punto no tienen tramo entre ellas, así que reordenarlas
+  // no cambia una milla; solo baja la carga a bordo. Las paradas fijadas (el principio de la ruta) no se tocan. Si la ruta
+  // reordenada sale con más incumplimientos que la que había (no debería: las entregas solo se adelantan), se queda la que había.
+  for (const c of choferes) {
+    const sec = estado.secuencias.get(c.id)!;
+    let fijas = 0;
+    while (fijas < sec.length && fijadas.has(claveDeParada(sec[fijas]))) fijas++;
+    const nueva = descargaPrimero(sec, ordenes, fijas);
+    if (!nueva.some((p, i) => p.orden !== sec[i].orden || p.tipo !== sec[i].tipo)) continue;
+    const ruta = evaluaRuta(c, nueva, ctx);
+    if (ruta.violaciones.length > estado.rutas.get(c.id)!.violaciones.length) continue;
+    estado.secuencias.set(c.id, nueva);
+    estado.rutas.set(c.id, ruta);
+  }
+
+  // ---- Una sola visita por tienda cuando cabe (motor-11) -------------------------------------------
+  // «Si cabe, se va» (el dueño, 2026-11-25: «no regresar a la tienda», y aquí manda el ahorro): cada vez que la ruta vuelve a
+  // una tienda ya visitada, cargada y sin que lo justifique la capacidad ni la disponibilidad, lo que va a esa tienda se junta
+  // en la visita anterior (`unaSolaVisitaCuandoCabe`: primero todo, y si no, cada juntada por separado). Una juntada se adopta
+  // si no suma ni una milla y no añade ninguna violación que no sea LLEGAR TARDE a una ventana (`soloAnadeRetraso`). Lo que
+  // llega tarde NO se quita: queda con su violación y su `tardeMin`, y la juntada se anota en `uniones` para que el plan lo diga.
+  // Las paradas fijadas no se tocan.
+  const uniones: UnionDeVisitas[] = [];
+  for (const c of choferes) {
+    const sec = estado.secuencias.get(c.id)!;
+    let fijas = 0;
+    while (fijas < sec.length && fijadas.has(claveDeParada(sec[fijas]))) fijas++;
+    const sinJuntar = estado.rutas.get(c.id)!;
+    let vigente = sinJuntar;
+    const nueva = unaSolaVisitaCuandoCabe(sec, [...porId.values()], c.capacidad, fijas, (cand, tiendas) => {
+      const ruta = evaluaRuta(c, cand, ctx);
+      if (ruta.millas > vigente.millas + 0.01 || !soloAnadeRetraso(vigente.violaciones, ruta.violaciones)) return false;
+      const tarde = violacionesAnadidas(vigente.violaciones, ruta.violaciones).map((v) => ({
+        orden: v.orden ?? "",
+        tardeMin: ruta.paradas.find((p) => p.tipo === "D" && p.orden === v.orden)?.tardeMin ?? 0,
+      }));
+      if (tarde.length > 0) {
+        uniones.push({ chofer: c.id, tiendas, tarde, millasAhorradas: Math.round((vigente.millas - ruta.millas) * 100) / 100 });
+      }
+      vigente = ruta;
+      return true;
+    });
+    if (vigente === sinJuntar) continue;
+    estado.secuencias.set(c.id, nueva);
+    estado.rutas.set(c.id, vigente);
+  }
+
   // ---- Por qué quedó fuera cada una ---------------------------------------------------------------
   const ORDEN_DE_MOTIVOS: TipoDeViolacion[] = ["capacidad", "ventana_estrecha", "retraso_sobre_el_tope", "fuera_de_turno", "sin_tiempo_de_viaje"];
   const A_MOTIVO: Partial<Record<TipoDeViolacion, MotivoSinAsignar>> = {
@@ -614,5 +665,6 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
   return {
     rutas, coste: final, violaciones: rutas.flatMap((r) => r.violaciones), sinAsignar, explicaciones,
     partes: partido.partes, movimientos, convergio, version: VERSION_DEL_MOTOR,
+    ...(uniones.length > 0 ? { uniones } : {}),
   };
 }

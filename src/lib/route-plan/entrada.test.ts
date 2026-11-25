@@ -107,7 +107,9 @@ describe("las órdenes que entran al motor", () => {
       // Un cliente que se llama como una tienda NO va a la tienda: solo las órdenes entre tiendas.
       orden("cliente-tocayo", { ...sinPin, delivery_name: "Tienda Sur" }),
     ]));
-    expect(e.entrada.ordenes.map((o) => o.destino)).toEqual([null, puntoDeTienda("Tienda Sur"), puntoDeOrden("entre-con-pin"), null]);
+    // motor-11: entre tiendas el destino es SIEMPRE el punto de la tienda, también con pin propio: descargar y cargar en la misma
+    // tienda tiene que ser un solo sitio para el motor (antes era «orden:entre-con-pin» y el motor veía dos sitios).
+    expect(e.entrada.ordenes.map((o) => o.destino)).toEqual([null, puntoDeTienda("Tienda Sur"), puntoDeTienda("Tienda Sur"), null]);
     const plan = planifica({ ...e.entrada, matriz: {} }, e.parametros);
     expect(plan.sinAsignar.find((s) => s.orden === "cliente")?.motivo).toBe("sin_punto");
   });
