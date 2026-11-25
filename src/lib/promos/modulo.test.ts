@@ -60,8 +60,8 @@ describe("dónde aterriza quien lo tiene", () => {
     expect(landingRoute({ role: "manager", module_access: ["deliveries", "promos"] })).toBe("/home");
   });
 
-  it("no le cambia el aterrizaje a un chofer que tenga Entregas", () => {
-    expect(landingRoute({ role: "driver", module_access: ["deliveries", "promos"] })).toBe("/my-route"); // D-523: «Mi ruta», antes `/driver`
+  it("el chofer con Entregas y Promos también cae en el hub (2026-11-25: todos al hub)", () => {
+    expect(landingRoute({ role: "driver", module_access: ["deliveries", "promos"] })).toBe("/home"); // antes: /my-route (D-523)
   });
 });
 

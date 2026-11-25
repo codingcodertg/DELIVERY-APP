@@ -39,10 +39,8 @@ describe("ERP module wiring", () => {
     expect(landingRoute({ role: "admin", module_access: ["erp"] })).toBe("/home");
   });
 
-  it("no le cambia el aterrizaje a un chofer que tenga Entregas", () => {
-    // Un chofer con el ERP sigue empezando el día en su pantalla — la misma regla que
-    // ya tenía recruiting, y de donde salieron los fallos de D-052.
-    expect(landingRoute({ role: "driver", module_access: ["deliveries", "erp"] })).toBe("/my-route"); // D-523: «Mi ruta», antes `/driver`
+  it("el chofer con Entregas y ERP también cae en el hub (2026-11-25: todos al hub)", () => {
+    expect(landingRoute({ role: "driver", module_access: ["deliveries", "erp"] })).toBe("/home"); // antes: /my-route (D-523)
   });
 
   it("is an opt-in module with its own erp_role tier (D-181)", () => {

@@ -1,4 +1,12 @@
+import { redirect } from "next/navigation";
 import { SeccionesDeRegistrarTiempo } from "@/components/timetracker/SeccionesDeRegistrarTiempo";
+import { createClient } from "@/lib/supabase/server";
+import { entradaDeTimeTracker, RUTA_DE_PAYROLL } from "@/lib/timetracker/pantalla-de-entrada";
+import { ADMIN_DEMO } from "@/lib/timetracker/demo-data";
+import { ProfileReadError } from "@/components/ProfileReadError";
+import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
+
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 
 // «Registrar tiempo». Esta página NO monta el cronómetro, y es a propósito (D-470).
 //
@@ -13,6 +21,24 @@ import { SeccionesDeRegistrarTiempo } from "@/components/timetracker/SeccionesDe
 //
 // Debajo del reloj van dos secciones plegadas (owner, 2026-11-24): «Schedule» (solo admins) y
 // «My week». El cronómetro va en el layout, así que esto no le afecta.
-export default function TrackTimePage() {
+// 2026-11-25 (pedido del dueño): el admin de Time Tracker que entra aquí sin `?ver=track` cae en Nómina. La marca la
+// pone el enlace de la pestaña «Registrar tiempo» para el admin (`hrefDeTrackTime`). Quien no es admin no se redirige.
+// La decisión está en `entradaDeTimeTracker`. En la demo, el admin es la persona de la demo (`ADMIN_DEMO`, layout).
+export default async function TrackTimePage({ searchParams }: { searchParams: Promise<{ ver?: string | string[] }> }) {
+  const p = await searchParams;
+  if (LOCAL_MODE) {
+    if (entradaDeTimeTracker({ esAdmin: ADMIN_DEMO.role === "admin", ver: p.ver }) === "payroll") redirect(RUTA_DE_PAYROLL);
+    return <SeccionesDeRegistrarTiempo />;
+  }
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const { data: me, error: errorPerfil } = await supabase.from("profiles").select("timetracker_role").eq("id", user.id).maybeSingle();
+    // Una consulta que FALLA no manda a nadie a otro sitio (como en Nómina): se enseña el error.
+    if (estadoDeLectura({ data: me, error: errorPerfil }) === "fallo") {
+      return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
+    }
+    if (entradaDeTimeTracker({ esAdmin: me?.timetracker_role === "admin", ver: p.ver }) === "payroll") redirect(RUTA_DE_PAYROLL);
+  }
   return <SeccionesDeRegistrarTiempo />;
 }

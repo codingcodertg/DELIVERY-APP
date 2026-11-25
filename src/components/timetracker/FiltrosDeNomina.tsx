@@ -1,31 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { HUECO_DE_LA_BARRA } from "@/components/BarraDeApp";
 import { MenuDeFecha } from "@/components/MenuDeFecha";
 import type { Eleccion } from "@/lib/almacen-ops/rango-de-merma";
 import { parametrosDeRango, rangoDeLaEleccion, type DatosDeSemana } from "@/lib/timetracker/rango-de-nomina";
+import { listaParaUrl } from "@/lib/timetracker/filtro-de-nomina";
+import { MenuDeVarios } from "./MenuDeVarios";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 
 /** Lo que recuerda la app por persona, solo para preseleccionar la próxima visita SIN parámetros en la URL. */
 const claveDeFiltros = (uid: string) => `tt-nomina-filtros:${uid}`;
 
 /**
- * Los filtros de Nómina: periodo (menú de fechas), tienda y empleado. Van DENTRO de la barra de arriba, justo después
- * de la marca (`HUECO_DE_LA_BARRA`), en una sola fila. Sin hueco (primer pintado), salen como fila de la página.
+ * Los filtros de Nómina: periodo (menú de fechas), tienda y empleado. Van en la PÁGINA, arriba de «Hojas de tiempo» (2026-11-25: ya no van en la barra de arriba), en una fila (en un teléfono, la fila se parte).
  *
- * La URL manda: el periodo (`?period=` o `?desde=&hasta=`), la tienda (`?tienda=`) y el empleado (`?empleado=`).
+ * La URL manda: el periodo (`?period=` o `?desde=&hasta=`), la tienda (`?tienda=`) y el empleado (`?empleado=`), cada uno con una lista separada por comas.
  * Cambiar cualquiera navega con esos parámetros; la pantalla los lee del servidor y de la URL, no de un estado propio.
  */
-export function FiltrosDeNomina({ uid, eleccion, etiqueta, hoy, tienda, empleado, datos }: {
+export function FiltrosDeNomina({ uid, eleccion, etiqueta, hoy, tiendas, empleados, datos }: {
   uid: string;
   eleccion: Eleccion;
   etiqueta: string;
   hoy: string;
-  tienda: string | null;
-  empleado: string | null;
+  tiendas: string[];
+  empleados: string[];
   /** Las personas y tiendas cargadas (de `PayrollTimesheets`); `null` mientras no llegan. */
   datos: DatosDeSemana | null;
 }) {
@@ -34,8 +33,6 @@ export function FiltrosDeNomina({ uid, eleccion, etiqueta, hoy, tienda, empleado
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const [hueco, setHueco] = useState<HTMLElement | null>(null);
-  useEffect(() => { setHueco(document.getElementById(HUECO_DE_LA_BARRA)); }, []);
 
   // Sin parámetros, la visita abre con lo último que eligió esta persona (si lo hubo).
   useEffect(() => {
@@ -98,20 +95,34 @@ export function FiltrosDeNomina({ uid, eleccion, etiqueta, hoy, tienda, empleado
     }
   }
 
-  // Las tiendas con gente en la nómina, y las personas de la tienda elegida (por nombre).
-  const tiendas = datos ? datos.stores.filter((s) => datos.people.some((p) => p.store === s.key)) : [];
+  // Las tiendas con gente en la nómina, y las personas de las tiendas elegidas (por nombre).
+  const tiendasDisponibles = datos ? datos.stores.filter((s) => datos.people.some((p) => p.store === s.key)) : [];
   const personas = (datos?.people ?? [])
-    .filter((p) => !tienda || p.store === tienda)
+    .filter((p) => tiendas.length === 0 || (p.store != null && tiendas.includes(p.store)))
     .sort((a, b) => a.name.localeCompare(b.name));
+  const nombreDeTienda = (id: string) => tiendasDisponibles.find((x) => x.key === id)?.name ?? id;
+  const nombreDePersona = (id: string) => datos?.people.find((p) => p.id === id)?.name ?? id;
 
-  function cambiaTienda(v: string) {
-    // Si la persona elegida no es de esa tienda, el filtro de persona se quita.
-    const sigue = !!v && !!empleado && !!datos?.people.some((p) => p.id === empleado && p.store === v);
-    ir({ tienda: v || null, empleado: sigue ? empleado : null });
+  function cambiaTiendas(ids: string[]) {
+    // Si una persona elegida no es de ninguna de las tiendas elegidas, su filtro se quita.
+    const quedan = ids.length === 0
+      ? empleados
+      : empleados.filter((e) => !!datos?.people.some((p) => p.id === e && p.store != null && ids.includes(p.store)));
+    ir({ tienda: listaParaUrl(ids), empleado: listaParaUrl(quedan) });
   }
 
+  function cambiaEmpleados(ids: string[]) {
+    ir({ empleado: listaParaUrl(ids) });
+  }
+
+  // El texto del botón: nada elegido = todos (sin filtrar); uno = su nombre; varios = «N tiendas» con la lista en el título.
+  const textoTiendas = tiendas.length === 0 ? t("nomina.todasTiendas") : tiendas.length === 1 ? nombreDeTienda(tiendas[0]) : t("nomina.nTiendas", { n: tiendas.length });
+  const textoEmpleados = empleados.length === 0 ? t("nomina.todosEmpleados") : empleados.length === 1 ? nombreDePersona(empleados[0]) : t("nomina.nEmpleados", { n: empleados.length });
+  const ayudaTiendas = tiendas.length === 0 ? t("nomina.todasTiendas") : tiendas.map(nombreDeTienda).join(" · ");
+  const ayudaEmpleados = empleados.length === 0 ? t("nomina.todosEmpleados") : empleados.map(nombreDePersona).join(" · ");
+
   const bloque = (
-    <div className="tt-nomina-en-la-barra" data-nomina-en-la-barra>
+    <div className="tt-nomina-en-la-pagina" data-nomina-en-la-pagina>
       <MenuDeFecha eleccion={eleccion} etiqueta={etiqueta} onElegir={elegirAtajo} lang={lang} titulo={t("nomina.periodo")} />
       {eleccion.atajo === "otro" && (
         <>
@@ -121,19 +132,14 @@ export function FiltrosDeNomina({ uid, eleccion, etiqueta, hoy, tienda, empleado
             onChange={(e) => cambiaRangoAMano(desdeMano, e.target.value)} />
         </>
       )}
-      <select className="tt-nomina-select" data-tienda-de-nomina value={tienda ?? ""} aria-label={t("nomina.tienda")}
-        onChange={(e) => cambiaTienda(e.target.value)}>
-        <option value="">🏬 {t("nomina.todasTiendas")}</option>
-        {tiendas.map((s) => <option key={s.key} value={s.key}>{s.name}</option>)}
-      </select>
-      <select className="tt-nomina-select" data-empleado-de-nomina value={empleado ?? ""} aria-label={t("nomina.empleado")}
-        onChange={(e) => ir({ empleado: e.target.value || null })} disabled={!datos}>
-        <option value="">👤 {t("nomina.todosEmpleados")}</option>
-        {personas.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-      </select>
+      <MenuDeVarios dato="tienda" titulo={{ en: "Stores", es: "Tiendas" }} lang={lang} texto={textoTiendas} ayuda={ayudaTiendas}
+        elegidos={tiendas} onCambia={cambiaTiendas}
+        opciones={tiendasDisponibles.map((x) => ({ key: x.key, label: x.name }))} />
+      <MenuDeVarios dato="empleado" titulo={{ en: "Employees", es: "Empleados" }} lang={lang} texto={textoEmpleados} ayuda={ayudaEmpleados}
+        elegidos={empleados} onCambia={cambiaEmpleados} disabled={!datos}
+        opciones={personas.map((p) => ({ key: p.id, label: p.name }))} />
     </div>
   );
 
-  // Dentro de la barra, en la ranura de la marca; si la barra no tiene ranura, es una fila más de la página.
-  return hueco ? createPortal(bloque, hueco) : <div className="tt-fila-de-nomina" data-fila-de-nomina>{bloque}</div>;
+  return bloque;
 }

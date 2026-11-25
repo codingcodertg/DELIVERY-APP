@@ -29,7 +29,8 @@ describe("1 · «Mi diario» ya no es del empleado", () => {
     expect(pestanasPara("employee").map((x) => x.id)).not.toContain("diary");
     expect(pestanasPara("admin").map((x) => x.id)).toContain("diary");
     expect(pestanasPara("employee")).toBe(TABS);
-    expect(pestanasPara("admin")).toBe(MANAGER_TABS);
+    // 2026-11-25: la pestaña «Registrar tiempo» del admin lleva la marca `?ver=track`; las demás, como la constante.
+    expect(pestanasPara("admin")).toEqual(MANAGER_TABS.map((p) => (p.id === "track" ? { ...p, href: "/timetracker?ver=track" } : p)));
   });
   it("el resto de pestañas del empleado no cambia", () => {
     expect(TABS.map((x) => x.id)).toEqual(["track", "requests"]);

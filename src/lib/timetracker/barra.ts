@@ -39,8 +39,10 @@ const vanAlMenu = (id: string) => (PESTANAS_DEL_MENU_MIO as readonly string[]).i
  * enciende nada en `/timetracker/requests-viejo`.
  */
 export function esPestanaActiva(href: string, pathname: string): boolean {
-  if (href === "/timetracker") return pathname === "/timetracker";
-  return pathname === href || pathname.startsWith(href + "/");
+  // El enlace de Registrar tiempo del admin lleva `?ver=track`: la pantalla es la misma, así que se compara la ruta sola.
+  const ruta = href.split("?")[0];
+  if (ruta === "/timetracker") return pathname === "/timetracker";
+  return pathname === ruta || pathname.startsWith(ruta + "/");
 }
 
 export type BarraDeTt = {

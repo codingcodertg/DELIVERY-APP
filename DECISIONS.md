@@ -53377,3 +53377,43 @@ Un nombre que no es chofer ni ruta temporal (como «Warehouse BRO») sale ese d�
 Sin «Deshacer»: la pila del Gestor no guarda la fecha y dejaría el cambio a medias; se corrige volviendo a usar el botón.
 Visto en el demo en escritorio y a 390 px: el botón solo en entregadas, «Save» apagado sin nombre, el guardado (sale de la ruta, sigue entregada, fecha y chofer nuevos, las dos líneas del historial), la fecha apagada con hora de entrega, y la ruta «Warehouse BRO» en el día anterior. NO visto con una cuenta real.
 Sello `deliveries` 1.666.0; repo 1.993.0.
+
+## D-1189 · Time Tracker, Nómina: una sola lista, filtros en la página y quién trabaja ahora en el nombre (2026-11-25)
+
+El dueño, por capturas, a lo largo de la tarde: «get rid the working now view and in the table if the name of the person working right now will turn green, and if they are not working now it turns grey and it sorts out with the first showing the ones working»; «esos filtros pon el spot donde está working now»; «for sunday dont do the grey row, but do a highlight on the day we are right now»; «remueve eso porque ahora va a salir todo de un solo […] showed todos los empleados y con los filtros de arriba con eso se manejará eso»; «en estos filtros que no solo sea select one, que sea múltiple selección»; «time off request mándalo a time off and shift change request».
+Qué cambia:
+«Trabajando ahora» sale de Nómina (revisa D-1182 y la mudanza del 24). Quién trabaja ahora se ve en el nombre de cada persona de «Hojas de tiempo», verde si trabaja y gris si no, en Hoja y en Tabla; los que trabajan van primero. «Trabajar ahora» es lo mismo de antes: fichaje abierto hoy (presencial) o sesión en marcha (remoto); se refresca cada 10 s.
+Los tres filtros (periodo, tienda, empleado) bajan de la barra oscura a la página, donde estaba «Trabajando ahora» (revisa D-1182, «todo ahí arriba»). La barra vuelve a un renglón con la marca entera.
+Tienda y empleado son de selección múltiple (el menú de casillas de las tablas estándar); en la URL van separados por comas y se validan y se acotan después de comprobar la sesión. Un valor de más no amplía lo que alguien ve: los datos ya llegan acotados por el servidor.
+Una sola lista: se quitan las dos mitades plegables «Remoto» y «Presencial». Cada persona conserva su bloque y sus acciones tal como estaban (remoto: pagar, reabrir, recibo, ajustes, entradas a mano, capturas; presencial: aprobar, corregir fichajes, cerrar el periodo, exportar). La cabecera de pagos remotos solo sale si hay alguien remoto que mostrar. Coste: los dos juegos de datos se cargan al abrir Nómina (antes, el remoto solo al abrir su mitad).
+En la hoja semanal el domingo ya no va en gris y la fila de HOY (día de Texas) va resaltada.
+«Time off requests» se llama «Time off and shift change requests».
+Lo que deja de verse en pantalla al quitar «Trabajando ahora», y se le dijo al dueño: quién no ha fichado y quién llegó tarde; la hora de entrada, el tiempo en turno y el almuerzo o salida en curso; el mapa de dónde fichó cada quien; y, de los remotos, actividad, teclado, pantalla, inactivo y proyecto.
+Visto en el demo en escritorio y a 390 px: la lista única, los colores y el orden, la fila de hoy, los filtros en la página, la selección múltiple (dos empleados: «2 employees», lista y total acotados, URL con comas), la Tabla con sus botones. NO visto: una persona remota dentro de la lista (el demo no tiene sesiones remotas esta semana) ni nada con datos reales.
+Sello `timetracker` 1.43.0; repo 1.994.0.
+
+## D-1190 · Time Tracker: el admin entra a Nómina; Registrar tiempo sigue en «Mine» (2026-11-25)
+
+El dueño: «for admin, make it default payroll view instead of track time».
+`/timetracker` sigue siendo la pantalla del cronómetro. Si quien entra es admin de Time Tracker y la dirección no lleva `?ver=track`, se le manda a `/timetracker/payroll`; «Mine → Track Time» lleva ese marcador para los admin. Los demás no cambian.
+El cronómetro vive en el marco del módulo y sigue corriendo y guardando en cualquier pantalla; en Nómina no se ve su reloj ni su botón de parar (hay que ir a «Track Time»). No se pudo comprobar desde el código qué dirección abre la app de escritorio.
+Visto en el demo: `/timetracker` → Nómina; «Mine → Track Time» → el cronómetro, con «Start» a la vista. La parte de quien no es admin, solo en pruebas (el demo de Time Tracker tiene una sola persona, admin).
+Sello `timetracker` 1.43.0; repo 1.994.0.
+
+## D-1191 · Hub: al iniciar sesión todos caen en el menú principal (2026-11-25)
+
+El dueño: «when employees login always que lands en el hub main menu».
+Hasta aquí, quien tenía un solo módulo iba directo a él (un chofer, a «Mi ruta») y el hub lo rebotaba. Ahora el destino por defecto al entrar es `/home` para todos, y el hub ya no rebota a quien tiene un solo módulo. Un enlace concreto (una notificación, un `?next=`) sigue llevando a su página. Sin ningún módulo, `/no-access`, como antes.
+Revisa D-173 en lo que toca a choferes: ahora ven el hub con los mosaicos que tienen concedidos (el de Entregas los lleva a «Mi ruta»). El mapa del hub sigue cerrado para ellos.
+Efecto que conviene saber: las pantallas que devolvían a alguien «a su módulo» cuando no tenía permiso (ERP, Security, RingCentral y otras) ahora lo devuelven al hub. La raíz `/` sigue abriendo Órdenes.
+Visto en el demo: `/home` con sus mosaicos. La entrada de un chofer real, solo en pruebas.
+Sello `timetracker` 1.43.0; repo 1.994.0.
+
+## D-1192 · Base: la guardia de etapas recupera seis permisos que la 321 dejó fuera (migración 349) (2026-11-25)
+
+El dueño, viendo la app como un chofer, intentó agregar a su ruta una orden sin chofer (1784) y salió «No se pudo tomar. Inténtalo de nuevo.» Reproducido en una transacción que se deshace, entrando como ese chofer: `guard_delivery_stage` contestaba «You cannot edit an order in the ready stage».
+Causa: el 17 de noviembre la 321 (relevo de una orden ya recogida) volvió a crear `guard_delivery_stage` desde el texto de la 173 y no desde el de la 244, que era el que estaba en producción; la 322 y la 346 copiaron la de la 321. Se perdieron, sin que nadie lo pidiera y durante ocho días: el chofer toma o agrega una orden (188/213), ventas agrega una nota a su orden aprobada (244), ventas anula su orden hasta «Listo» (191/192), el chofer anula su orden ya recogida (196), mover el puesto en la ruta de una entrega ya recogida (187) y la letra de una carga en una orden entregada (185).
+Migración 349 (aplicada el 25 de noviembre y verificada en solo lectura): la guardia es la fusión a tres bandas de la de producción (346) y la de la 244, con la 173 de antepasado común; sin conflictos. Lo que la 346 hace queda idéntico; vuelven los seis bloques tal como estaban. Con ella el caso del chofer pasa. Los otros cinco no se ejecutaron uno por uno.
+Por qué no lo vieron las pruebas: buscaban «la última definición propia de la guardia» y excluían la 321, la 322 y la 346 por nombre, dándolas por copias exactas. Ya no se excluyen, y una prueba nueva exige que la última guardia conserve cada línea de la anterior (lo que se quite a propósito va en una lista con su decisión).
+Aviso de la revisión automática, sin cambiar: el bloque de la 187 deja mover el puesto de una entrega recogida a cualquiera con el módulo de Entregas, no solo a logística y oficina. Así estaba del 21 de octubre al 17 de noviembre; acotarlo es otra decisión.
+Sello `timetracker` 1.43.0; repo 1.994.0.

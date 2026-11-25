@@ -55,13 +55,13 @@ describe("un rol sin su módulo no crea un callejón", () => {
     // Ahora el rol se puede editar sin tener el módulo, así que este perfil es alcanzable a
     // propósito. `landingRoute` ya exigía las dos cosas (`constants.ts:183`); esta prueba es lo
     // que hace que siga exigiéndolas cuando alguien la toque sin acordarse de este caso.
-    expect(landingRoute({ role: "driver", module_access: ["timetracker"] })).toBe("/timetracker");
+    expect(landingRoute({ role: "driver", module_access: ["timetracker"] })).toBe("/home"); // 2026-11-25: al entrar, el hub
     expect(landingRoute({ role: "driver", module_access: [] })).toBe("/no-access");
     expect(landingRoute({ role: "driver", module_access: ["timetracker", "recruiting"] })).toBe("/home");
   });
   it("y con Entregas sí, que es la excepción del chofer de D-050/051", () => {
-    expect(landingRoute({ role: "driver", module_access: ["deliveries"] })).toBe("/my-route"); // D-523: «Mi ruta», antes `/driver`
-    expect(landingRoute({ role: "driver", module_access: ["deliveries", "timetracker"] })).toBe("/my-route"); // D-523: «Mi ruta», antes `/driver`
+    expect(landingRoute({ role: "driver", module_access: ["deliveries"] })).toBe("/home"); // 2026-11-25: al entrar, el hub (antes /my-route, D-523)
+    expect(landingRoute({ role: "driver", module_access: ["deliveries", "timetracker"] })).toBe("/home");
   });
 });
 

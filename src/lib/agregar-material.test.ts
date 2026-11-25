@@ -182,14 +182,15 @@ describe("la nota que queda en el historial", () => {
 describe("la 138 dice lo mismo que el código", () => {
   const vivo = SQL.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
 
-  it("es la definición VIGENTE del guard, y parte de la 127", () => {
+  it("la cadena de la 127 a la 173 (sin lo que vino después), y la VIGENTE de verdad sigue llevando el bloque", () => {
     const dir = "supabase/migrations";
-    const conGuard = readdirSync(join(process.cwd(), dir))
+    // Esta cadena llega hasta la 173: lo que mira (el bloque de la 138 y las dos etapas) es lo que cada copia posterior
+    // tenía que conservar. Antes se quitaban la 321, la 322 y la 346 por nombre, y eso dejaba la prueba en verde mientras
+    // la 321 perdía seis permisos en producción. Ahora el corte es por número, y la última del repo se mira abajo.
+    const todos = readdirSync(join(process.cwd(), dir))
       .filter((f) => f.endsWith(".sql") && leer(`${dir}/${f}`).includes("function public.guard_delivery_stage"))
-      // La 321 (relevo de una orden ya recogida) vuelve a escribir el guard: la copia de la 173 con UNA rama más. Esta
-      // cadena mira hasta la 173; la 321 la compara `relevo.test.ts`.
-      .filter((f) => f !== "321_relevo_de_orden_recogida.sql" && f !== "322_deshacer_relevo.sql" && f !== "346_intertienda_cliente.sql")
       .sort();
+    const conGuard = todos.filter((f) => parseInt(f, 10) <= 173);
     // La 157 (D-452, partes de una orden) es ahora la última que lo define: la 145 letra por letra con una lista cambiada
     // (una carga partida puede nacer en pending). La 145 (D-397) partía de la 142 (D-377), que partía de la 139 (D-361),
     // que partía de la 138.
@@ -212,6 +213,11 @@ describe("la 138 dice lo mismo que el código", () => {
     const vigente = plano(leer(`${dir}/${conGuard.at(-1)}`).split("\n").filter((l) => !l.trim().startsWith("--")).join("\n"));
     expect(vigente).toContain(`coalesce(array_length(NEW.invoices_extra, 1), 0) <= ${MAX_FACTURAS_EXTRA} and`);
     expect(vigente).toContain("old_stage in ('pending','approved','fulfilling')");
+    // La VIGENTE de verdad (la última del repo, hoy la 349) también lleva ese bloque y esas dos etapas.
+    expect(todos.at(-1)).toBe("349_guardia_recupera_permisos.sql");
+    const ultima = plano(leer(`${dir}/${todos.at(-1)}`).split("\n").filter((l) => !l.trim().startsWith("--")).join("\n"));
+    expect(ultima).toContain(`coalesce(array_length(NEW.invoices_extra, 1), 0) <= ${MAX_FACTURAS_EXTRA} and`);
+    expect(ultima).toContain("old_stage in ('pending','approved','fulfilling')");
   });
 
   it("no se perdió nada de la 127, la 125, la 123 ni la 122", () => {

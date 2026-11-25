@@ -1,117 +1,58 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import {
-  CLAVE_AHORA_ABIERTA,
-  ahoraEstaAbierta,
-  guardarAhoraAbierta,
-  leerAhoraAbierta,
-} from "./trabajando-ahora-en-nomina";
+import { idsActivosAhora } from "./trabajando-ahora-en-nomina";
 
-// 2026-11-24: «Trabajando ahora» dejó de ser pestaña y vive plegada dentro de Nómina.
+// 2026-11-25: «Trabajando ahora» salió de Nómina como sección. Su definición (quién trabaja ahora) sigue igual y
+// ahora pinta el nombre de cada persona en «Hojas de tiempo» (verde o gris) y la pone primero.
 const leer = (ruta: string) => readFileSync(join(process.cwd(), ruta), "utf8");
 
-describe("«Trabajando ahora» ya no es pestaña", () => {
+describe("«Trabajando ahora» ya no es sección de Nómina", () => {
   it("MANAGER_TABS no tiene 'live'", async () => {
     const { MANAGER_TABS } = await import("./constants");
     expect(MANAGER_TABS.map((t) => t.id)).not.toContain("live");
   });
 
-  it("la ruta vieja redirige a Nómina con la sección abierta", () => {
+  it("el componente TrabajandoAhora ya no existe", () => {
+    expect(existsSync(join(process.cwd(), "src/components/timetracker/TrabajandoAhora.tsx"))).toBe(false);
+  });
+
+  it("la ruta vieja /timetracker/live cae en Nómina, sin ?vista=", () => {
     const src = leer("src/app/timetracker/(timetracker)/live/page.tsx");
-    expect(src).toContain('redirect("/timetracker/payroll?vista=ahora")');
+    expect(src).toContain('redirect("/timetracker/payroll");');
+    expect(src).not.toContain("vista=");
+  });
+
+  it("Nómina ya no lee ?vista= ni pasa vistaPorUrl a PayrollTabs", () => {
+    const src = leer("src/app/timetracker/(timetracker)/payroll/page.tsx");
+    expect(src).not.toContain("seccionPorUrl");
+    expect(src).not.toContain("vistaPorUrl");
+    expect(src).not.toContain("vista?: string");
+  });
+});
+
+describe("PayrollTabs: sin sección de «Trabajando ahora»", () => {
+  const src = leer("src/components/timetracker/PayrollTabs.tsx");
+
+  it("no hay cabecera plegable con aria-expanded ni data-trabajando-ahora", () => {
+    expect(src).not.toContain("data-trabajando-ahora");
+    expect(src).not.toContain("SeccionDeNomina");
     expect(src).not.toContain("TrabajandoAhora");
   });
 
-  it("Nómina pasa ?vista=ahora a PayrollTabs en las dos ramas (demo y real)", () => {
-    const src = leer("src/app/timetracker/(timetracker)/payroll/page.tsx");
-    expect(src).toContain('vista?: string');
-    expect(src.split("vistaPorUrl={vistaPorUrl}").length - 1).toBe(2);
-    expect(src).not.toContain("ahoraAbiertaPorUrl");
+  it("los filtros van en la página, antes de las secciones", () => {
+    expect(src.indexOf("<FiltrosDeNomina")).toBeGreaterThan(-1);
+    expect(src.indexOf("<FiltrosDeNomina")).toBeLessThan(src.indexOf("<PayrollTimesheets"));
   });
 });
 
-describe("la sección dentro de PayrollTabs", () => {
-  const src = leer("src/components/timetracker/PayrollTabs.tsx");
-
-  it("renderiza TrabajandoAhora dentro de una cabecera con aria-expanded y data-trabajando-ahora", () => {
-    expect(src).toContain("<TrabajandoAhora soloUids={soloUids} />");
-    expect(src).toContain("data-trabajando-ahora");
-    expect(src).toContain("aria-expanded={abierta}");
+describe("quién trabaja ahora (la definición de siempre)", () => {
+  it("junta a los del cronómetro y a los que fichan, sin repetir", () => {
+    const activos = idsActivosAhora([{ employeeUid: "ana" }, { employeeUid: "luis" }], [{ employeeId: "ana" }, { employeeId: "pedro" }]);
+    expect([...activos].sort()).toEqual(["ana", "luis", "pedro"]);
   });
 
-  it("solo la ve el admin, y va encima del resumen", () => {
-    expect(src).toContain('me.role === "admin" && (');
-    expect(src).toContain('<SeccionDeNomina clave="ahora"');
-    // 2026-11-24: ya no hay resumen encima; «Trabajando ahora» va antes que los filtros y las secciones.
-    expect(src.indexOf('clave="ahora"')).toBeLessThan(src.indexOf("<FiltrosDeNomina"));
-  });
-
-  it("el cuerpo no se monta cerrado (así el sondeo solo corre abierto)", () => {
-    expect(src).toContain("{abierta && <div");
-  });
-
-  it("el título sale de la clave que ya tenía la pestaña", () => {
-    expect(src).toContain('t("tab.live")');
-  });
-});
-
-describe("TrabajandoAhora conserva su guardia de admin", () => {
-  it("el componente se queda con el mismo control de rol", () => {
-    const src = leer("src/components/timetracker/TrabajandoAhora.tsx");
-    expect(src).toContain('if (me.role !== "admin")');
-  });
-});
-
-describe("qué decide si la sección empieza abierta", () => {
-  it("la URL manda sobre lo recordado", () => {
-    expect(ahoraEstaAbierta({ porUrl: true, recordado: false })).toBe(true);
-    expect(ahoraEstaAbierta({ porUrl: true, recordado: null })).toBe(true);
-  });
-
-  it("sin URL, manda lo recordado", () => {
-    expect(ahoraEstaAbierta({ porUrl: false, recordado: true })).toBe(true);
-    expect(ahoraEstaAbierta({ porUrl: false, recordado: false })).toBe(false);
-  });
-
-  it("sin nada, cerrada", () => {
-    expect(ahoraEstaAbierta({ porUrl: false, recordado: null })).toBe(false);
-  });
-});
-
-describe("la elección guardada", () => {
-  function almacenFalso(inicial: Record<string, string> = {}) {
-    const datos = new Map(Object.entries(inicial));
-    return {
-      getItem: (k: string) => datos.get(k) ?? null,
-      setItem: (k: string, v: string) => { datos.set(k, v); },
-      datos,
-    };
-  }
-
-  it("usa la clave acordada y valores «1» / «0»", () => {
-    expect(CLAVE_AHORA_ABIERTA).toBe("tt_nomina_ahora_abierta");
-    const a = almacenFalso();
-    guardarAhoraAbierta(a, true);
-    expect(a.datos.get("tt_nomina_ahora_abierta")).toBe("1");
-    guardarAhoraAbierta(a, false);
-    expect(a.datos.get("tt_nomina_ahora_abierta")).toBe("0");
-  });
-
-  it("se lee lo guardado y lo raro cuenta como sin elección", () => {
-    expect(leerAhoraAbierta(almacenFalso({ tt_nomina_ahora_abierta: "1" }))).toBe(true);
-    expect(leerAhoraAbierta(almacenFalso({ tt_nomina_ahora_abierta: "0" }))).toBe(false);
-    expect(leerAhoraAbierta(almacenFalso({ tt_nomina_ahora_abierta: "si" }))).toBeNull();
-    expect(leerAhoraAbierta(almacenFalso())).toBeNull();
-    expect(leerAhoraAbierta(null)).toBeNull();
-  });
-
-  it("un almacén que lanza no rompe nada", () => {
-    const roto = {
-      getItem: () => { throw new Error("bloqueado"); },
-      setItem: () => { throw new Error("bloqueado"); },
-    };
-    expect(leerAhoraAbierta(roto)).toBeNull();
-    expect(() => guardarAhoraAbierta(roto, true)).not.toThrow();
+  it("sin nadie, el conjunto está vacío", () => {
+    expect(idsActivosAhora([], []).size).toBe(0);
   });
 });

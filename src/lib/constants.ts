@@ -354,24 +354,13 @@ export function canReachHub(me: { role: UserRole; module_access?: string[] | nul
 }
 
 export function landingRoute(me: { role: UserRole; module_access?: string[] | null }): string {
+  // 2026-11-25 (el dueño: «when employees login always que lands en el hub main menu»): después de entrar, TODOS caen
+  // en el hub (`/home`), con uno o con varios módulos y sea cual sea el rol —el chofer incluido—. El hub enseña las
+  // apps que la persona tiene (`HomeSelector`, con la ruta de su rol para Entregas). Sin ningún módulo no hay nada que
+  // enseñar: `/no-access`. Quien llegó a una página concreta vuelve a ella por `next` (auth-redirect.ts); esto solo
+  // decide el destino por defecto.
   const granted = normalizeModules(me.module_access);
-  // Un chofer con Entregas va siempre a su ruta, sin pasar por el selector (D-050/051).
-  // Si NO tiene Entregas, la ruta no existe para él y la condición de abajo decide.
-  // Desde D-523 su ruta es «Mi ruta» (`roleHome`), no la lista de órdenes de `/driver`.
-  if (me.role === "driver" && granted.includes("deliveries")) return roleHome("driver");
-  if (granted.length > 1) return "/home";
-  if (granted.length === 1) {
-    // POR DEFECTO el hub primero (pedido del dueño, 9 nov): antes, con un solo módulo se
-    // entraba directo a esa app; ahora todo el que pueda llegar al hub empieza ahí y desde
-    // ahí elige. Como el hub nunca es un callejón sin salida (D-256, el directorio espera a
-    // todos), esto es seguro. El único que NO puede llegar es el chofer (canReachHub=false),
-    // y entonces sigue entrando directo a su único módulo — su trabajo es su app, no elegir.
-    if (canReachHub(me)) return "/home";
-    if (granted[0] === "deliveries") return roleHome(me.role);
-    const m = MODULES.find((x) => x.key === granted[0]);
-    if (m) return m.href;
-  }
-  // Ninguno. Antes no podía pasar, porque Entregas se daba por sentada.
+  if (granted.length > 0) return "/home";
   return "/no-access";
 }
 

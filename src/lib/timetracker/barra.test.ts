@@ -37,8 +37,10 @@ describe("qué va en la fila y qué en «👤 Mío ▾»", () => {
 
   it("admin: no se pierde ni se repite ninguna pantalla, y cada una lleva a la misma ruta que su pestaña", () => {
     const b = barraDeTt("admin", "/timetracker");
-    expect([...b.fila, ...b.menu].sort((x, y) => x.id.localeCompare(y.id))).toEqual([...MANAGER_TABS].sort((x, y) => x.id.localeCompare(y.id)));
-    for (const p of b.menu) expect(p).toBe(MANAGER_TABS.find((m) => m.id === p.id));
+    // 2026-11-25: la pestaña «Registrar tiempo» del admin lleva `?ver=track` (pestanasPara); las demás, como en la constante.
+    const conLaMarca = (p: { id: string; href: string }) => (p.id === "track" ? { ...p, href: "/timetracker?ver=track" } : p);
+    expect([...b.fila, ...b.menu].sort((x, y) => x.id.localeCompare(y.id))).toEqual(MANAGER_TABS.map(conLaMarca).sort((x, y) => x.id.localeCompare(y.id)));
+    for (const p of b.menu) expect(p).toEqual(conLaMarca(MANAGER_TABS.find((m) => m.id === p.id)!));
   });
 
   it("el empleado no cambia: sus tres pestañas en fila y sin menú", () => {
@@ -113,7 +115,7 @@ describe("las opciones del menú", () => {
   it("pulsar una lleva a SU pantalla", () => {
     const fue: string[] = [];
     for (const o of opcionesDelMenuMio(barraDeTt("admin", "/timetracker/insights"), t, (h) => fue.push(h))) o.alPulsar();
-    expect(fue).toEqual(["/timetracker", "/timetracker/requests", "/timetracker/diary", "/timetracker/settings"]);
+    expect(fue).toEqual(["/timetracker?ver=track", "/timetracker/requests", "/timetracker/diary", "/timetracker/settings"]);
   });
 
   it("el empleado no tiene opciones, así que `MenuDeAcciones` no pinta botón", () => {

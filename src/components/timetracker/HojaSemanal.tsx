@@ -1,6 +1,8 @@
 "use client";
 
-import { hmm, type FilaDeLaHoja, type HojaDeLaSemana } from "@/lib/clockin/hoja-semanal";
+import { esDiaDeHoy, hmm, type FilaDeLaHoja, type HojaDeLaSemana } from "@/lib/clockin/hoja-semanal";
+import { hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
+import { estadoDeTrabajo } from "@/lib/timetracker/trabajando-primero";
 import { entryMinutes, type PayEntry } from "@/lib/clockin/payroll";
 import type { DiaDeTurnos } from "@/lib/clockin/turnos-por-dia";
 import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
@@ -31,7 +33,7 @@ const LOCALE = (lang: "en" | "es") => (lang === "es" ? "es-MX" : "en-US");
 const hora = (iso: string | null) =>
   iso ? new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: APP_SETTINGS.timeZone }) : "";
 
-/** `28-Nov` y el nombre del día en mayúsculas (`FRIDAY`), y si es domingo. */
+/** `28-Nov` y el nombre del día en mayúsculas (`FRIDAY`). */
 function partesDelDia(dia: string, lang: "en" | "es") {
   const [y, m, d] = dia.split("-").map(Number);
   const fecha = new Date(Date.UTC(y, m - 1, d, 12));
@@ -40,7 +42,6 @@ function partesDelDia(dia: string, lang: "en" | "es") {
   return {
     fecha: `${d}-${mes}`,
     nombreDia: fecha.toLocaleDateString(loc, { weekday: "long", timeZone: "UTC" }).toLocaleUpperCase(loc),
-    domingo: fecha.getUTCDay() === 0,
   };
 }
 
@@ -58,7 +59,8 @@ type FilaDeTabla = {
   f: FilaDeLaHoja;
   fecha: string;
   nombreDia: string;
-  domingo: boolean;
+  /** Hoy (día de Texas): la fila se resalta. */
+  hoy: boolean;
   /** Las horas de cada tramo, para la marca «+N» (`title`). */
   detalle: string;
 };
@@ -89,7 +91,12 @@ function rotulo(clave: string): { en: string; es: string } {
   return { en: DICT.en[clave] ?? clave, es: DICT.es[clave] ?? clave };
 }
 
-export function HojaSemanal({ bloques }: { bloques: BloqueDeHoja[] }) {
+export function HojaSemanal({ bloques, trabajando }: {
+  bloques: BloqueDeHoja[];
+  /** Quién trabaja ahora: su nombre va en verde; los demás, en gris. */
+  trabajando?: ReadonlySet<string>;
+}) {
+  const hoy = hoyEnTexas();
   const t = useT();
   const lang = getLang();
 
@@ -100,13 +107,14 @@ export function HojaSemanal({ bloques }: { bloques: BloqueDeHoja[] }) {
         const filas: FilaDeTabla[] = b.hoja.filas.map((f) => {
           const p = partesDelDia(f.dia, lang);
           const tramos = b.dias.find((d) => d.dia === f.dia)?.entradas ?? [];
-          return { f, fecha: p.fecha, nombreDia: p.nombreDia, domingo: p.domingo, detalle: detalleDeTramos(tramos) };
+          return { f, fecha: p.fecha, nombreDia: p.nombreDia, hoy: esDiaDeHoy(f.dia, hoy), detalle: detalleDeTramos(tramos) };
         });
         return (
           <section key={`${b.id}-${b.semana[0]}`} className="tt-hoja-bloque" data-hoja-de={b.id} data-sobre={String(b.hoja.sobre)}
             style={{ marginTop: 12 }}>
             <div className="tt-hoja-cabecera">
-              <span className="tt-hoja-nombre">{b.nombre}</span>
+              <span className="tt-hoja-nombre tt-nombre-de-trabajo" data-trabajando={estadoDeTrabajo(b.id, trabajando)}
+                title={estadoDeTrabajo(b.id, trabajando) === "si" ? t("hoja.working") : t("hoja.notWorking")}>{b.nombre}</span>
               <span className="small muted">{rotuloSemana(b.semana, lang)}</span>
             </div>
             <TablaEstandar<FilaDeTabla>
@@ -117,7 +125,7 @@ export function HojaSemanal({ bloques }: { bloques: BloqueDeHoja[] }) {
               claveDe={(r) => r.f.dia}
               ordenInicial={{ clave: "dia", direccion: "asc" }}
               claseTabla="tt-hoja"
-              claseDeFila={(r) => (r.domingo ? "tt-hoja-domingo" : undefined)}
+              claseDeFila={(r) => (r.hoy ? "tt-hoja-hoy" : undefined)}
               sinCaja
               vacio={t("hoja.noPunches")}
             />

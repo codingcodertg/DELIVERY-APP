@@ -124,7 +124,7 @@ describe("lo que NO cambia", () => {
     expect(src).toContain('if (me.role === "driver") return false;');
     expect(src).toContain("return accessibleModules(me.module_access).length > 1 || HUB_TOOLS.some((t) => t.visible(me));");
   });
-  it("`/home` sigue devolviendo a su sitio a quien no puede estar ahí", () => {
-    expect(leer("src/app/home/page.tsx")).toContain("if (!canReachHub(me)) redirect(landingRoute(me));");
+  it("`/home` solo devuelve a quien no tiene ningún módulo (2026-11-25: el hub es el destino de todos)", () => {
+    expect(leer("src/app/home/page.tsx")).toContain('if (landingRoute(me) !== "/home") redirect(landingRoute(me));');
   });
 });
