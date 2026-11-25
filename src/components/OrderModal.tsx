@@ -2362,18 +2362,6 @@ export function OrderModal({
               />
               )}
             </div>
-            {isNew && homeIsDestination && tipoCliente && (
-              <div className="field" data-subtipo-intertienda-control style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                <button type="button" data-subtipo-intertienda="stock" className="btn btn-sm btn-primary" aria-pressed={true}
-                  onClick={() => undefined}>
-                  {t(TEXTO_DEL_SUBTIPO.stock.en, TEXTO_DEL_SUBTIPO.stock.es)}
-                </button>
-                <button type="button" data-subtipo-intertienda="customer" className="btn btn-sm btn-ghost" aria-pressed={false}
-                  onClick={() => { setD((p) => pasaACliente(p, aplicaTipo(p, tipoCliente, contextoDelUsuario), me.store, settings.stores ?? [])); setShowFullForm(true); }}>
-                  {t(TEXTO_DEL_SUBTIPO.customer.en, TEXTO_DEL_SUBTIPO.customer.es)}
-                </button>
-              </div>
-            )}
             <AddressInput
               label={t("Delivery Address", "Dirección de Entrega")}
               value={d.delivery_address}
@@ -2760,6 +2748,20 @@ export function OrderModal({
               <Txt label={t("Est. Pallets (sales)", "Pallets Est. (ventas)")} type="number" val={d.est_pallets ?? ""} on={(v) => set("est_pallets", v === "" ? null : Number(v))} disabled={!salesFields} invalid={missingSet.has("est_pallets")} />
             </div>
 
+            {/* Intertienda Stock / Customer (346). Va AQUÍ, en el formulario completo: al elegir un tipo entre tiendas el
+                formulario salta del paso inicial a este, así que debajo del selector del paso inicial no se llegaba a ver. */}
+            {isNew && homeIsDestination && tipoCliente && (
+              <div className="field" data-subtipo-intertienda-control style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                <button type="button" data-subtipo-intertienda="stock" className="btn btn-sm btn-primary" aria-pressed={true}
+                  onClick={() => undefined}>
+                  {t(TEXTO_DEL_SUBTIPO.stock.en, TEXTO_DEL_SUBTIPO.stock.es)}
+                </button>
+                <button type="button" data-subtipo-intertienda="customer" className="btn btn-sm btn-ghost" aria-pressed={false}
+                  onClick={() => { setD((p) => pasaACliente(p, aplicaTipo(p, tipoCliente, contextoDelUsuario), me.store, settings.stores ?? [])); setShowFullForm(true); }}>
+                  {t(TEXTO_DEL_SUBTIPO.customer.en, TEXTO_DEL_SUBTIPO.customer.es)}
+                </button>
+              </div>
+            )}
             {/* ---- Local-zone fee suggestion ---- */}
             {/* Los botones de Lista y Descuento van con el mismo gate que el campo: teclear la tarifa a ciegas es peor. */}
             {tarifaEditable && (d.delivery_address || "").trim() && (

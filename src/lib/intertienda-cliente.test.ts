@@ -204,4 +204,26 @@ describe("pasaACliente: el botón «Customer» del formulario", () => {
     const r = pasaACliente({ store: null, pickup_name: null }, { order_type: "Customer", store: "X" }, null, TIENDAS);
     expect(r).toEqual({ order_type: "Customer", store: "X" });
   });
+
+  it("sin tienda propia, vende la tienda destino que ya se había elegido en la intertienda (la que pedía el material)", () => {
+    const antes = { store: "RDZ McAllen", pickup_name: "RDZ McAllen", pickup_address: "1 Main St, McAllen, TX", delivery_name: "rdz pharr" } as Partial<Delivery>;
+    const r = pasaACliente(antes, { order_type: "Customer", store: "RDZ McAllen" }, null, TIENDAS);
+    expect(r.pickup_name).toBe("RDZ McAllen");
+    expect(r.store).toBe("rdz pharr");
+  });
+
+  it("el destino que era la tienda se vacía (ahora el destino es el cliente); el destino de un cliente ya escrito no se toca", () => {
+    const antes = { store: "RDZ McAllen", pickup_name: "RDZ McAllen", delivery_name: "RDZ Pharr", delivery_address: "4 Cage Blvd, Pharr, TX" } as Partial<Delivery>;
+    const r = pasaACliente(antes, { order_type: "Customer", store: "RDZ McAllen", delivery_name: "RDZ Pharr", delivery_address: "4 Cage Blvd, Pharr, TX", delivery_lat: 1, delivery_lng: 2 }, "RDZ Pharr", TIENDAS);
+    expect([r.delivery_name, r.delivery_address, r.delivery_lat, r.delivery_lng]).toEqual(["", "", null, null]);
+    const otro = pasaACliente({ store: "RDZ McAllen", delivery_name: "Casa Ruiz" }, { order_type: "Customer", delivery_name: "Casa Ruiz", delivery_address: "9 Elm St" }, "RDZ Pharr", TIENDAS);
+    expect([otro.delivery_name, otro.delivery_address]).toEqual(["Casa Ruiz", "9 Elm St"]);
+  });
+
+  it("sin tienda propia ni destino elegido, «Vendido desde» queda vacío: el origen nunca se queda como la tienda que vende", () => {
+    const antes = { store: "RDZ McAllen", pickup_name: "RDZ McAllen", pickup_address: "1 Main St, McAllen, TX", delivery_name: "" } as Partial<Delivery>;
+    const r = pasaACliente(antes, { order_type: "Customer", store: "RDZ McAllen" }, "  ", TIENDAS);
+    expect(r.pickup_name).toBe("RDZ McAllen");
+    expect(r.store).toBe("");
+  });
 });

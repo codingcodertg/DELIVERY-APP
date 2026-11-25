@@ -129,9 +129,20 @@ export function pasaACliente(
   const recogida = (antes.pickup_name ?? "").trim();
   const nombre = recogida || (antes.store ?? "").trim();
   const direccion = recogida ? (antes.pickup_address ?? null) : (tiendas.find((t) => t.name === nombre)?.address ?? null);
+  // Quién vende: la tienda de la persona; si no tiene (admin, oficina de varias tiendas), la tienda DESTINO que ya había
+  // elegido en la intertienda (la que pedía el material es la que le vende al cliente). Si no hay ninguna de las dos y había
+  // un origen elegido, «Vendido desde» se deja vacío para que se elija: dejar ahí la tienda de origen la haría vendedora y
+  // la orden saldría directa, que es justo lo que la regla de la compañía no permite.
+  const destinoDeAntes = (antes.delivery_name ?? "").trim();
+  const vende = miTienda?.trim() || (tiendas.some((t) => normalizaLugar(t.name) === normalizaLugar(destinoDeAntes)) ? destinoDeAntes : "");
+  // El destino que traía era una TIENDA (la que pedía el material). Ahora el destino es el cliente: si se quedara la tienda,
+  // la orden iría de tienda a tienda con tipo de cliente y la regla no la vería como Intertienda Customer.
+  const destinoEraTienda = !!destinoDeAntes && tiendas.some((t) => normalizaLugar(t.name) === normalizaLugar(destinoDeAntes))
+    && normalizaLugar(yaConTipoDeCliente.delivery_name) === normalizaLugar(destinoDeAntes);
   return {
     ...yaConTipoDeCliente,
     ...(nombre ? { pickup_name: nombre, pickup_address: direccion } : {}),
-    ...(miTienda?.trim() ? { store: miTienda.trim() } : {}),
+    ...(vende ? { store: vende } : nombre ? { store: "" } : {}),
+    ...(destinoEraTienda ? { delivery_name: "", delivery_address: "", delivery_lat: null, delivery_lng: null } : {}),
   };
 }
