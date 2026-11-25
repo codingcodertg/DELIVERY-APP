@@ -40,3 +40,14 @@ export function tiendasPara(q: Quien, tiendas: readonly string[]): string[] {
   const mias = tiendas.filter((s) => s === q.store || (q.visible_stores ?? []).includes(s));
   return mias.length > 0 ? mias : [...tiendas];
 }
+
+/**
+ * Las tiendas que una persona puede VER (filtros, tablas «Por tienda», KPIs). El dueño, 2026-11-24: «solo admin puede ver
+ * todo»; los demás, «solo pueden ver su propia tienda». Admin = el nivel `admin` de la app (`nivelDe`). Los demás: su
+ * `store` y, si las tiene, sus `visible_stores` (son SUS tiendas). Sin ninguna tienda propia, ninguna: no se ofrecen las
+ * de todos «por si acaso» (la base ya no les enseña nada de otras; la pantalla no debe sugerir lo contrario).
+ */
+export function tiendasParaVer(q: Quien, tiendas: readonly string[]): string[] {
+  if (nivelDe(q) === "admin") return [...tiendas];
+  return tiendas.filter((s) => (!!q.store && s === q.store) || (q.visible_stores ?? []).includes(s));
+}

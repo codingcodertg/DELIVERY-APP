@@ -12,7 +12,7 @@ import { estadoDelGrupo, gruposPendientesDeMiFirma, type GrupoDeMerma } from "@/
 import { listarGrupos } from "@/lib/almacen-ops/datos";
 import { HojaDeGrupo } from "./HojaDeGrupo";
 import { leerNivelEscrito, tiposPermitidos } from "@/lib/almacen-ops/nivel";
-import { tiendasPara, vistaPermitida, type Vista } from "@/lib/almacen-ops/puerta";
+import { tiendasPara, tiendasParaVer, vistaPermitida, type Vista } from "@/lib/almacen-ops/puerta";
 import { ordenarTiendas } from "@/lib/almacen-ops/tiendas-orden";
 import { DEMO_PERSONAS, DEMO_TIENDAS, DEMO_YO, faltaLaMigracion, type Persona, type Yo } from "@/lib/almacen-ops/datos";
 import { Asistente } from "./Asistente";
@@ -33,7 +33,10 @@ export type { Vista };
 export interface Contexto {
   demo: boolean;
   yo: Yo;
+  /** Para llenar: en qué tiendas puede reportar. */
   tiendas: string[];
+  /** Para VER (filtros, «Por tienda», KPIs): solo el admin ve todas; los demás, las suyas (2026-11-24). */
+  tiendasParaVer: string[];
   personas: Persona[];
 }
 
@@ -43,7 +46,7 @@ type Carga = { estado: "cargando" } | { estado: "falta-247" } | { estado: "error
 export function Operaciones({ vista, demo }: { vista: Vista; demo: boolean }) {
   const { t } = usePrefs();
   const [carga, setCarga] = useState<Carga>(demo
-    ? { estado: "listo", ctx: { demo, yo: DEMO_YO, tiendas: DEMO_TIENDAS, personas: DEMO_PERSONAS } }
+    ? { estado: "listo", ctx: { demo, yo: DEMO_YO, tiendas: DEMO_TIENDAS, tiendasParaVer: tiendasParaVer(DEMO_YO, DEMO_TIENDAS), personas: DEMO_PERSONAS } }
     : { estado: "cargando" });
 
   // Solo en demo (NEXT_PUBLIC_LOCAL_MODE): para revisar la pantalla como otro rol sin base, `localStorage["rtg:demo:yo"]`
@@ -55,7 +58,7 @@ export function Operaciones({ vista, demo }: { vista: Vista; demo: boolean }) {
       const crudo = localStorage.getItem("rtg:demo:yo");
       if (!crudo) return;
       const yo = { ...DEMO_YO, ...(JSON.parse(crudo) as Partial<Yo>) };
-      setCarga({ estado: "listo", ctx: { demo, yo, tiendas: yo.role === "admin" ? DEMO_TIENDAS : DEMO_TIENDAS.filter((x) => x === yo.store), personas: DEMO_PERSONAS } });
+      setCarga({ estado: "listo", ctx: { demo, yo, tiendas: yo.role === "admin" ? DEMO_TIENDAS : DEMO_TIENDAS.filter((x) => x === yo.store), tiendasParaVer: tiendasParaVer(yo, DEMO_TIENDAS), personas: DEMO_PERSONAS } });
     } catch { /* override roto: se queda el admin demo */ }
   }, [demo]);
 
@@ -91,7 +94,7 @@ export function Operaciones({ vista, demo }: { vista: Vista; demo: boolean }) {
         .map((e): Persona => ({ id: e.id, full_name: (e.full_name ?? "").trim(), store: e.store, fuente: "expediente" }));
       const personas = [...deProfiles, ...deExpediente].sort((a, b) => a.full_name.localeCompare(b.full_name));
       // 265: el admin de la app «solo en sus tiendas» no elige ni filtra otra tienda (la base se lo rechaza igual).
-      setCarga({ estado: "listo", ctx: { demo, yo, tiendas: ordenarTiendas(tiendasPara(yo, todas), yo.store), personas } });
+      setCarga({ estado: "listo", ctx: { demo, yo, tiendas: ordenarTiendas(tiendasPara(yo, todas), yo.store), tiendasParaVer: ordenarTiendas(tiendasParaVer(yo, todas), yo.store), personas } });
     })();
     return () => { vivo = false; };
   }, [demo]);
