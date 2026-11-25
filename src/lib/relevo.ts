@@ -79,6 +79,22 @@ export function porQueNoSeRecoge<T extends Minima & Pick<Delivery, "order_no"> &
   return mensajeDeEspera(anterior);
 }
 
+export type EstadoDelPasoAnterior = "entregado" | "pendiente";
+/**
+ * Para un paso b (c, d…) de un relevo: ¿el paso anterior ya está ENTREGADO en la tienda de relevo? `null` si `d` no es un
+ * paso de relevo, si es el primer paso (a), o si el paso anterior no está a la vista (un chofer no ve el paso de otro: no se
+ * afirma nada que no se sabe). Un paso anterior cancelado cuenta como «pendiente».
+ */
+export function estadoDelPasoAnterior<T extends Minima>(d: T, todas: readonly T[]): EstadoDelPasoAnterior | null {
+  const anterior = pasoAnterior(todas, d);
+  if (!anterior) return null;
+  return anterior.stage === "delivered" ? "entregado" : "pendiente";
+}
+export const TEXTO_DEL_PASO_ANTERIOR: Record<EstadoDelPasoAnterior, (letra: string) => Bilingue> = {
+  entregado: (letra) => ({ en: `✓ ${letra.toUpperCase()} delivered`, es: `✓ ${letra.toUpperCase()} entregado` }),
+  pendiente: (letra) => ({ en: `⏳ ${letra.toUpperCase()} not delivered yet`, es: `⏳ ${letra.toUpperCase()} sin entregar` }),
+};
+
 /** ¿Esta escritura mete el paso en recogido/entregado viniendo de una etapa anterior? Es lo que la regla del orden frena. */
 export const entraEnElCamion = (antes: string | null | undefined, despues: string | null | undefined): boolean =>
   !!despues && YA_SALIO.has(despues) && !YA_SALIO.has(antes ?? "");

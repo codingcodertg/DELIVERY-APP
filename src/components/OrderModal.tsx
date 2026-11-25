@@ -20,7 +20,7 @@ import { FranjasDelDia } from "@/components/FranjasDelDia";
 import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
 import { DIAS_DE_BORRADOR, esMia } from "@/lib/ordenes-visibles";
 import { ReprogramarOrden } from "@/components/ReprogramarOrden";
-import { PastillaDeRelevo, RelevoDeLaOrden } from "@/components/RelevoDeLaOrden";
+import { EtiquetaDelPasoAnterior, PastillaDeRelevo, RelevoDeLaOrden } from "@/components/RelevoDeLaOrden";
 import { pasaACliente, pasaPorLaTiendaQueVende, subtipoDeIntertienda, TEXTO_DEL_SUBTIPO, textoDeLosPasos } from "@/lib/intertienda-cliente";
 import { esPasoDeRelevo } from "@/lib/relevo-etiqueta";
 import { puedeReprogramar } from "@/lib/reprogramar-orden";
@@ -1985,6 +1985,7 @@ export function OrderModal({
               {isNew ? t("New delivery order", "Nueva orden de entrega") : `${t("Order", "Orden")} #${orderLabel(existing!)}`}
               {/* D-898 (256): un paso de transferencia por relevo lleva su pastilla junto al número («Orden #Tr-1111-a»). */}
               {!isNew && existing && <PastillaDeRelevo d={existing} lang={lang} style={{ marginLeft: 8 }} />}
+              {!isNew && existing && <EtiquetaDelPasoAnterior d={existing} todas={deliveries} lang={lang} style={{ marginLeft: 8 }} />}
               {dirty && <span className="sema" style={{ background: "var(--amber)", color: "#fff", marginLeft: 8 }}>● {t("Unsaved", "Sin guardar")}</span>}
             </h3>
             <div className="sub" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>

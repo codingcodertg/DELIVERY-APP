@@ -1048,6 +1048,9 @@ table.orders th.th-cae-detras { box-shadow: inset -3px 0 0 var(--accent); backgr
 .sema.sema-sol-review { background: var(--purple); color: #fff; }
 .sema.sema-sol-approved { background: var(--green); color: #fff; }
 .sema.sema-sol-rejected { background: var(--gray); color: #fff; }
+/* Transferencia por relevo: el paso b dice si el paso a ya llegó a la tienda de relevo (verde) o todavía no (ámbar). */
+.sema.sema-relevo-entregado { background: var(--green); color: #fff; }
+.sema.sema-relevo-pendiente { background: var(--amber); color: #fff; }
 
 .user-row { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; background: var(--card); flex-wrap: wrap; }
 .toggle-group { display: inline-flex; gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
