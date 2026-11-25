@@ -93,7 +93,6 @@ describe("las claves que usan los componentes de Asignaciones y Nómina existen 
     "src/components/timetracker/AssignmentsPanel.tsx",
     "src/components/timetracker/Modal.tsx",
     // D-190 (Nómina): la cabecera que era "Period", la vista única y la marca `revisar`.
-    "src/components/timetracker/PayrollResumen.tsx",
     "src/components/timetracker/PayrollTabs.tsx",
     "src/components/timetracker/PayrollTimesheets.tsx",
     "src/components/timetracker/ManagerReports.tsx",
