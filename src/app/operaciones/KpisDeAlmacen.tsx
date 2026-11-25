@@ -48,7 +48,7 @@ export function KpisDeAlmacen({ ctx }: { ctx: Contexto }) {
   const { t, lang } = usePrefs();
   const hoy = hoyEnTexas();
   const meses = useMemo(() => mesesHastaHoy(hoy, 12), [hoy]);
-  const tiendas = ctx.tiendas;
+  const tiendas = ctx.tiendasParaVer;
   const [tienda, setTienda] = useState<string>(tiendas[0] ?? ctx.yo.store ?? "");
   const [mes, setMes] = useState<string>(meses[0] ?? "");
   const [filtro, setFiltro] = useState<FiltroDeKpi>("todos");

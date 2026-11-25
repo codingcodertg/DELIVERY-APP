@@ -39,7 +39,7 @@ type Pestana = "equipo" | "refacciones";
 export function Mantenimiento({ ctx }: { ctx: Contexto }) {
   const { t } = usePrefs();
   const [carga, setCarga] = useState<Carga>(ctx.demo ? { estado: "listo", datos: DEMO_MANTENIMIENTO } : { estado: "cargando" });
-  const [tienda, setTienda] = useState(() => (ctx.yo.store && ctx.tiendas.includes(ctx.yo.store) ? ctx.yo.store : ctx.tiendas[0] ?? ""));
+  const [tienda, setTienda] = useState(() => (ctx.yo.store && ctx.tiendasParaVer.includes(ctx.yo.store) ? ctx.yo.store : ctx.tiendasParaVer[0] ?? ""));
   const [pestana, setPestana] = useState<Pestana>("equipo");
 
   useEffect(() => {
@@ -65,11 +65,11 @@ export function Mantenimiento({ ctx }: { ctx: Contexto }) {
           <Link href="/operaciones/nuevo/maintenance" className="ops-boton ops-boton-chico" data-ir="bitacora-de-mantenimiento">📝 {t("New maintenance log entry", "Nueva entrada en la bitácora")}</Link>
         </p>
       )}
-      {ctx.tiendas.length > 1 && (
+      {ctx.tiendasParaVer.length > 1 && (
         <label className="ops-tienda ops-tienda-arriba">
           <span>{t("Store", "Tienda")}</span>
           <select value={tienda} onChange={(e) => setTienda(e.target.value)} data-campo="tienda-mantenimiento">
-            {ctx.tiendas.map((x) => <option key={x} value={x}>{x}</option>)}
+            {ctx.tiendasParaVer.map((x) => <option key={x} value={x}>{x}</option>)}
           </select>
         </label>
       )}
