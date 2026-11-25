@@ -185,10 +185,14 @@ describe("cableado en las pantallas", () => {
     expect(c).toContain("...camposDeLugar(me, tiendaId");
   });
 
-  it("el presencial en varias tiendas ve las dos vistas, como el admin", () => {
+  // Antes (316): «el presencial en varias tiendas ve las dos vistas, como el admin». Desde 2026-11-25
+  // (fichaje en tienda) no tiene cronómetro, como cualquier presencial: solo el fichaje.
+  it("el presencial en varias tiendas NO ve el cronómetro: solo el fichaje (fichaje en tienda)", () => {
     const c = leer("src/components/timetracker/Cronometro.tsx");
-    expect(c).toContain("const dosVistas = esAdmin || multitienda;");
-    expect(c).toContain("if (presencial && !dosVistas)");
+    expect(c).toContain("const dosVistas = esAdmin;");
+    expect(c).toContain("const modoCronometro = vistaDelCronometro(me, esAdmin, running);");
+    expect(c).toContain("if (modoCronometro === \"solo_fichaje\") return visible ? <PunchPanel /> : null;");
+    expect(c).not.toContain("const dosVistas = esAdmin || multitienda;");
   });
 
   it("la solicitud no bloquea al presencial por proyecto", () => {

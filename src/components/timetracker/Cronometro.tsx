@@ -30,6 +30,7 @@ import {
   camposDeLugar, claveTiendaDelDia, errorDeInicioEnTienda, esMultiTienda, selectorDeProyecto, tiendaDelDiaDesde,
   tiendasParaElegir, valorTiendaDelDia,
 } from "@/lib/timetracker/multitienda";
+import { vistaDelCronometro } from "@/lib/timetracker/fichaje-en-tienda";
 import {
   estadoVigia, parcheDeStop, pararPorCorteSiToca, tocaReintentar, tocaSonar, VIGIA_CADA_MS,
 } from "@/lib/timetracker/vigia";
@@ -1983,17 +1984,40 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
   // El presencial NO ve el cronómetro: no es suyo y ofrecérselo solo da ocasión de empezar
   // algo que después descuadra su nómina (las dos mitades no se suman, D-102).
   // El admin ve las dos porque le toca mirar las dos.
+  //
+  // 2026-11-25 (fichaje en tienda, `fichaje-en-tienda.ts`): esto vale TAMBIÉN para quien va en VARIAS
+  // tiendas. Antes ese tenía las dos pestañas; ahora solo el fichaje, y el cronómetro se queda en
+  // «solo parar» si quedó uno corriendo de antes (no se deja una sesión viva sin poder pararla).
   const presencial = effWorkerType(me) === "inhouse";
   const esAdmin = me.role === "admin";
-  // Quien va en VARIAS tiendas (316) tiene las dos vistas, como el admin: el reloj con su tienda y el
-  // fichaje. Sin ellas no tendría dónde elegir la tienda, porque el cronómetro se le escondía.
-  const multitienda = esMultiTienda(me);
-  const dosVistas = esAdmin || multitienda;
+  const modoCronometro = vistaDelCronometro(me, esAdmin, running);
+  const dosVistas = esAdmin;
 
   // El fichaje se pinta AQUÍ, en la misma plantilla (D-125). Antes esto mandaba al presencial
   // a la app de fichaje: funcionaba, pero dejaba dos sitios donde trabajar y el objetivo es
   // retirar aquella app entera.
-  if (presencial && !dosVistas) return visible ? <PunchPanel /> : null;
+  if (modoCronometro === "solo_fichaje") return visible ? <PunchPanel /> : null;
+  if (modoCronometro === "solo_parar") {
+    if (!visible) {
+      return (
+        <div className="banner warn" role="alert">
+          {t("track.liveElsewhere")} <Link href="/timetracker">{t("track.goToTimer")}</Link>
+        </div>
+      );
+    }
+    return (
+      <div className="card">
+        <div className="between">
+          <h2 style={{ margin: 0 }}>{t("track.title")}</h2>
+        </div>
+        <div className="hint" style={{ marginTop: 6 }}>{t("track.stopOnlyNote")}</div>
+        <div className="timer-big">{fmtClockSinSegundos(worked)}</div>
+        <div className="row" style={{ marginTop: 12 }}>
+          <button className="btn-danger" onClick={() => void stop()}>{t("track.stop")}</button>
+        </div>
+      </div>
+    );
+  }
 
   /** Qué está haciendo la recuperación, al lado del «Sin guardar» (D-916). */
   const textoDeRacha = (r: Racha): string => {
