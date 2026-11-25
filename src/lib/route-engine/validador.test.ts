@@ -226,4 +226,18 @@ describe("validaLaRuta", () => {
     expect(secuencia.length).toBe(4);
     expect(secuencia[0]).toEqual(P("a"));
   });
+
+  it("regla 2: la entrega de una orden cuya recogida está antes en la misma visita no incumple", () => {
+    const r = validaLaRuta(entrada([o("a", "pharr", "pharr", 2)], [P("a"), D("a")]));
+    expect(r.violaciones.filter((v) => v.clave === "carga_antes_de_descarga")).toEqual([]);
+  });
+
+  it("regla 2: en una visita con una entrega de otra orden después de recoger, sí incumple, por esa otra", () => {
+    const ordenes = [o("a", "pharr", "pharr", 2), o("y", "c2", "pharr", 2)];
+    const r = validaLaRuta(entrada(ordenes, [P("a"), D("a"), D("y")]));
+    const v = r.violaciones.find((x) => x.clave === "carga_antes_de_descarga");
+    expect(v).toBeDefined();
+    expect(v?.indice).toBe(2);
+    expect(v?.ordenes).toEqual(["y", "a"]);
+  });
 });

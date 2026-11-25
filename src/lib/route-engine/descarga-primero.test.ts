@@ -75,4 +75,29 @@ describe("descargaPrimero", () => {
     const normalizada = descargaPrimero(mal, ords);
     expect(validaLaRuta(entrada(normalizada)).violaciones.some((v) => v.clave === "carga_antes_de_descarga")).toBe(false);
   });
+
+  it("una orden que empieza y acaba en el mismo sitio se queda con su P delante de su D", () => {
+    expect(descargaPrimero([P("a"), D("a")], [o("a", "pharr", "pharr")])).toEqual([P("a"), D("a")]);
+  });
+
+  it("en una visita mixta, la D de una orden de paso va primero y la D de la orden de la misma visita, al final", () => {
+    const ords = [o("a", "pharr", "pharr"), o("y", "c2", "pharr"), o("z", "pharr", "c3")];
+    const sec = [P("a"), D("a"), D("y"), P("z")];
+    const salida = descargaPrimero(sec, ords);
+    expect(salida).toEqual([D("y"), P("a"), P("z"), D("a")]);
+    expect(descargaPrimero(salida, ords)).toEqual(salida);
+  });
+
+  it("la normalización no deja ninguna carga antes de descarga en los casos de estas pruebas", () => {
+    const casos: { ords: OrdenEntrada[]; sec: ParadaRef[] }[] = [
+      { ords: ordenes, sec: [P("x"), D("y"), P("z"), D("w")] },
+      { ords: [o("a", "pharr", "pharr")], sec: [P("a"), D("a")] },
+      { ords: [o("a", "pharr", "pharr"), o("y", "c2", "pharr"), o("z", "pharr", "c3")], sec: [P("a"), D("a"), D("y"), P("z")] },
+    ];
+    for (const { ords, sec } of casos) {
+      const cargaAntes = (s: ParadaRef[]) => validaLaRuta({ chofer: { nombre: "Julio", capacidad: 10 }, ordenes: ords, secuencia: s })
+        .violaciones.filter((v) => v.clave === "carga_antes_de_descarga");
+      expect(cargaAntes(descargaPrimero(sec, ords))).toEqual([]);
+    }
+  });
 });

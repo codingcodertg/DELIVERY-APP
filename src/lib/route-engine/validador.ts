@@ -213,14 +213,16 @@ export function validaLaRuta(e: EntradaDelValidador): Resultado {
     else visitas.push({ punto, desde: i, hasta: i });
   });
 
-  // Regla 2: dentro de una visita, no se entrega después de haber recogido en ese mismo sitio.
+  // Regla 2: dentro de una visita, no se entrega una orden que se recogió en otro sitio después de haber recogido en ese
+  // mismo sitio. La entrega de una orden cuya recogida está antes en la MISMA visita no cuenta: esa orden sale del mismo
+  // punto donde entra, y sigue valiendo para las demás de la visita.
   for (const v of visitas) {
     const previas: string[] = [];
     for (let i = v.desde; i <= v.hasta; i++) {
       const s = paradas[i];
       if (s.tipo === "P") {
         previas.push(s.orden);
-      } else if (previas.length > 0) {
+      } else if (previas.length > 0 && !previas.includes(s.orden)) {
         viola(2, "carga_antes_de_descarga", s.k, unicos([s.orden, ...previas]),
           `En ${v.punto} se recoge ${unicos(previas).map(nombre).join(", ")} antes de entregar ${nombre(s.orden)}.`, v.punto);
         break;
