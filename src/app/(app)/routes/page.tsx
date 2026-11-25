@@ -142,6 +142,8 @@ import { altoMaximoDeCaja } from "@/lib/barra-superior";
 import { BarraSuperior, useCajasPorClave } from "@/components/BarraSuperior";
 import { CerrarAviso } from "@/components/CerrarAviso";
 import { avisoDelHueco, escrituraDelHueco, mejorLugar, separaPorRequisitos, type ParadaDeRuta } from "@/lib/mejor-lugar";
+import { avisoDePisar, notaDeReglas, type ResultadoAuto } from "@/lib/auto-optimiza-la-ruta";
+import { huellaDeLaRuta } from "@/lib/auto-optimizar";
 import {
   anota, barrasDeLaRuta, botonDeVolver, choquesAlVolver, descartaElDeArriba, escriturasHacia, fotoDe, fotoDeFilas, fotoTrasReordenar,
   HISTORIAL_VACIO, objetivoDe, planDeSoltar, porQueNoSuelta, resella, sellosDe, textoDeChoques, textoDePrevia, trasVolver,
@@ -252,7 +254,7 @@ export default function RoutesPage() {
   const soloLectura = soloLecturaDeclarada || miChofer != null;
   // «Mi ruta» monta ESTA pantalla y se queda solo con su mapa (D-514): el mismo mapa, no una copia. Manda su día.
   const soloElMapa = useSoloElMapa();
-  const { me, users, deliveries: deliveriesLeidas, settings, saveSettings, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, addNote, reprogramarOrden, notify, setStage, availability, ready, incidents, addIncident, removeIncident, shifts, events, teaching, realRole } = useData();
+  const { me, users, deliveries: deliveriesLeidas, settings, saveSettings, updateDelivery, reorderStops, partirCarga, reparteCargas, juntarCargas, addNote, reprogramarOrden, notify, setStage, availability, ready, incidents, addIncident, removeIncident, shifts, events, teaching, realRole, hayAutoOptimizar, fijaParadas, estadoAutoDeRutas, marcaAutoDeRuta } = useData();
   // «🔁 Cambiar etapa» (solo admin): la celda de ETAPA de cada parada ofrece Recogido / Entregado. Apagado por defecto; sin persistir.
   const [cambiarEtapa, setCambiarEtapa] = useState(false);
   // Las posiciones de los choferes: fuera del contexto principal, para que un ping de GPS no repinte toda la pantalla de datos.
@@ -1472,13 +1474,40 @@ export default function RoutesPage() {
   //     optimiza, y lo dice. El aviso dice lo ganado (`avisoDeOptimizar`).
   const [optimizando, setOptimizando] = useState<string | null>(null);
   const tiemposPedidos = useRef(new Map<string, TiemposPedidos>());
-  const optimizaLaRuta = async (laneKey: string) => {
-    if (optimizando != null || moviendo) return;
+  // La huella de una ruta (chofer, día, paradas en orden, órdenes con pallets y direcciones): cambia si cambia la ruta.
+  const paradaParaHuella = (p: ParadaDeLaLista) => ({ orden: p.tipo === "D" ? p.orden : p.ordenes.join("+"), tipo: p.tipo });
+  const ordenParaHuella = (d: Delivery) => ({ id: d.id, pallets: palletsDeLaOrden(d), origen: d.pickup_address ?? null, destino: d.delivery_address ?? null });
+  const huellaDeLaRutaCon = (laneKey: string, lista: readonly ParadaDeLaLista[], stops: readonly Delivery[]): string =>
+    huellaDeLaRuta({ chofer: laneKey, dia: date, paradas: lista.map(paradaParaHuella), ordenes: stops.map(ordenParaHuella) });
+  /** La huella de la ruta de un chofer TAL COMO ESTÁ AHORA (la lista que pinta la tarjeta). */
+  const huellaDeLaLane = (laneKey: string): string => {
+    const stops = byDriver.get(laneKey) ?? [];
+    return huellaDeLaRutaCon(laneKey, lecturaDe(laneKey, stops).paradas, stops);
+  };
+  // Lo que la cola de movimientos comprueba antes de escribir una auto-optimización: la huella del último render.
+  const huellaVivaRef = useRef<(laneKey: string) => string>(() => "");
+  huellaVivaRef.current = huellaDeLaLane;
+
+  /** Lo que tarda como mucho la consulta de tiempos de una auto-optimización; pasado, es un fallo que se reintenta. */
+  const TIEMPO_MAXIMO_AUTO_MS = 20_000;
+  /**
+   * «🧭 Optimizar» de una ruta, con el MISMO motor para el botón (`modo` «boton») y la auto-optimización al asignar («auto»).
+   * El botón pregunta antes si va a pisar paradas fijadas a mano, y escribe y marca la ruta. La auto no pregunta ni avisa
+   * (salvo un aviso corto si cambió algo), no pone `optimizando` (no rechaza los movimientos de la persona mientras
+   * espera la red) y escribe dentro de la cola de movimientos, tras comprobar que la ruta no cambió desde que empezó
+   * a calcular. Ninguna de las dos escribe un resultado que rompa una regla dura. Devuelve lo que pasó (`ResultadoAuto`).
+   */
+  const optimizaLaRuta = async (laneKey: string, modo: "boton" | "auto" = "boton"): Promise<ResultadoAuto> => {
+    const auto = modo === "auto";
+    if (!auto && (optimizando != null || moviendo)) return { estado: "nada" };
     if (bloqueada(laneKey)) {
-      notify(t(`🔒 ${laneLabel(laneKey)} is locked — Optimize leaves it alone. Unlock it first.`, `🔒 ${laneLabel(laneKey)} está bloqueada — Optimizar no la toca. Desbloquéela primero.`));
-      return;
+      if (!auto) notify(t(`🔒 ${laneLabel(laneKey)} is locked — Optimize leaves it alone. Unlock it first.`, `🔒 ${laneLabel(laneKey)} está bloqueada — Optimizar no la toca. Desbloquéela primero.`));
+      return { estado: "nada" };
     }
     const stops = byDriver.get(laneKey) ?? [];
+    // Con paradas fijadas a mano, el botón lo dice ANTES de pisarlas (la confirmación de siempre de esta pantalla).
+    const pisa = hayAutoOptimizar && !auto ? avisoDePisar(stops) : null;
+    if (pisa && !(await confirmAction(t(pisa.en, pisa.es), { danger: true, confirmLabel: t("Optimize anyway", "Optimizar igual") }))) return { estado: "nada" };
     const lista = lecturaDe(laneKey, stops).paradas;
     const base = baseDeLaRuta(laneKey);
     // D-1029: con la ruta de HOY ya a medias, lo pendiente sale de donde quedó el camión y a la hora que es, no de la base a
@@ -1496,26 +1525,71 @@ export default function RoutesPage() {
       const v = p.ordenes.map((id) => desdeDelRelevo.get(id)).filter((x): x is number => x != null);
       return v.length ? Math.max(...v) : null;
     });
-    setOptimizando(laneKey);
+    // La huella de AHORA: si cambia mientras se piden los tiempos, lo calculado ya no vale (la auto lo vuelve a pedir).
+    const huellaInicial = auto ? huellaDeLaLane(laneKey) : "";
+    /** Marca la ruta solo en el botón (la auto la marca quien la lanza, `autoOptimiza`). */
+    const marcaBoton = (estado: "hecha" | "fallo", datos?: { huella?: string | null; nota?: string | null; sumaIntento?: boolean }) => {
+      if (!auto && hayAutoOptimizar) void marcaAutoDeRuta(date, laneKey, estado, datos).catch(() => false);
+    };
+    if (!auto) setOptimizando(laneKey);
     try {
-      const tiempos = await tiemposDeLaRuta(puntosDeLaEntrada(entrada), tiemposPedidos.current, (puntos) =>
-        fetch("/api/route-matrix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ puntos }) }));
+      const tiempos = await tiemposDeLaRuta(puntosDeLaEntrada(entrada), tiemposPedidos.current, (puntos) => {
+        // La auto no espera sin límite a la red: pasado el tiempo máximo, es un fallo (se reintenta).
+        const ctl = new AbortController();
+        const reloj = auto ? setTimeout(() => ctl.abort(), TIEMPO_MAXIMO_AUTO_MS) : null;
+        return fetch("/api/route-matrix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ puntos }), ...(auto ? { signal: ctl.signal } : {}) })
+          .finally(() => { if (reloj) clearTimeout(reloj); });
+      });
+      if (auto && tiempos == null) return { estado: "fallo", nota: t("No travel times (the route service didn't answer)", "Sin tiempos de viaje (el servicio de rutas no contestó)"), reintentar: true };
       // D-1029: nunca peor que lo que hay, medido como lo enseña la tarjeta (millas, y jornada de manejo + parado).
       const r = optimizaSinEmpeorar({ ...entrada, recogidaDesde, tiempos: tiempos?.tiempos ?? null });
+      // Las reglas duras (`reglas.violaciones`): si el resultado rompe alguna, NO se escribe. Solo con la auto-optimización.
+      if (hayAutoOptimizar && r.reglas.violaciones.length) {
+        const nota = notaDeReglas(r.reglas.violaciones);
+        if (!auto) notify(t(`Not optimised: the result would break the rule(s) ${nota}. Nothing was changed.`, `No se optimizó: el resultado rompería la(s) regla(s) ${nota}. No se cambió nada.`), { ms: 8000 });
+        marcaBoton("fallo", { nota });
+        return { estado: "fallo", nota, reintentar: false };
+      }
       const porId = new Map(stops.map((d) => [d.id, d]));
       const aviso = avisoDeOptimizar({
         ruta: laneLabel(laneKey), r, tiempos, hayBase: !!base, pallets: numeroDePallets, sinRecogidas: !hayRecogidaGuardada,
         nombreDe: (id) => { const d = porId.get(id); return d ? facturaYId(d).principal : id.slice(0, 6); },
       });
       // Si no hay nada mejor no se escribe: no hay nada que guardar ni que deshacer.
-      if (r.cambio && !(await guardaLaLista(laneKey, stops, r.paradas, { en: `Optimize ${laneLabel(laneKey)}`, es: `Optimizar ${laneLabel(laneKey)}` }))) return;
-      notify(t(aviso.en, aviso.es));
+      const escribe = async (): Promise<boolean> => {
+        if (r.cambio && !(await guardaLaLista(laneKey, stops, r.paradas, { en: `Optimize ${laneLabel(laneKey)}`, es: `Optimizar ${laneLabel(laneKey)}` }))) return false;
+        return true;
+      };
+      const cola = { escrito: false, reprograma: false };
+      if (!auto) cola.escrito = await escribe();
+      else if (!r.cambio) cola.escrito = true;
+      else {
+        // La auto escribe EN LA COLA de movimientos, y antes comprueba que la ruta es la de cuando empezó a calcular.
+        await enFila(async () => {
+          if (huellaVivaRef.current(laneKey) !== huellaInicial) { cola.reprograma = true; return; }
+          cola.escrito = await escribe();
+        });
+      }
+      if (cola.reprograma) return { estado: "reprograma" };
+      if (!cola.escrito) {
+        const nota = t("The route couldn't be saved", "No se pudo guardar la ruta");
+        marcaBoton("fallo", { sumaIntento: true, nota });
+        return { estado: "fallo", nota, reintentar: auto };
+      }
+      const huella = huellaDeLaRutaCon(laneKey, r.paradas, stops);
+      if (!auto) {
+        // El botón rehace todo: las paradas que estaban fijadas dejan de estarlo, y la ruta queda marcada como hecha.
+        if (hayAutoOptimizar) void fijaParadas(stops.map((d) => d.id), false).catch(() => false);
+        marcaBoton("hecha", { huella });
+        notify(t(aviso.en, aviso.es));
+      } else if (r.cambio) {
+        notify(t(`Route of ${laneLabel(laneKey)} optimised automatically`, `Ruta de ${laneLabel(laneKey)} optimizada sola`));
+      }
+      return { estado: "hecha", huella };
     } finally {
-      setOptimizando(null);
+      if (!auto) setOptimizando(null);
     }
-  };
-
-  // Friendly display name for a lane key.
+  };  // Friendly display name for a lane key.
   const laneLabel = (key: string) => lanes.find((l) => l.key === key)?.label ?? key;
   // «📸 PNG» (D-536): de qué ruta se está armando la imagen para el chofer. Una a la vez.
   const [pngDe, setPngDe] = useState<string | null>(null);

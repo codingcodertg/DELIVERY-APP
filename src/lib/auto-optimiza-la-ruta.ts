@@ -63,3 +63,26 @@ export function avisoDePisar(pendientes: readonly { route_fixed?: boolean | null
     es: `Optimizar va a reacomodar toda la ruta y pisar ${n} parada(s) que colocaste a mano. ¿Continuar?`,
   };
 }
+
+/**
+ * Lo que devuelve una auto-optimización de UNA ruta, para que quien la lanza marque la ruta: «hecha» (con su huella, para
+ * no repetirla), «fallo» (con la nota; `reintentar` si otro intento puede salir bien: sin tiempos de viaje, o la escritura
+ * no pasó), «reprograma» (la ruta cambió mientras se calculaba: se vuelve a pedir) o «nada» (no toca la ruta).
+ */
+export type ResultadoAuto =
+  | { estado: "hecha"; huella: string }
+  | { estado: "fallo"; nota: string; reintentar: boolean }
+  | { estado: "reprograma" }
+  | { estado: "nada" };
+
+/** La espera antes del reintento número `intento` (0 = el primero): 5 s, luego 20 s. Después, null: se queda en «fallo». */
+export function reintentoAuto(intento: number): number | null {
+  if (intento === 0) return 5_000;
+  if (intento === 1) return 20_000;
+  return null;
+}
+
+/** Las reglas que incumple un resultado, sin repetir, para la nota de la ruta (p. ej. «carga_antes_de_descarga, parada_repetida»). */
+export function notaDeReglas(violaciones: readonly { clave: string }[]): string {
+  return [...new Set(violaciones.map((v) => v.clave))].join(", ");
+}
