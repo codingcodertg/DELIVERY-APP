@@ -38,6 +38,7 @@ import { appDelTurno } from "@/lib/gps-del-turno";
 import { isNativeApp } from "@/lib/native-bridge";
 import { applyShiftOutbox, enqueueShiftOp, flushShiftOps, loadShiftOutbox, saveShiftOutbox, type ShiftOp } from "@/lib/shift-outbox";
 import { ALL_QUERIES, queriesForTables, type QueryName } from "@/lib/realtime-reload";
+import { conReintentosDeRed, esFalloDeRed } from "@/lib/reintenta-la-red";
 import { crearAlmacenDeUbicaciones, UbicacionesDeChoferesCtx, type FuenteDeUbicaciones } from "@/lib/ubicaciones-de-choferes";
 import { cumpleFiltroDeLaLista, fusionarFilas, planDeRafaga, porCampoDesc, porCreatedAtDesc, porOrderNoDesc, type EventoRealtime, type PlanDeTabla, type TablaPorFila, type TipoDeEvento } from "@/lib/recarga-por-fila";
 import { avisoDePartirSola, cargasAlGuardar, esFuncionAusente, parteEnCadena, restosParaPartir } from "@/lib/cargas-partidas";
@@ -1517,16 +1518,54 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
           return !(was && was.route_seq === patch.route_seq && (!loadNoById || (was.load_no ?? null) === (patch.load_no ?? null))
             && (!pickupSeqById || Number(was.pickup_seq ?? NaN) === Number(patch.pickup_seq ?? NaN) || (was.pickup_seq == null && patch.pickup_seq == null)));
         });
+        // Ids cuyo UPDATE ya se guardó en esta llamada: si una escritura posterior falla, se devuelven a su valor de antes.
+        const escritas: string[] = [];
+        // The old values of one stop, for putting it back: the same fields this call writes, taken from `prev`.
+        const patchAnterior = (id: string): Partial<Delivery> => {
+          const was = prev.find((d) => d.id === id)!;
+          return {
+            route_seq: was.route_seq,
+            ...(loadNoById ? { load_no: was.load_no ?? null } : {}),
+            ...(pickupSeqById ? { pickup_seq: was.pickup_seq ?? null } : {}),
+            ...(loadAuto === undefined ? {} : { load_auto: was.load_auto }),
+          };
+        };
         // D-1145: de 6 en 6, no una detrás de otra. Subir una parada de la 15 a la 1 cambia quince filas: una a una eran
         // varios segundos con el Gestor sin dejar mover nada más («a veces no me deja»); todas a la vez es lo que saturó
         // la base en D-1144. Seis a la vez es el mismo paso que «Vaciar ruta».
         for (let i = 0; i < cambian.length; i += ESCRITURAS_A_LA_VEZ) {
           const tanda = cambian.slice(i, i + ESCRITURAS_A_LA_VEZ);
-          const hechas = await Promise.all(tanda.map((id) => supabase.from("deliveries").update(patchFor(id)).eq("id", id)));
+          const hechas = await Promise.all(tanda.map((id) =>
+            conReintentosDeRed(() => supabase.from("deliveries").update(patchFor(id)).eq("id", id))
+              .then((r) => { if (!r.error) escritas.push(id); return r; }),
+          ));
           const fallo = hechas.find((r) => r.error);
           if (fallo?.error) {
-            setDeliveries(prev);          // put the old order back
-            notify("Error: " + fallo.error.message);
+            // Un fallo que no se arregló reintentando no puede dejar la base a medias: se devuelve lo ya escrito.
+            const deRed = esFalloDeRed(fallo.error);
+            const aDeshacer = escritas.filter((id) => prev.some((d) => d.id === id));
+            let deshechoTodo = true;
+            for (let j = 0; j < aDeshacer.length; j += ESCRITURAS_A_LA_VEZ) {
+              const vuelta = aDeshacer.slice(j, j + ESCRITURAS_A_LA_VEZ);
+              const revertidas = await Promise.all(vuelta.map((id) =>
+                conReintentosDeRed(() => supabase.from("deliveries").update(patchAnterior(id)).eq("id", id)),
+              ));
+              if (revertidas.some((r) => r.error)) deshechoTodo = false;
+            }
+            if (deshechoTodo) {
+              setDeliveries(prev);          // put the old order back
+              notify(deRed
+                ? (lang === "es"
+                  ? "No se pudo guardar el nuevo orden: falló la conexión. No se movió nada: inténtelo de nuevo."
+                  : "Could not save the new order: the connection failed. Nothing was moved — try again.")
+                : "Error: " + fallo.error.message);
+            } else {
+              // No se pudo volver atrás del todo: no se finge. Se vuelve a leer la base y se avisa.
+              await reloadTables(["deliveries"]);
+              notify(lang === "es"
+                ? "La conexión se cayó mientras se guardaba el nuevo orden. La lista se volvió a cargar del servidor: revísela antes de mover algo más."
+                : "The connection dropped while saving the new order. The list was reloaded from the server — check it before moving anything else.");
+            }
             return false;
           }
         }
@@ -1535,7 +1574,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         writingRef.current = false;
       }
     },
-    [supabase, notify, teaching, deliveries],
+    [supabase, notify, teaching, deliveries, reloadTables, lang],
   );
 
   // ---- Las cargas de una orden (D-452, 157): partir, repartir y juntar, por las funciones de la base ---------------
