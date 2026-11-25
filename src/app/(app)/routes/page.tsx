@@ -48,7 +48,9 @@ import { alAbrirRutas, alPulsarElMapa, MAPA_INICIAL, rutasAbiertas, type EstadoD
 import { textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
 import { ordenesEnElMapa } from "@/lib/gestor/ordenes-en-el-mapa";
 import { alternaResaltada, encuadreDeResaltadas, esControlDeLaFila } from "@/lib/resaltar-orden";
-import { diaDeLaRuta } from "@/lib/gestor/numeros-del-dia";
+import { diaDeLaRuta as diaDeLaRutaSinDestino } from "@/lib/gestor/numeros-del-dia";
+import { destinoDeTiendaDe } from "@/lib/misma-visita";
+import type { OrderTypeRules } from "@/lib/required";
 import { filasDelHorario, paradaDeCadaEntrega } from "@/lib/gestor/zoom-del-horario";
 import { alternaDesplegada, claseDeTarjeta, conAcciones, conCabecera, conCuerpo, desplegadaVigente, type ModoDeTarjeta } from "@/lib/gestor/cuadricula";
 import { abreAlMarcar, guardaVista, leeVista, type VistaDelGestor } from "@/lib/gestor/vistas-del-gestor";
@@ -160,7 +162,7 @@ import { cambiosDeEtas, claveDeEta, claveDelPlan, desvio, filasNuevasDeEtas, hec
 import { minutosReales } from "@/lib/salida-de-la-medida";
 import { textoDelEstadoDelPlan, type EstadoDelPlan } from "@/lib/route-plan/estado-del-plan";
 import {
-  cabeEnElPuesto, cambiosDeLaLista, cuentaDePallets, escrituraDeLaLista, gruposDeMismoLugar, listaConEntregasEn, listaConOrdenesEn, llevaEnLaLista, mueveEnLaLista, numeroDePallets,
+  cabeEnElPuesto, cambiosDeLaLista, cuentaDePallets, escrituraDeLaLista, gruposDeMismoLugar as gruposDeMismoLugarSinDestino, listaConEntregasEn, listaConOrdenesEn, llevaEnLaLista, mueveEnLaLista, numeroDePallets,
   textoDeLaCuenta, textoDelExceso, tienePosicionDeRecogida, type FilaDeCuenta, type ParadaDeLaLista,
 } from "@/lib/lista-unica";
 import { flechaDelBloque, mueveBloque, ordenesDelBloque, type OpcionesDelBloque } from "@/lib/arrastre-multiple";
@@ -297,6 +299,16 @@ export default function RoutesPage() {
       : ordenesPorChofer(todasLasDelDia, alcanceChoferes, { me, tiendas: tiendasDeAjustes ?? [], reglas: settings.order_type_rules })),
     [todasLasDelDia, miChofer, alcanceChoferes, me, tiendasDeAjustes, settings.order_type_rules],
   );
+  // El destino de TIENDA de cada orden, por su id (`misma-visita`). No toca las órdenes: la pantalla lo pasa a los números,
+  // a los grupos de color y al mapa, para que una descarga en una tienda y la carga en esa misma tienda sean UNA parada.
+  const destinoDeTiendaDeLaRuta = useMemo(
+    () => destinoDeTiendaDe(todasLasDelDia, settings.stores ?? [], settings.order_type_rules as OrderTypeRules | undefined),
+    [todasLasDelDia, settings.stores, settings.order_type_rules],
+  );
+  // Las mismas funciones de siempre, con ese destino: sus llamadas en la página no cambian.
+  const diaDeLaRuta: typeof diaDeLaRutaSinDestino = (lectura, pendientes, hechas, capacidad, paradasDelPlan, comoIba) =>
+    diaDeLaRutaSinDestino(lectura, pendientes, hechas, capacidad, paradasDelPlan, comoIba, destinoDeTiendaDeLaRuta);
+  const gruposDeMismoLugar: typeof gruposDeMismoLugarSinDestino = (paradas, ordenes) => gruposDeMismoLugarSinDestino(paradas, ordenes, destinoDeTiendaDeLaRuta);
   // Lo rotulado con un chofer (su carril, su camión, el aviso de su teléfono) sale si lo ve, o si lleva algo que se pinta.
   const choferesConParada = useMemo(() => choferesConOrden(deliveries), [deliveries]);
   const seVeElChofer = (chofer: string | null | undefined) => choferSeVe(chofer, alcanceChoferes, choferesConParada);

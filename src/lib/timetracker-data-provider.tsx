@@ -167,7 +167,9 @@ export interface DataState {
    * timetracker" is already what unchecking the module in the hub's Users
    * dialog does (D-065); a second delete concept scoped to this module
    * would just be a confusing duplicate of that lifecycle. */
-  updateEmployeeSettings: (employeeId: string, patch: { workerType?: string | null; trackMode?: string | null; breaksEnabled?: boolean | null; active?: boolean; multiStore?: boolean }) => Promise<void>;
+  updateEmployeeSettings: (employeeId: string, patch: { workerType?: string | null; trackMode?: string | null; breaksEnabled?: boolean | null; active?: boolean; multiStore?: boolean; hubClock?: boolean }) => Promise<void>;
+  /** ¿Existe ya la columna `hub_clock` (351)? Sin ella, la pantalla de Time tracking setup no enseña el interruptor del hub. */
+  hubDisponible: boolean;
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
 }
 
@@ -221,6 +223,7 @@ export function DataProvider({ children, me, tiendas = SIN_TIENDAS }: { children
   const [requests, setRequests] = useState<TimeRequest[]>([]);
   const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [hubDisponible, setHubDisponible] = useState(false);
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [allAssignments, setAllAssignments] = useState<Assignment[]>([]);
   const [allRequests, setAllRequests] = useState<TimeRequest[]>([]);
@@ -481,6 +484,7 @@ export function DataProvider({ children, me, tiendas = SIN_TIENDAS }: { children
         city: s?.city ?? null, payMethod: s?.payMethod ?? null, payDetails: s?.payDetails ?? null,
         workerType: s?.workerType ?? null, trackMode: s?.trackMode ?? null, breaksEnabled: s?.breaksEnabled ?? null,
         active: s?.active ?? false, deletedAt: s?.deletedAt ?? null, left_at: p.left_at ?? null, multiStore: s?.multiStore ?? false,
+        hubClock: s?.hubClock ?? false,
         ...resolverTiendaYPuesto({ fichaje: fichaPorId.get(p.id), tiendas: nombreDeTienda, tiendaDelHub: p.store }),
       };
       return emp;
@@ -488,6 +492,8 @@ export function DataProvider({ children, me, tiendas = SIN_TIENDAS }: { children
     // Live employees only — soft-deleted (deleted_at set) are filtered out
     // everywhere the app lists people, same as the original's subscribeAll().
     setAllEmployees(employees.filter((e) => !e.deletedAt));
+    // 351: la columna existe si la lectura de employee_settings (select *) trae la clave `hub_clock`.
+    setHubDisponible(((es.data as Record<string, unknown>[] | null) ?? []).some((r) => "hub_clock" in r));
     const projectRows = ((pr.data as Record<string, unknown>[] | null) ?? []).map((r) => rowToCamel<Project>(r)!);
     setAllProjects(projectRows);
     const byId = new Map(projectRows.map((p) => [p.id, p]));
@@ -1009,14 +1015,14 @@ export function DataProvider({ children, me, tiendas = SIN_TIENDAS }: { children
     myScreenshots: screenshots, latestScreenshot: screenshots[0] ?? null, screenshotSignedUrl, deleteScreenshot,
     uploadScreenshot, insertBlankScreenshot,
     updateMyAccount, signOutEverywhere,
-    allEmployees, allProjects, allAssignments, allRequests, sessionsSince, sessionsByProject,
+    allEmployees, hubDisponible, allProjects, allAssignments, allRequests, sessionsSince, sessionsByProject,
     auditLog, logAudit, liveSessions,
     insertSession, removeSession,
     payrollsForWeek, insertPayroll, updatePayroll, removePayroll,
     payRates, savePayRate, paystubsForPeriod, paystubsForYear, insertPaystubs, removePaystubOfPayroll,
     insertProject, updateProject, insertAssignment, updateAssignment, removeAssignment,
     claimRequest, resetRequestToPending, updateEmployeeSettings, updateSettings,
-  }), [tiendas, addRequest, allAssignments, allEmployees, allProjects, allRequests, assignments, auditLog, claimRequest, deleteScreenshot, ensureSessionsSince, getSession, insertAssignment, insertBlankScreenshot, insertPayroll, insertPaystubs, insertProject, insertSession, listLiveSessions, liveSessions, logAudit, me, notify, payRates, payrolls, payrollsForWeek, paystubsForPeriod, paystubsForYear, projects, ready, refrescarSesion, removeAssignment, removePayroll, removePaystubOfPayroll, removeSession, requests, resetRequestToPending, savePayRate, screenshotSignedUrl, screenshots, sessions, sessionsByProject, sessionsSince, settings, signOutEverywhere, startSession, toast, updateAssignment, updateEmployeeSettings, updateLiveSession, updateMyAccount, updatePayroll, updateProject, updateSession, updateSettings, uploadScreenshot]);
+  }), [tiendas, addRequest, allAssignments, allEmployees, hubDisponible, allProjects, allRequests, assignments, auditLog, claimRequest, deleteScreenshot, ensureSessionsSince, getSession, insertAssignment, insertBlankScreenshot, insertPayroll, insertPaystubs, insertProject, insertSession, listLiveSessions, liveSessions, logAudit, me, notify, payRates, payrolls, payrollsForWeek, paystubsForPeriod, paystubsForYear, projects, ready, refrescarSesion, removeAssignment, removePayroll, removePaystubOfPayroll, removeSession, requests, resetRequestToPending, savePayRate, screenshotSignedUrl, screenshots, sessions, sessionsByProject, sessionsSince, settings, signOutEverywhere, startSession, toast, updateAssignment, updateEmployeeSettings, updateLiveSession, updateMyAccount, updatePayroll, updateProject, updateSession, updateSettings, uploadScreenshot]);
   // Modo capacitación (D-490): cada función clasificada en `capacitacion-datos.ts` —pasa, se practica
   // o se bloquea—. Ninguna escritura llega a la base desde aquí mientras dure. Las funciones se crean
   // UNA vez por práctica y leen el proveedor de cada momento por `realRef`: con identidades nuevas en

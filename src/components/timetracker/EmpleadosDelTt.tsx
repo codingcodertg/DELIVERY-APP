@@ -7,6 +7,7 @@ import { useData } from "@/lib/timetracker-data-provider";
 import { useT } from "@/lib/timetracker/i18n";
 import { effWorkerType } from "@/lib/timetracker/helpers";
 import { EmployeeWeek } from "@/components/timetracker/EmployeeWeek";
+import type { Employee } from "@/lib/timetracker/types";
 
 // Ported (D-071) from timetracker-clean's manager/ManagerPeople.jsx — but
 // deliberately SMALLER than the original. Role changes, account creation,
@@ -28,7 +29,7 @@ export function EmpleadosDelTt() {
   // Qué fila tiene la semana abierta. Una sola: abrir doce a la vez sería pedir doce semanas
   // para mirar una, y la pantalla dejaría de leerse.
   const [abierta, setAbierta] = useState<string | null>(null);
-  const { me, allEmployees: users, updateEmployeeSettings } = useData();
+  const { me, allEmployees: users, updateEmployeeSettings, hubDisponible } = useData();
   const t = useT();
 
   const setField = (uid: string, field: "workerType" | "trackMode", val: string) => {
@@ -102,6 +103,16 @@ export function EmpleadosDelTt() {
                 <option value="yes">{t("mgr.ppl.multiYes")}</option>
               </select>
             ) },
+          // 351: fichar desde el hub de escritorio (piloto, persona a persona). Solo el presencial, y solo si la base ya
+          // tiene la columna `hub_clock`: sin ella la pantalla no lo enseña. La guardia de la base impide cambiarlo a quien no es admin.
+          ...(hubDisponible ? [{ key: "hub", en: t("mgr.ppl.colHub"), es: t("mgr.ppl.colHub"), ancho: 260, valor: (u: Employee) => (u.hubClock ? t("mgr.ppl.hubOn") : t("mgr.ppl.hubOff")),
+            celda: (u: Employee) => effWorkerType(u) !== "inhouse" ? <span className="muted">—</span> : (
+              <label className="hub-interruptor">
+                <input type="checkbox" role="switch" aria-label={t("mgr.ppl.colHub")} checked={u.hubClock === true}
+                  onChange={(e) => updateEmployeeSettings(u.id, { hubClock: e.target.checked })} />
+                <span>{u.hubClock ? t("mgr.ppl.hubOn") : t("mgr.ppl.hubOff")}</span>
+              </label>
+            ) }] : []),
           { key: "seguimiento", en: t("mgr.ppl.colTracking"), es: t("mgr.ppl.colTracking"), ancho: 190, valor: (u) => u.trackMode || null,
             celda: (u) => (
               <select value={u.trackMode || ""} style={{ width: "auto", minWidth: 150 }} onChange={(e) => setField(u.id, "trackMode", e.target.value)}>

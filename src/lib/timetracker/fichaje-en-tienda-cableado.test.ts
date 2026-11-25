@@ -23,7 +23,8 @@ describe("faltaLaColumnaDeTienda: la señal de «350 sin aplicar»", () => {
 });
 
 describe("servidor: clockIn valida y guarda la tienda", () => {
-  const clock = leer("src/app/timetracker/clock-in/actions/clock.ts");
+  // El cuerpo del fichaje se movió a fichaje-interno.ts (las acciones públicas son envoltorios de él): se lee junto.
+  const clock = leer("src/app/timetracker/clock-in/actions/clock.ts") + "\n" + leer("src/lib/clockin/fichaje-interno.ts");
 
   it("clockIn acepta storeId y lo valida con validarTiendaDelFichaje, por la regla de quien va en varias", () => {
     expect(clock).toContain("storeId?: string | null;");

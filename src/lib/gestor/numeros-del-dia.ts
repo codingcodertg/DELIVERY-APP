@@ -1,5 +1,6 @@
 import { filasConLoHecho, type FilaPintada, type OrdenHecha } from "@/lib/hechas-del-gestor";
 import { etiquetaDeLaParada, numeraLaLista, tiendaDeRecogida, type ParadaDeLaLista } from "@/lib/lista-unica";
+import { SIN_DESTINO_DE_TIENDA, type DestinoDeTiendaDe } from "@/lib/misma-visita";
 import type { LecturaDeRuta, OrdenAsignada, ParadaDelPlanMinima } from "@/lib/route-plan/lectura-de-ruta";
 import { ordenDeLaParte } from "@/lib/route-plan/publicar";
 import { paradasDeLaRuta, type FilaQueSeNumera, type ParadaFisica } from "./paradas-numeradas";
@@ -51,6 +52,8 @@ export interface NumerosDelDia {
  */
 export function numerosDelDia(
   pintadas: readonly FilaPintada[], fuente: LecturaDeRuta["fuente"], ordenes: readonly ConLugar[], paradasDelPlan: readonly ParadaDelPlanMinima[] | null,
+  /** El destino de TIENDA de una orden, por su id (`destinoDeTiendaDe`, misma-visita): sin él, solo cuenta la dirección. */
+  destinoDe: DestinoDeTiendaDe = SIN_DESTINO_DE_TIENDA,
 ): NumerosDelDia {
   const porId = new Map(ordenes.map((o) => [o.id, o]));
   const delPlan = fuente === "plan" ? [...(paradasDelPlan ?? [])].sort((a, b) => a.seq - b.seq) : [];
@@ -74,7 +77,7 @@ export function numerosDelDia(
   const filas: FilaQueSeNumera[] = lista.map((p, k) => (p.tipo === "P"
     ? { tipo: "P", ordenes: p.ordenes, lugar: p.tienda, etiqueta: etiqueta[k] }
     : { tipo: "D", orden: p.orden, etiqueta: etiqueta[k] }));
-  const { deFila, primera, paradas } = paradasDeLaRuta(filas, ordenes);
+  const { deFila, primera, paradas } = paradasDeLaRuta(filas, ordenes, destinoDe);
   const dePendiente: number[] = [];
   const etiquetaDePendiente: string[] = [];
   const conAlgoPendiente = new Set<number>();
@@ -94,8 +97,8 @@ export function numerosDelDia(
  */
 export function diaDeLaRuta(
   lectura: Pick<LecturaDeRuta, "fuente" | "filas">, pendientes: readonly (OrdenAsignada & ConLugar)[], hechas: readonly (OrdenHecha & ConLugar)[],
-  capacidad: number, paradasDelPlan: readonly ParadaDelPlanMinima[] | null, comoIba = true,
+  capacidad: number, paradasDelPlan: readonly ParadaDelPlanMinima[] | null, comoIba = true, destinoDe: DestinoDeTiendaDe = SIN_DESTINO_DE_TIENDA,
 ): NumerosDelDia & { pintadas: FilaPintada[] } {
   const pintadas = filasConLoHecho(lectura, pendientes, hechas, capacidad, paradasDelPlan, comoIba);
-  return { pintadas, ...numerosDelDia(pintadas, lectura.fuente, [...pendientes, ...hechas], paradasDelPlan) };
+  return { pintadas, ...numerosDelDia(pintadas, lectura.fuente, [...pendientes, ...hechas], paradasDelPlan, destinoDe) };
 }

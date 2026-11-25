@@ -17,6 +17,8 @@ import type { Delivery } from "@/lib/types";
 import type { Movimiento } from "@/lib/route-plan/ajuste";
 import type { CopiaDelPublicado } from "@/lib/route-plan/copia";
 import { ordenDeLaParte } from "@/lib/route-plan/publicar";
+import { tiendaDeDestinoDeLaOrden } from "@/lib/misma-visita";
+import type { OrderTypeRules } from "@/lib/required";
 import { fraseDePrioridadFuera, fraseDeRequisitoFuera, type FueraConPorque, type PorQue } from "@/lib/route-plan/porque";
 
 /**
@@ -105,7 +107,7 @@ export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onA
   /** D-1124: los choferes entre los que se puede planificar; la persona elige cuáles (de entrada, todos los que pueden). */
   choferes?: { id: string; nombre: string; puede: boolean; porque?: string | null }[] }) {
   const { lang, t } = usePrefs();
-  const { deliveries, notify, updateDelivery } = useData();
+  const { deliveries, notify, updateDelivery, settings } = useData();
   const confirmAction = useConfirm();
   const [ocupado, setOcupado] = useState<"planificando" | "publicando" | "ajustando" | null>(null);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
@@ -386,7 +388,8 @@ export function PlanDelDia({ date, onPublicado, abierto, onCerrar, onEstado, onA
           )}
           <RutaDelPlan rutas={borrador!.rutas} facturaDeOrden={facturaDeOrden} abrirOrden={onAbrirOrden} colorDelChofer={colorDelChofer} iconosDeLaOrden={iconosDeLaOrden}
             columnas={columnas ? { ...columnas, orden: ordenDeLaParada } : undefined}
-            ajuste={borrador!.status === "draft" || borrador!.status === "published" ? { choferes: borrador!.choferes ?? [], ocupado: !!ocupado, mueve: (m) => void ajusta(m), noSeMueven: new Set(borrador!.copia?.noSeReescriben ?? []) } : undefined} />
+            ajuste={borrador!.status === "draft" || borrador!.status === "published" ? { choferes: borrador!.choferes ?? [], ocupado: !!ocupado, mueve: (m) => void ajusta(m), noSeMueven: new Set(borrador!.copia?.noSeReescriben ?? []) } : undefined}
+            tiendaDeDestino={(ref) => { const d = ordenDeLaParada(ref); return d ? tiendaDeDestinoDeLaOrden(d, settings.stores ?? [], settings.order_type_rules as OrderTypeRules | undefined) : null; }} />
           {borrador!.status === "published" && <PrecisionDelPlan date={date} />}
           <ComparaConLaHoja date={date} nombreDeOrden={nombreDeOrden} />
         </div>

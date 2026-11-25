@@ -369,6 +369,7 @@ export function DemoDataProvider({ children, me: meInicial }: { children: React.
           trackMode: patch.trackMode === undefined ? e.trackMode : (patch.trackMode as Employee["trackMode"]),
           breaksEnabled: patch.breaksEnabled === undefined ? e.breaksEnabled : patch.breaksEnabled,
           active: patch.active === undefined ? e.active : patch.active,
+          hubClock: patch.hubClock === undefined ? e.hubClock : patch.hubClock,
         }
         : e)),
     }));
@@ -388,6 +389,7 @@ export function DemoDataProvider({ children, me: meInicial }: { children: React.
     myScreenshots, latestScreenshot: myScreenshots[0] ?? null, screenshotSignedUrl, deleteScreenshot,
     uploadScreenshot, insertBlankScreenshot,
     updateMyAccount, signOutEverywhere,
+    hubDisponible: true,
     allEmployees: isAdmin ? store.employees : [], allProjects: isAdmin ? store.projects : [], allAssignments: isAdmin ? allAssignments : [],
     allRequests: isAdmin ? store.requests : [], sessionsSince, sessionsByProject,
     auditLog: isAdmin ? auditLog : [], logAudit, liveSessions,

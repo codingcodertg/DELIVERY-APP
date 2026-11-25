@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AvisoSoloCiudad } from "@/components/AvisoSoloCiudad";
 import { useData } from "@/lib/data-provider";
 import { usePrefs } from "@/lib/prefs";
@@ -36,7 +36,9 @@ import { SoloLectura } from "@/lib/gestor/solo-lectura";
 import { SoloMisRutas } from "@/lib/gestor/solo-mis-rutas";
 import { SoloElMapa } from "@/lib/gestor/solo-el-mapa";
 import { ordenDelPunto } from "@/lib/mapa-de-rutas";
-import { etiquetasDelDia, paradasDeLaRutaEnElOrden, textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
+import { etiquetasDelDia, paradasDeLaRutaEnElOrden as paradasDeLaRutaSinDestino, textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
+import { destinoDeTiendaDe } from "@/lib/misma-visita";
+import type { OrderTypeRules } from "@/lib/required";
 import { colorDeChofer } from "@/lib/map-legend";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { fmtDate, fmtWindows, orderLabel, shiftDateISO, storeTag, todayISO, nombreDeLaOrden } from "@/lib/utils";
@@ -132,6 +134,14 @@ export default function MyRoutePage() {
     if (!me) return [];
     return routeOrder(paradasDelChofer(deliveries, driverName, dia, "dia"));
   }, [deliveries, me, driverName, dia]);
+  // El destino de TIENDA de cada orden, por su id (`misma-visita`): una descarga en una tienda y la carga en esa misma tienda son
+  // UNA parada. No toca las órdenes; la numeración de abajo lo lee por esta función.
+  const destinoDeTiendaDeLaRuta = useMemo(
+    () => destinoDeTiendaDe(deliveries, settings.stores ?? [], settings.order_type_rules as OrderTypeRules | undefined),
+    [deliveries, settings.stores, settings.order_type_rules],
+  );
+  const paradasDeLaRutaEnElOrden = useCallback<typeof paradasDeLaRutaSinDestino>((filas, ordenes, orden) =>
+    paradasDeLaRutaSinDestino(filas, ordenes, orden, destinoDeTiendaDeLaRuta), [destinoDeTiendaDeLaRuta]);
   const porId = useMemo(() => new Map(stops.map((d) => [d.id, d])), [stops]);
   const etapaDe = (id: string) => porId.get(id)?.stage;
 
@@ -158,7 +168,7 @@ export default function MyRoutePage() {
   const numeradas = useMemo(() => {
     const etiquetas = etiquetasDelDia(lectura.filas, lectura.fuente, ordenDelDia);
     return paradasDeLaRutaEnElOrden(lectura.filas.map((f, i) => ({ ...f, etiqueta: etiquetas[i] })), stops, ordenDelDia);
-  }, [lectura, stops, ordenDelDia]);
+  }, [lectura, stops, ordenDelDia, paradasDeLaRutaEnElOrden]);
   // Pendientes y Entregadas (D-520): cada fila en su sección, con su número de parada; las entregadas, en el orden en que pasó.
   const secciones = useMemo(() => seccionesDeMiRuta(lectura.filas, (id) => porId.get(id)?.stage, numeradas.deFila, ordenDelDia), [lectura, porId, numeradas, ordenDelDia]);
   // El color del chofer, el mismo que pinta el Gestor en su círculo y en el mapa.

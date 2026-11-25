@@ -13,7 +13,7 @@ const hoyISO = () => new Date().toISOString().slice(0, 10);
 const enHora = (dia: string, hh: number, mm: number) => `${dia}T${String(hh + 6).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00.000Z`;
 
 /** Las tiendas demo: cada presencial tiene la suya (su «tienda» en la semilla). */
-const SITIOS = [
+export const SITIOS = [
   { id: "s-mcallen", name: "McAllen Store", latitude: 26.2034, longitude: -98.23, radius_meters: 150, padding_meters: 25 },
   { id: "s-pharr", name: "Pharr Warehouse", latitude: 26.1948, longitude: -98.1836, radius_meters: 150, padding_meters: 25 },
   { id: "s-edinburg", name: "Edinburg Office", latitude: 26.3017, longitude: -98.1633, radius_meters: 120, padding_meters: 0 },

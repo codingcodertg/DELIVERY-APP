@@ -6,6 +6,7 @@ import { CierreDiario } from "@/components/CierreDiario";
 import { HelpButton } from "@/components/HelpButton";
 import { ChatFlotante } from "@/components/ChatFlotante";
 import { BotonGeneral } from "@/components/BotonGeneral";
+import { FichajeDelHub } from "@/components/FichajeDelHub";
 import { AvisoDeEnsenanza } from "@/components/AvisoDeEnsenanza";
 import { IdentidadDelDispositivo } from "@/components/IdentidadDelDispositivo";
 import { AvisoDeEscritorio } from "@/components/AvisoDeEscritorio";
@@ -101,6 +102,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Ayuda. Al pulsarla salen hacia arriba Ayuda y Chat (para todos) y, solo para el admin real, Cambiar usuario,
               Vista móvil y Modo enseñanza. Por eso las dos de arriba van `sinBurbuja`: ella las abre por evento. */}
           <BotonGeneral />
+          {/* Fichar desde el hub (2026-11-25): solo en la app de escritorio, con el interruptor de la persona. Encima de la burbuja de Ayuda. */}
+          <FichajeDelHub />
           </div></SoloEnHub>
         </PrefsSegunRuta>
         {/* Una sola vez, aquí: es el único layout por el que pasan las cinco apps y el hub. */}
