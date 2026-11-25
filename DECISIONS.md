@@ -53353,3 +53353,11 @@ Sello `deliveries` 1.666.0; repo 1.993.0.
 La 237 (un disparador que BLOQUEABA en la base las órdenes de ventas para hoy después de las 12) se escribió el 4 de noviembre y nunca se aplicó: D-848 la dejó en espera y D-955 la reemplazó por la regla de pantalla (toda orden nace para mañana; poner hoy pregunta). El dueño, el 24 de noviembre: «No aplicarla, descartarla».
 Se borra el archivo del repositorio (queda en el historial de git) para que deje de salir como pendiente, con su constante `MENSAJE_DE_LA_237`. Una prueba avisa si vuelve a aparecer una migración 237 o el disparador `deliveries_guard_corte_ventas`. La app no cambia. La 291 sigue pendiente por decisión suya, hasta poder probarla con una cuenta que no sea admin.
 Sello `deliveries` 1.666.0; repo 1.993.0.
+
+## D-1187 · Gestor de Rutas, lista de paradas de cada chofer: la PO sale por defecto, junto a la factura (2026-11-25)
+
+El dueño: «en el routes manager quiero que se mire el invoice y también po».
+La factura ya era la primera columna de esa lista. La columna «PO #» (`p_po`) existía desde D-376 pero escondida. Ahora sale por defecto, la primera de las configurables (tras la factura y la cuenta de pallets, delante del tipo). Quien ya tenía sus columnas guardadas la recibe una vez (tanda `_v11`, como `_v10` con «Usuario»): si movió sus columnas, entra justo delante del tipo; si ya la tenía puesta, se queda donde la puso; si después la esconde, no vuelve. En una recogida con varias órdenes salen sus PO distintos separados por « · »; sin PO, «—». El menú del encabezado filtra sin ordenar, como las demás de esa tabla.
+Cuenta: 53 columnas y 10 marcas, 63 con todo marcado; el tope de columnas guardadas sigue en 64.
+Visto en el demo a 1440, 1280, 1100 y 390 px: la columna, sus valores y su filtro; las flechas de mover siguen a la vista a 1440 y 1280 (a 1100 la tabla ya se deslizaba antes de este cambio). NO visto con órdenes reales. Sin tocar: el filtro de la PO en una recogida de varias órdenes mira solo la primera.
+Sello `deliveries` 1.666.0; repo 1.993.0.
