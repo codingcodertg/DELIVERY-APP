@@ -58,6 +58,10 @@ vi.mock("@/lib/clockin/supabase/server", () => ({
       insert: (fila: unknown) => consulta(tabla, "insert", fila),
       update: (fila: unknown) => consulta(tabla, "update", fila),
     }),
+    // 2026-11-25 (350): clockIn lee timetracker.employee_settings para saber si va en varias tiendas. Sin fila = no.
+    schema: (esquema: string) => ({
+      from: (tabla: string) => ({ select: () => consulta(`${esquema}.${tabla}`, "select") }),
+    }),
   }),
 }));
 

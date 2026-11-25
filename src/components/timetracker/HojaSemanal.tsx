@@ -23,6 +23,8 @@ export type BloqueDeHoja = {
   hoja: HojaDeLaSemana;
   /** Los días de la persona (`turnosPorDia`), para enseñar cada tramo en la marca «+N». */
   dias: readonly DiaDeTurnos[];
+  /** Las tiendas en las que fichó esa semana (350, presencial en varias tiendas), por nombre. Vacío para los demás. */
+  tiendas?: readonly string[];
 };
 
 /** Id único de la tabla estándar de la hoja: todos los bloques lo comparten (vista y anchos por persona). */
@@ -116,6 +118,9 @@ export function HojaSemanal({ bloques, trabajando }: {
               <span className="tt-hoja-nombre tt-nombre-de-trabajo" data-trabajando={estadoDeTrabajo(b.id, trabajando)}
                 title={estadoDeTrabajo(b.id, trabajando) === "si" ? t("hoja.working") : t("hoja.notWorking")}>{b.nombre}</span>
               <span className="small muted">{rotuloSemana(b.semana, lang)}</span>
+              {b.tiendas && b.tiendas.length > 0 && (
+                <span className="small muted">{t("hoja.stores")}: {b.tiendas.join(" · ")}</span>
+              )}
             </div>
             <TablaEstandar<FilaDeTabla>
               id={ID_DE_LA_HOJA}

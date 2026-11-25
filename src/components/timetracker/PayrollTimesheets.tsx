@@ -19,6 +19,7 @@ import { APP_SETTINGS, dateISO, fmtISOday, money, periodEndISO } from "@/lib/tim
 import { combinaSemanas, diasDeLaSemana, type DatosDeSemana } from "@/lib/timetracker/rango-de-nomina";
 import { useData } from "@/lib/timetracker-data-provider";
 import { etiquetaDePuesto, necesitaProyecto } from "@/lib/timetracker/tienda-y-puesto";
+import { tiendasDeLaPersonaEnElPeriodo } from "@/lib/timetracker/fichaje-en-tienda";
 import {
   TARIFA_POR_DEFECTO, acumuladoDelAnio, htmlDeTalones, presencialDeFichajes, talonesPresenciales, type TarifaPorHora,
 } from "@/lib/timetracker/talon-de-pago";
@@ -169,6 +170,10 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos, r
   if (!d) return <div className="card"><div className="banner err">{err ?? "Could not read the period."}</div></div>;
 
   const aprobados = new Set(d.approved);
+  // Tiendas: id → nombre, y los ids de tienda → nombres en orden (350: el chip de cada fichaje y la cabecera de la hoja).
+  const tiendaNombre = new Map(d.stores.map((s) => [s.key, s.name]));
+  const nombresDeTiendas = (ids: string[]): string[] =>
+    ids.map((s) => tiendaNombre.get(s) ?? "").filter(Boolean).sort((a, b) => a.localeCompare(b));
   const gente = new Map(d.people.map((p) => [p.id, p]));
   // Las horas del presencial ya van bajo su tienda (el «📍» del grupo); al lado del nombre, su puesto:
   // tienda y puesto son su proyecto (D-493). Al remoto que ficha no se le pone nada.
@@ -205,6 +210,9 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos, r
       semana,
       hoja: hojaDeLaSemana(dias, semana, OT_WEEKLY_MIN),
       dias,
+      // Las tiendas de esa semana, para la cabecera («Tiendas: Pharr · Weslaco», 350). Vacío para quien no va en varias.
+      tiendas: nombresDeTiendas(tiendasDeLaPersonaEnElPeriodo(
+        dias.filter((x) => semana.includes(x.dia)).flatMap((x) => x.entradas), id)),
     }));
   });
 
@@ -437,6 +445,10 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos, r
             {fmtHora(e.clock_in_at)} – {e.clock_out_at ? fmtHora(e.clock_out_at) : <span className="pill wait">open</span>}
           </span>{" "}
           <span className="small nowrap">· {hrs(entryMinutes(e))} h</span>
+          {/* La tienda de este fichaje (350): solo quien va en varias tiendas la tiene. */}
+          {e.work_store_id && tiendaNombre.get(e.work_store_id) ? (
+            <span className="chip" style={{ marginLeft: 6 }}>📍 {tiendaNombre.get(e.work_store_id)}</span>
+          ) : null}
           {e.manual ? <span className="chip" style={{ marginLeft: 6 }}>manual</span> : null}
           {e.edit_note ? <span className="small muted"> {e.edit_note}</span> : null}
           {lineaDeComida([e])}

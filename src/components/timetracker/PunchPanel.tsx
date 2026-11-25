@@ -7,7 +7,7 @@ import {
   MOTIVOS_DE_SALIDA, VEHICULO_POR_DEFECTO, etiquetaDeFoto, filaDeSalida, planDeSalida, seCierraDeUnToque, vehiculoDeEmpresaPorDefecto,
   type MotivoDeSalida, type PlanDeSalida, type Vehiculo,
 } from "@/lib/clockin/visitas";
-import { APP_SETTINGS, fmtClockSinSegundos } from "@/lib/timetracker/helpers";
+import { APP_SETTINGS, dateISO, fmtClockSinSegundos } from "@/lib/timetracker/helpers";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 import { Modal } from "@/components/timetracker/Modal";
 import { MySections } from "@/components/timetracker/MySections";
@@ -18,6 +18,8 @@ import { esAdminDeTt, fichaConFoto, seccionesDeFichar } from "@/lib/timetracker/
 import { accionesEnMenu, accionesPersonales, estadoDelFichaje, textoDeAccion, type AccionPersonal } from "@/lib/timetracker/mis-acciones";
 import { TripPanel, type Viaje } from "@/components/timetracker/TripPanel";
 import { MenuDeAcciones, type OpcionDelMenu } from "@/components/MenuDeAcciones";
+import { esMultiTienda, claveTiendaDelDia, tiendaDelDiaDesde, valorTiendaDelDia } from "@/lib/timetracker/multitienda";
+import { tiendasParaCambiar, tiendasQueOfreceElFichaje } from "@/lib/timetracker/fichaje-en-tienda";
 
 /**
  * Fichar, dentro de Registrar tiempo (D-125).
@@ -133,7 +135,7 @@ const horas = (min: number) => `${Math.floor(min / 60)}h ${String(min % 60).padS
 
 export function PunchPanel() {
   const t = useT();
-  const { me } = useData();
+  const { me, tiendas } = useData();
   // Reales o de práctica (modo capacitación, D-490): la pantalla es la misma, cambia a quién se llama.
   // La foto, también: en práctica no sale del equipo (el nombre se queda, es el mismo paso de siempre).
   const {
@@ -171,6 +173,27 @@ export function PunchPanel() {
   const [ahora, setAhora] = useState(Date.now());
   const fotoRef = useRef<HTMLInputElement>(null);
   const pendiente = useRef<"in" | "out" | null>(null);
+
+  // --- La tienda del fichaje (350, 2026-11-25) --------------------------------------------------------------
+  // Quien va en VARIAS tiendas elige en cuál ficha, arriba del botón de entrada. Se recuerda por persona y
+  // fecha, igual que lo hacía el cronómetro (`claveTiendaDelDia`); otro día no se arrastra. Sin la columna en
+  // la base (`d.tiendaDisponible`), no hay selector: se ficha como siempre.
+  const multiTienda = esMultiTienda(me);
+  const tiendasDeFichar = tiendasQueOfreceElFichaje(me, tiendas);
+  const [tiendaElegida, setTiendaElegida] = useState<string>(() => {
+    try { return tiendaDelDiaDesde(localStorage.getItem(claveTiendaDelDia(me.id)), dateISO(new Date())) ?? ""; } catch { return ""; }
+  });
+  // Solo cuenta una tienda que siga en la lista (una desactivada desde que se eligió no vale).
+  const tiendaValida = tiendasDeFichar.some((s) => s.id === tiendaElegida) ? tiendaElegida : "";
+  useEffect(() => {
+    if (!tiendaValida) return;
+    try { localStorage.setItem(claveTiendaDelDia(me.id), valorTiendaDelDia(dateISO(new Date()), tiendaValida)); } catch { /* sin almacén: vale mientras la pantalla esté abierta */ }
+  }, [tiendaValida, me.id]);
+  // «Cambiar tienda»: la ventana de confirmación, la tienda nueva y la que se pasará a elegir cuando salga el fichaje.
+  const [cambiando, setCambiando] = useState(false);
+  const [tiendaNueva, setTiendaNueva] = useState("");
+  const tiendaPendienteDeCambio = useRef<string | null>(null);
+  const [avisoDeCambio, setAvisoDeCambio] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [res, v] = await Promise.all([getMyDay(), getMyTrip()]);
@@ -232,22 +255,36 @@ export function PunchPanel() {
 
   async function ficha(accion: "in" | "out", photoPath?: string, razones?: string[], nota?: string) {
     setErr(null);
+    setAvisoDeCambio(null);
     setOcupado(accion);
     try {
       setPaso(t("emp.punch.gettingLocation"));
       const geo = await ubicacion();
       setPaso(accion === "in" ? t("emp.punch.clockingIn") : t("emp.punch.clockingOut"));
       if (accion === "in") {
-        const res: ClockInResult = await clockIn({ ...geo, photoPath, reasons: razones, note: nota || undefined });
+        // La tienda solo se manda si la base ya la tiene; si no, se ficha como siempre (el servidor la ignora).
+        const storeId = multiTienda && d?.tiendaDisponible ? tiendaValida : undefined;
+        const res: ClockInResult = await clockIn({ ...geo, photoPath, reasons: razones, note: nota || undefined, storeId });
         if (!res.ok) {
           if (res.code === "needs_reason") { setPideMotivo(res.context); setOcupado(null); setPaso(""); return; }
           if (res.code === "already_open") { await load(); setOcupado(null); setPaso(""); return; }
-          setErr(res.message);
+          if (res.code === "tienda_requerida") setErr(t("emp.punch.storeRequired"));
+          else if (res.code === "tienda_no_permitida") setErr(t("emp.punch.storeNotAllowed"));
+          else setErr(res.message);
         }
       } else {
         if (!d?.open) return;
+        // Un «Cambiar tienda» es salida + entrada: la tienda nueva se elige al volver a fichar, con la salida ya hecha.
+        const siguiente = tiendaPendienteDeCambio.current;
+        tiendaPendienteDeCambio.current = null;
+        const deDonde = d.open.tienda ?? "";
         const res = await clockOut(d.open.id, { ...geo, photoPath });
         if (!res.ok) setErr(res.message);
+        else if (siguiente) {
+          setTiendaElegida(siguiente);
+          const aDonde = tiendas.find((s) => s.id === siguiente)?.name ?? "";
+          setAvisoDeCambio(t("emp.punch.changeStoreDone", { from: deDonde, to: aDonde }));
+        }
       }
       setPideMotivo(null);
       setMotivos([]);
@@ -376,6 +413,8 @@ export function PunchPanel() {
   if (!d) return <div className="card"><div className="banner err">{err ?? t("emp.punch.dayFail")}</div></div>;
 
   const dentro = !!d.open;
+  // El selector de tienda y «Cambiar tienda»: solo quien va en varias, y solo si la base ya tiene la columna (350).
+  const conTienda = multiTienda && d.tiendaDisponible;
   const fila = filaDeSalida({ descansoAbierto: !!d.leave, viajeAbierto: !!viaje?.trip });
   const llevo = d.open ? Math.max(0, Math.floor((ahora - Date.parse(d.open.clockInAt)) / 1000)) : 0;
 
@@ -402,7 +441,10 @@ export function PunchPanel() {
       texto: (x.icono ? x.icono + " " : "") + t(x.clave) + (x.hora ? " · " + hhmm(x.hora) : ""),
       peligro: x.peligro,
       // Como los botones: mientras se guarda lo último, nada se pulsa (y el motivo sale en el title).
-      deshabilitada: ocupado ? t("emp.menu.busy") : null,
+      // Entrar, con tienda que elegir y ninguna elegida, no se puede (350): el motivo sale en el title.
+      deshabilitada: ocupado ? t("emp.menu.busy")
+        : (a === "entrar" && conTienda && !tiendaValida) ? t("emp.punch.storeRequired")
+        : null,
       alPulsar: hacer[a],
     };
   });
@@ -432,6 +474,47 @@ export function PunchPanel() {
 
         {err && <div className="banner err">{err}</div>}
         {paso && <div className="hint">{paso}</div>}
+
+        {/* La tienda del fichaje (350): quien va en varias elige dónde ficha, antes de entrar; ya dentro, ve su
+            tienda y puede cambiarla. El cambio es salida + entrada: no reescribe las horas ya trabajadas. */}
+        {conTienda && !dentro && (
+          <div style={{ marginTop: 10 }}>
+            <label>{t("emp.punch.storeLabel")}</label>
+            <select value={tiendaValida} disabled={!!ocupado} onChange={(e) => setTiendaElegida(e.target.value)}>
+              <option value="">{t("emp.punch.pickStore")}</option>
+              {tiendasDeFichar.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <div className="hint">{t("emp.punch.storeHint")}</div>
+          </div>
+        )}
+        {conTienda && dentro && (
+          <div className="row" style={{ marginTop: 6, alignItems: "center" }}>
+            {d.open?.tienda && <span className="small">{t("emp.punch.storeNow", { store: d.open.tienda })}</span>}
+            {!cambiando && (
+              <button className="btn-ghost btn-sm" disabled={!!ocupado}
+                onClick={() => { setTiendaNueva(tiendasParaCambiar(me, tiendas, d.open?.tiendaId)[0]?.id ?? ""); setCambiando(true); }}>
+                {t("emp.punch.changeStore")}
+              </button>
+            )}
+          </div>
+        )}
+        {conTienda && dentro && cambiando && (
+          <div className="box" style={{ marginTop: 10 }}>
+            <label>{t("emp.punch.changeStoreTitle")}</label>
+            <select value={tiendaNueva} onChange={(e) => setTiendaNueva(e.target.value)}>
+              {tiendasParaCambiar(me, tiendas, d.open?.tiendaId).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <div className="hint">{t("emp.punch.changeStoreAsk", { from: d.open?.tienda ?? "" })}</div>
+            <div className="row" style={{ marginTop: 10 }}>
+              <button disabled={!tiendaNueva || !!ocupado}
+                onClick={() => { tiendaPendienteDeCambio.current = tiendaNueva; setCambiando(false); pide("out"); }}>
+                {t("emp.punch.changeStoreConfirm")}
+              </button>
+              <button className="btn-ghost" onClick={() => setCambiando(false)}>{t("common.cancel")}</button>
+            </div>
+          </div>
+        )}
+        {avisoDeCambio && <div className="banner info">{avisoDeCambio}</div>}
 
         {pideMotivo ? (
           <div className="box" style={{ marginTop: 10 }}>
@@ -484,7 +567,7 @@ export function PunchPanel() {
             )}
 
             <div className="row" style={{ marginTop: 10 }}>
-              <button disabled={!motivos.length || !!ocupado}
+              <button disabled={!motivos.length || !!ocupado || (!!conTienda && !tiendaValida)}
                 onClick={() => ficha("in", undefined, motivos, notaMotivo)}>
                 {t("emp.punch.clockIn")}
               </button>
@@ -500,7 +583,7 @@ export function PunchPanel() {
               ? <button className="btn-danger" disabled={!!ocupado} onClick={hacer.salir}>
                   {ocupado === "out" ? "…" : t("emp.punch.clockOut")}
                 </button>
-              : <button disabled={!!ocupado} onClick={hacer.entrar}>
+              : <button disabled={!!ocupado || (!!conTienda && !tiendaValida)} onClick={hacer.entrar}>
                   {ocupado === "in" ? "…" : t("emp.punch.clockIn")}
                 </button>}
           </div>

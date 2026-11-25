@@ -1,9 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useData } from "@/lib/timetracker-data-provider";
 import { effWorkerType } from "@/lib/timetracker/helpers";
-import { esMultiTienda } from "@/lib/timetracker/multitienda";
 import { debeMontarCronometro, esRutaDelCronometro } from "@/lib/timetracker/vigia";
 import { Cronometro } from "@/components/timetracker/Cronometro";
 
@@ -23,13 +23,27 @@ import { Cronometro } from "@/components/timetracker/Cronometro";
  */
 export function CronometroAnfitrion() {
   const pathname = usePathname();
-  const { me } = useData();
+  const { me, listLiveSessions } = useData();
   const visible = esRutaDelCronometro(pathname);
+  const presencial = effWorkerType(me) === "inhouse";
+  const esAdmin = me.role === "admin";
+  // Desde 2026-11-25 el presencial (que no es admin) no tiene cronómetro (`fichaje-en-tienda.ts`). Solo se monta
+  // si quedó uno corriendo de antes, para poder pararlo. Si no se puede leer, se monta: es lo más seguro.
+  // Una vez montado se queda hasta recargar, para que parar no lo desmonte a mitad de guardar.
+  const [vivoAlEntrar, setVivoAlEntrar] = useState<boolean>(false);
+  useEffect(() => {
+    if (!presencial || esAdmin) return;
+    let vigente = true;
+    listLiveSessions()
+      .then((vivas) => { if (vigente && vivas.length > 0) setVivoAlEntrar(true); })
+      .catch(() => { if (vigente) setVivoAlEntrar(true); });
+    return () => { vigente = false; };
+  }, [presencial, esAdmin, listLiveSessions]);
   const montar = debeMontarCronometro({
     visible,
-    presencial: effWorkerType(me) === "inhouse",
-    esAdmin: me.role === "admin",
-    multitienda: esMultiTienda(me),
+    presencial,
+    esAdmin,
+    hayCronometroVivo: vivoAlEntrar,
   });
   if (!montar) return null;
   return <Cronometro visible={visible} />;

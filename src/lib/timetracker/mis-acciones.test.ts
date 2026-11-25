@@ -182,7 +182,8 @@ describe("1 · PunchPanel usa todo esto", () => {
   });
   it("cada opción llama a la MISMA función que su botón, y mientras se guarda no se pulsa", () => {
     expect(punch).toContain("      alPulsar: hacer[a],");
-    expect(punch).toContain('      deshabilitada: ocupado ? t("emp.menu.busy") : null,');
+    // 2026-11-25 (350): «Entrar» también se deshabilita sin tienda elegida; mientras se guarda, sigue igual.
+    expect(punch).toContain('      deshabilitada: ocupado ? t("emp.menu.busy")');
     expect(punch).toContain("      peligro: x.peligro,");
   });
   it("lo que hace cada acción está escrito una vez, y es lo que hacía cada botón", () => {
@@ -242,7 +243,8 @@ describe("3 · quitar el número NO para el cronómetro de D-470", () => {
     expect(anfitrion).toContain("return <Cronometro visible={visible} />;");
   });
   it("el tick, el latido y el vigía se arman ANTES de que el presencial vea su tarjeta: montarlo los sigue arrancando", () => {
-    const tarjeta = cronometro.indexOf("if (presencial && !dosVistas) return visible ? <PunchPanel /> : null;");
+    // Desde 2026-11-25 la línea es esta (antes: `if (presencial && !dosVistas) …`, y el presencial en varias tiendas la pasaba).
+    const tarjeta = cronometro.indexOf("if (modoCronometro === \"solo_fichaje\") return visible ? <PunchPanel /> : null;");
     expect(tarjeta).toBeGreaterThan(0);
     for (const pieza of ["tickRef.current = setInterval(async () => {", "setInterval(vigilar, VIGIA_CADA_MS)", 'navigator.sendBeacon("/timetracker/api/heartbeat"']) {
       const i = cronometro.indexOf(pieza);

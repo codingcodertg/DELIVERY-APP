@@ -46,6 +46,7 @@ function useQuienTrabaja(demoIds: string[]): Set<string> {
 }
 import type { DatosDeSemana } from "@/lib/timetracker/rango-de-nomina";
 import { pasaFiltroDeNomina } from "@/lib/timetracker/filtro-de-nomina";
+import { tiendasDeLaPersonaEnElPeriodo } from "@/lib/timetracker/fichaje-en-tienda";
 
 /**
  * La nómina de un periodo, en UNA vista (D-190).
@@ -90,7 +91,8 @@ export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtr
     if (!filtro.tiendas.length && !filtro.empleados.length) return null;
     if (!datos) return new Set<string>();
     return new Set(datos.people
-      .filter((p) => pasaFiltroDeNomina(p, filtro.tiendas, filtro.empleados))
+      // 2026-11-25 (350): las tiendas de los fichajes del periodo (ids, la misma clave que `filtro.tiendas`).
+      .filter((p) => pasaFiltroDeNomina(p, filtro.tiendas, filtro.empleados, tiendasDeLaPersonaEnElPeriodo(datos.entries, p.id)))
       .map((p) => p.id));
   }, [datos, filtro.tiendas, filtro.empleados]);
 

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { landingRoute } from "@/lib/constants";
 import { DataProvider } from "@/lib/timetracker-data-provider";
 import { DemoDataProvider } from "@/lib/timetracker-demo-data-provider";
-import { ADMIN_DEMO } from "@/lib/timetracker/demo-data";
+import { ADMIN_DEMO, DEMO_EMPLOYEES } from "@/lib/timetracker/demo-data";
 import { TopBar } from "@/components/timetracker/TopBar";
 import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 import { TtUpdateBanner } from "@/components/timetracker/UpdateBanner";
@@ -33,6 +33,9 @@ export const metadata: Metadata = {
 // already use independently of each other — this is the third, independent
 // copy of that pattern, not a new one.
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+// Demo: NEXT_PUBLIC_TT_DEMO_PERSONA=u-carla la ve como esa persona de la semilla (2026-11-25: Carla, presencial en
+// varias tiendas, para ver el fichaje con tienda). Sin la variable, la demo sigue siendo el admin de siempre.
+const PERSONA_DE_LA_DEMO = DEMO_EMPLOYEES.find((e) => e.id === process.env.NEXT_PUBLIC_TT_DEMO_PERSONA) ?? ADMIN_DEMO;
 
 export default async function TimetrackerLayout({ children }: { children: React.ReactNode }) {
   // Modo demo (sin base ni sesión), para los vídeos tutoriales: el mismo armazón que abajo, con el
@@ -42,7 +45,7 @@ export default async function TimetrackerLayout({ children }: { children: React.
     <div className="timetracker-module">
       <AppUpdateBanner app="timetracker" />
       <CapacitacionProvider inicial={null} uid={ADMIN_DEMO.id}>
-        <DemoDataProvider me={ADMIN_DEMO}>
+        <DemoDataProvider me={PERSONA_DE_LA_DEMO}>
           <div className="wrap">
             <TopBar deliveriesRole="admin" moduleAccess={null} />
             <TtUpdateBanner />
