@@ -195,7 +195,6 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos }:
     return semanasDelPeriodo.map((semana) => ({
       id,
       nombre: gente.get(id)?.name ?? "—",
-      etiquetaSemana: semanasDelPeriodo.length > 1 ? t("hoja.week", { from: fmtISOday(semana[0]), to: fmtISOday(semana[6]) }) : null,
       semana,
       hoja: hojaDeLaSemana(dias, semana, OT_WEEKLY_MIN),
       dias,

@@ -99,7 +99,7 @@ export default async function PayrollPage({
   const rango = resolverRango(p, hoy);
 
   // Quién tiene horas por las dos vías (`period_hours.revisar`), en todas las semanas del rango.
-  const { data: horas } = await supabase
+  const { data: horas, error: errorHoras } = await supabase
     .schema("timetracker")
     .from("period_hours")
     .select("employee_id, revisar")
@@ -107,6 +107,7 @@ export default async function PayrollPage({
   const revisar = [...new Set((horas ?? []).filter((r) => r.revisar).map((r) => r.employee_id as string))];
 
   return (
-    <PayrollTabs {...rango} hoy={hoy} filtro={filtro} vistaPorUrl={vistaPorUrl} revisar={revisar} />
+    <PayrollTabs {...rango} hoy={hoy} filtro={filtro} vistaPorUrl={vistaPorUrl} revisar={revisar}
+      errorHoras={errorHoras?.message ?? null} />
   );
 }

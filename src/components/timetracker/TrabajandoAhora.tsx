@@ -119,7 +119,7 @@ export function TrabajandoAhora({ soloUids = null }: {
     <div className="card">
       <div className="between">
         <h2 style={{ margin: 0 }}>{t("mgr.tab.live")}</h2>
-        <span className="chip">{t("mgr.live.countNow", { a: enCurso, b: inactivos.length })}</span>
+        <span className="chip" title={t("nomina.ahoraCuenta")}>{t("mgr.live.countNow", { a: enCurso, b: inactivos.length })}</span>
       </div>
       {enCurso === 0 && inactivos.length === 0 ? (
         <p className="muted" style={{ marginTop: 12 }}>{t("mgr.live.empty")}</p>

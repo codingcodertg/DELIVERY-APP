@@ -23,9 +23,9 @@ import type { DatosDeSemana } from "@/lib/timetracker/rango-de-nomina";
  * las dos daban números distintos para lo que parecía la misma pregunta. Parte era a
  * propósito (horas contra dinero, D-102) y parte eran bugs; y la sección Remoto de Pago tenía
  * además su propio calendario, así que ni siquiera miraban la misma semana (D-164). Lo que
- * Periodo hacía bien —las dos vías lado a lado sin sumarlas, la marca `revisar`, el tipo
- * deducido— no se pierde: pasa a ser la **cabecera** de esta vista (`PayrollResumen`), siempre
- * visible, encima de las dos secciones plegables. Y el `?period=` de la URL manda en las tres.
+ * Periodo hacía bien —las dos vías lado a lado sin sumarlas, la marca `revisar`— se quitó el
+ * 2026-11-24 con su bloque «Nómina · periodo». Hoy la vista se elige con la barra de arriba
+ * (periodo, tienda y empleado, en la URL), y las secciones plegables van debajo.
  *
  * Las secciones **se montan al abrirse**, no antes: cada una pide sus propios datos y traer
  * los dos juegos para enseñar uno era pagar dos veces por una pantalla que se abre a diario.
@@ -37,7 +37,7 @@ import type { DatosDeSemana } from "@/lib/timetracker/rango-de-nomina";
  * (decisión del dueño: la cámara de la tienda reemplaza las fotos, y las capturas se ven ahora desde el 🖥
  * de cada día o sesión remota de «Remoto»).
  */
-export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtro, revisar, vistaPorUrl = null }: {
+export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtro, revisar, vistaPorUrl = null, errorHoras = null }: {
   /** Las semanas de pago del rango, la más antigua primero (una sola = se cierra, se paga y se aprueba). */
   semanas: string[];
   /** El rango pedido tenía más de catorce semanas y se recortó a las más recientes. */
@@ -50,6 +50,8 @@ export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtr
   revisar: string[];
   /** La URL trae `?vista=…`: esa sección empieza abierta. `null` si no pide ninguna. */
   vistaPorUrl?: SeccionDeNomina | null;
+  /** Si no se pudo leer `period_hours` (la marca «revisar»), el motivo: se avisa arriba de todo. */
+  errorHoras?: string | null;
 }) {
   const t = useT();
   const { me } = useData();
@@ -67,6 +69,7 @@ export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtr
 
   return (
     <>
+      {errorHoras && <div className="banner err" style={{ marginBottom: 12 }}>{t("nomina.errHoras", { msg: errorHoras })}</div>}
       {me.role === "admin" && (
         <SeccionDeNomina clave="ahora" titulo={t("tab.live")} porUrl={vistaPorUrl === "ahora"}>
           <TrabajandoAhora soloUids={soloUids} />

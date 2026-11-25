@@ -24,9 +24,47 @@ describe("Hojas de tiempo de Nómina: la hoja de Excel y la tabla", () => {
   });
 });
 
+describe("la hoja semanal usa la tabla estándar, un bloque por persona y semana", () => {
+  const hoja = leer("src/components/timetracker/HojaSemanal.tsx");
+
+  it("las filas son un TablaEstandar con id compartido por todos los bloques", () => {
+    expect(hoja).toContain("<TablaEstandar");
+    expect(hoja).toContain('export const ID_DE_LA_HOJA = "tt-hoja-semanal";');
+    expect(hoja).toContain("id={ID_DE_LA_HOJA}");
+  });
+
+  it("no tiene una <table> hecha a mano", () => {
+    expect(hoja).not.toMatch(/<table[\s>]/);
+    expect(hoja).not.toMatch(/<thead|<tbody|<tfoot/);
+  });
+
+  it("el orden por defecto es por fecha, y las celdas y la fila de domingo tienen su clase", () => {
+    expect(hoja).toContain('ordenInicial={{ clave: "dia", direccion: "asc" }}');
+    expect(hoja).toContain('claseTabla="tt-hoja"');
+    expect(hoja).toContain('"num tt-hoja-trabajo"');
+    expect(hoja).toContain('"num tt-hoja-fuera"');
+    expect(hoja).toContain('"tt-hoja-celda"');
+    expect(hoja).toContain('"tt-hoja-domingo"');
+  });
+
+  it("cabecera con el nombre y la semana, y pie con OVER o AT OR BELOW, TOT HRS y el total", () => {
+    expect(hoja).toContain('className="tt-hoja-nombre"');
+    expect(hoja).toContain('className="tt-hoja-total"');
+    expect(hoja).toContain('t("hoja.over")');
+    expect(hoja).toContain('t("hoja.atOrBelow")');
+    expect(hoja).toContain('t("hoja.totHrs")');
+  });
+
+  it("los rótulos son los del Excel, con su grupo dentro del nombre de columna", () => {
+    for (const clave of ["hoja.c.inicioEntrada", "hoja.c.inicioSalida", "hoja.c.inicioTrabajado", "hoja.c.comidaRegreso", "hoja.c.comidaFuera", "hoja.c.finSalida", "hoja.c.finTrabajado", "hoja.c.total"]) {
+      expect(hoja, clave).toContain(clave);
+    }
+  });
+});
+
 describe("timetracker.css declara los tokens de la hoja desde la paleta del hub (sin bloque claro propio)", () => {
   const css = leer("src/app/timetracker/timetracker.css");
-  const tokens = ["cabecera", "grupo", "trabajo", "fuera", "crema", "nombre", "sobre", "domingo"];
+  const tokens = ["grupo", "trabajo", "fuera", "crema", "nombre", "sobre", "domingo"];
 
   it("cada token está declarado en el bloque del módulo, y no hay bloque claro aparte", () => {
     for (const t of tokens) {

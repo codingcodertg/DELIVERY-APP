@@ -19,7 +19,6 @@
    tarjeta, y su texto es la tinta del hub, así que se lee en claro y en oscuro. El amarillo del nombre y del total es
    el único literal, y lleva su texto oscuro en los dos temas. */
 .timetracker-module{
-  --tt-hoja-cabecera:var(--text); --tt-hoja-cabecera-txt:var(--paper);
   --tt-hoja-grupo:color-mix(in srgb, var(--text) 14%, var(--card)); --tt-hoja-grupo-txt:var(--text);
   --tt-hoja-trabajo:color-mix(in srgb, var(--green) 22%, var(--card)); --tt-hoja-trabajo-txt:var(--text);
   --tt-hoja-fuera:color-mix(in srgb, var(--amber) 28%, var(--card)); --tt-hoja-fuera-txt:var(--text);
@@ -78,20 +77,22 @@
 .timetracker-module .g4{grid-template-columns:repeat(4,1fr)}
 @media(max-width:720px){.timetracker-module .g2,.timetracker-module .g3,.timetracker-module .g4{grid-template-columns:1fr}}
 .timetracker-module table{width:100%;border-collapse:collapse;font-size:13.5px}
-/* La hoja semanal: la caja de cada persona es la que se desliza en el teléfono; la página nunca. */
-.timetracker-module .tt-hoja-caja{overflow-x:auto;max-width:100%;margin-top:8px}
-.timetracker-module table.tt-hoja{width:100%;min-width:620px;border-collapse:collapse;font-size:12.5px;margin-bottom:6px}
-.timetracker-module .tt-hoja th,.timetracker-module .tt-hoja td{padding:4px 7px;border:1px solid var(--tt-line);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
-.timetracker-module .tt-hoja th{text-transform:none;letter-spacing:0;font-weight:700;color:var(--tt-hoja-cabecera-txt);background:var(--tt-hoja-cabecera)}
-.timetracker-module .tt-hoja .tt-hoja-grupo{background:var(--tt-hoja-grupo);color:var(--tt-hoja-grupo-txt)}
-.timetracker-module .tt-hoja .tt-hoja-nombre{background:var(--tt-hoja-nombre);color:var(--tt-hoja-nombre-txt);font-size:14px;text-align:left;font-weight:800}
-.timetracker-module .tt-hoja .tt-hoja-trabajo{background:var(--tt-hoja-trabajo);color:var(--tt-hoja-trabajo-txt);font-weight:700}
-.timetracker-module .tt-hoja .tt-hoja-fuera{background:var(--tt-hoja-fuera);color:var(--tt-hoja-fuera-txt);font-weight:700}
-.timetracker-module .tt-hoja td.tt-hoja-celda{background:var(--tt-hoja-crema);color:var(--tt-hoja-crema-txt)}
-.timetracker-module .tt-hoja .tt-hoja-total{background:var(--tt-hoja-nombre);color:var(--tt-hoja-nombre-txt);font-weight:800}
-.timetracker-module .tt-hoja tr.tt-hoja-domingo td{background:var(--tt-hoja-domingo);color:var(--tt-hoja-domingo-txt)}
-.timetracker-module .tt-hoja .tt-hoja-sobre{background:var(--tt-hoja-sobre);color:var(--tt-hoja-sobre-txt);font-weight:800}
+/* La hoja semanal (2026-11-24): cada bloque es una tabla ESTÁNDAR (TablaEstandar, id tt-hoja-semanal) con su cabecera y su pie
+   fuera de la tabla. Las tintas van en las celdas por su clase de columna (tt-hoja-trabajo, tt-hoja-fuera, tt-hoja-celda) y
+   la fila de domingo por su clase de fila (tt-hoja-domingo). El ancho en el teléfono lo pone la tabla estándar. */
+.timetracker-module .tt-hoja-bloque{margin-top:12px}
+.timetracker-module .tt-hoja-cabecera{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.timetracker-module .tt-hoja-nombre{display:inline-block;background:var(--tt-hoja-nombre);color:var(--tt-hoja-nombre-txt);font-weight:800;font-size:14px;padding:4px 12px;border-radius:6px}
+.timetracker-module table.tt-hoja td.tt-hoja-celda{background:var(--tt-hoja-crema);color:var(--tt-hoja-crema-txt)}
+.timetracker-module table.tt-hoja td.tt-hoja-trabajo{background:var(--tt-hoja-trabajo);color:var(--tt-hoja-trabajo-txt);font-weight:700}
+.timetracker-module table.tt-hoja td.tt-hoja-fuera{background:var(--tt-hoja-fuera);color:var(--tt-hoja-fuera-txt);font-weight:700}
+.timetracker-module table.tt-hoja tr.tt-hoja-domingo td{background:var(--tt-hoja-domingo);color:var(--tt-hoja-domingo-txt)}
 .timetracker-module .tt-hoja-marca{margin-left:4px;font-size:11px;font-weight:700;cursor:help}
+.timetracker-module .tt-hoja-pie{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:8px}
+.timetracker-module .tt-hoja-pie>span{padding:4px 10px;border-radius:6px}
+.timetracker-module .tt-hoja-neutro{background:var(--tt-hoja-grupo);color:var(--tt-hoja-grupo-txt);font-weight:700}
+.timetracker-module .tt-hoja-sobre{background:var(--tt-hoja-sobre);color:var(--tt-hoja-sobre-txt);font-weight:800}
+.timetracker-module .tt-hoja-total{background:var(--tt-hoja-nombre);color:var(--tt-hoja-nombre-txt);font-weight:800;font-size:15px}
 .timetracker-module th,.timetracker-module td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--tt-line)}
 .timetracker-module th{color:var(--tt-muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
 .timetracker-module .muted{color:var(--tt-muted)}
