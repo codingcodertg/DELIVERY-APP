@@ -1,24 +1,26 @@
 "use server";
 
-// Fichar desde el HUB de escritorio (2026-11-25). Son envoltorios finos: el fichaje, el almuerzo y la salida
-// son los de clock.ts y leave.ts, con `origen: "hub"` cuando no hay lugar ni foto (ver clock.ts).
+// Fichar desde el HUB de escritorio (2026-11-25). Son las únicas acciones que pasan `origen: "hub"` al cuerpo
+// compartido del fichaje (src/lib/clockin/fichaje-interno.ts). Ese camino NO es accesible desde las acciones
+// públicas de clock.ts: `clockIn`/`clockOut` no reciben opciones.
 //
-// REGLA DE SERVIDOR: cada acción vuelve a leer el interruptor de la persona (`hub_clock`, en turno, activa). Que
-// el botón solo salga en la app de escritorio es una regla de PANTALLA (FichajeDelHub.tsx); aquí no se puede
-// comprobar desde dónde se llamó, así que el interruptor por persona es la barrera de verdad.
-// Sin la columna `hub_clock` (351 sin aplicar) nadie está activo: nada se rompe.
+// REGLA DE SERVIDOR (fail closed): CADA acción exportada empieza con `ctxActivo()`, que vuelve a leer, para quien
+// tiene la sesión, `timetracker.employee_settings` (hub_clock, active, worker_type) y decide con
+// `puedeFicharDesdeElHub`. Lectura fallida, fila sin ajustes, columna que no existe (351 sin aplicar), interruptor
+// apagado, inactiva o no presencial = se niega. El botón solo sale en la app de escritorio: eso es una regla de
+// PANTALLA (FichajeDelHub.tsx); aquí no se puede saber desde dónde se llamó, así que el interruptor es la barrera.
 
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
+import { clockInInterno, clockOutInterno } from "@/lib/clockin/fichaje-interno";
 import { nombraLaColumna } from "@/lib/columnas-opcionales";
 import { effWorkerType } from "@/lib/timetracker/helpers";
 import { esMultiTienda, tiendasParaElegir } from "@/lib/timetracker/multitienda";
 import {
-  demoDelHub, siguienteEstado,
-  type DatosDelHub, type EstadoDelHub,
+  demoDelHub, puedeFicharDesdeElHub, siguienteEstado,
+  type CausaDeNoActivo, type DatosDelHub, type EstadoDelHub,
 } from "@/lib/timetracker/fichaje-del-hub";
 import { DEMO_EMPLOYEES } from "@/lib/timetracker/demo-data";
 import { corteDeCapacitacion } from "@/lib/timetracker/capacitacion-servidor";
-import { clockIn, clockOut } from "./clock";
 import { endLeave, startLeave } from "./leave";
 import { SITIOS } from "./demo-local";
 
@@ -47,6 +49,7 @@ type Lectura = {
   companyId: string;
   nombre: string;
   activo: boolean;
+  causa: CausaDeNoActivo | null;
   multiTienda: boolean;
   tiendas: { id: string; name: string }[];
   abierto: Abierto | null;
@@ -104,18 +107,18 @@ async function leeAbierto(supabase: Cliente, uid: string): Promise<{ ok: true; a
 }
 
 /**
- * Lee todo lo que el hub necesita de quien mira. Un fallo de base es `ok: false` (la pantalla conserva lo último);
- * «no hay sesión» o «no tiene el interruptor» son respuestas válidas.
+ * Lee todo lo que el hub necesita de quien tiene la sesión. Un fallo de base es `ok: false`; «no hay sesión» es
+ * `lectura: null`. El interruptor se decide aquí con `puedeFicharDesdeElHub` (cierra por defecto).
  */
-async function leeDelHub(): Promise<{ ok: true; lectura: Lectura | null; supabase: Cliente | null } | { ok: false; mensaje: string }> {
+async function leeDelHub(): Promise<{ ok: true; lectura: Lectura | null } | { ok: false; mensaje: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: true, lectura: null, supabase: null };
+  if (!user) return { ok: true, lectura: null };
   const uid = user.id;
 
   const { data: perfil, error: errPerfil } = await supabase.from("profiles").select("company_id, full_name").eq("id", uid).maybeSingle();
   if (errPerfil) return { ok: false, mensaje: errPerfil.message ?? "No se pudo leer el perfil." };
-  if (!perfil) return { ok: true, lectura: null, supabase: null };
+  if (!perfil) return { ok: true, lectura: null };
   const companyId = perfil.company_id as string;
   const nombre = (perfil.full_name as string | null) ?? "";
 
@@ -145,15 +148,23 @@ async function leeDelHub(): Promise<{ ok: true; lectura: Lectura | null; supabas
     tiendas = tiendasParaElegir((sitios ?? []) as { id: string; name: string; active?: boolean | null }[]);
   }
 
+  const decision = puedeFicharDesdeElHub({
+    error: false,
+    ajustes: ajustes ? { tipo: ajustes.tipo, activa: ajustes.activa, hubClock: ajustes.hubClock } : null,
+    columnaDisponible: ajustes?.interruptorDisponible ?? false,
+  });
+
   const estado: EstadoDelHub = !abierto ? "fuera" : pausa ? "en_break" : "en_turno";
   const desde = pausa ? pausa.leftAt : abierto ? abierto.clockInAt : null;
-  const activo = !!ajustes && effWorkerType({ workerType: ajustes.tipo }) === "inhouse"
-    && ajustes.activa && ajustes.hubClock && ajustes.interruptorDisponible;
 
   return {
     ok: true,
-    supabase,
-    lectura: { uid, companyId, nombre, activo, multiTienda: !!ajustes?.multiTienda, tiendas, abierto, pausa, estado, desde },
+    lectura: {
+      uid, companyId, nombre,
+      activo: decision.ok,
+      causa: decision.ok ? null : decision.causa,
+      multiTienda: !!ajustes?.multiTienda, tiendas, abierto, pausa, estado, desde,
+    },
   };
 }
 
@@ -165,17 +176,31 @@ function aDatos(l: Lectura | null): DatosDelHub {
   };
 }
 
-const SIN_ACTIVO: ResultadoDelHub = { ok: false, codigo: "no_activo", mensaje: "Clocking in from the hub is not turned on for you." };
-const SIN_SESION_RES: ResultadoDelHub = { ok: false, codigo: "sesion", mensaje: "Your session expired. Sign in again." };
+type RefusalDelHub = Extract<ResultadoDelHub, { ok: false }>;
+const SIN_ACTIVO: RefusalDelHub = { ok: false, codigo: "no_activo", mensaje: "Clocking in from the hub is not turned on for you." };
+const SIN_SESION_RES: RefusalDelHub = { ok: false, codigo: "sesion", mensaje: "Your session expired. Sign in again." };
 
-/** Lectura de quien actúa, con las comprobaciones de sesión y del interruptor. Cada acción la usa. */
-async function ctxActivo(): Promise<{ ok: true; l: Lectura } | { ok: false; res: ResultadoDelHub }> {
+type CtxHub =
+  | { ok: true; demo: boolean; activo: boolean; causa: CausaDeNoActivo | null; l: Lectura | null }
+  | { ok: false; res: RefusalDelHub };
+
+/**
+ * La puerta de TODAS las acciones (y de la lectura). Primero la guarda de la práctica; después, en modo demo, la
+ * persona de la demo; si no, la lectura real y la decisión del servidor. Si la lectura falla, `ok: false`.
+ */
+async function ctxActivo(): Promise<CtxHub> {
+  const corte = await corteDeCapacitacion();
+  if (corte) return { ok: false, res: { ok: false, codigo: "error", mensaje: corte.message } };
+  if (LOCAL_MODE) {
+    return DEMO_HUB
+      ? { ok: true, demo: true, activo: true, causa: null, l: null }
+      : { ok: true, demo: false, activo: false, causa: "sin_ajustes", l: null };
+  }
   if (!isSupabaseConfigured) return { ok: false, res: SIN_SESION_RES };
   const r = await leeDelHub();
   if (!r.ok) return { ok: false, res: { ok: false, codigo: "error", mensaje: r.mensaje } };
   if (!r.lectura) return { ok: false, res: SIN_SESION_RES };
-  if (!r.lectura.activo) return { ok: false, res: SIN_ACTIVO };
-  return { ok: true, l: r.lectura };
+  return { ok: true, demo: false, activo: r.lectura.activo, causa: r.lectura.causa, l: r.lectura };
 }
 
 function estadoInvalido(actual: EstadoDelHub, desde: string | null): ResultadoDelHub {
@@ -210,30 +235,31 @@ function demoAccion(accion: "entrar" | "empezar_break" | "volver_del_break" | "t
   return { ok: true, estado: demo.estado, desde: demo.desde };
 }
 
-// --- Acciones ---------------------------------------------------------------------
+// --- Acciones (cada una empieza con ctxActivo) ------------------------------------
 
 /**
- * Lo que el hub necesita saber de quien mira. Nunca falla por el interruptor: si no lo tiene, `activo` es false y
- * el botón no sale. Un fallo de lectura es `ok: false` (la pantalla no cambia nada).
+ * Lo que el hub necesita saber de quien tiene la sesión. No refusa por el interruptor: informa `activo`, y el botón no
+ * sale si es false. Un fallo de lectura es `ok: false` (la pantalla no cambia nada).
  */
 export async function estadoDelHub(): Promise<{ ok: true; datos: DatosDelHub } | { ok: false; mensaje: string }> {
-  if (LOCAL_MODE) {
-    if (!DEMO_HUB) return { ok: true, datos: SIN_SESION };
-    return { ok: true, datos: demoDatos() };
+  const ctx = await ctxActivo();
+  if (!ctx.ok) {
+    return ctx.res.codigo === "sesion" ? { ok: true, datos: SIN_SESION } : { ok: false, mensaje: ctx.res.mensaje };
   }
-  if (!isSupabaseConfigured) return { ok: true, datos: SIN_SESION };
-  const r = await leeDelHub();
-  if (!r.ok) return { ok: false, mensaje: r.mensaje };
-  return { ok: true, datos: aDatos(r.lectura) };
+  if (ctx.demo) return { ok: true, datos: demoDatos() };
+  if (!ctx.l) return { ok: true, datos: SIN_SESION };
+  return { ok: true, datos: aDatos(ctx.l) };
 }
 
 export async function ficharDesdeElHub(input?: { storeId?: string | null }): Promise<ResultadoDelHub> {
   const corte = await corteDeCapacitacion();
   if (corte) return { ok: false, codigo: "error", mensaje: corte.message };
-  if (LOCAL_MODE) return DEMO_HUB ? demoAccion("entrar", input?.storeId) : SIN_ACTIVO;
   const ctx = await ctxActivo();
   if (!ctx.ok) return ctx.res;
-  const res = await clockIn({ origen: "hub", storeId: input?.storeId ?? null, deviceId: EQUIPO });
+  if (ctx.demo) return demoAccion("entrar", input?.storeId);
+  if (!ctx.activo || !ctx.l) return SIN_ACTIVO;
+  // El cuerpo compartido, con el origen del hub. Sin lugar ni foto: queda «no se midió», sin excepciones (ver fichaje-interno.ts).
+  const res = await clockInInterno({ storeId: input?.storeId ?? null, deviceId: EQUIPO }, { origen: "hub" });
   if (res.ok) return { ok: true, estado: "en_turno", desde: res.clockInAt };
   if (res.code === "already_open") return { ok: false, codigo: "estado", mensaje: "You are already on the clock.", estado: "en_turno", desde: res.clockInAt };
   return { ok: false, codigo: "error", mensaje: "message" in res && res.message ? res.message : `Could not clock in (${res.code}).` };
@@ -242,9 +268,10 @@ export async function ficharDesdeElHub(input?: { storeId?: string | null }): Pro
 export async function empezarBreakDesdeElHub(): Promise<ResultadoDelHub> {
   const corte = await corteDeCapacitacion();
   if (corte) return { ok: false, codigo: "error", mensaje: corte.message };
-  if (LOCAL_MODE) return DEMO_HUB ? demoAccion("empezar_break") : SIN_ACTIVO;
   const ctx = await ctxActivo();
   if (!ctx.ok) return ctx.res;
+  if (ctx.demo) return demoAccion("empezar_break");
+  if (!ctx.activo || !ctx.l) return SIN_ACTIVO;
   const { l } = ctx;
   if (!siguienteEstado(l.estado, "empezar_break")) return estadoInvalido(l.estado, l.desde);
   const r = await startLeave({ reason: "lunch" });
@@ -255,9 +282,10 @@ export async function empezarBreakDesdeElHub(): Promise<ResultadoDelHub> {
 export async function volverDelBreakDesdeElHub(): Promise<ResultadoDelHub> {
   const corte = await corteDeCapacitacion();
   if (corte) return { ok: false, codigo: "error", mensaje: corte.message };
-  if (LOCAL_MODE) return DEMO_HUB ? demoAccion("volver_del_break") : SIN_ACTIVO;
   const ctx = await ctxActivo();
   if (!ctx.ok) return ctx.res;
+  if (ctx.demo) return demoAccion("volver_del_break");
+  if (!ctx.activo || !ctx.l) return SIN_ACTIVO;
   const { l } = ctx;
   if (!siguienteEstado(l.estado, "volver_del_break") || !l.pausa || !l.abierto) return estadoInvalido(l.estado, l.desde);
   const r = await endLeave(l.pausa.id);
@@ -266,23 +294,24 @@ export async function volverDelBreakDesdeElHub(): Promise<ResultadoDelHub> {
 }
 
 /**
- * Terminar el turno. Si hay un almuerzo en curso, primero se cierra (la salida de clock.ts se niega con un
- * almuerzo abierto) y después se sale. Si la salida falla después de cerrar el almuerzo, el almuerzo ya quedó
- * cerrado: se vuelve a leer el estado y se devuelve para que la pantalla lo muestre.
+ * Terminar el turno. Si hay un almuerzo en curso, primero se cierra (la salida se niega con un almuerzo abierto) y
+ * después se sale. Si la salida falla después de cerrar el almuerzo, el almuerzo ya quedó cerrado: se vuelve a leer
+ * el estado y se devuelve para que la pantalla lo muestre.
  */
 export async function terminarTurnoDesdeElHub(): Promise<ResultadoDelHub> {
   const corte = await corteDeCapacitacion();
   if (corte) return { ok: false, codigo: "error", mensaje: corte.message };
-  if (LOCAL_MODE) return DEMO_HUB ? demoAccion("terminar_turno") : SIN_ACTIVO;
   const ctx = await ctxActivo();
   if (!ctx.ok) return ctx.res;
+  if (ctx.demo) return demoAccion("terminar_turno");
+  if (!ctx.activo || !ctx.l) return SIN_ACTIVO;
   const { l } = ctx;
   if (!siguienteEstado(l.estado, "terminar_turno") || !l.abierto) return estadoInvalido(l.estado, l.desde);
   if (l.pausa) {
     const fin = await endLeave(l.pausa.id);
     if (!fin.ok) return { ok: false, codigo: "error", mensaje: fin.message ?? "Could not end the break.", estado: l.estado, desde: l.desde };
   }
-  const salida = await clockOut(l.abierto.id, { origen: "hub", deviceId: EQUIPO });
+  const salida = await clockOutInterno(l.abierto.id, { deviceId: EQUIPO }, { origen: "hub" });
   if (salida.ok) return { ok: true, estado: "fuera", desde: null };
   const despues = await leeDelHub();
   const estado = despues.ok && despues.lectura ? despues.lectura.estado : (l.pausa ? "en_turno" : l.estado);

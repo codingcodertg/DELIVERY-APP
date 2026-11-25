@@ -82,7 +82,7 @@ describe("el bloqueo del almuerzo", () => {
   });
 });
 
-describe("el servidor: cada acción vuelve a mirar el interruptor de la persona", () => {
+describe("el servidor: cada acción vuelve a mirar el interruptor de la persona (fail closed)", () => {
   const trozos = hub.split("export async function ").slice(1);
   const nombres = trozos.map((t) => t.slice(0, t.indexOf("(")));
 
@@ -92,44 +92,70 @@ describe("el servidor: cada acción vuelve a mirar el interruptor de la persona"
     ]);
   });
 
-  it("todas menos la lectura pasan por ctxActivo (sesión + interruptor); la lectura solo informa", () => {
+  it("CADA acción exportada llama a ctxActivo() antes de hacer nada (la guarda de práctica puede ir primero)", () => {
     for (const [i, nombre] of nombres.entries()) {
-      if (nombre === "estadoDelHub") continue;
-      expect(trozos[i], `${nombre} debe llamar a ctxActivo()`).toContain("await ctxActivo()");
+      const cuerpo = trozos[i].slice(trozos[i].indexOf("{\n") + 1);
+      const primera = cuerpo.replace(/^\s*const corte = await corteDeCapacitacion\(\);\n\s*if \(corte\) return [^\n]*\n/, "");
+      expect(primera, `${nombre} debe empezar por ctxActivo()`).toMatch(/^\s*const ctx = await ctxActivo\(\);/);
     }
-    expect(trozos[0]).not.toContain("ctxActivo()");
   });
 
-  it("el interruptor se lee de hub_clock y, sin la columna, nadie queda activo", () => {
+  it("ctxActivo lee la sesión y el interruptor del servidor, y decide con puedeFicharDesdeElHub", () => {
+    const i = hub.indexOf("async function ctxActivo()");
+    const cuerpo = hub.slice(i, hub.indexOf("function estadoInvalido"));
+    expect(cuerpo).toContain("await leeDelHub()");
+    expect(cuerpo).toContain("if (!r.ok) return");
+    expect(cuerpo).toContain("if (!r.lectura) return");
+    expect(hub).toContain("activo: decision.ok,");
+    expect(hub).toContain("const decision = puedeFicharDesdeElHub({");
+  });
+
+  it("el interruptor se lee de hub_clock, y sin la columna la decisión es no", () => {
     expect(hub).toContain('select("worker_type, multi_store, active, hub_clock")');
-    expect(hub).toContain("interruptorDisponible");
-    expect(hub).toContain("ajustes.interruptorDisponible");
+    expect(hub).toContain("columnaDisponible: ajustes?.interruptorDisponible ?? false,");
   });
 
-  it("el fichaje desde el hub no manda lugar ni foto y marca el origen", () => {
-    expect(hub).toContain('clockIn({ origen: "hub", storeId: input?.storeId ?? null, deviceId: EQUIPO })');
-    expect(hub).toContain('clockOut(l.abierto.id, { origen: "hub", deviceId: EQUIPO })');
+  it("el fichaje desde el hub pasa el origen SOLO por el cuerpo interno, nunca por las acciones públicas", () => {
+    expect(hub).toContain('clockInInterno({ storeId: input?.storeId ?? null, deviceId: EQUIPO }, { origen: "hub" })');
+    expect(hub).toContain('clockOutInterno(l.abierto.id, { deviceId: EQUIPO }, { origen: "hub" })');
+    expect(hub).not.toMatch(/from "\.\/clock"/);
     expect(hub).not.toMatch(/photoPath|lat:|lng:/);
   });
 
-  it("el almuerzo se cierra antes de salir: la salida de clock.ts se niega con un almuerzo abierto", () => {
+  it("el almuerzo se cierra antes de salir: la salida se niega con un almuerzo abierto", () => {
     const i = hub.indexOf("export async function terminarTurnoDesdeElHub");
     const cuerpo = hub.slice(i);
     expect(cuerpo.indexOf("endLeave(l.pausa.id)")).toBeGreaterThan(-1);
-    expect(cuerpo.indexOf("endLeave(l.pausa.id)")).toBeLessThan(cuerpo.indexOf("clockOut(l.abierto.id"));
+    expect(cuerpo.indexOf("endLeave(l.pausa.id)")).toBeLessThan(cuerpo.indexOf("clockOutInterno(l.abierto.id"));
   });
 });
 
-describe("clock.ts: el camino del hub no lee la geocerca y no escribe excepciones", () => {
-  it("clockIn y clockOut no llaman a sitioDelFichaje cuando origen es hub", () => {
-    expect(reloj).toContain('const geocerca = input.origen === "hub"\n    ? null');
-    expect(reloj.match(/input\.origen === "hub"/g)?.length).toBe(2);
-    expect(reloj).toContain("const onSite: boolean | null = geocerca?.medido ? geocerca.onSite : null;");
+describe("la acción pública no acepta el origen del hub", () => {
+  const interno = leer("src/lib/clockin/fichaje-interno.ts");
+
+  it("clock.ts no menciona `origen` en ninguna parte: ni en los tipos de entrada ni en las acciones", () => {
+    expect(reloj).not.toContain("origen");
+    expect(reloj).not.toContain("OpcionesDeFichaje");
+    expect(reloj).not.toMatch(/opciones\.|opciones:|, opciones\b/);
   });
 
-  it("el camino normal sigue igual: la geocerca sí se lee cuando no es hub", () => {
-    expect(reloj).toContain("input.lat as number,");
-    expect(reloj).toContain("input.lng as number,");
+  it("clockIn y clockOut públicas solo reciben la entrada y llaman al cuerpo SIN opciones", () => {
+    expect(reloj).toContain("export async function clockIn(input: ClockInput): Promise<ClockInResult> {");
+    expect(reloj).toContain("return clockInInterno(input);");
+    expect(reloj).toContain("export async function clockOut(entryId: string, input: ClockOutInput): Promise<ClockOutResult> {");
+    expect(reloj).toContain("return clockOutInterno(entryId, input);");
+  });
+
+  it("el cuerpo compartido NO es acción de servidor: no lleva \"use server\" (un cliente no lo puede llamar)", () => {
+    expect(interno).not.toMatch(/^"use server";/m);
+  });
+
+  it("solo el cuerpo interno decide la geocerca según el origen, y el camino normal la lee igual", () => {
+    expect(interno).toContain('const geocerca = opciones.origen === "hub"');
+    expect(interno.match(/opciones\.origen === "hub"/g)?.length).toBe(2);
+    expect(interno).toContain("const onSite: boolean | null = geocerca?.medido ? geocerca.onSite : null;");
+    expect(interno).toContain("input.lat as number,");
+    expect(interno).toContain("input.lng as number,");
   });
 });
 

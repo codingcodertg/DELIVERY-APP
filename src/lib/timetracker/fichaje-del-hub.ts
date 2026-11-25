@@ -14,6 +14,7 @@
 // ============================================================
 
 import { formateadorDeFecha } from "@/lib/formateador";
+import { effWorkerType } from "@/lib/timetracker/helpers";
 
 export type EstadoDelHub = "fuera" | "en_turno" | "en_break";
 export type AccionDelHub = "entrar" | "empezar_break" | "volver_del_break" | "terminar_turno";
@@ -86,6 +87,31 @@ export function reconciliaLectura(
   lectura: { ok: true; datos: DatosDelHub } | { ok: false },
 ): DatosDelHub | null {
   return lectura.ok ? lectura.datos : anterior;
+}
+
+/** Por qué el servidor NO deja fichar desde el hub (para el registro y las pruebas). */
+export type CausaDeNoActivo = "error_de_lectura" | "sin_ajustes" | "sin_columna" | "interruptor_apagado" | "inactiva" | "no_presencial";
+
+/**
+ * La decisión del SERVIDOR (hub.ts) de si una persona puede fichar desde el hub. Cierra por defecto: si la lectura
+ * falló, si no hay fila de ajustes, si la base aún no tiene la columna (351 sin aplicar), si el interruptor está
+ * apagado, si la persona no está activa o no es presencial, se niega. Solo pasa con todo a favor.
+ */
+export function puedeFicharDesdeElHub(q: {
+  /** La lectura de la base falló. */
+  error: boolean;
+  /** La fila de employee_settings de la persona; null si no tiene fila. */
+  ajustes: { tipo: string | null; activa: boolean; hubClock: boolean } | null;
+  /** ¿La base tiene la columna hub_clock (351 aplicada)? */
+  columnaDisponible: boolean;
+}): { ok: true } | { ok: false; causa: CausaDeNoActivo } {
+  if (q.error) return { ok: false, causa: "error_de_lectura" };
+  if (!q.ajustes) return { ok: false, causa: "sin_ajustes" };
+  if (!q.columnaDisponible) return { ok: false, causa: "sin_columna" };
+  if (!q.ajustes.hubClock) return { ok: false, causa: "interruptor_apagado" };
+  if (!q.ajustes.activa) return { ok: false, causa: "inactiva" };
+  if (effWorkerType({ workerType: q.ajustes.tipo }) !== "inhouse") return { ok: false, causa: "no_presencial" };
+  return { ok: true };
 }
 
 /** Qué hace el bloqueo con una tecla. Escape NO cierra el bloqueo (es un descanso, no un menú); Tab se queda dentro. */

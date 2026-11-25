@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   ANCHO_MINIMO_DEL_HUB, accionDeTeclaEnBloqueo, accionesValidas, demoDelHub, fechaDeTexas, formatoCronometro,
   formatoTranscurrido, horaCorta, horaDeTexas, reconciliaLectura, saludoDe, seVeElBoton, siguienteEstado,
-  tiendaPorDefecto, type DatosDelHub,
+  tiendaPorDefecto, puedeFicharDesdeElHub, type DatosDelHub,
 } from "./fichaje-del-hub";
 
 const DATOS: DatosDelHub = {
@@ -156,5 +156,47 @@ describe("la tienda por defecto", () => {
   it("si no hay ninguna de esas (o ya no existe), la primera", () => {
     expect(tiendaPorDefecto({ tiendaDeHoy: null, recordada: "borrada", tiendas })).toBe("s-mcallen");
     expect(tiendaPorDefecto({ tiendaDeHoy: null, recordada: null, tiendas: [] })).toBeNull();
+  });
+});
+
+describe("el servidor decide si puede fichar desde el hub (cierra por defecto)", () => {
+  const BUENO = { tipo: "inhouse", activa: true, hubClock: true };
+
+  it("todo a favor: pasa", () => {
+    expect(puedeFicharDesdeElHub({ error: false, ajustes: BUENO, columnaDisponible: true })).toEqual({ ok: true });
+  });
+
+  it("interruptor apagado: se niega", () => {
+    expect(puedeFicharDesdeElHub({ error: false, ajustes: { ...BUENO, hubClock: false }, columnaDisponible: true }))
+      .toEqual({ ok: false, causa: "interruptor_apagado" });
+  });
+
+  it("persona inactiva: se niega", () => {
+    expect(puedeFicharDesdeElHub({ error: false, ajustes: { ...BUENO, activa: false }, columnaDisponible: true }))
+      .toEqual({ ok: false, causa: "inactiva" });
+  });
+
+  it("remota (no presencial): se niega aunque tenga el interruptor", () => {
+    expect(puedeFicharDesdeElHub({ error: false, ajustes: { ...BUENO, tipo: "remote" }, columnaDisponible: true }))
+      .toEqual({ ok: false, causa: "no_presencial" });
+  });
+
+  it("la base no tiene la columna (351 sin aplicar): se niega", () => {
+    expect(puedeFicharDesdeElHub({ error: false, ajustes: BUENO, columnaDisponible: false }))
+      .toEqual({ ok: false, causa: "sin_columna" });
+  });
+
+  it("error de lectura: se niega (nunca se decide con datos que no se leyeron)", () => {
+    expect(puedeFicharDesdeElHub({ error: true, ajustes: BUENO, columnaDisponible: true }))
+      .toEqual({ ok: false, causa: "error_de_lectura" });
+  });
+
+  it("sin fila de ajustes: se niega", () => {
+    expect(puedeFicharDesdeElHub({ error: false, ajustes: null, columnaDisponible: true }))
+      .toEqual({ ok: false, causa: "sin_ajustes" });
+  });
+
+  it("un error gana sobre todo lo demás (aunque la fila diga que sí)", () => {
+    expect(puedeFicharDesdeElHub({ error: true, ajustes: null, columnaDisponible: false }).ok).toBe(false);
   });
 });
