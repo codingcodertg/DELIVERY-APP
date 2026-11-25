@@ -18,7 +18,8 @@ describe("Time Tracker en modo demo", () => {
     expect(rama).toBeLessThan(cliente);
     expect(rama).toBeLessThan(indice(s, "supabase.auth.getUser()"));
     const cuerpo = s.slice(rama, cliente);
-    expect(cuerpo).toContain("<DemoDataProvider me={ADMIN_DEMO}>");
+    // 2026-11-25: la persona de la demo es el admin por defecto, o la de NEXT_PUBLIC_TT_DEMO_PERSONA (Carla, en varias tiendas).
+    expect(cuerpo).toContain("<DemoDataProvider me={PERSONA_DE_LA_DEMO}>");
     expect(cuerpo).toContain('<TopBar deliveriesRole="admin" moduleAccess={null} />');
     expect(cuerpo).toContain("<CronometroAnfitrion />");
     expect(cuerpo).toContain("<CapacitacionProvider inicial={null}");

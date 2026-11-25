@@ -5,7 +5,7 @@ import { Ctx, type DataState } from "@/lib/timetracker-data-provider";
 import { APP_SETTINGS, type AppSettings, syncAppSettings } from "@/lib/timetracker/helpers";
 import type { AuditEntry, Assignment, Employee, Payroll, Project, Screenshot, Session, TimeRequest } from "@/lib/timetracker/types";
 import type { TalonDePago, TarifaPorHora } from "@/lib/timetracker/talon-de-pago";
-import { type AsignacionGuardada, type SemillaDemo, semillaDemo } from "@/lib/timetracker/demo-data";
+import { DEMO_TIENDAS, type AsignacionGuardada, type SemillaDemo, semillaDemo } from "@/lib/timetracker/demo-data";
 
 // ============================================================
 // MODO DEMO de Time Tracker — sin base ni sesión. Todo vive en el navegador (memoria + localStorage),
@@ -381,7 +381,7 @@ export function DemoDataProvider({ children, me: meInicial }: { children: React.
   }, [mutate]);
 
   const value: DataState = {
-    ready, me, tiendas: [], settings: store.settings, projects, myAssignments, mySessions, ensureSessionsSince, myPayrolls,
+    ready, me, tiendas: DEMO_TIENDAS, settings: store.settings, projects, myAssignments, mySessions, ensureSessionsSince, myPayrolls,
     myRequests, addRequest,
     toast, notify,
     listLiveSessions, getSession, startSession, updateSession, updateLiveSession, refrescarSesion,

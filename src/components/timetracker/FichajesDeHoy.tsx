@@ -54,7 +54,7 @@ export function FichajesDeHoy({ d, cifras }: { d: DiaDeFichaje; cifras: boolean 
             // En dos tablas habría que reconstruir el día mentalmente; así se lee de arriba
             // abajo tal como pasó: entré, comí, volví, salí a repartir.
             ...d.today.map((e) => ({
-              k: e.id, orden: e.clockInAt, que: t("emp.punch.shift"), cls: "on",
+              k: e.id, orden: e.clockInAt, que: t("emp.punch.shift") + (e.tienda ? " · " + e.tienda : ""), cls: "on",
               desde: e.clockInAt, hasta: e.clockOutAt, min: e.minutes,
             })),
             ...d.breaks.map((b) => ({

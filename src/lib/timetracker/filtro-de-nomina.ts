@@ -44,8 +44,13 @@ export function pasaFiltroDeNomina(
   persona: { id: string; store: string | null | undefined },
   tiendas: readonly string[],
   empleados: readonly string[],
+  // 2026-11-25 (350): las tiendas en las que fichó la persona en el periodo (ids). Quien va en varias tiendas pasa si
+  // ALGUNA de ellas está elegida; su tienda de perfil sigue valiendo. Sin este argumento, igual que antes.
+  tiendasTrabajadas: readonly string[] = [],
 ): boolean {
-  const enTienda = tiendas.length === 0 || (persona.store != null && tiendas.includes(persona.store));
+  const enTienda = tiendas.length === 0
+    || (persona.store != null && tiendas.includes(persona.store))
+    || tiendasTrabajadas.some((t) => tiendas.includes(t));
   const enEmpleado = empleados.length === 0 || empleados.includes(persona.id);
   return enTienda && enEmpleado;
 }

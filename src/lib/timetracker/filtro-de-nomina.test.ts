@@ -83,6 +83,33 @@ describe("pasaFiltroDeNomina · tienda Y empleado", () => {
   });
 });
 
+describe("pasaFiltroDeNomina · quien va en varias tiendas (350): las tiendas en las que fichó", () => {
+  // Francis: su tienda de perfil es null; fichó en Pharr y en Weslaco en el periodo.
+  const francis = { id: "francis", store: null };
+  const trabajadas = ["st-pharr", "st-weslaco"];
+
+  it("pasa si alguna de las tiendas en las que fichó está elegida", () => {
+    expect(pasaFiltroDeNomina(francis, ["st-pharr"], [], trabajadas)).toBe(true);
+    expect(pasaFiltroDeNomina(francis, ["st-mcallen", "st-weslaco"], [], trabajadas)).toBe(true);
+  });
+  it("no pasa si ninguna de las elegidas es una tienda donde fichó", () => {
+    expect(pasaFiltroDeNomina(francis, ["st-mcallen"], [], trabajadas)).toBe(false);
+  });
+  it("sin tiendas elegidas, pasa como antes", () => {
+    expect(pasaFiltroDeNomina(francis, [], [], trabajadas)).toBe(true);
+    expect(pasaFiltroDeNomina(francis, [], [], [])).toBe(true);
+  });
+  it("su tienda de perfil sigue valiendo, y sin el argumento se comporta como antes", () => {
+    const ana = { id: "ana", store: "st-1" };
+    expect(pasaFiltroDeNomina(ana, ["st-1"], [], [])).toBe(true);
+    expect(pasaFiltroDeNomina(francis, ["st-pharr"], [])).toBe(false);
+  });
+  it("el empleado y la tienda siguen siendo Y: elegir tienda no salta el filtro de empleado", () => {
+    expect(pasaFiltroDeNomina(francis, ["st-pharr"], ["ana"], trabajadas)).toBe(false);
+    expect(pasaFiltroDeNomina(francis, ["st-pharr"], ["francis"], trabajadas)).toBe(true);
+  });
+});
+
 describe("listaParaUrl · lo que va a la URL", () => {
   it("vacía, sin parámetro; si no, comas sin repetir", () => {
     expect(listaParaUrl([])).toBeNull();

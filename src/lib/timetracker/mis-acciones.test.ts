@@ -182,7 +182,8 @@ describe("1 · PunchPanel usa todo esto", () => {
   });
   it("cada opción llama a la MISMA función que su botón, y mientras se guarda no se pulsa", () => {
     expect(punch).toContain("      alPulsar: hacer[a],");
-    expect(punch).toContain('      deshabilitada: ocupado ? t("emp.menu.busy") : null,');
+    // 2026-11-25 (350): «Entrar» también se deshabilita sin tienda elegida; mientras se guarda, sigue igual.
+    expect(punch).toContain('      deshabilitada: ocupado ? t("emp.menu.busy")');
     expect(punch).toContain("      peligro: x.peligro,");
   });
   it("lo que hace cada acción está escrito una vez, y es lo que hacía cada botón", () => {
