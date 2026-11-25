@@ -8,8 +8,8 @@ import path from "node:path";
 const raiz = path.resolve(__dirname, "..", "..");
 const pagina = fs.readFileSync(path.join(raiz, "src", "app", "(app)", "routes", "page.tsx"), "utf8").replace(/\r\n/g, "\n");
 
-/** El texto de una función de la pantalla: desde su cabecera hasta la siguiente cabecera de mismo nivel. */
-function cuerpoDe(cabecera: string, hasta: string[]): string {
+/** El texto de una función de la pantalla: desde su cabecera hasta la siguiente declaración de su mismo nivel. */
+function cuerpoDe(cabecera: string, hasta: string[] = []): string {
   const i = pagina.indexOf(cabecera);
   expect(i, `no está: ${cabecera}`).toBeGreaterThan(-1);
   let fin = pagina.length;
@@ -40,7 +40,7 @@ describe("la auto-optimización al asignar (348) en el Gestor", () => {
       ["  const sueltaParadaYa = async (rutaDeOrigen: string, claveOrigen: string, destino: string, claveDestino: string | null) => {", ["  /** Las flechas, cuando les toca en la fila"]],
       ["  const aParadaYa = async (laneKey: string, clave: string, numero: number, entera: boolean) => {", ["  const traeEntregaYa"]],
       ["  const traeEntregaYa = async (laneKey: string, clave: string) => {", ["  // Lo último de cada gesto"]],
-      ["  const sueltaEnLaLinea = async (movida: string, destino: Destino) => {", ["  const sueltaEnLaLinea"]],
+      ["  const sueltaEnLaLinea = async (movida: string, destino: Destino) => {", []],
     ];
     for (const [cabecera, hasta] of gestos) {
       const cuerpo = cuerpoDe(cabecera, hasta);
@@ -49,13 +49,13 @@ describe("la auto-optimización al asignar (348) en el Gestor", () => {
   });
 
   it("trasAsignar sale al momento sin hayAutoOptimizar (la base sin la 348 no hace nada)", () => {
-    const cuerpo = cuerpoDe("  const trasAsignar = (cambios: readonly CambioDeAsignacion[]", ["  /** Una persona colocó"]);
+    const cuerpo = cuerpoDe("  const trasAsignar = (cambios: readonly CambioDeAsignacion[]");
     expect(cuerpo).toContain("if (!hayAutoOptimizar) return;");
     expect(cuerpo.indexOf("if (!hayAutoOptimizar) return;")).toBeLessThan(cuerpo.indexOf("rutasAOptimizar(cambios)"));
   });
 
   it("el botón «Optimizar» pregunta antes de pisar paradas fijadas a mano (con la confirmación de la pantalla)", () => {
-    const cuerpo = cuerpoDe("  const optimizaLaRuta = async (laneKey: string, modo", DESPUES_DE_OPTIMIZA);
+    const cuerpo = cuerpoDe("  const optimizaLaRuta = async (laneKey: string) => {", DESPUES_DE_OPTIMIZA);
     const pregunta = cuerpo.indexOf("avisoDePisar(stops)");
     expect(pregunta).toBeGreaterThan(-1);
     expect(cuerpo.slice(pregunta, pregunta + 260)).toContain("confirmAction(");
@@ -63,33 +63,42 @@ describe("la auto-optimización al asignar (348) en el Gestor", () => {
     expect(pagina).not.toMatch(/window\.confirm\(/);
   });
 
-  it("la auto comprueba la huella DENTRO de la cola antes de escribir", () => {
-    const cuerpo = cuerpoDe("  const optimizaLaRuta = async (laneKey: string, modo", DESPUES_DE_OPTIMIZA);
+  it("el motor del botón conserva UNA sola firma y la auto no la llama con un modo", () => {
+    expect(pagina.split("const optimizaLaRuta = async (laneKey: string) => {").length - 1).toBe(1);
+    expect(pagina).not.toMatch(/optimizaLaRuta\(laneKey, "auto"\)/);
+  });
+
+  it("la auto (toda la ruta) comprueba la huella DENTRO de la cola antes de escribir", () => {
+    const cuerpo = cuerpoDe("  const autoOptimizaToda = async (");
     expect(cuerpo).toMatch(/await enFila\(async \(\) => \{\s*if \(huellaVivaRef\.current\(laneKey\) !== huellaInicial\)/);
-    const insertar = cuerpoDe("  const insertaEnLaRuta = async (", ["  /**\n   * Lo que pasa con una ruta"]);
+    const insertar = cuerpoDe("  const insertaEnLaRuta = async (");
     expect(insertar).toMatch(/await enFila\(async \(\) => \{\s*if \(huellaVivaRef\.current\(laneKey\) !== huellaInicial\)/);
   });
 
   it("la auto no pone «optimizando» (no rechaza los movimientos mientras espera la red)", () => {
-    const cuerpo = cuerpoDe("  const optimizaLaRuta = async (laneKey: string, modo", DESPUES_DE_OPTIMIZA);
-    expect(cuerpo).toContain("if (!auto) setOptimizando(laneKey);");
-    expect(cuerpo).toContain("if (!auto) setOptimizando(null);");
+    const cuerpo = cuerpoDe("  const autoOptimizaToda = async (");
+    expect(cuerpo).not.toContain("setOptimizando(");
+    expect(cuerpo).toContain("TIEMPO_MAXIMO_AUTO_MS");
   });
 
-  it("no se escribe nada si el resultado rompe una regla dura", () => {
-    const cuerpo = cuerpoDe("  const optimizaLaRuta = async (laneKey: string, modo", DESPUES_DE_OPTIMIZA);
-    const regla = cuerpo.indexOf("r.reglas.violaciones.length");
+  it("no se escribe lo que añade una regla dura (antes de la cola, y en la inserción antes de guardar)", () => {
+    const cuerpo = cuerpoDe("  const autoOptimizaToda = async (");
+    const regla = cuerpo.indexOf("violacionesNuevas(");
     expect(regla).toBeGreaterThan(-1);
-    const escribe = cuerpo.indexOf("const escribe = async");
-    expect(regla).toBeLessThan(escribe);
-    expect(cuerpo.slice(regla, escribe)).toContain("return { estado: \"fallo\"");
+    expect(cuerpo.indexOf("if (nuevas.length)")).toBeLessThan(cuerpo.indexOf("await enFila("));
+    expect(cuerpo.slice(cuerpo.indexOf("if (nuevas.length)"), cuerpo.indexOf("await enFila("))).toContain("return { estado: \"fallo\"");
     const insertar = cuerpoDe("  const escribeLasNuevas = async (", ["  /** La colocación automática de las órdenes nuevas"]);
-    expect(insertar).toContain("if (v.violaciones.length)");
-    expect(insertar.indexOf("if (v.violaciones.length)")).toBeLessThan(insertar.indexOf("guardaLaLista(laneKey, paradas, nueva"));
+    expect(insertar).toContain("violacionesNuevas(");
+    expect(insertar.indexOf("if (nuevas.length)")).toBeLessThan(insertar.indexOf("guardaLaLista(laneKey, paradas, nueva"));
+  });
+
+  it("el motor de «Optimizar» y el de la auto usan el mismo constructor de reglas", () => {
+    expect(pagina).toContain("reglasDeLaEntrada(");
+    expect(pagina).not.toMatch(/validaLaLista\(/);
   });
 
   it("el lote de una ráfaga de asignaciones es UNA pasada por chofer (un temporizador por ruta)", () => {
-    const cuerpo = cuerpoDe("  const encolaAuto = (laneKey: string", ["  /** El reintento de una ruta"]);
+    const cuerpo = cuerpoDe("  const encolaAuto = (laneKey: string");
     expect(cuerpo).toContain("if (lote.timer) clearTimeout(lote.timer);");
     expect(cuerpo).toContain("}, 700);");
   });
