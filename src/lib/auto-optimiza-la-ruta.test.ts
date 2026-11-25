@@ -89,15 +89,15 @@ describe("avisoDePisar", () => {
   it("una fijada: el aviso en singular-plural como en la especificacion", () => {
     expect(avisoDePisar([{ route_fixed: true }])).toEqual({
       n: 1,
-      en: "Optimize will rearrange the whole route and overwrite 1 stop(s) you placed by hand. Continue?",
-      es: "Optimizar va a reacomodar toda la ruta y pisar 1 parada(s) que colocaste a mano. ¿Continuar?",
+      en: "Optimize will rearrange the whole route and overwrite 1 order(s) you placed by hand. Continue?",
+      es: "Optimizar va a reacomodar toda la ruta y pisar 1 orden(es) que colocaste a mano. ¿Continuar?",
     });
   });
 
   it("varias fijadas: cuenta solo las fijadas", () => {
     const r = avisoDePisar([{ route_fixed: true }, { route_fixed: false }, { route_fixed: true }, { route_fixed: null }]);
     expect(r?.n).toBe(2);
-    expect(r?.es).toBe("Optimizar va a reacomodar toda la ruta y pisar 2 parada(s) que colocaste a mano. ¿Continuar?");
+    expect(r?.es).toBe("Optimizar va a reacomodar toda la ruta y pisar 2 orden(es) que colocaste a mano. ¿Continuar?");
   });
 });
 
