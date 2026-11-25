@@ -172,7 +172,6 @@ export function FormLinea({ l, ctx, siguiente, onCerrar, onGuardada }: {
     .map((f) => ({ qty: numero(f.qty), lot: f.lot.trim() || null, note: f.note.trim() || null, photo: f.photo || null }));
   const motivo = motivoDeLotes(lotes, unidad);
   const total = unidad ? totalDeLotes(lotes.filter((x) => Number.isFinite(x.qty))) : null;
-  const comparable = unidad ? totalDelSistema(lotes.filter((x) => Number.isFinite(x.qty)), unidad, l.pieces_per_box, l.product_id != null).comparable : true;
   const nombreUnidad = (u: UnidadDeConteo) => (lang === "es" ? INFO_DE_UNIDAD[u].es : INFO_DE_UNIDAD[u].en);
 
   const cambiar = (key: number, campo: "qty" | "lot" | "note", v: string) => setFilas((x) => x.map((f) => (f.key === key ? { ...f, [campo]: v } : f)));
@@ -246,7 +245,6 @@ export function FormLinea({ l, ctx, siguiente, onCerrar, onGuardada }: {
           </fieldset>
         ))}
         <button type="button" className="ops-opcion" onClick={agregar} disabled={filas.length >= MAX_LOTES} data-accion="agregar-lote">+ {t("Add another lot", "Agregar otro lote")}</button>
-        {total != null && !comparable && <p className="hint" data-no-comparable>{t("This count is not compared with the system (bags or a free product): no difference will be computed.", "Este conteo no se compara con el sistema (bolsas o producto libre): no se calcula diferencia.")}</p>}
         {total != null && <p className="ops-total-linea" data-total={total}>{t("Total", "Total")}: <b>{textoDeCantidad(total, unidad, l.pieces_per_box, lang)}</b></p>}
         {motivo && lotes.length > 0 && <p className="hint" data-motivo={motivo}>{t("Each lot needs a number of units (0 or more), and at least one above 0.", "Cada lote necesita una cantidad (0 o más), y al menos uno mayor que 0.")}</p>}
       </div>

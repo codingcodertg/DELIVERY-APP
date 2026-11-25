@@ -39,7 +39,7 @@ import { gruposPorTienda } from "@/lib/documento-pendiente";
 import type { VistaDeTabla } from "@/lib/filtros-guardados";
 import { etiquetaDePrioridad, prioridadDe, seDestaca, valorDePrioridad } from "@/lib/prioridad";
 import { DocumentoPendiente } from "@/components/DocumentoPendiente";
-import { PastillaDeRelevo } from "@/components/RelevoDeLaOrden";
+import { EtiquetaDelPasoAnterior, PastillaDeRelevo } from "@/components/RelevoDeLaOrden";
 import { BarraSuperior } from "@/components/BarraSuperior";
 import type { CancelReason, Delivery, Profile } from "@/lib/types";
 import { IconoDeFotos } from "@/components/IconoDeFotos";
@@ -200,6 +200,12 @@ enOrdenDePartida(ORDER_COLUMNS);
 /** Las de la captura del dueño (D-347), para todo rol sin juego propio. */
 export const DEFAULT_COLUMNS = ["po", "type", "account", "stage", "store", "date", "pallets", "driver", "address", "windows"];
 
+/** El chip del paso b, en una celda de la tabla (que no tiene hooks): lee las órdenes que la base ya tiene, sin pedir nada. */
+function ChipDelPasoDeLaFila({ d, lang, style }: { d: Delivery; lang: "en" | "es"; style?: React.CSSProperties }) {
+  const { deliveries } = useData();
+  return <EtiquetaDelPasoAnterior d={d} todas={deliveries} lang={lang} style={style} />;
+}
+
 // Pseudo-column for the always-visible ID, so it gets the same sort/filter UI.
 //
 // On a phone the table collapses to one card per order, and this cell is the
@@ -284,7 +290,7 @@ const ID_COLUMN: OrderColumn = {
                   driver shouldn't have to decode an abbreviation. */}
               {d.store && <span className="store-tag">{d.store}</span>}
             </span>
-            <span className="drv-r drv-code">ID #{orderLabel(d)} <PastillaDeRelevo d={d} lang={lang} /></span>
+            <span className="drv-r drv-code">ID #{orderLabel(d)} <PastillaDeRelevo d={d} lang={lang} /><ChipDelPasoDeLaFila d={d} lang={lang} style={{ marginLeft: 6 }} /></span>
             {/* D-1018: en el teléfono la rechazada dice por qué en su tarjeta (en la tabla va junto a la pastilla de etapa). */}
             {d.stage === "rejected" && (d.rejected_reason ?? "").trim() && (
               <span className="drv-motivo" data-motivo-de-rechazo>{lang === "es" ? "Motivo: " : "Reason: "}{(d.rejected_reason ?? "").trim()}</span>
@@ -296,6 +302,7 @@ const ID_COLUMN: OrderColumn = {
             {accionEnLinea}
             {/* D-898 (256): un paso de transferencia por relevo, con su pastilla junto al número. */}
             <PastillaDeRelevo d={d} lang={lang} style={{ marginLeft: 6 }} />
+            <ChipDelPasoDeLaFila d={d} lang={lang} style={{ marginLeft: 6 }} />
             {/* Status stack, right-aligned: where the order stands, then what
                 it is. Mobile-only; desktop has its own Stage/Type/Store
                 columns. */}
@@ -330,7 +337,7 @@ const ID_COLUMN: OrderColumn = {
  * Sorting sits in the same menu so both are one click away (D-275).
  * Se exporta para las tablas del Gestor de Rutas (D-360): el menú es el mismo, solo cambian las filas. */
 export function ColumnFilterMenu({
-  col, options, active, orden, onOrdenar, onApply, onClear, onClose, lang, t, style, menuRef, masOrden, numerico = false,
+  col, options, active, orden, onOrdenar, onApply, onClear, onClose, lang, t, style, menuRef, masOrden, numerico = false, soloFiltro = false,
 }: {
   /** Solo hace falta el nombre de la columna en los dos idiomas. */
   col: Pick<OrderColumn, "en" | "es">;
@@ -352,6 +359,8 @@ export function ColumnFilterMenu({
   masOrden?: React.ReactNode;
   /** D-840: columna de números: el menú ofrece además «mayor que», «menor que»… como Excel. */
   numerico?: boolean;
+  /** Solo filtrar: el menú no ofrece ni ↑ ↓ ni «Quitar orden» (las tablas del Gestor de Rutas, donde solo se filtra). */
+  soloFiltro?: boolean;
 }) {
   const [search, setSearch] = useState("");
   // Con una condición de número puesta, la lista de valores nace toda marcada (la condición no es una lista).
@@ -390,7 +399,7 @@ export function ColumnFilterMenu({
         <b>{lang === "es" ? col.es : col.en}</b>
         <button className="notif-clear" onClick={onClose}>✕</button>
       </div>
-      <div className="col-menu-orden">
+      {!soloFiltro && <div className="col-menu-orden">
         <button className={"col-opt col-orden" + (orden === "asc" ? " on" : "")} onClick={() => onOrdenar("asc")}>
           ↑ {t("Sort ascending", "Orden ascendente")}
         </button>
@@ -403,7 +412,7 @@ export function ColumnFilterMenu({
           </button>
         )}
         {masOrden}
-      </div>
+      </div>}
       {numerico && (
         <div className="col-menu-numero">
           <div className="col-menu-numero-titulo">{t("Number filter", "Filtro de número")}</div>

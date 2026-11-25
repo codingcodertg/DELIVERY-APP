@@ -172,7 +172,7 @@ describe("lo ya guardado (`_v7`): la ciudad de entrega se AÑADE, una vez, y ent
     // Paradas, como las tenía; D-445 (`_v8`) le suma la ciudad de recogida delante de la de entrega, y D-671 (`_v9`)
     // «Actual» (sin la llegada elegida, sale en su sitio del catálogo: tras la ciudad de entrega).
     expect(columnasDeLaTabla("paradas", suyas).map((c) => c.key)).toEqual(["p_type", "p_address"]);
-    expect(columnasDeLaTabla("paradas", al.columnas!).map((c) => c.key)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_actual"]);
+    expect(columnasDeLaTabla("paradas", al.columnas!).map((c) => c.key)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_rep"]); // + p_rep (columna «Usuario» de paradas)
     expect(al.escribe).toBe(true);
   });
 

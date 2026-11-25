@@ -34,6 +34,6 @@ describe("la base (225) y la pantalla", () => {
     const p = leer("src/app/leads/Leads.tsx");
     expect(p).toContain("conCruzadosDeMiTienda(leadsDelBanco(leads, alcance)");
     expect(p).toContain("conCruzadosDeMiTienda(privadosBase");
-    expect(p).toContain("l.pool === poolFiltro || cruzadoDeMiTienda(l)");
+    expect(p).toContain("return p === null || l.pool === p || cruzadoDeMiTienda(l);");
   });
 });

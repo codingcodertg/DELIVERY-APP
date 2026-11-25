@@ -231,15 +231,15 @@ describe("5 · la pantalla pinta lo que el alcance dice", () => {
   it("el banco, sus contadores y sus filtros salen de leadsDelBanco, no de todos los leads leídos", () => {
     // D-760: el Pool privado reusa el mismo camino; fuera de esa pestaña, sigue saliendo de leadsDelBanco.
     // Semanas (semanas.ts): el STXP Pool se filtra por la semana elegida; fuera de esa pestaña, sigue igual.
-    expect(p).toContain('() => (pestana === "privado"\n      ? privados.filter((l) => semanaFiltro === null || semanasSTXP.semanaDeLead.get(l.id) === semanaFiltro)\n      : conCruzadosDeMiTienda(leadsDelBanco(leads, alcance)');
+    expect(p).toContain("() => unirPoolUnico(\n      conCruzadosDeMiTienda(leadsDelBanco(leads, alcance)");
     expect(p).toContain("const pools = useMemo(() => poolsDe(delBanco), [delBanco]);");
     // D-770: en el STXP Pool de quien no elige tienda, el pool no filtra (`poolFiltro`).
-    expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro || cruzadoDeMiTienda(l)), [delBanco, poolFiltro, cruzadoDeMiTienda]);");
-    expect(p).toContain("ordenar(filtrar(delBanco, { pool: poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTelefono: sinTel, textoExtra, quien: vendedorElegido }), orden)");
+    expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => {\n    const p = poolDelFiltro(l, poolFiltro, elige);\n    return p === null || l.pool === p || cruzadoDeMiTienda(l);\n  }), [delBanco, poolFiltro, elige, cruzadoDeMiTienda]);");
+    expect(p).toContain("quien: vendedorElegido, origen, soloDeIds: soloPosibles ? idsPosibles : null }), orden)");
   });
   it("el selector de tienda solo se dibuja si eligeTienda; si no, su tienda fija y sin los otros bancos", () => {
     expect(p).toContain("const elige = eligeTienda(alcance);");
-    const desde = p.indexOf("{elige ? (");
+    const desde = p.indexOf("const selectorDeTienda = elige ? (");
     const medio = p.indexOf(") : (", desde);
     const fijo = p.indexOf("data-pool-fijo", desde);
     expect(desde).toBeGreaterThan(0);
@@ -253,7 +253,7 @@ describe("5 · la pantalla pinta lo que el alcance dice", () => {
     expect(p).toContain("useEffect(() => { void cargar(); }, [cargar, idDemo]);");
   });
   it("el conjunto de leads libres de una tienda se llama «GOV Pool» (D-770; antes «Pool General»); «Mi pool» no cambia", () => {
-    expect(p).toContain('{t("GOV Pool", "GOV Pool")}');
+    expect(p).toContain('{t("Leads Pool", "Pool de leads")}');
     expect(p).not.toContain("My pool");
     const visibles = [...p.matchAll(/t\(\s*"([^"]*)",\s*"([^"]*)",?\s*\)/g)].map((m) => `${m[1]} | ${m[2]}`);
     expect(visibles.length).toBeGreaterThan(40);

@@ -9,7 +9,7 @@ import {
   CLAVE_DE_PLANTILLAS, MAX_NOMBRE_DE_PLANTILLA, ROLES_QUE_ELIGEN, TODOS_LOS_ROLES, columnasValidas, guardaColumnas, leeColumnas, plantillasDeValor,
   plantillasValidas, prefsDeValor, valorDeColumnas, type ClienteDePrefs, type PlantillaDeColumnas,
 } from "./user-prefs";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9, alternaColumna, columnasDePlantillaDelGestor, conColumnasNuevas, fotoDelGestor } from "./routes-columns";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9, MARCA_V10, alternaColumna, columnasDePlantillaDelGestor, conColumnasNuevas, fotoDelGestor } from "./routes-columns";
 
 /**
  * Las plantillas de ⚙ Columnas (D-394), en Órdenes y en el Gestor de Rutas. El dueño: «add template in columns that will be
@@ -147,7 +147,7 @@ describe("el tope de la base: `pg_column_size(value) < 8192` (136)", () => {
     ["Gestor, todos los roles, 10 plantillas de todas sus columnas", valorDeColumnas({
       visibles: roles(ROLES_QUE_ELIGEN, [...GESTOR_MEDIDO, MARCA_V2, MARCA_V3, MARCA_V4]), orden: {},
       plantillas: Array.from({ length: 10 }, (_, i) => ({ n: nombre(i), v: GESTOR_MEDIDO })),
-    }), 5343],
+    }), 5496], // + p_rep (columna «Usuario» de paradas)
     ["Órdenes, lo normal: un rol, 10 plantillas con nombres cortos y 2 anchos", valorDeColumnas({
       visibles: { accounting: O14.slice(0, 8) }, orden: { accounting: [...O14].reverse() }, anchos: { accounting: { po: 90, date: 120, __id: 64 } },
       plantillas: Array.from({ length: 10 }, (_, i) => ({ n: `Revisión mañana ${i + 1}`, v: O14.slice(0, 8 - (i % 3)), o: [...O14].reverse(), a: { po: 90 + i, date: 120 } })),
@@ -253,7 +253,7 @@ describe("aplicar", () => {
     expect(foto).not.toContain("fee");
     expect(foto.some((k) => k.startsWith("_"))).toBe(false);
     const puesta = columnasDePlantillaDelGestor(["fee", "retirada", ...foto]);
-    expect(puesta.slice(-8)).toEqual([MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9]);   // D-671: y `_v9`
+    expect(puesta.slice(-9)).toEqual([MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9, MARCA_V10]);   // D-671: y `_v9`
     expect(puesta).toContain("fee");
     expect(puesta).not.toContain("retirada");
     expect(conColumnasNuevas(columnasDePlantillaDelGestor(foto))).not.toContain("address");   // sin marcas, `conColumnasNuevas` la devolvería

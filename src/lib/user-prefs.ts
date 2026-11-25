@@ -44,7 +44,7 @@ export const ROLES_QUE_ELIGEN: readonly UserRole[] = ["admin", "manager", "wareh
 /** Lo que guarda la base para `order_columns`: por rol, la lista de claves de columna. */
 export type ColumnasPorRol = Partial<Record<UserRole, string[]>>;
 
-const MAX_COLUMNAS = 60;
+const MAX_COLUMNAS = 64;   // 60 no alcanzaba: el Gestor de Rutas tiene 53 columnas y 9 marcas (`_v10`, «Usuario»): 62 con todo marcado
 const esLista = (v: unknown): v is string[] => Array.isArray(v) && v.length <= MAX_COLUMNAS && v.every((c) => typeof c === "string" && c.length > 0 && c.length <= 40);
 
 /** Lo que venga de la base o del navegador, saneado: solo roles que eligen, solo listas de textos cortos. */

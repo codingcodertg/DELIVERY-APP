@@ -44,7 +44,9 @@ export function BarraDeApp({ nombre, deliveriesRole, moduleAccess, claseDelResto
             10 nov: ahorrar el renglón de abajo). Vacío no ocupa nada. Se llena con un portal (`HUECO_DE_LA_BARRA`). */}
         <div className="topbar-hueco" id={HUECO_DE_LA_BARRA} />
       </div>
-      <div className={"entregas-barra-resto" + (claseDelResto ? " " + claseDelResto : "")}>{children}</div>
+      <div className={"entregas-barra-resto" + (claseDelResto ? " " + claseDelResto : "")}>
+        {children}
+      </div>
     </div>
   );
 }

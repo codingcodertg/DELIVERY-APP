@@ -8,9 +8,8 @@ import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime, fmtMoney } from "@/lib/utils";
 import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
 import {
-  ETAPAS_DE_CONTEO, INFO_DE_ETAPA_DE_CONTEO, nombreDeEtapaDeConteo, resumenDelConteo, type Conteo, type EstadoDeConteo, type Linea, type OrdenPendiente,
+  ETAPAS_DE_CONTEO, INFO_DE_ETAPA_DE_CONTEO, cuentasDeLinea, divisorDeCajas, nombreDeEtapaDeConteo, pendienteDeLinea, resumenDelConteo, type Conteo, type EstadoDeConteo, type Linea, type OrdenPendiente,
 } from "@/lib/almacen-ops/conteos";
-import { comparableConElSistema } from "@/lib/almacen-ops/conteos";
 import {
   conteosDelPeriodo, colorDeExactitud, kpiDeConteos, kpiPorEmpleado, totalDeConteos, type KpiDeConteos, type Periodo,
 } from "@/lib/almacen-ops/conteos-kpi";
@@ -79,12 +78,14 @@ export function InformeDeConteos({ ctx, tiendas, rango, etiqueta }: {
       const lineas = datos.lineas.filter((l) => l.count_id === c.id);
       const pendientes = datos.pendientes.filter((o) => o.count_id === c.id);
       const r = resumenDelConteo(lineas, pendientes);
+      // 2026-11-24: toda línea contada entra (bolsas y productos libres incluidos). Con piezas por caja, la diferencia se
+      // pasa a cajas; sin ellas, la unidad de la línea cuenta como caja (1 = 1).
       const cajas = (signo: 1 | -1) => lineas.reduce((s, l) => {
-        const pz = l.pieces_per_box;
-        const pl = pendientes.filter((o) => o.line_id === l.id).reduce((x, o) => x + o.qty, 0);
-        if (l.counted_at == null || l.system_qty == null || pz == null || pz <= 0 || !comparableConElSistema(l)) return s;
-        const d = (l.counted_total ?? 0) - pl - l.system_qty;
-        return s + (Math.sign(d) === signo ? Math.abs(d) / pz : 0);
+        if (l.counted_at == null) return s;
+        const pl = pendienteDeLinea(pendientes, l.id);
+        const d = cuentasDeLinea(l, pl).diferencia;
+        if (d == null || d === 0) return s;
+        return s + (Math.sign(d) === signo ? Math.abs(d) / divisorDeCajas(l) : 0);
       }, 0);
       return { c, lineas, pendientes, neto: r.valorNeto, faltanCajas: Math.round(cajas(-1) * 100) / 100, sobranCajas: Math.round(cajas(1) * 100) / 100, exactitud: r.exactitudPct, lineasN: r.contadas };
     }).sort((a, b) => b.c.created_at.localeCompare(a.c.created_at));
@@ -95,10 +96,10 @@ export function InformeDeConteos({ ctx, tiendas, rango, etiqueta }: {
     { key: "hechos", en: "Completed", es: "Completados", numerico: true, valor: (k) => k.hechos },
     { key: "exactitud", en: "Accuracy", es: "Exactitud", numerico: true, valor: (k) => k.exactitudPct, celda: (k) => (
       <span className={`ops-kpi-${colorDeExactitud(k.exactitudPct)}`}>{k.exactitudPct === null ? "—" : `${k.exactitudPct}%`}</span>) },
-    { key: "cajasFaltan", en: "Missing boxes", es: "Cajas que faltan", numerico: true, valor: (k) => k.faltanCajas, celda: (k) => <span className={k.faltanCajas > 0 ? "ops-kpi-rojo" : ""} data-faltan-cajas={k.faltanCajas}>{k.faltanCajas}</span> },
+    { key: "cajasFaltan", en: "Missing boxes", es: "Cajas que faltan", numerico: true, valor: (k) => k.faltanCajas, celda: (k) => <span className={k.faltanCajas > 0 ? "ops-kpi-rojo" : ""} data-faltan-cajas={k.faltanCajas} data-falta={k.faltanCajas > 0 ? "" : undefined}>{k.faltanCajas}</span> },
     { key: "cajasSobran", en: "Over boxes", es: "Cajas que sobran", numerico: true, valor: (k) => k.sobranCajas },
     { key: "piezasSinCaja", en: "Missing pcs (no box size)", es: "Piezas que faltan (sin cajas)", numerico: true, valor: (k) => k.faltanPiezasSinCaja, oculta: true },
-    { key: "faltaUsd", en: "Missing $", es: "Faltan $", numerico: true, valor: (k) => k.faltanValor, celda: (k) => fmtMoney(k.faltanValor) },
+    { key: "faltaUsd", en: "Missing $", es: "Faltan $", numerico: true, valor: (k) => k.faltanValor, celda: (k) => <span className={k.faltanValor > 0 ? "ops-kpi-rojo" : ""} data-falta={k.faltanValor > 0 ? "" : undefined}>{fmtMoney(k.faltanValor)}</span> },
     { key: "sobraUsd", en: "Over $", es: "Sobran $", numerico: true, valor: (k) => k.sobranValor, celda: (k) => fmtMoney(k.sobranValor) },
     { key: "netoUsd", en: "Net $", es: "Neto $", numerico: true, valor: (k) => k.netoValor, celda: (k) => `${k.netoValor > 0 ? "+" : ""}${fmtMoney(k.netoValor)}` },
     { key: "pendientes", en: "Pending order pcs", es: "Pzas en órdenes pendientes", numerico: true, valor: (k) => k.pendientePiezas, oculta: true },
@@ -113,7 +114,7 @@ export function InformeDeConteos({ ctx, tiendas, rango, etiqueta }: {
     { key: "creado", en: "Opened", es: "Abierto", valor: (f) => f.c.created_at, celda: (f) => fmtDateTime(f.c.created_at), oculta: true },
     { key: "ajustado", en: "Adjusted", es: "Ajustado", valor: (f) => f.c.adjusted_at, celda: (f) => (f.c.adjusted_at ? fmtDateTime(f.c.adjusted_at) : "—") },
     { key: "lineas", en: "Lines", es: "Líneas", numerico: true, valor: (f) => f.lineasN },
-    { key: "cajasFaltan", en: "Missing boxes", es: "Cajas que faltan", numerico: true, valor: (f) => f.faltanCajas, celda: (f) => <span className={f.faltanCajas > 0 ? "ops-kpi-rojo" : ""}>{f.faltanCajas}</span> },
+    { key: "cajasFaltan", en: "Missing boxes", es: "Cajas que faltan", numerico: true, valor: (f) => f.faltanCajas, celda: (f) => <span className={f.faltanCajas > 0 ? "ops-kpi-rojo" : ""} data-falta={f.faltanCajas > 0 ? "" : undefined}>{f.faltanCajas}</span> },
     { key: "cajasSobran", en: "Over boxes", es: "Cajas que sobran", numerico: true, valor: (f) => f.sobranCajas, oculta: true },
     { key: "neto", en: "Net $", es: "Neto $", numerico: true, valor: (f) => f.neto, celda: (f) => `${f.neto > 0 ? "+" : ""}${fmtMoney(f.neto)}` },
     { key: "exactitud", en: "Accuracy", es: "Exactitud", numerico: true, valor: (f) => f.exactitud, celda: (f) => (f.exactitud === null ? "—" : `${f.exactitud}%`) },
@@ -147,8 +148,13 @@ export function InformeDeConteos({ ctx, tiendas, rango, etiqueta }: {
         <>
           {/* Cuatro tarjetas en un renglón, con la cifra arriba, como las de la merma. La primera, lo primero que se lee. */}
           <div className="ops-merma-totales ops-kpi ops-kpi-conteos" data-kpi-conteos data-faltan-cajas-mes={total.faltanCajas}>
+            {/* 2026-11-24 (dueño): Precisión primero; luego las cajas que faltan, las que sobran y el neto en dólares. */}
+            <div className="ops-merma-total">
+              <span className={`ops-merma-cifra ops-kpi-${colorDeExactitud(total.exactitudPct)}`} data-exactitud-total>{total.exactitudPct === null ? "—" : `${total.exactitudPct}%`}</span>
+              <span>{t("Accuracy", "Exactitud")} · {total.lineasExactas} / {total.lineasComparables} {t("lines", "líneas")}</span>
+            </div>
             <div className={`ops-merma-total${total.faltanCajas > 0 ? " ops-merma-total-rango" : ""}`}>
-              <span className={`ops-merma-cifra ${total.faltanCajas > 0 ? "ops-kpi-rojo" : "ops-kpi-verde"}`} data-faltan-cajas-total>{total.faltanCajas}</span>
+              <span className="ops-merma-cifra ops-kpi-rojo" data-falta data-faltan-cajas-total>{total.faltanCajas}</span>
               <span>{t("Boxes missing", "Cajas que faltan")} · <span data-etiqueta-rango>{etiqueta}</span>{total.faltanPiezasSinCaja > 0 ? ` · +${total.faltanPiezasSinCaja} ${t("pcs without box size", "pzas sin medida de caja")}` : ""}</span>
             </div>
             <div className="ops-merma-total">
@@ -157,11 +163,7 @@ export function InformeDeConteos({ ctx, tiendas, rango, etiqueta }: {
             </div>
             <div className="ops-merma-total">
               <span className={`ops-merma-cifra ${total.netoValor < 0 ? "ops-kpi-rojo" : ""}`} data-neto-usd>{total.netoValor > 0 ? "+" : ""}{fmtMoney(total.netoValor)}</span>
-              <span>{t("Net $", "Neto $")} · {t("missing", "faltan")} <span data-faltan-usd>{fmtMoney(total.faltanValor)}</span> · {t("over", "sobran")} {fmtMoney(total.sobranValor)}</span>
-            </div>
-            <div className="ops-merma-total">
-              <span className={`ops-merma-cifra ops-kpi-${colorDeExactitud(total.exactitudPct)}`} data-exactitud-total>{total.exactitudPct === null ? "—" : `${total.exactitudPct}%`}</span>
-              <span>{t("Accuracy", "Exactitud")} · {total.lineasExactas} / {total.lineasComparables} {t("lines", "líneas")}</span>
+              <span>{t("Net $", "Neto $")} · <span className="ops-kpi-rojo" data-falta data-faltan-usd>{t("missing", "faltan")} {fmtMoney(total.faltanValor)}</span> · {t("over", "sobran")} {fmtMoney(total.sobranValor)}</span>
             </div>
           </div>
 

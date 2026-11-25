@@ -12,7 +12,6 @@ import {
   INFO_DE_ALCANCE, accionesDeConteo, estaAbierto, estaContada, faltaDelAlcance, ordenarLineas, progresoDelConteo, puedeGestionarConteo,
   resumenDeLotes, textoDeCantidad, tituloDeAlcance, type AccionDeConteo, type AlcanceElegido, type Conteo, type Linea, type OrdenPendiente,
 } from "@/lib/almacen-ops/conteos";
-import { comparableConElSistema } from "@/lib/almacen-ops/conteos";
 import { buscarEnLista, coincideConAlcance } from "@/lib/almacen-ops/conteos-alcance";
 import {
   DEMO_CONTEOS, DEMO_PRODUCTOS_DE_CONTEO, DEMO_PROVEEDORES, agregarLineaLibre, avanzarConteo, cancelarConteo, crearConteo, faltaLa274, faltaLa333, leerConteos, leerProductosDelAlcance,
@@ -42,7 +41,7 @@ type Pon = (f: (d: Datos) => Datos) => void;
 export function Conteos({ ctx }: { ctx: Contexto }) {
   const { t } = usePrefs();
   const [carga, setCarga] = useState<Carga>(ctx.demo ? { estado: "listo", datos: DEMO_CONTEOS } : { estado: "cargando" });
-  const [tienda, setTienda] = useState(() => (ctx.yo.store && ctx.tiendas.includes(ctx.yo.store) ? ctx.yo.store : ctx.tiendas[0] ?? ""));
+  const [tienda, setTienda] = useState(() => (ctx.yo.store && ctx.tiendasParaVer.includes(ctx.yo.store) ? ctx.yo.store : ctx.tiendasParaVer[0] ?? ""));
   const [abierto, setAbierto] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,11 +69,11 @@ export function Conteos({ ctx }: { ctx: Contexto }) {
           <Link href="/operaciones" className="ops-boton ops-boton-chico" data-accion="volver">← {t("Back", "Volver")}</Link>
         </div>
       </header>
-      {ctx.tiendas.length > 1 && (
+      {ctx.tiendasParaVer.length > 1 && (
         <label className="ops-tienda ops-tienda-arriba">
           <span>{t("Store", "Tienda")}</span>
           <select value={tienda} onChange={(e) => setTienda(e.target.value)} data-campo="tienda-conteos">
-            {ctx.tiendas.map((x) => <option key={x} value={x}>{x}</option>)}
+            {ctx.tiendasParaVer.map((x) => <option key={x} value={x}>{x}</option>)}
           </select>
         </label>
       )}

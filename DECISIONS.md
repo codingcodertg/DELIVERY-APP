@@ -53245,3 +53245,76 @@ Verificado en el demo, de punta a punta, en escritorio y a 390 px: crear (Pharr 
 Pendiente: el aviso de los dos pasos en la vista de solo lectura (hoy sale la etiqueta, no el texto); «Deshacer el relevo» sobre una Intertienda Customer la devuelve a orden directa y no se vuelve a partir sola.
 Migración 346, APLICADA por el dueño.
 Sello `deliveries` 1.664.0; repo 1.991.0.
+
+## D-1175 · Gestor de Rutas: guardar el orden reintenta un fallo de red y, si no puede, deja la base como estaba (2026-11-24)
+
+El dueño, armando las rutas del 25: «uso el mover grupo, selecciono 4 en el routes manager, le doy mover a número y cuando se mueven se queda ahí, luego se hace back y sale failed to fetch». Y después: «cuando es solo 1 sí funciona, cuando es en grupo no».
+Lo medido (solo lectura): la base estaba sana (una escritura de orden, 31 ms de media; sin candados). `reorderStops` escribe una petición por fila que cambia, de seis en seis; mover un grupo cambia casi toda la ruta (unas veinte peticiones) y mover una, una o dos. «Failed to fetch» es una petición que no llegó. Con UNA que fallara se cancelaba todo: la pantalla volvía atrás, pero las filas ya escritas se quedaban escritas (en la base había cinco filas de un segundo y cuatro de otro con la pantalla mostrando el orden viejo).
+Qué cambia: cada escritura se repite sola si el fallo es de red (tres intentos; son idempotentes: ponen un puesto). Si aun así una no entra, se devuelven a su valor de antes las filas ya escritas en esa llamada, y solo entonces la pantalla vuelve atrás y lo dice claro. Si ni eso se puede, la lista se vuelve a leer del servidor y se avisa de que hay que revisarla.
+NO confirmado: la causa de la petición caída (no se vio el error del lado del servidor). No probado con una caída de red real, solo con pruebas.
+Sello `deliveries` 1.665.0; repo 1.992.0 (lote de la noche del 24 de noviembre).
+
+## D-1176 · Entregas: el paso b de un transfer dice si el paso a ya llegó (2026-11-24)
+
+El dueño: «quiero que pongas un tag en los transfer cuando esa orden la porción a ya se entregó y otro que se note cuando aún no se entrega».
+Junto a la pastilla «⇄ Transfer b» (o «Intertienda Customer b») sale una segunda: verde «✓ A delivered» o ámbar «⏳ A not delivered yet», con el porqué al pasar el cursor. En Órdenes (tabla y tarjeta de teléfono), en el encabezado de la orden abierta y en el panel del relevo. Si quien mira no tiene a la vista el paso anterior (un chofer con el paso de otro), no sale ninguna: no se afirma lo que no se sabe. Un paso anterior cancelado cuenta como no entregado.
+Visto en el demo: ámbar al partirse la orden, verde al marcar entregado el paso a.
+Sello `deliveries` 1.665.0; repo 1.992.0.
+
+## D-1177 · Gestor de Rutas, lista de paradas de cada chofer: columna «Usuario», filtro desde el encabezado y recogida arrastrada en rojo (2026-11-24)
+
+El dueño: «in the columns of the deliveries add the rep column»; «y también agrega opción a filter pero no sorting […] que toco el header de la columna y me sale para seleccionar solo las que quiero ver»; «if an order was moved from yesterday to tomorrow then the pickup instead of the light green will turn to light red».
+Columna `p_rep` («User», el vendedor de la orden; la de Órdenes), visible de partida, tras la cuenta; quien ya tenía columnas guardadas la recibe una vez (marca `_v10`; el tope de columnas guardadas sube de 60 a 64 porque con ella un rol con todo llegaba a 62).
+Filtro: el menú de columna de Órdenes en modo «solo filtro» (sin ordenar: el orden de la lista ES la ruta). Un solo filtro para todas las tarjetas de chofer. Solo OCULTA filas: el número de parada sigue siendo el real y mover, arrastrar y marcar trabajan sobre la lista entera; arriba, «Filtrado por…» con su «Quitar filtros», y en cada tarjeta «N parada(s) ocultas por el filtro». No se guarda entre sesiones.
+Arrastrada: una orden cuya fecha de entrega se movió de un día a otro posterior (se lee del historial, «Delivery Date: A → B» con A menor que B y B la fecha de hoy de la orden). Su fila de recogida lleva el tinte rojo claro en vez del verde; una recogida de varias órdenes, si alguna lo está. Límite conocido: el historial que carga la pantalla son los 1,000 eventos más recientes; un cambio de fecha muy viejo puede no estar.
+Visto en el demo: la columna, el menú sin ordenar, el filtro (10 filas → 2, «8 stop(s) hidden»), el aviso y el botón de quitar. El rojo, solo la regla de color (el demo no trae cambios de fecha en su historial); la regla tiene sus pruebas.
+Sello `deliveries` 1.665.0; repo 1.992.0.
+
+## D-1178 · Operaciones de almacén: solo el admin ve todas las tiendas; faltantes en rojo; Precisión primero (2026-11-24)
+
+El dueño, con la vista de un supervisor de almacén (una tienda): «baudelio role should not see this […] well remove that from everybody, solo pueden ver su propia tienda», «solo admin puede ver todo»; «box missing should be red», «missing dollars red also»; y el orden de las cuatro tarjetas de Conteos, «el nuevo orden será 4 1 2 [3]».
+Lo medido: la base ya acotaba por tienda (RLS); por eso las otras tiendas salían en ceros. Lo que sobraba era la PANTALLA: `tiendasPara` ofrecía todas las tiendas a todos menos al `store_admin`. Regla nueva para VER (`tiendasParaVer`): admin, todas; los demás, su tienda y sus `visible_stores`; sin tienda, ninguna. Con una sola tienda no hay selector «Todas las tiendas» ni tabla «Por tienda». Para LLENAR un reporte no cambia nada.
+Conteos: Precisión va primero; el número de «cajas faltantes» en rojo siempre; el trozo «missing $» de la tarjeta de neto en rojo; en las tablas, «Missing boxes» y «Missing $» en rojo cuando pasan de cero.
+Queda fuera: RR. HH. (admin o gerente de RR. HH.) sigue viendo los reportes de disciplina de todas las tiendas: lo decide la base.
+Visto en el demo como admin y como almacén de una tienda (sin selector, sin tabla por tienda, sin otras tiendas en Merma y Conteos).
+Sello `warehouse_ops` 0.71.0; repo 1.992.0.
+
+## D-1179 · Operaciones de almacén: el real y la diferencia se calculan en todas las líneas del conteo (2026-11-24)
+
+El dueño, con la hoja de firma y una línea en «—»: «aquí counted − pending = actual, y cuando se compare con el system entonces difference debería match».
+Revisa D-1105 (junta del 19 de noviembre): bolsas, cajas sin piezas por caja y productos escritos a mano «no se comparaban» con el sistema y pedían razón al firmar. Regla nueva, para toda línea contada: real = contado − pendiente; diferencia = real − sistema, en la unidad en que está guardada la línea. Se pide razón solo si la diferencia no es cero. En el informe, una línea sin piezas por caja cuenta su diferencia en su propia unidad (una bolsa = una unidad).
+Migración 347: `warehouse_ops_count_sign` deja de exigir razón por la unidad y de exigir producto del catálogo (copia exacta de la 336 con ese cambio; la función de producción era idéntica a la de la 336). Mientras no se aplique, la base sigue pidiendo razón en una bolsa que cuadra y la pantalla lo explica.
+Migración 347, APLICADA por el dueño.
+Sello `warehouse_ops` 0.71.0; repo 1.992.0.
+
+## D-1180 · Leads: un solo pool, etapas por grupos, sin Archivar, tienda junto a los filtros, parecidos (2026-11-24)
+
+El dueño, a lo largo de la noche: «stxp pool and gov pool merge them y cada uno tenga su respectivo tag»; «lost, not a good lead, didn't answer: that's 1 group and that's no good; […] pending, made contact and had appointment, that's the pending group; progress group, made quote and under negotiation; and closed will be separate»; «let remove the archive button at all», «unarchive everything and remove that feature»; «el all stores dropdown ponlo right del match customer filter azul pero left align»; «mejor count purple»; «en los leads de week 3 ¿hubieron duplicates? y si lo hay debe de tener un tag».
+Un pool: la pestaña «Leads Pool» junta GOV y, para quien lo ve, STXP; cada tarjeta lleva «STXP» o «GOV» y hay un filtro de origen. La semana del STXP sigue en la barra y solo filtra los STXP.
+Etapas: cinco chips, «Todas» · Pendiente (Open, Made Contact, Had Appointment) · En progreso (Made Quote, Under Negotiation) · Cerrado · No sirve (Didn't Answer, Lost, Not a good lead); al elegir un grupo de varias etapas sale debajo la fila de sus etapas. «Todas» deja fuera el grupo «No sirve» entero (decisión mía sobre Didn't Answer: él lo metió en ese grupo; se le dijo).
+Archivar: se quita de la app (botón, diálogo, almacén). El único lead archivado (uno, archivado esa noche como prueba) se devolvió a como estaba, con su línea en el historial, a pedido expreso.
+El selector de tienda baja de la barra a la fila de filtros, tras «Match customers» (revisa D-1173); en teléfono va primero en esa fila, que se desliza.
+El número de cada filtro, en morado.
+Parecidos: los permisos del STXP no traen dirección exacta sino un cruce, así que varios comparten lugar. Medido en la semana del 24: ningún número repetido, 99 de 267 comparten lugar con otro (38 lugares), 12 son idénticos salvo el número. Etiquetas «📍 Mismo lugar ×N» y «⚠ Posible duplicado ×N» (N = los iguales) y filtro de posibles duplicados.
+Visto en el demo en escritorio y a 390 px.
+Sello `leads` 0.39.0; repo 1.992.0.
+
+## D-1181 · Hub: «viendo como» va en el botón de la cuenta y nada queda debajo de la burbuja (2026-11-24)
+
+El dueño, con la hoja de un conteo y las dos pastillas de «viendo como» sobre el botón «Continue to review»: «los botones de la esquina inferior están afectando ahí la view, y esto pasa seguido en el app. Quiero que hagas un audit completo, y cuando estén en esa función que eso no estorbe».
+Auditoría de todo lo que flota abajo en las apps y de cada hoja o pantalla cuyo último botón puede caer debajo (está en el informe del cambio). Qué cambia:
+«Viendo como» ya no ocupa la esquina: la burbuja queda siempre del tamaño de siempre, con un aro ámbar; el aviso y «Volver a mi usuario» salen dentro de su menú. Arriba, el botón de la cuenta de cada barra se pone ámbar y su menú empieza con «Volver a mi usuario». Se probó antes un chip aparte en la barra y se descartó al medirlo: incluso compacto mandaba a un segundo renglón las barras llenas (RR. HH. a 1280 px, Entregas a 1100, ERP a 900).
+Sitio libre: `--fab-libre` (78 px) al final de las hojas que no lo tenían (vista previa del Cotizador, hoja de Leads); la burbuja sube sobre las barras de botones pegadas abajo (hoja de conteo, comparar y documentos de RR. HH., botonera de Operaciones en teléfono), y esas barras dejan libre su columna.
+Medido en el demo con el estado simulado: ninguna barra crece en 13 apps a 1440, 1280, 1100, 900 y 701 px; en la hoja de conteo el botón no entra en la columna de la burbuja a 1280×720, 1280×560, 1024×600 y 390×780. NO visto con una sesión real de «viendo como». Sin revisar una por una: ERP, Clientes, Security, RingCentral, Encuestas, Clock-in (envoltorio de página); el recibo de Time Tracker tapa la burbuja a propósito.
+Sello `recruiting` 0.115.1 y `estimator` 0.45.2 (sus hojas de estilo); repo 1.992.0.
+
+## D-1182 · Time Tracker → Nómina: la hoja semanal de horas, filtros en la barra, sin el resumen del periodo (2026-11-24)
+
+El dueño, con la hoja de Excel de horas de la empresa: «this works very well and is easy to understand; quiero que hagas esto y lo implementes en el time tracker». Y sobre Nómina: «remote primero luego on site, switch places»; «this month and all store options dropdown, add it into the payroll section»; «el time frame y store filter que vaya arriba al lado derecho de timetracker: time period, store and then employee, todo ahí arriba en una sola row»; con el bloque «Payroll · period» en pantalla, «remueve todo eso, ya no se ocupa» (preguntado: solo las tarjetas y la nota; las dos secciones se quedan); «green and black for the non active users» (preguntado: en «Trabajando ahora»).
+La hoja: en Hojas de tiempo, vista «Sheet» (por defecto) junto a la tabla de siempre («Table»). Un bloque por persona y semana de pago (viernes a jueves): fecha, día, inicio (entrada, salida, trabajado), comida (regreso, fuera), fin (salida, trabajado) y total; al pie, «OVER» en rojo si la semana pasa de 40 h o «AT OR BELOW», y el total. El total de la hoja es el de la tabla (los mismos minutos; hay una prueba que lo iguala). Con más de una pausa, la primera hace de comida, «fuera» suma todos los huecos y la fila lleva «+N».
+Tabla estándar: la hoja era una tabla hecha a mano igual al Excel y la regla de tablas la rechazaba; preguntado, el dueño eligió pasarla a la tabla estándar. Los títulos agrupados del Excel van en el nombre de cada columna («Start · In», «Lunch · Gone time»…); los tintes, por columna.
+Filtros en la barra oscura, en un renglón: periodo (el mismo menú de fechas de Operaciones, ahora compartido, con la semana de pago de viernes a jueves), tienda y empleado; quedan en la URL. Una sola semana de pago = todo como siempre. Varias semanas = solo ver: aprobar, cerrar, pagar y exportar piden «una sola semana de pago» (decisión mía: no cambia cómo se cierra la nómina). Tope de catorce semanas; el rango se valida y se acota antes de recorrerlo (una revisión automática vio que desde la URL se podía forzar un cálculo enorme).
+Se quita el bloque «Nómina · periodo» (anterior/siguiente, tres tarjetas, nota). Remoto va antes que En sitio. «Trabajando ahora»: activos en verde, sin actividad en negro, con su cuenta.
+La semana de hoy sale del día de Texas (de noche, con el reloj del servidor en otra zona, salía corrida un día).
+Visto en el demo: barra en un renglón a 1680, 1440, 1361, 1280, 1100, 901 y 701 px y en su renglón propio a 390; la hoja; el filtro por empleado; «Este mes» (doce bloques, aviso, «Sign off period» apagado). NO visto: «Trabajando ahora» (el demo no tiene sesión para esa lectura) ni nada con datos reales. El nombre de la app se recorta en la barra por debajo de 1680 px para que quepan los tres filtros. La celda azul del Excel («0» / «VARIES») no se incluyó: falta que el dueño diga qué es.
+Sello `timetracker` 1.42.0; repo 1.992.0.

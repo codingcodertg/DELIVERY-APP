@@ -203,6 +203,13 @@ export function leadsDemo(ahora: Date = new Date()): Lead[] {
       };
     }
   });
+  // Lugares compartidos del STXP (la ubicación aproximada del permiso; ver parecidos.ts): el 02 es el 01 con otro número
+  // (posible duplicado, los dos), y el 03 comparte solo el lugar (mismo lugar).
+  const idxStxp = (n: string) => leads.findIndex((l) => l.id === `demo-stxp-${n}`);
+  const [i1, i2, i3] = ["01", "02", "03"].map(idxStxp);
+  const ancla = leads[i1];
+  leads[i2] = { ...leads[i2], site_address: ancla.site_address, project_name: ancla.project_name, type_of_work: ancla.type_of_work, estimated_cost: ancla.estimated_cost, scope_of_work: ancla.scope_of_work };
+  leads[i3] = { ...leads[i3], site_address: ancla.site_address };
   return leads;
 }
 
@@ -332,14 +339,6 @@ export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
       }
       const porVendedor: LlamadasDeVendedor[] = [...porNombre.entries()].map(([rep_name, llamadas]) => ({ rep_name: rep_name || null, llamadas }));
       return { ok: true, valor: { porVendedor, total } };
-    },
-    async archivar(leadId, nota) {
-      const yo = quien();
-      if (!yo.admin) return no("sin_permiso");
-      const l = busca(leadId);
-      if (!l) return no("no_existe");
-      apunta(l, "archived", { note: notaLimpia(nota), subject: l.holder, subject_name: l.holder_name });
-      return guarda({ ...l, status: "archived", holder: null, holder_name: null, taken_at: null, follow_up_note: null, follow_up_action: null, follow_up_at: null, touched_at: new Date().toISOString() });
     },
   };
 }

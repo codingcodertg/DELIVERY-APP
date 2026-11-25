@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { INFO_DE_NIVEL, NIVELES, SECCIONES, esAdminDeLaApp, leerNivelEscrito, nivelDe, nivelPorDefecto, puedeLlenar, tiposPermitidos } from "./nivel";
-import { tiendasPara, vistaPermitida, type Vista } from "./puerta";
+import { tiendasPara, tiendasParaVer, vistaPermitida, type Vista } from "./puerta";
 import { puedeCorregirMerma, puedeExportar, puedeVerReporte, veLosReportes, veReportesDeLaTienda, type Quien } from "./visibilidad";
 import { TIPOS, type TipoDeReporte } from "./tipos";
 import { MODULE_ACCESS } from "@/lib/constants";
@@ -315,5 +315,35 @@ describe("292: todos los de la tienda ven los reportes de su tienda (la base)", 
     expect(SQL292).toContain("hay una funcion que escribe con warehouse_ops_can_see como unica puerta");
     expect(SQL292).toContain("-- @ledger-below");
     expect(SQL292).toContain("values ('292_almacen_ve_su_tienda.sql', '");
+  });
+});
+
+describe("solo-mi-tienda (2026-11-24): quién VE qué tienda; solo el admin ve todas", () => {
+  const siete = ["RDZ McAllen", "RDZ Pharr", "RDZ Edinburg", "RDZ Brownsville", "RDZ Harlingen", "RDZ Mission", "RDZ Rio Grande"];
+  const baudelio: Quien = { id: "b", role: "warehouse", store: "RDZ Pharr", module_access: ["warehouse_ops"], warehouse_ops_role: "full" };
+  const dosTiendas: Quien = { id: "d", role: "manager", store: "RDZ Pharr", visible_stores: ["RDZ Edinburg"], module_access: ["warehouse_ops"], warehouse_ops_role: "store_admin" };
+  it("solo el admin de la app ve todas las tiendas", () => {
+    expect(tiendasParaVer(admin, siete)).toEqual(siete);
+    expect(tiendasParaVer({ ...admin, role: "admin", module_access: [] }, siete)).toEqual(siete);
+  });
+  it("Baudelio (warehouse, full, RDZ Pharr) ve solo la suya: nada de las otras seis", () => {
+    expect(tiendasParaVer(baudelio, siete)).toEqual(["RDZ Pharr"]);
+  });
+  it("el store_admin, el full y el scrap_only con tienda ven solo la suya", () => {
+    expect(tiendasParaVer(francis, siete)).toEqual(["RDZ Pharr"]);
+    expect(tiendasParaVer(almacen, siete)).toEqual(["RDZ McAllen"]);
+    expect(tiendasParaVer(gerente, siete)).toEqual(["RDZ Edinburg"]);
+  });
+  it("con visible_stores: su tienda y esas, solo si están en la lista de Ajustes", () => {
+    expect(tiendasParaVer(dosTiendas, siete)).toEqual(["RDZ Pharr", "RDZ Edinburg"]);
+    expect(tiendasParaVer({ ...dosTiendas, visible_stores: ["RDZ Edinburg", "Tienda que ya no existe"] }, siete)).toEqual(["RDZ Pharr", "RDZ Edinburg"]);
+  });
+  it("sin tienda propia, ninguna; una tienda que no está en la lista, ninguna", () => {
+    expect(tiendasParaVer({ ...baudelio, store: null }, siete)).toEqual([]);
+    expect(tiendasParaVer({ ...baudelio, store: "" }, siete)).toEqual([]);
+    expect(tiendasParaVer({ ...baudelio, store: "RDZ Inexistente" }, siete)).toEqual([]);
+  });
+  it("«tiendasPara» (quién puede LLENAR en qué tienda) no cambia con esto", () => {
+    expect(tiendasPara(baudelio, siete)).toEqual(siete);
   });
 });

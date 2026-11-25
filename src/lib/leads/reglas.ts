@@ -106,6 +106,12 @@ export interface Lead {
 }
 
 export const esPrivado = (l: Pick<Lead, "source">): boolean => l.source === "privado";
+/** De dónde sale un lead en la pantalla: el STXP (la fuente privada, `source` = 'privado') o el GOV (lo demás, el Excel del estado). */
+export type OrigenDeLead = "stxp" | "gov";
+/** El filtro de origen de la pestaña única: los dos, o solo uno. */
+export type FiltroDeOrigen = "todas" | OrigenDeLead;
+export const origenDe = (l: Pick<Lead, "source">): OrigenDeLead => (esPrivado(l) ? "stxp" : "gov");
+export const deOrigen = (l: Pick<Lead, "source">, f: FiltroDeOrigen): boolean => f === "todas" || origenDe(l) === f;
 export const coincideConCliente = (l: Pick<Lead, "customer_match_id">): boolean => l.customer_match_id != null;
 /** Cuántas cargas trajeron el lead. Sin dato (base vieja o demo), una. */
 export const vecesVisto = (l: Pick<Lead, "times_seen">): number => (typeof l.times_seen === "number" && l.times_seen >= 1 ? l.times_seen : 1);
@@ -128,7 +134,7 @@ export interface EventoLead {
   subject_name: string | null;
 }
 
-/** Quien mira. `admin` entra siempre y es el único que archiva. */
+/** Quien mira. `admin` entra siempre y ve todas las tiendas. */
 export interface Persona {
   id: string;
   name: string;
@@ -165,6 +171,31 @@ export type TipoDeAccion = (typeof TIPOS_DE_ACCION)[number];
 /** Todas las etapas de la lista, en orden: New primero. */
 export const ETAPAS = ["new", ...TIPOS_DE_ACCION] as const;
 export type Etapa = (typeof ETAPAS)[number];
+
+/**
+ * Los grupos de etapas (el dueño, 2026-11-24): Pendiente (lo que no ha avanzado), En progreso, Cerrado y No sirve. Cada
+ * etapa está en UN solo grupo (lo prueba reglas.test.ts). El filtro de la pantalla son los grupos; una etapa dentro de
+ * un grupo se elige en una segunda fila.
+ */
+export type GrupoDeEtapa = "pendiente" | "progreso" | "cerrado" | "no_sirve";
+export const GRUPOS_DE_ETAPA: readonly { clave: GrupoDeEtapa; en: string; es: string; icono: string; etapas: readonly Etapa[] }[] = [
+  { clave: "pendiente", en: "Pending", es: "Pendiente", icono: "⏳", etapas: ["new", "made_contact", "appointment"] },
+  { clave: "progreso", en: "Progress", es: "En progreso", icono: "📈", etapas: ["quote", "negotiation"] },
+  { clave: "cerrado", en: "Closed", es: "Cerrado", icono: "🏆", etapas: ["closed"] },
+  { clave: "no_sirve", en: "No good", es: "No sirve", icono: "👎", etapas: ["no_answer", "lost", "bad_lead"] },
+];
+/** El grupo de una etapa. Cada etapa tiene uno (lo prueba reglas.test.ts). */
+export function grupoDeLaEtapa(etapa: Etapa): GrupoDeEtapa {
+  return GRUPOS_DE_ETAPA.find((g) => g.etapas.includes(etapa))!.clave;
+}
+
+/**
+ * Las etapas que «Todas las etapas» NO incluye: todo el grupo «No sirve» (no contestó, perdido, no es buen lead). Se ven
+ * al elegir su grupo. Con un grupo o una etapa elegida, el filtro es ese grupo o esa etapa (incluida esta).
+ */
+export const ETAPAS_FUERA_DE_TODAS: readonly Etapa[] = GRUPOS_DE_ETAPA.find((g) => g.clave === "no_sirve")!.etapas;
+/** ¿Entra el lead en «Todas las etapas»? Sí, salvo que su etapa esté fuera de todas. */
+export const enTodasLasEtapas = (l: Pick<Lead, "follow_up_action">): boolean => !ETAPAS_FUERA_DE_TODAS.includes(etapaDe(l));
 
 const ETAPA_TXT: Record<Etapa, { en: string; es: string }> = {
   // D-1166 (el dueño, 2026-11-24): «rename it to open, que sería todo lo untouched». La etapa es la misma (`new`):
@@ -356,6 +387,8 @@ export interface Filtros {
   busca: string;
   /** La etapa del lead (328). "" = todas. */
   etapa?: Etapa | "";
+  /** El grupo de etapas (Pendiente, En progreso, Cerrado, No sirve). null o sin dato = todos. Con `etapa`, deben cumplirse los dos. */
+  grupo?: GrupoDeEtapa | null;
   /** El chip «categoría buena»: solo las que empiezan por «Sirve». */
   buena?: boolean;
   /** D-760: solo los que coinciden con un cliente de Clientes. */
@@ -366,6 +399,10 @@ export interface Filtros {
   textoExtra?: (l: Lead) => string;
   /** D-1145 (D-1145, reunión del 23 nov 2026): solo los leads cuyo ÚLTIMO contacto (última nota) lo hizo esta persona (`last_by`). "" = todos. */
   quien?: string;
+  /** La pestaña única (Leads Pool): solo el STXP, solo el GOV o los dos. Sin dato, los dos. */
+  origen?: FiltroDeOrigen;
+  /** Solo los leads de estos ids («⚠ Posibles duplicados», ver parecidos.ts). null o sin dato = sin filtro. */
+  soloDeIds?: ReadonlySet<string> | null;
 }
 
 /**
@@ -379,8 +416,12 @@ export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
     if (f.coinciden && !coincideConCliente(l)) return false;
     if (f.sinTelefono && !sinTelefono(l)) return false;
     if (f.quien && l.last_by !== f.quien) return false;
+    if (f.origen && !deOrigen(l, f.origen)) return false;
+    if (f.soloDeIds && !f.soloDeIds.has(l.id)) return false;
     if (f.buena && !categoriaBuena(l.category)) return false;
-    if (f.etapa && etapaDe(l) !== f.etapa) return false;
+    if (f.grupo && grupoDeLaEtapa(etapaDe(l)) !== f.grupo) return false;
+    if (f.etapa) { if (etapaDe(l) !== f.etapa) return false; }
+    else if (!f.grupo && !enTodasLasEtapas(l)) return false;
     if (f.categoria === "utiles") { if (categoriaDescartada(l.category)) return false; }
     else if (f.categoria !== "todas" && l.category !== f.categoria) return false;
     if (f.tipo && l.project_type !== f.tipo) return false;

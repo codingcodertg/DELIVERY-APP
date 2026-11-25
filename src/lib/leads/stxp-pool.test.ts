@@ -97,9 +97,10 @@ describe("la pantalla y la base", () => {
     const p = sinComentarios(leer("src/app/leads/Leads.tsx"));
     expect(p).toContain("const veStxp = !!yo && veElPoolPrivado(yo);");
     expect(p).toContain("const privadosBase = useMemo(() => (yo ? privadosVisibles(leads, yo) : []), [leads, yo]);");
-    expect(p).toContain('const poolFiltro = pestana === "privado" && !elige ? null : filtroDePool(pool);');
-    expect(p).toContain('data-pool-stxp');
-    expect(p).toContain('t("STXP Pool", "STXP Pool")');
+    expect(p).toContain('const poolFiltro = filtroDePool(pool);');
+    expect(p).toContain('const p = poolDelFiltro(l, poolFiltro, elige);');
+    expect(p).not.toContain('data-pool-stxp');
+    expect(p).not.toContain('t("STXP Pool", "STXP Pool")');
     expect(p).not.toContain("Pool General");
     expect(p).not.toContain("General Pool");
     expect(p).not.toContain("Pool privado");

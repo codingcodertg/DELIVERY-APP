@@ -121,6 +121,18 @@ export function esErrorTecnico(texto: string): boolean {
     || /\b(relation|column|constraint|syntax error|pg_|postgrest|supabase|function \w+\(|operator does not|unexpected token|undefined|null \(reading|typeerror|at \w+ \()/i.test(texto);
 }
 
+/**
+ * Mientras la 347 no esté aplicada (2026-11-24), la base pide razón al firmar aunque la pantalla no vea diferencia (una
+ * bolsa contada que cuadra). Quien llama dice si la pantalla vio diferencia; si no la vio, esto da el texto propio.
+ */
+const FALTA_347: Par = {
+  en: "The database still asks for a reason on lines counted in bags (update 347 is pending): write one to sign.",
+  es: "La base todavía pide la razón en líneas contadas en bolsas (falta la actualización 347): escriba una para firmar.",
+};
+export function mensajeDeFaltaLa347(e: unknown, lang: Idioma): string | null {
+  return /^warehouse_ops:\s*hay diferencias: escribe la razon/i.test(partes(e).texto.trim()) ? FALTA_347[lang] : null;
+}
+
 export function mensajeDeError(e: unknown, lang: Idioma = idiomaDeLaPagina(), accion: Accion = "guardar"): string {
   const { texto, codigo } = partes(e);
   const limpio = texto.trim();

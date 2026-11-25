@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { usePrefs } from "@/lib/prefs";
 import { RUTA_PERSONALIZAR } from "@/lib/personalizar";
 import { avatarColor, initials } from "@/lib/utils";
+import { useEstadoDeSuplantacion } from "@/components/SuplantacionEnBurbuja";
+import { textosDeLaBarra, volverAMiCuenta } from "@/lib/suplantacion-en-burbuja";
 
 /**
  * El menú que se abre al tocar tu nombre en la barra (D-274 lo hizo para Entregas; D-490 lo saca
@@ -44,12 +46,21 @@ export function MenuDeCuenta({
   // Navegar cierra el menú (atrás y adelante incluidos).
   useEffect(() => { setAbierto(false); }, [pathname]);
   const cerrar = () => setAbierto(false);
+  // «Viendo como» (2026-11-24): el aviso vive AQUÍ, en el botón de la cuenta, que ya está en todas las barras y no añade
+  // ancho. Antes eran dos pastillas flotando abajo a la derecha (tapaban botones) y, un rato, un chip aparte en la barra:
+  // medido en pantalla, incluso compacto mandaba a un segundo renglón las barras llenas (RR. HH. a 1280 px, Entregas a
+  // 1100, ERP a 900). El botón se pone ámbar y el menú empieza con «Volver a mi usuario».
+  const sup = useEstadoDeSuplantacion();
+  const [volviendo, setVolviendo] = useState(false);
+  const textos = sup ? textosDeLaBarra({ como: sup.como, idioma: sup.idioma, volviendo }) : null;
 
   return (
     <div style={{ position: "relative" }} data-menu-de-cuenta>
       <button
         type="button"
-        className={"account-link" + (abierto ? " active" : "")}
+        className={"account-link" + (abierto ? " active" : "") + (textos ? " viendo-como-chip" : "")}
+        data-viendo-como={textos ? true : undefined}
+        title={textos ? textos.chip : undefined}
         onClick={() => setAbierto((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={abierto}
@@ -77,6 +88,16 @@ export function MenuDeCuenta({
             style={{ zIndex: 71, minWidth, ...(volteado ? { left: 0, right: "auto" } : { right: 0, left: "auto" }) }}
             role="menu"
           >
+            {textos && (
+              <>
+                <div className="hint viendo-como-rotulo" style={{ margin: "4px 10px 6px" }}>👤 {textos.chip}</div>
+                <button type="button" className="col-opt viendo-como-opcion" role="menuitem" data-volver-a-mi-usuario disabled={volviendo}
+                  style={{ width: "100%", textAlign: "left" }}
+                  onClick={() => { setVolviendo(true); void volverAMiCuenta("manual", { fetch: window.fetch.bind(window), ubicacion: window.location }); }}>
+                  ↩ {volviendo ? textos.volviendo : textos.volver}
+                </button>
+              </>
+            )}
             {children(cerrar)}
           </div>
         </>

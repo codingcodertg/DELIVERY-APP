@@ -193,7 +193,7 @@ describe("«Actual» en el orden que alguien ya guardó (tanda `_v9`)", () => {
   it("quien ya pasó por `_v8` recibe la columna y su sitio, y se guarda una vez; con `_v9`, ya no", () => {
     const suyas = ["invoice", "p_type", "p_eta", "_v2", "_v3", "_v4", "_v5", "_v6", "_v7", "_v8"];
     const al = preferenciasDelGestorAlLeer(suyas, ["p_eta", "p_type"]);
-    expect(al).toEqual({ columnas: [...suyas, "p_actual", "_v9"], orden: ["p_eta", "p_actual", "p_type"], escribe: true });
+    expect(al).toEqual({ columnas: [...suyas, "p_actual", "_v9", "p_rep", "_v10"], orden: ["p_eta", "p_actual", "p_type"], escribe: true }); // + p_rep y _v10 (columna «Usuario» de paradas)
     expect(preferenciasDelGestorAlLeer(al.columnas!, al.orden).escribe).toBe(false);
   });
 });

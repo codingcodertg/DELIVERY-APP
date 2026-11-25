@@ -132,13 +132,11 @@ export function contextoDeClientes(e: {
 // ---- Leads ----------------------------------------------------------------------------------------------------
 
 const PESTANAS_DE_LEADS: Record<string, Bilingue> = {
-  banco: b("GOV Pool tab", "Pestaña GOV Pool"),
+  banco: b("Leads Pool tab", "Pestaña Pool de leads"),
   admin: b("Admin tab", "Pestaña Admin"),
-  privado: b("STXP Pool tab", "Pestaña STXP Pool"),
 };
 const DIALOGOS_DE_LEADS: Record<string, Bilingue> = {
   nota: b("Lead stage / note window open", "Ventana de etapa o nota del lead abierta"),
-  archivar: b("Archive lead window open", "Ventana de archivar lead abierta"),
   cliente: b("Matching customer card open", "Ficha del cliente coincidente abierta"),
 };
 
@@ -149,6 +147,8 @@ export function contextoDeLeads(e: {
   pool: string | null;
   /** La etapa por la que se filtra (328), o «» si ninguna. */
   etapa: string;
+  /** El grupo de etapas por el que se filtra (Pendiente, En progreso, Cerrado, No sirve), o null si ninguno. */
+  grupo?: string | null;
   buscando: boolean;
   dialogo: string | null;
   historialAbierto: boolean;
@@ -158,6 +158,7 @@ export function contextoDeLeads(e: {
     PESTANAS_DE_LEADS[e.pestana] ?? e.pestana,
     e.pestana === "banco" && !!e.pool && b(`pool: ${e.pool}`, `pool: ${e.pool}`),
     e.pestana === "banco" && !!e.etapa && b(`stage filter: ${e.etapa}`, `filtro de etapa: ${e.etapa}`),
+    e.pestana === "banco" && !!e.grupo && b(`stage group filter: ${e.grupo}`, `filtro de grupo de etapas: ${e.grupo}`),
     e.buscando && b("with a search typed", "con una búsqueda escrita"),
     e.historialAbierto && b("Lead history open", "Historial del lead abierto"),
     !!e.dialogo && (DIALOGOS_DE_LEADS[e.dialogo] ?? e.dialogo),

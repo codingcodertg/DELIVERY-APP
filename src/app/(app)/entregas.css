@@ -27,11 +27,10 @@
    el demo: al acabar cualquier pantalla de Entregas quedaban ~134 px muertos (80 del `.wrap` + 16 + 15 + 24 del pie de
    la versión), y la burbuja de Ayuda solo pide 62 (20 + 42; 58 en el teléfono). El pie ya está debajo del contenido y
    pasa por debajo de la burbuja, así que el hueco de D-530 se cuenta CON el pie: el `.wrap` pone solo lo que falta.
-   Lo último sigue pudiendo subir por encima de la burbuja (24 + 56 = 80 ≥ 62), y mientras se suplanta el hueco crece
-   igual que antes (D-859: 136 − 56 = 80 en el `.wrap`; la segunda regla le gana a la general de globals.css). */
+   Lo último sigue pudiendo subir por encima de la burbuja (24 + 56 = 80 ≥ 62). Dentro de otra persona la burbuja
+   sigue siendo de 46 px (24 nov: el aviso va en la barra de arriba), así que el hueco no cambia. */
 :root { --alto-del-pie-de-version: 56px; }
-.wrap.entregas-app,
-:root:has(.fab-general-caja.suplantando) .wrap.entregas-app {
+.wrap.entregas-app {
   padding-bottom: max(12px, calc(var(--hueco-de-ayuda) - var(--alto-del-pie-de-version)));
 }
 /* El mapa del Gestor sigue el alto de la ventana (D-862): antes 430 px fijos (300 en la vista eficiente), y en una

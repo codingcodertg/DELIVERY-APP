@@ -7,6 +7,7 @@ import { fmtClock, fmtTime } from "@/lib/timetracker/helpers";
 import { necesitaProyecto, nombreDeSesion, tiendaYPuesto } from "@/lib/timetracker/tienda-y-puesto";
 import { getCrewNow } from "@/app/timetracker/clock-in/actions/clock";
 import { CrewMap, type CrewPoint } from "@/components/timetracker/CrewMap";
+import { idsActivosAhora, sinActividadAhora } from "@/lib/timetracker/trabajando-ahora-en-nomina";
 
 // Ported (D-071) from timetracker-clean's manager/LiveMonitor.jsx — "who's
 // working now", live via the provider's `liveSessions` (its own realtime
@@ -28,7 +29,10 @@ function Cronometro({ calcular }: { calcular: (ahora: number) => number }) {
  * de Nómina, plegada encima de todo (`PayrollTabs`): lo monta esa sección solo cuando está abierta,
  * así que el sondeo de `getCrewNow` cada 10 s corre solo mientras alguien la mira.
  */
-export function TrabajandoAhora() {
+export function TrabajandoAhora({ soloUids = null }: {
+  /** Los filtros de Nómina (tienda, empleado): quién se ve. `null` = todos. */
+  soloUids?: Set<string> | null;
+} = {}) {
   const { me, liveSessions, allEmployees: users, allProjects: projects, tiendas } = useData();
   const t = useT();
 
@@ -69,7 +73,14 @@ export function TrabajandoAhora() {
 
   const uMap = new Map(users.map((u) => [u.id, u]));
   const pMap = new Map(projects.map((p) => [p.id, p]));
+  // Los activos AHORA, con la misma regla de siempre (sesiones del cronómetro y fichajes en turno), y los filtros de Nómina.
   const rows = liveSessions.slice().sort((a, b) => (a.startMs || 0) - (b.startMs || 0));
+  const rowsVis = soloUids ? rows.filter((s) => soloUids.has(s.employeeUid)) : rows;
+  const fichandoVis = (crew?.onClock ?? []).filter((p) => !soloUids || soloUids.has(p.employeeId));
+  const activosIds = idsActivosAhora(rowsVis, fichandoVis);
+  // Los que no están activos ahora, debajo y en negro (de la plantilla activa; sin fetch nuevo).
+  const inactivos = sinActividadAhora(users, activosIds, soloUids);
+  const enCurso = rowsVis.length + fichandoVis.length;
   // En la línea donde la tarjeta del remoto lleva su proyecto, la del presencial lleva su tienda y su
   // puesto (D-493): es su proyecto.
   const lang = getLang();
@@ -108,9 +119,9 @@ export function TrabajandoAhora() {
     <div className="card">
       <div className="between">
         <h2 style={{ margin: 0 }}>{t("mgr.tab.live")}</h2>
-        <span className="chip">{t("mgr.live.active", { n: rows.length + (crew?.onClock.length ?? 0) })}</span>
+        <span className="chip" title={t("nomina.ahoraCuenta")}>{t("mgr.live.countNow", { a: enCurso, b: inactivos.length })}</span>
       </div>
-      {rows.length === 0 && (crew?.onClock.length ?? 0) === 0 ? (
+      {enCurso === 0 && inactivos.length === 0 ? (
         <p className="muted" style={{ marginTop: 12 }}>{t("mgr.live.empty")}</p>
       ) : (
         <div className="live-grid">
@@ -119,13 +130,13 @@ export function TrabajandoAhora() {
               está trabajando ahora. Lo que cambia es qué se puede medir de cada quien — de un
               fichaje no hay actividad, ni pantalla, ni inactivo, así que esas líneas no se
               dibujan en vez de dibujarse a cero, que sería inventarse un dato. */}
-          {(crew?.onClock ?? []).map((p) => {
+          {fichandoVis.map((p) => {
             const emp = uMap.get(p.employeeId);
             const desde = Date.parse(p.since);
             const fuera = p.away;
             return (
-              <div key={p.id} className="live-card">
-                <div className="live-name">{emp ? emp.fullName : p.name}</div>
+              <div key={p.id} className="live-card tt-ahora-activo" data-activo="si">
+                <div className="live-name"><span className="tt-ahora-punto" aria-hidden="true">● </span>{emp ? emp.fullName : p.name}</div>
                 <div className="live-tags">
                   <span className="live-tag inhouse">🏢 {t("mgr.live.inhouse")}</span>
                   {/* Si salió, eso es LO que está haciendo ahora: manda sobre "fichado". */}
@@ -151,7 +162,7 @@ export function TrabajandoAhora() {
               </div>
             );
           })}
-          {rows.map((s) => {
+          {rowsVis.map((s) => {
             const emp = uMap.get(s.employeeUid);
             const proj = pMap.get(s.projectId ?? "");
             const dur = s.durationSeconds || 0;
@@ -165,8 +176,8 @@ export function TrabajandoAhora() {
             const idle = s.idleSeconds || 0;
             const st = status(s.liveNote);
             return (
-              <div key={s.id} className="live-card">
-                <div className="live-name">{emp ? emp.fullName : (s.employeeName || "—")}</div>
+              <div key={s.id} className="live-card tt-ahora-activo" data-activo="si">
+                <div className="live-name"><span className="tt-ahora-punto" aria-hidden="true">● </span>{emp ? emp.fullName : (s.employeeName || "—")}</div>
                 <div className="live-tags">
                   <span className="live-tag remote">💻 {t("mgr.live.remote")}</span>
                   <span className="live-tag state">{st ? st.text : t("mgr.live.livePill")}</span>
@@ -182,6 +193,12 @@ export function TrabajandoAhora() {
               </div>
             );
           })}
+          {/* Sin actividad ahora: debajo de los activos, en negro, con su nombre y su punto. */}
+          {inactivos.map((e) => (
+            <div key={"sin-" + e.id} className="live-card tt-ahora-inactivo" data-activo="no">
+              <div className="live-name"><span className="tt-ahora-punto" aria-hidden="true">● </span>{e.fullName}</div>
+            </div>
+          ))}
         </div>
       )}
       {/* El mapa va al final: se consulta, no se vigila. Arriba estorbaría a lo que sí se

@@ -132,11 +132,12 @@ describe("9. teléfono: toda tarjeta se cierra, y «entrar como» no tapa la pan
     const css = leer(`${OPS}/operaciones.css`);
     expect(css).toMatch(/\.ops-cerrar-fila \{ position: sticky;/);
   });
-  it("en pantalla de teléfono la burbuja de «entrar como» queda en una sola pastilla chica hasta que se toca", () => {
+  // 24 nov: la pastilla de «entrar como» ya no existe en el teléfono: la burbuja es siempre de 46 px con anillo, y el
+  // aviso y el rojo salen al abrirla. Lo que se ve siempre, arriba, es el chip (`BarraDeApp`).
+  it("en pantalla de teléfono no hay pastillas de «entrar como» abajo: el aviso va arriba, en el botón de la cuenta", () => {
     const css = leer("src/app/globals.css");
-    const bloque = css.slice(css.indexOf(".fab-general-caja.suplantando:not(:has(.fab-menu)) .fab-volver { display: none; }") - 40);
-    expect(bloque.startsWith("@media (max-width: 640px) {") || bloque.includes("@media (max-width: 640px) {")).toBe(true);
-    expect(css).toContain(".fab-general-caja.suplantando:not(:has(.fab-menu)) .fab-suplantando-texto { font-size: 0; }");
+    expect(css).not.toContain(".fab-general-caja.suplantando");
+    expect(leer("src/components/MenuDeCuenta.tsx")).toContain("data-viendo-como");
   });
 });
 

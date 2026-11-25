@@ -12,7 +12,7 @@ import { maxFechaDeEntrega } from "@/lib/dia-de-entrega";
 import {
   avisosDeRelevo, esPasoDeRelevo, estadoDelRelevo, etiquetaDeRelevo, letraDelPaso, PASTILLA_DE_RELEVO, pasosDelRelevo, pasosParaVer,
   porQueNoSeActiva, primerDiaDelPasoB, problemaDelDiaDelPasoB, puedeGestionarRelevo, sePuedeDeshacer, TEXTO_DEL_DIA, textoDelEstado,
-  tiendasDeRelevo, type PasoParaVer,
+  tiendasDeRelevo, type PasoParaVer, estadoDelPasoAnterior, pasoAnterior, TEXTO_DEL_PASO_ANTERIOR,
 } from "@/lib/relevo";
 import { BUSINESS_TZ, fmtDate, orderLabel, todayISO } from "@/lib/utils";
 import type { Delivery } from "@/lib/types";
@@ -45,6 +45,28 @@ export function PastillaDeRelevo({ d, lang, style }: { d: Pick<Delivery, "relay_
     <span className="sema pastilla-relevo" data-relevo={d.relay_step} data-intertienda-cliente-pastilla={customer ? true : undefined} style={{ ...ESTILO_PASTILLA, ...style }}
       title={lang === "es" ? `Transferencia por relevo, paso ${letra}${tramo}` : `Relay transfer, step ${letra}${tramo}`}>
       ⇄ {customer ? "Intertienda Customer" : PASTILLA_DE_RELEVO[lang]} {letra}
+    </span>
+  );
+}
+
+/**
+ * El chip del paso b: «✓ A entregado» (verde) si el paso a ya llegó a la tienda de relevo, «⏳ A sin entregar» (ámbar) si
+ * todavía no. `null` (no se pinta nada) si no hay paso anterior a la vista (`estadoDelPasoAnterior`).
+ */
+export function EtiquetaDelPasoAnterior({ d, todas, lang, style }: { d: Delivery; todas: readonly Delivery[]; lang: "en" | "es"; style?: React.CSSProperties }) {
+  const estado = estadoDelPasoAnterior(d, todas);
+  if (!estado) return null;
+  const anterior = pasoAnterior(todas, d);
+  if (!anterior) return null;
+  const letra = letraDelPaso(anterior.relay_step ?? 1).toUpperCase();
+  const donde = (anterior.delivery_name ?? "").trim();
+  const es = lang === "es";
+  const titulo = estado === "entregado"
+    ? (es ? `El paso ${letra} ya llegó${donde ? ` a ${donde}` : ""}: este paso ya se puede recoger.` : `Step ${letra} has arrived${donde ? ` at ${donde}` : ""}: this step can be picked up.`)
+    : (es ? `El paso ${letra} todavía no llega${donde ? ` a ${donde}` : ""}: este paso no se puede recoger.` : `Step ${letra} has not arrived${donde ? ` at ${donde}` : ""} yet: this step cannot be picked up.`);
+  return (
+    <span className={"sema sema-relevo-" + estado} data-paso-anterior={estado} title={titulo} style={style}>
+      {TEXTO_DEL_PASO_ANTERIOR[estado](letraDelPaso(anterior.relay_step ?? 1))[lang]}
     </span>
   );
 }
@@ -158,6 +180,7 @@ export function RelevoDeLaOrden({ pedido, compacto = false, soloLectura = false 
           ⇄ {t("Relay transfer", "Transferencia por relevo")}
         </button>
       )}
+      {esRelevo && <EtiquetaDelPasoAnterior d={pedido} todas={deliveries} lang={lang} style={{ marginLeft: 6 }} />}
 
       {abierto && !esRelevo && (
         <div className="overlay" data-dialogo-relevo="activar" onClick={(e) => { if (e.target === e.currentTarget) cerrar(); }}>

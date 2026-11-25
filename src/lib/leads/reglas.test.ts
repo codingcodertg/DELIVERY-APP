@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  accionTono, aplicarNota, categoriaBuena, categoriaDescartada, cuantosVistosMasDeUna, cuentaPorEtapa, enlaceSeguro, estadoLabel, etapaDe,
-  etapaIcono, etapaLabel, etapaTono, ETAPAS, eventoLabel, filtrar, filtroDePool, fecha, mapsUrl, negativaDeCodigo, negativaTexto, notaLimpia, NOTA_MAX,
+  accionTono, aplicarNota, categoriaBuena, categoriaDescartada, cuantosVistosMasDeUna, cuentaPorEtapa, enlaceSeguro, enTodasLasEtapas, estadoLabel, etapaDe,
+  etapaIcono, etapaLabel, etapaTono, ETAPAS, ETAPAS_FUERA_DE_TODAS, eventoLabel, filtrar, filtroDePool, fecha, mapsUrl, negativaDeCodigo, negativaTexto, notaLimpia, NOTA_MAX,
   ordenar, POOL_SIN_TIENDA, POOL_TODAS, poolInicial, poolsDe, resumenDeTodas, tableroPorTienda, tableroPorVendedor, telUrl, TIPOS_DE_ACCION,
-  valoresDe, vecesVisto, vigentes, vendedoresDeLeads, leadsDeLaVista, type EventoLead, type Lead, type Persona,
+  valoresDe, vecesVisto, vigentes, origenDe, deOrigen, vendedoresDeLeads, leadsDeLaVista, type EventoLead, type Lead, type Persona,
+  GRUPOS_DE_ETAPA, grupoDeLaEtapa,
 } from "./reglas";
 
 const ahora = "2026-11-18T15:00:00.000Z";
@@ -130,6 +131,29 @@ describe("3 · el banco: filtros, pools y orden", () => {
     expect(filtrar(leads, { ...TODAS, etapa: "quote" }).map((l) => l.id)).toEqual(["a"]);
     expect(filtrar(leads, { ...TODAS, etapa: "closed" }).map((l) => l.id)).toEqual(["c"]);
     expect(filtrar(leads, { ...TODAS, etapa: "new" }).map((l) => l.id)).toEqual(["b", "e"]);
+  });
+  it("«Todas las etapas» deja fuera Perdido y No es buen lead; cada chip de esas dos sí los enseña", () => {
+    const con = [
+      lead({ id: "x", follow_up_action: "lost" }),
+      lead({ id: "y", follow_up_action: "bad_lead" }),
+      lead({ id: "z", follow_up_action: "quote" }),
+      lead({ id: "w" }),
+    ];
+    expect(ETAPAS_FUERA_DE_TODAS).toEqual(["no_answer", "lost", "bad_lead"]);
+    expect(filtrar(con, TODAS).map((l) => l.id)).toEqual(["z", "w"]);
+    expect(filtrar(con, { ...TODAS, etapa: "lost" }).map((l) => l.id)).toEqual(["x"]);
+    expect(filtrar(con, { ...TODAS, etapa: "bad_lead" }).map((l) => l.id)).toEqual(["y"]);
+  });
+  it("«Todas las etapas» quita lo perdido también al combinarse con otros filtros y con la búsqueda", () => {
+    const con = [lead({ id: "x", follow_up_action: "lost", category: "Sirve – usa piso" }), lead({ id: "z", follow_up_action: "quote" })];
+    expect(filtrar(con, { ...TODAS, buena: true }).map((l) => l.id)).toEqual(["z"]);
+    expect(filtrar(con, { ...TODAS, busca: "Oficinas" }).map((l) => l.id)).toEqual(["z"]);
+  });
+  it("enTodasLasEtapas: sí para todas menos lost y bad_lead; el lead sin etapa entra", () => {
+    expect(enTodasLasEtapas(lead({ follow_up_action: "lost" }))).toBe(false);
+    expect(enTodasLasEtapas(lead({ follow_up_action: "bad_lead" }))).toBe(false);
+    expect(enTodasLasEtapas(lead({ follow_up_action: "closed" }))).toBe(true);
+    expect(enTodasLasEtapas(lead({ follow_up_action: null }))).toBe(true);
   });
   it("la categoría de entrada: «Sirve + podría servir» quita las que no sirven; «todas» las enseña", () => {
     expect(filtrar(leads, { ...TODAS, categoria: "utiles" }).map((l) => l.id)).not.toContain("b");
@@ -285,5 +309,65 @@ describe("vista de pool del tablero (D-1145, reunión del 23 nov 2026)", () => {
     expect(leadsDeLaVista(de, "gov").map((l) => l.id)).toEqual(["g", "s"]);
     expect(leadsDeLaVista(de, "stxp").map((l) => l.id)).toEqual(["p"]);
     expect(leadsDeLaVista(de, "ambos").map((l) => l.id)).toEqual(["g", "p", "s"]);
+  });
+});
+
+describe("la pestaña única: el origen de cada lead (STXP o GOV)", () => {
+  it("el origen sale de `source`: 'privado' es STXP; lo demás (tdlr o viejo) es GOV", () => {
+    expect(origenDe({ source: "privado" })).toBe("stxp");
+    expect(origenDe({ source: "tdlr" })).toBe("gov");
+    expect(origenDe({})).toBe("gov");
+  });
+  it("el filtro de origen: «todas» deja pasar los dos; cada uno solo los suyos", () => {
+    const de = [lead({ id: "g" }), lead({ id: "p", source: "privado" })];
+    expect(deOrigen({ source: "privado" }, "todas")).toBe(true);
+    expect(deOrigen({}, "stxp")).toBe(false);
+    expect(filtrar(de, { ...TODAS, origen: "todas" }).map((l) => l.id)).toEqual(["g", "p"]);
+    expect(filtrar(de, { ...TODAS, origen: "stxp" }).map((l) => l.id)).toEqual(["p"]);
+    expect(filtrar(de, { ...TODAS, origen: "gov" }).map((l) => l.id)).toEqual(["g"]);
+  });
+});
+
+describe("los grupos de etapas: Pendiente, En progreso, Cerrado y No sirve", () => {
+  it("cada etapa está en exactamente un grupo, y los grupos suman las nueve etapas", () => {
+    const todas = GRUPOS_DE_ETAPA.flatMap((g) => g.etapas);
+    expect([...todas].sort()).toEqual([...ETAPAS].sort());
+    for (const e of ETAPAS) expect(GRUPOS_DE_ETAPA.filter((g) => g.etapas.includes(e))).toHaveLength(1);
+    for (const e of ETAPAS) expect(GRUPOS_DE_ETAPA.find((g) => g.clave === grupoDeLaEtapa(e))!.etapas).toContain(e);
+  });
+  it("los grupos son esos y en ese orden, con su nombre en los dos idiomas y su icono", () => {
+    expect(GRUPOS_DE_ETAPA.map((g) => g.clave)).toEqual(["pendiente", "progreso", "cerrado", "no_sirve"]);
+    expect(GRUPOS_DE_ETAPA.map((g) => g.etapas)).toEqual([
+      ["new", "made_contact", "appointment"], ["quote", "negotiation"], ["closed"], ["no_answer", "lost", "bad_lead"],
+    ]);
+    expect(GRUPOS_DE_ETAPA.map((g) => [g.en, g.es, g.icono])).toEqual([
+      ["Pending", "Pendiente", "⏳"], ["Progress", "En progreso", "📈"], ["Closed", "Cerrado", "🏆"], ["No good", "No sirve", "👎"],
+    ]);
+  });
+  it("«No sirve» es el grupo que «Todas las etapas» deja fuera; no contestó es parte de él", () => {
+    expect(grupoDeLaEtapa("no_answer")).toBe("no_sirve");
+    expect(grupoDeLaEtapa("quote")).toBe("progreso");
+    expect(enTodasLasEtapas(lead({ follow_up_action: "no_answer" }))).toBe(false);
+  });
+  it("el filtro de grupo deja solo las etapas de ese grupo; con una etapa, deben cumplirse las dos", () => {
+    const con = [
+      lead({ id: "n", follow_up_action: null }),
+      lead({ id: "a", follow_up_action: "appointment" }),
+      lead({ id: "q", follow_up_action: "quote" }),
+      lead({ id: "c", follow_up_action: "closed" }),
+      lead({ id: "x", follow_up_action: "no_answer" }),
+      lead({ id: "l", follow_up_action: "lost" }),
+    ];
+    expect(filtrar(con, { ...TODAS, grupo: "pendiente" }).map((l) => l.id)).toEqual(["n", "a"]);
+    expect(filtrar(con, { ...TODAS, grupo: "progreso" }).map((l) => l.id)).toEqual(["q"]);
+    expect(filtrar(con, { ...TODAS, grupo: "cerrado" }).map((l) => l.id)).toEqual(["c"]);
+    expect(filtrar(con, { ...TODAS, grupo: "no_sirve" }).map((l) => l.id)).toEqual(["x", "l"]);
+    expect(filtrar(con, { ...TODAS, grupo: "pendiente", etapa: "appointment" }).map((l) => l.id)).toEqual(["a"]);
+    expect(filtrar(con, { ...TODAS, grupo: "pendiente", etapa: "quote" }).map((l) => l.id)).toEqual([]);
+  });
+  it("con un grupo elegido, «No sirve» sí se ve (el grupo manda); sin grupo ni etapa, no", () => {
+    const con = [lead({ id: "x", follow_up_action: "no_answer" }), lead({ id: "z", follow_up_action: "quote" })];
+    expect(filtrar(con, { ...TODAS, grupo: "no_sirve" }).map((l) => l.id)).toEqual(["x"]);
+    expect(filtrar(con, { ...TODAS, grupo: null }).map((l) => l.id)).toEqual(["z"]);
   });
 });
