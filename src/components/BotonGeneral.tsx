@@ -263,11 +263,13 @@ export function BotonGeneral() {
     }
   };
 
-  const naranja = colorDeLaBurbuja(sup.estado) === "naranja";
+  // Dentro de otra persona la burbuja sigue siendo la de siempre, con un anillo ámbar; el aviso «Estás como …» y el
+  // botón rojo salen al abrirla, y lo que se ve siempre es el chip de la barra de arriba (`BarraDeApp`).
+  const viendo = colorDeLaBurbuja(sup.estado) === "naranja";
   const nombre = abierto ? (textos ? tAdmin("Close", "Cerrar") : t("Close", "Cerrar")) : (textos ? textos.titulo : t("Help, chat and more", "Ayuda, chat y más"));
 
   return (
-    <div className={"fab-general-caja no-print" + (naranja ? " suplantando" : "")} data-boton-general>
+    <div className={"fab-general-caja no-print" + (viendo ? " viendo-como" : "")} data-boton-general>
       {abierto && (
         <>
           <div className="fab-fondo" onClick={cierra} />
@@ -279,18 +281,19 @@ export function BotonGeneral() {
           {textos?.contrasena && <div className="fab-nota" role="note" data-aviso="cambio-contrasena">{textos.contrasena}</div>}
         </>
       )}
-      {/* D-859: el botón rojo, justo encima de la burbuja naranja. Es la vuelta de siempre (`volverAMiCuenta`). */}
-      {sup.estado && <BotonVolverAMiUsuario suplantacion={sup.estado} volviendo={sup.volviendo} onVolver={() => void sup.volver("manual")} />}
+      {/* D-859, 24 nov: solo al abrir la burbuja (no tapa contenido): el aviso «Estás como …» y el botón rojo, justo encima
+          de la burbuja. Es la vuelta de siempre (`volverAMiCuenta`). */}
+      {abierto && sup.estado && <EtiquetaDeSuplantacion suplantacion={sup.estado} />}
+      {abierto && sup.estado && <BotonVolverAMiUsuario suplantacion={sup.estado} volviendo={sup.volviendo} onVolver={() => void sup.volver("manual")} />}
       <button
         type="button"
-        className={"fab-general" + (abierto ? " abierto" : "") + (naranja ? " suplantando" : "")}
+        className={"fab-general" + (abierto ? " abierto" : "") + (viendo ? " viendo-como" : "")}
         aria-haspopup="menu"
         aria-expanded={abierto}
         onClick={() => setAbierto((v) => !v)}
         title={nombre}
         aria-label={nombre}
       >
-        {sup.estado && <EtiquetaDeSuplantacion suplantacion={sup.estado} />}
         <span aria-hidden>{abierto ? "✕" : "?"}</span>
         {!abierto && sinLeer > 0 && <span className="chat-badge" data-sin-leer={sinLeer}>{sinLeer > 99 ? "99+" : sinLeer}</span>}
       </button>

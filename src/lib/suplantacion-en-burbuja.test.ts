@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   RUTA_DE_VUELTA, RUTA_DEL_ESTADO, burbujaEnLaRuta, colorDeLaBurbuja, suplantacionDelEstado, textosDeSuplantacion,
-  tocaVolverSolo, volverAMiCuenta, type Suplantacion,
+  tocaVolverSolo, volverAMiCuenta, textosDeLaBarra, type Suplantacion,
 } from "@/lib/suplantacion-en-burbuja";
 import { opcionesDelBotonGeneral } from "@/lib/boton-general";
 import { IMPERSONACION_MINUTOS } from "@/lib/impersonation";
@@ -166,10 +166,12 @@ describe("el aspecto: naranja con tokens, el rojo encima, del alto de un dedo y 
   const css = leer("src/app/globals.css");
   const burbuja = leer("src/components/BotonGeneral.tsx");
 
-  it("naranja con `--amber` y texto `--ink` (oscuro en los dos temas); nada de colores a pelo", () => {
-    expect(css).toMatch(/\.fab-general\.suplantando \{[^}]*background: var\(--amber\); color: var\(--ink\);/);
-    const reglas = css.slice(css.indexOf(".fab-general.suplantando {"), css.indexOf(":root:has(.fab-general-caja.suplantando) { --hueco-de-ayuda: 136px; }"));
+  // 24 nov: la burbuja ya no se pone naranja (pastilla): tiene un anillo ámbar. El chip de la barra es el ámbar con texto `--ink`.
+  it("anillo `--amber` en la burbuja y chip `--amber` con texto `--ink` (oscuro en los dos temas); nada de colores a pelo", () => {
+    expect(css).toMatch(/\.fab-general\.viendo-como \{ box-shadow: 0 0 0 3px var\(--amber\)/);
+    const reglas = css.slice(css.indexOf(".fab-general.viendo-como {"), css.indexOf(".viendo-como-volver {"));
     expect(reglas).not.toMatch(/#[0-9a-f]{3,6}\b/i);
+    expect(css).toMatch(/\.viendo-como-chip \{[^}]*background: var\(--amber\); color: var\(--ink\);/);
   });
 
   it("el botón rojo va ENCIMA de la burbuja en el documento (la caja es una columna que acaba en la burbuja)", () => {
@@ -180,16 +182,30 @@ describe("el aspecto: naranja con tokens, el rojo encima, del alto de un dedo y 
     expect(css).toContain(".fab-general-caja { position: fixed; right: 20px; bottom: 20px; z-index: 1000; display: flex; flex-direction: column;");
   });
 
-  it("los dos, de al menos 44 px de alto", () => {
+  it("el botón rojo, de al menos 44 px de alto; la burbuja sigue de 46 px también dentro de otra persona", () => {
     expect(css).toMatch(/\.fab-volver \{\n\s*min-height: 44px;/);
-    expect(css).toContain("width: 46px; height: 46px;");   // la burbuja, que en naranja solo crece a lo ancho
-    expect(css).toMatch(/\.fab-general\.suplantando \{\n\s*width: auto;/);
+    expect(css).toContain("width: 46px; height: 46px;");
+    expect(css).not.toMatch(/\.fab-general\.suplantando \{/);
   });
 
-  it("el hueco de abajo crece mientras está el rojo, y solo entonces (D-530)", () => {
-    expect(css).toContain(":root:has(.fab-general-caja.suplantando) { --hueco-de-ayuda: 136px; }");
-    expect(css).toContain(":root:has(.fab-general-caja.suplantando) .wrap { padding-bottom: var(--hueco-de-ayuda); }");
+  // 24 nov: el aviso grande ya no crece la burbuja ni el hueco de abajo: el hueco es el de siempre (D-530).
+  it("el hueco de abajo no crece con la suplantación (el chip va en la barra de arriba)", () => {
+    expect(css).not.toContain(":root:has(.fab-general-caja.suplantando)");
     expect(css).toContain(":root { --hueco-de-ayuda: 80px; }");
-    expect(burbuja).toContain('className={"fab-general-caja no-print" + (naranja ? " suplantando" : "")}');
+    expect(burbuja).toContain('className={"fab-general-caja no-print" + (viendo ? " viendo-como" : "")}');
+  });
+});
+
+describe("la barra de arriba: el chip «viendo como» (24 nov)", () => {
+  it("el chip dice «Viewing as …» en inglés y «Estás como …» en español, con el nombre", () => {
+    expect(textosDeLaBarra({ como: "Baudelio Sepeda", idioma: "en" }).chip).toBe("Viewing as Baudelio Sepeda");
+    expect(textosDeLaBarra({ como: "Baudelio Sepeda", idioma: "es" }).chip).toBe("Estás como Baudelio Sepeda");
+  });
+
+  it("el botón «↩» dice «Back to my user» / «Volver a mi usuario», y «Going back…» mientras vuelve", () => {
+    expect(textosDeLaBarra({ como: "X", idioma: "en" }).volver).toBe("Back to my user");
+    expect(textosDeLaBarra({ como: "X", idioma: "es" }).volver).toBe("Volver a mi usuario");
+    expect(textosDeLaBarra({ como: "X", idioma: "en", volviendo: true }).volviendo).toBe("Going back…");
+    expect(textosDeLaBarra({ como: "X", idioma: "es" }).volviendo).toBe("Volviendo…");
   });
 });
