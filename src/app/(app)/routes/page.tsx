@@ -1760,7 +1760,7 @@ export default function RoutesPage() {
       await enFila(async () => {
         if (huellaVivaRef.current(laneKey) !== huellaInicial) { reprograma = true; return; }
         try {
-          escrito = await guardaLaLista(laneKey, stops, res.paradas, { en: `Optimize ${laneLabel(laneKey)}`, es: `Optimizar ${laneLabel(laneKey)}` });
+          escrito = await guardaLaLista(laneKey, stops, res.paradas, { en: `Auto-optimize ${laneLabel(laneKey)}`, es: `Optimización automática de ${laneLabel(laneKey)}` });
         } catch {
           escrito = false;
         }
