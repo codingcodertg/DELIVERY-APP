@@ -173,10 +173,27 @@ export const ETAPAS = ["new", ...TIPOS_DE_ACCION] as const;
 export type Etapa = (typeof ETAPAS)[number];
 
 /**
- * Las etapas que «Todas las etapas» NO incluye: lo perdido y lo que no es buen lead. Se ven al elegir su chip. Con una
- * etapa elegida, el filtro es esa etapa (incluida esta).
+ * Los grupos de etapas (el dueño, 2026-11-24): Pendiente (lo que no ha avanzado), En progreso, Cerrado y No sirve. Cada
+ * etapa está en UN solo grupo (lo prueba reglas.test.ts). El filtro de la pantalla son los grupos; una etapa dentro de
+ * un grupo se elige en una segunda fila.
  */
-export const ETAPAS_FUERA_DE_TODAS: readonly Etapa[] = ["lost", "bad_lead"];
+export type GrupoDeEtapa = "pendiente" | "progreso" | "cerrado" | "no_sirve";
+export const GRUPOS_DE_ETAPA: readonly { clave: GrupoDeEtapa; en: string; es: string; icono: string; etapas: readonly Etapa[] }[] = [
+  { clave: "pendiente", en: "Pending", es: "Pendiente", icono: "⏳", etapas: ["new", "made_contact", "appointment"] },
+  { clave: "progreso", en: "Progress", es: "En progreso", icono: "📈", etapas: ["quote", "negotiation"] },
+  { clave: "cerrado", en: "Closed", es: "Cerrado", icono: "🏆", etapas: ["closed"] },
+  { clave: "no_sirve", en: "No good", es: "No sirve", icono: "👎", etapas: ["no_answer", "lost", "bad_lead"] },
+];
+/** El grupo de una etapa. Cada etapa tiene uno (lo prueba reglas.test.ts). */
+export function grupoDeLaEtapa(etapa: Etapa): GrupoDeEtapa {
+  return GRUPOS_DE_ETAPA.find((g) => g.etapas.includes(etapa))!.clave;
+}
+
+/**
+ * Las etapas que «Todas las etapas» NO incluye: todo el grupo «No sirve» (no contestó, perdido, no es buen lead). Se ven
+ * al elegir su grupo. Con un grupo o una etapa elegida, el filtro es ese grupo o esa etapa (incluida esta).
+ */
+export const ETAPAS_FUERA_DE_TODAS: readonly Etapa[] = GRUPOS_DE_ETAPA.find((g) => g.clave === "no_sirve")!.etapas;
 /** ¿Entra el lead en «Todas las etapas»? Sí, salvo que su etapa esté fuera de todas. */
 export const enTodasLasEtapas = (l: Pick<Lead, "follow_up_action">): boolean => !ETAPAS_FUERA_DE_TODAS.includes(etapaDe(l));
 
@@ -370,6 +387,8 @@ export interface Filtros {
   busca: string;
   /** La etapa del lead (328). "" = todas. */
   etapa?: Etapa | "";
+  /** El grupo de etapas (Pendiente, En progreso, Cerrado, No sirve). null o sin dato = todos. Con `etapa`, deben cumplirse los dos. */
+  grupo?: GrupoDeEtapa | null;
   /** El chip «categoría buena»: solo las que empiezan por «Sirve». */
   buena?: boolean;
   /** D-760: solo los que coinciden con un cliente de Clientes. */
@@ -397,8 +416,9 @@ export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
     if (f.quien && l.last_by !== f.quien) return false;
     if (f.origen && !deOrigen(l, f.origen)) return false;
     if (f.buena && !categoriaBuena(l.category)) return false;
+    if (f.grupo && grupoDeLaEtapa(etapaDe(l)) !== f.grupo) return false;
     if (f.etapa) { if (etapaDe(l) !== f.etapa) return false; }
-    else if (!enTodasLasEtapas(l)) return false;
+    else if (!f.grupo && !enTodasLasEtapas(l)) return false;
     if (f.categoria === "utiles") { if (categoriaDescartada(l.category)) return false; }
     else if (f.categoria !== "todas" && l.category !== f.categoria) return false;
     if (f.tipo && l.project_type !== f.tipo) return false;

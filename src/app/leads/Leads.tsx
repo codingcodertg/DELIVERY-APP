@@ -18,6 +18,7 @@ import {
   poolsDe, POOL_TODAS, resumenDeTodas, tableroPorTienda, tableroPorVendedor, telUrl, TIPOS_DE_ACCION, type TipoDeAccion, type Etapa, valoresDe, vecesVisto,
   ORDEN_INICIAL, vigentes, enTodasLasEtapas, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, puedeVerEstadisticas,
   vendedoresDeLeads, leadsDeLaVista, type VistaDePool, origenDe, deOrigen, type FiltroDeOrigen,
+  GRUPOS_DE_ETAPA, grupoDeLaEtapa, type GrupoDeEtapa,
 } from "@/lib/leads/reglas";
 import { pasaSemanaSTXP, poolDelFiltro, unirPoolUnico } from "@/lib/leads/pool-unico";
 // 337: las llamadas de RingCentral de la ficha y la pestaña de estadísticas (admin y gerente).
@@ -88,6 +89,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [categoria, setCategoria] = useState<FiltroCategoria>("todas");
   // Las etapas son los filtros (328): una a la vez, «» = todas.
   const [etapa, setEtapa] = useState<Etapa | "">("");
+  // El grupo de etapas (el filtro de la fila de arriba). null = todos; con uno de más de una etapa, sale su segunda fila.
+  const [grupo, setGrupo] = useState<GrupoDeEtapa | null>(null);
   const [buena, setBuena] = useState(false);
   const [tipo, setTipo] = useState("");
   const [ciudad, setCiudad] = useState("");
@@ -102,7 +105,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [llamadasDe, setLlamadasDe] = useState<{ id: string; lista: LlamadaDeLead[] | null } | null>(null);
   // Lo que una solicitud de ayuda dirá de esta pantalla (D-901). Del lead no se nombra a la persona.
   useContextoDeAyuda("leads", contextoDeLeads({
-    pestana, pool, etapa, buscando: !!busca.trim(), dialogo: dialogo?.tipo ?? null, historialAbierto: historial !== null, demo,
+    pestana, pool, etapa, grupo, buscando: !!busca.trim(), dialogo: dialogo?.tipo ?? null, historialAbierto: historial !== null, demo,
   }));
 
   const cargar = useCallback(async () => {
@@ -165,7 +168,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   // Los filtros como al entrar: al cambiar de pestaña y con «Quitar filtros». El orden no es un filtro y se queda.
   const limpiaFiltros = () => {
     setCategoria("todas"); setEtapa(""); setBuena(false); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false); setSinTel(false); setVendedorElegido("");
-    setOrigen("todas");
+    setOrigen("todas"); setGrupo(null);
   };
   const cambiaPestana = (p: Pestana) => {
     if (p === "admin") setVistaStats("gov");
@@ -217,17 +220,19 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const cuentaOrigen = (o: FiltroDeOrigen) => vigentes(delPool).filter((l) => deOrigen(l, o)).length;
   // Los números de cada filtro cuentan lo que hay en el pool elegido (sin el filtro de etapa, para que se vea el total).
   const porEtapa = useMemo(() => cuentaPorEtapa(delOrigen), [delOrigen]);
+  // Cuántos leads (vigentes) hay en cada grupo de etapas, con el origen elegido.
+  const porGrupo = useMemo(() => Object.fromEntries(GRUPOS_DE_ETAPA.map((g) => [g.clave, vigentes(delOrigen).filter((l) => grupoDeLaEtapa(etapaDe(l)) === g.clave).length])) as Record<GrupoDeEtapa, number>, [delOrigen]);
   const buenas = useMemo(() => vigentes(delOrigen).filter((l) => categoriaBuena(l.category)).length, [delOrigen]);
   const visibles = useMemo(
     () => ordenar(filtrar(delBanco.filter((l) => {
       const p = poolDelFiltro(l, poolFiltro, elige);
       return p === null || l.pool === p;
-    }), { pool: null, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTelefono: sinTel, textoExtra, quien: vendedorElegido, origen }), orden),
-    [delBanco, poolFiltro, elige, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTel, textoExtra, orden, vendedorElegido, origen],
+    }), { pool: null, categoria, tipo, ciudad, busca, etapa, grupo, buena, coinciden, sinTelefono: sinTel, textoExtra, quien: vendedorElegido, origen }), orden),
+    [delBanco, poolFiltro, elige, categoria, tipo, ciudad, busca, etapa, grupo, buena, coinciden, sinTel, textoExtra, orden, vendedorElegido, origen],
   );
   // Las personas que han hecho algún último contacto en el banco que se ve (para el filtro «Vendedor»).
   const vendedoresBanco = useMemo(() => vendedoresDeLeads(delBanco), [delBanco]);
-  useEffect(() => { setCuantos(TANDA); }, [pool, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTel, orden, semanaFiltro, vendedorElegido, origen]);
+  useEffect(() => { setCuantos(TANDA); }, [pool, categoria, tipo, ciudad, busca, etapa, grupo, buena, coinciden, sinTel, orden, semanaFiltro, vendedorElegido, origen]);
 
   if (!yo) return <div className="ld-wrap leads-app"><p className="hint">{t("No session.", "Sin sesión.")}</p></div>;
 
@@ -435,14 +440,16 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                 )}
                 {/* Las etapas son el filtro: una por chip, con cuántos leads hay en cada una en este pool. Todas en una línea. */}
                 <div className="ld-etapas filters-oneline" role="group" aria-label={t("Stage", "Etapa")} data-etapas>
-                  <button type="button" className={`chip${etapa === "" ? " on" : ""}`} data-etapa="" onClick={() => setEtapa("")}
-                    title={t("Every stage except Lost and Not a good lead", "Todas las etapas menos Perdido y No es buen lead")}>
+                  <button type="button" className={`chip${etapa === "" && grupo === null ? " on" : ""}`} data-etapa="" data-grupo-de-etapa="todas"
+                    onClick={() => { setGrupo(null); setEtapa(""); }}
+                    title={`${t("Pending, Progress and Closed.", "Pendiente, En progreso y Cerrado.")} «${t("No good", "No sirve")}» (${etapaLabel("no_answer", lang)}, ${etapaLabel("lost", lang)}, ${etapaLabel("bad_lead", lang)}) ${t("is its own filter.", "tiene su propio filtro.")}`}>
                     {t("All stages", "Todas las etapas")} <span className="ld-cuenta">{delOrigen.filter((l) => l.status !== "archived" && enTodasLasEtapas(l)).length}</span>
                   </button>
-                  {ETAPAS.map((e) => (
-                    <button key={e} type="button" className={`chip ${etapaTono(e)}${etapa === e ? " on" : ""}`} data-etapa={e} aria-pressed={etapa === e}
-                      onClick={() => setEtapa(etapa === e ? "" : e)}>
-                      {etapaIcono(e)} {etapaLabel(e, lang)} <span className="ld-cuenta">{porEtapa[e]}</span>
+                  {/* Los cinco chips de grupo (el dueño, 2026-11-24): Pendiente, En progreso, Cerrado y No sirve. */}
+                  {GRUPOS_DE_ETAPA.map((g) => (
+                    <button key={g.clave} type="button" className={`chip${grupo === g.clave ? " on" : ""}`} data-grupo-de-etapa={g.clave} aria-pressed={grupo === g.clave}
+                      onClick={() => { setGrupo(grupo === g.clave ? null : g.clave); setEtapa(""); }}>
+                      {g.icono} {t(g.en, g.es)} <span className="ld-cuenta">{porGrupo[g.clave]}</span>
                     </button>
                   ))}
                   <button type="button" className={`chip${buena ? " on" : ""}`} data-buena aria-pressed={buena} onClick={() => setBuena((v) => !v)}>
@@ -461,6 +468,17 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                   {/* D-1174 (el dueño): el selector de tienda va en esta fila, a la derecha de «Match customers» y a la izquierda. */}
                   {enPoolTab && selectorDeTienda}
                 </div>
+                {/* Un grupo de más de una etapa abre una segunda fila con sus etapas: una sola, con sus colores y su cuenta. */}
+                {grupo !== null && GRUPOS_DE_ETAPA.find((g) => g.clave === grupo)!.etapas.length > 1 && (
+                  <div className="ld-etapas filters-oneline ld-etapas-de-grupo" role="group" aria-label={t("Stage", "Etapa")} data-etapas-de-grupo>
+                    {GRUPOS_DE_ETAPA.find((g) => g.clave === grupo)!.etapas.map((e) => (
+                      <button key={e} type="button" className={`chip ${etapaTono(e)}${etapa === e ? " on" : ""}`} data-etapa={e} aria-pressed={etapa === e}
+                        onClick={() => setEtapa(etapa === e ? "" : e)}>
+                        {etapaIcono(e)} {etapaLabel(e, lang)} <span className="ld-cuenta">{porEtapa[e]}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {/* Fila 3 (como Merma): el buscador a la izquierda; los filtros, compactos y en línea (cada uno dice
                     su nombre en el título y en la primera opción); «Quitar filtros» a la derecha. */}
                 <div className="ld-barra" data-barra>

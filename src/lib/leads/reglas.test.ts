@@ -4,6 +4,7 @@ import {
   etapaIcono, etapaLabel, etapaTono, ETAPAS, ETAPAS_FUERA_DE_TODAS, eventoLabel, filtrar, filtroDePool, fecha, mapsUrl, negativaDeCodigo, negativaTexto, notaLimpia, NOTA_MAX,
   ordenar, POOL_SIN_TIENDA, POOL_TODAS, poolInicial, poolsDe, resumenDeTodas, tableroPorTienda, tableroPorVendedor, telUrl, TIPOS_DE_ACCION,
   valoresDe, vecesVisto, vigentes, origenDe, deOrigen, vendedoresDeLeads, leadsDeLaVista, type EventoLead, type Lead, type Persona,
+  GRUPOS_DE_ETAPA, grupoDeLaEtapa,
 } from "./reglas";
 
 const ahora = "2026-11-18T15:00:00.000Z";
@@ -138,7 +139,7 @@ describe("3 · el banco: filtros, pools y orden", () => {
       lead({ id: "z", follow_up_action: "quote" }),
       lead({ id: "w" }),
     ];
-    expect(ETAPAS_FUERA_DE_TODAS).toEqual(["lost", "bad_lead"]);
+    expect(ETAPAS_FUERA_DE_TODAS).toEqual(["no_answer", "lost", "bad_lead"]);
     expect(filtrar(con, TODAS).map((l) => l.id)).toEqual(["z", "w"]);
     expect(filtrar(con, { ...TODAS, etapa: "lost" }).map((l) => l.id)).toEqual(["x"]);
     expect(filtrar(con, { ...TODAS, etapa: "bad_lead" }).map((l) => l.id)).toEqual(["y"]);
@@ -324,5 +325,49 @@ describe("la pestaña única: el origen de cada lead (STXP o GOV)", () => {
     expect(filtrar(de, { ...TODAS, origen: "todas" }).map((l) => l.id)).toEqual(["g", "p"]);
     expect(filtrar(de, { ...TODAS, origen: "stxp" }).map((l) => l.id)).toEqual(["p"]);
     expect(filtrar(de, { ...TODAS, origen: "gov" }).map((l) => l.id)).toEqual(["g"]);
+  });
+});
+
+describe("los grupos de etapas: Pendiente, En progreso, Cerrado y No sirve", () => {
+  it("cada etapa está en exactamente un grupo, y los grupos suman las nueve etapas", () => {
+    const todas = GRUPOS_DE_ETAPA.flatMap((g) => g.etapas);
+    expect([...todas].sort()).toEqual([...ETAPAS].sort());
+    for (const e of ETAPAS) expect(GRUPOS_DE_ETAPA.filter((g) => g.etapas.includes(e))).toHaveLength(1);
+    for (const e of ETAPAS) expect(GRUPOS_DE_ETAPA.find((g) => g.clave === grupoDeLaEtapa(e))!.etapas).toContain(e);
+  });
+  it("los grupos son esos y en ese orden, con su nombre en los dos idiomas y su icono", () => {
+    expect(GRUPOS_DE_ETAPA.map((g) => g.clave)).toEqual(["pendiente", "progreso", "cerrado", "no_sirve"]);
+    expect(GRUPOS_DE_ETAPA.map((g) => g.etapas)).toEqual([
+      ["new", "made_contact", "appointment"], ["quote", "negotiation"], ["closed"], ["no_answer", "lost", "bad_lead"],
+    ]);
+    expect(GRUPOS_DE_ETAPA.map((g) => [g.en, g.es, g.icono])).toEqual([
+      ["Pending", "Pendiente", "⏳"], ["Progress", "En progreso", "📈"], ["Closed", "Cerrado", "🏆"], ["No good", "No sirve", "👎"],
+    ]);
+  });
+  it("«No sirve» es el grupo que «Todas las etapas» deja fuera; no contestó es parte de él", () => {
+    expect(grupoDeLaEtapa("no_answer")).toBe("no_sirve");
+    expect(grupoDeLaEtapa("quote")).toBe("progreso");
+    expect(enTodasLasEtapas(lead({ follow_up_action: "no_answer" }))).toBe(false);
+  });
+  it("el filtro de grupo deja solo las etapas de ese grupo; con una etapa, deben cumplirse las dos", () => {
+    const con = [
+      lead({ id: "n", follow_up_action: null }),
+      lead({ id: "a", follow_up_action: "appointment" }),
+      lead({ id: "q", follow_up_action: "quote" }),
+      lead({ id: "c", follow_up_action: "closed" }),
+      lead({ id: "x", follow_up_action: "no_answer" }),
+      lead({ id: "l", follow_up_action: "lost" }),
+    ];
+    expect(filtrar(con, { ...TODAS, grupo: "pendiente" }).map((l) => l.id)).toEqual(["n", "a"]);
+    expect(filtrar(con, { ...TODAS, grupo: "progreso" }).map((l) => l.id)).toEqual(["q"]);
+    expect(filtrar(con, { ...TODAS, grupo: "cerrado" }).map((l) => l.id)).toEqual(["c"]);
+    expect(filtrar(con, { ...TODAS, grupo: "no_sirve" }).map((l) => l.id)).toEqual(["x", "l"]);
+    expect(filtrar(con, { ...TODAS, grupo: "pendiente", etapa: "appointment" }).map((l) => l.id)).toEqual(["a"]);
+    expect(filtrar(con, { ...TODAS, grupo: "pendiente", etapa: "quote" }).map((l) => l.id)).toEqual([]);
+  });
+  it("con un grupo elegido, «No sirve» sí se ve (el grupo manda); sin grupo ni etapa, no", () => {
+    const con = [lead({ id: "x", follow_up_action: "no_answer" }), lead({ id: "z", follow_up_action: "quote" })];
+    expect(filtrar(con, { ...TODAS, grupo: "no_sirve" }).map((l) => l.id)).toEqual(["x"]);
+    expect(filtrar(con, { ...TODAS, grupo: null }).map((l) => l.id)).toEqual(["z"]);
   });
 });

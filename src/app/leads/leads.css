@@ -480,3 +480,12 @@ button.ld-pildora.on { border-color: currentColor; box-shadow: 0 0 0 1px current
 .leads-app .ld-origen-fila .chip { padding: 4px 10px; font-size: 12.5px; }
 .leads-app .ld-origen { font-size: 11px; font-weight: 700; padding: 2px 8px; }
 .leads-app .ld-origen[data-origen="stxp"] { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+
+/* Los cinco chips de grupo (Pendiente, En progreso, Cerrado, No sirve): cada uno lleva el color de la etapa que lo
+   representa (Pendiente = Abierto, En progreso = Hizo cotización, Cerrado = Cerrado, No sirve = Perdido). «Todas» no. */
+.leads-app .ld-etapas .chip[data-grupo-de-etapa="pendiente"] { --e: var(--etapa-new); --e-tinta: var(--etapa-new-tinta); }
+.leads-app .ld-etapas .chip[data-grupo-de-etapa="progreso"] { --e: var(--etapa-quote); --e-tinta: var(--etapa-quote-tinta); }
+.leads-app .ld-etapas .chip[data-grupo-de-etapa="cerrado"] { --e: var(--etapa-closed); --e-tinta: var(--etapa-closed-tinta); }
+.leads-app .ld-etapas .chip[data-grupo-de-etapa="no_sirve"] { --e: var(--etapa-lost); --e-tinta: var(--etapa-lost-tinta); }
+.leads-app .ld-etapas .chip[data-grupo-de-etapa]:not([data-grupo-de-etapa="todas"]) { background: var(--e); color: var(--e-tinta); border-color: var(--e); }
+.leads-app .ld-etapas .chip[data-grupo-de-etapa]:not([data-grupo-de-etapa="todas"]).on { font-weight: 800; box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--e); }

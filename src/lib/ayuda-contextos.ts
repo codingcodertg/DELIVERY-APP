@@ -147,6 +147,8 @@ export function contextoDeLeads(e: {
   pool: string | null;
   /** La etapa por la que se filtra (328), o «» si ninguna. */
   etapa: string;
+  /** El grupo de etapas por el que se filtra (Pendiente, En progreso, Cerrado, No sirve), o null si ninguno. */
+  grupo?: string | null;
   buscando: boolean;
   dialogo: string | null;
   historialAbierto: boolean;
@@ -156,6 +158,7 @@ export function contextoDeLeads(e: {
     PESTANAS_DE_LEADS[e.pestana] ?? e.pestana,
     e.pestana === "banco" && !!e.pool && b(`pool: ${e.pool}`, `pool: ${e.pool}`),
     e.pestana === "banco" && !!e.etapa && b(`stage filter: ${e.etapa}`, `filtro de etapa: ${e.etapa}`),
+    e.pestana === "banco" && !!e.grupo && b(`stage group filter: ${e.grupo}`, `filtro de grupo de etapas: ${e.grupo}`),
     e.buscando && b("with a search typed", "con una búsqueda escrita"),
     e.historialAbierto && b("Lead history open", "Historial del lead abierto"),
     !!e.dialogo && (DIALOGOS_DE_LEADS[e.dialogo] ?? e.dialogo),
