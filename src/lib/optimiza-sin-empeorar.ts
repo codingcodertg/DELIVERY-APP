@@ -64,6 +64,23 @@ export function noEsPeor(antes: MedidaDeLaLista, despues: MedidaDeLaLista): bool
     && despues.exceso <= antes.exceso + 1e-9;
 }
 
+/** Cuántos regresos a una tienda ya visitada marca el validador (regla 3) en la lista. */
+const regresosDe = (lista: readonly ParadaDeLaLista[], ordenes: readonly OrdenDeLaLista[], capacidad: number): number =>
+  validaLaLista(lista, ordenes, capacidad).violaciones.filter((v) => v.clave === "regreso_a_la_misma_tienda").length;
+
+/**
+ * La guarda de la pasada de reglas (`arreglaLaLista`). Igual que `noEsPeor`, salvo una cosa: si la lista arreglada QUITA un
+ * regreso a una tienda ya visitada y no suma ni una milla, puede llegar MÁS TARDE a una ventana (el dueño, 2026-11-25: «no
+ * regresar a la tienda», aquí manda el ahorro). El retraso no se esconde: `avisoDeOptimizar` lo dice con las tardes de `despues`.
+ * Lo demás (jornada de tarjeta, jornada con esperas, exceso) sigue igual de estricto.
+ */
+export function noEsPeorSalvoLaTarde(antes: MedidaDeLaLista, despues: MedidaDeLaLista, regresosAntes: number, regresosDespues: number): boolean {
+  if (regresosDespues >= regresosAntes || despues.centiMillas > antes.centiMillas) return noEsPeor(antes, despues);
+  return jornadaDeTarjeta(despues) <= jornadaDeTarjeta(antes)
+    && despues.minutos <= antes.minutos
+    && despues.exceso <= antes.exceso + 1e-9;
+}
+
 /** La entrada con sus paradas en otro orden (las mismas paradas): cada lista paralela se reordena igual. */
 export function entradaEnOrden(e: EntradaDeOptimizar, paradas: readonly ParadaDeLaLista[]): EntradaDeOptimizar {
   const puesto = new Map(e.paradas.map((p, i) => [p, i]));
@@ -136,7 +153,7 @@ export function optimizaSinEmpeorar(e: EntradaDeOptimizar): ResultadoSinEmpeorar
   const paradas = arreglo.cambio ? filasEnElNuevoOrden(e, arreglo.lista) : null;
   if (paradas) {
     const despues = mideLaLista(entradaEnOrden(e, paradas));
-    if (noEsPeor(r.despues, despues)) {
+    if (noEsPeorSalvoLaTarde(r.despues, despues, regresosDe(r.paradas, ordenes, capacidad), regresosDe(paradas, ordenes, capacidad))) {
       final = {
         ...r, paradas, cambio: true, despues,
         millasDespues: despues.millas, excesoDespues: despues.exceso, como: r.como ?? "arregla",

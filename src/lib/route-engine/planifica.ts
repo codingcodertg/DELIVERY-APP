@@ -1,13 +1,13 @@
 import { enLaBanda, MARGEN_PALLET_MI } from "./de-paso";
 import { descargaPrimero } from "./descarga-primero";
-import { unaSolaVisita } from "./una-sola-visita";
+import { soloAnadeRetraso, unaSolaVisitaCuandoCabe, violacionesAnadidas } from "./una-sola-visita";
 import {
   aCentesimas, cargaTransportadaDe, claveDeParada, claveDeZona, costeDeRutas, evaluaRuta, PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, restaDesglose,
   puntasFueraDeZona, UMBRAL_DE_ZONA_POR_DEFECTO_MI, zonasReclamadas, type Contexto,
 } from "./evalua";
 import type {
   Alternativa, ChoferEntrada, Desglose, Entrada, Explicacion, MotivoSinAsignar, OrdenEntrada, ParadaRef, Parametros,
-  Plan, RutaEvaluada, SinAsignar, TipoDeViolacion,
+  Plan, RutaEvaluada, SinAsignar, TipoDeViolacion, UnionDeVisitas,
 } from "./types";
 
 /**
@@ -581,21 +581,35 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
   }
 
   // ---- Una sola visita por tienda cuando cabe (motor-11) -------------------------------------------
-  // «Si cabe, se va»: cada vez que la ruta vuelve a una tienda ya visitada, cargada y sin que lo justifique la capacidad
-  // ni la disponibilidad, lo que va a esa tienda se junta en la visita anterior (`unaSolaVisita`). Solo se adopta si la
-  // ruta no sale con más violaciones y no suma ni una milla: juntar en una visita no debería costar millas, y si las cuesta,
-  // se queda la que había. Las paradas fijadas no se tocan.
+  // «Si cabe, se va» (el dueño, 2026-11-25: «no regresar a la tienda», y aquí manda el ahorro): cada vez que la ruta vuelve a
+  // una tienda ya visitada, cargada y sin que lo justifique la capacidad ni la disponibilidad, lo que va a esa tienda se junta
+  // en la visita anterior (`unaSolaVisitaCuandoCabe`: primero todo, y si no, cada juntada por separado). Una juntada se adopta
+  // si no suma ni una milla y no añade ninguna violación que no sea LLEGAR TARDE a una ventana (`soloAnadeRetraso`). Lo que
+  // llega tarde NO se quita: queda con su violación y su `tardeMin`, y la juntada se anota en `uniones` para que el plan lo diga.
+  // Las paradas fijadas no se tocan.
+  const uniones: UnionDeVisitas[] = [];
   for (const c of choferes) {
     const sec = estado.secuencias.get(c.id)!;
     let fijas = 0;
     while (fijas < sec.length && fijadas.has(claveDeParada(sec[fijas]))) fijas++;
-    const nueva = unaSolaVisita(sec, [...porId.values()], c.capacidad, fijas);
-    if (!nueva.some((p, i) => p.orden !== sec[i].orden || p.tipo !== sec[i].tipo)) continue;
-    const actual = estado.rutas.get(c.id)!;
-    const ruta = evaluaRuta(c, nueva, ctx);
-    if (ruta.violaciones.length > actual.violaciones.length || ruta.millas > actual.millas + 0.01) continue;
+    const sinJuntar = estado.rutas.get(c.id)!;
+    let vigente = sinJuntar;
+    const nueva = unaSolaVisitaCuandoCabe(sec, [...porId.values()], c.capacidad, fijas, (cand, tiendas) => {
+      const ruta = evaluaRuta(c, cand, ctx);
+      if (ruta.millas > vigente.millas + 0.01 || !soloAnadeRetraso(vigente.violaciones, ruta.violaciones)) return false;
+      const tarde = violacionesAnadidas(vigente.violaciones, ruta.violaciones).map((v) => ({
+        orden: v.orden ?? "",
+        tardeMin: ruta.paradas.find((p) => p.tipo === "D" && p.orden === v.orden)?.tardeMin ?? 0,
+      }));
+      if (tarde.length > 0) {
+        uniones.push({ chofer: c.id, tiendas, tarde, millasAhorradas: Math.round((vigente.millas - ruta.millas) * 100) / 100 });
+      }
+      vigente = ruta;
+      return true;
+    });
+    if (vigente === sinJuntar) continue;
     estado.secuencias.set(c.id, nueva);
-    estado.rutas.set(c.id, ruta);
+    estado.rutas.set(c.id, vigente);
   }
 
   // ---- Por qué quedó fuera cada una ---------------------------------------------------------------
@@ -651,5 +665,6 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
   return {
     rutas, coste: final, violaciones: rutas.flatMap((r) => r.violaciones), sinAsignar, explicaciones,
     partes: partido.partes, movimientos, convergio, version: VERSION_DEL_MOTOR,
+    ...(uniones.length > 0 ? { uniones } : {}),
   };
 }

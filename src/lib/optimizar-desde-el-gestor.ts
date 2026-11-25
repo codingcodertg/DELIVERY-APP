@@ -206,7 +206,15 @@ export function avisoDeOptimizar(args: {
   const nA = r.antes.tarde.length, nD = r.despues.tarde.length;
   // D-1029: Optimizar ya no compra puntualidad con millas ni con tiempo, así que «ningún orden lo evita» dejó de ser verdad.
   const noHayOtro = { en: "avoiding it would cost more miles or more time", es: "evitarlo costaría más millas o más tiempo" };
-  const tarde = nD > 0
+  // Una entrega que llega tarde por la juntada de visitas (no volver a una tienda, el dueño 2026-11-25) NO es «aún»: antes llegaba
+  // a tiempo. Se dice aparte, con lo que ahorra, y se nombra cada una.
+  const nuevas = r.despues.tarde.filter((t) => !r.antes.tarde.some((a) => a.orden === t.orden));
+  const cualesNuevas = nuevas.map((t) => `${args.nombreDe(t.orden)} ${t.minutos} min`).join(", ");
+  const ahorro = Math.max(0, r.antes.millas - r.despues.millas).toFixed(1);
+  const tarde = nuevas.length > 0
+    ? { en: ` ⚠ Late for ${nuevas.length} delivery(ies) that were on time before: ${cualesNuevas} — one visit per store (no return to the store) saves ${ahorro} mi.`,
+        es: ` ⚠ Llega tarde a ${nuevas.length} entrega(s) que antes llegaban a tiempo: ${cualesNuevas} — una sola visita por tienda (no volver a la tienda) ahorra ${ahorro} mi.` }
+    : nD > 0
     ? { en: ` ⚠ Still late for ${nD} delivery(ies): ${cuales} — ${noHayOtro.en}${r.cambio ? ` (before: ${nA}, ${suma(r.antes.tarde)} min)` : ""}.`,
         es: ` ⚠ Aún llega tarde a ${nD} entrega(s): ${cuales} — ${noHayOtro.es}${r.cambio ? ` (antes: ${nA}, ${suma(r.antes.tarde)} min)` : ""}.` }
     : nA > 0 ? { en: ` No delivery is late any more (${nA} were, ${suma(r.antes.tarde)} min).`, es: ` Ya ninguna entrega llega tarde (antes ${nA}, ${suma(r.antes.tarde)} min).` }

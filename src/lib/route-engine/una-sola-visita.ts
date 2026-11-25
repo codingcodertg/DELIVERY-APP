@@ -1,6 +1,6 @@
 import { descargaPrimero } from "./descarga-primero";
 import { validaLaRuta } from "./validador";
-import type { OrdenEntrada, ParadaRef } from "./types";
+import type { OrdenEntrada, ParadaRef, TipoDeViolacion } from "./types";
 
 /**
  * El reparador de los regresos a una tienda ya visitada (regla 3 del validador): «si cabe, se va». Mientras el validador
@@ -14,18 +14,10 @@ import type { OrdenEntrada, ParadaRef } from "./types";
  * Devuelve una lista NUEVA; no muta la entrada. Es idempotente.
  */
 export function unaSolaVisita(secuencia: readonly ParadaRef[], ordenes: readonly OrdenEntrada[], capacidad: number, fijas = 0): ParadaRef[] {
-  const porId = new Map<string, OrdenEntrada>();
-  for (const o of ordenes) if (!porId.has(o.id)) porId.set(o.id, o);
-  const puntoDe = (p: ParadaRef): string | null => {
-    const o = porId.get(p.orden);
-    if (!o) return null;
-    return (p.tipo === "P" ? o.origen : o.destino) || null;
-  };
-
+  const puntoDe = puntoDeLaParada(ordenes);
   let seq: ParadaRef[] = [...secuencia];
   for (let pasada = 0; pasada < secuencia.length * 4; pasada++) {
-    const marcados = validaLaRuta({ chofer: { nombre: "", capacidad }, ordenes, secuencia: seq })
-      .violaciones.filter((v) => v.clave === "regreso_a_la_misma_tienda");
+    const marcados = regresosMarcados(seq, ordenes, capacidad);
     let cambio: ParadaRef[] | null = null;
     for (const v of marcados) {
       cambio = mueveElRegreso(seq, v.indice, puntoDe, fijas);
@@ -35,6 +27,97 @@ export function unaSolaVisita(secuencia: readonly ParadaRef[], ordenes: readonly
     seq = descargaPrimero(cambio, ordenes, fijas);
   }
   return seq;
+}
+
+/**
+ * Igual que `unaSolaVisita`, pero cada juntada se adopta por separado. Primero se prueba el resultado completo (todas las
+ * juntadas a la vez); si `aceptable` lo rechaza, se prueba cada regreso marcado SOLO: se aplica uno, se reordena, y si
+ * `aceptable` lo deja pasar se adopta y se sigue desde esa secuencia; si no, se prueba el siguiente regreso desde la misma.
+ * Así, una juntada que añade millas o una violación que no es de retraso no arrastra a las que sí valen. `aceptable`
+ * recibe la secuencia candidata y las tiendas que se juntan en ella, y decide contra la ruta que ya se adoptó (quien la
+ * llama lleva esa cuenta). Determinista y acotado: las mismas pasadas que `unaSolaVisita`.
+ */
+export function unaSolaVisitaCuandoCabe(
+  secuencia: readonly ParadaRef[],
+  ordenes: readonly OrdenEntrada[],
+  capacidad: number,
+  fijas: number,
+  aceptable: (nueva: ParadaRef[], tiendas: string[]) => boolean,
+): ParadaRef[] {
+  const puntoDe = puntoDeLaParada(ordenes);
+  const tiendasDe = (seq: readonly ParadaRef[], indices: number[]): string[] =>
+    [...new Set(indices.map((i) => puntoDe(seq[i])).filter((p): p is string => p !== null))];
+
+  const marcadosAlPrincipio = regresosMarcados(secuencia, ordenes, capacidad);
+  if (marcadosAlPrincipio.length > 0) {
+    const completa = unaSolaVisita(secuencia, ordenes, capacidad, fijas);
+    const distinta = completa.some((p, i) => p.orden !== secuencia[i].orden || p.tipo !== secuencia[i].tipo);
+    if (distinta && aceptable(completa, tiendasDe(secuencia, marcadosAlPrincipio.map((v) => v.indice)))) return completa;
+  }
+
+  let seq: ParadaRef[] = [...secuencia];
+  for (let pasada = 0; pasada < secuencia.length * 4; pasada++) {
+    let adoptado = false;
+    for (const v of regresosMarcados(seq, ordenes, capacidad)) {
+      const cambio = mueveElRegreso(seq, v.indice, puntoDe, fijas);
+      if (!cambio) continue;
+      const nueva = descargaPrimero(cambio, ordenes, fijas);
+      if (nueva.every((p, i) => p.orden === seq[i].orden && p.tipo === seq[i].tipo)) continue;
+      if (aceptable(nueva, tiendasDe(seq, [v.indice]))) { seq = nueva; adoptado = true; break; }
+    }
+    if (!adoptado) break;
+  }
+  return seq;
+}
+
+/**
+ * Las violaciones que `despues` tiene de MÁS frente a `antes`, contando por tipo y orden (no por cuántas hay). Quitar una
+ * violación no cuenta como añadir otra. Es la cuenta que decide si una juntada se adopta (`soloAnadeRetraso`).
+ */
+export function violacionesAnadidas<V extends { tipo: TipoDeViolacion; orden?: string }>(antes: readonly V[], despues: readonly V[]): V[] {
+  const cuenta = new Map<string, number>();
+  for (const v of antes) {
+    const k = `${v.tipo}|${v.orden ?? ""}`;
+    cuenta.set(k, (cuenta.get(k) ?? 0) + 1);
+  }
+  const anadidas: V[] = [];
+  for (const v of despues) {
+    const k = `${v.tipo}|${v.orden ?? ""}`;
+    const n = cuenta.get(k) ?? 0;
+    if (n > 0) cuenta.set(k, n - 1); else anadidas.push(v);
+  }
+  return anadidas;
+}
+
+/**
+ * Los tipos de violación que son LLEGAR TARDE a una ventana de entrega: lo único que una juntada puede añadir. `ventana_estrecha`
+ * (la ventana que no admite retraso) y `retraso_sobre_el_tope` (la ancha, pasada de su tope). Capacidad, turno, tiempo de
+ * viaje que falta, precedencia o chofer distinto del fijado siguen rechazando la juntada.
+ */
+export const TIPOS_DE_LLEGAR_TARDE: readonly TipoDeViolacion[] = ["ventana_estrecha", "retraso_sobre_el_tope"];
+
+/**
+ * ¿La ruta `despues` solo añade LLEGAR TARDE a una ventana frente a `antes`? Verdadero si no añade ninguna violación, o si
+ * todas las que añade son de `TIPOS_DE_LLEGAR_TARDE`. Las que ya estaban (y siguen) no cuentan.
+ */
+export function soloAnadeRetraso<V extends { tipo: TipoDeViolacion; orden?: string }>(antes: readonly V[], despues: readonly V[]): boolean {
+  return violacionesAnadidas(antes, despues).every((v) => TIPOS_DE_LLEGAR_TARDE.includes(v.tipo));
+}
+
+function puntoDeLaParada(ordenes: readonly OrdenEntrada[]): (p: ParadaRef) => string | null {
+  const porId = new Map<string, OrdenEntrada>();
+  for (const o of ordenes) if (!porId.has(o.id)) porId.set(o.id, o);
+  return (p: ParadaRef): string | null => {
+    const o = porId.get(p.orden);
+    if (!o) return null;
+    return (p.tipo === "P" ? o.origen : o.destino) || null;
+  };
+}
+
+/** Los regresos a una tienda que el validador marca sin justificar, con el índice de la parada donde empieza la visita que vuelve. */
+function regresosMarcados(seq: readonly ParadaRef[], ordenes: readonly OrdenEntrada[], capacidad: number) {
+  return validaLaRuta({ chofer: { nombre: "", capacidad }, ordenes, secuencia: [...seq] })
+    .violaciones.filter((v) => v.clave === "regreso_a_la_misma_tienda");
 }
 
 /** Mueve la visita V2 (que empieza en `a2`) a la V1 anterior en el mismo sitio. `null` si no se puede (V1 entra en las fijas). */

@@ -293,8 +293,25 @@ export interface PlanEvaluado {
   violaciones: Violacion[];
 }
 
+/**
+ * Una juntada de visitas (`unaSolaVisitaCuandoCabe`) que se adoptó y dejó a alguna orden LLEGANDO TARDE a su ventana, para
+ * que el plan lo diga: en qué tienda, qué órdenes llegan tarde y por cuántos minutos, y cuántas millas ahorró. El dueño,
+ * 2026-11-25: «no regresar a la tienda» gana a la ventana estrecha, pero el retraso se marca, no se esconde.
+ */
+export interface UnionDeVisitas {
+  chofer: string;
+  /** Las tiendas cuya segunda visita se juntó con la primera. */
+  tiendas: string[];
+  /** Las órdenes que llegan tarde por la juntada que antes no llegaban tarde, con sus minutos de retraso. */
+  tarde: { orden: string; tardeMin: number }[];
+  /** Millas que la juntada ahorra frente a la ruta sin juntar. */
+  millasAhorradas: number;
+}
+
 export interface Plan extends PlanEvaluado {
   sinAsignar: SinAsignar[];
+  /** Las juntadas de visitas que dejaron a una orden tarde (ver `UnionDeVisitas`). Ausente si no hubo ninguna. */
+  uniones?: UnionDeVisitas[];
   explicaciones: Explicacion[];
   /** Una orden mayor que el camión se parte en cargas del mismo chofer: aquí, qué partes salieron de cuál. */
   partes: Record<string, string[]>;
