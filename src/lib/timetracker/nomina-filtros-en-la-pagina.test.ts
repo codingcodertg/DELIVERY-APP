@@ -18,10 +18,10 @@ describe("Nómina · los filtros van en la página, en orden: periodo, tienda, e
     expect(filtros).not.toContain("data-nomina-en-la-barra");
   });
 
-  it("los tres controles, en orden: <MenuDeFecha, el select de tienda y el de empleado", () => {
+  it("los tres controles, en orden: <MenuDeFecha, el menú de tiendas y el de empleados (listas de casillas)", () => {
     const menu = filtros.indexOf("<MenuDeFecha");
-    const tienda = filtros.indexOf("data-tienda-de-nomina");
-    const empleado = filtros.indexOf("data-empleado-de-nomina");
+    const tienda = filtros.indexOf('dato="tienda"');
+    const empleado = filtros.indexOf('dato="empleado"');
     expect(menu).toBeGreaterThan(-1);
     expect(tienda).toBeGreaterThan(menu);
     expect(empleado).toBeGreaterThan(tienda);
@@ -30,8 +30,8 @@ describe("Nómina · los filtros van en la página, en orden: periodo, tienda, e
   it("la pantalla de Payroll lo monta encima de las secciones, y la URL lleva ?tienda= y ?empleado=", () => {
     expect(tabs).toContain("<FiltrosDeNomina");
     expect(tabs.indexOf("<FiltrosDeNomina")).toBeLessThan(tabs.indexOf("<PayrollTimesheets"));
-    expect(filtros).toContain('ir({ empleado: e.target.value || null })');
-    expect(filtros).toContain("tienda: v || null");
+    expect(filtros).toContain("ir({ empleado: listaParaUrl(ids) })");
+    expect(filtros).toContain("tienda: listaParaUrl(ids)");
     expect(filtros).toMatch(/"tienda", "empleado"/);
   });
 

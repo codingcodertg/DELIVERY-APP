@@ -4,6 +4,7 @@ import { PayrollTabs } from "@/components/timetracker/PayrollTabs";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import { addDaysISO, fmtISOday } from "@/lib/timetracker/helpers";
+import { MAX_EMPLEADOS_EN_URL, MAX_TIENDAS_EN_URL, parseaListaDeNomina } from "@/lib/timetracker/filtro-de-nomina";
 import { hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
 import {
   inicioDeSemanaDePago,
@@ -48,6 +49,17 @@ function resolverRango(p: Parametros, hoy: string) {
 }
 
 /**
+ * Las tiendas y los empleados de la URL: listas separadas por comas (`?tienda=a,b`), ya limpias (sin vacíos ni repetidos,
+ * con tope). Un solo valor sigue valiendo. Se lee DESPUÉS de comprobar la sesión y el rol; lo que no sea un id válido se ignora.
+ */
+function filtroDeLaUrl(p: Parametros) {
+  return {
+    tiendas: parseaListaDeNomina(p.tienda, MAX_TIENDAS_EN_URL),
+    empleados: parseaListaDeNomina(p.empleado, MAX_EMPLEADOS_EN_URL),
+  };
+}
+
+/**
  * La nómina de un rango de fechas (2026-11-24). El rango llega por la URL:
  *  - `?period=` (la forma de siempre): UNA semana de pago, la que empieza en ese viernes;
  *  - `?desde=&hasta=`: las semanas de pago que tocan ese rango (de viernes a jueves), como mucho catorce;
@@ -65,11 +77,10 @@ export default async function PayrollPage({
 }) {
   const p = await searchParams;
   const hoy = hoyEnTexas();
-  const filtro = { tienda: p.tienda || null, empleado: p.empleado || null };
 
   // Modo demo: las secciones leen del proveedor en memoria, sin tocar la base (no hay sesión que comprobar).
   if (LOCAL_MODE) {
-    return <PayrollTabs {...resolverRango(p, hoy)} hoy={hoy} filtro={filtro} revisar={[]} />;
+    return <PayrollTabs {...resolverRango(p, hoy)} hoy={hoy} filtro={filtroDeLaUrl(p)} revisar={[]} />;
   }
 
   const supabase = await createClient();
@@ -105,7 +116,7 @@ export default async function PayrollPage({
   const revisar = [...new Set((horas ?? []).filter((r) => r.revisar).map((r) => r.employee_id as string))];
 
   return (
-    <PayrollTabs {...rango} hoy={hoy} filtro={filtro} revisar={revisar}
+    <PayrollTabs {...rango} hoy={hoy} filtro={filtroDeLaUrl(p)} revisar={revisar}
       errorHoras={errorHoras?.message ?? null} />
   );
 }

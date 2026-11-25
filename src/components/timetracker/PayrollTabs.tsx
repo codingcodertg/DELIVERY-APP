@@ -8,6 +8,7 @@ import type { Eleccion } from "@/lib/almacen-ops/rango-de-merma";
 import { useT } from "@/lib/timetracker/i18n";
 import { useData } from "@/lib/timetracker-data-provider";
 import type { DatosDeSemana } from "@/lib/timetracker/rango-de-nomina";
+import { pasaFiltroDeNomina } from "@/lib/timetracker/filtro-de-nomina";
 
 /**
  * La nómina de un periodo, en UNA vista (D-190).
@@ -33,7 +34,8 @@ export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtr
   eleccion: Eleccion;
   etiqueta: string;
   hoy: string;
-  filtro: { tienda: string | null; empleado: string | null };
+  /** Las tiendas y los empleados elegidos (listas; vacía = todos). */
+  filtro: { tiendas: string[]; empleados: string[] };
   /** Ids de quien tiene horas por las dos vías este periodo (`period_hours.revisar`). */
   revisar: string[];
   /** Si no se pudo leer `period_hours` (la marca «revisar»), el motivo: se avisa arriba de todo. */
@@ -46,19 +48,19 @@ export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtr
   const unaSemana = semanas.length === 1;
   // Quién se ve con el filtro de tienda y de empleado; `null` = sin filtro (se ve todo).
   const soloUids = useMemo(() => {
-    if (!filtro.tienda && !filtro.empleado) return null;
+    if (!filtro.tiendas.length && !filtro.empleados.length) return null;
     if (!datos) return new Set<string>();
     return new Set(datos.people
-      .filter((p) => (!filtro.tienda || p.store === filtro.tienda) && (!filtro.empleado || p.id === filtro.empleado))
+      .filter((p) => pasaFiltroDeNomina(p, filtro.tiendas, filtro.empleados))
       .map((p) => p.id));
-  }, [datos, filtro.tienda, filtro.empleado]);
+  }, [datos, filtro.tiendas, filtro.empleados]);
 
   return (
     <>
       {errorHoras && <div className="banner err" style={{ marginBottom: 12 }}>{t("nomina.errHoras", { msg: errorHoras })}</div>}
 
       <FiltrosDeNomina uid={me.id} eleccion={eleccion} etiqueta={etiqueta} hoy={hoy}
-        tienda={filtro.tienda} empleado={filtro.empleado} datos={datos} />
+        tiendas={filtro.tiendas} empleados={filtro.empleados} datos={datos} />
       {recortado && <p className="small muted">{t("nomina.recortado")}</p>}
 
       <Seccion titulo={t("mgr.pay.remoteTitle")} nota={t("mgr.pay.remoteNote")}>
