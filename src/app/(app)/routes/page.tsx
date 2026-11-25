@@ -142,8 +142,9 @@ import { altoMaximoDeCaja } from "@/lib/barra-superior";
 import { BarraSuperior, useCajasPorClave } from "@/components/BarraSuperior";
 import { CerrarAviso } from "@/components/CerrarAviso";
 import { avisoDelHueco, escrituraDelHueco, mejorLugar, separaPorRequisitos, type ParadaDeRuta } from "@/lib/mejor-lugar";
-import { avisoDePisar, notaDeReglas, type ResultadoAuto } from "@/lib/auto-optimiza-la-ruta";
-import { huellaDeLaRuta } from "@/lib/auto-optimizar";
+import { avisoDePisar, chipAuto, claveDeRutaAuto, notaDeReglas, planAuto, reintentoAuto, type ResultadoAuto } from "@/lib/auto-optimiza-la-ruta";
+import { huellaDeLaRuta, rutasAOptimizar, type CambioDeAsignacion } from "@/lib/auto-optimizar";
+import { validaLaLista } from "@/lib/reglas-de-la-lista";
 import {
   anota, barrasDeLaRuta, botonDeVolver, choquesAlVolver, descartaElDeArriba, escriturasHacia, fotoDe, fotoDeFilas, fotoTrasReordenar,
   HISTORIAL_VACIO, objetivoDe, planDeSoltar, porQueNoSuelta, resella, sellosDe, textoDeChoques, textoDePrevia, trasVolver,
@@ -1129,6 +1130,7 @@ export default function RoutesPage() {
       const n = bloque.length;
       if (!(await guardaLaLista(laneKey, stops, rb.paradas, { en: `${n} orders ${dir < 0 ? "up" : "down"}`, es: `${n} órdenes ${dir < 0 ? "arriba" : "abajo"}` }))) return;
       senalaLaMovida(claveDeLaFila(p));
+      fijaLasMovidas(bloque);
       notify(t(`${n} orders moved ${dir < 0 ? "up" : "down"} one place`, `${n} órdenes movidas ${dir < 0 ? "arriba" : "abajo"} un puesto`));
       return;
     }
@@ -1141,6 +1143,7 @@ export default function RoutesPage() {
     const etiqueta = etiquetaDe(indice);
     if (!(await guardaLaLista(laneKey, stops, r.paradas, { en: `${etiqueta} ${nombre} ${dir < 0 ? "up" : "down"}`, es: `${etiqueta} ${nombre} ${dir < 0 ? "arriba" : "abajo"}` }))) return;
     senalaLaMovida(claveDeLaFila(p));
+    fijaLasMovidas(p.tipo === "P" ? p.ordenes : [p.orden]);
     notify(t(`${etiqueta} ${nombre} → stop ${indice + dir + 1} of ${r.paradas.length}`, `${etiqueta} ${nombre} → parada ${indice + dir + 1} de ${r.paradas.length}`));
   };
   /** «Pasar a…» (D-443, en cada fila P y D): las órdenes de la parada, enteras —recogida y entrega—, a la ruta de otro chofer.
@@ -1155,6 +1158,7 @@ export default function RoutesPage() {
     const antes = fotoDe(afectadas.map(aParadaDelGantt));
     const despues = { ...antes };
     for (const id of ids) if (antes[id]) despues[id] = { ...antes[id], assigned_driver: destino, route_seq: null, load_no: null };
+    const cambios = ids.map((id) => cambioDeAsignacion(id, destino));
     const nombre = afectadas.filter((d) => ids.includes(d.id)).map((d) => facturaYId(d).principal).join(" · ");
     setMoviendo(true);
     try {
@@ -1163,6 +1167,7 @@ export default function RoutesPage() {
     } finally {
       setMoviendo(false);
     }
+    trasAsignar(cambios);
     notify(t(`${ids.length} order(s) → ${laneLabel(destino)} (at the end of its list)`, `${ids.length} orden(es) → ${laneLabel(destino)} (al final de su lista)`));
   };
   // ---- ARRASTRAR (D-456) -------------------------------------------------------------------------------------------
@@ -1344,6 +1349,7 @@ export default function RoutesPage() {
           if (!rb.ok) { avisaDelBloque(a.ruta, stops, lectura, rb); return; }
           if (!(await guardaLaLista(destino, stops, rb.paradas, { en: `${bloque.length} orders → stop ${indice + 1}`, es: `${bloque.length} órdenes → parada ${indice + 1}` }))) return;
           senalaLaMovida(claveDeLaFila(p));
+          fijaLasMovidas(bloque);
           notify(t(`${bloque.length} orders → stop ${indice + 1} of ${rb.paradas.length}.`, `${bloque.length} órdenes → parada ${indice + 1} de ${rb.paradas.length}.`));
           return;
         }
@@ -1351,6 +1357,7 @@ export default function RoutesPage() {
         if (!r.ok) { if (r.motivo === "precedencia") avisaDeLaPrecedencia(a.ruta, stops, lectura, r.orden); return; }
         if (!(await guardaLaLista(destino, stops, r.paradas, { en: `${etiqueta} ${nombre} → stop ${indice + 1}`, es: `${etiqueta} ${nombre} → parada ${indice + 1}` }))) return;
         senalaLaMovida(claveDeLaFila(p));
+        fijaLasMovidas(ids);
         const ex = avisoDeExceso(r.paradas, stops, destino);
         notify(t(`${etiqueta} ${nombre} → stop ${indice + 1} of ${r.paradas.length}.${ex.en}`, `${etiqueta} ${nombre} → parada ${indice + 1} de ${r.paradas.length}.${ex.es}`));
         return;
@@ -1361,6 +1368,16 @@ export default function RoutesPage() {
       const todas = [...suyas, ...movidas];
       const lista = listaConOrdenesEn(lecturaDe(destino, suyas).paradas, movidas, indice);
       if (!(await guardaLaLista(destino, todas, lista, { en: `${nombre} → ${laneLabel(destino)}`, es: `${nombre} → ${laneLabel(destino)}` }, movidas))) return;
+      // Soltada con un puesto: queda fijada a mano en la ruta de destino; la de origen se vuelve a optimizar (sin esa orden).
+      // Sin puesto (al final): no queda fijada, y las dos rutas se optimizan solas.
+      const cambiosDeLaSuelta = movidas.map((d) => cambioDeAsignacion(d.id, destino));
+      if (indice != null) {
+        const idsMovidas = movidas.map((d) => d.id);
+        fijaLasMovidas(idsMovidas);
+        trasAsignar(cambiosDeLaSuelta, { colocadasAMano: idsMovidas });
+      } else {
+        trasAsignar(cambiosDeLaSuelta);
+      }
       for (const d of movidas) addNote(d.id, `Dragged to ${destino} (from ${a.ruta})`);
       senalaLaMovida(movidas[0].id);
       const ex = avisoDeExceso(lista, todas, destino);
@@ -1403,6 +1420,7 @@ export default function RoutesPage() {
     const que = bloque ? { en: `${bloque.length} orders`, es: `${bloque.length} órdenes` } : ordenes ? { en: `Order ${nombre}`, es: `Orden ${nombre}` } : { en: `${etiqueta} ${nombre}`, es: `${etiqueta} ${nombre}` };
     if (!(await guardaLaLista(laneKey, stops, r.paradas, { en: `${que.en} → stop ${numero}`, es: `${que.es} → parada ${numero}` }))) return;
     senalaLaMovida(clave);
+    fijaLasMovidas(r.ordenes);
     const n = cuentaDePallets(cambiosDeLaLista(r.paradas, stops), capacityFor(driverOf(laneKey))).totales.paradasConExceso;
     notify(t(`${que.en} → stop ${numero}.${n > 0 ? ` ⚠ over capacity at ${n} stop(s).` : ""}`, `${que.es} → parada ${numero}.${n > 0 ? ` ⚠ se pasa de la capacidad en ${n} parada(s).` : ""}`));
   };
@@ -1424,6 +1442,7 @@ export default function RoutesPage() {
     const nombre = r.ordenes.map((id) => { const o = stops.find((x) => x.id === id); return o ? facturaYId(o).principal : ""; }).filter(Boolean).join(" · ");
     if (!(await guardaLaLista(laneKey, stops, r.paradas, { en: `Delivery of ${nombre} right after ${etiqueta}`, es: `Entrega de ${nombre} justo después de ${etiqueta}` }))) return;
     senalaLaMovida(clave);
+    fijaLasMovidas(r.ordenes);
     notify(t(`Delivery of ${nombre} → right after its pickup (${etiqueta}).`, `Entrega de ${nombre} → justo después de su recogida (${etiqueta}).`));
   };
   // Lo último de cada gesto: la fila los llama cuando les toca, con la lista de ESE momento (no la de cuando se pulsó).
@@ -1589,7 +1608,228 @@ export default function RoutesPage() {
     } finally {
       if (!auto) setOptimizando(null);
     }
-  };  // Friendly display name for a lane key.
+  };  // ---- LA AUTO-OPTIMIZACIÓN AL ASIGNAR (348) ---------------------------------------------------------------------------
+  // Cada asignación (una, varias, repartir, pasar un bucket, mover de un chofer a otro, quitar) llama a `trasAsignar` al
+  // terminar, con SUS cambios. Las rutas que tocó se optimizan solas, una vez por chofer (700 ms: un lote de asignaciones
+  // seguidas es una sola pasada). Nada de esto tumba la asignación: si la consulta de tiempos falla o tarda, la orden se
+  // queda asignada, la ruta queda «sin optimizar» y se reintenta (5 s, luego 20 s). Después se queda así hasta que se pulse.
+  // Sin `hayAutoOptimizar` (la base sin la 348) todo esto no hace nada.
+  type LoteAuto = { ordenes: string[]; colocadas: string[]; timer: ReturnType<typeof setTimeout> | null };
+  const lotesAuto = useRef(new Map<string, LoteAuto>());
+  const reintentosAuto = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const ultimoLoteAuto = useRef(new Map<string, { ordenes: string[]; colocadas: string[] }>());
+  const autoRef = useRef<((laneKey: string, ordenes: readonly string[], colocadas: readonly string[], intento: number) => Promise<void>) | null>(null);
+  // Al cambiar de día o salir de la pantalla, no queda nada pendiente de ese día.
+  useEffect(() => () => {
+    for (const l of lotesAuto.current.values()) if (l.timer) clearTimeout(l.timer);
+    lotesAuto.current.clear();
+    for (const r of reintentosAuto.current.values()) clearTimeout(r);
+    reintentosAuto.current.clear();
+    ultimoLoteAuto.current.clear();
+  }, [date]);
+
+  /** Marca la ruta en el estado automático del día. Nunca lanza. */
+  const marcaAuto = (laneKey: string, estado: "pendiente" | "hecha" | "fallo", datos?: { huella?: string | null; nota?: string | null; sumaIntento?: boolean }) => {
+    if (!hayAutoOptimizar) return;
+    void marcaAutoDeRuta(date, laneKey, estado, datos).catch(() => false);
+  };
+
+  /** Encola la auto-optimización de una ruta: UNA por chofer, 700 ms después del último cambio que la toca. */
+  const encolaAuto = (laneKey: string, ordenes: readonly string[], colocadas: readonly string[] = []) => {
+    const lote = lotesAuto.current.get(laneKey) ?? { ordenes: [], colocadas: [], timer: null };
+    for (const o of ordenes) if (!lote.ordenes.includes(o)) lote.ordenes.push(o);
+    for (const c of colocadas) if (!lote.colocadas.includes(c)) lote.colocadas.push(c);
+    if (lote.timer) clearTimeout(lote.timer);
+    lote.timer = setTimeout(() => {
+      lotesAuto.current.delete(laneKey);
+      void autoRef.current?.(laneKey, lote.ordenes, lote.colocadas, 0);
+    }, 700);
+    lotesAuto.current.set(laneKey, lote);
+  };
+
+  /** El reintento de una ruta que falló: 5 s y luego 20 s (`reintentoAuto`). Después, se queda en «fallo». */
+  const programaReintento = (laneKey: string, ordenes: readonly string[], colocadas: readonly string[], intento: number) => {
+    const espera = reintentoAuto(intento);
+    if (espera == null) return;
+    clearTimeout(reintentosAuto.current.get(laneKey));
+    reintentosAuto.current.set(laneKey, setTimeout(() => {
+      reintentosAuto.current.delete(laneKey);
+      void autoRef.current?.(laneKey, ordenes, colocadas, intento + 1);
+    }, espera));
+  };
+
+  /** El cambio de una orden para `trasAsignar`: de qué chofer era AHORA y a cuál pasa. El día es el de su fila. */
+  const cambioDeAsignacion = (id: string, despues: string | null): CambioDeAsignacion => {
+    const d = deliveries.find((x) => x.id === id);
+    return { orden: id, dia: d?.delivery_date ?? date, antes: d?.assigned_driver ?? null, despues };
+  };
+
+  /**
+   * Al terminar una asignación (cada gesto lo llama con SUS cambios, después de guardar): las rutas que tocó se optimizan
+   * solas. `lote.colocadasAMano` son las órdenes que una persona acaba de poner en un puesto a mano: ya van fijadas y no se
+   * vuelven a colocar. Una orden que cambia de chofer SIN puesto elegido a mano pierde su marca (`route_fixed`).
+   */
+  const trasAsignar = (cambios: readonly CambioDeAsignacion[], lote?: { colocadasAMano?: readonly string[] }): void => {
+    if (!hayAutoOptimizar) return;
+    try {
+      const aMano = lote?.colocadasAMano ?? [];
+      const sueltanLaMarca = cambios
+        .filter((c) => c.antes !== c.despues && !aMano.includes(c.orden) && deliveries.some((x) => x.id === c.orden && x.route_fixed === true))
+        .map((c) => c.orden);
+      if (sueltanLaMarca.length) void fijaParadas(sueltanLaMarca, false).catch(() => false);
+      for (const r of rutasAOptimizar(cambios)) {
+        if (r.dia !== date || !lanes.some((l) => l.key === r.chofer)) continue;
+        encolaAuto(r.chofer, r.ordenes, aMano);
+      }
+    } catch {
+      // La asignación ya está guardada: lo automático nunca la tumba.
+    }
+  };
+
+  /** Una persona colocó estas órdenes en un puesto a mano: quedan fijadas y la auto-optimización no las vuelve a mover. */
+  const fijaLasMovidas = (ids: readonly string[]) => {
+    if (!hayAutoOptimizar || ids.length === 0) return;
+    void fijaParadas(ids, true).catch(() => false);
+  };
+
+  /** La parada de una orden como la lee `mejorLugar` (lo mismo para «📍 Mejor lugar» y la colocación automática). */
+  const paradaDeRuta = (x: Delivery): ParadaDeRuta => ({
+    id: x.id, lat: x.delivery_lat, lng: x.delivery_lng, pallets: palletsDeLaOrden(x),
+    ventana: parseWindow(x.delivery_windows), servicioMin: serviceMin(x.delivery_duration),
+  });
+  /** La lista SIN la orden `id` (su recogida y su entrega), para colocarla de nuevo. */
+  const sacaLaOrden = (lista: readonly ParadaDeLaLista[], id: string): ParadaDeLaLista[] =>
+    lista.flatMap((p): ParadaDeLaLista[] => {
+      if (p.tipo === "D") return p.orden === id ? [] : [p];
+      if (!p.ordenes.includes(id)) return [p];
+      return p.ordenes.length > 1 ? [{ ...p, ordenes: p.ordenes.filter((x) => x !== id) }] : [];
+    });
+  /** La base para colocar: la de la ruta; con la ruta vacía, la recogida de la primera orden (como «📍 Mejor lugar»). */
+  const baseDeColocacion = async (laneKey: string, primera: Delivery | undefined): Promise<{ lat: number; lng: number } | null> => {
+    const direccion = (((byDriver.get(laneKey) ?? []).length ? pickupAddressFor(laneKey) : (primera?.pickup_address || pickupAddressFor(laneKey))) ?? "").trim();
+    const tienda = settings.stores.find((s) => (s.address || "").trim() === direccion && s.lat != null && s.lng != null);
+    const coords = tienda ? [tienda.lat!, tienda.lng!] as [number, number] : await getDepotCoords(direccion || null);
+    return coords ? { lat: coords[0], lng: coords[1] } : null;
+  };
+  /**
+   * El mejor puesto de UNA orden en la ruta: el hueco de `mejorLugar`, sin escribir nada. Quita a la orden de la lista si ya
+   * estaba (la colocación automática la vuelve a poner). Lo usan «📍 Mejor lugar» y la colocación automática.
+   */
+  const huecoDeLaOrden = (laneKey: string, d: Delivery, paradas: readonly Delivery[], lista: readonly ParadaDeLaLista[], base: { lat: number; lng: number } | null) => {
+    const sinD = paradas.filter((x) => x.id !== d.id);
+    const listaSinD = sacaLaOrden(lista, d.id);
+    const capacidad = capacityFor(driverOf(laneKey));
+    const entregas = entregasDeLaLista(listaSinD, sinD);
+    const cabe = admiteEnLaLista(listaSinD, sinD, capacidad);
+    const r = mejorLugar({ viajes: [entregas.map(paradaDeRuta)], nueva: paradaDeRuta(d), base, fin: finParaEstimar(laneKey), capacidad, inicioMin: DAY_START_MIN, admite: (_v, puesto) => cabe(puesto, palletsDeLaOrden(d)) });
+    return { r, entregas, listaSinD };
+  };
+  /** Lo que `validaLaLista` mira de cada orden de la ruta. */
+  const ordenDeLaLista = (d: Delivery) => ({ id: d.id, origen: d.pickup_address ?? null, destino: d.delivery_address ?? null, pallets: palletsDeLaOrden(d) });
+  /**
+   * Coloca las órdenes NUEVAS de la ruta, una a una, en su mejor puesto (`huecoDeLaOrden`), y guarda cada una por
+   * `guardaLaLista` (Ctrl+Z la deshace). Lo que ya estaba no se mueve. Si el resultado rompe una regla dura, esa orden se
+   * queda al final (donde la dejó la asignación) y la ruta queda «fallo» con la regla en la nota.
+   */
+  const escribeLasNuevas = async (laneKey: string, marcadas: readonly Delivery[], base: { lat: number; lng: number } | null): Promise<ResultadoAuto> => {
+    let paradas = [...(byDriver.get(laneKey) ?? [])];
+    let lista = lecturaDe(laneKey, paradas).paradas;
+    const desde = inicioDeLaRuta(laneKey, paradas);
+    const capacidad = capacityFor(driverOf(laneKey));
+    const notas: string[] = [];
+    for (const d of marcadas) {
+      const { r, entregas, listaSinD } = huecoDeLaOrden(laneKey, d, paradas, lista, base);
+      if (!r.ok) { notas.push("sin_punto"); continue; }
+      const ids = entregas.map((x) => x.id);
+      ids.splice(r.hueco.puesto, 0, d.id);
+      const nueva = listaConEntregasEn(listaSinD, ids, [...paradas, d]);
+      const v = validaLaLista(nueva, paradas.map(ordenDeLaLista), capacidad);
+      if (v.violaciones.length) { notas.push(notaDeReglas(v.violaciones)); continue; }
+      const e = escrituraDeLaLista(nueva, desde);
+      const recogidas = hayRecogidaGuardada ? e.pickupSeqById : undefined;
+      if (!(await guardaLaLista(laneKey, paradas, nueva, { en: `Auto-place ${orderLabel(d)}`, es: `Colocación automática de ${orderLabel(d)}` }))) throw new Error("no se guardó la colocación");
+      const porId = new Map([...paradas, d].map((x) => [x.id, x]));
+      paradas = e.ids.map((id, i) => ({
+        ...porId.get(id)!, assigned_driver: laneKey, route_seq: puestoEn(desde, i), load_no: null,
+        ...(recogidas ? { pickup_seq: recogidas[id] ?? null } : {}),
+      }));
+      lista = nueva;
+    }
+    if (notas.length) return { estado: "fallo", nota: [...new Set(notas)].join("; "), reintentar: false };
+    return { estado: "hecha", huella: huellaDeLaRutaCon(laneKey, lista, paradas) };
+  };
+  /** La colocación automática de las órdenes nuevas de una ruta, con la comprobación de huella dentro de la cola. */
+  const insertaEnLaRuta = async (laneKey: string, nuevas: readonly string[], huellaInicial: string): Promise<ResultadoAuto> => {
+    const stops = byDriver.get(laneKey) ?? [];
+    const delDia = new Set(dayOrders.map((d) => d.id));
+    const marcadas = nuevas.map((id) => stops.find((x) => x.id === id)).filter((d): d is Delivery => !!d && delDia.has(d.id));
+    if (!marcadas.length) return { estado: "nada" };
+    const base = await baseDeColocacion(laneKey, marcadas[0]);
+    let res: ResultadoAuto = { estado: "nada" };
+    await enFila(async () => {
+      if (huellaVivaRef.current(laneKey) !== huellaInicial) { res = { estado: "reprograma" }; return; }
+      try {
+        res = await escribeLasNuevas(laneKey, marcadas, base);
+      } catch {
+        res = { estado: "fallo", nota: t("The route couldn't be saved", "No se pudo guardar la ruta"), reintentar: true };
+      }
+    });
+    return res;
+  };
+
+  /**
+   * Lo que pasa con una ruta cuando le toca a la auto-optimización. `planAuto` decide: nada, colocar las nuevas una a una
+   * (`insertar`) o optimizar toda la ruta con el motor del botón (`optimizar_todo`). Marca la ruta según el resultado.
+   */
+  const autoOptimiza = async (laneKey: string, ordenes: readonly string[], colocadas: readonly string[], intento: number): Promise<void> => {
+    if (!hayAutoOptimizar) return;
+    const stops = byDriver.get(laneKey) ?? [];
+    const huellaInicial = huellaDeLaLane(laneKey);
+    const plan = planAuto({
+      bloqueada: bloqueada(laneKey),
+      pendientes: stops.map((d) => ({ id: d.id, route_fixed: d.route_fixed, route_seq: d.route_seq })),
+      delLote: ordenes.filter((id) => !colocadas.includes(id)),
+      huellaAhora: huellaInicial,
+      guardado: estadoAutoDeRutas.get(claveDeRutaAuto(date, laneKey)) ?? null,
+    });
+    if (plan.que === "nada") return;
+    ultimoLoteAuto.current.set(laneKey, { ordenes: [...ordenes], colocadas: [...colocadas] });
+    marcaAuto(laneKey, "pendiente");
+    let res: ResultadoAuto;
+    try {
+      res = plan.que === "optimizar_todo"
+        ? await optimizaLaRuta(laneKey, "auto")
+        : await insertaEnLaRuta(laneKey, plan.nuevas, huellaInicial);
+    } catch {
+      res = { estado: "fallo", nota: t("The route couldn't be optimised", "No se pudo optimizar la ruta"), reintentar: true };
+    }
+    if (res.estado === "reprograma") { encolaAuto(laneKey, ordenes, colocadas); return; }
+    if (res.estado === "hecha") { marcaAuto(laneKey, "hecha", { huella: res.huella }); return; }
+    if (res.estado === "nada") { marcaAuto(laneKey, "hecha", { huella: huellaDeLaLane(laneKey) }); return; }
+    marcaAuto(laneKey, "fallo", { nota: res.nota, sumaIntento: res.reintentar });
+    if (res.reintentar) programaReintento(laneKey, ordenes, colocadas, intento);
+  };
+  autoRef.current = autoOptimiza;
+
+  /** El 📌 de una parada colocada a mano (348): si alguna de sus órdenes está fijada, lo pone; pulsarlo la suelta. */
+  const pinFijada = (ids: readonly string[]) => {
+    if (!hayAutoOptimizar || !ids.some((id) => deliveries.some((x) => x.id === id && x.route_fixed === true))) return null;
+    return (
+      <span role="button" tabIndex={0} data-fijada={ids.join(",")}
+        title={t("Placed by hand — automatic optimisation won't move it. Click to release.", "Colocada a mano — la optimización automática no la mueve. Pulse para soltarla.")}
+        onClick={(e) => { e.stopPropagation(); void fijaParadas(ids, false).catch(() => false); }}
+        style={{ marginLeft: 3, cursor: "pointer" }}>📌</span>
+    );
+  };
+  /** El botón «↻ sin optimizar — reintentar» de la tarjeta: vuelve a intentar esa ruta ya, con su último lote. */
+  const reintentaAuto = (laneKey: string) => {
+    clearTimeout(reintentosAuto.current.get(laneKey));
+    reintentosAuto.current.delete(laneKey);
+    const ult = ultimoLoteAuto.current.get(laneKey) ?? { ordenes: (byDriver.get(laneKey) ?? []).map((d) => d.id), colocadas: [] };
+    void autoRef.current?.(laneKey, ult.ordenes, ult.colocadas, 0);
+  };
+
+  // Friendly display name for a lane key.
   const laneLabel = (key: string) => lanes.find((l) => l.key === key)?.label ?? key;
   // «📸 PNG» (D-536): de qué ruta se está armando la imagen para el chofer. Una a la vez.
   const [pngDe, setPngDe] = useState<string | null>(null);
@@ -1616,7 +1856,9 @@ export default function RoutesPage() {
   const mergeSelectedLanes = async () => {
     const plan = planMerge(lanes, selected, byDriver);
     if (!plan) return;
+    const cambios = plan.moveIds.map((id) => cambioDeAsignacion(id, plan.targetKey));
     for (const id of plan.moveIds) await updateDelivery(id, plan.patch);
+    trasAsignar(cambios);
     for (const b of plan.removeBuckets) removeBucket(b);
     clearRouteFor(plan.targetKey);
     setSelected(new Set([plan.targetKey]));
@@ -1665,11 +1907,13 @@ export default function RoutesPage() {
     const stops = byDriver.get(bucket) ?? [];
     const suyas = byDriver.get(driver) ?? [];
     const lista = [...lecturaDe(driver, suyas).paradas, ...lecturaDe(bucket, stops).paradas];
+    const cambios = stops.map((d) => cambioDeAsignacion(d.id, driver));
     for (const d of stops) {
       await updateDelivery(d.id, { assigned_driver: driver, load_no: null });
       addNote(d.id, `Route "${bucket}" assigned to ${driver}, after their own stops`);
     }
     await guardaLaLista(driver, [...suyas, ...stops], lista, { en: `Route ${bucket} → ${driver}`, es: `Ruta ${bucket} → ${driver}` });
+    trasAsignar(cambios);
     removeBucket(bucket);
     notify(t(`Route "${bucket}" (${stops.length} stop(s)) → ${driver}, after their own stops`, `Ruta "${bucket}" (${stops.length} parada(s)) → ${driver}, detrás de sus paradas`));
   };
@@ -1696,11 +1940,13 @@ export default function RoutesPage() {
     // D-1144: UNA pasada, y de 6 en 6. Este bloque estaba dos veces (copia de una fusión vieja, v0.9.59) y todo salía a la
     // vez: vaciar dos rutas (29 órdenes) el 2026-11-23 fueron 240 escrituras en 10 s, la base se saturó y cortó lo
     // siguiente con «canceling statement due to statement timeout».
+    const cambiosDeLaLimpieza = stops.map((d) => cambioDeAsignacion(d.id, null));
     for (let i = 0; i < stops.length; i += 6) {
       const tanda = stops.slice(i, i + 6);
       await Promise.all(tanda.map((d) => updateDelivery(d.id, { assigned_driver: null, route_seq: null, load_no: null })));
       await Promise.all(tanda.map((d) => addNote(d.id, `Unassigned (was ${laneKey})`)));
     }
+    trasAsignar(cambiosDeLaLimpieza);
     if (isBucket(laneKey)) await removeBucket(laneKey);
     clearRouteFor(laneKey);
     const despues = Object.fromEntries(Object.entries(antes).map(([id, e]) => [id, { ...e, assigned_driver: null, route_seq: null, load_no: null }]));
@@ -2380,7 +2626,10 @@ export default function RoutesPage() {
   const unassign = (id: string) => {
     const d = dayOrders.find((x) => x.id === id);
     if (d) { const k = orderLaneKey(d); if (k) clearRouteFor(k); }
-    return updateDelivery(id, { assigned_driver: null, route_seq: null, load_no: null });
+    const cambio = cambioDeAsignacion(id, null);
+    const hecho = updateDelivery(id, { assigned_driver: null, route_seq: null, load_no: null });
+    void hecho.then((ok) => { if (ok) trasAsignar([cambio]); }, () => undefined);
+    return hecho;
   };
 
   // Assign an order onto a lane (a driver or temp driver) — used by the board's
@@ -2396,8 +2645,10 @@ export default function RoutesPage() {
   // de asignación espera a que termine); el orden de siempre —asignar, y la nota sin esperar— no cambia.
   const manualAssign = (id: string, driver: string) => {
     const d = dayOrders.find((x) => x.id === id);
+    const cambio = cambioDeAsignacion(id, driver || null);
     const hecho = assignTo(id, driver);
     addNote(id, `Assigned to ${driver}${d?.assigned_driver && d.assigned_driver !== driver ? ` (from ${d.assigned_driver})` : ""}`);
+    void hecho.then((ok) => { if (ok) trasAsignar([cambio]); }, () => undefined);
     return hecho;
   };
 
@@ -2464,7 +2715,10 @@ export default function RoutesPage() {
       if (d.assigned_driver && estaEnElCamion(d.stage)) notify(t("It's already on the truck — use «Return to store» on its stop.", "Ya va en el camión — usa «Regresar a tienda» en su parada."));
       else if (d.assigned_driver) manualUnassign(orderId);
     }
-    else if (orderLaneKey(d) !== columnKey) assignToLane(orderId, columnKey);
+    else if (orderLaneKey(d) !== columnKey) {
+      const cambio = cambioDeAsignacion(orderId, columnKey);
+      void assignToLane(orderId, columnKey).then(() => trasAsignar([cambio]), () => undefined);
+    }
   };
 
   const toggleOrder = (id: string) =>
@@ -2494,7 +2748,9 @@ export default function RoutesPage() {
     const ids = filasAsignables.filter((d) => selectedOrders.has(d.id)).map((d) => d.id);
     if (!ids.length || !driver) return;
     setAsignando(true);
+    const cambios = ids.map((id) => cambioDeAsignacion(id, driver));
     try { for (const id of ids) await assignTo(id, driver); } finally { setAsignando(false); }
+    trasAsignar(cambios);
     clearSelection();
     notify(t(`Assigned ${ids.length} order(s) to ${driver}`, `Asignadas ${ids.length} orden(es) a ${driver}`));
   };
@@ -2534,6 +2790,7 @@ export default function RoutesPage() {
     const desde = inicioDeLaRuta(laneKey, paradas);
     const colocadas: { en: string; es: string }[] = [];
     const aMano: string[] = [];
+    const cambios = marcadas.map((d) => cambioDeAsignacion(d.id, laneKey));
     setAsignando(true);
     try {
       for (const d of marcadas) {
@@ -2579,6 +2836,7 @@ export default function RoutesPage() {
     } finally {
       setAsignando(false);
     }
+    trasAsignar(cambios);
     clearSelection();
     const extraEn = (aMano.length ? ` Assigned at the end (no pin or another day): #${aMano.join(", #")}.` : "") + (sinCamion.length ? ` Not placed — the truck lacks what they need: ${noEnEn}.` : "");
     const extraEs = (aMano.length ? ` Asignadas al final (sin pin o de otro día): #${aMano.join(", #")}.` : "") + (sinCamion.length ? ` Sin colocar — el camión no tiene lo que piden: ${noEnEs}.` : "");
@@ -2703,7 +2961,9 @@ export default function RoutesPage() {
       // Nada que asignar: se dice y no se escribe nada. Algo sí: se confirma con el resumen delante (lo que no cabe se queda donde está).
       if (!r.rutas.some((x) => x.nuevas.length)) { await confirmAction(t(resumen.en, resumen.es), { alertOnly: true }); return; }
       if (!(await confirmAction(t(resumen.en, resumen.es), { confirmLabel: t("Assign", "Asignar") }))) return;
+      const cambiosDelReparto = r.rutas.flatMap((x) => x.nuevas.map((id) => cambioDeAsignacion(id, x.nombre)));
       if (!(await guardaElReparto(r))) return;
+      trasAsignar(cambiosDelReparto);
       setMarcadas(new Set()); clearSelection(); setElegidosDelReparto(new Set());
       const n = r.rutas.reduce((s, x) => s + x.nuevas.length, 0);
       notify(t(`🧭 ${n} order(s) assigned to ${r.rutas.filter((x) => x.nuevas.length).map((x) => `${x.nombre} (+${x.nuevas.length})`).join(", ")}. Ctrl+Z undoes it.`,
@@ -2899,6 +3159,9 @@ export default function RoutesPage() {
         if (!(await updateDelivery(movida, { ...plan.parcheDeLaMovida, ...(recogidas ? { pickup_seq: recogidas[movida] ?? null } : {}) }))) return;
       }
       if (!(await reorderStops(plan.ids, plan.loadNoById, undefined, 0, recogidas))) return;
+      // Soltada a mano en un puesto: queda fijada. Si cambió de chofer, la ruta de origen se vuelve a optimizar.
+      fijaLasMovidas([movida]);
+      if (plan.origen !== plan.destino) trasAsignar([cambioDeAsignacion(movida, plan.destino)], { colocadasAMano: [movida] });
       const nombre = (id: string) => { const x = dayOrders.find((o) => o.id === id); return x ? orderLabel(x) : id.slice(0, 6); };
       const previa = textoDePrevia(plan.previa, nombre);
       const cambio = plan.origen !== plan.destino ? ` (from ${laneLabel(plan.origen)})` : "";
@@ -4172,6 +4435,8 @@ export default function RoutesPage() {
             ? <span className="numero-de-parada" data-numero-de-parada={n} title={titulo} style={{ background: colorFor(u.driver) }}>{n}</span>
             : <span className="numero-de-parada sigue" data-sigue-la-parada={n} title={titulo} style={{ color: colorFor(u.driver) }} />;
         };
+        /** El 📌 de la parada (348), junto a su número: solo en la primera fila de la parada. */
+        const pinDeLaParada = (k: number) => { const n = dia.deFila[k]; const p = n != null ? dia.paradas[n - 1] : undefined; return p && dia.primera[k] ? pinFijada(p.ordenes) : null; };
         const claseDeGrupo = (f: FilaDeLaRuta): string => {
           const g = f.indice != null ? grupos[f.indice] : null;
           if (g == null || f.indice == null) return "";
@@ -4379,6 +4644,21 @@ export default function RoutesPage() {
                   ↻ {t("not measured — retry", "sin medida — reintentar")}
                 </button>
               )}
+              {/* La auto-optimización al asignar (348): «⏳ optimizando…» o, si falló, «↻ sin optimizar — reintentar». Solo con la 348. */}
+              {hayAutoOptimizar && (() => {
+                const guardado = estadoAutoDeRutas.get(claveDeRutaAuto(date, u.key));
+                const chip = chipAuto(guardado?.estado ?? null);
+                if (!chip) return null;
+                return chip.clase === "fallo" ? (
+                  <button className="btn btn-ghost btn-sm" data-reintentar-auto={u.key} style={{ color: "var(--amber-text)" }}
+                    title={guardado?.nota ?? t("The automatic optimisation didn't finish. Click to retry.", "La optimización automática no terminó. Pulse para reintentar.")}
+                    onClick={(e) => { e.stopPropagation(); reintentaAuto(u.key); }}>
+                    {t(chip.en, chip.es)}
+                  </button>
+                ) : (
+                  <span className="hint" data-auto={chip.clase} title={guardado?.nota ?? undefined} style={{ marginTop: 0 }}>{t(chip.en, chip.es)}</span>
+                );
+              })()}
               </>)}
               {/* El «⚠ N» de los avisos de la ruta: después de las pastillas. Sin cuerpo (la compacta) no hay avisos que mostrar. */}
               {!sinCuerpo && <IconoDeAvisos avisos={avisosDeLaCarta} t={t} />}
@@ -4657,7 +4937,7 @@ export default function RoutesPage() {
                                   aria-label={t(`Select ${suyas.map((x) => facturaYId(x).principal).join(", ")}`, `Marcar ${suyas.map((x) => facturaYId(x).principal).join(", ")}`)}
                                   style={{ width: 13, height: 13, margin: "0 3px 0 0", verticalAlign: "middle" }} />;
                               })()}
-                              {numeroDeParada(k)}{etiquetaDeLaFila}
+                              {numeroDeParada(k)}{etiquetaDeLaFila}{pinDeLaParada(k)}
                             </td>
                             {/* D-592: el 📅 de «Reprogramar» (D-500/D-574) también aquí, en la tabla de paradas, junto a cada factura. El
                                 dueño: «Route Manager view needs the calendar icon to reschedule». Misma condición que en la tabla de órdenes. */}
@@ -4693,7 +4973,7 @@ export default function RoutesPage() {
                         // La entrega de OTRA carga de una orden que el motor repartió: informa, no se mueve.
                         return (
                           <tr key={`D2-${fi}-${d.id}`} className={claseDeLaFilaDelPlan("D") || undefined}>
-                            <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(k)}{etiquetaDeLaFila}</td>
+                            <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(k)}{etiquetaDeLaFila}{pinDeLaParada(k)}</td>
                             <td className="ordno">{facturaConSuId(d)}{iconoDeReprogramar(d)}</td>
                             {celdaDeCuenta}
                             <td colSpan={colsParadas.length}>{t("Deliver another load of", "Entregar otra carga de")} {nombraLaOrden(deliveries, d.id, lang === "es")}</td>
@@ -4736,7 +5016,7 @@ export default function RoutesPage() {
                             {acciones && <input type="checkbox" data-marca-orden={d.id} checked={marcadas.has(d.id)} onChange={() => alternaMarca(d.id)} onClick={(e) => e.stopPropagation()}
                               aria-label={t(`Select ${facturaYId(d).principal} to assign it to another driver`, `Marcar ${facturaYId(d).principal} para asignarla a otro chofer`)}
                               style={{ width: 13, height: 13, margin: "0 3px 0 0", verticalAlign: "middle" }} />}
-                            {numeroDeParada(k)}{etiquetaDeLaFila}
+                            {numeroDeParada(k)}{etiquetaDeLaFila}{pinDeLaParada(k)}
                           </td>
                           {/* La factura, subrayada: abre la orden (D-408); debajo, el ID (D-456; D-444 había dejado solo el ID); y
                               «carga 1 de 2» si es una carga de una orden partida (D-452). */}
