@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mkDelivery } from "@/lib/__fixtures";
 import type { Delivery, NamedLocation } from "@/lib/types";
 import type { OrderTypeRules } from "@/lib/required";
-import { alPartir, esIntertiendaCliente, hayQuePartirla, pasaPorLaTiendaQueVende, subtipoDeIntertienda, textoDeLosPasos } from "./intertienda-cliente";
+import { alPartir, esIntertiendaCliente, hayQuePartirla, pasaACliente, pasaPorLaTiendaQueVende, subtipoDeIntertienda, textoDeLosPasos } from "./intertienda-cliente";
 import { primerDiaDelPasoB } from "./relevo";
 
 const TIENDAS: NamedLocation[] = [
@@ -180,5 +180,28 @@ describe("textoDeLosPasos", () => {
       es: "A: RDZ McAllen → RDZ Pharr · B: RDZ Pharr → cliente",
     });
     expect(textoDeLosPasos("RDZ McAllen", "RDZ Pharr", null).es).toContain("→ cliente");
+  });
+});
+
+describe("pasaACliente: el botón «Customer» del formulario", () => {
+  it("la tienda de origen elegida queda como recogida, con su dirección, y la que vende es la mía", () => {
+    const antes = { store: "RDZ McAllen", pickup_name: "RDZ McAllen", pickup_address: "1 Main St, McAllen, TX", order_type: "Intertienda" } as Partial<Delivery>;
+    const conTipo = { order_type: "Customer", store: "RDZ Pharr", pickup_name: "RDZ Pharr", pickup_address: "4 Cage Blvd, Pharr, TX" } as Partial<Delivery>;
+    const r = pasaACliente(antes, conTipo, "RDZ Pharr", TIENDAS);
+    expect(r.order_type).toBe("Customer");
+    expect(r.pickup_name).toBe("RDZ McAllen");
+    expect(r.pickup_address).toBe("1 Main St, McAllen, TX");
+    expect(r.store).toBe("RDZ Pharr");
+  });
+
+  it("sin recogida elegida, la tienda de «Vendido desde» es el origen y su dirección sale de Ajustes", () => {
+    const r = pasaACliente({ store: "RDZ Weslaco", pickup_name: null }, { order_type: "Customer" }, "RDZ Pharr", TIENDAS);
+    expect(r.pickup_name).toBe("RDZ Weslaco");
+    expect(r.pickup_address).toBe("2 Texas Blvd, Weslaco, TX");
+  });
+
+  it("sin origen no toca la recogida; sin tienda propia no cambia la tienda", () => {
+    const r = pasaACliente({ store: null, pickup_name: null }, { order_type: "Customer", store: "X" }, null, TIENDAS);
+    expect(r).toEqual({ order_type: "Customer", store: "X" });
   });
 });

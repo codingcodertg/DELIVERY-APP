@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
+import { esIntertiendaCliente } from "@/lib/intertienda-cliente";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { driverNames, stageLabel } from "@/lib/constants";
@@ -34,14 +35,16 @@ import type { Delivery } from "@/lib/types";
 const ESTILO_PASTILLA: React.CSSProperties = { background: "#6d28d9", color: "#fff", whiteSpace: "nowrap" };
 
 /** La pastilla. `null` si la orden no es un paso de relevo. */
-export function PastillaDeRelevo({ d, lang, style }: { d: Pick<Delivery, "relay_step" | "order_suffix"> & { pickup_name?: string | null; delivery_name?: string | null }; lang: "en" | "es"; style?: React.CSSProperties }) {
+export function PastillaDeRelevo({ d, lang, style }: { d: Pick<Delivery, "relay_step" | "order_suffix" | "store"> & { pickup_name?: string | null; delivery_name?: string | null }; lang: "en" | "es"; style?: React.CSSProperties }) {
   if (!esPasoDeRelevo(d)) return null;
   const letra = d.order_suffix ?? letraDelPaso(d.relay_step as number);
   const tramo = d.pickup_name || d.delivery_name ? `: ${d.pickup_name ?? "?"} → ${d.delivery_name ?? "?"}` : "";
+  // Intertienda Customer (346): el paso de relevo que va por la tienda que vende se nombra así, en la misma pastilla.
+  const customer = esIntertiendaCliente({ relay_step: d.relay_step, store: d.store, pickup_name: d.pickup_name ?? null, delivery_name: d.delivery_name ?? null });
   return (
-    <span className="sema pastilla-relevo" data-relevo={d.relay_step} style={{ ...ESTILO_PASTILLA, ...style }}
+    <span className="sema pastilla-relevo" data-relevo={d.relay_step} data-intertienda-cliente-pastilla={customer ? true : undefined} style={{ ...ESTILO_PASTILLA, ...style }}
       title={lang === "es" ? `Transferencia por relevo, paso ${letra}${tramo}` : `Relay transfer, step ${letra}${tramo}`}>
-      ⇄ {PASTILLA_DE_RELEVO[lang]} {letra}
+      ⇄ {customer ? "Intertienda Customer" : PASTILLA_DE_RELEVO[lang]} {letra}
     </span>
   );
 }

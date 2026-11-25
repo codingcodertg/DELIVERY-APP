@@ -113,3 +113,25 @@ export function alPartir(
     paso: { ...r.paso, store: madre.store, delivery_fee: madre.delivery_fee ?? null },
   };
 }
+
+/**
+ * El botón «Customer» del formulario de una orden nueva (B2): pasa la orden de tienda a tienda a «cliente». `yaConTipoDeCliente`
+ * es el borrador con el tipo de cliente ya puesto (lo hace el mismo camino que el selector). Encima se queda la tienda de
+ * origen que la persona ya había elegido (`pickup_name`, o la «Vendido desde» si no hay recogida) como recogida, con su
+ * dirección, y la tienda que vende pasa a ser la suya (`miTienda`), si la tiene. Lo que no se elige no se toca.
+ */
+export function pasaACliente(
+  antes: Partial<Delivery>,
+  yaConTipoDeCliente: Partial<Delivery>,
+  miTienda: string | null | undefined,
+  tiendas: readonly NamedLocation[] = [],
+): Partial<Delivery> {
+  const recogida = (antes.pickup_name ?? "").trim();
+  const nombre = recogida || (antes.store ?? "").trim();
+  const direccion = recogida ? (antes.pickup_address ?? null) : (tiendas.find((t) => t.name === nombre)?.address ?? null);
+  return {
+    ...yaConTipoDeCliente,
+    ...(nombre ? { pickup_name: nombre, pickup_address: direccion } : {}),
+    ...(miTienda?.trim() ? { store: miTienda.trim() } : {}),
+  };
+}
