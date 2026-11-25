@@ -170,3 +170,23 @@ describe("la pantalla no lleva colores a pelo (reglas de la app)", () => {
     expect(componente).toContain("data-estado={estadoActual}");
   });
 });
+
+describe("quién puede llamar al cuerpo interno del fichaje", () => {
+  it("solo clock.ts (sin opciones) y hub.ts (con origen hub) lo importan; ningún otro fichero", () => {
+    const { readdirSync, statSync } = require("node:fs") as typeof import("node:fs");
+    const todos: string[] = [];
+    const recorre = (d: string) => { for (const f of readdirSync(d)) { const r = `${d}/${f}`; if (statSync(r).isDirectory()) recorre(r); else if (/\.(ts|tsx)$/.test(f) && !/\.test\.tsx?$/.test(f)) todos.push(r); } };
+    recorre("src");
+    const importan = todos.filter((f) => leer(f).includes("@/lib/clockin/fichaje-interno")).sort();
+    expect(importan).toEqual(["src/app/timetracker/clock-in/actions/clock.ts", "src/app/timetracker/clock-in/actions/hub.ts"]);
+  });
+
+  it("solo hub.ts llama al cuerpo interno CON el origen del hub (la llamada, no un comentario)", () => {
+    const { readdirSync, statSync } = require("node:fs") as typeof import("node:fs");
+    const todos: string[] = [];
+    const recorre = (d: string) => { for (const f of readdirSync(d)) { const r = d + "/" + f; if (statSync(r).isDirectory()) recorre(r); else if (/\.(ts|tsx)$/.test(f) && !/\.test\./.test(f)) todos.push(r); } };
+    recorre("src");
+    const llamadas = todos.filter((f) => leer(f).includes(", { origen: \"hub\" })")).sort();
+    expect(llamadas).toEqual(["src/app/timetracker/clock-in/actions/hub.ts"]);
+  });
+});
