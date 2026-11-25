@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estadoDeTrabajo, ordenaTrabajandoPrimero } from "./trabajando-primero";
+import { estadoDeTrabajo, ordenaTrabajandoPrimero, unionDeNomina } from "./trabajando-primero";
 
 describe("estadoDeTrabajo", () => {
   const trabajando = new Set(["ana"]);
@@ -39,5 +39,30 @@ describe("ordenaTrabajandoPrimero", () => {
     const entrada = ["b", "a"];
     ordenaTrabajandoPrimero(entrada, new Set(["a"]));
     expect(entrada).toEqual(["b", "a"]);
+  });
+});
+
+describe("unionDeNomina · la lista única", () => {
+  it("une de sitio y remotos, cada persona una vez; los que trabajan, primero", () => {
+    const out = unionDeNomina(["a", "b"], ["r1", "r2"], new Set(["r2", "b"]));
+    expect(out.map((e) => e.id)).toEqual(["b", "r2", "a", "r1"]);
+  });
+
+  it("quien tiene horas por las dos vías sale una vez, marcada en los dos lados", () => {
+    const out = unionDeNomina(["a", "b"], ["b", "r1"], new Set());
+    expect(out).toEqual([
+      { id: "a", enSitio: true, remoto: false },
+      { id: "b", enSitio: true, remoto: true },
+      { id: "r1", enSitio: false, remoto: true },
+    ]);
+  });
+
+  it("sin remotos, es la lista de sitio tal cual (ordenada igual)", () => {
+    expect(unionDeNomina(["x", "y"], [], new Set(["y"])).map((e) => e.id)).toEqual(["y", "x"]);
+  });
+
+  it("dos personas de sitio que trabajan y dos remotas que no: orden estable dentro de cada grupo", () => {
+    const out = unionDeNomina(["s1", "s2"], ["r1", "r2"], new Set(["s2", "r2"]));
+    expect(out.map((e) => e.id)).toEqual(["s2", "r2", "s1", "r1"]);
   });
 });

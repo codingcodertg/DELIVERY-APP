@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
+import { estadoDeTrabajo } from "@/lib/timetracker/trabajando-primero";
 import { useData } from "@/lib/timetracker-data-provider";
 import { getLang, useT } from "@/lib/timetracker/i18n";
 import {
@@ -72,10 +73,25 @@ function rangoDeDia(d: DiaDeSesiones): string {
  * **la fecha llega por `period` (el `?period=` de la URL, un viernes) y aquí no hay
  * calendario.** Lo único que cambió es de dónde sale `week`; el cálculo es el mismo.
  */
-export function ManagerReports({ period, soloUids = null }: {
+export function ManagerReports({ period, soloUids = null, trabajando, enLista }: {
   period: string;
   /** Quién se ve con los filtros de Nómina (tienda, empleado); `null` = todos. */
   soloUids?: Set<string> | null;
+  /** Quién trabaja ahora (verde en el nombre). Lo pone la pantalla de Nómina. */
+  trabajando?: ReadonlySet<string>;
+  /**
+   * Lista única de Nómina (2026-11-25): en vez de dibujar su propia caja, entrega sus tres piezas para que la pantalla de
+   * horas las coloque en UNA lista. `barra` = lo de arriba (periodo, exportar, totales); `bloques` = una persona cada
+   * una, con su bloque tal como se dibuja hoy; `modales` = ajuste, recibo y capturas. Sin esta prop, dibuja la caja de siempre.
+   * Ojo: los dos conjuntos de datos (este y el de horas) cargan al abrir Nómina; no hay caché nueva.
+   */
+  enLista?: (partes: {
+    barra: React.ReactNode;
+    bloques: { id: string; nombre: string; nodo: React.ReactNode }[];
+    modales: React.ReactNode;
+    cargando: boolean;
+    error: string | null;
+  }) => React.ReactNode;
 }) {
   const {
     me, allEmployees: users, allProjects: projects, allAssignments: assignments, settings,
@@ -521,8 +537,36 @@ export function ManagerReports({ period, soloUids = null }: {
 
   if (me.role !== "admin") return <div className="card"><p className="muted">{t("common.adminsOnly")}</p></div>;
 
-  return (
-    <div className="card">
+  const bloques = empIds.map((uid) => {
+        const groups = new Map(byEmp.get(uid) ?? []);
+        if (!groups.has("live")) groups.set("live", []);
+        const keys = Array.from(groups.keys()).sort((a, b) => (a === "live" ? -1 : b === "live" ? 1 : 0));
+        const emp = uMap.get(uid);
+        let empSec = 0, empTotal = 0, hasUnpaid = false;
+        keys.forEach((k) => {
+          const b = k === "live" ? null : batchMap.get(k) ?? null;
+          const { pay, sec } = calcLinesFor(groups.get(k)!);
+          const adjs = b ? b.adjustments || [] : (draftMap.get(uid)?.adjustments || []);
+          empSec += sec;
+          empTotal += b ? totalPagado(b) : totalConAjustes(pay, adjs);
+          if (!b ? sec > 0 || adjs.length > 0 : !b.paid) hasUnpaid = true;
+        });
+        return { id: uid, nombre: emp ? emp.fullName : "—", nodo: (
+          <details key={uid} style={{ marginTop: 12 }}>
+            <summary className="emp-summary">
+              <span className="tt-nombre-de-trabajo" data-trabajando={estadoDeTrabajo(uid, trabajando)} style={{ fontSize: 15 }}>{emp ? emp.fullName : "—"}</span>
+              <span className="small muted">
+                {(empSec / 3600).toFixed(2)} h · {money(empTotal)}
+                {hasUnpaid && <span className="pill wait" style={{ marginLeft: 8 }}>{t("mgr.rep.open")}</span>}
+              </span>
+            </summary>
+            {keys.map((k) => renderGroup(uid, k, groups.get(k)!))}
+          </details>
+        ) };
+      });
+  const partes = {
+    barra: (
+      <>
       <div className="between">
         <h2 style={{ margin: 0 }}>{t("mgr.tab.reports")}</h2>
         <div className="row" style={{ alignItems: "center" }}>
@@ -544,6 +588,14 @@ export function ManagerReports({ period, soloUids = null }: {
       <div style={{ marginTop: 14 }}>
         <button className="btn-ghost btn-sm" onClick={() => setAjusteAbierto(true)}>{t("mgr.rep.adjBtn")}</button>
       </div>
+      {empIds.length === 0 && <p className="muted" style={{ marginTop: 14 }}>{t("mgr.rep.noneWeek")}</p>}
+
+      <p className="small muted" style={{ marginTop: 14 }}>{t("mgr.rep.foot")}</p>
+      </>
+    ),
+    bloques: bloques.map((b) => ({ id: b.id, nombre: b.nombre, nodo: b.nodo })),
+    modales: (
+      <>
       {ajusteAbierto && (
         <Modal title={t("mgr.rep.adjTitle")} onClose={() => setAjusteAbierto(false)} maxWidth={520}>
           <div className="small muted" style={{ marginBottom: 10 }}>{t("mgr.rep.adjHint")}</div>
@@ -576,37 +628,6 @@ export function ManagerReports({ period, soloUids = null }: {
           </div>
         </Modal>
       )}
-
-      {empIds.length === 0 && <p className="muted" style={{ marginTop: 14 }}>{t("mgr.rep.noneWeek")}</p>}
-      {empIds.map((uid) => {
-        const groups = new Map(byEmp.get(uid) ?? []);
-        if (!groups.has("live")) groups.set("live", []);
-        const keys = Array.from(groups.keys()).sort((a, b) => (a === "live" ? -1 : b === "live" ? 1 : 0));
-        const emp = uMap.get(uid);
-        let empSec = 0, empTotal = 0, hasUnpaid = false;
-        keys.forEach((k) => {
-          const b = k === "live" ? null : batchMap.get(k) ?? null;
-          const { pay, sec } = calcLinesFor(groups.get(k)!);
-          const adjs = b ? b.adjustments || [] : (draftMap.get(uid)?.adjustments || []);
-          empSec += sec;
-          empTotal += b ? totalPagado(b) : totalConAjustes(pay, adjs);
-          if (!b ? sec > 0 || adjs.length > 0 : !b.paid) hasUnpaid = true;
-        });
-        return (
-          <details key={uid} style={{ marginTop: 12 }}>
-            <summary className="emp-summary">
-              <span style={{ fontWeight: 800, fontSize: 15 }}>{emp ? emp.fullName : "—"}</span>
-              <span className="small muted">
-                {(empSec / 3600).toFixed(2)} h · {money(empTotal)}
-                {hasUnpaid && <span className="pill wait" style={{ marginLeft: 8 }}>{t("mgr.rep.open")}</span>}
-              </span>
-            </summary>
-            {keys.map((k) => renderGroup(uid, k, groups.get(k)!))}
-          </details>
-        );
-      })}
-
-      <p className="small muted" style={{ marginTop: 14 }}>{t("mgr.rep.foot")}</p>
 
       {/* EL TALÓN (.rcpt-print) SE IMPRIME: su tabla queda como está, sin el estándar de tablas, a propósito. No tocar. */}
       {receipt && (
@@ -662,6 +683,17 @@ export function ManagerReports({ period, soloUids = null }: {
           onCambio={recargarSesiones}
         />
       )}
+      </>
+    ),
+    cargando: false,
+    error: null as string | null,
+  };
+  if (enLista) return <>{enLista(partes)}</>;
+  return (
+    <div className="card">
+      {partes.barra}
+      {partes.bloques.map((b) => <Fragment key={b.id}>{b.nodo}</Fragment>)}
+      {partes.modales}
     </div>
   );
 }

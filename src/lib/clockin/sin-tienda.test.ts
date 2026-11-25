@@ -115,7 +115,7 @@ describe("ningún contexto de gerente ACOTADO se queda sin la regla", () => {
 });
 
 describe("la hoja de Nómina no se traga un `ok:false` de quién trabaja", () => {
-  const src = sinComentarios(leer("src/components/timetracker/PayrollTimesheets.tsx"));
+  const src = sinComentarios(leer("src/components/timetracker/PayrollTabs.tsx"));
 
   it("solo cambia el conjunto con un `r.ok`; con un fallo, todos siguen en gris y nada se rompe", () => {
     expect(src).toContain("if (vivo && r.ok) setCrew(r);");

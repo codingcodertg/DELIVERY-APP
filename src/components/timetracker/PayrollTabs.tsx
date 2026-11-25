@@ -1,12 +1,49 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getCrewNow } from "@/app/timetracker/clock-in/actions/clock";
+import { idsActivosAhora } from "@/lib/timetracker/trabajando-ahora-en-nomina";
 import { PayrollTimesheets } from "./PayrollTimesheets";
 import { ManagerReports } from "./ManagerReports";
 import { FiltrosDeNomina } from "./FiltrosDeNomina";
 import type { Eleccion } from "@/lib/almacen-ops/rango-de-merma";
 import { useT } from "@/lib/timetracker/i18n";
 import { useData } from "@/lib/timetracker-data-provider";
+
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+type CrewNow = Extract<Awaited<ReturnType<typeof getCrewNow>>, { ok: true }>;
+
+/**
+ * Quién trabaja AHORA, para la lista de Nómina (2026-11-25; antes lo enseñaba la sección «Trabajando ahora»). La misma
+ * definición: los del cronómetro (`liveSessions`) y los fichados (`getCrewNow().onClock`), con `idsActivosAhora`.
+ * Se mira cada 10 s y al volver a la pestaña. Sin dato, o si falla, el conjunto queda como estaba (vacío al principio): todos en gris.
+ * En modo demo no hay sesión: trabajan las dos primeras personas de la nómina (`demoIds`), por el mismo `idsActivosAhora`.
+ */
+function useQuienTrabaja(demoIds: string[]): Set<string> {
+  const { liveSessions } = useData();
+  const [crew, setCrew] = useState<CrewNow | null>(null);
+  useEffect(() => {
+    if (LOCAL_MODE) return;
+    let vivo = true;
+    const traer = () => { void getCrewNow().then((r) => { if (vivo && r.ok) setCrew(r); }); };
+    traer();
+    const id = setInterval(traer, 10_000);
+    const alVolver = () => { if (!document.hidden) traer(); };
+    document.addEventListener("visibilitychange", alVolver);
+    window.addEventListener("focus", alVolver);
+    return () => {
+      vivo = false;
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener("focus", alVolver);
+    };
+  }, []);
+  const demoKey = demoIds.join(",");
+  return useMemo(() => (LOCAL_MODE
+    ? idsActivosAhora([], demoKey ? demoKey.split(",").map((employeeId) => ({ employeeId })) : [])
+    : idsActivosAhora(liveSessions.map((s) => ({ employeeUid: s.employeeUid })), crew?.onClock ?? [])),
+  [liveSessions, crew, demoKey]);
+}
 import type { DatosDeSemana } from "@/lib/timetracker/rango-de-nomina";
 import { pasaFiltroDeNomina } from "@/lib/timetracker/filtro-de-nomina";
 
@@ -45,6 +82,8 @@ export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtr
   const { me } = useData();
   // Lo que cargó la pantalla de horas (personas y tiendas): alimenta los filtros y decide quién entra con ellos.
   const [datos, setDatos] = useState<DatosDeSemana | null>(null);
+  // Demo: las dos primeras personas de la nómina trabajan ahora.
+  const trabajando = useQuienTrabaja(datos ? datos.people.slice(0, 2).map((p) => p.id) : []);
   const unaSemana = semanas.length === 1;
   // Quién se ve con el filtro de tienda y de empleado; `null` = sin filtro (se ve todo).
   const soloUids = useMemo(() => {
@@ -63,51 +102,18 @@ export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtr
         tiendas={filtro.tiendas} empleados={filtro.empleados} datos={datos} />
       {recortado && <p className="small muted">{t("nomina.recortado")}</p>}
 
-      <Seccion titulo={t("mgr.pay.remoteTitle")} nota={t("mgr.pay.remoteNote")}>
-        {unaSemana
-          ? <ManagerReports period={semanas[0]} soloUids={soloUids} />
-          : <p className="banner warn">{t("nomina.soloUnaSemana")}</p>}
-      </Seccion>
-
-      <Seccion titulo={t("mgr.pay.onSiteTitle")} nota={t("mgr.pay.onSiteNote")} abierta>
-        <PayrollTimesheets semanas={semanas} revisar={revisar} soloUids={soloUids} alCargarDatos={setDatos} />
-      </Seccion>
+      {unaSemana ? (
+        <ManagerReports period={semanas[0]} soloUids={soloUids} trabajando={trabajando}
+          enLista={(r) => (
+            <>
+              <PayrollTimesheets semanas={semanas} revisar={revisar} soloUids={soloUids} alCargarDatos={setDatos}
+                trabajando={trabajando} remotos={r.bloques} barraRemota={r.barra} />
+              {r.modales}
+            </>
+          )} />
+      ) : (
+        <PayrollTimesheets semanas={semanas} revisar={revisar} soloUids={soloUids} alCargarDatos={setDatos} trabajando={trabajando} />
+      )}
     </>
-  );
-}
-
-/**
- * Una mitad de la nómina, plegable.
- *
- * Dos pantallas grandes seguidas son ochocientas líneas de alto; sin plegar, la segunda
- * mitad no existe para quien no baja hasta abajo. Se usa `<details>` del navegador y no un
- * acordeón propio por lo de siempre: recuerda el foco, se busca dentro con Ctrl+F, y no hay
- * nada escrito que pueda fallar.
- *
- * `onToggle` monta el contenido la primera vez que se abre. Lo que ya se abrió se queda
- * montado: volver a cerrarlo y abrirlo no debería costar otra carga.
- */
-function Seccion({
-  titulo, nota, abierta = false, children,
-}: {
-  titulo: string;
-  nota: string;
-  abierta?: boolean;
-  children: React.ReactNode;
-}) {
-  const [montada, setMontada] = useState(abierta);
-
-  return (
-    <details
-      open={abierta}
-      style={{ marginBottom: 16 }}
-      onToggle={(e) => { if ((e.currentTarget as HTMLDetailsElement).open) setMontada(true); }}
-    >
-      <summary style={{ cursor: "pointer", fontWeight: 800, fontSize: 15, padding: "6px 0" }}>
-        {titulo}
-        <span className="muted small" style={{ marginLeft: 10, fontWeight: 400 }}>{nota}</span>
-      </summary>
-      {montada && children}
-    </details>
   );
 }

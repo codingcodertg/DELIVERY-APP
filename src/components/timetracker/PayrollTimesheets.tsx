@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { BitacoraDelDia } from "./BitacoraDelDia";
 import { TablaReducida } from "./TablaReducida";
 import { HojaSemanal, type BloqueDeHoja } from "./HojaSemanal";
@@ -10,9 +10,7 @@ import {
 } from "@/app/timetracker/clock-in/actions/reports";
 import { entryMinutes, hrs, OT_WEEKLY_MIN, summarize, type PayEntry } from "@/lib/clockin/payroll";
 import { hojaDeLaSemana } from "@/lib/clockin/hoja-semanal";
-import { getCrewNow } from "@/app/timetracker/clock-in/actions/clock";
-import { idsActivosAhora } from "@/lib/timetracker/trabajando-ahora-en-nomina";
-import { estadoDeTrabajo, ordenaTrabajandoPrimero } from "@/lib/timetracker/trabajando-primero";
+import { estadoDeTrabajo, unionDeNomina } from "@/lib/timetracker/trabajando-primero";
 import { minutosDeVentanas, modoDeComida, pagoDeComida, resumenDelBorrador, type BorradorTurno } from "@/lib/clockin/comida";
 import { utcToCentralInput } from "@/lib/clockin/tz";
 import { turnosPorDia } from "@/lib/clockin/turnos-por-dia";
@@ -67,44 +65,6 @@ function guardarVistaDeHoras(uid: string, vista: VistaDeHoras): void {
   }
 }
 
-const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
-type CrewNow = Extract<Awaited<ReturnType<typeof getCrewNow>>, { ok: true }>;
-
-/**
- * Quién trabaja AHORA, para la hoja (2026-11-25; antes lo enseñaba la sección 'Trabajando ahora'). La misma definición
- * de siempre: los del cronómetro (`liveSessions`) y los fichados (`getCrewNow().onClock`), con `idsActivosAhora`.
- * Se mira cada 10 s, y al volver a la pestaña, como hacía aquella sección. Sin dato todavía, o si falla, es un conjunto
- * vacío: todos en gris, y nada se rompe.
- *
- * En modo demo no hay sesión, así que `getCrewNow` no se llama: quedan trabajando las dos primeras personas de la
- * nómina (`demoIds`), por el mismo `idsActivosAhora`.
- */
-function useQuienTrabaja(demoIds: string[]): Set<string> {
-  const { liveSessions } = useData();
-  const [crew, setCrew] = useState<CrewNow | null>(null);
-  useEffect(() => {
-    if (LOCAL_MODE) return;
-    let vivo = true;
-    const traer = () => { void getCrewNow().then((r) => { if (vivo && r.ok) setCrew(r); }); };
-    traer();
-    const id = setInterval(traer, 10_000);
-    const alVolver = () => { if (!document.hidden) traer(); };
-    document.addEventListener("visibilitychange", alVolver);
-    window.addEventListener("focus", alVolver);
-    return () => {
-      vivo = false;
-      clearInterval(id);
-      document.removeEventListener("visibilitychange", alVolver);
-      window.removeEventListener("focus", alVolver);
-    };
-  }, []);
-  const demoKey = demoIds.join(",");
-  return useMemo(() => (LOCAL_MODE
-    ? idsActivosAhora([], demoKey ? demoKey.split(",").map((employeeId) => ({ employeeId })) : [])
-    : idsActivosAhora(liveSessions.map((s) => ({ employeeUid: s.employeeUid })), crew?.onClock ?? [])),
-  [liveSessions, crew, demoKey]);
-}
-
 type Data = Extract<Awaited<ReturnType<typeof getPayrollPeriod>>, { ok: true }>;
 
 const fmtDia = (iso: string) =>
@@ -112,7 +72,7 @@ const fmtDia = (iso: string) =>
 const fmtHora = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: APP_SETTINGS.timeZone });
 
-export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos }: {
+export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos, remotos = [], barraRemota = null, trabajando = new Set<string>() }: {
   /** Las semanas de pago del rango (una sola = se puede aprobar, cerrar y pagar; varias = solo se ve). */
   semanas: string[];
   /** Ids con horas por las dos vías este periodo, de `period_hours.revisar` (D-190). */
@@ -121,6 +81,12 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos }:
   soloUids: Set<string> | null;
   /** Avisa a la pantalla de lo que cargó (personas y tiendas), para los filtros. */
   alCargarDatos?: (datos: DatosDeSemana) => void;
+  /** Las personas REMOTAS de la misma semana (lista única, 2026-11-25): cada una con su bloque tal como lo dibuja ManagerReports. */
+  remotos?: { id: string; nombre: string; nodo: React.ReactNode }[];
+  /** Lo de arriba del remoto (periodo, exportar CSV, totales): va bajo la barra de esta pantalla. `null` si no hay remoto. */
+  barraRemota?: React.ReactNode;
+  /** Quién trabaja ahora (verde en el nombre). Lo calcula la pantalla de Nómina. */
+  trabajando?: ReadonlySet<string>;
 }) {
   const t = useT();
   // Las acciones (aprobar, cerrar, pagar, corregir) van por UNA semana de pago: la primera, cuando solo hay una.
@@ -187,8 +153,6 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos }:
     return m;
   }, [d]);
 
-  // Demo: las dos primeras personas con horas de la nómina trabajan ahora (ver `useQuienTrabaja`).
-  const trabajando = useQuienTrabaja(d ? d.people.filter((p) => d.entries.some((e) => e.employee_id === p.id)).slice(0, 2).map((p) => p.id) : []);
 
   const corre = useCallback(async (fn: () => Promise<{ ok: boolean; message?: string }>) => {
     setBusy(true);
@@ -205,7 +169,6 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos }:
   if (!d) return <div className="card"><div className="banner err">{err ?? "Could not read the period."}</div></div>;
 
   const aprobados = new Set(d.approved);
-  const tiendaNombre = new Map(d.stores.map((s) => [s.key, s.name]));
   const gente = new Map(d.people.map((p) => [p.id, p]));
   // Las horas del presencial ya van bajo su tienda (el «📍» del grupo); al lado del nombre, su puesto:
   // tienda y puesto son su proyecto (D-493). Al remoto que ficha no se le pone nada.
@@ -234,7 +197,7 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos }:
   // La hoja semanal: una por persona y por semana de pago del rango (de viernes a jueves). Mismas personas,
   // mismo orden y mismos filtros que la tabla.
   const semanasDelPeriodo: string[][] = semanas.map(diasDeLaSemana);
-  const bloquesDeHoja: BloqueDeHoja[] = ordenaTrabajandoPrimero([...grupos.values()].flat().filter(visible), trabajando).flatMap((id) => {
+  const bloquesDeHoja: BloqueDeHoja[] = [...grupos.values()].flat().filter(visible).flatMap((id) => {
     const dias = turnosPorDia(porEmpleado.get(id)!);
     return semanasDelPeriodo.map((semana) => ({
       id,
@@ -485,6 +448,129 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos }:
     </div>
   );
 
+  // La lista única: las personas de sitio (visibles, en su orden) y las remotas (visibles), juntas. El orden lo pone
+  // `unionDeNomina`: quien trabaja ahora, primero; estable; y quien tiene horas por las dos vías, sus dos bloques juntos.
+  const enSitioVisibles = [...grupos.values()].flat().filter(visible);
+  const remotosVisibles = remotos.filter((r) => !buscar || r.nombre.toLowerCase().includes(buscar.toLowerCase()));
+  const entradas = unionDeNomina(enSitioVisibles, remotosVisibles.map((r) => r.id), trabajando);
+  const remotoDe = new Map(remotos.map((r) => [r.id, r]));
+
+  // La caja de una persona de sitio (la de siempre, sin cambios): la usa la tabla de la lista única.
+  const cajaDePersona = (id: string) => {
+    const p = gente.get(id)!;
+    const s = summarize(porEmpleado.get(id)!);
+    const ok = aprobados.has(id);
+    const suyas = porEmpleado.get(id)!;
+    return (
+          <div className="box" style={{ marginTop: 10 }}>
+            <div className="between">
+              <div>
+                <strong className="tt-nombre-de-trabajo" data-trabajando={estadoDeTrabajo(id, trabajando)}
+                  title={estadoDeTrabajo(id, trabajando) === "si" ? t("hoja.working") : t("hoja.notWorking")}>{p.name}</strong>
+                {puestoDe(id) && <span className="muted small"> · {puestoDe(id)}</span>}
+                {/* Quien ADEMÁS cronometró este periodo: sus horas pueden estar
+                    contadas dos veces, una aquí y otra en sus sesiones. La marca está
+                    para que quien aprueba lo vea antes de darle a aprobar, no después.
+                    Hasta D-190 se aproximaba por worker_type ("remote"); ahora es el
+                    dato real de `period_hours.revisar`, el mismo que la cabecera. */}
+                {dobles.has(id) && <span className="pill wait" style={{ marginLeft: 6 }} title={t("mgr.pay.reviewTitle")}>{t("mgr.pay.review")}</span>}
+                <div className="small muted">
+                  <b>{hrs(s.totalMin)}</b> / {p.scheduledMin > 0 ? hrs(p.scheduledMin) : "—"} h scheduled
+                  {s.otMin > 0 ? ` · ${hrs(s.otMin)} OT` : ""}
+                  {s.lunchMin > 0 ? ` · 🍽 ${Math.round(s.lunchMin)}m` : ""}
+                </div>
+                {esAdmin && filaDeTarifa(id, suyas)}
+              </div>
+              <button
+                className={ok ? "btn-ghost btn-sm" : "btn-sm"}
+                disabled={busy || d.signedOff || !unaSemana}
+                onClick={() => corre(() => (ok
+                  ? unapproveTimesheet({ employeeId: id, periodStart: period })
+                  : approveTimesheet({ employeeId: id, periodStart: period })))}
+              >
+                {ok ? "✓ approved" : "Approve"}
+              </button>
+            </div>
+
+            <div style={{ marginTop: 8 }}>
+              {/* Forma reducida (TablaReducida): una fila por DÍA (en hora de Texas). Un día con un solo fichaje se
+                  edita y despliega su bitácora (D-758), como antes; con varios, la fila muestra cuántos y su
+                  despliegue lista cada fichaje con sus botones y su bitácora. Los totales siguen siendo los de fichaje. */}
+              <TablaReducida id={`tt-nomina-turnos-${id}`} claveDe={(g) => g.dia} filas={turnosPorDia(suyas)}
+                columnas={[
+                  { key: "dia", en: t("mgr.rep.colDay"), es: t("mgr.rep.colDay"), ancho: 150, celda: (g) => <span className="small nowrap">{fmtDia(g.primeraEntrada)}</span> },
+                  { key: "turno", en: t("mgr.pay.colShift"), es: t("mgr.pay.colShift"), ancho: 200,
+                    celda: (g) => (
+                      <>
+                        <span className="small nowrap">
+                          {fmtHora(g.primeraEntrada)} – {g.abierta ? <span className="pill wait">open</span> : g.ultimaSalida ? fmtHora(g.ultimaSalida) : null}
+                          {g.entradas.length > 1 && (
+                            <span className="chip" style={{ marginLeft: 6 }} data-fichajes-del-dia={g.entradas.length}>
+                              {t("mgr.pay.punches", { n: g.entradas.length })}
+                            </span>
+                          )}
+                        </span>
+                        {/* La comida del día entero: todas sus pausas fichadas, si no los minutos de los turnos viejos. */}
+                        {lineaDeComida(g.entradas)}
+                      </>
+                    ) },
+                  { key: "horas", en: t("mgr.rep.colHours"), es: t("mgr.rep.colHours"), ancho: 110, numerico: true, celda: (g) => <span className="small nowrap">{hrs(g.minutos)} h</span> },
+                  { key: "nota", en: t("mgr.rep.colNote"), es: t("mgr.rep.colNote"), ancho: 240, envuelve: true,
+                    celda: (g) => (
+                      <span className="small muted">
+                        {g.manual ? <span className="chip">manual</span> : null}
+                        {g.notas.length > 0 ? ` ${g.notas.join(" · ")}` : ""}
+                      </span>
+                    ) },
+                ]}
+                acciones={(g) => (g.entradas.length === 1 ? botonesDe(g.entradas[0]) : null)}
+                anchoDeAcciones={150}
+                /* D-758: la bitácora del turno, plegada: entrada, comida, visitas y salida con sus fotos. */
+                subFila={(g) => g.entradas.length === 1
+                  ? <BitacoraDelDia entryId={g.entradas[0].id} />
+                  : (
+                    <details data-fichajes-de={g.dia} style={{ marginTop: 4 }}>
+                      <summary className="small" style={{ cursor: "pointer" }}>{t("mgr.pay.punches", { n: g.entradas.length })}</summary>
+                      {g.entradas.map(filaDeFichaje)}
+                    </details>
+                  )} />
+            </div>
+
+            {/* El formulario de corrección va bajo la tabla de la persona, no bajo la fila: se dice
+                qué turno es, para no confundir el turno que se corrige con el de la fila de arriba. */}
+            {editando && suyas.some((e) => e.id === editando) &&
+              formulario(
+                () => corre(() => editEntry({
+                  id: editando, clockIn: draft.clockIn, clockOut: draft.clockOut || null,
+                  note: draft.note || undefined, ...pagoDeComida(draft),
+                })),
+                () => setEditando(null),
+                false,
+                (() => {
+                  const e = suyas.find((x) => x.id === editando)!;
+                  return `Editing ${fmtDia(e.clock_in_at)} · ${fmtHora(e.clock_in_at)} – ${e.clock_out_at ? fmtHora(e.clock_out_at) : "open"}`;
+                })(),
+              )}
+
+            {anadiendo === id
+              ? formulario(
+                  () => corre(() => addEntry({
+                    employeeId: id, clockIn: draft.clockIn, clockOut: draft.clockOut,
+                    note: draft.note || undefined, ...pagoDeComida(draft),
+                  })),
+                  () => setAnadiendo(null),
+                  true,
+                  "New shift",
+                )
+              : !d.signedOff && unaSemana && (
+                  <button className="btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => empiezaAlta(id)}>
+                    + Add an entry
+                  </button>
+                )}
+          </div>
+    );
+  };
+
   return (
     <>
       <div className="card">
@@ -553,6 +639,7 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos }:
               style={{ width: "auto", minWidth: 200 }} />
           </div>
           {!unaSemana && <div className="banner warn" style={{ marginTop: 10 }}>{t("nomina.soloUnaSemana")}</div>}
+          {barraRemota}
 
           <div className="row" style={{ marginTop: 10, alignItems: "center" }}>
             <span className="small muted">{t("hoja.view")}</span>
@@ -562,135 +649,21 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos }:
               aria-pressed={vista === "tabla"} onClick={() => elegirVista("tabla")}>{t("hoja.table")}</button>
           </div>
 
-          {vista === "hoja" ? <HojaSemanal bloques={bloquesDeHoja} trabajando={trabajando} /> : [...grupos.entries()].map(([key, miembros]) => {
-            const suyos = ordenaTrabajandoPrimero(miembros.filter(visible), trabajando);
-            if (!suyos.length) return null;
-            const totalGrupo = suyos.reduce((s, id) => s + summarize(porEmpleado.get(id)!).totalMin, 0);
-            return (
-              <details key={key} open={grupos.size === 1 || !!buscar} style={{ marginTop: 12 }}>
-                <summary style={{ cursor: "pointer", fontWeight: 700 }}>
-                  📍 {key === SIN_TIENDA ? "No store" : tiendaNombre.get(key) ?? "No store"}
-                  <span className="chip" style={{ marginLeft: 6 }}>{suyos.length}</span>
-                  <span className="muted small" style={{ marginLeft: 6 }}>{hrs(totalGrupo)} h</span>
-                </summary>
-
-                {suyos.map((id) => {
-                  const p = gente.get(id)!;
-                  const s = summarize(porEmpleado.get(id)!);
-                  const ok = aprobados.has(id);
-                  const suyas = porEmpleado.get(id)!;
-                  return (
-                    <div key={id} className="box" style={{ marginTop: 10 }}>
-                      <div className="between">
-                        <div>
-                          <strong className="tt-nombre-de-trabajo" data-trabajando={estadoDeTrabajo(id, trabajando)}
-                            title={estadoDeTrabajo(id, trabajando) === "si" ? t("hoja.working") : t("hoja.notWorking")}>{p.name}</strong>
-                          {puestoDe(id) && <span className="muted small"> · {puestoDe(id)}</span>}
-                          {/* Quien ADEMÁS cronometró este periodo: sus horas pueden estar
-                              contadas dos veces, una aquí y otra en sus sesiones. La marca está
-                              para que quien aprueba lo vea antes de darle a aprobar, no después.
-                              Hasta D-190 se aproximaba por worker_type ("remote"); ahora es el
-                              dato real de `period_hours.revisar`, el mismo que la cabecera. */}
-                          {dobles.has(id) && <span className="pill wait" style={{ marginLeft: 6 }} title={t("mgr.pay.reviewTitle")}>{t("mgr.pay.review")}</span>}
-                          <div className="small muted">
-                            <b>{hrs(s.totalMin)}</b> / {p.scheduledMin > 0 ? hrs(p.scheduledMin) : "—"} h scheduled
-                            {s.otMin > 0 ? ` · ${hrs(s.otMin)} OT` : ""}
-                            {s.lunchMin > 0 ? ` · 🍽 ${Math.round(s.lunchMin)}m` : ""}
-                          </div>
-                          {esAdmin && filaDeTarifa(id, suyas)}
-                        </div>
-                        <button
-                          className={ok ? "btn-ghost btn-sm" : "btn-sm"}
-                          disabled={busy || d.signedOff || !unaSemana}
-                          onClick={() => corre(() => (ok
-                            ? unapproveTimesheet({ employeeId: id, periodStart: period })
-                            : approveTimesheet({ employeeId: id, periodStart: period })))}
-                        >
-                          {ok ? "✓ approved" : "Approve"}
-                        </button>
-                      </div>
-
-                      <div style={{ marginTop: 8 }}>
-                        {/* Forma reducida (TablaReducida): una fila por DÍA (en hora de Texas). Un día con un solo fichaje se
-                            edita y despliega su bitácora (D-758), como antes; con varios, la fila muestra cuántos y su
-                            despliegue lista cada fichaje con sus botones y su bitácora. Los totales siguen siendo los de fichaje. */}
-                        <TablaReducida id={`tt-nomina-turnos-${id}`} claveDe={(g) => g.dia} filas={turnosPorDia(suyas)}
-                          columnas={[
-                            { key: "dia", en: t("mgr.rep.colDay"), es: t("mgr.rep.colDay"), ancho: 150, celda: (g) => <span className="small nowrap">{fmtDia(g.primeraEntrada)}</span> },
-                            { key: "turno", en: t("mgr.pay.colShift"), es: t("mgr.pay.colShift"), ancho: 200,
-                              celda: (g) => (
-                                <>
-                                  <span className="small nowrap">
-                                    {fmtHora(g.primeraEntrada)} – {g.abierta ? <span className="pill wait">open</span> : g.ultimaSalida ? fmtHora(g.ultimaSalida) : null}
-                                    {g.entradas.length > 1 && (
-                                      <span className="chip" style={{ marginLeft: 6 }} data-fichajes-del-dia={g.entradas.length}>
-                                        {t("mgr.pay.punches", { n: g.entradas.length })}
-                                      </span>
-                                    )}
-                                  </span>
-                                  {/* La comida del día entero: todas sus pausas fichadas, si no los minutos de los turnos viejos. */}
-                                  {lineaDeComida(g.entradas)}
-                                </>
-                              ) },
-                            { key: "horas", en: t("mgr.rep.colHours"), es: t("mgr.rep.colHours"), ancho: 110, numerico: true, celda: (g) => <span className="small nowrap">{hrs(g.minutos)} h</span> },
-                            { key: "nota", en: t("mgr.rep.colNote"), es: t("mgr.rep.colNote"), ancho: 240, envuelve: true,
-                              celda: (g) => (
-                                <span className="small muted">
-                                  {g.manual ? <span className="chip">manual</span> : null}
-                                  {g.notas.length > 0 ? ` ${g.notas.join(" · ")}` : ""}
-                                </span>
-                              ) },
-                          ]}
-                          acciones={(g) => (g.entradas.length === 1 ? botonesDe(g.entradas[0]) : null)}
-                          anchoDeAcciones={150}
-                          /* D-758: la bitácora del turno, plegada: entrada, comida, visitas y salida con sus fotos. */
-                          subFila={(g) => g.entradas.length === 1
-                            ? <BitacoraDelDia entryId={g.entradas[0].id} />
-                            : (
-                              <details data-fichajes-de={g.dia} style={{ marginTop: 4 }}>
-                                <summary className="small" style={{ cursor: "pointer" }}>{t("mgr.pay.punches", { n: g.entradas.length })}</summary>
-                                {g.entradas.map(filaDeFichaje)}
-                              </details>
-                            )} />
-                      </div>
-
-                      {/* El formulario de corrección va bajo la tabla de la persona, no bajo la fila: se dice
-                          qué turno es, para no confundir el turno que se corrige con el de la fila de arriba. */}
-                      {editando && suyas.some((e) => e.id === editando) &&
-                        formulario(
-                          () => corre(() => editEntry({
-                            id: editando, clockIn: draft.clockIn, clockOut: draft.clockOut || null,
-                            note: draft.note || undefined, ...pagoDeComida(draft),
-                          })),
-                          () => setEditando(null),
-                          false,
-                          (() => {
-                            const e = suyas.find((x) => x.id === editando)!;
-                            return `Editing ${fmtDia(e.clock_in_at)} · ${fmtHora(e.clock_in_at)} – ${e.clock_out_at ? fmtHora(e.clock_out_at) : "open"}`;
-                          })(),
-                        )}
-
-                      {anadiendo === id
-                        ? formulario(
-                            () => corre(() => addEntry({
-                              employeeId: id, clockIn: draft.clockIn, clockOut: draft.clockOut,
-                              note: draft.note || undefined, ...pagoDeComida(draft),
-                            })),
-                            () => setAnadiendo(null),
-                            true,
-                            "New shift",
-                          )
-                        : !d.signedOff && unaSemana && (
-                            <button className="btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => empiezaAlta(id)}>
-                              + Add an entry
-                            </button>
-                          )}
-                    </div>
-                  );
-                })}
-              </details>
-            );
-          })}
+          {vista === "hoja" ? (
+            entradas.map((e) => (
+              <Fragment key={e.id}>
+                {e.enSitio && <HojaSemanal bloques={bloquesDeHoja.filter((b) => b.id === e.id)} trabajando={trabajando} />}
+                {e.remoto && remotoDe.get(e.id)?.nodo}
+              </Fragment>
+            ))
+          ) : (
+            entradas.map((e) => (
+              <Fragment key={e.id}>
+                {e.enSitio && cajaDePersona(e.id)}
+                {e.remoto && remotoDe.get(e.id)?.nodo}
+              </Fragment>
+            ))
+          )}
           <p className="small muted" style={{ marginTop: 12 }}>
             People with no punches this period are not listed.
           </p>

@@ -33,9 +33,9 @@ describe("«Hojas de tiempo» pinta el estado en el nombre", () => {
     expect(src).toContain('t("hoja.notWorking")');
   });
 
-  it("el orden lo pone ordenaTrabajandoPrimero en la hoja y en la tabla", () => {
-    expect(src).toContain("ordenaTrabajandoPrimero([...grupos.values()].flat().filter(visible), trabajando)");
-    expect(src).toContain("ordenaTrabajandoPrimero(miembros.filter(visible), trabajando)");
+  it("el orden lo pone unionDeNomina (lista única) en la hoja y en la tabla", () => {
+    expect(src).toContain("unionDeNomina(enSitioVisibles, remotosVisibles.map((r) => r.id), trabajando)");
+    expect(src).toContain("const entradas = unionDeNomina(");
   });
 
   it("el color sale de tokens del módulo, no de literales en el componente", () => {

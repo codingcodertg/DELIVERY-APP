@@ -25,3 +25,23 @@ export function ordenaTrabajandoPrimero<T>(
   const no = personas.filter((p) => estadoDeTrabajo(idDe(p), trabajando) === "no");
   return [...si, ...no];
 }
+
+/** Una entrada de la lista única: la persona y si dibuja su bloque de sitio (presencial), el remoto o los dos. */
+export type EntradaDeLaLista = { id: string; enSitio: boolean; remoto: boolean };
+
+/**
+ * La lista única de Nómina (2026-11-25): la unión de las personas de sitio y de las remotas, cada una una sola vez,
+ * ordenada con `ordenaTrabajandoPrimero` (los que trabajan ahora, primero; estable). El orden de partida es el de hoy:
+ * primero las de sitio en su orden, luego las remotas en el suyo. Quien tiene horas por las dos vías sale UNA vez con
+ * `enSitio` y `remoto` a la vez: sus dos bloques van juntos (de sitio, luego remoto).
+ */
+export function unionDeNomina(
+  enSitio: readonly string[],
+  remotos: readonly string[],
+  trabajando: ReadonlySet<string> | undefined,
+): EntradaDeLaLista[] {
+  const sitio = new Set(enSitio);
+  const rem = new Set(remotos);
+  const base = [...new Set([...enSitio, ...remotos])];
+  return ordenaTrabajandoPrimero(base, trabajando).map((id) => ({ id, enSitio: sitio.has(id), remoto: rem.has(id) }));
+}
