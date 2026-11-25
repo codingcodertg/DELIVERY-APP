@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { summarize, type PayEntry } from "@/lib/clockin/payroll";
 import {
   combinaSemanas, diasDeLaSemana, eleccionDeRango, inicioDeSemanaDePago, parametrosDeRango,
-  rangoDeLaEleccion, semanasDePagoDelRango, semanasDePagoSinRecortar, type DatosDeSemana,
+  rangoDeLaEleccion, semanasDePagoDelRango, cuantasSemanasDePago, rangoValidoDeNomina, type DatosDeSemana,
 } from "@/lib/timetracker/rango-de-nomina";
 
 // 2026-11-27 es viernes (inicio de la semana de pago); 2026-12-03 jueves; 2026-11-24 martes.
@@ -26,23 +26,68 @@ describe("semana de pago: de viernes a jueves", () => {
 
 describe("semanasDePagoDelRango", () => {
   it("un rango que cae en una semana da esa semana", () => {
-    expect(semanasDePagoSinRecortar("2026-11-24", "2026-11-24")).toEqual(["2026-11-20"]);
+    expect(semanasDePagoDelRango("2026-11-24", "2026-11-24")).toEqual(["2026-11-20"]);
   });
 
   it("un rango que cruza semanas da cada semana que toca, la más antigua primero", () => {
-    expect(semanasDePagoSinRecortar("2026-11-24", "2026-12-08")).toEqual(["2026-11-20", "2026-11-27", "2026-12-04"]);
+    expect(semanasDePagoDelRango("2026-11-24", "2026-12-08")).toEqual(["2026-11-20", "2026-11-27", "2026-12-04"]);
   });
 
-  it("un rango de más de catorce semanas se recorta a las catorce más recientes", () => {
-    const todas = semanasDePagoSinRecortar("2026-01-01", "2026-12-31");
+  it("un rango normal de cinco semanas no cambia", () => {
+    expect(semanasDePagoDelRango("2026-11-02", "2026-12-02")).toEqual(["2026-10-30", "2026-11-06", "2026-11-13", "2026-11-20", "2026-11-27"]);
+  });
+
+  it("un rango de más de catorce semanas se recorta a las catorce más recientes (las que terminan en la semana de «hasta»)", () => {
     const s = semanasDePagoDelRango("2026-01-01", "2026-12-31");
     expect(s).toHaveLength(14);
-    expect(s).toEqual(todas.slice(-14));
     expect(s[13]).toBe("2026-12-25");
+    expect(s[0]).toBe("2026-09-25");
+    expect(s[0] < s[1]).toBe(true);
+  });
+
+  it("el rango más grande posible (0001 → 9999 no pasa la validación) vuelve enseguida con catorce semanas, sin recorrerlo", () => {
+    // La validación acota el año a 2000-2100; aun así, el cálculo es aritmético: 2000-01-01 → 2100-12-31 son ~5 200 semanas
+    // y se cuentan hacia atrás desde `hasta`, así que devuelve 14 sin iterar por ellas.
+    expect(cuantasSemanasDePago("2000-01-01", "2100-12-31")).toBeGreaterThan(5000);
+    const s = semanasDePagoDelRango("2000-01-01", "2100-12-31");
+    expect(s).toHaveLength(14);
+    expect(s[13]).toBe(inicioDeSemanaDePago("2100-12-31"));
   });
 
   it("un rango al revés no da semanas", () => {
-    expect(semanasDePagoSinRecortar("2026-12-01", "2026-11-01")).toEqual([]);
+    expect(semanasDePagoDelRango("2026-12-01", "2026-11-01")).toEqual([]);
+    expect(cuantasSemanasDePago("2026-12-01", "2026-11-01")).toBe(0);
+  });
+});
+
+describe("rangoValidoDeNomina", () => {
+  it("un rango normal pasa tal cual", () => {
+    expect(rangoValidoDeNomina("2026-11-01", "2026-11-30")).toEqual({ desde: "2026-11-01", hasta: "2026-11-30" });
+  });
+
+  it("una fecha que no existe no pasa: 2026-02-31 y 2026-13-01 son null", () => {
+    expect(rangoValidoDeNomina("2026-02-31", "2026-03-01")).toBeNull();
+    expect(rangoValidoDeNomina("2026-01-01", "2026-13-01")).toBeNull();
+    expect(rangoValidoDeNomina("2026-02-29", "2026-03-01")).toBeNull(); // 2026 no es bisiesto
+    expect(rangoValidoDeNomina("2028-02-29", "2028-03-01")).toEqual({ desde: "2028-02-29", hasta: "2028-03-01" });
+  });
+
+  it("el formato y el año: sin guiones, con hora, o fuera de 2000-2100, no pasan", () => {
+    expect(rangoValidoDeNomina("2026/11/01", "2026-11-30")).toBeNull();
+    expect(rangoValidoDeNomina("2026-11-01T00:00", "2026-11-30")).toBeNull();
+    expect(rangoValidoDeNomina("0001-01-01", "2026-11-30")).toBeNull();
+    expect(rangoValidoDeNomina("2026-01-01", "9999-12-31")).toBeNull();
+  });
+
+  it("al revés (desde después de hasta) no pasa, y se compara como fecha, no como texto", () => {
+    expect(rangoValidoDeNomina("2026-12-01", "2026-11-01")).toBeNull();
+    expect(rangoValidoDeNomina("2026-11-01", "2026-11-01")).toEqual({ desde: "2026-11-01", hasta: "2026-11-01" });
+  });
+
+  it("nada (undefined, null o un número) no pasa y no lanza", () => {
+    expect(rangoValidoDeNomina(undefined, "2026-11-01")).toBeNull();
+    expect(rangoValidoDeNomina("2026-11-01", null)).toBeNull();
+    expect(rangoValidoDeNomina(5, 7)).toBeNull();
   });
 });
 

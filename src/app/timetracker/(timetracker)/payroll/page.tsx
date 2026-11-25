@@ -8,7 +8,8 @@ import { addDaysISO, fmtISOday } from "@/lib/timetracker/helpers";
 import { hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
 import { seccionPorUrl } from "@/lib/timetracker/trabajando-ahora-en-nomina";
 import {
-  DIA_DE_INICIO_DE_PAGO, MAX_SEMANAS_DE_NOMINA, eleccionDeRango, semanasDePagoDelRango, semanasDePagoSinRecortar,
+  DIA_DE_INICIO_DE_PAGO, MAX_SEMANAS_DE_NOMINA, cuantasSemanasDePago, eleccionDeRango, rangoValidoDeNomina,
+  semanasDePagoDelRango,
 } from "@/lib/timetracker/rango-de-nomina";
 
 export const dynamic = "force-dynamic";
@@ -16,57 +17,61 @@ export const dynamic = "force-dynamic";
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
 const esFecha = (v: string | undefined): v is string => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
+type Parametros = { period?: string; desde?: string; hasta?: string; vista?: string; tienda?: string; empleado?: string };
+
+/**
+ * El rango de la URL, ya resuelto en semanas de pago:
+ *  - `?desde=&hasta=` válidos: las semanas que tocan el rango, como mucho catorce (las más recientes);
+ *  - `?period=` (la forma de siempre): la semana que empieza en ese viernes;
+ *  - cualquier otra cosa (fechas inválidas, al revés, nada): la semana de pago de hoy.
+ * Nunca lanza ni recorre un rango sin acotar: `semanasDePagoDelRango` cuenta hacia atrás desde `hasta`.
+ */
+function resolverRango(p: Parametros, hoy: string) {
+  const valido = rangoValidoDeNomina(p.desde, p.hasta);
+  let semanas: string[];
+  let recortado = false;
+  if (valido) {
+    recortado = cuantasSemanasDePago(valido.desde, valido.hasta, DIA_DE_INICIO_DE_PAGO) > MAX_SEMANAS_DE_NOMINA;
+    semanas = semanasDePagoDelRango(valido.desde, valido.hasta, DIA_DE_INICIO_DE_PAGO, MAX_SEMANAS_DE_NOMINA);
+  } else {
+    semanas = [esFecha(p.period) ? p.period : periodStartOf(new Date())];
+  }
+  const primera = semanas[0];
+  const ultimoDia = addDaysISO(semanas[semanas.length - 1], 6);
+  return {
+    semanas,
+    recortado,
+    eleccion: eleccionDeRango(primera, ultimoDia, hoy),
+    etiqueta: `${fmtISOday(primera)} – ${fmtISOday(ultimoDia)}`,
+  };
+}
+
 /**
  * La nómina de un rango de fechas (2026-11-24). El rango llega por la URL:
  *  - `?period=` (la forma de siempre): UNA semana de pago, la que empieza en ese viernes;
  *  - `?desde=&hasta=`: las semanas de pago que tocan ese rango (de viernes a jueves), como mucho catorce;
- *  - sin nada: la semana de pago de hoy.
- * Cerrar, pagar y aprobar van siempre por una sola semana: la página solo los deja cuando `semanas` tiene una.
- * El menú de fechas que ve la persona se calcula aquí, con la misma semana de pago, para que la URL y el menú
- * no puedan decir cosas distintas.
+ *  - sin nada, o con fechas que no cuadran: la semana de pago de hoy.
+ * Cerrar, pagar y aprobar van siempre por una sola semana: la pantalla solo los deja cuando hay una.
+ * El menú de fechas se calcula aquí con la misma semana de pago, para que la URL y el menú no digan cosas distintas.
  *
- * Las horas, los fichajes y los totales ya no salen de esta página: los carga la pantalla semana a semana
- * (`getPayrollPeriod`) y los junta (`combinaSemanas`). Aquí solo queda el aviso de «revisar» por persona.
+ * Las horas las carga la pantalla semana a semana (`getPayrollPeriod`) y las junta (`combinaSemanas`). Aquí solo
+ * queda el aviso de «revisar» por persona.
  */
 export default async function PayrollPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; desde?: string; hasta?: string; vista?: string; tienda?: string; empleado?: string }>;
+  searchParams: Promise<Parametros>;
 }) {
-  const { period, desde, hasta, vista, tienda, empleado } = await searchParams;
+  const p = await searchParams;
   // `?vista=` abre una sección plegada de Nómina: «ahora» (la antigua pestaña «Trabajando ahora»), «fotos»,
   // «excepciones» o «capturas» (las vistas que salieron de Auditoría). Un valor desconocido no abre nada.
-  const vistaPorUrl = seccionPorUrl(vista);
+  const vistaPorUrl = seccionPorUrl(p.vista);
   const hoy = hoyEnTexas();
+  const filtro = { tienda: p.tienda || null, empleado: p.empleado || null };
 
-  let semanas: string[];
-  let recortado = false;
-  if (esFecha(desde) && esFecha(hasta) && desde <= hasta) {
-    recortado = semanasDePagoSinRecortar(desde, hasta, DIA_DE_INICIO_DE_PAGO).length > MAX_SEMANAS_DE_NOMINA;
-    semanas = semanasDePagoDelRango(desde, hasta, DIA_DE_INICIO_DE_PAGO, MAX_SEMANAS_DE_NOMINA);
-  } else {
-    semanas = [esFecha(period) ? period : periodStartOf(new Date())];
-  }
-  const primera = semanas[0];
-  const ultimoDia = addDaysISO(semanas[semanas.length - 1], 6);
-  const eleccion = eleccionDeRango(primera, ultimoDia, hoy);
-  const etiqueta = `${fmtISOday(primera)} – ${fmtISOday(ultimoDia)}`;
-  const filtro = { tienda: tienda || null, empleado: empleado || null };
-
-  // Modo demo: las secciones leen del proveedor en memoria, sin tocar la base.
+  // Modo demo: las secciones leen del proveedor en memoria, sin tocar la base (no hay sesión que comprobar).
   if (LOCAL_MODE) {
-    return (
-      <PayrollTabs
-        semanas={semanas}
-        recortado={recortado}
-        eleccion={eleccion}
-        etiqueta={etiqueta}
-        hoy={hoy}
-        filtro={filtro}
-        vistaPorUrl={vistaPorUrl}
-        revisar={[]}
-      />
-    );
+    return <PayrollTabs {...resolverRango(p, hoy)} hoy={hoy} filtro={filtro} vistaPorUrl={vistaPorUrl} revisar={[]} />;
   }
 
   const supabase = await createClient();
@@ -90,24 +95,18 @@ export default async function PayrollPage({
   // Las horas de todo el mundo son cosa de quien lleva la nómina.
   if (me?.timetracker_role !== "admin") redirect("/timetracker");
 
+  // Con la sesión y el rol ya comprobados, se resuelve el rango de la URL.
+  const rango = resolverRango(p, hoy);
+
   // Quién tiene horas por las dos vías (`period_hours.revisar`), en todas las semanas del rango.
   const { data: horas } = await supabase
     .schema("timetracker")
     .from("period_hours")
     .select("employee_id, revisar")
-    .in("period_start", semanas);
+    .in("period_start", rango.semanas);
   const revisar = [...new Set((horas ?? []).filter((r) => r.revisar).map((r) => r.employee_id as string))];
 
   return (
-    <PayrollTabs
-      semanas={semanas}
-      recortado={recortado}
-      eleccion={eleccion}
-      etiqueta={etiqueta}
-      hoy={hoy}
-      filtro={filtro}
-      vistaPorUrl={vistaPorUrl}
-      revisar={revisar}
-    />
+    <PayrollTabs {...rango} hoy={hoy} filtro={filtro} vistaPorUrl={vistaPorUrl} revisar={revisar} />
   );
 }

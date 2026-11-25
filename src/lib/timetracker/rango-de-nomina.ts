@@ -24,18 +24,47 @@ export function inicioDeSemanaDePago(dia: string, diaDeInicio: number = DIA_DE_I
   return sumar(dia, -((aFecha(dia).getUTCDay() - diaDeInicio + 7) % 7));
 }
 
-/** Todas las semanas de pago que tocan el rango `desde`…`hasta` (ambos incluidos), la más antigua primero, sin recortar. */
-export function semanasDePagoSinRecortar(desde: string, hasta: string, diaDeInicio: number = DIA_DE_INICIO_DE_PAGO): string[] {
-  if (desde > hasta) return [];
-  const semanas: string[] = [];
-  for (let s = inicioDeSemanaDePago(desde, diaDeInicio); s <= hasta; s = sumar(s, 7)) semanas.push(s);
-  return semanas;
+const MS_DIA = 86_400_000;
+const aMs = (dia: string) => Date.parse(`${dia}T00:00:00Z`);
+
+/** Una fecha `YYYY-MM-DD` de verdad: año entre 2000 y 2100, y que vuelve a escribirse igual (no hay 2026-02-31 ni 2026-13-01). */
+export function esFechaDeNomina(dia: unknown): dia is string {
+  if (typeof dia !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) return false;
+  const ms = aMs(dia);
+  if (!Number.isFinite(ms)) return false;
+  const anio = Number(dia.slice(0, 4));
+  return anio >= 2000 && anio <= 2100 && new Date(ms).toISOString().slice(0, 10) === dia;
 }
 
-/** Las semanas de pago del rango, como mucho `max`: si el rango es más largo, se quedan las más recientes. */
+/**
+ * El rango pedido por la URL, validado en un solo sitio: las dos fechas son reales y `desde` no va después de
+ * `hasta` (se compara como instante, no como texto). Si algo no cuadra, `null`: quien llama usa la semana de hoy.
+ */
+export function rangoValidoDeNomina(desde: unknown, hasta: unknown): Rango | null {
+  if (!esFechaDeNomina(desde) || !esFechaDeNomina(hasta)) return null;
+  if (aMs(desde) > aMs(hasta)) return null;
+  return { desde, hasta };
+}
+
+/** Cuántas semanas de pago tocan el rango. Aritmética: no recorre nada, así que vale para cualquier rango. */
+export function cuantasSemanasDePago(desde: string, hasta: string, diaDeInicio: number = DIA_DE_INICIO_DE_PAGO): number {
+  if (aMs(desde) > aMs(hasta)) return 0;
+  const a = aMs(inicioDeSemanaDePago(desde, diaDeInicio));
+  const b = aMs(inicioDeSemanaDePago(hasta, diaDeInicio));
+  return Math.round((b - a) / MS_DIA / 7) + 1;
+}
+
+/**
+ * Las semanas de pago del rango, la más antigua primero, como mucho `max`. Si el rango es más largo, se quedan
+ * las `max` semanas que terminan en la de `hasta` (las más recientes). Nunca recorre el rango: cuenta hacia atrás
+ * desde la semana de `hasta`, así que un rango enorme cuesta lo mismo que uno de una semana.
+ */
 export function semanasDePagoDelRango(desde: string, hasta: string, diaDeInicio: number = DIA_DE_INICIO_DE_PAGO, max: number = MAX_SEMANAS_DE_NOMINA): string[] {
-  const todas = semanasDePagoSinRecortar(desde, hasta, diaDeInicio);
-  return todas.length > max ? todas.slice(todas.length - max) : todas;
+  const n = cuantasSemanasDePago(desde, hasta, diaDeInicio);
+  if (n <= 0 || max <= 0) return [];
+  const k = Math.min(n, Math.floor(max));
+  const primera = sumar(inicioDeSemanaDePago(hasta, diaDeInicio), -7 * (k - 1));
+  return Array.from({ length: k }, (_, i) => sumar(primera, 7 * i));
 }
 
 /** Los siete días de una semana de pago que empieza en `inicio`. */
@@ -48,10 +77,12 @@ export function diasDeLaSemana(inicio: string): string[] {
  * Los atajos se cuentan con la semana de pago (viernes), no con la de domingo de Operaciones.
  */
 export function eleccionDeRango(desde: string, hasta: string, hoy: string): Eleccion {
-  const semanas = semanasDePagoSinRecortar(desde, hasta).join(",");
+  // Dos rangos son el mismo conjunto de semanas si empiezan y terminan en la misma semana de pago.
+  const clave = (d: string, h: string) => `${inicioDeSemanaDePago(d)}..${inicioDeSemanaDePago(h)}`;
+  const semanas = clave(desde, hasta);
   for (const a of ATAJOS_DE_NOMINA) {
     const r = rangoDeAtajo(a, hoy, {}, DIA_DE_INICIO_DE_PAGO);
-    if (semanasDePagoSinRecortar(r.desde, r.hasta).join(",") === semanas) return { atajo: a, desde: "", hasta: "" };
+    if (clave(r.desde, r.hasta) === semanas) return { atajo: a, desde: "", hasta: "" };
   }
   return { atajo: "otro", desde, hasta };
 }
@@ -61,15 +92,15 @@ export function eleccionDeRango(desde: string, hasta: string, hoy: string): Elec
  * de pago (la forma de siempre), y `desde`/`hasta` en cualquier otro caso. Null si el rango «a mano» no cuadra.
  */
 export function parametrosDeRango(r: Rango): { period: string } | { desde: string; hasta: string } | null {
-  if (!r.desde || !r.hasta || r.desde > r.hasta) return null;
-  const semanas = semanasDePagoSinRecortar(r.desde, r.hasta);
-  if (semanas.length === 1) return { period: semanas[0] };
-  return { desde: r.desde, hasta: r.hasta };
+  const valido = rangoValidoDeNomina(r.desde, r.hasta);
+  if (!valido) return null;
+  if (cuantasSemanasDePago(valido.desde, valido.hasta) === 1) return { period: inicioDeSemanaDePago(valido.desde) };
+  return { desde: valido.desde, hasta: valido.hasta };
 }
 
 /** El rango que se aplica de una elección del menú, ya en semanas de pago completas. Null si no cuadra. */
 export function rangoDeLaEleccion(e: Eleccion, hoy: string): Rango | null {
-  if (e.atajo === "otro") return e.desde && e.hasta && e.desde <= e.hasta ? { desde: e.desde, hasta: e.hasta } : null;
+  if (e.atajo === "otro") return rangoValidoDeNomina(e.desde, e.hasta);
   return rangoDeAtajo(e.atajo, hoy, {}, DIA_DE_INICIO_DE_PAGO);
 }
 
