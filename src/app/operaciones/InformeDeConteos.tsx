@@ -147,6 +147,11 @@ export function InformeDeConteos({ ctx, tiendas, rango, etiqueta }: {
         <>
           {/* Cuatro tarjetas en un renglón, con la cifra arriba, como las de la merma. La primera, lo primero que se lee. */}
           <div className="ops-merma-totales ops-kpi ops-kpi-conteos" data-kpi-conteos data-faltan-cajas-mes={total.faltanCajas}>
+            {/* 2026-11-24 (dueño): Precisión primero; luego las cajas que faltan, las que sobran y el neto en dólares. */}
+            <div className="ops-merma-total">
+              <span className={`ops-merma-cifra ops-kpi-${colorDeExactitud(total.exactitudPct)}`} data-exactitud-total>{total.exactitudPct === null ? "—" : `${total.exactitudPct}%`}</span>
+              <span>{t("Accuracy", "Exactitud")} · {total.lineasExactas} / {total.lineasComparables} {t("lines", "líneas")}</span>
+            </div>
             <div className={`ops-merma-total${total.faltanCajas > 0 ? " ops-merma-total-rango" : ""}`}>
               <span className="ops-merma-cifra ops-kpi-rojo" data-falta data-faltan-cajas-total>{total.faltanCajas}</span>
               <span>{t("Boxes missing", "Cajas que faltan")} · <span data-etiqueta-rango>{etiqueta}</span>{total.faltanPiezasSinCaja > 0 ? ` · +${total.faltanPiezasSinCaja} ${t("pcs without box size", "pzas sin medida de caja")}` : ""}</span>
@@ -158,10 +163,6 @@ export function InformeDeConteos({ ctx, tiendas, rango, etiqueta }: {
             <div className="ops-merma-total">
               <span className={`ops-merma-cifra ${total.netoValor < 0 ? "ops-kpi-rojo" : ""}`} data-neto-usd>{total.netoValor > 0 ? "+" : ""}{fmtMoney(total.netoValor)}</span>
               <span>{t("Net $", "Neto $")} · <span className="ops-kpi-rojo" data-falta data-faltan-usd>{t("missing", "faltan")} {fmtMoney(total.faltanValor)}</span> · {t("over", "sobran")} {fmtMoney(total.sobranValor)}</span>
-            </div>
-            <div className="ops-merma-total">
-              <span className={`ops-merma-cifra ops-kpi-${colorDeExactitud(total.exactitudPct)}`} data-exactitud-total>{total.exactitudPct === null ? "—" : `${total.exactitudPct}%`}</span>
-              <span>{t("Accuracy", "Exactitud")} · {total.lineasExactas} / {total.lineasComparables} {t("lines", "líneas")}</span>
             </div>
           </div>
 
