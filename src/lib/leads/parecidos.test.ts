@@ -51,14 +51,14 @@ describe("parecidosDe: el grupo de leads que comparten lugar", () => {
     const m = parecidosDe([lead({ id: "a" }), lead({ id: "b", site_address: "Otro lugar lejos" }), lead({ id: "c", site_address: null })]);
     expect(m.size).toBe(0);
   });
-  it("de tres: el que es idéntico a otro es posible duplicado; el que no lo es, mismo lugar; cuantos es el grupo entero", () => {
+  it("de tres: el que es idéntico a otro es posible duplicado; el que no lo es, mismo lugar; en el duplicado cuantos son los IGUALES (él incluido); en «mismo lugar», el grupo entero", () => {
     const m = parecidosDe([
       lead({ id: "a" }),
       lead({ id: "b" }),
       lead({ id: "c", project_name: "Otro" }),
     ]);
-    expect(m.get("a")).toEqual({ clase: "posible_duplicado", otros: ["b", "c"], cuantos: 3 });
-    expect(m.get("b")).toEqual({ clase: "posible_duplicado", otros: ["a", "c"], cuantos: 3 });
+    expect(m.get("a")).toEqual({ clase: "posible_duplicado", otros: ["b"], cuantos: 2 });
+    expect(m.get("b")).toEqual({ clase: "posible_duplicado", otros: ["a"], cuantos: 2 });
     expect(m.get("c")).toEqual({ clase: "mismo_lugar", otros: ["a", "b"], cuantos: 3 });
   });
   it("un origen distinto no agrupa: un GOV y un STXP con el mismo lugar no son del mismo grupo", () => {

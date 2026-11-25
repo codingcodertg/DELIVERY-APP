@@ -50,8 +50,11 @@ export function parecidosDe(leads: readonly Lead[]): Map<string, Parecido> {
     if (grupo.length < 2) continue;
     for (const l of grupo) {
       const otros = grupo.filter((x) => x.id !== l.id);
-      const igual = otros.some((x) => mismoTrabajo(l, x));
-      out.set(l.id, { clase: igual ? "posible_duplicado" : "mismo_lugar", otros: otros.map((x) => x.id), cuantos: grupo.length });
+      // Un posible duplicado cuenta SOLO los que son iguales a él (él incluido): «×2» son dos leads iguales, aunque en ese
+      // lugar haya un tercero distinto (visto en pantalla: decía «×3» con dos iguales y uno que solo compartía el lugar).
+      const iguales = otros.filter((x) => mismoTrabajo(l, x));
+      if (iguales.length > 0) out.set(l.id, { clase: "posible_duplicado", otros: iguales.map((x) => x.id), cuantos: iguales.length + 1 });
+      else out.set(l.id, { clase: "mismo_lugar", otros: otros.map((x) => x.id), cuantos: grupo.length });
     }
   }
   return out;
