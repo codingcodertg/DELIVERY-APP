@@ -2293,7 +2293,7 @@ html[data-tarjetas] .marco-hub { display: none !important; }
 .fichaje-del-hub-pregunta { margin: 0; font-size: 15px; }
 .fichaje-del-hub-sub { margin: 0; font-size: 13px; color: var(--gray); }
 .fichaje-del-hub-fila { display: flex; gap: 8px; flex-wrap: wrap; }
-.fichaje-del-hub-grande { min-height: 52px; font-size: 16px; width: 100%; }
+.fichaje-del-hub-grande { min-height: 52px; font-size: 16px; width: 100%; justify-content: center; text-align: center; }
 .fichaje-del-hub-campo { display: grid; gap: 4px; font-size: 13px; font-weight: 700; }
 .fichaje-del-hub-select { min-height: 40px; }
 .fichaje-del-hub-confirma { display: grid; gap: 8px; }
