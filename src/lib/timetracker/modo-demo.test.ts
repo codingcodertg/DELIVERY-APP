@@ -48,7 +48,9 @@ describe("Time Tracker en modo demo", () => {
     expect(cuerpo).toContain("<PayrollTabs");
     // El periodo se resuelve con la misma función ANTES de la rama: el demo también obedece a `?period=` y a `?desde=`.
     expect(indice(s, "function resolverRango(")).toBeLessThan(rama);
-    expect(indice(s, "periodStartOf(new Date())")).toBeLessThan(rama);
+    // La semana de hoy sale del día de Texas (`hoy`), no del reloj del servidor: de noche, en otra zona, salía corrida un día.
+    expect(indice(s, "inicioDeSemanaDePago(hoy)")).toBeLessThan(rama);
+    expect(s).not.toContain("periodStartOf(new Date())");
   });
 
   it("reports y schedule solo redirigen: no abren cliente ni sesión, así que no necesitan rama", () => {
