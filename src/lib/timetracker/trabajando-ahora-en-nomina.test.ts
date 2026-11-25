@@ -35,7 +35,7 @@ describe("la sección dentro de PayrollTabs", () => {
   const src = leer("src/components/timetracker/PayrollTabs.tsx");
 
   it("renderiza TrabajandoAhora dentro de una cabecera con aria-expanded y data-trabajando-ahora", () => {
-    expect(src).toContain("<TrabajandoAhora />");
+    expect(src).toContain("<TrabajandoAhora soloUids={soloUids} />");
     expect(src).toContain("data-trabajando-ahora");
     expect(src).toContain("aria-expanded={abierta}");
   });

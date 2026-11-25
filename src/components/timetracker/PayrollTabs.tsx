@@ -69,7 +69,7 @@ export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtr
     <>
       {me.role === "admin" && (
         <SeccionDeNomina clave="ahora" titulo={t("tab.live")} porUrl={vistaPorUrl === "ahora"}>
-          <TrabajandoAhora />
+          <TrabajandoAhora soloUids={soloUids} />
         </SeccionDeNomina>
       )}
 

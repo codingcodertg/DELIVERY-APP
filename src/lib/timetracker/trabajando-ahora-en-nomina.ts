@@ -69,3 +69,27 @@ export const leerAhoraAbierta = (almacen: Pick<Storage, "getItem"> | null): bool
 
 /** Lo de siempre para «Trabajando ahora». */
 export const guardarAhoraAbierta = (almacen: Pick<Storage, "setItem"> | null, abierta: boolean): void => guardarSeccionAbierta(almacen, "ahora", abierta);
+
+/**
+ * Quién está activo AHORA: los del cronómetro (sus sesiones en vivo) y los que fichan (en turno). Es la misma
+ * pregunta que la pantalla ya contestaba; aquí solo se junta en un conjunto para saber quién falta.
+ */
+export function idsActivosAhora(
+  sesiones: readonly { employeeUid: string }[],
+  fichandoAhora: readonly { employeeId: string }[],
+): Set<string> {
+  return new Set([...sesiones.map((s) => s.employeeUid), ...fichandoAhora.map((p) => p.employeeId)]);
+}
+
+/**
+ * Las personas que NO están activas ahora, para la lista de abajo (en negro). Solo las activas de la empresa
+ * (no las dadas de baja), sin las que ya están activas, y dentro de los filtros de Nómina si los hay (`soloIds`,
+ * `null` = todas). Sin nombre a la vista, no se pone; sin dato de «última vez», no se inventa.
+ */
+export function sinActividadAhora<T extends { id: string; active: boolean; deletedAt: string | null }>(
+  personas: readonly T[],
+  activos: ReadonlySet<string>,
+  soloIds: ReadonlySet<string> | null,
+): T[] {
+  return personas.filter((p) => p.active && !p.deletedAt && !activos.has(p.id) && (!soloIds || soloIds.has(p.id)));
+}

@@ -92,7 +92,7 @@ describe("la URL: ?vista= abre la sección que nombra", () => {
 
   it("la página de Nómina valida ?vista= y lo pasa como vistaPorUrl en las dos ramas", () => {
     const src = leer("src/app/timetracker/(timetracker)/payroll/page.tsx");
-    expect(src).toContain("const vistaPorUrl = seccionPorUrl(vista);");
+    expect(src).toContain("const vistaPorUrl = seccionPorUrl(p.vista);");
     expect(src.split("vistaPorUrl={vistaPorUrl}").length - 1).toBe(2);
     expect(src).not.toContain("ahoraAbiertaPorUrl");
   });

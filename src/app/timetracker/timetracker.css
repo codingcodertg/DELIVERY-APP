@@ -388,6 +388,12 @@
   grid-template-rows:auto auto auto auto auto auto;
 }
 .timetracker-module .live-name{font-weight:800;font-size:15px}
+/* «Trabajando ahora» (2026-11-24): activos en verde (el token de verde del módulo) y sin actividad en negro (el texto
+   normal, que en tema oscuro sale claro). Sin colores nuevos: son los tokens que ya usa el módulo. */
+.timetracker-module .tt-ahora-activo .live-name{color:var(--tt-ok)}
+.timetracker-module .tt-ahora-inactivo{color:var(--tt-txt)}
+.timetracker-module .tt-ahora-inactivo .live-name{color:var(--tt-txt);font-weight:700}
+.timetracker-module .tt-ahora-punto{font-size:12px}
 .timetracker-module .live-tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:22px}
 .timetracker-module .live-sub{font-size:12px;color:var(--tt-muted);min-height:16px;
      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
