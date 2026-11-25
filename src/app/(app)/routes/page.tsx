@@ -25,7 +25,7 @@ import { OrderModal } from "@/components/OrderModalLazy";
 import { DispatchBoard, type BoardColumn } from "@/components/DispatchBoard";
 import { GanttTimeline, type GanttRow } from "@/components/GanttTimeline";
 import { printRouteManifest } from "@/lib/manifest";
-import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, nombresPorId, orderLabel, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
+import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, nombresPorId, orderLabel, orderOwner, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
 import { agendaEnDiaPasado, AVISO_FECHA_PASADA, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
 import { maxFechaDeEntrega, problemaAlAgendar, textoDelProblema } from "@/lib/dia-de-entrega";
 import { pideConfirmarMismoDia, preguntaMismoDia } from "@/lib/same-day";
@@ -1846,9 +1846,14 @@ export default function RoutesPage() {
     const e = escrituraCambiarEtapaAdmin({ accion, pedido: d, me, t });
     if (await setStage(d.id, e.stage, e.note, e.extra)) notify(t("Stage changed", "Etapa cambiada"));
   };
-  const celdaDeParada = (c: ColumnaDelGestor, d: Delivery | undefined, como: { tipo: "P" | "D"; llegada: React.ReactNode; recogida?: React.ReactNode; sinAviso?: boolean; fueraDeOrden?: boolean }) => {
+  const celdaDeParada = (c: ColumnaDelGestor, d: Delivery | undefined, como: { tipo: "P" | "D"; llegada: React.ReactNode; recogida?: React.ReactNode; sinAviso?: boolean; fueraDeOrden?: boolean; ordenes?: Delivery[] }) => {
     switch (c.key) {
       case "p_type": return <td key={c.key} title={d?.order_type || undefined}>{d?.order_type || "—"}</td>;
+      // «Usuario» (D-652, como en Órdenes): el vendedor de la orden. Una recogida con varias, sus nombres distintos (`ordenes`).
+      case "p_rep": {
+        const nombres = [...new Set((como.ordenes ?? (d ? [d] : [])).map((x) => ctxDeOrdenes.nombreDe?.(orderOwner(x)) ?? null).filter((n): n is string => !!n))];
+        return <td key={c.key}>{nombres.join(" · ") || "—"}</td>;
+      }
       case "p_eta": return <Fragment key={c.key}>{como.llegada}</Fragment>;
       case "p_actual": return celdaReal(c.key, d, como.tipo, como.fueraDeOrden);
       case "p_ciudad_recogida": return <td key={c.key}>{como.recogida ?? ((d && zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen, settings.order_type_rules)) || "—")}</td>;
@@ -4506,7 +4511,7 @@ export default function RoutesPage() {
                                 mcallen deberia esta en ciudad de recodiga tienes todo alreves». Las ventanas y lo demás de la
                                 ENTREGA van vacíos (`tipo: "P"`, `seVeEnLaRecogida`). */}
                             {colsParadas.map((c) => celdaDeParada(c, o, {
-                              tipo: "P", recogida: dondeRecoge,
+                              tipo: "P", recogida: dondeRecoge, ordenes: suyas,
                               llegada: <td data-llegada={llegadaP.falta ? "falta" : "hora"} title={llegadaP.titulo} style={llegadaP.falta ? ESTILO_SIN_LLEGADA : { fontWeight: 600 }}>{llegadaP.texto}</td>,
                             }))}
                             {/* D-459: el td es una celda normal y el flex va DENTRO (era `display: flex` en el td: el fallo de la captura). */}
