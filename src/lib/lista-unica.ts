@@ -1,5 +1,5 @@
 import { palletsDeLaOrden } from "./pallets";
-import { gruposDeLaVisita, type OrdenConDestinoDeTienda } from "./misma-visita";
+import { gruposDeLaVisita, SIN_DESTINO_DE_TIENDA, type DestinoDeTiendaDe, type OrdenDeDestino } from "./misma-visita";
 import { puestoEn, type Numeracion } from "./mover-parada";
 
 /**
@@ -165,10 +165,10 @@ function unaPorOrden(paradas: readonly ParadaDeLaLista[]): ParadaDeLaLista[] {
  * o `null` si la parada va sola. Solo agrupa lo seguido: la misma tienda más adelante es otra vuelta, no el mismo grupo.
  */
 export function gruposDeMismoLugar(
-  paradas: readonly ParadaDeLaLista[], ordenes: readonly OrdenConDestinoDeTienda[],
+  paradas: readonly ParadaDeLaLista[], ordenes: readonly OrdenDeDestino[], destinoDe: DestinoDeTiendaDe = SIN_DESTINO_DE_TIENDA,
 ): (number | null)[] {
   // La regla está en `misma-visita.ts` (la única): una recogida y una entrega a la misma tienda son el mismo sitio.
-  return gruposDeLaVisita(paradas, ordenes);
+  return gruposDeLaVisita(paradas, ordenes, destinoDe);
 }
 
 /** El número de cada orden: el orden en que se RECOGE (P1, P2…), como en un plan del motor. `Dk` es la entrega de `Pk`. */

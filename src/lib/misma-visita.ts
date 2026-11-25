@@ -32,9 +32,6 @@ export interface OrdenDeDestino {
   relay_step?: number | null;
 }
 
-/** Una orden con su destino de TIENDA ya decidido (`tiendaDeDestinoDeLaOrden`): el nombre de la tienda, o `null`. */
-export type OrdenConDestinoDeTienda = OrdenDeDestino & { tiendaDeDestino?: string | null };
-
 /** La fila de la lista que hace falta para su lugar: una recogida (con su tienda) o una entrega (con su orden). */
 export type FilaDeVisita = { tipo: "P"; ordenes: string[]; tienda: string | null } | { tipo: "D"; orden: string };
 
@@ -56,23 +53,32 @@ export function tiendaDeDestinoDeLaOrden(
   return tiendaConPuntoDeAjustes(tiendas, d.delivery_name)?.name ?? null;
 }
 
-/** Las mismas órdenes, con `tiendaDeDestino` decidido. Lo llaman las pantallas antes de numerar o agrupar. */
-export function conTiendaDeDestino<T extends OrdenDeDestino>(
-  ordenes: readonly T[], tiendas: readonly NamedLocation[], reglas: OrderTypeRules | undefined,
-): T[] {
-  return ordenes.map((o) => ({ ...o, tiendaDeDestino: tiendaDeDestinoDeLaOrden(o, tiendas, reglas) }));
+/**
+ * El destino de TIENDA de cada orden, como BÚSQUEDA por id (`destinoDeTiendaDe`). Las órdenes no llevan ningún campo nuevo:
+ * la pantalla construye esta función una vez (con las órdenes del día, la lista de tiendas y las reglas de tipo) y la pasa a
+ * los números, los grupos y el mapa. Una orden que no está en la lista no tiene destino de tienda.
+ */
+export type DestinoDeTiendaDe = (ordenId: string) => string | null;
+
+export function destinoDeTiendaDe(
+  ordenes: readonly OrdenDeDestino[], tiendas: readonly NamedLocation[], reglas: OrderTypeRules | undefined,
+): DestinoDeTiendaDe {
+  const porId = new Map(ordenes.map((o) => [o.id, tiendaDeDestinoDeLaOrden(o, tiendas, reglas)]));
+  return (ordenId) => porId.get(ordenId) ?? null;
 }
+
+/** Sin tiendas: ninguna entrega es a una tienda (la regla de siempre: solo cuenta la dirección). */
+export const SIN_DESTINO_DE_TIENDA: DestinoDeTiendaDe = () => null;
 
 /**
  * El LUGAR de una fila, como clave («T:rdz pharr» o «D:1 main st, edinburg»), o `null` si no se sabe (sin tienda en una
  * recogida, sin dirección en una entrega): una fila sin lugar va sola. Una tienda y otra dirección nunca tienen la misma clave.
  */
-export function lugarDeLaFila(f: FilaDeVisita, porId: ReadonlyMap<string, OrdenConDestinoDeTienda>): string | null {
+export function lugarDeLaFila(f: FilaDeVisita, porId: ReadonlyMap<string, OrdenDeDestino>, destinoDe: DestinoDeTiendaDe): string | null {
   if (f.tipo === "P") { const t = normaliza(f.tienda); return t ? `T:${t}` : null; }
-  const o = porId.get(f.orden);
-  const tienda = normaliza(o?.tiendaDeDestino);
+  const tienda = normaliza(destinoDe(f.orden));
   if (tienda) return `T:${tienda}`;
-  const dir = normaliza(o?.delivery_address).replace(/\s+/g, " ");
+  const dir = normaliza(porId.get(f.orden)?.delivery_address).replace(/\s+/g, " ");
   return dir ? `D:${dir}` : null;
 }
 
@@ -81,10 +87,12 @@ export function lugarDeLaFila(f: FilaDeVisita, porId: ReadonlyMap<string, OrdenC
  * Es la función que usan la numeración de paradas, los colores de grupo de la tabla y la tabla del plan (`gruposDeMismoLugar`
  * en lista-unica.ts, que la delega aquí).
  */
-export function gruposDeLaVisita(filas: readonly FilaDeVisita[], ordenes: readonly OrdenConDestinoDeTienda[]): (number | null)[] {
+export function gruposDeLaVisita(
+  filas: readonly FilaDeVisita[], ordenes: readonly OrdenDeDestino[], destinoDe: DestinoDeTiendaDe = SIN_DESTINO_DE_TIENDA,
+): (number | null)[] {
   // Si una orden llega en dos filas (la P y la D, como en el plan), manda la ÚLTIMA, como siempre (`new Map`).
   const porId = new Map(ordenes.map((o) => [o.id, o]));
-  const claves = filas.map((f) => lugarDeLaFila(f, porId));
+  const claves = filas.map((f) => lugarDeLaFila(f, porId, destinoDe));
   const out: (number | null)[] = filas.map(() => null);
   let grupo = -1;
   for (let i = 0; i < filas.length; i++) {

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { paradasDeLaRuta, textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
-import { gruposDeLaVisita, conTiendaDeDestino, lugarDeLaFila, tiendaDeDestinoDeLaOrden, type FilaDeVisita } from "@/lib/misma-visita";
+import { numerosDelDia } from "@/lib/gestor/numeros-del-dia";
+import * as mismaVisita from "@/lib/misma-visita";
+import { destinoDeTiendaDe, gruposDeLaVisita, lugarDeLaFila, tiendaDeDestinoDeLaOrden, SIN_DESTINO_DE_TIENDA, type FilaDeVisita } from "@/lib/misma-visita";
 import { gruposDeMismoLugar } from "@/lib/lista-unica";
 import type { OrderTypeRules } from "@/lib/required";
 import type { NamedLocation } from "@/lib/types";
@@ -30,13 +32,10 @@ const orden = (id: string, x: { store?: string; delivery_name?: string | null; d
 const P = (id: string, tienda: string | null): FilaDeVisita => ({ tipo: "P", ordenes: [id], tienda });
 const D = (id: string): FilaDeVisita => ({ tipo: "D", orden: id });
 const etiquetas = (filas: FilaDeVisita[]) => filas.map((f, i) => (f.tipo === "P" ? `P${i + 1}` : `D${i + 1}`));
-/** Numera con la regla de la lista (lo que pinta el Gestor): las filas, con sus etiquetas, y las órdenes con su destino. */
-const numera = (filas: FilaDeVisita[], ordenes: ReturnType<typeof orden>[]) => {
-  const con = conTiendaDeDestino(ordenes, TIENDAS, REGLAS);
-  return paradasDeLaRuta(filas.map((f, i) => (f.tipo === "P"
-    ? { tipo: "P" as const, ordenes: f.ordenes, lugar: f.tienda, etiqueta: etiquetas(filas)[i] }
-    : { tipo: "D" as const, orden: f.orden, etiqueta: etiquetas(filas)[i] })), con);
-};
+/** Numera con la regla de la lista (lo que pinta el Gestor): las filas, con sus etiquetas, y las órdenes con su destino de tienda. */
+const numera = (filas: FilaDeVisita[], ordenes: ReturnType<typeof orden>[]) => paradasDeLaRuta(filas.map((f, i) => (f.tipo === "P"
+  ? { tipo: "P" as const, ordenes: f.ordenes, lugar: f.tienda, etiqueta: etiquetas(filas)[i] }
+  : { tipo: "D" as const, orden: f.orden, etiqueta: etiquetas(filas)[i] })), ordenes, destinoDeTiendaDe(ordenes, TIENDAS, REGLAS));
 
 describe("tiendaDeDestinoDeLaOrden: ¿la entrega es a una TIENDA? (el mismo criterio que el motor)", () => {
   it("un traslado entre tiendas (Intertienda) cuyo delivery_name nombra una tienda CON punto: esa tienda", () => {
@@ -60,16 +59,17 @@ describe("tiendaDeDestinoDeLaOrden: ¿la entrega es a una TIENDA? (el mismo crit
 });
 
 describe("lugarDeLaFila: cada fila tiene UN lugar", () => {
-  const ordenes = conTiendaDeDestino([orden("i", { order_type: "Intertienda", delivery_name: "RDZ Pharr", delivery_address: "RDZ Pharr" }), orden("c", { delivery_address: "9 Elm" })], TIENDAS, REGLAS);
+  const ordenes = [orden("i", { order_type: "Intertienda", delivery_name: "RDZ Pharr", delivery_address: "RDZ Pharr" }), orden("c", { delivery_address: "9 Elm" })];
   const porId = new Map(ordenes.map((o) => [o.id, o]));
+  const destinoDe = destinoDeTiendaDe(ordenes, TIENDAS, REGLAS);
   it("una recogida: su tienda; una entrega a tienda: la tienda (no su dirección); una entrega de cliente: su dirección", () => {
-    expect(lugarDeLaFila(P("c", "RDZ Pharr"), porId)).toBe("T:rdz pharr");
-    expect(lugarDeLaFila(D("i"), porId)).toBe("T:rdz pharr");
-    expect(lugarDeLaFila(D("c"), porId)).toBe("D:9 elm");
+    expect(lugarDeLaFila(P("c", "RDZ Pharr"), porId, destinoDe)).toBe("T:rdz pharr");
+    expect(lugarDeLaFila(D("i"), porId, destinoDe)).toBe("T:rdz pharr");
+    expect(lugarDeLaFila(D("c"), porId, destinoDe)).toBe("D:9 elm");
   });
   it("una recogida sin tienda, o una entrega sin dirección, no tiene lugar: va sola", () => {
-    expect(lugarDeLaFila(P("c", null), porId)).toBeNull();
-    expect(lugarDeLaFila(D("x"), porId)).toBeNull();
+    expect(lugarDeLaFila(P("c", null), porId, destinoDe)).toBeNull();
+    expect(lugarDeLaFila(D("x"), porId, destinoDe)).toBeNull();
   });
 });
 
@@ -162,12 +162,12 @@ describe("el texto de la parada", () => {
 
 describe("gruposDeMismoLugar (la tabla, el plan y la numeración) usa la misma regla", () => {
   it("con el destino de tienda decidido, la descarga y la carga en la tienda son un grupo", () => {
-    const ordenes = conTiendaDeDestino([orden("i", { order_type: "Intertienda", delivery_name: "RDZ Pharr" }), orden("c", { store: "RDZ Pharr" })], TIENDAS, REGLAS);
-    expect(gruposDeMismoLugar([D("i"), P("c", "RDZ Pharr")], ordenes)).toEqual([0, 0]);
+    const ordenes = [orden("i", { order_type: "Intertienda", delivery_name: "RDZ Pharr" }), orden("c", { store: "RDZ Pharr" })];
+    expect(gruposDeMismoLugar([D("i"), P("c", "RDZ Pharr")], ordenes, destinoDeTiendaDe(ordenes, TIENDAS, REGLAS))).toEqual([0, 0]);
   });
   it("sin el destino decidido (como antes), la descarga y la carga NO son grupo", () => {
     expect(gruposDeMismoLugar([D("i"), P("c", "RDZ Pharr")], [{ id: "i", delivery_address: "x" }, { id: "c" }])).toEqual([null, null]);
-    expect(gruposDeLaVisita([D("i"), P("c", "RDZ Pharr")], [{ id: "i", delivery_address: "x" }, { id: "c" }])).toEqual([null, null]);
+    expect(gruposDeLaVisita([D("i"), P("c", "RDZ Pharr")], [{ id: "i", delivery_address: "x" }, { id: "c" }], SIN_DESTINO_DE_TIENDA)).toEqual([null, null]);
   });
 });
 
@@ -176,17 +176,17 @@ describe("cableado: el número, el conteo, «Mi ruta», el mapa y el plan leen l
   const miRuta = plano(leer("src/app/(app)/my-route/page.tsx"));
   const mapa = plano(leer("src/lib/mapa-de-rutas.ts"));
   const plan = plano(leer("src/components/RutaDelPlan.tsx"));
-  it("la lista (`gruposDeMismoLugar`) delega en `misma-visita`, la única definición", () => {
-    expect(plano(leer("src/lib/lista-unica.ts"))).toContain("return gruposDeLaVisita(paradas, ordenes);");
+  it("la lista (`gruposDeMismoLugar`) delega en `misma-visita`, con el destino que le pasan", () => {
+    expect(plano(leer("src/lib/lista-unica.ts"))).toContain("return gruposDeLaVisita(paradas, ordenes, destinoDe);");
   });
-  it("el Gestor decide el destino de tienda de sus órdenes antes de numerar, agrupar y medir", () => {
-    // Las órdenes del Gestor salen ya con su destino de tienda (`deliveries`): lo numeran `diaDe` y la tabla igual que antes.
-    expect(gestor).toContain("() => conTiendaDeDestino(deliveriesDeLaLista, tiendasDeAjustes ?? [], settings.order_type_rules as OrderTypeRules | undefined),");
+  it("el Gestor lee el destino de tienda por id (sin tocar las órdenes) para numerar, agrupar y medir", () => {
+    expect(gestor).toContain("const destinoDeTiendaDeLaRuta = useMemo(");
+    expect(gestor).toContain("destinoDeTiendaDe(todasLasDelDia, settings.stores ?? [], settings.order_type_rules as OrderTypeRules | undefined)");
     expect(gestor).toContain("diaDeLaRuta(lectura, stops, hechasDe(laneKey), capacityFor(driverOf(laneKey))");
     expect(gestor).toContain("gruposDeMismoLugar(lectura.paradas, stops);");
   });
   it("«Mi ruta» numera con el mismo destino, y su cabecera cuenta sus paradas (`numeradas.paradas`)", () => {
-    expect(miRuta).toContain("const stops = useMemo(() => conTiendaDeDestino(stopsDeLaRuta, settings.stores ?? [], settings.order_type_rules as OrderTypeRules | undefined),");
+    expect(miRuta).toContain("destinoDeTiendaDe(deliveries, settings.stores ?? [], settings.order_type_rules as OrderTypeRules | undefined)");
     expect(miRuta).toContain("paradasDeLaRutaEnElOrden(lectura.filas.map((f, i) => ({ ...f, etiqueta: etiquetas[i] })), stops, ordenDelDia)");
     expect(miRuta).toContain('{numeradas.paradas.length} {t("stops", "paradas")}');
   });
@@ -195,5 +195,43 @@ describe("cableado: el número, el conteo, «Mi ruta», el mapa y el plan leen l
   });
   it("el plan (`RutaDelPlan`) pasa el destino de tienda a su numeración", () => {
     expect(plan).toContain("tiendaDeDestino: tiendaDeDestino?.(p.order_ref) ?? null,");
+  });
+});
+
+describe("regresión: ninguna ORDEN lleva el destino de tienda (ni una columna que no existe en `deliveries`)", () => {
+  it("la API no vuelve a tener `conTiendaDeDestino`, que copiaba cada orden", () => {
+    expect("conTiendaDeDestino" in mismaVisita).toBe(false);
+  });
+  it("numerar y agrupar con el destino de tienda no añade ni cambia ninguna clave de la orden", () => {
+    const ordenes = [orden("i", { order_type: "Intertienda", delivery_name: "RDZ Pharr" }), orden("c", { store: "RDZ Pharr" })];
+    const antes = ordenes.map((o) => Object.keys(o).sort().join(","));
+    const destinoDe = destinoDeTiendaDe(ordenes, TIENDAS, REGLAS);
+    expect(destinoDe("i")).toBe("RDZ Pharr");
+    const r = numera([D("i"), P("c", "RDZ Pharr")], ordenes);
+    expect(r.deFila).toEqual([1, 1]);
+    expect(ordenes.map((o) => Object.keys(o).sort().join(","))).toEqual(antes);
+    expect(ordenes.every((o) => !("tiendaDeDestino" in o))).toBe(true);
+  });
+  it("numerosDelDia con el destino de tienda deja las órdenes intactas", () => {
+    const ordenes = [
+      { id: "i", store: "RDZ McAllen", delivery_address: "x", pickup_name: null, delivery_name: "RDZ Pharr", order_type: "Intertienda", relay_step: null },
+      { id: "c", store: "RDZ Pharr", delivery_address: "y", pickup_name: null, delivery_name: null, order_type: "Customer", relay_step: null },
+    ];
+    const copia = JSON.stringify(ordenes);
+    const pintadas = [
+      { fila: { tipo: "D" as const, orden: "i", etiqueta: "", cambio: null, indice: 0, otraCarga: false }, tipo: "D" as const, orden: "i", i: 0, hecha: false },
+      { fila: { tipo: "P" as const, ordenes: ["c"], lugar: "RDZ Pharr", etiqueta: "", cambio: null, indice: 1 }, tipo: "P" as const, orden: "c", i: 1, hecha: false },
+    ];
+    const r = numerosDelDia(pintadas as never, "derivada", ordenes, null, destinoDeTiendaDe(ordenes, TIENDAS, REGLAS));
+    expect(r.deFila).toEqual([1, 1]);
+    expect(JSON.stringify(ordenes)).toBe(copia);
+  });
+});
+
+describe("regresión: los archivos que escriben órdenes no mencionan el destino de tienda como campo", () => {
+  it("routes/page, my-route/page, data-provider y local-data-provider: ni `tiendaDeDestino`", () => {
+    for (const f of ["src/app/(app)/routes/page.tsx", "src/app/(app)/my-route/page.tsx", "src/lib/data-provider.tsx", "src/lib/local-data-provider.tsx"]) {
+      expect(leer(f), f).not.toMatch(/\btiendaDeDestino\b/);
+    }
   });
 });

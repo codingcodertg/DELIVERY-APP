@@ -1,5 +1,5 @@
 import { etiquetaDeLaParada, gruposDeMismoLugar, numeraLaLista, type ParadaDeLaLista } from "@/lib/lista-unica";
-import type { OrdenConDestinoDeTienda } from "@/lib/misma-visita";
+import { SIN_DESTINO_DE_TIENDA, type DestinoDeTiendaDe, type OrdenDeDestino } from "@/lib/misma-visita";
 import type { FilaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 
 /**
@@ -53,10 +53,10 @@ export type FilaQueSeNumera =
 
 /** Agrupa las filas de la ruta en paradas. `ordenes` da la dirección de cada entrega. */
 export function paradasDeLaRuta(
-  filas: readonly FilaQueSeNumera[], ordenes: readonly OrdenConDestinoDeTienda[],
+  filas: readonly FilaQueSeNumera[], ordenes: readonly OrdenDeDestino[], destinoDe: DestinoDeTiendaDe = SIN_DESTINO_DE_TIENDA,
 ): ParadasDeLaRuta {
   const comoLista: ParadaDeLaLista[] = filas.map((f) => (f.tipo === "P" ? { tipo: "P", ordenes: f.ordenes, tienda: f.lugar } : { tipo: "D", orden: f.orden }));
-  const grupos = gruposDeMismoLugar(comoLista, ordenes);
+  const grupos = gruposDeMismoLugar(comoLista, ordenes, destinoDe);
   const deFila: number[] = [];
   const primera: boolean[] = [];
   const paradas: ParadaFisica[] = [];
@@ -94,9 +94,9 @@ export function textoDeLaParada(p: Pick<ParadaFisica, "numero" | "tipo" | "etiqu
  * de cada fila: `deFila` y `primera` por índice de `filas`, y las paradas con sus `filas` en esos mismos índices.
  */
 export function paradasDeLaRutaEnElOrden(
-  filas: readonly FilaQueSeNumera[], ordenes: readonly OrdenConDestinoDeTienda[], orden: readonly number[],
+  filas: readonly FilaQueSeNumera[], ordenes: readonly OrdenDeDestino[], orden: readonly number[], destinoDe: DestinoDeTiendaDe = SIN_DESTINO_DE_TIENDA,
 ): ParadasDeLaRuta {
-  const enElOrden = paradasDeLaRuta(orden.map((i) => filas[i]), ordenes);
+  const enElOrden = paradasDeLaRuta(orden.map((i) => filas[i]), ordenes, destinoDe);
   const deFila: number[] = filas.map(() => 0);
   const primera: boolean[] = filas.map(() => false);
   orden.forEach((i, k) => { deFila[i] = enElOrden.deFila[k]; primera[i] = enElOrden.primera[k]; });

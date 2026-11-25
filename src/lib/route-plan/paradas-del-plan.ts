@@ -36,8 +36,10 @@ export interface NumeroDeLaFila {
 export function numeracionDeLasParadas(filas: readonly FilaDelPlanParaParada[]): NumeroDeLaFila[] {
   const paradas: ParadaDeLaLista[] = filas.map((f) => (f.tipo === "P" ? { tipo: "P", ordenes: [f.orden], tienda: f.tienda } : { tipo: "D", orden: f.orden }));
   // Una orden sale en dos filas (P y D): la dirección es la misma en las dos, y la búsqueda por id toma cualquiera.
-  const ordenes = filas.map((f) => ({ id: f.orden, store: f.tienda, delivery_address: f.direccion, tiendaDeDestino: f.tiendaDeDestino ?? null }));
-  const grupos = gruposDeMismoLugar(paradas, ordenes);
+  const ordenes = filas.map((f) => ({ id: f.orden, store: f.tienda, delivery_address: f.direccion }));
+  // El destino de tienda de cada orden, por su id (la misma en sus dos filas): la regla de `misma-visita`.
+  const destinos = new Map(filas.map((f) => [f.orden, f.tiendaDeDestino ?? null]));
+  const grupos = gruposDeMismoLugar(paradas, ordenes, (id) => destinos.get(id) ?? null);
   let n = 0;
   return grupos.map((g, i) => {
     const primera = g == null || i === 0 || grupos[i - 1] !== g;
