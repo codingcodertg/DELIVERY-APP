@@ -95,11 +95,11 @@ describe("la base y la pantalla", () => {
   });
   it("la pestaña «Pool privado» solo para el admin, con los mismos filtros; el filtro «Coinciden con clientes»; Contratista y Propietario en la tarjeta", () => {
     const p = sinComentarios(leer("src/app/leads/Leads.tsx"));
-    expect(p).toContain('type Pestana = "banco" | "admin" | "privado" | "estadisticas";');
-    expect(p).toContain('data-pestana="privado"');
-    // D-770: la pestaña la ve quien tiene la casilla (veStxp), no solo el admin.
-    expect(p).toContain('{(pestana === "banco" || (pestana === "privado" && veStxp)) && (');
-    expect(p).toContain('() => (pestana === "privado"\n      ? privados.filter((l) => semanaFiltro === null || semanasSTXP.semanaDeLead.get(l.id) === semanaFiltro)\n      : conCruzadosDeMiTienda(leadsDelBanco(leads, alcance)');
+    expect(p).toContain('type Pestana = "banco" | "admin" | "estadisticas";');
+    expect(p).not.toContain('data-pestana="privado"');
+    // Una sola pestaña de leads (Leads Pool): la ven quienes ven el GOV; el STXP entra en su lista.
+    expect(p).toContain('{pestana === "banco" && (');
+    expect(p).toContain("() => unirPoolUnico(\n      conCruzadosDeMiTienda(leadsDelBanco(leads, alcance)");
     expect(p).toContain("data-coinciden");
     expect(p).toContain('data-cliente={l.customer_match_id ?? ""}');
     expect(p).toContain('t("Contractor", "Contratista")');

@@ -58,9 +58,7 @@ describe("el demo con etapas", () => {
     expect(filas.some((f) => f.id === beto.id && f.ventas >= 1)).toBe(true);
     expect(filas.some((f) => f.cotizaciones >= 1)).toBe(true);
   });
-  it("el archivado sale del historial del banco del demo, y el admin es el único que archiva", async () => {
-    const archivado = leads.find((l) => l.status === "archived")!;
-    expect(await almacenDemo(() => ana).archivar(archivado.id, "")).toMatchObject({ ok: false, motivo: "sin_permiso" });
-    expect(await almacenDemo(() => admin).archivar(leads.find((l) => l.status === "free")!.id, "Duplicado")).toMatchObject({ ok: true });
+  it("ya no hay acción de archivar en el demo (ni siquiera para el admin)", () => {
+    expect("archivar" in almacenDemo(() => admin)).toBe(false);
   });
 });

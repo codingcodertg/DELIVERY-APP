@@ -13,12 +13,15 @@ import { type ClienteCruzado, almacenDeLaBase, type AlmacenDeLeads, type Res } f
 import { ALCANCE_SIN_REGLA, codigoDeTiendaDelPerfil, conCruzadosDeMiTienda, eligeTienda, esCruzadoDeMiTienda, leadsDelBanco, privadosVisibles, veElPoolPrivado, type Alcance } from "@/lib/leads/alcance";
 import { almacenDemo, PERSONAS_DEMO, personaDeLaPractica } from "@/lib/leads/demo";
 import {
-  cuantosVistosMasDeUna, cuentaPorEtapa, delExcel, dinero, enlaceSeguro, estadoLabel, etapaDe, etapaIcono, etapaLabel, etapaTono, eventoLabel, fecha, filtrar,
+  cuantosVistosMasDeUna, cuentaPorEtapa, delExcel, dinero, enlaceSeguro, etapaDe, etapaIcono, etapaLabel, etapaTono, eventoLabel, fecha, filtrar,
   filtroDePool, categoriaBuena, coincideConCliente, esPrivado, ETAPAS, mapsUrl, negativaTexto, notaLimpia, NOTA_MAX, numero, ordenar, poolInicial, poolLabel,
   poolsDe, POOL_TODAS, resumenDeTodas, tableroPorTienda, tableroPorVendedor, telUrl, TIPOS_DE_ACCION, type TipoDeAccion, type Etapa, valoresDe, vecesVisto,
-  ORDEN_INICIAL, vigentes, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, puedeVerEstadisticas,
-  vendedoresDeLeads, leadsDeLaVista, type VistaDePool,
+  ORDEN_INICIAL, vigentes, enTodasLasEtapas, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, puedeVerEstadisticas,
+  vendedoresDeLeads, leadsDeLaVista, type VistaDePool, origenDe, deOrigen, type FiltroDeOrigen,
+  GRUPOS_DE_ETAPA, grupoDeLaEtapa, type GrupoDeEtapa,
 } from "@/lib/leads/reglas";
+import { pasaSemanaSTXP, poolDelFiltro, unirPoolUnico } from "@/lib/leads/pool-unico";
+import { parecidosDe, tituloDeOtros, type Parecido } from "@/lib/leads/parecidos";
 // 337: las llamadas de RingCentral de la ficha y la pestaña de estadísticas (admin y gerente).
 import type { LlamadaDeLead } from "@/lib/leads/llamadas-rc";
 import { Estadisticas } from "./Estadisticas";
@@ -33,10 +36,9 @@ import { enlaceDeBusqueda, sinTelefono, sinTelefonoPorPool, sugerenciaDeTelefono
 import { terminoLabel } from "@/lib/customers/terminos";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
-type Pestana = "banco" | "admin" | "privado" | "estadisticas";
+type Pestana = "banco" | "admin" | "estadisticas";
 type Dialogo =
   | { tipo: "nota"; lead: Lead }
-  | { tipo: "archivar"; lead: Lead }
   | { tipo: "cliente"; lead: Lead; cliente: ClienteCruzado };
 
 /** La semana del STXP Pool que eligió cada persona, en ESTE navegador (como los avisos ocultos del Gestor). */
@@ -88,6 +90,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [categoria, setCategoria] = useState<FiltroCategoria>("todas");
   // Las etapas son los filtros (328): una a la vez, «» = todas.
   const [etapa, setEtapa] = useState<Etapa | "">("");
+  // El grupo de etapas (el filtro de la fila de arriba). null = todos; con uno de más de una etapa, sale su segunda fila.
+  const [grupo, setGrupo] = useState<GrupoDeEtapa | null>(null);
   const [buena, setBuena] = useState(false);
   const [tipo, setTipo] = useState("");
   const [ciudad, setCiudad] = useState("");
@@ -102,7 +106,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [llamadasDe, setLlamadasDe] = useState<{ id: string; lista: LlamadaDeLead[] | null } | null>(null);
   // Lo que una solicitud de ayuda dirá de esta pantalla (D-901). Del lead no se nombra a la persona.
   useContextoDeAyuda("leads", contextoDeLeads({
-    pestana, pool, etapa, buscando: !!busca.trim(), dialogo: dialogo?.tipo ?? null, historialAbierto: historial !== null, demo,
+    pestana, pool, etapa, grupo, buscando: !!busca.trim(), dialogo: dialogo?.tipo ?? null, historialAbierto: historial !== null, demo,
   }));
 
   const cargar = useCallback(async () => {
@@ -149,6 +153,10 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [coinciden, setCoinciden] = useState(false);
   // 335: el filtro «Sin teléfono» (sin teléfono de contratista, ni de mano ni del Excel).
   const [sinTel, setSinTel] = useState(false);
+  // «⚠ Posibles duplicados»: solo los que tienen la etiqueta posible_duplicado (parecidos.ts).
+  const [soloPosibles, setSoloPosibles] = useState(false);
+  // La pestaña única: qué se enseña del STXP y del GOV. «todas» = los dos (lo que se ve al entrar).
+  const [origen, setOrigen] = useState<FiltroDeOrigen>("todas");
   // D-1145 (D-1145, reunión del 23 nov 2026): el filtro «Vendedor» (quien hizo el último contacto de cada lead). "" = todos.
   const [vendedorElegido, setVendedorElegido] = useState("");
   // El tablero de estadísticas (la pestaña del admin) enseña un pool o los dos. Al entrar, el del pool en el que estabas.
@@ -162,10 +170,11 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   );
   // Los filtros como al entrar: al cambiar de pestaña y con «Quitar filtros». El orden no es un filtro y se queda.
   const limpiaFiltros = () => {
-    setCategoria("todas"); setEtapa(""); setBuena(false); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false); setSinTel(false); setVendedorElegido("");
+    setCategoria("todas"); setEtapa(""); setBuena(false); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false); setSinTel(false); setSoloPosibles(false); setVendedorElegido("");
+    setOrigen("todas"); setGrupo(null);
   };
   const cambiaPestana = (p: Pestana) => {
-    if (p === "admin") setVistaStats(veStxp && pestana === "privado" ? "stxp" : "gov");
+    if (p === "admin") setVistaStats("gov");
     setPestana(p);
     limpiaFiltros();
   };
@@ -180,12 +189,19 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     setSemanaGuardada(valor);
     if (yoId) guardaSemanaSTXP(yoId, valor);
   };
-  const semanaFiltro = pestana === "privado" && semanaActiva !== "todas" ? semanaActiva : null;
+  // La semana filtra solo el STXP (y solo si quien mira lo ve): el GOV nunca se esconde por ella.
+  const semanaFiltro = veStxp && semanaActiva !== "todas" ? semanaActiva : null;
+  // La pestaña única: el GOV de su banco y el STXP que le toca, cada uno con su origen (ver `unirPoolUnico`).
+  // Los parecidos (lugar compartido, posible duplicado) se miran en TODOS los leads cargados: una semana 3 puede parecerse a una 1.
+  const parecidos = useMemo(() => parecidosDe(leads), [leads]);
+  const tabsPorId = useMemo(() => new Map(leads.map((l) => [l.id, l.tabs_project])), [leads]);
+  const idsPosibles = useMemo(() => new Set([...parecidos].filter(([, p]) => p.clase === "posible_duplicado").map(([id]) => id)), [parecidos]);
   const delBanco = useMemo(
-    () => (pestana === "privado"
-      ? privados.filter((l) => semanaFiltro === null || semanasSTXP.semanaDeLead.get(l.id) === semanaFiltro)
-      : conCruzadosDeMiTienda(leadsDelBanco(leads, alcance), leads.filter((l) => l.source !== "privado"), cruzadoDeMiTienda)),
-    [leads, alcance, pestana, privados, cruzadoDeMiTienda, semanaFiltro, semanasSTXP],
+    () => unirPoolUnico(
+      conCruzadosDeMiTienda(leadsDelBanco(leads, alcance), leads.filter((l) => l.source !== "privado"), cruzadoDeMiTienda),
+      privados.filter((l) => pasaSemanaSTXP(l, semanasSTXP.semanaDeLead, semanaFiltro)),
+    ),
+    [leads, alcance, privados, cruzadoDeMiTienda, semanaFiltro, semanasSTXP],
   );
   const pools = useMemo(() => poolsDe(delBanco), [delBanco]);
   const elige = eligeTienda(alcance);
@@ -199,19 +215,33 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   }, [pools, tienda, todasPorDefecto, elige, poolAMano]);
 
   // D-770: en el STXP Pool de quien no elige tienda, el pool no filtra: ve su tienda y la cercana que le tocó.
-  const poolFiltro = pestana === "privado" && !elige ? null : filtroDePool(pool);
+  // El selector de tienda filtra el GOV; el STXP lo sigue solo si quien mira puede elegir tienda (ver `poolDelFiltro`).
+  const poolFiltro = filtroDePool(pool);
   // 225: el cruzado con mi tienda pasa el filtro de pool aunque su pool sea otro.
-  const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro || cruzadoDeMiTienda(l)), [delBanco, poolFiltro, cruzadoDeMiTienda]);
+  const delPool = useMemo(() => delBanco.filter((l) => {
+    const p = poolDelFiltro(l, poolFiltro, elige);
+    return p === null || l.pool === p || cruzadoDeMiTienda(l);
+  }), [delBanco, poolFiltro, elige, cruzadoDeMiTienda]);
+  // El origen también cuenta en los números: lo que cuenta un chip es lo que se ve con ese origen.
+  const delOrigen = useMemo(() => delPool.filter((l) => deOrigen(l, origen)), [delPool, origen]);
+  const cuentaOrigen = (o: FiltroDeOrigen) => vigentes(delPool).filter((l) => deOrigen(l, o)).length;
+  // Cuántos posibles duplicados hay con el origen y la semana elegidos.
+  const posiblesCuenta = delOrigen.filter((l) => idsPosibles.has(l.id)).length;
   // Los números de cada filtro cuentan lo que hay en el pool elegido (sin el filtro de etapa, para que se vea el total).
-  const porEtapa = useMemo(() => cuentaPorEtapa(delPool), [delPool]);
-  const buenas = useMemo(() => vigentes(delPool).filter((l) => categoriaBuena(l.category)).length, [delPool]);
+  const porEtapa = useMemo(() => cuentaPorEtapa(delOrigen), [delOrigen]);
+  // Cuántos leads (vigentes) hay en cada grupo de etapas, con el origen elegido.
+  const porGrupo = useMemo(() => Object.fromEntries(GRUPOS_DE_ETAPA.map((g) => [g.clave, vigentes(delOrigen).filter((l) => grupoDeLaEtapa(etapaDe(l)) === g.clave).length])) as Record<GrupoDeEtapa, number>, [delOrigen]);
+  const buenas = useMemo(() => vigentes(delOrigen).filter((l) => categoriaBuena(l.category)).length, [delOrigen]);
   const visibles = useMemo(
-    () => ordenar(filtrar(delBanco, { pool: poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTelefono: sinTel, textoExtra, quien: vendedorElegido }), orden),
-    [delBanco, poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTel, textoExtra, orden, vendedorElegido],
+    () => ordenar(filtrar(delBanco.filter((l) => {
+      const p = poolDelFiltro(l, poolFiltro, elige);
+      return p === null || l.pool === p;
+    }), { pool: null, categoria, tipo, ciudad, busca, etapa, grupo, buena, coinciden, sinTelefono: sinTel, textoExtra, quien: vendedorElegido, origen, soloDeIds: soloPosibles ? idsPosibles : null }), orden),
+    [delBanco, poolFiltro, elige, categoria, tipo, ciudad, busca, etapa, grupo, buena, coinciden, sinTel, textoExtra, orden, vendedorElegido, origen, soloPosibles, idsPosibles],
   );
   // Las personas que han hecho algún último contacto en el banco que se ve (para el filtro «Vendedor»).
   const vendedoresBanco = useMemo(() => vendedoresDeLeads(delBanco), [delBanco]);
-  useEffect(() => { setCuantos(TANDA); }, [pool, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTel, orden, semanaFiltro, vendedorElegido]);
+  useEffect(() => { setCuantos(TANDA); }, [pool, categoria, tipo, ciudad, busca, etapa, grupo, buena, coinciden, sinTel, soloPosibles, orden, semanaFiltro, vendedorElegido, origen]);
 
   if (!yo) return <div className="ld-wrap leads-app"><p className="hint">{t("No session.", "Sin sesión.")}</p></div>;
 
@@ -251,15 +281,16 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 
   const tarjeta = (l: Lead) => (
     <Tarjeta
-      key={l.id} lead={l} yo={yo} ocupado={ocupado === l.id} almacen={almacen}
+      key={l.id} lead={l} ocupado={ocupado === l.id} almacen={almacen}
       historial={historial?.id === l.id ? historial.eventos : undefined}
       llamadas={llamadasDe?.id === l.id ? llamadasDe.lista : undefined}
       onNota={() => setDialogo({ tipo: "nota", lead: l })}
-      onArchivar={() => setDialogo({ tipo: "archivar", lead: l })}
       onHistorial={() => void verHistorial(l)}
       onLlamadas={() => void verLlamadas(l)}
       cotizar={puedeCotizarLead(cotiza)} cotizaciones={cotiza ? (cotizaciones.get(l.id) ?? []) : []}
       semana={semanasSTXP.semanaDeLead.get(l.id)}
+      parecido={parecidos.get(l.id)}
+      otrosTabs={tituloDeOtros((parecidos.get(l.id)?.otros ?? []).map((id) => tabsPorId.get(id) ?? id))}
       cliente={l.customer_match_id != null ? clientes.get(l.customer_match_id) : undefined}
       onCliente={(c) => setDialogo({ tipo: "cliente", lead: l, cliente: c })}
       sugerencia={sinTelefono(l) ? sugerenciaDeTelefono(l, leads, clientes) : null}
@@ -270,18 +301,41 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 
   // Los controles de la fila 1: las pestañas, la tienda (o la fija) y la semana. Con la barra de arriba, suben a ella por un
   // portal (ver `hueco`); sin barra se quedan en su fila de siempre. Mismo bloque en los dos sitios.
-  const enPoolTab = pestana === "banco" || (pestana === "privado" && veStxp);
+  const enPoolTab = pestana === "banco";
+  // El selector de tienda (o la tienda fija de quien no elige): va en la fila de filtros, no en la barra de arriba.
+  const selectorDeTienda = elige ? (
+    <label className="ld-selector" title={t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")}>
+      <span aria-hidden="true">🏬</span>
+      <select data-pool value={pool ?? ""} aria-label={t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")} onChange={(e) => { setPool(e.target.value); setPoolAMano(true); }}>
+        {pools.length > 1 && (() => {
+          const todas = resumenDeTodas(pools);
+          return (
+            <option value={POOL_TODAS}>
+              {t("All stores", "Todas las tiendas")} — {todas.total} {t("leads", "leads")}
+            </option>
+          );
+        })()}
+        {pools.map((p) => (
+          <option key={p.pool} value={p.pool}>
+            {poolLabel(p.pool, lang)} — {p.total} {t("leads", "leads")}
+          </option>
+        ))}
+      </select>
+    </label>
+  ) : (
+    /* Su tienda y, si ve el STXP, la más cercana que le toque (D-770): se nombran las que le tocan, en orden. */
+    <p className="ld-selector ld-fijo" data-pool-fijo>
+      {t("Leads of your store", "Leads de tu tienda")}
+      <br />
+      <b>{pools.length ? pools.map((p) => `${poolLabel(p.pool, lang)} (${p.total})`).join(" → ") : (alcance.tienda ? poolLabel(alcance.tienda, lang) : "—")}</b>
+    </p>
+  );
   const bloque = (
     <div className="ld-en-la-barra" data-leads-en-la-barra>
       <div className="ld-pestanas" role="tablist">
-        {/* D-1015 (Roberto, 12 nov): el STXP Pool (South Texas Permit) va PRIMERO; después GOV y lo demás. */}
-        {veStxp && (
-          <button type="button" role="tab" aria-selected={pestana === "privado"} className={`chip${pestana === "privado" ? " on" : ""}`} data-pestana="privado" onClick={() => cambiaPestana("privado")}>
-            🏪 {t("STXP Pool", "STXP Pool")} <span className="cnt" data-privados>{vigentes(privados).length}</span>
-          </button>
-        )}
+        {/* La pestaña única (primera): el GOV y el STXP juntos; cada lead lleva su etiqueta (D-1015 puso el STXP primero). */}
         <button type="button" role="tab" aria-selected={pestana === "banco"} className={`chip${pestana === "banco" ? " on" : ""}`} data-pestana="banco" onClick={() => cambiaPestana("banco")}>
-          🏦 {t("GOV Pool", "GOV Pool")}
+          🏦 {t("Leads Pool", "Pool de leads")}
         </button>
         {yo.admin && (
           <button type="button" role="tab" aria-selected={pestana === "admin"} className={`chip${pestana === "admin" ? " on" : ""}`} data-pestana="admin" onClick={() => cambiaPestana("admin")}>
@@ -297,42 +351,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
       <div className="ld-en-la-barra-selectores">
         {enPoolTab && (
           <>
-            {elige ? (
-              <label className="ld-selector" title={t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")}>
-                <span aria-hidden="true">🏬</span>
-                <select data-pool value={pool ?? ""} aria-label={t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")} onChange={(e) => { setPool(e.target.value); setPoolAMano(true); }}>
-                  {pools.length > 1 && (() => {
-                    const todas = resumenDeTodas(pools);
-                    return (
-                      <option value={POOL_TODAS}>
-                        {t("All stores", "Todas las tiendas")} — {todas.total} {t("leads", "leads")}
-                      </option>
-                    );
-                  })()}
-                  {pools.map((p) => (
-                    <option key={p.pool} value={p.pool}>
-                      {poolLabel(p.pool, lang)} — {p.total} {t("leads", "leads")}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : pestana === "privado" ? (
-              /* D-770: su tienda y, agotada, la más cercana: se nombran las que le tocan, en orden. */
-              <p className="ld-selector ld-fijo" data-pool-stxp>
-                {t("STXP Pool: your store and, when it runs out, the nearest one", "STXP Pool: tu tienda y, agotada, la más cercana")}
-                <br />
-                <b>{pools.length ? pools.map((p) => `${poolLabel(p.pool, lang)} (${p.total})`).join(" → ") : "—"}</b>
-              </p>
-            ) : (
-              /* Solo su tienda: no hay nada que elegir, y los otros bancos ni se nombran ni se cuentan. */
-              <p className="ld-selector ld-fijo" data-pool-fijo>
-                {t("GOV Pool of your store", "GOV Pool de tu tienda")}
-                <br />
-                <b>{alcance.tienda ? poolLabel(alcance.tienda, lang) : "—"}</b>
-                {pools[0] ? <> — {pools[0].total} {t("leads", "leads")}</> : null}
-              </p>
-            )}
-            {pestana === "privado" && semanasSTXP.semanas.length > 0 && (
+            {veStxp && semanasSTXP.semanas.length > 0 && (
               <label className="ld-selector" data-semana-stxp title={t("Week", "Semana")}>
                 <select data-semana value={String(semanaActiva)} aria-label={t("Week", "Semana")} onChange={(e) => eligeSemana(e.target.value)}>
                   <option value="todas">{t("All weeks", "Todas las semanas")} ({privados.length})</option>
@@ -410,7 +429,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
             </div>
           )}
 
-          {(pestana === "banco" || (pestana === "privado" && veStxp)) && (
+          {pestana === "banco" && (
             <>
               <div className="ld-filtros">
                 {/* Fila 2 (como Merma): el título de la lista y su cuenta. Con la barra a la vista, Actualizar va al final de esta fila. */}
@@ -420,15 +439,28 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                   </h3>
                   {hueco && refrescar}
                 </div>
+                {/* El origen (la pestaña única): STXP, GOV o los dos. Solo lo ve quien tiene el STXP; si no, no hay nada que elegir. */}
+                {veStxp && (
+                  <div className="ld-origen-fila filters-oneline" role="group" aria-label={t("Source", "Origen")} data-filtro-origen-fila>
+                    {(["todas", "stxp", "gov"] as const).map((o) => (
+                      <button key={o} type="button" className={`chip${origen === o ? " on" : ""}`} data-filtro-origen={o} aria-pressed={origen === o} onClick={() => setOrigen(o)}>
+                        {o === "todas" ? t("All", "Todos") : o === "stxp" ? "STXP" : "GOV"} <span className="ld-cuenta" data-cuenta-origen={o}>{cuentaOrigen(o)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {/* Las etapas son el filtro: una por chip, con cuántos leads hay en cada una en este pool. Todas en una línea. */}
                 <div className="ld-etapas filters-oneline" role="group" aria-label={t("Stage", "Etapa")} data-etapas>
-                  <button type="button" className={`chip${etapa === "" ? " on" : ""}`} data-etapa="" onClick={() => setEtapa("")}>
-                    {t("All stages", "Todas las etapas")} <span className="ld-cuenta">{delPool.filter((l) => l.status !== "archived").length}</span>
+                  <button type="button" className={`chip${etapa === "" && grupo === null ? " on" : ""}`} data-etapa="" data-grupo-de-etapa="todas"
+                    onClick={() => { setGrupo(null); setEtapa(""); }}
+                    title={`${t("Pending, Progress and Closed.", "Pendiente, En progreso y Cerrado.")} «${t("No good", "No sirve")}» (${etapaLabel("no_answer", lang)}, ${etapaLabel("lost", lang)}, ${etapaLabel("bad_lead", lang)}) ${t("is its own filter.", "tiene su propio filtro.")}`}>
+                    {t("All stages", "Todas las etapas")} <span className="ld-cuenta">{delOrigen.filter((l) => l.status !== "archived" && enTodasLasEtapas(l)).length}</span>
                   </button>
-                  {ETAPAS.map((e) => (
-                    <button key={e} type="button" className={`chip ${etapaTono(e)}${etapa === e ? " on" : ""}`} data-etapa={e} aria-pressed={etapa === e}
-                      onClick={() => setEtapa(etapa === e ? "" : e)}>
-                      {etapaIcono(e)} {etapaLabel(e, lang)} <span className="ld-cuenta">{porEtapa[e]}</span>
+                  {/* Los cinco chips de grupo (el dueño, 2026-11-24): Pendiente, En progreso, Cerrado y No sirve. */}
+                  {GRUPOS_DE_ETAPA.map((g) => (
+                    <button key={g.clave} type="button" className={`chip${grupo === g.clave ? " on" : ""}`} data-grupo-de-etapa={g.clave} aria-pressed={grupo === g.clave}
+                      onClick={() => { setGrupo(grupo === g.clave ? null : g.clave); setEtapa(""); }}>
+                      {g.icono} {t(g.en, g.es)} <span className="ld-cuenta">{porGrupo[g.clave]}</span>
                     </button>
                   ))}
                   <button type="button" className={`chip${buena ? " on" : ""}`} data-buena aria-pressed={buena} onClick={() => setBuena((v) => !v)}>
@@ -436,15 +468,32 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                   </button>
                   {/* 335: los que no tienen teléfono de contratista (ni de mano ni del Excel): para trabajarlos. */}
                   <button type="button" className={`chip${sinTel ? " on" : ""}`} data-sin-telefono aria-pressed={sinTel} onClick={() => setSinTel((v) => !v)}>
-                    📵 {t("No phone", "Sin teléfono")} <span className="ld-cuenta" data-cuenta-sin-telefono>{delPool.filter((l) => l.status !== "archived" && sinTelefono(l)).length}</span>
+                    📵 {t("No phone", "Sin teléfono")} <span className="ld-cuenta" data-cuenta-sin-telefono>{delOrigen.filter((l) => l.status !== "archived" && sinTelefono(l)).length}</span>
                   </button>
                   {/* D-760: el cruce con Clientes (lo pone el importador); solo tiene sentido donde hay cruzados. */}
-                  {delPool.some(coincideConCliente) && (
+                  {delOrigen.some(coincideConCliente) && (
                     <button type="button" className={`chip${coinciden ? " on" : ""}`} data-coinciden onClick={() => setCoinciden((v) => !v)}>
-                      🤝 {t("Match customers", "Coinciden con clientes")} <span className="ld-cuenta">{delPool.filter(coincideConCliente).length}</span>
+                      🤝 {t("Match customers", "Coinciden con clientes")} <span className="ld-cuenta">{delOrigen.filter(coincideConCliente).length}</span>
                     </button>
                   )}
+                  {/* El selector de tienda va en esta fila, después de «Match customers», alineado a la izquierda. */}
+                  {/* Los posibles duplicados (lugar compartido e igual en lo demás): solo los que tienen esa etiqueta. */}
+                  <button type="button" className={`chip${soloPosibles ? " on" : ""}`} data-filtro-parecidos aria-pressed={soloPosibles} onClick={() => setSoloPosibles((v) => !v)}>
+                    ⚠ {t("Possible duplicates", "Posibles duplicados")} <span className="ld-cuenta">{posiblesCuenta}</span>
+                  </button>
+                  {enPoolTab && selectorDeTienda}
                 </div>
+                {/* Un grupo de más de una etapa abre una segunda fila con sus etapas: una sola, con sus colores y su cuenta. */}
+                {grupo !== null && GRUPOS_DE_ETAPA.find((g) => g.clave === grupo)!.etapas.length > 1 && (
+                  <div className="ld-etapas filters-oneline ld-etapas-de-grupo" role="group" aria-label={t("Stage", "Etapa")} data-etapas-de-grupo>
+                    {GRUPOS_DE_ETAPA.find((g) => g.clave === grupo)!.etapas.map((e) => (
+                      <button key={e} type="button" className={`chip ${etapaTono(e)}${etapa === e ? " on" : ""}`} data-etapa={e} aria-pressed={etapa === e}
+                        onClick={() => setEtapa(etapa === e ? "" : e)}>
+                        {etapaIcono(e)} {etapaLabel(e, lang)} <span className="ld-cuenta">{porEtapa[e]}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {/* Fila 3 (como Merma): el buscador a la izquierda; los filtros, compactos y en línea (cada uno dice
                     su nombre en el título y en la primera opción); «Quitar filtros» a la derecha. */}
                 <div className="ld-barra" data-barra>
@@ -525,7 +574,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
       {dialogo?.tipo === "cliente" && <FichaCruzada dialogo={dialogo} onCerrar={() => setDialogo(null)} />}
       {dialogo && dialogo.tipo !== "cliente" && (
         <Accion
-          dialogo={dialogo} almacen={almacen} admin={yo.admin}
+          dialogo={dialogo} almacen={almacen}
           onCerrar={() => setDialogo(null)}
           onHecho={async (id, r, texto) => { if (await tras(id, r, texto)) setDialogo(null); }}
         />
@@ -540,12 +589,30 @@ function PildoraEtapa({ e }: { e: Etapa }) {
   return <span className={`ld-pildora ${etapaTono(e)}`} data-pildora-etapa={e}>{etapaIcono(e)} {etapaLabel(e, lang)}</span>;
 }
 
-function Tarjeta({ lead: l, yo, ocupado, almacen, historial, llamadas, onNota, onArchivar, onHistorial, onLlamadas, cotizar, cotizaciones, cliente, onCliente, semana, sugerencia, onTelefono }: {
-  lead: Lead; yo: Persona; ocupado: boolean; almacen: AlmacenDeLeads;
+/** La etiqueta del origen del lead, junto a su etapa: STXP (el privado) o GOV (el banco del estado). Solo lectura. */
+function EtiquetaDeOrigen({ lead }: { lead: Lead }) {
+  const o = origenDe(lead);
+  return <span className="chip ld-origen" data-origen={o}>{o === "stxp" ? "STXP" : "GOV"}</span>;
+}
+
+/** La etiqueta de un lead que comparte lugar con otro del mismo origen: «posible duplicado» o «mismo lugar», con su cuenta. */
+function EtiquetaDeParecido({ parecido, otrosTabs }: { parecido: Parecido; otrosTabs: string }) {
+  const { t } = usePrefs();
+  const n = parecido.cuantos;
+  const texto = parecido.clase === "posible_duplicado"
+    ? t(`⚠ Possible duplicate ×${n}`, `⚠ Posible duplicado ×${n}`)
+    : t(`📍 Same location ×${n}`, `📍 Mismo lugar ×${n}`);
+  return <span className="chip ld-parecido" data-parecido={parecido.clase} title={otrosTabs}>{texto}</span>;
+}
+
+function Tarjeta({ lead: l, ocupado, almacen, historial, llamadas, onNota, onHistorial, onLlamadas, cotizar, cotizaciones, cliente, onCliente, semana, sugerencia, onTelefono, parecido, otrosTabs }: {
+  lead: Lead; ocupado: boolean; almacen: AlmacenDeLeads;
+  /** Si comparte lugar con otro del mismo origen (parecidos.ts), y los números de esos otros para el título. */
+  parecido?: Parecido; otrosTabs?: string;
   historial: EventoLead[] | null | undefined;
   /** 337: las llamadas de RingCentral a los teléfonos del lead (null = cargando; undefined = cerrada). */
   llamadas: LlamadaDeLead[] | null | undefined;
-  onNota: () => void; onArchivar: () => void; onHistorial: () => void; onLlamadas: () => void;
+  onNota: () => void; onHistorial: () => void; onLlamadas: () => void;
   /** 335: un teléfono que este lead no tiene y otro lead (o el cliente) sí. Solo si el contratista no tiene ninguno. */
   sugerencia: Sugerencia | null;
   /** 335: pone (o quita, con telefono null) el teléfono a mano de un lado. Devuelve si se guardó. */
@@ -576,6 +643,7 @@ function Tarjeta({ lead: l, yo, ocupado, almacen, historial, llamadas, onNota, o
           <b data-ultimo-contacto>👤 {l.last_by_name ?? "—"}</b>
           <span className="ld-franja-der">
             <span>{fecha(l.last_at)}</span>
+            <EtiquetaDeOrigen lead={l} />{parecido && <EtiquetaDeParecido parecido={parecido} otrosTabs={otrosTabs ?? ""} />}
             <span data-pildora-etapa-texto={etapa}>{etapaIcono(etapa)} {etapaLabel(etapa, lang)}</span>
           </span>
         </div>
@@ -586,6 +654,7 @@ function Tarjeta({ lead: l, yo, ocupado, almacen, historial, llamadas, onNota, o
         {!trabajado && (
           <div className="ld-cabeza-der">
             <PildoraEtapa e={etapa} />
+            <EtiquetaDeOrigen lead={l} />{parecido && <EtiquetaDeParecido parecido={parecido} otrosTabs={otrosTabs ?? ""} />}
             {l.last_at && (
               <span className="ld-ultimo" data-ultimo-contacto>👤 {l.last_by_name ?? "—"} · {fecha(l.last_at)}</span>
             )}
@@ -673,7 +742,6 @@ function Tarjeta({ lead: l, yo, ocupado, almacen, historial, llamadas, onNota, o
         {cotizar && (
           <Link className="btn btn-ghost btn-sm" href={enlaceACotizar(l.id)} data-crear-cotizacion>🧮 {t("Create quote", "Crear cotización")}</Link>
         )}
-        {yo.admin && <button type="button" className="btn btn-ghost btn-sm" data-admin-lead onClick={onArchivar}>🗄 {t("Archive", "Archivar")}</button>}
         <button type="button" className="btn btn-ghost btn-sm" data-historial onClick={onHistorial}>🕘 {t("History", "Historial")}</button>
         <button type="button" className="btn btn-ghost btn-sm" data-llamadas onClick={onLlamadas}>📞 {t("Calls", "Llamadas")}</button>
         {tdlr && <a className="btn btn-ghost btn-sm" href={tdlr} target="_blank" rel="noopener noreferrer" data-tdlr>TDLR ↗</a>}
@@ -871,9 +939,9 @@ function FichaCruzada({ dialogo, onCerrar }: { dialogo: Extract<Dialogo, { tipo:
   );
 }
 
-/** El diálogo de una acción sobre un lead: anotar (con etapa, o solo una nota), o archivar (solo admin). */
-function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
-  dialogo: Dialogo; almacen: AlmacenDeLeads; admin: boolean;
+/** El diálogo de una acción sobre un lead: anotar, con etapa o solo con una nota. */
+function Accion({ dialogo, almacen, onCerrar, onHecho }: {
+  dialogo: Dialogo; almacen: AlmacenDeLeads;
   onCerrar: () => void; onHecho: (id: string, r: Res<Lead>, texto: string) => Promise<void>;
 }) {
   const { t, lang } = usePrefs();
@@ -913,15 +981,8 @@ function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
             </div>
           </>
         )}
-        {dialogo.tipo === "archivar" && (
-          <p className="hint">
-            {estadoLabel(l.status, lang)}. {t("An archived lead leaves the GOV Pool and nobody sees it there any more.", "Un lead archivado sale del GOV Pool y ya no lo ve nadie ahí.")}
-          </p>
-        )}
         <label className="ld-nota">
-          {dialogo.tipo === "archivar"
-            ? t("Note (optional)", "Nota (opcional)")
-            : etapa !== null ? t("Note (optional)", "Nota (opcional)") : t("Note (required when no stage is picked)", "Nota (obligatoria si no eliges etapa)")}
+          {etapa !== null ? t("Note (optional)", "Nota (opcional)") : t("Note (required when no stage is picked)", "Nota (obligatoria si no eliges etapa)")}
           <textarea data-nota-texto value={nota} maxLength={NOTA_MAX} rows={4} onChange={(e) => setNota(e.target.value)}
             placeholder={t("What happened: who you spoke with, what they said, what is next…", "Qué pasó: con quién hablaste, qué dijeron, qué sigue…")} />
         </label>
@@ -931,12 +992,6 @@ function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
             <button type="button" className="btn btn-primary" data-guardar disabled={enviando || !puedeAnotar}
               onClick={() => void enviar(() => almacen.anotar(l.id, nota, etapa), t("Note saved.", "Nota guardada."))}>
               {t("Save note", "Guardar nota")}
-            </button>
-          )}
-          {dialogo.tipo === "archivar" && admin && (
-            <button type="button" className="btn btn-danger" data-archivar disabled={enviando || l.status === "archived"}
-              onClick={() => void enviar(() => almacen.archivar(l.id, nota), t("Archived.", "Archivado."))}>
-              {t("Archive", "Archivar")}
             </button>
           )}
         </div>

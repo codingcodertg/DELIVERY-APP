@@ -21,9 +21,11 @@ describe("Leads: pestañas, tienda y semana en la barra de arriba", () => {
     expect(p).toContain("{hueco && createPortal(bloque, hueco)}");
     const bloque = p.slice(p.indexOf("const bloque = ("), p.indexOf("const refrescar = ("));
     expect(bloque).toContain('<div className="ld-en-la-barra" data-leads-en-la-barra>');
-    expect(bloque).toContain('data-pestana="privado"');
+    expect(bloque).not.toContain('data-pestana="privado"');
     expect(bloque).toContain('data-pestana="banco"');
-    expect(bloque).toContain("<select data-pool ");
+    // El selector de tienda ya no va en la barra: va en la fila de filtros (ver estilo-de-merma.test.ts).
+    expect(bloque).not.toContain("<select data-pool ");
+    expect(p).toContain("{enPoolTab && selectorDeTienda}");
     expect(bloque).toContain("<select data-semana ");
   });
 

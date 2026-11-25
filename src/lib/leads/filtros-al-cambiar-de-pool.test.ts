@@ -7,7 +7,7 @@ const p = readFileSync(join(process.cwd(), "src/app/leads/Leads.tsx"), "utf8").r
 
 describe("los filtros se resetean al cambiar de pool", () => {
   it("las pestañas pasan por cambiaPestana, y ninguna por setPestana a secas", () => {
-    for (const k of ["banco", "admin", "privado"]) expect(p).toContain(`data-pestana="${k}" onClick={() => cambiaPestana("${k}")}>`);
+    for (const k of ["banco", "admin"]) expect(p).toContain(`data-pestana="${k}" onClick={() => cambiaPestana("${k}")}>`);
     expect(p.match(/onClick=\{\(\) => setPestana\(/g)).toBeNull();
   });
   it("y cambiaPestana llama a limpiaFiltros, que vacía todo: categoría («todas»), etapa, categoría buena, tipo, ciudad, búsqueda y «coinciden»", () => {
