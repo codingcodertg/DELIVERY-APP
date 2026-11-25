@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { canEditFields, ROLE_ORDER, STAGES } from "./constants";
 import { borrarOrden, ordenDeMisTiendas, puedeBorrar } from "./deshacer-y-borrar";
 import type { NamedLocation, Stage, UserRole } from "./types";
@@ -316,7 +316,7 @@ describe("los dos proveedores y la ficha usan lo probado", () => {
 // «Seguir editando» un borrador o un duplicado (D-286), contra el guard VIGENTE
 // ---------------------------------------------------------------------------------------------------
 
-describe("seguir editando un borrador: el guard vigente (145) sigue dejando a quien la app se lo ofrece", () => {
+describe("seguir editando un borrador: el guard de la 145 sigue dejando a quien la app se lo ofrece", () => {
   const mismaEtapa = guardVigente.slice(
     guardVigente.indexOf("if new_stage is not distinct from old_stage then"),
     guardVigente.indexOf("if r in ('sales','driver','manager','accounting') then"),
@@ -340,5 +340,19 @@ describe("seguir editando un borrador: el guard vigente (145) sigue dejando a qu
     expect(guardVigente).toContain("elsif NEW.created_by is distinct from OLD.created_by then");
     const modal = leer("src/components/OrderModal.tsx");
     expect(modal).not.toMatch(/created_by:\s*me\.id/);
+  });
+
+  it("la última del repo (hoy la 349) conserva ese tramo y el candado de autor, línea por línea", () => {
+    const dir = "supabase/migrations";
+    // Esta prueba lee la 145 porque ahí se escribió lo que dice; la vigente de verdad es la última que define el guard.
+    const ultima = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql") && leer(`${dir}/${f}`).includes("function public.guard_delivery_stage()"))
+      .sort().at(-1)!;
+    expect(ultima).toBe("349_guardia_recupera_permisos.sql");
+    const vigente = leer(`${dir}/${ultima}`).split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+    for (const l of mismaEtapa.split("\n").map((s) => s.trim()).filter((s) => s && !s.startsWith("--"))) {
+      expect(vigente, l).toContain(l);
+    }
+    expect(vigente).toContain("elsif NEW.created_by is distinct from OLD.created_by then");
   });
 });

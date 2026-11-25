@@ -102,10 +102,11 @@ describe("qué escribe «Recibir»", () => {
   it("la 169 es la última que define el guard; la 168 y la 157 las de antes, y la 157 es la 145 con una sola lista cambiada (si cambia, hay que releer lo de arriba)", () => {
     // Hasta D-452 la última era la 145. La 157 la copia letra por letra y solo deja nacer una carga partida también en
     // pending (lo compara `cargas-partidas.test.ts`); lo que esta prueba lee de la 145 sigue valiendo tal cual.
-    const define = readdirSync("supabase/migrations").filter((f) => /^\d+_.*\.sql$/.test(f))
-      .filter((f) => leer(`supabase/migrations/${f}`).includes("function public.guard_delivery_stage()"))
-      // La 321 (relevo de una orden ya recogida) vuelve a escribir el guard con una rama más: esta prueba mira hasta la 173.
-      .filter((f) => f !== "321_relevo_de_orden_recogida.sql" && f !== "322_deshacer_relevo.sql" && f !== "346_intertienda_cliente.sql").sort();
+    const todos = readdirSync("supabase/migrations").filter((f) => /^\d+_.*\.sql$/.test(f))
+      .filter((f) => leer(`supabase/migrations/${f}`).includes("function public.guard_delivery_stage()")).sort();
+    // Esta cadena llega hasta la 173 (corte por número). La 321, la 322 y la 346 vuelven a escribir el guard: no se
+    // quitan por nombre; la última del repo se mira abajo (tiene que ser la 349, y la 349 no puede perder nada de la 346).
+    const define = todos.filter((f) => parseInt(f, 10) <= 173);
     // Nota D-549 (2026-10-14): la última es ahora la 173 (la 169 letra por letra con un bloque más en el tramo de misma
     // etapa, para `reprogramar_orden`; lo compara `juntar-y-reprogramar.test.ts`). La rama de almacén no se tocó. El
     // título de esta prueba dice «la 169»: se deja, la historia no se reescribe.
@@ -114,6 +115,8 @@ describe("qué escribe «Recibir»", () => {
     expect(define[define.length - 3]).toBe("168_chofer_recoge_sin_listo.sql");
     expect(define[define.length - 4]).toBe("157_partes_de_orden.sql");
     expect(define[define.length - 5]).toBe("145_gerente_hace_bodega.sql");
+    // La última del repo es la 349 (la que recupera los permisos de la 321, 322 y 346); la 173 sigue en su bloque.
+    expect(todos.at(-1)).toBe("349_guardia_recupera_permisos.sql");
   });
 });
 

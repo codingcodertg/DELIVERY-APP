@@ -58,11 +58,14 @@ describe("244: el guard deja a ventas agregar una nota a su orden aprobada", () 
     }
   });
 
-  it("es la última versión del guard en el repo", () => {
+  it("la 349 es la última versión del guard en el repo, y la 244 sigue dentro de ella (la nota de ventas no se pierde)", () => {
     const dir = join(process.cwd(), "supabase/migrations");
-    // La 321 (relevo de una orden ya recogida) vuelve a escribir el guard con una rama más: esta prueba mira hasta la 244.
-    const conGuard = readdirSync(dir).filter((f) => f.endsWith(".sql") && f !== "321_relevo_de_orden_recogida.sql" && f !== "322_deshacer_relevo.sql" && f !== "346_intertienda_cliente.sql").sort()
+    // Sin excluir la 321, la 322 ni la 346: las tres redefinen el guard, y la 346 dejó fuera la rama de la nota.
+    const conGuard = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()
       .filter((f) => /create or replace function public\.guard_delivery_stage\(\)/i.test(readFileSync(join(dir, f), "utf8")));
-    expect(conGuard.at(-1)).toBe("244_ventas_agrega_nota.sql");
+    expect(conGuard.at(-1)).toBe("349_guardia_recupera_permisos.sql");
+    const ultima = readFileSync(join(dir, conGuard.at(-1)!), "utf8").replace(/\r\n/g, "\n");
+    expect(ultima).toContain("probe.role_notes := OLD.role_notes");
+    expect(ultima).toContain("old_stage in ('approved','fulfilling','ready','picked_up')");
   });
 });

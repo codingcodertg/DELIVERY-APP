@@ -23,10 +23,11 @@ const leer = (r: string) => readFileSync(r, "utf8").split("\r\n").join("\n");
  *  resolvía y partía la línea en dos. */
 const SALTO = String.fromCharCode(10);
 const sql = leer("supabase/migrations/122_anular_con_motivo.sql");
-/** El guard VIVO para el espejo de quién anula: la 191 (D-656) es la última que redefine `guard_delivery_stage` —la 188
- *  con una línea más para ventas—. Hasta D-656 esta prueba leía la 122, y entre medias el guard se redefinió muchas
- *  veces: el espejo comparaba con una versión vieja. La primera prueba de abajo dice cuándo deja de ser la última. */
-const GUARD_VIVO = "244_ventas_agrega_nota.sql";   // D-869: la 244 (ventas agrega nota) sustituye a la 196 (D-676)
+/** El guard VIVO para el espejo de quién anula: la última que redefine `guard_delivery_stage`. Hasta D-656 esta prueba
+ *  leía la 122, y entre medias el guard se redefinió muchas veces: el espejo comparaba con una versión vieja. La primera
+ *  prueba de abajo dice cuándo deja de ser la última. Hoy: la 349 (recupera los permisos que la 321 y la 346 dejaron
+ *  fuera; antes era la 244, que leía la versión sin esos permisos y dejaba la prueba verde). */
+const GUARD_VIVO = "349_guardia_recupera_permisos.sql";
 const guardVivo = leer(`supabase/migrations/${GUARD_VIVO}`);
 const modal = leer("src/components/OrderModal.tsx");
 const lista = leer("src/app/(app)/page.tsx");
@@ -74,17 +75,16 @@ function laBaseDejaAnular(rol: UserRole, etapa: Stage, suya: boolean): boolean {
 }
 
 describe("quién anula y desde dónde: la app y la base dicen lo mismo", () => {
-  it("la 244 (D-869) es la ÚLTIMA migración que define el guard: si otra lo redefine, el espejo tiene que leer esa (control)", () => {
+  it("la 349 es la ÚLTIMA migración que define el guard, y la anterior es la 346: si otra lo redefine, el espejo tiene que leer esa (control)", () => {
     const dir = "supabase/migrations";
     // Sin distinguir mayúsculas: desde la 185 el guard se escribe `CREATE OR REPLACE FUNCTION`, y un `includes` en
-    // minúsculas no lo ve.
+    // minúsculas no lo ve. Sin excluir la 321, la 322 ni la 346: son redefiniciones de verdad (la 346 perdió seis
+    // permisos de la 244 y la 349 los recupera; ver `guardia-de-etapas-no-pierde-permisos.test.ts`).
     const conGuard = readdirSync(dir)
       .filter((f) => f.endsWith(".sql") && /function public\.guard_delivery_stage\(\)/i.test(leer(`${dir}/${f}`)))
-      // La 321 (relevo de una orden ya recogida) vuelve a escribir el guard con una rama más; esta prueba mira hasta la 244.
-      .filter((f) => f !== "321_relevo_de_orden_recogida.sql" && f !== "322_deshacer_relevo.sql" && f !== "346_intertienda_cliente.sql")
       .sort();
     expect(conGuard.at(-1)).toBe(GUARD_VIVO);
-    expect(conGuard.at(-2)).toBe("196_chofer_anula_recogida.sql");
+    expect(conGuard.at(-2)).toBe("346_intertienda_cliente.sql");
   });
 
   it("el tramo del guard se encontró y trae las cinco líneas de anular (control)", () => {
