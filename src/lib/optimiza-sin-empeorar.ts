@@ -146,6 +146,15 @@ export function optimizaSinEmpeorar(e: EntradaDeOptimizar): ResultadoSinEmpeorar
   return { ...final, reglas: validaLaLista(final.paradas, ordenes, capacidad) };
 }
 
+/**
+ * Las reglas duras (`validaLaLista`) que incumple la lista de la entrada, con el MISMO constructor de órdenes (por punto del
+ * mapa) y la MISMA capacidad que `optimizaSinEmpeorar` usa en su propia pasada. Lo usan el botón y la auto-optimización
+ * para comparar antes y después: un resultado solo se escribe si no añade una violación que la ruta no tenía.
+ */
+export function reglasDeLaEntrada(e: EntradaDeOptimizar): Violacion[] {
+  return validaLaLista(e.paradas, ordenesDeLaEntrada(e), e.capacidad ?? 0).violaciones;
+}
+
 /** La clave de un punto del mapa para comparar sitios de entrega (lo que la lista no trae con nombre). */
 const claveDePunto = (p: PuntoEnElMapa | null | undefined): string | null => (p ? `${p.lat.toFixed(5)},${p.lng.toFixed(5)}` : null);
 

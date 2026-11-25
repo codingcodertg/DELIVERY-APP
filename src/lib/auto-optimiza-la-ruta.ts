@@ -70,7 +70,7 @@ export function avisoDePisar(pendientes: readonly { route_fixed?: boolean | null
  * no pasó), «reprograma» (la ruta cambió mientras se calculaba: se vuelve a pedir) o «nada» (no toca la ruta).
  */
 export type ResultadoAuto =
-  | { estado: "hecha"; huella: string }
+  | { estado: "hecha"; huella: string; nota?: string | null }
   | { estado: "fallo"; nota: string; reintentar: boolean }
   | { estado: "reprograma" }
   | { estado: "nada" };
@@ -85,4 +85,18 @@ export function reintentoAuto(intento: number): number | null {
 /** Las reglas que incumple un resultado, sin repetir, para la nota de la ruta (p. ej. «carga_antes_de_descarga, parada_repetida»). */
 export function notaDeReglas(violaciones: readonly { clave: string }[]): string {
   return [...new Set(violaciones.map((v) => v.clave))].join(", ");
+}
+
+/**
+ * Las violaciones de `despues` que NO estaban ya en `antes`. Una violación es la misma si tiene la misma `clave` y las
+ * mismas órdenes (sin importar su orden). Así una ruta que ya rompe una regla no bloquea toda optimización: solo cuenta lo
+ * que el cambio AÑADE.
+ */
+export function violacionesNuevas<T extends { clave: string; ordenes?: readonly string[] }>(
+  antes: readonly { clave: string; ordenes?: readonly string[] }[],
+  despues: readonly T[],
+): T[] {
+  const firma = (v: { clave: string; ordenes?: readonly string[] }): string => `${v.clave}\u0000${[...(v.ordenes ?? [])].sort().join(",")}`;
+  const yaEstaban = new Set(antes.map(firma));
+  return despues.filter((v) => !yaEstaban.has(firma(v)));
 }
