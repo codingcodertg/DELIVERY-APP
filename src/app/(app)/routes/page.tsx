@@ -119,6 +119,7 @@ import { AvisoSoloCiudad } from "@/components/AvisoSoloCiudad";
 import { celdaPropiaDelPlan, claseDeLaFilaDelPlan } from "@/lib/route-plan/celdas-del-plan";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
 import { SIN_FILTRO_EN_PARADAS, filasOcultas, paradaVisible, valorDeOrdenEnParadas, type ValoresDeOrden } from "@/lib/filtro-de-paradas";
+import { arrastradaDesde } from "@/lib/arrastrada-de-otro-dia";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { BotonDelCamion } from "@/components/BotonDelCamion";
 
@@ -1807,6 +1808,12 @@ export default function RoutesPage() {
   // con el mismo contexto con que Órdenes las llama (idioma, traducción y motivos de anulación).
   // `recibidas`: la columna de Etapa pinta «Received» en las que recibió almacén (D-409), como en Órdenes.
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
+  // Los eventos de cada orden (`order_events`, la ventana que trae la app): de ahí sale de qué día viene una arrastrada.
+  const eventosPorOrden = useMemo(() => {
+    const m = new Map<string, typeof events>();
+    for (const e of events) { const lista = m.get(e.delivery_id); if (lista) lista.push(e); else m.set(e.delivery_id, [e]); }
+    return m;
+  }, [events]);
   // Saltadas hoy y rechazadas por el cliente (D-487): la misma pastilla que en Órdenes, en la columna de Etapa.
   const marcasDeParada = useMemo(() => marcasDeParadas(events, todayISO()), [events]);
   // `nombreDe` (D-652): la columna «Vendedor» que el plan hereda de Órdenes pinta el nombre, no el id.
@@ -2203,6 +2210,19 @@ export default function RoutesPage() {
     return r;
   };
   /** Las órdenes de una fila pintada con sus valores: una entrega (una), o una recogida (las suyas, todas con su texto de recogida). */
+  /** Las órdenes de una fila que vienen arrastradas de otro día (`arrastradaDesde`): sus fechas de origen y el aviso. */
+  const arrastreDeLaFila = (ordenes: readonly Delivery[]): { fechas: string; texto: string } | null => {
+    const porFecha = new Map<string, string[]>();
+    for (const x of ordenes) {
+      const de = arrastradaDesde(x, eventosPorOrden.get(x.id) ?? []);
+      if (de) porFecha.set(de, [...(porFecha.get(de) ?? []), facturaYId(x).principal]);
+    }
+    if (porFecha.size === 0) return null;
+    return {
+      fechas: [...porFecha.keys()].join(", "),
+      texto: [...porFecha].map(([de, codigos]) => `${t("Carried over from", "Viene arrastrada del")} ${de}: ${codigos.join(", ")}`).join(" · "),
+    };
+  };
   const valoresDeLaFila = (fp: FilaPintada, porId: Map<string, Delivery>, hechasPorId: Map<string, Delivery>): ValoresDeOrden[] => {
     if (fp.hecha) {
       const d = hechasPorId.get(fp.orden);
@@ -4024,7 +4044,7 @@ export default function RoutesPage() {
           const hora = hecho ? horaReal(d, fp.tipo) : null;
           const que = fp.tipo === "P" ? { en: "Picked up", es: "Recogida" } : hecho ? { en: "Delivered", es: "Entregada" } : { en: "On the truck, on its way", es: "En el camión, en camino" };
           return (
-            <tr key={`hecha-${fp.tipo}-${d.id}`} {...(me.role === "admin" && !soloLectura && fp.tipo === "D" && hecho ? { ...filaArrastrable({ tipo: "hecha", ruta: u.key, orden: d.id }), ...sueltaSobreHecha(u.key, d.id) } : {})} data-hecha={fp.estado} data-hecha-tipo={fp.tipo} data-etiqueta-del-dia={dia.etiqueta[k]} className={`fila-hecha${fp.tipo === "P" ? ` ${claseDeLaFilaDelPlan("P")}` : ""}`}
+            <tr key={`hecha-${fp.tipo}-${d.id}`} {...(me.role === "admin" && !soloLectura && fp.tipo === "D" && hecho ? { ...filaArrastrable({ tipo: "hecha", ruta: u.key, orden: d.id }), ...sueltaSobreHecha(u.key, d.id) } : {})} data-hecha={fp.estado} data-hecha-tipo={fp.tipo} data-arrastrada={fp.tipo === "P" ? arrastreDeLaFila([d])?.fechas : undefined} data-etiqueta-del-dia={dia.etiqueta[k]} className={`fila-hecha${fp.tipo === "P" ? ` ${claseDeLaFilaDelPlan("P")}` : ""}`}
               title={t(`${que.en}${hora ? ` at ${hora}` : ""} — it stays on the list; it can't be moved`, `${que.es}${hora ? ` a las ${hora}` : ""} — sigue en la lista; no se mueve`)}>
               {/* Su número de parada del día y su etiqueta (D-529; hasta aquí, solo «✓P» / «🚚D»): el dueño, «when a order is
                   delviered dont take the number of the stop away». El ✓ o el 🚚 siguen diciendo que está hecha o en camino. */}
@@ -4522,6 +4542,7 @@ export default function RoutesPage() {
                         // «no me sale ciudad de enetrega y quiero que claramente diga ciudad tienda de rocigda».
                         const suyas = f.ordenes.map((id) => porId.get(id)).filter((x): x is Delivery => !!x);
                         const o = suyas[0];
+                        const arrastradaDeLaRecogida = arrastreDeLaFila(suyas);
                         // La llegada a la tienda: la medida de la ruta ya la calcula, con la clave «P:» + las órdenes de la PARADA
                         // del día entera (D-680; con las de la fila solo acertaba la recogida que iba sola en su tienda).
                         const etaP = f.indice != null ? routeEtas[u.key]?.[claveDeRecogida(ordenesDeLaRecogidaMedida(dia.paradas, dia.deFila[k], f.ordenes))] : undefined;
@@ -4546,8 +4567,9 @@ export default function RoutesPage() {
                         );
                         return (
                           <tr key={`P-${fi}-${clave}`} data-recogida={etiquetaDeLaFila} className={`${claseDeLaFilaDelPlan("P")}${claseDeGrupo(f)}${claseDeSoltar}`}
+                            data-arrastrada={arrastradaDeLaRecogida?.fechas}
                             data-fila-arrastrable={seArrastra ? "parada" : undefined} {...arrastre} {...soltar}
-                            title={t("Show this stop on the map", "Ver esta parada en el mapa")}
+                            title={arrastradaDeLaRecogida ? `${arrastradaDeLaRecogida.texto} — ${t("Show this stop on the map", "Ver esta parada en el mapa")}` : t("Show this stop on the map", "Ver esta parada en el mapa")}
                             onClick={(e) => { e.stopPropagation(); if (esControlDeLaFila(e.target as Element)) return; setOrdenesResaltadas((s) => alternaResaltada(s, suyas.map((x) => x.id))); }}
                             style={{ ...(suyas.some((x) => ordenesResaltadas.has(x.id)) ? { background: "var(--accent-soft)" } : {}), ...(suyas.some((x) => marcadas.has(x.id)) ? { boxShadow: "inset 4px 0 0 var(--accent)" } : {}), ...(resaltada ? { outline: "2px solid var(--amber)", outlineOffset: -2 } : {}), ...(esLaArrastrada ? { opacity: 0.5 } : {}), ...(seArrastra ? { cursor: "grab" } : {}) }} data-recien-movida={resaltada ? "" : undefined}>
                             <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>
