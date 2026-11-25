@@ -23,9 +23,10 @@
 -- grupo que orden_de_mis_tiendas, 142); o el destino es la tienda que vende (por nombre o por su direccion).
 --
 -- CAMBIOS EN ESTA MIGRACION:
---   1. guard_delivery_stage: copia EXACTA de la 322 con UNA rama nueva en la insercion (marcada `-- 346`). Sin ella, el
---      paso b (INSERT) lo rechazaba la rama de INSERT para ventas y para cualquier rol que no estuviera en su lista: esa rama
---      solo deja crear cargas partidas a almacen, chofer, logistica, gerente y contabilidad.
+--   1. guard_delivery_stage: copia EXACTA de la 322 con UNA rama nueva (marcada `-- 346`) que deja pasar las dos escrituras
+--      de un paso de relevo hechas con la marca rtg.relevo. Sin ella, a ventas y a oficina el guard les rechazaba el paso a
+--      (un UPDATE de una orden ya aprobada, que no pueden editar en esa etapa) y el paso b (un INSERT con letra: esa rama
+--      solo deja crear cargas partidas a almacen, chofer, logistica, gerente y contabilidad).
 --   2. activar_intertienda_cliente: nueva.
 --
 -- Para volver atras: reejecutar el create or replace de guard_delivery_stage de la 322 y quitar la funcion nueva con
@@ -129,10 +130,12 @@ begin
     raise exception 'Who created an order is history: it cannot be rewritten';
   end if;
 
-  -- 346: el paso b de una Intertienda Customer lo inserta activar_intertienda_cliente, a nombre de CUALQUIER usuario de Entregas
-  -- (no solo de quien planifica). Pasa solo con la marca rtg.relevo = el numero de la orden, la misma que deja pasar guard_relevo
-  -- (256): sin ella, una insercion de paso de relevo ajena no pasa. Va despues de fijar created_by, antes de la rama de abajo.
-  if TG_OP = 'INSERT' and NEW.relay_step is not null and current_setting('rtg.relevo', true) = NEW.order_no::text then -- 346
+  -- 346: los dos pasos de una Intertienda Customer los escribe activar_intertienda_cliente, a nombre de CUALQUIER usuario de
+  -- Entregas (no solo de quien planifica): el paso a es un UPDATE de la orden ya aprobada (que ventas y oficina no pueden
+  -- editar en esa etapa) y el paso b un INSERT con letra (que ventas y oficina no pueden crear). Pasan solo con la marca
+  -- rtg.relevo = el numero de la orden, la misma que deja pasar guard_relevo (256) y que solo ponen activar_relevo y
+  -- activar_intertienda_cliente dentro de su transaccion: sin ella, nada de esto pasa. Va despues de fijar created_by.
+  if TG_OP in ('INSERT', 'UPDATE') and NEW.relay_step is not null and current_setting('rtg.relevo', true) = NEW.order_no::text then -- 346
     return NEW; -- 346
   end if; -- 346
 
@@ -503,4 +506,4 @@ end $chk$;
 --      select public.activar_intertienda_cliente('<el mismo id>');           -- null
 -- 5. Otro rol (ventas) no puede activarla sobre una orden de otra tienda: debe salir IC_FORBIDDEN.
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('346_intertienda_cliente.sql', '5e0820cca609162d2643130ae0ec5559ac66d936686850779d8246b3c074c8fb') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('346_intertienda_cliente.sql', 'c1ec9d409fd8cdef51ca71a1e764850e899ded534a8b4b4c17c9bd1813c8f073') on conflict (name) do nothing;

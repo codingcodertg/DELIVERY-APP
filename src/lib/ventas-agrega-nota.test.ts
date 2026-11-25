@@ -61,7 +61,7 @@ describe("244: el guard deja a ventas agregar una nota a su orden aprobada", () 
   it("es la última versión del guard en el repo", () => {
     const dir = join(process.cwd(), "supabase/migrations");
     // La 321 (relevo de una orden ya recogida) vuelve a escribir el guard con una rama más: esta prueba mira hasta la 244.
-    const conGuard = readdirSync(dir).filter((f) => f.endsWith(".sql") && f !== "321_relevo_de_orden_recogida.sql" && f !== "322_deshacer_relevo.sql").sort()
+    const conGuard = readdirSync(dir).filter((f) => f.endsWith(".sql") && f !== "321_relevo_de_orden_recogida.sql" && f !== "322_deshacer_relevo.sql" && f !== "346_intertienda_cliente.sql").sort()
       .filter((f) => /create or replace function public\.guard_delivery_stage\(\)/i.test(readFileSync(join(dir, f), "utf8")));
     expect(conGuard.at(-1)).toBe("244_ventas_agrega_nota.sql");
   });
