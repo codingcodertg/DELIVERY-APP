@@ -9,7 +9,7 @@ import { mananaEnTexas } from "@/lib/avisos-cliente";
 //
 // Reemplaza al corte de las 12 de D-845 (`corte-de-ventas`): aquél solo tocaba a ventas y solo pasadas las 12. Éste es
 // para TODO el que crea órdenes a CUALQUIER hora. Quien asigna —logística y admin— queda exento: ellos sí ponen hoy sin
-// aviso. La migración 237 sigue EN ESPERA e intacta (ver `@/lib/corte-de-ventas`).
+// aviso. La migración 237 se DESCARTÓ (2026-11-24, el dueño): nunca se aplicó y su archivo ya no está en el repo.
 //
 // Puro: sin React, sin red. El día «hoy» y «mañana» se leen SIEMPRE en Texas, nunca con el reloj del aparato ni en UTC.
 // ============================================================
