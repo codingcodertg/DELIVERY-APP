@@ -138,7 +138,6 @@ const PESTANAS_DE_LEADS: Record<string, Bilingue> = {
 };
 const DIALOGOS_DE_LEADS: Record<string, Bilingue> = {
   nota: b("Lead stage / note window open", "Ventana de etapa o nota del lead abierta"),
-  archivar: b("Archive lead window open", "Ventana de archivar lead abierta"),
   cliente: b("Matching customer card open", "Ficha del cliente coincidente abierta"),
 };
 

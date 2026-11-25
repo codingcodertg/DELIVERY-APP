@@ -333,13 +333,5 @@ export function almacenDemo(quien: () => Persona): AlmacenDeLeads {
       const porVendedor: LlamadasDeVendedor[] = [...porNombre.entries()].map(([rep_name, llamadas]) => ({ rep_name: rep_name || null, llamadas }));
       return { ok: true, valor: { porVendedor, total } };
     },
-    async archivar(leadId, nota) {
-      const yo = quien();
-      if (!yo.admin) return no("sin_permiso");
-      const l = busca(leadId);
-      if (!l) return no("no_existe");
-      apunta(l, "archived", { note: notaLimpia(nota), subject: l.holder, subject_name: l.holder_name });
-      return guarda({ ...l, status: "archived", holder: null, holder_name: null, taken_at: null, follow_up_note: null, follow_up_action: null, follow_up_at: null, touched_at: new Date().toISOString() });
-    },
   };
 }

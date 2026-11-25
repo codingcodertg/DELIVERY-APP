@@ -33,8 +33,6 @@ export interface AlmacenDeLeads {
    * VE el lead puede. La base valida y deja la nota en el historial (335). Sin la 335, `motivo` es `sin_migracion`.
    */
   guardarTelefono(leadId: string, quien: "owner" | "tenant", telefono: string | null, ext: string | null, contacto: string | null): Promise<Res<Lead>>;
-  /** Archivar (solo admin). Un archivado no se ve en el banco. */
-  archivar(leadId: string, nota: string): Promise<Res<Lead>>;
   /**
    * D-762: los clientes con los que coinciden los leads cruzados (218): cuenta, tienda y el vendedor que los lleva hoy
    * (nombre del perfil, o null). Se leen de `erp.customers` con la sesión de quien mira: el admin los ve todos.
@@ -242,7 +240,6 @@ export function almacenDeLaBase(supabase: SupabaseClient): AlmacenDeLeads {
       if (!data || typeof data !== "object") return { ok: false, sinTabla: false, motivo: null, error: "empty answer" };
       return { ok: true, valor: leadDeLaBase(data as Record<string, unknown>) };
     },
-    archivar: (leadId, nota) => llamar("lead_admin_archive", { p_lead: leadId, p_note: nota }),
     async llamadasDeLead(leadId) {
       const { data, error } = await supabase.rpc("leads_llamadas_de_lead", { p_lead: leadId });
       if (error) return fallo(error);

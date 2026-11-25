@@ -13,7 +13,7 @@ import { type ClienteCruzado, almacenDeLaBase, type AlmacenDeLeads, type Res } f
 import { ALCANCE_SIN_REGLA, codigoDeTiendaDelPerfil, conCruzadosDeMiTienda, eligeTienda, esCruzadoDeMiTienda, leadsDelBanco, privadosVisibles, veElPoolPrivado, type Alcance } from "@/lib/leads/alcance";
 import { almacenDemo, PERSONAS_DEMO, personaDeLaPractica } from "@/lib/leads/demo";
 import {
-  cuantosVistosMasDeUna, cuentaPorEtapa, delExcel, dinero, enlaceSeguro, estadoLabel, etapaDe, etapaIcono, etapaLabel, etapaTono, eventoLabel, fecha, filtrar,
+  cuantosVistosMasDeUna, cuentaPorEtapa, delExcel, dinero, enlaceSeguro, etapaDe, etapaIcono, etapaLabel, etapaTono, eventoLabel, fecha, filtrar,
   filtroDePool, categoriaBuena, coincideConCliente, esPrivado, ETAPAS, mapsUrl, negativaTexto, notaLimpia, NOTA_MAX, numero, ordenar, poolInicial, poolLabel,
   poolsDe, POOL_TODAS, resumenDeTodas, tableroPorTienda, tableroPorVendedor, telUrl, TIPOS_DE_ACCION, type TipoDeAccion, type Etapa, valoresDe, vecesVisto,
   ORDEN_INICIAL, vigentes, enTodasLasEtapas, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, puedeVerEstadisticas,
@@ -36,7 +36,6 @@ type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; tex
 type Pestana = "banco" | "admin" | "privado" | "estadisticas";
 type Dialogo =
   | { tipo: "nota"; lead: Lead }
-  | { tipo: "archivar"; lead: Lead }
   | { tipo: "cliente"; lead: Lead; cliente: ClienteCruzado };
 
 /** La semana del STXP Pool que eligió cada persona, en ESTE navegador (como los avisos ocultos del Gestor). */
@@ -251,11 +250,10 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 
   const tarjeta = (l: Lead) => (
     <Tarjeta
-      key={l.id} lead={l} yo={yo} ocupado={ocupado === l.id} almacen={almacen}
+      key={l.id} lead={l} ocupado={ocupado === l.id} almacen={almacen}
       historial={historial?.id === l.id ? historial.eventos : undefined}
       llamadas={llamadasDe?.id === l.id ? llamadasDe.lista : undefined}
       onNota={() => setDialogo({ tipo: "nota", lead: l })}
-      onArchivar={() => setDialogo({ tipo: "archivar", lead: l })}
       onHistorial={() => void verHistorial(l)}
       onLlamadas={() => void verLlamadas(l)}
       cotizar={puedeCotizarLead(cotiza)} cotizaciones={cotiza ? (cotizaciones.get(l.id) ?? []) : []}
@@ -526,7 +524,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
       {dialogo?.tipo === "cliente" && <FichaCruzada dialogo={dialogo} onCerrar={() => setDialogo(null)} />}
       {dialogo && dialogo.tipo !== "cliente" && (
         <Accion
-          dialogo={dialogo} almacen={almacen} admin={yo.admin}
+          dialogo={dialogo} almacen={almacen}
           onCerrar={() => setDialogo(null)}
           onHecho={async (id, r, texto) => { if (await tras(id, r, texto)) setDialogo(null); }}
         />
@@ -541,12 +539,12 @@ function PildoraEtapa({ e }: { e: Etapa }) {
   return <span className={`ld-pildora ${etapaTono(e)}`} data-pildora-etapa={e}>{etapaIcono(e)} {etapaLabel(e, lang)}</span>;
 }
 
-function Tarjeta({ lead: l, yo, ocupado, almacen, historial, llamadas, onNota, onArchivar, onHistorial, onLlamadas, cotizar, cotizaciones, cliente, onCliente, semana, sugerencia, onTelefono }: {
-  lead: Lead; yo: Persona; ocupado: boolean; almacen: AlmacenDeLeads;
+function Tarjeta({ lead: l, ocupado, almacen, historial, llamadas, onNota, onHistorial, onLlamadas, cotizar, cotizaciones, cliente, onCliente, semana, sugerencia, onTelefono }: {
+  lead: Lead; ocupado: boolean; almacen: AlmacenDeLeads;
   historial: EventoLead[] | null | undefined;
   /** 337: las llamadas de RingCentral a los teléfonos del lead (null = cargando; undefined = cerrada). */
   llamadas: LlamadaDeLead[] | null | undefined;
-  onNota: () => void; onArchivar: () => void; onHistorial: () => void; onLlamadas: () => void;
+  onNota: () => void; onHistorial: () => void; onLlamadas: () => void;
   /** 335: un teléfono que este lead no tiene y otro lead (o el cliente) sí. Solo si el contratista no tiene ninguno. */
   sugerencia: Sugerencia | null;
   /** 335: pone (o quita, con telefono null) el teléfono a mano de un lado. Devuelve si se guardó. */
@@ -674,7 +672,6 @@ function Tarjeta({ lead: l, yo, ocupado, almacen, historial, llamadas, onNota, o
         {cotizar && (
           <Link className="btn btn-ghost btn-sm" href={enlaceACotizar(l.id)} data-crear-cotizacion>🧮 {t("Create quote", "Crear cotización")}</Link>
         )}
-        {yo.admin && <button type="button" className="btn btn-ghost btn-sm" data-admin-lead onClick={onArchivar}>🗄 {t("Archive", "Archivar")}</button>}
         <button type="button" className="btn btn-ghost btn-sm" data-historial onClick={onHistorial}>🕘 {t("History", "Historial")}</button>
         <button type="button" className="btn btn-ghost btn-sm" data-llamadas onClick={onLlamadas}>📞 {t("Calls", "Llamadas")}</button>
         {tdlr && <a className="btn btn-ghost btn-sm" href={tdlr} target="_blank" rel="noopener noreferrer" data-tdlr>TDLR ↗</a>}
@@ -872,9 +869,9 @@ function FichaCruzada({ dialogo, onCerrar }: { dialogo: Extract<Dialogo, { tipo:
   );
 }
 
-/** El diálogo de una acción sobre un lead: anotar (con etapa, o solo una nota), o archivar (solo admin). */
-function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
-  dialogo: Dialogo; almacen: AlmacenDeLeads; admin: boolean;
+/** El diálogo de una acción sobre un lead: anotar, con etapa o solo con una nota. */
+function Accion({ dialogo, almacen, onCerrar, onHecho }: {
+  dialogo: Dialogo; almacen: AlmacenDeLeads;
   onCerrar: () => void; onHecho: (id: string, r: Res<Lead>, texto: string) => Promise<void>;
 }) {
   const { t, lang } = usePrefs();
@@ -914,15 +911,8 @@ function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
             </div>
           </>
         )}
-        {dialogo.tipo === "archivar" && (
-          <p className="hint">
-            {estadoLabel(l.status, lang)}. {t("An archived lead leaves the GOV Pool and nobody sees it there any more.", "Un lead archivado sale del GOV Pool y ya no lo ve nadie ahí.")}
-          </p>
-        )}
         <label className="ld-nota">
-          {dialogo.tipo === "archivar"
-            ? t("Note (optional)", "Nota (opcional)")
-            : etapa !== null ? t("Note (optional)", "Nota (opcional)") : t("Note (required when no stage is picked)", "Nota (obligatoria si no eliges etapa)")}
+          {etapa !== null ? t("Note (optional)", "Nota (opcional)") : t("Note (required when no stage is picked)", "Nota (obligatoria si no eliges etapa)")}
           <textarea data-nota-texto value={nota} maxLength={NOTA_MAX} rows={4} onChange={(e) => setNota(e.target.value)}
             placeholder={t("What happened: who you spoke with, what they said, what is next…", "Qué pasó: con quién hablaste, qué dijeron, qué sigue…")} />
         </label>
@@ -932,12 +922,6 @@ function Accion({ dialogo, almacen, admin, onCerrar, onHecho }: {
             <button type="button" className="btn btn-primary" data-guardar disabled={enviando || !puedeAnotar}
               onClick={() => void enviar(() => almacen.anotar(l.id, nota, etapa), t("Note saved.", "Nota guardada."))}>
               {t("Save note", "Guardar nota")}
-            </button>
-          )}
-          {dialogo.tipo === "archivar" && admin && (
-            <button type="button" className="btn btn-danger" data-archivar disabled={enviando || l.status === "archived"}
-              onClick={() => void enviar(() => almacen.archivar(l.id, nota), t("Archived.", "Archivado."))}>
-              {t("Archive", "Archivar")}
             </button>
           )}
         </div>

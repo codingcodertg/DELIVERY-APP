@@ -128,7 +128,7 @@ export interface EventoLead {
   subject_name: string | null;
 }
 
-/** Quien mira. `admin` entra siempre y es el único que archiva. */
+/** Quien mira. `admin` entra siempre y ve todas las tiendas. */
 export interface Persona {
   id: string;
   name: string;
