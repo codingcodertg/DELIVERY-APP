@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { NextResponse } from "next/server";
 import { DEFAULT_HELP_EMAIL } from "./constants";
 import { RUTAS_SIN_AYUDA, Z_PANEL_DE_AYUDA, ayudaEnLaRuta, destinoDeAyuda } from "./ayuda-flotante";
+import { Z_BLOQUEO_DEL_HUB } from "./timetracker/fichaje-del-hub";
 import { pideContactoDeAyuda, rolDeQuienEscribe } from "./help-send";
 import { PrefsConIdioma } from "./prefs";
 
@@ -242,12 +243,17 @@ describe("el sitio de la burbuja", () => {
         const z = Number(m[1] ?? m[2] ?? m[3]);
         vistos.push(f);
         if (f === "src/app/globals.css" && z === 10050) continue;
+        // El bloqueo del almuerzo (fichar desde el hub, 2026-11-25) va por encima de TODO, también de la Ayuda: es la otra
+        // excepción, una sola regla de la hoja (comprobación de abajo).
+        if (f === "src/app/globals.css" && z === Z_BLOQUEO_DEL_HUB) continue;
         expect(z, `${f}: ${m[0]}`).toBeLessThan(Z_PANEL_DE_AYUDA);
       }
     }
     expect(vistos).toContain("src/components/OrderModal.tsx");
     expect(vistos).toContain("src/lib/confirm.tsx");
     expect(leer("src/app/globals.css")).toMatch(/\.rafaga \{[^}]*z-index: 10050;/);
+    expect(leer("src/app/globals.css")).toMatch(/\.fichaje-del-hub-bloqueo \{[^}]*z-index: 100000;/);
+    expect(leer("src/app/globals.css").match(/z-index: 100000;/g)).toHaveLength(1);
   });
 
   it("deja un hueco al final de cada app para que lo último suba por encima de ella", () => {

@@ -2260,3 +2260,59 @@ html[data-tarjetas] .marco-hub { display: none !important; }
 .viendo-como-rotulo { white-space: nowrap; }
 /* Con más peso que las reglas propias de cada app para `.account-link` (visto en pantalla: en RR. HH. el botón no se ponía ámbar). */
 .topbar .account-link.viendo-como-chip, .recruiting-module .topbar .account-link.viendo-como-chip, .recruiting-module .account-link.viendo-como-chip { background: var(--amber); color: var(--ink); }
+
+/* ---------------------------------------------------------------------------
+   Fichar desde el hub de escritorio (2026-11-25): el botón rojo/verde justo encima de la burbuja de Ayuda (46 px y 10 px
+   de aire, en la misma columna de la derecha), la pregunta «¿Quieres fichar?», el menú «Tomar un descanso» / «Terminar
+   turno» y el bloqueo del almuerzo. Solo sale en la app de escritorio y a partir de 700 px (lo decide el componente).
+   Las mismas reglas de la burbuja de Ayuda para las barras de abajo (`--barra-inferior-alto`).
+   --------------------------------------------------------------------------- */
+.fichaje-del-hub {
+  position: fixed;
+  right: max(20px, calc(env(safe-area-inset-right, 0px) + 12px));
+  bottom: calc(max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px)) + var(--barra-inferior-alto, 0px) + 56px);
+  z-index: 1000;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+}
+.fichaje-del-hub-boton {
+  width: 46px; height: 46px; border: none; border-radius: 999px; color: #fff;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: 0 6px 18px rgba(10,20,40,.28);
+  transition: transform .12s ease, background .12s ease;
+}
+.fichaje-del-hub-boton.fuera { background: var(--red); }
+.fichaje-del-hub-boton.en-turno { background: var(--green); }
+.fichaje-del-hub-boton:hover { transform: translateY(-1px); }
+.fichaje-del-hub-boton:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.fichaje-del-hub-tarjeta {
+  width: min(320px, calc(100vw - 40px)); box-sizing: border-box;
+  background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(10,20,40,.22); padding: 16px; display: grid; gap: 10px;
+}
+.fichaje-del-hub-saludo { margin: 0; font-weight: 800; font-size: 16px; }
+.fichaje-del-hub-pregunta { margin: 0; font-size: 15px; }
+.fichaje-del-hub-sub { margin: 0; font-size: 13px; color: var(--gray); }
+.fichaje-del-hub-fila { display: flex; gap: 8px; flex-wrap: wrap; }
+.fichaje-del-hub-grande { min-height: 52px; font-size: 16px; width: 100%; }
+.fichaje-del-hub-campo { display: grid; gap: 4px; font-size: 13px; font-weight: 700; }
+.fichaje-del-hub-select { min-height: 40px; }
+.fichaje-del-hub-confirma { display: grid; gap: 8px; }
+.fichaje-del-hub-confirma p { margin: 0; font-weight: 700; }
+.fichaje-del-hub-bloqueo {
+  position: fixed; inset: 0; z-index: 100000;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: color-mix(in srgb, var(--ink) 78%, transparent);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.fichaje-del-hub-bloqueo-tarjeta {
+  width: min(460px, 100%); box-sizing: border-box;
+  background: var(--card); color: var(--text); border-radius: 22px; padding: 36px 28px;
+  display: grid; gap: 16px; text-align: center; box-shadow: 0 24px 60px rgba(10,20,40,.35);
+}
+.fichaje-del-hub-bloqueo-tarjeta h2 { margin: 0; font-size: 34px; line-height: 1.15; }
+.fichaje-del-hub-cronometro { margin: 0; font-size: 44px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fichaje-del-hub-aviso { margin: 0; font-size: 14px; font-weight: 700; color: var(--green); }
+.fichaje-del-hub-aviso.error { color: var(--red); }
+.toast.toast-error { background: var(--red); }
+.hub-interruptor { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; cursor: pointer; }
+.hub-interruptor input { width: 18px; height: 18px; accent-color: var(--green); cursor: pointer; }
