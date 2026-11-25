@@ -184,7 +184,9 @@ describe("la pantalla", () => {
     expect(lista).toContain("useState<FiltroDeEtapa>(FILTRO_TODAS_PENDIENTES)");
     // La lista de merma es la tabla tipo Excel de Roberto (tabla-de-merma.ts); la de todos los reportes sigue siendo TablaDeReportes.
     expect(lista).toContain('<TablaDeMermaExcel filas={mermasPorEtapa} ctx={ctx} onAbrir={setAbierto} repetidas={repetidas} data-lista="merma-en-rango"');
-    expect(lista).toContain("{ATAJOS_DEL_MENU.map((a) => (");
+    // El menú de fechas se movió a src/components/MenuDeFecha.tsx (compartido con Time Tracker · Nómina).
+    expect(leer("src/components/MenuDeFecha.tsx")).toContain("{ATAJOS_DEL_MENU.map((a) => (");
+    expect(lista).toContain("<MenuDeFecha");
     expect(lista).toContain('data-campo="rango-desde"');
     expect(lista).toContain('data-campo="rango-hasta"');
     expect(lista).toContain("data-rango-invalido");

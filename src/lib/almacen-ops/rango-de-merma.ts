@@ -49,17 +49,18 @@ export function sumarDias(dia: string, n: number): string {
   f.setUTCDate(f.getUTCDate() + n);
   return aDia(f);
 }
-const domingoDe = (dia: string) => sumarDias(dia, -aFecha(dia).getUTCDay());
+/** El primer día de la semana que contiene `dia`: `inicioDeSemana` 0 = domingo (lo de siempre), 5 = viernes (la semana de pago). */
+const inicioDeSemanaDe = (dia: string, inicioDeSemana: number) => sumarDias(dia, -((aFecha(dia).getUTCDay() - inicioDeSemana + 7) % 7));
 const primeroDelMes = (dia: string) => dia.slice(0, 8) + "01";
 const ultimoDelMes = (dia: string) => { const f = aFecha(dia); return aDia(new Date(Date.UTC(f.getUTCFullYear(), f.getUTCMonth() + 1, 0))); };
 
 /** El rango de un atajo, contado desde `hoy` (el día de Texas). Para «otro», el rango a mano que venga. */
-export function rangoDeAtajo(atajo: Atajo, hoy: string = hoyEnTexas(), aMano: Partial<Rango> = {}): Rango {
+export function rangoDeAtajo(atajo: Atajo, hoy: string = hoyEnTexas(), aMano: Partial<Rango> = {}, inicioDeSemana = 0): Rango {
   switch (atajo) {
     case "hoy": return { desde: hoy, hasta: hoy };
     case "ayer": { const d = sumarDias(hoy, -1); return { desde: d, hasta: d }; }
-    case "semana": return { desde: domingoDe(hoy), hasta: hoy };
-    case "semana-pasada": { const dom = domingoDe(hoy); return { desde: sumarDias(dom, -7), hasta: sumarDias(dom, -1) }; }
+    case "semana": return { desde: inicioDeSemanaDe(hoy, inicioDeSemana), hasta: hoy };
+    case "semana-pasada": { const dom = inicioDeSemanaDe(hoy, inicioDeSemana); return { desde: sumarDias(dom, -7), hasta: sumarDias(dom, -1) }; }
     case "mes": return { desde: primeroDelMes(hoy), hasta: hoy };
     case "mes-pasado": { const ant = sumarDias(primeroDelMes(hoy), -1); return { desde: primeroDelMes(ant), hasta: ant }; }
     case "30-dias": return { desde: sumarDias(hoy, -29), hasta: hoy };
@@ -98,9 +99,9 @@ export function eleccionAUrl(e: Eleccion): Record<string, string> {
 }
 
 /** El rango que de verdad se aplica a una elección (o null si lo escrito a mano no cuadra). */
-export function rangoDeEleccion(e: Eleccion, hoy: string = hoyEnTexas()): Rango | null {
+export function rangoDeEleccion(e: Eleccion, hoy: string = hoyEnTexas(), inicioDeSemana = 0): Rango | null {
   if (e.atajo === "otro" && !rangoAManoValido(e)) return null;
-  return rangoDeAtajo(e.atajo, hoy, e);
+  return rangoDeAtajo(e.atajo, hoy, e, inicioDeSemana);
 }
 
 /** ¿Cae el día dentro del rango? Un extremo vacío no limita. */

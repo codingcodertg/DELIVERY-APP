@@ -72,7 +72,11 @@ function rangoDeDia(d: DiaDeSesiones): string {
  * **la fecha llega por `period` (el `?period=` de la URL, un viernes) y aquí no hay
  * calendario.** Lo único que cambió es de dónde sale `week`; el cálculo es el mismo.
  */
-export function ManagerReports({ period }: { period: string }) {
+export function ManagerReports({ period, soloUids = null }: {
+  period: string;
+  /** Quién se ve con los filtros de Nómina (tienda, empleado); `null` = todos. */
+  soloUids?: Set<string> | null;
+}) {
   const {
     me, allEmployees: users, allProjects: projects, allAssignments: assignments, settings,
     sessionsSince, payrollsForWeek, insertSession, updateSession, removeSession,
@@ -134,7 +138,8 @@ export function ManagerReports({ period }: { period: string }) {
     return lineasDeNomina(sess, aMap, pMap);
   }
 
-  const weekSessions = sessions.filter((s) => (s.date ?? "") >= start && (s.date ?? "") <= end);
+  // Con los filtros de Nómina (tienda, empleado), solo cuentan las sesiones de quien se ve.
+  const weekSessions = sessions.filter((s) => (s.date ?? "") >= start && (s.date ?? "") <= end && (!soloUids || soloUids.has(s.employeeUid)));
   const byEmp = new Map<string, Map<string, Session[]>>();
   weekSessions.forEach((s) => {
     const bk = s.payrollId || "live";
@@ -143,7 +148,7 @@ export function ManagerReports({ period }: { period: string }) {
     if (!g.has(bk)) g.set(bk, []);
     g.get(bk)!.push(s);
   });
-  const draftUids = drafts.filter((d) => (d.adjustments || []).length).map((d) => d.employeeUid);
+  const draftUids = drafts.filter((d) => (d.adjustments || []).length).map((d) => d.employeeUid).filter((u) => !soloUids || soloUids.has(u));
   const allUids = Array.from(new Set([...Array.from(byEmp.keys()), ...draftUids]));
   let grandPay = 0, grandSec = 0;
   byEmp.forEach((groups) => groups.forEach((sess) => { const c = calcLinesFor(sess); grandPay += c.pay; grandSec += c.sec; }));

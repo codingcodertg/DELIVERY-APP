@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PayrollTimesheets } from "./PayrollTimesheets";
 import { ManagerReports } from "./ManagerReports";
-import { PayrollResumen, type Resumen } from "./PayrollResumen";
+import { FiltrosDeNomina } from "./FiltrosDeNomina";
 import { TrabajandoAhora } from "./TrabajandoAhora";
+import type { Eleccion } from "@/lib/almacen-ops/rango-de-merma";
 import { useT } from "@/lib/timetracker/i18n";
 import { useData } from "@/lib/timetracker-data-provider";
 import {
@@ -13,6 +14,7 @@ import {
   seccionAbierta,
   type SeccionDeNomina,
 } from "@/lib/timetracker/trabajando-ahora-en-nomina";
+import type { DatosDeSemana } from "@/lib/timetracker/rango-de-nomina";
 
 /**
  * La nómina de un periodo, en UNA vista (D-190).
@@ -21,9 +23,9 @@ import {
  * las dos daban números distintos para lo que parecía la misma pregunta. Parte era a
  * propósito (horas contra dinero, D-102) y parte eran bugs; y la sección Remoto de Pago tenía
  * además su propio calendario, así que ni siquiera miraban la misma semana (D-164). Lo que
- * Periodo hacía bien —las dos vías lado a lado sin sumarlas, la marca `revisar`, el tipo
- * deducido— no se pierde: pasa a ser la **cabecera** de esta vista (`PayrollResumen`), siempre
- * visible, encima de las dos secciones plegables. Y el `?period=` de la URL manda en las tres.
+ * Periodo hacía bien —las dos vías lado a lado sin sumarlas, la marca `revisar`— se quitó el
+ * 2026-11-24 con su bloque «Nómina · periodo». Hoy la vista se elige con la barra de arriba
+ * (periodo, tienda y empleado, en la URL), y las secciones plegables van debajo.
  *
  * Las secciones **se montan al abrirse**, no antes: cada una pide sus propios datos y traer
  * los dos juegos para enseñar uno era pagar dos veces por una pantalla que se abre a diario.
@@ -35,33 +37,57 @@ import {
  * (decisión del dueño: la cámara de la tienda reemplaza las fotos, y las capturas se ven ahora desde el 🖥
  * de cada día o sesión remota de «Remoto»).
  */
-export function PayrollTabs({ period, resumen, revisar, vistaPorUrl = null }: {
-  period: string;
-  resumen: Resumen;
+export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtro, revisar, vistaPorUrl = null, errorHoras = null }: {
+  /** Las semanas de pago del rango, la más antigua primero (una sola = se cierra, se paga y se aprueba). */
+  semanas: string[];
+  /** El rango pedido tenía más de catorce semanas y se recortó a las más recientes. */
+  recortado: boolean;
+  eleccion: Eleccion;
+  etiqueta: string;
+  hoy: string;
+  filtro: { tienda: string | null; empleado: string | null };
   /** Ids de quien tiene horas por las dos vías este periodo (`period_hours.revisar`). */
   revisar: string[];
   /** La URL trae `?vista=…`: esa sección empieza abierta. `null` si no pide ninguna. */
   vistaPorUrl?: SeccionDeNomina | null;
+  /** Si no se pudo leer `period_hours` (la marca «revisar»), el motivo: se avisa arriba de todo. */
+  errorHoras?: string | null;
 }) {
   const t = useT();
   const { me } = useData();
+  // Lo que cargó la pantalla de horas (personas y tiendas): alimenta los filtros y decide quién entra con ellos.
+  const [datos, setDatos] = useState<DatosDeSemana | null>(null);
+  const unaSemana = semanas.length === 1;
+  // Quién se ve con el filtro de tienda y de empleado; `null` = sin filtro (se ve todo).
+  const soloUids = useMemo(() => {
+    if (!filtro.tienda && !filtro.empleado) return null;
+    if (!datos) return new Set<string>();
+    return new Set(datos.people
+      .filter((p) => (!filtro.tienda || p.store === filtro.tienda) && (!filtro.empleado || p.id === filtro.empleado))
+      .map((p) => p.id));
+  }, [datos, filtro.tienda, filtro.empleado]);
 
   return (
     <>
+      {errorHoras && <div className="banner err" style={{ marginBottom: 12 }}>{t("nomina.errHoras", { msg: errorHoras })}</div>}
       {me.role === "admin" && (
         <SeccionDeNomina clave="ahora" titulo={t("tab.live")} porUrl={vistaPorUrl === "ahora"}>
-          <TrabajandoAhora />
+          <TrabajandoAhora soloUids={soloUids} />
         </SeccionDeNomina>
       )}
 
-      <PayrollResumen r={resumen} />
-
-      <Seccion titulo={t("mgr.pay.onSiteTitle")} nota={t("mgr.pay.onSiteNote")} abierta>
-        <PayrollTimesheets period={period} revisar={revisar} />
-      </Seccion>
+      <FiltrosDeNomina uid={me.id} eleccion={eleccion} etiqueta={etiqueta} hoy={hoy}
+        tienda={filtro.tienda} empleado={filtro.empleado} datos={datos} />
+      {recortado && <p className="small muted">{t("nomina.recortado")}</p>}
 
       <Seccion titulo={t("mgr.pay.remoteTitle")} nota={t("mgr.pay.remoteNote")}>
-        <ManagerReports period={period} />
+        {unaSemana
+          ? <ManagerReports period={semanas[0]} soloUids={soloUids} />
+          : <p className="banner warn">{t("nomina.soloUnaSemana")}</p>}
+      </Seccion>
+
+      <Seccion titulo={t("mgr.pay.onSiteTitle")} nota={t("mgr.pay.onSiteNote")} abierta>
+        <PayrollTimesheets semanas={semanas} revisar={revisar} soloUids={soloUids} alCargarDatos={setDatos} />
       </Seccion>
     </>
   );

@@ -14,6 +14,19 @@
   --tt-txt:var(--text); --tt-muted:var(--gray); --tt-accent:var(--accent); --tt-accent2:var(--green);
   --tt-danger:var(--red); --tt-warn:var(--amber); --tt-ok:var(--green); --tt-chip:var(--accent-soft);
 }
+/* La hoja semanal de Nómina (`HojaSemanal`, 2026-11-24): los tokens salen de la paleta del hub (que ya cambia con
+   data-theme en globals.css), sin bloque claro propio. Cada fondo es una mezcla suave del color de la paleta con la
+   tarjeta, y su texto es la tinta del hub, así que se lee en claro y en oscuro. El amarillo del nombre y del total es
+   el único literal, y lleva su texto oscuro en los dos temas. */
+.timetracker-module{
+  --tt-hoja-grupo:color-mix(in srgb, var(--text) 14%, var(--card)); --tt-hoja-grupo-txt:var(--text);
+  --tt-hoja-trabajo:color-mix(in srgb, var(--green) 22%, var(--card)); --tt-hoja-trabajo-txt:var(--text);
+  --tt-hoja-fuera:color-mix(in srgb, var(--amber) 28%, var(--card)); --tt-hoja-fuera-txt:var(--text);
+  --tt-hoja-crema:color-mix(in srgb, var(--amber) 8%, var(--paper)); --tt-hoja-crema-txt:var(--text);
+  --tt-hoja-nombre:#ffd83d; --tt-hoja-nombre-txt:#111111;
+  --tt-hoja-sobre:color-mix(in srgb, var(--red) 28%, var(--card)); --tt-hoja-sobre-txt:var(--text);
+  --tt-hoja-domingo:color-mix(in srgb, var(--text) 10%, var(--card)); --tt-hoja-domingo-txt:var(--text);
+}
 :root[data-theme="light"] .timetracker-module .btn-ok{color:#053d2b}
 :root[data-theme="light"] .timetracker-module .btn-warn{color:#4a3200}
 :root[data-theme="light"] .timetracker-module .pill.on{background:#d6f5e5;color:#0a7a53}
@@ -64,6 +77,22 @@
 .timetracker-module .g4{grid-template-columns:repeat(4,1fr)}
 @media(max-width:720px){.timetracker-module .g2,.timetracker-module .g3,.timetracker-module .g4{grid-template-columns:1fr}}
 .timetracker-module table{width:100%;border-collapse:collapse;font-size:13.5px}
+/* La hoja semanal (2026-11-24): cada bloque es una tabla ESTÁNDAR (TablaEstandar, id tt-hoja-semanal) con su cabecera y su pie
+   fuera de la tabla. Las tintas van en las celdas por su clase de columna (tt-hoja-trabajo, tt-hoja-fuera, tt-hoja-celda) y
+   la fila de domingo por su clase de fila (tt-hoja-domingo). El ancho en el teléfono lo pone la tabla estándar. */
+.timetracker-module .tt-hoja-bloque{margin-top:12px}
+.timetracker-module .tt-hoja-cabecera{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.timetracker-module .tt-hoja-nombre{display:inline-block;background:var(--tt-hoja-nombre);color:var(--tt-hoja-nombre-txt);font-weight:800;font-size:14px;padding:4px 12px;border-radius:6px}
+.timetracker-module table.tt-hoja td.tt-hoja-celda{background:var(--tt-hoja-crema);color:var(--tt-hoja-crema-txt)}
+.timetracker-module table.tt-hoja td.tt-hoja-trabajo{background:var(--tt-hoja-trabajo);color:var(--tt-hoja-trabajo-txt);font-weight:700}
+.timetracker-module table.tt-hoja td.tt-hoja-fuera{background:var(--tt-hoja-fuera);color:var(--tt-hoja-fuera-txt);font-weight:700}
+.timetracker-module table.tt-hoja tr.tt-hoja-domingo td{background:var(--tt-hoja-domingo);color:var(--tt-hoja-domingo-txt)}
+.timetracker-module .tt-hoja-marca{margin-left:4px;font-size:11px;font-weight:700;cursor:help}
+.timetracker-module .tt-hoja-pie{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:8px}
+.timetracker-module .tt-hoja-pie>span{padding:4px 10px;border-radius:6px}
+.timetracker-module .tt-hoja-neutro{background:var(--tt-hoja-grupo);color:var(--tt-hoja-grupo-txt);font-weight:700}
+.timetracker-module .tt-hoja-sobre{background:var(--tt-hoja-sobre);color:var(--tt-hoja-sobre-txt);font-weight:800}
+.timetracker-module .tt-hoja-total{background:var(--tt-hoja-nombre);color:var(--tt-hoja-nombre-txt);font-weight:800;font-size:15px}
 .timetracker-module th,.timetracker-module td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--tt-line)}
 .timetracker-module th{color:var(--tt-muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
 .timetracker-module .muted{color:var(--tt-muted)}
@@ -91,27 +120,6 @@
 .timetracker-module .stat .n{font-size:22px;font-weight:800}
 .timetracker-module .stat .l{font-size:12px;color:var(--tt-muted)}
 
-/* Cabecera de Nómina (D-196): más grande, a petición del dueño. Solo variables del módulo:
-   oscuro por defecto, claro con data-theme="light". Las tarjetas van a tres columnas cuando
-   caben (>= 3 x 220px) y se apilan cuando no, sin ancho intermedio raro: auto-fit decide. La
-   navegación de periodo es una píldora dentro del mismo bloque que el título, así que al
-   envolverse en pantallas medianas queda pegada a él y no flotando sobre un fondo cortado. */
-.timetracker-module .pay-card{padding:22px 24px}
-.timetracker-module .pay-head{display:flex;justify-content:space-between;align-items:center;gap:12px 20px;flex-wrap:wrap}
-.timetracker-module .pay-title{margin:0;font-size:20px;font-weight:800;letter-spacing:.01em}
-.timetracker-module .pay-nav{display:inline-flex;align-items:center;gap:6px;background:var(--tt-panel2);border:1px solid var(--tt-line);border-radius:999px;padding:4px 6px;max-width:100%}
-.timetracker-module .pay-range{font-size:13px;font-weight:600;padding:0 8px;white-space:nowrap;font-variant-numeric:tabular-nums}
-.timetracker-module .pay-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:20px}
-.timetracker-module .pay-stat{background:var(--tt-panel2);border:1px solid var(--tt-line);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.timetracker-module .pay-n{font-size:40px;line-height:1.05;font-weight:800;letter-spacing:-.01em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.timetracker-module .pay-l{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tt-txt)}
-.timetracker-module .pay-sub{font-size:13px;color:var(--tt-muted);margin-top:2px}
-.timetracker-module .pay-note{color:var(--tt-muted);font-size:12.5px;margin:16px 0 0}
-@media(max-width:520px){
-  .timetracker-module .pay-card{padding:18px}
-  .timetracker-module .pay-n{font-size:34px}
-  .timetracker-module .pay-nav{width:100%;justify-content:space-between} .timetracker-module .pay-nav .btn{white-space:nowrap;padding:6px 8px} .timetracker-module .pay-range{font-size:12px;padding:0 4px}
-}
 .timetracker-module .pill{font-size:11px;padding:2px 8px;border-radius:999px}
 .timetracker-module .pill.on{background:#12351f;color:#5df0a5}
 .timetracker-module .pill.off{background:#3a1f27;color:#ff9aa6}
@@ -373,6 +381,12 @@
   grid-template-rows:auto auto auto auto auto auto;
 }
 .timetracker-module .live-name{font-weight:800;font-size:15px}
+/* «Trabajando ahora» (2026-11-24): activos en verde (el token de verde del módulo) y sin actividad en negro (el texto
+   normal, que en tema oscuro sale claro). Sin colores nuevos: son los tokens que ya usa el módulo. */
+.timetracker-module .tt-ahora-activo .live-name{color:var(--tt-ok)}
+.timetracker-module .tt-ahora-inactivo{color:var(--tt-txt)}
+.timetracker-module .tt-ahora-inactivo .live-name{color:var(--tt-txt);font-weight:700}
+.timetracker-module .tt-ahora-punto{font-size:12px}
 .timetracker-module .live-tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:22px}
 .timetracker-module .live-sub{font-size:12px;color:var(--tt-muted);min-height:16px;
      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -469,6 +483,41 @@
 /* Registrar tiempo (D-1168): «Schedule» y «My week» son secciones con su título en el encabezado plegable. El título
    propio de la primera tarjeta de cada una decía lo mismo justo debajo: se esconde aquí, y solo aquí. */
 .timetracker-module div[data-seccion-de-registrar] .tt-seccion-cuerpo > .card:first-child h2:first-of-type{display:none}
+/* Nómina (2026-11-24): el periodo, la tienda y el empleado van EN la barra, justo después de la marca, en una fila desde
+   701 px. Se encogen en este orden: primero el empleado, luego la tienda (las pestañas, como en D-1172). Bajo 701 px, el
+   bloque baja a su propia fila dentro de la barra, como en Leads. Las reglas de la marca siguen en globals.css. */
+.timetracker-module .ops-menu-fecha{position:relative;display:inline-block}
+.timetracker-module .ops-menu-fecha-lista{position:absolute;top:calc(100% + 4px);left:0;z-index:60;min-width:220px;max-width:calc(100vw - 32px);
+  display:grid;padding:4px;background:var(--tt-panel);border:1px solid var(--tt-line);border-radius:10px;
+  box-shadow:0 8px 24px color-mix(in srgb, var(--tt-txt) 18%, transparent)}
+.timetracker-module .ops-menu-fecha-opcion{text-align:left;padding:8px 10px;border:0;background:none;border-radius:6px;font:inherit;cursor:pointer;color:var(--tt-txt)}
+.timetracker-module .ops-menu-fecha-opcion:hover,.timetracker-module .ops-menu-fecha-opcion:focus-visible{background:color-mix(in srgb, var(--tt-txt) 8%, transparent)}
+.timetracker-module .ops-menu-fecha-opcion.activa{font-weight:700}
+.timetracker-module .tt-fila-de-nomina{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px}
+.timetracker-module .topbar .topbar-hueco:has(.tt-nomina-en-la-barra){display:flex;flex:1 1 auto;justify-content:flex-start;align-items:center;min-width:0;margin-left:8px}
+.timetracker-module .tt-nomina-en-la-barra{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;min-width:0;max-width:100%;font-size:13px}
+.timetracker-module .tt-nomina-en-la-barra .chip{white-space:nowrap;cursor:pointer}
+.timetracker-module .tt-nomina-en-la-barra .tt-nomina-select{width:auto;min-width:0;max-width:200px;padding:5px 8px;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.timetracker-module .tt-nomina-en-la-barra .tt-nomina-fecha{width:auto;min-width:0;padding:4px 6px;font-size:12px}
+@media(min-width:701px) and (max-width:1360px){
+  .timetracker-module .tt-nomina-en-la-barra select[data-empleado-de-nomina]{max-width:150px}
+}
+@media(min-width:701px) and (max-width:1240px){
+  .timetracker-module .tt-nomina-en-la-barra select[data-empleado-de-nomina]{max-width:110px}
+  .timetracker-module .tt-nomina-en-la-barra select[data-tienda-de-nomina]{max-width:130px}
+}
+@media(min-width:701px) and (max-width:900px){
+  .timetracker-module .tt-nomina-en-la-barra{gap:4px;font-size:12px}
+  .timetracker-module .tt-nomina-en-la-barra select[data-empleado-de-nomina]{max-width:90px;padding:4px 6px;font-size:12px}
+  .timetracker-module .tt-nomina-en-la-barra select[data-tienda-de-nomina]{max-width:100px;padding:4px 6px;font-size:12px}
+}
+@media(max-width:700px){
+  .timetracker-module .topbar:has(.tt-nomina-en-la-barra){position:relative;padding-bottom:62px}
+  .timetracker-module .topbar .topbar-hueco:has(.tt-nomina-en-la-barra){position:absolute;left:12px;right:12px;bottom:9px;margin-left:0}
+  .timetracker-module .tt-nomina-en-la-barra{flex-wrap:wrap}
+  .timetracker-module .tt-nomina-en-la-barra .tt-nomina-select{max-width:none;flex:1 1 140px}
+}
+
 /* D-1172 (el dueño, 2026-11-24, con la barra del admin partida en dos: el nombre de la app arriba y las pestañas abajo):
    «que todo quede en la misma row». Desde 701 px la barra NO se parte: el nombre de la app, la casa, las pestañas, la
    campana y la cuenta van en UNA fila. Para caber se va encogiendo por tramos: menos relleno y letra; el nombre de la
