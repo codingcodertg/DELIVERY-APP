@@ -131,9 +131,6 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
   // como pidió el dueño— y por eso no lleva marca de tanda: una lista guardada no la recibe sola. De partida va la
   // última (`alFinal`), no tras la etapa como en Órdenes: es la única escondida de esta tabla (ver `alFinal`).
   { key: "priority", en: "Priority", es: "Prioridad", tablas: ["sinAsignar"], ancho: 96, deOrdenes: "priority", oculta: true, alFinal: true },
-  // La PO sale por defecto, delante del tipo y junto a la factura (el dueño, 2026-11-25: «en el routes manager quiero que se
-  // mire el invoice y también po»). Tanda `_v11`: quien ya guardó sus columnas la recibe una vez (`conPoEnSuSitio`).
-  { key: "p_po", en: "Stops: PO #", es: "Paradas: PO #", tablas: ["paradas"], ancho: 72, deOrdenes: "po" },
   // La tabla de PARADAS de un chofer, donde se cambia el orden (D-346): «let me configure it into columns». Sus columnas
   // eran fijas. El número de parada, el ID (desde D-408, la factura) y las acciones siguen fijos; estas cinco se pueden quitar. `indice` es el
   // puesto que la columna ya tenía en esa tabla, que guarda su ancho por posición (`useColWidths`).
@@ -164,6 +161,7 @@ export const COLUMNAS_DEL_GESTOR: readonly ColumnaDelGestor[] = enOrdenDeVentas(
   // con varias órdenes, sus nombres distintos separados por « · » (`celdaDeParada`, caso `p_rep`).
   { key: "p_rep", en: "Stops: User", es: "Paradas: Usuario", tablas: ["paradas"], ancho: 128, deOrdenes: "rep" },
   { key: "p_so", en: "Stops: SO #", es: "Paradas: SO #", tablas: ["paradas"], ancho: 72, deOrdenes: "so", oculta: true },
+  { key: "p_po", en: "Stops: PO #", es: "Paradas: PO #", tablas: ["paradas"], ancho: 72, deOrdenes: "po", oculta: true },
   { key: "p_date", en: "Stops: Delivery Date", es: "Paradas: Fecha entrega", tablas: ["paradas"], ancho: 112, deOrdenes: "date", oculta: true },
   { key: "p_fee", en: "Stops: Fee", es: "Paradas: Costo", tablas: ["paradas"], ancho: 72, deOrdenes: "fee", oculta: true },
   { key: "p_contact", en: "Stops: Contact", es: "Paradas: Contacto", tablas: ["paradas"], ancho: 116, deOrdenes: "contact", oculta: true },
@@ -239,14 +237,14 @@ export const seVeEnLaRecogida = (c: Pick<ColumnaDelGestor, "key" | "deOrdenes">)
 
 /** Por defecto, todas menos las marcadas `oculta`: lo que ya se veía, más la factura y lo nuevo de «Sin asignar». Quitar
  *  columnas es una elección, no el punto de partida. */
-export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_DEL_GESTOR.filter((c) => !c.oculta).map((c) => c.key), "_v2", "_v3", "_v4", "_v5", "_v6", "_v7", "_v8", "_v9", "_v10", "_v11"];
+export const COLUMNAS_DEL_GESTOR_POR_DEFECTO: readonly string[] = [...COLUMNAS_DEL_GESTOR.filter((c) => !c.oculta).map((c) => c.key), "_v2", "_v3", "_v4", "_v5", "_v6", "_v7", "_v8", "_v9", "_v10"];
 
 /** El orden DE PARTIDA de cada tabla: el de quien no ha movido nada, y el que devuelven «Default» y «Restablecer orden».
  *  «Sin asignar», el de Órdenes vista por ventas, que es el del catálogo (D-402; antes, desde D-331, la factura la primera
  *  y lo demás como estaba). Paradas, el que ya tenía antes de poder elegir: lo que llega después va al final. */
 export const ORDEN_DE_PARTIDA_DEL_GESTOR: Readonly<Record<TablaDelGestor, readonly string[]>> = {
   sinAsignar: COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("sinAsignar")).map((c) => c.key),
-  paradas: ["p_po", "p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_actual", "p_windows", "p_stage", "p_store", "p_account", "p_rep", "p_so", "p_date", "p_fee", "p_contact", "p_priority"],
+  paradas: ["p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_actual", "p_windows", "p_stage", "p_store", "p_account", "p_rep", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"],
   // El plan (D-429): el orden de Órdenes, que es el del catálogo, y detrás las cuatro propias del plan.
   plan: COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("plan")).map((c) => c.key),
 };
@@ -455,7 +453,6 @@ export function conColumnasNuevas(guardadas: readonly string[]): string[] {
   // D-671: «Actual» (la hora real) en la tabla de paradas. También AÑADE.
   if (!lista.includes(MARCA_V9)) lista = [...new Set([...lista, ...NUEVAS_EN_V9])].concat(MARCA_V9);
   if (!lista.includes(MARCA_V10)) lista = [...new Set([...lista, ...NUEVAS_EN_V10])].concat(MARCA_V10);
-  if (!lista.includes(MARCA_V11)) lista = [...new Set([...lista, ...NUEVAS_EN_V11])].concat(MARCA_V11);
   return lista;
 }
 
@@ -477,11 +474,6 @@ const NUEVAS_EN_V9: readonly string[] = ["p_actual"];
 export const MARCA_V10 = "_v10";
 const NUEVAS_EN_V10: readonly string[] = ["p_rep"];
 
-// La PO en la tabla de paradas, por la misma razón que `_v10`: quien ya guardó sus columnas no la vería sin esto. Su sitio en el
-// orden guardado es delante del tipo (`conPoEnSuSitio`), y quien la ocultó después la sigue teniendo oculta: la marca ya está.
-export const MARCA_V11 = "_v11";
-const NUEVAS_EN_V11: readonly string[] = ["p_po"];
-
 /**
  * El ORDEN guardado con «Usuario» en su sitio: justo DESPUÉS de la cuenta (`p_account`), donde va en la partida. Como
  * `conRealEnSuSitio`: solo inserta; sin orden, sin la cuenta en él, o si ya la tiene, nada.
@@ -491,20 +483,6 @@ export function conRepEnSuSitio(orden: readonly string[] | null | undefined): st
   const r = [...orden];
   const tras = r.indexOf("p_account");
   if (tras >= 0 && !r.includes("p_rep")) r.splice(tras + 1, 0, "p_rep");
-  return r;
-}
-
-/**
- * El ORDEN guardado con la PO en su sitio (`_v11`): justo DELANTE del tipo (`p_type`), que es donde va en la partida. La
- * quita de donde estuviera: la PO de quien no la tenía encendida está en el puesto de la partida de antes (tras el SO), y
- * ahí no sirve. Sin orden, o sin el tipo en él, no se toca (como `conRepEnSuSitio`): `ordenEfectivo` la pone al final.
- */
-export function conPoEnSuSitio(orden: readonly string[] | null | undefined): string[] | null {
-  if (!orden) return null;
-  const antes = orden.indexOf("p_type");
-  if (antes < 0) return [...orden];
-  const r = orden.filter((k) => k !== "p_po");
-  r.splice(r.indexOf("p_type"), 0, "p_po");
   return r;
 }
 
@@ -571,15 +549,10 @@ const esDelPlan = (k: string): boolean => COLUMNAS_DEL_GESTOR.some((c) => c.key 
  */
 export function preferenciasDelGestorAlLeer(suyas: readonly string[] | undefined, orden: readonly string[] | null | undefined): { columnas: string[] | null; orden: string[] | null; escribe: boolean } {
   const r = preferenciasDeLasTandasAntes(suyas, orden);
-  if (!suyas) return r;
   // `_v10` («Usuario» en paradas): quien aún no la tiene recibe la columna (ya la trae `conColumnasNuevas`) y su orden
-  // la pone tras la cuenta, y se guarda ya, una vez. `_v11` (la PO) hace lo mismo delante del tipo, salvo a quien ya la
-  // tenía encendida: esa la dejó donde la puso. Quien ya tiene una marca no recibe esa tanda de nuevo.
-  let o = r.orden;
-  let escribe = r.escribe;
-  if (!suyas.includes(MARCA_V10)) { o = conRepEnSuSitio(o); escribe = true; }
-  if (!suyas.includes(MARCA_V11)) { if (!suyas.includes("p_po")) o = conPoEnSuSitio(o); escribe = true; }
-  return { columnas: r.columnas, orden: o, escribe };
+  // la pone tras la cuenta, y se guarda ya, una vez. Quien ya tiene la marca pasa tal cual.
+  if (!suyas || suyas.includes(MARCA_V10)) return r;
+  return { columnas: r.columnas, orden: conRepEnSuSitio(r.orden), escribe: true };
 }
 
 function preferenciasDeLasTandasAntes(suyas: readonly string[] | undefined, orden: readonly string[] | null | undefined): { columnas: string[] | null; orden: string[] | null; escribe: boolean } {
@@ -668,7 +641,7 @@ export function siembraAnchosDeParadas(almacen: { getItem(k: string): string | n
 export function columnasDePlantillaDelGestor(v: readonly string[]): string[] {
   const conocePlan = v.some((k) => COLUMNAS_DEL_GESTOR.some((c) => c.key === k && c.tablas.includes("plan")));
   const si = new Set(conocePlan ? v : [...v, ...NUEVAS_EN_V5]);
-  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9, MARCA_V10, MARCA_V11);
+  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9, MARCA_V10);
 }
 
 /** La foto que guarda una plantilla del Gestor: solo las columnas del catálogo que se ven, sin marcas ni claves retiradas. */
@@ -689,5 +662,5 @@ export function alternaColumna(elegidas: readonly string[], key: string): string
   const si = new Set(elegidas);
   if (si.has(key)) si.delete(key); else si.add(key);
   // Las marcas viajan siempre: lo que se guarde a partir de aquí ya conoce las columnas de cada tanda.
-  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9, MARCA_V10, MARCA_V11);
+  return COLUMNAS_DEL_GESTOR.map((c) => c.key).filter((k) => si.has(k)).concat(MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9, MARCA_V10);
 }
