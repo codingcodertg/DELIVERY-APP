@@ -101,3 +101,16 @@ export function hmm(minutos: number): string {
   const m = Math.max(0, Math.round(minutos));
   return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
 }
+
+/**
+ * ¿Es este día (`YYYY-MM-DD`) el de hoy? `hoy` es el día en Texas (`hoyEnTexas`), nunca el del reloj del
+ * dispositivo ni el de UTC: de noche en Texas, UTC ya marca mañana. Sin día, no es hoy.
+ */
+export function esDiaDeHoy(dia: string, hoy: string): boolean {
+  return dia !== "" && dia === hoy;
+}
+
+/** ¿Contiene la semana de pago a hoy? Solo esa semana tiene su fila de hoy resaltada. */
+export function semanaContieneHoy(semana: readonly string[], hoy: string): boolean {
+  return semana.some((dia) => esDiaDeHoy(dia, hoy));
+}

@@ -10,6 +10,9 @@ import {
 } from "@/app/timetracker/clock-in/actions/reports";
 import { entryMinutes, hrs, OT_WEEKLY_MIN, summarize, type PayEntry } from "@/lib/clockin/payroll";
 import { hojaDeLaSemana } from "@/lib/clockin/hoja-semanal";
+import { getCrewNow } from "@/app/timetracker/clock-in/actions/clock";
+import { idsActivosAhora } from "@/lib/timetracker/trabajando-ahora-en-nomina";
+import { estadoDeTrabajo, ordenaTrabajandoPrimero } from "@/lib/timetracker/trabajando-primero";
 import { minutosDeVentanas, modoDeComida, pagoDeComida, resumenDelBorrador, type BorradorTurno } from "@/lib/clockin/comida";
 import { utcToCentralInput } from "@/lib/clockin/tz";
 import { turnosPorDia } from "@/lib/clockin/turnos-por-dia";
@@ -62,6 +65,44 @@ function guardarVistaDeHoras(uid: string, vista: VistaDeHoras): void {
   } catch {
     // Sin almacén (navegador privado): la vista vale solo mientras la pantalla esté abierta.
   }
+}
+
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+type CrewNow = Extract<Awaited<ReturnType<typeof getCrewNow>>, { ok: true }>;
+
+/**
+ * Quién trabaja AHORA, para la hoja (2026-11-25; antes lo enseñaba la sección 'Trabajando ahora'). La misma definición
+ * de siempre: los del cronómetro (`liveSessions`) y los fichados (`getCrewNow().onClock`), con `idsActivosAhora`.
+ * Se mira cada 10 s, y al volver a la pestaña, como hacía aquella sección. Sin dato todavía, o si falla, es un conjunto
+ * vacío: todos en gris, y nada se rompe.
+ *
+ * En modo demo no hay sesión, así que `getCrewNow` no se llama: quedan trabajando las dos primeras personas de la
+ * nómina (`demoIds`), por el mismo `idsActivosAhora`.
+ */
+function useQuienTrabaja(demoIds: string[]): Set<string> {
+  const { liveSessions } = useData();
+  const [crew, setCrew] = useState<CrewNow | null>(null);
+  useEffect(() => {
+    if (LOCAL_MODE) return;
+    let vivo = true;
+    const traer = () => { void getCrewNow().then((r) => { if (vivo && r.ok) setCrew(r); }); };
+    traer();
+    const id = setInterval(traer, 10_000);
+    const alVolver = () => { if (!document.hidden) traer(); };
+    document.addEventListener("visibilitychange", alVolver);
+    window.addEventListener("focus", alVolver);
+    return () => {
+      vivo = false;
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener("focus", alVolver);
+    };
+  }, []);
+  const demoKey = demoIds.join(",");
+  return useMemo(() => (LOCAL_MODE
+    ? idsActivosAhora([], demoKey ? demoKey.split(",").map((employeeId) => ({ employeeId })) : [])
+    : idsActivosAhora(liveSessions.map((s) => ({ employeeUid: s.employeeUid })), crew?.onClock ?? [])),
+  [liveSessions, crew, demoKey]);
 }
 
 type Data = Extract<Awaited<ReturnType<typeof getPayrollPeriod>>, { ok: true }>;
@@ -146,6 +187,9 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos }:
     return m;
   }, [d]);
 
+  // Demo: las dos primeras personas con horas de la nómina trabajan ahora (ver `useQuienTrabaja`).
+  const trabajando = useQuienTrabaja(d ? d.people.filter((p) => d.entries.some((e) => e.employee_id === p.id)).slice(0, 2).map((p) => p.id) : []);
+
   const corre = useCallback(async (fn: () => Promise<{ ok: boolean; message?: string }>) => {
     setBusy(true);
     const res = await fn();
@@ -190,7 +234,7 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos }:
   // La hoja semanal: una por persona y por semana de pago del rango (de viernes a jueves). Mismas personas,
   // mismo orden y mismos filtros que la tabla.
   const semanasDelPeriodo: string[][] = semanas.map(diasDeLaSemana);
-  const bloquesDeHoja: BloqueDeHoja[] = [...grupos.values()].flat().filter(visible).flatMap((id) => {
+  const bloquesDeHoja: BloqueDeHoja[] = ordenaTrabajandoPrimero([...grupos.values()].flat().filter(visible), trabajando).flatMap((id) => {
     const dias = turnosPorDia(porEmpleado.get(id)!);
     return semanasDelPeriodo.map((semana) => ({
       id,
@@ -518,8 +562,8 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos }:
               aria-pressed={vista === "tabla"} onClick={() => elegirVista("tabla")}>{t("hoja.table")}</button>
           </div>
 
-          {vista === "hoja" ? <HojaSemanal bloques={bloquesDeHoja} /> : [...grupos.entries()].map(([key, miembros]) => {
-            const suyos = miembros.filter(visible);
+          {vista === "hoja" ? <HojaSemanal bloques={bloquesDeHoja} trabajando={trabajando} /> : [...grupos.entries()].map(([key, miembros]) => {
+            const suyos = ordenaTrabajandoPrimero(miembros.filter(visible), trabajando);
             if (!suyos.length) return null;
             const totalGrupo = suyos.reduce((s, id) => s + summarize(porEmpleado.get(id)!).totalMin, 0);
             return (
@@ -539,7 +583,8 @@ export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos }:
                     <div key={id} className="box" style={{ marginTop: 10 }}>
                       <div className="between">
                         <div>
-                          <strong>{p.name}</strong>
+                          <strong className="tt-nombre-de-trabajo" data-trabajando={estadoDeTrabajo(id, trabajando)}
+                            title={estadoDeTrabajo(id, trabajando) === "si" ? t("hoja.working") : t("hoja.notWorking")}>{p.name}</strong>
                           {puestoDe(id) && <span className="muted small"> · {puestoDe(id)}</span>}
                           {/* Quien ADEMÁS cronometró este periodo: sus horas pueden estar
                               contadas dos veces, una aquí y otra en sus sesiones. La marca está

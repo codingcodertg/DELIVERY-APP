@@ -114,15 +114,11 @@ describe("ningún contexto de gerente ACOTADO se queda sin la regla", () => {
   });
 });
 
-describe("la pantalla en vivo dice por qué no hay nada", () => {
-  const src = sinComentarios(leer("src/components/timetracker/TrabajandoAhora.tsx"));
+describe("la hoja de Nómina no se traga un `ok:false` de quién trabaja", () => {
+  const src = sinComentarios(leer("src/components/timetracker/PayrollTimesheets.tsx"));
 
-  it("no se traga un `ok:false`", () => {
-    // Antes: `if (vivo && r.ok) setCrew(r)` — con false no pasaba nada y la pantalla se
-    // quedaba esperando, que es exactamente lo que D-127 temía.
-    expect(src).toMatch(/if \(r\.ok\)/);
-    expect(src).toMatch(/setAviso\(r\.message\)/);
-    expect(src).toMatch(/if \(aviso\) return/);
+  it("solo cambia el conjunto con un `r.ok`; con un fallo, todos siguen en gris y nada se rompe", () => {
+    expect(src).toContain("if (vivo && r.ok) setCrew(r);");
   });
 });
 

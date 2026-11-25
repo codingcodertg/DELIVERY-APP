@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { summarize, type PayEntry } from "@/lib/clockin/payroll";
-import { hmm, hojaDeLaSemana } from "@/lib/clockin/hoja-semanal";
+import { esDiaDeHoy, hmm, hojaDeLaSemana, semanaContieneHoy } from "@/lib/clockin/hoja-semanal";
+import { hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
 import { turnosPorDia } from "@/lib/clockin/turnos-por-dia";
 
 // Texas en noviembre es CST (UTC-6). Semana de pago viernes 27-nov a jueves 3-dic, como la del Excel.
@@ -146,5 +147,35 @@ describe("hmm", () => {
   it("redondea al minuto y no baja de cero", () => {
     expect(hmm(481.6)).toBe("8:02");
     expect(hmm(-5)).toBe("0:00");
+  });
+});
+
+describe("hoy en la hoja · el día de Texas, no el de UTC", () => {
+  // Pago de viernes a jueves: la semana del 20 al 26 de noviembre de 2026.
+  const semana = ["2026-11-20", "2026-11-21", "2026-11-22", "2026-11-23", "2026-11-24", "2026-11-25", "2026-11-26"];
+
+  it("hoy dentro de la semana: esa fila es hoy, las demás no", () => {
+    expect(esDiaDeHoy("2026-11-25", "2026-11-25")).toBe(true);
+    expect(esDiaDeHoy("2026-11-24", "2026-11-25")).toBe(false);
+    expect(semanaContieneHoy(semana, "2026-11-25")).toBe(true);
+  });
+
+  it("hoy fuera de la semana: ninguna fila es hoy", () => {
+    expect(semanaContieneHoy(semana, "2026-11-27")).toBe(false);
+    expect(semana.some((dia) => esDiaDeHoy(dia, "2026-11-27"))).toBe(false);
+    expect(semanaContieneHoy(semana, "2026-11-19")).toBe(false);
+  });
+
+  it("de noche en Texas ya es otro día en UTC: manda Texas", () => {
+    // 2026-11-27 02:30 UTC = 26 de noviembre 20:30 en Texas (CST, UTC−6).
+    const instante = new Date("2026-11-27T02:30:00Z");
+    expect(hoyEnTexas(instante)).toBe("2026-11-26");
+    expect(instante.toISOString().slice(0, 10)).toBe("2026-11-27");
+    expect(esDiaDeHoy("2026-11-26", hoyEnTexas(instante))).toBe(true);
+    expect(esDiaDeHoy("2026-11-27", hoyEnTexas(instante))).toBe(false);
+  });
+
+  it("sin día (cadena vacía) nunca es hoy", () => {
+    expect(esDiaDeHoy("", "")).toBe(false);
   });
 });

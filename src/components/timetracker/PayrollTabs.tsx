@@ -1,43 +1,31 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { PayrollTimesheets } from "./PayrollTimesheets";
 import { ManagerReports } from "./ManagerReports";
 import { FiltrosDeNomina } from "./FiltrosDeNomina";
-import { TrabajandoAhora } from "./TrabajandoAhora";
 import type { Eleccion } from "@/lib/almacen-ops/rango-de-merma";
 import { useT } from "@/lib/timetracker/i18n";
 import { useData } from "@/lib/timetracker-data-provider";
-import {
-  guardarSeccionAbierta,
-  leerSeccionAbierta,
-  seccionAbierta,
-  type SeccionDeNomina,
-} from "@/lib/timetracker/trabajando-ahora-en-nomina";
 import type { DatosDeSemana } from "@/lib/timetracker/rango-de-nomina";
 
 /**
  * La nómina de un periodo, en UNA vista (D-190).
  *
- * Tuvo tres pestañas, luego dos (D-165: "Periodo", la foto de horas, y "Pago", el trabajo), y
- * las dos daban números distintos para lo que parecía la misma pregunta. Parte era a
- * propósito (horas contra dinero, D-102) y parte eran bugs; y la sección Remoto de Pago tenía
- * además su propio calendario, así que ni siquiera miraban la misma semana (D-164). Lo que
- * Periodo hacía bien —las dos vías lado a lado sin sumarlas, la marca `revisar`— se quitó el
- * 2026-11-24 con su bloque «Nómina · periodo». Hoy la vista se elige con la barra de arriba
- * (periodo, tienda y empleado, en la URL), y las secciones plegables van debajo.
+ * Arriba van los filtros (periodo, tienda y empleado) en una fila DENTRO de la página (2026-11-25: salieron de la
+ * barra de arriba, donde estorbaban a la marca). Después, las dos mitades plegables: remoto y presencial.
+ *
+ * «Trabajando ahora» salió de aquí el 2026-11-25: quién trabaja ahora se ve en el nombre de cada persona de
+ * «Hojas de tiempo» (verde si trabaja, gris si no) y ahí van primero.
  *
  * Las secciones **se montan al abrirse**, no antes: cada una pide sus propios datos y traer
  * los dos juegos para enseñar uno era pagar dos veces por una pantalla que se abre a diario.
- *
- * Encima de todo va «Trabajando ahora» (2026-11-24), plegada por defecto: antes era su propia
- * pestaña y se consolidó aquí. Solo la ven los admins, igual que antes.
  *
  * Las fotos de fichaje, las excepciones y las capturas de escritorio salieron de aquí el 2026-11-24
  * (decisión del dueño: la cámara de la tienda reemplaza las fotos, y las capturas se ven ahora desde el 🖥
  * de cada día o sesión remota de «Remoto»).
  */
-export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtro, revisar, vistaPorUrl = null, errorHoras = null }: {
+export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtro, revisar, errorHoras = null }: {
   /** Las semanas de pago del rango, la más antigua primero (una sola = se cierra, se paga y se aprueba). */
   semanas: string[];
   /** El rango pedido tenía más de catorce semanas y se recortó a las más recientes. */
@@ -48,8 +36,6 @@ export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtr
   filtro: { tienda: string | null; empleado: string | null };
   /** Ids de quien tiene horas por las dos vías este periodo (`period_hours.revisar`). */
   revisar: string[];
-  /** La URL trae `?vista=…`: esa sección empieza abierta. `null` si no pide ninguna. */
-  vistaPorUrl?: SeccionDeNomina | null;
   /** Si no se pudo leer `period_hours` (la marca «revisar»), el motivo: se avisa arriba de todo. */
   errorHoras?: string | null;
 }) {
@@ -70,11 +56,6 @@ export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtr
   return (
     <>
       {errorHoras && <div className="banner err" style={{ marginBottom: 12 }}>{t("nomina.errHoras", { msg: errorHoras })}</div>}
-      {me.role === "admin" && (
-        <SeccionDeNomina clave="ahora" titulo={t("tab.live")} porUrl={vistaPorUrl === "ahora"}>
-          <TrabajandoAhora soloUids={soloUids} />
-        </SeccionDeNomina>
-      )}
 
       <FiltrosDeNomina uid={me.id} eleccion={eleccion} etiqueta={etiqueta} hoy={hoy}
         tienda={filtro.tienda} empleado={filtro.empleado} datos={datos} />
@@ -90,75 +71,6 @@ export function PayrollTabs({ semanas, recortado, eleccion, etiqueta, hoy, filtr
         <PayrollTimesheets semanas={semanas} revisar={revisar} soloUids={soloUids} alCargarDatos={setDatos} />
       </Seccion>
     </>
-  );
-}
-
-/** El almacén del navegador, o null si no se puede abrir (navegador privado, iframe bloqueado...). */
-function almacenDelNavegador(): Storage | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Una sección plegable de Nómina, con cabecera de botón. La usa «Trabajando ahora». Su cuerpo (`children`) no se monta hasta que se abre, así que
- * lo que haga (sondeos, consultas de fotos o capturas) solo corre mientras la sección está abierta.
- *
- * Quién decide si está abierta: `seccionEstaAbierta` (URL > elección recordada > cerrada). La elección
- * de esta visita pesa más que la URL, para que plegarla de verdad la pliegue. La elección guardada se
- * lee después del montaje, para no dar un HTML distinto en el servidor y en el navegador.
- *
- * Si la URL la pide, la sección se lleva a la vista al montarse, una sola vez.
- */
-function SeccionDeNomina({ clave, titulo, porUrl, children }: {
-  clave: SeccionDeNomina;
-  titulo: string;
-  porUrl: boolean;
-  children: React.ReactNode;
-}) {
-  const [recordado, setRecordado] = useState<boolean | null>(null);
-  const [elegida, setElegida] = useState<boolean | null>(null);
-  const seccionRef = useRef<HTMLDivElement>(null);
-  const yaLlevada = useRef(false);
-
-  useEffect(() => {
-    setRecordado(leerSeccionAbierta(almacenDelNavegador(), clave));
-  }, [clave]);
-
-  useEffect(() => {
-    if (!porUrl || yaLlevada.current) return;
-    yaLlevada.current = true;
-    seccionRef.current?.scrollIntoView({ block: "start" });
-  }, [porUrl]);
-
-  const abierta = seccionAbierta({ elegida, porUrl, recordado });
-  function alternar() {
-    const nueva = !abierta;
-    setElegida(nueva);
-    guardarSeccionAbierta(almacenDelNavegador(), clave, nueva);
-  }
-
-  const cuerpo = `tt-nomina-${clave}-cuerpo`;
-  return (
-    <div ref={seccionRef} className="card tt-seccion" style={{ marginBottom: 16 }} data-seccion-de-nomina={clave}>
-      <h2 className="tt-seccion-titulo">
-        <button
-          type="button"
-          className="tt-seccion-cabecera"
-          data-seccion-de-nomina={clave}
-          data-trabajando-ahora={clave === "ahora" ? true : undefined}
-          aria-expanded={abierta}
-          aria-controls={abierta ? cuerpo : undefined}
-          onClick={alternar}
-        >
-          <span className="tt-seccion-marca" aria-hidden="true">{abierta ? "▾" : "▸"}</span>
-          <span className="tt-seccion-texto">{titulo}</span>
-        </button>
-      </h2>
-      {abierta && <div id={cuerpo} className="tt-seccion-cuerpo">{children}</div>}
-    </div>
   );
 }
 

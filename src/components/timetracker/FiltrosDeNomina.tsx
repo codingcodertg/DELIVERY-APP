@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { HUECO_DE_LA_BARRA } from "@/components/BarraDeApp";
 import { MenuDeFecha } from "@/components/MenuDeFecha";
 import type { Eleccion } from "@/lib/almacen-ops/rango-de-merma";
 import { parametrosDeRango, rangoDeLaEleccion, type DatosDeSemana } from "@/lib/timetracker/rango-de-nomina";
@@ -13,8 +11,7 @@ import { getLang, useT } from "@/lib/timetracker/i18n";
 const claveDeFiltros = (uid: string) => `tt-nomina-filtros:${uid}`;
 
 /**
- * Los filtros de Nómina: periodo (menú de fechas), tienda y empleado. Van DENTRO de la barra de arriba, justo después
- * de la marca (`HUECO_DE_LA_BARRA`), en una sola fila. Sin hueco (primer pintado), salen como fila de la página.
+ * Los filtros de Nómina: periodo (menú de fechas), tienda y empleado. Van en la PÁGINA, arriba de «Hojas de tiempo» (2026-11-25: ya no van en la barra de arriba), en una fila (en un teléfono, la fila se parte).
  *
  * La URL manda: el periodo (`?period=` o `?desde=&hasta=`), la tienda (`?tienda=`) y el empleado (`?empleado=`).
  * Cambiar cualquiera navega con esos parámetros; la pantalla los lee del servidor y de la URL, no de un estado propio.
@@ -34,8 +31,6 @@ export function FiltrosDeNomina({ uid, eleccion, etiqueta, hoy, tienda, empleado
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const [hueco, setHueco] = useState<HTMLElement | null>(null);
-  useEffect(() => { setHueco(document.getElementById(HUECO_DE_LA_BARRA)); }, []);
 
   // Sin parámetros, la visita abre con lo último que eligió esta persona (si lo hubo).
   useEffect(() => {
@@ -111,7 +106,7 @@ export function FiltrosDeNomina({ uid, eleccion, etiqueta, hoy, tienda, empleado
   }
 
   const bloque = (
-    <div className="tt-nomina-en-la-barra" data-nomina-en-la-barra>
+    <div className="tt-nomina-en-la-pagina" data-nomina-en-la-pagina>
       <MenuDeFecha eleccion={eleccion} etiqueta={etiqueta} onElegir={elegirAtajo} lang={lang} titulo={t("nomina.periodo")} />
       {eleccion.atajo === "otro" && (
         <>
@@ -134,6 +129,5 @@ export function FiltrosDeNomina({ uid, eleccion, etiqueta, hoy, tienda, empleado
     </div>
   );
 
-  // Dentro de la barra, en la ranura de la marca; si la barra no tiene ranura, es una fila más de la página.
-  return hueco ? createPortal(bloque, hueco) : <div className="tt-fila-de-nomina" data-fila-de-nomina>{bloque}</div>;
+  return bloque;
 }

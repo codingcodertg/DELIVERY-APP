@@ -25,7 +25,6 @@
   --tt-hoja-crema:color-mix(in srgb, var(--amber) 8%, var(--paper)); --tt-hoja-crema-txt:var(--text);
   --tt-hoja-nombre:#ffd83d; --tt-hoja-nombre-txt:#111111;
   --tt-hoja-sobre:color-mix(in srgb, var(--red) 28%, var(--card)); --tt-hoja-sobre-txt:var(--text);
-  --tt-hoja-domingo:color-mix(in srgb, var(--text) 10%, var(--card)); --tt-hoja-domingo-txt:var(--text);
 }
 :root[data-theme="light"] .timetracker-module .btn-ok{color:#053d2b}
 :root[data-theme="light"] .timetracker-module .btn-warn{color:#4a3200}
@@ -79,14 +78,29 @@
 .timetracker-module table{width:100%;border-collapse:collapse;font-size:13.5px}
 /* La hoja semanal (2026-11-24): cada bloque es una tabla ESTÁNDAR (TablaEstandar, id tt-hoja-semanal) con su cabecera y su pie
    fuera de la tabla. Las tintas van en las celdas por su clase de columna (tt-hoja-trabajo, tt-hoja-fuera, tt-hoja-celda) y
-   la fila de domingo por su clase de fila (tt-hoja-domingo). El ancho en el teléfono lo pone la tabla estándar. */
+   la fila de hoy por su clase de fila (tt-hoja-hoy). El ancho en el teléfono lo pone la tabla estándar. */
 .timetracker-module .tt-hoja-bloque{margin-top:12px}
 .timetracker-module .tt-hoja-cabecera{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-.timetracker-module .tt-hoja-nombre{display:inline-block;background:var(--tt-hoja-nombre);color:var(--tt-hoja-nombre-txt);font-weight:800;font-size:14px;padding:4px 12px;border-radius:6px}
+.timetracker-module .tt-hoja-nombre{font-size:14px;padding:4px 12px}
 .timetracker-module table.tt-hoja td.tt-hoja-celda{background:var(--tt-hoja-crema);color:var(--tt-hoja-crema-txt)}
 .timetracker-module table.tt-hoja td.tt-hoja-trabajo{background:var(--tt-hoja-trabajo);color:var(--tt-hoja-trabajo-txt);font-weight:700}
 .timetracker-module table.tt-hoja td.tt-hoja-fuera{background:var(--tt-hoja-fuera);color:var(--tt-hoja-fuera-txt);font-weight:700}
-.timetracker-module table.tt-hoja tr.tt-hoja-domingo td{background:var(--tt-hoja-domingo);color:var(--tt-hoja-domingo-txt)}
+.timetracker-module /* Hoy (2026-11-25): la fila del día de hoy (día de Texas) lleva una barra a la izquierda y un velo suave. El velo solo va en las
+   celdas SIN tinta de columna, así que el beige, el verde y el naranja se siguen leyendo. Domingo ya no tiene gris. */
+.timetracker-module table.tt-hoja tr.tt-hoja-hoy td:first-child{box-shadow:inset 4px 0 0 var(--tt-ok)}
+.timetracker-module table.tt-hoja tr.tt-hoja-hoy td:not(.tt-hoja-celda):not(.tt-hoja-trabajo):not(.tt-hoja-fuera){background:color-mix(in srgb, var(--tt-ok) 14%, var(--tt-panel))}
+.timetracker-module table.tt-hoja tr.tt-hoja-hoy td:nth-child(-n+2){font-weight:800}
+/* Quién trabaja ahora: el nombre en verde; los demás, en gris. Los mismos tokens en la hoja y en la tabla. */
+.timetracker-module .tt-nombre-de-trabajo{display:inline-block;border-radius:6px;padding:2px 9px;font-weight:800;background:var(--tt-hoja-grupo);color:var(--tt-hoja-grupo-txt)}
+.timetracker-module .tt-nombre-de-trabajo[data-trabajando="si"]{background:var(--tt-ok);color:var(--tt-hoja-nombre-txt)}
+/* Filtros de Nómina (2026-11-25): periodo, tienda y empleado en una fila DENTRO de la página, arriba de «Hojas de tiempo».
+   En el escritorio caben en una fila; en el teléfono se parten en varias, sin que la página se mueva a los lados. */
+.timetracker-module .tt-nomina-en-la-pagina{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px;min-width:0;max-width:100%;font-size:13px}
+.timetracker-module .tt-nomina-en-la-pagina .ops-menu-fecha{flex:0 0 auto}
+.timetracker-module .tt-nomina-en-la-pagina .ops-menu-fecha > .chip{background:var(--tt-panel);color:var(--tt-txt);border:1px solid var(--tt-line);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:700;line-height:1.3;white-space:nowrap;cursor:pointer}
+.timetracker-module .tt-nomina-en-la-pagina .tt-nomina-select{width:auto;flex:0 1 auto;min-width:150px;max-width:240px;padding:6px 8px;font-size:13px;background:var(--tt-panel);color:var(--tt-txt);border:1px solid var(--tt-line);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.timetracker-module .tt-nomina-en-la-pagina .tt-nomina-fecha{width:auto;min-width:0;padding:5px 6px;font-size:13px;background:var(--tt-panel);color:var(--tt-txt);border:1px solid var(--tt-line)}
+.timetracker-module .tt-nomina-en-la-pagina .ops-menu-fecha-lista{z-index:80}
 .timetracker-module .tt-hoja-marca{margin-left:4px;font-size:11px;font-weight:700;cursor:help}
 .timetracker-module .tt-hoja-pie{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:8px}
 .timetracker-module .tt-hoja-pie>span{padding:4px 10px;border-radius:6px}
@@ -381,12 +395,6 @@
   grid-template-rows:auto auto auto auto auto auto;
 }
 .timetracker-module .live-name{font-weight:800;font-size:15px}
-/* «Trabajando ahora» (2026-11-24): activos en verde (el token de verde del módulo) y sin actividad en negro (el texto
-   normal, que en tema oscuro sale claro). Sin colores nuevos: son los tokens que ya usa el módulo. */
-.timetracker-module .tt-ahora-activo .live-name{color:var(--tt-ok)}
-.timetracker-module .tt-ahora-inactivo{color:var(--tt-txt)}
-.timetracker-module .tt-ahora-inactivo .live-name{color:var(--tt-txt);font-weight:700}
-.timetracker-module .tt-ahora-punto{font-size:12px}
 .timetracker-module .live-tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:22px}
 .timetracker-module .live-sub{font-size:12px;color:var(--tt-muted);min-height:16px;
      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -483,41 +491,6 @@
 /* Registrar tiempo (D-1168): «Schedule» y «My week» son secciones con su título en el encabezado plegable. El título
    propio de la primera tarjeta de cada una decía lo mismo justo debajo: se esconde aquí, y solo aquí. */
 .timetracker-module div[data-seccion-de-registrar] .tt-seccion-cuerpo > .card:first-child h2:first-of-type{display:none}
-/* Nómina (2026-11-24): el periodo, la tienda y el empleado van EN la barra, justo después de la marca, en una fila desde
-   701 px. Se encogen en este orden: primero el empleado, luego la tienda (las pestañas, como en D-1172). Bajo 701 px, el
-   bloque baja a su propia fila dentro de la barra, como en Leads. Las reglas de la marca siguen en globals.css. */
-.timetracker-module .ops-menu-fecha{position:relative;display:inline-block}
-.timetracker-module .ops-menu-fecha-lista{position:absolute;top:calc(100% + 4px);left:0;z-index:60;min-width:220px;max-width:calc(100vw - 32px);
-  display:grid;padding:4px;background:var(--tt-panel);border:1px solid var(--tt-line);border-radius:10px;
-  box-shadow:0 8px 24px color-mix(in srgb, var(--tt-txt) 18%, transparent)}
-.timetracker-module .ops-menu-fecha-opcion{text-align:left;padding:8px 10px;border:0;background:none;border-radius:6px;font:inherit;cursor:pointer;color:var(--tt-txt)}
-.timetracker-module .ops-menu-fecha-opcion:hover,.timetracker-module .ops-menu-fecha-opcion:focus-visible{background:color-mix(in srgb, var(--tt-txt) 8%, transparent)}
-.timetracker-module .ops-menu-fecha-opcion.activa{font-weight:700}
-.timetracker-module .tt-fila-de-nomina{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px}
-.timetracker-module .topbar .topbar-hueco:has(.tt-nomina-en-la-barra){display:flex;flex:1 1 auto;justify-content:flex-start;align-items:center;min-width:0;margin-left:8px}
-.timetracker-module .tt-nomina-en-la-barra{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;min-width:0;max-width:100%;font-size:13px}
-.timetracker-module .tt-nomina-en-la-barra .chip{white-space:nowrap;cursor:pointer}
-.timetracker-module .tt-nomina-en-la-barra .tt-nomina-select{width:auto;min-width:0;max-width:200px;padding:5px 8px;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.timetracker-module .tt-nomina-en-la-barra .tt-nomina-fecha{width:auto;min-width:0;padding:4px 6px;font-size:12px}
-@media(min-width:701px) and (max-width:1360px){
-  .timetracker-module .tt-nomina-en-la-barra select[data-empleado-de-nomina]{max-width:150px}
-}
-@media(min-width:701px) and (max-width:1240px){
-  .timetracker-module .tt-nomina-en-la-barra select[data-empleado-de-nomina]{max-width:110px}
-  .timetracker-module .tt-nomina-en-la-barra select[data-tienda-de-nomina]{max-width:130px}
-}
-@media(min-width:701px) and (max-width:900px){
-  .timetracker-module .tt-nomina-en-la-barra{gap:4px;font-size:12px}
-  .timetracker-module .tt-nomina-en-la-barra select[data-empleado-de-nomina]{max-width:90px;padding:4px 6px;font-size:12px}
-  .timetracker-module .tt-nomina-en-la-barra select[data-tienda-de-nomina]{max-width:100px;padding:4px 6px;font-size:12px}
-}
-@media(max-width:700px){
-  .timetracker-module .topbar:has(.tt-nomina-en-la-barra){position:relative;padding-bottom:62px}
-  .timetracker-module .topbar .topbar-hueco:has(.tt-nomina-en-la-barra){position:absolute;left:12px;right:12px;bottom:9px;margin-left:0}
-  .timetracker-module .tt-nomina-en-la-barra{flex-wrap:wrap}
-  .timetracker-module .tt-nomina-en-la-barra .tt-nomina-select{max-width:none;flex:1 1 140px}
-}
-
 /* D-1172 (el dueño, 2026-11-24, con la barra del admin partida en dos: el nombre de la app arriba y las pestañas abajo):
    «que todo quede en la misma row». Desde 701 px la barra NO se parte: el nombre de la app, la casa, las pestañas, la
    campana y la cuenta van en UNA fila. Para caber se va encogiendo por tramos: menos relleno y letra; el nombre de la
@@ -547,11 +520,3 @@
   .timetracker-module .topbar .tabs a,.timetracker-module .topbar .tabs button{padding:5px 4px;font-size:11.5px}
   .timetracker-module .topbar .tt-campana>button{padding:5px 6px}
 }
-
-/* Los filtros de Nómina en la barra, vistos en pantalla (2026-11-24): el botón de fecha heredaba el blanco de la barra sobre
-   un fondo claro (no se leía) y los dos desplegables se encogían hasta «…». El botón lleva el fondo y la tinta de un campo;
-   los desplegables no bajan de un ancho en el que todavía se lee algo. */
-.timetracker-module .tt-nomina-en-la-barra .ops-menu-fecha{flex:0 0 auto}
-.timetracker-module .tt-nomina-en-la-barra .ops-menu-fecha > .chip{background:var(--tt-panel);color:var(--tt-txt);border:1px solid var(--tt-line);border-radius:8px;padding:5px 10px;font-size:13px;font-weight:700;line-height:1.3}
-.timetracker-module .tt-nomina-en-la-barra .tt-nomina-select{flex:0 1 auto;min-width:104px;background:var(--tt-panel);color:var(--tt-txt)}
-.timetracker-module .tt-nomina-en-la-barra .ops-menu-fecha-lista{z-index:80}

@@ -38,17 +38,17 @@ describe("la hoja semanal usa la tabla estándar, un bloque por persona y semana
     expect(hoja).not.toMatch(/<thead|<tbody|<tfoot/);
   });
 
-  it("el orden por defecto es por fecha, y las celdas y la fila de domingo tienen su clase", () => {
+  it("el orden por defecto es por fecha, y las celdas y la fila de hoy tienen su clase", () => {
     expect(hoja).toContain('ordenInicial={{ clave: "dia", direccion: "asc" }}');
     expect(hoja).toContain('claseTabla="tt-hoja"');
     expect(hoja).toContain('"num tt-hoja-trabajo"');
     expect(hoja).toContain('"num tt-hoja-fuera"');
     expect(hoja).toContain('"tt-hoja-celda"');
-    expect(hoja).toContain('"tt-hoja-domingo"');
+    expect(hoja).toContain('"tt-hoja-hoy"');
   });
 
   it("cabecera con el nombre y la semana, y pie con OVER o AT OR BELOW, TOT HRS y el total", () => {
-    expect(hoja).toContain('className="tt-hoja-nombre"');
+    expect(hoja).toContain('className="tt-hoja-nombre tt-nombre-de-trabajo"');
     expect(hoja).toContain('className="tt-hoja-total"');
     expect(hoja).toContain('t("hoja.over")');
     expect(hoja).toContain('t("hoja.atOrBelow")');
@@ -64,7 +64,7 @@ describe("la hoja semanal usa la tabla estándar, un bloque por persona y semana
 
 describe("timetracker.css declara los tokens de la hoja desde la paleta del hub (sin bloque claro propio)", () => {
   const css = leer("src/app/timetracker/timetracker.css");
-  const tokens = ["grupo", "trabajo", "fuera", "crema", "nombre", "sobre", "domingo"];
+  const tokens = ["grupo", "trabajo", "fuera", "crema", "nombre", "sobre"];
 
   it("cada token está declarado en el bloque del módulo, y no hay bloque claro aparte", () => {
     for (const t of tokens) {
