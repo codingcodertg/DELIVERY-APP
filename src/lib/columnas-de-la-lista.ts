@@ -45,11 +45,8 @@ export const COLUMNAS_PESADAS: readonly (keyof Delivery)[] = ["photos", "photo_m
 /** Las columnas de la lista, separadas por comas, para `.select(...)`. */
 /** Columnas que la base puede no tener todavía (D-722: `plan_rank`, 208): se piden aparte con `leeConOpcionales`, y si
  *  faltan la lista llega sin ellas en vez de no llegar. `photo_count` (177) tiene su propio camino de antes. */
-export const COLUMNAS_OPCIONALES_DE_LA_LISTA: readonly (keyof Delivery)[] = ["plan_rank", "pickup_point_lat", "pickup_point_lng", "customer_id", "relay_step", "return_to_store_at", "return_to_store_by", "done_sort_at"];
-/** Columnas que la lista NO pide todavía: `route_fixed` (348) se comprueba aparte (`hayAutoOptimizar`), para no
- *  meterla en la consulta de la lista hasta que la pantalla la use. */
-export const COLUMNAS_FUERA_DE_LA_LISTA: readonly (keyof Delivery)[] = ["route_fixed"];
-export const COLUMNAS_DE_LA_LISTA = COLUMNAS_DE_DELIVERY.filter((c) => !COLUMNAS_PESADAS.includes(c) && !COLUMNAS_OPCIONALES_DE_LA_LISTA.includes(c) && !COLUMNAS_FUERA_DE_LA_LISTA.includes(c)).join(",");
+export const COLUMNAS_OPCIONALES_DE_LA_LISTA: readonly (keyof Delivery)[] = ["plan_rank", "pickup_point_lat", "pickup_point_lng", "customer_id", "relay_step", "return_to_store_at", "return_to_store_by", "done_sort_at", "route_fixed"];
+export const COLUMNAS_DE_LA_LISTA = COLUMNAS_DE_DELIVERY.filter((c) => !COLUMNAS_PESADAS.includes(c) && !COLUMNAS_OPCIONALES_DE_LA_LISTA.includes(c)).join(",");
 
 
 /**
@@ -57,7 +54,7 @@ export const COLUMNAS_DE_LA_LISTA = COLUMNAS_DE_DELIVERY.filter((c) => !COLUMNAS
  * columna que no existe tumba la lista entera —lo mismo que se está arreglando—. Sin conteo, la lista cuenta 0 fotos.
  */
 export const COLUMNAS_DE_LA_LISTA_SIN_CONTEO = COLUMNAS_DE_DELIVERY
-  .filter((c) => !COLUMNAS_PESADAS.includes(c) && !COLUMNAS_OPCIONALES_DE_LA_LISTA.includes(c) && !COLUMNAS_FUERA_DE_LA_LISTA.includes(c) && c !== "photo_count").join(",");
+  .filter((c) => !COLUMNAS_PESADAS.includes(c) && !COLUMNAS_OPCIONALES_DE_LA_LISTA.includes(c) && c !== "photo_count").join(",");
 
 /** ¿El error es «esa columna no existe» por `photo_count` (la 177 sin aplicar)? Postgres: 42703. */
 export function faltaPhotoCount(e: { code?: string | null; message?: string | null } | null | undefined): boolean {
