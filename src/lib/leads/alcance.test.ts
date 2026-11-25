@@ -239,7 +239,7 @@ describe("5 · la pantalla pinta lo que el alcance dice", () => {
   });
   it("el selector de tienda solo se dibuja si eligeTienda; si no, su tienda fija y sin los otros bancos", () => {
     expect(p).toContain("const elige = eligeTienda(alcance);");
-    const desde = p.indexOf("{elige ? (");
+    const desde = p.indexOf("const selectorDeTienda = elige ? (");
     const medio = p.indexOf(") : (", desde);
     const fijo = p.indexOf("data-pool-fijo", desde);
     expect(desde).toBeGreaterThan(0);

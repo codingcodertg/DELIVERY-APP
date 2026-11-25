@@ -286,6 +286,34 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   // Los controles de la fila 1: las pestañas, la tienda (o la fija) y la semana. Con la barra de arriba, suben a ella por un
   // portal (ver `hueco`); sin barra se quedan en su fila de siempre. Mismo bloque en los dos sitios.
   const enPoolTab = pestana === "banco";
+  // El selector de tienda (o la tienda fija de quien no elige): va en la fila de filtros, no en la barra de arriba.
+  const selectorDeTienda = elige ? (
+    <label className="ld-selector" title={t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")}>
+      <span aria-hidden="true">🏬</span>
+      <select data-pool value={pool ?? ""} aria-label={t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")} onChange={(e) => { setPool(e.target.value); setPoolAMano(true); }}>
+        {pools.length > 1 && (() => {
+          const todas = resumenDeTodas(pools);
+          return (
+            <option value={POOL_TODAS}>
+              {t("All stores", "Todas las tiendas")} — {todas.total} {t("leads", "leads")}
+            </option>
+          );
+        })()}
+        {pools.map((p) => (
+          <option key={p.pool} value={p.pool}>
+            {poolLabel(p.pool, lang)} — {p.total} {t("leads", "leads")}
+          </option>
+        ))}
+      </select>
+    </label>
+  ) : (
+    /* Su tienda y, si ve el STXP, la más cercana que le toque (D-770): se nombran las que le tocan, en orden. */
+    <p className="ld-selector ld-fijo" data-pool-fijo>
+      {t("Leads of your store", "Leads de tu tienda")}
+      <br />
+      <b>{pools.length ? pools.map((p) => `${poolLabel(p.pool, lang)} (${p.total})`).join(" → ") : (alcance.tienda ? poolLabel(alcance.tienda, lang) : "—")}</b>
+    </p>
+  );
   const bloque = (
     <div className="ld-en-la-barra" data-leads-en-la-barra>
       <div className="ld-pestanas" role="tablist">
@@ -307,33 +335,6 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
       <div className="ld-en-la-barra-selectores">
         {enPoolTab && (
           <>
-            {elige ? (
-              <label className="ld-selector" title={t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")}>
-                <span aria-hidden="true">🏬</span>
-                <select data-pool value={pool ?? ""} aria-label={t("GOV Pool (nearest store)", "GOV Pool (tienda más cercana)")} onChange={(e) => { setPool(e.target.value); setPoolAMano(true); }}>
-                  {pools.length > 1 && (() => {
-                    const todas = resumenDeTodas(pools);
-                    return (
-                      <option value={POOL_TODAS}>
-                        {t("All stores", "Todas las tiendas")} — {todas.total} {t("leads", "leads")}
-                      </option>
-                    );
-                  })()}
-                  {pools.map((p) => (
-                    <option key={p.pool} value={p.pool}>
-                      {poolLabel(p.pool, lang)} — {p.total} {t("leads", "leads")}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : (
-              /* Su tienda y, si ve el STXP, la más cercana que le toque (D-770): se nombran las que le tocan, en orden. */
-              <p className="ld-selector ld-fijo" data-pool-fijo>
-                {t("Leads of your store", "Leads de tu tienda")}
-                <br />
-                <b>{pools.length ? pools.map((p) => `${poolLabel(p.pool, lang)} (${p.total})`).join(" → ") : (alcance.tienda ? poolLabel(alcance.tienda, lang) : "—")}</b>
-              </p>
-            )}
             {veStxp && semanasSTXP.semanas.length > 0 && (
               <label className="ld-selector" data-semana-stxp title={t("Week", "Semana")}>
                 <select data-semana value={String(semanaActiva)} aria-label={t("Week", "Semana")} onChange={(e) => eligeSemana(e.target.value)}>
@@ -457,6 +458,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                       🤝 {t("Match customers", "Coinciden con clientes")} <span className="ld-cuenta">{delOrigen.filter(coincideConCliente).length}</span>
                     </button>
                   )}
+                  {/* D-1174 (el dueño): el selector de tienda va en esta fila, a la derecha de «Match customers» y a la izquierda. */}
+                  {enPoolTab && selectorDeTienda}
                 </div>
                 {/* Fila 3 (como Merma): el buscador a la izquierda; los filtros, compactos y en línea (cada uno dice
                     su nombre en el título y en la primera opción); «Quitar filtros» a la derecha. */}

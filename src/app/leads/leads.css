@@ -279,7 +279,7 @@
 .leads-app .ld-selector { display: inline-flex; align-items: center; gap: 4px; margin: 0; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
 .leads-app .ld-fijo { padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); line-height: 1.35; font-size: 12.5px; color: var(--ink-soft); }
 .leads-app .ld-fijo b { color: var(--text); font-size: 13px; }
-.leads-app .ld-fila-de-filtros select, .leads-app .ld-filtros .ld-barra select {
+.leads-app .ld-fila-de-filtros select, .leads-app .ld-filtros .ld-barra select, .leads-app .ld-etapas select {
   width: auto; max-width: 190px; min-height: 36px; padding: 6px 8px; font-size: 13px; font-weight: 600;
   border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text);
 }
@@ -310,10 +310,10 @@
 /* La lista que se abre: sus opciones se leen como en la página (texto oscuro sobre tarjeta clara). */
 .topbar .ld-en-la-barra select option { color: var(--text); background: var(--card); }
 /* La tienda fija: texto suelto, sin cajita. Su nombre y las tiendas van en una línea; si no caben, se corta con «…». */
-.topbar .ld-en-la-barra .ld-fijo { display: block; max-width: 360px; min-height: 34px; margin: 0; padding: 0; line-height: 34px; font-size: 12.5px; font-weight: 600; border: 0; background: none; color: var(--ld-barra-tinta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.topbar .ld-en-la-barra .ld-fijo br { display: none; }
-.topbar .ld-en-la-barra .ld-fijo b { color: inherit; font-size: inherit; }
-.topbar .ld-en-la-barra .ld-fijo b::before { content: " · "; opacity: .75; }
+/* La tienda fija (quien no elige) va en la fila de filtros, junto a «Match customers»: en una línea, sin salto. */
+.leads-app .ld-etapas .ld-fijo { display: inline-flex; align-items: center; gap: 4px; margin: 0; white-space: nowrap; }
+.leads-app .ld-etapas .ld-fijo br { display: none; }
+.leads-app .ld-etapas .ld-fijo b::before { content: " · "; opacity: .75; }
 /* 701 px y más: TODO en una fila de la barra, sin partirse (el dueño, al verlo: «pero todo en una misma row, recuerda»;
    lo mismo que pidió para Time Tracker, D-1172). Para caber se encoge por tramos: el nombre de la persona se queda en
    su burbuja, las pestañas pierden relleno y los desplegables se estrechan (su texto se corta con «…»). Lo que toca a
@@ -371,7 +371,7 @@
 }
 .leads-app .ld-filtros .ld-barra [data-quitar-filtros] { flex: 0 0 auto; margin-left: auto; min-height: 36px; }
 @media (max-width: 699px) {
-  .leads-app .ld-fila-de-filtros select, .leads-app .ld-filtros .ld-barra select { font-size: 16px; }
+  .leads-app .ld-fila-de-filtros select, .leads-app .ld-filtros .ld-barra select, .leads-app .ld-etapas select { font-size: 16px; }
   .leads-app .ld-filtros .ld-barra input[type="search"] { flex-basis: 100%; max-width: none; }
   .leads-app .ld-filtros .ld-barra [data-quitar-filtros] { margin-left: 0; }
 }
