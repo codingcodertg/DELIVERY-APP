@@ -209,7 +209,7 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
       expect(fila).toContain('{numeroDeParada(k, hecho)}{hecho ? "✓" : "🚚"}{dia.etiqueta[k]}</td>');
       expect(fila).toContain("const hora = hecho ? horaReal(d, fp.tipo) : null;");
       expect(fila).toContain("data-hora-real={hora ?? \"\"}");
-      expect(fila).toContain("{facturaConSuId(d)}{etiquetaDeLaCarga(d)}");
+      expect(fila).toContain("{facturaDeLaParada(d)}{etiquetaDeLaCarga(d)}");
       // D-1116: la única excepción, ↑ ↓ SOLO para el admin y solo en una entrega ya entregada (cambian su orden, no la hora real).
       expect(fila).toContain('{me.role === "admin" && fp.tipo === "D" && hecho && !soloLectura && (');
       expect(fila).toContain("onClick={() => void mueveEntregada(d, k, -1)}");

@@ -586,6 +586,12 @@ table.orders tr.fila-hecha .ordno span[data-abre-la-orden] { font-weight: 600 !i
   font-size: 11px; font-weight: 500; font-family: inherit; color: var(--gray); text-decoration: none;
 }
 table.orders tr.fila-plan-recoger .factura-e-id > [data-id-de-la-orden], table.orders tr.fila-plan-entregar .factura-e-id > [data-id-de-la-orden] { color: var(--ink-soft); }
+/* D-1187: en la tabla de paradas, la PO va bajo la factura donde iba el ID (`facturaDeLaParada`): mismo aspecto. */
+.factura-e-id > [data-po-de-la-orden] {
+  flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  font-size: 11px; font-weight: 500; font-family: inherit; color: var(--gray); text-decoration: none;
+}
+table.orders tr.fila-plan-recoger .factura-e-id > [data-po-de-la-orden], table.orders tr.fila-plan-entregar .factura-e-id > [data-po-de-la-orden] { color: var(--ink-soft); }
 /* `.parada-id` y `.parada-factura` (D-379, el código arriba y la factura debajo en la celda del ID de las paradas) se
    quitaron en D-408: esa celda enseña solo la factura, subrayada con el mismo gesto que en «Sin asignar». */
 /* Una etiqueta P/D provisional (D-379): la de una ruta que nadie ha ordenado todavía. Mismo texto que la definitiva, en

@@ -98,6 +98,7 @@ import { lecturaConLoHecho } from "@/lib/route-plan/lectura-del-gestor";
 import { puntosDelTrazoPublicado } from "@/lib/route-plan/trazo-del-plan";
 import { usePlanPublicadoDelGestor } from "@/lib/route-plan/usePlanPublicado";
 import { facturaYId, nombraLaOrden } from "@/lib/route-plan/etiqueta";
+import { textoBajoLaFactura, tituloDeLaFactura } from "@/lib/po-en-la-factura";
 import {
   COLUMNAS_DEL_GESTOR_POR_DEFECTO, LLAVE_DE_ANCHOS_DE_PARADAS, alternaColumna, anchoDePartida, anchoDePartidaDeParada, anchoDelNumeroDeParada, claveDelOrdenEnElNavegador,
   columnaDeOrdenes, columnasDeLaTabla, columnasDePlantillaDelGestor, columnasDelSelector, columnasDelSelectorDeLasOrdenes, columnasDeLasOrdenes, preferenciasDelGestorAlLeer, fotoDePlantillaDelGestor,
@@ -2301,6 +2302,25 @@ export default function RoutesPage() {
     );
   };
 
+  // D-1187 (2026-11-25, «quiero que se miren los po en vez del orden id»): en la tabla de PARADAS, bajo la factura va la PO
+  // (`PO 7781`, gris, donde iba el ID). Sin PO no va nada debajo, y el ID se queda en el `title` del enlace. Sin factura
+  // (D-408) el ID sigue siendo el texto principal, y debajo va la PO si la hay. `facturaConSuId` no cambia: sigue con el ID
+  // en «Sin asignar» y «Todas» y en las demás tablas.
+  const facturaDeLaParada = (d: Delivery) => {
+    const n = facturaYId(d);
+    const gesto = abreLaOrden(d);
+    const codigo = `#${orderLabel(d)}`;
+    const po = textoBajoLaFactura(d);
+    const titulo = tituloDeLaFactura(d, codigo, lang === "es");
+    return (
+      <span className="factura-e-id">
+        <span {...gesto} data-abre-la-orden data-factura={n.esFactura ? "" : undefined} style={n.esFactura ? { ...gesto.style, fontWeight: 700 } : { ...gesto.style, color: "var(--gray)" }}
+          title={n.esFactura && !po ? [gesto.title, titulo].filter(Boolean).join(" · ") : gesto.title}>{n.principal}</span>
+        {po && <span data-po-de-la-orden title={titulo}>{po}</span>}
+      </span>
+    );
+  };
+
   // ---- Las cargas de una orden (D-452, 157) ----------------------------------------------------------------------
   // Una orden que no cabe en el camión se parte en órdenes hermanas (#Xa, #Xb): cada carga es una fila, con su P y su D,
   // sus flechas y su «Pasar a…». Aquí solo lo que la fila enseña y los tres gestos: partir (si no cabe), repartir los
@@ -4421,7 +4441,7 @@ export default function RoutesPage() {
               {/* Su número de parada del día y su etiqueta (D-529; hasta aquí, solo «✓P» / «🚚D»): el dueño, «when a order is
                   delviered dont take the number of the stop away». El ✓ o el 🚚 siguen diciendo que está hecha o en camino. */}
               <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(k, hecho)}{hecho ? "✓" : "🚚"}{dia.etiqueta[k]}</td>
-              <td className="ordno">{facturaConSuId(d)}{etiquetaDeLaCarga(d)}</td>
+              <td className="ordno">{facturaDeLaParada(d)}{etiquetaDeLaCarga(d)}</td>
               {/* Lo que movió, sin el «= a bordo»: no cuenta en la carga pendiente. */}
               <td data-cuenta style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", fontSize: 12 }}>{fp.tipo === "P" ? "+" : "−"}{numeroDePallets(palletsDeLaOrden(d))}</td>
               {colsParadas.map((c) => celdaDeParada(c, d, {
@@ -4976,7 +4996,7 @@ export default function RoutesPage() {
                             </td>
                             {/* D-592: el 📅 de «Reprogramar» (D-500/D-574) también aquí, en la tabla de paradas, junto a cada factura. El
                                 dueño: «Route Manager view needs the calendar icon to reschedule». Misma condición que en la tabla de órdenes. */}
-                            <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{facturaConSuId(x)}{iconoDeReprogramar(x)}{etiquetaDeLaCarga(x)}</Fragment>)}</td>
+                            <td className="ordno">{suyas.map((x, k) => <Fragment key={x.id}>{k > 0 && " · "}{facturaDeLaParada(x)}{iconoDeReprogramar(x)}{etiquetaDeLaCarga(x)}</Fragment>)}</td>
                             {celdaDeCuenta}
                             {/* D-446: el Tipo de la P es el de su orden, como en la D. D-447 corrige el sitio de la tienda: va en la
                                 Ciudad de RECOGIDA, sin la palabra «Recoger», y la Ciudad de entrega dice la de su orden. El dueño,
@@ -5009,7 +5029,7 @@ export default function RoutesPage() {
                         return (
                           <tr key={`D2-${fi}-${d.id}`} className={claseDeLaFilaDelPlan("D") || undefined}>
                             <td style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>{numeroDeParada(k)}{etiquetaDeLaFila}{pinDeLaParada(k)}</td>
-                            <td className="ordno">{facturaConSuId(d)}{iconoDeReprogramar(d)}</td>
+                            <td className="ordno">{facturaDeLaParada(d)}{iconoDeReprogramar(d)}</td>
                             {celdaDeCuenta}
                             <td colSpan={colsParadas.length}>{t("Deliver another load of", "Entregar otra carga de")} {nombraLaOrden(deliveries, d.id, lang === "es")}</td>
                             <td className="celda-acciones" />
@@ -5055,7 +5075,7 @@ export default function RoutesPage() {
                           </td>
                           {/* La factura, subrayada: abre la orden (D-408); debajo, el ID (D-456; D-444 había dejado solo el ID); y
                               «carga 1 de 2» si es una carga de una orden partida (D-452). */}
-                          <td className="ordno">{facturaConSuId(d)}{iconoDeReprogramar(d)}{etiquetaDeLaCarga(d)}</td>
+                          <td className="ordno">{facturaDeLaParada(d)}{iconoDeReprogramar(d)}{etiquetaDeLaCarga(d)}</td>
                           {celdaDeCuenta}
                           {/* Cada celda por su CLAVE, en el orden de la persona (D-410). Las cinco de siempre se pintan a su
                               manera; las que vienen de Órdenes (D-376), con la celda de Órdenes. */}
