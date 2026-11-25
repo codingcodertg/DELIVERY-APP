@@ -5,9 +5,15 @@
  *   organizing   1 Organizar: acomodar el material (las notas del gerente; el personal marca «listo»).
  *   counting     2 Contar: cada línea se toca y se captura cajas + sueltas (o el total).
  *   review       3 Revisar: DESPUÉS de contar, por producto, las órdenes pendientes (factura, cantidad vendida y no
- *                entregada). Lo contado − lo pendiente = lo real.
+ *                entregada). Lo contado − lo pendiente = lo real (en TODA línea contada).
  *   sign_off     4 Firmar: el gerente ve contado, pendiente, real, SISTEMA (lo tecleado si no venía) y la diferencia
- *                en cajas y en $; con diferencias pide la razón; firma (nombre + fecha; hoja firmada opcional).
+ *                en cajas y en $; con diferencias (≠ 0 después de pendientes) pide la razón; firma (nombre + fecha; hoja
+ *                firmada opcional).
+ *
+ * Regla de 2026-11-24 (reemplaza la parte de «no comparable» del 336 / D-1105): NINGUNA línea contada queda sin real ni
+ * sin diferencia. Bolsas, cajas sin piezas por caja y productos libres se comparan en la unidad en que están guardados
+ * (`counted_total` y `system_qty`); la diferencia en cajas cuenta esa unidad como caja (1 = 1). Solo falta la diferencia
+ * si no se sabe el sistema.
  *   adjusted     5 Ajustar: sube la captura del ajuste en el ERP. Cerrado.
  *   cancelled    el gerente lo canceló.
  *
@@ -232,25 +238,38 @@ export interface CuentasDeLinea {
 }
 
 /** Las cuentas de una línea DESPUÉS de las órdenes pendientes (la misma regla de la firma, el informe y la hoja). */
-/** Lo que hace falta para saber si una línea se compara con el sistema (las líneas de antes no lo traen). */
+/** Lo que hace falta para la unidad de una línea (las líneas de antes no lo traen). */
 export type ParaComparar = Partial<Pick<Linea, "product_id" | "unit_of_measure" | "pieces_per_box">>;
 
 /**
- * ¿Se compara la línea con el sistema? Espejo de la firma (336). Línea libre (sin producto del catálogo): NO.
- * Piezas, o cajas con piezas por caja: SÍ. Bolsas y cajas sin piezas por caja: NO. Sin unidad (líneas de antes): SÍ.
+ * La unidad en que están `counted_total` y `system_qty` de la línea. Con piezas por caja, una línea contada en cajas
+ * se guarda en PIEZAS («piece» aquí); sin piezas por caja, o contada en bolsas, va en su propia unidad («box» o «bag»).
+ * Las líneas de antes (sin unidad) son piezas, como siempre.
  */
-export function comparableConElSistema(x: ParaComparar): boolean {
-  if (x.product_id === null) return false;
+export function unidadDeLaCuenta(x: Pick<Linea, "unit_of_measure" | "pieces_per_box">): UnidadDeConteo {
   const u = x.unit_of_measure ?? null;
-  if (u === null || u === "piece") return true;
-  if (u === "box") return (x.pieces_per_box ?? 0) > 0;
-  return false;
+  if (u === "bag") return "bag";
+  if (u === "box" && !((x.pieces_per_box ?? 0) > 0)) return "box";
+  return "piece";
 }
 
-export function cuentasDeLinea(x: Pick<Linea, "counted_total" | "system_qty" | "price"> & ParaComparar, pendiente: number): CuentasDeLinea {
+/**
+ * ¿Entre cuánto se divide la diferencia para mostrarla en CAJAS? Con piezas por caja y en piezas: entre las piezas por
+ * caja. Cualquier otro caso (bolsas, o cajas/piezas sin piezas por caja): 1, o sea la unidad de la línea cuenta como caja.
+ */
+export function divisorDeCajas(x: Pick<Linea, "unit_of_measure" | "pieces_per_box">): number {
+  const pz = x.pieces_per_box ?? 0;
+  return unidadDeLaCuenta(x) === "piece" && pz > 0 ? pz : 1;
+}
+
+/**
+ * Las cuentas de una línea (dueño, 2026-11-24: «counted − pending = actual, y cuando se compare con el system entonces
+ * difference debería match»). TODA línea contada tiene real = contado − pendiente; la diferencia = real − sistema
+ * siempre que se sepa el sistema. Ninguna línea queda «no comparable».
+ */
+export function cuentasDeLinea(x: Pick<Linea, "counted_total" | "system_qty" | "price">, pendiente: number): CuentasDeLinea {
   const contado = x.counted_total;
-  const comparable = comparableConElSistema(x);
-  const real = contado == null || !comparable ? null : redondea(contado - pendiente);
+  const real = contado == null ? null : redondea(contado - pendiente);
   const dif = real == null || x.system_qty == null ? null : redondea(real - x.system_qty);
   const valor = dif == null || x.price == null ? null : redondea(dif * x.price, 2);
   return { contado, pendiente, real, sistema: x.system_qty, diferencia: dif, valor };
@@ -263,8 +282,8 @@ export function enCajas(piezas: number | null, piezasPorCaja: number | null): nu
 }
 
 /** contado − sistema, SIN las pendientes (la vista de la captura). Null si falta alguno de los dos. */
-export function diferencia(x: Pick<Linea, "system_qty" | "counted_total"> & ParaComparar): number | null {
-  if (!comparableConElSistema(x) || x.system_qty == null || x.counted_total == null) return null;
+export function diferencia(x: Pick<Linea, "system_qty" | "counted_total">): number | null {
+  if (x.system_qty == null || x.counted_total == null) return null;
   return redondea(x.counted_total - x.system_qty);
 }
 
@@ -330,12 +349,11 @@ export function resumenDelConteo(lineas: readonly Pick<Linea, "id" | "system_qty
 }
 
 /**
- * ¿Hace falta la razon para esta línea en la firma? Espejo de la firma (336): una línea de catálogo con sistema que NO
- * se compara (bolsas, cajas sin piezas por caja) SÍ la pide; una comparable, si tiene diferencia. Líneas libres: no.
+ * ¿Hace falta la razón para esta línea en la firma? Espejo de la firma (347): solo si la línea tiene diferencia
+ * distinta de 0 DESPUÉS de las pendientes (counted − pending − system). Sin sistema, o sin contar: no.
  */
-export function requiereRazonDeLinea(l: Pick<Linea, "id" | "system_qty" | "counted_total" | "price" | "counted_at"> & ParaComparar, pendientes: readonly Pick<OrdenPendiente, "line_id" | "qty">[]): boolean {
-  if (l.counted_at == null || l.system_qty == null || l.product_id === null) return false;
-  if (!comparableConElSistema(l)) return true;
+export function requiereRazonDeLinea(l: Pick<Linea, "id" | "system_qty" | "counted_total" | "price" | "counted_at">, pendientes: readonly Pick<OrdenPendiente, "line_id" | "qty">[]): boolean {
+  if (l.counted_at == null || l.system_qty == null) return false;
   const d = cuentasDeLinea(l, pendienteDeLinea(pendientes, l.id)).diferencia;
   return d != null && d !== 0;
 }
@@ -453,7 +471,7 @@ export function accionesDeConteo(q: Quien, c: Pick<Conteo, "store" | "stage" | "
 // ---------------------------------------------------------------------------
 // La hoja impresa (paso 4)
 // ---------------------------------------------------------------------------
-export interface FilaDeHojaDeConteo { sku: string; nombre: string; medida: string; sistema: string; contado: string; pendiente: string; diferencia: string; valor: number | null; conto: string }
+export interface FilaDeHojaDeConteo { sku: string; nombre: string; medida: string; sistema: string; contado: string; pendiente: string; diferencia: string; valor: number | null; conto: string; /** La unidad en que está la diferencia (2026-11-24). */ unidad: UnidadDeConteo }
 
 /** Las filas de la hoja de conteo, en el orden de la lista; los números como texto («—» si no hay). La diferencia ya descuenta lo pendiente. */
 export function filasDeHojaDeConteo(lineas: readonly Linea[], pendientes: readonly Pick<OrdenPendiente, "line_id" | "qty">[] = []): FilaDeHojaDeConteo[] {
@@ -463,7 +481,7 @@ export function filasDeHojaDeConteo(lineas: readonly Linea[], pendientes: readon
     return {
       sku: l.sku, nombre: l.name, medida: l.size_in ?? "", sistema: l.system_qty == null ? "—" : String(l.system_qty),
       contado: l.counted_total == null ? "—" : String(l.counted_total), pendiente: c.pendiente ? String(c.pendiente) : "0",
-      diferencia: d == null ? "—" : (d > 0 ? `+${d}` : String(d)), valor: c.valor, conto: l.counted_by_name ?? "",
+      diferencia: d == null ? "—" : (d > 0 ? `+${d}` : String(d)), valor: c.valor, conto: l.counted_by_name ?? "", unidad: unidadDeLaCuenta(l),
     };
   });
 }

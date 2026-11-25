@@ -8,9 +8,8 @@ import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime, fmtMoney } from "@/lib/utils";
 import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
 import {
-  ETAPAS_DE_CONTEO, INFO_DE_ETAPA_DE_CONTEO, nombreDeEtapaDeConteo, resumenDelConteo, type Conteo, type EstadoDeConteo, type Linea, type OrdenPendiente,
+  ETAPAS_DE_CONTEO, INFO_DE_ETAPA_DE_CONTEO, cuentasDeLinea, divisorDeCajas, nombreDeEtapaDeConteo, pendienteDeLinea, resumenDelConteo, type Conteo, type EstadoDeConteo, type Linea, type OrdenPendiente,
 } from "@/lib/almacen-ops/conteos";
-import { comparableConElSistema } from "@/lib/almacen-ops/conteos";
 import {
   conteosDelPeriodo, colorDeExactitud, kpiDeConteos, kpiPorEmpleado, totalDeConteos, type KpiDeConteos, type Periodo,
 } from "@/lib/almacen-ops/conteos-kpi";
@@ -79,12 +78,14 @@ export function InformeDeConteos({ ctx, tiendas, rango, etiqueta }: {
       const lineas = datos.lineas.filter((l) => l.count_id === c.id);
       const pendientes = datos.pendientes.filter((o) => o.count_id === c.id);
       const r = resumenDelConteo(lineas, pendientes);
+      // 2026-11-24: toda línea contada entra (bolsas y productos libres incluidos). Con piezas por caja, la diferencia se
+      // pasa a cajas; sin ellas, la unidad de la línea cuenta como caja (1 = 1).
       const cajas = (signo: 1 | -1) => lineas.reduce((s, l) => {
-        const pz = l.pieces_per_box;
-        const pl = pendientes.filter((o) => o.line_id === l.id).reduce((x, o) => x + o.qty, 0);
-        if (l.counted_at == null || l.system_qty == null || pz == null || pz <= 0 || !comparableConElSistema(l)) return s;
-        const d = (l.counted_total ?? 0) - pl - l.system_qty;
-        return s + (Math.sign(d) === signo ? Math.abs(d) / pz : 0);
+        if (l.counted_at == null) return s;
+        const pl = pendienteDeLinea(pendientes, l.id);
+        const d = cuentasDeLinea(l, pl).diferencia;
+        if (d == null || d === 0) return s;
+        return s + (Math.sign(d) === signo ? Math.abs(d) / divisorDeCajas(l) : 0);
       }, 0);
       return { c, lineas, pendientes, neto: r.valorNeto, faltanCajas: Math.round(cajas(-1) * 100) / 100, sobranCajas: Math.round(cajas(1) * 100) / 100, exactitud: r.exactitudPct, lineasN: r.contadas };
     }).sort((a, b) => b.c.created_at.localeCompare(a.c.created_at));

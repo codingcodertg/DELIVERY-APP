@@ -8,7 +8,7 @@ import { leerNivelEscrito } from "@/lib/almacen-ops/nivel";
 import { EMPRESA } from "@/lib/almacen-ops/etapas";
 import { fmtDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { fmtMoney } from "@/lib/utils";
-import { filasDeHojaDeConteo, idDeHoja, nombreDeEtapaDeConteo, puedeGestionarConteo, resumenDelConteo, veConteos, type Conteo, type Linea } from "@/lib/almacen-ops/conteos";
+import { filasDeHojaDeConteo, idDeHoja, nombreDeEtapaDeConteo, puedeGestionarConteo, resumenDelConteo, veConteos, type Conteo, type Linea, type UnidadDeConteo } from "@/lib/almacen-ops/conteos";
 import { DEMO_CONTEOS, conteoDeLaFila, lineaDeLaFila } from "@/lib/almacen-ops/conteos-datos";
 import { BotonImprimir } from "../../reportes/hoja-de-aprobacion/BotonImprimir";
 import "../../reportes/hoja-de-aprobacion/hoja.css";
@@ -108,7 +108,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ i
             {filas.map((f, n) => (
               <tr key={f.sku + n} data-hoja-linea={f.sku}>
                 <td>{n + 1}</td><td className="hoja-folio">{f.sku}</td><td>{f.nombre}</td><td>{f.medida}</td>
-                <td className="num">{f.sistema}</td><td className="num">{f.contado}</td><td className="num">{f.pendiente}</td><td className="num">{f.diferencia}</td><td className="num">{f.valor == null ? "—" : fmtMoney(f.valor)}</td>
+                <td className="num">{f.sistema}</td><td className="num">{f.contado}</td><td className="num">{f.pendiente}</td><td className="num">{f.diferencia}{f.diferencia !== "—" && <span className="hint"> {f.unidad === "piece" ? t("pcs", "pzas") : f.unidad === "box" ? t("boxes", "cajas") : t("bags", "bolsas")}</span>}</td><td className="num">{f.valor == null ? "—" : fmtMoney(f.valor)}</td>
                 <td>{f.conto}</td>
               </tr>
             ))}

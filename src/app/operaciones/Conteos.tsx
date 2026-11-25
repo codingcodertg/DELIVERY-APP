@@ -12,7 +12,6 @@ import {
   INFO_DE_ALCANCE, accionesDeConteo, estaAbierto, estaContada, faltaDelAlcance, ordenarLineas, progresoDelConteo, puedeGestionarConteo,
   resumenDeLotes, textoDeCantidad, tituloDeAlcance, type AccionDeConteo, type AlcanceElegido, type Conteo, type Linea, type OrdenPendiente,
 } from "@/lib/almacen-ops/conteos";
-import { comparableConElSistema } from "@/lib/almacen-ops/conteos";
 import { buscarEnLista, coincideConAlcance } from "@/lib/almacen-ops/conteos-alcance";
 import {
   DEMO_CONTEOS, DEMO_PRODUCTOS_DE_CONTEO, DEMO_PROVEEDORES, agregarLineaLibre, avanzarConteo, cancelarConteo, crearConteo, faltaLa274, faltaLa333, leerConteos, leerProductosDelAlcance,

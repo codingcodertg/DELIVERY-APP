@@ -7,10 +7,9 @@ import { createClient } from "@/lib/supabase/client";
 import { fmtDateTime, fmtMoney } from "@/lib/utils";
 import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
 import {
-  cuentasDeLinea, enCajas, estaContada, hayDiferencias, ordenarPorDiferencia, pendienteDeLinea, resumenDelConteo,
+  cuentasDeLinea, divisorDeCajas, enCajas, estaContada, hayDiferencias, ordenarPorDiferencia, pendienteDeLinea, resumenDelConteo, unidadDeLaCuenta,
   type AccionDeConteo, type Conteo, type CuentasDeLinea, type Linea, type OrdenPendiente,
 } from "@/lib/almacen-ops/conteos";
-import { comparableConElSistema, INFO_DE_UNIDAD } from "@/lib/almacen-ops/conteos";
 import {
   agregarPendiente, ajustarConteo, avanzarConteo, editarPendiente, firmarConteo, ponerSistema, quitarPendiente, volverARevision, type Conteos as Datos,
 } from "@/lib/almacen-ops/conteos-datos";
@@ -169,6 +168,13 @@ export function PanelDeFirma({ c, lineas, pendientes, ctx, pon, acciones, onErro
     setCambiando(null);
   };
 
+  /** La unidad corta de la línea («pzas», «cajas», «bolsas»): en qué está su diferencia. */
+  const sufijoDe = (l: Linea) => {
+    const u = unidadDeLaCuenta(l);
+    return u === "piece" ? t("pcs", "pzas") : u === "box" ? t("boxes", "cajas") : t("bags", "bolsas");
+  };
+  /** La diferencia en cajas: entre las piezas por caja, o la misma cifra si la unidad cuenta como caja. */
+  const cajasDe = (l: Linea, d: number | null) => (d == null ? null : Math.round((d / divisorDeCajas(l)) * 100) / 100);
   const columnas: ColumnaEstandar<Fila>[] = [
     { key: "producto", en: "Product", es: "Producto", valor: (f) => f.l.sku, celda: (f) => <><span className="hoja-folio">{f.l.sku}</span> {f.l.name}{f.l.size_in ? <span className="hint"> · {f.l.size_in}</span> : null}</>, ancho: 220, envuelve: true },
     { key: "contado", en: "Counted", es: "Contado", numerico: true, valor: (f) => f.c.contado },
@@ -176,11 +182,13 @@ export function PanelDeFirma({ c, lineas, pendientes, ctx, pon, acciones, onErro
     { key: "real", en: "Actual", es: "Real", numerico: true, valor: (f) => f.c.real },
     { key: "sistema", en: "System", es: "Sistema", numerico: true, valor: (f) => f.c.sistema, celda: (f) => (f.c.sistema == null
       ? <span className="ops-kpi-rojo" data-sin-sistema>{t("Enter", "Teclear")}</span> : f.c.sistema) },
-    { key: "dif", en: "Diff (pcs)", es: "Dif. (pzas)", numerico: true, valor: (f) => f.c.diferencia, celda: (f) => (f.c.diferencia == null ? "—" : (
-      <span className={f.c.diferencia === 0 ? "ops-kpi-verde" : "ops-kpi-rojo"} data-diferencia={f.c.diferencia}>{f.c.diferencia > 0 ? "+" : ""}{f.c.diferencia}</span>)) },
-    { key: "cajas", en: "Diff (boxes)", es: "Dif. (cajas)", numerico: true, valor: (f) => enCajas(f.c.diferencia, f.l.pieces_per_box), celda: (f) => {
-      const cj = enCajas(f.c.diferencia, f.l.pieces_per_box);
-      return cj == null ? "—" : <span className={cj === 0 ? "" : "ops-kpi-rojo"}>{cj > 0 ? "+" : ""}{cj}</span>;
+    // 2026-11-24: la diferencia va en la unidad en que está guardada la línea (piezas, cajas o bolsas); la columna de
+    // cajas cuenta esa unidad como caja cuando no hay piezas por caja.
+    { key: "dif", en: "Diff", es: "Dif.", numerico: true, valor: (f) => f.c.diferencia, celda: (f) => (f.c.diferencia == null ? "—" : (
+      <span className={f.c.diferencia === 0 ? "ops-kpi-verde" : "ops-kpi-rojo"} data-diferencia={f.c.diferencia}>{f.c.diferencia > 0 ? "+" : ""}{f.c.diferencia} <span className="hint">{sufijoDe(f.l)}</span></span>)) },
+    { key: "cajas", en: "Diff (boxes)", es: "Dif. (cajas)", numerico: true, valor: (f) => cajasDe(f.l, f.c.diferencia), celda: (f) => {
+      const cj = cajasDe(f.l, f.c.diferencia);
+      return cj == null ? "—" : <span className={cj === 0 ? "" : "ops-kpi-rojo"}>{cj > 0 ? "+" : ""}{cj} <span className="hint">{divisorDeCajas(f.l) > 1 ? t("boxes", "cajas") : sufijoDe(f.l)}</span></span>;
     } },
     { key: "valor", en: "$", es: "$", numerico: true, valor: (f) => f.c.valor, celda: (f) => (f.c.valor == null ? "—" : (
       <span className={f.c.valor === 0 ? "" : "ops-kpi-rojo"}>{f.c.valor > 0 ? "+" : ""}{fmtMoney(f.c.valor)}</span>)) },
@@ -235,9 +243,6 @@ export function PanelDeFirma({ c, lineas, pendientes, ctx, pon, acciones, onErro
       {/* Firma: la razón si hay diferencias; el sistema en todas las líneas */}
       {acciones.includes("firmar") && (
         <div className="ops-etapa-acciones" data-firma-panel>
-          {lineas.filter((l) => l.product_id != null && l.system_qty != null && l.counted_at != null && !comparableConElSistema(l)).map((l) => (
-            <p key={l.id} className="hint" data-no-comparable={l.sku}>{l.sku}: {t("Counted in", "Contado en")} {(lang === "es" ? INFO_DE_UNIDAD[l.unit_of_measure ?? "box"].es : INFO_DE_UNIDAD[l.unit_of_measure ?? "box"].en).toLowerCase()} — {t("explain", "explica")}</p>
-          ))}
           {dif && <label className="ops-cantidad"><span>{t("Reason for the differences (required)", "Razón de las diferencias (obligatoria)")}</span>
             <textarea className="ops-campo" rows={2} value={razon} onChange={(e) => setRazon(e.target.value)} placeholder={t("e.g. 2 boxes broken in the back, pick not recorded", "p. ej. 2 cajas rotas atrás, surtido no registrado")} data-campo="razon-firma" />
           </label>}
@@ -259,7 +264,7 @@ export function PanelDeFirma({ c, lineas, pendientes, ctx, pon, acciones, onErro
             <div className="ops-ajuste-resumen" data-ajuste={ajuste.length}>
               <p><strong>{t("To adjust in the ERP (new difference, after pending orders)", "Para ajustar en el ERP (la diferencia nueva, después de pendientes)")}</strong></p>
               <ul className="ops-fotos-lista">
-                {ajuste.map((f) => <li key={f.id} className="ops-insignia" data-ajuste-linea={f.id}><span className="hoja-folio">{f.l.sku}</span> {f.c.diferencia! > 0 ? "+" : ""}{f.c.diferencia} {t("pcs", "pzas")}{enCajas(f.c.diferencia, f.l.pieces_per_box) != null && ` (${enCajas(f.c.diferencia, f.l.pieces_per_box)} ${t("boxes", "cajas")})`} · {fmtMoney(f.c.valor ?? 0)}</li>)}
+                {ajuste.map((f) => <li key={f.id} className="ops-insignia" data-ajuste-linea={f.id}><span className="hoja-folio">{f.l.sku}</span> {f.c.diferencia! > 0 ? "+" : ""}{f.c.diferencia} {sufijoDe(f.l)}{divisorDeCajas(f.l) > 1 && ` (${cajasDe(f.l, f.c.diferencia)} ${t("boxes", "cajas")})`} · {fmtMoney(f.c.valor ?? 0)}</li>)}
               </ul>
             </div>
           )}
