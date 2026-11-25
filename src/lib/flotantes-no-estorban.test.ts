@@ -15,12 +15,15 @@ const CSS = leer("src/app/globals.css");
 
 describe("parte 1: «viendo como» sale en la barra de arriba, no en la esquina", () => {
   const burbuja = sinComentarios(leer("src/components/BotonGeneral.tsx"));
-  const barra = sinComentarios(leer("src/components/BarraDeApp.tsx"));
+  const barra = sinComentarios(leer("src/components/MenuDeCuenta.tsx"));
 
-  it("la barra de arriba pinta el chip con sus dos marcas y la vuelta de siempre", () => {
+  it("el botón de la cuenta (en todas las barras) lleva el aviso, y su menú empieza con la vuelta de siempre", () => {
     expect(barra).toContain("data-viendo-como");
     expect(barra).toContain("data-volver-a-mi-usuario");
-    expect(barra).toContain('aria-label={volver}');
+    expect(barra).toContain('(textos ? " viendo-como-chip" : "")');
+    expect(barra).toContain('role="menuitem" data-volver-a-mi-usuario');
+    // Y ya NO hay un chip aparte en la barra: ocupaba sitio y partía las barras llenas (medido en pantalla).
+    expect(sinComentarios(leer("src/components/BarraDeApp.tsx"))).not.toContain("ChipDeSuplantacion");
     expect(barra).toContain('void volverAMiCuenta("manual"');
   });
 

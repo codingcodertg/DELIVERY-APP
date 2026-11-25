@@ -2235,3 +2235,22 @@ html[data-tarjetas] .marco-hub { display: none !important; }
   box-shadow: 0 1px 4px color-mix(in srgb, var(--text) 35%, transparent);
 }
 .mapa-centrar:active { transform: scale(0.96); }
+
+/* El chip «viendo como» es COMPACTO en casi todas las ventanas (👤 ↩, con el nombre en el `title`): visto en pantalla con el
+   texto entero (240 px), la barra de Entregas lo mandaba a un segundo renglón a 1280 y a 720 px, y la de Time Tracker
+   desbordaba a 701. Las barras ya van llenas (pestañas, tienda, campana, persona) y el dueño las quiere en UN renglón; el
+   nombre de la persona ya sale al lado, en la burbuja de la cuenta. El texto entero solo a partir de 1500 px. */
+@media (max-width: 1499px) {
+  .viendo-como-nombre { display: none; }
+  .viendo-como-chip { padding-left: 8px; }
+}
+.viendo-como-chip { flex: 0 0 auto; }
+
+/* «Viendo como» en el botón de la cuenta (`MenuDeCuenta`): mismo sitio y mismo tamaño de siempre, en ámbar. No añade ancho
+   a ninguna barra. La opción «Volver a mi usuario» es la primera de su menú. */
+.account-link.viendo-como-chip { flex: 0 1 auto; padding: 4px 8px; font-size: 12px; max-width: none; }
+.account-link.viendo-como-chip .menu-cuenta-nombre, .account-link.viendo-como-chip .menu-cuenta-flecha { color: var(--ink); }
+.col-opt.viendo-como-opcion { font-weight: 800; }
+.viendo-como-rotulo { white-space: nowrap; }
+/* Con más peso que las reglas propias de cada app para `.account-link` (visto en pantalla: en RR. HH. el botón no se ponía ámbar). */
+.topbar .account-link.viendo-como-chip, .recruiting-module .topbar .account-link.viendo-como-chip, .recruiting-module .account-link.viendo-como-chip { background: var(--amber); color: var(--ink); }

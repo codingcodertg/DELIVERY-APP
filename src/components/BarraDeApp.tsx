@@ -1,11 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { HubHomeLink } from "@/components/HubHomeLink";
 import { MenuDeCuenta, OpcionPersonalizar, OpcionSalir } from "@/components/MenuDeCuenta";
-import { useEstadoDeSuplantacion } from "@/components/SuplantacionEnBurbuja";
 import { usePrefs } from "@/lib/prefs";
-import { textosDeLaBarra, volverAMiCuenta } from "@/lib/suplantacion-en-burbuja";
 import type { UserRole } from "@/lib/types";
 
 /**
@@ -48,44 +45,9 @@ export function BarraDeApp({ nombre, deliveriesRole, moduleAccess, claseDelResto
         <div className="topbar-hueco" id={HUECO_DE_LA_BARRA} />
       </div>
       <div className={"entregas-barra-resto" + (claseDelResto ? " " + claseDelResto : "")}>
-        <ChipDeSuplantacion />
         {children}
       </div>
     </div>
-  );
-}
-
-/**
- * «Viendo como» en la barra de arriba (dueño, 2026-11-24: el aviso de la esquina tapaba el botón «Continue to review»).
- * Un chip ámbar con el nombre y un «↩» que vuelve a la cuenta propia, junto al nombre y la foto de la persona. Lo que
- * decide el texto está en `textosDeLaBarra`; la vuelta es la misma de siempre (`volverAMiCuenta`). En un teléfono (≤ 700 px)
- * solo se ven el 👤 y el ↩: el nombre va al `title`. Sin suplantación no pinta nada.
- */
-function ChipDeSuplantacion() {
-  const sup = useEstadoDeSuplantacion();
-  const [volviendo, setVolviendo] = useState(false);
-  if (!sup) return null;
-  const textos = textosDeLaBarra({ como: sup.como, idioma: sup.idioma, volviendo });
-  const volver = volviendo ? textos.volviendo : textos.volver;
-  return (
-    <span className="viendo-como-chip" data-viendo-como title={textos.chip}>
-      <span aria-hidden>👤</span>
-      <span className="viendo-como-nombre">{textos.chip}</span>
-      <button
-        type="button"
-        className="viendo-como-volver"
-        data-volver-a-mi-usuario
-        disabled={volviendo}
-        title={volver}
-        aria-label={volver}
-        onClick={() => {
-          setVolviendo(true);
-          void volverAMiCuenta("manual", { fetch: window.fetch.bind(window), ubicacion: window.location });
-        }}
-      >
-        ↩
-      </button>
-    </span>
   );
 }
 
