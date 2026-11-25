@@ -16,6 +16,8 @@ import { todayAlerts } from "@/lib/clockin/scorecard";
 import { NO_MATCH, visibleStores } from "@/lib/clockin/scope";
 import { centralDateStr, payPeriodDates, shiftMinutes } from "@/lib/clockin/schedule";
 import { centralWallToUtc } from "@/lib/clockin/tz";
+import { esMultiTienda } from "@/lib/timetracker/multitienda";
+import { faltaLaColumnaDeTienda, validarTiendaDelFichaje } from "@/lib/timetracker/fichaje-en-tienda";
 
 // Local dev only: when set in .env.local, every punch is treated as on-site so
 // the flow can be tested from a laptop that isn't inside a real geofence. Double
@@ -34,7 +36,9 @@ export type ClockInResult =
   | { ok: true; entryId: string; clockInAt: string; onSite: boolean | null; earlyMin?: number }
   | { ok: false; code: "needs_reason"; context: "offsite" | "unscheduled" | "other_site" }
   | { ok: false; code: "already_open"; entryId: string; clockInAt: string }
-  | { ok: false; code: "not_configured" | "not_signed_in" | "error"; message: string };
+  | { ok: false; code: "not_configured" | "not_signed_in" | "error"; message: string }
+  // Quien va en varias tiendas (350): sin tienda, o con una que no es activa de su empresa.
+  | { ok: false; code: "tienda_requerida" | "tienda_no_permitida"; message: string };
 
 export type ClockOutResult = { ok: true; onSite: boolean | null } | { ok: false; message: string };
 
@@ -52,6 +56,11 @@ type ClockInput = {
   lat: number;
   lng: number;
   accuracy?: number;
+  /**
+   * La tienda en la que ficha quien va en VARIAS tiendas (350, 2026-11-25). Para los demás se ignora. El servidor
+   * comprueba que sea una tienda activa de su empresa (`validarTiendaDelFichaje`). No es un dato de la geocerca.
+   */
+  storeId?: string | null;
   /**
    * Los motivos elegidos (D-163). Varios, porque uno no alcanzaba: el 72 % de los fichajes
    * fuera de radio decían "otro", que es lo que se marca cuando sales por dos cosas a la vez
@@ -79,6 +88,15 @@ async function getAuthed() {
     .single();
   if (!profile) return { ok: false as const, code: "error" as const };
   return { ok: true as const, supabase, user, profile };
+}
+
+/**
+ * ¿Tiene la base la columna de la tienda? Solo se pregunta cuando hace falta: quien va en varias tiendas y no mandó
+ * ninguna. Sin ella, no se le exige tienda (la pantalla tampoco la enseña).
+ */
+async function existeLaColumnaDeTienda(supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
+  const { error } = await supabase.from("time_entries").select("work_store_id").limit(0);
+  return !faltaLaColumnaDeTienda(error);
 }
 
 /**
@@ -111,6 +129,46 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
     .maybeSingle();
   if (existing) {
     return { ok: false, code: "already_open", entryId: existing.id, clockInAt: existing.clock_in_at };
+  }
+
+  // La tienda de quien va en VARIAS tiendas (350, 2026-11-25). La decide el servidor: se lee si esta persona va en
+  // varias, y se valida la tienda que manda la pantalla (activa y de su empresa). Sin tienda mandada y sin la
+  // columna todavía (350 sin aplicar), se ficha como hoy: sin pedir tienda.
+  const { data: ajustes } = await supabase
+    .schema("timetracker")
+    .from("employee_settings")
+    .select("worker_type, multi_store")
+    .eq("id", user.id)
+    .maybeSingle();
+  const multiStore = esMultiTienda({
+    workerType: (ajustes?.worker_type as string | null) ?? null,
+    multiStore: (ajustes?.multi_store as boolean | null) ?? false,
+  });
+  let tiendaDelFichaje: string | null = null;
+  // La tienda «de casa» para lo de «en otro sitio»: la que eligió, si va en varias; si no, la suya de siempre.
+  let tiendaDeCasa: string | null = profile.store_id ?? null;
+  if (multiStore && (input.storeId || (await existeLaColumnaDeTienda(supabase)))) {
+    const { data: sitios } = await supabase
+      .from("job_sites")
+      .select("id")
+      .eq("company_id", profile.company_id)
+      .eq("active", true);
+    const valida = validarTiendaDelFichaje({
+      multiStore,
+      storeId: input.storeId,
+      tiendasActivas: (sitios ?? []) as { id: string }[],
+    });
+    if (!valida.ok) {
+      return {
+        ok: false,
+        code: valida.code,
+        message: valida.code === "tienda_requerida"
+          ? "Pick the store you are clocking in at."
+          : "That store is not one you can clock in at.",
+      };
+    }
+    tiendaDelFichaje = valida.storeId;
+    tiendaDeCasa = valida.storeId;
   }
 
   // Server-side geofence: which (if any) active site is this within?
@@ -154,8 +212,9 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
   // admin — Patricia incluida, que hoy sí está atada a Brownsville. Quien debe roamear
   // simplemente no tiene sitio, que es lo que esa columna quiso decir siempre; a los
   // dueños se les quitó el suyo en 084 para que el resultado fuese idéntico al de hoy.
-  const homeBound = !!profile.store_id;
-  const atWrongSite = homeBound && !!siteId && siteId !== profile.store_id;
+  // Quien va en varias tiendas (350): «otro sitio» se mide contra la tienda que ELIGIÓ, no contra una casa que no tiene.
+  const homeBound = !!tiendaDeCasa;
+  const atWrongSite = homeBound && !!siteId && siteId !== tiendaDeCasa;
   if (atWrongSite && !hayMotivo) {
     return { ok: false, code: "needs_reason", context: "other_site" };
   }
@@ -188,22 +247,29 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
   }
   const isUnscheduled = onSite === true && !todayShift && hayMotivo;
 
-  const { data: entry, error } = await supabase
+  const fichaje = {
+    company_id: profile.company_id,
+    employee_id: user.id,
+    scheduled_shift_id: todayShift?.id ?? null,
+    clock_in_lat: input.lat,
+    clock_in_lng: input.lng,
+    clock_in_site_id: siteId ?? null,
+    clock_in_in_radius: onSite,
+    clock_in_photo_path: input.photoPath ?? null,
+    device_id: input.deviceId ?? null,
+    status: "open",
+  };
+  // Una variable, no el literal dentro del insert: así el tipo de la tabla no rechaza una columna que quizá aún no exista.
+  const conTiendaGuardada = tiendaDelFichaje ? { ...fichaje, work_store_id: tiendaDelFichaje } : fichaje;
+  let { data: entry, error } = await supabase
     .from("time_entries")
-    .insert({
-      company_id: profile.company_id,
-      employee_id: user.id,
-      scheduled_shift_id: todayShift?.id ?? null,
-      clock_in_lat: input.lat,
-      clock_in_lng: input.lng,
-      clock_in_site_id: siteId ?? null,
-      clock_in_in_radius: onSite,
-      clock_in_photo_path: input.photoPath ?? null,
-      device_id: input.deviceId ?? null,
-      status: "open",
-    })
+    .insert(conTiendaGuardada)
     .select("id, clock_in_at")
     .single();
+  // 350 sin aplicar: la base no tiene la columna de la tienda. Se ficha igual, como hoy, sin tienda guardada.
+  if (faltaLaColumnaDeTienda(error)) {
+    ({ data: entry, error } = await supabase.from("time_entries").insert(fichaje).select("id, clock_in_at").single());
+  }
 
   if (error || !entry) {
     return { ok: false, code: "error", message: error?.message ?? "Could not record entry." };
@@ -670,7 +736,8 @@ export async function getMyDay(): Promise<
       ok: true;
       companyId: string;
       userId: string;
-      open: { id: string; clockInAt: string } | null;
+      /** `tienda`: la tienda en la que se fichó (350), por nombre; null si no va en varias o no hay columna. */
+      open: { id: string; clockInAt: string; tienda: string | null; tiendaId: string | null } | null;
       /** El descanso/almuerzo en curso, si lo hay. */
       leave: { id: string; reason: string; leftAt: string } | null;
       /** El turno de HOY, para saber a qué hora se entra y se sale. */
@@ -681,13 +748,15 @@ export async function getMyDay(): Promise<
       /** Viernes y jueves del periodo que se está contando. */
       periodStart: string;
       periodEnd: string;
-      today: { id: string; clockInAt: string; clockOutAt: string | null; minutes: number }[];
+      today: { id: string; clockInAt: string; clockOutAt: string | null; minutes: number; tienda: string | null }[];
       /** Almuerzos y salidas de hoy, para verlos junto a los fichajes. */
       breaks: { id: string; reason: string; leftAt: string; returnedAt: string | null; minutes: number }[];
       lunchMinutes: number;
       outMinutes: number;
       todayMinutes: number;
       weekMinutes: number;
+      /** ¿Existe ya la columna de la tienda del fichaje (350)? Sin ella, la pantalla no enseña el selector. */
+      tiendaDisponible: boolean;
     }
   | { ok: false; message: string }
 > {
@@ -731,16 +800,23 @@ export async function getMyDay(): Promise<
       .order("left_at", { ascending: true }),
   ]);
 
-  const { data, error } = await supabase
+  // La tienda de cada fichaje (350). Si la base aún no tiene la columna, se lee sin ella y se dice (tiendaDisponible).
+  const fichajesDeLaSemana = (columnas: string) => supabase
     .from("time_entries")
-    .select("id, clock_in_at, clock_out_at, lunch_minutes")
+    .select(columnas)
     .eq("employee_id", user.id)
     .gte("clock_in_at", desdeSemana)
     .order("clock_in_at", { ascending: true });
+  let { data, error } = await fichajesDeLaSemana("id, clock_in_at, clock_out_at, lunch_minutes, work_store_id");
+  let tiendaDisponible = true;
+  if (faltaLaColumnaDeTienda(error)) {
+    tiendaDisponible = false;
+    ({ data, error } = await fichajesDeLaSemana("id, clock_in_at, clock_out_at, lunch_minutes"));
+  }
   if (error) return { ok: false, message: error.message };
 
-  type Fila = { id: string; clock_in_at: string; clock_out_at: string | null; lunch_minutes: number | null };
-  const filas = (data ?? []) as Fila[];
+  type Fila = { id: string; clock_in_at: string; clock_out_at: string | null; lunch_minutes: number | null; work_store_id?: string | null };
+  const filas = (data ?? []) as unknown as Fila[];
   const mins = (e: Fila) => {
     // Un fichaje sin salida cuenta hasta AHORA: es lo que la persona lleva trabajado, y
     // enseñarlo como cero mientras está dentro sería el dato más confuso de la pantalla.
@@ -765,6 +841,7 @@ export async function getMyDay(): Promise<
 
   const hoy = centralDateStr();
   const nombreSitio = new Map((sitios ?? []).map((x) => [x.id as string, x.name as string]));
+  const nombreDeTienda = (id: string | null | undefined): string | null => (id ? (nombreSitio.get(id) ?? null) : null);
   const delDia = (turnos ?? []).find((x) => x.shift_date === hoy);
   const turnoAbierto = filas.find((e) => !e.clock_out_at);
   // Y solo si empezó DENTRO del turno abierto: una salida que nadie cerró de un turno de la
@@ -779,14 +856,18 @@ export async function getMyDay(): Promise<
     userId: user.id,
     open: (() => {
       const abierto = filas.find((e) => !e.clock_out_at);
-      return abierto ? { id: abierto.id, clockInAt: abierto.clock_in_at } : null;
+      return abierto
+        ? { id: abierto.id, clockInAt: abierto.clock_in_at, tienda: nombreDeTienda(abierto.work_store_id), tiendaId: abierto.work_store_id ?? null }
+        : null;
     })(),
     today: deHoy.map((e) => ({
       id: e.id,
       clockInAt: e.clock_in_at,
       clockOutAt: e.clock_out_at,
       minutes: mins(e),
+      tienda: nombreDeTienda(e.work_store_id),
     })),
+    tiendaDisponible,
     todayMinutes: deHoy.reduce((acc, e) => acc + mins(e), 0),
     weekMinutes: filas.reduce((acc, e) => acc + mins(e), 0),
     leave: abiertoDescanso

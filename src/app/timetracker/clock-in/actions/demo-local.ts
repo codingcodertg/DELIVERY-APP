@@ -35,6 +35,8 @@ function fichajesDeLaSemana(dias: string[]): PayEntry[] {
       status: "closed",
       manual: false,
       edit_note: null,
+      // Carla va en varias tiendas: cada fichaje lleva la suya (350). Los demás, ninguna.
+      work_store_id: e.multiStore ? (d.endsWith("3") ? "s-pharr" : "s-mcallen") : null,
     })),
   );
 }
@@ -156,14 +158,16 @@ export function demoMyDay() {
     ok: true as const,
     companyId: "demo",
     userId: "u-admin",
-    open: { id: "fd-hoy", clockInAt: entrada },
+    // La tienda del fichaje (350): la del día, para quien va en varias tiendas en la demo (`u-carla`, McAllen).
+    open: { id: "fd-hoy", clockInAt: entrada, tienda: "McAllen Store", tiendaId: "s-mcallen" },
+    tiendaDisponible: true,
     leave: null,
     shift: { start: "08:00", end: "16:30", lunch: 30, site: "McAllen Store" },
     scheduledMinutes: 2400,
     scheduledDays: 5,
     periodStart: semana[0],
     periodEnd: semana[6],
-    today: [{ id: "fd-hoy", clockInAt: entrada, clockOutAt: null, minutes: 120 }],
+    today: [{ id: "fd-hoy", clockInAt: entrada, clockOutAt: null, minutes: 120, tienda: "McAllen Store" }],
     breaks: [] as { id: string; reason: string; leftAt: string; returnedAt: string | null; minutes: number }[],
     lunchMinutes: 0,
     outMinutes: 0,

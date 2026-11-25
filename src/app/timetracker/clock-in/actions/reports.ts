@@ -13,6 +13,7 @@ import { attachLunch, type PayEntry, type LunchRow } from "@/lib/clockin/payroll
 import { NO_MATCH, visibleStores } from "@/lib/clockin/scope";
 import { SIN_TIENDA } from "@/lib/clockin/managerCtx";
 import { shiftMinutes, payPeriodDates } from "@/lib/clockin/schedule";
+import { faltaLaColumnaDeTienda } from "@/lib/timetracker/fichaje-en-tienda";
 
 export type ReportResult = { ok: true } | { ok: false; message: string };
 
@@ -422,15 +423,17 @@ export async function getPayrollPeriod(periodStart: string): Promise<
   // El tipo de trabajador vive en el OTRO esquema (timetracker.employee_settings): fichaje no
   // tiene ese concepto. Se pide aquí para poder marcar en el parte a quien cobra por lo
   // cronometrado, que en una nómina de asistencia es justo lo que hay que mirar dos veces.
-  const [{ data: entryRows }, { data: lunchRows }, { data: approvals }, { data: signoff }, { data: siteRows }, { data: schedRows }, { data: tipos }] =
+  // La tienda de cada fichaje (350). Si la base aún no tiene la columna, se lee sin ella (ver abajo).
+  const fichajesDelPeriodo = (columnas: string) => supabase
+    .from("time_entries")
+    .select(columnas)
+    .in("employee_id", inIds)
+    .gte("clock_in_at", startUtc)
+    .lt("clock_in_at", endUtc)
+    .order("clock_in_at", { ascending: true });
+  const [{ data: entryRowsCon, error: errorFichajes }, { data: lunchRows }, { data: approvals }, { data: signoff }, { data: siteRows }, { data: schedRows }, { data: tipos }] =
     await Promise.all([
-      supabase
-        .from("time_entries")
-        .select("id, employee_id, clock_in_at, clock_out_at, lunch_minutes, status, manual, edit_note")
-        .in("employee_id", inIds)
-        .gte("clock_in_at", startUtc)
-        .lt("clock_in_at", endUtc)
-        .order("clock_in_at", { ascending: true }),
+      fichajesDelPeriodo("id, employee_id, clock_in_at, clock_out_at, lunch_minutes, status, manual, edit_note, work_store_id"),
       supabase
         .from("exceptions")
         .select("time_entry_id, left_at, returned_at")
@@ -449,6 +452,11 @@ export async function getPayrollPeriod(periodStart: string): Promise<
         .lte("shift_date", periodEnd),
       supabase.schema("timetracker").from("employee_settings").select("id, worker_type"),
     ]);
+
+  // 350 sin aplicar: sin la columna, los fichajes se leen como antes (sin tienda).
+  const entryRows = faltaLaColumnaDeTienda(errorFichajes)
+    ? (await fichajesDelPeriodo("id, employee_id, clock_in_at, clock_out_at, lunch_minutes, status, manual, edit_note")).data
+    : entryRowsCon;
 
   const esRemoto = new Map((tipos ?? []).map((t) => [t.id as string, (t.worker_type as string) !== "inhouse"]));
 
@@ -471,7 +479,7 @@ export async function getPayrollPeriod(periodStart: string): Promise<
       remote: esRemoto.get(p.id as string) ?? false,
     })),
     stores: (siteRows ?? []).map((s) => ({ key: s.id as string, name: s.name as string })),
-    entries: attachLunch((entryRows ?? []) as PayEntry[], (lunchRows ?? []) as LunchRow[]),
+    entries: attachLunch((entryRows ?? []) as unknown as PayEntry[], (lunchRows ?? []) as LunchRow[]),
   };
 }
 

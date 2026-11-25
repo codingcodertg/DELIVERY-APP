@@ -20,6 +20,8 @@ export type PayEntry = {
   manual?: boolean | null;
   edited_at?: string | null;
   edit_note?: string | null;
+  /** La tienda en la que se fichó (350, presencial en varias tiendas). Null para todos los demás. */
+  work_store_id?: string | null;
 };
 
 export type LunchRow = { time_entry_id: string | null; left_at: string | null; returned_at: string | null };

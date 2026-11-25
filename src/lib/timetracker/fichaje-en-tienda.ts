@@ -14,12 +14,22 @@
 //    empresa. Para quien no va en varias, la tienda que llegue se ignora (`validarTiendaDelFichaje`).
 //  · Dónde se ve la tienda de cada fichaje en Nómina: `tiendasDeLaPersonaEnElPeriodo` (el filtro de tienda
 //    y el «Tiendas:» de la hoja se apoyan en él).
+//  · Si la base aún no tiene la columna (350 sin aplicar): `faltaLaColumnaDeTienda`; se ficha o se lee como antes.
 // ============================================================
 
 import { effWorkerType } from "@/lib/timetracker/helpers";
 import {
   esMultiTienda, tiendasParaElegir, type PersonaMultiTienda, type TiendaElegible,
 } from "@/lib/timetracker/multitienda";
+import { nombraLaColumna } from "@/lib/columnas-opcionales";
+
+/**
+ * ¿Falta la columna de la tienda del fichaje (`work_store_id`, 350)? PostgREST la nombra con 42703 o PGRST204.
+ * Es la señal para seguir como antes, sin tienda, mientras la migración no esté aplicada.
+ */
+export function faltaLaColumnaDeTienda(error: { code?: string; message?: string } | null | undefined): boolean {
+  return !!error && (error.code === "42703" || error.code === "PGRST204") && nombraLaColumna(error.message ?? "", "work_store_id");
+}
 
 // --- Quién ve el cronómetro --------------------------------------------------
 
