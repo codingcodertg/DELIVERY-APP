@@ -1,18 +1,21 @@
 import { describe, it, expect } from "vitest";
 import { accessibleModules, canReachHub, HUB_TOOLS, landingRoute, MODULE_ACCESS, MODULES } from "@/lib/constants";
+import { destinoAlEntrar } from "@/lib/auth-redirect";
 
 // D-100 dio la vuelta a la premisa de estas pruebas: Entregas ya no es implícita, se
 // otorga como los demás módulos. Lo que antes se afirmaba —"sin module_access aterrizas
 // en el tablero"— ahora sería un fallo: la base le devolvería cero filas.
 describe("landingRoute", () => {
-  it("manda al chofer a su ruta, aunque tenga otro módulo", () => {
-    expect(landingRoute({ role: "driver", module_access: ["deliveries"] })).toBe("/my-route"); // D-523: «Mi ruta», antes `/driver`
-    expect(landingRoute({ role: "driver", module_access: ["deliveries", "recruiting"] })).toBe("/my-route"); // D-523: «Mi ruta», antes `/driver`
+  // 2026-11-25 (el dueño: «when employees login always que lands en el hub main menu»): el chofer también cae en el hub.
+  // Su tile de Entregas lleva a «Mi ruta» (HomeSelector → roleHome). Antes: directo a /my-route.
+  it("el chofer también cae en el hub, con Entregas o con otro módulo", () => {
+    expect(landingRoute({ role: "driver", module_access: ["deliveries"] })).toBe("/home");
+    expect(landingRoute({ role: "driver", module_access: ["deliveries", "recruiting"] })).toBe("/home");
   });
 
-  it("un chofer SIN Entregas no va al tablero de choferes", () => {
-    // Su ruta vive dentro de Entregas. Sin acceso, mandarle ahí es una pantalla vacía.
-    expect(landingRoute({ role: "driver", module_access: ["timetracker"] })).toBe("/timetracker");
+  // Antes: un chofer sin Entregas caía directo en su módulo (/timetracker). Ahora cae en el hub, como todos.
+  it("un chofer SIN Entregas también cae en el hub", () => {
+    expect(landingRoute({ role: "driver", module_access: ["timetracker"] })).toBe("/home");
   });
 
   it("con dos o más módulos, al selector", () => {
@@ -218,12 +221,40 @@ describe("canReachHub", () => {
     expect(canReachHub({ role: "admin", module_access: ["deliveries"] })).toBe(true);
   });
 
-  it("es coherente con landingRoute: quien no puede llegar, no aterriza ahí", () => {
+  // 2026-11-25: landingRoute manda a todo el que tiene módulos al hub, así que el chofer (que canReachHub niega) también
+  // aterriza ahí; canReachHub sigue siendo la pregunta de si el hub le enseña algo a propósito.
+  it("es coherente con landingRoute: todo el que tiene módulos aterriza en el hub, con o sin canReachHub", () => {
     for (const me of [
       { role: "driver" as const, module_access: ["deliveries", "erp"] },
       { role: "sales" as const, module_access: ["deliveries"] },
     ]) {
-      if (!canReachHub(me)) expect(landingRoute(me)).not.toBe("/home");
+      expect(landingRoute(me)).toBe("/home");
     }
+  });
+});
+
+// 2026-11-25: después de entrar, todos al hub por defecto; quien llegó a una página concreta vuelve a ella.
+describe("al entrar: el hub por defecto, y el next de quien llegó a una página gana", () => {
+  it("un chofer con un solo módulo cae en el hub", () => {
+    expect(landingRoute({ role: "driver", module_access: ["deliveries"] })).toBe("/home");
+  });
+
+  it("el admin cae en el hub, con uno o con varios módulos", () => {
+    expect(landingRoute({ role: "admin", module_access: ["timetracker"] })).toBe("/home");
+    expect(landingRoute({ role: "admin", module_access: ["deliveries", "timetracker"] })).toBe("/home");
+  });
+
+  it("sin ningún módulo no hay nada que enseñar: /no-access", () => {
+    expect(landingRoute({ role: "sales", module_access: [] })).toBe("/no-access");
+  });
+
+  it("un next interno gana sobre el hub por defecto", () => {
+    expect(destinoAlEntrar("/timetracker/payroll")).toBe("/timetracker/payroll");
+    expect(destinoAlEntrar("/orders?order=1")).toBe("/orders?order=1");
+  });
+
+  it("sin next, o con la raíz pelada, el hub", () => {
+    expect(destinoAlEntrar(null)).toBe("/home");
+    expect(destinoAlEntrar("/")).toBe("/home");
   });
 });

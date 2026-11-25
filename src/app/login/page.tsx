@@ -51,9 +51,8 @@ export default function LoginPage() {
   const [showList, setShowList] = useState(false);
   // Where to return after signing in — set by middleware.ts when a guarded
   // route bounced here signed-out (e.g. `/timetracker`). Falls back to `/home`:
-  // someone with the ERP, Recruiting or Time Tracker should choose where they
-  // are going rather than be dropped into one app (D-090). /home already
-  // bounces anyone with fewer than two destinations onward via landingRoute().
+  // everyone lands on the hub after signing in (2026-11-25); /home only bounces
+  // someone with no module at all (landingRoute → /no-access).
   const [next, setNext] = useState("/home");
 
   useEffect(() => {

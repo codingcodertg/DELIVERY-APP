@@ -71,7 +71,9 @@ export default async function HomePage({
 
   // La regla vive en canReachHub() con el candado del chofer (D-173): D-056 la escribió
   // aquí en línea y sin él, y `ModuleSwitcher` tenía la suya. Una sola, con prueba.
-  if (!canReachHub(me)) redirect(landingRoute(me));
+  // 2026-11-25: el hub es el destino de todos (landingRoute); solo rebota quien no tiene ningún módulo (/no-access).
+  // Antes rebotaba a quien tenía un solo módulo a esa app: ahora ve su tile aquí.
+  if (landingRoute(me) !== "/home") redirect(landingRoute(me));
 
   // ¿Está dentro de la sesión de otra persona? (D-306). Se lee de la cookie de retorno, aquí y
   // una sola vez, con el mismo lector que usan las rutas de impersonación: ninguna herramienta

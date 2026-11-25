@@ -84,7 +84,7 @@ describe("chofer: «Mi ruta» primero y «Órdenes» al final (D-523)", () => {
 
   it("y es su pantalla de inicio: al entrar y desde «Ver como»", () => {
     expect(roleHome("driver")).toBe("/my-route");
-    expect(landingRoute({ role: "driver", module_access: ["deliveries"] })).toBe("/my-route");
+    expect(landingRoute({ role: "driver", module_access: ["deliveries"] })).toBe("/home"); // 2026-11-25: al entrar, el hub; su tile de Entregas lleva a /my-route
     expect(canOpenTab(tabForPath("/my-route")!.id, { role: "driver", permissions: [] })).toBe(true);
   });
 });
