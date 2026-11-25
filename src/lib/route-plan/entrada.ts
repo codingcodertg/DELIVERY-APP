@@ -212,11 +212,15 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
     // La zona de la recogida (D-427): la ciudad de la dirección de la tienda de origen —la misma de arriba— o, en una
     // recogida libre, la de su dirección.
     const zonaRecogida = hayZonas ? zonaDeLaRecogida(d, tiendas, zonasConocidas, reglas) : "";
-    let destino: Punto | null = null;
-    if (d.delivery_lat != null && d.delivery_lng != null) {
+    // motor-11: una entrega A UNA TIENDA usa el punto DE LA TIENDA, el mismo de quien recoge ahí. Antes, con pin propio, era
+    // «orden:<id>»: para el motor, descargar en Pharr y cargar en Pharr eran dos sitios distintos, así que no podía saber que
+    // era una sola visita ni poner la descarga antes que la carga (la queja del dueño, 2026-11-24). El pin de la orden solo
+    // manda cuando el destino no es una tienda de Ajustes con punto.
+    let destino: Punto | null = entreTiendas ? tiendaConPunto(d.delivery_name) : null;
+    if (!destino && d.delivery_lat != null && d.delivery_lng != null) {
       destino = puntoDeOrden(d.id);
       puntos[destino] = { lat: d.delivery_lat, lng: d.delivery_lng };
-    } else if (entreTiendas) destino = tiendaConPunto(d.delivery_name);
+    }
 
     const pallets = palletsDeLaOrden(d);
     ordenes.push({
