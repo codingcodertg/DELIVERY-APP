@@ -1,6 +1,6 @@
 "use client";
 
-import { mensajeDeError } from "@/lib/mensaje-de-error";
+import { mensajeDeError, mensajeDeFaltaLa347 } from "@/lib/mensaje-de-error";
 import { useMemo, useState } from "react";
 import { usePrefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
@@ -202,7 +202,7 @@ export function PanelDeFirma({ c, lineas, pendientes, ctx, pon, acciones, onErro
       if (!ctx.demo) await firmarConteo(createClient(), c.id, hoja, nota || null);
       pon((d) => ({ ...d, conteos: d.conteos.map((x) => (x.id === c.id ? { ...x, signed_at: new Date().toISOString(), signed_by: ctx.yo.id, signed_by_name: ctx.yo.full_name, signed_sheet: hoja, sign_note: nota || null } : x)) }));
       setFirmando(false);
-    } catch (e) { onError(mensajeDeError(e)); } finally { setOcupado(false); }
+    } catch (e) { onError((!dif && mensajeDeFaltaLa347(e, lang)) || mensajeDeError(e)); } finally { setOcupado(false); }
   };
 
   const ajustar = async (rutas: string[]) => {
