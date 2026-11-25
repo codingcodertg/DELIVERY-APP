@@ -498,3 +498,10 @@ button.ld-pildora.on { border-color: currentColor; box-shadow: 0 0 0 1px current
 .leads-app .ld-etapas .chip[data-grupo-de-etapa="no_sirve"] { --e: var(--etapa-lost); --e-tinta: var(--etapa-lost-tinta); }
 .leads-app .ld-etapas .chip[data-grupo-de-etapa]:not([data-grupo-de-etapa="todas"]) { background: var(--e); color: var(--e-tinta); border-color: var(--e); }
 .leads-app .ld-etapas .chip[data-grupo-de-etapa]:not([data-grupo-de-etapa="todas"]).on { font-weight: 800; box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--e); }
+
+/* El selector de tienda en la fila de filtros (pedido del dueño, 2026-11-24). En escritorio va detrás de «Match customers» y
+   baja de renglón con los chips si no cabe. En teléfono esa fila se desliza de lado: detrás de ocho chips nadie lo
+   encontraría, así que ahí va PRIMERO (visto en pantalla a 390 px: quedaba fuera, en x = 1111). */
+@media (max-width: 700px) {
+  .leads-app .ld-etapas .ld-selector, .leads-app .ld-etapas .ld-fijo { order: -1; flex: 0 0 auto; }
+}
