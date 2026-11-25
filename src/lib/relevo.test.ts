@@ -25,6 +25,7 @@ import {
   alActivar, alDeshacer, avisosDeRelevo, entraEnElCamion, esPasoDeRelevo, estadoDelRelevo, etiquetaDeRelevo, mensajeDeEspera, mensajeDelRelevo, numeroConLetra,
   pasoAnterior, pasosDelRelevo, pasosParaVer, porQueNoSeActiva, porQueNoSeRecoge, primerDiaDelPasoB, problemaDelDiaDelPasoB, puedeGestionarRelevo,
   relevoParaElAviso, sePuedeDeshacer, textoDelEstado, textoDeRelevoParaBuscar, tiendasDeRelevo, notaDelRelevoYaRecogido, TEXTO_NO_SE_ACTIVA,
+  estadoDelPasoAnterior, TEXTO_DEL_PASO_ANTERIOR,
 } from "./relevo";
 
 /**
@@ -712,5 +713,48 @@ describe("322: deshacer el relevo mientras el paso b no haya salido (la base y l
   it("el error de «paso b ya salió» llega en español a la pantalla", () => {
     expect(mensajeDelRelevo("RELEVO_YA_SALIO: the relay can no longer be undone", "es")).toContain("paso b");
     expect(mensajeDelRelevo("RELEVO_YA_SALIO: the relay can no longer be undone", "en")).toContain("step b");
+  });
+});
+
+describe("el paso b dice si el paso a ya llegó a la tienda de relevo (chip junto a la pastilla)", () => {
+  it("el paso a no tiene paso anterior: null; una orden que no es relevo, también", () => {
+    const [a] = relevo();
+    expect(estadoDelPasoAnterior(a, [a])).toBeNull();
+    const normal = mkDelivery({ id: "solo", order_no: 2222, stage: "approved" });
+    expect(estadoDelPasoAnterior(normal, [normal])).toBeNull();
+  });
+
+  it("el paso b con el a ENTREGADO en la tienda de relevo: «entregado»", () => {
+    const [a, b] = relevo({ a: { stage: "delivered" } });
+    expect(estadoDelPasoAnterior(b, [a, b])).toBe("entregado");
+    expect(TEXTO_DEL_PASO_ANTERIOR.entregado("a")).toEqual({ en: "✓ A delivered", es: "✓ A entregado" });
+  });
+
+  it("el a en aprobada, lista o recogida: «pendiente»; cancelado también", () => {
+    for (const stage of ["approved", "ready", "picked_up", "canceled"] as const) {
+      const [a, b] = relevo({ a: { stage } });
+      expect(estadoDelPasoAnterior(b, [a, b])).toBe("pendiente");
+    }
+    expect(TEXTO_DEL_PASO_ANTERIOR.pendiente("a")).toEqual({ en: "⏳ A not delivered yet", es: "⏳ A sin entregar" });
+  });
+
+  it("el a no está a la vista (un chofer no ve el paso de otro): null, no se afirma nada", () => {
+    const [, b] = relevo({ a: { stage: "delivered" } });
+    expect(estadoDelPasoAnterior(b, [b])).toBeNull();
+  });
+
+  it("cadena de tres: el c mira al b, no al a", () => {
+    const [a, b] = relevo({ a: { stage: "delivered" }, b: { stage: "approved" } });
+    const c = { ...b, id: "paso-c", relay_step: 3, order_suffix: "c", stage: "ready" };
+    expect(estadoDelPasoAnterior(c, [a, b, c])).toBe("pendiente");
+    expect(estadoDelPasoAnterior({ ...b, stage: "delivered" }, [a, { ...b, stage: "delivered" }, c])).toBe("entregado");
+  });
+
+  it("la prueba y la de verdad no se mezclan: un paso b de prueba mira a su a de prueba", () => {
+    const [a, b] = relevo({ a: { stage: "approved" } });
+    const aPrueba = { ...a, id: "a-prueba", is_training: true, stage: "delivered" };
+    const bPrueba = { ...b, id: "b-prueba", is_training: true };
+    expect(estadoDelPasoAnterior(b, [a, b, aPrueba, bPrueba])).toBe("pendiente");
+    expect(estadoDelPasoAnterior(bPrueba, [a, b, aPrueba, bPrueba])).toBe("entregado");
   });
 });
