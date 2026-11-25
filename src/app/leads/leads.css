@@ -27,7 +27,6 @@
 /* Los filtros por situación: una fila que se parte entera, nunca el texto dentro del botón. */
 .ld-etapas { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
 .ld-etapas .chip { padding: 6px 12px; font-size: 13px; white-space: nowrap; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; }
-.ld-etapas .ld-cuenta { font-size: 12px; font-weight: 700; opacity: 0.65; }
 .ld-lista { display: grid; gap: 12px; }
 .ld-mas { display: block; width: 100%; margin-top: 12px; padding: 12px; }
 
@@ -435,6 +434,10 @@ button.ld-pildora.on { border-color: currentColor; box-shadow: 0 0 0 1px current
   --etapa-lost-tinta: #ffffff;
   --etapa-bad_lead: #6b4a2f;
   --etapa-bad_lead-tinta: #ffffff;
+  /* El número de los filtros: morado de la marca (--purple, el de .sema-sol-review) con texto blanco. Son 5.8:1 en claro
+     y en oscuro (--purple no cambia de tema), así que no hace falta un valor de oscuro. */
+  --ld-cuenta-fondo: var(--purple);
+  --ld-cuenta-tinta: #ffffff;
 }
 :root[data-theme="dark"] .leads-app { --etapa-new: #e5e7eb; --etapa-new-tinta: #111827; }
 .leads-app .ld-etapas .chip[data-etapa="new"], .leads-app .ld-pildora[data-pildora-etapa="new"], .leads-app .ld-franja[data-etapa-franja="new"] { --e: var(--etapa-new); --e-tinta: var(--etapa-new-tinta); }
@@ -453,7 +456,13 @@ button.ld-pildora.on { border-color: currentColor; box-shadow: 0 0 0 1px current
 .leads-app .ld-etapas .chip[data-etapa]:not([data-etapa=""]).on, .leads-app .ld-pildora[data-pildora-etapa].on {
   font-weight: 800; box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--e);
 }
-.leads-app .ld-etapas .chip[data-etapa]:not([data-etapa=""]) .ld-cuenta { color: inherit; opacity: 0.85; }
+/* El número de cada filtro: una píldora morada, la misma en los dos temas (ver --ld-cuenta-* arriba). Es la única regla
+   que decide el número: ni el chip ni su etapa lo recolorean. La línea fina (--card) lo separa de un chip morado. */
+.leads-app .ld-cuenta {
+  display: inline-block; min-width: 1.6em; padding: 0 6px; border-radius: 999px; text-align: center; line-height: 1.5;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; opacity: 1;
+  background: var(--ld-cuenta-fondo); color: var(--ld-cuenta-tinta); box-shadow: 0 0 0 1px var(--card);
+}
 /* En el teléfono la fila se desliza: un poco de aire arriba y abajo para que el anillo no se corte. */
 .leads-app .ld-etapas { padding-block: 4px; margin-block: -4px 2px; }
 
