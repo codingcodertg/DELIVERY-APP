@@ -142,7 +142,7 @@ import { altoMaximoDeCaja } from "@/lib/barra-superior";
 import { BarraSuperior, useCajasPorClave } from "@/components/BarraSuperior";
 import { CerrarAviso } from "@/components/CerrarAviso";
 import { avisoDelHueco, escrituraDelHueco, mejorLugar, separaPorRequisitos, type ParadaDeRuta } from "@/lib/mejor-lugar";
-import { avisoDePisar, chipAuto, claveDeRutaAuto, notaDeReglas, planAuto, reintentoAuto, type ResultadoAuto, violacionesNuevas } from "@/lib/auto-optimiza-la-ruta";
+import { avisoDePisar, chipAutoEnPantalla, claveDeRutaAuto, mismaSecuencia, notaDeReglas, planAuto, reintentoAuto, type ResultadoAuto, violacionesNuevas } from "@/lib/auto-optimiza-la-ruta";
 import { huellaDeLaRuta, rutasAOptimizar, type CambioDeAsignacion } from "@/lib/auto-optimizar";
 
 import {
@@ -1576,6 +1576,7 @@ export default function RoutesPage() {
   // Friendly display name for a lane key.
   /** Encola la auto-optimización de una ruta: UNA por chofer, 700 ms después del último cambio que la toca. */
   const encolaAuto = (laneKey: string, ordenes: readonly string[], colocadas: readonly string[] = []) => {
+    corriendoAuto.current.add(laneKey);
     const lote = lotesAuto.current.get(laneKey) ?? { ordenes: [], colocadas: [], timer: null };
     for (const o of ordenes) if (!lote.ordenes.includes(o)) lote.ordenes.push(o);
     for (const c of colocadas) if (!lote.colocadas.includes(c)) lote.colocadas.push(c);
@@ -1686,12 +1687,15 @@ export default function RoutesPage() {
       if (nuevas.length) { notas.push(`#${orderLabel(d)}: ${notaDeReglas(nuevas)}`); continue; }
       const e = escrituraDeLaLista(nueva, desde);
       const recogidas = hayRecogidaGuardada ? e.pickupSeqById : undefined;
-      if (!(await guardaLaLista(laneKey, paradas, nueva, { en: `Auto-place ${orderLabel(d)}`, es: `Colocación automática de ${orderLabel(d)}` }))) throw new Error("no se guardó la colocación");
-      const porId = new Map([...paradas, d].map((x) => [x.id, x]));
-      paradas = e.ids.map((id, i) => ({
-        ...porId.get(id)!, assigned_driver: laneKey, route_seq: puestoEn(desde, i), load_no: null,
-        ...(recogidas ? { pickup_seq: recogidas[id] ?? null } : {}),
-      }));
+      // Si la orden ya queda donde estaba, no se escribe nada: ni una entrada de deshacer que no deshace nada.
+      if (!mismaSecuencia(lista, nueva)) {
+        if (!(await guardaLaLista(laneKey, paradas, nueva, { en: `Auto-place ${orderLabel(d)}`, es: `Colocación automática de ${orderLabel(d)}` }))) throw new Error("no se guardó la colocación");
+        const porId = new Map([...paradas, d].map((x) => [x.id, x]));
+        paradas = e.ids.map((id, i) => ({
+          ...porId.get(id)!, assigned_driver: laneKey, route_seq: puestoEn(desde, i), load_no: null,
+          ...(recogidas ? { pickup_seq: recogidas[id] ?? null } : {}),
+        }));
+      }
       lista = nueva;
     }
     if (notas.length) return { estado: "fallo", nota: [...new Set(notas)].join("; "), reintentar: false };
@@ -1774,6 +1778,8 @@ export default function RoutesPage() {
   // Sin `hayAutoOptimizar` (la base sin la 348) todo esto no hace nada.
   type LoteAuto = { ordenes: string[]; colocadas: string[]; timer: ReturnType<typeof setTimeout> | null };
   const lotesAuto = useRef(new Map<string, LoteAuto>());
+  // Las rutas que ESTA pestaña está calculando (con su corrida o con un lote pendiente). El chip «optimizando» solo vale para ellas.
+  const corriendoAuto = useRef(new Set<string>());
   const reintentosAuto = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const ultimoLoteAuto = useRef(new Map<string, { ordenes: string[]; colocadas: string[] }>());
   const autoRef = useRef<((laneKey: string, ordenes: readonly string[], colocadas: readonly string[], intento: number) => Promise<void>) | null>(null);
@@ -1784,6 +1790,7 @@ export default function RoutesPage() {
     for (const r of reintentosAuto.current.values()) clearTimeout(r);
     reintentosAuto.current.clear();
     ultimoLoteAuto.current.clear();
+    corriendoAuto.current.clear();
   }, [date]);
 
   /** Marca la ruta en el estado automático del día. Nunca lanza. */
@@ -1797,7 +1804,7 @@ export default function RoutesPage() {
    * Lo que pasa con una ruta cuando le toca a la auto-optimización. `planAuto` decide: nada, colocar las nuevas una a una
    * (`insertar`) o optimizar toda la ruta con el motor del botón (`optimizar_todo`). Marca la ruta según el resultado.
    */
-  const autoOptimiza = async (laneKey: string, ordenes: readonly string[], colocadas: readonly string[], intento: number): Promise<void> => {
+  const autoOptimizaCuerpo = async (laneKey: string, ordenes: readonly string[], colocadas: readonly string[], intento: number): Promise<void> => {
     if (!hayAutoOptimizar) return;
     const stops = byDriver.get(laneKey) ?? [];
     const huellaInicial = huellaDeLaLane(laneKey);
@@ -1808,7 +1815,11 @@ export default function RoutesPage() {
       huellaAhora: huellaInicial,
       guardado: estadoAutoDeRutas.get(claveDeRutaAuto(date, laneKey)) ?? null,
     });
-    if (plan.que === "nada") return;
+    if (plan.que === "nada") {
+      // Nada que hacer: si la ruta quedó guardada como pendiente, ya está al día: se marca hecha para que no quede pendiente.
+      if (estadoAutoDeRutas.get(claveDeRutaAuto(date, laneKey))?.estado === "pendiente") marcaAuto(laneKey, "hecha", { huella: huellaInicial });
+      return;
+    }
     ultimoLoteAuto.current.set(laneKey, { ordenes: [...ordenes], colocadas: [...colocadas] });
     marcaAuto(laneKey, "pendiente");
     let res: ResultadoAuto;
@@ -1824,6 +1835,15 @@ export default function RoutesPage() {
     if (res.estado === "nada") { marcaAuto(laneKey, "hecha", { huella: huellaDeLaLane(laneKey) }); return; }
     marcaAuto(laneKey, "fallo", { nota: res.nota, sumaIntento: res.reintentar });
     if (res.reintentar) programaReintento(laneKey, ordenes, colocadas, intento);
+  };
+  /** Una corrida de la auto-optimización de una ruta. Mientras dura, esta pestaña la marca como «en marcha» (el chip). */
+  const autoOptimiza = async (laneKey: string, ordenes: readonly string[], colocadas: readonly string[], intento: number): Promise<void> => {
+    corriendoAuto.current.add(laneKey);
+    try {
+      await autoOptimizaCuerpo(laneKey, ordenes, colocadas, intento);
+    } finally {
+      if (!lotesAuto.current.has(laneKey)) corriendoAuto.current.delete(laneKey);
+    }
   };
   autoRef.current = autoOptimiza;
 
@@ -4662,7 +4682,7 @@ export default function RoutesPage() {
               {/* La auto-optimización al asignar (348): «⏳ optimizando…» o, si falló, «↻ sin optimizar — reintentar». Solo con la 348. */}
               {hayAutoOptimizar && (() => {
                 const guardado = estadoAutoDeRutas.get(claveDeRutaAuto(date, u.key));
-                const chip = chipAuto(guardado?.estado ?? null);
+                const chip = chipAutoEnPantalla(guardado?.estado ?? null, corriendoAuto.current.has(u.key));
                 if (!chip) return null;
                 return chip.clase === "fallo" ? (
                   <button className="btn btn-ghost btn-sm" data-reintentar-auto={u.key} style={{ color: "var(--amber-text)" }}
