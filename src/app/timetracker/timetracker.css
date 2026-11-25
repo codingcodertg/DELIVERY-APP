@@ -547,3 +547,11 @@
   .timetracker-module .topbar .tabs a,.timetracker-module .topbar .tabs button{padding:5px 4px;font-size:11.5px}
   .timetracker-module .topbar .tt-campana>button{padding:5px 6px}
 }
+
+/* Los filtros de Nómina en la barra, vistos en pantalla (2026-11-24): el botón de fecha heredaba el blanco de la barra sobre
+   un fondo claro (no se leía) y los dos desplegables se encogían hasta «…». El botón lleva el fondo y la tinta de un campo;
+   los desplegables no bajan de un ancho en el que todavía se lee algo. */
+.timetracker-module .tt-nomina-en-la-barra .ops-menu-fecha{flex:0 0 auto}
+.timetracker-module .tt-nomina-en-la-barra .ops-menu-fecha > .chip{background:var(--tt-panel);color:var(--tt-txt);border:1px solid var(--tt-line);border-radius:8px;padding:5px 10px;font-size:13px;font-weight:700;line-height:1.3}
+.timetracker-module .tt-nomina-en-la-barra .tt-nomina-select{flex:0 1 auto;min-width:104px;background:var(--tt-panel);color:var(--tt-txt)}
+.timetracker-module .tt-nomina-en-la-barra .ops-menu-fecha-lista{z-index:80}

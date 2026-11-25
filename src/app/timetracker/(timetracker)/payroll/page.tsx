@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PayrollTabs } from "@/components/timetracker/PayrollTabs";
-import { periodStartOf } from "@/lib/timetracker/period";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
 import { addDaysISO, fmtISOday } from "@/lib/timetracker/helpers";
 import { hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
 import { seccionPorUrl } from "@/lib/timetracker/trabajando-ahora-en-nomina";
 import {
+  inicioDeSemanaDePago,
   DIA_DE_INICIO_DE_PAGO, MAX_SEMANAS_DE_NOMINA, cuantasSemanasDePago, eleccionDeRango, rangoValidoDeNomina,
   semanasDePagoDelRango,
 } from "@/lib/timetracker/rango-de-nomina";
@@ -34,7 +34,9 @@ function resolverRango(p: Parametros, hoy: string) {
     recortado = cuantasSemanasDePago(valido.desde, valido.hasta, DIA_DE_INICIO_DE_PAGO) > MAX_SEMANAS_DE_NOMINA;
     semanas = semanasDePagoDelRango(valido.desde, valido.hasta, DIA_DE_INICIO_DE_PAGO, MAX_SEMANAS_DE_NOMINA);
   } else {
-    semanas = [esFecha(p.period) ? p.period : periodStartOf(new Date())];
+    // La semana de HOY se saca del día de Texas (`hoy`), no de `new Date()`: con el reloj del servidor en otra zona, de noche
+    // el día ya es el siguiente y la semana salía corrida (visto en pantalla: 21–27 nov en vez de 20–26).
+    semanas = [esFecha(p.period) ? p.period : inicioDeSemanaDePago(hoy)];
   }
   const primera = semanas[0];
   const ultimoDia = addDaysISO(semanas[semanas.length - 1], 6);
