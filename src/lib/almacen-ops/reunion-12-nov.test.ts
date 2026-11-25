@@ -134,11 +134,10 @@ describe("9. teléfono: toda tarjeta se cierra, y «entrar como» no tapa la pan
   });
   // 24 nov: la pastilla de «entrar como» ya no existe en el teléfono: la burbuja es siempre de 46 px con anillo, y el
   // aviso y el rojo salen al abrirla. Lo que se ve siempre, arriba, es el chip (`BarraDeApp`).
-  it("en pantalla de teléfono no hay pastillas de «entrar como» abajo: el chip va arriba", () => {
+  it("en pantalla de teléfono no hay pastillas de «entrar como» abajo: el aviso va arriba, en el botón de la cuenta", () => {
     const css = leer("src/app/globals.css");
     expect(css).not.toContain(".fab-general-caja.suplantando");
-    expect(css).toContain(".viendo-como-nombre { display: none; }");
-    expect(leer("src/components/BarraDeApp.tsx")).toContain("data-viendo-como");
+    expect(leer("src/components/MenuDeCuenta.tsx")).toContain("data-viendo-como");
   });
 });
 
