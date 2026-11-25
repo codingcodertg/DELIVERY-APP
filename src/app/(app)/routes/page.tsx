@@ -49,6 +49,8 @@ import { textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
 import { ordenesEnElMapa } from "@/lib/gestor/ordenes-en-el-mapa";
 import { alternaResaltada, encuadreDeResaltadas, esControlDeLaFila } from "@/lib/resaltar-orden";
 import { diaDeLaRuta } from "@/lib/gestor/numeros-del-dia";
+import { conTiendaDeDestino } from "@/lib/misma-visita";
+import type { OrderTypeRules } from "@/lib/required";
 import { filasDelHorario, paradaDeCadaEntrega } from "@/lib/gestor/zoom-del-horario";
 import { alternaDesplegada, claseDeTarjeta, conAcciones, conCabecera, conCuerpo, desplegadaVigente, type ModoDeTarjeta } from "@/lib/gestor/cuadricula";
 import { abreAlMarcar, guardaVista, leeVista, type VistaDelGestor } from "@/lib/gestor/vistas-del-gestor";
@@ -292,10 +294,16 @@ export default function RoutesPage() {
     () => (soloLecturaDeclarada && miChofer == null ? alcanceDeChoferes(me, tiendasDeAjustes ?? [], { teaching }) : { tipo: "todos" }),
     [soloLecturaDeclarada, miChofer, me, tiendasDeAjustes, teaching],
   );
-  const deliveries = useMemo(
+  const deliveriesDeLaLista = useMemo(
     () => (miChofer != null ? soloMisOrdenes(todasLasDelDia, miChofer)
       : ordenesPorChofer(todasLasDelDia, alcanceChoferes, { me, tiendas: tiendasDeAjustes ?? [], reglas: settings.order_type_rules })),
     [todasLasDelDia, miChofer, alcanceChoferes, me, tiendasDeAjustes, settings.order_type_rules],
+  );
+  // Cada orden lleva `tiendaDeDestino` (`misma-visita`): si su entrega es a una TIENDA. Así, la tabla, el mapa, los colores de
+  // grupo y el PNG numeran una descarga en la tienda y la carga en esa misma tienda como UNA visita, con un número.
+  const deliveries = useMemo(
+    () => conTiendaDeDestino(deliveriesDeLaLista, tiendasDeAjustes ?? [], settings.order_type_rules as OrderTypeRules | undefined),
+    [deliveriesDeLaLista, tiendasDeAjustes, settings.order_type_rules],
   );
   // Lo rotulado con un chofer (su carril, su camión, el aviso de su teléfono) sale si lo ve, o si lleva algo que se pinta.
   const choferesConParada = useMemo(() => choferesConOrden(deliveries), [deliveries]);

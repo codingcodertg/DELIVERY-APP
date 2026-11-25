@@ -4,6 +4,7 @@ import { isStoreToStore, type OrderTypeRules } from "@/lib/required";
 import { puntoDeRecogidaLibre, recogidaLibreDeLaOrden } from "@/lib/recogida-libre";
 import { tipoDeClienteDeLaOrden } from "@/lib/customer-type";
 import { esTramoEntreTiendas } from "@/lib/relevo-etiqueta";
+import { tiendaConPuntoDeAjustes } from "@/lib/tienda-de-ajustes";
 import { choferParaElMotor, COLUMNAS_DE_CHOFER, COLUMNAS_OPCIONALES_DE_CHOFER, esVentanaDura, opcionesDeReparto, pesosDeRuta, topeDeRetrasoMin, type ChoferParaElMotor } from "@/lib/route-settings";
 import { prioridadDe } from "@/lib/prioridad";
 import { catalogoDeRequisitos, habilidadesDelChofer, requisitosDeLaOrden } from "@/lib/requisitos";
@@ -130,8 +131,8 @@ export function entradaDelDia(datos: DatosDelDia): EntradaDelDia {
   const reglas = settings.order_type_rules as OrderTypeRules | undefined;
   const puntos: Record<Punto, LatLng> = {};
   const tiendaConPunto = (nombre: string | null | undefined): Punto | null => {
-    const t = tiendas.find((s) => igual(s.name, nombre));
-    if (!t || t.lat == null || t.lng == null) return null;
+    const t = tiendaConPuntoDeAjustes(tiendas, nombre);
+    if (!t) return null;
     puntos[puntoDeTienda(t.name)] = { lat: t.lat, lng: t.lng };
     return puntoDeTienda(t.name);
   };

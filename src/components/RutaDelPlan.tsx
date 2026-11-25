@@ -77,8 +77,10 @@ interface ArrastreDeFila {
 /** El arrastre de una fila no empieza en un control: el clic llega a su botón, desplegable, campo o enlace (como en la tabla del Gestor). */
 const CONTROLES = "button, select, input, textarea, a, label, [data-abre-la-orden], .col-resizer";
 
-export function RutaDelPlan({ rutas, facturaDeOrden, abrirOrden, ajuste, columnas, colorDelChofer, iconosDeLaOrden }: {
+export function RutaDelPlan({ rutas, facturaDeOrden, abrirOrden, ajuste, columnas, colorDelChofer, iconosDeLaOrden, tiendaDeDestino }: {
   rutas: RutaVista[]; facturaDeOrden: (ref: string) => FacturaYId; abrirOrden?: (ref: string) => void; ajuste?: AjusteDeRuta; columnas?: ColumnasDeLaRuta;
+  /** La tienda a la que va la entrega de una orden, si es una tienda (`misma-visita`): descarga y carga ahí son una parada. */
+  tiendaDeDestino?: (ref: string) => string | null;
   /** El color del chofer (el del mapa y la tabla de paradas): la raya de la izquierda y el círculo del número. */
   colorDelChofer?: (choferId: string, nombre: string) => string;
   /** Lo que va tras la factura de una orden, como en la tabla de paradas: el 📅 de reprogramar y el ⇄ de relevo. */
@@ -91,7 +93,7 @@ export function RutaDelPlan({ rutas, facturaDeOrden, abrirOrden, ajuste, columna
   const [sobre, setSobre] = useState<string | null>(null);
   const enUnControl = useRef(false);
   // Todos los hooks van ANTES del `return` de abajo: la lista de rutas puede venir vacía en el primer pintado.
-  const numeros = useMemo(() => new Map(rutas.map((r) => [r.choferId, numeracionDeLasParadas(filasDeLaRuta(r, columnas))])), [rutas, columnas]);
+  const numeros = useMemo(() => new Map(rutas.map((r) => [r.choferId, numeracionDeLasParadas(filasDeLaRuta(r, columnas))])), [rutas, columnas, tiendaDeDestino]);
   if (!rutas.length) return null;
   const lista = columnas?.lista ?? SOLO_LAS_DEL_PLAN;
   // El rótulo del catálogo sin su «Plan: »: el de Órdenes, tal cual, para las que vienen de allí.
@@ -282,6 +284,7 @@ export function RutaDelPlan({ rutas, facturaDeOrden, abrirOrden, ajuste, columna
       orden: p.order_ref,
       tienda: p.kind === "P" ? p.place : null,
       direccion: p.kind === "D" ? cols?.orden(p.order_ref)?.delivery_address ?? null : null,
+      tiendaDeDestino: tiendaDeDestino?.(p.order_ref) ?? null,
     }));
   }
 

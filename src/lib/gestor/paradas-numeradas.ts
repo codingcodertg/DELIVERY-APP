@@ -1,4 +1,5 @@
 import { etiquetaDeLaParada, gruposDeMismoLugar, numeraLaLista, type ParadaDeLaLista } from "@/lib/lista-unica";
+import type { OrdenConDestinoDeTienda } from "@/lib/misma-visita";
 import type { FilaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
 
 /**
@@ -9,7 +10,10 @@ import type { FilaDeLaRuta } from "@/lib/route-plan/lectura-de-ruta";
  * Una parada es un sitio donde el camión se detiene. Filas SEGUIDAS de la lista en el MISMO sitio son UNA parada: varias
  * recogidas seguidas en la misma tienda, o varias entregas seguidas a la misma dirección. «El mismo sitio» es la regla que
  * ya pinta los grupos de color de la tabla (`gruposDeMismoLugar`, D-444), sin otra: misma tienda (P) o misma dirección (D),
- * sin mayúsculas ni espacios; una P y una D en el mismo sitio no se juntan; la misma tienda más adelante es otra parada.
+ * sin mayúsculas ni espacios; una P y una D con la misma dirección no se juntan; la misma tienda más adelante es otra parada.
+ * La excepción es la TIENDA: una entrega cuyo destino ES una tienda (Intertienda, relevo) y una recogida en esa misma tienda,
+ * seguidas, son UNA visita (`misma-visita.ts`, la única definición del sitio); la numeración sigue la misma regla por
+ * `gruposDeMismoLugar`.
  *
  * No cambia el orden ni las etiquetas P/D (que siguen siendo de la orden: `Dk` es la entrega de `Pk`): solo agrupa y numera
  * lo que ya hay, en el orden en que viene.
@@ -25,8 +29,12 @@ export interface ParadaFisica {
   etiquetas: string[];
   /** Sus órdenes, en orden, sin repetir. */
   ordenes: string[];
-  /** La tienda de una recogida (`null` en una entrega, o si la orden no la dice). */
+  /** La tienda de una recogida (`null` en una entrega, o si la orden no la dice). Una parada con descarga y carga en la
+   *  misma tienda (`misma-visita.ts`) es de recogida y lleva esa tienda. */
   lugar: string | null;
+  /** Solo en una parada que lleva descarga Y carga en la misma tienda: las órdenes de sus ENTREGAS (el mapa las pone bajo
+   *  la burbuja de la tienda, con su número). Sin ella, la parada es solo de recogidas o solo de entregas. */
+  ordenesDeEntrega?: string[];
 }
 
 export interface ParadasDeLaRuta {
@@ -45,23 +53,28 @@ export type FilaQueSeNumera =
 
 /** Agrupa las filas de la ruta en paradas. `ordenes` da la dirección de cada entrega. */
 export function paradasDeLaRuta(
-  filas: readonly FilaQueSeNumera[], ordenes: readonly { id: string; store?: string | null; delivery_address?: string | null }[],
+  filas: readonly FilaQueSeNumera[], ordenes: readonly OrdenConDestinoDeTienda[],
 ): ParadasDeLaRuta {
   const comoLista: ParadaDeLaLista[] = filas.map((f) => (f.tipo === "P" ? { tipo: "P", ordenes: f.ordenes, tienda: f.lugar } : { tipo: "D", orden: f.orden }));
   const grupos = gruposDeMismoLugar(comoLista, ordenes);
   const deFila: number[] = [];
   const primera: boolean[] = [];
   const paradas: ParadaFisica[] = [];
+  const entregasDe: string[][] = [];
   filas.forEach((f, i) => {
     const sigue = i > 0 && grupos[i] != null && grupos[i] === grupos[i - 1];
-    if (!sigue) paradas.push({ numero: paradas.length + 1, tipo: f.tipo, filas: [], etiquetas: [], ordenes: [], lugar: f.tipo === "P" ? f.lugar : null });
+    if (!sigue) { paradas.push({ numero: paradas.length + 1, tipo: f.tipo, filas: [], etiquetas: [], ordenes: [], lugar: f.tipo === "P" ? f.lugar : null }); entregasDe.push([]); }
     const p = paradas[paradas.length - 1];
+    // Descarga y carga en la misma tienda (la misma visita, `misma-visita.ts`): la parada es de recogida, con su tienda.
+    if (f.tipo === "P" && p.tipo === "D") { p.tipo = "P"; p.lugar = f.lugar; }
+    if (f.tipo === "D") entregasDe[paradas.length - 1].push(f.orden);
     p.filas.push(i);
     p.etiquetas.push(f.etiqueta);
     for (const id of f.tipo === "P" ? f.ordenes : [f.orden]) if (!p.ordenes.includes(id)) p.ordenes.push(id);
     deFila.push(p.numero);
     primera.push(!sigue);
   });
+  paradas.forEach((p, k) => { if (p.tipo === "P" && entregasDe[k].length) p.ordenesDeEntrega = entregasDe[k]; });
   return { deFila, primera, paradas };
 }
 
@@ -70,7 +83,9 @@ export function paradasDeLaRuta(
  * INV-3028». `nombres`: cómo se nombra cada orden (en el mapa, su factura: `nombreEnElMapa`); vacío, sin la cola.
  */
 export function textoDeLaParada(p: Pick<ParadaFisica, "numero" | "tipo" | "etiquetas">, nombres: readonly string[], t: (en: string, es: string) => string): string {
-  const que = p.tipo === "P" ? t("pick up", "recoger") : t("deliver", "entregar");
+  // Una visita con descarga y carga en la misma tienda: las dos cosas, en una línea.
+  const mixta = p.etiquetas.some((e) => e.startsWith("P")) && p.etiquetas.some((e) => e.startsWith("D"));
+  const que = mixta ? t("drop off and pick up", "entregar y recoger") : p.tipo === "P" ? t("pick up", "recoger") : t("deliver", "entregar");
   return `${t("Stop", "Parada")} ${p.numero} — ${que} ${p.etiquetas.join(", ")}${nombres.length ? ` · ${nombres.join(", ")}` : ""}`;
 }
 
@@ -79,7 +94,7 @@ export function textoDeLaParada(p: Pick<ParadaFisica, "numero" | "tipo" | "etiqu
  * de cada fila: `deFila` y `primera` por índice de `filas`, y las paradas con sus `filas` en esos mismos índices.
  */
 export function paradasDeLaRutaEnElOrden(
-  filas: readonly FilaQueSeNumera[], ordenes: readonly { id: string; store?: string | null; delivery_address?: string | null }[], orden: readonly number[],
+  filas: readonly FilaQueSeNumera[], ordenes: readonly OrdenConDestinoDeTienda[], orden: readonly number[],
 ): ParadasDeLaRuta {
   const enElOrden = paradasDeLaRuta(orden.map((i) => filas[i]), ordenes);
   const deFila: number[] = filas.map(() => 0);

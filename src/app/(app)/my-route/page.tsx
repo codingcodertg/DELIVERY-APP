@@ -37,6 +37,8 @@ import { SoloMisRutas } from "@/lib/gestor/solo-mis-rutas";
 import { SoloElMapa } from "@/lib/gestor/solo-el-mapa";
 import { ordenDelPunto } from "@/lib/mapa-de-rutas";
 import { etiquetasDelDia, paradasDeLaRutaEnElOrden, textoDeLaParada } from "@/lib/gestor/paradas-numeradas";
+import { conTiendaDeDestino } from "@/lib/misma-visita";
+import type { OrderTypeRules } from "@/lib/required";
 import { colorDeChofer } from "@/lib/map-legend";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { fmtDate, fmtWindows, orderLabel, shiftDateISO, storeTag, todayISO, nombreDeLaOrden } from "@/lib/utils";
@@ -128,10 +130,13 @@ export default function MyRoutePage() {
   const dia = shiftDateISO(todayISO(), desfase);
   const camionesDeEseDia = useCamionDelDia(dia, { activo: !!chofer });
   const camionDeEseDia = camionesDeEseDia.asignaciones.find((a) => a.driverId === chofer?.id)?.truck ?? null;
-  const stops = useMemo(() => {
+  const stopsDeLaRuta = useMemo(() => {
     if (!me) return [];
     return routeOrder(paradasDelChofer(deliveries, driverName, dia, "dia"));
   }, [deliveries, me, driverName, dia]);
+  // Cada orden con su destino de TIENDA (`misma-visita`): la descarga en una tienda y la carga en esa misma tienda son UNA parada.
+  const stops = useMemo(() => conTiendaDeDestino(stopsDeLaRuta, settings.stores ?? [], settings.order_type_rules as OrderTypeRules | undefined),
+    [stopsDeLaRuta, settings.stores, settings.order_type_rules]);
   const porId = useMemo(() => new Map(stops.map((d) => [d.id, d])), [stops]);
   const etapaDe = (id: string) => porId.get(id)?.stage;
 

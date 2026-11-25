@@ -1,4 +1,5 @@
 import { palletsDeLaOrden } from "./pallets";
+import { gruposDeLaVisita, type OrdenConDestinoDeTienda } from "./misma-visita";
 import { puestoEn, type Numeracion } from "./mover-parada";
 
 /**
@@ -164,26 +165,10 @@ function unaPorOrden(paradas: readonly ParadaDeLaLista[]): ParadaDeLaLista[] {
  * o `null` si la parada va sola. Solo agrupa lo seguido: la misma tienda más adelante es otra vuelta, no el mismo grupo.
  */
 export function gruposDeMismoLugar(
-  paradas: readonly ParadaDeLaLista[], ordenes: readonly { id: string; store?: string | null; delivery_address?: string | null }[],
+  paradas: readonly ParadaDeLaLista[], ordenes: readonly OrdenConDestinoDeTienda[],
 ): (number | null)[] {
-  const porId = new Map(ordenes.map((o) => [o.id, o]));
-  const lugar = (p: ParadaDeLaLista): string | null => {
-    if (p.tipo === "P") { const t = normaliza(p.tienda); return t ? `P:${t}` : null; }
-    const dir = normaliza(porId.get(p.orden)?.delivery_address).replace(/\s+/g, " ");
-    return dir ? `D:${dir}` : null;
-  };
-  const claves = paradas.map(lugar);
-  const out: (number | null)[] = paradas.map(() => null);
-  let grupo = -1;
-  for (let i = 0; i < paradas.length; i++) {
-    const k = claves[i];
-    if (k == null) continue;
-    const conLaDeAntes = i > 0 && claves[i - 1] === k;
-    const conLaDeDespues = i + 1 < paradas.length && claves[i + 1] === k;
-    if (!conLaDeAntes && conLaDeDespues) grupo++;
-    if (conLaDeAntes || conLaDeDespues) out[i] = grupo;
-  }
-  return out;
+  // La regla está en `misma-visita.ts` (la única): una recogida y una entrega a la misma tienda son el mismo sitio.
+  return gruposDeLaVisita(paradas, ordenes);
 }
 
 /** El número de cada orden: el orden en que se RECOGE (P1, P2…), como en un plan del motor. `Dk` es la entrega de `Pk`. */

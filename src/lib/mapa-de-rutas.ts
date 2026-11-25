@@ -211,6 +211,9 @@ export function puntosDeLasRutas<T extends OrdenDelMapa>(e: EntradaDeLosPuntos<T
         if (!p.lugar || !p.ordenes.some((id) => porId.has(id))) continue;
         const tienda = e.coordsDeTienda(p.lugar);
         if (!tienda) continue;
+        // Una visita con descarga Y carga en esta tienda (`misma-visita`): sus entregas van bajo ESTA burbuja, con su número, y
+        // no llevan pin propio (si no, dos burbujas encimadas en la misma tienda).
+        for (const id of p.ordenesDeEntrega ?? []) { numeroDe.set(id, [...(numeroDe.get(id) ?? []), p.numero]); dentroDeOtra.add(id); }
         pts.push({
           id: `__parada__${laneKey}__${p.numero}`, lat: tienda.lat, lng: tienda.lng,
           color: e.colorDe(list[0].assigned_driver),

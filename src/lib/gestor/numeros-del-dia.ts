@@ -1,5 +1,6 @@
 import { filasConLoHecho, type FilaPintada, type OrdenHecha } from "@/lib/hechas-del-gestor";
 import { etiquetaDeLaParada, numeraLaLista, tiendaDeRecogida, type ParadaDeLaLista } from "@/lib/lista-unica";
+import type { OrdenConDestinoDeTienda } from "@/lib/misma-visita";
 import type { LecturaDeRuta, OrdenAsignada, ParadaDelPlanMinima } from "@/lib/route-plan/lectura-de-ruta";
 import { ordenDeLaParte } from "@/lib/route-plan/publicar";
 import { paradasDeLaRuta, type FilaQueSeNumera, type ParadaFisica } from "./paradas-numeradas";
@@ -26,7 +27,8 @@ import { paradasDeLaRuta, type FilaQueSeNumera, type ParadaFisica } from "./para
  * pendiente se re-etiquetaba desde P1 al entregar; con plan, no. Ahora las dos igual, y como en «Mi ruta».
  */
 
-type ConLugar = { id: string; store?: string | null; pickup_name?: string | null; delivery_address?: string | null };
+/** Una orden con su lugar: `tiendaDeDestino` (`conTiendaDeDestino`, misma-visita) dice si su entrega es a una tienda. */
+type ConLugar = { id: string; store?: string | null; pickup_name?: string | null; delivery_address?: string | null; tiendaDeDestino?: string | null };
 
 export interface NumerosDelDia {
   /** Por fila PINTADA (el índice de `filasConLoHecho`): su número de parada del día. */
