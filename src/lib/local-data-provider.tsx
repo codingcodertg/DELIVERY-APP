@@ -25,6 +25,7 @@ import { orderLabel } from "@/lib/utils";
 import { notaDeReprogramacion } from "@/lib/reprogramar-orden";
 import { notaDeDomingo, problemaAlAgendar, textoDelProblema, usaCasoEspecial } from "@/lib/dia-de-entrega";
 import { conTelefonoEstandar } from "@/lib/telefono-de-la-orden";
+import { alPartir, ETAPAS_PARA_PARTIR as ETAPAS_DE_PARTIR, hayQuePartirla } from "./intertienda-cliente";
 import { ETAPAS_PARA_TOMAR, facturaParaBuscar, notaAlTomar, numerosDeFactura, sePuedeBuscar, sePuedeTomar, type OrdenParaTomar } from "@/lib/tomar-orden";
 
 // ============================================================
@@ -139,6 +140,24 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     return [...fresh, ...s.notifications];
   };
 
+  // ---- Intertienda Customer (346): como el proveedor real, la orden que pasa por la tienda que vende se parte sola al
+  // aprobarse (`alPartir`, con las mismas reglas), con los dos eventos del relevo. Sin cambio, devuelve `s` tal cual.
+  const conLaPartidaDeLaTienda = useCallback((s: Store, id: string): Store => {
+    const fila = s.deliveries.find((c) => c.id === id);
+    if (!fila) return s;
+    const hermanas = s.deliveries.filter((x) => x.id !== id && x.order_no === fila.order_no && !!x.is_training === !!fila.is_training);
+    if (!hayQuePartirla(fila, hermanas, s.settings.order_type_rules, s.settings.stores ?? [])) return s;
+    const ahora = new Date().toISOString();
+    const r = alPartir(fila, s.settings.order_type_rules, s.settings.stores ?? [], { id: uid(), ahora, creador: me.id, hoy: todayISO() });
+    if (!r) return s;
+    const a = { ...fila, ...r.madre, updated_at: ahora } as Delivery;
+    const paso = r.paso;
+    let next: Store = { ...s, deliveries: [paso, ...s.deliveries.map((c) => (c.id === id ? a : c))] };
+    next = { ...next, events: addEvent(next, id, "edited", `Intertienda Customer: this order is now step ${orderLabel(a)} (${fila.pickup_name} -> ${a.delivery_name}); step ${orderLabel(paso)} (${paso.pickup_name} -> ${paso.delivery_name}) is picked up after step A arrives`) };
+    next = { ...next, events: addEvent(next, paso.id, "created", `Intertienda Customer: step ${orderLabel(paso)}: ${paso.pickup_name} -> ${paso.delivery_name}`) };
+    return next;
+  }, [me]);
+
   const addDelivery = useCallback<DataState["addDelivery"]>(async (dIn) => {
     const d = conTelefonoEstandar(dIn); // como el proveedor real (D-630)
     const s = storeRef.current;
@@ -168,9 +187,9 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     if (row.stage && row.stage !== "draft") {
       next = { ...next, notifications: addNotifs(next, { stage: row.stage, order_no: row.order_no, order_code: row.order_code, delivery_id: row.id, creatorId: orderOwner(row) }) };
     }
-    persist(next);
+    persist(conLaPartidaDeLaTienda(next, row.id));
     return row;
-  }, [me, persist, notify]);
+  }, [me, persist, notify, conLaPartidaDeLaTienda]);
 
   const updateDelivery = useCallback<DataState["updateDelivery"]>(async (id, patchCrudo) => {
     const patch = conTelefonoEstandar(patchCrudo); // como el proveedor real (D-630)
@@ -183,16 +202,19 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // La MISMA nota que el proveedor de verdad (D-372): «Delivery Date: 2026-09-20 → 2026-12-25». El demo la escribía
     // vacía, así que el historial del incidente no se podía ni mirar aquí — y esta pantalla existe justo para mirarla.
     const antes = s.deliveries.find((c) => c.id === id) as unknown as Record<string, unknown> | undefined;
-    persist({
+    const despues: Store = {
       ...s,
       deliveries: s.deliveries.map((c) => (c.id === id ? { ...c, ...patch, updated_at: new Date().toISOString() } : c)),
       events: addEvent(s, id, "edited", antes ? changedFieldsNote(antes, patch as Record<string, unknown>) || undefined : undefined),
-    });
+    };
+    // Intertienda Customer (346): si toca la tienda, el tipo, el recogedor o el cliente de una orden aprobada, se parte sola.
+    const tocaLaTienda = ["stage", "store", "pickup_name", "order_type", "delivery_name"].some((k) => k in patch);
+    persist(tocaLaTienda ? conLaPartidaDeLaTienda(despues, id) : despues);
     // Como el proveedor real (D-640): si ya no cabe en el camión de su chofer, se parte sola. Por referencia: `partirCarga`
     // se declara más abajo.
     await parteSiNoCabeRef.current?.(id, antes as unknown as Delivery | undefined, patch);
     return true;
-  }, [me, persist, notify]);   // `me` en las dependencias: `addEvent` firma con `me.id` (D-373)
+  }, [me, persist, notify, conLaPartidaDeLaTienda]);   // `me` en las dependencias: `addEvent` firma con `me.id` (D-373)
   const parteSiNoCabeRef = useRef<((id: string, antes: Delivery | undefined, patch: Partial<Delivery>) => Promise<void>) | null>(null);
 
   // Renumber a route's stops (see the real provider) — one local write, so the
@@ -403,12 +425,15 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       // pasan el suyo. Antes el demo lo ignoraba y los dos salían como una etapa más.
       events: addEvent(s, id, kind ?? (stage as Stage), note),
     };
-    persist({
+    const despues: Store = {
       ...base,
       notifications: addNotifs(base, { stage, order_no: cur?.order_no ?? null, order_code: cur?.order_code ?? null, delivery_id: id, creatorId: cur ? orderOwner(cur) : null, reason: note, ...(cur ? relevoParaElAviso(cur, s.deliveries) : {}) }),
-    });
+    };
+    // Intertienda Customer (346): al aprobarse (o pasar a una etapa de ETAPAS_DE_PARTIR) se parte sola.
+    const alPasarAEtapa = !!cur && ETAPAS_DE_PARTIR.includes(stage) && !ETAPAS_DE_PARTIR.includes(cur.stage);
+    persist(alPasarAEtapa ? conLaPartidaDeLaTienda(despues, id) : despues);
     return true;
-  }, [me, persist, notify]);
+  }, [me, persist, notify, conLaPartidaDeLaTienda]);
 
   const eventsFor = useCallback((deliveryId: string) => store.events.filter((e) => e.delivery_id === deliveryId), [store.events]);
 

@@ -21,6 +21,7 @@ import { esEnvioDeBorrador, etapaAlEnviar } from "@/lib/enviar-borrador";
 import { DIAS_DE_BORRADOR, esMia } from "@/lib/ordenes-visibles";
 import { ReprogramarOrden } from "@/components/ReprogramarOrden";
 import { PastillaDeRelevo, RelevoDeLaOrden } from "@/components/RelevoDeLaOrden";
+import { pasaACliente, pasaPorLaTiendaQueVende, subtipoDeIntertienda, TEXTO_DEL_SUBTIPO, textoDeLosPasos } from "@/lib/intertienda-cliente";
 import { esPasoDeRelevo } from "@/lib/relevo-etiqueta";
 import { puedeReprogramar } from "@/lib/reprogramar-orden";
 import { PedirAsignacion } from "@/components/PedirAsignacion";
@@ -475,6 +476,9 @@ export function OrderModal({
   // cliente, que es donde está (D-439). Sin tipo de cliente configurado no se pinta.
   const tipoCliente = tipoDeCliente(settings.order_types, settings.order_type_rules);
   const atajoACliente = !!tipoCliente && ofrecePasarACliente(me.role, isNew, isStoreToStore(d.order_type, settings.order_type_rules));
+  // Intertienda Customer (346): la orden de cliente que pasa por la tienda que vende (aviso B1), y el subtipo del encabezado (B4).
+  const pasaPorTienda = pasaPorLaTiendaQueVende(d as Delivery, settings.order_type_rules, settings.stores ?? []);
+  const subtipoDelExistente = existing ? subtipoDeIntertienda(existing, settings.order_type_rules, settings.stores ?? []) : null;
   // Los vendedores que se ofrecen son los de la tienda DE LA ORDEN (`d.store`), no los de quien mira, y
   // «vendedor» es quien puede crear órdenes —no solo el rol `sales`—, que es lo que deja a un gerente que
   // vende elegirse a sí mismo (D-290). La regla entera vive en lib/sales-reps.
@@ -2009,7 +2013,7 @@ export function OrderModal({
                           ancho y no empujan nada. */}
                   {me.role !== "driver" && (
                     <>
-                      {existing?.order_type && <span className="hdr-chip">{existing.order_type}</span>}
+                      {existing?.order_type && <span className="hdr-chip">{subtipoDelExistente ? t(TEXTO_DEL_SUBTIPO[subtipoDelExistente].en, TEXTO_DEL_SUBTIPO[subtipoDelExistente].es) : existing.order_type}</span>}
                       {/* Junto a la etapa (D-148): quien abre la orden lo ve antes de leer
                           nada, y sin desplegar los detalles. */}
                       {sinCobrar && (
@@ -2744,6 +2748,20 @@ export function OrderModal({
               <Txt label={t("Est. Pallets (sales)", "Pallets Est. (ventas)")} type="number" val={d.est_pallets ?? ""} on={(v) => set("est_pallets", v === "" ? null : Number(v))} disabled={!salesFields} invalid={missingSet.has("est_pallets")} />
             </div>
 
+            {/* Intertienda Stock / Customer (346). Va AQUÍ, en el formulario completo: al elegir un tipo entre tiendas el
+                formulario salta del paso inicial a este, así que debajo del selector del paso inicial no se llegaba a ver. */}
+            {isNew && homeIsDestination && tipoCliente && (
+              <div className="field" data-subtipo-intertienda-control style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                <button type="button" data-subtipo-intertienda="stock" className="btn btn-sm btn-primary" aria-pressed={true}
+                  onClick={() => undefined}>
+                  {t(TEXTO_DEL_SUBTIPO.stock.en, TEXTO_DEL_SUBTIPO.stock.es)}
+                </button>
+                <button type="button" data-subtipo-intertienda="customer" className="btn btn-sm btn-ghost" aria-pressed={false}
+                  onClick={() => { setD((p) => pasaACliente(p, aplicaTipo(p, tipoCliente, contextoDelUsuario), me.store, settings.stores ?? [])); setShowFullForm(true); }}>
+                  {t(TEXTO_DEL_SUBTIPO.customer.en, TEXTO_DEL_SUBTIPO.customer.es)}
+                </button>
+              </div>
+            )}
             {/* ---- Local-zone fee suggestion ---- */}
             {/* Los botones de Lista y Descuento van con el mismo gate que el campo: teclear la tarifa a ciegas es peor. */}
             {tarifaEditable && (d.delivery_address || "").trim() && (
@@ -2819,6 +2837,18 @@ export function OrderModal({
             </div>
             )}
 
+            {/* Intertienda Customer (346): aviso de los dos pasos; se parte sola al aprobarse. */}
+            {pasaPorTienda && (
+              <div className="hint" data-intertienda-cliente style={{ marginBottom: 8 }}>
+                {(() => {
+                  const pasos = textoDeLosPasos(pasaPorTienda.origen.name, pasaPorTienda.tienda.name, d.account || d.delivery_name);
+                  return t(
+                    `Intertienda Customer — this order goes in two steps. ${pasos.en}. Step B cannot leave until step A arrives. It splits by itself when the order is approved.`,
+                    `Intertienda Customer: esta orden va en dos pasos. ${pasos.es}. El paso B no sale hasta que llegue el paso A. Se parte sola al aprobarse.`,
+                  );
+                })()}
+              </div>
+            )}
             {/* ---- Pickup ---- */}
             {homeIsDestination ? (
               // La recogida la rellena el desplegable de arriba con la tienda a la que se le compra (D-312), y

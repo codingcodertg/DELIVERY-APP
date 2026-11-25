@@ -41,6 +41,7 @@ import { ALL_QUERIES, queriesForTables, type QueryName } from "@/lib/realtime-re
 import { crearAlmacenDeUbicaciones, UbicacionesDeChoferesCtx, type FuenteDeUbicaciones } from "@/lib/ubicaciones-de-choferes";
 import { cumpleFiltroDeLaLista, fusionarFilas, planDeRafaga, porCampoDesc, porCreatedAtDesc, porOrderNoDesc, type EventoRealtime, type PlanDeTabla, type TablaPorFila, type TipoDeEvento } from "@/lib/recarga-por-fila";
 import { avisoDePartirSola, cargasAlGuardar, esFuncionAusente, parteEnCadena, restosParaPartir } from "@/lib/cargas-partidas";
+import { ETAPAS_PARA_PARTIR, hayQuePartirla } from "./intertienda-cliente";
 import { entraEnElCamion, mensajeDelRelevo, pasosDelRelevo as pasosDeLaFamilia, pasosParaVer, porQueNoSeRecoge, relevoParaElAviso, type PasoParaVer } from "@/lib/relevo";
 import { capacidadDelChofer } from "@/lib/agregar-material-avisos";
 import { argumentosDeReprogramar, caminoTrasReprogramar, notaDeReprogramacion } from "@/lib/reprogramar-orden";
@@ -1145,6 +1146,8 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
   // igual que hace el vaciador del outbox con `logEvent`. La recursión no existe: el parche que
   // se escribe trae las coordenadas, así que la segunda vuelta ya no necesita ubicación.
   const updateDeliveryRef = useRef<DataState["updateDelivery"] | null>(null);
+  // Intertienda Customer (346): `parteSiPasaPorLaTienda` se declara más abajo (junto al relevo); las escrituras la llaman por aquí.
+  const partirRef = useRef<((fila: Delivery) => Promise<void>) | null>(null);
   // Direcciones que el proveedor dice no conocer. Reintentarlas daría el mismo 404, así que no se
   // repiten mientras dure la sesión: es lo que separa «una llamada por pedido» de un bucle. Los
   // fallos temporales NO entran aquí, a propósito — esos sí se reintentan al volver a guardar.
@@ -1274,6 +1277,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       if (row.stage && row.stage !== "draft") {
         await emitStageNotifs({ stage: row.stage, order_no: row.order_no, order_code: row.order_code, delivery_id: row.id, creatorId: orderOwner(row), reason: opts?.motivo });
       }
+      void partirRef.current?.(row);
       return row;
     },
     [supabase, me, notify, logEvent, emitStageNotifs, teaching, deliveries, effectiveDeliveries, ubicarSiHaceFalta, settings.order_type_rules, settings.stores, lang],
@@ -1409,6 +1413,8 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       // Una orden que ya no cabe en el camión de su chofer se parte sola (D-640). Después del registro: el historial
       // cuenta primero la asignación y después la partición.
       await parteSiNoCabe(id, before, patch);
+      // Intertienda Customer (346): si la orden pasa por la tienda que vende y ya está aprobada, se parte sola.
+      if (before && ["stage", "store", "pickup_name", "order_type", "delivery_name"].some((k) => k in patch)) void partirRef.current?.({ ...before, ...patch } as Delivery);
       return true;
     },
     [supabase, notify, logEvent, teaching, deliveries, users, me, ubicarSiHaceFalta, effectiveDeliveries, settings.order_type_rules, settings.stores, lang, parteSiNoCabe],
@@ -1589,6 +1595,26 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     const { error } = await supabase.rpc("deshacer_relevo", { p_id: id });
     return trasElRelevo(error);
   }, [supabase, teaching, notify, trasElRelevo]);
+  // Intertienda Customer (migración 346): la orden que pasa por la tienda que vende se parte sola en el paso a (X → Y) y el
+  // paso b (Y → cliente) cuando está aprobada. Va DESPUÉS de la escritura de la orden: si la partición falla, la orden ya
+  // está guardada y el error se dice como el del relevo. Sin la función (346 sin aplicar) no pasa nada.
+  const parteSiPasaPorLaTienda = useCallback(async (fila: Delivery): Promise<void> => {
+    if (teaching) return;
+    try {
+      const hermanas = deliveries.filter((x) => x.id !== fila.id && x.order_no === fila.order_no && !!x.is_training === !!fila.is_training);
+      if (!hayQuePartirla(fila, hermanas, settings.order_type_rules, settings.stores ?? [])) return;
+      const { data, error } = await supabase.rpc("activar_intertienda_cliente", { p_id: fila.id });
+      if (error) {
+        const sinFuncion = error.code === "PGRST202" || error.code === "42883"
+          || (/activar_intertienda_cliente/i.test(error.message) && /not find|does not exist|schema cache/i.test(error.message));
+        if (sinFuncion) return;
+        notify(mensajeDelRelevo(error.message, lang) ?? "Error: " + error.message);
+        return;
+      }
+      if (typeof data === "string") await trasElRelevo(null);
+    } catch { /* la orden ya se guardó; la partición se puede rehacer */ }
+  }, [teaching, deliveries, settings.order_type_rules, settings.stores, supabase, notify, lang, trasElRelevo]);
+  partirRef.current = parteSiPasaPorLaTienda;
   const pasosDelRelevo = useCallback<DataState["pasosDelRelevo"]>(async (id) => {
     const d = effectiveDeliveries.find((c) => c.id === id);
     const aLaVista = d ? pasosParaVer(pasosDeLaFamilia(effectiveDeliveries, d), events, (uid) => users.find((u) => u.id === uid)?.full_name ?? null) : [];
@@ -1832,6 +1858,8 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       // Aviso «en camino» al cliente de la parada que ahora es la siguiente (D-416, 150). Solo si está encendido en
       // Ajustes; el servidor rehace la ruta y decide. En modo enseñanza no se llega aquí (sale arriba).
       pedirAvisoEnCamino(id, stage, settings.notify_on_the_way_enabled);
+      // Intertienda Customer (346): al aprobarse (o pasar a una etapa de ETAPAS_PARA_PARTIR) se parte sola.
+      if (current && ETAPAS_PARA_PARTIR.includes(stage) && !ETAPAS_PARA_PARTIR.includes(current.stage)) void partirRef.current?.({ ...current, ...patch } as Delivery);
       return true;
     },
     [supabase, me, notify, logEvent, deliveries, effectiveDeliveries, emitStageNotifs, teaching, settings.order_type_rules, settings.stores, settings.notify_on_the_way_enabled, lang],

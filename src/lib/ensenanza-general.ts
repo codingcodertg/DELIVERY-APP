@@ -117,6 +117,7 @@ export const RPC_QUE_ESCRIBEN = [
   "revisa_solicitud_de_cliente", "corrige_solicitud_de_cliente", // 242 (D-865): mandan a Revisar y corrigen una solicitud.
   "add_product_relation", "adjust_inventory", "apply_decisions", "apply_master_import", "assign_draft_sku",
   "activar_relevo", "deshacer_relevo", // 256: activan y deshacen una transferencia por relevo.
+  "activar_intertienda_cliente", // 346: parte sola la orden de Intertienda Customer al aprobarse (escribe dos pasos).
   "delete_help_request", "restore_help_request", // 262: eliminan (borrado blando) y restauran una solicitud de ayuda.
   "bulk_resolve_tag", "bulk_update_products", "confirm_external_match", "decide_request", "junta_clientes", "juntar_cargas",
   "leads_set_cap", "link_draft_to_product", "mark_survey_contacted", "merge_products", "partir_carga",
