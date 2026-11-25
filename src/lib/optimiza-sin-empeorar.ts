@@ -1,5 +1,7 @@
 import { ordenSinRecoger, type ParadaDeLaLista } from "./lista-unica";
-import { mideLaLista, optimizaLaLista, type EntradaDeOptimizar, type MedidaDeLaLista, type ResultadoDeOptimizar, type VentanaDeEntrega } from "./optimiza-la-ruta";
+import { mideLaLista, optimizaLaLista, type EntradaDeOptimizar, type MedidaDeLaLista, type PuntoEnElMapa, type ResultadoDeOptimizar, type VentanaDeEntrega } from "./optimiza-la-ruta";
+import { aSecuencia, arreglaLaLista, validaLaLista, type OrdenDeLaLista } from "./reglas-de-la-lista";
+import type { Aviso, Violacion } from "./route-engine/validador";
 import PATRONES from "./patrones-de-despacho.json";
 
 /**
@@ -111,15 +113,113 @@ export interface ResultadoSinEmpeorar extends ResultadoDeOptimizar {
   como: "arregla" | "ahorra" | null;
   /** Órdenes que la búsqueda encontró y la guarda NO dejó pasar (para medir; en pantalla no se enseñan). */
   descartados: number;
+  /** Las reglas duras del motor (`validaLaLista`) sobre la lista que se devuelve: lo que incumple y lo que hay que señalar. */
+  reglas: { violaciones: Violacion[]; avisos: Aviso[] };
 }
+
+type SinReglas = Omit<ResultadoSinEmpeorar, "reglas">;
 
 /**
  * «🧭 Optimizar» con la regla de D-1029. Devuelve lo mismo que `optimizaLaLista` —`antes` y `despues` medidos con las
  * ventanas y la capacidad DE VERDAD—, y `cambio: false` si no hay un orden que mejore algo sin empeorar nada.
+ *
+ * Después de elegir el orden, la lista pasa por las reglas duras (`arreglaLaLista`: descargar primero en cada visita y una
+ * sola visita por tienda cuando cabe). Si eso la cambia, se mide otra vez con la misma medida y se adopta SOLO si no es peor
+ * que la que iba a devolver (`noEsPeor`); si no, se queda la del optimizador. `reglas` dice qué incumple la lista final.
  */
 export function optimizaSinEmpeorar(e: EntradaDeOptimizar): ResultadoSinEmpeorar {
+  const r = eligeElOrden(e);
+  const ordenes = ordenesDeLaEntrada(e);
+  const capacidad = e.capacidad ?? 0;
+  let final: SinReglas = r;
+  const arreglo = arreglaLaLista(r.paradas, ordenes, capacidad);
+  const paradas = arreglo.cambio ? filasEnElNuevoOrden(e, arreglo.lista) : null;
+  if (paradas) {
+    const despues = mideLaLista(entradaEnOrden(e, paradas));
+    if (noEsPeor(r.despues, despues)) {
+      final = {
+        ...r, paradas, cambio: true, despues,
+        millasDespues: despues.millas, excesoDespues: despues.exceso, como: r.como ?? "arregla",
+      };
+    }
+  }
+  return { ...final, reglas: validaLaLista(final.paradas, ordenes, capacidad) };
+}
+
+/** La clave de un punto del mapa para comparar sitios de entrega (lo que la lista no trae con nombre). */
+const claveDePunto = (p: PuntoEnElMapa | null | undefined): string | null => (p ? `${p.lat.toFixed(5)},${p.lng.toFixed(5)}` : null);
+
+/** Índices de la fila «P» y de la fila «D» de cada orden en la entrada, y los pallets de cada una (null: sin conteo). */
+function filasYPallets(e: EntradaDeOptimizar): { filaP: Map<string, number>; filaD: Map<string, number>; pallets: Map<string, number | null> } {
+  const filaP = new Map<string, number>();
+  const filaD = new Map<string, number>();
+  const pallets = new Map<string, number | null>();
+  e.paradas.forEach((p, i) => {
+    if (p.tipo === "P") {
+      for (const id of p.ordenes) if (!filaP.has(id)) filaP.set(id, i);
+    } else if (!filaD.has(p.orden)) {
+      filaD.set(p.orden, i);
+    }
+  });
+  // Los pallets de una orden: de su fila «D» (la entrega lleva −pallets), o de su «P» si va sola en ella.
+  e.paradas.forEach((p, i) => {
+    const c = e.cambios[i];
+    if (p.tipo === "D") {
+      if (c != null && !pallets.has(p.orden)) pallets.set(p.orden, -c);
+    } else if (p.ordenes.length === 1 && c != null && !pallets.has(p.ordenes[0])) {
+      pallets.set(p.ordenes[0], c);
+    }
+  });
+  return { filaP, filaD, pallets };
+}
+
+/** Las órdenes de la entrada como las ve `arreglaLaLista`: dónde se cargan (el punto de su fila «P») y dónde se descargan (el
+ *  punto de su fila «D»), cuántos pallets y si la recogida ya se hizo (no tiene fila «P»). */
+function ordenesDeLaEntrada(e: EntradaDeOptimizar): OrdenDeLaLista[] {
+  const { filaP, filaD, pallets } = filasYPallets(e);
+  const ids = [...new Set([...filaP.keys(), ...filaD.keys()])];
+  return ids.map((id): OrdenDeLaLista => {
+    const pi = filaP.get(id);
+    const di = filaD.get(id);
+    return {
+      id,
+      // El sitio de la carga y el de la entrega, por su punto en el mapa (el mismo que mide el optimizador): dos órdenes del
+      // mismo sitio se comparan igual aunque una lo diga por nombre de tienda y otra por dirección.
+      origen: pi !== undefined ? claveDePunto(e.puntos[pi]) : null,
+      destino: di !== undefined ? claveDePunto(e.puntos[di]) : null,
+      pallets: pallets.get(id) ?? 0,
+      recogidaHecha: pi === undefined,
+      recogidaDesde: pi !== undefined ? e.recogidaDesde?.[pi] ?? null : null,
+    };
+  });
+}
+
+/**
+ * Las mismas filas de `e.paradas`, en el orden que dejó `arreglaLaLista`. Las reglas miran la secuencia de órdenes; aquí cada
+ * parada vuelve a ser la fila original (la de una orden, D-444), para que la entrada siga alineada con sus listas paralelas.
+ * `null` si la lista trae una fila que no es de la entrada (no debería pasar) o una «P» de varias órdenes (una lista vieja).
+ */
+function filasEnElNuevoOrden(e: EntradaDeOptimizar, lista: readonly ParadaDeLaLista[]): ParadaDeLaLista[] | null {
+  if (e.paradas.some((p) => p.tipo === "P" && p.ordenes.length !== 1)) return null;
+  const filaP = new Map<string, ParadaDeLaLista>();
+  const filaD = new Map<string, ParadaDeLaLista>();
+  for (const p of e.paradas) {
+    if (p.tipo === "P") filaP.set(p.ordenes[0], p);
+    else filaD.set(p.orden, p);
+  }
+  const out: ParadaDeLaLista[] = [];
+  for (const s of aSecuencia(lista)) {
+    const fila = s.tipo === "P" ? filaP.get(s.orden) : filaD.get(s.orden);
+    if (!fila) return null;
+    out.push(fila);
+  }
+  return out.length === e.paradas.length ? out : null;
+}
+
+/** El optimizador de D-1029 sin las reglas duras: elige el orden (la pasada de «arregla» o «ahorra») y lo mide. */
+function eligeElOrden(e: EntradaDeOptimizar): SinReglas {
   const antes = mideLaLista(e);
-  const nada = (base: ResultadoDeOptimizar, descartados: number): ResultadoSinEmpeorar => ({
+  const nada = (base: ResultadoDeOptimizar, descartados: number): SinReglas => ({
     ...base, paradas: [...e.paradas], cambio: false, antes, despues: antes,
     millasAntes: antes.millas, millasDespues: antes.millas, excesoAntes: antes.exceso, excesoDespues: antes.exceso, como: null, descartados,
   });
@@ -128,7 +228,7 @@ export function optimizaSinEmpeorar(e: EntradaDeOptimizar): ResultadoSinEmpeorar
 
   const topes = { millas: antes.centiMillas / 100, tarjetaMin: jornadaDeTarjeta(antes) };
   let descartados = 0;
-  const pasa = (r: ResultadoDeOptimizar, como: "arregla" | "ahorra"): ResultadoSinEmpeorar | null => {
+  const pasa = (r: ResultadoDeOptimizar, como: "arregla" | "ahorra"): SinReglas | null => {
     if (!r.cambio) return null;
     const despues = mideLaLista(entradaEnOrden(e, r.paradas));
     if (!noEsPeor(antes, despues)) { descartados++; return null; }
