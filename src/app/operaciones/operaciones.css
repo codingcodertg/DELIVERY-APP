@@ -729,3 +729,9 @@ table.orders.ops-tabla-excel { min-width: 1480px; font-size: 12px; }
 .ops-tarjeta-filtro { text-align: left; font-family: inherit; cursor: pointer; }
 .ops-tarjeta-filtro:hover { border-color: var(--accent); }
 .ops-tarjeta-filtro.elegida { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
+
+/* La barra de botones pegada al final de la hoja de conteo deja libre la columna de la burbuja (abajo a la derecha). La
+   burbuja ya sube sobre la barra cuando esta toca el fondo de la ventana (globals.css, `--barra-inferior-alto`), pero la hoja
+   puede ser más corta que la ventana y entonces la barra queda a cualquier altura: visto en pantalla a 1280×720, el botón
+   «Continue to review» quedaba a 19 px de la burbuja y en su misma columna. Con este margen sus botones nunca entran ahí. */
+.ops-conteo-modal .modal-actions, .ops-cerrar-abajo { padding-right: var(--fab-libre, 78px); }

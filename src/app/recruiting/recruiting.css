@@ -632,3 +632,6 @@
   .recruiting-module .docs-hoja .docs-hoja-cuerpo td, .recruiting-module .docs-hoja .docs-hoja-cuerpo th { break-inside: avoid; }
   @page { margin: 0; }
 }
+
+/* Igual que la hoja de conteo de Operaciones: las barras de botones de abajo dejan libre la columna de la burbuja. */
+.recruiting-module .compare-bar, .recruiting-module .docs-barra { padding-right: var(--fab-libre, 78px); }
