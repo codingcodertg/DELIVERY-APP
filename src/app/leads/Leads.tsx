@@ -21,6 +21,7 @@ import {
   GRUPOS_DE_ETAPA, grupoDeLaEtapa, type GrupoDeEtapa,
 } from "@/lib/leads/reglas";
 import { pasaSemanaSTXP, poolDelFiltro, unirPoolUnico } from "@/lib/leads/pool-unico";
+import { parecidosDe, tituloDeOtros, type Parecido } from "@/lib/leads/parecidos";
 // 337: las llamadas de RingCentral de la ficha y la pestaña de estadísticas (admin y gerente).
 import type { LlamadaDeLead } from "@/lib/leads/llamadas-rc";
 import { Estadisticas } from "./Estadisticas";
@@ -152,6 +153,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [coinciden, setCoinciden] = useState(false);
   // 335: el filtro «Sin teléfono» (sin teléfono de contratista, ni de mano ni del Excel).
   const [sinTel, setSinTel] = useState(false);
+  // «⚠ Posibles duplicados»: solo los que tienen la etiqueta posible_duplicado (parecidos.ts).
+  const [soloPosibles, setSoloPosibles] = useState(false);
   // La pestaña única: qué se enseña del STXP y del GOV. «todas» = los dos (lo que se ve al entrar).
   const [origen, setOrigen] = useState<FiltroDeOrigen>("todas");
   // D-1145 (D-1145, reunión del 23 nov 2026): el filtro «Vendedor» (quien hizo el último contacto de cada lead). "" = todos.
@@ -167,7 +170,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   );
   // Los filtros como al entrar: al cambiar de pestaña y con «Quitar filtros». El orden no es un filtro y se queda.
   const limpiaFiltros = () => {
-    setCategoria("todas"); setEtapa(""); setBuena(false); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false); setSinTel(false); setVendedorElegido("");
+    setCategoria("todas"); setEtapa(""); setBuena(false); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false); setSinTel(false); setSoloPosibles(false); setVendedorElegido("");
     setOrigen("todas"); setGrupo(null);
   };
   const cambiaPestana = (p: Pestana) => {
@@ -189,6 +192,10 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   // La semana filtra solo el STXP (y solo si quien mira lo ve): el GOV nunca se esconde por ella.
   const semanaFiltro = veStxp && semanaActiva !== "todas" ? semanaActiva : null;
   // La pestaña única: el GOV de su banco y el STXP que le toca, cada uno con su origen (ver `unirPoolUnico`).
+  // Los parecidos (lugar compartido, posible duplicado) se miran en TODOS los leads cargados: una semana 3 puede parecerse a una 1.
+  const parecidos = useMemo(() => parecidosDe(leads), [leads]);
+  const tabsPorId = useMemo(() => new Map(leads.map((l) => [l.id, l.tabs_project])), [leads]);
+  const idsPosibles = useMemo(() => new Set([...parecidos].filter(([, p]) => p.clase === "posible_duplicado").map(([id]) => id)), [parecidos]);
   const delBanco = useMemo(
     () => unirPoolUnico(
       conCruzadosDeMiTienda(leadsDelBanco(leads, alcance), leads.filter((l) => l.source !== "privado"), cruzadoDeMiTienda),
@@ -218,6 +225,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   // El origen también cuenta en los números: lo que cuenta un chip es lo que se ve con ese origen.
   const delOrigen = useMemo(() => delPool.filter((l) => deOrigen(l, origen)), [delPool, origen]);
   const cuentaOrigen = (o: FiltroDeOrigen) => vigentes(delPool).filter((l) => deOrigen(l, o)).length;
+  // Cuántos posibles duplicados hay con el origen y la semana elegidos.
+  const posiblesCuenta = delOrigen.filter((l) => idsPosibles.has(l.id)).length;
   // Los números de cada filtro cuentan lo que hay en el pool elegido (sin el filtro de etapa, para que se vea el total).
   const porEtapa = useMemo(() => cuentaPorEtapa(delOrigen), [delOrigen]);
   // Cuántos leads (vigentes) hay en cada grupo de etapas, con el origen elegido.
@@ -227,12 +236,12 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     () => ordenar(filtrar(delBanco.filter((l) => {
       const p = poolDelFiltro(l, poolFiltro, elige);
       return p === null || l.pool === p;
-    }), { pool: null, categoria, tipo, ciudad, busca, etapa, grupo, buena, coinciden, sinTelefono: sinTel, textoExtra, quien: vendedorElegido, origen }), orden),
-    [delBanco, poolFiltro, elige, categoria, tipo, ciudad, busca, etapa, grupo, buena, coinciden, sinTel, textoExtra, orden, vendedorElegido, origen],
+    }), { pool: null, categoria, tipo, ciudad, busca, etapa, grupo, buena, coinciden, sinTelefono: sinTel, textoExtra, quien: vendedorElegido, origen, soloDeIds: soloPosibles ? idsPosibles : null }), orden),
+    [delBanco, poolFiltro, elige, categoria, tipo, ciudad, busca, etapa, grupo, buena, coinciden, sinTel, textoExtra, orden, vendedorElegido, origen, soloPosibles, idsPosibles],
   );
   // Las personas que han hecho algún último contacto en el banco que se ve (para el filtro «Vendedor»).
   const vendedoresBanco = useMemo(() => vendedoresDeLeads(delBanco), [delBanco]);
-  useEffect(() => { setCuantos(TANDA); }, [pool, categoria, tipo, ciudad, busca, etapa, grupo, buena, coinciden, sinTel, orden, semanaFiltro, vendedorElegido, origen]);
+  useEffect(() => { setCuantos(TANDA); }, [pool, categoria, tipo, ciudad, busca, etapa, grupo, buena, coinciden, sinTel, soloPosibles, orden, semanaFiltro, vendedorElegido, origen]);
 
   if (!yo) return <div className="ld-wrap leads-app"><p className="hint">{t("No session.", "Sin sesión.")}</p></div>;
 
@@ -280,6 +289,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
       onLlamadas={() => void verLlamadas(l)}
       cotizar={puedeCotizarLead(cotiza)} cotizaciones={cotiza ? (cotizaciones.get(l.id) ?? []) : []}
       semana={semanasSTXP.semanaDeLead.get(l.id)}
+      parecido={parecidos.get(l.id)}
+      otrosTabs={tituloDeOtros((parecidos.get(l.id)?.otros ?? []).map((id) => tabsPorId.get(id) ?? id))}
       cliente={l.customer_match_id != null ? clientes.get(l.customer_match_id) : undefined}
       onCliente={(c) => setDialogo({ tipo: "cliente", lead: l, cliente: c })}
       sugerencia={sinTelefono(l) ? sugerenciaDeTelefono(l, leads, clientes) : null}
@@ -466,6 +477,10 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                     </button>
                   )}
                   {/* El selector de tienda va en esta fila, después de «Match customers», alineado a la izquierda. */}
+                  {/* Los posibles duplicados (lugar compartido e igual en lo demás): solo los que tienen esa etiqueta. */}
+                  <button type="button" className={`chip${soloPosibles ? " on" : ""}`} data-filtro-parecidos aria-pressed={soloPosibles} onClick={() => setSoloPosibles((v) => !v)}>
+                    ⚠ {t("Possible duplicates", "Posibles duplicados")} <span className="ld-cuenta">{posiblesCuenta}</span>
+                  </button>
                   {enPoolTab && selectorDeTienda}
                 </div>
                 {/* Un grupo de más de una etapa abre una segunda fila con sus etapas: una sola, con sus colores y su cuenta. */}
@@ -580,8 +595,20 @@ function EtiquetaDeOrigen({ lead }: { lead: Lead }) {
   return <span className="chip ld-origen" data-origen={o}>{o === "stxp" ? "STXP" : "GOV"}</span>;
 }
 
-function Tarjeta({ lead: l, ocupado, almacen, historial, llamadas, onNota, onHistorial, onLlamadas, cotizar, cotizaciones, cliente, onCliente, semana, sugerencia, onTelefono }: {
+/** La etiqueta de un lead que comparte lugar con otro del mismo origen: «posible duplicado» o «mismo lugar», con su cuenta. */
+function EtiquetaDeParecido({ parecido, otrosTabs }: { parecido: Parecido; otrosTabs: string }) {
+  const { t } = usePrefs();
+  const n = parecido.cuantos;
+  const texto = parecido.clase === "posible_duplicado"
+    ? t(`⚠ Possible duplicate ×${n}`, `⚠ Posible duplicado ×${n}`)
+    : t(`📍 Same location ×${n}`, `📍 Mismo lugar ×${n}`);
+  return <span className="chip ld-parecido" data-parecido={parecido.clase} title={otrosTabs}>{texto}</span>;
+}
+
+function Tarjeta({ lead: l, ocupado, almacen, historial, llamadas, onNota, onHistorial, onLlamadas, cotizar, cotizaciones, cliente, onCliente, semana, sugerencia, onTelefono, parecido, otrosTabs }: {
   lead: Lead; ocupado: boolean; almacen: AlmacenDeLeads;
+  /** Si comparte lugar con otro del mismo origen (parecidos.ts), y los números de esos otros para el título. */
+  parecido?: Parecido; otrosTabs?: string;
   historial: EventoLead[] | null | undefined;
   /** 337: las llamadas de RingCentral a los teléfonos del lead (null = cargando; undefined = cerrada). */
   llamadas: LlamadaDeLead[] | null | undefined;
@@ -616,7 +643,7 @@ function Tarjeta({ lead: l, ocupado, almacen, historial, llamadas, onNota, onHis
           <b data-ultimo-contacto>👤 {l.last_by_name ?? "—"}</b>
           <span className="ld-franja-der">
             <span>{fecha(l.last_at)}</span>
-            <EtiquetaDeOrigen lead={l} />
+            <EtiquetaDeOrigen lead={l} />{parecido && <EtiquetaDeParecido parecido={parecido} otrosTabs={otrosTabs ?? ""} />}
             <span data-pildora-etapa-texto={etapa}>{etapaIcono(etapa)} {etapaLabel(etapa, lang)}</span>
           </span>
         </div>
@@ -627,7 +654,7 @@ function Tarjeta({ lead: l, ocupado, almacen, historial, llamadas, onNota, onHis
         {!trabajado && (
           <div className="ld-cabeza-der">
             <PildoraEtapa e={etapa} />
-            <EtiquetaDeOrigen lead={l} />
+            <EtiquetaDeOrigen lead={l} />{parecido && <EtiquetaDeParecido parecido={parecido} otrosTabs={otrosTabs ?? ""} />}
             {l.last_at && (
               <span className="ld-ultimo" data-ultimo-contacto>👤 {l.last_by_name ?? "—"} · {fecha(l.last_at)}</span>
             )}

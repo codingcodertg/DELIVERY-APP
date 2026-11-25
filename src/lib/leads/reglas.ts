@@ -401,6 +401,8 @@ export interface Filtros {
   quien?: string;
   /** La pestaña única (Leads Pool): solo el STXP, solo el GOV o los dos. Sin dato, los dos. */
   origen?: FiltroDeOrigen;
+  /** Solo los leads de estos ids («⚠ Posibles duplicados», ver parecidos.ts). null o sin dato = sin filtro. */
+  soloDeIds?: ReadonlySet<string> | null;
 }
 
 /**
@@ -415,6 +417,7 @@ export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
     if (f.sinTelefono && !sinTelefono(l)) return false;
     if (f.quien && l.last_by !== f.quien) return false;
     if (f.origen && !deOrigen(l, f.origen)) return false;
+    if (f.soloDeIds && !f.soloDeIds.has(l.id)) return false;
     if (f.buena && !categoriaBuena(l.category)) return false;
     if (f.grupo && grupoDeLaEtapa(etapaDe(l)) !== f.grupo) return false;
     if (f.etapa) { if (etapaDe(l) !== f.etapa) return false; }

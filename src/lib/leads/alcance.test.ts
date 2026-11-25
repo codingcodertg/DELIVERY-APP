@@ -235,7 +235,7 @@ describe("5 · la pantalla pinta lo que el alcance dice", () => {
     expect(p).toContain("const pools = useMemo(() => poolsDe(delBanco), [delBanco]);");
     // D-770: en el STXP Pool de quien no elige tienda, el pool no filtra (`poolFiltro`).
     expect(p).toContain("const delPool = useMemo(() => delBanco.filter((l) => {\n    const p = poolDelFiltro(l, poolFiltro, elige);\n    return p === null || l.pool === p || cruzadoDeMiTienda(l);\n  }), [delBanco, poolFiltro, elige, cruzadoDeMiTienda]);");
-    expect(p).toContain("quien: vendedorElegido, origen }), orden)");
+    expect(p).toContain("quien: vendedorElegido, origen, soloDeIds: soloPosibles ? idsPosibles : null }), orden)");
   });
   it("el selector de tienda solo se dibuja si eligeTienda; si no, su tienda fija y sin los otros bancos", () => {
     expect(p).toContain("const elige = eligeTienda(alcance);");

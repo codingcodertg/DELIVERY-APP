@@ -505,3 +505,8 @@ button.ld-pildora.on { border-color: currentColor; box-shadow: 0 0 0 1px current
 @media (max-width: 700px) {
   .leads-app .ld-etapas .ld-selector, .leads-app .ld-etapas .ld-fijo { order: -1; flex: 0 0 auto; }
 }
+
+/* La etiqueta de lugar compartido (parecidos.ts): «posible duplicado» en ámbar; «mismo lugar», neutra. Tokens existentes. */
+.leads-app .ld-parecido { font-size: 11px; font-weight: 700; padding: 2px 8px; border: 1px solid var(--line); }
+.leads-app .ld-parecido[data-parecido="posible_duplicado"] { background: var(--amber-soft); color: var(--amber-text, var(--amber)); border-color: var(--amber); }
+.leads-app .ld-parecido[data-parecido="mismo_lugar"] { background: var(--card-hover); color: var(--ink-soft); }

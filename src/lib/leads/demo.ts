@@ -203,6 +203,13 @@ export function leadsDemo(ahora: Date = new Date()): Lead[] {
       };
     }
   });
+  // Lugares compartidos del STXP (la ubicación aproximada del permiso; ver parecidos.ts): el 02 es el 01 con otro número
+  // (posible duplicado, los dos), y el 03 comparte solo el lugar (mismo lugar).
+  const idxStxp = (n: string) => leads.findIndex((l) => l.id === `demo-stxp-${n}`);
+  const [i1, i2, i3] = ["01", "02", "03"].map(idxStxp);
+  const ancla = leads[i1];
+  leads[i2] = { ...leads[i2], site_address: ancla.site_address, project_name: ancla.project_name, type_of_work: ancla.type_of_work, estimated_cost: ancla.estimated_cost, scope_of_work: ancla.scope_of_work };
+  leads[i3] = { ...leads[i3], site_address: ancla.site_address };
   return leads;
 }
 
