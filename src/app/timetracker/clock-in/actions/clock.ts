@@ -43,19 +43,28 @@ export type ClockInResult =
 export type ClockOutResult = { ok: true; onSite: boolean | null } | { ok: false; message: string };
 
 type ClockOutInput = {
-  // Required: location is recorded on the way OUT as well as IN. The client's
-  // whole reason for this system is knowing where each punch happened.
-  lat: number;
-  lng: number;
+  // Location is recorded on the way OUT as well as IN. The client's whole reason for this system is knowing
+  // where each punch happened. Solo falta en el fichaje desde el hub de escritorio (origen "hub"), que no lo mide.
+  lat?: number;
+  lng?: number;
   accuracy?: number;
   photoPath?: string;
   deviceId?: string;
+  /**
+   * "hub": el fichaje sale de la app de escritorio, con UN toque y sin lugar ni foto (2026-11-25). No se lee la
+   * geocerca: el fichaje queda con «no se midió» (`onSite` null), y no se escribe ninguna excepción ni se avisa a
+   * los gerentes. Solo lo pone `hub.ts`, que comprueba antes el interruptor de la persona.
+   */
+  origen?: "hub";
 };
 
 type ClockInput = {
-  lat: number;
-  lng: number;
+  // Sin coordenadas (y con origen "hub") no hay lectura de la geocerca: ver ClockOutInput.origen.
+  lat?: number;
+  lng?: number;
   accuracy?: number;
+  /** "hub": fichaje desde la app de escritorio, sin lugar ni foto. Ver ClockOutInput.origen. */
+  origen?: "hub";
   /**
    * La tienda en la que ficha quien va en VARIAS tiendas (350, 2026-11-25). Para los demás se ignora. El servidor
    * comprueba que sea una tienda activa de su empresa (`validarTiendaDelFichaje`). No es un dato de la geocerca.
@@ -178,15 +187,19 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
   // `null` y, de aquí abajo, nada de lo que depende de la geocerca ocurre — no se le pide motivo,
   // no se le insertan excepciones y no sale aviso a los gerentes. El GPS sí se guarda, así que el
   // veredicto se puede recalcular después; lo que no se puede deshacer es haberlo inventado.
-  const geocerca = await sitioDelFichaje(
-    supabase as unknown as ClienteDeSitios,
-    profile.company_id,
-    input.lat,
-    input.lng,
-    DEV_BYPASS_GEOFENCE,
-  );
-  const siteId = geocerca.medido ? geocerca.siteId : null;
-  const onSite: boolean | null = geocerca.medido ? geocerca.onSite : null;
+  // Desde el hub de escritorio (origen "hub") no se lee la geocerca: no hay coordenadas, y «no se midió» es lo
+  // que corresponde (no «fuera»: un `false` aquí pediría motivo y escribiría una excepción de radio).
+  const geocerca = input.origen === "hub"
+    ? null
+    : await sitioDelFichaje(
+      supabase as unknown as ClienteDeSitios,
+      profile.company_id,
+      input.lat as number,
+      input.lng as number,
+      DEV_BYPASS_GEOFENCE,
+    );
+  const siteId = geocerca?.medido ? geocerca.siteId : null;
+  const onSite: boolean | null = geocerca?.medido ? geocerca.onSite : null;
 
   // Los motivos, en una sola forma para todo lo de abajo (D-163). Se acepta `reasons` (lo
   // que manda la pantalla nueva) o `reason` (una llamada vieja, o un cliente sin actualizar
@@ -251,8 +264,8 @@ export async function clockIn(input: ClockInput): Promise<ClockInResult> {
     company_id: profile.company_id,
     employee_id: user.id,
     scheduled_shift_id: todayShift?.id ?? null,
-    clock_in_lat: input.lat,
-    clock_in_lng: input.lng,
+    clock_in_lat: input.lat ?? null,
+    clock_in_lng: input.lng ?? null,
     clock_in_site_id: siteId ?? null,
     clock_in_in_radius: onSite,
     clock_in_photo_path: input.photoPath ?? null,
@@ -396,22 +409,25 @@ export async function clockOut(entryId: string, input: ClockOutInput): Promise<C
   // por eso ya no está copiada: el bloque de aquí era idéntico al de allí, el `error` descartado
   // incluido. Aquí el fallo de lectura era PEOR, porque la salida no tiene puerta que preguntar:
   // escribía `clock_out_in_radius: false` sin más (D-505).
-  const geocerca = await sitioDelFichaje(
-    supabase as unknown as ClienteDeSitios,
-    profile.company_id,
-    input.lat,
-    input.lng,
-    DEV_BYPASS_GEOFENCE,
-  );
-  const siteId = geocerca.medido ? geocerca.siteId : null;
-  const onSite: boolean | null = geocerca.medido ? geocerca.onSite : null;
+  // Desde el hub (origen "hub"): sin geocerca, como en la entrada. Ver clockIn.
+  const geocerca = input.origen === "hub"
+    ? null
+    : await sitioDelFichaje(
+      supabase as unknown as ClienteDeSitios,
+      profile.company_id,
+      input.lat as number,
+      input.lng as number,
+      DEV_BYPASS_GEOFENCE,
+    );
+  const siteId = geocerca?.medido ? geocerca.siteId : null;
+  const onSite: boolean | null = geocerca?.medido ? geocerca.onSite : null;
 
   const { data: closed, error } = await supabase
     .from("time_entries")
     .update({
       clock_out_at: new Date().toISOString(),
-      clock_out_lat: input.lat,
-      clock_out_lng: input.lng,
+      clock_out_lat: input.lat ?? null,
+      clock_out_lng: input.lng ?? null,
       clock_out_site_id: siteId ?? null,
       clock_out_in_radius: onSite,
       clock_out_photo_path: input.photoPath ?? null,
