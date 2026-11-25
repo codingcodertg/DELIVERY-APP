@@ -24,14 +24,14 @@ describe("Hojas de tiempo de Nómina: la hoja de Excel y la tabla", () => {
   });
 });
 
-describe("timetracker.css declara los tokens de la hoja, en claro y en oscuro", () => {
+describe("timetracker.css declara los tokens de la hoja desde la paleta del hub (sin bloque claro propio)", () => {
   const css = leer("src/app/timetracker/timetracker.css");
   const tokens = ["cabecera", "grupo", "trabajo", "fuera", "crema", "nombre", "sobre", "domingo"];
 
-  it("cada token tiene su valor por defecto (oscuro) y su valor en claro", () => {
+  it("cada token está declarado en el bloque del módulo, y no hay bloque claro aparte", () => {
     for (const t of tokens) {
-      expect(css, `--tt-hoja-${t} oscuro`).toMatch(new RegExp(`\\.timetracker-module\\{[^}]*--tt-hoja-${t}:`));
-      expect(css, `--tt-hoja-${t} claro`).toMatch(new RegExp(`:root\\[data-theme="light"\\] \\.timetracker-module\\{[^}]*--tt-hoja-${t}:`));
+      expect(css, `--tt-hoja-${t}`).toMatch(new RegExp(`\\.timetracker-module\\{[^}]*--tt-hoja-${t}:`));
     }
+    expect(css).not.toContain(':root[data-theme="light"] .timetracker-module{');
   });
 });

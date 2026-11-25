@@ -14,27 +14,19 @@
   --tt-txt:var(--text); --tt-muted:var(--gray); --tt-accent:var(--accent); --tt-accent2:var(--green);
   --tt-danger:var(--red); --tt-warn:var(--amber); --tt-ok:var(--green); --tt-chip:var(--accent-soft);
 }
-/* La hoja semanal de Nómina (`HojaSemanal`, 2026-11-24): los colores de sus celdas son tokens, oscuros por defecto y claros
-   con data-theme="light". Todos pasan 4,5:1 de contraste con su texto en los dos temas. */
+/* La hoja semanal de Nómina (`HojaSemanal`, 2026-11-24): los tokens salen de la paleta del hub (que ya cambia con
+   data-theme en globals.css), sin bloque claro propio. Cada fondo es una mezcla suave del color de la paleta con la
+   tarjeta, y su texto es la tinta del hub, así que se lee en claro y en oscuro. El amarillo del nombre y del total es
+   el único literal, y lleva su texto oscuro en los dos temas. */
 .timetracker-module{
-  --tt-hoja-cabecera:#111111; --tt-hoja-cabecera-txt:#ffffff;
-  --tt-hoja-grupo:#3a404b; --tt-hoja-grupo-txt:#eef1f5;
-  --tt-hoja-trabajo:#1f4d3a; --tt-hoja-trabajo-txt:#e6fff3;
-  --tt-hoja-fuera:#5a3a1a; --tt-hoja-fuera-txt:#ffe9cc;
-  --tt-hoja-crema:#3d3a2e; --tt-hoja-crema-txt:#f7f2de;
+  --tt-hoja-cabecera:var(--text); --tt-hoja-cabecera-txt:var(--paper);
+  --tt-hoja-grupo:color-mix(in srgb, var(--text) 14%, var(--card)); --tt-hoja-grupo-txt:var(--text);
+  --tt-hoja-trabajo:color-mix(in srgb, var(--green) 22%, var(--card)); --tt-hoja-trabajo-txt:var(--text);
+  --tt-hoja-fuera:color-mix(in srgb, var(--amber) 28%, var(--card)); --tt-hoja-fuera-txt:var(--text);
+  --tt-hoja-crema:color-mix(in srgb, var(--amber) 8%, var(--paper)); --tt-hoja-crema-txt:var(--text);
   --tt-hoja-nombre:#ffd83d; --tt-hoja-nombre-txt:#111111;
-  --tt-hoja-sobre:#7a1f28; --tt-hoja-sobre-txt:#ffd9dc;
-  --tt-hoja-domingo:#2c3038; --tt-hoja-domingo-txt:#c9cdd4;
-}
-:root[data-theme="light"] .timetracker-module{
-  --tt-hoja-cabecera:#1a1a1a; --tt-hoja-cabecera-txt:#ffffff;
-  --tt-hoja-grupo:#d9dde3; --tt-hoja-grupo-txt:#1d2129;
-  --tt-hoja-trabajo:#d8f5e4; --tt-hoja-trabajo-txt:#0d3b25;
-  --tt-hoja-fuera:#ffe3c2; --tt-hoja-fuera-txt:#5c2e00;
-  --tt-hoja-crema:#fbf6e1; --tt-hoja-crema-txt:#2b2a1f;
-  --tt-hoja-nombre:#ffd83d; --tt-hoja-nombre-txt:#111111;
-  --tt-hoja-sobre:#fbd5d9; --tt-hoja-sobre-txt:#7a0f1a;
-  --tt-hoja-domingo:#e4e6ea; --tt-hoja-domingo-txt:#3c4048;
+  --tt-hoja-sobre:color-mix(in srgb, var(--red) 28%, var(--card)); --tt-hoja-sobre-txt:var(--text);
+  --tt-hoja-domingo:color-mix(in srgb, var(--text) 10%, var(--card)); --tt-hoja-domingo-txt:var(--text);
 }
 :root[data-theme="light"] .timetracker-module .btn-ok{color:#053d2b}
 :root[data-theme="light"] .timetracker-module .btn-warn{color:#4a3200}
