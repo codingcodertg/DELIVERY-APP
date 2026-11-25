@@ -98,7 +98,7 @@ describe("abrir una ajena desde «Mañana»: no (D-544, la puerta de la ficha)",
 
 describe("las columnas son las de la tabla de paradas de «Ruta de hoy», derivadas del catálogo", () => {
   it("fijas de paradas (Factura #, Pallets) + las del catálogo «paradas» no ocultas, traducidas a Órdenes; la llegada queda fuera", () => {
-    expect([...COLUMNAS_DE_MANANA_PARA_VENTAS]).toEqual(["invoice", "pallets", "type", "store", "address", "windows", "rep"]); // + rep (la «Usuario» de Órdenes, que hereda la de paradas)
+    expect([...COLUMNAS_DE_MANANA_PARA_VENTAS]).toEqual(["invoice", "pallets", "po", "type", "store", "address", "windows", "rep"]); // + po (la PO de paradas, tanda _v11, delante del tipo) // + rep (la «Usuario» de Órdenes, que hereda la de paradas)
   });
   it("todas existen en la tabla de Órdenes, sin repetidas", () => {
     const claves = new Set(ORDER_COLUMNS.map((c) => c.key));
@@ -108,7 +108,7 @@ describe("las columnas son las de la tabla de paradas de «Ruta de hoy», deriva
   it("salen del catálogo: una columna de paradas que deje de salir por defecto, deja de salir aquí", () => {
     const porDefecto = COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas") && !c.oculta).map((c) => c.key);
     // D-671: «Actual» (`p_actual`) sale por defecto en paradas; como la llegada, no es columna de Órdenes y aquí no entra.
-    expect(porDefecto).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_actual", "p_windows", "p_rep"]); // + p_rep (columna «Usuario» de paradas)
+    expect(porDefecto).toEqual(["p_po", "p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_actual", "p_windows", "p_rep"]); // + p_po (tanda _v11) y p_rep (columna «Usuario» de paradas)
     // Una oculta del catálogo (Cuenta, SO, PO…) NO está aquí, aunque sea columna de Órdenes. («Tienda» sí, pero por
     // «Ciudad de recogida», que sale por defecto — no por la oculta `p_store`.)
     for (const c of COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas") && c.oculta && c.deOrdenes && c.key !== "p_store")) {

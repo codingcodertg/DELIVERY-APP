@@ -77,7 +77,7 @@ describe("«Sin asignar» en el orden de Órdenes vista por ventas (D-402)", () 
     // D-412: la prioridad llega al FINAL, como toda columna nueva de paradas; lo de antes no se mueve.
     // D-445 es la excepción: la ciudad de recogida va justo DELANTE de la de entrega (de dónde sale a dónde va), no al final.
     // D-671 es la segunda: «Actual» (la hora real) va justo DETRÁS de la llegada, para leerlas juntas.
-    const DE_SIEMPRE = ["p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_actual", "p_windows", "p_stage", "p_store", "p_account", "p_rep", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"]; // + p_rep (columna «Usuario» de paradas)
+    const DE_SIEMPRE = ["p_po", "p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_actual", "p_windows", "p_stage", "p_store", "p_account", "p_rep", "p_so", "p_date", "p_fee", "p_contact", "p_priority"]; // + p_rep (columna «Usuario» de paradas); la PO, primera (tanda _v11)
     expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR.map((c) => c.key)).map((c) => c.key)).toEqual(DE_SIEMPRE);
     expect(plano(leer("src/app/(app)/routes/page.tsx"))).toContain('columnas={columnasDelSelector("paradas", ordenGestor)}');
     expect(columnasDelSelector("paradas", null).map((c) => c.key)).toEqual(DE_SIEMPRE);

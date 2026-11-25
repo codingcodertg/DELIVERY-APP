@@ -2217,6 +2217,11 @@ export default function RoutesPage() {
         const nombres = [...new Set((como.ordenes ?? (d ? [d] : [])).map((x) => ctxDeOrdenes.nombreDe?.(orderOwner(x)) ?? null).filter((n): n is string => !!n))];
         return <td key={c.key}>{nombres.join(" · ") || "—"}</td>;
       }
+      // «PO #» (tanda `_v11`, la de Órdenes): el de la orden; en una recogida con varias, sus números distintos separados por « · ».
+      case "p_po": {
+        const pos = [...new Set((como.ordenes ?? (d ? [d] : [])).map((x) => x.po2).filter((p): p is string => !!p))];
+        return <td key={c.key}>{pos.join(" · ") || "—"}</td>;
+      }
       case "p_eta": return <Fragment key={c.key}>{como.llegada}</Fragment>;
       case "p_actual": return celdaReal(c.key, d, como.tipo, como.fueraDeOrden);
       case "p_ciudad_recogida": return <td key={c.key}>{como.recogida ?? ((d && zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen, settings.order_type_rules)) || "—")}</td>;

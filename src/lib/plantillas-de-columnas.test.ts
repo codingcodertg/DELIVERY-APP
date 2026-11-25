@@ -9,7 +9,7 @@ import {
   CLAVE_DE_PLANTILLAS, MAX_NOMBRE_DE_PLANTILLA, ROLES_QUE_ELIGEN, TODOS_LOS_ROLES, columnasValidas, guardaColumnas, leeColumnas, plantillasDeValor,
   plantillasValidas, prefsDeValor, valorDeColumnas, type ClienteDePrefs, type PlantillaDeColumnas,
 } from "./user-prefs";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9, MARCA_V10, alternaColumna, columnasDePlantillaDelGestor, conColumnasNuevas, fotoDelGestor } from "./routes-columns";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9, MARCA_V10, MARCA_V11, alternaColumna, columnasDePlantillaDelGestor, conColumnasNuevas, fotoDelGestor } from "./routes-columns";
 
 /**
  * Las plantillas de ⚙ Columnas (D-394), en Órdenes y en el Gestor de Rutas. El dueño: «add template in columns that will be
@@ -253,7 +253,7 @@ describe("aplicar", () => {
     expect(foto).not.toContain("fee");
     expect(foto.some((k) => k.startsWith("_"))).toBe(false);
     const puesta = columnasDePlantillaDelGestor(["fee", "retirada", ...foto]);
-    expect(puesta.slice(-9)).toEqual([MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9, MARCA_V10]);   // D-671: y `_v9`
+    expect(puesta.slice(-10)).toEqual([MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9, MARCA_V10, MARCA_V11]);   // D-671: y `_v9`; la PO: `_v11`
     expect(puesta).toContain("fee");
     expect(puesta).not.toContain("retirada");
     expect(conColumnasNuevas(columnasDePlantillaDelGestor(foto))).not.toContain("address");   // sin marcas, `conColumnasNuevas` la devolvería

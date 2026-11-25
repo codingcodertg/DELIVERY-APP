@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V10, ORDEN_DE_PARTIDA_DEL_GESTOR, columnasDeLaTabla,
-  conRepEnSuSitio, preferenciasDelGestorAlLeer,
+  COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V10, MARCA_V11, ORDEN_DE_PARTIDA_DEL_GESTOR, columnasDeLaTabla,
+  conPoEnSuSitio, conRepEnSuSitio, conColumnasNuevas, preferenciasDelGestorAlLeer,
 } from "./routes-columns";
 import {
   SIN_FILTRO_EN_PARADAS, filasOcultas, hayFiltroEnParadas, paradaVisible, valorDeOrdenEnParadas, type ValoresDeOrden,
@@ -37,12 +37,14 @@ describe("«Usuario» en la tabla de paradas (p_rep)", () => {
     const al = preferenciasDelGestorAlLeer(suyas, orden);
     expect(al.columnas).toContain("p_rep");
     expect(al.columnas).toContain(MARCA_V10);
-    expect(al.orden).toEqual(["p_type", "p_eta", "p_account", "p_rep", "p_so", "p_actual"]);
+    expect(al.orden).toEqual(["p_po", "p_type", "p_eta", "p_account", "p_rep", "p_so", "p_actual"]); // + la PO delante del tipo (tanda _v11)
+    expect(al.columnas).toContain("p_po");
+    expect(al.columnas).toContain(MARCA_V11);
     expect(al.escribe).toBe(true);
   });
 
   it("quien ya tiene la marca no la recibe otra vez: si la quitó, sigue quitada", () => {
-    const suyas = ["p_type", "p_eta", "_v2", "_v3", "_v4", "_v5", "_v6", "_v7", "_v8", "_v9", MARCA_V10];
+    const suyas = ["p_type", "p_eta", "_v2", "_v3", "_v4", "_v5", "_v6", "_v7", "_v8", "_v9", MARCA_V10, MARCA_V11];
     const al = preferenciasDelGestorAlLeer(suyas, ["p_type", "p_account"]);
     expect(al.columnas).not.toContain("p_rep");
     expect(al.orden).toEqual(["p_type", "p_account"]);
@@ -119,5 +121,56 @@ describe("el encabezado de la tabla de paradas: filtrar sin ordenar", () => {
     expect(pagina).toContain("<FiltrosPuestos estado={filtroParadas}");
     expect(pagina).toContain("parada(s) ocultas por el filtro");
     expect(pagina).toContain("stop(s) hidden by the filter");
+  });
+});
+
+/** La PO en la tabla de paradas (`p_po`, tanda `_v11`): sale por defecto delante del tipo, y quien ya la tenía no la pierde. */
+describe("la PO en la tabla de paradas (p_po, tanda _v11)", () => {
+  const sinPo = ["p_type", "p_eta", "_v2", "_v3", "_v4", "_v5", "_v6", "_v7", "_v8", "_v9", MARCA_V10];
+
+  it("sale por defecto, visible y delante del tipo; la marca va en el defecto", () => {
+    expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "p_po")).toMatchObject({ tablas: ["paradas"], deOrdenes: "po" });
+    expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "p_po")?.oculta).toBeUndefined();
+    expect(COLUMNAS_DEL_GESTOR_POR_DEFECTO).toContain("p_po");
+    expect(COLUMNAS_DEL_GESTOR_POR_DEFECTO).toContain(MARCA_V11);
+    expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)[0]).toBe("p_po");
+    expect(ORDEN_DE_PARTIDA_DEL_GESTOR.paradas.indexOf("p_po")).toBe(ORDEN_DE_PARTIDA_DEL_GESTOR.paradas.indexOf("p_type") - 1);
+  });
+  it("conPoEnSuSitio: la pone justo delante del tipo, la saca de donde estuviera, y no toca lo demás", () => {
+    expect(conPoEnSuSitio(null)).toBeNull();
+    expect(conPoEnSuSitio(["p_eta", "p_type", "p_so", "p_po"])).toEqual(["p_eta", "p_po", "p_type", "p_so"]);
+    expect(conPoEnSuSitio(["p_po", "p_fee", "p_type"])).toEqual(["p_fee", "p_po", "p_type"]);
+    // Sin el tipo en el orden, no inventa su sitio: la deja como estaba.
+    expect(conPoEnSuSitio(["p_eta", "p_so"])).toEqual(["p_eta", "p_so"]);
+  });
+  it("quien NO la tenía encendida, con la tanda: la recibe UNA vez, en su sitio, y se guarda", () => {
+    // La PO de partida de antes (tras el SO) se va delante del tipo.
+    const orden = ["p_type", "p_eta", "p_so", "p_po", "p_account"];
+    const al = preferenciasDelGestorAlLeer(sinPo, orden);
+    expect(al.columnas).toContain("p_po");
+    expect(al.columnas).toContain(MARCA_V11);
+    expect(al.orden).toEqual(["p_po", "p_type", "p_eta", "p_so", "p_account"]);
+    expect(al.escribe).toBe(true);
+    expect(preferenciasDelGestorAlLeer(al.columnas!, al.orden)).toEqual({ columnas: al.columnas, orden: al.orden, escribe: false });
+  });
+  it("quien YA la tenía encendida conserva su sitio en el orden; solo se marca la tanda", () => {
+    const suyas = [...sinPo, "p_po"];
+    const orden = ["p_eta", "p_so", "p_po", "p_type"];
+    const al = preferenciasDelGestorAlLeer(suyas, orden);
+    expect(al.orden).toEqual(orden);
+    expect(al.columnas).toContain(MARCA_V11);
+    expect(al.escribe).toBe(true);
+  });
+  it("con la marca, nada cambia: y si la ocultó después, sigue oculta (la marca impide que vuelva)", () => {
+    const con = [...sinPo, "p_po", MARCA_V11];
+    expect(preferenciasDelGestorAlLeer(con, ["p_type", "p_eta"])).toEqual({ columnas: con, orden: ["p_type", "p_eta"], escribe: false });
+    const oculta = [...sinPo, MARCA_V11];
+    expect(conColumnasNuevas(oculta)).not.toContain("p_po");
+    expect(preferenciasDelGestorAlLeer(oculta, null).columnas).not.toContain("p_po");
+  });
+  it("sin lista guardada, sale la partida con la PO delante del tipo", () => {
+    const al = preferenciasDelGestorAlLeer(undefined, null);
+    expect(al.columnas).toBeNull();
+    expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key).slice(0, 2)).toEqual(["p_po", "p_type"]);
   });
 });

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { COLUMN_WIDTHS } from "./use-col-widths";
-import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9, MARCA_V10, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, columnasDelSelector, conColumnasNuevas } from "./routes-columns";
+import { COLUMNAS_DEL_GESTOR, COLUMNAS_DEL_GESTOR_POR_DEFECTO, MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9, MARCA_V10, MARCA_V11, alternaColumna, anchoDePartida, columnaDeOrdenes, columnasDeLaTabla, columnasDelSelector, conColumnasNuevas } from "./routes-columns";
 import { CLAVES_DE_PREFERENCIA, CLAVE_DE_COLUMNAS_DEL_GESTOR, guardaColumnas, leeColumnas, type ClienteDePrefs } from "./user-prefs";
 
 /** La factura y el selector de columnas del Gestor de Rutas (D-331): el catálogo, la página y la 137. */
@@ -11,12 +11,14 @@ const leer = (r: string) => readFileSync(join(process.cwd(), r), "utf8").split("
 const plano = (s: string) => s.replace(/\s+/g, " ");
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "")).join("\n");
 
-const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9, MARCA_V10]; // + _v10
+const MARCAS = [MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, MARCA_V6, MARCA_V7, MARCA_V8, MARCA_V9, MARCA_V10, MARCA_V11]; // + _v11 (la PO, tanda propia)
 /** Las de Órdenes que la tabla del plan enseña por defecto (D-429): el juego de ventas en Órdenes, en su orden. */
 // Las del plan por defecto desde D-434 (antes, desde D-429, las diez de ventas en Órdenes); D-435 sumó la ciudad de entrega.
 const DEL_PLAN_POR_DEFECTO = ["pl_clase", "pl_ciudad_recogida", "pl_ciudad_entrega", "pl_invoice", "pl_address", "pl_windows"];
 const NUEVAS_DE_ORDENES = ["type", "so", "po", "fee", "contact"];
-const EXTRAS_DE_PARADAS = ["p_stage", "p_store", "p_account", "p_so", "p_po", "p_date", "p_fee", "p_contact", "p_priority"];
+const EXTRAS_DE_PARADAS = ["p_stage", "p_store", "p_account", "p_so", "p_date", "p_fee", "p_contact", "p_priority"];
+/** La PO de paradas (`_v11`): sale por defecto, delante del tipo (el dueño, 2026-11-25). No es de las escondidas. */
+const PO_EN_PARADAS = ["p_po"];
 /** La prioridad (D-412) en «Sin asignar»: viene de Órdenes como las de D-376, pero NO sale por defecto ni llega a lo
  *  guardado (no tiene marca de tanda): se elige en ⚙. */
 const PRIORIDAD_EN_SIN_ASIGNAR = ["priority"];
@@ -36,7 +38,7 @@ describe("las columnas del Gestor", () => {
     expect(columnasDeLaTabla("sinAsignar", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(ORDEN_DE_VENTAS_EN_EL_GESTOR.filter((k) => k !== "priority"));
     // La de paradas, las cinco de siempre y ninguna de las nuevas: esas se eligen. D-445: más la ciudad de recogida, delante
     // de la de entrega.
-    expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_actual", "p_windows", "p_rep"]); // + p_rep (columna «Usuario» de paradas)
+    expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR_POR_DEFECTO).map((c) => c.key)).toEqual(["p_po", "p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_actual", "p_windows", "p_rep"]); // + p_po (tanda _v11) y p_rep
   });
   it("el orden es el de la tabla, no el de quien marca; una clave que ya no existe se ignora; y cada columna sale solo en SU tabla", () => {
     expect(columnasDeLaTabla("sinAsignar", ["pallets", "columna_retirada", "fee", "invoice", "p_eta"]).map((c) => c.key)).toEqual(["invoice", "pallets", "fee"]);
@@ -83,14 +85,14 @@ describe("las columnas del Gestor", () => {
   });
   it("a quien guardó sus columnas ANTES de cada tanda le llegan las nuevas; a quien las quitó después, no le vuelven", () => {
     const deAntes = conColumnasNuevas(["invoice", "pallets"]);
-    expect(deAntes).toEqual(["invoice", "pallets", "address", "p_type", "p_pallets", "p_address", "p_eta", "p_windows", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6, MARCA_V7, "p_ciudad_recogida", MARCA_V8, "p_actual", MARCA_V9, "p_rep", MARCA_V10]); // + p_rep y _v10 (columna «Usuario» de paradas)
+    expect(deAntes).toEqual(["invoice", "pallets", "address", "p_type", "p_pallets", "p_address", "p_eta", "p_windows", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6, MARCA_V7, "p_ciudad_recogida", MARCA_V8, "p_actual", MARCA_V9, "p_rep", MARCA_V10, "p_po", MARCA_V11]); // + p_rep y _v10 (columna «Usuario» de paradas)
     expect(columnasDeLaTabla("sinAsignar", deAntes).map((c) => c.key)).toEqual(["po", "so", "invoice", "type", "contact", "pallets", "fee", "pickup", "address"]);
     // Ya conoce las de D-346 (lleva la v2) y quitó la dirección: se respeta; pero la recogida de D-353 sí le llega, una vez.
-    expect(conColumnasNuevas(["invoice", MARCA_V2])).toEqual(["invoice", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6, MARCA_V7, "p_ciudad_recogida", MARCA_V8, "p_actual", MARCA_V9, "p_rep", MARCA_V10]); // + p_rep y _v10 (columna «Usuario» de paradas)
+    expect(conColumnasNuevas(["invoice", MARCA_V2])).toEqual(["invoice", MARCA_V2, "pickup", MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6, MARCA_V7, "p_ciudad_recogida", MARCA_V8, "p_actual", MARCA_V9, "p_rep", MARCA_V10, "p_po", MARCA_V11]); // + p_rep y _v10 (columna «Usuario» de paradas)
     // Con la v3 y sin la v4 (guardó antes de D-376): le llegan las de Órdenes, una vez.
-    expect(conColumnasNuevas(["invoice", MARCA_V2, MARCA_V3])).toEqual(["invoice", MARCA_V2, MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6, MARCA_V7, "p_ciudad_recogida", MARCA_V8, "p_actual", MARCA_V9, "p_rep", MARCA_V10]); // + p_rep y _v10 (columna «Usuario» de paradas)
+    expect(conColumnasNuevas(["invoice", MARCA_V2, MARCA_V3])).toEqual(["invoice", MARCA_V2, MARCA_V3, ...NUEVAS_DE_ORDENES, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6, MARCA_V7, "p_ciudad_recogida", MARCA_V8, "p_actual", MARCA_V9, "p_rep", MARCA_V10, "p_po", MARCA_V11]); // + p_rep y _v10 (columna «Usuario» de paradas)
     // Con la v4 y sin la v5 (guardó antes de que el plan tuviera columnas, D-429): le llegan las del plan por defecto, una vez.
-    expect(conColumnasNuevas(["invoice", MARCA_V2, MARCA_V3, MARCA_V4])).toEqual(["invoice", MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6, MARCA_V7, "p_ciudad_recogida", MARCA_V8, "p_actual", MARCA_V9, "p_rep", MARCA_V10]); // + p_rep y _v10 (columna «Usuario» de paradas)
+    expect(conColumnasNuevas(["invoice", MARCA_V2, MARCA_V3, MARCA_V4])).toEqual(["invoice", MARCA_V2, MARCA_V3, MARCA_V4, MARCA_V5, ...DEL_PLAN_POR_DEFECTO, MARCA_V6, MARCA_V7, "p_ciudad_recogida", MARCA_V8, "p_actual", MARCA_V9, "p_rep", MARCA_V10, "p_po", MARCA_V11]); // + p_rep y _v10 (columna «Usuario» de paradas)
     // Con todas las marcas, ya nada se añade: quitó el costo y se respeta.
     expect(conColumnasNuevas(["invoice", ...MARCAS])).toEqual(["invoice", ...MARCAS]);
     // Una que ya la tenía no la gana dos veces.
@@ -105,8 +107,8 @@ describe("las columnas del Gestor", () => {
   it("la tabla de paradas: lo que se quita no se pinta; por defecto salen las cinco de siempre", () => {
     const paradas = (elegidas: readonly string[]) => columnasDeLaTabla("paradas", elegidas).map((c) => c.key);
     // D-445: con la ciudad de recogida delante de la de entrega.
-    expect(paradas(COLUMNAS_DEL_GESTOR_POR_DEFECTO)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_actual", "p_windows", "p_rep"]); // + p_rep (columna «Usuario» de paradas)
-    expect(paradas(alternaColumna(COLUMNAS_DEL_GESTOR_POR_DEFECTO, "p_eta"))).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows", "p_rep"]); // + p_rep (columna «Usuario» de paradas)
+    expect(paradas(COLUMNAS_DEL_GESTOR_POR_DEFECTO)).toEqual(["p_po", "p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_actual", "p_windows", "p_rep"]); // + p_po y p_rep
+    expect(paradas(alternaColumna(COLUMNAS_DEL_GESTOR_POR_DEFECTO, "p_eta"))).toEqual(["p_po", "p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows", "p_rep"]); // + p_po y p_rep
     expect(paradas(["invoice", MARCA_V2])).toEqual([]);
     // Los puestos viejos (`indice`) ya no pintan: solo dicen de qué casilla de `rtg_routes_stops8` se hereda el ancho.
     const puestos = COLUMNAS_DEL_GESTOR.filter((c) => c.tablas.includes("paradas") && c.indice != null).map((c) => c.indice);
@@ -115,7 +117,7 @@ describe("las columnas del Gestor", () => {
   it("las columnas de Órdenes en paradas: solo las elegidas, de partida detrás de las cinco de siempre, y ninguna con puesto", () => {
     expect(columnasDeLaTabla("paradas", ["p_fee", "p_type", "p_stage", "fee"]).map((c) => c.key)).toEqual(["p_type", "p_stage", "p_fee"]);
     // D-445: la ciudad de recogida tampoco tiene puesto (nació con los anchos por clave), y va delante de las de Órdenes.
-    expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR.map((c) => c.key)).filter((c) => c.indice == null).map((c) => c.key)).toEqual(["p_ciudad_recogida", "p_actual", ...EXTRAS_DE_PARADAS.slice(0, 3), "p_rep", ...EXTRAS_DE_PARADAS.slice(3)]);
+    expect(columnasDeLaTabla("paradas", COLUMNAS_DEL_GESTOR.map((c) => c.key)).filter((c) => c.indice == null).map((c) => c.key)).toEqual(["p_po", "p_ciudad_recogida", "p_actual", ...EXTRAS_DE_PARADAS.slice(0, 3), "p_rep", ...EXTRAS_DE_PARADAS.slice(3)]);
   });
 });
 
@@ -134,6 +136,8 @@ describe("D-376: las columnas de Órdenes, con el rótulo, la celda y el valor d
     for (const k of NUEVAS_DE_ORDENES) expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === k), k).toMatchObject({ tablas: ["sinAsignar"], deOrdenes: k });
     for (const k of PRIORIDAD_EN_SIN_ASIGNAR) expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === k), k).toMatchObject({ tablas: ["sinAsignar"], deOrdenes: k, oculta: true });
     for (const k of EXTRAS_DE_PARADAS) expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === k), k).toMatchObject({ tablas: ["paradas"], deOrdenes: k.slice(2), oculta: true });
+    for (const k of PO_EN_PARADAS) expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === k), k).toMatchObject({ tablas: ["paradas"], deOrdenes: "po" });
+    expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "p_po")?.oculta).toBeUndefined();
   });
   it("el `status` del Gestor ES la etapa de Órdenes: se llama igual y se pinta con su celda, sin columna duplicada", () => {
     expect(COLUMNAS_DEL_GESTOR.find((c) => c.key === "status")).toMatchObject({ en: "Stage", es: "Etapa", deOrdenes: "stage" });
@@ -142,7 +146,7 @@ describe("D-376: las columnas de Órdenes, con el rótulo, la celda y el valor d
   it("cada columna que viene de Órdenes lleva EXACTAMENTE su rótulo en los dos idiomas", () => {
     const deOrdenes = COLUMNAS_DEL_GESTOR.filter((c) => c.deOrdenes);
     // Y las de la tabla del plan (D-429): todas las de Órdenes, cada una con su rótulo de Órdenes.
-    expect(deOrdenes.length).toBe(1 + NUEVAS_DE_ORDENES.length + PRIORIDAD_EN_SIN_ASIGNAR.length + EXTRAS_DE_PARADAS.length + 17); // + p_rep (columna «Usuario» de paradas)   // 16 desde D-652 («rep»)
+    expect(deOrdenes.length).toBe(1 + NUEVAS_DE_ORDENES.length + PRIORIDAD_EN_SIN_ASIGNAR.length + EXTRAS_DE_PARADAS.length + PO_EN_PARADAS.length + 17); // + p_po (tanda _v11) y p_rep (columna «Usuario» de paradas)   // 16 desde D-652 («rep»)
     for (const c of deOrdenes) {
       const r = rotuloEnOrdenes(c.deOrdenes!);
       expect({ en: quitaPrefijo(c.en), es: quitaPrefijo(c.es) }, c.key).toEqual(r);
