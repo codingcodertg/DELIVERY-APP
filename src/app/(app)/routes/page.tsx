@@ -71,6 +71,7 @@ import { BandejaDeSolicitudes } from "@/components/BandejaDeSolicitudes";
 import { notaAlAprobar, pasosAlAprobar, puedeDecidirSolicitudes, type SolicitudDeAsignacion } from "@/lib/solicitud-de-asignacion";
 import { arranqueDeLoPendiente, optimizaSinEmpeorar, reglasDeLaEntrada } from "@/lib/optimiza-sin-empeorar";
 import { ahoraDelNegocio } from "@/lib/salida-de-la-medida";
+import { LARGO_MAX_QUIEN, notaDeEntregadaPorOtro, parcheDeEntregadaPorOtro, sugerenciasDeQuien, validaEntregadaPorOtro, type MotivoDeEntregadaPorOtro } from "@/lib/entregada-por-otro";
 import { avisoDeOptimizar, entradaDeOptimizar, puntosDeLaEntrada, tiemposDeLaRuta, type TiemposPedidos } from "@/lib/optimizar-desde-el-gestor";
 import { basesPorNombreDelDia, extremosDeLaRuta, type BaseDelDia } from "@/lib/base-del-dia";
 import { useBasesDelDia } from "@/lib/usa-base-del-dia";
@@ -1399,6 +1400,31 @@ export default function RoutesPage() {
   const [moverA, setMoverA] = useState<{ ruta: string; clave: string } | null>(null);
   const [numeroParaMover, setNumeroParaMover] = useState("");
   const cierraMoverA = () => { setMoverA(null); setNumeroParaMover(""); };
+
+  // ---- «No fue este chofer…» (solo admin, en una entregada): quien la entregó de verdad (p. ej. un gerente de almacén) y
+  // el día real. Un solo cambio: chofer, día y puestos a null; la etapa se queda en «entregada». Reglas en lib/entregada-por-otro.
+  const [entregadaPorOtro, setEntregadaPorOtro] = useState<{ order: Delivery; quien: string; dia: string } | null>(null);
+  const AVISO_DE_ENTREGADA_POR_OTRO: Record<MotivoDeEntregadaPorOtro, { en: string; es: string }> = {
+    "quien-vacio": { en: "Write who delivered it.", es: "Escribe quién la entregó." },
+    "quien-largo": { en: `Keep it under ${LARGO_MAX_QUIEN} characters.`, es: `Que no pase de ${LARGO_MAX_QUIEN} caracteres.` },
+    "mismo-chofer": { en: "That is already the driver on this order: nothing to change.", es: "Ese ya es el chofer de esta orden: no hay nada que cambiar." },
+    "dia-no-valido": { en: "Pick a valid day.", es: "Elige un día válido." },
+    "dia-futuro": { en: "The delivery day can't be after today.", es: "El día de la entrega no puede ser después de hoy." },
+  };
+  const abreEntregadaPorOtro = (order: Delivery) => setEntregadaPorOtro({ order, quien: "", dia: order.delivery_date ?? ahoraDelNegocio().fecha });
+  const guardaEntregadaPorOtro = async () => {
+    const x = entregadaPorOtro;
+    if (!x) return;
+    const motivo = validaEntregadaPorOtro({ quien: x.quien, dia: x.dia, hoy: ahoraDelNegocio().fecha, choferActual: x.order.assigned_driver });
+    if (motivo) { notify(t(AVISO_DE_ENTREGADA_POR_OTRO[motivo].en, AVISO_DE_ENTREGADA_POR_OTRO[motivo].es)); return; }
+    const quien = x.quien.trim();
+    const anterior = x.order.assigned_driver;
+    // Un solo write por el proveedor; si falla, el proveedor ya avisó y el diálogo se queda abierto para reintentar.
+    if (!(await updateDelivery(x.order.id, parcheDeEntregadaPorOtro({ quien, dia: x.dia, conRecogida: hayRecogidaGuardada })))) return;
+    await addNote(x.order.id, notaDeEntregadaPorOtro({ quien, dia: x.dia, anterior }));
+    setEntregadaPorOtro(null);
+    notify(t(`#${orderLabel(x.order)} marked delivered by ${quien}.`, `#${orderLabel(x.order)} marcada entregada por ${quien}.`));
+  };
   const aParadaYa = async (laneKey: string, clave: string, numero: number, entera: boolean) => {
     if (avisaSiOptimiza()) return;
     const stops = byDriver.get(laneKey) ?? [];
@@ -4294,6 +4320,38 @@ export default function RoutesPage() {
         );
       })()}
 
+      {entregadaPorOtro && (() => {
+        // Diálogo en su sitio, como «# Mover a la parada»: Enter guarda, Esc cierra. Sugerencias: la tienda y las rutas del día.
+        const x = entregadaPorOtro;
+        const hoy = ahoraDelNegocio().fecha;
+        const motivo = validaEntregadaPorOtro({ quien: x.quien, dia: x.dia, hoy, choferActual: x.order.assigned_driver });
+        const sugerencias = sugerenciasDeQuien(x.order.store, lanes.map((l) => l.driver), x.order.assigned_driver);
+        return (
+          <div className="overlay" data-dialogo-entregada-por-otro onClick={(e) => { if (e.target === e.currentTarget) setEntregadaPorOtro(null); }}>
+            <form className="modal" role="dialog" aria-modal="true" aria-label={t("Delivered by someone else", "Entregada por otro")} style={{ maxWidth: 440 }}
+              onSubmit={(e) => { e.preventDefault(); void guardaEntregadaPorOtro(); }} onKeyDown={(e) => { if (e.key === "Escape") setEntregadaPorOtro(null); }}>
+              <h3 style={{ marginTop: 0 }}>{t(`Delivered by someone else · #${orderLabel(x.order)}`, `Entregada por otro · #${orderLabel(x.order)}`)}</h3>
+              <div className="hint">{t(`It leaves ${laneLabel(x.order.assigned_driver ?? "")}'s route and stays delivered, recorded with who delivered it.`, `Sale de la ruta de ${laneLabel(x.order.assigned_driver ?? "")} y sigue entregada, con quien la entregó.`)}</div>
+              <div className="field">
+                <label htmlFor="entregada-por-otro-quien">{t("Who delivered it", "Quién la entregó")}</label>
+                <input id="entregada-por-otro-quien" data-entregada-quien list="entregada-por-otro-sugerencias" autoFocus maxLength={LARGO_MAX_QUIEN}
+                  value={x.quien} onChange={(e) => setEntregadaPorOtro({ ...x, quien: e.target.value })} style={{ minHeight: 44, fontSize: 16 }} />
+                <datalist id="entregada-por-otro-sugerencias">{sugerencias.map((s) => <option key={s} value={s} />)}</datalist>
+              </div>
+              <div className="field">
+                <label htmlFor="entregada-por-otro-dia">{t("Delivered on", "Entregada el")}</label>
+                <input id="entregada-por-otro-dia" data-entregada-dia type="date" max={hoy} value={x.dia} onChange={(e) => setEntregadaPorOtro({ ...x, dia: e.target.value })} style={{ minHeight: 44 }} />
+              </div>
+              {x.quien.trim() !== "" && motivo && <div className="hint" data-entregada-no-valida style={{ color: "var(--red)" }}>{t(AVISO_DE_ENTREGADA_POR_OTRO[motivo].en, AVISO_DE_ENTREGADA_POR_OTRO[motivo].es)}</div>}
+              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                <button type="button" className="btn" style={{ minHeight: 44 }} onClick={() => setEntregadaPorOtro(null)}>{t("Cancel", "Cancelar")}</button>
+                <button type="submit" className="btn btn-primary" data-entregada-guardar style={{ flex: 1, minHeight: 44, justifyContent: "center" }} disabled={!!motivo}>{t("Save", "Guardar")}</button>
+              </div>
+            </form>
+          </div>
+        );
+      })()}
+
       {incidenciasAbiertas && (
         <div className="overlay" data-ventana-incidencias onClick={(e) => { if (e.target === e.currentTarget) setIncidenciasAbiertas(false); }}>
           <div className="modal" role="dialog" aria-modal="true" aria-label={t("Driver incidents", "Incidencias de choferes")} style={{ maxWidth: 820 }}>
@@ -4467,6 +4525,8 @@ export default function RoutesPage() {
                   <div className="acciones-de-parada" data-admin-mueve-entregada>
                     <button type="button" className="btn btn-sm btn-ghost" disabled={!vecinaD(k, -1)} onClick={() => void mueveEntregada(d, k, -1)} title={t("Move up (admin)", "Subir (admin)")} data-accion="subir-entregada">↑</button>
                     <button type="button" className="btn btn-sm btn-ghost" disabled={!vecinaD(k, 1)} onClick={() => void mueveEntregada(d, k, 1)} title={t("Move down (admin)", "Bajar (admin)")} data-accion="bajar-entregada">↓</button>
+                    <button type="button" className="btn btn-sm btn-ghost" onClick={() => abreEntregadaPorOtro(d)} data-entregada-por-otro={d.id}
+                      title={t("Delivered by someone else? Set who delivered it and the real day: it leaves this driver's route and stays delivered (admin)", "¿La entregó otro? Pon quién y el día real: sale de la ruta de este chofer y sigue entregada (admin)")}>👤 {t("Not this driver…", "No fue este chofer…")}</button>
                   </div>
                 )}
               </td>
