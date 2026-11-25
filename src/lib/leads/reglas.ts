@@ -166,6 +166,14 @@ export type TipoDeAccion = (typeof TIPOS_DE_ACCION)[number];
 export const ETAPAS = ["new", ...TIPOS_DE_ACCION] as const;
 export type Etapa = (typeof ETAPAS)[number];
 
+/**
+ * Las etapas que «Todas las etapas» NO incluye: lo perdido y lo que no es buen lead. Se ven al elegir su chip. Con una
+ * etapa elegida, el filtro es esa etapa (incluida esta).
+ */
+export const ETAPAS_FUERA_DE_TODAS: readonly Etapa[] = ["lost", "bad_lead"];
+/** ¿Entra el lead en «Todas las etapas»? Sí, salvo que su etapa esté fuera de todas. */
+export const enTodasLasEtapas = (l: Pick<Lead, "follow_up_action">): boolean => !ETAPAS_FUERA_DE_TODAS.includes(etapaDe(l));
+
 const ETAPA_TXT: Record<Etapa, { en: string; es: string }> = {
   // D-1166 (el dueño, 2026-11-24): «rename it to open, que sería todo lo untouched». La etapa es la misma (`new`):
   // el lead que nadie ha tocado. Cambia el nombre que se lee, en el filtro y en la tarjeta.
@@ -380,7 +388,8 @@ export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
     if (f.sinTelefono && !sinTelefono(l)) return false;
     if (f.quien && l.last_by !== f.quien) return false;
     if (f.buena && !categoriaBuena(l.category)) return false;
-    if (f.etapa && etapaDe(l) !== f.etapa) return false;
+    if (f.etapa) { if (etapaDe(l) !== f.etapa) return false; }
+    else if (!enTodasLasEtapas(l)) return false;
     if (f.categoria === "utiles") { if (categoriaDescartada(l.category)) return false; }
     else if (f.categoria !== "todas" && l.category !== f.categoria) return false;
     if (f.tipo && l.project_type !== f.tipo) return false;

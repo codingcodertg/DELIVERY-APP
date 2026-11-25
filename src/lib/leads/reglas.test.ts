@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  accionTono, aplicarNota, categoriaBuena, categoriaDescartada, cuantosVistosMasDeUna, cuentaPorEtapa, enlaceSeguro, estadoLabel, etapaDe,
-  etapaIcono, etapaLabel, etapaTono, ETAPAS, eventoLabel, filtrar, filtroDePool, fecha, mapsUrl, negativaDeCodigo, negativaTexto, notaLimpia, NOTA_MAX,
+  accionTono, aplicarNota, categoriaBuena, categoriaDescartada, cuantosVistosMasDeUna, cuentaPorEtapa, enlaceSeguro, enTodasLasEtapas, estadoLabel, etapaDe,
+  etapaIcono, etapaLabel, etapaTono, ETAPAS, ETAPAS_FUERA_DE_TODAS, eventoLabel, filtrar, filtroDePool, fecha, mapsUrl, negativaDeCodigo, negativaTexto, notaLimpia, NOTA_MAX,
   ordenar, POOL_SIN_TIENDA, POOL_TODAS, poolInicial, poolsDe, resumenDeTodas, tableroPorTienda, tableroPorVendedor, telUrl, TIPOS_DE_ACCION,
   valoresDe, vecesVisto, vigentes, vendedoresDeLeads, leadsDeLaVista, type EventoLead, type Lead, type Persona,
 } from "./reglas";
@@ -130,6 +130,29 @@ describe("3 · el banco: filtros, pools y orden", () => {
     expect(filtrar(leads, { ...TODAS, etapa: "quote" }).map((l) => l.id)).toEqual(["a"]);
     expect(filtrar(leads, { ...TODAS, etapa: "closed" }).map((l) => l.id)).toEqual(["c"]);
     expect(filtrar(leads, { ...TODAS, etapa: "new" }).map((l) => l.id)).toEqual(["b", "e"]);
+  });
+  it("«Todas las etapas» deja fuera Perdido y No es buen lead; cada chip de esas dos sí los enseña", () => {
+    const con = [
+      lead({ id: "x", follow_up_action: "lost" }),
+      lead({ id: "y", follow_up_action: "bad_lead" }),
+      lead({ id: "z", follow_up_action: "quote" }),
+      lead({ id: "w" }),
+    ];
+    expect(ETAPAS_FUERA_DE_TODAS).toEqual(["lost", "bad_lead"]);
+    expect(filtrar(con, TODAS).map((l) => l.id)).toEqual(["z", "w"]);
+    expect(filtrar(con, { ...TODAS, etapa: "lost" }).map((l) => l.id)).toEqual(["x"]);
+    expect(filtrar(con, { ...TODAS, etapa: "bad_lead" }).map((l) => l.id)).toEqual(["y"]);
+  });
+  it("«Todas las etapas» quita lo perdido también al combinarse con otros filtros y con la búsqueda", () => {
+    const con = [lead({ id: "x", follow_up_action: "lost", category: "Sirve – usa piso" }), lead({ id: "z", follow_up_action: "quote" })];
+    expect(filtrar(con, { ...TODAS, buena: true }).map((l) => l.id)).toEqual(["z"]);
+    expect(filtrar(con, { ...TODAS, busca: "Oficinas" }).map((l) => l.id)).toEqual(["z"]);
+  });
+  it("enTodasLasEtapas: sí para todas menos lost y bad_lead; el lead sin etapa entra", () => {
+    expect(enTodasLasEtapas(lead({ follow_up_action: "lost" }))).toBe(false);
+    expect(enTodasLasEtapas(lead({ follow_up_action: "bad_lead" }))).toBe(false);
+    expect(enTodasLasEtapas(lead({ follow_up_action: "closed" }))).toBe(true);
+    expect(enTodasLasEtapas(lead({ follow_up_action: null }))).toBe(true);
   });
   it("la categoría de entrada: «Sirve + podría servir» quita las que no sirven; «todas» las enseña", () => {
     expect(filtrar(leads, { ...TODAS, categoria: "utiles" }).map((l) => l.id)).not.toContain("b");
