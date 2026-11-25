@@ -1,5 +1,6 @@
 import { enLaBanda, MARGEN_PALLET_MI } from "./de-paso";
 import { descargaPrimero } from "./descarga-primero";
+import { unaSolaVisita } from "./una-sola-visita";
 import {
   aCentesimas, cargaTransportadaDe, claveDeParada, claveDeZona, costeDeRutas, evaluaRuta, PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, restaDesglose,
   puntasFueraDeZona, UMBRAL_DE_ZONA_POR_DEFECTO_MI, zonasReclamadas, type Contexto,
@@ -575,6 +576,24 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
     if (!nueva.some((p, i) => p.orden !== sec[i].orden || p.tipo !== sec[i].tipo)) continue;
     const ruta = evaluaRuta(c, nueva, ctx);
     if (ruta.violaciones.length > estado.rutas.get(c.id)!.violaciones.length) continue;
+    estado.secuencias.set(c.id, nueva);
+    estado.rutas.set(c.id, ruta);
+  }
+
+  // ---- Una sola visita por tienda cuando cabe (motor-11) -------------------------------------------
+  // «Si cabe, se va»: cada vez que la ruta vuelve a una tienda ya visitada, cargada y sin que lo justifique la capacidad
+  // ni la disponibilidad, lo que va a esa tienda se junta en la visita anterior (`unaSolaVisita`). Solo se adopta si la
+  // ruta no sale con más violaciones y no suma ni una milla: juntar en una visita no debería costar millas, y si las cuesta,
+  // se queda la que había. Las paradas fijadas no se tocan.
+  for (const c of choferes) {
+    const sec = estado.secuencias.get(c.id)!;
+    let fijas = 0;
+    while (fijas < sec.length && fijadas.has(claveDeParada(sec[fijas]))) fijas++;
+    const nueva = unaSolaVisita(sec, [...porId.values()], c.capacidad, fijas);
+    if (!nueva.some((p, i) => p.orden !== sec[i].orden || p.tipo !== sec[i].tipo)) continue;
+    const actual = estado.rutas.get(c.id)!;
+    const ruta = evaluaRuta(c, nueva, ctx);
+    if (ruta.violaciones.length > actual.violaciones.length || ruta.millas > actual.millas + 0.01) continue;
     estado.secuencias.set(c.id, nueva);
     estado.rutas.set(c.id, ruta);
   }
