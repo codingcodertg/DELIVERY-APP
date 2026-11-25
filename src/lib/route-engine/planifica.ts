@@ -1,4 +1,5 @@
 import { enLaBanda, MARGEN_PALLET_MI } from "./de-paso";
+import { descargaPrimero } from "./descarga-primero";
 import {
   aCentesimas, cargaTransportadaDe, claveDeParada, claveDeZona, costeDeRutas, evaluaRuta, PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, restaDesglose,
   puntasFueraDeZona, UMBRAL_DE_ZONA_POR_DEFECTO_MI, zonasReclamadas, type Contexto,
@@ -40,7 +41,7 @@ import type {
  *  `motor-1`: la misma huella). `motor-3` (D-418): requisitos del camión — una orden solo va con un chofer que tenga lo que pide. `motor-2` (D-415):
  *  prioridad por orden y opciones de reparto. Sin requisitos, con todo en normal y las opciones sin tocar, planifica
  *  exactamente lo mismo que `motor-1` — lo fija una prueba con un plan grabado. */
-export const VERSION_DEL_MOTOR = "motor-10";
+export const VERSION_DEL_MOTOR = "motor-11";
 
 /** El puesto de una prioridad: lo de número más bajo se coloca antes. Sin prioridad, o una que no existe, normal. */
 const RANGO: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3 };
@@ -560,6 +561,23 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
     return cambios;
   }
   entregaLoQueEstaDePaso();
+
+  // ---- Descarga primero (motor-11) ---------------------------------------------------------------
+  // La regla del dueño, sin excepciones: en una misma visita a una tienda se baja primero lo que va para esa tienda y
+  // después se carga lo que sale de ahí. Dos paradas en el mismo punto no tienen tramo entre ellas, así que reordenarlas
+  // no cambia una milla; solo baja la carga a bordo. Las paradas fijadas (el principio de la ruta) no se tocan. Si la ruta
+  // reordenada sale con más incumplimientos que la que había (no debería: las entregas solo se adelantan), se queda la que había.
+  for (const c of choferes) {
+    const sec = estado.secuencias.get(c.id)!;
+    let fijas = 0;
+    while (fijas < sec.length && fijadas.has(claveDeParada(sec[fijas]))) fijas++;
+    const nueva = descargaPrimero(sec, ordenes, fijas);
+    if (!nueva.some((p, i) => p.orden !== sec[i].orden || p.tipo !== sec[i].tipo)) continue;
+    const ruta = evaluaRuta(c, nueva, ctx);
+    if (ruta.violaciones.length > estado.rutas.get(c.id)!.violaciones.length) continue;
+    estado.secuencias.set(c.id, nueva);
+    estado.rutas.set(c.id, ruta);
+  }
 
   // ---- Por qué quedó fuera cada una ---------------------------------------------------------------
   const ORDEN_DE_MOTIVOS: TipoDeViolacion[] = ["capacidad", "ventana_estrecha", "retraso_sobre_el_tope", "fuera_de_turno", "sin_tiempo_de_viaje"];
