@@ -37,6 +37,8 @@ export interface Employee {
   /** Presencial que puede fichar y solicitar en CUALQUIER tienda (316). Solo cuenta con worker_type
    * 'inhouse'. Lo cambia un admin de Time Tracker en Personas. */
   multiStore?: boolean | null;
+  /** Presencial que ficha, toma el almuerzo y termina el turno desde la app de escritorio del hub (351). Lo cambia un admin. */
+  hubClock?: boolean | null;
 }
 
 export interface Project {

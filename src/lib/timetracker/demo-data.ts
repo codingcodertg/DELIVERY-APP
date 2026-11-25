@@ -51,7 +51,7 @@ export const ADMIN_DEMO: Employee = {
 export const DEMO_EMPLOYEES: Employee[] = [
   ADMIN_DEMO,
   // Carla: presencial EN VARIAS TIENDAS (2026-11-25, fichaje en tienda). Es la persona de la demo para ver el fichaje con tienda.
-  { id: "u-carla", fullName: "Carla Cajera", email: "carla@demo.local", role: "employee", city: "McAllen", payMethod: "Cash", payDetails: "", workerType: "inhouse", trackMode: "inout", breaksEnabled: true, active: true, deletedAt: null, tienda: "McAllen", puesto: "sales", multiStore: true },
+  { id: "u-carla", fullName: "Carla Cajera", email: "carla@demo.local", role: "employee", city: "McAllen", payMethod: "Cash", payDetails: "", workerType: "inhouse", trackMode: "inout", breaksEnabled: true, active: true, deletedAt: null, tienda: "McAllen", puesto: "sales", multiStore: true, hubClock: true },
   { id: "u-pedro", fullName: "Pedro Piso", email: "pedro@demo.local", role: "employee", city: "Pharr", payMethod: "Cash", payDetails: "", workerType: "inhouse", trackMode: "inout", breaksEnabled: true, active: true, deletedAt: null, tienda: "Pharr", puesto: "warehouse" },
   { id: "u-lucia", fullName: "Lucia Logistica", email: "lucia@demo.local", role: "employee", city: "Edinburg", payMethod: "Bank transfer", payDetails: "", workerType: "inhouse", trackMode: "inout", breaksEnabled: false, active: true, deletedAt: null, tienda: "Edinburg", puesto: "office" },
   { id: "u-rita", fullName: "Rita Remota", email: "rita@demo.local", role: "employee", city: "Monterrey", payMethod: "PayPal", payDetails: "rita@demo.local", workerType: "remote", trackMode: "activity", breaksEnabled: true, active: true, deletedAt: null, tienda: null, puesto: null },
