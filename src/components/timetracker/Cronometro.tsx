@@ -44,6 +44,7 @@ import {
   registrarFallo, segundosHastaSanar, tocaAvisarSistema, tocaRecargar, tocaSanar, type EstadoVivo, type Racha,
 } from "@/lib/timetracker/recuperacion";
 import Link from "next/link";
+import { hrefDeTrackTime } from "@/lib/timetracker/pantalla-de-entrada";
 
 // ============================================================
 // Track Time — the core screen. Ported (D-066) from timetracker-clean's
@@ -2009,13 +2010,13 @@ export function Cronometro({ visible = true }: { visible?: boolean }) {
       {t("track.unsaved", { hora: horaCorta(sinGuardarDesde), mins: String(minutosSinGuardar(sinGuardarDesde, Date.now())) })}
       {textoDeRacha(racha)}
       {" "}
-      <Link href="/timetracker">{t("track.goToTimer")}</Link>
+      <Link href={hrefDeTrackTime(me.role === "admin")}>{t("track.goToTimer")}</Link>
     </div>
   ) : !visible && paradoSolo !== null && !running ? (
     <div className="banner warn" role="alert">
       {t("track.stoppedAuto", { hora: horaCorta(paradoSolo) })}
       {" "}
-      <Link href="/timetracker">{t("track.goToTimer")}</Link>
+      <Link href={hrefDeTrackTime(me.role === "admin")}>{t("track.goToTimer")}</Link>
     </div>
   ) : null;
 

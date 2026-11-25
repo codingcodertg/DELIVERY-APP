@@ -14,6 +14,7 @@
 // ============================================================
 
 import { MANAGER_TABS, TABS } from "@/lib/timetracker/constants";
+import { hrefDeTrackTime } from "@/lib/timetracker/pantalla-de-entrada";
 
 /** Quién mira. `esAdmin` es `timetracker_role === "admin"`, como en TopBar y Cronometro. */
 export type QuienMira = { esAdmin: boolean; presencial: boolean };
@@ -34,7 +35,8 @@ export function fichaConFoto(role: string | null | undefined): boolean {
 
 /** Las pestañas de la barra. El empleado ya no tiene «Mi diario»; el admin sigue con la suya. */
 export function pestanasPara(role: string | null | undefined): { id: string; href: string }[] {
-  return esAdminDeTt(role) ? MANAGER_TABS : TABS;
+  // El admin: su «Registrar tiempo» lleva la marca `?ver=track` (si no, la raíz le llevaría a Nómina). Los demás, como siempre.
+  return esAdminDeTt(role) ? MANAGER_TABS.map((p) => (p.id === "track" ? { ...p, href: hrefDeTrackTime(true) } : p)) : TABS;
 }
 
 /**
