@@ -53354,10 +53354,15 @@ La 237 (un disparador que BLOQUEABA en la base las órdenes de ventas para hoy d
 Se borra el archivo del repositorio (queda en el historial de git) para que deje de salir como pendiente, con su constante `MENSAJE_DE_LA_237`. Una prueba avisa si vuelve a aparecer una migración 237 o el disparador `deliveries_guard_corte_ventas`. La app no cambia. La 291 sigue pendiente por decisión suya, hasta poder probarla con una cuenta que no sea admin.
 Sello `deliveries` 1.666.0; repo 1.993.0.
 
-## D-1187 · Gestor de Rutas, lista de paradas de cada chofer: la PO sale por defecto, junto a la factura (2026-11-25)
+## D-1187 · Gestor de Rutas, lista de paradas: bajo la factura sale la PO en vez del ID de la orden (2026-11-25)
 
-El dueño: «en el routes manager quiero que se mire el invoice y también po».
-La factura ya era la primera columna de esa lista. La columna «PO #» (`p_po`) existía desde D-376 pero escondida. Ahora sale por defecto, la primera de las configurables (tras la factura y la cuenta de pallets, delante del tipo). Quien ya tenía sus columnas guardadas la recibe una vez (tanda `_v11`, como `_v10` con «Usuario»): si movió sus columnas, entra justo delante del tipo; si ya la tenía puesta, se queda donde la puso; si después la esconde, no vuelve. En una recogida con varias órdenes salen sus PO distintos separados por « · »; sin PO, «—». El menú del encabezado filtra sin ordenar, como las demás de esa tabla.
-Cuenta: 53 columnas y 10 marcas, 63 con todo marcado; el tope de columnas guardadas sigue en 64.
-Visto en el demo a 1440, 1280, 1100 y 390 px: la columna, sus valores y su filtro; las flechas de mover siguen a la vista a 1440 y 1280 (a 1100 la tabla ya se deslizaba antes de este cambio). NO visto con órdenes reales. Sin tocar: el filtro de la PO en una recogida de varias órdenes mira solo la primera.
+El dueño, con una captura que marca la columna «FACTURA #»: «quiero que se miren los po en vez del orden id».
+Una primera lectura hizo visible la columna aparte «PO #» (`p_po`). Se deshizo el mismo día, antes de publicarla, y `p_po` sigue escondida por defecto. Lo que pidió es otra cosa: el texto gris que va bajo la factura.
+Ahora, en la celda de la factura de la lista de paradas (recogidas y entregas, pendientes y hechas):
+- Con PO: bajo la factura, `PO <número>` en gris, donde iba el ID. Pasando el ratón sobre la PO se lee `PO 7781 · Orden #FX540`.
+- Sin PO: no va nada debajo. El ID no se enseña como respaldo; queda en el `title` del enlace de la factura (`Orden #FX540`).
+- Sin factura (D-408): el ID sigue siendo el texto principal, como antes, y debajo va la PO si la hay.
+- Recogida con varias órdenes: una por una, separadas por « · », cada una con su PO (o sin nada si no tiene).
+La celda la pinta `facturaDeLaParada` (`src/app/(app)/routes/page.tsx`) y el texto lo decide `src/lib/po-en-la-factura.ts`. «Sin asignar», «Todas» y las demás tablas (tablero, plan del día, línea de tiempo, Órdenes) siguen con `facturaConSuId`, con el ID de siempre. La hoja PNG de la ruta (`FotoDeLaRuta`) y «Mi ruta» del chofer no cambian.
+Comprobado: pruebas unitarias de la PO y de su título; prueba de cableado (la lista de paradas usa la PO y las demás tablas siguen con el ID); tipos, lint y la suite completa. No comprobado: la pantalla. No se ha visto en el navegador con órdenes reales; eso lo revisa el orquestador antes de dar el cambio por bueno.
 Sello `deliveries` 1.666.0; repo 1.993.0.
