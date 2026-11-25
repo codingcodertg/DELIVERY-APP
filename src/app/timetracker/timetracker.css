@@ -14,6 +14,28 @@
   --tt-txt:var(--text); --tt-muted:var(--gray); --tt-accent:var(--accent); --tt-accent2:var(--green);
   --tt-danger:var(--red); --tt-warn:var(--amber); --tt-ok:var(--green); --tt-chip:var(--accent-soft);
 }
+/* La hoja semanal de Nómina (`HojaSemanal`, 2026-11-24): los colores de sus celdas son tokens, oscuros por defecto y claros
+   con data-theme="light". Todos pasan 4,5:1 de contraste con su texto en los dos temas. */
+.timetracker-module{
+  --tt-hoja-cabecera:#111111; --tt-hoja-cabecera-txt:#ffffff;
+  --tt-hoja-grupo:#3a404b; --tt-hoja-grupo-txt:#eef1f5;
+  --tt-hoja-trabajo:#1f4d3a; --tt-hoja-trabajo-txt:#e6fff3;
+  --tt-hoja-fuera:#5a3a1a; --tt-hoja-fuera-txt:#ffe9cc;
+  --tt-hoja-crema:#3d3a2e; --tt-hoja-crema-txt:#f7f2de;
+  --tt-hoja-nombre:#ffd83d; --tt-hoja-nombre-txt:#111111;
+  --tt-hoja-sobre:#7a1f28; --tt-hoja-sobre-txt:#ffd9dc;
+  --tt-hoja-domingo:#2c3038; --tt-hoja-domingo-txt:#c9cdd4;
+}
+:root[data-theme="light"] .timetracker-module{
+  --tt-hoja-cabecera:#1a1a1a; --tt-hoja-cabecera-txt:#ffffff;
+  --tt-hoja-grupo:#d9dde3; --tt-hoja-grupo-txt:#1d2129;
+  --tt-hoja-trabajo:#d8f5e4; --tt-hoja-trabajo-txt:#0d3b25;
+  --tt-hoja-fuera:#ffe3c2; --tt-hoja-fuera-txt:#5c2e00;
+  --tt-hoja-crema:#fbf6e1; --tt-hoja-crema-txt:#2b2a1f;
+  --tt-hoja-nombre:#ffd83d; --tt-hoja-nombre-txt:#111111;
+  --tt-hoja-sobre:#fbd5d9; --tt-hoja-sobre-txt:#7a0f1a;
+  --tt-hoja-domingo:#e4e6ea; --tt-hoja-domingo-txt:#3c4048;
+}
 :root[data-theme="light"] .timetracker-module .btn-ok{color:#053d2b}
 :root[data-theme="light"] .timetracker-module .btn-warn{color:#4a3200}
 :root[data-theme="light"] .timetracker-module .pill.on{background:#d6f5e5;color:#0a7a53}
@@ -64,6 +86,20 @@
 .timetracker-module .g4{grid-template-columns:repeat(4,1fr)}
 @media(max-width:720px){.timetracker-module .g2,.timetracker-module .g3,.timetracker-module .g4{grid-template-columns:1fr}}
 .timetracker-module table{width:100%;border-collapse:collapse;font-size:13.5px}
+/* La hoja semanal: la caja de cada persona es la que se desliza en el teléfono; la página nunca. */
+.timetracker-module .tt-hoja-caja{overflow-x:auto;max-width:100%;margin-top:8px}
+.timetracker-module table.tt-hoja{width:100%;min-width:620px;border-collapse:collapse;font-size:12.5px;margin-bottom:6px}
+.timetracker-module .tt-hoja th,.timetracker-module .tt-hoja td{padding:4px 7px;border:1px solid var(--tt-line);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+.timetracker-module .tt-hoja th{text-transform:none;letter-spacing:0;font-weight:700;color:var(--tt-hoja-cabecera-txt);background:var(--tt-hoja-cabecera)}
+.timetracker-module .tt-hoja .tt-hoja-grupo{background:var(--tt-hoja-grupo);color:var(--tt-hoja-grupo-txt)}
+.timetracker-module .tt-hoja .tt-hoja-nombre{background:var(--tt-hoja-nombre);color:var(--tt-hoja-nombre-txt);font-size:14px;text-align:left;font-weight:800}
+.timetracker-module .tt-hoja .tt-hoja-trabajo{background:var(--tt-hoja-trabajo);color:var(--tt-hoja-trabajo-txt);font-weight:700}
+.timetracker-module .tt-hoja .tt-hoja-fuera{background:var(--tt-hoja-fuera);color:var(--tt-hoja-fuera-txt);font-weight:700}
+.timetracker-module .tt-hoja td.tt-hoja-celda{background:var(--tt-hoja-crema);color:var(--tt-hoja-crema-txt)}
+.timetracker-module .tt-hoja .tt-hoja-total{background:var(--tt-hoja-nombre);color:var(--tt-hoja-nombre-txt);font-weight:800}
+.timetracker-module .tt-hoja tr.tt-hoja-domingo td{background:var(--tt-hoja-domingo);color:var(--tt-hoja-domingo-txt)}
+.timetracker-module .tt-hoja .tt-hoja-sobre{background:var(--tt-hoja-sobre);color:var(--tt-hoja-sobre-txt);font-weight:800}
+.timetracker-module .tt-hoja-marca{margin-left:4px;font-size:11px;font-weight:700;cursor:help}
 .timetracker-module th,.timetracker-module td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--tt-line)}
 .timetracker-module th{color:var(--tt-muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
 .timetracker-module .muted{color:var(--tt-muted)}
