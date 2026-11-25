@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { planAuto, chipAuto, avisoDePisar, claveDeRutaAuto } from "./auto-optimiza-la-ruta";
+import { planAuto, chipAuto, avisoDePisar, claveDeRutaAuto, reintentoAuto, notaDeReglas } from "./auto-optimiza-la-ruta";
 
 const base = {
   bloqueada: false,
@@ -104,5 +104,24 @@ describe("avisoDePisar", () => {
 describe("claveDeRutaAuto", () => {
   it("dia y ruta separados por |", () => {
     expect(claveDeRutaAuto("2026-11-24", "Juan")).toBe("2026-11-24|Juan");
+  });
+});
+
+describe("reintentoAuto (348): 5 s, luego 20 s, y después se queda en fallo", () => {
+  it("el primer reintento a los 5 s, el segundo a los 20 s", () => {
+    expect(reintentoAuto(0)).toBe(5_000);
+    expect(reintentoAuto(1)).toBe(20_000);
+  });
+  it("después de dos reintentos no hay más: lo decide la persona con el botón", () => {
+    expect(reintentoAuto(2)).toBeNull();
+  });
+});
+
+describe("notaDeReglas (348): las reglas que incumple, sin repetir", () => {
+  it("une las claves distintas en orden de aparición", () => {
+    expect(notaDeReglas([{ clave: "parada_repetida" }, { clave: "carga_antes_de_descarga" }, { clave: "parada_repetida" }])).toBe("parada_repetida, carga_antes_de_descarga");
+  });
+  it("sin violaciones, cadena vacía", () => {
+    expect(notaDeReglas([])).toBe("");
   });
 });
