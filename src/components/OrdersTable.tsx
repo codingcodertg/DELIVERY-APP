@@ -337,7 +337,7 @@ const ID_COLUMN: OrderColumn = {
  * Sorting sits in the same menu so both are one click away (D-275).
  * Se exporta para las tablas del Gestor de Rutas (D-360): el menú es el mismo, solo cambian las filas. */
 export function ColumnFilterMenu({
-  col, options, active, orden, onOrdenar, onApply, onClear, onClose, lang, t, style, menuRef, masOrden, numerico = false,
+  col, options, active, orden, onOrdenar, onApply, onClear, onClose, lang, t, style, menuRef, masOrden, numerico = false, soloFiltro = false,
 }: {
   /** Solo hace falta el nombre de la columna en los dos idiomas. */
   col: Pick<OrderColumn, "en" | "es">;
@@ -359,6 +359,8 @@ export function ColumnFilterMenu({
   masOrden?: React.ReactNode;
   /** D-840: columna de números: el menú ofrece además «mayor que», «menor que»… como Excel. */
   numerico?: boolean;
+  /** Solo filtrar: el menú no ofrece ni ↑ ↓ ni «Quitar orden» (las tablas del Gestor de Rutas, donde solo se filtra). */
+  soloFiltro?: boolean;
 }) {
   const [search, setSearch] = useState("");
   // Con una condición de número puesta, la lista de valores nace toda marcada (la condición no es una lista).
@@ -397,7 +399,7 @@ export function ColumnFilterMenu({
         <b>{lang === "es" ? col.es : col.en}</b>
         <button className="notif-clear" onClick={onClose}>✕</button>
       </div>
-      <div className="col-menu-orden">
+      {!soloFiltro && <div className="col-menu-orden">
         <button className={"col-opt col-orden" + (orden === "asc" ? " on" : "")} onClick={() => onOrdenar("asc")}>
           ↑ {t("Sort ascending", "Orden ascendente")}
         </button>
@@ -410,7 +412,7 @@ export function ColumnFilterMenu({
           </button>
         )}
         {masOrden}
-      </div>
+      </div>}
       {numerico && (
         <div className="col-menu-numero">
           <div className="col-menu-numero-titulo">{t("Number filter", "Filtro de número")}</div>

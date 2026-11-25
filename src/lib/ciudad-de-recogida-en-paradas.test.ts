@@ -40,7 +40,7 @@ describe("el catálogo: la ciudad de recogida, delante de la de entrega", () => 
     expect(par.indexOf("p_ciudad_recogida")).toBeGreaterThan(-1);
     expect(par.indexOf("p_address")).toBe(par.indexOf("p_ciudad_recogida") + 1);
     // D-671: «Actual» (`p_actual`) justo detrás de la llegada.
-    expect(paradas(COLUMNAS_DEL_GESTOR_POR_DEFECTO)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_actual", "p_windows"]);
+    expect(paradas(COLUMNAS_DEL_GESTOR_POR_DEFECTO)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_eta", "p_actual", "p_windows", "p_rep"]); // + p_rep (columna «Usuario» de paradas)
   });
 });
 
@@ -53,8 +53,8 @@ describe("lo ya guardado: la tanda `_v8`", () => {
   it("AÑADE la columna y la marca, sin quitar nada de lo que eligió", () => {
     const con = conColumnasNuevas(suyas);
     // D-671: y detrás, la tanda `_v9` («Actual»).
-    expect(con).toEqual([...suyas, "p_ciudad_recogida", MARCA_V8, "p_actual", "_v9"]);
-    expect(paradas(con)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows", "p_fee"]);
+    expect(con).toEqual([...suyas, "p_ciudad_recogida", MARCA_V8, "p_actual", "_v9", "p_rep", "_v10"]); // + p_rep, _v10
+    expect(paradas(con)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows", "p_rep", "p_fee"]); // + p_rep (columna «Usuario» de paradas)
   });
   it("con la marca y sin la columna, es que la quitó: no le vuelve", () => {
     const quitada = alternaColumna(conColumnasNuevas(suyas), "p_ciudad_recogida");
@@ -66,7 +66,7 @@ describe("lo ya guardado: la tanda `_v8`", () => {
     const al = preferenciasDelGestorAlLeer(suyas, null);
     expect(al.orden).toBeNull();
     // D-671: con `_v7` le llega también «Actual» (`_v9`), en su sitio de partida: tras la llegada, que no eligió.
-    expect(paradas(al.columnas!, al.orden)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows", "p_fee"]);
+    expect(paradas(al.columnas!, al.orden)).toEqual(["p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows", "p_rep", "p_fee"]); // + p_rep (columna «Usuario» de paradas)
     expect(al.escribe).toBe(true);
     expect(preferenciasDelGestorAlLeer(al.columnas!, al.orden)).toEqual({ columnas: al.columnas, orden: null, escribe: false });
   });
@@ -76,7 +76,7 @@ describe("lo ya guardado: la tanda `_v8`", () => {
     orden = comoAntes(orden);
     expect(paradas(suyas, orden)).toEqual(["p_fee", "p_type", "p_address", "p_windows"]);   // de verdad lo movió
     const al = preferenciasDelGestorAlLeer(suyas, orden);
-    expect(paradas(al.columnas!, al.orden)).toEqual(["p_fee", "p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows"]);
+    expect(paradas(al.columnas!, al.orden)).toEqual(["p_fee", "p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows", "p_rep"]); // + p_rep (columna «Usuario» de paradas)
     // Nada más cambió de sitio: sin la nueva, el orden de paradas es el que tenía (escondidas incluidas), y el de las otras tablas.
     expect(ordenDeLaTabla("paradas", al.orden).filter((k) => k !== "p_ciudad_recogida")).toEqual(ordenDeLaTabla("paradas", orden).filter((k) => k !== "p_ciudad_recogida"));
     expect(ordenDeLaTabla("sinAsignar", al.orden)).toEqual(ordenDeLaTabla("sinAsignar", orden));
@@ -92,7 +92,7 @@ describe("lo ya guardado: la tanda `_v8`", () => {
     expect(paradas(suyas, orden)).toEqual(["p_type", "p_windows", "p_fee", "p_address"]);
     const al = preferenciasDelGestorAlLeer(suyas, orden);
     // D-671: «Actual» va tras la llegada, que sigue escondida justo detrás del tipo: por eso sale ahí.
-    expect(paradas(al.columnas!, al.orden)).toEqual(["p_type", "p_actual", "p_windows", "p_fee", "p_ciudad_recogida", "p_address"]);
+    expect(paradas(al.columnas!, al.orden)).toEqual(["p_type", "p_actual", "p_windows", "p_rep", "p_fee", "p_ciudad_recogida", "p_address"]); // + p_rep (columna «Usuario» de paradas)
   });
   it("sin la inserción caería al FINAL del orden guardado (por eso existe `conCiudadDeRecogidaEnSuSitio`)", () => {
     let orden: string[] | null = null;
@@ -100,7 +100,7 @@ describe("lo ya guardado: la tanda `_v8`", () => {
     orden = comoAntes(orden);
     const con = conColumnasNuevas(suyas);
     expect(paradas(con, orden).slice(-1)).toEqual(["p_ciudad_recogida"]);
-    expect(paradas(con, conCiudadDeRecogidaEnSuSitio(orden))).toEqual(["p_fee", "p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows"]);
+    expect(paradas(con, conCiudadDeRecogidaEnSuSitio(orden))).toEqual(["p_fee", "p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows", "p_rep"]); // + p_rep (columna «Usuario» de paradas)
     expect(conCiudadDeRecogidaEnSuSitio(null)).toBeNull();
     // Sin la tabla de paradas en el orden (está en su partida), no toca nada.
     const soloSin = mueveEnElGestor("sinAsignar", null, "account", -1, suyas)!;
@@ -117,7 +117,7 @@ describe("lo ya guardado: la tanda `_v8`", () => {
     orden = comoAntes(orden)!.filter((k) => k !== "pl_ciudad_entrega");
     const al = preferenciasDelGestorAlLeer(de6, orden);
     expect(al.columnas).toEqual(expect.arrayContaining([MARCA_V7, MARCA_V8, "pl_ciudad_entrega", "p_ciudad_recogida"]));
-    expect(paradas(al.columnas!, al.orden)).toEqual(["p_fee", "p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows"]);
+    expect(paradas(al.columnas!, al.orden)).toEqual(["p_fee", "p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows", "p_rep"]); // + p_rep (columna «Usuario» de paradas)
     const plan = ordenDeLaTabla("plan", al.orden);
     expect(plan.indexOf("pl_ciudad_entrega")).toBe(plan.indexOf("pl_ciudad_recogida") + 1);
     expect(al.escribe).toBe(true);
@@ -128,7 +128,7 @@ describe("lo ya guardado: la tanda `_v8`", () => {
     for (let i = 0; i < 3; i++) orden = mueveEnElGestor("paradas", orden, "p_fee", -1, viejas);
     orden = comoAntes(orden);
     const al = preferenciasDelGestorAlLeer(viejas, orden);
-    expect(paradas(al.columnas!, al.orden)).toEqual(["p_fee", "p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows"]);
+    expect(paradas(al.columnas!, al.orden)).toEqual(["p_fee", "p_type", "p_ciudad_recogida", "p_address", "p_actual", "p_windows", "p_rep"]); // + p_rep (columna «Usuario» de paradas)
     expect(ordenDeLaTabla("plan", al.orden)).toEqual(ORDEN_DE_PARTIDA_DEL_GESTOR.plan);
     expect(al.escribe).toBe(true);
   });

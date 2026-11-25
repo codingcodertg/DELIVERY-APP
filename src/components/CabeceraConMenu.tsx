@@ -19,18 +19,20 @@ export type ColumnaConMenu = { key: string; en: string; es: string; etiqueta?: (
  * mismo menú; la flecha dice por dónde está ordenada la tabla; el ▾ en color, que hay filtro en esa columna.
  * El `<th>` lo pone quien llama, porque ahí va también el tirador del ancho.
  */
-export function CabeceraConMenu<F>({ estado, col, lang, t }: { estado: OrdenYFiltro<F>; col: ColumnaConMenu; lang: "en" | "es"; t: T }) {
+export function CabeceraConMenu<F>({ estado, col, lang, t, soloFiltro = false }: { estado: OrdenYFiltro<F>; col: ColumnaConMenu; lang: "en" | "es"; t: T; soloFiltro?: boolean }) {
   const hayFiltro = (estado.filtros[col.key]?.size ?? 0) > 0;
+  // Con `soloFiltro` (la tabla de paradas) no hay flecha de orden: el nombre y el ▾ solo abren el menú para filtrar.
+  const titulo = soloFiltro ? t("Filter", "Filtrar") : t("Sort and filter", "Ordenar y filtrar");
   return (
     <div
       className="th-cell"
       ref={(el) => { if (el) estado.celdas.current.set(col.key, el); else estado.celdas.current.delete(col.key); }}
     >
-      <button className="th-sort" onClick={(e) => { e.stopPropagation(); estado.abrir(col.key); }} title={t("Sort and filter", "Ordenar y filtrar")}>
+      <button className="th-sort" onClick={(e) => { e.stopPropagation(); estado.abrir(col.key); }} title={titulo}>
         {lang === "es" ? col.es : col.en}
-        {estado.claveDeOrden === col.key && (estado.direccion === "asc" ? " ▲" : " ▼")}
+        {!soloFiltro && estado.claveDeOrden === col.key && (estado.direccion === "asc" ? " ▲" : " ▼")}
       </button>
-      <button className={"th-filter-btn " + (hayFiltro ? "on" : "")} onClick={(e) => { e.stopPropagation(); estado.abrir(col.key); }} title={t("Sort and filter", "Ordenar y filtrar")}>
+      <button className={"th-filter-btn " + (hayFiltro ? "on" : "")} onClick={(e) => { e.stopPropagation(); estado.abrir(col.key); }} title={titulo}>
         ▾
       </button>
     </div>
@@ -38,7 +40,7 @@ export function CabeceraConMenu<F>({ estado, col, lang, t }: { estado: OrdenYFil
 }
 
 /** El menú abierto (si lo hay) de una tabla, en un portal sobre `document.body`, anclado a su cabecera. */
-export function MenuDeColumnaAbierto<F>({ estado, columnas, lang, t }: { estado: OrdenYFiltro<F>; columnas: readonly ColumnaConMenu[]; lang: "en" | "es"; t: T }) {
+export function MenuDeColumnaAbierto<F>({ estado, columnas, lang, t, soloFiltro = false }: { estado: OrdenYFiltro<F>; columnas: readonly ColumnaConMenu[]; lang: "en" | "es"; t: T; soloFiltro?: boolean }) {
   const clave = estado.abierta;
   if (!clave || !estado.ancla) return null;
   const col = columnas.find((c) => c.key === clave);
@@ -58,6 +60,7 @@ export function MenuDeColumnaAbierto<F>({ estado, columnas, lang, t }: { estado:
       onClear={() => estado.limpiar(clave)}
       onClose={estado.cerrar}
       numerico={col.numerico}
+      soloFiltro={soloFiltro}
     />,
     document.body,
   );

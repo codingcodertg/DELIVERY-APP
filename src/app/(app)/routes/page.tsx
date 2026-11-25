@@ -25,7 +25,7 @@ import { OrderModal } from "@/components/OrderModalLazy";
 import { DispatchBoard, type BoardColumn } from "@/components/DispatchBoard";
 import { GanttTimeline, type GanttRow } from "@/components/GanttTimeline";
 import { printRouteManifest } from "@/lib/manifest";
-import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, nombresPorId, orderLabel, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
+import { fallbackDriverColor, fmtDate, fmtMoney, fmtWindows, isOverdue, nombresPorId, orderLabel, orderOwner, retentionFloorISO, seesAllHistory, shiftDateISO, todayISO } from "@/lib/utils";
 import { agendaEnDiaPasado, AVISO_FECHA_PASADA, minFechaDeEntrega } from "@/lib/fecha-de-entrega";
 import { maxFechaDeEntrega, problemaAlAgendar, textoDelProblema } from "@/lib/dia-de-entrega";
 import { pideConfirmarMismoDia, preguntaMismoDia } from "@/lib/same-day";
@@ -118,6 +118,8 @@ import { AVISO_SOLO_CIUDAD, ordenSoloCiudad } from "@/lib/solo-ciudad";
 import { AvisoSoloCiudad } from "@/components/AvisoSoloCiudad";
 import { celdaPropiaDelPlan, claseDeLaFilaDelPlan } from "@/lib/route-plan/celdas-del-plan";
 import { CabeceraConMenu, FiltrosPuestos, MenuDeColumnaAbierto, type ColumnaConMenu } from "@/components/CabeceraConMenu";
+import { SIN_FILTRO_EN_PARADAS, filasOcultas, paradaVisible, valorDeOrdenEnParadas, type ValoresDeOrden } from "@/lib/filtro-de-paradas";
+import { arrastradaDesde } from "@/lib/arrastrada-de-otro-dia";
 import { SelectorDeColumnas } from "@/components/SelectorDeColumnas";
 import { BotonDelCamion } from "@/components/BotonDelCamion";
 
@@ -1806,6 +1808,12 @@ export default function RoutesPage() {
   // con el mismo contexto con que Órdenes las llama (idioma, traducción y motivos de anulación).
   // `recibidas`: la columna de Etapa pinta «Received» en las que recibió almacén (D-409), como en Órdenes.
   const recibidas = useMemo(() => idsRecibidasPorAlmacen(events), [events]);
+  // Los eventos de cada orden (`order_events`, la ventana que trae la app): de ahí sale de qué día viene una arrastrada.
+  const eventosPorOrden = useMemo(() => {
+    const m = new Map<string, typeof events>();
+    for (const e of events) { const lista = m.get(e.delivery_id); if (lista) lista.push(e); else m.set(e.delivery_id, [e]); }
+    return m;
+  }, [events]);
   // Saltadas hoy y rechazadas por el cliente (D-487): la misma pastilla que en Órdenes, en la columna de Etapa.
   const marcasDeParada = useMemo(() => marcasDeParadas(events, todayISO()), [events]);
   // `nombreDe` (D-652): la columna «Vendedor» que el plan hereda de Órdenes pinta el nombre, no el id.
@@ -1846,9 +1854,14 @@ export default function RoutesPage() {
     const e = escrituraCambiarEtapaAdmin({ accion, pedido: d, me, t });
     if (await setStage(d.id, e.stage, e.note, e.extra)) notify(t("Stage changed", "Etapa cambiada"));
   };
-  const celdaDeParada = (c: ColumnaDelGestor, d: Delivery | undefined, como: { tipo: "P" | "D"; llegada: React.ReactNode; recogida?: React.ReactNode; sinAviso?: boolean; fueraDeOrden?: boolean }) => {
+  const celdaDeParada = (c: ColumnaDelGestor, d: Delivery | undefined, como: { tipo: "P" | "D"; llegada: React.ReactNode; recogida?: React.ReactNode; sinAviso?: boolean; fueraDeOrden?: boolean; ordenes?: Delivery[] }) => {
     switch (c.key) {
       case "p_type": return <td key={c.key} title={d?.order_type || undefined}>{d?.order_type || "—"}</td>;
+      // «Usuario» (D-652, como en Órdenes): el vendedor de la orden. Una recogida con varias, sus nombres distintos (`ordenes`).
+      case "p_rep": {
+        const nombres = [...new Set((como.ordenes ?? (d ? [d] : [])).map((x) => ctxDeOrdenes.nombreDe?.(orderOwner(x)) ?? null).filter((n): n is string => !!n))];
+        return <td key={c.key}>{nombres.join(" · ") || "—"}</td>;
+      }
       case "p_eta": return <Fragment key={c.key}>{como.llegada}</Fragment>;
       case "p_actual": return celdaReal(c.key, d, como.tipo, como.fueraDeOrden);
       case "p_ciudad_recogida": return <td key={c.key}>{como.recogida ?? ((d && zonaDeLaRecogida(d, settings.stores ?? [], ciudadesQueSeConocen, settings.order_type_rules)) || "—")}</td>;
@@ -2176,6 +2189,67 @@ export default function RoutesPage() {
   const ordenSinAsignar = useOrdenYFiltro(unassignedShown, valorDelGestorAqui);
   // «Todas» (D-462) ordena y filtra igual, con su propio estado: la columna «Chofer» va por la de Órdenes (`driver`).
   const ordenDeTodas = useOrdenYFiltro(todasConBusqueda, valorDelGestorAqui);
+  // Filtrar la tabla de paradas desde su cabecera (sin ordenar; `soloFiltro`). UN filtro para todas las tarjetas de choferes,
+  // que no se guarda entre sesiones. Sus opciones son los valores de TODAS las listas a la vista, así que se calculan aquí,
+  // antes del `return` temprano, con las mismas filas que pinta cada tarjeta (`dia.pintadas`). Ver `src/lib/filtro-de-paradas.ts`.
+  const extraDeParadas = { tiendas: settings.stores ?? [], reglas: settings.order_type_rules };
+  const textoRecogidaDeUnaRecogida = (o: Delivery | undefined, lugar: string | null | undefined): string => {
+    const ciudadLibre = o && recogidaLibreDeLaOrden(o, settings.order_type_rules) ? zonaDeLaRecogida(o, settings.stores ?? [], ciudadesQueSeConocen, settings.order_type_rules) : "";
+    return ciudadLibre || (lugar ?? t("(no store on the order)", "(la orden no dice la tienda)"));
+  };
+  /** Lo que enseña cada columna de la tabla de paradas de UNA orden: la misma celda que `celdaDeParada` (las de Órdenes por
+   *  su valor de Órdenes; la ciudad de recogida, la del texto de la recogida; y lo que no se ve en una recogida, vacío). */
+  const valoresDeLaOrden = (d: Delivery, tipo: "P" | "D", recogida: string | null): ValoresDeOrden => {
+    const r: ValoresDeOrden = {};
+    for (const c of colsParadas) {
+      if (SIN_FILTRO_EN_PARADAS.includes(c.key)) continue;
+      if (tipo === "P" && (c.key === "p_windows" || !seVeEnLaRecogida(c))) r[c.key] = null;
+      else if (tipo === "P" && c.key === "p_ciudad_recogida") r[c.key] = recogida;
+      else r[c.key] = valorDelGestor(c.key, d, deOrdenes, ciudadesQueSeConocen, extraDeParadas);
+    }
+    return r;
+  };
+  /** Las órdenes de una fila pintada con sus valores: una entrega (una), o una recogida (las suyas, todas con su texto de recogida). */
+  /** Las órdenes de una fila que vienen arrastradas de otro día (`arrastradaDesde`): sus fechas de origen y el aviso. */
+  const arrastreDeLaFila = (ordenes: readonly Delivery[]): { fechas: string; texto: string } | null => {
+    const porFecha = new Map<string, string[]>();
+    for (const x of ordenes) {
+      const de = arrastradaDesde(x, eventosPorOrden.get(x.id) ?? []);
+      if (de) porFecha.set(de, [...(porFecha.get(de) ?? []), facturaYId(x).principal]);
+    }
+    if (porFecha.size === 0) return null;
+    return {
+      fechas: [...porFecha.keys()].join(", "),
+      texto: [...porFecha].map(([de, codigos]) => `${t("Carried over from", "Viene arrastrada del")} ${de}: ${codigos.join(", ")}`).join(" · "),
+    };
+  };
+  const valoresDeLaFila = (fp: FilaPintada, porId: Map<string, Delivery>, hechasPorId: Map<string, Delivery>): ValoresDeOrden[] => {
+    if (fp.hecha) {
+      const d = hechasPorId.get(fp.orden);
+      if (!d) return [];
+      return [valoresDeLaOrden(d, fp.tipo, fp.tipo === "P" ? ((d.pickup_name ?? "").trim() || (d.store ?? "").trim() || "—") : null)];
+    }
+    const f = fp.fila;
+    if (f.tipo === "D") { const d = porId.get(f.orden); return d ? [valoresDeLaOrden(d, "D", null)] : []; }
+    const suyas = f.ordenes.map((id) => porId.get(id)).filter((x): x is Delivery => !!x);
+    const recogida = textoRecogidaDeUnaRecogida(suyas[0], f.lugar);
+    return suyas.map((d) => valoresDeLaOrden(d, "P", recogida));
+  };
+  // Las opciones del filtro salen de las filas que YA pinta cada tarjeta (`valoresDeLasTarjetas`, que cada una deja al
+  // pintarse): así no se vuelve a calcular el plan del día de cada chofer en cada render. Son las del último render, que
+  // es el que se ve cuando se abre el menú. Solo cuentan las tarjetas que hay en pantalla.
+  const valoresDeLasTarjetas = useRef(new Map<string, ValoresDeOrden[][]>());
+  const filtroParadas = useOrdenYFiltro<ValoresDeOrden>(
+    [...valoresDeLasTarjetas.current].filter(([clave]) => lanesDelFiltro.some((l) => l.key === clave && ((byDriver.get(clave) ?? []).length > 0 || hechasDe(clave).length > 0))).flatMap(([, filas]) => filas.flat()),
+    valorDeOrdenEnParadas,
+  );
+  // La factura y los pallets fijos no filtran (la factura va con su texto fijo, como antes); las de Sin filtro, tampoco.
+  const menuDeParadas: ColumnaConMenu[] = colsParadas.filter((c) => !SIN_FILTRO_EN_PARADAS.includes(c.key)).map((c): ColumnaConMenu => ({ key: c.key, en: sinElNombreDeLaTabla(c.en), es: sinElNombreDeLaTabla(c.es), etiqueta: etiquetaDelGestor(c.key, deOrdenes) }));
+  /** La cabecera de una columna de paradas: con su menú para filtrar (`soloFiltro`), o el rótulo de siempre. */
+  const cabeceraDeParada = (c: ColumnaDelGestor) => {
+    const cm = menuDeParadas.find((m) => m.key === c.key);
+    return cm ? <CabeceraConMenu estado={filtroParadas} col={cm} lang={lang} t={t} soloFiltro /> : sinElNombreDeLaTabla(lang === "es" ? c.es : c.en);
+  };
   // Las cabeceras con menú son las del catálogo (la fecha se lista formateada, y el costo como dinero). El ID fijo que iba
   // delante se quitó (D-408): el dueño, «routes manager doesn't need to see id».
   const menuSinAsignar: ColumnaConMenu[] = colsSinAsignar.map((c) => ({ ...c, etiqueta: etiquetaDelGestor(c.key, deOrdenes) }));
@@ -3891,6 +3965,9 @@ export default function RoutesPage() {
           {t(`No stops this day: ${marcadasSinParadas.map((u) => u.label).join(", ")}`, `Sin paradas este día: ${marcadasSinParadas.map((u) => u.label).join(", ")}`)}
         </div>
       )}
+      {/* El filtro de la tabla de paradas (`soloFiltro`): una sola barra de «Filtrado por» para todas las tarjetas. */}
+      <FiltrosPuestos estado={filtroParadas} columnas={menuDeParadas} lang={lang} t={t} />
+      <MenuDeColumnaAbierto estado={filtroParadas} columnas={menuDeParadas} lang={lang} t={t} soloFiltro />
       {tarjetasDeRuta.map(([u, modoDeTarjeta]) => {
         // Qué lleva esta tarjeta (D-481, e): la compacta, solo la cabecera sin botones; la desplegada, todo; la ancha, lo de siempre.
         const acciones = conAcciones(soloLectura, modoDeTarjeta);
@@ -3915,6 +3992,11 @@ export default function RoutesPage() {
         const rutaAcomodada = rutaAcomodadaDe(u.key);
         const dia = diaDe(u.key, stops, lectura, !rutaAcomodada);
         const pintadas = dia.pintadas;
+        // Las entregas de esta lista que el filtro deja ver (todas, sin filtro). Lo marcado con «todas» va sobre ellas.
+        const entregasVisibles = stops.filter((d) => paradaVisible([valoresDeLaOrden(d, "D", null)], filtroParadas.filtros));
+        const valoresDeLasFilas = pintadas.map((fp) => valoresDeLaFila(fp, porId, hechasPorId));
+        valoresDeLasTarjetas.current.set(u.key, valoresDeLasFilas);
+        const ocultasEnLaTarjeta = filasOcultas(valoresDeLasFilas, filtroParadas.filtros);
         const entregas = resumenDeEntregas(stops, hechas);
         const hayFilas = stops.length > 0 || hechas.length > 0;
         // D-906: lo hecho fuera del orden de la lista (delante queda algo sin hacer, o hecho después): su «Actual» lo dice
@@ -3956,12 +4038,13 @@ export default function RoutesPage() {
         };
         const filaYaHecha = (fp: Extract<FilaPintada, { hecha: true }>, k: number) => {
           const d = hechasPorId.get(fp.orden);
-          if (!d) return null;
+          // Oculta por el filtro de columna (como las pendientes, sin tocar su índice).
+          if (!d || !paradaVisible(valoresDeLaFila(fp, porId, hechasPorId), filtroParadas.filtros)) return null;
           const hecho = fp.estado === "hecho";
           const hora = hecho ? horaReal(d, fp.tipo) : null;
           const que = fp.tipo === "P" ? { en: "Picked up", es: "Recogida" } : hecho ? { en: "Delivered", es: "Entregada" } : { en: "On the truck, on its way", es: "En el camión, en camino" };
           return (
-            <tr key={`hecha-${fp.tipo}-${d.id}`} {...(me.role === "admin" && !soloLectura && fp.tipo === "D" && hecho ? { ...filaArrastrable({ tipo: "hecha", ruta: u.key, orden: d.id }), ...sueltaSobreHecha(u.key, d.id) } : {})} data-hecha={fp.estado} data-hecha-tipo={fp.tipo} data-etiqueta-del-dia={dia.etiqueta[k]} className={`fila-hecha${fp.tipo === "P" ? ` ${claseDeLaFilaDelPlan("P")}` : ""}`}
+            <tr key={`hecha-${fp.tipo}-${d.id}`} {...(me.role === "admin" && !soloLectura && fp.tipo === "D" && hecho ? { ...filaArrastrable({ tipo: "hecha", ruta: u.key, orden: d.id }), ...sueltaSobreHecha(u.key, d.id) } : {})} data-hecha={fp.estado} data-hecha-tipo={fp.tipo} data-arrastrada={fp.tipo === "P" ? arrastreDeLaFila([d])?.fechas : undefined} data-etiqueta-del-dia={dia.etiqueta[k]} className={`fila-hecha${fp.tipo === "P" ? ` ${claseDeLaFilaDelPlan("P")}` : ""}`}
               title={t(`${que.en}${hora ? ` at ${hora}` : ""} — it stays on the list; it can't be moved`, `${que.es}${hora ? ` a las ${hora}` : ""} — sigue en la lista; no se mueve`)}>
               {/* Su número de parada del día y su etiqueta (D-529; hasta aquí, solo «✓P» / «🚚D»): el dueño, «when a order is
                   delviered dont take the number of the stop away». El ✓ o el 🚚 siguen diciendo que está hecha o en camino. */}
@@ -4345,6 +4428,7 @@ export default function RoutesPage() {
                 {selectorDeParadas}
               </div>
             )}
+            {ocultasEnLaTarjeta > 0 && <div className="hint">{t(`${ocultasEnLaTarjeta} stop(s) hidden by the filter`, `${ocultasEnLaTarjeta} parada(s) ocultas por el filtro`)}</div>}
             {hayFilas && (
               <>
               <BarraSuperior caja={cajaDeParadas(u.key)} />
@@ -4367,10 +4451,11 @@ export default function RoutesPage() {
                     <tr data-pista-de-arrastre title={t("Drag a row to another position, or onto another driver, to move it. The ↑ ↓ arrows still work.", "Arrastre una fila a otro puesto, o a otro chofer, para moverla. Las flechas ↑ ↓ siguen ahí.")}>
                       <th style={{ whiteSpace: "nowrap" }}>
                         {/* «Seleccionar todas las visibles» de esta ruta (D-474): lo pendiente de la tarjeta; lo hecho no se marca. */}
-                        {!soloLectura && <input type="checkbox" data-marca-todas={u.key} checked={stops.length > 0 && stops.every((d) => marcadas.has(d.id))} disabled={stops.length === 0}
+                        {/* `stops` aquí son las entregas que el filtro deja ver (`entregasVisibles`): la casilla solo marca esas. */}
+                        {!soloLectura && ((stops: Delivery[]) => <input type="checkbox" data-marca-todas={u.key} checked={stops.length > 0 && stops.every((d) => marcadas.has(d.id))} disabled={stops.length === 0}
                           onClick={(e) => e.stopPropagation()}
                           onChange={() => setMarcadas((s) => { const n = new Set(s); const todas = stops.every((d) => n.has(d.id)); for (const d of stops) { if (todas) n.delete(d.id); else n.add(d.id); } return n; })}
-                          aria-label={t(`Select every order of ${u.label}`, `Marcar todas las órdenes de ${u.label}`)} style={{ width: 13, height: 13, margin: "0 3px 0 0", verticalAlign: "middle" }} />}
+                          aria-label={t(`Select every order of ${u.label}`, `Marcar todas las órdenes de ${u.label}`)} style={{ width: 13, height: 13, margin: "0 3px 0 0", verticalAlign: "middle" }} />)(entregasVisibles)}
                         {t("Stop", "Parada")}<span className="col-resizer" onMouseDown={asaDeParada("_n")} />
                       </th>
                       {/* La FACTURA, con el ID al lado (D-459; D-456 lo ponía debajo; D-444 había puesto solo el ID). La clave del ancho sigue siendo `_factura`. */}
@@ -4379,7 +4464,7 @@ export default function RoutesPage() {
                         {t("Pallets", "Pallets")}<span className="col-resizer" onMouseDown={asaDeParada("_cuenta")} />
                       </th>
                       {/* El rótulo es el del catálogo sin su «Paradas: » (el de Órdenes, para las que vienen de allí). */}
-                      {colsParadas.map((c) => <th key={c.key}>{sinElNombreDeLaTabla(lang === "es" ? c.es : c.en)}<span className="col-resizer" onMouseDown={asaDeParada(c.key)} /></th>)}
+                      {colsParadas.map((c) => <th key={c.key}>{cabeceraDeParada(c)}<span className="col-resizer" onMouseDown={asaDeParada(c.key)} /></th>)}
                       <th></th>
                     </tr>
                   </thead>
@@ -4394,6 +4479,8 @@ export default function RoutesPage() {
                       if (fp.hecha) return filaYaHecha(fp, k);
                       const f = fp.fila;
                       const fi = fp.i;
+                      // Oculta por el filtro de columna: no se pinta, pero su índice (`k`, `fi`) sigue siendo el real.
+                      if (!paradaVisible(valoresDeLaFila(fp, porId, hechasPorId), filtroParadas.filtros)) return null;
                       // Su etiqueta P/D del DÍA (D-529): sin plan, numerada con lo ya hecho dentro; con plan, la del plan.
                       const etiquetaDeLaFila = dia.etiqueta[k];
                       const cu = cuenta.paradas[fi];
@@ -4455,6 +4542,7 @@ export default function RoutesPage() {
                         // «no me sale ciudad de enetrega y quiero que claramente diga ciudad tienda de rocigda».
                         const suyas = f.ordenes.map((id) => porId.get(id)).filter((x): x is Delivery => !!x);
                         const o = suyas[0];
+                        const arrastradaDeLaRecogida = arrastreDeLaFila(suyas);
                         // La llegada a la tienda: la medida de la ruta ya la calcula, con la clave «P:» + las órdenes de la PARADA
                         // del día entera (D-680; con las de la fila solo acertaba la recogida que iba sola en su tienda).
                         const etaP = f.indice != null ? routeEtas[u.key]?.[claveDeRecogida(ordenesDeLaRecogidaMedida(dia.paradas, dia.deFila[k], f.ordenes))] : undefined;
@@ -4479,8 +4567,9 @@ export default function RoutesPage() {
                         );
                         return (
                           <tr key={`P-${fi}-${clave}`} data-recogida={etiquetaDeLaFila} className={`${claseDeLaFilaDelPlan("P")}${claseDeGrupo(f)}${claseDeSoltar}`}
+                            data-arrastrada={arrastradaDeLaRecogida?.fechas}
                             data-fila-arrastrable={seArrastra ? "parada" : undefined} {...arrastre} {...soltar}
-                            title={t("Show this stop on the map", "Ver esta parada en el mapa")}
+                            title={arrastradaDeLaRecogida ? `${arrastradaDeLaRecogida.texto} — ${t("Show this stop on the map", "Ver esta parada en el mapa")}` : t("Show this stop on the map", "Ver esta parada en el mapa")}
                             onClick={(e) => { e.stopPropagation(); if (esControlDeLaFila(e.target as Element)) return; setOrdenesResaltadas((s) => alternaResaltada(s, suyas.map((x) => x.id))); }}
                             style={{ ...(suyas.some((x) => ordenesResaltadas.has(x.id)) ? { background: "var(--accent-soft)" } : {}), ...(suyas.some((x) => marcadas.has(x.id)) ? { boxShadow: "inset 4px 0 0 var(--accent)" } : {}), ...(resaltada ? { outline: "2px solid var(--amber)", outlineOffset: -2 } : {}), ...(esLaArrastrada ? { opacity: 0.5 } : {}), ...(seArrastra ? { cursor: "grab" } : {}) }} data-recien-movida={resaltada ? "" : undefined}>
                             <td className={gris || provisional ? "etiqueta-provisional" : undefined} style={{ borderLeft: `4px solid ${colorFor(u.driver)}`, fontWeight: 700, whiteSpace: "nowrap" }}>
@@ -4506,7 +4595,7 @@ export default function RoutesPage() {
                                 mcallen deberia esta en ciudad de recodiga tienes todo alreves». Las ventanas y lo demás de la
                                 ENTREGA van vacíos (`tipo: "P"`, `seVeEnLaRecogida`). */}
                             {colsParadas.map((c) => celdaDeParada(c, o, {
-                              tipo: "P", recogida: dondeRecoge,
+                              tipo: "P", recogida: dondeRecoge, ordenes: suyas,
                               llegada: <td data-llegada={llegadaP.falta ? "falta" : "hora"} title={llegadaP.titulo} style={llegadaP.falta ? ESTILO_SIN_LLEGADA : { fontWeight: 600 }}>{llegadaP.texto}</td>,
                             }))}
                             {/* D-459: el td es una celda normal y el flex va DENTRO (era `display: flex` en el td: el fallo de la captura). */}

@@ -33,7 +33,7 @@ describe("qué columnas ve cada quien, y de dónde salen", () => {
   it("lo que llega de la base o del navegador se sanea: solo listas de textos cortos, de roles que existen", () => {
     expect(columnasValidas({ logistics: ["stage", "type"], admin: "stage", manager: [1, 2], driver: [""], warehouse: ["x".repeat(41)], inventado: ["a"] })).toEqual({ logistics: ["stage", "type"] });
     expect([null, undefined, "texto", 7, ["stage"]].map(columnasValidas)).toEqual([{}, {}, {}, {}, {}]);
-    expect(columnasValidas({ logistics: Array.from({ length: 61 }, (_, k) => `c${k}`) })).toEqual({});
+    expect(columnasValidas({ logistics: Array.from({ length: 65 }, (_, k) => `c${k}`) })).toEqual({}); // + 65: el tope sube a 64 con la columna «Usuario» y la marca _v10 (ver user-prefs.ts)
   });
 
   it("la semilla: todas las claves de rol que haya en ESTE navegador; un JSON roto no es una elección", () => {
