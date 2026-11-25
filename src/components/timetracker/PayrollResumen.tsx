@@ -65,14 +65,14 @@ export function PayrollResumen({ r }: { r: Resumen }) {
       ) : (
         <div className="pay-stats">
           <div className="pay-stat">
-            <div className="pay-n">{h(r.fichaje.total)}</div>
-            <div className="pay-l">{t("mgr.pay.totalOnSite")}</div>
-            <div className="pay-sub">{t("mgr.pay.byTypePunched", vars(r.fichaje))}</div>
-          </div>
-          <div className="pay-stat">
             <div className="pay-n">{h(r.proyecto.total)}</div>
             <div className="pay-l">{t("mgr.pay.totalRemote")}</div>
             <div className="pay-sub">{t("mgr.pay.byTypeTimer", vars(r.proyecto))}</div>
+          </div>
+          <div className="pay-stat">
+            <div className="pay-n">{h(r.fichaje.total)}</div>
+            <div className="pay-l">{t("mgr.pay.totalOnSite")}</div>
+            <div className="pay-sub">{t("mgr.pay.byTypePunched", vars(r.fichaje))}</div>
           </div>
           <div className="pay-stat">
             <div className="pay-n">{r.personas}</div>

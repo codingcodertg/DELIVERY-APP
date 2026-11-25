@@ -56,12 +56,12 @@ export function PayrollTabs({ period, resumen, revisar, vistaPorUrl = null }: {
 
       <PayrollResumen r={resumen} />
 
-      <Seccion titulo={t("mgr.pay.onSiteTitle")} nota={t("mgr.pay.onSiteNote")} abierta>
-        <PayrollTimesheets period={period} revisar={revisar} />
-      </Seccion>
-
       <Seccion titulo={t("mgr.pay.remoteTitle")} nota={t("mgr.pay.remoteNote")}>
         <ManagerReports period={period} />
+      </Seccion>
+
+      <Seccion titulo={t("mgr.pay.onSiteTitle")} nota={t("mgr.pay.onSiteNote")} abierta>
+        <PayrollTimesheets period={period} revisar={revisar} />
       </Seccion>
     </>
   );
