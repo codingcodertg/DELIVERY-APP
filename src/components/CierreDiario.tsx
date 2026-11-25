@@ -63,7 +63,7 @@ export function CierreDiario() {
   return (
     <div
       role="status"
-      style={{ position: "fixed", right: 16, bottom: 16, zIndex: 9998, maxWidth: 320 }}
+      style={{ position: "fixed", right: 16, bottom: "calc(16px + var(--fab-libre))", zIndex: 9998, maxWidth: 320 }}
       className="box"
     >
       <div className="small" style={{ fontWeight: 700 }}>

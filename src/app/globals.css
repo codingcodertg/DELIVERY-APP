@@ -2095,6 +2095,34 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
    (`--hueco-de-ayuda`, D-530). Lo que antes crecía con «entrar como» (136 px, y 72 px en el teléfono) se quitó con el
    chip de la barra de arriba (24 nov). */
 
+/* ---------------------------------------------------------------------------
+   Nada queda debajo de la burbuja (24 nov, dueño: «los botones de la esquina inferior están afectando la view, y esto
+   pasa seguido»). `--fab-libre` es lo que la burbuja ocupa desde el borde: 46 px + 20 px de margen + 12 px de aire.
+   Cada contenedor con botones al final lo deja libre en su propio `padding-bottom`; una barra pegada abajo (sticky o
+   fixed) SUBE la burbuja con `--barra-inferior-alto`, que cada pantalla pone en su `body` con `:has(...)`.
+   --------------------------------------------------------------------------- */
+:root { --fab-libre: 78px; --barra-inferior-alto: 0px; }
+.fab-general-caja {
+  bottom: calc(max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px)) + var(--barra-inferior-alto, 0px));
+}
+@media (max-width: 640px) {
+  .fab-general-caja {
+    bottom: calc(max(14px, calc(env(safe-area-inset-bottom, 0px) + 8px)) + var(--barra-inferior-alto, 0px));
+  }
+}
+/* Pantallas con una barra de botones pegada abajo: la burbuja se pone encima de ella (la altura, a ojo, con su margen). */
+body:has(.ops-cerrar-abajo), body:has(.ops-conteo-modal .modal-actions) { --barra-inferior-alto: 64px; }
+body:has(.recruiting-module .compare-bar), body:has(.recruiting-module .docs-barra) { --barra-inferior-alto: 64px; }
+@media (max-width: 719px) {
+  body:has(.ops-botonera) { --barra-inferior-alto: 84px; }
+}
+/* Los avisos de abajo: en el teléfono, el toast centrado a lo ancho tapaba la burbuja; sube por encima de ella. */
+.toast-de-llegadas { bottom: 24px; }
+@media (max-width: 640px) {
+  .toast, .recruiting-module .toast { bottom: calc(20px + var(--fab-libre)); }
+  .toast-de-llegadas { bottom: calc(24px + var(--fab-libre)); }
+}
+
 /* La línea de «de qué va» en cada solicitud de la bandeja (D-624, 2026-10-21): una sola línea cortada con «…», del ancho
    de la tarjeta, que abre la solicitud al pulsarla. */
 .asomo-solicitud {

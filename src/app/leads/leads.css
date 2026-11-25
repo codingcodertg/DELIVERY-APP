@@ -79,6 +79,8 @@
 .ld-velo { position: fixed; inset: 0; background: rgba(10, 20, 40, .55); display: flex; align-items: flex-end; justify-content: center; z-index: 60; }
 .ld-dialogo { background: var(--card); width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; border-radius: 16px 16px 0 0; padding: 16px 16px 24px; }
 .ld-dialogo h2 { margin: 0 0 6px; font-size: 17px; overflow-wrap: anywhere; }
+/* La hoja de abajo (cliente, llamada): su último botón sube por encima de la burbuja (24 nov). */
+.ld-dialogo { padding-bottom: calc(24px + var(--fab-libre)); }
 .ld-resultados { display: grid; gap: 8px; margin: 10px 0; }
 .ld-resultado { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; padding: 10px; cursor: pointer; font-size: 14px; text-transform: none; letter-spacing: 0; font-weight: 400; color: inherit; margin: 0; }
 .ld-resultado.on { border-color: var(--accent); background: var(--accent-soft); }

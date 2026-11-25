@@ -439,7 +439,7 @@ export default function WarehouseArrivalsPage() {
       )}
 
       {aviso && (
-        <div role="status" style={{ position: "fixed", left: "50%", bottom: 24, transform: "translateX(-50%)", width: "min(92vw, 520px)", background: "var(--ink)", color: "var(--on-color, #fff)", borderRadius: 14, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, zIndex: 60 }}>
+        <div role="status" className="toast-de-llegadas" style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", width: "min(92vw, 520px)", background: "var(--ink)", color: "var(--on-color, #fff)", borderRadius: 14, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, zIndex: 60 }}>
           <b style={{ flex: 1 }}>{aviso.texto}</b>
           {aviso.deshacer && <button className="btn btn-sm" style={{ color: "var(--on-color, #fff)", border: "1px solid var(--on-color, #fff)" }} onClick={() => void aviso.deshacer?.()}>{t("Undo", "Deshacer")}</button>}
           <button aria-label={t("Close", "Cerrar")} style={{ color: "var(--on-color, #fff)", fontSize: 16 }} onClick={() => setAviso(null)}>✕</button>
