@@ -1,3 +1,5 @@
+import { aCentesimas } from "./route-engine/evalua";
+
 /**
  * La auto-optimización al asignar (fase 3 del dueño): la DECISIÓN, pura. Sin escrituras, sin red, sin reloj. Quien asigna
  * (el Gestor, el reparto, un arrastre) le pasa lo que cambió; esto dice qué rutas de chofer y día hay que volver a
@@ -59,7 +61,7 @@ export function huellaDeLaRuta(r: {
 }): string {
   const ordenes = [...r.ordenes]
     .sort((a, b) => cmp(a.id, b.id))
-    .map((o) => [o.id, Math.round(o.pallets * 100), o.origen ?? null, o.destino ?? null]);
+    .map((o) => [o.id, aCentesimas(o.pallets), o.origen ?? null, o.destino ?? null]);
   const paradas = r.paradas.map((p) => [p.tipo, p.orden]);
   return JSON.stringify([r.chofer, r.dia, paradas, ordenes]);
 }
