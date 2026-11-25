@@ -93,6 +93,15 @@ export interface RoleNote {
 
 
 // ---- Delivery order -------------------------------------------------------
+/** Estado de la auto-optimización de UNA ruta y día (migración 348, tabla `route_auto_state`). */
+export interface EstadoAutoDeRuta {
+  estado: "pendiente" | "hecha" | "fallo";
+  /** Huella de la ruta al optimizar: si cambia, la ruta cambió desde entonces. */
+  huella: string | null;
+  intentos: number;
+  nota: string | null;
+}
+
 export interface Delivery {
   id: string;
   /** Internal sequential number — kept for the DB sequence, sorting, and
@@ -176,6 +185,9 @@ export interface Delivery {
    * the positions of the delivery before and the one after. Optional: absent (not even null) when the database doesn't
    * have the column yet — then the pickup is placed by the rule in `listaDelChofer`. */
   pickup_seq?: number | null;
+  /** true = una persona colocó esta parada a mano: la auto-optimización al asignar (migración 348) no la mueve. Lo quita
+   * el botón Optimizar, que rehace toda la ruta. Absent cuando la base no tiene la columna todavía. */
+  route_fixed?: boolean | null;
   /** Who decided this order's truckload. true = the optimizer grouped it and
    * may regroup it; false = a person put it there on purpose, so optimizing
    * leaves the grouping alone. Without this the two are indistinguishable and
