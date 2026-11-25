@@ -26,8 +26,9 @@ describe("reunión 12 nov", () => {
     expect(ids(vendedoresParaLaOrden(users, "RDZ Pharr", null, [], true) as never)).toEqual(["a", "s", "w"]);
     expect(ids(vendedoresParaLaOrden(users, "RDZ Pharr", null, []) as never)).not.toContain("w");
   });
-  it("Leads: el STXP Pool va antes que el GOV Pool", () => {
+  it("Leads: una sola pestaña de pool (Leads Pool, la primera); ya no hay pestaña STXP aparte", () => {
     const src = readFileSync(join(process.cwd(), "src/app/leads/Leads.tsx"), "utf8");
-    expect(src.indexOf('data-pestana="privado"')).toBeLessThan(src.indexOf('data-pestana="banco"'));
+    expect(src.indexOf('data-pestana="privado"')).toBe(-1);
+    expect(src.indexOf('data-pestana="banco"')).toBeGreaterThan(0);
   });
 });

@@ -16,14 +16,12 @@ describe("Leads · estilo de Merma", () => {
   it("fila 1: las pestañas y el selector de tienda van en el bloque de la barra (data-leads-en-la-barra), en ese orden", () => {
     // Con la barra a la vista, el bloque sube a su hueco por un portal; sin barra, va dentro de data-fila-de-filtros.
     const bloque = p.indexOf("const bloque = (");
-    const pestanaPrivado = p.indexOf('data-pestana="privado"');
     const pestanaBanco = p.indexOf('data-pestana="banco"');
     const pool = p.indexOf("<select data-pool ");
     const finBloque = p.indexOf("const refrescar = (");
     const fila = p.indexOf("data-fila-de-filtros");
     expect(bloque).toBeGreaterThan(0);
-    expect(pestanaPrivado).toBeGreaterThan(bloque);
-    expect(pestanaBanco).toBeGreaterThan(pestanaPrivado);
+    expect(pestanaBanco).toBeGreaterThan(bloque);
     expect(pool).toBeGreaterThan(pestanaBanco);
     expect(pool).toBeLessThan(finBloque);
     expect(pestanaBanco).toBeLessThan(finBloque);

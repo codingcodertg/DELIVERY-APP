@@ -106,6 +106,12 @@ export interface Lead {
 }
 
 export const esPrivado = (l: Pick<Lead, "source">): boolean => l.source === "privado";
+/** De dónde sale un lead en la pantalla: el STXP (la fuente privada, `source` = 'privado') o el GOV (lo demás, el Excel del estado). */
+export type OrigenDeLead = "stxp" | "gov";
+/** El filtro de origen de la pestaña única: los dos, o solo uno. */
+export type FiltroDeOrigen = "todas" | OrigenDeLead;
+export const origenDe = (l: Pick<Lead, "source">): OrigenDeLead => (esPrivado(l) ? "stxp" : "gov");
+export const deOrigen = (l: Pick<Lead, "source">, f: FiltroDeOrigen): boolean => f === "todas" || origenDe(l) === f;
 export const coincideConCliente = (l: Pick<Lead, "customer_match_id">): boolean => l.customer_match_id != null;
 /** Cuántas cargas trajeron el lead. Sin dato (base vieja o demo), una. */
 export const vecesVisto = (l: Pick<Lead, "times_seen">): number => (typeof l.times_seen === "number" && l.times_seen >= 1 ? l.times_seen : 1);
@@ -374,6 +380,8 @@ export interface Filtros {
   textoExtra?: (l: Lead) => string;
   /** D-1145 (D-1145, reunión del 23 nov 2026): solo los leads cuyo ÚLTIMO contacto (última nota) lo hizo esta persona (`last_by`). "" = todos. */
   quien?: string;
+  /** La pestaña única (Leads Pool): solo el STXP, solo el GOV o los dos. Sin dato, los dos. */
+  origen?: FiltroDeOrigen;
 }
 
 /**
@@ -387,6 +395,7 @@ export function filtrar(leads: readonly Lead[], f: Filtros): Lead[] {
     if (f.coinciden && !coincideConCliente(l)) return false;
     if (f.sinTelefono && !sinTelefono(l)) return false;
     if (f.quien && l.last_by !== f.quien) return false;
+    if (f.origen && !deOrigen(l, f.origen)) return false;
     if (f.buena && !categoriaBuena(l.category)) return false;
     if (f.etapa) { if (etapaDe(l) !== f.etapa) return false; }
     else if (!enTodasLasEtapas(l)) return false;

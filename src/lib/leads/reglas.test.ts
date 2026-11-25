@@ -3,7 +3,7 @@ import {
   accionTono, aplicarNota, categoriaBuena, categoriaDescartada, cuantosVistosMasDeUna, cuentaPorEtapa, enlaceSeguro, enTodasLasEtapas, estadoLabel, etapaDe,
   etapaIcono, etapaLabel, etapaTono, ETAPAS, ETAPAS_FUERA_DE_TODAS, eventoLabel, filtrar, filtroDePool, fecha, mapsUrl, negativaDeCodigo, negativaTexto, notaLimpia, NOTA_MAX,
   ordenar, POOL_SIN_TIENDA, POOL_TODAS, poolInicial, poolsDe, resumenDeTodas, tableroPorTienda, tableroPorVendedor, telUrl, TIPOS_DE_ACCION,
-  valoresDe, vecesVisto, vigentes, vendedoresDeLeads, leadsDeLaVista, type EventoLead, type Lead, type Persona,
+  valoresDe, vecesVisto, vigentes, origenDe, deOrigen, vendedoresDeLeads, leadsDeLaVista, type EventoLead, type Lead, type Persona,
 } from "./reglas";
 
 const ahora = "2026-11-18T15:00:00.000Z";
@@ -308,5 +308,21 @@ describe("vista de pool del tablero (D-1145, reunión del 23 nov 2026)", () => {
     expect(leadsDeLaVista(de, "gov").map((l) => l.id)).toEqual(["g", "s"]);
     expect(leadsDeLaVista(de, "stxp").map((l) => l.id)).toEqual(["p"]);
     expect(leadsDeLaVista(de, "ambos").map((l) => l.id)).toEqual(["g", "p", "s"]);
+  });
+});
+
+describe("la pestaña única: el origen de cada lead (STXP o GOV)", () => {
+  it("el origen sale de `source`: 'privado' es STXP; lo demás (tdlr o viejo) es GOV", () => {
+    expect(origenDe({ source: "privado" })).toBe("stxp");
+    expect(origenDe({ source: "tdlr" })).toBe("gov");
+    expect(origenDe({})).toBe("gov");
+  });
+  it("el filtro de origen: «todas» deja pasar los dos; cada uno solo los suyos", () => {
+    const de = [lead({ id: "g" }), lead({ id: "p", source: "privado" })];
+    expect(deOrigen({ source: "privado" }, "todas")).toBe(true);
+    expect(deOrigen({}, "stxp")).toBe(false);
+    expect(filtrar(de, { ...TODAS, origen: "todas" }).map((l) => l.id)).toEqual(["g", "p"]);
+    expect(filtrar(de, { ...TODAS, origen: "stxp" }).map((l) => l.id)).toEqual(["p"]);
+    expect(filtrar(de, { ...TODAS, origen: "gov" }).map((l) => l.id)).toEqual(["g"]);
   });
 });

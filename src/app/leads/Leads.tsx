@@ -17,8 +17,9 @@ import {
   filtroDePool, categoriaBuena, coincideConCliente, esPrivado, ETAPAS, mapsUrl, negativaTexto, notaLimpia, NOTA_MAX, numero, ordenar, poolInicial, poolLabel,
   poolsDe, POOL_TODAS, resumenDeTodas, tableroPorTienda, tableroPorVendedor, telUrl, TIPOS_DE_ACCION, type TipoDeAccion, type Etapa, valoresDe, vecesVisto,
   ORDEN_INICIAL, vigentes, enTodasLasEtapas, type EventoLead, type FiltroCategoria, type Lead, type Orden, type Persona, puedeVerEstadisticas,
-  vendedoresDeLeads, leadsDeLaVista, type VistaDePool,
+  vendedoresDeLeads, leadsDeLaVista, type VistaDePool, origenDe, deOrigen, type FiltroDeOrigen,
 } from "@/lib/leads/reglas";
+import { pasaSemanaSTXP, poolDelFiltro, unirPoolUnico } from "@/lib/leads/pool-unico";
 // 337: las llamadas de RingCentral de la ficha y la pestaña de estadísticas (admin y gerente).
 import type { LlamadaDeLead } from "@/lib/leads/llamadas-rc";
 import { Estadisticas } from "./Estadisticas";
@@ -33,7 +34,7 @@ import { enlaceDeBusqueda, sinTelefono, sinTelefonoPorPool, sugerenciaDeTelefono
 import { terminoLabel } from "@/lib/customers/terminos";
 
 type Estado = { tipo: "cargando" } | { tipo: "sinTabla" } | { tipo: "error"; texto: string } | { tipo: "listo" };
-type Pestana = "banco" | "admin" | "privado" | "estadisticas";
+type Pestana = "banco" | "admin" | "estadisticas";
 type Dialogo =
   | { tipo: "nota"; lead: Lead }
   | { tipo: "cliente"; lead: Lead; cliente: ClienteCruzado };
@@ -148,6 +149,8 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   const [coinciden, setCoinciden] = useState(false);
   // 335: el filtro «Sin teléfono» (sin teléfono de contratista, ni de mano ni del Excel).
   const [sinTel, setSinTel] = useState(false);
+  // La pestaña única: qué se enseña del STXP y del GOV. «todas» = los dos (lo que se ve al entrar).
+  const [origen, setOrigen] = useState<FiltroDeOrigen>("todas");
   // D-1145 (D-1145, reunión del 23 nov 2026): el filtro «Vendedor» (quien hizo el último contacto de cada lead). "" = todos.
   const [vendedorElegido, setVendedorElegido] = useState("");
   // El tablero de estadísticas (la pestaña del admin) enseña un pool o los dos. Al entrar, el del pool en el que estabas.
@@ -162,9 +165,10 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   // Los filtros como al entrar: al cambiar de pestaña y con «Quitar filtros». El orden no es un filtro y se queda.
   const limpiaFiltros = () => {
     setCategoria("todas"); setEtapa(""); setBuena(false); setTipo(""); setCiudad(""); setBusca(""); setCoinciden(false); setSinTel(false); setVendedorElegido("");
+    setOrigen("todas");
   };
   const cambiaPestana = (p: Pestana) => {
-    if (p === "admin") setVistaStats(veStxp && pestana === "privado" ? "stxp" : "gov");
+    if (p === "admin") setVistaStats("gov");
     setPestana(p);
     limpiaFiltros();
   };
@@ -179,12 +183,15 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
     setSemanaGuardada(valor);
     if (yoId) guardaSemanaSTXP(yoId, valor);
   };
-  const semanaFiltro = pestana === "privado" && semanaActiva !== "todas" ? semanaActiva : null;
+  // La semana filtra solo el STXP (y solo si quien mira lo ve): el GOV nunca se esconde por ella.
+  const semanaFiltro = veStxp && semanaActiva !== "todas" ? semanaActiva : null;
+  // La pestaña única: el GOV de su banco y el STXP que le toca, cada uno con su origen (ver `unirPoolUnico`).
   const delBanco = useMemo(
-    () => (pestana === "privado"
-      ? privados.filter((l) => semanaFiltro === null || semanasSTXP.semanaDeLead.get(l.id) === semanaFiltro)
-      : conCruzadosDeMiTienda(leadsDelBanco(leads, alcance), leads.filter((l) => l.source !== "privado"), cruzadoDeMiTienda)),
-    [leads, alcance, pestana, privados, cruzadoDeMiTienda, semanaFiltro, semanasSTXP],
+    () => unirPoolUnico(
+      conCruzadosDeMiTienda(leadsDelBanco(leads, alcance), leads.filter((l) => l.source !== "privado"), cruzadoDeMiTienda),
+      privados.filter((l) => pasaSemanaSTXP(l, semanasSTXP.semanaDeLead, semanaFiltro)),
+    ),
+    [leads, alcance, privados, cruzadoDeMiTienda, semanaFiltro, semanasSTXP],
   );
   const pools = useMemo(() => poolsDe(delBanco), [delBanco]);
   const elige = eligeTienda(alcance);
@@ -198,19 +205,29 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
   }, [pools, tienda, todasPorDefecto, elige, poolAMano]);
 
   // D-770: en el STXP Pool de quien no elige tienda, el pool no filtra: ve su tienda y la cercana que le tocó.
-  const poolFiltro = pestana === "privado" && !elige ? null : filtroDePool(pool);
+  // El selector de tienda filtra el GOV; el STXP lo sigue solo si quien mira puede elegir tienda (ver `poolDelFiltro`).
+  const poolFiltro = filtroDePool(pool);
   // 225: el cruzado con mi tienda pasa el filtro de pool aunque su pool sea otro.
-  const delPool = useMemo(() => delBanco.filter((l) => poolFiltro === null || l.pool === poolFiltro || cruzadoDeMiTienda(l)), [delBanco, poolFiltro, cruzadoDeMiTienda]);
+  const delPool = useMemo(() => delBanco.filter((l) => {
+    const p = poolDelFiltro(l, poolFiltro, elige);
+    return p === null || l.pool === p || cruzadoDeMiTienda(l);
+  }), [delBanco, poolFiltro, elige, cruzadoDeMiTienda]);
+  // El origen también cuenta en los números: lo que cuenta un chip es lo que se ve con ese origen.
+  const delOrigen = useMemo(() => delPool.filter((l) => deOrigen(l, origen)), [delPool, origen]);
+  const cuentaOrigen = (o: FiltroDeOrigen) => vigentes(delPool).filter((l) => deOrigen(l, o)).length;
   // Los números de cada filtro cuentan lo que hay en el pool elegido (sin el filtro de etapa, para que se vea el total).
-  const porEtapa = useMemo(() => cuentaPorEtapa(delPool), [delPool]);
-  const buenas = useMemo(() => vigentes(delPool).filter((l) => categoriaBuena(l.category)).length, [delPool]);
+  const porEtapa = useMemo(() => cuentaPorEtapa(delOrigen), [delOrigen]);
+  const buenas = useMemo(() => vigentes(delOrigen).filter((l) => categoriaBuena(l.category)).length, [delOrigen]);
   const visibles = useMemo(
-    () => ordenar(filtrar(delBanco, { pool: poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTelefono: sinTel, textoExtra, quien: vendedorElegido }), orden),
-    [delBanco, poolFiltro, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTel, textoExtra, orden, vendedorElegido],
+    () => ordenar(filtrar(delBanco.filter((l) => {
+      const p = poolDelFiltro(l, poolFiltro, elige);
+      return p === null || l.pool === p;
+    }), { pool: null, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTelefono: sinTel, textoExtra, quien: vendedorElegido, origen }), orden),
+    [delBanco, poolFiltro, elige, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTel, textoExtra, orden, vendedorElegido, origen],
   );
   // Las personas que han hecho algún último contacto en el banco que se ve (para el filtro «Vendedor»).
   const vendedoresBanco = useMemo(() => vendedoresDeLeads(delBanco), [delBanco]);
-  useEffect(() => { setCuantos(TANDA); }, [pool, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTel, orden, semanaFiltro, vendedorElegido]);
+  useEffect(() => { setCuantos(TANDA); }, [pool, categoria, tipo, ciudad, busca, etapa, buena, coinciden, sinTel, orden, semanaFiltro, vendedorElegido, origen]);
 
   if (!yo) return <div className="ld-wrap leads-app"><p className="hint">{t("No session.", "Sin sesión.")}</p></div>;
 
@@ -268,18 +285,13 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
 
   // Los controles de la fila 1: las pestañas, la tienda (o la fija) y la semana. Con la barra de arriba, suben a ella por un
   // portal (ver `hueco`); sin barra se quedan en su fila de siempre. Mismo bloque en los dos sitios.
-  const enPoolTab = pestana === "banco" || (pestana === "privado" && veStxp);
+  const enPoolTab = pestana === "banco";
   const bloque = (
     <div className="ld-en-la-barra" data-leads-en-la-barra>
       <div className="ld-pestanas" role="tablist">
-        {/* D-1015 (Roberto, 12 nov): el STXP Pool (South Texas Permit) va PRIMERO; después GOV y lo demás. */}
-        {veStxp && (
-          <button type="button" role="tab" aria-selected={pestana === "privado"} className={`chip${pestana === "privado" ? " on" : ""}`} data-pestana="privado" onClick={() => cambiaPestana("privado")}>
-            🏪 {t("STXP Pool", "STXP Pool")} <span className="cnt" data-privados>{vigentes(privados).length}</span>
-          </button>
-        )}
+        {/* La pestaña única (primera): el GOV y el STXP juntos; cada lead lleva su etiqueta (D-1015 puso el STXP primero). */}
         <button type="button" role="tab" aria-selected={pestana === "banco"} className={`chip${pestana === "banco" ? " on" : ""}`} data-pestana="banco" onClick={() => cambiaPestana("banco")}>
-          🏦 {t("GOV Pool", "GOV Pool")}
+          🏦 {t("Leads Pool", "Pool de leads")}
         </button>
         {yo.admin && (
           <button type="button" role="tab" aria-selected={pestana === "admin"} className={`chip${pestana === "admin" ? " on" : ""}`} data-pestana="admin" onClick={() => cambiaPestana("admin")}>
@@ -314,23 +326,15 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                   ))}
                 </select>
               </label>
-            ) : pestana === "privado" ? (
-              /* D-770: su tienda y, agotada, la más cercana: se nombran las que le tocan, en orden. */
-              <p className="ld-selector ld-fijo" data-pool-stxp>
-                {t("STXP Pool: your store and, when it runs out, the nearest one", "STXP Pool: tu tienda y, agotada, la más cercana")}
-                <br />
-                <b>{pools.length ? pools.map((p) => `${poolLabel(p.pool, lang)} (${p.total})`).join(" → ") : "—"}</b>
-              </p>
             ) : (
-              /* Solo su tienda: no hay nada que elegir, y los otros bancos ni se nombran ni se cuentan. */
+              /* Su tienda y, si ve el STXP, la más cercana que le toque (D-770): se nombran las que le tocan, en orden. */
               <p className="ld-selector ld-fijo" data-pool-fijo>
-                {t("GOV Pool of your store", "GOV Pool de tu tienda")}
+                {t("Leads of your store", "Leads de tu tienda")}
                 <br />
-                <b>{alcance.tienda ? poolLabel(alcance.tienda, lang) : "—"}</b>
-                {pools[0] ? <> — {pools[0].total} {t("leads", "leads")}</> : null}
+                <b>{pools.length ? pools.map((p) => `${poolLabel(p.pool, lang)} (${p.total})`).join(" → ") : (alcance.tienda ? poolLabel(alcance.tienda, lang) : "—")}</b>
               </p>
             )}
-            {pestana === "privado" && semanasSTXP.semanas.length > 0 && (
+            {veStxp && semanasSTXP.semanas.length > 0 && (
               <label className="ld-selector" data-semana-stxp title={t("Week", "Semana")}>
                 <select data-semana value={String(semanaActiva)} aria-label={t("Week", "Semana")} onChange={(e) => eligeSemana(e.target.value)}>
                   <option value="todas">{t("All weeks", "Todas las semanas")} ({privados.length})</option>
@@ -408,7 +412,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
             </div>
           )}
 
-          {(pestana === "banco" || (pestana === "privado" && veStxp)) && (
+          {pestana === "banco" && (
             <>
               <div className="ld-filtros">
                 {/* Fila 2 (como Merma): el título de la lista y su cuenta. Con la barra a la vista, Actualizar va al final de esta fila. */}
@@ -418,11 +422,21 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                   </h3>
                   {hueco && refrescar}
                 </div>
+                {/* El origen (la pestaña única): STXP, GOV o los dos. Solo lo ve quien tiene el STXP; si no, no hay nada que elegir. */}
+                {veStxp && (
+                  <div className="ld-origen-fila filters-oneline" role="group" aria-label={t("Source", "Origen")} data-filtro-origen-fila>
+                    {(["todas", "stxp", "gov"] as const).map((o) => (
+                      <button key={o} type="button" className={`chip${origen === o ? " on" : ""}`} data-filtro-origen={o} aria-pressed={origen === o} onClick={() => setOrigen(o)}>
+                        {o === "todas" ? t("All", "Todos") : o === "stxp" ? "STXP" : "GOV"} <span className="ld-cuenta" data-cuenta-origen={o}>{cuentaOrigen(o)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {/* Las etapas son el filtro: una por chip, con cuántos leads hay en cada una en este pool. Todas en una línea. */}
                 <div className="ld-etapas filters-oneline" role="group" aria-label={t("Stage", "Etapa")} data-etapas>
                   <button type="button" className={`chip${etapa === "" ? " on" : ""}`} data-etapa="" onClick={() => setEtapa("")}
                     title={t("Every stage except Lost and Not a good lead", "Todas las etapas menos Perdido y No es buen lead")}>
-                    {t("All stages", "Todas las etapas")} <span className="ld-cuenta">{delPool.filter((l) => l.status !== "archived" && enTodasLasEtapas(l)).length}</span>
+                    {t("All stages", "Todas las etapas")} <span className="ld-cuenta">{delOrigen.filter((l) => l.status !== "archived" && enTodasLasEtapas(l)).length}</span>
                   </button>
                   {ETAPAS.map((e) => (
                     <button key={e} type="button" className={`chip ${etapaTono(e)}${etapa === e ? " on" : ""}`} data-etapa={e} aria-pressed={etapa === e}
@@ -435,12 +449,12 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                   </button>
                   {/* 335: los que no tienen teléfono de contratista (ni de mano ni del Excel): para trabajarlos. */}
                   <button type="button" className={`chip${sinTel ? " on" : ""}`} data-sin-telefono aria-pressed={sinTel} onClick={() => setSinTel((v) => !v)}>
-                    📵 {t("No phone", "Sin teléfono")} <span className="ld-cuenta" data-cuenta-sin-telefono>{delPool.filter((l) => l.status !== "archived" && sinTelefono(l)).length}</span>
+                    📵 {t("No phone", "Sin teléfono")} <span className="ld-cuenta" data-cuenta-sin-telefono>{delOrigen.filter((l) => l.status !== "archived" && sinTelefono(l)).length}</span>
                   </button>
                   {/* D-760: el cruce con Clientes (lo pone el importador); solo tiene sentido donde hay cruzados. */}
-                  {delPool.some(coincideConCliente) && (
+                  {delOrigen.some(coincideConCliente) && (
                     <button type="button" className={`chip${coinciden ? " on" : ""}`} data-coinciden onClick={() => setCoinciden((v) => !v)}>
-                      🤝 {t("Match customers", "Coinciden con clientes")} <span className="ld-cuenta">{delPool.filter(coincideConCliente).length}</span>
+                      🤝 {t("Match customers", "Coinciden con clientes")} <span className="ld-cuenta">{delOrigen.filter(coincideConCliente).length}</span>
                     </button>
                   )}
                 </div>
@@ -539,6 +553,12 @@ function PildoraEtapa({ e }: { e: Etapa }) {
   return <span className={`ld-pildora ${etapaTono(e)}`} data-pildora-etapa={e}>{etapaIcono(e)} {etapaLabel(e, lang)}</span>;
 }
 
+/** La etiqueta del origen del lead, junto a su etapa: STXP (el privado) o GOV (el banco del estado). Solo lectura. */
+function EtiquetaDeOrigen({ lead }: { lead: Lead }) {
+  const o = origenDe(lead);
+  return <span className="chip ld-origen" data-origen={o}>{o === "stxp" ? "STXP" : "GOV"}</span>;
+}
+
 function Tarjeta({ lead: l, ocupado, almacen, historial, llamadas, onNota, onHistorial, onLlamadas, cotizar, cotizaciones, cliente, onCliente, semana, sugerencia, onTelefono }: {
   lead: Lead; ocupado: boolean; almacen: AlmacenDeLeads;
   historial: EventoLead[] | null | undefined;
@@ -575,6 +595,7 @@ function Tarjeta({ lead: l, ocupado, almacen, historial, llamadas, onNota, onHis
           <b data-ultimo-contacto>👤 {l.last_by_name ?? "—"}</b>
           <span className="ld-franja-der">
             <span>{fecha(l.last_at)}</span>
+            <EtiquetaDeOrigen lead={l} />
             <span data-pildora-etapa-texto={etapa}>{etapaIcono(etapa)} {etapaLabel(etapa, lang)}</span>
           </span>
         </div>
@@ -585,6 +606,7 @@ function Tarjeta({ lead: l, ocupado, almacen, historial, llamadas, onNota, onHis
         {!trabajado && (
           <div className="ld-cabeza-der">
             <PildoraEtapa e={etapa} />
+            <EtiquetaDeOrigen lead={l} />
             {l.last_at && (
               <span className="ld-ultimo" data-ultimo-contacto>👤 {l.last_by_name ?? "—"} · {fecha(l.last_at)}</span>
             )}

@@ -132,9 +132,8 @@ export function contextoDeClientes(e: {
 // ---- Leads ----------------------------------------------------------------------------------------------------
 
 const PESTANAS_DE_LEADS: Record<string, Bilingue> = {
-  banco: b("GOV Pool tab", "Pestaña GOV Pool"),
+  banco: b("Leads Pool tab", "Pestaña Pool de leads"),
   admin: b("Admin tab", "Pestaña Admin"),
-  privado: b("STXP Pool tab", "Pestaña STXP Pool"),
 };
 const DIALOGOS_DE_LEADS: Record<string, Bilingue> = {
   nota: b("Lead stage / note window open", "Ventana de etapa o nota del lead abierta"),
