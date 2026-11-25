@@ -2215,14 +2215,14 @@ export default function RoutesPage() {
     const recogida = textoRecogidaDeUnaRecogida(suyas[0], f.lugar);
     return suyas.map((d) => valoresDeLaOrden(d, "P", recogida));
   };
-  const listasDeParadas = lanesDelFiltro.filter((u) => (byDriver.get(u.key) ?? []).length > 0 || hechasDe(u.key).length > 0).map((u) => {
-    const stops = byDriver.get(u.key) ?? [];
-    const porId = new Map(stops.map((d) => [d.id, d]));
-    const hechasPorId = new Map(hechasDe(u.key).map((d) => [d.id, d]));
-    const pintadas = diaDe(u.key, stops, lecturaDe(u.key, stops), !rutaAcomodadaDe(u.key)).pintadas;
-    return { porId, hechasPorId, filas: pintadas.map((fp) => valoresDeLaFila(fp, porId, hechasPorId)) };
-  });
-  const filtroParadas = useOrdenYFiltro<ValoresDeOrden>(listasDeParadas.flatMap((l) => l.filas.flat()), valorDeOrdenEnParadas);
+  // Las opciones del filtro salen de las filas que YA pinta cada tarjeta (`valoresDeLasTarjetas`, que cada una deja al
+  // pintarse): así no se vuelve a calcular el plan del día de cada chofer en cada render. Son las del último render, que
+  // es el que se ve cuando se abre el menú. Solo cuentan las tarjetas que hay en pantalla.
+  const valoresDeLasTarjetas = useRef(new Map<string, ValoresDeOrden[][]>());
+  const filtroParadas = useOrdenYFiltro<ValoresDeOrden>(
+    [...valoresDeLasTarjetas.current].filter(([clave]) => lanesDelFiltro.some((l) => l.key === clave && ((byDriver.get(clave) ?? []).length > 0 || hechasDe(clave).length > 0))).flatMap(([, filas]) => filas.flat()),
+    valorDeOrdenEnParadas,
+  );
   // La factura y los pallets fijos no filtran (la factura va con su texto fijo, como antes); las de Sin filtro, tampoco.
   const menuDeParadas: ColumnaConMenu[] = colsParadas.filter((c) => !SIN_FILTRO_EN_PARADAS.includes(c.key)).map((c): ColumnaConMenu => ({ key: c.key, en: sinElNombreDeLaTabla(c.en), es: sinElNombreDeLaTabla(c.es), etiqueta: etiquetaDelGestor(c.key, deOrdenes) }));
   /** La cabecera de una columna de paradas: con su menú para filtrar (`soloFiltro`), o el rótulo de siempre. */
@@ -3974,7 +3974,9 @@ export default function RoutesPage() {
         const pintadas = dia.pintadas;
         // Las entregas de esta lista que el filtro deja ver (todas, sin filtro). Lo marcado con «todas» va sobre ellas.
         const entregasVisibles = stops.filter((d) => paradaVisible([valoresDeLaOrden(d, "D", null)], filtroParadas.filtros));
-        const ocultasEnLaTarjeta = filasOcultas(pintadas.map((fp) => valoresDeLaFila(fp, porId, hechasPorId)), filtroParadas.filtros);
+        const valoresDeLasFilas = pintadas.map((fp) => valoresDeLaFila(fp, porId, hechasPorId));
+        valoresDeLasTarjetas.current.set(u.key, valoresDeLasFilas);
+        const ocultasEnLaTarjeta = filasOcultas(valoresDeLasFilas, filtroParadas.filtros);
         const entregas = resumenDeEntregas(stops, hechas);
         const hayFilas = stops.length > 0 || hechas.length > 0;
         // D-906: lo hecho fuera del orden de la lista (delante queda algo sin hacer, o hecho después): su «Actual» lo dice
