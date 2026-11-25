@@ -14,7 +14,8 @@ import { minutosDeVentanas, modoDeComida, pagoDeComida, resumenDelBorrador, type
 import { utcToCentralInput } from "@/lib/clockin/tz";
 import { turnosPorDia } from "@/lib/clockin/turnos-por-dia";
 import { getLang, useT } from "@/lib/timetracker/i18n";
-import { APP_SETTINGS, addDaysISO, dateISO, fmtISOday, money, periodEndISO, weekStartISO } from "@/lib/timetracker/helpers";
+import { APP_SETTINGS, dateISO, fmtISOday, money, periodEndISO } from "@/lib/timetracker/helpers";
+import { combinaSemanas, diasDeLaSemana, type DatosDeSemana } from "@/lib/timetracker/rango-de-nomina";
 import { useData } from "@/lib/timetracker-data-provider";
 import { etiquetaDePuesto, necesitaProyecto } from "@/lib/timetracker/tienda-y-puesto";
 import {
@@ -70,12 +71,21 @@ const fmtDia = (iso: string) =>
 const fmtHora = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: APP_SETTINGS.timeZone });
 
-export function PayrollTimesheets({ period, revisar }: {
-  period: string;
+export function PayrollTimesheets({ semanas, revisar, soloUids, alCargarDatos }: {
+  /** Las semanas de pago del rango (una sola = se puede aprobar, cerrar y pagar; varias = solo se ve). */
+  semanas: string[];
   /** Ids con horas por las dos vías este periodo, de `period_hours.revisar` (D-190). */
   revisar: string[];
+  /** Quién se ve con los filtros de tienda y de empleado; `null` = todos. */
+  soloUids: Set<string> | null;
+  /** Avisa a la pantalla de lo que cargó (personas y tiendas), para los filtros. */
+  alCargarDatos?: (datos: DatosDeSemana) => void;
 }) {
   const t = useT();
+  // Las acciones (aprobar, cerrar, pagar, corregir) van por UNA semana de pago: la primera, cuando solo hay una.
+  const period = semanas[0];
+  const unaSemana = semanas.length === 1;
+  const semanasKey = semanas.join(",");
   const { allEmployees, me, settings, payRates, savePayRate, paystubsForPeriod, paystubsForYear, insertPaystubs } = useData();
   const esAdmin = me.role === "admin";
   const dobles = useMemo(() => new Set(revisar), [revisar]);
@@ -112,13 +122,21 @@ export function PayrollTimesheets({ period, revisar }: {
     guardarVistaDeHoras(me.id, v);
   }
 
+  // Una llamada por semana de pago, en paralelo, y se juntan por persona (`combinaSemanas`). Con una sola, es la de siempre.
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await getPayrollPeriod(period);
-    if (!res.ok) { setErr(res.message); setD(null); }
-    else { setErr(null); setD(res); }
+    const res = await Promise.all(semanasKey.split(",").map((s) => getPayrollPeriod(s)));
+    const malo = res.find((r) => !r.ok);
+    if (malo && !malo.ok) { setErr(malo.message); setD(null); }
+    else {
+      const oks = res.filter((r): r is Data => r.ok);
+      const junto = combinaSemanas(oks);
+      setErr(null);
+      setD({ ok: true, ...junto });
+      alCargarDatos?.(junto);
+    }
     setLoading(false);
-  }, [period]);
+  }, [semanasKey, alCargarDatos]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -157,7 +175,7 @@ export function PayrollTimesheets({ period, revisar }: {
   // Solo sale quien tenga fichajes en el periodo: una fila con cero horas no es información,
   // es ruido entre las que sí hay que revisar.
   const ids = [...porEmpleado.keys()]
-    .filter((id) => gente.has(id))
+    .filter((id) => gente.has(id) && (!soloUids || soloUids.has(id)))
     .sort((a, b) => (gente.get(a)?.name ?? "").localeCompare(gente.get(b)?.name ?? ""));
 
   const visible = (id: string) =>
@@ -169,12 +187,9 @@ export function PayrollTimesheets({ period, revisar }: {
     grupos.set(k, [...(grupos.get(k) ?? []), id]);
   }
 
-  // La hoja semanal: una por persona y por semana del periodo (la semana de pago, de viernes a jueves,
-  // la de `weekStartISO`). Mismas personas, mismo orden y mismos filtros que la tabla.
-  const semanasDelPeriodo: string[][] = [];
-  for (let ini = weekStartISO(period); ini <= periodEndISO(period); ini = addDaysISO(ini, 7)) {
-    semanasDelPeriodo.push(Array.from({ length: 7 }, (_, i) => addDaysISO(ini, i)));
-  }
+  // La hoja semanal: una por persona y por semana de pago del rango (de viernes a jueves). Mismas personas,
+  // mismo orden y mismos filtros que la tabla.
+  const semanasDelPeriodo: string[][] = semanas.map(diasDeLaSemana);
   const bloquesDeHoja: BloqueDeHoja[] = [...grupos.values()].flat().filter(visible).flatMap((id) => {
     const dias = turnosPorDia(porEmpleado.get(id)!);
     return semanasDelPeriodo.map((semana) => ({
@@ -387,7 +402,7 @@ export function PayrollTimesheets({ period, revisar }: {
   };
 
   // Un fichaje: Editar / Borrar. Mismos manejadores y reglas de siempre; con el periodo cerrado, no sale ninguno.
-  const botonesDe = (e: PayEntry) => !d.signedOff && (
+  const botonesDe = (e: PayEntry) => !d.signedOff && unaSemana && (
     <>
       <button className="btn-ghost btn-sm" onClick={() => empiezaEdicion(e)}>Edit</button>{" "}
       <button className="btn-ghost btn-sm" disabled={busy}
@@ -454,13 +469,16 @@ export function PayrollTimesheets({ period, revisar }: {
         )}
 
         <div className="row" style={{ marginTop: 12 }}>
-          <a className="btn btn-ghost btn-sm" href={`/timetracker/clock-in/api/reports/xlsx?week=${period}`}>⬇ Excel</a>
-          <a className="btn btn-ghost btn-sm" href={`/timetracker/clock-in/api/reports/export?type=summary&week=${period}`}>⬇ Summary CSV</a>
-          <a className="btn btn-ghost btn-sm" href={`/timetracker/clock-in/api/reports/export?type=detail&week=${period}`}>⬇ Detail CSV</a>
+          {/* Las exportaciones y el cierre van por UNA semana de pago: con un rango de varias, no salen. */}
+          {unaSemana && <>
+            <a className="btn btn-ghost btn-sm" href={`/timetracker/clock-in/api/reports/xlsx?week=${period}`}>⬇ Excel</a>
+            <a className="btn btn-ghost btn-sm" href={`/timetracker/clock-in/api/reports/export?type=summary&week=${period}`}>⬇ Summary CSV</a>
+            <a className="btn btn-ghost btn-sm" href={`/timetracker/clock-in/api/reports/export?type=detail&week=${period}`}>⬇ Detail CSV</a>
+          </>}
           {d.isOwner && (
             <button
               className={d.signedOff ? "btn-ghost btn-sm" : "btn-sm"}
-              disabled={busy}
+              disabled={busy || !unaSemana}
               onClick={() => corre(() => (d.signedOff ? revokeSignoff({ periodStart: period }) : ownerSignoff({ periodStart: period })))}
             >
               {d.signedOff ? "Reopen period" : "🔒 Sign off period"}
@@ -472,7 +490,7 @@ export function PayrollTimesheets({ period, revisar }: {
           // Los talones salen de un periodo CERRADO por el dueño: con el periodo abierto las horas aún
           // pueden cambiar, y un talón guardado ya no cambia (D-538).
           <div className="row" style={{ marginTop: 10, alignItems: "center" }}>
-            <button className="btn-sm" disabled={busy || !d.signedOff || ids.length === 0} onClick={() => void talonesDeLaSemana()}>
+            <button className="btn-sm" disabled={busy || !unaSemana || !d.signedOff || ids.length === 0} onClick={() => void talonesDeLaSemana()}>
               {t("mgr.stub.weekBtn")}
             </button>
             {!d.signedOff && <span className="small muted">{t("mgr.stub.needSignoff")}</span>}
@@ -491,6 +509,7 @@ export function PayrollTimesheets({ period, revisar }: {
             <input value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="🔍 search a person"
               style={{ width: "auto", minWidth: 200 }} />
           </div>
+          {!unaSemana && <div className="banner warn" style={{ marginTop: 10 }}>{t("nomina.soloUnaSemana")}</div>}
 
           <div className="row" style={{ marginTop: 10, alignItems: "center" }}>
             <span className="small muted">{t("hoja.view")}</span>
@@ -538,7 +557,7 @@ export function PayrollTimesheets({ period, revisar }: {
                         </div>
                         <button
                           className={ok ? "btn-ghost btn-sm" : "btn-sm"}
-                          disabled={busy || d.signedOff}
+                          disabled={busy || d.signedOff || !unaSemana}
                           onClick={() => corre(() => (ok
                             ? unapproveTimesheet({ employeeId: id, periodStart: period })
                             : approveTimesheet({ employeeId: id, periodStart: period })))}
@@ -617,7 +636,7 @@ export function PayrollTimesheets({ period, revisar }: {
                             true,
                             "New shift",
                           )
-                        : !d.signedOff && (
+                        : !d.signedOff && unaSemana && (
                             <button className="btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => empiezaAlta(id)}>
                               + Add an entry
                             </button>

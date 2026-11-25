@@ -4,82 +4,67 @@ import { PayrollTabs } from "@/components/timetracker/PayrollTabs";
 import { periodStartOf } from "@/lib/timetracker/period";
 import { ProfileReadError } from "@/components/ProfileReadError";
 import { estadoDeLectura, puedeVerDetalle } from "@/lib/profile-read";
-import { DEMO_EMPLOYEES, demoSessions, horasPorPersona } from "@/lib/timetracker/demo-data";
-import { addDaysISO } from "@/lib/timetracker/helpers";
+import { addDaysISO, fmtISOday } from "@/lib/timetracker/helpers";
+import { hoyEnTexas } from "@/lib/almacen-ops/fecha-del-dano";
 import { seccionPorUrl } from "@/lib/timetracker/trabajando-ahora-en-nomina";
+import {
+  DIA_DE_INICIO_DE_PAGO, MAX_SEMANAS_DE_NOMINA, eleccionDeRango, semanasDePagoDelRango, semanasDePagoSinRecortar,
+} from "@/lib/timetracker/rango-de-nomina";
 
 export const dynamic = "force-dynamic";
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+const esFecha = (v: string | undefined): v is string => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 /**
- * Las horas de las dos mitades de la app, por periodo de pago (fase 4 de la fusión).
+ * La nómina de un rango de fechas (2026-11-24). El rango llega por la URL:
+ *  - `?period=` (la forma de siempre): UNA semana de pago, la que empieza en ese viernes;
+ *  - `?desde=&hasta=`: las semanas de pago que tocan ese rango (de viernes a jueves), como mucho catorce;
+ *  - sin nada: la semana de pago de hoy.
+ * Cerrar, pagar y aprobar van siempre por una sola semana: la página solo los deja cuando `semanas` tiene una.
+ * El menú de fechas que ve la persona se calcula aquí, con la misma semana de pago, para que la URL y el menú
+ * no puedan decir cosas distintas.
  *
- * **No suma las dos columnas, y esa es la decisión de la pantalla.** Fichaje contesta
- * "¿estuviste?" y las sesiones "¿en qué?"; una sesión ocurre DENTRO de una jornada
- * fichada (9.32 h de media contra 1.46 h, D-102), así que sumarlas paga el mismo rato dos
- * veces. Elegir una en silencio es igual de malo al revés: a quien solo cronometra no se
- * le paga la asistencia, y a quien solo ficha no se le pagan las sesiones.
- *
- * Así que se enseñan por separado y se marca a quien tenga las dos. Hoy no le pasa a
- * nadie —la cuadrilla solo ficha, Nick solo cronometra— pero desde 084 las doce personas
- * tienen los dos módulos, así que puede empezar cualquier día. Cuando pase, lo decide una
- * persona mirando la fila, no una suma.
- *
- * El cálculo vive en `timetracker.period_hours` (086) y no aquí: si estuviera en la
- * pantalla, esta y la de nómina de fichaje derivarían en cuanto alguien tocara una de las
- * dos, y una nómina que no cuadra con la otra es peor que no tener la segunda.
- *
- * Desde D-190 esto ya no es una pestaña ("Period") sino la **cabecera** de Nómina: esta
- * página hace la misma consulta de siempre, calcula los totales y los avisos, y se los pasa
- * a `PayrollTabs`, que los pinta (`PayrollResumen`) encima de las dos secciones de pago. La
- * marca `revisar` por persona también sale de aquí, y no de una aproximación por tipo.
+ * Las horas, los fichajes y los totales ya no salen de esta página: los carga la pantalla semana a semana
+ * (`getPayrollPeriod`) y los junta (`combinaSemanas`). Aquí solo queda el aviso de «revisar» por persona.
  */
-
-type Row = {
-  employee_id: string;
-  full_name: string | null;
-  period_start: string;
-  period_end: string;
-  horas_fichaje: string | number | null;
-  horas_proyecto: string | number | null;
-  revisar: boolean;
-};
-
-const num = (v: string | number | null) => (v == null ? 0 : typeof v === "number" ? v : parseFloat(v));
-
 export default async function PayrollPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; vista?: string }>;
+  searchParams: Promise<{ period?: string; desde?: string; hasta?: string; vista?: string; tienda?: string; empleado?: string }>;
 }) {
-  const { period, vista } = await searchParams;
+  const { period, desde, hasta, vista, tienda, empleado } = await searchParams;
   // `?vista=` abre una sección plegada de Nómina: «ahora» (la antigua pestaña «Trabajando ahora»), «fotos»,
   // «excepciones» o «capturas» (las vistas que salieron de Auditoría). Un valor desconocido no abre nada.
   const vistaPorUrl = seccionPorUrl(vista);
-  const start = period && /^\d{4}-\d{2}-\d{2}$/.test(period) ? period : periodStartOf(new Date());
+  const hoy = hoyEnTexas();
 
-  // Modo demo: la cabecera se calcula con la semilla (solo horas cronometradas; fichaje no tiene demo) y las
-  // secciones leen del proveedor en memoria. Antes de tocar la base.
+  let semanas: string[];
+  let recortado = false;
+  if (esFecha(desde) && esFecha(hasta) && desde <= hasta) {
+    recortado = semanasDePagoSinRecortar(desde, hasta, DIA_DE_INICIO_DE_PAGO).length > MAX_SEMANAS_DE_NOMINA;
+    semanas = semanasDePagoDelRango(desde, hasta, DIA_DE_INICIO_DE_PAGO, MAX_SEMANAS_DE_NOMINA);
+  } else {
+    semanas = [esFecha(period) ? period : periodStartOf(new Date())];
+  }
+  const primera = semanas[0];
+  const ultimoDia = addDaysISO(semanas[semanas.length - 1], 6);
+  const eleccion = eleccionDeRango(primera, ultimoDia, hoy);
+  const etiqueta = `${fmtISOday(primera)} – ${fmtISOday(ultimoDia)}`;
+  const filtro = { tienda: tienda || null, empleado: empleado || null };
+
+  // Modo demo: las secciones leen del proveedor en memoria, sin tocar la base.
   if (LOCAL_MODE) {
-    const horas = horasPorPersona(demoSessions(Date.now()), start, addDaysISO(start, 6));
-    const tipoDe = (id: string) => DEMO_EMPLOYEES.find((e) => e.id === id)?.workerType ?? "remote";
-    const sumaDe = (tipo: "inhouse" | "remote") => Array.from(horas).filter(([id]) => tipoDe(id) === tipo).reduce((a, [, h]) => a + h, 0);
-    const total = Array.from(horas.values()).reduce((a, h) => a + h, 0);
     return (
       <PayrollTabs
-        period={start}
+        semanas={semanas}
+        recortado={recortado}
+        eleccion={eleccion}
+        etiqueta={etiqueta}
+        hoy={hoy}
+        filtro={filtro}
         vistaPorUrl={vistaPorUrl}
         revisar={[]}
-        resumen={{
-          start,
-          error: null,
-          personas: horas.size,
-          fichaje: { total: 0, enSitio: 0, remotos: 0 },
-          proyecto: { total, enSitio: sumaDe("inhouse"), remotos: sumaDe("remote") },
-          aRevisar: [],
-          deducidos: [],
-        }}
       />
     );
   }
@@ -105,69 +90,24 @@ export default async function PayrollPage({
   // Las horas de todo el mundo son cosa de quien lleva la nómina.
   if (me?.timetracker_role !== "admin") redirect("/timetracker");
 
-  // El tipo de trabajador NO está en la vista `period_hours` y no se le añadió: esa vista
-  // calcula horas y meterle un dato de configuración la ataría a una tabla que no necesita
-  // para contar. Se junta aquí, que es donde importa para presentar.
-  const [{ data, error }, { data: settingsRow }, { data: tipos }] = await Promise.all([
-    supabase.schema("timetracker").from("period_hours").select("*").eq("period_start", start).order("full_name"),
-    supabase.schema("timetracker").from("settings").select("data").eq("id", "app").maybeSingle(),
-    supabase.schema("timetracker").from("employee_settings").select("id, worker_type"),
-  ]);
-
-  const puesto = new Map((tipos ?? []).map((t) => [t.id as string, (t.worker_type as string) || null]));
-  const porDefecto =
-    ((settingsRow?.data as { defaultWorkerType?: string } | null)?.defaultWorkerType) ?? "remote";
-
-  const rows = (data ?? []) as Row[];
-
-  /**
-   * Quién es de sitio y quién remoto.
-   *
-   * Lo primero es lo que diga su ficha. Pero **tres de las trece personas no lo tienen
-   * puesto**, y el valor por defecto de la empresa es "remoto": heredarlo a secas habría
-   * metido en el grupo de remotos a gente con 21 fichajes y cero sesiones entre los tres
-   * — es decir, habría enseñado exactamente lo contrario de la verdad, y con aire de dato.
-   *
-   * Así que a quien no lo tenga puesto se le mira lo que hizo en el periodo, que es un
-   * hecho: si fichó y no cronometró nada, es de sitio. Si cronometró y no fichó, remoto. Si
-   * hizo las dos cosas o ninguna, no hay nada que deducir y ahí sí manda el valor de la
-   * empresa. Lo deducido se marca en la fila, para que se pueda dejar dicho de verdad en
-   * Employees en vez de que la pantalla siga adivinando cada semana.
-   */
-  function tipoDe(r: Row): { tipo: "inhouse" | "remote"; deducido: boolean } {
-    const fijado = puesto.get(r.employee_id);
-    if (fijado === "inhouse" || fijado === "remote") return { tipo: fijado, deducido: false };
-    const f = num(r.horas_fichaje) > 0;
-    const p = num(r.horas_proyecto) > 0;
-    if (f && !p) return { tipo: "inhouse", deducido: true };
-    if (p && !f) return { tipo: "remote", deducido: true };
-    return { tipo: porDefecto === "inhouse" ? "inhouse" : "remote", deducido: true };
-  }
-  const deducidos = new Set(rows.filter((r) => tipoDe(r).deducido).map((r) => r.employee_id));
-  const enSitio = rows.filter((r) => tipoDe(r).tipo === "inhouse");
-  const remotos = rows.filter((r) => tipoDe(r).tipo === "remote");
-  const totalFichaje = rows.reduce((a, r) => a + num(r.horas_fichaje), 0);
-  const totalProyecto = rows.reduce((a, r) => a + num(r.horas_proyecto), 0);
-  const aRevisar = rows.filter((r) => r.revisar);
-
-  const suma = (rs: Row[], k: "horas_fichaje" | "horas_proyecto") =>
-    rs.reduce((a, r) => a + num(r[k]), 0);
-  const nombre = (r: Row) => r.full_name ?? "—";
+  // Quién tiene horas por las dos vías (`period_hours.revisar`), en todas las semanas del rango.
+  const { data: horas } = await supabase
+    .schema("timetracker")
+    .from("period_hours")
+    .select("employee_id, revisar")
+    .in("period_start", semanas);
+  const revisar = [...new Set((horas ?? []).filter((r) => r.revisar).map((r) => r.employee_id as string))];
 
   return (
     <PayrollTabs
-      period={start}
+      semanas={semanas}
+      recortado={recortado}
+      eleccion={eleccion}
+      etiqueta={etiqueta}
+      hoy={hoy}
+      filtro={filtro}
       vistaPorUrl={vistaPorUrl}
-      revisar={aRevisar.map((r) => r.employee_id)}
-      resumen={{
-        start,
-        error: error?.message ?? null,
-        personas: rows.length,
-        fichaje: { total: totalFichaje, enSitio: suma(enSitio, "horas_fichaje"), remotos: suma(remotos, "horas_fichaje") },
-        proyecto: { total: totalProyecto, enSitio: suma(enSitio, "horas_proyecto"), remotos: suma(remotos, "horas_proyecto") },
-        aRevisar: aRevisar.map(nombre),
-        deducidos: rows.filter((r) => deducidos.has(r.employee_id)).map(nombre),
-      }}
+      revisar={revisar}
     />
   );
 }

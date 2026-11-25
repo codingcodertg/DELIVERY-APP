@@ -43,7 +43,8 @@ describe("la sección dentro de PayrollTabs", () => {
   it("solo la ve el admin, y va encima del resumen", () => {
     expect(src).toContain('me.role === "admin" && (');
     expect(src).toContain('<SeccionDeNomina clave="ahora"');
-    expect(src.indexOf('clave="ahora"')).toBeLessThan(src.indexOf("<PayrollResumen"));
+    // 2026-11-24: ya no hay resumen encima; «Trabajando ahora» va antes que los filtros y las secciones.
+    expect(src.indexOf('clave="ahora"')).toBeLessThan(src.indexOf("<FiltrosDeNomina"));
   });
 
   it("el cuerpo no se monta cerrado (así el sondeo solo corre abierto)", () => {

@@ -43,7 +43,8 @@ describe("Time Tracker en modo demo", () => {
     const cliente = indice(s, "const supabase = await createClient();");
     expect(rama).toBeLessThan(cliente);
     const cuerpo = s.slice(rama, cliente);
-    expect(cuerpo).toContain("horasPorPersona(demoSessions(Date.now()), start, addDaysISO(start, 6))");
+    // 2026-11-24: la página ya no calcula la cabecera (se quitó el bloque «Nómina · periodo»); el demo entra por las semanas.
+    expect(cuerpo).toContain("semanas={semanas}");
     expect(cuerpo).toContain("<PayrollTabs");
     expect(cuerpo).toContain("return (");
     // El periodo se resuelve ANTES de la rama: el demo también obedece a `?period=`.

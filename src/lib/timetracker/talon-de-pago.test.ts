@@ -258,7 +258,8 @@ describe("8 · las pantallas llaman a esto", () => {
     expect(rep).not.toContain("computePay(");
   });
   it("Presencial: solo con el periodo cerrado, y se imprime lo guardado", () => {
-    expect(ts).toContain("disabled={busy || !d.signedOff || ids.length === 0}");
+    // 2026-11-24: los talones también van por UNA semana de pago (`unaSemana`), no por el rango.
+    expect(ts).toContain("disabled={busy || !unaSemana || !d.signedOff || ids.length === 0}");
     expect(ts).toContain("const aImprimir = r.aImprimir.map((s) => guardados.get(s.employeeUid) ?? s);");
     expect(ts).toContain("imprimeDocumento(htmlDeTalones(items, empresa, lang)");
   });
