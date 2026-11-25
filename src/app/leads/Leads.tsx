@@ -465,7 +465,7 @@ export function Leads({ demo, yo: yoReal, cotiza = false }: {
                       🤝 {t("Match customers", "Coinciden con clientes")} <span className="ld-cuenta">{delOrigen.filter(coincideConCliente).length}</span>
                     </button>
                   )}
-                  {/* D-1174 (el dueño): el selector de tienda va en esta fila, a la derecha de «Match customers» y a la izquierda. */}
+                  {/* El selector de tienda va en esta fila, después de «Match customers», alineado a la izquierda. */}
                   {enPoolTab && selectorDeTienda}
                 </div>
                 {/* Un grupo de más de una etapa abre una segunda fila con sus etapas: una sola, con sus colores y su cuenta. */}
