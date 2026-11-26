@@ -63,6 +63,6 @@ describe("«Cambiar etapa» del Gestor de rutas: solo admin", () => {
     expect(pagina).toContain("puedeCambiarEtapaAqui(me?.role) && (");
     expect(pagina).toContain('data-cambiar-etapa-accion={a}');
     expect(pagina).toContain("if (await setStage(d.id, e.stage, e.note, e.extra)) notify(");
-    expect(pagina).toContain("if (!(await confirmAction(mensaje, { confirmLabel: confirmar }))) return;");
+    expect(pagina).toContain("if (accion !== \"entregar\" && !(await confirmAction(mensaje, { confirmLabel: confirmar }))) return;");
   });
 });
