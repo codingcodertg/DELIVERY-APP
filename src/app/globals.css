@@ -1883,7 +1883,8 @@ body .timetracker-module .wrap { padding-bottom: var(--hueco-de-ayuda); }
 @media (min-width: 900px) {
   /* Panel a la izquierda; a su derecha, arriba las pestañas y debajo el mapa; y bajo los dos, a todo el ancho, la tabla. */
   [data-vista-del-gestor].gestor-eficiente {
-    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); column-gap: 12px; row-gap: 8px;
+    /* D-1204: un cuarto más delgado (antes 260–340 px), «haz eso más delgado, 1/4». */
+    grid-template-columns: minmax(195px, 255px) minmax(0, 1fr); column-gap: 12px; row-gap: 8px;
     grid-template-areas: "panel barra" "panel mapa" "contenido contenido";
   }
   /* El panel no estira las filas: mide lo que miden las pestañas y el mapa a su lado (`contain: size`), y su lista se

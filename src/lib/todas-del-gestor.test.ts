@@ -154,7 +154,7 @@ describe("la pantalla", () => {
   const fila = corta("const fila = (d: Delivery) => {", "return ( <div className=\"card\" data-tabla-de-ordenes={vista.clave}");
 
   it("la pestaña «Todas (N)» está entre «Sin asignar» y «Tablero», y respeta el orden de la barra (D-459)", () => {
-    const puestos = ["data-filtro-de-chofer", 'data-pestana="routes"', 'data-pestana="orders"', 'data-pestana="todas"', 'data-pestana="board"', 'data-pestana="timeline"', "data-cuadricula", "data-deshacer", "data-rehacer", "data-abrir-incidencias"].map((x) => barra.indexOf(x));
+    const puestos = ['data-pestana="routes"', 'data-pestana="orders"', 'data-pestana="todas"', 'data-pestana="board"', 'data-pestana="timeline"', "data-cuadricula", "data-deshacer", "data-rehacer", "data-abrir-incidencias"].map((x) => barra.indexOf(x));
     expect(puestos.every((p) => p > -1)).toBe(true);
     expect(puestos).toEqual([...puestos].sort((a, b) => a - b));
     expect(barra).toContain('📋 {t("All", "Todas")} (<span data-cuenta-todas>{todasDelDia.length}</span>)');

@@ -4169,15 +4169,8 @@ export default function RoutesPage() {
           filtro estaba en la cabecera, junto a la fecha; el dueño, 2026-10-01: «mueve eseo filtro del conducto abajo al lado
           de timeline». Lo que filtra son las tarjetas de aquí abajo (y el panel y el mapa). Misma función, lo mismo guardado. */}
       <div data-barra-de-vistas style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          {/* El desplegable «Todos los choferes» (D-393/D-459) se fue (D-481): el filtro son las casillas del panel «Choferes y
-              rutas». Aquí solo se dice con quién se está, y se quita de un toque. */}
-          {filtroChofer.size > 0 && (
-            <span className="sema" data-filtro-de-chofer style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid var(--accent)", color: "var(--accent)", background: "var(--card)" }}
-              title={t("Only the drivers checked in “Drivers & routes” are shown", "Solo se ven los choferes marcados en «Choferes y rutas»")}>
-              🚚 {[...filtroChofer].map(laneLabel).join(", ")}
-              <button className="notif-clear" data-quita-filtro onClick={() => setSelected(new Set())} title={t("Show every driver", "Ver todos los choferes")}>✕</button>
-            </span>
-          )}
+          {/* La pastilla del chofer marcado (D-481) se fue (D-1204): el dueño, «elimina eso, ya se mira a la izquierda cuando
+              está selected». El filtro son solo las casillas del panel «Choferes y rutas». */}
       {/* `flexWrap` (D-462): con cinco pestañas, a 390 px la última se cortaba 13 px por el `overflow: hidden` de la caja
           (medido: 377 px de pestañas en 364 de caja; con cuatro cabían justas). Envueltas, bajan de línea dentro de la caja. */}
       <div className="viewtoggle" style={{ flexWrap: "wrap" }}>

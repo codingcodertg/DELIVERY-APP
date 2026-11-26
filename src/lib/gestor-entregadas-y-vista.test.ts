@@ -360,19 +360,17 @@ describe("5, 6 y 9 · la barra de vistas de abajo lleva el filtro de chofer, los
   const barra = corta("<div data-barra-de-vistas", "{incidenciasAbiertas && (");
   const cabecera = corta('<div className="page-head">', "{/* El motor nuevo (D-320)");
   it("en este orden: filtro de chofer · las vistas · Cuadrícula · Deshacer/Rehacer · Incidencias", () => {
-    const puestos = ["data-filtro-de-chofer", 'data-pestana="routes"', 'data-pestana="orders"', 'data-pestana="board"', 'data-pestana="timeline"', "data-cuadricula", "data-deshacer", "data-rehacer", "data-abrir-incidencias"].map((x) => barra.indexOf(x));
+    const puestos = ['data-pestana="routes"', 'data-pestana="orders"', 'data-pestana="board"', 'data-pestana="timeline"', "data-cuadricula", "data-deshacer", "data-rehacer", "data-abrir-incidencias"].map((x) => barra.indexOf(x));
     expect(puestos.every((p) => p > -1)).toBe(true);
     expect(puestos).toEqual([...puestos].sort((a, b) => a - b));
   });
   it("9 · el filtro de chofer está abajo y NO en la cabecera, con la misma función y lo mismo guardado", () => {
-    expect(pagina.split("data-filtro-de-chofer").length - 1).toBe(1);
-    expect(cabecera).not.toContain("data-filtro-de-chofer");
+    // D-1204: la pastilla del chofer marcado se quitó (ya se ve marcado en el panel de la izquierda).
+    expect(pagina).not.toContain("data-filtro-de-chofer");
     // **Reemplazado por D-481** (2026-10-06, «remove the all driver dropdown»): el desplegable se fue; en la barra queda solo
     // una pastilla con los choferes marcados en el panel, y su ✕ los suelta todos.
     expect(barra).not.toContain("All drivers");
     expect(barra).not.toContain("eligeFiltroDeChofer");
-    expect(barra).toContain("{filtroChofer.size > 0 && ( <span className=\"sema\" data-filtro-de-chofer");
-    expect(barra).toContain("data-quita-filtro onClick={() => setSelected(new Set())}");
     // En la cabecera quedan la fecha, los atajos, «Todas» y «Armar rutas».
     for (const queda of ['type="date"', "data-atajo-fecha={dias}", "All dates", "data-armar-rutas"]) expect(cabecera, queda).toContain(queda);
   });

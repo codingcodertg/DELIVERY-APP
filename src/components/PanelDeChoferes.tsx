@@ -55,8 +55,9 @@ export function PanelDeChoferes(props: {
   const { t } = props;
   return (
     <div className="card" data-panel-de-choferes style={{ flex: "1 1 250px", maxWidth: 340, margin: 0, padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", maxHeight: "min(60vh, 520px)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: "1px solid var(--line)" }}>
-        <b style={{ flex: 1 }}>🚚 {t("Drivers & routes", "Choferes y rutas")}</b>
+      {/* D-1204: con el panel más delgado, el título no se parte; si no caben, los botones bajan a otra línea. */}
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "10px 12px", borderBottom: "1px solid var(--line)" }}>
+        <b style={{ flex: "1 0 auto", whiteSpace: "nowrap" }}>🚚 {t("Drivers & routes", "Choferes y rutas")}</b>
         {props.acciones}
         <label data-todos-los-choferes style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
           <input type="checkbox" checked={props.todas} onChange={props.onAlternaTodas} style={{ width: 15, height: 15 }} />
