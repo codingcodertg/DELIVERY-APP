@@ -53489,3 +53489,10 @@ Migración 352: escrita y ensayada; la aplica el dueño. Sin ella nada se guarda
 No cubre: errores sin sesión (login); errores que el servidor atrapa y devuelve como respuesta normal.
 Visto en el demo: la falla de prueba llega a la tabla, la tarjeta muestra el detalle; a 390 px sin desborde.
 Sello `deliveries` 1.668.0; repo 1.997.0.
+
+## D-1201 · Routes Manager: al asignar ya no se reacomoda toda la ruta (2026-11-26)
+
+El dueño: «cuando estaba asignando rutas se miraba mucho shifting de las órdenes y me pareció muy extraño». Causa: con la 348, una ruta sin paradas fijadas a mano (todas, en la práctica: 0 fijadas el 27 nov) se reoptimizaba ENTERA 700 ms después de cada asignación, así que las filas saltaban con cada orden. Su decisión (pregunta): «Solo meter la nueva».
+Ahora `planAuto` nunca devuelve «optimizar toda la ruta»: las órdenes nuevas se colocan en su mejor lugar (`mejorLugar`) y lo que ya estaba no se mueve. Reacomodar todo es solo del botón «Optimizar». Además la colocación de varias órdenes a la vez se guarda en UNA escritura (antes una por orden, con un salto y un deshacer cada una). Se quitó `autoOptimizaToda`.
+Visto en el demo: cuatro asignaciones seguidas a una ruta; las paradas previas conservan su orden y la nueva entra en su hueco.
+Sello `deliveries` 1.669.0; repo 1.998.0.

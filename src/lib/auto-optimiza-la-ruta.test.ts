@@ -23,19 +23,23 @@ describe("planAuto", () => {
   });
 
   it("huella distinta con estado 'hecha': no basta, se sigue decidiendo", () => {
-    expect(planAuto({ ...base, guardado: { estado: "hecha", huella: "vieja" } })).toEqual({ que: "optimizar_todo" });
+    expect(planAuto({ ...base, guardado: { estado: "hecha", huella: "vieja" } })).toEqual({ que: "insertar", nuevas: ["c"] });
   });
 
   it("huella igual con estado 'fallo': se reintenta (no cuenta como hecha)", () => {
-    expect(planAuto({ ...base, guardado: { estado: "fallo", huella: "h1" } })).toEqual({ que: "optimizar_todo" });
+    expect(planAuto({ ...base, guardado: { estado: "fallo", huella: "h1" } })).toEqual({ que: "insertar", nuevas: ["c"] });
   });
 
   it("huella igual con estado 'pendiente': no se da por hecha", () => {
-    expect(planAuto({ ...base, guardado: { estado: "pendiente", huella: "h1" } })).toEqual({ que: "optimizar_todo" });
+    expect(planAuto({ ...base, guardado: { estado: "pendiente", huella: "h1" } })).toEqual({ que: "insertar", nuevas: ["c"] });
   });
 
-  it("ninguna parada fijada: optimizar toda la ruta", () => {
-    expect(planAuto(base)).toEqual({ que: "optimizar_todo" });
+  it("D-1201: ninguna parada fijada: solo se coloca la nueva, nunca se reacomoda la ruta entera", () => {
+    expect(planAuto(base)).toEqual({ que: "insertar", nuevas: ["c"] });
+  });
+
+  it("D-1201: lote vacío (p. ej. quitar una orden): nada se mueve", () => {
+    expect(planAuto({ ...base, delLote: [] })).toEqual({ que: "nada", motivo: "sin_cambios" });
   });
 
   it("alguna parada fijada: insertar las del lote, en el orden de entrada", () => {
