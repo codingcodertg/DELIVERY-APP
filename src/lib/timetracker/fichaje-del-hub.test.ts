@@ -2,8 +2,23 @@ import { describe, it, expect } from "vitest";
 import {
   ANCHO_MINIMO_DEL_HUB, accionDeTeclaEnBloqueo, accionesValidas, demoDelHub, fechaDeTexas, formatoCronometro,
   formatoTranscurrido, horaCorta, horaDeTexas, reconciliaLectura, saludoDe, seVeElBoton, siguienteEstado,
-  tiendaPorDefecto, puedeFicharDesdeElHub, type DatosDelHub,
+  tiendaPorDefecto, puedeFicharDesdeElHub, suplantacionDetectada, type DatosDelHub,
 } from "./fichaje-del-hub";
+
+describe("el servidor decide si hay suplantación (cierra por defecto)", () => {
+  it("sin ningún indicio y sin error, no hay suplantación", () => {
+    expect(suplantacionDetectada({ cookieDeRetorno: false, tokenDeEntrarComo: false, errorDeLectura: false })).toBe(false);
+  });
+
+  it("basta UN indicio: la cookie de retorno (aunque venga rota) o el token de «Entrar como»", () => {
+    expect(suplantacionDetectada({ cookieDeRetorno: true, tokenDeEntrarComo: false, errorDeLectura: false })).toBe(true);
+    expect(suplantacionDetectada({ cookieDeRetorno: false, tokenDeEntrarComo: true, errorDeLectura: false })).toBe(true);
+  });
+
+  it("si no se puede leer, se trata como suplantación: las acciones se refusan", () => {
+    expect(suplantacionDetectada({ cookieDeRetorno: false, tokenDeEntrarComo: false, errorDeLectura: true })).toBe(true);
+  });
+});
 
 const DATOS: DatosDelHub = {
   sesion: true, activo: true, estado: "fuera", desde: null, nombre: "Carla Cajera", uid: "u-carla",
@@ -51,9 +66,22 @@ describe("quién ve el botón", () => {
     expect(seVeElBoton({ ...todo, ancho: 390 })).toBe(false);
   });
 
-  it("no se ve sin el interruptor de la persona, ni mientras un admin ve como otra persona", () => {
+  it("no se ve sin el interruptor de la persona, ni mientras un admin ve como otra persona SIN vista previa", () => {
     expect(seVeElBoton({ ...todo, activo: false })).toBe(false);
     expect(seVeElBoton({ ...todo, viendoComo: true })).toBe(false);
+    expect(seVeElBoton({ ...todo, viendoComo: true, esVistaPrevia: false })).toBe(false);
+  });
+
+  it("«viendo como» con vista previa: se ve en la app de escritorio Y en un navegador normal (solo ver)", () => {
+    const previa = { ...todo, viendoComo: true, esVistaPrevia: true };
+    expect(seVeElBoton(previa)).toBe(true);
+    expect(seVeElBoton({ ...previa, escritorio: false })).toBe(true);
+    expect(seVeElBoton({ ...previa, escritorio: false, ancho: 699 })).toBe(false);
+    expect(seVeElBoton({ ...previa, escritorio: false, activo: false })).toBe(false);
+  });
+
+  it("la vista previa sin «viendo como» no existe: en un navegador normal sigue sin verse", () => {
+    expect(seVeElBoton({ ...todo, escritorio: false, esVistaPrevia: true })).toBe(false);
   });
 
   it("el umbral es 700 px, en el límite incluido", () => {

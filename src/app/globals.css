@@ -2292,6 +2292,9 @@ html[data-tarjetas] .marco-hub { display: none !important; }
 .fichaje-del-hub-saludo { margin: 0; font-weight: 800; font-size: 16px; }
 .fichaje-del-hub-pregunta { margin: 0; font-size: 15px; }
 .fichaje-del-hub-sub { margin: 0; font-size: 13px; color: var(--gray); }
+/* Vista previa («viendo como»): la línea de aviso y la × de la tarjeta del almuerzo, que no bloquea nada. */
+.fichaje-del-hub-previa { margin: 0; font-size: 13px; font-weight: 700; color: var(--gray); border-left: 3px solid var(--gray); padding-left: 8px; }
+.fichaje-del-hub-cerrar { justify-self: end; border: none; background: none; color: var(--gray); font-size: 22px; line-height: 1; cursor: pointer; padding: 0 4px; }
 .fichaje-del-hub-fila { display: flex; gap: 8px; flex-wrap: wrap; }
 .fichaje-del-hub-grande { min-height: 52px; font-size: 16px; width: 100%; justify-content: center; text-align: center; }
 .fichaje-del-hub-campo { display: grid; gap: 4px; font-size: 13px; font-weight: 700; }

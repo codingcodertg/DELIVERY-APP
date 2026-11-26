@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { enAppDeEscritorio } from "@/lib/desktop-shell";
 import { ayudaEnLaRuta } from "@/lib/ayuda-flotante";
 import { usePrefs } from "@/lib/prefs";
-import { useSuplantacion } from "@/components/SuplantacionEnBurbuja";
+import { useEstadoDeSuplantacion, useSuplantacion } from "@/components/SuplantacionEnBurbuja";
 import {
   estadoDelHub, ficharDesdeElHub, empezarBreakDesdeElHub, volverDelBreakDesdeElHub, terminarTurnoDesdeElHub,
   type ResultadoDelHub,
@@ -21,6 +21,12 @@ import { claveTiendaDelDia, tiendaDelDiaDesde, valorTiendaDelDia } from "@/lib/t
 // La pantalla de fichar desde el hub de escritorio (2026-11-25). Reglas de pantalla:
 //  · Solo en la app de escritorio (o en la demo con modo local): se mira ANTES de llamar al servidor, así que en un
 //    navegador o un teléfono no sale ninguna llamada. Y por debajo de 700 px no se monta.
+//  · VISTA PREVIA («viendo como», 2026-11-25): mientras un admin está dentro de otra persona, se enseña lo que esa
+//    persona vería (su interruptor, su estado, la tarjeta, el menú, el almuerzo) con TODO apagado: no se pulsa nada,
+//    no se llama a ninguna acción de escritura (el servidor las refusa de todos modos), la pregunta no se abre sola y
+//    el almuerzo sale como tarjeta que se puede cerrar, sin bloqueo. Excepción SOLO de ver: también en un navegador
+//    normal y ≥700 px, porque el dueño revisa desde su propio computador. La lectura de «viendo como» es la misma
+//    petición compartida de la burbuja (`useEstadoDeSuplantacion`) más lo que dice el servidor (`datos.suplantado`).
 //  · Con el interruptor apagado se hace UNA llamada (la lectura) y no se vuelve a preguntar.
 //  · La lectura se hace al cargar, al volver a la ventana y cada 30 s; las acciones devuelven el estado nuevo.
 //  · El bloqueo del almuerzo no se puede cerrar con Escape ni con clics; el resto de la página queda `inert`.
@@ -34,6 +40,8 @@ export function FichajeDelHub() {
   const pathname = usePathname();
   const [escritorio, setEscritorio] = useState(false);
   const [ancho, setAncho] = useState(0);
+  // ¿Un admin está «viendo como» a otra persona? Es la misma petición que ya hace la burbuja (una sola, compartida).
+  const estadoSup = useEstadoDeSuplantacion();
 
   useEffect(() => {
     setEscritorio(enAppDeEscritorio(window) || demoDelHub(process.env.NEXT_PUBLIC_LOCAL_MODE === "true", process.env.NEXT_PUBLIC_DEMO_ESCRITORIO === "1"));
@@ -43,15 +51,16 @@ export function FichajeDelHub() {
     return () => window.removeEventListener("resize", mide);
   }, []);
 
-  // Sin escritorio, en el login o con un ancho chico: ni se monta, ni se llama al servidor.
-  if (!escritorio || !ayudaEnLaRuta(pathname) || ancho < ANCHO_MINIMO_DEL_HUB) return null;
-  return <FichajeDelHubDeEscritorio />;
+  // Sin escritorio, en el login o con un ancho chico: ni se monta, ni se llama al servidor. La excepción es la vista
+  // previa («viendo como», ver arriba): en un navegador normal y ≥700 px también se monta, solo para ver.
+  if (!ayudaEnLaRuta(pathname) || ancho < ANCHO_MINIMO_DEL_HUB) return null;
+  if (!escritorio && estadoSup === null) return null;
+  return <FichajeDelHubDeEscritorio escritorio={escritorio} ancho={ancho} />;
 }
 
-function FichajeDelHubDeEscritorio() {
+function FichajeDelHubDeEscritorio({ escritorio, ancho }: { escritorio: boolean; ancho: number }) {
   const { t, lang } = usePrefs();
   const sup = useSuplantacion();
-  const viendoComo = sup.estado !== null;
   const idBloqueo = useId();
 
   const [datos, setDatos] = useState<DatosDelHub | null>(null);
@@ -63,6 +72,10 @@ function FichajeDelHubDeEscritorio() {
   const [aviso, setAviso] = useState<{ texto: string; error: boolean } | null>(null);
   const [ahora, setAhora] = useState(() => Date.now());
 
+  // «Viendo como»: lo dice la burbuja (`sup`) o el servidor en la propia lectura (`datos.suplantado`). Con esto la
+  // pantalla es la vista previa: todo se ve, nada se pulsa.
+  const viendoComo = sup.estado !== null || datos?.suplantado === true;
+
   const cajaRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const botonVolverRef = useRef<HTMLButtonElement>(null);
@@ -71,10 +84,15 @@ function FichajeDelHubDeEscritorio() {
   const canal = useRef<BroadcastChannel | null>(null);
 
   const estadoActual: EstadoDelHub = datos?.estado ?? "fuera";
+  // `activo` es lo REAL: el interruptor de la persona y ningún «viendo como». El bloqueo del almuerzo solo sale así.
   const activo = !!datos?.activo && !viendoComo;
   const bloqueado = activo && estadoActual === "en_break";
-  const verPrompt = activo && prompt && estadoActual === "fuera";
-  const verMenu = activo && menu && estadoActual === "en_turno";
+  // En la vista previa también se ven la pregunta, el menú y el almuerzo (pero todo lo que se pulsa está apagado).
+  const verPrompt = !!datos?.activo && prompt && estadoActual === "fuera";
+  const verMenu = !!datos?.activo && menu && estadoActual === "en_turno";
+  const verBreakPrevio = viendoComo && !!datos?.activo && menu && estadoActual === "en_break";
+  // Los botones que escriben. En la vista previa, todos apagados (el servidor los refusa igual).
+  const bloqueoDeAccion = ocupado || viendoComo;
   const multi = !!datos && datos.multiTienda && datos.tiendas.length > 0;
 
   const mostrarAviso = useCallback((texto: string, error = false) => {
@@ -127,11 +145,21 @@ function FichajeDelHubDeEscritorio() {
   }, []);
 
   // La primera vez que hay datos con el interruptor puesto: si no está fichado, la pregunta. Cada carga de la página.
+  // En la vista previa la pregunta NO se abre sola (solo al pulsar el botón); el almuerzo sí se muestra, sin bloqueo.
   useEffect(() => {
     if (!datos || !datos.activo || promptMostradoRef.current) return;
     promptMostradoRef.current = true;
+    if (viendoComo) {
+      if (datos.estado === "en_break") setMenu(true);
+      return;
+    }
     if (datos.estado === "fuera") setPrompt(true);
-  }, [datos]);
+  }, [datos, viendoComo]);
+
+  // Si la burbuja dice «viendo como» después de la primera lectura, una pregunta que se hubiera abierto sola se cierra.
+  useEffect(() => {
+    if (viendoComo) setPrompt(false);
+  }, [viendoComo]);
 
   // La tienda: la de la entrada abierta, si no la que recordó hoy, si no la primera.
   useEffect(() => {
@@ -195,7 +223,7 @@ function FichajeDelHubDeEscritorio() {
 
   // Menú y pregunta: Escape y un clic fuera los cierran (no el bloqueo).
   useEffect(() => {
-    if (!verMenu && !verPrompt) return;
+    if (!verMenu && !verPrompt && !verBreakPrevio) return;
     const alTeclear = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       setMenu(false); setConfirmar(false); setPrompt(false);
@@ -206,10 +234,11 @@ function FichajeDelHubDeEscritorio() {
     document.addEventListener("keydown", alTeclear);
     document.addEventListener("mousedown", alPulsar);
     return () => { document.removeEventListener("keydown", alTeclear); document.removeEventListener("mousedown", alPulsar); };
-  }, [verMenu, verPrompt]);
+  }, [verMenu, verPrompt, verBreakPrevio]);
 
   const textoDeError = (r: Extract<ResultadoDelHub, { ok: false }>): string => {
     if (r.codigo === "sesion") return t("Your session expired. Sign in again.", "Tu sesión venció. Vuelve a entrar.");
+    if (r.codigo === "suplantando") return t("Viewing as someone else: nothing is recorded.", "Viendo como otra persona: no se registra nada.");
     if (r.codigo === "no_activo") return t("Clocking in from the hub is not turned on for you.", "Fichar desde el hub no está activado para ti.");
     if (r.codigo === "estado") {
       if (r.estado === "en_break") return t("You are on a break right now.", "Ahora estás en el almuerzo.");
@@ -221,7 +250,8 @@ function FichajeDelHubDeEscritorio() {
 
   /** Ejecuta una acción del servidor. Aplica el estado que diga (también en el error) y avisa. */
   const accion = async (ejecuta: () => Promise<ResultadoDelHub>, exito: string | null, despues?: () => void) => {
-    if (ocupado) return;
+    // La vista previa no escribe nada: ni se llama al servidor (y aunque se llamara, lo refusa).
+    if (ocupado || viendoComo) return;
     setOcupado(true);
     try {
       const r = await ejecuta();
@@ -259,7 +289,14 @@ function FichajeDelHubDeEscritorio() {
     setPrompt(false); setConfirmar(false); setMenu((v) => !v);
   };
 
-  if (viendoComo || !datos || !datos.activo) return null;
+  if (!datos || !datos.activo || !seVeElBoton({ escritorio, activo: datos.activo, viendoComo, esVistaPrevia: viendoComo, ancho })) return null;
+  // La línea de la vista previa: quién es, y que no se registra nada. Va en la pregunta, el menú y el almuerzo.
+  const nombreDePrevia = datos.nombre || sup.estado?.como || t("someone else", "otra persona");
+  const lineaDePrevia = viendoComo ? (
+    <p className="fichaje-del-hub-previa" role="note">
+      {t(`Viewing as ${nombreDePrevia} — preview only. Nothing is recorded.`, `Viendo como ${nombreDePrevia} — solo vista. No se registra nada.`)}
+    </p>
+  ) : null;
 
   const hora = datos.desde ? horaCorta(datos.desde, lang) : "";
   const transcurrido = datos.desde ? Math.max(0, ahora - Date.parse(datos.desde)) : 0;
@@ -274,7 +311,7 @@ function FichajeDelHubDeEscritorio() {
   const selectorDeTienda = multi ? (
     <label className="fichaje-del-hub-campo">
       <span>{t("Store", "Tienda")}</span>
-      <select className="fichaje-del-hub-select" value={tienda ?? ""} onChange={(e) => setTienda(e.target.value || null)} disabled={ocupado}>
+      <select className="fichaje-del-hub-select" value={tienda ?? ""} onChange={(e) => setTienda(e.target.value || null)} disabled={bloqueoDeAccion}>
         {datos.tiendas.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
       </select>
     </label>
@@ -284,7 +321,7 @@ function FichajeDelHubDeEscritorio() {
     <div className="fichaje-del-hub-confirma" role="group" aria-label={t("End shift", "Terminar turno")}>
       <p>{t("End your shift now?", "¿Terminar tu turno ahora?")}</p>
       <div className="fichaje-del-hub-fila">
-        <button type="button" className="btn btn-danger" onClick={terminar} disabled={ocupado}>{t("Yes", "Sí")}</button>
+        <button type="button" className="btn btn-danger" onClick={terminar} disabled={bloqueoDeAccion}>{t("Yes", "Sí")}</button>
         <button type="button" className="btn btn-ghost" onClick={() => setConfirmar(false)} disabled={ocupado}>{t("No", "No")}</button>
       </div>
     </div>
@@ -317,9 +354,10 @@ function FichajeDelHubDeEscritorio() {
           <div className="fichaje-del-hub-tarjeta" role="dialog" aria-label={t("Clock in", "Fichar")}>
             <p className="fichaje-del-hub-saludo">{primerNombre ? `${saludo}, ${primerNombre}` : saludo}</p>
             <p className="fichaje-del-hub-pregunta">{t("Do you want to clock in?", "¿Quieres fichar?")}</p>
+            {lineaDePrevia}
             {selectorDeTienda}
             <div className="fichaje-del-hub-fila">
-              <button type="button" className="btn btn-green" onClick={() => void fichar()} disabled={ocupado || (multi && !tienda)}>
+              <button type="button" className="btn btn-green" onClick={() => void fichar()} disabled={bloqueoDeAccion || (multi && !tienda)}>
                 {t("Clock in", "Fichar")}
               </button>
               <button type="button" className="btn btn-ghost" onClick={() => setPrompt(false)} disabled={ocupado}>
@@ -334,16 +372,34 @@ function FichajeDelHubDeEscritorio() {
             <p className="fichaje-del-hub-sub">
               {t(`since ${hora}`, `desde las ${hora}`)} · {formatoTranscurrido(transcurrido)}
             </p>
+            {lineaDePrevia}
             {confirmar ? preguntaDeSalida : (
               <>
-                <button type="button" role="menuitem" className="btn btn-ghost fichaje-del-hub-grande" onClick={() => void empezarBreak()} disabled={ocupado}>
+                <button type="button" role="menuitem" className="btn btn-ghost fichaje-del-hub-grande" onClick={() => void empezarBreak()} disabled={bloqueoDeAccion}>
                   ☕ {t("Take a break", "Tomar un descanso")}
                 </button>
-                <button type="button" role="menuitem" className="btn btn-danger fichaje-del-hub-grande" onClick={() => setConfirmar(true)} disabled={ocupado}>
+                <button type="button" role="menuitem" className="btn btn-danger fichaje-del-hub-grande" onClick={() => setConfirmar(true)} disabled={bloqueoDeAccion}>
                   🏁 {t("End shift", "Terminar turno")}
                 </button>
               </>
             )}
+          </div>
+        )}
+        {/* La vista previa del almuerzo: la misma tarjeta que el bloqueo, pero SIN overlay, sin inert y con × para cerrar. */}
+        {verBreakPrevio && (
+          <div className="fichaje-del-hub-tarjeta" role="dialog" aria-label={t("You are on a break", "Estás en tu almuerzo")}>
+            <button type="button" className="fichaje-del-hub-cerrar" onClick={() => setMenu(false)} aria-label={t("Close", "Cerrar")}>×</button>
+            <p className="fichaje-del-hub-saludo">{t("You are on a break", "Estás en tu almuerzo")}</p>
+            <p className="fichaje-del-hub-sub">
+              {t(`since ${hora}`, `desde las ${hora}`)} · {formatoCronometro(transcurrido)}
+            </p>
+            {lineaDePrevia}
+            <button type="button" className="btn btn-green fichaje-del-hub-grande" disabled={bloqueoDeAccion}>
+              {t("Back from break", "Volver del almuerzo")}
+            </button>
+            <button type="button" className="btn btn-danger fichaje-del-hub-grande" disabled={bloqueoDeAccion}>
+              🏁 {t("End shift", "Terminar turno")}
+            </button>
           </div>
         )}
         {aviso && !bloqueado && <div className={"toast" + (aviso.error ? " toast-error" : "")} role="status">{aviso.texto}</div>}
