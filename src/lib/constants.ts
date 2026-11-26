@@ -644,6 +644,17 @@ export const HUB_TOOLS: HubTool[] = [
     visible: (me) => soloAdminReal(me),
   },
   {
+    // Fallas de la app (2026-11-25): dónde falla cada app, agrupado por huella. Solo el admin REAL, como Security.
+    key: "fallas",
+    href: "/home/fallas",
+    emoji: "🧯",
+    label_en: "App errors",
+    label_es: "Fallas de la app",
+    desc_en: "Where the apps fail, grouped by place, with the route, version and users affected",
+    desc_es: "Dónde falla cada app, agrupado por lugar: ruta, versión y personas afectadas",
+    visible: (me) => soloAdminReal(me),
+  },
+  {
     // RingCentral de los choferes (migración 329): las llamadas y grabaciones de las extensiones marcadas como choferes.
     // Solo el admin REAL (dentro de «entrar como» no se enseña, como las demás herramientas de seguridad).
     key: "ringcentral",

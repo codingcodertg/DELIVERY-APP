@@ -27,6 +27,7 @@ import { orderOwner, orderLabel, changedFieldsNote, shiftDateISO, todayISO } fro
 import { deviceId } from "@/lib/device-id";
 import { change, type SecurityKind } from "@/lib/security-log";
 import { detalleAConsola, mensajeEscrituraPerfil } from "@/lib/user-write-error";
+import { informarErrorDeEscritura } from "@/lib/fallas/cliente";
 import { EVENTO_NO_ENCONTRADA, NOTA_NO_ENCONTRADA, avisoUbicacion, claveDireccion, necesitaUbicacion, parcheDeUbicacion, resultadoDeRespuesta } from "@/lib/geocode-on-save";
 import { EVENTO_FUERA_DE_REGION, NOTA_FUERA_DE_REGION, avisoFueraDeLaRegion, puntoDentroDeLaRegion } from "@/lib/direccion-completa";
 import { nextOrderCode, codeBand } from "@/lib/order-code";
@@ -1334,7 +1335,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         break;
       }
       if (error || !data) {
-        notify("Error: " + (error?.message ?? "insert failed"));
+        informarErrorDeEscritura("deliveries", error); notify("Error: " + (error?.message ?? "insert failed"));
         return null;
       }
       const row = data as Delivery;
@@ -1506,6 +1507,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       const before = deliveries.find((c) => c.id === id);
       const { data, error } = await supabase.from("deliveries").update({ [campo]: valor }).eq("id", id).select("id");
       const fallo = falloAlGuardarDocumento(error, data);
+      informarErrorDeEscritura("deliveries", error);
       if (fallo) { notify("Error: " + fallo); return false; }
       setDeliveries((prev) => prev.map((c) => (c.id === id ? { ...c, [campo]: valor } : c)));
       await logEvent(id, "edited", before ? (changedFieldsNote(before as unknown as Record<string, unknown>, { [campo]: valor }) || undefined) : undefined);
@@ -1536,6 +1538,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       }
       const { data, error } = await supabase.from("deliveries").update(parche).eq("id", id).select("id");
       const fallo = falloAlGuardarDocumento(error, data);
+      informarErrorDeEscritura("deliveries", error);
       if (fallo) { notify("Error: " + fallo); return false; }
       setDeliveries((prev) => prev.map((c) => (c.id === id ? { ...c, ...parche } : c)));
       if (nota) await logEvent(id, antes?.stage ?? "edited", nota);
@@ -2007,7 +2010,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         .insert({ delivery_id: deliveryId, kind: "note", note: body, created_by: me?.id ?? null })
         .select()
         .single();
-      if (error) { notify("Error: " + error.message); return; }
+      if (error) { informarErrorDeEscritura("order_events", error); notify("Error: " + error.message); return; }
       setEvents((prev) => [data as OrderEvent, ...prev]);
     },
     [supabase, me, notify, teaching],
@@ -2118,7 +2121,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         .insert({ delivery_id: deliveryId, kind, note, created_by: me?.id ?? null })
         .select()
         .single();
-      if (error) { notify("Error: " + error.message); return false; }
+      if (error) { informarErrorDeEscritura("order_events", error); notify("Error: " + error.message); return false; }
       setEvents((prev) => (prev.some((e) => e.id === (data as OrderEvent).id) ? prev : [data as OrderEvent, ...prev]));
       return true;
     },
@@ -2145,7 +2148,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     async (patch) => {
       setSettings((prev) => ({ ...prev, ...patch }));
       const { error } = await supabase.from("settings").update(patch).eq("id", 1);
-      if (error) notify("Error: " + error.message);
+      if (error) { informarErrorDeEscritura("settings", error); notify("Error: " + error.message); }
     },
     [supabase, notify],
   );
@@ -2603,13 +2606,13 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
 
   const addAvailability = useCallback<DataState["addAvailability"]>(async (seed) => {
     const { error } = await supabase.from("driver_availability").insert({ ...seed, created_by: me?.id ?? null });
-    if (error) { notify("Error: " + error.message); return; }
+    if (error) { informarErrorDeEscritura("driver_availability", error); notify("Error: " + error.message); return; }
     await reloadAll();
   }, [supabase, me, notify, reloadAll]);
 
   const removeAvailability = useCallback<DataState["removeAvailability"]>(async (id) => {
     const { error } = await supabase.from("driver_availability").delete().eq("id", id);
-    if (error) { notify("Error: " + error.message); return; }
+    if (error) { informarErrorDeEscritura("driver_availability", error); notify("Error: " + error.message); return; }
     await reloadAll();
   }, [supabase, notify, reloadAll]);
 
@@ -2736,14 +2739,14 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
 
   const addIncident = useCallback<DataState["addIncident"]>(async (inc) => {
     const { error } = await supabase.from("driver_incidents").insert({ ...inc, created_by: me?.id ?? null });
-    if (error) { notify("Error: " + error.message); return false; }
+    if (error) { informarErrorDeEscritura("driver_incidents", error); notify("Error: " + error.message); return false; }
     await reloadAll();
     return true;
   }, [supabase, me, notify, reloadAll]);
 
   const removeIncident = useCallback<DataState["removeIncident"]>(async (id) => {
     const { error } = await supabase.from("driver_incidents").delete().eq("id", id);
-    if (error) { notify("Error: " + error.message); return; }
+    if (error) { informarErrorDeEscritura("driver_incidents", error); notify("Error: " + error.message); return; }
     await reloadAll();
   }, [supabase, notify, reloadAll]);
 

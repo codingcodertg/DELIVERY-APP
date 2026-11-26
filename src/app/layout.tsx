@@ -10,6 +10,8 @@ import { FichajeDelHub } from "@/components/FichajeDelHub";
 import { AvisoDeEnsenanza } from "@/components/AvisoDeEnsenanza";
 import { IdentidadDelDispositivo } from "@/components/IdentidadDelDispositivo";
 import { AvisoDeEscritorio } from "@/components/AvisoDeEscritorio";
+import { DetectorDeFallas } from "@/components/DetectorDeFallas";
+import { PruebaDeFallas } from "@/components/PruebaDeFallas";
 import { GUION_DE_TEMA } from "@/lib/tema";
 import { GUION_DE_HOST_DE_TARJETAS } from "@/lib/tarjetas/host";
 
@@ -67,6 +69,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             («Estás como…», burbuja naranja) y la vuelta (botón rojo) viven en la burbuja general, abajo. El dueño:
             «ya no quiero esa línea de arriba cuando cambio de usuario; es ineficiente». */}
         <PrefsSegunRuta>
+          {/* El detector de fallas (2026-11-25): una vez, aquí, porque es el único layout por el que pasan todas las apps. No pinta nada. */}
+          <DetectorDeFallas />
+          <PruebaDeFallas />
           {/* El aviso del modo enseñanza (D-626), encima de todo en las apps que no tienen el suyo: el mismo interruptor
               de la burbuja vale para todas. Dentro de `PrefsProvider` porque habla en el idioma de la persona. */}
           {/* La huella del dispositivo (D-811): una vez, aquí, porque es el único layout por el que pasan todas las apps.

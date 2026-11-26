@@ -82,6 +82,7 @@ export const RPC_QUE_SOLO_LEEN = [
 
 /** Las que escriben: se cortan. Están nombradas solo para que la prueba sepa que alguien las miró. */
 export const RPC_QUE_ESCRIBEN = [
+  "registrar_falla", // 352 (2026-11-25): anota una falla de la app. En modo enseñanza no llega a la base: las pruebas no son fallas reales.
   "monitor_reiniciar_estadisticas", // 300 (D-1012): reinicia pg_stat_statements para medir el ritmo de escrituras de ahora.
   "count_list_add_products", // 330: agrega productos a una lista de conteo abierta.
   "count_list_create", // 330: crea una lista de conteo.

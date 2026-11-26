@@ -121,6 +121,8 @@ export const CASILLAS: Casilla[] = [
   { key: "ringcentral", panel: "employees", fila: 2, columna: 1, emoji: "📞", label_en: "RingCentral", label_es: "RingCentral", existe: true, destino: { tipo: "herramienta", claves: ["ringcentral"] } },
   // 2026-11-19: App Draft, prototipos con datos de ejemplo (solo admin de partida; el gerente con la casilla).
   { key: "app-draft", panel: "employees", fila: 2, columna: 2, emoji: "🧪", label_en: "App Draft", label_es: "App Draft", existe: true, destino: { tipo: "modulo", clave: "app_draft" } },
+  // 2026-11-25: Fallas de la app (352) — dónde falla cada app; solo el admin real, como su tarjeta del hub.
+  { key: "fallas", panel: "employees", fila: 2, columna: 3, emoji: "🧯", label_en: "App errors", label_es: "Fallas de la app", existe: true, destino: { tipo: "herramienta", claves: ["fallas"] } },
 ];
 
 export interface Flecha {
