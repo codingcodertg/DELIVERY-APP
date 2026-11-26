@@ -53509,3 +53509,8 @@ Pared: UNA pared, medida en SF o largo × alto, menos aberturas (campos nuevos `
 Lechada (ducha, piso y pared): dos filas alternativas, con arena (688 SF por bolsa de 25 lb, junta ≥ 1/8") y sin arena (722.5, junta ≤ 1/8"), ajustadas por la parte de junta de la loseta y su profundidad contra la referencia 24×24, 1/8", 3/8"; el rendimiento se redondea hacia abajo, como la hoja. Fuera de rango = N/A. Con dos superficies (ducha), cada tipo cuenta las superficies en rango y avisa de la que lleva la otra. Profundidad por defecto 3/8" (claves nuevas, para que lo guardado en el navegador con 1/4" no se arrastre). Se agrega la loseta 12×12.
 Cuadra con el ejemplo de la hoja (300 SF, 24×24, 1/8", 19.26 SF/caja): 16 cajas, 9 bolsas de pegamento, 1 + 1 de lechada, 6 clips, 1 cuñas, 20 paneles, 2 cajas de tornillos, 3 rollos (prueba `calculadora-pared-hoja.test.ts`). Visto en el demo a 1280 px y 390 px.
 Sello `estimator` 0.46.0; repo 2.0.0.
+
+## D-1204 · Routes Manager: sin la pastilla del chofer marcado; panel «Choferes y rutas» un cuarto más delgado (2026-11-26)
+
+Solicitud de ayuda del dueño (Gestor de Rutas, vista compacta, foto): «1) elimina eso, ya se mira a la izquierda cuando está selected; 2) haz eso más delgado, 1/4 más delgado». Se quita la pastilla «🚚 chofer ✕» de la barra de pestañas (el filtro son solo las casillas del panel). En la vista compacta el panel pasa de 260–340 px a 195–255 px. Con el panel más delgado el título ya no se parte: si no caben, los botones bajan a otra línea. Visto en el demo a 1280 px.
+Sello `deliveries` 1.670.0; repo 2.1.0.
