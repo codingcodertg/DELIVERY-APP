@@ -5,10 +5,10 @@ import { usePrefs } from "@/lib/prefs";
 import { TablaReducida, type ColumnaReducida } from "@/components/timetracker/TablaReducida";
 import { leeDecimal, limpiaDecimal } from "@/lib/campo-decimal";
 import {
-  AJUSTES_META, AJUSTES_POR_DEFECTO, CALCULADORAS, DISPOSICIONES, ENTRADAS_POR_DEFECTO, MAX_FILAS_DE_MEDIDA, TAMANOS_DE_LOSETA,
+  AJUSTES_META, AJUSTES_POR_DEFECTO, CALCULADORAS, DISPOSICIONES, ENTRADAS_POR_DEFECTO, MAX_FILAS_DE_MEDIDA, METODOS_DE_PARED, TAMANOS_DE_LOSETA,
   calcular, camposQueAplican,
   type AjustesCalculadora, type AreasCalculadas, type Bilingue, type Disposicion, type EntradasCalculadora, type Explicacion,
-  type FilaCalculada, type Habitacion, type Muro, type TamanoDeLoseta, type TipoDeProyecto,
+  type FilaCalculada, type Habitacion, type MetodoDePared, type TamanoDeLoseta, type TipoDeProyecto,
 } from "@/lib/estimator/calculadora-material";
 import { guardar, leeGuardado } from "@/lib/estimator/calculadora-guardado";
 
@@ -19,6 +19,7 @@ type CampoNumero = { [K in keyof EntradasCalculadora]: EntradasCalculadora[K] ex
 
 /** El orden en que salen los campos de medida de la ducha (el uso de cada uno está en la tabla de la lógica). */
 const ORDEN_DE_CAMPOS: readonly (keyof EntradasCalculadora)[] = [
+  "paredMetodo", "paredAreaSf", "paredLargoFt", "paredAltoFt", "paredAberturasSf",
   "disposicion", "largoFt", "anchoFt", "altoFt", "aberturasSf", "morteroProfundidadIn", "cajaParedSf", "cajaPisoSf",
   "tamanoPared", "tamanoPiso", "juntaParedIn", "juntaPisoIn", "subidaLinerIn", "bordeExtraLinerIn", "bordeExpuestoLf",
 ];
@@ -41,6 +42,11 @@ const ETIQUETA_DE_CAMPO: Partial<Record<keyof EntradasCalculadora, Bilingue>> = 
   bordeExpuestoLf: { en: "Exposed tile edge for trim (LF)", es: "Borde expuesto de loseta para perfil (LF)" },
   salpicaderoLargoFt: { en: "Backsplash length (ft)", es: "Largo del salpicadero (ft)" },
   salpicaderoAltoFt: { en: "Backsplash height (ft)", es: "Alto del salpicadero (ft)" },
+  paredMetodo: { en: "Measurement method", es: "Método de medida" },
+  paredAreaSf: { en: "Wall area (SF)", es: "Área de pared (SF)" },
+  paredLargoFt: { en: "Length (ft)", es: "Largo (ft)" },
+  paredAltoFt: { en: "Height (ft)", es: "Alto (ft)" },
+  paredAberturasSf: { en: "Openings / deductions (SF)", es: "Aberturas / descuentos (SF)" },
 };
 
 const ID_DE_CAMPO: Partial<Record<keyof EntradasCalculadora, string>> = {
@@ -49,6 +55,8 @@ const ID_DE_CAMPO: Partial<Record<keyof EntradasCalculadora, string>> = {
   tamanoPared: "calc-tamano-pared", tamanoPiso: "calc-tamano-piso", juntaParedIn: "calc-junta-pared", juntaPisoIn: "calc-junta-piso",
   subidaLinerIn: "calc-subida", bordeExtraLinerIn: "calc-borde-liner", bordeExpuestoLf: "calc-borde-expuesto",
   salpicaderoLargoFt: "calc-salp-largo", salpicaderoAltoFt: "calc-salp-alto",
+  paredMetodo: "calc-pared-metodo", paredAreaSf: "calc-pared-area", paredLargoFt: "calc-pared-largo",
+  paredAltoFt: "calc-pared-alto", paredAberturasSf: "calc-pared-aberturas",
 };
 
 /**
@@ -204,10 +212,12 @@ export function CalculadoraDeMaterial() {
     perimetroLf: t("Wall perimeter (LF)", "Perímetro de pared (LF)"),
     tablerosPaneles: t("Estimated full backerboard panels", "Paneles de tablero completos estimados"),
   };
-  const camposDeMedida = ORDEN_DE_CAMPOS.filter((c) => sel.entradas.includes(c));
+  // Calculadora de pared (D-1203): con «pies cuadrados» se captura el área; con «largo × alto», las dos medidas.
+  const porMedidas = entradas.paredMetodo === "Dimensions";
+  const camposDeMedida = ORDEN_DE_CAMPOS.filter((c) => sel.entradas.includes(c)
+    && !(c === "paredAreaSf" && porMedidas) && !((c === "paredLargoFt" || c === "paredAltoFt") && !porMedidas));
   const tieneSalpicadero = sel.entradas.includes("salpicaderoLargoFt");
   const tieneHabitaciones = sel.entradas.includes("habitaciones");
-  const tieneMuros = sel.entradas.includes("muros");
 
   return (
     <div className="calc-wrap" data-calculadora data-calculadora-activa={tipo}>
@@ -248,10 +258,6 @@ export function CalculadoraDeMaterial() {
           <EditorDeHabitaciones filas={entradas.habitaciones} areaTexto={cifra(resultado.areas.pisoSf)}
             onCambio={(habitaciones) => poner("habitaciones", habitaciones)} />
         )}
-        {tieneMuros && (
-          <EditorDeMuros filas={entradas.muros} areaTexto={cifra(resultado.areas.paredSf)}
-            onCambio={(muros) => poner("muros", muros)} />
-        )}
 
         {camposDeMedida.length > 0 && (
           <div className="calc-grid">
@@ -264,6 +270,19 @@ export function CalculadoraDeMaterial() {
                       onChange={(e) => poner("disposicion", e.target.value as Disposicion)}>
                       {DISPOSICIONES.map((d) => (
                         <option key={d} value={d}>{d === "2 Walls" ? t("2 walls", "2 paredes") : d === "3 Walls" ? t("3 walls", "3 paredes") : t("4 walls", "4 paredes")}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              }
+              if (c === "paredMetodo") {
+                return (
+                  <div className="field" key={c}>
+                    <label htmlFor="calc-pared-metodo">{ETIQUETA_DE_CAMPO.paredMetodo![lang]}</label>
+                    <select id="calc-pared-metodo" className="calc-entrada" value={entradas.paredMetodo}
+                      onChange={(e) => poner("paredMetodo", e.target.value as MetodoDePared)}>
+                      {METODOS_DE_PARED.map((m) => (
+                        <option key={m} value={m}>{m === "Dimensions" ? t("Length × height", "Largo × alto") : t("Square footage", "Pies cuadrados")}</option>
                       ))}
                     </select>
                   </div>
@@ -393,41 +412,6 @@ function EditorDeHabitaciones({ filas, areaTexto, onCambio }: {
           + {t("Add room", "Agregar habitación")}
         </button>
         <span className="hint">{t("Total floor area", "Área de piso total")}: <b>{areaTexto}</b> SF</span>
-      </div>
-    </div>
-  );
-}
-
-/** Los muros de la calculadora de pared: cada uno con su nombre, largo, alto y aberturas; se suman. */
-function EditorDeMuros({ filas, areaTexto, onCambio }: {
-  filas: Muro[]; areaTexto: string; onCambio: (filas: Muro[]) => void;
-}) {
-  const { t } = usePrefs();
-  const cambiar = (i: number, patch: Partial<Muro>) => onCambio(filas.map((f, j) => (j === i ? { ...f, ...patch } : f)));
-  const agregar = () => onCambio([...filas, { nombre: `${t("Wall", "Muro")} ${filas.length + 1}`, largoFt: 0, altoFt: 8, aberturasSf: 0 }]);
-  const quitar = (i: number) => onCambio(filas.filter((_, j) => j !== i));
-  return (
-    <div className="calc-filas-medida">
-      {filas.map((m, i) => (
-        <div className="calc-fila-medida calc-fila-muro" key={i}>
-          <div className="field calc-nombre">
-            <label htmlFor={`calc-muro-${i}-nombre`}>{t("Wall name", "Nombre del muro")}</label>
-            <input id={`calc-muro-${i}-nombre`} type="text" className="calc-entrada" value={m.nombre} maxLength={40}
-              onChange={(e) => cambiar(i, { nombre: e.target.value })} />
-          </div>
-          <CampoNum id={`calc-muro-${i}-largo`} etiqueta={t("Length (ft)", "Largo (ft)")} valor={m.largoFt} onValor={(n) => cambiar(i, { largoFt: n })} />
-          <CampoNum id={`calc-muro-${i}-alto`} etiqueta={t("Height (ft)", "Alto (ft)")} valor={m.altoFt} onValor={(n) => cambiar(i, { altoFt: n })} />
-          <CampoNum id={`calc-muro-${i}-aberturas`} etiqueta={t("Openings (SF)", "Aberturas (SF)")} valor={m.aberturasSf}
-            onValor={(n) => cambiar(i, { aberturasSf: n })} />
-          <button type="button" className="btn btn-sm btn-ghost calc-quitar" disabled={filas.length === 1}
-            aria-label={t(`Remove wall ${i + 1}`, `Quitar muro ${i + 1}`)} onClick={() => quitar(i)}>✕</button>
-        </div>
-      ))}
-      <div className="calc-cab">
-        <button type="button" className="btn btn-sm btn-ghost" disabled={filas.length >= MAX_FILAS_DE_MEDIDA} onClick={agregar}>
-          + {t("Add wall", "Agregar muro")}
-        </button>
-        <span className="hint">{t("Total wall area (with backsplash)", "Área de pared total (con salpicadero)")}: <b>{areaTexto}</b> SF</span>
       </div>
     </div>
   );

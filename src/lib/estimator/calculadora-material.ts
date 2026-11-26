@@ -15,7 +15,7 @@ export type TipoDeProyecto = "Shower" | "Flooring Only" | "Wall Only";
 export type Disposicion = "2 Walls" | "3 Walls" | "4 Walls";
 
 /** Los 9 tamaños de la lista desplegable (la misma lista de la hoja: F6 y F7). */
-export const TAMANOS_DE_LOSETA = ["7x22", "12x24", "24x24", "24x48", "8x36", "8x48", "22x22", "8x8", "17x17"] as const;
+export const TAMANOS_DE_LOSETA = ["7x22", "12x24", "24x24", "24x48", "8x36", "8x48", "22x22", "8x8", "17x17", "12x12"] as const;
 export type TamanoDeLoseta = (typeof TAMANOS_DE_LOSETA)[number];
 
 export const PROYECTOS: readonly TipoDeProyecto[] = ["Shower", "Flooring Only", "Wall Only"];
@@ -23,6 +23,13 @@ export const DISPOSICIONES: readonly Disposicion[] = ["2 Walls", "3 Walls", "4 W
 
 /** Máximo de habitaciones o muros en la calculadora de piso o de pared. */
 export const MAX_FILAS_DE_MEDIDA = 12;
+
+/** Cómo se mide la pared en la calculadora de pared (D-1203, hoja «Rodriguez Wall Calculator»): en SF o largo × alto. */
+export const METODOS_DE_PARED = ["Square footage", "Dimensions"] as const;
+export type MetodoDePared = (typeof METODOS_DE_PARED)[number];
+
+/** La junta que separa lechada con arena (≥) de sin arena (≤), en pulgadas (hoja nueva: 1/8"). */
+export const JUNTA_LIMITE_LECHADA_IN = 0.125;
 
 /** Una habitación de la calculadora de piso: su largo y su ancho (ft). Se suman con las demás. */
 export interface Habitacion { nombre: string; largoFt: number; anchoFt: number }
@@ -69,8 +76,18 @@ export interface EntradasCalculadora {
   salpicaderoAltoFt: number;
   /** Solo la calculadora de piso: las habitaciones (cada una con su largo y ancho). Una fila por defecto. */
   habitaciones: Habitacion[];
-  /** Solo la calculadora de pared: los muros (cada uno con su largo, alto y aberturas). Una fila por defecto. */
+  /** Ya no se usa (D-1203: la calculadora de pared mide UNA pared). Se conserva para leer lo guardado. */
   muros: Muro[];
+  /** Calculadora de pared: cómo se mide (SF directo o largo × alto). */
+  paredMetodo: MetodoDePared;
+  /** Calculadora de pared: área de la pared (SF), con el método «Square footage». */
+  paredAreaSf: number;
+  /** Calculadora de pared: largo (ft), con el método «Dimensions». */
+  paredLargoFt: number;
+  /** Calculadora de pared: alto (ft), con el método «Dimensions». */
+  paredAltoFt: number;
+  /** Calculadora de pared: aberturas que se restan (SF), con los dos métodos. */
+  paredAberturasSf: number;
 }
 
 /** Los parámetros de «Product Settings» (hoja 2, columna C). */
@@ -101,22 +118,26 @@ export interface AjustesCalculadora {
   adhesivoPisoSfPorBolsa: number;
   /** C18: pies cúbicos por bolsa de mortero. */
   morteroPiesCubicosPorBolsa: number;
-  /** C19 */
-  lechadaSfReferencia: number;
-  /** C20 */
-  lechadaLbPorBolsa: number;
+  /** Lechada con arena: SF por bolsa de 25 lb en la loseta y junta de referencia (D-1203). */
+  lechadaArenadaSfPorBolsa: number;
+  /** Lechada sin arena: SF por bolsa de 25 lb en la referencia (D-1203). */
+  lechadaSinArenaSfPorBolsa: number;
   /** C21 */
   lechadaLargoRefIn: number;
   /** C22 */
   lechadaAnchoRefIn: number;
   /** C23 */
   lechadaJuntaRefIn: number;
-  /** C24 */
-  lechadaProfundidadParedIn: number;
-  /** C25 */
-  lechadaProfundidadPisoIn: number;
-  /** C26 */
-  lechadaProfundidadRefIn: number;
+  /** Profundidad de la junta en pared (in). Clave nueva en D-1203 (3/8"): lo guardado con la vieja (1/4") no se arrastra. */
+  lechadaProfParedIn: number;
+  /** Profundidad de la junta en piso (in). */
+  lechadaProfPisoIn: number;
+  /** Profundidad de la junta de referencia (in). */
+  lechadaProfRefIn: number;
+  /** Calculadora de pared: SF por bolsa de pegamento (hoja nueva: 35, incluye back-buttering). */
+  adhesivoSoloParedSfPorBolsa: number;
+  /** Calculadora de pared: cuñas por SF (hoja nueva: 0.3). */
+  cunasPorSf: number;
   /** C27 */
   siliconaLfPorTubo: number;
   /** C28 */
@@ -168,6 +189,11 @@ export const ENTRADAS_POR_DEFECTO: EntradasCalculadora = {
   salpicaderoAltoFt: 1,
   habitaciones: [{ nombre: "Room 1", largoFt: 5, anchoFt: 3 }],
   muros: [{ nombre: "Wall 1", largoFt: 5, altoFt: 8, aberturasSf: 0 }],
+  paredMetodo: "Square footage",
+  paredAreaSf: 300,
+  paredLargoFt: 20,
+  paredAltoFt: 8,
+  paredAberturasSf: 0,
 };
 
 export const AJUSTES_POR_DEFECTO: AjustesCalculadora = {
@@ -184,14 +210,16 @@ export const AJUSTES_POR_DEFECTO: AjustesCalculadora = {
   adhesivoParedSfPorBolsa: 25,
   adhesivoPisoSfPorBolsa: 25,
   morteroPiesCubicosPorBolsa: 0.5,
-  lechadaSfReferencia: 280,
-  lechadaLbPorBolsa: 25,
+  lechadaArenadaSfPorBolsa: 688,
+  lechadaSinArenaSfPorBolsa: 722.5,
   lechadaLargoRefIn: 24,
   lechadaAnchoRefIn: 24,
   lechadaJuntaRefIn: 0.125,
-  lechadaProfundidadParedIn: 0.25,
-  lechadaProfundidadPisoIn: 0.25,
-  lechadaProfundidadRefIn: 0.25,
+  lechadaProfParedIn: 0.375,
+  lechadaProfPisoIn: 0.375,
+  lechadaProfRefIn: 0.375,
+  adhesivoSoloParedSfPorBolsa: 35,
+  cunasPorSf: 0.3,
   siliconaLfPorTubo: 25,
   perfilLfPorPieza: 8,
   clipsPorSf: 2,
@@ -231,8 +259,8 @@ export const CALCULADORAS: readonly DatosDeCalculadora[] = [
     tipo: "Wall Only",
     etiqueta: { en: "Wall calculator", es: "Calculadora de pared" },
     descripcion: {
-      en: "Wall tile, thinset, grout and trim for one or several walls.",
-      es: "Loseta de pared, pegamento, lechada y perfil para una o varias paredes.",
+      en: "Wall tile, thinset, grout, leveling, trim and backerboard for one wall.",
+      es: "Loseta de pared, pegamento, lechada, nivelación, perfil y tablero para una pared.",
     },
   },
 ];
@@ -271,74 +299,82 @@ export const USO_DE_ENTRADAS: Record<keyof EntradasCalculadora, Uso> = {
   subidaLinerIn: { usa: DUCHA },
   bordeExtraLinerIn: { usa: DUCHA },
   bordeExpuestoLf: { usa: TODAS },
-  salpicaderoLargoFt: { usa: DUCHA_Y_PARED },
-  salpicaderoAltoFt: { usa: DUCHA_Y_PARED },
+  salpicaderoLargoFt: { usa: DUCHA },
+  salpicaderoAltoFt: { usa: DUCHA },
   habitaciones: { usa: ["Flooring Only"] },
-  muros: { usa: ["Wall Only"] },
+  muros: { usa: [] },
+  paredMetodo: { usa: ["Wall Only"] },
+  paredAreaSf: { usa: ["Wall Only"] },
+  paredLargoFt: { usa: ["Wall Only"] },
+  paredAltoFt: { usa: ["Wall Only"] },
+  paredAberturasSf: { usa: ["Wall Only"] },
 };
 
 /** Los ajustes de «Product Settings» (hoja 2): dónde se usa cada uno. Vacío = la hoja no lo usa en ninguna fórmula. */
 export const USO_DE_AJUSTES: Record<keyof AjustesCalculadora, Uso> = {
   tableroCoberturaSf: { usa: [] },
-  tornillosPorTablero: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
-  tornillosPorCaja: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
-  rolloMallaLf: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
-  mallaPorTableroLf: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
+  tornillosPorTablero: { usa: DUCHA_Y_PARED },
+  tornillosPorCaja: { usa: DUCHA_Y_PARED },
+  rolloMallaLf: { usa: DUCHA_Y_PARED },
+  mallaPorTableroLf: { usa: DUCHA_Y_PARED },
   liner_subidaSinUsoIn: { usa: [] },
   liner_bordeSinUsoIn: { usa: [] },
-  impermeableSfPorGal: { usa: DUCHA_Y_PARED, cuandoPared: "impermeableEnSoloPared" },
-  impermeableGalPorEnvase: { usa: DUCHA_Y_PARED, cuandoPared: "impermeableEnSoloPared" },
-  impermeableSolape: { usa: DUCHA_Y_PARED, cuandoPared: "impermeableEnSoloPared" },
-  adhesivoParedSfPorBolsa: { usa: DUCHA_Y_PARED },
+  impermeableSfPorGal: { usa: DUCHA },
+  impermeableGalPorEnvase: { usa: DUCHA },
+  impermeableSolape: { usa: DUCHA },
+  adhesivoParedSfPorBolsa: { usa: DUCHA },
   adhesivoPisoSfPorBolsa: { usa: DUCHA_Y_PISO },
   morteroPiesCubicosPorBolsa: { usa: DUCHA },
-  lechadaSfReferencia: { usa: TODAS },
-  lechadaLbPorBolsa: { usa: TODAS },
+  lechadaArenadaSfPorBolsa: { usa: TODAS },
+  lechadaSinArenaSfPorBolsa: { usa: TODAS },
   lechadaLargoRefIn: { usa: TODAS },
   lechadaAnchoRefIn: { usa: TODAS },
   lechadaJuntaRefIn: { usa: TODAS },
-  lechadaProfundidadParedIn: { usa: DUCHA_Y_PARED },
-  lechadaProfundidadPisoIn: { usa: DUCHA_Y_PISO },
-  lechadaProfundidadRefIn: { usa: TODAS },
-  siliconaLfPorTubo: { usa: DUCHA_Y_PARED },
+  lechadaProfParedIn: { usa: DUCHA_Y_PARED },
+  lechadaProfPisoIn: { usa: DUCHA_Y_PISO },
+  lechadaProfRefIn: { usa: TODAS },
+  adhesivoSoloParedSfPorBolsa: { usa: ["Wall Only"] },
+  cunasPorSf: { usa: ["Wall Only"] },
+  siliconaLfPorTubo: { usa: DUCHA },
   perfilLfPorPieza: { usa: TODAS },
-  clipsPorSf: { usa: DUCHA_Y_PISO },
-  clipsPorPaquete: { usa: DUCHA_Y_PISO },
-  cunasPorPaquete: { usa: DUCHA_Y_PISO },
+  clipsPorSf: { usa: TODAS },
+  clipsPorPaquete: { usa: TODAS },
+  cunasPorPaquete: { usa: TODAS },
   preslopePromedioIn: { usa: DUCHA },
   preslopeIncluido: { usa: DUCHA },
-  tableroEnSoloPared: { usa: ["Wall Only"] },
-  impermeableEnSoloPared: { usa: ["Wall Only"] },
-  tableroAltoFt: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
-  tableroAnchoLf: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
+  tableroEnSoloPared: { usa: [] },
+  impermeableEnSoloPared: { usa: [] },
+  tableroAltoFt: { usa: DUCHA_Y_PARED },
+  tableroAnchoLf: { usa: DUCHA_Y_PARED },
   tableroUnidadLf: { usa: [] },
-  tablerosExtra: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
+  tablerosExtra: { usa: DUCHA },
   impermeableReferenciaGal: { usa: [] },
 };
 
 /** Las filas de materiales (la hoja 1, filas 17–33) y, por calculadora, cuáles aplican. */
 export const CLAVES_DE_FILA = [
   "liner", "mortero", "tablero", "tornillos", "malla", "impermeable", "pegamento-pared", "pegamento-piso",
-  "loseta-pared", "loseta-piso", "lechada", "silicon", "perfil", "clips", "cunas", "coladera", "pendiente",
+  "loseta-pared", "loseta-piso", "lechada-arenada", "lechada-sin-arena", "silicon", "perfil", "clips", "cunas", "coladera", "pendiente",
 ] as const;
 export type ClaveDeFila = (typeof CLAVES_DE_FILA)[number];
 
 export const USO_DE_FILAS: Record<ClaveDeFila, Uso> = {
   liner: { usa: DUCHA },
   mortero: { usa: DUCHA },
-  tablero: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
-  tornillos: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
-  malla: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
-  impermeable: { usa: DUCHA_Y_PARED, cuandoPared: "impermeableEnSoloPared" },
+  tablero: { usa: DUCHA_Y_PARED },
+  tornillos: { usa: DUCHA_Y_PARED },
+  malla: { usa: DUCHA_Y_PARED },
+  impermeable: { usa: DUCHA },
   "pegamento-pared": { usa: DUCHA_Y_PARED },
   "pegamento-piso": { usa: DUCHA_Y_PISO },
   "loseta-pared": { usa: DUCHA_Y_PARED },
   "loseta-piso": { usa: DUCHA_Y_PISO },
-  lechada: { usa: TODAS },
-  silicon: { usa: DUCHA_Y_PARED },
+  "lechada-arenada": { usa: TODAS },
+  "lechada-sin-arena": { usa: TODAS },
+  silicon: { usa: DUCHA },
   perfil: { usa: TODAS },
-  clips: { usa: DUCHA_Y_PISO },
-  cunas: { usa: DUCHA_Y_PISO },
+  clips: { usa: TODAS },
+  cunas: { usa: TODAS },
   coladera: { usa: DUCHA },
   pendiente: { usa: DUCHA, condicion: (a) => a.preslopeIncluido === 1 },
 };
@@ -347,8 +383,8 @@ export const USO_DE_FILAS: Record<ClaveDeFila, Uso> = {
 export const USO_DE_AREAS: Record<keyof AreasCalculadas, Uso> = {
   pisoSf: { usa: DUCHA_Y_PISO },
   paredSf: { usa: DUCHA_Y_PARED },
-  perimetroLf: { usa: DUCHA_Y_PARED },
-  tablerosPaneles: { usa: DUCHA_Y_PARED, cuandoPared: "tableroEnSoloPared" },
+  perimetroLf: { usa: DUCHA },
+  tablerosPaneles: { usa: DUCHA_Y_PARED },
 };
 
 /** ¿Lo usa esta calculadora, con estos ajustes? */
@@ -418,14 +454,16 @@ export const AJUSTES_META: readonly AjusteMeta[] = [
   { clave: "adhesivoParedSfPorBolsa", celda: "C16", etiqueta: { en: "Thinset wall coverage", es: "Rendimiento del pegamento en pared" }, unidad: "SF / 50-lb bag", nota: "Working calibration to 4 wall bags + 1 floor bag on reference shower; verify 44-lb product and back-buttering rate." },
   { clave: "adhesivoPisoSfPorBolsa", celda: "C17", etiqueta: { en: "Thinset floor coverage", es: "Rendimiento del pegamento en piso" }, unidad: "SF / 50-lb bag", nota: "Working calibration for 44-lb thinset and back-buttering; verify actual manufacturer coverage." },
   { clave: "morteroPiesCubicosPorBolsa", celda: "C18", etiqueta: { en: "Mortar bed yield", es: "Rendimiento del mortero seco" }, unidad: "cu ft / 50-lb bag", nota: "Supply reference: 5 bags of 44 lb. Yield is provisional; verify the actual mortar product." },
-  { clave: "lechadaSfReferencia", celda: "C19", etiqueta: { en: "Grout coverage reference", es: "Referencia de rendimiento de lechada" }, unidad: "SF per 25-lb bag", nota: "280 SF/bag baseline; actual area scales with joint width/depth and tile dimensions." },
-  { clave: "lechadaLbPorBolsa", celda: "C20", etiqueta: { en: "Grout bag weight", es: "Peso de la bolsa de lechada" }, unidad: "lb / bag", nota: "User-provided stocked bag weight" },
-  { clave: "lechadaLargoRefIn", celda: "C21", etiqueta: { en: "Grout reference tile length", es: "Largo de la loseta de referencia" }, unidad: "in", nota: "Reference tile for 280 SF coverage; adjustable" },
-  { clave: "lechadaAnchoRefIn", celda: "C22", etiqueta: { en: "Grout reference tile width", es: "Ancho de la loseta de referencia" }, unidad: "in", nota: "Reference tile for 280 SF coverage; adjustable" },
-  { clave: "lechadaJuntaRefIn", celda: "C23", etiqueta: { en: "Grout reference joint width", es: "Junta de referencia" }, unidad: "in", nota: "Reference joint for 280 SF coverage; adjustable" },
-  { clave: "lechadaProfundidadParedIn", celda: "C24", etiqueta: { en: "Grout wall joint depth", es: "Profundidad de junta en pared" }, unidad: "in", nota: "Grout depth; change with tile specifications" },
-  { clave: "lechadaProfundidadPisoIn", celda: "C25", etiqueta: { en: "Grout floor joint depth", es: "Profundidad de junta en piso" }, unidad: "in", nota: "Grout depth; change with tile specifications" },
-  { clave: "lechadaProfundidadRefIn", celda: "C26", etiqueta: { en: "Grout reference joint depth", es: "Profundidad de junta de referencia" }, unidad: "in", nota: "Baseline depth associated with reference coverage" },
+  { clave: "lechadaArenadaSfPorBolsa", celda: "C19", etiqueta: { en: "Sanded grout coverage (reference)", es: "Rendimiento de lechada con arena (referencia)" }, unidad: "SF per 25-lb bag", nota: "688 SF/bag at the reference tile, joint and depth; used for joints of 1/8 in or wider." },
+  { clave: "lechadaSinArenaSfPorBolsa", celda: "C20", etiqueta: { en: "Unsanded grout coverage (reference)", es: "Rendimiento de lechada sin arena (referencia)" }, unidad: "SF per 25-lb bag", nota: "Unsanded 289 SF/10 lb scaled to 25 lb (722.5); used for joints of 1/8 in or narrower." },
+  { clave: "lechadaLargoRefIn", celda: "C21", etiqueta: { en: "Grout reference tile length", es: "Largo de la loseta de referencia" }, unidad: "in", nota: "Reference tile for the grout coverage; adjustable" },
+  { clave: "lechadaAnchoRefIn", celda: "C22", etiqueta: { en: "Grout reference tile width", es: "Ancho de la loseta de referencia" }, unidad: "in", nota: "Reference tile for the grout coverage; adjustable" },
+  { clave: "lechadaJuntaRefIn", celda: "C23", etiqueta: { en: "Grout reference joint width", es: "Junta de referencia" }, unidad: "in", nota: "Reference joint for the grout coverage; adjustable" },
+  { clave: "lechadaProfParedIn", celda: "C24", etiqueta: { en: "Grout wall joint depth", es: "Profundidad de junta en pared" }, unidad: "in", nota: "Grout depth; change with tile specifications" },
+  { clave: "lechadaProfPisoIn", celda: "C25", etiqueta: { en: "Grout floor joint depth", es: "Profundidad de junta en piso" }, unidad: "in", nota: "Grout depth; change with tile specifications" },
+  { clave: "lechadaProfRefIn", celda: "C26", etiqueta: { en: "Grout reference joint depth", es: "Profundidad de junta de referencia" }, unidad: "in", nota: "Baseline depth associated with reference coverage" },
+  { clave: "adhesivoSoloParedSfPorBolsa", celda: "C44", etiqueta: { en: "Thinset coverage (wall calculator)", es: "Rendimiento del pegamento (calculadora de pared)" }, unidad: "SF / 44-lb bag", nota: "44 lb; includes back-buttering" },
+  { clave: "cunasPorSf", celda: "C45", etiqueta: { en: "Wedge allowance (wall calculator)", es: "Cuñas por SF (calculadora de pared)" }, unidad: "wedges / SF", nota: "Reusable; 1–2 packs per 500 SF" },
   { clave: "siliconaLfPorTubo", celda: "C27", etiqueta: { en: "Silicone coverage", es: "Rendimiento del silicón" }, unidad: "LF / tube", nota: "PLACEHOLDER; bead size changes yield" },
   { clave: "perfilLfPorPieza", celda: "C28", etiqueta: { en: "Trim piece length", es: "Largo de la pieza de perfil" }, unidad: "LF / piece", nota: "Adjust based on stocked profile" },
   { clave: "clipsPorSf", celda: "C29", etiqueta: { en: "Leveling clips coverage", es: "Clips por SF" }, unidad: "clips / SF", nota: "PLACEHOLDER; actual depends on tile layout" },
@@ -585,17 +623,24 @@ function cero(formula: Bilingue, motivo: Bilingue): Explicacion {
   };
 }
 
-/** Desglose de la lechada (C27): lo que suman las juntas de pared y de piso, la referencia y la conversión a libras. */
-function desgloseLechada(e: EntradasCalculadora, a: AjustesCalculadora, pisoSf: number, paredSf: number) {
-  const [pa, pb] = medidasDeLaLoseta(e.tamanoPared);
-  const [pc, pd] = medidasDeLaLoseta(e.tamanoPiso);
-  const jp = sana(e.juntaParedIn), jq = sana(e.juntaPisoIn);
-  const termPared = paredSf * ((1 / (pa + jp) + 1 / (pb + jp)) * jp) * a.lechadaProfundidadParedIn;
-  const termPiso = pisoSf * ((1 / (pc + jq) + 1 / (pd + jq)) * jq) * a.lechadaProfundidadPisoIn;
-  const referencia = ((1 / (a.lechadaLargoRefIn + a.lechadaJuntaRefIn) + 1 / (a.lechadaAnchoRefIn + a.lechadaJuntaRefIn)) * a.lechadaJuntaRefIn) * a.lechadaProfundidadRefIn;
-  const sfEquivalentes = finitoOCero((termPared + termPiso) / referencia);
-  const lb = finitoOCero(sfEquivalentes * (a.lechadaLbPorBolsa / a.lechadaSfReferencia));
-  return { pa, pb, pc, pd, jp, jq, termPared, termPiso, referencia, sfEquivalentes, lb };
+/** La parte del área que ocupa la junta: 1 − (a × b) ÷ ((a + j) × (b + j)). */
+const parteDeJunta = (a: number, b: number, j: number): number => 1 - (a * b) / ((a + j) * (b + j));
+
+/**
+ * Lechada de UNA superficie (D-1203, hoja «Rodriguez Wall Calculator»). El rendimiento de referencia (SF por bolsa de
+ * 25 lb, en la loseta, junta y profundidad de referencia) se ajusta por cuánta junta lleva esta loseta y su profundidad:
+ * ajuste = (junta de referencia × prof. de referencia) ÷ (junta de esta loseta × su profundidad); se redondea hacia
+ * abajo. Con arena solo con junta ≥ 1/8"; sin arena solo con junta ≤ 1/8". Fuera de eso vale 0 (= N/A).
+ */
+export function lechadaDeSuperficie(tamano: string, juntaIn: number, profIn: number, a: AjustesCalculadora) {
+  const [la, lb] = medidasDeLaLoseta(tamano);
+  const j = sana(juntaIn);
+  const referencia = parteDeJunta(a.lechadaLargoRefIn, a.lechadaAnchoRefIn, a.lechadaJuntaRefIn) * a.lechadaProfRefIn;
+  const esta = parteDeJunta(la, lb, j) * profIn;
+  const ajuste = finitoOCero(referencia / esta);
+  const arenada = j >= JUNTA_LIMITE_LECHADA_IN ? Math.floor(a.lechadaArenadaSfPorBolsa * ajuste) : 0;
+  const sinArena = j <= JUNTA_LIMITE_LECHADA_IN ? Math.floor(a.lechadaSinArenaSfPorBolsa * ajuste) : 0;
+  return { la, lb, j, profIn, ajuste, arenada, sinArena };
 }
 
 export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculadora): ResultadoCalculadora {
@@ -607,15 +652,15 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
   const esPiso = e.proyecto === "Flooring Only";
   const esPared = e.proyecto === "Wall Only";
 
-  // C36: salpicadero. Va dentro del área de pared; en solo piso vale 0.
-  const salpicaderoSf = esPiso ? 0 : sana(e.salpicaderoLargoFt) * sana(e.salpicaderoAltoFt);
+  // C36: salpicadero. Va dentro del área de pared de la ducha; en piso y pared (D-1203) vale 0.
+  const salpicaderoSf = esDucha ? sana(e.salpicaderoLargoFt) * sana(e.salpicaderoAltoFt) : 0;
 
   // Solo piso: cada habitación es largo × ancho, y se suman. Ducha: el L × W de la hoja.
   const pisoPorHabitacion = esPiso ? e.habitaciones.map((h) => Math.max(0, sana(h.largoFt) * sana(h.anchoFt))) : [];
 
-  // Solo pared: cada muro es (alto × largo − aberturas), y se suman. Ducha: no se usa.
-  const murosPared = esPared ? e.muros : [];
-  const paredPorMuro = murosPared.map((m) => Math.max(0, sana(m.altoFt) * sana(m.largoFt) - sana(m.aberturasSf)));
+  // Solo pared (D-1203): UNA pared, medida en SF o largo × alto, menos las aberturas.
+  const paredBruta = e.paredMetodo === "Dimensions" ? sana(e.paredLargoFt) * sana(e.paredAltoFt) : sana(e.paredAreaSf);
+  const paredAberturas = sana(e.paredAberturasSf);
 
   // C40: piso (ducha: L × W; solo piso: suma de habitaciones).
   const pisoSf = esDucha ? Math.max(0, L * W) : esPiso ? sumar(pisoPorHabitacion) : 0;
@@ -623,20 +668,23 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
   // C42: perímetro de pared (LF). Ducha: L + (2, 3 o 4 paredes). Solo pared: suma de los largos de los muros.
   const perimetroLf = esDucha
     ? L + (e.disposicion === "2 Walls" ? W : e.disposicion === "3 Walls" ? 2 * W : L + 2 * W)
-    : esPared ? sumar(murosPared.map((m) => sana(m.largoFt))) : 0;
+    : 0;
 
   // C41: pared (SF). Ducha: H × perímetro − aberturas + salpicadero. Solo pared: suma de muros + salpicadero.
   const paredSf = esDucha
     ? Math.max(0, H * perimetroLf - ab + salpicaderoSf)
-    : esPared ? Math.max(0, sumar(paredPorMuro) + salpicaderoSf) : 0;
+    : esPared ? Math.max(0, paredBruta - paredAberturas) : 0;
 
-  // C19: tablero en LF (pared sin el salpicadero, entre el alto instalado). Ducha, o solo pared si C34 = 1.
-  const tableroAqui = esDucha || (esPared && a.tableroEnSoloPared === 1);
-  const tablerosLfCrudo = tableroAqui ? Math.max(0, paredSf - salpicaderoSf) / a.tableroAltoFt : 0;
+  // C19: tablero en LF (pared sin el salpicadero, entre el alto instalado). Solo ducha.
+  const tablerosLfCrudo = esDucha ? Math.max(0, paredSf - salpicaderoSf) / a.tableroAltoFt : 0;
   const tablerosLf = tablerosLfCrudo > 0 && Number.isFinite(tablerosLfCrudo) ? tablerosLfCrudo : 0;
 
-  // C43: paneles enteros + los del trazado. Depende de C19.
-  const tablerosPaneles = tablerosLf <= 0 ? 0 : finitoOCero(Math.ceil(tablerosLf / a.tableroAnchoLf)) + a.tablerosExtra;
+  // Solo pared (D-1203): paneles = área ÷ (ancho × alto del panel, 3 × 5 = 15 SF), redondeado hacia arriba, sin extra.
+  const panelSf = sana(a.tableroAnchoLf) * sana(a.tableroAltoFt);
+  // C43: paneles enteros + los del trazado. Ducha: depende de C19.
+  const tablerosPaneles = esPared
+    ? paquetesNecesarios(paredSf, panelSf)
+    : tablerosLf <= 0 ? 0 : finitoOCero(Math.ceil(tablerosLf / a.tableroAnchoLf)) + a.tablerosExtra;
 
   // Liner (C17): el piso más la subida y el borde extra a cada lado, en pies.
   const margenLiner = (2 * (sana(e.subidaLinerIn) + sana(e.bordeExtraLinerIn))) / 12;
@@ -650,17 +698,39 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
   const paredSinSalpicadero = Math.max(0, paredSf - salpicaderoSf);
   const impermeableSf = esDucha
     ? (paredSinSalpicadero + pisoSf) * (1 + a.impermeableSolape)
-    : esPared && a.impermeableEnSoloPared === 1 ? paredSinSalpicadero : 0;
+    : 0;
 
-  // Silicón (C28): perímetro + alto × (4, 2 o 1 esquinas según la disposición); solo pared: 2 esquinas por muro (alto × 2).
+  // Silicón (C28): perímetro + alto × (4, 2 o 1 esquinas según la disposición). Solo ducha (la hoja de pared no lo trae).
   const factorDeEsquinas = e.disposicion === "4 Walls" ? 4 : e.disposicion === "3 Walls" ? 2 : 1;
-  const alturasPared = murosPared.map((m) => sana(m.altoFt));
-  const siliconaLf = esDucha ? perimetroLf + H * factorDeEsquinas : esPared ? sumar(alturasPared) * 2 : 0;
+  const siliconaLf = esDucha ? perimetroLf + H * factorDeEsquinas : 0;
 
-  // Clips y cuñas (C30, C31): (piso + pared) × clips por SF. Son para nivelar loseta de piso: en solo pared no aplican.
-  const clipsCant = esPared ? 0 : (pisoSf + paredSf) * a.clipsPorSf;
+  // Clips (C30): (piso + pared) × clips por SF, en las tres. Cuñas: ducha y piso, el mismo conteo; pared (D-1203):
+  // área × cuñas por SF, redondeado hacia arriba.
+  const clipsCant = (pisoSf + paredSf) * a.clipsPorSf;
+  const cunasCant = esPared ? Math.ceil(finitoOCero(paredSf * a.cunasPorSf)) : clipsCant;
 
-  const lechada = desgloseLechada(e, a, pisoSf, paredSf);
+  // Pegamento de pared: la calculadora de pared usa su propio rendimiento (D-1203: 35 SF por bolsa).
+  const pegamentoParedSfPorBolsa = esPared ? a.adhesivoSoloParedSfPorBolsa : a.adhesivoParedSfPorBolsa;
+  const claveAdhesivoPared: keyof AjustesCalculadora = esPared ? "adhesivoSoloParedSfPorBolsa" : "adhesivoParedSfPorBolsa";
+
+  // Lechada (D-1203): con arena y sin arena, dos alternativas (no se suman). Por superficie con área: SF ÷ rendimiento.
+  const superficiesDeLechada = [
+    ...(paredSf > 0 ? [{ nombre: { en: "wall", es: "pared" } as Bilingue, area: paredSf, ...lechadaDeSuperficie(e.tamanoPared, e.juntaParedIn, a.lechadaProfParedIn, a) }] : []),
+    ...(pisoSf > 0 ? [{ nombre: { en: "floor", es: "piso" } as Bilingue, area: pisoSf, ...lechadaDeSuperficie(e.tamanoPiso, e.juntaPisoIn, a.lechadaProfPisoIn, a) }] : []),
+  ];
+  // Cada tipo cubre solo las superficies cuya junta está en su rango (ducha con junta fina en pared y gruesa en piso:
+  // la de arena lleva el piso y la sin arena la pared). Sin ninguna en rango, es N/A.
+  const lechadaDe = (tipoL: "arenada" | "sinArena") => {
+    const validas = superficiesDeLechada.filter((x) => x[tipoL] > 0);
+    const fuera = superficiesDeLechada.filter((x) => !(x[tipoL] > 0)).map((x) => x.nombre);
+    const area = sumar(validas.map((x) => x.area));
+    const fueraDeRango = validas.length === 0 && fuera.length > 0;
+    if (area <= 0) return { area: sumar(superficiesDeLechada.map((x) => x.area)), fueraDeRango, fuera, bolsas: 0, rendimiento: null as number | null, venta: 0 };
+    const bolsas = sumar(validas.map((x) => x.area / x[tipoL]));
+    return { area, fueraDeRango: false, fuera, bolsas, rendimiento: area / bolsas, venta: Math.ceil(bolsas - 1e-9) };
+  };
+  const lechadaArenada = lechadaDe("arenada");
+  const lechadaSinArena = lechadaDe("sinArena");
 
   // ---- Explicaciones: solo leen las cifras de arriba; no cambian ninguna.
   const tipo = NOMBRE_PROYECTO[e.proyecto];
@@ -671,12 +741,8 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
   });
   const motivoSinTablero: Bilingue = esPiso
     ? motivoProyecto({ en: "(no backerboard)", es: "(sin tablero)" })
-    : esPared && a.tableroEnSoloPared !== 1
-      ? { en: "project type is Wall Only and Product Settings C34 = 0 (no backerboard)", es: "el tipo de proyecto es Solo pared y Hoja 2 C34 = 0 (sin tablero)" }
-      : { en: "wall area is 0, so there is no backerboard length", es: "el área de pared es 0, así que no hay largo de tablero" };
-  const motivoSinImpermeable: Bilingue = esPiso
-    ? motivoProyecto({ en: "(waterproofing is for showers)", es: "(el impermeabilizante es para duchas)" })
-    : { en: "project type is Wall Only and Product Settings C35 = 0", es: "el tipo de proyecto es Solo pared y Hoja 2 C35 = 0" };
+    : { en: "wall area is 0, so there is no backerboard", es: "el área de pared es 0, así que no hay tablero" };
+  const motivoSinImpermeable: Bilingue = motivoProyecto({ en: "(waterproofing is for showers)", es: "(el impermeabilizante es para duchas)" });
   const sinPared: Bilingue = motivoProyecto({ en: "(no walls)", es: "(sin paredes)" });
   const sinPiso: Bilingue = motivoProyecto({ en: "(no floor)", es: "(sin piso)" });
   const soloDucha = (en: string, es: string): Bilingue => motivoProyecto({ en, es });
@@ -712,42 +778,29 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
       })
     : null;
 
-  const expParedMuros = esPared
+  const expParedUna = esPared
     ? explica((lg) => {
         const { n, t, ent } = ctx(lg);
-        const suma = paredPorMuro.map(n).join(" + ") || "0";
+        const porMedidas = e.paredMetodo === "Dimensions";
+        const bruta = porMedidas
+          ? t(`${n(sana(e.paredLargoFt))} ft × ${n(sana(e.paredAltoFt))} ft = ${n(paredBruta)} SF`, `${n(sana(e.paredLargoFt))} ft × ${n(sana(e.paredAltoFt))} ft = ${n(paredBruta)} SF`)
+          : `${n(paredBruta)} SF`;
         return {
-          formula: t("Wall area (SF) = sum of walls, each height × length − openings, + backsplash",
-            "Área de pared (SF) = suma de muros, cada uno alto × largo − aberturas, + salpicadero"),
+          formula: porMedidas
+            ? t("Net wall area (SF) = length × height − openings", "Área neta de pared (SF) = largo × alto − aberturas")
+            : t("Net wall area (SF) = wall area − openings", "Área neta de pared (SF) = área de pared − aberturas"),
           pasos: [
-            ...murosPared.map((m, i) => {
-              const nombre = m.nombre.trim() || t(`Wall ${i + 1}`, `Muro ${i + 1}`);
-              const bruta = sana(m.altoFt) * sana(m.largoFt) - sana(m.aberturasSf);
-              const aviso = bruta < 0 ? t(" (can't be below 0)", " (no puede ser menor que 0)") : "";
-              return `${nombre}: ${n(sana(m.altoFt))} × ${n(sana(m.largoFt))} − ${n(sana(m.aberturasSf))} = ${n(paredPorMuro[i])} SF${aviso}`;
-            }),
-            t(`Wall area = ${suma} + ${n(salpicaderoSf)} backsplash = ${n(paredSf)} SF`,
-              `Área de pared = ${suma} + ${n(salpicaderoSf)} salpicadero = ${n(paredSf)} SF`),
+            t(`Wall = ${bruta}`, `Pared = ${bruta}`),
+            t(`Net = ${n(paredBruta)} − ${n(paredAberturas)} = ${n(paredSf)} SF`, `Neta = ${n(paredBruta)} − ${n(paredAberturas)} = ${n(paredSf)} SF`),
           ],
           usa: [
-            `${t("Walls", "Muros")}: ${murosPared.length} · ${t("wall calculator", "calculadora de pared")}`,
-            ent("Backsplash", "Salpicadero", `${n(salpicaderoSf)} SF (${n(sana(e.salpicaderoLargoFt))} ft × ${n(sana(e.salpicaderoAltoFt))} ft)`, "C48 × C49"),
+            porMedidas
+              ? t("Measurement method: Dimensions", "Método de medida: largo × alto")
+              : t("Measurement method: Square footage", "Método de medida: pies cuadrados"),
+            ent("Openings / deductions", "Aberturas / descuentos", `${n(paredAberturas)} SF`, "E6"),
           ],
-          cierre: t("Used for: wall tile, wall thinset, backerboard, waterproofing, wall grout and trim.",
-            "Se usa en: loseta de pared, pegamento de pared, tablero, impermeabilizante, lechada de pared y perfil."),
-        };
-      })
-    : null;
-
-  const expPerimetroMuros = esPared
-    ? explica((lg) => {
-        const { n, t } = ctx(lg);
-        const suma = murosPared.map((m) => n(sana(m.largoFt))).join(" + ") || "0";
-        return {
-          formula: t("Perimeter (LF) = sum of wall lengths", "Perímetro (LF) = suma de los largos de los muros"),
-          pasos: [t(`Perimeter = ${suma} = ${n(perimetroLf)} LF`, `Perímetro = ${suma} = ${n(perimetroLf)} LF`)],
-          usa: [`${t("Walls", "Muros")}: ${murosPared.length}`],
-          cierre: t("Used for: wall area and silicone.", "Se usa en: área de pared y silicón."),
+          cierre: t("Used for: wall tile, thinset, grout, clips, wedges and backerboard.",
+            "Se usa en: loseta de pared, pegamento, lechada, clips, cuñas y tablero."),
         };
       })
     : null;
@@ -792,8 +845,8 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
               "Se usa en: loseta de pared, pegamento de pared, tablero, impermeabilizante, lechada de pared y clips."),
           };
         })
-      : esPared && expParedMuros
-        ? expParedMuros
+      : esPared && expParedUna
+        ? expParedUna
         : cero({ en: "Wall area (SF) = height × wall perimeter − openings + backsplash", es: "Área de pared (SF) = alto × perímetro − aberturas + salpicadero" }, sinPared),
     perimetroLf: esDucha
       ? explica((lg) => {
@@ -812,10 +865,19 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
             cierre: t("Used for: wall area and silicone.", "Se usa en: área de pared y silicón."),
           };
         })
-      : esPared && expPerimetroMuros
-        ? expPerimetroMuros
-        : cero({ en: "Perimeter (LF) = length (shower and wall-only)", es: "Perímetro (LF) = largo (ducha y solo pared)" }, sinPared),
-    tablerosPaneles: tablerosLf > 0
+      : cero({ en: "Perimeter (LF) = length (shower and wall-only)", es: "Perímetro (LF) = largo (ducha y solo pared)" }, sinPared),
+    tablerosPaneles: esPared && tablerosPaneles > 0
+      ? explica((lg) => {
+          const { n, t, aj } = ctx(lg);
+          return {
+            formula: t("Panels = net wall area ÷ (panel width × panel length), rounded up", "Paneles = área neta de pared ÷ (ancho × largo del panel), redondeado hacia arriba"),
+            pasos: [t(`${n(paredSf)} SF ÷ (${n(a.tableroAnchoLf)} × ${n(a.tableroAltoFt)} = ${n(panelSf)} SF) = ${n(paredSf / panelSf)} → rounded up = ${tablerosPaneles} panels`,
+              `${n(paredSf)} SF ÷ (${n(a.tableroAnchoLf)} × ${n(a.tableroAltoFt)} = ${n(panelSf)} SF) = ${n(paredSf / panelSf)} → redondeado hacia arriba = ${tablerosPaneles} paneles`)],
+            usa: [aj("tableroAnchoLf", a.tableroAnchoLf), aj("tableroAltoFt", a.tableroAltoFt)],
+            cierre: t("Only if new substrate is needed; verify the panel layout.", "Solo si se necesita sustrato nuevo; verifica el trazado de los paneles."),
+          };
+        })
+      : tablerosLf > 0
       ? explica((lg) => {
           const { n, t, ent, aj } = ctx(lg);
           const redondeado = Math.ceil(tablerosLf / a.tableroAnchoLf);
@@ -876,7 +938,17 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
     : cero({ en: "Mortar bed (cu ft) = floor area × average depth ÷ 12", es: "Mortero seco (pie³) = área de piso × profundidad ÷ 12" },
       motivoProyecto({ en: "(the mortar bed is for showers)", es: "(la cama de mortero es solo para duchas)" }));
 
-  const expTablero = tablerosLf > 0
+  const expTablero = esPared && tablerosPaneles > 0
+    ? explica((lg) => {
+        const { n, t, aj, div } = ctx(lg);
+        return {
+          formula: t("Backerboard (panels) = net wall area ÷ SF per panel (width × length)", "Tablero (paneles) = área neta de pared ÷ SF por panel (ancho × largo)"),
+          pasos: [t(`Amount needed = net wall area = ${n(paredSf)} SF`, `Cantidad = área neta de pared = ${n(paredSf)} SF`)],
+          usa: [aj("tableroAnchoLf", a.tableroAnchoLf), aj("tableroAltoFt", a.tableroAltoFt)],
+          cierre: div(paredSf, panelSf, tablerosPaneles, "SF", t("SF per panel", "SF por panel"), [t("panel", "panel"), t("panels", "paneles")]),
+        };
+      })
+    : tablerosLf > 0
     ? explica((lg) => {
         const { n, t, ent, aj, div } = ctx(lg);
         return {
@@ -954,8 +1026,8 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
         return {
           formula: t("Wall thinset (bags) = wall area ÷ SF per bag", "Pegamento de pared (bolsas) = área de pared ÷ SF por bolsa"),
           pasos: [t(`Amount needed = wall area = ${n(paredSf)} SF`, `Cantidad = área de pared = ${n(paredSf)} SF`)],
-          usa: [aj("adhesivoParedSfPorBolsa", a.adhesivoParedSfPorBolsa)],
-          cierre: div(paredSf, a.adhesivoParedSfPorBolsa, paquetesNecesarios(paredSf, a.adhesivoParedSfPorBolsa), "SF",
+          usa: [aj(claveAdhesivoPared, pegamentoParedSfPorBolsa)],
+          cierre: div(paredSf, pegamentoParedSfPorBolsa, paquetesNecesarios(paredSf, pegamentoParedSfPorBolsa), "SF",
             t("SF per bag", "SF por bolsa"), [t("bag", "bolsa"), t("bags", "bolsas")]),
         };
       })
@@ -1000,79 +1072,59 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
       })
     : cero({ en: "Floor tile (boxes) = floor area ÷ SF per box", es: "Loseta de piso (cajas) = área de piso ÷ SF por caja" }, sinPiso);
 
-  const expLechada = explica((lg) => {
-    const { n, t, ent, aj, div } = ctx(lg);
-    const d = lechada;
-    const dp = a.lechadaProfundidadParedIn, dq = a.lechadaProfundidadPisoIn, dr = a.lechadaProfundidadRefIn;
+  const expLechadaDe = (tipoL: "arenada" | "sinArena") => explica((lg) => {
+    const { n, t, aj } = ctx(lg);
+    const r = tipoL === "arenada" ? lechadaArenada : lechadaSinArena;
+    const claveRef: keyof AjustesCalculadora = tipoL === "arenada" ? "lechadaArenadaSfPorBolsa" : "lechadaSinArenaSfPorBolsa";
+    const refSf = a[claveRef];
+    const nombreTipo = tipoL === "arenada" ? t("sanded", "con arena") : t("unsanded", "sin arena");
+    const regla = tipoL === "arenada" ? t("joint 1/8 in or wider", "junta de 1/8 in o más") : t("joint 1/8 in or narrower", "junta de 1/8 in o menos");
     return {
-      formula: t("Grout (lb) = (wall joints + floor joints) ÷ reference joint volume × (lb per bag ÷ reference SF)",
-        "Lechada (lb) = (juntas de pared + juntas de piso) ÷ volumen de junta de referencia × (lb por bolsa ÷ SF de referencia)"),
-      pasos: [
-        paredSf > 0
-          ? t(`Wall joints = ${n(paredSf)} × ((1 ÷ (${n(d.pa)} + ${n(d.jp)}) + 1 ÷ (${n(d.pb)} + ${n(d.jp)})) × ${n(d.jp)}) × ${n(dp)} = ${n(d.termPared)}`,
-            `Juntas de pared = ${n(paredSf)} × ((1 ÷ (${n(d.pa)} + ${n(d.jp)}) + 1 ÷ (${n(d.pb)} + ${n(d.jp)})) × ${n(d.jp)}) × ${n(dp)} = ${n(d.termPared)}`)
-          : t("Wall joints = 0 (no wall area)", "Juntas de pared = 0 (sin área de pared)"),
-        pisoSf > 0
-          ? t(`Floor joints = ${n(pisoSf)} × ((1 ÷ (${n(d.pc)} + ${n(d.jq)}) + 1 ÷ (${n(d.pd)} + ${n(d.jq)})) × ${n(d.jq)}) × ${n(dq)} = ${n(d.termPiso)}`,
-            `Juntas de piso = ${n(pisoSf)} × ((1 ÷ (${n(d.pc)} + ${n(d.jq)}) + 1 ÷ (${n(d.pd)} + ${n(d.jq)})) × ${n(d.jq)}) × ${n(dq)} = ${n(d.termPiso)}`)
-          : t("Floor joints = 0 (no floor area)", "Juntas de piso = 0 (sin área de piso)"),
-        t(`Reference joint per SF = ((1 ÷ (${n(a.lechadaLargoRefIn)} + ${n(a.lechadaJuntaRefIn)}) + 1 ÷ (${n(a.lechadaAnchoRefIn)} + ${n(a.lechadaJuntaRefIn)})) × ${n(a.lechadaJuntaRefIn)}) × ${n(dr)} = ${n(d.referencia)}`,
-          `Junta de referencia por SF = ((1 ÷ (${n(a.lechadaLargoRefIn)} + ${n(a.lechadaJuntaRefIn)}) + 1 ÷ (${n(a.lechadaAnchoRefIn)} + ${n(a.lechadaJuntaRefIn)})) × ${n(a.lechadaJuntaRefIn)}) × ${n(dr)} = ${n(d.referencia)}`),
-        t(`Reference SF = (${n(d.termPared)} + ${n(d.termPiso)}) ÷ ${n(d.referencia)} = ${n(d.sfEquivalentes)} SF`,
-          `SF de referencia = (${n(d.termPared)} + ${n(d.termPiso)}) ÷ ${n(d.referencia)} = ${n(d.sfEquivalentes)} SF`),
-        t(`Pounds = ${n(d.sfEquivalentes)} SF × ${n(a.lechadaLbPorBolsa)} lb ÷ ${n(a.lechadaSfReferencia)} SF = ${n(d.lb)} lb`,
-          `Libras = ${n(d.sfEquivalentes)} SF × ${n(a.lechadaLbPorBolsa)} lb ÷ ${n(a.lechadaSfReferencia)} SF = ${n(d.lb)} lb`),
-      ],
-      usa: [
-        ...(esDucha || esPared ? [
-          ent("Wall tile size", "Tamaño de loseta de pared", `${e.tamanoPared} in`, "F6"),
-          ent("Wall joint", "Junta en pared", `${n(d.jp)} in`, "F8"),
-          `${t("Wall area", "Área de pared")}: ${n(paredSf)} SF · ${t("section 03", "sección 03")}`,
-        ] : []),
-        ...(esDucha || esPiso ? [
-          ent("Floor tile size", "Tamaño de loseta de piso", `${e.tamanoPiso} in`, "F7"),
-          ent("Floor joint", "Junta en piso", `${n(d.jq)} in`, "F9"),
-          `${t("Floor area", "Área de piso")}: ${n(pisoSf)} SF · ${t("section 03", "sección 03")}`,
-        ] : []),
-        aj("lechadaProfundidadParedIn", dp), aj("lechadaProfundidadPisoIn", dq),
-        aj("lechadaSfReferencia", a.lechadaSfReferencia), aj("lechadaLbPorBolsa", a.lechadaLbPorBolsa),
-        aj("lechadaLargoRefIn", a.lechadaLargoRefIn), aj("lechadaAnchoRefIn", a.lechadaAnchoRefIn),
-        aj("lechadaJuntaRefIn", a.lechadaJuntaRefIn), aj("lechadaProfundidadRefIn", dr),
-      ],
-      cierre: div(d.lb, a.lechadaLbPorBolsa, paquetesNecesarios(d.lb, a.lechadaLbPorBolsa), "lb",
-        t("lb per bag", "lb por bolsa"), [t("bag", "bolsa"), t("bags", "bolsas")]),
+      formula: t(`Grout ${nombreTipo} (bags) = area ÷ SF per bag; SF per bag = ${n(refSf)} × joint adjustment (rounded down). Only for ${regla}.`,
+        `Lechada ${nombreTipo} (bolsas) = área ÷ SF por bolsa; SF por bolsa = ${n(refSf)} × ajuste por junta (redondeado hacia abajo). Solo con ${regla}.`),
+      pasos: superficiesDeLechada.length === 0
+        ? [t("0 because there is no tile area", "0 porque no hay área de loseta")]
+        : [
+          ...superficiesDeLechada.map((x) => {
+            const cov = x[tipoL];
+            const cab = `${t(x.nombre.en, x.nombre.es)} ${x.la}x${x.lb}, ${t("joint", "junta")} ${n(x.j)} in, ${t("depth", "prof.")} ${n(x.profIn)} in`;
+            return cov > 0
+              ? t(`${cab}: adjustment ${n(x.ajuste)} → ${n(cov)} SF per bag; ${n(x.area)} SF ÷ ${n(cov)} = ${n(x.area / cov)} bags`,
+                `${cab}: ajuste ${n(x.ajuste)} → ${n(cov)} SF por bolsa; ${n(x.area)} SF ÷ ${n(cov)} = ${n(x.area / cov)} bolsas`)
+              : t(`${cab}: N/A — joint outside the rated range for ${nombreTipo} grout`, `${cab}: N/A — la junta está fuera del rango de la lechada ${nombreTipo}`);
+          }),
+        ],
+      usa: [aj(claveRef, refSf), aj("lechadaLargoRefIn", a.lechadaLargoRefIn), aj("lechadaAnchoRefIn", a.lechadaAnchoRefIn),
+        aj("lechadaJuntaRefIn", a.lechadaJuntaRefIn), aj("lechadaProfRefIn", a.lechadaProfRefIn)],
+      cierre: r.fueraDeRango
+        ? t("N/A: choose the other grout type.", "N/A: usa el otro tipo de lechada.")
+        : r.venta > 0
+          ? t(`${n(r.bolsas)} bags → rounded up = ${r.venta} ${r.venta === 1 ? "bag" : "bags"}. ${r.fuera.length ? "The surface out of range takes the other grout." : "Sanded and unsanded are alternatives: sell one."}`,
+            `${n(r.bolsas)} bolsas → redondeado hacia arriba = ${r.venta} ${r.venta === 1 ? "bolsa" : "bolsas"}. ${r.fuera.length ? "La superficie fuera de rango lleva la otra lechada." : "Con arena y sin arena son alternativas: se vende una."}`)
+          : t("Nothing to sell: 0.", "Nada que vender: 0."),
     };
   });
+  const expLechadaArenada = expLechadaDe("arenada");
+  const expLechadaSinArena = expLechadaDe("sinArena");
 
-  const expSilicon = esDucha || esPared
+  const expSilicon = esDucha
     ? explica((lg) => {
         const { n, t, ent, aj, div } = ctx(lg);
-        return esDucha
-          ? {
-            formula: t("Silicone (LF) = perimeter + height × corners (2 walls: 1 corner, 3 walls: 2, 4 walls: 4)",
-              "Silicón (LF) = perímetro + alto × esquinas (2 paredes: 1 esquina, 3 paredes: 2, 4 paredes: 4)"),
-            pasos: [t(`Silicone = ${n(perimetroLf)} + ${n(H)} × ${factorDeEsquinas} = ${n(siliconaLf)} LF`,
-              `Silicón = ${n(perimetroLf)} + ${n(H)} × ${factorDeEsquinas} = ${n(siliconaLf)} LF`)],
-            usa: [ent("Height", "Alto", `${n(H)} ft`, "C9"),
-              ent("Shower layout", "Disposición de la ducha", t(NOMBRE_DISPOSICION[e.disposicion].en, NOMBRE_DISPOSICION[e.disposicion].es), "C10"),
-              t(`Perimeter (section 03): ${n(perimetroLf)} LF`, `Perímetro (sección 03): ${n(perimetroLf)} LF`),
-              aj("siliconaLfPorTubo", a.siliconaLfPorTubo)],
-            cierre: div(siliconaLf, a.siliconaLfPorTubo, paquetesNecesarios(siliconaLf, a.siliconaLfPorTubo), "LF",
-              t("LF per tube", "LF por tubo"), [t("tube", "tubo"), t("tubes", "tubos")]),
-          }
-          : {
-            formula: t("Silicone (LF) = sum of wall heights × 2 (two vertical corners per wall)",
-              "Silicón (LF) = suma de las alturas de los muros × 2 (dos esquinas verticales por muro)"),
-            pasos: [t(`Silicone = (${alturasPared.map(n).join(" + ") || "0"}) × 2 = ${n(siliconaLf)} LF`,
-              `Silicón = (${alturasPared.map(n).join(" + ") || "0"}) × 2 = ${n(siliconaLf)} LF`)],
-            usa: [`${t("Walls", "Muros")}: ${murosPared.length} · ${t("wall calculator", "calculadora de pared")}`,
-              aj("siliconaLfPorTubo", a.siliconaLfPorTubo)],
-            cierre: div(siliconaLf, a.siliconaLfPorTubo, paquetesNecesarios(siliconaLf, a.siliconaLfPorTubo), "LF",
-              t("LF per tube", "LF por tubo"), [t("tube", "tubo"), t("tubes", "tubos")]),
-          };
+        return {
+          formula: t("Silicone (LF) = perimeter + height × corners (2 walls: 1 corner, 3 walls: 2, 4 walls: 4)",
+            "Silicón (LF) = perímetro + alto × esquinas (2 paredes: 1 esquina, 3 paredes: 2, 4 paredes: 4)"),
+          pasos: [t(`Silicone = ${n(perimetroLf)} + ${n(H)} × ${factorDeEsquinas} = ${n(siliconaLf)} LF`,
+            `Silicón = ${n(perimetroLf)} + ${n(H)} × ${factorDeEsquinas} = ${n(siliconaLf)} LF`)],
+          usa: [ent("Height", "Alto", `${n(H)} ft`, "C9"),
+            ent("Shower layout", "Disposición de la ducha", t(NOMBRE_DISPOSICION[e.disposicion].en, NOMBRE_DISPOSICION[e.disposicion].es), "C10"),
+            t(`Perimeter (section 03): ${n(perimetroLf)} LF`, `Perímetro (sección 03): ${n(perimetroLf)} LF`),
+            aj("siliconaLfPorTubo", a.siliconaLfPorTubo)],
+          cierre: div(siliconaLf, a.siliconaLfPorTubo, paquetesNecesarios(siliconaLf, a.siliconaLfPorTubo), "LF",
+            t("LF per tube", "LF por tubo"), [t("tube", "tubo"), t("tubes", "tubos")]),
+        };
       })
     : cero({ en: "Silicone (LF) = perimeter + height × corners", es: "Silicón (LF) = perímetro + alto × esquinas" },
-      motivoProyecto({ en: "(no corners)", es: "(sin esquinas)" }));
+      motivoProyecto({ en: "(silicone is for showers)", es: "(el silicón es para duchas)" }));
 
   const expPerfil = explica((lg) => {
     const { n, t, ent, aj, div } = ctx(lg);
@@ -1088,8 +1140,7 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
     };
   });
 
-  const expClips = esPared ? cero({ en: "Clips = (floor SF + wall SF) × clips per SF", es: "Clips = (SF de piso + SF de pared) × clips por SF" },
-    motivoProyecto({ en: "(leveling clips are for floor tile)", es: "(los clips nivelan la loseta de piso)" })) : explica((lg) => {
+  const expClips = explica((lg) => {
     const { n, t, aj, div } = ctx(lg);
     return {
       formula: t("Clips = (floor SF + wall SF) × clips per SF", "Clips = (SF de piso + SF de pared) × clips por SF"),
@@ -1103,8 +1154,17 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
     };
   });
 
-  const expCunas = esPared ? cero({ en: "Wedges = same count as clips", es: "Cuñas = mismo conteo que los clips" },
-    motivoProyecto({ en: "(leveling wedges are for floor tile)", es: "(las cuñas nivelan la loseta de piso)" })) : explica((lg) => {
+  const expCunas = esPared ? explica((lg) => {
+    const { n, t, aj, div } = ctx(lg);
+    return {
+      formula: t("Wedges = net wall area × wedges per SF, rounded up", "Cuñas = área neta de pared × cuñas por SF, redondeado hacia arriba"),
+      pasos: [t(`Wedges = ${n(paredSf)} × ${n(a.cunasPorSf)} = ${n(paredSf * a.cunasPorSf)} → ${n(cunasCant)} wedges`,
+        `Cuñas = ${n(paredSf)} × ${n(a.cunasPorSf)} = ${n(paredSf * a.cunasPorSf)} → ${n(cunasCant)} cuñas`)],
+      usa: [aj("cunasPorSf", a.cunasPorSf), aj("cunasPorPaquete", a.cunasPorPaquete)],
+      cierre: div(cunasCant, a.cunasPorPaquete, paquetesNecesarios(cunasCant, a.cunasPorPaquete), t("wedges", "cuñas"),
+        t("wedges per pack", "cuñas por paquete"), [t("pack", "paquete"), t("packs", "paquetes")]),
+    };
+  }) : explica((lg) => {
     const { n, t, aj, div } = ctx(lg);
     return {
       formula: t("Wedges = same count as clips = (floor SF + wall SF) × clips per SF", "Cuñas = mismo conteo que los clips = (SF de piso + SF de pared) × clips por SF"),
@@ -1155,10 +1215,14 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
     fila("mortero", { en: "Mortar bed / mortero seco", es: "Mortero seco (cama de la ducha)" },
       morteroPc, a.morteroPiesCubicosPorBolsa, { en: "bags", es: "bolsas" },
       "44-lb mortar bags per Supply Calculator; volume yield still requires product confirmation.", expMortero),
-    fila("tablero", { en: "Backerboard (linear feet)", es: "Tablero de cemento (pies lineales)" },
-      tablerosLf, TABLERO_POR_PAQUETE_LF, { en: "LF", es: "LF" },
-      "Estimated 17.6 LF installed; 7 whole 3-ft-wide panels = 21 LF sold. Layout panels editable in settings.", expTablero,
-      sana(tablerosPaneles * a.tableroAnchoLf)),
+    esPared
+      ? fila("tablero", { en: "Backerboard", es: "Tablero de cemento" },
+        paredSf, panelSf, { en: "panels", es: "paneles" },
+        "If new substrate needed; area estimate", expTablero, tablerosPaneles)
+      : fila("tablero", { en: "Backerboard (linear feet)", es: "Tablero de cemento (pies lineales)" },
+        tablerosLf, TABLERO_POR_PAQUETE_LF, { en: "LF", es: "LF" },
+        "Estimated 17.6 LF installed; 7 whole 3-ft-wide panels = 21 LF sold. Layout panels editable in settings.", expTablero,
+        sana(tablerosPaneles * a.tableroAnchoLf)),
     fila("tornillos", { en: "Backerboard screws", es: "Tornillos para tablero" },
       tablerosPaneles * a.tornillosPorTablero, a.tornillosPorCaja, { en: "boxes", es: "cajas" },
       "575 screws per box; verify screw spacing & substrate", expTornillos),
@@ -1169,8 +1233,8 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
       impermeableSf, a.impermeableSfPorGal * a.impermeableGalPorEnvase, { en: "gallons", es: "galones" },
       "Working 3-gallon standard reference; one waterproofing brand only; verify actual coverage and packaging.", expImpermeable),
     fila("pegamento-pared", { en: "Thinset for walls", es: "Pegamento para pared" },
-      paredSf, a.adhesivoParedSfPorBolsa, { en: "bags", es: "bolsas" },
-      "44-lb thinset working rate for standard shower; back-buttering included; verify coverage.", expPegamentoPared),
+      paredSf, pegamentoParedSfPorBolsa, { en: "bags", es: "bolsas" },
+      esPared ? "44 lb; includes back-buttering" : "44-lb thinset working rate for standard shower; back-buttering included; verify coverage.", expPegamentoPared),
     fila("pegamento-piso", { en: "Thinset for flooring", es: "Pegamento para piso" },
       pisoSf, a.adhesivoPisoSfPorBolsa, { en: "bags", es: "bolsas" },
       "44-lb thinset working rate for standard shower; back-buttering included; verify coverage.", expPegamentoPiso),
@@ -1180,9 +1244,8 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
     fila("loseta-piso", { en: "Floor tile", es: "Loseta de piso" },
       pisoSf, e.cajaPisoSf, { en: "boxes", es: "cajas" },
       "Boxes use SF per box; tile size used only for grout estimate", expLosetaPiso),
-    fila("lechada", { en: "Grout / TEXcolor", es: "Lechada / TEXcolor" },
-      lechada.lb, a.lechadaLbPorBolsa, { en: "bags", es: "bolsas" },
-      "25-lb bags; coverage in SF/bag depends on joint width, depth and tile dimensions.", expLechada),
+    filaDeLechada("lechada-arenada", { en: "Grout — sanded", es: "Lechada con arena" }, lechadaArenada, expLechadaArenada),
+    filaDeLechada("lechada-sin-arena", { en: "Grout — unsanded", es: "Lechada sin arena" }, lechadaSinArena, expLechadaSinArena),
     fila("silicon", { en: "Silicone sealant / TEX2", es: "Silicón / TEX2" },
       siliconaLf, a.siliconaLfPorTubo, { en: "tubes", es: "tubos" },
       "Calculated from estimated linear feet of corner joints", expSilicon),
@@ -1193,7 +1256,7 @@ export function calcular(entradas: EntradasCalculadora, ajustes: AjustesCalculad
       clipsCant, a.clipsPorPaquete, { en: "packs", es: "paquetes" },
       "Allowance adjustable / verify tile pattern and layout", expClips),
     fila("cunas", { en: "Leveling wedges", es: "Cuñas niveladoras" },
-      clipsCant, a.cunasPorPaquete, { en: "packs", es: "paquetes" },
+      cunasCant, a.cunasPorPaquete, { en: "packs", es: "paquetes" },
       "Allowance adjustable / wedges may be reusable", expCunas),
     fila("coladera", { en: "Shower drain", es: "Coladera de ducha" },
       esDucha ? 1 : 0, 1, { en: "each", es: "c/u" },
@@ -1227,6 +1290,25 @@ function fila(
   };
 }
 
+/** Una fila de lechada (D-1203): bolsas de 25 lb; N/A si la junta está fuera del rango de ese tipo. */
+function filaDeLechada(
+  clave: ClaveDeFila, material: Bilingue,
+  r: { area: number; fueraDeRango: boolean; fuera: Bilingue[]; rendimiento: number | null; venta: number }, explicacion: Explicacion,
+): FilaCalculada {
+  const base = r.fueraDeRango
+    ? "N/A — joint outside the rated range; choose the other grout type"
+    : "SF per 25-lb bag; sanded and unsanded are alternatives, choose one";
+  const nota: Bilingue = { en: base, es: NOTAS_ES[base] ?? base };
+  if (!r.fueraDeRango && r.fuera.length > 0) {
+    nota.en = `Covers only the surface in range; the ${r.fuera.map((x) => x.en).join(" and ")} joint is outside it — use the other grout there.`;
+    nota.es = `Cubre solo la superficie en rango; la junta de ${r.fuera.map((x) => x.es).join(" y ")} está fuera — ahí usa la otra lechada.`;
+  }
+  return {
+    clave, material, cantidad: sana(r.area), porPaquete: r.rendimiento !== null && r.rendimiento > 0 ? r.rendimiento : null,
+    venta: r.venta, unidad: { en: "bags", es: "bolsas" }, nota, explicacion,
+  };
+}
+
 /** Notas en español de las filas (la hoja las trae en inglés). */
 const NOTAS_ES: Record<string, string> = {
   "One 5×7 liner piece covers the sample pan cut (24 SF); verify available sheet dimensions and upturns.": "Una pieza 5×7 cubre el corte de ejemplo de 24 SF; verifica las medidas disponibles y las subidas.",
@@ -1238,6 +1320,10 @@ const NOTAS_ES: Record<string, string> = {
   "44-lb thinset working rate for standard shower; back-buttering included; verify coverage.": "Rendimiento de trabajo de 44 lb para una ducha estándar; incluye el pegado por la cara trasera; verifica el rendimiento.",
   "Boxes use SF per box; tile size used only for grout estimate": "Las cajas se cuentan por SF por caja; el tamaño de la loseta solo sirve para estimar la lechada.",
   "25-lb bags; coverage in SF/bag depends on joint width, depth and tile dimensions.": "Bolsas de 25 lb; el rendimiento en SF por bolsa depende del ancho y la profundidad de la junta y del tamaño de la loseta.",
+  "N/A — joint outside the rated range; choose the other grout type": "N/A — la junta está fuera del rango; usa el otro tipo de lechada.",
+  "SF per 25-lb bag; sanded and unsanded are alternatives, choose one": "SF por bolsa de 25 lb; con arena y sin arena son alternativas: elige una.",
+  "If new substrate needed; area estimate": "Si se necesita sustrato nuevo; estimado por área.",
+  "44 lb; includes back-buttering": "44 lb; incluye el pegado por la cara trasera.",
   "Calculated from estimated linear feet of corner joints": "Calculado con los pies lineales estimados de las juntas de esquina.",
   "Based on specified exposed edge length; enter length below": "Según el largo de borde expuesto; captúralo abajo.",
   "Allowance adjustable / verify tile pattern and layout": "Margen ajustable; verifica el patrón y el trazado de la loseta.",

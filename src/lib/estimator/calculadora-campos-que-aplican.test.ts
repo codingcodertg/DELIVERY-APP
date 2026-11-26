@@ -29,7 +29,7 @@ describe("ducha: qué se muestra", () => {
   it("filas: todas las de ducha, sin pendiente (C33 = 0)", () => {
     expect(s.filas).toEqual([
       "liner", "mortero", "tablero", "tornillos", "malla", "impermeable", "pegamento-pared", "pegamento-piso",
-      "loseta-pared", "loseta-piso", "lechada", "silicon", "perfil", "clips", "cunas", "coladera",
+      "loseta-pared", "loseta-piso", "lechada-arenada", "lechada-sin-arena", "silicon", "perfil", "clips", "cunas", "coladera",
     ]);
   });
 
@@ -61,7 +61,7 @@ describe("piso: qué se muestra", () => {
   });
 
   it("filas: pegamento, loseta, lechada, perfil, clips y cuñas de piso", () => {
-    expect(p.filas).toEqual(["pegamento-piso", "loseta-piso", "lechada", "perfil", "clips", "cunas"]);
+    expect(p.filas).toEqual(["pegamento-piso", "loseta-piso", "lechada-arenada", "lechada-sin-arena", "perfil", "clips", "cunas"]);
   });
 
   it("área: solo piso", () => {
@@ -69,8 +69,8 @@ describe("piso: qué se muestra", () => {
   });
 
   it("ajustes de piso; no los de pared ni de ducha", () => {
-    expect(p.ajustes).toEqual(expect.arrayContaining(["adhesivoPisoSfPorBolsa", "clipsPorSf", "clipsPorPaquete", "cunasPorPaquete", "lechadaProfundidadPisoIn"]));
-    for (const clave of ["tornillosPorTablero", "adhesivoParedSfPorBolsa", "lechadaProfundidadParedIn", "siliconaLfPorTubo", "morteroPiesCubicosPorBolsa", "tableroAltoFt"] as const) {
+    expect(p.ajustes).toEqual(expect.arrayContaining(["adhesivoPisoSfPorBolsa", "clipsPorSf", "clipsPorPaquete", "cunasPorPaquete", "lechadaProfPisoIn"]));
+    for (const clave of ["tornillosPorTablero", "adhesivoParedSfPorBolsa", "lechadaProfParedIn", "siliconaLfPorTubo", "morteroPiesCubicosPorBolsa", "tableroAltoFt", "cunasPorSf"] as const) {
       expect(p.ajustes).not.toContain(clave);
     }
   });
@@ -80,35 +80,24 @@ describe("piso: qué se muestra", () => {
   });
 });
 
-describe("pared: qué se muestra", () => {
-  it("con los interruptores en 0: solo el editor de muros, los campos de pared y el salpicadero", () => {
+describe("pared: qué se muestra (D-1203: igual a la hoja «Rodriguez Wall Calculator»)", () => {
+  it("una pared (método, área o largo × alto, aberturas), loseta, junta y borde; sin salpicadero ni muros", () => {
     const w = con("Wall Only");
     expect(w.entradas).toEqual([
-      "proyecto", "cajaParedSf", "tamanoPared", "juntaParedIn", "bordeExpuestoLf", "salpicaderoLargoFt", "salpicaderoAltoFt", "muros",
+      "proyecto", "cajaParedSf", "tamanoPared", "juntaParedIn", "bordeExpuestoLf",
+      "paredMetodo", "paredAreaSf", "paredLargoFt", "paredAltoFt", "paredAberturasSf",
     ]);
-    expect(w.filas).toEqual(["pegamento-pared", "loseta-pared", "lechada", "silicon", "perfil"]);
-    expect(w.areas).toEqual(["paredSf", "perimetroLf"]);
+    expect(w.filas).toEqual(["tablero", "tornillos", "malla", "pegamento-pared", "loseta-pared", "lechada-arenada", "lechada-sin-arena", "perfil", "clips", "cunas"]);
+    expect(w.areas).toEqual(["paredSf", "tablerosPaneles"]);
     expect(w.notaDeLiner).toBe(false);
   });
 
-  it("con C34 = 1 aparecen tablero, tornillos y malla (y sus ajustes), antes que el pegamento", () => {
-    const w = con("Wall Only", { tableroEnSoloPared: 1 });
-    expect(w.filas).toEqual(["tablero", "tornillos", "malla", "pegamento-pared", "loseta-pared", "lechada", "silicon", "perfil"]);
-    expect(w.areas).toEqual(["paredSf", "perimetroLf", "tablerosPaneles"]);
-    expect(w.ajustes).toEqual(expect.arrayContaining(["tableroAltoFt", "tableroAnchoLf", "tornillosPorTablero", "tablerosExtra"]));
-  });
-
-  it("con C35 = 1 aparece el impermeabilizante (y sus ajustes), sin tablero", () => {
-    const w = con("Wall Only", { impermeableEnSoloPared: 1 });
-    expect(w.filas).toEqual(["impermeable", "pegamento-pared", "loseta-pared", "lechada", "silicon", "perfil"]);
-    expect(w.ajustes).toEqual(expect.arrayContaining(["impermeableSfPorGal", "impermeableSolape"]));
-    expect(w.ajustes).not.toContain("tableroAltoFt");
-  });
-
-  it("los ajustes de los interruptores (C34, C35) solo salen en pared", () => {
-    expect(con("Wall Only").ajustes).toEqual(expect.arrayContaining(["tableroEnSoloPared", "impermeableEnSoloPared", "adhesivoParedSfPorBolsa"]));
-    expect(con("Shower").ajustes).not.toContain("tableroEnSoloPared");
-    expect(con("Flooring Only").ajustes).not.toContain("impermeableEnSoloPared");
+  it("sus ajustes: pegamento de pared propio, cuñas por SF, panel 3×5; no los de ducha", () => {
+    const w = con("Wall Only");
+    expect(w.ajustes).toEqual(expect.arrayContaining(["adhesivoSoloParedSfPorBolsa", "cunasPorSf", "tableroAnchoLf", "tableroAltoFt", "clipsPorSf"]));
+    for (const clave of ["adhesivoParedSfPorBolsa", "tablerosExtra", "siliconaLfPorTubo", "impermeableSfPorGal", "tableroEnSoloPared", "impermeableEnSoloPared"] as const) {
+      expect(w.ajustes, clave).not.toContain(clave);
+    }
   });
 });
 
@@ -120,7 +109,8 @@ describe("lo que se ve en cada calculadora, en resumen", () => {
   });
 
   it("la pared no muestra loseta de piso ni pegamento de piso; el piso no muestra pegamento de pared", () => {
-    expect(con("Wall Only").filas).not.toEqual(expect.arrayContaining(["loseta-piso", "pegamento-piso", "clips", "cunas"]));
+    expect(con("Wall Only").filas).not.toContain("loseta-piso");
+    expect(con("Wall Only").filas).not.toContain("pegamento-piso");
     expect(con("Flooring Only").filas).not.toEqual(expect.arrayContaining(["loseta-pared", "pegamento-pared", "silicon"]));
   });
 
@@ -128,6 +118,7 @@ describe("lo que se ve en cada calculadora, en resumen", () => {
     const tipos: TipoDeProyecto[] = ["Shower", "Flooring Only", "Wall Only"];
     const usados = new Set(tipos.flatMap((t) => con(t, { tableroEnSoloPared: 1, impermeableEnSoloPared: 1, preslopeIncluido: 1 }).entradas));
     for (const clave of Object.keys(USO_DE_ENTRADAS) as (keyof EntradasCalculadora)[]) {
+      if (USO_DE_ENTRADAS[clave].usa.length === 0) continue; // `muros`: solo para leer lo guardado (D-1203)
       expect(usados.has(clave), clave).toBe(true);
     }
     const ajustes = new Set(tipos.flatMap((t) => con(t, { tableroEnSoloPared: 1, impermeableEnSoloPared: 1, preslopeIncluido: 1 }).ajustes));
@@ -146,6 +137,7 @@ function otroValor(clave: keyof EntradasCalculadora, actual: EntradasCalculadora
     case "habitaciones": return [{ nombre: "X", largoFt: 40, anchoFt: 40 }];
     case "muros": return [{ nombre: "Y", largoFt: 40, altoFt: 40, aberturasSf: 9 }];
     case "proyecto": return actual.proyecto;
+    case "paredMetodo": return actual.paredMetodo === "Dimensions" ? "Square footage" : "Dimensions";
     default: return 999;
   }
 }

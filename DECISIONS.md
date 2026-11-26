@@ -53501,3 +53501,11 @@ Sello `deliveries` 1.669.0; repo 1.998.0.
 
 El dueño (foto del editor «Señale los problemas»): «esto sigue siendo muy mini, maximiza eso del tamaño de la pantalla para que se mire bien el screenshot». El editor reservaba 340 px de alto para título y botones y sobraba espacio; ahora reserva 230 px, el fondo deja 8 px de margen y la tarjeta 16 px de relleno. La captura sale ~35 % más grande en una pantalla de laptop.
 Repo 1.999.0.
+
+## D-1203 · Estimator: calculadora de pared = la hoja «Rodriguez Wall Calculator»; lechada con arena / sin arena en las tres (2026-11-26)
+
+El dueño mandó la hoja nueva (`Rodriguez_Wall_Calculator_Final (1).xlsx`): «compara este con el que ya está… este es la nueva versión», y dijo «sí» a pasarla. Sus decisiones (pregunta): calculadora de pared «Igual a la hoja»; lechada nueva «En las tres».
+Pared: UNA pared, medida en SF o largo × alto, menos aberturas (campos nuevos `paredMetodo`, `paredAreaSf`, `paredLargoFt`, `paredAltoFt`, `paredAberturasSf`; `muros` queda solo para leer lo guardado). Sin salpicadero, silicón ni impermeabilizante. Pegamento a 35 SF/bolsa (ajuste propio). Clips 2/SF y cuñas 0.3/SF (antes 0 en pared). Tablero siempre, en paneles 3×5 = 15 SF por área, sin panel extra; tornillos y malla por panel. Se quitan los interruptores C34/C35.
+Lechada (ducha, piso y pared): dos filas alternativas, con arena (688 SF por bolsa de 25 lb, junta ≥ 1/8") y sin arena (722.5, junta ≤ 1/8"), ajustadas por la parte de junta de la loseta y su profundidad contra la referencia 24×24, 1/8", 3/8"; el rendimiento se redondea hacia abajo, como la hoja. Fuera de rango = N/A. Con dos superficies (ducha), cada tipo cuenta las superficies en rango y avisa de la que lleva la otra. Profundidad por defecto 3/8" (claves nuevas, para que lo guardado en el navegador con 1/4" no se arrastre). Se agrega la loseta 12×12.
+Cuadra con el ejemplo de la hoja (300 SF, 24×24, 1/8", 19.26 SF/caja): 16 cajas, 9 bolsas de pegamento, 1 + 1 de lechada, 6 clips, 1 cuñas, 20 paneles, 2 cajas de tornillos, 3 rollos (prueba `calculadora-pared-hoja.test.ts`). Visto en el demo a 1280 px y 390 px.
+Sello `estimator` 0.46.0; repo 2.0.0.

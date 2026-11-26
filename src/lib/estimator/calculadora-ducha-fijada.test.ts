@@ -4,7 +4,7 @@ import {
 } from "./calculadora-material";
 
 /**
- * La calculadora de ducha no debe cambiar al separar las calculadoras. Estas cifras salieron del código ANTES de tocar la
+ * La calculadora de ducha no debe cambiar al separar las calculadoras (salvo la lechada, que cambió a propósito en D-1203: con arena / sin arena). Estas cifras salieron del código ANTES de tocar la
  * separación (tres casos, y cada uno con C33 = 1 y 2 paneles extra). Si una cambia, cambiaron las cifras de la ducha.
  */
 const CASOS: {
@@ -32,7 +32,8 @@ const CASOS: {
         "pegamento-piso": [15, 1],
         "loseta-pared": [91, 6],
         "loseta-piso": [15, 1],
-        "lechada": [8.101051010844825, 1],
+        "lechada-arenada": [106, 1],
+        "lechada-sin-arena": [106, 1],
         "silicon": [27, 2],
         "perfil": [0, 0],
         "clips": [212, 3],
@@ -58,7 +59,8 @@ const CASOS: {
         "pegamento-piso": [15, 1],
         "loseta-pared": [91, 6],
         "loseta-piso": [15, 1],
-        "lechada": [8.101051010844825, 1],
+        "lechada-arenada": [106, 1],
+        "lechada-sin-arena": [106, 1],
         "silicon": [27, 2],
         "perfil": [0, 0],
         "clips": [212, 3],
@@ -84,7 +86,8 @@ const CASOS: {
         "pegamento-piso": [24, 1],
         "loseta-pared": [154, 10],
         "loseta-piso": [24, 2],
-        "lechada": [22.853896103896105, 1],
+        "lechada-arenada": [24, 1],
+        "lechada-sin-arena": [154, 1],
         "silicon": [52, 3],
         "perfil": [6, 1],
         "clips": [356, 4],
@@ -110,7 +113,8 @@ const CASOS: {
         "pegamento-piso": [24, 1],
         "loseta-pared": [154, 10],
         "loseta-piso": [24, 2],
-        "lechada": [22.853896103896105, 1],
+        "lechada-arenada": [24, 1],
+        "lechada-sin-arena": [154, 1],
         "silicon": [52, 3],
         "perfil": [6, 1],
         "clips": [356, 4],
@@ -136,7 +140,8 @@ const CASOS: {
         "pegamento-piso": [15, 1],
         "loseta-pared": [56, 5],
         "loseta-piso": [15, 2],
-        "lechada": [12.651252070855103, 1],
+        "lechada-arenada": [71, 1],
+        "lechada-sin-arena": [71, 1],
         "silicon": [15, 1],
         "perfil": [0, 0],
         "clips": [142, 2],
@@ -162,7 +167,8 @@ const CASOS: {
         "pegamento-piso": [15, 1],
         "loseta-pared": [56, 5],
         "loseta-piso": [15, 2],
-        "lechada": [12.651252070855103, 1],
+        "lechada-arenada": [71, 1],
+        "lechada-sin-arena": [71, 1],
         "silicon": [15, 1],
         "perfil": [0, 0],
         "clips": [142, 2],

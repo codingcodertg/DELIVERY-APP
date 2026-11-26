@@ -15,12 +15,6 @@ const filasQueAplican = (tipo: TipoDeProyecto, ajustes: AjustesCalculadora = AJU
   CLAVES_DE_FILA.filter((c) => aplicaUso(USO_DE_FILAS[c], tipo, ajustes));
 
 const PISO = { habitaciones: [{ nombre: "Living", largoFt: 12, anchoFt: 10 }, { nombre: "Hall", largoFt: 4, anchoFt: 6 }] };
-const PARED = {
-  muros: [
-    { nombre: "Wall A", largoFt: 10, altoFt: 8, aberturasSf: 10 },
-    { nombre: "Wall B", largoFt: 6, altoFt: 8, aberturasSf: 0 },
-  ],
-};
 
 describe("calculadora de piso: varias habitaciones se suman", () => {
   const r = correr("Flooring Only", PISO);
@@ -37,7 +31,8 @@ describe("calculadora de piso: varias habitaciones se suman", () => {
 
   it("la lechada es lineal en el área: igual que una sola habitación de 144 SF (12×12)", () => {
     const una = correr("Flooring Only", { habitaciones: [{ nombre: "Room", largoFt: 12, anchoFt: 12 }] });
-    expect(cantidad(r, "lechada")).toBeCloseTo(cantidad(una, "lechada"), 9);
+    expect(ventas(r)["lechada-arenada"]).toBe(ventas(una)["lechada-arenada"]);
+    expect(cantidad(r, "lechada-arenada")).toBe(144);
   });
 
   it("clips y cuñas por el total: 144 × 2 = 288 clips ÷ 100 = 3 paquetes", () => {
@@ -68,64 +63,44 @@ describe("calculadora de piso: varias habitaciones se suman", () => {
   });
 
   it("solo aplican las filas de piso: pegamento, loseta, lechada, perfil, clips y cuñas", () => {
-    expect(filasQueAplican("Flooring Only")).toEqual(["pegamento-piso", "loseta-piso", "lechada", "perfil", "clips", "cunas"]);
+    expect(filasQueAplican("Flooring Only")).toEqual(["pegamento-piso", "loseta-piso", "lechada-arenada", "lechada-sin-arena", "perfil", "clips", "cunas"]);
   });
 });
 
-describe("calculadora de pared: varios muros se suman", () => {
-  const r = correr("Wall Only", PARED);
+describe("calculadora de pared: una pared (D-1203)", () => {
+  const r = correr("Wall Only", { paredMetodo: "Dimensions", paredLargoFt: 10, paredAltoFt: 8, paredAberturasSf: 10 });
 
-  it("pared = (8×10 − 10) + 8×6 + 3 SF de salpicadero = 70 + 48 + 3 = 121 SF; perímetro 10 + 6 = 16 LF", () => {
-    expect(r.areas).toEqual({ pisoSf: 0, paredSf: 121, perimetroLf: 16, tablerosPaneles: 0 });
+  it("pared = 10 × 8 − 10 = 70 SF; sin perímetro ni salpicadero", () => {
+    expect(r.areas).toEqual({ pisoSf: 0, paredSf: 70, perimetroLf: 0, tablerosPaneles: 5 });
   });
 
-  it("loseta de pared: 121 ÷ 15.5 = 8 cajas; pegamento de pared: 121 ÷ 25 = 5 bolsas", () => {
-    expect(ventas(r)["loseta-pared"]).toBe(8);
-    expect(ventas(r)["pegamento-pared"]).toBe(5);
+  it("loseta: 70 ÷ 15.5 = 5 cajas; pegamento: 70 ÷ 35 = 2 bolsas", () => {
+    expect(ventas(r)["loseta-pared"]).toBe(5);
+    expect(ventas(r)["pegamento-pared"]).toBe(2);
   });
 
-  it("silicón: dos esquinas verticales por muro = (8 + 8) × 2 = 32 LF ÷ 25 LF por tubo = 2 tubos", () => {
-    expect(cantidad(r, "silicon")).toBe(32);
-    expect(ventas(r).silicon).toBe(2);
-  });
-
-  it("perfil solo si hay borde expuesto; sin tablero ni impermeabilizante por defecto", () => {
-    expect(ventas(r).perfil).toBe(0);
-    expect(ventas(r).tablero).toBe(0);
+  it("sin silicón ni impermeabilizante; tablero 70 ÷ 15 = 5 paneles", () => {
+    expect(ventas(r).silicon).toBe(0);
     expect(ventas(r).impermeable).toBe(0);
+    expect(ventas(r).tablero).toBe(5);
   });
 
-  it("con C34 = 1 aparece el tablero: (121 − 3) ÷ 5 ft = 23.6 LF → 8 paneles + 1 extra = 9", () => {
-    const t = correr("Wall Only", PARED, { tableroEnSoloPared: 1 });
-    expect(t.tablerosLf).toBeCloseTo(23.6, 9);
-    expect(t.areas.tablerosPaneles).toBe(9);
-    expect(aplicaUso(USO_DE_FILAS.tablero, "Wall Only", { ...AJUSTES_POR_DEFECTO, tableroEnSoloPared: 1 })).toBe(true);
+  it("la explicación del área: largo × alto y la resta de aberturas", () => {
+    expect(r.explicacionAreas.paredSf.pasos.map((p) => p.en)).toEqual(["Wall = 10 ft × 8 ft = 80 SF", "Net = 80 − 10 = 70 SF"]);
   });
 
-  it("la explicación del área lista cada muro, con su resta de aberturas, y el salpicadero", () => {
-    const x = r.explicacionAreas.paredSf;
-    expect(x.pasos.map((p) => p.en)).toEqual([
-      "Wall A: 8 × 10 − 10 = 70 SF",
-      "Wall B: 8 × 6 − 0 = 48 SF",
-      "Wall area = 70 + 48 + 3 backsplash = 121 SF",
-    ]);
+  it("más aberturas que área: 0", () => {
+    expect(correr("Wall Only", { paredMetodo: "Square footage", paredAreaSf: 5, paredAberturasSf: 9 }).areas.paredSf).toBe(0);
   });
 
-  it("un muro con más aberturas que área se queda en 0 y se avisa", () => {
-    const x = correr("Wall Only", { muros: [{ nombre: "Small", largoFt: 2, altoFt: 2, aberturasSf: 9 }] });
-    expect(x.explicacionAreas.paredSf.pasos[0].en).toBe("Small: 2 × 2 − 9 = 0 SF (can't be below 0)");
+  it("clips 70 × 2 = 140 → 2 paquetes; cuñas 70 × 0.3 = 21 → 1 paquete", () => {
+    expect(ventas(r).clips).toBe(2);
+    expect(cantidad(r, "cunas")).toBe(21);
+    expect(ventas(r).cunas).toBe(1);
   });
 
-  it("clips y cuñas no aplican a pared (son para nivelar piso)", () => {
-    expect(ventas(r).clips).toBe(0);
-    expect(ventas(r).cunas).toBe(0);
-    expect(r.filas.find((f) => f.clave === "clips")!.explicacion.pasos[0].en).toContain("0 because project type is Wall Only");
-  });
-
-  it("solo aplican las filas de pared: loseta, pegamento, lechada, silicón y perfil", () => {
-    expect(filasQueAplican("Wall Only")).toEqual(["pegamento-pared", "loseta-pared", "lechada", "silicon", "perfil"]);
-    expect(filasQueAplican("Wall Only", { ...AJUSTES_POR_DEFECTO, tableroEnSoloPared: 1, impermeableEnSoloPared: 1 }))
-      .toEqual(expect.arrayContaining(["tablero", "tornillos", "malla", "impermeable"]));
+  it("aplican: tablero, tornillos, malla, pegamento, loseta, dos lechadas, perfil, clips y cuñas", () => {
+    expect(filasQueAplican("Wall Only")).toEqual(["tablero", "tornillos", "malla", "pegamento-pared", "loseta-pared", "lechada-arenada", "lechada-sin-arena", "perfil", "clips", "cunas"]);
   });
 });
 
