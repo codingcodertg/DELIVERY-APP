@@ -82,7 +82,7 @@ import { useBasesDeChofer } from "@/lib/usa-bases";
 import { useAjustesDeChofer } from "@/lib/usa-ajustes-de-chofer";
 import { entradaDelDia } from "@/lib/route-plan/entrada";
 import { entradaDelReparto, reparteEntre, type Reparto } from "@/lib/route-engine";
-import { ajustesConBaseDelPerfil, choferesParaRepartir, etiquetaDelReparto, listaDeLasParadas, matrizDelGestor, movimientosDelReparto, paradasDeLaLista, puntosDelReparto, resumenDelReparto, textoDeNoRepartir } from "@/lib/reparto-desde-el-gestor";
+import { ajustesConBaseDelPerfil, choferesParaRepartir, etiquetaDelReparto, forzaLasQueNoCaben, listaDeLasParadas, matrizDelGestor, mensajeDelRepartoHecho, movimientosDelReparto, paradasDeLaLista, puntosDelReparto, resumenDelReparto, textoDeNoRepartir } from "@/lib/reparto-desde-el-gestor";
 import { BorradoresDeRuta } from "./BorradoresDeRuta";
 import type { Foto } from "@/lib/arrastre-de-paradas";
 import { driverOf, orderLaneKey as orderLaneKeyPure, planMerge } from "@/lib/route-lanes";
@@ -3039,7 +3039,8 @@ export default function RoutesPage() {
       // D-994: el paso b de un relevo no se recoge antes de que llegue su paso a (+1 h). Primero con las llegadas que ya hay
       // en las rutas; si el paso a también se repartió aquí, con la llegada que le dio el motor, y se vuelve a repartir.
       const desdeFuera = recogidaDesdeDelRelevo(dayOrders, (id) => etaDeEntregaEn(routeEtas, id));
-      const repartir = (desde: ReadonlyMap<string, number>) => reparteEntre({ ...peticion, entrada: { ...diaParaElMotor.entrada, ordenes: conRecogidaDesde(diaParaElMotor.entrada.ordenes, desde), matriz: medida.matriz }, parametros: diaParaElMotor.parametros });
+      // Lo que el motor deja fuera y se puede llevar se fuerza al final de un elegido (`forzaLasQueNoCaben`): se asigna, y se avisa.
+      const repartir = (desde: ReadonlyMap<string, number>) => { const pet = { ...peticion, entrada: { ...diaParaElMotor.entrada, ordenes: conRecogidaDesde(diaParaElMotor.entrada.ordenes, desde), matriz: medida.matriz }, parametros: diaParaElMotor.parametros }; return forzaLasQueNoCaben(reparteEntre(pet), pet); };
       let r = repartir(desdeFuera);
       {
         const llegadas = llegadasDelPlan(r.plan.rutas);
@@ -3057,16 +3058,16 @@ export default function RoutesPage() {
       const nombreDe = (id: string) => { const d = porId.get(id); return d ? facturaYId(d).principal : id.slice(0, 6); };
       const movimientos = movimientosDelReparto(r, (id) => porId.get(id)?.assigned_driver ?? null);
       const resumen = resumenDelReparto({ r, nombreDe, movimientos, medida, totalSeleccionadas: seleccionadas.length });
-      // Nada que asignar: se dice y no se escribe nada. Algo sí: se confirma con el resumen delante (lo que no cabe se queda donde está).
+      // Nada que asignar: se dice y no se escribe nada. Algo sí: se confirma con el resumen delante (lo que pasa el límite se asigna y se avisa; lo imposible se queda donde está).
       if (!r.rutas.some((x) => x.nuevas.length)) { await confirmAction(t(resumen.en, resumen.es), { alertOnly: true }); return; }
       if (!(await confirmAction(t(resumen.en, resumen.es), { confirmLabel: t("Assign", "Asignar") }))) return;
       const cambiosDelReparto = r.rutas.flatMap((x) => x.nuevas.map((id) => cambioDeAsignacion(id, x.nombre)));
       if (!(await guardaElReparto(r))) return;
       trasAsignar(cambiosDelReparto);
       setMarcadas(new Set()); clearSelection(); setElegidosDelReparto(new Set());
-      const n = r.rutas.reduce((s, x) => s + x.nuevas.length, 0);
-      notify(t(`🧭 ${n} order(s) assigned to ${r.rutas.filter((x) => x.nuevas.length).map((x) => `${x.nombre} (+${x.nuevas.length})`).join(", ")}. Ctrl+Z undoes it.`,
-        `🧭 ${n} orden(es) asignadas a ${r.rutas.filter((x) => x.nuevas.length).map((x) => `${x.nombre} (+${x.nuevas.length})`).join(", ")}. Ctrl+Z lo deshace.`));
+      // Lo que se asignó, aparte lo que pasó el límite (con su porqué) y lo que de verdad se quedó donde estaba.
+      const hecho = mensajeDelRepartoHecho({ rutas: r.rutas, forzadas: r.forzadas, sinAsignar: r.sinAsignar, ignoradas: r.ignoradas, nombreDe });
+      notify(t(hecho.en, hecho.es), { ms: 9000 });
     } finally {
       setRepartiendo(false);
     }

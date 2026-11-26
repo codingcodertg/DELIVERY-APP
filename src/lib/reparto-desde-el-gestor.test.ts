@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  ajustesConBaseDelPerfil, choferesParaRepartir, etiquetaDelReparto, listaDeLasParadas, matrizDelGestor, movimientosDelReparto, paradasDeLaLista,
-  puntosDelReparto, resumenDelReparto, textoDeNoRepartir, tramoEstimado,
+  ajustesConBaseDelPerfil, choferesParaRepartir, etiquetaDelReparto, forzaLasQueNoCaben, listaDeLasParadas, matrizDelGestor, mensajeDelRepartoHecho, movimientosDelReparto,
+  paradasDeLaLista, puntosDelReparto, resumenDelReparto, textoDeNoRepartir, tramoEstimado, type OrdenForzada,
 } from "./reparto-desde-el-gestor";
 import { proveedorEstimado } from "./route-times/proveedores";
 import { claveDePunto } from "./route-times/claves";
 import { demoSettings } from "./demo-data";
-import type { Reparto, RutaEvaluada } from "./route-engine";
+import { PARAMETROS_POR_DEFECTO, type ChoferEntrada, type Matriz, type OrdenEntrada, type ParadaRef, type PeticionDeReparto, type Plan, type Reparto, type RutaEvaluada, type RutaRepartida, type SinAsignar } from "./route-engine";
 import type { DriverSettings } from "./types";
 
 /**
@@ -115,48 +115,168 @@ describe("de la lista del Gestor al motor y de vuelta", () => {
 
 describe("el resumen antes de confirmar", () => {
   const ruta = (millas: number, duracionMin: number, tardeMin = 0): RutaEvaluada => ({ chofer: "", paradas: [], inicio: 480, fin: 480 + duracionMin, duracionMin, manejoMin: 0, millas, tardeMin, builderMin: 0, violaciones: [] });
-  const r: Pick<Reparto, "rutas" | "sinAsignar" | "ignoradas"> = {
+  const r: Pick<Reparto, "rutas" | "sinAsignar" | "ignoradas"> & { forzadas: OrdenForzada[] } = {
     rutas: [
       { chofer: "a", nombre: "Ana", paradas: [{ orden: "x", tipo: "P" }, { orden: "x", tipo: "D" }, { orden: "a", tipo: "P" }, { orden: "a", tipo: "D" }, { orden: "b", tipo: "P" }, { orden: "b", tipo: "D" }], nuevas: ["a", "b"], ruta: ruta(52.34, 250) },
-      { chofer: "b", nombre: "Beto", paradas: [{ orden: "c", tipo: "P" }, { orden: "c", tipo: "D" }], nuevas: ["c"], ruta: ruta(20, 75, 12) },
+      // «d» no cabe en el turno de Beto con lo demás: el motor la dejó fuera, y se asigna igual, al final de su lista.
+      { chofer: "b", nombre: "Beto", paradas: [{ orden: "c", tipo: "P" }, { orden: "c", tipo: "D" }, { orden: "d", tipo: "P" }, { orden: "d", tipo: "D" }], nuevas: ["c", "d"], ruta: ruta(20, 75, 12) },
     ],
-    sinAsignar: [{ orden: "d", motivo: "supera_capacidad" }, { orden: "e", motivo: "falta_requisito", faltan: ["liftgate"] }],
+    sinAsignar: [{ orden: "e", motivo: "falta_requisito", faltan: ["liftgate"] }],
     ignoradas: ["f"],
+    forzadas: [{ orden: "d", chofer: "b", nombre: "Beto", motivo: "supera_capacidad" }],
   };
   const nombreDe = (o: string) => `#${o}`;
-  it("cuántas a cada quien y cómo queda su ruta (órdenes, millas, horas, retraso); lo que se mueve de otra ruta; lo que no cabe, con su porqué; y con qué se midió", () => {
+  it("cuántas a cada quien y cómo queda su ruta (órdenes, millas, horas, retraso); lo que se mueve de otra ruta; lo que pasa el límite con su porqué; lo que no cabe; y con qué se midió", () => {
     const s = resumenDelReparto({ r, nombreDe, movimientos: [{ orden: "a", de: null, a: "Ana" }, { orden: "c", de: "Ceci", a: "Beto" }], medida: { estimados: 3, pares: 20 }, totalSeleccionadas: 6 });
     expect(s.es).toBe([
-      "🧭 ¿Repartir 3 órdenes entre 2 choferes? Cada una va en el mejor lugar de la ruta de ese chofer:",
+      "🧭 ¿Repartir 4 órdenes entre 2 choferes? Cada una va en el mejor lugar de la ruta de ese chofer:",
       "• Ana: 2 nuevas, 3 órdenes en total · 52.3 mi · 4 h 10 min",
-      "• Beto: 1 nueva, 1 orden en total · 20.0 mi · 1 h 15 min · ⚠ 12 min tarde",
+      "• Beto: 2 nuevas, 2 órdenes en total · 20.0 mi · 1 h 15 min · ⚠ 12 min tarde",
       "Se mueven de otra ruta: #c (Ceci → Beto).",
-      "⚠ 3 no caben y se quedan donde están: #d (mayor que el camión), #e (el camión no tiene lo que pide), #f (no está en la lista de este día).",
+      "⚠ 1 asignada pasando el límite (revisa la ruta): #d (mayor que el camión).",
+      "⚠ 2 no caben y se quedan donde están: #e (el camión no tiene lo que pide), #f (no está en la lista de este día).",
       "⚠ Medido en línea recta (estimado): 3 de 20 tramos sin tiempos por calles.",
     ].join("\n"));
     expect(s.en).toContain("• Ana: 2 new, 3 orders in total · 52.3 mi · 4 h 10 min");
-    expect(s.en.startsWith("🧭 Assign 3 orders among 2 drivers? Each one goes in the best place of that driver's route:")).toBe(true);
+    expect(s.en.startsWith("🧭 Assign 4 orders among 2 drivers? Each one goes in the best place of that driver's route:")).toBe(true);
     // D-1139: con UN solo chofer la cabecera lo nombra («Three orders, one driver» no se entendía).
-    const uno = resumenDelReparto({ r: { rutas: [r.rutas[0]], sinAsignar: [], ignoradas: [] }, nombreDe, movimientos: [], medida: { estimados: 0, pares: 20 }, totalSeleccionadas: 2 });
-    expect(uno.en.split("\n")[0]).toBe("🧭 Assign 2 orders to Ana? Each one goes in the best place of the route:");
+    const uno = resumenDelReparto({ r: { rutas: [r.rutas[0]], sinAsignar: [], ignoradas: [], forzadas: [] }, nombreDe, movimientos: [], medida: { estimados: 0, pares: 20 }, totalSeleccionadas: 2 });
+    expect(uno.en.split("\n")[0]).toBe("🧭 Assign 2 orders to Ana? Each one goes in the best place of its route:");
     expect(uno.es.split("\n")[0]).toBe("🧭 ¿Asignar 2 órdenes a Ana? Cada una va en el mejor lugar de su ruta:");
     expect(s.en).toContain("Moved from another route: #c (Ceci → Beto).");
-    expect(s.en).toContain("3 don't fit and stay where they are");
+    expect(s.en).toContain("1 assigned over the limit (check the route): #d (larger than the truck).");
+    expect(s.en).toContain("2 don't fit and stay where they are");
     expect(s.en).toContain("Measured in a straight line");
   });
   it("sin movidas, sin fuera y con todo por calles, solo las líneas de los choferes", () => {
-    const s = resumenDelReparto({ r: { ...r, sinAsignar: [], ignoradas: [] }, nombreDe, movimientos: [{ orden: "a", de: null, a: "Ana" }], medida: { estimados: 0, pares: 20 }, totalSeleccionadas: 3 });
+    const s = resumenDelReparto({ r: { ...r, sinAsignar: [], ignoradas: [], forzadas: [] }, nombreDe, movimientos: [{ orden: "a", de: null, a: "Ana" }], medida: { estimados: 0, pares: 20 }, totalSeleccionadas: 3 });
     expect(s.es.split("\n")).toHaveLength(3);
     expect(s.es).not.toContain("⚠ Medido");
     expect(s.es).not.toContain("Se mueven");
   });
   it("si nada se puede asignar, la cabecera lo dice", () => {
-    const s = resumenDelReparto({ r: { rutas: [{ ...r.rutas[0], nuevas: [] }], sinAsignar: [{ orden: "a", motivo: "sin_punto" }], ignoradas: [] }, nombreDe, movimientos: [], medida: { estimados: 0, pares: 0 }, totalSeleccionadas: 1 });
+    const s = resumenDelReparto({ r: { rutas: [{ ...r.rutas[0], nuevas: [] }], sinAsignar: [{ orden: "a", motivo: "sin_punto" }], ignoradas: [], forzadas: [] }, nombreDe, movimientos: [], medida: { estimados: 0, pares: 0 }, totalSeleccionadas: 1 });
     expect(s.es.startsWith("🧭 Ninguna de las 1 orden(es) seleccionadas se puede asignar.")).toBe(true);
     expect(s.es).toContain("#a (sin punto en el mapa)");
   });
+  it("si lo seleccionado ya está con su chofer y nada se mueve, la cabecera no dice «ninguna»", () => {
+    const s = resumenDelReparto({ r: { rutas: [{ ...r.rutas[0], nuevas: [] }], sinAsignar: [], ignoradas: [], forzadas: [] }, nombreDe, movimientos: [], medida: { estimados: 0, pares: 0 }, totalSeleccionadas: 2 });
+    expect(s.en.startsWith("🧭 Nothing moves: 2 orders already with their driver.")).toBe(true);
+    expect(s.en).not.toContain("None");
+  });
   it("la etiqueta de deshacer es UNA para el lote", () => {
     expect(etiquetaDelReparto(4, ["Ana", "Beto"])).toEqual({ en: "Assign 4 order(s) to Ana, Beto", es: "Asignar 4 orden(es) a Ana, Beto" });
+  });
+});
+
+describe("lo que el motor deja fuera y se asigna igual (2026-11-25)", () => {
+  const nodos = ["tienda:n", "tienda:s", "orden:a", "orden:b", "orden:c", "orden:d"];
+  const matriz: Matriz = Object.fromEntries(nodos.map((x) => [x, Object.fromEntries(nodos.filter((y) => y !== x).map((y) => [y, { minutos: 10, millas: 1 }]))]));
+  const orden = (id: string, extra: Partial<OrdenEntrada> = {}): OrdenEntrada => ({
+    id, codigo: id, entrada: "2026-11-25 0800", origen: "tienda:n", destino: `orden:${id}`, pallets: 1, ventana: null,
+    servicioRecogidaMin: 5, servicioEntregaMin: 10, choferFijado: null, ...extra,
+  });
+  const chofer = (id: string, extra: Partial<ChoferEntrada> = {}): ChoferEntrada => ({ id, nombre: id.toUpperCase(), base: "tienda:n", capacidad: 10, entrada: 480, salida: 1050, vuelveABase: true, ...extra });
+  const P = (o: string): ParadaRef => ({ orden: o, tipo: "P" });
+  const D = (o: string): ParadaRef => ({ orden: o, tipo: "D" });
+  const peticion = (over: Partial<PeticionDeReparto> = {}): PeticionDeReparto => ({
+    entrada: { ordenes: [orden("a"), orden("b"), orden("c")], choferes: [chofer("ana"), chofer("beto")], matriz },
+    parametros: PARAMETROS_POR_DEFECTO, seleccionadas: ["a", "b", "c"], elegidos: ["ana", "beto"], yaLlevan: {}, ...over,
+  });
+  const rutaCon = (chofer: string, duracionMin: number, paradas: ParadaRef[], nuevas: string[] = []): RutaRepartida => ({
+    chofer, nombre: chofer.toUpperCase(), paradas, nuevas,
+    ruta: { chofer, paradas: [], inicio: 480, fin: 480 + duracionMin, duracionMin, manejoMin: 0, millas: 0, tardeMin: 0, builderMin: 0, violaciones: [] },
+  });
+  const reparto = (rutas: RutaRepartida[], sinAsignar: SinAsignar[], ignoradas: string[] = []): Reparto => ({ rutas, sinAsignar, ignoradas, completo: false, plan: {} as Plan });
+
+  it("sin nada que cumplir: va al elegido con menos minutos de ruta, al FINAL de su lista (recogida y entrega), y cuenta como asignada", () => {
+    const f = forzaLasQueNoCaben(
+      reparto([rutaCon("ana", 100, [P("c"), D("c")], []), rutaCon("beto", 0, [])], [{ orden: "a", motivo: "fuera_de_turno" }]),
+      peticion({ seleccionadas: ["a"] }),
+    );
+    expect(f.forzadas).toEqual([{ orden: "a", chofer: "beto", nombre: "BETO", motivo: "fuera_de_turno" }]);
+    expect(f.rutas.find((x) => x.chofer === "beto")).toMatchObject({ paradas: [P("a"), D("a")], nuevas: ["a"] });
+    expect(f.rutas.find((x) => x.chofer === "ana")!.paradas).toEqual([P("c"), D("c")]);
+    expect(f.sinAsignar).toEqual([]);
+    expect(f.completo).toBe(true);
+  });
+  it("una orden que ya está con uno de los elegidos se queda con él, donde estaba (tras la parada que la precedía), y no cuenta como movida", () => {
+    const sinPrecedente = forzaLasQueNoCaben(
+      reparto([rutaCon("ana", 50, [P("c"), D("c")])], [{ orden: "b", motivo: "no_cabe_con_el_resto" }]),
+      peticion({ seleccionadas: ["b", "c"], yaLlevan: { ana: [P("b"), D("b"), P("c"), D("c")] } }),
+    );
+    expect(sinPrecedente.rutas[0]).toMatchObject({ paradas: [P("b"), D("b"), P("c"), D("c")], nuevas: [] });
+    expect(sinPrecedente.forzadas).toEqual([{ orden: "b", chofer: "ana", nombre: "ANA", motivo: "no_cabe_con_el_resto" }]);
+    const conPrecedente = forzaLasQueNoCaben(
+      reparto([rutaCon("ana", 50, [P("c"), D("c")])], [{ orden: "b", motivo: "no_cabe_con_el_resto" }]),
+      peticion({ seleccionadas: ["b", "c"], yaLlevan: { ana: [P("c"), D("c"), P("b"), D("b")] } }),
+    );
+    expect(conPrecedente.rutas[0].paradas).toEqual([P("c"), D("c"), P("b"), D("b")]);
+  });
+  it("con varios elegidos, lo fuerza al que ya la lleva; si no la lleva ninguno, al de menos carga (en empate, el primero)", () => {
+    const conLaSuya = forzaLasQueNoCaben(
+      reparto([rutaCon("ana", 300, []), rutaCon("beto", 0, [])], [{ orden: "c", motivo: "supera_capacidad" }]),
+      peticion({ seleccionadas: ["c"], yaLlevan: { ana: [P("c"), D("c")] } }),
+    );
+    expect(conLaSuya.forzadas[0]).toMatchObject({ chofer: "ana" });
+    const empate = forzaLasQueNoCaben(
+      reparto([rutaCon("ana", 40, []), rutaCon("beto", 40, [])], [{ orden: "a", motivo: "ventana_imposible" }]),
+      peticion({ seleccionadas: ["a"] }),
+    );
+    expect(empate.forzadas[0]).toMatchObject({ chofer: "ana", motivo: "ventana_imposible" });
+  });
+  it("cada orden forzada suma a la carga de su chofer: la siguiente busca de nuevo al de menos", () => {
+    const f = forzaLasQueNoCaben(
+      reparto([rutaCon("ana", 0, []), rutaCon("beto", 0, [])], [{ orden: "a", motivo: "fuera_de_turno" }, { orden: "b", motivo: "fuera_de_turno" }]),
+      peticion({ seleccionadas: ["a", "b"] }),
+    );
+    expect(f.forzadas.map((x) => x.chofer)).toEqual(["ana", "beto"]);
+  });
+  it("NO se fuerza a un chofer cuyo camión no tiene lo que pide la orden: va al que sí lo tiene, o queda fuera con el requisito que falta", () => {
+    const pideLiftgate = (extra: Partial<ChoferEntrada>) => peticion({
+      seleccionadas: ["a"],
+      entrada: { ordenes: [orden("a", { requisitos: ["Liftgate"] })], choferes: [chofer("ana"), chofer("beto", extra)], matriz },
+    });
+    const conElQueLoTiene = forzaLasQueNoCaben(reparto([rutaCon("ana", 0, []), rutaCon("beto", 90, [])], [{ orden: "a", motivo: "no_cabe_con_el_resto" }]), pideLiftgate({ habilidades: ["liftgate"] }));
+    expect(conElQueLoTiene.forzadas).toEqual([{ orden: "a", chofer: "beto", nombre: "BETO", motivo: "no_cabe_con_el_resto" }]);
+    const nadie = forzaLasQueNoCaben(reparto([rutaCon("ana", 0, []), rutaCon("beto", 0, [])], [{ orden: "a", motivo: "no_cabe_con_el_resto" }]), pideLiftgate({}));
+    expect(nadie.forzadas).toEqual([]);
+    expect(nadie.sinAsignar).toEqual([{ orden: "a", motivo: "falta_requisito", faltan: ["Liftgate"] }]);
+    expect(nadie.completo).toBe(false);
+  });
+  it("sin elegidos, nada se fuerza; lo de la lista de este día que no entró (ignoradas) se queda igual y no vuelve a «completo»", () => {
+    const sinNadie = forzaLasQueNoCaben(reparto([], [{ orden: "a", motivo: "fuera_de_turno" }], ["zz"]), peticion({ seleccionadas: ["a"] }));
+    expect(sinNadie.forzadas).toEqual([]);
+    expect(sinNadie.sinAsignar).toEqual([{ orden: "a", motivo: "fuera_de_turno" }]);
+    const soloIgnoradas = forzaLasQueNoCaben(reparto([rutaCon("ana", 0, [])], [], ["zz"]), peticion({ seleccionadas: ["zz"] }));
+    expect(soloIgnoradas.ignoradas).toEqual(["zz"]);
+    expect(soloIgnoradas.completo).toBe(false);
+  });
+});
+
+describe("el aviso tras asignar: lo asignado; aparte lo que pasó el límite, con su porqué; lo imposible se queda donde está", () => {
+  const ruta = (chofer: string, nombre: string, nuevas: string[]): RutaRepartida => ({ chofer, nombre, paradas: [], nuevas, ruta: { chofer, paradas: [], inicio: 480, fin: 480, duracionMin: 0, manejoMin: 0, millas: 0, tardeMin: 0, builderMin: 0, violaciones: [] } });
+  const nombreDe = (o: string) => `#${o}`;
+  it("con algo que pasa el límite y algo imposible: las tres partes, en una línea", () => {
+    const m = mensajeDelRepartoHecho({
+      rutas: [ruta("ana", "Ana", ["a", "b"]), ruta("beto", "Beto", ["c"])],
+      forzadas: [{ orden: "b", chofer: "ana", nombre: "Ana", motivo: "no_cabe_con_el_resto" }],
+      sinAsignar: [{ orden: "d", motivo: "sin_punto" }], ignoradas: [], nombreDe,
+    });
+    expect(m.en).toBe("🧭 3 order(s) assigned to Ana (+2), Beto (+1). Ctrl+Z undoes it. · ⚠ 1 assigned over the limit (check the route): #b (no room with the rest). · ⚠ 1 doesn't fit and stays where it is: #d (no map point).");
+    expect(m.es).toBe("🧭 3 orden(es) asignadas a Ana (+2), Beto (+1). Ctrl+Z lo deshace. · ⚠ 1 asignada pasando el límite (revisa la ruta): #b (no cabe con lo demás). · ⚠ 1 no cabe y se queda donde está: #d (sin punto en el mapa).");
+  });
+  it("con varias pasando el límite, el plural; y sin nada pasado ni imposible, solo lo asignado (nunca «ninguna» si algo se asignó)", () => {
+    const varias = mensajeDelRepartoHecho({
+      rutas: [ruta("ana", "Ana", ["a", "b"])],
+      forzadas: [{ orden: "a", chofer: "ana", nombre: "Ana", motivo: "supera_capacidad" }, { orden: "b", chofer: "ana", nombre: "Ana", motivo: "ventana_imposible" }],
+      sinAsignar: [{ orden: "d", motivo: "sin_punto" }, { orden: "e", motivo: "sin_punto" }], ignoradas: ["f"], nombreDe,
+    });
+    expect(varias.en).toContain("2 assigned over the limit (check the route): #a (larger than the truck), #b (hard window can't be met).");
+    expect(varias.en).toContain("3 don't fit and stay where they are: #d (no map point), #e (no map point), #f (not on this day's list).");
+    const limpio = mensajeDelRepartoHecho({ rutas: [ruta("ana", "Ana", ["a"])], forzadas: [], sinAsignar: [], ignoradas: [], nombreDe });
+    expect(limpio.en).toBe("🧭 1 order(s) assigned to Ana (+1). Ctrl+Z undoes it.");
+    expect(limpio.en).not.toMatch(/none|ninguna/i);
   });
 });
 
@@ -192,7 +312,7 @@ describe("la pantalla usa cada pieza (se alimenta de quien llama)", () => {
     expect(reparte).toContain("const tiempos = await tiemposDeLaRuta(Object.values(puntos), tiemposPedidos.current, (pts) => fetch(\"/api/route-matrix\",");
     expect(reparte).toContain("const medida = matrizDelGestor(puntos, tiempos?.tiempos ?? null);");
     // D-994: con la espera del relevo (`conRecogidaDesde`), y una segunda pasada si el paso a también se repartió aquí.
-    expect(reparte).toContain("reparteEntre({ ...peticion, entrada: { ...diaParaElMotor.entrada, ordenes: conRecogidaDesde(diaParaElMotor.entrada.ordenes, desde), matriz: medida.matriz }, parametros: diaParaElMotor.parametros })");
+    expect(reparte).toContain("const pet = { ...peticion, entrada: { ...diaParaElMotor.entrada, ordenes: conRecogidaDesde(diaParaElMotor.entrada.ordenes, desde), matriz: medida.matriz }, parametros: diaParaElMotor.parametros }; return forzaLasQueNoCaben(reparteEntre(pet), pet);");
     expect(reparte).toContain("if (cambio) r = repartir(desde);");
   });
   it("antes de escribir, el resumen: se confirma con él delante; si nada se puede asignar, solo se avisa y no se escribe", () => {
@@ -202,6 +322,10 @@ describe("la pantalla usa cada pieza (se alimenta de quien llama)", () => {
     expect(reparte.indexOf("confirmAction(")).toBeLessThan(reparte.indexOf("guardaElReparto(r)"));
     expect(reparte).toContain("if (!(await guardaElReparto(r))) return;");
     expect(reparte).toContain("setMarcadas(new Set()); clearSelection(); setElegidosDelReparto(new Set());");
+  });
+  it("tras guardar, el aviso dice lo asignado, lo que pasó el límite y lo imposible (una línea, sin «ninguna» si algo se asignó)", () => {
+    expect(reparte).toContain("const hecho = mensajeDelRepartoHecho({ rutas: r.rutas, forzadas: r.forzadas, sinAsignar: r.sinAsignar, ignoradas: r.ignoradas, nombreDe });");
+    expect(reparte).toContain("notify(t(hecho.en, hecho.es), { ms: 9000 });");
   });
   it("se guarda por el camino de siempre: el chofer y el puesto de las que llegan, la lista ENTERA con `reorderStops` (recogidas si la base las guarda), y UNA anotación en deshacer con todas las rutas tocadas", () => {
     expect(guarda).toContain("const lista = listaDeLasParadas(x.paradas, (id) => porId.get(id)?.store ?? null, suyas.map((d) => d.id));");
