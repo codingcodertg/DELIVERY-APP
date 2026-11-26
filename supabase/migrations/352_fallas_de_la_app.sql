@@ -7,13 +7,16 @@
 -- QUÉ AÑADE, y solo esto:
 --   · public.app_errors: una fila por falla AGRUPADA. La huella (origen + ruta + primera línea del mensaje + primer marco
 --     de la pila) dice «es la misma falla»; `veces` y `ultima_vez` cuentan cuántas veces pasó ese día.
---   · public.registrar_falla(...): la única puerta de escritura. Es SECURITY DEFINER: el usuario sale de `auth.uid()`,
---     nunca de lo que mande el cliente (solo la llave de servicio puede pasar p_usuario, para las fallas del servidor).
---     Agrupa por huella dentro del mismo día y frena: como mucho 50 filas por usuario y hora (y 300 sin usuario por hora);
---     lo que pase del tope se descarta en silencio, sin error, para que una falla que se repite no tumbe nada.
+--   · public.registrar_falla(...): la ÚNICA puerta de escritura, y solo la puede ejecutar service_role. Quien la llama
+--     (la ruta /api/fallas o el gancho de instrumentation.ts) pone el usuario y el rol que leyó de la SESIÓN en el
+--     servidor; ningún cliente la llama directamente. La función valida el origen, el formato de la huella y, al
+--     insertar, recorta cada texto a su tope.
+--   · Frenos: las fallas que manda el navegador (origen 'cliente') cuentan 50 por usuario y hora. Las del servidor
+--     (cualquier otro origen) cuentan aparte: 500 por hora en total. Así el spam de un cliente no tapa las fallas del
+--     servidor, y al revés. Lo que pase del tope se descarta en silencio, sin error.
 --   · Retención: un cron diario borra lo que tenga más de 60 días.
---   · RLS: leer solo el admin (public.is_admin(), el mismo de las tablas de administración); escribir solo por la función;
---     ni UPDATE ni DELETE para clientes.
+--   · RLS: leer solo el admin (public.is_admin(), el mismo de las tablas de administración). Ningún rol escribe la
+--     tabla directamente: ni INSERT, ni UPDATE, ni DELETE para anon ni authenticated.
 --
 -- CÓMO LA APP SE COMPORTA SIN ESTA MIGRACIÓN (no aplicada todavía): /api/fallas responde 204 y no hace nada; la pantalla
 -- «Fallas de la app» sale vacía con un aviso. Nada se rompe, y el aviso de error de la app sigue saliendo igual.
@@ -33,17 +36,17 @@ create table if not exists public.app_errors (
   id          uuid primary key default gen_random_uuid(),
   created_at  timestamptz not null default now(),
   origen      text not null check (origen in ('cliente', 'servidor', 'accion', 'api', 'cron')),
-  app         text not null,
-  ruta        text not null,
+  app         text not null check (char_length(app) <= 40),
+  ruta        text not null check (char_length(ruta) <= 300),
   mensaje     text not null check (char_length(mensaje) <= 500),
   pila        text check (pila is null or char_length(pila) <= 4000),
-  componente  text,
+  componente  text check (componente is null or char_length(componente) <= 120),
   user_id     uuid references auth.users (id) on delete set null,
-  rol         text,
-  version     text,
+  rol         text check (rol is null or char_length(rol) <= 40),
+  version     text check (version is null or char_length(version) <= 40),
   navegador   text check (navegador is null or char_length(navegador) <= 300),
   escritorio  boolean not null default false,
-  huella      text not null,
+  huella      text not null check (huella ~ '^[0-9a-f]{16}$'),
   veces       integer not null default 1,
   ultima_vez  timestamptz not null default now(),
   -- Los usuarios distintos que tuvieron esta falla ese día (tope 200): para el «usuarios afectados» de la pantalla.
@@ -52,22 +55,19 @@ create table if not exists public.app_errors (
 
 create index if not exists app_errors_huella_idx on public.app_errors (huella);
 create index if not exists app_errors_created_at_desc_idx on public.app_errors (created_at desc);
+create index if not exists app_errors_usuario_fecha_idx on public.app_errors (user_id, created_at desc);
 
 alter table public.app_errors enable row level security;
 
-drop policy if exists app_errors_insert_propia on public.app_errors;
-create policy app_errors_insert_propia on public.app_errors
-  for insert to authenticated
-  with check (user_id is null or user_id = auth.uid());
-
+-- Solo lectura para el admin. Ninguna política de escritura: la tabla la escribe registrar_falla y nadie más.
 drop policy if exists app_errors_select_admin on public.app_errors;
+drop policy if exists app_errors_insert_propia on public.app_errors;
 create policy app_errors_select_admin on public.app_errors
   for select to authenticated
   using (public.is_admin());
 
--- Sin políticas de UPDATE ni DELETE: ni el admin borra desde la app. Y anon no toca la tabla.
-revoke all on table public.app_errors from anon;
-revoke update, delete, truncate on table public.app_errors from authenticated;
+revoke all on table public.app_errors from anon, authenticated;
+grant select on table public.app_errors to authenticated;
 
 create or replace function public.registrar_falla(
   p_origen     text,
@@ -85,21 +85,25 @@ create or replace function public.registrar_falla(
 ) returns void
   language plpgsql security definer set search_path = public as $$
 declare
-  v_usuario uuid := case when auth.role() = 'service_role' then p_usuario else auth.uid() end;
   v_id      uuid;
-  v_tope    integer;
+  v_cliente integer;
+  v_servidor integer;
 begin
-  -- Entradas sin sentido: se descartan, nunca se lanza un error hacia quien falla.
-  if p_origen not in ('cliente', 'servidor', 'accion', 'api', 'cron') or coalesce(p_mensaje, '') = '' or coalesce(p_huella, '') = '' then
-    return;
-  end if;
+  -- Validación: lo que no cumple se descarta, nunca se lanza un error hacia quien falla.
+  if p_origen is null or p_origen not in ('cliente', 'servidor', 'accion', 'api', 'cron') then return; end if;
+  if coalesce(p_mensaje, '') = '' then return; end if;
+  if p_huella is null or p_huella !~ '^[0-9a-f]{16}$' then return; end if;
 
-  -- Freno: por usuario y hora (o, sin usuario, un tope global de servidor). Lo que pase se descarta sin ruido.
-  v_tope := case when v_usuario is null then 300 else 50 end;
-  if (select count(*) from public.app_errors
-       where user_id is not distinct from v_usuario
-         and created_at > now() - interval '1 hour') >= v_tope then
-    return;
+  -- Frenos, por separado. Cliente: 50 por usuario y hora. Servidor: 500 por hora en total.
+  if p_origen = 'cliente' then
+    if p_usuario is null then return; end if;
+    select count(*) into v_cliente from public.app_errors
+     where origen = 'cliente' and user_id = p_usuario and created_at > now() - interval '1 hour';
+    if v_cliente >= 50 then return; end if;
+  else
+    select count(*) into v_servidor from public.app_errors
+     where origen <> 'cliente' and created_at > now() - interval '1 hour';
+    if v_servidor >= 500 then return; end if;
   end if;
 
   -- Misma falla, mismo día: se cuenta, no se duplica.
@@ -115,8 +119,8 @@ begin
        set veces = veces + 1,
            ultima_vez = now(),
            usuarios = case
-             when v_usuario is null or v_usuario = any (usuarios) or cardinality(usuarios) >= 200 then usuarios
-             else array_append(usuarios, v_usuario)
+             when p_usuario is null or p_usuario = any (usuarios) or cardinality(usuarios) >= 200 then usuarios
+             else array_append(usuarios, p_usuario)
            end
      where id = v_id;
   else
@@ -129,21 +133,22 @@ begin
       left(p_mensaje, 500),
       left(p_pila, 4000),
       left(p_componente, 120),
-      v_usuario,
+      p_usuario,
       left(p_rol, 40),
       left(p_version, 40),
       left(p_navegador, 300),
       coalesce(p_escritorio, false),
       p_huella,
-      case when v_usuario is null then '{}'::uuid[] else array[v_usuario] end
+      case when p_usuario is null then '{}'::uuid[] else array[p_usuario] end
     );
   end if;
 end $$;
 
+-- Un único camino de escritura: solo service_role (la ruta /api/fallas y el gancho del servidor, con la llave de servicio).
 revoke all on function public.registrar_falla(text, text, text, text, text, text, text, text, text, boolean, text, uuid)
-  from public, anon;
+  from public, anon, authenticated;
 grant execute on function public.registrar_falla(text, text, text, text, text, text, text, text, text, boolean, text, uuid)
-  to authenticated, service_role;
+  to service_role;
 
 -- Retención: cada día a las 9:30 (hora de la base), se borra lo que tenga más de 60 días.
 select cron.schedule('limpia-fallas-de-la-app', '30 9 * * *', $cron$delete from public.app_errors where created_at < now() - interval '60 days'$cron$);
@@ -168,6 +173,9 @@ begin
   if to_regprocedure('public.registrar_falla(text,text,text,text,text,text,text,text,text,boolean,text,uuid)') is null then
     raise exception 'La 352 no creó public.registrar_falla';
   end if;
+  if has_table_privilege('authenticated', 'public.app_errors', 'INSERT') then
+    raise exception 'La 352 dejó INSERT directo a authenticated en app_errors';
+  end if;
 end $$;
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('352_fallas_de_la_app.sql', 'c6d7056308e85952de1661f4e5a527dafbba76c4ab30541408d85f90bc469509') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('352_fallas_de_la_app.sql', 'd5a936e228a371c4c8d7e62ca6213187f1d6ee7080931ca2cad7c10a3c146343') on conflict (name) do nothing;

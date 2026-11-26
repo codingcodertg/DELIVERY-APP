@@ -51,11 +51,23 @@ export function versionDeLaApp(app: string): string | null {
   return (APP_VERSIONS as Record<string, string>)[app] ?? null;
 }
 
-const RE_CORREO = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+// Tope de lo que se mira: se recorta ANTES de cualquier expresión regular, para que una entrada hostil no cueste más.
+const TOPE_DE_ENTRADA = 10_000;
+
+// Expresiones sin retroceso peligroso: cada una tiene cuantificadores acotados o se ancla a un inicio de palabra, y
+// el recorte de arriba garantiza que se aplican a lo sumo a 10 000 caracteres.
+const RE_CORREO = /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63}){1,5}/g;
 const RE_BEARER = /\bBearer\s+[^\s'",;]+/gi;
-const RE_CLAVE_EN_TEXTO = /\b(password|passwd|pwd|token|secret|api[_-]?key|authorization|access_token|refresh_token)(\s*[=:]\s*)[^\s'",;&]+/gi;
+const RE_BASIC = /\bBasic\s+[A-Za-z0-9+/=]+/gi;
+const RE_JWT = /\beyJ[\w-]+\.[\w-]+\.[\w-]+/g;
+// Clave con valor: la clave TERMINA en una palabra sensible (sufijo), con comillas opcionales alrededor de la clave y del
+// valor. El `(?<!…)` obliga a empezar en el inicio de un identificador, así no se prueba en cada letra.
+const RE_CLAVE = /(?<![A-Za-z0-9_])(["']?)([A-Za-z_]*(?:secret|token|key|password|pwd|auth|authorization))\1(\s*[:=]\s*)(["']?)([^\s"',;&]+)\4/gi;
+// Teléfono: entre 10 y 31 dígitos con separadores habituales (acotado para que no retroceda sin fin).
+const RE_TELEFONO = /(?<!\d)\(?(?:\+?\d[\s().-]{0,3}){9,30}\d(?!\d)/g;
+const RE_CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 const RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const RE_LARGO_CON_DIGITOS = /\b[A-Za-z0-9_-]{32,}\b/g;
+const RE_PALABRA_LARGA = /[A-Za-z0-9_-]+/g;
 
 /** Un trozo que parece token: largo, con letras y cifras mezcladas, y no es un UUID. */
 function pareceToken(trozo: string): boolean {
@@ -64,20 +76,39 @@ function pareceToken(trozo: string): boolean {
 }
 
 /**
- * Quita correos, tokens, cabeceras Bearer y claves con valor, y los query strings de las URL que salgan en el texto.
- * Después recorta a `max` caracteres. Es la única puerta de salida de texto libre hacia la base.
+ * Quita el query string y el fragmento de las URL o rutas de un texto, sin expresiones regulares: se parte por espacios
+ * (conservándolos) y, en cada trozo que parezca URL o ruta, se corta en el primer `?` o `#`. Tiempo lineal.
+ */
+function quitaQueries(texto: string): string {
+  return texto
+    .split(/(\s+)/)
+    .map((trozo) => {
+      if (!(trozo.includes("://") || trozo.startsWith("/"))) return trozo;
+      const q = trozo.indexOf("?");
+      const h = trozo.indexOf("#");
+      const corte = q < 0 ? h : h < 0 ? q : Math.min(q, h);
+      return corte < 0 ? trozo : trozo.slice(0, corte);
+    })
+    .join("");
+}
+
+/**
+ * Quita correos, tokens, cabeceras Bearer y Basic, JWT, claves con valor, teléfonos y query strings de las URL. Después
+ * recorta a `max` caracteres. Es la única puerta de salida de texto libre hacia la base.
  */
 export function limpiarTexto(entrada: unknown, max: number): string {
-  let texto = typeof entrada === "string" ? entrada : entrada == null ? "" : String(entrada);
+  const crudo = typeof entrada === "string" ? entrada : entrada == null ? "" : String(entrada);
+  let texto = crudo.slice(0, Math.min(max * 2, TOPE_DE_ENTRADA));
   texto = texto
     .replace(RE_CORREO, "[correo]")
     .replace(RE_BEARER, "Bearer [token]")
-    .replace(RE_CLAVE_EN_TEXTO, (_m, clave: string, sep: string) => `${clave}${sep}[oculto]`)
-    // Query string y fragmento de cualquier URL o ruta que salga en el texto: no dicen dónde falla, y pueden traer datos.
-    .replace(/(https?:\/\/[^\s?#'")]+|\/[A-Za-z0-9/_.[\]-]+)[?#][^\s'")]*/g, "$1")
-    .replace(RE_LARGO_CON_DIGITOS, (t) => (pareceToken(t) ? "[token]" : t));
-  // Caracteres de control fuera (menos salto de línea y tabulador): la pila trae saltos, el resto no.
-  texto = texto.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+    .replace(RE_BASIC, "Basic [token]")
+    .replace(RE_JWT, "[token]")
+    .replace(RE_CLAVE, (_m, q: string, clave: string, sep: string, q2: string) => `${q}${clave}${q}${sep}${q2}[oculto]${q2}`);
+  texto = quitaQueries(texto);
+  texto = texto.replace(RE_CONTROL, "");
+  texto = texto.replace(RE_PALABRA_LARGA, (t) => (t.length >= 32 && pareceToken(t) ? "[token]" : t));
+  texto = texto.replace(RE_TELEFONO, "[teléfono]");
   return texto.length > max ? `${texto.slice(0, max - 1)}…` : texto;
 }
 
@@ -86,7 +117,7 @@ export function limpiarTexto(entrada: unknown, max: number): string {
  * Siempre empieza por `/`.
  */
 export function limpiarRuta(entrada: unknown): string {
-  const crudo = typeof entrada === "string" ? entrada : "";
+  const crudo = typeof entrada === "string" ? entrada.slice(0, TOPE_DE_ENTRADA) : "";
   const sinQuery = crudo.split(/[?#]/)[0] ?? "";
   const segmentos = sinQuery.split("/").map((s) => {
     if (!s) return s;

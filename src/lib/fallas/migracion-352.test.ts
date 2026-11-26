@@ -38,24 +38,43 @@ describe("352 · fallas de la app", () => {
     expect(cuerpo).toContain("create index if not exists app_errors_created_at_desc_idx on public.app_errors (created_at desc);");
   });
 
-  it("RLS: escribir solo el propio usuario (o nadie), leer solo el admin, sin UPDATE ni DELETE para clientes", () => {
+  it("RLS: leer solo el admin; ningún rol escribe la tabla directamente (ni INSERT, ni UPDATE, ni DELETE)", () => {
     expect(cuerpo).toContain("enable row level security");
-    expect(cuerpo).toContain("for insert to authenticated\n  with check (user_id is null or user_id = auth.uid())");
     expect(cuerpo).toContain("for select to authenticated\n  using (public.is_admin())");
-    expect(cuerpo).toContain("revoke all on table public.app_errors from anon;");
-    expect(cuerpo).toMatch(/revoke update, delete, truncate on table public\.app_errors from authenticated;/);
-    expect(cuerpo).not.toMatch(/create policy[^;]*for (update|delete)/);
+    expect(cuerpo).not.toMatch(/create policy[^;]*for (insert|update|delete)/);
+    // La política de INSERT de la primera versión se borra si existe; no se vuelve a crear.
+    expect(cuerpo.split("create policy").length - 1).toBe(1);
+    expect(cuerpo).toContain("revoke all on table public.app_errors from anon, authenticated;");
+    expect(cuerpo).toContain("grant select on table public.app_errors to authenticated;");
   });
 
-  it("registrar_falla es SECURITY DEFINER y saca el usuario de auth.uid(), no del cliente", () => {
+  it("registrar_falla es SECURITY DEFINER y NO lee el usuario de auth.uid(): lo pone quien la llama desde la sesión", () => {
     expect(cuerpo).toContain("language plpgsql security definer set search_path = public");
-    expect(cuerpo).toContain("case when auth.role() = 'service_role' then p_usuario else auth.uid() end");
-    expect(cuerpo).not.toMatch(/v_usuario\s*:=\s*p_usuario\s*;/);
+    expect(cuerpo).not.toContain("auth.uid()");
+    expect(cuerpo).not.toContain("auth.role()");
   });
 
-  it("el freno: 50 por usuario y hora (300 sin usuario), descartando en silencio", () => {
-    expect(cuerpo).toContain("v_tope := case when v_usuario is null then 300 else 50 end;");
-    expect(cuerpo).toContain("created_at > now() - interval '1 hour') >= v_tope then\n    return;");
+  it("valida el origen, el formato de la huella y los textos (recortados a su tope)", () => {
+    expect(cuerpo).toContain("if p_origen is null or p_origen not in ('cliente', 'servidor', 'accion', 'api', 'cron') then return; end if;");
+    expect(cuerpo).toContain("if p_huella is null or p_huella !~ '^[0-9a-f]{16}$' then return; end if;");
+    expect(cuerpo).toContain("left(p_componente, 120)");
+    expect(cuerpo).toContain("left(coalesce(nullif(p_app, ''), 'deliveries'), 40)");
+  });
+
+  it("CHECKs de longitud en la tabla para app, ruta, componente, rol, versión y huella", () => {
+    expect(cuerpo).toContain("app         text not null check (char_length(app) <= 40)");
+    expect(cuerpo).toContain("ruta        text not null check (char_length(ruta) <= 300)");
+    expect(cuerpo).toContain("componente  text check (componente is null or char_length(componente) <= 120)");
+    expect(cuerpo).toContain("rol         text check (rol is null or char_length(rol) <= 40)");
+    expect(cuerpo).toContain("version     text check (version is null or char_length(version) <= 40)");
+    expect(cuerpo).toContain("huella      text not null check (huella ~ '^[0-9a-f]{16}$')");
+  });
+
+  it("frenos separados: cliente 50 por usuario y hora; servidor 500 en total por hora", () => {
+    expect(cuerpo).toContain("if v_cliente >= 50 then return; end if;");
+    expect(cuerpo).toContain("if v_servidor >= 500 then return; end if;");
+    expect(cuerpo).toContain("where origen = 'cliente' and user_id = p_usuario and created_at > now() - interval '1 hour'");
+    expect(cuerpo).toContain("where origen <> 'cliente' and created_at > now() - interval '1 hour'");
   });
 
   it("agrupa por huella dentro del mismo día (suma veces, no duplica)", () => {
@@ -63,9 +82,10 @@ describe("352 · fallas de la app", () => {
     expect(cuerpo).toContain("veces = veces + 1");
   });
 
-  it("concede la función solo a authenticated y service_role", () => {
-    expect(cuerpo).toMatch(/revoke all on function public\.registrar_falla\([^)]*\)\s+from public, anon;/);
-    expect(cuerpo).toMatch(/grant execute on function public\.registrar_falla\([^)]*\)\s+to authenticated, service_role;/);
+  it("EXECUTE solo para service_role: ni public, ni anon, ni authenticated", () => {
+    expect(cuerpo).toMatch(/revoke all on function public\.registrar_falla\([^)]*\)\s+from public, anon, authenticated;/);
+    expect(cuerpo).toMatch(/grant execute on function public\.registrar_falla\([^)]*\)\s+to service_role;/);
+    expect(cuerpo).not.toMatch(/to authenticated, service_role/);
   });
 
   it("la retención: un cron diario que borra lo de más de 60 días", () => {

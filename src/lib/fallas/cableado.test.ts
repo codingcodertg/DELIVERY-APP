@@ -53,30 +53,41 @@ beforeEach(() => {
 describe("POST /api/fallas", () => {
   const falla = { origen: "cliente", ruta: "/timetracker/x", mensaje: "boom", pila: "Error: boom\n    at f (a.ts:1:1)" };
 
-  it("guarda con el usuario y el rol de la SESIÓN; lo que mande el cuerpo sobre quién es se ignora", async () => {
+  it("escribe con la llave de servicio, y el usuario y el rol son los de la SESIÓN; el cuerpo no los decide", async () => {
     const res = await POST(peticion({ fallas: [{ ...falla, user_id: "evil", p_usuario: "evil", rol: "admin" }] }, { "user-agent": "UA-prueba" }));
     expect(res.status).toBe(204);
-    expect(estado.rpc).toHaveBeenCalledTimes(1);
-    const args = estado.rpc.mock.calls[0][1] as Record<string, unknown>;
-    expect(args).not.toHaveProperty("p_usuario");
+    expect(estado.rpc).not.toHaveBeenCalled();
+    expect(estado.rpcAdmin).toHaveBeenCalledTimes(1);
+    const args = estado.rpcAdmin.mock.calls[0][1] as Record<string, unknown>;
+    expect(args.p_usuario).toBe("11111111-1111-4111-8111-111111111111");
     expect(args.p_rol).toBe("sales");
     expect(args.p_navegador).toBe("UA-prueba");
     expect(args.p_app).toBe("timetracker");
+    expect(args.p_origen).toBe("cliente");
     expect(JSON.stringify(args)).not.toContain("evil");
+  });
+
+  it("del navegador solo entra el origen cliente: los demás se descartan sin llamar a la base", async () => {
+    for (const origen of ["servidor", "accion", "api", "cron"]) {
+      estado.rpcAdmin.mockClear();
+      const res = await POST(peticion({ fallas: [{ ...falla, origen }] }));
+      expect(res.status, origen).toBe(204);
+      expect(estado.rpcAdmin, origen).not.toHaveBeenCalled();
+    }
   });
 
   it("sin sesión no guarda nada y responde 204", async () => {
     estado.usuario = null;
     const res = await POST(peticion({ fallas: [falla] }));
     expect(res.status).toBe(204);
-    expect(estado.rpc).not.toHaveBeenCalled();
+    expect(estado.rpcAdmin).not.toHaveBeenCalled();
   });
 
   it("si la función no existe (sin la 352) corta al primer error, sin lanzar", async () => {
-    estado.rpc = vi.fn(async () => ({ error: { code: "PGRST202", message: "not found" } }));
+    estado.rpcAdmin = vi.fn(async () => ({ error: { code: "PGRST202", message: "not found" } }));
     const res = await POST(peticion({ fallas: [falla, falla, falla] }));
     expect(res.status).toBe(204);
-    expect(estado.rpc).toHaveBeenCalledTimes(1);
+    expect(estado.rpcAdmin).toHaveBeenCalledTimes(1);
   });
 
   it("nunca lanza: si Supabase revienta, responde 204", async () => {
@@ -87,12 +98,12 @@ describe("POST /api/fallas", () => {
   it("cuerpo mal formado o demasiado grande: 204 y nada guardado", async () => {
     expect((await POST(peticion(null, {}, "{no es json"))).status).toBe(204);
     expect((await POST(peticion(null, {}, "x".repeat(40_001)))).status).toBe(204);
-    expect(estado.rpc).not.toHaveBeenCalled();
+    expect(estado.rpcAdmin).not.toHaveBeenCalled();
   });
 
   it("ignora las fallas que no sirven y guarda las buenas", async () => {
     await POST(peticion({ fallas: [{ origen: "nada", mensaje: "x" }, falla] }));
-    expect(estado.rpc).toHaveBeenCalledTimes(1);
+    expect(estado.rpcAdmin).toHaveBeenCalledTimes(1);
   });
 });
 

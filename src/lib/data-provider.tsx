@@ -2067,6 +2067,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       const { error } = await supabase.rpc("reprogramar_orden", argumentosDeReprogramar(id, fecha, nota, lang));
       const camino = caminoTrasReprogramar(error);
       if (camino === "respaldo") return comoAntes();
+      informarErrorDeEscritura("reprogramar_orden", error);
       if (camino === "error") { notify("Error: " + (error?.message ?? "")); return false; }
       await avisaAlVendedor();
       if (domingo && caso) await addNote(id, notaDeDomingo(me?.full_name, caso.motivo, lang));
@@ -2205,7 +2206,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       body: JSON.stringify({ id, ...patch }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) { notify("Error: " + (data.error || res.statusText)); return { ok: false, error: data.error }; }
+    if (!res.ok) { informarErrorDeEscritura("api /api/user-identity", { message: data.error || res.statusText }); notify("Error: " + (data.error || res.statusText)); return { ok: false, error: data.error }; }
     await reloadAll();
     notify("Sign-in details updated");
     return { ok: true };
@@ -2217,7 +2218,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       body: JSON.stringify({ id }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) { notify("Error: " + (data.error || res.statusText)); return { ok: false, error: data.error }; }
+    if (!res.ok) { informarErrorDeEscritura("api /api/reset-password", { message: data.error || res.statusText }); notify("Error: " + (data.error || res.statusText)); return { ok: false, error: data.error }; }
     return { ok: true, password: data.password };
   }, [notify]);
 
@@ -2701,7 +2702,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         notify(t_offlineSaved());
         return;
       }
-      notify("Error: " + error.message);
+      informarErrorDeEscritura("driver_shifts", error); notify("Error: " + error.message);
       return;
     }
     await reloadAll();
@@ -2731,7 +2732,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         notify(t_offlineSaved());
         return;
       }
-      notify("Error: " + error.message);
+      informarErrorDeEscritura("driver_shifts", error); notify("Error: " + error.message);
       return;
     }
     await reloadAll();

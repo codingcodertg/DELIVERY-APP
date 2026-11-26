@@ -3,12 +3,12 @@
 // punto, sin tocar cada fichero (ver `conRegistroDeFallas` en src/lib/fallas/servidor.ts para el envoltorio por función).
 // Un error que ya pasó por el envoltorio no se cuenta dos veces (la marca del propio error).
 
-import type { OrigenDeFalla } from "@/lib/fallas/reglas";
+import type { OrigenDeServidor } from "@/lib/fallas/servidor";
 
 type Contexto = { routePath: string; routeType: "render" | "route" | "action" | "middleware" };
 
 /** Qué origen le toca a una falla según por dónde salió. */
-export function origenDeLaFalla(contexto: Contexto): OrigenDeFalla {
+export function origenDeLaFalla(contexto: Contexto): OrigenDeServidor {
   if (contexto.routeType === "action") return "accion";
   if (contexto.routePath.startsWith("/api/cron")) return "cron";
   if (contexto.routePath.startsWith("/api")) return "api";

@@ -5,6 +5,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizarFalla, type OrigenDeFalla } from "./reglas";
+
+/** Los orígenes del servidor: nunca «cliente», que solo llega desde el navegador por /api/fallas. */
+export type OrigenDeServidor = Exclude<OrigenDeFalla, "cliente">;
 import { anadirFallaDemo } from "./demo";
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
@@ -23,7 +26,7 @@ export function yaRegistrada(error: unknown): boolean {
 }
 
 interface DatosDeFallaDelServidor {
-  origen: OrigenDeFalla;
+  origen: OrigenDeServidor;
   /** Qué sitio falló: la ruta del handler o la de la acción, sin query. */
   ruta: string;
   /** Nombre corto de la función (el «componente» de la pantalla). */
@@ -109,7 +112,7 @@ export async function registrarFallaDelServidor(datos: DatosDeFallaDelServidor):
 export async function conRegistroDeFallas<T>(
   nombre: string,
   fn: () => Promise<T>,
-  opciones: { origen?: OrigenDeFalla; ruta?: string; app?: string | null } = {},
+  opciones: { origen?: OrigenDeServidor; ruta?: string; app?: string | null } = {},
 ): Promise<T> {
   try {
     return await fn();
@@ -136,7 +139,7 @@ export function registradaComo<A extends unknown[], R>(
   ruta: string,
   nombre: string,
   fn: (...args: A) => Promise<R>,
-  origen: OrigenDeFalla = "api",
+  origen: OrigenDeServidor = "api",
   app: string | null = null,
 ): (...args: A) => Promise<R> {
   return (...args: A) => conRegistroDeFallas(`${nombre} ${ruta}`, () => fn(...args), { origen, ruta, app });
