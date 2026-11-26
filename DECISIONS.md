@@ -53478,3 +53478,14 @@ Sello `deliveries` 1.667.1; repo 1.996.3.
 El dueño, con el aviso «Ninguna de las 3 órdenes seleccionadas se puede asignar»: «si yo digo que se asignen, se asignan; yo ahí lo arreglo». Lo que el motor no logra acomodar (pallets, horario, ventana, sin punto en el mapa) se asigna igual: si ya era de uno de los choferes elegidos, se queda con él donde estaba; si no, va al final de la ruta del chofer elegido con menos minutos. El aviso dice qué se asignó y cuáles quedaron «pasando el límite (revisa la ruta)», con su razón. Siguen sin asignarse solo las que ningún camión elegido puede llevar (requisitos). Deshacer cubre todo.
 Visto en el demo: 10 órdenes a un chofer, 4 «pasando el límite», las 10 asignadas.
 Sello `deliveries` 1.667.2; repo 1.996.4.
+
+## D-1200 · Hub: detección de fallas propia, con pantalla «Fallas de la app» (migración 352) (2026-11-25)
+
+El dueño: «quiero que la misma app tenga su crash detection y que sepa dónde falla para poder mejorarlo». Sin servicios de fuera.
+Captura: errores del navegador (y pantallas de error con «Reintentar» en vez de pantalla en blanco), errores del servidor en rutas, acciones y crons (gancho `onRequestError` de Next), y los guardados que fallan en el proveedor de datos (los 15 sitios con aviso rojo). Guarda app, ruta, mensaje, pila, versión, rol, navegador y si era la app de escritorio, agrupado por huella con veces y personas afectadas.
+Pantalla: hub → «App errors / Fallas de la app», solo admin; tabla con filtros y tarjeta con el detalle.
+Seguridad y privacidad (revisión automática atendida antes de publicar): solo escribe la función `registrar_falla`, y solo con la llave del servidor; usuario y rol los pone el servidor desde la sesión; del navegador solo se acepta origen «cliente»; se borran correos, contraseñas, llaves, JWT, teléfonos y query strings; la entrada se recorta antes de limpiar. Topes: 50 por usuario y hora (cliente) y 500 por hora (servidor). Se borra lo de más de 60 días.
+Migración 352: escrita y ensayada; la aplica el dueño. Sin ella nada se guarda y la app sigue igual.
+No cubre: errores sin sesión (login); errores que el servidor atrapa y devuelve como respuesta normal.
+Visto en el demo: la falla de prueba llega a la tabla, la tarjeta muestra el detalle; a 390 px sin desborde.
+Sello `deliveries` 1.668.0; repo 1.997.0.
