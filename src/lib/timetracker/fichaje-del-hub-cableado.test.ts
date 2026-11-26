@@ -24,9 +24,9 @@ describe("el componente se monta en el layout raíz, después de la burbuja gene
 });
 
 describe("la app de escritorio se mira ANTES de llamar al servidor", () => {
-  it("el componente exterior decide con enAppDeEscritorio antes de montar el interior", () => {
+  it("el componente exterior decide con enAppDeEscritorio antes de montar el interior (la vista previa también lo monta, con su prop)", () => {
     const i = componenteSinComentarios.indexOf("enAppDeEscritorio(window)");
-    const monta = componenteSinComentarios.indexOf("return <FichajeDelHubDeEscritorio />");
+    const monta = componenteSinComentarios.indexOf("return <FichajeDelHubDeEscritorio escritorio={escritorio} ancho={ancho} />");
     expect(i).toBeGreaterThan(-1);
     expect(monta).toBeGreaterThan(i);
   });
@@ -39,12 +39,13 @@ describe("la app de escritorio se mira ANTES de llamar al servidor", () => {
     for (const i of llamadas) expect(i).toBeGreaterThan(interior);
   });
 
-  it("el exterior no llama al servidor ni usa el hook de suplantación (ese también pide estado)", () => {
+  it("el exterior no llama al servidor (ni a estadoDelHub); solo lee «viendo como» con la petición compartida de la burbuja (vista previa)", () => {
     const ini = componenteSinComentarios.indexOf("export function FichajeDelHub()");
     const exterior = componenteSinComentarios.slice(ini, componenteSinComentarios.indexOf("function FichajeDelHubDeEscritorio"));
     expect(ini).toBeGreaterThan(-1);
     expect(exterior).not.toContain("estadoDelHub");
-    expect(exterior).not.toContain("useSuplantacion");
+    expect(exterior).not.toContain("useSuplantacion()");
+    expect(exterior).toContain("useEstadoDeSuplantacion()");
   });
 
   it("la lectura de 30 s y la de al volver a la ventana solo corren con el interruptor puesto", () => {
@@ -188,5 +189,80 @@ describe("quién puede llamar al cuerpo interno del fichaje", () => {
     recorre("src");
     const llamadas = todos.filter((f) => leer(f).includes(", { origen: \"hub\" })")).sort();
     expect(llamadas).toEqual(["src/app/timetracker/clock-in/actions/hub.ts"]);
+  });
+});
+
+describe("viendo como: la vista previa (solo ver, nada se registra)", () => {
+  const cuerpoDe = (nombre: string) => {
+    const i = hub.indexOf(`export async function ${nombre}(`);
+    const fin = hub.indexOf("\nexport async function ", i + 1);
+    return hub.slice(i, fin === -1 ? undefined : fin);
+  };
+  const escriben = ["ficharDesdeElHub", "empezarBreakDesdeElHub", "volverDelBreakDesdeElHub", "terminarTurnoDesdeElHub"];
+
+  it("las cuatro acciones que escriben refusan mientras hay suplantación, justo después de ctxActivo y antes de cualquier escritura", () => {
+    for (const nombre of escriben) {
+      const c = cuerpoDe(nombre);
+      const ctx = c.indexOf("const ctx = await ctxActivo();");
+      const refusa = c.indexOf("if (ctx.suplantando) return SUPLANTANDO_RES;");
+      const escritura = Math.min(
+        ...["ctx.demo", "demoAccion(", "startLeave(", "endLeave(", "clockInInterno(", "clockOutInterno("]
+          .map((s) => c.indexOf(s)).filter((i) => i > -1),
+      );
+      expect(ctx, nombre).toBeGreaterThan(-1);
+      expect(refusa, nombre).toBeGreaterThan(ctx);
+      expect(refusa, nombre).toBeLessThan(escritura);
+    }
+  });
+
+  it("estadoDelHub NO refusa: contesta lo de la persona en la que se entró, marcado con `suplantado`", () => {
+    const lectura = cuerpoDe("estadoDelHub");
+    expect(lectura).not.toContain("SUPLANTANDO_RES");
+    expect(lectura).toContain("suplantado: ctx.suplantando");
+  });
+
+  it("ctxActivo decide la suplantación ANTES que nada, con la cookie de retorno y el token de «Entrar como»; el helper cierra por defecto", () => {
+    const ctx = hub.slice(hub.indexOf("async function ctxActivo()"), hub.indexOf("function estadoInvalido"));
+    expect(ctx.indexOf("await suplantandoDelServidor()")).toBeLessThan(ctx.indexOf("corteDeCapacitacion()"));
+    const helper = hub.slice(hub.indexOf("async function suplantandoDelServidor"), hub.indexOf("async function ctxActivo"));
+    expect(helper).toContain("COOKIE_RETORNO");
+    expect(helper).toContain("sesionDeEntrarComo(");
+    expect(helper).toMatch(/catch \{/);
+    expect(helper).toContain("errorDeLectura: true");
+  });
+
+  it("los textos de la vista previa existen en los dos idiomas", () => {
+    expect(componente).toContain("— preview only. Nothing is recorded.");
+    expect(componente).toContain("— solo vista. No se registra nada.");
+    expect(componente).toContain("Viewing as someone else: nothing is recorded.");
+    expect(componente).toContain("Viendo como otra persona: no se registra nada.");
+  });
+
+  it("la tarjeta del almuerzo en vista previa no lleva overlay, inert ni diálogo modal", () => {
+    const ini = componente.indexOf("{verBreakPrevio && (");
+    const fin = componente.indexOf("{aviso && !bloqueado");
+    expect(ini).toBeGreaterThan(-1);
+    expect(fin).toBeGreaterThan(ini);
+    expect(componente.slice(ini, fin)).not.toMatch(/createPortal|inert|aria-modal|fichaje-del-hub-bloqueo/);
+  });
+
+  it("el bloqueo real solo sale sin «viendo como»: `activo` lo excluye", () => {
+    expect(componente).toContain("const activo = !!datos?.activo && !viendoComo;");
+    expect(componente).toContain("const bloqueado = activo && estadoActual === \"en_break\";");
+  });
+
+  it("todo lo que se pulsa se apaga en la vista previa: el guardián y los botones usan `bloqueoDeAccion`", () => {
+    expect(componente).toContain("if (ocupado || viendoComo) return;");
+    expect(componente).toContain("const bloqueoDeAccion = ocupado || viendoComo;");
+    expect((componente.match(/disabled=\{bloqueoDeAccion/g) ?? []).length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("la pregunta de fichar no se abre sola en la vista previa (solo al pulsar el botón)", () => {
+    expect(componente).toContain("if (viendoComo) {\n      if (datos.estado === \"en_break\") setMenu(true);\n      return;\n    }");
+  });
+
+  it("la vista previa sale por seVeElBoton con esVistaPrevia, y el exterior monta la pantalla también fuera del escritorio", () => {
+    expect(componente).toContain("seVeElBoton({ escritorio, activo: datos.activo, viendoComo, esVistaPrevia: viendoComo, ancho })");
+    expect(componente).toContain("if (!escritorio && estadoSup === null) return null;");
   });
 });

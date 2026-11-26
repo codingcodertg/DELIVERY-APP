@@ -33,6 +33,8 @@ export type DatosDelHub = {
   tiendas: { id: string; name: string }[];
   /** La tienda de la entrada abierta, si la hay. */
   tiendaDeHoy: string | null;
+  /** El servidor dice que quien mira está DENTRO de otra persona («viendo como»): lo que se ve es la vista previa. */
+  suplantado?: boolean;
 };
 
 /** Zona de Brownsville (Texas): la misma que usa el resto del Time Tracker. */
@@ -65,11 +67,33 @@ export function accionesValidas(estado: EstadoDelHub): AccionDelHub[] {
 }
 
 /**
- * ¿Se ve el botón del hub? Solo en la app de escritorio, con el interruptor de la persona puesto, sin un admin
- * «viendo como» a otra persona (nunca se ficha por otro), y en una pantalla de al menos 700 px.
+ * ¿Se ve el botón del hub? En una pantalla de al menos 700 px, con el interruptor de la persona puesto.
+ *  · Normal (sin «viendo como»): solo en la app de escritorio.
+ *  · «Viendo como» a otra persona, SIN vista previa: no se ve (como antes).
+ *  · «Viendo como» CON vista previa (`esVistaPrevia`): se ve lo que esa persona vería, en la app de escritorio Y en
+ *    un navegador normal. Es una excepción SOLO de ver, para el dueño, que revisa desde su propio computador. Nada se
+ *    puede pulsar ni se registra: el servidor refusa las acciones mientras hay suplantación (hub.ts).
  */
-export function seVeElBoton(args: { escritorio: boolean; activo: boolean; viendoComo: boolean; ancho: number }): boolean {
-  return args.escritorio && args.activo && !args.viendoComo && args.ancho >= ANCHO_MINIMO_DEL_HUB;
+export function seVeElBoton(args: {
+  escritorio: boolean;
+  activo: boolean;
+  viendoComo: boolean;
+  /** Con `viendoComo`: ¿se enseña como vista previa (solo ver) en vez de esconderse? */
+  esVistaPrevia?: boolean;
+  ancho: number;
+}): boolean {
+  if (!args.activo || args.ancho < ANCHO_MINIMO_DEL_HUB) return false;
+  if (args.viendoComo) return args.esVistaPrevia === true;
+  return args.escritorio;
+}
+
+/**
+ * ¿Hay indicio de que esta sesión es «Entrar como»? Lo decide el servidor (hub.ts, `ctxActivo`) y es A PROPÓSITO
+ * cerrado: basta UN indicio (la cookie de retorno, aunque venga rota, o el token de magic link) o una lectura que
+ * falló. Si no se puede saber, se trata como suplantación: las acciones se refusan.
+ */
+export function suplantacionDetectada(q: { cookieDeRetorno: boolean; tokenDeEntrarComo: boolean; errorDeLectura: boolean }): boolean {
+  return q.errorDeLectura || q.cookieDeRetorno || q.tokenDeEntrarComo;
 }
 
 /** ¿Está la app en modo demo del hub de escritorio? Solo con modo local Y la variable de la demo (las dos

@@ -9,14 +9,22 @@
 // `puedeFicharDesdeElHub`. Lectura fallida, fila sin ajustes, columna que no existe (351 sin aplicar), interruptor
 // apagado, inactiva o no presencial = se niega. El botón solo sale en la app de escritorio: eso es una regla de
 // PANTALLA (FichajeDelHub.tsx); aquí no se puede saber desde dónde se llamó, así que el interruptor es la barrera.
+//
+// «VIENDO COMO» (vista previa, 2026-11-25): mientras un admin está DENTRO de otra persona, `ctxActivo()` lo detecta
+// (cookie de retorno o token de «Entrar como», `suplantandoDelServidor`) y las CUATRO acciones que escriben se
+// refusan antes de tocar nada, digan lo que digan el cliente. `estadoDelHub()` sí contesta, solo lectura, para la
+// persona en la que se entró (con `suplantado: true`): es lo que la pantalla enseña como vista previa.
 
+import { cookies } from "next/headers";
 import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/server";
+import { COOKIE_RETORNO } from "@/lib/impersonation-cookie";
+import { sesionDeEntrarComo } from "@/lib/impersonation";
 import { clockInInterno, clockOutInterno } from "@/lib/clockin/fichaje-interno";
 import { nombraLaColumna } from "@/lib/columnas-opcionales";
 import { effWorkerType } from "@/lib/timetracker/helpers";
 import { esMultiTienda, tiendasParaElegir } from "@/lib/timetracker/multitienda";
 import {
-  demoDelHub, puedeFicharDesdeElHub, siguienteEstado,
+  demoDelHub, puedeFicharDesdeElHub, siguienteEstado, suplantacionDetectada,
   type CausaDeNoActivo, type DatosDelHub, type EstadoDelHub,
 } from "@/lib/timetracker/fichaje-del-hub";
 import { DEMO_EMPLOYEES } from "@/lib/timetracker/demo-data";
@@ -33,7 +41,7 @@ export type ResultadoDelHub =
   | { ok: true; estado: EstadoDelHub; desde: string | null }
   | {
       ok: false;
-      codigo: "sesion" | "no_activo" | "estado" | "error";
+      codigo: "sesion" | "no_activo" | "estado" | "error" | "suplantando";
       mensaje: string;
       /** Si el servidor sabe en qué estado queda la persona, lo dice: la pantalla se ajusta a eso. */
       estado?: EstadoDelHub;
@@ -180,27 +188,54 @@ type RefusalDelHub = Extract<ResultadoDelHub, { ok: false }>;
 const SIN_ACTIVO: RefusalDelHub = { ok: false, codigo: "no_activo", mensaje: "Clocking in from the hub is not turned on for you." };
 const SIN_SESION_RES: RefusalDelHub = { ok: false, codigo: "sesion", mensaje: "Your session expired. Sign in again." };
 
+const SUPLANTANDO_RES: RefusalDelHub = {
+  ok: false, codigo: "suplantando", mensaje: "Viewing as someone else: nothing is recorded.",
+};
+
 type CtxHub =
-  | { ok: true; demo: boolean; activo: boolean; causa: CausaDeNoActivo | null; l: Lectura | null }
-  | { ok: false; res: RefusalDelHub };
+  | { ok: true; suplantando: boolean; demo: boolean; activo: boolean; causa: CausaDeNoActivo | null; l: Lectura | null }
+  | { ok: false; suplantando: boolean; res: RefusalDelHub };
 
 /**
- * La puerta de TODAS las acciones (y de la lectura). Primero la guarda de la práctica; después, en modo demo, la
- * persona de la demo; si no, la lectura real y la decisión del servidor. Si la lectura falla, `ok: false`.
+ * ¿Está esta sesión DENTRO de otra persona («Entrar como», D-243)? Las mismas dos marcas que la burbuja
+ * (`/api/impersonate/state`): la cookie de retorno y el token de magic link. Cierra por defecto: si una lectura falla,
+ * se dice que SÍ, y las acciones se refusan. (`getUser()` devuelve a la persona en la que se entró, no al admin.)
+ */
+async function suplantandoDelServidor(): Promise<boolean> {
+  let cookieDeRetorno = false;
+  let tokenDeEntrarComo = false;
+  try {
+    cookieDeRetorno = !!(await cookies()).get(COOKIE_RETORNO);
+    if (isSupabaseConfigured) {
+      const supabase = await createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      tokenDeEntrarComo = sesionDeEntrarComo(session?.access_token);
+    }
+    return suplantacionDetectada({ cookieDeRetorno, tokenDeEntrarComo, errorDeLectura: false });
+  } catch {
+    return suplantacionDetectada({ cookieDeRetorno, tokenDeEntrarComo, errorDeLectura: true });
+  }
+}
+
+/**
+ * La puerta de TODAS las acciones (y de la lectura). Primero si hay suplantación (lo miran las acciones que escriben);
+ * después la guarda de la práctica; luego, en modo demo, la persona de la demo; si no, la lectura real y la decisión
+ * del servidor. Si la lectura falla, `ok: false`.
  */
 async function ctxActivo(): Promise<CtxHub> {
+  const suplantando = await suplantandoDelServidor();
   const corte = await corteDeCapacitacion();
-  if (corte) return { ok: false, res: { ok: false, codigo: "error", mensaje: corte.message } };
+  if (corte) return { ok: false, suplantando, res: { ok: false, codigo: "error", mensaje: corte.message } };
   if (LOCAL_MODE) {
     return DEMO_HUB
-      ? { ok: true, demo: true, activo: true, causa: null, l: null }
-      : { ok: true, demo: false, activo: false, causa: "sin_ajustes", l: null };
+      ? { ok: true, suplantando, demo: true, activo: true, causa: null, l: null }
+      : { ok: true, suplantando, demo: false, activo: false, causa: "sin_ajustes", l: null };
   }
-  if (!isSupabaseConfigured) return { ok: false, res: SIN_SESION_RES };
+  if (!isSupabaseConfigured) return { ok: false, suplantando, res: SIN_SESION_RES };
   const r = await leeDelHub();
-  if (!r.ok) return { ok: false, res: { ok: false, codigo: "error", mensaje: r.mensaje } };
-  if (!r.lectura) return { ok: false, res: SIN_SESION_RES };
-  return { ok: true, demo: false, activo: r.lectura.activo, causa: r.lectura.causa, l: r.lectura };
+  if (!r.ok) return { ok: false, suplantando, res: { ok: false, codigo: "error", mensaje: r.mensaje } };
+  if (!r.lectura) return { ok: false, suplantando, res: SIN_SESION_RES };
+  return { ok: true, suplantando, demo: false, activo: r.lectura.activo, causa: r.lectura.causa, l: r.lectura };
 }
 
 function estadoInvalido(actual: EstadoDelHub, desde: string | null): ResultadoDelHub {
@@ -246,15 +281,18 @@ export async function estadoDelHub(): Promise<{ ok: true; datos: DatosDelHub } |
   if (!ctx.ok) {
     return ctx.res.codigo === "sesion" ? { ok: true, datos: SIN_SESION } : { ok: false, mensaje: ctx.res.mensaje };
   }
-  if (ctx.demo) return { ok: true, datos: demoDatos() };
+  // Lectura, también dentro de una suplantación: contesta lo de la persona en la que se entró, con `suplantado` para que
+  // la pantalla lo enseñe como vista previa. Las acciones de abajo son las que se refusan.
+  if (ctx.demo) return { ok: true, datos: { ...demoDatos(), suplantado: ctx.suplantando } };
   if (!ctx.l) return { ok: true, datos: SIN_SESION };
-  return { ok: true, datos: aDatos(ctx.l) };
+  return { ok: true, datos: { ...aDatos(ctx.l), suplantado: ctx.suplantando } };
 }
 
 export async function ficharDesdeElHub(input?: { storeId?: string | null }): Promise<ResultadoDelHub> {
   const corte = await corteDeCapacitacion();
   if (corte) return { ok: false, codigo: "error", mensaje: corte.message };
   const ctx = await ctxActivo();
+  if (ctx.suplantando) return SUPLANTANDO_RES;
   if (!ctx.ok) return ctx.res;
   if (ctx.demo) return demoAccion("entrar", input?.storeId);
   if (!ctx.activo || !ctx.l) return SIN_ACTIVO;
@@ -269,6 +307,7 @@ export async function empezarBreakDesdeElHub(): Promise<ResultadoDelHub> {
   const corte = await corteDeCapacitacion();
   if (corte) return { ok: false, codigo: "error", mensaje: corte.message };
   const ctx = await ctxActivo();
+  if (ctx.suplantando) return SUPLANTANDO_RES;
   if (!ctx.ok) return ctx.res;
   if (ctx.demo) return demoAccion("empezar_break");
   if (!ctx.activo || !ctx.l) return SIN_ACTIVO;
@@ -283,6 +322,7 @@ export async function volverDelBreakDesdeElHub(): Promise<ResultadoDelHub> {
   const corte = await corteDeCapacitacion();
   if (corte) return { ok: false, codigo: "error", mensaje: corte.message };
   const ctx = await ctxActivo();
+  if (ctx.suplantando) return SUPLANTANDO_RES;
   if (!ctx.ok) return ctx.res;
   if (ctx.demo) return demoAccion("volver_del_break");
   if (!ctx.activo || !ctx.l) return SIN_ACTIVO;
@@ -302,6 +342,7 @@ export async function terminarTurnoDesdeElHub(): Promise<ResultadoDelHub> {
   const corte = await corteDeCapacitacion();
   if (corte) return { ok: false, codigo: "error", mensaje: corte.message };
   const ctx = await ctxActivo();
+  if (ctx.suplantando) return SUPLANTANDO_RES;
   if (!ctx.ok) return ctx.res;
   if (ctx.demo) return demoAccion("terminar_turno");
   if (!ctx.activo || !ctx.l) return SIN_ACTIVO;

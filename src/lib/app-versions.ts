@@ -23,7 +23,7 @@
 export const APP_VERSIONS = {
   deliveries: "1.667.0",
   recruiting: "0.115.1",
-  timetracker: "1.45.1",
+  timetracker: "1.45.2",
   clockin: "0.50.1",
   // El ERP no tenía contador propio: llegó en D-090 y nadie le puso uno, así que el
   // sello de versión no habría tenido qué enseñar en /erp. Empieza en 0.1.0 por la
