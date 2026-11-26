@@ -234,7 +234,7 @@ describe("el sitio de la burbuja", () => {
     const ayuda = sinComentarios(leer("src/components/HelpButton.tsx"));
     expect(ayuda).toContain('<div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA }}');
     expect(ayuda).toContain('className="toast no-print" role="status" style={{ zIndex: Z_PANEL_DE_AYUDA + 20 }}');
-    expect(sinComentarios(leer("src/components/CapturaDeAyuda.tsx"))).toContain('<div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA + 10 }}');
+    expect(sinComentarios(leer("src/components/CapturaDeAyuda.tsx"))).toContain('<div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA + 10, padding: 8 }}');
     // Todos los z-index del código, de cualquier forma escritos, por debajo del panel. La única excepción es la ráfaga
     // de la cámara, que ocupa la pantalla entera y tapa la burbuja: con ella abierta no se puede abrir Ayuda.
     const vistos: string[] = [];

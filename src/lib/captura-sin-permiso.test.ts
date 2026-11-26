@@ -45,7 +45,7 @@ describe("la marca que deja a Ayuda fuera de la foto", () => {
     const panel = boton.indexOf('<div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA }} {...marcaFueraDeLaCaptura}');
     expect(panel).toBeGreaterThan(-1);
 
-    expect(captura).toContain('<div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA + 10 }} {...marcaFueraDeLaCaptura}>');
+    expect(captura).toContain('<div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA + 10, padding: 8 }} {...marcaFueraDeLaCaptura}>');
     // El aviso de abajo es de la burbuja desde D-530 (antes era el de Entregas): «enviada», «no se pudo»… no
     // tiene que salir en una foto que se toma justo después.
     expect(boton).toContain('{aviso && <div className="toast no-print" role="status" style={{ zIndex: Z_PANEL_DE_AYUDA + 20 }} {...marcaFueraDeLaCaptura}>{aviso}</div>}');
