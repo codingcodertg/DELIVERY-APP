@@ -2,16 +2,15 @@
 // Auto-optimizar al asignar (348): QUE hacer con UNA ruta tras una asignacion. Funcion pura: no lee la base ni el
 // reloj. El que la llama (la pantalla del Gestor, mas adelante) le pasa lo que ya sabe y ejecuta lo que decide.
 //
-// Regla de fondo: una parada que una persona coloco a mano (`route_fixed`) no se mueve sola. Si la ruta tiene
-// alguna, lo nuevo se coloca una a una en su mejor lugar (lib/mejor-lugar.ts) sin reordenar lo demas; si no tiene
-// ninguna, se optimiza toda la ruta con el mismo motor que el boton «Optimizar».
+// Regla de fondo (D-1201): al asignar, lo nuevo se coloca una a una en su mejor lugar (lib/mejor-lugar.ts) y lo que
+// ya estaba en la ruta NO se mueve. Reacomodar toda la ruta es solo del boton «Optimizar». (Antes, una ruta sin
+// paradas fijadas se reacomodaba entera tras cada asignacion y las filas saltaban mientras se trabajaba.)
 // ============================================================
 
 /** Lo que hay que hacer con una ruta tras una asignacion. */
 export type PlanAuto =
   | { que: "nada"; motivo: "sin_cambios" | "ruta_vacia" | "bloqueada" }
-  | { que: "insertar"; nuevas: string[] /* órdenes a colocar, en el orden de entrada */ }
-  | { que: "optimizar_todo" };
+  | { que: "insertar"; nuevas: string[] /* órdenes a colocar, en el orden de entrada */ };
 
 /** Clave de una ruta y día en `estadoAutoDeRutas` (el proveedor la usa tal cual). */
 export const claveDeRutaAuto = (dia: string, lane: string): string => `${dia}|${lane}`;
@@ -20,9 +19,8 @@ export const claveDeRutaAuto = (dia: string, lane: string): string => `${dia}|${
  * Qué hacer con UNA ruta tras una asignación:
  *  - ruta bloqueada (🔒) → nada;  sin paradas pendientes → nada;
  *  - la huella de ahora == la huella guardada y el estado guardado es "hecha" → nada (no se gasta una consulta de tiempos);
- *  - si la ruta tiene alguna parada pendiente con `route_fixed` → "insertar": las órdenes del lote que aún no tienen puesto
- *    (o que acaban de llegar) se colocan una a una en su mejor lugar, sin mover lo demás;
- *  - si no tiene ninguna fijada → "optimizar_todo" (el mismo motor del botón).
+ *  - si no → "insertar": las órdenes del lote (menos las fijadas a mano) se colocan una a una en su mejor lugar, sin
+ *    mover lo demás. Nunca reacomoda la ruta entera (D-1201).
  */
 export function planAuto(e: {
   bloqueada: boolean;
@@ -38,7 +36,6 @@ export function planAuto(e: {
   }
 
   const fijadas = new Set(e.pendientes.filter((p) => p.route_fixed === true).map((p) => p.id));
-  if (fijadas.size === 0) return { que: "optimizar_todo" };
 
   // Una orden ya fijada a mano no se vuelve a colocar: la decidio una persona.
   const nuevas = [...new Set(e.delLote)].filter((id) => !fijadas.has(id));

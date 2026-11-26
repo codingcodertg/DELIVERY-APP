@@ -68,28 +68,21 @@ describe("la auto-optimización al asignar (348) en el Gestor", () => {
     expect(pagina).not.toMatch(/optimizaLaRuta\(laneKey, "auto"\)/);
   });
 
-  it("la auto (toda la ruta) comprueba la huella DENTRO de la cola antes de escribir", () => {
-    const cuerpo = cuerpoDe("  const autoOptimizaToda = async (");
-    expect(cuerpo).toMatch(/await enFila\(async \(\) => \{\s*if \(huellaVivaRef\.current\(laneKey\) !== huellaInicial\)/);
+  it("D-1201: al asignar nunca se reacomoda la ruta entera (no queda la auto de toda la ruta)", () => {
+    expect(pagina).not.toContain("const autoOptimizaToda");
+    expect(pagina).not.toContain("optimizar_todo");
+  });
+
+  it("la colocación comprueba la huella DENTRO de la cola antes de escribir", () => {
     const insertar = cuerpoDe("  const insertaEnLaRuta = async (");
     expect(insertar).toMatch(/await enFila\(async \(\) => \{\s*if \(huellaVivaRef\.current\(laneKey\) !== huellaInicial\)/);
   });
 
-  it("la auto no pone «optimizando» (no rechaza los movimientos mientras espera la red)", () => {
-    const cuerpo = cuerpoDe("  const autoOptimizaToda = async (");
-    expect(cuerpo).not.toContain("setOptimizando(");
-    expect(cuerpo).toContain("TIEMPO_MAXIMO_AUTO_MS");
-  });
-
-  it("no se escribe lo que añade una regla dura (antes de la cola, y en la inserción antes de guardar)", () => {
-    const cuerpo = cuerpoDe("  const autoOptimizaToda = async (");
-    const regla = cuerpo.indexOf("violacionesNuevas(");
-    expect(regla).toBeGreaterThan(-1);
-    expect(cuerpo.indexOf("if (nuevas.length)")).toBeLessThan(cuerpo.indexOf("await enFila("));
-    expect(cuerpo.slice(cuerpo.indexOf("if (nuevas.length)"), cuerpo.indexOf("await enFila("))).toContain("return { estado: \"fallo\"");
+  it("no se escribe lo que añade una regla dura, y se guarda UNA sola vez al final (D-1201)", () => {
     const insertar = cuerpoDe("  const escribeLasNuevas = async (", ["  /** La colocación automática de las órdenes nuevas"]);
     expect(insertar).toContain("violacionesNuevas(");
-    expect(insertar.indexOf("if (nuevas.length)")).toBeLessThan(insertar.indexOf("guardaLaLista(laneKey, paradas, nueva"));
+    expect(insertar.split("guardaLaLista(").length - 1).toBe(1);
+    expect(insertar.indexOf("if (nuevas.length)")).toBeLessThan(insertar.indexOf("guardaLaLista(laneKey, iniciales, lista"));
   });
 
   it("el motor de «Optimizar» y el de la auto usan el mismo constructor de reglas", () => {

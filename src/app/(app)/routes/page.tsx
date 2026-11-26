@@ -1554,8 +1554,6 @@ export default function RoutesPage() {
   const entradaDeLaRuta = (laneKey: string, lista: readonly ParadaDeLaLista[], ordenes: readonly Delivery[], base: { lat: number; lng: number } | null) =>
     entradaDeOptimizar({ lista, ordenes, base, fin: finParaEstimar(laneKey), capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda, esEstrecha: (ventana) => esVentanaDura(ventana, settings), salidaMin: DAY_START_MIN });
 
-  /** Lo que tarda como mucho la consulta de tiempos de la auto-optimización; pasado, es un fallo que se reintenta. */
-  const TIEMPO_MAXIMO_AUTO_MS = 20_000;
   /** Optimizar una ruta (el botón). Con 348: pregunta antes de pisar paradas fijadas a mano, no escribe un resultado que
    *  añada una regla dura que la ruta no rompía, y al guardar suelta las fijadas y marca la ruta como hecha. */
   const optimizaLaRuta = async (laneKey: string) => {
@@ -1711,13 +1709,17 @@ export default function RoutesPage() {
   };
 
   /**
-   * Coloca las órdenes NUEVAS de la ruta, una a una, en su mejor puesto (`huecoDeLaOrden`), y guarda cada una por
-   * `guardaLaLista` (Ctrl+Z la deshace). Lo que ya estaba no se mueve. Si el resultado rompe una regla dura, esa orden se
+   * Coloca las órdenes NUEVAS de la ruta, una a una, en su mejor puesto (`huecoDeLaOrden`), y guarda el resultado UNA
+   * sola vez por `guardaLaLista` (Ctrl+Z lo deshace de un golpe; D-1201: antes se guardaba orden por orden y las filas
+   * saltaban varias veces seguidas). Lo que ya estaba no se mueve. Si el resultado rompe una regla dura, esa orden se
    * queda al final (donde la dejó la asignación) y la ruta queda «fallo» con la regla en la nota.
    */
   const escribeLasNuevas = async (laneKey: string, marcadas: readonly Delivery[], base: { lat: number; lng: number } | null): Promise<ResultadoAuto> => {
-    let paradas = [...(byDriver.get(laneKey) ?? [])];
-    let lista = lecturaDe(laneKey, paradas).paradas;
+    const iniciales = [...(byDriver.get(laneKey) ?? [])];
+    let paradas = iniciales;
+    const listaInicial = lecturaDe(laneKey, paradas).paradas;
+    let lista = listaInicial;
+    const colocadas: Delivery[] = [];
     const desde = inicioDeLaRuta(laneKey, paradas);
     const notas: string[] = [];
     for (const d of marcadas) {
@@ -1731,9 +1733,8 @@ export default function RoutesPage() {
       if (nuevas.length) { notas.push(`#${orderLabel(d)}: ${notaDeReglas(nuevas)}`); continue; }
       const e = escrituraDeLaLista(nueva, desde);
       const recogidas = hayRecogidaGuardada ? e.pickupSeqById : undefined;
-      // Si la orden ya queda donde estaba, no se escribe nada: ni una entrada de deshacer que no deshace nada.
       if (!mismaSecuencia(lista, nueva)) {
-        if (!(await guardaLaLista(laneKey, paradas, nueva, { en: `Auto-place ${orderLabel(d)}`, es: `Colocación automática de ${orderLabel(d)}` }))) throw new Error("no se guardó la colocación");
+        colocadas.push(d);
         const porId = new Map([...paradas, d].map((x) => [x.id, x]));
         paradas = e.ids.map((id, i) => ({
           ...porId.get(id)!, assigned_driver: laneKey, route_seq: puestoEn(desde, i), load_no: null,
@@ -1741,6 +1742,11 @@ export default function RoutesPage() {
         }));
       }
       lista = nueva;
+    }
+    // Una sola escritura con todo lo colocado. Si nada cambió de lugar, no se escribe nada (ni un deshacer vacío).
+    if (!mismaSecuencia(listaInicial, lista)) {
+      const nombre = colocadas.map((d) => orderLabel(d)).join(", ");
+      if (!(await guardaLaLista(laneKey, iniciales, lista, { en: `Auto-place ${nombre}`, es: `Colocación automática de ${nombre}` }))) throw new Error("no se guardó la colocación");
     }
     if (notas.length) return { estado: "fallo", nota: [...new Set(notas)].join("; "), reintentar: false };
     const previas = reglasDeLaEntrada(entradaDeLaRuta(laneKey, lista, paradas, base));
@@ -1765,55 +1771,6 @@ export default function RoutesPage() {
     return res;
   };
 
-  /**
-   * La auto-optimización de TODA la ruta (al asignar): el mismo motor que «Optimizar» (`entradaDeOptimizar`, la consulta de
-   * tiempos, `optimizaSinEmpeorar`), sin botón: sin confirmación, sin `optimizando` (no rechaza los movimientos de la persona),
-   * con el límite de 20 s, y escribe dentro de la cola de movimientos tras comprobar que la ruta no cambió. Nunca escribe lo
-   * que añade una regla dura nueva; lo que la ruta ya rompía se devuelve en `nota`.
-   */
-  const autoOptimizaToda = async (laneKey: string, huellaInicial: string): Promise<ResultadoAuto> => {
-    const stops = byDriver.get(laneKey) ?? [];
-    const lista = lecturaDe(laneKey, stops).paradas;
-    const base = baseDeLaRuta(laneKey);
-    const arranque = arranqueDeLoPendiente({ hechos: [...hechasDe(laneKey), ...stops], fecha: date, hoy: ahoraDelNegocio(), salidaMin: DAY_START_MIN, coordsDeTienda, fechaDe: (x) => ahoraDelNegocio(x).fecha });
-    const finDeSiempre = finParaEstimar(laneKey);
-    const entrada = entradaDeOptimizar({
-      lista, ordenes: stops, base: arranque && base ? arranque.punto : base, fin: arranque && base && finDeSiempre === undefined ? base : finDeSiempre, capacidad: capacityFor(driverOf(laneKey)), coordsDeTienda,
-      esEstrecha: (ventana) => esVentanaDura(ventana, settings), salidaMin: arranque && base ? arranque.salidaMin : DAY_START_MIN,
-    });
-    const desdeDelRelevo = recogidaDesdeDelRelevo(dayOrders, (id) => etaDeEntregaEn(routeEtas, id));
-    const recogidaDesde = entrada.paradas.map((p) => {
-      if (p.tipo !== "P") return null;
-      const v = p.ordenes.map((id) => desdeDelRelevo.get(id)).filter((x): x is number => x != null);
-      return v.length ? Math.max(...v) : null;
-    });
-    const pidos = await tiemposDeLaRuta(puntosDeLaEntrada(entrada), tiemposPedidos.current, (puntos) => {
-      const ctl = new AbortController();
-      const reloj = setTimeout(() => ctl.abort(), TIEMPO_MAXIMO_AUTO_MS);
-      return fetch("/api/route-matrix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ puntos }), signal: ctl.signal })
-        .finally(() => clearTimeout(reloj));
-    });
-    if (pidos == null) return { estado: "fallo", nota: t("No travel times (the route service didn't answer)", "Sin tiempos de viaje (el servicio de rutas no contestó)"), reintentar: true };
-    const res = optimizaSinEmpeorar({ ...entrada, recogidaDesde, tiempos: pidos.tiempos ?? null });
-    const yaRompe = reglasDeLaEntrada({ ...entrada, recogidaDesde });
-    const nuevas = violacionesNuevas(yaRompe, res.reglas.violaciones);
-    if (nuevas.length) return { estado: "fallo", nota: notaDeReglas(nuevas), reintentar: false };
-    let escrito = !res.cambio;
-    let reprograma = false;
-    if (res.cambio) {
-      await enFila(async () => {
-        if (huellaVivaRef.current(laneKey) !== huellaInicial) { reprograma = true; return; }
-        try {
-          escrito = await guardaLaLista(laneKey, stops, res.paradas, { en: `Auto-optimize ${laneLabel(laneKey)}`, es: `Optimización automática de ${laneLabel(laneKey)}` });
-        } catch {
-          escrito = false;
-        }
-      });
-    }
-    if (reprograma) return { estado: "reprograma" };
-    if (!escrito) return { estado: "fallo", nota: t("The route couldn't be saved", "No se pudo guardar la ruta"), reintentar: true };
-    return { estado: "hecha", huella: huellaDeLaRutaCon(laneKey, res.paradas, stops), nota: notaDeReglas(res.reglas.violaciones) || null };
-  };
   // ---- LA AUTO-OPTIMIZACIÓN AL ASIGNAR (348) ---------------------------------------------------------------------------
   // Cada asignación (una, varias, repartir, pasar un bucket, mover de un chofer a otro, quitar) llama a `trasAsignar` al
   // terminar, con SUS cambios. Las rutas que tocó se optimizan solas, una vez por chofer (700 ms: un lote de asignaciones
@@ -1846,7 +1803,7 @@ export default function RoutesPage() {
 
   /**
    * Lo que pasa con una ruta cuando le toca a la auto-optimización. `planAuto` decide: nada, colocar las nuevas una a una
-   * (`insertar`) o optimizar toda la ruta con el motor del botón (`optimizar_todo`). Marca la ruta según el resultado.
+   * (`insertar`); nunca reacomoda la ruta entera, eso es del botón «Optimizar» (D-1201). Marca la ruta según el resultado.
    */
   const autoOptimizaCuerpo = async (laneKey: string, ordenes: readonly string[], colocadas: readonly string[], intento: number): Promise<void> => {
     if (!hayAutoOptimizar) return;
@@ -1868,9 +1825,7 @@ export default function RoutesPage() {
     marcaAuto(laneKey, "pendiente");
     let res: ResultadoAuto;
     try {
-      res = plan.que === "optimizar_todo"
-        ? await autoOptimizaToda(laneKey, huellaInicial)
-        : await insertaEnLaRuta(laneKey, plan.nuevas, huellaInicial);
+      res = await insertaEnLaRuta(laneKey, plan.nuevas, huellaInicial);
     } catch {
       res = { estado: "fallo", nota: t("The route couldn't be optimised", "No se pudo optimizar la ruta"), reintentar: true };
     }
