@@ -53461,3 +53461,9 @@ Sello `deliveries` 1.667.0, `timetracker` 1.45.0; repo 1.996.0.
 
 El dueño: «el time tracker a mí como admin, solo a mí, déjalo para track time así como antes». Revisa D-1190 solo para él: su perfil está en `ADMINS_QUE_ENTRAN_A_TRACK` (`pantalla-de-entrada.ts`) y al abrir Time Tracker ve Registrar tiempo, como antes. Los demás admins siguen entrando a Nómina.
 Sello `timetracker` 1.45.1; repo 1.996.1.
+
+## D-1197 · Hub: el botón de fichar se ve, solo de vista, mientras el admin «ve como» otra persona (2026-11-25)
+
+El dueño: «si haciendo el switch quiero poder verlo». Revisa D-1195 en ese punto. Viendo como X, el botón sale con el estado de X (también en el navegador de escritorio, no solo en la app), con «Viewing as X — preview only. Nothing is recorded.» y los botones de acción apagados; la pregunta no se abre sola y el almuerzo sale como tarjeta que no bloquea. En el servidor, las cuatro acciones del hub se niegan durante una suplantación (cookie de retorno o sesión de «entrar como»; si no se puede saber, se niegan).
+Visto en el demo con la suplantación simulada: botón, tarjeta con la línea de solo vista, «Clock in» apagado. NO visto con una sesión real de «ver como».
+Sello `timetracker` 1.45.2; repo 1.996.2.
