@@ -2249,7 +2249,8 @@ export default function RoutesPage() {
   const cambiarEtapaDeLaOrden = async (d: Delivery, accion: AccionDeEtapaAdmin) => {
     if (!me || !puedeCambiarEtapaAqui(me.role)) return;
     const { mensaje, confirmar } = preguntaCambiarEtapaAdmin(accion, facturaYId(d).principal, t);
-    if (!(await confirmAction(mensaje, { confirmLabel: confirmar }))) return;
+    // 2026-11-25, el dueño: «desde que le cambio a entregado, that's it, no pidas más confirmación». Solo la recogida pregunta.
+    if (accion !== "entregar" && !(await confirmAction(mensaje, { confirmLabel: confirmar }))) return;
     const e = escrituraCambiarEtapaAdmin({ accion, pedido: d, me, t });
     if (await setStage(d.id, e.stage, e.note, e.extra)) notify(t("Stage changed", "Etapa cambiada"));
   };

@@ -53467,3 +53467,8 @@ Sello `timetracker` 1.45.1; repo 1.996.1.
 El dueño: «si haciendo el switch quiero poder verlo». Revisa D-1195 en ese punto. Viendo como X, el botón sale con el estado de X (también en el navegador de escritorio, no solo en la app), con «Viewing as X — preview only. Nothing is recorded.» y los botones de acción apagados; la pregunta no se abre sola y el almuerzo sale como tarjeta que no bloquea. En el servidor, las cuatro acciones del hub se niegan durante una suplantación (cookie de retorno o sesión de «entrar como»; si no se puede saber, se niegan).
 Visto en el demo con la suplantación simulada: botón, tarjeta con la línea de solo vista, «Clock in» apagado. NO visto con una sesión real de «ver como».
 Sello `timetracker` 1.45.2; repo 1.996.2.
+
+## D-1198 · Gestor de Rutas: «Entregado» desde «Cambiar etapa» ya no pide confirmación (2026-11-25)
+
+El dueño, con la ventana «¿Marcar … como entregada?»: «no quiero eso, desde que le cambio a entregado that's it, no pidas más confirmación». Marcar entregada desde la celda de etapa escribe al primer clic; la nota del historial sigue diciendo que la cambió el admin desde el Gestor. «Recogido» sigue preguntando.
+Sello `deliveries` 1.667.1; repo 1.996.3.
