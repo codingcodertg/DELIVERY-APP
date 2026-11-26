@@ -72,3 +72,12 @@ describe("cableado: la raíz redirige por la función, y la barra usa hrefDeTrac
     expect(src.split("hrefDeTrackTime(").length - 1).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe("el dueño entra a Registrar tiempo aunque sea admin (2026-11-25)", () => {
+  it("su id va a track; otro admin sigue yendo a Nómina", async () => {
+    const m = await import("./pantalla-de-entrada");
+    expect(m.entradaDeTimeTracker({ esAdmin: true, ver: undefined, uid: "acf43ad5-a937-419b-980c-ef57d45b67c6" })).toBe("track");
+    expect(m.entradaDeTimeTracker({ esAdmin: true, ver: undefined, uid: "otro" })).toBe("payroll");
+    expect(m.entradaDeTimeTracker({ esAdmin: true, ver: undefined })).toBe("payroll");
+  });
+});

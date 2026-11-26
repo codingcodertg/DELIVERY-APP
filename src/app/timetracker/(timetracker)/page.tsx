@@ -38,7 +38,7 @@ export default async function TrackTimePage({ searchParams }: { searchParams: Pr
     if (estadoDeLectura({ data: me, error: errorPerfil }) === "fallo") {
       return <ProfileReadError error={errorPerfil!} verDetalle={puedeVerDetalle(user)} />;
     }
-    if (entradaDeTimeTracker({ esAdmin: me?.timetracker_role === "admin", ver: p.ver }) === "payroll") redirect(RUTA_DE_PAYROLL);
+    if (entradaDeTimeTracker({ esAdmin: me?.timetracker_role === "admin", ver: p.ver, uid: user.id }) === "payroll") redirect(RUTA_DE_PAYROLL);
   }
   return <SeccionesDeRegistrarTiempo />;
 }
