@@ -70,9 +70,11 @@ describe("352 · fallas de la app", () => {
     expect(cuerpo).toContain("huella      text not null check (huella ~ '^[0-9a-f]{16}$')");
   });
 
-  it("frenos separados: cliente 50 por usuario y hora; servidor 500 en total por hora", () => {
+  it("frenos separados: cliente 50 por usuario y hora; servidor 100 por persona y 1000 en total por hora", () => {
     expect(cuerpo).toContain("if v_cliente >= 50 then return; end if;");
-    expect(cuerpo).toContain("if v_servidor >= 500 then return; end if;");
+    expect(cuerpo).toContain("if v_servidor >= 100 then return; end if;");
+    expect(cuerpo).toContain("if v_servidor >= 1000 then return; end if;");
+    expect(cuerpo).toContain("where origen <> 'cliente' and user_id is not distinct from p_usuario and created_at > now() - interval '1 hour'");
     expect(cuerpo).toContain("where origen = 'cliente' and user_id = p_usuario and created_at > now() - interval '1 hour'");
     expect(cuerpo).toContain("where origen <> 'cliente' and created_at > now() - interval '1 hour'");
   });

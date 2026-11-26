@@ -98,7 +98,9 @@ function quitaQueries(texto: string): string {
  */
 export function limpiarTexto(entrada: unknown, max: number): string {
   const crudo = typeof entrada === "string" ? entrada : entrada == null ? "" : String(entrada);
-  let texto = crudo.slice(0, Math.min(max * 2, TOPE_DE_ENTRADA));
+  // Se limpia todo lo que entra (hasta TOPE_DE_ENTRADA) y se recorta DESPUÉS: recortar antes podía partir un correo o una
+  // llave y dejar su resto sin limpiar (revisión de seguridad, 2026-11-25).
+  let texto = crudo.slice(0, TOPE_DE_ENTRADA);
   texto = texto
     .replace(RE_CORREO, "[correo]")
     .replace(RE_BEARER, "Bearer [token]")

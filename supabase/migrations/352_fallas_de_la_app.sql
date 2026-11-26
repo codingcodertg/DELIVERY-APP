@@ -101,9 +101,14 @@ begin
      where origen = 'cliente' and user_id = p_usuario and created_at > now() - interval '1 hour';
     if v_cliente >= 50 then return; end if;
   else
+    -- Tope por persona (o sin persona) y tope total: una sola persona que provoca fallas del servidor no puede llenar el
+    -- cupo y esconder las de los demás (revisión de seguridad, 2026-11-25).
+    select count(*) into v_servidor from public.app_errors
+     where origen <> 'cliente' and user_id is not distinct from p_usuario and created_at > now() - interval '1 hour';
+    if v_servidor >= 100 then return; end if;
     select count(*) into v_servidor from public.app_errors
      where origen <> 'cliente' and created_at > now() - interval '1 hour';
-    if v_servidor >= 500 then return; end if;
+    if v_servidor >= 1000 then return; end if;
   end if;
 
   -- Misma falla, mismo día: se cuenta, no se duplica.
@@ -178,4 +183,4 @@ begin
   end if;
 end $$;
 -- @ledger-below
-insert into public.schema_migrations (name, checksum) values ('352_fallas_de_la_app.sql', 'd5a936e228a371c4c8d7e62ca6213187f1d6ee7080931ca2cad7c10a3c146343') on conflict (name) do nothing;
+insert into public.schema_migrations (name, checksum) values ('352_fallas_de_la_app.sql', '08492f9ca4594f8238e5f5b7d4b7729b243bfd1670a8418c4b8edd3982512e4b') on conflict (name) do nothing;
