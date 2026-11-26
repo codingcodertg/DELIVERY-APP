@@ -53456,3 +53456,8 @@ El interruptor está en RR. HH. → Time tracking setup, solo para admins de Tim
 Visto en el demo simulando la app de escritorio: la pregunta con su selector de tienda, fichar (verde), el menú, el bloqueo (Escape no lo quita; nada de atrás recibe clics; sigue al recargar y en otra pantalla), volver, terminar turno con su confirmación, y a 390 px no se pinta. NO visto en la app de escritorio real ni con un fichaje real.
 Hallazgo que ya estaba y no se cambió: un fichaje público sin coordenadas se trata como FUERA del sitio (pide motivo o avisa a gerentes), no como «no medido»; y la foto no se exige en el servidor.
 Sello `deliveries` 1.667.0, `timetracker` 1.45.0; repo 1.996.0.
+
+## D-1196 · Time Tracker: el dueño entra a Registrar tiempo, los demás admins a Nómina (2026-11-25)
+
+El dueño: «el time tracker a mí como admin, solo a mí, déjalo para track time así como antes». Revisa D-1190 solo para él: su perfil está en `ADMINS_QUE_ENTRAN_A_TRACK` (`pantalla-de-entrada.ts`) y al abrir Time Tracker ve Registrar tiempo, como antes. Los demás admins siguen entrando a Nómina.
+Sello `timetracker` 1.45.1; repo 1.996.1.

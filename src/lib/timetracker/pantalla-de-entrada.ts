@@ -17,8 +17,15 @@ export const VALOR_DE_TRACK = "track";
  * ¿A dónde va quien entra en `/timetracker`? Admin sin marca → «payroll». Admin con `?ver=track` → «track». Quien no
  * es admin va siempre a «track». Cualquier otro valor de `ver` (vacío, otra palabra, una lista) cuenta como sin marca.
  */
-export function entradaDeTimeTracker(o: { esAdmin: boolean; ver: string | string[] | null | undefined }): "payroll" | "track" {
+/**
+ * Admins que entran a «Registrar tiempo» como antes (2026-11-25, el dueño: «el time tracker a mí como admin, solo a mí,
+ * déjalo para track time así como antes»). Por id de perfil: el del dueño.
+ */
+export const ADMINS_QUE_ENTRAN_A_TRACK: ReadonlySet<string> = new Set(["acf43ad5-a937-419b-980c-ef57d45b67c6"]);
+
+export function entradaDeTimeTracker(o: { esAdmin: boolean; ver: string | string[] | null | undefined; uid?: string | null }): "payroll" | "track" {
   if (!o.esAdmin) return "track";
+  if (o.uid && ADMINS_QUE_ENTRAN_A_TRACK.has(o.uid)) return "track";
   return o.ver === VALOR_DE_TRACK ? "track" : "payroll";
 }
 
