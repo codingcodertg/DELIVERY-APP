@@ -35,7 +35,8 @@ describe("valores por defecto de la hoja (Shower, 5×3×8, 3 Walls)", () => {
       "pegamento-piso": 1,
       "loseta-pared": 6,
       "loseta-piso": 1,
-      lechada: 1,
+      "lechada-arenada": 1,
+      "lechada-sin-arena": 1,
       silicon: 2,
       perfil: 0,
       clips: 3,
@@ -61,8 +62,9 @@ describe("valores por defecto de la hoja (Shower, 5×3×8, 3 Walls)", () => {
     expect(cantidad(r, "coladera")).toBe(1);
   });
 
-  it("lechada: 8.101 lb, a 1 bolsa de 25 lb", () => {
-    expect(cantidad(r, "lechada")).toBeCloseTo(8.101051010844825, 9);
+  it("lechada (D-1203): con arena y sin arena cubren las dos superficies (91 + 15 = 106 SF), 1 bolsa cada una", () => {
+    expect(cantidad(r, "lechada-arenada")).toBe(106);
+    expect(cantidad(r, "lechada-sin-arena")).toBe(106);
   });
 
   it("por paquete (columna D) de las filas con paquete", () => {
@@ -75,7 +77,6 @@ describe("valores por defecto de la hoja (Shower, 5×3×8, 3 Walls)", () => {
     expect(por.impermeable).toBe(40);
     expect(por["pegamento-pared"]).toBe(25);
     expect(por["loseta-pared"]).toBe(15.5);
-    expect(por.lechada).toBe(25);
     expect(por.silicon).toBe(25);
     expect(por.perfil).toBe(8);
     expect(por.clips).toBe(100);
@@ -87,7 +88,7 @@ describe("valores por defecto de la hoja (Shower, 5×3×8, 3 Walls)", () => {
     const unidad = Object.fromEntries(r.filas.map((f) => [f.clave, f.unidad.en]));
     expect(unidad).toMatchObject({
       liner: "5×7 pieces", mortero: "bags", tablero: "LF", tornillos: "boxes", malla: "rolls", impermeable: "gallons",
-      "loseta-pared": "boxes", lechada: "bags", silicon: "tubes", perfil: "pieces", clips: "packs", cunas: "packs",
+      "loseta-pared": "boxes", "lechada-arenada": "bags", "lechada-sin-arena": "bags", silicon: "tubes", perfil: "pieces", clips: "packs", cunas: "packs",
       coladera: "each", pendiente: "bags",
     });
   });
@@ -112,7 +113,8 @@ describe("Flooring Only (5×3, sin pared)", () => {
       "pegamento-piso": 1,
       "loseta-pared": 0,
       "loseta-piso": 1,
-      lechada: 1,
+      "lechada-arenada": 1,
+      "lechada-sin-arena": 1,
       silicon: 0,
       perfil: 0,
       clips: 1,
@@ -122,40 +124,40 @@ describe("Flooring Only (5×3, sin pared)", () => {
     });
   });
 
-  it("la lechada del piso sola: 2.00 lb", () => {
-    expect(cantidad(r, "lechada")).toBeCloseTo(2.0019, 3);
+  it("la lechada del piso sola: 15 SF", () => {
+    expect(cantidad(r, "lechada-arenada")).toBe(15);
   });
 });
 
-describe("Wall Only (5 ft de largo, 8 ft de alto, 3 Walls sin efecto)", () => {
+describe("Wall Only (D-1203: la hoja nueva, 300 SF por defecto)", () => {
   const r = correr({ proyecto: "Wall Only" });
 
-  it("áreas: piso 0, pared 43 (5×8 + 3 SF de salpicadero), perímetro 5, paneles 0", () => {
-    expect(r.areas).toEqual({ pisoSf: 0, paredSf: 43, perimetroLf: 5, tablerosPaneles: 0 });
+  it("áreas: pared 300 (sin salpicadero), paneles 300 ÷ 15 = 20", () => {
+    expect(r.areas).toEqual({ pisoSf: 0, paredSf: 300, perimetroLf: 0, tablerosPaneles: 20 });
   });
 
-  it("solo pared: loseta, pegamento y lechada de pared, silicón a alto × 2; sin clips ni cuñas (son de piso)", () => {
+  it("tablero en paneles, pegamento a 35, clips y cuñas; sin silicón ni impermeabilizante", () => {
     expect(ventas(r)).toEqual({
       liner: 0,
       mortero: 0,
-      tablero: 0,
-      tornillos: 0,
-      malla: 0,
+      tablero: 20,
+      tornillos: 2,
+      malla: 3,
       impermeable: 0,
-      "pegamento-pared": 2,
+      "pegamento-pared": 9,
       "pegamento-piso": 0,
-      "loseta-pared": 3,
+      "loseta-pared": 20,
       "loseta-piso": 0,
-      lechada: 1,
-      silicon: 1,
+      "lechada-arenada": 1,
+      "lechada-sin-arena": 1,
+      silicon: 0,
       perfil: 0,
-      clips: 0,
-      cunas: 0,
+      clips: 6,
+      cunas: 1,
       coladera: 0,
       pendiente: 0,
     });
-    expect(cantidad(r, "silicon")).toBe(16);
-    expect(cantidad(r, "clips")).toBe(0);
+    expect(cantidad(r, "cunas")).toBe(90);
   });
 });
 
@@ -183,7 +185,8 @@ describe("Shower 4 Walls (5×3×8, con salpicadero de 3 SF)", () => {
       "pegamento-piso": 1,
       "loseta-pared": 9,
       "loseta-piso": 1,
-      lechada: 1,
+      "lechada-arenada": 1,
+      "lechada-sin-arena": 1,
       silicon: 2,
       perfil: 0,
       clips: 3,
@@ -215,6 +218,6 @@ describe("funciones auxiliares", () => {
   it("cada ajuste de la hoja 2 tiene su celda y su valor por defecto", () => {
     const claves = AJUSTES_META.map((m) => m.clave).sort();
     expect(claves).toEqual(Object.keys(AJUSTES_POR_DEFECTO).sort());
-    expect(AJUSTES_META).toHaveLength(35);
+    expect(AJUSTES_META).toHaveLength(37);
   });
 });

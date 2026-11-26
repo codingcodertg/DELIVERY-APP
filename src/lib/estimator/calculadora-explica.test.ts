@@ -14,13 +14,13 @@ const textoEs = (x: Explicacion) => [x.formula.es, ...x.pasos.map((p) => p.es), 
 
 const CLAVES = [
   "liner", "mortero", "tablero", "tornillos", "malla", "impermeable", "pegamento-pared", "pegamento-piso",
-  "loseta-pared", "loseta-piso", "lechada", "silicon", "perfil", "clips", "cunas", "coladera", "pendiente",
+  "loseta-pared", "loseta-piso", "lechada-arenada", "lechada-sin-arena", "silicon", "perfil", "clips", "cunas", "coladera", "pendiente",
 ];
 
 describe("cada fila trae su explicación, en inglés y en español", () => {
   const r = correr();
 
-  it("las 17 filas y las 4 áreas tienen fórmula, pasos, entradas y cierre en las dos lenguas", () => {
+  it("las 18 filas y las 4 áreas tienen fórmula, pasos, entradas y cierre en las dos lenguas", () => {
     expect(r.filas.map((f) => f.clave)).toEqual(CLAVES);
     for (const f of r.filas) {
       const x = f.explicacion;
@@ -65,12 +65,12 @@ describe("valores por defecto (Shower, 5×3×8, 3 Walls)", () => {
     expect(r.explicacionAreas.tablerosPaneles.pasos[1].en).toBe("6 + 1 extra = 7 panels");
   });
 
-  it("lechada: 3 pasos de juntas y la referencia, luego libras y bolsas", () => {
-    const x = fila(r, "lechada").explicacion;
-    expect(x.pasos).toHaveLength(5);
-    expect(x.pasos[0].en).toContain("91 × ((1 ÷ (24 + 0.125) + 1 ÷ (48 + 0.125)) × 0.125) × 0.25 = 0.177");
-    expect(x.pasos[4].en).toBe("Pounds = 90.7 SF × 25 lb ÷ 280 SF = 8.1 lb");
-    expect(x.cierre.en).toBe("8.1 lb ÷ 25 lb per bag = 0.324 → rounded up = 1 bag");
+  it("lechada (D-1203): un paso por superficie con su rendimiento, y el cierre en bolsas", () => {
+    const x = fila(r, "lechada-arenada").explicacion;
+    expect(x.pasos).toHaveLength(2);
+    expect(x.pasos[0].en).toMatch(/^wall 24x48, joint 0.125 in, depth 0.375 in: adjustment [\d.]+ → \d+ SF per bag; 91 SF ÷ \d+ = [\d.]+ bags$/);
+    expect(x.pasos[1].es).toMatch(/^piso 12x24, junta 0.125 in/);
+    expect(x.cierre.en).toMatch(/→ rounded up = 1 bag\. Sanded and unsanded are alternatives: sell one\.$/);
   });
 
   it("impermeable: (88 + 15) × (1 + 0) = 103 SF, 3 envases", () => {

@@ -8,8 +8,8 @@
  */
 
 import {
-  AJUSTES_POR_DEFECTO, DISPOSICIONES, ENTRADAS_POR_DEFECTO, MAX_FILAS_DE_MEDIDA, PROYECTOS, TAMANOS_DE_LOSETA,
-  type AjustesCalculadora, type Disposicion, type EntradasCalculadora, type Habitacion, type Muro, type TamanoDeLoseta,
+  AJUSTES_POR_DEFECTO, DISPOSICIONES, ENTRADAS_POR_DEFECTO, MAX_FILAS_DE_MEDIDA, METODOS_DE_PARED, PROYECTOS, TAMANOS_DE_LOSETA,
+  type AjustesCalculadora, type Disposicion, type EntradasCalculadora, type Habitacion, type MetodoDePared, type Muro, type TamanoDeLoseta,
   type TipoDeProyecto,
 } from "@/lib/estimator/calculadora-material";
 
@@ -54,6 +54,7 @@ export function fusiona<T extends object>(base: T, guardado: unknown, valido: (k
 export function valorDeEntrada(k: keyof EntradasCalculadora, x: unknown): boolean {
   if (k === "proyecto") return PROYECTOS.includes(x as TipoDeProyecto);
   if (k === "disposicion") return DISPOSICIONES.includes(x as Disposicion);
+  if (k === "paredMetodo") return METODOS_DE_PARED.includes(x as MetodoDePared);
   if (k === "tamanoPared" || k === "tamanoPiso") return TAMANOS_DE_LOSETA.includes(x as TamanoDeLoseta);
   // Las filas se revisan aparte (limpiaHabitaciones / limpiaMuros) y no pasan por aquí.
   if (k === "habitaciones" || k === "muros") return false;
