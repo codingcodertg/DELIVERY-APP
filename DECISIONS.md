@@ -53496,3 +53496,8 @@ El dueño: «cuando estaba asignando rutas se miraba mucho shifting de las órde
 Ahora `planAuto` nunca devuelve «optimizar toda la ruta»: las órdenes nuevas se colocan en su mejor lugar (`mejorLugar`) y lo que ya estaba no se mueve. Reacomodar todo es solo del botón «Optimizar». Además la colocación de varias órdenes a la vez se guarda en UNA escritura (antes una por orden, con un salto y un deshacer cada una). Se quitó `autoOptimizaToda`.
 Visto en el demo: cuatro asignaciones seguidas a una ruta; las paradas previas conservan su orden y la nueva entra en su hueco.
 Sello `deliveries` 1.669.0; repo 1.998.0.
+
+## D-1202 · Ayuda: la captura para señalar problemas ocupa casi toda la pantalla (2026-11-26)
+
+El dueño (foto del editor «Señale los problemas»): «esto sigue siendo muy mini, maximiza eso del tamaño de la pantalla para que se mire bien el screenshot». El editor reservaba 340 px de alto para título y botones y sobraba espacio; ahora reserva 230 px, el fondo deja 8 px de margen y la tarjeta 16 px de relleno. La captura sale ~35 % más grande en una pantalla de laptop.
+Repo 1.999.0.

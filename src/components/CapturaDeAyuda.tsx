@@ -356,12 +356,12 @@ export function EditorDeCaptura({ fotograma, t, ocupado, onUsar, onDescartar, on
 
   return (
     // Fuera de la foto: con «Capturar de nuevo», el editor sigue montado en el instante en que empieza.
-    <div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA + 10 }} {...marcaFueraDeLaCaptura}>
-      {/* Tan grande como quepa (D-1084): el ancho lo limita la ventana o, si la captura es alta, lo que deja el alto de la
-          ventana sin empujar los botones fuera (340 px = márgenes, título, pista y botones). */}
+    <div className="overlay" style={{ zIndex: Z_PANEL_DE_AYUDA + 10, padding: 8 }} {...marcaFueraDeLaCaptura}>
+      {/* Tan grande como quepa (D-1084, D-1202): el ancho lo limita la ventana o, si la captura es alta, lo que deja el alto
+          de la ventana sin empujar los botones fuera (230 px = márgenes, título, pista y botones; antes 340 y sobraba espacio). */}
       <div
         className="modal"
-        style={{ maxWidth: `max(320px, min(calc(100vw - 32px), calc((100vh - 340px) * ${fotograma.ancho / fotograma.alto || 1.6} + 44px)))` }}
+        style={{ padding: 16, maxWidth: `max(320px, min(calc(100vw - 16px), calc((100vh - 230px) * ${fotograma.ancho / fotograma.alto || 1.6} + 34px)))` }}
       >
         <h3 style={{ margin: "0 0 4px" }}>{t("Mark the problems", "Señale los problemas")}</h3>
         <p className="hint" style={{ marginTop: 0 }}>
