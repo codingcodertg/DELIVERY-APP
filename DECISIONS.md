@@ -53472,3 +53472,9 @@ Sello `timetracker` 1.45.2; repo 1.996.2.
 
 El dueño, con la ventana «¿Marcar … como entregada?»: «no quiero eso, desde que le cambio a entregado that's it, no pidas más confirmación». Marcar entregada desde la celda de etapa escribe al primer clic; la nota del historial sigue diciendo que la cambió el admin desde el Gestor. «Recogido» sigue preguntando.
 Sello `deliveries` 1.667.1; repo 1.996.3.
+
+## D-1199 · Gestor de Rutas: «Asignar N entre…» asigna también lo que no cabe (2026-11-25)
+
+El dueño, con el aviso «Ninguna de las 3 órdenes seleccionadas se puede asignar»: «si yo digo que se asignen, se asignan; yo ahí lo arreglo». Lo que el motor no logra acomodar (pallets, horario, ventana, sin punto en el mapa) se asigna igual: si ya era de uno de los choferes elegidos, se queda con él donde estaba; si no, va al final de la ruta del chofer elegido con menos minutos. El aviso dice qué se asignó y cuáles quedaron «pasando el límite (revisa la ruta)», con su razón. Siguen sin asignarse solo las que ningún camión elegido puede llevar (requisitos). Deshacer cubre todo.
+Visto en el demo: 10 órdenes a un chofer, 4 «pasando el límite», las 10 asignadas.
+Sello `deliveries` 1.667.2; repo 1.996.4.
