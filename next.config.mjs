@@ -79,6 +79,9 @@ const nextConfig = {
       "base-uri 'self'",
       "form-action 'self'",
       "frame-ancestors 'self'",
+      // D-1206: sin esto el navegador no mandaba las violaciones a ningún lado. Llegan a «Fallas de la app» (app «csp»);
+      // cuando salgan limpias unos días, el CSP pasa de Report-Only a cumplimiento.
+      "report-uri /api/csp-report",
     ].join("; ");
 
     // Las rutas de la tarjeta pública (`/tarjeta/...`, y en el dominio de las tarjetas, `/<slug>`; ver lib/tarjetas) sacan la
