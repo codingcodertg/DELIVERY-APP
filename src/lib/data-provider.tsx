@@ -2065,7 +2065,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       }
 
       // La base ya escribió las dos filas y sus historiales. Aquí van los avisos y la vista local, como antes.
-      const { data: filaResto } = await supabase.from("deliveries").select("*").eq("id", res.restoId).maybeSingle();
+      const { data: filaResto } = await supabase.from("deliveries").select(COLUMNAS_DE_LA_LISTA).eq("id", res.restoId).maybeSingle();
       const resto2 = (filaResto ?? null) as Delivery | null;
       const letra = pedido.order_suffix ?? "a";
       setDeliveries((prev) => {
