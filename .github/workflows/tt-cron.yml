@@ -17,9 +17,9 @@
 
 name: tt-clockin-cron
 
+# D-1205 (auditoría 2026-11-27): sin `schedule:`. Lo corre pg_cron desde la base (migración 343/344); el horario de
+# GitHub lo duplicaba y a veces salía un aviso doble. Queda solo el botón «Run workflow» para correrlo a mano.
 on:
-  schedule:
-    - cron: "*/2 * * * *"
   workflow_dispatch: {}
 
 permissions: {}

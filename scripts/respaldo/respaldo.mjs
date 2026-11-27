@@ -11,12 +11,16 @@
 //   registro.log           una línea por corrida: OK o el error.
 //
 // Cuánto se guarda de la base: los últimos 30 días, y además el primero de cada mes durante 12 meses.
-// Nada de esto escribe en Supabase: solo lee. Las llaves salen de .env.local y no se imprimen.
+// Solo lee de Supabase. La única escritura es el aviso de falla (aviso.mjs) cuando algo sale mal. Las llaves salen de
+// .env.local y no se imprimen.
+//
+//   … respaldo.mjs --revisa   no respalda: solo avisa si el último respaldo bueno tiene más de 26 horas (D-1205).
 // =====================================================================================================================
 import { createClient } from "@supabase/supabase-js";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { avisoEnElHub, avisoEnWindows, motivoDeAviso } from "./aviso.mjs";
 
 const RAIZ = process.env.BACKUPS_DIR || "C:\\Users\\andre\\Documents\\CLAUDE\\RESPALDOS-DB";
 const PG_DUMP = process.env.PG_DUMP || "C:\\CLAUDE\\herramientas\\pg\\pgsql\\bin\\pg_dump.exe";
@@ -131,7 +135,19 @@ function escribeLeeme() {
 
 fs.mkdirSync(RAIZ, { recursive: true });
 const t0 = Date.now();
-try {
+const clienteDeServicio = () => (URL && KEY ? createClient(URL, KEY, { auth: { persistSession: false } }) : null);
+async function avisa(texto) {
+  avisoEnWindows(texto);
+  const enHub = await avisoEnElHub(clienteDeServicio(), texto);
+  log(`AVISO ${enHub ? "enviado al hub" : "solo en pantalla"}: ${texto}`);
+}
+
+if (process.argv.includes("--revisa")) {
+  const registro = fs.existsSync(path.join(RAIZ, "registro.log")) ? fs.readFileSync(path.join(RAIZ, "registro.log"), "utf8") : "";
+  const motivo = motivoDeAviso(registro);
+  if (motivo) await avisa(motivo);
+  else console.log("Respaldo al día.");
+} else try {
   const tam = await respaldaBase();
   const podados = podaBase();
   const a = await respaldaArchivos();
@@ -139,9 +155,10 @@ try {
   const msg = `OK base ${(tam / 1048576).toFixed(1)} MB · archivos ${a.nuevos} nuevos de ${a.total}${a.fallas ? ` · ${a.fallas} fallas` : ""} · ${podados} respaldos viejos borrados · ${Math.round((Date.now() - t0) / 1000)} s`;
   log(msg);
   console.log(msg);
-  if (a.fallas) process.exitCode = 2;
+  if (a.fallas) { process.exitCode = 2; await avisa(`El respaldo terminó, pero ${a.fallas} archivos no se bajaron (ver registro.log).`); }
 } catch (e) {
   log(`ERROR ${e.message}`);
   console.error(`ERROR ${e.message}`);
   process.exitCode = 1;
+  await avisa(`El respaldo FALLÓ: ${e.message}`);
 }
