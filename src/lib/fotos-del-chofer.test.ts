@@ -72,7 +72,7 @@ describe("migración 169: el guard es la 168 letra por letra con UN bloque más,
   });
   it("lo que la app escribe cabe en el bloque: la ficha manda SOLO photos, SOLO departed_at o SOLO arrived_at", () => {
     const modal = leer("src/components/OrderModal.tsx");
-    expect(modal).toContain("await updateDelivery(existing.id, { photos: next });");
+    expect(modal).toContain("await updateDelivery(existing.id, { photos: next }, { fotosAntes: fotosOrden.photos ?? [], alGuardar: alGuardarVersion });");
     expect(modal).toContain("await updateDelivery(existing.id, { departed_at: now });");
     expect(modal).toContain("await updateDelivery(existing.id, { arrived_at: now });");
   });

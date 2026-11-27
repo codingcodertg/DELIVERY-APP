@@ -205,7 +205,7 @@ describe("nada se guarda a medias (fuente: OrderModal y PhotoUpload)", () => {
 
   it("la entrega sube las fotos de la cámara ANTES de escribir la etapa, y si no suben, vuelve sin entregar", () => {
     const a = modal.indexOf("const deliverWithPod = async () => {");
-    const b = modal.indexOf("const fotos = fotosSubidas.length", a);
+    const b = modal.indexOf("const enBase = fotosSubidas.length", a);
     expect(a).toBeGreaterThan(-1);
     expect(b).toBeGreaterThan(a);
     const tramo = modal.slice(a, b);
@@ -213,7 +213,9 @@ describe("nada se guarda a medias (fuente: OrderModal y PhotoUpload)", () => {
     expect(tramo).toMatch(/if \(!subida\.ok\) \{[\s\S]*?setBusy\(false\);\s*return;\s*\}/);
     // Lo que se guarda son las rutas que devolvió la subida, no los data: de la cámara.
     expect(modal).toContain("fotosSubidas = subida.rutas;");
-    expect(modal.slice(b)).toMatch(/const fotos = fotosSubidas\.length \? fotosAlEntregar\(fotosOrden\.photos, fotosSubidas\)/);
+    // Lote 2: las fotos que ya tiene la orden se leen de la base justo antes de unir las nuevas.
+    expect(modal.slice(b)).toMatch(/const enBase = fotosSubidas\.length \? await leerFotosDeLaOrden\(/);
+    expect(modal.slice(b)).toMatch(/const fotos = enBase \? fotosAlEntregar\(enBase\.photos, fotosSubidas\) : null;/);
     // Y la escritura de la etapa viene DESPUÉS de todo eso.
     expect(modal.indexOf("setStage(", b)).toBeGreaterThan(b);
   });
