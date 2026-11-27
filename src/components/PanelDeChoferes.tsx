@@ -4,6 +4,12 @@ import type { HTMLAttributes, ReactNode } from "react";
 import { numeroDePallets } from "@/lib/lista-unica";
 import type { InfoDeRuta } from "@/lib/usa-medida-de-rutas";
 
+/** D-1208: la duración corta, «4:36» (horas:minutos), para que pallets, horas y millas quepan en una línea. */
+export function horasCortas(minutos: number): string {
+  const m = Math.max(0, Math.round(minutos));
+  return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+}
+
 /**
  * El panel «Choferes y rutas»: cada ruta del día con su casilla, su color, sus órdenes, horas y millas, y la barra de
  * carga. Lo pintan el Gestor de Rutas y «Ruta de hoy» (D-467) — el mismo componente, para que las dos digan lo mismo.
@@ -55,8 +61,8 @@ export function PanelDeChoferes(props: {
   const { t } = props;
   return (
     <div className="card" data-panel-de-choferes style={{ flex: "1 1 250px", maxWidth: 340, margin: 0, padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", maxHeight: "min(60vh, 520px)" }}>
-      {/* D-1204: con el panel más delgado, el título no se parte; si no caben, los botones bajan a otra línea. */}
-      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "10px 12px", borderBottom: "1px solid var(--line)" }}>
+      {/* D-1204: con el panel más delgado, el título no se parte. D-1208: «Todos» va a la derecha, en la misma fila. */}
+      <div data-cabecera-del-panel style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "10px 12px", borderBottom: "1px solid var(--line)" }}>
         <b style={{ flex: "1 0 auto", whiteSpace: "nowrap" }}>🚚 {t("Drivers & routes", "Choferes y rutas")}</b>
         {props.acciones}
         <label data-todos-los-choferes style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
@@ -77,7 +83,7 @@ export function PanelDeChoferes(props: {
                 data-ruta-del-panel={u.clave}
                 onClick={() => props.onEnfoca(u.clave)}
                 {...atributos}
-                style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderTop: "1px solid var(--line)", cursor: "pointer", background: u.marcada ? "var(--accent-soft)" : undefined, ...estiloExtra }}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 12px", borderTop: "1px solid var(--line)", cursor: "pointer", background: u.marcada ? "var(--accent-soft)" : undefined, ...estiloExtra }}
               >
                 <input type="checkbox" checked={u.marcada} onClick={(e) => e.stopPropagation()} onChange={() => props.onAlterna(u.clave)} style={{ width: 15, height: 15, flex: "0 0 auto" }} />
                 <span style={{ width: 12, height: 12, borderRadius: "50%", background: u.color, flex: "0 0 auto", border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)" }} />
@@ -99,22 +105,18 @@ export function PanelDeChoferes(props: {
                       </button>
                     )}
                     {props.extrasDe?.(u.clave)}
-                  </div>
-                  <div className="hint" style={{ marginTop: 2, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <span data-paradas-del-panel>📦 {u.paradas}</span>
-                    {/* Travel time & miles only appear once a route has been calculated. */}
-                    {u.info && <span data-horas-del-panel>⏱ {u.info.duration_text}</span>}
-                    {u.info && <span data-millas-del-panel>⇥ {u.info.miles} mi</span>}
-                  </div>
-                  {/* Capacity meter: the peak load of the list vs the truck's capacity (D-443). */}
-                  <div style={{ marginTop: 5, display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{ flex: 1, height: 6, borderRadius: 999, background: "var(--line)", overflow: "hidden" }}>
-                      <div style={{ width: `${pct}%`, height: "100%", background: over ? "var(--red)" : "var(--green)" }} />
-                    </div>
-                    <span className="hint" data-carga-maxima style={{ fontSize: 11, fontWeight: 700, color: over ? "var(--red)" : undefined }}
-                      title={t("Peak load on the route vs the truck's capacity", "Carga máxima de la ruta contra la capacidad del camión")}>
+                    {/* D-1208: la carga (antes con su barra verde) va al final de la primera fila, solo el número. */}
+                    <span className="hint" data-carga-maxima style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: over ? "var(--red)" : undefined }}
+                      title={t(`Peak load on the route vs the truck's capacity (${pct}%)`, `Carga máxima de la ruta contra la capacidad del camión (${pct}%)`)}>
                       {numeroDePallets(pallets)}/{cap}
                     </span>
+                  </div>
+                  {/* D-1208 (el dueño: «todo en 2 rows, elimina la barra verde»): la segunda fila, en una sola línea. */}
+                  <div className="hint" style={{ marginTop: 1, display: "flex", gap: 8, whiteSpace: "nowrap", overflow: "hidden" }}>
+                    <span data-paradas-del-panel>📦 {u.paradas}</span>
+                    {/* Travel time & miles only appear once a route has been calculated. */}
+                    {u.info && <span data-horas-del-panel title={u.info.duration_text}>⏱ {horasCortas(u.info.minutes)}</span>}
+                    {u.info && <span data-millas-del-panel>⇥ {u.info.miles} mi</span>}
                   </div>
                 </div>
               </div>

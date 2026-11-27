@@ -93,7 +93,9 @@ describe("el camión: lo que se escribe y lo que se guarda", () => {
 describe("1 · el selector de vista y las expiradas, en una fila", () => {
   it("el aviso «N orden(es) expiradas · N sin fecha — Verlas» va DENTRO de la fila del selector, después de él", () => {
     const fila = trozo(pagina, "<div data-barra-de-arriba", "<div data-vista-del-gestor=");
-    antesQue(fila, "data-selector-de-vista", "data-texto-de-expiradas");
+    // D-1208: el selector es `selectorDeVista`; en la expandida va en esta fila, en la compacta en la de la fecha.
+    antesQue(fila, "{!soloLectura && !eficiente && selectorDeVista}", "data-texto-de-expiradas");
+    expect(pagina).toContain("const selectorDeVista = ( <div className=\"viewtoggle\" data-selector-de-vista");
     expect(fila).toContain("{!soloPendientes && !soloLectura && (pendientes.atrasadas.length + pendientes.sinFecha.length > 0) && !oculto(AVISOS_DEL_GESTOR.atrasadas) && (");
     expect(fila).toContain('onClick={() => { setAllDates(false); setSoloPendientes(true); }}>{t("View them", "Verlas")}</button>');
     // Una sola vez en la página: el renglón aparte de encima ya no está.
