@@ -53514,3 +53514,15 @@ Sello `estimator` 0.46.0; repo 2.0.0.
 
 Solicitud de ayuda del dueño (Gestor de Rutas, vista compacta, foto): «1) elimina eso, ya se mira a la izquierda cuando está selected; 2) haz eso más delgado, 1/4 más delgado». Se quita la pastilla «🚚 chofer ✕» de la barra de pestañas (el filtro son solo las casillas del panel). En la vista compacta el panel pasa de 260–340 px a 195–255 px. Con el panel más delgado el título ya no se parte: si no caben, los botones bajan a otra línea. Visto en el demo a 1280 px.
 Sello `deliveries` 1.670.0; repo 2.1.0.
+
+## D-1205 · Auditoría 27 nov, lote 1: aviso del respaldo, crons sin doble horario, migraciones 353–355 (2026-11-27)
+
+El dueño mandó arreglar la fase «Esta semana» de la auditoría (`C:\CLAUDE\auditoria-rtg-hub-2026-11-27.txt`).
+Respaldo: si una corrida falla, o termina con archivos sin bajar, sale un aviso en la pantalla de Windows y queda una falla en Administración → «Fallas de la app» (app «respaldo», vía `registrar_falla` de la 352). `respaldo.mjs --revisa` avisa si el último respaldo bueno tiene más de 26 h (para correrlo al iniciar sesión). El 26 nov la tarea se cortó (resultado -1073741510, consola cerrada) y dejó `2026-11-26.dump.parcial`; respaldo en la nube (el dueño: «sí a todo»): workflow `respaldo-nube` cada noche 2:15 am Chicago, pg_dump 17 cifrado con AES-256 (gpg) guardado 90 días como artefacto de GitHub; si falla, GitHub manda correo. Necesita los secretos BACKUP_DB_URL y BACKUP_PASSPHRASE.
+Pruebas de Ayuda: ya estaban arregladas en #1000 (D-1202); no aplica.
+GitHub: tt-cron, rc-comms, rc-choferes y outlook-indeed quedan solo con `workflow_dispatch`. Los corre pg_cron (jobs 6, 7, 11, 12, comprobado en la base); el horario de GitHub los duplicaba.
+353: cron diario `purga-caches-de-google` (9:40 UTC) que borra route_opt_cache de más de 1 día, distance_cache y places_cache de más de 14, y de travel_time_cache solo las filas con tráfico de más de 28 días. Las sin tráfico se quedan: el reporte de choferes las lee sin mirar la edad.
+354: borrar adjuntos de una orden (tabla `delivery_files` y cubo `delivery-files`) solo lo puede quien lo subió, admin u oficina (manager, logistics, accounting). Las fotos del POD ya no tenían política de borrado.
+355: quita por nombre el job 1 `purge_old_timetracker_screenshots`, que fallaba cada noche (lo hace /api/cron/purga-capturas).
+Las tres ensayadas con ROLLBACK y aplicadas el 27 nov con el OK del dueño. La 291 se ensayó como chofer, ventas, almacén y contabilidad (ven 1 perfil en vez de 45; la vista `perfiles_publicos` sigue con 45); pero NO se puede aplicar así: Time Tracker lee `profiles` de otros (vista `clockin.profiles`, security_invoker) para el alcance del gerente (`canManageEmployee`: company_id, store_id), equipo, horarios y nómina, y esas columnas no están en la vista; un gerente sin RR. HH. se quedaría sin poder gestionar a nadie. Queda en espera de decidir cómo.
+Repo 2.2.0.
