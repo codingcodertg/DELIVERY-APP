@@ -53550,3 +53550,8 @@ Sellos `deliveries` 1.672.0, `timetracker` 1.46.1; repo 2.4.0.
 
 Solicitud de ayuda del dueño (Gestor de Rutas, vista compacta, 5 puntos) y sus notas sobre la maqueta (artifact «Gestor de Rutas compacto»). En la compacta: (1) se quita el título «Gestor de Rutas N» (ya está resaltado arriba); (2) «Vista expandida | Vista compacta» va en la fila de la fecha, en su lugar; (3) el encabezado de cada ruta en una sola fila: el nombre sin el punto de color, el camión solo como 🚛 (cuál es, al pasar el ratón; pulsado sigue cambiándolo), y textos cortos («11/14», «+8 h», «reintentar»); (4) cada chofer del panel en dos filas: nombre, EN VIVO y carga «6/10» arriba; pallets, horas como «4:36» y millas abajo en una línea; sin la barra verde (el % va en el `title`); (5) sin «＋ Ruta» (sigue en la expandida) y «Todos» a la derecha de «Choferes y rutas». Visto en el demo a 1280 px (una fila) y 390 px (sin desborde).
 Sello `deliveries` 1.673.0; repo 2.5.0.
+
+## D-1209 · Gestor de Rutas compacto: sin el ⓘ ni filas vacías; el selector de vista dentro de la fila de la fecha (2026-11-27)
+
+El dueño (foto): «quita ese signo como de info, no sé cómo hacerte entender que quiero quitar espacios muertos». En la compacta: el ⓘ (ayuda del mapa) ya no sale; la fila de arriba solo aparece si trae el aviso de expiradas (sin él, era una fila vacía); y «Vista expandida | Vista compacta» va dentro de la fila de la fecha (en el lugar del título se partía en dos filas a 1280 px). Visto en el demo a 1280 px: una sola fila arriba; 390 px sin desborde.
+Sello `deliveries` 1.674.0; repo 2.6.0.

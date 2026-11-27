@@ -14,7 +14,7 @@ describe("Gestor compacto (D-1208)", () => {
     expect(horasCortas(-3)).toBe("0:00");
   });
   it("en la compacta el selector de vista ocupa el lugar del título", () => {
-    expect(pagina).toContain("{!soloLectura && eficiente\n          ? selectorDeVista");
+    expect(pagina).toContain("{!soloLectura && eficiente && selectorDeVista}"); // D-1209: dentro de la fila de la fecha
     expect(pagina).toContain("{!soloLectura && !eficiente && selectorDeVista}");
   });
   it("sin «＋ Ruta» en la compacta; el chofer en 2 filas y sin barra", () => {
