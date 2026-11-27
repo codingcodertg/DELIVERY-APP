@@ -92,3 +92,15 @@ describe("migraciones 353–355", () => {
     expect(m[355]).not.toMatch(/unschedule\(1\)/);
   });
 });
+
+describe("respaldo en la nube", () => {
+  it("cada noche, cifrado, 90 días, sin secretos en el YAML", () => {
+    const y = leer(".github/workflows/respaldo-nube.yml");
+    expect(y).toContain('- cron: "15 8 * * *"');
+    expect(y).toContain("--symmetric --cipher-algo AES256");
+    expect(y).toContain("retention-days: 90");
+    expect(y).toContain("rm -f base.dump");
+    expect(y).toContain("${{ secrets.BACKUP_DB_URL }}");
+    expect(y).not.toMatch(/postgres(ql)?:\/\//);
+  });
+});
