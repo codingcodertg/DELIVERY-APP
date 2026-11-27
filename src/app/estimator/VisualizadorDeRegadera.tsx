@@ -9,6 +9,7 @@ import { dimensionesDeLaEscena, PATRONES, type Patron } from "@/lib/estimator/vi
 import { ESPEC_POR_DEFECTO, JUNTAS_IN, LECHADAS, PRESETS, type ColorLechada, type EspecLoseta, type FuenteLoseta } from "@/lib/estimator/visualizador/texturas";
 import { EscenaRegadera, type EntradaEscena, type FotoSuperficie, type SuperficieId } from "@/lib/estimator/visualizador/escena";
 import type { TamanoDeLoseta } from "@/lib/estimator/calculadora-material";
+import { hoyCentral } from "@/lib/hoy-central";
 
 type Override = { largoFt: number; anchoFt: number; altoFt: number; disposicion: Disposicion };
 
@@ -196,7 +197,7 @@ export default function VisualizadorDeRegadera() {
     if (!blob) { setCopiado("error"); window.setTimeout(() => setCopiado(null), 2500); return; }
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyCentral();
     a.href = url;
     a.download = `regadera-${hoy}.png`;
     document.body.appendChild(a);

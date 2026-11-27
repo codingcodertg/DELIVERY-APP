@@ -13,6 +13,7 @@ const MapView = dynamic(() => import("@/components/MapView").then((m) => m.MapVi
 });
 import { TablaEstandar, type ColumnaEstandar } from "@/components/TablaEstandar";
 import { downloadCSV, toCSV } from "@/lib/utils";
+import { hoyCentral } from "@/lib/hoy-central";
 
 // ============================================================
 // Market Map — a live view of the flooring market across Hidalgo + Cameron
@@ -261,7 +262,7 @@ export default function MarketPage() {
       p.website ?? "",
       p.address ?? "",
     ]);
-    downloadCSV(`market_map_${new Date().toISOString().slice(0, 10)}.csv`, toCSV(headers, rows));
+    downloadCSV(`market_map_${hoyCentral()}.csv`, toCSV(headers, rows));
   };
 
   const points: MapPoint[] = useMemo(

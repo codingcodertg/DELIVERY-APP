@@ -6,9 +6,10 @@
 import { DEMO_EMPLOYEES } from "@/lib/timetracker/demo-data";
 import type { PayEntry } from "@/lib/clockin/payroll";
 import { payPeriodDates } from "@/lib/clockin/schedule";
+import { hoyCentral } from "@/lib/hoy-central";
 
 const DIA_MS = 86_400_000;
-const hoyISO = () => new Date().toISOString().slice(0, 10);
+const hoyISO = () => hoyCentral();
 /** Un día de la semana de pago, a las 08:00 (hora central = 14:00 UTC en noviembre). */
 const enHora = (dia: string, hh: number, mm: number) => `${dia}T${String(hh + 6).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00.000Z`;
 
