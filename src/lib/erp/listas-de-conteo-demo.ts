@@ -6,6 +6,7 @@
 // ============================================================
 import { PERFIL_ERP_DEMO, TIENDAS_DEMO, productosDemo, existenciasDemo, type Fila } from "@/lib/erp/demo-data";
 import { TOPE_DE_ALTA } from "@/lib/erp/listas-de-conteo";
+import { hoyCentral } from "@/lib/hoy-central";
 
 type Args = Record<string, unknown> | undefined;
 
@@ -39,7 +40,7 @@ function alta(store_id: string, name: string, ahora: Date, status: "open" | "sub
 /** Semilla: una lista abierta a medio contar y una ya enviada (de solo lectura), para ver las dos en la pantalla. */
 export function reiniciarListasDemo(ahora: Date = new Date()) {
   listas.length = 0; renglones.length = 0; siguiente = 1;
-  const abierta = alta("T1", `Count T1 ${ahora.toISOString().slice(0, 10)}`, ahora);
+  const abierta = alta("T1", `Count T1 ${hoyCentral(ahora)}`, ahora);
   const semilla: [number, number | null][] = [[1, 12], [2, null], [3, 4], [4, null]];
   for (const [productId, qty] of semilla) {
     renglones.push({

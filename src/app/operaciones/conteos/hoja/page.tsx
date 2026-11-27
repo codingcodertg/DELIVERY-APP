@@ -10,6 +10,7 @@ import { fmtDia } from "@/lib/almacen-ops/fecha-del-dano";
 import { fmtMoney } from "@/lib/utils";
 import { filasDeHojaDeConteo, idDeHoja, nombreDeEtapaDeConteo, puedeGestionarConteo, resumenDelConteo, veConteos, type Conteo, type Linea, type UnidadDeConteo } from "@/lib/almacen-ops/conteos";
 import { DEMO_CONTEOS, conteoDeLaFila, lineaDeLaFila } from "@/lib/almacen-ops/conteos-datos";
+import { hoyCentral } from "@/lib/hoy-central";
 import { BotonImprimir } from "../../reportes/hoja-de-aprobacion/BotonImprimir";
 import "../../reportes/hoja-de-aprobacion/hoja.css";
 
@@ -72,7 +73,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ i
   const t = T(lang);
   const filas = filasDeHojaDeConteo(lineas, pendientes);
   const resumen = resumenDelConteo(lineas, pendientes);
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyCentral();
   const nombre = (x: string | null) => (x ? personas.find((p) => p.id === x)?.full_name ?? "" : "");
 
   return (
