@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { NO_MATCH, visibleStores } from "@/lib/clockin/scope";
 import { createClient } from "@/lib/clockin/supabase/server";
+import { delEquipo, perfilesDeMiEquipo } from "@/lib/clockin/equipo";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 import { payPeriodDates } from "@/lib/clockin/schedule";
 import { entryMinutes, hrs, summarize, attachLunch, lunchMinutes, type PayEntry, type LunchRow } from "@/lib/clockin/payroll";
@@ -85,11 +86,13 @@ export async function GET(req: Request) {
   const startUtc = centralWallToUtc(`${monday}T00:00`);
   const endUtc = new Date(new Date(startUtc).getTime() + 7 * 86400000).toISOString();
 
-  const peopleQuery = supabase.from("profiles").select("id, full_name").eq("company_id", me.company_id);
-  if (scopeStore) peopleQuery.in("store_id", scopeStore);
-  if (me.role !== "owner") peopleQuery.neq("role", "owner"); // owner excluded from a manager's export
-  const { data: people } = await peopleQuery;
-  const allowedIds = (people ?? []).map((p) => p.id as string);
+  // Alcance de quien exporta (358). El dueño no sale en la exportación de un gerente.
+  const people = delEquipo(await perfilesDeMiEquipo(supabase), {
+    companyId: me.company_id,
+    tiendas: scopeStore,
+    sinDuenos: me.role !== "owner",
+  });
+  const allowedIds = people.map((p) => p.id);
 
   const [{ data: entryRows }, { data: lunchRows }, { data: approvals }] = await Promise.all([
     supabase

@@ -20,6 +20,7 @@ import { APP_VERSIONS } from "@/lib/app-versions";
 import { ESCRITORIO_MINIMO } from "@/lib/desktop-version";
 import { downloadCSV } from "@/lib/utils";
 import { filasACsv, nombreCsv } from "@/lib/security/csv";
+import { hoyCentral } from "@/lib/hoy-central";
 import "./security.css";
 
 export interface DispositivoFila {
@@ -288,7 +289,7 @@ export function PanelDeSeguridad({ enforced, webBloqueada, exentos = [], cambiad
   const fecha = useCallback((s: string | null) => s ? new Date(s).toLocaleString(lang === "es" ? "es-MX" : "en-US", { dateStyle: "short", timeStyle: "short" }) : "—", [lang]);
   const fechaOTexto = useCallback((v: ValorDeCelda) => typeof v === "string" && ES_FECHA.test(v) ? fecha(v) : String(v ?? "—"), [fecha]);
   const ahora = Date.now();
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyCentral();
   const tipoTexto = useCallback((kind: string) => { const x = TIPO[kind] ?? TIPO.browser; return `${x.icono} ${t(x.en, x.es)}`; }, [t]);
   const estadoTexto = useCallback((status: string) => { const x = ESTADO[status] ?? ESTADO.pending; return t(x.en, x.es); }, [t]);
 

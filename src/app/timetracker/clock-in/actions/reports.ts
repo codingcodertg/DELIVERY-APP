@@ -7,6 +7,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/serve
 import { minutosDeVentanas, validaTurno, type VentanaComida } from "@/lib/clockin/comida";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 import { canManageEmployee, isPeriodLocked, periodStartOf, type Me } from "@/lib/clockin/mgrScope";
+import { delEquipo, perfilesDeMiEquipo, personaDeMiEquipo } from "@/lib/clockin/equipo";
 import { maybeNotifyStoreReady } from "@/lib/clockin/notify";
 import { isOverlapError, OVERLAP_MESSAGE } from "@/lib/clockin/overlap";
 import { attachLunch, type PayEntry, type LunchRow } from "@/lib/clockin/payroll";
@@ -310,8 +311,8 @@ export async function approveTimesheet(input: {
 
   // If this was the last pending timesheet for the store, tell the owner it's ready.
   try {
-    const { data: emp } = await ctx.supabase.from("profiles").select("store_id").eq("id", input.employeeId).maybeSingle();
-    await maybeNotifyStoreReady(ctx.companyId, (emp?.store_id as string) ?? null, input.periodStart);
+    const emp = await personaDeMiEquipo(ctx.supabase, input.employeeId);
+    await maybeNotifyStoreReady(ctx.companyId, emp?.store_id ?? null, input.periodStart);
   } catch {
     /* notification is best-effort — never block the approval */
   }
@@ -407,16 +408,14 @@ export async function getPayrollPeriod(periodStart: string): Promise<
 
   // Mismo alcance que la pantalla vieja: un gerente con tienda ve su cuadrilla, y el dueño
   // no aparece en la nómina de un gerente.
-  const peopleQuery = supabase
-    .from("profiles")
-    .select("id, full_name, store_id")
-    .eq("company_id", me.company_id)
-    .eq("active", true);
-  // Una sola regla de alcance para toda la app (D-127): su tienda más las concedidas.
+  // Una sola regla de alcance para toda la app (D-127): su tienda más las concedidas (358 la aplica).
   const suyas = visibleStores(me.role, me.store_id, me.extra_store_ids);
-  if (suyas) peopleQuery.in("store_id", suyas);
-  if (me.role !== "owner") peopleQuery.neq("role", "owner");
-  const { data: people } = await peopleQuery;
+  const people = delEquipo(await perfilesDeMiEquipo(supabase), {
+    companyId: me.company_id,
+    tiendas: suyas,
+    soloActivos: true,
+    sinDuenos: me.role !== "owner",
+  });
   const allowedIds = (people ?? []).map((p) => p.id as string);
   const inIds = allowedIds.length ? allowedIds : NO_MATCH;
 

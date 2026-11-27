@@ -98,7 +98,8 @@ describe("la ficha (OrderModal) usa la regla, no canEditFields a secas", () => {
 
   it("al guardar viaja solo la fecha, por parcheSoloFecha; con «Fecha pendiente» se guarda sin fecha", () => {
     expect(ficha).toContain('if (!isNew && alcance === "solo_fecha") {');
-    expect(ficha).toContain("const ok = await updateDelivery(existing!.id, parcheSoloFecha(d));");
+    // Lote 2: va con el candado de versión (`versionEsperada`), para no pisar una orden que otra persona cambió.
+    expect(ficha).toContain("const ok = await updateDelivery(existing!.id, parcheSoloFecha(d), { versionEsperada:");
     // Ya NO se exige fecha: con fecha pendiente (null) se guarda sin día; con fecha, se valida día pasado.
     expect(ficha).not.toContain('if (!d.delivery_date) { notify(t("Pick a delivery date.", "Elija una fecha de entrega.")); return; }');
     expect(ficha).toContain("if (d.delivery_date && agendaEnDiaPasado(d.delivery_date, existing!.delivery_date))");

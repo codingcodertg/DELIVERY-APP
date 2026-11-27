@@ -9,6 +9,7 @@ import { stageLabel } from "@/lib/constants";
 import { fmtDate, orderOwner } from "@/lib/utils";
 import type { Lang } from "@/lib/prefs";
 import { sumaDinero, sumaMillas } from "./totales";
+import { hoyCentral } from "@/lib/hoy-central";
 
 // ============================================================
 // Rich exports of the orders list, grouped by the employee who logged each
@@ -52,7 +53,7 @@ function groupByEmployee(deliveries: Delivery[], users: Profile[], lang: Lang) {
 }
 
 function stamp(): string {
-  return new Date().toISOString().slice(0, 10);
+  return hoyCentral();
 }
 
 // ---------- Excel (.xlsx) with collapsible per-employee groups ----------

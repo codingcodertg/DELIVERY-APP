@@ -33,6 +33,7 @@ import { TendenciaDelPanel } from "@/components/panel/TendenciaDelPanel";
 import { ComparacionDelPanel } from "@/components/panel/ComparacionDelPanel";
 import { OrderModal } from "@/components/OrderModalLazy";
 import { periodoAnterior, resumenDelPeriodo, seriePorPeriodo } from "@/lib/panel-resumen";
+import { hoyCentral, sumaDias } from "@/lib/hoy-central";
 import "./panel.css";
 
 /** Las secciones del Panel (D-1127). */
@@ -44,10 +45,9 @@ const SECCIONES = [
 ] as const;
 
 // Default the date-range to the last 30 days.
+// Hoy es el día en Texas (hoyCentral), no el de UTC: desde las 6–7 pm UTC ya marcaba mañana.
 function daysAgoISO(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return sumaDias(hoyCentral(), -n);
 }
 
 // Which quick-range is active — governs how the ◀ / ▶ arrows step the range:

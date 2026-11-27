@@ -5,6 +5,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/serve
 import { canManageEmployee, type Me } from "@/lib/clockin/mgrScope";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { storeScope, NO_MATCH } from "@/lib/clockin/scope";
+import { delEquipo, perfilesDeMiEquipo } from "@/lib/clockin/equipo";
 
 export async function resolveException(id: string): Promise<{ ok: boolean; message?: string }> {
   const corte = await corteDeCapacitacion();
@@ -70,13 +71,10 @@ export async function getExceptionHistory(limit = 80): Promise<
     .limit(Math.min(Math.max(limit, 1), 200));
   if (inEmp) q = q.in("employee_id", inEmp);
 
-  const [{ data: rows, error }, { data: people }] = await Promise.all([
-    q,
-    supabase.from("profiles").select("id, full_name").eq("company_id", companyId),
-  ]);
+  const [{ data: rows, error }, equipo] = await Promise.all([q, perfilesDeMiEquipo(supabase)]);
   if (error) return { ok: false, message: error.message };
 
-  const nombre = new Map((people ?? []).map((p) => [p.id as string, (p.full_name as string) ?? "—"]));
+  const nombre = new Map(delEquipo(equipo, { companyId, tiendas: null }).map((p) => [p.id, p.full_name ?? "—"]));
   const paths = (rows ?? []).flatMap((r) =>
     [r.photo_path, r.returned_photo_path].filter((p): p is string => !!p),
   );

@@ -6,6 +6,7 @@ import { useAccionesDeFichar } from "@/components/timetracker/Capacitacion";
 import { fmtDayLong } from "@/lib/timetracker/helpers";
 import { useT } from "@/lib/timetracker/i18n";
 import { TablaEstandar } from "@/components/TablaEstandar";
+import { hoyCentral } from "@/lib/hoy-central";
 
 /**
  * Mi horario, mis notas y mi boletín — desplegables dentro de Registrar tiempo (D-129).
@@ -66,7 +67,7 @@ function MiHorarioSec() {
     return r.ok ? r.data : null;
   }, []);
   const { datos, cargando, abrir } = useAlAbrir<MiHorario>(traer);
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyCentral();
 
   return (
     <div className="card">

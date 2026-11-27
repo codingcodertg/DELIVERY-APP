@@ -53526,3 +53526,16 @@ GitHub: tt-cron, rc-comms, rc-choferes y outlook-indeed quedan solo con `workflo
 355: quita por nombre el job 1 `purge_old_timetracker_screenshots`, que fallaba cada noche (lo hace /api/cron/purga-capturas).
 Las tres ensayadas con ROLLBACK y aplicadas el 27 nov con el OK del dueño. La 291 se ensayó como chofer, ventas, almacén y contabilidad (ven 1 perfil en vez de 45; la vista `perfiles_publicos` sigue con 45); pero NO se puede aplicar así: Time Tracker lee `profiles` de otros (vista `clockin.profiles`, security_invoker) para el alcance del gerente (`canManageEmployee`: company_id, store_id), equipo, horarios y nómina, y esas columnas no están en la vista; un gerente sin RR. HH. se quedaría sin poder gestionar a nadie. Queda en espera de decidir cómo.
 Repo 2.2.0.
+
+## D-1206 · Auditoría 27 nov, lote 2 («Este mes»): guardar sin pisarse, carga parcial en un paso, tiempo límite, alertas de cron, hoy en Chicago, CSP con reportes, código muerto (2026-11-27)
+
+El dueño: «haz todo lo que tienes que hacer que está pendiente y publica».
+Deliveries → ventana de la orden: el guardado manual y el de fotos llevan candado por `updated_at` (si otro cambió la orden, no se pisa: se recarga y avisa); las fotos se unen con lo que hay en la base antes de guardar; 0 filas ya no dice «guardado» ni avisa al chofer (`guardado-con-candado.ts`). Sin candado a propósito: orden de paradas, salida/llegada y cambios de etapa. Pendiente: `setStage` también da éxito con 0 filas.
+Deliveries → app del chofer → carga parcial: migración 357, `carga_parcial(...)` SECURITY INVOKER hace las dos escrituras en una transacción, con clave por intento (tabla `carga_parcial_intentos`) para que un doble toque no parta dos veces. Sin la 357, el cliente cae al camino viejo. Ensayada como chofer con ROLLBACK (FX565: a en picked_up, b en ready; reintento = mismo resto).
+Todo el hub: si Supabase no contesta en 4 s, las páginas protegidas dan 503 «Servicio no disponible» con Reintentar (solo a ruta propia); sin sesión sigue al login; rutas públicas igual.
+Crons: migración 356, `revisa_fallas_de_cron()` cada 15 min anota en «Fallas de la app» los jobs fallidos y las respuestas HTTP ≥ 400; `llama_cron` (recreada desde la viva) guarda qué cron hizo cada petición. Sin aviso al celular todavía.
+Hoy en Chicago: `hoyCentral()` en Conteos (hoja), Seguridad, Dashboard, Market, Estimator, Time Tracker y nombres de exportación. Queda `periodStartOf` de nómina (rama aparte).
+CSP: tenía Report-Only sin `report-uri`; ahora las violaciones llegan a /api/csp-report → «Fallas de la app» (app «csp»). Pasa a cumplimiento cuando salgan limpias.
+Time Tracker: migración 358, `clockin.perfiles_de_mi_equipo()` con el alcance del gerente; las lecturas de equipo, horarios, nómina y exportes la usan (sin la 358, lectura vieja). La 291 sigue SIN aplicar: las escrituras de Time Tracker sobre otras personas (vista `clockin.profiles`, security_invoker) darían 0 filas, y data-provider deja `username`/`permissions` de otros en blanco para no admin (firmas de almacén por confirmar).
+Código muerto: fuera `clockin/i18n.ts`, los dos middleware sin uso, `corte-de-ventas.ts` y `docx-preview` (991 líneas). Los `docs/herramientas-2026-10-*` se quedan: los enlazan los HANDOFF.
+Sellos `deliveries` 1.671.0, `timetracker` 1.46.0; repo 2.3.0.

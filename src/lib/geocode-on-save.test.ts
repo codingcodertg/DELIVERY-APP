@@ -149,8 +149,11 @@ describe("el cableado: una sola definición, y el guardado nunca espera", () => 
     // editar un pedido —la ficha, la importación de CSV, los repartos—, y una regla que dependa de
     // que cada sitio se acuerde de invocarla se pierde. Es el mismo argumento con el que la
     // autoría de las fotos vive en `updateDelivery`.
-    expect(provider.match(/void ubicarSiHaceFalta\(/g) ?? []).toHaveLength(2);
+    // Tres sitios: addDelivery (crear), updateDelivery (editar) y cargaParcial (el resto de una carga partida al recoger,
+    // que nace en la base en una sola escritura, 357). El tercero también crea una fila y también debe ubicarla.
+    expect(provider.match(/void ubicarSiHaceFalta\(/g) ?? []).toHaveLength(3);
     expect(provider).toContain("void ubicarSiHaceFalta(row.id, row);");
+    expect(provider).toContain("void ubicarSiHaceFalta(resto2.id, resto2);");
   });
   it("al editar se mira la fila COMO QUEDA, no el parche", () => {
     // Un guardado que no toca la dirección deja un pedido que sigue teniéndola y sigue sin punto:

@@ -5,6 +5,7 @@ import { contextoDeOrden } from "@/lib/ayuda-contextos";
 import { lugarDeLaDireccion, lugaresParaEntregarEn } from "@/lib/entregar-en-tienda";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/data-provider";
+import { claveDeIntento } from "@/lib/carga-parcial";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { ChoferYPallets } from "@/components/ChoferYPallets";
@@ -111,7 +112,7 @@ import {
   NOTA_SIN_LISTO_POR_OMISION, type DeshacerRecogida,
 } from "@/lib/recogida-del-chofer";
 import { autoresDeFotos, fotosAlEntregar } from "@/lib/fotos-de-entrega";
-import { fotosParaContar, useFotosDeLaOrden, useUrlsDeFotos } from "@/lib/fotos-de-la-orden";
+import { fotosParaContar, leerFotosDeLaOrden, useFotosDeLaOrden, useUrlsDeFotos, type LectorDeFotos } from "@/lib/fotos-de-la-orden";
 import { subirFotosDeEntrega, type AlmacenDeFotos } from "@/lib/fotos-en-storage";
 import { MOLDE_DEL_TELEFONO, telefonoAlEscribir, telefonoParaVer } from "@/lib/telefono-de-la-orden";
 
@@ -161,7 +162,7 @@ export function OrderModal({
   // Nota D-637: `fotosDeEntrega` y `fotoEnCamino` (las fotos de la cámara que «Mi ruta» abría al pulsar «Entregado»)
   // se quitaron con esa cámara: las fotos de la entrega se toman ya dentro de la prueba de entrega.
 }) {
-  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, agregarMaterial, reprogramarOrden, reentregaComoCarga, saveSettings, notify, realRole, pushNotifs, teaching } =
+  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, cargaParcial, eventsFor, addNote, agregarMaterial, reprogramarOrden, reentregaComoCarga, saveSettings, notify, realRole, pushNotifs, teaching } =
     useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
@@ -183,6 +184,19 @@ export function OrderModal({
    */
   const abierta = copia ?? abiertaPorLaLista;
   const existing = abierta ? deliveries.find((x) => x.id === abierta.id) ?? abierta : null;
+  /**
+   * Lote 2: la versión con la que se abrió la orden (su `updated_at`). El guardado manual solo pasa si la orden sigue
+   * con esa versión; si otra persona la cambió, no se pisa y se avisa. Se fija al verla por primera vez (o al cambiar de
+   * orden) y se pone al día con lo que guarda esta ventana (`alGuardarVersion`). Lo que cambian otros botones de la
+   * ventana (salida, llegada) no la pone al día: esa es la razón de no mezclar versiones.
+   */
+  const versionAbierta = useRef<{ id: string; updated_at: string | null } | null>(null);
+  if (existing && versionAbierta.current?.id !== existing.id) {
+    versionAbierta.current = { id: existing.id, updated_at: existing.updated_at ?? null };
+  }
+  const alGuardarVersion = (updated_at: string | null) => {
+    if (versionAbierta.current) versionAbierta.current.updated_at = updated_at;
+  };
   /**
    * Las fotos de la orden, leídas aparte (D-562, 177): la fila de la lista ya no trae `photos` ni `photo_meta`. Nada
    * de esta ficha lee las fotos de la fila: cuenta con `fotosParaContar` y escribe solo con `fotosOrden.listas`, porque
@@ -866,7 +880,7 @@ export function OrderModal({
       if (fechaNoVale(d.delivery_date)) return;
       if (!(await sigueParaHoy(d.delivery_date))) return;
       setBusy(true);
-      const ok = await updateDelivery(existing!.id, parcheSoloFecha(d));
+      const ok = await updateDelivery(existing!.id, parcheSoloFecha(d), { versionEsperada: versionAbierta.current?.updated_at ?? null, alGuardar: alGuardarVersion });
       if (ok) await anotaDomingo(existing!.id, d.delivery_date, existing!.delivery_date);
       setBusy(false);
       if (ok) { notify(t("Delivery date saved", "Fecha de entrega guardada")); setEditing(false); }
@@ -929,7 +943,8 @@ export function OrderModal({
         await autoSendTracking(row); onClose();
       }
     } else {
-      const ok = await updateDelivery(existing!.id, payload);
+      // Lote 2: con la versión con la que se abrió; si otra persona la cambió, no se pisa (ver `versionAbierta`).
+      const ok = await updateDelivery(existing!.id, payload, { versionEsperada: versionAbierta.current?.updated_at ?? null, alGuardar: alGuardarVersion });
       if (ok) await anotaDomingo(existing!.id, payload.delivery_date, existing!.delivery_date);
       setBusy(false);
       if (ok) { notify(t("Saved", "Guardado")); setEditing(false); }
@@ -1385,6 +1400,8 @@ export function OrderModal({
   };
   const removeDraftNote = (id: string) => set("role_notes", (d.role_notes ?? []).filter((x) => x.id !== id));
 
+  // Clave del intento de carga parcial: se reusa en los reintentos de la misma orden y cifra (src/lib/carga-parcial.ts).
+  const claveRef = useRef<{ clave: string; orden: string; pallets: number } | null>(null);
   // Driver confirms what actually fit on the truck. A short load splits the
   // order: this one becomes #Na (loaded part, out for delivery) and the
   // remainder is re-staged as a new linked order #Nb for another trip.
@@ -1422,6 +1439,43 @@ export function OrderModal({
       return;
     }
     if (!quick && total > 0 && n < total) {
+      // Una sola escritura en la base (357): o queda partida entera, o no queda nada. La clave del intento se reusa en
+      // los reintentos (doble toque, mala señal), así que no se parte dos veces (src/lib/carga-parcial.ts).
+      const intento = claveDeIntento(claveRef.current, existing.id, n, () => crypto.randomUUID());
+      claveRef.current = intento;
+      const mySuffixNuevo = existing.order_suffix ?? "a";
+      const nextSuffixNuevo = String.fromCharCode(mySuffixNuevo.charCodeAt(0) + 1);
+      const restoNuevo = total - n;
+      const etiquetaNueva = existing.order_code || existing.order_no;
+      const r = await cargaParcial({
+        pedido: existing,
+        pallets: n,
+        clave: intento.clave,
+        cambios: { ...gpsExtra, ...claim },
+        nota: t(`Partial load: ${n} of ${total} pallets — remainder split to #${etiquetaNueva}${nextSuffixNuevo}`,
+          `Carga parcial: ${n} de ${total} pallets — resto dividido a #${etiquetaNueva}${nextSuffixNuevo}`),
+        notaResto: t(`Split of #${etiquetaNueva}${mySuffixNuevo} — ${restoNuevo} pallets left behind.`,
+          `División de #${etiquetaNueva}${mySuffixNuevo} — quedaron ${restoNuevo} pallets.`),
+      });
+      if (r.estado === "ok") {
+        setBusy(false);
+        notify(t(`Out for delivery as #${etiquetaNueva}${mySuffixNuevo} — #${etiquetaNueva}${nextSuffixNuevo} staged with ${restoNuevo} pallets`,
+          `En reparto como #${etiquetaNueva}${mySuffixNuevo} — #${etiquetaNueva}${nextSuffixNuevo} preparada con ${restoNuevo} pallets`));
+        claveRef.current = null;
+        onClose();
+        return;
+      }
+      if (r.estado === "error") {
+        // Un error de negocio (la base lo rechazó) ya se avisó en el proveedor: la próxima vez es otro intento.
+        // Sin respuesta de la base (sin red) se conserva la clave: si la base sí escribió, el reintento no parte otra vez.
+        setBusy(false);
+        if (!r.reintentable) claveRef.current = null;
+        return;
+      }
+      // «sin-funcion»: la 357 todavía no está aplicada en la base. Sigue el camino de antes (abajo), igual que siempre.
+    }
+    if (!quick && total > 0 && n < total) {
+      // Camino de antes (respaldo mientras la 357 no esté aplicada): dos escrituras separadas.
       const mySuffix = existing.order_suffix ?? "a";
       const nextSuffix = String.fromCharCode(mySuffix.charCodeAt(0) + 1);
       const rest = total - n;
@@ -1597,7 +1651,15 @@ export function OrderModal({
       }
       fotosSubidas = subida.rutas;
     }
-    const fotos = fotosSubidas.length ? fotosAlEntregar(fotosOrden.photos, fotosSubidas) : null;
+    // Lote 2: las fotos que ya tiene la orden se leen de la base justo antes, no de la pantalla, para no reescribir
+    // («pisar») las que otra persona subió después de abrirla. Si no se pueden leer, no se entrega.
+    const enBase = fotosSubidas.length ? await leerFotosDeLaOrden(createClient() as unknown as LectorDeFotos, existing.id) : null;
+    if (fotosSubidas.length && !enBase) {
+      notify(t("Could not read the order's photos; nothing was delivered. Try again.", "No se pudieron leer las fotos de la orden; no se entregó. Reintente."));
+      setBusy(false);
+      return;
+    }
+    const fotos = enBase ? fotosAlEntregar(enBase.photos, fotosSubidas) : null;
     const pod = {
       pod_received_by: podName.trim() || null,
       pod_signature: podSig,
@@ -1606,7 +1668,7 @@ export function OrderModal({
       pod_lng: gps?.lng ?? null,
       pod_accuracy: gps?.accuracy ?? null,
       delivered_address: altAddr || null,
-      ...(fotos ? { photos: fotos, photo_meta: autoresDeFotos(fotos, fotosOrden.photo_meta, me.id, ahora) } : {}),
+      ...(fotos ? { photos: fotos, photo_meta: autoresDeFotos(fotos, enBase?.photo_meta ?? null, me.id, ahora) } : {}),
     };
     // The audit note reports an off-address delivery loudly so the office sees it.
     const note = altAddr
@@ -2243,9 +2305,11 @@ export function OrderModal({
                     // `next` sale de las fotos que se enseñan: sin las de la orden cargadas, guardarlo las borraría.
                     if (!fotosOrden.listas) return;
                     setPhotoBusy(true);
-                    await updateDelivery(existing.id, { photos: next });
+                    // Lote 2: `fotosAntes` = las que tenía la pantalla; la escritura une con las de la base y solo quita las
+                    // que aquí se quitaron, así que no pisa las que otra persona subió. Solo se dice «actualizadas» si guardó.
+                    const ok = await updateDelivery(existing.id, { photos: next }, { fotosAntes: fotosOrden.photos ?? [], alGuardar: alGuardarVersion });
                     setPhotoBusy(false);
-                    notify(t("Photos updated", "Fotos actualizadas"));
+                    if (ok) notify(t("Photos updated", "Fotos actualizadas"));
                   }}
                   t={t}
                 />

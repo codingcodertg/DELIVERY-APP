@@ -406,6 +406,8 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     });
   }, [me, persist, notify]);
 
+  // Sin base no hay carga partida en una escritura: que quien llama use el camino de siempre.
+  const cargaParcial = useCallback<DataState["cargaParcial"]>(async () => ({ estado: "sin-funcion" }), []);
   const setStage = useCallback<DataState["setStage"]>(async (id, stage, note, extra, kind) => {
     const s = storeRef.current;
     // Hard guard: an order can't reach the warehouse without manager approval.
@@ -731,7 +733,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
       if (ok) await addNote(id, notaAlTomar({ yo, antes: d.assigned_driver, motivo, lang }));
       return ok;
     },
-    reorderStops, hayAutoOptimizar, fijaParadas, estadoAutoDeRutas, marcaAutoDeRuta, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, setUserIdentity, resetUserPassword,
+    reorderStops, hayAutoOptimizar, fijaParadas, estadoAutoDeRutas, marcaAutoDeRuta, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, cargaParcial, eventsFor, addNote, marcarParada, setUserIdentity, resetUserPassword,
     saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, updateUserModules, deleteUser,
     availability: store.availability ?? [], addAvailability, removeAvailability,
     shifts: store.shifts ?? [], clockIn, clockOut, marcaGpsDelTurno,
@@ -740,7 +742,7 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     // Local demo mode writes straight to this browser, so nothing is ever
     // waiting on a connection.
     pendingSync: 0, syncing: false,
-  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, hayAutoOptimizar, fijaParadas, estadoAutoDeRutas, marcaAutoDeRuta, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, marcaGpsDelTurno, addIncident, removeIncident, pushLocation]);
+  }), [ready, me, store, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, reorderStops, hayAutoOptimizar, fijaParadas, estadoAutoDeRutas, marcaAutoDeRuta, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, cargaParcial, eventsFor, addNote, marcarParada, saveSettings, addUser, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, deleteUser, addAvailability, removeAvailability, clockIn, clockOut, marcaGpsDelTurno, addIncident, removeIncident, pushLocation]);
 
   return (
     <UbicacionesDeChoferesCtx.Provider value={almacenUbicaciones}>

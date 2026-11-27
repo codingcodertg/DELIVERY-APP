@@ -1,6 +1,6 @@
 {
   "name": "rtg-hub",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -24,7 +24,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "decimal.js": "^10.6.0",
-    "docx-preview": "^0.4.1",
     "docxtemplater": "^3.71.1",
     "exceljs": "^4.4.0",
     "imapflow": "^2.12.1",
