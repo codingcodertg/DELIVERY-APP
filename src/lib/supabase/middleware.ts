@@ -112,7 +112,8 @@ export function respuestaSinServicio(request: NextRequest): NextResponse {
   }
   // Solo una ruta propia: «/x», nunca «//host» ni «/\host» (redirección abierta). Si no, a la portada.
   const destino = request.nextUrl.pathname + request.nextUrl.search;
-  const volver = escaparHtml(/^\/(?![/\])/.test(destino) ? destino : "/");
+  const propia = destino.startsWith("/") && destino[1] !== "/" && destino[1] !== "\\";
+  const volver = escaparHtml(propia ? destino : "/");
   const html = `<!doctype html>
 <html lang="es">
 <head>

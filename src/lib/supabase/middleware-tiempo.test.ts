@@ -145,6 +145,7 @@ describe("el enlace Reintentar solo vuelve a una ruta propia", () => {
   it("rechaza //host y /\host", async () => {
     const { readFileSync } = await import("node:fs");
     const s = readFileSync("src/lib/supabase/middleware.ts", "utf8");
-    expect(s).toContain('/^\/(?![/\\])/.test(destino) ? destino : "/"');
+    expect(s).toContain('const propia = destino.startsWith("/") && destino[1] !== "/" && destino[1] !== "\\\\";');
+    expect(s).toContain('escaparHtml(propia ? destino : "/")');
   });
 });
