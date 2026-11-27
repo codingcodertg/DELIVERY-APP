@@ -167,7 +167,7 @@ export function alActivar(madre: Delivery, tienda: NamedLocation, fecha: string,
   const fuera = [madre.pickup_name, madre.delivery_name, madre.store].map(normalizaLugar);
   if (!normalizaLugar(tienda.name) || fuera.includes(normalizaLugar(tienda.name))) return null;
   const punto = tienda.lat != null && tienda.lng != null ? { lat: tienda.lat, lng: tienda.lng } : null;
-  const yaSalio = madre.stage === "picked_up";
+  
   const copia = { ...madre } as Record<string, unknown>;
   for (const c of COLUMNAS_PROPIAS_DE_LA_CARGA) delete copia[c];
   const etiqueta = madre.order_code || String(madre.order_no);
@@ -191,15 +191,15 @@ export function alActivar(madre: Delivery, tienda: NamedLocation, fecha: string,
       delivery_name: tienda.name, delivery_address: tienda.address,
       delivery_lat: punto?.lat ?? null, delivery_lng: punto?.lng ?? null, delivery_pin_source: punto ? "geocoded" : null,
       route_miles: null, route_duration: null, route_provider: null, route_traffic: null,
-      ...(yaSalio ? { stage: "delivered" as const, pod_delivered_at: a.ahora, delivered_address: tienda.address ?? null } : {}),
+      // 359 (D-1207): con la orden ya recogida, el paso a SIGUE recogido: el chofer va en camino a la tienda de relevo.
     },
     paso,
   };
 }
 
-/** La nota de un relevo que se activa con la orden ya recogida (321): va en los dos pasos del historial. */
+/** La nota de un relevo que se activa con la orden ya recogida (321; 359: el paso a sigue recogido). */
 export const notaDelRelevoYaRecogido = (tienda: string, chofer: string | null | undefined) =>
-  `Relevo con el paso a ya hecho: dejado en ${tienda} por ${(chofer ?? "").trim() || "?"}`;
+  `Relevo activado con la orden en camino: ${(chofer ?? "").trim() || "?"} la lleva a ${tienda}; el paso a sigue recogido hasta que la entregue ahí`;
 
 /** La nota que lleva el paso nuevo (como la de una carga partida). */
 export const notaDelPaso = (etiqueta: string, letra: string, desde: string | null | undefined, hasta: string | null | undefined) =>

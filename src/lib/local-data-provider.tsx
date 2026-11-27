@@ -340,10 +340,10 @@ export function LocalDataProvider({ children, me }: { children: React.ReactNode;
     const a = { ...madre, ...r.madre, updated_at: ahora };
     let next: Store = { ...s, deliveries: [r.paso, ...s.deliveries.map((c) => (c.id === id ? a : c))] };
     next = { ...next, events: addEvent(next, id, "edited", `Relay transfer set up: this order is now step ${orderLabel(a)} (${madre.pickup_name} -> ${a.delivery_name}); step ${orderLabel(r.paso)} (${r.paso.pickup_name} -> ${r.paso.delivery_name}) is picked up on ${fecha}`) };
-    // 321: con la orden ya recogida, el paso a nace entregado en la tienda de relevo; la nota va en los dos pasos.
+    // 321/359: con la orden ya recogida, el paso a SIGUE recogido (el chofer va en camino); la nota va en los dos pasos.
     if (madre.stage === "picked_up") {
       const nota = notaDelRelevoYaRecogido(r.paso.pickup_name ?? "?", madre.assigned_driver);
-      next = { ...next, events: addEvent(next, id, "delivered", nota) };
+      next = { ...next, events: addEvent(next, id, "note", nota) };
       next = { ...next, events: addEvent(next, r.paso.id, "created", nota) };
     } else {
       next = { ...next, events: addEvent(next, r.paso.id, "created", `Relay transfer step ${orderLabel(r.paso)}: ${r.paso.pickup_name} -> ${r.paso.delivery_name}, pickup day ${fecha}`) };

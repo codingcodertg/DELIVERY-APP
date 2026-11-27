@@ -562,10 +562,10 @@ describe("la migración 256 dice lo mismo", () => {
   });
 });
 
-describe("321: el relevo de una orden YA RECOGIDA: el paso a nace entregado en la tienda de relevo", () => {
+describe("321/359: el relevo de una orden YA RECOGIDA: el paso a sigue recogido (el chofer va en camino)", () => {
   const recogida = (over: Partial<Delivery> = {}) => intertienda({ stage: "picked_up", pickup_gps_at: "2026-11-06T15:00:00.000Z", departed_at: "2026-11-06T15:05:00.000Z", ...over });
 
-  it("el caso de hoy: #1629 recogida por Steven en Pharr y dejada en McAllen; el paso a entregado allí, el b mañana", () => {
+  it("#1629 recogida por Steven en Pharr, con relevo en McAllen: el paso a sigue recogido (359), el b mañana", () => {
     const madre = recogida({
       order_no: 1629, order_code: "FX112", order_type: "Customer", store: "RDZ Pharr",
       pickup_name: "RDZ Pharr", pickup_address: "4 Cage Blvd, Pharr, TX",
@@ -574,8 +574,11 @@ describe("321: el relevo de una orden YA RECOGIDA: el paso a nace entregado en l
     const r = alActivar(madre, TIENDAS[0], "2026-11-18", { id: "paso-b", ahora: "2026-11-17T16:00:00.000Z", creador: "logi" })!;
     expect(r.madre).toMatchObject({
       order_suffix: "a", relay_step: 1, delivery_name: "RDZ McAllen", delivery_address: "1 Main St, McAllen, TX",
-      stage: "delivered", pod_delivered_at: "2026-11-17T16:00:00.000Z", delivered_address: "1 Main St, McAllen, TX",
     });
+    // 359 (D-1207): nada de entregado al activar; se entrega al llegar a la tienda de relevo.
+    expect(r.madre).not.toHaveProperty("stage");
+    expect(r.madre).not.toHaveProperty("pod_delivered_at");
+    expect(r.madre).not.toHaveProperty("delivered_address");
     // El paso a conserva su recogida, su chofer y su día: nada de eso va en el cambio.
     for (const k of ["pickup_name", "pickup_address", "assigned_driver", "pickup_gps_at", "departed_at", "delivery_date"]) expect(Object.keys(r.madre)).not.toContain(k);
     expect(r.paso).toMatchObject({
@@ -595,11 +598,15 @@ describe("321: el relevo de una orden YA RECOGIDA: el paso a nace entregado en l
   });
 
   it("la nota es la del dueño, y va en los dos pasos", () => {
-    expect(notaDelRelevoYaRecogido("RDZ McAllen", "Steven")).toBe("Relevo con el paso a ya hecho: dejado en RDZ McAllen por Steven");
-    expect(notaDelRelevoYaRecogido("RDZ McAllen", null)).toBe("Relevo con el paso a ya hecho: dejado en RDZ McAllen por ?");
+    expect(notaDelRelevoYaRecogido("RDZ McAllen", "Steven")).toBe("Relevo activado con la orden en camino: Steven la lleva a RDZ McAllen; el paso a sigue recogido hasta que la entregue ahí");
+    expect(notaDelRelevoYaRecogido("RDZ McAllen", null)).toBe("Relevo activado con la orden en camino: ? la lleva a RDZ McAllen; el paso a sigue recogido hasta que la entregue ahí");
     const codigo = leer("src/lib/local-data-provider.tsx");
     expect(codigo).toMatch(/madre\.stage === "picked_up"[\s\S]*notaDelRelevoYaRecogido\(/);
     expect(leer("supabase/migrations/321_relevo_de_orden_recogida.sql")).toContain("'Relevo con el paso a ya hecho: dejado en %s por %s'");
+    const m359 = leer("supabase/migrations/359_relevo_recogido_sigue_en_camino.sql");
+    expect(m359).toContain("'Relevo activado con la orden en camino: %s la lleva a %s; el paso a sigue recogido hasta que la entregue ahí'");
+    expect(m359).not.toContain("then 'delivered' else stage");
+    expect(m359).toContain("values (p_id, 'note', nota_ya, auth.uid())");
   });
 
   it("qué orden lo admite: también la ya recogida; una entregada, no. El mensaje ya dice «entregado»", () => {

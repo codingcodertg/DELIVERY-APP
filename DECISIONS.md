@@ -53539,3 +53539,9 @@ CSP: tenía Report-Only sin `report-uri`; ahora las violaciones llegan a /api/cs
 Time Tracker: migración 358, `clockin.perfiles_de_mi_equipo()` con el alcance del gerente; las lecturas de equipo, horarios, nómina y exportes la usan (sin la 358, lectura vieja). La 291 sigue SIN aplicar: las escrituras de Time Tracker sobre otras personas (vista `clockin.profiles`, security_invoker) darían 0 filas, y data-provider deja `username`/`permissions` de otros en blanco para no admin (firmas de almacén por confirmar).
 Código muerto: fuera `clockin/i18n.ts`, los dos middleware sin uso, `corte-de-ventas.ts` y `docx-preview` (991 líneas). Los `docs/herramientas-2026-10-*` se quedan: los enlazan los HANDOFF.
 Sellos `deliveries` 1.671.0, `timetracker` 1.46.0; repo 2.3.0.
+
+## D-1207 · Relevo de una orden recogida: el paso a sigue recogido; menú de fecha de Nómina en el teléfono (2026-11-27)
+
+El dueño (orden 172532, PO 12917, foto del Gestor): «estaba como recogido… le activé un relay y se puso en delivered y no es así, Julio está en camino». Desde la 321, activar el relevo con la orden ya recogida marcaba el paso a ENTREGADO en la tienda de relevo al instante. Migración 359: `activar_relevo` re-creada desde la viva; con la orden recogida el paso a se queda en picked_up (sin hora de entrega) y su nota va como nota, no como entrega. El chofer lo entrega al llegar a la tienda; el paso b no sale antes (guard 256). Mismo cambio en el demo (`relevo.ts`, `local-data-provider.tsx`). La FX526a se regresó a Recogido a mano (pedido del dueño). Las recogidas ya se podían reordenar (D-621); no se pudo porque quedó entregada.
+Time Tracker → Payroll en el teléfono (foto del dueño): el menú de fecha no tenía estilo en Time Tracker (no carga operaciones.css) y salía como una fila de botones más ancha que la pantalla. Ahora flota en columna. Visto en el demo a 390 px.
+Sellos `deliveries` 1.672.0, `timetracker` 1.46.1; repo 2.4.0.
