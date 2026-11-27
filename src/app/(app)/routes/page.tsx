@@ -3856,10 +3856,10 @@ export default function RoutesPage() {
   return (
     <>
       <div className="page-head">
-        {!soloLectura && eficiente
-          ? selectorDeVista
-          : <h2>{soloLectura ? t("Today's route", "Ruta de hoy") : t("Routes Manager", "Gestor de Rutas")} <span className="count-tag">{dayOrders.length}</span></h2>}
+        {!(!soloLectura && eficiente) && <h2>{soloLectura ? t("Today's route", "Ruta de hoy") : t("Routes Manager", "Gestor de Rutas")} <span className="count-tag">{dayOrders.length}</span></h2>}
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {/* D-1209: en la compacta el selector va DENTRO de la fila de la fecha (si va aparte, se parte en dos filas). */}
+          {!soloLectura && eficiente && selectorDeVista}
           <div className="viewtoggle">
             <button className="vt" data-dia-anterior disabled={allDates || (soloLectura && fecha <= primerDia)} onClick={() => setDate((d) => shiftDateISO(d, -1))} title={t("Previous day", "Día anterior")}>◀</button>
             <input type="date" value={date} disabled={allDates} min={soloLectura ? primerDia : undefined} max={soloLectura ? rango.max : undefined} onChange={(e) => setDate(e.target.value || todayISO())} style={{ width: "auto" }} />
@@ -4037,6 +4037,8 @@ export default function RoutesPage() {
       {/* Una fila (D-655): el selector de vista y, a su lado, «N orden(es) expiradas · N sin fecha — Verlas», que era un
           renglón aparte encima. El dueño, 2026-10-23: «eso de vista completa y vista se vaya para arriba y ese texto vaya al
           lado para que en vez de que hayan dos rows, solo haya una». En las dos vistas. */}
+      {/* D-1209: en la compacta, la fila solo sale si trae el aviso de expiradas (sin el ⓘ quedaba una fila vacía). */}
+      {(!eficiente || (!soloPendientes && !soloLectura && (pendientes.atrasadas.length + pendientes.sinFecha.length > 0) && !oculto(AVISOS_DEL_GESTOR.atrasadas))) && (
       <div data-barra-de-arriba style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
         {/* «Vista completa | Vista eficiente» (D-653), como «Tabla | Tablero» de Órdenes. El dueño, 2026-10-23: «quiero que
             hayan dos views […] arriba va a estar full view y small view or efficient view». Solo en el Gestor.
@@ -4055,11 +4057,12 @@ export default function RoutesPage() {
         {/* «▦ Cuadrícula» se fue a las pestañas de abajo, junto a «Horario» (D-459): cambia las tarjetas de abajo, no el
             mapa. Y «👁 Mostrar avisos ocultos» ya no sale aquí (D-459; D-400 lo puso): va al fondo de la página, en pequeño.
             La explicación del mapa, que era un renglón fijo bajo él (D-400 le dio ✕), es ahora este ⓘ: se lee al pasar. */}
-        <span className="hint" data-ayuda-del-mapa tabIndex={0} style={{ margin: 0, cursor: "help" }}
+        {/* D-1209: el ⓘ no sale en la compacta (el dueño: «quita ese signo de info… quitar espacios muertos»). */}
+        {!eficiente && <span className="hint" data-ayuda-del-mapa tabIndex={0} style={{ margin: 0, cursor: "help" }}
           title={t(
             "Every route is on the map at once. Click a route or a driver to highlight it (the rest dim and the map zooms in); check drivers to compare several. Each route loops from the pickup point (P) out and back; the dashed part is the drive back.",
             "Todas las rutas están en el mapa a la vez. Haz clic en una ruta o un chofer para resaltarla (el resto se atenúa y el mapa hace zoom); marca varios choferes para comparar. Cada ruta hace un ciclo desde el punto de recolección (P) y regresa; lo punteado es el regreso.",
-          )}>ⓘ</span>
+          )}>ⓘ</span>}
         {!soloPendientes && !soloLectura && (pendientes.atrasadas.length + pendientes.sinFecha.length > 0) && !oculto(AVISOS_DEL_GESTOR.atrasadas) && (
           <span className="hint" data-texto-de-expiradas style={{ margin: 0, display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <span>{t(`${pendientes.atrasadas.length} overdue order(s) · ${pendientes.sinFecha.length} with no date`, `${pendientes.atrasadas.length} orden(es) expiradas · ${pendientes.sinFecha.length} sin fecha`)}
@@ -4069,6 +4072,7 @@ export default function RoutesPage() {
           </span>
         )}
       </div>
+      )}
 
       {/* La vista eficiente (D-653) reordena lo que va de aquí al recuadro de reparto con una rejilla (`.gestor-eficiente`,
           globals.css): a la izquierda el panel «Choferes y rutas»; a su derecha, en su misma fila, las pestañas; debajo de
