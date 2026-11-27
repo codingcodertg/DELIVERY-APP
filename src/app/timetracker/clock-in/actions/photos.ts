@@ -2,6 +2,7 @@
 
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { storeScope, NO_MATCH } from "@/lib/clockin/scope";
+import { delEquipo, perfilesDeMiEquipo } from "@/lib/clockin/equipo";
 import { centralWallToUtc, centralShiftMs } from "@/lib/clockin/tz";
 import { armarFotos, type EntradaTurno, type FilaExcepcion, type FilaFichaje, type FilaParada, type FotoCruda, type SitioFoto } from "@/lib/clockin/day-photos";
 
@@ -122,11 +123,11 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
     ultimaStopQ = ultimaStopQ.in("employee_id", inEmp);
   }
 
-  const [{ data: punches }, { data: excs }, { data: stops }, { data: people }, { data: ultimaPunch }, { data: ultimaExc }, { data: ultimaStop }, { data: sites }] = await Promise.all([
+  const [{ data: punches }, { data: excs }, { data: stops }, equipo, { data: ultimaPunch }, { data: ultimaExc }, { data: ultimaStop }, { data: sites }] = await Promise.all([
     punchQ,
     excQ,
     stopQ,
-    supabase.from("profiles").select("id, full_name").eq("company_id", companyId),
+    perfilesDeMiEquipo(supabase),
     ultimaPunchQ,
     ultimaExcQ,
     ultimaStopQ,
@@ -145,7 +146,7 @@ export async function getDayPhotos(day: string): Promise<DayPhotosResult> {
   const diaStop = aDiaLocal((ultimaStop ?? [])[0]?.arrived_at as string | undefined);
   const latestWithPhotos = [diaPunch, diaExc, diaStop].filter(Boolean).sort().pop() ?? null;
 
-  const name = new Map((people ?? []).map((p) => [p.id as string, (p.full_name as string) ?? "—"]));
+  const name = new Map(delEquipo(equipo, { companyId, tiendas: null }).map((p) => [p.id, p.full_name ?? "—"]));
 
   // Las excepciones se sitúan en el turno en que ocurrieron: los fichajes del día valen para
   // casi todas, pero una excepción puede apuntar (time_entry_id) a un fichaje que empezó ayer;

@@ -53,7 +53,8 @@ export async function getEntryDayLog(entryId: string): Promise<BitacoraResult> {
       .eq("company_id", companyId)
       .eq("time_entry_id", entryId)
       .order("arrived_at"),
-    supabase.from("profiles").select("id, full_name").eq("id", fila.employee_id).maybeSingle(),
+    // Solo el nombre, y la persona ya pasó `canManageEmployee` arriba: la vista pública basta (290).
+    supabase.schema("public").from("perfiles_publicos").select("id, full_name").eq("id", fila.employee_id).maybeSingle(),
     supabase.from("job_sites").select("id, name, latitude, longitude, radius_meters, boundary, padding_meters").eq("company_id", companyId),
   ]);
 

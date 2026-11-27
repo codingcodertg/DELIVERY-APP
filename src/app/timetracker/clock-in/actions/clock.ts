@@ -8,6 +8,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/serve
 import { sitioDelFichaje, type ClienteDeSitios } from "@/lib/clockin/sitio-del-fichaje";
 import { pushToManagers, pushToUser } from "@/lib/clockin/notify";
 import { canManageEmployee, type Me } from "@/lib/clockin/mgrScope";
+import { delEquipo, perfilesDeMiEquipo } from "@/lib/clockin/equipo";
 import { centralShiftMs } from "@/lib/clockin/tz";
 import { isOverlapError, OVERLAP_MESSAGE } from "@/lib/clockin/overlap";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
@@ -216,16 +217,15 @@ export async function getCrewNow(): Promise<
   const hoy = centralDateStr();
 
   const suyas = visibleStores(me.role, me.store_id, me.extra_store_ids);
-  let peopleQ = supabase.from("profiles").select("id, full_name").eq("company_id", me.company_id).eq("active", true);
-  if (suyas) peopleQ = peopleQ.in("store_id", suyas);
-  if (me.role !== "owner") peopleQ = peopleQ.neq("role", "owner");
-  const [{ data: people }, { data: bajas }] = await Promise.all([
-    peopleQ.order("full_name"),
+  const [equipo, { data: bajas }] = await Promise.all([
+    // Gente del alcance de quien llama (358, la misma regla de `visibleStores`).
+    perfilesDeMiEquipo(supabase),
     // D-707: clockin.profiles no tiene la baja; la marca vive en public.profiles.left_at (205).
     supabase.schema("public").from("perfiles_publicos").select("id").not("left_at", "is", null).lte("left_at", hoyEnBrownsville()), // D-1134: por la vista (291)
   ]);
+  const people = delEquipo(equipo, { companyId: me.company_id, tiendas: suyas, soloActivos: true, sinDuenos: me.role !== "owner" });
   const deBaja = new Set(((bajas ?? []) as { id: string }[]).map((b) => b.id));
-  const nombre = new Map((people ?? []).filter((p) => !deBaja.has(p.id as string)).map((p) => [p.id as string, (p.full_name as string) ?? "—"]));
+  const nombre = new Map(people.filter((p) => !deBaja.has(p.id)).map((p) => [p.id, p.full_name ?? "—"]));
   const ids = [...nombre.keys()];
   const inIds = ids.length ? ids : NO_MATCH;
 

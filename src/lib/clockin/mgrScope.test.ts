@@ -25,24 +25,44 @@ type Fila = Record<string, unknown>;
  * funciones se dejara un `.eq` o una columna del `select`, una base que devuelve siempre la
  * primera fila entera contestaría bien igual y la prueba no mediría nada.
  */
-function baseFalsa(tablas: Record<string, Fila[]>) {
+//
+// Desde la 358, `canManageEmployee` pregunta primero a la función `perfiles_de_mi_equipo` (rpc). Por
+// defecto la base falsa NO la tiene (PGRST202) y estas pruebas recorren la lectura de antes, que es la
+// que funciona con la 358 sin aplicar. Con `{ rpc: true }` la función existe y devuelve la lista que se
+// le pase en la tabla `perfiles_de_mi_equipo`: así se prueba la ruta nueva con los mismos casos.
+function baseFalsa(tablas: Record<string, Fila[]>, opciones: { rpc?: boolean } = {}) {
   const llamadas: string[] = [];
   const from = (tabla: string) => {
     const filtros: [string, unknown][] = [];
     let cols: string[] = [];
+    const filas = () => (tablas[tabla] ?? []).filter((f) => filtros.every(([c, v]) => f[c] === v));
     const q = {
       select(c: string) { cols = c.split(",").map((x) => x.trim()); return q; },
       eq(col: string, val: unknown) { filtros.push([col, val]); return q; },
       async maybeSingle() {
         llamadas.push(`${tabla} select(${cols.join("|")}) donde ${filtros.map(([c, v]) => `${c}=${String(v)}`).join(" y ")}`);
-        const fila = (tablas[tabla] ?? []).find((f) => filtros.every(([c, v]) => f[c] === v));
+        const fila = filas()[0];
         if (!fila) return { data: null, error: null };
         return { data: Object.fromEntries(cols.map((c) => [c, fila[c]])), error: null };
+      },
+      // Lectura de lista (`await q`), como la que hace `perfilesDeMiEquipo` en su camino de compatibilidad.
+      then(ok: (r: { data: Fila[]; error: null }) => unknown) {
+        llamadas.push(`${tabla} lista(${cols.join("|")})`);
+        return Promise.resolve({ data: filas().map((f) => Object.fromEntries(cols.map((c) => [c, f[c]]))), error: null }).then(ok);
       },
     };
     return q;
   };
-  return { cliente: { from } as unknown as AnySupabase, llamadas };
+  const cliente = {
+    from,
+    schema: () => cliente,
+    rpc: async (fn: string) => {
+      llamadas.push(`rpc ${fn}`);
+      if (!opciones.rpc) return { data: null, error: { code: "PGRST202", message: `Could not find the function public.${fn}` } };
+      return { data: tablas[fn] ?? [], error: null };
+    },
+  };
+  return { cliente: cliente as unknown as AnySupabase, llamadas };
 }
 
 const gente = (...filas: { id: string; company_id?: string; store_id?: string | null }[]) => ({
@@ -97,10 +117,17 @@ describe("1 · canManageEmployee: sobre quién puede actuar un gerente", () => {
     expect(await canManageEmployee(cliente, GERENTE_A, "fantasma")).toBe(false);
   });
 
-  it("y lo pregunta por el id de ESA persona, con su empresa y su tienda", async () => {
+  it("y busca a ESA persona en la lista de su alcance (358), con su empresa y su tienda", async () => {
+    // Sin la función (358 sin aplicar) cae a la lectura de la tabla y busca por id en memoria.
     const { cliente, llamadas } = baseFalsa(gente({ id: "e1", store_id: TIENDA_A }));
     await canManageEmployee(cliente, GERENTE_A, "e1");
-    expect(llamadas).toEqual(["profiles select(company_id|store_id) donde id=e1"]);
+    expect(llamadas).toEqual(["rpc perfiles_de_mi_equipo", "profiles lista(id|full_name|role|company_id|store_id|extra_store_ids|active|position|default_schedule|custom_schedule|is_runner|vehicle_id)"]);
+  });
+
+  it("con la función aplicada, la lista ya viene acotada y se decide por ella", async () => {
+    const { cliente, llamadas } = baseFalsa({ perfiles_de_mi_equipo: gente({ id: "e1", store_id: TIENDA_A }).profiles }, { rpc: true });
+    expect(await canManageEmployee(cliente, GERENTE_A, "e1")).toBe(true);
+    expect(llamadas).toEqual(["rpc perfiles_de_mi_equipo"]);
   });
 });
 

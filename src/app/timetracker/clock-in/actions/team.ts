@@ -8,6 +8,7 @@ import {
 } from "@/lib/timetracker/tipo-trabajador";
 import { POSITIONS, roleForPosition, type Position } from "@/lib/clockin/positions";
 import { currentAndNextPeriodDates, type WeekPattern } from "@/lib/clockin/schedule";
+import { personaDeMiEquipo } from "@/lib/clockin/equipo";
 import { materializeForEmployee, clearFutureShifts } from "./schedule";
 
 function genPassword() {
@@ -86,12 +87,9 @@ export async function getClockinEmployeeSettings(id: string): Promise<
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
 
-  const [{ data: person }, { data: sites }, { data: vehicles }, timetracker] = await Promise.all([
-    ctx.supabase
-      .from("profiles")
-      .select("position, default_schedule, custom_schedule, store_id, extra_store_ids, is_runner, vehicle_id, active")
-      .eq("id", id)
-      .maybeSingle(),
+  const [person, { data: sites }, { data: vehicles }, timetracker] = await Promise.all([
+    // Solo una persona de su alcance (358): fuera de él, «no hay fila», igual que la pantalla.
+    personaDeMiEquipo(ctx.supabase, id),
     ctx.supabase.from("job_sites").select("id, name").eq("company_id", ctx.companyId).eq("active", true).order("name"),
     ctx.supabase.from("vehicles").select("id, name, plate, active").eq("company_id", ctx.companyId).order("name"),
     mitadTimeTracker(ctx, id),
@@ -182,7 +180,7 @@ export async function setEmployeeSchedule(id: string, schedule: string | null) {
   // shows on My Schedule right away and keeps recurring (the daily roll job extends it).
   if (value === "A" || value === "B" || value === "C") {
     try {
-      const { data: emp } = await ctx.supabase.from("profiles").select("store_id").eq("id", id).maybeSingle();
+      const emp = await personaDeMiEquipo(ctx.supabase, id);
       // Replace, don't stack: clear upcoming shifts before laying out the new pattern.
       await clearFutureShifts(ctx.supabase, id);
       const shiftsCreated = await materializeForEmployee(ctx.supabase, {
@@ -236,7 +234,7 @@ export async function resetEmployeePassword(
   if (!url || !serviceKey) return { ok: false, message: "Server is missing the admin key." };
 
   // Scope check: the target must be in the manager's company.
-  const { data: target } = await ctx.supabase.from("profiles").select("id").eq("id", id).maybeSingle();
+  const target = await personaDeMiEquipo(ctx.supabase, id);
   if (!target) return { ok: false, message: "Employee not found." };
 
   const tempPassword = genPassword();
