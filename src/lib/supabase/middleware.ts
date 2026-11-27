@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { decide, skipsSession } from "@/lib/route-guard";
+import { decide, isApiPath, isPublicPath, skipsSession } from "@/lib/route-guard";
 import { impersonacionCaducada, MOTIVO_MARCA_PERDIDA, rutaConSesionDeCorreo, sesionDeEntrarComo } from "@/lib/impersonation";
 import { COOKIE_RETORNO, desempaquetar } from "@/lib/impersonation-cookie";
 import { debeCerrarSesion } from "@/lib/session-cutoff";
@@ -70,7 +70,96 @@ export type PuertaDeSesion = {
   clockin_role: string | null;
 };
 
+/** Tiempo total que el middleware espera a Supabase antes de cortar con 503. Auditoría lote 2 (25 nov: se colgó y las páginas daban 504 de Vercel a los ~25 s). */
+export const LIMITE_SUPABASE_MS = 4000;
+
+/** Supabase no respondió: se pasó del límite, o hubo un fallo de red o del servidor de auth. No es «no hay sesión». */
+export class SupabaseNoResponde extends Error {
+  constructor() {
+    super("Supabase no responde");
+    this.name = "SupabaseNoResponde";
+  }
+}
+
+/** Un error de `getUser()` que dice «no pude llegar» (red, 5xx), no «la sesión no vale» (401, token caducado…). */
+function esFalloDeServicio(error: unknown): boolean {
+  const e = error as { name?: string; status?: number } | null;
+  return e?.name === "AuthRetryableFetchError" || (typeof e?.status === "number" && e.status >= 500);
+}
+
+/** Corta `trabajo` a los `ms` dados. El reloj se limpia siempre, para no dejar temporizadores colgados. */
+function conLimite<T>(trabajo: Promise<T>, ms: number): Promise<T> {
+  let reloj: ReturnType<typeof setTimeout> | undefined;
+  const plazo = new Promise<never>((_, rechaza) => {
+    reloj = setTimeout(() => rechaza(new SupabaseNoResponde()), ms);
+  });
+  return Promise.race([trabajo, plazo]).finally(() => clearTimeout(reloj));
+}
+
+function escaparHtml(texto: string): string {
+  return texto.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
+ * La respuesta cuando Supabase no contesta: 503, sin dejar pasar a nadie. Las rutas de API
+ * reciben JSON; las páginas, un HTML sencillo en español e inglés con «Reintentar» (un enlace a
+ * la misma URL, sin JavaScript). `no-store` para que ningún caché guarde el corte.
+ */
+export function respuestaSinServicio(request: NextRequest): NextResponse {
+  const cabeceras = { "Retry-After": "30", "Cache-Control": "no-store" };
+  if (isApiPath(request.nextUrl.pathname)) {
+    return NextResponse.json({ error: "service_unavailable" }, { status: 503, headers: cabeceras });
+  }
+  const volver = escaparHtml(request.nextUrl.pathname + request.nextUrl.search);
+  const html = `<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Servicio no disponible · Service unavailable</title>
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;font-family:system-ui,sans-serif;background:#f6f6f4;color:#1d1d1b}
+main{max-width:420px;text-align:center}
+p{line-height:1.5}
+a{display:inline-block;margin-top:12px;padding:10px 18px;border-radius:8px;background:#1d1d1b;color:#fff;text-decoration:none}
+</style>
+</head>
+<body>
+<main>
+<h1>Servicio no disponible</h1>
+<p>Servicio no disponible — la base de datos no responde. Intenta de nuevo en unos minutos.</p>
+<p>Service unavailable — the database is not responding. Please try again in a few minutes.</p>
+<a href="${volver}">Reintentar · Retry</a>
+</main>
+</body>
+</html>`;
+  return new NextResponse(html, {
+    status: 503,
+    headers: { ...cabeceras, "Content-Type": "text/html; charset=utf-8" },
+  });
+}
+
+/**
+ * El refresco y el guard, con un tiempo total (`LIMITE_SUPABASE_MS`). Si Supabase no responde a
+ * tiempo, o falla la red, la petición NO pasa a una página protegida: 503. Las públicas que no
+ * necesitan sesión (login, reset, track…) se sirven como antes, sin usuario, para que el login
+ * no quede fuera por un fallo de Supabase.
+ */
 export async function updateSession(
+  request: NextRequest,
+  deps: Parameters<typeof updateSessionSinLimite>[1] = {},
+) {
+  try {
+    return await conLimite(updateSessionSinLimite(request, deps), LIMITE_SUPABASE_MS);
+  } catch (error) {
+    if (!(error instanceof SupabaseNoResponde)) throw error;
+    const path = request.nextUrl.pathname;
+    if (!isApiPath(path) && isPublicPath(path)) return NextResponse.next({ request });
+    return respuestaSinServicio(request);
+  }
+}
+
+async function updateSessionSinLimite(
   request: NextRequest,
   deps: {
     getUser?: (req: NextRequest) => Promise<boolean | null>;
@@ -170,6 +259,8 @@ export async function updateSession(
     // dispara el refresco. getSession() se conforma con lo que traiga la cookie y no renovaría
     // nada — justo el fallo que se está arreglando.
     const { data: { user }, error: errUsuario } = await supabase.auth.getUser();
+    // Supabase no contestó (red o 5xx): no es «no hay sesión», y no se decide nada sobre ello.
+    if (errUsuario && esFalloDeServicio(errUsuario)) throw new SupabaseNoResponde();
     hasUser = !!user;
     sinUsuarioConfirmado = !user && !errUsuario;
     debeCambiar = debeCambiarContrasena(user);
