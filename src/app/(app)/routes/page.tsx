@@ -3838,10 +3838,27 @@ export default function RoutesPage() {
     );
   }
 
+  // «Vista expandida | Vista compacta». D-1208 (solicitud de ayuda del dueño, 27 nov): en la compacta va en la fila de la
+  // fecha, en lugar del título «Gestor de Rutas N» («elimina eso, es redundante, ya está highlighted arriba»).
+  const selectorDeVista = (
+          <div className="viewtoggle" data-selector-de-vista role="group" aria-label={t("Route manager view", "Vista del Gestor")}>
+            <button className={"vt " + (!eficiente ? "on" : "")} data-vista="completa" aria-pressed={!eficiente} onClick={() => eligeVista("completa")}
+              title={t("Everything, as always: the tabs and the route tables below the map", "Todo, como siempre: las pestañas y las tablas de ruta debajo del mapa")}>
+              ▣ {t("Expanded view", "Vista expandida")}
+            </button>
+            <button className={"vt " + (eficiente ? "on" : "")} data-vista="eficiente" aria-pressed={eficiente} onClick={() => eligeVista("eficiente")}
+              title={t("One screen: the tabs next to “Drivers & routes”, and the route of each checked driver right under the map", "Una sola pantalla: las pestañas junto a «Choferes y rutas», y la ruta de cada chofer marcado justo debajo del mapa")}>
+              ⚡ {t("Collapsed view", "Vista compacta")}
+            </button>
+          </div>
+  );
+
   return (
     <>
       <div className="page-head">
-        <h2>{soloLectura ? t("Today's route", "Ruta de hoy") : t("Routes Manager", "Gestor de Rutas")} <span className="count-tag">{dayOrders.length}</span></h2>
+        {!soloLectura && eficiente
+          ? selectorDeVista
+          : <h2>{soloLectura ? t("Today's route", "Ruta de hoy") : t("Routes Manager", "Gestor de Rutas")} <span className="count-tag">{dayOrders.length}</span></h2>}
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <div className="viewtoggle">
             <button className="vt" data-dia-anterior disabled={allDates || (soloLectura && fecha <= primerDia)} onClick={() => setDate((d) => shiftDateISO(d, -1))} title={t("Previous day", "Día anterior")}>◀</button>
@@ -4026,18 +4043,8 @@ export default function RoutesPage() {
             Rótulos de D-659 (el dueño, 2026-10-23: «en vez de efficient put it collapsed and expanded view mode»): «Expanded
             view / Vista expandida» y «Collapsed view / Vista compacta». Las claves internas (`completa`/`eficiente`) no cambian:
             son lo que cada persona tiene guardado en su navegador. */}
-        {!soloLectura && (
-          <div className="viewtoggle" data-selector-de-vista role="group" aria-label={t("Route manager view", "Vista del Gestor")}>
-            <button className={"vt " + (!eficiente ? "on" : "")} data-vista="completa" aria-pressed={!eficiente} onClick={() => eligeVista("completa")}
-              title={t("Everything, as always: the tabs and the route tables below the map", "Todo, como siempre: las pestañas y las tablas de ruta debajo del mapa")}>
-              ▣ {t("Expanded view", "Vista expandida")}
-            </button>
-            <button className={"vt " + (eficiente ? "on" : "")} data-vista="eficiente" aria-pressed={eficiente} onClick={() => eligeVista("eficiente")}
-              title={t("One screen: the tabs next to “Drivers & routes”, and the route of each checked driver right under the map", "Una sola pantalla: las pestañas junto a «Choferes y rutas», y la ruta de cada chofer marcado justo debajo del mapa")}>
-              ⚡ {t("Collapsed view", "Vista compacta")}
-            </button>
-          </div>
-        )}
+        {/* D-1208: en la compacta el selector sube a la fila de la fecha (en lugar del título). */}
+        {!soloLectura && !eficiente && selectorDeVista}
         {/* En la eficiente el mapa no se esconde: es la vista (D-653). */}
         {!eficiente && (
         <button className={"btn btn-sm " + (showTop ? "btn-ghost" : "btn-primary")} data-boton-del-mapa onClick={() => setEstadoDelMapa((e) => alPulsarElMapa(e, abiertas.length > 0))}
@@ -4094,7 +4101,8 @@ export default function RoutesPage() {
                 🔀 {t("Merge", "Unir")} ({marcadasAProposito(selected).size})
               </button>
             )}
-            <button className="btn btn-ghost btn-sm" onClick={() => addBucket()} title={t("Add a numbered route (Route 1, Route 2…) to build on, then hand it to a driver later", "Agrega una ruta numerada (Ruta 1, Ruta 2…) para armar, y entrégala a un chofer después")}>＋ {t("Route", "Ruta")}</button>
+            {/* D-1208: en la compacta no va «＋ Ruta» (el dueño: «quita el botón de ruta nueva»); sigue en la expandida. */}
+            {!eficiente && <button className="btn btn-ghost btn-sm" onClick={() => addBucket()} title={t("Add a numbered route (Route 1, Route 2…) to build on, then hand it to a driver later", "Agrega una ruta numerada (Ruta 1, Ruta 2…) para armar, y entrégala a un chofer después")}>＋ {t("Route", "Ruta")}</button>}
           </>}
           filas={filasDelPanel.map((u) => {
             const stops = byDriver.get(u.key) ?? [];
@@ -4627,7 +4635,7 @@ export default function RoutesPage() {
                   eligiendo el driver con los selection boxes de ahí arriba». */}
               {modoDeTarjeta === "eficiente" ? (
                 <span data-nombre-de-ruta={u.key} title={resumenDeLaRuta || undefined} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 14, height: 14, borderRadius: "50%", background: colorFor(u.driver), border: "2px solid var(--card)", boxShadow: "0 0 0 1px var(--line)", flex: "0 0 auto" }} />
+                  {/* D-1208: solo el nombre, sin el punto de color («quita ese punto, solo deja el nombre»). */}
                   <h2 style={{ margin: 0, fontSize: 16 }}>{u.label}</h2>
                 </span>
               ) : (
@@ -4649,7 +4657,7 @@ export default function RoutesPage() {
                   (el servidor comprueba el permiso); los demás —el chofer en su ruta, «Ruta de hoy»— lo leen. */}
               {choferIdDe(u.driver) && camionesDelDia.disponible && (
                 <CamionDelChofer chofer={u.driver} driverId={choferIdDe(u.driver)!} asignado={camionesDelDia.asignaciones.find((a) => a.driverId === choferIdDe(u.driver))}
-                  asignaciones={camionesDelDia.asignaciones} camiones={camionesDelDia.camiones} puedeCambiar={!soloLectura && camionesDelDia.puedeAsignar} asigna={camionesDelDia.asigna} t={t} />
+                  asignaciones={camionesDelDia.asignaciones} camiones={camionesDelDia.camiones} puedeCambiar={!soloLectura && camionesDelDia.puedeAsignar} asigna={camionesDelDia.asigna} t={t} soloIcono={eficienteAqui} />
               )}
               {/* «⚠ sin base» (D-459): era un renglón entero bajo el nombre; el dueño, 2026-10-01, «remueve todo ese texto
                   incesario». El dato no se pierde: una pastilla, con la frase entera al pasar el ratón. */}
@@ -4677,7 +4685,7 @@ export default function RoutesPage() {
               {hechas.length > 0 && (
                 <span className="sema" data-resumen-de-entregas style={{ background: "var(--green-soft)", color: "var(--green)", border: "1px solid var(--green)" }}
                   title={t(`${entregas.entregadas} delivered of this driver's ${entregas.total} order(s) today; ${stops.length} still pending`, `${entregas.entregadas} entregada(s) de las ${entregas.total} orden(es) de este chofer hoy; ${stops.length} pendiente(s)`)}>
-                  ✓ {t(`${entregas.entregadas} of ${entregas.total} delivered`, `${entregas.entregadas} de ${entregas.total} entregadas`)}
+                  ✓ {eficienteAqui ? `${entregas.entregadas}/${entregas.total}` : t(`${entregas.entregadas} of ${entregas.total} delivered`, `${entregas.entregadas} de ${entregas.total} entregadas`)}
                 </span>
               )}
               {/* Sin viajes (D-443): ni «N viajes», ni «Ver un viaje» (D-441), ni «viajes fijados / agrupado automáticamente».
@@ -4717,7 +4725,7 @@ export default function RoutesPage() {
                   once you count unloading. */}
               {info && info.dayMinutes > 8 * 60 && (
                 <span className="sema" style={{ background: "var(--red)", color: "#fff" }} title={t("Driving, unloading and reloading run past an 8-hour day", "Manejo, descarga y recarga pasan de una jornada de 8 horas")}>
-                  ⚠ {t("over 8 h day", "más de 8 h")}
+                  ⚠ {eficienteAqui ? "+8 h" : t("over 8 h day", "más de 8 h")}
                 </span>
               )}
               {/* La medida de la ruta, a la vista (D-456): mientras llega, «calculando»; si falló, se dice y se puede reintentar. */}
@@ -4726,7 +4734,7 @@ export default function RoutesPage() {
                 <button className="btn btn-ghost btn-sm" data-reintentar-medida={u.key} style={{ color: "var(--amber-text)" }}
                   title={t("The route couldn't be measured (no network, or the routing service didn't answer). Click to try once more.", "No se pudo medir la ruta (sin red, o el servicio de rutas no contestó). Pulse para probar una vez más.")}
                   onClick={(e) => { e.stopPropagation(); reintentaLaMedida(u.key); }}>
-                  ↻ {t("not measured — retry", "sin medida — reintentar")}
+                  ↻ {eficienteAqui ? t("retry", "reintentar") : t("not measured — retry", "sin medida — reintentar")}
                 </button>
               )}
               {/* La auto-optimización al asignar (348): «⏳ optimizando…» o, si falló, «↻ sin optimizar — reintentar». Solo con la 348. */}
@@ -4738,7 +4746,7 @@ export default function RoutesPage() {
                   <button className="btn btn-ghost btn-sm" data-reintentar-auto={u.key} style={{ color: "var(--amber-text)" }}
                     title={guardado?.nota ?? t("The automatic optimisation didn't finish. Click to retry.", "La optimización automática no terminó. Pulse para reintentar.")}
                     onClick={(e) => { e.stopPropagation(); reintentaAuto(u.key); }}>
-                    {t(chip.en, chip.es)}
+                    {eficienteAqui ? `↻ ${t("retry", "reintentar")}` : t(chip.en, chip.es)}
                   </button>
                 ) : (
                   <span className="hint" data-auto={chip.clase} title={guardado?.nota ?? undefined} style={{ marginTop: 0 }}>{t(chip.en, chip.es)}</span>

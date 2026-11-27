@@ -15,7 +15,7 @@ type T = (en: string, es: string) => string;
  *
  * Sin permiso —el chofer en su ruta, «Ruta de hoy»— es la misma pastilla sin botón, y solo si hay camión.
  */
-export function CamionDelChofer({ chofer, driverId, asignado, asignaciones, camiones, puedeCambiar, asigna, t }: {
+export function CamionDelChofer({ chofer, driverId, asignado, asignaciones, camiones, puedeCambiar, asigna, t, soloIcono = false }: {
   chofer: string;
   driverId: string;
   /** Lo de este chofer ese día; `undefined` si no tiene camión ni habitual. */
@@ -26,6 +26,8 @@ export function CamionDelChofer({ chofer, driverId, asignado, asignaciones, cami
   puedeCambiar: boolean;
   asigna: (driverId: string, imei: string | null | "usual", intercambia?: boolean) => Promise<ResultadoDeAsignar>;
   t: T;
+  /** D-1208 (vista compacta): solo «🚛»; cuál camión se lee al pasar el ratón (`title`). */
+  soloIcono?: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [ocupado, setOcupado] = useState(false);
@@ -43,7 +45,7 @@ export function CamionDelChofer({ chofer, driverId, asignado, asignaciones, cami
 
   if (!puedeCambiar) {
     if (!nombre) return null;
-    return <span className="sema" data-camion-del-chofer={driverId} data-solo-lectura title={titulo} style={{ border: "1px solid var(--line)", color: "var(--gray)" }}>🚛 {nombre}</span>;
+    return <span className="sema" data-camion-del-chofer={driverId} data-solo-lectura title={titulo} style={{ border: "1px solid var(--line)", color: "var(--gray)" }}>🚛{soloIcono ? "" : ` ${nombre}`}</span>;
   }
 
   const quienLleva = new Map(asignaciones.flatMap((a) => (a.imei && a.driverId !== driverId ? [[a.imei, a.driver] as const] : [])));
@@ -65,7 +67,7 @@ export function CamionDelChofer({ chofer, driverId, asignado, asignaciones, cami
       <button type="button" className="btn btn-ghost btn-sm" data-camion-del-chofer={driverId} aria-haspopup="dialog" aria-expanded={abierto}
         title={`${titulo} — ${t("click to change it", "pulse para cambiarlo")}`}
         onClick={(e) => { setHaciaLaDerecha(e.currentTarget.getBoundingClientRect().left < 260); if (abierto) cierra(); else setAbierto(true); }}>
-        🚛 {nombre ?? t("no truck", "sin camión")}
+        🚛{soloIcono ? (nombre ? "" : " ?") : ` ${nombre ?? t("no truck", "sin camión")}`}
       </button>
       {abierto && (
         <div className="col-menu" data-popover-camion-del-chofer role="dialog" aria-label={t("Truck for this day", "Camión de este día")}

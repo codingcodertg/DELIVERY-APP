@@ -234,7 +234,7 @@ describe("1 · lo ya hecho SIGUE en la lista de su chofer (D-433 lo contaba sin 
     it("«3 de 7 entregadas» en la cabecera de la tarjeta, sin tocar la cuenta de lo pendiente", () => {
       expect(pagina).toContain("const entregas = resumenDeEntregas(stops, hechas);");
       expect(pagina).toContain("{hechas.length > 0 && ( <span className=\"sema\" data-resumen-de-entregas");
-      expect(pagina).toContain("✓ {t(`${entregas.entregadas} of ${entregas.total} delivered`, `${entregas.entregadas} de ${entregas.total} entregadas`)}");
+      expect(pagina).toContain("✓ {eficienteAqui ? `${entregas.entregadas}/${entregas.total}` : t(`${entregas.entregadas} of ${entregas.total} delivered`, `${entregas.entregadas} de ${entregas.total} entregadas`)}"); // D-1208: corto en la compacta
       expect(pagina).toContain('<span className="count-tag">{stops.length} {t("orders", "órdenes")}</span>');
     });
     it("en el mapa su pin queda como hecho: ✓ y apagado; y no es una parada que se pueda marcar", () => {
