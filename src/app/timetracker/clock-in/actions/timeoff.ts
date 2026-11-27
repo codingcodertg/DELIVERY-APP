@@ -5,6 +5,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/clockin/supabase/serve
 import { pushToManagers, pushToUser } from "@/lib/clockin/notify";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { NO_MATCH, storeScope } from "@/lib/clockin/scope";
+import { perfilesDeMiEquipo } from "@/lib/clockin/equipo";
 
 export type TimeOffResult = { ok: true } | { ok: false; message: string };
 
@@ -138,15 +139,14 @@ export async function getPendingForInbox(): Promise<
     excQ = excQ.in("employee_id", inIds);
   }
 
-  const [{ data: off }, { data: exc }, { data: people }] = await Promise.all([
+  const [{ data: off }, { data: exc }, equipo] = await Promise.all([
     offQ,
     excQ,
-    ctx.supabase.from("profiles").select("id, full_name"),
+    perfilesDeMiEquipo(ctx.supabase),
   ]);
 
   type Named = { employee_id: string };
-  const people2 = (people ?? []) as { id: string; full_name: string | null }[];
-  const nombre = new Map(people2.map((p) => [p.id, p.full_name ?? "—"]));
+  const nombre = new Map(equipo.map((p) => [p.id, p.full_name ?? "—"]));
   const conNombre = <T extends Named>(rows: T[] | null) =>
     (rows ?? []).map((r) => ({ ...r, nombre: nombre.get(r.employee_id) ?? "—" }));
   return {
@@ -204,7 +204,8 @@ export async function getCalendarioDeAusencias(desde: string, hasta: string): Pr
   const quienes = [...new Set(filas.map((r) => r.employee_id))];
   const nombre = new Map<string, string>();
   if (quienes.length) {
-    const { data: people } = await ctx.supabase.from("profiles").select("id, full_name").in("id", quienes);
+    // Solo nombres, de filas que ya acotó la consulta de arriba: la vista pública basta (290).
+    const { data: people } = await ctx.supabase.schema("public").from("perfiles_publicos").select("id, full_name").in("id", quienes);
     for (const p of (people ?? []) as { id: string; full_name: string | null }[]) {
       nombre.set(p.id, p.full_name ?? "—");
     }

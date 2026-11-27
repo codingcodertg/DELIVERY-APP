@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { NO_MATCH, visibleStores } from "@/lib/clockin/scope";
 import ExcelJS from "exceljs";
 import { createClient } from "@/lib/clockin/supabase/server";
+import { delEquipo, perfilesDeMiEquipo } from "@/lib/clockin/equipo";
 import { centralWallToUtc } from "@/lib/clockin/tz";
 import { payPeriodDates } from "@/lib/clockin/schedule";
 import { hrs, entryMinutes, attachLunch, type PayEntry, type LunchRow } from "@/lib/clockin/payroll";
@@ -65,15 +66,14 @@ export async function GET(req: Request) {
   const endUtc = new Date(new Date(startUtc).getTime() + 7 * 86400000).toISOString();
 
   // Employees (scoped), sites (for tab names), entries + lunch breaks for the week.
-  let peopleQ = supabase
-    .from("profiles")
-    .select("id, full_name, store_id")
-    .eq("company_id", me.company_id)
-    .eq("active", true);
-  if (scopeStore) peopleQ = peopleQ.in("store_id", scopeStore);
-  if (me.role !== "owner") peopleQ = peopleQ.neq("role", "owner"); // owner excluded from a manager's export
-  const { data: people } = await peopleQ;
-  const allowed = new Set((people ?? []).map((p) => p.id as string));
+  // Alcance de quien exporta (358). El dueño no sale en la exportación de un gerente.
+  const people = delEquipo(await perfilesDeMiEquipo(supabase), {
+    companyId: me.company_id,
+    tiendas: scopeStore,
+    soloActivos: true,
+    sinDuenos: me.role !== "owner",
+  });
+  const allowed = new Set(people.map((p) => p.id));
   const allowedIds = [...allowed];
 
   const [{ data: sites }, { data: entryRows }, { data: lunchRows }] = await Promise.all([

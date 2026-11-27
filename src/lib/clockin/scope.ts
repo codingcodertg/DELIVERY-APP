@@ -1,4 +1,5 @@
 import type { AnySupabase } from "@/lib/clockin/supabase/types";
+import { perfilesDeMiEquipo } from "@/lib/clockin/equipo";
 
 /**
  * Qué tiendas ve quien pregunta, y qué gente hay en ellas.
@@ -80,12 +81,12 @@ export async function storeScope(
 ): Promise<StoreScope> {
   const stores = visibleStores(role, storeId, extra);
   if (!stores) return { scopeStore: null, stores: null, ids: null };
-  const { data } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("company_id", companyId)
-    .in("store_id", stores);
-  return { scopeStore: storeId, stores, ids: (data ?? []).map((p) => p.id as string) };
+  // Personas del alcance de quien llama (358), de su empresa y de sus tiendas.
+  const personas = await perfilesDeMiEquipo(supabase);
+  const ids = personas
+    .filter((p) => p.company_id === companyId && !!p.store_id && stores.includes(p.store_id))
+    .map((p) => p.id);
+  return { scopeStore: storeId, stores, ids };
 }
 
 // Sentinel used with `.in("employee_id", ...)`.

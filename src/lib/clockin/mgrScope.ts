@@ -1,5 +1,6 @@
 import type { AnySupabase } from "@/lib/clockin/supabase/types";
 import { visibleStores } from "@/lib/clockin/scope";
+import { personaDeMiEquipo } from "@/lib/clockin/equipo";
 import { payPeriodDates } from "@/lib/clockin/schedule";
 
 // Server-side guards for manager/owner mutations. The screens already filter by
@@ -28,11 +29,8 @@ export async function canManageEmployee(
   me: Me,
   employeeId: string,
 ): Promise<boolean> {
-  const { data: emp } = await supabase
-    .from("profiles")
-    .select("company_id, store_id")
-    .eq("id", employeeId)
-    .maybeSingle();
+  // La lista ya viene acotada al alcance de quien llama (358): aquí se busca a la persona en ella.
+  const emp = await personaDeMiEquipo(supabase, employeeId);
   if (!emp || emp.company_id !== me.company_id) return false;
   const suyas = visibleStores(me.role, me.store_id, me.extra_store_ids);
   if (!suyas) return true;

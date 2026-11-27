@@ -7,6 +7,7 @@ import type { AnySupabase } from "@/lib/clockin/supabase/types";
 import { clockinManagerCtx } from "@/lib/clockin/managerCtx";
 import { payPeriodDates, currentAndNextPeriodDates, patternRowsForDates, presetRowsForDates, cleanPattern, centralDateStr, type WeekPattern, type PresetType } from "@/lib/clockin/schedule";
 import { canManageEmployee } from "@/lib/clockin/mgrScope";
+import { delEquipo, perfilesDeMiEquipo, personaDeMiEquipo } from "@/lib/clockin/equipo";
 import { NO_MATCH, visibleStores } from "@/lib/clockin/scope";
 
 export type ShiftResult = { ok: true } | { ok: false; message: string };
@@ -167,11 +168,7 @@ export async function applySchedule(input: { employeeId: string }): Promise<Shif
   const ctx = await managerCtx();
   if (!ctx.ok) return ctx;
   if (!(await canManageEmployee(ctx.supabase, ctx.me, input.employeeId))) return { ok: false, message: DENY_SCOPE };
-  const { data: emp } = await ctx.supabase
-    .from("profiles")
-    .select("default_schedule, store_id")
-    .eq("id", input.employeeId)
-    .maybeSingle();
+  const emp = await personaDeMiEquipo(ctx.supabase, input.employeeId);
   const type = emp?.default_schedule as string | null | undefined;
 
   // A/B/C rotate weekly (handled by presetType); custom is a fixed pattern.
@@ -181,8 +178,8 @@ export async function applySchedule(input: { employeeId: string }): Promise<Shif
     presetType = type;
   } else if (type === "custom") {
     // Tolerant: custom_schedule column may not exist before the migration.
-    const { data: cs } = await ctx.supabase.from("profiles").select("custom_schedule").eq("id", input.employeeId).maybeSingle();
-    pattern = cleanPattern((cs as { custom_schedule?: unknown } | null)?.custom_schedule);
+    const cs = await personaDeMiEquipo(ctx.supabase, input.employeeId);
+    pattern = cleanPattern(cs?.custom_schedule);
     if (Object.keys(pattern).length === 0) {
       return { ok: false, message: "No custom pattern set yet — define their days first." };
     }
@@ -222,7 +219,7 @@ export async function setCustomSchedule(
   const clean = cleanPattern(pattern);
   if (Object.keys(clean).length === 0) return { ok: false, message: "Pick at least one working day with start and end times." };
 
-  const { data: emp } = await ctx.supabase.from("profiles").select("store_id").eq("id", employeeId).maybeSingle();
+  const emp = await personaDeMiEquipo(ctx.supabase, employeeId);
   const { error: upErr } = await ctx.supabase
     .from("profiles")
     .update({ default_schedule: "custom", custom_schedule: clean })
@@ -307,13 +304,8 @@ export async function getScheduleWeek(periodStart?: string): Promise<
   const week = payPeriodDates(base);
 
   const suyas = visibleStores(me.role, me.store_id, me.extra_store_ids);
-  let peopleQ = supabase
-    .from("profiles")
-    .select("id, full_name, default_schedule, store_id, custom_schedule")
-    .eq("company_id", me.company_id)
-    .eq("active", true);
-  if (suyas) peopleQ = peopleQ.in("store_id", suyas);
-  if (me.role !== "owner") peopleQ = peopleQ.neq("role", "owner");
+  // Gente del alcance (358); la empresa, las tiendas, los activos y los dueños se filtran abajo.
+  const equipoP = perfilesDeMiEquipo(supabase);
 
   let shiftsQ = supabase
     .from("scheduled_shifts")
@@ -321,16 +313,17 @@ export async function getScheduleWeek(periodStart?: string): Promise<
     .gte("shift_date", week[0])
     .lte("shift_date", week[6]);
   if (suyas) {
-    const { data: crew } = await supabase.from("profiles").select("id").eq("company_id", me.company_id).in("store_id", suyas);
-    const ids = (crew ?? []).map((c) => c.id as string);
+    const crew = delEquipo(await perfilesDeMiEquipo(supabase), { companyId: me.company_id, tiendas: suyas });
+    const ids = crew.map((c) => c.id);
     shiftsQ = shiftsQ.in("employee_id", ids.length ? ids : NO_MATCH);
   }
 
-  const [{ data: people }, { data: sites }, { data: shiftRows }] = await Promise.all([
-    peopleQ.order("full_name"),
+  const [equipo, { data: sites }, { data: shiftRows }] = await Promise.all([
+    equipoP,
     supabase.from("job_sites").select("id, name").eq("company_id", me.company_id).eq("active", true).order("name"),
     shiftsQ.order("start_time"),
   ]);
+  const people = delEquipo(equipo, { companyId: me.company_id, tiendas: suyas, soloActivos: true, sinDuenos: me.role !== "owner" });
 
   const visibles = new Set((people ?? []).map((p) => p.id as string));
   return {

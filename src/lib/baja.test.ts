@@ -63,7 +63,7 @@ describe("los selectores de gente actual siguen filtrando", () => {
     ["components/UsersManager.tsx", /for \(const u of activos\)/],
     ["components/timetracker/EmpleadosDelTt.tsx", /filas=\{activos\}/],
     ["components/timetracker/AssignmentsPanel.tsx", /const presenciales = soloActivos\(users\)/],
-    ["app/timetracker/clock-in/actions/clock.ts", /\.filter\(\(p\) => !deBaja\.has\(p\.id as string\)\)/],
+    ["app/timetracker/clock-in/actions/clock.ts", /people\.filter\(\(p\) => !deBaja\.has\(p\.id\)\)/],
   ];
   for (const [fichero, patron] of casos) {
     it(fichero, () => { expect(lee(fichero)).toMatch(patron); });
