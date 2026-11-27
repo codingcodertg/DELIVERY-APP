@@ -54,6 +54,7 @@ import { avisoNoVaANingunSitio, escrituraQueNoVaANingunSitio } from "@/lib/order
 import { avisoSinFactura, escrituraSinFactura } from "@/lib/factura-obligatoria";
 import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { mensajeDelGuard } from "@/lib/recogida-del-chofer";
+import { llamarCargaParcial, type ResultadoCargaParcial } from "@/lib/carga-parcial";
 import { metaDeFotosAlGuardar, type LectorDeFotos } from "@/lib/fotos-de-la-orden";
 import { AVISO_CONFLICTO, AVISO_SIN_GUARDAR, escritorDeOrdenes, guardaOrdenConCandado } from "@/lib/guardado-con-candado";
 import { COLUMNAS_DE_LA_LISTA, COLUMNAS_DE_LA_LISTA_SIN_CONTEO, COLUMNAS_OPCIONALES_DE_LA_LISTA, faltaPhotoCount, sinPhotoCount } from "@/lib/columnas-de-la-lista";
@@ -229,6 +230,11 @@ export interface DataState {
    * reversión normal pero significa otra cosa.
    */
   setStage: (id: string, stage: Stage, note?: string, extra?: Partial<Delivery>, kind?: string) => Promise<boolean>;
+  /**
+   * Carga parcial al recoger en UNA escritura en la base (357, `carga_parcial`): el resto y la original, o nada.
+   * `estado: "sin-funcion"` = la 357 no está aplicada (o modo enseñanza): quien llama usa el camino de antes.
+   */
+  cargaParcial: (args: { pedido: Delivery; pallets: number; clave: string; cambios: Record<string, unknown>; nota: string; notaResto: string }) => Promise<ResultadoCargaParcial>;
   eventsFor: (deliveryId: string) => OrderEvent[];
   /** Append a free-text note to an order's activity thread. */
   addNote: (deliveryId: string, text: string) => Promise<void>;
@@ -2013,6 +2019,73 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     [supabase, me, notify, logEvent, deliveries, effectiveDeliveries, emitStageNotifs, teaching, settings.order_type_rules, settings.stores, settings.notify_on_the_way_enabled, lang],
   );
 
+  /**
+   * Carga parcial al recoger (357). Antes de llamar hace las mismas comprobaciones que addDelivery (el resto) y
+   * setStage (la original); después pone los mismos avisos y la ubicación que hacían esas dos llamadas.
+   */
+  const cargaParcial = useCallback<DataState["cargaParcial"]>(
+    async ({ pedido, pallets, clave, cambios, nota, notaResto }) => {
+      // El modo enseñanza no escribe en la base: que siga el camino de siempre, que sí va a la superposición local.
+      if (teaching) return { estado: "sin-funcion" };
+      const current = effectiveDeliveries.find((c) => c.id === pedido.id) ?? pedido;
+      const total = pedido.actual_pallets ?? pedido.est_pallets ?? 0;
+      const restante = total - pallets;
+      const sinEscribir = { estado: "error", mensaje: "", reintentable: false } as const;
+
+      // Lo que se crea: el resto, con lo que addDelivery comprobaba.
+      const resto: Partial<Delivery> = { ...pedido, stage: "ready", order_suffix: pedido.order_suffix ?? "a", est_pallets: restante, actual_pallets: restante, assigned_driver: null };
+      const choqueAlCrear = escrituraQueNoVaANingunSitio(undefined, resto, settings.order_type_rules, settings.stores);
+      if (choqueAlCrear.length) { notify(avisoNoVaANingunSitio(choqueAlCrear, lang)); return sinEscribir; }
+      const sinFacturaAlCrear = escrituraSinFactura(undefined, resto, settings.order_type_rules);
+      if (sinFacturaAlCrear.length) { notify(avisoSinFactura(sinFacturaAlCrear, lang)); return sinEscribir; }
+
+      // Lo que cambia: la original, con lo que setStage comprobaba.
+      const patchOriginal: Partial<Delivery> = { stage: "picked_up", ...cambios };
+      if (me?.role !== "admin" && !canTransition(current.stage, "picked_up")) {
+        notify("This order must be approved by a manager first.");
+        return sinEscribir;
+      }
+      const choqueAlMover = escrituraQueNoVaANingunSitio(current, patchOriginal, settings.order_type_rules, settings.stores);
+      if (choqueAlMover.length) { notify(avisoNoVaANingunSitio(choqueAlMover, lang)); return sinEscribir; }
+      const sinFacturaAlMover = escrituraSinFactura(current, patchOriginal, settings.order_type_rules);
+      if (sinFacturaAlMover.length) { notify(avisoSinFactura(sinFacturaAlMover, lang)); return sinEscribir; }
+      if (entraEnElCamion(current.stage, "picked_up")) {
+        const espera = porQueNoSeRecoge(current, effectiveDeliveries);
+        if (espera) { notify(espera[lang]); return sinEscribir; }
+      }
+
+      const res = await llamarCargaParcial(
+        (fn, args) => supabase.rpc(fn, args),
+        { orden: pedido.id, pallets, clave, cambios, nota, notaResto },
+        (mensaje) => mensajeDelGuard(mensaje, lang) ?? mensaje,
+      );
+      if (res.estado !== "ok") {
+        if (res.estado === "error" && res.mensaje) notify(res.mensaje);
+        return res;
+      }
+
+      // La base ya escribió las dos filas y sus historiales. Aquí van los avisos y la vista local, como antes.
+      const { data: filaResto } = await supabase.from("deliveries").select("*").eq("id", res.restoId).maybeSingle();
+      const resto2 = (filaResto ?? null) as Delivery | null;
+      const letra = pedido.order_suffix ?? "a";
+      setDeliveries((prev) => {
+        const sinResto = resto2 ? prev.filter((c) => c.id !== resto2.id) : prev;
+        const movida = sinResto.map((c) => (c.id === pedido.id ? { ...c, ...patchOriginal, order_suffix: letra, actual_pallets: pallets } : c));
+        return resto2 ? [resto2, ...movida] : movida;
+      });
+      void emitStageNotifs({ stage: "picked_up", order_no: current.order_no, order_code: current.order_code ?? null, delivery_id: pedido.id, creatorId: orderOwner(current), reason: nota, ...relevoParaElAviso(current, deliveries) });
+      pedirAvisoEnCamino(pedido.id, "picked_up", settings.notify_on_the_way_enabled);
+      if (ETAPAS_PARA_PARTIR.includes("picked_up") && !ETAPAS_PARA_PARTIR.includes(current.stage)) void partirRef.current?.({ ...current, ...patchOriginal } as Delivery);
+      if (resto2) {
+        void ubicarSiHaceFalta(resto2.id, resto2);
+        void emitStageNotifs({ stage: resto2.stage, order_no: resto2.order_no, order_code: resto2.order_code, delivery_id: resto2.id, creatorId: orderOwner(resto2), reason: null });
+        void partirRef.current?.(resto2);
+      }
+      return res;
+    },
+    [supabase, me, notify, lang, teaching, effectiveDeliveries, deliveries, settings.order_type_rules, settings.stores, settings.notify_on_the_way_enabled, emitStageNotifs, ubicarSiHaceFalta],
+  );
+
   const eventsFor = useCallback(
     (deliveryId: string) => {
       const real = events.filter((e) => e.delivery_id === deliveryId);
@@ -2793,14 +2866,14 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
   const value: DataState = useMemo(() => ({
     ready, me: effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, deliveries: effectiveDeliveries, ensureDeliveriesSince, events: effectiveEvents, notifications, toast, notify,
     markNotifRead, markAllNotifsRead, pushNotifs,
-    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, hayAutoOptimizar, fijaParadas, estadoAutoDeRutas, marcaAutoDeRuta, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada,
+    addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, hayAutoOptimizar, fijaParadas, estadoAutoDeRutas, marcaAutoDeRuta, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, cargaParcial, eventsFor, addNote, marcarParada,
     saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, updateUserModules, deleteUser,
     availability, addAvailability, removeAvailability,
     shifts: shiftsView, clockIn, clockOut, marcaGpsDelTurno,
     incidents, addIncident, removeIncident,
     pushLocation,
     pendingSync: outbox.length, syncing,
-  }), [ready, effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, effectiveDeliveries, ensureDeliveriesSince, effectiveEvents, notifications, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, hayAutoOptimizar, fijaParadas, estadoAutoDeRutas, marcaAutoDeRuta, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, eventsFor, addNote, marcarParada, saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, updateUserModules, deleteUser, availability, addAvailability, removeAvailability, shiftsView, clockIn, clockOut, marcaGpsDelTurno, incidents, addIncident, removeIncident, pushLocation, outbox.length, syncing]);
+  }), [ready, effectiveMe, realRole, viewAs, setViewAs, teaching, setTeaching, clearTrainingData, settings, users, effectiveDeliveries, ensureDeliveriesSince, effectiveEvents, notifications, toast, notify, markNotifRead, markAllNotifsRead, pushNotifs, addDelivery, updateDelivery, ponerDocumento, agregarMaterial, reprogramarOrden, buscarFacturaParaRecoger, tomarOrdenParaRecoger, reorderStops, hayAutoOptimizar, fijaParadas, estadoAutoDeRutas, marcaAutoDeRuta, partirCarga, reentregaComoCarga, reparteCargas, juntarCargas, activarRelevo, deshacerRelevo, pasosDelRelevo, deleteDelivery, setStage, cargaParcial, eventsFor, addNote, marcarParada, saveSettings, addUser, setUserIdentity, resetUserPassword, updateUserRole, updateUserName, updateUserTitle, updateUserStore, updateUserVisibleStores, updateUserPermissions, updateUserRecruitingAccess, updateUserTimetrackerAccess, updateUserErpAccess, updateUserPromosAccess, updateUserEstimatorAccess, updateUserSurveysAccess, updateUserLeadsAccess, updateUserCustomersAccess, updateUserWarehouseOpsAccess, updateUserWarehouseOpsRole, updateUserDeliveriesAccess, updateUserModules, deleteUser, availability, addAvailability, removeAvailability, shiftsView, clockIn, clockOut, marcaGpsDelTurno, incidents, addIncident, removeIncident, pushLocation, outbox.length, syncing]);
 
   return (
     <UbicacionesDeChoferesCtx.Provider value={almacenUbicaciones}>

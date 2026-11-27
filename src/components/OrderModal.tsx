@@ -5,6 +5,7 @@ import { contextoDeOrden } from "@/lib/ayuda-contextos";
 import { lugarDeLaDireccion, lugaresParaEntregarEn } from "@/lib/entregar-en-tienda";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useData } from "@/lib/data-provider";
+import { claveDeIntento } from "@/lib/carga-parcial";
 import { usePrefs } from "@/lib/prefs";
 import { useConfirm } from "@/lib/confirm";
 import { ChoferYPallets } from "@/components/ChoferYPallets";
@@ -161,7 +162,7 @@ export function OrderModal({
   // Nota D-637: `fotosDeEntrega` y `fotoEnCamino` (las fotos de la cámara que «Mi ruta» abría al pulsar «Entregado»)
   // se quitaron con esa cámara: las fotos de la entrega se toman ya dentro de la prueba de entrega.
 }) {
-  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, eventsFor, addNote, agregarMaterial, reprogramarOrden, reentregaComoCarga, saveSettings, notify, realRole, pushNotifs, teaching } =
+  const { settings, users, deliveries, addDelivery, updateDelivery, deleteDelivery, setStage, cargaParcial, eventsFor, addNote, agregarMaterial, reprogramarOrden, reentregaComoCarga, saveSettings, notify, realRole, pushNotifs, teaching } =
     useData();
   const { lang, t } = usePrefs();
   const confirmAction = useConfirm();
@@ -1399,6 +1400,8 @@ export function OrderModal({
   };
   const removeDraftNote = (id: string) => set("role_notes", (d.role_notes ?? []).filter((x) => x.id !== id));
 
+  // Clave del intento de carga parcial: se reusa en los reintentos de la misma orden y cifra (src/lib/carga-parcial.ts).
+  const claveRef = useRef<{ clave: string; orden: string; pallets: number } | null>(null);
   // Driver confirms what actually fit on the truck. A short load splits the
   // order: this one becomes #Na (loaded part, out for delivery) and the
   // remainder is re-staged as a new linked order #Nb for another trip.
@@ -1436,6 +1439,43 @@ export function OrderModal({
       return;
     }
     if (!quick && total > 0 && n < total) {
+      // Una sola escritura en la base (357): o queda partida entera, o no queda nada. La clave del intento se reusa en
+      // los reintentos (doble toque, mala señal), así que no se parte dos veces (src/lib/carga-parcial.ts).
+      const intento = claveDeIntento(claveRef.current, existing.id, n, () => crypto.randomUUID());
+      claveRef.current = intento;
+      const mySuffixNuevo = existing.order_suffix ?? "a";
+      const nextSuffixNuevo = String.fromCharCode(mySuffixNuevo.charCodeAt(0) + 1);
+      const restoNuevo = total - n;
+      const etiquetaNueva = existing.order_code || existing.order_no;
+      const r = await cargaParcial({
+        pedido: existing,
+        pallets: n,
+        clave: intento.clave,
+        cambios: { ...gpsExtra, ...claim },
+        nota: t(`Partial load: ${n} of ${total} pallets — remainder split to #${etiquetaNueva}${nextSuffixNuevo}`,
+          `Carga parcial: ${n} de ${total} pallets — resto dividido a #${etiquetaNueva}${nextSuffixNuevo}`),
+        notaResto: t(`Split of #${etiquetaNueva}${mySuffixNuevo} — ${restoNuevo} pallets left behind.`,
+          `División de #${etiquetaNueva}${mySuffixNuevo} — quedaron ${restoNuevo} pallets.`),
+      });
+      if (r.estado === "ok") {
+        setBusy(false);
+        notify(t(`Out for delivery as #${etiquetaNueva}${mySuffixNuevo} — #${etiquetaNueva}${nextSuffixNuevo} staged with ${restoNuevo} pallets`,
+          `En reparto como #${etiquetaNueva}${mySuffixNuevo} — #${etiquetaNueva}${nextSuffixNuevo} preparada con ${restoNuevo} pallets`));
+        claveRef.current = null;
+        onClose();
+        return;
+      }
+      if (r.estado === "error") {
+        // Un error de negocio (la base lo rechazó) ya se avisó en el proveedor: la próxima vez es otro intento.
+        // Sin respuesta de la base (sin red) se conserva la clave: si la base sí escribió, el reintento no parte otra vez.
+        setBusy(false);
+        if (!r.reintentable) claveRef.current = null;
+        return;
+      }
+      // «sin-funcion»: la 357 todavía no está aplicada en la base. Sigue el camino de antes (abajo), igual que siempre.
+    }
+    if (!quick && total > 0 && n < total) {
+      // Camino de antes (respaldo mientras la 357 no esté aplicada): dos escrituras separadas.
       const mySuffix = existing.order_suffix ?? "a";
       const nextSuffix = String.fromCharCode(mySuffix.charCodeAt(0) + 1);
       const rest = total - n;
