@@ -512,7 +512,8 @@ describe("D-527 · el chofer recoge aunque no esté lista, y deshace su recogida
     expect(ficha).toContain("<PhotoUpload photos={fotosDeLaEntrega} disabled={busy} onChange={setFotosDeLaEntrega} t={t} rafaga onOcupado={setFotosProcesando} />");
     expect(ficha).toContain('useState(abrirEn === "entregar" && !!existing && (existing.stage === "picked_up" || puedeEntregarSinRecoger(me, existing)))');
     // Las fotos de la entrega van en la escritura de la entrega, firmadas por quien entrega.
-    expect(ficha).toContain("...(fotos ? { photos: fotos, photo_meta: autoresDeFotos(fotos, fotosOrden.photo_meta, me.id, ahora) } : {}),");
+    // Lote 2: el autor de las fotos viene de la base leída justo antes (`enBase`), no de la pantalla.
+    expect(ficha).toContain("...(fotos ? { photos: fotos, photo_meta: autoresDeFotos(fotos, enBase?.photo_meta ?? null, me.id, ahora) } : {}),");
     // Mientras se leen fotos, «Confirmar entregado» espera, en el botón y en la función.
     expect(ficha).toContain("disabled={busy || !!podBlocker || fotosProcesando}");
     const entrega = ficha.slice(ficha.indexOf("const deliverWithPod = async () => {"), ficha.indexOf("setBusy(true);", ficha.indexOf("const deliverWithPod = async () => {")));

@@ -55,6 +55,7 @@ import { avisoSinFactura, escrituraSinFactura } from "@/lib/factura-obligatoria"
 import { faltaParaAnular, motivosDeAnulacion } from "@/lib/cancel-reasons";
 import { mensajeDelGuard } from "@/lib/recogida-del-chofer";
 import { metaDeFotosAlGuardar, type LectorDeFotos } from "@/lib/fotos-de-la-orden";
+import { AVISO_CONFLICTO, AVISO_SIN_GUARDAR, escritorDeOrdenes, guardaOrdenConCandado } from "@/lib/guardado-con-candado";
 import { COLUMNAS_DE_LA_LISTA, COLUMNAS_DE_LA_LISTA_SIN_CONTEO, COLUMNAS_OPCIONALES_DE_LA_LISTA, faltaPhotoCount, sinPhotoCount } from "@/lib/columnas-de-la-lista";
 import { leeConOpcionales, nombraLaColumna } from "@/lib/columnas-opcionales";
 import { claveDeRutaAuto } from "@/lib/auto-optimiza-la-ruta";
@@ -139,7 +140,15 @@ export interface DataState {
   /** `quiet` suppresses the error toast, for background patches the user
    * never asked for and can do nothing about — a failure there must not look
    * like a failure of whatever they just did. */
-  updateDelivery: (id: string, patch: Partial<Delivery>, opts?: { quiet?: boolean }) => Promise<boolean>;
+  updateDelivery: (id: string, patch: Partial<Delivery>, opts?: {
+    quiet?: boolean;
+    /** Edición manual de la ventana (lote 2): el `updated_at` que tenía la orden al abrirla. Si otra persona la cambió, no se pisa. */
+    versionEsperada?: string | null;
+    /** Las fotos que tenía la pantalla al abrirla: con `photos` en el parche, se unen con las de la base y no se reescriben enteras. */
+    fotosAntes?: readonly string[];
+    /** Recibe el `updated_at` nuevo tras guardar (o el actual si hubo conflicto), para que la ventana siga su versión. */
+    alGuardar?: (updated_at: string | null) => void;
+  }) => Promise<boolean>;
   /** El documento que falta, puesto desde la fila de la tabla: escribe SOLO ese campo (D-310). */
   ponerDocumento: (id: string, campo: CampoDeDocumento, valor: string) => Promise<boolean>;
   /**
@@ -841,8 +850,9 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
     for (let i = 0; i < aFijar.length; i += ESCRITURAS_A_LA_VEZ) {
       const tanda = aFijar.slice(i, i + ESCRITURAS_A_LA_VEZ);
       await Promise.all(tanda.map((id) =>
-        conReintentosDeRed(() => supabase.from("deliveries").update({ route_fixed: fija }).eq("id", id))
-          .then((r) => { if (!r.error) bien.add(id); return r; }),
+        // `.select("id")`: un UPDATE que la RLS deja en cero filas no da error; sin filas no está fijada.
+        conReintentosDeRed(() => supabase.from("deliveries").update({ route_fixed: fija }).eq("id", id).select("id"))
+          .then((r) => { if (!r.error && (r.data?.length ?? 0) > 0) bien.add(id); return r; }),
       ));
     }
     setDeliveries((prev) => prev.map((c) => (bien.has(c.id) ? { ...c, route_fixed: fija } : c)));
@@ -1420,7 +1430,8 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       // D-562 (177): la fila de la lista ya NO trae `photo_meta`, así que los autores de las fotos que ya había se leen
       // de la base justo antes; con el de la fila de la lista (vacío) cada foto vieja quedaría firmada por quien guarda ahora.
       // Si esa lectura falla, no se guarda: perder los autores no se deshace.
-      if (patch.photos && me) {
+      // Con `fotosAntes` (la ventana de la orden, lote 2) las fotos se unen dentro de `guardaOrdenConCandado`, que lee la base.
+      if (patch.photos && me && opts?.fotosAntes === undefined) {
         const meta = await metaDeFotosAlGuardar(supabase as unknown as LectorDeFotos, id, patch.photos, me.id, new Date().toISOString());
         if (!meta) {
           if (!opts?.quiet) notify(lang === "es" ? "No se pudieron leer las fotos de la orden; no se guardó. Reintente." : "Could not read the order's photos; nothing was saved. Try again.");
@@ -1430,13 +1441,35 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       }
       patch = sinPhotoCount(patch);   // lo pone la base (177)
 
-      const { error } = await supabase.from("deliveries").update(patch).eq("id", id);
-      if (error) {
-        // D-1018: lo que rechaza el guard del relevo (fechas, 302; orden, 256) se dice en claro, no como error de la base.
-        if (!opts?.quiet) notify(mensajeDelRelevo(error.message, lang) ?? "Error: " + error.message);
+      // Lote 2: 0 filas es un fallo (no «guardado»), y con `versionEsperada` o `fotosAntes` no se pisa lo que otra persona cambió.
+      const r = await guardaOrdenConCandado(escritorDeOrdenes(supabase), id, patch as Record<string, unknown>, {
+        versionEsperada: opts?.versionEsperada,
+        fotosAntes: opts?.fotosAntes,
+        autor: me ? { quien: me.id, ahora: new Date().toISOString() } : undefined,
+      });
+      if (!r.ok) {
+        if (r.motivo === "conflicto") {
+          if (!opts?.quiet) notify(lang === "es" ? AVISO_CONFLICTO.es : AVISO_CONFLICTO.en);
+          // Se recarga la orden con lo que hay ahora, para que la siguiente vez que guarde sea sobre la versión nueva.
+          opts?.alGuardar?.(r.updated_at);
+          await reloadTables(["deliveries"]);
+          return false;
+        }
+        if (!opts?.quiet) {
+          if (r.motivo === "error") {
+            // D-1018: lo que rechaza el guard del relevo (fechas, 302; orden, 256) se dice en claro, no como error de la base.
+            notify(mensajeDelRelevo(r.mensaje, lang) ?? "Error: " + r.mensaje);
+          } else if (r.motivo === "no_leida") {
+            notify(lang === "es" ? "No se pudieron leer las fotos de la orden; no se guardó. Reintente." : "Could not read the order's photos; nothing was saved. Try again.");
+          } else {
+            notify(lang === "es" ? AVISO_SIN_GUARDAR.es : AVISO_SIN_GUARDAR.en);
+          }
+        }
         return false;
       }
-      setDeliveries((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+      patch = r.patch as Partial<Delivery>;
+      setDeliveries((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch, updated_at: r.updated_at } as Delivery : c)));
+      opts?.alGuardar?.(r.updated_at);
       // Being handed the work is its own event. Every way an order gets a
       // driver — the modal, Routes Manager, the map, bulk assign — comes
       // through here, so this is the one place that can't be bypassed.
@@ -1488,7 +1521,7 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
       if (before && ["stage", "store", "pickup_name", "order_type", "delivery_name"].some((k) => k in patch)) void partirRef.current?.({ ...before, ...patch } as Delivery);
       return true;
     },
-    [supabase, notify, logEvent, teaching, deliveries, users, me, ubicarSiHaceFalta, effectiveDeliveries, settings.order_type_rules, settings.stores, lang, parteSiNoCabe],
+    [supabase, notify, logEvent, teaching, deliveries, users, me, ubicarSiHaceFalta, effectiveDeliveries, settings.order_type_rules, settings.stores, lang, parteSiNoCabe, reloadTables],
   );
   // Publicada para `ubicarSiHaceFalta`, que se declara antes y no puede nombrarla.
   updateDeliveryRef.current = updateDelivery;
@@ -1608,8 +1641,12 @@ export function DataProvider({ children, me, soloOrden }: { children: React.Reac
         for (let i = 0; i < cambian.length; i += ESCRITURAS_A_LA_VEZ) {
           const tanda = cambian.slice(i, i + ESCRITURAS_A_LA_VEZ);
           const hechas = await Promise.all(tanda.map((id) =>
-            conReintentosDeRed(() => supabase.from("deliveries").update(patchFor(id)).eq("id", id))
-              .then((r) => { if (!r.error) escritas.push(id); return r; }),
+            // `.select("id")`: 0 filas (RLS) cuenta como fallo, para que se deshaga lo ya escrito y no se diga «ordenada».
+            conReintentosDeRed(() => supabase.from("deliveries").update(patchFor(id)).eq("id", id).select("id"))
+              .then((r) => {
+                if (!r.error && (r.data?.length ?? 0) > 0) { escritas.push(id); return r; }
+                return r.error ? r : { ...r, error: { message: lang === "es" ? AVISO_SIN_GUARDAR.es : AVISO_SIN_GUARDAR.en, details: "", hint: "", code: "SIN_FILAS" } };
+              }),
           ));
           const fallo = hechas.find((r) => r.error);
           if (fallo?.error) {
