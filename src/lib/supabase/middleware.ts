@@ -110,7 +110,9 @@ export function respuestaSinServicio(request: NextRequest): NextResponse {
   if (isApiPath(request.nextUrl.pathname)) {
     return NextResponse.json({ error: "service_unavailable" }, { status: 503, headers: cabeceras });
   }
-  const volver = escaparHtml(request.nextUrl.pathname + request.nextUrl.search);
+  // Solo una ruta propia: «/x», nunca «//host» ni «/\host» (redirección abierta). Si no, a la portada.
+  const destino = request.nextUrl.pathname + request.nextUrl.search;
+  const volver = escaparHtml(/^\/(?![/\])/.test(destino) ? destino : "/");
   const html = `<!doctype html>
 <html lang="es">
 <head>
