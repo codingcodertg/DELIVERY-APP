@@ -3,12 +3,9 @@ import { readFileSync } from "node:fs";
 import { horasCortas } from "@/components/PanelDeChoferes";
 
 // D-1208: Gestor de Rutas, vista compacta (solicitud de ayuda del dueño, 27 nov, y sus notas sobre la maqueta).
-const pagina = readFileSync("src/app/(app)/routes/page.tsx", "utf8").split("
-").join("
-");
-const panel = readFileSync("src/components/PanelDeChoferes.tsx", "utf8").split("
-").join("
-");
+const lee = (ruta: string) => readFileSync(ruta, "utf8").split("\r\n").join("\n");
+const pagina = lee("src/app/(app)/routes/page.tsx");
+const panel = lee("src/components/PanelDeChoferes.tsx");
 
 describe("Gestor compacto (D-1208)", () => {
   it("la hora del chofer va como 4:36", () => {
@@ -21,7 +18,7 @@ describe("Gestor compacto (D-1208)", () => {
     expect(pagina).toContain("{!soloLectura && !eficiente && selectorDeVista}");
   });
   it("sin «＋ Ruta» en la compacta; el chofer en 2 filas y sin barra", () => {
-    expect(pagina).toContain("{!eficiente && <button className=\"btn btn-ghost btn-sm\" onClick={() => addBucket()}");
+    expect(pagina).toContain('{!eficiente && <button className="btn btn-ghost btn-sm" onClick={() => addBucket()}');
     expect(panel).not.toContain('background: over ? "var(--red)" : "var(--green)"');
     expect(panel).toContain("⏱ {horasCortas(u.info.minutes)}");
   });
