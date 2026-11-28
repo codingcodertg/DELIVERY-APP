@@ -53560,3 +53560,8 @@ Sello `deliveries` 1.674.0; repo 2.6.0.
 
 El dueño: «dame una feature para switch la ruta completa de un driver a otra… prácticamente con la misma ruta». Sus decisiones: si el otro ya tiene ruta ese día, se INTERCAMBIAN; solo se pasan las pendientes (lo recogido y entregado se queda con quien lo tiene); el botón va en el encabezado de la ruta. Un selector «⇄» junto al camión: eliges el chofer, se confirma, y cada lista pasa al otro con su mismo orden (paradas P y D), numerada tras lo ya hecho del destino. No se re-optimiza; escribe de 6 en 6 (D-1144), anota «Route swap» en cada orden y Ctrl+Z lo deshace.
 Sello `deliveries` 1.675.0; repo 2.7.0.
+
+## D-1211 · Gestor de Rutas: tocar un chofer en «Choferes y rutas» lleva a la pestaña Rutas (2026-11-27)
+
+El dueño: «cuando le dé click a un conductor el default es rutas… si quedó en Sin asignar y cambio conductor quiero ver las rutas». Pulsar la fila o marcar/desmarcar un chofer en el panel pone la pestaña «Rutas».
+Sello `deliveries` 1.675.1; repo 2.7.1.

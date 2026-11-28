@@ -53,7 +53,7 @@ describe("1 · marcar un chofer abre su tabla, desmarcarlo la cierra (`abreAlMar
   it("la pantalla: la casilla y la fila del panel pasan por `abreAlMarcar`, y sin esconder el mapa", () => {
     expect(pagina).toContain("onEnfoca={enfocaEnElPanel} onAlterna={alternaEnElPanel}");
     expect(pagina).toContain("const ahora = alternaVisible(selected, clavesDelPanel, clave); setSelected(ahora); abreDesdeElPanel(clave, ahora.has(clave));");
-    expect(pagina).toContain("const enfocaEnElPanel = (clave: string) => { focusOnly(clave); abreDesdeElPanel(clave, true); };");
+    expect(pagina).toContain("const enfocaEnElPanel = (clave: string) => { setTab(\"routes\"); // D-1211: el dueño, 2026-11-27: «cuando le dé click a un conductor el default es rutas» focusOnly(clave); abreDesdeElPanel(clave, true); };");
     expect(pagina).toContain("const r = abreAlMarcar({ ancho: wideRoutes, desplegada, alternadas }, clave, marcada); if (marcada) abiertasDesdeElPanel.current = new Set([clave]); setDesplegada(r.desplegada); setAlternadas(r.alternadas);");
     expect(pagina).toContain("const desdeElPanel = abiertasDesdeElPanel.current; abiertasDesdeElPanel.current = new Set(); setEstadoDelMapa((e) => alAbrirRutas(e, antes, abiertas, desdeElPanel));");
     // Lo marcado que se recuerda llega abierto.
