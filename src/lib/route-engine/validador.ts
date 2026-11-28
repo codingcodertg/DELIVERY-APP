@@ -230,6 +230,21 @@ export function validaLaRuta(e: EntradaDelValidador): Resultado {
     }
   }
 
+  // Regla 2 (D-1212): no se recoge en una tienda llevando a bordo algo PARA esa tienda que se entrega más tarde.
+  {
+    const aBordo = new Set<string>();
+    for (const s of paradas) {
+      if (s.tipo === "D") { aBordo.delete(s.orden); continue; }
+      const tienda = s.o.origen || null;
+      const para = tienda ? [...aBordo].filter((o) => (porId.get(o)?.destino || null) === tienda) : [];
+      if (para.length) {
+        viola(2, "recoge_llevando_para_esa_tienda", s.k, unicos([s.orden, ...para]),
+          `En ${tienda} se recoge ${nombre(s.orden)} llevando a bordo ${para.map(nombre).join(", ")} para esa tienda: se deja primero.`, tienda);
+      }
+      aBordo.add(s.orden);
+    }
+  }
+
   // Regla 3: regreso a una tienda donde ya se estuvo, en el mismo viaje.
   // Ningún D con carga 0 en las posiciones [a, b] (si lo hay, el camión se vació: otro viaje).
   const sinCeroEntre = (a: number, b: number): boolean => {

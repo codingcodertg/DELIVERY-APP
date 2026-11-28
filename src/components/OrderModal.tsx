@@ -11,6 +11,7 @@ import { useConfirm } from "@/lib/confirm";
 import { ChoferYPallets } from "@/components/ChoferYPallets";
 import { canCreate, canDeliver, canEditFields, DELIVERY_WINDOW_PRESETS, driverNames, ROLE_INFO, roleLabel, stageInfo, stageLabel, ordersLikeOfficeManager, etapaAnterior, puedeDeshacer, puedeEntregarYa } from "@/lib/constants";
 import { colLabel, deliveryColumns, fmtDate, fmtDateShort, fmtDateTime, fmtMilitary, fmtMoney, fmtWindows, nowMilitary, orderLabel, palletDuration, palletVariance, telClean, todayISO } from "@/lib/utils";
+import { rcCall } from "@/lib/recruiting/utils";
 import { recogidaParaElChofer } from "@/lib/recogida-y-ruta-del-dia";
 import { suggestDeliveryFee } from "@/lib/pricing";
 import { cuentaRequiereAprobacion, naceAprobada, type QuienCrea } from "@/lib/cuenta-aprobacion";
@@ -4197,6 +4198,13 @@ function DriverDeliveryScreen({
 }) {
   const phone = telClean(order.delivery_phone);
   const hasPhone = phone.replace(/\D/g, "").length >= 7;
+  // D-1212: la extensión de RingCentral del chofer (si está en RingCentral → Choferes): «☎️ RingCentral» abre su app.
+  const [miExtension, setMiExtension] = useState<string | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    fetch("/api/ringcentral/mi-extension").then((r) => (r.ok ? r.json() : null)).then((b) => { if (vivo && b?.extension) setMiExtension(String(b.extension)); }).catch(() => {});
+    return () => { vivo = false; };
+  }, []);
   const dest = (order.delivery_address || "").trim();
   const origin = (order.pickup_address || settings.stores.find((s) => s.name === order.store)?.address || order.store || "").trim();
   // An exact pin (manual or auto-geocoded) is more precise than the address
@@ -4296,6 +4304,12 @@ function DriverDeliveryScreen({
         </div>
         {hasPhone && telAbierto && (
           <div className="drv-opts">
+            {miExtension && (
+              <a className="btn btn-primary drv-call" data-llamar-por-rc href={rcCall(phone)}
+                title={t(`Opens RingCentral and calls from your extension ${miExtension}`, `Abre RingCentral y llama desde tu extensión ${miExtension}`)}>
+                ☎️ RingCentral
+              </a>
+            )}
             <a className="btn btn-green drv-call" href={`tel:${phone}`}>📞 {t("Call", "Llamar")}</a>
             <a className="btn btn-ghost drv-call" href={`sms:${phone}`}>💬 {t("Text", "Mensaje")}</a>
             {/* La llamada por centralita solo si está encendida: sin ella el botón
