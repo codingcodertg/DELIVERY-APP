@@ -53555,3 +53555,8 @@ Sello `deliveries` 1.673.0; repo 2.5.0.
 
 El dueño (foto): «quita ese signo como de info, no sé cómo hacerte entender que quiero quitar espacios muertos». En la compacta: el ⓘ (ayuda del mapa) ya no sale; la fila de arriba solo aparece si trae el aviso de expiradas (sin él, era una fila vacía); y «Vista expandida | Vista compacta» va dentro de la fila de la fecha (en el lugar del título se partía en dos filas a 1280 px). Visto en el demo a 1280 px: una sola fila arriba; 390 px sin desborde.
 Sello `deliveries` 1.674.0; repo 2.6.0.
+
+## D-1210 · Gestor de Rutas: «⇄» intercambia la ruta de un chofer con otro, en el mismo orden (2026-11-27)
+
+El dueño: «dame una feature para switch la ruta completa de un driver a otra… prácticamente con la misma ruta». Sus decisiones: si el otro ya tiene ruta ese día, se INTERCAMBIAN; solo se pasan las pendientes (lo recogido y entregado se queda con quien lo tiene); el botón va en el encabezado de la ruta. Un selector «⇄» junto al camión: eliges el chofer, se confirma, y cada lista pasa al otro con su mismo orden (paradas P y D), numerada tras lo ya hecho del destino. No se re-optimiza; escribe de 6 en 6 (D-1144), anota «Route swap» en cada orden y Ctrl+Z lo deshace.
+Sello `deliveries` 1.675.0; repo 2.7.0.

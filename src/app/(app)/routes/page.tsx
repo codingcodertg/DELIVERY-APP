@@ -1951,6 +1951,63 @@ export default function RoutesPage() {
     removeBucket(bucket);
     notify(t(`Route "${bucket}" (${stops.length} stop(s)) → ${driver}, after their own stops`, `Ruta "${bucket}" (${stops.length} parada(s)) → ${driver}, detrás de sus paradas`));
   };
+  // D-1210 «⇄ Intercambiar ruta»: la ruta PENDIENTE de un chofer pasa entera a otro, en el MISMO orden, y si el otro ya
+  // tenía ruta ese día, la suya pasa al primero (intercambio). Lo recogido o entregado se queda con quien lo tiene. No se
+  // re-optimiza (el dueño, 2026-11-27: «hacer un switch prácticamente con la misma ruta»); Ctrl+Z lo deshace.
+  const intercambiaRutas = async (a: string, b: string) => {
+    if (!a || !b || a === b) return;
+    const pendientesDe = (k: string) => (byDriver.get(k) ?? []).filter((d) => !ETAPAS_HECHAS.has(d.stage));
+    const pa = pendientesDe(a), pb = pendientesDe(b);
+    if (!pa.length && !pb.length) { notify(t("Nothing pending to swap.", "No hay nada pendiente que intercambiar.")); return; }
+    const ok = await confirmAction(
+      pb.length
+        ? t(`Swap routes? ${laneLabel(a)}'s ${pa.length} pending stop(s) go to ${laneLabel(b)}, and ${laneLabel(b)}'s ${pb.length} go to ${laneLabel(a)}, each in the same order.`,
+            `¿Intercambiar rutas? Las ${pa.length} parada(s) pendientes de ${laneLabel(a)} pasan a ${laneLabel(b)}, y las ${pb.length} de ${laneLabel(b)} pasan a ${laneLabel(a)}, cada una en el mismo orden.`)
+        : t(`Hand ${laneLabel(a)}'s ${pa.length} pending stop(s) to ${laneLabel(b)}, in the same order?`,
+            `¿Pasar las ${pa.length} parada(s) pendientes de ${laneLabel(a)} a ${laneLabel(b)}, en el mismo orden?`),
+      { confirmLabel: t("Swap", "Intercambiar") },
+    );
+    if (!ok) return;
+    const listaDe = (k: string, pend: Delivery[]) => {
+      const ids = new Set(pend.map((d) => d.id));
+      return lecturaDe(k, byDriver.get(k) ?? []).paradas.flatMap((p): ParadaDeLaLista[] => {
+        if (p.tipo === "D") return ids.has(p.orden) ? [p] : [];
+        const ordenes = p.ordenes.filter((o) => ids.has(o));
+        return ordenes.length ? [{ ...p, ordenes }] : [];
+      });
+    };
+    const antes = fotoDe([...pa, ...pb].map(aParadaDelGantt));
+    const despues = { ...antes };
+    const escrituras: { d: Delivery; parche: Partial<Delivery>; desde: string }[] = [];
+    const planea = (pend: Delivery[], origen: string, destino: string) => {
+      if (!pend.length) return;
+      const hechasDelDestino = (byDriver.get(destino) ?? []).filter((d) => ETAPAS_HECHAS.has(d.stage));
+      const desde = inicioDeLaRuta(destino, [...hechasDelDestino, ...pend]);
+      const e = escrituraDeLaLista(listaDe(origen, pend), desde);
+      for (const d of pend) {
+        const i = e.ids.indexOf(d.id);
+        const seq = i < 0 ? null : puestoEn(desde, i);
+        const pick = hayRecogidaGuardada ? e.pickupSeqById[d.id] ?? null : undefined;
+        const parche: Partial<Delivery> = { assigned_driver: destino, route_seq: seq, load_no: null, ...(pick !== undefined ? { pickup_seq: pick } : {}) };
+        escrituras.push({ d, parche, desde: origen });
+        despues[d.id] = { ...despues[d.id], assigned_driver: destino, route_seq: seq, load_no: null, ...(pick !== undefined ? { pickup_seq: pick } : {}) };
+      }
+    };
+    planea(pa, a, b);
+    planea(pb, b, a);
+    clearRouteFor(a);
+    clearRouteFor(b);
+    for (let i = 0; i < escrituras.length; i += 6) {
+      const tanda = escrituras.slice(i, i + 6);
+      const hechos = await Promise.all(tanda.map((w) => updateDelivery(w.d.id, w.parche)));
+      if (hechos.some((x) => !x)) return; // el proveedor ya avisó
+      await Promise.all(tanda.map((w) => addNote(w.d.id, `Route swap: ${w.desde} → ${w.parche.assigned_driver}`)));
+    }
+    await anotaMovimiento({ en: `Swap ${laneLabel(a)} ⇄ ${laneLabel(b)}`, es: `Intercambio ${laneLabel(a)} ⇄ ${laneLabel(b)}` }, [a, b], antes, despues);
+    notify(pb.length
+      ? t(`Swapped: ${laneLabel(a)} ⇄ ${laneLabel(b)}`, `Intercambiadas: ${laneLabel(a)} ⇄ ${laneLabel(b)}`)
+      : t(`${pa.length} stop(s) → ${laneLabel(b)}, same order`, `${pa.length} parada(s) → ${laneLabel(b)}, mismo orden`));
+  };
   // Delete a whole route/load: unassign every stop (back to the pool) and, if
   // it was a bucket, retire it.
   const clearLane = async (laneKey: string) => {
@@ -4662,6 +4719,19 @@ export default function RoutesPage() {
               {choferIdDe(u.driver) && camionesDelDia.disponible && (
                 <CamionDelChofer chofer={u.driver} driverId={choferIdDe(u.driver)!} asignado={camionesDelDia.asignaciones.find((a) => a.driverId === choferIdDe(u.driver))}
                   asignaciones={camionesDelDia.asignaciones} camiones={camionesDelDia.camiones} puedeCambiar={!soloLectura && camionesDelDia.puedeAsignar} asigna={camionesDelDia.asigna} t={t} soloIcono={eficienteAqui} />
+              )}
+              {/* D-1210 «⇄»: la ruta pendiente entera a otro chofer, en el mismo orden; si el otro tiene ruta, se intercambian. */}
+              {!soloLectura && !needsDriver && stops.some((d) => !ETAPAS_HECHAS.has(d.stage)) && (
+                <select data-intercambia-ruta={u.key} defaultValue=""
+                  title={t("Swap this route with another driver (same order). Picked-up and delivered orders stay.", "Intercambiar esta ruta con otro chofer (mismo orden). Lo recogido y entregado se queda.")}
+                  onChange={(e) => { const v = e.target.value; e.currentTarget.value = ""; if (v) void intercambiaRutas(u.key, v); }}
+                  style={{ width: 44, minWidth: 0, maxWidth: 44, flex: "0 0 44px", padding: "2px 4px", fontSize: 13 }}>
+                  <option value="">⇄</option>
+                  {[...new Set([...drivers.map((dv) => dv.full_name), ...lanes.map((l) => l.key)])].filter((k) => k && k !== u.key).map((k) => {
+                    const tiene = (byDriver.get(k) ?? []).some((d) => !ETAPAS_HECHAS.has(d.stage));
+                    return <option key={k} value={k}>{laneLabel(k)}{tiene ? t(" ⇄ (swap)", " ⇄ (intercambia)") : ""}{unavailableToday.has(k) ? t(" · off", " · fuera") : ""}</option>;
+                  })}
+                </select>
               )}
               {/* «⚠ sin base» (D-459): era un renglón entero bajo el nombre; el dueño, 2026-10-01, «remueve todo ese texto
                   incesario». El dato no se pierde: una pastilla, con la frase entera al pasar el ratón. */}
