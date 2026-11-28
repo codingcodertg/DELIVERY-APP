@@ -706,9 +706,11 @@ export default function RoutesPage() {
     const ahora = alternaVisible(selected, clavesDelPanel, clave);
     setSelected(ahora);
     abreDesdeElPanel(clave, ahora.has(clave));
+    setTab("routes"); // D-1211: tocar un chofer siempre lleva a «Rutas»
   };
   /** Pulsar la fila del panel: solo esa ruta, y su tabla abierta. */
   const enfocaEnElPanel = (clave: string) => {
+    setTab("routes"); // D-1211: el dueño, 2026-11-27: «cuando le dé click a un conductor el default es rutas»
     focusOnly(clave);
     abreDesdeElPanel(clave, true);
   };
