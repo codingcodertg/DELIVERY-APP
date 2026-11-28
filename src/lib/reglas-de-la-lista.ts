@@ -1,5 +1,6 @@
 import type { ParadaDeLaLista } from "./lista-unica";
 import { descargaPrimero } from "./route-engine/descarga-primero";
+import { dejaAntesDeRecoger } from "./route-engine/deja-antes-de-recoger";
 import { unaSolaVisita } from "./route-engine/una-sola-visita";
 import { validaLaRuta, type Resultado } from "./route-engine/validador";
 import type { OrdenEntrada, ParadaRef } from "./route-engine/types";
@@ -118,7 +119,7 @@ export function arreglaLaLista(lista: readonly ParadaDeLaLista[], ordenes: reado
   const cap = capacidadDeLaLista(capacidad);
 
   const sinCambio = { lista: copiaDeLaLista(lista), cambio: false };
-  const arreglada = unaSolaVisita(descargaPrimero(ref, oe, fijas), oe, cap, fijas);
+  const arreglada = dejaAntesDeRecoger(unaSolaVisita(dejaAntesDeRecoger(descargaPrimero(ref, oe, fijas), oe, fijas), oe, cap, fijas), oe, fijas);
   const igual = arreglada.length === ref.length && arreglada.every((p, i) => p.orden === ref[i].orden && p.tipo === ref[i].tipo);
   if (igual) return sinCambio;
 

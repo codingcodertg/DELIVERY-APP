@@ -1,5 +1,6 @@
 import { enLaBanda, MARGEN_PALLET_MI } from "./de-paso";
 import { descargaPrimero } from "./descarga-primero";
+import { dejaAntesDeRecoger } from "./deja-antes-de-recoger";
 import { soloAnadeRetraso, unaSolaVisitaCuandoCabe, violacionesAnadidas } from "./una-sola-visita";
 import {
   aCentesimas, cargaTransportadaDe, claveDeParada, claveDeZona, costeDeRutas, evaluaRuta, PARAMETROS_POR_DEFECTO, PESO_DE_ZONA_POR_DEFECTO, restaDesglose,
@@ -578,6 +579,19 @@ function planificaUnaVez(entrada: Entrada, parametros: Parametros): Plan {
     if (ruta.violaciones.length > estado.rutas.get(c.id)!.violaciones.length) continue;
     estado.secuencias.set(c.id, nueva);
     estado.rutas.set(c.id, ruta);
+  }
+
+  // ---- Deja antes de recoger (D-1212) ---------------------------------------------------------------
+  // Regla dura del dueño: nunca se recoge en una tienda llevando algo PARA esa tienda; se deja primero. Sin excepción de
+  // retraso ni de millas (por eso se adopta siempre); solo adelanta descargas, así que la carga a bordo no sube.
+  for (const c of choferes) {
+    const sec = estado.secuencias.get(c.id)!;
+    let fijas = 0;
+    while (fijas < sec.length && fijadas.has(claveDeParada(sec[fijas]))) fijas++;
+    const nueva = dejaAntesDeRecoger(sec, ordenes, fijas);
+    if (!nueva.some((p, i) => p.orden !== sec[i].orden || p.tipo !== sec[i].tipo)) continue;
+    estado.secuencias.set(c.id, nueva);
+    estado.rutas.set(c.id, evaluaRuta(c, nueva, ctx));
   }
 
   // ---- Una sola visita por tienda cuando cabe (motor-11) -------------------------------------------

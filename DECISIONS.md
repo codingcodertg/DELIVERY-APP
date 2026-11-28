@@ -53565,3 +53565,10 @@ Sello `deliveries` 1.675.0; repo 2.7.0.
 
 El dueño: «cuando le dé click a un conductor el default es rutas… si quedó en Sin asignar y cambio conductor quiero ver las rutas». Pulsar la fila o marcar/desmarcar un chofer en el panel pone la pestaña «Rutas».
 Sello `deliveries` 1.675.1; repo 2.7.1.
+
+## D-1212 · Choferes: «☎️ RingCentral» llama desde su extensión; el motor deja antes de recoger en la misma tienda (2026-11-27)
+
+El dueño: integrar RingCentral para los choferes (Ernesto, Julio, Max) — «que aprieten y se abra RingCentral y se llame con la extensión de ellos». En la ficha del chofer, al tocar el teléfono del cliente, si el chofer está marcado en RingCentral → Choferes (`rc_driver_extensions`, emparejado por nombre en `/api/ringcentral/mi-extension`), sale «☎️ RingCentral» (`rcapp://r/call`), que abre la app del teléfono y llama desde la sesión del chofer. Hoy solo Ernesto (441) está marcado; Julio y Max se marcan allí.
+Y: «siempre que vamos a dejar una tienda, dejamos en la tienda y recogemos; no vas a recoger algo si tienes algo para entregar a esa tienda». Regla dura nueva (regla 2, `recoge_llevando_para_esa_tienda`) en el validador, y `dejaAntesDeRecoger` en «Armar rutas» (planifica, sin excepción de retraso) y en «Optimizar» (`arreglaLaLista`). Revisadas las rutas del 11-27 y 11-28: ya cumplían (el 11-26 no hubo rutas).
+Fotos a managers: el rol `manager` ya ve las fotos (storage y `puedeVerFotos`, comprobado como Roberto: 46 de 46 en 7 días); no se cambió.
+Sello `deliveries` 1.676.0; repo 2.8.0.
